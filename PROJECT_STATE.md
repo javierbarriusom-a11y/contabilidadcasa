@@ -70,6 +70,50 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 14 de septiembre de 2026 (193): `LPX5`
+
+Segunda tarea de `BACKLOG_SUCESION_Y_CONTINUIDAD.md`. `LPX6` ya se había construido y publicado en la
+sesión 192 (ver el cierre inmediatamente debajo) en otra sesión en paralelo — esta sesión partió del
+mismo backlog, sin verlo todavía fusionado, así que empezó por `LPX6` de forma independiente; al abrir
+el PR se detectó que ya estaba en `main` (PR #302) y esta entrada se reescribió para cubrir solo el
+trabajo que seguía pendiente de verdad: `LPX5`. El diagnóstico y la implementación de `LPX6` de esta
+sesión coincidieron en lo esencial con los de la sesión 192 (mismos campos `isLife`/`beneficiary`,
+mismo criterio de sustituir la casilla manual) — se descartó el duplicado sin perder nada, tomando la
+versión ya fusionada como base.
+
+**`LPX5` — Destino declarado por activo.** Extiende `canonical-assets.js` (`A14-1`) con un campo
+`destination` opcional por activo (texto libre, mismo patrón que `notes`/`category`), declarable desde
+el propio formulario de Ajustes › Patrimonio (`a14AssetDestination`, leído por `saveA14Asset`). Nunca
+vinculante: no decide legítima ni sustituye testamento, tal y como exige el backlog. Decisión de
+alcance tomada en esta sesión: el backlog hablaba de "convertir la casilla global «a quién avisar» en
+algo trazable activo por activo", pero de las tres casillas manuales originales de `LPX3` solo
+`documentsKnown` ("Alguien de confianza sabe dónde están los documentos clave") seguía sin construir
+tras `LPX6` — y esa pregunta (¿alguien sabe dónde están los documentos?) es genuinamente distinta de
+"¿a quién se destina cada activo?", sin dato real que la sustituya. Se optó por **no** reutilizar ese
+id para un check que no le corresponde: `documentsKnown` sigue como casilla manual legítima, y se
+añadió un check automático nuevo (`assetDestination`) junto a los demás. El checklist de `LPX3` pasa
+así de cinco a seis puntos (cuatro automáticos: activos, pólizas, beneficiario de vida, destino por
+activo; dos manuales: testamento y documentos clave).
+
+- **Validación**: `npm run verify` completo en verde tras rebasar sobre `main` (con `LPX6`, PR #302,
+  ya fusionado) y resolver el conflicto de fusión quedándose con la implementación de `LPX6` ya
+  publicada. `npm test` **4242/4242** pruebas (6 nuevas de `LPX5` sobre las 4236/4236 que ya dejó
+  `LPX6` en `main`). `test:a11y` **1326 IDs únicos** (antes 1325, sesión 192; +1 por el campo de
+  destino). `test:performance`: diff 10.000 filas 31,8 ms, forecast y escenarios 170,3 ms, recursos
+  2283 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 113,0 ms, alertas 85,4 ms,
+  forecast 131,4 ms, histórico de presupuestos 28,4 ms, índice de transacciones por categoría
+  102,4 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en
+  navegador real con Playwright: se dio de alta un activo con destino declarado (aparece en el
+  listado de activos) y el checklist de continuidad reflejó al instante el punto de destino en verde
+  — sin errores de consola propios de la app.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `BACKLOG_SUCESION_Y_CONTINUIDAD.md` queda con `LPX4` como
+  única tarea abierta (aviso temprano de coste fiscal por sucesión/donación) — la más delicada de las
+  tres por su restricción explícita de no inventar bonificación ni tramo fiscal sin fuente completa
+  declarada por el hogar.
+
 ## Cierre de sesión — 14 de septiembre de 2026 (192): `LPX6`
 
 Primera tarea construida de `BACKLOG_SUCESION_Y_CONTINUIDAD.md`, nacido esta misma sesión a partir de
@@ -107,7 +151,8 @@ tercero (beneficiarios) pasa a automático.
   cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
   vigente (`CLAUDE.md`).
 - **Pendiente**: quedan `LPX4` (aviso temprano de coste fiscal por sucesión/donación) y `LPX5`
-  (destino declarado por activo) en `BACKLOG_SUCESION_Y_CONTINUIDAD.md`.
+  (destino declarado por activo) en `BACKLOG_SUCESION_Y_CONTINUIDAD.md`. `LPX5` se construyó y
+  publicó en la sesión 193 (ver el cierre inmediatamente arriba).
 
 ## Cierre de sesión — 14 de septiembre de 2026 (191): `GOB15`
 

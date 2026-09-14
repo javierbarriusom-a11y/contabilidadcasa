@@ -12,9 +12,10 @@ const Assets = require(path.join(root, "canonical-assets.js"));
 // LPX3 (Oleada 2 Bloque 2): checklist de continuidad ante fallecimiento o incapacidad. Depende de
 // A14-1 (activos con procedencia) y SP1 (inventario de pólizas) — puntos verificables con datos
 // reales. LPX6 (sesión 192) convirtió el tercer punto (beneficiarios) de casilla manual global a
-// comprobación automática sobre pólizas de vida declaradas; los otros dos (testamento, a quién
-// avisar) siguen sin ninguna fuente de datos en la app, así que quedan como casillas que confirma
-// el propio hogar, nunca inferidas.
+// comprobación automática sobre pólizas de vida declaradas. LPX5 (sesión 193) añade un cuarto: al
+// menos un activo con destino declarado. Los otros dos (testamento, a quién avisar) siguen sin
+// ninguna fuente de datos en la app, así que quedan como casillas que confirma el propio hogar,
+// nunca inferidas.
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -51,19 +52,26 @@ function sandbox() {
 
 const ASSET_WITH_PROVENANCE = { id: "a1", type: "cuenta", label: "Cuenta", value: 1000, asOf: "2026-09-01", provenance: "declared" };
 const ASSET_UNKNOWN = { id: "a2", type: "inmueble", label: "Piso", value: 200000, asOf: "2026-09-01", provenance: "unknown" };
+const ASSET_WITH_DESTINATION = { id: "a3", type: "cuenta", label: "Cuenta ahorro", value: 5000, asOf: "2026-09-01", provenance: "declared", destination: "Hijo mayor" };
 const POLICY = { id: "p1", name: "Seguro de hogar", renewalDate: "2027-01-01" };
 const POLICY_LIFE_NO_BENEFICIARY = { id: "p2", name: "Seguro de vida", renewalDate: "2027-01-01", isLife: true };
 const POLICY_LIFE_WITH_BENEFICIARY = { id: "p3", name: "Seguro de vida", renewalDate: "2027-01-01", isLife: true, beneficiary: "Cónyuge" };
 
-test("lpx3ContinuityChecklist · sin activos ni pólizas, ambos puntos automáticos fallan explícitamente", () => {
+test("lpx3ContinuityChecklist · sin activos ni pólizas, los cuatro puntos automáticos fallan explícitamente", () => {
   const ctx = sandbox();
   const result = ctx.lpx3ContinuityChecklist([], [], {});
   const assetsCheck = result.checks.find((check) => check.id === "assets");
   const policiesCheck = result.checks.find((check) => check.id === "policies");
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
+  const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
   assert.equal(assetsCheck.ok, false);
   assert.match(assetsCheck.detail, /Sin activos registrados/);
   assert.equal(policiesCheck.ok, false);
   assert.match(policiesCheck.detail, /Sin ninguna póliza registrada/);
+  assert.equal(beneficiaryCheck.ok, false);
+  assert.match(beneficiaryCheck.detail, /Sin pólizas de vida registradas/);
+  assert.equal(destinationCheck.ok, false);
+  assert.match(destinationCheck.detail, /Sin activos registrados/);
 });
 
 test("lpx3ContinuityChecklist · con activos, todos con procedencia declarada, el punto pasa", () => {
@@ -79,6 +87,23 @@ test("lpx3ContinuityChecklist · un activo con procedencia desconocida hace fall
   const assetsCheck = result.checks.find((check) => check.id === "assets");
   assert.equal(assetsCheck.ok, false);
   assert.match(assetsCheck.detail, /1 activo\(s\) sin procedencia declarada/);
+});
+
+// LPX5: el punto de destino por activo ya no es una casilla manual — depende del campo real.
+test("lpx3ContinuityChecklist · activos registrados sin ninguno con destino declarado hace fallar el punto, con el recuento real", () => {
+  const ctx = sandbox();
+  const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_UNKNOWN], [], {});
+  const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
+  assert.equal(destinationCheck.ok, false);
+  assert.match(destinationCheck.detail, /2 activo\(s\) sin destino declarado/);
+});
+
+test("lpx3ContinuityChecklist · al menos un activo con destino declarado hace pasar el punto", () => {
+  const ctx = sandbox();
+  const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_WITH_DESTINATION], [], {});
+  const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
+  assert.equal(destinationCheck.ok, true);
+  assert.match(destinationCheck.detail, /1 de 2 activo\(s\) con destino declarado/);
 });
 
 test("lpx3ContinuityChecklist · LPX6: sin pólizas de vida, el punto de beneficiario falla explícitamente, distinto de sin beneficiario declarado", () => {
@@ -131,12 +156,12 @@ test("lpx3ContinuityChecklist · un punto manual confirmado por el hogar pasa a 
   assert.equal(result.checks.find((check) => check.id === "documentsKnown").ok, false);
 });
 
-test("lpx3ContinuityChecklist · ready es true solo cuando los cinco puntos están en verde", () => {
+test("lpx3ContinuityChecklist · ready es true solo cuando los seis puntos están en verde", () => {
   const ctx = sandbox();
   const manual = { will: true, documentsKnown: true };
-  const partial = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE], [POLICY_LIFE_WITH_BENEFICIARY], { will: true });
+  const partial = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, POLICY_LIFE_WITH_BENEFICIARY], { will: true });
   assert.equal(partial.ready, false);
-  const complete = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE], [POLICY_LIFE_WITH_BENEFICIARY], manual);
+  const complete = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, POLICY_LIFE_WITH_BENEFICIARY], manual);
   assert.equal(complete.ready, true);
 });
 
@@ -160,4 +185,15 @@ test("app.js: el checkbox de cada punto manual está cableado a handleLpx3Manual
 
 test("index.html: la tarjeta de continuidad está en Ajustes › Patrimonio, junto a A14-1", () => {
   assert.match(indexSource, /id="lpx3ContinuityChecklist"/);
+});
+
+// LPX5: el campo de destino vive en el propio formulario de activos (A14-1) y saveA14Asset lo lee.
+test("index.html: el formulario de activos tiene el campo de destino declarado", () => {
+  assert.match(indexSource, /id="a14AssetDestination"/);
+});
+
+test("app.js: saveA14Asset lee y guarda el destino declarado por activo", () => {
+  const block = app.slice(app.indexOf("function saveA14Asset("), app.indexOf("function saveA14Asset(") + 1700);
+  assert.match(block, /a14AssetDestination/);
+  assert.match(block, /destination/);
 });
