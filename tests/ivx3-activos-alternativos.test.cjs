@@ -86,7 +86,7 @@ test("app.js: a14AssetReturnLabel usa alternativeAssetReturn y no pinta nada cua
 
 test("app.js: renderA14AssetList pinta la categoría y la rentabilidad de cada activo", () => {
   const start = appSource.indexOf("function renderA14AssetList(");
-  const block = appSource.slice(start, start + 700);
+  const block = appSource.slice(start, start + 900);
   assert.match(block, /a14AssetReturnLabel\(asset\)/);
   assert.match(block, /asset\.category/);
 });

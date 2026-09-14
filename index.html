@@ -4169,6 +4169,14 @@
                   <span>Notas</span>
                   <input id="ajustesInsurancePolicyNotes" type="text" placeholder="Opcional" />
                 </label>
+                <label class="month-picker">
+                  <span>Seguro de vida</span>
+                  <input id="ajustesInsurancePolicyIsLife" type="checkbox" />
+                </label>
+                <label class="month-picker">
+                  <span>Beneficiario declarado (solo vida)</span>
+                  <input id="ajustesInsurancePolicyBeneficiary" type="text" placeholder="Opcional" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
               <div id="ajustesInsurancePolicies"></div>
@@ -4387,6 +4395,11 @@
                 <label class="month-picker">
                   <span>Ingreso de alquiler neto mensual (€, opcional)</span>
                   <input id="a14AssetMonthlyRentIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="Si este activo está en alquiler" />
+                </label>
+                <!-- LPX5: declaración libre, nunca vinculante — no decide legítima ni sustituye testamento. -->
+                <label class="month-picker">
+                  <span>A quién se destina (opcional)</span>
+                  <input id="a14AssetDestination" type="text" placeholder="p. ej. hijo mayor" />
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="a14AssetAdd">Añadir activo</button>

@@ -120,6 +120,24 @@ test("removeInsurancePolicy · retira la póliza por id", () => {
   assert.equal(context.insurancePolicies().length, 0);
 });
 
+// LPX6: campo opcional de beneficiario, solo relevante cuando la póliza es de vida — nunca se
+// infiere del nombre ni de ningún otro dato.
+test("addInsurancePolicy · sin declarar isLife/beneficiary, quedan en false/vacío por defecto", () => {
+  const context = sandbox();
+  context.addInsurancePolicy({ name: "Seguro de coche", renewalDate: "2027-01-01", premium: 100 });
+  const policy = context.insurancePolicies()[0];
+  assert.equal(policy.isLife, false);
+  assert.equal(policy.beneficiary, "");
+});
+
+test("addInsurancePolicy · una póliza de vida con beneficiario declarado los conserva tal cual", () => {
+  const context = sandbox();
+  context.addInsurancePolicy({ name: "Seguro de vida", renewalDate: "2027-01-01", premium: 100, isLife: true, beneficiary: "  Hijo mayor  " });
+  const policy = context.insurancePolicies()[0];
+  assert.equal(policy.isLife, true);
+  assert.equal(policy.beneficiary, "Hijo mayor");
+});
+
 test("el formulario y el registro de pólizas viven en #ajustes", () => {
   const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
   assert.ok(openTag, "No existe la sección #ajustes");
@@ -130,6 +148,8 @@ test("el formulario y el registro de pólizas viven en #ajustes", () => {
   assert.match(ajustes, /id="ajustesInsurancePolicyDate"/);
   assert.match(ajustes, /id="ajustesInsurancePolicyPremium"/);
   assert.match(ajustes, /id="ajustesInsurancePolicyNotes"/);
+  assert.match(ajustes, /id="ajustesInsurancePolicyIsLife"/);
+  assert.match(ajustes, /id="ajustesInsurancePolicyBeneficiary"/);
   assert.match(ajustes, /id="ajustesInsurancePolicyAdd"/);
   assert.match(ajustes, /id="ajustesInsurancePolicies"/);
 });

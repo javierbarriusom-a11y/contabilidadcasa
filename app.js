@@ -15889,7 +15889,7 @@ function insurancePolicies() {
   return scenarioSettings.insurancePolicies;
 }
 
-function addInsurancePolicy({ name, renewalDate, premium, notes }) {
+function addInsurancePolicy({ name, renewalDate, premium, notes, isLife, beneficiary }) {
   const accounts = insurancePolicies();
   accounts.push({
     id: `poliza-${Date.now()}-${accounts.length}`,
@@ -15897,6 +15897,9 @@ function addInsurancePolicy({ name, renewalDate, premium, notes }) {
     renewalDate: /^\d{4}-\d{2}-\d{2}$/.test(String(renewalDate || "").trim()) ? String(renewalDate).trim() : "",
     premium: round2(Math.max(0, Number(premium) || 0)),
     notes: String(notes || "").trim(),
+    // LPX6: campo opcional, solo relevante cuando isLife es true — nunca se infiere del nombre.
+    isLife: Boolean(isLife),
+    beneficiary: String(beneficiary || "").trim(),
   });
   saveScenarioSettings();
 }
@@ -15912,7 +15915,7 @@ function renderInsurancePolicies() {
   const policies = insurancePolicies().slice().sort((a, b) => (a.renewalDate || "9999").localeCompare(b.renewalDate || "9999"));
   target.innerHTML = policies.length
     ? `<ul class="commit-barrier-list">${policies
-        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong></div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
+        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong>${policy.isLife ? ` <span class="status-pill">Vida</span>` : ""}</div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.isLife ? ` · ${policy.beneficiary ? `Beneficiario: ${escapeHtml(policy.beneficiary)}` : "Sin beneficiario declarado"}` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
         .join("")}</ul>`
     : `<p class="e19-kpi-note">Sin pólizas registradas todavía.</p>`;
 }
@@ -15926,10 +15929,13 @@ function addInsurancePolicyFromControls() {
     renewalDate,
     premium: parseAmount(qs("ajustesInsurancePolicyPremium")?.value),
     notes: qs("ajustesInsurancePolicyNotes")?.value,
+    isLife: qs("ajustesInsurancePolicyIsLife")?.checked,
+    beneficiary: qs("ajustesInsurancePolicyBeneficiary")?.value,
   });
-  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes"].forEach((id) => {
+  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes", "ajustesInsurancePolicyBeneficiary"].forEach((id) => {
     if (qs(id)) qs(id).value = "";
   });
+  if (qs("ajustesInsurancePolicyIsLife")) qs("ajustesInsurancePolicyIsLife").checked = false;
   renderInsurancePolicies();
   renderLpx3ContinuityChecklist();
 }
@@ -19199,11 +19205,16 @@ function renderRgxKnowledgeConcentration() {
 
 // LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1 (activos con
 // procedencia) y SP1 (inventario de pólizas) — dos puntos que la app ya sabe responder con datos
-// reales. Los otros tres (testamento, beneficiarios, a quién avisar) no tienen ninguna fuente de
-// datos en la app: son casillas que confirma el propio hogar, persistidas tal cual, nunca inferidas.
+// reales. LPX6 (sesión 193) añade un tercero: con el campo de beneficiario ya declarable por póliza
+// de vida (ver addInsurancePolicy), la casilla manual global "beneficiarios" deja de ser necesaria —
+// se sustituye por una comprobación real contra ese dato. LPX5 (misma sesión) añade un cuarto: con el
+// campo de destino declarable por activo (ver canonical-assets.js, saveA14Asset), se puede comprobar
+// de verdad si el hogar ha empezado a trazar quién recibe qué, en vez de una única casilla global sin
+// dato real detrás. Testamento y "alguien sabe dónde están los documentos clave" siguen siendo
+// preguntas genuinamente distintas sin ninguna fuente de datos en la app: quedan como casillas que
+// confirma el propio hogar, persistidas tal cual, nunca inferidas.
 const LPX3_MANUAL_ITEMS = [
   { id: "will", label: "Testamento hecho y actualizado" },
-  { id: "beneficiaries", label: "Beneficiarios de las pólizas revisados y al día" },
   { id: "documentsKnown", label: "Alguien de confianza sabe dónde están los documentos clave" },
 ];
 
@@ -19234,13 +19245,38 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     ok: policyCount > 0,
     detail: policyCount > 0 ? `${policyCount} póliza(s) registrada(s).` : "Sin ninguna póliza registrada todavía.",
   };
+  // LPX6: ya no es una casilla manual — comprueba el campo real de beneficiario por póliza de vida.
+  const lifePolicies = (policies || []).filter((policy) => policy?.isLife);
+  const lifePoliciesWithBeneficiary = lifePolicies.filter((policy) => String(policy?.beneficiary || "").trim());
+  const beneficiariesCheck = {
+    id: "beneficiaries",
+    label: "Beneficiario declarado en pólizas de vida",
+    ok: lifePoliciesWithBeneficiary.length > 0,
+    detail: lifePolicies.length === 0
+      ? "Sin pólizas de vida registradas todavía."
+      : lifePoliciesWithBeneficiary.length > 0
+        ? `${lifePoliciesWithBeneficiary.length} de ${lifePolicies.length} póliza(s) de vida con beneficiario declarado.`
+        : `${lifePolicies.length} póliza(s) de vida sin beneficiario declarado.`,
+  };
+  // LPX5: ya no es una casilla manual — comprueba el campo real de destino por activo.
+  const assetsWithDestination = assetRows.filter((asset) => String(asset?.destination || "").trim());
+  const destinationCheck = {
+    id: "assetDestination",
+    label: "Destino declarado por activo",
+    ok: assetsWithDestination.length > 0,
+    detail: assetRows.length === 0
+      ? "Sin activos registrados todavía."
+      : assetsWithDestination.length > 0
+        ? `${assetsWithDestination.length} de ${assetRows.length} activo(s) con destino declarado.`
+        : `${assetRows.length} activo(s) sin destino declarado.`,
+  };
   const manual = LPX3_MANUAL_ITEMS.map((item) => ({
     id: item.id,
     label: item.label,
     ok: Boolean(manualChecks?.[item.id]),
     detail: manualChecks?.[item.id] ? "Confirmado por el hogar." : "Pendiente de confirmar.",
   }));
-  const checks = [assetsCheck, policiesCheck, ...manual];
+  const checks = [assetsCheck, policiesCheck, beneficiariesCheck, destinationCheck, ...manual];
   return { checks, ready: checks.every((check) => check.ok) };
 }
 
@@ -19979,11 +20015,13 @@ function clearA14AssetForm() {
   const categoryInput = qs("a14AssetCategory");
   const investedAmountInput = qs("a14AssetInvestedAmount");
   const monthlyRentIncomeInput = qs("a14AssetMonthlyRentIncome");
+  const destinationInput = qs("a14AssetDestination");
   if (labelInput) labelInput.value = "";
   if (valueInput) valueInput.value = "";
   if (categoryInput) categoryInput.value = "";
   if (investedAmountInput) investedAmountInput.value = "";
   if (monthlyRentIncomeInput) monthlyRentIncomeInput.value = "";
+  if (destinationInput) destinationInput.value = "";
 }
 
 // A14-3 (núcleo, sin CSV todavía — sesión aparte): actualizar un activo ya registrado nunca
@@ -20004,17 +20042,19 @@ function saveA14Asset() {
   // INV9: mismo criterio "vacío = sin dato, nunca 0" que investedAmount (IVX3).
   const monthlyRentIncomeRaw = qs("a14AssetMonthlyRentIncome")?.value;
   const monthlyRentIncome = monthlyRentIncomeRaw === "" || monthlyRentIncomeRaw === undefined ? null : parseAmount(monthlyRentIncomeRaw);
+  // LPX5: a quién se destina el activo — texto libre opcional, nunca vinculante.
+  const destination = (qs("a14AssetDestination")?.value || "").trim();
   if (!label) {
     announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
     return;
   }
   const existing = findA14AssetMatch(type, label);
   if (existing) {
-    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome } };
+    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome, destination } };
     renderA14AssetPendingCompare();
     return;
   }
-  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome, owner: "household" }];
+  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome, destination, owner: "household" }];
   saveAssetsList(next);
   clearA14AssetForm();
   renderA14AssetList();
@@ -20097,7 +20137,8 @@ function renderA14AssetList() {
     const typeLabel = A14_ASSET_TYPE_LABELS[asset.type] || "Otro";
     const provenanceLabel = A14_PROVENANCE_LABELS[asset.provenance] || "desconocido";
     const categoryLabel = asset.category ? ` · ${escapeHtml(asset.category)}` : "";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}${a14AssetRentalLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
+    const destinationLabel = asset.destination ? ` · destino: ${escapeHtml(asset.destination)}` : "";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}${a14AssetRentalLabel(asset)}${destinationLabel}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
   });
   list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
 }

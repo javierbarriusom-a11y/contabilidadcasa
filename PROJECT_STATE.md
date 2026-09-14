@@ -70,6 +70,58 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 14 de septiembre de 2026 (193): `LPX6` y `LPX5`
+
+Primeras dos tareas de `BACKLOG_SUCESION_Y_CONTINUIDAD.md` (nacido en la sesión 192, tras cerrarse
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`), en el orden acordado con el usuario al empezar la sesión:
+de menor a mayor riesgo de diseño, dejando `LPX4` (el aviso fiscal de sucesiones) para el final.
+
+**`LPX6` — Beneficiario declarado por póliza de vida.** Diagnóstico previo: el backlog citaba
+`canonical-life-coverage.js` (`SP1`) como el sitio sin campo de beneficiario, pero ese archivo es en
+realidad el motor de `SP2` (compara capital asegurado agregado vs. deuda pendiente) — el inventario
+real de pólizas (`SP1`) vive como `insurancePolicies()`/`addInsurancePolicy()` en `app.js`
+(`tests/sp1-inventario-polizas.test.cjs`), y ahí es donde no existía ningún campo de beneficiario ni
+de tipo de póliza. Añadidos dos campos opcionales por póliza: `isLife` (checkbox "Seguro de vida") y
+`beneficiary` (texto libre, solo con sentido si `isLife`), nunca inferidos del nombre de la póliza.
+`lpx3ContinuityChecklist()` (`LPX3`) sustituye su antigua casilla manual global "Beneficiarios de las
+pólizas revisados y al día" por una comprobación real: ok cuando al menos una póliza de vida tiene
+beneficiario declarado, con el recuento exacto en el detalle (`X de Y póliza(s) de vida con
+beneficiario declarado`). `LPX3_MANUAL_ITEMS` pasa de tres casillas manuales a dos. Tests ampliados en
+`tests/sp1-inventario-polizas.test.cjs` y `tests/lpx3-continuidad-checklist.test.cjs`.
+
+**`LPX5` — Destino declarado por activo.** Extiende `canonical-assets.js` (`A14-1`) con un campo
+`destination` opcional por activo (texto libre, mismo patrón que `notes`/`category`), declarable desde
+el propio formulario de Ajustes › Patrimonio (`a14AssetDestination`, leído por `saveA14Asset`). Nunca
+vinculante: no decide legítima ni sustituye testamento, tal y como exige el backlog. Decisión de
+alcance tomada en esta sesión: el backlog hablaba de "convertir la casilla global «a quién avisar» en
+algo trazable activo por activo", pero de las tres casillas manuales originales de `LPX3` solo
+`documentsKnown` ("Alguien de confianza sabe dónde están los documentos clave") quedaba sin construir
+tras `LPX6` — y esa pregunta (¿alguien sabe dónde están los documentos?) es genuinamente distinta de
+"¿a quién se destina cada activo?", sin dato real que la sustituya. Se optó por **no** reutilizar ese
+id para un check que no le corresponde: `documentsKnown` sigue como casilla manual legítima, y se
+añadió un check automático nuevo (`assetDestination`) junto a los demás. El checklist de `LPX3` pasa
+así de cinco a seis puntos (cuatro automáticos, dos manuales: testamento y documentos clave).
+
+- **Validación**: `npm run verify` completo en verde. `npm test` **4235/4235** pruebas (11 nuevas
+  entre ambas tareas). `test:a11y` **1326 IDs únicos** (antes 1325, sesión 191; +1 por los campos de
+  `LPX6`/`LPX5`). `test:performance`: diff 10.000 filas 33,7 ms, forecast y escenarios 159,9 ms,
+  recursos 2283 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 113,8 ms, alertas
+  71,8 ms, forecast 130,4 ms, histórico de presupuestos 27,6 ms, índice de transacciones por categoría
+  86,0 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en
+  navegador real con Playwright: se dio de alta una póliza de vida con beneficiario declarado (aparece
+  con la etiqueta "Vida" y el beneficiario en el listado) y un activo con destino declarado (aparece
+  en el listado de activos), y el checklist de continuidad reflejó al instante los cuatro puntos
+  automáticos en verde junto a los dos manuales pendientes — sin errores de consola propios de la app
+  (los dos únicos mensajes de consola observados fueron el bloqueo de red del proxy del entorno de
+  pruebas al script externo de Supabase, ajeno a este cambio).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `BACKLOG_SUCESION_Y_CONTINUIDAD.md` queda con `LPX4` como
+  única tarea abierta (aviso temprano de coste fiscal por sucesión/donación) — la más delicada de las
+  tres por su restricción explícita de no inventar bonificación ni tramo fiscal sin fuente completa
+  declarada por el hogar.
+
 ## Cierre de sesión — 14 de septiembre de 2026 (191): `GOB15`
 
 Última tarea accionable de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. El hogar pidió ampliar el

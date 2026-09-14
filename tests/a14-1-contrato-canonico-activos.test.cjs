@@ -98,3 +98,14 @@ test("el contrato viaja versionado (schemaId/schemaVersion)", () => {
   assert.equal(asset.schemaId, Assets.SCHEMA_ID);
   assert.equal(asset.schemaVersion, Assets.SCHEMA_VERSION);
 });
+
+// LPX5: a quién se destina el activo — texto libre opcional, nunca vinculante, nunca inferido.
+test("sin destino declarado, el campo queda vacío, nunca inventado", () => {
+  const asset = Assets.normalizeAsset({ id: "sin-destino", type: "cuenta", value: 100, provenance: "declared" });
+  assert.equal(asset.destination, "");
+});
+
+test("con destino declarado, se conserva recortado de espacios", () => {
+  const asset = Assets.normalizeAsset({ id: "con-destino", type: "cuenta", value: 100, provenance: "declared", destination: "  Hijo mayor  " });
+  assert.equal(asset.destination, "Hijo mayor");
+});

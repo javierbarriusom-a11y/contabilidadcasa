@@ -141,6 +141,10 @@
       source: known(raw.source) ? String(raw.source).trim() : "",
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
       category: known(raw.category) ? String(raw.category).trim() : "",
+      // LPX5: a quién se destina este activo. Texto libre declarado por el hogar, nunca vinculante —
+      // no decide legítima ni sustituye testamento, solo hace trazable activo por activo lo que antes
+      // era una única casilla global sin dato real detrás.
+      destination: known(raw.destination) ? String(raw.destination).trim() : "",
       investedAmount,
       monthlyRentIncome,
     };
