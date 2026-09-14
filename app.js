@@ -6953,6 +6953,7 @@ function applyHelpTooltips() {
   qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
   qs("ajustesJointRestructuringCompare")?.setAttribute("data-help", "Con los contratos activos de Deuda › Contratos, propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro configurado en Ajustes › Alertas, dado el ingreso mensual que indiques.");
   qs("gob19SeparationCompare")?.setAttribute("data-help", "Reparte la deuda activa por el titular ya declarado (Javi/Tere/Hogar en Herramientas avanzadas → Datos), reestructura la cuota de cada uno con su ingreso individual tras la separación —mismo motor que la reestructuración conjunta, llamado una vez por persona— y recuerda el saldo de gastos compartidos pendiente de liquidar antes de separar cuentas.");
+  qs("gob15Simulate")?.setAttribute("data-help", "Cancela la hipoteca activa ya declarada en Deuda › Contratos con el precio de venta, estima el coste fiscal de la plusvalía (con exención proporcional si reinviertes en una vivienda nueva) y compara la cuota mensual actual contra el alquiler nuevo o la hipoteca nueva, según el destino que elijas.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -19558,6 +19559,198 @@ function renderGob11Panel() {
   if (trajectoryHost) trajectoryHost.innerHTML = gob11TrajectoryTableHtml(result.yearlyTrajectory);
 }
 
+// GOB15 (Oleada 4, Bloque 7, apuesta L reservada a sesión propia — confirmada por el hogar en sesión
+// 171): simulador de vender la vivienda habitual, con dos destinos posibles para el neto — pasar a
+// alquiler o comprar una vivienda nueva (decisión del hogar, sesión 190: añadir el segundo destino).
+// Sin motor propio salvo la exención por reinversión (abajo): reutiliza tal cual la hipoteca activa ya
+// declarada en Deuda › Contratos (mismo filtro que DEB14, `deb14MortgageContracts`) para la deuda que
+// se cancela al vender; `optimizePartialSale` (FC5) + `latestIrpfScale("savings")` +
+// `fc5AlreadyRealized` (sin duplicarlos) para el coste fiscal de la plusvalía; `monthlyPayment` (DI1,
+// `canonical-mortgage-rate-scenarios.js`) para la cuota de una hipoteca nueva si compra financiada; y
+// `rentalAssetPnL` (INV9, `canonical-assets.js`) para anualizar el alquiler nuevo si pasa a alquiler.
+//
+// La única pieza de cálculo nueva es la exención proporcional por reinversión en vivienda habitual
+// (art. 38 LIRPF / art. 41 RIRPF): cuando el importe reinvertido en la vivienda nueva es menor que el
+// precio de venta, solo la parte de la ganancia proporcional a esa fracción queda exenta — a
+// diferencia de un tramo o tipo numérico (que caduca cada año y este proyecto nunca fabrica sin fuente
+// registrada), esta es la fórmula legal estable del mecanismo de reinversión, aplicada aquí como
+// estimación orientativa con el mismo aviso profesional que ya lleva `optimizePartialSale` en el resto
+// de la app. Para cualquier otra exención que el hogar ya conozca (p. ej. mayor de 65 años, sin
+// reinversión) hay una casilla declarada aparte — nunca se decide la elegibilidad desde el código.
+//
+// Comparación puntual con los datos de hoy, igual que el resto de simuladores L de esta familia (DI1,
+// AP3, LEV9...): no proyecta revalorización de la vivienda ni inflación del alquiler a varios años, y
+// nunca ejecuta ni decide la venta — la decisión sigue siendo del hogar.
+function gob15OldMortgage() {
+  const contracts = deb14MortgageContracts();
+  return {
+    principal: round2(sumRows(contracts, (contract) => Number(contract.currentPrincipal) || 0)),
+    monthlyPayment: round2(sumRows(contracts, (contract) => Number(contract.currentPayment) || 0)),
+  };
+}
+
+function gob15SimulateSale(input = {}) {
+  const {
+    mode = "alquiler",
+    salePrice, acquisitionCost, sellingCosts,
+    manualExemption = false,
+    newMonthlyRent,
+    newHomePrice, reinvestedAmount, newMortgageRatePct, newMortgageMonths,
+    alreadyRealizedGain,
+  } = input;
+  const price = Math.max(0, Number(salePrice) || 0);
+  const acquisition = Math.max(0, Number(acquisitionCost) || 0);
+  const costs = Math.max(0, Number(sellingCosts) || 0);
+  const oldMortgage = gob15OldMortgage();
+  const grossGain = round2(Math.max(0, price - acquisition));
+
+  let exemptGain = 0;
+  let reinvestRatioPct = null;
+  if (manualExemption) {
+    exemptGain = grossGain;
+  } else if (mode === "compra" && price > 0) {
+    const reinvested = Math.max(0, Number(reinvestedAmount) || 0);
+    const ratio = Math.min(1, reinvested / price);
+    reinvestRatioPct = round2(ratio * 100);
+    exemptGain = round2(grossGain * ratio);
+  }
+  const taxableGain = round2(Math.max(0, grossGain - exemptGain));
+
+  const irpfEngine = window.FinanceCanonicalIrpfEstimator;
+  let tax = 0;
+  let taxCalculable = true;
+  if (taxableGain > 0) {
+    const scale = latestIrpfScale("savings");
+    const fiscal = irpfEngine?.optimizePartialSale({ scale: scale || {}, alreadyRealizedGain, proposedGain: taxableGain });
+    if (fiscal?.calculable) tax = fiscal.marginalTax;
+    else taxCalculable = false;
+  }
+
+  const netProceeds = round2(price - costs - oldMortgage.principal - (taxCalculable ? tax : 0));
+
+  let newMonthlyOutflow = 0;
+  let newMortgageCalculable = true;
+  let financedGap = 0;
+  let newAnnualRent = null;
+  let leftoverLiquidity = netProceeds;
+  if (mode === "alquiler") {
+    const rent = Math.max(0, Number(newMonthlyRent) || 0);
+    newMonthlyOutflow = rent;
+    const assetsEngine = window.FinanceCanonicalAssets;
+    newAnnualRent = assetsEngine ? assetsEngine.rentalAssetPnL({ value: 0, monthlyRentIncome: rent }).annualRentIncome ?? null : null;
+  } else {
+    const homePrice = Math.max(0, Number(newHomePrice) || 0);
+    const reinvested = Math.max(0, Number(reinvestedAmount) || 0);
+    financedGap = round2(Math.max(0, homePrice - reinvested));
+    if (financedGap > 0) {
+      const rate = Number(newMortgageRatePct);
+      const months = Number(newMortgageMonths);
+      const mortgageEngine = window.FinanceCanonicalMortgageRateScenarios;
+      if (mortgageEngine && Number.isFinite(rate) && rate >= 0 && Number.isFinite(months) && months > 0) {
+        newMonthlyOutflow = mortgageEngine.monthlyPayment(financedGap, rate, months);
+      } else {
+        newMortgageCalculable = false;
+      }
+    }
+    leftoverLiquidity = round2(netProceeds - reinvested);
+  }
+
+  return {
+    calculable: true,
+    mode,
+    grossGain, exemptGain, taxableGain, reinvestRatioPct,
+    tax, taxCalculable,
+    oldMortgagePrincipal: oldMortgage.principal, oldMortgagePayment: oldMortgage.monthlyPayment,
+    netProceeds,
+    newMonthlyOutflow, newMortgageCalculable, financedGap, newAnnualRent,
+    leftoverLiquidity,
+    monthlyChange: round2(oldMortgage.monthlyPayment - newMonthlyOutflow),
+  };
+}
+
+const GOB15_EXEMPTION_NOTE = "Exención por reinversión en vivienda habitual (art. 38 LIRPF): si reinviertes menos del precio de venta, solo la parte proporcional de la ganancia queda exenta — el resto tributa. Estimación orientativa, confirma plazos (2 años) e importe exacto con un asesor.";
+
+function gob15ResultHtml(result) {
+  if (!result.calculable) return "";
+  const gainLines = [`Ganancia patrimonial bruta: ${money(result.grossGain, true)} (precio de venta − coste de adquisición).`];
+  if (result.mode === "compra" && result.reinvestRatioPct !== null) {
+    gainLines.push(`Reinviertes el ${result.reinvestRatioPct}% del precio de venta → ${money(result.exemptGain, true)} exentos, ${money(result.taxableGain, true)} tributan. ${GOB15_EXEMPTION_NOTE}`);
+  } else if (result.exemptGain > 0) {
+    gainLines.push(`Ganancia declarada como exenta: ${money(result.exemptGain, true)}.`);
+  }
+  const taxLine = result.taxableGain <= 0
+    ? "Sin plusvalía que tribute."
+    : result.taxCalculable
+      ? `Coste fiscal estimado sobre ${money(result.taxableGain, true)}: ${money(result.tax, true)}.`
+      : "Registra la escala del tramo del ahorro en Fiscal › IRPF para estimar el coste fiscal de la parte que tributa.";
+  const mortgageLine = result.oldMortgagePrincipal > 0
+    ? `Se cancela la hipoteca activa pendiente (${money(result.oldMortgagePrincipal, true)}, cuota actual ${money(result.oldMortgagePayment, true)}/mes) con el importe de la venta.`
+    : "Sin hipoteca activa declarada en Deuda › Contratos sobre esta vivienda — se asume ya liquidada.";
+  const netLine = `Neto libre tras gastos de venta, hipoteca cancelada${result.taxCalculable ? " e impuesto" : ""}: <strong>${money(result.netProceeds, true)}</strong>.`;
+
+  let destinationLines;
+  if (result.mode === "alquiler") {
+    const annualLine = result.newAnnualRent !== null ? ` (${money(result.newAnnualRent, true)}/año)` : "";
+    destinationLines = [`Alquiler nuevo: ${money(result.newMonthlyOutflow, true)}/mes${annualLine}.`, `Todo el neto (${money(result.leftoverLiquidity, true)}) queda libre — no se reinvierte en vivienda.`];
+  } else {
+    const financedLine = result.financedGap > 0
+      ? result.newMortgageCalculable
+        ? `Financias ${money(result.financedGap, true)} con una hipoteca nueva: cuota estimada ${money(result.newMonthlyOutflow, true)}/mes.`
+        : `Quedan ${money(result.financedGap, true)} sin cubrir con lo reinvertido — declara TIN y plazo de la hipoteca nueva para estimar su cuota.`
+      : "El importe reinvertido cubre entero el precio de la vivienda nueva: sin hipoteca nueva.";
+    destinationLines = [
+      financedLine,
+      result.leftoverLiquidity >= 0
+        ? `Liquidez libre tras reinvertir: ${money(result.leftoverLiquidity, true)}.`
+        : `El importe reinvertido supera el neto de la venta: te faltarían ${money(Math.abs(result.leftoverLiquidity), true)} de fuera de esta operación.`,
+    ];
+  }
+  const changeLine = result.mode === "alquiler" || result.newMortgageCalculable
+    ? result.monthlyChange >= 0
+      ? `<p class="positive">Cuota mensual ${result.monthlyChange > 0 ? `baja ${money(result.monthlyChange, true)}/mes` : "se mantiene igual"} frente a la hipoteca actual.</p>`
+      : `<p class="negative">Cuota mensual sube ${money(Math.abs(result.monthlyChange), true)}/mes frente a la hipoteca actual.</p>`
+    : "";
+  return `<div>
+    ${gainLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}
+    <p>${escapeHtml(taxLine)}</p>
+    <p>${escapeHtml(mortgageLine)}</p>
+    <p>${netLine}</p>
+    <ul class="commit-barrier-list">${destinationLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+    ${changeLine}
+    <p class="e19-kpi-note">Comparación puntual con los datos de hoy — no proyecta revalorización de la vivienda ni subida del alquiler a varios años. No ejecuta ni decide nada: la venta sigue siendo tuya.</p>
+  </div>`;
+}
+
+function handleGob15Simulate() {
+  const note = qs("gob15SimulationNote");
+  if (!note) return;
+  const mode = qs("gob15Mode")?.value === "compra" ? "compra" : "alquiler";
+  const result = gob15SimulateSale({
+    mode,
+    salePrice: parseAmount(qs("gob15SalePrice")?.value),
+    acquisitionCost: parseAmount(qs("gob15AcquisitionCost")?.value),
+    sellingCosts: parseAmount(qs("gob15SellingCosts")?.value),
+    manualExemption: Boolean(qs("gob15ManualExemption")?.checked),
+    newMonthlyRent: parseAmount(qs("gob15NewMonthlyRent")?.value),
+    newHomePrice: parseAmount(qs("gob15NewHomePrice")?.value),
+    reinvestedAmount: parseAmount(qs("gob15ReinvestedAmount")?.value),
+    newMortgageRatePct: parseAmount(qs("gob15NewMortgageRatePct")?.value),
+    newMortgageMonths: parseAmount(qs("gob15NewMortgageMonths")?.value),
+    alreadyRealizedGain: parseAmount(qs("fc5AlreadyRealized")?.value),
+  });
+  if (!(parseAmount(qs("gob15SalePrice")?.value) > 0)) {
+    note.innerHTML = `<p>Indica al menos el precio de venta estimado para simular.</p>`;
+    return;
+  }
+  note.innerHTML = gob15ResultHtml(result);
+}
+
+function syncGob15ModeFields() {
+  const mode = qs("gob15Mode")?.value === "compra" ? "compra" : "alquiler";
+  qs("gob15RentFields")?.toggleAttribute("hidden", mode !== "alquiler");
+  qs("gob15BuyFields")?.toggleAttribute("hidden", mode !== "compra");
+}
+
 // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
 // que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
 // escenario de tensión de E13 (FinanceCanonicalE13.PROFILES, "stress") en un único número
@@ -29765,6 +29958,7 @@ function renderAjustes() {
   renderLpx2NetWorthRunway();
   renderGob9ResiliencePanel();
   renderGob11Panel();
+  syncGob15ModeFields();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
@@ -40011,6 +40205,8 @@ async function init() {
   GOB11_FIELD_IDS.forEach((id) => {
     qs(id)?.addEventListener("change", handleGob11FieldChange);
   });
+  qs("gob15Mode")?.addEventListener("change", syncGob15ModeFields);
+  qs("gob15Simulate")?.addEventListener("click", handleGob15Simulate);
   LEV10_FIELD_IDS.forEach((id) => {
     qs(id)?.addEventListener("change", handleLev10FieldChange);
   });
