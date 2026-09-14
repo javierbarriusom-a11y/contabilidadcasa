@@ -70,6 +70,63 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 14 de septiembre de 2026 (191): `GOB15`
+
+Última tarea accionable de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. El hogar pidió ampliar el
+alcance confirmado en la propuesta de diseño (sesión 171: apuesta L, sesión propia dedicada) para
+incluir un segundo destino del neto de la venta — comprar una vivienda nueva, además de pasar a
+alquiler.
+
+**`GOB15` — Simulador de vender la vivienda habitual: alquiler o compra.** Diagnóstico previo: el
+backlog solo pedía "reutiliza `rentalAssetPnL()` (INV9) para el lado del alquiler recibido/pagado" —
+insuficiente por sí solo para una decisión de este calado, así que se propuso el diseño completo antes
+de construir (mensaje de esta misma sesión) y se amplió a petición del hogar. Sin motor propio salvo
+la exención por reinversión (única pieza de cálculo nueva, ver abajo): reutiliza tal cual la hipoteca
+activa ya declarada en Deuda › Contratos (mismo filtro que `DEB14`, `deb14MortgageContracts`,
+`gob15OldMortgage`) para la deuda que se cancela al vender; `optimizePartialSale` (FC5) +
+`latestIrpfScale("savings")` + `fc5AlreadyRealized` (sin duplicarlos) para el coste fiscal de la
+plusvalía; `monthlyPayment` (DI1, `canonical-mortgage-rate-scenarios.js`) para la cuota de una
+hipoteca nueva si compra financiada; y `rentalAssetPnL` (INV9, `canonical-assets.js`) para anualizar
+el alquiler nuevo si pasa a alquiler.
+
+La única pieza de cálculo nueva es la exención proporcional por reinversión en vivienda habitual
+(art. 38 LIRPF / art. 41 RIRPF): cuando el importe reinvertido en la vivienda nueva es menor que el
+precio de venta, solo la parte de la ganancia proporcional a esa fracción queda exenta. A diferencia
+de un tramo o tipo numérico (que caduca cada año y este proyecto nunca fabrica sin fuente registrada,
+`validateBracketScale`), esta es la fórmula legal estable del mecanismo de reinversión — se aplicó
+como estimación orientativa, con el mismo aviso profesional que ya lleva `optimizePartialSale` en el
+resto de la app. Para cualquier otra exención que el hogar ya conozca (mayor de 65 años, u otra ya
+confirmada con su asesor) hay una casilla declarada aparte — nunca se decide la elegibilidad desde el
+código, mismo criterio que el resto del motor fiscal de la casa.
+
+Nueva tarjeta en Herramientas avanzadas → Patrimonio e inversión, justo después de `GOB11`
+(Proyección de jubilación), con un selector de destino (alquiler/compra) que muestra u oculta los
+campos correspondientes. Comparación puntual con los datos de hoy, igual que el resto de simuladores L
+de esta familia (DI1, AP3, LEV9...): no proyecta revalorización de la vivienda ni inflación del
+alquiler a varios años, ni asume que el hogar compra en otro sitio si el modo es alquiler. Informativo:
+no ejecuta ni decide nada. Tests: `tests/gob15-vender-vivienda-alquiler-o-compra.test.cjs` (22 tests).
+
+- **Validación**: `npm run verify` completo en verde. `npm test` **4224/4224** pruebas (22 nuevas de
+  `GOB15`). `test:a11y` **1323 IDs únicos** (antes 1309, sesión 190; +14 por los campos de la nueva
+  tarjeta). `test:performance`: diff 10.000 filas 36,2 ms, forecast y escenarios 144,4 ms, recursos
+  2280 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 102,7 ms, alertas 76,6 ms,
+  forecast 132,9 ms, histórico de presupuestos 31,7 ms, índice de transacciones por categoría 94,8 ms.
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en navegador
+  real con Playwright: la tarjeta se renderiza en Herramientas avanzadas → Patrimonio e inversión, el
+  selector de destino muestra/oculta los campos correctos en ambos sentidos, el modo alquiler calcula
+  bien el neto y el alquiler anualizado, y el modo compra calcula bien la exención proporcional, la
+  cuota de la hipoteca nueva (474,21 €/mes sobre 100.000 € al 3% a 300 meses, coincide con el test
+  unitario) y la liquidez sobrante — sin errores de consola propios de la app en ningún caso, sin
+  hipoteca activa declarada en este entorno de pruebas (se avisó correctamente en vez de inventar un
+  importe).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: con esto `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` queda
+  100% cerrado (46/46 tareas accionables construidas o reducidas/retiradas con motivo). No hay
+  siguiente backlog abierto: `BACKLOG_INDICE.md` debería consultarse antes de arrancar cualquier cola
+  nueva o retomar una antigua.
+
 ## Cierre de sesión — 14 de septiembre de 2026 (190): `GOB19`
 
 De las dos apuestas grandes que quedaban en `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` (`GOB15`,

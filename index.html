@@ -3584,6 +3584,64 @@
               <div id="gob11Trajectory"></div>
             </article>
 
+            <!-- GOB15 (Oleada 4, Bloque 7, apuesta L reservada a sesión propia): simulador de vender
+                 la vivienda habitual, con dos destinos posibles para el neto — alquiler o comprar una
+                 vivienda nueva. Cancela la hipoteca activa ya declarada en Deuda › Contratos, estima
+                 el coste fiscal de la plusvalía (con exención proporcional por reinversión si compra)
+                 y compara la cuota mensual actual contra el destino elegido. Informativo: no ejecuta
+                 ni decide nada. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Vender la vivienda habitual: alquiler o compra</h3>
+              <p class="e19-kpi-note">Cancela con el precio de venta la hipoteca activa que ya tengas declarada en Deuda › Contratos, estima el coste fiscal de la plusvalía y compara tu cuota mensual actual contra el alquiler nuevo o una hipoteca nueva, según el destino que elijas para el neto. Comparación puntual con los datos de hoy — no proyecta revalorización de la vivienda ni del alquiler a varios años, y no decide por ti.</p>
+              <label><span>Destino del neto de la venta</span>
+                <select id="gob15Mode">
+                  <option value="alquiler">Pasar a alquiler</option>
+                  <option value="compra">Comprar una vivienda nueva</option>
+                </select>
+              </label>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Precio de venta estimado (€)</span>
+                  <input id="gob15SalePrice" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Coste de adquisición original (€)</span>
+                  <input id="gob15AcquisitionCost" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Gastos de venta (agencia, notaría, plusvalía municipal...) (€)</span>
+                  <input id="gob15SellingCosts" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <label class="month-picker"><span>Ganancia declarada como exenta de tributar (p. ej. mayor de 65 años u otra exención ya confirmada con tu asesor)</span><input id="gob15ManualExemption" type="checkbox" /></label>
+              <div id="gob15RentFields" class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Alquiler mensual nuevo (€)</span>
+                  <input id="gob15NewMonthlyRent" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div id="gob15BuyFields" class="cuadro-mandos-controls" hidden>
+                <label class="month-picker">
+                  <span>Precio de la vivienda nueva (€)</span>
+                  <input id="gob15NewHomePrice" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Importe reinvertido del neto de la venta (€)</span>
+                  <input id="gob15ReinvestedAmount" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de la hipoteca nueva, si financias el resto (%)</span>
+                  <input id="gob15NewMortgageRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Sin declarar" />
+                </label>
+                <label class="month-picker">
+                  <span>Plazo de la hipoteca nueva (meses)</span>
+                  <input id="gob15NewMortgageMonths" type="number" min="1" step="12" inputmode="numeric" placeholder="Sin declarar" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob15Simulate">Simular</button>
+              <div class="e19-kpi-note" id="gob15SimulationNote"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
               <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa (Ajustes → Reserva y colchón): si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>

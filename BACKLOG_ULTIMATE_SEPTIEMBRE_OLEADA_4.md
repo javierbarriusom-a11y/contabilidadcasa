@@ -7,7 +7,7 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 190, 14 de septiembre de 2026): `GOB19` construida.** Bloque 1 completo (`VER-4`,
+**Estado (sesión 191, 14 de septiembre de 2026): `GOB15` construida — documento 100% cerrado.** Bloque 1 completo (`VER-4`,
 `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17`
 construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15`
 (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11`
@@ -20,8 +20,9 @@ sesión propia dedicada (sesión 179); `LEV10` (sesión 180); `LEV16` (sesión 1
 Bloque 5 (apalancamiento) queda también completo; `DEB12` (sesión 182); `DEB16` (sesión 183);
 `DEB14` (sesión 184) — con esto el Bloque 6 queda también completo; `GOB20` (sesión 185), spin-off
 de `GOB12`; `GOB12` (sesión 186); `GOB13` (sesión 187); `GOB14` (sesión 188); `GOB16` y `GOB18`
-(sesión 189); `GOB19` (sesión 190) — con esto el Bloque 7 queda completo salvo una única apuesta
-grande. Queda 1 tarea accionable: `GOB15`, reservada a sesión propia.
+(sesión 189); `GOB19` (sesión 190); `GOB15` (sesión 191, alcance ampliado a petición del hogar para
+incluir también compra de vivienda nueva, no solo alquiler) — con esto el Bloque 7 y el documento
+completo quedan **100% cerrados: 46/46 tareas accionables**.
 
 ## 0. Por qué existe este documento
 
@@ -189,7 +190,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 38 | ✅ `GOB12` | Plantilla reutilizable de "evento de vida" (hijo, mudanza, cambio de trabajo) | `O-2` | M | Medio | **Hecho (sesión 186).** Tarjeta en Simulación de nueva vida: "Simular" añade eventos al Laboratorio E13 (solo lectura); "Aplicar a real" sube de verdad el tope de una categoría de presupuesto existente, declara la caída de ingreso real (`GOB20`, construida antes por esta misma tarea) y crea un objetivo nuevo real en `p2State().goals` (E15, con fecha). Sin motor propio. Tests: `tests/gob12-paquete-evento-de-vida.test.cjs`. |
 | 39 | ✅ `GOB13` | Ritual anual de revisión guiada | `O-4` | M | Medio | **Hecho (sesión 187).** Nueva tarjeta en Cierre (`views/cierre.js`, visible con el mes abierto o cerrado): tres comprobaciones que reutilizan tal cual `PVC15` (`assumptionExpiryAlerts`), `DEB14` (`deb14MarketCheckFreshness`) e `INV17` (`rebalanceCalendarReviewStatus`), sin motor propio. El propio ritual anual reutiliza la misma función genérica de `INV17` para su "cuánto hace que se hizo", en vez de un cuarto ayudante de meses. Mismo patrón visual que el checklist de `GOB6`. Tests: `tests/gob13-ritual-anual-revision.test.cjs`. |
 | 40 | ✅ `GOB14` | Informe trimestral exportable, maquetado para presentar a la familia | `O-5` | M | Bajo-Medio | **Hecho (sesión 188).** Nueva tarjeta en Herramientas avanzadas → Datos (`#herramientas-datos`), junto al informe PDF certificado (`A19-2`). `gob14QuarterlyReportContext()`/`gob14QuarterlyReportPrintHtml()` (`app.js`) reutilizan tal cual `unifiedActionCenterModel().readModel` (las cifras ejecutivas con procedencia de `A2-6`: liquidez, capacidad libre, reserva protegida, cobertura, deuda pendiente y fecha libre de deuda, más las decisiones prioritarias), sin motor propio, y el mismo mecanismo de "PDF de una página" que `A-11`/`C-12`/`L-7` (`#cierrePrintEvidence` + `window.print()`). Distinto de `GOB3` (resumen trimestral de `PROJECT_STATE.md`, uso interno de desarrollo) y de la exportación de Análisis (`A-11`, vista de trabajo con cifras técnicas): esta es una vista para enseñar, no para trabajar. Tests: `tests/gob14-informe-trimestral-familia.test.cjs`. |
-| 41 | ⏳ `GOB15` | Simulador de vender la vivienda habitual y pasar a alquiler | `O-6` | L | Medio | Reutiliza `rentalAssetPnL()` (`INV9`, Oleada 3) para el lado del alquiler recibido/pagado. **Confirmado por el hogar (sesión 171): sí, en una sesión futura dedicada.** Sigue siendo apuesta L, sin construir. |
+| 41 | ✅ `GOB15` | Simulador de vender la vivienda habitual y pasar a alquiler | `O-6` | L | Medio | **Hecho (sesión 191), alcance ampliado a petición del hogar: dos destinos para el neto, alquiler o comprar vivienda nueva** (la propuesta original solo cubría alquiler). Sin motor propio salvo la exención proporcional por reinversión en vivienda habitual (art. 38 LIRPF/41 RIRPF, única pieza de cálculo nueva): reutiliza tal cual la hipoteca activa de Deuda › Contratos (mismo filtro que `DEB14`) para la deuda cancelada al vender, `optimizePartialSale` (FC5) + `latestIrpfScale("savings")` + `fc5AlreadyRealized` para el coste fiscal, `monthlyPayment` (DI1) para la hipoteca nueva si compra financiada, y `rentalAssetPnL()` (`INV9`) para anualizar el alquiler nuevo si pasa a alquiler. Casilla aparte para cualquier otra exención que el hogar declare (nunca decide la elegibilidad el código). Tarjeta en Herramientas avanzadas → Patrimonio e inversión, justo después de `GOB11`. Tests: `tests/gob15-vender-vivienda-alquiler-o-compra.test.cjs` (22 tests). |
 | 42 | ✅ `GOB16` | Vigilancia de cláusulas de deuda más allá de TAE y capital | `O-7` | M | Medio | **Hecho (sesión 189).** Acotado a lo que `DEB4`/`DEB8` (Oleada 3) no cubren: vinculación de productos, comisión de apertura de operación nueva, fecha de revisión de diferencial. Nueva tarjeta en Deuda › Contratos, justo después de `DEB13`: un `<details>` por deuda activa con las tres cláusulas declarables (`scenarioSettings.gob16DebtClauses`), reutilizando tal cual `rebalanceCalendarReviewStatus()` (`INV17`/`GOB13`) para la revisión del diferencial — sin motor propio. Tests: `tests/gob16-vigilancia-clausulas-deuda.test.cjs`. |
 | 43 | ✅ `GOB17` | El asistente cita siempre la función `canonical-*.js` real que sustenta su respuesta | `O-9` | M | Alto | **Hecho (sesión 167).** `sourceCatalog()` (`canonical-e9-assistant.js`) ahora propaga `source`/`method` también en alertas y decisiones, no solo en métricas (campos añadidos, ninguno retirado). CP1 declara `canonical-e16-monitoring.js` · `predictiveAlerts()`; CP2 declara `canonical-cushion.js` + `canonical-portfolio.js` · `cushionFloor()`/`opportunityCost()` vía `cp2IdleCashSummary` (`app.js`). Ambas citas reales se muestran al hogar junto al id interno, nunca en su lugar. Tests: `tests/gob17-cita-funcion-real.test.cjs`. |
 | 44 | ✅ `GOB18` | Exportar un registro de `GOB10` como paquete de decisión (PDF) para un asesor externo | `O-10` | M | Bajo-Medio | **Hecho (sesión 189).** Alcance reducido confirmado: `GOB10` (Oleada 3) ya generaliza el registro de tesis con revisión programada a cualquier decisión — solo faltaba la capa de exportación. Botón "Exportar paquete (PDF)" en cada decisión de Ajustes › Hogar, reutilizando tal cual `P2Export.downloadPlainPdf` (mismo mecanismo que `A19-2`/`V6-4`) y `gob10ReviewStatusLabel` para el estado — sin motor ni dato nuevo. Tests: `tests/gob18-exportar-paquete-decision.test.cjs`. |
@@ -212,7 +213,7 @@ los IDs de este backlog:
    construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
 4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18` (hecho,
    sesión 177), `PVC14` (hecho, sesión 178), `GOB11` (hecho, sesión 179), `GOB19` (hecho, sesión 190),
-   `GOB15` (pendiente, reservada a sesión propia).
+   `GOB15` (hecho, sesión 191) — las seis, completas.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia
    auditoría aplicó a sí misma con `FCX2` en la Oleada 2): `PVC14` (hecho — el ensemble ponderado
    muestra siempre los dos triángulos de origen, nunca solo la cifra mezclada), `INV16` (correlación declarada,
