@@ -7,6 +7,10 @@
 
 Fecha de creación: 14 de septiembre de 2026 (sesión 192).
 
+**Estado (sesión 193, 14 de septiembre de 2026): `LPX6` y `LPX5` construidas.** El hogar empezó por
+`LPX6` (sesión 192) — la tarea más pequeña y autocontenida, sin fiscalidad ni registro de activos —
+y siguió con `LPX5` en la sesión 193. Queda `LPX4` como única tarea accionable pendiente.
+
 ## 0. Origen y diagnóstico
 
 Este documento recupera un hallazgo que quedó sin convertir en backlog: en la sesión 164 (10 de
@@ -45,8 +49,8 @@ temprano reusando el motor de patrimonio neto ya construido, no una calculadora 
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
 | ⏳ `LPX4` | Aviso temprano de coste fiscal por sucesión/donación | M | Alto | Reutiliza `lpNetWorthSnapshot()` (`LPX1`/`LPX2`) para el valor de la masa hereditaria — sin motor de patrimonio nuevo. Sin una bonificación/tipo efectivo declarado por el propio hogar, con fuente completa (mismo criterio de `hasCompleteSource`/`validateBracketScale` que `A15-2`), no calcula ninguna cifra: solo muestra el patrimonio neto y explica por qué el coste fiscal real depende de comunidad autónoma, grupo de parentesco y patrimonio preexistente del heredero — ninguno de los cuales infiere ni fabrica la app. Con la bonificación declarada, reutiliza `progressiveTax()` (mismo primitivo que `A15-2`/`LEV10`) sobre el patrimonio neto menos el mínimo exento declarado. Informativo: nunca decide ni sustituye asesoría fiscal real. |
-| ✅ `LPX5` | Destino declarado por activo | S-M | Medio | Hecho (sesión 193). Campo opcional `destination` por activo en `canonical-assets.js`/`saveA14Asset` (texto libre, nunca vinculante). Añade un check automático nuevo (`assetDestination`) al checklist de `LPX3` — no se reutilizó la casilla manual `documentsKnown` (pregunta distinta, sin dato real que la sustituya): detalle en `PROJECT_STATE.md`, cierre de sesión 193. |
-| ✅ `LPX6` | Beneficiario declarado por póliza de vida | S | Medio | Hecho (sesión 193). El inventario real de pólizas (`SP1`) es `insurancePolicies()` en `app.js`, no `canonical-life-coverage.js` (que es `SP2`) — diagnóstico corregido en `PROJECT_STATE.md`. Campos opcionales `isLife`/`beneficiary` por póliza; `LPX3` sustituye su casilla manual global "beneficiarios" por una comprobación real (al menos una póliza de vida con beneficiario declarado) — mismo tipo de cierre de bucle que `PVC13` hizo con `confidenceBands()`. |
+| ✅ `LPX5` | Destino declarado por activo | S-M | Medio | **Hecho (sesión 193).** Campo opcional `destination` por activo en `canonical-assets.js`/`saveA14Asset` (texto libre, nunca vinculante). Añade un check automático nuevo (`assetDestination`) al checklist de `LPX3` — no se reutilizó la casilla manual `documentsKnown` (pregunta distinta, sin dato real que la sustituya): detalle en `PROJECT_STATE.md`, cierre de sesión 193. |
+| ✅ `LPX6` | Beneficiario declarado por póliza de vida | S | Medio | **Hecho (sesión 192).** El registro real de pólizas es `insurancePolicies()`/`addInsurancePolicy()` en `app.js` (SP1) — `canonical-life-coverage.js` (SP2) es un motor de comparación puro, sin estado. Nuevos campos opcionales `isLife` (checkbox, nunca inferido del nombre) y `beneficiary` (texto libre). `LPX3` sustituye su casilla manual global "beneficiarios" por `lpx3ContinuityChecklist()` comprobando de verdad si al menos una póliza con `isLife` tiene `beneficiary` declarado — mismo tipo de cierre de bucle que `PVC13` hizo con `confidenceBands()`. Tests: `tests/lpx6-beneficiario-poliza-vida.test.cjs` (8 tests) + `tests/lpx3-continuidad-checklist.test.cjs` reescrito. |
 
 ## 2. Postpuesto, declarado sin auditar (decisión del hogar, sesión 192)
 

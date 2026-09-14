@@ -15889,6 +15889,9 @@ function insurancePolicies() {
   return scenarioSettings.insurancePolicies;
 }
 
+// LPX6: "isLife" y "beneficiary" declarados por el hogar, nunca inferidos del nombre de la póliza
+// — mismo criterio que el resto de campos de este registro. Sin isLife, ninguna póliza cuenta para
+// el punto de "beneficiario" de LPX3, aunque su nombre diga "vida".
 function addInsurancePolicy({ name, renewalDate, premium, notes, isLife, beneficiary }) {
   const accounts = insurancePolicies();
   accounts.push({
@@ -15897,7 +15900,6 @@ function addInsurancePolicy({ name, renewalDate, premium, notes, isLife, benefic
     renewalDate: /^\d{4}-\d{2}-\d{2}$/.test(String(renewalDate || "").trim()) ? String(renewalDate).trim() : "",
     premium: round2(Math.max(0, Number(premium) || 0)),
     notes: String(notes || "").trim(),
-    // LPX6: campo opcional, solo relevante cuando isLife es true — nunca se infiere del nombre.
     isLife: Boolean(isLife),
     beneficiary: String(beneficiary || "").trim(),
   });
@@ -15915,7 +15917,7 @@ function renderInsurancePolicies() {
   const policies = insurancePolicies().slice().sort((a, b) => (a.renewalDate || "9999").localeCompare(b.renewalDate || "9999"));
   target.innerHTML = policies.length
     ? `<ul class="commit-barrier-list">${policies
-        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong>${policy.isLife ? ` <span class="status-pill">Vida</span>` : ""}</div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.isLife ? ` · ${policy.beneficiary ? `Beneficiario: ${escapeHtml(policy.beneficiary)}` : "Sin beneficiario declarado"}` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
+        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong>${policy.isLife ? ` <span class="status-pill">Vida</span>` : ""}</div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.beneficiary ? ` · Beneficiario: ${escapeHtml(policy.beneficiary)}` : policy.isLife ? " · Sin beneficiario declarado" : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
         .join("")}</ul>`
     : `<p class="e19-kpi-note">Sin pólizas registradas todavía.</p>`;
 }
@@ -19205,14 +19207,15 @@ function renderRgxKnowledgeConcentration() {
 
 // LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1 (activos con
 // procedencia) y SP1 (inventario de pólizas) — dos puntos que la app ya sabe responder con datos
-// reales. LPX6 (sesión 193) añade un tercero: con el campo de beneficiario ya declarable por póliza
-// de vida (ver addInsurancePolicy), la casilla manual global "beneficiarios" deja de ser necesaria —
-// se sustituye por una comprobación real contra ese dato. LPX5 (misma sesión) añade un cuarto: con el
-// campo de destino declarable por activo (ver canonical-assets.js, saveA14Asset), se puede comprobar
-// de verdad si el hogar ha empezado a trazar quién recibe qué, en vez de una única casilla global sin
-// dato real detrás. Testamento y "alguien sabe dónde están los documentos clave" siguen siendo
-// preguntas genuinamente distintas sin ninguna fuente de datos en la app: quedan como casillas que
-// confirma el propio hogar, persistidas tal cual, nunca inferidas.
+// reales. LPX6 (sesión 192) añade un tercer punto automático: al menos una póliza de vida con
+// beneficiario declarado (canonicalPolicy.isLife && canonicalPolicy.beneficiary), sustituyendo la
+// casilla manual global que tenía antes — misma disciplina de "cerrar el bucle" que PVC13 aplicó a
+// confidenceBands(). LPX5 (sesión 193) añade un cuarto: con el campo de destino declarable por activo
+// (ver canonical-assets.js, saveA14Asset), se puede comprobar de verdad si el hogar ha empezado a
+// trazar quién recibe qué, en vez de una única casilla global sin dato real detrás. Testamento y
+// "alguien sabe dónde están los documentos clave" siguen siendo preguntas genuinamente distintas sin
+// ninguna fuente de datos en la app: quedan como casillas que confirma el propio hogar, persistidas
+// tal cual, nunca inferidas.
 const LPX3_MANUAL_ITEMS = [
   { id: "will", label: "Testamento hecho y actualizado" },
   { id: "documentsKnown", label: "Alguien de confianza sabe dónde están los documentos clave" },
@@ -19245,17 +19248,16 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     ok: policyCount > 0,
     detail: policyCount > 0 ? `${policyCount} póliza(s) registrada(s).` : "Sin ninguna póliza registrada todavía.",
   };
-  // LPX6: ya no es una casilla manual — comprueba el campo real de beneficiario por póliza de vida.
-  const lifePolicies = (policies || []).filter((policy) => policy?.isLife);
-  const lifePoliciesWithBeneficiary = lifePolicies.filter((policy) => String(policy?.beneficiary || "").trim());
-  const beneficiariesCheck = {
+  const lifePolicies = (policies || []).filter((policy) => policy && policy.isLife);
+  const lifeWithBeneficiary = lifePolicies.filter((policy) => String(policy.beneficiary || "").trim());
+  const beneficiaryCheck = {
     id: "beneficiaries",
-    label: "Beneficiario declarado en pólizas de vida",
-    ok: lifePoliciesWithBeneficiary.length > 0,
+    label: "Beneficiario declarado en al menos una póliza de vida",
+    ok: lifeWithBeneficiary.length > 0,
     detail: lifePolicies.length === 0
       ? "Sin pólizas de vida registradas todavía."
-      : lifePoliciesWithBeneficiary.length > 0
-        ? `${lifePoliciesWithBeneficiary.length} de ${lifePolicies.length} póliza(s) de vida con beneficiario declarado.`
+      : lifeWithBeneficiary.length > 0
+        ? `${lifeWithBeneficiary.length} de ${lifePolicies.length} póliza(s) de vida con beneficiario declarado.`
         : `${lifePolicies.length} póliza(s) de vida sin beneficiario declarado.`,
   };
   // LPX5: ya no es una casilla manual — comprueba el campo real de destino por activo.
@@ -19276,7 +19278,7 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     ok: Boolean(manualChecks?.[item.id]),
     detail: manualChecks?.[item.id] ? "Confirmado por el hogar." : "Pendiente de confirmar.",
   }));
-  const checks = [assetsCheck, policiesCheck, beneficiariesCheck, destinationCheck, ...manual];
+  const checks = [assetsCheck, policiesCheck, beneficiaryCheck, destinationCheck, ...manual];
   return { checks, ready: checks.every((check) => check.ok) };
 }
 

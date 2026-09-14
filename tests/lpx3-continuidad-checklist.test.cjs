@@ -10,12 +10,12 @@ const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const Assets = require(path.join(root, "canonical-assets.js"));
 
 // LPX3 (Oleada 2 Bloque 2): checklist de continuidad ante fallecimiento o incapacidad. Depende de
-// A14-1 (activos con procedencia) y SP1 (inventario de pólizas). LPX6 (sesión 193) añade un tercer
-// punto verificable con datos reales: al menos una póliza de vida con beneficiario declarado,
-// sustituyendo la antigua casilla manual global "beneficiarios". LPX5 (misma sesión) añade un cuarto:
-// al menos un activo con destino declarado. Testamento y "alguien sabe dónde están los documentos
-// clave" siguen sin ninguna fuente de datos en la app, así que quedan como casillas que confirma el
-// propio hogar, nunca inferidas.
+// A14-1 (activos con procedencia) y SP1 (inventario de pólizas) — puntos verificables con datos
+// reales. LPX6 (sesión 192) convirtió el tercer punto (beneficiarios) de casilla manual global a
+// comprobación automática sobre pólizas de vida declaradas. LPX5 (sesión 193) añade un cuarto: al
+// menos un activo con destino declarado. Los otros dos (testamento, a quién avisar) siguen sin
+// ninguna fuente de datos en la app, así que quedan como casillas que confirma el propio hogar,
+// nunca inferidas.
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -53,23 +53,23 @@ function sandbox() {
 const ASSET_WITH_PROVENANCE = { id: "a1", type: "cuenta", label: "Cuenta", value: 1000, asOf: "2026-09-01", provenance: "declared" };
 const ASSET_UNKNOWN = { id: "a2", type: "inmueble", label: "Piso", value: 200000, asOf: "2026-09-01", provenance: "unknown" };
 const ASSET_WITH_DESTINATION = { id: "a3", type: "cuenta", label: "Cuenta ahorro", value: 5000, asOf: "2026-09-01", provenance: "declared", destination: "Hijo mayor" };
-const POLICY = { id: "p1", name: "Seguro de coche", renewalDate: "2027-01-01" };
-const LIFE_POLICY_NO_BENEFICIARY = { id: "p2", name: "Seguro de vida", renewalDate: "2027-06-01", isLife: true, beneficiary: "" };
-const LIFE_POLICY_WITH_BENEFICIARY = { id: "p3", name: "Seguro de vida", renewalDate: "2027-06-01", isLife: true, beneficiary: "Hijo mayor" };
+const POLICY = { id: "p1", name: "Seguro de hogar", renewalDate: "2027-01-01" };
+const POLICY_LIFE_NO_BENEFICIARY = { id: "p2", name: "Seguro de vida", renewalDate: "2027-01-01", isLife: true };
+const POLICY_LIFE_WITH_BENEFICIARY = { id: "p3", name: "Seguro de vida", renewalDate: "2027-01-01", isLife: true, beneficiary: "Cónyuge" };
 
 test("lpx3ContinuityChecklist · sin activos ni pólizas, los cuatro puntos automáticos fallan explícitamente", () => {
   const ctx = sandbox();
   const result = ctx.lpx3ContinuityChecklist([], [], {});
   const assetsCheck = result.checks.find((check) => check.id === "assets");
   const policiesCheck = result.checks.find((check) => check.id === "policies");
-  const beneficiariesCheck = result.checks.find((check) => check.id === "beneficiaries");
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
   const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
   assert.equal(assetsCheck.ok, false);
   assert.match(assetsCheck.detail, /Sin activos registrados/);
   assert.equal(policiesCheck.ok, false);
   assert.match(policiesCheck.detail, /Sin ninguna póliza registrada/);
-  assert.equal(beneficiariesCheck.ok, false);
-  assert.match(beneficiariesCheck.detail, /Sin pólizas de vida registradas/);
+  assert.equal(beneficiaryCheck.ok, false);
+  assert.match(beneficiaryCheck.detail, /Sin pólizas de vida registradas/);
   assert.equal(destinationCheck.ok, false);
   assert.match(destinationCheck.detail, /Sin activos registrados/);
 });
@@ -79,6 +79,14 @@ test("lpx3ContinuityChecklist · con activos, todos con procedencia declarada, e
   const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE], [POLICY], {});
   const assetsCheck = result.checks.find((check) => check.id === "assets");
   assert.equal(assetsCheck.ok, true);
+});
+
+test("lpx3ContinuityChecklist · un activo con procedencia desconocida hace fallar el punto, con el recuento real", () => {
+  const ctx = sandbox();
+  const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_UNKNOWN], [], {});
+  const assetsCheck = result.checks.find((check) => check.id === "assets");
+  assert.equal(assetsCheck.ok, false);
+  assert.match(assetsCheck.detail, /1 activo\(s\) sin procedencia declarada/);
 });
 
 // LPX5: el punto de destino por activo ya no es una casilla manual — depende del campo real.
@@ -98,37 +106,37 @@ test("lpx3ContinuityChecklist · al menos un activo con destino declarado hace p
   assert.match(destinationCheck.detail, /1 de 2 activo\(s\) con destino declarado/);
 });
 
-test("lpx3ContinuityChecklist · un activo con procedencia desconocida hace fallar el punto, con el recuento real", () => {
+test("lpx3ContinuityChecklist · LPX6: sin pólizas de vida, el punto de beneficiario falla explícitamente, distinto de sin beneficiario declarado", () => {
   const ctx = sandbox();
-  const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_UNKNOWN], [], {});
-  const assetsCheck = result.checks.find((check) => check.id === "assets");
-  assert.equal(assetsCheck.ok, false);
-  assert.match(assetsCheck.detail, /1 activo\(s\) sin procedencia declarada/);
+  const result = ctx.lpx3ContinuityChecklist([], [POLICY], {});
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
+  assert.equal(beneficiaryCheck.ok, false);
+  assert.match(beneficiaryCheck.detail, /Sin pólizas de vida registradas/);
 });
 
-// LPX6: el punto de beneficiarios ya no es una casilla manual — depende del campo real por póliza.
-test("lpx3ContinuityChecklist · una póliza de vida sin beneficiario declarado hace fallar el punto, con el recuento real", () => {
+test("lpx3ContinuityChecklist · LPX6: una póliza de vida sin beneficiario declarado no basta", () => {
   const ctx = sandbox();
-  const result = ctx.lpx3ContinuityChecklist([], [LIFE_POLICY_NO_BENEFICIARY], {});
-  const beneficiariesCheck = result.checks.find((check) => check.id === "beneficiaries");
-  assert.equal(beneficiariesCheck.ok, false);
-  assert.match(beneficiariesCheck.detail, /1 póliza\(s\) de vida sin beneficiario declarado/);
+  const result = ctx.lpx3ContinuityChecklist([], [POLICY_LIFE_NO_BENEFICIARY], {});
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
+  assert.equal(beneficiaryCheck.ok, false);
+  assert.match(beneficiaryCheck.detail, /1 póliza\(s\) de vida sin beneficiario declarado/);
 });
 
-test("lpx3ContinuityChecklist · una póliza de vida con beneficiario declarado hace pasar el punto", () => {
+test("lpx3ContinuityChecklist · LPX6: una póliza sin isLife nunca cuenta, aunque su nombre diga 'vida'", () => {
   const ctx = sandbox();
-  const result = ctx.lpx3ContinuityChecklist([], [LIFE_POLICY_NO_BENEFICIARY, LIFE_POLICY_WITH_BENEFICIARY], {});
-  const beneficiariesCheck = result.checks.find((check) => check.id === "beneficiaries");
-  assert.equal(beneficiariesCheck.ok, true);
-  assert.match(beneficiariesCheck.detail, /1 de 2 póliza\(s\) de vida con beneficiario declarado/);
+  const namedLikeLife = { id: "p4", name: "Seguro de vida", renewalDate: "2027-01-01", beneficiary: "Hijos" };
+  const result = ctx.lpx3ContinuityChecklist([], [namedLikeLife], {});
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
+  assert.equal(beneficiaryCheck.ok, false);
+  assert.match(beneficiaryCheck.detail, /Sin pólizas de vida registradas/);
 });
 
-test("lpx3ContinuityChecklist · una póliza que no es de vida nunca cuenta para el punto de beneficiarios", () => {
+test("lpx3ContinuityChecklist · LPX6: al menos una póliza de vida con beneficiario declarado pasa, con el recuento real", () => {
   const ctx = sandbox();
-  const result = ctx.lpx3ContinuityChecklist([], [{ ...POLICY, beneficiary: "Alguien" }], {});
-  const beneficiariesCheck = result.checks.find((check) => check.id === "beneficiaries");
-  assert.equal(beneficiariesCheck.ok, false);
-  assert.match(beneficiariesCheck.detail, /Sin pólizas de vida registradas/);
+  const result = ctx.lpx3ContinuityChecklist([], [POLICY_LIFE_NO_BENEFICIARY, POLICY_LIFE_WITH_BENEFICIARY], {});
+  const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
+  assert.equal(beneficiaryCheck.ok, true);
+  assert.match(beneficiaryCheck.detail, /1 de 2 póliza\(s\) de vida con beneficiario declarado/);
 });
 
 test("lpx3ContinuityChecklist · los dos puntos manuales empiezan sin confirmar, y nunca se infieren de otros datos", () => {
@@ -141,7 +149,7 @@ test("lpx3ContinuityChecklist · los dos puntos manuales empiezan sin confirmar,
   });
 });
 
-test("lpx3ContinuityChecklist · un punto manual confirmado por el hogar pasa a ok, sin tocar los demás", () => {
+test("lpx3ContinuityChecklist · un punto manual confirmado por el hogar pasa a ok, sin tocar el otro", () => {
   const ctx = sandbox();
   const result = ctx.lpx3ContinuityChecklist([], [], { will: true });
   assert.equal(result.checks.find((check) => check.id === "will").ok, true);
@@ -150,10 +158,10 @@ test("lpx3ContinuityChecklist · un punto manual confirmado por el hogar pasa a 
 
 test("lpx3ContinuityChecklist · ready es true solo cuando los seis puntos están en verde", () => {
   const ctx = sandbox();
-  const allManual = { will: true, documentsKnown: true };
-  const partial = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, LIFE_POLICY_WITH_BENEFICIARY], { will: true });
+  const manual = { will: true, documentsKnown: true };
+  const partial = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, POLICY_LIFE_WITH_BENEFICIARY], { will: true });
   assert.equal(partial.ready, false);
-  const complete = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, LIFE_POLICY_WITH_BENEFICIARY], allManual);
+  const complete = ctx.lpx3ContinuityChecklist([ASSET_WITH_DESTINATION], [POLICY, POLICY_LIFE_WITH_BENEFICIARY], manual);
   assert.equal(complete.ready, true);
 });
 
