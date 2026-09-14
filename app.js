@@ -15889,7 +15889,10 @@ function insurancePolicies() {
   return scenarioSettings.insurancePolicies;
 }
 
-function addInsurancePolicy({ name, renewalDate, premium, notes }) {
+// LPX6: "isLife" y "beneficiary" declarados por el hogar, nunca inferidos del nombre de la póliza
+// — mismo criterio que el resto de campos de este registro. Sin isLife, ninguna póliza cuenta para
+// el punto de "beneficiario" de LPX3, aunque su nombre diga "vida".
+function addInsurancePolicy({ name, renewalDate, premium, notes, isLife, beneficiary }) {
   const accounts = insurancePolicies();
   accounts.push({
     id: `poliza-${Date.now()}-${accounts.length}`,
@@ -15897,6 +15900,8 @@ function addInsurancePolicy({ name, renewalDate, premium, notes }) {
     renewalDate: /^\d{4}-\d{2}-\d{2}$/.test(String(renewalDate || "").trim()) ? String(renewalDate).trim() : "",
     premium: round2(Math.max(0, Number(premium) || 0)),
     notes: String(notes || "").trim(),
+    isLife: Boolean(isLife),
+    beneficiary: String(beneficiary || "").trim(),
   });
   saveScenarioSettings();
 }
@@ -15912,7 +15917,7 @@ function renderInsurancePolicies() {
   const policies = insurancePolicies().slice().sort((a, b) => (a.renewalDate || "9999").localeCompare(b.renewalDate || "9999"));
   target.innerHTML = policies.length
     ? `<ul class="commit-barrier-list">${policies
-        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong></div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
+        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong>${policy.isLife ? ` <span class="status-pill">Vida</span>` : ""}</div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.beneficiary ? ` · Beneficiario: ${escapeHtml(policy.beneficiary)}` : policy.isLife ? " · Sin beneficiario declarado" : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
         .join("")}</ul>`
     : `<p class="e19-kpi-note">Sin pólizas registradas todavía.</p>`;
 }
@@ -15926,10 +15931,13 @@ function addInsurancePolicyFromControls() {
     renewalDate,
     premium: parseAmount(qs("ajustesInsurancePolicyPremium")?.value),
     notes: qs("ajustesInsurancePolicyNotes")?.value,
+    isLife: qs("ajustesInsurancePolicyIsLife")?.checked,
+    beneficiary: qs("ajustesInsurancePolicyBeneficiary")?.value,
   });
-  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes"].forEach((id) => {
+  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes", "ajustesInsurancePolicyBeneficiary"].forEach((id) => {
     if (qs(id)) qs(id).value = "";
   });
+  if (qs("ajustesInsurancePolicyIsLife")) qs("ajustesInsurancePolicyIsLife").checked = false;
   renderInsurancePolicies();
   renderLpx3ContinuityChecklist();
 }
@@ -19199,11 +19207,13 @@ function renderRgxKnowledgeConcentration() {
 
 // LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1 (activos con
 // procedencia) y SP1 (inventario de pólizas) — dos puntos que la app ya sabe responder con datos
-// reales. Los otros tres (testamento, beneficiarios, a quién avisar) no tienen ninguna fuente de
-// datos en la app: son casillas que confirma el propio hogar, persistidas tal cual, nunca inferidas.
+// reales. LPX6 (sesión 192) añade un tercer punto automático: al menos una póliza de vida con
+// beneficiario declarado (canonicalPolicy.isLife && canonicalPolicy.beneficiary), sustituyendo la
+// casilla manual global que tenía antes — misma disciplina de "cerrar el bucle" que PVC13 aplicó a
+// confidenceBands(). Los otros dos (testamento, a quién avisar) siguen sin ninguna fuente de datos
+// en la app: son casillas que confirma el propio hogar, persistidas tal cual, nunca inferidas.
 const LPX3_MANUAL_ITEMS = [
   { id: "will", label: "Testamento hecho y actualizado" },
-  { id: "beneficiaries", label: "Beneficiarios de las pólizas revisados y al día" },
   { id: "documentsKnown", label: "Alguien de confianza sabe dónde están los documentos clave" },
 ];
 
@@ -19234,13 +19244,25 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     ok: policyCount > 0,
     detail: policyCount > 0 ? `${policyCount} póliza(s) registrada(s).` : "Sin ninguna póliza registrada todavía.",
   };
+  const lifePolicies = (policies || []).filter((policy) => policy && policy.isLife);
+  const lifeWithBeneficiary = lifePolicies.filter((policy) => String(policy.beneficiary || "").trim());
+  const beneficiaryCheck = {
+    id: "beneficiaries",
+    label: "Beneficiario declarado en al menos una póliza de vida",
+    ok: lifeWithBeneficiary.length > 0,
+    detail: lifePolicies.length === 0
+      ? "Sin pólizas de vida registradas todavía."
+      : lifeWithBeneficiary.length > 0
+        ? `${lifeWithBeneficiary.length} de ${lifePolicies.length} póliza(s) de vida con beneficiario declarado.`
+        : `${lifePolicies.length} póliza(s) de vida sin beneficiario declarado.`,
+  };
   const manual = LPX3_MANUAL_ITEMS.map((item) => ({
     id: item.id,
     label: item.label,
     ok: Boolean(manualChecks?.[item.id]),
     detail: manualChecks?.[item.id] ? "Confirmado por el hogar." : "Pendiente de confirmar.",
   }));
-  const checks = [assetsCheck, policiesCheck, ...manual];
+  const checks = [assetsCheck, policiesCheck, beneficiaryCheck, ...manual];
   return { checks, ready: checks.every((check) => check.ok) };
 }
 
