@@ -1373,6 +1373,10 @@ function gob16ContractClause(contractId) {
   return {
     linkedProducts: String(clause.linkedProducts || "").trim(),
     linkedProductsCompliant: clause.linkedProductsCompliant !== false,
+    // D7 (Contabilidadcasa 2.0): puntos de TAE que el banco aplicaría de más si se pierde la
+    // vinculación — declarado por el hogar, nunca inferido. A 0 (sin declarar), la nota de
+    // vinculación se queda cualitativa, igual que antes de esta tarea.
+    bonusRatePenaltyPct: Math.max(0, Number(clause.bonusRatePenaltyPct) || 0),
     openingFeePct: Math.max(0, Number(clause.openingFeePct) || 0),
     rateReviewIntervalMonths: Math.max(0, Math.floor(Number(clause.rateReviewIntervalMonths) || 0)),
     lastRateReviewAt: String(clause.lastRateReviewAt || "").trim(),
@@ -1383,6 +1387,7 @@ function gob16SaveContractClause(contractId, field, rawValue) {
   if (!state || !contractId) return;
   const current = gob16ContractClause(contractId);
   const patch = field === "linkedProductsCompliant" ? { linkedProductsCompliant: Boolean(rawValue) }
+    : field === "bonusRatePenaltyPct" ? { bonusRatePenaltyPct: Math.max(0, Math.min(100, Number(String(rawValue).replace(",", ".")) || 0)) }
     : field === "openingFeePct" ? { openingFeePct: Math.max(0, Math.min(100, Number(String(rawValue).replace(",", ".")) || 0)) }
     : field === "rateReviewIntervalMonths" ? { rateReviewIntervalMonths: Math.max(0, Math.floor(Number(rawValue) || 0)) }
     : field === "lastRateReviewAt" ? { lastRateReviewAt: String(rawValue || "").trim() }
@@ -1411,6 +1416,18 @@ function gob16ClauseRowHtml(contract, isOpen) {
   const summary = !clause.linkedProductsCompliant || (review && review.due)
     ? `${entityLabel} — revisar`
     : entityLabel;
+  // D7 (Contabilidadcasa 2.0): coste anual en euros de la penalización de TAE, solo cuando el hogar
+  // ha declarado el porcentaje — sin ese dato se queda en la nota cualitativa que ya existía.
+  const penaltyCostAnnual = clause.bonusRatePenaltyPct > 0
+    ? round2((clause.bonusRatePenaltyPct / 100) * (Number(contract.currentPrincipal) || 0))
+    : 0;
+  const linkedProductsNote = !clause.linkedProductsCompliant
+    ? penaltyCostAnnual > 0
+      ? `Vinculación NO cumplida: coste extra estimado de ${money(penaltyCostAnnual, true)}/año mientras no se cumpla (TAE +${clause.bonusRatePenaltyPct} pto. sobre el capital actual).`
+      : "Vinculación NO cumplida: el banco podría dejar de aplicar la bonificación pactada."
+    : penaltyCostAnnual > 0
+      ? `Sin riesgo de vinculación declarado. Si se incumpliera, el coste extra estimado sería de ${money(penaltyCostAnnual, true)}/año.`
+      : "Sin riesgo de vinculación declarado.";
   return `<details class="deuda-ruta-calendar-item" data-gob16-clause-card="${id}"${isOpen ? " open" : ""}>
       <summary>${summary}</summary>
       <label class="month-picker"><span>Vinculación de productos exigida</span>
@@ -1419,6 +1436,9 @@ function gob16ClauseRowHtml(contract, isOpen) {
       <label class="month-picker">
         <input type="checkbox" data-gob16-contract-id="${id}" data-gob16-field="linkedProductsCompliant" ${clause.linkedProductsCompliant ? "checked" : ""} aria-label="Vinculación cumplida de ${entityLabel}" />
         <span>Vinculación cumplida hoy</span>
+      </label>
+      <label class="month-picker"><span>Penalización de TAE si se incumple (puntos)</span>
+        <input type="number" min="0" max="100" step="0.01" inputmode="decimal" placeholder="0" data-gob16-contract-id="${id}" data-gob16-field="bonusRatePenaltyPct" value="${clause.bonusRatePenaltyPct > 0 ? clause.bonusRatePenaltyPct : ""}" aria-label="Penalización de TAE de ${entityLabel}" />
       </label>
       <label class="month-picker"><span>Comisión de apertura declarada (%)</span>
         <input type="number" min="0" max="100" step="0.01" inputmode="decimal" placeholder="0" data-gob16-contract-id="${id}" data-gob16-field="openingFeePct" value="${clause.openingFeePct > 0 ? clause.openingFeePct : ""}" aria-label="Comisión de apertura de ${entityLabel}" />
@@ -1429,7 +1449,7 @@ function gob16ClauseRowHtml(contract, isOpen) {
       <label class="month-picker"><span>Última revisión del diferencial</span>
         <input type="month" data-gob16-contract-id="${id}" data-gob16-field="lastRateReviewAt" value="${escapeHtml(clause.lastRateReviewAt)}" aria-label="Fecha de la última revisión del diferencial de ${entityLabel}" />
       </label>
-      <p class="e19-kpi-note${clause.linkedProductsCompliant ? "" : " is-danger"}">${clause.linkedProductsCompliant ? "Sin riesgo de vinculación declarado." : "Vinculación NO cumplida: el banco podría dejar de aplicar la bonificación pactada."}</p>
+      <p class="e19-kpi-note${clause.linkedProductsCompliant ? "" : " is-danger"}">${linkedProductsNote}</p>
       <p class="e19-kpi-note${review && review.due ? " is-danger" : ""}">${reviewNote}</p>
     </details>`;
 }
@@ -1473,10 +1493,34 @@ function renderDeb6DebtChecklist(contracts) {
     .join("");
   const resultNote = qs("deb6ConsolidationNote");
   if (resultNote) resultNote.innerHTML = "";
+  deb6LastResult = null;
 }
 
 function deb6SelectedContractIds() {
   return Array.from(document.querySelectorAll("[data-deb6-contract-checkbox]:checked")).map((el) => el.dataset.deb6ContractCheckbox);
+}
+
+// D2 (Contabilidadcasa 2.0): el simulador es de lectura pura (ver comentario de arriba) — nunca
+// marca ningún contrato como reunificado ni toca la única cifra global de reunificación ya
+// declarada (`reunified`/`unifiedPlan`, canonical-debt-contracts.js). Lo que sí faltaba era un
+// enlace: sin él, el hogar tenía que reteclear a mano el TIN y el plazo ya simulados aquí en la
+// oferta de «Comparar estrategias» (`deudaCompararOfferTin`/`Plazo`) para ver la comparación
+// completa con las otras tres estrategias. Guarda el último resultado calculable para que el botón
+// de «usar esta oferta» tenga algo que copiar.
+let deb6LastResult = null;
+
+function handleDeb6UseOfferInComparar() {
+  if (!deb6LastResult) return;
+  saveDebtConsolidationOffer({
+    tin: deb6LastResult.newRatePct,
+    plazo: deb6LastResult.newTermMonths,
+    comision: null,
+    expiresAt: "",
+  });
+  const note = qs("deb6ConsolidationNote");
+  if (note) {
+    note.innerHTML += `<p class="e19-kpi-note">TIN y plazo copiados a la oferta de «Comparar estrategias» — ábrela para ver la comparación completa con las otras estrategias.</p>`;
+  }
 }
 
 function handleDeb6Simulate() {
@@ -1484,6 +1528,7 @@ function handleDeb6Simulate() {
   if (!note) return;
   const engine = window.FinanceDebtContracts;
   if (!engine) return;
+  deb6LastResult = null;
   const contractIds = deb6SelectedContractIds();
   const newRatePct = Number(String(qs("deb6NewLoanRatePct")?.value || "").trim().replace(",", "."));
   const newTermMonths = Math.round(Number(String(qs("deb6NewLoanTermMonths")?.value || "").trim().replace(",", ".")));
@@ -1500,10 +1545,12 @@ function handleDeb6Simulate() {
     }</p>`;
     return;
   }
+  deb6LastResult = result;
   const deltaLabel = result.worthIt
     ? `ahorro de ${money(Math.abs(result.totalCostDelta), true)}`
     : `${money(Math.abs(result.totalCostDelta), true)} MÁS caro`;
-  note.innerHTML = `<p>Consolidar ${result.contractIds.length} deudas (${money(result.totalPrincipal, true)} de capital) en un préstamo nuevo a ${result.newRatePct}% durante ${result.newTermMonths} meses: cuota de ${money(result.newMonthlyPayment, true)}/mes (antes ${money(result.currentMonthlyPayment, true)}/mes por separado), coste total ${money(result.newTotalCost, true)} frente a ${money(result.currentTotalCost, true)} manteniéndolas separadas — <strong>${deltaLabel}</strong> frente a no consolidar.</p>`;
+  note.innerHTML = `<p>Consolidar ${result.contractIds.length} deudas (${money(result.totalPrincipal, true)} de capital) en un préstamo nuevo a ${result.newRatePct}% durante ${result.newTermMonths} meses: cuota de ${money(result.newMonthlyPayment, true)}/mes (antes ${money(result.currentMonthlyPayment, true)}/mes por separado), coste total ${money(result.newTotalCost, true)} frente a ${money(result.currentTotalCost, true)} manteniéndolas separadas — <strong>${deltaLabel}</strong> frente a no consolidar.</p>
+    <button type="button" class="e19-btn e19-btn-secondary" data-deb6-use-offer>Usar esta oferta en «Comparar estrategias»</button>`;
 }
 
 // D-15 · el simulador visual promovido desde «Herramientas avanzadas» a pestaña de Deuda: al

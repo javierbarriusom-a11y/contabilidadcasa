@@ -70,6 +70,57 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 16 de septiembre de 2026 (197): `D2`/`D3`/`D7` de `BACKLOG_CONTABILIDADCASA_2_0.md`
+
+Primera sesión de trabajo real sobre `BACKLOG_CONTABILIDADCASA_2_0.md` (nacido en la sesión 196).
+Siguiendo su propia recomendación de §6, se resolvieron primero las tres verificaciones de esfuerzo
+mínimo (`D2`, `D3`, `D7`) antes de entrar en el resto del Horizonte 1.
+
+- **`D3` (TIN desconocido por contrato) — cerrada sin construir nada.** Verificado que el TIN
+  desconocido ya se distingue por contrato individual, no solo en el agregado: el editor de
+  Contratos (input vacío, `placeholder="sin dato"`) y la tabla «Orden de ataque» (`—` por fila, con
+  test dedicado ya existente en `d13-deuda-pixel-perfect.test.cjs`). Cobertura completa confirmada.
+- **`D2` (reunificación N:1) — cerrada, con un enlace pequeño construido.** Verificado que
+  `reunified`/`unifiedPlan` de `normalizeContracts()` ya es la ejecución real declarada por el
+  hogar (Contratos › estado de cada contrato) — no hacía falta ningún motor nuevo, y `DEB6`
+  (`simulateDebtConsolidation`) sigue siendo, correctamente, un simulador de solo lectura aparte.
+  El hueco real era de enlace: sin él, el hogar tenía que reteclear a mano en «Comparar
+  estrategias» el TIN y el plazo que ya había simulado en `DEB6`. Se investigó primero si convenía
+  que el simulador marcase contratos como reunificados directamente y se descartó por riesgo real:
+  el modelo solo soporta un `unifiedPlan` global (hoy con la cifra hardcodeada de la reunificación
+  real ya existente, Cetelem, 180€/36 cuotas) — marcar contratos nuevos como reunificados desde ahí
+  mezclaría dos consolidaciones distintas bajo una sola cifra, dando una figura financiera
+  incorrecta. En su lugar: un botón «Usar esta oferta en Comparar estrategias» en el resultado de
+  `DEB6` que precarga TIN/plazo en la oferta declarada que ya usa esa pantalla
+  (`saveDebtConsolidationOffer`) — puramente declarativo, nunca toca `reunified` ni ejecuta nada
+  (`A11-4`).
+- **`D7` (coste anual de cláusulas vigiladas) — construida.** Verificado primero que `GOB16`
+  (`scenarioSettings.gob16DebtClauses`) no cubría nada de esto: declaraba vinculación de productos,
+  comisión de apertura y revisión del diferencial, pero sin convertir nada a euros ni anualizarlo.
+  Añadido `bonusRatePenaltyPct` (puntos de TAE que penalizaría el banco si se incumple la
+  vinculación, declarado por el hogar, nunca inferido) y su coste anual en euros
+  (`(bonusRatePenaltyPct/100) × currentPrincipal`), mostrado tanto si la vinculación está
+  incumplida hoy como, a modo de aviso, si se cumple pero el hogar quiere ver el riesgo. Sin el
+  dato declarado, la nota se queda cualitativa igual que antes de esta tarea — nunca se inventa una
+  cifra.
+- **Validación**: `npm run verify` completo en verde (código de salida 0) tras `npm install` (sin
+  `node_modules` al empezar la sesión, igual que en sesiones anteriores — 6 fallos exactamente por
+  falta de `esbuild`/`build:site` antes de instalar, 0 después). `npm test` **4267/4267** pruebas
+  (4259 de la sesión 196 + 8 nuevas: 4 en `tests/gob16-vigilancia-clausulas-deuda.test.cjs` para
+  `bonusRatePenaltyPct` y el cálculo en euros, 3 de wiring del enlace `DEB6`→oferta en
+  `tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs`, 1 ajuste al valor por defecto de
+  `gob16ContractClause`). `test:a11y` **1328 IDs únicos** (sin cambio — no se tocó ningún id nuevo
+  de pantalla). `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` (§3, §0, §6) marca `D2`/`D3`/`D7` como
+  cerradas, 3/47. `BACKLOG_INDICE.md` refleja el mismo recuento en su tabla.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: continuar el Horizonte 1 de `BACKLOG_CONTABILIDADCASA_2_0.md`
+  — `T1` (auditoría Nielsen real de Hoy/Registrar/Plan, máxima prioridad del documento) primero, y
+  `P1`/`P5`/`P6` a la espera de su resultado por si reorganiza la pantalla «Hoy»; en paralelo o
+  después, `T2` y `D4`/`I11`, ya acotados y sin esa dependencia.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (196): nace `BACKLOG_CONTABILIDADCASA_2_0.md`
 
 El hogar pidió una tercera auditoría crítica de producto — "eres el mejor desarrollador de apps

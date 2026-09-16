@@ -90,6 +90,8 @@ function sandbox({ scenarioSettings = {}, state = {}, box = makeBox(), contracts
     debtContractSourceRows: () => contracts,
     qs: (id) => (id === "gob16ClauseWatch" ? box : null),
     escapeHtml: (value) => String(value ?? ""),
+    money: (value) => `${value} €`,
+    round2: (value) => Math.round((value + Number.EPSILON) * 100) / 100,
     box,
     saved,
   };
@@ -105,12 +107,13 @@ const CONTRACTS = DebtContracts.normalizeContracts([
 
 // --- gob16ContractClause ------------------------------------------------------------------------
 
-test("gob16ContractClause · sin declarar, valores por defecto (cumple vinculación, sin comisión ni revisión)", () => {
+test("gob16ContractClause · sin declarar, valores por defecto (cumple vinculación, sin penalización, comisión ni revisión)", () => {
   const ctx = sandbox();
   const clause = ctx.gob16ContractClause("hipoteca");
   assert.deepEqual({ ...clause }, {
     linkedProducts: "",
     linkedProductsCompliant: true,
+    bonusRatePenaltyPct: 0,
     openingFeePct: 0,
     rateReviewIntervalMonths: 0,
     lastRateReviewAt: "",
@@ -119,14 +122,51 @@ test("gob16ContractClause · sin declarar, valores por defecto (cumple vinculaci
 
 test("gob16ContractClause · normaliza lo ya declarado (comisión no negativa, intervalo entero)", () => {
   const ctx = sandbox({
-    scenarioSettings: { gob16DebtClauses: { hipoteca: { linkedProducts: "seguro de vida", linkedProductsCompliant: false, openingFeePct: "1.5", rateReviewIntervalMonths: "12.7", lastRateReviewAt: "2025-09" } } },
+    scenarioSettings: { gob16DebtClauses: { hipoteca: { linkedProducts: "seguro de vida", linkedProductsCompliant: false, bonusRatePenaltyPct: "0.5", openingFeePct: "1.5", rateReviewIntervalMonths: "12.7", lastRateReviewAt: "2025-09" } } },
   });
   const clause = ctx.gob16ContractClause("hipoteca");
   assert.equal(clause.linkedProducts, "seguro de vida");
   assert.equal(clause.linkedProductsCompliant, false);
+  assert.equal(clause.bonusRatePenaltyPct, 0.5);
   assert.equal(clause.openingFeePct, 1.5);
   assert.equal(clause.rateReviewIntervalMonths, 12);
   assert.equal(clause.lastRateReviewAt, "2025-09");
+});
+
+// --- D7 (Contabilidadcasa 2.0): penalización de TAE declarada y su coste anual en euros --------
+
+test("gob16SaveContractClause · guarda la penalización de TAE, acepta coma decimal y la acota a 0-100", () => {
+  const ctx = sandbox();
+  ctx.gob16SaveContractClause("hipoteca", "bonusRatePenaltyPct", "0,5");
+  assert.equal(ctx.scenarioSettings.gob16DebtClauses.hipoteca.bonusRatePenaltyPct, 0.5);
+  ctx.gob16SaveContractClause("hipoteca", "bonusRatePenaltyPct", "500");
+  assert.equal(ctx.scenarioSettings.gob16DebtClauses.hipoteca.bonusRatePenaltyPct, 100);
+});
+
+test("gob16ClauseRowHtml · sin penalización declarada, la nota se queda cualitativa (comportamiento igual que antes de D7)", () => {
+  const ctx = sandbox({ scenarioSettings: { gob16DebtClauses: { hipoteca: { linkedProductsCompliant: false } } } });
+  const html = ctx.gob16ClauseRowHtml(CONTRACTS[0]);
+  assert.match(html, /Vinculación NO cumplida: el banco podría dejar de aplicar la bonificación pactada\./);
+  assert.doesNotMatch(html, /coste extra estimado/);
+});
+
+test("gob16ClauseRowHtml · con penalización declarada y vinculación incumplida, calcula el coste anual sobre el capital vivo", () => {
+  const ctx = sandbox({ scenarioSettings: { gob16DebtClauses: { hipoteca: { linkedProductsCompliant: false, bonusRatePenaltyPct: 1 } } } });
+  const html = ctx.gob16ClauseRowHtml(CONTRACTS[0]);
+  // Hipoteca Mediolanum: currentPrincipal 150000 · penalización 1% → 1500 €/año.
+  assert.match(html, /Vinculación NO cumplida: coste extra estimado de 1500 €\/año mientras no se cumpla \(TAE \+1 pto\. sobre el capital actual\)\./);
+});
+
+test("gob16ClauseRowHtml · con penalización declarada pero vinculación cumplida, avisa del coste si se incumpliera", () => {
+  const ctx = sandbox({ scenarioSettings: { gob16DebtClauses: { hipoteca: { bonusRatePenaltyPct: 1 } } } });
+  const html = ctx.gob16ClauseRowHtml(CONTRACTS[0]);
+  assert.match(html, /Sin riesgo de vinculación declarado\. Si se incumpliera, el coste extra estimado sería de 1500 €\/año\./);
+});
+
+test("gob16ClauseRowHtml · el campo de penalización de TAE se declara junto al resto de campos de la cláusula", () => {
+  const ctx = sandbox();
+  const html = ctx.gob16ClauseRowHtml(CONTRACTS[0]);
+  assert.match(html, /data-gob16-field="bonusRatePenaltyPct"/);
 });
 
 // --- gob16SaveContractClause ---------------------------------------------------------------------

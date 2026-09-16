@@ -201,3 +201,34 @@ test("wiring: el simulador de consolidación usa FinanceDebtContracts.simulateDe
 test("wiring: hay listeners registrados para el botón de simular consolidación y las casillas de deuda", () => {
   assert.match(appSource, /deb6SimulateRun.{0,60}addEventListener/s);
 });
+
+// --- D2 (Contabilidadcasa 2.0): enlace de DEB6 con la oferta de «Comparar estrategias» ----------
+// Verificación previa (§D2 del backlog) confirmó que `reunified`/`unifiedPlan` ya es la ejecución
+// real declarada por el hogar (Contratos › estado), no una brecha que exigiera un motor nuevo. El
+// hueco real era que el simulador de esta pestaña no enlazaba con ningún otro sitio: el hogar tenía
+// que reteclear a mano el TIN y el plazo ya simulados en la oferta de «Comparar estrategias». El
+// enlace nunca toca `reunified` ni la cifra global ya declarada de la reunificación real (Cetelem):
+// solo copia TIN/plazo a `saveDebtConsolidationOffer`, la misma función que ya usa el formulario de
+// la oferta en Comparar estrategias.
+
+test("wiring: handleDeb6Simulate guarda el resultado calculable para que el botón de enlace tenga algo que copiar", () => {
+  const start = deudaSource.indexOf("function handleDeb6Simulate(");
+  assert.ok(start >= 0, "No existe handleDeb6Simulate");
+  const block = deudaSource.slice(start, start + 2000);
+  assert.match(block, /deb6LastResult = result;/);
+  assert.match(block, /data-deb6-use-offer/);
+});
+
+test("wiring: handleDeb6UseOfferInComparar copia el TIN y el plazo simulados a saveDebtConsolidationOffer, nunca toca reunified", () => {
+  const start = deudaSource.indexOf("function handleDeb6UseOfferInComparar(");
+  assert.ok(start >= 0, "No existe handleDeb6UseOfferInComparar");
+  const block = deudaSource.slice(start, deudaSource.indexOf("\n}\n", start) + 3);
+  assert.match(block, /saveDebtConsolidationOffer\(\{/);
+  assert.match(block, /tin: deb6LastResult\.newRatePct/);
+  assert.match(block, /plazo: deb6LastResult\.newTermMonths/);
+  assert.doesNotMatch(block, /reunified/);
+});
+
+test("wiring: hay un listener para el botón de usar la oferta simulada en Comparar estrategias", () => {
+  assert.match(appSource, /deb6ConsolidationNote.{0,120}data-deb6-use-offer.{0,80}handleDeb6UseOfferInComparar/s);
+});
