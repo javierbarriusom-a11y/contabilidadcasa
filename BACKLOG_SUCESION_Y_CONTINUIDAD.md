@@ -53,17 +53,16 @@ temprano reusando el motor de patrimonio neto ya construido, no una calculadora 
 | ✅ `LPX5` | Destino declarado por activo | S-M | Medio | **Hecho (sesión 193).** Campo opcional `destination` por activo en `canonical-assets.js`/`saveA14Asset` (texto libre, nunca vinculante). Añade un check automático nuevo (`assetDestination`) al checklist de `LPX3` — no se reutilizó la casilla manual `documentsKnown` (pregunta distinta, sin dato real que la sustituya): detalle en `PROJECT_STATE.md`, cierre de sesión 193. |
 | ✅ `LPX6` | Beneficiario declarado por póliza de vida | S | Medio | **Hecho (sesión 192).** El registro real de pólizas es `insurancePolicies()`/`addInsurancePolicy()` en `app.js` (SP1) — `canonical-life-coverage.js` (SP2) es un motor de comparación puro, sin estado. Nuevos campos opcionales `isLife` (checkbox, nunca inferido del nombre) y `beneficiary` (texto libre). `LPX3` sustituye su casilla manual global "beneficiarios" por `lpx3ContinuityChecklist()` comprobando de verdad si al menos una póliza con `isLife` tiene `beneficiary` declarado — mismo tipo de cierre de bucle que `PVC13` hizo con `confidenceBands()`. Tests: `tests/lpx6-beneficiario-poliza-vida.test.cjs` (8 tests) + `tests/lpx3-continuidad-checklist.test.cjs` reescrito. |
 
-## 2. Postpuesto, declarado sin auditar (decisión del hogar, sesión 192)
+## 2. Auditado (sesión 195, 16 de septiembre de 2026) — sin hueco accionable
 
-El hallazgo de la sesión 164 daba por resueltos copiloto/IA y multidispositivo, pero ocho sesiones y
-la Oleada 4 completa han pasado desde entonces (`GOB17`, entre otras, tocó justo el copiloto). El
-hogar decide en la sesión 192 declarar aquí ambos frentes para no perderlos, pero posponer su
-auditoría real — no se hace ahora mismo.
+El hallazgo de la sesión 164 daba por resueltos copiloto/IA y multidispositivo; la sesión 192 declaró
+ambos frentes pendientes de re-auditar en vez de asumirlo sin más. La sesión 195 hizo esa auditoría
+contra el código real (no contra la documentación de backlog).
 
-| Frente | Qué haría falta para retomarlo |
+| Frente | Conclusión de la auditoría (sesión 195) |
 |---|---|
-| Copiloto/IA (`E9-1`, `GOB17`, `canonical-e9-assistant.js`...) | Re-auditar contra el código actual antes de asumir que sigue "resuelto sin tarea nueva" — la suposición tiene 8 sesiones. |
-| Multidispositivo (`MDX1`/`MDX2`, `RGX1`/`RGX2`) | Mismo motivo: dado por resuelto en la sesión 164, nunca re-verificado desde entonces. |
+| Copiloto/IA (`E9-1`, `GOB17`, `canonical-e9-assistant.js`) | **Sigue sin tarea de código accionable — bloqueado por `A5-1`, no por trabajo pendiente.** Solo `sourceCatalog()` tiene llamador real (CP1/CP2/CPX1); `prepareQuery`/`validateResponse`/`localDisclosure` (el flujo de pregunta-a-IA-externa) no tienen ningún consumidor de UI desde que la sesión 42 retiró el widget «Asistente financiero» — solo los llama `private-backend.js`, inalcanzable mientras `A5-1` no esté en producción real (`A5_ACTIVATION.md`). Implicación no escrita hasta ahora: activar `A5-1` exigirá construir una superficie de UI nueva, no solo desplegar el backend. Detalle completo en `PROJECT_STATE.md`, cierre de sesión 195. |
+| Multidispositivo (`MDX1`/`MDX2`, `RGX1`/`RGX2`) | **Verificado sólido, sin hallazgos.** Los cuatro están cableados de punta a punta (selector → función de dominio → renderizado), no solo documentados. Nada que retomar. |
 
 ## 3. Descartado
 

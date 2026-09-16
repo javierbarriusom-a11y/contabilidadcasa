@@ -70,6 +70,62 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 16 de septiembre de 2026 (195): auditoría de código de Copiloto/IA y Multidispositivo
+
+Con `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` y `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrados
+(sesiones 191 y 194) y ningún backlog nuevo identificado, esta sesión no construyó nada: hizo la
+re-auditoría de código que `BACKLOG_SUCESION_Y_CONTINUIDAD.md` §2 dejó pendiente para Copiloto/IA y
+Multidispositivo (declarados "postpuestos, sin auditar" en la sesión 192) — condición previa antes de
+asumir que cualquiera de los dos sigue "resuelto sin tarea nueva".
+
+**Copiloto/IA (`canonical-e9-assistant.js`) — infraestructura huérfana, confirmado con más alcance del
+asumido.** De sus 6 funciones exportadas, solo `sourceCatalog()` tiene llamador real en el navegador
+(`cp1NextBestAction`/`cp2IdleCashSignal` en `p2-ui.js`, `cpx1WeeklyPriorityAction` en
+`views/estado-semana.js` — formas `alerts`/`metrics` únicamente). `prepareQuery`/`validateResponse`/
+`localDisclosure` — el flujo real de "hacer una pregunta a una IA externa y validar su respuesta" —
+solo aparecen en `private-backend.js`, que depende de que `A5-1` esté desplegado en producción real, y
+`A5_ACTIVATION.md` confirma que sigue sin estarlo (sesión 192). Ninguna pantalla del sitio publicado
+llama a ese backend hoy: grep sobre `app.js`/`index.html`/`p2-ui.js` no encuentra ningún endpoint
+`assistant-query` ni equivalente. Raíz confirmada: la sesión 42 (28 de agosto de 2026) retiró el único
+llamador real, el widget «Asistente financiero» (confirmado explícitamente por el hogar antes de
+tocarlo), conservando el motor como infraestructura para un futuro "motor de recomendación real" (`T-6`,
+`BACKLOG.md`). No es un bug ni un hueco nuevo — es la misma decisión de producto de hace tres semanas,
+pero con una implicación que no estaba escrita en ningún sitio: **no queda ninguna superficie de UI que
+active ese flujo**, ni siquiera tras un flag apagado, así que activar `A5-1` exigirá construir una
+pantalla nueva desde cero, no solo encender un interruptor. Hallazgo secundario, menor: la forma
+`decisions` de `sourceCatalog()` (añadida por `GOB17` explícitamente para un "consumidor futuro") sigue
+sin ningún llamador real hoy — solo `alerts`/`metrics` se usan.
+
+**Multidispositivo (`RGX1`, `RGX2`, `MDX1`, `MDX2`) — sin hallazgos, verificado sólido.** Los cuatro
+están cableados de punta a punta, no solo documentados: `RGX1`/`RGX2` con lógica real en `app.js`
+(antigüedad de copia, cobertura por área, concentración de conocimiento); `MDX1` con el recorrido
+completo selector (`index.html`) → `mdx1KidsSummarySource()` (`app.js`) → `renderKidsSummary()`
+(`share.html`), verificado que no expone deuda ni movimientos; `MDX2` con un test que hace fallar el
+documento automáticamente si diverge de `state-contract.js`.
+
+**Decisión tomada**: no se crea tarea de backlog nueva. El freno real de Copiloto/IA es la condición
+externa `A5-1` (ya rastreada en `A5_ACTIVATION.md` y en la tabla de `BACKLOG_INDICE.md`), no código por
+escribir — construir una UI ahora sería construir una pantalla para un backend que no responde.
+`BACKLOG_SUCESION_Y_CONTINUIDAD.md` §2 se actualiza de "postpuesto, sin auditar" a "auditado, sin hueco
+accionable, bloqueado por `A5-1`" para que ninguna sesión futura tenga que rehacer esta misma
+investigación.
+
+- **Validación**: `npm run verify` completo en verde tras `npm install` (el entorno de esta sesión no
+  tenía `node_modules`; sin él, `test:performance`/`build:site` fallaban por falta de `esbuild`, no por
+  ninguna regresión de código — resuelto instalando las dependencias ya declaradas en
+  `package.json`/`package-lock.json`, sin tocar ninguna). `npm test` **4259/4259** pruebas — misma cifra
+  exacta que dejó la sesión 194, consistente con que esta sesión no cambió ningún fichero de código.
+  `test:a11y` **1328 IDs únicos** (sin cambio). `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke` sin errores.
+- **Publicado**: solo cambios de documentación (este cierre, `BACKLOG_SUCESION_Y_CONTINUIDAD.md`,
+  `BACKLOG_INDICE.md`) — commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: sigue sin haber ningún backlog nuevo identificado. Las tres
+  condiciones externas de la tabla de `BACKLOG_INDICE.md` siguen sin cumplirse (`OPT-2` cumple el 28 de
+  septiembre, `A5-1` sigue sin producción real, `O-6`/PSD2 sin contratar). Quien retome debería empezar
+  verificando si alguna de las tres cambió antes de buscar trabajo nuevo por otra vía.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (194): `LPX4`
 
 Última tarea de `BACKLOG_SUCESION_Y_CONTINUIDAD.md` — con esto el backlog queda 100% cerrado (3/3:
