@@ -40471,6 +40471,9 @@ async function init() {
   });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
   qs("deb6SimulateRun")?.addEventListener("click", () => handleDeb6Simulate());
+  qs("deb6ConsolidationNote")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-deb6-use-offer]")) handleDeb6UseOfferInComparar();
+  });
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
     if (event.target.closest("#deudaContratosCuadreAdjust")) {
       qs("deudaContratosTable")?.querySelector("input[data-deuda-contrato-field='currentPrincipal']")?.focus();

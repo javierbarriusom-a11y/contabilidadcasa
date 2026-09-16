@@ -8,8 +8,8 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: recién nacido, 0/47 construidas.** Nada de este documento se ha implementado — es
-diagnóstico y planificación, pendiente de que el hogar decida por dónde empezar (ver §6).
+**Estado: 3/47 cerradas (sesión 197 — `D2`, `D3`, `D7`).** El resto sigue pendiente — diagnóstico y
+planificación para lo que falta, con el hogar ya decidido por dónde seguir (ver §6).
 
 ## 0. Origen y diagnóstico
 
@@ -90,7 +90,7 @@ fiscalidad de dividendos/plusvalías, apalancamiento tipo Lombard con margin cal
 | ⏳ `I11` | Coste de diferir la plusvalía, cuantificado en euros | S | Medio | Extiende «vender vs. pedir prestado» (`INV10`). |
 | ⏳ `I12` | Campo de «convicción» y fecha de revisión por posición | S | Bajo | Aviso si no se ha revisado en más de 12 meses; evita que el rebalanceo por umbral sea puramente mecánico. |
 
-## 3. Deuda (`D1`-`D10`, 8 accionables + 2 reducidas a verificación)
+## 3. Deuda (`D1`-`D10`, 8 accionables + 2 reducidas a verificación, 3 ya cerradas)
 
 Deuda es el módulo con más backlog cerrado y, a la vez, el que arrastra la deuda técnica más
 visible: dos motores en paralelo. Prioriza simplificar y ejecutar sobre añadir cálculo nuevo.
@@ -98,12 +98,12 @@ visible: dos motores en paralelo. Prioriza simplificar y ejecutar sobre añadir 
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
 | ⏳ `D1` | Retirar el iframe heredado de deuda (`debt-roadmap.html`) | M | Medio | Decisión de producto, no solo código: confirmar con el hogar cuánto lleva `canonical-e14-parity.js` en verde antes de retirarlo. |
-| 🟡 `D2` | Reunificación N:1: confirmar si `reunified`/`unifiedPlan` de `normalizeContracts()` ya es la ejecución real | S (verificación) → L si hay brecha | Alto | **Alcance reducido tras el cruce.** `DEB6`/`simulateDebtConsolidation` está comentado en el propio código como «simulación hipotética, distinta del plan ya reunificado» — puede que la ejecución real ya exista por otra vía y solo falte enlazarla con el simulador. Verificar antes de construir nada nuevo; respeta siempre `A11-4` (ninguna acción financiera real se ejecuta sin confirmación explícita). |
-| 🟡 `D3` | TIN desconocido: confirmar cobertura por contrato individual, no solo en el agregado | S (verificación) | Bajo | **Alcance reducido tras el cruce.** `views/deuda.js` ya muestra «sin TIN declarado» en el TAE medio agregado — no se calla en silencio. Falta confirmar si llega a cada contrato suelto antes de asumir que hace falta construir algo. |
+| ✅ `D2` | Reunificación N:1: confirmar si `reunified`/`unifiedPlan` de `normalizeContracts()` ya es la ejecución real | S (verificación) → L si hay brecha | Alto | **Cerrada (sesión 197).** Verificado: `reunified`/`unifiedPlan` ya es la ejecución real declarada por el hogar (Contratos › estado) — no hacía falta motor nuevo. El único hueco real era de enlace: el simulador `DEB6` no conectaba con nada, así que el hogar tenía que reteclear a mano el TIN/plazo ya simulados. Construido: botón «Usar esta oferta en Comparar estrategias» en el resultado de `DEB6` que precarga `deudaCompararOfferTin`/`Plazo` vía `saveDebtConsolidationOffer` — nunca toca `reunified` ni la cifra global ya declarada de la reunificación real (Cetelem), evitando mezclar dos reunificaciones distintas bajo una sola cifra. |
+| ✅ `D3` | TIN desconocido: confirmar cobertura por contrato individual, no solo en el agregado | S (verificación) | Bajo | **Cerrada (sesión 197), sin construir nada.** Verificado: el TIN desconocido ya se distingue por contrato individual en dos sitios — el editor de Contratos (input vacío, `placeholder="sin dato"`) y la tabla «Orden de ataque» (`—` por fila, con test dedicado en `d13-deuda-pixel-perfect.test.cjs`). Cobertura completa ya existente, no solo en el agregado. |
 | ⏳ `D4` | Generador de guion de renegociación con el banco | S | Alto | Reutiliza el cálculo ya existente de `DEB4` (radar de refinanciación) y el comparador de ofertas; hoy se queda en número, no en texto accionable. |
 | ⏳ `D5` | Deuda neta cruzando activos e inversión (qué posición podría cancelar qué deuda) | M | Alto | Aplica `AP1` (amortizar vs. invertir) línea a línea sobre el inventario de deuda, en vez de solo como simulador aparte. |
 | ⏳ `D6` | Benchmark de mercado real en el radar de refinanciación | M | Medio | Hoy compara contra un umbral declarado por el hogar; necesita una fuente de datos (aunque sea manual/trimestral) — sin ella, no construir un motor que finja precisión que no tiene. |
-| ⏳ `D7` | Coste anual en euros de cada cláusula vigilada | S | Medio | Extiende `GOB16` (`scenarioSettings.gob16DebtClauses`, sesión 189) — **verificar alcance real de `GOB16` antes de construir**, puede que ya cubra parte de esto. |
+| ✅ `D7` | Coste anual en euros de cada cláusula vigilada | S | Medio | **Construida (sesión 197).** Verificado primero que `GOB16` no cubría nada de esto: declaraba vinculación/comisión/revisión pero sin ninguna cifra en euros. Añadido `bonusRatePenaltyPct` (puntos de TAE que penalizaría el banco si se incumple la vinculación, declarado por el hogar, nunca inferido) y el coste anual = `(bonusRatePenaltyPct/100) × currentPrincipal`, mostrado tanto si la vinculación está incumplida como si se quiere ver el riesgo por adelantado. Sin ese dato declarado, la nota se queda cualitativa igual que antes. |
 | ⏳ `D8` | Reparto de carga por titular en la reestructuración conjunta | M | Medio | Extiende `DI5`/`canonical-joint-restructuring.js`, hoy solo con el total conjunto. |
 | ⏳ `D9` | Barra de «pagado vs. pendiente» por contrato, con ahorro de intereses marcado sobre ella | S | Medio | Visual, sobre datos ya calculados en la ficha de cada contrato. |
 | ⏳ `D10` | Las 5 pestañas de Deuda como un único flujo con navegación de progreso | M | Medio | Ruta/Comparar/Contratos/Simulador/Apalancamiento son hoy pestañas sueltas; reorganiza lo existente, no añade cálculo. |
@@ -151,9 +151,10 @@ No se recomienda abordar las 47 a la vez — sería repetir el mismo error de fo
 futura), `P4`/`P10` (interinos de push e IA, a sustituir cuando lleguen `A5-1`/`A5-4`), `D6`
 (necesita fuente de datos externa).
 
-Verificaciones de `D2`/`D3`/`D7` deberían ir primero, en paralelo, antes de decidir si dan trabajo
-real — son de esfuerzo mínimo y pueden cerrar sin construir nada, como ya le pasó a 5 propuestas de
-la Oleada 2 y a 4 de la Oleada 3.
+**Verificaciones de `D2`/`D3`/`D7` cerradas en la sesión 197**, antes del resto del Horizonte 1:
+`D3` no dio trabajo real (cobertura ya completa); `D2` y `D7` sí dieron trabajo, pero acotado (un
+enlace de UX y un campo declarado + cálculo en euros, respectivamente) — detalle en la fila de cada
+una en §3. El Horizonte 1 sigue con `T1`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`.
 
 ## 7. Pendiente del backlog anterior (heredado, no nace de esta auditoría)
 
