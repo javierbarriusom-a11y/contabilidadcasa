@@ -116,6 +116,15 @@ app); continuidad se extiende con `LPX5`/`LPX6`. Copiloto/IA y multidispositivo 
 el documento pero postpuestos sin auditar de verdad — decisión explícita del hogar, no descarte.
 **El siguiente trabajo real de producto vive ahí** hasta que se construyan sus 3 tareas (`LPX4`-`LPX6`).
 
+**Actualizado el 16 de septiembre de 2026 (sesión 194): `BACKLOG_SUCESION_Y_CONTINUIDAD.md` queda 100%
+cerrado.** Las 3/3 tareas accionables están construidas: `LPX6` (sesión 192), `LPX5` (sesión 193) y
+`LPX4` (sesión 194, la más delicada — aviso fiscal reutilizando el registro de escalas de `A15-2` con
+un `kind` nuevo, "succession", en vez de un motor propio). **No hay ningún backlog siguiente
+identificado todavía.** Copiloto/IA y multidispositivo siguen declarados en el documento pero
+postpuestos sin auditar (§2 de ese documento) — quien retome debería empezar por ahí si busca el
+próximo candidato, o re-verificar si alguna de las tres condiciones externas de la tabla de abajo
+(`OPT-2`, `A5-1`, `O-6`) ya se cumplió.
+
 **Actualizado el 11 de septiembre de 2026 (sesión 165): nace `OPT-25` y anula `OPT-15` para
 «Herramientas avanzadas».** Un mockup externo ("Claude Design", opción B) propuso lo contrario de lo
 que asumía `OPT-24`: sacar las tarjetas de «Herramientas» de Ajustes y darles categorías propias
@@ -151,7 +160,7 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **[`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md)** | 🟡 Casi cerrado (nace sesión 192) — `LPX6`/`LPX5` construidas, solo queda `LPX4` | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA y multidispositivo declarados pero postpuestos | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo |
+| **[`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md)** | ✅ Cerrado (sesión 194) — 3/3 tareas accionables construidas (`LPX6`, `LPX5`, `LPX4`) | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA y multidispositivo declarados pero postpuestos, sin auditar todavía | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo; ningún backlog siguiente identificado todavía |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` | ✅ Cerrada (sesión 191) — 46/46 tareas accionables construidas o reducidas/retiradas con motivo | Segunda auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3, nacida de ["El Libro Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad) (10 hallazgos + 49 propuestas), tras retirar 4 propuestas ya construidas en la Oleada 3 y reducir el alcance de otras 7 | `BACKLOG_SUCESION_Y_CONTINUIDAD.md` para el trabajo nuevo de fiscalidad/continuidad; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` | ✅ Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa) | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` para el trabajo nuevo de estos cuatro frentes; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | 🟡 Casi cerrado — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada) | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` para el trabajo nuevo de estos cuatro frentes; su propio remanente (`RGX3`) sigue vigente aquí hasta que `A5-1` esté en producción |

@@ -18,7 +18,7 @@ test("FC5: la escala del tramo del ahorro se declara con la misma tarjeta de esc
 
 test("FC5: saveIrpfBracketScale ya no colapsa \"savings\" a \"state\" (bug corregido antes de publicar)", () => {
   const block = appSource.slice(appSource.indexOf("function saveIrpfBracketScale("), appSource.indexOf("function saveIrpfBracketScale(") + 700);
-  assert.match(block, /kind === "regional" \? "regional" : kind === "savings" \? "savings" : "state"/);
+  assert.match(block, /kind === "regional" \? "regional" : kind === "savings" \? "savings" : kind === "succession" \? "succession" : "state"/);
 });
 
 test("FC5: handleFc5Optimize delega en FinanceCanonicalIrpfEstimator.optimizePartialSale con la escala \"savings\"", () => {
