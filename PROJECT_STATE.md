@@ -70,6 +70,56 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 16 de septiembre de 2026 (196): nace `BACKLOG_CONTABILIDADCASA_2_0.md`
+
+El hogar pidió una tercera auditoría crítica de producto — "eres el mejor desarrollador de apps
+financieras: analiza la app y propón mejoras", con más de 40 features nuevas, profundizando en
+previsión/actualización de datos, mejorando inversión y optimizando deuda. Se hizo con cuatro
+revisiones de código en paralelo (previsión, inversión, deuda, sistema UX/estado del proyecto),
+publicada primero como documento independiente
+[«Contabilidadcasa 2.0»](https://claude.ai/artifact/S2aurmx6x3AWkd48D712WE) (10 hallazgos + 48
+propuestas) — misma disciplina que ya usó «El Libro Vivo» con la Oleada 4.
+
+**Cruce contra el código y este mismo documento antes de convertirla en tareas** — encontró 3
+correcciones reales:
+- `I4` (guardarraíl de crédito Lombard equivalente a `AP4`) se **descarta**: no es un hueco, es una
+  exclusión decidida explícitamente por el hogar y ya documentada arriba en el índice de decisiones
+  vigentes («el crédito Lombard queda fuera del guardarraíl general de deuda»).
+- `D2` (reunificación N:1 ejecutable) se **reduce a verificación**: `simulateDebtConsolidation`
+  (`DEB6`) está comentado en su propio código como «simulación hipotética, distinta del plan ya
+  reunificado (`reunified`/`unifiedPlan` de `normalizeContracts`)» — puede que la ejecución real ya
+  exista por otra vía y solo falte enlazarla, en vez de construir un motor nuevo.
+- `T5` (patrimonio neto consolidado) se **reduce de alcance**: el hallazgo original decía que no
+  existía ningún balance; en realidad `A14-1`/`A14-2`/`A14-4` ya calculan la cifra puntual y el
+  desglose por tipo — lo que falta, señalado explícitamente en el propio `app.js` («A14-2 núcleo, sin
+  histórico ni banda de confianza todavía — sesión aparte»), es justo esa serie histórica y esa
+  banda, ya previstas como pendientes desde antes de esta auditoría.
+- `D3` (aviso de TIN desconocido) también se reduce a verificación puntual: `views/deuda.js` ya
+  muestra «sin TIN declarado» en el agregado — falta confirmar si llega a cada contrato individual.
+
+**Publicado**: `BACKLOG_CONTABILIDADCASA_2_0.md` (documento nuevo, 47 tareas accionables en 4
+bloques `P-`/`I-`/`D-`/`T-`, con la sección §7 incorporando al final todo lo pendiente heredado de
+`BACKLOG_SUCESION_Y_CONTINUIDAD.md` y de las colas anteriores: `OPT-10/11/12/13`, `RGX3`, `DEX6`,
+`GOB5`, `O-6` y la superficie de UI de Copiloto/IA — una sola lista, sin cruzar varios documentos).
+`BACKLOG_INDICE.md` actualizado con la entrada del nuevo backlog y su fila en el mapa completo. Sin
+cambios de código — solo documentación; ninguna tarea del backlog nuevo se ha implementado todavía.
+
+- **Validación**: `npm run verify` completo en verde (código de salida 0) tras `npm install` (el
+  entorno de esta sesión tampoco tenía `node_modules`, mismo caso que la sesión 195: sin él,
+  `test:performance`/`build:site` fallaban por falta de `esbuild`, no por ninguna regresión — 6
+  fallos exactamente en esas pruebas antes de instalar, 0 después). `npm test` **4259/4259** pruebas
+  — misma cifra que dejó la sesión 195, consistente con que esta sesión no cambió ningún fichero de
+  código. `test:a11y` **1328 IDs únicos** (sin cambio). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decidir con el hogar por dónde empezar de
+  `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 1 sugerido: `T1`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`)
+  y resolver primero las tres verificaciones de esfuerzo mínimo (`D2`, `D3`, `D7`) que pueden cerrar
+  sin construir nada. Las tres condiciones externas de `BACKLOG_INDICE.md` (`OPT-2`, `A5-1`, `O-6`)
+  siguen sin cumplirse.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (195): auditoría de código de Copiloto/IA y Multidispositivo
 
 Con `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` y `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrados
