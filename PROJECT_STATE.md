@@ -70,6 +70,57 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 16 de septiembre de 2026 (198): `T1`, primera auditoría Nielsen real
+
+Segundo ciclo de la sesión sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `D2`/`D3`/`D7`
+(sesión 197, PR #307). Se ejecutó `T1` — la tarea marcada como «máxima prioridad de todo el
+documento»: la primera revisión real contra los diez heurísticos de Nielsen de
+`docs/OPT21_CHECKLIST_NIELSEN.md`, que llevaba desde el 29 de agosto sin ningún hallazgo real.
+
+- **Método**: revisión de las tres pantallas de uso diario (`renderHomeDashboard()`/`#home`,
+  `renderRegistrar()`/`#registrar`, `renderPlan()`/`#plan`) con evidencia `file:line` concreta antes
+  de anotar cualquier hallazgo — mismo criterio que exige la propia checklist («solo lo que sea un
+  hallazgo real y concreto, no una impresión genérica»). Detalle completo, con las diez preguntas
+  guía, en `docs/OPT21_CHECKLIST_NIELSEN.md` (entrada del 16/09).
+- **7 hallazgos reales** (de los 10 heurísticos; 3 sin hallazgo — control/libertad, prevención de
+  errores y flexibilidad ya cubiertos con criterio):
+  1. Plan nunca confirma «guardado» visualmente, a diferencia de Registrar.
+  2. `index.html:709` mostraba literalmente «Sobres · Fase 6» al hogar — un identificador de fase de
+     backlog interno filtrado a la UI.
+  4. Tres vocabularios distintos para «previsto vs. real» en las tres pantallas de uso diario
+     (Registrar: «Previsto/Real/Usado»; Plan: «Ingreso previsto/Comprometido/Asignado/Sin asignar»;
+     Home: «Gasto previsto/Gasto real a hoy/Desviación») — el de mayor severidad de los siete.
+  6. La pestaña Previsión de Plan no repite el colchón/reserva protegida, solo enlaza fuera.
+  8. Home declara en su propio comentario «máximo 4 bloques en la zona principal, sin scroll»
+     (`index.html:307-311`) pero implementa 9 artículos estáticos más 2 rejillas dinámicas — no
+     cumple su propia regla.
+  9. `app.js:28244` (`undoLastImportBatch()`): «No se pudo deshacer» mostraba el error crudo sin
+     ninguna instrucción de qué hacer, rompiendo el patrón «qué pasó + qué hacer» del resto de
+     Registrar.
+  10. «Guía de este flujo» existe en Home y Registrar pero no en Plan.
+- **Corregidos en la misma sesión, por ser triviales y sin decisión de producto de por medio**: los
+  hallazgos 2 y 9. El resto (1, 4, 6, 8, 10) exige rediseño acotado o una decisión previa del hogar
+  (qué vocabulario adoptar en el caso de 4, si la regla de 4 bloques de Home sigue vigente en el caso
+  de 8) — se convirtieron en tareas nuevas `T15`-`T19` en `BACKLOG_CONTABILIDADCASA_2_0.md` §4, en
+  vez de decidirlas por mi cuenta.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4267/4267**
+  pruebas (sin cambio de cifra — los dos arreglos no añaden pruebas nuevas propias, cambian solo
+  texto visible sin comportamiento nuevo que testear; se comprobó que ningún test dependía del texto
+  anterior antes de cambiarlo). `test:a11y` **1328 IDs únicos** (sin cambio). `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T1` como cerrada y añade `T15`
+  (confirmación de guardado en Plan), `T16` (unificar vocabulario, necesita decisión del hogar),
+  `T17` (repetir el colchón en Previsión), `T18` (revisar densidad de Hoy, necesita decisión del
+  hogar) y `T19` (guía de ayuda en Plan) — de 47 a 52 tareas totales, 4/52 cerradas. `BACKLOG_INDICE.md`
+  refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: el hogar tiene que decidir el vocabulario estándar de
+  `T16` y si la regla de 4 bloques de `T18` sigue vigente, antes de construir esas dos. `T15`, `T17`
+  y `T19` están listas para construirse sin más decisión previa. Del resto del Horizonte 1 original
+  quedan `T2`, `D4`, `I11`, `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (197): `D2`/`D3`/`D7` de `BACKLOG_CONTABILIDADCASA_2_0.md`
 
 Primera sesión de trabajo real sobre `BACKLOG_CONTABILIDADCASA_2_0.md` (nacido en la sesión 196).
