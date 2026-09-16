@@ -28241,7 +28241,7 @@ async function undoLastImportBatch() {
     if (previousReceipt && !updateReceipts.some((item) => item.id === previousReceipt.id)) updateReceipts.push({ ...previousReceipt, undoneAt: new Date().toISOString(), undoReason: reason });
     saveLocalSnapshot(); refreshFromPersistedState(); renderE11bStatus();
     showImportLog("Importación deshecha", "Se creó una revisión nueva; el lote y su estado anterior siguen en el historial.");
-  } catch (error) { showImportLog("No se pudo deshacer", error.message, "danger"); }
+  } catch (error) { showImportLog("No se pudo deshacer", `${error.message}. Vuelve a intentarlo; si persiste, comprueba tu conexión y recarga la página.`, "danger"); }
 }
 
 async function verifyCloudBackups() {

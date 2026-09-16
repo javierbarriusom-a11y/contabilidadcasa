@@ -35,6 +35,28 @@ impresión genérica. Sin hallazgo, la casilla queda en blanco; no hace falta re
 Cada revisión se añade aquí, con fecha, y sus hallazgos reales se llevan como tareas nuevas al
 backlog vigente (`BACKLOG_ULTIMATE_SEPTIEMBRE.md` u otro), citando esta tabla en su Nota.
 
+### 16 de septiembre de 2026 — primera revisión real (`T1`, sesión 197)
+
+Primera revisión real contra las tres pantallas (`renderHomeDashboard()`/`#home`,
+`renderRegistrar()`/`#registrar`, `renderPlan()`/`#plan`), con evidencia `file:line` concreta antes
+de anotar nada — mismo criterio que exige esta checklist. Siete hallazgos reales; dos se corrigieron
+en la misma sesión por ser triviales y sin decisión de producto de por medio, cinco quedan como
+tareas nuevas en `BACKLOG_CONTABILIDADCASA_2_0.md` §4 (`T15`-`T19`).
+
+| # Heurístico | Hallazgo | Estado |
+|---|---|---|
+| 1. Visibilidad del estado | Plan nunca confirma «guardado»: a diferencia de Registrar («guardado hace poco, a las HH:MM»), la barra de impacto de Plan solo desaparece (`hidden`) al no haber cambios pendientes, sin distinguir «nada que guardar» de «ya guardado». | Pendiente — `T15` |
+| 2. Correspondencia con el mundo real | `index.html:709`: el control de Plan mostraba literalmente «Sobres · Fase 6» — un identificador de fase de backlog interno filtrado a la UI. | ✅ Corregido en esta sesión (ahora dice solo «Sobres») |
+| 4. Consistencia | Tres vocabularios distintos para «previsto vs. real» en las tres pantallas de uso diario: Registrar define «Previsto/Real/Usado»; Plan usa «Ingreso previsto/Comprometido/Asignado/Sin asignar» sin conectarlo; Home usa «Gasto previsto/Gasto real a hoy/Desviación». | Pendiente — `T16` (mayor severidad de las cinco) |
+| 6. Reconocer, no recordar | La pestaña Previsión de Plan no repite la cifra de reserva protegida que sí aparece en Home y Registrar — solo enlaza fuera (`index.html:747`). | Pendiente — `T17` |
+| 8. Diseño minimalista | El propio comentario de `index.html:307-311` declara «máximo 4 bloques en la zona principal, sin scroll en desktop» para Home; la implementación real tiene 9 artículos estáticos más 2 rejillas dinámicas (`homeBudgetGlance`, `homeKpis`) — no cumple su propia regla. | Pendiente — `T18` |
+| 9. Recuperación de errores | `app.js:28244`, dentro de `undoLastImportBatch()`: «No se pudo deshacer» mostraba el error crudo sin ninguna instrucción de qué hacer, rompiendo el patrón «qué pasó + qué hacer» que sigue el resto de Registrar. | ✅ Corregido en esta sesión (añade «Vuelve a intentarlo; si persiste, comprueba tu conexión y recarga la página.») |
+| 10. Ayuda y documentación | «Guía de este flujo» existe en Home y Registrar (`index.html:288`, `476`) pero no en Plan — justo la pantalla con el vocabulario más distinto (hallazgo 4) y que no repite las cifras clave (hallazgo 6). | Pendiente — `T19` |
+
+Heurísticos 3 (control y libertad), 5 (prevención de errores) y 7 (flexibilidad) se revisaron sin
+hallazgo real que anotar — deshacer/cancelar/descartar cubiertos con criterio, validación bloqueante
+real antes de importar, y atajo global (Cmd/Ctrl+K) más importación en lote ya cubren lo esencial.
+
 ### 29 de agosto de 2026 — arranque del hábito (OPT-21)
 
 Sesión de construcción de la checklist, no de revisión: esta tabla y el proceso quedan listos hoy.
