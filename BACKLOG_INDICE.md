@@ -121,6 +121,21 @@ cerrado.** Las 3/3 tareas accionables están construidas: `LPX6` (sesión 192), 
 `LPX4` (sesión 194, la más delicada — aviso fiscal reutilizando el registro de escalas de `A15-2` con
 un `kind` nuevo, "succession", en vez de un motor propio).
 
+**Actualizado el 16 de septiembre de 2026 (sesión posterior a la 195): nace
+[`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md).** El hogar pidió una tercera
+auditoría crítica de producto, esta vez con más de 40 propuestas nuevas y foco explícito en
+previsión/actualización de datos, inversión y deuda, publicada primero como documento independiente
+[«Contabilidadcasa 2.0»](https://claude.ai/artifact/S2aurmx6x3AWkd48D712WE) (10 hallazgos + 48
+propuestas) y cruzada después contra el código y `PROJECT_STATE.md` reales — igual disciplina que
+«El Libro Vivo» aplicó a la Oleada 4. El cruce descartó 1 propuesta ya resuelta por una decisión de
+producto explícita (`I4`) y redujo el alcance de 2 más (`D2`, `D3`) tras verificar el código real.
+**El siguiente trabajo real de producto vive en
+[`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md)**: 47 tareas accionables en 4
+bloques (`P-` previsión, `I-` inversión, `D-` deuda, `T-` transversales), más una sección propia
+(§7) que incorpora al final todo lo pendiente heredado de `BACKLOG_SUCESION_Y_CONTINUIDAD.md` y de
+las colas anteriores (`OPT-10/11/12/13`, `RGX3`, `DEX6`, `GOB5`, `O-6`, la superficie de UI de
+Copiloto/IA) — una sola lista, sin tener que cruzar varios documentos.
+
 **Actualizado el 16 de septiembre de 2026 (sesión 195): Copiloto/IA y multidispositivo, auditados
 contra el código real — sin hueco accionable.** La sesión 192 los había declarado "postpuestos, sin
 auditar" (§2 de `BACKLOG_SUCESION_Y_CONTINUIDAD.md`); la sesión 195 hizo esa auditoría. Multidispositivo
@@ -169,7 +184,8 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **[`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md)** | ✅ Cerrado (sesión 194) — 3/3 tareas accionables construidas (`LPX6`, `LPX5`, `LPX4`); Copiloto/IA y multidispositivo auditados en sesión 195, sin hueco accionable | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA sigue bloqueado por `A5-1` (condición externa), no por código pendiente; multidispositivo verificado sólido | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo; ningún backlog siguiente identificado todavía |
+| **[`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md)** | 🟢 Vigente — recién nacido, 0/47 construidas | Tercera auditoría crítica de producto («Contabilidadcasa 2.0», 10 hallazgos + 48 propuestas), en 4 bloques propios (`P-`/`I-`/`D-`/`T-`: previsión, inversión, deuda, transversales) tras descartar/reducir 3 propuestas por el cruce contra código real. Incorpora al final (§7) todo lo pendiente heredado de ciclos anteriores | Ninguno — es el backlog vigente |
+| [`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md) | ✅ Cerrado (sesión 194) — 3/3 tareas accionables construidas (`LPX6`, `LPX5`, `LPX4`); Copiloto/IA y multidispositivo auditados en sesión 195, sin hueco accionable | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA sigue bloqueado por `A5-1` (condición externa), no por código pendiente; multidispositivo verificado sólido | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo; ningún backlog siguiente identificado todavía |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` | ✅ Cerrada (sesión 191) — 46/46 tareas accionables construidas o reducidas/retiradas con motivo | Segunda auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3, nacida de ["El Libro Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad) (10 hallazgos + 49 propuestas), tras retirar 4 propuestas ya construidas en la Oleada 3 y reducir el alcance de otras 7 | `BACKLOG_SUCESION_Y_CONTINUIDAD.md` para el trabajo nuevo de fiscalidad/continuidad; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` | ✅ Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa) | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` para el trabajo nuevo de estos cuatro frentes; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | 🟡 Casi cerrado — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada) | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` para el trabajo nuevo de estos cuatro frentes; su propio remanente (`RGX3`) sigue vigente aquí hasta que `A5-1` esté en producción |
