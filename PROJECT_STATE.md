@@ -70,6 +70,52 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 16 de septiembre de 2026 (194): `LPX4`
+
+Última tarea de `BACKLOG_SUCESION_Y_CONTINUIDAD.md` — con esto el backlog queda 100% cerrado (3/3:
+`LPX4`, `LPX5`, `LPX6`). Antes de construir se propuso el diseño al usuario (misma disciplina que
+`GOB15`), que lo confirmó sin cambios.
+
+**`LPX4` — Aviso temprano de coste fiscal por sucesión/donación.** Reutiliza `lpNetWorthSnapshot()`
+(`LPX1`/`LPX2`) para la masa hereditaria — sin motor de patrimonio nuevo. Decisión de implementación
+clave: en vez de un registro de escalas propio, se añadió un `kind` nuevo ("succession") al mismo
+registro de escalas de `A15-2` (`irpfBracketScales`/`saveIrpfBracketScale`/`latestIrpfScale`,
+`canonical-irpf-estimator.js`) — el hogar declara ahí la escala **ya aplicable a su caso concreto**
+(con la bonificación de su grupo de parentesco y su comunidad autónoma ya incorporada), con la misma
+exigencia de fuente completa (`hasCompleteSource`/`validateBracketScale`) que el resto del motor
+fiscal. Sin esa escala registrada, `lpx4SuccessionTaxEstimate()` nunca calcula ninguna cifra: solo
+muestra el patrimonio neto y explica por qué el coste real depende de tres datos que la app no infiere
+(comunidad autónoma, grupo de parentesco I-IV, patrimonio preexistente del heredero). Con la escala
+registrada, reutiliza `progressiveTax()` (mismo primitivo que `A15-2`/`LEV10`) sobre el patrimonio neto
+menos un mínimo exento opcional (`lpx4ExemptAmount`, nuevo campo en Ajustes → Fiscal, 0 si no se
+declara — nunca un mínimo inventado). Persistido en `scenarioSettings` explícitamente (mismo bug de
+`SP3`/`FC4` evitado a propósito: `state.lpx4ExemptAmount` solo sobrevive a un recargar la página si se
+añade a la lista blanca de `saveScenarioSettings()`, y se añadió). Nueva tarjeta en Herramientas
+avanzadas → Patrimonio e inversión, justo después de `LPX3` (continuidad). Informativo: nunca decide
+ni sustituye asesoría fiscal real. Tests: `tests/lpx4-aviso-fiscal-sucesion.test.cjs` (17 tests); dos
+tests preexistentes con coincidencia exacta de texto se ajustaron sin tocar su cobertura real
+(`tests/fc5-app-integracion.test.cjs` por el nuevo tramo del ternario `kind`, `tests/gob9-panel-
+resiliencia.test.cjs` por la nueva adyacencia de renders en el lote de `renderAjustes()`).
+
+- **Validación**: `npm run verify` completo en verde. `npm test` **4259/4259** pruebas (17 nuevas de
+  `LPX4`). `test:a11y` **1328 IDs únicos** (antes 1326, sesión 193; +2 por el campo de mínimo exento y
+  la opción nueva del selector de tipo de escala). `test:performance`: diff 10.000 filas 48,3 ms,
+  forecast y escenarios 269,7 ms, recursos 2288 KB, presupuestos a escala (1000 categorías × 10 años)
+  — análisis 202,5 ms, alertas 131,1 ms, forecast 228,1 ms, histórico de presupuestos 66,7 ms, índice
+  de transacciones por categoría 192,2 ms. `build:site`, `test:privacy` y `test:smoke` sin errores.
+  Validación manual adicional en navegador real con Playwright: con un activo registrado y sin escala
+  de sucesiones declarada, el aviso pide registrarla y explica por qué; al registrar la escala
+  ("100000:5, :10" con fuente completa) calcula correctamente el coste fiscal sobre el patrimonio neto
+  completo; al declarar un mínimo exento de 200.000 €, recalcula la base y la cuota correctamente; y
+  tras recargar la página, tanto el mínimo exento declarado como la estimación persisten — sin errores
+  de consola propios de la app (los únicos observados fueron el bloqueo de red del proxy del entorno de
+  pruebas al script externo de Supabase, ajeno a este cambio).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `BACKLOG_SUCESION_Y_CONTINUIDAD.md` queda 100% cerrado
+  (3/3). `BACKLOG_INDICE.md` debería consultarse antes de arrancar cualquier cola nueva.
+
 ## Cierre de sesión — 14 de septiembre de 2026 (193): `LPX5`
 
 Segunda tarea de `BACKLOG_SUCESION_Y_CONTINUIDAD.md`. `LPX6` ya se había construido y publicado en la

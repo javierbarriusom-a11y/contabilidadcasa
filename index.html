@@ -3535,6 +3535,17 @@
               <div id="lpx3ContinuityChecklist"></div>
             </article>
 
+            <!-- LPX4: aviso temprano de coste fiscal por sucesión/donación. Reutiliza el patrimonio
+                 neto de LPX1/LPX2 y la escala "succession" registrada en Ajustes → Fiscal (misma
+                 tarjeta que las escalas de IRPF). Sin esa escala, con fuente completa, no calcula
+                 ninguna cifra — solo explica por qué depende de datos que la app no infiere
+                 (comunidad autónoma, grupo de parentesco, patrimonio preexistente del heredero). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Aviso: coste fiscal por sucesión o donación</h3>
+              <p class="e19-kpi-note">Informativo: nunca decide ni sustituye asesoría fiscal real. El coste real depende de tu comunidad autónoma, tu grupo de parentesco y el patrimonio preexistente del heredero — declara en <a href="#ajustes">Ajustes → Fiscal</a> la escala ya aplicable a tu caso para ver una estimación.</p>
+              <div class="e19-kpi-note" id="lpx4SuccessionTaxEstimate"></div>
+            </article>
+
             <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
                  gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
                  hogar). Regla de la renta perpetua, sin proyección de mercado. -->
@@ -4225,7 +4236,7 @@
                  resultado. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Escalas de IRPF (estatal y autonómica)</h3>
-              <p class="e19-kpi-note">Registra la escala general estatal y la de tu comunidad autónoma, con su fuente — el estimador de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a> no calcula nada hasta que las dos estén registradas. Tramos como "límite:tipo, límite:tipo, ...", el último sin límite: por ejemplo <code>12450:9.5, 20200:12, :22.5</code>.</p>
+              <p class="e19-kpi-note">Registra la escala general estatal y la de tu comunidad autónoma, con su fuente — el estimador de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a> no calcula nada hasta que las dos estén registradas. Tramos como "límite:tipo, límite:tipo, ...", el último sin límite: por ejemplo <code>12450:9.5, 20200:12, :22.5</code>. También sirve para registrar la escala de <strong>Sucesiones y Donaciones ya aplicable a tu caso</strong> (con la bonificación autonómica de tu grupo de parentesco ya incorporada): esta app no conoce tu comunidad, tu grupo de parentesco ni el patrimonio preexistente del heredero, así que nunca fabrica esa escala — la declaras tú, con su fuente, para que <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a> pueda avisarte del coste estimado.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Tipo de escala</span>
@@ -4233,6 +4244,7 @@
                     <option value="state">General estatal</option>
                     <option value="regional">Autonómica</option>
                     <option value="savings">Tramo del ahorro (única, no autonómica)</option>
+                    <option value="succession">Sucesiones y Donaciones (ya con tu bonificación)</option>
                   </select>
                 </label>
                 <label class="month-picker">
@@ -4264,6 +4276,13 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="irpfScaleAdd">Registrar escala</button>
               <ul class="commit-barrier-list" id="irpfBracketScaleList"></ul>
+              <!-- LPX4: mínimo exento de Sucesiones y Donaciones — solo se usa con la escala del
+                   tipo "succession" de arriba. Sin declarar, se asume 0 (ningún mínimo exento),
+                   nunca un importe inventado. -->
+              <label class="month-picker">
+                <span>Mínimo exento de Sucesiones y Donaciones (€, opcional, solo si registras esa escala)</span>
+                <input id="lpx4ExemptAmount" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+              </label>
             </article>
 
             <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor

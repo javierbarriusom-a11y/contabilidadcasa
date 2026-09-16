@@ -7,9 +7,10 @@
 
 Fecha de creación: 14 de septiembre de 2026 (sesión 192).
 
-**Estado (sesión 193, 14 de septiembre de 2026): `LPX6` y `LPX5` construidas.** El hogar empezó por
+**Estado (sesión 194, 16 de septiembre de 2026): documento 100% cerrado (3/3).** El hogar empezó por
 `LPX6` (sesión 192) — la tarea más pequeña y autocontenida, sin fiscalidad ni registro de activos —
-y siguió con `LPX5` en la sesión 193. Queda `LPX4` como única tarea accionable pendiente.
+siguió con `LPX5` (sesión 193) y terminó con `LPX4` (sesión 194), la más delicada por su restricción
+fiscal explícita. No queda ninguna tarea accionable en este documento.
 
 ## 0. Origen y diagnóstico
 
@@ -48,7 +49,7 @@ temprano reusando el motor de patrimonio neto ya construido, no una calculadora 
 
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
-| ⏳ `LPX4` | Aviso temprano de coste fiscal por sucesión/donación | M | Alto | Reutiliza `lpNetWorthSnapshot()` (`LPX1`/`LPX2`) para el valor de la masa hereditaria — sin motor de patrimonio nuevo. Sin una bonificación/tipo efectivo declarado por el propio hogar, con fuente completa (mismo criterio de `hasCompleteSource`/`validateBracketScale` que `A15-2`), no calcula ninguna cifra: solo muestra el patrimonio neto y explica por qué el coste fiscal real depende de comunidad autónoma, grupo de parentesco y patrimonio preexistente del heredero — ninguno de los cuales infiere ni fabrica la app. Con la bonificación declarada, reutiliza `progressiveTax()` (mismo primitivo que `A15-2`/`LEV10`) sobre el patrimonio neto menos el mínimo exento declarado. Informativo: nunca decide ni sustituye asesoría fiscal real. |
+| ✅ `LPX4` | Aviso temprano de coste fiscal por sucesión/donación | M | Alto | **Hecho (sesión 194).** Reutiliza `lpNetWorthSnapshot()` (`LPX1`/`LPX2`) para la masa hereditaria — sin motor de patrimonio nuevo. En vez de un registro de escalas propio, se añadió el `kind` "succession" al mismo registro de `A15-2` (`irpfBracketScales`, `canonical-irpf-estimator.js`): el hogar declara la escala ya aplicable a su caso (bonificación de su grupo/comunidad incorporada), con fuente completa. Sin esa escala, no calcula ninguna cifra — solo explica por qué depende de comunidad autónoma, grupo de parentesco y patrimonio preexistente del heredero. Con la escala declarada, reutiliza `progressiveTax()` sobre el patrimonio neto menos un mínimo exento opcional declarado (`lpx4ExemptAmount`). Informativo: nunca decide ni sustituye asesoría fiscal real. Tests: `tests/lpx4-aviso-fiscal-sucesion.test.cjs` (17 tests). |
 | ✅ `LPX5` | Destino declarado por activo | S-M | Medio | **Hecho (sesión 193).** Campo opcional `destination` por activo en `canonical-assets.js`/`saveA14Asset` (texto libre, nunca vinculante). Añade un check automático nuevo (`assetDestination`) al checklist de `LPX3` — no se reutilizó la casilla manual `documentsKnown` (pregunta distinta, sin dato real que la sustituya): detalle en `PROJECT_STATE.md`, cierre de sesión 193. |
 | ✅ `LPX6` | Beneficiario declarado por póliza de vida | S | Medio | **Hecho (sesión 192).** El registro real de pólizas es `insurancePolicies()`/`addInsurancePolicy()` en `app.js` (SP1) — `canonical-life-coverage.js` (SP2) es un motor de comparación puro, sin estado. Nuevos campos opcionales `isLife` (checkbox, nunca inferido del nombre) y `beneficiary` (texto libre). `LPX3` sustituye su casilla manual global "beneficiarios" por `lpx3ContinuityChecklist()` comprobando de verdad si al menos una póliza con `isLife` tiene `beneficiary` declarado — mismo tipo de cierre de bucle que `PVC13` hizo con `confidenceBands()`. Tests: `tests/lpx6-beneficiario-poliza-vida.test.cjs` (8 tests) + `tests/lpx3-continuidad-checklist.test.cjs` reescrito. |
 
@@ -72,7 +73,8 @@ auditoría real — no se hace ahora mismo.
 
 ## 4. Advertencia (mismo criterio que el resto del proyecto)
 
-`LPX4` nunca debe presentar una cifra fiscal sin que el propio hogar haya declarado la bonificación/
-tipo efectivo con fuente completa — mostrar un importe con apariencia de exacto sobre una bonificación
-inventada o de otra comunidad sería peor que no mostrar nada. `LPX5` y `LPX6` son declaraciones del
-hogar, nunca una decisión legal: ninguna sustituye un testamento real ni determina la legítima.
+`LPX4` nunca presenta una cifra fiscal sin que el propio hogar haya declarado la escala (bonificación/
+tipo efectivo ya incorporado) con fuente completa — mostrar un importe con apariencia de exacto sobre
+una bonificación inventada o de otra comunidad sería peor que no mostrar nada. `LPX5` y `LPX6` son
+declaraciones del hogar, nunca una decisión legal: ninguna sustituye un testamento real ni determina
+la legítima.

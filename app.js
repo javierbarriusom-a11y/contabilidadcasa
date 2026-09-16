@@ -3786,6 +3786,9 @@ function saveScenarioSettings() {
     fiscalDeductibleContributions: round2(Math.max(0, Number(state.fiscalDeductibleContributions || 0))),
     fiscalDeductibleRent: round2(Math.max(0, Number(state.fiscalDeductibleRent || 0))),
     fiscalLargeFamily: !!state.fiscalLargeFamily,
+    // LPX4 · mínimo exento de Sucesiones y Donaciones declarado por el hogar — mismo criterio que
+    // el resto de datos del hogar, 0 significa «sin configurar» (ningún mínimo exento asumido).
+    lpx4ExemptAmount: round2(Math.max(0, Number(state.lpx4ExemptAmount || 0))),
     // A15-1 · última fotografía del registro central de supuestos (A7-2): buildAssumptionRegistry()
     // la recalcula al editar cualquier supuesto fiscal, comparando contra esta para no adelantar
     // updatedAt de un valor que no ha cambiado.
@@ -16022,7 +16025,7 @@ function saveIrpfBracketScale({ kind, region, year, brackets, sourceTitle, sourc
   const parsedYear = Math.round(Number(year));
   const next = [...scales, {
     id: `irpf-escala-${Date.now()}`,
-    kind: kind === "regional" ? "regional" : kind === "savings" ? "savings" : "state",
+    kind: kind === "regional" ? "regional" : kind === "savings" ? "savings" : kind === "succession" ? "succession" : "state",
     region: kind === "regional" ? String(region || "").trim() : "",
     year: Number.isFinite(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null,
     brackets: engine.parseBracketScaleInput(brackets) || [],
@@ -16042,7 +16045,7 @@ function removeIrpfBracketScale(id) {
   saveScenarioSettings();
 }
 
-const IRPF_SCALE_KIND_LABELS = { state: "Escala general estatal", regional: "Escala autonómica", savings: "Escala del tramo del ahorro" };
+const IRPF_SCALE_KIND_LABELS = { state: "Escala general estatal", regional: "Escala autonómica", savings: "Escala del tramo del ahorro", succession: "Escala de Sucesiones y Donaciones" };
 
 function irpfScaleLabel(scale) {
   const engine = window.FinanceCanonicalIrpfEstimator;
@@ -16080,6 +16083,7 @@ function saveIrpfBracketScaleFromControls() {
     if (qs(id)) qs(id).value = "";
   });
   renderIrpfBracketScales();
+  renderLpx4SuccessionTaxEstimate();
   announceStatus("Escala de IRPF registrada.");
 }
 
@@ -19323,6 +19327,72 @@ function lpAverageMonthlyOutflow() {
   if (!rows.length) return null;
   const total = rows.reduce((sum, row) => sum + Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0), 0);
   return round2(total / rows.length);
+}
+
+// LPX4: aviso temprano de coste fiscal por sucesión/donación. Reutiliza lpNetWorthSnapshot() (LPX1/
+// LPX2) para la masa hereditaria y el mismo registro de escalas de A15-2 (irpfBracketScales /
+// validateBracketScale / progressiveTax, canonical-irpf-estimator.js) con un kind nuevo
+// ("succession") en vez de un registro propio: el Impuesto de Sucesiones y Donaciones no es solo una
+// tarifa progresiva — depende también del grupo de parentesco del heredero (I a IV), su patrimonio
+// preexistente (que multiplica la cuota) y bonificaciones autonómicas que varían muchísimo entre las
+// 17 comunidades. Ninguno de esos tres datos existe en la app ni se infiere aquí: el hogar declara
+// directamente la escala YA aplicable a su caso concreto (con la bonificación de su grupo/comunidad
+// ya incorporada), con la misma fuente completa que exige el resto del motor fiscal
+// (hasCompleteSource/validateBracketScale). Sin esa escala, este aviso nunca calcula ninguna cifra:
+// solo muestra el patrimonio neto y explica por qué el coste real depende de esos tres datos.
+function lpx4ExemptAmount() {
+  const configured = Number(state?.lpx4ExemptAmount || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function lpx4SuccessionTaxEstimate() {
+  const irpf = window.FinanceCanonicalIrpfEstimator;
+  const snapshot = lpNetWorthSnapshot();
+  if (!irpf || !snapshot.calculable) return { calculable: false, reason: "missing-net-worth" };
+  const scale = latestIrpfScale("succession");
+  const scaleCheck = irpf.validateBracketScale(scale || {});
+  if (!scaleCheck.valid) {
+    return { calculable: false, netWorth: snapshot.netWorth, reason: "missing-scale", issues: scaleCheck.issues };
+  }
+  const exemptAmount = lpx4ExemptAmount();
+  const taxableBase = round2(Math.max(0, snapshot.netWorth - exemptAmount));
+  const quota = irpf.progressiveTax(taxableBase, scale.brackets);
+  return { calculable: true, netWorth: snapshot.netWorth, exemptAmount, taxableBase, quota };
+}
+
+function renderLpx4SuccessionTaxEstimate() {
+  const note = qs("lpx4SuccessionTaxEstimate");
+  if (!note) return;
+  const snapshot = lpNetWorthSnapshot();
+  if (!snapshot.calculable) {
+    note.innerHTML = `<p>Registra al menos un activo (A14-1) para ver este aviso.</p>`;
+    return;
+  }
+  const result = lpx4SuccessionTaxEstimate();
+  if (!result.calculable) {
+    note.innerHTML = `<p>Patrimonio neto actual: <strong>${money(snapshot.netWorth, true)}</strong>.</p><p class="e19-kpi-note">Sin la escala de Sucesiones y Donaciones ya aplicable a tu caso (con fuente completa) registrada en <a href="#ajustes">Ajustes → Fiscal</a>, no hay ninguna cifra de coste fiscal que mostrar — el resultado real depende de tu comunidad autónoma, tu grupo de parentesco (I a IV) y el patrimonio preexistente del heredero, ninguno de los cuales infiere esta app.</p>`;
+    return;
+  }
+  const exemptLine = result.exemptAmount > 0 ? ` menos ${money(result.exemptAmount, true)} de mínimo exento declarado` : "";
+  note.innerHTML = `<p>Patrimonio neto actual: ${money(result.netWorth, true)}${exemptLine} = base de ${money(result.taxableBase, true)}. Con la escala declarada: <strong>${money(result.quota, true)}</strong> de coste fiscal estimado.</p><p class="e19-kpi-note">Estimación orientativa sobre la escala que has declarado (bonificación de tu grupo/comunidad ya incorporada) — nunca sustituye asesoría fiscal real, ni decide nada.</p>`;
+}
+
+function syncLpx4ExemptAmountControl() {
+  const field = qs("lpx4ExemptAmount");
+  if (!field || document.activeElement === field) return;
+  const amount = lpx4ExemptAmount();
+  field.value = amount > 0 ? String(amount) : "";
+}
+
+function handleLpx4ExemptAmountChange(event) {
+  if (!state) return;
+  const next = lifeInsuranceCapitalFromField(event.target.value);
+  const previous = round2(Math.max(0, Number(state.lpx4ExemptAmount || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.lpx4ExemptAmount = next;
+  saveScenarioSettings();
+  renderLpx4SuccessionTaxEstimate();
 }
 
 // LPX1: capital objetivo de independencia financiera. La tasa de retirada la declara el hogar (sin
@@ -29999,6 +30069,8 @@ function renderAjustes() {
   renderLpx3ContinuityChecklist();
   renderLpx1FinancialIndependence();
   renderLpx2NetWorthRunway();
+  syncLpx4ExemptAmountControl();
+  renderLpx4SuccessionTaxEstimate();
   renderGob9ResiliencePanel();
   renderGob11Panel();
   syncGob15ModeFields();
@@ -40812,7 +40884,9 @@ async function init() {
     if (!removeButton) return;
     removeIrpfBracketScale(removeButton.dataset.irpfScaleRemove);
     renderIrpfBracketScales();
+    renderLpx4SuccessionTaxEstimate();
   });
+  qs("lpx4ExemptAmount")?.addEventListener("change", handleLpx4ExemptAmountChange);
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
