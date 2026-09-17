@@ -16993,7 +16993,16 @@ function handleInv10Compare() {
   const verdict = result.cheaper === "sell"
     ? `<p class="e19-kpi-note positive">Vender sale ${money(result.difference, true)} más barato en este horizonte.</p>`
     : `<p class="e19-kpi-note positive">Pedir prestado sale ${money(result.difference, true)} más barato en este horizonte.</p>`;
-  note.innerHTML = `${sellLine}${borrowLine}${verdict}`;
+  // I11: cifra aparte de sellTotalCost/borrowTotalCost — solo la parte fiscal de la decisión
+  // (interés pagado por no vender frente al impuesto que te ahorras hoy al no vender), sin mezclar
+  // el crecimiento perdido de sellForegoneGrowth, que responde a otra pregunta (retirar capital de
+  // la cartera, no cuándo pagar el impuesto).
+  const deferralLine = result.deferredGainCost > 0
+    ? `<p class="e19-kpi-note">Coste de diferir la plusvalía: pedir prestado en vez de vender te cuesta ${money(result.deferredGainCost, true)} más en intereses de lo que te ahorras hoy en impuestos.</p>`
+    : result.deferredGainCost < 0
+      ? `<p class="e19-kpi-note positive">Coste de diferir la plusvalía: pedir prestado en vez de vender te ahorra ${money(Math.abs(result.deferredGainCost), true)} frente al impuesto que pagarías hoy al vender.</p>`
+      : `<p class="e19-kpi-note">Coste de diferir la plusvalía: el interés de pedir prestado iguala el impuesto que te ahorras hoy al no vender.</p>`;
+  note.innerHTML = `${sellLine}${borrowLine}${deferralLine}${verdict}`;
 }
 
 // APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2. El

@@ -8,10 +8,10 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 9/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`).**
-`T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión
-previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el
-hogar decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
+**Estado: 10/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando
+que el hogar decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
 decidido por dónde seguir (ver §6).
 
 ## 0. Origen y diagnóstico
@@ -90,7 +90,7 @@ fiscalidad de dividendos/plusvalías, apalancamiento tipo Lombard con margin cal
 | ⏳ `I8` | Simulador de evento de liquidez (venta de participaciones, ejercicio de opciones) | L | Medio | Integrado con cartera y colchón; verificar con el hogar si tiene un escenario real antes de construir (mismo criterio de `I7`). |
 | ⏳ `I9` | Gráficos de cartera con zoom y tooltip | M | Medio | **Requiere decisión previa del hogar**: mantener «cero dependencias externas de UI» o adoptar una librería ligera solo aquí. No empezar sin esa decisión. |
 | ⏳ `I10` | Umbral propio de alerta de sobreexposición divisa/geografía | S | Medio | Extiende `INV14` (hoy solo registra la exposición declarada). |
-| ⏳ `I11` | Coste de diferir la plusvalía, cuantificado en euros | S | Medio | Extiende «vender vs. pedir prestado» (`INV10`). |
+| ✅ `I11` | Coste de diferir la plusvalía, cuantificado en euros | S | Medio | **Cerrada (sesión 199).** Extiende «vender vs. pedir prestado» (`INV10`/`sellVsBorrowComparison`). El comparador ya calculaba `sellTaxCost` (impuesto que se evita al no vender) y `borrowTotalCost` (interés de pedir prestado en su lugar), pero solo dentro de un veredicto que también mezclaba `sellForegoneGrowth` (crecimiento perdido si se retira capital) — dos preguntas distintas sin separar. Nuevo campo `deferredGainCost = borrowTotalCost − sellTaxCost`, aislado del crecimiento perdido, con su propia línea en la tarjeta de INV10. |
 | ⏳ `I12` | Campo de «convicción» y fecha de revisión por posición | S | Bajo | Aviso si no se ha revisado en más de 12 meses; evita que el rebalanceo por umbral sea puramente mecánico. |
 
 ## 3. Deuda (`D1`-`D10`, 8 accionables + 2 reducidas a verificación, 3 ya cerradas)
@@ -149,7 +149,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fondo que ya produjo
 37 pantallas. Tres horizontes:
 
-**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `I11`, `P1`, `P5`, `P6` (`T2`, `D4` y las tres
+**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `P1`, `P5`, `P6` (`T2`, `D4`, `I11` y las tres
 nacidas de `T1` sin decisión previa pendiente — `T15`/`T17`/`T19` — ya se cerraron en la sesión 199).
 `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan
 una decisión del hogar antes de construirse — ver su nota en §4.

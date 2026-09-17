@@ -70,6 +70,39 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, sexto ciclo): `I11`, el coste de diferir la plusvalía aislado del crecimiento perdido
+
+Sexto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, sobre la misma rama de `D4` (PR #311, todavía
+sin fusionar en el momento de este ciclo — mismo patrón que `T15`/`T17`/`T19` en el PR #309: varias
+tareas pequeñas del mismo Horizonte 1 encadenadas en un solo PR antes de fusionar).
+
+- **Qué hacía falta**: `sellVsBorrowComparison()` (`INV10`, `canonical-leverage-simulator.js`) ya
+  calculaba `sellTaxCost` (el impuesto que se evita al no vender) y `borrowTotalCost` (el interés de
+  pedir prestado en su lugar), pero solo los exponía dentro de un veredicto único (`cheaper`/
+  `difference`) que además mezclaba `sellForegoneGrowth` — el crecimiento que se pierde si de verdad
+  se retira el capital de la cartera. Son dos preguntas distintas: cuándo pagar el impuesto (diferirlo
+  pidiendo prestado, o pagarlo ya vendiendo) y si conviene retirar capital de la cartera en absoluto.
+  El backlog las tenía fundidas en una sola cifra.
+- **Solución**: nuevo campo `deferredGainCost = borrowTotalCost − sellTaxCost` en el propio motor
+  canónico (no en `app.js` — mismo criterio de mantener el cálculo en el motor, no en la vista), solo
+  cuando pedir prestado es factible. Positivo: diferir el impuesto cuesta más en intereses de lo que
+  ahorra hoy. Negativo: diferir sale a cuenta. `handleInv10Compare()` añade una línea propia en la
+  tarjeta de INV10 («Coste de diferir la plusvalía: ...»), separada del veredicto general que sigue
+  intacto.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4281/4281**
+  pruebas (+4 sobre las 4277 anteriores de esta sesión: `deferredGainCost` con diferir a cuenta,
+  diferir costoso, sin capacidad Lombard suficiente no se calcula, y la línea nueva cableada en la
+  tarjeta sin tocar el veredicto general).  `test:a11y` **1328 IDs únicos** (sin cambio).
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `I11` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes. 10/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso (mismo PR #311 de `D4`, todavía en
+  borrador); se fusionará junto con `D4` en cuanto el CI esté en verde, por la autorización de
+  publicación sin preguntar en cada tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, quinto ciclo): `D4`, el radar de refinanciación gana un guion de renegociación
 
 Quinto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T2` (mismo día, PR #310).
