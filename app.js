@@ -38652,7 +38652,10 @@ function renderPlanPrevision() {
 
   const legend = qs("planPrevisionLegend");
   if (legend) {
-    legend.textContent = `Colchón: liquidez al cierre de cada mes frente a ${floor.source}.${
+    // T17: la cifra de reserva ya gobierna el color de la fila «Colchón» de abajo, pero antes solo
+    // aparecía metida en la frase de floor.source — sin decir la cifra por delante, quien ajusta un
+    // previsto no la ve sin salir de la pantalla (heurístico 6, docs/OPT21_CHECKLIST_NIELSEN.md).
+    legend.textContent = `Reserva protegida: ${money(floor.value, true)}. Colchón: liquidez al cierre de cada mes frente a ${floor.source}.${
       worstKey ? ` Peor mes: ${escenarioMotorMonthLabel(worstKey)}, marcado en Resultado y Colchón.` : ""
     }`;
   }

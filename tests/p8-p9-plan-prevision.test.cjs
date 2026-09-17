@@ -288,6 +288,58 @@ test("P-8/P-9 · renderPlanPrevision pinta bloques, Ahorro, Resultado (con el pe
   assert.match(legendEl.textContent, /label\(2026-09\)/);
 });
 
+// --- T17 · la reserva protegida se ve sin salir de Previsión ------------------------------------
+
+test("T17 · la leyenda de Previsión abre con la cifra de reserva protegida, no solo metida en la frase del suelo", () => {
+  const months = [
+    { key: "2026-08", label: "ago 26" },
+    { key: "2026-09", label: "sept 26" },
+  ];
+  const sections = [{ key: "income:Ingresos", name: "Ingresos", kind: "income", rows: [{ id: "income-a" }] }];
+  const lastSimulation = [
+    { detailMonthKey: "2026-08", totalLiquidity: 4000, saving: 800, coreSpend: 750, car: 0, refi: 0 },
+    { detailMonthKey: "2026-09", totalLiquidity: 200, saving: 0, coreSpend: 750, car: 0, refi: 0 },
+  ];
+  const tableEl = { innerHTML: "" };
+  const legendEl = { textContent: "" };
+  const elements = { planPrevisionTable: tableEl, planPrevisionLegend: legendEl };
+
+  const context = sandboxWith(
+    [
+      "renderPlanPrevision",
+      "planPrevisionMonths",
+      "planPrevisionSimulationByMonth",
+      "planPrevisionSectionTotal",
+      "planPrevisionResultByMonth",
+      "planPrevisionRowHtml",
+      "planPrevisionHeaderHtml",
+    ],
+    {
+      PLAN_PREVISION_HORIZONS,
+      planPrevisionHorizonKey: "12m",
+      lastSimulation,
+      baseData: { monthlyPlanning: { months: [{ key: "2026-08" }, { key: "2026-09" }] } },
+      qs: (id) => elements[id] || null,
+      cuadroMandosAllMonths: () => months,
+      cuadroMandosSections: () => sections,
+      cuadroMandosRowExists: () => true,
+      plannedValueForVisualRow: () => 750,
+      mapaCalorFloor: () => ({ value: 1000, source: "la reserva operativa de €1000" }),
+      FinanceCanonicalCushion: Cushion,
+      isClosedMonthKey: () => false,
+      escenarioMotorMonthLabel: (key) => `label(${key})`,
+      round2: stubRound2,
+      money: stubMoney,
+      escapeHtml: stubEscapeHtml,
+    },
+  );
+
+  context.renderPlanPrevision();
+
+  assert.match(legendEl.textContent, /^Reserva protegida: €1000\./, "la cifra va por delante, no al final de la frase");
+  assert.match(legendEl.textContent, /Colchón: liquidez al cierre de cada mes frente a la reserva operativa de €1000/);
+});
+
 test("P-8/P-9 · renderPlanPrevision no rompe sin meses en el horizonte", () => {
   const tableEl = { innerHTML: "<algo>" };
   const context = sandboxWith(["renderPlanPrevision", "planPrevisionMonths"], {
