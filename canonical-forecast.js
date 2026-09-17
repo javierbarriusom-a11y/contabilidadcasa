@@ -256,14 +256,36 @@
   // que cashSeverityBand (E16/CP5).
   const DEVIATION_SEVERITY_THRESHOLDS = { medium: 0.1, high: 0.25 };
 
-  function deviationSeverity(averageDelta, averagePlanned) {
+  function deviationRatio(averageDelta, averagePlanned) {
     const delta = Math.abs(number(averageDelta));
     const planned = Math.abs(number(averagePlanned));
-    if (planned < 0.005) return delta < 0.005 ? "low" : "high";
-    const ratio = delta / planned;
+    if (planned < 0.005) return delta < 0.005 ? 0 : 1;
+    return delta / planned;
+  }
+
+  function deviationSeverity(averageDelta, averagePlanned) {
+    const ratio = deviationRatio(averageDelta, averagePlanned);
     if (ratio >= DEVIATION_SEVERITY_THRESHOLDS.high) return "high";
     if (ratio >= DEVIATION_SEVERITY_THRESHOLDS.medium) return "medium";
     return "low";
+  }
+
+  // P6 (Horizonte 1, sesión 199): puntuación de acierto histórico — versión de una sola cifra del
+  // backtesting de PVX1 (pvx1BacktestHtml, app.js), para fijarla como KPI permanente en Hoy en vez
+  // de que solo viva como informe detallado en Análisis. Mismo ratio que ya clasifica
+  // deviationSeverity (delta medio sobre lo previsto medio), invertido a un porcentaje de acierto:
+  // sin desviación, 100%; una desviación igual o mayor que lo previsto, 0% (nunca negativo — pasado
+  // ese punto ya no queda "acierto" del que restar más).
+  function historicalAccuracyScore(deviation) {
+    if (!deviation || !deviation.sampleMonths) return { calculable: false };
+    const ratio = Math.min(1, deviationRatio(deviation.averageDelta, deviation.averagePlanned));
+    return {
+      calculable: true,
+      score: Math.round(100 - ratio * 100),
+      sampleMonths: deviation.sampleMonths,
+      confidence: deviation.confidence,
+      severity: deviationSeverity(deviation.averageDelta, deviation.averagePlanned),
+    };
   }
 
   // PVC16 (Oleada 4, Bloque 3): complemento simétrico de detectStructuralChange (abajo) — aquella
@@ -636,5 +658,5 @@
     return `Tu previsión ${directionLabel} de forma sostenida en los últimos ${monthsLabel}${driverLabel}.`;
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth, categoryDriftWindows, reforecastMaterialityAlert, REFORECAST_MATERIALITY_DEFAULT, previsionChangeOneLiner, ASSUMPTION_EXPIRY_MONTHS_DEFAULT, assumptionExpiryAlerts };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, historicalAccuracyScore, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth, categoryDriftWindows, reforecastMaterialityAlert, REFORECAST_MATERIALITY_DEFAULT, previsionChangeOneLiner, ASSUMPTION_EXPIRY_MONTHS_DEFAULT, assumptionExpiryAlerts };
 });

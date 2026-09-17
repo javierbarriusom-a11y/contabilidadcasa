@@ -70,6 +70,45 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, noveno ciclo): `P6`, puntuación de acierto histórico permanente en Hoy — Horizonte 1 completo salvo `T16`/`T18`
+
+Noveno ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `P5` (mismo día, PR #313). Con
+`P6` se agota el Horizonte 1 original: de las 9 tareas que lo componían (`T2`, `D4`, `I11`, `P1`,
+`P5`, `P6` y las tres nacidas de `T1` — `T15`/`T17`/`T19`), las 9 están cerradas. Solo quedan `T16`
+y `T18`, bloqueadas por una decisión del hogar que no depende de código.
+
+- **Qué había que investigar primero**: la nota citaba `pvx1BacktestHtml` (`PVX1`) — el informe de
+  backtesting mes a mes que ya vive en Análisis, comparando lo previsto contra lo real conciliado —
+  y pedía "convertirlo en KPI fijo" en Hoy. El informe completo (una fila por mes, más una línea de
+  "desviación media histórica" en euros) no cabe como KPI de una tarjeta ni tiene sentido duplicarlo
+  ahí: la tarea real era destilar una única cifra permanente, no repetir la tabla. La app ya tenía el
+  ingrediente para esa cifra: `deviationSeverity()` (`PV2`) clasifica la desviación media como
+  ratio sobre lo previsto medio (bajo/medio/alto, con los mismos umbrales que ya usa el resto de la
+  app), pero solo como etiqueta cualitativa, nunca como número.
+- **Solución**: nuevo `historicalAccuracyScore(deviation)` en `canonical-forecast.js`, justo al lado
+  de `deviationSeverity()` — invierte el mismo ratio a un porcentaje de acierto (100% sin desviación,
+  0% cuando la desviación iguala o supera lo previsto, recortado para no bajar de 0%). Para no
+  duplicar la fórmula del ratio en dos sitios, se extrajo un `deviationRatio()` privado del que ahora
+  beben tanto `deviationSeverity()` como la función nueva — refactor verificado sin cambiar ningún
+  resultado existente (misma cobertura de tests de `PV2` en verde, caso por caso, antes y después).
+  En Hoy, `renderHomeDashboard()` calcula `learnFromHistory(reconciledMonthlyNetHistory())` (el mismo
+  aprendizaje que ya alimenta `renderPvx1Backtest()`) y añade un KPI más a la rejilla `homeKpis` ya
+  existente — sin bloque nuevo en la zona principal, dentro del límite de `OPT-8` — con enlace
+  «Ver backtesting» a Análisis, donde vive el informe completo intacto.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4305/4305**
+  pruebas (+8 sobre las 4297 previas de esta sesión). `test:a11y` **1338 IDs únicos** (sin cambio —
+  el KPI nuevo vive dentro de una rejilla ya existente, sin `id` propio). `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `P6` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) queda completo salvo `T16`/`T18`. 13/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida — son
+  lo único que queda del Horizonte 1 original. Sin esa decisión, la siguiente tarea disponible está
+  en el Horizonte 2 (`T5`, `I1`, `D10`, `T7`, `T8`, `T4`, `P9`, `D5`).
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, octavo ciclo): `P5`, radar único de supuestos caducados con «revisar ahora»
 
 Octavo ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `P1` (mismo día, PR #312).
