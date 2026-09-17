@@ -8,11 +8,11 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 7/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`).** `T1` añadió 5
-tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión previa pendiente
-(`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el hogar decida. El
-resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya decidido por
-dónde seguir (ver §6).
+**Estado: 8/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`).** `T1`
+añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión previa
+pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el hogar
+decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
+decidido por dónde seguir (ver §6).
 
 ## 0. Origen y diagnóstico
 
@@ -119,7 +119,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
 | ✅ `T1` | Ejecutar por fin la auditoría Nielsen real sobre Hoy/Registrar/Plan | S | Alto | **Cerrada (sesión 197).** Primera revisión real, con evidencia `file:line`, registrada en `docs/OPT21_CHECKLIST_NIELSEN.md`. 7 hallazgos: 2 corregidos en la misma sesión (`Sobres · Fase 6` filtrado a la UI de Plan; mensaje de error sin instrucción al deshacer una importación), 5 convertidos en tareas nuevas (`T15`-`T19` abajo). |
-| ⏳ `T2` | Buscador universal (Cmd+K) sobre los 37+ enlaces de navegación | M | Alto | Ataca directamente el hallazgo #1 del diagnóstico. |
+| ✅ `T2` | Buscador universal (Cmd+K) sobre los 37+ enlaces de navegación | M | Alto | **Cerrada (sesión 199).** Ataca directamente el hallazgo #1 del diagnóstico. **Investigado antes de construir nada**: el buscador ya existía por completo (`e17-experience.js`, atajo Cmd/Ctrl+K, búsqueda difusa, diálogo `e17LauncherDialog`) — no era una tarea de cero. El hueco real: su catálogo `TASKS` tenía 37 entradas pero la navegación real (`index.html`) ya tenía 45 pantallas navegables; 8 no estaban — entre ellas `registrar` y `plan`, dos de las pantallas más usadas del proyecto. Añadidas las 8 (`planificacion-partidas`, `registrar`, `plan`, `cierre`, `analisis`, `prevision`, `update-data`, `operations-manual`) y un test que fija la invariante «todo enlace de navegación tiene entrada en el buscador» para que no vuelva a desincronizarse en silencio. |
 | ⏳ `T3` | Bandeja única de decisiones (unifica alertas de presupuesto, refinanciación, LTV, supuestos, seguros, gasto fantasma) | M | Alto | Extiende `canonical-e11b-inbox.js` (E11B), hoy con alcance parcial. |
 | ⏳ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | Decisión de producto pendiente, ya reconocida en `PROJECT_STATE.md`: aplicar la política del 12/09 hacia atrás, o documentar por qué esas pantallas se quedan como están. El propio texto ya prevé que el hogar puede pedirlo expresamente. |
 | 🟡 `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Alcance reducido tras el cruce** (no es «crear un balance desde cero», como decía el diagnóstico original). La cifra puntual y el desglose por tipo (`A14-1`, `A14-2` núcleo, `A14-4`) ya están construidos; el propio código señala explícitamente «sin histórico ni banda de confianza todavía — sesión aparte» (`app.js`). Esta tarea es exactamente esa sesión aparte, con gráfico de cascada mensual. |
@@ -149,8 +149,8 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fondo que ya produjo
 37 pantallas. Tres horizontes:
 
-**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `T2`, `D4`, `I11`, `P1`, `P5`, `P6` (`T15`/`T17`/
-`T19`, nacidas de `T1`, ya se cerraron en la sesión 199 — las tres sin decisión previa pendiente).
+**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `D4`, `I11`, `P1`, `P5`, `P6` (`T2` y las tres
+nacidas de `T1` sin decisión previa pendiente — `T15`/`T17`/`T19` — ya se cerraron en la sesión 199).
 `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan
 una decisión del hogar antes de construirse — ver su nota en §4.
 
@@ -165,7 +165,8 @@ futura), `P4`/`P10` (interinos de push e IA, a sustituir cuando lleguen `A5-1`/`
 **Verificaciones de `D2`/`D3`/`D7` cerradas en la sesión 197**, antes del resto del Horizonte 1:
 `D3` no dio trabajo real (cobertura ya completa); `D2` y `D7` sí dieron trabajo, pero acotado (un
 enlace de UX y un campo declarado + cálculo en euros, respectivamente) — detalle en la fila de cada
-una en §3. El Horizonte 1 sigue con `T1`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`.
+una en §3. En su momento (sesión 197) el Horizonte 1 seguía con `T1`, `T2`, `D4`, `I11`, `P1`, `P5`,
+`P6`; `T1` y `T2` ya se cerraron después (sesiones 198 y 199) — estado real siempre en §6, no aquí.
 
 ## 7. Pendiente del backlog anterior (heredado, no nace de esta auditoría)
 

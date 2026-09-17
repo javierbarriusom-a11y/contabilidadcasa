@@ -7,11 +7,18 @@
 
   const TASKS = Object.freeze([
     { target: "home", label: "Hoy", group: "main", keywords: "inicio caja alertas decisiones hoy riesgo" },
+    // T2 (sesión 199): las cuatro de abajo son enlaces de navegación principal (`side-nav`,
+    // index.html) sin entrada aquí desde que se construyeron — el comentario que vivía en este
+    // sitio decía que Plan y Cierre no la necesitaban porque ya los cubrían `cuadro-mandos` y
+    // `conciliar`, pero ninguno de los dos aparece por su nombre real en ese caso: quien escribe
+    // «plan» o «cierre» en el buscador se quedaba sin resultado con ese nombre. Deuda sí sigue sin
+    // entrada propia a propósito — su nav apunta a `deuda-ruta`, que ya lleva "deuda" en sus
+    // keywords.
+    { target: "planificacion-partidas", label: "Planificación de partidas", group: "main", keywords: "planificacion partidas forecast unificado confirmado provisional previsto real usado" },
+    { target: "registrar", label: "Registrar", group: "main", keywords: "registrar saldo cuentas reales del mes extracto bancario lote excel puerta escritura datos previsto real usado" },
+    { target: "plan", label: "Plan", group: "main", keywords: "plan previsto mes ahorro sobres reserva protegida colchon guardar sesion" },
+    { target: "cierre", label: "Cierre", group: "main", keywords: "cierre conciliacion confianza del dato" },
     { target: "update-hub", label: "Actualizar datos", group: "main", keywords: "saldos reales importar excel csv movimientos previsiones" },
-    // T-1/V6-3 · Ajustes solo se alcanza desde la navegación principal, igual que Hoy o Actualizar
-    // datos: no tiene entrada duplicada en el menú avanzado. Plan, Deuda y Cierre no repiten
-    // entrada aquí: ya la tenían como `cuadro-mandos`, `deuda-ruta` y `conciliar` más abajo, y
-    // duplicarla solo daría dos resultados iguales en el buscador.
     { target: "ajustes", label: "Ajustes", group: "main", keywords: "ajustes reserva operativa cuentas partidas umbrales exportar csv v6 laboratorio pantallas heredadas archivo" },
     { target: "faqs-ayuda", label: "FAQs y ayuda", group: "main", keywords: "faq ayuda manual usuario casos de uso actualizar datos predicciones simular conclusiones preguntas frecuentes" },
     // A17-1 (bloque 3, septiembre): solo lectura, pensado para un atajo del icono instalado, no
@@ -28,7 +35,11 @@
     // nombre en el buscador, solo por "presupuesto".
     { target: "presupuesto-mes", label: "Presupuesto del mes (nuevo)", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha simulador y si simulacion recorte ahorro impacto caja cobertura objetivos racha badge logro ahorrista equilibrador reto record notificaciones patrones estacionales cohortes" },
     { target: "estado-semana", label: "Estado de la semana (nuevo)", group: "analysis", keywords: "estado semana mes resumen alertas caja riesgo e16 ritmo presupuesto objetivos vencimientos calendario e15 track-3" },
+    // T2 (sesión 199): otras dos de «Herramientas avanzadas» (data-e17-group="analysis" en
+    // index.html) sin entrada propia hasta ahora.
+    { target: "analisis", label: "Análisis (nuevo)", group: "analysis", keywords: "analisis colchon doce meses patrimonio neto hitos confianza del dato acierta el plan previsto real meses cerrados" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
+    { target: "prevision", label: "Previsión mensual", group: "analysis", keywords: "prevision mensual dia a dia horizonte previsto" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda (nuevo)", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
@@ -59,6 +70,9 @@
     // documentadas en el catálogo de Laboratorio, con su propio botón de acceso de solo lectura.
     // Cuadro de mandos sigue sin entrada propia fuera de aquí: relegar no es desconectar.
     { target: "visual-detail", label: "Cuadro de mandos", group: "legacy", keywords: "cuadro mandos detalle liquidez proyectada resumen plan" },
+    // T2 (sesión 199): las dos últimas heredadas de «Versiones anteriores» sin entrada propia.
+    { target: "update-data", label: "Registrar reales del mes", group: "legacy", keywords: "registrar reales mes heredado actualizar datos" },
+    { target: "operations-manual", label: "Guía operativa", group: "legacy", keywords: "guia operativa manual operaciones" },
     // V3-5 hace lo mismo con las dos heredadas de Deuda que tampoco tenían entrada propia. Ojo:
     // `#debt-control` sí se alcanza desde una tarjeta de ruta (`data-home-nav="debt-control"`) y
     // `#debt-liquidation-plan` enlaza a ella, pero ninguna de las dos vías sirve si lo que el
