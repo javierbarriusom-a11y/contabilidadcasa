@@ -306,15 +306,19 @@ test("syncGob15ModeFields · compra muestra los campos de compra y oculta los de
 
 // --- wiring --------------------------------------------------------------------------------------
 
-test("wiring: la tarjeta vive en #herramientas-patrimonio, justo después de GOB11, con sus campos", () => {
+// I1 (Contabilidadcasa 2.0): GOB11 salió de #herramientas-patrimonio hacia Inversión › Jubilación
+// — GOB15 sigue viviendo aquí (no es de inversión, es de vivienda), ahora justo después de GOB9
+// (Resiliencia), la tarjeta que quedó inmediatamente antes al retirarse GOB11.
+test("wiring: la tarjeta vive en #herramientas-patrimonio, justo después de GOB9 (Resiliencia), con sus campos", () => {
   const openTag = /<section[^>]*id="herramientas-patrimonio"[^>]*>/.exec(html);
   assert.ok(openTag, "No existe la sección #herramientas-patrimonio");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("</section>", start);
   const section = html.slice(start, end);
-  const gob11Idx = section.indexOf("Proyección de jubilación unificada");
+  const gob9Idx = section.indexOf("Resiliencia: ¿cuántos meses aguanto?");
   const gob15Idx = section.indexOf("Vender la vivienda habitual: alquiler o compra");
-  assert.ok(gob11Idx >= 0 && gob15Idx > gob11Idx, "GOB15 debe ir después de GOB11");
+  assert.ok(gob9Idx >= 0 && gob15Idx > gob9Idx, "GOB15 debe ir después de GOB9");
+  assert.doesNotMatch(section, /Proyección de jubilación unificada/, "GOB11 ya no debe vivir en Herramientas avanzadas → Patrimonio e inversión");
   ["gob15Mode", "gob15SalePrice", "gob15AcquisitionCost", "gob15SellingCosts", "gob15ManualExemption",
     "gob15RentFields", "gob15NewMonthlyRent", "gob15BuyFields", "gob15NewHomePrice", "gob15ReinvestedAmount",
     "gob15NewMortgageRatePct", "gob15NewMortgageMonths", "gob15Simulate", "gob15SimulationNote",
@@ -328,5 +332,5 @@ test("wiring: los controles están cableados y el botón tiene ayuda contextual"
 });
 
 test("wiring: syncGob15ModeFields se llama en el arranque de la app, para que el modo por defecto oculte los campos de compra", () => {
-  assert.match(app, /renderGob11Panel\(\);\s*\n\s*syncGob15ModeFields\(\);/);
+  assert.match(app, /renderGob9ResiliencePanel\(\);\s*\n(?:\s*\/\/.*\n)*\s*syncGob15ModeFields\(\);/);
 });

@@ -109,17 +109,18 @@ test("no persiste nada en scenarioSettings: es una calculadora puntual", () => {
   assert.doesNotMatch(body, /saveScenarioSettings/);
 });
 
-// OPT-25 (fase 2, 11 sept. 2026): la tarjeta se trasladó de #ajustes a Herramientas avanzadas →
-// Fiscal (#herramientas-fiscal) — mismos ids, misma función, solo cambia dónde vive en el DOM.
-test("la tarjeta vive en #herramientas-fiscal con su campo, botón y nota", () => {
-  const openTag = /<section[^>]*id="herramientas-fiscal"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #herramientas-fiscal");
+// I1 (Contabilidadcasa 2.0): la tarjeta se trasladó de Herramientas avanzadas → Fiscal al hub
+// Inversión → Jubilación (#inversion-jubilacion), junto a GOB11 y FCX1 — mismos ids, misma
+// función, solo cambia dónde vive en el DOM.
+test("la tarjeta vive en #inversion-jubilacion con su campo, botón y nota", () => {
+  const openTag = /<section[^>]*id="inversion-jubilacion"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #inversion-jubilacion");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
-  const herramientasFiscal = html.slice(start, end);
-  assert.match(herramientasFiscal, /id="pensionSimContribution"/);
-  assert.match(herramientasFiscal, /id="pensionSimRun"/);
-  assert.match(herramientasFiscal, /id="pensionSimNote"/);
+  const inversionJubilacion = html.slice(start, end);
+  assert.match(inversionJubilacion, /id="pensionSimContribution"/);
+  assert.match(inversionJubilacion, /id="pensionSimRun"/);
+  assert.match(inversionJubilacion, /id="pensionSimNote"/);
 });
 
 test("el botón está cableado", () => {

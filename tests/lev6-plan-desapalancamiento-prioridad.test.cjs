@@ -133,31 +133,30 @@ test("wiring: renderLev6DeleveragingPriority usa deleveragingPriority, normalize
   assert.match(block, /iv6PortfolioTargets\(\)/);
 });
 
-// OPT-25 (fase 4, 11 sept. 2026): LEV6 se trasladó de Ajustes › Patrimonio e inversión a
-// Herramientas avanzadas → Patrimonio e inversión (#herramientas-patrimonio); IV6 (objetivos de
-// reparto) se queda en Ajustes. Ya no son adyacentes en el DOM ni viven en la misma pantalla, así
-// que la tarjeta enlaza explícitamente a dónde se declaran los objetivos que consulta, en vez de
-// depender de un orden de documento que ya no refleja la relación entre ambas.
-test("wiring: la tarjeta de LEV6 vive en Herramientas avanzadas → Patrimonio e inversión y enlaza a los objetivos de reparto de IV6 en Ajustes (OPT-24: en su propia tarjeta de Herramientas, no fusionada con la de IV6)", () => {
-  const patrimonioTools = /<section class="e19-asesor-decision view-section" id="herramientas-patrimonio">/.exec(indexSource);
-  assert.ok(patrimonioTools, "No existe la sección herramientas-patrimonio");
-  const start = patrimonioTools.index + patrimonioTools[0].length;
+// I1 (Contabilidadcasa 2.0): LEV6 e IV6 (objetivos de reparto) se movieron juntas al hub
+// Inversión → Rebalanceo (#inversion-rebalanceo) — ya no hace falta un enlace cruzado entre
+// pantallas distintas: IV6 vive arriba, en Configuración, y LEV6 justo debajo, en Herramientas,
+// dentro de la misma pestaña.
+test("wiring: la tarjeta de LEV6 vive en Inversión › Rebalanceo, justo después de los objetivos de reparto de IV6", () => {
+  const rebalanceo = /<section class="e19-deuda-decidir view-section" id="inversion-rebalanceo">/.exec(indexSource);
+  assert.ok(rebalanceo, "No existe la sección inversion-rebalanceo");
+  const start = rebalanceo.index + rebalanceo[0].length;
   const end = indexSource.indexOf("</section>", start);
-  const herramientasPatrimonio = indexSource.slice(start, end);
-  const lev6TitlePos = herramientasPatrimonio.indexOf("Al desapalancar, ¿qué vender primero?");
-  const lev6Pos = herramientasPatrimonio.indexOf('id="lev6DeleveragingNote"');
-  assert.ok(lev6TitlePos >= 0, "LEV6 debe vivir en Herramientas avanzadas → Patrimonio e inversión");
+  const section = indexSource.slice(start, end);
+  const iv6Pos = section.indexOf('id="iv6RebalanceSummary"');
+  const lev6TitlePos = section.indexOf("Al desapalancar, ¿qué vender primero?");
+  const lev6Pos = section.indexOf('id="lev6DeleveragingNote"');
+  assert.ok(iv6Pos >= 0, "IV6 debe vivir en Inversión › Rebalanceo");
+  assert.ok(lev6TitlePos > iv6Pos, "LEV6 debe ir después de IV6, en la misma pestaña");
   assert.ok(lev6Pos > lev6TitlePos, "lev6DeleveragingNote debe vivir dentro de la tarjeta de LEV6");
-  assert.match(herramientasPatrimonio.slice(lev6TitlePos, lev6Pos + 50), /objetivo de reparto declarado en.*Ajustes/);
-
-  const ajustesGroup = /<div class="e19-ajustes-group" id="ajustes-patrimonio"[^>]*>/.exec(indexSource);
-  assert.ok(ajustesGroup, "No existe el grupo ajustes-patrimonio");
-  const ajustesStart = ajustesGroup.index + ajustesGroup[0].length;
-  const ajustesEnd = indexSource.indexOf('<div class="e19-ajustes-group"', ajustesStart);
-  assert.match(indexSource.slice(ajustesStart, ajustesEnd), /id="iv6RebalanceSummary"/, "IV6 debe seguir en Ajustes › Patrimonio e inversión");
+  assert.match(section.slice(lev6TitlePos, lev6Pos + 50), /objetivo de reparto declarado arriba/);
 });
 
+// I1: la pareja que vivía en renderAjustes() se movió a renderInversionRebalanceo()
+// (views/inversion.js) — el resto de mutaciones que las recalculan juntas sigue en app.js.
 test("wiring: renderLev6DeleveragingPriority se llama junto a renderIv6Rebalance en cada mutación relevante", () => {
-  const occurrences = appSource.split("renderIv6Rebalance();\n  renderLev6DeleveragingPriority();").length - 1;
+  const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
+  const combined = appSource + "\n" + inversionSource;
+  const occurrences = combined.split("renderIv6Rebalance();\n  renderLev6DeleveragingPriority();").length - 1;
   assert.ok(occurrences >= 7, `Se esperaban al menos 7 sitios donde LEV6 se recalcula junto a IV6, encontrados: ${occurrences}`);
 });

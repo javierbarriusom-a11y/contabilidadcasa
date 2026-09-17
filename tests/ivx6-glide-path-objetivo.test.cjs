@@ -6,6 +6,9 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+// I1 (Contabilidadcasa 2.0): renderIv1GoalOptions() (junto al resto del lote de Cartera) se movió
+// de renderAjustes() a renderInversionCartera() (views/inversion.js).
+const inversionSource = fs.readFileSync(path.join(root, "views", "inversion.js"), "utf8");
 const Portfolio = require(path.join(root, "canonical-portfolio.js"));
 
 // IVX6 (Oleada 2 Bloque 3): glide path de aportaciones por horizonte. Antes de construirlo, el
@@ -92,7 +95,7 @@ test("app.js: saveIv1Position guarda goalId y renderIvx6GlidePath está cableado
   assert.match(saveBlock, /renderIvx6GlidePath\(\);/);
   const removeBlock = extractFunction("removeIv1Position");
   assert.match(removeBlock, /renderIvx6GlidePath\(\);/);
-  assert.match(app, /renderIv1GoalOptions\(\);/);
+  assert.match(inversionSource, /renderIv1GoalOptions\(\);/);
 });
 
 test("app.js: renderIvx6GlidePath solo usa objetivos con fecha (activeGoalsForBudget) y nunca recomienda una posición concreta a ajustar", () => {

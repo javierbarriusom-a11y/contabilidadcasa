@@ -43,6 +43,9 @@ test("FC3: los controles y el listado están cableados", () => {
   assert.match(appSource, /removeFc3PriorLoss\(removeButton\.dataset\.fc3LossRemove\)/);
 });
 
-test("FC3: la lista de pérdidas arrastradas se renderiza en el arranque de la app", () => {
-  assert.match(appSource, /renderIv1PositionSummary\(\);\s*\n\s*renderFc3PriorLossList\(\);/);
+// I1 (Contabilidadcasa 2.0): renderFc3PriorLossList() se movió de renderAjustes() a
+// renderInversionFiscal() (views/inversion.js), junto al resto de la fiscalidad de inversión.
+test("FC3: la lista de pérdidas arrastradas se renderiza al abrir Inversión › Fiscal", () => {
+  const inversionSource = fs.readFileSync(require.resolve("../views/inversion.js"), "utf8");
+  assert.match(inversionSource, /renderAjustesDividendTaxNote\(\);\s*\n\s*renderFc3PriorLossList\(\);/);
 });

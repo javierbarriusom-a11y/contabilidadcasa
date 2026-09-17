@@ -201,7 +201,11 @@ const HEAVY_RENDER_VIEWS = new Set([
   "deuda-ruta",
   "deuda-contratos",
   "deuda-simulador",
-  "deuda-apalancamiento",
+  "inversion-cartera",
+  "inversion-rebalanceo",
+  "inversion-fiscal",
+  "inversion-jubilacion",
+  "inversion-apalancamiento",
   "cierre",
   "conciliar",
   "analisis",
@@ -223,7 +227,11 @@ const VIEW_CHUNKS = {
   "deuda-ruta": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-contratos" },
   "deuda-simulador": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-simulador" },
-  "deuda-apalancamiento": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-apalancamiento" },
+  "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
+  "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
+  "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
+  "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
+  "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260831a164c1", rootId: "analisis" },
@@ -589,8 +597,24 @@ const viewTitles = {
     eyebrow: "Decidir · simulador visual",
     title: "Simulador visual de estrategias de deuda",
   },
-  "deuda-apalancamiento": {
-    eyebrow: "Decidir · apalancamiento",
+  "inversion-cartera": {
+    eyebrow: "Inversión · Cartera",
+    title: "Cartera de inversión",
+  },
+  "inversion-rebalanceo": {
+    eyebrow: "Inversión · Rebalanceo",
+    title: "Rebalanceo",
+  },
+  "inversion-fiscal": {
+    eyebrow: "Inversión · Fiscal",
+    title: "Fiscalidad de la inversión",
+  },
+  "inversion-jubilacion": {
+    eyebrow: "Inversión · Jubilación",
+    title: "Jubilación",
+  },
+  "inversion-apalancamiento": {
+    eyebrow: "Inversión · Apalancamiento",
     title: "Deuda y apalancamiento",
   },
   conciliar: {
@@ -30213,8 +30237,6 @@ function renderAjustes() {
   renderAjustesLifeInsuranceCapitalNote();
   syncHomeInsuranceControls();
   renderAjustesHomeInsuranceNote();
-  syncDividendTaxControls();
-  renderAjustesDividendTaxNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
   syncAutoAdjustForecastBiasControl();
@@ -30247,36 +30269,12 @@ function renderAjustes() {
   syncLpx4ExemptAmountControl();
   renderLpx4SuccessionTaxEstimate();
   renderGob9ResiliencePanel();
-  renderGob11Panel();
+  // I1 (Contabilidadcasa 2.0): Cartera/Rebalanceo/Fiscal de inversión/Jubilación (IV1/IV6/INV*/FC3-
+  // FC4/GOB11...) se movieron al hub Inversión — renderInversionCartera()/Rebalanceo()/Fiscal()/
+  // Jubilacion() en views/inversion.js las siguen rellenando, ya no aquí. Los mismos ids, motores
+  // canónicos y listeners: solo cambió qué función los repinta y dónde vive el HTML.
   syncGob15ModeFields();
-  renderIv1PositionList();
-  renderIv1TransferOptions();
-  renderIv1ContributionOptions();
-  renderIv1DisposalOptions();
-  renderIv1ScheduledContributionOptions();
-  renderIv1GoalOptions();
-  renderInv18GoalOptions();
-  renderIv1PositionSummary();
-  renderFc3PriorLossList();
   renderPvc6SnapshotOptions();
-  renderIv1PositionConcentration();
-  renderInv6LatentLossCandidates();
-  renderInv16ConcentrationWarnings();
-  renderInv14CurrencyGeographyExposure();
-  renderInv19FeeCostTrajectory();
-  renderInv7LiquidityLadder();
-  renderInv8DcaTracking();
-  renderInv13DcaTaxProjection();
-  syncIv6TargetControls();
-  renderIv6Rebalance();
-  renderLev6DeleveragingPriority();
-  renderInv17RebalanceCalendarReview();
-  syncApx3LombardDeclarationControls();
-  syncInv16CorrelationControls();
-  renderLev12ProactiveMarginCallAlert();
-  renderLev11PreventiveDeleveragingAlert();
-  syncDeb11PreferenceControl();
-  renderIvx6GlidePath();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -40030,8 +40028,20 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "deuda-simulador":
       renderDeudaSimulador();
       break;
-    case "deuda-apalancamiento":
-      renderDeudaApalancamiento();
+    case "inversion-cartera":
+      renderInversionCartera();
+      break;
+    case "inversion-rebalanceo":
+      renderInversionRebalanceo();
+      break;
+    case "inversion-fiscal":
+      renderInversionFiscal();
+      break;
+    case "inversion-jubilacion":
+      renderInversionJubilacion();
+      break;
+    case "inversion-apalancamiento":
+      renderInversionApalancamiento();
       break;
     case "conciliar":
       renderConciliar();

@@ -12,7 +12,7 @@ const MortgageScenarios = require(path.join(__dirname, "..", "canonical-mortgage
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);
@@ -68,7 +68,7 @@ test("los seis campos de la hipoteca (incluido el umbral) se persisten al cambia
 });
 
 test("el radar se sincroniza y renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta)", () => {
-  assert.match(deudaSource, /syncDeb4RadarControls\(\);\s*renderDeb4RefinancingRadar\(\);/);
+  assert.match(inversionSource, /syncDeb4RadarControls\(\);\s*renderDeb4RefinancingRadar\(\);/);
 });
 
 // --- D4 · guion de renegociación, texto accionable sobre los mismos números de DEB4 -------------

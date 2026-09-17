@@ -259,8 +259,12 @@ test("app.js: los campos declarados de GOB11 se guardan uno a uno y repintan el 
   assert.match(block, /renderGob11Panel\(\);/);
 });
 
-test("app.js: el panel de GOB11 se repinta en el lote de renderizado, justo después del panel de resiliencia (GOB9)", () => {
-  assert.match(appSource, /renderGob9ResiliencePanel\(\);\s*\n\s*renderGob11Panel\(\);/);
+// I1 (Contabilidadcasa 2.0): renderGob11Panel() se movió de renderAjustes() a
+// renderInversionJubilacion() (views/inversion.js) — GOB11 ya no se repinta junto a GOB9, ahora es
+// la única tarjeta de la pestaña Inversión › Jubilación.
+test("views/inversion.js: el panel de GOB11 se repinta al abrir Inversión › Jubilación", () => {
+  const inversionSource = fs.readFileSync(require.resolve("../views/inversion.js"), "utf8");
+  assert.match(inversionSource, /renderInversionScreenTabs\("inversion-jubilacion"\);\s*\n\s*renderGob11Panel\(\);/);
 });
 
 test("app.js: la pensión que cuenta en GOB11 es la posición de cartera plan-pension (INV11), no el saldo estático de A14", () => {

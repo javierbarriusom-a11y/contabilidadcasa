@@ -14,6 +14,10 @@ const IrpfEstimator = require("../canonical-irpf-estimator.js");
 // nunca un % de ganancia declarado a mano.
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+// I1 (Contabilidadcasa 2.0): renderInv8DcaTracking()/renderInv13DcaTaxProjection() del lote de
+// renderAjustes() se movieron a renderInversionCartera() (views/inversion.js) — la pareja sigue
+// existiendo, solo cambió en cuál de los dos ficheros vive esa llamada concreta.
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);
@@ -119,8 +123,9 @@ test("renderInv13DcaTaxProjection · la plusvalía ya realizada este año (fc5Al
 });
 
 test("wiring: renderInv13DcaTaxProjection se llama junto a renderInv8DcaTracking en ambos puntos de refresco", () => {
-  const occurrences = appSource.split("renderInv8DcaTracking();").length - 1;
-  const pairedOccurrences = appSource.split("renderInv8DcaTracking();\n  renderInv13DcaTaxProjection();").length - 1;
+  const combined = appSource + "\n" + inversionSource;
+  const occurrences = combined.split("renderInv8DcaTracking();").length - 1;
+  const pairedOccurrences = combined.split("renderInv8DcaTracking();\n  renderInv13DcaTaxProjection();").length - 1;
   assert.equal(occurrences, 2);
   assert.equal(pairedOccurrences, 2);
 });

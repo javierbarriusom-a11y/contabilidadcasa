@@ -83,7 +83,7 @@ test("la tarjeta de política de apalancamiento vive en Deuda › Apalancamiento
   ["lev1Basis", "lev1LimitPct", "lev1PolicyStatus"].forEach((id) => {
     assert.match(indexSource, new RegExp(`id="${id}"`), `Falta #${id} en la tarjeta de LEV1`);
   });
-  const groupStart = indexSource.indexOf('id="deuda-apalancamiento"');
+  const groupStart = indexSource.indexOf('id="inversion-apalancamiento"');
   const cardStart = indexSource.indexOf("Política de apalancamiento del hogar");
   const ap3Start = indexSource.indexOf("Simulador de apalancamiento (explorar, no ejecutar)");
   assert.ok(groupStart >= 0 && cardStart > groupStart, "La tarjeta LEV1 debe vivir dentro de la pantalla Deuda · Apalancamiento");

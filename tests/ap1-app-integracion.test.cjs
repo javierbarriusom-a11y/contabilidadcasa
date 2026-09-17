@@ -4,7 +4,7 @@ const fs = require("node:fs");
 
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
-const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(require.resolve("../views/inversion.js"), "utf8");
 
 test("AP1: la tarjeta del comparador amortizar vs. invertir tiene todos sus campos", () => {
   ["ap1DebtSelect", "ap1Amount", "ap1DebtRate", "ap1Months", "ap1CompareRun", "ap1CompareNote"].forEach((id) => {
@@ -44,7 +44,7 @@ test("AP1: el botón y la lista de deudas están cableados", () => {
 });
 
 test("AP1: la lista de deudas se renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta), justo después de la alerta de AP6", () => {
-  assert.match(deudaSource, /renderAp6Alert\(\);\s*\n\s*renderAp1DebtOptions\(\);/);
+  assert.match(inversionSource, /renderAp6Alert\(\);\s*\n\s*renderAp1DebtOptions\(\);/);
 });
 
 test("AP1: ap1DebtOptionsHtml solo lista deudas con principal pendiente", () => {

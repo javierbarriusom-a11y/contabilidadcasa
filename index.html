@@ -56,6 +56,13 @@
             <span>Deuda</span>
             <small>Ruta, estrategias y ofertas</small>
           </a>
+          <!-- I1 (Contabilidadcasa 2.0): hub único de Inversión — mismo movimiento que ya tuvo Deuda
+               en OPT-24. Apunta a la primera de sus 5 pestañas; las otras 4 viven en «Herramientas
+               avanzadas» más abajo, igual que las de Deuda. -->
+          <a href="#inversion-cartera" class="nav-primary-link">
+            <span>Inversión</span>
+            <small>Cartera, rebalanceo, fiscal, apalancamiento y jubilación</small>
+          </a>
           <a href="#update-hub" class="nav-primary-link">
             <span>Datos</span>
             <small>Saldos, reales e importaciones</small>
@@ -89,6 +96,13 @@
               <a href="#deuda-ruta" data-e17-group="analysis">Plan de deuda · ruta (nuevo)</a>
               <a href="#deuda-contratos" data-e17-group="analysis">Contratos de deuda (nuevo)</a>
               <a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda (nuevo)</a>
+              <!-- I1: las otras 4 pestañas de Inversión (Cartera vive en el enlace principal de
+                   arriba), mismo patrón que las 3 pestañas de Deuda de arriba. -->
+              <a href="#inversion-cartera" data-e17-group="analysis">Inversión · Cartera (nuevo)</a>
+              <a href="#inversion-rebalanceo" data-e17-group="analysis">Inversión · Rebalanceo (nuevo)</a>
+              <a href="#inversion-fiscal" data-e17-group="analysis">Inversión · Fiscal (nuevo)</a>
+              <a href="#inversion-apalancamiento" data-e17-group="analysis">Inversión · Apalancamiento (nuevo)</a>
+              <a href="#inversion-jubilacion" data-e17-group="analysis">Inversión · Jubilación (nuevo)</a>
               <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
               <!-- OPT-25 (fase 3, 11 sept. 2026): Segunda opinión (CPX2), trasladada desde Ajustes ›
                    Fiscal — no era fiscal, es una pregunta de tesorería sobre un compromiso externo. -->
@@ -2024,11 +2038,671 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="deuda-apalancamiento">
-            <nav class="e19-registrar-tabs" id="deudaApalancamientoScreenTabs" aria-label="Pestañas de Deuda"></nav>
+          <section class="e19-deuda-decidir view-section" id="inversion-cartera">
+            <nav class="e19-registrar-tabs" id="inversionCarteraScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker e19-eyebrow">Decidir · apalancamiento</p>
+                <p class="panel-kicker e19-eyebrow">Inversión · Cartera</p>
+                <h2 class="e19-heading">Cartera de inversión</h2>
+                <p class="e19-subtitle">Registro de posiciones y su análisis — antes repartidos entre Ajustes y Herramientas avanzadas (I1).</p>
+              </div>
+            </div>
+
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
+            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
+                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR, construida
+                 aquí), FC1 (FIFO) y el resto del bloque de inversión, que quedan para sesiones
+                 aparte. La correlación real entre activos (lo que pide IV4 además de la
+                 concentración) necesita datos de mercado y queda pendiente. Sin posiciones
+                 registradas, tarjeta neutra. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
+              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, plan de pensiones, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tipo</span>
+                  <select id="iv1PositionType">
+                    <option value="fondo">Fondo</option>
+                    <option value="accion">Acción</option>
+                    <option value="etf">ETF</option>
+                    <option value="cripto">Cripto</option>
+                    <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como posición de cartera más,
+                         no como saldo aparte de A14 — entra en XIRR (IV2), rebalanceo (IV6) y glide
+                         path (IVX6) igual que el resto de tipos. -->
+                    <option value="plan-pension">Plan de pensiones</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Nombre / ticker</span>
+                  <input id="iv1PositionLabel" type="text" placeholder="p. ej. Fondo Global" />
+                </label>
+                <label class="month-picker">
+                  <span>Cantidad</span>
+                  <input id="iv1PositionQuantity" type="number" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Coste (€)</span>
+                  <input id="iv1PositionCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Valor actual (€)</span>
+                  <input id="iv1PositionValue" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de valoración</span>
+                  <input id="iv1PositionDate" type="date" />
+                </label>
+                <!-- IV2: fecha de la primera aportación (la del coste de arriba). Sin ella no hay
+                     flujo de caja que fechar y la rentabilidad anualizada (XIRR) no es calculable
+                     para esa posición — se dice así, nunca con una fecha inventada. -->
+                <label class="month-picker">
+                  <span>Fecha de la primera aportación</span>
+                  <input id="iv1PositionAcquisitionDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Procedencia</span>
+                  <select id="iv1PositionProvenance">
+                    <option value="declared">Declarado (dato tuyo)</option>
+                    <option value="estimated">Estimado</option>
+                    <option value="unknown">Desconocido</option>
+                  </select>
+                </label>
+                <!-- IVX6: objetivo asociado (opcional) — solo objetivos con fecha, para calcular
+                     el horizonte del glide path de Herramientas avanzadas → Patrimonio e inversión. -->
+                <label class="month-picker">
+                  <span>Objetivo asociado (opcional)</span>
+                  <select id="iv1PositionGoalId">
+                    <option value="">-- Sin objetivo asociado --</option>
+                  </select>
+                </label>
+                <!-- IVX4: comisión anual declarada (TER/gastos de gestión, %), opcional. Sin ella
+                     no hay coste compuesto de comisión que calcular para esta posición. -->
+                <label class="month-picker">
+                  <span>Comisión anual declarada (%, opcional)</span>
+                  <input id="iv1PositionFeePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 1.5" />
+                </label>
+                <!-- INV1 (Oleada 3, Bloque 4): clase de activo declarada a mano — perfil de riesgo,
+                     distinto del tipo de instrumento de arriba. Opcional: sin ella, la posición
+                     cuenta como "sin clasificar" en la comparación de Herramientas avanzadas →
+                     Patrimonio e inversión, nunca se inventa. -->
+                <label class="month-picker">
+                  <span>Clase de activo (opcional)</span>
+                  <select id="iv1PositionAssetClass">
+                    <option value="">-- Sin clasificar --</option>
+                    <option value="renta-variable">Renta variable</option>
+                    <option value="renta-fija">Renta fija</option>
+                    <option value="monetario">Monetario</option>
+                    <option value="alternativo">Alternativo</option>
+                  </select>
+                </label>
+                <!-- LEV6 (Oleada 3, Bloque 4): convicción declarada (1-5) — solo se usa para
+                     priorizar qué vender primero al desapalancar. Opcional. -->
+                <label class="month-picker">
+                  <span>Convicción (1-5, opcional)</span>
+                  <input id="iv1PositionConvictionScore" type="number" min="1" max="5" step="1" inputmode="numeric" placeholder="Ej. 3" />
+                </label>
+                <!-- INV8 (Oleada 3, Bloque 5): plan de aportación periódica (DCA) declarado —
+                     opcional. Se compara en Herramientas avanzadas → Patrimonio e inversión, contra
+                     las aportaciones reales ya registradas (no un calendario nuevo, solo el plan
+                     contra lo real). -->
+                <label class="month-picker">
+                  <span>Aportación periódica prevista (€/mes, opcional)</span>
+                  <input id="iv1PositionDcaMonthlyAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 200" />
+                </label>
+                <label class="month-picker">
+                  <span>Inicio del plan de aportación (opcional)</span>
+                  <input id="iv1PositionDcaStartDate" type="date" />
+                </label>
+                <!-- INV14 (Oleada 4, Bloque 4): divisa y geografía declaradas, opcionales — esta app
+                     no trae datos de mercado sobre la composición real de un fondo/ETF, así que se
+                     preguntan directamente. Sin declarar, cuenta como "sin declarar" en Herramientas
+                     avanzadas → Patrimonio e inversión, nunca se asume EUR/España por defecto. -->
+                <label class="month-picker">
+                  <span>Divisa (opcional)</span>
+                  <input id="iv1PositionCurrency" type="text" maxlength="3" placeholder="Ej. EUR" />
+                </label>
+                <label class="month-picker">
+                  <span>Geografía (opcional)</span>
+                  <select id="iv1PositionRegion">
+                    <option value="">-- Sin declarar --</option>
+                    <option value="espana">España</option>
+                    <option value="zona-euro">Zona euro (resto)</option>
+                    <option value="europa-no-euro">Europa (no euro)</option>
+                    <option value="estados-unidos">Estados Unidos</option>
+                    <option value="mercados-emergentes">Mercados emergentes</option>
+                    <option value="global">Global / diversificado</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <!-- INV15 (Oleada 4, Bloque 4): coste de custodia/corretaje anual declarado (€/año),
+                     opcional y distinto de la comisión de gestión de arriba (feePct, un %) — casi
+                     siempre un importe fijo, no un % sobre el valor. -->
+                <label class="month-picker">
+                  <span>Custodia/corretaje anual (€/año, opcional)</span>
+                  <input id="iv1PositionCustodyFeeAnnual" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 30" />
+                </label>
+                <!-- INV20 (Oleada 4, Bloque 4): anulación declarada de la liquidez que INV7 infiere
+                     por tipo de instrumento — opcional, solo para cuando el tipo no refleja la
+                     liquidez real de esta posición concreta (p. ej. un ETF de nicho poco líquido). -->
+                <label class="month-picker">
+                  <span>Anular liquidez inferida por tipo (opcional)</span>
+                  <select id="iv1PositionLiquidityOverride">
+                    <option value="">-- No anular (usar la del tipo) --</option>
+                    <option value="inmediata">Inmediata (0-2 días)</option>
+                    <option value="corta">Corta (3-7 días)</option>
+                    <option value="sin-clasificar">Sin clasificar</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
+              <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
+                   de arriba como destino del traspaso; conserva coste y fecha de adquisición
+                   originales (solo aplica fondo→fondo, la única regla fiscal española real). -->
+              <label class="month-picker">
+                <span>Traspasar posición (sin peaje fiscal, solo fondo→fondo)</span>
+                <select id="iv1TransferSource">
+                  <option value="">-- Selecciona una posición --</option>
+                </select>
+              </label>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
+              <ul class="commit-barrier-list" id="iv1PositionList"></ul>
+              <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
+                   fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
+                   de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue
+                   sumando al coste total pero no entra en el reparto FIFO de una venta futura. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Añadir aportación a</span>
+                  <select id="iv1ContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe aportado (€)</span>
+                  <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Unidades compradas (opcional)</span>
+                  <input id="iv1ContributionQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la aportación</span>
+                  <input id="iv1ContributionDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
+              <!-- FC1: venta parcial de una posición ya registrada. El reparto FIFO de qué lote
+                   se vende (más antiguo primero) lo calcula canonical-portfolio.js; aquí solo se
+                   registra el movimiento (unidades vendidas, importe recibido, fecha). Sin
+                   unidades suficientes en lotes con fecha anterior a la venta, la plusvalía
+                   realizada se informa como no calculable — nunca una cifra inventada. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Vender parte de</span>
+                  <select id="iv1DisposalTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Unidades vendidas</span>
+                  <input id="iv1DisposalQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Importe recibido (€)</span>
+                  <input id="iv1DisposalProceeds" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la venta</span>
+                  <input id="iv1DisposalDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
+              <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
+                   importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
+                   destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
+                   de pólizas (SP1) o la Campaña de la Renta (A15-3). -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Programar aportación futura a</span>
+                  <select id="iv1ScheduledContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe previsto (€)</span>
+                  <input id="iv1ScheduledContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha prevista</span>
+                  <input id="iv1ScheduledContributionDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Nota (opcional)</span>
+                  <input id="iv1ScheduledContributionNote" type="text" placeholder="" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
+                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y
+                 el resto del bloque de inversión. La correlación real entre activos (lo que pide
+                 IV4 además de la concentración) necesita datos de mercado y queda pendiente. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera de inversión: análisis y comparativa</h3>
+              <p class="e19-kpi-note">Sobre las posiciones registradas arriba: comparación con un índice de referencia declarado, coste compuesto de comisiones, concentración, exposición cruzada vivienda-inversión y fase del glide path por objetivo.</p>
+              <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
+                   trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
+                   del índice para el mismo periodo. -->
+              <label class="month-picker">
+                <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
+                <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
+              </label>
+              <!-- IVX4: horizonte para el coste compuesto de comisiones de cada posición con
+                   comisión declarada — sin horizonte no hay nada que proyectar. -->
+              <label class="month-picker">
+                <span>Horizonte para el coste de comisiones (años)</span>
+                <input type="number" min="1" step="1" id="ivx4FeeHorizonYears" placeholder="Ej. 10" />
+              </label>
+              <div class="e19-kpi-note" id="iv1PositionSummary"></div>
+              <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
+              <!-- IVX8: sobreexposición cruzada vivienda-inversión — extiende IV4 (esta tarjeta) y
+                   A14-4 (Patrimonio), comparando vivienda contra cartera de inversión, la pareja
+                   concreta que ninguno de los dos avisa por separado. -->
+              <div class="e19-kpi-note" id="ivx8HousingExposure"></div>
+              <!-- IVX6: glide path por objetivo — banda de horizonte de cada objetivo con al menos
+                   una posición vinculada en Ajustes. No recomienda a qué posición mover cada euro
+                   (esta app no clasifica el riesgo de cada posición), solo la fase estándar. -->
+              <div id="ivx6GlidePath"></div>
+              <!-- INV1 (Oleada 3, Bloque 4): lectura real de la cartera por clase de activo
+                   declarada, frente a la banda de IVX6 de arriba — nunca una regla de "vende X%",
+                   solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
+                   se fabrica precisión). -->
+              <div id="inv1AssetClassNote"></div>
+              <!-- INV16 (Oleada 4, Bloque 4): correlación cualitativa DECLARADA por el hogar entre
+                   clases de activo — esta app no calcula correlación real (sin histórico de
+                   valoraciones, ver INV1/IVX6 arriba). Alcance confirmado por el hogar (sesión
+                   171): declarada y editable, nunca una tabla fija. Solo avisa de concentración
+                   cuando dos clases con correlación "alta" declarada pesan de verdad en la
+                   cartera. -->
+              <h4 class="escenario-motor-panel-title">Correlación declarada entre clases de activo (INV16)</h4>
+              <p class="e19-kpi-note">Esta app no calcula correlación real entre clases de activo (no guarda un histórico de valoraciones). Declara tú mismo, cualitativamente, cuánto crees que se mueven juntas dos clases — sirve solo para avisar de concentración cuando ambas pesan de verdad en tu cartera, nunca es un cálculo de mercado.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Renta variable / Renta fija</span>
+                  <select id="inv16CorrRentaVariableRentaFija">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta variable / Monetario</span>
+                  <select id="inv16CorrRentaVariableMonetario">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta variable / Alternativo</span>
+                  <select id="inv16CorrRentaVariableAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija / Monetario</span>
+                  <select id="inv16CorrRentaFijaMonetario">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija / Alternativo</span>
+                  <select id="inv16CorrRentaFijaAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Monetario / Alternativo</span>
+                  <select id="inv16CorrMonetarioAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="inv16CorrelationNote"></div>
+              <!-- INV14 (Oleada 4, Bloque 4): exposición por divisa y geografía, declarada por
+                   posición (arriba, al registrarla) — esta app no trae datos de mercado sobre la
+                   composición real de un fondo/ETF, así que no se deriva, se pregunta. -->
+              <h4 class="escenario-motor-panel-title">Exposición por divisa y geografía (INV14)</h4>
+              <div id="inv14CurrencyGeographyExposure"></div>
+              <!-- INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años,
+                   visto como trayectoria — extiende IVX4 (coste compuesto de comisiones puntual) a
+                   una curva completa, sin ningún supuesto de rentabilidad de mercado. -->
+              <h4 class="escenario-motor-panel-title">El coste de no tocar tu cartera, a 10-20 años (INV19)</h4>
+              <div id="inv19FeeCostTrajectory"></div>
+              <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
+                   convertirse cada posición en caja sin penalización severa, cruzado con el suelo
+                   del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
+                   total): aquí importa la velocidad de conversión, no el valor total. -->
+              <h4 class="escenario-motor-panel-title">Escalera de liquidez</h4>
+              <p class="e19-kpi-note">A cuántos días puede convertirse cada posición en caja sin penalización severa, y si eso basta para cubrir tu colchón mínimo si hiciera falta.</p>
+              <div id="inv7LiquidityLadder"></div>
+              <!-- INV8 (Oleada 3, Bloque 5): IVX7 (en Ajustes, en la lista de posiciones) ya
+                   muestra el coste medio hacia atrás; esto mira hacia delante — solo aparece si al
+                   menos una posición declaró un plan de aportación periódica en su registro. -->
+              <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
+              <div id="inv8DcaTracking"></div>
+              <!-- INV13 (Oleada 4, Bloque 4): proyección fiscal de vender hoy lo acumulado del plan
+                   DCA de arriba, sobre la plusvalía real ya calculada de cada posición. -->
+              <h4 class="escenario-motor-panel-title">Proyección fiscal del plan DCA (INV13)</h4>
+              <div id="inv13DcaTaxProjection"></div>
+            </article>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="inversion-rebalanceo">
+            <nav class="e19-registrar-tabs" id="inversionRebalanceoScreenTabs" aria-label="Pestañas de Inversión"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Inversión · Rebalanceo</p>
+                <h2 class="e19-heading">Rebalanceo</h2>
+                <p class="e19-subtitle">Objetivo de reparto por tipo de activo, revisión por calendario y prioridad de venta al desapalancar.</p>
+              </div>
+            </div>
+
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
+            <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
+                 sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera: objetivo de reparto y rebalanceo</h3>
+              <p class="e19-kpi-note">Fija el % objetivo por tipo de activo. Cuando el reparto real se desvíe más de 10 puntos del objetivo, verás cuánto comprar o vender para volver a él.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Fondo (%)</span>
+                  <input id="iv6TargetFondo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Acción (%)</span>
+                  <input id="iv6TargetAccion" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>ETF (%)</span>
+                  <input id="iv6TargetEtf" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cripto (%)</span>
+                  <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como tipo de instrumento propio,
+                     no como "Otro" — participa en el rebalanceo igual que cualquier otro tipo. -->
+                <label class="month-picker">
+                  <span>Plan de pensiones (%)</span>
+                  <input id="iv6TargetPlanPension" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Otro (%)</span>
+                  <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
+              <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
+              <!-- INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — complementa el
+                   aviso por umbral de arriba con un recordatorio simple por tiempo transcurrido
+                   desde la última revisión CONFIRMADA por el hogar, nunca inferida de otra acción. -->
+              <h4 class="escenario-motor-panel-title">Revisión de rebalanceo por calendario (INV17)</h4>
+              <p class="e19-kpi-note">El aviso de arriba solo salta si el reparto cruza el umbral de golpe — una cartera que se desalinea despacio puede tardar años en cruzarlo. Este recordatorio avisa por tiempo transcurrido, aunque ningún tipo haya cruzado el umbral todavía.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Revisar cada (meses)</span>
+                  <input id="inv17ReviewIntervalMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 6" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv17MarkReviewed">Marcar revisado hoy</button>
+              <div id="inv17RebalanceCalendarNote"></div>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
+                 venta al desapalancar — reutiliza los objetivos de reparto declarados en Ajustes
+                 (IV6) para saber qué clase ya está sobreexpuesta, más el coste fiscal (plusvalía ya
+                 calculada) y la convicción declarada por posición. Sin campos propios: solo lectura
+                 de lo ya declarado en Ajustes → Patrimonio e inversión. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h3>
+              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de reparto declarado arriba, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
+              <div id="lev6DeleveragingNote"></div>
+            </article>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="inversion-fiscal">
+            <nav class="e19-registrar-tabs" id="inversionFiscalScreenTabs" aria-label="Pestañas de Inversión"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Inversión · Fiscal</p>
+                <h2 class="e19-heading">Fiscalidad de la inversión</h2>
+                <p class="e19-subtitle">Ninguna sustituye asesoría fiscal. Las escalas de IRPF y el registro de supuestos generales se siguen editando en <a href="#ajustes">Ajustes → Fiscal</a>.</p>
+              </div>
+            </div>
+
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
+            <!-- FC3 (OPT-24): pérdidas arrastradas de años anteriores — antes vivía dentro de la
+                 misma tarjeta que «Calcular compensación», mezclando el registro (dato declarado
+                 una vez por año con pérdida) con la herramienta que lo consume. Separado: este
+                 registro es configuración; «Calcular compensación» sigue leyéndolo tal cual dentro
+                 de la ventana legal de 4 ejercicios, ahora desde Herramientas avanzadas → Fiscal
+                 (#herramientas-fiscal, OPT-25 fase 2). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Pérdidas arrastradas de años anteriores</h3>
+              <p class="e19-kpi-note">Pérdidas patrimoniales de años anteriores todavía dentro de la ventana legal de 4 ejercicios. El cálculo de compensación de pérdidas y ganancias, más abajo, las aplica automáticamente.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Pérdida arrastrada de un año anterior (€)</span>
+                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Año de esa pérdida</span>
+                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
+              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
+                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
+                 conexión todavía a un dividendo real de la cartera de IV1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
+              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Dividendo bruto (€)</span>
+                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Retención en origen (%)</span>
+                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del ahorro en España (%)</span>
+                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
+            </article>
+
+            <!-- FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal
+                 cual el motor de tramos progresivos de A15-2 (validateBracketScale/progressiveTax) —
+                 el hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de
+                 Ajustes → Fiscal ("Tramo del ahorro"), sin escala nueva que inventar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Venta parcial: optimizar el tramo del ahorro</h3>
+              <p class="e19-kpi-note">Dice cuánto de la plusvalía que valoras vender cabe todavía en el tramo del ahorro actual antes de saltar al siguiente tipo, usando la escala del tramo del ahorro registrada en Ajustes → Fiscal. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo). No es una recomendación de vender — solo información para decidir.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Base ya generada este año en el tramo del ahorro (€)</span>
+                  <input id="fc5AlreadyRealized" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Plusvalía de la venta que valoras (€)</span>
+                  <input id="fc5ProposedGain" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
+              <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
+            </article>
+
+            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
+                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
+                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
+                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
+                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
+              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Año a cerrar</span>
+                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
+              <div class="e19-kpi-note" id="fc3CompareNote"></div>
+            </article>
+
+            <!-- INV18 (Oleada 4, Bloque 4, IN-8): "¿de qué posición y cuándo saco X€ más barato?" —
+                 cruza la venta parcial (FC5, optimizePartialSale), el rescate de pensión (FCX1,
+                 marginalTaxOnAdditionalIncome) y la fecha de un objetivo (E15) sobre las posiciones
+                 reales de la cartera. Reutiliza los mismos campos ya declarados arriba (base ya
+                 generada del ahorro, renta general del año) sin duplicarlos. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">¿De qué posición y cuándo saco X€ más barato?</h3>
+              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#inversion-cartera">Inversión → Cartera</a> (fondo, acción, ETF, cripto, plan de pensiones), calcula el orden más barato para conseguir el importe que necesitas, usando la base del ahorro y la renta general ya declaradas arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe que necesitas conseguir (€)</span>
+                  <input id="inv18AmountNeeded" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Objetivo asociado (opcional, solo para la fecha)</span>
+                  <select id="inv18GoalSelect"><option value="">-- Sin objetivo asociado --</option></select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv18CalculateRun">Calcular plan</button>
+              <div class="e19-kpi-note" id="inv18PlanNote"></div>
+            </article>
+
+            <!-- INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3, en Herramientas avanzadas →
+                 Fiscal, solo cubre pérdidas YA realizadas por venta): candidatas a compensación
+                 ANTES de vender — posiciones con minusvalía latente (gainLoss negativo, ya
+                 calculado por normalizePositions en IV1) que podría interesar realizar antes de
+                 cerrar el año fiscal. Solo identifica y ordena, nunca sugiere vender por sí sola
+                 (regla transversal 04) — y avisa de la norma española de no recompra. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
+              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de arriba. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
+              <div id="inv6LatentLossCandidates"></div>
+            </article>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="inversion-jubilacion">
+            <nav class="e19-registrar-tabs" id="inversionJubilacionScreenTabs" aria-label="Pestañas de Inversión"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Inversión · Jubilación</p>
+                <h2 class="e19-heading">Jubilación</h2>
+                <p class="e19-subtitle">Proyección de jubilación, aportación y rescate de planes de pensiones — antes repartidos entre Ajustes → Fiscal y Herramientas avanzadas → Patrimonio, ahora juntos.</p>
+              </div>
+            </div>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cartera
+                 real (INV11: el plan de pensiones es una posición más) + gasto medio de la previsión
+                 viva + objetivo de independencia financiera con fecha. Todos los supuestos (tasas de
+                 crecimiento, aportación futura, pensión pública, tasa de retirada) son declarados por
+                 el hogar, nunca inventados. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Proyección de jubilación unificada</h3>
+              <p class="e19-kpi-note">Cruza tu cartera (incluida cualquier posición de plan de pensiones, INV11) con tu gasto medio y un objetivo de independencia financiera a tu fecha de jubilación declarada.</p>
+              <label><span>Fecha de jubilación objetivo</span><input id="gob11RetirementMonth" type="month" /></label>
+              <label><span>Crecimiento anual esperado de la cartera (%)</span><input id="gob11PortfolioGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
+              <label><span>Crecimiento anual esperado del plan de pensiones (%)</span><input id="gob11PensionGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
+              <label><span>Aportación mensual futura a la cartera (€)</span><input id="gob11MonthlyContributionPortfolio" type="number" step="1" placeholder="0" /></label>
+              <label><span>Aportación mensual futura al plan de pensiones (€)</span><input id="gob11MonthlyContributionPension" type="number" step="1" placeholder="0" /></label>
+              <label><span>Pensión pública estimada (€/mes, dato manual)</span><input id="gob11StatePensionMonthly" type="number" step="1" placeholder="Sin declarar" /></label>
+              <label><span>Tasa de retirada objetivo en jubilación (%)</span><input id="gob11WithdrawalRatePct" type="number" step="0.01" placeholder="Ej. 4" /></label>
+              <div class="e19-kpi-note" id="gob11ProjectionNote"></div>
+              <div id="gob11Trajectory"></div>
+            </article>
+
+            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
+                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
+                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
+                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
+              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Aportación a simular (€)</span>
+                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
+              <div class="e19-kpi-note" id="pensionSimNote"></div>
+            </article>
+
+            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
+                 año. Con las dos escalas de tramos ya registradas en Ajustes → Fiscal (A15-2) usa el
+                 coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
+                 (A15-4/A15-1). No modela reducciones (40% de aportaciones anteriores a 2007, mínimo
+                 exento) ni la modalidad en forma de renta — la app no registra cuándo se hizo cada
+                 aportación. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
+              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe a rescatar (€)</span>
+                  <input id="fcx1WithdrawalAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Renta general del año antes del rescate (€)</span>
+                  <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
+              <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
+            </article>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="inversion-apalancamiento">
+            <nav class="e19-registrar-tabs" id="inversionApalancamientoScreenTabs" aria-label="Pestañas de Inversión"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Inversión · Apalancamiento</p>
                 <h2 class="e19-heading">Deuda y apalancamiento</h2>
                 <p class="e19-subtitle">Declara tu límite antes de pedir deuda nueva para invertir, y explora aquí todo lo que depende de ese límite: simuladores, comparadores y alertas. Nada se ejecuta ni se aplica al plan real desde esta pantalla.</p>
               </div>
@@ -3230,32 +3904,10 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Fiscal</p>
                 <h2 class="e19-heading">Calculadoras y comparadores fiscales</h2>
-                <p class="e19-subtitle">Ninguna sustituye asesoría fiscal. Las tablas y escalas de IRPF, el registro de supuestos y las pérdidas arrastradas se siguen editando en <a href="#ajustes">Ajustes → Fiscal</a>.</p>
+                <p class="e19-subtitle">Ninguna sustituye asesoría fiscal. Las tablas y escalas de IRPF se siguen editando en <a href="#ajustes">Ajustes → Fiscal</a>; las calculadoras y comparadores de inversión (dividendos, venta parcial, compensación de pérdidas, pensiones) se movieron a <a href="#inversion-fiscal">Inversión → Fiscal</a>.</p>
               </div>
             </div>
 
-            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
-                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
-                 conexión todavía a un dividendo real de la cartera de IV1). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
-              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Dividendo bruto (€)</span>
-                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Retención en origen (%)</span>
-                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo del ahorro en España (%)</span>
-                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
-            </article>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
@@ -3278,66 +3930,8 @@
               <div class="e19-kpi-note" id="irpfEstimatorNote"></div>
             </article>
 
-            <!-- FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal
-                 cual el motor de tramos progresivos de A15-2 (validateBracketScale/progressiveTax) —
-                 el hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de
-                 Ajustes → Fiscal ("Tramo del ahorro"), sin escala nueva que inventar. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Venta parcial: optimizar el tramo del ahorro</h3>
-              <p class="e19-kpi-note">Dice cuánto de la plusvalía que valoras vender cabe todavía en el tramo del ahorro actual antes de saltar al siguiente tipo, usando la escala del tramo del ahorro registrada en Ajustes → Fiscal. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo). No es una recomendación de vender — solo información para decidir.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Base ya generada este año en el tramo del ahorro (€)</span>
-                  <input id="fc5AlreadyRealized" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Plusvalía de la venta que valoras (€)</span>
-                  <input id="fc5ProposedGain" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
-              <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
-            </article>
 
-            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
-                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
-                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
-                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
-              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Aportación a simular (€)</span>
-                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
-              <div class="e19-kpi-note" id="pensionSimNote"></div>
-            </article>
 
-            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
-                 año. Con las dos escalas de tramos ya registradas en Ajustes → Fiscal (A15-2) usa el
-                 coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
-                 (A15-4/A15-1). No modela reducciones (40% de aportaciones anteriores a 2007, mínimo
-                 exento) ni la modalidad en forma de renta — la app no registra cuándo se hizo cada
-                 aportación. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
-              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Importe a rescatar (€)</span>
-                  <input id="fcx1WithdrawalAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Renta general del año antes del rescate (€)</span>
-                  <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
-              <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
-            </article>
 
             <!-- GOB8 (Oleada 3, Bloque 5): resumen exportable que compone las tres calculadoras
                  fiscales de arriba (IRPF general, dividendos, rescate de pensiones) en un único
@@ -3351,45 +3945,7 @@
               <pre class="e19-kpi-note" id="gob8DraftPreview"></pre>
             </article>
 
-            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
-                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
-                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
-                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
-                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
-              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Año a cerrar</span>
-                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
-              <div class="e19-kpi-note" id="fc3CompareNote"></div>
-            </article>
 
-            <!-- INV18 (Oleada 4, Bloque 4, IN-8): "¿de qué posición y cuándo saco X€ más barato?" —
-                 cruza la venta parcial (FC5, optimizePartialSale), el rescate de pensión (FCX1,
-                 marginalTaxOnAdditionalIncome) y la fecha de un objetivo (E15) sobre las posiciones
-                 reales de la cartera. Reutiliza los mismos campos ya declarados arriba (base ya
-                 generada del ahorro, renta general del año) sin duplicarlos. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">¿De qué posición y cuándo saco X€ más barato?</h3>
-              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#ajustes">Ajustes → Patrimonio e inversión</a> (fondo, acción, ETF, cripto, plan de pensiones), calcula el orden más barato para conseguir el importe que necesitas, usando la base del ahorro y la renta general ya declaradas arriba.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Importe que necesitas conseguir (€)</span>
-                  <input id="inv18AmountNeeded" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Objetivo asociado (opcional, solo para la fecha)</span>
-                  <select id="inv18GoalSelect"><option value="">-- Sin objetivo asociado --</option></select>
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="inv18CalculateRun">Calcular plan</button>
-              <div class="e19-kpi-note" id="inv18PlanNote"></div>
-            </article>
           </section>
 
           <!-- OPT-25 (fase 4, 11 sept. 2026): cuarta categoría nueva de Herramientas avanzadas —
@@ -3403,154 +3959,11 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Patrimonio e inversión</p>
                 <h2 class="e19-heading">Comparadores de patrimonio e inversión</h2>
-                <p class="e19-subtitle">El patrimonio neto, los objetivos de reparto y el registro de posiciones se siguen editando en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>.</p>
+                <p class="e19-subtitle">El patrimonio neto general se sigue editando en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>; la cartera (registro, análisis y rebalanceo) se movió a <a href="#inversion-cartera">Inversión</a>.</p>
               </div>
             </div>
 
-            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
-                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y
-                 el resto del bloque de inversión. La correlación real entre activos (lo que pide
-                 IV4 además de la concentración) necesita datos de mercado y queda pendiente. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cartera de inversión: análisis y comparativa</h3>
-              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>: comparación con un índice de referencia declarado, coste compuesto de comisiones, concentración, exposición cruzada vivienda-inversión y fase del glide path por objetivo.</p>
-              <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
-                   trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
-                   del índice para el mismo periodo. -->
-              <label class="month-picker">
-                <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
-                <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
-              </label>
-              <!-- IVX4: horizonte para el coste compuesto de comisiones de cada posición con
-                   comisión declarada — sin horizonte no hay nada que proyectar. -->
-              <label class="month-picker">
-                <span>Horizonte para el coste de comisiones (años)</span>
-                <input type="number" min="1" step="1" id="ivx4FeeHorizonYears" placeholder="Ej. 10" />
-              </label>
-              <div class="e19-kpi-note" id="iv1PositionSummary"></div>
-              <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
-              <!-- IVX8: sobreexposición cruzada vivienda-inversión — extiende IV4 (esta tarjeta) y
-                   A14-4 (Patrimonio), comparando vivienda contra cartera de inversión, la pareja
-                   concreta que ninguno de los dos avisa por separado. -->
-              <div class="e19-kpi-note" id="ivx8HousingExposure"></div>
-              <!-- IVX6: glide path por objetivo — banda de horizonte de cada objetivo con al menos
-                   una posición vinculada en Ajustes. No recomienda a qué posición mover cada euro
-                   (esta app no clasifica el riesgo de cada posición), solo la fase estándar. -->
-              <div id="ivx6GlidePath"></div>
-              <!-- INV1 (Oleada 3, Bloque 4): lectura real de la cartera por clase de activo
-                   declarada, frente a la banda de IVX6 de arriba — nunca una regla de "vende X%",
-                   solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
-                   se fabrica precisión). -->
-              <div id="inv1AssetClassNote"></div>
-              <!-- INV16 (Oleada 4, Bloque 4): correlación cualitativa DECLARADA por el hogar entre
-                   clases de activo — esta app no calcula correlación real (sin histórico de
-                   valoraciones, ver INV1/IVX6 arriba). Alcance confirmado por el hogar (sesión
-                   171): declarada y editable, nunca una tabla fija. Solo avisa de concentración
-                   cuando dos clases con correlación "alta" declarada pesan de verdad en la
-                   cartera. -->
-              <h4 class="escenario-motor-panel-title">Correlación declarada entre clases de activo (INV16)</h4>
-              <p class="e19-kpi-note">Esta app no calcula correlación real entre clases de activo (no guarda un histórico de valoraciones). Declara tú mismo, cualitativamente, cuánto crees que se mueven juntas dos clases — sirve solo para avisar de concentración cuando ambas pesan de verdad en tu cartera, nunca es un cálculo de mercado.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Renta variable / Renta fija</span>
-                  <select id="inv16CorrRentaVariableRentaFija">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Renta variable / Monetario</span>
-                  <select id="inv16CorrRentaVariableMonetario">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Renta variable / Alternativo</span>
-                  <select id="inv16CorrRentaVariableAlternativo">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Renta fija / Monetario</span>
-                  <select id="inv16CorrRentaFijaMonetario">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Renta fija / Alternativo</span>
-                  <select id="inv16CorrRentaFijaAlternativo">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Monetario / Alternativo</span>
-                  <select id="inv16CorrMonetarioAlternativo">
-                    <option value="">Sin declarar</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                    <option value="negativa">Negativa</option>
-                  </select>
-                </label>
-              </div>
-              <div class="e19-kpi-note" id="inv16CorrelationNote"></div>
-              <!-- INV14 (Oleada 4, Bloque 4): exposición por divisa y geografía, declarada por
-                   posición (arriba, al registrarla) — esta app no trae datos de mercado sobre la
-                   composición real de un fondo/ETF, así que no se deriva, se pregunta. -->
-              <h4 class="escenario-motor-panel-title">Exposición por divisa y geografía (INV14)</h4>
-              <div id="inv14CurrencyGeographyExposure"></div>
-              <!-- INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años,
-                   visto como trayectoria — extiende IVX4 (coste compuesto de comisiones puntual) a
-                   una curva completa, sin ningún supuesto de rentabilidad de mercado. -->
-              <h4 class="escenario-motor-panel-title">El coste de no tocar tu cartera, a 10-20 años (INV19)</h4>
-              <div id="inv19FeeCostTrajectory"></div>
-              <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
-                   convertirse cada posición en caja sin penalización severa, cruzado con el suelo
-                   del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
-                   total): aquí importa la velocidad de conversión, no el valor total. -->
-              <h4 class="escenario-motor-panel-title">Escalera de liquidez</h4>
-              <p class="e19-kpi-note">A cuántos días puede convertirse cada posición en caja sin penalización severa, y si eso basta para cubrir tu colchón mínimo si hiciera falta.</p>
-              <div id="inv7LiquidityLadder"></div>
-              <!-- INV8 (Oleada 3, Bloque 5): IVX7 (en Ajustes, en la lista de posiciones) ya
-                   muestra el coste medio hacia atrás; esto mira hacia delante — solo aparece si al
-                   menos una posición declaró un plan de aportación periódica en su registro. -->
-              <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
-              <div id="inv8DcaTracking"></div>
-              <!-- INV13 (Oleada 4, Bloque 4): proyección fiscal de vender hoy lo acumulado del plan
-                   DCA de arriba, sobre la plusvalía real ya calculada de cada posición. -->
-              <h4 class="escenario-motor-panel-title">Proyección fiscal del plan DCA (INV13)</h4>
-              <div id="inv13DcaTaxProjection"></div>
-            </article>
 
-            <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
-                 venta al desapalancar — reutiliza los objetivos de reparto declarados en Ajustes
-                 (IV6) para saber qué clase ya está sobreexpuesta, más el coste fiscal (plusvalía ya
-                 calculada) y la convicción declarada por posición. Sin campos propios: solo lectura
-                 de lo ya declarado en Ajustes → Patrimonio e inversión. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h3>
-              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de reparto declarado en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
-              <div id="lev6DeleveragingNote"></div>
-            </article>
 
             <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
                  (activos con procedencia, en Ajustes) y SP1 (inventario de pólizas, en Ajustes ›
@@ -3604,24 +4017,6 @@
               <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
             </article>
 
-            <!-- GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cartera
-                 real (INV11: el plan de pensiones es una posición más) + gasto medio de la previsión
-                 viva + objetivo de independencia financiera con fecha. Todos los supuestos (tasas de
-                 crecimiento, aportación futura, pensión pública, tasa de retirada) son declarados por
-                 el hogar, nunca inventados. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Proyección de jubilación unificada</h3>
-              <p class="e19-kpi-note">Cruza tu cartera (incluida cualquier posición de plan de pensiones, INV11) con tu gasto medio y un objetivo de independencia financiera a tu fecha de jubilación declarada.</p>
-              <label><span>Fecha de jubilación objetivo</span><input id="gob11RetirementMonth" type="month" /></label>
-              <label><span>Crecimiento anual esperado de la cartera (%)</span><input id="gob11PortfolioGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
-              <label><span>Crecimiento anual esperado del plan de pensiones (%)</span><input id="gob11PensionGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
-              <label><span>Aportación mensual futura a la cartera (€)</span><input id="gob11MonthlyContributionPortfolio" type="number" step="1" placeholder="0" /></label>
-              <label><span>Aportación mensual futura al plan de pensiones (€)</span><input id="gob11MonthlyContributionPension" type="number" step="1" placeholder="0" /></label>
-              <label><span>Pensión pública estimada (€/mes, dato manual)</span><input id="gob11StatePensionMonthly" type="number" step="1" placeholder="Sin declarar" /></label>
-              <label><span>Tasa de retirada objetivo en jubilación (%)</span><input id="gob11WithdrawalRatePct" type="number" step="0.01" placeholder="Ej. 4" /></label>
-              <div class="e19-kpi-note" id="gob11ProjectionNote"></div>
-              <div id="gob11Trajectory"></div>
-            </article>
 
             <!-- GOB15 (Oleada 4, Bloque 7, apuesta L reservada a sesión propia): simulador de vender
                  la vivienda habitual, con dos destinos posibles para el neto — alquiler o comprar una
@@ -3697,17 +4092,6 @@
               <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
             </article>
 
-            <!-- INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3, en Herramientas avanzadas →
-                 Fiscal, solo cubre pérdidas YA realizadas por venta): candidatas a compensación
-                 ANTES de vender — posiciones con minusvalía latente (gainLoss negativo, ya
-                 calculado por normalizePositions en IV1) que podría interesar realizar antes de
-                 cerrar el año fiscal. Solo identifica y ordena, nunca sugiere vender por sí sola
-                 (regla transversal 04) — y avisa de la norma española de no recompra. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
-              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
-              <div id="inv6LatentLossCandidates"></div>
-            </article>
           </section>
 
           <!-- OPT-25 (fase 5, 11 sept. 2026): categoría Analizar, ya existente en el desplegable
@@ -4355,28 +4739,6 @@
               <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
             </article>
 
-            <!-- FC3 (OPT-24): pérdidas arrastradas de años anteriores — antes vivía dentro de la
-                 misma tarjeta que «Calcular compensación», mezclando el registro (dato declarado
-                 una vez por año con pérdida) con la herramienta que lo consume. Separado: este
-                 registro es configuración; «Calcular compensación» sigue leyéndolo tal cual dentro
-                 de la ventana legal de 4 ejercicios, ahora desde Herramientas avanzadas → Fiscal
-                 (#herramientas-fiscal, OPT-25 fase 2). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Pérdidas arrastradas de años anteriores</h3>
-              <p class="e19-kpi-note">Pérdidas patrimoniales de años anteriores todavía dentro de la ventana legal de 4 ejercicios. El cálculo de compensación de pérdidas y ganancias, en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>, las aplica automáticamente.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Pérdida arrastrada de un año anterior (€)</span>
-                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Año de esa pérdida</span>
-                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
-              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
-            </article>
 
             <!-- OPT-25 (fases 2-5, 11 sept. 2026): 7 comparadores fiscales (FC4, estimador de IRPF,
                  FC5, A15-4, FCX1, GOB8, FC3) se movieron a Herramientas avanzadas → Fiscal
@@ -4386,7 +4748,7 @@
                  Backtesting (PVX1) a Herramientas avanzadas → Analizar (#herramientas-analizar, no
                  es fiscal, es de previsión). No queda ninguna tarjeta de Herramientas en Fiscal. -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <p class="e19-kpi-note">Los comparadores fiscales (retención de dividendos, estimador de IRPF, venta parcial del tramo del ahorro, aportación y rescate de pensiones, borrador de la Renta, compensación de pérdidas y ganancias) viven ahora en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. La segunda opinión sobre una decisión externa al plan vive en <a href="#segunda-opinion">Herramientas avanzadas → Decidir</a>. Las pérdidas latentes candidatas a compensación viven en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>. El backtesting de la previsión vive en <a href="#herramientas-analizar">Herramientas avanzadas → Analizar</a>.</p>
+            <p class="e19-kpi-note">El estimador general de IRPF vive en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Las calculadoras de inversión (dividendos, venta parcial, aportación y rescate de pensiones, compensación de pérdidas, borrador de la Renta) viven ahora en <a href="#inversion-fiscal">Inversión → Fiscal</a> y <a href="#inversion-jubilacion">Inversión → Jubilación</a>. La segunda opinión sobre una decisión externa al plan vive en <a href="#segunda-opinion">Herramientas avanzadas → Decidir</a>. El backtesting de la previsión vive en <a href="#herramientas-analizar">Herramientas avanzadas → Analizar</a>.</p>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-patrimonio" aria-labelledby="ajustes-patrimonio-title">
@@ -4472,291 +4834,7 @@
               <div class="e19-kpi-note" id="rgxKnowledgeConcentration"></div>
             </article>
 
-            <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
-                 sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cartera: objetivo de reparto y rebalanceo</h3>
-              <p class="e19-kpi-note">Fija el % objetivo por tipo de activo. Cuando el reparto real se desvíe más de 10 puntos del objetivo, verás cuánto comprar o vender para volver a él.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Fondo (%)</span>
-                  <input id="iv6TargetFondo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Acción (%)</span>
-                  <input id="iv6TargetAccion" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>ETF (%)</span>
-                  <input id="iv6TargetEtf" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Cripto (%)</span>
-                  <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como tipo de instrumento propio,
-                     no como "Otro" — participa en el rebalanceo igual que cualquier otro tipo. -->
-                <label class="month-picker">
-                  <span>Plan de pensiones (%)</span>
-                  <input id="iv6TargetPlanPension" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Otro (%)</span>
-                  <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
-              <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
-              <!-- INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — complementa el
-                   aviso por umbral de arriba con un recordatorio simple por tiempo transcurrido
-                   desde la última revisión CONFIRMADA por el hogar, nunca inferida de otra acción. -->
-              <h4 class="escenario-motor-panel-title">Revisión de rebalanceo por calendario (INV17)</h4>
-              <p class="e19-kpi-note">El aviso de arriba solo salta si el reparto cruza el umbral de golpe — una cartera que se desalinea despacio puede tardar años en cruzarlo. Este recordatorio avisa por tiempo transcurrido, aunque ningún tipo haya cruzado el umbral todavía.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Revisar cada (meses)</span>
-                  <input id="inv17ReviewIntervalMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 6" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="inv17MarkReviewed">Marcar revisado hoy</button>
-              <div id="inv17RebalanceCalendarNote"></div>
-            </article>
 
-            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
-                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR, construida
-                 aquí), FC1 (FIFO) y el resto del bloque de inversión, que quedan para sesiones
-                 aparte. La correlación real entre activos (lo que pide IV4 además de la
-                 concentración) necesita datos de mercado y queda pendiente. Sin posiciones
-                 registradas, tarjeta neutra. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
-              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, plan de pensiones, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Tipo</span>
-                  <select id="iv1PositionType">
-                    <option value="fondo">Fondo</option>
-                    <option value="accion">Acción</option>
-                    <option value="etf">ETF</option>
-                    <option value="cripto">Cripto</option>
-                    <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como posición de cartera más,
-                         no como saldo aparte de A14 — entra en XIRR (IV2), rebalanceo (IV6) y glide
-                         path (IVX6) igual que el resto de tipos. -->
-                    <option value="plan-pension">Plan de pensiones</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Nombre / ticker</span>
-                  <input id="iv1PositionLabel" type="text" placeholder="p. ej. Fondo Global" />
-                </label>
-                <label class="month-picker">
-                  <span>Cantidad</span>
-                  <input id="iv1PositionQuantity" type="number" step="any" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Coste (€)</span>
-                  <input id="iv1PositionCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Valor actual (€)</span>
-                  <input id="iv1PositionValue" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha de valoración</span>
-                  <input id="iv1PositionDate" type="date" />
-                </label>
-                <!-- IV2: fecha de la primera aportación (la del coste de arriba). Sin ella no hay
-                     flujo de caja que fechar y la rentabilidad anualizada (XIRR) no es calculable
-                     para esa posición — se dice así, nunca con una fecha inventada. -->
-                <label class="month-picker">
-                  <span>Fecha de la primera aportación</span>
-                  <input id="iv1PositionAcquisitionDate" type="date" />
-                </label>
-                <label class="month-picker">
-                  <span>Procedencia</span>
-                  <select id="iv1PositionProvenance">
-                    <option value="declared">Declarado (dato tuyo)</option>
-                    <option value="estimated">Estimado</option>
-                    <option value="unknown">Desconocido</option>
-                  </select>
-                </label>
-                <!-- IVX6: objetivo asociado (opcional) — solo objetivos con fecha, para calcular
-                     el horizonte del glide path de Herramientas avanzadas → Patrimonio e inversión. -->
-                <label class="month-picker">
-                  <span>Objetivo asociado (opcional)</span>
-                  <select id="iv1PositionGoalId">
-                    <option value="">-- Sin objetivo asociado --</option>
-                  </select>
-                </label>
-                <!-- IVX4: comisión anual declarada (TER/gastos de gestión, %), opcional. Sin ella
-                     no hay coste compuesto de comisión que calcular para esta posición. -->
-                <label class="month-picker">
-                  <span>Comisión anual declarada (%, opcional)</span>
-                  <input id="iv1PositionFeePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 1.5" />
-                </label>
-                <!-- INV1 (Oleada 3, Bloque 4): clase de activo declarada a mano — perfil de riesgo,
-                     distinto del tipo de instrumento de arriba. Opcional: sin ella, la posición
-                     cuenta como "sin clasificar" en la comparación de Herramientas avanzadas →
-                     Patrimonio e inversión, nunca se inventa. -->
-                <label class="month-picker">
-                  <span>Clase de activo (opcional)</span>
-                  <select id="iv1PositionAssetClass">
-                    <option value="">-- Sin clasificar --</option>
-                    <option value="renta-variable">Renta variable</option>
-                    <option value="renta-fija">Renta fija</option>
-                    <option value="monetario">Monetario</option>
-                    <option value="alternativo">Alternativo</option>
-                  </select>
-                </label>
-                <!-- LEV6 (Oleada 3, Bloque 4): convicción declarada (1-5) — solo se usa para
-                     priorizar qué vender primero al desapalancar. Opcional. -->
-                <label class="month-picker">
-                  <span>Convicción (1-5, opcional)</span>
-                  <input id="iv1PositionConvictionScore" type="number" min="1" max="5" step="1" inputmode="numeric" placeholder="Ej. 3" />
-                </label>
-                <!-- INV8 (Oleada 3, Bloque 5): plan de aportación periódica (DCA) declarado —
-                     opcional. Se compara en Herramientas avanzadas → Patrimonio e inversión, contra
-                     las aportaciones reales ya registradas (no un calendario nuevo, solo el plan
-                     contra lo real). -->
-                <label class="month-picker">
-                  <span>Aportación periódica prevista (€/mes, opcional)</span>
-                  <input id="iv1PositionDcaMonthlyAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 200" />
-                </label>
-                <label class="month-picker">
-                  <span>Inicio del plan de aportación (opcional)</span>
-                  <input id="iv1PositionDcaStartDate" type="date" />
-                </label>
-                <!-- INV14 (Oleada 4, Bloque 4): divisa y geografía declaradas, opcionales — esta app
-                     no trae datos de mercado sobre la composición real de un fondo/ETF, así que se
-                     preguntan directamente. Sin declarar, cuenta como "sin declarar" en Herramientas
-                     avanzadas → Patrimonio e inversión, nunca se asume EUR/España por defecto. -->
-                <label class="month-picker">
-                  <span>Divisa (opcional)</span>
-                  <input id="iv1PositionCurrency" type="text" maxlength="3" placeholder="Ej. EUR" />
-                </label>
-                <label class="month-picker">
-                  <span>Geografía (opcional)</span>
-                  <select id="iv1PositionRegion">
-                    <option value="">-- Sin declarar --</option>
-                    <option value="espana">España</option>
-                    <option value="zona-euro">Zona euro (resto)</option>
-                    <option value="europa-no-euro">Europa (no euro)</option>
-                    <option value="estados-unidos">Estados Unidos</option>
-                    <option value="mercados-emergentes">Mercados emergentes</option>
-                    <option value="global">Global / diversificado</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                </label>
-                <!-- INV15 (Oleada 4, Bloque 4): coste de custodia/corretaje anual declarado (€/año),
-                     opcional y distinto de la comisión de gestión de arriba (feePct, un %) — casi
-                     siempre un importe fijo, no un % sobre el valor. -->
-                <label class="month-picker">
-                  <span>Custodia/corretaje anual (€/año, opcional)</span>
-                  <input id="iv1PositionCustodyFeeAnnual" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 30" />
-                </label>
-                <!-- INV20 (Oleada 4, Bloque 4): anulación declarada de la liquidez que INV7 infiere
-                     por tipo de instrumento — opcional, solo para cuando el tipo no refleja la
-                     liquidez real de esta posición concreta (p. ej. un ETF de nicho poco líquido). -->
-                <label class="month-picker">
-                  <span>Anular liquidez inferida por tipo (opcional)</span>
-                  <select id="iv1PositionLiquidityOverride">
-                    <option value="">-- No anular (usar la del tipo) --</option>
-                    <option value="inmediata">Inmediata (0-2 días)</option>
-                    <option value="corta">Corta (3-7 días)</option>
-                    <option value="sin-clasificar">Sin clasificar</option>
-                  </select>
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
-              <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
-                   de arriba como destino del traspaso; conserva coste y fecha de adquisición
-                   originales (solo aplica fondo→fondo, la única regla fiscal española real). -->
-              <label class="month-picker">
-                <span>Traspasar posición (sin peaje fiscal, solo fondo→fondo)</span>
-                <select id="iv1TransferSource">
-                  <option value="">-- Selecciona una posición --</option>
-                </select>
-              </label>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
-              <ul class="commit-barrier-list" id="iv1PositionList"></ul>
-              <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
-                   fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
-                   de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue
-                   sumando al coste total pero no entra en el reparto FIFO de una venta futura. -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Añadir aportación a</span>
-                  <select id="iv1ContributionTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe aportado (€)</span>
-                  <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Unidades compradas (opcional)</span>
-                  <input id="iv1ContributionQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha de la aportación</span>
-                  <input id="iv1ContributionDate" type="date" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
-              <!-- FC1: venta parcial de una posición ya registrada. El reparto FIFO de qué lote
-                   se vende (más antiguo primero) lo calcula canonical-portfolio.js; aquí solo se
-                   registra el movimiento (unidades vendidas, importe recibido, fecha). Sin
-                   unidades suficientes en lotes con fecha anterior a la venta, la plusvalía
-                   realizada se informa como no calculable — nunca una cifra inventada. -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Vender parte de</span>
-                  <select id="iv1DisposalTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Unidades vendidas</span>
-                  <input id="iv1DisposalQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Importe recibido (€)</span>
-                  <input id="iv1DisposalProceeds" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha de la venta</span>
-                  <input id="iv1DisposalDate" type="date" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
-              <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
-                   importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
-                   destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
-                   de pólizas (SP1) o la Campaña de la Renta (A15-3). -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Programar aportación futura a</span>
-                  <select id="iv1ScheduledContributionTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe previsto (€)</span>
-                  <input id="iv1ScheduledContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha prevista</span>
-                  <input id="iv1ScheduledContributionDate" type="date" />
-                </label>
-                <label class="month-picker">
-                  <span>Nota (opcional)</span>
-                  <input id="iv1ScheduledContributionNote" type="text" placeholder="" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
-            </article>
 
             <!-- OPT-25 (fase 4, 11 sept. 2026): las 6 tarjetas de Herramientas (Cartera análisis y
                  comparativa con Escalera de liquidez/DCA anidados, Qué vender primero LEV6,
@@ -4765,7 +4843,7 @@
                  junto con Línea de crédito de emergencia (venía de Ajustes › Reserva y colchón) y
                  Pérdidas latentes candidatas a compensación (INV6, venía de Ajustes › Fiscal). -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <p class="e19-kpi-note">Los comparadores de patrimonio e inversión (análisis de cartera, escalera de liquidez, plan DCA, qué vender primero al desapalancar, continuidad, independencia financiera, runway, resiliencia, línea de crédito de emergencia y pérdidas latentes) viven ahora en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
+            <p class="e19-kpi-note">El análisis de cartera, el rebalanceo y "qué vender primero al desapalancar" viven ahora en <a href="#inversion-cartera">Inversión</a>. Continuidad, independencia financiera, runway, resiliencia y línea de crédito de emergencia siguen en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-laboratorio" aria-labelledby="ajustes-laboratorio-title">

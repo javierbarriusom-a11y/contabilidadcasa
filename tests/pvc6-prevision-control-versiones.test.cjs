@@ -41,7 +41,10 @@ test("handlePvc6SnapshotCompare reutiliza FinanceCanonicalForecast.diffAssumptio
   assert.match(block, /diffAssumptionSnapshots\(/);
 });
 
+// I1 (Contabilidadcasa 2.0): renderFc3PriorLossList() se movió a renderInversionFiscal()
+// (views/inversion.js) — renderPvc6SnapshotOptions() se queda en renderAjustes(), ahora justo
+// después de syncGob15ModeFields().
 test("el botón de comparar está conectado y el select se rellena en el arranque de la app", () => {
   assert.match(appSource, /qs\("pvc6SnapshotCompare"\)\?\.addEventListener\("click", handlePvc6SnapshotCompare\)/);
-  assert.match(appSource, /renderFc3PriorLossList\(\);\s*\n\s*renderPvc6SnapshotOptions\(\);/);
+  assert.match(appSource, /syncGob15ModeFields\(\);\s*\n\s*renderPvc6SnapshotOptions\(\);/);
 });

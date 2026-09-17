@@ -16,7 +16,7 @@ const comparator = require("../canonical-debt-comparator.js");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);
@@ -134,10 +134,10 @@ test("index.html: la tarjeta declara la nota de coste acumulado, sin campos nuev
   assert.ok(fieldIdx > 0 && noteIdx > fieldIdx, "la nota de DEB12 debe estar después de la de DEB3");
 });
 
-test("views/deuda.js: renderDeudaApalancamiento() repinta DEB12 al entrar en la vista — misma lección de LEV10 (vista cargada de forma perezosa, no pasa por renderAjustes()) — se coloca al final para no romper la adyacencia que otros tests ya fijan entre llamadas anteriores", () => {
-  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
-  assert.ok(start >= 0, "No existe renderDeudaApalancamiento en views/deuda.js");
-  const end = deudaSource.indexOf("\n}", start);
-  const block = deudaSource.slice(start, end);
+test("views/inversion.js: renderInversionApalancamiento() repinta DEB12 al entrar en la vista — misma lección de LEV10 (vista cargada de forma perezosa, no pasa por renderAjustes()) — se coloca al final para no romper la adyacencia que otros tests ya fijan entre llamadas anteriores", () => {
+  const start = inversionSource.indexOf("function renderInversionApalancamiento(");
+  assert.ok(start >= 0, "No existe renderInversionApalancamiento en views/inversion.js");
+  const end = inversionSource.indexOf("\n}", start);
+  const block = inversionSource.slice(start, end);
   assert.match(block, /renderLev16IdleLiquidityCost\(\);\s*\n\s*renderDeb12WaitingCostSoFar\(\);/);
 });

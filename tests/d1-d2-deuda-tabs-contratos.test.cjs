@@ -71,10 +71,12 @@ function sandboxTabs() {
   return context;
 }
 
-test("D-1/D-15/OPT-24 · las cinco pestañas son Ruta, Comparar, Contratos, Simulador visual y Apalancamiento, en ese orden", () => {
+// I1 (Contabilidadcasa 2.0): «Apalancamiento» (5ª pestaña, OPT-24) salió de Deuda hacia el hub
+// Inversión — Deuda vuelve a las 4 pestañas que tenía antes de OPT-24.
+test("D-1/D-15/I1 · las cuatro pestañas son Ruta, Comparar, Contratos y Simulador visual, en ese orden", () => {
   const source = extractConst("DEUDA_SCREEN_TABS");
   const ids = [...source.matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador", "deuda-apalancamiento"]);
+  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"]);
 });
 
 test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" solo en la pestaña activa", () => {

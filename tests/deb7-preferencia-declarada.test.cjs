@@ -4,7 +4,7 @@ const fs = require("node:fs");
 
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
-const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(require.resolve("../views/inversion.js"), "utf8");
 const comparatorSource = fs.readFileSync(require.resolve("../canonical-debt-comparator.js"), "utf8");
 const comparator = require("../canonical-debt-comparator.js");
 
@@ -82,7 +82,7 @@ test("DEB7: handleAp1Compare guarda el veredicto y refresca la lectura de prefer
 });
 
 test("DEB7: la preferencia declarada se sincroniza y se lee al abrir Deuda › Apalancamiento", () => {
-  assert.match(deudaSource, /syncDeb7PreferenceControl\(\);\s*\n\s*renderDeb7PreferenceReading\(\);/);
+  assert.match(inversionSource, /syncDeb7PreferenceControl\(\);\s*\n\s*renderDeb7PreferenceReading\(\);/);
 });
 
 test("DEB7: la preferencia se persiste como un dato más del hogar (mismo criterio que LEV1)", () => {

@@ -1111,19 +1111,19 @@ function handleDeudaRutaApply() {
 // sección: Ruta y Comparar ya eran pantallas completas del epic V3, y Contratos es la única de las
 // tres que se construye desde cero ahora — cada una sigue siendo su propio `view-section` con su
 // propio hash, solo se enlazan visualmente como pestañas.
+// I1 (Contabilidadcasa 2.0): «Apalancamiento» (5ª pestaña, OPT-24) sale de aquí hacia el hub
+// Inversión (`INVERSION_SCREEN_TABS`, views/inversion.js) — vuelve a las 4 pestañas de siempre.
 const DEUDA_SCREEN_TABS = [
   { id: "deuda-ruta", label: "Ruta" },
   { id: "deuda-comparar", label: "Comparar" },
   { id: "deuda-contratos", label: "Contratos" },
   { id: "deuda-simulador", label: "Simulador visual" },
-  { id: "deuda-apalancamiento", label: "Apalancamiento" },
 ];
 const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-ruta": "deudaRutaScreenTabs",
   "deuda-comparar": "deudaCompararScreenTabs",
   "deuda-contratos": "deudaContratosScreenTabs",
   "deuda-simulador": "deudaSimuladorScreenTabs",
-  "deuda-apalancamiento": "deudaApalancamientoScreenTabs",
 };
 
 function deudaScreenTabsHtml(activeId) {
@@ -1640,41 +1640,10 @@ function renderDeudaSimulador() {
   sendDebtRoadmapState();
 }
 
-// OPT-24 (Oleada 3, Optimización): «Deuda y apalancamiento» vivía como una sub-pestaña más de
-// Ajustes, mezclando configuración real (LEV1, Avales) con 16 simuladores/comparadores/alertas que
-// no son ajustes en absoluto. Se traslada aquí como quinta pantalla de Deuda — mismo patrón de
-// barra de pestañas que Ruta/Comparar/Contratos/Simulador — con las 16 llamadas de refresco que
-// antes vivían dentro de renderAjustes().
-function renderDeudaApalancamiento() {
-  renderDeudaScreenTabs("deuda-apalancamiento");
-  renderAp3BarrierStatus();
-  renderAp3ScenarioList();
-  renderAp6Alert();
-  renderAp1DebtOptions();
-  renderAp5Queue();
-  syncDeb7PreferenceControl();
-  renderDeb7PreferenceReading();
-  syncDeb11PreferenceControl();
-  syncLev1PolicyControls();
-  renderLev1PolicyStatus();
-  renderDeb1VerdictChangeAlert();
-  syncLoanGuaranteeControl();
-  renderAjustesLoanGuaranteeNote();
-  renderLev4LombardComparison();
-  syncDeb4RadarControls();
-  renderDeb4RefinancingRadar();
-  syncLev5VolatilityControls();
-  renderLev5DynamicStress();
-  syncApx3LombardDeclarationControls();
-  renderLev12ProactiveMarginCallAlert();
-  renderLev11PreventiveDeleveragingAlert();
-  renderDlx3Retrospective();
-  renderLev10DebtCostCurve();
-  renderLev16IdleLiquidityCost();
-  renderDeb12WaitingCostSoFar();
-  syncDeb14MaxMonthsControl();
-  renderDeb14MarketCheckAlert();
-}
+// I1 (Contabilidadcasa 2.0): «Deuda y apalancamiento» (OPT-24) sale de Deuda hacia el hub
+// Inversión — decisión explícita del hogar (sesión 201): las 5 áreas de inversión quedan juntas
+// en un solo sitio en vez de repartir Apalancamiento entre Deuda y las otras 4. Ver
+// renderInversionApalancamiento() en views/inversion.js.
 
 // Vacío = «sin corregir», nunca cero ni cadena vacía forzada: borra el override y vuelve al valor
 // declarado en vez de clavar un dato que se leería como real. Un valor fuera de rango no se guarda

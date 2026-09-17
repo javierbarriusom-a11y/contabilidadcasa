@@ -16,6 +16,9 @@ const IrpfEstimator = require("../canonical-irpf-estimator.js");
 // fiscal acumulado, se elige antes que un fondo con mucha plusvalía ya declarada.
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+// I1 (Contabilidadcasa 2.0): renderInv18GoalOptions() se movió de renderAjustes() a
+// renderInversionFiscal() (views/inversion.js), junto al resto de la fiscalidad de inversión.
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {
@@ -200,9 +203,9 @@ test("index.html: la tarjeta IN-8 declara importe, objetivo, botón y nota de re
   assert.match(indexSource, /id="inv18PlanNote"/);
 });
 
-test("app.js: el botón de INV18 llama a handleInv18CalculatePlan, y el selector de objetivo se refresca en el lote de renderizado", () => {
+test("app.js: el botón de INV18 llama a handleInv18CalculatePlan, y el selector de objetivo se refresca al abrir Inversión › Fiscal", () => {
   assert.match(appSource, /qs\("inv18CalculateRun"\)\?\.addEventListener\("click", handleInv18CalculatePlan\);/);
-  assert.match(appSource, /renderInv18GoalOptions\(\);/);
+  assert.match(inversionSource, /renderInv18GoalOptions\(\);/);
 });
 
 test("app.js: handleInv18CalculatePlan reutiliza fc5AlreadyRealized y fcx1CurrentAnnualIncome, sin campos duplicados", () => {

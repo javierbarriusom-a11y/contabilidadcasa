@@ -110,6 +110,7 @@ const files = [
   "views/presupuesto-mes.js",
   "views/estado-semana.js",
   "views/deuda.js",
+  "views/inversion.js",
   "views/cierre.js",
   "views/analisis.js",
 ];

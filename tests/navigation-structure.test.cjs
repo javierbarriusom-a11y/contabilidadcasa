@@ -102,10 +102,13 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // (fase 3), «Comparadores de patrimonio e inversión» (fase 4) y un enlace de «Análisis de
   // previsión» bajo el label Analizar ya existente (fase 5) — reutiliza el grupo "analysis" ya
   // existente en vez de crear uno propio, así no toca el fieldset de preferencias.
-  assert.equal(byGroup.analysis.length, 19, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión y Patrimonio suman diecinueve enlaces tras OPT-25 fase 5");
+  // I1 (Contabilidadcasa 2.0) añade las 5 pestañas del hub Inversión (Cartera/Rebalanceo/Fiscal/
+  // Apalancamiento/Jubilación), mismo patrón que las 4 de Deuda de arriba: diecinueve + cinco.
+  assert.equal(byGroup.analysis.length, 24, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión, Patrimonio e Inversión suman veinticuatro enlaces tras I1");
   // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros, Fiscal, Segunda
   // opinión, Patrimonio y Análisis de previsión: treinta y cinco.
   // OPT-25 fase 6 añade «Continuidad, compartir y archivo» al grupo Datos; fase 7 añade el acceso
-  // rápido a Laboratorio: treinta y siete, cierre del plan de 7 fases.
-  assert.equal(links.length, 37, "treinta y siete enlaces en el menú avanzado tras OPT-25 fase 7 (plan completo)");
+  // rápido a Laboratorio: treinta y siete, cierre del plan de 7 fases. I1 añade las 5 de
+  // Inversión: cuarenta y dos.
+  assert.equal(links.length, 42, "cuarenta y dos enlaces en el menú avanzado tras I1");
 });
