@@ -70,6 +70,55 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (200, primer ciclo): `T5`, cascada mensual de patrimonio neto — primera tarea del Horizonte 2
+
+Primer ciclo del Horizonte 2 de `BACKLOG_CONTABILIDADCASA_2_0.md`, arrancado tras confirmar con el
+hogar el orden `T5` → `P9` → `D5`.
+
+- **Qué había que investigar primero**: `A14-2` (patrimonio neto de hoy, activos menos deuda) ya
+  estaba construido, con un comentario explícito en `app.js` diciendo «sin histórico ni banda de
+  confianza todavía — sesión aparte». Antes de construir nada había que confirmar qué datos
+  históricos reales existen: ni los activos declarados (`A14-1`) ni la deuda (`canonical-debt-
+  contracts.js`) guardan una serie de valoraciones o de saldo mes a mes — solo el valor/saldo
+  *actual*. Ese hueco de datos real es exactamente `I2` (serie histórica de valoraciones por
+  posición), deliberadamente fuera de esta tarea. Lo único con dato mensual real es el flujo de
+  caja conciliado con el banco (`reconciledMonthlyNetHistory`, ya usado por `A11-3`/`PVX1`/`P6`).
+- **Decisión de fondo, confirmada con el hogar antes de construir**: reconstruir el patrimonio neto
+  hacia atrás restando ese flujo de caja real mes a mes desde el único punto exacto (hoy), y
+  declarar como «no explicado por caja» la parte que ese flujo no captura (revalorización de
+  mercado/vivienda, reparto capital/interés de cada cuota de deuda) en vez de simular una
+  precisión que la app no mide.
+- **Solución**: nuevo `netWorthWaterfall()` en `canonical-assets.js` — motor puro que, dado el
+  patrimonio de hoy y el histórico de flujo neto conciliado, reconstruye cada mes anterior
+  (`endNetWorth − flujo = startNetWorth`, encadenado) con una banda de incertidumbre que crece con
+  la distancia (2%/mes, tope 25% del valor reconstruido) y es cero en el punto de hoy. Nuevo
+  gráfico de cascada mensual (SVG hecho a mano, mismo patrón que el resto de gráficos de la app) en
+  la tarjeta de Ajustes de `A14-2`, oculto sin meses conciliados — nunca deja el gráfico vacío ni
+  inventa historial. `renderA14AssetBreakdown()` refactorizado: el cálculo de patrimonio neto
+  (antes en línea) se extrajo a `a14NetWorthToday()` para que la cascada lo reutilice sin
+  duplicarlo — refactor verificado sin cambiar ningún resultado existente.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4318/4318**
+  pruebas (+13 sobre las 4305 previas). Dos tests preexistentes de `A14-2`/`A14-4`
+  (`tests/a14-2-patrimonio-neto.test.cjs`, `tests/a14-4-desglose-tipo-riesgo.test.cjs`) rompieron al
+  extraer `a14NetWorthToday()` — comprobaban el cálculo directamente dentro de
+  `renderA14AssetBreakdown()`; actualizados para seguir verificando lo mismo (delegación en
+  `FinanceCanonicalAssets`, resta de deuda, estado sin activos) en su nueva ubicación, sin debilitar
+  ninguna aserción. `test:a11y` **1340 IDs únicos** (+2: el `svg` de la cascada y su leyenda).
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores. Nota de entorno: esta
+  sesión encontró `node_modules/` ausente (contenedor sin `npm install` previo) — instalado antes de
+  validar; los 6 fallos de `build:site` que aparecían sin él (`Cannot find package 'esbuild'`) eran
+  un problema de entorno, no del código — confirmado reproduciendo el mismo fallo con los cambios de
+  esta sesión revertidos (`git stash`).
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T5` como cerrada, con nota del
+  cierre; 14/52 tareas cerradas en total. Confirmado con el hogar el orden del resto del Horizonte 2:
+  `T5` → `P9` → `D5`.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: siguiente ciclo del Horizonte 2 es `P9` (calendario
+  financiero único), después `D5` (deuda neta cruzando activos e inversión) — orden ya confirmado
+  por el hogar, sin decisión pendiente.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, noveno ciclo): `P6`, puntuación de acierto histórico permanente en Hoy — Horizonte 1 completo salvo `T16`/`T18`
 
 Noveno ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `P5` (mismo día, PR #313). Con

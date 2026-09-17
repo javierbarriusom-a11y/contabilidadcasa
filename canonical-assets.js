@@ -258,6 +258,60 @@
     };
   }
 
+  const NET_WORTH_WATERFALL_SCHEMA_ID = "finance.net-worth-waterfall";
+  // T5: cuánto crece la banda de incertidumbre por cada mes de distancia hacia atrás, y su tope.
+  // Cada paso de la cascada solo captura el flujo de caja real (reconciledMonthlyNetHistory) — nunca
+  // la revalorización de mercado/vivienda ni el reparto capital/interés de cada cuota de deuda,
+  // ninguna de las dos con histórico guardado todavía (I2, hueco de datos ya documentado,
+  // deliberadamente fuera de esta tarea). Por eso la banda crece con la distancia en vez de
+  // simular una precisión que no existe, y el tope evita que un histórico muy largo produzca una
+  // banda mayor que el propio patrimonio.
+  const NET_WORTH_WATERFALL_BAND_PCT_PER_MONTH = 0.02;
+  const NET_WORTH_WATERFALL_BAND_PCT_MAX = 0.25;
+
+  // T5: reconstruye el patrimonio neto de meses anteriores restando, hacia atrás desde el patrimonio
+  // de hoy (el único punto exacto), el flujo de caja real de cada mes ya conciliado con el banco.
+  // Sin activos declarados o sin ningún mes conciliado, `calculable: false` — nunca se inventa un
+  // histórico para no dejar el gráfico vacío.
+  function netWorthWaterfall({ todayNetWorth, monthlyNetFlowHistory } = {}) {
+    const worth = number(todayNetWorth, null);
+    if (!knownNumber(worth)) return { schema: NET_WORTH_WATERFALL_SCHEMA_ID, calculable: false };
+    const months = (Array.isArray(monthlyNetFlowHistory) ? monthlyNetFlowHistory : [])
+      .filter((record) => record && known(record.monthKey) && knownNumber(record.netFlow))
+      .map((record) => ({ monthKey: String(record.monthKey), netFlow: round2(number(record.netFlow)) }))
+      .sort((a, b) => (a.monthKey < b.monthKey ? -1 : a.monthKey > b.monthKey ? 1 : 0));
+    if (!months.length) {
+      return { schema: NET_WORTH_WATERFALL_SCHEMA_ID, calculable: false, todayNetWorth: round2(worth) };
+    }
+
+    // Recorre de más reciente a más antiguo: el patrimonio al inicio del mes M = patrimonio al final
+    // de M menos su flujo neto real (el flujo describe lo ocurrido DURANTE ese mes). El mes conciliado
+    // más reciente ancla en el patrimonio de hoy.
+    let runningEnd = round2(worth);
+    const stepsDesc = [...months].reverse().map((month, monthsBack) => {
+      const endNetWorth = runningEnd;
+      const startNetWorth = round2(endNetWorth - month.netFlow);
+      runningEnd = startNetWorth;
+      const bandPct = Math.min(NET_WORTH_WATERFALL_BAND_PCT_MAX, (monthsBack + 1) * NET_WORTH_WATERFALL_BAND_PCT_PER_MONTH);
+      return {
+        monthKey: month.monthKey,
+        cashFlow: month.netFlow,
+        startNetWorth,
+        endNetWorth,
+        band: round2(Math.abs(startNetWorth) * bandPct),
+      };
+    });
+
+    return {
+      schema: NET_WORTH_WATERFALL_SCHEMA_ID,
+      calculable: true,
+      todayNetWorth: round2(worth),
+      // Orden cronológico ascendente: steps[i].endNetWorth === steps[i+1].startNetWorth (encadenado),
+      // y el último endNetWorth === todayNetWorth.
+      steps: [...stepsDesc].reverse(),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -275,5 +329,9 @@
     NET_WORTH_RUNWAY_SCHEMA_ID,
     ILLIQUID_ASSET_TYPES,
     netWorthRunway,
+    NET_WORTH_WATERFALL_SCHEMA_ID,
+    NET_WORTH_WATERFALL_BAND_PCT_PER_MONTH,
+    NET_WORTH_WATERFALL_BAND_PCT_MAX,
+    netWorthWaterfall,
   };
 });

@@ -7870,6 +7870,10 @@ body {
   min-height: 180px;
 }
 
+#a14NetWorthWaterfallChart {
+  min-height: 220px;
+}
+
 .debt-bar {
   fill: var(--red);
   opacity: 0.76;

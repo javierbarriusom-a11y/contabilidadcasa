@@ -8,12 +8,13 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 13/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 14/52 cerradas (sesión 200 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
-decidido por dónde seguir (ver §6).
+§4). `T5`, primera tarea del Horizonte 2, ya cerrada (sesión 200) — quedan `I1`, `D10`, `T7`, `T8`,
+`T4`, `P9`, `D5` en ese horizonte, con `P9` y `D5` ya decididas como siguientes por el hogar (ver
+§6). El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -123,7 +124,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ✅ `T2` | Buscador universal (Cmd+K) sobre los 37+ enlaces de navegación | M | Alto | **Cerrada (sesión 199).** Ataca directamente el hallazgo #1 del diagnóstico. **Investigado antes de construir nada**: el buscador ya existía por completo (`e17-experience.js`, atajo Cmd/Ctrl+K, búsqueda difusa, diálogo `e17LauncherDialog`) — no era una tarea de cero. El hueco real: su catálogo `TASKS` tenía 37 entradas pero la navegación real (`index.html`) ya tenía 45 pantallas navegables; 8 no estaban — entre ellas `registrar` y `plan`, dos de las pantallas más usadas del proyecto. Añadidas las 8 (`planificacion-partidas`, `registrar`, `plan`, `cierre`, `analisis`, `prevision`, `update-data`, `operations-manual`) y un test que fija la invariante «todo enlace de navegación tiene entrada en el buscador» para que no vuelva a desincronizarse en silencio. |
 | ⏳ `T3` | Bandeja única de decisiones (unifica alertas de presupuesto, refinanciación, LTV, supuestos, seguros, gasto fantasma) | M | Alto | Extiende `canonical-e11b-inbox.js` (E11B), hoy con alcance parcial. |
 | ⏳ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | Decisión de producto pendiente, ya reconocida en `PROJECT_STATE.md`: aplicar la política del 12/09 hacia atrás, o documentar por qué esas pantallas se quedan como están. El propio texto ya prevé que el hogar puede pedirlo expresamente. |
-| 🟡 `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Alcance reducido tras el cruce** (no es «crear un balance desde cero», como decía el diagnóstico original). La cifra puntual y el desglose por tipo (`A14-1`, `A14-2` núcleo, `A14-4`) ya están construidos; el propio código señala explícitamente «sin histórico ni banda de confianza todavía — sesión aparte» (`app.js`). Esta tarea es exactamente esa sesión aparte, con gráfico de cascada mensual. |
+| ✅ `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Cerrada (sesión 200).** Sin histórico real de valoración de activos ni de saldo de deuda mes a mes (ese hueco es `I2`, deliberadamente fuera de esta tarea), la única fuente real mes a mes es el flujo de caja conciliado con el banco (`reconciledMonthlyNetHistory`, `A11-3`). Nuevo `netWorthWaterfall()` en `canonical-assets.js`: reconstruye el patrimonio neto hacia atrás desde el único punto exacto (hoy) restando ese flujo real mes a mes, con una banda de incertidumbre que crece con la distancia (2%/mes, tope 25%) porque cada paso ignora revalorización de mercado/vivienda y el reparto capital/interés de la deuda — nunca se simula esa precisión. Nuevo gráfico de cascada mensual (SVG) en la tarjeta de Ajustes de `A14-2`, oculto sin meses conciliados. `renderA14AssetBreakdown()` refactorizado: el cálculo de patrimonio neto se extrajo a `a14NetWorthToday()` para que la cascada lo reutilice sin duplicarlo. |
 | ⏳ `T6` | Memo de decisión ejecutivo autogenerado (una página: recomendación, riesgos, sensibilidad, siguiente paso) | M | Alto | Para decisiones grandes (refinanciar, apalancarse, comprar/vender vivienda); la app ya tiene el cálculo, falta el formato de síntesis. |
 | ⏳ `T7` | Modo oscuro real | M | Medio | Cero ocurrencias de `prefers-color-scheme` hoy en `design-tokens.css`/`styles.css`. |
 | ⏳ `T8` | `prefers-reduced-motion` y modo de alto contraste | S | Bajo | Accesibilidad real más allá del buen trabajo ya hecho en aria/roles. |
@@ -155,8 +156,9 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 (`T15`/`T17`/`T19`) ya se cerraron. `T16` (unificar vocabulario, la de mayor severidad de las cinco)
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
-**Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5`, `I1`, `D10`, `T7`, `T8`, `T4`,
-`P9`, `D5`.
+**Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅ (sesión 200), `I1`, `D10`, `T7`,
+`T8`, `T4`, `P9`, `D5`. El hogar decidió seguir con `P9` y luego `D5` a continuación de `T5`
+(sesión 200).
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad
