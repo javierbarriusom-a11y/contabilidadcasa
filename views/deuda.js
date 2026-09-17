@@ -244,6 +244,7 @@ function debtStrategyStatusNote(entry) {
 
 function renderDeudaComparar() {
   renderDeudaScreenTabs("deuda-comparar");
+  renderDeudaFlowNav("deuda-comparar");
   renderScenarioDependencyNotice("deuda-comparar");
   const capacityEl = qs("deudaCompararCapacity");
   if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
@@ -816,6 +817,7 @@ function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
 
 function renderDeudaRuta() {
   renderDeudaScreenTabs("deuda-ruta");
+  renderDeudaFlowNav("deuda-ruta");
   renderScenarioDependencyNotice("deuda-ruta");
   const capacityEl = qs("deudaRutaCapacity");
   if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
@@ -1126,6 +1128,13 @@ const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-simulador": "deudaSimuladorScreenTabs",
 };
 
+// D10 (Contabilidadcasa 2.0): las 4 pestañas pasan de "sueltas" a un flujo con navegación de
+// progreso — cada pestaña lleva ahora un número de paso, y las anteriores a la activa se marcan
+// "is-done" (mismo lenguaje visual que ya usa el asistente de importación en 4 pasos,
+// .datos-importar-steps). "Progreso" es solo la posición en esta secuencia fija: Ruta, Comparar y
+// Contratos leen todas la misma puerta (debtContractBundle(), ver nota de D-2 más abajo) sin
+// depender de un orden real, así que "completado" nunca valida que el paso anterior tenga datos
+// reales declarados — solo que ya se visitó en este recorrido de pestañas.
 function deudaScreenTabsHtml(activeId) {
   // OPT-4 (axe: aria-allowed-attr, crítico): cada pestaña es un enlace real a otra ruta con su
   // propio hash (Ruta/Comparar/Contratos/Simulador son cuatro view-section independientes, no un
@@ -1133,15 +1142,45 @@ function deudaScreenTabsHtml(activeId) {
   // solo lo admiten elementos con role="tab"/"option"/etc. `aria-current="page"` es el marcador
   // correcto para "enlace activo dentro de esta navegación", mismo patrón que ya usa setActiveView
   // para el menú lateral.
-  return DEUDA_SCREEN_TABS.map(
-    (tab) =>
-      `<a class="e19-registrar-tab${tab.id === activeId ? " is-active" : ""}" href="#${tab.id}"${tab.id === activeId ? ' aria-current="page"' : ""}>${escapeHtml(tab.label)}</a>`
-  ).join("");
+  const activeIndex = DEUDA_SCREEN_TABS.findIndex((tab) => tab.id === activeId);
+  return DEUDA_SCREEN_TABS.map((tab, index) => {
+    const isActive = tab.id === activeId;
+    const isDone = activeIndex >= 0 && index < activeIndex;
+    const stateClass = isActive ? " is-active" : isDone ? " is-done" : "";
+    return `<a class="e19-registrar-tab${stateClass}" href="#${tab.id}"${isActive ? ' aria-current="page"' : ""}><span class="e19-registrar-tab-step" aria-hidden="true">${index + 1}</span>${escapeHtml(tab.label)}</a>`;
+  }).join("");
 }
 
 function renderDeudaScreenTabs(activeId) {
   const nav = qs(DEUDA_SCREEN_TAB_NAV_IDS[activeId]);
   if (nav) nav.innerHTML = deudaScreenTabsHtml(activeId);
+}
+
+const DEUDA_FLOW_NAV_IDS = {
+  "deuda-ruta": "deudaRutaFlowNav",
+  "deuda-comparar": "deudaCompararFlowNav",
+  "deuda-contratos": "deudaContratosFlowNav",
+  "deuda-simulador": "deudaSimuladorFlowNav",
+};
+
+// D10: además de la barra de pestañas de arriba, un par de enlaces "Anterior/Siguiente" al pie de
+// cada pestaña — mismo lenguaje de botones que ya usa el asistente de importación ("Atrás"/
+// "Continuar") y el modo reunión ("← Anterior"/"Siguiente →"), aquí como enlaces reales al hash
+// de la pestaña vecina en vez de un manejador JS propio, porque son 4 páginas reales, no un único
+// panel. Sin botón "Anterior" en la primera pestaña ni "Siguiente" en la última.
+function deudaFlowNavHtml(activeId) {
+  const index = DEUDA_SCREEN_TABS.findIndex((tab) => tab.id === activeId);
+  if (index < 0) return "";
+  const prev = index > 0 ? DEUDA_SCREEN_TABS[index - 1] : null;
+  const next = index < DEUDA_SCREEN_TABS.length - 1 ? DEUDA_SCREEN_TABS[index + 1] : null;
+  const prevHtml = prev ? `<a class="e19-btn e19-btn-secondary" href="#${prev.id}">← ${escapeHtml(prev.label)}</a>` : "<span></span>";
+  const nextHtml = next ? `<a class="e19-btn e19-btn-primary" href="#${next.id}">${escapeHtml(next.label)} →</a>` : "<span></span>";
+  return `${prevHtml}${nextHtml}`;
+}
+
+function renderDeudaFlowNav(activeId) {
+  const nav = qs(DEUDA_FLOW_NAV_IDS[activeId]);
+  if (nav) nav.innerHTML = deudaFlowNavHtml(activeId);
 }
 
 // D-2 · Contratos como dato canónico editable. DEBT_PORTFOLIO es la cartera de ejemplo; aquí se
@@ -1202,6 +1241,7 @@ function deudaContratosRowHtml(contract) {
 
 function renderDeudaContratos() {
   renderDeudaScreenTabs("deuda-contratos");
+  renderDeudaFlowNav("deuda-contratos");
   const body = qs("deudaContratosTable");
   if (!body) return;
   const contracts = debtContractSourceRows();
@@ -1637,6 +1677,7 @@ function handleDeb6Simulate() {
 // desde la última vez que se cargó (alta/edición en Contratos, nueva ruta en Ruta/Comparar).
 function renderDeudaSimulador() {
   renderDeudaScreenTabs("deuda-simulador");
+  renderDeudaFlowNav("deuda-simulador");
   sendDebtRoadmapState();
 }
 

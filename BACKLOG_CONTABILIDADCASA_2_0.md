@@ -8,12 +8,12 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 17/52 cerradas (sesión 202 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 18/52 cerradas (sesión 203 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5`, `P9`, `D5` e `I1`, las cuatro primeras tareas del Horizonte 2, ya cerradas
-(sesiones 200-202) — quedan `D10`, `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía
+§4). `T5`, `P9`, `D5`, `I1` y `D10`, las cinco primeras tareas del Horizonte 2, ya cerradas
+(sesiones 200-203) — quedan `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía
 por el hogar. El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
@@ -111,7 +111,7 @@ visible: dos motores en paralelo. Prioriza simplificar y ejecutar sobre añadir 
 | ✅ `D7` | Coste anual en euros de cada cláusula vigilada | S | Medio | **Construida (sesión 197).** Verificado primero que `GOB16` no cubría nada de esto: declaraba vinculación/comisión/revisión pero sin ninguna cifra en euros. Añadido `bonusRatePenaltyPct` (puntos de TAE que penalizaría el banco si se incumple la vinculación, declarado por el hogar, nunca inferido) y el coste anual = `(bonusRatePenaltyPct/100) × currentPrincipal`, mostrado tanto si la vinculación está incumplida como si se quiere ver el riesgo por adelantado. Sin ese dato declarado, la nota se queda cualitativa igual que antes. |
 | ⏳ `D8` | Reparto de carga por titular en la reestructuración conjunta | M | Medio | Extiende `DI5`/`canonical-joint-restructuring.js`, hoy solo con el total conjunto. |
 | ⏳ `D9` | Barra de «pagado vs. pendiente» por contrato, con ahorro de intereses marcado sobre ella | S | Medio | Visual, sobre datos ya calculados en la ficha de cada contrato. |
-| ⏳ `D10` | Las 5 pestañas de Deuda como un único flujo con navegación de progreso | M | Medio | Ruta/Comparar/Contratos/Simulador/Apalancamiento son hoy pestañas sueltas; reorganiza lo existente, no añade cálculo. |
+| ✅ `D10` | Las 5 pestañas de Deuda como un único flujo con navegación de progreso | M | Medio | **Cerrada (sesión 203).** La nota decía 5 pestañas, pero tras `I1` (sesión 202) Deuda quedó con 4 (Apalancamiento salió a Inversión). Barra de pestañas numerada con estados `is-active`/`is-done` (mismo lenguaje visual que el asistente de importación en 4 pasos, `.datos-importar-steps`) y enlaces reales «← Anterior»/«Siguiente →» al pie de cada pestaña. Sin dependencia real de datos entre pestañas (`debtContractBundle()` alimenta a todas por igual) — "progreso" es solo la posición en la secuencia fija. Ningún cálculo nuevo. |
 
 ## 4. Transversales y nuevas (`T1`-`T19`, `T15`-`T19` nacidas de la auditoría `T1`)
 
@@ -157,8 +157,8 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
-`D5` ✅ (sesión 201), `I1` ✅ (sesión 202). Quedan `D10`, `T7`, `T8`, `T4`, sin orden confirmado
-todavía por el hogar.
+`D5` ✅ (sesión 201), `I1` ✅ (sesión 202), `D10` ✅ (sesión 203). Quedan `T7`, `T8`, `T4`, sin
+orden confirmado todavía por el hogar.
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad

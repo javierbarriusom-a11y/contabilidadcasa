@@ -83,12 +83,94 @@ test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" s
   // OPT-4 (axe: aria-allowed-attr): son enlaces a rutas distintas, no pestañas ARIA sobre un único
   // panel — aria-selected no es un atributo válido en un <a> sin role="tab". aria-current="page" es
   // el marcador correcto de "enlace activo" para navegación real, mismo patrón que el menú lateral.
+  // D10: la pestaña anterior a la activa (Ruta) queda "is-done" — es la navegación de progreso.
   const { deudaScreenTabsHtml } = sandboxTabs();
   const result = deudaScreenTabsHtml("deuda-comparar");
   assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-comparar" aria-current="page"/);
-  assert.match(result, /class="e19-registrar-tab" href="#deuda-ruta">/);
+  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-ruta">/);
   assert.match(result, /class="e19-registrar-tab" href="#deuda-contratos">/);
   assert.doesNotMatch(result, /aria-selected/);
+});
+
+// D10 (Contabilidadcasa 2.0): las 4 pestañas pasan de sueltas a un flujo con navegación de
+// progreso — número de paso por pestaña, is-done en las anteriores a la activa, ninguna en las
+// siguientes.
+test("D10 · deudaScreenTabsHtml numera los 4 pasos y marca is-done solo en los anteriores al activo", () => {
+  const { deudaScreenTabsHtml } = sandboxTabs();
+  const result = deudaScreenTabsHtml("deuda-contratos");
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">1<\/span>Ruta/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">2<\/span>Comparar/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">3<\/span>Contratos/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">4<\/span>Simulador visual/);
+  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-ruta"/);
+  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-comparar"/);
+  assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-contratos" aria-current="page"/);
+  assert.match(result, /class="e19-registrar-tab" href="#deuda-simulador"/);
+});
+
+// D10 (Contabilidadcasa 2.0): enlaces "Anterior/Siguiente" al pie de cada pestaña — igual que la
+// barra de pasos de arriba, son <a href> reales a la pestaña vecina (4 páginas de verdad, no un
+// wizard con estado JS propio). Sin "Anterior" en la primera, sin "Siguiente" en la última.
+function sandboxFlowNav() {
+  const context = { escapeHtml: (value) => String(value ?? "") };
+  vm.createContext(context);
+  vm.runInContext(
+    [extractConst("DEUDA_SCREEN_TABS"), extractFunction("deudaFlowNavHtml")].join("\n"),
+    context
+  );
+  return context;
+}
+
+test("D10 · deudaFlowNavHtml no ofrece «Anterior» en la primera pestaña ni «Siguiente» en la última", () => {
+  const { deudaFlowNavHtml } = sandboxFlowNav();
+  const first = deudaFlowNavHtml("deuda-ruta");
+  assert.doesNotMatch(first, /← /);
+  assert.match(first, /href="#deuda-comparar">Comparar →/);
+  const last = deudaFlowNavHtml("deuda-simulador");
+  assert.match(last, /href="#deuda-contratos">← Contratos/);
+  assert.doesNotMatch(last, / →</);
+});
+
+test("D10 · deudaFlowNavHtml ofrece ambos enlaces en una pestaña intermedia", () => {
+  const { deudaFlowNavHtml } = sandboxFlowNav();
+  const middle = deudaFlowNavHtml("deuda-comparar");
+  assert.match(middle, /href="#deuda-ruta">← Ruta/);
+  assert.match(middle, /href="#deuda-contratos">Contratos →/);
+});
+
+test("D10 · renderDeudaFlowNav escribe en el nav correcto según la pantalla activa", () => {
+  const written = {};
+  const context = sandboxWith(["deudaFlowNavHtml", "renderDeudaFlowNav"], {
+    escapeHtml: (value) => String(value ?? ""),
+    DEUDA_SCREEN_TABS: [
+      { id: "deuda-ruta", label: "Ruta" },
+      { id: "deuda-comparar", label: "Comparar" },
+      { id: "deuda-contratos", label: "Contratos" },
+      { id: "deuda-simulador", label: "Simulador visual" },
+    ],
+    DEUDA_FLOW_NAV_IDS: {
+      "deuda-ruta": "deudaRutaFlowNav",
+      "deuda-comparar": "deudaCompararFlowNav",
+      "deuda-contratos": "deudaContratosFlowNav",
+      "deuda-simulador": "deudaSimuladorFlowNav",
+    },
+    qs: (id) => ({ set innerHTML(value) { written[id] = value; } }),
+  });
+  context.renderDeudaFlowNav("deuda-contratos");
+  assert.match(written.deudaContratosFlowNav, /← Comparar/);
+  assert.match(written.deudaContratosFlowNav, /Simulador visual →/);
+});
+
+test("D10 · el CSS del indicador de progreso y de la navegación de flujo existe", () => {
+  assert.match(css, /\.e19-registrar-tab-step/);
+  assert.match(css, /\.e19-registrar-tab\.is-done/);
+  assert.match(css, /\.deuda-flow-nav/);
+});
+
+test("D10 · las 4 funciones de render de Deuda llaman a renderDeudaFlowNav junto a renderDeudaScreenTabs", () => {
+  ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"].forEach((id) => {
+    assert.match(app, new RegExp(`renderDeudaScreenTabs\\("${id}"\\);\\s*\\n\\s*renderDeudaFlowNav\\("${id}"\\);`));
+  });
 });
 
 test("D-1 · cada pestalla enlaza con hash real, no con un manejador de clic exclusivo", () => {
@@ -703,6 +785,9 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
         { id: "debt-2", entity: "Entidad B", type: "Tarjeta", number: "", currentPrincipal: 3500, currentPayment: 140, apr: null, paymentStatus: "active", dataQuality: { missing: ["apr"], confidence: "medium" } },
       ],
       renderDeudaScreenTabs: () => {},
+      // D10: renderDeudaContratos ya la llama junto a renderDeudaScreenTabs — cubierta de verdad
+      // más abajo en este mismo fichero, aquí solo evita que este test reviente.
+      renderDeudaFlowNav: () => {},
       // D-2b: renderDeudaContratos pinta también el pie de cuadre — stub aquí, cubierto de verdad en
       // tests/d-2b-cuadre-capital-deuda.test.cjs.
       debtCapitalCuadre: () => ({ status: "sin-cierre", current: 0, atClose: null, diff: null, monthKey: null }),
@@ -827,11 +912,13 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
   assert.match(html, /id="deudaContratosAddError"/);
 });
 
-test("D-1/D-2/D-2d · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css por la edición y el borrado universal de contratos", () => {
+// D10 (Contabilidadcasa 2.0): bump de design-tokens.css y views/deuda.js por la navegación de
+// progreso añadida (numeración de pasos, is-done, Anterior/Siguiente) — nuevo CSS y JS reales.
+test("D-1/D-2/D-2d/D10 · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css", () => {
   assert.match(worker, /20260821-d1a1/);
   assert.match(html, /app.js\?v=20260903a173a1/);
-  assert.match(html, /design-tokens\.css\?v=20260829opt4a1/);
-  assert.match(app, /views\/deuda\.js\?v=20260830di3a1/);
+  assert.match(html, /design-tokens\.css\?v=20260917d10a1/);
+  assert.match(app, /views\/deuda\.js\?v=20260917d10a1/);
 });
 
 test("D-2 · el CSS reutiliza .e19-table en vez de declarar una tabla nueva desde cero", () => {

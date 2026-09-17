@@ -70,6 +70,48 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (203): `D10`, flujo con navegación de progreso en Deuda — quinto ciclo del Horizonte 2
+
+- **Qué pedía la tarea**: `D10` — convertir las 5 pestañas sueltas de Deuda en un único flujo con
+  navegación de progreso. La nota también estaba desactualizada (como `I1` antes): tras sacar
+  Apalancamiento a Inversión (sesión 202), Deuda tiene 4 pestañas, no 5 — Ruta/Comparar/Contratos/
+  Simulador visual.
+- **Qué había que investigar primero**: la barra de pestañas actual (`deudaScreenTabsHtml()`,
+  `views/deuda.js`) era una fila de píldoras planas sin ningún indicador de progreso. La app ya
+  tenía un patrón real de "flujo con pasos" — el asistente de importación de extracto en 4 pasos
+  (`.datos-importar-steps`, `design-tokens.css`), con círculos numerados y estados `is-active`/
+  `is-done` — así que `D10` reutiliza ese lenguaje visual en vez de inventar uno nuevo. También se
+  confirmó que no hay dependencia real de orden entre pestañas: `debtContractBundle()` alimenta a
+  las cuatro por igual, con o sin datos reales declarados en Contratos — "progreso" es solo la
+  posición en la secuencia fija, nunca una validación de que el paso anterior tenga datos reales.
+- **Solución**: `deudaScreenTabsHtml()` ahora numera cada pestaña (`<span class="e19-registrar-tab-
+  step">`) y marca `is-done` las anteriores a la activa (verde, mismo tono que `.datos-importar-
+  steps li.is-done`). Nueva `deudaFlowNavHtml()`/`renderDeudaFlowNav()`: enlaces reales "← Anterior"/
+  "Siguiente →" al pie de la barra de pestañas de cada una de las 4 pantallas, apuntando al hash de
+  la pestaña vecina en la secuencia (sin "Anterior" en Ruta, sin "Siguiente" en Simulador visual) —
+  son 4 páginas reales con su propio hash, no un asistente con estado JS propio, así que la
+  navegación sigue siendo por `<a href>`, no un manejador de clic exclusivo. Ningún cálculo nuevo,
+  ninguna dependencia de datos inventada.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4344/4344**
+  pruebas (+6 sobre las 4338 previas: 2 pruebas nuevas del indicador de progreso, 2 de la
+  navegación Anterior/Siguiente, 1 de wiring, 1 del CSS — más las 6 pruebas existentes actualizadas
+  para reflejar el nuevo estado `is-done`, sin debilitar ninguna aserción). `test:a11y` **1354 IDs
+  únicos** (+4, por los 4 `<nav>` nuevos de navegación de flujo). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores. Verificación visual con Playwright: en la pestaña
+  intermedia (Comparar), Ruta aparece en verde con ambos botones de flujo visibles; en la última
+  (Simulador visual), las tres anteriores aparecen en verde y solo hay botón "Anterior" — sin
+  peticiones fallidas. `design-tokens.css` y `views/deuda.js` llevan bump de versión de caché
+  (`?v=20260917d10a1`) por el CSS/JS nuevo; actualizadas las 7 pruebas existentes que fijaban la
+  cadena de versión anterior, sin relajar ninguna.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `D10` como cerrada; 18/52 tareas
+  cerradas en total. Del Horizonte 2 quedan `T7`, `T8`, `T4`, sin orden confirmado todavía.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decidir con el hogar el orden de lo que queda del
+  Horizonte 2 (`T7`, `T8`, `T4`) — recordar la pregunta abierta sobre `T7` (¿sigue siendo
+  prioridad real el modo oscuro, dado su ratio esfuerzo/beneficio?).
+
 ## Cierre de sesión — 17 de septiembre de 2026 (202): `I1`, hub único de Inversión — cuarto ciclo del Horizonte 2
 
 - **Qué pedía la tarea**: `I1` — un hub único "Inversión" con sub-pestañas Cartera/Rebalanceo/
