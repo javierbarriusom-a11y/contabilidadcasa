@@ -198,6 +198,44 @@
   opacity: 0.85;
 }
 
+/* D10 · Deuda pasa de pestañas sueltas a un flujo con navegación de progreso — círculo numerado
+   por pestaña e is-done en las anteriores a la activa, mismo lenguaje visual que
+   .datos-importar-steps (más abajo en este fichero) pero sobre los <a href> ya existentes. */
+.e19-registrar-tab-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--e19-border);
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+.e19-registrar-tab.is-active .e19-registrar-tab-step {
+  background: #fff;
+  color: var(--e19-accent);
+}
+
+.e19-registrar-tab.is-done {
+  color: var(--e19-ink);
+}
+
+.e19-registrar-tab.is-done .e19-registrar-tab-step {
+  background: var(--e19-success);
+  color: #fff;
+}
+
+.deuda-flow-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 20px;
+}
+
 .e19-registrar-crumb {
   font-size: var(--e19-text-xs);
   color: var(--e19-muted);
