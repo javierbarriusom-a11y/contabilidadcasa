@@ -32723,6 +32723,14 @@ function renderHomeDashboard() {
   renderHomeHealthScoreTrend();
   renderHomeForecastChangePanel();
 
+  // P6 (Horizonte 1, sesión 199): puntuación de acierto histórico como KPI fijo en Hoy — convierte
+  // el informe detallado de pvx1BacktestHtml (Análisis) en una sola cifra permanente, sin repetir
+  // ese informe aquí. Mismo learnFromHistory/reconciledMonthlyNetHistory que ya alimenta PVX1.
+  const accuracyLearning = window.FinanceCanonicalForecast?.learnFromHistory(
+    reconciledMonthlyNetHistory(), { generatedAt: canonicalScenarioResults.base?.forecast?.generatedAt },
+  ) || {};
+  const accuracyScore = window.FinanceCanonicalForecast?.historicalAccuracyScore(accuracyLearning.deviations?.[0]) || { calculable: false };
+
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
       label: "Liquidez hoy",
@@ -32799,6 +32807,16 @@ function renderHomeDashboard() {
         target: "presupuesto-mes",
       })];
     })(),
+    renderHomeKpi({
+      label: "Acierto histórico de la previsión",
+      value: accuracyScore.calculable ? `${accuracyScore.score}%` : "Sin datos",
+      note: accuracyScore.calculable
+        ? `Desviación media de ${money(accuracyLearning.deviations[0].averageDelta, true)} sobre ${accuracyScore.sampleMonths} mes(es) conciliado(s), confianza ${accuracyScore.confidence}.`
+        : "Se calcula en cuanto haya al menos un mes cerrado y conciliado con el banco.",
+      status: !accuracyScore.calculable ? "good" : accuracyScore.severity === "high" ? "danger" : accuracyScore.severity === "medium" ? "warn" : "good",
+      cta: "Ver backtesting",
+      target: "herramientas-analizar",
+    }),
   ].join("");
   renderE6Coverage(actionCenter.coverage);
   renderHomeMonthGlance(balanceDateText, savings.currentSavingTarget);
