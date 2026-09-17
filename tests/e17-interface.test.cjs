@@ -9,6 +9,7 @@ const html = read("index.html");
 const app = read("app.js");
 const css = read("styles.css");
 const worker = read("service-worker.js");
+const E17Experience = require(path.join(root, "e17-experience.js"));
 
 // T-1 sustituye los cuatro verbos (Hoy, Actualizar, Prever, Decidir) por las seis vistas del
 // rediseño: Hoy, Plan, Deuda, Datos, Cierre y Ajustes. «Prever» y «Decidir» dejan de ser pestaña
@@ -55,4 +56,25 @@ test("E18 enlaza una guía offline específica desde cada flujo crítico", () =>
   assert.match(app, /data-e17-open="guide"/);
   assert.match(app, /guideTopicFor\(activeViewId\)/);
   assert.match(html, /id="e17FlowGuideDialog"/);
+});
+
+// --- T2 · el buscador universal cubre todos los enlaces de navegación, no solo los de cuando se
+// construyó (sesión 199 — 8 huecos reales encontrados: registrar, plan, cierre,
+// planificacion-partidas, analisis, prevision, update-data, operations-manual) --------------------
+
+test("T2 · todo enlace de la navegación principal y avanzada tiene su entrada en E17Experience.TASKS", () => {
+  const sideNavStart = html.indexOf('<nav class="side-nav"');
+  const sideNavEnd = html.indexOf("</nav>", sideNavStart);
+  assert.ok(sideNavStart >= 0 && sideNavEnd > sideNavStart, "no se encontró la navegación lateral");
+  const sideNav = html.slice(sideNavStart, sideNavEnd);
+  const hrefs = new Set([...sideNav.matchAll(/href="#([a-z0-9-]+)"/g)].map((match) => match[1]));
+  assert.ok(hrefs.size > 10, "la extracción de enlaces del side-nav no debería quedar casi vacía");
+  const targets = new Set(E17Experience.TASKS.map((item) => item.target));
+  const missing = [...hrefs].filter((href) => !targets.has(href));
+  assert.deepEqual(missing, [], `enlaces de navegación sin entrada en el buscador universal: ${missing.join(", ")}`);
+});
+
+test("T2 · las 45 pantallas navegables no tienen ningún target duplicado en TASKS", () => {
+  const targets = E17Experience.TASKS.map((item) => item.target);
+  assert.equal(new Set(targets).size, targets.length, "hay un target repetido en TASKS");
 });

@@ -70,6 +70,51 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, cuarto ciclo): `T2`, el buscador universal ya cubre las 45 pantallas navegables
+
+Cuarto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T15`/`T17`/`T19` (mismo día,
+PR #309). Siguiente tarea del Horizonte 1 original, la de mayor impacto declarado («ataca
+directamente el hallazgo #1 del diagnóstico»: la navegación es más compleja que el problema que
+resuelve, 37+ enlaces activos).
+
+- **Investigado antes de escribir nada**: el enunciado de `T2` («Buscador universal Cmd+K») sonaba
+  a construir algo desde cero. No lo era — `e17-experience.js` ya tenía un buscador difuso completo
+  (`findTasks`, diálogo `e17LauncherDialog`, atajo Cmd/Ctrl+K ya cableado en `setupE17Experience()`)
+  desde una oleada anterior. Antes de tocar código, se contó cuántas pantallas navegables tiene hoy
+  `index.html` (45: nav principal + «Herramientas avanzadas») contra cuántas tiene el catálogo
+  `TASKS` del buscador (37) — la misma cifra «37+» que cita el propio hallazgo #1, señal de que el
+  catálogo no se había actualizado desde que se escribió el diagnóstico.
+- **El hueco real**: 8 pantallas reales, con su propio `id="…"` de tipo `view-section` y su propio
+  enlace en el menú, sin ninguna entrada en `TASKS` — entre ellas `registrar` y `plan`, dos de las
+  pantallas de uso diario en las que se ha trabajado toda esta sesión (`T15`/`T17`/`T19`). Un
+  comentario que vivía junto a la declaración de `TASKS` afirmaba que Plan y Cierre no necesitaban
+  entrada propia porque ya los cubrían `cuadro-mandos`/`conciliar` — cierto por palabras clave
+  parciales, falso para quien escribe «plan» o «cierre» tal cual esperando encontrar la pantalla con
+  ese nombre. Ese comentario quedaba desmentido por el propio hueco que describía, así que se
+  corrigió en vez de dejarlo.
+- **Solución**: añadidas las 8 entradas que faltaban (`planificacion-partidas`, `registrar`, `plan`,
+  `cierre`, `analisis`, `prevision`, `update-data`, `operations-manual`) a `TASKS`, con etiquetas
+  copiadas literalmente del texto visible de cada enlace de navegación (mismo criterio que ya seguía
+  el resto del catálogo) y palabras clave basadas en el subtítulo/descripción real de cada pantalla.
+  Ninguna lógica nueva: el atajo, el diálogo y la búsqueda difusa ya funcionaban, solo faltaban datos
+  en su catálogo.
+- **Guardarraíl añadido**: nuevo test (`tests/e17-interface.test.cjs`) que extrae todos los
+  `href="#…"` de la navegación real (principal + avanzada) y falla si alguno no tiene entrada en
+  `E17Experience.TASKS` — para que este catálogo no vuelva a desincronizarse en silencio la próxima
+  vez que se añada una pantalla nueva a la navegación sin acordarse del buscador.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4274/4274**
+  pruebas (+2 sobre las 4272 previas de esta sesión: la cobertura completa de navegación en el
+  buscador y la ausencia de targets duplicados en `TASKS`). `test:a11y` **1328 IDs únicos** (sin
+  cambio). `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T2` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes. 8/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `D4`, `I11`, `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199): `T15`, `T17` y `T19`, tres correcciones de Nielsen sobre Plan
 
 Tercer ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T1` (sesión 198, PR #308). De
