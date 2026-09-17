@@ -8,10 +8,10 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 8/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`).** `T1`
-añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión previa
-pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el hogar
-decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
+**Estado: 9/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`).**
+`T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión
+previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el
+hogar decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
 decidido por dónde seguir (ver §6).
 
 ## 0. Origen y diagnóstico
@@ -103,7 +103,7 @@ visible: dos motores en paralelo. Prioriza simplificar y ejecutar sobre añadir 
 | ⏳ `D1` | Retirar el iframe heredado de deuda (`debt-roadmap.html`) | M | Medio | Decisión de producto, no solo código: confirmar con el hogar cuánto lleva `canonical-e14-parity.js` en verde antes de retirarlo. |
 | ✅ `D2` | Reunificación N:1: confirmar si `reunified`/`unifiedPlan` de `normalizeContracts()` ya es la ejecución real | S (verificación) → L si hay brecha | Alto | **Cerrada (sesión 197).** Verificado: `reunified`/`unifiedPlan` ya es la ejecución real declarada por el hogar (Contratos › estado) — no hacía falta motor nuevo. El único hueco real era de enlace: el simulador `DEB6` no conectaba con nada, así que el hogar tenía que reteclear a mano el TIN/plazo ya simulados. Construido: botón «Usar esta oferta en Comparar estrategias» en el resultado de `DEB6` que precarga `deudaCompararOfferTin`/`Plazo` vía `saveDebtConsolidationOffer` — nunca toca `reunified` ni la cifra global ya declarada de la reunificación real (Cetelem), evitando mezclar dos reunificaciones distintas bajo una sola cifra. |
 | ✅ `D3` | TIN desconocido: confirmar cobertura por contrato individual, no solo en el agregado | S (verificación) | Bajo | **Cerrada (sesión 197), sin construir nada.** Verificado: el TIN desconocido ya se distingue por contrato individual en dos sitios — el editor de Contratos (input vacío, `placeholder="sin dato"`) y la tabla «Orden de ataque» (`—` por fila, con test dedicado en `d13-deuda-pixel-perfect.test.cjs`). Cobertura completa ya existente, no solo en el agregado. |
-| ⏳ `D4` | Generador de guion de renegociación con el banco | S | Alto | Reutiliza el cálculo ya existente de `DEB4` (radar de refinanciación) y el comparador de ofertas; hoy se queda en número, no en texto accionable. |
+| ✅ `D4` | Generador de guion de renegociación con el banco | S | Alto | **Cerrada (sesión 199).** Reutiliza el cálculo ya existente de `DEB4` (radar de refinanciación) y su comparador de escenarios (`evaluateMortgageRateScenarios`, «fixedRateOffer» frente al tipo variable — el «comparador de ofertas» de la nota original). Cuando el radar avisa de una ventana viable, `deb4RenegotiationScriptText()` convierte esos mismos números (sin recalcular nada) en un párrafo listo para leer o pegar en una llamada o email al banco, dentro de un `<details>` plegable junto al aviso. Sin nombre de entidad: `DEB4` no declara esa entidad hoy, y esta tarea no inventa un campo nuevo para conseguirlo. |
 | ⏳ `D5` | Deuda neta cruzando activos e inversión (qué posición podría cancelar qué deuda) | M | Alto | Aplica `AP1` (amortizar vs. invertir) línea a línea sobre el inventario de deuda, en vez de solo como simulador aparte. |
 | ⏳ `D6` | Benchmark de mercado real en el radar de refinanciación | M | Medio | Hoy compara contra un umbral declarado por el hogar; necesita una fuente de datos (aunque sea manual/trimestral) — sin ella, no construir un motor que finja precisión que no tiene. |
 | ✅ `D7` | Coste anual en euros de cada cláusula vigilada | S | Medio | **Construida (sesión 197).** Verificado primero que `GOB16` no cubría nada de esto: declaraba vinculación/comisión/revisión pero sin ninguna cifra en euros. Añadido `bonusRatePenaltyPct` (puntos de TAE que penalizaría el banco si se incumple la vinculación, declarado por el hogar, nunca inferido) y el coste anual = `(bonusRatePenaltyPct/100) × currentPrincipal`, mostrado tanto si la vinculación está incumplida como si se quiere ver el riesgo por adelantado. Sin ese dato declarado, la nota se queda cualitativa igual que antes. |
@@ -149,7 +149,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fondo que ya produjo
 37 pantallas. Tres horizontes:
 
-**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `D4`, `I11`, `P1`, `P5`, `P6` (`T2` y las tres
+**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `I11`, `P1`, `P5`, `P6` (`T2`, `D4` y las tres
 nacidas de `T1` sin decisión previa pendiente — `T15`/`T17`/`T19` — ya se cerraron en la sesión 199).
 `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan
 una decisión del hogar antes de construirse — ver su nota en §4.

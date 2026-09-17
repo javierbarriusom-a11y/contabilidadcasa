@@ -70,6 +70,44 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, quinto ciclo): `D4`, el radar de refinanciación gana un guion de renegociación
+
+Quinto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T2` (mismo día, PR #310).
+Siguiente tarea del Horizonte 1 original, de esfuerzo bajo y beneficio alto: convertir en texto
+accionable un cálculo que hoy solo se ve como un número.
+
+- **Qué había que investigar primero**: la nota original hablaba de reutilizar «`DEB4` (radar de
+  refinanciación) y el comparador de ofertas», sin decir qué pantalla es ese segundo comparador. Se
+  investigaron dos candidatas: la tarjeta «Oferta en curso» de Deuda › Ruta (modelo `E14`, con
+  contraparte/importe/cuota reales de una negociación concreta) y el propio motor de `DEB4`
+  (`canonical-mortgage-rate-scenarios.js`, `evaluateMortgageRateScenarios`, cuyo parámetro se llama
+  literalmente `fixedRateOffer` frente al tipo variable). La segunda es la lectura correcta: `DEB4`
+  ya compara «una oferta» de tipo fijo contra el variable actual en tres escenarios — es su propio
+  comparador, no una pantalla distinta. Acoplar el guion a la tarjeta de Deuda › Ruta habría exigido
+  cruzar dos subsistemas independientes por una tarea de esfuerzo declarado «S», y esa tarjeta ya
+  tiene su propio flujo de aplicar/editar sin necesidad de un guion de llamada.
+- **Solución**: nueva función `deb4RenegotiationScriptText(saved, scenarios, breakEven)` en
+  `app.js` — sin cálculo nuevo, solo redacta en prosa los mismos números que ya calculaban
+  `evaluateMortgageRateScenarios`/`refinancingBreakEvenMonths` (capital, tipo variable actual, oferta
+  fija, cuotas antes/después, coste de cambiar, meses para recuperar la diferencia). Cuando el radar
+  ya avisa de una ventana viable, `renderDeb4RefinancingRadar()` añade un `<details>` plegable
+  («Guion para llamar al banco») con ese texto, listo para leer o pegar en una llamada o email — sin
+  nombre de entidad, porque `DEB4` no declara esa entidad hoy y no era esta tarea la que debía
+  inventar un campo nuevo solo para conseguirlo.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4277/4277**
+  pruebas (+3 sobre las 4274 previas de esta sesión: el texto del guion con números reales
+  verificados uno a uno, que no rompe sin escenario base calculable, y que el radar lo muestra
+  junto al aviso). `test:a11y` **1328 IDs únicos** (sin cambio). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `D4` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes. 9/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `I11`, `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, cuarto ciclo): `T2`, el buscador universal ya cubre las 45 pantallas navegables
 
 Cuarto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T15`/`T17`/`T19` (mismo día,
