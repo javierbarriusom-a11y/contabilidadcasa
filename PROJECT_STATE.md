@@ -70,6 +70,47 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (200, segundo ciclo): `P9`, calendario financiero único dentro de la app
+
+Segundo ciclo del Horizonte 2, tras fusionar `T5` (mismo día, PR #315).
+
+- **Qué había que investigar primero**: la nota de `P9` pedía un calendario financiero uniendo
+  «hipoteca, seguros, comisiones, fiscal, supuestos». Antes de construir nada apareció que
+  `FinanceCanonicalE15.financialCalendar()` **ya era exactamente ese calendario unificado** — ya
+  combinaba deuda/hipoteca, vencimientos de pólizas (`SP1`), fechas de objetivos, revisiones
+  mensuales, la Campaña de la Renta (fiscal) y aportaciones de cartera programadas (`IV3`). Su única
+  salida era un fichero `.ics` descargable (`A17-2`) más un teaser de «próximo evento» en `#widget`
+  (`A17-1`) — ninguna vista para hojearlo dentro de la app. De las cinco fuentes de la nota original,
+  solo dos faltaban de verdad: comisiones de mantenimiento en riesgo (`maintenanceFeeAlerts`, `TT4`)
+  y supuestos caducados (`assumptionExpiryAlerts`, `PVC15`, el mismo motor del radar de `P5`).
+- **Solución**: `financialCalendar()` extendido con esas dos fuentes, atadas solo al mes en curso —
+  ninguna tiene una fecha futura real (son estado "ahora mismo": si la vinculación de este mes se
+  cumplió, si un supuesto lleva más tiempo del umbral sin confirmar), así que proyectarlas a meses
+  futuros habría fingido una certeza que la app no tiene. Construcción del input centralizada en
+  `ajustesFinancialCalendarInput()` — antes el `.ics` y el widget armaban el objeto cada uno por su
+  cuenta (con el riesgo real de desincronizarse; de hecho ninguno de los dos incluía las dos fuentes
+  nuevas hasta ahora). Nueva tarjeta de solo lectura «Calendario financiero» en Ajustes, junto a
+  «Exportar» (mismo grupo, ya es donde vive conceptualmente): próximos 12 meses con al menos un
+  evento real, mismo patrón de lista que el resto de la app. El `.ics` sigue exportando el horizonte
+  completo, sin cambios de comportamiento ahí. Ningún motor nuevo.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4328/4328**
+  pruebas (+10 sobre las 4318 previas). Tres tests preexistentes rompieron al centralizar la
+  construcción del input en `ajustesFinancialCalendarInput()` — comprobaban directamente dentro de
+  `handleAjustesExportIcs()`/`widgetSnapshot()` que se llamaba a `financialCalendar()`/
+  `insurancePolicies()`; actualizados para seguir verificando lo mismo (el próximo evento sale del
+  calendario financiero, el `.ics` sigue pasando el inventario de pólizas) en su nueva ubicación
+  compartida, sin debilitar ninguna aserción (`tests/a17-1-widget-solo-lectura.test.cjs`,
+  `tests/a17-2-calendario-ics.test.cjs`, `tests/sp1-inventario-polizas.test.cjs`). `test:a11y`
+  **1341 IDs únicos** (+1, por el contenedor de la tarjeta nueva). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `P9` como cerrada, con nota del
+  cierre; 15/52 tareas cerradas en total. Confirmado con el hogar seguir con `D5` a continuación.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: siguiente ciclo del Horizonte 2 es `D5` (deuda neta
+  cruzando activos e inversión) — orden ya confirmado por el hogar, sin decisión pendiente.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (200, primer ciclo): `T5`, cascada mensual de patrimonio neto — primera tarea del Horizonte 2
 
 Primer ciclo del Horizonte 2 de `BACKLOG_CONTABILIDADCASA_2_0.md`, arrancado tras confirmar con el

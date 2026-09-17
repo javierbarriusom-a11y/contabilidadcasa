@@ -147,10 +147,17 @@ test("renderAjustes rellena el inventario de pólizas", () => {
   assert.match(body, /renderInsurancePolicies\(\);/);
 });
 
-test("handleAjustesExportIcs pasa el inventario de pólizas al calendario financiero", () => {
+// P9: handleAjustesExportIcs delega en ajustesFinancialCalendarInput() (helper único que también
+// usan el widget y la tarjeta de Ajustes) — el inventario de pólizas se pasa ahí, no en cada
+// consumidor por separado.
+test("ajustesFinancialCalendarInput pasa el inventario de pólizas al calendario financiero, reutilizado por handleAjustesExportIcs", () => {
+  const helperStart = app.indexOf("function ajustesFinancialCalendarInput(");
+  assert.ok(helperStart >= 0, "No existe ajustesFinancialCalendarInput en app.js");
+  const helperEnd = app.indexOf("\nfunction handleAjustesExportIcs(");
+  assert.match(app.slice(helperStart, helperEnd), /policies: insurancePolicies\(\)/);
+
   const start = app.indexOf("function handleAjustesExportIcs(");
   assert.ok(start >= 0, "No existe handleAjustesExportIcs en app.js");
   const end = app.indexOf("\n}", start);
-  const body = app.slice(start, end);
-  assert.match(body, /policies: insurancePolicies\(\)/);
+  assert.match(app.slice(start, end), /ajustesFinancialCalendarInput\(\)/);
 });
