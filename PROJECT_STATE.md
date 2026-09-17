@@ -70,6 +70,40 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199): `T15`, confirmación de «guardado» en Plan
+
+Tercer ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T1` (sesión 198, PR #308). De
+los cinco hallazgos de `T1` que quedaron pendientes, `T16` y `T18` siguen bloqueados por una
+decisión del hogar (vocabulario estándar previsto/real; si la regla de 4 bloques de Home sigue
+vigente); se construyó `T15`, la primera de las tres listas sin decisión previa (`T15`/`T17`/`T19`).
+
+- **Qué hacía falta**: la barra de impacto de Plan (`planMesImpactBar`, `renderPlanMesImpactBar()`
+  en `app.js`) solo se ocultaba cuando no quedaban cambios de previsto sin guardar — al pulsar
+  «Guardar cambios» la barra desaparecía sin decir nada, a diferencia de Registrar, que sí muestra
+  «guardado hace poco, a las HH:MM» (`registrarSessionConsolidatedNote`, R-7).
+- **Solución**: mismo patrón que ya usa Registrar, no un mecanismo nuevo. Se añadió el estado
+  `planMesConsolidatedNote` y una función `handlePlanMesImpactSave()` que llama a
+  `saveVisualChanges()` (la misma que ya usaba el botón, compartida con `#visual-detail`/Cuadro de
+  mandos — sin segundo camino de guardado) y, tras guardar, muestra «Cambios guardados.» en la barra
+  durante 2 segundos antes de que vuelva a ocultarse. `renderPlanMesImpactBar()` distingue ahora tres
+  estados: cambios pendientes (como antes), nada pendiente y sin guardado reciente (oculta, como
+  antes) y nada pendiente con guardado reciente (nuevo: muestra la confirmación).
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4270/4270**
+  pruebas (+3 sobre las 4267 anteriores: el estado nuevo de la barra con nota de guardado reciente,
+  el ciclo completo de `handlePlanMesImpactSave` incluida la retirada de la nota por temporizador, y
+  que sigue delegando en `saveVisualChanges`, no un tercer camino). `test:a11y` **1328 IDs únicos**
+  (sin cambio). `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T15` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes sin decisión. 5/52 tareas cerradas en
+  total. `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T17` (repetir el colchón en Previsión de Plan) y `T19`
+  (guía de ayuda en Plan) siguen listas para construirse sin decisión previa. `T16` y `T18` siguen
+  esperando que el hogar decida. Del resto del Horizonte 1 original quedan `T2`, `D4`, `I11`, `P1`,
+  `P5`, `P6`.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (198): `T1`, primera auditoría Nielsen real
 
 Segundo ciclo de la sesión sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `D2`/`D3`/`D7`

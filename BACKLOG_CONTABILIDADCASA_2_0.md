@@ -8,9 +8,10 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 4/52 cerradas (sesión 197 — `D2`, `D3`, `D7`, `T1`).** `T1` añadió 5 tareas nuevas
-(`T15`-`T19`, §4) desde sus propios hallazgos, de 47 a 52 en total. El resto sigue pendiente —
-diagnóstico y planificación para lo que falta, con el hogar ya decidido por dónde seguir (ver §6).
+**Estado: 5/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`).** `T1` añadió 5 tareas nuevas
+(`T15`-`T19`, §4) desde sus propios hallazgos, de 47 a 52 en total; `T15` ya se cerró. El resto sigue
+pendiente — diagnóstico y planificación para lo que falta, con el hogar ya decidido por dónde
+seguir (ver §6).
 
 ## 0. Origen y diagnóstico
 
@@ -130,7 +131,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ⏳ `T12` | Comparador «yo vs. mi propio histórico» (mejor mes / peor mes / media 12 meses) | S | Medio | Mismo lenguaje de bandas que ya usa la previsión. |
 | ⏳ `T13` | Herencia financiera con aportación equivalente de los padres | M | Bajo | Extiende la vista educativa para hijos (`MDX1`). |
 | ⏳ `T14` | Reducir el monolito técnico (`app.js` 2,1MB) | L | Alto | No es una feature visible: es la condición para construir el resto de este documento a buen ritmo sin encarecer cada entrega futura. |
-| ⏳ `T15` | Confirmación visible de «guardado» en Plan | S | Medio | Nace de `T1` (heurístico 1, `docs/OPT21_CHECKLIST_NIELSEN.md`, revisión del 16/09). Registrar ya muestra «guardado hace poco, a las HH:MM»; la barra de impacto de Plan solo desaparece al no haber cambios, sin confirmar positivamente que lo último editado se guardó. Mismo patrón visual que Registrar, no un mecanismo nuevo. |
+| ✅ `T15` | Confirmación visible de «guardado» en Plan | S | Medio | **Cerrada (sesión 199).** Nace de `T1` (heurístico 1, `docs/OPT21_CHECKLIST_NIELSEN.md`, revisión del 16/09). El pie de impacto de Plan (`planMesImpactBar`) mostraba y ocultaba la barra solo en función de si quedaban cambios sin guardar; al guardar, la barra desaparecía sin decir nada. Añadida `planMesConsolidatedNote` (mismo patrón que `registrarSessionConsolidatedNote`, R-7): tras «Guardar cambios», la barra muestra «Cambios guardados.» durante 2 s antes de ocultarse. |
 | ⏳ `T16` | Unificar el vocabulario «previsto vs. real» en Hoy/Registrar/Plan | M | Alto | Nace de `T1` (heurístico 4, mayor severidad de las cinco). Tres vocabularios distintos hoy para el mismo concepto: Registrar («Previsto/Real/Usado»), Plan («Ingreso previsto/Comprometido/Asignado/Sin asignar»), Home («Gasto previsto/Gasto real a hoy/Desviación»). Necesita que el hogar decida qué término adoptar como estándar antes de tocar las tres pantallas — no es un renombrado mecánico, cada pantalla podría tener un motivo real para su matiz. |
 | ⏳ `T17` | Repetir el colchón/reserva protegida en la pestaña Previsión de Plan | S | Medio | Nace de `T1` (heurístico 6). Hoy solo enlaza fuera a «Previsión mensual»; Home y Registrar sí muestran la cifra. Quien ajusta una previsión no ve si se come el colchón sin salir de la pantalla. |
 | ⏳ `T18` | Revisar la densidad de Hoy contra su propia regla de 4 bloques | M | Medio | Nace de `T1` (heurístico 8). El comentario de `index.html:307-311` declara «máximo 4 bloques en la zona principal, sin scroll en desktop»; la implementación real tiene 9 artículos estáticos más 2 rejillas dinámicas. Antes de tocar nada, confirmar con el hogar si la regla declarada sigue siendo el objetivo o si ya se aceptó conscientemente más densidad. |
@@ -148,9 +149,9 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 37 pantallas. Tres horizontes:
 
 **Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, más
-`T15`/`T17`/`T19` (nacidas de `T1`, esfuerzo S, sin decisión previa pendiente). `T16` (unificar
-vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan una decisión
-del hogar antes de construirse — ver su nota en §4.
+`T17`/`T19` (nacidas de `T1`, esfuerzo S, sin decisión previa pendiente; `T15` ya se cerró en la
+sesión 199). `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de
+Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5`, `I1`, `D10`, `T7`, `T8`, `T4`,
 `P9`, `D5`.
