@@ -8,10 +8,11 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 6/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`).** `T1` añadió 5 tareas
-nuevas (`T15`-`T19`, §4) desde sus propios hallazgos, de 47 a 52 en total; `T15` y `T17` ya se
-cerraron. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
-decidido por dónde seguir (ver §6).
+**Estado: 7/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`).** `T1` añadió 5
+tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin decisión previa pendiente
+(`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando que el hogar decida. El
+resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya decidido por
+dónde seguir (ver §6).
 
 ## 0. Origen y diagnóstico
 
@@ -135,7 +136,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ⏳ `T16` | Unificar el vocabulario «previsto vs. real» en Hoy/Registrar/Plan | M | Alto | Nace de `T1` (heurístico 4, mayor severidad de las cinco). Tres vocabularios distintos hoy para el mismo concepto: Registrar («Previsto/Real/Usado»), Plan («Ingreso previsto/Comprometido/Asignado/Sin asignar»), Home («Gasto previsto/Gasto real a hoy/Desviación»). Necesita que el hogar decida qué término adoptar como estándar antes de tocar las tres pantallas — no es un renombrado mecánico, cada pantalla podría tener un motivo real para su matiz. |
 | ✅ `T17` | Repetir el colchón/reserva protegida en la pestaña Previsión de Plan | S | Medio | **Cerrada (sesión 199).** Nace de `T1` (heurístico 6). La fila «Colchón» de la tabla ya coloreaba cada mes contra el suelo (`mapaCalorFloor()`), pero la cifra solo aparecía enterrada al final de la frase de la leyenda. Ahora `planPrevisionLegend` abre con «Reserva protegida: €X.» antes del resto de la explicación — mismo dato que ya gobernaba el color de la fila, no una cifra nueva ni importada de Home/Registrar (esas usan `today.requiredReserve`, un número relacionado pero distinto — unificarlo es `T16`, no esta tarea). |
 | ⏳ `T18` | Revisar la densidad de Hoy contra su propia regla de 4 bloques | M | Medio | Nace de `T1` (heurístico 8). El comentario de `index.html:307-311` declara «máximo 4 bloques en la zona principal, sin scroll en desktop»; la implementación real tiene 9 artículos estáticos más 2 rejillas dinámicas. Antes de tocar nada, confirmar con el hogar si la regla declarada sigue siendo el objetivo o si ya se aceptó conscientemente más densidad. |
-| ⏳ `T19` | Añadir «Guía de este flujo» a Plan | S | Medio | Nace de `T1` (heurístico 10). Home y Registrar ya tienen el botón de ayuda contextual (`openE17Dialog("guide")`); Plan no — justo la pantalla más afectada por `T16`/`T17`. |
+| ✅ `T19` | Añadir «Guía de este flujo» a Plan | S | Medio | **Cerrada (sesión 199).** Nace de `T1` (heurístico 10). Home y Registrar ya tenían el botón de ayuda contextual (`data-e17-open="guide"` → `openE17Dialog("guide")`); ahora Plan también, cableado igual (delegación global ya existente, sin JS nuevo). El contenido sigue siendo el genérico de `GUIDE_TOPICS` — igual que Home y Registrar, que tampoco tienen entrada propia ahí; escribir guía específica por pantalla es un alcance mayor, fuera de esta tarea. |
 
 ## 5. Descartado tras el cruce
 
@@ -148,10 +149,10 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fondo que ya produjo
 37 pantallas. Tres horizontes:
 
-**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, más `T19`
-(nacida de `T1`, esfuerzo S, sin decisión previa pendiente; `T15`/`T17` ya se cerraron en la sesión
-199). `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy)
-necesitan una decisión del hogar antes de construirse — ver su nota en §4.
+**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `T2`, `D4`, `I11`, `P1`, `P5`, `P6` (`T15`/`T17`/
+`T19`, nacidas de `T1`, ya se cerraron en la sesión 199 — las tres sin decisión previa pendiente).
+`T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan
+una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5`, `I1`, `D10`, `T7`, `T8`, `T4`,
 `P9`, `D5`.

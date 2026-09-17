@@ -69,6 +69,13 @@ test("P-1 · #plan trae sus tres pestañas y sus migajas", () => {
   assert.match(html, /<p class="e19-registrar-crumb" id="planCrumb"/);
 });
 
+// --- T19 · Plan tiene el mismo botón de ayuda contextual que ya tienen Home y Registrar ---------
+
+test("T19 · #plan trae «Guía de este flujo», mismo data-e17-open=\"guide\" que Home y Registrar", () => {
+  const planSection = html.slice(html.indexOf('id="plan"'), html.indexOf('id="update-hub"'));
+  assert.match(planSection, /data-e17-open="guide">Guía de este flujo<\/button>/);
+});
+
 // P-12 (19 de agosto) construyó Ahorro de verdad: la pestaña ya no enlaza a su heredada como
 // contenido principal, aunque conserva el enlace como complemento (ver tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs).
 test("P-1 · Ahorro ya no es un enlace a su heredada: tiene su propio semáforo", () => {
