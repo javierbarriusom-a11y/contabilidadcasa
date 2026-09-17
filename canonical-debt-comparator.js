@@ -336,6 +336,59 @@
     };
   }
 
+  const DEBT_CANCELLATION_SCHEMA_ID = "finance.debt-cancellation-candidates";
+
+  // D5 (Contabilidadcasa 2.0): aplica AP1 línea a línea sobre TODO el inventario de deuda, cruzado
+  // contra las posiciones REALES de cartera (currentValue/gainLoss ya calculados por
+  // normalizePositions, IV1/IV2) — no solo contra el XIRR agregado que ya usa DEB13. DEB13 avisa SI
+  // conviene amortizar frente a la rentabilidad media de la cartera, pero nunca dice CON QUÉ
+  // posición concreta se pagaría ni cuenta el coste fiscal real de venderla: la plusvalía latente
+  // de esa posición tributa al liquidarla, un coste que ni AP1 ni DEB13 restan hoy. Aquí sí: de las
+  // posiciones cuyo valor neto de ese impuesto cubre el principal pendiente de una deuda, se
+  // proponen primero las más baratas de liquidar (menor coste fiscal, después menor valor — para no
+  // vender de más). Motor puro y sin fecha de mercado: quien llama decide qué hacer con el
+  // resultado — nunca vende ni amortiza nada por su cuenta (regla transversal `A11-4`).
+  function positionNetOfTaxValue(position, savingsTaxRatePct) {
+    const value = Math.max(0, round2(finite(position?.currentValue)));
+    const gain = finite(position?.gainLoss);
+    const rate = Math.max(0, Math.min(100, finite(savingsTaxRatePct)));
+    const taxCost = gain > 0 ? round2(gain * (rate / 100)) : 0;
+    return { value, taxCost, netValue: round2(value - taxCost) };
+  }
+
+  function debtCancellationCandidates({ debts = [], positions = [], savingsTaxRatePct = 0 } = {}) {
+    const candidatePositions = (Array.isArray(positions) ? positions : [])
+      .filter((position) => finite(position?.currentValue) > 0)
+      .map((position) => {
+        const { value, taxCost, netValue } = positionNetOfTaxValue(position, savingsTaxRatePct);
+        return {
+          id: String(position?.id || ""),
+          label: String(position?.label || ""),
+          type: String(position?.type || ""),
+          currentValue: value,
+          taxCost,
+          netValue,
+        };
+      });
+    const rows = (Array.isArray(debts) ? debts : [])
+      .filter((debt) => finite(debt?.currentPrincipal) > 0)
+      .map((debt) => {
+        const principal = round2(finite(debt.currentPrincipal));
+        const matches = candidatePositions
+          .filter((position) => position.netValue >= principal)
+          .sort((a, b) => (a.taxCost - b.taxCost) || (a.currentValue - b.currentValue));
+        return {
+          id: String(debt?.id || ""),
+          entity: String(debt?.entity || ""),
+          currentPrincipal: principal,
+          fundable: matches.length > 0,
+          bestMatch: matches[0] || null,
+          alternativeCount: Math.max(0, matches.length - 1),
+        };
+      });
+    return { schema: DEBT_CANCELLATION_SCHEMA_ID, calculable: rows.length > 0, rows };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -357,5 +410,7 @@
     amortizeReduceQuotaVsTerm,
     NET_DEBT_COST_SCHEMA_ID,
     netDebtCostAfterTax,
+    DEBT_CANCELLATION_SCHEMA_ID,
+    debtCancellationCandidates,
   };
 });

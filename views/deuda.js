@@ -1221,6 +1221,7 @@ function renderDeudaContratos() {
   renderDeb5FiscalPriority(contracts);
   renderDeb16PayoffOrder(contracts);
   renderDeb13DormantExpensiveDebtAlert(contracts);
+  renderD5DebtAssetCrossing(contracts);
   renderGob16ClauseWatch(contracts);
   renderDeb6DebtChecklist(contracts);
 }
@@ -1353,6 +1354,84 @@ function renderDeb13DormantExpensiveDebtAlert(contracts) {
     .map((alert) => `<li class="commit-barrier-item warning"><strong>${escapeHtml(alert.entity)}</strong>: TAE efectivo ${alert.effectiveAprPct}% frente al ${alert.annualReturnPct}% que rinde hoy tu cartera — amortizarla ahorraría ${money(alert.amortizeSavings, true)} de intereses frente a los ${money(alert.investGain, true)} que ganarías manteniéndola invertida en ese mismo plazo.</li>`)
     .join("");
   note.innerHTML = `<p class="e19-kpi-note is-warn"><strong>Deuda cara dormida (DEB13):</strong> ninguna acción activa la está amortizando, y su coste real ya supera lo que tu cartera espera rendir.</p><ul class="commit-barrier-list">${items}</ul>`;
+}
+
+// D5 (Contabilidadcasa 2.0): DEB13 (arriba) ya avisa SI conviene amortizar frente al XIRR agregado
+// de la cartera, pero nunca dice CON QUÉ posición concreta se pagaría ni cuenta el coste fiscal
+// real de venderla — cruza el inventario de deuda con las posiciones reales de
+// normalizePositions() (IV1/IV2) vía debtCancellationCandidates() (canonical-debt-comparator.js):
+// para cada deuda activa, qué posición(es) cubrirían su principal pendiente neto de ese impuesto, y
+// si el ahorro de intereses de amortizar (mismo compareAmortizeVsInvest de siempre) sigue ganando
+// una vez restado ese coste fiscal real. Nunca decide ni ejecuta nada — solo señala.
+function d5DebtAssetCrossingRows(contracts) {
+  const priorityEngine = window.FinanceDebtContracts;
+  const comparator = window.FinanceDebtComparator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!priorityEngine || !comparator || !portfolioEngine) return [];
+  const annualReturnPct = iv5PortfolioAnnualReturnPct();
+  if (annualReturnPct === null) return [];
+  const priority = priorityEngine.fiscalAdjustedDebtPriority(contracts);
+  if (!priority.calculable) return [];
+  const positions = portfolioEngine.normalizePositions(iv1PositionsList()).positions;
+  const crossing = comparator.debtCancellationCandidates({
+    debts: priority.rows,
+    positions,
+    savingsTaxRatePct: dividendSpanishSavingsRatePct(),
+  });
+  if (!crossing.calculable) return [];
+  const contractsById = new Map((contracts || []).map((contract) => [contract.id, contract]));
+  return crossing.rows.map((row) => {
+    if (!row.fundable) return { ...row, calculable: false };
+    const priorityRow = priority.rows.find((item) => item.id === row.id);
+    const contract = contractsById.get(row.id);
+    const months = Math.round(Number(contract?.remainingInstallments) || 0);
+    if (!priorityRow || months <= 0) return { ...row, calculable: false };
+    const investmentResult = portfolioEngine.opportunityCost({ amount: row.currentPrincipal, months, annualReturnPct });
+    const ap1 = comparator.compareAmortizeVsInvest({
+      amount: row.currentPrincipal,
+      months,
+      debtAnnualRatePct: priorityRow.effectiveAprPct,
+      remainingPrincipal: row.currentPrincipal,
+      investmentResult,
+    });
+    if (!ap1.calculable) return { ...row, calculable: false };
+    const netAmortizeBenefit = round2(ap1.amortizeSavings - row.bestMatch.taxCost);
+    const investGain = ap1.investGain;
+    const netAssessment = investGain === null
+      ? "invertir-no-calculable"
+      : netAmortizeBenefit > investGain ? "amortizar" : netAmortizeBenefit < investGain ? "invertir" : "neutral";
+    return { ...row, calculable: true, months, amortizeSavings: ap1.amortizeSavings, investGain, netAmortizeBenefit, netAssessment };
+  });
+}
+
+function d5DebtAssetCrossingHtml(rows) {
+  const items = rows
+    .map((row) => {
+      if (!row.fundable) {
+        return `<li class="commit-barrier-item"><strong>${escapeHtml(row.entity)}</strong> (${money(row.currentPrincipal, true)} pendiente): ninguna posición individual de tu cartera cubre ese importe neto del impuesto de venderla.</li>`;
+      }
+      const altNote = row.alternativeCount > 0 ? ` (+${row.alternativeCount} alternativa(s) más)` : "";
+      const matchNote = `${escapeHtml(row.bestMatch.label)} (${money(row.bestMatch.currentValue, true)}${row.bestMatch.taxCost > 0 ? `, coste fiscal real ${money(row.bestMatch.taxCost, true)} de venderla` : ""})${altNote}`;
+      if (!row.calculable) {
+        return `<li class="commit-barrier-item"><strong>${escapeHtml(row.entity)}</strong> (${money(row.currentPrincipal, true)} pendiente): se cancelaría vendiendo ${matchNote}, pero falta el plazo real del contrato o el TAE declarado para comparar frente a invertir.</li>`;
+      }
+      const verdictLabel = row.netAssessment === "invertir-no-calculable"
+        ? "sin veredicto (falta XIRR real de tu cartera)"
+        : AP1_ASSESSMENT_LABEL[row.netAssessment] || row.netAssessment;
+      const investLine = row.investGain === null ? "sin cartera comparable" : `${money(row.investGain, true)} de invertir en ese mismo plazo`;
+      return `<li class="commit-barrier-item"><strong>${escapeHtml(row.entity)}</strong> (${money(row.currentPrincipal, true)} pendiente): se cancelaría vendiendo ${matchNote} — ahorro neto de intereses ${money(row.netAmortizeBenefit, true)} (ya restado el coste fiscal) frente a ${investLine}: conviene <strong>${escapeHtml(verdictLabel)}</strong>.</li>`;
+    })
+    .join("");
+  return `<ul class="commit-barrier-list">${items}</ul>`;
+}
+
+function renderD5DebtAssetCrossing(contracts) {
+  const note = qs("d5DebtAssetCrossingNote");
+  if (!note) return;
+  const rows = d5DebtAssetCrossingRows(contracts);
+  note.innerHTML = rows.length
+    ? d5DebtAssetCrossingHtml(rows)
+    : `<p class="e19-kpi-note">Sin cartera de inversión registrada, sin deudas activas con TAE declarado, o sin XIRR real de cartera todavía: nada que cruzar.</p>`;
 }
 
 // GOB16 (Oleada 4, Bloque 7, O-7): vigilancia de cláusulas de deuda más allá de TAE y capital.

@@ -8,13 +8,13 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 15/52 cerradas (sesión 200 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`, `P9`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 16/52 cerradas (sesión 201 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5` y `P9`, las dos primeras tareas del Horizonte 2, ya cerradas (sesión 200) — quedan `I1`,
-`D10`, `T7`, `T8`, `T4`, `D5` en ese horizonte, con `D5` ya decidida como siguiente por el hogar
-(ver §6). El resto sigue pendiente — diagnóstico y planificación para lo que falta.
+§4). `T5`, `P9` y `D5`, las tres primeras tareas del Horizonte 2, ya cerradas (sesiones 200-201) —
+quedan `I1`, `D10`, `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía por el hogar. El
+resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -106,7 +106,7 @@ visible: dos motores en paralelo. Prioriza simplificar y ejecutar sobre añadir 
 | ✅ `D2` | Reunificación N:1: confirmar si `reunified`/`unifiedPlan` de `normalizeContracts()` ya es la ejecución real | S (verificación) → L si hay brecha | Alto | **Cerrada (sesión 197).** Verificado: `reunified`/`unifiedPlan` ya es la ejecución real declarada por el hogar (Contratos › estado) — no hacía falta motor nuevo. El único hueco real era de enlace: el simulador `DEB6` no conectaba con nada, así que el hogar tenía que reteclear a mano el TIN/plazo ya simulados. Construido: botón «Usar esta oferta en Comparar estrategias» en el resultado de `DEB6` que precarga `deudaCompararOfferTin`/`Plazo` vía `saveDebtConsolidationOffer` — nunca toca `reunified` ni la cifra global ya declarada de la reunificación real (Cetelem), evitando mezclar dos reunificaciones distintas bajo una sola cifra. |
 | ✅ `D3` | TIN desconocido: confirmar cobertura por contrato individual, no solo en el agregado | S (verificación) | Bajo | **Cerrada (sesión 197), sin construir nada.** Verificado: el TIN desconocido ya se distingue por contrato individual en dos sitios — el editor de Contratos (input vacío, `placeholder="sin dato"`) y la tabla «Orden de ataque» (`—` por fila, con test dedicado en `d13-deuda-pixel-perfect.test.cjs`). Cobertura completa ya existente, no solo en el agregado. |
 | ✅ `D4` | Generador de guion de renegociación con el banco | S | Alto | **Cerrada (sesión 199).** Reutiliza el cálculo ya existente de `DEB4` (radar de refinanciación) y su comparador de escenarios (`evaluateMortgageRateScenarios`, «fixedRateOffer» frente al tipo variable — el «comparador de ofertas» de la nota original). Cuando el radar avisa de una ventana viable, `deb4RenegotiationScriptText()` convierte esos mismos números (sin recalcular nada) en un párrafo listo para leer o pegar en una llamada o email al banco, dentro de un `<details>` plegable junto al aviso. Sin nombre de entidad: `DEB4` no declara esa entidad hoy, y esta tarea no inventa un campo nuevo para conseguirlo. |
-| ⏳ `D5` | Deuda neta cruzando activos e inversión (qué posición podría cancelar qué deuda) | M | Alto | Aplica `AP1` (amortizar vs. invertir) línea a línea sobre el inventario de deuda, en vez de solo como simulador aparte. |
+| ✅ `D5` | Deuda neta cruzando activos e inversión (qué posición podría cancelar qué deuda) | M | Alto | **Cerrada (sesión 201).** `DEB13` ("deuda cara dormida") ya aplicaba `AP1` línea a línea sobre todo el inventario de deuda contra el XIRR agregado de la cartera — lo que faltaba de verdad era decir con qué posición concreta se pagaría cada deuda y contar el coste fiscal real de venderla (la plusvalía latente tributa al liquidarla, un coste que ni `AP1` ni `DEB13` restaban). Nuevo `debtCancellationCandidates()` en `canonical-debt-comparator.js`: cruza las deudas activas con las posiciones reales de cartera (`normalizePositions`, IV1/IV2), calcula el valor neto de impuesto de cada posición y propone la más barata de liquidar cuyo valor neto cubra el principal pendiente; el ahorro de amortizar se neta contra ese coste fiscal antes de comparar con invertir. Nueva tarjeta de solo lectura en Deuda › Contratos, junto a `DEB13`. Ningún motor de mercado ni cifra inventada. |
 | ⏳ `D6` | Benchmark de mercado real en el radar de refinanciación | M | Medio | Hoy compara contra un umbral declarado por el hogar; necesita una fuente de datos (aunque sea manual/trimestral) — sin ella, no construir un motor que finja precisión que no tiene. |
 | ✅ `D7` | Coste anual en euros de cada cláusula vigilada | S | Medio | **Construida (sesión 197).** Verificado primero que `GOB16` no cubría nada de esto: declaraba vinculación/comisión/revisión pero sin ninguna cifra en euros. Añadido `bonusRatePenaltyPct` (puntos de TAE que penalizaría el banco si se incumple la vinculación, declarado por el hogar, nunca inferido) y el coste anual = `(bonusRatePenaltyPct/100) × currentPrincipal`, mostrado tanto si la vinculación está incumplida como si se quiere ver el riesgo por adelantado. Sin ese dato declarado, la nota se queda cualitativa igual que antes. |
 | ⏳ `D8` | Reparto de carga por titular en la reestructuración conjunta | M | Medio | Extiende `DI5`/`canonical-joint-restructuring.js`, hoy solo con el total conjunto. |
@@ -157,7 +157,8 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
-`I1`, `D10`, `T7`, `T8`, `T4`, `D5`. El hogar decidió seguir con `D5` a continuación (sesión 200).
+`D5` ✅ (sesión 201). Quedan `I1`, `D10`, `T7`, `T8`, `T4`, sin orden confirmado todavía por el
+hogar.
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad
