@@ -70,6 +70,48 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, séptimo ciclo): `P1`, «qué cambió desde la última vez» llega a Hoy
+
+Séptimo ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `D4`/`I11` (mismo día, PR #311).
+Última tarea del Horizonte 1 original de esfuerzo bajo/beneficio alto que quedaba sin el bloqueo de
+decisión del hogar (`T16`/`T18`).
+
+- **Qué había que investigar primero**: la nota citaba dos motores concretos —
+  `causalTreeForMonth`/`previsionChangeOneLiner` (`PVX5`) y `diffAssumptionSnapshots` (`PVC6`) — como
+  «hoy solo visibles en Ajustes». Se confirmó: ambos viven cableados en la pantalla de Ajustes
+  (`renderPvx5CausalTree()`, con su selector manual de mes, y `handlePvc6SnapshotCompare()`, con su
+  selector manual de snapshot de cierre firmado) y en ningún otro sitio. Nada de matemática que
+  construir — la tarea real era traer esa lectura a Hoy sin el selector manual, con un único punto de
+  comparación automático: el mes conciliado más reciente para el árbol causal, el cierre firmado más
+  reciente con snapshot guardado para el diff de supuestos.
+- **Dónde encaja en Hoy**: `OPT-8` (ya cerrada) fijó un máximo de 4 bloques en la zona principal de
+  Hoy — no se ha tocado esa zona. La tarjeta nueva (`homeForecastChangeCard`) se añade a
+  `.home-secondary-section`, junto a `homeHealthScoreCard` (mismo patrón: oculta con `hidden` hasta
+  tener datos calculables, sin selector de usuario, solo lectura).
+- **Solución**: nueva función `renderHomeForecastChangePanel()` en `app.js`, llamada desde
+  `renderHomeDashboard()` junto al resto de tarjetas de detalle. Calcula el mes conciliado más
+  reciente de `reconciledMonthlyNetHistory()` (ordenado por `monthKey` descendente, no el primero del
+  array) para `causalTreeForMonth()`/`previsionChangeOneLiner()`; toma `loadPvc6ForecastSnapshots()[0]`
+  (ya devuelto con el más nuevo primero) como snapshot único para `diffAssumptionSnapshots()`, y
+  reutiliza `pvc18ChangeCauses()`/`pvc6DiffResultHtml()` tal cual para el HTML del diff — las mismas
+  funciones que ya pintaban esto en Ajustes, sin duplicar su lógica de formato. Ningún motor nuevo:
+  0 líneas en los archivos `canonical-*.js`.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4288/4288**
+  pruebas (+7 sobre las 4281 previas de esta sesión: ocultar sin previsión/sin motor, frase de aviso
+  sin meses conciliados, elegir el mes más reciente del historial en vez del primero, aviso sin
+  cierre firmado con snapshot, comparación reutilizando `pvc18ChangeCauses`/`pvc6DiffResultHtml` con
+  un snapshot real, cableado en `renderHomeDashboard`, y la tarjeta presente en `#home` oculta por
+  defecto). `test:a11y` **1331 IDs únicos** (+3 por los tres `id` nuevos). `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `P1` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya solo lista `P5`/`P6` entre las pendientes. 11/52 tareas cerradas en
+  total. `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `P5`, `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, sexto ciclo): `I11`, el coste de diferir la plusvalía aislado del crecimiento perdido
 
 Sexto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, sobre la misma rama de `D4` (PR #311, todavía
