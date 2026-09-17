@@ -716,6 +716,9 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       // DEB13 (Oleada 4, Bloque 6): renderDeudaContratos ya la llama junto a DEB5 — cubierta de
       // verdad en tests/deb13-deuda-cara-dormida.test.cjs, aquí solo evita que este test reviente.
       renderDeb13DormantExpensiveDebtAlert: () => {},
+      // D5 (Contabilidadcasa 2.0): renderDeudaContratos ya la llama junto a DEB13 — cubierta de
+      // verdad en tests/d5-cruce-deuda-activos.test.cjs, aquí solo evita que este test reviente.
+      renderD5DebtAssetCrossing: () => {},
       // GOB16 (Oleada 4, Bloque 7): renderDeudaContratos ya la llama junto a DEB13 — cubierta de
       // verdad en tests/gob16-vigilancia-clausulas-deuda.test.cjs, aquí solo evita que este test
       // reviente.

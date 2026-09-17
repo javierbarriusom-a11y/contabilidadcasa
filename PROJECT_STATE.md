@@ -70,6 +70,48 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (201): `D5`, cruce real de deuda y activos de cartera — tercer ciclo del Horizonte 2
+
+- **Qué había que investigar primero**: la nota de `D5` pedía "aplicar AP1 línea a línea sobre el
+  inventario de deuda, en vez de solo como simulador aparte". Antes de construir nada apareció que
+  `DEB13` ("deuda cara dormida", `views/deuda.js`) **ya hacía justo eso**: cruza automáticamente
+  todas las deudas activas con TAE declarado contra `compareAmortizeVsInvest` (AP1), usando el
+  capital y plazo real de cada contrato frente al XIRR agregado de la cartera (`IV5`), sin esperar
+  a que el hogar seleccione la deuda a mano. Lo que `DEB13` no hacía, y es lo que de verdad pide la
+  nota entre paréntesis de `D5` ("qué posición podría cancelar qué deuda"): decir con qué posición
+  concreta de la cartera real se pagaría cada deuda, ni contar el coste fiscal real de vender esa
+  posición (la plusvalía latente tributa al liquidarla) — un coste que ni AP1 ni DEB13 restaban.
+- **Solución**: nuevo `debtCancellationCandidates()` en `canonical-debt-comparator.js` — motor puro
+  que, dadas las deudas activas y las posiciones reales de cartera (`normalizePositions`, IV1/IV2),
+  calcula el valor neto de impuesto de cada posición (plusvalía × tipo del ahorro ya declarado,
+  `dividendSpanishSavingsRatePct`) y propone, para cada deuda, la posición más barata de liquidar
+  cuyo valor neto cubra el principal pendiente. Nueva capa de composición en `views/deuda.js`
+  (`d5DebtAssetCrossingRows`/`Html`, `renderD5DebtAssetCrossing`): reutiliza tal cual
+  `fiscalAdjustedDebtPriority` (DEB5) y `compareAmortizeVsInvest` (AP1) — el ahorro de intereses de
+  amortizar se neta contra el coste fiscal de la posición elegida antes de comparar con la
+  alternativa de invertir. Nueva tarjeta de solo lectura «Cruce deuda-activos: qué posición
+  cancelaría qué deuda» en Deuda › Contratos, justo debajo de «Deuda cara dormida» (DEB13). Ningún
+  motor de mercado ni cifra inventada: sin cartera con una posición suficiente, la deuda queda
+  marcada como no financiable con una sola posición, nunca oculta ni forzada. Nunca vende ni
+  amortiza nada por su cuenta (`A11-4`).
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4338/4338**
+  pruebas (+10 sobre las 4328 previas, todas del nuevo `tests/d5-cruce-deuda-activos.test.cjs`). Un
+  test preexistente (`tests/d1-d2-deuda-tabs-contratos.test.cjs`) rompió porque su sandbox no
+  conocía la nueva llamada `renderD5DebtAssetCrossing(contracts)` dentro de `renderDeudaContratos()`
+  — corregido con el mismo patrón de stub que ya usa para DEB13/GOB16, sin debilitar ninguna
+  aserción de ese test. `test:a11y` **1342 IDs únicos** (+1, por el contenedor de la tarjeta nueva).
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores. Nota de entorno: esta
+  sesión también encontró `node_modules/` ausente — instalado (`npm install`) antes de validar,
+  igual que en la sesión 200.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `D5` como cerrada, con nota del
+  cierre; 16/52 tareas cerradas en total. Con `D5` cerrada, quedan del Horizonte 2: `I1`, `D10`,
+  `T7`, `T8`, `T4` — sin orden confirmado todavía por el hogar.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decidir con el hogar el orden de lo que queda del
+  Horizonte 2 (`I1`, `D10`, `T7`, `T8`, `T4`) antes de arrancar el siguiente ciclo.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (200, segundo ciclo): `P9`, calendario financiero único dentro de la app
 
 Segundo ciclo del Horizonte 2, tras fusionar `T5` (mismo día, PR #315).
