@@ -69,6 +69,13 @@ test("P-1 · #plan trae sus tres pestañas y sus migajas", () => {
   assert.match(html, /<p class="e19-registrar-crumb" id="planCrumb"/);
 });
 
+// --- T19 · Plan tiene el mismo botón de ayuda contextual que ya tienen Home y Registrar ---------
+
+test("T19 · #plan trae «Guía de este flujo», mismo data-e17-open=\"guide\" que Home y Registrar", () => {
+  const planSection = html.slice(html.indexOf('id="plan"'), html.indexOf('id="update-hub"'));
+  assert.match(planSection, /data-e17-open="guide">Guía de este flujo<\/button>/);
+});
+
 // P-12 (19 de agosto) construyó Ahorro de verdad: la pestaña ya no enlaza a su heredada como
 // contenido principal, aunque conserva el enlace como complemento (ver tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs).
 test("P-1 · Ahorro ya no es un enlace a su heredada: tiene su propio semáforo", () => {
@@ -628,10 +635,39 @@ function sandboxImpactBar(impact, extra = {}) {
 }
 
 test("P-6 · sin borradores de previsto, el pie de impacto de Plan se oculta", () => {
-  const { bar, render } = sandboxImpactBar({ drafts: [] });
+  const { bar, render } = sandboxImpactBar({ drafts: [] }, { planMesConsolidatedNote: "" });
   render();
   assert.equal(bar.hidden, true);
   assert.equal(bar.innerHTML, "");
+});
+
+// --- T15 · confirmación visible de «guardado», mismo patrón que registrarSessionConsolidatedNote (R-7) ---
+
+test("T15 · sin borradores pero con nota de guardado reciente, el pie confirma el guardado en vez de solo ocultarse", () => {
+  const { bar, render } = sandboxImpactBar({ drafts: [] }, { planMesConsolidatedNote: "Cambios guardados." });
+  render();
+  assert.equal(bar.hidden, false);
+  assert.match(bar.innerHTML, /Cambios guardados\./);
+});
+
+test("T15 · handlePlanMesImpactSave guarda, confirma con una nota y la retira tras el temporizador", () => {
+  const renderCalls = [];
+  let scheduledCallback = null;
+  const context = sandboxWith(["handlePlanMesImpactSave"], {
+    saveVisualChanges: () => {},
+    renderPlanMesImpactBar: () => renderCalls.push(vm.runInContext("planMesConsolidatedNote", context)),
+    window: {
+      setTimeout: (callback) => {
+        scheduledCallback = callback;
+      },
+    },
+  });
+  vm.runInContext("planMesConsolidatedNote = ''", context);
+  context.handlePlanMesImpactSave();
+  assert.equal(renderCalls[0], "Cambios guardados.", "confirma de inmediato tras guardar");
+  assert.ok(scheduledCallback, "programa retirar la nota");
+  scheduledCallback();
+  assert.equal(renderCalls[1], "", "el temporizador limpia la nota y vuelve a pintar");
 });
 
 test("P-6 · si el motor no acepta la combinación, avisa y solo ofrece Descartar", () => {
@@ -669,11 +705,16 @@ test("P-6 · usa cuadroMandosImpact (el mismo cálculo de antes/después que ya 
 
 // --- Guardar / Descartar reutilizan saveVisualChanges/discardVisualChanges, no un tercer camino ----
 
-test("Cableado · Guardar cambios/Descartar todo del pie de Plan llaman a saveVisualChanges/discardVisualChanges, las mismas que ya usa #visual-detail", () => {
+test("Cableado · Guardar cambios/Descartar todo del pie de Plan llaman a handlePlanMesImpactSave/discardVisualChanges, las mismas que ya usa #visual-detail (más la confirmación de T15)", () => {
   assert.match(
     app,
-    /qs\("planMesImpactBar"\)\?\.addEventListener\("click", \(event\) => \{[\s\S]{0,260}saveVisualChanges\(\);[\s\S]{0,260}discardVisualChanges\(\); renderPlanMes\(\);/,
+    /qs\("planMesImpactBar"\)\?\.addEventListener\("click", \(event\) => \{[\s\S]{0,260}handlePlanMesImpactSave\(\);[\s\S]{0,260}discardVisualChanges\(\); renderPlanMes\(\);/,
   );
+});
+
+test("Cableado · handlePlanMesImpactSave sigue llamando a saveVisualChanges, no un tercer camino de guardado", () => {
+  const source = extractFunction("handlePlanMesImpactSave");
+  assert.match(source, /saveVisualChanges\(\);/);
 });
 
 test("Cableado · cambiar el mes, editar el previsto y las acciones de copiar están todos delegados", () => {

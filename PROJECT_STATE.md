@@ -70,6 +70,63 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199): `T15`, `T17` y `T19`, tres correcciones de Nielsen sobre Plan
+
+Tercer ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T1` (sesión 198, PR #308). De
+los cinco hallazgos de `T1` que quedaron pendientes, `T16` y `T18` siguen bloqueados por una
+decisión del hogar (vocabulario estándar previsto/real; si la regla de 4 bloques de Home sigue
+vigente); se construyeron las tres que no dependían de esa decisión (`T15`, `T17` y `T19`), dejando
+el backlog sin nada más pendiente de Horizonte 1 salvo las dos bloqueadas y el resto original
+(`T2`/`D4`/`I11`/`P1`/`P5`/`P6`).
+
+- **Qué hacía falta**: la barra de impacto de Plan (`planMesImpactBar`, `renderPlanMesImpactBar()`
+  en `app.js`) solo se ocultaba cuando no quedaban cambios de previsto sin guardar — al pulsar
+  «Guardar cambios» la barra desaparecía sin decir nada, a diferencia de Registrar, que sí muestra
+  «guardado hace poco, a las HH:MM» (`registrarSessionConsolidatedNote`, R-7).
+- **Solución**: mismo patrón que ya usa Registrar, no un mecanismo nuevo. Se añadió el estado
+  `planMesConsolidatedNote` y una función `handlePlanMesImpactSave()` que llama a
+  `saveVisualChanges()` (la misma que ya usaba el botón, compartida con `#visual-detail`/Cuadro de
+  mandos — sin segundo camino de guardado) y, tras guardar, muestra «Cambios guardados.» en la barra
+  durante 2 segundos antes de que vuelva a ocultarse. `renderPlanMesImpactBar()` distingue ahora tres
+  estados: cambios pendientes (como antes), nada pendiente y sin guardado reciente (oculta, como
+  antes) y nada pendiente con guardado reciente (nuevo: muestra la confirmación).
+- **`T17` — repetir el colchón/reserva protegida en Previsión de Plan**: la fila «Colchón» de la
+  tabla (`renderPlanPrevision()`) ya coloreaba cada mes contra el suelo calculado por
+  `mapaCalorFloor()`, pero la cifra solo aparecía enterrada al final de la frase de
+  `planPrevisionLegend` («Colchón: liquidez al cierre de cada mes frente a la reserva operativa de
+  X €»). Ahora la leyenda abre con «Reserva protegida: X €.» antes del resto de la explicación —
+  mismo dato que ya gobernaba el color, sin cálculo nuevo. **Investigado y descartado a propósito**:
+  no se importó la cifra `today.requiredReserve` que muestran Home/Registrar/la tira de cabecera,
+  porque es un número relacionado pero distinto (incluye salidas inmediatas del mes en curso; el
+  suelo de Previsión es la reserva operativa configurada o el respaldo de un mes de salidas) —
+  mostrar dos "reservas protegidas" con nombres iguales y valores distintos habría sido peor que el
+  hallazgo original y habría invadido el terreno de `T16` (unificar vocabulario), que sigue
+  pendiente de decisión del hogar.
+- **`T19` — «Guía de este flujo» en Plan**: Home y Registrar ya tenían el botón contextual
+  (`data-e17-open="guide"`, delegación global ya existente en `setupE17Experience()` →
+  `openE17Dialog("guide")`); Plan no. Se añadió el mismo botón al encabezado de `#plan`
+  (`index.html`), sin JS nuevo — la delegación ya cubre cualquier botón con ese atributo en
+  cualquier pantalla. **Investigado antes de escribir nada nuevo**: el contenido del diálogo sale de
+  `E17Experience.GUIDE_TOPICS`, que no tiene entradas propias ni para `home` ni para `registrar` —
+  las dos pantallas que ya tenían el botón muestran el texto genérico de respaldo. Añadir el botón a
+  Plan con ese mismo respaldo genérico iguala el comportamiento a como ya funcionaban las otras dos,
+  que es exactamente lo que pide `T19`; escribir contenido de ayuda específico por pantalla sería un
+  alcance mucho mayor (tres pantallas, no solo Plan) y no es lo que describe esta tarea.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4272/4272**
+  pruebas (+5 sobre las 4267 previas a esta sesión: 3 de `T15`, 1 de `T17`, 1 de `T19` — el botón
+  aparece dentro de `#plan` con el mismo `data-e17-open="guide"` que Home y Registrar). `test:a11y`
+  **1328 IDs únicos** (sin cambio). `test:performance`, `build:site`, `test:privacy` y `test:smoke`
+  sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T15`, `T17` y `T19` como
+  cerradas, con nota de cada cierre; §6 (Horizonte 1) ya no las lista entre las pendientes sin
+  decisión. 7/52 tareas cerradas en total. `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: de los cinco hallazgos de `T1`, solo `T16` y `T18` siguen
+  esperando que el hogar decida (vocabulario estándar previsto/real; si la regla de 4 bloques de Home
+  sigue vigente). Del resto del Horizonte 1 original quedan `T2`, `D4`, `I11`, `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 16 de septiembre de 2026 (198): `T1`, primera auditoría Nielsen real
 
 Segundo ciclo de la sesión sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `D2`/`D3`/`D7`

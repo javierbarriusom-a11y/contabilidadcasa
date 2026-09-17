@@ -184,6 +184,9 @@ let registrarBalanceBaseline = null;
 let registrarSessionChanges = [];
 let registrarSessionBaselineMetrics = null;
 let registrarSessionConsolidatedNote = "";
+// T15: mismo patrón que registrarSessionConsolidatedNote (R-7) — sin esto, la barra de impacto de
+// Plan solo desaparece al guardar, sin distinguir «nada pendiente» de «se acaba de guardar».
+let planMesConsolidatedNote = "";
 let savingsAgentPlanCache = { key: "", value: null };
 const HEAVY_RENDER_VIEWS = new Set([
   "visual-detail",
@@ -38467,11 +38470,26 @@ function handlePlanMesCopyCancel() {
 // — los mismos borradores que edita esta pestaña). Las cifras son las que de verdad se mueven al
 // editar previsto (mínimo, meses bajo reserva, liquidez final y peor mes del horizonte) — no las
 // cuatro de Registrar, que dependen de saldo y deuda, ajenos a un cambio de previsto.
+function handlePlanMesImpactSave() {
+  saveVisualChanges();
+  planMesConsolidatedNote = "Cambios guardados.";
+  renderPlanMesImpactBar();
+  window.setTimeout(() => {
+    planMesConsolidatedNote = "";
+    renderPlanMesImpactBar();
+  }, 2000);
+}
+
 function renderPlanMesImpactBar() {
   const bar = qs("planMesImpactBar");
   if (!bar) return;
   const impact = cuadroMandosImpact();
   if (!impact.drafts.length) {
+    if (planMesConsolidatedNote) {
+      bar.hidden = false;
+      bar.innerHTML = `<p class="e19-registrar-impact-note">${escapeHtml(planMesConsolidatedNote)}</p>`;
+      return;
+    }
     bar.hidden = true;
     bar.innerHTML = "";
     return;
@@ -38634,7 +38652,10 @@ function renderPlanPrevision() {
 
   const legend = qs("planPrevisionLegend");
   if (legend) {
-    legend.textContent = `Colchón: liquidez al cierre de cada mes frente a ${floor.source}.${
+    // T17: la cifra de reserva ya gobierna el color de la fila «Colchón» de abajo, pero antes solo
+    // aparecía metida en la frase de floor.source — sin decir la cifra por delante, quien ajusta un
+    // previsto no la ve sin salir de la pantalla (heurístico 6, docs/OPT21_CHECKLIST_NIELSEN.md).
+    legend.textContent = `Reserva protegida: ${money(floor.value, true)}. Colchón: liquidez al cierre de cada mes frente a ${floor.source}.${
       worstKey ? ` Peor mes: ${escenarioMotorMonthLabel(worstKey)}, marcado en Resultado y Colchón.` : ""
     }`;
   }
@@ -40185,7 +40206,7 @@ async function init() {
     if (input) handleSavingsGoalFieldChange(input);
   });
   qs("planMesImpactBar")?.addEventListener("click", (event) => {
-    if (event.target.closest("[data-plan-mes-impact-save]")) { saveVisualChanges(); return; }
+    if (event.target.closest("[data-plan-mes-impact-save]")) { handlePlanMesImpactSave(); return; }
     // discardVisualChanges() solo repinta #visual-detail; Plan necesita su propio refresco.
     if (event.target.closest("[data-plan-mes-impact-discard]")) { discardVisualChanges(); renderPlanMes(); }
   });
