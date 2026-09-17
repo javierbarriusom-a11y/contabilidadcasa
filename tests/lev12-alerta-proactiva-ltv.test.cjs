@@ -51,7 +51,7 @@ test("proactiveLtvAlert reutiliza tal cual lombardMarginCallSimulation, sin ning
 });
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 test("wiring: renderLev12ProactiveMarginCallAlert existe en app.js y usa la declaración persistida del crédito Lombard", () => {
   const start = appSource.indexOf("function renderLev12ProactiveMarginCallAlert(");
@@ -67,8 +67,8 @@ test("wiring: guardar apx3LoanAmount/apx3MaintenanceLtvPct persiste la declaraci
 });
 
 test("wiring: la pantalla Deuda › Apalancamiento sincroniza y renderiza la alerta proactiva de LTV al abrirse", () => {
-  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
-  const block = deudaSource.slice(start, deudaSource.indexOf("\n}\n", start) + 3);
+  const start = inversionSource.indexOf("function renderInversionApalancamiento(");
+  const block = inversionSource.slice(start, inversionSource.indexOf("\n}\n", start) + 3);
   assert.match(block, /syncApx3LombardDeclarationControls\(\);/);
   assert.match(block, /renderLev12ProactiveMarginCallAlert\(\);/);
 });

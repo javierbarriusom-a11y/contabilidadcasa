@@ -12,6 +12,10 @@ const Portfolio = require("../canonical-portfolio.js");
 // "sin-declarar" es una categoría más, nunca se asume EUR/España por defecto.
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+// I1 (Contabilidadcasa 2.0): la única aparición de este par que vivía en renderAjustes() se movió
+// a renderInversionCartera() (views/inversion.js) — el resto sigue en app.js, en los manejadores
+// de mutación de posiciones.
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {
@@ -142,6 +146,7 @@ test("app.js: saveIv1Position lee currency/region y guarda ambos en el registro"
 });
 
 test("wiring: renderInv14CurrencyGeographyExposure se llama junto a renderInv16ConcentrationWarnings en cada mutación relevante", () => {
-  const occurrences = appSource.split("renderInv16ConcentrationWarnings();\n  renderInv14CurrencyGeographyExposure();").length - 1;
+  const combined = appSource + "\n" + inversionSource;
+  const occurrences = combined.split("renderInv16ConcentrationWarnings();\n  renderInv14CurrencyGeographyExposure();").length - 1;
   assert.ok(occurrences >= 7, `Se esperaban al menos 7 sitios, encontrados: ${occurrences}`);
 });

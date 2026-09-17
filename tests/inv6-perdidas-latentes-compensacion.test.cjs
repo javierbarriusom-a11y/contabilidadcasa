@@ -48,25 +48,21 @@ test("latentLossHarvestingCandidates está exportada", () => {
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-// OPT-25 (fase 4, 11 sept. 2026): INV6 se trasladó de Ajustes › Fiscal a Herramientas avanzadas →
-// Patrimonio e inversión (#herramientas-patrimonio, temáticamente es de cartera, no fiscal). FC3
-// vive en Herramientas avanzadas → Fiscal (#herramientas-fiscal, fase 2) — pantallas distintas, así
-// que la tarjeta sigue enlazando explícitamente a dónde vive la calculadora que complementa.
-test("wiring: la tarjeta de INV6 vive en Herramientas avanzadas › Patrimonio e inversión y enlaza a la calculadora de FC3 en Herramientas avanzadas › Fiscal", () => {
-  const patrimonioTools = /<section class="e19-asesor-decision view-section" id="herramientas-patrimonio">/.exec(indexSource);
-  assert.ok(patrimonioTools, "No existe la sección herramientas-patrimonio");
-  const start = patrimonioTools.index + patrimonioTools[0].length;
+// I1 (Contabilidadcasa 2.0): INV6 y la calculadora de compensación de FC3 se movieron juntas al
+// hub Inversión → Fiscal (#inversion-fiscal, ambas son fiscalidad de inversión) — ya no hacen
+// falta enlaces cruzados entre pantallas distintas: la tarjeta de INV6 remite a "la calculadora de
+// arriba", en la misma pestaña.
+test("wiring: la tarjeta de INV6 vive en Inversión › Fiscal, después de la calculadora de compensación de FC3", () => {
+  const inversionFiscal = /<section class="e19-deuda-decidir view-section" id="inversion-fiscal">/.exec(indexSource);
+  assert.ok(inversionFiscal, "No existe la sección inversion-fiscal");
+  const start = inversionFiscal.index + inversionFiscal[0].length;
   const end = indexSource.indexOf("</section>", start);
-  const herramientasPatrimonio = indexSource.slice(start, end);
-  assert.match(herramientasPatrimonio, /id="inv6LatentLossCandidates"/, "INV6 debe vivir en Herramientas avanzadas › Patrimonio e inversión");
-  assert.match(herramientasPatrimonio, /href="#herramientas-fiscal"/, "debe enlazar a donde vive ahora la calculadora FC3");
-
-  const fiscalTools = /<section class="e19-asesor-decision view-section" id="herramientas-fiscal">/.exec(indexSource);
-  assert.ok(fiscalTools, "No existe la sección herramientas-fiscal");
-  assert.ok(
-    indexSource.indexOf("Compensación de pérdidas y ganancias a cierre de año", fiscalTools.index) > fiscalTools.index,
-    "FC3 debe vivir dentro de Herramientas avanzadas → Fiscal",
-  );
+  const section = indexSource.slice(start, end);
+  assert.match(section, /id="inv6LatentLossCandidates"/, "INV6 debe vivir en Inversión › Fiscal");
+  assert.match(section, /calculadora de arriba/, "debe remitir a la calculadora de compensación en la misma pestaña");
+  const fc3Idx = section.indexOf("Compensación de pérdidas y ganancias a cierre de año");
+  const inv6Idx = section.indexOf("Pérdidas latentes candidatas a compensación");
+  assert.ok(fc3Idx >= 0 && inv6Idx > fc3Idx, "FC3 (compensación) debe ir antes de INV6 en la misma pestaña");
 });
 
 test("wiring: renderInv6LatentLossCandidates reutiliza normalizePositions y latentLossHarvestingCandidates, sin motor propio", () => {
@@ -78,6 +74,10 @@ test("wiring: renderInv6LatentLossCandidates reutiliza normalizePositions y late
   assert.match(block, /engine\.latentLossHarvestingCandidates\(result\.positions\)/);
 });
 
-test("wiring: renderInv6LatentLossCandidates se llama en renderAjustes junto a renderIv1PositionConcentration", () => {
-  assert.match(appSource, /renderIv1PositionConcentration\(\);\s*\n\s*renderInv6LatentLossCandidates\(\);/);
+// I1 (Contabilidadcasa 2.0): renderInv6LatentLossCandidates() se movió de renderAjustes() a
+// renderInversionFiscal() (views/inversion.js), junto a renderInv18GoalOptions (ambas de
+// fiscalidad de inversión), no junto a renderIv1PositionConcentration (que ahora es de Cartera).
+test("wiring: renderInv6LatentLossCandidates se llama en renderInversionFiscal junto a renderInv18GoalOptions", () => {
+  const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
+  assert.match(inversionSource, /renderInv18GoalOptions\(\);\s*\n\s*renderInv6LatentLossCandidates\(\);/);
 });

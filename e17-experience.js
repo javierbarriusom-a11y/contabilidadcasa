@@ -46,6 +46,14 @@
     { target: "deuda-ruta", label: "Plan de deuda · ruta (nuevo)", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
     { target: "deuda-contratos", label: "Contratos de deuda (nuevo)", group: "analysis", keywords: "deuda contratos capital tae cuota editar corregir nuevo e20 d-2" },
     { target: "deuda-simulador", label: "Simulador visual de deuda (nuevo)", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
+    // I1 (Contabilidadcasa 2.0): hub único de Inversión, mismo patrón de pestañas que Deuda —
+    // Cartera es la entrada principal del menú lateral; las otras 4 viven en Herramientas
+    // avanzadas, igual que las de Deuda de arriba.
+    { target: "inversion-cartera", label: "Inversión · Cartera", group: "analysis", keywords: "inversion cartera posiciones xirr rentabilidad registro i1" },
+    { target: "inversion-rebalanceo", label: "Inversión · Rebalanceo (nuevo)", group: "analysis", keywords: "inversion rebalanceo objetivo reparto umbral desapalancar vender primero i1" },
+    { target: "inversion-fiscal", label: "Inversión · Fiscal (nuevo)", group: "analysis", keywords: "inversion fiscal dividendos venta parcial compensacion perdidas plusvalia i1" },
+    { target: "inversion-apalancamiento", label: "Inversión · Apalancamiento (nuevo)", group: "analysis", keywords: "inversion apalancamiento lombard margin call ltv deuda invertir i1" },
+    { target: "inversion-jubilacion", label: "Inversión · Jubilación (nuevo)", group: "analysis", keywords: "inversion jubilacion pension rescate aportacion proyeccion i1" },
     { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
     // OPT-25 (fase 3, 11 sept. 2026): trasladada desde Ajustes > Fiscal > Herramientas.

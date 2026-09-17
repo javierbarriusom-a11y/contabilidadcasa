@@ -11,7 +11,7 @@ const vm = require("node:vm");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);
@@ -170,10 +170,10 @@ test("handleDeb14MaxMonthsChange · guarda el umbral declarado y repinta la aler
   assert.match(ctx.noteEl.innerHTML, /nunca has registrado/);
 });
 
-test("wiring: renderDeudaApalancamiento() repinta DEB14 al entrar en la vista — misma lección de LEV10 (vista cargada de forma perezosa, no pasa por renderAjustes())", () => {
-  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
-  const end = deudaSource.indexOf("\n}", start);
-  const block = deudaSource.slice(start, end);
+test("wiring: renderInversionApalancamiento() repinta DEB14 al entrar en la vista — misma lección de LEV10 (vista cargada de forma perezosa, no pasa por renderAjustes())", () => {
+  const start = inversionSource.indexOf("function renderInversionApalancamiento(");
+  const end = inversionSource.indexOf("\n}", start);
+  const block = inversionSource.slice(start, end);
   assert.match(block, /syncDeb14MaxMonthsControl\(\);/);
   assert.match(block, /renderDeb14MarketCheckAlert\(\);/);
 });

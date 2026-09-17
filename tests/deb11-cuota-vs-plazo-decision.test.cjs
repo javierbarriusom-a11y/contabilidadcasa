@@ -140,6 +140,6 @@ test("wiring: saveScenarioSettings persiste deb11Preference (sin decidir por def
 
 test("wiring: el selector DEB11 dispara handleDeb11PreferenceChange, y la pantalla de Deuda lo sincroniza al abrirse", () => {
   assert.match(appSource, /qs\("deb11PreferenceSelect"\)\?\.addEventListener\("change", handleDeb11PreferenceChange\)/);
-  const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
-  assert.match(deudaSource, /syncDeb11PreferenceControl\(\);/);
+  const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
+  assert.match(inversionSource, /syncDeb11PreferenceControl\(\);/);
 });

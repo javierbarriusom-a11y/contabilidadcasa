@@ -195,12 +195,12 @@ test("app.js: el importe de AP3 dispara el repintado de LEV10 en vivo, sin neces
   assert.match(appSource, /qs\("ap3DebtAmount"\)\?\.addEventListener\("input", renderLev10DebtCostCurve\);/);
 });
 
-test("views/deuda.js: renderDeudaApalancamiento() repinta LEV10 al entrar en la vista — deuda-apalancamiento es una vista cargada de forma perezosa (views/deuda.js), no parte del lote de renderAjustes()", () => {
-  const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
-  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
-  assert.ok(start >= 0, "No existe renderDeudaApalancamiento en views/deuda.js");
-  const end = deudaSource.indexOf("\n}", start);
-  const block = deudaSource.slice(start, end);
+test("views/inversion.js: renderInversionApalancamiento() repinta LEV10 al entrar en la vista — deuda-apalancamiento es una vista cargada de forma perezosa (views/inversion.js), no parte del lote de renderAjustes()", () => {
+  const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
+  const start = inversionSource.indexOf("function renderInversionApalancamiento(");
+  assert.ok(start >= 0, "No existe renderInversionApalancamiento en views/inversion.js");
+  const end = inversionSource.indexOf("\n}", start);
+  const block = inversionSource.slice(start, end);
   assert.match(block, /renderLev10DebtCostCurve\(\);/);
 });
 

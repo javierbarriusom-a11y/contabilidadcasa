@@ -8,13 +8,13 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 16/52 cerradas (sesión 201 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 17/52 cerradas (sesión 202 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5`, `P9` y `D5`, las tres primeras tareas del Horizonte 2, ya cerradas (sesiones 200-201) —
-quedan `I1`, `D10`, `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía por el hogar. El
-resto sigue pendiente — diagnóstico y planificación para lo que falta.
+§4). `T5`, `P9`, `D5` e `I1`, las cuatro primeras tareas del Horizonte 2, ya cerradas
+(sesiones 200-202) — quedan `D10`, `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía
+por el hogar. El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -82,7 +82,7 @@ fiscalidad de dividendos/plusvalías, apalancamiento tipo Lombard con margin cal
 
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
-| ⏳ `I1` | Hub único «Inversión» como pantalla principal (Cartera/Rebalanceo/Fiscal/Apalancamiento/Jubilación) | M | Alto | Hoy repartida entre Ajustes y Herramientas avanzadas; mismo movimiento que ya tuvo Deuda en `OPT-24`. Reorganiza, no crea lógica nueva. |
+| ✅ `I1` | Hub único «Inversión» como pantalla principal (Cartera/Rebalanceo/Fiscal/Apalancamiento/Jubilación) | M | Alto | **Cerrada (sesión 202).** La nota decía "repartida entre Ajustes y Herramientas avanzadas", pero `OPT-24` ya había sacado Apalancamiento a la 5ª pestaña de Deuda — construir `I1` implicó deshacer esa parte (confirmado con el hogar) y sacarla también de ahí. Nuevo `views/inversion.js` (mismo patrón `DEUDA_SCREEN_TABS`/PERF-1 que Deuda): 5 pestañas, ningún motor movido, solo quién llama a cada render y dónde vive el HTML. Solo el subconjunto de fiscalidad de inversión se movió de Ajustes/Herramientas → Fiscal (lo general se queda). Jubilación es la única pestaña realmente nueva: GOB11/A15-4/FCX1 no tenían ninguna pantalla que las juntara antes. |
 | ⏳ `I2` | Serie histórica real de valoraciones por posición | L | Alto | **No es un hallazgo nuevo** — es el hueco de datos ya documentado desde la Oleada 2 (`APX4`/`IVX1`/`IVX5`, `PROJECT_STATE.md`). Requisito de `I3`. |
 | ⏳ `I3` | Mapa de calor de correlación calculada (sustituye la declarada de `INV16`) | M | Medio | Depende de `I2`. `INV16` se construyó deliberadamente declarada/editable por decisión del hogar (sesión 171) — este cambio de fondo necesita confirmación explícita, no solo capacidad técnica. |
 | 🟡❌ `I4` | ~~Guardarraíl de crédito Lombard equivalente a `AP4`~~ | — | — | **Descartada tras el cruce.** No es un hueco: `PROJECT_STATE.md` documenta que el crédito Lombard (`APX2`/`APX3`) queda **fuera de `AP4` por decisión explícita del hogar** (garantía real, perfil de riesgo distinto) — «toda tarea nueva de apalancamiento respeta la misma exclusión salvo que se declare lo contrario». Se retira para que ninguna sesión futura reabra la pregunta sin releer esto. |
@@ -157,8 +157,8 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
-`D5` ✅ (sesión 201). Quedan `I1`, `D10`, `T7`, `T8`, `T4`, sin orden confirmado todavía por el
-hogar.
+`D5` ✅ (sesión 201), `I1` ✅ (sesión 202). Quedan `D10`, `T7`, `T8`, `T4`, sin orden confirmado
+todavía por el hogar.
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad

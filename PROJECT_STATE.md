@@ -70,6 +70,60 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (202): `I1`, hub único de Inversión — cuarto ciclo del Horizonte 2
+
+- **Qué pedía la tarea**: `I1` — un hub único "Inversión" con sub-pestañas Cartera/Rebalanceo/
+  Fiscal/Apalancamiento/Jubilación, hoy repartidas entre Ajustes y Herramientas avanzadas. Mismo
+  movimiento que ya tuvo Deuda en `OPT-24`: reorganiza pantallas ya existentes, sin motor nuevo.
+- **Qué había que investigar primero**: la nota de `I1` decía "repartida entre Ajustes y
+  Herramientas avanzadas", pero el reparto real era distinto — `OPT-24` (sesión 161-162) ya había
+  sacado **Apalancamiento** de Ajustes y lo había convertido en la 5ª pestaña del propio hub de
+  **Deuda** (`#deuda-apalancamiento`). Construir `I1` tal como pedía la nota implicaba deshacer
+  parte de `OPT-24`: sacar Apalancamiento de Deuda para meterlo en Inversión. Confirmado
+  explícitamente con el hogar antes de tocar nada (recomendado: sí, sacarla). Un segundo hallazgo:
+  la fiscalidad de `#ajustes-fiscal`/`#herramientas-fiscal` mezclaba piezas de inversión (FC3/FC4/
+  FC5/INV18/pensiones) con fiscalidad general del hogar (escalas IRPF/sucesiones, borrador de la
+  Renta) — solo la primera se movió, con alcance propuesto y confirmado antes de construir.
+- **Solución**: nuevo `views/inversion.js` (mismo patrón `DEUDA_SCREEN_TABS`/PERF-1 que Deuda) con
+  `INVERSION_SCREEN_TABS` y 5 funciones `renderInversionCartera/Rebalanceo/Fiscal/Jubilacion/
+  Apalancamiento()`. Ningún motor de cálculo se movió — cada una es una capa de orquestación fina
+  que llama a las mismas funciones que ya existían (IV1/IV6/INV*/FC3/FC4/GOB11/LEV*/AP*...), solo
+  cambia quién las llama y dónde vive el HTML que rellenan. `renderAjustes()` se recortó (ya no
+  repinta lo que se movió); `renderDeudaApalancamiento()` se retiró de `views/deuda.js`
+  (`DEUDA_SCREEN_TABS` vuelve a sus 4 pestañas originales) y su cuerpo pasó, renombrado, a
+  `views/inversion.js`. **Jubilación es la única pestaña nueva de verdad, no una relocación**:
+  GOB11 (Herramientas → Patrimonio), A15-4 y FCX1 (Herramientas → Fiscal) no tenían ninguna
+  pantalla que las juntara — ahora sí. Registrado en `VIEW_CHUNKS`/`HEAVY_RENDER_VIEWS`/dispatcher/
+  `viewTitles` (app.js), en `service-worker.js` y `tools/build-public-site.mjs` (la lista a mano de
+  fragmentos con carga diferida — sin esta entrada, el sitio publicado habría dado 404 la primera
+  vez que alguien visitara Inversión). Nuevo enlace principal "Inversión" en el menú lateral
+  (apunta a `#inversion-cartera`, igual que "Deuda" apunta a `#deuda-ruta`) más 5 entradas en
+  Herramientas avanzadas y en el buscador universal (`e17-experience.js`, T2). Textos de las
+  tarjetas movidas actualizados donde quedaban referencias cruzadas ya rotas o redundantes (p. ej.
+  INV6/FC3-compensación ahora en la misma pestaña, ya no hace falta enlazarlas entre pantallas).
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4338/4338**
+  pruebas (mismo número que antes de `I1` — es una reorganización de HTML/orquestación, no añade
+  motores ni tests nuevos; sí se actualizaron ~39 tests existentes que fijaban la ubicación antigua
+  de las tarjetas movidas, sin debilitar ninguna aserción — misma disciplina que el resto de la
+  sesión). Un fallo intermitente y no relacionado (`tests/lev14-apalancamiento-escalonado.test.cjs`,
+  comparación de timestamp con 1ms de diferencia) se confirmó como flake preexistente al re-ejecutar
+  en verde de forma aislada. `test:a11y` **1350 IDs únicos** (+8 sobre los 1342 previos, por los 5
+  contenedores de pestañas nuevos y sus enlaces). `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke` sin errores. Verificación visual adicional con Playwright (navegador real, sin
+  confirmación de la skill `run` porque no hay servidor de desarrollo propio en este proyecto):
+  las 5 pestañas de Inversión y las 4 de Deuda renderizan correctamente, sin peticiones fallidas
+  distintas del bloqueo de red esperado hacia el CDN de Supabase en este entorno. Ese repaso visual
+  encontró y corrigió un bloque de título duplicado en la pestaña Apalancamiento (arrastrado sin
+  querer al copiar el cuerpo completo de la antigua `#deuda-apalancamiento`), antes de dar la tarea
+  por cerrada.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `I1` como cerrada; 17/52 tareas
+  cerradas en total. Del Horizonte 2 quedan `D10`, `T7`, `T8`, `T4`, sin orden confirmado todavía.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decidir con el hogar el orden de lo que queda del
+  Horizonte 2 (`D10`, `T7`, `T8`, `T4`).
+
 ## Cierre de sesión — 17 de septiembre de 2026 (201): `D5`, cruce real de deuda y activos de cartera — tercer ciclo del Horizonte 2
 
 - **Qué había que investigar primero**: la nota de `D5` pedía "aplicar AP1 línea a línea sobre el

@@ -12,6 +12,9 @@ const Portfolio = require("../canonical-portfolio.js");
 // inventado sobre el conjunto).
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+// I1 (Contabilidadcasa 2.0): la única aparición de este trío que vivía en renderAjustes() se
+// movió a renderInversionCartera() (views/inversion.js) — el resto sigue en app.js.
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {
@@ -119,6 +122,7 @@ test("index.html: tarjeta INV19 vive junto a la exposición por divisa y geograf
 });
 
 test("wiring: renderInv19FeeCostTrajectory se llama junto a renderInv16ConcentrationWarnings en cada mutación relevante", () => {
-  const occurrences = appSource.split("renderInv16ConcentrationWarnings();\n  renderInv14CurrencyGeographyExposure();\n  renderInv19FeeCostTrajectory();").length - 1;
+  const combined = appSource + "\n" + inversionSource;
+  const occurrences = combined.split("renderInv16ConcentrationWarnings();\n  renderInv14CurrencyGeographyExposure();\n  renderInv19FeeCostTrajectory();").length - 1;
   assert.ok(occurrences >= 7, `Se esperaban al menos 7 sitios, encontrados: ${occurrences}`);
 });

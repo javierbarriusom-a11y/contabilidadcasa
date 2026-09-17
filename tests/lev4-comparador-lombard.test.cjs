@@ -10,7 +10,7 @@ const path = require("node:path");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 test("la tarjeta del comparador Lombard vive justo debajo de APX2, antes de APX3", () => {
   const apx2Pos = indexSource.indexOf('id="apx2LombardNote"');
@@ -40,5 +40,5 @@ test("guardar y quitar ofertas están conectados a sus botones", () => {
 });
 
 test("renderLev4LombardComparison se llama al renderizar Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta)", () => {
-  assert.match(deudaSource, /renderDeb1VerdictChangeAlert\(\);\n\s*syncLoanGuaranteeControl\(\);\n\s*renderAjustesLoanGuaranteeNote\(\);\n\s*renderLev4LombardComparison\(\);/);
+  assert.match(inversionSource, /renderDeb1VerdictChangeAlert\(\);\n\s*syncLoanGuaranteeControl\(\);\n\s*renderAjustesLoanGuaranteeNote\(\);\n\s*renderLev4LombardComparison\(\);/);
 });

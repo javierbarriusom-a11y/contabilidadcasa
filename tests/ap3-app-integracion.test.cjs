@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 const buildScript = fs.readFileSync(require.resolve("../tools/build-public-site.mjs"), "utf8");
-const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(require.resolve("../views/inversion.js"), "utf8");
 
 test("AP3: la tarjeta del simulador de apalancamiento tiene todos sus campos", () => {
   [
@@ -67,7 +67,7 @@ test("AP3: los controles y el listado están cableados", () => {
 });
 
 test("AP3: el guardarraíl y el listado de escenarios se renderizan al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta)", () => {
-  assert.match(deudaSource, /renderDeudaScreenTabs\("deuda-apalancamiento"\);\s*\n\s*renderAp3BarrierStatus\(\);\s*\n\s*renderAp3ScenarioList\(\);/);
+  assert.match(inversionSource, /renderInversionScreenTabs\("inversion-apalancamiento"\);\s*\n\s*renderAp3BarrierStatus\(\);\s*\n\s*renderAp3ScenarioList\(\);/);
 });
 
 test("canonical-leverage-simulator.js está versionado en index.html, cargado antes que app.js y en la whitelist del sitio público", () => {

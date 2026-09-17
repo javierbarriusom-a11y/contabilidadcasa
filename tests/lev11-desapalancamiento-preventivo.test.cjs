@@ -57,7 +57,7 @@ test("preventiveDeleveragingAllocation · ni vendiendo toda la cartera priorizab
 });
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
-const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
+const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 test("wiring: renderLev11PreventiveDeleveragingAlert reutiliza weightedPortfolioStressDropPct (LEV5) y deleveragingPriority (LEV6), sin motor propio de venta", () => {
   const start = appSource.indexOf("function renderLev11PreventiveDeleveragingAlert(");
@@ -69,7 +69,7 @@ test("wiring: renderLev11PreventiveDeleveragingAlert reutiliza weightedPortfolio
 });
 
 test("wiring: la pantalla Deuda › Apalancamiento renderiza la alerta de desapalancamiento preventivo al abrirse", () => {
-  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
-  const block = deudaSource.slice(start, deudaSource.indexOf("\n}\n", start) + 3);
+  const start = inversionSource.indexOf("function renderInversionApalancamiento(");
+  const block = inversionSource.slice(start, inversionSource.indexOf("\n}\n", start) + 3);
   assert.match(block, /renderLev11PreventiveDeleveragingAlert\(\);/);
 });
