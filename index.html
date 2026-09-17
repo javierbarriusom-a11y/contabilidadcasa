@@ -375,6 +375,21 @@
                 <p class="e19-kpi-note" id="homeHealthScoreTrendNote"></p>
               </article>
 
+              <!-- P1 (Horizonte 1, sesión 199): «qué cambió desde la última vez» — combina PVX5
+                   (causalTreeForMonth/previsionChangeOneLiner) y PVC6/PVC18 (diffAssumptionSnapshots
+                   + causas), hoy solo visibles en Ajustes. Oculta hasta tener previsión calculable,
+                   igual que la tarjeta de salud financiera de arriba. -->
+              <article class="home-panel" id="homeForecastChangeCard" hidden data-meeting-step="1">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Previsión</p>
+                    <h3>Qué cambió desde la última vez</h3>
+                  </div>
+                </div>
+                <p class="e19-kpi-note" id="homeForecastChangeOneLiner"></p>
+                <div id="homeForecastChangeDiff"></div>
+              </article>
+
               <article class="home-panel" data-meeting-step="3">
                 <div class="module-heading">
                   <div>

@@ -32406,6 +32406,42 @@ function renderHomeHealthScoreTrend() {
   note.textContent = `Tendencia: ${arrow} ${sign}${trend.delta} puntos desde ${trend.first.date} (${trend.first.value}) hasta ${trend.last.date} (${trend.last.value}), ${trend.count} registros.`;
 }
 
+// P1 (Horizonte 1, sesión 199): «qué cambió desde la última vez» en Hoy. Sin motor nuevo — trae a
+// Hoy lo que ya calculaba PVX5 (causalTreeForMonth/previsionChangeOneLiner) y PVC6/PVC18
+// (diffAssumptionSnapshots + causas), hoy solo visibles entrando a Ajustes. "La última vez" es el
+// cierre firmado más reciente con snapshot guardado (loadPvc6ForecastSnapshots, ya ordenado con el
+// más nuevo primero) — sin selector manual, a diferencia de Ajustes: en Hoy solo hay lectura de un
+// único punto de comparación, el último.
+function renderHomeForecastChangePanel() {
+  const card = qs("homeForecastChangeCard");
+  const oneLinerNote = qs("homeForecastChangeOneLiner");
+  const diffNote = qs("homeForecastChangeDiff");
+  if (!card || !oneLinerNote || !diffNote) return;
+  const engine = window.FinanceCanonicalForecast;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!engine || !forecast) { card.hidden = true; return; }
+  card.hidden = false;
+
+  const history = reconciledMonthlyNetHistory();
+  const latestMonth = [...history].sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1))[0];
+  if (latestMonth) {
+    const tree = engine.causalTreeForMonth(latestMonth.monthKey, { series: forecast.series, diary: loadPv5Diary() });
+    const structuralChange = engine.detectStructuralChange(history);
+    oneLinerNote.textContent = engine.previsionChangeOneLiner(tree, structuralChange);
+  } else {
+    oneLinerNote.textContent = "Todavía no hay meses conciliados para saber si la previsión ha cambiado de forma estructural.";
+  }
+
+  const snapshot = loadPvc6ForecastSnapshots()[0];
+  if (!snapshot) {
+    diffNote.innerHTML = "Todavía no hay ningún cierre firmado con snapshot de previsión guardado para comparar.";
+    return;
+  }
+  const result = engine.diffAssumptionSnapshots(snapshot.assumptions, forecast.assumptions);
+  const causes = pvc18ChangeCauses(result, snapshot.closedAt);
+  diffNote.innerHTML = pvc6DiffResultHtml(result, causes);
+}
+
 function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
@@ -32641,6 +32677,7 @@ function renderHomeDashboard() {
   renderHomeHealthScoreCard(compositeResult);
   recordHomeHealthScoreSnapshot(compositeResult?.value ?? null, new Date().toISOString().slice(0, 10));
   renderHomeHealthScoreTrend();
+  renderHomeForecastChangePanel();
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
