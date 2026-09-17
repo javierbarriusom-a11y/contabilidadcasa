@@ -8,8 +8,8 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 11/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 12/52 cerradas (sesión 199 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Solo `T16` y `T18` siguen esperando
 que el hogar decida. El resto sigue pendiente — diagnóstico y planificación para lo que falta, con el hogar ya
 decidido por dónde seguir (ver §6).
@@ -64,7 +64,7 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 | ⏳ `P2` | Cono de incertidumbre con tooltip (P10/P50/P90 y categoría dominante) | M | Medio | Sobre el SVG ya existente de `PVC19`, sin librería nueva. |
 | ⏳ `P3` | Badge de fiabilidad junto a cada cifra proyectada | S | Medio | Deriva de `predictiveHealthIndex` (`PVC17`, `canonical-e16-monitoring.js`). |
 | ⏳ `P4` | Dígesto semanal de reforecast material (email/nota, interino de push) | M | Medio | Sobre `reforecastMaterialityAlert` (`PVC8`); a sustituir cuando `A5-4`/push exista. |
-| ⏳ `P5` | Radar único de supuestos caducados con «revisar ahora» | S | Medio | Agrega `assumptionExpiryAlerts` (`PVC15`), hoy uno a uno. |
+| ✅ `P5` | Radar único de supuestos caducados con «revisar ahora» | S | Medio | Cerrada sesión 199: nueva tarjeta `ajustesAssumptionExpiryRadar` en Ajustes, sobre el mismo `assumptionExpiryAlerts` (`PVC15`) que ya se marcaba uno a uno dentro de la lista completa (que sigue igual, sin quitarle su marca en línea). Cada entrada del radar lleva un botón «Revisar ahora»: los cinco supuestos fiscales enfocan su propio campo en la misma tarjeta (`data-scroll-focus`, OPT-7); los cinco generales del forecast navegan al Laboratorio de escenarios, donde sí se editan (`data-home-nav`). Ningún motor nuevo. |
 | ⏳ `P6` | Puntuación de acierto histórico permanente en Hoy | S | Alto | Convierte el informe de `pvx1BacktestHtml` (`PVX1`) en KPI fijo. |
 | ⏳ `P7` | Captura rápida de gasto por foto o voz, confirmación de un toque | M | Alto | Extiende `canonical-receipt-ocr.js`, pensado para el momento del gasto, no el cierre de mes. |
 | ⏳ `P8` | Detector de «gasto fantasma» (subida de precio interanual + nudge) | M | Medio | Extiende la detección de suscripciones (`A16-3`). |
@@ -149,8 +149,8 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fondo que ya produjo
 37 pantallas. Tres horizontes:
 
-**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** `P5`, `P6` quedan (`T2`, `D4`, `I11`, `P1` y las
-tres nacidas de `T1` sin decisión previa pendiente — `T15`/`T17`/`T19` — ya se cerraron en la sesión 199).
+**Horizonte 1 — ya (bajo esfuerzo, alto impacto):** solo `P6` queda (`T2`, `D4`, `I11`, `P1`, `P5` y
+las tres nacidas de `T1` sin decisión previa pendiente — `T15`/`T17`/`T19` — ya se cerraron en la sesión 199).
 `T16` (unificar vocabulario, la de mayor severidad de las cinco) y `T18` (densidad de Hoy) necesitan
 una decisión del hogar antes de construirse — ver su nota en §4.
 

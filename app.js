@@ -29904,6 +29904,49 @@ const ASSUMPTION_REGISTRY_UNIT_FORMAT = {
   boolean: (value) => (value ? "Sí" : "No"),
 };
 
+// P5 (Horizonte 1, sesión 199): dónde se revisa cada supuesto que puede caducar (PVC15). Los cinco
+// fiscales se editan en esta misma tarjeta de Ajustes — foco directo con data-scroll-focus (OPT-7),
+// sin navegar. Los cinco generales del forecast (incomeFactor, annualIncomeGrowth, expenseFactor,
+// annualInflation, plannedMonthlySaving) se editan en el Laboratorio de escenarios — data-home-nav,
+// mismo patrón que el resto de la app para llevar a "la pantalla donde sí se actúa".
+const ASSUMPTION_EXPIRY_REVIEW_TARGETS = {
+  fiscalJointTaxation: { kind: "focus", id: "ajustesFiscalJointTaxationField" },
+  fiscalWithholdingRate: { kind: "focus", id: "ajustesFiscalWithholdingRateField" },
+  fiscalDeductibleContributions: { kind: "focus", id: "ajustesFiscalDeductibleContributionsField" },
+  fiscalDeductibleRent: { kind: "focus", id: "ajustesFiscalDeductibleRentField" },
+  fiscalLargeFamily: { kind: "focus", id: "ajustesFiscalLargeFamilyField" },
+  incomeFactor: { kind: "nav", target: "simulator" },
+  annualIncomeGrowth: { kind: "nav", target: "simulator" },
+  expenseFactor: { kind: "nav", target: "simulator" },
+  annualInflation: { kind: "nav", target: "simulator" },
+  plannedMonthlySaving: { kind: "nav", target: "simulator" },
+};
+
+function assumptionExpiryReviewButtonHtml(id) {
+  const review = ASSUMPTION_EXPIRY_REVIEW_TARGETS[id];
+  if (!review) return "";
+  return review.kind === "focus"
+    ? `<button type="button" class="link-button" data-scroll-focus="${escapeHtml(review.id)}">Revisar ahora</button>`
+    : `<button type="button" class="link-button" data-home-nav="${escapeHtml(review.target)}">Revisar ahora</button>`;
+}
+
+// P5: un único radar con los supuestos caducados, en vez de tener que leer la lista completa de
+// abajo entera para encontrarlos marcados uno a uno. Mismo `assumptionExpiryAlerts` (PVC15) que ya
+// calculaba `renderAjustesAssumptionRegistry` — sin motor nuevo, solo una segunda vista sobre el
+// mismo resultado.
+function renderAjustesAssumptionExpiryRadar(expiry) {
+  const card = qs("ajustesAssumptionExpiryRadar");
+  const list = qs("ajustesAssumptionExpiryRadarList");
+  if (!card || !list) return;
+  if (!expiry?.expired?.length) { card.hidden = true; return; }
+  card.hidden = false;
+  list.innerHTML = expiry.expired.map((entry) => `<li class="commit-barrier-item warning">
+      <span>${escapeHtml(entry.label)}</span>
+      <small>Sin confirmar hace ${entry.ageMonths} meses (más de ${entry.thresholdMonths}).</small>
+      ${assumptionExpiryReviewButtonHtml(entry.id)}
+    </li>`).join("");
+}
+
 // Recalcula siempre con los valores actuales (para que la lista nunca muestre un supuesto general
 // desfasado si se editó fuera de esta tarjeta) — nunca persiste por sí sola; eso lo hace
 // persistAssumptionRegistry(), solo cuando de verdad se edita un supuesto fiscal.
@@ -29919,6 +29962,7 @@ function renderAjustesAssumptionRegistry() {
     assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
   );
   const expiry = engine.assumptionExpiryAlerts ? engine.assumptionExpiryAlerts(registry) : { expired: [] };
+  renderAjustesAssumptionExpiryRadar(expiry);
   const expiredById = new Map(expiry.expired.map((entry) => [entry.id, entry]));
   list.innerHTML = registry.items.map((item) => {
     const format = ASSUMPTION_REGISTRY_UNIT_FORMAT[item.unit] || ((value) => String(value));
