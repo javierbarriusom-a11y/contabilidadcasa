@@ -70,6 +70,51 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, octavo ciclo): `P5`, radar único de supuestos caducados con «revisar ahora»
+
+Octavo ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `P1` (mismo día, PR #312).
+Última tarea del Horizonte 1 original sin bloqueo de decisión del hogar; con esta, solo queda `P6`.
+
+- **Qué había que investigar primero**: `assumptionExpiryAlerts()` (`PVC15`, `canonical-forecast.js`)
+  ya calculaba qué supuestos llevan más tiempo sin confirmar del esperado para su tipo. Lo único que
+  la app hacía con ese resultado era marcar en línea, dentro de la lista completa de los 13 supuestos
+  de Ajustes (`renderAjustesAssumptionRegistry`), los que estaban caducados — había que leer la lista
+  entera para encontrarlos, exactamente el problema que describe la nota de `P5`. También había que
+  averiguar dónde se edita cada uno de los 10 supuestos con umbral de caducidad para que «revisar
+  ahora» llevara a un sitio real: los cinco fiscales (`fiscalJointTaxation`, `fiscalWithholdingRate`,
+  `fiscalDeductibleContributions`, `fiscalDeductibleRent`, `fiscalLargeFamily`) se editan en la misma
+  tarjeta de Ajustes; los cinco generales del forecast (`incomeFactor`, `annualIncomeGrowth`,
+  `expenseFactor`, `annualInflation`, `plannedMonthlySaving`) se editan en el Laboratorio de
+  escenarios (`#simulator`) — dos de ellos (`incomeFactor`/`expenseFactor`) sin ningún campo propio
+  hoy, solo multiplicadores internos, así que su «revisar ahora» lleva a la pantalla donde viven los
+  otros tres, no a un campo que no existe.
+- **Solución**: nueva tarjeta `ajustesAssumptionExpiryRadar` en Ajustes, justo antes de la lista
+  completa (que sigue igual, con su marca en línea intacta — no se retira nada en uso). Oculta sin
+  ningún supuesto caducado. Cada entrada lleva un botón «Revisar ahora»: los cinco fiscales usan
+  `data-scroll-focus` (mecanismo genérico ya existente de OPT-7 — foco directo sin navegar, en la
+  misma pantalla); los cinco generales usan `data-home-nav="simulator"` (mismo patrón que el resto de
+  la app para "la pantalla donde sí se actúa" en vez de un deep-link a un campo en una pantalla que
+  no está visible). Ningún motor nuevo — 0 líneas en `canonical-*.js`.
+- **Guardarraíl añadido**: test que compara `Object.keys()` del nuevo mapa `app.js` con
+  `Object.keys(Forecast.ASSUMPTION_EXPIRY_MONTHS_DEFAULT)` — falla si algún supuesto con umbral de
+  caducidad se queda sin destino de revisión, o si se añade un destino para un supuesto sin umbral.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4297/4297**
+  pruebas (+9 sobre las 4288 previas de esta sesión). Dos tests preexistentes
+  (`tests/a15-1-registro-supuestos-fiscales.test.cjs`) rompieron al añadir la llamada nueva dentro de
+  `renderAjustesAssumptionRegistry()` — sandboxaban esa función sin la nueva `renderAjustesAssumptionExpiryRadar()`
+  de la que ahora depende; arreglado añadiéndola a los tres sandboxes afectados, sin tocar ninguna
+  aserción existente. `test:a11y` **1338 IDs únicos** (+7 por los `id` nuevos: la tarjeta, la lista y
+  los cinco contenedores de campo fiscal). `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `P5` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya solo lista `P6` entre las pendientes. 12/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  Horizonte 1 original solo queda `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, séptimo ciclo): `P1`, «qué cambió desde la última vez» llega a Hoy
 
 Séptimo ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `D4`/`I11` (mismo día, PR #311).

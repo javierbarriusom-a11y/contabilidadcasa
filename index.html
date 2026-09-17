@@ -4301,6 +4301,16 @@
               </label>
             </article>
 
+            <!-- P5 (Horizonte 1, sesión 199): radar único de supuestos caducados — agrega lo que
+                 hasta ahora solo se veía uno a uno dentro de la lista completa de abajo (marcados
+                 en línea, había que leerla entera para encontrarlos). Mismo motor, PVC15
+                 (assumptionExpiryAlerts) — sin umbral nuevo. Oculto sin ningún supuesto caducado. -->
+            <article class="e19-card" id="ajustesAssumptionExpiryRadar" hidden>
+              <h3 class="escenario-motor-panel-title">Supuestos caducados</h3>
+              <p class="e19-kpi-note">Sin confirmar desde hace más tiempo del esperado para ese tipo de supuesto — revísalos antes de fiarte de la previsión.</p>
+              <ul class="commit-barrier-list" id="ajustesAssumptionExpiryRadarList"></ul>
+            </article>
+
             <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
                  (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
                  editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
@@ -4309,23 +4319,23 @@
               <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
               <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
               <div class="cuadro-mandos-controls">
-                <label class="month-picker">
+                <label class="month-picker" id="ajustesFiscalJointTaxationField">
                   <span>Tributación conjunta</span>
                   <input id="ajustesFiscalJointTaxation" type="checkbox" />
                 </label>
-                <label class="month-picker">
+                <label class="month-picker" id="ajustesFiscalWithholdingRateField">
                   <span>Retenciones (%)</span>
                   <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
                 </label>
-                <label class="month-picker">
+                <label class="month-picker" id="ajustesFiscalDeductibleContributionsField">
                   <span>Aportaciones deducibles al año (€)</span>
                   <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
-                <label class="month-picker">
+                <label class="month-picker" id="ajustesFiscalDeductibleRentField">
                   <span>Alquiler deducible al año (€)</span>
                   <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
-                <label class="month-picker">
+                <label class="month-picker" id="ajustesFiscalLargeFamilyField">
                   <span>Familia numerosa</span>
                   <input id="ajustesFiscalLargeFamily" type="checkbox" />
                 </label>
