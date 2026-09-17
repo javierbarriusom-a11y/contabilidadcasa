@@ -16993,7 +16993,16 @@ function handleInv10Compare() {
   const verdict = result.cheaper === "sell"
     ? `<p class="e19-kpi-note positive">Vender sale ${money(result.difference, true)} más barato en este horizonte.</p>`
     : `<p class="e19-kpi-note positive">Pedir prestado sale ${money(result.difference, true)} más barato en este horizonte.</p>`;
-  note.innerHTML = `${sellLine}${borrowLine}${verdict}`;
+  // I11: cifra aparte de sellTotalCost/borrowTotalCost — solo la parte fiscal de la decisión
+  // (interés pagado por no vender frente al impuesto que te ahorras hoy al no vender), sin mezclar
+  // el crecimiento perdido de sellForegoneGrowth, que responde a otra pregunta (retirar capital de
+  // la cartera, no cuándo pagar el impuesto).
+  const deferralLine = result.deferredGainCost > 0
+    ? `<p class="e19-kpi-note">Coste de diferir la plusvalía: pedir prestado en vez de vender te cuesta ${money(result.deferredGainCost, true)} más en intereses de lo que te ahorras hoy en impuestos.</p>`
+    : result.deferredGainCost < 0
+      ? `<p class="e19-kpi-note positive">Coste de diferir la plusvalía: pedir prestado en vez de vender te ahorra ${money(Math.abs(result.deferredGainCost), true)} frente al impuesto que pagarías hoy al vender.</p>`
+      : `<p class="e19-kpi-note">Coste de diferir la plusvalía: el interés de pedir prestado iguala el impuesto que te ahorras hoy al no vender.</p>`;
+  note.innerHTML = `${sellLine}${borrowLine}${deferralLine}${verdict}`;
 }
 
 // APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2. El
@@ -18379,6 +18388,17 @@ function syncDeb4RadarControls() {
   });
 }
 
+// D4: el radar y su comparador de escenarios (evaluateMortgageRateScenarios, «fixedRateOffer» vs.
+// variable) ya calculan todo lo que hace falta — este guion no añade ningún número nuevo, solo
+// convierte los que ya existen en texto que se puede leer o pegar en una llamada o email al banco.
+// Sin nombre de entidad: DEB4 no declara esa entidad hoy, y no es esta tarea la que debe inventar
+// un campo nuevo para conseguirlo.
+function deb4RenegotiationScriptText(saved, scenarios, breakEven) {
+  const base = scenarios.scenarios.find((scenario) => scenario.id === "base");
+  if (!base) return "";
+  return `Tengo un préstamo con capital pendiente de ${money(saved.principal, true)} a ${saved.months} meses, actualmente a un tipo variable del ${saved.variableRate}%. He comparado con una oferta de tipo fijo del ${saved.fixedRate}%: la cuota bajaría de ${money(base.variableMonthlyPayment, true)} a ${money(base.fixedMonthlyPayment, true)} al mes. Descontando el coste de cambiar (${money(breakEven.cost, true)}), recupero esa diferencia en ${breakEven.months} mes(es) — dentro de mi límite de ${saved.maxBreakEvenMonths}. Pido que igualéis estas condiciones sin coste adicional, o que me deis por escrito una oferta de paso a fijo con estas condiciones o mejores.`;
+}
+
 function renderDeb4RefinancingRadar() {
   const box = qs("deb4RadarAlert");
   if (!box) return;
@@ -18396,7 +18416,12 @@ function renderDeb4RefinancingRadar() {
     box.innerHTML = "";
     return;
   }
-  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>`;
+  const script = deb4RenegotiationScriptText(saved, scenarios, breakEven);
+  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
+    <details>
+      <summary>Guion para llamar al banco (D4)</summary>
+      <p class="e19-kpi-note" id="deb4RenegotiationScript">${escapeHtml(script)}</p>
+    </details>`;
 }
 
 // DEB14 (Oleada 4, Bloque 6, DE-6, alcance reducido): DEB4 (arriba) avisa cuando el punto de

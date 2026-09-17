@@ -70,6 +70,77 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 17 de septiembre de 2026 (199, sexto ciclo): `I11`, el coste de diferir la plusvalía aislado del crecimiento perdido
+
+Sexto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, sobre la misma rama de `D4` (PR #311, todavía
+sin fusionar en el momento de este ciclo — mismo patrón que `T15`/`T17`/`T19` en el PR #309: varias
+tareas pequeñas del mismo Horizonte 1 encadenadas en un solo PR antes de fusionar).
+
+- **Qué hacía falta**: `sellVsBorrowComparison()` (`INV10`, `canonical-leverage-simulator.js`) ya
+  calculaba `sellTaxCost` (el impuesto que se evita al no vender) y `borrowTotalCost` (el interés de
+  pedir prestado en su lugar), pero solo los exponía dentro de un veredicto único (`cheaper`/
+  `difference`) que además mezclaba `sellForegoneGrowth` — el crecimiento que se pierde si de verdad
+  se retira el capital de la cartera. Son dos preguntas distintas: cuándo pagar el impuesto (diferirlo
+  pidiendo prestado, o pagarlo ya vendiendo) y si conviene retirar capital de la cartera en absoluto.
+  El backlog las tenía fundidas en una sola cifra.
+- **Solución**: nuevo campo `deferredGainCost = borrowTotalCost − sellTaxCost` en el propio motor
+  canónico (no en `app.js` — mismo criterio de mantener el cálculo en el motor, no en la vista), solo
+  cuando pedir prestado es factible. Positivo: diferir el impuesto cuesta más en intereses de lo que
+  ahorra hoy. Negativo: diferir sale a cuenta. `handleInv10Compare()` añade una línea propia en la
+  tarjeta de INV10 («Coste de diferir la plusvalía: ...»), separada del veredicto general que sigue
+  intacto.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4281/4281**
+  pruebas (+4 sobre las 4277 anteriores de esta sesión: `deferredGainCost` con diferir a cuenta,
+  diferir costoso, sin capacidad Lombard suficiente no se calcula, y la línea nueva cableada en la
+  tarjeta sin tocar el veredicto general).  `test:a11y` **1328 IDs únicos** (sin cambio).
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `I11` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes. 10/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso (mismo PR #311 de `D4`, todavía en
+  borrador); se fusionará junto con `D4` en cuanto el CI esté en verde, por la autorización de
+  publicación sin preguntar en cada tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `P1`, `P5`, `P6`.
+
+## Cierre de sesión — 17 de septiembre de 2026 (199, quinto ciclo): `D4`, el radar de refinanciación gana un guion de renegociación
+
+Quinto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T2` (mismo día, PR #310).
+Siguiente tarea del Horizonte 1 original, de esfuerzo bajo y beneficio alto: convertir en texto
+accionable un cálculo que hoy solo se ve como un número.
+
+- **Qué había que investigar primero**: la nota original hablaba de reutilizar «`DEB4` (radar de
+  refinanciación) y el comparador de ofertas», sin decir qué pantalla es ese segundo comparador. Se
+  investigaron dos candidatas: la tarjeta «Oferta en curso» de Deuda › Ruta (modelo `E14`, con
+  contraparte/importe/cuota reales de una negociación concreta) y el propio motor de `DEB4`
+  (`canonical-mortgage-rate-scenarios.js`, `evaluateMortgageRateScenarios`, cuyo parámetro se llama
+  literalmente `fixedRateOffer` frente al tipo variable). La segunda es la lectura correcta: `DEB4`
+  ya compara «una oferta» de tipo fijo contra el variable actual en tres escenarios — es su propio
+  comparador, no una pantalla distinta. Acoplar el guion a la tarjeta de Deuda › Ruta habría exigido
+  cruzar dos subsistemas independientes por una tarea de esfuerzo declarado «S», y esa tarjeta ya
+  tiene su propio flujo de aplicar/editar sin necesidad de un guion de llamada.
+- **Solución**: nueva función `deb4RenegotiationScriptText(saved, scenarios, breakEven)` en
+  `app.js` — sin cálculo nuevo, solo redacta en prosa los mismos números que ya calculaban
+  `evaluateMortgageRateScenarios`/`refinancingBreakEvenMonths` (capital, tipo variable actual, oferta
+  fija, cuotas antes/después, coste de cambiar, meses para recuperar la diferencia). Cuando el radar
+  ya avisa de una ventana viable, `renderDeb4RefinancingRadar()` añade un `<details>` plegable
+  («Guion para llamar al banco») con ese texto, listo para leer o pegar en una llamada o email — sin
+  nombre de entidad, porque `DEB4` no declara esa entidad hoy y no era esta tarea la que debía
+  inventar un campo nuevo solo para conseguirlo.
+- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test` **4277/4277**
+  pruebas (+3 sobre las 4274 previas de esta sesión: el texto del guion con números reales
+  verificados uno a uno, que no rompe sin escenario base calculable, y que el radar lo muestra
+  junto al aviso). `test:a11y` **1328 IDs únicos** (sin cambio). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `D4` como cerrada, con nota del
+  cierre; §6 (Horizonte 1) ya no la lista entre las pendientes. 9/52 tareas cerradas en total.
+  `BACKLOG_INDICE.md` refleja el mismo recuento.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: `T16` y `T18` siguen esperando que el hogar decida. Del
+  resto del Horizonte 1 original quedan `I11`, `P1`, `P5`, `P6`.
+
 ## Cierre de sesión — 17 de septiembre de 2026 (199, cuarto ciclo): `T2`, el buscador universal ya cubre las 45 pantallas navegables
 
 Cuarto ciclo sobre `BACKLOG_CONTABILIDADCASA_2_0.md`, tras fusionar `T15`/`T17`/`T19` (mismo día,

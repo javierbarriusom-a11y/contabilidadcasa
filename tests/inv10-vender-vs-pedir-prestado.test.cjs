@@ -107,6 +107,52 @@ test("sellVsBorrowComparison está exportado", () => {
   assert.equal(typeof Leverage.sellVsBorrowComparison, "function");
 });
 
+// --- I11 · coste de diferir la plusvalía, aislado del crecimiento perdido -----------------------
+
+test("I11 · deferredGainCost aísla el interés frente al impuesto evitado, sin mezclar el crecimiento perdido", () => {
+  const result = Leverage.sellVsBorrowComparison({
+    amount: 10000,
+    months: 12,
+    gainLossPct: 100,
+    savingsTaxRatePct: 25,
+    investmentResult: { calculable: true, gain: 700 },
+    lombardCapacity: { calculable: true, capacity: 50000, annualRatePct: 2 },
+  });
+  // sellTaxCost = 5000*25% = 1250; borrowTotalCost = 10000*2%*1 = 200.
+  assert.equal(result.sellTaxCost, 1250);
+  assert.equal(result.borrowTotalCost, 200);
+  // Diferir sale a cuenta: 200 de interés frente a 1250 de impuesto evitado.
+  assert.equal(result.deferredGainCost, -1050);
+});
+
+test("I11 · deferredGainCost positivo cuando el interés de pedir prestado supera al impuesto evitado", () => {
+  const result = Leverage.sellVsBorrowComparison({
+    amount: 10000,
+    months: 24,
+    gainLossPct: 0,
+    savingsTaxRatePct: 20,
+    investmentResult: { calculable: true, gain: 800 },
+    lombardCapacity: { calculable: true, capacity: 50000, annualRatePct: 5 },
+  });
+  // Sin plusvalía (gainLossPct=0): sellTaxCost=0; interés = 10000*5%*2 = 1000.
+  assert.equal(result.sellTaxCost, 0);
+  assert.equal(result.borrowTotalCost, 1000);
+  assert.equal(result.deferredGainCost, 1000);
+});
+
+test("I11 · sin capacidad Lombard suficiente, deferredGainCost no se calcula (no hay con qué diferir)", () => {
+  const result = Leverage.sellVsBorrowComparison({
+    amount: 20000,
+    months: 24,
+    gainLossPct: 50,
+    savingsTaxRatePct: 20,
+    investmentResult: { calculable: true, gain: 1000 },
+    lombardCapacity: { calculable: true, capacity: 10000, annualRatePct: 5 },
+  });
+  assert.equal(result.borrowFeasible, false);
+  assert.equal(result.deferredGainCost, undefined);
+});
+
 // --- Wiring ---
 
 test("wiring: la tarjeta de INV10 vive en index.html", () => {
@@ -126,4 +172,11 @@ test("wiring: handleInv10Compare compone opportunityCost (IV5), lombardCreditCap
 
 test("wiring: el botón de INV10 está cableado", () => {
   assert.match(appSource, /qs\("inv10Run"\)\?\.addEventListener\("click", handleInv10Compare\);/);
+});
+
+test("wiring: I11 muestra el coste de diferir la plusvalía como línea propia, no mezclada en el veredicto general", () => {
+  const start = appSource.indexOf("function handleInv10Compare(");
+  const block = appSource.slice(start, start + 3200);
+  assert.match(block, /Coste de diferir la plusvalía/);
+  assert.match(block, /result\.deferredGainCost/);
 });

@@ -381,6 +381,12 @@
     }
     const years = horizonMonths / 12;
     const borrowTotalCost = round2(needed * (lombardCapacity.annualRatePct / 100) * years);
+    // I11: aísla solo la decisión de sincronización fiscal (pedir prestado para no realizar la
+    // plusvalía todavía) del resto de sellTotalCost, que también mezcla el crecimiento que se
+    // perdería al retirar el importe de la cartera — esa segunda parte aplica solo si además se
+    // retira capital, no a la decisión de diferir el impuesto en sí. Positivo: diferir cuesta más
+    // en intereses de lo que ahorra en impuestos evitados hoy. Negativo: diferir sale a cuenta.
+    const deferredGainCost = round2(borrowTotalCost - sellTaxCost);
     return {
       schemaId: SELL_VS_BORROW_SCHEMA_ID,
       calculable: true,
@@ -389,6 +395,7 @@
       sellForegoneGrowth,
       sellTotalCost,
       borrowTotalCost,
+      deferredGainCost,
       cheaper: sellTotalCost <= borrowTotalCost ? "sell" : "borrow",
       difference: round2(Math.abs(sellTotalCost - borrowTotalCost)),
     };
