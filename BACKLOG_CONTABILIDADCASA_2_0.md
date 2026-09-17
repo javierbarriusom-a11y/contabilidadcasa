@@ -8,13 +8,13 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 14/52 cerradas (sesión 200 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 15/52 cerradas (sesión 200 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5`, primera tarea del Horizonte 2, ya cerrada (sesión 200) — quedan `I1`, `D10`, `T7`, `T8`,
-`T4`, `P9`, `D5` en ese horizonte, con `P9` y `D5` ya decididas como siguientes por el hogar (ver
-§6). El resto sigue pendiente — diagnóstico y planificación para lo que falta.
+§4). `T5` y `P9`, las dos primeras tareas del Horizonte 2, ya cerradas (sesión 200) — quedan `I1`,
+`D10`, `T7`, `T8`, `T4`, `D5` en ese horizonte, con `D5` ya decidida como siguiente por el hogar
+(ver §6). El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -70,7 +70,7 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 | ✅ `P6` | Puntuación de acierto histórico permanente en Hoy | S | Alto | Cerrada sesión 199: nuevo `historicalAccuracyScore()` en `canonical-forecast.js` (mismo ratio que ya clasifica `deviationSeverity`, invertido a % de acierto — 100% sin desviación, 0% si la desviación iguala o supera lo previsto, nunca negativo) pintado como un KPI más dentro de la rejilla `homeKpis` de Hoy, con enlace al informe completo de `pvx1BacktestHtml` en Análisis. Ningún informe duplicado. |
 | ⏳ `P7` | Captura rápida de gasto por foto o voz, confirmación de un toque | M | Alto | Extiende `canonical-receipt-ocr.js`, pensado para el momento del gasto, no el cierre de mes. |
 | ⏳ `P8` | Detector de «gasto fantasma» (subida de precio interanual + nudge) | M | Medio | Extiende la detección de suscripciones (`A16-3`). |
-| ⏳ `P9` | Calendario financiero único (hipoteca, seguros, comisiones, fiscal, supuestos) | M | Alto | Une fuentes ya existentes en una sola vista; no es un motor nuevo. |
+| ✅ `P9` | Calendario financiero único (hipoteca, seguros, comisiones, fiscal, supuestos) | M | Alto | **Cerrada (sesión 200).** `financialCalendar()` (E15) ya unificaba deuda/hipoteca, seguros (`SP1`), objetivos, revisiones, fiscal (Renta) y aportaciones de cartera (`IV3`) — la única salida era un `.ics` descargable, sin ninguna vista dentro de la app. Añadidas las dos fuentes que faltaban frente a la nota original, ninguna con fecha futura real así que aparecen solo en el mes en curso: comisiones de mantenimiento en riesgo (`TT4`) y supuestos caducados (`PVC15`, el mismo motor de `P5`). Nueva tarjeta de solo lectura en Ajustes junto a «Exportar», próximos 12 meses con eventos reales. Construcción del input centralizada en `ajustesFinancialCalendarInput()`, reutilizada por el `.ics`, el widget («próximo evento») y la tarjeta nueva — antes cada consumidor lo armaba por separado. Ningún motor nuevo. |
 | ⏳ `P10` | «Ajusta este supuesto en una frase» — interino de reforecast por lenguaje natural | M | Medio | Formulario reducido sobre el motor ya existente; sustituible cuando `A5-1` esté en producción real. |
 | ⏳ `P11` | Comparativa contra el mismo periodo del año anterior (no solo mes anterior) | M | Medio | Separa estacionalidad estructural (colegio, vacaciones) de desviación real. |
 | ⏳ `P12` | Informe mensual en una página («board pack» doméstico) | M | Medio | Extiende el informe trimestral familiar (`GOB14`) a cadencia mensual. |
@@ -156,9 +156,8 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 (`T15`/`T17`/`T19`) ya se cerraron. `T16` (unificar vocabulario, la de mayor severidad de las cinco)
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
-**Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅ (sesión 200), `I1`, `D10`, `T7`,
-`T8`, `T4`, `P9`, `D5`. El hogar decidió seguir con `P9` y luego `D5` a continuación de `T5`
-(sesión 200).
+**Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
+`I1`, `D10`, `T7`, `T8`, `T4`, `D5`. El hogar decidió seguir con `D5` a continuación (sesión 200).
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad

@@ -46,7 +46,15 @@ test("renderWidgetView reutiliza los mismos cálculos que Hoy, sin un motor para
   const body = app.slice(start, end);
   assert.match(body, /unifiedActionCenterModel\(\)/, "el saldo debe salir del mismo modelo que Hoy");
   assert.match(body, /rangeKpiMetric\(homeRowsForHorizon\(\)\)/, "el colchón debe salir del mismo cálculo que Hoy");
-  assert.match(body, /window\.FinanceCanonicalE15/, "el próximo evento debe salir del calendario financiero (A15-3/E15)");
+  // P9: el próximo evento sale de ajustesFinancialCalendarInput() — el mismo helper que ahora
+  // comparten el .ics y la tarjeta de Ajustes, en vez de construir el calendario financiero (E15)
+  // por su cuenta.
+  assert.match(body, /ajustesFinancialCalendarInput\(\)/, "el próximo evento debe salir del helper único del calendario financiero (P9/E15)");
+
+  const helperStart = app.indexOf("function ajustesFinancialCalendarInput(");
+  assert.ok(helperStart >= 0, "No existe ajustesFinancialCalendarInput en app.js");
+  const helperEnd = app.indexOf("\nfunction handleAjustesExportIcs(");
+  assert.match(app.slice(helperStart, helperEnd), /window\.FinanceCanonicalE15/, "el helper debe seguir leyendo del calendario financiero (A15-3/E15)");
 });
 
 test("el router despacha #widget a renderWidgetView y tiene título propio", () => {

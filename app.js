@@ -15883,6 +15883,7 @@ function addMaintenanceFeeAccountFromControls() {
     if (qs(id)) qs(id).value = "";
   });
   renderMaintenanceFeeAccounts();
+  renderAjustesFinancialCalendar();
 }
 
 // SP1 · inventario de pólizas con vencimientos en el calendario. Mismo patrón que TT3/TT4: un
@@ -15946,6 +15947,7 @@ function addInsurancePolicyFromControls() {
   if (qs("ajustesInsurancePolicyIsLife")) qs("ajustesInsurancePolicyIsLife").checked = false;
   renderInsurancePolicies();
   renderLpx3ContinuityChecklist();
+  renderAjustesFinancialCalendar();
 }
 
 // A15-5 · tablas fiscales versionadas y su actualización anual. Mismo patrón de registro que
@@ -30224,6 +30226,10 @@ function renderAjustes() {
   renderIrpfBracketScales();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
+  // P9: se pinta después de las comisiones (TT4) y los supuestos (PVC15, arriba) — las dos fuentes
+  // que solo el calendario financiero necesita y que hasta ahora no alimentaban ni el .ics ni el
+  // widget.
+  renderAjustesFinancialCalendar();
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();
@@ -30544,15 +30550,44 @@ function financialCalendarIcsContent(calendar, generatedAt = new Date()) {
   ].join("\r\n") + "\r\n";
 }
 
-function handleAjustesExportIcs() {
+// P9: input único del calendario financiero (E15), reutilizado por el .ics, el widget («próximo
+// evento») y la tarjeta de Ajustes de más abajo — antes cada consumidor armaba el objeto por su
+// cuenta (con el riesgo de que se desincronizaran); ahora los tres ven exactamente las mismas
+// fuentes. Añade las dos que faltaban frente a la nota original de P9 sobre las ya construidas
+// (hipoteca/deuda, seguros —SP1—, fiscal —Renta—, objetivos, revisiones, aportaciones de cartera
+// —IV3—): comisiones de mantenimiento en riesgo (TT4) y supuestos caducados (PVC15, el mismo motor
+// del radar de P5) — ninguna de las dos es un motor nuevo.
+function ajustesFinancialCalendarInput() {
   const api = window.FinanceCanonicalE15;
   const planning = window.FinanceP2Bridge?.goalPlanning?.();
-  if (!api || !planning) {
+  if (!api || !planning) return null;
+  const p2 = p2State();
+  const forecastEngine = window.FinanceCanonicalForecast;
+  const assumptionExpiry = forecastEngine?.buildAssumptionRegistry && forecastEngine?.assumptionExpiryAlerts
+    ? forecastEngine.assumptionExpiryAlerts(
+        forecastEngine.buildAssumptionRegistry(assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" }),
+      ).expired
+    : [];
+  return {
+    api,
+    calendar: api.financialCalendar({
+      ...planning,
+      goals: p2.goals,
+      reviews: p2.e15?.reviews || [],
+      policies: insurancePolicies(),
+      maintenanceFeeAlerts: maintenanceFeeAlerts().atRisk,
+      assumptionExpiry,
+    }),
+  };
+}
+
+function handleAjustesExportIcs() {
+  const input = ajustesFinancialCalendarInput();
+  if (!input) {
     announceStatus("El calendario financiero (E15) no está disponible todavía.");
     return;
   }
-  const p2 = p2State();
-  const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [], policies: insurancePolicies() });
+  const calendar = input.calendar;
   if (!calendar.rows.length) {
     announceStatus("No hay meses en el calendario financiero todavía.");
     return;
@@ -30570,6 +30605,39 @@ function handleAjustesExportIcs() {
     URL.revokeObjectURL(url);
   }, 0);
   announceStatus(`Calendario financiero exportado: ${calendar.rows.length} mes(es).`);
+}
+
+// P9: vista de solo lectura del calendario financiero (E15) dentro de la propia app — hasta ahora
+// la única forma de verlo era descargar el .ics. Mismas filas que genera ese export (mismo helper,
+// `ajustesFinancialCalendarInput`), acotadas a los próximos 12 meses con al menos un evento real —
+// "forecast" se descarta aquí porque está en todos los meses como cierre previsto, no un
+// vencimiento propio, y listarlo desde el primer mes ahogaría la lista sin aportar nada nuevo.
+const AJUSTES_FINANCIAL_CALENDAR_HORIZON_MONTHS = 12;
+
+function renderAjustesFinancialCalendar() {
+  const container = qs("ajustesFinancialCalendar");
+  if (!container) return;
+  const input = ajustesFinancialCalendarInput();
+  if (!input) {
+    container.innerHTML = `<p class="e19-kpi-note">El calendario financiero (E15) no está disponible todavía.</p>`;
+    return;
+  }
+  const rows = input.calendar.rows
+    .map((row) => ({ ...row, events: row.events.filter((event) => event.type !== "forecast") }))
+    .filter((row) => row.events.length)
+    .slice(0, AJUSTES_FINANCIAL_CALENDAR_HORIZON_MONTHS);
+  if (!rows.length) {
+    container.innerHTML = `<p class="e19-kpi-note">Sin vencimientos, objetivos ni revisiones en los próximos ${AJUSTES_FINANCIAL_CALENDAR_HORIZON_MONTHS} meses. Descarga el .ics para ver el horizonte completo.</p>`;
+    return;
+  }
+  container.innerHTML = `<ul class="commit-barrier-list">${rows
+    .map((row) => {
+      const items = row.events
+        .map((event) => `<li>${escapeHtml(event.label)}: ${event.amount === null ? "importe por determinar" : money(event.amount, true)} <span class="e19-kpi-note">(${escapeHtml(event.source)})</span></li>`)
+        .join("");
+      return `<li class="commit-barrier-item"><div><strong>${escapeHtml(row.label)}</strong><span>${money(row.closingLiquidity, true)} cierre previsto</span></div><ul>${items}</ul></li>`;
+    })
+    .join("")}</ul>`;
 }
 
 function handleOperatingReserveChange(event) {
@@ -31987,17 +32055,9 @@ function widgetSnapshot() {
   const metrics = rangeKpiMetric(homeRowsForHorizon());
 
   let nextEvent = null;
-  const calendarApi = window.FinanceCanonicalE15;
-  const planning = window.FinanceP2Bridge?.goalPlanning?.();
-  if (calendarApi && planning) {
-    const p2 = p2State();
-    const calendar = calendarApi.financialCalendar({
-      ...planning,
-      goals: p2.goals,
-      reviews: p2.e15?.reviews || [],
-      policies: insurancePolicies(),
-    });
-    for (const row of calendar.rows || []) {
+  const calendarInput = ajustesFinancialCalendarInput();
+  if (calendarInput) {
+    for (const row of calendarInput.calendar.rows || []) {
       // "forecast" se añade a todos los meses (es el cierre previsto, no un evento con fecha
       // propia): el próximo evento real es el primero que no sea ese.
       const found = (row.events || []).find((event) => event.type !== "forecast");
@@ -41096,12 +41156,14 @@ async function init() {
     if (!removeButton) return;
     removeMaintenanceFeeAccount(removeButton.dataset.maintenanceRemove);
     renderMaintenanceFeeAccounts();
+    renderAjustesFinancialCalendar();
   });
   qs("ajustesMaintenanceFeeAccounts")?.addEventListener("change", (event) => {
     const checkbox = event.target.closest("[data-maintenance-met]");
     if (!checkbox) return;
     setMaintenanceFeeAccountMet(checkbox.dataset.maintenanceMet, checkbox.checked);
     renderMaintenanceFeeAccounts();
+    renderAjustesFinancialCalendar();
   });
   qs("ajustesInsurancePolicyAdd")?.addEventListener("click", addInsurancePolicyFromControls);
   qs("ajustesInsurancePolicies")?.addEventListener("click", (event) => {
@@ -41110,6 +41172,7 @@ async function init() {
     removeInsurancePolicy(removeButton.dataset.policyRemove);
     renderInsurancePolicies();
     renderLpx3ContinuityChecklist();
+    renderAjustesFinancialCalendar();
   });
   qs("lpx3ContinuityChecklist")?.addEventListener("change", (event) => {
     const checkbox = event.target.closest("[data-lpx3-manual-check]");

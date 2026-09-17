@@ -126,7 +126,9 @@ test("financialCalendarIcsContent sin filas produce un calendario vacío pero v�
 
 test("handleAjustesExportIcs avisa si el calendario financiero (E15) no está disponible", () => {
   const announcements = [];
-  const context = sandboxWith(["handleAjustesExportIcs"], {
+  // P9: handleAjustesExportIcs delega en ajustesFinancialCalendarInput() (helper único compartido
+  // con el widget y la tarjeta de Ajustes) — se sandboxa junto a la función bajo prueba.
+  const context = sandboxWith(["ajustesFinancialCalendarInput", "handleAjustesExportIcs"], {
     window: {},
     announceStatus: (text) => announcements.push(text),
   });
@@ -136,10 +138,11 @@ test("handleAjustesExportIcs avisa si el calendario financiero (E15) no está di
 
 test("handleAjustesExportIcs avisa si el calendario no tiene meses todavía", () => {
   const announcements = [];
-  const context = sandboxWith(["handleAjustesExportIcs"], {
+  const context = sandboxWith(["ajustesFinancialCalendarInput", "handleAjustesExportIcs"], {
     window: { FinanceCanonicalE15: { financialCalendar: () => ({ rows: [] }) }, FinanceP2Bridge: { goalPlanning: () => ({}) } },
     p2State: () => ({ goals: [], e15: {} }),
     insurancePolicies: () => [],
+    maintenanceFeeAlerts: () => ({ atRisk: [] }),
     announceStatus: (text) => announcements.push(text),
   });
   context.handleAjustesExportIcs();

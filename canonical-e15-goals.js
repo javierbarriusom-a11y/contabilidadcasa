@@ -77,7 +77,15 @@
     // IV3: aportaciones de inversión programadas (planificadas, todavía no ejecutadas) — mismo
     // criterio que las pólizas de SP1: fecha e importe declarados, sin inventar recurrencia.
     const investmentContributions = Array.isArray(input.investmentContributions) ? input.investmentContributions : [];
-    const rows = series.map((month) => {
+    // P9: comisiones de mantenimiento en riesgo (TT4) y supuestos ya caducados (PVC15) — a
+    // diferencia del resto de fuentes de arriba, ninguna de las dos tiene una fecha futura real:
+    // son estado "ahora mismo" (si la vinculación de este mes se cumplió, si un supuesto lleva más
+    // tiempo del umbral sin confirmar), no un vencimiento programado. Por eso solo aparecen en el
+    // primer mes del calendario (el mes en curso) — proyectarlas a meses futuros fingiría una
+    // certeza que la app no tiene sobre si se seguirán incumpliendo.
+    const maintenanceFeeAlerts = Array.isArray(input.maintenanceFeeAlerts) ? input.maintenanceFeeAlerts : [];
+    const assumptionExpiry = Array.isArray(input.assumptionExpiry) ? input.assumptionExpiry : [];
+    const rows = series.map((month, index) => {
       const key = monthKey(month.monthKey);
       const events = [];
       const debtTotal = debts.reduce((sum, debt) => sum + Math.max(0, number(debt.currentPayment)), 0);
@@ -108,6 +116,18 @@
         amount: round2(item.amount),
         source: "cartera de inversión (IV3)",
       }));
+      if (index === 0) {
+        // TT4: solo cuentas con comisión y vinculación incumplida (mismo filtro que maintenanceFeeAlerts().atRisk).
+        maintenanceFeeAlerts.forEach((account) => events.push({
+          type: "maintenance-fee", label: `Comisión de mantenimiento en riesgo: ${text(account.name)}`,
+          amount: round2(account.fee), source: "cuentas con vinculación (TT4)",
+        }));
+        // PVC15: solo supuestos ya caducados (mismo criterio que P5, el radar de Ajustes).
+        assumptionExpiry.forEach((item) => events.push({
+          type: "assumption-expiry", label: `Supuesto caducado: ${text(item.label)}`,
+          amount: null, source: "registro de supuestos (PVC15)", uncertain: true,
+        }));
+      }
       events.push({ type: "forecast", label: "Previsión canónica", amount: round2(month.totals?.closingLiquidity), source: "forecast canónico" });
       return { monthKey: key, label: text(month.label || key), closingLiquidity: round2(month.totals?.closingLiquidity), events };
     });
