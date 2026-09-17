@@ -11,11 +11,18 @@ test("A14-2 (núcleo): totalDebtOutstanding() reutiliza canonical-debt-contracts
   assert.match(block, /currentPrincipal/);
 });
 
-test("A14-2 (núcleo): el desglose de patrimonio resta la deuda pendiente del patrimonio de activos", () => {
-  const block = appSource.slice(appSource.indexOf("function renderA14AssetBreakdown"), appSource.indexOf("function renderA14AssetBreakdown") + 1800);
-  assert.match(block, /totalDebtOutstanding\(\)/);
-  assert.match(block, /netWorthAfterDebt/);
-  assert.match(block, /Patrimonio neto/);
+// T5 extrajo el cálculo de "totalDebtOutstanding() / netWorthAfterDebt" a a14NetWorthToday()
+// (para que la cascada mensual lo reutilice sin duplicarlo) — renderA14AssetBreakdown ahora lo
+// consume desde ahí en vez de calcularlo en línea.
+test("A14-2 (núcleo): el patrimonio neto resta la deuda pendiente, centralizado en a14NetWorthToday()", () => {
+  const todayBlock = appSource.slice(appSource.indexOf("function a14NetWorthToday"), appSource.indexOf("function a14NetWorthToday") + 700);
+  assert.match(todayBlock, /totalDebtOutstanding\(\)/);
+  assert.match(todayBlock, /netWorthAfterDebt/);
+
+  const renderBlock = appSource.slice(appSource.indexOf("function renderA14AssetBreakdown"), appSource.indexOf("function renderA14AssetBreakdown") + 1800);
+  assert.match(renderBlock, /a14NetWorthToday\(\)/);
+  assert.match(renderBlock, /netWorthAfterDebt/);
+  assert.match(renderBlock, /Patrimonio neto/);
 });
 
 test("A14-2 (núcleo): sin DebtContracts disponible, la deuda cuenta como 0 sin romper el cálculo", () => {

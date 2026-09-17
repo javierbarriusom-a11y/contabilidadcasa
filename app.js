@@ -20252,19 +20252,29 @@ function totalDebtOutstanding() {
   return DebtContracts.summarizeContracts(debtContractBundle()).currentPrincipal || 0;
 }
 
-function renderA14AssetBreakdown() {
-  const note = qs("a14AssetBreakdown");
-  if (!note) return;
+// A14-2 (núcleo): patrimonio neto de hoy, único punto exacto — activos declarados (A14-1) menos
+// deuda pendiente. Extraído de renderA14AssetBreakdown (antes calculado en línea) para que T5
+// (cascada mensual, más abajo) parta del mismo cálculo en vez de duplicarlo.
+function a14NetWorthToday() {
   const engine = window.FinanceCanonicalAssets;
   const rows = assetsList();
-  if (!engine || !rows.length) {
-    note.innerHTML = `<p>Registra al menos un activo para ver el desglose por tipo y detectar sobreexposición.</p>`;
-    return;
-  }
+  if (!engine || !rows.length) return { calculable: false };
   const result = engine.normalizeAssets(rows);
   const netWorth = result.summary.netWorth;
   const debt = totalDebtOutstanding();
-  const netWorthAfterDebt = round2(netWorth - debt);
+  return { calculable: true, result, netWorth, debt, netWorthAfterDebt: round2(netWorth - debt) };
+}
+
+function renderA14AssetBreakdown() {
+  const note = qs("a14AssetBreakdown");
+  if (!note) return;
+  const today = a14NetWorthToday();
+  if (!today.calculable) {
+    note.innerHTML = `<p>Registra al menos un activo para ver el desglose por tipo y detectar sobreexposición.</p>`;
+    renderA14NetWorthWaterfall(today);
+    return;
+  }
+  const { result, netWorth, debt, netWorthAfterDebt } = today;
   const byType = Object.entries(result.summary.totalsByType)
     .filter(([, total]) => total > 0)
     .sort(([, a], [, b]) => b - a)
@@ -20280,6 +20290,93 @@ function renderA14AssetBreakdown() {
   note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
   renderIvx8HousingExposure();
   renderRgxKnowledgeConcentration();
+  renderA14NetWorthWaterfall(today);
+}
+
+// T5: gráfico de cascada mensual sobre canonical-assets.js:netWorthWaterfall(). Cada barra es el
+// flujo de caja real de un mes ya conciliado con el banco (reconciledMonthlyNetHistory, A11-3);
+// el asta gris sobre cada nivel reconstruido es la banda de incertidumbre que declara ese motor —
+// crece cuanto más atrás en el tiempo, cero en el punto de hoy (el único exacto). Nunca simula una
+// revalorización de mercado/vivienda que la app no mide (I2, hueco de datos ya documentado).
+function renderA14NetWorthWaterfall(today) {
+  const svg = qs("a14NetWorthWaterfallChart");
+  const legend = qs("a14NetWorthWaterfallLegend");
+  if (!svg || !legend) return;
+  const engine = window.FinanceCanonicalAssets;
+  if (!today.calculable || !engine) {
+    svg.hidden = true;
+    legend.innerHTML = "";
+    return;
+  }
+  const monthlyNetFlowHistory = reconciledMonthlyNetHistory().map((record) => ({ monthKey: record.monthKey, netFlow: record.actual }));
+  const result = engine.netWorthWaterfall({ todayNetWorth: today.netWorthAfterDebt, monthlyNetFlowHistory });
+  if (!result.calculable || !result.steps.length) {
+    svg.hidden = true;
+    legend.innerHTML = `<p>Sin meses conciliados con el banco todavía — la cascada empieza en cuanto haya al menos un mes cerrado y conciliado.</p>`;
+    return;
+  }
+  svg.hidden = false;
+
+  const steps = result.steps;
+  const levels = steps.map((step) => ({ monthKey: step.monthKey, netWorth: step.startNetWorth, band: step.band }));
+  levels.push({ monthKey: "hoy", netWorth: result.todayNetWorth, band: 0 });
+
+  const width = svg.clientWidth || 720;
+  const height = 220;
+  const pad = { left: 64, right: 20, top: 20, bottom: 34 };
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+  const values = levels.flatMap((level) => [level.netWorth - level.band, level.netWorth + level.band]);
+  const minV = Math.min(...values, 0);
+  const maxV = Math.max(...values, 1);
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const n = levels.length;
+  const x = (i) => pad.left + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+  const y = (value) => pad.top + plotH - ((value - minV) / (maxV - minV || 1)) * plotH;
+  const barW = Math.max(6, plotW / steps.length - 10);
+
+  let markup = "";
+  for (let i = 0; i <= 4; i += 1) {
+    const value = minV + ((maxV - minV) * i) / 4;
+    const yy = y(value);
+    markup += `<line class="tick" x1="${pad.left}" x2="${width - pad.right}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}" />
+      <text class="chart-label" x="4" y="${(yy + 4).toFixed(2)}">${money(value)}</text>`;
+  }
+
+  steps.forEach((step, i) => {
+    const yStart = y(levels[i].netWorth);
+    const yEnd = y(levels[i + 1].netWorth);
+    const top = Math.min(yStart, yEnd);
+    const barHeight = Math.max(1, Math.abs(yEnd - yStart));
+    const barX = (x(i) + x(i + 1)) / 2 - barW / 2;
+    const color = step.cashFlow >= 0 ? "#248a50" : "#c44945";
+    markup += `<rect x="${barX.toFixed(2)}" y="${top.toFixed(2)}" width="${barW.toFixed(2)}" height="${barHeight.toFixed(2)}" rx="2" fill="${color}" opacity="0.82" />`;
+  });
+
+  levels.forEach((level, i) => {
+    if (level.band <= 0) return;
+    const xi = x(i);
+    const yTop = y(level.netWorth + level.band);
+    const yBottom = y(level.netWorth - level.band);
+    markup += `<line x1="${xi.toFixed(2)}" x2="${xi.toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="#7a8890" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yTop.toFixed(2)}" stroke="#7a8890" stroke-width="2" opacity="0.6" />
+      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yBottom.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="#7a8890" stroke-width="2" opacity="0.6" />`;
+  });
+
+  const path = levels.map((level, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(level.netWorth).toFixed(2)}`).join(" ");
+  markup += `<path d="${path}" fill="none" stroke="#2c6be0" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3" opacity="0.5" />`;
+  markup += `<circle cx="${x(n - 1).toFixed(2)}" cy="${y(levels[n - 1].netWorth).toFixed(2)}" r="4.5" fill="#2c6be0" stroke="#fff" stroke-width="2" />`;
+
+  chartTickIndexes(levels).forEach((idx) => {
+    markup += `<text class="chart-label" x="${(x(idx) - 18).toFixed(2)}" y="${height - 8}">${escapeHtml(levels[idx].monthKey)}</text>`;
+  });
+
+  svg.innerHTML = markup;
+
+  const oldest = steps[0];
+  const oldestBandPct = oldest.startNetWorth !== 0 ? Math.round((oldest.band / Math.abs(oldest.startNetWorth)) * 100) : 0;
+  legend.innerHTML = `<p>Reconstrucción hacia atrás a partir del flujo de caja real conciliado con el banco (${steps.length} mes(es)). No incluye revalorización de mercado ni de vivienda, ni el reparto de cada cuota de deuda entre interés y capital — ninguna de las dos con histórico guardado todavía. Por eso la banda gris crece cuanto más atrás: en ${escapeHtml(oldest.monthKey)} representa ±${oldestBandPct}% del patrimonio reconstruido ese mes; hoy es la cifra exacta, sin banda.</p>`;
 }
 
 // IVX8: sobreexposición cruzada vivienda-inversión — el valor de la vivienda (A14, tipo "inmueble")
