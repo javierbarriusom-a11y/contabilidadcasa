@@ -16154,7 +16154,10 @@ function handleAjustesEstimateIrpf() {
 // FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal cual el motor
 // de tramos progresivos de A15-2 (validateBracketScale/progressiveTax vía optimizePartialSale) — el
 // hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de arriba (kind
-// "savings"), sin escala nueva que inventar. Nunca es una recomendación de vender, solo información.
+// "savings"), sin escala nueva que inventar.
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo, mismo patrón que INV18): dice cuánto
+// vender ahora y si conviene diferir el resto, en vez de pararse en "aquí tienes la información".
+// Sigue sin decidir por el hogar si hay necesidad real de liquidez — eso solo lo sabe el hogar.
 function fc5ResultHtml(result) {
   if (!result.calculable) {
     if (result.reason === "missing-scale") return "Registra primero la escala del tramo del ahorro (arriba, «Tramo del ahorro») antes de calcular.";
@@ -16163,10 +16166,10 @@ function fc5ResultHtml(result) {
   const bracketLine = result.roomInCurrentBracket === null
     ? `Tramo actual (${result.currentBracketRatePct}%): sin límite superior, toda la plusvalía cabe en este tramo.`
     : `Tramo actual (${result.currentBracketRatePct}%): quedan ${money(result.roomInCurrentBracket, true)} de margen antes de saltar al siguiente tipo.`;
-  const fitLine = result.withinBracket
-    ? `Los ${money(result.proposedGain, true)} que valoras vender caben enteros en el tramo actual.`
-    : `De los ${money(result.proposedGain, true)} que valoras vender, ${money(result.suggestedAmountWithinBracket, true)} caben en el tramo actual — el resto (${money(result.excessOverBracket, true)}) tributaría ya en el siguiente tipo.`;
-  return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(fitLine)}</p><p>Coste marginal estimado de realizar toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)} No es una recomendación de vender — solo información para decidir cuánto y cuándo.</p>`;
+  const actionLine = result.withinBracket
+    ? `Vende los ${money(result.proposedGain, true)} que valoras sin partirlos: caben enteros en el tramo actual, sin coste añadido por saltar de tipo.`
+    : `Vende ahora los ${money(result.suggestedAmountWithinBracket, true)} que caben en el tramo actual y difiere el resto (${money(result.excessOverBracket, true)}) a otro momento si no tienes necesidad real de liquidez ya — así evitas que tribute al tipo superior.`;
+  return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(actionLine)}</p><p>Coste marginal estimado si realizas toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 // FCX1: rescate de pensiones modelado, como capital único sumado a la renta general del año. Con
@@ -16175,6 +16178,12 @@ function fc5ResultHtml(result) {
 // (fiscalWithholdingRate) como estimación plana — nunca 0% ni un tramo inventado. Nunca modela
 // reducciones (40% de aportaciones anteriores a 2007, mínimo exento) ni la modalidad en forma de
 // renta: la app no registra cuándo se hizo cada aportación al plan.
+//
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): reclasificada de directiva a informativa durante la
+// implementación — no se puede recomendar "capital único vs. renta" sin modelar la modalidad en
+// forma de renta, que este motor declara explícitamente fuera de alcance (línea de arriba); eso es
+// el hueco I5 del propio backlog, no indecisión de T4. Ser directivo aquí exigiría fabricar un
+// cálculo de la renta que no existe.
 function fcx1ResultHtml(result) {
   if (!result.calculable) {
     return "Indica un importe a rescatar mayor que cero. Sin tramos de IRPF registrados (arriba) ni retención declarada (Ajustes › supuestos fiscales), no hay tipo marginal con el que estimar el coste.";
@@ -16652,21 +16661,27 @@ function renderAp3BarrierStatus() {
 
 let ap3LastResult = null;
 
-// La lectura favorable/desfavorable de cada escenario es una sugerencia apoyada en los números de
-// al lado, nunca una orden — se dice así de forma explícita para que quede claro que se puede
-// aceptar o descartar.
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo): el escenario base es la referencia de
+// la que cuelga el veredicto ("compensa"/"no compensa"); pesimista y optimista quedan como
+// contexto de rango, no como votos adicionales.
 function ap3ResultHtml(result) {
   if (!result.calculable) {
     if (result.reason === "barrier-blocked") return "Guardarraíl no superado — resuelve los bloqueos de arriba antes de simular.";
     if (result.reason === "missing-debt-amount") return "Indica el importe de deuda nueva a simular (mayor que 0).";
     return "Faltan datos para calcular.";
   }
-  const assessmentLabel = { favorable: "lectura favorable", desfavorable: "lectura desfavorable", neutral: "lectura neutra" };
+  const assessmentLabel = { favorable: "favorable", desfavorable: "desfavorable", neutral: "neutro" };
   const rows = ["pessimistic", "base", "optimistic"].map((key) => {
     const scenario = result.scenarios[key];
-    return `<li><strong>${escapeHtml(scenario.label)} (${scenario.ratePercent}%)</strong>: rendimiento esperado ${money(scenario.expectedAnnualReturn, true)}/año, coste de la deuda ${money(result.annualDebtCost, true)}/año → resultado neto ${money(scenario.netAnnualResult, true)}/año (${assessmentLabel[scenario.assessment]}, no una orden — revisa los números antes de aceptarla).</li>`;
+    return `<li><strong>${escapeHtml(scenario.label)} (${scenario.ratePercent}%)</strong>: rendimiento esperado ${money(scenario.expectedAnnualReturn, true)}/año, coste de la deuda ${money(result.annualDebtCost, true)}/año → resultado neto ${money(scenario.netAnnualResult, true)}/año (${assessmentLabel[scenario.assessment]}).</li>`;
   }).join("");
-  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>${lev1PolicyPreviewHtml(result.newDebtAmount)}${lev13VerdictCrossingHtml(result)}`;
+  const baseAssessment = result.scenarios.base.assessment;
+  const verdictLine = baseAssessment === "favorable"
+    ? "Con tu escenario base, pedir esta deuda compensa."
+    : baseAssessment === "desfavorable"
+    ? "Con tu escenario base, esta deuda no compensa — no la pidas salvo que cambien los supuestos."
+    : "Con tu escenario base, el resultado es neutro: no hay ventaja clara en pedir esta deuda.";
+  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p><strong>${verdictLine}</strong></p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>${lev1PolicyPreviewHtml(result.newDebtAmount)}${lev13VerdictCrossingHtml(result)}`;
 }
 
 // LEV13 (Oleada 4, Bloque 5): aplica la misma bisección exacta de inverseScenario() (laboratorio de
@@ -16714,8 +16729,9 @@ function handleAp3Simulate() {
 
 // LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado — reutiliza tal cual los mismos
 // campos ya declarados arriba en el simulador AP3 (importe, tipo, escenarios de rentabilidad), sin
-// duplicarlos, añadiendo solo el número de tramos y el intervalo entre ellos. Solo informativo:
-// nunca programa ni ejecuta ninguna toma de deuda real.
+// duplicarlos, añadiendo solo el número de tramos y el intervalo entre ellos.
+// T4 (retrofit directivo): usa el veredicto ya calculado en lumpSum.scenarios.base para recomendar
+// escalonar o no — nunca programa ni ejecuta ninguna toma de deuda real (invariante A11-4).
 function lev14ResultHtml(result) {
   if (!result.calculable) {
     if (result.reason === "barrier-blocked") return "Guardarraíl no superado — resuelve los bloqueos del simulador de apalancamiento (arriba) antes de explorar el escalonado.";
@@ -16726,7 +16742,14 @@ function lev14ResultHtml(result) {
   const rows = result.tranches
     .map((tranche) => `<li>Tramo ${tranche.index} (mes ${tranche.monthOffset}): ${money(tranche.amount, true)} → acumulado ${money(tranche.cumulativeDeployed, true)} (${tranche.cumulativeDeployedPct}% del total).</li>`)
     .join("");
-  return `<p>${result.numTranches} tramos de ${money(result.trancheAmount, true)} cada uno, cada ${result.trancheIntervalMonths} mes(es) — desplegado por completo en el mes ${result.fullyDeployedAtMonth}.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.note)}</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  const baseAssessment = result.lumpSum?.calculable ? result.lumpSum.scenarios.base.assessment : null;
+  const verdictLine = baseAssessment === "favorable"
+    ? "El importe entero ya compensa con tu escenario base: escalonarlo no cambia esa cifra, solo reparte el riesgo de mal momento."
+    : baseAssessment === "desfavorable"
+    ? "El importe entero no compensa con tu escenario base — escalonarlo no lo arregla: el resultado esperado es el mismo tomado de una vez o a tramos."
+    : null;
+  const verdictHtml = verdictLine ? `<p><strong>${escapeHtml(verdictLine)}</strong></p>` : "";
+  return `<p>${result.numTranches} tramos de ${money(result.trancheAmount, true)} cada uno, cada ${result.trancheIntervalMonths} mes(es) — desplegado por completo en el mes ${result.fullyDeployedAtMonth}.</p><ul class="commit-barrier-list">${rows}</ul>${verdictHtml}<p class="e19-kpi-note">${escapeHtml(result.note)}</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 function handleLev14Simulate() {
@@ -16761,7 +16784,10 @@ function handleLev14Simulate() {
 // fiscales oficiales — una oferta de banco es un dato declarado por el hogar, no una fuente pública,
 // así que aquí basta con tramos válidos (límites crecientes, el último abierto, tipos entre 0-100%).
 // Reutiliza el importe ya declarado arriba (ap3DebtAmount) sin duplicar el campo — mismo criterio que
-// LEV14. Solo informativo: nunca decide el tipo a usar ni rellena ap3DebtRate por su cuenta.
+// LEV14. No rellena ap3DebtRate por su cuenta (decisión de diseño ajena a T4: evita mutar en
+// silencio un campo que el hogar edita a mano).
+// T4 (retrofit directivo): compara el tipo marginal con la rentabilidad base ya declarada en AP3
+// (si existe) para decir si el siguiente euro sigue compensando o si conviene pararse aquí.
 function lev10DeclaredTiers(settings = {}) {
   const tiers = [];
   const t1Limit = Number(settings.lev10Tier1Limit);
@@ -16846,8 +16872,15 @@ function lev10CostCurveHtml(result) {
   }
   if (!result.calculable) return "Revisa los tramos declarados: los límites deben ser crecientes y los tipos entre 0-100%.";
   const rows = result.breakdown.map((row) => `<tr><td>${row.limit === null ? "Resto (sin límite)" : `Hasta ${money(row.limit, true)}`}</td><td>${row.ratePct}%</td><td>${money(row.portion, true)}</td><td>${money(row.cost, true)}</td></tr>`).join("");
+  const baseReturnPct = parseAmount(qs("ap3ReturnBase")?.value);
+  const compareLine = Number.isFinite(baseReturnPct)
+    ? baseReturnPct > result.marginalRatePct
+      ? `<p><strong>Con tu rentabilidad base declarada del ${baseReturnPct}%, el siguiente euro (al ${result.marginalRatePct}% marginal) todavía compensa pedirlo.</strong></p>`
+      : `<p><strong>Con tu rentabilidad base declarada del ${baseReturnPct}%, el siguiente euro ya no compensa (tipo marginal ${result.marginalRatePct}%) — párate en este importe.</strong></p>`
+    : "";
   return `<p>Con ${money(result.debtAmount, true)} de deuda nueva: coste anual combinado <strong>${money(result.annualCost, true)}</strong> (tipo medio ${result.blendedRatePct}%). El siguiente euro que pidas prestado costaría al <strong>${result.marginalRatePct}%</strong> — el tipo marginal del tramo en el que caes hoy.</p>
     <table class="e19-table"><thead><tr><th>Tramo</th><th>Tipo</th><th>Importe en el tramo</th><th>Coste anual</th></tr></thead><tbody>${rows}</tbody></table>
+    ${compareLine}
     <p class="e19-kpi-note">Tramos declarados por ti según ofertas reales de tu banco — nunca una curva de mercado inventada. No rellena «Tipo de la deuda nueva» por su cuenta: si quieres que el simulador de apalancamiento (AP3) lo use, escribe tú el tipo medio o el marginal arriba.</p>`;
 }
 
@@ -16894,6 +16927,8 @@ function renderLev16IdleLiquidityCost() {
 // evaluateEmergencyCreditLine (DI2) — sin ningún motor nuevo aparte del propio comparador — y compone
 // el guardarraíl ya vigente para cada instrumento: AP4 (ap3LeverageBarrierInput, no aplica a Lombard)
 // y LEV1 (lev1PolicyResult) con el importe declarado como deuda propuesta.
+// T4 (retrofit directivo): abre con el instrumento más barato ya calculado (cheapestLabel), en vez
+// de dejarlo solo como una etiqueta dentro de la lista.
 function lev9ResultHtml(result) {
   if (!result.calculable) {
     return "Declara el importe de capital que necesitas, el horizonte en meses, y al menos los datos de uno de los tres instrumentos (Lombard arriba, hipoteca o línea de crédito) para comparar.";
@@ -16908,13 +16943,16 @@ function lev9ResultHtml(result) {
     const cheapestTag = result.cheapestId === item.id ? ` <span class="e19-kpi-note positive">— más barato de los disponibles</span>` : "";
     return `<li><strong>${escapeHtml(item.label)}</strong>: ${feasibleLine}${cheapestTag}<br /><span class="e19-kpi-note">${escapeHtml(item.guardrailNote)}</span></li>`;
   }).join("");
+  const verdictLine = result.cheapestLabel
+    ? `<p><strong>Usa ${escapeHtml(result.cheapestLabel)}: es el instrumento más barato de los disponibles para esta necesidad.</strong></p>`
+    : `<p><strong>Ninguno de los instrumentos declarados cubre el importe necesitado.</strong></p>`;
   const barrierLine = result.barrierValid === null ? "" : result.barrierValid
     ? `<p class="e19-kpi-note positive">Guardarraíl de condiciones mínimas (AP4) superado para los instrumentos a los que aplica.</p>`
     : `<p class="e19-kpi-note negative">Guardarraíl de condiciones mínimas (AP4) NO superado — revisa sus bloqueos antes de considerar hipoteca o línea de crédito (no aplica a Lombard).</p>`;
   const policyLine = result.policyWithinLimit === null ? "" : result.policyWithinLimit
     ? `<p class="e19-kpi-note positive">Dentro de tu política de apalancamiento declarada (LEV1).</p>`
     : `<p class="e19-kpi-note negative">Por encima de tu política de apalancamiento declarada (LEV1) si tomaras este importe con este instrumento.</p>`;
-  return `<p>Necesidad de capital: ${money(result.amount, true)} a ${result.months} mes(es).</p><ul class="commit-barrier-list">${rows}</ul>${barrierLine}${policyLine}<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  return `<p>Necesidad de capital: ${money(result.amount, true)} a ${result.months} mes(es).</p>${verdictLine}<ul class="commit-barrier-list">${rows}</ul>${barrierLine}${policyLine}<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 function handleLev9Compare() {
@@ -17124,7 +17162,9 @@ function renderLev12ProactiveMarginCallAlert() {
 // declaradas) para decidir CUÁNDO conviene desapalancarse de forma preventiva (si esa caída
 // realista, no una caída "a explorar" cualquiera, ya dispararía un margin call) y
 // deleveragingPriority (LEV6, Oleada 3) para decidir QUÉ vender primero — preventiveDeleveragingAllocation
-// solo reparte el importe entre esas filas ya priorizadas. Nunca decide vender nada por su cuenta.
+// solo reparte el importe entre esas filas ya priorizadas.
+// T4 (retrofit directivo): ya dice qué vender y cuánto de cada una, en orden; el único límite que se
+// mantiene es el invariante A11-4 — ninguna venta se ejecuta sola, la app nunca opera de verdad.
 function renderLev11PreventiveDeleveragingAlert() {
   const note = qs("lev11PreventiveDeleveragingNote");
   if (!note) return;
@@ -17176,7 +17216,7 @@ function renderLev11PreventiveDeleveragingAlert() {
   const shortfallNote = allocation.shortfall > 0
     ? `<p class="e19-kpi-note negative">Ni vendiendo toda la cartera priorizable se cubrirían ${money(allocation.shortfall, true)} restantes.</p>`
     : "";
-  note.innerHTML = `${headline}<ol class="commit-barrier-list">${items}</ol>${shortfallNote}<p class="e19-kpi-note">Ninguna venta se ejecuta sola: la decisión final, y el momento, siguen siendo tuyos.</p>`;
+  note.innerHTML = `${headline}<ol class="commit-barrier-list">${items}</ol>${shortfallNote}<p class="e19-kpi-note">Ninguna venta se ejecuta sola desde aquí — hazla tú si decides seguir este orden.</p>`;
 }
 
 function handleApx3MarginCallSimulate() {
@@ -17891,9 +17931,11 @@ function deb2DimensionHtml(allocation) {
 // DEB10 (Oleada 4, Bloque 6): sugiere en el propio comparador AP1 qué deuda amortizar primero,
 // reutilizando tal cual fiscalAdjustedDebtPriority() (DEB5) — antes esa prioridad solo se veía,
 // aislada, en Deuda › Contratos, sin cruzarla nunca con la deuda que el hogar elige a mano en
-// #ap1DebtSelect. Nunca preselecciona nada en silencio: solo dice cuál sería la #1 por TAE
-// efectivo tras deducción fiscal y si coincide o no con la ya seleccionada, dejando la elección
-// final al hogar, igual que ya hace DEB5 con su propio aviso de reordenación.
+// #ap1DebtSelect. Nunca preselecciona nada en silencio (no cambia #ap1DebtSelect por su cuenta,
+// mismo criterio que LEV10 con ap3DebtRate): solo dice cuál sería la #1 por TAE efectivo tras
+// deducción fiscal y si coincide o no con la ya seleccionada.
+// T4 (retrofit directivo): en vez de cerrar con "la elección final sigue siendo tuya", dice
+// explícitamente qué cambiar arriba para seguir el orden ya calculado.
 function deb10PriorityHint(selectedDebtId) {
   const engine = window.FinanceDebtContracts;
   if (!engine) return "";
@@ -17904,7 +17946,7 @@ function deb10PriorityHint(selectedDebtId) {
   if (top.id === selectedDebtId) {
     return `<p class="e19-kpi-note"><strong>Prioridad fiscal (DEB10/DEB5):</strong> la deuda seleccionada arriba, ${escapeHtml(top.entity)}, es ya la de mayor coste real (TAE efectivo ${top.effectiveAprPct}%).</p>`;
   }
-  return `<p class="e19-kpi-note warning"><strong>Prioridad fiscal (DEB10/DEB5):</strong> por TAE efectivo tras deducción fiscal, la deuda con mayor coste real es <strong>${escapeHtml(top.entity)}</strong> (${top.effectiveAprPct}%) — distinta a la seleccionada arriba. La elección final sigue siendo tuya.</p>`;
+  return `<p class="e19-kpi-note warning"><strong>Prioridad fiscal (DEB10/DEB5):</strong> por TAE efectivo tras deducción fiscal, la deuda con mayor coste real es <strong>${escapeHtml(top.entity)}</strong> (${top.effectiveAprPct}%) — distinta a la seleccionada arriba. Cambia la selección arriba a ${escapeHtml(top.entity)} para amortizar primero la de mayor coste real.</p>`;
 }
 
 // DEB11 (Oleada 4, Bloque 6): DEB2 (arriba) ya dice CUÁNTO amortizar de verdad (neto de comisión)
@@ -19394,6 +19436,10 @@ function lpAverageMonthlyOutflow() {
 // ya incorporada), con la misma fuente completa que exige el resto del motor fiscal
 // (hasCompleteSource/validateBracketScale). Sin esa escala, este aviso nunca calcula ninguna cifra:
 // solo muestra el patrimonio neto y explica por qué el coste real depende de esos tres datos.
+//
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito — el motivo de arriba
+// (grupo de parentesco, patrimonio preexistente y bonificación autonómica, ninguno declarado en la
+// app) es real, no indecisión pendiente de retrofit.
 function lpx4ExemptAmount() {
   const configured = Number(state?.lpx4ExemptAmount || 0);
   return Number.isFinite(configured) && configured > 0 ? configured : 0;
@@ -21249,7 +21295,8 @@ function renderFc3PriorLossList() {
 
 // INV6 (Oleada 3, Bloque 5): candidatas a compensación con minusvalía todavía no realizada — reutiliza
 // normalizePositions() (IV1) y latentLossHarvestingCandidates() (canonical-portfolio.js), sin motor
-// de cálculo nuevo. Nunca sugiere vender por sí sola (regla transversal 04): solo lista y ordena.
+// de cálculo nuevo. T4 (retrofit directivo): marca la primera candidata (mayor pérdida) como la que
+// conviene vender primero, en vez de limitarse a listarlas.
 function renderInv6LatentLossCandidates() {
   const container = qs("inv6LatentLossCandidates");
   if (!container) return;
@@ -21266,9 +21313,9 @@ function renderInv6LatentLossCandidates() {
     return;
   }
   const items = candidates
-    .map((item) => `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
+    .map((item, index) => `<li class="commit-barrier-item"><span>${index === 0 ? "Vende esta primero — " : ""}${escapeHtml(item.label)}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
     .join("");
-  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se vendieran todas: ${money(totalLatentLoss, true)}.</p>`;
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se realizaran todas: ${money(totalLatentLoss, true)}. Respeta la norma de no recompra (2 meses en cotizados, 1 año en no cotizados) para que la pérdida sea deducible.</p>`;
 }
 
 // INV7 (Oleada 3, Bloque 5): escalera de liquidez — reutiliza normalizePositions() (IV1) y
@@ -21451,6 +21498,10 @@ function renderLev4LombardComparison() {
   note.innerHTML = lev4ComparisonResultHtml(result);
 }
 
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito, no por indecisión —
+// el cruce de pérdidas/ganancias del art. 49 depende de cómo case cada caso real con rendimientos
+// del capital mobiliario, algo que este motor no cruza; no hay un "mejor orden" que la app pueda
+// calcular con certeza suficiente para ser directiva aquí.
 function fc3ResultHtml(result) {
   if (!result.calculable) {
     if (result.reason === "incomplete-disposal") return `Hay ventas de ${escapeHtml(result.year)} sin lotes suficientes a su fecha (FIFO) — la compensación de ese año no es calculable hasta corregirlas.`;

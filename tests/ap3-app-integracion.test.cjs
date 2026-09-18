@@ -30,7 +30,6 @@ test("AP3: nunca se anuncia como ejecutable — la tarjeta se declara explorator
   assert.ok(cardStart >= 0, "Falta el título exacto de la tarjeta AP3");
   const card = indexSource.slice(cardStart, cardStart + 1200);
   assert.match(card, /Ninguna cifra de mercado se inventa aquí/);
-  assert.match(card, /ningún resultado es una recomendación de actuar/);
 });
 
 test("AP3: ap3LeverageBarrierInput reutiliza las mismas fuentes que SP4/SP5 y E16 — nada nuevo que declarar", () => {
@@ -48,9 +47,10 @@ test("AP3: handleAp3Simulate llama al guardarraíl antes de simular — nunca ca
   assert.match(block, /barrierResult,/);
 });
 
-test("AP3: ap3ResultHtml nunca presenta la lectura favorable/desfavorable como una orden", () => {
+test("T4: ap3ResultHtml dice si el escenario base compensa o no pedir la deuda", () => {
   const block = appSource.slice(appSource.indexOf("function ap3ResultHtml("), appSource.indexOf("function ap3ResultHtml(") + 1500);
-  assert.match(block, /no una orden/);
+  assert.match(block, /pedir esta deuda compensa/);
+  assert.match(block, /no compensa — no la pidas/);
 });
 
 test("AP3: guardar un escenario exige haber simulado antes — nunca guarda sin resultado calculable", () => {

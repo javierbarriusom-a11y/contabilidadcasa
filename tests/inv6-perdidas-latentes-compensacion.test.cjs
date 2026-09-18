@@ -7,7 +7,8 @@ const P = require("../canonical-portfolio.js");
 // INV6 (Oleada 3, Bloque 5): VER-3 confirmó que FC3 solo cubre pérdidas ya realizadas por venta
 // (fifoLedger). INV6 identifica posiciones con minusvalía todavía no realizada (gainLoss < 0, ya
 // calculado por normalizePositions) candidatas a venta antes de cierre fiscal — sin motor de
-// cálculo nuevo, solo filtra y ordena, y nunca sugiere ejecutar nada.
+// cálculo nuevo, solo filtra y ordena. T4 (retrofit directivo): la interfaz marca la primera
+// candidata (mayor pérdida) como la que conviene vender primero.
 
 function position(id, label, gainLoss, extra = {}) {
   return { id, label, type: "fondo", gainLoss, gainLossPct: 0, currentValue: 1000, costBasis: 1000 - gainLoss, ...extra };
@@ -63,6 +64,13 @@ test("wiring: la tarjeta de INV6 vive en Inversión › Fiscal, después de la c
   const fc3Idx = section.indexOf("Compensación de pérdidas y ganancias a cierre de año");
   const inv6Idx = section.indexOf("Pérdidas latentes candidatas a compensación");
   assert.ok(fc3Idx >= 0 && inv6Idx > fc3Idx, "FC3 (compensación) debe ir antes de INV6 en la misma pestaña");
+});
+
+test("T4: renderInv6LatentLossCandidates marca la primera candidata como la que conviene vender primero", () => {
+  const start = appSource.indexOf("function renderInv6LatentLossCandidates(");
+  assert.ok(start >= 0, "No existe renderInv6LatentLossCandidates");
+  const block = appSource.slice(start, appSource.indexOf("\n}", start));
+  assert.match(block, /Vende esta primero/);
 });
 
 test("wiring: renderInv6LatentLossCandidates reutiliza normalizePositions y latentLossHarvestingCandidates, sin motor propio", () => {

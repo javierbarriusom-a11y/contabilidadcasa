@@ -6,10 +6,11 @@ const path = require("node:path");
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
 
 // LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado (dollar-cost leverage) — simetría
-// con INV8 (DCA) aplicada al lado de la deuda. Alcance confirmado por el hogar (sesión 171): solo
-// simulador informativo, nunca ejecuta ni programa ninguna toma de deuda real. Mismo guardarraíl
-// AP4 que simulateLeverage(), y reutiliza tal cual simulateLeverage() para la comparación de
-// referencia (lumpSum), sin reimplementar su aritmética.
+// con INV8 (DCA) aplicada al lado de la deuda. Alcance confirmado por el hogar (sesión 171): se
+// construye como simulador, nunca ejecuta ni programa ninguna toma de deuda real (invariante
+// A11-4). Mismo guardarraíl AP4 que simulateLeverage(), y reutiliza tal cual simulateLeverage()
+// para la comparación de referencia (lumpSum), sin reimplementar su aritmética. T4 (retrofit
+// directivo): la interfaz usa lumpSum.scenarios.base.assessment para recomendar escalonar o no.
 
 const VALID_BARRIER = { valid: true, blockers: [] };
 const BLOCKED_BARRIER = { valid: false, blockers: [{ title: "Colchón insuficiente", detail: "..." }] };
@@ -137,4 +138,13 @@ test("wiring: handleLev14Simulate reutiliza tal cual los campos de AP3 (importe,
 
 test("wiring: el botón LEV14 está enlazado a handleLev14Simulate", () => {
   assert.match(appSource, /qs\("lev14SimulateRun"\)\?\.addEventListener\("click", handleLev14Simulate\)/);
+});
+
+test("T4: lev14ResultHtml usa lumpSum.scenarios.base.assessment para recomendar escalonar o no", () => {
+  const start = appSource.indexOf("function lev14ResultHtml(");
+  assert.ok(start >= 0);
+  const block = appSource.slice(start, appSource.indexOf("\n}", start));
+  assert.match(block, /lumpSum\?\.calculable/);
+  assert.match(block, /ya compensa con tu escenario base/);
+  assert.match(block, /no compensa con tu escenario base/);
 });

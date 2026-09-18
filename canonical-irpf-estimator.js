@@ -22,6 +22,13 @@
   // cálculo de rendimientos netos, reducciones y mínimos personales, fuera de alcance). El rango
   // de salida refleja honestamente esa incertidumbre de entrada, no un margen inventado.
 
+  // T4 (BACKLOG_CONTABILIDADCASA_2_0.md): estimateIrpfResult (A15-2, más abajo) se queda
+  // informativa a propósito — el resultado ya sale como rango, no como cifra única, precisamente
+  // porque la base liquidable real es incierta desde la entrada (línea 20 arriba); ser directivo
+  // aquí fingiría una precisión que el propio cálculo no tiene. PROFESSIONAL_WARNING en cambio es
+  // un aviso de exactitud compartido con optimizePartialSale (FC5) y marginalTaxOnAdditionalIncome
+  // (FCX1) — esas dos sí pasan a lenguaje directivo (qué vender/qué modalidad usar), el aviso de
+  // verificar con un profesional se mantiene en las tres, igual que INV18 mantuvo el suyo.
   const SCHEMA_ID = "finance-a15-2-irpf-estimator/v1";
   const PROFESSIONAL_WARNING = "Estimación orientativa: confirma el resultado con un profesional o con el simulador oficial de la Agencia Tributaria antes de decidir.";
 

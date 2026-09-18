@@ -116,7 +116,7 @@ test("lev1ReferenceValue reutiliza lpNetWorthSnapshot (LPX1/LPX2) para la base d
 });
 
 test("ap3ResultHtml incluye la vista previa del impacto sobre la política LEV1", () => {
-  const block = appSource.slice(appSource.indexOf("function ap3ResultHtml("), appSource.indexOf("function ap3ResultHtml(") + 1400);
+  const block = appSource.slice(appSource.indexOf("function ap3ResultHtml("), appSource.indexOf("function ap3ResultHtml(") + 2000);
   assert.match(block, /lev1PolicyPreviewHtml\(result\.newDebtAmount\)/);
 });
 

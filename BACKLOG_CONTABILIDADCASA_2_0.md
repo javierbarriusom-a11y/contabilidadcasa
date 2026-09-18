@@ -8,13 +8,13 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 18/52 cerradas (sesión 203 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 19/52 cerradas (sesión 204 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5`, `P9`, `D5`, `I1` y `D10`, las cinco primeras tareas del Horizonte 2, ya cerradas
-(sesiones 200-203) — quedan `T7`, `T8`, `T4` en ese horizonte, sin orden confirmado todavía
-por el hogar. El resto sigue pendiente — diagnóstico y planificación para lo que falta.
+§4). `T5`, `P9`, `D5`, `I1`, `D10` y `T4`, las seis primeras tareas del Horizonte 2, ya cerradas
+(sesiones 200-204) — quedan `T7`, `T8` en ese horizonte, sin orden confirmado todavía por el
+hogar. El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -86,7 +86,7 @@ fiscalidad de dividendos/plusvalías, apalancamiento tipo Lombard con margin cal
 | ⏳ `I2` | Serie histórica real de valoraciones por posición | L | Alto | **No es un hallazgo nuevo** — es el hueco de datos ya documentado desde la Oleada 2 (`APX4`/`IVX1`/`IVX5`, `PROJECT_STATE.md`). Requisito de `I3`. |
 | ⏳ `I3` | Mapa de calor de correlación calculada (sustituye la declarada de `INV16`) | M | Medio | Depende de `I2`. `INV16` se construyó deliberadamente declarada/editable por decisión del hogar (sesión 171) — este cambio de fondo necesita confirmación explícita, no solo capacidad técnica. |
 | 🟡❌ `I4` | ~~Guardarraíl de crédito Lombard equivalente a `AP4`~~ | — | — | **Descartada tras el cruce.** No es un hueco: `PROJECT_STATE.md` documenta que el crédito Lombard (`APX2`/`APX3`) queda **fuera de `AP4` por decisión explícita del hogar** (garantía real, perfil de riesgo distinto) — «toda tarea nueva de apalancamiento respeta la misma exclusión salvo que se declare lo contrario». Se retira para que ninguna sesión futura reabra la pregunta sin releer esto. |
-| ⏳ `I5` | Rescate de pensiones: reducción por antigüedad + modalidad renta | M | Medio | Hueco declarado explícitamente en `FCX1` (`canonical-pension-simulator.js`). |
+| ⏳ `I5` | Rescate de pensiones: reducción por antigüedad + modalidad renta | M | Medio | Hueco declarado explícitamente en `FCX1` (`canonical-pension-simulator.js`). Confirmado de nuevo en `T4` (sesión 204): sin esta tarea, `FCX1` no puede pasar a directiva ("capital único vs. renta") porque no modela la renta — ser directivo ahí exigiría fabricar un cálculo que no existe. |
 | ⏳ `I6` | Fiscalidad de cripto, derivados e intradía | L | Bajo | Ningún motor la cubre hoy; priorizar solo si el hogar tiene o prevé tener posiciones de este tipo. |
 | ⏳ `I7` | Comparador sociedad patrimonial vs. cartera personal | L | Alto | Relevante para un perfil con retribución variable o participación societaria — verificar primero con el hogar si aplica a su situación real (mismo criterio que descartó Patrimonio/Grandes Fortunas en `LPX`). |
 | ⏳ `I8` | Simulador de evento de liquidez (venta de participaciones, ejercicio de opciones) | L | Medio | Integrado con cartera y colchón; verificar con el hogar si tiene un escenario real antes de construir (mismo criterio de `I7`). |
@@ -123,7 +123,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ✅ `T1` | Ejecutar por fin la auditoría Nielsen real sobre Hoy/Registrar/Plan | S | Alto | **Cerrada (sesión 197).** Primera revisión real, con evidencia `file:line`, registrada en `docs/OPT21_CHECKLIST_NIELSEN.md`. 7 hallazgos: 2 corregidos en la misma sesión (`Sobres · Fase 6` filtrado a la UI de Plan; mensaje de error sin instrucción al deshacer una importación), 5 convertidos en tareas nuevas (`T15`-`T19` abajo). |
 | ✅ `T2` | Buscador universal (Cmd+K) sobre los 37+ enlaces de navegación | M | Alto | **Cerrada (sesión 199).** Ataca directamente el hallazgo #1 del diagnóstico. **Investigado antes de construir nada**: el buscador ya existía por completo (`e17-experience.js`, atajo Cmd/Ctrl+K, búsqueda difusa, diálogo `e17LauncherDialog`) — no era una tarea de cero. El hueco real: su catálogo `TASKS` tenía 37 entradas pero la navegación real (`index.html`) ya tenía 45 pantallas navegables; 8 no estaban — entre ellas `registrar` y `plan`, dos de las pantallas más usadas del proyecto. Añadidas las 8 (`planificacion-partidas`, `registrar`, `plan`, `cierre`, `analisis`, `prevision`, `update-data`, `operations-manual`) y un test que fija la invariante «todo enlace de navegación tiene entrada en el buscador» para que no vuelva a desincronizarse en silencio. |
 | ⏳ `T3` | Bandeja única de decisiones (unifica alertas de presupuesto, refinanciación, LTV, supuestos, seguros, gasto fantasma) | M | Alto | Extiende `canonical-e11b-inbox.js` (E11B), hoy con alcance parcial. |
-| ⏳ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | Decisión de producto pendiente, ya reconocida en `PROJECT_STATE.md`: aplicar la política del 12/09 hacia atrás, o documentar por qué esas pantallas se quedan como están. El propio texto ya prevé que el hogar puede pedirlo expresamente. |
+| ✅ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | **Cerrada (sesión 204).** Inventario exhaustivo: 19 pantallas + 1 caso límite (`A2-3`) con el disclaimer antiguo. `GOB15` excluida a propósito (reservada a sesión propia, decisión previa del hogar). De las 18 restantes: **8 se quedan informativas con el motivo documentado en el código** (`FC3`, `A15-2`, `LPX4`, `LPX3`, `RGX1`, `LPX5`, `APX3`, reparto mensual estacional — verificación fiscal real, estimación orientativa por diseño, checklist sin alternativas, declaración libre, o trade-off de riesgo sin mejor opción objetiva) — no es indecisión, es que no hay una respuesta directiva honesta que dar. **9 pasan a lenguaje directivo** (`FC5`, `INV6`, `AP3`, `LEV14`, `LEV9`, `LEV10`, `LEV11`, `DEB10`/`DEB5`; `APX2` ya era directiva, sin cambio necesario), mismo patrón que `INV18`: dicen qué hacer con los datos ya calculados, sin motor nuevo. `FCX1` se reclasificó de directiva a informativa durante la implementación: recomendar "capital único vs. renta" exigiría modelar la modalidad en forma de renta, hueco declarado (`I5`), no indecisión — ver detalle en la nota de la fila `I5`. |
 | ✅ `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Cerrada (sesión 200).** Sin histórico real de valoración de activos ni de saldo de deuda mes a mes (ese hueco es `I2`, deliberadamente fuera de esta tarea), la única fuente real mes a mes es el flujo de caja conciliado con el banco (`reconciledMonthlyNetHistory`, `A11-3`). Nuevo `netWorthWaterfall()` en `canonical-assets.js`: reconstruye el patrimonio neto hacia atrás desde el único punto exacto (hoy) restando ese flujo real mes a mes, con una banda de incertidumbre que crece con la distancia (2%/mes, tope 25%) porque cada paso ignora revalorización de mercado/vivienda y el reparto capital/interés de la deuda — nunca se simula esa precisión. Nuevo gráfico de cascada mensual (SVG) en la tarjeta de Ajustes de `A14-2`, oculto sin meses conciliados. `renderA14AssetBreakdown()` refactorizado: el cálculo de patrimonio neto se extrajo a `a14NetWorthToday()` para que la cascada lo reutilice sin duplicarlo. |
 | ⏳ `T6` | Memo de decisión ejecutivo autogenerado (una página: recomendación, riesgos, sensibilidad, siguiente paso) | M | Alto | Para decisiones grandes (refinanciar, apalancarse, comprar/vender vivienda); la app ya tiene el cálculo, falta el formato de síntesis. |
 | ⏳ `T7` | Modo oscuro real | M | Medio | Cero ocurrencias de `prefers-color-scheme` hoy en `design-tokens.css`/`styles.css`. |
@@ -157,8 +157,8 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
 **Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
-`D5` ✅ (sesión 201), `I1` ✅ (sesión 202), `D10` ✅ (sesión 203). Quedan `T7`, `T8`, `T4`, sin
-orden confirmado todavía por el hogar.
+`D5` ✅ (sesión 201), `I1` ✅ (sesión 202), `D10` ✅ (sesión 203), `T4` ✅ (sesión 204, elegida por
+el hogar sobre `T7`/`T8`). Quedan `T7`, `T8`, sin orden confirmado todavía por el hogar.
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad
