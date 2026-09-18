@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
 
 // E-11 (Escenarios.pdf, auditoría del 16 de agosto): "Misma barra que Deuda: motivo obligatorio,
 // revisión opcional que genera recordatorio en Hoy." El motivo obligatorio ya funcionaba

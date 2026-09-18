@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — investigación de `T14`
+## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
 
 - **Qué pedía la sesión**: con el Horizonte 2 completo (sesión 205), el hogar pidió plan para el
   resto del backlog — Horizonte 3 (`I9`, `I2`/`I3`, `T14`, `P4`/`P10`, `D6`) o el remanente sin
@@ -122,38 +122,74 @@ de aquí en la siguiente regeneración, no al momento.
   - **Backlog**: se añade `T20` a `BACKLOG_CONTABILIDADCASA_2_0.md` §4 (transversal, nacida de esta
     sesión, no del diagnóstico original) y se cierra en el mismo movimiento — 21/52 tareas cerradas
     de la cola original, más `T20`.
-- **`T14` — reducir el monolito `app.js` (2,1MB, 41.596 líneas) — investigada, no implementada**:
-  antes de tocar nada se auditó la estructura real del archivo y su acoplamiento con el resto del
-  repositorio. Hallazgo que cambia el alcance de la tarea frente a como estaba descrita en el
-  backlog: **no es solo un archivo grande — es la unidad de carga que usan literalmente cientos de
-  tests**. `app.js` se carga como script clásico (`defer`, sin `type="module"`), con ~50 variables
-  compartidas en el ámbito global (`state`, `baseData`, `lastSimulation`...) leídas y escritas
-  directamente por ~1.965 funciones de nivel superior sin ningún namespace ni IIFE — y al menos 36
-  ficheros de test (`grep` sobre `readFileSync(require.resolve("../app.js"))`) lo cargan entero con
-  `vm.Script`/`vm.createContext` como un único texto para poder invocar sus funciones internas, en
-  varios casos etiquetando tramos concretos con nombres como `app.js#track3-week-summary` para que
-  los mensajes de error apunten a la sección correcta. Hay además un test dedicado que exige que
-  `"app.js"` aparezca **una sola vez** en todo el repositorio fuera de comentarios (su propio
-  `<script>`), y otro que compara el `app.js` del repositorio contra el `dist/app.js` minificado
-  para garantizar que build nunca reescribe el fuente.
-  - **Por qué esto importa para el alcance**: partir `app.js` en varios archivos de verdad (más allá
-    de mover líneas) exige, como mínimo, decidir entre (a) una migración a módulos ES con
-    import/export explícito de esas ~50 variables compartidas — la opción de más valor a largo
-    plazo, pero un rediseño real del modelo de estado de la app, no solo un recorte de archivo — o
-    (b) mantener `app.js` como **artefacto generado** (concatenación/bundle de varios ficheros
-    fuente con esbuild, ya dependencia del proyecto para `build:site`) preservando el `app.js` final
-    en el repositorio para que los ~300 tests que lo cargan como texto sigan funcionando sin
-    reescribirlos uno a uno. Cualquiera de las dos exige tocar la infraestructura de tests (no solo
-    el archivo), el `service-worker.js` (versión de caché) y probablemente `index.html`.
-  - **Decisión pedida al hogar, no tomada aquí**: cuál de las dos rutas prefiere (o si prefiere
-    posponer `T14` hasta que haya más apetito por una sesión dedicada solo a infraestructura, sin
-    entrega visible), antes de comprometer el esfuerzo **L** ya señalado en el backlog. No se ha
-    tocado `app.js` ni ningún test en esta sesión.
-- **Publicado (solo `T20`)**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a
-  `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Pendiente para la siguiente sesión**: decisión del hogar sobre `T14` (módulos ES vs. bundle
-  generado, o posponer) antes de implementar nada; después, seguir con el resto del Horizonte 3
-  (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido con el hogar.
+- **`T14` — reducir el monolito `app.js` (2,1MB, 41.596 líneas) — investigada y primer incremento
+  construido en la misma sesión**: antes de tocar nada se auditó la estructura real del archivo y
+  su acoplamiento con el resto del repositorio. Hallazgo que cambia el alcance de la tarea frente a
+  como estaba descrita en el backlog: **no es solo un archivo grande — es la unidad de carga que
+  usan literalmente cientos de tests**. `app.js` se carga como script clásico (`defer`, sin
+  `type="module"`), con ~50 variables compartidas en el ámbito global (`state`, `baseData`,
+  `lastSimulation`...) leídas y escritas directamente por ~1.965 funciones de nivel superior sin
+  ningún namespace ni IIFE — y decenas de ficheros de test lo cargan entero con
+  `vm.Script`/`vm.createContext` como un único texto para poder invocar sus funciones internas.
+  - **El hogar eligió "módulos ES"** entre las dos rutas planteadas (import/export explícito vs.
+    `app.js` como artefacto generado con esbuild). Antes de construir nada con esa sintaxis se
+    verificó qué patrón usa YA el repositorio para modularizar `app.js`: **63 ficheros
+    `canonical-*.js` existentes (~13.844 líneas)** ya sacan lógica de negocio del monolito con un
+    factory UMD (IIFE que expone `globalThis.FinanceCanonicalXxx` y, por separado, `module.exports`
+    para los tests) — ninguno usa `import`/`export`. Además existe un SEGUNDO patrón hermano, ya
+    usado por Deuda (`OPT-24`/`PERF-1`) e Inversión (`I1`): `views/*.js`, script clásico cargado
+    bajo demanda (`VIEW_CHUNKS`/`loadViewChunk`) para el código de VISTA que sí necesita el ámbito
+    global compartido (`state`/`baseData`/DOM), a diferencia de los `canonical-*.js` (siempre
+    puros/sin estado). Introducir `import`/`export` de verdad habría sido un TERCER sistema de
+    módulos incompatible con los otros dos, sin resolver el problema real de los tests (`vm.Script`
+    no soporta módulos ES sin reescribir cientos de ficheros). **El hogar confirmó seguir con el
+    patrón UMD/`views/*.js` ya existente** en vez de introducir sintaxis de módulos ES nueva —
+    mismo resultado funcional (código modular y encapsulado, sin seguir engordando `app.js`), cero
+    deuda técnica de dos sistemas de módulos convivendo.
+  - **Primer incremento construido: `views/escenarios.js`**, las 4 pantallas del hub "Escenario ·
+    simular/aplicar/guardados/comparar". Antes de mover una sola línea se auditaron los 110
+    identificadores de nivel superior del bloque candidato **contra el archivo completo, uno a
+    uno** (no solo por patrón de nombre — un `grep` por prefijo ya había hecho pasar por alto dos
+    sub-bloques enteros en un primer intento): el "motor" de escenarios
+    (`escenarioMotorBaseInput`, el catálogo `ESCENARIO_MOTOR_TYPES` y sus helpers de campo,
+    `runEscenarioMotor`, `escenarioMotorSummaryFor`, `escenarioMotorMonthLabel`,
+    `loadEscenarioMotorSaved`...) se queda en `app.js` porque lo reutilizan tres pantallas ajenas a
+    este hub (el simulador "¿y si...?" de Planificación de partidas, la segunda opinión CPX2, y el
+    comparador de las 8 estrategias de deuda) — moverlo también les habría impuesto una espera de
+    red que hoy no tienen, fuera del alcance de esta tarea. Las 65 funciones exclusivas del hub
+    (render/formulario/manejadores de los 4 tabs) sí se movieron. Extracción hecha con un script
+    Python por rangos de línea exactos (no a mano, para no arriesgar una transcripción parcial),
+    verificada con `node --check` en ambos ficheros resultantes y balance de llaves en cero antes
+    de tocar nada más.
+  - **Wiring corregido**: la delegación de eventos de `init()` referenciaba varios manejadores
+    movidos de forma directa (`addEventListener("x", handlerName)`), que rompería con
+    `ReferenceError` en el arranque porque el nombre se resolvía antes de que `views/escenarios.js`
+    se descargara — mismo defecto ya documentado y corregido para `views/deuda.js` (`PERF-1`).
+    Envueltos en función anónima, igual que ese precedente, para que el nombre solo se resuelva
+    cuando el evento dispara de verdad.
+  - **14 ficheros de test** cargaban alguna de las 65 funciones movidas vía `vm.Script` sobre el
+    texto de `app.js` solo — actualizados para concatenar también `views/escenarios.js` (mismo
+    patrón `read("app.js") + read("views/deuda.js")` que ya usan los tests de Deuda/Inversión). Un
+    canario de otra pantalla (`track3-estado-semana.test.cjs`) asumía que `"estado-semana"` era la
+    última entrada de `HEAVY_RENDER_VIEWS` antes de `]);` — roto por las 4 entradas añadidas después
+    de la suya; corregido para comprobar membresía, no posición, sin tocar la pantalla en sí.
+  - **Validación**: `npm run verify` completo en verde (**4379/4379** pruebas, sin test nuevo — es
+    una reubicación de código, no una feature). Verificación adicional en un navegador real
+    (Playwright, fuera de `npm run verify`, mismo criterio que el resto de la suite): las 4
+    pantallas cargan su fragmento bajo demanda sin error de consola, y un flujo completo (añadir una
+    decisión "Amortizar 500€" en Simular → comparar KPIs correctos frente al plan → "Ir a aplicar"
+    → ver el diff correcto) funciona de punta a punta.
+  - **Resultado**: `app.js` pasa de 41.596 a 40.284 líneas (-1.312, -3,2%) — primer incremento real,
+    no el objetivo completo. `views/escenarios.js` nuevo, 1.350 líneas. El resto del monolito
+    (~40.000 líneas) queda para sesiones futuras dedicadas, con el mismo patrón ya validado aquí.
+- **Publicado (`T20` y el primer incremento de `T14`)**: commit y push a la rama de trabajo en
+  curso, PR en borrador y fusión a `main` en cuanto el CI esté en verde, misma autorización vigente
+  (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: seguir extrayendo hubs de `app.js` a `views/*.js` con el
+  mismo patrón y la misma disciplina de auditoría exhaustiva (candidatos obvios: el comparador de
+  las 8 estrategias de deuda, ya identificado como consumidor pesado del motor de escenarios; luego
+  el resto del Horizonte 3 — `I2`/`I3`, `D6`, `I9`, `P4`/`P10` — según el plan ya compartido con el
+  hogar).
 
 ## Cierre de sesión — 18 de septiembre de 2026 (205): `T7` y `T8`, modo oscuro y alto contraste real — Horizonte 2 completo
 

@@ -15,9 +15,9 @@ contaba en los 52 originales).** Cierres previos (sesión 205 y antes — `D2`, 
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
 §4). `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7` y `T8` — **todo el Horizonte 2 completo** (sesiones
-200-205). `T14` (Horizonte 3) se investigó en la sesión 206 pero no se implementó — requiere una
-decisión previa del hogar sobre el enfoque, ver su nota más abajo. El resto sigue pendiente —
-diagnóstico y planificación para lo que falta.
+200-205). `T14` (Horizonte 3) arrancó en la sesión 206 con su primer incremento real
+(`views/escenarios.js`) — ver su nota más abajo, sigue pendiente el resto. El resto sigue
+pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -136,7 +136,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ⏳ `T11` | Ficha de gasto con foto y geolocalización opcional | S | Bajo | Para reconciliar más rápido sin depender de la descripción del banco. |
 | ⏳ `T12` | Comparador «yo vs. mi propio histórico» (mejor mes / peor mes / media 12 meses) | S | Medio | Mismo lenguaje de bandas que ya usa la previsión. |
 | ⏳ `T13` | Herencia financiera con aportación equivalente de los padres | M | Bajo | Extiende la vista educativa para hijos (`MDX1`). |
-| ⏳ `T14` | Reducir el monolito técnico (`app.js` 2,1MB) | L | Alto | **Investigada, no construida (sesión 206).** No es solo un archivo grande: `app.js` se carga como script clásico con ~50 variables compartidas en el ámbito global, sin namespaces ni IIFE, y al menos 36 ficheros de test lo cargan entero con `vm.Script`/`vm.createContext` como un único texto (varios etiquetando tramos con nombres tipo `app.js#track3-week-summary`); hay además un test que exige que `"app.js"` aparezca una sola vez en todo el repositorio. Partirlo de verdad exige elegir entre módulos ES con `import`/`export` explícito de esas ~50 variables (rediseño real del modelo de estado) o mantener `app.js` como artefacto generado (bundle de varios ficheros fuente con esbuild, ya dependencia del proyecto) para no reescribir ~300 tests uno a uno — cualquiera de las dos toca la infraestructura de tests, no solo el archivo. Decisión pendiente del hogar sobre cuál ruta antes de construir nada. |
+| ⏳ `T14` | Reducir el monolito técnico (`app.js` 2,1MB) | L | Alto | **Primer incremento construido (sesión 206), sigue pendiente el resto.** El hogar eligió módulos ES entre las dos rutas planteadas, pero el repositorio ya tiene dos patrones de modularización propios y probados (63 `canonical-*.js` con factory UMD para lógica pura; `views/*.js` con carga diferida para código de vista con estado compartido, ya usado por Deuda/Inversión) — introducir `import`/`export` habría sido un tercer sistema incompatible sin resolver el problema real (los tests cargan `app.js` con `vm.Script`, que no soporta módulos ES). El hogar confirmó seguir con el patrón ya existente. Construido `views/escenarios.js`: las 4 pantallas del hub Escenario (simular/aplicar/guardados/comparar), 65 funciones movidas tras auditar los 110 identificadores del bloque candidato uno a uno contra el archivo completo — el "motor" compartido (catálogo de tipos, `runEscenarioMotor`, `escenarioMotorSummaryFor`...) se queda en `app.js` porque lo reutilizan Planificación de partidas, CPX2 y el comparador de estrategias de deuda. `app.js`: 41.596 → 40.284 líneas (-3,2%). Detalle completo, incluida la verificación en navegador real, en el cierre de sesión 206 de `PROJECT_STATE.md`. Candidato siguiente ya identificado: el comparador de las 8 estrategias de deuda. |
 | ✅ `T15` | Confirmación visible de «guardado» en Plan | S | Medio | **Cerrada (sesión 199).** Nace de `T1` (heurístico 1, `docs/OPT21_CHECKLIST_NIELSEN.md`, revisión del 16/09). El pie de impacto de Plan (`planMesImpactBar`) mostraba y ocultaba la barra solo en función de si quedaban cambios sin guardar; al guardar, la barra desaparecía sin decir nada. Añadida `planMesConsolidatedNote` (mismo patrón que `registrarSessionConsolidatedNote`, R-7): tras «Guardar cambios», la barra muestra «Cambios guardados.» durante 2 s antes de ocultarse. |
 | ⏳ `T16` | Unificar el vocabulario «previsto vs. real» en Hoy/Registrar/Plan | M | Alto | Nace de `T1` (heurístico 4, mayor severidad de las cinco). Tres vocabularios distintos hoy para el mismo concepto: Registrar («Previsto/Real/Usado»), Plan («Ingreso previsto/Comprometido/Asignado/Sin asignar»), Home («Gasto previsto/Gasto real a hoy/Desviación»). Necesita que el hogar decida qué término adoptar como estándar antes de tocar las tres pantallas — no es un renombrado mecánico, cada pantalla podría tener un motivo real para su matiz. |
 | ✅ `T17` | Repetir el colchón/reserva protegida en la pestaña Previsión de Plan | S | Medio | **Cerrada (sesión 199).** Nace de `T1` (heurístico 6). La fila «Colchón» de la tabla ya coloreaba cada mes contra el suelo (`mapaCalorFloor()`), pero la cifra solo aparecía enterrada al final de la frase de la leyenda. Ahora `planPrevisionLegend` abre con «Reserva protegida: €X.» antes del resto de la explicación — mismo dato que ya gobernaba el color de la fila, no una cifra nueva ni importada de Home/Registrar (esas usan `today.requiredReserve`, un número relacionado pero distinto — unificarlo es `T16`, no esta tarea). |
@@ -165,11 +165,12 @@ y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse
 (ambas sesión 205, pedidas por el hogar en la misma sesión de trabajo, `T7` primero). Las ocho
 apuestas estructurales del horizonte quedan cerradas.
 
-**Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
-`I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad
-futura — **investigada en la sesión 206, ver su nota en §4: necesita que el hogar elija entre
-módulos ES o `app.js` como artefacto generado antes de construirse**), `P4`/`P10` (interinos de
-push e IA, a sustituir cuando lleguen `A5-1`/`A5-4`), `D6` (necesita fuente de datos externa).
+**Horizonte 3 — en marcha:** `T14` (reducir el monolito, prerrequisito de velocidad futura —
+**primer incremento construido en la sesión 206** tras que el hogar decidiera seguir con el patrón
+ya existente en el repositorio en vez de módulos ES nuevos, ver su nota en §4; el resto sigue
+pendiente, varias sesiones más). **Condicionadas (decisión previa o de terceros):** `I9` (decidir
+dependencias UI), `I2`/`I3` (histórico de valoraciones), `P4`/`P10` (interinos de push e IA, a
+sustituir cuando lleguen `A5-1`/`A5-4`), `D6` (necesita fuente de datos externa).
 
 **Verificaciones de `D2`/`D3`/`D7` cerradas en la sesión 197**, antes del resto del Horizonte 1:
 `D3` no dio trabajo real (cobertura ya completa); `D2` y `D7` sí dieron trabajo, pero acotado (un

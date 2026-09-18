@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
 
 // E-3 (Escenarios.pdf, sesión de auditoría del 16 de agosto): "Comparativa de seis indicadores.
 // Reserva, colchón, fecha libre, ahorro anual, peor mes y capacidad. La diferencia se colorea según

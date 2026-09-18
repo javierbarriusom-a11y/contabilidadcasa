@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
 
 // CP6 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "copiloto proactivo" — sin documento de
 // detalle propio, resumen en su Nota): "pasa cada decisión grande por el escenario de tensión una

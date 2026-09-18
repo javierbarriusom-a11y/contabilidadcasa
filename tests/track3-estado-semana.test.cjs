@@ -245,7 +245,10 @@ test("TRACK-3 · renderEstadoSemana pinta las tres tarjetas dentro del elemento 
 
 test("TRACK-3 · la nueva pantalla está registrada en VIEW_CHUNKS, HEAVY_RENDER_VIEWS y el dispatcher", () => {
   assert.match(appSrc, /"estado-semana": \{ src: "views\/estado-semana\.js\?v=20260904a1", rootId: "estadoSemanaRoot" \}/);
-  assert.match(appSrc, /"estado-semana",\n\]\);/);
+  // T14: no se fija a que sea la última entrada antes de `]);` — HEAVY_RENDER_VIEWS ganó más
+  // entradas después de "estado-semana" (views/escenarios.js), el canario solo comprueba que
+  // "estado-semana" sigue siendo miembro del Set, no su posición.
+  assert.match(appSrc, /"estado-semana",\n/);
   assert.match(appSrc, /case "estado-semana":\s*renderEstadoSemana\(\);/);
 });
 

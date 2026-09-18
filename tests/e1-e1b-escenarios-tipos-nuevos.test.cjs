@@ -132,7 +132,7 @@ test("E-1b · un tipo propio con importe y mensualidad combina el golpe inicial 
 
 // --- app.js: funciones puras de presentación (E-1b, E-6b, E-7, E-8, E-9, E-12) -------------------
 
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);
