@@ -115,6 +115,231 @@
   }
 }
 
+/* T20 (BACKLOG_CONTABILIDADCASA_2_0.md): ~40 badges/pills/estados con pares de fondo pastel +
+   texto oscuro en hexadecimal fijo, quedados fuera del sistema de variables cuando T7 construyó el
+   modo oscuro — en claro se veían bien (ya verificados), pero en oscuro el fondo pastel se quedaba
+   fijo mientras el resto de la pantalla pasaba a oscuro, dejando "parches" claros apenas legibles.
+   Mismo criterio de mínimo cambio que T7 con sus 3 casos intencionados: no se toca ningún valor en
+   claro (redefinirlos sería otro rediseño, no esta tarea), solo se añade el equivalente en oscuro,
+   agrupado por familia semántica (verde/teal/ámbar/rojo/azul/violeta) y calculado con color-mix()
+   sobre los seis tokens `--green`/`--teal`/`--amber`/`--red`/`--blue`/`--violet` (ya verificados por
+   T7 con contraste real sobre `--bg`/`--surface` en oscuro) en vez de 40 hexadecimales nuevos
+   elegidos a ojo. El texto se aclara un 20% hacia blanco sobre el tono base (el tono base solo,
+   como en claro, no llega a 4,5:1 contra un fondo del mismo matiz) — verificado con la fórmula de
+   contraste real: ~4,6-5,5:1 en las seis familias, mismo umbral que T7 usó para el resto de la
+   paleta oscura, y confirmado después con axe-core contra la app renderizada. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .audit-badge.provenance-verified,
+  :root:not([data-theme="light"]) .audit-badge.status-executed,
+  :root:not([data-theme="light"]) .audit-badge.status-fixed,
+  :root:not([data-theme="light"]) .ledger-status.matched,
+  :root:not([data-theme="light"]) .ledger-invariant.passed > span,
+  :root:not([data-theme="light"]) .durability-status.durability-cloud,
+  :root:not([data-theme="light"]) .data-nature-badge.data-nature-applied,
+  :root:not([data-theme="light"]) .project-item .lock-action,
+  :root:not([data-theme="light"]) .visual-return-button,
+  :root:not([data-theme="light"]) .decision-lock-badge,
+  :root:not([data-theme="light"]) .cashflow-conclusion,
+  :root:not([data-theme="light"]) .life-def-status.is-confirmed,
+  :root:not([data-theme="light"]) .debt-plan-strategy-badge,
+  :root:not([data-theme="light"]) .status-pill {
+    background: color-mix(in srgb, var(--green) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--green) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .durability-status,
+  :root:not([data-theme="light"]) .debt-roadmap-view .sync-badge {
+    background: color-mix(in srgb, var(--teal) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--teal) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .audit-badge.provenance-estimated,
+  :root:not([data-theme="light"]) .audit-badge.status-pending,
+  :root:not([data-theme="light"]) .ledger-invariant > span,
+  :root:not([data-theme="light"]) .ledger-status,
+  :root:not([data-theme="light"]) .status-pill.warn,
+  :root:not([data-theme="light"]) .cashflow-conclusion.warn,
+  :root:not([data-theme="light"]) .life-def-status.is-pending,
+  :root:not([data-theme="light"]) .durability-status.durability-warn {
+    background: color-mix(in srgb, var(--amber) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--amber) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .audit-badge.status-cancelled,
+  :root:not([data-theme="light"]) .ledger-status.difference,
+  :root:not([data-theme="light"]) .status-pill.danger,
+  :root:not([data-theme="light"]) .cashflow-conclusion.danger {
+    background: color-mix(in srgb, var(--red) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--red) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .audit-badge.provenance-declared,
+  :root:not([data-theme="light"]) .audit-badge.status-approved {
+    background: color-mix(in srgb, var(--blue) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--blue) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .audit-badge.provenance-hypothetical,
+  :root:not([data-theme="light"]) .audit-badge.status-simulated,
+  :root:not([data-theme="light"]) .data-nature-badge.data-nature-simulation {
+    background: color-mix(in srgb, var(--violet) 12%, var(--surface) 88%);
+    color: color-mix(in srgb, var(--violet) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .durability-status,
+  :root:not([data-theme="light"]) .debt-roadmap-view .sync-badge {
+    border-color: color-mix(in srgb, var(--teal) 40%, var(--surface) 60%);
+  }
+
+  :root:not([data-theme="light"]) .durability-status.durability-cloud,
+  :root:not([data-theme="light"]) .data-nature-badge.data-nature-applied {
+    border-color: color-mix(in srgb, var(--green) 40%, var(--surface) 60%);
+  }
+
+  :root:not([data-theme="light"]) .durability-status.durability-warn {
+    border-color: color-mix(in srgb, var(--amber) 40%, var(--surface) 60%);
+  }
+
+  :root:not([data-theme="light"]) .data-nature-badge.data-nature-simulation {
+    border-color: color-mix(in srgb, var(--violet) 40%, var(--surface) 60%);
+  }
+
+  :root:not([data-theme="light"]) .visual-return-button:hover,
+  :root:not([data-theme="light"]) .visual-return-button:focus-visible {
+    background: color-mix(in srgb, var(--green) 22%, var(--surface) 78%);
+    color: color-mix(in srgb, var(--green) 80%, white 20%);
+  }
+
+  :root:not([data-theme="light"]) .data-nature-badge {
+    background: var(--surface-soft);
+    color: var(--muted);
+    border-color: var(--line);
+  }
+
+  :root:not([data-theme="light"]) .visual-actual-status.historical {
+    color: var(--muted);
+  }
+
+  :root:not([data-theme="light"]) .state-backup-status.success {
+    background: color-mix(in srgb, var(--green) 12%, var(--surface) 88%);
+    border-left-color: var(--green);
+  }
+
+  :root:not([data-theme="light"]) .state-backup-status.warning {
+    background: color-mix(in srgb, var(--amber) 12%, var(--surface) 88%);
+    border-left-color: var(--amber);
+  }
+
+  :root:not([data-theme="light"]) .state-backup-status.danger {
+    background: color-mix(in srgb, var(--red) 12%, var(--surface) 88%);
+  }
+}
+
+:root[data-theme="dark"] .audit-badge.provenance-verified,
+:root[data-theme="dark"] .audit-badge.status-executed,
+:root[data-theme="dark"] .audit-badge.status-fixed,
+:root[data-theme="dark"] .ledger-status.matched,
+:root[data-theme="dark"] .ledger-invariant.passed > span,
+:root[data-theme="dark"] .durability-status.durability-cloud,
+:root[data-theme="dark"] .data-nature-badge.data-nature-applied,
+:root[data-theme="dark"] .project-item .lock-action,
+:root[data-theme="dark"] .visual-return-button,
+:root[data-theme="dark"] .decision-lock-badge,
+:root[data-theme="dark"] .cashflow-conclusion,
+:root[data-theme="dark"] .life-def-status.is-confirmed,
+:root[data-theme="dark"] .debt-plan-strategy-badge,
+:root[data-theme="dark"] .status-pill {
+  background: color-mix(in srgb, var(--green) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--green) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .durability-status,
+:root[data-theme="dark"] .debt-roadmap-view .sync-badge {
+  background: color-mix(in srgb, var(--teal) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--teal) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .audit-badge.provenance-estimated,
+:root[data-theme="dark"] .audit-badge.status-pending,
+:root[data-theme="dark"] .ledger-invariant > span,
+:root[data-theme="dark"] .ledger-status,
+:root[data-theme="dark"] .status-pill.warn,
+:root[data-theme="dark"] .cashflow-conclusion.warn,
+:root[data-theme="dark"] .life-def-status.is-pending,
+:root[data-theme="dark"] .durability-status.durability-warn {
+  background: color-mix(in srgb, var(--amber) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--amber) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .audit-badge.status-cancelled,
+:root[data-theme="dark"] .ledger-status.difference,
+:root[data-theme="dark"] .status-pill.danger,
+:root[data-theme="dark"] .cashflow-conclusion.danger {
+  background: color-mix(in srgb, var(--red) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--red) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .audit-badge.provenance-declared,
+:root[data-theme="dark"] .audit-badge.status-approved {
+  background: color-mix(in srgb, var(--blue) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--blue) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .audit-badge.provenance-hypothetical,
+:root[data-theme="dark"] .audit-badge.status-simulated,
+:root[data-theme="dark"] .data-nature-badge.data-nature-simulation {
+  background: color-mix(in srgb, var(--violet) 12%, var(--surface) 88%);
+  color: color-mix(in srgb, var(--violet) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .durability-status,
+:root[data-theme="dark"] .debt-roadmap-view .sync-badge {
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--surface) 60%);
+}
+
+:root[data-theme="dark"] .durability-status.durability-cloud,
+:root[data-theme="dark"] .data-nature-badge.data-nature-applied {
+  border-color: color-mix(in srgb, var(--green) 40%, var(--surface) 60%);
+}
+
+:root[data-theme="dark"] .durability-status.durability-warn {
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--surface) 60%);
+}
+
+:root[data-theme="dark"] .data-nature-badge.data-nature-simulation {
+  border-color: color-mix(in srgb, var(--violet) 40%, var(--surface) 60%);
+}
+
+:root[data-theme="dark"] .visual-return-button:hover,
+:root[data-theme="dark"] .visual-return-button:focus-visible {
+  background: color-mix(in srgb, var(--green) 22%, var(--surface) 78%);
+  color: color-mix(in srgb, var(--green) 80%, white 20%);
+}
+
+:root[data-theme="dark"] .data-nature-badge {
+  background: var(--surface-soft);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .visual-actual-status.historical {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .state-backup-status.success {
+  background: color-mix(in srgb, var(--green) 12%, var(--surface) 88%);
+  border-left-color: var(--green);
+}
+
+:root[data-theme="dark"] .state-backup-status.warning {
+  background: color-mix(in srgb, var(--amber) 12%, var(--surface) 88%);
+  border-left-color: var(--amber);
+}
+
+:root[data-theme="dark"] .state-backup-status.danger {
+  background: color-mix(in srgb, var(--red) 12%, var(--surface) 88%);
+}
+
 * {
   box-sizing: border-box;
 }
