@@ -80,6 +80,81 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — investigación de `T14`
+
+- **Qué pedía la sesión**: con el Horizonte 2 completo (sesión 205), el hogar pidió plan para el
+  resto del backlog — Horizonte 3 (`I9`, `I2`/`I3`, `T14`, `P4`/`P10`, `D6`) o el remanente sin
+  horizonte — y arreglar el aviso, no bloqueo, dejado en la sesión 205: los ~40 pares badge/pill de
+  `styles.css` con fondo pastel y texto oscuro fijos en hexadecimal que no se adaptaban al tema
+  oscuro. El hogar confirmó el orden: primero el arreglo de badges/pills, después `T14`.
+- **`T20` (nueva, sin ID previo en el backlog) — badges/pills en modo oscuro**: auditoría completa
+  de `styles.css` encontró 36 reglas afectadas (más cerca de las ~40 estimadas que del recuento
+  inicial de 46 candidatos brutos — la diferencia son botones/avisos sobre chrome deliberadamente
+  oscuro en cualquier tema, como `.meeting-mode-bar button`/`.family-context-switch button.active`,
+  ya excluidos a propósito en `T7`, y encabezados de tabla sticky con el mismo defecto pero fuera
+  del patrón «badge/pill», dejados fuera de esta tarea). Agrupadas en 6 familias semánticas (verde,
+  teal, ámbar, rojo, azul, violeta): `.audit-badge.*`, `.ledger-status`/`.ledger-invariant`,
+  `.durability-status.*`, `.data-nature-badge.*`, `.status-pill.*`, `.cashflow-conclusion.*`,
+  `.decision-lock-badge`, `.debt-plan-strategy-badge`, `.life-def-status.*`,
+  `.state-backup-status.*`, `.visual-return-button`, `.project-item .lock-action`,
+  `.debt-roadmap-view .sync-badge`, `.visual-actual-status.historical`.
+  - **Mismo criterio de mínimo cambio que `T7`**: no se toca ningún valor en claro (ya verificado,
+    redefinirlo sería otro rediseño). Solo se añade el equivalente en oscuro, calculado con
+    `color-mix()` sobre los seis tokens semánticos `--green`/`--teal`/`--amber`/`--red`/`--blue`/
+    `--violet` ya verificados por `T7`, en vez de ~40 hexadecimales nuevos elegidos a ojo: fondo al
+    12% del tono sobre `--surface`, borde al 40% (donde el componente ya tenía borde propio en
+    claro) y texto aclarado un 20% hacia blanco sobre el tono base — el tono base solo no llega a
+    4,5:1 contra un fondo del mismo matiz, verificado con la fórmula de contraste real antes de
+    escribir el CSS.
+  - **Contraste verificado dos veces**: primero por cálculo (fórmula WCAG real, no a ojo) — 4,6 a
+    5,5:1 en las seis familias sobre su propio fondo mezclado, 6,0-7,4:1 sobre `--bg`. Después contra
+    la app renderizada de verdad: axe-core con `colorScheme: "dark"` forzado sobre 4 pantallas
+    (`#home`, `#conciliar`, `#analisis`, `#deuda-comparar`) antes y después del cambio — 130
+    violaciones de `color-contrast` antes, 123 después (7 menos, ninguna nueva), y ninguna de las
+    36 reglas tocadas aparece en la lista de violaciones restantes. Las 123 que quedan son de
+    componentes que esta tarea no tocó (`.e19-badge-*`, `.positive`/`.negative`, tablas con fondo
+    `#fafbfc` fijo sin migrar a variable) — mismo hueco que `T7`/OPT-4 ya documentaron como
+    pendiente de una auditoría de color propia, no de esta tarea.
+  - **Validación**: `npm run verify` completo en verde (código de salida 0) tras `npm install`
+    (el entorno de la sesión arrancó sin `node_modules`). `npm test` **4379/4379** pruebas (sin
+    cambio — es un fix de CSS puro, ningún test nuevo). `test:a11y` **1355 IDs únicos**,
+    `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+  - **Backlog**: se añade `T20` a `BACKLOG_CONTABILIDADCASA_2_0.md` §4 (transversal, nacida de esta
+    sesión, no del diagnóstico original) y se cierra en el mismo movimiento — 21/52 tareas cerradas
+    de la cola original, más `T20`.
+- **`T14` — reducir el monolito `app.js` (2,1MB, 41.596 líneas) — investigada, no implementada**:
+  antes de tocar nada se auditó la estructura real del archivo y su acoplamiento con el resto del
+  repositorio. Hallazgo que cambia el alcance de la tarea frente a como estaba descrita en el
+  backlog: **no es solo un archivo grande — es la unidad de carga que usan literalmente cientos de
+  tests**. `app.js` se carga como script clásico (`defer`, sin `type="module"`), con ~50 variables
+  compartidas en el ámbito global (`state`, `baseData`, `lastSimulation`...) leídas y escritas
+  directamente por ~1.965 funciones de nivel superior sin ningún namespace ni IIFE — y al menos 36
+  ficheros de test (`grep` sobre `readFileSync(require.resolve("../app.js"))`) lo cargan entero con
+  `vm.Script`/`vm.createContext` como un único texto para poder invocar sus funciones internas, en
+  varios casos etiquetando tramos concretos con nombres como `app.js#track3-week-summary` para que
+  los mensajes de error apunten a la sección correcta. Hay además un test dedicado que exige que
+  `"app.js"` aparezca **una sola vez** en todo el repositorio fuera de comentarios (su propio
+  `<script>`), y otro que compara el `app.js` del repositorio contra el `dist/app.js` minificado
+  para garantizar que build nunca reescribe el fuente.
+  - **Por qué esto importa para el alcance**: partir `app.js` en varios archivos de verdad (más allá
+    de mover líneas) exige, como mínimo, decidir entre (a) una migración a módulos ES con
+    import/export explícito de esas ~50 variables compartidas — la opción de más valor a largo
+    plazo, pero un rediseño real del modelo de estado de la app, no solo un recorte de archivo — o
+    (b) mantener `app.js` como **artefacto generado** (concatenación/bundle de varios ficheros
+    fuente con esbuild, ya dependencia del proyecto para `build:site`) preservando el `app.js` final
+    en el repositorio para que los ~300 tests que lo cargan como texto sigan funcionando sin
+    reescribirlos uno a uno. Cualquiera de las dos exige tocar la infraestructura de tests (no solo
+    el archivo), el `service-worker.js` (versión de caché) y probablemente `index.html`.
+  - **Decisión pedida al hogar, no tomada aquí**: cuál de las dos rutas prefiere (o si prefiere
+    posponer `T14` hasta que haya más apetito por una sesión dedicada solo a infraestructura, sin
+    entrega visible), antes de comprometer el esfuerzo **L** ya señalado en el backlog. No se ha
+    tocado `app.js` ni ningún test en esta sesión.
+- **Publicado (solo `T20`)**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a
+  `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decisión del hogar sobre `T14` (módulos ES vs. bundle
+  generado, o posponer) antes de implementar nada; después, seguir con el resto del Horizonte 3
+  (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido con el hogar.
+
 ## Cierre de sesión — 18 de septiembre de 2026 (205): `T7` y `T8`, modo oscuro y alto contraste real — Horizonte 2 completo
 
 - **Qué pedía la tarea**: `T7` — modo oscuro real. El hogar pidió seguir con `T7` justo después de
