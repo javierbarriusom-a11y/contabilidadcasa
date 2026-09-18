@@ -2564,7 +2564,7 @@
                  Ajustes → Fiscal ("Tramo del ahorro"), sin escala nueva que inventar. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Venta parcial: optimizar el tramo del ahorro</h3>
-              <p class="e19-kpi-note">Dice cuánto de la plusvalía que valoras vender cabe todavía en el tramo del ahorro actual antes de saltar al siguiente tipo, usando la escala del tramo del ahorro registrada en Ajustes → Fiscal. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo). No es una recomendación de vender — solo información para decidir.</p>
+              <p class="e19-kpi-note">Dice cuánto vender ahora sin salir del tramo del ahorro actual y si conviene diferir el resto, usando la escala del tramo del ahorro registrada en Ajustes → Fiscal. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo).</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Base ya generada este año en el tramo del ahorro (€)</span>
@@ -2623,11 +2623,13 @@
                  Fiscal, solo cubre pérdidas YA realizadas por venta): candidatas a compensación
                  ANTES de vender — posiciones con minusvalía latente (gainLoss negativo, ya
                  calculado por normalizePositions en IV1) que podría interesar realizar antes de
-                 cerrar el año fiscal. Solo identifica y ordena, nunca sugiere vender por sí sola
-                 (regla transversal 04) — y avisa de la norma española de no recompra. -->
+                 cerrar el año fiscal, ordenadas de mayor a menor pérdida.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo): marca la primera como la
+                 que conviene vender primero — el aviso de la norma de no recompra se mantiene, es
+                 una regla legal real, no una coletilla informativa. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
-              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de arriba. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
+              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender), ordenadas de mayor a menor pérdida, para compensar con la calculadora de arriba. La pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
               <div id="inv6LatentLossCandidates"></div>
             </article>
           </section>
@@ -2684,7 +2686,10 @@
                  coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
                  (A15-4/A15-1). No modela reducciones (40% de aportaciones anteriores a 2007, mínimo
                  exento) ni la modalidad en forma de renta — la app no registra cuándo se hizo cada
-                 aportación. -->
+                 aportación.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito — recomendar
+                 capital único vs. renta exigiría modelar la renta, hueco declarado (I5), no
+                 indecisión. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
               <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
@@ -2761,12 +2766,13 @@
                  mínimas verificadas (colchón por encima del suelo, deuda actual sin incidencias
                  críticas, cuota actual contenida), no hay simulación que mostrar. Los tres
                  escenarios de rentabilidad esperada los declara el hogar — el motor no inventa
-                 ninguna cifra de mercado. La lectura favorable/desfavorable es una sugerencia que
-                 se explica con números, nunca una orden: nada se ejecuta ni se persiste como
-                 decisión, solo como exploración guardada. -->
+                 ninguna cifra de mercado.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo): el escenario base decide
+                 si compensa o no pedir la deuda; nada se ejecuta ni se persiste como decisión real,
+                 solo como exploración guardada (invariante A11-4). -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Simulador de apalancamiento (explorar, no ejecutar)</h3>
-              <p class="e19-kpi-note">Antes de pedir deuda nueva para invertir: comprueba primero el guardarraíl de seguridad y, si lo superas, explora el coste de esa deuda frente a tres escenarios de rentabilidad esperada que tú declares. Ninguna cifra de mercado se inventa aquí, y ningún resultado es una recomendación de actuar — solo una lectura que puedes aceptar o descartar.</p>
+              <p class="e19-kpi-note">Antes de pedir deuda nueva para invertir: comprueba primero el guardarraíl de seguridad y, si lo superas, explora el coste de esa deuda frente a tres escenarios de rentabilidad esperada que tú declares — el resultado dice si, con tu escenario base, compensa pedirla. Ninguna cifra de mercado se inventa aquí.</p>
               <div class="e19-kpi-note" id="ap3BarrierStatus"></div>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
@@ -2827,7 +2833,9 @@
                  leverage) — reutiliza tal cual el importe, tipo y escenarios de rentabilidad ya
                  declarados arriba en el simulador de apalancamiento (AP3), añadiendo solo el número
                  de tramos y el intervalo entre ellos. Alcance confirmado por el hogar (sesión 171):
-                 solo simulador informativo, nunca programa ni ejecuta ninguna toma de deuda real. -->
+                 se construye como simulador, nunca programa ni ejecuta ninguna toma de deuda real
+                 (invariante A11-4). T4 (retrofit directivo): recomienda escalonar o no según si el
+                 importe entero compensa bajo el escenario base (AP3). -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Apalancamiento parcial escalonado (LEV14)</h3>
               <p class="e19-kpi-note">En vez de tomar toda la deuda nueva de una vez, explora repartirla en varios tramos iguales a lo largo del tiempo — usa el importe, el tipo y los escenarios de rentabilidad ya declarados arriba. No cambia la rentabilidad esperada bajo los mismos supuestos, solo reparte cuándo te expones a cada tramo.</p>
@@ -2850,7 +2858,9 @@
                  resto a otro), pero AP3 arriba solo admite un tipo único para todo el importe.
                  Reutiliza el importe ya declarado arriba (ap3DebtAmount), sin duplicarlo. Tramos
                  declarados por el hogar según ofertas reales de su banco, nunca una curva de mercado
-                 inventada; se actualiza solo, sin botón, en cuanto cambia un tramo o el importe. -->
+                 inventada; se actualiza solo, sin botón, en cuanto cambia un tramo o el importe.
+                 T4 (retrofit directivo): compara el tipo marginal con la rentabilidad base ya
+                 declarada en AP3 y dice si el siguiente euro sigue compensando. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Curva de coste marginal de deuda por tramo (LEV10)</h3>
               <p class="e19-kpi-note">Si tu banco cobra un tipo distinto según cuánto pidas prestado, declara aquí sus tramos reales para ver el coste combinado y el tipo marginal — usa el importe ya declarado arriba en «Deuda nueva a simular».</p>
@@ -2982,7 +2992,10 @@
                  banco y una caída hipotética de la cartera — nunca un umbral "típico" inventado.
                  Extiende el guardarraíl AP4 al nuevo instrumento: si la caída dispara la llamada,
                  compara la garantía adicional necesaria contra el mismo guardarraíl de colchón que
-                 ya usan DLX1/AP1. -->
+                 ya usan DLX1/AP1.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito — reponer
+                 garantía o liquidar es un trade-off de riesgo real que decide el hogar, sin una
+                 mejor opción objetiva que la app pueda calcular. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Simulador de ejecución de garantía (margin call)</h3>
               <p class="e19-kpi-note">Si tomaste el crédito con garantía de cartera de arriba, simula qué pasaría si la cartera cayera de valor: si se dispararía una llamada de garantía, y cuánta garantía adicional o liquidación forzosa exigiría el banco. No decide cuál de las dos opciones tomar.</p>
@@ -3085,10 +3098,12 @@
             <!-- LEV11 (Oleada 4, Bloque 5; alcance reducido): reutiliza la caída ponderada de arriba
                  (LEV5) para decidir CUÁNDO conviene desapalancarse de forma preventiva, y el orden de
                  venta ya priorizado de LEV6 para decidir QUÉ vender primero — antes de que llegue un
-                 margin call real, no cuando ya ha pasado. -->
+                 margin call real, no cuando ya ha pasado.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): ya es directiva (dice qué vender y cuánto, en
+                 orden); solo queda el invariante A11-4 de que ninguna venta se ejecuta sola. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Desapalancamiento preventivo (LEV11)</h3>
-              <p class="e19-kpi-note">Si la caída ponderada estimada de tu cartera (arriba) ya dispararía una llamada de garantía, esto es lo que tocaría vender primero según tu prioridad de desapalancamiento (LEV6) — antes de esperar a que pase de verdad. Nunca ejecuta ninguna venta por su cuenta.</p>
+              <p class="e19-kpi-note">Si la caída ponderada estimada de tu cartera (arriba) ya dispararía una llamada de garantía, esto es lo que tocaría vender primero y cuánto, según tu prioridad de desapalancamiento (LEV6) — antes de esperar a que pase de verdad. Ninguna venta se ejecuta sola.</p>
               <div id="lev11PreventiveDeleveragingNote"></div>
             </article>
 
@@ -3974,7 +3989,9 @@
                  (activos con procedencia, en Ajustes) y SP1 (inventario de pólizas, en Ajustes ›
                  Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
                  ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
-                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
+                 quedan como casillas que confirma el propio hogar, nunca inventadas.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito — es un
+                 checklist de qué falta, no una decisión con alternativas que ordenar. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
               <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
@@ -4245,7 +4262,9 @@
 
             <!-- RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9)
                  y el hogar compartido de Ajustes. No ejecuta ninguna acción, solo hace visible qué
-                 falta y por qué, con la copia y la invitación a un clic de distancia. -->
+                 falta y por qué, con la copia y la invitación a un clic de distancia.
+                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito, mismo
+                 motivo que LPX3 — checklist sin alternativas que ordenar. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Simulacro: ¿qué pasa si pierdes el acceso?</h3>
               <p class="e19-kpi-note">Repaso guiado de tres puntos: copia de emergencia reciente, alguien más con rol de propietario o administrador, y cobertura por área. Descarga tu copia en «Datos» y gestiona el hogar en <a href="#ajustes">Ajustes → Datos y exportación</a> si algo falta.</p>
@@ -4819,7 +4838,9 @@
                   <span>Ingreso de alquiler neto mensual (€, opcional)</span>
                   <input id="a14AssetMonthlyRentIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="Si este activo está en alquiler" />
                 </label>
-                <!-- LPX5: declaración libre, nunca vinculante — no decide legítima ni sustituye testamento. -->
+                <!-- LPX5: declaración libre, nunca vinculante — no decide legítima ni sustituye testamento.
+                     T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda como está a propósito — es un campo
+                     de declaración del usuario, no una recomendación de la app que quepa hacer directiva. -->
                 <label class="month-picker">
                   <span>A quién se destina (opcional)</span>
                   <input id="a14AssetDestination" type="text" placeholder="p. ej. hijo mayor" />

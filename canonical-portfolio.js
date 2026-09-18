@@ -864,9 +864,10 @@
   // INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3 solo cubre pérdidas ya realizadas vía FIFO):
   // candidatas a compensación de pérdidas y ganancias ANTES de vender — el dato base (gainLoss no
   // realizado por posición) ya lo calcula normalizePositions() arriba, esta función solo filtra y
-  // ordena. Nunca sugiere ejecutar nada (regla transversal 04): es una lista de candidatas, con el
-  // aviso explícito de la norma española de no recompra (2 meses en cotizados, 1 año en no
-  // cotizados) para no inducir a vender y recomprar antes de que la pérdida sea deducible.
+  // ordena (de mayor a menor pérdida). T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo):
+  // la candidata en cabecera es la que conviene vender primero — el aviso de la norma española de
+  // no recompra (2 meses en cotizados, 1 año en no cotizados) se mantiene, esa sí es una regla legal
+  // real y no una simple coletilla informativa.
   const LATENT_LOSS_SCHEMA_ID = "finanzas-casa-portfolio-latent-loss-harvesting";
 
   function latentLossHarvestingCandidates(positions = []) {

@@ -41,11 +41,18 @@ de aquí en la siguiente regeneración, no al momento.
   "esto es información, nunca una recomendación". A partir de esta sesión, en tareas nuevas se puede
   saltar esa coletilla cuando de verdad aporte más ser directivo (p. ej. `INV18` dice en qué orden
   vender, no solo el coste de cada opción por separado) — a criterio de quien construye, sin pedir
-  permiso cada vez. Alcance explícito: **solo tareas nuevas a partir de aquí**; las ~15+ pantallas ya
-  publicadas con ese disclaimer (`FC5`, `FCX1`, `LEV6`, el estimador de IRPF...) no se tocan
-  retroactivamente salvo que el hogar lo pida expresamente. Lo que no cambia: los límites reales del
-  cálculo (heurísticas no exactas, reducciones fiscales no modeladas, etc.) se siguen declarando
-  siempre — ser directivo no es dejar de ser honesto sobre lo que el motor no sabe.
+  permiso cada vez. Alcance original: solo tareas nuevas a partir de esa fecha; las pantallas ya
+  publicadas con ese disclaimer no se tocarían retroactivamente salvo petición expresa del hogar.
+  **El hogar pidió esa retroactividad el 18 de septiembre de 2026 (`T4`, sesión 204)**: inventario
+  completo de 19 pantallas + 1 caso límite, 9 pasaron a directivas (`FC5`, `INV6`, `AP3`, `LEV14`,
+  `LEV9`, `LEV10`, `LEV11`, `DEB10`/`DEB5`; `APX2` ya lo era), 8 se quedaron informativas con el
+  motivo documentado en el código (`FC3`, `A15-2`, `LPX4`, `LPX3`, `RGX1`, `LPX5`, `APX3`, reparto
+  mensual estacional — no hay una respuesta directiva honesta que dar), y `FCX1` se quedó informativa
+  al descubrirse que el retrofit exigiría fabricar el cálculo de la modalidad en renta (`I5`, hueco
+  sin cerrar). `GOB15` quedó fuera a propósito, reservada a su propia sesión. Detalle completo en el
+  cierre de sesión 204. Lo que no cambia: los límites reales del cálculo (heurísticas no exactas,
+  reducciones fiscales no modeladas, etc.) se siguen declarando siempre — ser directivo no es dejar
+  de ser honesto sobre lo que el motor no sabe.
 - **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` cerrada (9 de septiembre de 2026, sesión 163c)**:
   43/44 tareas accionables construidas o reducidas con motivo, 1 postergada (`GOB5`, condición
   externa). `BACKLOG_INDICE.md` sigue siendo el mapa de qué documento es la fuente viva de cada
@@ -69,6 +76,71 @@ de aquí en la siguiente regeneración, no al momento.
   dedicada. Detalle completo de cada decisión en la nota de la fila correspondiente de
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
+  **`T4` (sesión 204) pasó `LEV14` a lenguaje directivo** (recomienda escalonar o no según el
+  veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
+  204 para el detalle completo de qué más cambió.
+
+## Cierre de sesión — 18 de septiembre de 2026 (204): `T4`, directiva vs. informativa en las pantallas antiguas — sexto ciclo del Horizonte 2
+
+- **Qué pedía la tarea**: `T4` — resolver, pantalla por pantalla, si las ~15+ superficies antiguas
+  con el disclaimer "esto es información, nunca una recomendación" se quedan así o pasan a lenguaje
+  directivo (política del 12/09, sesión 177, hasta ahora solo aplicada a tareas nuevas). El hogar
+  eligió `T4` sobre `T7`/`T8` como siguiente tarea del Horizonte 2, y confirmó abordarla completa en
+  una sola sesión tras ver la clasificación propuesta.
+- **Investigación previa**: inventario exhaustivo por agente de exploración sobre código real (no
+  documentación de sesiones pasadas) — **19 pantallas + 1 caso límite** (`A2-3`, que ya mezclaba
+  lenguaje directivo con un disclaimer parcial legítimo en su bloque de efectos legales/fiscales, sin
+  cambio necesario), más del doble de las "~15+" que estimaba la nota original del backlog.
+  **`GOB15` apareció en el inventario pero se excluyó a propósito**: el hogar ya la había reservado
+  para una sesión propia dedicada (sesión 171/178) — tocarla aquí habría deshecho esa decisión sin
+  que nadie lo pidiera.
+- **Criterio aplicado** (clasificación propuesta y confirmada antes de tocar código): una pantalla se
+  queda informativa solo cuando no hay una respuesta directiva honesta que dar — verificación fiscal
+  real caso a caso, estimación orientativa por diseño (rango, no cifra única), checklist sin
+  alternativas que ordenar, declaración libre del usuario, o un trade-off de riesgo real sin mejor
+  opción objetiva. Todo lo demás, si ya calcula y ordena datos reales, pasa a decir qué hacer con
+  ellos — mismo patrón que `INV18` (sesión previa a esta serie).
+- **Grupo A — informativas por motivo real, documentado en el propio código (8)**: `FC3`
+  (compensación pérdidas/ganancias — depende de cruce con rendimientos del capital mobiliario que
+  este motor no cubre), `A15-2` (estimador IRPF — el rango ya refleja la incertidumbre real de
+  entrada), `LPX4` (coste fiscal sucesión/donación — depende de grupo de parentesco/patrimonio
+  preexistente/bonificación autonómica, ninguno declarado en la app), `LPX3` y `RGX1` (checklists de
+  continuidad y simulacro de pérdida de acceso — sin alternativas que ordenar), `LPX5` (campo "a
+  quién se destina" — declaración libre, no una recomendación de la app), `APX3` (margin call —
+  aportar garantía vs. liquidación forzosa es un trade-off de riesgo real sin mejor opción objetiva),
+  y el reparto mensual estacional de `presupuesto-mes.js` (cifra de referencia, no una decisión).
+- **Grupo B — retrofit directivo real (9, más `APX2` que ya lo era)**: `FC5` (dice cuánto vender
+  ahora y si difiere el resto), `INV6` (marca la primera candidata como la que conviene vender
+  primero), `AP3`/`LEV14` (el escenario base decide si compensa pedir la deuda, y si compensa
+  escalonarla), `LEV9` (abre con el instrumento más barato ya calculado), `LEV10` (compara el tipo
+  marginal con la rentabilidad base declarada en AP3 y dice si el siguiente euro sigue compensando),
+  `LEV11` (ya decía qué vender y cuánto; se recortó el cierre "la decisión final sigue siendo tuya"),
+  `DEB10`/`DEB5` (dice explícitamente a qué deuda cambiar la selección de AP1). `APX2` (capacidad
+  Lombard) resultó ya directiva al revisarla — no necesitaba cambio. Ningún motor de cálculo nuevo:
+  todas reutilizan datos ya calculados, solo cambia el texto y, en LEV9/LEV10, qué combinación de
+  campos ya declarados se compara.
+- **Reclasificación durante la implementación**: `FCX1` (rescate de pensiones) se propuso inicialmente
+  para el Grupo B, pero al revisar el motor (`marginalTaxOnAdditionalIncome`) quedó claro que
+  recomendar "capital único vs. renta" exigiría modelar la modalidad en forma de renta — un hueco
+  declarado explícitamente y nunca cerrado (`I5`, sin construir). Ser directivo ahí habría fabricado
+  un cálculo que no existe, así que se quedó en el Grupo A con el motivo documentado. Se avisó de
+  este cambio de plan al hogar en vez de forzar un retrofit artificial.
+- **Validación**: `npm run verify` completo en verde (código de salida 0) tras `npm install` (el
+  entorno no tenía `node_modules`). `npm test` **4348/4348** pruebas (+4 sobre las 4344 previas:
+  nuevos tests para el veredicto de `AP3`/`LEV14`/`LEV9`/`LEV10`, `INV6` y `DEB10`, más los tests
+  existentes de `AP3`/`LEV1`/`AP3` actualizados para el nuevo texto directivo, sin debilitar ninguna
+  aserción). `test:a11y` **1354 IDs únicos** (sin cambio — ningún elemento nuevo, solo texto).
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T4` como cerrada; 19/52 tareas
+  cerradas en total. `I5` (rescate de pensiones, modalidad renta) queda con una nota cruzada
+  explicando por qué sigue bloqueando el retrofit directivo de `FCX1`. Del Horizonte 2 quedan `T7`
+  y `T8`, sin orden confirmado todavía.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: decidir con el hogar el orden entre `T7` (modo oscuro,
+  pregunta abierta sobre si sigue siendo prioridad real dado su ratio esfuerzo/beneficio) y `T8`
+  (`prefers-reduced-motion` y alto contraste, menor esfuerzo).
 
 ## Cierre de sesión — 17 de septiembre de 2026 (203): `D10`, flujo con navegación de progreso en Deuda — quinto ciclo del Horizonte 2
 

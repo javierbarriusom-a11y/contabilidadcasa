@@ -1509,6 +1509,9 @@ function presupuestoLargoAddRowHtml(periodType, periodKey) {
   </tr>`;
 }
 
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): la columna "Reparto mensual" del texto de abajo se queda
+// informativa a propósito — es una cifra de referencia (promedio del periodo), no una decisión con
+// alternativas que ordenar; no crea presupuestos mensuales nuevos por diseño (ver PLAN_MES / A18-x).
 function presupuestoLargoHtml() {
   const periodType = presupuestoMesLongPeriodType;
   const periodKey = currentPresupuestoMesLongPeriodKey();

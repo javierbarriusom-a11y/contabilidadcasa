@@ -208,3 +208,10 @@ test("app.js: LEV10 reutiliza progressiveTax del motor fiscal (A15-2), sin escal
   const block = extractFunction("lev10DebtMarginalCostCurve");
   assert.match(block, /irpf\.progressiveTax\(/);
 });
+
+test("T4: lev10CostCurveHtml compara el tipo marginal con la rentabilidad base declarada en AP3 y dice si compensa seguir pidiendo deuda", () => {
+  const block = extractFunction("lev10CostCurveHtml");
+  assert.match(block, /qs\("ap3ReturnBase"\)/);
+  assert.match(block, /todavía compensa pedirlo/);
+  assert.match(block, /ya no compensa/);
+});

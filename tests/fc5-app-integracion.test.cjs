@@ -27,9 +27,10 @@ test("FC5: handleFc5Optimize delega en FinanceCanonicalIrpfEstimator.optimizePar
   assert.match(block, /engine\.optimizePartialSale\(/);
 });
 
-test("FC5: fc5ResultHtml nunca presenta el resultado como una recomendación de vender", () => {
+test("FC5: fc5ResultHtml dice cuánto vender ahora y si conviene diferir el resto (T4, retrofit directivo)", () => {
   const block = appSource.slice(appSource.indexOf("function fc5ResultHtml("), appSource.indexOf("function fc5ResultHtml(") + 1500);
-  assert.match(block, /No es una recomendación de vender/);
+  assert.match(block, /Vende los/);
+  assert.match(block, /difiere el resto/);
 });
 
 test("FC5: sin escala o sin plusvalía, fc5ResultHtml pide el dato en vez de inventar un resultado", () => {

@@ -91,15 +91,15 @@ test("sin escenarios de rentabilidad declarados, el rendimiento esperado es 0 鈥
   assert.equal(result.scenarios.base.assessment, "desfavorable");
 });
 
-test("el aviso profesional deja claro que la lectura se puede aceptar o descartar, nunca es una orden", () => {
+test("T4 (retrofit directivo): el aviso dice cu谩ndo NO compensa pedir la deuda seg煤n el escenario base, y sigue exigiendo verificaci贸n profesional real", () => {
   const result = Simulator.simulateLeverage({
     barrierResult: readyBarrier(),
     newDebtAmount: 10000,
     newDebtAnnualRatePercent: 5,
     expectedReturnScenarios: { pessimisticPercent: 2, basePercent: 6, optimisticPercent: 10 },
   });
-  assert.match(result.warning, /ac茅ptala o desc谩rtala/);
-  assert.match(result.warning, /no es una recomendaci贸n de pedir deuda/i);
+  assert.match(result.warning, /no compensa pedir esta deuda/i);
+  assert.match(result.warning, /verifica cualquier decisi贸n real con un profesional/i);
 });
 
 test("saveScenario guarda una fotograf铆a del resultado, con su propio schemaId, nunca una posici贸n real", () => {

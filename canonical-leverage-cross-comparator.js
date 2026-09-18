@@ -24,10 +24,12 @@
 
   const SCHEMA_ID = "finance-canonical-leverage-cross-comparator/v1";
 
+  // T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo): cheapestId/cheapestLabel ya señalan
+  // el instrumento más barato de los disponibles — el aviso solo cubre la exactitud de los
+  // supuestos declarados, no evita decir cuál conviene.
   const WARNING =
     "Comparación de coste financiero con los supuestos que tú has declarado, nunca garantizados. " +
-    "No es una recomendación de pedir deuda por ninguno de los tres instrumentos: acepta o descarta " +
-    "esta lectura tú, y verifica cualquier decisión real con un profesional.";
+    "Verifica cualquier decisión real con un profesional antes de ejecutarla.";
 
   function number(value, fallback = 0) {
     const parsed = Number(value);

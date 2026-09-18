@@ -159,6 +159,14 @@ test("wiring: la tarjeta LEV9 vive en index.html entre APX3 y el comparador AP1,
   assert.match(indexSource, /canonical-leverage-cross-comparator\.js/);
 });
 
+test("T4: lev9ResultHtml abre con el instrumento más barato (cheapestLabel) como veredicto, no solo como etiqueta en la lista", () => {
+  const start = appSource.indexOf("function lev9ResultHtml(");
+  assert.ok(start >= 0);
+  const block = appSource.slice(start, appSource.indexOf("\n}", start));
+  assert.match(block, /Usa \$\{escapeHtml\(result\.cheapestLabel\)\}/);
+  assert.match(block, /Ninguno de los instrumentos declarados cubre el importe necesitado/);
+});
+
 test("wiring: handleLev9Compare reutiliza lombardCreditCapacity/evaluateEmergencyCreditLine vía el comparador cruzado, sin motor propio", () => {
   const block = appSource.slice(appSource.indexOf("function handleLev9Compare("), appSource.indexOf("function handleLev9Compare(") + 1600);
   assert.match(block, /window\.FinanceCanonicalLeverageCrossComparator/);

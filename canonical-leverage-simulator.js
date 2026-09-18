@@ -17,13 +17,14 @@
 
   // Los tres escenarios de rentabilidad esperada (pesimista/base/optimista) los declara el hogar —
   // este motor no inventa ninguna cifra de mercado ni de rendimiento futuro, mismo criterio que
-  // A15-2 con los tramos de IRPF. La lectura favorable/desfavorable de cada escenario es una
-  // sugerencia que se explica con los números de abajo, nunca una orden ni una acción automática:
-  // quien simula ve el desglose completo y decide si la acepta.
+  // A15-2 con los tramos de IRPF.
+  // T4 (BACKLOG_CONTABILIDADCASA_2_0.md, retrofit directivo, mismo patrón que INV18): el veredicto
+  // del escenario base (favorable/desfavorable) se presenta como la lectura a seguir, no solo como
+  // datos sueltos — sigue sin ejecutar nada ni sustituir verificación profesional real.
   const PROFESSIONAL_WARNING =
-    "Exploración con los supuestos de rentabilidad que tú has declarado, nunca garantizados. " +
-    "No es una recomendación de pedir deuda: la lectura que ofrece este simulador es solo eso, " +
-    "una lectura — acéptala o descártala tú, y verifica cualquier decisión con un profesional.";
+    "Con los supuestos de rentabilidad que tú has declarado (nunca garantizados): si tu escenario " +
+    "base sale desfavorable, no compensa pedir esta deuda salvo que cambien los supuestos. " +
+    "Verifica cualquier decisión real con un profesional antes de ejecutarla.";
 
   function number(value, fallback = 0) {
     const parsed = Number(value);
@@ -469,8 +470,8 @@
 
   // LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado (dollar-cost leverage) — simetría
   // con INV8 (DCA), aplicada ahora al lado de la deuda. Alcance confirmado por el hogar (sesión
-  // 171): se construye, pero SOLO como simulador informativo — nunca programa ni ejecuta ninguna
-  // toma de deuda real. Mismo guardarraíl AP4 que simulateLeverage(): sin barrera superada, no hay
+  // 171): se construye como simulador — nunca programa ni ejecuta ninguna toma de deuda real
+  // (invariante A11-4). Mismo guardarraíl AP4 que simulateLeverage(): sin barrera superada, no hay
   // nada que escalonar. Bajo los mismos tipo y escenarios de rentabilidad declarados para cada
   // tramo (este motor no inventa que cambien de un tramo a otro), el resultado anual esperado una
   // vez desplegado el importe entero es, por aritmética, idéntico al de tomarlo de una sola vez
@@ -480,6 +481,10 @@
   // todo el importe en un único mal momento. Ese riesgo de timing no se cuantifica aquí (exigiría
   // modelar cómo varían tipos o rentabilidad entre tramos, un dato que esta app no tiene) — mismo
   // criterio de no fabricar precisión que INV16 con la correlación cualitativa.
+  // T4 (retrofit directivo): `lumpSum.scenarios.base.assessment` ya dice si el importe entero
+  // compensa bajo el escenario base — la interfaz lo usa para recomendar escalonar (si compensa,
+  // pero se quiere repartir el riesgo de timing) o no molestarse en escalonar (si no compensa ni de
+  // una vez, tampoco compensa a tramos).
   const STAGGERED_LEVERAGE_SCHEMA_ID = "finance-lev14-staggered-leverage/v1";
   const STAGGERED_LEVERAGE_MIN_TRANCHES = 2;
 

@@ -10,8 +10,8 @@ const DebtContracts = require("../canonical-debt-contracts.js");
 // tiene mayor coste real según fiscalAdjustedDebtPriority() (DEB5) — antes esa prioridad solo vivía,
 // aislada, en Deuda › Contratos, sin cruzarse nunca con la deuda que el hogar elige a mano en
 // #ap1DebtSelect (confirmado por VER-4, sesión 166b). Nunca preselecciona nada en silencio: solo
-// avisa si la deuda #1 por TAE efectivo coincide o no con la seleccionada, dejando la elección final
-// al hogar.
+// avisa si la deuda #1 por TAE efectivo coincide o no con la seleccionada. T4 (retrofit directivo):
+// dice explícitamente qué cambiar en la selección para seguir el orden ya calculado.
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 
@@ -75,12 +75,12 @@ test("deb10PriorityHint · la deuda seleccionada coincide con la prioridad fisca
   assert.doesNotMatch(html, /distinta a la seleccionada/);
 });
 
-test("deb10PriorityHint · la deuda seleccionada NO coincide con la prioridad fiscal: avisa sin preseleccionar nada", () => {
+test("T4: deb10PriorityHint · la deuda seleccionada NO coincide con la prioridad fiscal: avisa sin preseleccionar nada, y dice qué cambiar", () => {
   const ctx = sandbox(CONTRACTS);
   const html = ctx.deb10PriorityHint("hipoteca");
   assert.match(html, /Préstamo personal/);
   assert.match(html, /distinta a la seleccionada/);
-  assert.match(html, /La elección final sigue siendo tuya/);
+  assert.match(html, /Cambia la selección arriba a Préstamo personal/);
 });
 
 test("deb10PriorityHint · sin id seleccionado todavía, sigue mostrando la sugerencia (aviso, nunca preselección)", () => {
