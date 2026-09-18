@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cuatro incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
+## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cinco incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual, ejecutivo) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 
 - **Qué pedía la sesión**: continuar `T14` con el siguiente candidato ya identificado al cerrar la
   sesión 206 — el comparador de las 8 estrategias de deuda (avalancha/bola de nieve/consolidar/no
@@ -226,17 +226,55 @@ de aquí en la siguiente regeneración, no al momento.
 - **Publicado (tercer y cuarto incremento)**: commit y push a la rama de trabajo en curso, PR en
   borrador y fusión a `main` en cuanto el CI estuvo en verde, misma autorización vigente
   (`CLAUDE.md`).
-- **Resultado acumulado de la sesión (cuatro incrementos de `T14`)**: `app.js` pasa de 41.596
-  (cierre de la sesión 205) a 38.800 líneas (-6,7%). Cuatro fragmentos nuevos/ampliados:
-  `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`,
-  `views/virtual-advisor.js`.
-- **Pendiente para la siguiente sesión**: el cluster Ejecutivo/Nueva vida/Nueva vida
-  definitiva/Agente de ahorro (~1.900 líneas restantes, más el "motor" del agente que se queda en
-  `app.js`) sigue siendo el candidato natural de `T14`, pero por su tamaño y acoplamiento interno se
-  recomienda de nuevo tratarlo como su propia sesión dedicada en vez de encadenarlo tras otra tarea.
-  Repetir siempre la comprobación cruzada entre todos los `views/*.js` existentes antes de dar por
-  cerrado cualquier incremento futuro, no solo entre el fragmento nuevo y el que se está tocando.
-  Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido
+- **`T14` — quinto incremento, misma sesión: "Ejecutivo" (`#executive-advisor`)**: el hogar pidió
+  seguir con `T14` una vez más tras el cuarto incremento; en vez del cluster completo, se auditó si
+  alguna otra pantalla del mismo grupo (Ejecutivo/Nueva vida/Nueva vida definitiva/Agente de ahorro)
+  era también self-contained, con la misma disciplina que Asesor virtual. Resultado: **Ejecutivo sí
+  lo es** (9 funciones: héroe, acciones, cuentas, ruta de deuda, plan de coche, metas de compra
+  grande, agenda del mes, más el propio `renderExecutiveAdvisor`) — solo llama al "motor" de la
+  Central de Acciones Unificada (`executiveAdvisorContext`, `executivePrimaryDecision`,
+  `unifiedActionCenterModel`, `renderUnifiedAction`...), que se queda en `app.js` porque Hoy
+  (`renderHomeDashboard`, eager) lo llama en caliente para sus propias tarjetas de decisión y
+  `renderHomeDecision` reutiliza `renderUnifiedAction` para las marcadas `isUnifiedAction`. Un
+  primer intento de acotar el bloque por nombre de función dejó fuera dos funciones hermanas
+  (`renderBigPurchaseGoals`/`addBigPurchaseGoalFromControls`) intercaladas entre `renderExecutiveCarPlan`
+  y `renderExecutiveMonthAgenda` — encontradas releyendo el cuerpo real de `renderExecutiveAdvisor`
+  en vez de fiarse de una lista de nombres construida por inspección visual del rango.
+  - **Hallazgo que cierra la puerta a mover "Nueva vida" (simulación)**: `renderNewLifeSimulation`
+    se llama sin ninguna guarda de pantalla activa desde varios manejadores de Plan/Ajustes
+    (`addGob20IncomeAdjustment`/`removeGob20IncomeAdjustment`, `gob12ApplyExpenseToReal` y
+    hermanas) para refrescarla si el hogar la tiene abierta al cambiar un supuesto en otro sitio —
+    si viviera en un fragmento lazy, cualquiera de esas acciones (en Plan, no en Nueva vida)
+    rompería con `ReferenceError` la primera vez que se ejecutara sin haber visitado antes esa
+    pantalla. Se queda entera en `app.js`, con sus widgets E13/PVC/ESX, hasta que ese acoplamiento
+    se resuelva (añadir la guarda sería un cambio de comportamiento, no una reubicación pura — fuera
+    de alcance de `T14`). "Nueva vida definitiva" sí se auditó como separable (32 funciones, mismo
+    patrón que Ejecutivo/Asesor virtual, todo su wiring ya vive dentro de callbacks de función
+    anónima) pero no se construyó en esta sesión por presupuesto de tiempo — candidato ya
+    verificado para la siguiente.
+  - **Sin sorpresas en `npm run verify`**: **4379/4379** en verde a la primera. Un test de otra
+    tarea (`tests/o4-compra-grande-generica.test.cjs`) necesitó concatenar
+    `views/executive-advisor.js` a su `app` de `vm.Script` (comprobaba por texto literal que
+    `renderExecutiveAdvisor` llama a `renderBigPurchaseGoals`).
+  - **Validación en navegador real**: `#executive-advisor` visitado en primer lugar en pestaña
+    nueva carga con contenido real y sin errores de consola; Hoy, Nueva vida (simulación y
+    definitiva), Agente de ahorro y Asesor virtual siguen funcionando igual.
+  - **Resultado**: `app.js` pasa de 38.800 a 38.605 líneas (-195). `views/executive-advisor.js`
+    nuevo, 218 líneas.
+- **Publicado (quinto incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
+  fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (cinco incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
+  de la sesión 205) a 38.605 líneas (-7,2%). Cinco fragmentos nuevos/ampliados: `views/escenarios.js`,
+  `views/deuda.js`, `views/debt-liquidation-plan.js`, `views/virtual-advisor.js`,
+  `views/executive-advisor.js`.
+- **Pendiente para la siguiente sesión**: "Nueva vida definitiva" (32 funciones, ya auditada y
+  verificada separable en esta sesión, candidato directo para el próximo incremento sin repetir el
+  análisis). "Nueva vida" (simulación) y el render de Agente de ahorro se quedan indefinidamente en
+  `app.js` salvo que se decida cambiar el comportamiento de sus llamadas de refresco cruzado — eso
+  sí necesitaría confirmación explícita del hogar, no es una reubicación pura. Repetir siempre la
+  comprobación cruzada entre todos los `views/*.js` existentes antes de dar por cerrado cualquier
+  incremento futuro. Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el
+  plan ya compartido
   con el hogar.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
