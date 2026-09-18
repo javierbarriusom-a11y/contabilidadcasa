@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, tres incrementos del monolito (comparador de deuda, plan deuda óptimo heredado) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
+## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cuatro incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 
 - **Qué pedía la sesión**: continuar `T14` con el siguiente candidato ya identificado al cerrar la
   sesión 206 — el comparador de las 8 estrategias de deuda (avalancha/bola de nieve/consolidar/no
@@ -193,19 +193,51 @@ de aquí en la siguiente regeneración, no al momento.
     nuevo, 636 líneas.
 - **Publicado (tercer incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
   fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Resultado acumulado de la sesión (tres incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
-  de la sesión 205) a 39.394 líneas (-5,3%). Tres fragmentos nuevos/ampliados:
-  `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`.
-- **Pendiente para la siguiente sesión**: seguir con más incrementos de `T14` con el mismo patrón
-  — candidatos ya identificados: el resto de pantallas `HEAVY_RENDER_VIEWS` todavía sin `VIEW_CHUNK`
-  (`visual-detail`, `executive-advisor`, `new-life-simulation`, `new-life-definitive`,
-  `savings-agent`, `virtual-advisor`) forman un cluster mucho más entrelazado entre sí y con el
-  "agente de ahorro" (`buildSavingsAgentPlan` y familia, ~1.450 líneas, físicamente lejos de sus
-  propios renders) — necesitará una auditoría más cara que las tres de hoy, posiblemente varias
-  sesiones o un incremento que las trate como un solo hub en vez de una por una. Repetir siempre la
-  comprobación cruzada entre todos los `views/*.js` existentes antes de dar por cerrado cualquier
-  incremento futuro, no solo entre el fragmento nuevo y el que se está tocando. Después, el resto
-  del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido con el hogar.
+- **`T14` — cuarto incremento, misma sesión: "Asesor virtual" (`#virtual-advisor`)**: al proponer
+  seguir con el cluster grande ya identificado al cerrar el tercer incremento (Ejecutivo/Nueva
+  vida/Nueva vida definitiva/Asesor virtual/Agente de ahorro, ~2.470 líneas entrelazadas, con el
+  "agente de ahorro" compartido físicamente lejos de sus propios renders), se recomendó tratarlo
+  como sesión propia por su tamaño y acoplamiento — el hogar pidió seguir con `T14` igualmente. En
+  vez de intentar el cluster completo de una vez, se auditó primero si alguna de sus cinco pantallas
+  era self-contained: Asesor virtual (`virtualAdvisorContext` y 22 funciones hermanas,
+  24238-24832) resultó ser la única sin ninguna dependencia hacia Ejecutivo/Nueva vida/Nueva vida
+  definitiva ni viceversa — solo llama al "motor" del agente de ahorro (`buildSavingsAgentPlan`,
+  `agentDebtRecommendations`, `agentOptimalDebtPayoffPlan`...), que se queda en `app.js` porque
+  Visual Detail (`#visual-detail`, todavía sin lazy) lo llama en caliente. Movida a un fragmento
+  nuevo, `views/virtual-advisor.js`, con su propia entrada en `VIEW_CHUNKS` (como el incremento
+  anterior). Las otras cuatro pantallas del cluster (Ejecutivo, Nueva vida, Nueva vida definitiva,
+  el render de Agente de ahorro, más los widgets E13/PVC/ESX intercalados entre ellas) siguen
+  entrelazadas entre sí y quedan pendientes — sí necesitarán la auditoría más cara ya anticipada.
+  - **Wiring**: las pocas referencias externas a las funciones movidas
+    (`renderAdvisorDebtSandbox`/`quickVirtualAdvisorContext`/`applyAdvisorDebtOption`) ya vivían
+    dentro de cuerpos de función anónima (`addEventListener`/`setTimeout`) en vez de como
+    identificador directo — a diferencia de los incrementos con `T14` anteriores, esta vez no hizo
+    falta envolver nada nuevo.
+  - **Sin tests afectados**: ningún fichero de test referenciaba ninguna de las 23 funciones
+    movidas.
+  - **Validación**: `npm run verify` en verde a la primera (**4379/4379**, resto de checks sin
+    errores) — a diferencia de los dos incrementos anteriores, esta vez la auditoría previa no dejó
+    ningún cabo suelto que solo el navegador real detectara. Verificación en navegador real
+    igualmente: `#virtual-advisor` visitado en primer lugar en una pestaña nueva carga con contenido
+    real y sin errores de consola; `#savings-agent` (que comparte el motor del agente) y Hoy siguen
+    funcionando igual.
+  - **Resultado**: `app.js` pasa de 39.394 a 38.800 líneas (-594). `views/virtual-advisor.js`
+    nuevo, 610 líneas.
+- **Publicado (tercer y cuarto incremento)**: commit y push a la rama de trabajo en curso, PR en
+  borrador y fusión a `main` en cuanto el CI estuvo en verde, misma autorización vigente
+  (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (cuatro incrementos de `T14`)**: `app.js` pasa de 41.596
+  (cierre de la sesión 205) a 38.800 líneas (-6,7%). Cuatro fragmentos nuevos/ampliados:
+  `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`,
+  `views/virtual-advisor.js`.
+- **Pendiente para la siguiente sesión**: el cluster Ejecutivo/Nueva vida/Nueva vida
+  definitiva/Agente de ahorro (~1.900 líneas restantes, más el "motor" del agente que se queda en
+  `app.js`) sigue siendo el candidato natural de `T14`, pero por su tamaño y acoplamiento interno se
+  recomienda de nuevo tratarlo como su propia sesión dedicada en vez de encadenarlo tras otra tarea.
+  Repetir siempre la comprobación cruzada entre todos los `views/*.js` existentes antes de dar por
+  cerrado cualquier incremento futuro, no solo entre el fragmento nuevo y el que se está tocando.
+  Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido
+  con el hogar.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
 
