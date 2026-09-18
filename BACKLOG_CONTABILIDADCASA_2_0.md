@@ -8,13 +8,12 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 19/52 cerradas (sesión 204 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
-`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
+**Estado: 21/52 cerradas (sesión 205 — `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`,
+`I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`, `T8`).** `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
-§4). `T5`, `P9`, `D5`, `I1`, `D10` y `T4`, las seis primeras tareas del Horizonte 2, ya cerradas
-(sesiones 200-204) — quedan `T7`, `T8` en ese horizonte, sin orden confirmado todavía por el
-hogar. El resto sigue pendiente — diagnóstico y planificación para lo que falta.
+§4). `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7` y `T8` — **todo el Horizonte 2 completo** (sesiones
+200-205). El resto sigue pendiente — diagnóstico y planificación para lo que falta.
 
 ## 0. Origen y diagnóstico
 
@@ -38,7 +37,7 @@ cada ficha.
 | 2 | Crítico | La usabilidad de Hoy/Registrar/Plan nunca se auditó de verdad — `docs/OPT21_CHECKLIST_NIELSEN.md` tiene el marco desde el 29/08 y cero hallazgos reales. |
 | 3 | Serio | La app decidió ser «directiva» el 12/09 (sesión 177) pero solo para tareas nuevas — ~15+ pantallas publicadas siguen con el disclaimer antiguo, sin retrofit decidido. |
 | 4 | Serio | El patrimonio neto consolidado (`A14-2`) tiene la cifra puntual y el desglose por tipo construidos, pero **sin serie histórica ni banda de confianza** — diferido explícitamente a «sesión aparte» en el propio código (`app.js`, comentario de `A14-2`). |
-| 5 | Aviso | Cero soporte de preferencias de sistema: 0 ocurrencias de `prefers-color-scheme` y de `prefers-reduced-motion` en todo el proyecto. |
+| 5 | Aviso | ~~Cero soporte de preferencias de sistema: 0 ocurrencias de `prefers-color-scheme` y de `prefers-reduced-motion` en todo el proyecto.~~ **Corregido en `T7`/`T8` (sesiones 205)**: `prefers-color-scheme` no existía y se construyó en `T7`. `prefers-reduced-motion` **sí existía ya** (`OPT-9`, override universal en `styles.css`) — este hallazgo estaba desactualizado en el momento de escribirlo, no era un hueco real; `T8` solo lo confirmó y documentó, y construyó lo que sí faltaba de verdad: `prefers-contrast: more`. |
 | 6 | Aviso | Diseño desktop-first: 32 `@media (max-width...)` en cascada descendente en `styles.css`, no al revés. |
 | 7 | Aviso | Todos los gráficos son SVG dibujado a mano (`app.js`, funciones `render*Chart`) — sin tooltip, zoom ni pan más allá de lo que cada función programa por su cuenta. |
 | 8 | Aviso | Deuda vive duplicada en dos motores vigilados por `canonical-e14-parity.js` — coste de mantenimiento permanente sin fecha de retirada del iframe heredado. |
@@ -126,8 +125,8 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 | ✅ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | **Cerrada (sesión 204).** Inventario exhaustivo: 19 pantallas + 1 caso límite (`A2-3`) con el disclaimer antiguo. `GOB15` excluida a propósito (reservada a sesión propia, decisión previa del hogar). De las 18 restantes: **8 se quedan informativas con el motivo documentado en el código** (`FC3`, `A15-2`, `LPX4`, `LPX3`, `RGX1`, `LPX5`, `APX3`, reparto mensual estacional — verificación fiscal real, estimación orientativa por diseño, checklist sin alternativas, declaración libre, o trade-off de riesgo sin mejor opción objetiva) — no es indecisión, es que no hay una respuesta directiva honesta que dar. **9 pasan a lenguaje directivo** (`FC5`, `INV6`, `AP3`, `LEV14`, `LEV9`, `LEV10`, `LEV11`, `DEB10`/`DEB5`; `APX2` ya era directiva, sin cambio necesario), mismo patrón que `INV18`: dicen qué hacer con los datos ya calculados, sin motor nuevo. `FCX1` se reclasificó de directiva a informativa durante la implementación: recomendar "capital único vs. renta" exigiría modelar la modalidad en forma de renta, hueco declarado (`I5`), no indecisión — ver detalle en la nota de la fila `I5`. |
 | ✅ `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Cerrada (sesión 200).** Sin histórico real de valoración de activos ni de saldo de deuda mes a mes (ese hueco es `I2`, deliberadamente fuera de esta tarea), la única fuente real mes a mes es el flujo de caja conciliado con el banco (`reconciledMonthlyNetHistory`, `A11-3`). Nuevo `netWorthWaterfall()` en `canonical-assets.js`: reconstruye el patrimonio neto hacia atrás desde el único punto exacto (hoy) restando ese flujo real mes a mes, con una banda de incertidumbre que crece con la distancia (2%/mes, tope 25%) porque cada paso ignora revalorización de mercado/vivienda y el reparto capital/interés de la deuda — nunca se simula esa precisión. Nuevo gráfico de cascada mensual (SVG) en la tarjeta de Ajustes de `A14-2`, oculto sin meses conciliados. `renderA14AssetBreakdown()` refactorizado: el cálculo de patrimonio neto se extrajo a `a14NetWorthToday()` para que la cascada lo reutilice sin duplicarlo. |
 | ⏳ `T6` | Memo de decisión ejecutivo autogenerado (una página: recomendación, riesgos, sensibilidad, siguiente paso) | M | Alto | Para decisiones grandes (refinanciar, apalancarse, comprar/vender vivienda); la app ya tiene el cálculo, falta el formato de síntesis. |
-| ⏳ `T7` | Modo oscuro real | M | Medio | Cero ocurrencias de `prefers-color-scheme` hoy en `design-tokens.css`/`styles.css`. |
-| ⏳ `T8` | `prefers-reduced-motion` y modo de alto contraste | S | Bajo | Accesibilidad real más allá del buen trabajo ya hecho en aria/roles. |
+| ✅ `T7` | Modo oscuro real | M | Medio | **Cerrada (sesión 205).** `prefers-color-scheme: dark` en los tres CSS (`styles.css`, `design-tokens.css`, `p2.css`) con paleta oscura calculada por contraste real (no a ojo), más un control de tres opciones (Automático/Claro/Oscuro) en "Personalizar" que fuerza `data-theme` en `<html>`. La auditoría con axe-core en modo oscuro (no solo la teoría de la fórmula) encontró y corrigió bugs reales que un simple cambio de variables no habría destapado: ~75 fondos `#fff`/`#ffffff` fijos en `styles.css`/`design-tokens.css` (texto invisible sobre fondo oscuro), `color-scheme` ausente (checkboxes/radios nativos seguían claros), tres `<dialog>` sin fondo propio, y una tarjeta "héroe" (`.e6-coverage-card`) que compartía variable con botones pequeños y se rompía al ajustar una para la otra — separada en `--hero-strong`. Quedan 3 combinaciones de color en el rango 3,4-4,4:1 (mismo orden que los huecos ya aceptados en el tema claro por OPT-4), documentadas, no bloqueantes. Los gráficos SVG a mano (`app.js`) pasan a leer los colores vía `chartColor()`/variables CSS en vez de hex embebidos. |
+| ✅ `T8` | `prefers-reduced-motion` y modo de alto contraste | S | Bajo | **Cerrada (sesión 205).** `prefers-reduced-motion` ya existía (`OPT-9`) — el hallazgo #5 del diagnóstico estaba desactualizado, corregido en la fila de arriba. Construido lo que sí faltaba: `prefers-contrast: more` en `styles.css`/`design-tokens.css`, reforzando `--muted`/`--line`/`--e19-muted`/`--e19-faint`/`--e19-border*` con `color-mix()` sobre `--ink`/`--e19-ink` ya resuelto (un solo bloque cubre claro/oscuro/automático/forzado, sin duplicar paleta) y engrosando el anillo de foco de teclado a 4px. Hallazgo de paso: el anillo de foco (`:focus-visible` universal) tenía un color fijo con solo 1,5-1,7:1 en el tema claro — muy por debajo del 3:1 de WCAG 1.4.11 — separado en `--focus-ring` por tema (navy en claro, el mismo ámbar que ya funcionaba en oscuro). |
 | ⏳ `T9` | Migración progresiva a mobile-first en los componentes de mayor uso diario | L | Medio | No es un rediseño completo: invertir el orden de las reglas, no reescribirlas. |
 | ⏳ `T10` | PWA instalable con vista «de un vistazo» (colchón, deuda cara, próximo vencimiento) | M | Medio | Sobre el `manifest.webmanifest` ya existente. |
 | ⏳ `T11` | Ficha de gasto con foto y geolocalización opcional | S | Bajo | Para reconciliar más rápido sin depender de la descripción del banco. |
@@ -156,9 +155,10 @@ No se recomienda abordar las 52 a la vez — sería repetir el mismo error de fo
 (`T15`/`T17`/`T19`) ya se cerraron. `T16` (unificar vocabulario, la de mayor severidad de las cinco)
 y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse — ver su nota en §4.
 
-**Horizonte 2 — próximo trimestre (apuestas estructurales):** `T5` ✅, `P9` ✅ (ambas sesión 200),
-`D5` ✅ (sesión 201), `I1` ✅ (sesión 202), `D10` ✅ (sesión 203), `T4` ✅ (sesión 204, elegida por
-el hogar sobre `T7`/`T8`). Quedan `T7`, `T8`, sin orden confirmado todavía por el hogar.
+**Horizonte 2 — completo (sesiones 200-205):** `T5` ✅, `P9` ✅ (ambas sesión 200), `D5` ✅
+(sesión 201), `I1` ✅ (sesión 202), `D10` ✅ (sesión 203), `T4` ✅ (sesión 204), `T7` ✅ y `T8` ✅
+(ambas sesión 205, pedidas por el hogar en la misma sesión de trabajo, `T7` primero). Las ocho
+apuestas estructurales del horizonte quedan cerradas.
 
 **Horizonte 3 — condicionado (decisión previa o de terceros):** `I9` (decidir dependencias UI),
 `I2`/`I3` (histórico de valoraciones), `T14` (reducir el monolito, prerrequisito de velocidad

@@ -916,8 +916,8 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 // progreso añadida (numeración de pasos, is-done, Anterior/Siguiente) — nuevo CSS y JS reales.
 test("D-1/D-2/D-2d/D10 · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260903a173a1/);
-  assert.match(html, /design-tokens\.css\?v=20260917d10a1/);
+  assert.match(html, /app.js\?v=20260918t7a1/);
+  assert.match(html, /design-tokens\.css\?v=20260918t8a1/);
   assert.match(app, /views\/deuda\.js\?v=20260917d10a1/);
 });
 
