@@ -187,3 +187,94 @@
   .p2-contribution { grid-template-columns: minmax(0, 1fr) auto; }
   .p2-contribution small { grid-column: 1 / -1; }
 }
+
+/* T7 (BACKLOG_CONTABILIDADCASA_2_0.md): este archivo es el único de los tres con estilos que usa
+   colores hexadecimales sueltos en vez de las variables de styles.css/design-tokens.css (solo 1 de
+   ~30). En vez de duplicar toda la paleta oscura aquí, este bloque reutiliza las mismas variables ya
+   definidas en styles.css para modo oscuro (`var(--surface)`, `var(--ink)`, etc.) — así, si el hogar
+   ajusta la paleta oscura en el futuro, este panel la sigue sin tocarlo de nuevo. Los tres fondos de
+   aviso muy pálidos (success/warning/danger) no tienen variable equivalente en styles.css, así que
+   llevan un valor oscuro propio, mismo criterio de "fondo teñido oscuro" que --e19-success-soft.
+   Selectores planos, sin anidamiento CSS, para no introducir una sintaxis que el resto del proyecto
+   no usa. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .p2-panel { background: var(--surface); }
+  :root:not([data-theme="light"]) .p2-kicker { color: var(--teal); }
+  :root:not([data-theme="light"]) .p2-muted,
+  :root:not([data-theme="light"]) .p2-help,
+  :root:not([data-theme="light"]) .p2-field span,
+  :root:not([data-theme="light"]) .p2-kpi span,
+  :root:not([data-theme="light"]) .p2-empty,
+  :root:not([data-theme="light"]) .p2-table th,
+  :root:not([data-theme="light"]) .e9-activation-card,
+  :root:not([data-theme="light"]) .e9-activation-card p,
+  :root:not([data-theme="light"]) .e9-pending-badge,
+  :root:not([data-theme="light"]) .p2-notice.e9-activation-note { color: var(--muted); }
+  :root:not([data-theme="light"]) .p2-help.p2-warn { color: var(--amber); }
+  :root:not([data-theme="light"]) .p2-field input,
+  :root:not([data-theme="light"]) .p2-field select,
+  :root:not([data-theme="light"]) .p2-field textarea,
+  :root:not([data-theme="light"]) .p2-owner-select { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  :root:not([data-theme="light"]) .p2-button { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  :root:not([data-theme="light"]) .p2-button.secondary { background: var(--surface); border-color: var(--line); color: var(--teal); }
+  :root:not([data-theme="light"]) .p2-button.danger { background: var(--surface); border-color: var(--red); color: var(--red); }
+  :root:not([data-theme="light"]) .p2-kpi,
+  :root:not([data-theme="light"]) .p2-item,
+  :root:not([data-theme="light"]) .e9-activation-card,
+  :root:not([data-theme="light"]) .e9-pending-badge,
+  :root:not([data-theme="light"]) .p2-notice.e9-activation-note { border-color: var(--line); background: var(--surface-soft); }
+  :root:not([data-theme="light"]) .p2-progress { background: var(--line); }
+  :root:not([data-theme="light"]) .p2-progress > span { background: var(--teal); }
+  :root:not([data-theme="light"]) .p2-contribution { border-top-color: var(--line); }
+  :root:not([data-theme="light"]) .p2-contribution button { color: var(--red); }
+  :root:not([data-theme="light"]) .p2-table-wrap { border-color: var(--line); }
+  :root:not([data-theme="light"]) .p2-table th { background: var(--surface-soft); }
+  :root:not([data-theme="light"]) .p2-table td { border-bottom-color: var(--line); }
+  :root:not([data-theme="light"]) .p2-status { background: #16241c; color: var(--green); }
+  :root:not([data-theme="light"]) .p2-status.warn { background: #2b2313; color: var(--amber); }
+  :root:not([data-theme="light"]) .p2-status.danger { background: #271818; color: var(--red); }
+  :root:not([data-theme="light"]) .p2-anomaly { border-left-color: var(--amber); }
+  :root:not([data-theme="light"]) .p2-notice { border-left-color: var(--teal); background: #16282a; color: var(--teal); }
+  :root:not([data-theme="light"]) .p2-notice.error { border-color: var(--red); background: #271818; }
+  :root:not([data-theme="light"]) .e9-activation-card h4 { color: var(--ink); }
+}
+
+:root[data-theme="dark"] .p2-panel { background: var(--surface); }
+:root[data-theme="dark"] .p2-kicker { color: var(--teal); }
+:root[data-theme="dark"] .p2-muted,
+:root[data-theme="dark"] .p2-help,
+:root[data-theme="dark"] .p2-field span,
+:root[data-theme="dark"] .p2-kpi span,
+:root[data-theme="dark"] .p2-empty,
+:root[data-theme="dark"] .p2-table th,
+:root[data-theme="dark"] .e9-activation-card,
+:root[data-theme="dark"] .e9-activation-card p,
+:root[data-theme="dark"] .e9-pending-badge,
+:root[data-theme="dark"] .p2-notice.e9-activation-note { color: var(--muted); }
+:root[data-theme="dark"] .p2-help.p2-warn { color: var(--amber); }
+:root[data-theme="dark"] .p2-field input,
+:root[data-theme="dark"] .p2-field select,
+:root[data-theme="dark"] .p2-field textarea,
+:root[data-theme="dark"] .p2-owner-select { background: var(--surface); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] .p2-button { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+:root[data-theme="dark"] .p2-button.secondary { background: var(--surface); border-color: var(--line); color: var(--teal); }
+:root[data-theme="dark"] .p2-button.danger { background: var(--surface); border-color: var(--red); color: var(--red); }
+:root[data-theme="dark"] .p2-kpi,
+:root[data-theme="dark"] .p2-item,
+:root[data-theme="dark"] .e9-activation-card,
+:root[data-theme="dark"] .e9-pending-badge,
+:root[data-theme="dark"] .p2-notice.e9-activation-note { border-color: var(--line); background: var(--surface-soft); }
+:root[data-theme="dark"] .p2-progress { background: var(--line); }
+:root[data-theme="dark"] .p2-progress > span { background: var(--teal); }
+:root[data-theme="dark"] .p2-contribution { border-top-color: var(--line); }
+:root[data-theme="dark"] .p2-contribution button { color: var(--red); }
+:root[data-theme="dark"] .p2-table-wrap { border-color: var(--line); }
+:root[data-theme="dark"] .p2-table th { background: var(--surface-soft); }
+:root[data-theme="dark"] .p2-table td { border-bottom-color: var(--line); }
+:root[data-theme="dark"] .p2-status { background: #16241c; color: var(--green); }
+:root[data-theme="dark"] .p2-status.warn { background: #2b2313; color: var(--amber); }
+:root[data-theme="dark"] .p2-status.danger { background: #271818; color: var(--red); }
+:root[data-theme="dark"] .p2-anomaly { border-left-color: var(--amber); }
+:root[data-theme="dark"] .p2-notice { border-left-color: var(--teal); background: #16282a; color: var(--teal); }
+:root[data-theme="dark"] .p2-notice.error { border-color: var(--red); background: #271818; }
+:root[data-theme="dark"] .e9-activation-card h4 { color: var(--ink); }

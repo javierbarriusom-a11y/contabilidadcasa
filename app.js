@@ -637,6 +637,51 @@ const viewTitles = {
 
 const E17_PREFERENCES_KEY = "e17-navigation-preferences";
 
+// T7 (BACKLOG_CONTABILIDADCASA_2_0.md): preferencia de tema — deliberadamente SIN storageKey()/
+// sufijo de hogar de datos (a diferencia de E17_PREFERENCES_KEY): es del navegador, no del hogar de
+// datos activo, así que cambiar de fuente no debería resetear el tema. Mismo localStorage directo
+// que ya lee el script inline de index.html (<head>) para fijar data-theme antes del primer pintado
+// — si esta clave cambiara, habría que actualizar los dos sitios a la vez.
+const THEME_STORAGE_KEY = "theme-preference";
+
+function themePreference() {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "light" || stored === "dark" ? stored : "auto";
+  } catch {
+    return "auto";
+  }
+}
+
+function applyThemePreference(preference = themePreference()) {
+  if (preference === "light" || preference === "dark") document.documentElement.dataset.theme = preference;
+  else delete document.documentElement.dataset.theme;
+  document.querySelectorAll("[data-e17-theme]").forEach((input) => {
+    input.checked = input.dataset.e17Theme === preference;
+  });
+}
+
+// T7: los gráficos SVG se dibujan a mano con colores embebidos en el propio JS (stroke/fill), no
+// como clases CSS — sin esto, quedarían con los colores del tema claro fijos aunque el resto de la
+// app pasara a oscuro. Lee la variable CSS ya resuelta (misma fuente que el resto del tema) en vez
+// de duplicar una tabla de colores paralela en JS.
+function chartColor(varName, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return value || fallback;
+}
+
+function setThemePreference(preference) {
+  try {
+    if (preference === "light" || preference === "dark") window.localStorage.setItem(THEME_STORAGE_KEY, preference);
+    else window.localStorage.removeItem(THEME_STORAGE_KEY);
+  } catch {
+    /* Sin localStorage disponible (navegación privada estricta, cuota agotada...), el tema se
+       aplica igual para esta sesión — solo no sobrevive a recargar, mismo criterio de degradación
+       que storageGet/storageSet con memoryStorage. */
+  }
+  applyThemePreference(preference);
+}
+
 /* T-0 · «Versiones anteriores» ------------------------------------------------------------------
    El grupo `legacy` nace visible a propósito: relegar una pantalla heredada no puede parecerse a
    perderla. Quien no quiera verlas la apaga en «Personalizar», y el mismo interruptor la devuelve.
@@ -953,7 +998,7 @@ function openE17Dialog(kind) {
   }
   const dialog = qs(kind === "preferences" ? "e17PreferencesDialog" : "e17LauncherDialog");
   if (!dialog) return;
-  if (kind === "preferences") applyE17Preferences();
+  if (kind === "preferences") { applyE17Preferences(); applyThemePreference(); }
   else { renderE17Launcher(); window.setTimeout(() => qs("e17LauncherSearch")?.focus(), 0); }
   dialog.showModal();
 }
@@ -998,6 +1043,11 @@ function setupFaqsAyuda() {
 
 function setupE17Experience() {
   applyE17Preferences();
+  applyThemePreference();
+  document.addEventListener("change", (event) => {
+    const themeInput = event.target.closest("[data-e17-theme]");
+    if (themeInput) setThemePreference(themeInput.dataset.e17Theme);
+  });
   document.addEventListener("click", (event) => {
     const open = event.target.closest("[data-e17-open]");
     if (open) { openE17Dialog(open.dataset.e17Open); return; }
@@ -7798,9 +7848,9 @@ function renderBalanceChart(rows, baseRows = rows) {
   svg.innerHTML = "";
 
   const series = [
-    { key: "checking", label: "Cuenta", color: "#2c6be0" },
-    { key: "savings", label: "Ahorro", color: "#267f4e" },
-    { key: "totalLiquidity", label: "Total", color: "#6657d2" },
+    { key: "checking", label: "Cuenta", color: chartColor("--blue", "#2c6be0") },
+    { key: "savings", label: "Ahorro", color: chartColor("--green", "#267f4e") },
+    { key: "totalLiquidity", label: "Total", color: chartColor("--violet", "#6657d2") },
   ];
   const values = [
     ...rows.flatMap((row) => series.map((serie) => row[serie.key])),
@@ -7828,7 +7878,7 @@ function renderBalanceChart(rows, baseRows = rows) {
     `L ${x(0).toFixed(2)} ${y(min).toFixed(2)}`,
     "Z",
   ].join(" ");
-  svg.insertAdjacentHTML("beforeend", `<path d="${areaPath}" fill="#6657d2" opacity="0.08" />`);
+  svg.insertAdjacentHTML("beforeend", `<path d="${areaPath}" fill="${chartColor("--violet", "#6657d2")}" opacity="0.08" />`);
 
   series.forEach((serie) => {
     const path = rows
@@ -7847,7 +7897,7 @@ function renderBalanceChart(rows, baseRows = rows) {
       .join(" ");
     svg.insertAdjacentHTML(
       "beforeend",
-      `<path d="${baselinePath}" fill="none" stroke="#7a8890" stroke-width="2.5" stroke-dasharray="7 7" stroke-linecap="round" />`,
+      `<path d="${baselinePath}" fill="none" stroke="${chartColor("--chart-muted-line", "#7a8890")}" stroke-width="2.5" stroke-dasharray="7 7" stroke-linecap="round" />`,
     );
   }
 
@@ -7868,10 +7918,10 @@ function renderBalanceChart(rows, baseRows = rows) {
 
   const legendItems = hasDecisionImpact
     ? [
-        { label: "Cuenta", color: "#2c6be0" },
-        { label: "Ahorro", color: "#267f4e" },
-        { label: "Total con", color: "#6657d2" },
-        { label: "Total sin", color: "#7a8890", dashed: true },
+        { label: "Cuenta", color: chartColor("--blue", "#2c6be0") },
+        { label: "Ahorro", color: chartColor("--green", "#267f4e") },
+        { label: "Total con", color: chartColor("--violet", "#6657d2") },
+        { label: "Total sin", color: chartColor("--chart-muted-line", "#7a8890"), dashed: true },
       ]
     : series.map((serie) => ({ label: serie.label, color: serie.color }));
 
@@ -10497,13 +10547,13 @@ function renderProjectGlobalChart(baseRows, rows) {
   ].join(" ");
 
   if (projectPlan.placements.length) {
-    svg.insertAdjacentHTML("beforeend", `<path d="${impactArea}" fill="#c44945" opacity="0.08" />`);
+    svg.insertAdjacentHTML("beforeend", `<path d="${impactArea}" fill="${chartColor("--red", "#c44945")}" opacity="0.08" />`);
   }
 
   svg.insertAdjacentHTML(
     "beforeend",
-    `<path d="${pathFor(baseRows, "totalLiquidity")}" fill="none" stroke="#7a8890" stroke-width="2.2" stroke-dasharray="6 6" stroke-linecap="round" />
-     <path d="${pathFor(rows, "totalLiquidity")}" fill="none" stroke="#6657d2" stroke-width="3" stroke-linecap="round" />`,
+    `<path d="${pathFor(baseRows, "totalLiquidity")}" fill="none" stroke="${chartColor("--chart-muted-line", "#7a8890")}" stroke-width="2.2" stroke-dasharray="6 6" stroke-linecap="round" />
+     <path d="${pathFor(rows, "totalLiquidity")}" fill="none" stroke="${chartColor("--violet", "#6657d2")}" stroke-width="3" stroke-linecap="round" />`,
   );
 
   projectChartTickIndexes(rows, width).forEach((idx) => {
@@ -10516,9 +10566,9 @@ function renderProjectGlobalChart(baseRows, rows) {
   const legendX = width - 188;
   svg.insertAdjacentHTML(
     "beforeend",
-    `<line x1="${legendX}" x2="${legendX + 14}" y1="18" y2="18" stroke="#6657d2" stroke-width="3" />
+    `<line x1="${legendX}" x2="${legendX + 14}" y1="18" y2="18" stroke="${chartColor("--violet", "#6657d2")}" stroke-width="3" />
      <text class="legend" x="${legendX + 20}" y="22">Con proyectos</text>
-     <line x1="${legendX}" x2="${legendX + 14}" y1="38" y2="38" stroke="#7a8890" stroke-width="2.2" stroke-dasharray="5 4" />
+     <line x1="${legendX}" x2="${legendX + 14}" y1="38" y2="38" stroke="${chartColor("--chart-muted-line", "#7a8890")}" stroke-width="2.2" stroke-dasharray="5 4" />
      <text class="legend" x="${legendX + 20}" y="42">Escenario base</text>`,
   );
 }
@@ -10564,7 +10614,7 @@ function renderProjectImpactChart(baseRows, rows) {
     const y = value >= 0 ? zeroY - h : zeroY;
     svg.insertAdjacentHTML(
       "beforeend",
-      `<rect x="${x(index)}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${value < 0 ? "#248a50" : "#c44945"}" opacity="0.78" />`,
+      `<rect x="${x(index)}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${value < 0 ? chartColor("--green", "#248a50") : chartColor("--red", "#c44945")}" opacity="0.78" />`,
     );
   });
 
@@ -10574,8 +10624,8 @@ function renderProjectImpactChart(baseRows, rows) {
       .join(" ");
     svg.insertAdjacentHTML(
       "beforeend",
-      `<path d="${path}" fill="none" stroke="#6657d2" stroke-width="2.5" stroke-linecap="round" />
-       <circle cx="${x(deltas.length - 1)}" cy="${yDelta(deltas[deltas.length - 1])}" r="4" fill="#6657d2" stroke="#fff" stroke-width="2" />`,
+      `<path d="${path}" fill="none" stroke="${chartColor("--violet", "#6657d2")}" stroke-width="2.5" stroke-linecap="round" />
+       <circle cx="${x(deltas.length - 1)}" cy="${yDelta(deltas[deltas.length - 1])}" r="4" fill="${chartColor("--violet", "#6657d2")}" stroke="#fff" stroke-width="2" />`,
     );
   }
 
@@ -20431,14 +20481,15 @@ function renderA14NetWorthWaterfall(today) {
     const xi = x(i);
     const yTop = y(level.netWorth + level.band);
     const yBottom = y(level.netWorth - level.band);
-    markup += `<line x1="${xi.toFixed(2)}" x2="${xi.toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="#7a8890" stroke-width="2" stroke-linecap="round" opacity="0.6" />
-      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yTop.toFixed(2)}" stroke="#7a8890" stroke-width="2" opacity="0.6" />
-      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yBottom.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="#7a8890" stroke-width="2" opacity="0.6" />`;
+    const muted = chartColor("--chart-muted-line", "#7a8890");
+    markup += `<line x1="${xi.toFixed(2)}" x2="${xi.toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="${muted}" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yTop.toFixed(2)}" y2="${yTop.toFixed(2)}" stroke="${muted}" stroke-width="2" opacity="0.6" />
+      <line x1="${(xi - 5).toFixed(2)}" x2="${(xi + 5).toFixed(2)}" y1="${yBottom.toFixed(2)}" y2="${yBottom.toFixed(2)}" stroke="${muted}" stroke-width="2" opacity="0.6" />`;
   });
 
   const path = levels.map((level, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(level.netWorth).toFixed(2)}`).join(" ");
-  markup += `<path d="${path}" fill="none" stroke="#2c6be0" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3" opacity="0.5" />`;
-  markup += `<circle cx="${x(n - 1).toFixed(2)}" cy="${y(levels[n - 1].netWorth).toFixed(2)}" r="4.5" fill="#2c6be0" stroke="#fff" stroke-width="2" />`;
+  markup += `<path d="${path}" fill="none" stroke="${chartColor("--blue", "#2c6be0")}" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3" opacity="0.5" />`;
+  markup += `<circle cx="${x(n - 1).toFixed(2)}" cy="${y(levels[n - 1].netWorth).toFixed(2)}" r="4.5" fill="${chartColor("--blue", "#2c6be0")}" stroke="#fff" stroke-width="2" />`;
 
   chartTickIndexes(levels).forEach((idx) => {
     markup += `<text class="chart-label" x="${(x(idx) - 18).toFixed(2)}" y="${height - 8}">${escapeHtml(levels[idx].monthKey)}</text>`;

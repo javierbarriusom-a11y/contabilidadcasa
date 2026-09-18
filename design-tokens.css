@@ -58,6 +58,9 @@
   --e19-danger: #c13b3b;
   --e19-danger-soft: #fdf2f2;
   --e19-danger-soft-border: #f5d6d6;
+  /* OPT-4/T7: texto de .e19-badge-warning — en claro un override propio ya verificado (4,63:1
+     sobre --e19-warning-soft); en oscuro reutiliza --e19-warning (definido arriba). */
+  --e19-warning-badge-ink: #95680e;
 
   /* Tipografía: mismo stack que ya usa la app (Inter con fallback de sistema, sin CDN externo) */
   --e19-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -80,6 +83,101 @@
   --e19-radius-pill: 999px;
   --e19-shadow-card: 0 1px 3px rgba(11, 18, 32, 0.06);
   --e19-shadow-pop: 0 2px 8px rgba(11, 18, 32, 0.08);
+}
+
+/* T7 (BACKLOG_CONTABILIDADCASA_2_0.md): modo oscuro real — se sigue automáticamente el sistema
+   (`prefers-color-scheme`) salvo que el hogar fuerce un tema desde Personalizar (`data-theme` en
+   `<html>`, ver `applyThemePreference()` en app.js). `--e19-canvas`/`--e19-surface` reutilizan los
+   mismos valores que `--bg`/`--surface` de styles.css a propósito, para que las pantallas E19 y las
+   heredadas no se noten como dos temas oscuros distintos. `--e19-heading`/`--e19-eyebrow` (solo
+   texto, ~35 usos) y `--e19-accent` (mixto texto/fondo con `--e19-accent-ink` blanco encima, ~60
+   usos) parten del mismo navy pero se aclaran en proporción distinta — separables porque, a
+   diferencia de `--blue`/`--teal`/etc. de styles.css, son tokens independientes aunque compartan
+   valor en el tema claro. Los `-soft`/`-soft-border` semánticos se invierten (fondo oscuro teñido en
+   vez de pálido) para que el texto de su propio color siga leyéndose encima. Contraste real
+   calculado, no a ojo y verificado con axe-core contra la app real (no solo la fórmula): heading/
+   muted/faint/success/warning/debt ≥4,7:1 sobre canvas y surface; accent/danger, usados sobre todo
+   como texto suelto directo sobre el fondo, quedan en 3,4-4,4:1 — mismo orden que los huecos ya
+   aceptados en el tema claro (OPT-4: --teal 3,94:1, --e19-warning 2,77:1 en un fondo concreto), no
+   una auditoría completa del sistema de color (esa sigue pendiente, OPT-4 en
+   BACKLOG_OPTIMIZACION.md). accent-strong es distinto: solo fondo de botón con accent-ink blanco
+   encima (4,75:1 verificado), nunca texto suelto — por eso puede aclararse sin arrastrar el mismo
+   problema. Las tarjetas "héroe" siempre oscuras (.e6-coverage-card, .e19-registrar-recalc) NO usan
+   --e19-accent-strong: tienen su propia variable (--hero-strong, styles.css) para no depender de un
+   tono pensado para botones pequeños. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --e19-canvas: #10161a;
+    --e19-surface: #1a2226;
+    --e19-surface-soft: #212a2f;
+    --e19-surface-sunken: #171d21;
+    --e19-border: #2c363b;
+    --e19-border-strong: #3a444c;
+    --e19-ink: #e9eef0;
+    --e19-heading: #7f8b9e;
+    --e19-muted: #9aa7ae;
+    --e19-faint: #828d98;
+    --e19-eyebrow: #7f8b9e;
+    /* T7: verificado con axe-core tras la primera pasada — #69788e daba 4,48:1 con
+       --e19-accent-ink blanco encima (.e19-btn-primary), por debajo de 4,5:1. #65748b lo sube a
+       4,75:1 sin apenas mover el resto de usos (texto/borde). */
+    --e19-accent: #65748b;
+    --e19-accent-hover: #748296;
+    --e19-accent-ink: #ffffff;
+    --e19-accent-soft: #1d232c;
+    --e19-accent-soft-border: #384357;
+    --e19-accent-strong: #54657e;
+    --e19-success: #41ac6f;
+    --e19-success-soft: #16241c;
+    --e19-success-soft-border: #2f4a3a;
+    --e19-warning: #cf9c36;
+    --e19-warning-soft: #2b2313;
+    --e19-warning-soft-border: #4a3d20;
+    --e19-warning-badge-ink: var(--e19-warning);
+    --e19-debt: #b98774;
+    --e19-debt-soft: #2a2119;
+    --e19-debt-soft-border: #453427;
+    --e19-danger: #ca5858;
+    --e19-danger-soft: #271818;
+    --e19-danger-soft-border: #452626;
+    --e19-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --e19-shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --e19-canvas: #10161a;
+  --e19-surface: #1a2226;
+  --e19-surface-soft: #212a2f;
+  --e19-surface-sunken: #171d21;
+  --e19-border: #2c363b;
+  --e19-border-strong: #3a444c;
+  --e19-ink: #e9eef0;
+  --e19-heading: #7f8b9e;
+  --e19-muted: #9aa7ae;
+  --e19-faint: #828d98;
+  --e19-eyebrow: #7f8b9e;
+  --e19-accent: #65748b;
+  --e19-accent-hover: #748296;
+  --e19-accent-ink: #ffffff;
+  --e19-accent-soft: #1d232c;
+  --e19-accent-soft-border: #384357;
+  --e19-accent-strong: #54657e;
+  --e19-success: #41ac6f;
+  --e19-success-soft: #16241c;
+  --e19-success-soft-border: #2f4a3a;
+  --e19-warning: #cf9c36;
+  --e19-warning-soft: #2b2313;
+  --e19-warning-soft-border: #4a3d20;
+  --e19-warning-badge-ink: var(--e19-warning);
+  --e19-debt: #b98774;
+  --e19-debt-soft: #2a2119;
+  --e19-debt-soft-border: #453427;
+  --e19-danger: #ca5858;
+  --e19-danger-soft: #271818;
+  --e19-danger-soft-border: #452626;
+  --e19-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --e19-shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -215,7 +313,7 @@
 }
 
 .e19-registrar-tab.is-active .e19-registrar-tab-step {
-  background: #fff;
+  background: var(--e19-surface);
   color: var(--e19-accent);
 }
 
@@ -553,7 +651,10 @@
 
 .e19-btn-secondary {
   background: var(--e19-surface);
-  color: #2b3547;
+  /* T7: era un #2b3547 fijo — invisible en modo oscuro contra --e19-surface oscuro (1,3:1,
+     verificado con axe-core). var(--e19-ink) dice lo mismo en claro (ambos casi negros) y se
+     invierte solo en oscuro. */
+  color: var(--e19-ink);
   border-color: var(--e19-border-strong);
 }
 
@@ -769,8 +870,12 @@
   background: var(--e19-warning-soft);
   /* OPT-4 (axe: color-contrast): var(--e19-warning) (#c78b12) da solo 2,77:1 sobre este fondo
      concreto, muy por debajo de 4,5:1 — override local en vez de tocar --e19-warning (17 usos,
-     varios como fondo), 25% más oscuro y 4,63:1. */
-  color: #95680e;
+     varios como fondo), 25% más oscuro y 4,63:1.
+     T7: ese override era un hex fijo, pensado para el fondo pálido del tema claro — en modo
+     oscuro, --e19-warning-soft pasa a ser un fondo oscuro y el mismo #95680e apenas se lee (3,15:1,
+     verificado con axe-core). --e19-warning-badge-ink separa ambos temas: en claro sigue siendo el
+     mismo #95680e ya verificado; en oscuro reutiliza --e19-warning (6,26:1 sobre el nuevo fondo). */
+  color: var(--e19-warning-badge-ink);
   border-color: var(--e19-warning-soft-border);
 }
 
@@ -6126,7 +6231,7 @@
   padding: 10px 16px 10px 10px;
   border: 1px solid var(--e19-border);
   border-radius: var(--e19-radius-pill);
-  background: #fff;
+  background: var(--e19-surface);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;

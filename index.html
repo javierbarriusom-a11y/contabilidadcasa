@@ -3,12 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0b1f33" />
+    <meta name="theme-color" content="#0b1f33" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#10161a" media="(prefers-color-scheme: dark)" />
     <title>Dashboard financiero personal</title>
+    <!-- T7 (BACKLOG_CONTABILIDADCASA_2_0.md): fija data-theme en <html> ANTES de que las hojas de
+         estilo se apliquen, para que forzar «Claro»/«Oscuro» desde Personalizar no parpadee al
+         cargar. Preferencia global de este navegador, no por hogar de datos (a diferencia de
+         E17_PREFERENCES_KEY): cambiar de fuente de datos no debería resetear el tema. Solo lee
+         localStorage, nunca escribe ni envía nada — mismo criterio de datos que el resto de la app.
+         Ver themePreference()/applyThemePreference() (script principal) para la lógica compartida
+         real. -->
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("theme-preference");
+          if (stored === "light" || stored === "dark") document.documentElement.dataset.theme = stored;
+        } catch (e) {}
+      })();
+    </script>
     <link rel="manifest" href="manifest.webmanifest?v=20260830a1" />
-    <link rel="stylesheet" href="styles.css?v=20260902opt8a1" />
-    <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260917d10a1" />
+    <link rel="stylesheet" href="styles.css?v=20260918t7a1" />
+    <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260918t7a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -7026,7 +7042,17 @@
     </dialog>
     <dialog class="e17-dialog" id="e17PreferencesDialog" aria-labelledby="e17PreferencesTitle">
       <div class="e17-dialog-head"><div><p class="panel-kicker">Personalización progresiva</p><h2 id="e17PreferencesTitle">Muestra solo lo que usas</h2></div><button type="button" data-e17-close aria-label="Cerrar">×</button></div>
-      <p>Esto cambia solo la navegación de este navegador; no modifica ni oculta tus datos financieros.</p>
+      <p>Esto cambia solo la navegación y la apariencia de este navegador; no modifica ni oculta tus datos financieros.</p>
+      <!-- T7 (BACKLOG_CONTABILIDADCASA_2_0.md): tema aparte del fieldset de navegación de abajo — se
+           aplica al momento (sin esperar a «Guardar preferencias») porque es una previsualización
+           visual, no un lote de cambios que confirmar. Preferencia de este navegador (localStorage
+           "theme-preference", sin sufijo de hogar de datos), igual que declara el párrafo de arriba. -->
+      <fieldset class="e17-preferences" id="e17ThemeFields">
+        <legend>Tema</legend>
+        <label><input type="radio" name="e17Theme" data-e17-theme="auto" checked /> Automático (sigue el sistema)</label>
+        <label><input type="radio" name="e17Theme" data-e17-theme="light" /> Claro</label>
+        <label><input type="radio" name="e17Theme" data-e17-theme="dark" /> Oscuro</label>
+      </fieldset>
       <fieldset class="e17-preferences" id="e17PreferencesFields">
         <legend>Herramientas avanzadas visibles</legend>
         <label><input type="checkbox" data-e17-preference="analysis" checked /> Análisis y simulación</label>
@@ -7118,7 +7144,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903a173a1"></script>
+    <script defer src="app.js?v=20260918t7a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

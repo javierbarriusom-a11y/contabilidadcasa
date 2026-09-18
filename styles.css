@@ -15,6 +15,79 @@
   --violet: #6657d2;
   --shadow: 0 18px 44px rgba(17, 32, 37, 0.09);
   --shadow-soft: 0 10px 26px rgba(17, 32, 37, 0.06);
+  /* T7: línea de referencia/base en los gráficos SVG dibujados a mano (app.js, chartColor()) —
+     tokens de --blue/--green/--violet/--red ya cubrían el resto de series, pero este gris de
+     referencia no tenía variable propia y quedaba hardcodeado en el JS. */
+  --chart-muted-line: #7a8890;
+  /* T7: .e6-coverage-card/.e19-registrar-recalc son "tarjetas héroe" deliberadamente oscuras en
+     cualquier tema (mismo criterio que --sidebar) — antes tomaban prestado var(--e19-accent-strong,
+     #0b1a30) con un fallback que era el valor real, no una variable de verdad. Separarla evita que
+     un ajuste futuro de --e19-accent-strong (pensado para botones pequeños) rompa esta tarjeta por
+     accidente, como pasó aquí: aclarar accent-strong para que el texto blanco de los botones
+     pasara 4,5:1 dejó esta tarjeta casi del mismo tono que el fondo de la página (1,05:1). */
+  --hero-strong: #0b1a30;
+  /* T7: sin esto, los controles nativos (checkbox, radio, <select>, scrollbar) se quedan con el
+     estilo claro del sistema operativo aunque el resto de la página pase a oscuro — verificado
+     visualmente: la casilla de "Modo sesión con asesor o pareja" (Ajustes) quedaba como un
+     cuadrado blanco sin más, ilegible sobre fondo oscuro. */
+  color-scheme: light;
+}
+
+/* T7 (BACKLOG_CONTABILIDADCASA_2_0.md): modo oscuro real sobre el mismo sistema de variables — se
+   sigue automáticamente el sistema (`prefers-color-scheme`) salvo que el hogar fuerce un tema desde
+   Personalizar (`data-theme` en `<html>`, ver `applyThemePreference()` en app.js). Los seis colores
+   semánticos (`--blue`/`--teal`/`--green`/`--red`/`--amber`/`--violet`) son un único token para texto
+   Y fondo con texto blanco encima a la vez (`background: var(--teal); color: #fff`, ~90 usos entre
+   ambos patrones) — aclararlos del todo favorecería el texto sobre fondo oscuro pero rompería el
+   contraste del texto blanco sobre el propio color; los valores de abajo son el punto medio
+   verificado (contraste real calculado, no a ojo): ~4,4-5,8:1 como texto sobre --bg/--surface (AA) y
+   ~3,4-4,5:1 como fondo con texto blanco — mismo orden de magnitud que los huecos de contraste ya
+   aceptados en el tema claro (OPT-4: --teal 3,94:1, --red 4,32:1) y no una tarea de auditoría
+   completa del sistema de color (esa sigue pendiente, ver OPT-4 en BACKLOG_OPTIMIZACION.md). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161a;
+    --surface: #1a2226;
+    --surface-soft: #212a2f;
+    --ink: #e9eef0;
+    --muted: #9aa7ae;
+    --line: #2c363b;
+    --sidebar: #0a1316;
+    --sidebar-2: #101f24;
+    --blue: #4c81e5;
+    --teal: #33a09d;
+    --green: #479269;
+    --red: #cd6461;
+    --amber: #bb802a;
+    --violet: #7d70d9;
+    --shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+    --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.4);
+    --chart-muted-line: #8e9aa1;
+    --hero-strong: #28365a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #10161a;
+  --surface: #1a2226;
+  --surface-soft: #212a2f;
+  --ink: #e9eef0;
+  --muted: #9aa7ae;
+  --line: #2c363b;
+  --sidebar: #0a1316;
+  --sidebar-2: #101f24;
+  --blue: #4c81e5;
+  --teal: #33a09d;
+  --green: #479269;
+  --red: #cd6461;
+  --amber: #bb802a;
+  --violet: #7d70d9;
+  --shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.4);
+  --chart-muted-line: #8e9aa1;
+  --hero-strong: #28365a;
 }
 
 * {
@@ -71,7 +144,7 @@ select {
   color: var(--teal);
   border: 1px solid rgba(15, 143, 140, 0.28);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--surface);
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
@@ -430,6 +503,10 @@ h2 {
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(11, 31, 51, 0.28);
   padding: 22px;
+  /* T7: <dialog> sin esto usa el fondo por defecto del navegador (Canvas) — no seguía el resto
+     del tema de forma fiable en la comprobación visual. */
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .e17-dialog::backdrop { background: rgba(11, 31, 51, 0.62); }
@@ -1115,7 +1192,7 @@ main {
 .e19-home .home-panel.e6-coverage-card {
   margin-bottom: 1rem;
   padding: 1.25rem 1.5rem;
-  background: var(--e19-accent-strong, #0b1a30);
+  background: var(--hero-strong);
   color: #fff;
   border: none;
 }
@@ -2254,7 +2331,7 @@ select:focus {
 .project-form .ghost-button {
   color: var(--ink);
   border-color: var(--line);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .project-credit-field {
@@ -2579,7 +2656,7 @@ select:focus {
 
 .decision-comparison-row {
   border-top: 1px solid var(--line);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .decision-comparison-row.best {
@@ -2677,7 +2754,7 @@ select:focus {
 }
 
 .decision-history-entry button {
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--teal);
@@ -2756,7 +2833,7 @@ select:focus {
   padding: 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .global-impact-card span {
@@ -2809,7 +2886,7 @@ select:focus {
 .scenario-sensitivity-head > span {
   padding: 5px 9px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--surface);
   font-size: 12px;
   font-weight: 900;
 }
@@ -2825,7 +2902,7 @@ select:focus {
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .scenario-sensitivity-grid span {
@@ -2859,7 +2936,7 @@ select:focus {
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .timeline-item span {
@@ -2935,7 +3012,7 @@ select:focus {
   padding: 5px 9px;
   color: var(--red);
   border-color: rgba(196, 73, 69, 0.28);
-  background: #fff;
+  background: var(--surface);
   font-weight: 800;
 }
 
@@ -3057,7 +3134,7 @@ svg {
   color: var(--muted);
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--surface);
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
@@ -3339,7 +3416,7 @@ svg {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -3383,7 +3460,7 @@ svg {
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -3477,7 +3554,7 @@ svg {
   color: var(--teal);
   border: 1px dashed rgba(15, 143, 140, 0.45);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   cursor: pointer;
   text-align: center;
   align-items: center;
@@ -3615,7 +3692,7 @@ svg {
   display: inline-flex;
   align-items: center;
   color: var(--teal-dark);
-  background: #fff;
+  background: var(--surface);
 }
 
 .cloud-restore-picker {
@@ -3623,7 +3700,7 @@ svg {
   align-items: center;
   gap: 10px;
   color: var(--ink);
-  background: #fff;
+  background: var(--surface);
   cursor: default;
 }
 
@@ -3646,7 +3723,7 @@ svg {
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface);
   font-size: 12px;
 }
 
@@ -3666,7 +3743,7 @@ svg {
 .state-safety-actions .restore-cancel {
   color: var(--red);
   border-color: #efc4bf;
-  background: #fff;
+  background: var(--surface);
 }
 
 .state-backup-status {
@@ -3766,7 +3843,7 @@ svg {
   margin-right: 7px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #ffffff;
+  background: var(--surface);
   color: var(--teal);
   font-weight: 900;
 }
@@ -3792,7 +3869,7 @@ svg {
   padding: 4px 8px;
   color: var(--red);
   border-color: rgba(196, 73, 69, 0.25);
-  background: #fff;
+  background: var(--surface);
   font-size: 12px;
   font-weight: 800;
 }
@@ -4054,7 +4131,7 @@ svg {
 .e19-registrar-recalc {
   padding: 1.25rem 1.5rem;
   border-radius: 8px;
-  background: var(--e19-accent-strong, #0b1a30);
+  background: var(--hero-strong);
   color: #fff;
 }
 
@@ -4166,7 +4243,7 @@ svg {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .visual-work-mode-help {
@@ -4226,7 +4303,7 @@ svg {
 .visual-save-actions .ghost-button {
   color: var(--ink);
   border-color: var(--line);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .visual-save-actions button:disabled {
@@ -4327,7 +4404,7 @@ svg {
   color: var(--ink);
   border: 1px solid rgba(12, 139, 135, 0.25);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: none;
   font-size: 12px;
   font-weight: 900;
@@ -4354,7 +4431,7 @@ svg {
 
 .visual-year-header button:hover span {
   color: var(--teal);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .visual-month-header {
@@ -4369,7 +4446,7 @@ svg {
 
 .visual-line-row td:first-child {
   z-index: 6;
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: 10px 0 14px -12px rgba(20, 34, 42, 0.42);
 }
 
@@ -4846,7 +4923,7 @@ svg {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .executive-hero {
@@ -4963,7 +5040,7 @@ svg {
   border: 1px solid var(--line);
   border-left: 5px solid var(--exec-good);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .executive-action.warn {
@@ -5032,7 +5109,7 @@ svg {
 .executive-route-actions button.secondary {
   border: 1px solid #ebc6c3;
   color: var(--red);
-  background: #fff;
+  background: var(--surface);
 }
 
 .executive-account-grid {
@@ -5649,7 +5726,7 @@ body {
 .commit-barrier-item {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .commit-barrier-overview {
@@ -5858,7 +5935,7 @@ body {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-kpi-card {
@@ -5962,7 +6039,7 @@ body {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .agent-debt-control-head {
@@ -6020,7 +6097,7 @@ body {
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-weight: 900;
 }
@@ -6163,7 +6240,7 @@ body {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .agent-executive-metrics div.good {
@@ -6241,7 +6318,7 @@ body {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .advisor-kpi {
@@ -6387,7 +6464,7 @@ body {
 
 .advisor-priority-card button.secondary {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -6614,7 +6691,7 @@ body {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-weight: 850;
@@ -6663,7 +6740,7 @@ body {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .advisor-debt-head > div {
@@ -6755,7 +6832,7 @@ body {
   border: 1px solid var(--line);
   border-left: 5px solid var(--teal);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-decision-card.good {
@@ -6829,7 +6906,7 @@ body {
   padding: 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-optimization-summary span,
@@ -6906,7 +6983,7 @@ body {
   padding: 9px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-route-metrics strong {
@@ -6956,7 +7033,7 @@ body {
 .agent-route-actions button.secondary {
   color: var(--ink);
   border-color: var(--line);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-optimization-steps {
@@ -6974,7 +7051,7 @@ body {
   border: 1px solid var(--line);
   border-left: 5px solid var(--green);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-optimization-step.warn {
@@ -7114,7 +7191,7 @@ body {
 }
 
 .agent-main-panel {
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-rule-grid {
@@ -7254,7 +7331,7 @@ body {
   border: 1px solid var(--line);
   border-left: 5px solid var(--green);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .agent-insight.warn {
@@ -7368,7 +7445,7 @@ body {
 }
 
 .debt-wide-panel {
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-breakdown-cards {
@@ -7417,7 +7494,7 @@ body {
   border: 1px solid var(--line);
   border-left: 4px solid var(--red);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-product-card.reunified {
@@ -7602,7 +7679,7 @@ body {
   border: 1px dashed var(--line);
   border-radius: 8px;
   color: var(--muted);
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-review-empty strong {
@@ -7628,7 +7705,7 @@ body {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-review-head h4 {
@@ -7671,7 +7748,7 @@ body {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-review-summary span,
@@ -7832,7 +7909,7 @@ body {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .debt-priority-header {
@@ -7899,7 +7976,7 @@ body {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .savings-assumptions span,
@@ -8053,7 +8130,7 @@ body {
   border: 1px solid var(--line);
   border-left: 5px solid var(--green);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .savings-period-item.warn {
@@ -8189,7 +8266,7 @@ body {
   z-index: 6;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: 10px 0 14px -12px rgba(20, 34, 42, 0.42);
 }
 
@@ -8248,7 +8325,7 @@ body {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .movement-import-status strong,
@@ -8269,7 +8346,7 @@ body {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px 8px 0 0;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .movement-mapping-head strong {
@@ -8607,7 +8684,7 @@ tbody tr:hover {
 .cashflow-insight {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .cashflow-executive article {
@@ -8795,7 +8872,7 @@ tbody tr:hover {
   margin-right: 7px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #ffffff;
+  background: var(--surface);
   color: var(--teal);
   font-weight: 900;
 }
@@ -8854,7 +8931,7 @@ tbody tr:hover {
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #ffffff;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -8869,7 +8946,7 @@ tbody tr:hover {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .month-detail-card h3 {
@@ -9336,7 +9413,7 @@ tbody tr:hover {
 .life-def-kpis article,
 .life-def-scenarios article,
 .life-def-accounts article {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 14px 36px rgba(18, 34, 40, 0.06);
@@ -9424,7 +9501,7 @@ tbody tr:hover {
 }
 
 .life-def-hero button.secondary {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.4);
   color: var(--life-def-teal);
 }
@@ -9642,7 +9719,7 @@ tbody tr:hover {
 
 .life-def-form input,
 .life-def-form select {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--ink);
@@ -9800,7 +9877,7 @@ tbody tr:hover {
 
 .life-def-table th:first-child,
 .life-def-table td:first-child {
-  background: #fff;
+  background: var(--surface);
   left: 0;
   min-width: 116px;
   position: sticky;
@@ -9823,7 +9900,7 @@ tbody tr:hover {
 }
 
 .life-def-table tbody td:first-child {
-  background: #fff;
+  background: var(--surface);
   box-shadow: 10px 0 16px rgba(18, 34, 40, 0.06);
   font-weight: 950;
 }
@@ -9907,7 +9984,7 @@ tbody tr:hover {
 .new-life-hero,
 .new-life-panel,
 .debt-plan-strategy {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 16px 40px rgba(18, 34, 40, 0.06);
@@ -10074,7 +10151,7 @@ tbody tr:hover {
 .new-life-hero-main button.secondary,
 .new-life-action button.secondary,
 .debt-plan-strategy-actions .secondary-button {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid rgba(19, 117, 110, 0.32);
   color: var(--life-teal);
 }
@@ -10145,7 +10222,7 @@ tbody tr:hover {
 }
 
 .new-life-kpi {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px;
@@ -10347,7 +10424,7 @@ tbody tr:hover {
 }
 
 .new-life-table td:first-child {
-  background: #fff;
+  background: var(--surface);
   font-weight: 950;
 }
 
@@ -10428,7 +10505,7 @@ tbody tr:hover {
 }
 
 .debt-plan-strategy-grid article {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px;
@@ -10539,7 +10616,9 @@ tbody tr:hover {
 
 .unified-action {
   align-items: center;
-  background: #fff;
+  /* T7: era un #fff fijo — con var(--ink) ya oscuro-consciente heredado en el texto, quedaba texto
+     claro sobre fondo blanco fijo en modo oscuro (1,16:1, verificado con axe-core). */
+  background: var(--surface);
   border: 1px solid var(--line);
   border-left: 4px solid #6e7c84;
   border-radius: 8px;
@@ -10719,7 +10798,7 @@ tbody tr:hover {
 }
 
 .home-context-item {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
@@ -10747,6 +10826,7 @@ tbody tr:hover {
 }
 
 .action-review-dialog {
+  background: var(--surface);
   border: 0;
   border-radius: 8px;
   box-shadow: 0 24px 70px rgba(13, 31, 38, 0.25);
@@ -10954,7 +11034,7 @@ tbody tr:hover {
 }
 
 .widget-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
@@ -11004,7 +11084,7 @@ tbody tr:hover {
 }
 
 .alert-kpi-grid article {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-left: 4px solid var(--teal);
   border-radius: 8px;
@@ -11044,7 +11124,7 @@ tbody tr:hover {
 }
 
 .alert-rule-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-left: 4px solid var(--teal);
   border-radius: 8px;
@@ -11215,7 +11295,7 @@ tbody tr:hover {
 }
 
 .skip-link {
-  background: #fff;
+  background: var(--surface);
   border: 2px solid var(--teal);
   border-radius: 6px;
   color: var(--ink);
@@ -11314,6 +11394,8 @@ tbody tr:hover {
   border: 0;
   border-radius: 24px;
   box-shadow: 0 24px 80px rgba(11, 31, 51, 0.28);
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .startup-recovery-dialog::backdrop {

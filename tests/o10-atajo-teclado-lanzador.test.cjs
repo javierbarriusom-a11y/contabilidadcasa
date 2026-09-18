@@ -53,6 +53,7 @@ function captureKeydownHandler({ dialogOpen = false } = {}) {
   const openCalls = [];
   const context = {
     applyE17Preferences: () => {},
+    applyThemePreference: () => {},
     qs: () => null,
     openE17Dialog: (kind) => openCalls.push(kind),
     document: {
