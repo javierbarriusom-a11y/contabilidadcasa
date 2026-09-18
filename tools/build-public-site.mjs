@@ -117,6 +117,7 @@ const files = [
   "views/debt-liquidation-plan.js",
   "views/virtual-advisor.js",
   "views/executive-advisor.js",
+  "views/new-life-definitive.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el
