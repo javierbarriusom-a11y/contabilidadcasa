@@ -116,6 +116,7 @@ const files = [
   "views/escenarios.js",
   "views/debt-liquidation-plan.js",
   "views/virtual-advisor.js",
+  "views/executive-advisor.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el

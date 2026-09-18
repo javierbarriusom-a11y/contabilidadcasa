@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/executive-advisor.js"), "utf8");
 
 // O-4 (BACKLOG_OPERACION.md): generalizar "¿cuándo puedo permitirme X?" más allá del coche.
 // bigPurchaseAffordability es el motor genérico que ahora usan tanto el coche (executiveAdvisorContext,
