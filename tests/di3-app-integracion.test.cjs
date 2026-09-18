@@ -16,6 +16,6 @@ test("DI3: renderDeudaRuta llama a prioritizeRevolving y pinta deudaRutaRevolvin
 });
 
 test("DI3: deudaRutaRevolvingText no dice nada si no hay revolving detectada", () => {
-  const block = appSource.slice(appSource.indexOf("function deudaRutaRevolvingText"), appSource.indexOf("function deudaRutaRevolvingText") + 400);
+  const block = deudaSource.slice(deudaSource.indexOf("function deudaRutaRevolvingText"), deudaSource.indexOf("function deudaRutaRevolvingText") + 400);
   assert.match(block, /if \(!prioritized\.length\) return "";/);
 });
