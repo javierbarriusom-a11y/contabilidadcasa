@@ -263,18 +263,51 @@ de aquí en la siguiente regeneración, no al momento.
     nuevo, 218 líneas.
 - **Publicado (quinto incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
   fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Resultado acumulado de la sesión (cinco incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
-  de la sesión 205) a 38.605 líneas (-7,2%). Cinco fragmentos nuevos/ampliados: `views/escenarios.js`,
+- **`T14` — sexto incremento, misma sesión: "Nueva vida definitiva" (`#new-life-definitive`)**: el
+  hogar pidió seguir con `T14` de nuevo; candidato ya auditado al cerrar el quinto incremento, así
+  que se re-verificó primero el rango exacto de líneas (se había desplazado 196 líneas hacia arriba
+  tras quitar el bloque de Ejecutivo) en vez de asumir el cálculo previo, y se repitió la
+  comprobación cruzada completa (llamadores fuera del rango en todo `app.js`, colisiones de nombre y
+  dependencias cruzadas con los seis `views/*.js` ya existentes) antes de tocar nada. Confirmadas
+  las 32 funciones (23281-24018): estado por defecto/carga/guardado, lectura y volcado de controles,
+  resolución de proyecto/deuda origen, `buildNewLifeDefinitiveFlow` y sus resúmenes, los ocho
+  `renderLifeDef*`, `renderNewLifeDefinitive` y sus manejadores de refrescar/resetear/confirmar/
+  preparar — contiguas, sin ninguna función intercalada ajena al conjunto. Todas las referencias
+  externas encontradas (el `case "new-life-definitive"` de `renderActiveSection`, los
+  `addEventListener` sobre `qs("new-life-definitive")` en el cableado central, y las dos llamadas
+  con guarda de hash desde `handleAgentCaixaFloorChange`/`scheduleHeavyAdvisorRefresh`) ya vivían
+  dentro de cuerpos de función o callbacks anónimos — ninguna referencia eager suelta, ningún
+  envoltorio nuevo necesario.
+  - **Sin tests afectados**: ningún fichero de test referenciaba ninguna de las 32 funciones
+    movidas (el único hit, `renderNewLifeDefinitive` en `tests/t1-seis-vistas.test.cjs`, comprueba
+    el `case` de `renderActiveSection`, que se queda entero en `app.js`).
+  - **Sin sorpresas en `npm run verify`**: **4379/4379** en verde a la primera.
+  - **Validación en navegador real**: `#new-life-definitive` visitado en primer lugar en pestaña
+    nueva carga con contenido real (7 hijos, ~7.700 caracteres de texto) y sin errores de consola ni
+    404; Hoy, Ejecutivo, Asesor virtual, Agente de ahorro, Nueva vida (simulación) y Plan de
+    liquidación de deuda siguen funcionando igual. Interacción real sobre la pantalla movida
+    (`confirm-flow`/`reset`, que disparan `setNewLifeDefinitiveFlowConfirmed`/
+    `resetNewLifeDefinitive`) sin errores.
+  - **Resultado**: `app.js` pasa de 38.605 a 37.867 líneas (-738). `views/new-life-definitive.js`
+    nuevo, 759 líneas (incluida la cabecera documental).
+- **Publicado (sexto incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
+  fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (seis incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
+  de la sesión 205) a 37.867 líneas (-9,0%). Seis fragmentos nuevos/ampliados: `views/escenarios.js`,
   `views/deuda.js`, `views/debt-liquidation-plan.js`, `views/virtual-advisor.js`,
-  `views/executive-advisor.js`.
-- **Pendiente para la siguiente sesión**: "Nueva vida definitiva" (32 funciones, ya auditada y
-  verificada separable en esta sesión, candidato directo para el próximo incremento sin repetir el
-  análisis). "Nueva vida" (simulación) y el render de Agente de ahorro se quedan indefinidamente en
-  `app.js` salvo que se decida cambiar el comportamiento de sus llamadas de refresco cruzado — eso
-  sí necesitaría confirmación explícita del hogar, no es una reubicación pura. Repetir siempre la
-  comprobación cruzada entre todos los `views/*.js` existentes antes de dar por cerrado cualquier
-  incremento futuro. Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el
-  plan ya compartido
+  `views/executive-advisor.js`, `views/new-life-definitive.js`.
+- **Pendiente para la siguiente sesión**: del cluster grande original (Ejecutivo/Nueva vida/Nueva
+  vida definitiva/Asesor virtual/Agente de ahorro) solo quedan sin auditar el render propio de
+  Agente de ahorro (`renderSavingsAgent` — no comprobado todavía si tiene el mismo patrón de
+  refresco eager sin guarda que bloqueó "Nueva vida" simulación) y `visual-detail` (todavía eager,
+  con `rowsForVisualBudget` obligando a que `buildAcceleratedDebtCarScenario`/
+  `carSavingsTargetAmount`/`acceleratedDebtTargets` sigan en `app.js`). "Nueva vida" (simulación) se
+  queda indefinidamente en `app.js` salvo que se decida cambiar el comportamiento de sus llamadas de
+  refresco cruzado desde Plan/Ajustes — eso sí necesitaría confirmación explícita del hogar, no es
+  una reubicación pura. Repetir siempre la comprobación cruzada entre todos los `views/*.js`
+  existentes (ya son seis) antes de dar por cerrado cualquier incremento futuro, y re-verificar los
+  números de línea exactos con `grep -n` en cada nuevo incremento en vez de asumir cálculos previos.
+  Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido
   con el hogar.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
