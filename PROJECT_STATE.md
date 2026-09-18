@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, segundo incremento del monolito (comparador de las 8 estrategias de deuda) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
+## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, tres incrementos del monolito (comparador de deuda, plan deuda óptimo heredado) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 
 - **Qué pedía la sesión**: continuar `T14` con el siguiente candidato ya identificado al cerrar la
   sesión 206 — el comparador de las 8 estrategias de deuda (avalancha/bola de nieve/consolidar/no
@@ -145,17 +145,67 @@ de aquí en la siguiente regeneración, no al momento.
   (Playwright) de las 4 pantallas de Deuda y de Hoy, en una pestaña sin haber visitado antes ninguna
   pantalla de Escenario: sin errores de consola, con contenido real (KPIs, cambio de pestaña de
   estrategia en Ruta, capacidad de endeudamiento en Comparar, cifras de Hoy).
-- **Resultado**: `app.js` pasa de 40.284 a 40.011 líneas (-273, incluye las piezas que volvieron
-  desde `views/escenarios.js`). `views/deuda.js` gana 407 líneas netas; `views/escenarios.js` pierde
-  87 (las nueve piezas que resultaron ser compartidas). El comparador de estrategias de deuda queda
-  fuera de `app.js`; el resto del monolito (~39.600 líneas) sigue pendiente para sesiones futuras.
-- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
-  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado (segundo incremento)**: `app.js` pasa de 40.284 a 40.011 líneas (-273, incluye las
+  piezas que volvieron desde `views/escenarios.js`). `views/deuda.js` gana 407 líneas netas;
+  `views/escenarios.js` pierde 87 (las nueve piezas que resultaron ser compartidas). El comparador
+  de estrategias de deuda queda fuera de `app.js`.
+- **Publicado (segundo incremento)**: PR #324, commit y push a la rama de trabajo en curso, PR en
+  borrador y fusión a `main` en cuanto el CI estuvo en verde, misma autorización vigente
+  (`CLAUDE.md`).
+- **`T14` — tercer incremento, misma sesión: "Plan deuda óptimo" (`#debt-liquidation-plan`)**:
+  siguiente candidato elegido por ser una pantalla ya marcada `HEAVY_RENDER_VIEWS` pero todavía sin
+  `VIEW_CHUNK` propio — a diferencia de los dos incrementos anteriores, aquí sí hizo falta crear el
+  fragmento (`views/debt-liquidation-plan.js`) y registrar la entrada nueva en `VIEW_CHUNKS`, no solo
+  subir una versión de caché. Es la pantalla heredada del "plan de deuda óptimo" (nav agrupada como
+  `legacy`, ya marcada internamente como `veredicto: "sustituida"` por Deuda · Comparador desde antes
+  de esta sesión) — construida sobre `DEBT_LIQUIDATION_ASSUMPTIONS` (entidades hardcodeadas), no
+  sobre el motor de escenarios.
+  - **Auditoría de dependencias, con la lección de los dos incrementos anteriores ya aplicada desde
+    el principio**: el primer intento de acotar el bloque candidato por nombre de función
+    (`buildLiquidationScenario` en adelante) dejó fuera 7 funciones hermanas
+    (`liquidationSettlementCost`/`GroupCost`/`MonthDate`/`ShiftMonth`/`ComparableMonth`/
+    `PlanRows`/`FreeCapacity`) que vivían justo antes, pegadas al final de `renderHomeDashboard` —
+    detectado releyendo el rango completo en vez de fiarse del primer nombre encontrado, antes de
+    escribir una sola línea del script de extracción. De los 23 identificadores finales del bloque
+    completo, 20 son exclusivos de esta pantalla (movidos) y 3 se quedan en `app.js`
+    (`carSavingsTargetAmount`, `acceleratedDebtTargets`, `buildAcceleratedDebtCarScenario`) porque
+    Visual Detail (`#visual-detail`, otra pantalla `HEAVY_RENDER_VIEWS` todavía sin lazy) las llama
+    en caliente a través de `rowsForVisualBudget`/`renderMonthlyBudgetPanel`. Comprobación cruzada
+    exhaustiva contra los 7 `views/*.js` existentes (ninguna colisión, ninguna dependencia perdida en
+    ningún sentido) antes de tocar nada.
+  - **`scheduleHeavyAdvisorRefresh` (app.js) referencia `renderDebtLiquidationPlan` dentro de un
+    `setTimeout`** sin envolverla en función anónima — a diferencia del wiring de `PERF-1`/T14, aquí
+    es seguro sin ese envoltorio porque el `setTimeout` solo se dispara 650ms después de que la
+    propia `renderDebtLiquidationPlan` ya se haya ejecutado una vez (es ella quien programa ese
+    refresco), así que el fragmento ya está cargado cuando el timeout dispara.
+  - **Sin tests afectados**: ningún fichero de test referenciaba ninguna de las 20 funciones movidas
+    — pantalla legada, sin cobertura unitaria propia. Sí rompieron 3 tests de otras tareas
+    (`e14-a12-c14-bloque5-retirar-heredadas`, `v2-8-relegar-plan`, `v3-5-relegar-deuda`) que
+    comprobaban por texto literal enlaces `data-home-nav` generados por el código movido —
+    corregidos concatenando `views/debt-liquidation-plan.js` a su `app` de `vm.Script`, mismo patrón
+    ya usado en el resto de la suite.
+  - **Validación**: `npm run verify` en verde (**4379/4379**, resto de checks sin errores).
+    Verificación en navegador real: `#debt-liquidation-plan` visitado en primer lugar en una
+    pestaña nueva (sin pasar por ninguna otra pantalla antes) carga con contenido real y sin errores
+    de consola; `#visual-detail` (que depende de las tres piezas que se quedaron en `app.js`) sigue
+    funcionando exactamente igual.
+  - **Resultado**: `app.js` pasa de 40.011 a 39.394 líneas (-617). `views/debt-liquidation-plan.js`
+    nuevo, 636 líneas.
+- **Publicado (tercer incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
+  fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (tres incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
+  de la sesión 205) a 39.394 líneas (-5,3%). Tres fragmentos nuevos/ampliados:
+  `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`.
 - **Pendiente para la siguiente sesión**: seguir con más incrementos de `T14` con el mismo patrón
-  —y, dado lo encontrado hoy, repitiendo también la comprobación cruzada entre todos los `views/*.js`
-  existentes antes de dar por cerrado cualquier incremento futuro, no solo entre el fragmento nuevo y
-  el que se está tocando—; después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`)
-  según el plan ya compartido con el hogar.
+  — candidatos ya identificados: el resto de pantallas `HEAVY_RENDER_VIEWS` todavía sin `VIEW_CHUNK`
+  (`visual-detail`, `executive-advisor`, `new-life-simulation`, `new-life-definitive`,
+  `savings-agent`, `virtual-advisor`) forman un cluster mucho más entrelazado entre sí y con el
+  "agente de ahorro" (`buildSavingsAgentPlan` y familia, ~1.450 líneas, físicamente lejos de sus
+  propios renders) — necesitará una auditoría más cara que las tres de hoy, posiblemente varias
+  sesiones o un incremento que las trate como un solo hub en vez de una por una. Repetir siempre la
+  comprobación cruzada entre todos los `views/*.js` existentes antes de dar por cerrado cualquier
+  incremento futuro, no solo entre el fragmento nuevo y el que se está tocando. Después, el resto
+  del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido con el hogar.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
 
