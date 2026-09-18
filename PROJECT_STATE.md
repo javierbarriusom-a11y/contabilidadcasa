@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 18 de septiembre de 2026 (205): `T7`, modo oscuro real — séptimo ciclo del Horizonte 2
+## Cierre de sesión — 18 de septiembre de 2026 (205): `T7` y `T8`, modo oscuro y alto contraste real — Horizonte 2 completo
 
 - **Qué pedía la tarea**: `T7` — modo oscuro real. El hogar pidió seguir con `T7` justo después de
   `T4` en la misma sesión de trabajo. La nota original del backlog decía "cero ocurrencias de
@@ -127,7 +127,7 @@ de aquí en la siguiente regeneración, no al momento.
   "theme-preference"`), deliberadamente sin sufijo de hogar de datos — cambiar de fuente de datos
   no debería resetear el tema. Script inline en `<head>` (antes de las hojas de estilo) que fija
   `data-theme` en `<html>` para evitar parpadeo al forzar un tema.
-- **Validación**: `npm run verify` completo en verde (código de salida 0). `npm test`
+- **Validación de `T7`**: `npm run verify` completo en verde (código de salida 0). `npm test`
   **4369/4369** pruebas (+21 sobre las 4348 previas a esta sesión: nuevo archivo
   `tests/t7-modo-oscuro.test.cjs`). `test:a11y` **1355 IDs únicos** (+1, por el fieldset de tema
   nuevo). `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores. Verificación
@@ -136,12 +136,52 @@ de aquí en la siguiente regeneración, no al momento.
   encontrar violaciones nuevas de `color-contrast` — el único fallo restante en esa suite
   (`heading-order` en `#home`) es preexistente en `main`, confirmado corriendo el mismo test sin
   los cambios de esta sesión.
-- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T7` como cerrada; 20/52 tareas
-  cerradas en total. Del Horizonte 2 queda solo `T8` (`prefers-reduced-motion` y alto contraste).
+- **`T7` publicado**: commit y push a la rama de trabajo en curso, PR
+  [#321](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/321) en borrador y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+
+- **`T8` — qué pedía la tarea**: `prefers-reduced-motion` y modo de alto contraste. El hogar pidió
+  seguir con `T8` justo después de `T7`, en la misma sesión.
+- **Hallazgo antes de construir nada**: investigar reveló que `prefers-reduced-motion` **ya
+  existía** — un override universal (`OPT-9`, `styles.css`, `@media (prefers-reduced-motion:
+  reduce)` sobre `animation-duration`/`animation-iteration-count`/`scroll-behavior`/
+  `transition-duration` con `!important`) construido en una sesión anterior a la del diagnóstico
+  "Contabilidadcasa 2.0". El hallazgo #5 de ese diagnóstico ("0 ocurrencias") estaba desactualizado
+  cuando se escribió — no era un hueco real. Corregido en `BACKLOG_CONTABILIDADCASA_2_0.md` para
+  que nadie lo reabra pensando que falta construir.
+- **Lo que sí faltaba de verdad**: `prefers-contrast: more`. Construido en `styles.css` y
+  `design-tokens.css` reforzando `--muted`/`--line`/`--e19-muted`/`--e19-faint`/
+  `--e19-border`/`--e19-border-strong` con `color-mix()` sobre `--ink`/`--e19-ink` ya resuelto (un
+  único bloque cubre las cuatro combinaciones tema×preferencia — claro, oscuro, automático o
+  forzado desde Personalizar — sin duplicar paleta), más un anillo de foco de teclado más grueso
+  (4px en vez de 3px).
+- **Hallazgo de paso, no pedido pero corregido**: el anillo de foco de teclado (`:focus-visible`
+  universal) tenía un único color fijo (`#f2bf4f`) con 9,5:1 de contraste en modo oscuro pero solo
+  1,5-1,7:1 en el tema claro — muy por debajo del 3:1 que exige WCAG 1.4.11 para indicadores de
+  foco no textuales, prácticamente invisible navegando con teclado en el tema por defecto. Separado
+  en `--focus-ring` por tema: en claro reutiliza el navy ya usado como acento (9,5:1), en oscuro
+  mantiene el amarillo que ya funcionaba.
+- **Validación de `T8`**: `npm run verify` completo en verde. `npm test` **4379/4379** pruebas
+  (+10 sobre las 4369 tras `T7`: nuevo archivo `tests/t8-alto-contraste-y-reduced-motion.test.cjs`).
+  `test:a11y` **1355 IDs únicos** (sin cambio — ningún elemento nuevo). `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Verificado con Playwright forzando
+  `prefers-contrast: more` + `prefers-reduced-motion: reduce` en ambos temas: las duraciones de
+  animación/transición computadas caen a `0.01ms` como se espera, y las violaciones de
+  `color-contrast` restantes son las mismas ya documentadas en `T7` (más un par de casos
+  equivalentes de la misma familia, sin categoría nueva) — ninguna regresión.
+- **Backlog actualizado**: `BACKLOG_CONTABILIDADCASA_2_0.md` marca `T7` y `T8` como cerradas;
+  **21/52 tareas cerradas en total — Horizonte 2 completo** (las ocho apuestas estructurales:
+  `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`, `T8`).
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
-  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
-  vigente (`CLAUDE.md`).
-- **Pendiente para la siguiente sesión**: `T8` es la última tarea confirmada del Horizonte 2.
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: el Horizonte 2 queda cerrado. Toca decidir con el hogar
+  qué abordar del resto del backlog (Horizonte 3, o revisar el remanente de tareas sin horizonte
+  asignado en `BACKLOG_CONTABILIDADCASA_2_0.md`). Aviso, no bloqueo: los ~40 pares badge/pill de
+  `styles.css` con fondo pastel y texto oscuro ambos fijos (p. ej. `.audit-badge.status-pending`)
+  siguen sin adaptarse al tema oscuro — se ven correctamente (ambos colores son fijos y
+  consistentes entre sí, sin problema de contraste) pero como una pastilla de estilo claro flotando
+  sobre una pantalla oscura; inconsistencia visual menor, fuera del alcance de esta sesión.
   Queda como aviso, no como bloqueo: los ~40 pares badge/pill de `styles.css` con fondo pastel y
   texto oscuro ambos fijos (p. ej. `.audit-badge.status-pending`) siguen sin adaptarse al tema
   oscuro — se ven correctamente (no hay problema de contraste, ambos colores son fijos y

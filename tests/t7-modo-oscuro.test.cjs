@@ -252,9 +252,14 @@ test("los cuatro gráficos SVG a mano usan chartColor() en vez de hexadecimales 
 
 // --- Versionado de caché --------------------------------------------------------------------
 
-test("index.html: styles.css, p2.css, design-tokens.css y app.js comparten el nuevo bump de versión de T7", () => {
-  ["styles.css", "p2.css", "design-tokens.css"].forEach((file) => {
-    assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=20260918t7a1`));
-  });
+test("index.html: p2.css y app.js llevan el bump de versión de T7 (sin cambios desde entonces)", () => {
+  assert.match(html, /p2\.css\?v=20260918t7a1/);
   assert.match(html, /<script defer src="app\.js\?v=20260918t7a1">/);
+});
+
+// T8 (BACKLOG_CONTABILIDADCASA_2_0.md) volvió a tocar styles.css/design-tokens.css (prefers-contrast,
+// --focus-ring) — su propio archivo de tests fija ese bump; aquí basta con no dejar el string viejo.
+test("index.html: styles.css y design-tokens.css ya no llevan la versión antigua de T7", () => {
+  assert.doesNotMatch(html, /styles\.css\?v=20260918t7a1/);
+  assert.doesNotMatch(html, /design-tokens\.css\?v=20260918t7a1/);
 });

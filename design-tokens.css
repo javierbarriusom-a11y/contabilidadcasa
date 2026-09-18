@@ -85,6 +85,18 @@
   --e19-shadow-pop: 0 2px 8px rgba(11, 18, 32, 0.08);
 }
 
+/* T8 (BACKLOG_CONTABILIDADCASA_2_0.md): mismo criterio que el bloque equivalente de styles.css —
+   `color-mix()` sobre `--e19-ink` ya resuelto en vez de una paleta nueva por tema, para que un
+   único bloque cubra claro/oscuro/automático/forzado sin duplicar valores. */
+@media (prefers-contrast: more) {
+  :root {
+    --e19-muted: color-mix(in srgb, var(--e19-ink) 40%, var(--e19-muted) 60%);
+    --e19-faint: color-mix(in srgb, var(--e19-ink) 45%, var(--e19-faint) 55%);
+    --e19-border: color-mix(in srgb, var(--e19-ink) 45%, var(--e19-border) 55%);
+    --e19-border-strong: color-mix(in srgb, var(--e19-ink) 55%, var(--e19-border-strong) 45%);
+  }
+}
+
 /* T7 (BACKLOG_CONTABILIDADCASA_2_0.md): modo oscuro real — se sigue automáticamente el sistema
    (`prefers-color-scheme`) salvo que el hogar fuerce un tema desde Personalizar (`data-theme` en
    `<html>`, ver `applyThemePreference()` en app.js). `--e19-canvas`/`--e19-surface` reutilizan los

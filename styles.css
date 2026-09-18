@@ -31,6 +31,9 @@
      visualmente: la casilla de "Modo sesión con asesor o pareja" (Ajustes) quedaba como un
      cuadrado blanco sin más, ilegible sobre fondo oscuro. */
   color-scheme: light;
+  /* T8: el anillo de foco de teclado — separado por tema, ver el comentario junto a
+     :focus-visible más abajo. */
+  --focus-ring: #293e5e;
 }
 
 /* T7 (BACKLOG_CONTABILIDADCASA_2_0.md): modo oscuro real sobre el mismo sistema de variables — se
@@ -64,12 +67,14 @@
     --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.4);
     --chart-muted-line: #8e9aa1;
     --hero-strong: #28365a;
+    --focus-ring: #f2bf4f;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --focus-ring: #f2bf4f;
   --bg: #10161a;
   --surface: #1a2226;
   --surface-soft: #212a2f;
@@ -88,6 +93,26 @@
   --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.4);
   --chart-muted-line: #8e9aa1;
   --hero-strong: #28365a;
+}
+
+/* T8 (BACKLOG_CONTABILIDADCASA_2_0.md): modo de alto contraste real, sobre `prefers-contrast:
+   more` (el hogar lo pide desde el sistema operativo, no hay interruptor propio de la app — mismo
+   criterio que ya se sigue con `prefers-color-scheme`). `color-mix()` en vez de una paleta nueva
+   por tema: mezcla `--muted`/`--line` ya resueltos (correctos para claro u oscuro, automático o
+   forzado desde Personalizar) hacia `--ink`, así un único bloque cubre las cuatro combinaciones de
+   tema sin duplicar valores por cada una. Mismos números que T7: verificado por contraste real
+   (`--muted` pasa de ~6-7:1 a >7:1 sobre fondo y superficie; `--line`, pensado para bordes no
+   textuales, de ~1,3-1,5:1 a >3:1, el mínimo de WCAG 1.4.11 para límites de componentes). El
+   anillo de foco de teclado también se refuerza (4px en vez de 3px). */
+@media (prefers-contrast: more) {
+  :root {
+    --muted: color-mix(in srgb, var(--ink) 40%, var(--muted) 60%);
+    --line: color-mix(in srgb, var(--ink) 45%, var(--line) 55%);
+  }
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-width: 4px;
+    outline-offset: 4px;
+  }
 }
 
 * {
@@ -11313,8 +11338,13 @@ tbody tr:hover {
   transform: translateY(0);
 }
 
+/* T8 (BACKLOG_CONTABILIDADCASA_2_0.md): el amarillo #f2bf4f fijo daba 9,5:1 en modo oscuro pero
+   solo 1,5-1,7:1 en claro (verificado por contraste) — muy por debajo del 3:1 que exige WCAG
+   1.4.11 para indicadores de foco, el anillo de teclado quedaba casi invisible en el tema por
+   defecto. --focus-ring lo separa por tema: en claro reutiliza el navy ya usado como acento
+   (9,5:1), en oscuro mantiene el amarillo que ya funcionaba. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 3px solid #f2bf4f;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
