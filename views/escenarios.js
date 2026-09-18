@@ -108,22 +108,6 @@ function escenarioMotorIssueMessage(issue, type) {
   return field ? `${field.label}: ${issue.message}` : issue.message;
 }
 
-// Traduce los códigos de rechazo reales del motor (canonical-scenario-engine.js) a texto legible.
-// Ningún resultado se inventa aquí: solo se etiqueta lo que el motor ya ha decidido.
-function escenarioMotorResultInfo(resultado) {
-  const table = {
-    aplicada: { text: "Aplicada", badge: "e19-badge-success" },
-    "guardarril-incumplido": { text: "Rechazada: rompe el saldo mínimo indicado", badge: "e19-badge-danger" },
-    "conflicto-bloqueante": { text: "Rechazada: la deuda ya la afecta otra decisión de este escenario", badge: "e19-badge-danger" },
-    "deuda-ya-cerrada": { text: "Rechazada: la deuda ya está cerrada", badge: "e19-badge-danger" },
-    "deuda-desconocida": { text: "Rechazada: deuda no encontrada", badge: "e19-badge-danger" },
-    "sin-objetivo": { text: "Rechazada: falta indicar la deuda", badge: "e19-badge-danger" },
-    "sin-mes-viable": { text: "Rechazada: ningún mes del horizonte la sostiene", badge: "e19-badge-danger" },
-    "tipo-no-soportado-aun": { text: "Rechazada: el motor no resuelve este tipo todavía", badge: "e19-badge-danger" },
-    inactiva: { text: "Desactivada", badge: "e19-badge-neutral" },
-  };
-  return table[resultado] || { text: resultado, badge: "e19-badge-neutral" };
-}
 
 // `resultado: "rechazada"` viene siempre acompañado de un `motivo` del propio aplicador; sin él, el
 // texto genérico sería inútil para decidir qué corregir.
@@ -155,62 +139,6 @@ function escenarioMotorEfectoLabel(efecto) {
   return table[efecto] || efecto || "";
 }
 
-// T-5 · Una dependencia que no carga no puede quedarse callada.
-//
-// Hasta el 10 de agosto de 2026 el sitio publicado no llevaba estos dos archivos, y las cinco
-// pantallas del motor se quedaban en blanco **sin un solo error de consola**: el comparador daba
-// fecha «—» y coste 0,00 €, la ruta decía «Sin calcular» y «Aplicar al plan» no se habilitaba
-// nunca. Un 0,00 € se lee como una respuesta, no como una avería, así que el fallo pasó semanas
-// desapercibido. Los canarios de `build-public-site.mjs` y `smoke-public.mjs` impiden ya que falte
-// un archivo; esto cubre lo otro: que si algún día falta —por caché vieja, por un despliegue a
-// medias o por un bloqueo de red—, la pantalla lo diga en vez de fingir que ha calculado.
-const ESCENARIO_MOTOR_DEPENDENCIES = [
-  ["FinanceCanonicalScenarioEngine", "canonical-scenario-engine.js"],
-  ["FinanceCanonicalScenarioSchema", "canonical-scenario-schema.js"],
-];
-
-function missingScenarioDependencies() {
-  return ESCENARIO_MOTOR_DEPENDENCIES.filter(([global]) => !window[global]).map(([, file]) => file);
-}
-
-function scenarioDependencyMessage(missing) {
-  return `Esta pantalla no puede calcular nada ahora mismo: no se ha cargado ${missing.join(" ni ")}. `
-    + "Las cifras que falten no son ceros ni resultados, son cálculos que no se han hecho. "
-    + "Recarga la página; si sigue igual, vuelve a abrirla sin conexión guardada.";
-}
-
-// Devuelve true cuando falta algo, para que quien llame pueda además no pintar cifras vacías como
-// si fueran un resultado.
-function renderScenarioDependencyNotice(viewId) {
-  const section = document.getElementById(viewId);
-  if (!section) return false;
-  const missing = missingScenarioDependencies();
-  const existing = section.querySelector("[data-dependency-notice]");
-  if (!missing.length) {
-    existing?.remove();
-    return false;
-  }
-  const message = scenarioDependencyMessage(missing);
-  if (existing) {
-    existing.querySelector("[data-dependency-notice-text]").textContent = message;
-    return true;
-  }
-  const notice = document.createElement("div");
-  notice.className = "e19-insight is-danger";
-  notice.setAttribute("data-dependency-notice", "");
-  notice.setAttribute("role", "status");
-  const wrapper = document.createElement("div");
-  const title = document.createElement("strong");
-  title.textContent = "Falta una pieza para poder calcular";
-  const text = document.createElement("p");
-  text.setAttribute("data-dependency-notice-text", "");
-  text.textContent = message;
-  wrapper.append(title, text);
-  notice.append(wrapper);
-  section.prepend(notice);
-  announceStatus(message);
-  return true;
-}
 
 
 // E-5 (Escenarios.pdf): "Cuatro comprobaciones: origen de fondos, reserva protegida, umbral de
@@ -408,10 +336,6 @@ function renderEscenarioMotorChart(baseSeries, scenarioSeries, months, guardrail
   svg.insertAdjacentHTML("beforeend", markup);
 }
 
-function escenarioMotorNavigate(viewId) {
-  history.pushState(null, "", `#${viewId}`);
-  setActiveView(viewId);
-}
 
 // Los escenarios guardados antes de E20-3 no llevan `titulo` (solo existía amortización), igual que
 // las rutas que llegan desde el comparador de estrategias. Se reconstruye con el mismo generador de
@@ -432,10 +356,6 @@ function escenarioMotorDecisionDetail(decision) {
   return type && typeof type.detalle === "function" ? type.detalle(decision) : "";
 }
 
-function escenarioMotorDecisionAmountText(decision) {
-  const type = escenarioMotorResolveType(decision);
-  return type && typeof type.importeTexto === "function" ? type.importeTexto(decision) : "—";
-}
 
 // El mes efectivo depende del tipo: la planificación lo lleva en los tipos de deuda y en compra,
 // pero `imprevisto`, `retomar_pagos` y los cambios de ingreso/gasto lo llevan en sus propios params.
@@ -763,10 +683,6 @@ function handleEscenarioMotorSubmit(event) {
   renderEscenarioMotorLivePreview();
 }
 
-function escenarioMotorDebtLabelById(deudaId) {
-  const contract = canonicalDebtContractRows().find((item) => item.id === deudaId);
-  return contract ? escenarioMotorDebtLabel(contract) : deudaId || "deuda sin identificar";
-}
 
 // Tras añadir una decisión se vacían los importes y textos, pero se conservan los desplegables
 // (deuda, mes, titular…): encadenar dos decisiones sobre el mismo mes es el caso normal.
@@ -1062,9 +978,6 @@ function handleEscenarioAplicarBack() {
 }
 
 
-function saveEscenarioMotorSavedList(list) {
-  storageSet(storageKey("escenario-motor-saved"), JSON.stringify(list));
-}
 
 // E-11b: "diez planes vivos como máximo, sin cupos por familia" (decisión de arquitectura, 14 de
 // agosto, docs/BACKLOG_NUEVE_PANTALLAS.md §2) — archivar no borra, solo saca de la cuenta y de la

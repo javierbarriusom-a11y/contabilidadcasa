@@ -1878,3 +1878,410 @@ function deudaContratosCuadreHtml(cuadre) {
     </div>
   </div>`;
 }
+
+// ---------------------------------------------------------------------------------------------
+// T14 (segundo incremento, sesión 207): lógica de datos del comparador de las 8 estrategias de
+// deuda (avalancha/bola de nieve/consolidar/no tocar, más los 8 "modos" de un solo contrato de
+// D-5/D-6) — catálogo, decisiones, resultado y oferta de reunificación — movida aquí desde app.js.
+// Antes de mover una sola línea se auditaron los 42 identificadores de nivel superior de ese bloque
+// uno a uno contra el archivo completo: `homeDebtOutlook` (Hoy/Registrar/Plan la llaman en caliente
+// al arrancar, antes de que este fragmento se cargue) y todo lo que ella misma necesita en cadena
+// (`debtStrategySummary`, `debtStrategyResult`, `debtStrategyDecisions`,
+// `debtStrategyOrderedContracts`, `debtStrategyEffectiveReserve`, `debtStrategyReserveDefault`) se
+// quedaron en app.js pese a vivir en este mismo bloque — moverlas habría roto Hoy con un
+// `ReferenceError` en cada carga en frío. `debtStrategyLibreDeDeudaRank` se queda igual, la llama
+// `registrarRecalcFigures` (Registrar, eager). `debtAmortizationSchedule` también se queda, ya
+// documentado en la cabecera de arriba: lo usa Análisis, un fragmento lazy distinto de este.
+// ---------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------
+// Comparador de estrategias + plan de deuda · ruta (mockups 1b/1c). Construidos sobre el mismo
+// motor E20 (resolveEscenario) que #escenario-simular, no sobre el pipeline heredado de
+// debt-liquidation-plan (DEBT_LIQUIDATION_ASSUMPTIONS, entidades hardcodeadas): cada estrategia es
+// una lista de decisiones "amortizacion" (pago total, modo "optimo") sobre la cartera real
+// (canonicalDebtContractRows), ordenada según el criterio de la estrategia.
+//
+// V3-3 · «Consolidar» como cuarta estrategia. Hasta el 10 de agosto de 2026 la pantalla declaraba
+// que reunificar no se podía comparar «porque exigiría inventar unas condiciones de préstamo (TAE,
+// plazo) que no existen todavía como oferta real en los datos». El diagnóstico era correcto y la
+// salida también: no fabricar la oferta. Lo que faltaba era pedirla. Ahora la oferta se introduce
+// —TIN, plazo y comisión de apertura— y la estrategia se simula con el mismo motor que las otras
+// tres, mediante una única decisión `reunificacion`. Sin oferta introducida la tarjeta sigue sin
+// dar cifras y dice qué falta: se compara una oferta real o no se compara nada.
+// ---------------------------------------------------------------------------------------------
+const DEBT_STRATEGY_DEFINITIONS = [
+  { id: "avalancha", label: "Avalancha", desc: "Salda primero la deuda con mayor TAE." },
+  { id: "bola-nieve", label: "Bola de nieve", desc: "Salda primero la deuda con menor saldo." },
+  {
+    id: "consolidar",
+    label: "Consolidar",
+    desc: "Cierra todas las deudas y las sustituye por un préstamo único con las condiciones que te ofrezcan.",
+    // Las otras tres miden «coste ejecutado» = capital desembolsado para cerrar deudas. Consolidar
+    // no desembolsa nada: su coste son los intereses del préstamo nuevo, que sí se pueden calcular
+    // exactos a partir de la propia oferta. Cada tarjeta dice qué mide su cifra en vez de compartir
+    // una etiqueta que sería falsa para una de ellas.
+    costeLabel: "Intereses del nuevo préstamo",
+  },
+  { id: "no-tocar", label: "No tocar nada", desc: "Sigue el calendario actual de cada deuda, sin decisiones nuevas." },
+];
+
+const DEBT_STRATEGY_COSTE_LABEL = "Coste total ejecutado";
+
+let debtStrategyReserveValue = null;
+let deudaRutaSelectedStrategy = "avalancha";
+// D-9: `applyE14bOffer()` escribe su resultado en #e14bStatus, que solo vive en #debt-roadmap —
+// sin esto, aplicar desde la tarjeta de Ruta y que el motor bloquee (p. ej. la deuda ya tiene una
+// decisión aplicada) no daría ninguna señal visible aquí. Se recuerda entre renders porque
+// renderDeudaRutaOffer() reconstruye el HTML entero tras cada intento.
+let deudaRutaOfferStatusMessage = "";
+// D-13 (repaso pixel-perfect del 21 de agosto): el formulario de edición de la oferta, plegado por
+// defecto — evita construir sus campos en cada render cuando nadie los está usando.
+let deudaRutaOfferEditOpen = false;
+
+// ---------------------------------------------------------------------------------------------
+// V3-3 · la oferta de reunificación. Se guarda aparte del modelo del hogar (`state`) porque no es
+// un dato del hogar: es una oferta de un tercero que puede caducar, cambiar o descartarse sin que
+// nada de la contabilidad se mueva. Vive en el mismo almacén local que los escenarios guardados,
+// con su propia clave, y persiste entre sesiones para no tener que reteclearla en cada visita.
+// ---------------------------------------------------------------------------------------------
+const DEBT_CONSOLIDATION_OFFER_KEY = "deuda-oferta-reunificacion";
+const DEBT_CONSOLIDATION_MAX_TIN = 60;
+const DEBT_CONSOLIDATION_MAX_PLAZO = 480;
+
+function debtConsolidationOffer() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(DEBT_CONSOLIDATION_OFFER_KEY), "{}"));
+    if (!parsed || typeof parsed !== "object") return { tin: null, plazo: null, comision: null };
+    // Ojo con el atajo `Number.isFinite(Number(value))`: `Number(null)` y `Number("")` valen 0, así
+    // que un campo vacío se leería como un TIN del 0 % — una oferta sin intereses que nadie ha
+    // hecho. Un hueco se distingue de un cero antes de convertir nada.
+    const num = (value) => {
+      if (value === null || value === undefined || value === "") return null;
+      const parsedValue = Number(value);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    };
+    // D-13/E-13: vigencia opcional de la oferta ("YYYY-MM", mismo formato que la de D-10) — no
+    // exige nada nuevo para calcular "Consolidar" (T-4/D-11), solo permite declarar hasta cuándo
+    // sigue en pie, para que un escenario guardado desde esta oferta (D-13) pueda marcarse caducado
+    // (E-13) si vence antes de aplicarse.
+    return { tin: num(parsed.tin), plazo: num(parsed.plazo), comision: num(parsed.comision), expiresAt: typeof parsed.expiresAt === "string" ? parsed.expiresAt : "" };
+  } catch {
+    return { tin: null, plazo: null, comision: null, expiresAt: "" };
+  }
+}
+
+function saveDebtConsolidationOffer(offer) {
+  storageSet(storageKey(DEBT_CONSOLIDATION_OFFER_KEY), JSON.stringify(offer || {}));
+}
+
+// El TIN se acepta al 0 % (existen ofertas promocionales sin intereses) pero el plazo no: sin plazo
+// no hay cuota que calcular. Los topes son los mismos que exige `canonical-scenario-schema.js` para
+// `reunificacion`, comprobados aquí antes de construir la decisión para no mandar al motor algo que
+// el esquema rechazaría.
+function debtConsolidationOfferComplete(offer) {
+  const tinOk = Number.isFinite(offer.tin) && offer.tin >= 0 && offer.tin <= DEBT_CONSOLIDATION_MAX_TIN;
+  const plazoOk = Number.isFinite(offer.plazo) && Number.isInteger(offer.plazo) && offer.plazo >= 1 && offer.plazo <= DEBT_CONSOLIDATION_MAX_PLAZO;
+  return tinOk && plazoOk;
+}
+
+// Cuota francesa: la misma fórmula que usa cualquier cuadro de amortización. Con TIN 0 % el límite
+// de la fórmula es principal/plazo, que se calcula aparte para no dividir entre cero.
+function debtConsolidationMonthlyPayment(principal, tinAnnualPct, months) {
+  if (!(principal > 0) || !(months >= 1)) return null;
+  const monthlyRate = Number(tinAnnualPct) / 100 / 12;
+  if (!(monthlyRate > 0)) return round2(principal / months);
+  return round2((principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months)));
+}
+
+// El plan de consolidación, o la razón exacta por la que todavía no hay ninguno. Nunca devuelve
+// cifras a medias: o hay oferta y cartera suficiente, o `available: false` con un motivo que la
+// pantalla enseña tal cual.
+//
+// El principal del préstamo nuevo es la suma de los saldos vivos más la comisión de apertura. Se
+// financia la comisión (que es como se firman casi todas las reunificaciones) en vez de tratarla
+// como pago en efectivo aparte: el motor no modela `comisiones` como flujo de caja —lo dice la
+// cabecera de `canonical-scenario-engine.js`— así que pasarla por ese campo la haría desaparecer
+// del cálculo sin avisar. Sumada al principal sí cuenta, y se dice en la pantalla.
+function debtConsolidationPlan() {
+  const offer = debtConsolidationOffer();
+  const contracts = escenarioMotorDebtOptions();
+  if (contracts.length < 2) {
+    return { available: false, motivo: "cartera", offer, contracts };
+  }
+  if (!debtConsolidationOfferComplete(offer)) {
+    return { available: false, motivo: "sin-oferta", offer, contracts };
+  }
+  const saldos = round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0));
+  const comision = Number.isFinite(offer.comision) && offer.comision > 0 ? round2(offer.comision) : 0;
+  const principal = round2(saldos + comision);
+  const cuota = debtConsolidationMonthlyPayment(principal, offer.tin, offer.plazo);
+  if (!(cuota > 0)) {
+    return { available: false, motivo: "sin-cuota", offer, contracts };
+  }
+  const totalDevuelto = round2(cuota * offer.plazo);
+  return {
+    available: true,
+    offer,
+    contracts,
+    deudaIds: contracts.map((contract) => contract.id),
+    saldos,
+    comision,
+    principal,
+    cuota,
+    plazo: offer.plazo,
+    tin: offer.tin,
+    totalDevuelto,
+    intereses: round2(totalDevuelto - principal),
+  };
+}
+
+
+// A16-5: avalancha (ataca primero el TAE más alto) y bola de nieve (ataca primero el saldo más
+// pequeño) ya se comparan por separado, pestaña a pestaña, con su propio "coste total ejecutado" —
+// pero nada decía nunca, en euros, cuánto cuesta elegir la opción motivadora (bola de nieve, premia
+// victorias rápidas) en vez de la matemáticamente óptima (avalancha, minimiza el interés total).
+// Reutiliza debtStrategySummary tal cual, sin recalcular nada: solo resta sus dos costeTotal. Si
+// cualquiera de las dos no es viable en este horizonte, la comparación no significa nada — se
+// devuelve null en vez de una cifra que compararía una ruta completa con una a medias.
+function debtStrategyMotivationalGap(baseInput, reserveValue) {
+  const optimal = debtStrategySummary("avalancha", baseInput, reserveValue);
+  const motivational = debtStrategySummary("bola-nieve", baseInput, reserveValue);
+  if (!optimal.total || !motivational.total || !optimal.viable || !motivational.viable) return null;
+  return {
+    optimalCost: optimal.costeTotal,
+    motivationalCost: motivational.costeTotal,
+    extraCost: round2(motivational.costeTotal - optimal.costeTotal),
+  };
+}
+
+// A16-5: la copia no da por hecho que la motivadora siempre sale más cara — dice lo que la cifra
+// diga de verdad para no afirmar algo falso en una cartera donde no se cumpliera.
+function deudaRutaMotivationalGapText(gap) {
+  if (!gap) return "";
+  if (gap.extraCost > 0) {
+    return `Elegir Bola de nieve en vez de Avalancha costaría ${money(gap.extraCost, true)} más en tu cartera actual (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  if (gap.extraCost < 0) {
+    return `En tu cartera actual, Bola de nieve sale ${money(Math.abs(gap.extraCost), true)} más barata que Avalancha (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  return `Avalancha y Bola de nieve cuestan lo mismo en tu cartera actual: ${money(gap.optimalCost, true)}.`;
+}
+
+// DI3: redacta el orden de prioridad de las deudas revolving detectadas (ya calculado por
+// `prioritizeRevolving`, TAE descendente) — sin ninguna, no dice nada en vez de forzar una frase vacía.
+function deudaRutaRevolvingText(prioritized = []) {
+  if (!prioritized.length) return "";
+  const list = prioritized.map((contract) => `${contract.entity} (${contract.apr ?? "TAE desconocido"}%)`).join(", ");
+  return `Revolving detectada — suele concentrar el TAE más alto: ${list}. Prioridad de pago sugerida en ese orden.`;
+}
+
+// escenarioMotorLibreDeDeuda no siempre devuelve una fecha "YYYY-MM": puede devolver "sin deuda
+// pendiente", "sin fecha estimable · sin cuota activa" (nada queda con cuota activa que proyectar,
+// típicamente porque esta estrategia ya saldó todo lo accionable y solo queda un registro fantasma
+// sin cuota, como una reunificación histórica) o "fuera de horizonte" (sí queda cuota activa, pero
+// su cierre cae más allá del horizonte modelado). Comparar estos textos como cadenas ordena mal
+// ("sin..." va antes que cualquier fecha real por alfabeto, no porque sea mejor) — se traduce cada
+// caso a un rango explícito antes de comparar: sin deuda pendiente/sin cuota que proyectar cuentan
+// como lo mejor posible (nada más se puede acelerar), una fecha real ordena por su propio valor, y
+// fuera de horizonte cuenta como lo peor (no se sabe cuándo termina).
+// D-11: meses exactos entre dos claves "YYYY-MM" (nunca por resta de fechas, que arrastra días).
+// Solo se calcula entre dos fechas reales — con "sin deuda pendiente"/"fuera de horizonte" de por
+// medio no hay un número de meses que dividir (regla transversal 04), así que null en vez de una
+// cifra inventada.
+function debtStrategyMonthsBetween(fromKey, toKey) {
+  if (!/^\d{4}-\d{2}$/.test(String(fromKey)) || !/^\d{4}-\d{2}$/.test(String(toKey))) return null;
+  const [fromYear, fromMonth] = fromKey.split("-").map(Number);
+  const [toYear, toMonth] = toKey.split("-").map(Number);
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth);
+}
+
+// Recomendada = la primera libre de deuda (por el rango de arriba) entre las estrategias que
+// resolvieron TODAS sus decisiones (viable); en empate, la de menor coste total ejecutado. Si
+// ninguna es viable, no se recomienda nada en vez de forzar una elección sobre un resultado a medias.
+function debtStrategyRecommended(summaries) {
+  const viable = summaries.filter((entry) => entry.viable && entry.total > 0);
+  if (!viable.length) return null;
+  return viable
+    .slice()
+    .sort((a, b) => debtStrategyLibreDeDeudaRank(a.libreDeDeuda).localeCompare(debtStrategyLibreDeDeudaRank(b.libreDeDeuda)) || a.costeTotal - b.costeTotal)
+    .at(0).id;
+}
+
+function debtStrategyDecisionsToEscenario(strategyId) {
+  escenarioMotorDecisions = debtStrategyDecisions(strategyId).map((decision) => ({ ...decision, id: escenarioMotorNewDecisionId() }));
+  escenarioMotorGuardrailValue = debtStrategyReserveValue;
+}
+
+// ---------------------------------------------------------------------------------------------
+// D-5 · los ocho modos de liquidación que solo existían en la heredada `#debt-control`
+// (`debtModeLabel`/`debtPayoffMode`), migrados sobre el motor canónico en vez de reimplementados:
+// son los cuatro tipos de decisión de deuda de un solo contrato que `canonical-scenario-engine.js`
+// ya resuelve (`amortizacion`, `amortizacion_fraccionada`, `refinanciacion`, `retomar_pagos` —
+// `reunificacion` ya vive en la estrategia «Consolidar» y `acuerdo_quita` no tenía equivalente en
+// la heredada) cruzados con las dos planificaciones que el motor ya sabe resolver
+// (`planificacion.modo`: óptimo busca el primer mes viable, manual usa el mes elegido). Los campos
+// y el `params()`/`mes()`/`titulo()` de cada tipo son los mismos de `ESCENARIO_MOTOR_TYPES` —no hay
+// un segundo constructor de decisiones de deuda— solo se les añade el interruptor óptimo/manual que
+// ese catálogo no ofrece (siempre pide un mes porque es el mismo formulario para las once
+// decisiones, con y sin deuda de por medio).
+// D-6 · con eso ya construido, comparar «plan frente a modo» es aplicar los ocho a la vez sobre el
+// contrato elegido y enseñar el resultado en una tabla, igual que las tarjetas de estrategia de
+// arriba comparan avalancha/bola de nieve/consolidar/no tocar.
+// ---------------------------------------------------------------------------------------------
+const DEBT_MODE_DEFINITIONS = Object.freeze([
+  { id: "optimize", tipoId: "amortizacion", planMode: "optimo", label: "Amortización óptima" },
+  { id: "fixed", tipoId: "amortizacion", planMode: "manual", label: "Amortización manual" },
+  { id: "spread-optimize", tipoId: "amortizacion_fraccionada", planMode: "optimo", label: "Fraccionada con inicio óptimo" },
+  { id: "spread", tipoId: "amortizacion_fraccionada", planMode: "manual", label: "Fraccionada" },
+  { id: "retomar-optimize", tipoId: "retomar_pagos", planMode: "optimo", label: "Retomar pagos con inicio óptimo" },
+  { id: "retomar", tipoId: "retomar_pagos", planMode: "manual", label: "Retomar pagos" },
+  { id: "refinance-optimize", tipoId: "refinanciacion", planMode: "optimo", label: "Refinanciación con inicio óptimo" },
+  { id: "refinance", tipoId: "refinanciacion", planMode: "manual", label: "Refinanciación" },
+]);
+
+let debtModeContractId = null;
+let debtModeId = DEBT_MODE_DEFINITIONS[0].id;
+let debtModeValues = {};
+
+function debtModeDefById(id) {
+  return DEBT_MODE_DEFINITIONS.find((def) => def.id === id) || DEBT_MODE_DEFINITIONS[0];
+}
+
+function debtModeSelectedContract() {
+  const contracts = escenarioMotorDebtOptions();
+  return contracts.find((contract) => contract.id === debtModeContractId) || contracts[0] || null;
+}
+
+// Los campos del tipo real menos `deudaId` (lo elige el desplegable de contrato de esta pantalla,
+// no el formulario de modo) y menos el mes manual cuando el modo es «óptimo» (lo busca el motor
+// solo, como ya hace `debtStrategyDecisions` con avalancha/bola de nieve).
+function debtModeVisibleCampos(def) {
+  const type = escenarioMotorTypeById(def.tipoId);
+  if (!type) return [];
+  return type.campos.filter((field) => {
+    if (field.key === "deudaId") return false;
+    if (def.planMode === "optimo" && (field.key === "mes" || field.key === "mesInicio")) return false;
+    return true;
+  });
+}
+
+function debtModeDefaultValues(contract, def) {
+  const principal = round2(Number(contract?.currentPrincipal || 0));
+  const payment = round2(Number(contract?.currentPayment || 0));
+  const firstMonth = escenarioMotorBaseInput().months[0]?.monthKey || "";
+  const base = { deudaId: contract?.id || "" };
+  if (def.tipoId === "amortizacion") return { ...base, importe: principal || undefined, mes: firstMonth };
+  if (def.tipoId === "amortizacion_fraccionada") {
+    const importeMensual = payment > 0 ? payment : principal > 0 ? round2(principal / 12) : undefined;
+    const meses = importeMensual > 0 ? Math.max(1, Math.ceil(principal / importeMensual)) : undefined;
+    return { ...base, importeMensual, meses, mes: firstMonth };
+  }
+  if (def.tipoId === "refinanciacion") return { ...base, nuevoPrincipal: principal || undefined, nuevaCuota: undefined, nuevoTIN: undefined, nuevoPlazo: undefined, mes: firstMonth };
+  if (def.tipoId === "retomar_pagos") {
+    // Una deuda suspendida trae `currentPayment: 0` (no hay cuota activa que leer): la cuota a
+    // retomar por defecto es la original, la misma fuente que ya usaba `debtResumePlan` en la
+    // heredada, no un cero que el usuario tendría que corregir a mano cada vez.
+    const resumeCuota = payment > 0 ? payment : round2(Number(contract?.originalPayment || 0)) || undefined;
+    return { ...base, cuota: resumeCuota, mesInicio: firstMonth };
+  }
+  return base;
+}
+
+// La única sugerencia que se calcula sola en vez de partir en blanco: con principal, TIN y plazo ya
+// escritos, la cuota nueva sale de la misma fórmula francesa que usa «Consolidar»
+// (`debtConsolidationMonthlyPayment`, genérica pese al nombre) — nunca sobrescribe lo que el usuario
+// ya haya tecleado en esa casilla.
+function debtModeEffectiveValues() {
+  const contract = debtModeSelectedContract();
+  const def = debtModeDefById(debtModeId);
+  const merged = { ...debtModeDefaultValues(contract, def), ...debtModeValues, deudaId: contract?.id || "" };
+  if (
+    def.tipoId === "refinanciacion" &&
+    !Number.isFinite(merged.nuevaCuota) &&
+    Number.isFinite(merged.nuevoPrincipal) &&
+    Number.isFinite(merged.nuevoTIN) &&
+    Number.isFinite(merged.nuevoPlazo)
+  ) {
+    const computed = debtConsolidationMonthlyPayment(merged.nuevoPrincipal, merged.nuevoTIN, merged.nuevoPlazo);
+    if (computed) merged.nuevaCuota = computed;
+  }
+  return merged;
+}
+
+// Construye la decisión sin pedirle nada al motor todavía: si falta un campo obligatorio para el
+// tipo elegido (el caso normal nada más entrar en «Refinanciación», sin TIN ni plazo todavía) se
+// dice que no hay nada que calcular, igual que «Consolidar» sin oferta — nunca se manda al motor un
+// importe a medio escribir.
+function debtModeDecisionForContract(contract, def, values) {
+  const type = escenarioMotorTypeById(def?.tipoId);
+  if (!type || !contract) return { available: false };
+  const effectiveValues = { ...values, deudaId: contract.id };
+  // O-1: titularOrigen/titularDestino son opcionales en el esquema (por defecto "hogar" si no se
+  // tocan) — igual que "parcial", no forman parte de la completitud mínima para calcular.
+  const requiredKeys = type.campos
+    .map((field) => field.key)
+    .filter((key) => key !== "parcial" && key !== "titularOrigen" && key !== "titularDestino" && !(def.planMode === "optimo" && (key === "mes" || key === "mesInicio")));
+  const missing = requiredKeys.some((key) => {
+    const value = effectiveValues[key];
+    return value === undefined || value === null || value === "" || (typeof value === "number" && !Number.isFinite(value));
+  });
+  if (missing) return { available: false };
+  const mesManual = def.planMode === "manual" ? type.mes(effectiveValues) : null;
+  if (def.planMode === "manual" && !mesManual) return { available: false };
+  const params = type.params(effectiveValues);
+  // `retomar_pagos` exige `mesInicio` en sus params incluso en modo óptimo: el motor lo sustituye
+  // por cada mes candidato al buscar (`withResolvedMonth` en canonical-scenario-engine.js), pero el
+  // valor de partida tiene que existir para que el objeto sea válido antes de esa búsqueda.
+  if (def.tipoId === "retomar_pagos" && def.planMode === "optimo") {
+    params.mesInicio = escenarioMotorBaseInput().months[0]?.monthKey || "";
+  }
+  const planificacion = def.planMode === "optimo" ? { modo: "optimo" } : { modo: "manual", mesManual };
+  return {
+    available: true,
+    decision: {
+      id: escenarioMotorNewDecisionId(),
+      tipo: def.tipoId,
+      titulo: escenarioMotorTrim(type.titulo(effectiveValues, { debtLabel: escenarioMotorDebtLabelById }) || type.label),
+      activa: true,
+      orden: 0,
+      planificacion,
+      params,
+    },
+  };
+}
+
+// Punto único que consultan tanto el panel de resultado del modo activo como cada fila de la
+// comparativa de los ocho: mismas tres razones de "no disponible" en los dos sitios (sin motor
+// cargado, retomar sobre una deuda que no está suspendida, o faltan datos), nunca un cálculo
+// distinto según desde dónde se mire.
+function debtModeResultForContract(contract, def, values, baseInput, reserveValue) {
+  if (missingScenarioDependencies().length) return { available: false, reason: "sin-motor" };
+  if (def.tipoId === "retomar_pagos" && contract && contract.paymentStatus !== "suspended") {
+    return { available: false, reason: "no-suspendida" };
+  }
+  const built = debtModeDecisionForContract(contract, def, values);
+  if (!built.available) return { available: false, reason: "faltan-datos" };
+  const result = runEscenarioMotor(baseInput, [built.decision], debtStrategyEffectiveReserve(reserveValue));
+  if (!result || !result.valid) return { available: false, reason: "sin-motor" };
+  const resultado = (result.resultados || [])[0] || null;
+  const cajaMinima = result.series?.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null;
+  return {
+    available: true,
+    decision: built.decision,
+    resultado,
+    cajaMinima,
+    viable: resultado?.resultado === "aplicada",
+    mesResuelto: resultado?.mesResuelto || null,
+  };
+}
+
+function debtModeUnavailableNote(contract, result) {
+  if (result.reason === "sin-motor") return "No se puede simular: falta el motor de Escenario.";
+  if (result.reason === "no-suspendida") return `Retomar pagos solo aplica a una deuda con los pagos suspendidos; ${escenarioMotorDebtLabel(contract)} no lo está.`;
+  return "Faltan datos para simular este modo: complétalos arriba.";
+}
+
+function debtModeContractOptionsHtml(contracts, selectedId) {
+  return contracts
+    .map((contract) => `<option value="${escapeHtml(contract.id)}"${contract.id === selectedId ? " selected" : ""}>${escapeHtml(escenarioMotorDebtLabel(contract))} · ${money(contract.currentPrincipal, true)}</option>`)
+    .join("");
+}

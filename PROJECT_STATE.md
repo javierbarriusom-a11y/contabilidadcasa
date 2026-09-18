@@ -80,6 +80,83 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, segundo incremento del monolito (comparador de las 8 estrategias de deuda) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
+
+- **Qué pedía la sesión**: continuar `T14` con el siguiente candidato ya identificado al cerrar la
+  sesión 206 — el comparador de las 8 estrategias de deuda (avalancha/bola de nieve/consolidar/no
+  tocar, más los 8 "modos" de un solo contrato de D-5/D-6), consumidor pesado del motor de
+  escenarios compartido.
+- **Auditoría de dependencias, con la misma disciplina que `views/escenarios.js`**: de los 42
+  identificadores de nivel superior del bloque candidato (`app.js`, en torno a la línea 34783 antes
+  de tocar nada), 33 son exclusivos del comparador/ruta y se movieron a `views/deuda.js` (que ya
+  existía y ya servía las 4 pantallas de Deuda — no hizo falta registrar un `VIEW_CHUNK` nuevo, solo
+  subir su versión de caché). 9 se quedan en `app.js` porque `homeDebtOutlook` (Hoy/Registrar/Plan,
+  eager, se ejecuta en el primer render, antes de que cualquier fragmento lazy cargue) las necesita
+  en cadena: `debtStrategySummary`, `debtStrategyResult`, `debtStrategyDecisions`,
+  `debtStrategyOrderedContracts`, `debtStrategyEffectiveReserve`, `debtStrategyReserveDefault`, más
+  `debtStrategyLibreDeDeudaRank` (la llama `registrarRecalcFigures`, también eager) y
+  `debtAmortizationSchedule` (ya documentado en `views/deuda.js` desde `PERF-1`: lo usa Análisis, un
+  fragmento lazy distinto).
+- **Un error real en la primera pasada de extracción, corregido antes de publicar**: al construir
+  los rangos de línea para el script de extracción, tres de esas nueve funciones que debían quedarse
+  (`debtStrategyDecisions`/`Result`/`Summary`) cayeron dentro de un rango marcado como "mover" por un
+  fallo de aritmética manual al ensamblar los tramos — el análisis de dependencias las había
+  identificado correctamente como "se quedan", pero el corte de líneas no las excluyó. Detectado por
+  `npm run verify` en verde pero la verificación en navegador real fallando con `ReferenceError:
+  debtStrategySummary is not defined` al cargar Hoy. Corregido devolviendo las tres a `app.js`, justo
+  después de `debtStrategyOrderedContracts`.
+- **Dos bugs reales ya publicados en `main` (PR #323, primer incremento), no introducidos por esta
+  sesión sino solo descubiertos por ella**: `renderScenarioDependencyNotice`/
+  `missingScenarioDependencies`/`scenarioDependencyMessage`/`ESCENARIO_MOTOR_DEPENDENCIES` (T-5) y
+  cinco funciones más (`escenarioMotorResultInfo`, `escenarioMotorNavigate`,
+  `escenarioMotorDecisionAmountText`, `escenarioMotorDebtLabelById`, `saveEscenarioMotorSavedList`)
+  habían aterrizado en `views/escenarios.js` en el primer incremento de `T14` sin verificar que
+  `views/deuda.js` (y, `saveEscenarioMotorSavedList` además, `views/cierre.js`) también las llama.
+  Como son dos/tres fragmentos que se cargan bajo demanda de forma independiente, visitar Deuda o
+  Cierre sin haber visitado antes una pantalla de Escenario ya rompía con `ReferenceError` en
+  producción desde que se fusionó el PR #323 — ningún test unitario lo detectó porque esos tests
+  sustituyen `debtStrategySummary`/el motor por dobles en vez de ejecutar el árbol de llamadas real.
+  Encontrado por la verificación en navegador real de este segundo incremento (visitar Deuda ·
+  Comparar/Ruta en una pestaña nueva, sin haber pasado antes por Escenario), no por `npm run verify`.
+  Corregido devolviendo las nueve piezas a `app.js`, junto al resto del "motor" compartido. Tras el
+  hallazgo se hizo una comprobación cruzada exhaustiva de los 6 ficheros `views/*.js` (qué
+  identificador de cada uno usa algún otro) para descartar más casos iguales — no apareció ninguno
+  más real, solo menciones en comentarios.
+- **Wiring**: no hizo falta envolver ningún manejador en función anónima (a diferencia del primer
+  incremento) — el comparador/ruta no registra sus propios `addEventListener` en el `init()` eager de
+  `app.js`; ya delega en `views/deuda.js` desde antes de esta tarea.
+- **`VIEW_CHUNKS`**: `views/deuda.js` ya estaba registrado para las 4 pantallas de Deuda desde
+  `PERF-1`/`OPT-24` — solo se subió su cadena de versión (`?v=20260917d10a1` → `?v=20260918t14b1`)
+  para que el navegador no sirva una copia en caché del fragmento antiguo.
+- **14 ficheros de test** ya concatenaban `views/deuda.js` en su `app`/`appSource` de `vm.Script`
+  (patrón de Deuda/PERF-1 ya extendido en sesiones anteriores) — no necesitaron tocarse. Se
+  corrigieron 3: `tests/di3-app-integracion.test.cjs` (un `appSource.indexOf("function
+  deudaRutaRevolvingText")` que ya no encontraba nada, cambiado a `deudaSource`),
+  `tests/a16-5-brecha-motivadora-deuda.test.cjs` (declaraba `app`/`deuda` como variables separadas
+  sin concatenar, con `extractFunction` buscando solo en `app` — concatenadas) y
+  `tests/d1-d2-deuda-tabs-contratos.test.cjs` (canario de la versión exacta de `views/deuda.js`,
+  ahora comprueba el formato en vez de un literal congelado, con el mismo criterio que el canario de
+  `HEAVY_RENDER_VIEWS` corregido en la sesión 206).
+- **Validación**: `npm run verify` en verde (**4379/4379**, `test:a11y`/`test:performance`/
+  `build:site`/`test:privacy`/`test:smoke` sin errores) tanto tras la extracción inicial (con el bug
+  de dependencias todavía presente, sin detectarlo) como tras cada corrección posterior — confirma
+  que estos dos bugs de integración real son exactamente la clase de fallo que la suite unitaria no
+  cubre y que la verificación en navegador real existe para atrapar. Verificación en navegador real
+  (Playwright) de las 4 pantallas de Deuda y de Hoy, en una pestaña sin haber visitado antes ninguna
+  pantalla de Escenario: sin errores de consola, con contenido real (KPIs, cambio de pestaña de
+  estrategia en Ruta, capacidad de endeudamiento en Comparar, cifras de Hoy).
+- **Resultado**: `app.js` pasa de 40.284 a 40.011 líneas (-273, incluye las piezas que volvieron
+  desde `views/escenarios.js`). `views/deuda.js` gana 407 líneas netas; `views/escenarios.js` pierde
+  87 (las nueve piezas que resultaron ser compartidas). El comparador de estrategias de deuda queda
+  fuera de `app.js`; el resto del monolito (~39.600 líneas) sigue pendiente para sesiones futuras.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente sesión**: seguir con más incrementos de `T14` con el mismo patrón
+  —y, dado lo encontrado hoy, repitiendo también la comprobación cruzada entre todos los `views/*.js`
+  existentes antes de dar por cerrado cualquier incremento futuro, no solo entre el fragmento nuevo y
+  el que se está tocando—; después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`)
+  según el plan ya compartido con el hogar.
+
 ## Cierre de sesión — 18 de septiembre de 2026 (206): `T20`, badges/pills en modo oscuro — `T14`, primer incremento del monolito (`views/escenarios.js`)
 
 - **Qué pedía la sesión**: con el Horizonte 2 completo (sesión 205), el hogar pidió plan para el

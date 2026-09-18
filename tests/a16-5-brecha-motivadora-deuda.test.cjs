@@ -6,9 +6,9 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
-const html = read("index.html");
 const deuda = read("views/deuda.js");
+const app = read("app.js") + "\n" + deuda;
+const html = read("index.html");
 
 // A16-5 · Bloque 2: avalancha (ataca primero el TAE más alto, matemáticamente óptima) y bola de
 // nieve (ataca primero el saldo más pequeño, motivadora) ya se comparaban por separado, pestaña a
