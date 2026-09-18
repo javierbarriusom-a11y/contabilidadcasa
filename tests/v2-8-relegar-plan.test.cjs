@@ -6,7 +6,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/debt-liquidation-plan.js");
 const experience = read("e17-experience.js");
 const worker = read("service-worker.js");
 
