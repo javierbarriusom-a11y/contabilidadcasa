@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
 
 // E-5 (Escenarios.pdf, auditoría del 16 de agosto): "Cuatro comprobaciones: origen de fondos,
 // reserva protegida, umbral de capacidad y condiciones registradas. Cada una con su estado."

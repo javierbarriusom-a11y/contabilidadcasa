@@ -113,6 +113,7 @@ const files = [
   "views/inversion.js",
   "views/cierre.js",
   "views/analisis.js",
+  "views/escenarios.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el
