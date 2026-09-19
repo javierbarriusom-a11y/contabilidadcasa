@@ -11277,16 +11277,23 @@ tbody tr:hover {
 }
 
 /* Hoy.pdf «Hoy, alineada»: Riesgo, Modo familiar y Alertas en una sola fila de tres, no dos filas
-   de dos — mismo módulo que `.home-layout`, con una tercera columna igual de ancha. */
+   de dos — mismo módulo que `.home-layout`, con una tercera columna igual de ancha.
+   T9 (mobile-first, fase 3): base móvil (1 columna) — las 3 columnas de escritorio solo desde
+   1441px, ver el @media (min-width) de abajo. Misma posición relativa que ya tenía frente a
+   `.home-layout` (más arriba, invertida en la fase 1): sigue viniendo después en el archivo, así
+   que sigue ganando cuando su condición aplica — invertir el orden de las reglas, no su resultado. */
 .home-layout-triple {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
-/* Misma anchura de colapso que ya usa `.home-layout` (definida más arriba, así que sin esta regla
-   posterior la de tres columnas ganaría también por debajo de 1440px). */
-@media (max-width: 1440px) {
+/* T9 (mobile-first, fase 3): valor de escritorio, antes la base y ahora el override desde 1441px —
+   misma posición del archivo que el @media (max-width: 1440px) que sustituye, de modo que sigue
+   ganando sobre el `.home-layout` de más arriba cuando ambas condiciones aplican (misma anchura de
+   expansión que ya usa `.home-layout`, así que sin esta regla posterior la de una columna se
+   quedaría fija también por encima de 1440px). */
+@media (min-width: 1441px) {
   .home-layout-triple {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
