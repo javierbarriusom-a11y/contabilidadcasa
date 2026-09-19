@@ -3464,6 +3464,17 @@
               <p class="e19-kpi-note">Procedencia: liquidez simulada y gasto medio del Plan, mismo cálculo y escala de tres niveles que la fila de colchón de <a href="#plan">Plan · Previsión</a>.</p>
             </article>
 
+            <!-- T12 (Contabilidadcasa 2.0): comparador «yo vs. mi propio histórico» — mejor mes, peor
+                 mes y media de los últimos 12 meses conciliados. Mismo lenguaje visual que la banda de
+                 colchón de arriba (analisis-cushion-*, A-2), sin motor nuevo: reconciledMonthlyNetHistory()
+                 ya alimentaba P6/PVC17. Oculta con menos de dos meses conciliados — nada que comparar. -->
+            <article class="e19-card analisis-cushion-card" id="t12HistoricalComparisonCard" hidden>
+              <h3 class="escenario-motor-panel-title">Tú frente a tu propio histórico (T12)</h3>
+              <p class="e19-kpi-note" id="t12HistoricalComparisonSummary"></p>
+              <div class="analisis-cushion-band" id="t12HistoricalComparisonBand"></div>
+              <p class="e19-kpi-note">Procedencia: flujo mensual real (ingresos − gastos bancarios) de cada mes ya conciliado, últimos 12 meses — mismo histórico que ya usan la puntuación de acierto (P6) y la salud predictiva (PVC17).</p>
+            </article>
+
             <article class="e19-card analisis-confianza-card">
               <h3 class="escenario-motor-panel-title">Confianza del dato</h3>
               <p class="e19-kpi-note">Cuadre por cuenta y cobertura de clasificación del mes en curso — misma pieza que ya usan Cierre y Movimientos.</p>

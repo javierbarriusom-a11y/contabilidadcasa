@@ -35708,6 +35708,49 @@ function analisisCushionBandHtml(band, worstKey) {
     .join("");
 }
 
+// T12 (Contabilidadcasa 2.0): comparador «yo vs. mi propio histórico» — mejor mes, peor mes y media
+// de los últimos 12 meses conciliados. Ningún motor nuevo: reconciledMonthlyNetHistory() ya alimenta
+// P6 (puntuación de acierto) y PVC17 (salud predictiva); aquí solo se ordena y se resume. Mismo
+// lenguaje visual que la banda de colchón de Análisis (analisis-cushion-*, A-2): una columna por
+// mes, barra proporcional al valor, tono por signo (nunca por umbral fijo — un mes negativo real
+// sigue siendo negativo aunque sea "el mejor de los doce").
+function t12HistoricalComparisonMonths() {
+  return reconciledMonthlyNetHistory()
+    .filter((month) => Number.isFinite(month.actual))
+    .slice()
+    .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+    .slice(-12);
+}
+
+function renderT12HistoricalComparison() {
+  const card = qs("t12HistoricalComparisonCard");
+  const summary = qs("t12HistoricalComparisonSummary");
+  const band = qs("t12HistoricalComparisonBand");
+  if (!card || !summary || !band) return;
+  const months = t12HistoricalComparisonMonths();
+  if (months.length < 2) { card.hidden = true; return; }
+  card.hidden = false;
+  const best = months.reduce((top, month) => (month.actual > top.actual ? month : top));
+  const worst = months.reduce((bottom, month) => (month.actual < bottom.actual ? month : bottom));
+  const average = round2(months.reduce((sum, month) => sum + month.actual, 0) / months.length);
+  const current = months[months.length - 1];
+  const currentVsAverageClass = current.actual >= average ? "positive" : "negative";
+  summary.innerHTML = `<p>Mejor mes: <strong class="positive">${money(best.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(best.monthKey))}). Peor mes: <strong class="negative">${money(worst.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(worst.monthKey))}). Media de los últimos ${months.length} mes(es): <strong>${money(average, true)}</strong>.</p>
+    <p>Este mes (${escapeHtml(registrarMesMonthName(current.monthKey))}): <strong class="${currentVsAverageClass}">${money(current.actual, true)}</strong>, ${currentVsAverageClass === "positive" ? "por encima" : "por debajo"} de tu propia media.</p>`;
+  const maxAbs = Math.max(1, ...months.map((month) => Math.abs(month.actual)));
+  band.innerHTML = months.map((month) => {
+    const heightPct = Math.max(6, Math.round((Math.abs(month.actual) / maxAbs) * 100));
+    const level = month.actual < 0 ? "negativo" : "holgado";
+    const isWorst = month.monthKey === worst.monthKey;
+    const title = month.monthKey === best.monthKey ? "Mejor mes" : isWorst ? "Peor mes" : "";
+    return `<div class="analisis-cushion-col${isWorst ? " is-worst" : ""}">
+      <span class="analisis-cushion-value">${money(month.actual, true)}</span>
+      <span class="analisis-cushion-bar is-${level}" style="height:${heightPct}%" title="${escapeHtml(title)}"></span>
+      <small>${escapeHtml(registrarMesMonthName(month.monthKey))}</small>
+    </div>`;
+  }).join("");
+}
+
 // Suma `usado` (real si existe, previsto si no — el mismo criterio que ya usa "Usado" en Plan ·
 // Mes, P-4) por bloque, a lo largo de los meses del periodo elegido. `hasActual`/`total` por bloque
 // alimentan la nota de A-4 ("cuántos bloques tienen real").
