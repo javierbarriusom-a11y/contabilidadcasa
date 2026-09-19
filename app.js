@@ -30464,9 +30464,29 @@ function renderHomeFamilyAndAlerts() {
 // de watchOS/Wear OS (mismo motivo por el que A17-4, «captura por voz», declaró «requiere A5-1
 // operativo, fuera de este documento»). Lo que sí ofrece la plataforma web sin ninguna app nativa
 // es un atajo de acceso directo (manifest.webmanifest → "shortcuts", visible con una pulsación
-// larga sobre el icono ya instalado) a una pantalla de solo lectura que carga al instante los tres
+// larga sobre el icono ya instalado) a una pantalla de solo lectura que carga al instante los
 // datos más pedidos — eso es lo que construye esta tarea: #widget, sin ningún control de escritura,
-// reutilizando exactamente las mismas cifras que ya calcula «Hoy» (nunca un cálculo paralelo).
+// reutilizando exactamente las mismas cifras que ya calcula «Hoy»/«Deuda» (nunca un cálculo
+// paralelo).
+// T10 (Horizonte 4): la nota pedía colchón/deuda cara/próximo vencimiento «de un vistazo» — colchón
+// y próximo evento ya estaban aquí desde A17-1; deuda cara es la pieza que faltaba. Reutiliza
+// escenarioMotorDebtOptions() (mismos contratos activos que ya usa homeDebtOutlook) ordenados por
+// TAE descendente — mismo criterio de "tipo más caro primero" que DI3 (prioritizeRevolving,
+// canonical-debt-contracts.js) y DI5 (jointRestructuringPlan), aquí sobre toda la cartera activa,
+// no solo la revolving. Sin ningún contrato con TAE declarada, lo dice en vez de mostrar un 0%
+// engañoso (regla transversal 04).
+function widgetPriciestDebt() {
+  const contracts = escenarioMotorDebtOptions();
+  if (!contracts.length) return null;
+  const priciest = contracts.slice().sort((a, b) => (b.apr ?? 0) - (a.apr ?? 0))[0];
+  if (!(Number(priciest.apr) > 0)) return null;
+  return {
+    label: escenarioMotorDebtLabel(priciest),
+    apr: Number(priciest.apr),
+    principal: Number(priciest.currentPrincipal || 0),
+  };
+}
+
 function widgetSnapshot() {
   const actionCenter = unifiedActionCenterModel();
   const actionCtx = actionCenter.context || {};
@@ -30487,6 +30507,7 @@ function widgetSnapshot() {
   return {
     balanceTotal: balances.total,
     balanceAsOf: actionCenter.asOf,
+    priciestDebt: widgetPriciestDebt(),
     cushionMin: metrics?.adjustedMin ?? null,
     cushionMonth: metrics?.adjustedMinMonth || "",
     cushionDate: metrics?.adjustedMinDate || "",
@@ -30500,6 +30521,16 @@ function renderWidgetView() {
 
   qs("widgetBalance").textContent = money(snapshot.balanceTotal, true);
   qs("widgetBalanceNote").textContent = snapshot.balanceAsOf ? `A ${snapshot.balanceAsOf}.` : "";
+
+  const debtEl = qs("widgetPriciestDebt");
+  const debtNoteEl = qs("widgetPriciestDebtNote");
+  if (snapshot.priciestDebt) {
+    debtEl.textContent = `${snapshot.priciestDebt.apr}% TAE`;
+    debtNoteEl.textContent = `${snapshot.priciestDebt.label} · ${money(snapshot.priciestDebt.principal, true)} pendientes.`;
+  } else {
+    debtEl.textContent = "Sin deuda cara";
+    debtNoteEl.textContent = "Ningún contrato activo tiene TAE declarada, o no hay deuda pendiente.";
+  }
 
   const eventEl = qs("widgetNextEvent");
   const eventNoteEl = qs("widgetNextEventNote");

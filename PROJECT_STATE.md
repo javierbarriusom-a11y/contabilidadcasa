@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre
+## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre, `T10` — PWA instalable con deuda cara
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 4) y proponer al
   hogar un plan para el resto de la cola sin bloqueo real (`P2`, `P11`, `P12`, `T9`, `T10`, `T11`,
@@ -171,8 +171,44 @@ de aquí en la siguiente regeneración, no al momento.
   alineados sobre la línea central, sin el óvalo del bug de CSS ya corregido.
 - **Publicado (`P2`)**: commit, push a la rama de trabajo en curso (reiniciada desde `main` tras la
   fusión de `P12`/`P11`, con el trabajo de `P2` conservado en el árbol de trabajo — mismo criterio que
-  documentan las instrucciones de la rama), PR en borrador y fusión a `main` en cuanto el CI se puso
-  en verde, misma autorización vigente (`CLAUDE.md`).
+  documentan las instrucciones de la rama), PR en borrador ([#343](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/343))
+  y fusión a `main` en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en
+  producción.
+- **`T10` — PWA instalable con vista «de un vistazo», cuarta tarea de la misma sesión**: investigado
+  primero `manifest.webmanifest` y `#widget` (`A17-1`) — colchón y próximo evento ya estaban ahí desde
+  esa tarea anterior; solo faltaba «deuda cara», la tercera pieza que pedía la nota de `T10`. Al
+  investigar la parte «PWA instalable» apareció un hueco real, no solo de producto: `manifest.webmanifest`
+  no declaraba ningún `icons`, e `index.html` no tenía ningún `<link rel="icon">` — sin icono, Chrome/
+  Android no cumplen su propio criterio de instalabilidad y no ofrecen el instalador nativo de PWA, y la
+  pestaña se quedaba con el icono en blanco por defecto. Nuevo `icon.svg` (círculo + «€» sobre fondo
+  navy, mismos colores de marca que `theme_color`/`--green`, sin librería de imágenes: solo marcado SVG
+  a mano) referenciado a la vez como favicon y como icono del manifest — un solo fichero para las dos
+  cosas. Añadido también a `service-worker.js` (`SHELL_URLS`, junto con `manifest.webmanifest`, que
+  tampoco viajaba en el shell offline hasta ahora) y a la lista de copia de `tools/build-public-site.mjs`.
+  Nueva cuarta tarjeta «Deuda más cara» en `#widget`: `widgetPriciestDebt()` ordena
+  `escenarioMotorDebtOptions()` (mismos contratos activos que ya usa `homeDebtOutlook`) por TAE
+  descendente — mismo criterio de "tipo más caro primero" que `DI3`/`prioritizeRevolving` y
+  `DI5`/`jointRestructuringPlan`, aquí sobre toda la cartera activa, no solo la revolving. Sin ningún
+  contrato con TAE declarada, lo dice explícitamente («Sin deuda cara») en vez de mostrar un 0%
+  engañoso.
+- **Corrección durante la validación**: el primer intento bump-eó también `CACHE_NAME` de
+  `service-worker.js` al añadir las dos entradas nuevas a `SHELL_URLS` — 25 pruebas lo rechazaron:
+  ese literal es fijo a propósito desde el 19 de agosto (documentado en la cabecera del propio
+  fichero), porque `tools/build-public-site.mjs` ya lo reescribe con una versión real en cada build
+  (`GITHUB_SHA`), así que el literal del repositorio nunca necesita tocarse — es solo una marca que
+  usan las pruebas para confirmar «esto forma parte del shell offline», no una versión real. Revertido
+  a su valor original, dejando solo las dos entradas nuevas.
+- **Validación (`T10`)**: `npm run verify` en verde: **4481/4481 pruebas** (12 nuevas en
+  `tests/t10-pwa-instalable.test.cjs`; 27 canarios de versión de `app.js?v=` actualizados),
+  `test:a11y` (1374 IDs únicos), `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin
+  errores. Verificación en navegador real (Playwright contra `dist/`): `icon.svg` responde 200 con
+  `Content-Type: image/svg+xml`, `manifest.webmanifest` expone su `icons` correctamente, el favicon
+  del documento apunta al mismo fichero, y las cuatro tarjetas del widget se pintan en el orden
+  correcto — con datos sintéticos inyectados (Tarjeta Cara al 24,9% TAE frente a Banco Barato al 5%),
+  la tarjeta de deuda cara elige y muestra correctamente la más cara de las dos, no la primera.
+- **Publicado (`T10`)**: commit, push a la rama de trabajo en curso (reiniciada desde `main` tras la
+  fusión de `P2`, mismo criterio que las veces anteriores de esta sesión), PR en borrador y fusión a
+  `main` en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, `P8` — detector de gasto fantasma, `D1` — aparcada, y `D8` — reparto por titular de la reestructuración conjunta
 

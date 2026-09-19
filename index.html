@@ -21,7 +21,12 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="manifest" href="manifest.webmanifest?v=20260830a1" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260919t10a1" />
+    <!-- T10 (BACKLOG_CONTABILIDADCASA_2_0.md): hasta ahora no había ningún icono declarado — ni
+         favicon ni manifest.webmanifest#icons — así que Chrome/Android no ofrecían el instalador
+         nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
+         icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
+    <link rel="icon" href="icon.svg?v=20260919t10a1" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css?v=20260918t8a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20260918t8a1" />
@@ -489,12 +494,13 @@
 
           <!-- A17-1: widget de solo lectura, pensado para abrirse por atajo (manifest.webmanifest
                → shortcuts), no navegando desde el menú principal. Sin ninguna capacidad de
-               escritura — solo lectura de las mismas tres cifras que ya calcula Hoy. -->
+               escritura — solo lectura de las mismas cifras que ya calcula Hoy/Deuda. T10 añade la
+               cuarta tarjeta (deuda cara) que pedía la nota original del widget «de un vistazo». -->
           <section class="view-section widget-view" id="widget">
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Widget de solo lectura</p>
-                <h2>Saldo, próximo evento y colchón, sin abrir el resto de la app</h2>
+                <h2>Saldo, deuda cara, próximo evento y colchón, sin abrir el resto de la app</h2>
                 <p>Pensado para un atajo del icono instalado (o para dejar esta pestaña abierta). No permite editar nada — para eso, <a href="#home" data-home-nav="home">abre «Hoy»</a>.</p>
               </div>
             </div>
@@ -503,6 +509,11 @@
                 <p class="panel-kicker">Saldo</p>
                 <strong id="widgetBalance">—</strong>
                 <p id="widgetBalanceNote"></p>
+              </article>
+              <article class="widget-card">
+                <p class="panel-kicker">Deuda más cara</p>
+                <strong id="widgetPriciestDebt">—</strong>
+                <p id="widgetPriciestDebtNote"></p>
               </article>
               <article class="widget-card">
                 <p class="panel-kicker">Próximo evento</p>
@@ -7210,7 +7221,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260919p2a1"></script>
+    <script defer src="app.js?v=20260919t10a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
