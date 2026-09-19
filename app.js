@@ -22614,7 +22614,25 @@ const PV4_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
 // números ya lo reflejaran. Corrección de renderizado únicamente (mismo low/high/center de
 // siempre, ningún cálculo nuevo): un polígono SVG continuo entre el límite bajo y el alto de cada
 // mes es la forma de cono en sí, con una línea central para el valor previsto sin margen.
-function pv4ConfidenceBandHtml(bands) {
+// P2 (Horizonte 4): tooltip por mes sobre el mismo cono, sin librería nueva ni motor nuevo. El
+// viewBox 0-100 con preserveAspectRatio="none" estira x e y en proporciones distintas (ver arriba)
+// — un <circle> con radio fijo saldría deformado, así que el marcador es un <button> HTML normal
+// posicionado en porcentaje sobre `.pv4-cone-wrap` (mismo xAt/yAt que ya usa el propio SVG, ningún
+// cálculo de posición nuevo), con foco de teclado ya cubierto por la regla global
+// `:focus-visible` de la hoja de estilos. Cada marcador dice el rango del mes — low/center/high,
+// la misma forma del cono, aquí etiquetados P10/P50/P90 como pide la nota — y, cuando hay
+// categorías con historial suficiente, cuál es la que más pesa en el margen (mismo `deviations` de
+// `learnFromHistory`/E12b que ya usa el termómetro de desviación por partida, sin recalcular nada;
+// ver `pv4DominantDeviationCategory`). El margen es una sola cifra agregada, no una por categoría y
+// mes: la nota dice "la partida que más pesa" en singular y es la misma en los doce meses, nunca un
+// desglose que el motor no calcula.
+function pv4DominantDeviationCategory(deviations) {
+  const withSample = (Array.isArray(deviations) ? deviations : []).filter((item) => item.sampleMonths > 0);
+  if (!withSample.length) return null;
+  return withSample.reduce((best, item) => (Math.abs(item.averageDelta) > Math.abs(best.averageDelta) ? item : best));
+}
+
+function pv4ConfidenceBandHtml(bands, dominant = null) {
   if (!bands.length) return '<p class="e19-kpi-note">Sin previsión disponible todavía.</p>';
   const values = bands.flatMap((band) => [band.low, band.high]);
   const min = Math.min(0, ...values);
@@ -22632,6 +22650,15 @@ function pv4ConfidenceBandHtml(bands) {
     ? `El margen crece de ±${money(first.margin, true)} en ${first.label} a ±${money(last.margin, true)} en ${last.label}.`
     : "";
   const chartLabel = `Cono de incertidumbre de la liquidez proyectada, de ${first.label} a ${last.label}. ${growthNote || "Margen constante en todo el horizonte."}`;
+  const dominantSuffix = dominant
+    ? ` Partida que más pesa en el margen: "${dominant.label}" (${money(dominant.averageDelta, true)} de media sobre ${dominant.sampleMonths} mes(es)).`
+    : "";
+  const markers = bands
+    .map((band, index) => {
+      const title = `${band.label}: P10 ${money(band.low, true)} · P50 ${money(band.center, true)} · P90 ${money(band.high, true)}.${dominantSuffix}`;
+      return `<button type="button" class="pv4-cone-marker" style="left:${xAt(index)}%;top:${yAt(band.center)}%" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"></button>`;
+    })
+    .join("");
   const svg = `<svg class="pv4-cone-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(chartLabel)}">
     <polygon class="pv4-cone-area" points="${[...highPoints, ...lowPoints].join(" ")}"></polygon>
     <polyline class="pv4-cone-center" points="${centerPoints}" vector-effect="non-scaling-stroke"></polyline>
@@ -22645,7 +22672,7 @@ function pv4ConfidenceBandHtml(bands) {
   const measuredNote = first.marginSource === "measured-error"
     ? ` Ensanchada hasta el error medio real medido (${money(first.measuredMae, true)}), mayor que el sesgo medio por partida.`
     : "";
-  return `<div class="pv4-cone-wrap">${svg}</div>${labelsRow}<p class="e19-kpi-note">${note}${measuredNote}</p>`;
+  return `<div class="pv4-cone-wrap">${svg}${markers}</div>${labelsRow}<p class="e19-kpi-note">${note}${measuredNote} Pasa el ratón o el foco por cada punto del cono para ver su detalle.</p>`;
 }
 
 // ESX4: malla de dos supuestos cruzados — extiende la tarjeta de Sensibilidad (que varía un
@@ -22922,6 +22949,7 @@ function renderE13ScenarioLab() {
   const qualitySamples = pvc17QualitySamplesFromHistory(history);
   const predictionQuality = window.FinanceCanonicalE16?.predictionQuality({ samples: qualitySamples }) || null;
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning, { quality: predictionQuality });
+  const confidenceBandsDominant = pv4DominantDeviationCategory(learning.deviations);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   // PVC5: el triángulo P10/P50/P90 usa todo el histórico (comportamiento de siempre) o la ventana de
   // 8 trimestres, según lo que el hogar haya confirmado explícitamente — nunca cambia solo.
@@ -22940,7 +22968,7 @@ function renderE13ScenarioLab() {
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
-    <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
+    <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands, confidenceBandsDominant)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calculable && prudent.calibrated ? "good" : "warn"}">${escapeHtml(PVC14_SOURCE_LABELS[prudent.source] || prudent.source)}</span></header>${pvc14PrudentSimulationHtml(prudent)}</article>
     <article class="e6-quality-card"><header><strong>PVC2 · banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
     <article class="e6-quality-card"><header><strong>ESX1 · Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>

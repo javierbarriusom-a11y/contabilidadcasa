@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría
+## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 4) y proponer al
   hogar un plan para el resto de la cola sin bloqueo real (`P2`, `P11`, `P12`, `T9`, `T10`, `T11`,
@@ -136,8 +136,43 @@ de aquí en la siguiente regeneración, no al momento.
   `P11` con dos categorías sintéticas (colegio +20 €, dentro del umbral del 10 %; ocio +200 €, por
   encima) muestra correctamente «Estable / estacional» y «Desviación real» en cada fila, con las
   cabeceras "sept 26"/"sept 25".
-- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
-  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+- **Publicado (`P12`/`P11`)**: commit, push a la rama de trabajo en curso, PR en borrador
+  ([#342](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/342)) y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **`P2` — cono de incertidumbre con tooltip (P10/P50/P90 y categoría dominante), tercera tarea de la
+  misma sesión**: investigado primero `pv4ConfidenceBandHtml()` (PVC19, `app.js`) y su fuente
+  `confidenceBands()` (`canonical-forecast.js`) — el margen bajo/centro/alto por mes no es un
+  Monte Carlo por mes, es una única cifra de sesgo agregada (`biasMargin`, media de
+  `|averageDelta|` de `learning.deviations`) que se ensancha con √(mes+1): la nota pide "P10/P50/P90"
+  con el mismo sentido que ya usa el resto de la app para low/center/high (mismo triángulo que
+  `esx1MonteCarloHtml`), así que se etiquetan así en el tooltip sin fingir un cálculo por mes que el
+  motor no hace. "Categoría dominante" tampoco existe por mes en el motor — se deriva una sola vez de
+  `learning.deviations` (mismo array que ya usa el termómetro de desviación por partida, PV2): nueva
+  `pv4DominantDeviationCategory()` (`app.js`) elige la partida con mayor `|averageDelta|` entre las
+  que tienen muestra, y el tooltip la repite igual en los doce meses (nunca un desglose mes a mes que
+  no se calcula). Interacción: `pv4ConfidenceBandHtml(bands, dominant)` gana un segundo parámetro
+  opcional y pinta un `<button>` HTML marcador por mes (no un `<circle>` SVG — el viewBox 0-100 con
+  `preserveAspectRatio="none"` del propio cono estira x e y en proporciones distintas, un radio fijo
+  habría salido deformado en óvalo), posicionado con el mismo `xAt`/`yAt` que ya calcula el SVG, con
+  `title`/`aria-label` nativos idénticos (accesible sin depender del ratón). Ajuste de CSS durante la
+  verificación en navegador: la hoja global fija `button { min-height: 38px; padding: 8px 13px; }`
+  para el tamaño mínimo de toque (correcto para botones de acción), que convertía el marcador de 10px
+  en un óvalo de 38px de alto — corregido con un override puntual en `.pv4-cone-marker` (mismo
+  criterio que ya usa `.e17-dialog-head > button` para otro botón pequeño), sin tocar la regla global.
+- **Validación (`P2`)**: `npm run verify` en verde: **4469/4469 pruebas** (10 nuevas en
+  `tests/p2-tooltip-cono-incertidumbre.test.cjs`; `tests/pv4-bandas-confianza.test.cjs` actualizado en
+  una aserción de wiring para el nuevo segundo argumento de `pv4ConfidenceBandHtml`, sin cambiar su
+  intención; 27 canarios de versión de `app.js?v=` actualizados), `test:a11y`, `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Verificación en navegador real (Playwright
+  contra `dist/`, navegando al Laboratorio de escenarios dentro de `#new-life-simulation`): 12
+  marcadores (uno por mes) renderizados sobre el cono, cada uno enfocable por teclado
+  (`document.activeElement` tras `.focus()`), con `title`/`aria-label` idénticos y el texto
+  "P10/P50/P90" esperado; screenshot manual del cono confirmando doce puntos verdes de 16×16px bien
+  alineados sobre la línea central, sin el óvalo del bug de CSS ya corregido.
+- **Publicado (`P2`)**: commit, push a la rama de trabajo en curso (reiniciada desde `main` tras la
+  fusión de `P12`/`P11`, con el trabajo de `P2` conservado en el árbol de trabajo — mismo criterio que
+  documentan las instrucciones de la rama), PR en borrador y fusión a `main` en cuanto el CI se puso
+  en verde, misma autorización vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, `P8` — detector de gasto fantasma, `D1` — aparcada, y `D8` — reparto por titular de la reestructuración conjunta
 

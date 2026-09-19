@@ -1758,6 +1758,7 @@ main {
    sin margen. viewBox 0-100 con preserveAspectRatio="none": se estira al ancho real del contenedor,
    por eso la línea central lleva vector-effect="non-scaling-stroke" (que el trazo no se deforme). */
 .pv4-cone-wrap {
+  position: relative;
   width: 100%;
   height: 120px;
   margin-top: 8px;
@@ -1778,6 +1779,27 @@ main {
   fill: none;
   stroke: var(--green);
   stroke-width: 1.5;
+}
+
+/* P2: marcador de tooltip por mes sobre el cono — <button> HTML normal posicionado en porcentaje
+   (no un <circle> SVG: el viewBox 0-100/preserveAspectRatio="none" de arriba estira x e y en
+   proporciones distintas, así que un radio fijo saldría deformado). El foco de teclado ya lo cubre
+   la regla global `:focus-visible`, sin CSS propio aquí. */
+.pv4-cone-marker {
+  position: absolute;
+  /* La hoja global fija `button { min-height: 38px; padding: 8px 13px; }` para el tamaño mínimo de
+     toque — correcto para botones de acción, pero convertiría este marcador informativo en un
+     óvalo. Mismo criterio de override puntual que ya usa .e17-dialog-head > button. */
+  width: 16px;
+  height: 16px;
+  min-width: 0;
+  min-height: 0;
+  margin: -8px 0 0 -8px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--green);
+  cursor: help;
 }
 
 .pv4-cone-labels {
