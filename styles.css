@@ -11036,10 +11036,12 @@ tbody tr:hover {
   border: 1px solid var(--e19-accent-soft-border, #d8dce2);
 }
 
-/* H-6: el mes en una línea — cuatro filas de ejecución + dos de señal. */
+/* H-6: el mes en una línea — cuatro filas de ejecución + dos de señal.
+   T9 (mobile-first, fase 2): base móvil (2 columnas) — las 3 columnas de escritorio solo desde
+   761px, en el @media (min-width) que sustituye al max-width que vivía más abajo. */
 .home-month-glance-rows {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -11081,8 +11083,10 @@ tbody tr:hover {
   font-size: 12.5px;
 }
 
-@media (max-width: 760px) {
-  .home-month-glance-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* T9 (mobile-first, fase 2): valor de escritorio, antes la base y ahora el override desde 761px —
+   misma posición del archivo que el @media (max-width: 760px) que sustituye. */
+@media (min-width: 761px) {
+  .home-month-glance-rows { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .home-context-item {

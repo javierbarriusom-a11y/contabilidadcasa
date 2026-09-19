@@ -80,6 +80,22 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (213): `T9` fase 2 — mobile-first en «el mes en una línea» de Hoy
+
+- **Qué pedía la sesión**: continuar `T9` con la fase 2 acordada, `.home-month-glance-rows` («el mes en
+  una línea», H-6), tras fusionarse la fase 1. Regla aislada (sin bloques compartidos con otras
+  pantallas, confirmado antes de tocarla) — base incondicional pasó de 3 columnas a 2 (valor móvil);
+  el valor de escritorio (3 columnas) se movió a `@media (min-width: 761px)`, en la misma posición del
+  archivo que ocupaba el `@media (max-width: 760px)` que sustituye.
+- **Validación**: misma disciplina que la fase 1 — comparación píxel a píxel con `git stash`/Playwright
+  en 8 anchos de viewport (375 a 1920px), coincide exactamente con el resultado previo al cambio.
+  `npm run verify` en verde: 4524/4524 pruebas (sin pruebas nuevas), `test:a11y` (1380 IDs únicos),
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en cuanto
+  el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **Queda fase 3** (`.home-layout-triple`, breakpoint 1440px) de esta misma tarea para la siguiente
+  sesión.
+
 ## Cierre de sesión — 19 de septiembre de 2026 (212): `T9` fase 1 — mobile-first en el layout principal de Hoy
 
 - **Qué pedía la sesión**: seguir con `T9` (única tarea sin bloqueo real que quedaba en
