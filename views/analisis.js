@@ -291,6 +291,23 @@ function analisisSubscriptionsHtml(result) {
   return `${rows}<p class="e19-kpi-note">Total detectado: ${money(result.totalMonthlyCost, true)}/mes (${money(result.totalAnnualCost, true)}/año). Candidatos a confirmar a mano: un mismo importe repetido no siempre es una suscripción real.</p>`;
 }
 
+// P8 (BACKLOG_CONTABILIDADCASA_2_0.md): "gasto fantasma" — sobre los mismos grupos que ya detectó
+// A16-3 (analisisSubscriptionsResult, arriba), sin recalcular nada: FinanceCanonicalGhostExpenseDetector
+// solo vincula grupos del mismo concepto con precio distinto para ver si el más reciente subió frente
+// al más antiguo. Sin candidatos, no hay nada que avisar — nunca una lista vacía.
+function analisisGhostExpenseCandidates(subscriptionsResult) {
+  if (!subscriptionsResult?.detected || !window.FinanceCanonicalGhostExpenseDetector?.ghostExpenseCandidates) return [];
+  return window.FinanceCanonicalGhostExpenseDetector.ghostExpenseCandidates(subscriptionsResult.detected).candidates;
+}
+
+function analisisGhostExpenseNote(candidates) {
+  if (!candidates.length) return "";
+  const rows = candidates
+    .map((item) => `<li><strong>${escapeHtml(item.label)}</strong>: de ${money(item.fromAmount, true)} a ${money(item.toAmount, true)}/mes (+${item.increasePct}%) desde ${escapeHtml(ledgerMonthLabel(item.sinceMonth))} — ${money(item.increaseAnnualAmount, true)}/año más.</li>`)
+    .join("");
+  return `<p>Estas suscripciones subieron de precio sin que nadie lo confirmara:</p><ul class="commit-barrier-list">${rows}</ul>`;
+}
+
 // DEX3: "repetir el de nómina de ayer" — un solo toque, sobre un cargo que A16-3 ya detectó y el
 // usuario ya está viendo en pantalla (importe, meses vistos, confianza), no un asistente nuevo. El
 // toque en sí es la confirmación explícita (A6-5): igual que confirmReceiptCapture, entra por la
@@ -782,8 +799,17 @@ function renderAnalisis() {
   }
 
   // A16-3: recurrentes de importe fijo (candidatos a suscripción), sobre todo el histórico visible.
+  const subscriptionsResult = analisisSubscriptionsResult(baseData?.transactions || []);
   const subscriptionsEl = qs("analisisSubscriptions");
-  if (subscriptionsEl) subscriptionsEl.innerHTML = analisisSubscriptionsHtml(analisisSubscriptionsResult(baseData?.transactions || []));
+  if (subscriptionsEl) subscriptionsEl.innerHTML = analisisSubscriptionsHtml(subscriptionsResult);
+
+  // P8: gasto fantasma — sobre los mismos grupos que acaba de calcular A16-3, sin repetir nada.
+  const ghostExpenseNote = qs("analisisGhostExpenseNote");
+  if (ghostExpenseNote) {
+    const note = analisisGhostExpenseNote(analisisGhostExpenseCandidates(subscriptionsResult));
+    ghostExpenseNote.innerHTML = note;
+    ghostExpenseNote.hidden = !note;
+  }
 
   // P-1: desglose por tipo de acción, mismo periodo que la cascada de A-4.
   const actionTypeEl = qs("analisisActionTypeBreakdown");

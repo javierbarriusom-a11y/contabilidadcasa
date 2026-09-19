@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, y `P7` — cerrada sin construir nada, primeras dos tareas de un Horizonte 4 sin numerar todavía
+## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, y `P8` — detector de gasto fantasma, primeras tres tareas de un Horizonte 4 sin numerar todavía
 
 - **Qué pedía la sesión**: con el Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado (cierre de
   la sesión 208), decidir por dónde seguir. Antes de tocar código se preguntó al hogar dos cosas: si
@@ -144,6 +144,36 @@ de aquí en la siguiente regeneración, no al momento.
   necesidad de nueva validación de `npm run verify` (ya en verde por `T6` en la misma sesión).
 - **Publicado (`P7`)**: solo documentación (`PROJECT_STATE.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`),
   mismo commit/push/PR/fusión que el resto de la sesión, misma autorización vigente.
+- **`P8` — tercera tarea de la misma sesión: detector de «gasto fantasma»**: la nota pedía "subida de
+  precio interanual + nudge", extendiendo `A16-3` (`detectRecurringSubscriptions`,
+  `canonical-forecast.js`). Verificado primero cómo agrupa hoy ese motor: por concepto + importe
+  EXACTO a propósito (una subida de tarifa real crea un grupo nuevo, nunca funde el histórico
+  anterior con el precio nuevo) — pero sin vincular esos grupos entre sí, así que no hay forma de ver
+  "esto subió" con lo que ya existía. Nuevo `canonical-ghost-expense-detector.js`
+  (`FinanceCanonicalGhostExpenseDetector.ghostExpenseCandidates()`): agrupa los resultados que ya
+  devuelve A16-3 por `pattern`, y cuando dos o más precios del mismo concepto tienen meses vistos sin
+  solape entre sí (el solape descarta la comparación: podrían ser dos suscripciones distintas que
+  comparten nombre de comercio), compara el más antiguo con el más reciente. Sin motor de agrupación
+  propio — mismo patrón que `canonical-renewal-advisor.js` (A16-4), que también extiende A16-3 sin
+  tocarlo. Nudge en dos sitios: sexta fuente de `decisionInboxItems()` (`app.js`) — el propio
+  comentario de `T3` ya dejaba este hueco reservado explícitamente para cuando existiera el detector
+  — y nota junto a "Recurrentes y suscripciones detectadas" en Análisis
+  (`analisisGhostExpenseNote`/`analisisGhostExpenseCandidates`, sobre el mismo resultado que ya
+  calculaba `analisisSubscriptionsResult`, sin recalcular). Como `decisionInboxItems()` se ejecuta en
+  el render eager de Hoy y no puede depender del view chunk diferido de Análisis, se añadió
+  `ghostExpenseCandidatesResult()` en `app.js` con su propio mapeo de movimientos (mismo
+  `movementMappingKey`/`movementDisplayName` que ya usan A-9/A16-3/M-7/M-8, sin normalización
+  paralela) — mismo patrón ya usado por el resto de fuentes de la bandeja.
+- **Validación (`P8`)**: `npm run verify` en verde: **4427/4427 pruebas** (16 nuevas en
+  `tests/p8-gasto-fantasma.test.cjs`, más 26 canarios de versión de `app.js` actualizados al
+  bumpear `app.js?v=` — mismo patrón que `T6`), `test:a11y`, `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores. Verificación en navegador real (Playwright contra
+  `dist/`): inyectado un caso sintético (Netflix de 12,99 € a 15,99 €/mes, sin solape de meses) sobre
+  los datos de demostración — `ghostExpenseCandidatesResult()` detecta el candidato con las cifras
+  correctas, `decisionInboxItems()` lo incluye como sexta entrada con su texto y destino, y la nota de
+  Análisis se renderiza visible con el mismo detalle al navegar a esa pantalla.
+- **Publicado (`P8`)**: mismo commit/push/PR/fusión que el resto de la sesión, misma autorización
+  vigente.
 
 ## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3`/`D9`/`P3`/`I10`/`I12`/`T12`/`T18`/`T16` — Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado
 
