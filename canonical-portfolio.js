@@ -299,6 +299,10 @@
       // LEV6 (Oleada 3, Bloque 4): convicción declarada por el hogar (1-5, menor = vender antes al
       // desapalancar) — opcional, null si no se declara, nunca un valor medio inventado.
       convictionScore: knownNumber(raw.convictionScore) ? Math.max(1, Math.min(5, Math.round(number(raw.convictionScore)))) : null,
+      // I12 (Contabilidadcasa 2.0): fecha de la última vez que el hogar confirmó que sigue de
+      // acuerdo con la convicción declarada arriba — "" si nunca se ha confirmado, nunca la fecha de
+      // hoy por defecto (misma disciplina que INV17 con la revisión de rebalanceo).
+      convictionReviewedAt: asOfDate(raw.convictionReviewedAt),
       // INV8 (Oleada 3, Bloque 5): plan de aportación periódica declarado — opcional, null si no
       // se declara (mismos dos campos crudos que el resto del formulario, dcaMonthlyAmount/
       // dcaStartDate; aquí se agrupan en un solo objeto de conveniencia). dcaPlanStatus() (más

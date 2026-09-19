@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión) e `I10` (umbral propio de concentración divisa/geografía)
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión), `I10` (umbral propio de concentración divisa/geografía) e `I12` (fecha de revisión de convicción por posición)
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -196,6 +196,31 @@ de aquí en la siguiente regeneración, no al momento.
   Verificación en navegador real: Inversión › Cartera en pestaña nueva muestra el campo de umbral;
   declarando 80 se guarda en `scenarioSettings` y sobrevive a un redibujado. Sin errores de consola
   nuevos.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
+- **`I12` — quinto incremento de la sesión, misma sesión 208: fecha de revisión de convicción por
+  posición**: la convicción por posición (1-5) ya existía desde `LEV6`; el hueco real era una fecha
+  de revisión. Nuevo `convictionReviewedAt` en `canonical-portfolio.js` (`normalizePosition`), vacío
+  sin declarar, nunca la fecha de hoy por defecto. `i12ConvictionReviewHtml()` (`app.js`) reutiliza
+  tal cual `rebalanceCalendarReviewStatus()` (INV17, mismo motor, intervalo fijo de 12 meses en vez
+  del propio de rebalanceo) para avisar cuándo toca revisar; nuevo botón «Marcar revisada hoy»
+  (`markIv1PositionConvictionReviewed`) junto a cada posición con convicción declarada, cableado en
+  la misma delegación de clics que ya usa «Quitar» (`iv1PositionList`).
+- **Alcance reducido a propósito, mismo criterio que `D9`**: la cartera (IV1) solo permite dar de
+  alta o quitar una posición — nunca editarla, en ningún sitio de la app. Una posición ya creada sin
+  `convictionScore` no puede declararlo después sin borrarla y volver a crearla entera (perdiendo
+  aportaciones y ventas ya registradas, FIFO incluido). Construir edición general de posiciones es
+  un alcance mucho mayor que esta tarea — el aviso de revisión solo aparece cuando la convicción ya
+  se declaró al dar de alta la posición.
+- **Validación**: `npm run verify` en verde: **4388/4388 pruebas** (7 nuevas en
+  `tests/i12-conviccion-fecha-revision.test.cjs`: campo declarado en el normalizador, sin aviso sin
+  convicción declarada, aviso "nunca confirmada", aviso a los 13 meses, sin aviso al mes, el botón
+  actualiza solo la posición indicada, wiring del render), `test:a11y`, `test:performance`,
+  `build:site`, `test:privacy`, `test:smoke` sin errores. Verificación en navegador real: registrada
+  una posición con convicción 4/5 desde el formulario real de Inversión › Cartera, aparece «Convicción
+  4/5, nunca confirmada» con el botón; al pulsarlo pasa a «revisada hace 0 mes(es) (fecha de hoy)».
+  Sin errores de consola.
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
 
