@@ -80,6 +80,45 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (212): `T9` fase 1 — mobile-first en el layout principal de Hoy
+
+- **Qué pedía la sesión**: seguir con `T9` (única tarea sin bloqueo real que quedaba en
+  `BACKLOG_CONTABILIDADCASA_2_0.md`), empezando por Hoy. Antes de tocar CSS se investigó la
+  estructura real de `styles.css` (32 `@media (max-width...)` en todo el archivo) y se encontraron
+  dos riesgos reales que no estaban en el radar al aceptar la tarea: (1) la mayoría de esas reglas
+  viven dentro de bloques `@media` **compartidos con 20-30 clases de otras pantallas** (deuda,
+  agente...), agrupadas ahí solo para no repetir declaraciones — invertir esos bloques sin querer
+  amplía el alcance a pantallas no auditadas en esta sesión; (2) una dependencia de cascada real y ya
+  documentada en el propio código (`.home-layout-triple` depende del **orden de aparición en el
+  archivo** frente a `.home-layout` para colapsar bien). Puesto esto delante del hogar antes de
+  escribir una línea, **se decidió un enfoque quirúrgico por fases**: invertir solo las reglas
+  100% exclusivas de Hoy, publicando cada fase por separado, dejando fuera de esta tarea (documentado)
+  lo que vive en los bloques compartidos con otras pantallas (`.home-kpi-grid`, usado también en
+  Cierre/Conciliar/Registrar mes/Cambios pendientes — confirmado con `grep` sobre `index.html`, no
+  es exclusivo de Hoy como parecía a primera vista).
+- **Fase 1 — `.home-layout` y `.home-action-grid` (breakpoint 1440px)**: invertidos a mobile-first.
+  La base incondicional pasa a ser el valor móvil (1 columna, `width: 100%` en `.home-layout`); el
+  layout de escritorio (2 columnas) se movió a `@media (min-width: 1441px)`, **en la misma posición
+  del archivo que ocupaba el `@media (max-width: 1440px)` que sustituye** — condición necesaria para
+  no alterar el orden de cascada frente a `.home-layout-triple` (que sigue sin invertir, en su
+  posición original, más abajo en el archivo) y frente a la dependencia ya documentada. Hallazgo de
+  paso: `.home-action-grid` en solitario ya era CSS inerte en producción — `#homeActions` recibe
+  siempre la clase `unified-action-list` por JS (`app.js`, T3/UX-2), de mayor especificidad, que fija
+  1 columna a cualquier ancho; el cambio no altera el resultado visual hoy, pero corrige la
+  declaración para cuando esa clase deje de aplicarse.
+- **Validación**: comparación exacta píxel a píxel — `git stash` del cambio, reconstruido `dist/` y
+  medido `getComputedStyle(...).gridTemplateColumns` de `.home-layout`, `#homeActions` y
+  `.home-layout-triple` en 8 anchos de viewport (375 a 1920px) con Playwright real; **coincide
+  exactamente, carácter a carácter, con la misma medición tras aplicar el cambio** — cero diferencia
+  visual en ningún ancho probado. `npm run verify` en verde: 4524/4524 pruebas (sin pruebas nuevas,
+  cambio puramente CSS sin cobertura unitaria propia), `test:a11y` (1380 IDs únicos), `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **Quedan fase 2** (`.home-month-glance-rows`, breakpoint 760px) **y fase 3** (`.home-layout-triple`,
+  breakpoint 1440px, depende del orden ya verificado seguro con la fase 1) **de esta misma tarea para
+  la siguiente sesión**, cada una con su propia verificación y publicación por separado.
+
 ## Cierre de sesión — 19 de septiembre de 2026 (211): `T13` — herencia financiera con aportación equivalente de los padres
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` y seguir con la siguiente tarea
