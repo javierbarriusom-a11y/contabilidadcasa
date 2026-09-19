@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre, `T10` — PWA instalable con deuda cara
+## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre, `T10` — PWA instalable con deuda cara, `T11` — foto y geolocalización en la ficha de gasto
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 4) y proponer al
   hogar un plan para el resto de la cola sin bloqueo real (`P2`, `P11`, `P12`, `T9`, `T10`, `T11`,
@@ -207,8 +207,45 @@ de aquí en la siguiente regeneración, no al momento.
   correcto — con datos sintéticos inyectados (Tarjeta Cara al 24,9% TAE frente a Banco Barato al 5%),
   la tarjeta de deuda cara elige y muestra correctamente la más cara de las dos, no la primera.
 - **Publicado (`T10`)**: commit, push a la rama de trabajo en curso (reiniciada desde `main` tras la
-  fusión de `P2`, mismo criterio que las veces anteriores de esta sesión), PR en borrador y fusión a
-  `main` en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+  fusión de `P2`, mismo criterio que las veces anteriores de esta sesión), PR en borrador
+  ([#344](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/344)) y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **`T11` — ficha de gasto con foto y geolocalización opcional, quinta y última tarea de la
+  sesión**: investigado primero si la foto ya estaba cubierta — sí, pero solo a medias. `A17-3`
+  (sesión previa, verificado de nuevo por `P7`) cubre la foto de un gasto **nuevo**: capturas un
+  ticket, el OCR propone importe/fecha/comercio y se crea un movimiento. Lo que la nota de `T11`
+  pedía de verdad — "para reconciliar más rápido sin depender de la descripción del banco" — es
+  distinto: adjuntar una foto a un movimiento **ya existente**, típicamente uno importado del banco
+  con una descripción ilegible ("PAGO EN COMERCIO 4521"). Ese caso no estaba cubierto: el diálogo de
+  detalle de Movimientos (M-6) solo mostraba «Ver foto» cuando `receiptAttachments[transactionIdentity(row)]`
+  ya existía — no había forma de crear esa entrada para un movimiento que no hubiera pasado por la
+  captura de cámara. Nuevas `movementDetailAttachmentHtml()`, `handleMovementDetailAttachPhoto()`
+  (`app.js`), extraídas de `renderMovementDetailDialog()`: mismo mecanismo de adjunto que `A17-3`
+  (`P2PrivateStore`/A3-5), aquí con un id generado (`receipt-manual-<timestamp>`) en vez del
+  `inboxItemId` de la bandeja E11b, porque el movimiento no pasa por ahí. Geolocalización es
+  enteramente nueva: `handleMovementDetailSaveGeo()` usa `navigator.geolocation` (API del navegador,
+  sin librería ni servicio externo), redondea a 4 decimales (~11 m, suficiente para "dónde estaba
+  cuando compré esto") y guarda `{lat, lon, accuracy, capturedAt}` en la misma entrada de
+  `receiptAttachments`, junto a la foto si la hay — son independientes, se puede tener una sin la
+  otra. `t11GeoMapUrl()` arma un permalink de OpenStreetMap para verla, sin clave de API. Los
+  botones de foto y de ubicación conviven en la misma fila del diálogo (`.movement-detail-attachment`,
+  ahora con `flex-wrap` para hasta tres botones a la vez).
+- **Validación (`T11`)**: `npm run verify` en verde: **4497/4497 pruebas** (16 nuevas en
+  `tests/t11-foto-geolocalizacion-movimiento.test.cjs`; `tests/a17-3-captura-camara.test.cjs`
+  actualizado para sandboxar el nuevo `movementDetailAttachmentHtml` en vez de
+  `renderMovementDetailDialog` directamente, sin cambiar su intención; tres sandboxes de
+  `tests/m1-m11-movimientos.test.cjs` actualizados para cargar la nueva función auxiliar; 27
+  canarios de versión de `app.js?v=` actualizados), `test:a11y`, `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores. Verificación en navegador real (Playwright contra
+  `dist/`, con geolocalización de Playwright mockeada a un punto de Madrid y un movimiento bancario
+  sintético con descripción vaga inyectado): el diálogo de detalle ofrece «Adjuntar foto» y «Guardar
+  mi ubicación»; tras adjuntar una foto de prueba, el botón cambia a «Ver foto del ticket» y
+  abrirlo lanza correctamente una URL `blob:` sin errores de consola; tras guardar la ubicación,
+  aparece «Ver ubicación guardada» con el enlace de OpenStreetMap apuntando exactamente a las
+  coordenadas mockeadas.
+- **Publicado (`T11`)**: commit, push a la rama de trabajo en curso (reiniciada desde `main` tras la
+  fusión de `T10`, mismo criterio que las veces anteriores de esta sesión), PR en borrador y fusión
+  a `main` en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, `P8` — detector de gasto fantasma, `D1` — aparcada, y `D8` — reparto por titular de la reestructuración conjunta
 

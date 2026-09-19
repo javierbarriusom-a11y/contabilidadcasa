@@ -8805,7 +8805,13 @@ body {
   font-weight: 700;
 }
 
+/* T11: hasta ahora un único botón condicional (ver foto). Con la foto/geolocalización adjuntas a
+   posteriori puede haber hasta tres a la vez (adjuntar o ver foto, ver ubicación, guardar
+   ubicación) — fila con salto de línea en vez de desbordar el diálogo. */
 .movement-detail-attachment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0 0 16px;
 }
 

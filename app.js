@@ -25843,6 +25843,82 @@ function closeMovementDetailDialog() {
   else dialog?.removeAttribute("open");
 }
 
+// T11 (Horizonte 4): «ficha de gasto con foto y geolocalización opcional, para reconciliar más
+// rápido sin depender de la descripción del banco». La foto de un gasto NUEVO ya se cubría por
+// A17-3 (captura por cámara + OCR); lo que faltaba era adjuntar una foto a un movimiento YA
+// existente (típicamente uno importado del banco, con descripción vaga) — mismo mecanismo de
+// adjunto que A17-3 (P2PrivateStore/A3-5, clave `receiptAttachments[transactionIdentity(row)]`),
+// aquí sin pasar por la bandeja E11b porque el movimiento ya está en el libro. La geolocalización
+// es un campo nuevo (`geo`) dentro de la misma entrada — API de geolocalización del navegador, sin
+// librería ni servicio externo; redondeada a 4 decimales (~11 m) porque para "dónde estaba cuando
+// compré esto" no hace falta más precisión, y el enlace de mapa es un permalink de OpenStreetMap
+// (sin clave de API, a diferencia de Google Maps embebido).
+function t11GeoMapUrl(geo) {
+  return `https://www.openstreetmap.org/?mlat=${geo.lat}&mlon=${geo.lon}#map=17/${geo.lat}/${geo.lon}`;
+}
+
+function movementDetailAttachmentHtml(row) {
+  const attachment = receiptAttachments[transactionIdentity(row)] || null;
+  const buttons = [];
+  buttons.push(
+    attachment?.inboxItemId
+      ? '<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailViewReceipt">Ver foto del ticket (A17-3)</button>'
+      : '<label class="e19-btn e19-btn-secondary"><input type="file" accept="image/*" capture="environment" id="movementDetailAttachPhoto" hidden />Adjuntar foto (T11)</label>',
+  );
+  if (attachment?.geo) {
+    buttons.push(
+      `<a class="e19-btn e19-btn-secondary" href="${escapeHtml(t11GeoMapUrl(attachment.geo))}" target="_blank" rel="noopener">Ver ubicación guardada (${escapeHtml(formatIsoDate(attachment.geo.capturedAt))})</a>`,
+    );
+  }
+  buttons.push(
+    `<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailSaveGeo">${attachment?.geo ? "Actualizar mi ubicación (T11)" : "Guardar mi ubicación (T11)"}</button>`,
+  );
+  return `<div class="movement-detail-attachment">${buttons.join("")}</div>`;
+}
+
+function handleMovementDetailAttachPhoto(event, row) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file || !row) return;
+  const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
+  if (!store) { announceStatus("Este navegador no admite guardar adjuntos."); return; }
+  const attachmentId = `receipt-manual-${Date.now()}`;
+  store
+    .put(attachmentId, file)
+    .then(() => {
+      const key = transactionIdentity(row);
+      receiptAttachments[key] = { ...(receiptAttachments[key] || {}), inboxItemId: attachmentId, storage: "local", mimeType: file.type, createdAt: new Date().toISOString() };
+      saveLocalSnapshot();
+      renderMovementDetailDialog();
+      announceStatus("Foto adjuntada al movimiento.");
+    })
+    .catch(() => announceStatus("No se pudo guardar la foto en este dispositivo."));
+}
+
+function handleMovementDetailSaveGeo(row) {
+  if (!row) return;
+  if (!navigator.geolocation) { announceStatus("Este dispositivo no permite compartir ubicación."); return; }
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const key = transactionIdentity(row);
+      receiptAttachments[key] = {
+        ...(receiptAttachments[key] || {}),
+        geo: {
+          lat: Math.round(position.coords.latitude * 10000) / 10000,
+          lon: Math.round(position.coords.longitude * 10000) / 10000,
+          accuracy: Number.isFinite(position.coords.accuracy) ? Math.round(position.coords.accuracy) : null,
+          capturedAt: new Date().toISOString(),
+        },
+      };
+      saveLocalSnapshot();
+      renderMovementDetailDialog();
+      announceStatus("Ubicación guardada junto al movimiento.");
+    },
+    (error) => announceStatus(`No se pudo obtener la ubicación: ${error?.message || "permiso denegado."}`),
+    { enableHighAccuracy: false, timeout: 10000 },
+  );
+}
+
 function renderMovementDetailDialog() {
   const content = qs("movementDetailContent");
   const row = movementDetailTransaction;
@@ -25862,7 +25938,7 @@ function renderMovementDetailDialog() {
       <div><dt>Origen</dt><dd>${escapeHtml(row.source || "—")}</dd></div>
       <div><dt>Cuenta</dt><dd>${escapeHtml(row.account || "—")}</dd></div>
     </dl>
-    ${receiptAttachments[transactionIdentity(row)] ? `<div class="movement-detail-attachment"><button type="button" class="e19-btn e19-btn-secondary" id="movementDetailViewReceipt">Ver foto del ticket (A17-3)</button></div>` : ""}
+    ${movementDetailAttachmentHtml(row)}
     <div class="movement-detail-reclassify">
       <label>
         <span>Partida</span>
@@ -25896,6 +25972,8 @@ function renderMovementDetailDialog() {
       <button type="button" class="e19-btn e19-btn-primary" id="movementDetailActionTypeSave">Guardar tipo de acción</button>
     </div>`;
   qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
+  qs("movementDetailAttachPhoto")?.addEventListener("change", (event) => handleMovementDetailAttachPhoto(event, row));
+  qs("movementDetailSaveGeo")?.addEventListener("click", () => handleMovementDetailSaveGeo(row));
 }
 
 // M-7: cambio de partida con regla — reutiliza tal cual el mismo diccionario y el mismo camino de
