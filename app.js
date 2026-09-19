@@ -23095,9 +23095,24 @@ function handlePrevisionHorizon(horizonKey) {
   renderPrevision();
 }
 
+// P3 (Contabilidadcasa 2.0, Horizonte 3): badge de fiabilidad junto a la cifra proyectada de
+// Previsión. Ningún cálculo nuevo — reutiliza tal cual pvc17PredictiveHealthIndex() (PVC17), la
+// misma agregación de error histórico que ya muestra Ajustes › Previsión viva. Solo dos niveles de
+// confianza son reales (predictionQuality: "media" a partir de 6 muestras, "baja" por debajo) —
+// nunca se inventa una tercera etiqueta "alta" que el motor no calcula.
+function renderPrevisionReliabilityBadge() {
+  const box = qs("previsionReliabilityBadge");
+  if (!box) return;
+  const index = pvc17PredictiveHealthIndex();
+  if (!index || !index.samples) { box.innerHTML = ""; return; }
+  const tone = index.confidence === "media" ? "e19-badge-neutral" : "e19-badge-warning";
+  box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} mes(es) conciliado(s) con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
+}
+
 function renderPrevision() {
   if (!qs("previsionMonthlyTable") || !lastSimulation.length) return;
   const items = previsionHorizonRows(previsionHorizonKey);
+  renderPrevisionReliabilityBadge();
   if (!items.length) {
     if (qs("previsionHeadline")) qs("previsionHeadline").textContent = "Sin meses abiertos en este horizonte";
     if (qs("previsionSubheadline")) qs("previsionSubheadline").textContent = "";
