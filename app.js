@@ -8938,6 +8938,10 @@ const DEBT_CONTRACT_EDITABLE_FIELDS = [
   "paymentStatus",
   // DEB5 (Oleada 3, Bloque 4): % del interés deducible fiscalmente, declarado por contrato.
   "fiscalDeductionPct",
+  // D9 (Contabilidadcasa 2.0): capital original del contrato, para la barra «pagado vs. pendiente».
+  // Hasta ahora solo se fijaba una vez al dar de alta el contrato (deudaContratosAddFormParse) y no
+  // era corregible después — igual que capital/TAE/cuota, ahora se declara y se corrige aquí.
+  "initialPrincipal",
 ];
 
 // D-2d · un contrato de ejemplo eliminado no se puede borrar de DEBT_PORTFOLIO (es código, no

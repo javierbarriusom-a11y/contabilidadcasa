@@ -1010,6 +1010,34 @@
   color: var(--e19-muted);
 }
 
+/* D9 (Contabilidadcasa 2.0): barra «pagado vs. pendiente» por contrato — mismo patrón visual que
+   .deuda-ruta-attack-weight (Deuda › Ruta), con el color de éxito en vez del de deuda: aquí el
+   tramo lleno es lo ya pagado, no un peso relativo a vigilar. */
+.deuda-contratos-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 140px;
+}
+
+.deuda-contratos-progress-bar {
+  height: 6px;
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.deuda-contratos-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--e19-success);
+}
+
+.deuda-contratos-progress small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
 /* D-2c · alta de contratos: fila resaltada para lo añadido a mano, botón de quitarla (mismo patrón
    que .registrar-mes-row-custom/.registrar-mes-row-remove) y el formulario de alta bajo la tabla. */
 .deuda-contratos-table td:last-child {

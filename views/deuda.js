@@ -1212,6 +1212,28 @@ function deudaContratosStatusOptionsHtml(current) {
   ).join("");
 }
 
+// D9 (Contabilidadcasa 2.0): barra visual de progreso «pagado vs. pendiente» sobre initialPrincipal/
+// currentPrincipal, ambos ya declarados por contrato — ningún cálculo nuevo. Sin capital inicial
+// declarado (0, o igual al pendiente porque nunca se corrigió tras dar de alta el contrato), no hay
+// nada honesto que mostrar como "pagado": se dice explícitamente en vez de fingir un 0% que no es
+// un progreso real, solo la ausencia del dato. El "ahorro de intereses" que pedía la nota original
+// del backlog no se añade aquí: la única cifra de ese tipo que calcula la app (AP1/APX6) es el
+// resultado de una simulación puntual con un importe elegido a mano, no un dato pasivo de la ficha
+// del contrato — pintarla aquí sin ese importe sería inventar una precisión que no existe.
+function deudaContratosProgressHtml(contract) {
+  const initial = round2(Number(contract.initialPrincipal) || 0);
+  const current = Math.max(0, round2(Number(contract.currentPrincipal) || 0));
+  if (!(initial > 0) || initial <= current) {
+    return `<span class="e19-kpi-note" title="Declara el capital inicial del contrato para ver el progreso">Sin capital inicial declarado</span>`;
+  }
+  const paid = Math.max(0, round2(initial - current));
+  const paidPct = Math.min(100, Math.round((paid / initial) * 100));
+  return `<div class="deuda-contratos-progress">
+      <div class="deuda-contratos-progress-bar"><span style="width:${paidPct}%"></span></div>
+      <small>${money(paid, true)} pagado (${paidPct}%) de ${money(initial, true)}</small>
+    </div>`;
+}
+
 function deudaContratosRowHtml(contract) {
   const edited = Boolean(debtContractOverrides[contract.id]);
   const isCustom = Boolean(contract.custom);
@@ -1228,7 +1250,9 @@ function deudaContratosRowHtml(contract) {
           <input type="text" maxlength="60" placeholder="Número" data-deuda-contrato-id="${id}" data-deuda-contrato-field="number" value="${escapeHtml(contract.number || "")}" aria-label="Número de contrato de ${entityLabel}" />
         </span>
       </td>
+      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="initialPrincipal" value="${round2(contract.initialPrincipal)}" placeholder="sin dato" aria-label="Capital inicial de ${entityLabel}" /></td>
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPrincipal" value="${round2(contract.currentPrincipal)}" aria-label="Capital pendiente de ${entityLabel}" /></td>
+      <td>${deudaContratosProgressHtml(contract)}</td>
       <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${entityLabel}" /></td>
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${entityLabel}" /></td>
       <td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="fiscalDeductionPct" value="${contract.fiscalDeductionPct > 0 ? contract.fiscalDeductionPct : ""}" placeholder="0" aria-label="Deducción fiscal de ${entityLabel} (%)" /></td>
@@ -1246,7 +1270,7 @@ function renderDeudaContratos() {
   if (!body) return;
   const contracts = debtContractSourceRows();
   body.innerHTML = `<thead><tr>
-        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Deducción fiscal (%)</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
+        <th>Entidad</th><th>Capital inicial</th><th>Capital pendiente</th><th>Progreso</th><th>TAE</th><th>Cuota mensual</th><th>Deducción fiscal (%)</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
   const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
