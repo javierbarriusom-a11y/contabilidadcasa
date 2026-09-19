@@ -28,6 +28,7 @@ const files = [
   "canonical-engine.js",
   "canonical-forecast.js",
   "canonical-renewal-advisor.js",
+  "canonical-ghost-expense-detector.js",
   "canonical-cushion.js",
   "canonical-e13-scenarios.js",
   "canonical-scenario-schema.js",

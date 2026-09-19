@@ -238,7 +238,7 @@ const VIEW_CHUNKS = {
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260831a164c1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260919p8a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
   "escenario-guardados": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-guardados" },
@@ -30962,10 +30962,30 @@ function renderHomeForecastChangePanel() {
 // (LTV de apalancamiento), renderAjustesAssumptionExpiryRadar/PVC15 (supuestos caducados) y
 // renderAjustesHomeInsuranceNote (brecha del seguro de hogar), solo que normalizadas a una lista
 // común en vez de cinco tarjetas silenciosas repartidas entre Ajustes/Deuda/Inversión. "Gasto
-// fantasma" (P8) se queda fuera: el detector todavía no existe (P8 sigue pendiente en el backlog),
-// no hay nada real que unificar todavía para esa fuente.
+// fantasma" (P8) se sumó en la sesión 209 como sexta fuente — ver `ghostExpenseCandidatesResult()`.
 const DECISION_INBOX_TONE_CLASS = { danger: "blocker", warn: "warning", good: "ok" };
 const DECISION_INBOX_TONE_RANK = { danger: 2, warn: 1, good: 0 };
+
+// P8 (BACKLOG_CONTABILIDADCASA_2_0.md): mismo mapeo de movimientos que ya usa
+// analisisSubscriptionsResult() (views/analisis.js) para alimentar A16-3
+// (detectRecurringSubscriptions), pero definido aquí porque decisionInboxItems() se calcula en el
+// render eager de Hoy y no puede depender de un view chunk diferido (Análisis) que puede no estar
+// cargado todavía. Sin motor propio de agrupación: A16-3 hace la detección de recurrentes, el nuevo
+// FinanceCanonicalGhostExpenseDetector (P8) solo vincula grupos del mismo concepto con precio
+// distinto para ver si subió.
+function ghostExpenseCandidatesResult() {
+  const subscriptionsEngine = window.FinanceCanonicalForecast;
+  const ghostEngine = window.FinanceCanonicalGhostExpenseDetector;
+  if (!subscriptionsEngine?.detectRecurringSubscriptions || !ghostEngine?.ghostExpenseCandidates) return null;
+  const movements = (baseData?.transactions || [])
+    .filter((row) => Number(row.amount) < 0)
+    .map((row) => ({
+      pattern: movementMappingKey(row), label: movementDisplayName(row), category: row.category,
+      amount: row.amount, month: row.month || String(row.date || "").slice(0, 7),
+    }));
+  const subscriptions = subscriptionsEngine.detectRecurringSubscriptions(movements).detected;
+  return ghostEngine.ghostExpenseCandidates(subscriptions);
+}
 
 function decisionInboxItems() {
   const items = [];
@@ -31051,6 +31071,20 @@ function decisionInboxItems() {
       title: "Brecha en el seguro de hogar",
       text: `La cobertura actual (${money(insuranceCoverage, true)}) no llega al valor de reposición declarado (${money(insuranceReplacement, true)}) — faltan ${money(insuranceGap.gap, true)}.`,
       target: "herramientas-seguros",
+    });
+  }
+
+  const ghostExpenses = ghostExpenseCandidatesResult();
+  if (ghostExpenses?.candidates.length) {
+    const top = ghostExpenses.candidates[0];
+    const extra = ghostExpenses.candidates.length - 1;
+    items.push({
+      id: "decision-inbox-ghost-expense",
+      source: "Gasto fantasma",
+      tone: "warn",
+      title: `${top.label} subió de precio sin que nadie lo confirmara`,
+      text: `De ${money(top.fromAmount, true)} a ${money(top.toAmount, true)}/mes (+${top.increasePct}%) desde ${ledgerMonthLabel(top.sinceMonth)} — ${money(top.increaseAnnualAmount, true)}/año más.${extra > 0 ? ` Y ${extra} más.` : ""}`,
+      target: "analisis",
     });
   }
 
