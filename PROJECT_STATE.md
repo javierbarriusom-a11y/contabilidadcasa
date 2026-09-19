@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones) y `D9` (barra pagado/pendiente por contrato)
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato) y `P3` (badge de fiabilidad en Previsión)
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -152,6 +152,23 @@ de aquí en la siguiente regeneración, no al momento.
   correctamente. Sin errores de consola nuevos (los dos/tres que aparecen —
   `cdn.jsdelivr.net/npm/@supabase/supabase-js@2` bloqueado— son del sandbox de red de este entorno,
   no del cambio).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
+- **`P3` — tercer incremento de la sesión, misma sesión 208: badge de fiabilidad en Previsión**:
+  nuevo `renderPrevisionReliabilityBadge()` (`app.js`), junto a la cabecera de Previsión
+  (`previsionHeadline`/`previsionSubheadline`, `index.html`). Ningún motor nuevo — reutiliza tal
+  cual `pvc17PredictiveHealthIndex()`/PVC17, ya usado por la tarjeta de Ajustes. Solo existen dos
+  niveles reales de confianza («media» a partir de 6 muestras conciliadas con previsto y real,
+  «baja» por debajo — `predictionQuality`, `canonical-e16-monitoring.js`); sin muestras todavía, el
+  badge se queda vacío en vez de fingir una fiabilidad que no se puede medir con el histórico
+  actual.
+- **Validación**: `npm run verify` en verde: **4379/4379 pruebas**, `test:a11y`, `test:performance`,
+  `build:site`, `test:privacy`, `test:smoke` sin errores. Verificación en navegador real: Previsión
+  en pestaña nueva no muestra badge con los datos de demostración (0 muestras conciliadas — mismo
+  estado vacío que ya mostraba la tarjeta equivalente de Ajustes, consistente, no es un fallo);
+  forzando `pvc17PredictiveHealthIndex()` a devolver una muestra real y volviendo a llamar al
+  render, el badge aparece con el texto y el tono esperados. Sin errores de consola nuevos.
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
 

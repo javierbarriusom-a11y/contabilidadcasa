@@ -8,7 +8,7 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 23/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
+**Estado: 24/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
 contaba en los 52 originales).** Cierres previos (sesión 205 y antes — `D2`, `D3`, `D7`, `T1`,
 `T15`, `T17`, `T19`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`,
 `T8`). `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
@@ -75,7 +75,7 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 |---|---|---|---|---|
 | ✅ `P1` | Panel «qué cambió desde la última vez» en Hoy | S | Alto | Cerrada sesión 199: nueva tarjeta `homeForecastChangeCard` en `.home-secondary-section` de Hoy. Combina la frase de `causalTreeForMonth`/`previsionChangeOneLiner` (`PVX5`, sobre el mes conciliado más reciente) con la comparación de supuestos de `diffAssumptionSnapshots`/`pvc18ChangeCauses` (`PVC6`/`PVC18`) contra el cierre firmado más reciente — sin selector manual, a diferencia de Ajustes: en Hoy solo hay lectura de un único punto de comparación, el último. Ningún motor nuevo. |
 | ⏳ `P2` | Cono de incertidumbre con tooltip (P10/P50/P90 y categoría dominante) | M | Medio | Sobre el SVG ya existente de `PVC19`, sin librería nueva. |
-| ⏳ `P3` | Badge de fiabilidad junto a cada cifra proyectada | S | Medio | Deriva de `predictiveHealthIndex` (`PVC17`, `canonical-e16-monitoring.js`). |
+| ✅ `P3` | Badge de fiabilidad junto a cada cifra proyectada | S | Medio | **Cerrada (sesión 208).** Nuevo `renderPrevisionReliabilityBadge()` (`app.js`) junto a la cabecera de Previsión (`previsionHeadline`/`Subheadline`), reutilizando tal cual `pvc17PredictiveHealthIndex()` (PVC17) — la misma agregación de error histórico que ya alimentaba la tarjeta de Ajustes. Solo dos niveles reales («media»/«baja», los únicos que calcula `predictionQuality`); sin muestras conciliadas con previsto y real todavía, el badge se queda vacío en vez de fingir una fiabilidad que no se puede medir. |
 | ⏳ `P4` | Dígesto semanal de reforecast material (email/nota, interino de push) | M | Medio | Sobre `reforecastMaterialityAlert` (`PVC8`); a sustituir cuando `A5-4`/push exista. |
 | ✅ `P5` | Radar único de supuestos caducados con «revisar ahora» | S | Medio | Cerrada sesión 199: nueva tarjeta `ajustesAssumptionExpiryRadar` en Ajustes, sobre el mismo `assumptionExpiryAlerts` (`PVC15`) que ya se marcaba uno a uno dentro de la lista completa (que sigue igual, sin quitarle su marca en línea). Cada entrada del radar lleva un botón «Revisar ahora»: los cinco supuestos fiscales enfocan su propio campo en la misma tarjeta (`data-scroll-focus`, OPT-7); los cinco generales del forecast navegan al Laboratorio de escenarios, donde sí se editan (`data-home-nav`). Ningún motor nuevo. |
 | ✅ `P6` | Puntuación de acierto histórico permanente en Hoy | S | Alto | Cerrada sesión 199: nuevo `historicalAccuracyScore()` en `canonical-forecast.js` (mismo ratio que ya clasifica `deviationSeverity`, invertido a % de acierto — 100% sin desviación, 0% si la desviación iguala o supera lo previsto, nunca negativo) pintado como un KPI más dentro de la rejilla `homeKpis` de Hoy, con enlace al informe completo de `pvx1BacktestHtml` en Análisis. Ningún informe duplicado. |
