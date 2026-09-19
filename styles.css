@@ -1489,11 +1489,16 @@ main {
 .e6-quality-card dd { margin: 0; overflow-wrap: anywhere; }
 .home-kpi-meta { margin-top: .65rem; font-size: .78rem; color: var(--muted); }
 
+/* T9 (mobile-first, fase 1): base móvil (1 columna, ancho completo) — el layout de dos columnas
+   solo se activa desde 1441px, en el @media (min-width) que sustituye al max-width que vivía aquí.
+   Mismo valor, misma posición relativa en el archivo respecto a .home-layout-triple (más abajo) —
+   invertir el orden de las reglas, no su resultado. */
 .home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  width: 100%;
 }
 
 .home-panel {
@@ -1563,8 +1568,10 @@ main {
   line-height: 1.45;
 }
 
+/* T9 (mobile-first, fase 1): base móvil (1 columna) — las 2 columnas solo desde 1441px, ver el
+   @media (min-width) que sustituye al max-width que vivía junto a .home-layout más abajo. */
 .home-action-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .home-action-card,
@@ -5905,14 +5912,17 @@ body {
    `.e19-ajustes-anchors` (Ajustes, AJ-2) quedan fijas de verdad al hacer scroll a partir de aquí. */
 
 /* The sidebar reduces the usable canvas well before the viewport reaches 1280px. */
-@media (max-width: 1440px) {
+/* T9 (mobile-first, fase 1): valores de escritorio, antes la base incondicional y ahora el
+   override desde 1441px — misma posición del archivo que el @media (max-width: 1440px) que
+   sustituye, para no alterar el orden de cascada frente a .home-layout-triple (más abajo, sigue
+   sin invertir en esta fase). */
+@media (min-width: 1441px) {
   .home-layout {
-    grid-template-columns: minmax(0, 1fr);
-    width: 100%;
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
   }
 
   .home-action-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
