@@ -3880,6 +3880,13 @@ function saveScenarioSettings() {
     // LPX4 · mínimo exento de Sucesiones y Donaciones declarado por el hogar — mismo criterio que
     // el resto de datos del hogar, 0 significa «sin configurar» (ningún mínimo exento asumido).
     lpx4ExemptAmount: round2(Math.max(0, Number(state.lpx4ExemptAmount || 0))),
+    // T13 · importe hipotético del comparador "donar ahora vs. herencia" y los tres supuestos de la
+    // proyección educativa de ahorro para hijos — mismo criterio 0 = «sin configurar».
+    t13DonationAmount: round2(Math.max(0, Number(state.t13DonationAmount || 0))),
+    t13PeriodicHelpAmount: round2(Math.max(0, Number(state.t13PeriodicHelpAmount || 0))),
+    t13ChildMonthlyAmount: round2(Math.max(0, Number(state.t13ChildMonthlyAmount || 0))),
+    t13ChildAnnualReturnPct: round2(Math.max(0, Math.min(100, Number(state.t13ChildAnnualReturnPct || 0)))),
+    t13ChildYears: round2(Math.max(0, Number(state.t13ChildYears || 0))),
     // A15-1 · última fotografía del registro central de supuestos (A7-2): buildAssumptionRegistry()
     // la recalcula al editar cualquier supuesto fiscal, comparando contra esta para no adelantar
     // updatedAt de un valor que no ha cambiado.
@@ -15643,6 +15650,7 @@ function saveIrpfBracketScaleFromControls() {
   });
   renderIrpfBracketScales();
   renderLpx4SuccessionTaxEstimate();
+  renderT13DonationVsInheritance();
   announceStatus("Escala de IRPF registrada.");
 }
 
@@ -18613,15 +18621,20 @@ function handleGob19SeparationTemplate() {
 // mismo criterio que las invitaciones de hogar de E9-1).
 const A19_SHARE_VIEW_LABELS = { "debt-plan": "Plan de deuda", "forecast-6m": "Forecast a 6 meses", "kids-summary": "Vista para hijos (colchón y patrimonio)" };
 
-// MDX1: fuente de las dos cifras de la vista para hijos — colchón (liquidez total de las cuentas
+// MDX1: fuente de las cifras de la vista para hijos — colchón (liquidez total de las cuentas
 // declaradas) y patrimonio neto (A14-2, ya calculado por lpNetWorthSnapshot para LPX1/LPX2). Sin
 // activos declarados, netWorth queda null explícito — nunca un cero inventado.
+// T13: añade periodicHelp/projection, ambos opcionales y declarados por el hogar — ver
+// t13KidsSummaryExtras().
 function mdx1KidsSummarySource() {
   const balances = accountBalancesFromState();
   const netWorthSnapshot = lpNetWorthSnapshot();
+  const extras = t13KidsSummaryExtras();
   return {
     cushion: Number.isFinite(Number(balances?.total)) ? balances.total : null,
     netWorth: netWorthSnapshot.calculable ? netWorthSnapshot.netWorth : null,
+    periodicHelp: extras.periodicHelp,
+    projection: extras.projection,
   };
 }
 
@@ -19065,6 +19078,163 @@ function handleLpx4ExemptAmountChange(event) {
   state.lpx4ExemptAmount = next;
   saveScenarioSettings();
   renderLpx4SuccessionTaxEstimate();
+}
+
+// T13 (BACKLOG_CONTABILIDADCASA_2_0.md): "¿mejor donar ahora o dejarlo en herencia?" — comparador
+// informativo, nunca decide. Reutiliza tal cual el motor de LPX4 (lpNetWorthSnapshot, la escala
+// "succession" declarada en Ajustes → Fiscal con su fuente completa, lpx4ExemptAmount): sin
+// escala ni patrimonio calculable, no hay comparador que mostrar, mismo criterio de "nunca fabricar
+// una cifra sin fuente" que ya aplica LPX4. El hogar declara un importe hipotético a donar/heredar
+// (t13DonationAmount) — sin él, tampoco hay nada que comparar.
+//
+// "Donar ahora" aplica la escala directamente sobre el importe declarado (usando el mínimo exento
+// entero en esa donación). "Dejarlo en herencia" no repite el mismo cálculo sobre una masa
+// hereditaria futura desconocida — sería inventar una proyección del patrimonio a un momento sin
+// fecha. En su lugar calcula el coste marginal de ese importe si la sucesión ocurriera hoy, con el
+// patrimonio de hoy: quota(patrimonio neto) − quota(patrimonio neto − importe), la misma escala y
+// el mismo mínimo exento aplicados una sola vez al conjunto. Es una fotografía de hoy, no una
+// promesa de mañana — el aviso lo dice explícitamente.
+function t13DonationAmount() {
+  const configured = Number(state?.t13DonationAmount || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function t13DonationVsInheritanceEstimate() {
+  const irpf = window.FinanceCanonicalIrpfEstimator;
+  const snapshot = lpNetWorthSnapshot();
+  if (!irpf || !snapshot.calculable) return { calculable: false, reason: "missing-net-worth" };
+  const scale = latestIrpfScale("succession");
+  const scaleCheck = irpf.validateBracketScale(scale || {});
+  if (!scaleCheck.valid) {
+    return { calculable: false, netWorth: snapshot.netWorth, reason: "missing-scale", issues: scaleCheck.issues };
+  }
+  const amount = t13DonationAmount();
+  if (amount <= 0) return { calculable: false, netWorth: snapshot.netWorth, reason: "missing-amount" };
+  const exemptAmount = lpx4ExemptAmount();
+  const donateNowBase = round2(Math.max(0, amount - exemptAmount));
+  const donateNowQuota = irpf.progressiveTax(donateNowBase, scale.brackets);
+  const estateBase = round2(Math.max(0, snapshot.netWorth - exemptAmount));
+  const estateBaseWithoutAmount = round2(Math.max(0, snapshot.netWorth - exemptAmount - amount));
+  const leaveInInheritanceQuota = round2(irpf.progressiveTax(estateBase, scale.brackets) - irpf.progressiveTax(estateBaseWithoutAmount, scale.brackets));
+  return {
+    calculable: true,
+    netWorth: snapshot.netWorth,
+    exemptAmount,
+    amount,
+    donateNowQuota: round2(donateNowQuota),
+    leaveInInheritanceQuota,
+    difference: round2(donateNowQuota - leaveInInheritanceQuota),
+  };
+}
+
+function renderT13DonationVsInheritance() {
+  const note = qs("t13DonationVsInheritance");
+  if (!note) return;
+  const result = t13DonationVsInheritanceEstimate();
+  if (!result.calculable) {
+    if (result.reason === "missing-net-worth") {
+      note.innerHTML = `<p>Registra al menos un activo (A14-1) para ver este comparador.</p>`;
+    } else if (result.reason === "missing-scale") {
+      note.innerHTML = `<p>Sin la escala de Sucesiones y Donaciones declarada en <a href="#ajustes">Ajustes → Fiscal</a> (con fuente completa), no hay ninguna cifra que comparar.</p>`;
+    } else {
+      note.innerHTML = `<p>Declara abajo un importe hipotético a donar o heredar para ver la comparación.</p>`;
+    }
+    return;
+  }
+  const exemptLine = result.exemptAmount > 0 ? ` (mínimo exento de ${money(result.exemptAmount, true)} aplicado)` : "";
+  const verdict = result.difference > 0
+    ? `Con tu patrimonio y escala de hoy, donarlo ahora saldría <strong>${money(result.difference, true)} más caro</strong> que dejarlo en herencia.`
+    : result.difference < 0
+      ? `Con tu patrimonio y escala de hoy, donarlo ahora saldría <strong>${money(Math.abs(result.difference), true)} más barato</strong> que dejarlo en herencia.`
+      : `Con tu patrimonio y escala de hoy, el coste fiscal sería el mismo por cualquiera de los dos caminos.`;
+  note.innerHTML = `<p>Importe hipotético: ${money(result.amount, true)}${exemptLine}. Donarlo ahora: <strong>${money(result.donateNowQuota, true)}</strong> de coste fiscal estimado. Dejarlo en herencia (con el patrimonio de hoy): <strong>${money(result.leaveInInheritanceQuota, true)}</strong>.</p><p class="e19-kpi-note">${verdict} Informativo, no una promesa: el patrimonio y la escala pueden cambiar antes de que llegue el momento real, y esto nunca sustituye asesoría fiscal real.</p>`;
+}
+
+function syncT13DonationAmountControl() {
+  const field = qs("t13DonationAmount");
+  if (!field || document.activeElement === field) return;
+  const amount = t13DonationAmount();
+  field.value = amount > 0 ? String(amount) : "";
+}
+
+function handleT13DonationAmountChange(event) {
+  if (!state) return;
+  const next = lifeInsuranceCapitalFromField(event.target.value);
+  const previous = round2(Math.max(0, Number(state.t13DonationAmount || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.t13DonationAmount = next;
+  saveScenarioSettings();
+  renderT13DonationVsInheritance();
+}
+
+// T13 (BACKLOG_CONTABILIDADCASA_2_0.md): proyección educativa "si tú ahorraras igual que nosotros"
+// para la vista de hijos (MDX1). Motor puro de anualidad compuesta mensual sobre tres supuestos
+// declarados por el hogar, nunca inferidos de la cartera real ni del ahorro real del hogar (lo que
+// el hogar consigue no tiene por qué representar lo que el hijo conseguiría, ni al revés) — mismo
+// criterio que el resto de supuestos fiscales/de rentabilidad de la app (A15-1, FC4): sin los tres
+// declarados (aportación mensual, rentabilidad anual esperada, años), no calcula nada.
+function t13ChildSavingsProjection({ monthlyAmount, annualReturnPct, years } = {}) {
+  const amount = Number(monthlyAmount || 0);
+  const returnPct = Number(annualReturnPct || 0);
+  const horizon = Number(years || 0);
+  if (!(amount > 0) || !(horizon > 0)) return { calculable: false };
+  const months = Math.round(horizon * 12);
+  const monthlyRate = returnPct / 100 / 12;
+  const projectedValue = monthlyRate === 0
+    ? amount * months
+    : amount * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+  return {
+    calculable: true,
+    monthlyAmount: round2(amount),
+    annualReturnPct: round2(returnPct),
+    years: round2(horizon),
+    totalContributed: round2(amount * months),
+    projectedValue: round2(projectedValue),
+  };
+}
+
+function t13KidsSummaryExtras() {
+  return {
+    periodicHelp: Number(state?.t13PeriodicHelpAmount || 0) > 0 ? Number(state.t13PeriodicHelpAmount) : null,
+    projection: t13ChildSavingsProjection({
+      monthlyAmount: state?.t13ChildMonthlyAmount,
+      annualReturnPct: state?.t13ChildAnnualReturnPct,
+      years: state?.t13ChildYears,
+    }),
+  };
+}
+
+function syncT13KidsSummaryControls() {
+  [
+    ["t13PeriodicHelpAmount", state?.t13PeriodicHelpAmount],
+    ["t13ChildMonthlyAmount", state?.t13ChildMonthlyAmount],
+    ["t13ChildYears", state?.t13ChildYears],
+  ].forEach(([id, value]) => {
+    const field = qs(id);
+    if (!field || document.activeElement === field) return;
+    const amount = Number(value || 0);
+    field.value = amount > 0 ? String(amount) : "";
+  });
+  const pctField = qs("t13ChildAnnualReturnPct");
+  if (pctField && document.activeElement !== pctField) {
+    const pct = Number(state?.t13ChildAnnualReturnPct || 0);
+    pctField.value = pct > 0 ? String(pct) : "";
+  }
+}
+
+function handleT13KidsSummaryFieldChange(field, { max = Infinity } = {}) {
+  return (event) => {
+    if (!state) return;
+    const next = field === "t13ChildAnnualReturnPct"
+      ? fiscalNumericFieldFromValue(event.target.value, { max })
+      : lifeInsuranceCapitalFromField(event.target.value);
+    const previous = round2(Math.max(0, Number(state[field] || 0)));
+    event.target.value = next > 0 ? String(next) : "";
+    if (next === previous) return;
+    state[field] = next;
+    saveScenarioSettings();
+  };
 }
 
 // LPX1: capital objetivo de independencia financiera. La tasa de retirada la declara el hogar (sin
@@ -28767,6 +28937,9 @@ function renderAjustes() {
   renderLpx2NetWorthRunway();
   syncLpx4ExemptAmountControl();
   renderLpx4SuccessionTaxEstimate();
+  syncT13DonationAmountControl();
+  renderT13DonationVsInheritance();
+  syncT13KidsSummaryControls();
   renderGob9ResiliencePanel();
   // I1 (Contabilidadcasa 2.0): Cartera/Rebalanceo/Fiscal de inversión/Jubilación (IV1/IV6/INV*/FC3-
   // FC4/GOB11...) se movieron al hub Inversión — renderInversionCartera()/Rebalanceo()/Fiscal()/
@@ -37703,8 +37876,14 @@ async function init() {
     removeIrpfBracketScale(removeButton.dataset.irpfScaleRemove);
     renderIrpfBracketScales();
     renderLpx4SuccessionTaxEstimate();
+    renderT13DonationVsInheritance();
   });
   qs("lpx4ExemptAmount")?.addEventListener("change", handleLpx4ExemptAmountChange);
+  qs("t13DonationAmount")?.addEventListener("change", handleT13DonationAmountChange);
+  qs("t13PeriodicHelpAmount")?.addEventListener("change", handleT13KidsSummaryFieldChange("t13PeriodicHelpAmount"));
+  qs("t13ChildMonthlyAmount")?.addEventListener("change", handleT13KidsSummaryFieldChange("t13ChildMonthlyAmount"));
+  qs("t13ChildAnnualReturnPct")?.addEventListener("change", handleT13KidsSummaryFieldChange("t13ChildAnnualReturnPct", { max: 100 }));
+  qs("t13ChildYears")?.addEventListener("change", handleT13KidsSummaryFieldChange("t13ChildYears"));
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);

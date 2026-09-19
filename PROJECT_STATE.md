@@ -80,6 +80,61 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (211): `T13` — herencia financiera con aportación equivalente de los padres
+
+- **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` y seguir con la siguiente tarea
+  sin bloqueo real. De las dos que quedaban (`T9`, `T9` aparte por su perfil de riesgo tipo `T14`, y
+  `T13`), `T13` llevaba la nota "a la espera de confirmar con el hogar si el escenario sigue siendo
+  real" — igual criterio que `I6`-`I8`. Puesta la pregunta delante del hogar antes de tocar código:
+  **el hogar confirmó que el escenario es real (un hijo de 21 años)** y, preguntado qué significa
+  concretamente "aportación equivalente", eligió las tres interpretaciones a la vez: donación en vida
+  vs. herencia futura (con coste fiscal), una ayuda periódica declarada, y una simulación educativa
+  "si tú ahorraras igual que nosotros". Esto amplía el alcance real frente al esfuerzo `M`/beneficio
+  `Bajo` declarado en el backlog — documentado aquí para quien lo revise después.
+- **Donación en vida vs. herencia futura**: nuevo comparador informativo en Herramientas avanzadas ›
+  Patrimonio, junto al aviso fiscal de `LPX4` (`t13DonationVsInheritanceEstimate()`, `app.js`).
+  Reutiliza tal cual el motor de `LPX4` — `lpNetWorthSnapshot()`, la escala "succession" de `A15-2`
+  con fuente completa, `lpx4ExemptAmount()` — nunca un registro fiscal propio. "Donar ahora" aplica la
+  escala sobre un importe hipotético declarado por el hogar (`t13DonationAmount`); "dejarlo en
+  herencia" **no proyecta un patrimonio futuro inventado** — calcula el coste marginal de ese importe
+  dentro del patrimonio de hoy (`quota(patrimonio) − quota(patrimonio − importe)`), con el aviso
+  explícito de que es una fotografía de hoy, no una promesa. Sin patrimonio calculable, sin escala con
+  fuente completa o sin importe declarado, no calcula ninguna cifra — mismo criterio de `LPX4`.
+  Informativa a propósito (mismo motivo que `LPX4`: comunidad autónoma, grupo de parentesco y
+  patrimonio preexistente del heredero, ninguno declarado en la app).
+- **Ayuda periódica declarada + proyección educativa de ahorro**: ambas extienden la vista para hijos
+  de `MDX1` (`redactKidsSummaryView()`, `canonical-share-link.js`) con dos campos opcionales más —
+  `periodicHelp` (una cifra que el hogar declara y quiere que el hijo vea) y `projection` (una
+  proyección de anualidad compuesta mensual, `t13ChildSavingsProjection()` en `app.js`, motor puro
+  nuevo — ningún engine existente simula el ahorro de una persona hipotética sin cartera real). Ambos
+  campos son `null` explícito sin declarar — el enlace generado para un hijo sin estos datos sale
+  exactamente igual que antes (sin cambio de comportamiento para quien no toca los campos nuevos).
+  Nuevos controles en Herramientas avanzadas › Datos, junto al generador de enlace de `A19-1`: ayuda
+  periódica, aportación mensual a simular, rentabilidad anual esperada y años — los tres últimos
+  **declarados por el hogar, nunca copiados de la cartera real ni del ahorro real del hogar** (lo que
+  el hogar consigue no representa lo que el hijo conseguiría). `share.html` (`renderKidsSummary`)
+  amplía sus dos líneas existentes con una tercera y cuarta condicionales, con el mismo aviso de "no
+  es una promesa de rendimiento".
+- **Validación**: `npm run verify` en verde: **4524/4524 pruebas** (65 nuevas: 19 de
+  `tests/t13-donacion-vs-herencia.test.cjs`, el resto ampliando `tests/mdx1-vista-educativa-hijos.test.cjs`
+  con las pruebas de `periodicHelp`/`projection`/`t13ChildSavingsProjection`/`t13KidsSummaryExtras`;
+  `tests/gob9-panel-resiliencia.test.cjs` actualizado para reflejar los dos repintados nuevos en el
+  lote de `renderAjustes`), `test:a11y` (1380 IDs únicos), `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke` sin errores. Verificación en navegador real (Playwright contra
+  `dist/`): sin activos ni escala declarados, el comparador de donación/herencia muestra el aviso
+  correcto sin calcular nada; con un activo de 500.000 € y la escala de sucesiones registrada, un
+  importe hipotético de 150.000 € da 10.000 € (donar ahora) frente a 15.000 € (coste marginal en
+  herencia, sobre un patrimonio neto de 488.000 € tras la deuda ya cargada en el demo) — cifras
+  consistentes con el cálculo ya verificado de `LPX4` sobre el mismo patrimonio y escala. Los cuatro
+  campos nuevos de la vista para hijos persisten correctamente (`mdx1KidsSummarySource()` devolvió
+  `periodicHelp: 80` y una proyección de 100 €/mes al 5 % durante 10 años = 15.528,23 € con
+  12.000 € de aportación propia). `renderKidsSummary()` de `share.html` verificado aparte con un
+  sandbox Node (sin Supabase real disponible en este entorno): con los campos nuevos en `null`
+  reproduce exactamente el HTML de antes de esta sesión; con ambos declarados añade las dos frases
+  nuevas sin tocar las dos existentes. Cero errores de consola en ambas comprobaciones de navegador.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+
 ## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría, `P2` — tooltip por mes en el cono de incertidumbre, `T10` — PWA instalable con deuda cara, `T11` — foto y geolocalización en la ficha de gasto
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 4) y proponer al

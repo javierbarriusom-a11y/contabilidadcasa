@@ -4088,6 +4088,20 @@
               <div class="e19-kpi-note" id="lpx4SuccessionTaxEstimate"></div>
             </article>
 
+            <!-- T13 (BACKLOG_CONTABILIDADCASA_2_0.md): comparador informativo "donar ahora vs.
+                 dejarlo en herencia", sobre la misma escala/mínimo exento que LPX4 arriba. Nunca
+                 decide — solo compara el coste fiscal de hoy de las dos rutas para un importe
+                 hipotético que declara el hogar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">¿Donar ahora o dejarlo en herencia?</h3>
+              <p class="e19-kpi-note">Informativo: compara el coste fiscal de hoy de las dos rutas para un importe hipotético — nunca decide ni sustituye asesoría fiscal real. Usa la misma escala de Sucesiones y Donaciones declarada arriba en <a href="#ajustes">Ajustes → Fiscal</a>.</p>
+              <label class="month-picker">
+                <span>Importe hipotético a donar o heredar (€)</span>
+                <input id="t13DonationAmount" type="number" min="0" step="1000" inputmode="decimal" placeholder="0" />
+              </label>
+              <div class="e19-kpi-note" id="t13DonationVsInheritance"></div>
+            </article>
+
             <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
                  gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
                  hogar). Regla de la renta perpetua, sin proyección de mercado. -->
@@ -4379,6 +4393,29 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
               <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
               <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
+              <!-- T13 (BACKLOG_CONTABILIDADCASA_2_0.md): dos añadidos opcionales a la vista "Vista
+                   para hijos" de arriba, ambos declarados por el hogar, nunca inventados. Sin
+                   declarar ninguno, el enlace se genera exactamente igual que antes (MDX1, sin
+                   cambios). Solo se incluyen en el enlace si se elige "Vista para hijos" arriba. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ayuda periódica declarada (€, opcional — solo para "Vista para hijos")</span>
+                  <input id="t13PeriodicHelpAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Aportación mensual del hijo/a a simular (€, opcional)</span>
+                  <input id="t13ChildMonthlyAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Rentabilidad anual esperada (%, opcional)</span>
+                  <input id="t13ChildAnnualReturnPct" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Años a simular (opcional)</span>
+                  <input id="t13ChildYears" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <p class="e19-kpi-note">La proyección de ahorro es educativa: una rentabilidad que declaras tú, no la de tu cartera real ni una promesa de mercado.</p>
             </article>
 
             <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,

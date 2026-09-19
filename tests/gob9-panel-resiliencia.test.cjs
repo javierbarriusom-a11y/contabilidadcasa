@@ -148,6 +148,6 @@ test("la tarjeta de resiliencia vive justo debajo del runway patrimonial complet
   assert.ok(lpx2Pos >= 0 && gob9Pos > lpx2Pos);
 });
 
-test("el panel de resiliencia se renderiza en el arranque de la app, justo después del runway patrimonial (con el aviso fiscal de LPX4 entre medias)", () => {
-  assert.match(appSource, /renderLpx2NetWorthRunway\(\);\s*\n\s*syncLpx4ExemptAmountControl\(\);\s*\n\s*renderLpx4SuccessionTaxEstimate\(\);\s*\n\s*renderGob9ResiliencePanel\(\);/);
+test("el panel de resiliencia se renderiza en el arranque de la app, justo después del runway patrimonial (con el aviso fiscal de LPX4 y el comparador de T13 entre medias)", () => {
+  assert.match(appSource, /renderLpx2NetWorthRunway\(\);\s*\n\s*syncLpx4ExemptAmountControl\(\);\s*\n\s*renderLpx4SuccessionTaxEstimate\(\);\s*\n\s*syncT13DonationAmountControl\(\);\s*\n\s*renderT13DonationVsInheritance\(\);\s*\n\s*syncT13KidsSummaryControls\(\);\s*\n\s*renderGob9ResiliencePanel\(\);/);
 });

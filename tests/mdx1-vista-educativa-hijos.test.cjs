@@ -46,13 +46,40 @@ test("redactKidsSummaryView · con las dos cifras, las redondea sin exponer nada
   assert.equal(result.schemaId, `${Share.SCHEMA_ID}/kids-summary-v1`);
   assert.equal(result.cushion, 1234.57);
   assert.equal(result.netWorth, 98765.43);
-  assert.equal(Object.keys(result).sort().join(","), "cushion,generatedAt,netWorth,schemaId");
+  assert.equal(Object.keys(result).sort().join(","), "cushion,generatedAt,netWorth,periodicHelp,projection,schemaId");
 });
 
 test("redactKidsSummaryView · sin patrimonio calculable, null explícito — nunca un cero inventado", () => {
   const result = Share.redactKidsSummaryView({ cushion: 500, netWorth: null });
   assert.equal(result.cushion, 500);
   assert.equal(result.netWorth, null);
+});
+
+// T13 (BACKLOG_CONTABILIDADCASA_2_0.md): dos campos opcionales más, ambos declarados por el hogar.
+
+test("redactKidsSummaryView · sin periodicHelp/projection declarados, ambos quedan null — nunca inventados", () => {
+  const result = Share.redactKidsSummaryView({ cushion: 500, netWorth: 1000 });
+  assert.equal(result.periodicHelp, null);
+  assert.equal(result.projection, null);
+});
+
+test("redactKidsSummaryView · periodicHelp declarado se redondea", () => {
+  const result = Share.redactKidsSummaryView({ cushion: 500, netWorth: 1000, periodicHelp: 99.996 });
+  assert.equal(result.periodicHelp, 100);
+});
+
+test("redactKidsSummaryView · projection no calculable (calculable:false) se redacta como null, nunca a medias", () => {
+  const result = Share.redactKidsSummaryView({ cushion: 500, netWorth: 1000, projection: { calculable: false } });
+  assert.equal(result.projection, null);
+});
+
+test("redactKidsSummaryView · projection calculable se redacta completa y redondeada", () => {
+  const result = Share.redactKidsSummaryView({
+    cushion: 500,
+    netWorth: 1000,
+    projection: { calculable: true, monthlyAmount: 100, annualReturnPct: 5.001, years: 10, totalContributed: 12000, projectedValue: 15528.227 },
+  });
+  assert.deepEqual(result.projection, { monthlyAmount: 100, annualReturnPct: 5, years: 10, totalContributed: 12000, projectedValue: 15528.23 });
 });
 
 test("VIEW_TYPES/buildSharePayload · kids-summary es una vista válida del mecanismo de A19-1", () => {
@@ -66,6 +93,7 @@ test("mdx1KidsSummarySource · lee el colchón de las cuentas y el patrimonio ne
   const context = {
     accountBalancesFromState: () => ({ caixa: 1000, mediolanum: 500, total: 1500 }),
     lpNetWorthSnapshot: () => ({ calculable: true, netWorth: 42000 }),
+    t13KidsSummaryExtras: () => ({ periodicHelp: null, projection: { calculable: false } }),
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("mdx1KidsSummarySource"), context);
@@ -78,10 +106,83 @@ test("mdx1KidsSummarySource · sin patrimonio calculable (sin activos declarados
   const context = {
     accountBalancesFromState: () => ({ total: 1500 }),
     lpNetWorthSnapshot: () => ({ calculable: false }),
+    t13KidsSummaryExtras: () => ({ periodicHelp: null, projection: { calculable: false } }),
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("mdx1KidsSummarySource"), context);
   assert.equal(context.mdx1KidsSummarySource().netWorth, null);
+});
+
+test("mdx1KidsSummarySource · delega periodicHelp/projection en t13KidsSummaryExtras(), sin recalcularlos", () => {
+  const context = {
+    accountBalancesFromState: () => ({ total: 1500 }),
+    lpNetWorthSnapshot: () => ({ calculable: true, netWorth: 42000 }),
+    t13KidsSummaryExtras: () => ({ periodicHelp: 50, projection: { calculable: true, monthlyAmount: 20 } }),
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("mdx1KidsSummarySource"), context);
+  const result = context.mdx1KidsSummarySource();
+  assert.equal(result.periodicHelp, 50);
+  assert.deepEqual(result.projection, { calculable: true, monthlyAmount: 20 });
+});
+
+// T13: proyección educativa de ahorro y sus dos funciones de composición.
+
+function round2(value) {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+test("t13ChildSavingsProjection · sin aportación mensual o sin años, no calcula nada", () => {
+  const context = { round2 };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("t13ChildSavingsProjection"), context);
+  assert.equal(context.t13ChildSavingsProjection({ monthlyAmount: 0, annualReturnPct: 5, years: 10 }).calculable, false);
+  assert.equal(context.t13ChildSavingsProjection({ monthlyAmount: 100, annualReturnPct: 5, years: 0 }).calculable, false);
+  assert.equal(context.t13ChildSavingsProjection({}).calculable, false);
+});
+
+test("t13ChildSavingsProjection · con rentabilidad 0%, es una suma simple de aportaciones (sin interés compuesto que fabricar)", () => {
+  const context = { round2 };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("t13ChildSavingsProjection"), context);
+  const result = context.t13ChildSavingsProjection({ monthlyAmount: 100, annualReturnPct: 0, years: 2 });
+  assert.equal(result.calculable, true);
+  assert.equal(result.totalContributed, 2400);
+  assert.equal(result.projectedValue, 2400);
+});
+
+test("t13ChildSavingsProjection · con rentabilidad positiva, aplica anualidad compuesta mensual", () => {
+  const context = { round2 };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("t13ChildSavingsProjection"), context);
+  const result = context.t13ChildSavingsProjection({ monthlyAmount: 100, annualReturnPct: 6, years: 1 });
+  assert.equal(result.calculable, true);
+  assert.equal(result.totalContributed, 1200);
+  // FV = 100 * ((1.005^12 - 1) / 0.005) ≈ 1233.56
+  assert.equal(result.projectedValue, 1233.56);
+  assert.ok(result.projectedValue > result.totalContributed, "con rentabilidad positiva, el proyectado supera lo aportado");
+});
+
+test("t13KidsSummaryExtras · sin nada declarado por el hogar, periodicHelp null y projection no calculable", () => {
+  const context = {
+    state: {},
+    t13ChildSavingsProjection: () => ({ calculable: false }),
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("t13KidsSummaryExtras"), context);
+  const result = context.t13KidsSummaryExtras();
+  assert.equal(result.periodicHelp, null);
+  assert.equal(result.projection.calculable, false);
+});
+
+test("t13KidsSummaryExtras · con ayuda periódica declarada, la pasa tal cual", () => {
+  const context = {
+    state: { t13PeriodicHelpAmount: 75 },
+    t13ChildSavingsProjection: () => ({ calculable: false }),
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("t13KidsSummaryExtras"), context);
+  assert.equal(context.t13KidsSummaryExtras().periodicHelp, 75);
 });
 
 test("app.js: saveA19ShareLink usa mdx1KidsSummarySource() como origen de datos para la vista kids-summary", () => {
