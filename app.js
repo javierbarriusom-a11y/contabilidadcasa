@@ -20382,6 +20382,41 @@ function iv2XirrLabel(result) {
   return `XIRR ${result.ratePct >= 0 ? "+" : ""}${result.ratePct}% anual`;
 }
 
+// I12 (Contabilidadcasa 2.0): aviso de posición sin revisar en más de 12 meses, sobre la convicción
+// ya declarada por posición (LEV6, convictionScore). Ningún motor nuevo — reutiliza tal cual
+// rebalanceCalendarReviewStatus() (INV17) con un intervalo fijo de 12 meses en vez del propio de
+// rebalanceo: mismo cálculo, otra pregunta ("¿sigues de acuerdo con esta posición?" en vez de
+// "¿toca revisar el reparto global?"). Solo aplica a posiciones con convictionScore declarado — sin
+// convicción declarada no hay nada que "seguir revisando".
+// Alcance reducido a propósito: la cartera solo permite dar de alta o quitar una posición, nunca
+// editarla (ni aquí ni en ningún otro sitio) — una posición dada de alta sin convictionScore no
+// puede declararlo después sin borrar y volver a crear la posición entera (perdiendo aportaciones y
+// ventas ya registradas). Construir esa edición general es un alcance mayor que esta tarea, así que
+// el botón de "revisar" solo aparece cuando la convicción ya se declaró al dar de alta.
+function i12ConvictionReviewHtml(position) {
+  if (position.convictionScore === null) return "";
+  const engine = window.FinanceCanonicalPortfolio;
+  const status = engine?.rebalanceCalendarReviewStatus({ lastReviewedAt: position.convictionReviewedAt || "", intervalMonths: 12 });
+  if (!status) return "";
+  const button = `<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-mark-conviction-reviewed="${escapeHtml(position.id)}">Marcar revisada hoy</button>`;
+  if (!status.reviewed) {
+    return `<p class="e19-kpi-note warning">Convicción ${position.convictionScore}/5, nunca confirmada. ${button}</p>`;
+  }
+  if (status.due) {
+    return `<p class="e19-kpi-note warning">Convicción ${position.convictionScore}/5, sin revisar desde hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}). ${button}</p>`;
+  }
+  return `<p class="e19-kpi-note positive">Convicción ${position.convictionScore}/5, revisada hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}). ${button}</p>`;
+}
+
+function markIv1PositionConvictionReviewed(positionId) {
+  const next = iv1PositionsList().map((position) =>
+    position.id === positionId ? { ...position, convictionReviewedAt: new Date().toISOString().slice(0, 10) } : position,
+  );
+  saveIv1PositionsList(next);
+  renderIv1PositionList();
+  announceStatus("Convicción marcada como revisada hoy.");
+}
+
 function renderIv1PositionList() {
   const list = qs("iv1PositionList");
   if (!list) return;
@@ -20400,7 +20435,7 @@ function renderIv1PositionList() {
     const averageCostNote = ivx7AverageCostLabel(position);
     const feeCostNote = ivx4FeeCostLabel(position);
     const totalCostNote = inv15TotalCostOfOwnershipLabel(position);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span>${i12ConvictionReviewHtml(position)}<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -37218,8 +37253,10 @@ async function init() {
   });
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
-    if (!removeButton) return;
-    removeIv1Position(removeButton.dataset.iv1PositionRemove);
+    if (removeButton) { removeIv1Position(removeButton.dataset.iv1PositionRemove); return; }
+    const markReviewedButton = event.target.closest("[data-iv1-position-mark-conviction-reviewed]");
+    if (!markReviewedButton) return;
+    markIv1PositionConvictionReviewed(markReviewedButton.dataset.iv1PositionMarkConvictionReviewed);
   });
   qs("iv6TargetSave")?.addEventListener("click", saveIv6Targets);
   qs("inv17ReviewIntervalMonths")?.addEventListener("change", saveInv17RebalanceReviewInterval);
