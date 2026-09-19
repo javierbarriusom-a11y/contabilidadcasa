@@ -84,8 +84,8 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 | ✅ `P8` | Detector de «gasto fantasma» (subida de precio interanual + nudge) | M | Medio | **Cerrada (sesión 209).** Extiende `A16-3`/`detectRecurringSubscriptions` (`canonical-forecast.js`) tal como pedía la nota: ese motor ya agrupa cargos por concepto + importe exacto a propósito (una subida de tarifa crea un grupo nuevo, nunca fusiona el histórico), pero no vinculaba esos grupos entre sí. Nuevo `canonical-ghost-expense-detector.js` (`FinanceCanonicalGhostExpenseDetector.ghostExpenseCandidates()`): agrupa los resultados ya detectados por `pattern`, y cuando encuentra dos o más precios del mismo concepto con meses vistos sin solape, compara el más antiguo con el más reciente — sin motor de agrupación propio. Nudge en dos sitios: sexta fuente de `decisionInboxItems()` (`app.js`, T3 ya había dejado el hueco reservado) y nota junto a "Recurrentes y suscripciones detectadas" en Análisis (`analisisGhostExpenseNote`, sobre el mismo `detected` que ya calculaba `analisisSubscriptionsResult`, sin recalcular). |
 | ✅ `P9` | Calendario financiero único (hipoteca, seguros, comisiones, fiscal, supuestos) | M | Alto | **Cerrada (sesión 200).** `financialCalendar()` (E15) ya unificaba deuda/hipoteca, seguros (`SP1`), objetivos, revisiones, fiscal (Renta) y aportaciones de cartera (`IV3`) — la única salida era un `.ics` descargable, sin ninguna vista dentro de la app. Añadidas las dos fuentes que faltaban frente a la nota original, ninguna con fecha futura real así que aparecen solo en el mes en curso: comisiones de mantenimiento en riesgo (`TT4`) y supuestos caducados (`PVC15`, el mismo motor de `P5`). Nueva tarjeta de solo lectura en Ajustes junto a «Exportar», próximos 12 meses con eventos reales. Construcción del input centralizada en `ajustesFinancialCalendarInput()`, reutilizada por el `.ics`, el widget («próximo evento») y la tarjeta nueva — antes cada consumidor lo armaba por separado. Ningún motor nuevo. |
 | ⏳ `P10` | «Ajusta este supuesto en una frase» — interino de reforecast por lenguaje natural | M | Medio | Formulario reducido sobre el motor ya existente; sustituible cuando `A5-1` esté en producción real. |
-| ⏳ `P11` | Comparativa contra el mismo periodo del año anterior (no solo mes anterior) | M | Medio | Separa estacionalidad estructural (colegio, vacaciones) de desviación real. |
-| ⏳ `P12` | Informe mensual en una página («board pack» doméstico) | M | Medio | Extiende el informe trimestral familiar (`GOB14`) a cadencia mensual. |
+| ✅ `P11` | Comparativa contra el mismo periodo del año anterior (no solo mes anterior) | M | Medio | **Cerrada (sesión 210).** Nueva tarjeta «Mismo mes, año anterior» en Análisis, junto a «Comparar dos momentos» (UX3): a diferencia de UX3 (dos meses cualesquiera, en total), aquí siempre es el mes en curso contra el mismo mes 12 meses antes, por categoría — para separar lo que se repite cada año (colegio, vacaciones) de una desviación real. `budgetExpenseTransactions()` (ya usado por Presupuesto del mes/P8/revisión anual) da el gasto real de cada categoría en los dos meses, sin agrupación propia. Reutiliza el umbral de desviación por partida ya declarado en Ajustes (`partidaDeviationThreshold`, V6-2, regla transversal 09: un umbral, no uno por pantalla); sin umbral configurado, o sin gasto el año pasado en esa categoría (categoría nueva), se muestran las cifras sin veredicto en vez de fabricar un «desviación real»/«estable» sin base. |
+| ✅ `P12` | Informe mensual en una página («board pack» doméstico) | M | Medio | **Cerrada (sesión 210).** Extiende `GOB14` (informe trimestral) a cadencia mensual sin tocarlo: mismo modelo ejecutivo con procedencia (`unifiedActionCenterModel`, A2-6) y el mismo cuerpo de informe, factorizado en `gob14ReportBodyHtml()` y reutilizado por ambos — solo cambia el periodo que lo etiqueta (el mes en curso en vez del trimestre). Nuevo botón «Descargar informe mensual» junto al trimestral en Herramientas › Datos, mismo mecanismo de «PDF de una página» (`#cierrePrintEvidence` + `window.print()`). |
 
 ## 2. Inversiones (`I1`-`I12`, 11 accionables + 1 descartada)
 
@@ -201,8 +201,20 @@ original). **El hogar decidió aparcar `D1`** (mismo criterio que `I9`: sin cons
 a la espera de que confirme si el sandbox visual sigue teniéndole valor) y construir **`D8` ✅**
 (reparto por titular de la reestructuración conjunta), sin decisión bloqueante — reutiliza el mapa
 de titularidad que ya usa `GOB19` sobre el plan conjunto ya calculado por DI5, sin motor nuevo (ver
-su nota en §3). Quedan sin bloqueo real y sin construir: `P2`, `P11`, `P12` (Previsión), `T9`, `T10`,
-`T11`, `T13` (Transversales).
+su nota en §3). **Sesión 210**: propuesto un orden de prioridad al hogar para el resto de la cola sin
+bloqueo (`P2`/`P11`/`P12`/`T9`/`T10`/`T11`/`T13`) razonado por riesgo de regresión y encaje con lo ya
+construido, no solo esfuerzo/beneficio — `T9` (mobile-first, la única `L` de la cola, mismo perfil de
+riesgo que tuvo `T14`) se deja aparte para incrementos propios auditados uno a uno, y `T13` al final a
+la espera de confirmar con el hogar si el escenario sigue siendo real (mismo criterio que `I6`-`I8`).
+El hogar confirmó empezar por **`P12` ✅** y **`P11` ✅**, ambas construidas en la misma sesión.
+`P12` extiende `GOB14` (informe trimestral) a cadencia mensual sin tocarlo: mismo modelo ejecutivo
+con procedencia (`unifiedActionCenterModel`), cuerpo de informe compartido (`gob14ReportBodyHtml()`),
+solo cambia el periodo que lo etiqueta. `P11` añade «Mismo mes, año anterior» en Análisis, junto a
+UX3: por categoría, no solo en total, para separar estacionalidad estructural de desviación real —
+reutiliza el umbral de desviación por partida ya declarado en Ajustes (V6-2, regla transversal 09) en
+vez de inventar uno nuevo. Detalle completo de ambas en sus filas de §1. Quedan sin bloqueo real y sin
+construir: `P2`, `T10`, `T11` (Previsión/Transversales, siguientes en el orden propuesto), `T9`
+(aparte, incrementos propios) y `T13` (a la espera de confirmación del hogar).
 **Condicionadas (decisión previa o de terceros):** `I9` (aplazada, ver arriba), `D1` (aparcada, ver
 arriba), `I2`/`I3` (histórico de valoraciones), `I6`/`I7`/`I8` (confirmar con el hogar si su
 situación real las justifica), `P4`/`P10` (interinos de push e IA, a sustituir cuando lleguen

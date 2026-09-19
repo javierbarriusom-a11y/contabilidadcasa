@@ -132,7 +132,7 @@ test("gob14QuarterlyReportContext · sin lectura ejecutiva calculable, cae a val
 // --- gob14QuarterlyReportPrintHtml -----------------------------------------------------------
 
 test("gob14QuarterlyReportPrintHtml · pinta el trimestre, las cifras con su procedencia y las decisiones prioritarias", () => {
-  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14MetricValueText"], baseHelpers());
+  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14ReportBodyHtml", "gob14MetricValueText"], baseHelpers());
   const html = context.gob14QuarterlyReportPrintHtml({
     quarterLabel: "T3 2026 (jul-sep)",
     generatedAt: "2026-09-13",
@@ -150,7 +150,7 @@ test("gob14QuarterlyReportPrintHtml · pinta el trimestre, las cifras con su pro
 });
 
 test("gob14QuarterlyReportPrintHtml · sin decisiones prioritarias lo dice, en vez de una lista vacía", () => {
-  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14MetricValueText"], baseHelpers());
+  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14ReportBodyHtml", "gob14MetricValueText"], baseHelpers());
   const html = context.gob14QuarterlyReportPrintHtml({
     quarterLabel: "T3 2026 (jul-sep)",
     generatedAt: "2026-09-13",
@@ -162,7 +162,7 @@ test("gob14QuarterlyReportPrintHtml · sin decisiones prioritarias lo dice, en v
 });
 
 test("gob14QuarterlyReportPrintHtml · con cifras de confianza baja, avisa cuántas en vez de darlas por buenas", () => {
-  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14MetricValueText"], baseHelpers());
+  const context = sandboxWith(["gob14QuarterlyReportPrintHtml", "gob14ReportBodyHtml", "gob14MetricValueText"], baseHelpers());
   const html = context.gob14QuarterlyReportPrintHtml({
     quarterLabel: "T3 2026 (jul-sep)",
     generatedAt: "2026-09-13",
@@ -179,7 +179,7 @@ test("downloadGob14QuarterlyReport · pinta el informe en el contenedor comparti
   const printCalls = [];
   const bodyClasses = new Set();
   const container = { innerHTML: "" };
-  const context = sandboxWith(["downloadGob14QuarterlyReport", "gob14QuarterlyReportContext", "gob14QuarterlyReportPrintHtml", "gob14MetricValueText", "gob14QuarterLabel"], baseHelpers({
+  const context = sandboxWith(["downloadGob14QuarterlyReport", "gob14QuarterlyReportContext", "gob14QuarterlyReportPrintHtml", "gob14ReportBodyHtml", "gob14MetricValueText", "gob14QuarterLabel"], baseHelpers({
     unifiedActionCenterModel: () => ({ readModel: { metrics: {}, decisions: [], quality: { complete: true, missingMetadata: [], lowConfidence: [] } } }),
     qs: (id) => (id === "cierrePrintEvidence" ? container : null),
     document: { body: { classList: { add: (cls) => bodyClasses.add(cls), remove: (cls) => bodyClasses.delete(cls) } } },
@@ -193,7 +193,7 @@ test("downloadGob14QuarterlyReport · pinta el informe en el contenedor comparti
 
 test("downloadGob14QuarterlyReport · sin el contenedor de impresión disponible, no llama a print", () => {
   const printCalls = [];
-  const context = sandboxWith(["downloadGob14QuarterlyReport", "gob14QuarterlyReportContext", "gob14QuarterlyReportPrintHtml", "gob14MetricValueText", "gob14QuarterLabel"], baseHelpers({
+  const context = sandboxWith(["downloadGob14QuarterlyReport", "gob14QuarterlyReportContext", "gob14QuarterlyReportPrintHtml", "gob14ReportBodyHtml", "gob14MetricValueText", "gob14QuarterLabel"], baseHelpers({
     unifiedActionCenterModel: () => ({ readModel: null }),
     qs: () => null,
     document: { body: { classList: { add: () => {}, remove: () => {} } } },
