@@ -364,25 +364,65 @@ de aquí en la siguiente regeneración, no al momento.
     580 líneas.
 - **Publicado (séptimo incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
   fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Resultado acumulado de la sesión (siete incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
-  de la sesión 205) a 37.330 líneas (-10,3%). Siete fragmentos nuevos/ampliados:
+- **`T14` — octavo incremento, continuación de la misma sesión (retomada el 19 de septiembre de
+  2026 tras un `/compact`)**: el hogar pidió seguir con `T14`. Se auditaron los cuatro candidatos
+  dejados pendientes al cerrar el séptimo incremento — ninguno pertenece al cluster grande ya
+  cerrado, así que se repitió la auditoría completa desde cero para cada uno:
+  - **`renderReconciliation` (`#reconciliation`) queda bloqueada de forma permanente, mismo patrón
+    que "Nueva vida" (simulación)/Agente de ahorro/Visual Detail**: `closeCurrentMonthTransaction`/
+    `reopenLatestMonthTransaction` la llaman sin ninguna guarda de pantalla activa tras cerrar o
+    reabrir un mes — y esas dos funciones están cableadas no solo desde el botón propio de
+    `#reconciliation` (`closeCurrentMonth`), sino también desde `conciliarClose`, un botón dentro de
+    `#conciliar` (`views/cierre.js`, ya fragmento lazy independiente). Cerrar el mes desde Conciliar
+    sin haber visitado antes Reconciliación rompería con `ReferenceError` si `renderReconciliation`
+    viviera en un fragmento propio. Se queda entera en `app.js` — cuarto caso confirmado de este
+    anti-patrón, no una reubicación pura sin añadir una guarda de hash (cambio de comportamiento
+    fuera de alcance).
+  - **`renderE14bPanel` (`#debt-roadmap`) y el cluster `renderCuadroMandos`/
+    `renderCambiosPendientes`/`renderMapaCalor` no se auditaron a fondo esta vez** porque
+    `renderAsesorDecision` resultó ser el candidato más pequeño y limpio de los cuatro — quedan
+    para el siguiente incremento, sin descartar ni confirmar todavía si tienen el mismo problema.
+  - **Construido: "Asesor · decisión abierta" (`#asesor-decision`)**, una sola función
+    (`renderAsesorDecision`, 100 líneas, bloque contiguo). Las otras dos funciones del mismo bloque
+    de comentarios (`asesorDecisionOpenOffers`, `asesorDecisionFundingHtml`) parecían parte del
+    mismo conjunto pero se quedan en `app.js`: `asesorDecisionOpenOffers` la llama
+    `renderHomeDashboard` sin guarda (construye la lista de decisiones de Hoy, V1-2) y ambas las
+    reutiliza `renderDeudaRuta`, que ya vive en `views/deuda.js` desde el primer incremento (tarjeta
+    «oferta en curso» de Deuda · Ruta, V3-4) — motor compartido real, detectado antes de escribir el
+    script de extracción gracias al grep de identificadores contra los tests (`tests/v3-4-oferta-en-
+    curso.test.cjs` documenta literalmente esa reutilización).
+  - **Sin tests afectados**: ningún fichero de test referenciaba `renderAsesorDecision` en sí (solo
+    a `asesorDecisionOpenOffers`/`asesorDecisionFundingHtml`, ambas sin moverse).
+  - **Sin sorpresas en `npm run verify`**: **4379/4379** en verde a la primera.
+  - **Validación en navegador real**: `#asesor-decision` visitado en primer lugar en pestaña nueva
+    (sin pasar antes por `#debt-roadmap` ni por Deuda) carga el fragmento (`200`,
+    `views/asesor-decision.js?v=20260919t14h1`), `renderAsesorDecision` queda definida en el ámbito
+    global tras la navegación, sin pantalla de error genérica ni errores de consola nuevos frente a
+    la carga base (los únicos avisos de consola son de red externa — proxy/CDN — idénticos con y sin
+    esta navegación).
+  - **Resultado**: `app.js` pasa de 37.332 a 37.233 líneas (-99). `views/asesor-decision.js` nuevo,
+    120 líneas (incluida la cabecera documental).
+- **Publicado (octavo incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
+  fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (ocho incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
+  de la sesión 205) a 37.233 líneas (-10,5%). Ocho fragmentos nuevos/ampliados:
   `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`,
   `views/virtual-advisor.js`, `views/executive-advisor.js`, `views/new-life-definitive.js`,
-  `views/debt-control.js`.
+  `views/debt-control.js`, `views/asesor-decision.js`.
 - **Pendiente para la siguiente sesión**: el cluster grande original queda del todo cerrado — tres
   pantallas movidas (Asesor virtual, Ejecutivo, Nueva vida definitiva), dos bloqueadas de forma
   permanente (Nueva vida simulación, Agente de ahorro) salvo decisión explícita del hogar de cambiar
-  su comportamiento de refresco cruzado. `visual-detail` sigue igual de bloqueado por el mismo
-  patrón (botón «descartar» de la barra de impacto de Plan). "Control de deuda" queda movido con la
+  su comportamiento de refresco cruzado. `visual-detail` y, desde este incremento,
+  `reconciliation` (cuarto caso) siguen igual de bloqueados por el mismo patrón de refresco eager
+  cruzado sin guarda de hash. "Control de deuda" y "Asesor · decisión abierta" quedan movidos con la
   misma auditoría de motor-se-queda/UI-se-mueve. Queda pendiente la investigación por separado del
-  cuelgue de «Comparar decisión» (tarea sugerida ya creada). Para el siguiente incremento de `T14`,
-  buscar candidatos fuera de este cluster: `renderAsesorDecision` (`#asesor-decision`, ~100 líneas),
-  `renderE14bPanel` (`#debt-roadmap`, ~38 líneas), `renderReconciliation` (~105 líneas),
-  `renderCambiosPendientes`/`renderMapaCalor`/`renderCuadroMandos` (~85-110 líneas cada una) son
-  candidatos sin auditar todavía — ninguno comprobado aún para el mismo patrón de refresco eager
-  cruzado que bloqueó tres pantallas ya vistas, así que repetir la auditoría completa antes de
-  extraer cualquiera. Repetir siempre la comprobación cruzada entre todos los `views/*.js`
-  existentes (ya son siete) antes de dar por cerrado cualquier incremento futuro, y re-verificar los
+  cuelgue de «Comparar decisión» (tarea sugerida ya creada, sesión 207). Para el siguiente
+  incremento de `T14`, quedan sin auditar todavía `renderE14bPanel` (`#debt-roadmap`, ~38 líneas) y
+  el cluster `renderCuadroMandos`/`renderCambiosPendientes`/`renderMapaCalor` (~85-110 líneas cada
+  una, comparten `cuadroMandosApply`/`visualDraftCells` entre sí y con el motor de Plan/Visual
+  Detail) — ninguno de los dos comprobado aún para el mismo patrón de refresco eager cruzado que ya
+  bloqueó cuatro pantallas. Repetir siempre la comprobación cruzada entre todos los `views/*.js`
+  existentes (ya son ocho) antes de dar por cerrado cualquier incremento futuro, y re-verificar los
   números de línea exactos con `grep -n` en cada nuevo incremento en vez de asumir cálculos previos.
   Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido
   con el hogar.
