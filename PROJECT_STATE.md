@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada (auditoría de cierre) y `T3`, bandeja única de decisiones en Hoy
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones) y `D9` (barra pagado/pendiente por contrato)
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -125,6 +125,33 @@ de aquí en la siguiente regeneración, no al momento.
   permanece oculta con los datos de demostración (ninguna de las cinco condiciones se dispara) y,
   forzando un elemento de prueba directamente sobre `decisionInboxItems()`/`renderDecisionInboxCard()`
   en la página ya cargada, la tarjeta se muestra con el marcado y el botón de navegación esperados.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
+- **`D9` — segundo incremento de la sesión, misma sesión 208: barra «pagado vs. pendiente» por
+  contrato**: `initialPrincipal`/`currentPrincipal` ya existían por contrato desde
+  `canonical-debt-contracts.js`, pero `initialPrincipal` solo se fijaba una vez al dar de alta el
+  contrato (`deudaContratosAddFormParse`) y no era corregible después. Añadido a
+  `DEBT_CONTRACT_EDITABLE_FIELDS` (`app.js`) con el mismo mecanismo de `debtContractOverrides` que ya
+  usan capital/TAE/cuota. Nueva columna «Progreso» en Deuda › Contratos (`deudaContratosProgressHtml`,
+  `views/deuda.js`): barra visual con lo pagado/pendiente y su porcentaje, o «Sin capital inicial
+  declarado» cuando `initialPrincipal` no se ha corregido — nunca un 0% fingido. **Alcance reducido a
+  propósito frente a la nota original del backlog**: el «ahorro de intereses marcado sobre la barra»
+  no se construye — verificado que la única cifra de ese tipo que calcula la app (AP1/`compareAmortizeVsInvest`,
+  APX6/`amortizeReduceQuotaVsTerm`) es el resultado de una simulación puntual con un importe de caja
+  elegido a mano en el comparador, no un dato pasivo y siempre disponible de la ficha del contrato;
+  pintarla aquí sin ese importe habría sido inventar una precisión que no existe.
+- **Validación**: `npm run verify` en verde: **4379/4379 pruebas** (tres canarios de
+  `tests/d1-d2-deuda-tabs-contratos.test.cjs` actualizados para incluir el nuevo campo/función —
+  mismo patrón que otros canarios de esta suite), `test:a11y`, `test:performance`, `build:site`,
+  `test:privacy`, `test:smoke` sin errores. Verificación en navegador real: Deuda › Contratos
+  visitada en primer lugar en una pestaña nueva muestra la columna «Progreso» con «Sin capital
+  inicial declarado» sobre los tres contratos de ejemplo (su `initialPrincipal` coincide con
+  `currentPrincipal`, correcto: la demo no declara historial); editando a mano el capital inicial de
+  un contrato por encima del pendiente, la barra recalcula al vuelo el importe y el % pagado
+  correctamente. Sin errores de consola nuevos (los dos/tres que aparecen —
+  `cdn.jsdelivr.net/npm/@supabase/supabase-js@2` bloqueado— son del sandbox de red de este entorno,
+  no del cambio).
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
 

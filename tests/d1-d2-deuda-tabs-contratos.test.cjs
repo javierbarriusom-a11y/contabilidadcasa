@@ -289,6 +289,8 @@ test("D-2/D-2d · los campos editables cubren entidad, tipo, número, cifras, pl
     "paymentStatus",
     // DEB5 (Oleada 3, Bloque 4): deducción fiscal declarada por contrato.
     "fiscalDeductionPct",
+    // D9 (Contabilidadcasa 2.0): capital original, para la barra «pagado vs. pendiente».
+    "initialPrincipal",
   ]);
 });
 
@@ -734,6 +736,7 @@ test("D-2/D-2d · la fila lleva los inputs de todos los campos editables, con el
   assert.match(row, /data-deuda-contrato-field="entity"/);
   assert.match(row, /data-deuda-contrato-field="type"/);
   assert.match(row, /data-deuda-contrato-field="number"/);
+  assert.match(row, /data-deuda-contrato-field="initialPrincipal"/);
   assert.match(row, /data-deuda-contrato-field="currentPrincipal"/);
   assert.match(row, /data-deuda-contrato-field="apr"/);
   assert.match(row, /data-deuda-contrato-field="currentPayment"/);
@@ -751,6 +754,7 @@ test("D-2 · la insignia «Editado» solo aparece cuando el contrato tiene overr
   const context = {
     escapeHtml: (value) => String(value ?? ""),
     round2: (value) => Math.round(Number(value) * 100) / 100,
+    money: (value) => `${Number(value).toFixed(2)} €`,
     DEBT_CONTRACT_ADD_STATUSES: ["active", "suspended", "reunified", "settled"],
   };
   vm.createContext(context);
@@ -759,6 +763,7 @@ test("D-2 · la insignia «Editado» solo aparece cuando el contrato tiene overr
       extractFunction("deudaContratosStatusBadge"),
       extractFunction("deudaContratosQualityBadge"),
       extractFunction("deudaContratosStatusOptionsHtml"),
+      extractFunction("deudaContratosProgressHtml"),
       extractFunction("deudaContratosRowHtml"),
     ].join("\n"),
     context
@@ -774,10 +779,11 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
   const written = {};
   let notedText = "";
   const context = sandboxWith(
-    ["deudaContratosStatusBadge", "deudaContratosQualityBadge", "deudaContratosStatusOptionsHtml", "deudaContratosRowHtml", "renderDeudaContratos"],
+    ["deudaContratosStatusBadge", "deudaContratosQualityBadge", "deudaContratosStatusOptionsHtml", "deudaContratosProgressHtml", "deudaContratosRowHtml", "renderDeudaContratos"],
     {
       escapeHtml: (value) => String(value ?? ""),
       round2: (value) => Math.round(Number(value) * 100) / 100,
+      money: (value) => `${Number(value).toFixed(2)} €`,
       DEBT_CONTRACT_ADD_STATUSES: ["active", "suspended", "reunified", "settled"],
       debtContractOverrides: { "debt-1": { currentPrincipal: 5000 } },
       debtContractSourceRows: () => [
