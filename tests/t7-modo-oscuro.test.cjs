@@ -252,9 +252,14 @@ test("los cuatro gráficos SVG a mano usan chartColor() en vez de hexadecimales 
 
 // --- Versionado de caché --------------------------------------------------------------------
 
-test("index.html: p2.css y app.js llevan el bump de versión de T7 (sin cambios desde entonces)", () => {
+test("index.html: p2.css lleva el bump de versión de T7 (sin cambios desde entonces)", () => {
   assert.match(html, /p2\.css\?v=20260918t7a1/);
-  assert.match(html, /<script defer src="app\.js\?v=20260918t7a1">/);
+});
+
+// T6 (BACKLOG_CONTABILIDADCASA_2_0.md) volvió a tocar app.js (memo de decisión ejecutivo) — su
+// propio archivo de tests fija ese bump; aquí basta con no dejar el string viejo.
+test("index.html: app.js ya no lleva la versión antigua de T7", () => {
+  assert.doesNotMatch(html, /<script defer src="app\.js\?v=20260918t7a1">/);
 });
 
 // T8 (BACKLOG_CONTABILIDADCASA_2_0.md) volvió a tocar styles.css/design-tokens.css (prefers-contrast,

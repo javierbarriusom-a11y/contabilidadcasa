@@ -80,6 +80,53 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo (refinanciar/apalancar/vender vivienda), primera tarea de un Horizonte 4 sin numerar todavía
+
+- **Qué pedía la sesión**: con el Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado (cierre de
+  la sesión 208), decidir por dónde seguir. Antes de tocar código se preguntó al hogar dos cosas: si
+  `I9` (gráficos de cartera con zoom/tooltip) debía construirse ya, porque el propio backlog exige una
+  decisión previa de arquitectura («mantener cero dependencias externas de UI o adoptar una librería
+  ligera»); y con qué tarea abrir la siguiente oleada. El hogar decidió **aplazar `I9`** (esfuerzo M,
+  beneficio solo Medio, y abrir una dependencia nueva no compensa frente a otras tareas sin bloqueo) y
+  empezar por **`T6`** (memo de decisión ejecutivo, esfuerzo M, beneficio Alto, sin decisión previa
+  pendiente).
+- **`T6` — memo de decisión ejecutivo de una página**: investigado primero qué pantallas existentes ya
+  sintetizaban una recomendación (`views/executive-advisor.js`, `views/virtual-advisor.js`,
+  `views/asesor-decision.js`) — ninguna construye el artefacto que pedía la tarea (documento de una
+  página con recomendación, riesgos, sensibilidad y siguiente paso, generado bajo demanda para una
+  decisión grande): son paneles vivos que se recalculan solos, no informes. `GOB15` resultó estar **ya
+  construido** (la nota del backlog decía "reservado", desactualizada) — las tres decisiones grandes de
+  la nota original (refinanciar, apalancarse, vender vivienda) tenían comparador propio de verdad:
+  `D4`/`evaluateMortgageRateScenarios` (refinanciar), `LEV9`/`crossInstrumentLeverageComparison`
+  (apalancarse) y `GOB15`/`gob15SimulateSale` (vender vivienda). Construido siguiendo tal cual el
+  precedente de `GOB14` (mismo mecanismo de "PDF de una página": `#cierrePrintEvidence` +
+  `window.print()`): `t6RefinanciarMemoContext()`, `t6ApalancarMemoContext()` y
+  `t6VenderViviendaMemoContext()` (`app.js`) releen los mismos campos que ya lee su comparador y
+  reformatean el resultado que ya calcula — ningún motor nuevo, ninguna cifra que el comparador no
+  tuviera ya. `t6DecisionMemoContext(kind)` despacha por tipo; `t6DecisionMemoPrintHtml()` maqueta
+  recomendación/riesgos/sensibilidad/siguiente paso/límites; `downloadT6DecisionMemo(kind, noteId)`
+  imprime o, sin datos suficientes declarados, avisa en una nota junto al botón en vez de fallar en
+  silencio. Tres botones nuevos «Generar memo de decisión (T6)», cada uno junto a su comparador
+  (Inversión › Apalancamiento para D4/LEV9, Herramientas › Patrimonio para GOB15) — sin pantalla propia
+  nueva: no hacía falta navegación adicional para un documento que se genera desde donde ya se decide.
+  La "sensibilidad" de cada memo reutiliza datos que el comparador ya tenía pero no mostraba juntos:
+  para D4, los tres escenarios de tipos (base/favorable/tensión) que ya calcula
+  `evaluateMortgageRateScenarios`; para LEV9, el coste de cada instrumento disponible; para GOB15, la
+  ganancia bruta/exenta/que tributa.
+- **Validación**: `npm install` primero (mismo hueco de entorno que documentó la sesión 208: `esbuild`
+  declarado en `package.json` pero ausente del `node_modules` de arranque del contenedor — sin relación
+  con el código). Tras instalar, `npm run verify` en verde: **4411/4411 pruebas** (32 nuevas: 17 de
+  `tests/t6-memo-decision-ejecutivo.test.cjs` más 15 canarios de versión de `app.js` que hubo que
+  actualizar en otros tests al bumpear `app.js?v=` — mismo patrón que otras sesiones), `test:a11y`,
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores. Verificación en
+  navegador real (Playwright contra `dist/`): las tres decisiones se probaron con datos reales
+  (hipoteca a refinanciar, comparación de apalancamiento, venta de vivienda con destino alquiler) —
+  cada botón dispara `window.print()` exactamente una vez y el memo generado contiene «Memo de
+  decisión» y «Recomendación»; sin datos suficientes declarados, el botón no imprime y muestra el aviso
+  en su nota en vez de fallar en silencio.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3`/`D9`/`P3`/`I10`/`I12`/`T12`/`T18`/`T16` — Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
