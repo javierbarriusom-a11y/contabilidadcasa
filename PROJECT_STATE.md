@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato) y `P3` (badge de fiabilidad en Previsión)
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión) e `I10` (umbral propio de concentración divisa/geografía)
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -169,6 +169,33 @@ de aquí en la siguiente regeneración, no al momento.
   estado vacío que ya mostraba la tarjeta equivalente de Ajustes, consistente, no es un fallo);
   forzando `pvc17PredictiveHealthIndex()` a devolver una muestra real y volviendo a llamar al
   render, el badge aparece con el texto y el tono esperados. Sin errores de consola nuevos.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
+- **`I10` — cuarto incremento de la sesión, misma sesión 208: umbral propio de concentración por
+  divisa/geografía**: `INV14` avisaba de "concentración alta" con un umbral fijo del 50%, no
+  corregible. Nuevo campo `inv14ConcentrationThresholdPct` (Inversión › Cartera), guardado en
+  `scenarioSettings` con el mismo mecanismo que otros umbrales propios ya existentes (p. ej.
+  `deb4Radar`). Sin declarar, el umbral sigue siendo 50% — cero cambio de comportamiento para quien
+  no toca el campo nuevo. `renderInv14CurrencyGeographyExposure()` usa
+  `inv14ConcentrationThresholdPct()` en vez del `>= 50` fijo, y la nota final del bloque cita el
+  umbral activo.
+- **Hallazgo de paso, sin acción — wiring de campos en pantallas de carga diferida**: antes de tocar
+  código se verificó una duda real: los manejadores `change` de campos dentro de `views/inversion.js`
+  (como `inv16CorrMonetarioAlternativo`) se registran una sola vez dentro de `init()`
+  (`qs(id)?.addEventListener(...)`, en torno a `app.js:37094`), y ese fragmento no está en el DOM la
+  primera vez que `init()` corre — parecía un candidato a bug real de wiring cruzado, la misma clase
+  de fallo que `T14` ya encontró tres veces. **Verificado en navegador real que no lo es**: tanto
+  cargando la app directamente con el hash de Inversión como navegando a Inversión después de
+  arrancar en Hoy, el campo guarda correctamente. Se añadió el campo nuevo con el mismo patrón de
+  wiring que ya usa `INV16`, confiando en el comportamiento verificado en vez de reabrir esa
+  investigación — sin motivo real para tratarla distinta a sus vecinas ya construidas y en uso.
+- **Validación**: `npm run verify` en verde: **4381/4381 pruebas** (2 nuevas, cubren "sin umbral
+  declarado avisa al 50% de siempre" y "con umbral declarado más alto no avisa por debajo de él"),
+  `test:a11y`, `test:performance`, `build:site`, `test:privacy`, `test:smoke` sin errores.
+  Verificación en navegador real: Inversión › Cartera en pestaña nueva muestra el campo de umbral;
+  declarando 80 se guarda en `scenarioSettings` y sobrevive a un redibujado. Sin errores de consola
+  nuevos.
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
 

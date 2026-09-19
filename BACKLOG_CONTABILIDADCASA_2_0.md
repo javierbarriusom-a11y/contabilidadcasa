@@ -8,7 +8,7 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 24/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
+**Estado: 25/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
 contaba en los 52 originales).** Cierres previos (sesión 205 y antes — `D2`, `D3`, `D7`, `T1`,
 `T15`, `T17`, `T19`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`,
 `T8`). `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
@@ -102,7 +102,7 @@ fiscalidad de dividendos/plusvalías, apalancamiento tipo Lombard con margin cal
 | ⏳ `I7` | Comparador sociedad patrimonial vs. cartera personal | L | Alto | Relevante para un perfil con retribución variable o participación societaria — verificar primero con el hogar si aplica a su situación real (mismo criterio que descartó Patrimonio/Grandes Fortunas en `LPX`). |
 | ⏳ `I8` | Simulador de evento de liquidez (venta de participaciones, ejercicio de opciones) | L | Medio | Integrado con cartera y colchón; verificar con el hogar si tiene un escenario real antes de construir (mismo criterio de `I7`). |
 | ⏳ `I9` | Gráficos de cartera con zoom y tooltip | M | Medio | **Requiere decisión previa del hogar**: mantener «cero dependencias externas de UI» o adoptar una librería ligera solo aquí. No empezar sin esa decisión. |
-| ⏳ `I10` | Umbral propio de alerta de sobreexposición divisa/geografía | S | Medio | Extiende `INV14` (hoy solo registra la exposición declarada). |
+| ✅ `I10` | Umbral propio de alerta de sobreexposición divisa/geografía | S | Medio | **Cerrada (sesión 208).** Nuevo `inv14ConcentrationThresholdPct` declarado en Inversión › Cartera, con el mismo mecanismo de `scenarioSettings` que ya usan otros umbrales propios (p. ej. `deb4Radar`). Sin declarar, se mantiene el 50% fijo de siempre — comportamiento sin cambios para quien no toca el campo nuevo. `renderInv14CurrencyGeographyExposure()` usa el umbral configurado en vez del `>= 50` fijo, y la nota final cita el umbral activo. |
 | ✅ `I11` | Coste de diferir la plusvalía, cuantificado en euros | S | Medio | **Cerrada (sesión 199).** Extiende «vender vs. pedir prestado» (`INV10`/`sellVsBorrowComparison`). El comparador ya calculaba `sellTaxCost` (impuesto que se evita al no vender) y `borrowTotalCost` (interés de pedir prestado en su lugar), pero solo dentro de un veredicto que también mezclaba `sellForegoneGrowth` (crecimiento perdido si se retira capital) — dos preguntas distintas sin separar. Nuevo campo `deferredGainCost = borrowTotalCost − sellTaxCost`, aislado del crecimiento perdido, con su propia línea en la tarjeta de INV10. |
 | ⏳ `I12` | Campo de «convicción» y fecha de revisión por posición | S | Bajo | Aviso si no se ha revisado en más de 12 meses; evita que el rebalanceo por umbral sea puramente mecánico. |
 
