@@ -80,6 +80,54 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada (auditoría de cierre) y `T3`, bandeja única de decisiones en Hoy
+
+- **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
+  desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
+  se cuestionó si quedaba trabajo real: los ocho incrementos ya construidos (sesiones 206-207)
+  fueron las pantallas self-contained; lo que queda del cluster grande estaba ya declarado
+  permanentemente bloqueado en el cierre de la sesión 207.
+- **Auditoría de cierre de `T14`**: de las 25 pantallas en `HEAVY_RENDER_VIEWS` (app.js:191-217),
+  22 ya tienen entrada propia en `VIEW_CHUNKS` (app.js:227-252). Las 3 restantes —
+  `visual-detail`, `new-life-simulation`, `savings-agent` — son exactamente las que la sesión 207 ya
+  documentó como bloqueadas de forma permanente (se refrescan sin guarda de pantalla activa desde
+  manejadores eager de Hoy/Plan; moverlas cambiaría comportamiento, no solo ubicación). Confirmado:
+  no queda ningún candidato limpio. `T14` pasa a **pausa razonada, no cerrada** — se reabre solo si
+  cambia el propio patrón de refresco eager, no por inercia de sesión. Documentado en
+  `BACKLOG_CONTABILIDADCASA_2_0.md` (§4 y §6).
+- **`T3` — bandeja única de decisiones en Hoy**: la nota original del backlog decía "extiende
+  `canonical-e11b-inbox.js`" — verificado antes de construir nada que ese motor es la bandeja de
+  **importación de datos** (E11b: `buildInboxItem`/`freshness`/`reconciliationTasks`), sin relación
+  ninguna con alertas de decisión. Nota corregida en el backlog. En su lugar se localizaron las
+  cinco fuentes de alerta reales, hoy silenciosas hasta entrar una a una a su propia pantalla:
+  `homeBudgetSummary()` (presupuesto, ya agregaba el peor caso), `renderDeb4RefinancingRadar` (radar
+  de refinanciación hipotecaria, `views` dentro de "Inversión › Apalancamiento" desde el reordenado
+  de `I1`), `proactiveLtvAlert`/LEV12 (LTV de margin call, misma pantalla), `assumptionExpiryAlerts`
+  (`PVC15`, supuestos caducados, ya con su propio radar en Ajustes desde `P5`) y
+  `evaluateHomeInsuranceGap` (brecha del seguro de hogar, "Herramientas › Seguros"). Construido
+  `decisionInboxItems()`/`renderDecisionInboxCard()` (`app.js`): normaliza las cinco condiciones de
+  disparo ya existentes (ningún motor nuevo) en una lista única, ordenada por severidad, con un
+  botón `data-home-nav` a la pantalla donde cada una se resuelve de verdad. Nueva tarjeta de Hoy,
+  `homeDecisionInboxCard` (`index.html`, junto a `homeForecastChangeCard`/P1), oculta por completo
+  sin ninguna decisión pendiente — mismo patrón que el resto de tarjetas condicionales de Hoy.
+  «Gasto fantasma» se deja fuera a propósito: su detector (`P8`) todavía no existe, no hay nada real
+  que unificar todavía para esa fuente.
+- **Sin motor nuevo, sin cambio de comportamiento en las cinco pantallas de origen**: cada fuente se
+  llama exactamente con los mismos parámetros que ya usaba su propio render — la tarjeta de Hoy es
+  una segunda vista de lectura sobre los mismos resultados, igual que hizo `P5` con los supuestos
+  caducados.
+- **Validación**: `npm install` primero (el entorno de esta sesión no traía `esbuild` instalado pese
+  a estar declarado en `package.json`, lo que hacía fallar `build:site`/`test:privacy`/`test:smoke`
+  — sin relación con el código, solo con el `node_modules` de arranque del contenedor). Tras
+  instalar, `npm run verify` en verde: **4379/4379 pruebas**, `test:a11y`, `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Verificación en navegador real
+  (Playwright contra `dist/`): Hoy carga sin errores de consola nuevos, `homeDecisionInboxCard`
+  permanece oculta con los datos de demostración (ninguna de las cinco condiciones se dispara) y,
+  forzando un elemento de prueba directamente sobre `decisionInboxItems()`/`renderDecisionInboxCard()`
+  en la página ya cargada, la tarjeta se muestra con el marcado y el botón de navegación esperados.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cinco incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual, ejecutivo) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 
 - **Qué pedía la sesión**: continuar `T14` con el siguiente candidato ya identificado al cerrar la

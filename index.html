@@ -420,6 +420,22 @@
                 <div id="homeForecastChangeDiff"></div>
               </article>
 
+              <!-- T3 (Contabilidadcasa 2.0, Horizonte 3): bandeja única de decisiones — reúne en Hoy
+                   las alertas que ya calculaban por su cuenta el presupuesto (BUD), el radar de
+                   refinanciación (DEB4), el LTV de apalancamiento (LEV12), los supuestos caducados
+                   (PVC15) y la brecha del seguro de hogar, hoy solo visibles entrando una a una a su
+                   propia pantalla. Ningún motor nuevo — normaliza condiciones ya existentes. Oculta
+                   sin ninguna decisión pendiente, igual que el resto de tarjetas condicionales de Hoy. -->
+              <article class="home-panel" id="homeDecisionInboxCard" hidden data-meeting-step="1">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Decisiones</p>
+                    <h3>Bandeja única de decisiones</h3>
+                  </div>
+                </div>
+                <ul class="commit-barrier-list" id="homeDecisionInboxList"></ul>
+              </article>
+
               <article class="home-panel" data-meeting-step="3">
                 <div class="module-heading">
                   <div>

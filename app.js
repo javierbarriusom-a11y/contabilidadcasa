@@ -30690,6 +30690,122 @@ function renderHomeForecastChangePanel() {
   diffNote.innerHTML = pvc6DiffResultHtml(result, causes);
 }
 
+// T3 (Contabilidadcasa 2.0, Horizonte 3, hallazgo #1 del diagnóstico): unifica en un solo sitio las
+// alertas de decisión que hoy solo se ven entrando una a una a su propia pantalla. Ningún motor
+// nuevo — reutiliza tal cual las mismas condiciones de disparo que ya calculaban homeBudgetSummary
+// (presupuesto), renderDeb4RefinancingRadar (refinanciación), renderLev12ProactiveMarginCallAlert
+// (LTV de apalancamiento), renderAjustesAssumptionExpiryRadar/PVC15 (supuestos caducados) y
+// renderAjustesHomeInsuranceNote (brecha del seguro de hogar), solo que normalizadas a una lista
+// común en vez de cinco tarjetas silenciosas repartidas entre Ajustes/Deuda/Inversión. "Gasto
+// fantasma" (P8) se queda fuera: el detector todavía no existe (P8 sigue pendiente en el backlog),
+// no hay nada real que unificar todavía para esa fuente.
+const DECISION_INBOX_TONE_CLASS = { danger: "blocker", warn: "warning", good: "ok" };
+const DECISION_INBOX_TONE_RANK = { danger: 2, warn: 1, good: 0 };
+
+function decisionInboxItems() {
+  const items = [];
+
+  const budgetSummary = homeBudgetSummary();
+  if (budgetSummary && budgetSummary.status !== "good" && budgetSummary.worstMessage) {
+    items.push({
+      id: "decision-inbox-budget",
+      source: "Presupuesto",
+      tone: budgetSummary.status === "danger" ? "danger" : "warn",
+      title: "Sobregasto en el mes",
+      text: budgetSummary.worstMessage,
+      target: "presupuesto-mes",
+    });
+  }
+
+  const deb4Settings = deb4RadarSettings();
+  const rateEngine = window.FinanceCanonicalMortgageRateScenarios;
+  if (rateEngine && deb4Settings.principal > 0 && deb4Settings.maxBreakEvenMonths > 0) {
+    const scenarios = rateEngine.evaluateMortgageRateScenarios({
+      principal: deb4Settings.principal, months: deb4Settings.months,
+      currentVariableRate: deb4Settings.variableRate, fixedRateOffer: deb4Settings.fixedRate,
+    });
+    const breakEven = rateEngine.refinancingBreakEvenMonths(scenarios.scenarios, deb4Settings.refinancingCost);
+    if (breakEven.calculable && breakEven.months <= deb4Settings.maxBreakEvenMonths) {
+      items.push({
+        id: "decision-inbox-deb4",
+        source: "Refinanciación",
+        tone: "good",
+        title: "Refinanciar la hipoteca recupera su coste",
+        text: `Recuperarías el coste de cambiar a tipo fijo en ${breakEven.months} mes(es) — dentro de tu umbral de ${deb4Settings.maxBreakEvenMonths}.`,
+        target: "inversion-apalancamiento",
+      });
+    }
+  }
+
+  const leverageEngine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const lombard = apx3LombardDeclaration();
+  if (leverageEngine && portfolioEngine && lombard.loanAmount > 0 && lombard.maintenanceLtvPct > 0) {
+    const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue;
+    const ltvAlert = leverageEngine.proactiveLtvAlert({
+      portfolioValue, loanAmount: lombard.loanAmount, maintenanceLtvPct: lombard.maintenanceLtvPct,
+    });
+    if (ltvAlert.calculable && ltvAlert.severity) {
+      items.push({
+        id: "decision-inbox-ltv",
+        source: "Apalancamiento",
+        tone: ltvAlert.severity === "medium" ? "warn" : "danger",
+        title: "LTV acercándose al margin call",
+        text: `${ltvAlert.currentLtvPct}% de LTV frente al ${ltvAlert.maintenanceLtvPct}% de mantenimiento (${ltvAlert.ratioToMaintenancePct}% del camino recorrido).`,
+        target: "inversion-apalancamiento",
+      });
+    }
+  }
+
+  const forecastEngine = window.FinanceCanonicalForecast;
+  if (forecastEngine?.buildAssumptionRegistry && forecastEngine?.assumptionExpiryAlerts) {
+    const registry = forecastEngine.buildAssumptionRegistry(
+      assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
+    );
+    const expiry = forecastEngine.assumptionExpiryAlerts(registry);
+    if (expiry.expired?.length) {
+      items.push({
+        id: "decision-inbox-assumptions",
+        source: "Supuestos",
+        tone: "warn",
+        title: `${expiry.expired.length} supuesto(s) sin confirmar hace tiempo`,
+        text: expiry.expired.map((entry) => entry.label).join(", "),
+        target: "ajustes",
+      });
+    }
+  }
+
+  const insuranceCoverage = homeInsuranceCoverage();
+  const insuranceReplacement = homeInsuranceReplacementValue();
+  const insuranceGap = window.FinanceCanonicalHomeInsurance?.evaluateHomeInsuranceGap(insuranceCoverage, insuranceReplacement);
+  if (insuranceGap && insuranceReplacement > 0 && !insuranceGap.covered && insuranceGap.gap > 0) {
+    items.push({
+      id: "decision-inbox-insurance",
+      source: "Seguros",
+      tone: "warn",
+      title: "Brecha en el seguro de hogar",
+      text: `La cobertura actual (${money(insuranceCoverage, true)}) no llega al valor de reposición declarado (${money(insuranceReplacement, true)}) — faltan ${money(insuranceGap.gap, true)}.`,
+      target: "herramientas-seguros",
+    });
+  }
+
+  return items.sort((a, b) => DECISION_INBOX_TONE_RANK[b.tone] - DECISION_INBOX_TONE_RANK[a.tone]);
+}
+
+function renderDecisionInboxCard() {
+  const card = qs("homeDecisionInboxCard");
+  const list = qs("homeDecisionInboxList");
+  if (!card || !list) return;
+  const items = decisionInboxItems();
+  if (!items.length) { card.hidden = true; return; }
+  card.hidden = false;
+  list.innerHTML = items.map((item) => `<li class="commit-barrier-item ${DECISION_INBOX_TONE_CLASS[item.tone] || "warning"}">
+      <span>${escapeHtml(item.source)}: ${escapeHtml(item.title)}</span>
+      <small>${escapeHtml(item.text)}</small>
+      <button type="button" class="link-button" data-home-nav="${escapeHtml(item.target)}">Revisar ahora</button>
+    </li>`).join("");
+}
+
 function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
@@ -30926,6 +31042,7 @@ function renderHomeDashboard() {
   recordHomeHealthScoreSnapshot(compositeResult?.value ?? null, new Date().toISOString().slice(0, 10));
   renderHomeHealthScoreTrend();
   renderHomeForecastChangePanel();
+  renderDecisionInboxCard();
 
   // P6 (Horizonte 1, sesión 199): puntuación de acierto histórico como KPI fijo en Hoy — convierte
   // el informe detallado de pvx1BacktestHtml (Análisis) en una sola cifra permanente, sin repetir
