@@ -81,6 +81,7 @@ const SHELL_URLS = [
   "./views/virtual-advisor.js",
   "./views/executive-advisor.js",
   "./views/new-life-definitive.js",
+  "./views/debt-control.js",
 ];
 
 async function precacheFreshShell() {
