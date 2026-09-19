@@ -818,6 +818,9 @@ function renderAnalisis() {
   // UX3: comparar dos momentos en el tiempo — independiente de la ventana/periodo de arriba.
   renderUx3MonthOptions();
   renderUx3Comparison();
+
+  // P11: mismo mes del año anterior, por categoría — independiente del selector de UX3.
+  renderP11YearOverYearComparison();
 }
 
 function handleAnalisisWindow(windowKey) {

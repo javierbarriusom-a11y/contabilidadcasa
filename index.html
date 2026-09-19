@@ -3564,6 +3564,20 @@
                 <table class="home-month-table" id="ux3ComparisonTable"></table>
               </div>
             </article>
+
+            <!-- P11 (Horizonte 4): mismo mes del año anterior, por categoría — separa
+                 estacionalidad estructural (colegio, vacaciones...) de desviación real. Distinto
+                 de "Comparar dos momentos" (UX3, arriba): aquí siempre es el mes en curso contra
+                 el mismo mes 12 meses antes, desglosado por categoría, no el total de dos meses
+                 cualesquiera. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Mismo mes, año anterior</h3>
+              <p class="e19-kpi-note">Gasto por categoría del mes en curso frente al mismo mes del año pasado — para distinguir lo que se repite cada año (colegio, vacaciones) de una desviación real.</p>
+              <div class="table-wrap">
+                <table class="e19-table" id="p11YoyComparisonTable"></table>
+              </div>
+              <p class="e19-kpi-note" id="p11YoyComparisonNote" hidden></p>
+            </article>
           </section>
 
           <section class="e19-cierre view-section" id="cierre">
@@ -4375,6 +4389,16 @@
               <h3 class="escenario-motor-panel-title">Informe trimestral para la familia</h3>
               <p class="e19-kpi-note">Un resumen de una página con las cifras clave del trimestre en curso (con su procedencia) y qué toca decidir ahora — pensado para enseñar en casa, no para trabajar.</p>
               <button type="button" class="e19-btn e19-btn-secondary" id="gob14QuarterlyReportDownload">Descargar informe trimestral</button>
+            </article>
+
+            <!-- P12 (Horizonte 4): informe mensual en una página, «board pack» doméstico —
+                 extiende GOB14 a cadencia mensual sin tocarlo: mismo modelo ejecutivo con
+                 procedencia (A2-6, unifiedActionCenterModel), mismo cuerpo de informe, solo
+                 cambia el periodo que lo etiqueta (el mes en curso en vez del trimestre). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informe mensual para la familia</h3>
+              <p class="e19-kpi-note">Un resumen de una página con las cifras clave del mes en curso (con su procedencia) y qué toca decidir ahora — mismo contenido que el informe trimestral, con cadencia mensual.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="p12MonthlyReportDownload">Descargar informe mensual</button>
             </article>
 
             <article class="e19-card">
@@ -7186,7 +7210,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260919d8a1"></script>
+    <script defer src="app.js?v=20260919p11a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

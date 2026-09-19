@@ -80,6 +80,65 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (210): `P12` — informe mensual, `P11` — comparativa interanual por categoría
+
+- **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` (Horizonte 4) y proponer al
+  hogar un plan para el resto de la cola sin bloqueo real (`P2`, `P11`, `P12`, `T9`, `T10`, `T11`,
+  `T13`). Antes de tocar código se presentó al hogar una prioridad razonada por riesgo de regresión y
+  encaje con lo ya construido, no solo por la etiqueta de esfuerzo/beneficio del backlog: `P12`
+  primero (apalanca `GOB14`, ya validado), `P11` segundo (complementa a `P12` y reutiliza
+  infraestructura ya probada), `T10`/`P2` a continuación, `T11` como comodín barato, `T9`
+  (mobile-first) aparte por ser la única tarea `L` de la cola con perfil de riesgo equivalente al que
+  tuvo `T14` (el monolito, 8 incrementos), y `T13` al final a la espera de confirmar con el hogar si
+  el escenario sigue siendo real. **El hogar confirmó empezar por `P12` y `P11`, con margen para las
+  dos en la misma sesión.**
+- **`P12` — informe mensual en una página («board pack» doméstico)**: investigado primero `GOB14`
+  (`app.js`, informe trimestral exportable) — su contexto (`gob14QuarterlyReportContext()`) resultó
+  no estar realmente acotado al trimestre: solo etiqueta con el trimestre en curso una lectura de
+  `unifiedActionCenterModel()` (A2-6) que ya es "estado actual", sin ventana temporal propia. Extender
+  a cadencia mensual no pedía ningún motor nuevo, solo otro periodo. Refactor mínimo sin cambiar el
+  comportamiento existente: se extrajo `gob14ReportBodyHtml(context)` (tabla de cifras con
+  procedencia, decisiones prioritarias y aviso de confianza) del cuerpo de
+  `gob14QuarterlyReportPrintHtml()`, que ahora la reutiliza sin cambiar su salida. Nuevas
+  `p12MonthLabel()`, `p12MonthlyReportContext()`, `p12MonthlyReportPrintHtml()` y
+  `downloadP12MonthlyReport()` (`app.js`) siguen el mismo patrón que `GOB14`, mismo mecanismo de "PDF
+  de una página" (`#cierrePrintEvidence` + `window.print()`). Botón nuevo «Descargar informe mensual»
+  junto al trimestral existente en Herramientas › Datos (`#herramientas-datos`).
+- **`P11` — comparativa contra el mismo periodo del año anterior, por categoría**: investigado primero
+  si "Comparar dos momentos" (UX3, Análisis) ya cubría el hueco — no: UX3 compara dos meses
+  cualesquiera elegidos a mano, en total, sin desglose por categoría, así que no separa estacionalidad
+  estructural (colegio, vacaciones) de desviación real como pedía la nota. Tampoco lo cubre "Tú frente
+  a tu propio histórico" (T12, sesión 208): compara el flujo neto total de los últimos 12 meses, no
+  categoría a categoría ni contra el mismo mes del año pasado. Nuevas `p11PriorYearMonthKey()`,
+  `p11CategoryExpenseTotal()`, `p11YearOverYearCategoryComparison()` y
+  `renderP11YearOverYearComparison()` (`app.js`), llamada desde `renderAnalisis()`
+  (`views/analisis.js`): por cada categoría con gasto en el mes en curso o en el mismo mes 12 meses
+  antes, `budgetExpenseTransactions()` (ya usado por Presupuesto del mes/P8/revisión anual) da el
+  gasto real de cada uno de los dos meses, sin agrupación propia. El umbral que decide "desviación
+  real" frente a "estable/estacional" es el mismo ya declarado en Ajustes
+  (`partidaDeviationThreshold`, V6-2) — regla transversal 09 (un umbral, no uno por pantalla), en vez
+  de inventar un segundo umbral solo para esta tarjeta. Sin umbral configurado, o sin gasto el año
+  pasado en esa categoría (categoría nueva), se muestran las cifras sin veredicto en vez de fabricar
+  un "desviación real"/"estable" sin base (regla transversal 04). Nueva tarjeta «Mismo mes, año
+  anterior» en Análisis, justo después de "Comparar dos momentos".
+- **Validación**: `npm install` primero (mismo hueco de entorno ya documentado en sesiones 208/209:
+  `esbuild` declarado en `package.json` pero ausente del `node_modules` de arranque del contenedor —
+  sin relación con el código). Tras instalar, `npm run verify` en verde: **4459/4459 pruebas** (22
+  nuevas: 11 de `tests/p12-informe-mensual-familia.test.cjs`, 11 de
+  `tests/p11-comparativa-interanual.test.cjs`; `tests/gob14-informe-trimestral-familia.test.cjs`
+  actualizado para sandboxar el nuevo `gob14ReportBodyHtml` compartido, sin cambiar sus expectativas;
+  27 canarios de versión de `app.js?v=` actualizados — mismo patrón que sesiones anteriores),
+  `test:a11y` (1372 IDs únicos), `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin
+  errores. Verificación en navegador real (Playwright contra `dist/`, con transacciones sintéticas
+  inyectadas porque el demo público no trae transacciones reales por privacidad — mismo criterio que
+  usaron `P8`/`D8`): botón «Descargar informe mensual» dispara `window.print()` una vez y rellena el
+  contenedor con «Informe mensual — septiembre de 2026» y la tabla de cifras ejecutivas; la tarjeta de
+  `P11` con dos categorías sintéticas (colegio +20 €, dentro del umbral del 10 %; ocio +200 €, por
+  encima) muestra correctamente «Estable / estacional» y «Desviación real» en cada fila, con las
+  cabeceras "sept 26"/"sept 25".
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, `P8` — detector de gasto fantasma, `D1` — aparcada, y `D8` — reparto por titular de la reestructuración conjunta
 
 - **Qué pedía la sesión**: con el Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado (cierre de

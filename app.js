@@ -19876,7 +19876,10 @@ function gob14QuarterlyReportContext() {
   };
 }
 
-function gob14QuarterlyReportPrintHtml(context) {
+// Cuerpo compartido entre el informe trimestral (GOB14) y el mensual (P12): misma tabla de
+// cifras con procedencia, mismas decisiones prioritarias, mismo aviso de confianza — solo cambia
+// el título y el periodo que los envuelve.
+function gob14ReportBodyHtml(context) {
   const metricsHtml = context.metrics
     .map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${escapeHtml(gob14MetricValueText(item))}</td><td>${escapeHtml(item.asOf)}</td><td>${escapeHtml(GOB14_CONFIDENCE_LABEL[item.confidence] || item.confidence)}</td></tr>`)
     .join("");
@@ -19886,13 +19889,17 @@ function gob14QuarterlyReportPrintHtml(context) {
   const qualityText = context.quality.lowConfidence.length
     ? `${context.quality.lowConfidence.length} cifra(s) de este informe tienen confianza baja: revísalas antes de decidir con ellas.`
     : "Todas las cifras de este informe tienen confianza media o alta.";
-  return `<h1>Informe trimestral — ${escapeHtml(context.quarterLabel)}</h1>
-    <p>Generado el ${escapeHtml(context.generatedAt)}. Resumen para compartir en casa, no un documento de trabajo.</p>
-    <h2>Cifras clave, con su procedencia</h2>
+  return `<h2>Cifras clave, con su procedencia</h2>
     <table><thead><tr><th>Indicador</th><th>Valor</th><th>Fecha</th><th>Confianza</th></tr></thead><tbody>${metricsHtml}</tbody></table>
     <p>${escapeHtml(qualityText)}</p>
     <h2>Qué toca decidir</h2>
     ${decisionsHtml}`;
+}
+
+function gob14QuarterlyReportPrintHtml(context) {
+  return `<h1>Informe trimestral — ${escapeHtml(context.quarterLabel)}</h1>
+    <p>Generado el ${escapeHtml(context.generatedAt)}. Resumen para compartir en casa, no un documento de trabajo.</p>
+    ${gob14ReportBodyHtml(context)}`;
 }
 
 // Mismo contenedor global de impresión que A-11/C-12/L-7 (`#cierrePrintEvidence`, fuera de
@@ -19901,6 +19908,41 @@ function downloadGob14QuarterlyReport() {
   const container = qs("cierrePrintEvidence");
   if (!container) return;
   container.innerHTML = gob14QuarterlyReportPrintHtml(gob14QuarterlyReportContext());
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
+// P12: informe mensual en una página («board pack» doméstico) — extiende GOB14 a cadencia
+// mensual sin tocarlo: mismo modelo ejecutivo con procedencia (unifiedActionCenterModel/A2-6) y
+// el mismo cuerpo de informe (gob14ReportBodyHtml), solo cambia el periodo que lo etiqueta.
+function p12MonthLabel(monthKeyValue) {
+  if (!/^\d{4}-\d{2}$/.test(String(monthKeyValue || ""))) return String(monthKeyValue || "");
+  const date = new Date(`${monthKeyValue}-01T12:00:00`);
+  return date.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+}
+
+function p12MonthlyReportContext() {
+  const model = unifiedActionCenterModel().readModel;
+  return {
+    monthLabel: p12MonthLabel(currentBudgetMonthKey()),
+    generatedAt: formatIsoDate(defaultBalanceDate()),
+    metrics: Object.values(model?.metrics || {}),
+    decisions: model?.decisions || [],
+    quality: model?.quality || { complete: true, missingMetadata: [], lowConfidence: [] },
+  };
+}
+
+function p12MonthlyReportPrintHtml(context) {
+  return `<h1>Informe mensual — ${escapeHtml(context.monthLabel)}</h1>
+    <p>Generado el ${escapeHtml(context.generatedAt)}. Resumen para compartir en casa, no un documento de trabajo.</p>
+    ${gob14ReportBodyHtml(context)}`;
+}
+
+function downloadP12MonthlyReport() {
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = p12MonthlyReportPrintHtml(p12MonthlyReportContext());
   document.body.classList.add("is-printing-cierre-evidence");
   window.print();
   document.body.classList.remove("is-printing-cierre-evidence");
@@ -36008,6 +36050,86 @@ function renderT12HistoricalComparison() {
   }).join("");
 }
 
+// P11 (Horizonte 4 de BACKLOG_CONTABILIDADCASA_2_0.md): comparativa contra el mismo periodo del
+// año anterior — separa estacionalidad estructural (colegio, vacaciones...) de desviación real,
+// algo que "Comparar dos momentos" (UX3) no hace: UX3 compara dos meses cualesquiera en total,
+// aquí se compara siempre el mes en curso contra el mismo mes 12 meses antes, categoría a
+// categoría. budgetExpenseTransactions() (ya usado por Presupuesto del mes/P8/revisión anual) da
+// el gasto real de cada uno de los dos meses — sin agrupación propia. Reutiliza el umbral de
+// desviación por partida ya declarado en Ajustes (`partidaDeviationThreshold`, V6-2, regla
+// transversal 09: un umbral, no uno por pantalla); sin umbral configurado, o sin gasto el año
+// pasado en esa categoría (categoría nueva), se muestran las cifras sin veredicto en vez de
+// fabricar un «desviación real»/«estable» sin base (regla transversal 04).
+function p11PriorYearMonthKey(monthKey) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(monthKey || ""));
+  return match ? `${Number(match[1]) - 1}-${match[2]}` : "";
+}
+
+function p11CategoryExpenseTotal(category, monthKey) {
+  return round2(budgetExpenseTransactions(category, monthKey).reduce((sum, row) => sum + Math.abs(Number(row.amount || 0)), 0));
+}
+
+function p11YearOverYearCategoryComparison(monthKey) {
+  const priorMonthKey = p11PriorYearMonthKey(monthKey);
+  if (!priorMonthKey) return [];
+  const threshold = partidaDeviationThreshold();
+  const rows = [];
+  budgetNegativeTransactionsByCategory().forEach((_, category) => {
+    const current = p11CategoryExpenseTotal(category, monthKey);
+    const prior = p11CategoryExpenseTotal(category, priorMonthKey);
+    if (current < 0.005 && prior < 0.005) return;
+    const hasPriorData = prior >= 0.005;
+    const diff = round2(current - prior);
+    const deviationPct = hasPriorData ? (Math.abs(diff) / prior) * 100 : null;
+    rows.push({
+      category,
+      current,
+      prior,
+      diff,
+      hasPriorData,
+      deviationPct,
+      isRealDeviation: threshold && hasPriorData ? deviationPct >= threshold : null,
+    });
+  });
+  return rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+}
+
+function p11YoyVerdictHtml(row) {
+  if (!row.hasPriorData) return '<span class="e19-kpi-note">Sin dato el año pasado</span>';
+  if (row.isRealDeviation === null) return "—";
+  return row.isRealDeviation
+    ? '<span class="status-pill warn">Desviación real</span>'
+    : '<span class="status-pill">Estable / estacional</span>';
+}
+
+function renderP11YearOverYearComparison() {
+  const table = qs("p11YoyComparisonTable");
+  const note = qs("p11YoyComparisonNote");
+  if (!table) return;
+  const monthKey = String(state?.balanceDate || defaultBalanceDate()).slice(0, 7);
+  const priorMonthKey = p11PriorYearMonthKey(monthKey);
+  const rows = p11YearOverYearCategoryComparison(monthKey);
+  if (!rows.length) {
+    table.innerHTML = "";
+    if (note) {
+      note.hidden = false;
+      note.textContent = "Todavía no hay gasto registrado este mes ni el mismo mes del año anterior para comparar.";
+    }
+    return;
+  }
+  table.innerHTML = `<thead><tr><th>Categoría</th><th>${escapeHtml(ledgerMonthLabel(monthKey))}</th><th>${escapeHtml(ledgerMonthLabel(priorMonthKey))}</th><th>Diferencia</th><th>Veredicto</th></tr></thead>
+    <tbody>${rows
+      .map(
+        (row) =>
+          `<tr><td>${escapeHtml(row.category || "Sin categoría")}</td><td>${money(row.current, true)}</td><td>${row.hasPriorData ? money(row.prior, true) : "—"}</td><td>${escapeHtml(registrarMesSignedMoney(row.diff))}</td><td>${p11YoyVerdictHtml(row)}</td></tr>`,
+      )
+      .join("")}</tbody>`;
+  if (note) {
+    note.hidden = Boolean(partidaDeviationThreshold());
+    note.textContent = "Configura el umbral de desviación por partida en Ajustes para ver qué categorías se salen de lo esperable en vez de solo la diferencia.";
+  }
+}
+
 // Suma `usado` (real si existe, previsto si no — el mismo criterio que ya usa "Usado" en Plan ·
 // Mes, P-4) por bloque, a lo largo de los meses del periodo elegido. `hasActual`/`total` por bloque
 // alimentan la nota de A-4 ("cuántos bloques tienen real").
@@ -37598,6 +37720,7 @@ async function init() {
   qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
   qs("a19CertifiedReportDownload")?.addEventListener("click", downloadA19CertifiedReport);
   qs("gob14QuarterlyReportDownload")?.addEventListener("click", downloadGob14QuarterlyReport);
+  qs("p12MonthlyReportDownload")?.addEventListener("click", downloadP12MonthlyReport);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
     const revokeButton = event.target.closest("[data-a19-share-revoke]");
     if (!revokeButton) return;
