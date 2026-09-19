@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión), `I10` (umbral propio de concentración divisa/geografía) e `I12` (fecha de revisión de convicción por posición)
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión), `I10` (umbral propio de concentración divisa/geografía), `I12` (fecha de revisión de convicción por posición) y `T12` (comparador contra el propio histórico)
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -223,6 +223,37 @@ de aquí en la siguiente regeneración, no al momento.
   Sin errores de consola.
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+
+- **`T12` — sexto y último incremento de la sesión: comparador «yo vs. mi propio histórico» en
+  Análisis**: nueva tarjeta (`t12HistoricalComparisonCard`) con el mejor mes, el peor mes y la media
+  de los últimos 12 meses conciliados. Ningún motor nuevo — `t12HistoricalComparisonMonths()`
+  ordena y recorta a 12 lo que ya devuelve `reconciledMonthlyNetHistory()` (usado también por `P6` y
+  `PVC17`). Mismo lenguaje visual que la banda de colchón de Análisis ya existente
+  (`analisis-cushion-col`/`-bar`/`-value`, `A-2`): reutilizadas tal cual, sin CSS nuevo, con tono por
+  signo del mes (nunca por umbral fijo — un mes negativo sigue siendo negativo aunque sea el mejor
+  de los doce). Oculta con menos de dos meses conciliados. Wiring: llamada desde `renderAnalisis()`
+  (`views/analisis.js`), independiente de la ventana de 12/24/todo el plan que ya elige el resto de
+  la pantalla — siempre los últimos 12 meses reales.
+- **Validación**: `npm run verify` en verde: **4393/4393 pruebas** (5 nuevas en
+  `tests/t12-comparador-historico-propio.test.cjs`). Un fallo aislado y no reproducible en
+  `tests/lev14-apalancamiento-escalonado.test.cjs` durante la corrida completa (dos timestamps
+  `evaluatedAt` generados con 1 ms de diferencia entre sí — comparación de dos `new Date()`
+  independientes, no relacionada con ningún cambio de esta sesión); confirmado como parpadeo de
+  temporización re-ejecutando ese fichero solo (12/12 en verde) y la suite completa de nuevo
+  (4393/4393 en verde). `test:a11y`, `test:performance`, `build:site`, `test:privacy`, `test:smoke`
+  sin errores. Verificación en navegador real: Análisis en pestaña nueva mantiene la tarjeta oculta
+  con los datos de demostración (sin meses conciliados suficientes); forzando un histórico real de
+  3 meses y volviendo a llamar al render, la tarjeta se muestra con el mejor/peor mes, la media y la
+  banda coloreada correctamente (verificado tanto el cálculo como la visibilidad mientras los datos
+  forzados están activos). Sin errores de consola.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Fin de sesión 208**: seis entregas cerradas (`T3`, `D9`, `P3`, `I10`, `I12`, `T12`) más la pausa
+  razonada de `T14`, cada una validada y publicada por separado (PRs #331-#336). Con esto queda
+  agotada toda la cola de Horizonte 3 desbloqueada sin decisión previa pendiente de
+  `BACKLOG_CONTABILIDADCASA_2_0.md`: lo que resta (`T16`/`T18`, `I9`, `I2`/`I3`, `P4`/`P10`, `D6`,
+  `I6`/`I7`/`I8`) necesita, en cada caso, una decisión del hogar o una condición externa que hoy no
+  se cumple — ver §6 del propio documento para el detalle de cada bloqueo.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cinco incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual, ejecutivo) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 

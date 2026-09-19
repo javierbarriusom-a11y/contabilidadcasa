@@ -710,6 +710,9 @@ function renderAnalisis() {
   const confianzaEl = qs("analisisConfianzaDato");
   if (confianzaEl) confianzaEl.innerHTML = analisisConfianzaDatoHtml(analisisConfianzaDatoContext());
 
+  // T12: independiente de la ventana elegida arriba — siempre los últimos 12 meses conciliados.
+  renderT12HistoricalComparison();
+
   // C-11: Análisis es uno de los dependientes que el criterio de reapertura nombra explícitamente
   // — se avisa mientras alguno de los meses visibles esté reabierto (sin volver a cerrarse todavía).
   const reopenNotice = qs("analisisReopenNotice");
