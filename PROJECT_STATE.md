@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, y `P8` — detector de gasto fantasma, primeras tres tareas de un Horizonte 4 sin numerar todavía
+## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, `P7` — cerrada sin construir nada, `P8` — detector de gasto fantasma, `D1` — aparcada, y `D8` — reparto por titular de la reestructuración conjunta
 
 - **Qué pedía la sesión**: con el Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado (cierre de
   la sesión 208), decidir por dónde seguir. Antes de tocar código se preguntó al hogar dos cosas: si
@@ -172,8 +172,52 @@ de aquí en la siguiente regeneración, no al momento.
   los datos de demostración — `ghostExpenseCandidatesResult()` detecta el candidato con las cifras
   correctas, `decisionInboxItems()` lo incluye como sexta entrada con su texto y destino, y la nota de
   Análisis se renderiza visible con el mismo detalle al navegar a esa pantalla.
-- **Publicado (`P8`)**: mismo commit/push/PR/fusión que el resto de la sesión, misma autorización
-  vigente.
+- **Publicado (`P8`)**: commit, push, PR en borrador
+  ([#340](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/340)) y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente. Ya en producción.
+- **`D1`/`D8` — cuarta tarea de la sesión: se planteó al hogar `D1` frente a `D8` (Deuda) antes de
+  construir nada**. `D1` ("retirar el iframe heredado de deuda") investigada primero: la nota cita
+  `canonical-e14-parity.js` en verde como condición para retirarlo, y en efecto lleva en verde desde
+  el informe de paridad del 8 de agosto (`E19_INFORME_PARIDAD_DEUDA.md`, 7/7 casos computables en
+  paridad exacta entre el motor heredado y el canónico E14). Pero el 21 de agosto (sesión D-15,
+  **posterior** a ese informe) el propio hogar promovió ese mismo iframe de una sección legacy
+  plegada a su propia pestaña de primer nivel en Deuda (`#deuda-simulador`), describiéndolo en la UI
+  como sandbox de solo lectura para explorar quitas/pagos únicos/refinanciación "sin tocar el plan
+  real" — ya no es el duplicado a la espera de paridad que describía la nota original, es una
+  herramienta con propósito propio que el hogar pidió explícitamente hace un mes. Retirar ahora una
+  pantalla en uso activo exige consulta pase lo que pase con el CI (`CLAUDE.md`), así que se presentó
+  el hallazgo al hogar en vez de decidir. **El hogar decidió aparcar `D1`** (mismo criterio que `I9`:
+  ni construir ni descartar, a la espera de que confirme si el sandbox visual sigue teniéndole valor)
+  y construir **`D8`** ("reparto de carga por titular en la reestructuración conjunta") en su lugar.
+- **`D8` — reparto por titular de la reestructuración conjunta**: investigado primero si `GOB19`
+  (plantilla de separación patrimonial, Oleada 4) ya cubría este hueco, porque ya agrupa deuda por
+  titular con el mismo mapa de titularidad (`p2State().ownership`, con `P2Domain.inferOwner` como
+  respaldo). No lo cubre: `GOB19` calcula dos planes de reestructuración **independientes** por
+  titular con su ingreso individual tras una separación patrimonial, mientras que `D8` pedía el
+  reparto de **un único plan conjunto** (`handleDi5CompareJointRestructuring`, Inversión ›
+  Apalancamiento) — una caída de ingresos del hogar completo, un solo ratio, una sola lista de
+  contratos priorizados por tipo más caro primero. Reutiliza sin embargo el mismo mapa de titularidad
+  que ya usa `GOB19`. Nuevas `di5ProposalsByOwner()`/`di5OwnerBreakdownHtml()` en `app.js`: atribuyen
+  cada propuesta ya calculada por `jointRestructuringPlan()` (`canonical-joint-restructuring.js`,
+  DI5) a su dueño y suman cuota actual/nueva/alivio por titular — ningún motor nuevo, ninguna cifra
+  que el plan conjunto no tuviera ya. Sin ningún contrato asignado a Javi o Tere, la nota lo dice
+  explícitamente en vez de fingir un reparto; cuando coexisten contratos asignados y sin asignar, los
+  sin asignar se señalan aparte para que no desaparezcan del cálculo en silencio.
+- **Validación (`D1`/`D8`)**: `npm run verify` en verde: **4437/4437 pruebas** (10 nuevas en
+  `tests/d8-reparto-titular-reestructuracion.test.cjs`, más 26 canarios de versión de `app.js`
+  actualizados al bumpear `app.js?v=` — mismo patrón que `T6`/`P8` — y `tests/di5-reestructuracion-
+  conjunta.test.cjs` ampliado para que su sandbox siga proveyendo lo que ahora necesita
+  `handleDi5CompareJointRestructuring`), `test:a11y`, `test:performance`, `build:site`, `test:privacy`
+  y `test:smoke` sin errores. Verificación en navegador real (Playwright contra `dist/`, con dos
+  contratos sintéticos inyectados porque la demo no trae ninguno activo con cuota): tres escenarios
+  probados en secuencia sobre el mismo plan conjunto — sin titularidad declarada (avisa en vez de
+  fingir un reparto), un contrato asignado a Javi con el otro sin asignar (reparto de Javi más el
+  aviso de lo que queda fuera), y ambos contratos repartidos entre Javi y Tere (reparto completo, sin
+  aviso de pendientes) — las tres cifras coinciden con el plan conjunto ya mostrado arriba en la
+  misma nota, sin errores de consola propios.
+- **Publicado (`D1`/`D8`)**: `D1` es solo documentación (`PROJECT_STATE.md`,
+  `BACKLOG_CONTABILIDADCASA_2_0.md`); `D8` con commit, push, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente — mismo turno que el resto de la sesión.
 
 ## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3`/`D9`/`P3`/`I10`/`I12`/`T12`/`T18`/`T16` — Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado
 
