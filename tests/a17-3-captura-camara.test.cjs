@@ -147,8 +147,11 @@ test("confirmReceiptCapture · sin importe ni fecha, el aviso los nombra a los d
   assert.match(context.logged.body, /^Completa el importe y la fecha antes de confirmar\.$/);
 });
 
-test("renderMovementDetailDialog muestra el botón de ver ticket solo cuando hay adjunto enlazado", () => {
-  const body = extractFunction(app, "renderMovementDetailDialog");
+// T11 (Horizonte 4) extrajo este bloque de renderMovementDetailDialog a movementDetailAttachmentHtml
+// para poder añadir el botón de adjuntar foto/guardar ubicación a un movimiento sin foto todavía —
+// el botón de ver ticket sigue apareciendo solo cuando hay adjunto enlazado.
+test("movementDetailAttachmentHtml muestra el botón de ver ticket solo cuando hay adjunto enlazado", () => {
+  const body = extractFunction(app, "movementDetailAttachmentHtml");
   assert.match(body, /receiptAttachments\[transactionIdentity\(row\)\]/);
   assert.match(body, /movementDetailViewReceipt/);
 });

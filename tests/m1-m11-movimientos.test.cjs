@@ -132,7 +132,7 @@ test("M-2 · renderDetailedMovements pinta la cuenta del movimiento, o un hueco 
 
 test("M-6 · el panel de detalle trae el campo Cuenta, con el mismo hueco cuando no hay dato", () => {
   const content = { innerHTML: "" };
-  const context = sandboxWith(["renderMovementDetailDialog"], {
+  const context = sandboxWith(["renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
     movementDetailTransaction: { date: "2026-08-01", movement: "MERCADONA", amount: -45.2, account: "CaixaBank" },
     qs: (id) => (id === "movementDetailContent" ? content : null),
     mappingForMovement: () => null,
@@ -153,7 +153,7 @@ test("M-6 · el panel de detalle trae el campo Cuenta, con el mismo hueco cuando
 
 test("M-6 · el campo Cuenta muestra un hueco («—») en vez de fabricar un valor cuando el movimiento no la tiene", () => {
   const content = { innerHTML: "" };
-  const context = sandboxWith(["renderMovementDetailDialog"], {
+  const context = sandboxWith(["renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
     movementDetailTransaction: { date: "2026-08-01", movement: "AMAZON", amount: -60 },
     qs: (id) => (id === "movementDetailContent" ? content : null),
     mappingForMovement: () => null,
@@ -395,7 +395,7 @@ test("M-5 · el aviso de cola sin clasificar cuenta sobre la vista filtrada, no 
 test("M-6 · abrir el detalle identifica la fila por su posición en la lista filtrada y abre el diálogo", () => {
   const dialog = { open: false, showModal() { this.open = true; } };
   const content = { innerHTML: "" };
-  const context = sandboxWith(["handleMovementDetailOpen", "renderMovementDetailDialog"], {
+  const context = sandboxWith(["handleMovementDetailOpen", "renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
     movementsFilteredList: () => [{ date: "2026-08-01", movement: "MERCADONA" }],
     qs: (id) => (id === "movementDetailDialog" ? dialog : id === "movementDetailContent" ? content : null),
     mappingForMovement: () => null,
