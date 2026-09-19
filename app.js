@@ -18184,7 +18184,49 @@ function handleDi5CompareJointRestructuring() {
   const summary = result.sufficient
     ? `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes, cubre el ${money(result.reliefNeeded, true)}/mes que hacía falta.`
     : `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes — no cubre del todo el ${money(result.reliefNeeded, true)}/mes que haría falta ni alargando todos los plazos. Hace falta negociar quita, refinanciación u otra fuente de ingresos.`;
-  note.innerHTML = `<p>Cuota conjunta actual: ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% del ingreso). Ratio seguro: ${Math.round(safeRatio * 100)}%.</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p>`;
+  const ownerBreakdown = di5OwnerBreakdownHtml(di5ProposalsByOwner(result.proposals));
+  note.innerHTML = `<p>Cuota conjunta actual: ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% del ingreso). Ratio seguro: ${Math.round(safeRatio * 100)}%.</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p>${ownerBreakdown}`;
+}
+
+// D8: reparto de la cuota ya calculada arriba por titular — no repite el plan conjunto en dos
+// planes independientes por persona (eso es GOB19, para el escenario de separación), solo atribuye
+// cada propuesta ya calculada a quién es dueño de ese contrato. Mismo mapa de titularidad que ya
+// usa gob19DebtsByOwner (p2State().ownership, con P2Domain.inferOwner como respaldo).
+function di5ProposalsByOwner(proposals) {
+  const ownerByContractId = new Map(
+    debtContractSourceRows().map((row) => [
+      row.id,
+      p2State().ownership?.[`debt|${row.id}`] || window.P2Domain?.inferOwner(`${row.entity} ${row.number}`, row.id) || "household",
+    ]),
+  );
+  const grouped = { javi: [], tere: [], household: [] };
+  proposals.forEach((proposal) => {
+    const owner = ownerByContractId.get(proposal.id) || "household";
+    (grouped[owner] || grouped.household).push(proposal);
+  });
+  return grouped;
+}
+
+function di5OwnerBreakdownHtml(grouped) {
+  const assigned = ["javi", "tere"].filter((owner) => grouped[owner].length);
+  if (!assigned.length) {
+    return grouped.household.length
+      ? `<p class="e19-kpi-note">Ningún contrato de deuda está asignado a Javi o Tere en Herramientas avanzadas → Datos → Familia — el reparto por titular no se puede calcular.</p>`
+      : "";
+  }
+  const rows = assigned.map((owner) => {
+    const proposals = grouped[owner];
+    const currentTotal = round2(proposals.reduce((sum, proposal) => sum + proposal.currentMonthlyPayment, 0));
+    const newTotal = round2(proposals.reduce((sum, proposal) => sum + proposal.newMonthlyPayment, 0));
+    const relief = round2(proposals.reduce((sum, proposal) => sum + (proposal.relief || 0), 0));
+    const label = GOB19_OWNER_LABELS[owner];
+    const reliefText = relief > 0 ? ` (alivio de ${money(relief, true)}/mes)` : "";
+    return `<li><strong>${escapeHtml(label)}</strong>: ${proposals.length} contrato(s), cuota ${money(currentTotal, true)} → ${money(newTotal, true)}/mes${reliefText}.</li>`;
+  }).join("");
+  const unassignedNote = grouped.household.length
+    ? `<p class="e19-kpi-note">${grouped.household.length} contrato(s) sin asignar a Javi o Tere quedan fuera de este reparto.</p>`
+    : "";
+  return `<p><strong>Reparto por titular:</strong></p><ul class="commit-barrier-list">${rows}</ul>${unassignedNote}`;
 }
 
 // A15-4: la retención declarada en A15-1 hace de tipo marginal estimado — sin motor de tramos de
