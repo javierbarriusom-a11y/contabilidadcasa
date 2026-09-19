@@ -125,7 +125,13 @@
   // real al hogar); esta vista reutiliza tal cual el mecanismo de enlace redactado y caducable de
   // A19-1, un tercer viewType más, nunca un motor de compartición nuevo. Sin alguna de las dos
   // cifras (patrimonio sin activos declarados, p. ej.), null explícito — nunca un cero inventado.
-  function redactKidsSummaryView({ cushion, netWorth } = {}) {
+  //
+  // T13 (BACKLOG_CONTABILIDADCASA_2_0.md): dos campos opcionales más, ambos declarados por el hogar,
+  // nunca inferidos — `periodicHelp` (una ayuda periódica que el hogar quiere que el hijo vea
+  // reflejada) y `projection` (una proyección educativa de "si ahorraras X€/mes al Y% durante Z
+  // años", ya calculada por t13ChildSavingsProjection() en app.js — esta función solo redacta, no
+  // calcula). Sin declarar, cada uno queda null explícito, igual que cushion/netWorth.
+  function redactKidsSummaryView({ cushion, netWorth, periodicHelp, projection } = {}) {
     // `Number(null)` es 0, no NaN: hay que descartar null/undefined antes de convertir, o un
     // patrimonio no calculable (null explícito, nunca inventado) se leería aquí como un 0 real.
     const roundedOrNull = (value) => {
@@ -133,11 +139,23 @@
       const parsed = Number(value);
       return Number.isFinite(parsed) ? round2(parsed) : null;
     };
+    const projectionOrNull = (value) => {
+      if (!value || typeof value !== "object" || !value.calculable) return null;
+      return {
+        monthlyAmount: roundedOrNull(value.monthlyAmount),
+        annualReturnPct: roundedOrNull(value.annualReturnPct),
+        years: roundedOrNull(value.years),
+        totalContributed: roundedOrNull(value.totalContributed),
+        projectedValue: roundedOrNull(value.projectedValue),
+      };
+    };
     return {
       schemaId: `${SCHEMA_ID}/kids-summary-v1`,
       generatedAt: new Date().toISOString(),
       cushion: roundedOrNull(cushion),
       netWorth: roundedOrNull(netWorth),
+      periodicHelp: roundedOrNull(periodicHelp),
+      projection: projectionOrNull(projection),
     };
   }
 
