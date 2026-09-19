@@ -23,6 +23,7 @@ const files = [
   "recovery-guide.js",
   "service-worker.js",
   "manifest.webmanifest",
+  "icon.svg",
   "canonical-state.js",
   "canonical-ledger.js",
   "canonical-engine.js",

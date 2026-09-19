@@ -15,6 +15,8 @@ const SHELL_URLS = [
   "./styles.css",
   "./p2.css",
   "./design-tokens.css",
+  "./manifest.webmanifest",
+  "./icon.svg",
   "./data.js",
   "./app.js",
   "./state-contract.js",
