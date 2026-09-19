@@ -292,20 +292,97 @@ de aquí en la siguiente regeneración, no al momento.
     nuevo, 759 líneas (incluida la cabecera documental).
 - **Publicado (sexto incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
   fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Resultado acumulado de la sesión (seis incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
-  de la sesión 205) a 37.867 líneas (-9,0%). Seis fragmentos nuevos/ampliados: `views/escenarios.js`,
-  `views/deuda.js`, `views/debt-liquidation-plan.js`, `views/virtual-advisor.js`,
-  `views/executive-advisor.js`, `views/new-life-definitive.js`.
-- **Pendiente para la siguiente sesión**: del cluster grande original (Ejecutivo/Nueva vida/Nueva
-  vida definitiva/Asesor virtual/Agente de ahorro) solo quedan sin auditar el render propio de
-  Agente de ahorro (`renderSavingsAgent` — no comprobado todavía si tiene el mismo patrón de
-  refresco eager sin guarda que bloqueó "Nueva vida" simulación) y `visual-detail` (todavía eager,
-  con `rowsForVisualBudget` obligando a que `buildAcceleratedDebtCarScenario`/
-  `carSavingsTargetAmount`/`acceleratedDebtTargets` sigan en `app.js`). "Nueva vida" (simulación) se
-  queda indefinidamente en `app.js` salvo que se decida cambiar el comportamiento de sus llamadas de
-  refresco cruzado desde Plan/Ajustes — eso sí necesitaría confirmación explícita del hogar, no es
-  una reubicación pura. Repetir siempre la comprobación cruzada entre todos los `views/*.js`
-  existentes (ya son seis) antes de dar por cerrado cualquier incremento futuro, y re-verificar los
+- **Auditoría del resto del cluster grande (Ejecutivo/Nueva vida/Nueva vida definitiva/Asesor
+  virtual/Agente de ahorro/Control de deuda)**: antes del séptimo incremento se comprobó si
+  `renderSavingsAgent` (Agente de ahorro) y `renderVisualDetail` (`#visual-detail`) tenían el mismo
+  patrón que bloqueó "Nueva vida" (simulación) — **los dos lo tienen**. La Central de Acciones
+  Unificada de Hoy puede disparar `applyAgentRouteSimulation()` → `renderSavingsAgent()` sin ninguna
+  guarda de pantalla activa (`item.command === "simulate-route"` en `executeUnifiedAction`); y la
+  barra de impacto de Plan (`planMesImpactBar`, cableado global) dispara `discardVisualChanges()` →
+  `renderVisualDetail()` también sin guarda. Los dos quedan permanentemente en `app.js` por el mismo
+  motivo que "Nueva vida" (simulación): moverlos sería un cambio de comportamiento (añadir una
+  guarda de hash), no una reubicación pura — necesitaría confirmación explícita del hogar. Con esto,
+  el cluster original de cinco pantallas queda del todo triado: tres movidas, dos bloqueadas.
+- **`T14` — séptimo incremento, misma sesión: "Control de deuda" (`#debt-control`)**: candidato
+  nuevo, distinto del cluster anterior — un área de deuda de ~900 líneas / 35 funciones
+  (9105-10005) con una forma de acoplamiento distinta: no un bloque contiguo autocontenido, sino
+  entrelazado función a función con el motor de deuda compartido. Se preguntó al hogar antes de
+  construirlo por el tamaño y el riesgo (comparable al primer incremento, `views/deuda.js`, que dejó
+  pasar dos `ReferenceError` reales pese a la auditoría completa) — el hogar confirmó seguir.
+  - **Motor que se queda en `app.js`** (parecía exclusivo de la pantalla a primera vista, pero no lo
+    es): `updateDebtModeUi` se llama sin guarda en el arranque de la app, antes de cualquier
+    enrutado, y arrastra con ella a `renderDebtAgreementPreview`, `updateDebtConfirmState` y
+    `defaultDebtTargetId`. `resetDebtDecisionForm` también se queda: la llama `applyDebtDecision` (el
+    guardarraíl real de escritura, que además usa `views/virtual-advisor.js`) y moverla habría roto
+    esa llamada la primera vez que se disparara sin haber visitado antes Control de deuda.
+    `debtControlStats`, `debtPriorityCandidates`, `evaluateDebtCandidate`, `debtDecisionFromValues`,
+    `evaluateDebtDecisionItem`, `debtCandidateMonths` y `debtTargetDisplayName` se quedan porque ya
+    los usan directamente `views/presupuesto-mes.js`, `views/virtual-advisor.js`,
+    `views/new-life-definitive.js`, `views/debt-liquidation-plan.js` y `views/executive-advisor.js`
+    — motor compartido real, no exclusivo de esta pantalla.
+  - **Movidas (16 funciones, recortadas una a una, no un rango contiguo)**: la pintura de la
+    pantalla (`renderDebtControl`, `renderDebtPayoffChart`, `populateDebtTargetSelect`) y todo el
+    flujo de "revisar antes de aplicar" (`buildDebtReviewComparison`, `debtReviewOptionCard`,
+    `debtDecisionComparisonAlternative`, `debtDecisionCloseIndex`, `debtComparisonStrategy`,
+    `renderDebtDecisionReview`, `stageDebtDecision`, `applyDebtReviewOption`, `debtDecisionFromForm`,
+    `debtDecisionDurationFromMode`, `recommendedDebtDecision`, `handleAddDebtLiquidation`,
+    `saveDebtDecisionAsPending`).
+  - **Un `ReferenceError` real, capturado por la verificación en navegador real** (no por
+    `npm run verify`, que no lo detecta porque no ejecuta la app en un DOM real): el cableado central
+    tenía tres referencias sueltas sin envolver —
+    `qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation)`,
+    `qs("reviewDebtPayoff")?.addEventListener("click", stageDebtDecision)` y
+    `qs("saveDebtPayoffPending")?.addEventListener("click", saveDebtDecisionAsPending)` — que
+    resuelven el identificador en el momento de registrar el listener, no al disparse el evento (a
+    diferencia de una función anónima que lo envuelve). Al abrir `#debt-control` en una pestaña
+    nueva, la app entera caía con «`handleAddDebtLiquidation is not defined`» (pantalla de error
+    genérica, sin lanzar una excepción no capturada que un test pudiera ver). Corregido envolviendo
+    las tres en funciones anónimas (`() => handleAddDebtLiquidation()`, etc.), el mismo patrón ya
+    usado en el resto del cableado.
+  - **Hallazgo aparte, no una regresión**: el botón «Comparar decisión» (`stageDebtDecision` →
+    `buildDebtReviewComparison`, que evalúa 5-6 alternativas de liquidación sobre el horizonte
+    completo de previsión) puede colgar o hacer crashear la pestaña bajo Chromium headless. Se
+    verificó con `git stash` que el mismo cuelgue reproduce igual en el código previo a este
+    incremento (commit `fd0bdb8`, sin nada movido todavía) — es un problema preexistente, no
+    introducido aquí, y queda fuera de alcance de una reubicación pura (arreglarlo sería añadirle a
+    esta pantalla el mismo tratamiento `HEAVY_RENDER_VIEWS`/`scheduleHeavyAdvisorRefresh` que ya
+    tienen Asesor virtual/Ejecutivo/Agente de ahorro, un cambio de comportamiento real). Se ha
+    dejado una tarea sugerida para investigarlo por separado.
+  - **Sin sorpresas adicionales en `npm run verify`**: **4379/4379** en verde (tras corregir el
+    `ReferenceError` de arriba). Un test de otra tarea (`tests/e7-interface.test.cjs`) necesitó
+    concatenar `views/debt-control.js` a su variable `app` (comprobaba por texto literal contenido
+    que ahora vive en el fragmento nuevo: `paretoFrontier`, «Efectos legales y fiscales»,
+    `PROFESSIONAL_WARNING`) — a diferencia de incrementos anteriores, esta vez el test afectado no
+    referenciaba ningún nombre de función movida, sino literales de texto dentro del cuerpo movido;
+    conviene recordar para el futuro que la comprobación de tests no puede limitarse a nombres de
+    función.
+  - **Validación en navegador real**: tras la corrección, `#debt-control` visitado en primer lugar
+    en pestaña nueva carga con contenido real (5 hijos, ~4.400 caracteres) y sin errores de consola
+    ni 404; Hoy, Deuda · comparar, Plan de liquidación de deuda, Asesor virtual, Ejecutivo, Nueva
+    vida (definitiva y simulación) y Agente de ahorro siguen funcionando igual.
+  - **Resultado**: `app.js` pasa de 37.868 a 37.330 líneas (-538). `views/debt-control.js` nuevo,
+    580 líneas.
+- **Publicado (séptimo incremento)**: commit y push a la rama de trabajo en curso, PR en borrador y
+  fusión a `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Resultado acumulado de la sesión (siete incrementos de `T14`)**: `app.js` pasa de 41.596 (cierre
+  de la sesión 205) a 37.330 líneas (-10,3%). Siete fragmentos nuevos/ampliados:
+  `views/escenarios.js`, `views/deuda.js`, `views/debt-liquidation-plan.js`,
+  `views/virtual-advisor.js`, `views/executive-advisor.js`, `views/new-life-definitive.js`,
+  `views/debt-control.js`.
+- **Pendiente para la siguiente sesión**: el cluster grande original queda del todo cerrado — tres
+  pantallas movidas (Asesor virtual, Ejecutivo, Nueva vida definitiva), dos bloqueadas de forma
+  permanente (Nueva vida simulación, Agente de ahorro) salvo decisión explícita del hogar de cambiar
+  su comportamiento de refresco cruzado. `visual-detail` sigue igual de bloqueado por el mismo
+  patrón (botón «descartar» de la barra de impacto de Plan). "Control de deuda" queda movido con la
+  misma auditoría de motor-se-queda/UI-se-mueve. Queda pendiente la investigación por separado del
+  cuelgue de «Comparar decisión» (tarea sugerida ya creada). Para el siguiente incremento de `T14`,
+  buscar candidatos fuera de este cluster: `renderAsesorDecision` (`#asesor-decision`, ~100 líneas),
+  `renderE14bPanel` (`#debt-roadmap`, ~38 líneas), `renderReconciliation` (~105 líneas),
+  `renderCambiosPendientes`/`renderMapaCalor`/`renderCuadroMandos` (~85-110 líneas cada una) son
+  candidatos sin auditar todavía — ninguno comprobado aún para el mismo patrón de refresco eager
+  cruzado que bloqueó tres pantallas ya vistas, así que repetir la auditoría completa antes de
+  extraer cualquiera. Repetir siempre la comprobación cruzada entre todos los `views/*.js`
+  existentes (ya son siete) antes de dar por cerrado cualquier incremento futuro, y re-verificar los
   números de línea exactos con `grep -n` en cada nuevo incremento en vez de asumir cálculos previos.
   Después, el resto del Horizonte 3 (`I2`/`I3`, `D6`, `I9`, `P4`/`P10`) según el plan ya compartido
   con el hogar.
