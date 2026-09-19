@@ -19489,6 +19489,182 @@ function syncGob15ModeFields() {
   qs("gob15BuyFields")?.toggleAttribute("hidden", mode !== "compra");
 }
 
+// T6 (BACKLOG_CONTABILIDADCASA_2_0.md, Horizonte 4): memo de decisión ejecutivo de una página —
+// recomendación, riesgos, sensibilidad y siguiente paso — para las tres decisiones grandes que ya
+// tienen comparador propio: refinanciar (D4, arriba), apalancarse (LEV9, arriba) y vender la
+// vivienda habitual (GOB15, arriba). Sin motor nuevo: cada memo relee los mismos campos que su
+// comparador y reformatea el resultado que ya calcula — nunca decide ni añade una cifra que el
+// comparador no tuviera. Mismo mecanismo de "PDF de una página" que GOB14 (#cierrePrintEvidence +
+// window.print()), un único generador para las tres decisiones en vez de tres botones de imprimir
+// distintos.
+const T6_MEMO_KIND_LABEL = {
+  refinanciar: "Refinanciar la hipoteca (D4)",
+  apalancar: "Tomar deuda con apalancamiento (LEV9)",
+  "vender-vivienda": "Vender la vivienda habitual (GOB15)",
+};
+
+function t6RefinanciarMemoContext() {
+  const engine = window.FinanceCanonicalMortgageRateScenarios;
+  const saved = deb4RadarSettings();
+  if (!engine || !(saved.principal > 0) || !(saved.maxBreakEvenMonths > 0)) return null;
+  const scenarios = engine.evaluateMortgageRateScenarios({
+    principal: saved.principal, months: saved.months, currentVariableRate: saved.variableRate, fixedRateOffer: saved.fixedRate,
+  });
+  const breakEven = engine.refinancingBreakEvenMonths(scenarios.scenarios, saved.refinancingCost);
+  if (!breakEven.calculable) return null;
+  const withinThreshold = breakEven.months <= saved.maxBreakEvenMonths;
+  const recommendation = withinThreshold
+    ? `Refinanciar a tipo fijo recupera su coste de cambio en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}.`
+    : `Refinanciar a tipo fijo recuperaría su coste en ${breakEven.months} mes(es) — por encima de tu umbral de ${saved.maxBreakEvenMonths}: hoy no compensa.`;
+  const risks = [`Coste de cambiar (comisión y gastos de novación/subrogación): ${money(breakEven.cost, true)}.`];
+  risks.push(withinThreshold
+    ? "Si los tipos bajan más de lo previsto, pasarte a fijo ahora te deja pagando más que quedándote en variable — mira el escenario «Favorable» abajo."
+    : "El coste de cambio no se recupera dentro de tu propio umbral declarado con las condiciones de hoy.");
+  const sensitivity = scenarios.scenarios.map((scenario) => {
+    const verdict = scenario.cheaper === "tie" ? "empate" : scenario.cheaper === "fixed" ? "más barato el fijo" : "más barato el variable";
+    return `${scenario.label}: variable ${money(scenario.variableMonthlyPayment, true)}/mes (tipo ${scenario.variableRate}%) frente a fijo ${money(scenario.fixedMonthlyPayment, true)}/mes — ${verdict}.`;
+  });
+  return {
+    kind: "refinanciar",
+    recommendation,
+    risks,
+    sensitivity,
+    nextStep: withinThreshold
+      ? deb4RenegotiationScriptText(saved, scenarios, breakEven)
+      : "Vuelve a comprobar cuando cambie la oferta de tipo fijo o tu tipo variable actual — con las condiciones de hoy no hay guion que ofrecer.",
+    limitations: ["Compara los tres escenarios que tú has declarado (base/favorable/tensión), no una previsión real de tipos de mercado."],
+  };
+}
+
+function t6ApalancarMemoContext() {
+  const engine = window.FinanceCanonicalLeverageCrossComparator;
+  const lombardEngine = window.FinanceCanonicalLeverageSimulator;
+  const creditLineEngine = window.FinanceCanonicalEmergencyCreditLine;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !lombardEngine || !creditLineEngine) return null;
+  const amount = parseAmount(qs("lev9Amount")?.value);
+  const months = Math.round(parseAmount(qs("lev9Months")?.value));
+  if (!(amount > 0) || !(months > 0)) return null;
+  const portfolioValue = portfolio ? portfolio.normalizePositions(iv1PositionsList()).summary.totalValue : 0;
+  const barrierResult = window.FinanceCanonicalLeverageBarrier?.evaluateLeverageBarrier(ap3LeverageBarrierInput()) || null;
+  const leveragePolicy = lev1PolicyResult({ proposedAdditionalDebt: amount });
+  const result = engine.crossInstrumentLeverageComparison({
+    amount, months,
+    lombard: { portfolioValue, ltvPct: parseAmount(qs("apx2LtvPct")?.value), annualRatePct: parseAmount(qs("apx2RatePct")?.value) },
+    mortgage: { annualRatePct: parseAmount(qs("lev9MortgageRatePct")?.value) },
+    creditLine: { limit: parseAmount(qs("lev9CreditLineLimit")?.value), annualRatePct: parseAmount(qs("lev9CreditLineRatePct")?.value) },
+    barrierResult, leveragePolicy, lombardEngine, creditLineEngine,
+  });
+  if (!result.calculable) return null;
+  const recommendation = result.cheapestLabel
+    ? `Usa ${result.cheapestLabel}: es el instrumento más barato de los disponibles para ${money(result.amount, true)} a ${result.months} mes(es).`
+    : "Ninguno de los instrumentos declarados cubre el importe necesitado con los datos de hoy.";
+  const risks = [];
+  if (result.barrierValid === false) risks.push("Guardarraíl de condiciones mínimas (AP4) NO superado — revisa sus bloqueos antes de considerar hipoteca o línea de crédito (no aplica a Lombard).");
+  if (result.policyWithinLimit === false) risks.push("Por encima de tu política de apalancamiento declarada (LEV1) si tomaras este importe con este instrumento.");
+  result.instruments.filter((item) => item.available && !item.feasible).forEach((item) => {
+    risks.push(`${item.label} no cubre el importe necesitado (faltarían ${money(item.shortfall, true)}).`);
+  });
+  if (!risks.length) risks.push("Ningún guardarraíl declarado bloquea esta operación con los datos de hoy — sigue siendo deuda nueva, revisa tu colchón antes de confirmar.");
+  const sensitivity = result.instruments.filter((item) => item.available).map((item) => (item.feasible
+    ? `${item.label}: coste estimado ${money(item.totalCost, true)} en el horizonte declarado.`
+    : `${item.label}: no cubre el importe (faltan ${money(item.shortfall, true)}).`));
+  return {
+    kind: "apalancar",
+    recommendation,
+    risks,
+    sensitivity,
+    nextStep: result.cheapestLabel
+      ? `Antes de confirmar ${result.cheapestLabel}, revisa el margin call (Inversión › Apalancamiento, LEV12) si es Lombard, o las condiciones mínimas (AP4) si es hipoteca o línea de crédito.`
+      : "Amplía la necesidad declarada o revisa los datos de cada instrumento antes de descartar esta vía.",
+    limitations: [String(result.warning || "")].filter(Boolean),
+  };
+}
+
+function t6VenderViviendaMemoContext() {
+  const salePrice = parseAmount(qs("gob15SalePrice")?.value);
+  if (!(salePrice > 0)) return null;
+  const mode = qs("gob15Mode")?.value === "compra" ? "compra" : "alquiler";
+  const result = gob15SimulateSale({
+    mode,
+    salePrice,
+    acquisitionCost: parseAmount(qs("gob15AcquisitionCost")?.value),
+    sellingCosts: parseAmount(qs("gob15SellingCosts")?.value),
+    manualExemption: Boolean(qs("gob15ManualExemption")?.checked),
+    newMonthlyRent: parseAmount(qs("gob15NewMonthlyRent")?.value),
+    newHomePrice: parseAmount(qs("gob15NewHomePrice")?.value),
+    reinvestedAmount: parseAmount(qs("gob15ReinvestedAmount")?.value),
+    newMortgageRatePct: parseAmount(qs("gob15NewMortgageRatePct")?.value),
+    newMortgageMonths: parseAmount(qs("gob15NewMortgageMonths")?.value),
+    alreadyRealizedGain: parseAmount(qs("fc5AlreadyRealized")?.value),
+  });
+  if (!result.calculable) return null;
+  const outflowLine = result.mode === "alquiler"
+    ? `Cuota mensual pasa de ${money(result.oldMortgagePayment, true)} a un alquiler de ${money(result.newMonthlyOutflow, true)}.`
+    : `Cuota mensual pasa de ${money(result.oldMortgagePayment, true)} a ${money(result.newMonthlyOutflow, true)} en la vivienda nueva.`;
+  const recommendation = `Neto libre tras gastos de venta, hipoteca cancelada${result.taxCalculable ? " e impuesto" : ""}: ${money(result.netProceeds, true)}. ${outflowLine}`;
+  const risks = [];
+  if (!result.taxCalculable) risks.push("Sin la escala del tramo del ahorro declarada (Fiscal › IRPF), el coste fiscal de la plusvalía no se ha podido estimar — el neto de arriba no lo incluye.");
+  if (result.mode === "compra" && result.financedGap > 0 && !result.newMortgageCalculable) risks.push(`Quedan ${money(result.financedGap, true)} sin cubrir con lo reinvertido y sin TIN/plazo declarados para la hipoteca nueva — el neto no incluye esa cuota.`);
+  if (result.leftoverLiquidity < 0) risks.push(`El importe reinvertido supera el neto de la venta: faltarían ${money(Math.abs(result.leftoverLiquidity), true)} de fuera de esta operación.`);
+  if (!risks.length) risks.push("Sin bloqueos detectados con los datos de hoy — sigue siendo una decisión irreversible sobre la vivienda habitual.");
+  const sensitivity = [
+    `Ganancia patrimonial bruta: ${money(result.grossGain, true)}${result.reinvestRatioPct !== null ? ` (reinviertes el ${result.reinvestRatioPct}% del precio → ${money(result.exemptGain, true)} exentos)` : ""}.`,
+    result.taxableGain > 0
+      ? `Parte que tributa: ${money(result.taxableGain, true)}${result.taxCalculable ? ` → coste fiscal estimado ${money(result.tax, true)}` : ""}.`
+      : "Sin plusvalía que tribute con los datos declarados.",
+  ];
+  return {
+    kind: "vender-vivienda",
+    recommendation,
+    risks,
+    sensitivity,
+    nextStep: "Confirma con un asesor fiscal el plazo de reinversión (2 años) y el importe exacto antes de firmar — esta cifra es una estimación orientativa.",
+    limitations: [GOB15_EXEMPTION_NOTE, "Comparación puntual con los datos de hoy: no proyecta revalorización de la vivienda ni del alquiler a varios años."],
+  };
+}
+
+function t6DecisionMemoContext(kind) {
+  if (kind === "refinanciar") return t6RefinanciarMemoContext();
+  if (kind === "apalancar") return t6ApalancarMemoContext();
+  if (kind === "vender-vivienda") return t6VenderViviendaMemoContext();
+  return null;
+}
+
+function t6DecisionMemoPrintHtml(kind, context) {
+  const listHtml = (items) => (items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "<p>Ninguno.</p>");
+  return `<h1>Memo de decisión — ${escapeHtml(T6_MEMO_KIND_LABEL[kind] || kind)}</h1>
+    <p>Generado el ${escapeHtml(formatIsoDate(defaultBalanceDate()))}. Síntesis de una página para decidir, no un documento de trabajo — cada cifra viene de la pantalla donde ya se calcula.</p>
+    <h2>Recomendación</h2>
+    <p>${escapeHtml(context.recommendation)}</p>
+    <h2>Riesgos</h2>
+    ${listHtml(context.risks)}
+    <h2>Sensibilidad</h2>
+    ${listHtml(context.sensitivity)}
+    <h2>Siguiente paso</h2>
+    <p>${escapeHtml(context.nextStep)}</p>
+    ${context.limitations.length ? `<h2>Límites de este cálculo</h2>${listHtml(context.limitations)}` : ""}`;
+}
+
+const T6_MEMO_MISSING_DATA_TEXT = "Faltan datos declarados arriba para generar el memo — complétalos y vuelve a intentarlo.";
+
+// Mismo contenedor global de impresión que GOB14/A-11/C-12 (`#cierrePrintEvidence`, fuera de
+// `.app-shell`): un solo mecanismo de "PDF de una página" para toda la app, no uno por pantalla.
+function downloadT6DecisionMemo(kind, noteId) {
+  const note = noteId ? qs(noteId) : null;
+  const context = t6DecisionMemoContext(kind);
+  const container = qs("cierrePrintEvidence");
+  if (!context || !container) {
+    if (note) note.textContent = T6_MEMO_MISSING_DATA_TEXT;
+    return;
+  }
+  if (note) note.textContent = "";
+  container.innerHTML = t6DecisionMemoPrintHtml(kind, context);
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
 // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
 // que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
 // escenario de tensión de E13 (FinanceCanonicalE13.PROFILES, "stress") en un único número
@@ -36616,6 +36792,7 @@ async function init() {
   });
   qs("gob15Mode")?.addEventListener("change", syncGob15ModeFields);
   qs("gob15Simulate")?.addEventListener("click", handleGob15Simulate);
+  qs("t6MemoVenderVivienda")?.addEventListener("click", () => downloadT6DecisionMemo("vender-vivienda", "t6MemoVenderViviendaNote"));
   LEV10_FIELD_IDS.forEach((id) => {
     qs(id)?.addEventListener("change", handleLev10FieldChange);
   });
@@ -37203,6 +37380,7 @@ async function init() {
   qs("apx3LoanAmount")?.addEventListener("change", saveApx3LombardDeclaration);
   qs("apx3MaintenanceLtvPct")?.addEventListener("change", saveApx3LombardDeclaration);
   qs("lev9CompareRun")?.addEventListener("click", handleLev9Compare);
+  qs("t6MemoApalancar")?.addEventListener("click", () => downloadT6DecisionMemo("apalancar", "t6MemoApalancarNote"));
   qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
   Object.values(INV16_CORRELATION_FIELDS).forEach((fieldId) => {
     qs(fieldId)?.addEventListener("change", saveInv16CorrelationDeclarations);
@@ -37251,6 +37429,7 @@ async function init() {
   ["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths"].forEach((id) => {
     qs(id)?.addEventListener("change", saveDeb4RadarSettings);
   });
+  qs("t6MemoRefinanciar")?.addEventListener("click", () => downloadT6DecisionMemo("refinanciar", "t6MemoRefinanciarNote"));
   qs("deb14MaxMonthsWithoutOffer")?.addEventListener("change", handleDeb14MaxMonthsChange);
   qs("gob20AdjustmentAdd")?.addEventListener("click", addGob20IncomeAdjustment);
   qs("gob12SimulateBtn")?.addEventListener("click", gob12SimulatePackage);
