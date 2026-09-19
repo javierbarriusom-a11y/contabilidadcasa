@@ -20595,9 +20595,38 @@ const INV14_REGION_LABELS = {
   "sin-declarar": "Sin declarar",
 };
 
+// I10 (Contabilidadcasa 2.0): el umbral de "concentración alta" de INV14 estaba fijo en 50% — este
+// hogar puede querer vigilar antes (o tolerar más) que ese punto. Se declara aparte, nunca inferido:
+// sin declarar, se mantiene el mismo 50% de siempre, así que el comportamiento no cambia para quien
+// no toca el campo nuevo.
+function inv14ConcentrationThresholdPct() {
+  const configured = Number(scenarioSettings?.inv14ConcentrationThresholdPct);
+  return Number.isFinite(configured) && configured > 0 && configured <= 100 ? configured : 50;
+}
+
+function syncInv14ConcentrationThresholdControl() {
+  const field = qs("inv14ConcentrationThresholdPct");
+  if (!field || document.activeElement === field) return;
+  const configured = Number(scenarioSettings?.inv14ConcentrationThresholdPct);
+  field.value = Number.isFinite(configured) && configured > 0 && configured <= 100 ? String(configured) : "";
+}
+
+function handleInv14ConcentrationThresholdChange(event) {
+  const raw = parseAmount(event.target.value);
+  if (event.target.value.trim() === "" || !(raw > 0) || raw > 100) {
+    delete scenarioSettings.inv14ConcentrationThresholdPct;
+  } else {
+    scenarioSettings.inv14ConcentrationThresholdPct = round2(raw);
+  }
+  saveScenarioSettings();
+  syncInv14ConcentrationThresholdControl();
+  renderInv14CurrencyGeographyExposure();
+}
+
 function renderInv14CurrencyGeographyExposure() {
   const container = qs("inv14CurrencyGeographyExposure");
   if (!container) return;
+  syncInv14ConcentrationThresholdControl();
   const engine = window.FinanceCanonicalPortfolio;
   const rows = iv1PositionsList();
   if (!engine || !rows.length) {
@@ -20610,9 +20639,10 @@ function renderInv14CurrencyGeographyExposure() {
     container.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición con valor para ver la exposición por divisa y geografía.</p>`;
     return;
   }
+  const thresholdPct = inv14ConcentrationThresholdPct();
   const rowsHtml = (list, labels) => list.map((row) => {
     const label = labels ? (labels[row.key] || row.key) : row.key;
-    const warning = row.key !== "sin-declarar" && row.pct >= 50 ? " — concentración alta" : "";
+    const warning = row.key !== "sin-declarar" && row.pct >= thresholdPct ? " — concentración alta" : "";
     return `<li>${escapeHtml(label)}: ${money(row.value, true)} (${row.pct}%${warning})</li>`;
   }).join("");
   container.innerHTML = `
@@ -20620,7 +20650,7 @@ function renderInv14CurrencyGeographyExposure() {
     <ul class="commit-barrier-list">${rowsHtml(result.currencyRows, null)}</ul>
     <h5 class="escenario-motor-panel-title">Por geografía (declarada)</h5>
     <ul class="commit-barrier-list">${rowsHtml(result.regionRows, INV14_REGION_LABELS)}</ul>
-    <p class="e19-kpi-note">Divisa y geografía declaradas por ti al registrar cada posición, nunca derivadas de la composición real de un fondo — solo avisa de concentración, nunca decide ni bloquea nada.</p>`;
+    <p class="e19-kpi-note">Divisa y geografía declaradas por ti al registrar cada posición, nunca derivadas de la composición real de un fondo — solo avisa de concentración a partir del ${thresholdPct}% declarado arriba, nunca decide ni bloquea nada.</p>`;
 }
 
 // INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años, visto como
@@ -37094,6 +37124,7 @@ async function init() {
   Object.values(INV16_CORRELATION_FIELDS).forEach((fieldId) => {
     qs(fieldId)?.addEventListener("change", saveInv16CorrelationDeclarations);
   });
+  qs("inv14ConcentrationThresholdPct")?.addEventListener("change", handleInv14ConcentrationThresholdChange);
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
   qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);

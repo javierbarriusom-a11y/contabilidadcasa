@@ -99,7 +99,7 @@ function extractConst(name) {
   return appSource.slice(start, end);
 }
 
-function sandbox({ rawPositions = [] } = {}) {
+function sandbox({ rawPositions = [], scenarioSettings = {} } = {}) {
   const container = { innerHTML: "" };
   const context = {
     window: { FinanceCanonicalPortfolio: Portfolio },
@@ -107,10 +107,15 @@ function sandbox({ rawPositions = [] } = {}) {
     iv1PositionsList: () => rawPositions,
     money: (value) => `${Math.round(value)}€`,
     escapeHtml: (value) => String(value ?? ""),
+    scenarioSettings,
     container,
   };
   vm.createContext(context);
   vm.runInContext(extractConst("INV14_REGION_LABELS"), context);
+  // I10 (Contabilidadcasa 2.0): umbral de concentración propio, con el mismo 50% de siempre sin
+  // declarar — extraído junto a las dos funciones de las que depende renderInv14CurrencyGeographyExposure.
+  vm.runInContext(extractFunction("inv14ConcentrationThresholdPct"), context);
+  vm.runInContext(extractFunction("syncInv14ConcentrationThresholdControl"), context);
   vm.runInContext(extractFunction("renderInv14CurrencyGeographyExposure"), context);
   return context;
 }
@@ -131,6 +136,27 @@ test("renderInv14CurrencyGeographyExposure · con posiciones, muestra divisa y g
   assert.match(ctx.container.innerHTML, /España/);
   assert.match(ctx.container.innerHTML, /Sin declarar/);
   assert.match(ctx.container.innerHTML, /declaradas por ti/);
+});
+
+// I10 (Contabilidadcasa 2.0): umbral propio de "concentración alta" — sin declarar, el 100% de una
+// sola divisa/región sigue avisando al mismo 50% de siempre (sin cambio de comportamiento).
+test("renderInv14CurrencyGeographyExposure · sin umbral declarado, avisa al 50% de siempre", () => {
+  const ctx = sandbox({ rawPositions: [{ id: "p1", label: "Fondo A", currentValue: 5000, currency: "eur", region: "espana" }] });
+  ctx.renderInv14CurrencyGeographyExposure();
+  assert.match(ctx.container.innerHTML, /EUR: 5000€ \(100%.*concentración alta/);
+});
+
+test("renderInv14CurrencyGeographyExposure · con umbral declarado más alto, no avisa por debajo de él", () => {
+  const ctx = sandbox({
+    rawPositions: [
+      { id: "p1", label: "Fondo A", currentValue: 6000, currency: "eur", region: "espana" },
+      { id: "p2", label: "Fondo B", currentValue: 4000, currency: "usd", region: "estados-unidos" },
+    ],
+    scenarioSettings: { inv14ConcentrationThresholdPct: 70 },
+  });
+  ctx.renderInv14CurrencyGeographyExposure();
+  assert.doesNotMatch(ctx.container.innerHTML, /EUR: 6000€ \(60%.*concentración alta/);
+  assert.match(ctx.container.innerHTML, /a partir del 70% declarado/);
 });
 
 test("index.html: campos de divisa y geografía al registrar una posición, y tarjeta INV14", () => {

@@ -2433,6 +2433,12 @@
                    posición (arriba, al registrarla) — esta app no trae datos de mercado sobre la
                    composición real de un fondo/ETF, así que no se deriva, se pregunta. -->
               <h4 class="escenario-motor-panel-title">Exposición por divisa y geografía (INV14)</h4>
+              <!-- I10: umbral propio de "concentración alta" — sin declarar, se mantiene el 50% de
+                   siempre (comportamiento sin cambios para quien no toca este campo). -->
+              <label class="month-picker">
+                <span>Umbral de alerta de concentración (%)</span>
+                <input id="inv14ConcentrationThresholdPct" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="50" />
+              </label>
               <div id="inv14CurrencyGeographyExposure"></div>
               <!-- INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años,
                    visto como trayectoria — extiende IVX4 (coste compuesto de comisiones puntual) a
