@@ -156,19 +156,22 @@ test("H-10 · H-6 mes en una línea: movimientos sin clasificar se cuentan y se 
   assert.match(unclassifiedRow.value, /^1 ·/);
 });
 
-test("H-10 · H-6 (auditoría 15 de agosto) · sin mes encontrado en el plan, Gasto previsto y Desviación dicen «—», no fabrican un previsto de 0€", () => {
+test("H-10 · H-6 (auditoría 15 de agosto) · sin mes encontrado en el plan, Previsto y Desviación dicen «—», no fabrican un previsto de 0€", () => {
   const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], {
     p2MovementRows: () => [],
     ...homeMonthAtAGlanceStubs({ month: null }),
   });
   const glance = homeMonthAtAGlance("2026-08-14", 250);
-  const planned = glance.rows.find((row) => row.label === "Gasto previsto");
+  const planned = glance.rows.find((row) => row.label === "Previsto");
   const deviation = glance.rows.find((row) => row.label === "Desviación");
   assert.equal(planned.value, "—");
   assert.equal(deviation.value, "—");
 });
 
-test("H-10 · H-6 (auditoría 15 de agosto) · con mes encontrado, Ingresos/Gasto previsto/Gasto real a hoy/Desviación comparan lo previsto contra lo real, no solo cifras reales", () => {
+// T16 (Contabilidadcasa 2.0): «Gasto previsto»/«Gasto real a hoy» pasan a «Previsto»/«Real» a
+// secas, para coincidir con el vocabulario ya unificado en el resto de la app — decisión explícita
+// del hogar tras revisar que Registrar, Plan y Análisis ya usaban esos mismos términos.
+test("H-10 · H-6 (auditoría 15 de agosto) · con mes encontrado, Ingresos/Previsto/Real/Desviación comparan lo previsto contra lo real, no solo cifras reales", () => {
   const movements = [
     { month: "2026-08", amount: 4320, reconciled: true },
     { month: "2026-08", amount: -1412, reconciled: true },
@@ -179,8 +182,8 @@ test("H-10 · H-6 (auditoría 15 de agosto) · con mes encontrado, Ingresos/Gast
   });
   const glance = homeMonthAtAGlance("2026-08-14", 250);
   assert.equal(glance.rows.find((row) => row.label === "Ingresos").value, "€4320.00");
-  assert.equal(glance.rows.find((row) => row.label === "Gasto previsto").value, "€3075.00");
-  assert.equal(glance.rows.find((row) => row.label === "Gasto real a hoy").value, "€1412.00");
+  assert.equal(glance.rows.find((row) => row.label === "Previsto").value, "€3075.00");
+  assert.equal(glance.rows.find((row) => row.label === "Real").value, "€1412.00");
   const deviation = glance.rows.find((row) => row.label === "Desviación");
   assert.equal(deviation.value, "€-1663.00");
   assert.equal(deviation.tone, "positive", "gastar menos de lo previsto es una desviación buena");

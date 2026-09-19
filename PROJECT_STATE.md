@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3` (bandeja única de decisiones), `D9` (barra pagado/pendiente por contrato), `P3` (badge de fiabilidad en Previsión), `I10` (umbral propio de concentración divisa/geografía), `I12` (fecha de revisión de convicción por posición) y `T12` (comparador contra el propio histórico)
+## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3`/`D9`/`P3`/`I10`/`I12`/`T12`/`T18`/`T16` — Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado
 
 - **Qué pedía la sesión**: retomar `BACKLOG_CONTABILIDADCASA_2_0.md` para la siguiente oleada de
   desarrollo. Antes de continuar `T14` por inercia (era la única tarea "en marcha" de Horizonte 3),
@@ -248,12 +248,45 @@ de aquí en la siguiente regeneración, no al momento.
   forzados están activos). Sin errores de consola.
 - **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
   cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
-- **Fin de sesión 208**: seis entregas cerradas (`T3`, `D9`, `P3`, `I10`, `I12`, `T12`) más la pausa
-  razonada de `T14`, cada una validada y publicada por separado (PRs #331-#336). Con esto queda
-  agotada toda la cola de Horizonte 3 desbloqueada sin decisión previa pendiente de
-  `BACKLOG_CONTABILIDADCASA_2_0.md`: lo que resta (`T16`/`T18`, `I9`, `I2`/`I3`, `P4`/`P10`, `D6`,
-  `I6`/`I7`/`I8`) necesita, en cada caso, una decisión del hogar o una condición externa que hoy no
-  se cumple — ver §6 del propio documento para el detalle de cada bloqueo.
+- **`T18` — séptimo incremento, tras pedir el hogar seguir con `T16`/`T18`**: antes de tocar nada se
+  recontaron los bloques reales de la zona principal de Hoy (`.home-primary-section`, `index.html`)
+  en vez de fiarse del hallazgo de `T1` (sesión 197, "9 artículos estáticos + 2 rejillas dinámicas").
+  Recuento actual: 3 artículos fijos (cobertura, «el mes en una línea» — misma fila que cobertura,
+  decisiones abiertas) + 2 rejillas dinámicas (`homeBudgetGlance`, `homeKpis`) — exactamente los 4
+  bloques que ya describe el comentario de `OPT-8` (sesión 111). Todas las tarjetas nuevas de
+  sesiones posteriores a la auditoría de `T1` (`P1`/`homeForecastChangeCard`, sesión 199;
+  `A16-1`/`homeHealthScoreCard`; `T3`/`homeDecisionInboxCard`, esta misma sesión...) ya se dirigieron
+  a propósito a `.home-secondary-section` — la disciplina de `OPT-8` se sostuvo sin que nadie la
+  reforzara expresamente entre medias. Puesto el recuento real delante del hogar, confirmó que la
+  regla de 4 bloques sigue siendo el objetivo y que, cumpliéndose ya, no hay nada que construir.
+  `T18` se cierra documentando esto, sin tocar código.
+- **`T16` — investigación pedida por el hogar antes de decidir**: se revisaron Análisis y Plan ›
+  Previsión (las dos pantallas que la nota original no había mirado todavía) antes de proponer nada.
+  Resultado: no son tres dialectos en pie de igualdad. Registrar, las tablas de ingresos/gastos de
+  Plan, el desplegable `planned`/`actual`, Análisis › «¿Acierta el plan?» y el comparador de dos
+  meses (UX3) ya usaban «Previsto»/«Real»/«Desviación» de forma consistente entre sí. «Ingreso
+  previsto» de Plan (citado en la nota original como una 4ª variante) resultó ser un concepto
+  distinto — estado de asignación de presupuesto (Comprometido/Asignado/Sin asignar), no el par
+  previsto/real. Plan › Previsión (la tabla Resultado/Saldo máximo/Mínimo/Colchón) tampoco participa
+  del vocabulario: es proyección de saldo futuro, sin par previsto/real por partida. La única pieza
+  real distinta era la tarjeta «El mes en una línea» de Hoy (H-6): «Gasto previsto»/«Gasto real a
+  hoy» en vez de «Previsto»/«Real» a secas. Puesta esta comparación ya acotada delante del hogar,
+  decidió recortar la tarjeta de Hoy para que coincida exactamente con el resto de la app —
+  asumiendo perder el matiz «a hoy» (el mes puede seguir abierto) a cambio de esa consistencia
+  literal. Cambio de dos etiquetas en `homeMonthAtAGlance()` (`app.js`), sin tocar ningún cálculo.
+- **Validación (`T16`)**: `npm run verify` en verde: **4393/4393 pruebas** (2 actualizadas en
+  `tests/f1-hoy-dato-ausente.test.cjs` para las nuevas etiquetas), `test:a11y`, `test:performance`,
+  `build:site`, `test:privacy`, `test:smoke` sin errores. Verificación en navegador real: la tarjeta
+  «El mes en una línea» de Hoy muestra «Ingresos»/«Previsto»/«Real»/«Desviación»/«Sin clasificar» con
+  los datos de demostración, sin errores de consola.
+- **Publicado (`T16`)**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a
+  `main` en cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Fin de sesión 208**: ocho entregas cerradas (`T3`, `D9`, `P3`, `I10`, `I12`, `T12`, `T18`, `T16`)
+  más la pausa razonada de `T14`, cada una validada y publicada por separado. Con esto queda agotada
+  toda la cola de Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md`, con o sin decisión del hogar
+  pendiente: lo que resta (`I9`, `I2`/`I3`, `P4`/`P10`, `D6`, `I6`/`I7`/`I8`) necesita, en cada caso,
+  una decisión del hogar (`I9`, `I6`/`I7`/`I8`) o una condición externa que hoy no se cumple
+  (`I2`/`I3`, `P4`/`P10`, `D6`) — ver §6 del propio documento para el detalle de cada bloqueo.
 
 ## Cierre de sesión — 18 de septiembre de 2026 (207): `T14`, cinco incrementos del monolito (comparador de deuda, plan deuda óptimo heredado, asesor virtual, ejecutivo) — y corrección de dos `ReferenceError` ya publicados en el primer incremento
 
