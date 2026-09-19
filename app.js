@@ -30555,6 +30555,11 @@ function renderHomeDecision(item, isPrimary) {
 // lee Plan › Previsión (P-8) — así que no puede desincronizarse de ese otro sitio. Lo real y las
 // dos filas de señal siguen viniendo de p2MovementRows(), igual que la cobertura hasta el
 // siguiente ingreso.
+// T16 (Contabilidadcasa 2.0): las etiquetas de gasto pasan de «Gasto previsto»/«Gasto real a hoy» a
+// «Previsto»/«Real» a secas, para coincidir exactamente con el vocabulario ya unificado en el resto
+// de la app (Registrar, las tablas de ingresos/gastos de Plan, Análisis › «¿Acierta el plan?»).
+// Decisión explícita del hogar: se pierde el matiz «a hoy» (el mes puede seguir abierto) a cambio de
+// esa consistencia literal.
 function homeMonthAtAGlance(asOfDate, plannedSaving) {
   const monthKey = String(asOfDate || "").slice(0, 7);
   const movements = p2MovementRows().filter((row) => row.month === monthKey);
@@ -30575,8 +30580,8 @@ function homeMonthAtAGlance(asOfDate, plannedSaving) {
     monthLabel: monthKey ? registrarMesMonthName(monthKey) : "—",
     rows: [
       { label: "Ingresos", value: money(incomeTotal, true) },
-      { label: "Gasto previsto", value: plannedExpense === null ? "—" : money(plannedExpense, true) },
-      { label: "Gasto real a hoy", value: money(expenseTotal, true) },
+      { label: "Previsto", value: plannedExpense === null ? "—" : money(plannedExpense, true) },
+      { label: "Real", value: money(expenseTotal, true) },
       {
         label: "Desviación",
         value: deviation === null ? "—" : registrarMesSignedMoney(deviation),
