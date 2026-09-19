@@ -8,20 +8,24 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 21/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
+**Estado: 22/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
 contaba en los 52 originales).** Cierres previos (sesión 205 y antes — `D2`, `D3`, `D7`, `T1`,
 `T15`, `T17`, `T19`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`,
 `T8`). `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
 Horizonte 1 original salvo `T16` y `T18`, que siguen esperando que el hogar decida (ver su nota en
 §4). `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7` y `T8` — **todo el Horizonte 2 completo** (sesiones
-200-205). `T14` (Horizonte 3) arrancó en la sesión 206 (`views/escenarios.js`) y suma siete
+200-205). `T14` (Horizonte 3) arrancó en la sesión 206 (`views/escenarios.js`) y sumó siete
 incrementos más en la 207 (`views/deuda.js`, comparador de estrategias; `views/debt-liquidation-
 plan.js`, plan de deuda óptimo heredado; `views/virtual-advisor.js`, asesor virtual;
 `views/executive-advisor.js`, ejecutivo; `views/new-life-definitive.js`, nueva vida definitiva;
 `views/debt-control.js`, control de deuda; `views/asesor-decision.js`, asesor · decisión abierta) —
-ver su nota más abajo, sigue pendiente el resto. El
-resto sigue pendiente — diagnóstico y planificación para lo que falta.
+**sesión 208: auditado el resto de `HEAVY_RENDER_VIEWS` y confirmado que no queda ningún candidato
+limpio** (las 3 pantallas restantes sin `VIEW_CHUNK` propio — `visual-detail`, `new-life-simulation`,
+`savings-agent` — son exactamente las que la sesión 207 ya declaró permanentemente bloqueadas por
+refresco eager sin guarda de pantalla; `T14` queda en pausa razonada, no cerrada, sin trabajo real
+pendiente que no cambie comportamiento). Misma sesión 208: `T3` (bandeja única de decisiones)
+cerrada — ver su nota en §4.
 
 ## 0. Origen y diagnóstico
 
@@ -129,7 +133,7 @@ tres áreas anteriores a la vez, y varias ideas nuevas pensadas para el perfil c
 |---|---|---|---|---|
 | ✅ `T1` | Ejecutar por fin la auditoría Nielsen real sobre Hoy/Registrar/Plan | S | Alto | **Cerrada (sesión 197).** Primera revisión real, con evidencia `file:line`, registrada en `docs/OPT21_CHECKLIST_NIELSEN.md`. 7 hallazgos: 2 corregidos en la misma sesión (`Sobres · Fase 6` filtrado a la UI de Plan; mensaje de error sin instrucción al deshacer una importación), 5 convertidos en tareas nuevas (`T15`-`T19` abajo). |
 | ✅ `T2` | Buscador universal (Cmd+K) sobre los 37+ enlaces de navegación | M | Alto | **Cerrada (sesión 199).** Ataca directamente el hallazgo #1 del diagnóstico. **Investigado antes de construir nada**: el buscador ya existía por completo (`e17-experience.js`, atajo Cmd/Ctrl+K, búsqueda difusa, diálogo `e17LauncherDialog`) — no era una tarea de cero. El hueco real: su catálogo `TASKS` tenía 37 entradas pero la navegación real (`index.html`) ya tenía 45 pantallas navegables; 8 no estaban — entre ellas `registrar` y `plan`, dos de las pantallas más usadas del proyecto. Añadidas las 8 (`planificacion-partidas`, `registrar`, `plan`, `cierre`, `analisis`, `prevision`, `update-data`, `operations-manual`) y un test que fija la invariante «todo enlace de navegación tiene entrada en el buscador» para que no vuelva a desincronizarse en silencio. |
-| ⏳ `T3` | Bandeja única de decisiones (unifica alertas de presupuesto, refinanciación, LTV, supuestos, seguros, gasto fantasma) | M | Alto | Extiende `canonical-e11b-inbox.js` (E11B), hoy con alcance parcial. |
+| ✅ `T3` | Bandeja única de decisiones (unifica alertas de presupuesto, refinanciación, LTV, supuestos, seguros, gasto fantasma) | M | Alto | **Cerrada (sesión 208).** La nota original decía "extiende `canonical-e11b-inbox.js`" — verificado que ese motor es la bandeja de importación de datos (E11b), sin relación con alertas de decisión; la nota estaba desactualizada, corregida aquí. Construido `decisionInboxItems()`/`renderDecisionInboxCard()` en `app.js`: normaliza en una lista única, nueva tarjeta de Hoy (`homeDecisionInboxCard`, oculta sin ninguna decisión pendiente), las condiciones de disparo ya calculadas por `homeBudgetSummary` (presupuesto), `renderDeb4RefinancingRadar` (refinanciación), `proactiveLtvAlert`/LEV12 (LTV de apalancamiento), `assumptionExpiryAlerts`/PVC15 (supuestos caducados) y `evaluateHomeInsuranceGap` (seguro de hogar) — ningún motor nuevo, cada entrada enlaza con `data-home-nav` a la pantalla donde ya se actúa. «Gasto fantasma» se deja fuera: su detector (`P8`) todavía no existe, no hay nada real que unificar todavía para esa fuente. |
 | ✅ `T4` | Resolver «directiva vs. informativa» en las ~15+ pantallas antiguas | S (decisión) | Medio | **Cerrada (sesión 204).** Inventario exhaustivo: 19 pantallas + 1 caso límite (`A2-3`) con el disclaimer antiguo. `GOB15` excluida a propósito (reservada a sesión propia, decisión previa del hogar). De las 18 restantes: **8 se quedan informativas con el motivo documentado en el código** (`FC3`, `A15-2`, `LPX4`, `LPX3`, `RGX1`, `LPX5`, `APX3`, reparto mensual estacional — verificación fiscal real, estimación orientativa por diseño, checklist sin alternativas, declaración libre, o trade-off de riesgo sin mejor opción objetiva) — no es indecisión, es que no hay una respuesta directiva honesta que dar. **9 pasan a lenguaje directivo** (`FC5`, `INV6`, `AP3`, `LEV14`, `LEV9`, `LEV10`, `LEV11`, `DEB10`/`DEB5`; `APX2` ya era directiva, sin cambio necesario), mismo patrón que `INV18`: dicen qué hacer con los datos ya calculados, sin motor nuevo. `FCX1` se reclasificó de directiva a informativa durante la implementación: recomendar "capital único vs. renta" exigiría modelar la modalidad en forma de renta, hueco declarado (`I5`), no indecisión — ver detalle en la nota de la fila `I5`. |
 | ✅ `T5` | Completar `A14-2` con serie histórica y banda de confianza de patrimonio neto | M | Alto | **Cerrada (sesión 200).** Sin histórico real de valoración de activos ni de saldo de deuda mes a mes (ese hueco es `I2`, deliberadamente fuera de esta tarea), la única fuente real mes a mes es el flujo de caja conciliado con el banco (`reconciledMonthlyNetHistory`, `A11-3`). Nuevo `netWorthWaterfall()` en `canonical-assets.js`: reconstruye el patrimonio neto hacia atrás desde el único punto exacto (hoy) restando ese flujo real mes a mes, con una banda de incertidumbre que crece con la distancia (2%/mes, tope 25%) porque cada paso ignora revalorización de mercado/vivienda y el reparto capital/interés de la deuda — nunca se simula esa precisión. Nuevo gráfico de cascada mensual (SVG) en la tarjeta de Ajustes de `A14-2`, oculto sin meses conciliados. `renderA14AssetBreakdown()` refactorizado: el cálculo de patrimonio neto se extrajo a `a14NetWorthToday()` para que la cascada lo reutilice sin duplicarlo. |
 | ⏳ `T6` | Memo de decisión ejecutivo autogenerado (una página: recomendación, riesgos, sensibilidad, siguiente paso) | M | Alto | Para decisiones grandes (refinanciar, apalancarse, comprar/vender vivienda); la app ya tiene el cálculo, falta el formato de síntesis. |
@@ -169,12 +173,16 @@ y `T18` (densidad de Hoy) necesitan una decisión del hogar antes de construirse
 (ambas sesión 205, pedidas por el hogar en la misma sesión de trabajo, `T7` primero). Las ocho
 apuestas estructurales del horizonte quedan cerradas.
 
-**Horizonte 3 — en marcha:** `T14` (reducir el monolito, prerrequisito de velocidad futura —
-**ocho incrementos construidos, sesiones 206-207**, tras que el hogar decidiera seguir con el patrón
-ya existente en el repositorio en vez de módulos ES nuevos, ver su nota en §4; el resto sigue
-pendiente, varias sesiones más). **Condicionadas (decisión previa o de terceros):** `I9` (decidir
-dependencias UI), `I2`/`I3` (histórico de valoraciones), `P4`/`P10` (interinos de push e IA, a
-sustituir cuando lleguen `A5-1`/`A5-4`), `D6` (necesita fuente de datos externa).
+**Horizonte 3 — en marcha:** `T14` (reducir el monolito) queda en **pausa razonada tras ocho
+incrementos (sesiones 206-207)**: la sesión 208 auditó las 3 pantallas `HEAVY_RENDER_VIEWS`
+restantes sin `VIEW_CHUNK` propio y confirmó que las tres están permanentemente bloqueadas por
+refresco eager sin guarda de pantalla (ver nota en §4) — no queda trabajo real de extracción sin
+cambiar comportamiento. `T3` (bandeja única de decisiones) cerrada en la misma sesión 208. Cola
+desbloqueada y sin decisión previa pendiente para seguir: `D9`, `P3`, `I10`, `I12`, `T12` (esfuerzo
+S/M, beneficio Medio/Alto). **Condicionadas (decisión previa o de terceros):** `T16`/`T18`
+(necesitan que el hogar decida, ver su nota en §4), `I9` (decidir dependencias UI), `I2`/`I3`
+(histórico de valoraciones), `P4`/`P10` (interinos de push e IA, a sustituir cuando lleguen
+`A5-1`/`A5-4`), `D6` (necesita fuente de datos externa).
 
 **Verificaciones de `D2`/`D3`/`D7` cerradas en la sesión 197**, antes del resto del Horizonte 1:
 `D3` no dio trabajo real (cobertura ya completa); `D2` y `D7` sí dieron trabajo, pero acotado (un
