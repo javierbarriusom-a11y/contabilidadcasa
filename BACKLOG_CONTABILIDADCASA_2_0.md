@@ -75,7 +75,7 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
 | ✅ `P1` | Panel «qué cambió desde la última vez» en Hoy | S | Alto | Cerrada sesión 199: nueva tarjeta `homeForecastChangeCard` en `.home-secondary-section` de Hoy. Combina la frase de `causalTreeForMonth`/`previsionChangeOneLiner` (`PVX5`, sobre el mes conciliado más reciente) con la comparación de supuestos de `diffAssumptionSnapshots`/`pvc18ChangeCauses` (`PVC6`/`PVC18`) contra el cierre firmado más reciente — sin selector manual, a diferencia de Ajustes: en Hoy solo hay lectura de un único punto de comparación, el último. Ningún motor nuevo. |
-| ⏳ `P2` | Cono de incertidumbre con tooltip (P10/P50/P90 y categoría dominante) | M | Medio | Sobre el SVG ya existente de `PVC19`, sin librería nueva. |
+| ✅ `P2` | Cono de incertidumbre con tooltip (P10/P50/P90 y categoría dominante) | M | Medio | **Cerrada (sesión 210).** Sobre el mismo SVG de `PVC19` (`pv4ConfidenceBandHtml`), sin librería nueva ni motor nuevo: un `<button>` HTML marcador por mes (no un `<circle>` SVG — el viewBox 0-100 con `preserveAspectRatio="none"` estira x e y en proporciones distintas, un radio fijo habría salido deformado), posicionado con el mismo `xAt`/`yAt` que ya usa el propio SVG, con `title`/`aria-label` nativos (foco de teclado cubierto por la regla global `:focus-visible`, sin CSS de foco propio). Cada marcador dice el rango del mes (low/center/high, etiquetados P10/P50/P90 como pide la nota) y, cuando hay historial suficiente, la partida que más pesa en el margen — nueva `pv4DominantDeviationCategory()`, sobre el mismo `deviations` de `learnFromHistory`/E12b que ya usa el termómetro de desviación por partida (PV2), sin recalcular nada. El margen es una única cifra agregada, no una por categoría y mes, así que la nota dice "la partida que más pesa" en singular, igual en los doce meses — nunca un desglose que el motor no calcula. |
 | ✅ `P3` | Badge de fiabilidad junto a cada cifra proyectada | S | Medio | **Cerrada (sesión 208).** Nuevo `renderPrevisionReliabilityBadge()` (`app.js`) junto a la cabecera de Previsión (`previsionHeadline`/`Subheadline`), reutilizando tal cual `pvc17PredictiveHealthIndex()` (PVC17) — la misma agregación de error histórico que ya alimentaba la tarjeta de Ajustes. Solo dos niveles reales («media»/«baja», los únicos que calcula `predictionQuality`); sin muestras conciliadas con previsto y real todavía, el badge se queda vacío en vez de fingir una fiabilidad que no se puede medir. |
 | ⏳ `P4` | Dígesto semanal de reforecast material (email/nota, interino de push) | M | Medio | Sobre `reforecastMaterialityAlert` (`PVC8`); a sustituir cuando `A5-4`/push exista. |
 | ✅ `P5` | Radar único de supuestos caducados con «revisar ahora» | S | Medio | Cerrada sesión 199: nueva tarjeta `ajustesAssumptionExpiryRadar` en Ajustes, sobre el mismo `assumptionExpiryAlerts` (`PVC15`) que ya se marcaba uno a uno dentro de la lista completa (que sigue igual, sin quitarle su marca en línea). Cada entrada del radar lleva un botón «Revisar ahora»: los cinco supuestos fiscales enfocan su propio campo en la misma tarjeta (`data-scroll-focus`, OPT-7); los cinco generales del forecast navegan al Laboratorio de escenarios, donde sí se editan (`data-home-nav`). Ningún motor nuevo. |
@@ -212,9 +212,13 @@ con procedencia (`unifiedActionCenterModel`), cuerpo de informe compartido (`gob
 solo cambia el periodo que lo etiqueta. `P11` añade «Mismo mes, año anterior» en Análisis, junto a
 UX3: por categoría, no solo en total, para separar estacionalidad estructural de desviación real —
 reutiliza el umbral de desviación por partida ya declarado en Ajustes (V6-2, regla transversal 09) en
-vez de inventar uno nuevo. Detalle completo de ambas en sus filas de §1. Quedan sin bloqueo real y sin
-construir: `P2`, `T10`, `T11` (Previsión/Transversales, siguientes en el orden propuesto), `T9`
-(aparte, incrementos propios) y `T13` (a la espera de confirmación del hogar).
+vez de inventar uno nuevo. Detalle completo de ambas en sus filas de §1. Siguiente de la misma sesión:
+**`P2` ✅** (cono de incertidumbre con tooltip), sobre el mismo SVG de `PVC19` sin librería ni motor
+nuevo — un marcador HTML por mes (no un `<circle>` SVG, que habría salido deformado por el
+`preserveAspectRatio="none"` del viewBox) con el rango P10/P50/P90 y, reutilizando `deviations` de
+`learnFromHistory`/E12b (PV2), la partida que más pesa en el margen. Detalle completo en su fila de
+§1. Quedan sin bloqueo real y sin construir: `T10`, `T11` (Transversales, siguientes en el orden
+propuesto), `T9` (aparte, incrementos propios) y `T13` (a la espera de confirmación del hogar).
 **Condicionadas (decisión previa o de terceros):** `I9` (aplazada, ver arriba), `D1` (aparcada, ver
 arriba), `I2`/`I3` (histórico de valoraciones), `I6`/`I7`/`I8` (confirmar con el hogar si su
 situación real las justifica), `P4`/`P10` (interinos de push e IA, a sustituir cuando lleguen

@@ -80,7 +80,7 @@ test("pv4ConfidenceBandHtml · con datos, pinta la etiqueta de cada mes y la con
 test("renderE13ScenarioLab calcula las bandas sobre 12 meses de forecast.series y las pinta junto al termómetro", () => {
   const source = extractFunction("renderE13ScenarioLab");
   assert.match(source, /confidenceBands = window\.FinanceCanonicalForecast\.confidenceBands\(forecast\.series\.slice\(0, 12\), learning, \{ quality: predictionQuality \}\)/);
-  assert.match(source, /pv4ConfidenceBandHtml\(confidenceBands\)/);
+  assert.match(source, /pv4ConfidenceBandHtml\(confidenceBands, confidenceBandsDominant\)/);
 });
 
 // PVC13 (Oleada 4, Bloque 3): la misma función construye ahora las muestras de predictionQuality
