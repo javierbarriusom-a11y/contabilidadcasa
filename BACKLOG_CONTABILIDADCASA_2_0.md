@@ -8,9 +8,9 @@
 Fecha de creación: 16 de septiembre de 2026 (sesión posterior a la 195, con
 `BACKLOG_SUCESION_Y_CONTINUIDAD.md` ya 100% cerrado y ningún backlog nuevo identificado todavía).
 
-**Estado: 30/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
-contaba en los 52 originales).** `T6` (sesión 209) es la primera tarea de un Horizonte 4 sin numerar
-todavía, tras agotarse el Horizonte 3 en la sesión 208 — ver §6. Cierres previos (sesión 205 y antes — `D2`, `D3`, `D7`, `T1`,
+**Estado: 31/52 cerradas de la cola original, más `T20` (nacida y cerrada en la sesión 206, no
+contaba en los 52 originales).** `T6` y `P7` (sesión 209) son las dos primeras tareas de un
+Horizonte 4 sin numerar todavía, tras agotarse el Horizonte 3 en la sesión 208 — ver §6. Cierres previos (sesión 205 y antes — `D2`, `D3`, `D7`, `T1`,
 `T15`, `T17`, `T19`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6`, `T5`, `P9`, `D5`, `I1`, `D10`, `T4`, `T7`,
 `T8`). `T1` añadió 5 tareas nuevas (`T15`-`T19`, §4) desde sus propios hallazgos; las tres sin
 decisión previa pendiente (`T15`, `T17`, `T19`) ya se cerraron. Con `P6` se completa todo el
@@ -80,7 +80,7 @@ que ir a buscar a Ajustes o al Laboratorio de escenarios.
 | ⏳ `P4` | Dígesto semanal de reforecast material (email/nota, interino de push) | M | Medio | Sobre `reforecastMaterialityAlert` (`PVC8`); a sustituir cuando `A5-4`/push exista. |
 | ✅ `P5` | Radar único de supuestos caducados con «revisar ahora» | S | Medio | Cerrada sesión 199: nueva tarjeta `ajustesAssumptionExpiryRadar` en Ajustes, sobre el mismo `assumptionExpiryAlerts` (`PVC15`) que ya se marcaba uno a uno dentro de la lista completa (que sigue igual, sin quitarle su marca en línea). Cada entrada del radar lleva un botón «Revisar ahora»: los cinco supuestos fiscales enfocan su propio campo en la misma tarjeta (`data-scroll-focus`, OPT-7); los cinco generales del forecast navegan al Laboratorio de escenarios, donde sí se editan (`data-home-nav`). Ningún motor nuevo. |
 | ✅ `P6` | Puntuación de acierto histórico permanente en Hoy | S | Alto | Cerrada sesión 199: nuevo `historicalAccuracyScore()` en `canonical-forecast.js` (mismo ratio que ya clasifica `deviationSeverity`, invertido a % de acierto — 100% sin desviación, 0% si la desviación iguala o supera lo previsto, nunca negativo) pintado como un KPI más dentro de la rejilla `homeKpis` de Hoy, con enlace al informe completo de `pvx1BacktestHtml` en Análisis. Ningún informe duplicado. |
-| ⏳ `P7` | Captura rápida de gasto por foto o voz, confirmación de un toque | M | Alto | Extiende `canonical-receipt-ocr.js`, pensado para el momento del gasto, no el cierre de mes. |
+| ✅ `P7` | Captura rápida de gasto por foto o voz, confirmación de un toque | M | Alto | **Cerrada (sesión 209), sin construir nada — la mitad principal ya existía.** Verificado antes de construir: la captura por foto de ticket ya está completa desde `A17-3` (`app.js:26505-26672`) — cámara (`<input capture="environment">`), OCR con Tesseract.js vía `canonical-receipt-ocr.js` (motor de texto puro, sin categoría a propósito, delegada en `mappingForMovement`), revisión de 3 campos editables y confirmación de un toque real (`wireGestureConfirm`, pulsación mantenida 600ms en táctil), todo entrando por la misma bandeja E11b que cualquier movimiento importado. Lo único que faltaba de la nota original era la voz — y ahí choca con una decisión de producto explícita y reciente: `DEX2` (`app.js:852-865`) dice literalmente que la barra de captura rápida es "sin voz... nunca un micrófono", descartada a propósito. Puesto el hallazgo delante del hogar (foto ya cubierta, voz revertiría DEX2 con soporte real solo en Chrome/Edge vía `SpeechRecognition`), **el hogar decidió no construir voz** — el beneficio marginal no compensaba frente a otras tareas sin esa fricción. `P7` se cierra con el mismo criterio que `D3`/`T18`: alcance ya cubierto, nada que construir. |
 | ⏳ `P8` | Detector de «gasto fantasma» (subida de precio interanual + nudge) | M | Medio | Extiende la detección de suscripciones (`A16-3`). |
 | ✅ `P9` | Calendario financiero único (hipoteca, seguros, comisiones, fiscal, supuestos) | M | Alto | **Cerrada (sesión 200).** `financialCalendar()` (E15) ya unificaba deuda/hipoteca, seguros (`SP1`), objetivos, revisiones, fiscal (Renta) y aportaciones de cartera (`IV3`) — la única salida era un `.ics` descargable, sin ninguna vista dentro de la app. Añadidas las dos fuentes que faltaban frente a la nota original, ninguna con fecha futura real así que aparecen solo en el mes en curso: comisiones de mantenimiento en riesgo (`TT4`) y supuestos caducados (`PVC15`, el mismo motor de `P5`). Nueva tarjeta de solo lectura en Ajustes junto a «Exportar», próximos 12 meses con eventos reales. Construcción del input centralizada en `ajustesFinancialCalendarInput()`, reutilizada por el `.ics`, el widget («próximo evento») y la tarjeta nueva — antes cada consumidor lo armaba por separado. Ningún motor nuevo. |
 | ⏳ `P10` | «Ajusta este supuesto en una frase» — interino de reforecast por lenguaje natural | M | Medio | Formulario reducido sobre el motor ya existente; sustituible cuando `A5-1` esté en producción real. |
@@ -187,10 +187,12 @@ cola original ya no tiene una secuencia natural de dependencias como los tres ho
 — cada tarea restante es independiente o está condicionada. Al agotarse el Horizonte 3, se preguntó
 al hogar por `I9` (única tarea de Horizonte 3 con decisión pendiente) y por con qué abrir la
 siguiente oleada: **el hogar decidió aplazar `I9`** (ver su nota en §2) y empezar por **`T6` ✅**
-(memo de decisión ejecutivo, cerrada sesión 209, sin decisión previa pendiente). Quedan sin
-bloqueo real y sin construir: `P2`, `P7`, `P8`, `P11`, `P12` (Previsión), `D1`, `D8` (Deuda), `T9`,
-`T10`, `T11`, `T13` (Transversales) — de ellas, `P7` (captura rápida de gasto, M/Alto) es la
-siguiente candidata más fuerte por la misma regla que llevó a `T6` (beneficio Alto, sin bloqueo).
+(memo de decisión ejecutivo, cerrada sesión 209, sin decisión previa pendiente). Segunda tarea de la
+misma sesión: **`P7` ✅**, cerrada sin construir nada — verificado que la mitad principal (foto de
+ticket) ya existía desde `A17-3`, y la voz habría revertido una decisión de producto explícita
+(`DEX2`, "sin voz"); puesto el hallazgo delante del hogar, decidió no construirla (ver su nota en
+§1). Quedan sin bloqueo real y sin construir: `P2`, `P8`, `P11`, `P12` (Previsión), `D1`, `D8`
+(Deuda), `T9`, `T10`, `T11`, `T13` (Transversales).
 **Condicionadas (decisión previa o de terceros):** `I9` (aplazada, ver arriba), `I2`/`I3` (histórico
 de valoraciones), `I6`/`I7`/`I8` (confirmar con el hogar si su situación real las justifica), `P4`/
 `P10` (interinos de push e IA, a sustituir cuando lleguen `A5-1`/`A5-4`), `D6` (necesita fuente de

@@ -80,7 +80,7 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
-## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo (refinanciar/apalancar/vender vivienda), primera tarea de un Horizonte 4 sin numerar todavía
+## Cierre de sesión — 19 de septiembre de 2026 (209): `T6` — memo de decisión ejecutivo, y `P7` — cerrada sin construir nada, primeras dos tareas de un Horizonte 4 sin numerar todavía
 
 - **Qué pedía la sesión**: con el Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado (cierre de
   la sesión 208), decidir por dónde seguir. Antes de tocar código se preguntó al hogar dos cosas: si
@@ -124,8 +124,26 @@ de aquí en la siguiente regeneración, no al momento.
   cada botón dispara `window.print()` exactamente una vez y el memo generado contiene «Memo de
   decisión» y «Recomendación»; sin datos suficientes declarados, el botón no imprime y muestra el aviso
   en su nota en vez de fallar en silencio.
-- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
-  cuanto el CI esté en verde, misma autorización vigente (`CLAUDE.md`).
+- **Publicado (`T6`)**: commit, push a la rama de trabajo en curso, PR en borrador
+  ([#338](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/338)) y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **`P7` — segunda tarea de la misma sesión, cerrada sin construir nada**: la nota original pedía
+  "captura rápida de gasto por foto o voz, confirmación de un toque". Investigado antes de construir:
+  la foto de ticket ya está completa desde `A17-3` (`app.js:26505-26672`) — cámara
+  (`<input capture="environment">`), OCR con Tesseract.js vía `canonical-receipt-ocr.js` (motor de
+  texto puro, sin categoría a propósito, delegada en `mappingForMovement`), revisión de 3 campos
+  editables y confirmación de un toque real (`wireGestureConfirm`, pulsación mantenida 600ms en
+  táctil), entrando por la misma bandeja E11b que cualquier movimiento importado. Lo único que
+  faltaba de la nota era la voz — y ahí hay una decisión de producto explícita y reciente que
+  revertir: `DEX2` (`app.js:852-865`) dice literalmente que la barra de captura rápida es "sin voz...
+  nunca un micrófono", descartada a propósito para evitar mezclar el parseo por palabras clave con la
+  complejidad de un micrófono. Puesto el hallazgo delante del hogar —foto ya cubierta, voz con
+  soporte real solo en Chrome/Edge vía `SpeechRecognition`, beneficio marginal menor que `P7`
+  completa— **el hogar decidió no construir voz**: `P7` se cierra con el mismo criterio que `D3`/`T18`
+  (alcance ya cubierto tras verificar el código real, nada que construir). Sin cambios de código, sin
+  necesidad de nueva validación de `npm run verify` (ya en verde por `T6` en la misma sesión).
+- **Publicado (`P7`)**: solo documentación (`PROJECT_STATE.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`),
+  mismo commit/push/PR/fusión que el resto de la sesión, misma autorización vigente.
 
 ## Cierre de sesión — 19 de septiembre de 2026 (208): `T14` en pausa razonada, `T3`/`D9`/`P3`/`I10`/`I12`/`T12`/`T18`/`T16` — Horizonte 3 de `BACKLOG_CONTABILIDADCASA_2_0.md` agotado
 
