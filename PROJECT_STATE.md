@@ -80,6 +80,32 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 19 de septiembre de 2026 (214): `T9` fase 3 — mobile-first en la fila triple de Hoy (Hoy queda completa)
+
+- **Qué pedía la sesión**: cerrar `T9` para la pantalla Hoy con la última regla aislada pendiente,
+  `.home-layout-triple` (Riesgo/Modo familiar/Alertas, breakpoint 1440px) — la que llevaba desde la
+  fase 1 la dependencia de orden documentada frente a `.home-layout`.
+  - Mismo recorte quirúrgico: base incondicional pasó de 3 columnas a 1 (valor móvil); el valor de
+    escritorio (3 columnas) se movió a `@media (min-width: 1441px)`, **en la misma posición del
+    archivo** que ocupaba el `@media (max-width: 1440px)` que sustituye — condición necesaria para
+    que siga ganando sobre `.home-layout` (ya invertida en la fase 1) cuando ambas reglas aplican al
+    mismo elemento, exactamente igual que antes de invertir nada.
+- **Validación**: misma disciplina que las fases 1 y 2 — comparación píxel a píxel con
+  `git stash`/Playwright en 8 anchos de viewport (375 a 1920px), incluida la interacción con
+  `.home-layout` en la misma medición; coincide exactamente con el resultado previo al cambio.
+  `npm run verify` en verde: 4524/4524 pruebas (sin pruebas nuevas), `test:a11y` (1380 IDs únicos),
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`). Ya en producción.
+- **`T9` en Hoy queda completa (3/3 fases)**: `.home-layout`/`.home-action-grid` (fase 1, sesión 212),
+  `.home-month-glance-rows` (fase 2, sesión 213) y `.home-layout-triple` (fase 3, esta sesión), las
+  tres invertidas a mobile-first sin cambiar ni un píxel del resultado visual en ningún ancho
+  probado. Queda fuera de esta tarea, documentado: `.home-kpi-grid` (compartida con
+  Cierre/Conciliar/Registrar mes/Cambios pendientes) y todo lo que vive en los bloques `@media`
+  compartidos con 20-30 clases de otras pantallas — `T9` sigue abierta como tarea de backlog para
+  cuando se retome con otra pantalla (Registrar o Plan, siguiendo el mismo criterio de mayor uso
+  diario), o para acometer esos bloques compartidos como su propio incremento auditado.
+
 ## Cierre de sesión — 19 de septiembre de 2026 (213): `T9` fase 2 — mobile-first en «el mes en una línea» de Hoy
 
 - **Qué pedía la sesión**: continuar `T9` con la fase 2 acordada, `.home-month-glance-rows` («el mes en
