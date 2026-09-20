@@ -2254,6 +2254,25 @@
                 </select>
               </label>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
+              <!-- I9: gráfico de cartera con zoom y tooltip. Cero dependencias externas de UI
+                   (decisión del hogar, sesión 216) — ver la nota junto a la CSS de .iv1-chart-*.
+                   Sin posiciones reales, se muestra con datos de ejemplo y una nota visible. -->
+              <article class="e19-card iv1-chart-card" id="iv1ChartCard" aria-labelledby="iv1ChartTitle">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Cartera de un vistazo</p>
+                    <h3 id="iv1ChartTitle">Valor por posición</h3>
+                  </div>
+                  <div class="registrar-mes-filters" role="group" aria-label="Zoom del gráfico" id="iv1ChartZoom">
+                    <button type="button" class="registrar-mes-filter is-active" data-iv1-chart-zoom="1" aria-pressed="true">Normal</button>
+                    <button type="button" class="registrar-mes-filter" data-iv1-chart-zoom="2" aria-pressed="false">Zoom +</button>
+                    <button type="button" class="registrar-mes-filter" data-iv1-chart-zoom="3" aria-pressed="false">Zoom ++</button>
+                  </div>
+                </div>
+                <p class="e19-kpi-note" id="iv1ChartDemoNote" hidden>Datos de ejemplo — todavía no hay posiciones reales registradas. En cuanto añadas la primera, este gráfico pasa a mostrar tu cartera real.</p>
+                <p class="e19-kpi-note">La marca gris de cada barra es el coste; el color indica si el valor actual está por encima (verde) o por debajo (rojo).</p>
+                <div class="iv1-chart-scroll" id="iv1ChartScroll"></div>
+              </article>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
                    fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
@@ -7258,7 +7277,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260919t11a1"></script>
+    <script defer src="app.js?v=20260920i9a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
