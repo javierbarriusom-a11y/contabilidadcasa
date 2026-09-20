@@ -79,6 +79,58 @@ de aquí en la siguiente regeneración, no al momento.
   **`T4` (sesión 204) pasó `LEV14` a lenguaje directivo** (recomienda escalonar o no según el
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
+- **Cero dependencias externas de UI, reafirmado explícitamente (20 de septiembre de 2026, sesión
+  216)**: ya era la práctica real de toda la app (todos los gráficos son SVG a mano, sin librería),
+  pero `I9` era la primera tarea que obligaba a decidirlo por escrito para una pantalla concreta. El
+  hogar decidió mantenerlo — cualquier gráfico o componente interactivo nuevo se construye a mano,
+  sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
+  sesión 216.
+
+## Cierre de sesión — 20 de septiembre de 2026 (216): `I9` — gráfico de cartera con zoom y tooltip
+
+- **Qué pedía la sesión**: retomar `I9`, aplazada en la sesión 209 por exigir una decisión de
+  arquitectura previa (mantener «cero dependencias externas de UI» o adoptar una librería ligera
+  solo para inversión). Antes de tocar código se presentó al hogar el estado real de la base de
+  código: Cartera (`renderIv1PositionList`) no tenía ningún gráfico, todos los gráficos existentes
+  de la app (cono de incertidumbre, ruta de deuda, escenarios) son SVG a mano sin librería, y el
+  "tooltip" de `P2` (sesión 210) es más sencillo de lo que sugiere el nombre — botones HTML con
+  `title`/`aria-label` nativos, sin lógica de arrastre. El "zoom" que pide `I9` no tenía precedente
+  en la app. **El hogar decidió**: cero dependencias (mantener el precedente arquitectónico) y
+  construirla ya contra datos de prueba, indicándolo visiblemente en la app, en vez de esperar a
+  tener cartera real.
+- **Qué se hizo**: nueva tarjeta «Cartera de un vistazo» en Registrar → Cartera, antes de la lista
+  de posiciones. Una fila horizontal por posición (`iv1PositionChartRowsHtml()`, parte pura,
+  separada de `renderIv1PositionChart()` que solo decide datos reales vs. de ejemplo e inyecta en
+  el DOM — mismo criterio de P2 con `pv4ConfidenceBandHtml`): ancho de barra ∝ valor actual sobre
+  el máximo del conjunto (nunca fabricado), marca de coste (`--chart-muted-line`, el token de línea
+  de referencia que ya introdujo `T7`) independiente del color, y color verde/rojo según
+  plusvalía/minusvalía (reutiliza `.positive`/`.negative`). "Zoom" son tres anchos fijos de columna
+  de barra controlados por botón (`--iv1-chart-track-width`, 120/220/360px) — decisión deliberada de
+  alcance: con posiciones de valor parecido, ensanchar la barra es lo que de verdad ayuda a
+  distinguirlas, y evita reimplementar arrastre/pellizco a mano (accesible por teclado y táctil sin
+  gestos nuevos). El tooltip reutiliza el patrón de `P2`: `title` nativo por fila. Sin posiciones
+  reales (`iv1PositionsList()` vacío), usa `IV1_CHART_SAMPLE_POSITIONS` (4 posiciones, cada una
+  etiquetada «(ejemplo)» en su propio nombre) y muestra `#iv1ChartDemoNote`, visible y explícita —
+  desaparece sola en cuanto se registra la primera posición real. El gráfico se mantiene
+  sincronizado: `renderIv1PositionChart()` se llama junto a `renderIv1PositionList()` en los cinco
+  puntos de mutación (alta, aportación, venta parcial, traspaso, borrado de posición) y al abrir la
+  pantalla (`renderInversionCartera`, `views/inversion.js`). Reutiliza componentes ya catalogados en
+  `docs/E19_SISTEMA_DISENO.md` (`.e19-card`, `.e19-kpi-note`, `.registrar-mes-filter`/`-filters`
+  para los botones de zoom, mismo patrón que el selector de horizonte de Plan) en vez de crear
+  clases nuevas — ninguna clase de UI nueva más allá del bloque `.iv1-chart-*` propio de esta
+  pantalla.
+- **Verificado**: `npm run verify` en verde — **4540/4540 pruebas** (16 nuevas en
+  `tests/i9-grafico-cartera.test.cjs`: parte pura de `iv1PositionChartRowsHtml` con `vm` sandbox,
+  igual que ya hace `p2-tooltip-cono-incertidumbre.test.cjs`, más wiring de zoom, dataset de
+  ejemplo y sincronización en los cinco puntos de mutación; 26 canarios de versión de `app.js?v=`
+  actualizados), `test:a11y` (1385 IDs únicos), `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke` sin errores. Verificación en navegador real (Playwright contra `index.html` servido
+  localmente, navegando a `#inversion-cartera`): estado de ejemplo con nota visible y 4 filas;
+  zoom a nivel 3 confirmado por `getComputedStyle` (`--iv1-chart-track-width: 360px`); al añadir una
+  posición real, la nota desaparece y el gráfico pasa a mostrar solo la posición real — capturas de
+  pantalla de los tres estados revisadas.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 20 de septiembre de 2026 (215): `T9` fase 4 — mobile-first en Registrar (saldo de cuentas)
 

@@ -20541,6 +20541,7 @@ function saveIv1Position() {
   if (goalId) inv12AddPositionToGoalFunding(goalId, newPositionId);
   clearIv1PositionForm();
   renderIv1PositionList();
+  renderIv1PositionChart();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
@@ -20596,6 +20597,7 @@ function saveIv1Contribution() {
   qs("iv1ContributionDate").value = "";
   qs("iv1ContributionQuantity").value = "";
   renderIv1PositionList();
+  renderIv1PositionChart();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
@@ -20638,6 +20640,7 @@ function saveIv1Disposal() {
   qs("iv1DisposalProceeds").value = "";
   qs("iv1DisposalDate").value = "";
   renderIv1PositionList();
+  renderIv1PositionChart();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
@@ -20730,6 +20733,7 @@ function saveIv1Transfer() {
   saveIv1PositionsList(iv1PositionsList().map((position) => (position.id === sourceId ? transferred : position)));
   clearIv1PositionForm();
   renderIv1PositionList();
+  renderIv1PositionChart();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
@@ -20778,6 +20782,7 @@ function removeIv1Position(id) {
   saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
   inv12RemovePositionFromGoalFunding(id);
   renderIv1PositionList();
+  renderIv1PositionChart();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
@@ -20845,6 +20850,80 @@ function markIv1PositionConvictionReviewed(positionId) {
   saveIv1PositionsList(next);
   renderIv1PositionList();
   announceStatus("Convicción marcada como revisada hoy.");
+}
+
+// I9 (Contabilidadcasa 2.0, sesión 216): gráfico de cartera con zoom y tooltip. Decisión de
+// arquitectura del hogar: mantener "cero dependencias externas de UI", igual que el resto de
+// gráficos de la app (cono de incertidumbre, ruta de deuda, escenarios) — SVG a mano por fila, sin
+// librería nueva. Alcance deliberado de "zoom": no es un gesto de arrastre/pellizco sobre un
+// viewBox — con posiciones de valor parecido, lo que de verdad ayuda a distinguirlas es ensanchar
+// la columna de la barra, así que son tres anchos fijos controlados por botón (accesibles por
+// teclado y táctil sin reimplementar gestos). El tooltip es el `title` nativo por fila, mismo
+// patrón que ya usa P2 (cono de incertidumbre) en vez de un tooltip flotante con seguimiento de
+// ratón. Sin posiciones reales, se muestra con datos de ejemplo y una nota visible (nunca en
+// silencio) — desaparece en cuanto exista la primera posición real.
+const IV1_CHART_ZOOM_TRACK_WIDTH = { 1: "120px", 2: "220px", 3: "360px" };
+let iv1ChartZoomLevel = 1;
+
+const IV1_CHART_SAMPLE_POSITIONS = [
+  { id: "__sample-fondo", label: "Fondo indexado global (ejemplo)", type: "fondo", costBasis: 12000, currentValue: 13650, gainLoss: 1650, gainLossPct: 13.75 },
+  { id: "__sample-etf", label: "ETF renta fija europea (ejemplo)", type: "etf", costBasis: 6000, currentValue: 5820, gainLoss: -180, gainLossPct: -3 },
+  { id: "__sample-monetario", label: "Cuenta monetaria (ejemplo)", type: "otro", costBasis: 4000, currentValue: 4040, gainLoss: 40, gainLossPct: 1 },
+  { id: "__sample-pension", label: "Plan de pensiones (ejemplo)", type: "plan-pension", costBasis: 9000, currentValue: 9950, gainLoss: 950, gainLossPct: 10.56 },
+];
+
+function iv1ChartSetZoom(level) {
+  const parsed = Number(level);
+  if (!IV1_CHART_ZOOM_TRACK_WIDTH[parsed]) return;
+  iv1ChartZoomLevel = parsed;
+  document.querySelectorAll("#iv1ChartZoom [data-iv1-chart-zoom]").forEach((button) => {
+    const isActive = Number(button.dataset.iv1ChartZoom) === parsed;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  renderIv1PositionChart();
+}
+
+// Parte pura (sin DOM): a partir de las posiciones ya normalizadas y el ancho de columna del zoom
+// actual, construye las filas del gráfico. Separada de renderIv1PositionChart (que solo decide
+// datos reales vs. de ejemplo e inyecta en el DOM) para poder probarla igual que ya hace P2 con
+// pv4ConfidenceBandHtml, sin necesitar un DOM real.
+function iv1PositionChartRowsHtml(positions, trackWidth) {
+  if (!positions.length) return `<p class="e19-kpi-note">Sin posiciones registradas todavía.</p>`;
+  const sorted = [...positions].sort((a, b) => b.currentValue - a.currentValue);
+  const maxValue = Math.max(...sorted.map((position) => Math.max(position.currentValue, position.costBasis, 1)));
+  const rowsHtml = sorted.map((position) => {
+    const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
+    const valuePct = Math.max(0, Math.min(100, round2((position.currentValue / maxValue) * 100)));
+    const costPct = Math.max(0, Math.min(99.4, round2((position.costBasis / maxValue) * 100)));
+    const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
+    const title = `${position.label} · ${typeLabel} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · ${money(position.gainLoss, true)} (${position.gainLossPct}%)`;
+    return `<div class="iv1-chart-row" title="${escapeHtml(title)}">
+      <span class="iv1-chart-row-label">${escapeHtml(position.label)}</span>
+      <span class="iv1-chart-row-track">
+        <svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <rect class="iv1-chart-row-bg" x="0" y="0" width="100" height="10"></rect>
+          <rect class="iv1-chart-row-bar ${gainClass}" x="0" y="0" width="${valuePct}" height="10"></rect>
+          <rect class="iv1-chart-row-cost" x="${costPct}" y="0" width="0.6" height="10"></rect>
+        </svg>
+      </span>
+      <span class="iv1-chart-row-value ${gainClass}">${money(position.currentValue, true)}</span>
+    </div>`;
+  }).join("");
+  return `<div class="iv1-chart-rows" style="--iv1-chart-track-width: ${trackWidth}">${rowsHtml}</div>`;
+}
+
+function renderIv1PositionChart() {
+  const scroll = qs("iv1ChartScroll");
+  const demoNote = qs("iv1ChartDemoNote");
+  if (!scroll) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  const usingSample = !engine || !rows.length;
+  if (demoNote) demoNote.hidden = !usingSample;
+  const positions = usingSample ? IV1_CHART_SAMPLE_POSITIONS : engine.normalizePositions(rows).positions;
+  const trackWidth = IV1_CHART_ZOOM_TRACK_WIDTH[iv1ChartZoomLevel] || IV1_CHART_ZOOM_TRACK_WIDTH[1];
+  scroll.innerHTML = iv1PositionChartRowsHtml(positions, trackWidth);
 }
 
 function renderIv1PositionList() {
@@ -37998,6 +38077,11 @@ async function init() {
     const markReviewedButton = event.target.closest("[data-iv1-position-mark-conviction-reviewed]");
     if (!markReviewedButton) return;
     markIv1PositionConvictionReviewed(markReviewedButton.dataset.iv1PositionMarkConvictionReviewed);
+  });
+  qs("iv1ChartZoom")?.addEventListener("click", (event) => {
+    const zoomButton = event.target.closest("[data-iv1-chart-zoom]");
+    if (!zoomButton) return;
+    iv1ChartSetZoom(zoomButton.dataset.iv1ChartZoom);
   });
   qs("iv6TargetSave")?.addEventListener("click", saveIv6Targets);
   qs("inv17ReviewIntervalMonths")?.addEventListener("change", saveInv17RebalanceReviewInterval);

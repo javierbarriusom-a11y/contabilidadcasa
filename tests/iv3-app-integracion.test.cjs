@@ -51,7 +51,9 @@ test("IV3: goalPlanning() del puente P2 incluye investmentContributions para el 
 });
 
 test("IV3: la lista inicial de renders de cartera al cargar la app incluye renderIv1ScheduledContributionOptions", () => {
-  const index = appSource.indexOf("renderIv1PositionList();\n  renderIv1TransferOptions();\n  renderIv1ContributionOptions();\n  renderIv1DisposalOptions();\n  renderIv1ScheduledContributionOptions();");
+  // I9 (Contabilidadcasa 2.0, sesión 216) insertó renderIv1PositionChart() justo después de
+  // renderIv1PositionList() dentro de removeIv1Position (app.js) — mismo bloque, un render más.
+  const index = appSource.indexOf("renderIv1PositionList();\n  renderIv1PositionChart();\n  renderIv1TransferOptions();\n  renderIv1ContributionOptions();\n  renderIv1DisposalOptions();\n  renderIv1ScheduledContributionOptions();");
   assert.ok(index >= 0, "no se encontró el bloque de renders iniciales de cartera con renderIv1ScheduledContributionOptions");
 });
 
