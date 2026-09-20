@@ -4286,16 +4286,23 @@ svg {
 }
 
 /* R-3/R-4: «Saldo a fecha» (claro) y «Qué se recalcula al guardar» (oscuro) en paralelo, igual que
-   Registrar.pdf — antes se apilaban a ancho completo, cada uno con su propio orden. */
+   Registrar.pdf — antes se apilaban a ancho completo, cada uno con su propio orden.
+   T9 (mobile-first, Registrar): base móvil (1 columna) — las 2 columnas de escritorio solo desde
+   1441px, ver el @media (min-width) de abajo. Regla exclusiva de Registrar, sin bloque compartido
+   con otras pantallas ni otra clase con la que competir en cascada. */
 .e19-registrar-balance-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 1440px) {
-  .e19-registrar-balance-layout { grid-template-columns: 1fr; }
+/* T9 (mobile-first, Registrar): valor de escritorio, antes la base y ahora el override desde
+   1441px — misma posición del archivo que el @media (max-width: 1440px) que sustituye. */
+@media (min-width: 1441px) {
+  .e19-registrar-balance-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
 }
 
 .account-balance-panel {
