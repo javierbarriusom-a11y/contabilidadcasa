@@ -80,6 +80,36 @@ de aquí en la siguiente regeneración, no al momento.
   veredicto ya calculado) sin tocar el invariante de "nunca ejecuta nada" — ver el cierre de sesión
   204 para el detalle completo de qué más cambió.
 
+## Cierre de sesión — 20 de septiembre de 2026 (215): `T9` fase 4 — mobile-first en Registrar (saldo de cuentas)
+
+- **Qué pedía la sesión**: continuar `T9` con la siguiente pantalla tras completar Hoy (fases 1-3,
+  sesiones 212-214), con el mismo criterio de mayor uso diario. Entre Registrar y Plan, el hogar
+  confirmó **Registrar** (la única puerta de escritura de datos reales, de uso más frecuente que
+  Plan, que es de cadencia mensual).
+- **Investigación previa** (mismo método que las fases anteriores, antes de tocar CSS): de las 36
+  apariciones de `@media` en `styles.css`, solo una regla en todo Registrar/Plan es 100% exclusiva
+  de esas dos pantallas y no vive en un bloque compartido con otras: `.e19-registrar-balance-layout`
+  (Registrar → «Saldo de cuentas», el panel de saldo por cuenta en paralelo con «qué se recalcula al
+  guardar»). El resto de lo responsive de Registrar vive en el bloque gigante compartido de 20-30
+  clases (`.data-import-grid`, junto a `.home-action-grid` y otras — mismo bloque que ya se dejó
+  fuera en la fase 1) o no tiene `@media` que invertir (p. ej. `.e19-registrar-recalc-grid`). Plan no
+  tiene ninguna regla exclusiva con `@media`. Candidato único, sin ambigüedad.
+- **Qué se hizo**: invertida `.e19-registrar-balance-layout` a mobile-first (base = 1 columna,
+  `@media (min-width: 1441px)` aporta las 2 columnas de escritorio), misma posición en el archivo
+  que ocupaba el `@media (max-width: 1440px)` que sustituye. Regla independiente, sin otra clase con
+  la que competir en cascada (a diferencia de `.home-layout-triple` en la fase 3).
+- **Verificado**: `getComputedStyle().gridTemplateColumns` y el bounding box del elemento en 10
+  anchos de viewport (360 a 1920px, incluida la frontera exacta 1440/1441px) con Playwright,
+  comparando antes/después del cambio — resultado idéntico en los 10. `npm run verify` en verde:
+  4524/4524 pruebas (sin pruebas nuevas), `test:a11y` (1380 IDs únicos), `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+- **`T9` sigue abierta**: con esto, la única regla exclusiva de Registrar/Plan queda invertida.
+  Siguiente candidato natural: acometer el bloque `@media` compartido (`.data-import-grid` y las
+  20-30 clases que lo acompañan) como su propio incremento auditado — mismo riesgo que se dejó fuera
+  a propósito en la fase 1, no una regla aislada de una sola pantalla.
+
 ## Cierre de sesión — 19 de septiembre de 2026 (214): `T9` fase 3 — mobile-first en la fila triple de Hoy (Hoy queda completa)
 
 - **Qué pedía la sesión**: cerrar `T9` para la pantalla Hoy con la última regla aislada pendiente,
