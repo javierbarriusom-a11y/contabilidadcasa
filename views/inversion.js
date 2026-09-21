@@ -47,6 +47,7 @@ function renderInversionCartera() {
   renderInversionScreenTabs("inversion-cartera");
   renderIv1PositionList();
   renderIv1PositionChart();
+  renderIv1ValuationHistoryNote();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();

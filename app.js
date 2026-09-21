@@ -5105,6 +5105,10 @@ async function closeCurrentMonthTransaction() {
     // #5 del plan de mejora: archiva el informe de este mes tal como quedó en el momento del
     // cierre — mismo espíritu local que C-13/D-2b.
     recordCierreReportArchive(month, closedAt);
+    // I2: mismo cierre firmado arranca la captura de la serie histórica real de valoraciones por
+    // posición — mismo espíritu local que C-13/D-2b/PVC6, un snapshot más por cierre.
+    recordIv1ValuationSnapshot(month, closedAt);
+    renderIv1ValuationHistoryNote();
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -15986,12 +15990,27 @@ function renderInv18GoalOptions() {
   if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
 }
 
+// I8 (Contabilidadcasa 2.0, sesión 217): "simulador de evento de liquidez... integrado con cartera
+// y colchón" — INV18 (arriba) ya resolvía qué vender y con qué coste fiscal, la mitad de cartera;
+// faltaba la mitad de colchón: qué le pasa a la liquidez si se ejecuta el plan. Mismo cushionFloor
+// que ya usa el resto de la app (Plan/Análisis/Hoy vía FinanceCanonicalCushion), nunca un umbral
+// propio — antes/después con el neto real del plan (result.now.totalNet), no con el importe bruto
+// pedido (el coste fiscal también sale de la liquidez futura, aunque no de este movimiento en sí).
+function inv18CushionImpact(result) {
+  const cushionEngine = window.FinanceCanonicalCushion;
+  if (!cushionEngine || !result.calculable || !result.now.steps.length) return null;
+  const currentLiquidity = lastSimulation[0]?.totalLiquidity;
+  if (!Number.isFinite(currentLiquidity)) return null;
+  const floor = cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  return { before: round2(currentLiquidity), after: round2(currentLiquidity + result.now.totalNet), floor: round2(floor) };
+}
+
 // INV18: texto del plan de retirada — a partir de ahora la app puede ser directiva cuando ayuda de
 // verdad (decisión del hogar, sesión 177), así que esto ya no se redacta como "solo información,
 // nunca una recomendación": dice en qué orden sacar el dinero. Lo que sigue siendo honesto es el
 // límite real del cálculo — heurística, no óptimo exacto; sin reducciones de pensión — porque eso
 // no es una coletilla legal, es lo que de verdad no se puede garantizar con los datos disponibles.
-function inv18PlanHtml(result, goalContext) {
+function inv18PlanHtml(result, goalContext, cushionImpact) {
   if (!result.calculable) {
     if (result.reason === "engine-missing") return "Motor fiscal no disponible.";
     if (result.reason === "no-positions") return "Registra al menos una posición en fondo, acción, ETF, cripto o plan de pensiones (Ajustes → Patrimonio e inversión) para calcular un plan de retirada.";
@@ -16028,6 +16047,13 @@ function inv18PlanHtml(result, goalContext) {
   if (result.excludedCount > 0) {
     html += `<p class="e19-kpi-note">${result.excludedCount} posición(es) excluida(s) del plan: sin tipo con motor fiscal aplicable (declara fondo, acción, ETF, cripto o plan de pensiones).</p>`;
   }
+  if (cushionImpact) {
+    const cushionEngine = window.FinanceCanonicalCushion;
+    const levelLabel = { negativo: "en negativo", ajustado: "por debajo del mínimo operativo", holgado: "por encima del mínimo operativo" };
+    const beforeLevel = levelLabel[cushionEngine.cushionLevel(cushionImpact.before, cushionImpact.floor)];
+    const afterLevel = levelLabel[cushionEngine.cushionLevel(cushionImpact.after, cushionImpact.floor)];
+    html += `<p class="e19-kpi-note">Impacto en el colchón: hoy ${money(cushionImpact.before, true)} (${beforeLevel}, mínimo operativo ${money(cushionImpact.floor, true)}) — con este plan pasarías a ${money(cushionImpact.after, true)} (${afterLevel}).</p>`;
+  }
   html += `<p class="e19-kpi-note">Orden calculado por el coste más barato disponible en cada paso, no un óptimo exacto entre todas las combinaciones de tramos posibles. No modela reducciones fiscales de la pensión (antigüedad de aportaciones anteriores a 2007, mínimo exento) ni la modalidad en forma de renta — para eso, verifica con un profesional antes de ejecutar nada.</p>`;
   return html;
 }
@@ -16054,7 +16080,7 @@ function handleInv18CalculatePlan() {
       goalContext = { name: goal.name, targetDate: goal.targetDate, withinYear: Number(String(goal.targetDate).slice(0, 4)) <= new Date().getFullYear() };
     }
   }
-  note.innerHTML = inv18PlanHtml(result, goalContext);
+  note.innerHTML = inv18PlanHtml(result, goalContext, inv18CushionImpact(result));
 }
 
 // LEV1 (Oleada 3, Bloque 2) · política de apalancamiento del hogar — un límite máximo de
@@ -33538,6 +33564,57 @@ function renderPvc6SnapshotOptions() {
     ? snapshots.map((entry) => `<option value="${escapeHtml(entry.monthKey)}">${escapeHtml(registrarMesLongMonth(entry.monthKey))}</option>`).join("")
     : `<option value="">Sin cierres firmados todavía</option>`;
   if (snapshots.some((entry) => entry.monthKey === previousValue)) select.value = previousValue;
+}
+
+// I2 (Contabilidadcasa 2.0, sesión 217): serie histórica real de valoraciones por posición — hueco
+// de datos documentado desde la Oleada 2 (APX4/IVX1/IVX5, PROJECT_STATE.md). No hay forma honesta
+// de fabricar un historial que no existe (regla transversal 04): esto solo arranca su captura desde
+// hoy, un snapshot por cada cierre firmado, exactamente el mismo patrón local que ya usan C-13/
+// PVC6/D-2b (arriba) — no toca el RPC transaccional ni el esquema remoto de Supabase, y nunca
+// reescribe un mes ya capturado salvo que se vuelva a cerrar (mismo criterio de idempotencia).
+// Requisito declarado de `I3` (mapa de calor de correlación calculada): el hogar decidió (sesión
+// 217) mantenerla aparcada hasta acumular historial suficiente, y entonces convivir con `INV16`
+// (la matriz declarada) en paralelo, nunca sustituirla en silencio.
+const IV1_VALUATION_SNAPSHOTS_MAX = 60; // 5 años de cierres mensuales — mismo criterio que PVC6
+
+function loadIv1ValuationHistory() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("iv1-valuation-snapshots"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveIv1ValuationHistory(list) {
+  storageSet(storageKey("iv1-valuation-snapshots"), JSON.stringify(list.slice(0, IV1_VALUATION_SNAPSHOTS_MAX)));
+}
+
+function recordIv1ValuationSnapshot(monthKey, closedAt) {
+  const rows = iv1PositionsList();
+  if (!rows.length) return;
+  const positions = rows.map((position) => ({ id: position.id, label: position.label, type: position.type, currentValue: round2(position.currentValue || 0), costBasis: round2(position.costBasis || 0) }));
+  const history = loadIv1ValuationHistory().filter((entry) => entry.monthKey !== monthKey);
+  history.unshift({ monthKey, closedAt, positions });
+  saveIv1ValuationHistory(history);
+}
+
+// Única superficie visible de la captura de arriba — nunca en silencio (mismo criterio que la nota
+// de datos de ejemplo de I9): cuántos meses reales hay ya capturados y desde cuándo, sin prometer
+// una correlación (I3) que todavía no tiene con qué calcularse.
+function renderIv1ValuationHistoryNote() {
+  const note = qs("iv1ValuationHistoryNote");
+  if (!note) return;
+  const history = loadIv1ValuationHistory();
+  if (!history.length) {
+    note.textContent = "Serie histórica de valoraciones: sin capturar todavía — se registra sola en cada cierre de mes.";
+    return;
+  }
+  const sorted = [...history].sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  const count = sorted.length;
+  const noun = count === 1 ? "mes capturado" : "meses capturados";
+  const range = count === 1 ? registrarMesLongMonth(sorted[0].monthKey) : `desde ${registrarMesLongMonth(sorted[0].monthKey)} hasta ${registrarMesLongMonth(sorted[count - 1].monthKey)}`;
+  note.textContent = `Serie histórica de valoraciones: ${count} ${noun} (${range}).`;
 }
 
 // PVC18 (Oleada 4, Bloque 3): alcance reducido — PVC6 (arriba) ya compara "qué preveíamos
