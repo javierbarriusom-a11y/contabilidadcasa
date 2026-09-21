@@ -5105,6 +5105,10 @@ async function closeCurrentMonthTransaction() {
     // #5 del plan de mejora: archiva el informe de este mes tal como quedó en el momento del
     // cierre — mismo espíritu local que C-13/D-2b.
     recordCierreReportArchive(month, closedAt);
+    // I2: mismo cierre firmado arranca la captura de la serie histórica real de valoraciones por
+    // posición — mismo espíritu local que C-13/D-2b/PVC6, un snapshot más por cierre.
+    recordIv1ValuationSnapshot(month, closedAt);
+    renderIv1ValuationHistoryNote();
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -33538,6 +33542,57 @@ function renderPvc6SnapshotOptions() {
     ? snapshots.map((entry) => `<option value="${escapeHtml(entry.monthKey)}">${escapeHtml(registrarMesLongMonth(entry.monthKey))}</option>`).join("")
     : `<option value="">Sin cierres firmados todavía</option>`;
   if (snapshots.some((entry) => entry.monthKey === previousValue)) select.value = previousValue;
+}
+
+// I2 (Contabilidadcasa 2.0, sesión 217): serie histórica real de valoraciones por posición — hueco
+// de datos documentado desde la Oleada 2 (APX4/IVX1/IVX5, PROJECT_STATE.md). No hay forma honesta
+// de fabricar un historial que no existe (regla transversal 04): esto solo arranca su captura desde
+// hoy, un snapshot por cada cierre firmado, exactamente el mismo patrón local que ya usan C-13/
+// PVC6/D-2b (arriba) — no toca el RPC transaccional ni el esquema remoto de Supabase, y nunca
+// reescribe un mes ya capturado salvo que se vuelva a cerrar (mismo criterio de idempotencia).
+// Requisito declarado de `I3` (mapa de calor de correlación calculada): el hogar decidió (sesión
+// 217) mantenerla aparcada hasta acumular historial suficiente, y entonces convivir con `INV16`
+// (la matriz declarada) en paralelo, nunca sustituirla en silencio.
+const IV1_VALUATION_SNAPSHOTS_MAX = 60; // 5 años de cierres mensuales — mismo criterio que PVC6
+
+function loadIv1ValuationHistory() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("iv1-valuation-snapshots"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveIv1ValuationHistory(list) {
+  storageSet(storageKey("iv1-valuation-snapshots"), JSON.stringify(list.slice(0, IV1_VALUATION_SNAPSHOTS_MAX)));
+}
+
+function recordIv1ValuationSnapshot(monthKey, closedAt) {
+  const rows = iv1PositionsList();
+  if (!rows.length) return;
+  const positions = rows.map((position) => ({ id: position.id, label: position.label, type: position.type, currentValue: round2(position.currentValue || 0), costBasis: round2(position.costBasis || 0) }));
+  const history = loadIv1ValuationHistory().filter((entry) => entry.monthKey !== monthKey);
+  history.unshift({ monthKey, closedAt, positions });
+  saveIv1ValuationHistory(history);
+}
+
+// Única superficie visible de la captura de arriba — nunca en silencio (mismo criterio que la nota
+// de datos de ejemplo de I9): cuántos meses reales hay ya capturados y desde cuándo, sin prometer
+// una correlación (I3) que todavía no tiene con qué calcularse.
+function renderIv1ValuationHistoryNote() {
+  const note = qs("iv1ValuationHistoryNote");
+  if (!note) return;
+  const history = loadIv1ValuationHistory();
+  if (!history.length) {
+    note.textContent = "Serie histórica de valoraciones: sin capturar todavía — se registra sola en cada cierre de mes.";
+    return;
+  }
+  const sorted = [...history].sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  const count = sorted.length;
+  const noun = count === 1 ? "mes capturado" : "meses capturados";
+  const range = count === 1 ? registrarMesLongMonth(sorted[0].monthKey) : `desde ${registrarMesLongMonth(sorted[0].monthKey)} hasta ${registrarMesLongMonth(sorted[count - 1].monthKey)}`;
+  note.textContent = `Serie histórica de valoraciones: ${count} ${noun} (${range}).`;
 }
 
 // PVC18 (Oleada 4, Bloque 3): alcance reducido — PVC6 (arriba) ya compara "qué preveíamos

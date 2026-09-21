@@ -2273,6 +2273,10 @@
                 <p class="e19-kpi-note">La marca gris de cada barra es el coste; el color indica si el valor actual está por encima (verde) o por debajo (rojo).</p>
                 <div class="iv1-chart-scroll" id="iv1ChartScroll"></div>
               </article>
+              <!-- I2: la captura arranca sola en cada cierre de mes (closeCurrentMonthTransaction)
+                   — esta nota es su única superficie visible, nunca en silencio. Requisito de I3
+                   (mapa de calor de correlación), aparcada hasta tener historial suficiente. -->
+              <p class="e19-kpi-note" id="iv1ValuationHistoryNote"></p>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
                    fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
@@ -7277,7 +7281,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260920i9a1"></script>
+    <script defer src="app.js?v=20260921i2a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

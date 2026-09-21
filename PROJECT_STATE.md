@@ -86,6 +86,46 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 21 de septiembre de 2026 (217): `I2` — arranca la captura de la serie histórica de valoraciones; `I3` aparcada a propósito; `I8` pendiente de aclarar
+
+- **Qué pedía la sesión**: retomar `I2`/`I3` (histórico de valoraciones + correlación real) e `I8`
+  (simulador de evento de liquidez), los tres bajo "condicionadas" en §6. A diferencia de `I9`
+  (sesión 216), aquí el hueco no era de arquitectura sino de datos: no existe ningún mecanismo en la
+  app que guarde el valor de cada posición mes a mes, solo un valor puntual actual. Presentado al
+  hogar antes de tocar código: fabricar una "correlación real" sin historial real sería una cifra
+  falsa con apariencia de real, no una demo honesta como la de `I9` — y `I3` además revierte una
+  decisión explícita del hogar (sesión 171: `INV16` declarada/editable a propósito). El hogar
+  decidió: `I2` — empezar a capturar ya, aunque el historial útil tarde meses; `I3` — aparcada hasta
+  tener ese historial, y entonces mantener `INV16` y la calculada **en paralelo**, nunca sustituir
+  una por otra; `I8` — preguntado si aplicaba, el hogar respondió "más un dinero inesperado", que no
+  confirma el alcance concreto de la tarea (venta de participaciones/ejercicio de opciones) — queda
+  sin construir hasta aclarar qué tipo de evento es en realidad.
+- **Qué se hizo (`I2`)**: nuevas `recordIv1ValuationSnapshot(monthKey, closedAt)` /
+  `loadIv1ValuationHistory()` / `saveIv1ValuationHistory()` (`app.js`), mismo patrón local que ya
+  usan `C-13` (`recordCierreAprendizaje`), `D-2b` (`saveDebtCapitalSnapshotAtClose`) y `PVC6`
+  (`recordPvc6ForecastSnapshot`): un snapshot congelado — `{monthKey, closedAt, positions[]}`, con
+  `currentValue`/`costBasis` reales de `iv1PositionsList()`, nada fabricado — en cada cierre de mes
+  firmado (`closeCurrentMonthTransaction`), sin tocar el RPC transaccional ni el esquema remoto de
+  Supabase. Idempotente: reabrir y volver a cerrar el mismo mes sustituye su entrada, no la duplica
+  (mismo criterio de `filter`+`unshift` que `PVC6`). Tope de 60 snapshots (5 años), mismo criterio de
+  `PVC6` (36). Única superficie visible, nunca en silencio: `renderIv1ValuationHistoryNote()` en
+  Cartera, justo bajo el gráfico de `I9`, dice cuántos meses hay capturados y desde/hasta cuándo, sin
+  prometer ninguna correlación que `I3` todavía no puede calcular.
+- **Verificado**: `npm run verify` en verde — **4551/4551 pruebas** (11 nuevas en
+  `tests/i2-serie-historica-valoraciones.test.cjs`; 26 canarios de versión de `app.js?v=`
+  actualizados), `test:a11y` (1386 IDs únicos), `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke` sin errores. Verificación en navegador real (Playwright): nota vacía al arrancar sin
+  historial; tras simular un cierre, "1 mes capturado" con el mes real; recerrar el mismo mes no
+  duplica; un segundo mes distinto amplía el rango correctamente ("desde agosto de 2026 hasta
+  septiembre de 2026"); los datos guardados en `localStorage` son los valores reales de la posición
+  añadida, no una cifra de relleno.
+- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
+  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+- **`I3` sigue sin construirse a propósito** (decisión ya tomada, ver arriba: en paralelo con
+  `INV16` cuando `I2` acumule suficiente). **`I8` sigue sin construirse**, pendiente de que el hogar
+  aclare qué es exactamente ese "dinero inesperado" antes de decidir si `I8` es el simulador correcto
+  o si el escenario real necesita otro alcance.
+
 ## Cierre de sesión — 20 de septiembre de 2026 (216): `I9` — gráfico de cartera con zoom y tooltip
 
 - **Qué pedía la sesión**: retomar `I9`, aplazada en la sesión 209 por exigir una decisión de
