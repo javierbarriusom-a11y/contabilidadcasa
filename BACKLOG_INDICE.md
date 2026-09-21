@@ -12,6 +12,27 @@
 
 ## Para saber qué hacer a continuación
 
+**Actualizado el 21 de septiembre de 2026 (sesión 219): nace
+[`BACKLOG_CONTABILIDADCASA_3_0.md`](BACKLOG_CONTABILIDADCASA_3_0.md).** Cuarta auditoría crítica de
+producto, pedida por el usuario con foco explícito en UX/UI y en generalizar el modelo temporal a
+mensual/trimestral/semestral, publicada primero como documento independiente
+[«Contabilidadcasa — Auditoría crítica y propuesta de mejoras»](https://claude.ai/artifact/LcC4gEUFDB4PAL3m9tfZK2)
+(46 mejoras + 22 funcionalidades nuevas) y cruzada después contra el código real y contra
+`BACKLOG_CONTABILIDADCASA_2_0.md`, que seguía vigente y sin cerrar (10 tareas activas + 6
+heredadas) — a diferencia de cruces anteriores, esta vez el backlog anterior no estaba agotado, así
+que `3.0` lo absorbe en una sola cola priorizada en vez de sustituirlo. El cruce encontró 2
+correcciones reales (un hallazgo Nielsen que la auditoría de origen daba por pendiente ya estaba
+cerrado; una propuesta de modularización chocaba con una decisión ya tomada en `T14` sobre
+`vm.Script`) — detalle completo en `3.0` §0.1. **Diferencia deliberada de disciplina**: `3.0` no
+convierte las 68 propuestas en 68 tareas activas — activa solo lo que no depende de datos de uso
+(arquitectura, el modelo de periodo, correcciones ya evidenciadas) y deja el resto en una cola
+explícitamente condicionada a instrumentar telemetría de uso primero (`ARQ-0`), advertencia que la
+propia auditoría de origen hace sobre el patrón de las cuatro rondas anteriores. **El siguiente
+trabajo real de producto vive en
+[`BACKLOG_CONTABILIDADCASA_3_0.md`](BACKLOG_CONTABILIDADCASA_3_0.md)**, empezando por `ARQ-0` sola.
+`BACKLOG_CONTABILIDADCASA_2_0.md` sigue vigente como fuente de detalle de sus 16 tareas heredadas,
+incorporadas a la cola única de `3.0` §5-§6.
+
 **Actualizado el 3 de septiembre de 2026: `BACKLOG_ULTIMATE_SEPTIEMBRE.md` ya no tiene 99 tareas
 pendientes.** Su propia tabla sigue sin reflejarlo, pero `PROJECT_STATE.md` (sesiones 47 y 115 a 134)
 confirma que 94 de esas 99 ya están construidas, con test y fusionadas a `main`. Solo quedan
@@ -184,7 +205,8 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **[`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md)** | 🟢 Vigente — 13/52 cerradas (sesión 199: `D2`, `D3`, `D7`, `T1`, `T15`, `T17`, `T19`, `T2`, `D4`, `I11`, `P1`, `P5`, `P6` — `T1` añadió `T15`-`T19`; Horizonte 1 completo salvo `T16`/`T18`, bloqueadas por decisión del hogar) | Tercera auditoría crítica de producto («Contabilidadcasa 2.0», 10 hallazgos + 48 propuestas), en 4 bloques propios (`P-`/`I-`/`D-`/`T-`: previsión, inversión, deuda, transversales) tras descartar/reducir 3 propuestas por el cruce contra código real. Incorpora al final (§7) todo lo pendiente heredado de ciclos anteriores | Ninguno — es el backlog vigente |
+| **[`BACKLOG_CONTABILIDADCASA_3_0.md`](BACKLOG_CONTABILIDADCASA_3_0.md)** | 🟢 Vigente — nace sesión 219 | Cuarta auditoría crítica de producto, foco en UX/UI y modelo de periodo mensual/trimestral/semestral, cruzada contra código real y contra `BACKLOG_CONTABILIDADCASA_2_0.md` (absorbido en una sola cola priorizada, no sustituido). Deliberadamente no activa toda su superficie de golpe — ver su §0 y §4 | Ninguno — es el backlog vigente |
+| [`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md) | 🟡 Casi cerrado — 42/52 cerradas (sesión 218), 10 activas + 6 heredadas en §7 | Tercera auditoría crítica de producto («Contabilidadcasa 2.0», 10 hallazgos + 48 propuestas), en 4 bloques propios (`P-`/`I-`/`D-`/`T-`: previsión, inversión, deuda, transversales) tras descartar/reducir 3 propuestas por el cruce contra código real. Incorpora al final (§7) todo lo pendiente heredado de ciclos anteriores | `BACKLOG_CONTABILIDADCASA_3_0.md` incorpora sus 16 tareas pendientes a la cola única (§5-§6); el detalle de cada una sigue viviendo aquí |
 | [`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md) | ✅ Cerrado (sesión 194) — 3/3 tareas accionables construidas (`LPX6`, `LPX5`, `LPX4`); Copiloto/IA y multidispositivo auditados en sesión 195, sin hueco accionable | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA sigue bloqueado por `A5-1` (condición externa), no por código pendiente; multidispositivo verificado sólido | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo; ningún backlog siguiente identificado todavía |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` | ✅ Cerrada (sesión 191) — 46/46 tareas accionables construidas o reducidas/retiradas con motivo | Segunda auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3, nacida de ["El Libro Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad) (10 hallazgos + 49 propuestas), tras retirar 4 propuestas ya construidas en la Oleada 3 y reducir el alcance de otras 7 | `BACKLOG_SUCESION_Y_CONTINUIDAD.md` para el trabajo nuevo de fiscalidad/continuidad; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` | ✅ Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa) | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` para el trabajo nuevo de estos cuatro frentes; contenido histórico intacto |
