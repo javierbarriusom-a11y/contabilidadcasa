@@ -86,6 +86,60 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 21 de septiembre de 2026 (219): nace `BACKLOG_CONTABILIDADCASA_3_0.md` — auditoría crítica de UX/UI y modelo de periodo, cruzada y unificada con el backlog vigente
+
+- **Qué pedía la sesión**: análisis crítico de UX/UI de la app "con el máximo detalle", más de 40
+  mejoras y 20 funcionalidades nuevas, y explorar cómo llevar los datos y magnitudes a nivel
+  mensual, trimestral y semestral. Después, generar un backlog que uniera esto con lo pendiente del
+  backlog anterior y un plan priorizado.
+- **Investigación previa** (sin tocar código): inventario real del repositorio (64 módulos
+  `canonical-*.js`, 419 ficheros de test, 42 enlaces en el menú avanzado, sin telemetría de uso en
+  ningún sitio, sin ESLint/TypeScript/bundler de desarrollo), lectura de `OPT21_CHECKLIST_NIELSEN.md`
+  y de `navigation-structure.test.cjs`, y verificación por grep de que "semestral" no existe en
+  ningún fichero de código (solo en texto libre de este mismo documento) mientras trimestral existe
+  en tres implementaciones independientes (`CanonicalBudgetSchema` de `BUD-3`, recalibración de
+  `PVC5`, informe de `GOB14`).
+- **Publicado primero como documento independiente** (mismo patrón que "El Libro Vivo" y
+  "Contabilidadcasa 2.0"):
+  [«Contabilidadcasa — Auditoría crítica y propuesta de mejoras»](https://claude.ai/artifact/LcC4gEUFDB4PAL3m9tfZK2)
+  — 46 mejoras (arquitectura/deuda técnica, navegación, flujos diarios, visualización, rigor
+  financiero, proceso) + 22 funcionalidades nuevas, con una advertencia explícita por delante: dado
+  el volumen ya construido y el patrón de cuatro auditorías consecutivas cerrando >90% de sus
+  propuestas sin ninguna medición de uso real, la recomendación es instrumentar telemetría antes de
+  activar una quinta ronda completa. Propuesta técnica central: un módulo único
+  `canonical-period.js` que generalice mes/trimestre/semestre/año en un solo lugar, en vez de que
+  cada motor (presupuesto, previsión, informe familiar) siga construyendo su propia cadencia por
+  separado.
+- **Cruce contra el código real y contra `BACKLOG_CONTABILIDADCASA_2_0.md`**: a diferencia de
+  cruces anteriores, ese backlog seguía vigente y sin cerrar (10 tareas activas en §1-§4 + 6
+  heredadas en §7, no histórico). El cruce encontró 2 correcciones reales: el hallazgo Nielsen que
+  la auditoría de origen daba por pendiente (cerrar `T15`-`T19`) ya estaba cerrado desde las
+  sesiones 199/208 — `OPT21_CHECKLIST_NIELSEN.md` no se había actualizado tras esos cierres, corregido
+  en esta misma sesión; y la propuesta de dividir `app.js` en módulos ES nativos chocaba
+  directamente con la decisión ya tomada en `T14` (sesiones 206-207): los tests cargan `app.js` con
+  `vm.Script`, incompatible con módulos ES, el hogar ya confirmó seguir con el patrón `views/*.js`
+  existente — reformulada como continuación de `T14`, nunca como sustitución.
+- **Decisión de disciplina, aplicada al propio documento nuevo**: en vez de convertir las 68
+  propuestas en 68 tareas activas (el patrón que la propia auditoría señala como riesgo de las
+  cuatro rondas anteriores), `BACKLOG_CONTABILIDADCASA_3_0.md` activa de inmediato solo lo que no
+  depende de datos de uso (telemetría mínima como prerrequisito único de Bloque 0, el modelo de
+  periodo, arquitectura/deuda técnica, y las correcciones de navegación/flujo con evidencia ya
+  documentada) y dedica el resto — la mayoría de las 22 funcionalidades nuevas — a una "Cola B"
+  explícitamente condicionada a que la telemetría corra un mes y el hogar decida activarla con
+  datos delante.
+- **`BACKLOG_INDICE.md` actualizado**: nueva entrada de estado, fila nueva en el mapa completo, y
+  `BACKLOG_CONTABILIDADCASA_2_0.md` marcado como "casi cerrado, absorbido en la cola única de 3.0"
+  en vez de sustituido — su detalle sigue siendo la referencia de las 16 tareas heredadas.
+- **Validación**: `npm test` — 4.561 pruebas, 4.555 pass / 6 fail. Las 6 fallas son preexistentes en
+  `main` (verificado contra el HEAD limpio antes de este cambio, con `git stash`): 5 son fallos de
+  `opt3-minify-dist.test.cjs` (`build:site`/esbuild, entorno de este contenedor) y 1
+  (`lev14-apalancamiento-escalonado`) pasa en aislamiento tanto antes como después del cambio —
+  flake de orden de ejecución del conjunto completo, no causado por este cambio. Este cierre es
+  puramente documental (tres ficheros `.md`, ningún fichero de código de la app) — no se ejecutó
+  `npm run verify` completo por no tocar código ni el sitio publicado, solo `npm test`.
+- **Pendiente de publicar**: commit y push a `claude/sharp-faraday-fdy3ea`, PR en borrador y fusión
+  a `main` en cuanto el CI esté en verde, según la autorización permanente de `CLAUDE.md`.
+
 ## Cierre de sesión — 21 de septiembre de 2026 (217): `I2` — arranca la captura de la serie histórica de valoraciones; `I3` aparcada a propósito; `I8` — impacto en el colchón sobre `INV18`; `I13` nueva
 
 - **Qué pedía la sesión**: retomar `I2`/`I3` (histórico de valoraciones + correlación real) e `I8`
