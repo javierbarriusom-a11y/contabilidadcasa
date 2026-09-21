@@ -86,7 +86,7 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
-## Cierre de sesión — 21 de septiembre de 2026 (217): `I2` — arranca la captura de la serie histórica de valoraciones; `I3` aparcada a propósito; `I8` pendiente de aclarar
+## Cierre de sesión — 21 de septiembre de 2026 (217): `I2` — arranca la captura de la serie histórica de valoraciones; `I3` aparcada a propósito; `I8` — impacto en el colchón sobre `INV18`; `I13` nueva
 
 - **Qué pedía la sesión**: retomar `I2`/`I3` (histórico de valoraciones + correlación real) e `I8`
   (simulador de evento de liquidez), los tres bajo "condicionadas" en §6. A diferencia de `I9`
@@ -97,9 +97,12 @@ de aquí en la siguiente regeneración, no al momento.
   decisión explícita del hogar (sesión 171: `INV16` declarada/editable a propósito). El hogar
   decidió: `I2` — empezar a capturar ya, aunque el historial útil tarde meses; `I3` — aparcada hasta
   tener ese historial, y entonces mantener `INV16` y la calculada **en paralelo**, nunca sustituir
-  una por otra; `I8` — preguntado si aplicaba, el hogar respondió "más un dinero inesperado", que no
-  confirma el alcance concreto de la tarea (venta de participaciones/ejercicio de opciones) — queda
-  sin construir hasta aclarar qué tipo de evento es en realidad.
+  una por otra; `I8` — preguntado si aplicaba, el hogar respondió "más un dinero inesperado" y, al
+  precisar, confirmó dos orígenes reales distintos: venta de activos e ingreso extraordinario ajeno a
+  la cartera. Decidido separarlas: `I8` se construye ya con el alcance original (venta de activos),
+  el ingreso extraordinario pasa a `I13`, nueva tarea sin construir. Sobre "ejercicio de opciones"
+  (la otra mitad del alcance original de `I8`) no se confirmó si aplica — queda fuera sin construir,
+  ver el detalle al cierre de esta entrada.
 - **Qué se hizo (`I2`)**: nuevas `recordIv1ValuationSnapshot(monthKey, closedAt)` /
   `loadIv1ValuationHistory()` / `saveIv1ValuationHistory()` (`app.js`), mismo patrón local que ya
   usan `C-13` (`recordCierreAprendizaje`), `D-2b` (`saveDebtCapitalSnapshotAtClose`) y `PVC6`
@@ -119,12 +122,42 @@ de aquí en la siguiente regeneración, no al momento.
   duplica; un segundo mes distinto amplía el rango correctamente ("desde agosto de 2026 hasta
   septiembre de 2026"); los datos guardados en `localStorage` son los valores reales de la posición
   añadida, no una cifra de relleno.
-- **Publicado**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main` en
-  cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
+- **Publicado (`I2`)**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main`
+  en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
 - **`I3` sigue sin construirse a propósito** (decisión ya tomada, ver arriba: en paralelo con
-  `INV16` cuando `I2` acumule suficiente). **`I8` sigue sin construirse**, pendiente de que el hogar
-  aclare qué es exactamente ese "dinero inesperado" antes de decidir si `I8` es el simulador correcto
-  o si el escenario real necesita otro alcance.
+  `INV16` cuando `I2` acumule suficiente).
+- **Qué se hizo (`I8`, continuación de la misma sesión)**: investigado antes de construir nada desde
+  cero — `INV18` ("¿de qué posición y cuándo saco X€ más barato?", Oleada 4) ya resolvía la mitad de
+  cartera de `I8`: qué vender y con qué coste fiscal (`inv18WithdrawalPlan`, tramos progresivos
+  reales). Solo faltaba la mitad de colchón que pedía la nota de `I8` ("integrado con cartera y
+  colchón"). Nueva `inv18CushionImpact(result)` (`app.js`): con el neto real del plan (`totalNet`,
+  nunca el importe bruto pedido — el coste fiscal también sale de la liquidez futura) calcula el
+  antes/después contra el mismo `cushionFloor` que ya usa Plan/Análisis/Hoy
+  (`FinanceCanonicalCushion`), con su nivel (negativo/ajustado/holgado). `inv18PlanHtml()` gana un
+  tercer parámetro opcional que añade el párrafo "Impacto en el colchón" cuando hay datos, sin
+  cambiar nada si no los hay (llamadas existentes sin ese argumento siguen igual). Se reutilizó la
+  misma tarjeta de `INV18` (Inversión → Fiscal) en vez de duplicar un simulador aparte — misma
+  lección de `I9`: investigar antes de construir a ciegas. "Ejercicio de opciones" queda fuera:
+  ningún tipo de posición ni modelo fiscal de stock options existe hoy en la app, y no se confirmó
+  con el hogar si aplica — construirlo sin esa confirmación habría sido fabricar un cálculo (tributa
+  distinto que una venta normal: rendimiento del trabajo al ejercer, ganancia patrimonial después).
+- **`I13` — nueva, sin construir**: la otra mitad de lo que describió el hogar sobre `I8`, un ingreso
+  extraordinario sin origen en cartera (herencia, bonus, venta de algo fuera de cartera...). No
+  existe ningún comparador para esto: `imprevisto` (motor de Escenarios) modela un gasto de golpe,
+  no un ingreso — forzar un importe negativo ahí sería una pieza pensada para lo contrario, no una
+  reutilización honesta. La pregunta real es "¿a dónde va este dinero?" (deuda/inversión/colchón/
+  objetivo, cada uno con su coste de oportunidad) — sin construir hasta confirmar con el hogar el
+  comparador exacto que necesita, mismo criterio que `I7`.
+- **Verificado (`I8`)**: `npm run verify` en verde — **4561/4561 pruebas** (10 nuevas en
+  `tests/i8-evento-liquidez.test.cjs`, motor real de `canonical-cushion.js` vía `require`, mismo
+  criterio que ya usa `tests/inv18-plan-retirada-mas-barato.test.cjs` con `canonical-irpf-estimator.js`;
+  26 canarios de versión de `app.js?v=` actualizados), sin regresión en los 15 tests ya existentes de
+  `INV18`. Verificación en navegador real (Playwright, Inversión → Fiscal): con una posición sin
+  plusvalía (aísla el cálculo de colchón del requisito preexistente de escalas de IRPF), el plan
+  calcula neto recibido y el párrafo de colchón aparece con las cifras y el nivel correctos en dos
+  escenarios (por encima del mínimo → sigue por encima; por debajo del mínimo → sigue por debajo).
+- **Publicado (`I8`)**: commit, push a la rama de trabajo en curso, PR en borrador y fusión a `main`
+  en cuanto el CI se puso en verde, misma autorización vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 20 de septiembre de 2026 (216): `I9` — gráfico de cartera con zoom y tooltip
 

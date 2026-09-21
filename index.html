@@ -2673,10 +2673,13 @@
                  cruza la venta parcial (FC5, optimizePartialSale), el rescate de pensión (FCX1,
                  marginalTaxOnAdditionalIncome) y la fecha de un objetivo (E15) sobre las posiciones
                  reales de la cartera. Reutiliza los mismos campos ya declarados arriba (base ya
-                 generada del ahorro, renta general del año) sin duplicarlos. -->
+                 generada del ahorro, renta general del año) sin duplicarlos.
+                 I8 (sesión 217, "simulador de evento de liquidez... integrado con cartera y
+                 colchón"): esta misma tarjeta ya cubría cartera; se le añadió el impacto en el
+                 colchón (inv18CushionImpact) en vez de duplicar un simulador aparte. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">¿De qué posición y cuándo saco X€ más barato?</h3>
-              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#inversion-cartera">Inversión → Cartera</a> (fondo, acción, ETF, cripto, plan de pensiones), calcula el orden más barato para conseguir el importe que necesitas, usando la base del ahorro y la renta general ya declaradas arriba.</p>
+              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#inversion-cartera">Inversión → Cartera</a> (fondo, acción, ETF, cripto, plan de pensiones), calcula el orden más barato para conseguir el importe que necesitas, usando la base del ahorro y la renta general ya declaradas arriba, y qué le pasa a tu colchón si ejecutas el plan.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Importe que necesitas conseguir (€)</span>
@@ -7281,7 +7284,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260921i2a1"></script>
+    <script defer src="app.js?v=20260921i8a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
