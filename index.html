@@ -4517,6 +4517,7 @@
                 <button type="button" data-ajustes-anchor="ajustes-fiscal">Fiscal</button>
                 <button type="button" data-ajustes-anchor="ajustes-patrimonio">Patrimonio e inversión</button>
                 <button type="button" data-ajustes-anchor="ajustes-laboratorio">Simuladores y Laboratorio</button>
+                <button type="button" data-ajustes-anchor="ajustes-uso-app">Uso de la app</button>
                 <button type="button" data-ajustes-anchor="ajustes-operacion">Presupuesto y operación</button>
                 <button type="button" data-ajustes-anchor="ajustes-datos">Datos y exportación</button>
                 <button type="button" data-ajustes-anchor="ajustes-navegacion">Navegación</button>
@@ -5077,6 +5078,29 @@
                 </ol>
               </div>
             </article>
+            </div>
+
+            <!-- ARQ-0 (BACKLOG_CONTABILIDADCASA_3_0.md §1): el contador por pantalla ya existía
+                 desde T-4/OPT-2 (22 de agosto de 2026), pero solo se enseñaba dentro de la ficha de
+                 cada heredada en Laboratorio (17 pantallas). Este panel muestra el mismo contador
+                 para toda la app (viewTitles, ~40 pantallas) — la superficie que faltaba para
+                 decidir la Cola B de la auditoría 3.0 con datos reales en vez de intuición, sin
+                 construir telemetría nueva. -->
+            <div class="e19-ajustes-group" id="ajustes-uso-app" aria-labelledby="ajustes-uso-app-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-uso-app-title">Uso de la app</h3>
+              <article class="e19-card" id="usoAppCard">
+                <h3 class="escenario-motor-panel-title">Uso de la app</h3>
+                <p class="e19-kpi-note">Cuántas veces se ha abierto cada pantalla y cuándo fue la última vez, solo en este navegador: no sale de aquí, no hay ningún dato personal ni de movimientos, solo el nombre de la pantalla y la fecha. Sirve para decidir con datos reales qué priorizar, no con intuición.</p>
+                <p class="e19-kpi-note" id="usoAppSummary"></p>
+                <div class="table-wrap">
+                  <table class="uso-app-table">
+                    <thead>
+                      <tr><th scope="col">Pantalla</th><th scope="col">Categoría</th><th scope="col">Veces abierta</th><th scope="col">Última apertura</th></tr>
+                    </thead>
+                    <tbody id="usoAppTableBody"></tbody>
+                  </table>
+                </div>
+              </article>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
@@ -7284,7 +7308,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260921i8a1"></script>
+    <script defer src="app.js?v=20260922arq0a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

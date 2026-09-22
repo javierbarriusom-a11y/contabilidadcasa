@@ -38,7 +38,7 @@ decisión de producto ya tomada.
 
 | ID | Tarea | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|
-| `ARQ-0` | Telemetría de uso mínima y privada (qué pantallas se abren, con qué frecuencia) | S | Muy alto | Sin datos reales de uso, toda la priorización de este documento — incluida la suya propia — es un juicio a ciegas. Un contador local o una tabla `finance_usage_events` en Supabase (`{screen, timestamp}`, sin dato personal) basta. Correr un mes antes de decidir si se activa la Cola B (§4). Ninguna otra tarea de este bloque depende de esta, pero la priorización de §5 sí. |
+| `ARQ-0` | ~~Telemetría de uso mínima y privada~~ — **ya existía de fábrica, cerrada el 22 de septiembre de 2026 (sesión 220)** | S | Muy alto | Error de la propia auditoría de origen, mismo patrón que la Mejora #9 (§0.1): el contador de visitas por pantalla (`VISIT_COUNTS_KEY`/`recordViewVisit`/`viewVisitSummary`, `app.js`) ya existía desde `T-4` (22 de agosto de 2026) y ya se había redescubierto una vez, en `OPT-2` (29 de agosto). Registra automáticamente las ~40 pantallas de la app desde esa fecha — el «un mes antes de decidir la Cola B» que pedía esta fila ya se había cumplido cuando se escribió este documento. Lo único que faltaba de verdad, y es lo que construyó la sesión 220: un informe (`usoAppRows`/`renderAjustesUsoApp`, panel «Uso de la app» en Ajustes) que muestra el contador de las ~40 pantallas, no solo de las 17 heredadas de Laboratorio. Detalle completo en el cierre de sesión 220 de `PROJECT_STATE.md`. |
 
 ## 2. Cola A — activa ya (no depende de datos de uso)
 
@@ -109,9 +109,11 @@ El resto de las propuestas de la auditoría de origen (21 mejoras adicionales de
 las 22 funcionalidades nuevas tras extraer `PER-4`/`NAV-5`) **no se numeran ni se activan aquí**.
 Están completas, con su razonamiento, en el documento de origen
 ([artifact](https://claude.ai/artifact/LcC4gEUFDB4PAL3m9tfZK2), Partes A y B). La condición de
-activación es una sola: **`ARQ-0` corriendo al menos un mes**, y una conversación explícita del
-hogar sobre qué pantallas se abren de verdad. Activarlas sin eso repetiría exactamente el patrón
-que la auditoría de origen señala como riesgo (§0). Cuando llegue ese momento, la priorización
+activación son dos: **el contador corriendo al menos un mes** (cumplida desde antes de escribir
+este documento — ver `ARQ-0` en §1 — y ahora también visible en el informe «Uso de la app» de
+Ajustes) y una conversación explícita del hogar sobre qué pantallas se abren de verdad, todavía
+pendiente. Activarlas sin esa conversación repetiría exactamente el patrón que la auditoría de
+origen señala como riesgo (§0). Cuando llegue ese momento, la priorización
 dentro de la Cola B debería favorecer visualización/consistencia (menor riesgo, mayor alcance)
 sobre las funcionalidades nuevas más especulativas (simulador de reubicación, widget nativo, modo
 demostración), que la propia auditoría de origen ya marca como las primeras candidatas a recortar.
@@ -144,12 +146,12 @@ priorización de §6 sea una sola secuencia, sin tener que cruzar dos documentos
 
 | Horizonte | Qué | Por qué en este orden |
 |---|---|---|
-| 1 — ya, solo | `ARQ-0` | Prerrequisito de toda decisión posterior, incluida la del propio horizonte 5 |
+| 1 — ya, solo | ~~`ARQ-0`~~ — cerrada el 22/09/2026 (sesión 220), el contador ya existía de fábrica | Prerrequisito de toda decisión posterior, incluida la del propio horizonte 5. Cerrada sin construir telemetría nueva — ver §1 |
 | 2 — este trimestre | `PER-1` → `PER-2` → `PER-3` → `PER-4`; `I5` (heredada, sin bloqueo); `ARQ-1`, `ARQ-2` | El modelo de periodo es la única pieza de este documento con caducidad real — cuantos más motores existan antes de generalizarlo, más caro migrarlos después. `I5` ya era la siguiente tarea acordada con el hogar (2.0 §6) — no tiene sentido reordenarla por detrás de trabajo nuevo |
 | 3 — este semestre | `ARQ-3`, `ARQ-4` (continúa `T14`), `T9` (heredada), `NAV-1`, `NAV-2`, `NAV-4`, `FLU-1`, `FLU-2`, `FIN-1` | Impacto directo en uso diario y deuda técnica, sin requerir motores nuevos ni depender de telemetría |
 | 4 — coste medio, sin urgencia | `NAV-3`, `NAV-5`, `FLU-3`, `FIN-2`, `PROC-1`, `PROC-2`; revisar `D1`/`D6`/`I3`/`I6`/`I13` (heredadas) según sus propias condiciones | Sin bloqueo externo, pero de menor urgencia que el horizonte 3 |
 | 5 — condicionado por terceros, sin trabajo propio hoy | `OPT-10`-`OPT-13` (calendario), `RGX3`/`DEX6`/`GOB5` (`A5-1`/`A5-4`), `O-6` (PSD2), Copiloto/IA-UI, `P4`/`P10` | Vigilar las condiciones, no construir mientras no se cumplan — mismo criterio que ya aplica `BACKLOG_CONTABILIDADCASA_2_0.md` |
-| 6 — gated por `ARQ-0` | Cola B completa (§4) | No se activa sin datos de uso reales y conversación explícita del hogar |
+| 6 — gated por la conversación del hogar | Cola B completa (§4) | El dato de uso ya existe (informe «Uso de la app», §1); falta la conversación explícita del hogar mirándolo antes de activar nada |
 
 ## 7. Advertencia
 

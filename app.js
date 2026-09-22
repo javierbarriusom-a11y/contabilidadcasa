@@ -4506,6 +4506,34 @@ function viewVisitSummary(viewId) {
   return loadVisitCounts()[viewId] || { count: 0, last: "" };
 }
 
+// ARQ-0 (BACKLOG_CONTABILIDADCASA_3_0.md §1): el contador de T-4/OPT-2 ya registra toda pantalla,
+// pero nunca se enseñaba más allá de la ficha de cada una de las 17 heredadas de Laboratorio. Este
+// informe reutiliza el mismo contador (viewVisitSummary) sobre viewTitles — el catálogo real de
+// las ~40 pantallas de la app — sin motor nuevo.
+function usoAppRows() {
+  return Object.keys(viewTitles)
+    .map((id) => {
+      const visitas = viewVisitSummary(id);
+      const meta = viewTitles[id] || {};
+      return { id, eyebrow: meta.eyebrow || "", title: meta.title || id, count: visitas.count, last: visitas.last };
+    })
+    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, "es"));
+}
+
+function usoAppSummaryText(rows = usoAppRows()) {
+  const sinVisitas = rows.filter((row) => !row.count).length;
+  return `${rows.length} pantallas registradas · ${sinVisitas} sin ninguna apertura todavía.`;
+}
+
+function usoAppRowHtml(row) {
+  const last = formatIsoDate(row.last) || "—";
+  return `<tr><td>${escapeHtml(row.title)}</td><td>${escapeHtml(row.eyebrow)}</td><td>${row.count}</td><td>${escapeHtml(last)}</td></tr>`;
+}
+
+function usoAppTableHtml(rows = usoAppRows()) {
+  return rows.map(usoAppRowHtml).join("");
+}
+
 function setActiveView(viewId = viewFromHash(), { focus = false, announce = true } = {}) {
   // R-11: la redirección de R-10 no puede depender de pasar por `viewFromHash()` — los clics del
   // menú lateral y los botones `data-home-nav` llaman aquí con el id heredado directamente, sin
@@ -29058,6 +29086,7 @@ function renderAjustes() {
   renderAjustesExportNote();
   renderAjustesSobres();
   renderAjustesLaboratorio();
+  renderAjustesUsoApp();
   renderCierreReportArchive();
   renderPv5Diary();
   renderPvc11PendingLearning();
@@ -36383,6 +36412,17 @@ function renderAjustesLaboratorio() {
     if (listEl) listEl.hidden = true;
   }
   if (detailEl) detailEl.innerHTML = laboratorioDetailHtml(laboratorioDetailFor(laboratorioSelectedHash, catalog), snapshotContext);
+}
+
+// ARQ-0: mismo patrón que renderAjustesLaboratorio, pero sobre las ~40 pantallas de viewTitles en
+// vez de las 17 heredadas del catálogo — el informe de uso real que pedía el backlog 3.0, sin
+// motor nuevo: solo lee el contador ya construido por T-4/OPT-2.
+function renderAjustesUsoApp() {
+  const summaryEl = qs("usoAppSummary");
+  const bodyEl = qs("usoAppTableBody");
+  const rows = usoAppRows();
+  if (summaryEl) summaryEl.textContent = usoAppSummaryText(rows);
+  if (bodyEl) bodyEl.innerHTML = usoAppTableHtml(rows);
 }
 
 let laboratorioSelectedHash = LABORATORIO_CATALOG[0]?.hash || null;
