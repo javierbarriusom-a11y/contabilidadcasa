@@ -86,6 +86,49 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 22 de septiembre de 2026 (220): `ARQ-0` cerrada — el contador de visitas ya existía de fábrica (`T-4`/`OPT-2`); nuevo informe «Uso de la app» en Ajustes
+
+- **Qué pedía la sesión**: seguir con la siguiente oleada de `BACKLOG_CONTABILIDADCASA_3_0.md` (nacido
+  en la sesión 219) y proponer un plan para el resto del backlog. Preguntado el hogar por qué empezar,
+  eligió `ARQ-0` (telemetría de uso), horizonte 1 del propio plan priorizado del documento.
+- **Hallazgo antes de construir nada** — mismo patrón que la propia auditoría 3.0 ya se descubrió a sí
+  misma en la Mejora #9 (cerrar `T15`-`T19`, §0.1): el contador de visitas por pantalla
+  (`VISIT_COUNTS_KEY`/`recordViewVisit`/`viewVisitSummary`, `app.js`) **ya existía** desde `T-4` (22 de
+  agosto de 2026) y ya se había redescubierto una vez en `OPT-2` (29 de agosto) — registra
+  automáticamente las ~40 pantallas de la app, heredadas y nuevas, no solo las 17 del catálogo de
+  Laboratorio donde se enseñaba hasta ahora. Con la fecha de hoy, el contador lleva corriendo
+  exactamente un mes: el plazo que la propia fila de `ARQ-0` pedía como condición para decidir la Cola
+  B ya se había cumplido cuando se escribió el documento, sin que nadie lo hubiera usado con ese fin.
+- **Presentado al hogar** antes de tocar código, con la alternativa de saltar directamente a `PER-1`: el
+  hogar decidió construir el informe que de verdad faltaba (ver más abajo) y dejar la corrección
+  documental del backlog para este cierre.
+- **Construido**: `usoAppRows()`/`usoAppSummaryText()`/`usoAppRowHtml()`/`usoAppTableHtml()` (`app.js`,
+  junto a `viewVisitSummary`) — reutilizan el contador ya existente sobre `viewTitles` (el catálogo
+  real de las ~40 pantallas) en vez de sobre las 17 heredadas de Laboratorio, sin motor nuevo.
+  `renderAjustesUsoApp()` (mismo patrón que `renderAjustesLaboratorio`) y su llamada en
+  `renderAjustes()`. Nuevo panel «Uso de la app» dentro de Ajustes (`index.html`), con su propio ancla
+  en la barra de secciones junto a «Simuladores y Laboratorio»: tabla con pantalla, categoría, veces
+  abierta y última apertura, ordenada de más a menos usada, con una nota explícita de que el dato
+  nunca sale del navegador y no incluye nada personal ni de movimientos. CSS nuevo (`.uso-app-table`,
+  `styles.css`) siguiendo el mismo patrón que `.account-balance-table`. `app.js?v=` bumpeado a
+  `20260922arq0a1` (27 ficheros de test que lo pineaban, actualizados en bloque).
+- **Corrección documental en `BACKLOG_CONTABILIDADCASA_3_0.md`**: `ARQ-0` (§1) marcada cerrada con el
+  hallazgo completo; §4 (Cola B) separa la condición de datos (ya cumplida) de la conversación
+  explícita del hogar sobre qué pantallas se abren de verdad (todavía pendiente — la Cola B **no** se
+  activa con este cierre); §6 (plan priorizado) refleja el horizonte 1 cerrado. `BACKLOG_STATUS.md` no
+  cambia: `ARQ-0` no es una entrega numerada `E1`-`E20`, vive solo dentro del backlog 3.0.
+- **Hallazgo adicional sobre el propio entorno**: `node_modules` no estaba instalado en este contenedor
+  al empezar la sesión. Los 6 fallos de `opt3-minify-dist.test.cjs` que el cierre de la sesión 219
+  documentó como «preexistentes, entorno de este contenedor» desaparecen con un `npm install` limpio —
+  `esbuild` sí está declarado en `package.json`, solo faltaba instalarlo. No era una limitación
+  permanente del contenedor, como se había asumido entonces.
+- **Validación**: `npm run verify` completo, exit 0 — **4.571/4.571 pruebas** (4.561 + 10 nuevas de
+  `tests/arq0-uso-app-informe.test.cjs`), accesibilidad (1.391 IDs únicos), rendimiento, build del
+  sitio, privacidad y smoke test, todos en verde. Sin ningún fallo, ni siquiera los preexistentes de
+  entorno de la sesión anterior (ver hallazgo de arriba).
+- **Publicado**: commit y push a `claude/nice-goodall-8konj5`, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, según la autorización permanente de `CLAUDE.md`.
+
 ## Cierre de sesión — 21 de septiembre de 2026 (219): nace `BACKLOG_CONTABILIDADCASA_3_0.md` — auditoría crítica de UX/UI y modelo de periodo, cruzada y unificada con el backlog vigente
 
 - **Qué pedía la sesión**: análisis crítico de UX/UI de la app "con el máximo detalle", más de 40

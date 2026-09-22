@@ -4349,6 +4349,14 @@ svg {
   border-collapse: collapse;
 }
 
+/* ARQ-0: sobre .e19-table (design-tokens.css), que ya da alineación numérica a la derecha por
+   defecto salvo la primera columna — aquí «Categoría» es texto, no una cifra, así que se queda a
+   la izquierda igual que «Pantalla». */
+.uso-app-table th:nth-child(2),
+.uso-app-table td:nth-child(2) {
+  text-align: left;
+}
+
 .account-balance-table th,
 .account-balance-table td {
   padding: 8px 10px;
