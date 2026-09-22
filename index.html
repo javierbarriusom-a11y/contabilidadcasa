@@ -4475,6 +4475,15 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="p12MonthlyReportDownload">Descargar informe mensual</button>
             </article>
 
+            <!-- PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): tercera cadencia del mismo informe —
+                 extiende GOB14/P12 igual que P12 extendió GOB14, sin tocar ninguno de los dos:
+                 mismo modelo ejecutivo con procedencia, mismo cuerpo, solo cambia el periodo. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informe semestral para la familia</h3>
+              <p class="e19-kpi-note">Un resumen de una página con las cifras clave del semestre en curso (con su procedencia) y qué toca decidir ahora — mismo contenido que el informe trimestral, con cadencia semestral.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob14SemesterReportDownload">Descargar informe semestral</button>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Informes de cierre archivados</h3>
               <p class="e19-kpi-note">Un informe por cada mes firmado en Cierre, congelado en el momento de firmarlo — no se regenera con datos que hayan podido cambiar después.</p>
@@ -6074,6 +6083,30 @@
             </div>
             <div class="account-balance-strip" id="previsionBalanceSummary"></div>
 
+            <!-- PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): resumen agregado por periodo natural
+                 (trimestre/semestre/año) — no existía ningún concepto de periodo calendario en
+                 Previsión hasta ahora, solo el horizonte (12/24/48 meses) y el mes del panel día a
+                 día, conceptos distintos que este resumen no sustituye. -->
+            <article class="e19-card" id="previsionPeriodSummaryCard">
+              <div class="registrar-mes-card-head plan-mes-budget-head">
+                <div>
+                  <h3 class="escenario-motor-panel-title">Resumen por periodo</h3>
+                  <p class="e19-subtitle">Ingresos, gastos, deuda y ahorro previstos del periodo elegido, agregando la misma previsión mes a mes de la tabla de abajo — no un cálculo nuevo.</p>
+                </div>
+                <div class="cuadro-mandos-controls">
+                  <div class="cuadro-mandos-controls" role="group" aria-label="Cadencia del resumen">
+                    <button type="button" class="e19-btn e19-btn-secondary" data-prevision-period-unit="quarter" aria-pressed="false">Trimestre</button>
+                    <button type="button" class="e19-btn e19-btn-secondary" data-prevision-period-unit="semester" aria-pressed="false">Semestre</button>
+                    <button type="button" class="e19-btn e19-btn-secondary" data-prevision-period-unit="year" aria-pressed="false">Año</button>
+                  </div>
+                  <button type="button" class="e19-btn e19-btn-secondary" data-prevision-period-prev>← Anterior</button>
+                  <button type="button" class="e19-btn e19-btn-secondary" data-prevision-period-next>Siguiente →</button>
+                </div>
+              </div>
+              <p class="e19-kpi-note" id="previsionPeriodSummaryLabel"></p>
+              <div id="previsionPeriodSummaryBody"></div>
+            </article>
+
             <article class="e19-card prevision-band-card">
               <div class="prevision-band-track" id="previsionBand" role="img" aria-label="Banda de liquidez por mes, del mínimo antes de cobros al máximo tras cobros"></div>
               <p class="e19-kpi-note" id="previsionBandLegend"></p>
@@ -7309,7 +7342,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260922arq0a1"></script>
+    <script defer src="app.js?v=20260922per4a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

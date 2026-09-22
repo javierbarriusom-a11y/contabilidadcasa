@@ -86,6 +86,70 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 22 de septiembre de 2026 (222): `PER-4` — semestre en Presupuesto, resumen por periodo en Previsión, persistencia en Análisis, informe semestral; salud financiera queda fuera a propósito
+
+- **Qué pedía la sesión**: cerrar el bloque de periodo del todo — "hacemos PER-1→PER-2→PER-3→PER-4 y
+  cerramos". `PER-4` en el backlog decía "reutilizado en Presupuesto, Análisis, Previsión y salud
+  financiera" — antes de tocar código se investigó qué tenía cada pantalla realmente (agente de
+  exploración dedicado) y se encontró que el alcance real era mucho mayor y con más riesgo de
+  producto del que "M" sugería: Análisis ya tenía su propio "semestre" (ventana móvil de 6 meses,
+  no el semestre natural), Previsión no tenía ningún concepto de periodo calendario, y salud
+  financiera tampoco. Presentado al hogar, que acotó el alcance: Presupuesto + Análisis + Previsión
+  esta sesión, **salud financiera fuera** — no había nada que reutilizar ahí, solo una decisión de
+  producto nueva sin pedir.
+- **Presupuesto** (`views/presupuesto-mes.js`, `canonical-budget-schema.js`, `app.js`): "semester"
+  añadido como tercera cadencia larga junto a "annual"/"quarterly" — nuevo campo `semesterKey` en el
+  esquema (`validate`/`create`/`upsert`/`delete`/`findForSemester`/`findForCategorySemester`/
+  `byCategorySemester`/`semesterRange`, delegando en `canonical-period.js`), las 7 funciones de la
+  vista que ramificaban por `periodType` (rango, contexto de fechas, alertas, reparto mensual a 6,
+  alta/edición/exportación CSV) extendidas con el tercer caso. `shiftPresupuestoMesLongPeriod`
+  simplificado: antes calculaba a mano el año/trimestre siguiente con su propio rollover, ahora
+  delega en `FinanceCanonicalPeriod.adjacentPeriod` (menos código, y ahora sirve para las tres
+  cadencias sin más ramas). La preferencia de cadencia se persiste por primera vez (antes se perdía
+  al recargar), bajo el id de pantalla `"presupuesto-largo"`.
+- **Previsión** (`app.js`, concepto nuevo — no existía nada parecido): panel «Resumen por periodo»
+  con selector trimestre/semestre/año y navegación anterior/siguiente, agregando la misma previsión
+  mes a mes que ya usa la tabla (`previsionRowsForMonths`/`previsionMetricsFor`/`previsionWorstOf`,
+  sin motor nuevo) sobre el rango del periodo elegido — independiente del horizonte 12/24/48 meses a
+  propósito (un año completo debe verse agregado aunque el horizonte esté en 12m). Avisa
+  explícitamente cuando el periodo cae solo parcialmente dentro de los meses abiertos ("solo 4 de 6
+  meses tienen previsión abierta todavía"), nunca agrega en silencio un periodo incompleto como si
+  fuera completo.
+- **Análisis** (`views/analisis.js`): solo persistencia añadida (`currentAnalisisPeriodKey`/
+  `handleAnalisisPeriod`, id de pantalla `"analisis"`) — su selector de A-4 (mes en curso / rango
+  relativo — trimestre, semestre, año — / mes concreto) no se tocó. Decisión explícita: el
+  "semestre" de A-4 es una ventana móvil de 6 meses hacia atrás desde hoy, no el semestre natural de
+  `canonical-period.js`; sustituirlo habría cambiado el resultado de cascadas ya construidas (`P-1`)
+  sin que el hogar lo hubiera pedido.
+- **Informe semestral** (`app.js`, `index.html`): tercera familia paralela a GOB14 (trimestral)/P12
+  (mensual) — `gob14SemesterLabel`/`gob14SemesterReportContext`/`gob14SemesterReportPrintHtml`/
+  `downloadGob14SemesterReport`, reutilizando `gob14ReportBodyHtml` tal cual. A diferencia de
+  `gob14QuarterLabel` (regex a mano sobre la clave), usa `canonical-period.js` directamente para la
+  etiqueta y el rango — no había ningún cálculo de semestre previo con el que tuviera que ser
+  coherente.
+- **Preferencia compartida por pantalla** (`app.js`, `PERIOD_SELECTOR_PREFERENCE_KEY`): un único
+  almacén, sin imponer un vocabulario común — cada pantalla guarda el valor tal cual lo usa (una
+  unidad de `canonical-period.js` en Presupuesto/Previsión, el id de preset/mes de Análisis, que no
+  son lo mismo). No hay un componente de UI compartido: cada pantalla sigue pintando su propio
+  selector con su propio estilo, igual que ya hacían el horizonte de Previsión o la ventana de
+  Análisis antes de esta tarea.
+- **Publicación de canonical-period.js** ya estaba resuelta desde `PER-1` (script en `index.html` +
+  lista de `tools/build-public-site.mjs`); esta sesión solo bumpea versiones: `app.js?v=
+  20260922per4a1` (27 ficheros de test), `views/presupuesto-mes.js?v=20260922per4a1` y
+  `views/analisis.js?v=20260922per4a1` (cada chunk de vista versiona por separado).
+- **Validación**: `npm run verify` completo, exit 0 — **4.635/4.635 pruebas** (4.595 + 40 nuevas:
+  19 en `tests/bud3-presupuesto-anual-trimestral.test.cjs`, 21 en
+  `tests/per4-selector-periodo-analisis-prevision.test.cjs`), accesibilidad (1.395 IDs),
+  rendimiento, build, privacidad y smoke test en verde. Además, comprobación manual en navegador
+  real (Chromium vía Playwright, `npx playwright test --project=e2e` y un script ad hoc): semestre
+  en Presupuesto, resumen agregado en Previsión y persistencia en Análisis funcionan de verdad, sin
+  errores de consola atribuibles al cambio. Un fallo del proyecto `e2e` (`QA-1 · flujo completo de
+  Presupuesto del mes`, editar el importe sugerido del presupuesto mensual) se investigó aparte —
+  reproduce idéntico contra el HEAD limpio antes de este cambio (`git stash` + misma prueba): fallo
+  preexistente de este contenedor, no causado por `PER-4`.
+- **Publicado**: commit y push a `claude/nice-goodall-8konj5`, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, según la autorización permanente de `CLAUDE.md`.
+
 ## Cierre de sesión — 22 de septiembre de 2026 (221): `PER-1`/`PER-2`/`PER-3` — nace `canonical-period.js`, el modelo de periodo único (mes/trimestre/semestre/año)
 
 - **Qué pedía la sesión**: continuar el horizonte 2 de `BACKLOG_CONTABILIDADCASA_3_0.md` tras cerrar

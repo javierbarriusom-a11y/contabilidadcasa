@@ -1122,6 +1122,7 @@ function budgetExportPeriodKey(budget) {
   if (budget.period === "weekly") return budget.weekKey;
   if (budget.period === "annual") return budget.year;
   if (budget.period === "quarterly") return budget.quarterKey;
+  if (budget.period === "semester") return budget.semesterKey;
   return budget.monthYear;
 }
 
@@ -1140,11 +1141,11 @@ function budgetsExportRows() {
       // BUD-2: un presupuesto semanal se mide sobre su semana (weekKey), no sobre el mes al que se
       // agrupa (monthYear es solo agrupación para vistas mensuales) — de lo contrario "gastado"
       // saldría del mes completo en vez de los 7 días reales del presupuesto. BUD-3: uno anual o
-      // trimestral se mide sobre su propio año/trimestre, no sobre un mes.
+      // trimestral/semestral se mide sobre su propio año/trimestre/semestre, no sobre un mes.
       const alert =
         budget.period === "weekly"
           ? budgetWeekAlertForRow(budget, budget.weekKey)
-          : budget.period === "annual" || budget.period === "quarterly"
+          : budget.period === "annual" || budget.period === "quarterly" || budget.period === "semester"
             ? budgetLongPeriodAlertForRow(budget, budget.period, periodKey)
             : budgetAlertForRow(budget, budget.monthYear);
       return {
@@ -1381,49 +1382,63 @@ function presupuestoMesWeeklyHtml() {
   </article>`;
 }
 
-// BUD-3 (FASE 7): tercera cadencia — anual/trimestral. Mismo patrón de estado de vista pura que la
-// semanal (no persistido); `presupuestoMesLongPeriodType` decide si la clave activa es un año o un
-// trimestre natural.
-let presupuestoMesLongPeriodType = "annual"; // "annual" | "quarterly"
+// BUD-3 (FASE 7) + PER-4: cadencia larga — anual/trimestral/semestral. `presupuestoMesLongPeriodType`
+// decide si la clave activa es un año, un trimestre o un semestre natural; se persiste por pantalla
+// (PERIOD_SELECTOR_PREFERENCE_KEY, app.js) bajo el id "presupuesto-largo", traducida a la unidad de
+// canonical-period.js con PRESUPUESTO_LARGO_UNIT — antes de PER-4 esta preferencia no se guardaba en
+// ningún sitio.
+const PRESUPUESTO_LARGO_TYPES = ["annual", "quarterly", "semester"];
+const PRESUPUESTO_LARGO_UNIT = { annual: "year", quarterly: "quarter", semester: "semester" };
+const PRESUPUESTO_LARGO_TYPE_FOR_UNIT = { year: "annual", quarter: "quarterly", semester: "semester" };
+const PRESUPUESTO_LARGO_SCHEMA_FIELD = { annual: "year", quarterly: "quarterKey", semester: "semesterKey" };
+const PRESUPUESTO_LARGO_ADJECTIVE = { annual: "anual", quarterly: "trimestral", semester: "semestral" };
+const PRESUPUESTO_LARGO_ADJECTIVE_PLURAL = { annual: "anuales", quarterly: "trimestrales", semester: "semestrales" };
+const PRESUPUESTO_LARGO_TOGGLE_LABEL = { annual: "Año completo", quarterly: "Trimestre", semester: "Semestre" };
+
+let presupuestoMesLongPeriodType = null;
 let presupuestoMesActiveLongPeriodKey = null;
 
+function currentPresupuestoMesLongPeriodType() {
+  if (!presupuestoMesLongPeriodType) {
+    const unit = periodSelectorPreferredUnit("presupuesto-largo", "year");
+    presupuestoMesLongPeriodType = PRESUPUESTO_LARGO_TYPE_FOR_UNIT[unit] || "annual";
+  }
+  return presupuestoMesLongPeriodType;
+}
+
 function currentPresupuestoMesLongPeriodKey() {
-  if (!presupuestoMesActiveLongPeriodKey) presupuestoMesActiveLongPeriodKey = currentBudgetLongPeriodKey(presupuestoMesLongPeriodType);
+  if (!presupuestoMesActiveLongPeriodKey) presupuestoMesActiveLongPeriodKey = currentBudgetLongPeriodKey(currentPresupuestoMesLongPeriodType());
   return presupuestoMesActiveLongPeriodKey;
 }
 
+function presupuestoLargoBudgetsFor(schema, periodType, periodKey) {
+  if (!schema) return [];
+  if (periodType === "annual") return schema.findForYear(budgets, periodKey) || [];
+  if (periodType === "semester") return schema.findForSemester(budgets, periodKey) || [];
+  return schema.findForQuarter(budgets, periodKey) || [];
+}
+
 function handlePresupuestoMesLongPeriodTypeChange(periodType) {
-  if (periodType !== "annual" && periodType !== "quarterly") return;
+  if (!PRESUPUESTO_LARGO_TYPES.includes(periodType)) return;
   presupuestoMesLongPeriodType = periodType;
   presupuestoMesActiveLongPeriodKey = currentBudgetLongPeriodKey(periodType);
+  savePeriodSelectorPreference("presupuesto-largo", PRESUPUESTO_LARGO_UNIT[periodType]);
   renderPresupuestoMes();
 }
 
+// PER-4: antes calculaba a mano el año/trimestre siguiente-anterior (con su propio rollover de
+// trimestre); ahora delega en FinanceCanonicalPeriod.adjacentPeriod, que ya resuelve las tres
+// cadencias (incluida la nueva, semestre) sin duplicar el cálculo de fechas.
 function shiftPresupuestoMesLongPeriod(delta) {
-  const key = currentPresupuestoMesLongPeriodKey();
-  if (presupuestoMesLongPeriodType === "annual") {
-    presupuestoMesActiveLongPeriodKey = `${Number(key) + delta}`;
-  } else {
-    const match = /^(\d{4})-Q([1-4])$/.exec(key);
-    if (!match) return;
-    let year = Number(match[1]);
-    let quarter = Number(match[2]) + delta;
-    while (quarter < 1) {
-      quarter += 4;
-      year -= 1;
-    }
-    while (quarter > 4) {
-      quarter -= 4;
-      year += 1;
-    }
-    presupuestoMesActiveLongPeriodKey = `${year}-Q${quarter}`;
-  }
+  const next = window.FinanceCanonicalPeriod?.adjacentPeriod(currentPresupuestoMesLongPeriodKey(), delta);
+  if (!next) return;
+  presupuestoMesActiveLongPeriodKey = next;
   renderPresupuestoMes();
 }
 
 function budgetLongPeriodLabel(periodType, periodKey) {
   if (periodType === "annual") return `Año ${periodKey}`;
-  const range = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.quarterRange(periodKey);
+  const range = window.FinanceCanonicalPeriod?.periodRange(periodKey);
   if (!range) return periodKey;
   const fmt = (iso) => {
     const [y, m, d] = iso.split("-").map(Number);
@@ -1437,10 +1452,9 @@ function handleLongPeriodBudgetAmountChange(input) {
   const periodType = input.dataset.presupuestoLargoType;
   const periodKey = input.dataset.presupuestoLargoKey;
   const amount = Number(input.value);
-  if (!category || !periodKey || !Number.isFinite(amount) || amount <= 0) return;
-  const payload = { categoryId: category, period: periodType, amountCap: amount, source: "manual" };
-  if (periodType === "annual") payload.year = periodKey;
-  else payload.quarterKey = periodKey;
+  const field = PRESUPUESTO_LARGO_SCHEMA_FIELD[periodType];
+  if (!category || !periodKey || !field || !Number.isFinite(amount) || amount <= 0) return;
+  const payload = { categoryId: category, period: periodType, amountCap: amount, source: "manual", [field]: periodKey };
   budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, payload);
   saveBudgets();
   renderPresupuestoMes();
@@ -1458,10 +1472,9 @@ function handleAddLongPeriodBudget(button) {
   const row = button.closest("tr");
   const category = row?.querySelector("[data-presupuesto-largo-new-category]")?.value;
   const amount = Number(row?.querySelector("[data-presupuesto-largo-new-amount]")?.value);
-  if (!category || !periodKey || !Number.isFinite(amount) || amount <= 0) return;
-  const payload = { categoryId: category, period: periodType, amountCap: amount, source: "manual" };
-  if (periodType === "annual") payload.year = periodKey;
-  else payload.quarterKey = periodKey;
+  const field = PRESUPUESTO_LARGO_SCHEMA_FIELD[periodType];
+  if (!category || !periodKey || !field || !Number.isFinite(amount) || amount <= 0) return;
+  const payload = { categoryId: category, period: periodType, amountCap: amount, source: "manual", [field]: periodKey };
   budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, payload);
   saveBudgets();
   renderPresupuestoMes();
@@ -1477,7 +1490,7 @@ function presupuestoLargoRowHtml(budget, periodType, periodKey) {
   const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
   const monthlyShare = budgetLongPeriodMonthlyShare(budget.amountCap, periodType);
-  const periodLabel = periodType === "annual" ? "anual" : "trimestral";
+  const periodLabel = PRESUPUESTO_LARGO_ADJECTIVE[periodType] || "";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
     <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td>
     <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-largo-category="${escapeHtml(budget.categoryId)}" data-presupuesto-largo-type="${periodType}" data-presupuesto-largo-key="${escapeHtml(periodKey)}" aria-label="Presupuesto ${periodLabel} de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
@@ -1495,13 +1508,12 @@ function presupuestoLargoRowHtml(budget, periodType, periodKey) {
 
 function presupuestoLargoAddRowHtml(periodType, periodKey) {
   const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
-  const periodBudgets =
-    periodType === "annual" ? schema?.findForYear(budgets, periodKey) || [] : schema?.findForQuarter(budgets, periodKey) || [];
+  const periodBudgets = presupuestoLargoBudgetsFor(schema, periodType, periodKey);
   const existing = new Set(periodBudgets.map((b) => b.categoryId));
   const available = budgetableCategories().filter((cat) => !existing.has(cat));
   if (!available.length) return "";
   const options = available.map((cat) => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
-  const periodLabel = periodType === "annual" ? "anual" : "trimestral";
+  const periodLabel = PRESUPUESTO_LARGO_ADJECTIVE[periodType] || "";
   return `<tr>
     <td class="t"><select data-presupuesto-largo-new-category aria-label="Categoría del nuevo presupuesto ${periodLabel}">${options}</select></td>
     <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-largo-new-amount aria-label="Importe del nuevo presupuesto ${periodLabel}" placeholder="Importe" /></td>
@@ -1513,25 +1525,23 @@ function presupuestoLargoAddRowHtml(periodType, periodKey) {
 // informativa a propósito — es una cifra de referencia (promedio del periodo), no una decisión con
 // alternativas que ordenar; no crea presupuestos mensuales nuevos por diseño (ver PLAN_MES / A18-x).
 function presupuestoLargoHtml() {
-  const periodType = presupuestoMesLongPeriodType;
+  const periodType = currentPresupuestoMesLongPeriodType();
   const periodKey = currentPresupuestoMesLongPeriodKey();
   const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
-  const periodBudgets =
-    periodType === "annual" ? schema?.findForYear(budgets, periodKey) || [] : schema?.findForQuarter(budgets, periodKey) || [];
+  const periodBudgets = presupuestoLargoBudgetsFor(schema, periodType, periodKey);
   const label = budgetLongPeriodLabel(periodType, periodKey);
-  const periodLabel = periodType === "annual" ? "anuales" : "trimestrales";
+  const periodLabel = PRESUPUESTO_LARGO_ADJECTIVE_PLURAL[periodType] || "";
   const rows = periodBudgets.length
     ? periodBudgets.map((budget) => presupuestoLargoRowHtml(budget, periodType, periodKey)).join("")
     : `<tr><td colspan="8" class="registrar-mes-empty">Todavía no hay presupuestos ${periodLabel} para ${escapeHtml(label)}.</td></tr>`;
   const typeToggleHtml = `<div class="cuadro-mandos-controls" role="group" aria-label="Tipo de periodo largo">
-    <button type="button" class="e19-btn ${periodType === "annual" ? "e19-btn-primary" : "e19-btn-secondary"}" data-presupuesto-largo-type-toggle="annual" aria-pressed="${periodType === "annual"}">Año completo</button>
-    <button type="button" class="e19-btn ${periodType === "quarterly" ? "e19-btn-primary" : "e19-btn-secondary"}" data-presupuesto-largo-type-toggle="quarterly" aria-pressed="${periodType === "quarterly"}">Trimestre</button>
+    ${PRESUPUESTO_LARGO_TYPES.map((type) => `<button type="button" class="e19-btn ${type === periodType ? "e19-btn-primary" : "e19-btn-secondary"}" data-presupuesto-largo-type-toggle="${type}" aria-pressed="${type === periodType}">${PRESUPUESTO_LARGO_TOGGLE_LABEL[type]}</button>`).join("")}
   </div>`;
   return `<article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
-        <h3 class="escenario-motor-panel-title">Presupuesto ${periodType === "annual" ? "anual" : "trimestral"} · ${escapeHtml(label)}</h3>
-        <p class="e19-subtitle">Para gastos estacionales (seguros, impuestos) que de otro modo aparecen como "sobregasto" puntual en un mes concreto: el ritmo se mide sobre todo el año/trimestre, sumando el gasto bancario y las partidas registradas a mano de cada mes del periodo. La columna "Reparto mensual" es solo informativa — el importe medio por mes si se repartiera a partes iguales — y no crea presupuestos mensuales nuevos.</p>
+        <h3 class="escenario-motor-panel-title">Presupuesto ${PRESUPUESTO_LARGO_ADJECTIVE[periodType]} · ${escapeHtml(label)}</h3>
+        <p class="e19-subtitle">Para gastos estacionales (seguros, impuestos) que de otro modo aparecen como "sobregasto" puntual en un mes concreto: el ritmo se mide sobre todo el año/trimestre/semestre, sumando el gasto bancario y las partidas registradas a mano de cada mes del periodo. La columna "Reparto mensual" es solo informativa — el importe medio por mes si se repartiera a partes iguales — y no crea presupuestos mensuales nuevos.</p>
       </div>
       <div class="cuadro-mandos-controls">
         ${typeToggleHtml}
