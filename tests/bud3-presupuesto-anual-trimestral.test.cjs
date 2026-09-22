@@ -26,12 +26,32 @@ const vm = require("node:vm");
 
 const { CanonicalBudgetSchema } = require("../canonical-budget-schema.js");
 const { CanonicalBudgetAlerts } = require("../canonical-budget-alerts.js");
+const CanonicalPeriod = require("../canonical-period.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const appSrc = read("app.js");
 const viewSrc = read("views/presupuesto-mes.js");
 const app = appSrc + "\n" + viewSrc;
+
+function extractConst(name) {
+  const marker = `const ${name} = `;
+  const start = app.indexOf(marker);
+  assert.ok(start >= 0, `No existe la constante ${name}`);
+  const valueStart = start + marker.length;
+  const openChar = app[valueStart];
+  assert.ok(openChar === "[" || openChar === "{", `${name} no empieza con [ ni {`);
+  const closeChar = openChar === "[" ? "]" : "}";
+  let depth = 0;
+  for (let index = valueStart; index < app.length; index += 1) {
+    if (app[index] === openChar) depth += 1;
+    else if (app[index] === closeChar) {
+      depth -= 1;
+      if (depth === 0) return app.slice(start, index + 1);
+    }
+  }
+  throw new Error(`${name} no cierra`);
+}
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -161,6 +181,62 @@ test("BUD-3 · delete admite period \"annual\"/\"quarterly\"", () => {
   assert.equal(budgets.length, 0);
 });
 
+// --- PER-4: semestre, tercera cadencia larga ---------------------------------------------------
+
+test("PER-4 · semesterRange coincide con canonical-period.js y rechaza formato inválido", () => {
+  assert.deepEqual(CanonicalBudgetSchema.semesterRange("2026-S1"), { start: "2026-01-01", end: "2026-06-30" });
+  assert.deepEqual(CanonicalBudgetSchema.semesterRange("2026-S2"), { start: "2026-07-01", end: "2026-12-31" });
+  assert.equal(CanonicalBudgetSchema.semesterRange("2026-S3"), null, "solo hay dos semestres");
+  assert.equal(CanonicalBudgetSchema.semesterRange("2026-Q1"), null, "un trimestre no es un semestre");
+});
+
+test("PER-4 · validate/create: presupuesto semestral válido", () => {
+  const budget = CanonicalBudgetSchema.create({ categoryId: "seguros", period: "semester", semesterKey: "2026-S1", amountCap: 600, source: "manual" });
+  assert.ok(budget);
+  assert.equal(budget.period, "semester");
+  assert.equal(budget.semesterKey, "2026-S1");
+  assert.equal(budget.year, null);
+  assert.equal(budget.quarterKey, null);
+  assert.equal(budget.monthYear, null);
+});
+
+test("PER-4 · validate rechaza semesterKey con formato inválido o ausente", () => {
+  assert.equal(CanonicalBudgetSchema.validate({ categoryId: "seguros", period: "semester", semesterKey: "2026-S3", amountCap: 100 }), null);
+  assert.equal(CanonicalBudgetSchema.validate({ categoryId: "seguros", period: "semester", amountCap: 100 }), null, "sin semesterKey");
+});
+
+test("PER-4 · findForSemester/findForCategorySemester/byCategorySemester excluyen otras cadencias", () => {
+  const budgets = [
+    CanonicalBudgetSchema.create({ categoryId: "seguros", period: "semester", semesterKey: "2026-S1", amountCap: 600 }),
+    CanonicalBudgetSchema.create({ categoryId: "seguros", period: "semester", semesterKey: "2026-S2", amountCap: 600 }), // otro semestre
+    CanonicalBudgetSchema.create({ categoryId: "impuestos", period: "quarterly", quarterKey: "2026-Q1", amountCap: 300 }), // otra cadencia
+  ];
+  assert.equal(CanonicalBudgetSchema.findForSemester(budgets, "2026-S1").length, 1);
+  assert.equal(CanonicalBudgetSchema.findForCategorySemester(budgets, "seguros", "2026-S1").amountCap, 600);
+  assert.equal(CanonicalBudgetSchema.findForCategorySemester(budgets, "impuestos", "2026-S1"), undefined);
+  assert.deepEqual(CanonicalBudgetSchema.byCategorySemester(budgets, "2026-S1"), { seguros: 600 });
+});
+
+test("PER-4 · upsert distingue semestre de trimestre y de año (misma categoría, sin chocar)", () => {
+  let budgets = [];
+  budgets = CanonicalBudgetSchema.upsert(budgets, { categoryId: "seguros", period: "annual", year: "2026", amountCap: 1200 });
+  budgets = CanonicalBudgetSchema.upsert(budgets, { categoryId: "seguros", period: "semester", semesterKey: "2026-S1", amountCap: 600 });
+  assert.equal(budgets.length, 2, "año y semestre de la misma categoría son dos presupuestos distintos");
+  budgets = CanonicalBudgetSchema.upsert(budgets, { categoryId: "seguros", period: "semester", semesterKey: "2026-S1", amountCap: 700 });
+  assert.equal(budgets.length, 2, "reemplaza el semestral existente en vez de duplicarlo");
+  assert.equal(CanonicalBudgetSchema.findForCategorySemester(budgets, "seguros", "2026-S1").amountCap, 700);
+});
+
+test("PER-4 · delete admite period \"semester\"", () => {
+  let budgets = [
+    CanonicalBudgetSchema.create({ categoryId: "seguros", period: "semester", semesterKey: "2026-S1", amountCap: 600 }),
+    CanonicalBudgetSchema.create({ categoryId: "impuestos", period: "quarterly", quarterKey: "2026-Q1", amountCap: 300 }),
+  ];
+  budgets = CanonicalBudgetSchema.delete(budgets, "seguros", "2026-S1", "semester");
+  assert.equal(budgets.length, 1);
+  assert.equal(budgets[0].categoryId, "impuestos", "el trimestral no se toca");
+});
+
 // ============================================================================
 // Parte B: cadena real de cálculo (app.js)
 // ============================================================================
@@ -171,6 +247,7 @@ function computationSandbox(transactions, { manualByMonth = {} } = {}) {
     window: {
       FinanceCanonicalBudgetSchema: { CanonicalBudgetSchema },
       FinanceCanonicalBudgetAlerts: { CanonicalBudgetAlerts },
+      FinanceCanonicalPeriod: CanonicalPeriod,
     },
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
     syntheticManualMovements: (categoryId, monthKeys) =>
@@ -309,6 +386,47 @@ test("BUD-3 · budgetLongPeriodMonthlyShare: reparto informativo a 12 o 3 meses"
   assert.equal(context.budgetLongPeriodMonthlyShare(300, "quarterly"), 100);
 });
 
+// --- PER-4: semestre en la cadena de cálculo ----------------------------------------------------
+
+test("PER-4 · currentBudgetLongPeriodKey/budgetLongPeriodRange (semester) delegan en canonical-period.js", () => {
+  const context = computationSandbox([]);
+  assert.equal(context.currentBudgetLongPeriodKey("semester", new Date(2026, 8, 15)), "2026-S2");
+  assert.deepEqual(context.budgetLongPeriodRange("semester", "2026-S1"), { start: "2026-01-01", end: "2026-06-30" });
+  assert.equal(context.budgetLongPeriodRange("semester", "2026-Q1"), null, "una clave de otra cadencia no es un rango válido");
+});
+
+test("PER-4 · budgetExpenseTransactionsForLongPeriod (semester): solo cuenta gasto bancario dentro del semestre", () => {
+  const context = computationSandbox([
+    { date: "2025-12-31", amount: -999, category: "seguros" }, // fuera (S2 2025)
+    { date: "2026-01-01", amount: -30, category: "seguros" }, // S1 2026, dentro
+    { date: "2026-06-30", amount: -50, category: "seguros" }, // S1 2026, dentro
+    { date: "2026-07-01", amount: -999, category: "seguros" }, // S2 2026, fuera
+  ]);
+  const rows = context.budgetExpenseTransactionsForLongPeriod("seguros", "semester", "2026-S1");
+  assert.deepEqual(Array.from(rows, (r) => r.date).sort(), ["2026-01-01", "2026-06-30"]);
+});
+
+test("PER-4 · budgetLongPeriodDateContext (semester): un semestre ya cerrado se trata como completo", () => {
+  const context = computationSandbox([]);
+  const ctx = context.budgetLongPeriodDateContext("semester", "2020-S1"); // ene-jun 2020 (bisiesto): 31+29+31+30+31+30=182
+  assert.equal(ctx.unitsInPeriod, 182);
+  assert.equal(ctx.unitIndex, 182);
+  assert.equal(ctx.periodStart, "2020-01-01");
+  assert.equal(ctx.periodEnd, "2020-06-30");
+});
+
+test("PER-4 · caso central: un pago único de todo el semestre se mide contra el semestre completo", () => {
+  const context = computationSandbox([{ date: "2020-03-15", amount: -600, category: "seguros" }]);
+  const alert = context.budgetLongPeriodAlertForRow({ categoryId: "seguros", amountCap: 600 }, "semester", "2020-S1");
+  assert.equal(alert.metrics.spent, 600);
+  assert.equal(alert.status, "on-track");
+});
+
+test("PER-4 · budgetLongPeriodMonthlyShare: reparto informativo a 6 meses", () => {
+  const context = computationSandbox([]);
+  assert.equal(context.budgetLongPeriodMonthlyShare(600, "semester"), 100);
+});
+
 // ============================================================================
 // Parte C: wiring de la vista — tercera cadencia
 // ============================================================================
@@ -316,9 +434,10 @@ test("BUD-3 · budgetLongPeriodMonthlyShare: reparto informativo a 12 o 3 meses"
 function viewSandbox({ budgetsData = [], alert = null, projection = null, categories = [] } = {}) {
   const saved = [];
   const rendered = [];
+  const preferences = {};
   const context = {
     budgets: budgetsData,
-    window: { FinanceCanonicalBudgetSchema: { CanonicalBudgetSchema } },
+    window: { FinanceCanonicalBudgetSchema: { CanonicalBudgetSchema }, FinanceCanonicalPeriod: CanonicalPeriod },
     saveBudgets: () => saved.push([...context.budgets]),
     renderPresupuestoMes: () => rendered.push(true),
     budgetLongPeriodAlertForRow: () => alert || { status: "on-track", metrics: { spent: 0, dayOfMonth: 1, daysInMonth: 365 } },
@@ -327,16 +446,30 @@ function viewSandbox({ budgetsData = [], alert = null, projection = null, catego
     budgetRowDisplayLabel: (id) => id,
     money: (v) => `€${v}`,
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
+    // Mismo patrón que el resto de mocks de esta sandbox: la persistencia en sí (PER-4,
+    // PERIOD_SELECTOR_PREFERENCE_KEY) tiene sus propias pruebas dedicadas más abajo — aquí solo
+    // hace falta que exista, con un fallback "annual" que es el mismo por defecto de antes de PER-4.
+    periodSelectorPreferredUnit: (screenId, fallback) => preferences[screenId] ?? fallback,
+    savePeriodSelectorPreference: (screenId, unit) => { preferences[screenId] = unit; },
   };
   vm.createContext(context);
   vm.runInContext(
     [
-      'var presupuestoMesLongPeriodType = "annual";',
+      extractConst("PRESUPUESTO_LARGO_TYPES"),
+      extractConst("PRESUPUESTO_LARGO_UNIT"),
+      extractConst("PRESUPUESTO_LARGO_TYPE_FOR_UNIT"),
+      extractConst("PRESUPUESTO_LARGO_SCHEMA_FIELD"),
+      extractConst("PRESUPUESTO_LARGO_ADJECTIVE"),
+      extractConst("PRESUPUESTO_LARGO_ADJECTIVE_PLURAL"),
+      extractConst("PRESUPUESTO_LARGO_TOGGLE_LABEL"),
+      "var presupuestoMesLongPeriodType = \"annual\";",
       "var presupuestoMesActiveLongPeriodKey = null;",
+      extractFunction("currentPresupuestoMesLongPeriodType"),
       extractFunction("currentBudgetYearKey"),
       extractFunction("currentBudgetQuarterKey"),
       extractFunction("currentBudgetLongPeriodKey"),
       extractFunction("currentPresupuestoMesLongPeriodKey"),
+      extractFunction("presupuestoLargoBudgetsFor"),
       extractFunction("handlePresupuestoMesLongPeriodTypeChange"),
       extractFunction("shiftPresupuestoMesLongPeriod"),
       extractFunction("budgetLongPeriodLabel"),
@@ -510,6 +643,64 @@ test("BUD-3 · presupuestoLargoHtml pinta una fila por presupuesto del periodo a
   assert.match(html, /<option value="impuestos">/, "la fila de alta sigue ofreciendo la categoría todavía libre");
 });
 
+// --- PER-4: semestre en la vista ------------------------------------------------------------
+
+test("PER-4 · el toggle ofrece las tres cadencias, semestre incluido", () => {
+  const { context } = viewSandbox({});
+  const html = context.presupuestoLargoHtml();
+  assert.match(html, /data-presupuesto-largo-type-toggle="annual"/);
+  assert.match(html, /data-presupuesto-largo-type-toggle="quarterly"/);
+  assert.match(html, /data-presupuesto-largo-type-toggle="semester"/);
+  assert.match(html, />Semestre</);
+});
+
+test("PER-4 · handlePresupuestoMesLongPeriodTypeChange acepta \"semester\" y persiste la preferencia por pantalla", () => {
+  const { context, rendered } = viewSandbox({});
+  context.handlePresupuestoMesLongPeriodTypeChange("semester");
+  assert.equal(context.presupuestoMesLongPeriodType, "semester");
+  assert.equal(context.presupuestoMesActiveLongPeriodKey, CanonicalPeriod.periodKey("semester"));
+  assert.ok(rendered.length >= 1);
+});
+
+test("PER-4 · shiftPresupuestoMesLongPeriod (semester): S2 avanza a S1 del año siguiente y viceversa", () => {
+  const { context } = viewSandbox({});
+  context.presupuestoMesLongPeriodType = "semester";
+  context.presupuestoMesActiveLongPeriodKey = "2026-S2";
+  context.shiftPresupuestoMesLongPeriod(1);
+  assert.equal(context.presupuestoMesActiveLongPeriodKey, "2027-S1");
+  context.shiftPresupuestoMesLongPeriod(-1);
+  assert.equal(context.presupuestoMesActiveLongPeriodKey, "2026-S2");
+});
+
+test("PER-4 · budgetLongPeriodLabel (semester) usa canonical-period.js para el rango", () => {
+  const { context } = viewSandbox({});
+  const label = context.budgetLongPeriodLabel("semester", "2026-S1");
+  assert.match(label, /2026-S1/);
+  assert.match(label, /1 ene/);
+  assert.match(label, /30 jun/);
+});
+
+test("PER-4 · handleAddLongPeriodBudget crea un presupuesto semestral con semesterKey", () => {
+  const { context, saved } = viewSandbox({});
+  const row = { querySelector: (sel) => (sel.includes("new-category") ? { value: "seguros" } : { value: "600" }) };
+  context.handleAddLongPeriodBudget({
+    dataset: { presupuestoLargoAddType: "semester", presupuestoLargoAddKey: "2026-S1" },
+    closest: () => row,
+  });
+  assert.equal(context.budgets.length, 1);
+  assert.equal(context.budgets[0].semesterKey, "2026-S1");
+  assert.equal(context.budgets[0].period, "semester");
+  assert.equal(saved.length, 1);
+});
+
+test("PER-4 · presupuestoLargoHtml: sin presupuestos semestrales, dice explícitamente que no hay para ese semestre", () => {
+  const { context } = viewSandbox({});
+  context.presupuestoMesLongPeriodType = "semester";
+  context.presupuestoMesActiveLongPeriodKey = "2026-S1";
+  const html = context.presupuestoLargoHtml();
+  assert.match(html, /Todavía no hay presupuestos semestrales/);
+});
+
 // ============================================================================
 // Parte D: wiring estático
 // ============================================================================
@@ -535,9 +726,9 @@ test("BUD-3 · el listener de change conecta la edición inline anual/trimestral
 });
 
 test("BUD-3 · versión del chunk de Presupuesto del mes y de app.js actualizadas", () => {
-  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260828d1/);
+  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260922per4a1/);
   const html = read("index.html");
-  assert.match(html, /<script defer src="app.js\?v=20260922arq0a1"><\/script>/);
+  assert.match(html, /<script defer src="app.js\?v=20260922per4a1"><\/script>/);
 });
 
 test("BUD-3 · budgetsExportRows exporta presupuestos anuales/trimestrales con su propia clave de periodo", () => {
@@ -563,4 +754,39 @@ test("BUD-3 · budgetsExportRows exporta presupuestos anuales/trimestrales con s
   const [row] = context.budgetsExportRows();
   assert.equal(row.mes, "2026");
   assert.equal(row.gastado, 1200);
+});
+
+test("PER-4 · budgetsExportRows exporta un presupuesto semestral con semesterKey como clave", () => {
+  const context = {
+    budgets: [
+      { categoryId: "seguros", period: "semester", semesterKey: "2026-S1", monthYear: null, weekKey: null, year: null, quarterKey: null, amountCap: 600, source: "manual", currency: "EUR" },
+    ],
+    budgetLongPeriodAlertForRow: (budget, periodType, periodKey) => {
+      assert.equal(periodType, "semester");
+      assert.equal(periodKey, "2026-S1");
+      return { metrics: { spent: 600, deviationPercent: 0 }, status: "on-track" };
+    },
+    budgetAlertForRow: () => { throw new Error("no debería usarse para un presupuesto semestral"); },
+    budgetWeekAlertForRow: () => { throw new Error("no debería usarse para un presupuesto semestral"); },
+    budgetRowDisplayLabel: (id) => id,
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    [extractFunction("budgetExportPeriodKey"), extractFunction("budgetsExportRows")].join("\n"),
+    context,
+    { filename: "app.js#per4-export" },
+  );
+  const [row] = context.budgetsExportRows();
+  assert.equal(row.mes, "2026-S1");
+  assert.equal(row.gastado, 600);
+});
+
+test("PER-4 · el informe semestral (GOB14/P12) está cableado: funciones, botón y listener", () => {
+  assert.match(appSrc, /function gob14SemesterLabel\(/);
+  assert.match(appSrc, /function gob14SemesterReportContext\(/);
+  assert.match(appSrc, /function gob14SemesterReportPrintHtml\(/);
+  assert.match(appSrc, /function downloadGob14SemesterReport\(/);
+  assert.match(appSrc, /qs\("gob14SemesterReportDownload"\)\?\.addEventListener\("click", downloadGob14SemesterReport\)/);
+  const html = read("index.html");
+  assert.match(html, /id="gob14SemesterReportDownload"/);
 });

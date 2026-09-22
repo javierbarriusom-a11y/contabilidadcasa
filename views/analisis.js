@@ -28,9 +28,22 @@ const ANALISIS_PERIOD_PRESETS = [
   { id: "semestre", label: "Último semestre", months: 6 },
   { id: "ano", label: "Último año", months: 12 },
 ];
-let analisisPeriodKey = "mes-actual";
+// PER-4: persistida por pantalla (antes se perdía al recargar) — el valor es el id de preset o la
+// clave de mes de A-4 (analisisPeriodMonths), no una unidad de canonical-period.js: A-4 ya tenía
+// su propia idea de "semestre" antes de esta tarea (ventana móvil de 6 meses hacia atrás, no el
+// semestre natural que calcula canonical-period.js) y PER-4 no la cambia — cambiarla movería el
+// resultado de cascadas ya construidas (P-1) sin que el hogar lo haya pedido. Se lee de forma
+// perezosa, no al cargar el fichero (mismo criterio que currentPresupuestoMesLongPeriodType en
+// presupuesto-mes.js), para no depender de que `baseData` ya esté listo en el momento en que este
+// chunk se evalúa.
+let analisisPeriodKey = null;
 
-function analisisPeriodMonths(periodKey = analisisPeriodKey) {
+function currentAnalisisPeriodKey() {
+  if (!analisisPeriodKey) analisisPeriodKey = periodSelectorPreferredUnit("analisis", "mes-actual");
+  return analisisPeriodKey;
+}
+
+function analisisPeriodMonths(periodKey = currentAnalisisPeriodKey()) {
   const all = cuadroMandosAllMonths();
   if (!all.length) return [];
   if (periodKey === "mes-actual") {
@@ -47,7 +60,7 @@ function analisisPeriodMonths(periodKey = analisisPeriodKey) {
   return match ? [match] : [all[0]];
 }
 
-function analisisPeriodLabel(periodKey = analisisPeriodKey) {
+function analisisPeriodLabel(periodKey = currentAnalisisPeriodKey()) {
   if (periodKey === "mes-actual") return "Mes en curso";
   const preset = ANALISIS_PERIOD_PRESETS.find((item) => item.id === periodKey);
   if (preset) return preset.label;
@@ -632,6 +645,7 @@ function handleAnalisisDownload(kind) {
 
 function handleAnalisisPeriod(periodKey) {
   analisisPeriodKey = periodKey;
+  savePeriodSelectorPreference("analisis", periodKey);
   renderAnalisis();
 }
 
@@ -772,7 +786,7 @@ function renderAnalisis() {
       <optgroup label="Rango">${ANALISIS_PERIOD_PRESETS.map((preset) => `<option value="${preset.id}">${escapeHtml(preset.label)}</option>`).join("")}</optgroup>
       <optgroup label="Un mes">${monthOptions}</optgroup>`;
   }
-  if (periodSelect) periodSelect.value = analisisPeriodKey;
+  if (periodSelect) periodSelect.value = currentAnalisisPeriodKey();
   const periodMonths = analisisPeriodMonths();
   const cascada = analisisCascadaRows(periodMonths);
   const cascadaEl = qs("analisisCascada");

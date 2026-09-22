@@ -6,15 +6,16 @@
  * o categoría/año-trimestre.
  *
  * Estructura en state: state.budgets = [
- *   { id, categoryId, period, monthYear, weekKey, year, quarterKey, amountCap, source, appliedAt }
+ *   { id, categoryId, period, monthYear, weekKey, year, quarterKey, semesterKey, amountCap, source, appliedAt }
  * ]
  * `period` es "monthly" (por defecto, retrocompatible con presupuestos ya guardados sin el campo),
- * "weekly", "annual" o "quarterly". Un presupuesto mensual usa `monthYear` ("YYYY-MM") y el resto de
- * campos de periodo quedan a null; uno semanal usa `weekKey` (semana ISO-8601, "YYYY-Www") y
- * `monthYear` se deriva automáticamente (mes del jueves de esa semana, criterio ISO) para poder
- * agruparlo en vistas mensuales si hace falta; uno anual usa `year` ("YYYY"); uno trimestral usa
- * `quarterKey` ("YYYY-Qn", trimestre natural: Q1 ene-mar, Q2 abr-jun, Q3 jul-sep, Q4 oct-dic) — estos
- * dos últimos no derivan `monthYear` (a diferencia de una semana, no hay un único mes "al que
+ * "weekly", "annual", "quarterly" o "semester". Un presupuesto mensual usa `monthYear` ("YYYY-MM") y
+ * el resto de campos de periodo quedan a null; uno semanal usa `weekKey` (semana ISO-8601,
+ * "YYYY-Www") y `monthYear` se deriva automáticamente (mes del jueves de esa semana, criterio ISO)
+ * para poder agruparlo en vistas mensuales si hace falta; uno anual usa `year` ("YYYY"); uno
+ * trimestral usa `quarterKey` ("YYYY-Qn", trimestre natural: Q1 ene-mar, Q2 abr-jun, Q3 jul-sep, Q4
+ * oct-dic); uno semestral (PER-4) usa `semesterKey` ("YYYY-Sn", S1 ene-jun, S2 jul-dic) — estos tres
+ * últimos no derivan `monthYear` (a diferencia de una semana, no hay un único mes "al que
  * pertenezcan" con sentido).
  */
 
@@ -50,11 +51,12 @@ class CanonicalBudgetSchema {
     return {
       id: this._generateId(),
       categoryId: validated.categoryId,
-      period: validated.period, // "monthly" | "weekly" | "annual" | "quarterly"
+      period: validated.period, // "monthly" | "weekly" | "annual" | "quarterly" | "semester"
       monthYear: validated.monthYear, // "2026-08" format, null si no es mensual/semanal
       weekKey: validated.weekKey, // "2026-W35" format, null si no es semanal
       year: validated.year, // "2026" format, null si no es anual
       quarterKey: validated.quarterKey, // "2026-Q1" format, null si no es trimestral
+      semesterKey: validated.semesterKey, // "2026-S1" format, null si no es semestral
       amountCap: validated.amountCap,
       source: validated.source, // "suggested" | "manual" | "carryover" | "goal" | "repeated" | "imported"
       currency: validated.currency || 'EUR',
@@ -68,11 +70,12 @@ class CanonicalBudgetSchema {
   static validate(budget) {
     if (!budget || typeof budget !== 'object') return null;
 
-    const { categoryId, monthYear, weekKey, year, quarterKey, amountCap, source, currency, appliedAt } = budget;
+    const { categoryId, monthYear, weekKey, year, quarterKey, semesterKey, amountCap, source, currency, appliedAt } = budget;
     const period =
       budget.period === 'weekly' ? 'weekly'
       : budget.period === 'annual' ? 'annual'
       : budget.period === 'quarterly' ? 'quarterly'
+      : budget.period === 'semester' ? 'semester'
       : 'monthly';
 
     // Validar categoryId
@@ -82,6 +85,7 @@ class CanonicalBudgetSchema {
     let resolvedWeekKey = null;
     let resolvedYear = null;
     let resolvedQuarterKey = null;
+    let resolvedSemesterKey = null;
 
     if (period === 'weekly') {
       // Validar weekKey (semana ISO-8601, formato YYYY-Www)
@@ -98,6 +102,10 @@ class CanonicalBudgetSchema {
       // Validar quarterKey (trimestre natural, formato YYYY-Qn)
       if (!quarterKey || !/^\d{4}-Q[1-4]$/.test(quarterKey)) return null;
       resolvedQuarterKey = quarterKey;
+    } else if (period === 'semester') {
+      // Validar semesterKey (semestre natural, formato YYYY-Sn)
+      if (!semesterKey || !/^\d{4}-S[1-2]$/.test(semesterKey)) return null;
+      resolvedSemesterKey = semesterKey;
     } else {
       // Validar monthYear (formato YYYY-MM)
       if (!monthYear || !/^\d{4}-\d{2}$/.test(monthYear)) return null;
@@ -124,6 +132,7 @@ class CanonicalBudgetSchema {
       weekKey: resolvedWeekKey,
       year: resolvedYear,
       quarterKey: resolvedQuarterKey,
+      semesterKey: resolvedSemesterKey,
       amountCap: Math.round(amountCap * 100) / 100,
       source: source || 'manual',
       currency: currency || 'EUR',
@@ -178,6 +187,8 @@ class CanonicalBudgetSchema {
         ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.year === validated.year && b.period === 'annual')
         : validated.period === 'quarterly'
         ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.quarterKey === validated.quarterKey && b.period === 'quarterly')
+        : validated.period === 'semester'
+        ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.semesterKey === validated.semesterKey && b.period === 'semester')
         : budgets.findIndex(b => b.categoryId === validated.categoryId && b.monthYear === validated.monthYear && (b.period || 'monthly') === 'monthly');
 
     if (index >= 0) {
@@ -200,6 +211,9 @@ class CanonicalBudgetSchema {
     }
     if (period === 'quarterly') {
       return budgets.filter(b => !(b.categoryId === categoryId && b.quarterKey === periodKey && b.period === 'quarterly'));
+    }
+    if (period === 'semester') {
+      return budgets.filter(b => !(b.categoryId === categoryId && b.semesterKey === periodKey && b.period === 'semester'));
     }
     return budgets.filter(
       b => !(b.categoryId === categoryId && b.monthYear === periodKey && (b.period || 'monthly') === 'monthly')
@@ -276,6 +290,40 @@ class CanonicalBudgetSchema {
       result[b.categoryId] = b.amountCap;
     });
     return result;
+  }
+
+  /**
+   * Busca presupuesto de una categoría en un semestre natural específico ("YYYY-Sn") — PER-4.
+   */
+  static findForCategorySemester(budgets = [], categoryId, semesterKey) {
+    return budgets.find(b => b.categoryId === categoryId && b.semesterKey === semesterKey && b.period === 'semester');
+  }
+
+  /**
+   * Busca todos los presupuestos semestrales de un semestre natural.
+   */
+  static findForSemester(budgets = [], semesterKey) {
+    return budgets.filter(b => b.semesterKey === semesterKey && b.period === 'semester');
+  }
+
+  /**
+   * Retorna presupuestos semestrales de un semestre natural agrupados por categoría.
+   */
+  static byCategorySemester(budgets = [], semesterKey) {
+    const result = {};
+    this.findForSemester(budgets, semesterKey).forEach(b => {
+      result[b.categoryId] = b.amountCap;
+    });
+    return result;
+  }
+
+  /**
+   * Rango de fechas de un semestre natural (S1 ene-jun, S2 jul-dic), como fechas "YYYY-MM-DD".
+   * Devuelve null si `semesterKey` no tiene formato "YYYY-Sn" — PER-4, mismo criterio que
+   * quarterRange/annualRange: delega en canonical-period.js, sin cálculo propio.
+   */
+  static semesterRange(semesterKey) {
+    return Period.periodUnit(semesterKey) === "semester" ? Period.periodRange(semesterKey) : null;
   }
 
   /**

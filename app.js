@@ -225,7 +225,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828d1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260922per4a1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-ruta" },
@@ -238,7 +238,7 @@ const VIEW_CHUNKS = {
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260919p8a1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
   "escenario-guardados": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-guardados" },
@@ -1280,6 +1280,38 @@ function storageSet(key, value) {
   } catch {
     memoryStorage[key] = value;
   }
+}
+
+// PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): una sola preferencia de cadencia por pantalla, en
+// vez de que cada pantalla (Presupuesto, Análisis, Previsión...) reinvente su propio
+// almacenamiento — mismo patrón que E17_PREFERENCES_KEY (una clave, un objeto, una pantalla por
+// propiedad). Cada pantalla sigue pintando su propio selector con su propio estilo (no hay un
+// componente de UI compartido: el resto de toggles de la app, como el horizonte de Previsión o la
+// ventana de Análisis, tampoco lo tienen) — lo único compartido es dónde vive la preferencia.
+// Guarda el valor tal cual lo use cada pantalla (una unidad de canonical-period.js en Presupuesto/
+// Previsión, o el id de preset/mes de Análisis, que no son lo mismo) — cada pantalla valida sus
+// propios valores antes de leer/guardar, este almacén no impone un vocabulario único.
+const PERIOD_SELECTOR_PREFERENCE_KEY = "period-selector-preference";
+
+function loadPeriodSelectorPreferences() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(PERIOD_SELECTOR_PREFERENCE_KEY), "{}"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function periodSelectorPreferredUnit(screenId, fallback) {
+  const value = loadPeriodSelectorPreferences()[screenId];
+  return typeof value === "string" && value ? value : fallback;
+}
+
+function savePeriodSelectorPreference(screenId, unit) {
+  if (typeof unit !== "string" || !unit) return;
+  const preferences = loadPeriodSelectorPreferences();
+  preferences[screenId] = unit;
+  storageSet(storageKey(PERIOD_SELECTOR_PREFERENCE_KEY), JSON.stringify(preferences));
 }
 
 function cloneFinanceData(data) {
@@ -3562,11 +3594,21 @@ function currentBudgetQuarterKey(date = new Date()) {
   return window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.currentQuarterKey(date) || null;
 }
 
+// PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): "semester" se añade como tercer periodType sin
+// tocar los otros dos — currentBudgetYearKey/currentBudgetQuarterKey siguen siendo la vía para
+// "annual"/"quarterly" (ya delegan en canonical-period.js desde PER-2); el semestre llama
+// directamente a FinanceCanonicalPeriod, que es lo único que sabe calcular esa cadencia.
 function currentBudgetLongPeriodKey(periodType, date = new Date()) {
-  return periodType === "annual" ? currentBudgetYearKey(date) : currentBudgetQuarterKey(date);
+  if (periodType === "annual") return currentBudgetYearKey(date);
+  if (periodType === "semester") return window.FinanceCanonicalPeriod?.periodKey("semester", date) || null;
+  return currentBudgetQuarterKey(date);
 }
 
 function budgetLongPeriodRange(periodType, periodKey) {
+  if (periodType === "semester") {
+    const Period = window.FinanceCanonicalPeriod;
+    return Period && Period.periodUnit(periodKey) === "semester" ? Period.periodRange(periodKey) : null;
+  }
   const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
   if (!schema) return null;
   return periodType === "annual" ? schema.annualRange(periodKey) : schema.quarterRange(periodKey);
@@ -3653,7 +3695,8 @@ function budgetLongPeriodAlertForRow(budget, periodType, periodKey) {
 // mensuales nuevos, solo ayuda a leer si el gasto real de un mes concreto es razonable frente al
 // total anual/trimestral repartido a partes iguales.
 function budgetLongPeriodMonthlyShare(amountCap, periodType) {
-  return round2(amountCap / (periodType === "annual" ? 12 : 3));
+  const divisor = periodType === "annual" ? 12 : periodType === "semester" ? 6 : 3;
+  return round2(amountCap / divisor);
 }
 
 // BUD-2 (FASE 7): presupuestos ligados a objetivos (E15/P2). Un objetivo se presupuesta como un
@@ -20172,6 +20215,45 @@ function downloadP12MonthlyReport() {
   document.body.classList.remove("is-printing-cierre-evidence");
 }
 
+// PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): tercera cadencia del mismo informe, igual que P12
+// extendió GOB14 a mensual sin tocarlo — mismo modelo ejecutivo con procedencia, mismo cuerpo
+// (gob14ReportBodyHtml), solo cambia el periodo que lo etiqueta. A diferencia de gob14QuarterLabel
+// (regex a mano sobre "YYYY-Qn"), usa canonical-period.js directamente: no había ningún código
+// previo calculando semestres del que este informe tuviera que ser coherente con.
+function gob14SemesterLabel(semesterKey) {
+  const Period = window.FinanceCanonicalPeriod;
+  if (!Period || Period.periodUnit(semesterKey) !== "semester") return String(semesterKey || "");
+  const range = Period.periodRange(semesterKey);
+  const monthName = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+  return `${Period.periodLabel(semesterKey)} (${monthName(range.start)}-${monthName(range.end)})`;
+}
+
+function gob14SemesterReportContext() {
+  const model = unifiedActionCenterModel().readModel;
+  return {
+    semesterLabel: gob14SemesterLabel(window.FinanceCanonicalPeriod?.periodKey("semester")),
+    generatedAt: formatIsoDate(defaultBalanceDate()),
+    metrics: Object.values(model?.metrics || {}),
+    decisions: model?.decisions || [],
+    quality: model?.quality || { complete: true, missingMetadata: [], lowConfidence: [] },
+  };
+}
+
+function gob14SemesterReportPrintHtml(context) {
+  return `<h1>Informe semestral — ${escapeHtml(context.semesterLabel)}</h1>
+    <p>Generado el ${escapeHtml(context.generatedAt)}. Resumen para compartir en casa, no un documento de trabajo.</p>
+    ${gob14ReportBodyHtml(context)}`;
+}
+
+function downloadGob14SemesterReport() {
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = gob14SemesterReportPrintHtml(gob14SemesterReportContext());
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
 // A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
 // declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
 // FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
@@ -23765,10 +23847,110 @@ function renderPrevisionReliabilityBadge() {
   box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} mes(es) conciliado(s) con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
 }
 
+// PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): resumen agregado por periodo natural (trimestre/
+// semestre/año) — Previsión no tenía ningún concepto de periodo calendario hasta ahora, solo el
+// horizonte (cuántos meses hacia delante) y el mes elegido para el panel día a día. Reutiliza
+// openForecastMonths()/previsionRowsForMonths() tal cual, independiente del horizonte elegido: un
+// periodo puede caer fuera de los 12/24/48 meses que muestra la tabla y sigue siendo agregable.
+const PREVISION_PERIOD_UNITS = ["quarter", "semester", "year"];
+let previsionPeriodUnit = null;
+let previsionPeriodKey = null;
+
+function currentPrevisionPeriodUnit() {
+  if (!previsionPeriodUnit) {
+    const preferred = periodSelectorPreferredUnit("prevision", "quarter");
+    previsionPeriodUnit = PREVISION_PERIOD_UNITS.includes(preferred) ? preferred : "quarter";
+  }
+  return previsionPeriodUnit;
+}
+
+function currentPrevisionPeriodKey() {
+  if (!previsionPeriodKey) previsionPeriodKey = window.FinanceCanonicalPeriod?.periodKey(currentPrevisionPeriodUnit()) || null;
+  return previsionPeriodKey;
+}
+
+function handlePrevisionPeriodUnitChange(unit) {
+  if (!PREVISION_PERIOD_UNITS.includes(unit)) return;
+  previsionPeriodUnit = unit;
+  previsionPeriodKey = window.FinanceCanonicalPeriod?.periodKey(unit) || null;
+  savePeriodSelectorPreference("prevision", unit);
+  renderPrevisionPeriodSummary();
+}
+
+function shiftPrevisionPeriod(delta) {
+  const next = window.FinanceCanonicalPeriod?.adjacentPeriod(currentPrevisionPeriodKey(), delta);
+  if (!next) return;
+  previsionPeriodKey = next;
+  renderPrevisionPeriodSummary();
+}
+
+// Meses abiertos cuya clave cae dentro del rango del periodo — independiente del horizonte
+// (previsionHorizonKey), a propósito: elegir "Año" no debería depender de tener el horizonte en
+// "Hasta 2036" para ver el año completo agregado.
+function previsionPeriodSummaryRows(periodKeyValue) {
+  const range = window.FinanceCanonicalPeriod?.periodRange(periodKeyValue);
+  if (!range) return [];
+  const months = openForecastMonths().filter((month) => month.key >= range.start.slice(0, 7) && month.key <= range.end.slice(0, 7));
+  return previsionRowsForMonths(months);
+}
+
+function previsionPeriodSummary(periodKeyValue) {
+  const items = previsionPeriodSummaryRows(periodKeyValue);
+  const range = window.FinanceCanonicalPeriod?.periodRange(periodKeyValue);
+  if (!items.length || !range) return null;
+  const totals = items.reduce((acc, item) => {
+    acc.income += Number(item.row.income || 0);
+    acc.gastos += Number(item.row.coreSpend || 0) + Number(item.row.car || 0) + Number(item.row.projectOutflow || 0);
+    acc.deuda += Number(item.row.refi || 0);
+    acc.ahorro += Number(item.row.saving || 0);
+    return acc;
+  }, { income: 0, gastos: 0, deuda: 0, ahorro: 0 });
+  const worst = previsionWorstOf(previsionMetricsFor(items));
+  return {
+    ...totals,
+    min: worst.metric.min,
+    minMonthLabel: worst.item.row.month,
+    monthsAvailable: items.length,
+    monthsInPeriod: monthKeysInRange(range.start, range.end).length,
+  };
+}
+
+function renderPrevisionPeriodSummary() {
+  const labelEl = qs("previsionPeriodSummaryLabel");
+  const bodyEl = qs("previsionPeriodSummaryBody");
+  if (!labelEl || !bodyEl) return;
+  const unit = currentPrevisionPeriodUnit();
+  document.querySelectorAll("[data-prevision-period-unit]").forEach((button) => {
+    const active = button.dataset.previsionPeriodUnit === unit;
+    button.classList.toggle("e19-btn-primary", active);
+    button.classList.toggle("e19-btn-secondary", !active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  const periodKeyValue = currentPrevisionPeriodKey();
+  const label = window.FinanceCanonicalPeriod?.periodLabel(periodKeyValue) || periodKeyValue || "";
+  const summary = previsionPeriodSummary(periodKeyValue);
+  if (!summary) {
+    labelEl.textContent = `${label} · sin meses abiertos en este periodo.`;
+    bodyEl.innerHTML = "";
+    return;
+  }
+  labelEl.textContent = summary.monthsAvailable < summary.monthsInPeriod
+    ? `${label} · solo ${summary.monthsAvailable} de ${summary.monthsInPeriod} meses tienen previsión abierta todavía.`
+    : label;
+  bodyEl.innerHTML = `<dl class="prevision-period-summary-list">
+    <div><dt>Ingresos</dt><dd class="positive">${money(summary.income, true)}</dd></div>
+    <div><dt>Gastos</dt><dd class="negative">${money(summary.gastos, true)}</dd></div>
+    <div><dt>Deuda</dt><dd class="negative">${money(summary.deuda, true)}</dd></div>
+    <div><dt>Ahorro</dt><dd>${money(summary.ahorro, true)}</dd></div>
+    <div><dt>Mínimo del periodo</dt><dd class="${summary.min < 0 ? "negative" : ""}">${money(summary.min, true)} <small class="note">(${escapeHtml(summary.minMonthLabel)})</small></dd></div>
+  </dl>`;
+}
+
 function renderPrevision() {
   if (!qs("previsionMonthlyTable") || !lastSimulation.length) return;
   const items = previsionHorizonRows(previsionHorizonKey);
   renderPrevisionReliabilityBadge();
+  renderPrevisionPeriodSummary();
   if (!items.length) {
     if (qs("previsionHeadline")) qs("previsionHeadline").textContent = "Sin meses abiertos en este horizonte";
     if (qs("previsionSubheadline")) qs("previsionSubheadline").textContent = "";
@@ -37381,7 +37563,11 @@ async function init() {
       return;
     }
     const monthTarget = event.target.closest("[data-prevision-month-key]");
-    if (monthTarget) previsionSelectMonth(monthTarget.getAttribute("data-prevision-month-key"));
+    if (monthTarget) { previsionSelectMonth(monthTarget.getAttribute("data-prevision-month-key")); return; }
+    const periodUnitButton = event.target.closest("[data-prevision-period-unit]");
+    if (periodUnitButton) { handlePrevisionPeriodUnitChange(periodUnitButton.dataset.previsionPeriodUnit); return; }
+    if (event.target.closest("[data-prevision-period-prev]")) { shiftPrevisionPeriod(-1); return; }
+    if (event.target.closest("[data-prevision-period-next]")) shiftPrevisionPeriod(1);
   });
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
@@ -38238,6 +38424,7 @@ async function init() {
   qs("a19CertifiedReportDownload")?.addEventListener("click", downloadA19CertifiedReport);
   qs("gob14QuarterlyReportDownload")?.addEventListener("click", downloadGob14QuarterlyReport);
   qs("p12MonthlyReportDownload")?.addEventListener("click", downloadP12MonthlyReport);
+  qs("gob14SemesterReportDownload")?.addEventListener("click", downloadGob14SemesterReport);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
     const revokeButton = event.target.closest("[data-a19-share-revoke]");
     if (!revokeButton) return;
