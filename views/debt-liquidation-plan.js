@@ -601,7 +601,7 @@ function renderDebtLiquidationPlan() {
     </div>
     <div class="debt-source-list">
       <div><span>CIRBE dic 2025</span><strong>${money(assumptions.cirbe.december2025.total, true)}</strong><small>Riesgo dispuesto total.</small></div>
-      <div><span>CIRBE mayo 2026</span><strong>${money(assumptions.cirbe.may2026.total, true)}</strong><small>Vencidos ${money(assumptions.cirbe.may2026.overdue, true)} + demora/gastos ${money(assumptions.cirbe.may2026.interest, true)}.</small></div>
+      <div><span>CIRBE mayo 2026</span><strong>${money(assumptions.cirbe.may2026.total, true)}</strong><small>Vencidos ${money(assumptions.cirbe.may2026.overdue, true)} + demora/gastos ${money(assumptions.cirbe.may2026.interest, true)}. Reducción desde dic 2025: ${money(cirbeReduction, true)}.</small></div>
       ${operativeAsnef
         .map((item) => `<div><span>${escapeHtml(item.entity)}</span><strong>${money(item.amount, true)}</strong><small>${item.rows} apunte(s) visibles en ASNEF.</small></div>`)
         .join("")}

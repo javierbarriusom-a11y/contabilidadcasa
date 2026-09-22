@@ -2756,18 +2756,18 @@
               <div class="e19-kpi-note" id="pensionSimNote"></div>
             </article>
 
-            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
-                 año. Con las dos escalas de tramos ya registradas en Ajustes → Fiscal (A15-2) usa el
-                 coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
-                 (A15-4/A15-1). No modela reducciones (40% de aportaciones anteriores a 2007, mínimo
-                 exento) ni la modalidad en forma de renta — la app no registra cuándo se hizo cada
-                 aportación.
-                 T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito — recomendar
-                 capital único vs. renta exigiría modelar la renta, hueco declarado (I5), no
-                 indecisión. -->
+            <!-- FCX1: rescate de pensiones, comparando capital único vs. modalidad en forma de
+                 renta. Con las dos escalas de tramos ya registradas en Ajustes → Fiscal (A15-2) usa
+                 el coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
+                 (A15-4/A15-1). I5 (BACKLOG_CONTABILIDADCASA_2_0.md §2): añade la reducción del 40%
+                 sobre el importe que el hogar declare con aportaciones anteriores a 2007 (solo
+                 aplica al capital, nunca a la renta) y la modalidad en forma de renta repartida en
+                 los años que declare el hogar — sigue sin comprobar el plazo legal para la
+                 reducción ni proyectar cómo cambiará la renta futura, ambos supuestos explícitos en
+                 el propio resultado (pensionWithdrawalComparison). -->
             <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
-              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
+              <h3 class="escenario-motor-panel-title">Rescate de pensiones: capital único vs. renta</h3>
+              <p class="e19-kpi-note">Compara el coste marginal de rescatar el plan como capital único (con la reducción del 40% si declaras aportaciones anteriores a 2007) frente a cobrarlo como renta repartida en varios años.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Importe a rescatar (€)</span>
@@ -2776,6 +2776,14 @@
                 <label class="month-picker">
                   <span>Renta general del año antes del rescate (€)</span>
                   <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>De ese importe, aportado antes de 2007 (€, opcional)</span>
+                  <input id="fcx1PreTwoThousandSevenAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Años para cobrar en forma de renta</span>
+                  <input id="fcx1AnnuityYears" type="number" min="1" step="1" inputmode="numeric" placeholder="1" value="1" />
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
@@ -7303,7 +7311,7 @@
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-loan-guarantees.js?v=20260831di4a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
-    <script defer src="canonical-irpf-estimator.js?v=20260903fc5a1"></script>
+    <script defer src="canonical-irpf-estimator.js?v=20260922i5a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
@@ -7342,7 +7350,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260922per4a1"></script>
+    <script defer src="app.js?v=20260922i5a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

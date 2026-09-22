@@ -64,7 +64,6 @@ class CanonicalBudgetForecastCategory {
    * Agrupa movimientos por mes (últimos N meses).
    */
   static _aggregateByMonth(movements, months) {
-    const now = new Date();
     const monthMap = new Map();
 
     movements.forEach(m => {

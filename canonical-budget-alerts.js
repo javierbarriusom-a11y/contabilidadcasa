@@ -151,7 +151,6 @@ class CanonicalBudgetAlerts {
     daysInMonth,
     confidence,
   }) {
-    const remaining = budgetAmount - spent;
     const projectedFinalSpent = (spent / dayOfMonth) * daysInMonth;
     const projectedRemaining = budgetAmount - projectedFinalSpent;
 

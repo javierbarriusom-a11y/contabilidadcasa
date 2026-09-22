@@ -43,10 +43,6 @@
     return date ? date.toISOString().slice(0, 10) : "";
   }
 
-  function monthKey(value) {
-    return isoDate(value).slice(0, 7);
-  }
-
   function addDays(value, count) {
     const date = utcDate(value);
     if (!date) return null;

@@ -237,6 +237,101 @@
     };
   }
 
+  // I5 (BACKLOG_CONTABILIDADCASA_2_0.md §2, hueco declarado en FCX1): compara el rescate de
+  // pensiones como capital único frente a la modalidad en forma de renta. Reutiliza
+  // progressiveTax/validateBracketScale tal cual — no es un motor nuevo, es la misma mecánica de
+  // marginalTaxOnAdditionalIncome aplicada dos veces con supuestos distintos.
+  //
+  // Reducción del 40%: solo aplica a las aportaciones anteriores a 2007 (Ley 35/2006, disposición
+  // transitoria duodécima) y solo al capital, nunca a la renta. La app no registra cuándo se hizo
+  // cada aportación, así que el importe con derecho a reducción lo declara el hogar directamente
+  // (preTwoThousandSevenAmount) — nunca se deriva ni se supone; tampoco se comprueba el plazo legal
+  // para aplicarla (depende de cuándo ocurrió la contingencia), así que el aviso profesional cubre
+  // también esa verificación.
+  //
+  // Modalidad en forma de renta: reparte el importe COMPLETO (sin la reducción del 40%, que no le
+  // aplica) en partes iguales a lo largo de los años declarados, sumando cada parte a la MISMA
+  // renta general base cada año. Es un supuesto explícito de partida, no una previsión de cómo
+  // cambiará esa renta en el futuro — se declara en `assumptions`, nunca en silencio.
+  function pensionWithdrawalComparison({
+    amount,
+    preTwoThousandSevenAmount = 0,
+    currentAnnualIncome,
+    annuityYears,
+    stateScale,
+    regionalScale,
+    flatRatePct,
+  } = {}) {
+    const total = Math.max(0, round2(amount));
+    if (!(total > 0)) return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-amount", warning: PROFESSIONAL_WARNING };
+
+    const stateCheck = validateBracketScale(stateScale || {});
+    const regionalCheck = validateBracketScale(regionalScale || {});
+    const hasBrackets = stateCheck.valid && regionalCheck.valid;
+    const flatRate = Number.isFinite(Number(flatRatePct)) && Number(flatRatePct) > 0 ? Number(flatRatePct) : null;
+    if (!hasBrackets && flatRate === null) {
+      return {
+        schemaId: SCHEMA_ID,
+        calculable: false,
+        reason: "missing-brackets",
+        issues: { state: stateCheck.issues, regional: regionalCheck.issues },
+        warning: PROFESSIONAL_WARNING,
+      };
+    }
+
+    const years = Math.max(1, Math.round(number(annuityYears, 1)));
+    const eligibleReduction = Math.min(total, Math.max(0, round2(preTwoThousandSevenAmount)));
+    const reductionApplied = round2(eligibleReduction * 0.4);
+    const reducedCapitalBase = round2(total - reductionApplied);
+    const baseIncome = Math.max(0, number(currentAnnualIncome));
+    const method = hasBrackets ? "progressive-brackets" : "flat-marginal-rate";
+
+    const taxOnAdditional = (addedAmount, base) => {
+      if (hasBrackets) {
+        const combinedTax = (value) => round2(progressiveTax(value, stateScale.brackets) + progressiveTax(value, regionalScale.brackets));
+        return round2(combinedTax(round2(base + addedAmount)) - combinedTax(base));
+      }
+      return round2(addedAmount * (flatRate / 100));
+    };
+
+    const lumpSumTax = taxOnAdditional(reducedCapitalBase, baseIncome);
+    const lumpSum = {
+      taxableAmount: reducedCapitalBase,
+      reductionApplied,
+      marginalTax: lumpSumTax,
+      netAmount: round2(total - lumpSumTax),
+      effectiveRatePct: total > 0 ? round2((lumpSumTax / total) * 100) : 0,
+    };
+
+    const annualPayment = round2(total / years);
+    const annuityTax = round2(taxOnAdditional(annualPayment, baseIncome) * years);
+    const annuity = {
+      years,
+      annualPayment,
+      marginalTax: annuityTax,
+      netAmount: round2(total - annuityTax),
+      effectiveRatePct: total > 0 ? round2((annuityTax / total) * 100) : 0,
+    };
+
+    return {
+      schemaId: SCHEMA_ID,
+      calculable: true,
+      method,
+      amount: total,
+      currentAnnualIncome: baseIncome,
+      lumpSum,
+      annuity,
+      // >0: capital único sale mejor en neto; <0: renta sale mejor; nunca decide, solo compara.
+      netDifference: round2(lumpSum.netAmount - annuity.netAmount),
+      sources: hasBrackets ? [scaleCitation(stateScale), scaleCitation(regionalScale)] : [],
+      assumptions: [
+        "La reducción del 40% solo se aplica al importe que declares con aportaciones anteriores a 2007 y dentro del plazo legal vigente para aplicarla — la app no conoce la fecha real de cada aportación ni comprueba ese plazo, verifícalo con un profesional.",
+        "La modalidad en forma de renta asume que la renta general del resto de años se mantiene igual a la declarada este año — una simplificación de partida, no una previsión de ingresos futuros.",
+      ],
+      warning: PROFESSIONAL_WARNING,
+    };
+  }
+
   return {
     SCHEMA_ID,
     PROFESSIONAL_WARNING,
@@ -247,5 +342,6 @@
     parseBracketScaleInput,
     optimizePartialSale,
     marginalTaxOnAdditionalIncome,
+    pensionWithdrawalComparison,
   };
 });

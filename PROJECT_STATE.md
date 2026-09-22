@@ -86,6 +86,84 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 22 de septiembre de 2026 (223): `I5` — rescate de pensiones (reducción por antigüedad + modalidad renta) y `ARQ-2` — ESLint como gate de CI
+
+- **Qué pedía la sesión**: siguiente oleada de `BACKLOG_CONTABILIDADCASA_3_0.md` tras cerrar el
+  bloque de periodo (`PER-1`→`PER-4`, sesiones 221-222). Propuesto y confirmado con el hogar: `I5`
+  (heredada de 2.0, sin bloqueo, ya acordada en sesión 218) primero, después `ARQ-2` antes que
+  `ARQ-1` — invertido a propósito respecto al orden del documento: `ARQ-2` es S (barato) y `ARQ-1`
+  M (caro), y un gate de lint activo antes de anotar los `canonical-*.js` con JSDoc para `ARQ-1`
+  da una red de seguridad inmediata en vez de auditar a mano y luego instalarla. `ARQ-1` queda
+  para una sesión futura.
+- **`I5` — construido en `canonical-irpf-estimator.js`**: nueva función pura
+  `pensionWithdrawalComparison`, reutilizando `progressiveTax`/`validateBracketScale` tal cual (no
+  es un motor nuevo). Compara el rescate de pensiones como capital único frente a la modalidad en
+  forma de renta:
+  - **Reducción del 40%** (Ley 35/2006, disposición transitoria duodécima): solo sobre el importe
+    que el hogar declare aportado antes de 2007 — la app no registra cuándo se hizo cada aportación,
+    así que ese importe se declara directamente, nunca se deriva; tampoco se comprueba el plazo
+    legal vigente para aplicarla (depende de cuándo ocurrió la contingencia). Solo aplica al
+    capital, nunca a la renta.
+  - **Modalidad en forma de renta**: reparte el importe completo (sin la reducción, que no le
+    aplica) en los años que declare el hogar, sumando cada parte a la misma renta general base
+    cada año — supuesto explícito de partida, no una previsión de ingresos futuros.
+  - Ambos supuestos se declaran siempre en el resultado (`assumptions`), nunca en silencio. Con las
+    dos escalas de tramos registradas usa el coste marginal real por tramos; sin ellas, cae al tipo
+    marginal declarado (A15-1/A15-4).
+  - **Tarjeta FCX1** (`index.html`/`app.js`): dos campos nuevos (`fcx1PreTwoThousandSevenAmount`,
+    `fcx1AnnuityYears`), `handleFcx1SimulateWithdrawal`/`fcx1ResultHtml` reescritos para comparar
+    capital único vs. renta con ambos importes netos, la diferencia y los supuestos. **Sigue
+    informativa a propósito**: cerrar este hueco de cálculo desbloquea que pueda pasar a directiva
+    (`T4`, sesión 204, ya lo señalaba), pero decidir si pasa es una decisión de producto aparte, no
+    consecuencia automática de esta tarea — no se ha tocado. `gob8Fcx1Line` (borrador de la Renta,
+    `GOB8`) no se tocó a propósito: sigue calculando solo el capital único sin reducción, que es lo
+    que corresponde a un borrador de un único ejercicio fiscal.
+  - 8 pruebas nuevas en `tests/fcx1-rescate-pensiones.test.cjs` (motor puro + wiring), más las ya
+    existentes de `marginalTaxOnAdditionalIncome` actualizadas donde tocaba.
+  - Verificado en navegador real (Chromium vía Playwright, script ad hoc): capital único, renta a 3
+    años y reducción del 40% calculan correctamente y se muestran sin errores de consola. Al
+    verificar se encontró y corrigió un bug propio de esta sesión antes de publicar: la línea de
+    "tipo marginal declarado" del mensaje mostraba `undefined%` (leía `result.effectiveRatePct`, un
+    campo que ya no existe en el resultado nuevo, que tiene un tipo efectivo distinto por
+    modalidad) — corregido para no citar una cifra inexistente.
+- **`ARQ-2` — construido**: `eslint.config.js` en la raíz, enganchado a `npm run verify` vía el
+  nuevo script `npm run lint`. Solo tres reglas, ninguna de estilo:
+  - `no-unused-vars` con `vars: "local"` — sin ESM ni bundler, cada función declarada arriba del
+    todo en `app.js`/cada `views/*.js`/cada `canonical-*.js` es un global consumido desde OTRO
+    fichero (el propio patrón del proyecto, `ARQ-4`) que ESLint no puede ver fichero a fichero;
+    comprobar solo variables locales evita cientos de falsos positivos y sigue cazando lo que
+    importa. `ignoreRestSiblings` para el patrón ya extendido en la app `const { preview, ...clean
+    } = x` (descartar campos antes de guardar).
+  - `eqeqeq` (`always`, `null: "ignore"`).
+  - `complexity`: techo 90 para `app.js`/`views/*.js`/`canonical-*.js` (medido contra el máximo
+    real del código, 82, no un ideal de diseño), 40 para `tools/`/`backend/`/`tests/`. Única
+    excepción: `init()` en `app.js` (complejidad 313 — arranque completo de la app en una sola
+    función, deuda ya documentada de `ARQ-4`/`T14`), con `eslint-disable-next-line` explícito.
+  - Limpiadas ~30 variables/funciones locales genuinamente muertas que el propio linter encontró al
+    construir el gate (tres `catch (error)` vacíos pasados a `catch {}`, variables de una sola
+    asignación nunca leídas, un helper interno sin llamar). Ninguna función global se tocó — el
+    ámbito local confirmó que no eran falsos positivos.
+  - Una no era muerta de verdad: `cirbeReduction` en `views/debt-liquidation-plan.js` se calculaba
+    pero nunca se mostraba, aunque el panel «Fuentes y presión» ya mostraba los dos totales CIRBE
+    (dic 2025/mayo 2026) por separado sin su diferencia — un hueco real desde que se introdujo
+    (Oleada 3 Bloque 4), confirmado con `git log`/`git blame`. Pedido explícitamente por el hogar en
+    la propia sesión: se añadió la reducción junto a esos dos totales en ese mismo panel (sin
+    tarjeta de KPI nueva — la cuadrícula de arriba está acotada a 4 tarjetas de decisión
+    estratégica, no es un volcado de datos), con 2 pruebas nuevas en
+    `tests/debt-liquidation-plan-cirbe-reduction.test.cjs` y verificación en navegador real.
+- **Versiones bumpeadas**: `app.js?v=20260922i5a1` (26 ficheros de test con la versión de `app.js`
+  pinneada literalmente en un regex tuvieron que actualizarse a la vez — un patrón frágil, ya
+  presente antes de esta sesión, que convendría revisar en una sesión de arquitectura futura),
+  `canonical-irpf-estimator.js?v=20260922i5a1`, `views/debt-liquidation-plan.js?v=20260922i5a1`.
+- **Validación**: `npm run verify` completo, exit 0 — **4.649/4.649 pruebas** (4.635 + 8 de
+  `pensionWithdrawalComparison`/wiring + 4 de `arq2-eslint-gate` + 2 de la reducción CIRBE),
+  `npm run lint` en verde (0 errores), accesibilidad (1.397 IDs), rendimiento, build, privacidad y
+  smoke test en verde. Además, `npm install` fue necesario al empezar la sesión — el contenedor no
+  tenía `node_modules/` instalado, lo que hacía fallar 6 pruebas de `build:site` por falta de
+  `esbuild`; no relacionado con el trabajo de esta sesión, resuelto antes de validar.
+- **Publicado**: commit y push a `claude/sharp-gates-1nmx2c`, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, según la autorización permanente de `CLAUDE.md`.
+
 ## Cierre de sesión — 22 de septiembre de 2026 (222): `PER-4` — semestre en Presupuesto, resumen por periodo en Previsión, persistencia en Análisis, informe semestral; salud financiera queda fuera a propósito
 
 - **Qué pedía la sesión**: cerrar el bloque de periodo del todo — "hacemos PER-1→PER-2→PER-3→PER-4 y

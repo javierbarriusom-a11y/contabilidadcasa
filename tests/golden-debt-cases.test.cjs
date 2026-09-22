@@ -94,7 +94,6 @@ test("C006 · alargar el plazo baja la cuota pero sube el coste total (caso cont
 });
 
 test("C008 · canonical-debt-comparator recomienda la quita cuando respeta la reserva", () => {
-  const caso = loadCaso("C008");
   const esperado = loadEsperado("C008");
   const result = comparator.compareAgreements({
     contractId: "d2-entidad-b",

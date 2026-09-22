@@ -153,7 +153,6 @@ test("C-3b · modo «new» muestra el formulario mínimo y la salida de vuelta a
 // --- handleCierreTaskClassifyConfirm: escribe en movementMappings igual que Movimientos ---------
 
 function sandboxClassifyConfirm(entry, selectValue) {
-  const saved = {};
   const calls = [];
   let dialogClosed = false;
   let announced = null;
