@@ -42,6 +42,7 @@ const files = [
   "canonical-e14-parity.js",
   "canonical-e15-goals.js",
   "canonical-e16-monitoring.js",
+  "canonical-period.js",
   "canonical-budget-schema.js",
   "canonical-budget-analyzer.js",
   "canonical-budget-alerts.js",

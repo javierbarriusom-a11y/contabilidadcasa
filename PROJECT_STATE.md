@@ -86,6 +86,44 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 22 de septiembre de 2026 (221): `PER-1`/`PER-2`/`PER-3` — nace `canonical-period.js`, el modelo de periodo único (mes/trimestre/semestre/año)
+
+- **Qué pedía la sesión**: continuar el horizonte 2 de `BACKLOG_CONTABILIDADCASA_3_0.md` tras cerrar
+  `ARQ-0` (sesión 220). El hogar confirmó seguir con `PER-1`.
+- **Construido — `PER-1`**: nuevo módulo `canonical-period.js` (`periodKey`/`periodUnit`/
+  `periodRange`/`periodLabel`/`adjacentPeriod`), motor puro sin DOM ni red, determinista (sin
+  `Intl`, tabla fija de meses en español, mismo criterio que el resto de `canonical-*.js`). Las
+  cuatro cadencias (`month`/`quarter`/`semester`/`year`) se generalizaron a la vez desde el
+  principio — construirlas todas costó lo mismo que tres, así que `PER-3` (añadir semestre) quedó
+  cerrada de fábrica sin trabajo aparte. 24 pruebas propias en `tests/canonical-period.test.cjs`,
+  incluida una cruzada contra `CanonicalBudgetSchema.quarterRange`/`annualRange` (`BUD-3`) que
+  confirma que ambos coinciden exactamente antes de migrar nada.
+- **Construido — `PER-2`**: `CanonicalBudgetSchema.currentQuarterKey`/`quarterRange`/
+  `currentYearKey`/`annualRange` (`canonical-budget-schema.js`) delegan ahora en
+  `canonical-period.js` en vez de mantener su propio cálculo de fechas — API pública intacta,
+  mismo comportamiento de guardarraíl (una clave del formato equivocado sigue devolviendo `null`,
+  nunca un rango de otra cadencia). Es la **primera dependencia entre dos `canonical-*.js`** del
+  proyecto — hasta ahora cada uno era completamente autónomo, sin motor nuevo lo justificaba. Se
+  resolvió con `require` relativo (se resuelve contra el propio fichero, no contra quien lo importa,
+  así que funciona igual desde cualquier test) en Node y con el orden de los `<script>` de
+  `index.html` en el navegador — sin introducir un tercer sistema de módulos (mismo criterio que
+  `T14`/`ARQ-4`: nunca `import`/`export` mientras los tests carguen `app.js` con `vm.Script`).
+- **Cableado de publicación**: `<script defer src="canonical-period.js?v=20260922per1a1">` añadido a
+  `index.html` (antes de `canonical-budget-schema.js`) y a la lista de `tools/build-public-site.mjs`
+  — sin esto último, `npm run build:site` falla con "index.html carga recursos que no se copian a
+  dist" (comprobación automática existente, no nueva). `service-worker.js` (`SHELL_URLS`) no se
+  toca: ese literal está congelado a mano desde el 19 de agosto de 2026 y ya lleva meses sin varios
+  `canonical-*.js` posteriores sin incidencia documentada — no es objeto de esta sesión.
+- **No construido todavía**: `PER-4` (selector de periodo único en la UI de Presupuesto/Análisis/
+  Previsión/salud financiera, informe semestral de familia) sigue pendiente — es la pieza de UI, con
+  más riesgo y alcance, y no dependía de terminarse en el mismo cierre.
+- **Validación**: `npm run verify` completo, exit 0 — **4.595/4.595 pruebas** (4.571 + 24 nuevas de
+  `tests/canonical-period.test.cjs`), accesibilidad (1.391 IDs), rendimiento, build del sitio (que
+  ahora sí falla si `canonical-period.js` faltara de la lista de publicación), privacidad y smoke
+  test, todos en verde.
+- **Publicado**: commit y push a `claude/nice-goodall-8konj5`, PR en borrador y fusión a `main` en
+  cuanto el CI esté en verde, según la autorización permanente de `CLAUDE.md`.
+
 ## Cierre de sesión — 22 de septiembre de 2026 (220): `ARQ-0` cerrada — el contador de visitas ya existía de fábrica (`T-4`/`OPT-2`); nuevo informe «Uso de la app» en Ajustes
 
 - **Qué pedía la sesión**: seguir con la siguiente oleada de `BACKLOG_CONTABILIDADCASA_3_0.md` (nacido
