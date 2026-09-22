@@ -25,6 +25,17 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetSchemaFactory() {
   "use strict";
 
+  // PER-2 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): currentQuarterKey/quarterRange/currentYearKey/
+  // annualRange delegan aquí en vez de mantener su propio cálculo de fechas — primera dependencia
+  // entre dos canonical-*.js (hasta ahora cada uno era autónomo); se resuelve así, y no con un
+  // <script> global, porque este fichero se `require()`ea también standalone en los tests. El
+  // `require` relativo se resuelve contra este fichero, no contra quien lo importe, así que
+  // funciona igual desde cualquier test. En el navegador, `index.html` carga `canonical-period.js`
+  // antes que este fichero, así que `globalThis.FinanceCanonicalPeriod` ya existe cuando se pide.
+  const Period = typeof require === "function"
+    ? require("./canonical-period.js")
+    : (typeof globalThis !== "undefined" ? globalThis.FinanceCanonicalPeriod : undefined);
+
 class CanonicalBudgetSchema {
   /**
    * Valida y crea un presupuesto.
@@ -344,7 +355,7 @@ class CanonicalBudgetSchema {
    * Año en curso ("YYYY"), hora local — BUD-3 (FASE 7): presupuestos anuales.
    */
   static currentYearKey(date = new Date()) {
-    return `${date.getFullYear()}`;
+    return Period.periodKey("year", date);
   }
 
   /**
@@ -352,16 +363,14 @@ class CanonicalBudgetSchema {
    * "YYYY-MM-DD". Devuelve null si `year` no tiene formato "YYYY".
    */
   static annualRange(year) {
-    if (!/^\d{4}$/.test(year)) return null;
-    return { start: `${year}-01-01`, end: `${year}-12-31` };
+    return Period.periodUnit(year) === "year" ? Period.periodRange(year) : null;
   }
 
   /**
    * Trimestre natural en curso ("YYYY-Qn", n=1..4), hora local.
    */
   static currentQuarterKey(date = new Date()) {
-    const quarter = Math.floor(date.getMonth() / 3) + 1;
-    return `${date.getFullYear()}-Q${quarter}`;
+    return Period.periodKey("quarter", date);
   }
 
   /**
@@ -369,15 +378,7 @@ class CanonicalBudgetSchema {
    * fechas "YYYY-MM-DD". Devuelve null si `quarterKey` no tiene formato "YYYY-Qn".
    */
   static quarterRange(quarterKey) {
-    const match = /^(\d{4})-Q([1-4])$/.exec(quarterKey);
-    if (!match) return null;
-    const year = Number(match[1]);
-    const quarter = Number(match[2]);
-    const startMonth = (quarter - 1) * 3; // 0-indexado
-    const endMonth = startMonth + 2;
-    const start = new Date(year, startMonth, 1);
-    const end = new Date(year, endMonth + 1, 0); // último día del último mes del trimestre
-    return { start: this._isoDateString(start), end: this._isoDateString(end) };
+    return Period.periodUnit(quarterKey) === "quarter" ? Period.periodRange(quarterKey) : null;
   }
 
   /**
