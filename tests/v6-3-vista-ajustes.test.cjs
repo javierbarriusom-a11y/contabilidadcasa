@@ -38,7 +38,7 @@ test("V6-3 · cada tarjeta lleva a donde ese dato se edita de verdad", () => {
     ["Partidas", "visual-detail"],
     ["Umbrales de aviso", "alerts-center"],
   ];
-  for (const [step, target] of routes) {
+  for (const [step] of routes) {
     assert.match(html, new RegExp(`<span class="e19-route-step">${step}[^<]*</span>`), `falta la tarjeta de ${step}`);
   }
   const ajustesGrid = html.slice(html.indexOf('id="ajustesRouteGrid"'), html.indexOf('id="ajustesRouteGrid"') + 3000);

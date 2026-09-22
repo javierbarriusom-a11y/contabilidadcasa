@@ -172,7 +172,7 @@ test("handleMovementDetailAttachPhoto · con éxito, guarda el fichero cifrado y
 });
 
 test("handleMovementDetailAttachPhoto · conserva una ubicación ya guardada al adjuntar la foto (no la pisa)", async () => {
-  const { context, calls, receiptAttachments } = attachPhotoSandbox();
+  const { context, receiptAttachments } = attachPhotoSandbox();
   const key = `${ROW.date}|${ROW.movement}|${ROW.amount}`;
   receiptAttachments[key] = { geo: { lat: 1, lon: 2, capturedAt: "2026-09-01T00:00:00.000Z" } };
   const file = { type: "image/png" };
@@ -247,7 +247,7 @@ test("handleMovementDetailSaveGeo · con éxito, redondea a 4 decimales y guarda
 });
 
 test("handleMovementDetailSaveGeo · conserva una foto ya adjunta al guardar la ubicación (no la pisa)", () => {
-  const { context, calls, receiptAttachments } = saveGeoSandbox({
+  const { context, receiptAttachments } = saveGeoSandbox({
     position: { coords: { latitude: 40.4, longitude: -3.7, accuracy: 10 } },
   });
   const key = `${ROW.date}|${ROW.movement}|${ROW.amount}`;

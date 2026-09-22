@@ -356,7 +356,7 @@ function applyAdvisorDebtOption(button) {
 }
 
 function virtualAdvisorActions(ctx) {
-  const { today, plan, routeSummary, debtOptimization, bestStep, bestDebt, bestProject, summary, capacity } = ctx;
+  const { today, routeSummary, debtOptimization, bestStep, bestDebt, bestProject, summary, capacity } = ctx;
   const actions = [];
   if (Number(today.shortage || 0) > 0) {
     actions.push({

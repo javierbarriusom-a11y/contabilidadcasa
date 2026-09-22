@@ -2,7 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
-const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 

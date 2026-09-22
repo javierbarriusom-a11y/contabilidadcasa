@@ -565,6 +565,7 @@
     });
   }
 
+  // eslint-disable-next-line no-unused-vars -- deliberadamente sin llamar, ver el comentario junto a render() más abajo (repaso pixel-perfect del 20 de agosto): se conserva por si hace falta en otra vista.
   function renderBehavior() {
     const target = mount("movements", "p2-behavior", "beforeend", panel("p2-behavior", "Comportamiento conciliado", "Tendencias y anomalías reales", "Los indicadores excluyen movimientos sin asignar: la procedencia queda visible y no se mezcla con estimaciones."));
     if (!target) return;

@@ -10,7 +10,6 @@
   const SOURCES = new Set(["manual", "pasted-table", "csv", "excel-workbook", "bank-statement", "psd2", "receipt-photo"]);
   const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
   const text = (value) => String(value ?? "").trim();
-  const finite = (value) => Number.isFinite(Number(value));
   const now = (options) => text(options?.at) || new Date().toISOString();
   const makeId = (prefix, options = {}) => text(options.id) || `${prefix}-${now(options)}-${Math.random().toString(16).slice(2)}`;
 

@@ -243,7 +243,7 @@ const VIEW_CHUNKS = {
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
   "escenario-guardados": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-guardados" },
   "escenario-comparar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-comparar" },
-  "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260918t14c1", rootId: "debt-liquidation-plan" },
+  "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
   "new-life-definitive": { src: "views/new-life-definitive.js?v=20260918t14f1", rootId: "new-life-definitive" },
@@ -6516,14 +6516,12 @@ function incomeEventsForMonth(month, forecastIndex, options = {}) {
 }
 
 function planningMonthForDate(date, forecastIndex) {
-  const planning = baseData.monthlyPlanning;
   const key = monthKey(date);
   const label = monthLabel(date);
   return sourcePlanningMonthForMonth({ key, label, index: forecastIndex });
 }
 
 function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
-  const planning = baseData.monthlyPlanning;
   const month = planningMonthForDate(date, forecastIndex);
   const useActuals = options.useActuals !== false;
   const breakdown = {
@@ -6712,7 +6710,6 @@ function projectedAccountBalancesForStartIndex(startIndex) {
     const variableOperationalSpend = detail.variableOperationalSpend * expenseMultiplier;
     const fixedCoreSpend = Math.max(0, detail.coreSpend - detail.variableOperationalSpend) * expenseMultiplier;
     const coreSpend = fixedCoreSpend + variableOperationalSpend;
-    const endOfMonthOutflows = detail.endOfMonthSpend * expenseMultiplier;
     const outflowsBeforeSaving = coreSpend + detail.car + detail.refi;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
     const appliedSaving = state.autoCapSavings
@@ -8635,7 +8632,6 @@ function projectDecisionFromForm({
 }
 
 function evaluateProjectDecisionItem(item) {
-  const months = forecastMonths();
   const baselineOutflows = decisionBaselineOutflows(item?.id);
   const candidate = baselineOutflows.slice();
   addScheduledDecisionOutflow(candidate, { ...item, source: "project" }, item.monthIndex || 0);
@@ -10594,7 +10590,7 @@ function allVisualMonths() {
     forecastMonths().forEach((month) => {
       if (!byKey.has(month.key)) byKey.set(month.key, month);
     });
-  } catch (error) {
+  } catch {
     // The imported planning months are enough while the model is booting.
   }
   return [...byKey.values()].sort((left, right) => left.key.localeCompare(right.key));
@@ -10614,7 +10610,7 @@ function selectableMonths({ includeClosed = false } = {}) {
       const months = forecastMonths();
       return includeClosed ? months : openForecastMonths(months);
     }
-  } catch (error) {
+  } catch {
     // Fall back to the imported workbook months while the app is still booting.
   }
   const months = baseData?.monthlyPlanning?.months || [];
@@ -13329,7 +13325,7 @@ function handlePartidasChartHover(event) {
   let payload;
   try {
     payload = JSON.parse(wrap.dataset.partidasChartPoints || "null");
-  } catch (error) {
+  } catch {
     return;
   }
   if (!payload || payload.monthCount < 2) return;
@@ -14711,7 +14707,6 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
   if (!target) return;
   const capacity = agentTwelveMonthCapacity(plan);
   const rows = agentVisibleRows(plan);
-  const today = rows[0] || {};
   const immediate = immediateSavingsTransfer(plan, rows);
   const topDebt = debtRecs[0];
   const topProject = projectRecs[0];
@@ -15785,26 +15780,38 @@ function fc5ResultHtml(result) {
   return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(actionLine)}</p><p>Coste marginal estimado si realizas toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
-// FCX1: rescate de pensiones modelado, como capital único sumado a la renta general del año. Con
-// las dos escalas de tramos ya registradas (A15-2) usa el coste marginal real por tramos
-// (marginalTaxOnAdditionalIncome); sin ellas, cae al tipo marginal declarado en A15-1/A15-4
-// (fiscalWithholdingRate) como estimación plana — nunca 0% ni un tramo inventado. Nunca modela
-// reducciones (40% de aportaciones anteriores a 2007, mínimo exento) ni la modalidad en forma de
-// renta: la app no registra cuándo se hizo cada aportación al plan.
+// FCX1: rescate de pensiones, comparando capital único vs. modalidad en forma de renta
+// (pensionWithdrawalComparison, I5). Con las dos escalas de tramos ya registradas (A15-2) usa el
+// coste marginal real por tramos; sin ellas, cae al tipo marginal declarado en A15-1/A15-4
+// (fiscalWithholdingRate) como estimación plana — nunca 0% ni un tramo inventado. La reducción del
+// 40% solo se aplica al importe que el hogar declare con aportaciones anteriores a 2007 (nunca se
+// deriva sola, la app no registra cuándo se hizo cada aportación), y solo al capital, nunca a la
+// renta; la modalidad en forma de renta asume la misma renta general base en cada año del reparto
+// — ambos supuestos se muestran siempre en el resultado, nunca en silencio.
 //
-// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): reclasificada de directiva a informativa durante la
-// implementación — no se puede recomendar "capital único vs. renta" sin modelar la modalidad en
-// forma de renta, que este motor declara explícitamente fuera de alcance (línea de arriba); eso es
-// el hueco I5 del propio backlog, no indecisión de T4. Ser directivo aquí exigiría fabricar un
-// cálculo de la renta que no existe.
+// T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se quedó informativa porque recomendar "capital único vs.
+// renta" exigía modelar la renta, hueco que cerró I5 — pasar a lenguaje directivo (cuál conviene)
+// sigue sin hacerse aquí a propósito: es una decisión de producto propia, no una consecuencia
+// automática de cerrar el hueco de cálculo.
 function fcx1ResultHtml(result) {
   if (!result.calculable) {
     return "Indica un importe a rescatar mayor que cero. Sin tramos de IRPF registrados (arriba) ni retención declarada (Ajustes › supuestos fiscales), no hay tipo marginal con el que estimar el coste.";
   }
   const methodLine = result.method === "progressive-brackets"
     ? "Calculado por tramos progresivos (escala general estatal + autonómica registradas arriba)."
-    : `Calculado con el tipo marginal declarado (${result.effectiveRatePct}%, A15-1) — registra las dos escalas de tramos arriba para un coste marginal real por tramos.`;
-  return `<p>Coste marginal estimado: <strong class="negative">${money(result.marginalTax, true)}</strong> (${result.effectiveRatePct}% efectivo sobre el rescate). Neto tras impuesto: ${money(result.netAmount, true)}.</p><p class="e19-kpi-note">${escapeHtml(methodLine)}</p><p class="e19-kpi-note">No incluye reducciones por antigüedad de las aportaciones ni la modalidad en forma de renta. Verifica con un profesional antes de decidir.</p>`;
+    : "Calculado con el tipo marginal declarado (A15-1) sobre ambas modalidades — registra las dos escalas de tramos arriba para un coste marginal real por tramos.";
+  const reductionLine = result.lumpSum.reductionApplied > 0
+    ? `Incluye la reducción del 40% sobre ${money(result.lumpSum.reductionApplied / 0.4, true)} declarados como aportados antes de 2007 (${money(result.lumpSum.reductionApplied, true)} menos de base).`
+    : "Sin reducción por antigüedad aplicada — declara arriba el importe aportado antes de 2007, si lo hay.";
+  const better = result.netDifference > 0 ? "capital único" : result.netDifference < 0 ? "renta" : "ambas modalidades";
+  return [
+    `<p><strong>Capital único:</strong> coste marginal ${money(result.lumpSum.marginalTax, true)}, neto ${money(result.lumpSum.netAmount, true)} (${result.lumpSum.effectiveRatePct}% efectivo).</p>`,
+    `<p><strong>Renta (${result.annuity.years} ${result.annuity.years === 1 ? "año" : "años"}, ${money(result.annuity.annualPayment, true)}/año):</strong> coste marginal total ${money(result.annuity.marginalTax, true)}, neto ${money(result.annuity.netAmount, true)} (${result.annuity.effectiveRatePct}% efectivo).</p>`,
+    `<p class="e19-kpi-note">Diferencia neta: ${money(Math.abs(result.netDifference), true)} a favor de ${escapeHtml(better)}.</p>`,
+    `<p class="e19-kpi-note">${escapeHtml(methodLine)}</p>`,
+    `<p class="e19-kpi-note">${escapeHtml(reductionLine)}</p>`,
+    `<p class="e19-kpi-note">${escapeHtml(result.assumptions.join(" "))} Verifica con un profesional antes de decidir.</p>`,
+  ].join("");
 }
 
 function handleFcx1SimulateWithdrawal() {
@@ -15814,18 +15821,20 @@ function handleFcx1SimulateWithdrawal() {
   if (!engine) return;
   const amount = parseAmount(qs("fcx1WithdrawalAmount")?.value);
   const currentAnnualIncome = parseAmount(qs("fcx1CurrentAnnualIncome")?.value);
+  const preTwoThousandSevenAmount = parseAmount(qs("fcx1PreTwoThousandSevenAmount")?.value);
+  const annuityYears = parseAmount(qs("fcx1AnnuityYears")?.value) || 1;
   const stateScale = latestIrpfScale("state");
   const regionalScale = latestIrpfScale("regional");
-  let result = engine.marginalTaxOnAdditionalIncome({ amount, currentAnnualIncome, stateScale: stateScale || {}, regionalScale: regionalScale || {} });
-  if (result.calculable) {
-    result = { ...result, method: "progressive-brackets" };
-  } else if (result.reason === "missing-brackets" && amount > 0) {
-    const flatRate = fiscalWithholdingRate();
-    if (flatRate > 0) {
-      const marginalTax = round2(amount * (flatRate / 100));
-      result = { calculable: true, method: "flat-marginal-rate", marginalTax, netAmount: round2(amount - marginalTax), effectiveRatePct: flatRate };
-    }
-  }
+  const flatRatePct = fiscalWithholdingRate();
+  const result = engine.pensionWithdrawalComparison({
+    amount,
+    preTwoThousandSevenAmount,
+    currentAnnualIncome,
+    annuityYears,
+    stateScale: stateScale || {},
+    regionalScale: regionalScale || {},
+    flatRatePct,
+  });
   note.innerHTML = fcx1ResultHtml(result);
 }
 
@@ -24496,7 +24505,6 @@ function renderSavingsPlan() {
   const bufferTarget = calc.emergencyFundTarget;
   const debtRatio = calc.debtToIncomeRatio;
   const savingsRate = calc.savingsRate;
-  const appliedVsAdvised = sumRows(calc.rows, (row) => row.saving - savingsMonthlyAdvice(row, calc).advised);
 
   qs("savingsAssumptions").innerHTML = savingsPlanFieldMeta
     .map(([key, label, unit]) => renderSavingsPlanAssumptionInput(key, label, unit))
@@ -37181,6 +37189,11 @@ function scheduleRender() {
   });
 }
 
+// ARQ-2: única excepción al techo general de complejidad (90) del gate de ESLint — init() cablea
+// el arranque completo de la app (todas las pantallas, listeners, migraciones) en una sola
+// función, deuda ya documentada y fuera de alcance de esta tarea; reducirla es trabajo de ARQ-4
+// (más incrementos de views/*.js con carga diferida sobre el resto de app.js), no de este gate.
+// eslint-disable-next-line complexity
 async function init() {
   if (window.FINANCE_DATA) {
     packagedFinanceData = cloneFinanceData(window.FINANCE_DATA);
