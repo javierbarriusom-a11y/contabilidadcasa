@@ -4349,33 +4349,12 @@ svg {
   border-collapse: collapse;
 }
 
-.uso-app-table {
-  width: 100%;
-  min-width: 0;
-  border-collapse: collapse;
-}
-
-.uso-app-table th,
-.uso-app-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
+/* ARQ-0: sobre .e19-table (design-tokens.css), que ya da alineación numérica a la derecha por
+   defecto salvo la primera columna — aquí «Categoría» es texto, no una cifra, así que se queda a
+   la izquierda igual que «Pantalla». */
+.uso-app-table th:nth-child(2),
+.uso-app-table td:nth-child(2) {
   text-align: left;
-  white-space: normal;
-}
-
-.uso-app-table th:nth-child(3),
-.uso-app-table td:nth-child(3),
-.uso-app-table th:nth-child(4),
-.uso-app-table td:nth-child(4) {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.uso-app-table th {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
 }
 
 .account-balance-table th,
