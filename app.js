@@ -12432,6 +12432,70 @@ function handlePartidasAddRow() {
   }
 }
 
+// FLU-2 (BACKLOG_CONTABILIDADCASA_3_0.md §2.4): un clic desde Home para la acción más frecuente
+// de la app — antes exigía pasar por dos pantallas (Planificación de partidas para crear la línea,
+// Registrar › Reales del mes para marcarla como ya ocurrida). Este modal hace ambos pasos a la vez,
+// reutilizando el mismo modelo de datos que handlePartidasAddRow (customPlanningRows) y
+// handleRegistrarActualsChange (expenseActuals) tal cual — ningún motor nuevo, solo un formulario
+// que escribe en los dos sitios que ya existían por separado. El mes es siempre el mismo que
+// Registrar › Reales del mes resolvería por defecto (el primer mes abierto), nunca uno a elegir
+// aquí — mantiene el formulario a tres campos.
+function homeQuickExpenseSections() {
+  return (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === "expense");
+}
+
+function homeQuickExpenseTargetMonth() {
+  const months = baseData?.monthlyPlanning?.months || [];
+  const key = registrarActualsDefaultMonthKey();
+  return months.find((month) => month.key === key) || null;
+}
+
+// Sin mes abierto con bloques de gasto declarados, el atajo no tiene dónde escribir — se
+// deshabilita en vez de abrir un formulario que no podría guardar nada (mismo criterio que
+// handleRegistrarActualsChange, que bloquea la edición sobre un mes cerrado).
+function updateHomeQuickExpenseAvailability() {
+  const button = qs("homeQuickExpenseOpen");
+  if (!button) return;
+  const month = homeQuickExpenseTargetMonth();
+  const available = Boolean(month) && !isClosedMonthKey(month.key) && homeQuickExpenseSections().length > 0;
+  button.disabled = !available;
+  button.title = available ? "" : "No hay ningún mes abierto con bloques de gasto declarados todavía.";
+}
+
+function openHomeQuickExpenseDialog() {
+  const dialog = qs("homeQuickExpenseDialog");
+  const sectionSelect = qs("homeQuickExpenseSection");
+  const labelInput = qs("homeQuickExpenseLabel");
+  const amountInput = qs("homeQuickExpenseAmount");
+  const monthNote = qs("homeQuickExpenseMonth");
+  if (!dialog || !sectionSelect || !labelInput || !amountInput) return;
+  const month = homeQuickExpenseTargetMonth();
+  const sections = homeQuickExpenseSections();
+  if (!month || isClosedMonthKey(month.key) || !sections.length) return;
+  sectionSelect.innerHTML = sections.map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`).join("");
+  labelInput.value = "";
+  amountInput.value = "";
+  if (monthNote) monthNote.textContent = `Se registrará en ${month.label}, como gasto ya realizado.`;
+  dialog.addEventListener("close", () => {
+    if (dialog.returnValue !== "confirm") return;
+    submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value);
+  }, { once: true });
+  dialog.showModal();
+  labelInput.focus();
+}
+
+function submitHomeQuickExpense(month, sectionName, label, rawAmount) {
+  const parsedAmount = parseAmount(rawAmount);
+  if (!month || !label || !sectionName || parsedAmount === null || parsedAmount <= 0) return;
+  const amount = round2(parsedAmount);
+  const id = `custom-expense-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  customPlanningRows.push({ id, custom: true, kind: "expense", sectionName, label, monthKey: month.key, plannedValue: amount });
+  saveCustomPlanningRows();
+  expenseActuals[actualKeyForRow({ id }, month)] = amount;
+  saveExpenseActuals();
+  render();
+}
+
 // --- Bloque analítico: banda de colchón + gráfico de 3-4 líneas --------------------------------
 // La banda reutiliza analisisCushionBand/analisisCushionBandHtml/analisisCushionWorst (Análisis,
 // A-2) tal cual — mismo cálculo y misma escala de tres niveles, sin duplicar lógica ni CSS (el
@@ -32048,6 +32112,7 @@ function renderHomeDashboard() {
     source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
     guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
   });
+  updateHomeQuickExpenseAvailability();
 
   // A16-1: puntuación compuesta, reutilizando los mismos locals que acaban de calcular
   // debtRatioStatus/reserveStatus arriba — nada se deriva dos veces.
@@ -38109,6 +38174,7 @@ async function init() {
     setActiveView(target, { focus: true });
   });
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
+  qs("homeQuickExpenseOpen")?.addEventListener("click", openHomeQuickExpenseDialog);
   qs("homeMeetingModeToggle")?.addEventListener("click", toggleMeetingMode);
   qs("meetingModePrev")?.addEventListener("click", () => meetingModeGo(-1));
   qs("meetingModeNext")?.addEventListener("click", () => meetingModeGo(1));
