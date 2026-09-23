@@ -86,6 +86,67 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (227): `FIN-1` — el rebalanceo de inversión avisa cuando rompería el colchón que ya garantizan deuda y apalancamiento
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-2` (sesión 226).
+  `FIN-1` pedía "verificar" que cancelación de deuda (`DEB15`), apalancamiento y rebalanceo de
+  inversión usan el mismo umbral de colchón — el backlog no daba por hecho que hubiera un bug, solo
+  auditar antes de tocar nada.
+- **Auditoría previa** (vía subagente de exploración, sin modificar nada): **el veredicto no fue
+  "tres umbrales distintos", fue "dos ya comparten el mismo umbral, el tercero no consulta
+  ninguno"**.
+  - `DEB15` (`app.js:18024-18040`, `cancellationLiquidityGuardrail`), `AP3`/`AP4` (barrera antes de
+    apalancar, `app.js:16352-16364`) y `AP6` (sostenibilidad de la deuda de apalancamiento ya
+    tomada, `app.js:17397-17404`) llaman los tres, literalmente, a la misma expresión:
+    `FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value`. Los
+    motores puros que reciben ese `floor` (`amortizeCushionGuardrail`, `cancellationLiquidityGuardrail`,
+    `evaluateLeverageBarrier`, `evaluateLeverageSustainability`) nunca lo recalculan por su cuenta —
+    sin divergencia real entre esos dos puntos.
+  - `INV7` (escalera de liquidez, pestaña Inversión · Cartera) ya usa esa misma expresión y ya
+    calcula si la cartera cubre el colchón con liquidez inmediata/corta.
+  - **`IV6` (sugerencias de rebalanceo, pestaña Inversión · Rebalanceo) no consultaba ningún
+    colchón**: `rebalanceSuggestions()` decide comprar/vender solo por desviación porcentual de
+    reparto, sin recibir `floor` ni `liquidity`. Podía sugerir vender una posición líquida
+    (acción/ETF/cripto) para comprar una bloqueada (plan de pensiones) sin avisar de que eso rompe
+    la cobertura del colchón que `INV7`, en la pestaña de al lado, dice garantizada hoy mismo — el
+    riesgo real de "recomendaciones contradictorias" que describe el backlog, no una diferencia de
+    cifras entre dos fórmulas.
+  - Divergencia menor, fuera de alcance: `agentCaixaFloor()` (Hoy/Registrar/Deuda·Ruta/Asesor) y
+    `cuadroMandosReserve()` (DEB15/apalancamiento/INV7/ahora IV6) solo difieren cuando la reserva
+    operativa NO está configurada — ya documentado y decidido conscientemente en agosto (`L-5`,
+    `tests/l1-l10-fase7-laboratorio.test.cjs`). No se toca.
+- **Construido**: `rebalanceLiquidityGuardrail(totalsByType, suggestions, floorValue)` en
+  `canonical-portfolio.js`, justo después de `liquidityLadder()` (`INV7`) — proyecta cada sugerencia
+  de `IV6` que no sea "ok" (comprar suma, vender resta: `amount` ya es `target - actual`) sobre
+  `totalsByType`, recalcula `liquidityLadder()` sobre esa composición proyectada y devuelve
+  `{ current, projected, worsens }`. `worsens` solo es `true` cuando el colchón pasa de cubierto a
+  no cubierto — un colchón ya descubierto antes del rebalanceo no cuenta como algo que la sugerencia
+  empeora. Las anulaciones de liquidez por posición (`INV20`) no se proyectan (no se sabe qué
+  posición concreta se vendería o compraría) — el proyectado usa siempre el tramo por defecto del
+  tipo. Motor puro, mismo criterio que el resto de guardarraíles: nunca bloquea, solo informa.
+  - `renderIv6Rebalance()` (`app.js`) calcula el `floor` con la misma expresión compartida y llama
+    al guardarraíl nuevo; cuando `worsens` es `true`, añade un aviso bajo la lista de sugerencias
+    señalando el importe del colchón y remitiendo a la escalera de liquidez de Inversión · Cartera.
+    Sin `FinanceCanonicalCushion` cargado, la tarjeta sigue funcionando igual que antes (guarda
+    explícita, nunca asume que el motor está disponible).
+  - 12 pruebas nuevas en `tests/fin1-guardarrail-liquidez-compartido.test.cjs`: el motor puro
+    (sin sugerencias no cambia nada, las filas "ok" no mueven totales, vender inmediata para comprar
+    bloqueada puede romper la cobertura, moverse entre dos tipos igual de líquidos no empeora nada,
+    un colchón ya descubierto no cuenta como empeorado, entradas vacías/mal formadas no lanzan) y el
+    cableado (misma expresión de colchón que el resto, aviso solo bajo `worsens`, guarda sin motor
+    cargado, y un conteo mínimo de usos de la expresión compartida en todo `app.js` como regresión
+    contra que alguna de las cinco llamadas se desincronice en el futuro).
+  - Verificado en navegador real (Chromium vía Playwright, sitio construido en `dist/`, datos reales
+    de la demo): con una posición de 20.000€ en acción (100% líquida, colchón de 4.730€ cubierto
+    según `INV7`), al fijar un objetivo de 100% en plan de pensiones, `IV6` sugiere vender toda la
+    acción y comprar plan de pensiones, y el aviso nuevo aparece tal cual se diseñó. Sin errores de
+    consola propios.
+- **Resultado de la validación**: `npm run verify` completo — 4682/4682 pruebas (4670 + 12 nuevas de
+  `FIN-1`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (226): `NAV-2` — el buscador Cmd/Ctrl+K pesa sus resultados por uso real
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FLU-2` (sesión 225), en el

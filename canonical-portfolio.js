@@ -965,6 +965,39 @@
     };
   }
 
+  // FIN-1 (BACKLOG_CONTABILIDADCASA_3_0.md §2.5): mismo guardarraíl de liquidez (cushionFloor +
+  // liquidityLadder) que ya comparten DEB15/AP3/AP4/AP6 (amortizeCushionGuardrail,
+  // cancellationLiquidityGuardrail, evaluateLeverageBarrier, evaluateLeverageSustainability — todos
+  // reciben el mismo floor, nunca lo recalculan), aplicado aquí a la composición que dejaría el
+  // rebalanceo sugerido (IV6, pestaña Inversión · Rebalanceo), no a la actual — la pestaña Inversión
+  // · Cartera ya enseña liquidityLadder() para la cartera de hoy (INV7); esto avisa cuando seguir
+  // la sugerencia de IV6 dejaría de cubrir el mismo colchón que INV7 dice cubierto ahora mismo, en
+  // vez de que ambas pestañas convivan sin hablarse. Las sugerencias operan por tipo de instrumento
+  // (POSITION_TYPES), el mismo espacio que LIQUIDITY_TIER_BY_TYPE ya usa — se proyecta cada
+  // sugerencia que no sea "ok" (comprar suma, vender resta: `amount` ya es `target - actual`) sobre
+  // totalsByType antes de recalcular la escalera. Las anulaciones por posición (INV20) no se pueden
+  // proyectar — no se sabe qué posición concreta se compraría o vendería — así que el proyectado usa
+  // siempre el tramo por defecto del tipo, nunca inventa qué anulación sobreviviría. Motor puro:
+  // nunca bloquea el rebalanceo, solo informa si empeora algo que hoy está bien.
+  function positionsFromTypeTotals(totalsByType = {}) {
+    return POSITION_TYPES.filter((type) => number(totalsByType[type]) > 0).map((type) => ({ type, currentValue: number(totalsByType[type]) }));
+  }
+
+  function rebalanceLiquidityGuardrail(totalsByType = {}, suggestions = [], floorValue = 0) {
+    const current = liquidityLadder(positionsFromTypeTotals(totalsByType), floorValue);
+    const projectedTotals = { ...totalsByType };
+    (Array.isArray(suggestions) ? suggestions : []).forEach((row) => {
+      if (!row || row.action === "ok") return;
+      projectedTotals[row.type] = round2(Math.max(0, number(projectedTotals[row.type]) + number(row.amount)));
+    });
+    const projected = liquidityLadder(positionsFromTypeTotals(projectedTotals), floorValue);
+    return {
+      current,
+      projected,
+      worsens: current.floorCovered && !projected.floorCovered,
+    };
+  }
+
   // INV8 (Oleada 3, Bloque 5): seguimiento de plan de aportación periódica (DCA) — IVX7 (arriba)
   // ya muestra el coste medio hacia atrás; esto mira hacia delante. Reutiliza `contributions`
   // (IV2) y `acquisitionDate`/`initialCost` (ya normalizados) para saber cuánto se ha aportado de
@@ -1130,6 +1163,7 @@
     summarizePositions,
     latentLossHarvestingCandidates,
     liquidityLadder,
+    rebalanceLiquidityGuardrail,
     dcaPlanStatus,
     rebalanceSuggestions,
     REBALANCE_CALENDAR_REVIEW_SCHEMA_ID,
