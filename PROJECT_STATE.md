@@ -86,6 +86,66 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (231): `ARQ-3` — detección sistemática de motores `canonical-*.js` sin consumidor de UI
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-4` (sesión 230), último
+  ítem del horizonte salvo `ARQ-4`/`T9`. El backlog pedía dos cosas: (a) detección sistemática de
+  motores `canonical-*.js` sin consumidor real de UI — hasta ahora solo verificado caso a caso
+  cuando surgía la pregunta, `BACKLOG_INDICE.md` documentaba un único hallazgo (Copiloto/IA, desde
+  la sesión 42) — y (b) auditoría de las 10 pantallas del grupo «legacy» del menú avanzado con la
+  misma vara que `OPT-24` aplicó a Ajustes.
+- **Auditoría completa de los 65 `canonical-*.js`** (vía subagente, verificado a mano después: export
+  global de cada fichero, recuento textual en `app.js` y en los 13 `views/*.js`, y si lleva
+  `<script>` en `index.html`):
+  - **59/65 consumidos de verdad.** Dos casos que un grep ingenuo habría marcado huérfanos por tener
+    0 referencias en `app.js` (`canonical-recommendation-citation.js`,
+    `canonical-renewal-advisor.js`) resultaron tener su único consumidor dentro de `views/*.js`
+    (`estado-semana.js`, `analisis.js`) — de ahí que la detección compruebe siempre ambos ficheros,
+    nunca solo `app.js`.
+  - **6/65 huérfanos, ninguno nuevo como hallazgo de fondo**: el caso ya conocido
+    (`canonical-e9-assistant.js`, Copiloto/IA) no era aislado — es la punta de un grupo coherente de
+    la misma épica E9 (bancarización/IA), construida por adelantado para `A5-1` (IA en producción
+    real) pero nunca conectada a UI. **5 ficheros más, nunca enumerados explícitamente hasta ahora**,
+    están igual de huérfanos: `canonical-e9-actions.js`, `canonical-e9-bank-import.js`,
+    `canonical-e9-banking.js`, `canonical-e9-foundation.js`, `canonical-e9-notifications.js` — los
+    cinco cargados en `index.html`, cero invocaciones en `app.js`/`views/*.js`. Mismo motivo, misma
+    condición externa `A5-1` ya documentada — construidos por adelantado, no abandonados por
+    descuido.
+  - **`canonical-scenario-invariants.js` es un caso distinto, no comparable**: no lleva `<script>` en
+    `index.html` — es una herramienta de test (catálogo de las 15 invariantes de E19,
+    `E19_INVARIANTES.md`), usada solo por su propio test vía `require()` para property-based
+    testing. Nunca fue pensada para el navegador; no cuenta como "código muerto de UI" porque no es
+    código de UI en absoluto.
+- **Auditoría de las 10 pantallas «legacy»**: la app **ya tiene, construido y en producción, el
+  mecanismo de auditoría con la misma vara que pedía `OPT-24`** — no hacía falta construirlo. Es el
+  catálogo `LABORATORIO_CATALOG` (`app.js:36235-36364`, 18 entradas: las 10 del grupo legacy + 8 ya
+  promovidas/retiradas en commits anteriores), con veredicto (adoptada/sustituida/descartada),
+  destino y evidencia de escritura por pantalla (`laboratorioWriteGuard()`, regla `L-5`).
+  - Matiz importante que corrige la premisa de "código muerto" para la mayoría de las 10:
+    "legacy" en el menú es una etiqueta de *posición de navegación*, no de estado funcional — el
+    guardarraíl de solo lectura solo se activa dentro de una sesión abierta desde Laboratorio, no al
+    entrar por el enlace normal de "Versiones anteriores". **4 de las 10 siguen siendo la puerta de
+    escritura real y activa fuera de Laboratorio** (`debt-control`, `savings-agent`,
+    `alerts-center`, `operations-manual` por contenido único aunque estático); 2 son
+    redundante-total con reemplazo ya documentado en el propio código (`executive-advisor`,
+    `virtual-advisor`); 1 más lo es en la práctica (`debt-liquidation-plan`, solo lectura derivada);
+    1 tiene su única vía de escritura ya bloqueada de forma permanente, no solo en Laboratorio
+    (`update-data`, `REGISTRAR_MES_LEGACY_READONLY`); y 2 son redundante-parcial, con contenido o
+    acción parcialmente exclusiva conviviendo con una pantalla nueva que no lo cubre todo
+    (`debt-roadmap`, `visual-detail`). Ninguna de las 10 se toca en esta sesión.
+- **Construido**: `tests/arq3-canonical-sin-consumidor-ui.test.cjs` (fichero nuevo, sin tocar código
+  de producción) — extrae el export global de cada `canonical-*.js`, comprueba que aparece en
+  `app.js` o en `views/*.js`, y falla en cualquiera de los dos sentidos: un motor nuevo sin
+  consumidor y sin excepción documentada (el hallazgo que antes solo se veía "cuando surgía la
+  pregunta"), o una excepción documentada que ya tiene consumidor real (la lista quedaría obsoleta).
+  Las 5 excepciones de la épica E9 quedan documentadas con su motivo (`A5-1`) en el propio test.
+- **Resultado de la validación**: `npm run verify` completo — 4698/4698 pruebas (4694 + 4 nuevas de
+  `ARQ-3`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. Sin verificación de navegador: cambio de solo test, ningún
+  archivo de producción tocado.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (230): `NAV-4` — la cabecera de las pestañas de Deuda repite «Deuda · <pestaña>», igual que Inversión
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FLU-1` (sesión 229), último
