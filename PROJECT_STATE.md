@@ -86,6 +86,56 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (225): pospuesta la Cola B 30 días más; `FLU-2` — atajo de un clic para registrar gasto desde Home
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6
+  tras cerrar `ARQ-1` (sesión 224, horizonte 2 completo). Antes de empezar, el hogar decidió
+  posponer 30 días más la activación de la Cola B (§4): la condición real no es solo tiempo de
+  calendario (el contador de `ARQ-0` ya llevaba el mes exigido) sino uso intensivo genuino de la
+  app, que aún no se ha dado. Anotado en el propio documento: cualquier sesión futura debe
+  preguntar primero si el uso ha sido adecuado, no dar la condición por cumplida solo porque pase
+  el plazo otra vez.
+- **Orden propuesto para el horizonte 3 y confirmado con el hogar**: `FLU-2` → `NAV-2` → `FIN-1` →
+  las S baratas (`NAV-1`, `FLU-1`, `NAV-4`) → `ARQ-3` → `ARQ-4`/`T9`, por relación coste/beneficio
+  y porque `NAV-2` ya no depende de nada (su prerrequisito `ARQ-0` está cerrado).
+- **`FLU-2` — atajo de un clic «registrar gasto nuevo» desde Home**: la investigación previa
+  encontró que la app separaba en dos pantallas encadenadas crear una partida nueva
+  (Planificación de partidas, solo captura el importe *previsto*) de marcarla como *real* ya
+  ocurrida (Registrar › Reales del mes, solo edita partidas que ya existen — no permite añadir una
+  nueva). Se planteó al hogar el trade-off explícitamente (esfuerzo S de una navegación directa
+  vs. M/L de un modal de un solo paso) — **el hogar eligió el modal de un solo paso**, el único que
+  cumple literalmente "un clic, gasto registrado" incluyendo el importe real.
+  - Nuevo botón `+ Registrar gasto` en la cabecera de Home (`.section-title.with-action`,
+    **fuera** de `.home-primary-section` — no cuenta para la regla de 4 bloques de `OPT-8`/`FLU-1`,
+    verificado con test dedicado).
+  - Nuevo `<dialog id="homeQuickExpenseDialog">` (mismo patrón `action-review-dialog` +
+    `method="dialog"` que ya usan `operationConfirmDialog`/`startupRecoveryDialog` — ninguna clase
+    de UI nueva): tres campos (concepto, bloque, importe), sin selector de mes — siempre el mismo
+    mes que Registrar › Reales del mes resolvería por defecto (el primer mes abierto), para que el
+    formulario quede en tres campos, no cuatro.
+  - Al confirmar, escribe en los dos almacenes que ya existían por separado, sin motor nuevo:
+    `customPlanningRows.push({...})` (mismo esquema que `handlePartidasAddRow`) y
+    `expenseActuals[id|monthKey] = amount` (mismo esquema de clave que
+    `handleRegistrarActualsChange`/`actualKeyForRow`) — un solo paso que antes exigía dos
+    pantallas.
+  - El botón se deshabilita solo (con `title` explicando por qué) si no hay ningún mes abierto o
+    ningún bloque de gasto declarado — mismo criterio que ya aplica
+    `handleRegistrarActualsChange` sobre meses cerrados, nunca un formulario que no podría
+    guardar nada.
+  - 11 pruebas nuevas en `tests/flu2-atajo-registrar-gasto.test.cjs` (markup, disponibilidad del
+    botón, creación de la fila+real, guardas de datos incompletos).
+  - Verificado en navegador real (Chromium vía Playwright, script ad hoc, sitio construido en
+    `dist/`): botón habilitado con los datos de demo reales, diálogo se abre con el mes/bloques
+    correctos, al confirmar crea la partida con su real ya puesto y la fila aparece de inmediato en
+    Registrar › Reales del mes. Sin errores de consola propios (el único aviso de red es el CDN
+    externo de Supabase, bloqueado por el proxy del entorno de verificación, no por este cambio).
+- **Resultado de la validación**: `npm run verify` completo — 4660/4660 pruebas (4649 + 11 nuevas
+  de `FLU-2`), lint y typecheck limpios, accesibilidad (1406 IDs únicos, sin colisión con los
+  nuevos), rendimiento, build del sitio, privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo,
+  PR en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada
+  paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (224): `ARQ-1` — TypeScript incremental (`checkJs`+JSDoc) sobre los 65 `canonical-*.js`, ya como gate de CI
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 2 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6

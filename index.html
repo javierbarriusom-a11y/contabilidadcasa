@@ -320,6 +320,11 @@
                     <option value="all">Hasta 2036</option>
                   </select>
                 </label>
+                <!-- FLU-2: la acción más frecuente de la app (registrar un gasto) tenía que pasar
+                     siempre por Registrar; este botón la deja a un clic desde Home, con un
+                     formulario de un solo paso (concepto + bloque + importe) que crea la partida y
+                     su real a la vez, sin obligar a volver después a Registrar › Reales del mes. -->
+                <button type="button" id="homeQuickExpenseOpen">+ Registrar gasto</button>
                 <button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button>
                 <!-- UX5: modo reunión para decidir en pareja — enseña un bloque de Hoy cada vez, en
                      grande, sin distraer con el resto; sin dato nuevo, solo enseña/oculta lo que ya
@@ -7223,6 +7228,33 @@
         <div class="dialog-actions">
           <button value="cancel" class="secondary" type="submit">Cancelar</button>
           <button value="confirm" id="operationConfirmSubmit" type="submit">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- FLU-2: un clic desde Home crea a la vez la partida nueva (previsto) y su real, en el mes
+         abierto que ya resuelve Registrar › Reales del mes por defecto — sin eso, "un solo paso"
+         dejaría el gasto a medias, con un previsto pero sin marcar como ya ocurrido. -->
+    <dialog class="action-review-dialog" id="homeQuickExpenseDialog" aria-labelledby="homeQuickExpenseTitle">
+      <form method="dialog" id="homeQuickExpenseForm">
+        <p class="panel-kicker">Registrar gasto</p>
+        <h2 id="homeQuickExpenseTitle">Registrar gasto nuevo</h2>
+        <p class="e19-kpi-note" id="homeQuickExpenseMonth"></p>
+        <label>
+          <span>Concepto</span>
+          <input id="homeQuickExpenseLabel" type="text" required placeholder="Ej. Supermercado, gasolina" />
+        </label>
+        <label>
+          <span>Bloque</span>
+          <select id="homeQuickExpenseSection" required></select>
+        </label>
+        <label>
+          <span>Importe</span>
+          <input id="homeQuickExpenseAmount" type="number" step="0.01" min="0.01" required placeholder="0,00" />
+        </label>
+        <div class="dialog-actions">
+          <button value="cancel" class="secondary" type="submit" formnovalidate>Cancelar</button>
+          <button value="confirm" id="homeQuickExpenseSubmit" type="submit">Registrar</button>
         </div>
       </form>
     </dialog>
