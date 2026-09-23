@@ -86,6 +86,60 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (226): `NAV-2` — el buscador Cmd/Ctrl+K pesa sus resultados por uso real
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FLU-2` (sesión 225), en el
+  orden confirmado con el hogar. `NAV-2` no tenía ninguna pregunta abierta que resolver con el
+  hogar: el backlog ya decía que el buscador universal (`e17-experience.js`, `T2`) existía y que
+  esto era solo ordenar sus resultados por frecuencia de uso real en vez de solo por coincidencia
+  de texto — su único prerrequisito, `ARQ-0`, ya estaba cerrado desde la sesión 220.
+- **Investigado antes de tocar código** (vía subagente de exploración, sin modificar nada):
+  - El buscador (`findTasks(query, normalize)` en `e17-experience.js:130-133`) no tenía ningún
+    orden real hasta ahora — un `Array.prototype.filter` puro sobre `TASKS`, así que el orden de
+    salida era exactamente el de declaración del array, sin scoring ni alfabético.
+  - El contador de uso real de `ARQ-0` (`recordViewVisit`/`loadVisitCounts`/`viewVisitSummary`,
+    `app.js:4484-4550`) vive en `localStorage` como `{ [screenId]: { count, last } }`, sin datos
+    personales, escrito solo desde el router central (`setActiveView`) en cada cambio real de
+    vista. El informe «Uso de la app» de Ajustes (`usoAppRows`, `app.js:4556-4564`) ya consume ese
+    mismo contador y ya ordena por `count` descendente — el patrón de orden a reutilizar.
+  - Mismo espacio de IDs entre buscador y contador (`target` de `TASKS` == `viewId` de
+    `setActiveView`/`recordViewVisit`) — no hace falta cruzar por nombre, con una única cautela:
+    las cuatro claves heredadas de `REGISTRAR_LEGACY_HASH_TABS` (`update-hub`, `update-data`,
+    `datos-importar`, `data-entry`) nunca acumulan su propio contador porque `setActiveView` las
+    redirige a `"registrar"` antes de contar — su peso de búsqueda tiene que ser el de
+    `"registrar"`, no siempre 0.
+- **Construido**: `findTasks(query, normalize, getUsageWeight = () => 0)` gana un tercer parámetro
+  opcional (mismo patrón de inyección de función que ya usaba `normalize`), sin acoplar
+  `e17-experience.js` a `localStorage` — sigue siendo un módulo puro. Ordena los resultados
+  filtrados por peso descendente, con el índice original de `TASKS` como desempate estable — así,
+  sin peso (el valor por defecto), el orden de salida es exactamente el de antes, y los tests ya
+  existentes de `T2`/`UX6` que comparan conjuntos de resultados, no orden, siguieron en verde sin
+  tocarlos.
+  - `app.js` alimenta ese tercer parámetro con la función nueva `e17SearchUsageWeight(target)`
+    (junto a `viewVisitSummary`, `app.js:4548-4557`), que resuelve las cuatro claves heredadas de
+    `REGISTRAR_LEGACY_HASH_TABS` al contador de `"registrar"` antes de leer el peso.
+  - `renderE17Launcher` pasa `e17SearchUsageWeight` en vez de dejar el tercer argumento vacío
+    (`app.js:986`) — único cambio de cableado, sin nueva UI ni motor nuevo.
+  - 13 pruebas nuevas en `tests/nav2-buscador-ponderado.test.cjs` (orden por defecto sin cambios,
+    una pantalla más usada sube aunque vaya después en `TASKS`, empate conserva el orden original,
+    el peso nunca cambia qué entra por coincidencia de texto, query vacía también se ordena por
+    peso, peso no numérico/negativo se trata como 0, cableado en `renderE17Launcher`, resolución de
+    las cuatro claves heredadas a `"registrar"`).
+  - `tests/ux6-busqueda-importes.test.cjs` sandboxeaba `renderE17Launcher` en aislamiento sin
+    conocer el nombre nuevo `e17SearchUsageWeight` — se rompía con `ReferenceError` al extraer solo
+    esa función; corregido añadiendo `e17SearchUsageWeight: () => 0` al contexto compartido de sus
+    pruebas (no ejercitan la ponderación, solo necesitaban que la referencia existiera).
+  - Verificado en navegador real (Chromium vía Playwright, script ad hoc, sitio construido en
+    `dist/`): sembrando 77 visitas en `inversion-fiscal` vía `localStorage`, ese resultado sube al
+    primer puesto al buscar «inversion» pese a estar declarado después de «Inversión · Cartera» en
+    `TASKS` — la ponderación funciona de verdad, no solo en el sandbox de los tests. Sin peso
+    sembrado, «deuda» mantiene el mismo primer resultado de siempre. Sin errores de consola propios.
+- **Resultado de la validación**: `npm run verify` completo — 4670/4670 pruebas (4657 + 13 nuevas
+  de `NAV-2`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del
+  sitio, privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (225): pospuesta la Cola B 30 días más; `FLU-2` — atajo de un clic para registrar gasto desde Home
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6
