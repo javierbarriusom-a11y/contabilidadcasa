@@ -86,6 +86,49 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (230): `NAV-4` — la cabecera de las pestañas de Deuda repite «Deuda · <pestaña>», igual que Inversión
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FLU-1` (sesión 229), último
+  de los tres ítems S confirmados (`NAV-1` → `FLU-1` → `NAV-4`). El backlog pedía un indicador de
+  ubicación (breadcrumb) en las 9 pestañas de segundo nivel (5 de Inversión, 4 de Deuda), por
+  heurístico 6 de Nielsen ("reconocer, no recordar"), citando el mismo criterio que ya aplicó `T17`.
+- **Investigado antes de construir nada** (vía subagente de exploración): `T17` no creó ningún
+  componente de breadcrumb — repitió, en texto plano y al principio de la frase, una cifra que ya
+  gobernaba visualmente la pantalla pero que antes quedaba enterrada al final. El criterio real de
+  `T17` es "repetir en el punto de uso un dato que el usuario tendría que ir a buscar a otra
+  pantalla, sin construir UI nueva si ya existe una forma barata de decirlo con palabras".
+  - Las 9 pestañas ya tenían dos capas: un nav de pestañas real (`is-active`/`aria-current="page"`,
+    con numeración de paso e `is-done` en Deuda por ser un flujo secuencial) y un "eyebrow" textual
+    (`<p class="panel-kicker e19-eyebrow">`) sobre el `<h2>` de cada pantalla — el mismo patrón
+    genérico que usa toda la app, alimentado además por una entrada gemela en `viewTitles` (`app.js`)
+    que rellena la cabecera compartida real (`#viewEyebrow`, vía `setActiveView`).
+  - Inversión ya seguía el patrón `"Inversión · <Pestaña>"` en ambas capas — nada que arreglar ahí.
+  - **Deuda decía `"Decidir · <descripción libre>"`** (p. ej. tab «Comparar» → eyebrow "comparar
+    estrategias"; tab «Ruta» → eyebrow "plan de deuda") — vestigial desde que `NAV-1` (sesión 228)
+    sacó Deuda del grupo «Decidir» del menú avanzado, y ni repetía la palabra "Deuda" ni la etiqueta
+    exacta de la pestaña activa. Quien aterriza en `#deuda-contratos` por el buscador no veía
+    "Deuda" en ningún sitio de la cabecera — el hueco real de heurístico 6.
+- **Construido**: las 4 entradas de `viewTitles` de Deuda (`app.js`) y sus 4 párrafos `eyebrow`
+  gemelos en `index.html` pasan de `"Decidir · ..."` a `"Deuda · <Pestaña>"` (Ruta/Comparar/
+  Contratos/Simulador visual), con la etiqueta exacta que ya usa `DEUDA_SCREEN_TABS`
+  (`views/deuda.js`) — mismo patrón que Inversión, sin componente nuevo, sin motor nuevo.
+  - 4 pruebas nuevas en `tests/nav4-cabecera-consistente-deuda-inversion.test.cjs`: las 4 pestañas
+    de Deuda repiten "Deuda · <Pestaña>" con la etiqueta exacta (comparado dinámicamente contra
+    `DEUDA_SCREEN_TABS`, nunca hardcodeado dos veces), ninguna sigue diciendo "Decidir", las 5 de
+    Inversión no se rompieron, y — la comprobación que el propio comentario de `viewTitles` ya
+    prometía sin que nada la verificara — el eyebrow estático de cada una de las 9 pestañas coincide
+    siempre, carácter a carácter, con su entrada gemela de `viewTitles`.
+  - Verificado en navegador real (Chromium vía Playwright, sitio construido en `dist/`): al navegar
+    por hash a las 4 pestañas de Deuda y 2 de Inversión, la cabecera compartida (`#viewEyebrow`)
+    muestra el texto correcto en las 6. Sin errores de consola propios.
+- **Resultado de la validación**: `npm run verify` completo — 4694/4694 pruebas (4690 + 4 nuevas de
+  `NAV-4`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+  Con esto se cierra el horizonte 3 completo salvo `ARQ-3` y `ARQ-4`/`T9` (los dos ítems de deuda
+  técnica de mayor esfuerzo, siguiente orden confirmado con el hogar).
+
 ## Cierre de sesión — 23 de septiembre de 2026 (229): `FLU-1` — la regla de 4 bloques de Home pasa de disciplina a invariante
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-1` (sesión 228), segundo
