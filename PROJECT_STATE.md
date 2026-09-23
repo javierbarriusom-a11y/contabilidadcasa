@@ -86,6 +86,34 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (229): `FLU-1` — la regla de 4 bloques de Home pasa de disciplina a invariante
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-1` (sesión 228), segundo
+  de los tres ítems S confirmados (`NAV-1` → `FLU-1` → `NAV-4`). El backlog pedía un test automático
+  que fijara la regla de máximo 4 bloques en `.home-primary-section` (`OPT-8`) como invariante, no
+  solo como disciplina — "nada la protege hacia adelante si una tarjeta nueva se añade sin cuidado".
+- **Investigado antes de tocar nada**: ya existía `tests/opt8-jerarquia-visual-hoy.test.cjs`, pero
+  solo comprueba QUÉ cuatro bloques hay (por `id`: cobertura, el mes en una línea, decisiones
+  abiertas, KPIs) — no CUÁNTOS. Ese test seguiría en verde si alguien añadiera una quinta tarjeta
+  nueva a `.home-primary-section` sin querer, mientras los cuatro `id` de siempre siguieran
+  presentes. Es exactamente el hueco que `FLU-2` (sesión 225) tuvo que razonar a mano al decidir
+  dónde vivía su botón nuevo (fuera de `.home-primary-section`, en la cabecera) — sin este test, esa
+  misma decisión dependía de que cada sesión futura se acordara de mirarlo.
+  - Recuento real de hoy dentro de `.home-primary-section`: 3 `.home-panel` (cobertura, el mes en
+    una línea, decisiones abiertas) + 1 `.home-kpi-grid` (KPIs) = 4 bloques. `.home-layout` (el
+    envoltorio de fila que pone cobertura y «el mes en una línea» lado a lado) no cuenta como un
+    bloque aparte — mismo criterio que ya usa el propio comentario de `OPT-8` en `index.html`.
+- **Construido**: `tests/flu1-invariante-4-bloques-home.test.cjs` (fichero nuevo, sin tocar código
+  de producción) — cuenta `.home-panel` + `.home-kpi-grid` dentro de `.home-primary-section` y falla
+  si supera 4 (el techo real que pide el backlog), más dos pruebas complementarias que fijan el
+  recuento de hoy (3+1) y confirman que `.home-layout` no se cuela como quinto bloque.
+- **Resultado de la validación**: `npm run verify` completo — 4690/4690 pruebas (4687 + 3 nuevas de
+  `FLU-1`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. Sin verificación de navegador: cambio de solo test, ningún
+  archivo de producción tocado.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (228): `NAV-1` — subcabeceras visibles de «Deuda» e «Inversión» en el menú avanzado
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FIN-1` (sesión 227), primero
