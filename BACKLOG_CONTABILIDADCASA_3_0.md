@@ -113,7 +113,17 @@ activación son dos: **el contador corriendo al menos un mes** (cumplida desde a
 este documento — ver `ARQ-0` en §1 — y ahora también visible en el informe «Uso de la app» de
 Ajustes) y una conversación explícita del hogar sobre qué pantallas se abren de verdad, todavía
 pendiente. Activarlas sin esa conversación repetiría exactamente el patrón que la auditoría de
-origen señala como riesgo (§0). Cuando llegue ese momento, la priorización
+origen señala como riesgo (§0).
+
+**El hogar pospuso la activación 30 días más el 23 de septiembre de 2026 (sesión 224)**: la
+condición real no es solo tiempo de calendario, sino uso intensivo genuino de la app, que aún no
+se ha dado — el contador llevaba corriendo el mes exigido, pero un mes de uso ligero no da una
+muestra representativa de qué pantallas se abren de verdad. **Antes de volver a proponer activar
+la Cola B, cualquier sesión debe preguntar primero al hogar si el uso ha sido adecuado/intensivo
+en este tiempo**, no dar la condición por cumplida solo porque haya pasado el plazo de calendario
+otra vez.
+
+Cuando llegue ese momento, la priorización
 dentro de la Cola B debería favorecer visualización/consistencia (menor riesgo, mayor alcance)
 sobre las funcionalidades nuevas más especulativas (simulador de reubicación, widget nativo, modo
 demostración), que la propia auditoría de origen ya marca como las primeras candidatas a recortar.
