@@ -113,12 +113,20 @@
               <p class="advanced-nav-label" data-e17-nav-label="decidir">Decidir</p>
               <a href="#escenario-simular" data-e17-group="analysis">Escenario · simular (nuevo)</a>
               <a href="#escenario-guardados" data-e17-group="analysis">Escenario · guardados (nuevo)</a>
+              <!-- NAV-1 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): Deuda e Inversión vivían sin
+                   subcabecera propia, agrupadas de facto bajo «Decidir» — la agrupación ya existía
+                   en el código (navigation-structure.test.cjs las nombraba por comentario) pero no
+                   era visible en la UI. Mismo patrón data-e17-nav-label que ya usan Seguros/Fiscal/
+                   Patrimonio/Analizar (OPT-25): solo cabecera visual, no crea ningún interruptor de
+                   preferencia nuevo (sigue siendo el grupo "analysis" de siempre). -->
+              <p class="advanced-nav-label" data-e17-nav-label="deuda">Deuda</p>
               <a href="#deuda-comparar" data-e17-group="analysis">Comparar estrategias de deuda (nuevo)</a>
               <a href="#deuda-ruta" data-e17-group="analysis">Plan de deuda · ruta (nuevo)</a>
               <a href="#deuda-contratos" data-e17-group="analysis">Contratos de deuda (nuevo)</a>
               <a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda (nuevo)</a>
               <!-- I1: las otras 4 pestañas de Inversión (Cartera vive en el enlace principal de
                    arriba), mismo patrón que las 3 pestañas de Deuda de arriba. -->
+              <p class="advanced-nav-label" data-e17-nav-label="inversion">Inversión</p>
               <a href="#inversion-cartera" data-e17-group="analysis">Inversión · Cartera (nuevo)</a>
               <a href="#inversion-rebalanceo" data-e17-group="analysis">Inversión · Rebalanceo (nuevo)</a>
               <a href="#inversion-fiscal" data-e17-group="analysis">Inversión · Fiscal (nuevo)</a>
