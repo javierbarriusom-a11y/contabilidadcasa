@@ -86,6 +86,42 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (228): `NAV-1` — subcabeceras visibles de «Deuda» e «Inversión» en el menú avanzado
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `FIN-1` (sesión 227), primero
+  de los tres ítems S baratos confirmados con el hogar (`NAV-1` → `FLU-1` → `NAV-4`). El backlog
+  pedía subcabeceras visibles para las cinco categorías del grupo «Analizar» del menú avanzado
+  (Deuda/Inversión/Seguros/Fiscal/Patrimonio, 24 enlaces), señalando que la agrupación ya existía
+  en el código — `navigation-structure.test.cjs` la nombraba por comentario — pero no en la UI.
+- **Investigado antes de tocar nada**: de las cinco categorías nombradas por el backlog, tres
+  (Seguros, Fiscal, Patrimonio) ya tenían su propia subcabecera visible (`<p class="advanced-nav-
+  label" data-e17-nav-label="...">`, patrón que `OPT-25` ya usó tres veces en septiembre). Las dos
+  que faltaban de verdad eran Deuda (4 enlaces) e Inversión (5 enlaces): vivían sin cabecera propia,
+  agrupadas de facto bajo «Decidir» (que en realidad solo debería cubrir los dos enlaces de
+  escenario). El mecanismo que muestra/oculta cada subcabecera según sus enlaces visibles
+  (`e17LabelHasVisibleLinks`, `app.js:715-722`) es agnóstico al texto de la etiqueta — añadir dos
+  más no toca ningún interruptor de preferencia nuevo, sigue siendo el mismo grupo `"analysis"` de
+  siempre.
+- **Construido**: dos líneas nuevas en `index.html` —
+  `<p class="advanced-nav-label" data-e17-nav-label="deuda">Deuda</p>` antes de los cuatro enlaces
+  de deuda, y la misma para `data-e17-nav-label="inversion">Inversión` antes de los cinco de
+  inversión — exactamente el patrón ya existente, sin CSS nueva, sin JS nuevo, sin motor nuevo.
+  - 5 pruebas nuevas en `tests/nav1-subcabeceras-deuda-inversion.test.cjs`: las dos subcabeceras
+    existen con el patrón correcto, preceden a sus enlaces en el orden esperado, «Decidir» sigue
+    existiendo y sigue precediendo a «Deuda», las cinco categorías del backlog tienen subcabecera, y
+    el conteo de 24 enlaces del grupo `analysis` no cambia (NAV-1 no añade ni quita pantallas, solo
+    cabeceras visuales).
+  - Verificado en navegador real (Chromium vía Playwright, sitio construido en `dist/`): al abrir
+    «Herramientas avanzadas», las nueve subcabeceras aparecen en el orden correcto (Decidir → Deuda
+    → Inversión → Seguros → Fiscal → Patrimonio e inversión → Analizar → Datos → Versiones
+    anteriores), y los cuatro enlaces bajo «Deuda» son exactamente los esperados. Sin errores de
+    consola propios.
+- **Resultado de la validación**: `npm run verify` completo — 4687/4687 pruebas (4682 + 5 nuevas de
+  `NAV-1`), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada paso.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (227): `FIN-1` — el rebalanceo de inversión avisa cuando rompería el colchón que ya garantizan deuda y apalancamiento
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-2` (sesión 226).
