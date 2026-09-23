@@ -21941,7 +21941,19 @@ function renderIv6Rebalance() {
     const verb = row.action === "comprar" ? "Comprar" : "Vender";
     return `<li class="negative">${escapeHtml(label)}: ${row.currentPct}% (objetivo ${row.targetPct}%) — ${verb} ${money(Math.abs(row.amount), true)}</li>`;
   });
-  note.innerHTML = `<ul class="e19-kpi-note">${rows2.join("")}</ul>`;
+  // FIN-1: mismo guardarraíl de liquidez (cushionFloor + liquidityLadder) que ya usan
+  // DEB15/AP3/AP4/AP6/INV7 — avisa cuando seguir esta sugerencia dejaría de cubrir el mismo colchón
+  // que INV7 (pestaña Inversión · Cartera) dice cubierto hoy. Motor puro: nunca bloquea la sugerencia.
+  const cushionEngine = window.FinanceCanonicalCushion;
+  let guardrailHtml = "";
+  if (cushionEngine) {
+    const floor = cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+    const guardrail = engine.rebalanceLiquidityGuardrail(result.summary.totalsByType, suggestions, floor);
+    if (guardrail.worsens) {
+      guardrailHtml = `<p class="e19-kpi-note negative">Aviso: seguir este rebalanceo dejaría de cubrir tu colchón mínimo (${money(floor, true)}) con liquidez inmediata o de hasta 7 días — hoy sí lo cubre (ver «Escalera de liquidez» en Inversión · Cartera).</p>`;
+    }
+  }
+  note.innerHTML = `<ul class="e19-kpi-note">${rows2.join("")}</ul>${guardrailHtml}`;
 }
 
 // INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — IV6 (arriba) solo avisa
