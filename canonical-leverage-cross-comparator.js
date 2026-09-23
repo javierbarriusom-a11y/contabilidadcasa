@@ -124,6 +124,17 @@
     };
   }
 
+  /**
+   * @param {{
+   *   amount?: number, months?: number,
+   *   lombard?: {portfolioValue?: number, ltvPct?: number, annualRatePct?: number},
+   *   mortgage?: {annualRatePct?: number},
+   *   creditLine?: {limit?: number, annualRatePct?: number},
+   *   barrierResult?: {valid?: boolean},
+   *   leveragePolicy?: {calculable?: boolean, withinLimit?: boolean},
+   *   lombardEngine?: *, creditLineEngine?: *,
+   * }} [params]
+   */
   function crossInstrumentLeverageComparison({
     amount, months, lombard, mortgage, creditLine, barrierResult, leveragePolicy, lombardEngine, creditLineEngine,
   } = {}) {

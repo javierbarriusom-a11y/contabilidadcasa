@@ -68,7 +68,7 @@
     const writePath = findWritePath(response);
     if (writePath) return { valid: false, reason: "write-content-forbidden", path: writePath };
     const available = new Set(list(query.payload?.readModel?.sources).map((item) => item.id));
-    const citations = list(response.citations).map(text).filter(Boolean);
+    const citations = list(response.citations).map((item) => text(item)).filter(Boolean);
     if (!citations.length) return { valid: false, reason: "citations-missing" };
     const unknownCitations = citations.filter((id) => !available.has(id));
     if (unknownCitations.length) return { valid: false, reason: "citation-unknown", unknownCitations };

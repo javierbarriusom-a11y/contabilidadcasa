@@ -168,6 +168,7 @@
   // lo use decide si avisa, si pide confirmación extra, o ambas cosas.
   const AMORTIZE_EARLY_WARNING_MARGIN = 0.2;
 
+  /** @param {{amount?: number, liquidity?: number, floor?: number}} [params] */
   function amortizeCushionGuardrail({ amount, liquidity, floor } = {}) {
     const amountSafe = round2(Math.max(0, number(amount)));
     const liquiditySafe = round2(number(liquidity));
@@ -198,6 +199,9 @@
   // día de la cancelación sí pasara amortizeCushionGuardrail.
   const DEFAULT_CANCELLATION_GUARDRAIL_MONTHS = 6;
 
+  /**
+   * @param {{amount?: number, liquidity?: number, floor?: number, forecastSeries?: Array<{monthKey?: string, label?: string, totals?: {closingLiquidity?: number}, closingLiquidity?: number}>, horizonMonths?: number}} [params]
+   */
   function cancellationLiquidityGuardrail({ amount, liquidity, floor, forecastSeries = [], horizonMonths = DEFAULT_CANCELLATION_GUARDRAIL_MONTHS } = {}) {
     const amountSafe = round2(Math.max(0, number(amount)));
     const floorSafe = round2(Math.max(0, number(floor)));
@@ -233,6 +237,7 @@
   // o invertir, según lo que ya diga AP1. Sin un veredicto claro de AP1 (empate o sin rentabilidad
   // de cartera calculable), la parte libre queda "unassigned" — nunca se inventa un reparto 50/50
   // sin criterio real.
+  /** @param {{amount?: number, liquidity?: number, floor?: number, assessment?: string}} [params] */
   function surplusAllocationRule({ amount, liquidity, floor, assessment } = {}) {
     const amountSafe = round2(Math.max(0, number(amount)));
     if (amountSafe <= 0) return { calculable: false };
@@ -270,6 +275,7 @@
   // importe amortizado, así que amortizar el excedente entero dejaría sin cubrir su propia comisión.
   // Nunca todo-o-nada: el importe se ajusta hacia abajo lo justo para que "amortizado + su comisión"
   // quepa en el excedente disponible, y nunca supera el capital pendiente de la deuda.
+  /** @param {{allocatedSurplus?: number, remainingPrincipal?: number, penaltyPct?: number}} [params] */
   function dimensionOptimalPrepayment({ allocatedSurplus, remainingPrincipal, penaltyPct = 0 } = {}) {
     const surplus = round2(Math.max(0, number(allocatedSurplus)));
     if (surplus <= 0) return { calculable: false };
@@ -299,6 +305,7 @@
   // escenario de tensión declarado (mismo marco base/favorable/tensión de E13, nunca un porcentaje
   // "típico" inventado aquí). Distinto de LPX2 (runway de patrimonio neto completo, incluye lo no
   // líquido): este solo cuenta lo disponible de verdad en una emergencia real.
+  /** @param {{liquidity?: number, monthlyBurn?: number, stressExpenseFactor?: number, monthlyDebtService?: number}} [params] */
   function resilienceMonths({ liquidity, monthlyBurn, stressExpenseFactor = 1, monthlyDebtService = 0 } = {}) {
     const liquiditySafe = round2(Math.max(0, number(liquidity)));
     const stressedBurn = round2(Math.max(0, number(monthlyBurn)) * Math.max(1, number(stressExpenseFactor, 1)));
@@ -325,6 +332,10 @@
   // reconstruye traspasos puntuales entre cuentas (aportaciones a inversión, amortizaciones extra)
   // que también movieron la liquidez real de esos meses — solo el flujo neto agregado que PVX1 ya
   // usa, nunca una cifra con apariencia de precisión histórica que la app no tiene.
+  /**
+   * @param {Array} history
+   * @param {{currentLiquidity?: number, floor?: number}} [params]
+   */
   function cushionRetrospective(history, { currentLiquidity, floor } = {}) {
     const rows = (Array.isArray(history) ? history : [])
       .filter((record) => Number.isFinite(record?.actual))

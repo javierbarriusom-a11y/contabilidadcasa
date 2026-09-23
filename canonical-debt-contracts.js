@@ -328,6 +328,7 @@
   // francesa estándar del préstamo nuevo sobre la suma de principales. Es una simulación hipotética,
   // distinta del plan ya reunificado (`reunified`/`unifiedPlan` de `normalizeContracts`) — aquí
   // ninguna deuda cambia de estado hasta que el hogar decida ejecutarlo de verdad.
+  /** @param {{contracts?: Array, contractIds?: Array<string>, newLoan?: {annualRatePct?: number, termMonths?: number}}} [params] */
   function simulateDebtConsolidation({ contracts = [], contractIds = [], newLoan = {} } = {}) {
     const ids = Array.isArray(contractIds) ? contractIds : [];
     const selected = (Array.isArray(contracts) ? contracts : [])

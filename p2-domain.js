@@ -61,7 +61,7 @@
       // (`position.goalId`) sin pasar por ningún schema. Array de ids de posición, sin duplicados;
       // un id que ya no corresponde a ninguna posición registrada se ignora al leer, nunca se borra
       // aquí (borrarlo es responsabilidad de quien gestiona las posiciones, no de esta normalización).
-      fundingPositions: [...new Set((Array.isArray(goal.fundingPositions) ? goal.fundingPositions : []).map(text).filter(Boolean))],
+      fundingPositions: [...new Set((Array.isArray(goal.fundingPositions) ? goal.fundingPositions : []).map((item) => text(item)).filter(Boolean))],
       createdAt: text(goal.createdAt) || new Date().toISOString(),
       updatedAt: text(goal.updatedAt) || new Date().toISOString(),
     };

@@ -42,6 +42,7 @@
     return normalizeRule(byCategory || defaultRule);
   }
 
+  /** @param {{amount: number, rule: *, incomes?: {javi?: number, tere?: number}}} params */
   function splitShares({ amount, rule, incomes = {} }) {
     const total = round2(Math.max(0, amount));
     const normalized = normalizeRule(rule);

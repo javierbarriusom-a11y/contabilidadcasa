@@ -96,6 +96,9 @@
     };
   }
 
+  /**
+   * @param {{asOfDate?: string, checkingBalance?: number, events?: Array, movements?: Array, override?: {nextIncomeDate?: string, dailyOutflow?: number}}} [params]
+   */
   function coverageUntilNextIncome({ asOfDate, checkingBalance = 0, events = [], movements = [], override = {} } = {}) {
     const asOf = isoDate(asOfDate);
     const learned = learnCashflowPatterns(movements);
@@ -114,7 +117,7 @@
     }
     const dailyOutflow = number(override.dailyOutflow, learned.typicalDailyOutflow);
     const days = nextIncomeDate && asOf
-      ? Math.max(0, Math.round((utcDate(nextIncomeDate) - utcDate(asOf)) / 86400000))
+      ? Math.max(0, Math.round((utcDate(nextIncomeDate).getTime() - utcDate(asOf).getTime()) / 86400000))
       : null;
     const required = days === null || !Number.isFinite(dailyOutflow) ? null : round(days * dailyOutflow);
     const balance = round(checkingBalance);

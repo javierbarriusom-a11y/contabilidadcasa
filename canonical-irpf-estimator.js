@@ -55,9 +55,19 @@
     );
   }
 
+  /**
+   * @typedef {Object} BracketScale
+   * @property {string} [id]
+   * @property {string} [region]
+   * @property {number|string} [year]
+   * @property {string} [source]
+   * @property {Array<{limit?: number|null, rate?: number}>} [brackets]
+   */
+
   // Un tramo válido: importes de límite estrictamente crecientes, el último sin límite superior
   // (tramo abierto), tipos entre 0 y 100. Cualquier desviación invalida la escala entera — nunca
   // se calcula con una escala a medias.
+  /** @param {BracketScale} [scale] */
   function validateBracketScale(scale = {}) {
     const issues = [];
     const brackets = Array.isArray(scale.brackets) ? scale.brackets : [];
@@ -95,6 +105,7 @@
     return round2(tax);
   }
 
+  /** @param {BracketScale} scale */
   function scaleCitation(scale) {
     return { id: text(scale.id), region: text(scale.region), year: scale.year ?? null, source: scale.source || null };
   }
@@ -104,6 +115,7 @@
   // el resto de la app no puede respaldar. Sin las dos escalas (estatal + autonómica) registradas
   // y con fuente completa, no hay resultado que calcular: calculable queda en false, con el motivo
   // exacto, nunca un 0 o un rango inventado.
+  /** @param {{taxableBaseRange?: {low?: number, high?: number}, withholdingsPaid?: number, stateScale?: BracketScale, regionalScale?: BracketScale, year?: number|string}} [params] */
   function estimateIrpfResult({ taxableBaseRange, withholdingsPaid, stateScale, regionalScale, year } = {}) {
     const low = Math.max(0, number(taxableBaseRange?.low));
     const high = Math.max(low, number(taxableBaseRange?.high, low));
@@ -175,6 +187,7 @@
     return { bracket: brackets[brackets.length - 1], previousLimit, upper: Infinity };
   }
 
+  /** @param {{scale?: BracketScale, alreadyRealizedGain?: number, proposedGain?: number}} [params] */
   function optimizePartialSale({ scale, alreadyRealizedGain, proposedGain } = {}) {
     const check = validateBracketScale(scale || {});
     if (!check.valid) {
@@ -213,6 +226,7 @@
   // ahorro, y sin partir de una plusvalía ya realizada sino de la renta general estimada del hogar.
   // Sin las dos escalas registradas con fuente completa, no hay tramo real que aplicar — se informa
   // así, nunca con un tipo marginal inventado.
+  /** @param {{amount?: number, currentAnnualIncome?: number, stateScale?: BracketScale, regionalScale?: BracketScale}} [params] */
   function marginalTaxOnAdditionalIncome({ amount, currentAnnualIncome, stateScale, regionalScale } = {}) {
     const additional = Math.max(0, round2(amount));
     if (!(additional > 0)) return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-amount", warning: PROFESSIONAL_WARNING };
@@ -253,6 +267,9 @@
   // aplica) en partes iguales a lo largo de los años declarados, sumando cada parte a la MISMA
   // renta general base cada año. Es un supuesto explícito de partida, no una previsión de cómo
   // cambiará esa renta en el futuro — se declara en `assumptions`, nunca en silencio.
+  /**
+   * @param {{amount?: number, preTwoThousandSevenAmount?: number, currentAnnualIncome?: number, annuityYears?: number, stateScale?: BracketScale, regionalScale?: BracketScale, flatRatePct?: number}} [params]
+   */
   function pensionWithdrawalComparison({
     amount,
     preTwoThousandSevenAmount = 0,

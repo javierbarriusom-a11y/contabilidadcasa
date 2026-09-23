@@ -608,6 +608,10 @@
   // concepto agregado "monthly-net", nunca por partida, así que esa explicación no baja a las
   // ramas ni a las hojas: fingir un desglose causal que el aprendizaje no reconstruye sería más
   // engañoso que no darlo.
+  /**
+   * @param {string} monthKey
+   * @param {{series?: Array, diary?: Array}} [params]
+   */
   function causalTreeForMonth(monthKey, { series, diary } = {}) {
     const key = text(monthKey);
     const month = (Array.isArray(series) ? series : []).find((item) => item.monthKey === key);

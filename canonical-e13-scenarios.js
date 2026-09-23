@@ -19,7 +19,7 @@
     { id: "stress", label: "Tensión", incomeFactor: 0.9, expenseFactor: 1.1 },
   ]);
 
-  const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
   const round = (value) => Math.round((number(value) + Number.EPSILON) * 100) / 100;
   const text = (value) => String(value ?? "").trim();
   const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
@@ -32,6 +32,7 @@
     return round(ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower));
   }
 
+  /** @param {*} [fallback] */
   function assumptionValue(forecast, id, fallback = 0) {
     const item = (forecast?.assumptions?.items || []).find((candidate) => candidate.id === id);
     return item ? item.value : fallback;
@@ -245,6 +246,7 @@
   // decidido por este motor.
   const ENSEMBLE_SCHEMA_ID = `${SCHEMA_ID}/ensemble-v1`;
 
+  /** @param {{historical?: {p10?: number, p50?: number, p90?: number}, manual?: {p10?: number, p50?: number, p90?: number}, historicalWeightPct?: number}} [params] */
   function ensembleForecastRange({ historical, manual, historicalWeightPct } = {}) {
     if (!historical && !manual) return { schemaId: ENSEMBLE_SCHEMA_ID, calculable: false, reason: "no-source" };
     if (historical && !manual) {

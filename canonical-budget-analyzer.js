@@ -17,13 +17,28 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetAnalyzerFactory() {
   "use strict";
 
+/**
+ * @typedef {Object} CategoryAnalysis
+ * @property {number} months
+ * @property {number} entries
+ * @property {number} average
+ * @property {number} median
+ * @property {number} p75
+ * @property {number} p25
+ * @property {number} stdDev
+ * @property {*} seasonality
+ * @property {string} confidence - "low"|"medium"|"high"
+ * @property {Array<{month: *, amount: number, zScore: number}>} flaggedOutliers
+ * @property {number} recommendation
+ */
+
 class CanonicalBudgetAnalyzer {
   /**
    * Analiza una categoría de gasto y retorna estadísticas e índice de confianza.
    *
    * @param {Array} movements - Movimientos filtrados por categoría, últimos 6-12 meses
-   * @param {number} months - Número de meses a analizar (default: 6)
-   * @returns {Object|null} { categoryId, months, entries, average, median, p75, p25, stdDev, seasonality, confidence, flaggedOutliers }
+   * @param {{months?: number}} [options] - Número de meses a analizar (default: 6)
+   * @returns {CategoryAnalysis|null}
    */
   static analyzeCategory(movements, { months = 6 } = {}) {
     if (!movements || movements.length < 3) {
@@ -108,7 +123,7 @@ class CanonicalBudgetAnalyzer {
    * hueco que bloqueó IVX1/IVX5), la varianza total es la suma de las varianzas de cada categoría,
    * así que el peso de cada una es su propia varianza sobre esa suma.
    *
-   * @param {Array<{categoryId: string, analysis: object|null}>} categoryAnalyses - analysis = resultado de analyzeCategory (o null, se ignora)
+   * @param {Array<{categoryId: string, analysis: CategoryAnalysis|null}>} categoryAnalyses - analysis = resultado de analyzeCategory (o null, se ignora)
    * @param {number} bandWidth - amplitud de la banda total a repartir (€, p. ej. p90 - p10)
    * @returns {Array<{categoryId, monthlyStdDev, sharePct, explainedWidth}>} ordenado de mayor a menor peso
    */

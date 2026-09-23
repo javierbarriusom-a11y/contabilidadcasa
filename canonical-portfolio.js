@@ -479,6 +479,10 @@
     return Math.max(0, months);
   }
 
+  /**
+   * @param {{lastReviewedAt?: string, intervalMonths?: number}} [params]
+   * @param {Date} [referenceDate]
+   */
   function rebalanceCalendarReviewStatus({ lastReviewedAt, intervalMonths = REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS } = {}, referenceDate = new Date()) {
     const effectiveInterval = knownNumber(intervalMonths) && number(intervalMonths) > 0 ? number(intervalMonths) : REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS;
     if (!known(lastReviewedAt)) {
@@ -547,6 +551,7 @@
   // futuro, mismo criterio que AP3 con los escenarios de rentabilidad esperada. Sin importe, sin
   // horizonte o sin una rentabilidad anual conocida, no hay coste de oportunidad que mostrar, nunca
   // un 0% asumido en su lugar.
+  /** @param {{amount?: number, months?: number, annualReturnPct?: number}} [params] */
   function opportunityCost({ amount, months, annualReturnPct } = {}) {
     const principal = Math.max(0, number(amount));
     const horizonMonths = Math.max(0, number(months));
@@ -588,6 +593,7 @@
   // (fifoLedger, dentro de normalizePositions) — sin motor de cálculo nuevo, solo la agregación por
   // año natural y el arrastre. Una sola venta con `realizedGain: null` (shortfall de FIFO) invalida
   // la compensación de ese año entero — nunca neta un resultado a medias que parezca completo.
+  /** @param {{positions?: Array<{disposals?: Array<{date?: string, realizedGain?: number|null}>}>, year?: string|number, priorLosses?: Array<{year?: string|number, amount?: number}>}} [params] */
   function yearEndCompensation({ positions = [], year, priorLosses = [] } = {}) {
     const targetYear = String(year || "");
     if (!/^\d{4}$/.test(targetYear)) {
@@ -710,6 +716,10 @@
     return list.filter((position) => position.goalId === goalId);
   }
 
+  /**
+   * @param {{goalId?: string, goalName?: string, targetDate?: string, positions?: Array<{id?: string, label?: string, currentValue?: number, assetClass?: string}>, fundingPositionIds?: Array<string>}} [params]
+   * @param {Date} [now]
+   */
   function glidePathForGoal({ goalId, goalName, targetDate, positions = [], fundingPositionIds } = {}, now = new Date()) {
     if (!known(goalId) || !known(targetDate)) return { schema: GLIDE_PATH_SCHEMA_ID, calculable: false };
     const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -755,6 +765,10 @@
   // avisa de que esta app no clasifica riesgo/volatilidad real, así que esto solo hace visible el
   // contraste. `mismatch` usa el mismo umbral del 50% que ya usa IVX8 para "dominante" (aquí:
   // creciente vs. defensivo), no una cifra objetivo inventada por banda.
+  /**
+   * @param {{goalId?: string, positions?: Array<{id?: string, currentValue?: number, assetClass?: string}>, fundingPositionIds?: Array<string>}} [params]
+   * @param {string} [band]
+   */
   function assetClassVsGlidePath({ goalId, positions = [], fundingPositionIds } = {}, band) {
     const linked = linkedPositionsForGoal(goalId, positions, fundingPositionIds);
     const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
@@ -789,6 +803,7 @@
   // contrario.
   const FEE_COST_SCHEMA_ID = "finanzas-casa-portfolio-fee-cost";
 
+  /** @param {{currentValue?: number, feePct?: number, years?: number}} [params] */
   function compoundedFeeCost({ currentValue, feePct, years } = {}) {
     if (!(number(currentValue) > 0) || !(number(feePct) > 0) || !(number(years) > 0)) {
       return { schema: FEE_COST_SCHEMA_ID, calculable: false };
@@ -815,6 +830,7 @@
   // feePct que ya calcula compoundedFeeCost.
   const TOTAL_COST_OF_OWNERSHIP_SCHEMA_ID = "finance-inv15-total-cost-of-ownership/v1";
 
+  /** @param {{currentValue?: number, feePct?: number, custodyFeeAnnual?: number, years?: number}} [params] */
   function totalCostOfOwnership({ currentValue, feePct, custodyFeeAnnual, years } = {}) {
     const horizonYears = Math.max(0, number(years));
     const custodyAnnual = Math.max(0, number(custodyFeeAnnual));
