@@ -48,6 +48,9 @@ function sandboxWith(names, extra = {}) {
     escapeHtml: (v) => String(v ?? ""),
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
+    // NAV-2: renderE17Launcher pasa e17SearchUsageWeight a E17Experience.findTasks; estos tests
+    // no ejercitan la ponderación (mockean findTasks), pero la referencia debe existir.
+    e17SearchUsageWeight: () => 0,
     formatIsoDate: (v) => {
       const [year, month, day] = String(v).slice(0, 10).split("-");
       return day && month && year ? `${day}/${month}/${year}` : String(v);

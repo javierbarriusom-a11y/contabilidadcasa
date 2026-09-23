@@ -983,7 +983,7 @@ function handleE17QuickCapture(dataset) {
 function renderE17Launcher(query = "") {
   const results = qs("e17LauncherResults");
   if (!results) return;
-  const matches = E17Experience?.findTasks(query, normalizedText) || [];
+  const matches = E17Experience?.findTasks(query, normalizedText, e17SearchUsageWeight) || [];
   const amount = e17ParseAmountQuery(query);
   const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : "";
   // Una pregunta de importe (UX6) y una orden de captura (DEX1) no deberían disparar a la vez —
@@ -4547,6 +4547,15 @@ function renderDataNatureBadge(viewId) {
 
 function viewVisitSummary(viewId) {
   return loadVisitCounts()[viewId] || { count: 0, last: "" };
+}
+
+// NAV-2 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): peso de uso real para E17Experience.findTasks.
+// Las cuatro claves de REGISTRAR_LEGACY_HASH_TABS nunca acumulan su propio contador —
+// setActiveView las redirige a "registrar" antes de llamar a recordViewVisit (línea ~4586)— así
+// que su peso de búsqueda es el de "registrar", la pantalla donde de verdad aterrizan.
+function e17SearchUsageWeight(target) {
+  const resolved = Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, target) ? "registrar" : target;
+  return viewVisitSummary(resolved).count;
 }
 
 // ARQ-0 (BACKLOG_CONTABILIDADCASA_3_0.md §1): el contador de T-4/OPT-2 ya registra toda pantalla,

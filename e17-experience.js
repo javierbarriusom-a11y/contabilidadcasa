@@ -127,9 +127,17 @@
     reconciliation: ["Recuperar y conciliar", "Compara antes de restaurar, conserva una copia descargable y elige explícitamente entre tu versión local y la nube si hay conflicto."],
   });
 
-  function findTasks(query, normalize = (value) => String(value || "").toLowerCase()) {
+  // NAV-2 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): getUsageWeight es opcional y por defecto pesa
+  // 0 para todo, así que sin argumento el orden de salida sigue siendo el de declaración de TASKS
+  // (comportamiento previo a NAV-2, el que ya cubren los tests de T2). Con un peso real (frecuencia
+  // de apertura de cada pantalla, ARQ-0) los resultados con más uso suben primero; a igualdad de
+  // peso se conserva el orden original de TASKS como desempate estable.
+  function findTasks(query, normalize = (value) => String(value || "").toLowerCase(), getUsageWeight = () => 0) {
     const term = normalize(query);
-    return TASKS.filter((item) => !term || normalize(`${item.label} ${item.keywords}`).includes(term));
+    return TASKS.map((item, index) => ({ item, index }))
+      .filter(({ item }) => !term || normalize(`${item.label} ${item.keywords}`).includes(term))
+      .sort((a, b) => (Number(getUsageWeight(b.item.target)) || 0) - (Number(getUsageWeight(a.item.target)) || 0) || a.index - b.index)
+      .map(({ item }) => item);
   }
 
   function guidanceFor(viewId, fallback) {
