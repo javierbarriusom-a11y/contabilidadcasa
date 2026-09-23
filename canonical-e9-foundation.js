@@ -19,7 +19,7 @@
   const text = (value) => String(value ?? "").trim();
   const list = (value) => (Array.isArray(value) ? value : []);
   const object = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value : {});
-  const unique = (values) => [...new Set(list(values).map(text).filter(Boolean))];
+  const unique = (values) => [...new Set(list(values).map((item) => text(item)).filter(Boolean))];
   const nowIso = (value) => text(value) || new Date().toISOString();
 
   function serviceDefinition(service) {

@@ -308,6 +308,7 @@
       || message.includes("relation") && message.includes("does not exist");
   }
 
+  /** @param {{head?: {snapshot_id?: string, fingerprint?: string}, snapshots?: Array|Object, legacy?: {state?: *}, allowLegacyMigration?: boolean}} [params] */
   function selectAuthoritativeState({ head, snapshots, legacy, allowLegacyMigration = false } = {}) {
     const allSnapshots = (Array.isArray(snapshots) ? snapshots : snapshots ? [snapshots] : [])
       .filter(Boolean)

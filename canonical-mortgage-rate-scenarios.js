@@ -96,6 +96,7 @@
   // estrés por separado. `marginCallResult` es el resultado ya calculado de
   // `lombardMarginCallSimulation` para no reimplementar ese motor — este solo lo compone junto al
   // impacto de tipos.
+  /** @param {{principal?: number, months?: number, currentVariableRate?: number, deltaPoints?: number, marginCallResult?: {calculable?: boolean, marginCallTriggered?: boolean, additionalCollateralNeeded?: number}}} [params] */
   function evaluateCombinedStress({ principal, months, currentVariableRate, deltaPoints = 0, marginCallResult } = {}) {
     const p = Math.max(0, number(principal));
     const n = Math.max(1, Math.round(number(months)));

@@ -33,7 +33,7 @@
     const missing = definition.required.filter((key) => params[key] === undefined || params[key] === "");
     if (missing.length) throw new Error(`Faltan campos obligatorios: ${missing.join(", ")}.`);
     const availableSources = new Set(list(context.sources).map((item) => text(item.id)));
-    const citations = [...new Set(list(input.citations).map(text).filter(Boolean))];
+    const citations = [...new Set(list(input.citations).map((item) => text(item)).filter(Boolean))];
     if (!citations.length || citations.some((id) => !availableSources.has(id))) throw new Error("El borrador requiere fuentes internas válidas.");
     const at = text(input.at) || new Date().toISOString();
     return { schemaId: SCHEMA_ID, id: text(input.id) || `draft:${action}:${at}`, action, target: definition.target, params, citations, rationale: text(input.rationale), status: "prepared", createdAt: at, expiresAt: text(input.expiresAt), writesImmediately: false };

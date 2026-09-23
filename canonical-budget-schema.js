@@ -353,7 +353,7 @@ class CanonicalBudgetSchema {
     const thursday = new Date(monday);
     thursday.setDate(monday.getDate() + 3);
     const yearStart = new Date(thursday.getFullYear(), 0, 1);
-    const weekNo = Math.ceil((Math.round((thursday - yearStart) / 86400000) + 1) / 7);
+    const weekNo = Math.ceil((Math.round((thursday.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     return { isoYear: thursday.getFullYear(), weekNo };
   }
 

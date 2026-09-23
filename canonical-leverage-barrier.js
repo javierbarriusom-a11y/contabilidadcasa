@@ -133,6 +133,7 @@
   // general por tener garantía real y un perfil de riesgo distinto — el mismo motivo por el que APX2
   // se salta evaluateLeverageBarrier. Motor puro: nunca bloquea nada por sí solo, solo informa —
   // quien lo consuma decide si exige confirmación explícita antes de seguir.
+  /** @param {{limitPct?: number, basis?: string, referenceValue?: number, currentLeverageDebt?: number, proposedAdditionalDebt?: number}} [params] */
   function evaluateLeveragePolicy({ limitPct, basis, referenceValue, currentLeverageDebt = 0, proposedAdditionalDebt = 0 } = {}) {
     const limit = Math.max(0, number(limitPct));
     const reference = Math.max(0, number(referenceValue));

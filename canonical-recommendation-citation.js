@@ -23,6 +23,10 @@
     return { id, level, title, detail };
   }
 
+  /**
+   * @param {{label?: string, title?: string, citations?: Array}} [recommendation]
+   * @param {{availableSources?: Set<string>|Array<string|{id?: string}>}} [params]
+   */
   function validateRecommendation(recommendation = {}, { availableSources } = {}) {
     const blockers = [];
     const warnings = [];
@@ -49,7 +53,7 @@
     if (citations.length && availableSources) {
       const available = availableSources instanceof Set
         ? availableSources
-        : new Set(Array.from(availableSources, (item) => text(item?.id ?? item)));
+        : new Set(Array.from(availableSources, (item) => text(typeof item === "string" ? item : item?.id)));
       const unknown = citations.filter((id) => !available.has(id));
       checks.push({ id: "citations-known", label: "Todas las citas existen en la evidencia disponible", passed: unknown.length === 0 });
       if (unknown.length) {

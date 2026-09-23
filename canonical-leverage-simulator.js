@@ -101,6 +101,7 @@
   // del banco, un perfil de riesgo distinto al de la deuda sin garantizar que sí vigila AP4.
   const LOMBARD_SCHEMA_ID = "finance-canonical-lombard-credit/v1";
 
+  /** @param {{portfolioValue?: number, ltvPct?: number, annualRatePct?: number}} [params] */
   function lombardCreditCapacity({ portfolioValue, ltvPct, annualRatePct } = {}) {
     const value = Math.max(0, round2(portfolioValue));
     const ltv = number(ltvPct);
@@ -132,6 +133,7 @@
   // garantía o que el banco liquide posiciones. Nunca decide cuál tomar, solo calcula ambas.
   const MARGIN_CALL_SCHEMA_ID = "finance-canonical-lombard-margin-call/v1";
 
+  /** @param {{portfolioValue?: number, loanAmount?: number, maintenanceLtvPct?: number, stressDropPct?: number}} [params] */
   function lombardMarginCallSimulation({ portfolioValue, loanAmount, maintenanceLtvPct, stressDropPct } = {}) {
     const value = Math.max(0, round2(portfolioValue));
     const loan = Math.max(0, round2(loanAmount));
@@ -180,6 +182,7 @@
   const PROACTIVE_LTV_ALERT_SCHEMA_ID = "finance-canonical-lev12-proactive-ltv-alert/v1";
   const PROACTIVE_LTV_THRESHOLDS = Object.freeze({ critical: 100, high: 85, medium: 70 });
 
+  /** @param {{portfolioValue?: number, loanAmount?: number, maintenanceLtvPct?: number}} [params] */
   function proactiveLtvAlert({ portfolioValue, loanAmount, maintenanceLtvPct } = {}) {
     const simulation = lombardMarginCallSimulation({ portfolioValue, loanAmount, maintenanceLtvPct, stressDropPct: 0 });
     if (!simulation.calculable) return { schemaId: PROACTIVE_LTV_ALERT_SCHEMA_ID, calculable: false };
@@ -208,6 +211,7 @@
   // caída estimada) entre esas filas, de la #1 en adelante, hasta cubrirlo. Nunca vende nada sola.
   const PREVENTIVE_DELEVERAGING_SCHEMA_ID = "finance-canonical-lev11-preventive-deleveraging/v1";
 
+  /** @param {{amountToCover?: number, priorityRows?: Array<{id?: string, label?: string, priorityRank?: number, currentValue?: number}>}} [params] */
   function preventiveDeleveragingAllocation({ amountToCover, priorityRows } = {}) {
     const target = Math.max(0, round2(amountToCover));
     const rows = Array.isArray(priorityRows) ? priorityRows : [];
@@ -241,6 +245,7 @@
   // garantía — cuanto mayor, más caída de mercado aguanta esa oferta antes de un margin call.
   const LOMBARD_COMPARISON_SCHEMA_ID = "finance-lev4-lombard-comparison/v1";
 
+  /** @param {{offers?: Array<{id?: string, entity?: string, maxLtvPct?: number, annualRatePct?: number, openingFeePct?: number, cancellationFeePct?: number, maintenanceLtvPct?: number}>, portfolioValue?: number}} [params] */
   function compareLombardOffers({ offers, portfolioValue } = {}) {
     const value = Math.max(0, round2(portfolioValue));
     const list = Array.isArray(offers) ? offers : [];
@@ -285,6 +290,7 @@
   // asigna una banda por defecto) — `coveragePct` dice cuánta cartera sí entra en la estimación.
   const WEIGHTED_STRESS_SCHEMA_ID = "finance-lev5-weighted-stress-drop/v1";
 
+  /** @param {{positions?: Array<{currentValue?: number, assetClass?: string}>, volatilityBands?: Object<string, number>}} [params] */
   function weightedPortfolioStressDropPct({ positions, volatilityBands } = {}) {
     const bands = volatilityBands && typeof volatilityBands === "object" ? volatilityBands : {};
     const list = Array.isArray(positions) ? positions : [];
@@ -319,6 +325,7 @@
   // seguro de cola? Nunca decide contratar nada — solo dice si haría falta.
   const TAIL_RISK_SCHEMA_ID = "finance-lev7-tail-risk-margin-call/v1";
 
+  /** @param {{marginCallResult?: {calculable?: boolean, marginCallTriggered?: boolean, additionalCollateralNeeded?: number}, minCheckingPercentiles?: {p10?: number}}} [params] */
   function tailRiskAgainstMarginCall({ marginCallResult, minCheckingPercentiles } = {}) {
     if (!marginCallResult || marginCallResult.calculable !== true) {
       return { schemaId: TAIL_RISK_SCHEMA_ID, calculable: false, reason: "margin-call-not-calculable" };
@@ -355,6 +362,7 @@
   // nada ni pagar plusvalía ahora, así que su coste es solo el interés pagado en el horizonte.
   const SELL_VS_BORROW_SCHEMA_ID = "finance-inv10-sell-vs-borrow/v1";
 
+  /** @param {{amount?: number, months?: number, gainLossPct?: number, savingsTaxRatePct?: number, investmentResult?: {calculable?: boolean, gain?: number}, lombardCapacity?: {calculable?: boolean, capacity?: number, annualRatePct?: number}}} [params] */
   function sellVsBorrowComparison({ amount, months, gainLossPct, savingsTaxRatePct, investmentResult, lombardCapacity } = {}) {
     const needed = Math.max(0, round2(amount));
     const horizonMonths = Math.max(0, number(months));

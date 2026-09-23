@@ -86,6 +86,7 @@
   // conocido y positivo — dividir por 0 o por "sin dato" daría una cifra con apariencia de precisión
   // que no existe; se declara `calculable: false` en su lugar, igual que el resto de motores de la
   // casa ante un hueco de datos real.
+  /** @param {{value?: number, investedAmount?: number}} [params] */
   function alternativeAssetReturn({ value, investedAmount } = {}) {
     const invested = knownNumber(investedAmount) ? nonNegative(investedAmount) : null;
     if (invested === null || invested <= 0) return { calculable: false };
@@ -105,6 +106,7 @@
   // rentabilidad bruta es el ingreso anualizado sobre el valor declarado del inmueble — mismo patrón
   // que alternativeAssetReturn: sin ingreso declarado y positivo, calculable: false, nunca un 0%
   // fabricado.
+  /** @param {{value?: number, monthlyRentIncome?: number}} [params] */
   function rentalAssetPnL({ value, monthlyRentIncome } = {}) {
     const rent = knownNumber(monthlyRentIncome) ? nonNegative(monthlyRentIncome) : null;
     if (rent === null || rent <= 0) return { calculable: false };
@@ -204,6 +206,7 @@
   // perpetua, sin motor de proyección de mercado). La tasa la declara el hogar (nunca un 4% por
   // defecto que nadie ha elegido) — mismo criterio que el tipo del ahorro de FC4 o la retención de
   // A15-1: un supuesto del hogar, no uno que la app dé por hecho.
+  /** @param {{annualExpenses?: number, withdrawalRatePct?: number, netWorth?: number}} [params] */
   function financialIndependenceTarget({ annualExpenses, withdrawalRatePct, netWorth } = {}) {
     const expenses = number(annualExpenses, null);
     const rate = number(withdrawalRatePct, null);
@@ -236,6 +239,7 @@
   // la cifra no se lea como "dinero disponible ya", que no lo es.
   const ILLIQUID_ASSET_TYPES = ["inmueble", "vehiculo", "pension"];
 
+  /** @param {{netWorth?: number, monthlyBurn?: number, totalsByType?: Object<string, number>}} [params] */
   function netWorthRunway({ netWorth, monthlyBurn, totalsByType } = {}) {
     const worth = number(netWorth, null);
     const burn = number(monthlyBurn, null);
@@ -273,6 +277,7 @@
   // de hoy (el único punto exacto), el flujo de caja real de cada mes ya conciliado con el banco.
   // Sin activos declarados o sin ningún mes conciliado, `calculable: false` — nunca se inventa un
   // histórico para no dejar el gráfico vacío.
+  /** @param {{todayNetWorth?: number, monthlyNetFlowHistory?: Array<{monthKey?: string, netFlow?: number}>}} [params] */
   function netWorthWaterfall({ todayNetWorth, monthlyNetFlowHistory } = {}) {
     const worth = number(todayNetWorth, null);
     if (!knownNumber(worth)) return { schema: NET_WORTH_WATERFALL_SCHEMA_ID, calculable: false };

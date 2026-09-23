@@ -363,10 +363,29 @@
       .map(([, row]) => row);
   }
 
+  /**
+   * @typedef {Object} StatePayload
+   * @property {Array} [projects]
+   * @property {Array} [debtLiquidations]
+   * @property {Array} [debtContracts]
+   * @property {Array} [decisionEvents]
+   * @property {Array} [customPlanningRows]
+   * @property {Object|Array} [deletedPlanningRows]
+   * @property {Array} [incomeActuals]
+   * @property {Array} [expenseActuals]
+   * @property {Object} [balanceSettings]
+   * @property {Object} [seriesOverrides]
+   * @property {Object} [rowLabelOverrides]
+   * @property {Object} [movementMappings]
+   * @property {string} [sourceWorkbook]
+   * @property {string} [updatedAt]
+   */
+
+  /** @param {StatePayload} [payload] */
   function canonicalizePayload(payload = {}) {
     const rawDeletedPlanningRows = payload.deletedPlanningRows || {};
     const deletedEntries = Array.isArray(rawDeletedPlanningRows)
-      ? rawDeletedPlanningRows.filter(Boolean).map((key) => [String(key), true])
+      ? rawDeletedPlanningRows.filter(Boolean).map((key) => /** @type {[string, boolean]} */ ([String(key), true]))
       : Object.entries(rawDeletedPlanningRows);
     const deletedPlanningRows = Object.fromEntries(
       deletedEntries
@@ -384,7 +403,7 @@
       projects: stableDedupeRows(payload.projects, (row, index) => projectEntity(row, index).id),
       debtLiquidations: stableDedupeRows(payload.debtLiquidations, (row, index) => debtEntity(row, index).id),
       debtContracts: stableDedupeRows(payload.debtContracts, (row, index) => debtContractEntity(row, index).id),
-      decisionEvents: stableDedupeRows(payload.decisionEvents, (row, index) => decisionEventEntities([row], index)[0].id),
+      decisionEvents: stableDedupeRows(payload.decisionEvents, (row) => decisionEventEntities([row])[0].id),
       customPlanningRows: planningRows,
       deletedPlanningRows,
     };

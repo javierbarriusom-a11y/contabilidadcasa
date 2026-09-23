@@ -86,6 +86,64 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 23 de septiembre de 2026 (224): `ARQ-1` — TypeScript incremental (`checkJs`+JSDoc) sobre los 65 `canonical-*.js`, ya como gate de CI
+
+- **Qué pedía la sesión**: siguiente tarea del horizonte 2 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6
+  tras cerrar `I5`/`ARQ-2` en la sesión 223 — la propia sesión 223 ya la había dejado aparcada para
+  hoy: "`ARQ-1` queda para una sesión futura". Confirmada con el hogar al arrancar la sesión.
+- **Construido**: `tsconfig.json` en la raíz (`allowJs`, `checkJs: true`, `noEmit: true`, `module:
+  "nodenext"`, `target: "es2022"`, `strict: false`, `include: ["canonical-*.js"]`), enganchado a
+  `npm run verify` vía el nuevo script `npm run typecheck`, justo después de `npm run lint` (mismo
+  patrón que `ARQ-2`: gate de escritura antes que el resto de la cadena). `typescript` (v7,
+  compilador nativo) y `@types/node` como `devDependencies` nuevas. No cambia la sintaxis en tiempo
+  de ejecución — compatible con `vm.Script`, igual criterio que `ARQ-4`/`T14`: nada de
+  `import`/`export`.
+- **Alcance**: los 65 `canonical-*.js` completos en esta misma sesión, no un subconjunto — el gate
+  arrancó con 162 errores repartidos en 27 ficheros (todos el mismo patrón: un parámetro
+  desestructurado con valor por defecto `= {}`, que TypeScript no puede tipar sin ayuda) y terminó
+  en 0. Cada función se anotó con JSDoc `@param` describiendo la forma real de sus datos —
+  leyendo el cuerpo de cada una para que el tipo describa el uso real, nunca una anotación
+  genérica que hiciera desaparecer el error sin decir la verdad. `canonical-irpf-estimator.js` y
+  `canonical-state.js` ganaron además un `@typedef` compartido (`BracketScale`, `StatePayload`)
+  para las formas que se repiten entre varias funciones del mismo fichero.
+- **Bugs reales encontrados por el propio gate, corregidos en esta sesión** (la razón de ser de
+  `ARQ-1`: detectar en tiempo de escritura lo que antes solo atrapaban los tests, si es que lo
+  hacían):
+  - **`canonical-e13-scenarios.js`**: el `number(value, fallback)` local de este fichero
+    ignoraba silenciosamente el `fallback` recibido y devolvía siempre `0` internamente (firma
+    real: `(value) => ... : 0`, sin segundo parámetro) — distinto del `number()` que usan el
+    resto de `canonical-*.js` (`(value, fallback = 0) => ...`). Afectaba a `windowedHistory` y
+    `quarterlyRecalibrationProposal` (PVC5): la llamada `number(quarters, 8)` pretendía que, sin
+    `quarters` declarado, el valor por defecto fuera 8 trimestres — pero de verdad caía a
+    `Math.max(1, Math.floor(0))` = 1 trimestre. Los tests existentes de PVC5 siempre pasan
+    `quarters: 8` explícito, así que el hueco no estaba cubierto — corregido para que `number()`
+    use el `fallback` recibido, igual que el resto del proyecto. Verificado que los 4649 tests
+    siguen en verde tras el cambio.
+  - **`.map(text)` con `text(value, fallback = "")`**: patrón repetido en
+    `canonical-e9-assistant.js`, `canonical-e9-foundation.js`, `canonical-e9-actions.js` y
+    `canonical-e11b-inbox.js` (y, fuera del alcance de `canonical-*.js` pero el mismo bug real:
+    `a5-model-evaluation.js` y `p2-domain.js`, corregidos también por consistencia). `Array.map`
+    pasa `(elemento, índice, array)` al callback, así que `text` recibía el índice numérico como
+    `fallback` — con un elemento vacío/falso, `text("", 2)` devolvía `2` (número), no `""`, y ese
+    `2` pasaba `.filter(Boolean)` como si fuera una cita válida. Corregido a `.map((item) =>
+    text(item))` en los 6 sitios.
+  - **`canonical-state.js`**: `decisionEventEntities([row], index)` pasaba un segundo argumento
+    que la función (`decisionEventEntities(values)`, un solo parámetro) nunca leía — parámetro
+    muerto, sin efecto real porque el `id` que consume la llamada no depende de ese índice.
+    Eliminado el argumento sobrante.
+- **Otros ajustes de tipo, sin cambio de comportamiento**: dos restas de `Date - Date`
+  (`canonical-budget-schema.js`, `canonical-daily-engine.js`) reescritas como
+  `.getTime() - .getTime()` — TypeScript no permite aritmética directa entre `Date`, aunque
+  JavaScript la acepta vía conversión implícita; mismo resultado, más explícito. Un JSDoc de
+  `canonical-budget-analyzer.js` que documentaba `@param {number} months` para lo que en realidad
+  es un objeto de opciones (`{months?: number}`) — desincronizado del código real, corregido.
+- **Verificación**: `npm run verify` completo, no solo `npm test` — 4649/4649 pruebas, lint limpio,
+  `npm run typecheck` limpio (0 errores en los 65 ficheros), accesibilidad y rendimiento
+  verificados, build del sitio, privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo,
+  PR en borrador, fusión a `main` en cuanto el CI esté en verde, sin pedir confirmación en cada
+  paso.
+
 ## Cierre de sesión — 22 de septiembre de 2026 (223): `I5` — rescate de pensiones (reducción por antigüedad + modalidad renta) y `ARQ-2` — ESLint como gate de CI
 
 - **Qué pedía la sesión**: siguiente oleada de `BACKLOG_CONTABILIDADCASA_3_0.md` tras cerrar el

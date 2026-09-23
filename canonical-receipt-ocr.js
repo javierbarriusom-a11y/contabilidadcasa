@@ -62,6 +62,10 @@
     return day <= maxDay;
   }
 
+  /**
+   * @param {string} fullText
+   * @param {{today?: string}} [params] - today en formato ISO "YYYY-MM-DD"
+   */
   function extractDate(fullText, { today } = {}) {
     const matches = [...String(fullText || "").matchAll(DATE_TOKEN_RE)];
     for (const match of matches) {

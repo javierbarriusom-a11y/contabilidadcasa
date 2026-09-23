@@ -86,7 +86,7 @@
         actuals: Math.max(0, Number(changed.actuals || 0)),
         balances: Math.max(0, Number(changed.balances || 0)),
       },
-      recalculated: Array.isArray(result.recalculated) ? result.recalculated.map(text).filter(Boolean) : [],
+      recalculated: Array.isArray(result.recalculated) ? result.recalculated.map((item) => text(item)).filter(Boolean) : [],
       revisionId: text(result.revisionId), undoAvailable: Boolean(result.batchId || item.batchId),
     };
   }

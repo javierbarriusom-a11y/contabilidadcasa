@@ -131,6 +131,7 @@
   // reflejada) y `projection` (una proyección educativa de "si ahorraras X€/mes al Y% durante Z
   // años", ya calculada por t13ChildSavingsProjection() en app.js — esta función solo redacta, no
   // calcula). Sin declarar, cada uno queda null explícito, igual que cushion/netWorth.
+  /** @param {{cushion?: number|null, netWorth?: number|null, periodicHelp?: number|null, projection?: {calculable?: boolean, monthlyAmount?: number, annualReturnPct?: number, years?: number, totalContributed?: number, projectedValue?: number}}} [params] */
   function redactKidsSummaryView({ cushion, netWorth, periodicHelp, projection } = {}) {
     // `Number(null)` es 0, no NaN: hay que descartar null/undefined antes de convertir, o un
     // patrimonio no calculable (null explícito, nunca inventado) se leería aquí como un 0 real.

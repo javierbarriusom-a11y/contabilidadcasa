@@ -10,9 +10,9 @@ function normalizeCase(input = {}, index = 0) {
   const id = text(input.id) || `case-${index + 1}`;
   const question = text(input.question);
   if (!question) throw new Error(`El caso ${id} requiere una pregunta.`);
-  const citations = [...new Set(list(input.expectedCitations).map(text).filter(Boolean))];
+  const citations = [...new Set(list(input.expectedCitations).map((item) => text(item)).filter(Boolean))];
   if (!citations.length) throw new Error(`El caso ${id} requiere fuentes esperadas.`);
-  return { id, question, expectedCitations: citations, forbidden: list(input.forbidden).map(text).filter(Boolean) };
+  return { id, question, expectedCitations: citations, forbidden: list(input.forbidden).map((item) => text(item)).filter(Boolean) };
 }
 
 function createBenchmark(input = {}) {
@@ -28,7 +28,7 @@ function createBenchmark(input = {}) {
 
 function scoreResponse(response = {}, testCase = {}) {
   const answer = text(response.answer);
-  const citations = new Set(list(response.citations).map(text));
+  const citations = new Set(list(response.citations).map((item) => text(item)));
   const expected = list(testCase.expectedCitations);
   const citationCoverage = expected.length ? expected.filter((id) => citations.has(id)).length / expected.length : 0;
   const forbiddenText = `${answer} ${JSON.stringify(response)}`.toLowerCase();
