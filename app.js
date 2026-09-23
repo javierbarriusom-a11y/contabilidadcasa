@@ -595,20 +595,27 @@ const viewTitles = {
     eyebrow: "Decidir · comparar escenarios",
     title: "Dos escenarios, uno al lado del otro",
   },
+  // NAV-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): heurístico 6 de Nielsen (reconocer, no recordar),
+  // mismo criterio que ya aplicó T17 — repetir en texto, en el punto de uso, un dato/contexto que
+  // el usuario tendría que recordar o ir a buscar. Las cuatro pestañas de Deuda decían "Decidir ·
+  // ..." (vestigial desde que NAV-1 sacó Deuda del grupo «Decidir» del menú avanzado) y ninguna
+  // repetía la palabra "Deuda" ni la etiqueta exacta de su propia pestaña — quien aterriza en
+  // #deuda-contratos por el buscador no veía "Deuda" en ningún sitio de la cabecera. Ahora usan el
+  // mismo patrón "<Grupo> · <Pestaña>" que ya usa Inversión ("Inversión · Cartera", etc.).
   "deuda-comparar": {
-    eyebrow: "Decidir · comparar estrategias",
+    eyebrow: "Deuda · Comparar",
     title: "Tres formas reales de organizar la deuda",
   },
   "deuda-ruta": {
-    eyebrow: "Decidir · plan de deuda",
+    eyebrow: "Deuda · Ruta",
     title: "Ruta de deuda",
   },
   "deuda-contratos": {
-    eyebrow: "Decidir · contratos",
+    eyebrow: "Deuda · Contratos",
     title: "Contratos de deuda",
   },
   "deuda-simulador": {
-    eyebrow: "Decidir · simulador visual",
+    eyebrow: "Deuda · Simulador visual",
     title: "Simulador visual de estrategias de deuda",
   },
   "inversion-cartera": {
