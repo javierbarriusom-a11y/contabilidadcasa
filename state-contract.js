@@ -20,7 +20,7 @@
     "rowLabelOverrides",
     "movementMappings",
   ];
-  const OPTIONAL_OBJECT_FIELDS = ["debtRoadmapState", "e11b"];
+  const OPTIONAL_OBJECT_FIELDS = ["debtRoadmapState", "e11b", "localStores"];
 
   function isPlainObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -128,6 +128,7 @@
       incomeActuals: isPlainObject(payload.incomeActuals) ? Object.keys(payload.incomeActuals).length : 0,
       expenseActuals: isPlainObject(payload.expenseActuals) ? Object.keys(payload.expenseActuals).length : 0,
       debtRoadmapFields: isPlainObject(payload.debtRoadmapState) ? Object.keys(payload.debtRoadmapState).length : 0,
+      localStores: isPlainObject(payload.localStores) ? Object.keys(payload.localStores).length : 0,
       workbookIncluded: Boolean(workbook),
       workbookMonths: workbook?.monthlyPlanning?.months?.length || 0,
       sourceWorkbook: payload.sourceWorkbook || workbook?.metadata?.sourceWorkbook || "",
