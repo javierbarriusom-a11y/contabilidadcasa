@@ -48,11 +48,16 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
    - `git log --oneline -8` (¿qué se commiteó últimamente?)
    - Si hay una rama distinta de `main` con trabajo pendiente de publicar según
      `PROJECT_STATE.md`, señálalo explícitamente.
-4. **Resumen para el usuario** (4-8 líneas, en español, sin relleno):
+4. **Revisión mensual de Nielsen (`OPT-21`/`PROC-2`)**: mira la fecha de la entrada más reciente
+   de «Registro de revisiones» en `docs/OPT21_CHECKLIST_NIELSEN.md`. Si han pasado 30 días o más
+   (o no hay ninguna revisión real), la revisión está **vencida**: dilo en el resumen e inclúyela
+   en la propuesta de plan como una tarea más, para que el usuario decida si se hace en esta
+   sesión. Si no está vencida, no hace falta mencionarla.
+5. **Resumen para el usuario** (4-8 líneas, en español, sin relleno):
    - En qué quedó la última sesión.
    - Qué es lo siguiente según el backlog.
    - Estado de Git (limpio / cambios pendientes / rama y si hay algo sin publicar).
-5. **Propuesta de plan**: antes de escribir o modificar ningún archivo de código o
+6. **Propuesta de plan**: antes de escribir o modificar ningún archivo de código o
    documentación, propone un plan breve (qué se va a abordar en esta sesión y en qué
    orden) y espera confirmación o ajuste del usuario. No empieces a implementar hasta que
    el usuario apruebe el plan o pida explícitamente saltarse este paso.
@@ -78,6 +83,11 @@ sin enviarlo todavía.
      <resumen corto>`, seguido de una lista con lo que se hizo, decisiones tomadas a
      petición del usuario, resultado de las pruebas (cifras exactas) y qué queda
      pendiente de publicar (rama/PR) si aplica.
+   - Si la revisión mensual de Nielsen está vencida (mismo criterio que el paso 4 del Modo
+     Inicio: 30 días o más desde la última entrada de `docs/OPT21_CHECKLIST_NIELSEN.md`) y no se
+     ha hecho en esta sesión, dilo en una línea de la entrada de `PROJECT_STATE.md` («Revisión
+     mensual de Nielsen vencida desde <fecha>») para que la siguiente sesión la vea. Si se hizo,
+     su registro va en `docs/OPT21_CHECKLIST_NIELSEN.md` y sus hallazgos al backlog vigente.
    - Si el estado de alguna entrega cambió (por ejemplo de `Parcial` a `Verificado`),
      actualiza también la tabla y/o el texto correspondiente en `BACKLOG_STATUS.md`.
    - No inventes cifras ni resultados: usa exactamente los que arrojó la validación del
