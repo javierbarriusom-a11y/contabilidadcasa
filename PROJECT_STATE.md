@@ -86,6 +86,56 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (232): `FIN-2` — test de integración fiscal cruzada; destapa y corrige que FC5 ignoraba las pérdidas todavía por compensar
+
+- **Qué pedía la sesión**: el hogar aprobó reordenar la oleada (Modo Inicio de esta misma
+  conversación): `FIN-2` primero, adelantada desde el horizonte 4, antes que `ARQ-4`; después
+  `ARQ-4` con un techo de líneas para `app.js`, y `PROC-2`. Motivo del reorden: `ARQ-4`/`T9` no
+  cambian nada visible para el hogar, mientras que `FIN-2` protege la parte donde un error cuesta
+  dinero, sin riesgo de regresión (solo añade pruebas) — y `ARQ-1` ya había demostrado que un gate
+  "de solo pruebas" puede destapar bugs reales en producción.
+- **Construido**: `tests/fin2-integracion-fiscal-cruzada.test.cjs` (11 pruebas). Un único
+  ejercicio 2026 con tres posiciones (una venta FIFO que consume un lote entero y parte del
+  siguiente, una venta en pérdidas, y una venta de 2025 que no debe contaminar 2026), pérdidas
+  arrastradas de 2021 (fuera de la ventana de 4 años), 2022 y 2025, un dividendo extranjero, una
+  venta más que se está valorando y un rescate de pensión. Verifica los puntos de cruce:
+  conservación de coste del FIFO (FC1) → neto del año de la compensación (FC3) → coste de la venta
+  (FC5) → dividendo (FC4) contra la misma escala del ahorro → base general separada
+  (FCX1/I5/A15-2 dan el mismo coste marginal entre sí, y un rescate nunca altera el coste de una
+  plusvalía) → impuesto del ahorro por piezas = escala sobre la base conjunta.
+- **Bug real destapado, ya en producción**: la tarjeta de FC5 dice literalmente que «la base ya
+  generada este año puede venir del resultado de la compensación de pérdidas y ganancias», pero
+  `optimizePartialSale` recortaba a 0 cualquier base negativa, y el campo tenía `min="0"`. Dos
+  consecuencias: (1) en un año con pérdida neta, una plusvalía nueva se cobraba entera en vez de
+  compensarse primero; (2) aunque el año fuera positivo, las pérdidas arrastradas que FC3 dejaba
+  todavía disponibles (`remainingPriorLosses`) desaparecían — `taxableNet` se queda en 0 y no las
+  refleja. En el caso de la prueba: 950 € de impuesto estimado frente a 779 € reales (+22%). Sesgo
+  siempre al alza, nunca a la baja — hacía parecer más cara de lo que es una venta que en realidad
+  conviene hacer este año precisamente para aprovechar pérdidas que caducan.
+- **Corrección** (mínima, sin motor nuevo):
+  - `canonical-irpf-estimator.js`: `optimizePartialSale` admite base negativa y devuelve
+    `absorbedByLosses`. Con base ≥ 0 el comportamiento no cambia (probado).
+  - `canonical-portfolio.js`: `yearEndCompensation` devuelve `marginalSaleBase` = neto del año −
+    todas las pérdidas arrastradas aún aplicables (aplicadas o no). Es la cifra correcta para FC5.
+  - `app.js`: FC3 dice explícitamente qué base llevar a FC5 (`fc3MarginalSaleBaseLine`, función
+    aparte para no mover el aviso de `fc3ResultHtml` fuera de la ventana de 2000 caracteres que ya
+    comprueba `tests/fc3-app-integracion.test.cjs`); FC5 dice cuánto de la plusvalía queda
+    compensado; INV18 (`inv18WithdrawalPlan`) compartía el mismo recorte a 0 y también se corrige.
+    Los otros tres consumidores del mismo campo (LEV15, INV13, IN-8) pasan el valor tal cual al
+    motor, así que heredan la corrección sin tocarlos.
+  - `index.html`: el campo de FC5 ya no lleva `min="0"`, y su texto avisa de que puede ser negativo.
+- **Lo que sigue fuera, a propósito**: el cruce del 25% entre saldo de rendimientos del capital
+  mobiliario (dividendos) y saldo de ganancias patrimoniales (art. 49.1 LIRPF) sigue sin modelarse
+  — ya lo declaraba FC3; la prueba de ejercicio completo usa un caso con ambos saldos positivos,
+  donde ese cruce no aplica, y lo dice. FC4 sigue usando un tipo del ahorro declarado (plano), no
+  la escala — la prueba fija que ambos coinciden al céntimo cuando el dividendo cabe en un tramo.
+- **Resultado de la validación**: `npm run verify` completo — 4709/4709 pruebas (4698 + 11 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. Sin verificación de navegador: el cambio de UI son dos textos y
+  un atributo `min`, cubiertos por la prueba de cableado.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 23 de septiembre de 2026 (231): `ARQ-3` — detección sistemática de motores `canonical-*.js` sin consumidor de UI
 
 - **Qué pedía la sesión**: siguiente tarea del horizonte 3 tras cerrar `NAV-4` (sesión 230), último
