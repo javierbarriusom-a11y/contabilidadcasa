@@ -86,7 +86,7 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
-## Cierre de sesión — 24 de septiembre de 2026 (237): `ARQ-5` — la caché offline llevaba semanas incompleta; restablecida y blindada con prueba. `ARQ-4` en pausa
+## Cierre de sesión — 24 de septiembre de 2026 (238): `ARQ-5` — la caché offline llevaba semanas incompleta; restablecida y blindada con prueba. `ARQ-4` en pausa
 
 - **Qué pedía la sesión**: el hogar propuso dejar Visual Detail donde está y «empezar por la caché
   offline». No había ninguna tarea con ese nombre en `BACKLOG_CONTABILIDADCASA_3_0.md`, así que antes
@@ -107,7 +107,8 @@ de aquí en la siguiente regeneración, no al momento.
   Seguros, Patrimonio, Deuda y Cierre sin parte de sus avisos. Un fallo silencioso: nadie lo habría
   notado salvo usando la app sin conexión y comparando.
 - **Corregido**: los 30 motores y `views/estado-semana.js` entran en `SHELL_URLS` (74 → 105 recursos
-  en caché). Única exclusión, deliberada: `supabase-config.js`, por el criterio de A0-4 («no se
+  en caché medidos contra `main` antes de la fusión de la sesión 237; con su `canonical-savings-agent.js`
+  y `views/savings-agent.js`, que esa sesión sí añadió, son 107). Única exclusión, deliberada: `supabase-config.js`, por el criterio de A0-4 («no se
   almacenan credenciales … en caché compartida»); sin red no hay sincronización remota posible y la
   app sigue en modo local. Supabase por CDN es de otro origen y el Service Worker no lo intercepta.
 - **Verificado en navegador después del arreglo**: sin red solo fallan las dos peticiones de
@@ -120,20 +121,22 @@ de aquí en la siguiente regeneración, no al momento.
   publicarse, porque `precacheFreshShell()` usa `Promise.all` y un solo 404 tumbaría la instalación
   entera; las exclusiones llevan motivo y fallan si sobran. Comprobado que las dos primeras pruebas
   fallan con el `service-worker.js` de `main` y pasan con el arreglo.
-- **Decisión del hogar: `ARQ-4` en pausa.** Las dos pantallas que quedan (Agente de ahorro, Visual
-  Detail) son las más caras de mover, cada una recortaría unos cientos de líneas de ~38.100 y no
-  cambian nada visible; el techo de `app.js` ya impide que el fichero vuelva a crecer. Se reanuda
-  solo si el hogar lo pide o si hay que tocar alguna de las dos pantallas por otro motivo.
+- **Decisión del hogar: `ARQ-4` en pausa** («dejar Visual Detail donde está»). Esta sesión arrancó
+  sobre un checkout anterior a la fusión de la sesión 237 (Agente de ahorro ya movido), y lo
+  descubrió al ir a publicar; con esa fusión incorporada, solo queda Visual Detail, la de más riesgo
+  (cambios en borrador del hogar) y sin efecto visible para él. El techo de `app.js` ya impide que
+  el fichero vuelva a crecer. Se reanuda solo si el hogar lo pide o si hay que tocar Visual Detail
+  por otro motivo. Coincide con la recomendación que ya dejó escrita la sesión 237.
 - **Documentación**: fila `ARQ-5` nueva y `ARQ-4` en pausa en `BACKLOG_CONTABILIDADCASA_3_0.md`
   (§2.2 y §6); A0-4/E3 y el riesgo de caché offline anotados en `BACKLOG_STATUS.md`, sin cambiar su
   estado (vuelve a cumplirse, ahora con prueba).
 - **De paso, una prueba intermitente arreglada de raíz** (fuera de lo pedido, pero salió al validar:
-  falló 1 de 3 ejecuciones de `npm test`). `tests/lev14-apalancamiento-escalonado.test.cjs`
+  falló 1 de 3 ejecuciones de `npm test`; la sesión 237 la vio también y la dejó como «ajena»). `tests/lev14-apalancamiento-escalonado.test.cjs`
   comparaba con `deepEqual` dos resultados de `simulateLeverage()` que llevan cada uno su
   `evaluatedAt: new Date()`; si las dos llamadas caían en milisegundos distintos, fallaba. La prueba
   compara ahora todo salvo esa marca de tiempo (y exige que ambas la tengan), sin tocar el motor.
-- **Resultado de la validación**: `npm run verify` completo — 4735/4735 pruebas (4731 + 4 nuevas),
-  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+- **Resultado de la validación**: `npm run verify` completo, tras incorporar `main` con la sesión 237 —
+  4748/4748 pruebas (4744 + 4 nuevas; antes de la fusión, 4735/4735), lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
   privacidad y smoke test en verde.
 - **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
 - **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
@@ -141,6 +144,68 @@ de aquí en la siguiente regeneración, no al momento.
 - **Nota para quien publique en producción**: la build reescribe `CACHE_NAME` en cada despliegue, así
   que los navegadores con el Service Worker viejo instalan la caché nueva completa en su próxima
   visita con red. No hace falta ninguna acción manual del hogar.
+## Cierre de sesión — 24 de septiembre de 2026 (237): `ARQ-4`, tercer incremento — Agente de ahorro a `views/savings-agent.js` y núcleo de su motor a `canonical-savings-agent.js`
+
+- **Qué pidió el hogar**: «adelante con la opción A y cerramos». La opción A, propuesta al cerrar la
+  sesión 236, era mover el Agente de ahorro junto con su motor, no solo la pantalla, y dejar Visual
+  Detail en pausa por riesgo.
+- **El bloqueo era real, pero se resolvía cambiando el patrón de refresco** (igual que Conciliación,
+  sesión 233). `applyAgentRouteSimulation()` se dispara desde Hoy (centro de acciones unificado,
+  «simular ruta») y desde Ejecutivo, Nueva vida, Plan de deuda y Asesor virtual. En sus dos salidas
+  «nada que aplicar» repintaba el Agente aunque no estuviera abierto.
+  - Las cuatro llamadas de `app.js` llevan ahora la guarda `viewChunkLoaded("savings-agent")`.
+  - `renderSavingsAgent()` no tiene efectos de estado que conservar: solo pinta su sección y calienta
+    cachés que se recalculan por firma al entrar.
+  - El `change` de `#agentYear` pasa a una función flecha, porque cablear `renderSavingsAgent` por
+    referencia habría lanzado un `ReferenceError` en `init()`.
+- **Reparto del motor, según sea puro o no** (matiz frente a lo que se propuso):
+  - `canonical-savings-agent.js` (nuevo, UMD): la regla mensual de traspaso y rescate entre
+    CaixaBank y Mediolanum. Es el único trozo puro del motor. `buildSavingsAgentPlan()` delega en
+    él, y `agentNextMonthReserve` desaparece de `app.js`.
+  - **Se queda en `app.js`** el optimizador de deuda (`agentOptimalDebtPayoffPlan` y su familia):
+    vuelve a ejecutar la simulación completa del hogar (`simulate()`, `debtTargetOptions()`...)
+    por cada candidato. Sacarlo a un `canonical-*.js` exigiría arrastrar el modelo entero; a un script
+    ansioso que dependa de los globales de `app.js` sería un tercer patrón de módulos, justo lo que
+    `T14` decidió no abrir.
+  - También se quedan los ajustes (`agentCaixaFloor` & cía., que leen Hoy, Registrar y el
+    Laboratorio) y `executiveToneForAmount`, que usa `views/virtual-advisor.js` (detectado al mover).
+  - El ahorro en líneas es menor de lo que sugerí: el motor puro son ~50 líneas; casi todo el
+    recorte viene de la pantalla.
+- **Construido**:
+  - `views/savings-agent.js`: 18 funciones, 749 líneas movidas.
+  - `canonical-savings-agent.js`, cargado antes que `app.js` y añadido al build y a la caché offline.
+  - `app.js`: 38.105 → **37.306 líneas** (-799). El techo baja por trinquete a **37.436**.
+    Acumulado de `ARQ-4` en esta conversación: 38.692 → 37.306 (-1.386, -3,6 %).
+  - Tests nuevos: `tests/canonical-savings-agent.test.cjs` (7 pruebas; una compara contra la
+    implementación anterior, copiada literal, en 500 simulaciones aleatorias con semilla: idéntico
+    al céntimo en todos los campos) y `tests/arq4-agente-ahorro-carga-diferida.test.cjs` (6).
+  - Tests adaptados: el recuento de `canonical-*.js` de `ARQ-3` pasa de 65 a 66; `v2-8` y
+    `e14-a12-c14-bloque5` leen también `views/savings-agent.js`, porque el enlace a `#cashflow` del
+    resumen ejecutivo del Agente vive ahí.
+- **Verificación en navegador real** (Playwright, `main` contra esta rama): texto idéntico en
+  Agente de ahorro (también tras cambiar de año y de colchón), Hoy, Ejecutivo, Asesor virtual, Plan
+  de deuda y Nueva vida. «Simular ruta» desde Hoy, sin el fichero del Agente cargado, no lanza y no
+  lo descarga. Sin errores de consola nuevos.
+- **Hallazgos fuera de alcance** (no tocados, dejados como tareas sugeridas):
+  - **Caché offline incompleta**: 31 scripts que `index.html` carga al arrancar no están en
+    `SHELL_URLS` de `service-worker.js` (entre ellos `canonical-irpf-estimator.js`,
+    `canonical-portfolio.js`, `canonical-period.js`). Sin red, esos motores no cargan.
+  - **Test intermitente**: `lev14` compara dos resultados que llevan cada uno su `evaluatedAt`;
+    falló una vez en el `verify` local por 1 ms y pasó al repetir. No se desactivó.
+  - **Código muerto**: `renderAgentPriorityQueue()` pinta en `#agentPriorityQueue`, que no existe
+    en `index.html`. Nunca ha pintado nada; queda anotado como excepción explícita en el test, sin
+    borrarlo sin decisión del hogar.
+- **Resultado de la validación**: `npm run verify` completo — 4744/4744 pruebas (4731 + 13 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. La primera pasada dio 4743/4744 por el test intermitente de
+  `lev14`, ajeno a este cambio; la segunda, completa en verde.
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre; próxima el 16 de octubre
+  de 2026).
+- **Estado de `ARQ-4`**: de las cuatro pantallas que `T14` dio por bloqueadas, tres ya viven en
+  carga diferida; solo queda Visual Detail. Recomendación: no moverla mientras no haya un motivo más
+  allá del recuento de líneas; el riesgo es perder cambios en borrador del hogar.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
 
 ## Cierre de sesión — 24 de septiembre de 2026 (236): `ARQ-4`, segundo incremento — «Nueva vida» (simulación) desbloqueada y extraída a `views/new-life-simulation.js`
 

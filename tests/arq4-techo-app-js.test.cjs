@@ -22,8 +22,9 @@ const path = require("node:path");
 // del techo — una extracción ha liberado espacio. Baja CEILING_LINES a (líneas actuales + margen de
 // ~130) en el mismo PR que hace la extracción, para que lo ganado no se vuelva a perder.
 // Historial del techo: 38.600 (sesión 233, app.js en 38.467) → 38.235 (sesión 236, app.js en 38.105
-// tras extraer «Nueva vida» simulación a views/new-life-simulation.js).
-const CEILING_LINES = 38235;
+// tras extraer «Nueva vida» simulación a views/new-life-simulation.js) → 37.436 (sesión 237, app.js en
+// 37.306 tras extraer el Agente de ahorro a views/savings-agent.js y su núcleo a canonical-savings-agent.js).
+const CEILING_LINES = 37436;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

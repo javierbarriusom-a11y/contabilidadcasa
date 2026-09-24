@@ -95,7 +95,7 @@ test("staggeredLeverageDeployment · lumpSum reutiliza tal cual simulateLeverage
     expectedReturnScenarios: SCENARIOS,
   });
   // evaluatedAt es la hora de cada llamada (new Date()), no aritmética: si las dos caen en
-  // milisegundos distintos la comparación completa fallaba de forma intermitente (sesión 237).
+  // milisegundos distintos la comparación completa fallaba de forma intermitente (sesión 238).
   const { evaluatedAt: stampedLumpSum, ...lumpSum } = result.lumpSum;
   const { evaluatedAt: stampedDirect, ...direct } = directLumpSum;
   assert.ok(stampedLumpSum && stampedDirect);
