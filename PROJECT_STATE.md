@@ -86,6 +86,34 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (235): la skill de sesión deja de mandar al backlog de agosto y de pedir permiso para publicar
+
+- **Qué pedía la sesión**: el hogar aprobó («sí corrige la skill») corregir dos instrucciones
+  desfasadas de `.claude/skills/finanzas-casa-workflow/SKILL.md`, detectadas al cerrar `PROC-2`.
+  - **Modo Inicio, paso 2**: mandaba a `BACKLOG_ULTIMATE_SEPTIEMBRE.md` como «la única cola con
+    trabajo pendiente». Ese backlog está casi cerrado desde el 3 de septiembre; el vigente es
+    `BACKLOG_CONTABILIDADCASA_3_0.md` desde la sesión 219. Una sesión nueva que leyera la skill antes
+    que el índice habría arrancado con la cola equivocada.
+  - **Modo Cierre, paso 4**: exigía un «sí» explícito en cada turno antes de `commit`/`push`,
+    justo lo que `CLAUDE.md` anuló el 10 de agosto de 2026. Hasta hoy funcionaba solo porque
+    `CLAUDE.md` tiene prioridad; la contradicción seguía escrita.
+- **Corregido**:
+  - El paso 2 apunta ahora al backlog que `BACKLOG_INDICE.md` marca como «🟢 Vigente» (hoy
+    `3.0`, §6) y dice qué hacer si el índice cambia.
+  - El Modo Cierre describe el ciclo real de `CLAUDE.md` (validar → estado → commit/push → PR en
+    borrador → fusión con el CI en verde → reiniciar la rama) y repite sus frenos. La descripción de
+    la cabecera de la skill, que es lo que ve el modelo al decidir si usarla, también se corrige.
+  - De paso, una línea gemela en `BACKLOG_INDICE.md` (fila de `BACKLOG_STATUS.md`) que decía lo
+    mismo sobre el orden de ejecución.
+- **Para que no vuelva a pasar**: `tests/proc-skill-alineada-con-claude-md.test.cjs` (3 pruebas)
+  ata la skill a sus dos fuentes de verdad. Si el índice marca otro backlog como vigente y la skill
+  no lo nombra, el CI falla; también si el Modo Cierre vuelve a pedir un «sí» o pierde algún freno.
+- **Resultado de la validación**: `npm run verify` completo — 4724/4724 pruebas (4721 + 3 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. Sin verificación de navegador: ningún archivo de la app cambia.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (234): `PROC-2` — la revisión mensual de Nielsen pasa a ser un paso del flujo de sesión
 
 - **Qué pedía la sesión**: tercera y última tarea de la oleada aprobada por el hogar en esta
