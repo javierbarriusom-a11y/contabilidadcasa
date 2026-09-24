@@ -43,6 +43,7 @@ const files = [
   "canonical-e15-goals.js",
   "canonical-e16-monitoring.js",
   "canonical-period.js",
+  "canonical-savings-agent.js",
   "canonical-budget-schema.js",
   "canonical-budget-analyzer.js",
   "canonical-budget-alerts.js",
@@ -125,6 +126,7 @@ const files = [
   "views/asesor-decision.js",
   "views/reconciliation.js",
   "views/new-life-simulation.js",
+  "views/savings-agent.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el

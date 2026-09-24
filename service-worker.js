@@ -59,6 +59,7 @@ const SHELL_URLS = [
   "./canonical-supabase-store.js",
   "./canonical-month-close.js",
   "./canonical-e5-operations.js",
+  "./canonical-savings-agent.js",
   "./snapshot-restore.js",
   "./durable-outbox.js",
   "./remote-save-queue.js",
@@ -87,6 +88,7 @@ const SHELL_URLS = [
   "./views/asesor-decision.js",
   "./views/reconciliation.js",
   "./views/new-life-simulation.js",
+  "./views/savings-agent.js",
 ];
 
 async function precacheFreshShell() {
