@@ -30,6 +30,7 @@ jobs:
       - name: Instalar Chromium para el presupuesto de rendimiento (OPT-5)
         run: npx playwright install --with-deps chromium
       - run: npm run test:performance-lh
+      - run: npm run test:mobile-overflow
       - uses: actions/configure-pages@v6
         if: github.event_name != 'pull_request'
         with:

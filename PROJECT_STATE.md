@@ -86,6 +86,67 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (239): `T9` redefinida y cerrada — 13 de 59 pantallas tenían contenido cortado en móvil (y 5-6 en escritorio); arreglado y vigilado en el CI
+
+- **Qué pedía la sesión**: el hogar pidió «adelante con T9». Tal como estaba escrita, su siguiente
+  incremento era invertir a mobile-first el bloque `@media (max-width: 860px)` compartido: 68
+  selectores, 44 de ellos tocados también por otros `@media` de anchura, con un criterio de
+  aceptación de «ningún cambio visible». Es decir, riesgo alto y beneficio cero para el hogar, el
+  mismo perfil por el que `ARQ-4` quedó en pausa en la sesión 238.
+- **Antes de invertir nada se midió qué falla de verdad en móvil**: se recorrieron las 59 pantallas en
+  Playwright buscando elementos a la derecha del borde de la pantalla sin un contenedor desplazable
+  que los recoja. `html`/`body` recortan el desbordamiento horizontal (sin barra), así que esos
+  elementos ni se ven ni se pueden pulsar.
+  - A 390px, **13 de 59 pantallas** tenían contenido cortado. Entre ellas, Hoy: «Guía de este flujo»
+    y «Modo reunión» quedaban fuera de alcance.
+  - No era solo móvil: a 1280px, un portátil normal, **5-6 pantallas** también. El botón «Añadir» de
+    Planificación de partidas estaba entre los píxeles 1364 y 1451, fuera de la pantalla.
+  - Aparte, a 375-414px las cuatro cifras de la cabecera del Plan de liquidación de deuda quedaban en
+    una columna de 0-14px: sin recorte técnico, pero ilegibles.
+- **Decisión del hogar**: redefinir `T9` como arreglar ese recorte (opción recomendada, frente a
+  «solo Hoy» o «`T9` tal cual»). Lo que se tocara, en móvil primero.
+- **Causas raíz y arreglos** (`styles.css`, `design-tokens.css`):
+  - Columnas `1fr` que no bajan del ancho mínimo de su contenido: `minmax(0, 1fr)` en el bloque
+    compartido de 860px, en el de 1280px, en Previsión (≤1080px) y en la lista de calidad de Nueva
+    vida; `min-width: 0` en los hijos de `.debt-overview-grid`.
+  - `fieldset` hereda del navegador un ancho mínimo igual al de su contenido: `min-width: 0` global.
+    Es la causa de que Deuda › Comparar se cortase hasta en 1440px.
+  - Rejillas de columnas fijas que no caben: `.visual-controls` (móvil primero: 2 columnas de base,
+    las 4 de siempre desde 761px), `.advisor-layout` (1 columna de base, 2 desde 761px),
+    `.debt-executive-hero` (1 de base, 2 desde 600px), `.debt-form` (`minmax(0, 1fr)`) y
+    `.visual-add-grid`. Esta última sumaba ~1180px y no cabía en ninguna pantalla real con el menú
+    lateral: pasa a `repeat(auto-fill, minmax(150px, 1fr))`, sin media query.
+  - Filas flex sin salto: pestañas de Deuda y pasos de Cierre con `flex-wrap`; cabecera de
+    Movimientos en fila solo desde 861px; bandas de colchón y patrimonio de Análisis con
+    desplazamiento horizontal propio (una columna por mes no cabe en un móvil).
+- **Verificación**:
+  - Contenido cortado, antes → después: 13 → 0 pantallas a 390px, y 0 también a 360, 375 y 414px.
+    A 768, 1024 y 1280px, 0 salvo un falso positivo (un radio invisible a propósito en Simulador).
+  - Escritorio comparado **elemento a elemento** en 861/1024/1280/1440px contra `main` (captura de
+    referencia determinista: dos capturas seguidas de `main` salen idénticas). Solo cambian las
+    pantallas que tenían recorte, más Deuda › Ruta a 861-1024px, y ahí para bien: sus pestañas
+    medían 360px dentro de una tarjeta de 217, invadían la columna de al lado y partían su propio
+    texto en dos líneas; ahora pasan a otra línea.
+  - Capturas revisadas: Hoy a 390px (controles en 2×2, todos alcanzables) y Planificación de partidas
+    a 1280px («Añadir línea» visible).
+- **Para que no vuelva a pasar**: `tools/check-mobile-overflow.mjs` (`npm run
+  test:mobile-overflow`) recorre todas las pantallas del `dist/` a 360/768/1280px y falla si algo
+  queda cortado. Va en `.github/workflows/pages.yml` detrás de la instalación de Chromium, igual que
+  el presupuesto de Lighthouse: fuera de `npm run verify` porque necesita navegador, pero corre en cada
+  PR (~3 minutos). Comprobado que falla contra el `dist/` de `main` (22 casos listados) y pasa con el
+  arreglo (177 visitas). `tests/t9-recorte-pantalla.test.cjs` (4 pruebas, en `npm test`) impide
+  desengancharla y fija las dos causas más graves (`fieldset`, `.visual-add-grid`).
+- **`T9` queda cerrada**: lo que queda de la inversión pura a mobile-first no cambia nada visible, y
+  el riesgo real que cubría (pantallas rotas en móvil) ya lo vigila una prueba. Se reabre solo si el
+  hogar lo pide. Con esto el **horizonte 3 de `BACKLOG_CONTABILIDADCASA_3_0.md` queda completo**.
+- **Resultado de la validación**: `npm run verify` completo — 4752/4752 pruebas (4748 + 4 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde; `npm run test:mobile-overflow` en verde contra el `dist/` final
+  (177 visitas: 59 pantallas a 360/768/1280px).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/admiring-sagan-c5wwtl`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (238): `ARQ-5` — la caché offline llevaba semanas incompleta; restablecida y blindada con prueba. `ARQ-4` en pausa
 
 - **Qué pedía la sesión**: el hogar propuso dejar Visual Detail donde está y «empezar por la caché
