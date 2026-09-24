@@ -141,9 +141,8 @@ de aquí en la siguiente regeneración, no al momento.
   hogar lo pide. Con esto el **horizonte 3 de `BACKLOG_CONTABILIDADCASA_3_0.md` queda completo**.
 - **Resultado de la validación**: `npm run verify` completo — 4752/4752 pruebas (4748 + 4 nuevas),
   lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
-  privacidad y smoke test en verde; `npm run test:mobile-overflow` en verde contra una construcción
-  de la rama con este mismo CSS (177 visitas). La pasada contra el `dist/` final no llegó a terminar en
-  el entorno local; la repite el CI del PR.
+  privacidad y smoke test en verde; `npm run test:mobile-overflow` en verde contra el `dist/` final
+  (177 visitas: 59 pantallas a 360/768/1280px).
 - **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
 - **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
   `claude/admiring-sagan-c5wwtl`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
