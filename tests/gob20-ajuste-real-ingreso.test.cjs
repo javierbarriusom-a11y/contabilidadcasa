@@ -76,6 +76,9 @@ function sandbox({ scenarioSettings = {}, noteEl = { innerHTML: "" }, fields = {
     saveScenarioSettings: () => saveCalls.push(JSON.parse(JSON.stringify(scenarioSettings))),
     recomputeModelIfNeeded: (force) => recomputeCalls.push(force),
     renderNewLifeSimulation: (opts) => renderNewLifeCalls.push(opts),
+    // ARQ-4 (sesión 236): renderNewLifeSimulation vive en views/new-life-simulation.js y sus llamadores
+    // la protegen con viewChunkLoaded; aquí la pantalla se da por cargada, como al pulsar sus botones.
+    viewChunkLoaded: (id) => id === "new-life-simulation",
     qs: (id) => fieldEls[id] || null,
     escapeHtml: (value) => String(value ?? ""),
     money,
@@ -233,8 +236,11 @@ test("wiring: index.html declara los campos y la lista de ajustes de ingreso, de
 test("wiring: app.js conecta el botón de declarar y el delegado de quitar, y renderNewLifeSimulation repinta la lista", () => {
   assert.match(appSource, /qs\("gob20AdjustmentAdd"\)\?\.addEventListener\("click", addGob20IncomeAdjustment\)/);
   assert.match(appSource, /data-gob20-remove/);
-  const start = appSource.indexOf("function renderNewLifeSimulation(");
-  const end = appSource.indexOf("\n}", start);
-  const block = appSource.slice(start, end);
+  // ARQ-4 (sesión 236): la pantalla vive en views/new-life-simulation.js, con carga diferida.
+  const viewSource = fs.readFileSync(path.join(__dirname, "..", "views", "new-life-simulation.js"), "utf8");
+  const start = viewSource.indexOf("function renderNewLifeSimulation(");
+  assert.ok(start >= 0, "renderNewLifeSimulation debe vivir en views/new-life-simulation.js");
+  const end = viewSource.indexOf("\n}", start);
+  const block = viewSource.slice(start, end);
   assert.match(block, /renderGob20IncomeAdjustments\(\);/);
 });

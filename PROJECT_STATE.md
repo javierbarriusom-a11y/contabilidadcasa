@@ -86,6 +86,58 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (236): `ARQ-4`, segundo incremento — «Nueva vida» (simulación) desbloqueada y extraída a `views/new-life-simulation.js`
+
+- **Qué pedía la sesión**: el hogar pidió «continúa con ARQ-4» tras aprobar la corrección de la
+  skill (sesión 235). Tocaba auditar las tres pantallas que `T14` dio por bloqueadas de forma
+  permanente (Nueva vida simulación, Agente de ahorro y Visual Detail) y mover la más limpia.
+- **Hallazgo: el bloqueo de «Nueva vida» (simulación) no se sostenía.** `T14` (sesión 207, cabecera
+  de `views/executive-advisor.js`) decía que `renderNewLifeSimulation()` se llamaba sin guarda
+  «desde varios manejadores de Plan/Ajustes»: GOB20 declarar/quitar y GOB12 aplicar a real.
+  - Contra el código de hoy, los tres cuelgan de controles que viven **dentro** de
+    `<section id="new-life-simulation">`: `#gob20AdjustmentAdd`, el delegado `[data-gob20-remove]`
+    sobre la propia sección y `#gob12ApplyRealBtn`. Un test existente
+    (`tests/gob20-ajuste-real-ingreso.test.cjs`) ya exigía que GOB20 viviera ahí.
+  - Solo se pueden pulsar con la pantalla visible, y para entonces `renderActiveSection()` ya ha
+    cargado el fichero. Es la cuarta vez en esta auditoría que un documento da por cierto algo que
+    el código no confirma; ver sesiones 219, 220 y 234.
+- **Construido**:
+  - `views/new-life-simulation.js` (12 funciones): `renderNewLifeSimulation`, su contexto
+    `newLifeContext`, dos auxiliares exclusivos y sus ocho renderizadores. Todos pintan nodos de su
+    propia sección.
+  - Las tres llamadas externas llevan la guarda `viewChunkLoaded("new-life-simulation")`, por si
+    algún día se cablean desde otra pantalla. Sin el fichero cargado la pantalla no está a la vista
+    y se pinta al entrar; `renderNewLifeSimulation()` no tiene efectos de estado que conservar.
+  - **Se queda en `app.js`**, a propósito: el Laboratorio E13 y los paneles GOB20/GOB12. Pintan en
+    esta sección, pero son un sistema propio: comparten estado con Presupuesto del mes (FCST-2),
+    alimentan la calidad de predicción (PVC13/PVC17) y 21 ficheros de tests los extraen de `app.js`.
+  - `app.js`: 38.467 → **38.105 líneas** (-362). El trinquete obligó a bajar el techo en el mismo
+    PR: 38.600 → **38.235**.
+  - Tests: nuevo `tests/arq4-nueva-vida-simulacion-carga-diferida.test.cjs` (7 pruebas: funciones
+    movidas, sin usos externos, nodos dentro de la sección, registro diferido/build/caché offline,
+    controles dentro de la sección, ninguna llamada sin guarda, declarar sin fichero cargado no
+    lanza). Adaptados `gob12`/`gob20` (el sandbox da la pantalla por cargada; la aserción de
+    cableado lee la vista).
+- **Verificación en navegador real** (Playwright, `main` contra esta rama, con datos de
+  demostración): texto de `#new-life-simulation` idéntico al entrar (12.106 caracteres), tras
+  declarar una caída de ingreso y tras quitarla. El fichero solo se descarga al visitar la
+  pantalla. Único error de consola: un recurso externo bloqueado por la red del entorno, idéntico en
+  `main`.
+- **Diagnóstico de las dos que quedan** (sin tocar código):
+  - **Agente de ahorro**: bloqueo real pero resoluble con el mismo patrón.
+    `applyAgentRouteSimulation()` se dispara desde Hoy (centro de acciones unificado) y desde cuatro
+    pantallas más, y llama a `renderSavingsAgent()` en sus dos salidas «sin cambios». El coste está
+    en separar sus renderizadores del motor del agente, que comparten media docena de pantallas.
+  - **Visual Detail**: la más difícil. Tiene 11 llamadores, todos editores de su propia rejilla con
+    cambios en borrador; `discardVisualChanges` se llama también desde la barra de impacto de Plan.
+    Hay que auditar ese estado de borrador antes de moverla.
+  - Orden recomendado: Agente de ahorro → Visual Detail.
+- **Resultado de la validación**: `npm run verify` completo — 4731/4731 pruebas (4724 + 7 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (235): la skill de sesión deja de mandar al backlog de agosto y de pedir permiso para publicar
 
 - **Qué pedía la sesión**: el hogar aprobó («sí corrige la skill») corregir dos instrucciones

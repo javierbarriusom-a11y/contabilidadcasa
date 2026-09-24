@@ -124,6 +124,9 @@ function sandbox({
     saveP2State: (next) => { p2 = P2Domain.normalizeState(next); saveP2Calls.push(plain(p2)); return p2; },
     recomputeModelIfNeeded: (force) => recomputeCalls.push(force),
     renderNewLifeSimulation: (opts) => renderNewLifeCalls.push(opts),
+    // ARQ-4 (sesión 236): renderNewLifeSimulation vive en views/new-life-simulation.js y sus llamadores
+    // la protegen con viewChunkLoaded; aquí la pantalla se da por cargada, como al pulsar sus botones.
+    viewChunkLoaded: (id) => id === "new-life-simulation",
     renderE13ScenarioLab: () => {},
     fieldEls,
     recomputeCalls,

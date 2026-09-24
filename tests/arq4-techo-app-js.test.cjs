@@ -21,7 +21,9 @@ const path = require("node:path");
 // Qué hacer si falla por ABAJO (trinquete): app.js ha bajado más de RATCHET_SLACK_LINES por debajo
 // del techo — una extracción ha liberado espacio. Baja CEILING_LINES a (líneas actuales + margen de
 // ~130) en el mismo PR que hace la extracción, para que lo ganado no se vuelva a perder.
-const CEILING_LINES = 38600;
+// Historial del techo: 38.600 (sesión 233, app.js en 38.467) → 38.235 (sesión 236, app.js en 38.105
+// tras extraer «Nueva vida» simulación a views/new-life-simulation.js).
+const CEILING_LINES = 38235;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;
