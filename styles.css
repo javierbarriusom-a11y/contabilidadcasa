@@ -1482,7 +1482,7 @@ main {
   color: var(--muted);
   cursor: not-allowed;
 }
-.e6-quality-list { display: grid; gap: .75rem; }
+.e6-quality-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; } /* T9 (recorte): con la columna implícita, el contenido de una tarjeta la ensanchaba hasta 1156px */
 .e6-quality-card header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .e6-quality-card dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: .75rem 0 0; }
 .e6-quality-card dt { color: var(--muted); }
@@ -1966,9 +1966,12 @@ main {
   font-weight: 900;
 }
 
+/* T9 (móvil primero): con dos columnas (la primera de 280px como mínimo) las cuatro cifras de la
+   derecha se quedaban en 0px a 375px y en 14px a 414px — ilegibles en cualquier móvil. Una columna de
+   base; las dos de siempre desde 600px, donde las cifras ya tienen unos 200px. */
 .debt-executive-hero {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: stretch;
   margin-bottom: 16px;
@@ -1976,6 +1979,12 @@ main {
   border-radius: 12px;
   background: linear-gradient(135deg, #126c64 0%, #244c83 100%);
   color: #fff;
+}
+
+@media (min-width: 600px) {
+  .debt-executive-hero {
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  }
 }
 
 .debt-executive-hero h3 {
@@ -2517,6 +2526,10 @@ main {
 }
 
 fieldset {
+  /* T9 (recorte): el navegador da a <fieldset> un ancho mínimo igual al de su contenido
+     (min-inline-size: min-content), así que una tabla o un <select> con opciones largas dentro
+     lo ensanchaban más allá de la pantalla — Deuda › Comparar se cortaba hasta en 1440px. */
+  min-width: 0;
   margin: 0;
   padding: 16px;
   border: 1px solid var(--line);
@@ -4507,12 +4520,22 @@ svg {
   font-size: 18px;
 }
 
+/* T9 (móvil primero): cuatro columnas fijas de 130px (550px con los huecos) no caben en un móvil;
+   ensanchaban Hoy, Agente de ahorro, Asesor virtual y Detalle visual más allá de la pantalla y
+   «Guía de este flujo»/«Modo reunión» quedaban fuera de alcance. La base es ahora la de móvil (dos
+   columnas) y las cuatro de siempre vuelven desde 761px, donde ya cabían. */
 .visual-controls,
 .movement-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-items: end;
+}
+
+@media (min-width: 761px) {
+  .visual-controls {
+    grid-template-columns: repeat(4, minmax(130px, 1fr));
+  }
 }
 
 .movement-filters {
@@ -4605,9 +4628,12 @@ svg {
   cursor: not-allowed;
 }
 
+/* T9 (recorte): las ocho columnas fijas sumaban ~1180px y no cabían en ninguna pantalla real con el
+   menú lateral — en un portátil de 1280px el botón «Añadir» de Planificación de partidas quedaba
+   fuera, sin poder pulsarse. Sin media query: tantas columnas como quepan, de móvil a escritorio. */
 .visual-add-grid {
   display: grid;
-  grid-template-columns: 110px 170px minmax(210px, 1fr) 140px 140px 130px 130px auto;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 9px;
   align-items: end;
 }
@@ -6734,15 +6760,23 @@ body {
   line-height: 1.35;
 }
 
+/* T9 (móvil primero): la segunda columna exige 340-420px, que en un móvil no caben — ensanchaba el
+   Asesor virtual entero fuera de la pantalla. Una columna de base; las dos de siempre desde 761px. */
 .advisor-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
 
-.advisor-layout-wide {
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.72fr);
+@media (min-width: 761px) {
+  .advisor-layout {
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  }
+
+  .advisor-layout-wide {
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.72fr);
+  }
 }
 
 .advisor-panel {
@@ -7794,6 +7828,12 @@ body {
   margin-bottom: 14px;
 }
 
+/* T9 (recorte): la tabla de cartera (min-content ~1100px) ensanchaba su tarjeta y con ella la
+   columna de la rejilla; con min-width: 0 la tarjeta respeta la columna y la tabla se desplaza. */
+.debt-overview-grid > * {
+  min-width: 0;
+}
+
 .debt-panel,
 .savings-card {
   padding: 16px;
@@ -7964,7 +8004,9 @@ body {
 
 .debt-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  /* T9 (recorte): el mínimo de 150px por columna hacía que el formulario se saliera 4px a 360px;
+     en cualquier ancho donde ya cabía, minmax(0, 1fr) reparte exactamente igual. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -8671,8 +8713,17 @@ body {
   box-shadow: 10px 0 14px -12px rgba(20, 34, 42, 0.42);
 }
 
+/* T9 (móvil primero): título y filtros en fila solo desde 861px, igual que .with-action; debajo de
+   ese ancho los filtros se salían de la pantalla a la derecha del título. */
 .movement-detail-title {
+  display: block;
   margin-top: 22px;
+}
+
+@media (min-width: 861px) {
+  .movement-detail-title {
+    display: flex;
+  }
 }
 
 .movement-import-card {
@@ -9502,7 +9553,8 @@ tbody tr:hover {
     .visual-bulk-edit-grid,
     .scenario-sensitivity-grid,
     .decision-history-columns {
-	    grid-template-columns: 1fr;
+	    /* T9 (recorte): minmax(0, 1fr), no 1fr — mismo motivo que el bloque de 860px. */
+	    grid-template-columns: minmax(0, 1fr);
 	  }
 
   .advice-panel {
@@ -9773,7 +9825,10 @@ tbody tr:hover {
   .visual-bulk-edit-grid,
   .scenario-sensitivity-grid,
   .timeline-item {
-    grid-template-columns: 1fr;
+    /* T9 (recorte): minmax(0, 1fr) y no 1fr — una columna 1fr no baja del ancho mínimo de su
+       contenido, así que una tabla o un texto sin cortar dentro ensanchaba la pantalla entera (Plan
+       de liquidación de deuda, entre otras). Solo cambia algo donde hoy se sale de la pantalla. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .panel-heading,

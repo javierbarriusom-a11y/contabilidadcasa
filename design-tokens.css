@@ -2612,6 +2612,7 @@
 
 .e19-deuda-decidir .deuda-decidir-tabs {
   display: flex;
+  flex-wrap: wrap; /* T9 (recorte): en móvil la última pestaña se salía de la pantalla */
   gap: 6px;
 }
 
@@ -3340,6 +3341,7 @@
 
 .e19-cierre .cierre-steps {
   display: flex;
+  flex-wrap: wrap; /* T9 (recorte): los pasos del asistente se salían de la pantalla en móvil */
   gap: 10px;
   margin: 0 0 18px;
   padding: 0;
@@ -3748,7 +3750,10 @@
   padding: 18px;
 }
 
+/* T9 (recorte): una columna por mes no cabe en un móvil (ni en Planificación de partidas a 1280px):
+   la banda se desplaza en horizontal en vez de cortar los últimos meses fuera de la pantalla. */
 .e19-analisis .analisis-cushion-band {
+  overflow-x: auto;
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -3820,6 +3825,7 @@
 }
 
 .e19-analisis .analisis-networth-band {
+  overflow-x: auto; /* T9 (recorte): mismo motivo que .analisis-cushion-band */
   display: flex;
   align-items: flex-end;
   gap: 6px;
@@ -6061,7 +6067,9 @@
 @media (max-width: 1080px) {
   .e19-cuadro-mandos .cambios-pendientes-layout,
   .e19-prevision .cambios-pendientes-layout {
-    grid-template-columns: 1fr;
+    /* T9 (recorte): minmax(0, 1fr), no 1fr — la tabla mensual de Previsión ensanchaba la columna
+       hasta 1220px y se cortaba en tabletas y móviles. */
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
