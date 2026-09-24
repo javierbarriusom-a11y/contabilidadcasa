@@ -86,6 +86,62 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (237): `ARQ-5` — la caché offline llevaba semanas incompleta; restablecida y blindada con prueba. `ARQ-4` en pausa
+
+- **Qué pedía la sesión**: el hogar propuso dejar Visual Detail donde está y «empezar por la caché
+  offline». No había ninguna tarea con ese nombre en `BACKLOG_CONTABILIDADCASA_3_0.md`, así que antes
+  de proponer plan se comparó `SHELL_URLS` (`service-worker.js`) con lo que `index.html` carga.
+- **Hallazgo**: 30 de los 65 `canonical-*.js` que `index.html` carga al arrancar no estaban en la caché
+  offline (entre otros `canonical-period.js`, `canonical-tax-tables.js`, `canonical-portfolio.js`,
+  `canonical-irpf-estimator.js`, `canonical-health-score.js` y los cuatro de apalancamiento), y
+  tampoco `views/estado-semana.js`, que sí está en `VIEW_CHUNKS`. El más antiguo lleva sello de
+  versión del 9 de agosto. Causa: la lista se mantenía a mano y solo se tocaba al añadir una vista a
+  `views/`; `tools/build-public-site.mjs` ya tenía una guarda equivalente para `dist`, pero nunca se
+  extendió al Service Worker. A0-4 seguía marcada «Verificado» en `BACKLOG_STATUS.md`.
+- **Reproducido en navegador antes de tocar nada** (Playwright, sitio construido desde `main`: primera
+  visita con red, después recarga sin red): 32 peticiones fallidas (los 30 motores más Supabase por
+  CDN y `supabase-config.js`) y **ningún error de JavaScript**: la app abría y parecía sana. Al
+  recorrer las 59 pantallas con y sin red, 21 cambiaban; descontado el ruido del propio recorrido,
+  la degradación real era Hoy sin «Salud financiera compuesta» ni fecha de libre de deuda, Estado de
+  la semana casi vacía (1.136 → 427 caracteres), Previsión sin resumen por periodo, e Inversión,
+  Seguros, Patrimonio, Deuda y Cierre sin parte de sus avisos. Un fallo silencioso: nadie lo habría
+  notado salvo usando la app sin conexión y comparando.
+- **Corregido**: los 30 motores y `views/estado-semana.js` entran en `SHELL_URLS` (74 → 105 recursos
+  en caché). Única exclusión, deliberada: `supabase-config.js`, por el criterio de A0-4 («no se
+  almacenan credenciales … en caché compartida»); sin red no hay sincronización remota posible y la
+  app sigue en modo local. Supabase por CDN es de otro origen y el Service Worker no lo intercepta.
+- **Verificado en navegador después del arreglo**: sin red solo fallan las dos peticiones de
+  Supabase, y las 59 pantallas pintan lo mismo que con red. Las 3 diferencias restantes (contador de
+  visitas de Ajustes, marcas de tiempo de Auditoría de datos, texto de paridad de Hoja de ruta) salen
+  idénticas comparando dos pasadas con red, así que son ruido del recorrido, no de la caché.
+- **Para que no vuelva a pasar**: `tests/arq5-cache-offline-completa.test.cjs` (4 pruebas). Todo
+  recurso local de `index.html` (mismo criterio que la guarda de la build) y toda vista de
+  `VIEW_CHUNKS` tienen que estar en la caché; toda entrada de la caché tiene que existir y
+  publicarse, porque `precacheFreshShell()` usa `Promise.all` y un solo 404 tumbaría la instalación
+  entera; las exclusiones llevan motivo y fallan si sobran. Comprobado que las dos primeras pruebas
+  fallan con el `service-worker.js` de `main` y pasan con el arreglo.
+- **Decisión del hogar: `ARQ-4` en pausa.** Las dos pantallas que quedan (Agente de ahorro, Visual
+  Detail) son las más caras de mover, cada una recortaría unos cientos de líneas de ~38.100 y no
+  cambian nada visible; el techo de `app.js` ya impide que el fichero vuelva a crecer. Se reanuda
+  solo si el hogar lo pide o si hay que tocar alguna de las dos pantallas por otro motivo.
+- **Documentación**: fila `ARQ-5` nueva y `ARQ-4` en pausa en `BACKLOG_CONTABILIDADCASA_3_0.md`
+  (§2.2 y §6); A0-4/E3 y el riesgo de caché offline anotados en `BACKLOG_STATUS.md`, sin cambiar su
+  estado (vuelve a cumplirse, ahora con prueba).
+- **De paso, una prueba intermitente arreglada de raíz** (fuera de lo pedido, pero salió al validar:
+  falló 1 de 3 ejecuciones de `npm test`). `tests/lev14-apalancamiento-escalonado.test.cjs`
+  comparaba con `deepEqual` dos resultados de `simulateLeverage()` que llevan cada uno su
+  `evaluatedAt: new Date()`; si las dos llamadas caían en milisegundos distintos, fallaba. La prueba
+  compara ahora todo salvo esa marca de tiempo (y exige que ambas la tengan), sin tocar el motor.
+- **Resultado de la validación**: `npm run verify` completo — 4735/4735 pruebas (4731 + 4 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde.
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/admiring-sagan-c5wwtl`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+- **Nota para quien publique en producción**: la build reescribe `CACHE_NAME` en cada despliegue, así
+  que los navegadores con el Service Worker viejo instalan la caché nueva completa en su próxima
+  visita con red. No hace falta ninguna acción manual del hogar.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (236): `ARQ-4`, segundo incremento — «Nueva vida» (simulación) desbloqueada y extraída a `views/new-life-simulation.js`
 
 - **Qué pedía la sesión**: el hogar pidió «continúa con ARQ-4» tras aprobar la corrección de la
