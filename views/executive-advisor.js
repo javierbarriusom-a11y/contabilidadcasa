@@ -20,6 +20,11 @@
 // rompería con `ReferenceError` la primera vez que se ejecutara sin haber visitado antes Nueva vida.
 // Queda en app.js entera, con sus widgets E13/PVC/ESX, hasta que ese acoplamiento se resuelva
 // (añadir la guarda de pantalla activa sería un cambio de comportamiento, no una reubicación pura).
+//
+// Actualización 24/09/2026 (ARQ-4, sesión 236): el bloqueo no se sostenía. Esos tres manejadores
+// cuelgan de controles que viven dentro de la propia sección `#new-life-simulation`, no en Plan; la
+// pantalla vive ya en views/new-life-simulation.js, con las tres llamadas protegidas por
+// `viewChunkLoaded("new-life-simulation")`. Detalle en la cabecera de ese fichero.
 function renderExecutiveHero(ctx) {
   const target = qs("executiveAdvisorHero");
   if (!target) return;

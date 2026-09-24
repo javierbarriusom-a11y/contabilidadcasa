@@ -19,6 +19,8 @@
 // documentado en `views/executive-advisor.js`: `renderNewLifeSimulation` se llama sin guarda de
 // pantalla activa desde varios manejadores de Plan/Ajustes. El agente de ahorro (`renderSavingsAgent`
 // y su motor) tampoco se ha auditado todavía para el mismo patrón.
+// Actualización 24/09/2026 (ARQ-4, sesión 236): `new-life-simulation` ya vive en
+// views/new-life-simulation.js — ver su cabecera para por qué el bloqueo no se sostenía.
 function defaultNewLifeDefinitiveState() {
   const settings = executiveAdvisorSettings();
   return {
