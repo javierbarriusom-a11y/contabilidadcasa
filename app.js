@@ -1490,6 +1490,49 @@ function appStatePayload(options = {}) {
   return payload;
 }
 
+// ARQ-6 (paso 3): almacenes que la app guarda cada uno en su propia clave del navegador, fuera del
+// estado que recogen saveLocalSnapshot()/appStatePayload(). Hasta el 24 de septiembre de 2026 no
+// entraban en la copia de emergencia (A0-9): descargar una copia, perder el navegador y restaurarla
+// devolvía presupuestos y movimientos, pero no esto. La mayoría es historia que solo se acumula al
+// firmar cada cierre y no se puede reconstruir; el resto lo escribe el hogar a mano.
+// Van solo en el fichero de copia, no en appStatePayload(): la sincronización con la nube y sus
+// huellas de conflicto no cambian. tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
+// como excluida con motivo, cualquier clave nueva.
+const BACKUP_LOCAL_STORES = [
+  "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
+  "pvc6-forecast-snapshots", // PVC6: previsión congelada en cada cierre
+  "cierre-aprendizaje", // C-13: previsto frente a real por mes firmado
+  "cierre-report-archive", // archivo de informes de cierre
+  "pv5-diary", // PV5: diario de aprendizaje de la previsión
+  "pv3-learning-snapshot", // PV3: última medición, base de la tendencia
+  "pvc17-health-snapshot", // PVC17: última medición del índice de salud predictiva
+  "pvc16-non-recurring-months", // PVC16: meses declarados no recurrentes, con su motivo
+  "escenario-motor-saved", // Escenarios guardados por el hogar
+  "escenario-motor-custom-types", // E-1b: tipos de decisión propios
+  "new-life-definitive", // Nueva vida definitiva: configuración elegida
+  "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
+  "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
+  "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
+];
+
+function backupLocalStoresPayload() {
+  const stores = {};
+  BACKUP_LOCAL_STORES.forEach((name) => {
+    const value = storageGet(storageKey(name), "");
+    if (typeof value === "string" && value !== "") stores[name] = value;
+  });
+  return stores;
+}
+
+// Solo reescribe los almacenes que trae la copia; nunca borra uno que la copia no tenga, así que
+// restaurar una copia anterior a este campo deja intactos los del navegador.
+function restoreBackupLocalStores(stores) {
+  if (!stores || typeof stores !== "object" || Array.isArray(stores)) return;
+  BACKUP_LOCAL_STORES.forEach((name) => {
+    if (typeof stores[name] === "string") storageSet(storageKey(name), stores[name]);
+  });
+}
+
 function stateBackupSummaryMarkup(summary = {}) {
   const workbookText = summary.workbookIncluded
     ? `Libro incluido (${summary.workbookMonths || 0} meses)`
@@ -1501,6 +1544,7 @@ function stateBackupSummaryMarkup(summary = {}) {
     <span><b>${summary.expenseActuals || 0}</b> gasto(s) real(es)</span>
     <span><b>${summary.customRows || 0}</b> línea(s) personalizada(s)</span>
     <span><b>${summary.debtRoadmapFields || 0}</b> campo(s) del plan de deuda</span>
+    <span><b>${summary.localStores || 0}</b> registro(s) propios (historial de cierres, escenarios…)</span>
     <span>${workbookText}</span>
   </div>`;
 }
@@ -1534,7 +1578,9 @@ function downloadStateBackup() {
   try {
     refreshCanonicalSnapshot("backup");
     refreshCanonicalLedger("backup");
-    const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
+    const payload = appStatePayload();
+    payload.localStores = backupLocalStoresPayload();
+    const envelope = window.FinanceStateContract.buildBackupEnvelope(payload, {
       appVersion: "e3-emergency-backup",
     });
     const date = downloadBackupEnvelope(envelope);
@@ -1958,6 +2004,8 @@ function applyPersistedPayload(payload = {}) {
     ? payload.decisionWorkflow
     : null;
   currentScenario = scenarioSettings.currentScenario || "Base";
+  // Después de sustituir baseData: storageKey() depende del libro activo.
+  restoreBackupLocalStores(payload.localStores);
   normalizeLoadedProjects();
   ensureDecisionWorkflowSnapshot({ persist: false });
 }

@@ -155,3 +155,62 @@ test.describe("QA-1 · recorrido por las pantallas principales con datos reales"
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// ARQ-6 (paso 3, 24 de septiembre de 2026): la copia de emergencia (A0-9) perdía quince almacenes que la
+// app guarda cada uno en su propia clave del navegador — historia de cada cierre firmado y datos que el
+// hogar escribe a mano — sin que nada lo notase. Este flujo hace lo que haría el hogar: descargar la
+// copia, perder el navegador y restaurarla desde Ajustes, y exige que vuelva todo.
+// tests/arq6-copia-completa.test.cjs obliga a que cualquier almacén nuevo entre en esa lista.
+test.describe("QA-1 · copia de seguridad completa", () => {
+  test("descargar la copia, borrar el navegador y restaurarla devuelve el estado y todos los almacenes propios", async ({ page }, testInfo) => {
+    const consoleErrors = [];
+    page.on("pageerror", (error) => consoleErrors.push(String(error)));
+    const snapshot = () => page.evaluate(() => {
+      const payload = JSON.parse(JSON.stringify(appStatePayload({ includeCanonical: false })));
+      // Marcas de tiempo que cambian solas: la fecha de generación de los supuestos (misma huella) y
+      // la de la última copia, que se anota después de construirla.
+      delete payload.updatedAt;
+      delete payload.scenarioSettings?.lastEmergencyBackupAt;
+      if (payload.scenarioSettings?.forecastAssumptions) delete payload.scenarioSettings.forecastAssumptions.generatedAt;
+      return window.FinanceStateContract.stableStringify(payload);
+    });
+
+    await page.goto("/index.html#ajustes");
+    await page.waitForLoadState("networkidle");
+    await seedExpenseHistory(page, { category: "ocio", months: ["2026-05", "2026-06", "2026-07"] });
+    const stores = await page.evaluate(() => {
+      budgets = [{ categoryId: "ocio", monthYear: "2026-09", amountCap: 321, source: "manual" }];
+      saveLocalSnapshot();
+      // Forma realista: los historiales de cierre esperan entradas con monthKey/closedAt.
+      BACKUP_LOCAL_STORES.forEach((name) => storageSet(storageKey(name), JSON.stringify([{ monthKey: "2026-08", closedAt: "2026-09-01T10:00:00.000Z", marca: `qa1-${name}` }])));
+      refreshFromPersistedState();
+      return BACKUP_LOCAL_STORES;
+    });
+    expect(stores.length).toBeGreaterThan(10);
+    await page.waitForTimeout(800);
+
+    // El botón tiene que verse: vivía en #data-entry, que desde el 15 de agosto nunca se muestra.
+    await expect(page.locator("#exportStateBackup")).toBeVisible();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.click("#exportStateBackup")]);
+    const backupPath = testInfo.outputPath("copia.json");
+    await download.saveAs(backupPath);
+    const before = await snapshot();
+
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => { location.hash = "#ajustes"; });
+    expect(await snapshot(), "tras borrar el navegador el estado debería ser otro").not.toBe(before);
+
+    await page.setInputFiles("#stateBackupFile", backupPath);
+    await expect(page.locator("#confirmStateRestore")).toBeVisible();
+    await page.click("#confirmStateRestore");
+    await expect(page.locator("#stateBackupStatus")).toContainText("Restauración completada");
+    await page.waitForTimeout(800);
+
+    expect(await snapshot(), "el estado principal debería volver idéntico").toBe(before);
+    const lost = await page.evaluate((names) => names.filter((name) => !storageGet(storageKey(name), "").includes(`qa1-${name}`)), stores);
+    expect(lost, `almacenes que la copia no devolvió: ${lost.join(", ")}`).toEqual([]);
+    expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+  });
+});

@@ -90,6 +90,70 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (241): `ARQ-6` paso 3 — la copia de emergencia estaba rota por partida doble: sin botón desde el 15 de agosto y perdiendo 14 almacenes; arreglada y vigilada
+
+- **Qué pedía la sesión**: «sí, arranca con el paso 3», empezando por la copia de seguridad: que
+  exportar e importar devuelva exactamente el mismo estado.
+- **Inventario**: la copia (`downloadStateBackup` → `appStatePayload`) solo lleva el estado que guarda
+  `saveLocalSnapshot`. La app escribe 58 claves distintas en el navegador; se clasificaron todas.
+  Quince viven en su propia clave, fuera de ese estado, y ninguna entraba en la copia.
+- **Reproducido en navegador antes de tocar nada**: rellenar cada almacén, descargar la copia con la
+  función real, borrar el navegador, restaurar con el flujo real. Presupuestos (control) volvían; los
+  15 almacenes, no. Entre ellos, historia que solo se acumula al firmar cada cierre y no se puede
+  reconstruir: valoraciones por posición (`iv1-valuation-snapshots`, la que espera `I3`), previsiones
+  congeladas (PVC6), aprendizaje previsto/real (C-13), diario de aprendizaje (PV5), archivo de
+  informes de cierre, últimas mediciones de PV3/PVC17. Y lo que el hogar escribe a mano: escenarios
+  guardados y tipos de decisión propios, oferta de reunificación, meses declarados no recurrentes
+  (PVC16), nombres de plantilla de mes y movimientos ignorados al importar.
+- **Arreglo, alcance mínimo**: campo nuevo `localStores` en el fichero de copia, con la lista
+  `BACKUP_LOCAL_STORES` en `app.js` (14 almacenes; el 15.º, `debt-capital-snapshot-at-close`, queda
+  fuera a propósito: su propio comentario lo define como aviso derivado que se regenera en el
+  siguiente cierre). **Solo en el fichero, no en `appStatePayload()`**: la sincronización con la
+  nube y sus huellas de conflicto no cambian. Restaurar reescribe los almacenes que trae la copia y
+  nunca borra uno que no traiga, así que una copia anterior deja intactos los del navegador.
+  `state-contract.js` lo trata como objeto opcional (una forma inválida se descarta) y lo cuenta en
+  el resumen que ve el hogar al descargar y al restaurar; documentado en
+  `MDX2_FORMATO_EXPORTACION.md` (su prueba obliga a hacerlo en el mismo commit).
+- **Segundo fallo, más grave, destapado al escribir la prueba en navegador: no había ningún botón
+  para hacer la copia.** La tarjeta «Copia y restauración verificable» vivía en `#data-entry`, que
+  Registrar redirige desde R-10/R-11 (15 de agosto) y nunca se muestra. Ajustes › Exportar solo
+  ofrecía CSV, PDF y calendario, aunque `MDX2_FORMATO_EXPORTACION.md` y el simulacro RGX1 decían que
+  la copia estaba allí. Desde el 15 de agosto el hogar no podía descargar la copia de emergencia ni
+  restaurar una, y tampoco usar la restauración ni la verificación de versiones en Supabase (misma
+  tarjeta). La tarjeta pasa, entera y con los mismos IDs, a Ajustes › Datos y exportación, justo
+  debajo de «Exportar». Revisada en captura a 1280 y 390px. El texto de RGX1 que mandaba a «Datos»
+  apunta ahora a Ajustes.
+- **Para que no vuelva a pasar**:
+  - `tests/arq6-copia-completa.test.cjs` (4 pruebas, en `npm test`): toda clave que la app escribe en
+    el navegador tiene que estar en el estado principal, en `BACKUP_LOCAL_STORES` o excluida con su
+    motivo (15 exclusiones: derivados, preferencias y marcas del dispositivo, trabajo a medias). Falla
+    ante una clave nueva sin clasificar y ante una exclusión que ya no existe; comprobado quitando
+    `pv5-diary` de la lista y añadiendo un almacén ficticio. También fija que la copia lleva los
+    almacenes, que la restauración los devuelve, que la nube no los recibe y el viaje por el contrato.
+  - Flujo nuevo en QA-1 (navegador, en el CI): abre Ajustes, exige que «Descargar copia completa» se
+    vea, la pulsa, borra el navegador, restaura desde el selector de fichero y exige el estado
+    principal idéntico y los 14 almacenes de vuelta, sin errores de página. Comprobado que falla con
+    la tarjeta en su sitio antiguo («toBeVisible») y sin la línea que mete los almacenes (lista los
+    14 perdidos).
+  - Lección de método: dos arranques de la prueba en navegador fallaron por artefactos míos (un
+    servidor local viejo que Playwright reutilizaba sin reconstruir el sitio, y marcadores sin
+    `monthKey`); se identificaron y descartaron antes de sacar conclusiones.
+- **Pendiente del paso 3, con decisión del hogar**: `#data-entry` sigue huérfana con dos tarjetas que
+  no tienen otra puerta en la app — el editor «Modificar una serie completa» y la bandeja «Revisar
+  antes de incorporar». Sacarlas o retirarlas cambia pantallas, así que no se ha tocado. Además:
+  una comprobación automática de secciones con controles que nunca se muestran, y las listas
+  mantenidas a mano (buscador, menú, títulos, `VIEW_CHUNKS`, Laboratorio, guía contextual).
+- **Decisiones que quedan abiertas para el hogar**: si estos 14 almacenes deben viajar también en la
+  sincronización con la nube (hoy no pasan a otro dispositivo), y los documentos adjuntos de P2
+  (ficheros en IndexedDB), que la copia en JSON no lleva.
+- **Resultado de la validación**: `npm run verify` completo — 4762/4762 pruebas (4758 + 4 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. En navegador: `test:e2e` + `test:a11y-axe` 9/9 en dos pasadas y
+  `test:mobile-overflow` en verde (177 visitas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/happy-archimedes-0nlcvh`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (240): `ARQ-6` paso 2 — las dos suites de navegador huérfanas estaban en rojo y escondían tres fallos reales (presupuesto congelado 14 s, Control de deuda 12 s, encabezados de Hoy); corregidos y en el CI. `OPT-10`-`OPT-13` aplazadas
 
 - **Qué pedía la sesión**: arranque con el backlog vigente, con dos matices del hogar: (1) confirmar
