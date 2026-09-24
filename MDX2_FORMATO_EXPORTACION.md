@@ -66,7 +66,8 @@ Campos **opcionales** (objetos — si aparecen, deben ser objetos; si no aparece
 
 - `debtRoadmapState`
 - `e11b`
-- `localStores` — solo en el fichero de copia, nunca en la sincronización con la nube. Almacenes que
+- `localStores` — en el fichero de copia y, desde el 24 de septiembre de 2026 (decisión del hogar),
+  también en el estado que se sincroniza con la nube. Almacenes que
   la app guarda en su propia clave del navegador, fuera del estado principal: historia que solo se
   acumula al firmar cada cierre (valoraciones por posición, previsiones congeladas, aprendizaje,
   diario, archivo de informes) y datos que escribe el hogar (escenarios guardados y sus tipos
@@ -74,7 +75,8 @@ Campos **opcionales** (objetos — si aparecen, deben ser objetos; si no aparece
   ignorados). Cada valor es el texto tal cual estaba guardado, indexado por el nombre del almacén;
   la lista vive en `BACKUP_LOCAL_STORES` (`app.js`). Restaurar una copia sin este campo (anterior al
   24 de septiembre de 2026) no toca esos almacenes; restaurar una que lo tiene reescribe los que
-  trae y deja intactos los demás.
+  trae y deja intactos los demás. Si el valor del navegador es distinto del que llega, se conserva
+  una sola vez con el sufijo `:antes-de-sincronizar`.
 
 Campo especial:
 

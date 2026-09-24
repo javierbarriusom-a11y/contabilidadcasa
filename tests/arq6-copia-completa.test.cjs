@@ -93,15 +93,45 @@ test("las exclusiones y los almacenes de la copia existen de verdad (fallan si s
   for (const key of backupLocalStores()) assert.ok(!(key in EXCLUDED), `«${key}» no puede estar a la vez en la copia y excluida`);
 });
 
-test("la copia descargada lleva los almacenes propios y la restauración los devuelve", () => {
+test("los almacenes propios viajan en el estado (copia y nube), se restauran y escribirlos sincroniza", () => {
   const source = read("app.js");
-  const download = source.slice(source.indexOf("function downloadStateBackup() {"), source.indexOf("function recoveryPayloadFingerprint("));
-  assert.match(download, /payload\.localStores = backupLocalStoresPayload\(\);/);
+  const payloadBuilder = source.slice(source.indexOf("function appStatePayload("), source.indexOf("function stateBackupSummaryMarkup("));
+  assert.match(payloadBuilder, /localStores: backupLocalStoresPayload\(\),/);
   const apply = source.slice(source.indexOf("function applyPersistedPayload("), source.indexOf("function saveLocalSnapshot() {"));
   assert.match(apply, /restoreBackupLocalStores\(payload\.localStores\);/);
-  // Van solo en el fichero: la sincronización con la nube (appStatePayload) no cambia.
-  const payloadBuilder = source.slice(source.indexOf("function appStatePayload("), source.indexOf("// ARQ-6 (paso 3)"));
-  assert.doesNotMatch(payloadBuilder, /localStores/);
+  // Cada pantalla escribe su almacén por su cuenta: storageSet() tiene que avisar a la sincronización,
+  // y restaurar no puede provocar un reenvío a la nube de lo que acaba de llegar de ella.
+  const storageSet = source.slice(source.indexOf("function storageSet(key, value) {"), source.indexOf("\n}\n", source.indexOf("function storageSet(key, value) {")));
+  assert.match(storageSet, /if \(isBackupLocalStoreKey\(key\)\) scheduleLocalStoreSync\(\);/);
+  const schedule = source.slice(source.indexOf("function scheduleLocalStoreSync() {"), source.indexOf("function backupLocalStoresPayload() {"));
+  assert.match(schedule, /if \(applyingLocalStores\) return;/);
+  assert.match(schedule, /queueRemoteSave\(\)/);
+  // La lista se declara antes que storageSet(): una escritura temprana no puede toparse con ella sin inicializar.
+  assert.ok(source.indexOf("const BACKUP_LOCAL_STORES = [") < source.indexOf("function storageSet(key, value) {"));
+});
+
+test("restaurar no borra almacenes ausentes y conserva una vez el valor local que sustituye", () => {
+  const vm = require("node:vm");
+  const source = read("app.js");
+  const pick = (signature) => {
+    const start = source.indexOf(signature);
+    assert.ok(start >= 0, signature);
+    return source.slice(start, source.indexOf("\n}\n", start) + 2);
+  };
+  const constBlock = source.slice(source.indexOf("const BACKUP_LOCAL_STORES = ["), source.indexOf("let applyingLocalStores"));
+  const store = { "iv1-valuation-snapshots:x": "local-iv1", "pv5-diary:x": "local-pv5" };
+  const context = {
+    storageKey: (name) => `${name}:x`,
+    storageGet: (key, fallback) => (key in store ? store[key] : fallback),
+    storageSet: (key, value) => { store[key] = value; },
+  };
+  vm.runInNewContext(`${constBlock}\nlet applyingLocalStores = false;\n${pick("function restoreBackupLocalStores(stores) {")}\nthis.restore = restoreBackupLocalStores;`, context);
+  context.restore({ "iv1-valuation-snapshots": "nube-iv1" });
+  assert.equal(store["iv1-valuation-snapshots:x"], "nube-iv1");
+  assert.equal(store["iv1-valuation-snapshots:x:antes-de-sincronizar"], "local-iv1");
+  assert.equal(store["pv5-diary:x"], "local-pv5", "un almacén que no trae el estado entrante no se toca");
+  context.restore({ "iv1-valuation-snapshots": "nube-iv1-v2" });
+  assert.equal(store["iv1-valuation-snapshots:x:antes-de-sincronizar"], "local-iv1", "la copia previa se guarda una sola vez");
 });
 
 test("el contrato conserva localStores en el viaje completo de la copia y descarta una forma inválida", () => {

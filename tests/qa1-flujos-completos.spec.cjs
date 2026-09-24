@@ -214,3 +214,57 @@ test.describe("QA-1 · copia de seguridad completa", () => {
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// ARQ-6 (24 de septiembre de 2026): el editor «Modificar una serie completa» vivía en #data-entry, que
+// nunca se muestra desde el 15 de agosto. Recuperado en Planificación de partidas a petición del hogar.
+test.describe("QA-1 · editor de series en Planificación de partidas", () => {
+  test("cambia el previsto de una serie en un rango de meses desde una pantalla visible", async ({ page }) => {
+    const consoleErrors = [];
+    page.on("pageerror", (error) => consoleErrors.push(String(error)));
+    await page.goto("/index.html#planificacion-partidas");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#applySeriesChange")).toBeVisible();
+
+    await page.selectOption("#seriesKind", "expense");
+    const options = await page.locator("#seriesRow option").evaluateAll((items) => items.map((item) => item.value));
+    expect(options.length, "el editor debería ofrecer series de gasto").toBeGreaterThan(0);
+    await page.selectOption("#seriesRow", options[0]);
+    const months = await page.locator("#seriesStartMonth option").evaluateAll((items) => items.map((item) => item.value));
+    await page.selectOption("#seriesStartMonth", months[0]);
+    await page.selectOption("#seriesEndMonth", months[2]);
+    await page.fill("#seriesPlannedAmount", "123.45");
+    await page.selectOption("#seriesAction", "update");
+    await page.click("#applySeriesChange");
+
+    await expect(page.locator("#seriesEditorLog")).toContainText("Serie actualizada");
+    await expect(page.locator("#seriesEditorLog")).toContainText("3 mes(es) modificados");
+    const planned = await page.evaluate(() => Object.values(seriesOverrides).filter((value) => value.planned === 123.45).length);
+    expect(planned).toBe(3);
+    expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// ARQ-6 (24 de septiembre de 2026, decisión del hogar): los almacenes propios también se sincronizan
+// con la nube. Cada pantalla escribe el suyo por su cuenta, así que storageSet() tiene que disparar la
+// sincronización — y aplicar lo que llega de la nube no puede volver a enviarlo.
+test.describe("QA-1 · almacenes propios en la sincronización con la nube", () => {
+  test("escribir un almacén propio programa una sincronización y viaja en el estado que se envía", async ({ page }) => {
+    await page.goto("/index.html#home");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => {
+      window.__qa1RemoteSaves = 0;
+      window.queueRemoteSave = () => { window.__qa1RemoteSaves += 1; };
+    });
+    await page.evaluate(() => storageSet(storageKey("pv5-diary"), JSON.stringify([{ monthKey: "2026-08", marca: "qa1-nube" }])));
+    await page.waitForTimeout(1500);
+    expect(await page.evaluate(() => window.__qa1RemoteSaves)).toBe(1);
+    expect(await page.evaluate(() => appStatePayload().localStores["pv5-diary"])).toContain("qa1-nube");
+
+    // Lo que llega de la nube se aplica sin reenviarse.
+    await page.evaluate(() => restoreBackupLocalStores({ "pv5-diary": JSON.stringify([{ monthKey: "2026-08", marca: "desde-la-nube" }]) }));
+    await page.waitForTimeout(1500);
+    expect(await page.evaluate(() => window.__qa1RemoteSaves)).toBe(1);
+    expect(await page.evaluate(() => storageGet(storageKey("pv5-diary"), ""))).toContain("desde-la-nube");
+    expect(await page.evaluate(() => storageGet(`${storageKey("pv5-diary")}:antes-de-sincronizar`, ""))).toContain("qa1-nube");
+  });
+});

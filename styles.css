@@ -3689,9 +3689,11 @@ svg {
   margin-top: 14px;
 }
 
+/* Columnas que se ajustan solas: las ocho fijas sumaban ~1.100px y no cabían junto al menú lateral
+   en Planificación de partidas, adonde se trajo el editor (ARQ-6). */
 .series-form {
   display: grid;
-  grid-template-columns: minmax(120px, 0.75fr) minmax(220px, 1.6fr) repeat(5, minmax(130px, 1fr)) auto;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 10px;
   align-items: end;
 }
@@ -3701,6 +3703,10 @@ svg {
   border-color: var(--teal);
   background: var(--teal);
   font-weight: 900;
+}
+
+#seriesEditorLog:empty {
+  display: none;
 }
 
 .series-preview {
