@@ -1,6 +1,6 @@
 ---
 name: finanzas-casa-workflow
-description: Flujo de trabajo de sesión para el repositorio vivo contabilidadcasa. Al empezar a trabajar lee PROJECT_STATE.md y BACKLOG_STATUS.md, revisa brevemente el estado de Git y propone un plan antes de tocar código. Al cerrar la sesión valida con las pruebas del proyecto, actualiza PROJECT_STATE.md/BACKLOG_STATUS.md y prepara (sin ejecutar) el commit y el push, pidiendo siempre autorización explícita antes de mandarlos. Usar cuando el usuario pida empezar sesión, retomar el trabajo, ver en qué se quedó, cerrar sesión, hacer commit, o similar, en el repositorio contabilidadcasa.
+description: Flujo de trabajo de sesión para el repositorio vivo contabilidadcasa. Al empezar a trabajar lee PROJECT_STATE.md y BACKLOG_STATUS.md, revisa brevemente el estado de Git y propone un plan antes de tocar código. Al cerrar la sesión valida con las pruebas del proyecto, actualiza PROJECT_STATE.md y el backlog vigente y publica sin pedir permiso (commit, push, PR en borrador y fusión a main con el CI en verde), tal como autoriza CLAUDE.md. Usar cuando el usuario pida empezar sesión, retomar el trabajo, ver en qué se quedó, cerrar sesión, hacer commit, o similar, en el repositorio contabilidadcasa.
 argument-hint: [inicio|cierre]
 disable-model-invocation: false
 ---
@@ -36,12 +36,14 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
    y si quedó algo publicado o pendiente de publicar (rama, PR).
 2. **Backlog**: el repositorio acumula varios documentos `BACKLOG*.md` de distintas
    generaciones — `BACKLOG_INDICE.md` (OPT-20) es el mapa que dice cuál es la fuente viva de
-   cada uno. Para saber qué es lo siguiente, ve directo a `BACKLOG_ULTIMATE_SEPTIEMBRE.md`
-   (sección "Orden de ejecución") — es la única cola con trabajo pendiente de la ruta
-   principal. `BACKLOG_STATUS.md`, sección 0 ("Estado maestro de entregas"), sigue siendo la
-   tabla de estado de las entregas E1-E20; si necesitas el detalle de una entrega E10-E18,
-   consulta `BACKLOG_PRODUCT_EVOLUTION.md`. Si algo no cuadra entre documentos, `BACKLOG_INDICE.md`
-   tiene la tabla completa de qué sustituye a qué.
+   cada uno. El backlog vigente es el que `BACKLOG_INDICE.md` marca como «🟢 Vigente» — hoy
+   `BACKLOG_CONTABILIDADCASA_3_0.md`: para saber qué es lo siguiente, ve directo a su §6 («Plan
+   priorizado único») y a la fila de la tarea en §1-§2 o, si es heredada, en
+   `BACKLOG_CONTABILIDADCASA_2_0.md` (su §5 dice cuáles). Si el índice ya marca como vigente otro
+   documento, manda el índice y esta línea está desfasada: dilo y corrígela. `BACKLOG_STATUS.md`,
+   sección 0 («Estado maestro de entregas»), sigue siendo la tabla de estado de las entregas
+   E1-E26. Si algo no cuadra entre documentos, `BACKLOG_INDICE.md` tiene la tabla completa de qué
+   sustituye a qué.
 3. **Git, brevemente** (no exhaustivo, no ejecutivo — solo lectura):
    - `git status` (¿hay cambios sin commitear?)
    - `git branch --show-current` (¿en qué rama estamos?)
@@ -67,8 +69,10 @@ ni edición de archivos) durante el modo Inicio.
 
 ## Modo Cierre
 
-Objetivo: dejar el repositorio en un estado validado y documentado, y preparar el commit
-sin enviarlo todavía.
+Objetivo: dejar el repositorio validado, documentado y publicado. Desde el 10 de agosto de 2026 la
+publicación no pide permiso en cada turno: `CLAUDE.md` («Publicar sin pedir permiso cada vez») la
+autoriza de principio a fin, hasta la fusión a `main`. Si esta skill y `CLAUDE.md` discrepan, manda
+`CLAUDE.md`.
 
 1. **Validar**: ejecuta `npm run verify` (incluye pruebas unitarias, accesibilidad,
    rendimiento, build del sitio, privacidad y smoke test). Si por el alcance de los
@@ -76,33 +80,30 @@ sin enviarlo todavía.
    explícitamente. Informa el resultado real (pass/fail y cifras, p. ej. "403/403
    pruebas") — nunca lo des por bueno sin haberlo ejecutado.
    - Si algo falla, no continúes con el resto de los pasos: informa del fallo al usuario
-     y ofrece corregirlo primero.
+     y corrígelo primero.
 2. **Actualizar el estado del proyecto** (solo si la validación pasó):
    - Añade una nueva entrada al principio de `PROJECT_STATE.md`, con el mismo formato que
      las entradas existentes: encabezado `## Cierre de sesión — <fecha en español>:
      <resumen corto>`, seguido de una lista con lo que se hizo, decisiones tomadas a
-     petición del usuario, resultado de las pruebas (cifras exactas) y qué queda
-     pendiente de publicar (rama/PR) si aplica.
+     petición del usuario, resultado de las pruebas (cifras exactas) y la rama/PR.
    - Si la revisión mensual de Nielsen está vencida (mismo criterio que el paso 4 del Modo
      Inicio: 30 días o más desde la última entrada de `docs/OPT21_CHECKLIST_NIELSEN.md`) y no se
      ha hecho en esta sesión, dilo en una línea de la entrada de `PROJECT_STATE.md` («Revisión
      mensual de Nielsen vencida desde <fecha>») para que la siguiente sesión la vea. Si se hizo,
      su registro va en `docs/OPT21_CHECKLIST_NIELSEN.md` y sus hallazgos al backlog vigente.
-   - Si el estado de alguna entrega cambió (por ejemplo de `Parcial` a `Verificado`),
-     actualiza también la tabla y/o el texto correspondiente en `BACKLOG_STATUS.md`.
+   - Marca la tarea en el backlog vigente (su fila y el plan priorizado) y, si el estado de alguna
+     entrega E1-E26 cambió, actualiza también `BACKLOG_STATUS.md`.
    - No inventes cifras ni resultados: usa exactamente los que arrojó la validación del
      paso 1.
-3. **Preparar el commit (sin ejecutarlo)**:
-   - Muestra un resumen de `git status` y de los cambios relevantes.
-   - Redacta un mensaje de commit propuesto, coherente con el estilo del historial del
-     repositorio (prefijos como `feat:`, `fix:`, `docs:` vistos en `git log`).
-   - Indica explícitamente a qué rama se haría push (la rama de trabajo en curso, nunca
-     `main` directamente salvo que el usuario lo pida y sea la práctica habitual del
-     repositorio).
-4. **Pedir autorización explícita**: pregunta directamente, por ejemplo:
-   "¿Confirmas que haga commit y push de estos cambios a `<rama>`?". Solo tras un "sí"
-   explícito del usuario en este turno ejecutas `git add`, `git commit` y
-   `git push -u origin <rama>`. Una autorización dada en una sesión anterior no cuenta
-   para esta; pídela de nuevo cada vez.
-   - Si el usuario no confirma, deja los cambios preparados en el árbol de trabajo (o
-     comiteados localmente si así lo pidió) sin hacer push, y dilo con claridad.
+3. **Commit y push**: mensaje coherente con el estilo del historial (prefijos como `feat:`,
+   `fix:`, `docs:` vistos en `git log`), a la rama de trabajo en curso con
+   `git push -u origin <rama>`. Nunca push directo a `main` y nunca hacia `finanzas-casa-def`.
+4. **PR y fusión, sin pedir permiso** (este paso sustituye al antiguo «pedir autorización
+   explícita», anulado por `CLAUDE.md` el 10 de agosto de 2026):
+   - Abre el PR en borrador contra `main` y espera a su CI.
+   - Con el CI en verde, márcalo como listo y fusiónalo; el sitio se despliega solo vía
+     `.github/workflows/pages.yml`. Después reinicia la rama de trabajo desde `origin/main`.
+   - Frenos que siguen puestos: si la validación local o el CI fallan, no se publica —se
+     informa y se corrige—; nunca se fusiona en rojo ni se fuerza una fusión. Un cambio que vaya
+     más allá de lo pedido, borre datos del usuario o retire una pantalla en uso se consulta
+     antes, por mucho que el CI esté verde.
