@@ -94,7 +94,12 @@ test("staggeredLeverageDeployment · lumpSum reutiliza tal cual simulateLeverage
     newDebtAnnualRatePercent: 3,
     expectedReturnScenarios: SCENARIOS,
   });
-  assert.deepEqual(result.lumpSum, directLumpSum);
+  // evaluatedAt es la hora de cada llamada (new Date()), no aritmética: si las dos caen en
+  // milisegundos distintos la comparación completa fallaba de forma intermitente (sesión 238).
+  const { evaluatedAt: stampedLumpSum, ...lumpSum } = result.lumpSum;
+  const { evaluatedAt: stampedDirect, ...direct } = directLumpSum;
+  assert.ok(stampedLumpSum && stampedDirect);
+  assert.deepEqual(lumpSum, direct);
   assert.equal(result.lumpSum.calculable, true);
 });
 
