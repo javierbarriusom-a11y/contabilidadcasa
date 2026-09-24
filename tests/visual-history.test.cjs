@@ -36,8 +36,10 @@ test("los importes históricos permanecen visibles pero no editables", () => {
 });
 
 test("un mes ya cerrado no ofrece repetir el cierre", () => {
-  assert.match(app, /closeButton\.disabled = Boolean\(currentClosure\)/);
-  assert.match(app, /currentClosure \? "Mes actual cerrado" : "Cerrar mes actual"/);
+  // ARQ-4: el estado del botón lo pinta renderReconciliation(), ya en views/reconciliation.js.
+  const reconciliationView = fs.readFileSync(path.join(root, "views/reconciliation.js"), "utf8");
+  assert.match(reconciliationView, /closeButton\.disabled = Boolean\(currentClosure\)/);
+  assert.match(reconciliationView, /currentClosure \? "Mes actual cerrado" : "Cerrar mes actual"/);
   assert.match(app, /ensureRemoteSaveQueue\(\)\.acknowledge\(closedAt\)/);
 });
 

@@ -86,6 +86,60 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (233): `ARQ-4` — `#reconciliation` desbloqueada y extraída a `views/reconciliation.js`; techo de tamaño para `app.js`
+
+- **Qué pedía la sesión**: segunda tarea de la oleada aprobada por el hogar en el Modo Inicio de
+  esta conversación. Primero, revisar si alguna de las 4 pantallas que `T14` dio por bloqueadas de
+  forma permanente (Nueva vida simulación, Agente de ahorro, Visual Detail, Reconciliation) podía
+  desbloquearse cambiando el patrón de refresco en vez de darla por perdida (nota de `ARQ-4`); y
+  después, a petición explícita del hogar, **un techo de tamaño para `app.js`**.
+- **Por qué el techo, con cifras**: `T14` dejó `app.js` en 37.233 líneas (sesión 207). En la pausa
+  volvió a 38.674 (sesión 231, +1.441, ~85 líneas/sesión): todo lo nuevo seguía cayendo en `app.js`
+  por inercia. Extraer sin cerrar ese grifo era vaciar el agua con un cubo.
+- **Reconciliation, la más acotada de las cuatro (6 llamadores)**. Diagnóstico: `renderReconciliation()`
+  no solo pinta DOM — también recalcula y persiste el libro conciliado (`refreshCanonicalLedger`) y
+  reevalúa la barrera de publicación (`evaluateCanonicalCommitBarrier`, que a su vez fuerza el
+  snapshot canónico). Los llamadores externos (cerrar/reabrir mes, disparables desde `#conciliar`)
+  dependían de esos efectos aunque nadie viera la pantalla. Todo su DOM vive dentro de
+  `<section id="reconciliation">` (comprobado nodo a nodo). Solución:
+  - `refreshReconciliationView()` (`app.js`): con la pantalla abierta y su fichero cargado pinta
+    como antes; sin ella, ejecuta solo los dos efectos de estado, en el mismo orden y con los mismos
+    retornos tempranos. El DOM oculto se pinta al entrar (`renderActiveSection`), como en el resto
+    de vistas diferidas. Los 4 llamadores ciegos pasan por aquí; la guarda que ya existía en
+    `scheduleCanonicalRefresh` suma la comprobación de fichero cargado (evita un `ReferenceError`
+    si el temporizador salta mientras el fichero aún se descarga).
+  - `views/reconciliation.js` (nuevo, 263 líneas): `renderReconciliation` y los cuatro
+    renderizadores que solo ella usa, más `ledgerStatusLabels`. Se quedan en `app.js`
+    `ledgerMonthLabel`/`ledgerDifferenceTotal` (las usan Hoy, Análisis, Cierre, Deuda y
+    Presupuesto) y `downloadCanonicalLedger` (cableado eager en `init()`). Registrada en
+    `VIEW_CHUNKS`, en `tools/build-public-site.mjs` y en la caché offline (`service-worker.js`).
+  - `tests/visual-history.test.cjs`: dos aserciones estáticas sobre el botón «Cerrar mes» pasan a
+    leer `views/reconciliation.js` (mismo contenido, nueva ubicación).
+- **Verificación en navegador real (Chromium, Playwright)**, sitio construido desde `main` frente al
+  de esta rama: texto de `#reconciliation` idéntico carácter a carácter (4.306 caracteres), también
+  tras pulsar «Reconstruir libro» y «Comparar con histórico»; desde `#conciliar` sin haber visitado
+  Conciliación, `refreshReconciliationView()` no lanza y no descarga el fichero; al navegar después
+  a `#reconciliation`, el fichero se carga y pinta sus 4 KPIs. Único error de consola: un recurso
+  externo que la red de este entorno bloquea, idéntico en `main`.
+- **Las otras tres siguen bloqueadas, sin diagnóstico nuevo en esta sesión**: Nueva vida
+  (simulación), Agente de ahorro (7 llamadores) y Visual Detail (15+ llamadores desde Plan). La
+  lección de esta sesión aplica a las tres: lo que hay que auditar son los efectos de estado de cada
+  render, no solo quién lo llama.
+- **Techo de `app.js`** (`tests/arq4-techo-app-js.test.cjs`): 38.600 líneas (margen de ~130 sobre
+  las 38.467 de hoy, algo más de una sesión de la deriva medida) y 2.000.000 bytes (para que el
+  techo de líneas no se esquive con líneas kilométricas). **Trinquete**: si `app.js` baja más de 300
+  líneas por debajo del techo, el test falla hasta que el mismo PR baje el techo, para que lo
+  ganado no se vuelva a perder. Subir el techo no es la salida por defecto: solo con decisión
+  explícita del hogar anotada aquí.
+- **Cifras**: `app.js` 38.692 → 38.467 líneas (-225). Recursos de carga inicial 2.200 → 2.182 KB
+  (`test:performance`).
+- **Resultado de la validación**: `npm run verify` completo — 4719/4719 pruebas (4709 + 7 de
+  `tests/arq4-conciliacion-carga-diferida.test.cjs` + 3 del techo), lint y typecheck limpios,
+  accesibilidad (1406 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en verde.
+  Se comprobó además que la prueba de guarda falla si se reintroduce una llamada ciega.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: rama rehecha desde `main` tras fusionar
+  `FIN-2` (#367), commit y push, PR en borrador, fusión en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (232): `FIN-2` — test de integración fiscal cruzada; destapa y corrige que FC5 ignoraba las pérdidas todavía por compensar
 
 - **Qué pedía la sesión**: el hogar aprobó reordenar la oleada (Modo Inicio de esta misma

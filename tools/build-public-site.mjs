@@ -123,6 +123,7 @@ const files = [
   "views/new-life-definitive.js",
   "views/debt-control.js",
   "views/asesor-decision.js",
+  "views/reconciliation.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el
