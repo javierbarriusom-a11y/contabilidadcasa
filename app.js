@@ -1293,6 +1293,79 @@ function isActiveInMonth(monthStart, endDate) {
   return monthStart <= new Date(end.getFullYear(), end.getMonth(), 1);
 }
 
+// ARQ-6 (paso 3): almacenes que la app guarda cada uno en su propia clave del navegador, fuera del
+// estado que recoge saveLocalSnapshot(). Hasta el 24 de septiembre de 2026 no entraban ni en la copia
+// de emergencia (A0-9) ni en la sincronización con la nube: descargar una copia, perder el navegador
+// y restaurarla devolvía presupuestos y movimientos, pero no esto, y otro dispositivo nunca lo veía.
+// La mayoría es historia que solo se acumula al firmar cada cierre y no se puede reconstruir; el resto
+// lo escribe el hogar a mano. Viajan en appStatePayload() como `localStores` (copia en fichero y nube,
+// decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
+// como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
+const BACKUP_LOCAL_STORES = [
+  "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
+  "pvc6-forecast-snapshots", // PVC6: previsión congelada en cada cierre
+  "cierre-aprendizaje", // C-13: previsto frente a real por mes firmado
+  "cierre-report-archive", // archivo de informes de cierre
+  "pv5-diary", // PV5: diario de aprendizaje de la previsión
+  "pv3-learning-snapshot", // PV3: última medición, base de la tendencia
+  "pvc17-health-snapshot", // PVC17: última medición del índice de salud predictiva
+  "pvc16-non-recurring-months", // PVC16: meses declarados no recurrentes, con su motivo
+  "escenario-motor-saved", // Escenarios guardados por el hogar
+  "escenario-motor-custom-types", // E-1b: tipos de decisión propios
+  "new-life-definitive", // Nueva vida definitiva: configuración elegida
+  "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
+  "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
+  "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
+];
+// Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
+const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
+let applyingLocalStores = false;
+let localStoreSyncTimer = null;
+
+function isBackupLocalStoreKey(key) {
+  return BACKUP_LOCAL_STORES.some((name) => storageKey(name) === key);
+}
+
+// Escribir uno de estos almacenes no pasaba por queueRemoteSave(): cada pantalla guarda el suyo por su
+// cuenta (al firmar un cierre, al guardar un escenario...). storageSet() avisa aquí y se agrupa en una
+// sola sincronización. No se dispara mientras se aplican los que llegan de la nube o de una copia.
+function scheduleLocalStoreSync() {
+  if (applyingLocalStores) return;
+  window.clearTimeout(localStoreSyncTimer);
+  localStoreSyncTimer = window.setTimeout(() => queueRemoteSave(), 900);
+}
+
+function backupLocalStoresPayload() {
+  const stores = {};
+  BACKUP_LOCAL_STORES.forEach((name) => {
+    const value = storageGet(storageKey(name), "");
+    if (typeof value === "string" && value !== "") stores[name] = value;
+  });
+  return stores;
+}
+
+// Solo reescribe los almacenes que trae el estado entrante; nunca borra uno que no traiga, así que una
+// copia o una revisión de la nube anteriores a este campo dejan intactos los del navegador. Si el valor
+// local es distinto del que llega, se conserva una sola vez (la primera) con el sufijo de arriba: al
+// empezar a sincronizar dos dispositivos, lo que solo tenía uno de ellos no se pierde sin rastro.
+function restoreBackupLocalStores(stores) {
+  if (!stores || typeof stores !== "object" || Array.isArray(stores)) return;
+  applyingLocalStores = true;
+  try {
+    BACKUP_LOCAL_STORES.forEach((name) => {
+      const incoming = stores[name];
+      if (typeof incoming !== "string") return;
+      const key = storageKey(name);
+      const current = storageGet(key, "");
+      if (current === incoming) return;
+      if (current && !storageGet(`${key}${LOCAL_STORE_PRE_SYNC_SUFFIX}`, "")) storageSet(`${key}${LOCAL_STORE_PRE_SYNC_SUFFIX}`, current);
+      storageSet(key, incoming);
+    });
+  } finally {
+    applyingLocalStores = false;
+  }
+}
+
 function storageKey(name) {
   const source = baseData?.metadata?.sourceWorkbook || "finance";
   return `${name}:${source}`;
@@ -1312,6 +1385,7 @@ function storageSet(key, value) {
   } catch {
     memoryStorage[key] = value;
   }
+  if (isBackupLocalStoreKey(key)) scheduleLocalStoreSync();
 }
 
 // PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): una sola preferencia de cadencia por pantalla, en
@@ -1475,6 +1549,7 @@ function appStatePayload(options = {}) {
     budgets,
     budgetPartidaOverrides,
     budgetSurplusChoices,
+    localStores: backupLocalStoresPayload(),
   };
   const payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(rawPayload)
@@ -1488,49 +1563,6 @@ function appStatePayload(options = {}) {
     payload.decisionWorkflow = decisionWorkflow;
   }
   return payload;
-}
-
-// ARQ-6 (paso 3): almacenes que la app guarda cada uno en su propia clave del navegador, fuera del
-// estado que recogen saveLocalSnapshot()/appStatePayload(). Hasta el 24 de septiembre de 2026 no
-// entraban en la copia de emergencia (A0-9): descargar una copia, perder el navegador y restaurarla
-// devolvía presupuestos y movimientos, pero no esto. La mayoría es historia que solo se acumula al
-// firmar cada cierre y no se puede reconstruir; el resto lo escribe el hogar a mano.
-// Van solo en el fichero de copia, no en appStatePayload(): la sincronización con la nube y sus
-// huellas de conflicto no cambian. tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
-// como excluida con motivo, cualquier clave nueva.
-const BACKUP_LOCAL_STORES = [
-  "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
-  "pvc6-forecast-snapshots", // PVC6: previsión congelada en cada cierre
-  "cierre-aprendizaje", // C-13: previsto frente a real por mes firmado
-  "cierre-report-archive", // archivo de informes de cierre
-  "pv5-diary", // PV5: diario de aprendizaje de la previsión
-  "pv3-learning-snapshot", // PV3: última medición, base de la tendencia
-  "pvc17-health-snapshot", // PVC17: última medición del índice de salud predictiva
-  "pvc16-non-recurring-months", // PVC16: meses declarados no recurrentes, con su motivo
-  "escenario-motor-saved", // Escenarios guardados por el hogar
-  "escenario-motor-custom-types", // E-1b: tipos de decisión propios
-  "new-life-definitive", // Nueva vida definitiva: configuración elegida
-  "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
-  "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
-  "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
-];
-
-function backupLocalStoresPayload() {
-  const stores = {};
-  BACKUP_LOCAL_STORES.forEach((name) => {
-    const value = storageGet(storageKey(name), "");
-    if (typeof value === "string" && value !== "") stores[name] = value;
-  });
-  return stores;
-}
-
-// Solo reescribe los almacenes que trae la copia; nunca borra uno que la copia no tenga, así que
-// restaurar una copia anterior a este campo deja intactos los del navegador.
-function restoreBackupLocalStores(stores) {
-  if (!stores || typeof stores !== "object" || Array.isArray(stores)) return;
-  BACKUP_LOCAL_STORES.forEach((name) => {
-    if (typeof stores[name] === "string") storageSet(storageKey(name), stores[name]);
-  });
 }
 
 function stateBackupSummaryMarkup(summary = {}) {
@@ -1578,9 +1610,7 @@ function downloadStateBackup() {
   try {
     refreshCanonicalSnapshot("backup");
     refreshCanonicalLedger("backup");
-    const payload = appStatePayload();
-    payload.localStores = backupLocalStoresPayload();
-    const envelope = window.FinanceStateContract.buildBackupEnvelope(payload, {
+    const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
       appVersion: "e3-emergency-backup",
     });
     const date = downloadBackupEnvelope(envelope);
@@ -25625,6 +25655,9 @@ function populateSeriesEditor() {
         .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
         .join("");
       if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+      // Un desplegable recién rellenado siempre tiene valor (la primera opción), así que la línea de
+      // «hasta el último mes» de más abajo nunca actuaba y el rango por defecto era de un solo mes.
+      else if (select === endSelect) select.value = months.at(-1)?.key || "";
     });
     seriesEditorSignature = signature;
   }
@@ -25669,7 +25702,7 @@ function updateSeriesPreview() {
 function applySeriesChange() {
   const row = selectedSeriesRow();
   if (!row) {
-    showImportLog("No hay serie seleccionada", "Elige un concepto antes de aplicar cambios.", "danger");
+    showImportLog("No hay serie seleccionada", "Elige un concepto antes de aplicar cambios.", "danger", "seriesEditorLog");
     return;
   }
   const action = qs("seriesAction").value;
@@ -25703,7 +25736,7 @@ function applySeriesChange() {
   });
 
   if (!changed) {
-    showImportLog("Sin cambios aplicados", "Introduce un nuevo importe o elige eliminar/quitar ajustes.", "warning");
+    showImportLog("Sin cambios aplicados", "Introduce un nuevo importe o elige eliminar/quitar ajustes.", "warning", "seriesEditorLog");
     return;
   }
   saveSeriesOverrides();
@@ -25711,6 +25744,8 @@ function applySeriesChange() {
   showImportLog(
     `Serie actualizada: ${displayLabelForRow(row)}`,
     `${changed} mes(es) modificados. ${fullRefreshMessage()}`,
+    "",
+    "seriesEditorLog",
   );
 }
 
@@ -35779,6 +35814,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "planificacion-partidas":
       renderPlanificacionPartidas();
+      populateSeriesEditor();
       break;
     case "registrar":
       renderRegistrar();

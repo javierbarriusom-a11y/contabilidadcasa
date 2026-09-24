@@ -90,6 +90,56 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (242): los almacenes propios se sincronizan con la nube y el editor de series vuelve, en Planificación de partidas
+
+- **Qué pidió el hogar**, respondiendo a dos de las tres decisiones abiertas en la sesión 241: «sí,
+  sincronizad con la nube y recupera el editor de series». Antes de empezar se fusionó a `main` el
+  PR #376 (sesión 241), con el CI en verde.
+- **Sincronización con la nube de los 14 almacenes propios** (`app.js`):
+  - `localStores` pasa de ir solo en el fichero de copia a formar parte de `appStatePayload()`, así que
+    viaja en cada guardado en la nube y en la cola persistente de cambios pendientes, y se aplica al
+    cargar desde la nube por el mismo `applyPersistedPayload()` que ya lo restauraba desde fichero. El
+    servidor guarda el estado como `jsonb` libre: no hace falta migración.
+  - Hueco que había que cerrar para que sirviera de algo: escribir uno de estos almacenes nunca pasaba
+    por `queueRemoteSave()` (cada pantalla guarda el suyo por su cuenta al firmar un cierre, guardar un
+    escenario, etc.). `storageSet()` avisa ahora cuando la clave es de la lista y agrupa la
+    sincronización en ~1 s. Aplicar lo que llega de la nube o de una copia no la reenvía (sin eco).
+  - Primera sincronización entre dos dispositivos: si el valor que llega es distinto del local, el local
+    se conserva una sola vez con el sufijo `:antes-de-sincronizar`, para que lo que solo tenía uno de
+    ellos no se pierda sin rastro. Un almacén que el estado entrante no trae nunca se borra.
+  - La lista se declara ahora junto a `storageSet()`, que la consulta, para que ninguna escritura
+    temprana la encuentre sin inicializar (lo fija una prueba).
+  - `debt-capital-snapshot-at-close` sigue fuera, como decidía su propio comentario («no viaja a
+    Supabase»). Documentado en `MDX2_FORMATO_EXPORTACION.md`.
+- **Editor de series recuperado**: «Modificar una serie completa» pasa entero, con los mismos IDs, de
+  `#data-entry` (oculta desde el 15 de agosto) a Planificación de partidas, junto a las partidas que
+  modifica. Se rellena al abrir esa pantalla y escribe en su propio registro de mensajes
+  (`#seriesEditorLog`, oculto mientras está vacío) en vez del de la sección huérfana. Su rejilla de 8
+  columnas fijas (~1.100px) no cabía junto al menú lateral: pasa a columnas que se ajustan solas. De
+  paso, un fallo antiguo a la vista en la captura: el rango por defecto era de un solo mes porque la
+  línea de «hasta el último mes» nunca actuaba (un desplegable recién rellenado siempre tiene valor);
+  ahora llega al último mes. Revisado en captura a 1280 y 390px.
+- **Pruebas**:
+  - `tests/arq6-copia-completa.test.cjs`: el estado que se envía lleva los almacenes, `storageSet()`
+    avisa a la sincronización y la restauración no la reenvía; y una prueba nueva de
+    `restoreBackupLocalStores` (no borra lo ausente, conserva una sola vez el valor local sustituido).
+  - Dos flujos nuevos en QA-1 (navegador, CI): el editor de series desde Planificación (cambia el
+    previsto de una serie en 3 meses y lo comprueba en `seriesOverrides`), y que escribir un almacén
+    programa exactamente una sincronización, viaja en el estado y lo que llega de la nube se aplica
+    sin reenviarse. Comprobado que fallan sin el aviso de `storageSet()` («Expected: 1, Received: 0»)
+    y con el editor en su sitio antiguo («toBeVisible»).
+- **Sigue abierto para el hogar**: la bandeja «Revisar antes de incorporar» y «Deshacer último lote»,
+  que siguen en `#data-entry` sin otra puerta; los documentos adjuntos de P2 (ficheros en IndexedDB),
+  que ni la copia ni la nube llevan; y el resto del paso 3 de `ARQ-6` (comprobación automática de
+  secciones que nunca se muestran y listas mantenidas a mano).
+- **Resultado de la validación**: `npm run verify` completo — 4763/4763 pruebas, lint y typecheck
+  limpios, accesibilidad (1407 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en
+  verde. En navegador: `test:e2e` + `test:a11y-axe` 11/11 en dos pasadas y `test:mobile-overflow` en
+  verde (177 visitas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/happy-archimedes-0nlcvh`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (241): `ARQ-6` paso 3 — la copia de emergencia estaba rota por partida doble: sin botón desde el 15 de agosto y perdiendo 14 almacenes; arreglada y vigilada
 
 - **Qué pedía la sesión**: «sí, arranca con el paso 3», empezando por la copia de seguridad: que
