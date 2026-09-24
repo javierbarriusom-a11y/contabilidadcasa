@@ -6,7 +6,9 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
-const app = read("app.js") + "\n" + read("views/debt-liquidation-plan.js");
+// ARQ-4 (sesión 237): el enlace «Ver flujo mensual» del resumen ejecutivo del Agente de ahorro vive en
+// views/savings-agent.js desde que esa pantalla se carga en diferido.
+const app = read("app.js") + "\n" + read("views/debt-liquidation-plan.js") + "\n" + read("views/savings-agent.js");
 const experience = read("e17-experience.js");
 const worker = read("service-worker.js");
 

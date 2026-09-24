@@ -86,6 +86,69 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (237): `ARQ-4`, tercer incremento — Agente de ahorro a `views/savings-agent.js` y núcleo de su motor a `canonical-savings-agent.js`
+
+- **Qué pidió el hogar**: «adelante con la opción A y cerramos». La opción A, propuesta al cerrar la
+  sesión 236, era mover el Agente de ahorro junto con su motor, no solo la pantalla, y dejar Visual
+  Detail en pausa por riesgo.
+- **El bloqueo era real, pero se resolvía cambiando el patrón de refresco** (igual que Conciliación,
+  sesión 233). `applyAgentRouteSimulation()` se dispara desde Hoy (centro de acciones unificado,
+  «simular ruta») y desde Ejecutivo, Nueva vida, Plan de deuda y Asesor virtual. En sus dos salidas
+  «nada que aplicar» repintaba el Agente aunque no estuviera abierto.
+  - Las cuatro llamadas de `app.js` llevan ahora la guarda `viewChunkLoaded("savings-agent")`.
+  - `renderSavingsAgent()` no tiene efectos de estado que conservar: solo pinta su sección y calienta
+    cachés que se recalculan por firma al entrar.
+  - El `change` de `#agentYear` pasa a una función flecha, porque cablear `renderSavingsAgent` por
+    referencia habría lanzado un `ReferenceError` en `init()`.
+- **Reparto del motor, según sea puro o no** (matiz frente a lo que se propuso):
+  - `canonical-savings-agent.js` (nuevo, UMD): la regla mensual de traspaso y rescate entre
+    CaixaBank y Mediolanum. Es el único trozo puro del motor. `buildSavingsAgentPlan()` delega en
+    él, y `agentNextMonthReserve` desaparece de `app.js`.
+  - **Se queda en `app.js`** el optimizador de deuda (`agentOptimalDebtPayoffPlan` y su familia):
+    vuelve a ejecutar la simulación completa del hogar (`simulate()`, `debtTargetOptions()`...)
+    por cada candidato. Sacarlo a un `canonical-*.js` exigiría arrastrar el modelo entero; a un script
+    ansioso que dependa de los globales de `app.js` sería un tercer patrón de módulos, justo lo que
+    `T14` decidió no abrir.
+  - También se quedan los ajustes (`agentCaixaFloor` & cía., que leen Hoy, Registrar y el
+    Laboratorio) y `executiveToneForAmount`, que usa `views/virtual-advisor.js` (detectado al mover).
+  - El ahorro en líneas es menor de lo que sugerí: el motor puro son ~50 líneas; casi todo el
+    recorte viene de la pantalla.
+- **Construido**:
+  - `views/savings-agent.js`: 18 funciones, 749 líneas movidas.
+  - `canonical-savings-agent.js`, cargado antes que `app.js` y añadido al build y a la caché offline.
+  - `app.js`: 38.105 → **37.306 líneas** (-799). El techo baja por trinquete a **37.436**.
+    Acumulado de `ARQ-4` en esta conversación: 38.692 → 37.306 (-1.386, -3,6 %).
+  - Tests nuevos: `tests/canonical-savings-agent.test.cjs` (7 pruebas; una compara contra la
+    implementación anterior, copiada literal, en 500 simulaciones aleatorias con semilla: idéntico
+    al céntimo en todos los campos) y `tests/arq4-agente-ahorro-carga-diferida.test.cjs` (6).
+  - Tests adaptados: el recuento de `canonical-*.js` de `ARQ-3` pasa de 65 a 66; `v2-8` y
+    `e14-a12-c14-bloque5` leen también `views/savings-agent.js`, porque el enlace a `#cashflow` del
+    resumen ejecutivo del Agente vive ahí.
+- **Verificación en navegador real** (Playwright, `main` contra esta rama): texto idéntico en
+  Agente de ahorro (también tras cambiar de año y de colchón), Hoy, Ejecutivo, Asesor virtual, Plan
+  de deuda y Nueva vida. «Simular ruta» desde Hoy, sin el fichero del Agente cargado, no lanza y no
+  lo descarga. Sin errores de consola nuevos.
+- **Hallazgos fuera de alcance** (no tocados, dejados como tareas sugeridas):
+  - **Caché offline incompleta**: 31 scripts que `index.html` carga al arrancar no están en
+    `SHELL_URLS` de `service-worker.js` (entre ellos `canonical-irpf-estimator.js`,
+    `canonical-portfolio.js`, `canonical-period.js`). Sin red, esos motores no cargan.
+  - **Test intermitente**: `lev14` compara dos resultados que llevan cada uno su `evaluatedAt`;
+    falló una vez en el `verify` local por 1 ms y pasó al repetir. No se desactivó.
+  - **Código muerto**: `renderAgentPriorityQueue()` pinta en `#agentPriorityQueue`, que no existe
+    en `index.html`. Nunca ha pintado nada; queda anotado como excepción explícita en el test, sin
+    borrarlo sin decisión del hogar.
+- **Resultado de la validación**: `npm run verify` completo — 4744/4744 pruebas (4731 + 13 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. La primera pasada dio 4743/4744 por el test intermitente de
+  `lev14`, ajeno a este cambio; la segunda, completa en verde.
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre; próxima el 16 de octubre
+  de 2026).
+- **Estado de `ARQ-4`**: de las cuatro pantallas que `T14` dio por bloqueadas, tres ya viven en
+  carga diferida; solo queda Visual Detail. Recomendación: no moverla mientras no haya un motivo más
+  allá del recuento de líneas; el riesgo es perder cambios en borrador del hogar.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (236): `ARQ-4`, segundo incremento — «Nueva vida» (simulación) desbloqueada y extraída a `views/new-life-simulation.js`
 
 - **Qué pedía la sesión**: el hogar pidió «continúa con ARQ-4» tras aprobar la corrección de la

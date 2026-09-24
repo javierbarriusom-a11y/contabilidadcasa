@@ -94,6 +94,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
   assert.doesNotMatch(html, /canonical-scenario-invariants\.js/, "si ahora se carga en el navegador, sácalo de TEST_ONLY_ENGINES y trátalo como un motor más");
 });
 
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 65 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 65);
+// 65 → 66 en la sesión 237 (ARQ-4): canonical-savings-agent.js, con consumidor real desde el primer
+// día (buildSavingsAgentPlan en app.js) — no entra en ninguna lista de excepciones.
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 66 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 66);
 });
