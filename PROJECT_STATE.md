@@ -86,6 +86,33 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 24 de septiembre de 2026 (234): `PROC-2` — la revisión mensual de Nielsen pasa a ser un paso del flujo de sesión
+
+- **Qué pedía la sesión**: tercera y última tarea de la oleada aprobada por el hogar en esta
+  conversación (tras `FIN-2` y `ARQ-4`). `PROC-2` pedía dos cosas: corregir
+  `docs/OPT21_CHECKLIST_NIELSEN.md` para que reflejara `T15`-`T19` cerradas, y que la revisión
+  mensual de Nielsen (`OPT-21`) deje de depender de que alguien se acuerde.
+- **La primera mitad ya estaba hecha**: la checklist ya marca los cinco hallazgos como corregidos
+  o verificados (sesiones 199 y 208). Es la tercera vez que `BACKLOG_CONTABILIDADCASA_3_0.md` pide
+  algo ya resuelto (Mejora #9, `ARQ-0`, y ahora esta), porque la auditoría de origen leyó
+  documentos sin cruzarlos con el historial. Nada que construir ahí.
+- **Construido**: dos pasos nuevos en `.claude/skills/finanzas-casa-workflow/SKILL.md`.
+  - **Modo Inicio, paso 4**: mirar la fecha de la última revisión registrada. Con 30 días o más,
+    decirlo en el resumen e incluir la revisión en la propuesta de plan, para que el hogar decida si
+    se hace esa sesión.
+  - **Modo Cierre**: si sigue vencida y no se hizo, dejarlo anotado en la entrada de
+    `PROJECT_STATE.md`, para que la siguiente sesión lo vea.
+  - `tests/proc2-nielsen-en-flujo-de-sesion.test.cjs` protege ambos pasos y que el registro siga
+    siendo legible por fecha y en orden. **No** comprueba si la revisión está vencida: eso
+    dependería del calendario y pondría el CI en rojo solo por el paso del tiempo.
+- **Estado hoy**: última revisión real el 16 de septiembre de 2026 (`T1`, sesión 197); la próxima
+  vence el **16 de octubre de 2026**. No está vencida en esta sesión.
+- **Resultado de la validación**: `npm run verify` completo — 4721/4721 pruebas (4719 + 2 nuevas),
+  lint y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio,
+  privacidad y smoke test en verde. Sin verificación de navegador: ningún archivo de la app cambia.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo, PR
+  en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (233): `ARQ-4` — `#reconciliation` desbloqueada y extraída a `views/reconciliation.js`; techo de tamaño para `app.js`
 
 - **Qué pedía la sesión**: segunda tarea de la oleada aprobada por el hogar en el Modo Inicio de
