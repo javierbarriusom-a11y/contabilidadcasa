@@ -15857,7 +15857,12 @@ function fc5ResultHtml(result) {
   const actionLine = result.withinBracket
     ? `Vende los ${money(result.proposedGain, true)} que valoras sin partirlos: caben enteros en el tramo actual, sin coste añadido por saltar de tipo.`
     : `Vende ahora los ${money(result.suggestedAmountWithinBracket, true)} que caben en el tramo actual y difiere el resto (${money(result.excessOverBracket, true)}) a otro momento si no tienes necesidad real de liquidez ya — así evitas que tribute al tipo superior.`;
-  return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(actionLine)}</p><p>Coste marginal estimado si realizas toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  // FIN-2: con base negativa (pérdidas del año o arrastradas todavía disponibles, FC3), parte de
+  // la plusvalía no tributa — se dice cuánto, para que el coste marginal no parezca un error.
+  const absorbedLine = result.absorbedByLosses > 0
+    ? `<p>${money(result.absorbedByLosses, true)} de esta plusvalía quedan compensados con pérdidas todavía disponibles este año y no tributan.</p>`
+    : "";
+  return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(actionLine)}</p>${absorbedLine}<p>Coste marginal estimado si realizas toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 // FCX1: rescate de pensiones, comparando capital único vs. modalidad en forma de renta
@@ -16089,7 +16094,8 @@ function inv18WithdrawalPlan({ amountNeeded, positions = [], alreadyRealizedGain
   function runPlan(startingSavingsBase) {
     const pool = candidates.map((candidate) => ({ ...candidate }));
     let remaining = needed;
-    let savingsBase = Math.max(0, round2(Number(startingSavingsBase) || 0));
+    // FIN-2: puede empezar en negativo (pérdidas todavía por compensar, FC3) — optimizePartialSale ya lo resuelve.
+    let savingsBase = round2(Number(startingSavingsBase) || 0);
     let generalIncome = Math.max(0, round2(Number(currentAnnualIncome) || 0));
     const steps = [];
     const skipped = new Set();
@@ -21828,6 +21834,15 @@ function renderLev4LombardComparison() {
   note.innerHTML = lev4ComparisonResultHtml(result);
 }
 
+// FIN-2: la cifra que FC5 (venta parcial, más arriba en la misma pantalla) necesita no es
+// taxableNet — esa se queda en 0 cuando las pérdidas arrastradas cubren el año y esconde las que
+// siguen disponibles. marginalSaleBase (canonical-portfolio.js) es el neto del año menos todas las
+// pérdidas arrastradas aún aplicables; negativa = plusvalía nueva que todavía no tributaría.
+function fc3MarginalSaleBaseLine(result) {
+  const lossNote = result.marginalSaleBase < 0 ? " — negativa porque aún te quedan pérdidas por compensar: esa parte de una plusvalía nueva no tributaría" : "";
+  return `<p class="e19-kpi-note">Para valorar una venta más este año en «Venta parcial: optimizar el tramo del ahorro» (más arriba), usa como base ya generada ${money(result.marginalSaleBase, true)}${lossNote}.</p>`;
+}
+
 // T4 (BACKLOG_CONTABILIDADCASA_2_0.md): se queda informativa a propósito, no por indecisión —
 // el cruce de pérdidas/ganancias del art. 49 depende de cómo case cada caso real con rendimientos
 // del capital mobiliario, algo que este motor no cruza; no hay un "mejor orden" que la app pueda
@@ -21844,7 +21859,7 @@ function fc3ResultHtml(result) {
   const carryLine = result.newCarryForward
     ? `<p class="e19-kpi-note">Pérdida de ${escapeHtml(result.year)} pendiente de compensar: ${money(result.newCarryForward.amount, true)}, arrastrable hasta ${Number(result.year) + window.FinanceCanonicalPortfolio.LOSS_CARRYFORWARD_YEARS}.</p>`
     : "";
-  return `<p>Ganancias realizadas de ${escapeHtml(result.year)}: ${money(result.yearGains, true)}. Pérdidas realizadas: ${money(result.yearLosses, true)}.</p><p><strong class="${netClass}">Resultado neto del año: ${money(result.netResult, true)}</strong></p>${appliedLine}<p><strong>Base imponible del ahorro tras compensar: ${money(result.taxableNet, true)}</strong></p>${carryLine}<p class="e19-kpi-note">Solo transmisiones contra transmisiones (Ley IRPF art. 49) — no incluye el cruce con rendimientos del capital mobiliario. Verifica con un profesional antes de declarar.</p>`;
+  return `<p>Ganancias realizadas de ${escapeHtml(result.year)}: ${money(result.yearGains, true)}. Pérdidas realizadas: ${money(result.yearLosses, true)}.</p><p><strong class="${netClass}">Resultado neto del año: ${money(result.netResult, true)}</strong></p>${appliedLine}<p><strong>Base imponible del ahorro tras compensar: ${money(result.taxableNet, true)}</strong></p>${carryLine}${fc3MarginalSaleBaseLine(result)}<p class="e19-kpi-note">Solo transmisiones contra transmisiones (Ley IRPF art. 49) — no incluye el cruce con rendimientos del capital mobiliario. Verifica con un profesional antes de declarar.</p>`;
 }
 
 function handleFc3Compare() {

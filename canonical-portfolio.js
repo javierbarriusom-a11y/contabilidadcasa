@@ -634,6 +634,12 @@
     const totalPriorLossesApplied = round2(priorLossesApplied.reduce((sum, entry) => sum + entry.amount, 0));
     const taxableNet = netResult > 0 ? round2(netResult - totalPriorLossesApplied) : netResult;
     const newCarryForward = netResult < 0 ? { year: targetYear, amount: round2(Math.abs(netResult)) } : null;
+    // FIN-2: base de partida para valorar una venta más este mismo año (FC5): el neto del año menos
+    // TODAS las pérdidas arrastradas todavía aplicables, ya aplicadas o no. Negativa = plusvalía
+    // nueva que aún puede absorberse sin tributar. taxableNet no sirve para eso: se queda en 0 en
+    // cuanto las pérdidas arrastradas cubren el año, y esconde las que siguen disponibles.
+    const totalEligiblePriorLosses = round2(eligiblePriorLosses.reduce((sum, entry) => sum + entry.amount, 0));
+    const marginalSaleBase = round2(netResult - totalEligiblePriorLosses);
 
     return {
       schemaId: YEAR_END_COMPENSATION_SCHEMA_ID,
@@ -647,6 +653,7 @@
       taxableNet,
       newCarryForward,
       remainingPriorLosses,
+      marginalSaleBase,
     };
   }
 

@@ -197,8 +197,12 @@
     if (gain <= 0) {
       return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-gain", warning: PROFESSIONAL_WARNING };
     }
-    const base = Math.max(0, number(alreadyRealizedGain));
-    const { bracket: currentBracket, upper } = bracketFor(scale.brackets, base);
+    // FIN-2: la base puede ser negativa — pérdidas del año o arrastradas todavía sin compensar
+    // (FC3, `marginalSaleBase`). Esa parte de la plusvalía nueva no tributa: recortarla a cero
+    // cobraba impuesto sobre ganancia que la compensación ya absorbía.
+    const base = number(alreadyRealizedGain);
+    const absorbedByLosses = round2(Math.min(gain, Math.max(0, -base)));
+    const { bracket: currentBracket, upper } = bracketFor(scale.brackets, Math.max(0, base));
     const roomInCurrentBracket = upper === Infinity ? null : round2(Math.max(0, upper - base));
     const withinBracket = roomInCurrentBracket === null || gain <= roomInCurrentBracket;
     const suggestedAmountWithinBracket = roomInCurrentBracket === null ? gain : round2(Math.min(gain, roomInCurrentBracket));
@@ -215,6 +219,7 @@
       withinBracket,
       suggestedAmountWithinBracket,
       excessOverBracket,
+      absorbedByLosses,
       marginalTax: round2(taxAfter - taxBefore),
       warning: PROFESSIONAL_WARNING,
     };
