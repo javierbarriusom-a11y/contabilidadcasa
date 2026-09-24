@@ -3791,6 +3791,15 @@ svg {
   margin-bottom: 16px;
 }
 
+/* h2, no h3: el aviso va delante del h2 de Hoy, así que un h3 saltaba del h1 de la pantalla a un
+   tercer nivel (axe «heading-order», OPT-4). Mismo aspecto que tenía como h3 del navegador. */
+.dex5-onboarding-banner h2 {
+  margin: 18.72px 0;
+  font-size: 18.72px;
+  line-height: normal;
+  color: var(--e19-heading);
+}
+
 .dex5-onboarding-banner[hidden] {
   display: none;
 }

@@ -191,7 +191,7 @@ porque ninguna de esas tres colas se resolvió con la Oleada 3:
 
 | Cola | Qué queda | Condición de desbloqueo | Quién la controla |
 | --- | --- | --- | --- |
-| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` (`OPT-15` anulada por `OPT-25`, 11-sep) | Reloj de 30 días de `OPT-2` (arrancó 29 de agosto) | Calendario — cumple a finales de septiembre de 2026 |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` (`OPT-15` anulada por `OPT-25`, 11-sep) | Reloj de 30 días de `OPT-2` (arrancó 29 de agosto) y, desde el 24 de septiembre de 2026 (sesión 240), uso real suficiente: aplazadas al 23 de octubre, mismo criterio que la Cola B de `BACKLOG_CONTABILIDADCASA_3_0.md` | El hogar — preguntarle si el uso ha sido intenso antes de activarlas; pantallas de uso menos que mensual no se declaran «sin uso» con 30 días de datos |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | `RGX3` (Bloque 6) y `DEX6` (Bloque 1) | `A5-1` (IA) activo en producción real, no solo en base local | Externa — activación de infraestructura, sin fecha conocida |
 | `BACKLOG_OPERACION.md` | `O-6` (= `T-3` en `BACKLOG.md`) | Contratación de un proveedor PSD2 (candidato evaluado: GoCardless) | Decisión de producto fuera del equipo de desarrollo |
 

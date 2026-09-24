@@ -5,8 +5,10 @@ const { AxeBuilder } = require("@axe-core/playwright");
 // (IDs duplicados, foco principal, estado vivo, diálogos) — cero medida real de WCAG. Este spec
 // corre axe-core contra las pantallas que QA-1 (tests/qa1-flujos-completos.spec.cjs) ya visita, en
 // vez de escribir un recorrido nuevo. Mismo patrón que QA-1: navegador real, fuera de `npm run
-// verify`/CI (decisión de infraestructura ya tomada para toda la suite Playwright de este repo,
-// ver la cabecera de qa1-flujos-completos.spec.cjs) — se ejecuta a mano con `npm run test:a11y-axe`.
+// verify` pero en el CI desde el 24 de septiembre de 2026 (`npm run test:a11y-axe` en
+// .github/workflows/pages.yml). Hasta entonces se ejecutaba solo a mano, y Hoy llevaba tiempo en rojo
+// sin que nadie lo viera (heading-order: el aviso de primeros pasos de DEX5 usaba un h3 delante del
+// h2 de la pantalla).
 //
 // Triage de la primera pasada (29 de agosto de 2026): axe encontró critical (aria-allowed-attr en
 // pestañas de Deuda que usaban aria-selected en un <a> sin role="tab"), serious

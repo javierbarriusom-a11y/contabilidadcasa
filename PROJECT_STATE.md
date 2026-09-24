@@ -62,6 +62,10 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`). **10 de septiembre de 2026 (sesión 164): `A5-1` avanzó
   de código pero la condición sigue sin cumplirse** — ver el cierre de sesión inmediatamente abajo.
+  **24 de septiembre de 2026 (sesión 240): `OPT-10`-`OPT-13` ya no dependen solo del reloj de
+  `OPT-2`**: el hogar las aplazó al 23 de octubre con el mismo criterio que la Cola B (preguntar antes
+  si el uso ha sido intenso), y una pantalla de uso menos que mensual no se declara «sin uso» con 30
+  días de datos.
 - **A5-1 usa Anthropic, no OpenAI (10 de septiembre de 2026, sesión 164)**: el backend privado del
   asistente llama a `https://api.anthropic.com/v1/messages` (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`),
   no a OpenAI — decisión explícita del hogar: ya tiene cuenta y facturación con Anthropic, evita
@@ -85,6 +89,68 @@ de aquí en la siguiente regeneración, no al momento.
   hogar decidió mantenerlo — cualquier gráfico o componente interactivo nuevo se construye a mano,
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
+
+## Cierre de sesión — 24 de septiembre de 2026 (240): `ARQ-6` paso 2 — las dos suites de navegador huérfanas estaban en rojo y escondían tres fallos reales (presupuesto congelado 14 s, Control de deuda 12 s, encabezados de Hoy); corregidos y en el CI. `OPT-10`-`OPT-13` aplazadas
+
+- **Qué pedía la sesión**: arranque con el backlog vigente, con dos matices del hogar: (1) confirmar
+  si `OPT-10`-`OPT-13` se habían aplazado un mes, y (2) antes del horizonte 4, buscar entregas marcadas
+  «Verificado» que ninguna prueba mantiene, tras los dos casos de la sesión anterior (caché offline y
+  recortes).
+- **`OPT-10`-`OPT-13`, decisión del hogar**: lo que se aplazó el 23 de septiembre (sesión 225) fue la
+  Cola B, no estas cuatro, que seguían venciendo el 28-29 de septiembre. Se alinean con ella: 23 de
+  octubre y, antes de activarlas, preguntar si el uso ha sido intenso. Regla añadida porque retiran
+  pantallas: una de uso menos que mensual (fiscal, informe trimestral/semestral, cierre anual) no se
+  declara «sin uso» con una ventana de 30 días. Anotado en `BACKLOG_CONTABILIDADCASA_3_0.md` §5/§6 y en
+  `BACKLOG_INDICE.md`.
+- **Método de la búsqueda (`ARQ-6`, fila nueva)**: cruzar los identificadores de tarea con los nombres
+  de las pruebas da una imagen falsa (60 de las 85 tareas A0-A13 no aparecen nombradas, pero las
+  pruebas se organizan por módulo y los motores están bien cubiertos). Los dos fallos de la sesión 239
+  no eran de cálculo sino de conexión entre piezas, así que se buscó esa clase. Primer caso concreto:
+  `.github/workflows/pages.yml` no ejecutaba ninguna de las tres suites de Playwright del repositorio.
+- **Las dos suites de comportamiento, ejecutadas tal cual: 2 de 8 en rojo.**
+  - *QA-1, flujo de Presupuesto del mes*: agotaba su tiempo al editar un importe. Medido en el
+    navegador: el manejador del cambio **bloqueaba la página 14.452 ms**. Perfilado: el 95 % en
+    `monthObjectForBudgetKey` → `selectableMonths` → `forecastMonths`, que regenera los ~124 meses del
+    modelo, cada uno con `toLocaleDateString` (~80 µs), para buscar uno solo, y eso por cada categoría
+    y mes de cada tarjeta. Corrección mínima: `monthLabel()` memorizada por año-mes (`app.js`), con la
+    caché dentro de la propia función para que siga funcionando cuando las pruebas la extraen suelta.
+    HTML de la pantalla idéntico antes y después; **14.452 → 87 ms**.
+  - *OPT-4, Hoy*: `heading-order` — el aviso de primeros pasos de DEX5 va delante del `h2` de la
+    pantalla y usaba `h3`. Pasa a `h2` con el estilo exacto que tenía como `h3`; captura del aviso a
+    1280 y 390px idéntica byte a byte.
+- **Tercer fallo, al ampliar QA-1**: las 6 pantallas de las capturas de E18 se añadieron al recorrido
+  de QA-1 (ver abajo) y el recorrido volvió a agotar su tiempo. Medido: **abrir Control de deuda
+  bloqueaba la página ~11,7 s** y Deuda › Comparar ~2,8 s, de forma estable. Perfilado: `shortDate()`
+  (misma familia: `toLocaleDateString` dentro de `canonicalEngineInput`, miles de veces por simulación,
+  y Control de deuda simula una vez por candidato). Memorizada por día: **11,7 s → ~1,5 s** y 2,8 →
+  0,13 s. El ~1,5 s restante es el coste repartido de simular cada candidato; bajarlo ya exigiría
+  tocar el motor y no se hizo.
+- **Para que no vuelva a pasar**:
+  - `pages.yml` ejecuta `npm run test:e2e` y `npm run test:a11y-axe` detrás de la instalación de
+    Chromium, igual que `test:mobile-overflow`.
+  - QA-1 mide el tiempo: editar un presupuesto < 2 s, y ninguna tarea larga del hilo principal > 8 s
+    en todo el recorrido (`PerformanceObserver` de `longtask`, que registra el bloqueo aunque la
+    pantalla cargue su código en diferido; un primer intento con un cronómetro tras navegar **no**
+    detectaba el fallo y se descartó). Comprobado a propósito: sin cada corrección, la prueba falla
+    («#debt-control bloqueó la página 12032 ms»); con ellas pasa, 3 de 3 ejecuciones en paralelo.
+  - `tests/qa1-opt4-navegador-en-ci.test.cjs` (6 pruebas, en `npm test`): las dos suites enganchadas
+    al CI, los dos techos de tiempo presentes, el recorrido cubre las 6 pantallas de E18, y
+    `monthLabel`/`shortDate` memorizadas sin cambiar su salida.
+- **Capturas de E18, decisión**: no entran en el CI. Se hicieron en macOS con Chrome real
+  (`*-darwin.png`); en Linux no hay referencia y el render de fuentes cambia entre máquinas, así que
+  un píxel a píxel fallaría sin que nada esté roto. Su comportamiento lo cubre ahora QA-1 y su recorte
+  `check-mobile-overflow`. Anotado en la cabecera de la suite y en la fila E18 de `BACKLOG_STATUS.md`.
+- **Pendiente de `ARQ-6`, paso 3**: inventario promesa → guardián → ¿falla si se rompe?, empezando por
+  la copia de seguridad (exportar e importar debe devolver el mismo estado, incluidos los almacenes
+  añadidos después de definir el formato) y siguiendo por las listas mantenidas a mano. Va por delante
+  del horizonte 4.
+- **Resultado de la validación**: `npm run verify` completo — 4758/4758 pruebas (4752 + 6 nuevas), lint
+  y typecheck limpios, accesibilidad (1406 IDs únicos), rendimiento, build del sitio, privacidad y
+  smoke test en verde. En navegador: `test:e2e` + `test:a11y-axe` 8/8 en tres ejecuciones seguidas, y
+  `test:mobile-overflow` en verde (177 visitas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/happy-archimedes-0nlcvh`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
 
 ## Cierre de sesión — 24 de septiembre de 2026 (239): `T9` redefinida y cerrada — 13 de 59 pantallas tenían contenido cortado en móvil (y 5-6 en escritorio); arreglado y vigilado en el CI
 
