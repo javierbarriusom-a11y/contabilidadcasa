@@ -822,7 +822,7 @@ function renderDex5OnboardingBanner() {
     return;
   }
   banner.hidden = false;
-  banner.innerHTML = `<div><p class="panel-kicker e19-eyebrow">Primeros pasos</p><h3>Empieza por Registrar y repasa Hoy cada día</h3><p>Con la app recién empezada, esto es lo esencial — el resto de pantallas sigue disponible cuando lo necesites, nada queda oculto.</p></div><div class="dex5-onboarding-actions"><button type="button" class="e19-btn e19-btn-primary" data-home-nav="registrar">Ir a Registrar</button><button type="button" class="e19-btn e19-btn-secondary" id="dex5OnboardingDismiss">Ya lo tengo claro</button></div>`;
+  banner.innerHTML = `<div><p class="panel-kicker e19-eyebrow">Primeros pasos</p><h2>Empieza por Registrar y repasa Hoy cada día</h2><p>Con la app recién empezada, esto es lo esencial — el resto de pantallas sigue disponible cuando lo necesites, nada queda oculto.</p></div><div class="dex5-onboarding-actions"><button type="button" class="e19-btn e19-btn-primary" data-home-nav="registrar">Ir a Registrar</button><button type="button" class="e19-btn e19-btn-secondary" id="dex5OnboardingDismiss">Ya lo tengo claro</button></div>`;
 }
 
 function handleDex5OnboardingDismiss() {
@@ -1130,8 +1130,20 @@ function coverageMonthsText(value, fallback = "N/D") {
   return Number.isFinite(Number(value)) ? Number(value).toFixed(1) : fallback;
 }
 
+// Memorizada por año-mes: toLocaleDateString (Intl) cuesta ~80 µs por llamada, y forecastMonths()
+// la invoca una vez por cada uno de los ~124 meses del modelo. Presupuesto del mes llega a
+// reconstruir esa lista cientos de veces por pintada (monthObjectForBudgetKey, por categoría y mes),
+// y editar un solo importe congelaba la pantalla ~14 s. La caché vive en la propia función para
+// seguir siendo autocontenida cuando las pruebas la extraen suelta de app.js.
 function monthLabel(date) {
-  return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+  const cache = monthLabel.cache || (monthLabel.cache = new Map());
+  const key = date.getFullYear() * 12 + date.getMonth();
+  let label = cache.get(key);
+  if (label === undefined) {
+    label = date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+    cache.set(key, label);
+  }
+  return label;
 }
 
 function monthKey(date) {
@@ -1188,10 +1200,20 @@ function localDateFromIso(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Memorizada por día, por el mismo motivo que monthLabel(): canonicalEngineInput() la invoca miles de
+// veces por simulación, y Control de deuda simula una vez por cada candidato — abrir esa pantalla
+// bloqueaba la página ~12 s, casi todo en toLocaleDateString.
 function shortDate(value) {
   const date = value instanceof Date ? value : localDateFromIso(value) || new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" }).replace(/\./g, "");
+  const cache = shortDate.cache || (shortDate.cache = new Map());
+  const key = date.getFullYear() * 10000 + date.getMonth() * 100 + date.getDate();
+  let label = cache.get(key);
+  if (label === undefined) {
+    label = date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" }).replace(/\./g, "");
+    cache.set(key, label);
+  }
+  return label;
 }
 
 function dateWithMonthLabel(date, day) {

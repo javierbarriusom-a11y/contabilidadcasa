@@ -2,10 +2,13 @@ const { test, expect } = require("@playwright/test");
 
 // QA-1 (FASE 6): suite de aceptación E2E — navegador real, no el patrón `vm`/extracción de texto que
 // usan los 1628 tests de `node --test` (esos verifican funciones aisladas; nunca arrancan la app de
-// verdad ni ejercitan `init()`, el enrutado por hash o la carga diferida de PERF-1). Corre igual que
-// e18-visual-regression.spec.cjs (mismo playwright.config.cjs, local — no forma parte de `npm run
-// verify` ni de CI, la misma decisión ya tomada para la suite visual: un navegador headless en CI es
-// una decisión de infraestructura aparte, no incluida en esta tarea).
+// verdad ni ejercitan `init()`, el enrutado por hash o la carga diferida de PERF-1).
+//
+// En el CI desde el 24 de septiembre de 2026 (`npm run test:e2e` en .github/workflows/pages.yml, detrás
+// de la instalación de Chromium). Hasta entonces se ejecutaba solo a mano y llevaba semanas en rojo sin
+// que nadie lo viera: editar un importe de Presupuesto del mes congelaba la pantalla ~14 s
+// (monthLabel sin memorizar, ver app.js) y el flujo agotaba su tiempo. Por eso el flujo mide ahora
+// también cuánto tarda en responder la edición, no solo que acabe respondiendo.
 //
 // El sitio público arranca sin transacciones (dataset de demo vacío por privacidad, E9/A0-8), así que
 // cada flujo siembra datos sintéticos con las mismas funciones que usa el propio flujo de importación
@@ -58,7 +61,14 @@ test.describe("QA-1 · flujo completo de Presupuesto del mes", () => {
 
     // Editar el importe sugerido: el estado se recalcula con el nuevo presupuesto, no con el viejo.
     await input.fill("150");
-    await input.dispatchEvent("change");
+    const changeMs = await input.evaluate((element) => {
+      const started = performance.now();
+      element.dispatchEvent(new Event("change", { bubbles: true, cancelable: true }));
+      return performance.now() - started;
+    });
+    // Con la corrección tarda ~90 ms en local; el techo deja margen de sobra a un runner lento y aun
+    // así caza el bloqueo de ~14 s que esta prueba destapó.
+    expect(changeMs, `editar un presupuesto tardó ${Math.round(changeMs)} ms`).toBeLessThan(2000);
     await expect(row.locator('[data-presupuesto-mes-category="alimentacion"]')).toHaveValue("150");
     await expect(row.locator("td").nth(5)).toContainText("150,00");
 
@@ -95,9 +105,19 @@ test.describe("QA-1 · recorrido por las pantallas principales con datos reales"
     { hash: "#analisis", root: "#analisis" },
     { hash: "#cierre", root: "#cierre" },
     { hash: "#conciliar", root: "#conciliar" },
+    // Las seis pantallas de las capturas de E18 (e18-visual-regression.spec.cjs): esas capturas se
+    // hicieron en macOS con Chrome real y no se pueden comparar en el CI (Linux), así que aquí se
+    // comprueba su comportamiento — que abran y pinten sin errores—; el recorte lo vigila
+    // tools/check-mobile-overflow.mjs.
+    { hash: "#update-hub", root: "#update-hub" },
+    { hash: "#data-entry", root: "#data-entry" },
+    { hash: "#forecast", root: "#forecast" },
+    { hash: "#new-life-simulation", root: "#new-life-simulation" },
+    { hash: "#debt-control", root: "#debt-control" },
+    { hash: "#reconciliation", root: "#reconciliation" },
   ];
 
-  test("navegar por Hoy, Presupuesto, Deuda, Análisis y Cierre sin errores ni pantallas en blanco", async ({ page }) => {
+  test("navegar por las pantallas principales y las de E18 sin errores, pantallas en blanco ni bloqueos largos", async ({ page }) => {
     const consoleErrors = [];
     page.on("pageerror", (error) => consoleErrors.push(String(error)));
 
@@ -105,6 +125,17 @@ test.describe("QA-1 · recorrido por las pantallas principales con datos reales"
     await page.waitForLoadState("networkidle");
     await seedExpenseHistory(page, { category: "ocio", months: ["2026-05", "2026-06", "2026-07"] });
 
+    // Doce pantallas y alguna simula el plan entero varias veces: margen para un runner lento.
+    test.setTimeout(90_000);
+    // Tareas largas del hilo principal (bloqueos de la página), con la pantalla en la que ocurrieron.
+    // Se miden con PerformanceObserver y no con un cronómetro tras navegar porque cada pantalla carga su
+    // código en diferido y su pintada puede llegar después de cualquier espera fija.
+    await page.evaluate(() => {
+      window.__qa1LongTasks = [];
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) window.__qa1LongTasks.push({ hash: location.hash, ms: Math.round(entry.duration) });
+      }).observe({ type: "longtask" });
+    });
     for (const screen of screens) {
       await page.evaluate((hash) => { location.hash = hash; }, screen.hash);
       await page.waitForTimeout(400);
@@ -113,6 +144,13 @@ test.describe("QA-1 · recorrido por las pantallas principales con datos reales"
       const rootHtml = await page.locator(screen.root).innerHTML();
       expect(rootHtml.trim().length, `${screen.hash}: ${screen.root} quedó vacío`).toBeGreaterThan(20);
     }
+
+    // Control de deuda llegó a bloquear la página ~12 s al abrirse (shortDate sin memorizar, ver
+    // app.js); tras la corrección, el bloqueo más largo del recorrido ronda 1,5 s en local.
+    await page.waitForTimeout(1000);
+    const longTasks = await page.evaluate(() => window.__qa1LongTasks);
+    const worst = longTasks.reduce((max, task) => (task.ms > max.ms ? task : max), { hash: "", ms: 0 });
+    expect(worst.ms, `${worst.hash} bloqueó la página ${worst.ms} ms`).toBeLessThan(8000);
 
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
   });
