@@ -24562,7 +24562,7 @@ function renderDatosImportarStep3() {
 function datosImportarSuccessMarkup(result) {
   return `<div class="e19-insight">
       <strong>Importación confirmada</strong>
-      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}. Puedes deshacer este lote desde «Carga de datos».</p>
+      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}. Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }
@@ -25871,7 +25871,7 @@ function upsertDebtRecord(record) {
   return { ok: true, kind: "debt", label, month: month.label };
 }
 
-function processDataRecords(records, sourceLabel = "datos") {
+function processDataRecords(records, sourceLabel = "datos", logId = "dataImportLog") {
   const beforeState = appStatePayload({ includeCanonical: false });
   let imported = 0;
   let projectRows = 0;
@@ -25917,6 +25917,7 @@ function processDataRecords(records, sourceLabel = "datos") {
     `${imported} registro(s) importado(s)`,
     `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
     warnings.length ? "warning" : "",
+    logId,
   );
   return { imported, projectRows, debtRows, planningRows, warnings, batchId: importBatches.at(-1)?.id || "" };
 }
@@ -25928,9 +25929,16 @@ function e11bAreaLabel(key) {
 // A16-1: extraído de renderE11bStatus() para que el componente "frescura de datos" de la puntuación
 // compuesta de salud financiera reutilice exactamente el mismo cálculo que ya se muestra en Datos ·
 // Actualización, en vez de una segunda derivación con criterio propio.
+// ARQ-6: el mes va tras el último «|» (actualKeyForRow); el primer «dddd-dd» de la clave caía a veces
+// dentro del id `custom-<kind>-<Date.now()>-<hex>` y daba «Reales» al día hasta el año 4175.
+function actualKeyMonth(key) {
+  const month = String(key).split("|").pop();
+  return /^\d{4}-\d{2}$/.test(month) ? month : "";
+}
+
 function dataFreshnessReport() {
   if (!E11bInbox) return null;
-  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
+  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: actualKeyMonth(key) ? `${actualKeyMonth(key)}-01` : "" }));
   return E11bInbox.freshness({
     balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
     movements: baseData?.transactions || [], actuals: actualMonths,
@@ -25994,7 +26002,8 @@ function addE11bInboxItem(input) {
   return item;
 }
 
-function applyE11bReceipt(item, result = {}) {
+// ARQ-6: `logId` — el justificante se pinta donde se confirmó (antes, siempre en #data-entry, oculta).
+function applyE11bReceipt(item, result = {}, logId = "dataImportLog") {
   if (!item || !E11bInbox) return;
   const latestBatch = result.batchId || importBatches.filter((batch) => batch.status === "applied").at(-1)?.id || "";
   const receiptId = `receipt-${Date.now()}`;
@@ -26004,7 +26013,9 @@ function applyE11bReceipt(item, result = {}) {
   updateReceipts.push(receipt);
   saveLocalSnapshot();
   renderE11bStatus();
-  showImportLog("Actualización confirmada", `${receipt.changed.records} registro(s) incorporados. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacer el lote desde esta pantalla." : "La revisión queda registrada."}`, "success");
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+  const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
+  showImportLog("Actualización confirmada", `${receipt.changed.records} registro(s) incorporados. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacerlo con «Deshacer último lote», en Registrar." : "La revisión queda registrada."}${warningText}`, warnings.length ? "warning" : "success", logId);
 }
 
 function toggleE11bInbox() {
@@ -26345,8 +26356,13 @@ function stageE7Import(records, sourceLabel, target = "data") {
   qs(cfg.confirmId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
     if (pending) {
-      const result = processDataRecords(pending.records, pending.sourceLabel);
-      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.imported } });
+      const result = processDataRecords(pending.records, pending.sourceLabel, cfg.logId);
+      // ARQ-6: sin ninguna línea incorporada no hay justificante que diga «incorporados»; queda el aviso.
+      if (!result.imported) {
+        if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
+        saveLocalSnapshot(); renderE11bStatus(); return;
+      }
+      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.imported }, warnings: result.warnings }, cfg.logId);
     }
   });
   qs(cfg.cancelId)?.addEventListener("click", () => {
@@ -26379,8 +26395,8 @@ function stageE7Workbook(nextData, fileName, target = "data") {
   qs(cfg.confirmWorkbookId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
     if (pending?.nextData) {
-      const result = applyImportedWorkbookData(pending.nextData, pending.sourceLabel);
-      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.recordCount, movements: result.movementCount } });
+      const result = applyImportedWorkbookData(pending.nextData, pending.sourceLabel, cfg.logId);
+      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.recordCount, movements: result.movementCount } }, cfg.logId);
     }
   });
   qs(cfg.cancelWorkbookId)?.addEventListener("click", () => {
@@ -26400,7 +26416,7 @@ function handleBatchImport() {
   stageE7Import(records, "lote pegado");
 }
 
-function applyImportedWorkbookData(nextData, fileName) {
+function applyImportedWorkbookData(nextData, fileName, logId = "dataImportLog") {
   const beforeState = appStatePayload({ includeCanonical: false });
   baseData = nextData;
   ensureCompleteFinancingSection();
@@ -26434,6 +26450,7 @@ function applyImportedWorkbookData(nextData, fileName) {
     "Libro Excel cargado completo",
     `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo. ${fullRefreshMessage()}`,
     "success",
+    logId,
   );
   return { batchId: batch?.id || "", recordCount: transactionCount + sectionCount, movementCount: transactionCount };
 }
@@ -33682,6 +33699,10 @@ function renderRegistrarTabs() {
   document.querySelectorAll("[data-registrar-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.registrarPanel !== registrarActiveTab;
   });
+  // ARQ-6: bloques que acompañan a más de una pestaña (bandeja común y «Deshacer último lote»).
+  document.querySelectorAll("[data-registrar-panels]").forEach((panel) => {
+    panel.hidden = !panel.dataset.registrarPanels.split(" ").includes(registrarActiveTab);
+  });
   const activeTab = REGISTRAR_TABS.find((tab) => tab.id === registrarActiveTab);
   if (qs("registrarCrumb")) qs("registrarCrumb").textContent = `Registrar › ${activeTab?.label || ""}`;
 }
@@ -33926,6 +33947,8 @@ function renderRegistrar() {
   renderRegistrarHeaderMeta();
   renderRegistrarActuals();
   renderRegistrarTabs();
+  // ARQ-6: la bandeja común vive ahora aquí (el `case "data-entry"` nunca llega: redirige a Registrar).
+  renderE11bStatus();
   renderRegistrarRecalcCard();
   resetRegistrarBalanceBaseline();
   renderRegistrarImpactFooter();

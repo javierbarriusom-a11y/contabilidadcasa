@@ -3680,7 +3680,11 @@ svg {
 
 .data-import-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 1.05fr) minmax(360px, 1fr) minmax(300px, 0.72fr);
+  /* ARQ-6 (25 sept. 2026): antes minmax(360px…)+minmax(360px…)+minmax(300px…) sumaban ~1.050px, más
+     que el hueco junto al menú lateral a 1280px: la tarjeta «Cámara» de Registrar › Lote y Excel
+     acababa en x=1306 y se cortaba. La comprobación de T9 no lo veía porque solo visita la pestaña
+     por defecto de cada pantalla. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 14px;
   align-items: stretch;
 }
@@ -3705,7 +3709,26 @@ svg {
   font-weight: 900;
 }
 
-#seriesEditorLog:empty {
+#seriesEditorLog:empty,
+#dataImportLog:empty {
+  display: none;
+}
+
+/* ARQ-6: un solo botón — dentro de .data-actions sería a la vez :first-child (fondo verde) y
+   :last-child (texto gris), con aspecto de desactivado y contraste insuficiente. */
+.e19-registrar-undo-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.e19-registrar-inbox {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.e19-registrar-inbox[hidden] {
   display: none;
 }
 

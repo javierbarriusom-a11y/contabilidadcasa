@@ -268,3 +268,62 @@ test.describe("QA-1 · almacenes propios en la sincronización con la nube", () 
     expect(await page.evaluate(() => storageGet(`${storageKey("pv5-diary")}:antes-de-sincronizar`, ""))).toContain("qa1-nube");
   });
 });
+
+// ARQ-6 (25 de septiembre de 2026, decisión del hogar): la bandeja «Revisar antes de incorporar» y
+// «Deshacer último lote» vivían en #data-entry, que desde el 15 de agosto redirige a Registrar y nunca
+// se muestra. Registrar › Lote y Excel prometía «una sola entrada revertible por lote» y el importador
+// de extractos «un lote que se puede deshacer después», pero ningún botón visible lo hacía; y el
+// justificante de un lote confirmado desde Registrar se escribía en el registro de la sección oculta,
+// así que la vista previa se quedaba en pantalla con su botón «Confirmar» como si nada hubiese pasado.
+test.describe("QA-1 · deshacer un lote importado desde Registrar", () => {
+  test("importar un lote en Registrar, ver el justificante y la bandeja, y deshacerlo desde la misma pantalla", async ({ page }) => {
+    const consoleErrors = [];
+    page.on("pageerror", (error) => consoleErrors.push(String(error)));
+    // #data-entry es la ruta de la tarjeta «Cargar CSV, Excel o un lote» de Hoy: aterriza en Registrar.
+    await page.goto("/index.html#data-entry");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator('[data-registrar-panel="batch"]')).toBeVisible();
+    await expect(page.locator("#dataInboxTitle"), "la bandeja tiene que verse junto a la importación").toBeVisible();
+    await expect(page.locator("#undoLastImport")).toBeVisible();
+
+    const target = await page.evaluate(() => ({
+      month: selectableMonths()[0].key,
+      section: baseData.monthlyPlanning.sections.find((section) => section.kind === "expense")?.name,
+    }));
+    const planningBefore = await page.evaluate(() => JSON.stringify(customPlanningRows));
+
+    // Un lote del que no entra ninguna línea no puede anunciarse como incorporado (antes decía
+    // «1 registro(s) incorporados» contando las filas de la vista previa).
+    await page.fill("#registrarBatchInput", `tipo;mes;bloque;concepto;previsto;real\ngasto;1999-01;${target.section};QA1 fuera de rango;77;0`);
+    await page.click("#registrarBatchImportBtn");
+    await page.click("#confirmRegistrarBatchImport");
+    await expect(page.locator("#registrarBatchLog")).toContainText("0 registro(s) importado(s)");
+    await expect(page.locator("#registrarBatchLog")).toContainText("Mes no reconocido: 1999-01");
+    await expect(page.locator("#dataInboxSummary")).toContainText("Descartada");
+    expect(await page.evaluate(() => importBatches.length)).toBe(0);
+    await page.fill("#registrarBatchInput", `tipo;mes;bloque;concepto;previsto;real\ngasto;${target.month};${target.section};QA1 lote deshacer;77;0`);
+    await page.click("#registrarBatchImportBtn");
+    await expect(page.locator("#registrarBatchLog")).toContainText("Vista previa");
+    await page.click("#confirmRegistrarBatchImport");
+
+    // El justificante sustituye a la vista previa en la misma pantalla.
+    await expect(page.locator("#registrarBatchLog")).toContainText("Actualización confirmada");
+    await expect(page.locator("#confirmRegistrarBatchImport")).toHaveCount(0);
+    await expect(page.locator("#dataInboxSummary")).toContainText("Aplicada");
+    expect(await page.evaluate(() => customPlanningRows.some((row) => row.label === "QA1 lote deshacer"))).toBe(true);
+
+    await page.click("#undoLastImport");
+    await expect(page.locator("#operationConfirmDialog")).toBeVisible();
+    await page.click("#operationConfirmSubmit");
+    await expect(page.locator("#dataImportLog")).toContainText("Importación deshecha");
+    await expect(page.locator("#dataInboxSummary")).toContainText("Deshecha");
+    expect(await page.evaluate(() => JSON.stringify(customPlanningRows)), "deshacer tiene que devolver las partidas de antes").toBe(planningBefore);
+
+    // La misma bandeja y el mismo deshacer acompañan a Importar extracto, que también crea lotes.
+    await page.click('[data-registrar-tab="import"]');
+    await expect(page.locator("#undoLastImport")).toBeVisible();
+    await page.click('[data-registrar-tab="balances"]');
+    await expect(page.locator("#undoLastImport")).toBeHidden();
+    expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+  });
+});

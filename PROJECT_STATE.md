@@ -90,6 +90,85 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (243): `ARQ-6` cerrada — «Deshacer último lote» y la bandeja vuelven a verse (en Registrar), cuatro fallos más destapados por el camino, y dos guardianes nuevos para que no se repita
+
+- **Qué pidió el hogar**: seguir con el backlog vigente; aprobó el plan (resto del paso 3 de `ARQ-6`:
+  `#data-entry` → comprobación automática de controles que nunca se ven → listas mantenidas a mano) y
+  decidió **mover la bandeja y el deshacer a Registrar**. `NAV-3` (propuesta de pasarla a la Cola B)
+  quedó sin respuesta: sigue donde estaba.
+- **Promesa rota, reproducida en navegador antes de tocar nada**: Registrar › Lote y Excel dice «una
+  sola entrada revertible por lote» y el asistente de extractos «se creará un lote que se puede
+  deshacer después», pero el único botón `#undoLastImport` vivía en `#data-entry`, que desde el 15 de
+  agosto redirige a Registrar y nunca se muestra. Tampoco se veía la bandeja «Revisar antes de
+  incorporar», que reciben 7 orígenes (lote, CSV, Excel, extracto, ticket, captura rápida, plantilla).
+  **Desde el 15 de agosto ninguna importación se podía deshacer.**
+- **Arreglo**: bandeja (con su frescura de datos) y una tarjeta «Último lote incorporado» con
+  `#dataImportLog` + «Deshacer último lote» pasan, con los mismos IDs, a un bloque de Registrar
+  (`data-registrar-panels="import batch"`) que acompaña a las dos pestañas que crean lotes.
+  `renderRegistrarTabs()` lo muestra solo en esas dos; `renderRegistrar()` pinta la bandeja (antes solo
+  se pintaba en un `case "data-entry"` al que el enrutador nunca llega). Revisado en captura a 1280 y
+  390px.
+- **Cuatro fallos más, destapados al reproducir**:
+  1. **El justificante de un lote confirmado desde Registrar se escribía en el registro oculto**: la
+     vista previa se quedaba en pantalla con su botón «Confirmar e importar» como si nada hubiese
+     pasado. `processDataRecords`/`applyImportedWorkbookData`/`applyE11bReceipt` aceptan ahora el
+     registro de destino y `stageE7Import`/`stageE7Workbook` pasan el de Registrar.
+  2. **Un lote del que no entraba ninguna línea decía «1 registro(s) incorporados»** (p. ej. un mes ya
+     cerrado): `buildReceipt` (`canonical-e11b-inbox.js`) trataba el 0 como «sin dato» y contaba las
+     filas de la vista previa. Ahora respeta el 0, y sin ninguna línea incorporada no hay justificante:
+     queda el aviso con el motivo de cada línea y la entrada de la bandeja pasa a «Descartada».
+  3. **«Reales» podía salir al día hasta el año 4175**: `dataFreshnessReport()` buscaba el primer
+     «dddd-dd» de la clave del real, y el id de las partidas propias (`custom-<kind>-<Date.now()>-<hex>`)
+     lo contiene ~4 de cada 10 veces. Afectaba a la frescura de la bandeja y al componente de frescura
+     de la salud financiera (`A16-1`), que no veía reales caducados. Nuevo `actualKeyMonth()`: el mes es
+     lo que va detrás del último «|».
+  4. **Dos recortes que `T9` no veía** porque su comprobación solo visitaba la pestaña por defecto de
+     cada pantalla: la tarjeta «Cámara» de Registrar › Lote y Excel acababa en x=1306 a 1280px
+     (`.data-import-grid` con mínimos que sumaban ~1.050px; ahora `auto-fit`), y los pasos 3-4 de
+     Registrar › Importar extracto a 360px (`.datos-importar-steps` sin salto de línea).
+  Además, el botón «Deshacer» dentro de `.data-actions` salía con aspecto de desactivado (era a la vez
+  `:first-child` y `:last-child`: fondo verde y texto gris); va en su propio contenedor.
+- **Falsa alarma descartada**: el Service Worker sirve primero desde caché y `CACHE_NAME` no cambia en el
+  fuente desde el 21 de agosto, pero `tools/build-public-site.mjs` lo reescribe en cada build, así que
+  las versiones nuevas sí llegan a los dispositivos. Comprobado antes de decir nada.
+- **Guardianes nuevos**:
+  - `tests/arq6-controles-inalcanzables.test.cjs` (3 pruebas): ejecuta el enrutador real
+    (`viewFromHash`) en un `vm` para saber qué pantallas no puede mostrar nunca (hoy `data-entry`,
+    `update-data`, `datos-importar`, `update-hub`) y falla si en ellas aparece un control que el código
+    usa. Los que quedan están listados con su motivo (trinquete en los dos sentidos). Es exactamente lo
+    que habría avisado de la copia de emergencia (241), el editor de series (242) y el deshacer (243).
+  - `tests/arq6-listas-de-navegacion.test.cjs` (4 pruebas): cada pantalla tiene título y cada título
+    pantalla; cada pantalla visible tiene al menos una puerta (menú, tarjeta, navegación, Laboratorio o
+    buscador); buscador, Laboratorio (entradas y destinos) y vistas diferidas apuntan a pantallas que se
+    muestran; cada redirección aterriza en una pestaña real de Registrar. **Las listas cuadraban hoy** —
+    las 4 pantallas sin enlace directo se abren desde Laboratorio o desde el flujo de Escenarios, y las 9
+    que no están en el buscador fueron retiradas a propósito (Bloque 5).
+  - `tests/arq6-bandeja-deshacer-en-registrar.test.cjs` (4 pruebas) y una prueba nueva en
+    `canonical-e11b-inbox.test.cjs` (el 0 explícito).
+  - Flujo nuevo en QA-1: entra por `#data-entry` (la tarjeta «Cargar CSV, Excel o un lote» de Hoy),
+    exige bandeja y deshacer visibles, confirma un lote de un mes inexistente (0 importados, «Descartada»,
+    ningún lote creado), confirma uno válido (justificante en Registrar, «Aplicada»), lo deshace desde la
+    misma pantalla y exige las partidas de antes idénticas; comprueba que el bloque acompaña a Importar
+    extracto y no a Saldos.
+  - `tools/check-mobile-overflow.mjs` visita también cada pestaña interna (`button[aria-selected]`):
+    177 → 201 visitas. Comprobado que detecta la tarjeta Cámara con la rejilla antigua.
+  - Todas las pruebas nuevas comprobadas en rojo contra el código anterior (las 4 de la bandeja, 2 de 3
+    del enrutador) o con una mutación (una pantalla fantasma sin título ni puerta).
+- **`app.js`** 37.435 líneas, justo bajo el techo de `ARQ-4` (37.436): los comentarios nuevos se
+  compactaron en vez de subir el techo.
+- **Decisiones que quedan para el hogar**: retirar o no los restos de las cuatro pantallas redirigidas
+  (el formulario «Nuevo dato manual» de `#data-entry` —único sitio para dar de alta un proyecto o
+  liquidación de deuda uno a uno, fuera del lote—, «Añadir concepto» de `#update-data`, y los botones
+  gemelos de `#datos-importar`); los documentos adjuntos de P2 (IndexedDB), que ni la copia ni la nube
+  llevan; y `NAV-3` a la Cola B.
+- **Resultado de la validación**: `npm run verify` completo — 4775/4775 pruebas, lint y typecheck
+  limpios, accesibilidad (1408 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en
+  verde. En navegador: `test:e2e` + `test:a11y-axe` 12/12 en dos pasadas y `test:mobile-overflow` en
+  verde (201 visitas, pestañas incluidas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a
+  `claude/festive-maxwell-atgkup`, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 24 de septiembre de 2026 (242): los almacenes propios se sincronizan con la nube y el editor de series vuelve, en Planificación de partidas
 
 - **Qué pidió el hogar**, respondiendo a dos de las tres decisiones abiertas en la sesión 241: «sí,
