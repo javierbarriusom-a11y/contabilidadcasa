@@ -90,6 +90,47 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (246): tercera decisión de la sesión 243 resuelta — `NAV-3` aparcada (no a la Cola B), `PROC-1` cerrada, y `FLU-3` construida con alcance acotado a Plan › Ahorro y objetivos
+
+- **Qué pidió el hogar**: la tercera decisión abierta en la sesión 243 — si `NAV-3` (el recorrido de
+  bienvenida) pasa a la Cola B, y seguir con `FLU-3` (Plan en móvil) como siguiente del horizonte 4.
+- **`NAV-3` aparcada en el horizonte 4, no movida a la Cola B**: la Cola B (§4 del backlog) exige la
+  condición de uso real medido (`ARQ-0` + conversación explícita del hogar) que `NAV-3` no necesita —
+  su propio motivo («si alguien sin 200+ sesiones de contexto necesita entrar») no depende de ningún
+  dato de uso. Moverla a la Cola B habría mezclado dos criterios de backlog distintos, justo lo que
+  `PROC-1` existe para evitar. Se aparca en su lugar con el motivo anotado en su fila (§2.3): sin
+  titular de caso de uso a la vista (el hogar lleva 245 sesiones de contexto acumulado), se retoma
+  solo si el hogar lo pide o si aparece de verdad alguien sin contexto que necesite entrar.
+- **`PROC-1` cerrada**: decisión de proceso sin código — se cierra formalizando el criterio, ya
+  aplicado de hecho al decidir dónde aparcar `NAV-3`.
+- **`FLU-3` construida, con alcance acotado tras investigar el código real**: de las tres pestañas de
+  Plan, solo «Ahorro y objetivos» (`.plan-savings-goals-table`, una fila por objetivo) carecía del
+  tratamiento móvil de `uxb1` (Presupuesto). «Mes» ya lo compartía (mismo código de fila que
+  Presupuesto, misma regla CSS `.e19-plan-mes .presupuesto-mes-primary-table`); «Previsión» es una
+  matriz ancha bloque × mes que no encaja en tarjetas — el desplazamiento horizontal que ya tiene es
+  el patrón correcto para ese tipo de dato, igual que otras matrices de la app. Misma técnica que
+  `uxb1`: `savingsGoalRowHtml` gana `data-label` en sus celdas de datos, y una regla CSS nueva
+  convierte la fila en tarjeta por debajo de 640px.
+- **Hallazgo al verificar en navegador antes de darlo por bueno**: la tabla salía a 1120px en móvil
+  pese al `display:block; width:100%` — el `min-width: 0` que anula el `table { min-width: 1120px }`
+  genérico de `styles.css` (E20-1) faltaba, mismo reset que ya usan otras cuatro pantallas de la app
+  por el mismo motivo. Añadido y comprobado con Playwright antes de continuar.
+- **Sin bump de `?v=` de `design-tokens.css`, a propósito**: el invalidador real de caché es
+  `CACHE_NAME` en `service-worker.js`, reescrito en cada build con `ignoreSearch: true` en el propio
+  Service Worker — el `?v=` por fichero es solo caché HTTP plana, compartida por una decena de tareas
+  históricas (`T2`, `T8`, `V2`...) que la comprueban por su cuenta; bumpearla habría exigido tocar 10
+  tests ajenos a este cambio sin ninguna necesidad funcional real.
+- **Resultado de la validación**: `npm run verify` completo — 4789/4789 pruebas, lint y typecheck
+  limpios, accesibilidad (1397 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en
+  verde. En navegador: `test:e2e` + `test:a11y-axe` 14/14 y `test:mobile-overflow` en verde (201
+  visitas). 3 pruebas nuevas en `tests/flu3-vista-movil-plan-ahorro.test.cjs`.
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Las tres decisiones de la sesión 243 quedan resueltas** con esta entrada — ver también las
+  sesiones 244 (cuatro pantallas) y 245 (adjuntos P2).
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: rama reiniciada desde `origin/main` tras
+  fusionar la parte anterior (sesión 245, PR #380); commit y push a la rama de trabajo en curso, PR en
+  borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (245): documentos adjuntos (P2) — las fotos de ticket/factura ya pueden cifrarse y sincronizarse con la nube, con la clave privada pedida una sola vez por sesión
 
 - **Qué pidió el hogar**: la segunda decisión abierta en la sesión 243. Antes de construir nada se

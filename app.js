@@ -34825,13 +34825,13 @@ function savingsGoalRowHtml(goal, index, total, accumulated) {
   const done = target > 0 && accumulated >= target;
   const progressText = target > 0 ? `${money(accumulated, true)} de ${money(target, true)}` : `${money(accumulated, true)} · sin importe objetivo`;
   return `<tr data-savings-goal-id="${escapeHtml(goal.id)}">
-    <td class="savings-goal-order">
+    <td class="savings-goal-order" data-label="Prioridad">
       <button type="button" class="e19-btn e19-btn-secondary savings-goal-btn" data-savings-goal-action="up" aria-label="Subir prioridad de ${escapeHtml(goal.label)}"${index === 0 ? " disabled" : ""}>↑</button>
       <button type="button" class="e19-btn e19-btn-secondary savings-goal-btn" data-savings-goal-action="down" aria-label="Bajar prioridad de ${escapeHtml(goal.label)}"${index === total - 1 ? " disabled" : ""}>↓</button>
     </td>
-    <td><input type="text" data-savings-goal-field="label" aria-label="Destino del objetivo" value="${escapeHtml(goal.label)}" /></td>
-    <td><input type="number" step="0.01" min="0" data-savings-goal-field="targetAmount" aria-label="Importe objetivo de ${escapeHtml(goal.label)}" value="${target || ""}" placeholder="Sin importe" /></td>
-    <td class="savings-goal-progress">${escapeHtml(progressText)}${done ? ` <span class="e19-badge e19-badge-success">Completado</span>` : ""}</td>
+    <td data-label="Destino"><input type="text" data-savings-goal-field="label" aria-label="Destino del objetivo" value="${escapeHtml(goal.label)}" /></td>
+    <td data-label="Importe objetivo"><input type="number" step="0.01" min="0" data-savings-goal-field="targetAmount" aria-label="Importe objetivo de ${escapeHtml(goal.label)}" value="${target || ""}" placeholder="Sin importe" /></td>
+    <td class="savings-goal-progress" data-label="Acumulado">${escapeHtml(progressText)}${done ? ` <span class="e19-badge e19-badge-success">Completado</span>` : ""}</td>
     <td><button type="button" class="e19-btn e19-btn-secondary savings-goal-btn is-danger" data-savings-goal-action="delete" aria-label="Eliminar objetivo ${escapeHtml(goal.label)}">Eliminar</button></td>
   </tr>`;
 }
