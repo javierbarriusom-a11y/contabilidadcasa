@@ -15,8 +15,9 @@ const root = path.resolve(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 function extractFunction(name) {
-  const start = app.indexOf(`function ${name}(`);
+  let start = app.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `No existe la función ${name} en app.js`);
+  if (start >= 6 && app.slice(start - 6, start) === "async ") start -= 6;
   const parenStart = app.indexOf("(", start);
   let parenDepth = 0;
   let bodyStart = -1;
@@ -121,7 +122,7 @@ test("movementDetailAttachmentHtml · con foto y ubicación, ofrece las dos acci
 
 // --- handleMovementDetailAttachPhoto ------------------------------------------------------------
 
-function attachPhotoSandbox({ storeAvailable = true, storeFails = false } = {}) {
+function attachPhotoSandbox({ storeAvailable = true, storeFails = false, cloud = false } = {}) {
   const calls = { saveLocalSnapshot: 0, render: 0, statuses: [], storePut: null };
   const receiptAttachments = {};
   const context = sandboxWith(["handleMovementDetailAttachPhoto"], {
@@ -129,8 +130,20 @@ function attachPhotoSandbox({ storeAvailable = true, storeFails = false } = {}) 
     saveLocalSnapshot: () => { calls.saveLocalSnapshot += 1; },
     renderMovementDetailDialog: () => { calls.render += 1; },
     announceStatus: (message) => calls.statuses.push(message),
+    // ARQ-6 (sesión 244): el guardado en sí (local o cifrado en la nube) vive en
+    // P2PrivateStore.saveAttachment() — su propia cobertura está en
+    // tests/p2-private-store-session-key.test.cjs. Aquí solo importa que
+    // handleMovementDetailAttachPhoto enlaza bien el resultado con el movimiento.
     P2PrivateStore: storeAvailable
-      ? { put: (id, file) => { calls.storePut = { id, file }; return storeFails ? Promise.reject(new Error("fail")) : Promise.resolve(); } }
+      ? {
+          saveAttachment: (id, file) => {
+            calls.storePut = { id, file };
+            if (storeFails) return Promise.reject(new Error("fail"));
+            return Promise.resolve(cloud
+              ? { storage: "cloud", remotePath: `p2/${id}.encrypted`, mimeType: file.type, createdAt: "2026-09-19T00:00:00.000Z" }
+              : { storage: "local", mimeType: file.type, createdAt: "2026-09-19T00:00:00.000Z" });
+          },
+        }
       : undefined,
   });
   return { context, calls, receiptAttachments };
@@ -169,6 +182,18 @@ test("handleMovementDetailAttachPhoto · con éxito, guarda el fichero cifrado y
   assert.equal(calls.saveLocalSnapshot, 1);
   assert.equal(calls.render, 1);
   assert.ok(calls.statuses.some((message) => /Foto adjuntada/.test(message)));
+});
+
+test("handleMovementDetailAttachPhoto · con clave de sesión activa, enlaza el adjunto como cifrado en la nube", async () => {
+  const { context, calls, receiptAttachments } = attachPhotoSandbox({ cloud: true });
+  const file = { type: "image/jpeg" };
+  const event = { target: { files: [file], value: "x" } };
+  context.handleMovementDetailAttachPhoto(event, ROW);
+  await flushMicrotasks();
+  const key = `${ROW.date}|${ROW.movement}|${ROW.amount}`;
+  assert.equal(receiptAttachments[key].storage, "cloud");
+  assert.match(receiptAttachments[key].remotePath, /\.encrypted$/);
+  assert.ok(calls.statuses.some((message) => /sincronizada con la nube/.test(message)));
 });
 
 test("handleMovementDetailAttachPhoto · conserva una ubicación ya guardada al adjuntar la foto (no la pisa)", async () => {

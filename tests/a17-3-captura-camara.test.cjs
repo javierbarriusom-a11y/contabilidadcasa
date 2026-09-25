@@ -18,8 +18,9 @@ const buildSite = read("tools/build-public-site.mjs");
 // de la app) y que el adjunto cifrado (A3-5, P2PrivateStore) se enlaza por transactionIdentity().
 
 function extractFunction(source, name) {
-  const start = source.indexOf(`function ${name}(`);
+  let start = source.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `No existe la función ${name}`);
+  if (start >= 6 && source.slice(start - 6, start) === "async ") start -= 6;
   const parenStart = source.indexOf("(", start);
   let parenDepth = 0;
   let bodyStart = -1;
@@ -85,7 +86,12 @@ function sandbox({ amount, date, merchant, storeAvailable = true } = {}) {
     showImportLog: (title, body, tone, targetId) => { calls.logs.push({ title, tone, targetId }); },
     addE11bInboxItem: (input) => { calls.addE11bInboxItem = input; return { id: "inbox-a173-1" }; },
     applyStagedMovementImport: () => { calls.applyStagedMovementImport += 1; },
-    P2PrivateStore: storeAvailable ? { put: (id, file) => { calls.storePut = { id, file }; return Promise.resolve(); } } : undefined,
+    // ARQ-6 (sesión 244): el guardado en sí vive en P2PrivateStore.saveAttachment(), con su propia
+    // cobertura en tests/p2-private-store-session-key.test.cjs — aquí solo importa que
+    // confirmReceiptCapture le pasa el fichero y enlaza bien el resultado con el movimiento.
+    P2PrivateStore: storeAvailable
+      ? { saveAttachment: (id, file) => { calls.storePut = { id, file }; return Promise.resolve({ storage: "local", mimeType: file.type, createdAt: "2026-09-19T00:00:00.000Z" }); } }
+      : undefined,
     transactionIdentity: (row) => `${row.date}|${row.movement}|${row.amount}`,
     receiptAttachments: {},
     receiptCaptureDraft: { file: { type: "image/jpeg", name: "ticket.jpg" }, previewUrl: "blob:fake" },

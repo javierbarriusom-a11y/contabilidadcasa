@@ -90,6 +90,51 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (245): documentos adjuntos (P2) — las fotos de ticket/factura ya pueden cifrarse y sincronizarse con la nube, con la clave privada pedida una sola vez por sesión
+
+- **Qué pidió el hogar**: la segunda decisión abierta en la sesión 243. Antes de construir nada se
+  investigó el código real, y el diagnóstico inicial («los adjuntos de P2 no tienen copia ni nube»)
+  resultó ser solo parcialmente cierto — corregido delante del hogar antes de decidir: los documentos
+  de acuerdos de deuda («Expediente privado» en Control de deuda) **ya tenían** nube cifrada desde
+  antes; el hueco real y único eran las fotos de ticket/factura (`T11`/`A17-3`), que solo vivían en el
+  dispositivo. El hogar confirmó, con esa corrección puesta delante: prácticamente ningún adjunto real
+  todavía, y sincronizar el blob cifrado con la nube (mismo mecanismo que ya usa el expediente
+  privado). Sobre la fricción de pedir la clave en cada foto, eligió pedirla **una sola vez por
+  sesión** — nunca se persiste en ningún almacén — en vez de en cada captura.
+- **Arreglo, en `p2-private-store.js`** (no en `app.js`, para no chocar con su techo de líneas de
+  `ARQ-4`): `requestSessionKey()` (diálogo nativo `<dialog method="dialog">`, mismo patrón que
+  `requestOperationConfirmation()` de `app.js` — promesa resuelta en el evento `close`),
+  `saveAttachment(id, file)` (cifra y sube si hay clave de sesión; si la subida falla o no hay clave,
+  cae a guardar solo en el dispositivo, nunca se pierde la foto) y `getOrDecrypt(link)` (dispositivo
+  primero, nube y descifrado si hace falta). `app.js` pasa a llamar a estas tres funciones desde
+  `handleMovementDetailAttachPhoto` (T11), `confirmReceiptCapture` (A17-3) y `viewReceiptAttachment`,
+  sin motor propio duplicado.
+- **Nuevo diálogo** `#p2SessionCloudKeyDialog` en `index.html`: pide la clave privada (12+
+  caracteres) la primera vez que se adjunta o se ve una foto en la sesión, con opción explícita
+  «Solo este dispositivo» que se recuerda el resto de la sesión sin volver a preguntar.
+- **Techo de `app.js` (`ARQ-4`) respetado sin subirlo**: la primera versión de este cambio vivía
+  entera en `app.js` y lo dejaba en 37.455 líneas, por encima del techo de 37.436 fijado en la sesión
+  237. Antes de tocar el techo (que exige decisión explícita del hogar, no es la salida por defecto),
+  se movió toda la lógica nueva a `p2-private-store.js` — mismo remedio por defecto que la propia
+  cabecera del test de `ARQ-4` pide («extrae otra porción de `app.js`»). `app.js` termina en 37.399
+  líneas, por debajo del techo.
+- **Guardianes nuevos**: `tests/p2-private-store-session-key.test.cjs` (10 pruebas: activar con clave
+  válida y recordarla, declinar y no repreguntar, clave corta cuenta como declinar, sin diálogo en la
+  página, nube con éxito, caída a local si la subida falla, sin clave guarda local, y las tres
+  combinaciones de `getOrDecrypt`). Los tests existentes de `T11`/`A17-3` actualizados para reflejar
+  que el guardado vive ahora en `P2PrivateStore.saveAttachment()`, con un caso nuevo para el camino de
+  nube.
+- **Resultado de la validación**: `npm run verify` completo — 4786/4786 pruebas, lint y typecheck
+  limpios, accesibilidad (1397 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en
+  verde. En navegador: `test:e2e` + `test:a11y-axe` 14/14 y `test:mobile-overflow` en verde (201
+  visitas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Sigue pendiente del hogar**: la tercera decisión de la sesión 243 (`NAV-3` a la Cola B) se aborda a
+  continuación en esta misma sesión.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: rama reiniciada desde `origin/main` tras
+  fusionar la parte anterior (sesión 244, PR #379); commit y push a la rama de trabajo en curso, PR en
+  borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (244): las dos decisiones de la sesión 243 sobre las cuatro pantallas resueltas — «Nuevo dato manual» a Registrar, y un quinto caso del mismo patrón descubierto y arreglado (Gobierno del dato y E9 eran invisibles desde el 15 de agosto, sin que el guardián de `ARQ-6` lo detectara)
 
 - **Qué pidió el hogar**: seguir con el plan propuesto en Modo Inicio para las tres decisiones abiertas
