@@ -64,17 +64,90 @@
     } catch { throw new Error("Clave privada incorrecta o archivo alterado"); }
   }
 
+  function put(id, file) {
+    return run("readwrite", (store) => store.put({ id, file, savedAt: new Date().toISOString() }));
+  }
+
+  function get(id) {
+    return run("readonly", (store) => store.get(id)).then((record) => record?.file || null);
+  }
+
+  // ARQ-6 (sesión 244, decisión del hogar): las fotos de ticket/factura (T11/A17-3) solo vivían en
+  // este dispositivo, sin ninguna opción de nube — a diferencia del expediente privado de deuda, que
+  // ya cifra y sincroniza. El hogar eligió pedir esta clave una sola vez por sesión (nunca se
+  // persiste, ni aquí ni en ningún almacén) en vez de en cada foto. Mismo diálogo nativo
+  // (`<dialog method="dialog">`) y patrón de promesa-en-el-evento-close que ya usa
+  // requestOperationConfirmation() en app.js.
+  let sessionKey = null;
+  let sessionDeclined = false;
+
+  function requestSessionKey() {
+    if (sessionKey) return Promise.resolve(sessionKey);
+    if (sessionDeclined) return Promise.resolve(null);
+    const dialog = root.document?.getElementById("p2SessionCloudKeyDialog");
+    const keyInput = root.document?.getElementById("p2SessionCloudKeyInput");
+    if (!dialog || !keyInput) return Promise.resolve(null);
+    keyInput.value = "";
+    return new Promise((resolve) => {
+      dialog.addEventListener("close", () => {
+        if (dialog.returnValue === "activate" && keyInput.value.trim().length >= 12) {
+          sessionKey = keyInput.value.trim();
+          resolve(sessionKey);
+        } else {
+          sessionDeclined = true;
+          resolve(null);
+        }
+      }, { once: true });
+      dialog.showModal();
+      keyInput.focus();
+    });
+  }
+
+  // Único punto de guardado de una foto de ticket/factura, compartido por T11 (adjuntar a un
+  // movimiento ya existente) y A17-3 (captura por cámara). Con clave de sesión activa, cifra y sube
+  // a la nube igual que ya hace el expediente privado con los documentos de deuda; si no hay clave,
+  // o si la subida falla, se queda en este dispositivo — nunca se pierde el adjunto por un fallo de
+  // red o por no tener sesión iniciada en Supabase.
+  async function saveAttachment(id, file) {
+    const cloudKey = await requestSessionKey();
+    const createdAt = new Date().toISOString();
+    if (cloudKey) {
+      try {
+        const encrypted = await encrypt(file, cloudKey);
+        const remotePath = await root.FinanceP2Bridge.uploadPrivateAttachment(id, encrypted);
+        return { storage: "cloud", remotePath, mimeType: file.type, createdAt };
+      } catch {
+        // Sin conexión o sin sesión en Supabase: se queda en el dispositivo, no se pierde la foto.
+      }
+    }
+    await put(id, file);
+    return { storage: "local", mimeType: file.type, createdAt };
+  }
+
+  // Recupera un adjunto para verlo: primero el dispositivo, y si no está y se subió cifrado a la
+  // nube, pide la clave de sesión (si todavía no la tiene) y lo descifra. `link` es la entrada de
+  // `receiptAttachments`/`documents` con `inboxItemId`/`storage`/`remotePath`.
+  async function getOrDecrypt(link) {
+    let blob = await get(link.inboxItemId);
+    if (!blob && link.storage === "cloud" && link.remotePath) {
+      const cloudKey = await requestSessionKey();
+      if (!cloudKey) return null;
+      const encrypted = await root.FinanceP2Bridge.downloadPrivateAttachment(link.remotePath);
+      blob = await decrypt(encrypted, cloudKey);
+    }
+    return blob;
+  }
+
   root.P2PrivateStore = {
-    put(id, file) {
-      return run("readwrite", (store) => store.put({ id, file, savedAt: new Date().toISOString() }));
-    },
-    get(id) {
-      return run("readonly", (store) => store.get(id)).then((record) => record?.file || null);
-    },
+    put,
+    get,
     remove(id) {
       return run("readwrite", (store) => store.delete(id));
     },
     encrypt,
     decrypt,
+    requestSessionKey,
+    saveAttachment,
+    getOrDecrypt,
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

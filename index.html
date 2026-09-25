@@ -7227,6 +7227,27 @@
       </div>
     </dialog>
 
+    <!-- ARQ-6 (sesión 244, decisión del hogar): las fotos de ticket/factura (T11/A17-3) solo vivían
+         en este dispositivo, sin ninguna opción de nube — a diferencia del Expediente privado de
+         Control de deuda, que ya cifra y sincroniza. El hogar eligió pedir la clave privada una sola
+         vez por sesión (nunca se guarda en disco, ni aquí ni en ningún almacén) en vez de en cada
+         foto — mismo patrón de diálogo nativo que operationConfirmDialog. -->
+    <dialog class="action-review-dialog" id="p2SessionCloudKeyDialog" aria-labelledby="p2SessionCloudKeyTitle">
+      <form method="dialog">
+        <p class="panel-kicker">Adjunto privado</p>
+        <h2 id="p2SessionCloudKeyTitle">Cifrar y sincronizar esta foto con la nube</h2>
+        <p>La clave nunca se guarda en ningún sitio — se mantiene solo en memoria mientras dure esta sesión del navegador, y se usa para todas las fotos que adjuntes en ella.</p>
+        <label>
+          <span>Clave privada (12 caracteres o más)</span>
+          <input id="p2SessionCloudKeyInput" type="password" minlength="12" autocomplete="new-password" />
+        </label>
+        <div class="dialog-actions">
+          <button value="decline" class="secondary" type="submit">Solo este dispositivo</button>
+          <button value="activate" id="p2SessionCloudKeySubmit" type="submit">Activar para esta sesión</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="action-review-dialog" id="operationConfirmDialog" aria-labelledby="operationConfirmTitle">
       <form method="dialog">
         <p class="panel-kicker">Operación protegida</p>

@@ -25193,21 +25193,23 @@ function movementDetailAttachmentHtml(row) {
   return `<div class="movement-detail-attachment">${buttons.join("")}</div>`;
 }
 
+// ARQ-6 (sesión 244, decisión del hogar): el guardado (local o cifrado en la nube) vive en
+// P2PrivateStore.saveAttachment() — compartido por T11 (adjuntar a un movimiento ya existente) y
+// A17-3 (captura por cámara), mismo mecanismo que ya usa el expediente privado con los documentos
+// de deuda.
 function handleMovementDetailAttachPhoto(event, row) {
   const file = event.target.files?.[0];
   event.target.value = "";
   if (!file || !row) return;
-  const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
-  if (!store) { announceStatus("Este navegador no admite guardar adjuntos."); return; }
+  if (typeof P2PrivateStore === "undefined") { announceStatus("Este navegador no admite guardar adjuntos."); return; }
   const attachmentId = `receipt-manual-${Date.now()}`;
-  store
-    .put(attachmentId, file)
-    .then(() => {
+  P2PrivateStore.saveAttachment(attachmentId, file)
+    .then((meta) => {
       const key = transactionIdentity(row);
-      receiptAttachments[key] = { ...(receiptAttachments[key] || {}), inboxItemId: attachmentId, storage: "local", mimeType: file.type, createdAt: new Date().toISOString() };
+      receiptAttachments[key] = { ...(receiptAttachments[key] || {}), inboxItemId: attachmentId, ...meta };
       saveLocalSnapshot();
       renderMovementDetailDialog();
-      announceStatus("Foto adjuntada al movimiento.");
+      announceStatus(meta.storage === "cloud" ? "Foto adjuntada y sincronizada con la nube." : "Foto adjuntada al movimiento.");
     })
     .catch(() => announceStatus("No se pudo guardar la foto en este dispositivo."));
 }
@@ -26163,9 +26165,10 @@ function confirmReceiptCapture() {
   applyStagedMovementImport();
   const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
   if (inboxItem && store) {
-    store.put(inboxItem.id, draft.file).then(() => {
-      receiptAttachments[transactionIdentity(row)] = { inboxItemId: inboxItem.id, storage: "local", mimeType: draft.file.type, createdAt: new Date().toISOString() };
+    store.saveAttachment(inboxItem.id, draft.file).then((meta) => {
+      receiptAttachments[transactionIdentity(row)] = { inboxItemId: inboxItem.id, ...meta };
       saveLocalSnapshot();
+      if (meta.storage === "cloud") showImportLog("Movimiento registrado", "El ticket se incorporó al libro y la foto se cifró y sincronizó con la nube.", "", "receiptCameraStatus");
     }).catch(() => {
       showImportLog("Movimiento registrado sin adjunto", "El ticket se incorporó al libro, pero la foto no se pudo guardar cifrada en este dispositivo.", "warning", "receiptCameraStatus");
     });
@@ -26184,7 +26187,9 @@ async function viewReceiptAttachment(row) {
   const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
   if (!store) return;
   try {
-    const blob = await store.get(link.inboxItemId);
+    // ARQ-6 (sesión 244): getOrDecrypt() mira primero el dispositivo y, si no está y se subió
+    // cifrada a la nube, pide la clave de sesión (si todavía no la tiene) y la descifra.
+    const blob = await store.getOrDecrypt(link);
     if (!blob) { announceStatus("No se encontró la foto guardada en este dispositivo."); return; }
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener");
