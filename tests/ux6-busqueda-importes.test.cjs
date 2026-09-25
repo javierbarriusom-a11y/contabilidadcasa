@@ -65,6 +65,11 @@ function sandboxWith(names, extra = {}) {
   vm.runInContext(extractConst("E17_CAPTURE_RELATIVE_DAYS"), context);
   vm.runInContext(extractFunction("normalizedText"), context);
   vm.runInContext(extractFunction("e17ExtractNaturalDate"), context);
+  // NAV-5: renderE17Launcher también resuelve una pregunta de cifra ejecutiva; estos tests no la
+  // ejercitan (ninguna consulta de aquí coincide con sus palabras clave), pero la referencia debe
+  // existir para que el lanzador no falle al comprobarla.
+  vm.runInContext(extractConst("NAV5_METRIC_QUESTIONS"), context);
+  vm.runInContext(extractFunction("e17ParseMetricQuery"), context);
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
 }

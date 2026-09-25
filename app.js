@@ -859,6 +859,39 @@ function e17AmountAnswerHtml(amount) {
   </div>`;
 }
 
+// NAV-5 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): cuarto tipo de resultado del lanzador — pregunta
+// rápida determinista, sin IA externa, sobre una cifra ya calculada por el modelo ejecutivo
+// (unifiedActionCenterModel/A2-6, el mismo que ya cita fuente/método/confianza en Análisis
+// —renderE6KpiQuality— y en los informes GOB14/P12). Puente barato mientras el Copiloto/IA (A5-1)
+// siga sin producción real — ver §0.1. Reglas fijas de palabras clave, igual que UX6/DEX1/DEX2: sin
+// dígito en la consulta (a diferencia de UX6, que siempre exige un importe), así que no compiten
+// entre sí. Solo se resuelve el modelo ejecutivo cuando una frase ya coincide, nunca en cada tecla.
+const NAV5_METRIC_QUESTIONS = Object.freeze([
+  { metric: "protectedReserve", keywords: ["reserva protegida", "colchon minimo", "colchon protegido"] },
+  { metric: "liquidity", keywords: ["liquidez", "cuanto tengo en caja", "saldo total en cuentas"] },
+  { metric: "freeCapacity", keywords: ["capacidad libre", "capacidad de ahorro real", "cuanto puedo transferir"] },
+  { metric: "nextIncomeCoverage", keywords: ["cobertura hasta el proximo ingreso", "dias de cobertura", "cuanto aguanto sin ingresar"] },
+  { metric: "debtPending", keywords: ["deuda pendiente", "cuanta deuda me queda", "principal pendiente"] },
+  { metric: "debtFreeDate", keywords: ["libre de deuda", "cuando acabo la deuda", "fecha libre de deuda"] },
+]);
+
+function e17ParseMetricQuery(query, normalize = normalizedText) {
+  const text = normalize(query).trim();
+  if (!text) return null;
+  const match = NAV5_METRIC_QUESTIONS.find(({ keywords }) => keywords.some((keyword) => text.includes(keyword)));
+  return match ? match.metric : null;
+}
+
+function e17MetricAnswerHtml(metricKey) {
+  const metric = unifiedActionCenterModel()?.readModel?.metrics?.[metricKey];
+  if (!metric) return "";
+  const confidenceLabel = GOB14_CONFIDENCE_LABEL[metric.confidence] || metric.confidence;
+  return `<div class="e17-launcher-answer">
+    <strong>${escapeHtml(metric.label)}: ${escapeHtml(gob14MetricValueText(metric))}</strong>
+    <p>Fecha: ${escapeHtml(metric.asOf)} · Fuente: ${escapeHtml(metric.source)} · Confianza: ${escapeHtml(confidenceLabel)}</p>
+  </div>`;
+}
+
 // DEX1/DEX2: barra de captura rápida en lenguaje natural — extiende el lanzador (A12-3/UX6) con un
 // tercer tipo de resultado, «crear movimiento», sobre el mismo patrón de mando de acciones que ya
 // usa UX6 para preguntas de importe: reglas fijas sobre palabras clave, no un asistente de IA ni
@@ -995,7 +1028,10 @@ function renderE17Launcher(query = "") {
   if (!results) return;
   const matches = E17Experience?.findTasks(query, normalizedText, e17SearchUsageWeight) || [];
   const amount = e17ParseAmountQuery(query);
-  const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : "";
+  // NAV-5: solo se busca una cifra del modelo ejecutivo cuando UX6 no ha respondido ya — UX6 exige
+  // un importe con dígito, NAV-5 nunca lo tiene, así que en la práctica no compiten.
+  const metricKey = amount === null ? e17ParseMetricQuery(query) : null;
+  const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : metricKey ? e17MetricAnswerHtml(metricKey) : "";
   // Una pregunta de importe (UX6) y una orden de captura (DEX1) no deberían disparar a la vez —
   // en la práctica sus palabras clave no se solapan, pero si UX6 ya respondió, se le da prioridad.
   const captureHtml = answerHtml ? "" : e17QuickCaptureHtml(e17ParseQuickCaptureQuery(query));
