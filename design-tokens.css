@@ -4101,6 +4101,72 @@
   white-space: nowrap;
 }
 
+/* FLU-3 (sesión 245): misma técnica que UX-B1 (Presupuesto del mes) — la fila se convierte en
+   tarjeta con CSS puro por debajo de 640px, apoyada en los `data-label` que ya llevan sus celdas,
+   sin reescribir savingsGoalRowHtml como una lista de tarjetas. De las tres pestañas de Plan, era
+   la única tabla (una fila por objetivo) sin este tratamiento — «Mes» ya lo comparte con Presupuesto
+   y «Previsión» es una matriz ancha que no encaja en tarjetas. */
+@media (max-width: 640px) {
+  /* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css (E20-1), que si no
+     forzaría scroll horizontal aquí igualmente pese al display:block de abajo. */
+  .e19-plan .plan-savings-goals-table {
+    min-width: 0;
+  }
+
+  .e19-plan .plan-savings-goals-table thead {
+    display: none;
+  }
+
+  .e19-plan .plan-savings-goals-table,
+  .e19-plan .plan-savings-goals-table tbody,
+  .e19-plan .plan-savings-goals-table tr,
+  .e19-plan .plan-savings-goals-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .e19-plan .plan-savings-goals-table tbody tr {
+    margin-bottom: 12px;
+    border: 1px solid var(--e19-border);
+    border-radius: 10px;
+    padding: 6px 12px;
+  }
+
+  .e19-plan .plan-savings-goals-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .e19-plan .plan-savings-goals-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--e19-surface-sunken);
+  }
+
+  .e19-plan .plan-savings-goals-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .e19-plan .plan-savings-goals-table td[data-label]::before {
+    content: attr(data-label);
+    font: 600 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+    color: var(--e19-muted);
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  .e19-plan .plan-savings-goals-table td:not([data-label]) {
+    justify-content: flex-start;
+  }
+
+  .e19-plan .plan-savings-goals-table td input {
+    max-width: 130px;
+  }
+}
+
 /* A-8 · barra apilada de una sola pieza + leyenda, los segmentos suman el 100 % del ingreso. */
 .e19-analisis .analisis-split-bar {
   display: flex;
