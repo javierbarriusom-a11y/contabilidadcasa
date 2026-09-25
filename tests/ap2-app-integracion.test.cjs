@@ -9,9 +9,10 @@ test("AP2: handleAp1Compare también calcula el punto de equilibrio con el mismo
   // el punto de equilibrio y el pintado del resultado; DEB15 (Oleada 4, Bloque 6) añadió el
   // guardarraíl a varios meses justo antes del pintado, DEB17 (Oleada 4, Bloque 6) el mismo
   // guardarraíl bajo tensión justo después, y DEB11 (Oleada 4, Bloque 6) la tarjeta de reducir
-  // cuota vs. plazo en la propia línea de pintado — la ventana crece de 1800 a 2100 a 3000 a 3800
-  // a 4000.
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 4000);
+  // cuota vs. plazo en la propia línea de pintado; I13 (BACKLOG_CONTABILIDADCASA_2_0.md §2) añadió
+  // el cálculo del objetivo de ahorro justo antes del pintado — la ventana crece de 1800 a 2100 a
+  // 3000 a 3800 a 4000 a 4600.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 4600);
   assert.match(block, /debtComparator\.breakEvenInvestmentRatePct\(debtAnnualRatePct, months\)/);
   assert.match(block, /ap1ResultHtml\(result, investmentAnnualReturnPct, breakEven\)/);
 });

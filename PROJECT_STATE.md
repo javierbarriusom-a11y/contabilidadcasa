@@ -90,6 +90,64 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (248): `I13` construida — comparador de destino para un ingreso extraordinario ajeno a la cartera, extendiendo `AP1` en vez de una pantalla nueva
+
+- **Qué pidió el hogar**: con el horizonte 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` completo (sesión
+  247), lo único que quedaba con alguna vía de avance hoy era resolver una de las tareas
+  condicionadas a una decisión del hogar. Puesta la elección delante del hogar (`D1`, `D6`, `I3`,
+  `I6`, `I13`), eligió `I13` y pidió una propuesta concreta de qué comparador construir antes de
+  tocar código — mismo criterio que ya exigía su propia nota de origen (sesión 217).
+- **Investigación previa, antes de proponer nada**: de las cuatro patas que pedía la nota original
+  del hogar sobre `I13` ("¿a dónde va este dinero? deuda/inversión/colchón/objetivo"), tres ya
+  existían: `AP1` (`compareAmortizeVsInvest`, `canonical-debt-comparator.js`) ya deja declarar
+  cualquier importe y horizonte y compara amortizar vs. invertir, con el guardarraíl de colchón
+  (`DLX1`/`amortizeCushionGuardrail`) pintado antes de la lectura; `DLX2`
+  (`surplusAllocationRule`, `canonical-cushion.js`) ya reparte ese mismo importe entre
+  colchón/deuda/inversión según el veredicto de `AP1`. Solo faltaba "objetivo de ahorro" —
+  ninguna pieza calculaba el efecto de destinar el importe a un objetivo de Plan › Ahorro y
+  objetivos (`P-13`/`P-16`).
+- **Qué se construyó**: `i13SavingsGoalImpact()`/`i13SavingsGoalImpactHtml()` en
+  `views/inversion.js` (no en `app.js` — `ARQ-4` tenía solo 1 línea de margen antes del techo, así
+  que el código de esta pantalla se quedó donde pertenece, no en el motor compartido). Sin motor
+  financiero nuevo ni supuesto de rentabilidad: resta el acumulado real del objetivo (`P-16`,
+  nunca una previsión) del importe objetivo declarado (`P-13`) y dice cuánto queda antes y
+  después de destinarle el importe — `P-13` no guarda ningún ritmo mensual de aportación, así que
+  deliberadamente **no** promete "cuántos meses se adelanta" (esa cifra no existe hoy en la app).
+  Nuevo selector opcional `ap1SavingsGoalSelect` en la propia tarjeta de `AP1` (Deuda ›
+  Apalancamiento), junto al importe ya declarado — mismo criterio de filtrado que
+  `sobresGoalDestinoOptions` (`P-16`): solo objetivos con importe declarado y sin completar. La
+  lectura del objetivo es independiente del veredicto amortizar/invertir de `AP1` y del reparto
+  automático de `DLX2` — una comparación aparte, no una cuarta rama de ese reparto automático.
+  `handleAp1Compare` la llama sin guarda `typeof`: el botón que la dispara solo es alcanzable tras
+  cargarse el fragmento lazy de esta pantalla (`VIEW_CHUNKS`), así que la comprobación habría sido
+  defensa contra un caso que no puede darse.
+- **Nada de fiscalidad ni ejercicio de opciones**: mismo alcance acordado para `I8` — este dinero
+  no viene de vender cartera, así que no lleva su tratamiento fiscal (eso sigue siendo `I8`), y el
+  ejercicio de opciones sigue fuera, sin confirmar con el hogar si aplica a su situación real.
+- **Hallazgo de arquitectura durante la construcción**: `ARQ-4` (techo de líneas de `app.js`)
+  estaba a solo 1 línea de su techo (37.435 de 37.436) antes de empezar. La primera versión, con
+  las cuatro funciones nuevas en `app.js`, lo superó por 70 líneas. Solución real, no subir el
+  techo: las cuatro funciones se movieron a `views/inversion.js` (código de una sola pantalla, tal
+  como pide la cabecera del propio test de `ARQ-4`), y la porción que queda en `app.js`
+  (`handleAp1Compare`) se compactó a una sola declaración — `app.js` termina exactamente en su
+  techo (37.436), sin tocar `CEILING_LINES`.
+- **Resultado de la validación**: `npm run verify` completo — **4810/4810 pruebas** (12 nuevas en
+  `tests/i13-comparador-objetivo-ahorro.test.cjs`), lint y typecheck limpios, accesibilidad (1398
+  IDs únicos), rendimiento, build del sitio, privacidad y smoke test en verde. Cinco archivos de
+  test existentes (`ap1-app-integracion`, `ap2-app-integracion`, `deb3-opcionalidad-esperar`,
+  `deb7-preferencia-declarada`, `deb9-sintesis-cancelar-mantener-deuda`) tenían aserciones con
+  ventanas de texto de tamaño fijo ancladas al principio de `handleAp1Compare`; se ampliaron para
+  seguir cubriendo el mismo contenido tras el cambio de tamaño de la función, sin tocar lo que
+  verifican. Nota aparte: el contenedor de esta sesión arrancó sin el paquete `esbuild` instalado
+  pese a estar en `package.json` (fallo de entorno, no de código — reproducido también en el HEAD
+  limpio antes de tocar nada); `npm install esbuild@^0.28.2` lo resolvió y `build:site` pasó a
+  verde.
+- **Con esto, la única vía de avance sin depender de una condición externa o de otra decisión del
+  hogar (`D1`, `D6`, `I3`, `I6`) queda agotada** — el resto de horizonte 4 y todo el horizonte 5
+  siguen igual que al cierre de la sesión 247.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo en
+  curso, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (247): `NAV-5` construida — pregunta rápida determinista en el lanzador (Cmd/Ctrl+K), sin IA externa; horizonte 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` queda completo
 
 - **Qué pidió el hogar**: seguir con la siguiente oleada de desarrollos del backlog vigente. Tras

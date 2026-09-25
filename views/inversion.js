@@ -109,6 +109,7 @@ function renderInversionApalancamiento() {
   renderAp6Alert();
   renderAp1DebtOptions();
   renderAp5Queue();
+  renderAp1SavingsGoalOptions();
   syncDeb7PreferenceControl();
   renderDeb7PreferenceReading();
   syncDeb11PreferenceControl();
@@ -131,4 +132,64 @@ function renderInversionApalancamiento() {
   renderDeb12WaitingCostSoFar();
   syncDeb14MaxMonthsControl();
   renderDeb14MarketCheckAlert();
+}
+
+// I13 (BACKLOG_CONTABILIDADCASA_2_0.md §2): comparador de destino para un ingreso extraordinario
+// ajeno a la cartera (herencia, bonus, venta fuera de cartera) — la otra mitad de lo que describió
+// el hogar sobre I8 (sesión 217, PROJECT_STATE.md). AP1 ya compara amortizar/invertir para
+// cualquier importe declarado y DLX2 ya reparte ese importe entre colchón/deuda/inversión según el
+// veredicto de AP1 — la única pata que pedía el hogar y no existía era "objetivo de ahorro"
+// (Plan › Ahorro y objetivos, P-13). Sin motor nuevo ni supuesto de rentabilidad: resta el
+// acumulado real del objetivo (P-16, nunca una previsión) del importe objetivo declarado. P-13 no
+// guarda ningún ritmo mensual de aportación, así que no se promete "cuántos meses se adelanta" —
+// solo cuánto quedaría antes y después de destinarle el importe, mismo criterio que dlx1GuardrailHtml
+// (informa, nunca decide). Vive aquí y no en app.js (ARQ-4): es código de esta pantalla, no un
+// motor compartido por varias.
+function i13SavingsGoalImpact({ amount, targetAmount, accumulated } = {}) {
+  const amountSafe = round2(Math.max(0, Number(amount) || 0));
+  const target = round2(Math.max(0, Number(targetAmount) || 0));
+  const accumulatedSafe = round2(Math.max(0, Number(accumulated) || 0));
+  if (amountSafe <= 0 || target <= 0) return { calculable: false };
+  const remainingBefore = round2(Math.max(0, target - accumulatedSafe));
+  const remainingAfter = round2(Math.max(0, remainingBefore - amountSafe));
+  return {
+    calculable: true,
+    amount: amountSafe,
+    targetAmount: target,
+    accumulated: accumulatedSafe,
+    remainingBefore,
+    remainingAfter,
+    completed: remainingBefore > 0 && remainingAfter === 0,
+    leftover: round2(Math.max(0, amountSafe - remainingBefore)),
+  };
+}
+
+function i13SavingsGoalImpactHtml(result, goalLabel) {
+  if (!result || !result.calculable) return "";
+  if (result.completed) {
+    const leftoverNote = result.leftover > 0 ? ` Sobran ${money(result.leftover, true)} para otro destino.` : "";
+    return `<p class="e19-kpi-note"><strong>Objetivo «${escapeHtml(goalLabel)}» (I13)</strong>: quedaba ${money(result.remainingBefore, true)} — con ${money(result.amount, true)} lo completas.${leftoverNote}</p>`;
+  }
+  return `<p class="e19-kpi-note"><strong>Objetivo «${escapeHtml(goalLabel)}» (I13)</strong>: quedaba ${money(result.remainingBefore, true)} — con ${money(result.amount, true)} pasaría a faltar ${money(result.remainingAfter, true)}.</p>`;
+}
+
+// I13: mismo criterio que sobresGoalDestinoOptions (P-16, views/cierre.js) — solo objetivos con
+// importe declarado y todavía sin completar tienen sentido como destino de este importe.
+function ap1SavingsGoalOptionsHtml() {
+  const contributions = savingsGoalsContributions();
+  const goals = savingsGoalsList().filter((goal) => {
+    const target = Number(goal.targetAmount || 0);
+    return target > 0 && Number(contributions[goal.id] || 0) < target;
+  });
+  const options = [`<option value="">Sin objetivo</option>`];
+  goals.forEach((goal) => options.push(`<option value="${escapeHtml(goal.id)}">${escapeHtml(goal.label)}</option>`));
+  return options.join("");
+}
+
+function renderAp1SavingsGoalOptions() {
+  const select = qs("ap1SavingsGoalSelect");
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = ap1SavingsGoalOptionsHtml();
+  if ([...select.options].some((option) => option.value === current)) select.value = current;
 }
