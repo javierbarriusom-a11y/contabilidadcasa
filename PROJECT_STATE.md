@@ -90,6 +90,36 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (247): `NAV-5` construida — pregunta rápida determinista en el lanzador (Cmd/Ctrl+K), sin IA externa; horizonte 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` queda completo
+
+- **Qué pidió el hogar**: seguir con la siguiente oleada de desarrollos del backlog vigente. Tras
+  revisar `BACKLOG_CONTABILIDADCASA_3_0.md` §6, `NAV-5` era la única tarea del horizonte 4 sin
+  cerrar ni aparcar — el resto de ese horizonte ya estaba resuelto en sesiones anteriores.
+- **Qué se construyó**: un cuarto tipo de resultado para el lanzador (Cmd/Ctrl+K), junto a la
+  navegación (A12-3), la pregunta de importe (UX6) y la captura rápida de movimientos (DEX1/DEX2) —
+  una pregunta rápida determinista, sin IA externa, que responde con una cifra ya calculada y su
+  procedencia, sin navegar a ninguna pantalla. Sin motor nuevo: reutiliza tal cual
+  `unifiedActionCenterModel`/`ExecutiveReadModel` (A2-6), el mismo modelo ejecutivo que ya cita
+  fuente/método/confianza en Análisis (`renderE6KpiQuality`) y en los informes GOB14/P12.
+  `e17ParseMetricQuery` reconoce seis preguntas por palabras clave (reserva protegida, liquidez,
+  capacidad libre, cobertura hasta el próximo ingreso, deuda pendiente, fecha libre de deuda) y
+  `e17MetricAnswerHtml` pinta la cifra con su fecha, fuente y confianza (traducida a alta/media/baja,
+  mismo criterio que GOB14). Nunca compite con UX6 (que siempre exige un dígito) ni con DEX1/DEX2
+  (verbos de captura distintos), y el modelo ejecutivo solo se resuelve cuando una frase ya coincide
+  — nunca en cada tecla, para no repetir el patrón de recómputo caro que corrigió `ARQ-6`.
+- **Puente barato mientras `A5-1` (Copiloto/IA) siga sin producción real** — ver §0.1 del backlog: no
+  sustituye una IA real, evita depender de ella mientras tanto.
+- **Resultado de la validación**: `npm run verify` completo tras `npm install` (el contenedor de esta
+  sesión arrancó sin `node_modules`) — 4798/4798 pruebas, lint y typecheck limpios, accesibilidad
+  (1397 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en verde. 9 pruebas nuevas
+  en `tests/nav5-pregunta-rapida-determinista.test.cjs`; `tests/ux6-busqueda-importes.test.cjs`
+  actualizado para seguir cargando `renderE17Launcher` con la referencia nueva.
+- **Con esto, el horizonte 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6 queda completo**: todas sus
+  tareas están cerradas salvo `NAV-3`, aparcada por decisión del hogar (sesión 245) — nada más
+  accionable en ese horizonte hoy.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo en
+  curso, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (246): tercera decisión de la sesión 243 resuelta — `NAV-3` aparcada (no a la Cola B), `PROC-1` cerrada, y `FLU-3` construida con alcance acotado a Plan › Ahorro y objetivos
 
 - **Qué pidió el hogar**: la tercera decisión abierta en la sesión 243 — si `NAV-3` (el recorrido de
