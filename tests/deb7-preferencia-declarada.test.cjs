@@ -74,9 +74,10 @@ test("DEB7: el selector está cableado a handleDeb7PreferenceChange", () => {
 test("DEB7: handleAp1Compare guarda el veredicto y refresca la lectura de preferencia tras comparar", () => {
   // DEB15 (Oleada 4, Bloque 6) añadió el guardarraíl a varios meses antes del pintado del
   // resultado, DEB17 (Oleada 4, Bloque 6) el mismo guardarraíl bajo tensión justo después, y DEB11
-  // (Oleada 4, Bloque 6) la tarjeta de reducir cuota vs. plazo en la propia línea de pintado — la
-  // ventana crece de 3000 a 3900 a 4700 a 4900.
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 4900);
+  // (Oleada 4, Bloque 6) la tarjeta de reducir cuota vs. plazo en la propia línea de pintado; I13
+  // (BACKLOG_CONTABILIDADCASA_2_0.md §2) añadió el cálculo del objetivo de ahorro antes del pintado
+  // — la ventana crece de 3000 a 3900 a 4700 a 4900 a 5600.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 5600);
   assert.match(block, /deb7LastAp1Assessment = result\.calculable \? result\.assessment : null;/);
   assert.match(block, /renderDeb7PreferenceReading\(\);/);
 });

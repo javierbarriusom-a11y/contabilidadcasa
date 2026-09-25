@@ -3419,6 +3419,14 @@
                   <span>Importe disponible (€)</span>
                   <input id="ap1Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
                 </label>
+                <!-- I13 (BACKLOG_CONTABILIDADCASA_2_0.md §2): opcional — si el importe de arriba es un
+                     ingreso extraordinario ajeno a la cartera (herencia, bonus, venta fuera de
+                     cartera), compara también acercarlo a un objetivo de ahorro (P-13/P-16). Reutiliza
+                     el mismo importe, sin campo nuevo aparte del objetivo a elegir. -->
+                <label class="month-picker">
+                  <span>¿Acercarlo a un objetivo de ahorro? (opcional)</span>
+                  <select id="ap1SavingsGoalSelect"></select>
+                </label>
                 <label class="month-picker">
                   <span>TIN de esa deuda (% anual)</span>
                   <input id="ap1DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
