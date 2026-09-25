@@ -457,7 +457,7 @@
   }
 
   function renderFamilyAndExport() {
-    const target = mount("data-entry", "p2-family-export", "beforeend", panel("p2-family-export", "Gobierno del dato", "Familia y paquete para asesor", "Asigna cada serie a Javi, Tere o Hogar y genera una exportación versionada con procedencia."));
+    const target = mount("ajustes-datos", "p2-family-export", "beforeend", panel("p2-family-export", "Gobierno del dato", "Familia y paquete para asesor", "Asigna cada serie a Javi, Tere o Hogar y genera una exportación versionada con procedencia."));
     if (!target) return;
     const rows = ensureOwnership();
     const p2 = state();
@@ -472,7 +472,7 @@
   }
 
   function renderE9ActivationStatus() {
-    const target = mount("data-entry", "e9-activation-status", "beforeend", panel(
+    const target = mount("ajustes-datos", "e9-activation-status", "beforeend", panel(
       "e9-activation-status",
       "E9 · Servicios opcionales",
       "Pendientes de activación externa",
@@ -481,7 +481,8 @@
     if (!target) return;
     const services = [
       ["Hogar compartido", "Sin invitaciones ni acceso remoto", "Requiere políticas desplegadas y prueba con dos cuentas independientes."],
-      ["Asistente y borradores", "OpenAI API sin conectar", "Se activará desde backend privado, sin almacenamiento, tras elegir el modelo mediante pruebas."],
+      // A5-1 (sesión 164): el backend privado llama a la API de Anthropic, no a OpenAI.
+      ["Asistente y borradores", "API de Anthropic sin conectar en producción", "Se activará desde backend privado, sin almacenamiento, tras confirmar el despliegue real."],
       ["Avisos en segundo plano", "Web push remoto desactivado", "Las notificaciones del navegador actuales siguen siendo pruebas locales."],
       ["Banca e importación", "Sin cuentas conectadas", "CSV, Excel y entrada manual siguen disponibles hasta contratar y validar el proveedor PSD2."],
     ];
@@ -674,7 +675,11 @@
     if (!bridge() || !domain()) return;
     if (viewId === "savings-agent") renderGoals();
     if (viewId === "home") { renderE16Monitoring(); renderGob4MemberView(); }
-    if (viewId === "data-entry") { renderFamilyAndExport(); renderE9ActivationStatus(); }
+    // ARQ-6 (sesión 244): estos dos paneles se montaban en #data-entry, que Registrar redirige desde
+    // R-10/R-11 (15 de agosto) y nunca se muestra — invisibles desde entonces, sin que el guardián
+    // arq6-controles-inalcanzables los detectara (analiza el HTML estático de index.html; estos se
+    // insertan en tiempo de ejecución). Ahora viven en Ajustes › Datos y exportación (#ajustes-datos).
+    if (viewId === "ajustes") { renderFamilyAndExport(); renderE9ActivationStatus(); }
     // Repaso pixel-perfect del 20 de agosto: Movimientos.pdf no lleva la tarjeta "Comportamiento
     // conciliado" — se deja de montar en Movimientos (renderBehavior() queda sin llamar, no se
     // borra: sigue disponible si hace falta en otra vista más adelante).

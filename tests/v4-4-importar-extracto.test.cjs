@@ -364,8 +364,10 @@ test("V4-4 · la pantalla está en el menú, en el lanzador y en el orden del fl
   assert.match(html, /<section class="e19-datos-importar view-section" id="datos-importar">/);
   assert.match(html, /id="datosImportarSteps"/);
   assert.match(html, /id="datosImportarPanel"/);
-  assert.match(html, /id="datosImportarNext"/);
-  assert.match(html, /id="datosImportarBack"/);
+  // ARQ-6 (sesión 244): sus botones gemelos («Atrás»/«Continuar») se retiraron — la pantalla
+  // redirige a Registrar desde el 15 de agosto (R-10/R-11) y nunca los mostraba ya nadie.
+  assert.doesNotMatch(html, /id="datosImportarNext"/);
+  assert.doesNotMatch(html, /id="datosImportarBack"/);
   assert.match(experience, /target: "datos-importar"[^}]*group: "data"/);
   assert.match(app, /case "datos-importar":\s*renderDatosImportar\(\);/);
 });

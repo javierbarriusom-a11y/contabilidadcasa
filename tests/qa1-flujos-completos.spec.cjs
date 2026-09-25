@@ -244,6 +244,57 @@ test.describe("QA-1 · editor de series en Planificación de partidas", () => {
   });
 });
 
+// ARQ-6 (sesión 244): «Gobierno del dato» (asignación de titular + exportación con procedencia para el
+// asesor) y «E9 · Servicios opcionales» se montaban en #data-entry, que nunca se muestra desde el 15 de
+// agosto — invisibles desde entonces, y sin que arq6-controles-inalcanzables los detectara, porque
+// p2-ui.js los inserta en tiempo de ejecución (no viven en el HTML estático que analiza ese guardián).
+// Movidos a Ajustes › Datos y exportación (#ajustes-datos). Este flujo es justo el punto ciego: solo un
+// navegador real, no un análisis de HTML estático, puede confirmar que de verdad se ven.
+test.describe("QA-1 · paneles de p2-ui.js visibles en Ajustes", () => {
+  test("«Familia y paquete para asesor» y «E9 · Servicios opcionales» se muestran en Ajustes, no en #data-entry", async ({ page }) => {
+    const consoleErrors = [];
+    page.on("pageerror", (error) => consoleErrors.push(String(error)));
+
+    await page.goto("/index.html#data-entry");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#p2-family-export")).toBeHidden();
+    await expect(page.locator("#e9-activation-status")).toBeHidden();
+
+    await page.goto("/index.html#ajustes");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#p2-family-export")).toBeVisible();
+    await expect(page.locator("#e9-activation-status")).toBeVisible();
+    await expect(page.locator("#p2-family-export")).toContainText("Familia y paquete para asesor");
+    await expect(page.locator("#e9-activation-status")).toContainText("Anthropic");
+    expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// ARQ-6 (sesión 244, decisión del hogar): «Nuevo dato manual» (uno a uno, incluye proyecto/deuda) se
+// movió de #data-entry a Registrar › Lote y Excel, con los mismos IDs — era la única alta suelta fuera
+// de lote. Su única llamada a populateDataEntryControls() estaba igual de inalcanzable que el resto
+// (`case "data-entry"` nunca llega): los selects de mes y bloque llevaban vacíos desde el 15 de agosto.
+test.describe("QA-1 · Nuevo dato manual en Registrar", () => {
+  test("el mes y el bloque llegan poblados y un alta manual queda en el justificante visible", async ({ page }) => {
+    const consoleErrors = [];
+    page.on("pageerror", (error) => consoleErrors.push(String(error)));
+    await page.goto("/index.html#registrar");
+    await page.waitForLoadState("networkidle");
+    await page.click('[data-registrar-tab="batch"]');
+    await expect(page.locator("#addManualData")).toBeVisible();
+
+    const monthOptions = await page.locator("#manualDataMonth option").count();
+    expect(monthOptions, "el selector de mes debería llegar poblado, no vacío").toBeGreaterThan(0);
+
+    await page.selectOption("#manualDataKind", "expense");
+    await page.fill("#manualDataLabel", "Gasto de prueba QA-1");
+    await page.fill("#manualDataActual", "42");
+    await page.click("#addManualData");
+    await expect(page.locator("#dataImportLog")).toContainText("importado");
+    expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // ARQ-6 (24 de septiembre de 2026, decisión del hogar): los almacenes propios también se sincronizan
 // con la nube. Cada pantalla escribe el suyo por su cuenta, así que storageSet() tiene que disparar la
 // sincronización — y aplicar lo que llega de la nube no puede volver a enviarlo.

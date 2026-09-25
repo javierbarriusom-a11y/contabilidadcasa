@@ -90,6 +90,60 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (244): las dos decisiones de la sesión 243 sobre las cuatro pantallas resueltas — «Nuevo dato manual» a Registrar, y un quinto caso del mismo patrón descubierto y arreglado (Gobierno del dato y E9 eran invisibles desde el 15 de agosto, sin que el guardián de `ARQ-6` lo detectara)
+
+- **Qué pidió el hogar**: seguir con el plan propuesto en Modo Inicio para las tres decisiones abiertas
+  en la sesión 243. Sobre la primera («qué hacer con los restos de las cuatro pantallas»), el hogar
+  confirmó la recomendación de la propia sesión: llevar «Nuevo dato manual» a Registrar antes de
+  retirar nada, por ser la única alta suelta de un proyecto o de una liquidación de deuda uno a uno
+  fuera de lote.
+- **Verificación en navegador antes de tocar nada** (mismo criterio que toda la serie `ARQ-6`): antes
+  de mover el formulario, se comprobó si dos paneles más de `#data-entry` — «Gobierno del dato:
+  familia y paquete para asesor» (asignación de titular por serie + exportación PDF/Excel versionada
+  con procedencia) y «E9 · Servicios opcionales pendientes de activación» — eran alcanzables. **No lo
+  eran**: `p2-ui.js` los monta con `mount("data-entry", ...)`, gateado por `if (viewId === "data-entry")`,
+  exactamente la misma redirección de R-10/R-11 (15 de agosto) que dejó ciegas a la copia de emergencia
+  (241), el editor de series (242) y la bandeja/deshacer (243) — pero esta vez el guardián nuevo de
+  `ARQ-6` (`arq6-controles-inalcanzables.test.cjs`) no lo detectó, porque analiza el HTML **estático**
+  de `index.html` y estos dos paneles se insertan en tiempo de ejecución (`insertAdjacentHTML`). Un
+  quinto caso del mismo patrón, con el añadido de un punto ciego real en el guardián que se creía
+  exhaustivo.
+- **Arreglo**: ambos paneles pasan a montarse en `#ajustes-datos` (Ajustes › Datos y exportación,
+  donde ya vive la copia de emergencia desde la sesión 241), y el `render(viewId)` de `p2-ui.js` pasa a
+  comprobar `viewId === "ajustes"`. De paso, «E9 · Servicios opcionales» decía «OpenAI API sin
+  conectar» — contradecía la decisión de `A5-1` (sesión 164: el backend privado usa Anthropic, no
+  OpenAI) desde que se escribió, invisible hasta ahora; corregido junto con la reparación.
+- **«Nuevo dato manual»**: la tarjeta (con los mismos IDs — `manualDataKind`, `manualProjectMode`,
+  `addManualData`...) pasa de `#data-entry` a la pestaña Lote y Excel de Registrar, junto a «Pegar
+  tabla», «Importar fichero» y «Foto de ticket». Su única llamada a `populateDataEntryControls()`
+  estaba gateada igual que el resto (`case "data-entry"` nunca llega): los selects de mes y bloque
+  llevaban **vacíos desde el 15 de agosto**, doble fallo sobre el mismo formulario. Añadida a
+  `renderRegistrar()`, que ya se ejecuta en cada render de Registrar.
+- **Retirado, con decisión ya tomada** (no pendiente): «Añadir concepto» de `#update-data` (cubierto
+  por «+ Registrar gasto», `FLU-2`, y Planificación de partidas) y los botones gemelos «Atrás»/
+  «Continuar» de `#datos-importar` (el asistente real vive en Registrar › Importar extracto, R-8).
+  `handleAddCustomConcept()` se elimina por quedar huérfana; `datosImportarUpdateBar()`/
+  `renderDatosImportar()` ya se protegían con un `if (!nextButton || !backButton...) return`, así que
+  no necesitaron cambios. Dos tests antiguos (`r8-registrar-importar-extracto`, `v4-4-importar-extracto`)
+  afirmaban por escrito que esos botones «seguían intactos, nada retirado» — promesa que R-10/R-11 ya
+  había roto en silencio en agosto; actualizados para reflejar la realidad actual.
+- **Lo que queda tal cual, a propósito**: «Pegar tabla» e «Importar fichero» de `#data-entry` (ya
+  duplicadas por el mismo motor en Registrar, R-9) — su retirada no estaba en el alcance decidido esta
+  sesión, queda como decisión aparte del hogar.
+- **Guardianes actualizados**: `KNOWN_UNREACHABLE_CONTROLS` de `arq6-controles-inalcanzables.test.cjs`
+  refleja el nuevo reparto de IDs. Nuevo flujo en QA-1 (navegador) que confirma que los dos paneles de
+  `p2-ui.js` son invisibles bajo `#data-entry` y visibles en Ajustes, y otro que confirma que «Nuevo
+  dato manual» llega con los selects poblados y su alta queda en el justificante visible de Registrar.
+- **Resultado de la validación**: `npm run verify` completo — 4775/4775 pruebas, lint y typecheck
+  limpios, accesibilidad (1393 IDs únicos), rendimiento, build del sitio, privacidad y smoke test en
+  verde. En navegador: `test:e2e` 8/8, `test:a11y-axe` 6/6 y `test:mobile-overflow` en verde (201
+  visitas).
+- **Revisión mensual de Nielsen**: no vencida (última el 16 de septiembre, toca el 16 de octubre).
+- **Sigue pendiente del hogar**: la segunda y tercera decisión de la sesión 243 (documentos adjuntos de
+  P2 sin copia ni nube; `NAV-3` a la Cola B) se abordan a continuación en esta misma sesión.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo en
+  curso, PR en borrador, fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (243): `ARQ-6` cerrada — «Deshacer último lote» y la bandeja vuelven a verse (en Registrar), cuatro fallos más destapados por el camino, y dos guardianes nuevos para que no se repita
 
 - **Qué pidió el hogar**: seguir con el backlog vigente; aprobó el plan (resto del paso 3 de `ARQ-6`:

@@ -11,8 +11,12 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 // R-8 · Importar extracto en Registrar es el mismo asistente de cuatro pasos que ya tenía
 // #datos-importar, no una copia (regla transversal 01): `datosImportarSession` sigue siendo la
 // única fuente de verdad, y todas las funciones del asistente leen sus ids de
-// `datosImportarTarget()`, que decide según la vista activa. #datos-importar sigue intacta y
-// accesible por su cuenta; nada se le retiró.
+// `datosImportarTarget()`, que decide según la vista activa.
+// ARQ-6 (sesión 244): la promesa original de este comentario («#datos-importar sigue intacta y
+// accesible por su cuenta; nada se le retiró») ya no era cierta desde R-10/R-11 (15 de agosto):
+// esa pantalla redirige a Registrar y nunca se muestra. Sus botones gemelos («Atrás»/«Continuar»),
+// sin función alcanzable, se retiraron — tests/arq6-controles-inalcanzables.test.cjs vigila ahora
+// qué controles quedan en las pantallas inalcanzables.
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);
@@ -73,11 +77,11 @@ test("R-8 · el panel de Registrar trae el mismo stepper de cuatro fases, el con
   assert.match(panel, /<button type="button"[^>]*id="registrarImportNext">Continuar<\/button>/);
 });
 
-test("R-8 · #datos-importar sigue intacta: mismos ids de siempre, ningún control retirado", () => {
+test("R-8 · #datos-importar conserva el stepper y el contenedor del asistente; sus botones gemelos, retirados en ARQ-6 (sesión 244)", () => {
   assert.match(html, /<ol class="datos-importar-steps" id="datosImportarSteps"/);
   assert.match(html, /<div id="datosImportarPanel"><\/div>/);
-  assert.match(html, /id="datosImportarBack">Atrás<\/button>/);
-  assert.match(html, /id="datosImportarNext">Continuar<\/button>/);
+  assert.doesNotMatch(html, /id="datosImportarBack"/);
+  assert.doesNotMatch(html, /id="datosImportarNext"/);
 });
 
 test("R-8 · datosImportarTarget() decide por la vista activa: «registrar» solo cuando activeViewId es «registrar»", () => {

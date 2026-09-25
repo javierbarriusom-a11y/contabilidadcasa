@@ -26579,47 +26579,6 @@ async function handleRegistrarExcelDrop(event) {
   await processRegistrarExcelFile(file);
 }
 
-function handleAddCustomConcept(kind) {
-  const month = selectedPlanningMonth();
-  if (isClosedMonthKey(month?.key)) {
-    announceStatus("El mes está cerrado y no admite nuevos datos.");
-    return;
-  }
-  const sectionName = qs(`${kind}CustomSection`).value;
-  const labelInput = qs(`${kind}CustomLabel`);
-  const plannedInput = qs(`${kind}CustomPlanned`);
-  const actualInput = qs(`${kind}CustomActual`);
-  const label = labelInput.value.trim();
-  if (!label) {
-    labelInput.focus();
-    return;
-  }
-
-  const row = {
-    id: `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    custom: true,
-    kind,
-    sectionName,
-    label,
-    monthKey: month.key,
-    plannedValue: Number(plannedInput.value || 0),
-  };
-  customPlanningRows.push(row);
-  saveCustomPlanningRows();
-
-  if (actualInput.value !== "") {
-    const actuals = actualsForKind(kind);
-    actuals[actualKeyForRow(row, month)] = Number(actualInput.value);
-    saveActualsForKind(kind)();
-  }
-
-  expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
-  labelInput.value = "";
-  plannedInput.value = "";
-  actualInput.value = "";
-  render();
-}
-
 function deletePlanningRow(rawKey) {
   const [kind, rowId, monthKeyValue] = rawKey.split("|");
   if (isClosedMonthKey(monthKeyValue)) return;
@@ -33949,6 +33908,10 @@ function renderRegistrar() {
   renderRegistrarTabs();
   // ARQ-6: la bandeja común vive ahora aquí (el `case "data-entry"` nunca llega: redirige a Registrar).
   renderE11bStatus();
+  // ARQ-6 (sesión 244): «Nuevo dato manual» vive ahora en la pestaña Lote y Excel. Su única llamada
+  // anterior estaba igual de inalcanzable que el resto (`case "data-entry"` nunca llega) — los
+  // selects de mes y bloque llevaban vacíos, sin poblar, desde el 15 de agosto.
+  populateDataEntryControls();
   renderRegistrarRecalcCard();
   resetRegistrarBalanceBaseline();
   renderRegistrarImpactFooter();
@@ -36203,14 +36166,10 @@ async function init() {
       renderDebtControl();
     });
   });
-  qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
-  qs("addExpenseConcept").addEventListener("click", () => handleAddCustomConcept("expense"));
   qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
   qs("undoLastImport")?.addEventListener("click", undoLastImportBatch);
-  qs("datosImportarNext")?.addEventListener("click", handleDatosImportarNextClick);
-  qs("datosImportarBack")?.addEventListener("click", handleDatosImportarBackClick);
   qs("registrarImportNext")?.addEventListener("click", handleDatosImportarNextClick);
   qs("registrarImportBack")?.addEventListener("click", handleDatosImportarBackClick);
   qs("toggleDataInbox")?.addEventListener("click", toggleE11bInbox);
