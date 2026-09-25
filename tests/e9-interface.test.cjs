@@ -51,6 +51,8 @@ test("la interfaz declara la colaboración desactivada y no ofrece invitaciones 
 test("E9 reúne sus dependencias externas en un estado gris no accionable", () => {
   assert.match(ui, /Pendientes de activación externa/);
   assert.match(ui, /Pendiente de activación/);
-  assert.match(ui, /OpenAI API sin conectar/);
+  // ARQ-6 (sesión 244): corregido junto con la reparación de visibilidad de este panel — A5-1
+  // (sesión 164) ya usa la API de Anthropic, no OpenAI.
+  assert.match(ui, /API de Anthropic sin conectar/);
   assert.match(ui, /La publicación es segura con estos servicios desactivados/);
 });

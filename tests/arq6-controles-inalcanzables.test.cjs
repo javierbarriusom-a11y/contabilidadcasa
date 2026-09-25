@@ -26,23 +26,23 @@ const code = `${app}\n${views}`;
 // Controles que viven en pantallas inalcanzables, ya conocidos. Clave: id de la pantalla.
 const KNOWN_UNREACHABLE_CONTROLS = {
   "data-entry": {
-    motivo: "Restos de la entrada de datos anterior a Registrar (R-10/R-11): dato manual uno a uno, "
-      + "tabla pegada y Excel. Registrar › Lote y Excel cubre tabla, CSV y Excel con el mismo motor; el "
-      + "formulario uno a uno (proyecto/deuda incluidos) solo por lote. Retirarla o no: decisión del hogar pendiente.",
-    ids: ["addManualData", "batchDataInput", "clearBatchData", "excelDataFile", "importBatchData", "manualDataActual",
-      "manualDataKind", "manualDataLabel", "manualDataMonth", "manualDataPlanned", "manualDataSection",
-      "manualProjectDuration", "manualProjectMode"],
+    motivo: "Sesión 244 (decisión del hogar): «Nuevo dato manual» (uno a uno, proyecto/deuda incluidos) "
+      + "se movió a Registrar › Lote y Excel, con los mismos IDs — era la única alta suelta fuera de "
+      + "lote. Quedan aquí «Pegar tabla» y «Importar fichero», ya duplicadas por el mismo motor en "
+      + "Registrar (R-9). Retirarlas o no: decisión del hogar pendiente.",
+    ids: ["batchDataInput", "clearBatchData", "excelDataFile", "importBatchData"],
   },
   "update-data": {
-    motivo: "Vista mensual anterior a Registrar › Reales del mes. «Añadir» concepto con previsto y real "
-      + "de un solo paso; lo cubren «+ Registrar gasto» de Hoy (FLU-2) y Planificación de partidas. "
-      + "Retirarla o no: decisión del hogar pendiente.",
-    ids: ["addExpenseConcept", "addIncomeConcept", "detailMonth"],
+    motivo: "Vista mensual anterior a Registrar › Reales del mes. Sesión 244 (decisión del hogar): "
+      + "«Añadir» concepto con previsto y real de un solo paso, retirado — lo cubren «+ Registrar "
+      + "gasto» (FLU-2) y Planificación de partidas. Queda el selector de mes de la tabla de detalle.",
+    ids: ["detailMonth"],
   },
   "datos-importar": {
     motivo: "Asistente de extracto en 4 pasos; el mismo asistente se pinta en Registrar › Importar "
-      + "extracto (R-8, `datosImportarTarget()`), que es lo que se ve. Solo quedan sus botones gemelos.",
-    ids: ["datosImportarBack", "datosImportarNext"],
+      + "extracto (R-8, `datosImportarTarget()`), que es lo que se ve. Sesión 244 (decisión del hogar): "
+      + "sus botones gemelos, sin función alcanzable, retirados.",
+    ids: [],
   },
   "update-hub": {
     motivo: "Antigua portada de «Actualizar»; sus tarjetas de ruta llevan a Registrar. Sin controles propios.",

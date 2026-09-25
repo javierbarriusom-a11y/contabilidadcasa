@@ -820,6 +820,61 @@
                     <div class="data-import-log" id="receiptCameraStatus" role="status" aria-live="polite"></div>
                     <div id="receiptCameraReview"></div>
                   </article>
+                  <!-- ARQ-6 (sesión 244, decisión del hogar): «Nuevo dato manual» viene de #data-entry, que
+                       Registrar redirige desde el 15 de agosto (R-10/R-11) y nunca se muestra. Es la única
+                       alta suelta de un proyecto o de una liquidación de deuda uno a uno, fuera de lote —
+                       mismos IDs, mismos manejadores (handleManualData/updateManualDataKindUi). -->
+                  <article class="data-card">
+                    <div class="module-heading">
+                      <div>
+                        <p class="panel-kicker">Uno a uno</p>
+                        <h3>Nuevo dato manual</h3>
+                      </div>
+                    </div>
+                    <div class="data-form">
+                      <label>
+                        <span>Tipo</span>
+                        <select id="manualDataKind">
+                          <option value="expense">Gasto</option>
+                          <option value="income">Ingreso</option>
+                          <option value="project">Proyecto / imprevisto</option>
+                          <option value="debt">Deuda / liquidación</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Mes</span>
+                        <select id="manualDataMonth"></select>
+                      </label>
+                      <label>
+                        <span>Bloque</span>
+                        <select id="manualDataSection"></select>
+                      </label>
+                      <label>
+                        <span>Concepto</span>
+                        <input id="manualDataLabel" type="text" placeholder="Ej. Colegio, nómina, vacaciones" />
+                      </label>
+                      <label>
+                        <span>Previsto</span>
+                        <input id="manualDataPlanned" type="number" step="0.01" placeholder="0,00" />
+                      </label>
+                      <label>
+                        <span>Real / importe</span>
+                        <input id="manualDataActual" type="number" step="0.01" placeholder="0,00" />
+                      </label>
+                      <label class="manual-project-field">
+                        <span>Duración proyecto</span>
+                        <input id="manualProjectDuration" type="number" min="1" max="24" step="1" value="1" />
+                      </label>
+                      <label class="manual-project-field">
+                        <span>Planificación</span>
+                        <select id="manualProjectMode">
+                          <option value="fixed">Mes manual</option>
+                          <option value="optimize">Mes óptimo</option>
+                        </select>
+                      </label>
+                      <button id="addManualData">Añadir dato</button>
+                    </div>
+                  </article>
                 </div>
                 <div class="data-import-log" id="registrarBatchLog" role="status" aria-live="polite"></div>
               </article>
@@ -3833,13 +3888,11 @@
 
             <div id="datosImportarPanel"></div>
 
-            <div class="datos-importar-bar">
-              <p class="e19-kpi-note" id="datosImportarBlockNote" role="status"></p>
-              <div class="datos-importar-bar-actions">
-                <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarBack">Atrás</button>
-                <button type="button" class="e19-btn e19-btn-primary" id="datosImportarNext">Continuar</button>
-              </div>
-            </div>
+            <!-- ARQ-6 (sesión 244, decisión del hogar): botones gemelos retirados — el asistente real
+                 vive en Registrar › Importar extracto (R-8, `datosImportarTarget()`), con sus propios
+                 IDs (`registrarImport*`); estos dos nunca tuvieron función alcanzable desde el 15 de
+                 agosto y `datosImportarUpdateBar()`/`renderDatosImportar()` ya se protegen con un
+                 `if (!nextButton || !backButton || !blockNote ...) return;` sin ellos. -->
           </section>
 
           <section class="e19-registrar-mes view-section" id="registrar-mes">
@@ -6287,13 +6340,6 @@
                     </div>
                   </div>
                   <div class="expense-summary compact-summary" id="incomeSummary"></div>
-                  <div class="concept-editor" id="incomeConceptEditor">
-                    <select id="incomeCustomSection" aria-label="Bloque del nuevo ingreso"></select>
-                    <input id="incomeCustomLabel" type="text" placeholder="Nuevo concepto" />
-                    <input id="incomeCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
-                    <input id="incomeCustomActual" type="number" step="0.01" placeholder="Real" />
-                    <button id="addIncomeConcept">Añadir</button>
-                  </div>
                   <div class="table-wrap detail-wrap">
                     <table class="detail-table">
                       <thead>
@@ -6320,13 +6366,6 @@
                     </div>
                   </div>
                   <div class="expense-summary compact-summary" id="expenseSummary"></div>
-                  <div class="concept-editor" id="expenseConceptEditor">
-                    <select id="expenseCustomSection" aria-label="Bloque del nuevo gasto"></select>
-                    <input id="expenseCustomLabel" type="text" placeholder="Nuevo concepto" />
-                    <input id="expenseCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
-                    <input id="expenseCustomActual" type="number" step="0.01" placeholder="Real" />
-                    <button id="addExpenseConcept">Añadir</button>
-                  </div>
                   <div class="table-wrap detail-wrap">
                     <table class="detail-table">
                       <thead>
@@ -6677,58 +6716,6 @@
               <article class="data-card">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Uno a uno</p>
-                    <h3>Nuevo dato manual</h3>
-                  </div>
-                </div>
-                <div class="data-form">
-                  <label>
-                    <span>Tipo</span>
-                    <select id="manualDataKind">
-                      <option value="expense">Gasto</option>
-                      <option value="income">Ingreso</option>
-                      <option value="project">Proyecto / imprevisto</option>
-                      <option value="debt">Deuda / liquidación</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Mes</span>
-                    <select id="manualDataMonth"></select>
-                  </label>
-                  <label>
-                    <span>Bloque</span>
-                    <select id="manualDataSection"></select>
-                  </label>
-                  <label>
-                    <span>Concepto</span>
-                    <input id="manualDataLabel" type="text" placeholder="Ej. Colegio, nómina, vacaciones" />
-                  </label>
-                  <label>
-                    <span>Previsto</span>
-                    <input id="manualDataPlanned" type="number" step="0.01" placeholder="0,00" />
-                  </label>
-                  <label>
-                    <span>Real / importe</span>
-                    <input id="manualDataActual" type="number" step="0.01" placeholder="0,00" />
-                  </label>
-                  <label class="manual-project-field">
-                    <span>Duración proyecto</span>
-                    <input id="manualProjectDuration" type="number" min="1" max="24" step="1" value="1" />
-                  </label>
-                  <label class="manual-project-field">
-                    <span>Planificación</span>
-                    <select id="manualProjectMode">
-                      <option value="fixed">Mes manual</option>
-                      <option value="optimize">Mes óptimo</option>
-                    </select>
-                  </label>
-                  <button id="addManualData">Añadir dato</button>
-                </div>
-              </article>
-
-              <article class="data-card">
-                <div class="module-heading">
-                  <div>
                     <p class="panel-kicker">Por lotes</p>
                     <h3>Pegar tabla</h3>
                   </div>
@@ -6761,7 +6748,12 @@
             <!-- ARQ-6 (25 sept. 2026): la bandeja «Revisar antes de incorporar», el registro de
                  importaciones y «Deshacer último lote» vivían aquí; desde el 15 de agosto esta sección
                  redirige a Registrar y nunca se muestra. Se movieron a Registrar (bloque
-                 `data-registrar-panels="import batch"`), con los mismos IDs. -->
+                 `data-registrar-panels="import batch"`), con los mismos IDs.
+                 ARQ-6 (sesión 244, decisión del hogar): «Nuevo dato manual» (uno a uno, incluía
+                 proyecto/deuda) también vivía aquí y se mueve a la pestaña «Lote y Excel» de Registrar,
+                 con los mismos IDs — era la única alta suelta fuera de lote. «Pegar tabla» e «Importar
+                 fichero» se quedan aquí, sin función real (ya duplicadas en Registrar): decisión de
+                 retirarlas o no, pendiente del hogar. -->
           </section>
 
           <section class="data-audit view-section" id="data-audit">
