@@ -1753,7 +1753,7 @@ async function resumeStartupRecoverySync() {
   if (!context) return;
   applyRecoveryPayload(context.record.payload);
   const revision = Math.max(1, Number(context.record.revision || 1));
-  ensureRemoteSaveQueue().hydrate({ requestedRevision: revision, persistedRevision: 0 });
+  await ensureRemoteSaveQueue().hydrateWhenIdle({ requestedRevision: revision, persistedRevision: 0 });
   closeStartupRecovery();
   updateSyncUi("Reanudando los cambios locales pendientes...", "local");
   await ensureRemoteSaveQueue().flush();
@@ -4809,10 +4809,10 @@ async function loadRemoteStateOnce() {
         code: "REMOTE_WRITE_CONFLICT",
         retryable: false,
       });
-      queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0, lastError: conflict });
+      await queue.hydrateWhenIdle({ requestedRevision: pendingRevision, persistedRevision: 0, lastError: conflict });
       updateSyncUi("Hay cambios locales pendientes y la nube contiene otra revisión. La copia local sigue activa; revisa el conflicto antes de sincronizar.", "warn");
     } else {
-      queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0 });
+      await queue.hydrateWhenIdle({ requestedRevision: pendingRevision, persistedRevision: 0 });
       updateSyncUi("Hay cambios locales pendientes de la sesión anterior. Elige cómo recuperarlos.", "local");
     }
     showStartupRecovery(durableResumeRecord, authoritative, authoritativeUpdatedAt);

@@ -148,7 +148,19 @@
       return snapshot();
     }
 
-    return { request, flush, snapshot, reset, hydrate, acknowledge };
+    // Bug reportado por el usuario (25/09/2026): un arranque que llama a hydrate() mientras una
+    // escritura anterior sigue en vuelo (running === true, p. ej. tras reanudar una recuperación
+    // de la sesión pasada) lanzaba el error de arriba — y ese error, sin capturar en la app, tumba
+    // el arranque entero. hydrate() sigue lanzando a propósito (nunca reescribir la cola a medias
+    // de un guardado): esto solo espera a que esa escritura termine antes de llamarlo. drain()
+    // deja running en false antes de resolver, así que al volver de este await no hace falta
+    // comprobarlo — y nada más puede colarse entre el await y la llamada síncrona que sigue.
+    async function hydrateWhenIdle(state = {}) {
+      await drain();
+      return hydrate(state);
+    }
+
+    return { request, flush, snapshot, reset, hydrate, hydrateWhenIdle, acknowledge };
   }
 
   return { createRemoteSaveQueue };

@@ -90,6 +90,39 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 25 de septiembre de 2026 (249): bug real — un arranque podía tumbar la app entera con «No se pudo cargar la app / No se puede recuperar la cola durante una escritura»
+
+- **Qué pidió el hogar**: reportó un error intermitente que a veces veía al abrir la app —
+  captura de pantalla con el título «No se pudo cargar la app» y el detalle «No se puede
+  recuperar la cola durante una escritura.» — y preguntó si se podía solucionar.
+- **Diagnóstico**: el mensaje viene literalmente de `remote-save-queue.js` (`hydrate()`), que
+  lanza a propósito si se intenta reescribir la cola de guardado remoto mientras una escritura
+  sigue en vuelo (invariante correcto: nunca pisar el estado a medias de un guardado). El fallo
+  real estaba en quien lo llama: `resumeStartupRecoverySync()` y `loadRemoteStateOnce()`
+  (`app.js`) llaman a `hydrate()` durante el arranque sin comprobar antes si hay una escritura en
+  curso — y `init().catch()` trata esa excepción exactamente igual que un `ReferenceError` real,
+  sustituyendo toda la página por «No se pudo cargar la app». Reproducible en el hogar (uso
+  normal, varias pestañas o una recuperación de sesión anterior en curso), no en los 4810 tests
+  (que no ejecutan `init()` de verdad — mismo patrón de hueco que ya documentó `PERF-1`, sesión
+  11, para los `ReferenceError` de entonces).
+- **Qué se construyó**: nueva `hydrateWhenIdle(state)` en `remote-save-queue.js` (no en `app.js`
+  — es el sitio natural, junto al propio `hydrate()`, y no cuenta para el techo de `ARQ-4`, que
+  tras `I13` quedó exactamente en su límite). Espera con `await drain()` a que cualquier
+  escritura en curso termine — `drain()` dispara la ya en marcha o resuelve al momento si no hay
+  ninguna, coste cero en el caso normal — y solo entonces llama a `hydrate()`, en la misma
+  continuación síncrona, así que nada puede colarse en medio. `hydrate()` en sí no cambia: sigue
+  lanzando si se le llama directamente con una escritura en curso, mismo contrato que ya prueban
+  sus tests existentes. Los tres puntos de `app.js` que llamaban a `.hydrate()` pasan a
+  `await ... .hydrateWhenIdle()`.
+- **Validación**: `npm run verify` completo — **4813/4813 pruebas** (3 nuevas en
+  `tests/remote-save-queue.test.cjs`: la carrera reproducida de verdad con una escritura que no
+  se resuelve hasta que el test lo decide, el caso sin escritura en curso, y el cableado de los
+  tres puntos de `app.js`), lint y typecheck limpios, accesibilidad (1398 IDs únicos, sin cambio),
+  rendimiento, build del sitio, privacidad y smoke test en verde.
+- **Publicado según el flujo ya autorizado en `CLAUDE.md`**: commit y push a la rama de trabajo en
+  curso (reiniciada desde `origin/main` tras la fusión de `I13`, sesión 248), PR en borrador, fusión
+  a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (248): `I13` construida — comparador de destino para un ingreso extraordinario ajeno a la cartera, extendiendo `AP1` en vez de una pantalla nueva
 
 - **Qué pidió el hogar**: con el horizonte 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` completo (sesión

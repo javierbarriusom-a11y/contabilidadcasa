@@ -112,6 +112,36 @@ test("recupera una revisión pendiente al abrir una sesión nueva", async () => 
   assert.equal(queue.snapshot().pending, false);
 });
 
+test("hydrateWhenIdle espera una escritura en curso en vez de lanzar (bug del 25/09/2026)", async () => {
+  const write = deferred();
+  const writes = [];
+  const queue = createRemoteSaveQueue({
+    capture: () => ({ value: 1 }),
+    write: async (payload, revision) => { writes.push(revision); return write.promise; },
+  });
+  queue.request({ immediate: true });
+  assert.equal(queue.snapshot().running, true);
+  assert.throws(() => queue.hydrate({ requestedRevision: 9, persistedRevision: 0 }), /durante una escritura/);
+
+  const hydrating = queue.hydrateWhenIdle({ requestedRevision: 9, persistedRevision: 0 });
+  let hydrated = false;
+  hydrating.then(() => { hydrated = true; });
+  await Promise.resolve();
+  assert.equal(hydrated, false, "no debe hidratar mientras la escritura en curso sigue pendiente");
+  write.resolve();
+  await hydrating;
+  assert.equal(hydrated, true);
+  assert.equal(queue.snapshot().requestedRevision, 9);
+  assert.deepEqual(writes, [1]);
+});
+
+test("hydrateWhenIdle hidrata al momento si no hay ninguna escritura en curso", async () => {
+  const queue = createRemoteSaveQueue({ write: async () => {} });
+  const state = await queue.hydrateWhenIdle({ requestedRevision: 4, persistedRevision: 0 });
+  assert.equal(state.requestedRevision, 4);
+  assert.equal(state.pending, true);
+});
+
 test("recupera un conflicto pendiente sin lanzar una escritura", async () => {
   let writes = 0;
   const conflict = Object.assign(new Error("conflicto"), { code: "REMOTE_WRITE_CONFLICT", retryable: false });
@@ -157,4 +187,12 @@ test("el arranque consulta la bandeja durable y exige una decisión antes de rec
   assert.match(appSource, /expectedHead !== remoteHeadSnapshotId/);
   assert.match(appSource, /showStartupRecovery\(durableResumeRecord, authoritative, authoritativeUpdatedAt\)/);
   assert.doesNotMatch(appSource, /Reanudando cambios locales pendientes de la sesión anterior/);
+});
+
+test("app.js hidrata la cola con hydrateWhenIdle, no con hydrate() directo (bug del 25/09/2026)", () => {
+  assert.match(appSource, /await ensureRemoteSaveQueue\(\)\.hydrateWhenIdle\(\{ requestedRevision: revision, persistedRevision: 0 \}\);/);
+  assert.match(appSource, /await queue\.hydrateWhenIdle\(\{ requestedRevision: pendingRevision, persistedRevision: 0, lastError: conflict \}\);/);
+  assert.match(appSource, /await queue\.hydrateWhenIdle\(\{ requestedRevision: pendingRevision, persistedRevision: 0 \}\);/);
+  assert.doesNotMatch(appSource, /queue\.hydrate\(\{ requestedRevision: pendingRevision/);
+  assert.doesNotMatch(appSource, /ensureRemoteSaveQueue\(\)\.hydrate\(\{ requestedRevision: revision/);
 });
