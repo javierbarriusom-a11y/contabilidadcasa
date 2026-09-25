@@ -824,6 +824,37 @@
                 <div class="data-import-log" id="registrarBatchLog" role="status" aria-live="polite"></div>
               </article>
             </div>
+            <!-- ARQ-6 (25 sept. 2026, decisión del hogar): bandeja común y «Deshacer último lote», traídos
+                 con los mismos IDs desde #data-entry, que nunca se muestra desde el 15 de agosto. Acompañan
+                 a las dos pestañas que crean lotes (Importar extracto y Lote y Excel): ambas prometían un
+                 lote que se puede deshacer y ningún botón visible lo hacía. -->
+            <div class="e19-registrar-panel e19-registrar-inbox" data-registrar-panels="import batch" hidden>
+              <article class="data-card e11b-inbox-card e19-card" aria-labelledby="dataInboxTitle">
+                <div class="module-heading with-action">
+                  <div>
+                    <p class="panel-kicker">Bandeja previa común</p>
+                    <h3 id="dataInboxTitle">Revisar antes de incorporar</h3>
+                    <p>CSV, Excel, tablas pegadas, extractos y fotos de ticket siguen el mismo recorrido: detectar, comparar, confirmar y recibir justificante.</p>
+                  </div>
+                  <button id="toggleDataInbox" class="secondary e19-btn e19-btn-secondary" type="button" aria-pressed="true">Bandeja activa</button>
+                </div>
+                <div id="dataInboxSummary" class="e11b-inbox-summary" role="status" aria-live="polite"></div>
+                <div id="updateFreshness" class="e11b-freshness"></div>
+              </article>
+              <article class="data-card e19-card" aria-labelledby="dataImportUndoTitle">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Deshacer</p>
+                    <h3 id="dataImportUndoTitle">Último lote incorporado</h3>
+                    <p>Devuelve el estado anterior al último lote confirmado (extracto, tabla, CSV o Excel). Pide un motivo y deja la revisión en el historial.</p>
+                  </div>
+                </div>
+                <div class="data-import-log" id="dataImportLog" role="status" aria-live="polite"></div>
+                <div class="e19-registrar-undo-actions">
+                  <button id="undoLastImport" class="e19-btn e19-btn-secondary" type="button">Deshacer último lote</button>
+                </div>
+              </article>
+            </div>
 
             <aside class="e19-impact-bar e19-registrar-impact" id="registrarImpactBar" hidden aria-live="polite"></aside>
           </section>
@@ -6642,25 +6673,6 @@
               </div>
             </div>
 
-            <article class="data-card e11b-inbox-card e19-card" aria-labelledby="dataInboxTitle">
-              <div class="module-heading with-action">
-                <div>
-                  <p class="panel-kicker">Bandeja previa común</p>
-                  <h3 id="dataInboxTitle">Revisar antes de incorporar</h3>
-                  <p>CSV, Excel, tablas pegadas y extractos siguen el mismo recorrido: detectar, comparar, confirmar y recibir justificante.</p>
-                </div>
-                <button id="toggleDataInbox" class="secondary e19-btn e19-btn-secondary" type="button" aria-pressed="true">Bandeja activa</button>
-              </div>
-              <ol class="e11b-steps e19-stepper" aria-label="Pasos del asistente">
-                <li><span class="e19-stepper-badge">1</span>Origen</li>
-                <li><span class="e19-stepper-badge">2</span>Columnas</li>
-                <li><span class="e19-stepper-badge">3</span>Comparación</li>
-                <li><span class="e19-stepper-badge">4</span>Confirmación</li>
-              </ol>
-              <div id="dataInboxSummary" class="e11b-inbox-summary" role="status" aria-live="polite"></div>
-              <div id="updateFreshness" class="e11b-freshness"></div>
-            </article>
-
             <div class="data-import-grid">
               <article class="data-card">
                 <div class="module-heading">
@@ -6746,16 +6758,10 @@
                 <p class="data-hint">Si subes XLS/XLSX, lee el libro completo como fuente del modelo. Si subes CSV/TXT, lo importa como lote con las cabeceras anteriores.</p>
               </article>
             </div>
-
-
-
-            <div class="data-import-log" id="dataImportLog">
-              <strong>Sin importaciones en esta sesión</strong>
-              <p>Cuando cargues datos verás aquí el resumen y los avisos.</p>
-            </div>
-            <div class="data-actions">
-              <button id="undoLastImport" class="secondary" type="button">Deshacer último lote</button>
-            </div>
+            <!-- ARQ-6 (25 sept. 2026): la bandeja «Revisar antes de incorporar», el registro de
+                 importaciones y «Deshacer último lote» vivían aquí; desde el 15 de agosto esta sección
+                 redirige a Registrar y nunca se muestra. Se movieron a Registrar (bloque
+                 `data-registrar-panels="import batch"`), con los mismos IDs. -->
           </section>
 
           <section class="data-audit view-section" id="data-audit">

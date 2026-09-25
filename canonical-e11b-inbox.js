@@ -81,7 +81,8 @@
       schemaId: `${SCHEMA_ID}/receipt`, id: makeId("receipt", options), inboxId: item.id,
       batchId: text(result.batchId || item.batchId), createdAt: now(options), sourceLabel: item.sourceLabel,
       changed: {
-        records: Math.max(0, Number(changed.records || item.rows.length || 0)),
+        // Un 0 explícito es un dato («no entró nada»), no un hueco: solo sin dato se cuentan las filas.
+        records: Math.max(0, Number(changed.records ?? (item.rows.length || 0))),
         movements: Math.max(0, Number(changed.movements || 0)),
         actuals: Math.max(0, Number(changed.actuals || 0)),
         balances: Math.max(0, Number(changed.balances || 0)),

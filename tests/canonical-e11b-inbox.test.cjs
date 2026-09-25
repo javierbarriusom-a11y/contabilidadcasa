@@ -24,6 +24,16 @@ test("crea recibo y conserva una ruta auditable para deshacer", () => {
   assert.equal(api.transition(applied, "undone", { reason: "duplicado" }).status, "undone");
 });
 
+// ARQ-6 (25 sept. 2026): un lote confirmado del que no entró ninguna línea (mes cerrado, bloque
+// inexistente) decía «1 registro(s) incorporados»: el 0 explícito caía al número de filas.
+test("el recibo respeta un 0 explícito y solo sin dato cuenta las filas de la entrada", () => {
+  const ready = api.buildInboxItem({ source: "csv", rows: [{ id: "a" }, { id: "b" }], comparison: { valid: true } }, { id: "inbox-4", at: "2026-08-01T10:00:00Z" });
+  const applied = api.transition(ready, "applied", { at: "2026-08-01T10:01:00Z" });
+  assert.equal(api.buildReceipt(applied, { changed: { records: 0 } }).changed.records, 0);
+  assert.equal(api.buildReceipt(applied, { changed: {} }).changed.records, 2);
+  assert.equal(api.buildReceipt(applied, { changed: { records: 1 } }).changed.records, 1);
+});
+
 test("migra copias anteriores sin pérdida y permite desactivar la bandeja", () => {
   const legacy = { version: 1, projects: [{ id: "p1" }] };
   const migrated = api.migratePayload(legacy);

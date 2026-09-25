@@ -6098,6 +6098,9 @@
 --------------------------------------------------------------------------------------------- */
 .datos-importar-steps {
   display: flex;
+  /* ARQ-6 (25 sept. 2026): sin salto de línea, a 360px los pasos 3 y 4 quedaban fuera de la pantalla
+     en Registrar › Importar extracto (lo destapó check-mobile-overflow al visitar también pestañas). */
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0 0 18px;
   padding: 0;
@@ -6108,7 +6111,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
+  flex: 1 1 130px;
   padding: 10px 14px;
   border: 1px solid var(--e19-border);
   border-radius: var(--e19-radius-pill);
