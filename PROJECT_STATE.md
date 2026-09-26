@@ -90,6 +90,21 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 26 de septiembre de 2026 (252): `R-13` — el botón de confirmar previsto parecía un hipervínculo, corregido a botón real
+
+- **Qué pidió el hogar**: tras verificar `R-13` ya en producción, el CTA «Confirmar previsto
+  (importe)» de cada fila pendiente reutilizaba `.registrar-actuals-plan-link` (mismo estilo que
+  «Ver en Plan» — texto subrayado, sin fondo ni borde) y parecía un hipervínculo, no una acción.
+- **Qué se cambió**: el botón individual pasa a `.e19-btn.e19-btn-secondary` (la base real de
+  botón que ya usa el resto de la app) con una variante compacta nueva
+  (`.registrar-actuals-confirm-btn`, mismo patrón que `.savings-goal-btn` en Plan — solo
+  padding/tamaño de fuente reducidos sobre la base, sin reescribirla). La barra de confirmación
+  masiva no cambia: ya usaba esa misma base de botón desde el principio. Sin cambios de
+  comportamiento ni de estructura HTML — solo la clase CSS del botón individual.
+- **Validación**: `npm run verify` completo — 4.829/4.829 pruebas unitarias, lint, typecheck,
+  accesibilidad, rendimiento, build del sitio, privacidad y smoke test, todo en verde.
+  Comprobado a mano en navegador (captura antes/después).
+
 ## Cierre de sesión — 26 de septiembre de 2026 (251): `R-13` — confirmar el previsto como real sin teclear, en Registrar › Reales del mes (individual, por bloque o para todo el mes)
 
 - **Qué pidió el hogar**: en la pestaña «Reales del mes» de Registrar, no obligar a teclear el

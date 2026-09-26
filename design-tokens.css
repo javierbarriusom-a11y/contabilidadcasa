@@ -464,6 +464,16 @@
   color: var(--e19-ink);
 }
 
+/* R-13: botón real, no un hipervínculo — mismo patrón compacto que .savings-goal-btn (Plan), sobre
+   la base .e19-btn/.e19-btn-secondary en vez de reescribirla. */
+.e19-registrar .registrar-actuals-confirm-btn {
+  display: block;
+  margin-top: 4px;
+  padding: 4px 8px;
+  font-size: var(--e19-text-xs);
+  white-space: nowrap;
+}
+
 .e19-registrar .registrar-actuals-table input[type="number"]:disabled {
   background: var(--e19-surface-sunken);
   color: var(--e19-faint);
