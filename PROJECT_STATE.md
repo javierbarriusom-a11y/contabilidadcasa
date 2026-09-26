@@ -90,6 +90,43 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 26 de septiembre de 2026 (251): `R-13` — confirmar el previsto como real sin teclear, en Registrar › Reales del mes (individual, por bloque o para todo el mes)
+
+- **Qué pidió el hogar**: en la pestaña «Reales del mes» de Registrar, no obligar a teclear el
+  importe real partida por partida cuando el previsto ya es lo ocurrido — una opción de «confirmar a
+  real», de forma individual, por grupos (bloque) o para todas a la vez.
+- **Qué se construyó**: un tercer camino de escritura del real, junto al tecleo manual y a la
+  sugerencia de DEX7 — confirmar copia el previsto tal cual al real (`actuals[key] = previsto`), por
+  el mismo camino de escritura y de deshacer que teclear a mano
+  (`actualsForKind`/`saveActualsForKind`/`registrarRecordSessionChange`): cada confirmación queda
+  como su propio cambio reversible en el pie de impacto de la sesión (verificado en navegador — 29
+  confirmaciones aparecieron como «29 cambio(s) sin consolidar», con Descartar/Guardar independientes
+  de cualquier otro cambio). Tres puntos de entrada: un enlace «Confirmar previsto (importe)» bajo
+  cada fila todavía sin real; una barra bajo los filtros de bloque que dice «Confirmar
+  todos/los pendientes de «Bloque» con su previsto (N partidas)» — reutiliza los mismos chips de
+  bloque ya existentes como selector de grupo, sin añadir una segunda superficie de filtro; y, a
+  igualdad de mecanismo, «todos» es solo «todos los bloques» sin filtro activo. Ninguna fila con real
+  ya registrado se toca (evita pisar una desviación real ya anotada); el mes cerrado sigue de solo
+  lectura, igual que el resto de la pestaña.
+- **Techo de líneas de `app.js` (`ARQ-4`) sin ningún margen** (37.436/37.436 antes de tocar nada): el
+  motor entero vive en `canonical-registrar-actuals-confirm.js` (nuevo, UMD, inyectando
+  `actualsForKind`/`recordSessionChange`/`round2` igual que ya hace `p2-private-store.js` con el
+  cifrado); `app.js` solo referencia el módulo y cablea un único listener delegado en el panel
+  (`registrarActualsPanel`, sustituye al que solo escuchaba `registrarActualsBody`) — termina en las
+  mismas 37.436 líneas, sin subir el techo.
+- **Validación**: `npm run verify` completo — 4.829/4.829 pruebas unitarias (16 nuevas en
+  `tests/r13-confirmar-previsto-como-real.test.cjs`, directas contra el módulo con `require()`, sin
+  `vm`), lint, typecheck, accesibilidad, rendimiento, build del sitio, privacidad y smoke test, todo
+  en verde. `tests/arq3-canonical-sin-consumidor-ui.test.cjs` (65→66→67 motores) y
+  `service-worker.js` (`SHELL_URLS`, caché offline de `ARQ-5`) actualizados con el fichero nuevo;
+  `tests/r6-r6b-r7-registrar.test.cjs` actualizado tras consolidar el listener de navegación en el
+  panel. Comprobado también a mano en navegador (Playwright contra `dist/`): confirmación individual
+  y masiva, badge de la pestaña pasando de «29 sin real» a «Al día», estado de cada fila a
+  «Registrado».
+- Tarea sin ID de backlog previo — petición directa del hogar sobre una pantalla ya construida, no
+  del plan priorizado; se numera `R-13` (siguiente libre de la serie de Registrar, `R-1`…`R-12`) solo
+  para trazabilidad futura.
+
 ## Cierre de sesión — 26 de septiembre de 2026 (250): trabajo duplicado detectado entre dos sesiones paralelas sobre `NAV-5`, y corrección de numeración de sesión en el backlog
 
 - **Qué pasó**: esta sesión abrió Modo Inicio, leyó el backlog y construyó `NAV-5` de forma

@@ -95,6 +95,7 @@ const SHELL_URLS = [
   "./canonical-month-close.js",
   "./canonical-e5-operations.js",
   "./canonical-savings-agent.js",
+  "./canonical-registrar-actuals-confirm.js",
   "./snapshot-restore.js",
   "./durable-outbox.js",
   "./remote-save-queue.js",

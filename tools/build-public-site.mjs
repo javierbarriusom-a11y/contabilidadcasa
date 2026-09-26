@@ -94,6 +94,7 @@ const files = [
   "canonical-supabase-store.js",
   "canonical-month-close.js",
   "canonical-e5-operations.js",
+  "canonical-registrar-actuals-confirm.js",
   "snapshot-restore.js",
   "durable-outbox.js",
   "remote-save-queue.js",

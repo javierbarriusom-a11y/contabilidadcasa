@@ -130,9 +130,12 @@ test("R-6b · cada fila enlaza a su partida en Plan (cuadro-mandos)", () => {
 });
 
 test("R-6b · el enlace «Ver en Plan» de cada fila navega igual que el resto de la app (history + setActiveView)", () => {
+  // R-13: el listener de Reales del mes pasó de escuchar solo la tabla (registrarActualsBody) a
+  // escuchar el panel entero (registrarActualsPanel) — también atiende ahora la confirmación de
+  // previsto como real, sin cambiar la navegación de "Ver en Plan" que este test verifica.
   assert.match(
     app,
-    /qs\("registrarActualsBody"\)\?\.addEventListener\("click", \(event\) => \{\s*const navButton = event\.target\.closest\("\[data-home-nav\]"\);\s*const target = navButton\?\.dataset\.homeNav;\s*if \(!target \|\| !document\.getElementById\(target\)\?\.classList\.contains\("view-section"\)\) return;\s*history\.pushState\(null, "", `#\$\{target\}`\);\s*setActiveView\(target\);/
+    /qs\("registrarActualsPanel"\)\?\.addEventListener\("click", \(event\) => \{[\s\S]*?const navButton = event\.target\.closest\("\[data-home-nav\]"\);\s*const target = navButton\?\.dataset\.homeNav;\s*if \(!target \|\| !document\.getElementById\(target\)\?\.classList\.contains\("view-section"\)\) return;\s*history\.pushState\(null, "", `#\$\{target\}`\);\s*setActiveView\(target\);/
   );
 });
 
