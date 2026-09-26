@@ -479,6 +479,13 @@
   color: var(--e19-faint);
 }
 
+/* R-13: casilla para seleccionar varias partidas sueltas (no todo un bloque) y confirmarlas juntas
+   — misma barra de siempre, que pasa a hablar de "seleccionadas" en cuanto hay alguna marcada. */
+.e19-registrar .registrar-actuals-select {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .e19-registrar .registrar-actuals-table td.positive {
   color: var(--e19-success);
   font-weight: 600;

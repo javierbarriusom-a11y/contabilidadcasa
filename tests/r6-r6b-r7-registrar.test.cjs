@@ -69,7 +69,9 @@ function sandboxWith(names, extra = {}) {
 test("R-6 · el saldo y los reales de Registrar guardan al evento «change» (salir de la casilla), no con un botón de confirmar", () => {
   assert.match(app, /qs\(id\)\?\.addEventListener\("change", handleRegistrarBalanceControlChange\)/);
   assert.match(app, /qs\(id\)\?\.addEventListener\("change", handleRegistrarAccountBalanceInput\)/);
-  assert.match(app, /qs\("registrarActualsBody"\)\?\.addEventListener\("change", \(event\) => \{\s*const input = event\.target\.closest\("\[data-registrar-actuals-actual\]"\);\s*if \(input\) handleRegistrarActualsChange\(input\);/);
+  // R-13: el mismo listener de "change" gana una segunda rama (checkbox de selección, ver más
+  // abajo) — la del real sigue siendo la primera, sin botón de confirmar de por medio.
+  assert.match(app, /qs\("registrarActualsBody"\)\?\.addEventListener\("change", \(event\) => \{\s*const input = event\.target\.closest\("\[data-registrar-actuals-actual\]"\);\s*if \(input\) return handleRegistrarActualsChange\(input\);/);
 });
 
 test("R-6 · ninguna de las dos pestañas construidas de Registrar tiene un paso de «confirmar por bloque»", () => {

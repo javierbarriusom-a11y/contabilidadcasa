@@ -90,6 +90,30 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 26 de septiembre de 2026 (253): `R-13` — seleccionar partidas sueltas y confirmarlas juntas, además de por bloque o todas
+
+- **Qué pidió el hogar**: al revisar `R-13` (individual/bloque/todas), faltaba poder marcar varias
+  partidas sueltas (no todo un bloque) y confirmarlas de una vez — pedido explícito, ya comentado
+  antes de construir la primera versión y repetido tras verla en producción.
+- **Qué se construyó**: una casilla junto al bloque de cada fila todavía pendiente (sin real y con
+  el mes abierto); al marcar una o más, la misma barra que ya decía «Confirmar todos los
+  pendientes»/«Confirmar los pendientes de «Bloque»» pasa a decir «Confirmar N seleccionadas con su
+  previsto» — la selección manda sobre el filtro de bloque activo, sin botón nuevo ni segunda
+  barra. Sin selección, el comportamiento de antes (por bloque/todas) sigue intacto. Al confirmar,
+  la selección se vacía sola (las filas confirmadas ya no son pendientes, dejan de tener casilla).
+  Mismo camino de escritura y de deshacer que las dos formas anteriores — cada partida sigue
+  quedando como su propio cambio reversible en el pie de impacto.
+- **Techo de líneas de `app.js` (`ARQ-4`) otra vez sin margen** (37.436/37.436): casi toda la lógica
+  nueva vive en `canonical-registrar-actuals-confirm.js` (`bulkButtonHtml` y `entriesForClick` ganan
+  un parámetro `selectedKeys`/`selectedCount` opcional, con la selección con prioridad sobre el
+  bloque); `app.js` solo añade el estado (`registrarActualsSelectedKeys`, un `Set`), la casilla en
+  la fila y una rama en el listener de `change` ya existente — termina en las mismas 37.436 líneas.
+- **Validación**: `npm run verify` completo — 4.835/4.835 pruebas unitarias (7 nuevas), lint,
+  typecheck, accesibilidad, rendimiento, build del sitio, privacidad y smoke test, todo en verde.
+  Comprobado a mano en navegador: seleccionar 2 de 29 pendientes sueltas, confirmar solo esas dos
+  (la fila del medio, no marcada, sigue «Sin real»), y la barra vuelve a «Confirmar todos» tras
+  vaciarse la selección.
+
 ## Cierre de sesión — 26 de septiembre de 2026 (252): `R-13` — el botón de confirmar previsto parecía un hipervínculo, corregido a botón real
 
 - **Qué pidió el hogar**: tras verificar `R-13` ya en producción, el CTA «Confirmar previsto

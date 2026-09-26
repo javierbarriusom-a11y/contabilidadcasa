@@ -33507,7 +33507,7 @@ function registrarTabBadges() {
 // escritura que ya usaba «Registrar el mes» (registrarMesCollect/actualsForKind/
 // saveActualsForKind) — solo cambia la presentación: una tabla única (ingresos + gastos), filtro
 // por bloque en vez de por estado, y una fila de totales que registrar-mes no tenía.
-let registrarActualsBlockFilter = "todos";
+let registrarActualsBlockFilter = "todos", registrarActualsSelectedKeys = new Set();
 
 function registrarActualsMonths() {
   return (baseData?.monthlyPlanning?.months || []).map((month) => ({
@@ -33597,7 +33597,7 @@ function registrarActualsRowHtml(entry, monthClosed, month) {
   const placeholder = suggestion ? suggestion.amount.toFixed(2) : "sin real";
   const titleAttr = suggestion ? ` title="Sugerido: último real registrado, ${escapeHtml(money(suggestion.amount, true))} en ${escapeHtml(suggestion.monthLabel)}"` : "";
   return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
-    <td>${escapeHtml(entry.sectionName)}</td>
+    <td>${!entry.hasActual && !monthClosed ? `<input type="checkbox" class="registrar-actuals-select" data-registrar-actuals-select="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Seleccionar ${escapeHtml(entry.label)}"${registrarActualsSelectedKeys.has(entry.key) ? " checked" : ""} />` : ""}${escapeHtml(entry.sectionName)}</td>
     <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
     <td>${money(entry.planned, true)}</td>
     <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
@@ -33638,7 +33638,7 @@ function renderRegistrarActuals() {
   }
 
   const visible = registrarActualsBlockFilter === "todos" ? allEntries : allEntries.filter((entry) => entry.sectionName === registrarActualsBlockFilter);
-  if (qs("registrarActualsBulk")) qs("registrarActualsBulk").innerHTML = RegistrarActualsConfirm?.bulkButtonHtml(visible.filter((entry) => !entry.hasActual).length, registrarActualsBlockFilter, { escapeHtml, disabled: monthClosed }) || "";
+  if (qs("registrarActualsBulk")) qs("registrarActualsBulk").innerHTML = RegistrarActualsConfirm?.bulkButtonHtml(visible.filter((entry) => !entry.hasActual).length, registrarActualsBlockFilter, { escapeHtml, disabled: monthClosed, selectedCount: visible.filter((entry) => !entry.hasActual && registrarActualsSelectedKeys.has(entry.key)).length }) || "";
 
   if (qs("registrarActualsBody")) {
     qs("registrarActualsBody").innerHTML = visible.length
@@ -36273,10 +36273,10 @@ async function init() {
   });
   qs("registrarActualsBody")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-registrar-actuals-actual]");
-    if (input) handleRegistrarActualsChange(input);
-  });
+    if (input) return handleRegistrarActualsChange(input); const checkbox = event.target.closest("[data-registrar-actuals-select]");
+    if (checkbox) { registrarActualsSelectedKeys[checkbox.checked ? "add" : "delete"](checkbox.dataset.registrarActualsSelect); renderRegistrarActuals(); } });
   qs("registrarActualsPanel")?.addEventListener("click", (event) => { // R-13: fila, bloque/todos y "Ver en Plan" — handleConfirmClick decide
-    const result = registrarActualsSelectedMonth() && !isClosedMonthKey(registrarActualsSelectedMonth().key) ? RegistrarActualsConfirm?.handleConfirmClick(event.target, { allEntries: registrarActualsEntries(registrarActualsSelectedMonth()), blockFilter: registrarActualsBlockFilter, actualsForKind, recordSessionChange: registrarRecordSessionChange, round2 }) : null; if (result) { result.kinds.forEach((kind) => saveActualsForKind(kind)()); if (result.count) render(); return; }
+    const result = registrarActualsSelectedMonth() && !isClosedMonthKey(registrarActualsSelectedMonth().key) ? RegistrarActualsConfirm?.handleConfirmClick(event.target, { allEntries: registrarActualsEntries(registrarActualsSelectedMonth()), blockFilter: registrarActualsBlockFilter, actualsForKind, recordSessionChange: registrarRecordSessionChange, round2, selectedKeys: registrarActualsSelectedKeys }) : null; if (result) { registrarActualsSelectedKeys.clear(); result.kinds.forEach((kind) => saveActualsForKind(kind)()); if (result.count) render(); return; }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
