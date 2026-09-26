@@ -114,6 +114,39 @@ test("entriesForClick · un clic que no es de ninguno de los dos botones no disp
   assert.equal(RegistrarActualsConfirm.entriesForClick(target, { allEntries: SAMPLE_ENTRIES, blockFilter: "todos" }), null);
 });
 
+// --- selección de partidas sueltas (pedido tras ver R-13 en producción) -----------------------
+
+test("entriesForClick · con partidas seleccionadas, el botón masivo confirma solo esas, aunque haya más pendientes en el bloque", () => {
+  const target = fakeTarget("[data-registrar-actuals-confirm-pending]");
+  const selectedKeys = new Set(["c|2026-09"]);
+  const entries = RegistrarActualsConfirm.entriesForClick(target, { allEntries: SAMPLE_ENTRIES, blockFilter: "todos", selectedKeys });
+  assert.deepEqual(entries.map((e) => e.key), ["c|2026-09"]);
+});
+
+test("entriesForClick · una selección nunca incluye una partida ya con real, aunque estuviera marcada", () => {
+  const target = fakeTarget("[data-registrar-actuals-confirm-pending]");
+  const selectedKeys = new Set(["a|2026-09", "b|2026-09"]); // b ya tiene real
+  const entries = RegistrarActualsConfirm.entriesForClick(target, { allEntries: SAMPLE_ENTRIES, blockFilter: "todos", selectedKeys });
+  assert.deepEqual(entries.map((e) => e.key), ["a|2026-09"]);
+});
+
+test("entriesForClick · una selección vacía no manda: se comporta como sin selección (bloque/todos)", () => {
+  const target = fakeTarget("[data-registrar-actuals-confirm-pending]");
+  const entries = RegistrarActualsConfirm.entriesForClick(target, { allEntries: SAMPLE_ENTRIES, blockFilter: "todos", selectedKeys: new Set() });
+  assert.deepEqual(entries.map((e) => e.key), ["a|2026-09", "c|2026-09"]);
+});
+
+test("bulkButtonHtml · con partidas seleccionadas, el texto habla de «seleccionadas», no del bloque activo", () => {
+  const html = RegistrarActualsConfirm.bulkButtonHtml(5, "Financiaciones", { escapeHtml, selectedCount: 2 });
+  assert.match(html, /Confirmar 2 seleccionadas con su previsto</);
+  assert.doesNotMatch(html, /Financiaciones|partida/);
+});
+
+test("bulkButtonHtml · una sola seleccionada usa singular", () => {
+  const html = RegistrarActualsConfirm.bulkButtonHtml(5, "todos", { escapeHtml, selectedCount: 1 });
+  assert.match(html, /Confirmar 1 seleccionada con su previsto</);
+});
+
 // ------------------------------------------------------------------------------------------------
 // handleConfirmClick (extremo a extremo)
 // ------------------------------------------------------------------------------------------------
@@ -152,6 +185,15 @@ test("app.js referencia el módulo y cablea fila, barra y panel", () => {
   assert.match(app, /qs\("registrarActualsBulk"\)/);
   assert.match(app, /qs\("registrarActualsPanel"\)\?\.addEventListener\("click"/);
   assert.match(app, /RegistrarActualsConfirm\?\.handleConfirmClick/);
+});
+
+test("app.js cablea el checkbox de selección de fila y lo pasa como selectedKeys al clic de confirmar", () => {
+  const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  assert.match(app, /registrarActualsSelectedKeys = new Set\(\)/);
+  assert.match(app, /data-registrar-actuals-select="/);
+  assert.match(app, /registrarActualsSelectedKeys\[checkbox\.checked \? "add" : "delete"\]/);
+  assert.match(app, /selectedKeys: registrarActualsSelectedKeys/);
+  assert.match(app, /registrarActualsSelectedKeys\.clear\(\)/);
 });
 
 test("index.html carga el script del módulo y reserva el contenedor de la barra masiva", () => {
