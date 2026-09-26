@@ -90,6 +90,33 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 26 de septiembre de 2026 (250): trabajo duplicado detectado entre dos sesiones paralelas sobre `NAV-5`, y corrección de numeración de sesión en el backlog
+
+- **Qué pasó**: esta sesión abrió Modo Inicio, leyó el backlog y construyó `NAV-5` de forma
+  independiente (pregunta rápida determinista en el lanzador) sin saber que otra sesión
+  (`session_019GozDchBYZuoekwyJ6ts8e`) había hecho exactamente lo mismo en paralelo y ya lo había
+  fusionado a `main` como el PR #382, junto con `I13` (#383) y una corrección de arranque (#384) —
+  ninguno de los tres visible en el `git log` local hasta volver a hacer `git fetch` al abrir el PR
+  propio. El diseño de ambas implementaciones era funcionalmente equivalente (mismo cuarto tipo de
+  resultado del lanzador, misma fuente `unifiedActionCenterModel`/`ExecutiveReadModel`, misma
+  prioridad frente a UX6): no había nada que rescatar de la versión propia.
+- **Qué se hizo al detectarlo**: se cerró el PR propio (#385) con un comentario explicando la
+  duplicación y remitiendo al PR ya fusionado, sin intentar fusionar ni resolver el conflicto real
+  que habría producido — habría sido trabajo repetido sin ningún valor neto. La rama de trabajo se
+  reinició desde `origin/main` (ya con `NAV-5`/`I13`/el fix de arranque incluidos).
+- **Corrección real que sí faltaba**: las filas de `NAV-3`, `FLU-3` y `PROC-1` en
+  `BACKLOG_CONTABILIDADCASA_3_0.md` (§2.3, §2.4, §2.6 y el resumen de §6) seguían citando «sesión
+  245» (la de los adjuntos de P2); esa decisión se tomó en realidad en la sesión 246, según
+  `PROJECT_STATE.md`. La otra sesión paralela no la corrigió porque no la vio — corregidas aquí las
+  cuatro referencias. Sin efecto funcional, solo trazabilidad hacia atrás.
+- **Validación**: `npm test` — 4.813/4.813 pruebas unitarias en verde (cambio solo de
+  documentación, sin tocar código).
+- **Lección para el hogar**: si en algún momento se abren varias sesiones de Claude Code a la vez
+  sobre este repositorio pidiendo «qué sigue en el backlog», hay riesgo real de que dos elijan la
+  misma tarea siguiente y la construyan por duplicado — como ha pasado aquí. No hay coste
+  irreversible (el trabajo duplicado se descarta sin fusionar), pero sí conviene saberlo si se va a
+  repetir el patrón de varias sesiones concurrentes.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (249): bug real — un arranque podía tumbar la app entera con «No se pudo cargar la app / No se puede recuperar la cola durante una escritura»
 
 - **Qué pidió el hogar**: reportó un error intermitente que a veces veía al abrir la app —
