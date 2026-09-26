@@ -90,6 +90,32 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 26 de septiembre de 2026 (247): `NAV-5` cerrada — cuarto tipo de resultado en el lanzador (A12-3/UX6/DEX1-2): pregunta rápida con cifra y procedencia, sin navegar
+
+- **Corrección de documentación menor**: las filas de `NAV-3`, `FLU-3` y `PROC-1` en
+  `BACKLOG_CONTABILIDADCASA_3_0.md` (§2.3, §2.4, §2.6 y el resumen de §6) citaban «sesión 245» —
+  esa decisión se cerró en la sesión 246 (245 fue la de los adjuntos de P2). Corregidas las cuatro
+  referencias; sin efecto funcional, solo trazabilidad hacia atrás.
+- **`NAV-5`** (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): puente barato mientras `A5-1` (Copiloto/IA)
+  siga sin producción real. El lanzador (Cmd/Ctrl+K) ya reconocía preguntas de importe (UX6) y
+  órdenes de captura (DEX1/DEX2); gana un cuarto tipo de resultado, «pregunta rápida»: una lista
+  fija de frases sin dígito (`liquidez`, `capacidad libre`, `reserva protegida`, `cobertura`,
+  `deuda pendiente`, `libre de deuda`...) que resuelve directamente a una métrica de
+  `unifiedActionCenterModel().readModel.metrics` (A2-6) — el mismo contrato con procedencia
+  (fuente/fecha/confianza) que ya usan Hoy y el informe ejecutivo, sin backend ni motor nuevo. No
+  interpreta lenguaje libre ni sustituye a `A5-1`; solo evita la navegación cuando la pregunta ya
+  tiene una cifra calculada con una sola respuesta correcta. Prioridad fija: una pregunta de
+  métrica siempre gana sobre una de importe (sus frases nunca llevan dígito, así que UX6 nunca la
+  habría reconocido de todos modos) y nunca sustituye a la búsqueda de tareas si además hay
+  coincidencias. `app.js` 37.399 → 37.435 líneas (techo `ARQ-4`: 37.436, sin tocar).
+  `tests/nav5-pregunta-rapida.test.cjs` (13 pruebas nuevas); `tests/ux6-busqueda-importes.test.cjs`
+  actualizado (su sandbox de `renderE17Launcher` necesitaba mockear la nueva rama de NAV-5).
+- **Validación**: `npm run verify` completo — 4.802/4.802 pruebas unitarias, lint, typecheck,
+  accesibilidad, rendimiento, build del sitio, privacidad y smoke test, todo en verde.
+- Con esto, el horizonte 4 del plan priorizado (§6) queda completo. Lo siguiente en el backlog
+  vigente son los horizontes 5 y 6, ambos condicionados (terceros o la conversación de uso real del
+  hogar, todavía pendiente) — sin trabajo propio que abordar hoy sin esa señal.
+
 ## Cierre de sesión — 25 de septiembre de 2026 (246): tercera decisión de la sesión 243 resuelta — `NAV-3` aparcada (no a la Cola B), `PROC-1` cerrada, y `FLU-3` construida con alcance acotado a Plan › Ahorro y objetivos
 
 - **Qué pidió el hogar**: la tercera decisión abierta en la sesión 243 — si `NAV-3` (el recorrido de

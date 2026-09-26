@@ -55,6 +55,10 @@ function sandboxWith(names, extra = {}) {
       const [year, month, day] = String(v).slice(0, 10).split("-");
       return day && month && year ? `${day}/${month}/${year}` : String(v);
     },
+    // NAV-5: renderE17Launcher también prueba una pregunta de métrica antes que el resto; estos
+    // tests no la ejercitan (cubierta por tests/nav5-pregunta-rapida.test.cjs), así que por
+    // defecto no hay ninguna métrica que responder — mismo criterio que e17SearchUsageWeight.
+    unifiedActionCenterModel: () => ({ readModel: { metrics: {} } }),
     ...extra,
   };
   vm.createContext(context);
@@ -63,8 +67,14 @@ function sandboxWith(names, extra = {}) {
   vm.runInContext(extractConst("E17_CAPTURE_INCOME_KEYWORDS"), context);
   vm.runInContext(extractConst("E17_CAPTURE_MONTHS"), context);
   vm.runInContext(extractConst("E17_CAPTURE_RELATIVE_DAYS"), context);
+  vm.runInContext(extractConst("NAV5_METRIC_QUERIES"), context);
   vm.runInContext(extractFunction("normalizedText"), context);
   vm.runInContext(extractFunction("e17ExtractNaturalDate"), context);
+  if (names.includes("renderE17Launcher")) {
+    vm.runInContext(extractFunction("e17ParseMetricQuery"), context);
+    vm.runInContext(extractFunction("e17MetricAnswerHtml"), context);
+    vm.runInContext(extractFunction("e17MetricValueText"), context);
+  }
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
 }

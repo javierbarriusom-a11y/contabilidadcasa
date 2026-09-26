@@ -830,6 +830,39 @@ function handleDex5OnboardingDismiss() {
   renderDex5OnboardingBanner();
 }
 
+// NAV-5: cuarto tipo de resultado del lanzador (A12-3) — cifra ya calculada con su procedencia, sin
+// navegar; puente barato mientras `A5-1` (IA) siga sin producción. Frases fijas sin dígito (nunca
+// compiten con UX6/DEX1-2) → métrica de `unifiedActionCenterModel().readModel.metrics`, mismo contrato de citación que Hoy y el ejecutivo.
+const NAV5_METRIC_QUERIES = [
+  { metric: "liquidity", keywords: ["liquidez", "cuanta liquidez", "saldo disponible"] },
+  { metric: "freeCapacity", keywords: ["capacidad libre", "cuanto puedo transferir", "capacidad de ahorro"] },
+  { metric: "protectedReserve", keywords: ["reserva protegida", "cuanta reserva"] },
+  { metric: "nextIncomeCoverage", keywords: ["cobertura", "hasta el proximo ingreso", "hasta el siguiente ingreso"] },
+  { metric: "debtPending", keywords: ["deuda pendiente", "cuanta deuda"] },
+  { metric: "debtFreeDate", keywords: ["libre de deuda", "cuando acabo la deuda", "cuando termino la deuda"] },
+];
+
+function e17ParseMetricQuery(query) {
+  const text = normalizedText(query);
+  if (!text) return null;
+  const match = NAV5_METRIC_QUERIES.find(({ keywords }) => keywords.some((keyword) => text.includes(normalizedText(keyword))));
+  return match ? match.metric : null;
+}
+
+function e17MetricValueText(item) {
+  if (item.id !== "debtFreeDate") return money(Number(item.value || 0), true);
+  if (item.coverage === "sin deuda pendiente") return "Sin deuda";
+  return item.coverage === "estimable" ? escenarioMotorMonthLabel(item.value) : "—";
+}
+
+function e17MetricAnswerHtml(metricId) {
+  const item = unifiedActionCenterModel().readModel?.metrics?.[metricId];
+  if (!item) return "";
+  const coverageNote = item.coverage && item.coverage !== "unknown" ? ` · ${escapeHtml(item.coverage)}` : "";
+  const confidenceLabel = escapeHtml(PV4_CONFIDENCE_LABEL[item.confidence] || item.confidence);
+  return `<div class="e17-launcher-answer"><strong>${escapeHtml(item.label)}: ${escapeHtml(e17MetricValueText(item))}</strong><p>Fuente: ${escapeHtml(item.source)} · ${escapeHtml(item.asOf)} · confianza ${confidenceLabel}${coverageNote}</p></div>`;
+}
+
 // UX6: extiende el lanzador (A12-3) para reconocer preguntas de importe ("¿me puedo permitir
 // 300€?", "cuánto me queda", "300 euros disponibles") sin ningún motor nuevo — reutiliza la misma
 // caja disponible y reserva protegida que ya calcula Hoy (A15-4 usa el mismo par). Un número suelto
@@ -994,8 +1027,11 @@ function renderE17Launcher(query = "") {
   const results = qs("e17LauncherResults");
   if (!results) return;
   const matches = E17Experience?.findTasks(query, normalizedText, e17SearchUsageWeight) || [];
-  const amount = e17ParseAmountQuery(query);
-  const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : "";
+  const metricId = e17ParseMetricQuery(query);
+  const metricHtml = metricId ? e17MetricAnswerHtml(metricId) : "";
+  // NAV-5 gana si dispara: sus frases nunca llevan dígito, así que UX6 no la habría reconocido.
+  const amount = metricHtml ? null : e17ParseAmountQuery(query);
+  const answerHtml = metricHtml || (amount !== null ? e17AmountAnswerHtml(amount) : "");
   // Una pregunta de importe (UX6) y una orden de captura (DEX1) no deberían disparar a la vez —
   // en la práctica sus palabras clave no se solapan, pero si UX6 ya respondió, se le da prioridad.
   const captureHtml = answerHtml ? "" : e17QuickCaptureHtml(e17ParseQuickCaptureQuery(query));
