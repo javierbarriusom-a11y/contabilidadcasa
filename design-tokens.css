@@ -433,6 +433,11 @@
   box-shadow: var(--e19-shadow-card);
 }
 
+/* R-13: barra de confirmación masiva bajo los filtros — solo ocupa sitio cuando hay pendientes. */
+.e19-registrar .registrar-actuals-bulk:not(:empty) {
+  margin: -4px 0 10px;
+}
+
 .e19-registrar .registrar-actuals-table {
   min-width: 760px;
 }
