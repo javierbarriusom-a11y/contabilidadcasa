@@ -90,6 +90,45 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 27 de septiembre de 2026 (254): `D6` — benchmark de mercado real (Euribor+diferencial o manual) en el radar de refinanciación, con fecha y aviso de caducidad
+
+- **Qué pidió el hogar**: al repasar el backlog heredado de `BACKLOG_CONTABILIDADCASA_2_0.md`, `D6`
+  seguía aparcada porque el tipo fijo del radar de refinanciación (`DEB4`) era un número declarado
+  una sola vez, sin fecha ni fuente — "una precisión que no tiene". Puesto a elegir entre anclarlo a
+  un tipo de referencia público (Euribor + diferencial) o mantenerlo manual pero con fecha, el hogar
+  pidió **poder elegir entre las dos**, no una sola.
+- **Qué se construyó**: un selector "Fuente del tipo fijo de referencia (D6)" en la misma tarjeta de
+  `DEB4`/`DI1` (Deuda › Apalancamiento). En modo "Euribor + diferencial habitual" el hogar declara el
+  Euribor actual y su diferencial de banco; el tipo fijo se calcula solo (`deb4BenchmarkRate`,
+  `round2(euribor + spread)`) y el campo manual pasa a solo lectura. En modo manual (el de siempre,
+  por defecto) el hogar sigue tecleando el tipo él mismo. Cualquiera de los dos modos deja fecha
+  (`benchmarkUpdatedAt`, mes en curso) **solo cuando el tipo resultante cambia de verdad** — no en
+  cada guardado — y el radar muestra ahora "Tipo fijo de referencia (Euribor+diferencial/oferta
+  manual): actualizado hace N mes(es)", con aviso si lleva 3 meses o más sin tocarse. Sin motor
+  nuevo: reutiliza `round2`/`monthDistance`/`dateFromMonthKey`, ya existentes en `app.js`. Verificado
+  a mano en navegador (Playwright): el cálculo Euribor+diferencial, el toggle de visibilidad de
+  campos, el bloqueo a solo lectura del campo manual en modo Euribor, y la persistencia de los
+  cuatro campos nuevos tras recargar la página.
+- **Techo de líneas de `app.js` (`ARQ-4`) subido de 37.436 a 37.486, con motivo documentado**: las
+  funciones de `DEB4` no se pudieron extraer de `app.js` a `views/inversion.js` como manda el
+  remedio por defecto de `ARQ-4` porque `decisionInboxItems()` (bandeja de decisión de Hoy, `T3`) y
+  `t6RefinanciarMemoContext()` (memo de decisión, `T6`) las llaman de forma eager, sin pasar por el
+  fragmento lazy de Inversión — y el listener de arranque referencia `saveDeb4RadarSettings`
+  directamente, sin `typeof`. Extraerlas de todos modos habría arriesgado el mismo tipo de fallo de
+  arranque ya sufrido antes (sesión previa a `R-13`: "un arranque con una escritura remota en vuelo
+  tumbaba la app entera"). Puesto el hogar a elegir entre subir el techo ~50 líneas o buscar una
+  extracción equivalente en código ajeno a `D6` para hacer sitio, el hogar eligió subir el techo.
+  `app.js` quedó en 37.479 líneas tras `D6` (detalle y motivo completo en el propio test,
+  `tests/arq4-techo-app-js.test.cjs`).
+- **Validación**: `npm run verify` completo — **4.841/4.841 pruebas unitarias** (6 nuevas para `D6`,
+  más 2 ventanas de extracción de otros tests ajustadas a la nueva longitud de las funciones), lint,
+  typecheck, accesibilidad, rendimiento, build del sitio, privacidad y smoke test, todo en verde.
+  (El entorno de esta sesión no tenía `node_modules` instalado al empezar — `npm install` resolvió 7
+  fallos iniciales de `esbuild` en los tests de `build:site`, sin relación con el código de `D6`.)
+- **Pendiente explícito para la siguiente sesión**: el hogar pidió también reabrir `D1` (sandbox
+  visual de deuda) para "ampliarlo o cambiarlo", sin llegar a concretar el qué antes de cerrar esta
+  sesión — recoger el detalle concreto antes de tocar código, no asumirlo.
+
 ## Cierre de sesión — 26 de septiembre de 2026 (253): `R-13` — seleccionar partidas sueltas y confirmarlas juntas, además de por bloque o todas
 
 - **Qué pidió el hogar**: al revisar `R-13` (individual/bloque/todas), faltaba poder marcar varias

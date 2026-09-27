@@ -58,13 +58,80 @@ test("el radar no avisa sin umbral declarado ni cuando el punto de equilibrio su
   assert.match(block, /breakEven\.months > saved\.maxBreakEvenMonths/);
 });
 
-test("los seis campos de la hipoteca (incluido el umbral) se persisten al cambiar, y disparan un re-render del radar", () => {
+test("los campos de la hipoteca (incluidos el umbral y el benchmark de D6) se persisten al cambiar, y disparan un re-render del radar", () => {
   assert.match(
     appSource,
-    /\["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("change", saveDeb4RadarSettings\);/,
+    /\["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths", "deb4BenchmarkMode", "deb4BenchmarkEuribor", "deb4BenchmarkSpread"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("change", saveDeb4RadarSettings\);/,
   );
-  const saveBlock = appSource.slice(appSource.indexOf("function saveDeb4RadarSettings("), appSource.indexOf("function saveDeb4RadarSettings(") + 700);
+  const saveBlock = appSource.slice(appSource.indexOf("function saveDeb4RadarSettings("), appSource.indexOf("function saveDeb4RadarSettings(") + 1400);
   assert.match(saveBlock, /renderDeb4RefinancingRadar\(\);/);
+});
+
+// --- D6 · benchmark de mercado real (Euribor+diferencial o manual), con fecha y aviso de caducidad
+
+test("D6 · deb4BenchmarkRate calcula Euribor+diferencial en modo euribor, y respeta el manual en modo manual", () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(extractFunction("round2"), context);
+  vm.runInContext(extractFunction("deb4BenchmarkRate"), context);
+  assert.equal(context.deb4BenchmarkRate("euribor", 3.5, 1.2, 9.99), 4.7);
+  assert.equal(context.deb4BenchmarkRate("manual", 3.5, 1.2, 2.9), 2.9);
+});
+
+test("D6 · saveDeb4RadarSettings guarda el modo elegido y solo actualiza benchmarkUpdatedAt cuando el tipo resultante cambia de verdad", () => {
+  const block = appSource.slice(appSource.indexOf("function saveDeb4RadarSettings("), appSource.indexOf("function saveDeb4RadarSettings(") + 1200);
+  assert.match(block, /benchmarkMode: mode/);
+  assert.match(block, /benchmarkEuribor: euribor/);
+  assert.match(block, /benchmarkSpread: spread/);
+  assert.match(block, /const benchmarkChanged = mode !== previous\.benchmarkMode \|\| fixedRate !== previous\.fixedRate;/);
+  assert.match(block, /benchmarkUpdatedAt: benchmarkChanged \? monthKey\(new Date\(\)\) : \(previous\.benchmarkUpdatedAt \|\| ""\)/);
+});
+
+test("D6 · syncDeb4RadarControls oculta los campos de Euribor/diferencial salvo en modo euribor, y bloquea el tipo fijo manual cuando es calculado", () => {
+  const block = appSource.slice(appSource.indexOf("function syncDeb4RadarControls("), appSource.indexOf("function syncDeb4RadarControls(") + 1200);
+  assert.match(block, /qs\("ajustesMortgageFixedRate"\)\?\.toggleAttribute\("readonly", mode === "euribor"\)/);
+  assert.match(block, /qs\("deb4BenchmarkFields"\)\?\.classList\.toggle\("is-hidden", mode !== "euribor"\)/);
+});
+
+test("D6 · deb4BenchmarkFreshnessText avisa según hace cuántos meses se actualizó el benchmark", () => {
+  const context = { money: moneyStub, escapeHtml: (value) => String(value ?? "") };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("monthDistance"), context);
+  vm.runInContext(extractFunction("dateFromMonthKey"), context);
+  vm.runInContext(extractFunction("deb4BenchmarkFreshnessText"), context);
+
+  assert.equal(context.deb4BenchmarkFreshnessText({ benchmarkUpdatedAt: "" }), "");
+
+  const now = new Date();
+  const recentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const fresh = context.deb4BenchmarkFreshnessText({ benchmarkUpdatedAt: recentKey, benchmarkMode: "euribor" });
+  assert.match(fresh, /Euribor \+ diferencial/);
+  assert.match(fresh, /hace 0 mes\(es\)\./);
+  assert.doesNotMatch(fresh, /warning/);
+
+  const staleDate = new Date(now.getFullYear(), now.getMonth() - 4, 1);
+  const staleKey = `${staleDate.getFullYear()}-${String(staleDate.getMonth() + 1).padStart(2, "0")}`;
+  const stale = context.deb4BenchmarkFreshnessText({ benchmarkUpdatedAt: staleKey, benchmarkMode: "manual" });
+  assert.match(stale, /oferta manual/);
+  assert.match(stale, /warning/);
+  assert.match(stale, /revísalo antes de fiarte del radar/);
+});
+
+test("D6 · el radar incluye el aviso de caducidad del benchmark junto al mensaje principal", () => {
+  const block = appSource.slice(appSource.indexOf("function renderDeb4RefinancingRadar("), appSource.indexOf("function renderDeb4RefinancingRadar(") + 1400);
+  assert.match(block, /const freshness = deb4BenchmarkFreshnessText\(saved\);/);
+  assert.match(block, /\$\{freshness\}/);
+});
+
+test("D6 · index.html tiene el selector de fuente y los campos de Euribor/diferencial, ocultos por defecto", () => {
+  const selectPos = indexSource.indexOf('id="deb4BenchmarkMode"');
+  const fieldsPos = indexSource.indexOf('id="deb4BenchmarkFields"');
+  const euriborPos = indexSource.indexOf('id="deb4BenchmarkEuribor"');
+  const spreadPos = indexSource.indexOf('id="deb4BenchmarkSpread"');
+  const fixedRatePos = indexSource.indexOf('id="ajustesMortgageFixedRate"');
+  assert.ok(selectPos >= 0 && selectPos < fixedRatePos, "el selector de modo debe ir antes del tipo fijo manual");
+  assert.ok(fieldsPos > fixedRatePos && euriborPos > fieldsPos && spreadPos > euriborPos);
+  assert.match(indexSource.slice(fieldsPos - 40, fieldsPos + 10), /is-hidden/);
 });
 
 test("el radar se sincroniza y renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta)", () => {

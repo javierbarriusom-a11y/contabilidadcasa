@@ -23,8 +23,14 @@ const path = require("node:path");
 // ~130) en el mismo PR que hace la extracción, para que lo ganado no se vuelva a perder.
 // Historial del techo: 38.600 (sesión 233, app.js en 38.467) → 38.235 (sesión 236, app.js en 38.105
 // tras extraer «Nueva vida» simulación a views/new-life-simulation.js) → 37.436 (sesión 237, app.js en
-// 37.306 tras extraer el Agente de ahorro a views/savings-agent.js y su núcleo a canonical-savings-agent.js).
-const CEILING_LINES = 37436;
+// 37.306 tras extraer el Agente de ahorro a views/savings-agent.js y su núcleo a canonical-savings-agent.js)
+// → 37.486 (D6, decisión explícita del hogar: el radar de refinanciación DEB4 y sus llamadas eager
+// desde decisionInboxItems()/t6RefinanciarMemoContext()/el listener de arranque no se podían extraer
+// de app.js sin correr el riesgo de un fallo de arranque si el fragmento lazy de Inversión aún no
+// hubiera cargado — mismo tipo de fallo ya sufrido antes ("un arranque con una escritura remota en
+// vuelo tumbaba la app entera"). Subir el techo ~50 líneas fue la opción de menor riesgo frente a
+// extraer código ajeno a D6 solo para hacer sitio. app.js quedó en 37.479 tras D6.
+const CEILING_LINES = 37486;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

@@ -17334,21 +17334,43 @@ function deb4RadarSettings() {
   return (scenarioSettings.deb4Radar && typeof scenarioSettings.deb4Radar === "object") ? scenarioSettings.deb4Radar : {};
 }
 
+// D6 (BACKLOG_CONTABILIDADCASA_2_0.md §3): el tipo fijo de DEB4 era un número declarado una sola
+// vez, sin fecha ni fuente — "una precisión que no tiene". Ahora puede venir de un Euribor +
+// diferencial (se recalcula solo) o seguir siendo manual (revisado a mano, a criterio del hogar
+// cada trimestre); cualquiera de los dos deja fecha de la última vez que cambió, para poder avisar
+// si queda desactualizado (`deb4BenchmarkFreshnessText`, más abajo).
+function deb4BenchmarkRate(mode, euribor, spread, manualRate) {
+  return mode === "euribor" ? round2(euribor + spread) : manualRate;
+}
+
 function saveDeb4RadarSettings() {
+  const previous = deb4RadarSettings();
+  const mode = qs("deb4BenchmarkMode")?.value === "euribor" ? "euribor" : "manual";
+  const euribor = parseAmount(qs("deb4BenchmarkEuribor")?.value) || 0;
+  const spread = parseAmount(qs("deb4BenchmarkSpread")?.value) || 0;
+  const manualRate = parseAmount(qs("ajustesMortgageFixedRate")?.value) || 0;
+  const fixedRate = deb4BenchmarkRate(mode, euribor, spread, manualRate);
+  const benchmarkChanged = mode !== previous.benchmarkMode || fixedRate !== previous.fixedRate;
   scenarioSettings.deb4Radar = {
     principal: parseAmount(qs("ajustesMortgagePrincipal")?.value) || 0,
     months: parseAmount(qs("ajustesMortgageMonths")?.value) || 0,
     variableRate: parseAmount(qs("ajustesMortgageVariableRate")?.value) || 0,
-    fixedRate: parseAmount(qs("ajustesMortgageFixedRate")?.value) || 0,
+    fixedRate,
     refinancingCost: parseAmount(qs("ajustesMortgageRefinancingCost")?.value) || 0,
     maxBreakEvenMonths: parseAmount(qs("deb4MaxBreakEvenMonths")?.value) || 0,
+    benchmarkMode: mode,
+    benchmarkEuribor: euribor,
+    benchmarkSpread: spread,
+    benchmarkUpdatedAt: benchmarkChanged ? monthKey(new Date()) : (previous.benchmarkUpdatedAt || ""),
   };
   saveScenarioSettings();
+  syncDeb4RadarControls();
   renderDeb4RefinancingRadar();
 }
 
 function syncDeb4RadarControls() {
   const saved = deb4RadarSettings();
+  const mode = saved.benchmarkMode === "euribor" ? "euribor" : "manual";
   const fields = {
     ajustesMortgagePrincipal: saved.principal,
     ajustesMortgageMonths: saved.months,
@@ -17356,12 +17378,18 @@ function syncDeb4RadarControls() {
     ajustesMortgageFixedRate: saved.fixedRate,
     ajustesMortgageRefinancingCost: saved.refinancingCost,
     deb4MaxBreakEvenMonths: saved.maxBreakEvenMonths,
+    deb4BenchmarkEuribor: saved.benchmarkEuribor,
+    deb4BenchmarkSpread: saved.benchmarkSpread,
   };
   Object.entries(fields).forEach(([id, value]) => {
     const field = qs(id);
     if (!field || document.activeElement === field) return;
     field.value = value > 0 ? String(value) : "";
   });
+  const modeField = qs("deb4BenchmarkMode");
+  if (modeField && document.activeElement !== modeField) modeField.value = mode;
+  qs("ajustesMortgageFixedRate")?.toggleAttribute("readonly", mode === "euribor");
+  qs("deb4BenchmarkFields")?.classList.toggle("is-hidden", mode !== "euribor");
 }
 
 // D4: el radar y su comparador de escenarios (evaluateMortgageRateScenarios, «fixedRateOffer» vs.
@@ -17373,6 +17401,19 @@ function deb4RenegotiationScriptText(saved, scenarios, breakEven) {
   const base = scenarios.scenarios.find((scenario) => scenario.id === "base");
   if (!base) return "";
   return `Tengo un préstamo con capital pendiente de ${money(saved.principal, true)} a ${saved.months} meses, actualmente a un tipo variable del ${saved.variableRate}%. He comparado con una oferta de tipo fijo del ${saved.fixedRate}%: la cuota bajaría de ${money(base.variableMonthlyPayment, true)} a ${money(base.fixedMonthlyPayment, true)} al mes. Descontando el coste de cambiar (${money(breakEven.cost, true)}), recupero esa diferencia en ${breakEven.months} mes(es) — dentro de mi límite de ${saved.maxBreakEvenMonths}. Pido que igualéis estas condiciones sin coste adicional, o que me deis por escrito una oferta de paso a fijo con estas condiciones o mejores.`;
+}
+
+// D6: aviso de "cuánto hace que se actualizó" sobre el propio tipo fijo de referencia del radar —
+// distinto de DEB14 (más abajo), que avisa de lo mismo pero sobre las ofertas registradas contra un
+// contrato de Deuda › Ruta. Mismo umbral de tres meses que ya usa DEB14 para "hace tiempo que no
+// miras el mercado".
+function deb4BenchmarkFreshnessText(saved) {
+  if (!saved.benchmarkUpdatedAt) return "";
+  const months = monthDistance(dateFromMonthKey(saved.benchmarkUpdatedAt), new Date());
+  const sourceLabel = saved.benchmarkMode === "euribor" ? "Euribor + diferencial" : "oferta manual";
+  const tone = months >= 3 ? "warning" : "";
+  const warning = months >= 3 ? " — revísalo antes de fiarte del radar." : ".";
+  return `<p class="e19-kpi-note ${tone}">Tipo fijo de referencia (${sourceLabel}): actualizado hace ${months} mes(es)${warning}</p>`;
 }
 
 function renderDeb4RefinancingRadar() {
@@ -17393,7 +17434,9 @@ function renderDeb4RefinancingRadar() {
     return;
   }
   const script = deb4RenegotiationScriptText(saved, scenarios, breakEven);
+  const freshness = deb4BenchmarkFreshnessText(saved);
   box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
+    ${freshness}
     <details>
       <summary>Guion para llamar al banco (D4)</summary>
       <p class="e19-kpi-note" id="deb4RenegotiationScript">${escapeHtml(script)}</p>
@@ -37191,7 +37234,7 @@ async function init() {
   qs("ap5StrategySelect")?.addEventListener("change", renderAp5Queue);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
-  ["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths"].forEach((id) => {
+  ["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths", "deb4BenchmarkMode", "deb4BenchmarkEuribor", "deb4BenchmarkSpread"].forEach((id) => {
     qs(id)?.addEventListener("change", saveDeb4RadarSettings);
   });
   qs("t6MemoRefinanciar")?.addEventListener("click", () => downloadT6DecisionMemo("refinanciar", "t6MemoRefinanciarNote"));

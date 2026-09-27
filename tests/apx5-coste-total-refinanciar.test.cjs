@@ -62,6 +62,6 @@ test("app.js: handleDi1CompareMortgageScenarios pinta también el punto de equil
 
 test("index.html: el campo de coste de refinanciar está en la misma tarjeta de DI1, sin formulario nuevo", () => {
   assert.match(indexSource, /id="ajustesMortgageRefinancingCost"/);
-  const block = indexSource.slice(indexSource.indexOf("Hipoteca variable"), indexSource.indexOf("Hipoteca variable") + 2500);
+  const block = indexSource.slice(indexSource.indexOf("Hipoteca variable"), indexSource.indexOf("Hipoteca variable") + 3600);
   assert.match(block, /ajustesMortgageRefinancingCost/);
 });
