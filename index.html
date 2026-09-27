@@ -3592,10 +3592,31 @@
                   <span>Tipo variable actual (%)</span>
                   <input id="ajustesMortgageVariableRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
                 </label>
+                <!-- D6 (BACKLOG_CONTABILIDADCASA_2_0.md §3): el tipo fijo de abajo puede venir de un
+                     Euribor + diferencial declarado (se calcula solo) o seguir siendo manual, a
+                     revisar por el hogar cada trimestre — cualquiera de los dos deja fecha para
+                     poder avisar si queda desactualizado. -->
+                <label class="month-picker">
+                  <span>Fuente del tipo fijo de referencia (D6)</span>
+                  <select id="deb4BenchmarkMode">
+                    <option value="manual">Lo reviso yo a mano (trimestral)</option>
+                    <option value="euribor">Euribor + diferencial habitual</option>
+                  </select>
+                </label>
                 <label class="month-picker">
                   <span>Oferta de tipo fijo (%)</span>
                   <input id="ajustesMortgageFixedRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
                 </label>
+                <div class="month-picker-group is-hidden" id="deb4BenchmarkFields">
+                  <label class="month-picker">
+                    <span>Euribor actual (%)</span>
+                    <input id="deb4BenchmarkEuribor" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Diferencial habitual (%)</span>
+                    <input id="deb4BenchmarkSpread" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                  </label>
+                </div>
                 <!-- APX5: coste total de refinanciar, no solo el tipo — comisión de cancelación/
                      subrogación + gastos de novación, para el punto de equilibrio en meses. -->
                 <label class="month-picker">
