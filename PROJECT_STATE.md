@@ -90,6 +90,52 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 28 de septiembre de 2026 (256): `D1` Fase 2 — el sandbox de deuda pasa de 2 cuentas fijas a N cuentas reales
+
+- **Qué se construyó**: hasta ahora el sandbox visual de deuda solo podía simular exactamente dos
+  cuentas, codificadas por nombre ("Entidad A"/`cb_*`, "Entidad B"/`bk_*"). Esta fase generaliza el
+  modelo: cualquier otro contrato canónico real vivo (declarado en Contratos, ni Entidad A/B, ni
+  liquidado, ni el plan reunificado sintético de Cetelem) aparece automáticamente como una cuenta
+  simulable propia, con su propio bloque de supuestos (estrategia, quita, mes de inicio, pago único,
+  TAE, plazo, % a financiar, aportación extra puntual de la Fase 1) y su propia columna en la tabla
+  de forecast — sin tocar código cuando aparece una deuda nueva.
+  - `canonical-e14-debt-adapter.js`: `buildReadModel()` gana un campo nuevo, `extraDebts` (aditivo,
+    no toca `canonicalValues`/`contracts.entityA`/`entityB`, que siguen exactamente igual). Un
+    contrato entra en `extraDebts` si no es Entidad A/B, su estado no es "settled" y su principal es
+    positivo.
+  - `debt-roadmap.html`: `renderDynamicAccountBlocks()` crea/retira bloques de forma idempotente por
+    clave estable (`acct_<id-del-contrato>`) — si una cuenta ya existe solo se refresca su importe
+    canónico, nunca se reconstruye el bloque (para no perder lo que el hogar ya haya tecleado); si un
+    contrato desaparece (deuda liquidada), su bloque se retira sin afectar a las demás cuentas. El
+    motor de cálculo (`legacy-debt-roadmap-engine.js`) no necesitó ningún cambio: ya aceptaba una
+    lista `accounts` de longitud arbitraria desde antes de `D1`.
+  - **Entidad A y Entidad B mantienen su comportamiento y sus ids exactos** (`cb_*`/`bk_*`, siempre
+    los dos primeros índices de `accounts`): la paridad histórica ya verificada (`A9-8`,
+    `e14bLegacyParityConfig`/`renderE14bParity` en `app.js`, que lee esos campos por nombre desde el
+    estado guardado) sigue intacta y no se ha tocado. Esto fue una decisión deliberada de alcance:
+    generalizar también esa paridad habría sido un cambio mucho mayor, sobre una comparación
+    histórica ya cerrada, para un beneficio que esta fase no necesitaba.
+  - **Límite de alcance documentado a propósito**: el gráfico de evolución de saldo sigue mostrando
+    solo Total + Entidad A + Entidad B como líneas individuales; las cuentas adicionales contribuyen
+    correctamente al total y a su propia columna de tabla, pero no reciben una línea propia en el
+    gráfico en esta fase — una limitación real, no una limitación de cálculo.
+- **Validación**: `npm run verify` completo en verde — **4.867/4.867 pruebas unitarias** (14 nuevas:
+  3 en `tests/canonical-e14-debt-adapter.test.cjs`, 11 en `tests/d1-fase2-cuentas-canonicas.test.cjs`),
+  lint, typecheck, accesibilidad, rendimiento, build del sitio, privacidad y smoke test. Los 10 casos
+  dorados de deuda y las invariantes de motor siguen pasando sin ajustes.
+  - Verificado a mano en navegador (Playwright), montando un iframe con el mismo protocolo de
+    mensajes que usa `app.js` de verdad: una cuenta nueva simulada correctamente (importe canónico de
+    solo lectura, estrategia de refinanciación calculada y sumada al total), sus supuestos
+    persistiendo tras un ciclo completo de recarga de página (no solo `localStorage` del propio
+    iframe — el camino real, vía el estado que replica el padre), y el bloque de una cuenta retirado
+    limpiamente cuando su contrato deja de estar en la cartera, sin afectar a la otra cuenta ya
+    configurada. También verificado que, sin ninguna deuda adicional real declarada (el caso de hoy,
+    con toda probabilidad), el comportamiento es pixel a pixel idéntico al de antes de esta fase.
+- **Pendiente explícito para la siguiente sesión**: la Fase 3, ya confirmada por el hogar — un puente
+  desde el sandbox al buzón de decisiones (`decisionInboxItems`), en su versión más segura (nunca
+  escribe directamente en los contratos reales, solo genera una propuesta estructurada que el hogar
+  aplica desde el flujo "Revisar y aplicar en Plan de deuda" que ya existe hoy).
+
 ## Cierre de sesión — 28 de septiembre de 2026 (255): `D1` Fase 1 — aportación extra puntual y comparación de tu propia configuración en el sandbox visual de deuda
 
 - **Qué pidió el hogar**: retomando el pendiente que quedó abierto al cerrar `D6` (sesión 254), el
