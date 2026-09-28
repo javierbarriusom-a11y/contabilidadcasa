@@ -103,6 +103,50 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de septiembre de 2026 (260): `OPT-9` — auditados y corregidos los `!important` de `design-tokens.css`/`p2.css`, verificado con valor computado real
+
+- **Qué se pidió**: segunda pasada de la auditoría de optimización de la sesión 259, pedida por el
+  usuario («analicemos de nuevo»). Encontró dos hallazgos genuinamente nuevos (`OPT-9` sin cerrar
+  pese a no tener nota de cierre en ningún backlog, y `npm audit` con 13 vulnerabilidades en
+  dependencias de desarrollo de `@lhci/cli`, sin acción tomada — riesgo acotado a CI, no a
+  producción, dejado para otra sesión) y confirmó que `OPT-18` (compresión del sitio publicado)
+  sigue sin poder verificarse desde este entorno (la política de red del contenedor bloquea la
+  petición a `github.io`). El usuario pidió aplicar `OPT-9` ahora.
+- **Auditoría real, no solo recuento**: 19 usos reales en `styles.css` (no 23, cifra ya
+  desactualizada) + 2 en `design-tokens.css` + 2 en `p2.css` = 23 en total. Los 19 de `styles.css`
+  ya estaban documentados con comentarios `OPT-9:` explicando por qué son necesarios — trabajo hecho
+  en una sesión anterior sin que la tabla maestra de `BACKLOG_OPTIMIZACION.md` lo reflejara, mismo
+  patrón de tabla desincronizada que `OPT-1`/`OPT-3`/`OPT-5` en la sesión 259.
+- **Verificación con valor computado real, no solo análisis estático**: para los 4 usos sin
+  documentar, se montó una página de prueba que reutiliza las tres hojas de estilo reales sobre el
+  marcado real de cada caso, y se midió `getComputedStyle` con Playwright (Chromium de
+  `/opt/pw-browsers/`) antes y después de quitar `!important` — el `@media print` de
+  `.cierre-print-evidence` se probó además contra `index.html` real con `page.emulateMedia({media:
+  "print"})`.
+  - `.cuadro-mandos-concept` (`design-tokens.css`) y el `display: none` de `@media print`: sin
+    ningún conflicto real (el valor computado no cambiaba al quitar `!important`) — sobraba en los
+    dos casos, eliminado sin más cambio.
+  - `.p2-kicker`/`.p2-help` (`p2.css`): conflicto real confirmado — `.p2-panel p { margin: 0; }`
+    (especificidad 0-1-1) ganaba a la clase sola (0-1-0) pese a declararse antes; quitar
+    `!important` hacía que el margen se fuera a 0px de verdad. Corregido subiendo la especificidad
+    de la propia clase (`.p2-kicker.p2-kicker`, `.p2-help.p2-help`, 0-2-0) en vez de `!important`;
+    no se usó el tipo de etiqueta (`p.p2-kicker`) porque `.p2-help` a veces es un `<ul>` (el listado
+    de evidencia de `p2-ui.js`), no siempre un `<p>`.
+- **Resultado**: `design-tokens.css` y `p2.css` quedan a 0 usos reales de `!important` (las únicas
+  coincidencias de grep que quedan son las explicaciones en comentario). `styles.css` conserva sus
+  19 usos, todos ya justificados por escrito.
+- **Validación**: `npm run verify` completo — 4887/4887 pruebas, lint limpio, typecheck limpio,
+  accesibilidad, rendimiento, build, privacidad y smoke test en verde. `git diff --check` sin avisos.
+  No pude ejecutar `test:visual` (Playwright) en este contenedor — su configuración pide el canal
+  `chrome` real (`/opt/google/chrome/chrome`), no instalado aquí; los 6 fallos son ese mismo error de
+  lanzamiento antes de cargar ninguna página, no relacionados con el cambio. La verificación por
+  valor computado (arriba) es más directa que una captura de pantalla para este tipo de cambio —
+  responde exactamente a la pregunta «¿cambió el resultado visual sin `!important`?» — pero no
+  sustituye una revisión visual humana si el hogar quiere confirmarlo por su cuenta.
+- **Publicado**: commit y push a `claude/festive-goldberg-8xtykb`, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea
+  ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 28 de septiembre de 2026 (259): auditoría de optimización pedida por el usuario — tabla maestra de `BACKLOG_OPTIMIZACION.md` corregida, presupuesto de Lighthouse estrechado y `PROJECT_STATE.md` archivado por bloques
 
 - **Qué se pidió**: el usuario pidió un plan de mejora centrado en optimización, sin funcionalidad
