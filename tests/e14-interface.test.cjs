@@ -43,7 +43,7 @@ test("A9-8 extrae el motor histórico y bloquea retirar el iframe sin paridad", 
 
 test("el puente entrega un sobre canónico de solo lectura al iframe", () => {
   assert.match(app, /E14DebtAdapter\?\.buildReadModel/);
-  assert.match(app, /payload: \{ state: debtRoadmapState, canonical \}/);
+  assert.match(app, /payload: \{ state: debtRoadmapState, canonical: debtRoadmapCanonicalReadModel\(\) \}/);
   assert.match(roadmap, /Datos canónicos de solo lectura/);
   assert.match(roadmap, /canonicalReadModel\.canonicalValues/);
 });

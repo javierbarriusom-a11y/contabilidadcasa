@@ -90,6 +90,57 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 28 de septiembre de 2026 (257): `D1` Fase 3 — puente sandbox → plan real (oferta borrador segura)
+
+- **Qué se construyó**: la Fase 3 confirmada por el hogar ("Fase 3, ok: sandox a real, ok" — versión
+  más segura, pero automatizada). Cada cuenta del sandbox (Entidad A, Entidad B y cualquier cuenta
+  nueva de la Fase 2) tiene ahora un botón "Enviar esta estrategia al plan real". Al pulsarlo:
+  - El sandbox **nunca escribe en los contratos reales**. Solo crea o actualiza una **oferta
+    borrador** en el mismo cauce que el hogar ya usa a mano hoy (E14b, "Plan de deuda"/"Deuda ›
+    Ruta"), reutilizando `E14DebtOperations.normalizeOffer`/`applyE14bOffer` sin tocarlos. Esa oferta
+    sigue exigiendo completar la vigencia (dato real que solo el hogar conoce, nunca inventado aquí)
+    y pasar por la confirmación obligatoria de `applyE14bOffer()` (`A11-4`) antes de que nada real
+    cambie — la garantía original del sandbox ("aquí se prueban estrategias sin escribir en esos
+    datos") queda intacta.
+  - Un segundo envío de la misma cuenta **actualiza** la oferta borrador existente en vez de
+    duplicarla, y nunca pisa una vigencia o unos documentos que el hogar ya hubiera completado a
+    mano.
+  - El botón se desactiva cuando la cuenta no tiene un contrato real vinculado de forma única
+    (Entidad B hoy, mientras siga sin correspondencia única) o cuando la estrategia elegida es
+    "esperar" (nada que proponer).
+  - Las ofertas borrador pendientes de completar se asoman también en el buzón de decisiones de Hoy
+    (`decisionInboxItems`), como pidió el hogar, además de en su propio panel de "Plan de deuda".
+  - **Decisiones de diseño confirmadas explícitamente por el hogar antes de construir**: (1) la
+    propuesta se guarda ya como oferta borrador, no solo precarga un formulario — la lectura más
+    literal de "automatizada"; (2) el puente cubre también a Entidad A/B, la negociación real que
+    sigue activa (no solo a las cuentas nuevas de la Fase 2), sin tocar `cb_amount`/`bk_amount` ni la
+    paridad histórica ya verificada (`A9-8`).
+  - **ARQ-4**: la resolución de cuenta→contrato y la construcción de la oferta (`dynamicAccountKey`,
+    `resolveAccountContract`, `buildDraftOffer`) son lógica pura, movida a
+    `canonical-e14-debt-adapter.js` — `app.js` solo aporta una fachada fina (`receiveDebtRoadmapOffer`)
+    sobre el estado real (`e14bWorkspace`, `queueRemoteSave`, `renderE14bPanel`) y la nueva entrada de
+    `decisionInboxItems`, que por arquitectura no se pueden extraer (mismo motivo que `D6`). Aun así,
+    `app.js` superaba el techo en 27 líneas tras extraer todo lo extraíble; el hogar confirmó subir
+    `CEILING_LINES` de 37.486 a 37.530 (mismo criterio que `D6`) en vez de invertir la sesión en
+    buscar otro fragmento ajeno a `D1` que recortar. `app.js` quedó en 37.513 líneas.
+- **Validación**: `npm run verify` completo en verde — **4.887/4.887 pruebas unitarias** (22 nuevas:
+  9 en `tests/canonical-e14-debt-adapter.test.cjs` para `dynamicAccountKey`/`resolveAccountContract`/
+  `buildDraftOffer`, 13 en `tests/d1-fase3-puente-oferta.test.cjs` para la fachada de `app.js` y la
+  estructura del sandbox), lint, typecheck, accesibilidad, rendimiento, build del sitio, privacidad y
+  smoke test. Ajustado un test existente (`tests/e14-interface.test.cjs`) al nuevo literal del
+  mensaje `finance-debt-roadmap-hydrate` tras extraer `debtRoadmapCanonicalReadModel()`.
+  - Verificado a mano en navegador (Playwright), montando un host con el protocolo real
+    (`finance-debt-roadmap-send-offer`/`finance-debt-roadmap-offer-result`) y `canonical-e14-debt-
+    adapter.js`/`canonical-e14-operations.js` reales (sin stubs): Entidad A (contrato vinculado)
+    permite enviar y crea la oferta borrador con vigencia en blanco; Entidad B (sin correspondencia
+    única en el escenario de prueba) mantiene el botón desactivado; una cuenta dinámica nueva
+    (Fase 2) genera su propia oferta independiente y correcta (refinanciación, importe financiado);
+    un segundo envío de Entidad A actualiza el importe de la misma oferta (mismo id) en vez de
+    duplicarla.
+- **Pendiente**: ninguno explícito — las tres fases de la ampliación de `D1` confirmada por el hogar
+  el 28 de septiembre de 2026 quedan cerradas (Fase 1 sesión 255, Fase 2 sesión 256, Fase 3 esta
+  sesión).
+
 ## Cierre de sesión — 28 de septiembre de 2026 (256): `D1` Fase 2 — el sandbox de deuda pasa de 2 cuentas fijas a N cuentas reales
 
 - **Qué se construyó**: hasta ahora el sandbox visual de deuda solo podía simular exactamente dos

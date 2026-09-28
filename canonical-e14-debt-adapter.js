@@ -132,6 +132,49 @@
     };
   }
 
+  // D1 (Fase 2/3): mismo saneado de clave que accountKey() en debt-roadmap.html — se duplica a
+  // propósito en vez de compartir código entre un script de navegador sin módulos (el sandbox) y
+  // esta librería, pero ambos deben producir siempre la misma clave para una cuenta dada.
+  function dynamicAccountKey(id) {
+    return `acct_${String(id).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  }
+
+  // D1 (Fase 3): resuelve qué contrato real corresponde a una cuenta del sandbox (cb/bk/dinámica)
+  // desde el propio modelo canónico ya calculado — nunca a partir de un contractId que llegue por
+  // postMessage desde el iframe, para que el sandbox no pueda apuntar a un contrato arbitrario.
+  function resolveAccountContract(accountKey, canonical) {
+    if (accountKey === "cb") return canonical?.contracts?.entityA || null;
+    if (accountKey === "bk") return canonical?.contracts?.entityB || null;
+    return (canonical?.extraDebts || []).find((account) => dynamicAccountKey(account.id) === accountKey) || null;
+  }
+
+  // D1 (Fase 3): construye (o actualiza) la oferta borrador que el sandbox propone para una cuenta.
+  // Función pura: no escribe nada, deja la mutación de estado y el aviso al llamador. Nunca inventa
+  // una vigencia — si la oferta ya existía conserva la que el hogar hubiera puesto; si es nueva
+  // queda en blanco a propósito, para que el hogar la complete antes de poder aplicarla.
+  function buildDraftOffer(input = {}) {
+    const key = String(input.accountKey || "");
+    const account = input.account;
+    const canonical = input.canonical;
+    const existingOffers = input.existingOffers;
+    const normalizeOffer = input.normalizeOffer;
+    if (!key || !account || typeof normalizeOffer !== "function") return { ok: false, accountKey: key, message: "Datos incompletos." };
+    const contract = resolveAccountContract(key, canonical);
+    if (!contract) return { ok: false, accountKey: key, message: "Esta cuenta todavía no está vinculada a un contrato real único." };
+    const amount = round2(number(account.lump) + number(account.financed));
+    if (amount <= 0) return { ok: false, accountKey: key, message: "Esta estrategia no tiene ningún desembolso que proponer todavía — elige quita, refinanciación o híbrido." };
+    const offers = Array.isArray(existingOffers) ? existingOffers : [];
+    const replaceIndex = offers.findIndex((offer) => offer.source === "sandbox" && offer.contractId === contract.id && offer.status === "draft");
+    const existing = replaceIndex >= 0 ? offers[replaceIndex] : null;
+    const offer = normalizeOffer({
+      id: existing?.id, contractId: contract.id, counterpart: contract.entity, expiresAt: existing?.expiresAt || "",
+      amount, principal: contract.currentPrincipal, paymentType: account.strategy, installment: account.monthly,
+      termMonths: account.term, apr: account.apr, documents: existing?.documents || [], status: "draft", source: "sandbox",
+      notes: "Generada automáticamente desde el sandbox de deuda (D1 Fase 3). Completa la vigencia antes de poder aplicarla.",
+    }, contract);
+    return { ok: true, accountKey: key, offer, replaceIndex, message: "Oferta borrador guardada en Plan de deuda. Completa la vigencia allí antes de poder aplicarla." };
+  }
+
   function strategyType(value) {
     const aliases = { settlement: "settlement", quita: "settlement", fixed: "single-payment", optimize: "single-payment", refi: "refinancing", refinancing: "refinancing", hybrid: "refinancing", suspended: "suspension", suspension: "suspension", arrears: "arrears", resume: "resume-payments", "resume-payment": "resume-payments", hold: "hold" };
     return aliases[String(value || "").trim().toLocaleLowerCase("es")] || "hold";
@@ -176,5 +219,8 @@
     inventoryRoadmapState,
     buildReadModel,
     normalizeStrategy,
+    dynamicAccountKey,
+    resolveAccountContract,
+    buildDraftOffer,
   };
 });

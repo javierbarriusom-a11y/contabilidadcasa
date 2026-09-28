@@ -100,6 +100,75 @@ test("extraDebts nunca muta los contratos de entrada ni depende de encontrar Ent
   assert.deepEqual(result.extraDebts.map((account) => account.id).sort(), ["a1", "a2", "c"]);
 });
 
+// D1 (Fase 3): resolución de cuenta→contrato y construcción de la oferta borrador del puente
+// sandbox → plan real. Lógica pura, movida aquí desde app.js para no tocar el techo de ARQ-4.
+
+test("dynamicAccountKey sanea el id igual que accountKey() en debt-roadmap.html", () => {
+  assert.equal(E14.dynamicAccountKey("debt-3"), "acct_debt-3");
+  assert.equal(E14.dynamicAccountKey("Préstamo/coche"), "acct_Pr_stamo_coche");
+});
+
+test("resolveAccountContract · cb/bk resuelven a entityA/entityB, y una clave dinámica a su cuenta por id saneado", () => {
+  const canonical = { contracts: { entityA: { id: "debt-1" }, entityB: null }, extraDebts: [{ id: "debt-3", entity: "Otra deuda" }] };
+  assert.equal(E14.resolveAccountContract("cb", canonical).id, "debt-1");
+  assert.equal(E14.resolveAccountContract("bk", canonical), null);
+  assert.equal(E14.resolveAccountContract("acct_debt-3", canonical).entity, "Otra deuda");
+  assert.equal(E14.resolveAccountContract("acct_debt-nope", canonical), null);
+});
+
+function normalizeOfferStub(raw) {
+  return { ...raw, valid: true, discount: 0 };
+}
+
+test("buildDraftOffer · construye una oferta borrador con vigencia en blanco cuando la cuenta está vinculada y tiene desembolso", () => {
+  const canonical = { contracts: { entityA: { id: "debt-1", entity: "Entidad A", currentPrincipal: 4000 } } };
+  const result = E14.buildDraftOffer({
+    accountKey: "cb", account: { strategy: "settlement", lump: 1800, financed: 0, monthly: 0, apr: 0, term: 1 },
+    canonical, existingOffers: [], normalizeOffer: normalizeOfferStub,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.offer.contractId, "debt-1");
+  assert.equal(result.offer.counterpart, "Entidad A");
+  assert.equal(result.offer.amount, 1800);
+  assert.equal(result.offer.status, "draft");
+  assert.equal(result.offer.source, "sandbox");
+  assert.equal(result.offer.expiresAt, "");
+  assert.equal(result.replaceIndex, -1, "no hay ninguna oferta previa que sustituir");
+});
+
+test("buildDraftOffer · un segundo envío de la misma cuenta apunta a sustituir la oferta borrador existente, nunca a duplicarla", () => {
+  const canonical = { contracts: { entityA: { id: "debt-1", entity: "Entidad A", currentPrincipal: 4000 } } };
+  const existingOffers = [{ id: "offer-x", contractId: "debt-1", source: "sandbox", status: "draft", expiresAt: "2027-03", documents: ["offer"] }];
+  const result = E14.buildDraftOffer({
+    accountKey: "cb", account: { strategy: "settlement", lump: 2200, financed: 0, monthly: 0, apr: 0, term: 1 },
+    canonical, existingOffers, normalizeOffer: normalizeOfferStub,
+  });
+  assert.equal(result.replaceIndex, 0);
+  assert.equal(result.offer.id, "offer-x");
+  assert.equal(result.offer.expiresAt, "2027-03", "no pisa una vigencia que el hogar ya había completado");
+  assert.deepEqual(result.offer.documents, ["offer"]);
+  assert.equal(result.offer.amount, 2200);
+});
+
+test("buildDraftOffer · sin contrato vinculado, no construye ninguna oferta", () => {
+  const result = E14.buildDraftOffer({
+    accountKey: "cb", account: { strategy: "settlement", lump: 1800, financed: 0 },
+    canonical: { contracts: {} }, existingOffers: [], normalizeOffer: normalizeOfferStub,
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /vinculada/);
+});
+
+test("buildDraftOffer · estrategia sin desembolso ('esperar'), no construye una oferta vacía", () => {
+  const canonical = { contracts: { entityA: { id: "debt-1", entity: "Entidad A", currentPrincipal: 4000 } } };
+  const result = E14.buildDraftOffer({
+    accountKey: "cb", account: { strategy: "hold", lump: 0, financed: 0 },
+    canonical, existingOffers: [], normalizeOffer: normalizeOfferStub,
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /desembolso/);
+});
+
 test("el contrato común normaliza quita, refinanciación, suspensión, mora y reanudación", () => {
   const contract = { id: "debt-a", currentPrincipal: 6000, paymentStatus: "suspended", arrearsEstimated: 360 };
   const settlement = E14.normalizeStrategy({ strategy: "quita", discount: 55, amount: 2700, monthKey: "2026-09" }, contract);
