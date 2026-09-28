@@ -61,7 +61,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-6 | Bloque de configuración («cobertura aprendida») dentro de «Hoy» | Medio | S | ⏳ |
 | 1 | OPT-7 | Paneles completos de «modo familiar» y «alertas» compitiendo en «Hoy» | Medio-Alto | S-M | ⏳ |
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
-| 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
+| 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ✅ (28-sep-2026, sesión 260) |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
 | 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | ✅ (11-sep) · 7/7 fases — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
@@ -281,6 +281,28 @@ el propio repo documenta al menos un caso real (`.e19-table tbody td` pisando `.
 
 **Resultado esperado:** menos guerras de especificidad futuras; el CSS deja de depender de parches
 de rescate cuando se añade una pantalla nueva.
+
+**Resuelto (28-sep-2026, sesión 260).** Recuento real al auditar: 19 usos reales en `styles.css`
+(no 23 — cifra ya desactualizada) + 2 en `design-tokens.css` + 2 en `p2.css` = 23 en total. Los 19 de
+`styles.css` ya estaban documentados con comentarios `OPT-9:` explicando por qué son necesarios
+(`.sr-only`, ocultar en `@media print`/menú móvil, `prefers-reduced-motion`, tres casos de
+especificidad en `.prevision-group-row`) — trabajo ya hecho en una sesión anterior sin que la tabla
+maestra lo reflejara, mismo patrón que `OPT-1`/`OPT-3`/`OPT-5`. Los 4 restantes sí eran corregibles,
+verificado midiendo el valor computado real con Playwright antes y después de cada cambio (no solo
+análisis estático):
+- `.cuadro-mandos-concept` (`design-tokens.css`) y el `display: none` de `@media print`
+  (`design-tokens.css`) no tenían ningún conflicto real — quitar `!important` no cambió el valor
+  computado. `!important` sobraba en los dos casos.
+- `.p2-kicker`/`.p2-help` (`p2.css`) sí tenían un conflicto real: `.p2-panel p { margin: 0; }`
+  (especificidad 0-1-1) pesaba más que la clase sola (0-1-0) y ganaba el margen pese a declararse
+  antes — confirmado quitando `!important` (el margen se iba a 0). Corregido subiendo la
+  especificidad de la propia clase (`.p2-kicker.p2-kicker`, `.p2-help.p2-help`, 0-2-0) en vez de con
+  `!important`; no se usó el tipo de etiqueta (`p.p2-kicker`) porque `.p2-help` a veces es un `<ul>`,
+  no siempre un `<p>`.
+
+`design-tokens.css` y `p2.css` quedan a 0 usos reales de `!important` (las únicas coincidencias que
+quedan son las explicaciones en comentario, no declaraciones). `npm run verify` completo en verde
+(4887/4887 pruebas) tras el cambio. Detalle completo en el cierre de sesión 260 de `PROJECT_STATE.md`.
 
 ---
 

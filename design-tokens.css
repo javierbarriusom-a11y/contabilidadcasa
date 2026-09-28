@@ -3736,8 +3736,13 @@
 }
 
 @media print {
+  /* OPT-9 (28-sep-2026): `:not(#cierrePrintEvidence)` ya sube la especificidad a nivel de ID
+     (0-1-1 de `body.is-printing-cierre-evidence` + el ID excluido = 1-1-1), muy por encima de
+     cualquier `display` propio de `.app-shell` (una sola clase) y sin estilo inline que competir
+     (verificado en `app.js`). Probado sin `!important` contra la página real en modo impresión:
+     sigue ocultando `.app-shell` igual. Sin conflicto que lo justifique. */
   body.is-printing-cierre-evidence > *:not(#cierrePrintEvidence) {
-    display: none !important;
+    display: none;
   }
 
   body.is-printing-cierre-evidence .cierre-print-evidence {
@@ -5382,8 +5387,11 @@
   font-size: 11px;
 }
 
+/* OPT-9 (28-sep-2026): no hay ninguna otra regla que fije `padding-left` sobre este selector en
+   todo el CSS ni estilo inline por JS — probado quitando `!important` contra las tres hojas de
+   estilo reales: el valor no cambia. Sin conflicto que justifique `!important`. */
 .e19-cuadro-mandos .cuadro-mandos-concept {
-  padding-left: 30px !important;
+  padding-left: 30px;
   font-weight: 600;
   color: var(--e19-ink);
 }

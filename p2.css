@@ -24,15 +24,21 @@
 .p2-panel p { margin: 0; }
 .p2-panel h3 { font-size: 1.45rem; }
 .p2-panel h4 { font-size: 1.05rem; }
-.p2-kicker {
-  margin-bottom: 4px !important;
+/* OPT-9 (28-sep-2026): `.p2-kicker`/`.p2-help` son casi siempre un `<p>` dentro de `.p2-panel`
+   (`.p2-help` es a veces un `<ul>`, por eso no vale fijar el tipo de elemento en el selector) —
+   `.p2-panel p { margin: 0; }` de arriba (0-1-1) pesa más que una sola clase (0-1-0) y ganaba el
+   margen pese a declararse antes. La clase repetida sube la especificidad (0-2-0) sin `!important`
+   y sin depender de la etiqueta real ni del anidamiento. Verificado: el margen vuelve a 4px sin
+   `!important` con este cambio, y a 0px sin él — el conflicto es real, no defensivo. */
+.p2-kicker.p2-kicker {
+  margin-bottom: 4px;
   color: #0d8f8b;
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 .p2-muted { color: #607078; }
-.p2-help { margin-top: 4px !important; color: #607078; font-size: 0.86rem; }
+.p2-help.p2-help { margin-top: 4px; color: #607078; font-size: 0.86rem; }
 /* PVC8: mismo tono ámbar que .p2-status.warn, para la alerta de materialidad del recálculo. */
 .p2-help.p2-warn { color: #8a5b00; font-weight: 700; }
 
