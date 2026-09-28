@@ -172,3 +172,15 @@ invariantes ya vigentes del proyecto (`A11-4`, disciplina fiscal de nunca fabric
 fuente completa, ningún motor decide ni sustituye asesoría profesional real). `ARQ-0` no recoge
 ni transmite datos personales — solo qué pantalla se abrió y cuándo. `PER-3`/`PER-4` no cambian
 ningún cálculo financiero existente, solo la cadencia en la que se presenta.
+
+## 8. Checkpoint — 28 de septiembre de 2026 (sesión 258)
+
+Con `D1` (§5, 3 fases) y `D6` cerradas, no queda ningún trabajo accionable sin condición
+pendiente en el horizonte 4 salvo lo ya aparcado por decisión del hogar (`NAV-3`, el resto de
+`ARQ-4`). Las tres condiciones externas del horizonte 5 se re-verificaron contra
+`PROJECT_STATE.md` y no cambiaron desde la sesión 240: `A5-1` sin producción real, `O-6`/PSD2 sin
+contratar, `OPT-10`-`OPT-13` aplazadas al 23/10/2026 y a uso real intensivo. No nace un backlog
+`4.0` porque no hubo auditoría nueva que lo justifique — detalle completo del checkpoint en
+`BACKLOG_INDICE.md`. El único paso que depende del hogar y no de un tercero es la Cola B (§4):
+falta que el hogar mire el informe «Uso de la app» (Ajustes, desde sesión 220) y diga qué
+pantallas abre de verdad.
