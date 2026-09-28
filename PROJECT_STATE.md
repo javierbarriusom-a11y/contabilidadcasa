@@ -90,6 +90,36 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 28 de septiembre de 2026 (258): checkpoint de backlog — no queda trabajo accionable sin condición pendiente
+
+- **Qué se pidió**: el usuario pidió revisar qué queda prioritario en el backlog, ya con `D1`
+  (3 fases) y `D6` cerradas. Sin cambios de código esta sesión.
+- **Qué se encontró**: horizontes 1 a 4 de `BACKLOG_CONTABILIDADCASA_3_0.md` §6 están completos,
+  salvo dos elementos aparcados por decisión explícita del hogar (no bloqueados por esfuerzo):
+  `NAV-3` (sesión 246) y el resto de `ARQ-4` (Visual Detail, sesión 238). El horizonte 5 sigue
+  condicionado por terceros y el horizonte 6 (Cola B) sigue gated por una conversación del hogar
+  que todavía no ha ocurrido.
+- **Verificación repetida de las tres condiciones externas** (tabla de `BACKLOG_INDICE.md`),
+  contrastada contra `PROJECT_STATE.md`: ninguna cambió desde la sesión 240. `A5-1` sigue sin
+  producción real; `O-6`/PSD2 sin contratar; el reloj de `OPT-2` para `OPT-10`-`OPT-13` fue
+  re-aplazado (sesión 240, 24/09) al 23 de octubre y a uso real intensivo, no solo al calendario
+  — la coincidencia de que el plazo original cumpliera justo hoy (28/09) no lo desbloquea, porque
+  esa condición ya quedó sustituida por una más estricta.
+- **Decisión de esta sesión: no nace un backlog numerado nuevo (`4.0`)**. El usuario pidió "generar
+  una versión nueva del backlog para retomar desde aquí"; se decidió no crear un documento nuevo
+  porque la disciplina del propio proyecto (`BACKLOG_INDICE.md`) liga cada backlog numerado a una
+  auditoría real cruzada contra código, no a un cierre de sesión sin hallazgos nuevos — crear un
+  `4.0` vacío de contenido habría roto esa convención sin aportar nada. En su lugar, el checkpoint
+  queda documentado en `BACKLOG_INDICE.md` (nueva entrada, encabezando "Para saber qué hacer a
+  continuación") y en `BACKLOG_CONTABILIDADCASA_3_0.md` (nuevo §8), para que la siguiente sesión no
+  repita esta misma investigación.
+- **Único paso que depende del hogar, no de un tercero**: la Cola B (§4 de `3.0`). El informe «Uso
+  de la app» (Ajustes) existe desde la sesión 220 — falta que el hogar lo mire y diga qué pantallas
+  abre de verdad, para priorizar dentro de Cola B con datos reales en vez de seguir esperando.
+- **Validación**: `npm test` → **4887/4887 pruebas en verde** (sin cambios de código, solo
+  documentación — no hizo falta `npm run verify` completo).
+- **Rama/PR**: `claude/zealous-euler-35iwgd`, PR de documentación contra `main`.
+
 ## Cierre de sesión — 28 de septiembre de 2026 (257): `D1` Fase 3 — puente sandbox → plan real (oferta borrador segura)
 
 - **Qué se construyó**: la Fase 3 confirmada por el hogar ("Fase 3, ok: sandox a real, ok" — versión

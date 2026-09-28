@@ -12,6 +12,28 @@
 
 ## Para saber qué hacer a continuación
 
+**Checkpoint del 28 de septiembre de 2026 (sesión 258, sin cambios de código — cierre de
+ciclo de `D1`).** Con `D1` cerrada (sesiones 255-257, 3 fases) y `D6` cerrada (sesión 254), se
+revisó qué queda prioritario en el backlog vigente y el resultado es que **no queda ningún
+trabajo accionable sin condición pendiente**: horizontes 1 a 4 de
+`BACKLOG_CONTABILIDADCASA_3_0.md` §6 están completos salvo `NAV-3` (aparcada por decisión del
+hogar, no bloqueada) y el resto de `ARQ-4` (Visual Detail, misma situación); horizonte 5 sigue
+condicionado por terceros; horizonte 6 (Cola B) sigue gated por la conversación del hogar sobre
+uso real. Se volvieron a verificar las tres condiciones externas de la tabla de abajo contra
+`PROJECT_STATE.md` (sesión 240 es la referencia más reciente) y **ninguna cambió**: `A5-1` sigue
+sin producción real, `O-6`/PSD2 sin contratar, y el reloj de `OPT-2` para `OPT-10`-`OPT-13` fue
+re-aplazado el 24/09/2026 (sesión 240) al 23 de octubre y a uso real intensivo — la coincidencia
+de que el plazo de calendario original cumpliera justo hoy (28/09) no lo desbloquea, porque esa
+condición ya fue sustituida por una más estricta. **Decisión deliberada de esta sesión: no nace
+un backlog numerado nuevo** (`4.0`) porque no hubo auditoría nueva que lo justifique — la
+disciplina del proyecto (ver el resto de este índice) es que cada backlog numerado nace de cruzar
+propuestas nuevas contra el código real, no de un cierre de sesión sin hallazgos nuevos. En su
+lugar, este checkpoint queda aquí y en `BACKLOG_CONTABILIDADCASA_3_0.md` §6-§7 para que la
+siguiente sesión no repita la misma investigación. **El único paso que depende del hogar y no de
+un tercero es la Cola B** (§4 de `3.0`): el informe «Uso de la app» (Ajustes) ya existe desde la
+sesión 220 — falta que el hogar lo mire y diga qué pantallas abre de verdad, para poder
+priorizar dentro de Cola B con datos en vez de esperar más.
+
 **Actualizado el 21 de septiembre de 2026 (sesión 219): nace
 [`BACKLOG_CONTABILIDADCASA_3_0.md`](BACKLOG_CONTABILIDADCASA_3_0.md).** Cuarta auditoría crítica de
 producto, pedida por el usuario con foco explícito en UX/UI y en generalizar el modelo temporal a
