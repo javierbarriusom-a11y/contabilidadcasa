@@ -2112,18 +2112,40 @@ function saveLocalSnapshot() {
   if (decisionWorkflow) storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
 }
 
-function sendDebtRoadmapState() {
-  const frame = qs("debtRoadmapFrame");
-  if (!frame?.contentWindow) return;
-  const canonical = E14DebtAdapter?.buildReadModel({
+function debtRoadmapCanonicalReadModel() {
+  return E14DebtAdapter?.buildReadModel({
     roadmapState: debtRoadmapState,
     contracts: canonicalDebtContractRows(),
     forecast: canonicalScenarioResults.active?.forecast,
   }) || null;
+}
+
+function sendDebtRoadmapState() {
+  const frame = qs("debtRoadmapFrame");
+  if (!frame?.contentWindow) return;
   frame.contentWindow.postMessage({
     type: "finance-debt-roadmap-hydrate",
-    payload: { state: debtRoadmapState, canonical },
+    payload: { state: debtRoadmapState, canonical: debtRoadmapCanonicalReadModel() },
   }, window.location.origin);
+}
+
+// D1 (Fase 3): puente sandbox → plan real, versión segura confirmada por el hogar — solo crea o
+// actualiza una oferta borrador (E14b); lógica pura en canonical-e14-debt-adapter.js por ARQ-4.
+function receiveDebtRoadmapOffer(payload) {
+  const frame = qs("debtRoadmapFrame");
+  const ack = (accountKey, ok, message) => frame?.contentWindow?.postMessage({ type: "finance-debt-roadmap-offer-result", accountKey, ok, message }, window.location.origin);
+  if (!E14DebtOperations || !E14DebtAdapter?.buildDraftOffer) return;
+  const workspace = e14bWorkspace();
+  const result = E14DebtAdapter.buildDraftOffer({
+    accountKey: payload?.accountKey, account: payload?.account, canonical: debtRoadmapCanonicalReadModel(),
+    existingOffers: workspace.offers, normalizeOffer: E14DebtOperations.normalizeOffer,
+  });
+  if (!result.ok) return ack(result.accountKey, false, result.message);
+  if (result.replaceIndex >= 0) workspace.offers[result.replaceIndex] = result.offer;
+  else workspace.offers.push(result.offer);
+  workspace.selectedOfferId = result.offer.id;
+  queueRemoteSave(); renderE14bPanel();
+  ack(result.accountKey, true, result.message);
 }
 
 function debtRoadmapStatesMatch(left, right) {
@@ -2150,6 +2172,7 @@ function setupDebtRoadmapBridge() {
       frame.style.height = `${height}px`;
       return;
     }
+    if (event.data?.type === "finance-debt-roadmap-send-offer") { receiveDebtRoadmapOffer(event.data.payload); return; }
     if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
     const nextState = JSON.parse(JSON.stringify(event.data.payload));
     if (debtRoadmapStatesMatch(debtRoadmapState, nextState)) return;
@@ -30679,6 +30702,17 @@ function decisionInboxItems() {
       title: "Brecha en el seguro de hogar",
       text: `La cobertura actual (${money(insuranceCoverage, true)}) no llega al valor de reposición declarado (${money(insuranceReplacement, true)}) — faltan ${money(insuranceGap.gap, true)}.`,
       target: "herramientas-seguros",
+    });
+  }
+
+  // D1 (Fase 3): asoma en el buzón las ofertas borrador del sandbox aún sin vigencia ni confirmar.
+  const sandboxDraftOffers = e14bWorkspace().offers.filter((offer) => offer.source === "sandbox" && offer.status === "draft");
+  if (sandboxDraftOffers.length) {
+    items.push({
+      id: "decision-inbox-sandbox-debt-offer", source: "Sandbox de deuda", tone: "warn",
+      title: sandboxDraftOffers.length === 1 ? "1 propuesta del sandbox pendiente de completar" : `${sandboxDraftOffers.length} propuestas del sandbox pendientes de completar`,
+      text: `${sandboxDraftOffers.map((offer) => offer.counterpart).join(", ")}: falta la vigencia y la confirmación en Plan de deuda antes de poder aplicarlas.`,
+      target: "debt-roadmap",
     });
   }
 

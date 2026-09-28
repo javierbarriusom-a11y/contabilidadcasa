@@ -30,7 +30,13 @@ const path = require("node:path");
 // hubiera cargado — mismo tipo de fallo ya sufrido antes ("un arranque con una escritura remota en
 // vuelo tumbaba la app entera"). Subir el techo ~50 líneas fue la opción de menor riesgo frente a
 // extraer código ajeno a D6 solo para hacer sitio. app.js quedó en 37.479 tras D6.
-const CEILING_LINES = 37486;
+// → 37.530 (D1 Fase 3, decisión explícita del hogar el 28 de septiembre de 2026, sesión 257): el
+// puente sandbox → plan real necesita un nuevo tipo de mensaje en setupDebtRoadmapBridge(), una
+// función-fachada (receiveDebtRoadmapOffer) que solo llama a e14bWorkspace()/queueRemoteSave()/
+// renderE14bPanel() (estado real de app.js, no extraíble) y una entrada nueva en decisionInboxItems()
+// — la lógica pura (resolución de cuenta→contrato, construcción de la oferta) ya se movió entera a
+// canonical-e14-debt-adapter.js antes de pedir esto. app.js quedó en 37.513 tras esta fase.
+const CEILING_LINES = 37530;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;
