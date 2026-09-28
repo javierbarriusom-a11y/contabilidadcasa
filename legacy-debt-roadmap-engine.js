@@ -28,6 +28,11 @@
     const apr = Math.max(0, number(raw.apr));
     const term = Math.max(1, Math.round(number(raw.term) || 1));
     const financePct = clamp(number(raw.financePct ?? 100), 0, 100);
+    // D1 (Fase 1): aportación extra puntual, independiente de la estrategia — un ingreso
+    // extraordinario que reduce el saldo vivo en un mes concreto, además de lo que ya paga la
+    // estrategia elegida. Por defecto es 0, así que no cambia ningún resultado existente.
+    const extra = Math.max(0, number(raw.extra));
+    const extraMonth = Math.max(1, Math.round(number(raw.extraMonth) || 1));
     const discountAmount = amount * discount / 100;
     const afterDiscount = Math.max(0, amount - discountAmount);
     let lump = 0;
@@ -36,7 +41,7 @@
     if (strategy === "settlement") lump = requestedLump > 0 ? requestedLump : afterDiscount;
     if (strategy === "refi") { lump = requestedLump; financed = afterDiscount * financePct / 100; monthly = paymentFor(financed, apr, term); }
     if (strategy === "hybrid") { lump = requestedLump; financed = Math.max(0, afterDiscount - lump) * financePct / 100; monthly = paymentFor(financed, apr, term); }
-    return { amount, strategy, discount, discountAmount, afterDiscount, start, lump, apr, term, financePct, financed, monthly };
+    return { amount, strategy, discount, discountAmount, afterDiscount, start, lump, apr, term, financePct, financed, monthly, extra, extraMonth };
   }
 
   function monthKey(baseMonth, offset) {
@@ -64,6 +69,11 @@
           balances[accountIndex] = Math.max(0, balances[accountIndex] - principal);
         }
         if (account.strategy === "settlement" && month >= account.start) balances[accountIndex] = 0;
+        if (account.extra > 0 && month === account.extraMonth && balances[accountIndex] > 0) {
+          const applied = Math.min(balances[accountIndex], account.extra);
+          balances[accountIndex] = Math.max(0, balances[accountIndex] - applied);
+          value += applied;
+        }
         return round2(value);
       });
       const total = round2(payments.reduce((sum, value) => sum + value, 0));

@@ -90,6 +90,53 @@ de aquí en la siguiente regeneración, no al momento.
   sin abrir una librería de UI "solo para esa pantalla". Detalle y razonamiento en el cierre de
   sesión 216.
 
+## Cierre de sesión — 28 de septiembre de 2026 (255): `D1` Fase 1 — aportación extra puntual y comparación de tu propia configuración en el sandbox visual de deuda
+
+- **Qué pidió el hogar**: retomando el pendiente que quedó abierto al cerrar `D6` (sesión 254), el
+  hogar confirmó que quiere **ampliar** `D1` (el sandbox visual de deuda, `debt-roadmap.html` en
+  `#deuda-simulador`), no retirarlo. Al investigar el propio archivo se descubrió un dato relevante
+  no documentado hasta ahora: no es un simulador genérico — es la herramienta de una negociación real
+  con dos acreedores concretos ("Entidad A"/`cb_*`, "Entidad B"/`bk_*`), con un tercero ya resuelto y
+  reducido a un hito administrativo de CIRBE. El hogar confirmó que esa negociación **sigue activa**
+  y aceptó un plan en tres fases con una puerta de decisión explícita en cada una:
+  - **Fase 1** (esta sesión): mejoras de visualización y de simulación, sin generalizar el modelo
+    todavía. Confirmado.
+  - **Fase 2** (pendiente, ya confirmada): generalizar el modelo fijo de 2 cuentas (`cb`/`bk`) a N
+    cuentas alimentadas por los contratos canónicos reales, profundizando el puente de solo lectura
+    que ya existe (`applyCanonicalReadModel`/`E14DebtAdapter`).
+  - **Fase 3** (pendiente, ya confirmada, con salvaguarda explícita): un puente sandbox → plan real,
+    en su versión más segura — el hogar pidió automatizar el envío pero **sin que el sandbox escriba
+    nunca directamente en los contratos reales**: el escenario configurado se envía como propuesta
+    estructurada al buzón de decisiones (`decisionInboxItems`), y el hogar la aplica desde el flujo
+    de "Revisar y aplicar en Plan de deuda" que ya existe hoy. Esto preserva la garantía original del
+    sandbox ("aquí se prueban estrategias sin escribir en esos datos").
+- **Qué se construyó (Fase 1, completa)**: vive entera en `debt-roadmap.html` y
+  `legacy-debt-roadmap-engine.js` — cero cambios en `app.js`, cero exposición a `ARQ-4`.
+  - **Aportación extra puntual por cuenta**: dos campos nuevos por cuenta (`cb_extra`/`cb_extra_month`,
+    `bk_extra`/`bk_extra_month`) que simulan un ingreso extraordinario reduciendo el saldo vivo en un
+    mes concreto, independiente de la estrategia elegida (quita, refinanciación, híbrido o esperar).
+    Por defecto es 0 y no cambia ningún resultado existente. Verificado que respeta las invariantes ya
+    exigidas al motor (`canonical-scenario-invariants.js`): determinismo, capital nunca negativo y
+    monotonía de amortización (aportar más extra nunca encarece el total ni retrasa el fin de la
+    deuda).
+  - **Comparación de tu propia configuración**: el comparador de escenarios (antes solo A/B/C, tres
+    perfiles automáticos) añade una cuarta tarjeta, "Tu configuración actual", calculada en vivo desde
+    los valores que el hogar ya ha tecleado — sin necesidad de ajustarlos a un perfil preestablecido
+    para poder comparar.
+  - Verificado a mano en navegador (Playwright), no solo con tests: la aportación extra desplaza el
+    pago del mes exacto indicado (confirmado con una cifra real, 1.000€ en el mes 6 de Entidad B), la
+    tarjeta "Tu configuración actual" calcula y compara correctamente, y los cuatro campos nuevos
+    persisten tras recargar la página.
+- **Validación**: `npm run verify` completo — **4.853/4.853 pruebas unitarias** (12 nuevas para esta
+  Fase 1, en `tests/d1-fase1-extra-y-comparador.test.cjs`), lint, typecheck, accesibilidad,
+  rendimiento, build del sitio, privacidad y smoke test, todo en verde. Los 10 casos dorados de deuda
+  (`golden-debt-cases.test.cjs`) y las invariantes de motor (`canonical-scenario-invariants.test.cjs`)
+  siguen pasando sin ajustes, como corresponde a un cambio puramente aditivo.
+- **Pendiente explícito para la siguiente sesión**: arrancar la Fase 2 (generalización del modelo a N
+  cuentas desde contratos canónicos reales) y, tras validarla, la Fase 3 (puente sandbox → buzón de
+  decisiones). Ambas ya están confirmadas por el hogar — no hace falta volver a preguntar el qué,
+  solo ejecutarlas con el mismo rigor que D6/esta Fase 1 antes de publicar cada una.
+
 ## Cierre de sesión — 27 de septiembre de 2026 (254): `D6` — benchmark de mercado real (Euribor+diferencial o manual) en el radar de refinanciación, con fecha y aviso de caducidad
 
 - **Qué pidió el hogar**: al repasar el backlog heredado de `BACKLOG_CONTABILIDADCASA_2_0.md`, `D6`
