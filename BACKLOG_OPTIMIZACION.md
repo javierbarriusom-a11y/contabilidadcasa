@@ -8,6 +8,12 @@
 > esperado); para saber en qué orden se ejecuta junto al backlog de nuevas funcionalidades, ve a
 > `BACKLOG_UNIFICADO.md`.
 
+> **Tabla maestra corregida el 28 de septiembre de 2026.** Una auditoría de optimización pedida por
+> el usuario encontró que `OPT-1`, `OPT-3` y `OPT-5` (§0) seguían marcadas `⏳ Pendiente` en esta
+> tabla pese a estar resueltas desde el 29 de agosto de 2026 (sesiones 46, 48 y 71 de
+> `PROJECT_STATE.md`) — la tabla nunca se actualizó al cerrarlas. Corregido a `✅` con referencia a
+> la sesión; detalle en la ficha de cada tarea, más abajo.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento nace de una auditoría crítica pedida explícitamente por el usuario («analiza la app
@@ -47,11 +53,11 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 
 | Fase | Tarea | Resuelve | Impacto | Esfuerzo | Estado |
 | --- | --- | --- | --- | --- | --- |
-| 0 | OPT-1 | `<script>` bloqueantes en `index.html` | Alto | S | ⏳ |
+| 0 | OPT-1 | `<script>` bloqueantes en `index.html` | Alto | S | ✅ (29-ago, sesión 46) |
 | 0 | OPT-2 | Sin datos de uso real de pantallas heredadas | Alto (habilitador de Fase 2) | S | ⏳ |
-| 0 | OPT-3 | `dist/` publica código fuente sin minificar | Alto | S | ⏳ |
+| 0 | OPT-3 | `dist/` publica código fuente sin minificar | Alto | S | ✅ (29-ago, sesión 48) |
 | 0 | OPT-4 | Accesibilidad solo verificada estructuralmente (4 patrones) | Alto | S | ⏳ |
-| 0 | OPT-5 | Presupuesto de rendimiento mide peso de fichero, no experiencia real | Alto | M | ⏳ |
+| 0 | OPT-5 | Presupuesto de rendimiento mide peso de fichero, no experiencia real | Alto | M | ✅ (29-ago, sesión 71) |
 | 1 | OPT-6 | Bloque de configuración («cobertura aprendida») dentro de «Hoy» | Medio | S | ⏳ |
 | 1 | OPT-7 | Paneles completos de «modo familiar» y «alertas» compitiendo en «Hoy» | Medio-Alto | S-M | ⏳ |
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
@@ -97,6 +103,11 @@ descargar y ejecutar los ~60 ficheros, uno detrás de otro.
 **Resultado esperado:** el HTML pinta antes de que termine de descargarse y ejecutarse todo el JS;
 cero cambio de comportamiento funcional.
 
+**Resuelto (29-ago-2026, sesión 46).** Los `<script src="...">` de `index.html` llevan `defer`;
+verificado de nuevo el 28-sep-2026 (los 85 scripts locales actuales lo conservan). Esta fila seguía
+marcada `⏳` en la tabla maestra (§0) pese a estar hecha — corregido el 28-sep-2026 tras una
+auditoría de optimización que cruzó esta tabla contra el código real.
+
 ---
 
 ### OPT-2 · Instrumentar uso real de pantallas heredadas
@@ -139,6 +150,11 @@ repositorio.
 **Resultado esperado:** peso descargado por el usuario baja de forma sustancial en cada visita, sin
 tocar una línea de lógica fuente ni el flujo de `npm run verify`.
 
+**Resuelto (29-ago-2026, sesión 48).** `tools/build-public-site.mjs` minifica JS/CSS con `esbuild`
+al copiar a `dist/`, sin tocar el fuente; `tests/opt3-minify-dist.test.cjs` lo protege. Esta fila
+seguía marcada `⏳` en la tabla maestra (§0) pese a estar hecha — corregido el 28-sep-2026 tras una
+auditoría de optimización que cruzó esta tabla contra el código real.
+
 ---
 
 ### OPT-4 · Accesibilidad verificada de verdad
@@ -179,6 +195,13 @@ dar verde con una experiencia de carga mala.
 
 **Resultado esperado:** el pipeline detecta regresiones de carga real en cada PR, no solo de peso de
 fichero; sustituye el umbral de OPT-3 y da una línea base para medir el efecto de la Fase 3.
+
+**Resuelto (29-ago-2026, sesión 71).** `.lighthouserc.cjs` mide LCP/TBT/CLS contra `dist/` con
+`@lhci/cli`, enganchado a `pages.yml` (`npm run test:performance-lh`) tras `npm run verify`. Los
+umbrales originales (LCP/TBT) se revisaron a la baja el 28-sep-2026 — ver la nota de esa fecha en el
+propio `.lighthouserc.cjs`. Esta fila seguía marcada `⏳` en la tabla maestra (§0) pese a estar
+hecha — corregido el 28-sep-2026 tras una auditoría de optimización que cruzó esta tabla contra el
+código real.
 
 ---
 
