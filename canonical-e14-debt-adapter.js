@@ -76,6 +76,26 @@
     };
   }
 
+  // D1 (Fase 2): cualquier contrato canónico real que no sea Entidad A/B, no esté ya liquidado y
+  // no sea el plan reunificado sintético (`debt-reunified-cetelem`, una vista derivada de las
+  // mismas deudas, no una deuda aparte) se expone como cuenta adicional simulable en el sandbox.
+  // Entidad A/B siguen viajando tal cual (cb_amount/bk_amount) para no romper la paridad histórica
+  // ya verificada (A9-8) — esto solo añade, nunca sustituye ese contrato.
+  function extraDebtAccounts(contracts, entityA, entityB) {
+    return contracts
+      .filter((contract) => contract && contract !== entityA && contract !== entityB)
+      .filter((contract) => contract.id !== "debt-reunified-cetelem")
+      .filter((contract) => contract.paymentStatus !== "settled" && number(contract.currentPrincipal) > 0)
+      .map((contract) => ({
+        id: String(contract.id || "").trim(),
+        entity: String(contract.entity || "Deuda sin nombre").trim(),
+        type: String(contract.type || "").trim(),
+        currentPrincipal: round2(contract.currentPrincipal),
+        paymentStatus: String(contract.paymentStatus || "unknown"),
+      }))
+      .filter((account) => account.id);
+  }
+
   function buildReadModel(input = {}) {
     const contracts = clone(Array.isArray(input.contracts) ? input.contracts : []);
     const priorState = clone(input.roadmapState && typeof input.roadmapState === "object" ? input.roadmapState : {});
@@ -106,6 +126,7 @@
       canonicalValues,
       ambiguous: [...new Set(ambiguous)],
       contracts: { entityA, entityB, all: contracts },
+      extraDebts: extraDebtAccounts(contracts, entityA, entityB),
       forecast,
       roadmapState: priorState,
     };
