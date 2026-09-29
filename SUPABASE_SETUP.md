@@ -40,3 +40,7 @@ git push
 2. En el panel lateral `Sincronizacion`, crea cuenta o entra.
 3. La primera vez, si no hay datos en la nube, subira el estado local actual.
 4. En otros ordenadores, entra con el mismo usuario y recuperara proyectos, reales, conceptos y saldos.
+
+## Mantenimiento
+
+Espacio, copias del estado y limpieza: ver [`docs/SUPABASE_MANTENIMIENTO.md`](docs/SUPABASE_MANTENIMIENTO.md).

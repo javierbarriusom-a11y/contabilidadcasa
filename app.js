@@ -119,6 +119,7 @@ let durableResumeRecord = null;
 let durableOutboxWarning = "";
 let remoteHeadSnapshotId = null;
 let remoteHeadKnown = false;
+let remoteHeadSettled = null; // Ola 2: cabecera remota completa de un guardado normal (ver canSkipUnchangedSave)
 let remoteLoadPromise = null;
 let remoteLoadedUserId = null;
 let selectedCashflowIndex = null;
@@ -1529,9 +1530,7 @@ function compactCanonicalDailyRun(run) {
   };
 }
 
-// Ola 2 · P6-lite: en localStorage solo hace falta lo que el motor no puede reconstruir (huella e historial de
-// auditoría). entries/actuals/balanceChecks son derivados —98 % del peso— y refreshCanonicalLedger() los
-// regenera entero en cada arranque. Copia: el snapshot en memoria y el payload remoto/copia siguen completos.
+// P6-lite: en localStorage solo huella e historial; lo derivado (98 %) se regenera al arrancar. Copia: memoria y payload completos.
 function compactCanonicalLedgerForStorage(snapshot) {
   return snapshot ? { ...snapshot, entries: [], actuals: [], balanceChecks: [] } : snapshot;
 }
@@ -4759,7 +4758,7 @@ async function loadRemoteStateOnce() {
     normalizedStore
       ? supabaseClient
         .from("finance_source_heads")
-        .select("snapshot_id, fingerprint, schema_version, updated_at")
+        .select("snapshot_id, sync_id, fingerprint, schema_version, updated_at")
         .eq("source_key", sourceStateKey())
         .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -4795,6 +4794,7 @@ async function loadRemoteStateOnce() {
     .find((error) => error && !normalizedStore?.isMissingSchemaError(error));
   remoteHeadKnown = Boolean(normalizedStore && !headResult.error);
   remoteHeadSnapshotId = remoteHeadKnown ? headResult.data?.snapshot_id || null : null;
+  remoteHeadSettled = remoteHeadKnown ? await normalizedStore.loadSettledHead(supabaseClient, headResult.data) : null;
   const authoritative = normalizedStore
     ? normalizedStore.selectAuthoritativeState({
         head: headResult.error ? null : headResult.data,
@@ -4928,6 +4928,7 @@ async function saveNormalizedRemoteState(payload) {
     userId: remoteUser.id,
     sourceKey: sourceStateKey(),
   });
+  if (store.canSkipUnchangedSave(remoteHeadSettled, { known: remoteHeadKnown, snapshotId: remoteHeadSnapshotId }, bundle.fingerprint)) return { mode: "normalized", unchanged: true, fingerprint: bundle.fingerprint };
   const startResult = await supabaseClient.from("finance_sync_runs").insert(bundle.syncRun);
   if (startResult.error) {
     if (store.isMissingSchemaError(startResult.error)) return { mode: "blocked", reason: "schema-missing" };
@@ -5045,6 +5046,7 @@ async function saveNormalizedRemoteState(payload) {
       .update({ status: "complete", completed_at: new Date().toISOString() })
       .eq("id", bundle.syncId);
     if (completeResult.error) throw completeResult.error;
+    remoteHeadSettled = { snapshotId: bundle.sourceHead.snapshot_id, fingerprint: bundle.fingerprint };
     return { mode: "normalized", fingerprint: bundle.fingerprint, entityCount: bundle.syncRun.entity_count };
   } catch (error) {
     await supabaseClient
@@ -5201,7 +5203,7 @@ async function persistRemotePayload(payload) {
       error.retryable = false;
       throw error;
     }
-    const detail = normalizedResult.mode === "normalized"
+    const detail = normalizedResult.mode === "normalized" && !normalizedResult.unchanged
       ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
       : "";
     const validation = barrier?.summary?.warningCount

@@ -29,8 +29,11 @@
 > **P6-lite ✅ (sesión 264):** el libro canónico se persiste compacto en `localStorage` (`entries`/`actuals`/
 > `balanceChecks` son derivados y se regeneran al arrancar); techo de ~6.300 a ~33.000 movimientos, migración
 > automática, huella e historial intactos. **Pendiente:** coste remoto por guardado (~5,7 MB con 3.000
-> movimientos; a la espera del tamaño real de `finance_state_snapshots`), `expenseTimingFromMovements` y
-> `workbookOverride` como siguiente techo local. Detalle y cifras en los cierres 261 a 264 de `PROJECT_STATE.md`.
+> movimientos), `expenseTimingFromMovements` y `workbookOverride` como siguiente techo local. **Sesión 265:** el
+> tamaño real de `finance_state_snapshots` resultó ser el problema (base al 104 % del plan gratuito, 38 % de copias
+> idénticas) → ✅ guardados idénticos omitidos; limpieza documentada en `docs/SUPABASE_MANTENIMIENTO.md`; pendiente
+> que el arranque no descargue 20 copias completas y el origen del audit log. Detalle en los cierres 261 a 265 de
+> `PROJECT_STATE.md`.
 
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
