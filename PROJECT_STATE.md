@@ -103,6 +103,61 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de septiembre de 2026 (261): Ola 1 de optimización (P1-P4) — rendimiento medido en navegador, sin funcionalidad nueva
+
+- **Qué se pidió**: análisis crítico de la app y plan de mejora «sin nuevas funcionalidades,
+  optimizando»; el usuario aprobó ejecutar la Ola 1 (P1-P4). Diagnóstico medido en Chromium contra
+  `dist/`, no solo lectura de código (cifras de tiempo en un contenedor con CPU compartida: sirven para
+  comparar entre sí, no como valor absoluto).
+- **P1 · memoización de la ruta caliente de planificación.** `normalizedText` (NFD + regex) se llamaba
+  dentro de bucles fila×mes y `planningBreakdownForForecastMonth` se recalculaba **40.176 veces para
+  248 combinaciones distintas** al abrir Asesor virtual (todas desde `simulate` ← `evaluateDebtCandidate`).
+  Cambios: caché acotada (5.000 entradas) como propiedad de `normalizedText` (mismo idioma que
+  `shortDate.cache`, para que los tests que extraen la función suelta sigan funcionando) y memoria con
+  **alcance** (`withPlanningBreakdownMemo`) que solo existe mientras dura `evaluateDebtCandidate`
+  (evaluación hipotética sin escrituras en planificación); fuera de ese alcance nunca cachea, así que no
+  puede quedar obsoleta. Se descartó una caché global con invalidación por revisión: un fallo de
+  invalidación daría cifras financieras erróneas. Resultado **idéntico byte a byte** (JSON de ~117 KB por
+  caso) comparando con y sin memoria. Medido: Asesor virtual ~1,5 s → ~0,25 s; Control de deuda ~1,4 s →
+  ~0,2 s; Comparar deuda ~0,4 s → ~0,3 s; llamadas al desglose 40.176 → 124 (Asesor virtual) y
+  6.448 → 124 (Control de deuda). Un primer intento con `const` declarada junto a la función provocó un
+  error de zona muerta temporal (la función se invoca durante la carga del script); lo detectó la
+  medición en navegador, no los tests `vm`. `app.js` queda exactamente en su techo de ARQ-4 (37.530
+  líneas): no se subió el techo.
+- **P2 · SheetJS diferido.** `index.html` ya no carga `vendor/xlsx.full.min.js` (882 KB) al arrancar;
+  `xlsx-loader.js` (nuevo, 780 B minificado) lo pide la primera vez que se importa un Excel (Registrar,
+  Datos) o se exporta el informe. Sigue en la caché offline y en el build. Los avisos de fallo dicen ahora
+  «No se pudo cargar la librería de Excel…» (antes «todavía está cargando», que ya no describe nada). Se
+  retiró `dataset.xlsxReady` (nadie lo leía). Verificado en navegador: no se pide al arrancar, se carga al
+  elegir un fichero. Matiz honesto: en la primera visita el Service Worker sigue precacheando el fichero
+  en segundo plano; el ahorro es de ruta crítica y de parseo/ejecución en cada carga, no de bytes totales
+  de la primera visita.
+- **P3 · Supabase sin CDN.** `supabase-js@2` (jsDelivr, sin versión fija ni SRI, y un `<script defer>` lento
+  retrasa `DOMContentLoaded`) pasa a `vendor/supabase-js-2.117.2.umd.js` (mismo UMD de npm, SHA-256
+  vigilado en test), precacheado y copiado sin reminificar. La guarda de privacidad exime solo a
+  `vendor/` (la librería contiene la ruta REST `/users/`, falso positivo del patrón `/Users/`, igual que
+  xlsx). Comprobado sin red: sin sesión no hay peticiones a Supabase al arrancar; con sesión guardada y sin
+  red la app queda en «Local», sin errores de página y con navegación intacta (la librería reintenta el
+  refresco de token). **Cambio de comportamiento a tener presente**: antes, sin la CDN la app nunca
+  intentaba el modo remoto; ahora, con sesión guardada, sí lo intenta y degrada como ante una caída de red
+  a mitad de sesión.
+- **P4 · presupuesto por pantalla.** `tests/p4-presupuesto-pantallas.spec.cjs` (proyecto `perf-screens`,
+  `npm run test:perf-screens`, paso nuevo en `pages.yml` tras axe): mide Asesor virtual, Control de deuda,
+  Comparar deuda y Planificación de partidas con dos tipos de tope — **determinista** (llamadas al desglose
+  ≤ 1.000 / 500 / 3.000; medido 124 / 124 / 1.612) y **tiempo** holgado (mediana de 3 ≤ 1.200 ms, ≤ 3.000
+  ms Planificación). Demostrado que muerde: desactivando la memoria de P1 el spec falla con 6.448 llamadas.
+  `tests/ola1-p4-presupuesto-pantallas-wiring.test.cjs` vigila que siga cableado y sin relajar.
+- **Validación**: `npm run verify` completo en verde — `npm test` **4905/4905**, ESLint, `tsc`, `test:a11y`,
+  `test:performance`, `build:site`, `test:privacy`, `test:smoke`; además en navegador `test:e2e` 8/8,
+  `test:a11y-axe` 6/6, `test:mobile-overflow` (201 visitas sin contenido cortado) y `test:perf-screens`.
+  `test:performance-lh` (Lighthouse) solo corre en el CI: en este contenedor las medianas son ruido de CPU
+  compartida (ver nota de `.lighthouserc.cjs`). `DOMContentLoaded` en local, mediana de 5: 1.189 ms → 971 ms.
+- **Pendiente detectado, sin tocar**: Planificación de partidas sigue en ~1,0-1,4 s (337.063 llamadas a
+  `actualAwareInfo` desde `visualRowsForSection`, render propio de la pantalla, fuera del alcance
+  acotado de P1); `app.js` sin margen de líneas (ARQ-4) — cualquier optimización futura ahí debe restar
+  líneas o extraer a un fichero. P5-P8 del plan (guardado incremental, no persistir lo derivado, arranque
+  en dos fases, versiones `?v=` generadas por el build) siguen sin empezar.
+
 ## Cierre de sesión — 28 de septiembre de 2026 (260): `OPT-9` — auditados y corregidos los `!important` de `design-tokens.css`/`p2.css`, verificado con valor computado real
 
 - **Qué se pidió**: segunda pasada de la auditoría de optimización de la sesión 259, pedida por el
