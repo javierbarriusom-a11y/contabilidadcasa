@@ -116,3 +116,58 @@ test.describe("P4 · coste de un render con muchos movimientos", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// Ola 2 · P6-lite: con ~6.300 movimientos el libro canónico completo (1,96 M de caracteres con 3.000) llevaba
+// localStorage a su techo (~5,2 M) y, con más, caía en silencio a memoryStorage mientras la interfaz decía
+// «guardado en este equipo». Se persiste solo lo que el motor no puede reconstruir (huella e historial).
+// Medido con 9.000 movimientos sembrados en este test: clave del libro ~8.100 caracteres (~36.000 con reales de
+// 24 meses), localStorage ~1,49 M, 0 claves en memoria; sin la compactación el libro (~5,5 M) no cabe y cae a
+// memoria (comprobado ejecutando este test contra el app.js anterior).
+test.describe("P6-lite · cuota de localStorage con muchos movimientos", () => {
+  test("con 9.000 movimientos el libro persistido es compacto, no cae a memoria y se regenera al recargar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html");
+    await page.waitForLoadState("networkidle");
+    const seeded = await page.evaluate(() => {
+      const categories = ["alimentacion", "transporte", "ocio", "salud", "hogar", "suministros", "restauracion", "ropa"];
+      const imported = Array.from({ length: 9000 }, (_, i) => {
+        const monthIndex = i % 36;
+        const month = `${2024 + Math.floor(monthIndex / 12)}-${String((monthIndex % 12) + 1).padStart(2, "0")}`;
+        const amount = i % 9 === 0 ? 2100 : -(8 + ((i * 37) % 190));
+        return { date: `${month}-${String((i % 27) + 1).padStart(2, "0")}`, movement: `COMPRA ${categories[i % 8].toUpperCase()} COMERCIO ${i % 57} REF ${i}`, amount, month, category: categories[i % 8], balance: null };
+      });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
+      refreshMovementRollups();
+      saveWorkbookOverride();
+      refreshCanonicalLedger("p6-lite-test");
+      saveLocalSnapshot();
+      return { memoryKeys: Object.keys(memoryStorage), entries: canonicalLedgerSnapshot.entries.length, fingerprint: canonicalLedgerSnapshot.fingerprint };
+    });
+    expect(seeded.entries).toBe(9000);
+    expect(seeded.memoryKeys, `claves que cayeron a memoria por falta de cuota: ${seeded.memoryKeys.join(", ")}`).toEqual([]);
+
+    await page.reload();
+    await page.waitForFunction(() => canonicalLedgerSnapshot?.entries?.length === 9000, null, { timeout: 60000 });
+    const after = await page.evaluate(() => {
+      const ledgerKey = Object.keys(localStorage).find((key) => key.startsWith("canonicalLedgerV1"));
+      return {
+        ledgerChars: localStorage.getItem(ledgerKey)?.length || 0,
+        totalChars: Object.entries(localStorage).reduce((sum, [key, value]) => sum + key.length + value.length, 0),
+        memoryKeys: Object.keys(memoryStorage),
+        fingerprint: canonicalLedgerSnapshot.fingerprint,
+        auditTrail: canonicalLedgerSnapshot.auditTrail.length,
+        entries: canonicalLedgerSnapshot.entries.length,
+      };
+    });
+    console.log("P6-lite con 9.000 movimientos:", JSON.stringify(after));
+    expect(after.ledgerChars, `clave del libro: ${after.ledgerChars} caracteres > tope 100000 (¿se vuelve a persistir lo derivado?)`).toBeLessThanOrEqual(100000);
+    expect(after.totalChars, `localStorage: ${after.totalChars} caracteres > tope 2500000`).toBeLessThanOrEqual(2500000);
+    expect(after.memoryKeys).toEqual([]);
+    expect(after.fingerprint, "la huella no cambia al regenerar el libro desde lo compactado").toBe(seeded.fingerprint);
+    expect(after.auditTrail, "el historial se conserva y no crece sin cambios de datos").toBeGreaterThanOrEqual(1);
+    expect(after.auditTrail).toBeLessThanOrEqual(2);
+    expect(pageErrors).toEqual([]);
+  });
+});

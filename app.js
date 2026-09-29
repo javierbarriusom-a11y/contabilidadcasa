@@ -1529,6 +1529,13 @@ function compactCanonicalDailyRun(run) {
   };
 }
 
+// Ola 2 · P6-lite: en localStorage solo hace falta lo que el motor no puede reconstruir (huella e historial de
+// auditoría). entries/actuals/balanceChecks son derivados —98 % del peso— y refreshCanonicalLedger() los
+// regenera entero en cada arranque. Copia: el snapshot en memoria y el payload remoto/copia siguen completos.
+function compactCanonicalLedgerForStorage(snapshot) {
+  return snapshot ? { ...snapshot, entries: [], actuals: [], balanceChecks: [] } : snapshot;
+}
+
 function compactCanonicalDailyRuns() {
   return ["base", "active", "planned"].reduce((runs, key) => {
     runs[key] = compactCanonicalDailyRun(canonicalDailyEngineRuns[key]);
@@ -2106,7 +2113,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("budgetPartidaOverrides"), JSON.stringify(budgetPartidaOverrides));
   storageSet(storageKey("budgetSurplusChoices"), JSON.stringify(budgetSurplusChoices));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
-  if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
+  if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(compactCanonicalLedgerForStorage(canonicalLedgerSnapshot)));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
   if (canonicalDailyEngineRuns) storageSet(storageKey(CANONICAL_DAILY_ENGINE_KEY), JSON.stringify(compactCanonicalDailyRuns()));
   if (canonicalDecisionRun) storageSet(storageKey(CANONICAL_DECISIONS_KEY), JSON.stringify(compactCanonicalDecisionRun(canonicalDecisionRun)));
@@ -2444,7 +2451,7 @@ function refreshCanonicalLedger(reason = "state-change") {
     canonicalLedgerSnapshot,
     { reason },
   );
-  storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
+  storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(compactCanonicalLedgerForStorage(canonicalLedgerSnapshot)));
   return canonicalLedgerSnapshot;
 }
 

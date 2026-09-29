@@ -103,6 +103,51 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de septiembre de 2026 (264): P6-lite — el libro canónico se persiste compacto en `localStorage`
+
+- **Qué se pidió**: hacer la versión reducida de P6 tras medir su viabilidad (ver el cierre 263 para el
+  diagnóstico de cuota).
+- **Viabilidad medida antes de tocar código** (Chromium, datos sintéticos, techo de `localStorage` medido en
+  ~5,2 M de caracteres en este Chromium; otros navegadores pueden tener otro):
+  - El libro (`canonicalLedgerV1`) pesa 1,96 M con 3.000 movimientos y el 98 % es derivado (`entries` 1,44 M,
+    `balanceChecks` 0,31 M, `actuals` 0,17 M). `refreshCanonicalLedger("startup-validation")` lo regenera
+    entero en cada arranque, así que lo persistido solo aporta la huella y el `auditTrail`.
+  - **Borrar la clave del todo no es viable**: pierde una entrada de historial (probado, 1 en vez de 2), que
+    es lo único irrecuperable. **Quitar `entries` del payload remoto tampoco**: `canonical-supabase-store.js`
+    construye una fila remota por movimiento a partir de ellas. Por eso se compacta solo la persistencia local.
+  - La comparación de recuperación al arrancar usa el payload completo guardado en IndexedDB
+    (`durable-outbox`), no el de `localStorage`; compactar lo local no puede provocar falsos conflictos.
+- **Implementado**: `compactCanonicalLedgerForStorage(snapshot)` (mismo patrón que `compactCanonicalDailyRuns`)
+  vacía `entries`/`actuals`/`balanceChecks` en las dos únicas escrituras del libro en `localStorage`
+  (`saveLocalSnapshot` y `refreshCanonicalLedger`). Devuelve una copia: el snapshot en memoria y
+  `appStatePayload()` (copia de seguridad y remoto) siguen completos. `app.js` queda en 37.528 líneas (techo
+  de ARQ-4 intacto). Sin cambios en `loadLocalState`.
+- **Medido con el cambio** (mismos datos sembrados, tras recargar): `localStorage` 3.000 mov. 2,81 M → 0,89 M;
+  6.000 mov. 5,00 M (96 % del techo) → 1,32 M; 9.000 mov. desbordaba y el libro caía a `memoryStorage` →
+  1,74 M sin fallos; 20.000 mov. → 3,31 M (64 %). El techo pasa de ~6.300 a ~33.000 movimientos (extrapolado
+  desde 9.000 → 20.000); con ~250 movimientos al mes (supuesto), de ~2 años de historia a ~11. Arranque igual o
+  algo mejor; el libro era ~18 de los 22 ms de cada guardado.
+- **Fidelidad**: reconstruir desde lo compactado da la misma huella y el mismo historial (sin entrada espuria
+  sin cambios de datos; con cambios, encadenada a la huella anterior); Cierre, Conciliar y Hoy renderizan sin
+  errores. **Migración automática**: un usuario con el libro completo guardado por la versión anterior pasa de
+  1.955.588 a 36.028 caracteres en la primera carga, con la misma huella y el historial intacto.
+- **Guardas**: `tests/ola2-p6-ledger-compacto.test.cjs` (con el motor real `canonical-ledger.js`: compactación,
+  no mutación del snapshot, huella e historial, dos escrituras y payload completo) y un test de navegador con
+  9.000 movimientos en `tests/p4-presupuesto-pantallas.spec.cjs` (clave del libro ≤ 100.000 caracteres,
+  `localStorage` ≤ 2,5 M, 0 claves en memoria, huella estable al recargar). Demostrado que muerde: contra el
+  `app.js` anterior falla con `canonicalLedgerV1` cayendo a memoria.
+- **Validación**: `npm run verify` completo en verde (`npm test` **4914/4914**, ESLint, `tsc`, a11y,
+  performance, build, privacidad, smoke); en navegador `test:e2e` 8/8, `test:a11y-axe` 6/6,
+  `test:mobile-overflow` (201 visitas) y `test:perf-screens` (3 pruebas).
+- **Pendiente, sin tocar**: (1) el coste remoto por guardado —con sesión, cada guardado inserta una copia
+  completa del estado en `finance_state_snapshots` (2,82 MB con 3.000 movimientos; «nunca se borran
+  automáticamente») y hace upsert de una fila por movimiento (3.696 filas, 2,90 MB): ~5,7 MB por guardado con
+  3.000 movimientos y ~10,3 MB con 6.000; no medible sin backend, a la espera de que el hogar compruebe el
+  tamaño real de esa tabla; (2) el siguiente techo local pasa a ser `financeDashboard:workbookOverride:v1`
+  (guarda las transacciones, ~0,15 M por cada 1.000); (3) la interfaz sigue diciendo «Cambios guardados en este
+  equipo» aunque una clave caiga a memoria (aviso opcional, ~3 líneas); (4) `expenseTimingFromMovements`
+  (~237 ms con 3.000 movimientos) es el siguiente candidato de coste por movimiento.
+
 ## Cierre de sesión — 29 de septiembre de 2026 (263): coste de arrancar y editar con muchos movimientos — medido y corregido (`availableSeriesRows`)
 
 - **Qué se pidió**: medir el coste de arrancar y guardar (antes de decidir si merecían la pena el guardado
