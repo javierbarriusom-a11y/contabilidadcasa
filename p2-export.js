@@ -87,7 +87,9 @@
     downloadPlainPdf(lines, fileName) {
       download(pdfBlob(lines), fileName);
     },
-    downloadExcel(model, fileName) {
+    async downloadExcel(model, fileName) {
+      // Ola 1 · P2: SheetJS se carga bajo demanda (ver xlsx-loader.js).
+      await root.ensureXlsx();
       root.XLSX.writeFile(workbook(model), fileName);
     },
   };

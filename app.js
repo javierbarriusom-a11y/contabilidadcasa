@@ -24478,8 +24478,8 @@ async function handleDatosImportarFile(event) {
   let transactions = [];
   try {
     if (isExcel) {
-      if (!window.XLSX || typeof window.XLSX.read !== "function") {
-        datosImportarShowStep1Note("Excel todavía está cargando: pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", true);
+      if (!(await window.xlsxReady())) {
+        datosImportarShowStep1Note("No se pudo cargar la librería de Excel. Comprueba la conexión y vuelve a intentarlo (o importa un CSV).", true);
         return;
       }
       const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
@@ -26595,8 +26595,8 @@ async function handleExcelImport(event) {
     event.target.value = "";
     return;
   }
-  if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger");
+  if (!(await window.xlsxReady())) {
+    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -26664,8 +26664,8 @@ async function processRegistrarExcelFile(file) {
     stageE7Import(records, file.name, "registrar");
     return;
   }
-  if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger", "registrarBatchLog");
+  if (!(await window.xlsxReady())) {
+    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger", "registrarBatchLog");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -36165,7 +36165,6 @@ async function init() {
   applyVariableOperationalMayZeroDefault();
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
-  document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
   updateSourceNote();

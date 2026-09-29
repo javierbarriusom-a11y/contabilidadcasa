@@ -103,6 +103,7 @@ const files = [
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",
+  "xlsx-loader.js",
   "p2-ui.js",
   "supabase-config.js",
   "debt-roadmap.html",

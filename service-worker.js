@@ -104,6 +104,7 @@ const SHELL_URLS = [
   "./p2-domain.js",
   "./p2-private-store.js",
   "./p2-export.js",
+  "./xlsx-loader.js",
   "./p2-ui.js",
   "./debt-roadmap.html",
   "./vendor/xlsx.full.min.js",
