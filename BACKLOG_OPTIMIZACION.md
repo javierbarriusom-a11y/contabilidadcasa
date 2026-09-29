@@ -20,9 +20,10 @@
 > **P2** SheetJS (882 KB) cargado bajo demanda, **P3** `supabase-js` fijado y servido desde el propio
 > origen, **P4** presupuesto de rendimiento por pantalla en el CI (`npm run test:perf-screens`).
 > **`OPT-17` queda matizada:** su descarte se calculó sin contar `xlsx` (23 % del JS publicado), que sí era
-> diferible sin ES modules. Pendientes de la misma auditoría: P5 guardado incremental, P6 no persistir lo
-> derivado, P7 arranque en dos fases, P8 versiones `?v=` generadas por el build, y Planificación de
-> partidas (~1,0 s). Detalle y cifras en el cierre de sesión 261 de `PROJECT_STATE.md`.
+> diferible sin ES modules. **Ola 2 (sesión 262):** Planificación de partidas ✅ (~1,05 s → ~0,2 s, bucle con
+> invariante izada); **P8 descartada** (reescribir los `?v=` ya se había rechazado con motivo en el build).
+> Pendientes de la misma auditoría: P5 guardado incremental, P6 no persistir lo derivado, P7 arranque en
+> dos fases. Detalle y cifras en los cierres de sesión 261 y 262 de `PROJECT_STATE.md`.
 
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
