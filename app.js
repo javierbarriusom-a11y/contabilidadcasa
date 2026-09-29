@@ -12051,9 +12051,9 @@ function partidasSimPreviewRowHtml(months) {
 // "Disponible para traspaso" (los cuatro heredados) se queda en la pantalla legacy a propósito: no
 // mide el impacto de una decisión, depende de saldos reales de cuenta y de la fecha de nómina.
 function partidasTotalsByKind(months, kind) {
-  const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
+  const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind).map((section) => ({ section, rows: visualRowsForSection(section, months) }));
   return months.map((month) =>
-    round2(sections.reduce((sum, section) => sum + visualSectionTotal(section, visualRowsForSection(section, months), months, "planned", month), 0)),
+    round2(sections.reduce((sum, { section, rows }) => sum + visualSectionTotal(section, rows, months, "planned", month), 0)),
   );
 }
 

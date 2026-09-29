@@ -103,6 +103,33 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de septiembre de 2026 (262): Ola 2 (parte 1) — Planificación de partidas ~1,05 s → ~0,2 s; P8 descartada con motivo
+
+- **Qué se pidió**: continuar con la Ola 2 del plan de optimización; se acordó empezar por Planificación de
+  partidas y las versiones `?v=` (el usuario respondió «ok» a esa propuesta concreta).
+- **Planificación de partidas.** `partidasTotalsByKind` calculaba `visualRowsForSection(section, months)`
+  **dentro** del bucle por mes, aunque no depende del mes: 504 de 510 llamadas al abrir la pantalla y
+  337.063 llamadas a `actualAwareInfo` por debajo. Se iza fuera del bucle (una llamada por sección), sin
+  líneas netas nuevas en `app.js` (sigue en su techo de ARQ-4). Medido en Chromium: `actualAwareInfo`
+  337.063 → 5.313; apertura ~1,05 s → ~0,2 s. Resultado **idéntico** a la implementación original con los
+  datos reales del demo (126 meses, ingresos y gastos) y en test con stubs. El presupuesto de P4 pasa a
+  vigilar esta pantalla también de forma determinista (≤ 20.000 llamadas a `actualAwareInfo`, medido 5.313)
+  y con tope de tiempo de 1.500 ms (antes 3.000).
+- **P8 (versiones `?v=` generadas por el build) — descartada, no ejecutada.** El plan la daba por
+  necesaria, pero al abrir `tools/build-public-site.mjs` el comentario sobre `cacheVersion` documenta que
+  reescribir los `?v=` se descartó a propósito: con el Service Worker instalado los ignora (`ignoreSearch`)
+  y el único interruptor real es `CACHE_NAME`, que ya se regenera en cada build; además
+  `tests/opt3-minify-dist.test.cjs` fija que `index.html` se publica tal cual. El incidente que la
+  motivaba (recursos fuera de la caché offline) lo cubre `tests/arq5-cache-offline-completa.test.cjs`.
+  El único riesgo residual es una caché HTTP obsoleta (GitHub Pages, ~10 min) en visitas sin Service
+  Worker: no justifica revertir una decisión razonada. Retirada del plan.
+- **Validación**: `npm run verify` completo en verde (`npm test` **4907/4907**, ESLint, `tsc`, a11y,
+  performance, build, privacidad, smoke); en navegador `test:e2e` 8/8, `test:a11y-axe` 6/6,
+  `test:mobile-overflow` (201 visitas) y `test:perf-screens`.
+- **Pendiente**: P5 (guardado incremental, toca el contrato del payload), P6 (no persistir lo derivado,
+  hay que medir primero el coste de recalcular al arrancar) y P7 (arranque en dos fases) siguen sin
+  empezar; `app.js` sin margen de líneas.
+
 ## Cierre de sesión — 29 de septiembre de 2026 (261): Ola 1 de optimización (P1-P4) — rendimiento medido en navegador, sin funcionalidad nueva
 
 - **Qué se pidió**: análisis crítico de la app y plan de mejora «sin nuevas funcionalidades,
