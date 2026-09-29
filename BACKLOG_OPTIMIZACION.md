@@ -26,8 +26,11 @@
 > movimientos por `availableSeriesRows` reconstruida por movimiento → ✅ corregido (con 3.000 movimientos:
 > arranque 2,24 → 1,40 s, edición 1,76 → 0,69 s). **P5 guardado incremental descartada** (guardar cuesta ~20 ms);
 > **P6 reformulada** (cuota de `localStorage` y payload remoto, no velocidad; sin ejecutar) y P7 subsumida.
-> Pendiente: `expenseTimingFromMovements` y el resto del coste que crece con los movimientos. Detalle y cifras
-> en los cierres de sesión 261, 262 y 263 de `PROJECT_STATE.md`.
+> **P6-lite ✅ (sesión 264):** el libro canónico se persiste compacto en `localStorage` (`entries`/`actuals`/
+> `balanceChecks` son derivados y se regeneran al arrancar); techo de ~6.300 a ~33.000 movimientos, migración
+> automática, huella e historial intactos. **Pendiente:** coste remoto por guardado (~5,7 MB con 3.000
+> movimientos; a la espera del tamaño real de `finance_state_snapshots`), `expenseTimingFromMovements` y
+> `workbookOverride` como siguiente techo local. Detalle y cifras en los cierres 261 a 264 de `PROJECT_STATE.md`.
 
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
