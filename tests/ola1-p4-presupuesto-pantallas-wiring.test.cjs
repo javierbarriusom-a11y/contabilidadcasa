@@ -25,11 +25,13 @@ test("proyecto perf-screens, script npm y paso del workflow apuntan al mismo spe
 
 test("los topes deterministas de llamadas siguen en el orden de magnitud medido tras P1", () => {
   const spec = read("tests/p4-presupuesto-pantallas.spec.cjs");
-  const limits = Object.fromEntries([...spec.matchAll(/hash: "([^"]+)", maxMs: (\d+), maxBreakdownCalls: (\d+|null)/g)].map((m) => [m[1], { ms: Number(m[2]), calls: m[3] === "null" ? null : Number(m[3]) }]));
+  const limits = Object.fromEntries([...spec.matchAll(/hash: "([^"]+)", maxMs: (\d+), counted: [^,]+, maxCalls: (\d+)/g)].map((m) => [m[1], { ms: Number(m[2]), calls: Number(m[3]) }]));
   assert.deepEqual(Object.keys(limits).sort(), ["debt-control", "deuda-comparar", "planificacion-partidas", "virtual-advisor"]);
   // Antes de P1 el Asesor virtual llegaba a 40.176 llamadas: cualquier tope por encima de 2.000 no lo vigilaría.
   assert.ok(limits["virtual-advisor"].calls <= 2000);
   assert.ok(limits["debt-control"].calls <= 1000);
   assert.ok(limits["deuda-comparar"].calls <= 4000);
-  for (const screen of Object.values(limits)) assert.ok(screen.ms <= 3000, "el tope de tiempo es una red de seguridad, no un permiso para volver a 1,5 s en pantallas ya optimizadas");
+  // Antes de la Ola 2, Planificación de partidas llegaba a 337.063 llamadas a actualAwareInfo.
+  assert.ok(limits["planificacion-partidas"].calls <= 50000);
+  for (const screen of Object.values(limits)) assert.ok(screen.ms <= 1500, "el tope de tiempo es una red de seguridad, no un permiso para volver a 1,5 s en pantallas ya optimizadas");
 });
