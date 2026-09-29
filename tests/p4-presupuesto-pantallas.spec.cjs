@@ -70,3 +70,49 @@ test.describe("P4 · presupuesto de rendimiento por pantalla", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// Ola 2 · prioridad 1: el coste crecía con el nº de movimientos (mappingForMovement reconstruía y
+// reordenaba la lista de partidas por CADA movimiento: 21.004 reconstrucciones en el arranque con
+// 3.000 movimientos, ~1,9 s de bloqueo en cada edición). El demo público no trae movimientos, así que
+// este test los siembra (mismo camino que la importación real: mergeTransactions +
+// refreshMovementRollups). Tope determinista: llamadas a isPlanningRowSeriesDeleted durante un render
+// (cada reconstrucción de la lista la llama una vez por partida). Medido: 89.745 llamadas y ~340 ms con la
+// memoria; 452.850 y ~1.150 ms sin ella. Tope de tiempo: red de seguridad holgada.
+test.describe("P4 · coste de un render con muchos movimientos", () => {
+  test("con 3.000 movimientos, un render no reconstruye la lista de partidas por movimiento", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => {
+      const categories = ["alimentacion", "transporte", "ocio", "salud", "hogar", "suministros", "restauracion", "ropa"];
+      const imported = Array.from({ length: 3000 }, (_, i) => {
+        const monthIndex = i % 36;
+        const month = `${2024 + Math.floor(monthIndex / 12)}-${String((monthIndex % 12) + 1).padStart(2, "0")}`;
+        const amount = i % 9 === 0 ? 2100 : -(8 + ((i * 37) % 190));
+        return { date: `${month}-${String((i % 27) + 1).padStart(2, "0")}`, movement: `COMPRA ${categories[i % 8].toUpperCase()} COMERCIO ${i % 57} REF ${i}`, amount, month, category: categories[i % 8], balance: null };
+      });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
+      refreshMovementRollups();
+    });
+    const runs = [];
+    for (let i = 0; i < 3; i += 1) {
+      runs.push(await page.evaluate(() => {
+        let calls = 0;
+        const original = window.isPlanningRowSeriesDeleted;
+        window.isPlanningRowSeriesDeleted = function counted(...args) { calls += 1; return original.apply(this, args); };
+        const started = performance.now();
+        render();
+        const ms = Math.round(performance.now() - started);
+        window.isPlanningRowSeriesDeleted = original;
+        return { ms, calls };
+      }));
+    }
+    const median = runs.map((run) => run.ms).sort((a, b) => a - b)[1];
+    const calls = Math.max(...runs.map((run) => run.calls));
+    console.log("P4 render con 3.000 movimientos:", JSON.stringify({ medianMs: median, maxCalls: calls, runs: runs.map((run) => run.ms) }));
+    expect(calls, `${calls} llamadas a isPlanningRowSeriesDeleted por render > tope 150000 (¿se vuelve a reconstruir la lista de partidas por movimiento?)`).toBeLessThanOrEqual(150000);
+    expect(median, `render con 3.000 movimientos: mediana ${median} ms > tope 1500 ms`).toBeLessThanOrEqual(1500);
+    expect(pageErrors).toEqual([]);
+  });
+});

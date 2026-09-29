@@ -103,6 +103,56 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de septiembre de 2026 (263): coste de arrancar y editar con muchos movimientos — medido y corregido (`availableSeriesRows`)
+
+- **Qué se pidió**: medir el coste de arrancar y guardar (antes de decidir si merecían la pena el guardado
+  incremental, no persistir lo derivado y el arranque en dos fases) y, con los datos, implementar la
+  prioridad 1 que salió de esa medición.
+- **Medición** (Chromium sobre `dist/`, contenedor con CPU compartida; el demo público no trae movimientos,
+  así que se sembraron datos sintéticos: N movimientos en 36 meses, 8 categorías, reales de 24 meses —
+  sirve para ver cómo escala el coste, no como cifra exacta del hogar):
+  - **Arrancar y editar crecían con los movimientos**: ~0,45 s de arranque por cada 1.000 movimientos y el
+    mismo orden de magnitud de bloqueo en cada edición (`render` repite casi todo el arranque). Con 3.000
+    movimientos: arranque 2,24 s, edición 1,76 s. Causa única: `mappingForMovement` (21.000 llamadas en el
+    arranque, 7 por movimiento, porque `p2MovementRows` corre 5 veces por `render`) reconstruía y reordenaba
+    `availableSeriesRows(kind)` en CADA llamada (21.004 reconstrucciones): 1,97 de los 2,1 s de `init`.
+  - **Guardar es barato**: `saveLocalSnapshot` completo ~20 ms con 3.000 movimientos (10 ms de
+    `JSON.stringify`); una edición dispara 3 guardados (~70 ms). **El guardado incremental (P5) queda
+    descartado**: ahorraría <20 ms por guardado a cambio de tocar el contrato de la copia y de la cola
+    remota.
+  - **Cuota de `localStorage` (P6, reformulada)**: el 98 % de lo que se escribe es derivado y recalculable
+    (`canonicalLedgerV1` 1,95 M de caracteres con 3.000 movimientos, `canonicalStateV1` 0,24 M,
+    `canonicalDailyEngineV1` 0,12 M). Techo medido ~5,2 M de caracteres: con 6.000 movimientos está al 96 %
+    y con ~7.000 el libro derivado cae en silencio a `memoryStorage` (la interfaz sigue diciendo «Cambios
+    guardados en este equipo»). En las pruebas siempre falla el derivado, nunca un dato del usuario (por el
+    orden de escritura, no por diseño defensivo). Además el payload remoto (`appStatePayload`) pesa 2,75 MB
+    con 3.000 movimientos, 71 % ese mismo libro, en cada guardado con sesión. Sin tocar todavía: primero
+    hay que medir el coste de recalcular el libro al arrancar y qué depende de que esté persistido.
+- **Implementado (prioridad 1)**: `availableSeriesRows` se memoiza dentro del alcance acotado de
+  `withPlanningBreakdownMemo` (P1 de la Ola 1), que ahora también envuelve `p2MovementRows` y
+  `canonicalLedgerTransactions` (bucles puros sobre los movimientos; nada escribe planificación dentro).
+  Fuera del alcance nunca cachea. De paso se deduplicaron los dos bucles casi idénticos de
+  `availableSeriesRows`, lo que deja `app.js` en 37.521 líneas (techo de ARQ-4 sin tocar, margen 9).
+  Medido con los mismos 3.000 movimientos: `mappingForMovement` 1.973 → 254 ms, `p2MovementRows`
+  1.488 → 187 ms, `init` 2.139 → 986 ms; arranque 2,24 → 1,40 s y edición 1,76 → 0,69 s. Con 6.000
+  movimientos: arranque 3,42 → 2,12 s, edición 3,35 → 1,17 s. Resultado **idéntico byte a byte** (3.000
+  movimientos, 80 clasificados con casación exacta, una partida renombrada y una borrada; ~1,76 MB de
+  salida entre filas de movimientos, libro canónico y lista de series) y en test con la implementación
+  original como referencia.
+- **Guarda en el CI**: nuevo test en `tests/p4-presupuesto-pantallas.spec.cjs` que siembra 3.000
+  movimientos y mide un `render`: tope determinista de llamadas a `isPlanningRowSeriesDeleted` (≤ 150.000;
+  medido 89.745 con la memoria y 452.850 sin ella) y de tiempo (≤ 1.500 ms; ~340 ms con la memoria,
+  ~1.150 sin ella). Demostrado que distingue los dos estados ejecutándolo contra el `app.js` original.
+- **Validación**: `npm run verify` completo en verde (`npm test` **4911/4911**, ESLint, `tsc`, a11y,
+  performance, build, privacidad, smoke); en navegador `test:e2e` 8/8, `test:a11y-axe` 6/6,
+  `test:mobile-overflow` (201 visitas) y `test:perf-screens`.
+- **Pendiente detectado, sin tocar**: sigue habiendo un coste que crece con los movimientos
+  (~0,25 s por cada 1.000 en el arranque; antes ~0,45). Siguiente candidato en el perfil:
+  `expenseTimingFromMovements` (~237 ms con 3.000 movimientos, llamada por partida y mes, recorre
+  movimientos). Las pantallas que filtran movimientos llamando a `mappingForMovement` fuera de estos dos
+  bucles (p. ej. el filtro «Sin clasificar») no están dentro del alcance acotado. P6 y P7 siguen sin
+  empezar; P7 (arranque en dos fases) queda subsumida hasta volver a medir.
+
 ## Cierre de sesión — 29 de septiembre de 2026 (262): Ola 2 (parte 1) — Planificación de partidas ~1,05 s → ~0,2 s; P8 descartada con motivo
 
 - **Qué se pidió**: continuar con la Ola 2 del plan de optimización; se acordó empezar por Planificación de
