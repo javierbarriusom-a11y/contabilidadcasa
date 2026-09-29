@@ -103,6 +103,48 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de septiembre de 2026 (265): base de Supabase por encima del límite gratuito — diagnóstico real y guardados idénticos omitidos
+
+- **Qué pasó**: tras pedir al hogar tres comprobaciones (movimientos, tamaño remoto, despliegue), los datos
+  reales cambiaron la prioridad: **1.831 movimientos**, `localStorage` 2,50 M de caracteres (48 % del techo;
+  la versión previa a P6-lite), y en Supabase **0,521 de 0,5 GB (104 %) en plan gratuito**: 878 copias del
+  estado con solo 548 huellas distintas (38 % duplicadas), ~381 kB cada una, tabla de copias 341 MB,
+  `finance_audit_log` 97 MB; ~5 copias al día de media con un pico de 37 el 26-sep. Además un 500 en
+  `finance_state_snapshots` en la consola: al cargar con sesión la app descarga el `state` completo de las
+  últimas 20 copias (`loadRemoteState`) y de 30 en la auditoría, que con estas copias puede superar el tiempo
+  límite de Supabase (causa probable, sin confirmar). No lo causan los cambios de rendimiento de la Ola 1-2
+  (no tocaron código remoto). El 404 a `finance_households` es la tabla del hogar compartido sin instalar
+  (ruido inofensivo); los errores de `background.js`/`serviceWorker.js` son de extensiones del navegador.
+- **Limpieza (a mano, la ejecuta el hogar)**: la app no puede borrar copias (solo `select, insert`). Se
+  diseñó con freno: regla de retención (referenciadas por cabecera/cierres/reaperturas/comprobaciones, las
+  últimas 30 y una por día durante 60 días) — 85 copias conservadas y 794 a borrar (~291 MB) — con un bloque
+  `do` que aborta si el número a borrar no es el esperado, y `vacuum full` después. Las claves foráneas
+  rechazan borrar una copia referenciada; la tabla de copias no tiene disparador de auditoría (verificado en
+  `supabase_schema.sql`). Procedimiento completo en `docs/SUPABASE_MANTENIMIENTO.md`.
+- **Implementado — omitir guardados idénticos**: `canSkipUnchangedSave` y `loadSettledHead` en
+  `canonical-supabase-store.js`. Un guardado remoto se omite (sin ejecución de sincronización, sin copia, sin
+  filas, sin conciliación) solo si el estado tiene la misma huella que la cabecera que esta sesión dejó
+  **completa tras un guardado normal** y la cabecera remota sigue siendo esa copia. La cabecera «asentada» se
+  fija solo al completar la ejecución y, al cargar, únicamente si su ejecución quedó `complete` y no fue una
+  operación de cierre/reapertura/deshacer (`metadata.operation`), que no actualizan las filas derivadas.
+  Cualquier otro caso guarda como siempre; un guardado a medias no asienta nada. Cambios en `app.js`:
+  +5 líneas de lógica (compensadas acortando un comentario; queda en 37.530, exactamente el techo de ARQ-4),
+  `sync_id` añadido al `select` de la cabecera y `unchanged` en el resultado.
+- **Guardas**: `tests/ola2-guardado-remoto-sin-cambios.test.cjs` (lógica pura, `loadSettledHead` en 12 casos
+  y la función **real** `saveNormalizedRemoteState` extraída de `app.js` contra un cliente falso: primer
+  guardado sube todo, el idéntico hace **cero** peticiones, un cambio real sí guarda, una cabecera que avanzó
+  guarda igualmente, un fallo a medias no asienta y el reintento no se omite). Demostrado que muerde:
+  desactivando la omisión falla el recorrido completo.
+- **Validación**: `npm run verify` completo en verde (`npm test` **4920/4920**, ESLint, `tsc`, a11y,
+  performance, build, privacidad, smoke); en navegador `test:e2e` 8/8, `test:a11y-axe` 6/6,
+  `test:mobile-overflow` (201 visitas) y `test:perf-screens` (3 pruebas). **No comprobado contra un Supabase
+  real** (sin backend en este entorno): la lógica se validó con un cliente simulado.
+- **Pendiente**: (1) que el arranque no descargue el `state` de 20 copias (solo metadatos + la copia activa,
+  el resto bajo demanda) — probable causa del 500; (2) origen del crecimiento de `finance_audit_log`
+  (~16 actualizaciones reales por fila; hace falta ver qué campo cambia en cada guardado antes de tocar
+  nada); (3) enviar solo las filas que cambian en vez de las ~3.700 de cada guardado; (4) confirmar con el
+  hogar el resultado de la limpieza y el tamaño final de la base.
+
 ## Cierre de sesión — 29 de septiembre de 2026 (264): P6-lite — el libro canónico se persiste compacto en `localStorage`
 
 - **Qué se pidió**: hacer la versión reducida de P6 tras medir su viabilidad (ver el cierre 263 para el

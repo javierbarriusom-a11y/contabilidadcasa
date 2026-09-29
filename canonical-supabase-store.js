@@ -369,6 +369,41 @@
     };
   }
 
+  /**
+   * Ola 2 · omitir guardados idénticos. Con sesión, cada guardado sube la copia completa del estado y ~3.700
+   * filas aunque nada haya cambiado (medido: 878 copias con solo 548 huellas distintas). Se omite ÚNICAMENTE si
+   * (a) esta sesión conoce una cabecera «asentada» —producida por un guardado normal terminado con éxito—,
+   * (b) la cabecera remota sigue siendo esa misma copia y (c) el estado nuevo tiene su misma huella. Cualquier
+   * otro caso (cabecera de otra sesión, de un cierre/reapertura de mes, o guardado a medias) guarda como siempre.
+   * @param {{snapshotId?: string, fingerprint?: string} | null | undefined} settled
+   * @param {{known?: boolean, snapshotId?: string | null}} head
+   * @param {string} fingerprint
+   */
+  function canSkipUnchangedSave(settled, head, fingerprint) {
+    return Boolean(
+      head?.known && settled?.snapshotId && text(fingerprint)
+      && settled.snapshotId === head.snapshotId && settled.fingerprint === fingerprint,
+    );
+  }
+
+  /**
+   * Cabecera remota «asentada» al cargar: solo si su ejecución de sincronización terminó (`complete`) y fue un
+   * guardado normal (sin `metadata.operation`: los cierres, reaperturas y deshacer no actualizan las filas
+   * derivadas). Nunca lanza: ante cualquier duda devuelve null y el guardado sigue su camino habitual.
+   * @param {*} client
+   * @param {{snapshot_id?: string, sync_id?: string, fingerprint?: string} | null | undefined} head
+   */
+  async function loadSettledHead(client, head) {
+    try {
+      if (!head?.snapshot_id || !head.sync_id || !head.fingerprint) return null;
+      const { data, error } = await client.from("finance_sync_runs").select("status, metadata").eq("id", head.sync_id).maybeSingle();
+      const normalSave = !error && data?.status === "complete" && !data?.metadata?.operation;
+      return normalSave ? { snapshotId: head.snapshot_id, fingerprint: head.fingerprint } : null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
     SCHEMA_ID,
     stableStringify,
@@ -380,5 +415,7 @@
     buildNormalizedBundle,
     isMissingSchemaError,
     selectAuthoritativeState,
+    canSkipUnchangedSave,
+    loadSettledHead,
   };
 });
