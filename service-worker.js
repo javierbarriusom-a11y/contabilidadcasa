@@ -108,6 +108,7 @@ const SHELL_URLS = [
   "./p2-ui.js",
   "./debt-roadmap.html",
   "./vendor/xlsx.full.min.js",
+  "./vendor/supabase-js-2.117.2.umd.js",
   // PERF-1: fragmentos de carga diferida (ver VIEW_CHUNKS en app.js). Se precachean igual que el
   // resto del shell para no perder la promesa de uso sin conexión — la ganancia de rendimiento
   // viene de que index.html no los carga al arrancar, no de dejarlos fuera de la caché offline.

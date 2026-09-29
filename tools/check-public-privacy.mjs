@@ -32,7 +32,7 @@ const dist = path.join(root, "dist");
 assert.ok(fs.existsSync(dist), "debe construirse dist antes de revisar el artefacto");
 for (const entry of fs.readdirSync(dist, { recursive: true })) {
   const target = path.join(dist, entry);
-  if (!fs.statSync(target).isFile() || /xlsx\.full\.min\.js$/.test(entry)) continue;
+  if (!fs.statSync(target).isFile() || /^vendor[\\/](xlsx\.full\.min|supabase-js-[\d.]+\.umd)\.js$/.test(entry)) continue;
   const contents = fs.readFileSync(target, "utf8");
   for (const pattern of forbidden) {
     assert.doesNotMatch(contents, pattern, `dist/${entry} contiene el patrón sensible ${pattern}`);
