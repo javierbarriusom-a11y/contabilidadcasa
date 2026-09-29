@@ -368,7 +368,7 @@ function recommendedDebtDecision() {
     ? 0
     : (parseAmount(qs("debtPayoffRelief")?.value) ?? debtMonthlyReliefForMode(target, mode));
   const duration = isDebtMultiMonthMode(mode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
-  return evaluateDebtCandidate(target, amount, relief, duration, "full", { resume: isDebtResumeMode(mode) });
+  return withPlanningBreakdownMemo(() => evaluateDebtCandidate(target, amount, relief, duration, "full", { resume: isDebtResumeMode(mode) }));
 }
 
 function handleAddDebtLiquidation() {

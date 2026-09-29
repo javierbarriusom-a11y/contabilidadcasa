@@ -14,6 +14,16 @@
 > `PROJECT_STATE.md`) — la tabla nunca se actualizó al cerrarlas. Corregido a `✅` con referencia a
 > la sesión; detalle en la ficha de cada tarea, más abajo.
 
+> **Ola 1 de rendimiento ejecutada el 29 de septiembre de 2026 (sesión 261).** Nueva auditoría medida
+> en navegador (no solo de código) → cuatro tareas de riesgo bajo, todas ✅: **P1** memoización acotada de
+> la ruta caliente de planificación (Asesor virtual ~1,5 s → ~0,25 s; Control de deuda ~1,4 s → ~0,2 s),
+> **P2** SheetJS (882 KB) cargado bajo demanda, **P3** `supabase-js` fijado y servido desde el propio
+> origen, **P4** presupuesto de rendimiento por pantalla en el CI (`npm run test:perf-screens`).
+> **`OPT-17` queda matizada:** su descarte se calculó sin contar `xlsx` (23 % del JS publicado), que sí era
+> diferible sin ES modules. Pendientes de la misma auditoría: P5 guardado incremental, P6 no persistir lo
+> derivado, P7 arranque en dos fases, P8 versiones `?v=` generadas por el build, y Planificación de
+> partidas (~1,0 s). Detalle y cifras en el cierre de sesión 261 de `PROJECT_STATE.md`.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento nace de una auditoría crítica pedida explícitamente por el usuario («analiza la app

@@ -27,5 +27,7 @@ module.exports = defineConfig({
     // OPT-4: axe-core contra las pantallas que QA-1 ya visita. Igual que "e2e", sin canal de Chrome
     // fijado — no comprueba píxeles, así que no necesita el Chrome real del proyecto "desktop".
     { name: "a11y", testMatch: "opt4-axe-accessibility.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
+    // P4: presupuesto de rendimiento por pantalla (tiempo de apertura + llamadas al desglose de planificación).
+    { name: "perf-screens", testMatch: "p4-presupuesto-pantallas.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
   ],
 });

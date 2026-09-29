@@ -154,7 +154,7 @@ test("R-9 · un XLSX arrastrado o elegido pasa por stageE7Workbook con destino �
   const calls = [];
   const { processRegistrarExcelFile } = sandboxWith(["processRegistrarExcelFile"], {
     qs: (id) => (id === "registrarExcelFileName" ? { textContent: "" } : null),
-    window: { XLSX: { read: () => ({ SheetNames: [] }) } },
+    window: { XLSX: { read: () => ({ SheetNames: [] }) }, xlsxReady: async () => true },
     buildFinanceDataFromWorkbook: (workbook, name) => ({ workbook, name }),
     stageE7Workbook: (...args) => calls.push(["stageE7Workbook", ...args]),
     showImportLog: (...args) => calls.push(["showImportLog", ...args]),
@@ -172,13 +172,13 @@ test("R-9 · sin la librería XLSX disponible, el aviso se pinta en registrarBat
   const calls = [];
   const { processRegistrarExcelFile } = sandboxWith(["processRegistrarExcelFile"], {
     qs: (id) => (id === "registrarExcelFileName" ? { textContent: "" } : null),
-    window: {},
+    window: { xlsxReady: async () => false },
     showImportLog: (...args) => calls.push(args),
   });
   const file = { name: "libro.xlsx", arrayBuffer: async () => new ArrayBuffer(4) };
   await processRegistrarExcelFile(file);
   assert.deepEqual(calls, [
-    ["Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger", "registrarBatchLog"],
+    ["No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger", "registrarBatchLog"],
   ]);
 });
 

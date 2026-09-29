@@ -103,10 +103,12 @@ const files = [
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",
+  "xlsx-loader.js",
   "p2-ui.js",
   "supabase-config.js",
   "debt-roadmap.html",
   "vendor/xlsx.full.min.js",
+  "vendor/supabase-js-2.117.2.umd.js",
   // PERF-1: fragmentos de vista con carga diferida (views/*.js). index.html nunca los referencia
   // con src="" —los inyecta app.js en tiempo de ejecución (ver VIEW_CHUNKS/loadViewChunk)—, así
   // que la comprobación automática de más abajo (recursos referenciados por index.html) no puede
@@ -203,7 +205,7 @@ fs.writeFileSync(
 // depende de encontrar el texto exacto `const CACHE_NAME = "...";`, con sus espacios, en el archivo
 // ya copiado.
 const minifyLoaders = { ".js": "js", ".css": "css" };
-const minifySkip = new Set(["vendor/xlsx.full.min.js", "service-worker.js"]);
+const minifySkip = new Set(["vendor/xlsx.full.min.js", "vendor/supabase-js-2.117.2.umd.js", "service-worker.js"]);
 for (const relative of files) {
   const loader = minifyLoaders[path.extname(relative)];
   if (!loader || minifySkip.has(relative)) continue;

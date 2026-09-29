@@ -188,6 +188,7 @@ let registrarSessionConsolidatedNote = "";
 // Plan solo desaparece al guardar, sin distinguir «nada pendiente» de «se acaba de guardar».
 let planMesConsolidatedNote = "";
 let savingsAgentPlanCache = { key: "", value: null };
+let planningBreakdownMemo = null; // Ola 1·P1: memoria con ALCANCE (solo dentro de withPlanningBreakdownMemo, sin escrituras; nunca global)
 const HEAVY_RENDER_VIEWS = new Set([
   "visual-detail",
   "executive-advisor",
@@ -6270,11 +6271,14 @@ function varianceClassForKind(kind, variance) {
   return Number(variance) > 0 ? "negative" : "positive";
 }
 
+// Ola 1·P1: pura y llamada en bucles fila×mes; caché acotada como propiedad (mismo idioma que shortDate).
 function normalizedText(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+  const raw = String(value || ""), cache = normalizedText.cache || (normalizedText.cache = new Map());
+  if (!cache.has(raw)) {
+    if (cache.size >= 5000) cache.clear();
+    cache.set(raw, raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+  }
+  return cache.get(raw);
 }
 
 function isCarPlanningRow(row) {
@@ -7658,6 +7662,19 @@ function gob12ApplyPackageToReal() {
   if (note) note.textContent = parts.length ? `Aplicado a real: ${parts.join(", ")}.` : "No había nada que aplicar a real — revisa los campos.";
 }
 
+function withPlanningBreakdownMemo(compute) {
+  if (planningBreakdownMemo) return compute();
+  planningBreakdownMemo = new Map();
+  try { return compute(); } finally { planningBreakdownMemo = null; }
+}
+
+function planningBreakdownMemoized(forecastIndex, date, options) {
+  if (!planningBreakdownMemo) return planningBreakdownForForecastMonth(forecastIndex, date, options);
+  const key = `${forecastIndex}|${monthKey(date)}|${options.useActuals !== false}`;
+  if (!planningBreakdownMemo.has(key)) planningBreakdownMemo.set(key, planningBreakdownForForecastMonth(forecastIndex, date, options));
+  return planningBreakdownMemo.get(key);
+}
+
 function canonicalEngineInput(projectOutflows = [], options = {}) {
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -7665,8 +7682,8 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
   const months = [];
   for (let i = 0; i < modelMonthCount(); i += 1) {
     const date = addMonths(start, i);
-    const detail = planningBreakdownForForecastMonth(i, date, options);
-    const incomeEvents = detail.incomeEvents || [];
+    const detail = planningBreakdownMemoized(i, date, options);
+    const incomeEvents = planningBreakdownMemo ? (detail.incomeEvents || []).slice() : detail.incomeEvents || [];
     const monthDate = dateFromMonthKey(detail.monthKey);
     const payrollDate = lastBusinessDayOfMonth(monthDate);
     const lastIncomeDay = incomeEvents.length
@@ -7687,7 +7704,7 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
       endOfMonthOutflows: detail.endOfMonthSpend,
       prePayrollIncome: detail.prePayrollIncome,
       incomeEvents,
-      expenseEvents: detail.expenseEvents || [],
+      expenseEvents: planningBreakdownMemo ? (detail.expenseEvents || []).slice() : detail.expenseEvents || [],
       mainPayrollDate: isoLocalDate(payrollDate),
       firstIncomeDateLabel: incomeEvents[0]?.dateLabel || dateWithMonthLabel(monthDate, 8),
       mainPayrollDateLabel: shortDate(payrollDate),
@@ -9307,7 +9324,7 @@ function debtDecisionFromValues({
   const monthlyRelief = debtTargetIsSuspended(target) || resumeMode ? 0 : (parsedRelief ?? defaultRelief);
   const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
   const optimized = forceOptimize || rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" || rawMode === "retomar-optimize";
-  const best = optimized ? evaluateDebtCandidate(target, amount || originalPrincipal, monthlyRelief, duration, "full", { resume: resumeMode }) : null;
+  const best = optimized ? withPlanningBreakdownMemo(() => evaluateDebtCandidate(target, amount || originalPrincipal, monthlyRelief, duration, "full", { resume: resumeMode })) : null;
   const monthIndex = optimized
     ? Number(best?.month?.index ?? monthIndexValue ?? 0)
     : Number(monthIndexValue || 0);
@@ -24461,8 +24478,8 @@ async function handleDatosImportarFile(event) {
   let transactions = [];
   try {
     if (isExcel) {
-      if (!window.XLSX || typeof window.XLSX.read !== "function") {
-        datosImportarShowStep1Note("Excel todavía está cargando: pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", true);
+      if (!(await window.xlsxReady())) {
+        datosImportarShowStep1Note("No se pudo cargar la librería de Excel. Comprueba la conexión y vuelve a intentarlo (o importa un CSV).", true);
         return;
       }
       const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
@@ -26578,8 +26595,8 @@ async function handleExcelImport(event) {
     event.target.value = "";
     return;
   }
-  if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger");
+  if (!(await window.xlsxReady())) {
+    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -26647,8 +26664,8 @@ async function processRegistrarExcelFile(file) {
     stageE7Import(records, file.name, "registrar");
     return;
   }
-  if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger", "registrarBatchLog");
+  if (!(await window.xlsxReady())) {
+    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger", "registrarBatchLog");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -36148,7 +36165,6 @@ async function init() {
   applyVariableOperationalMayZeroDefault();
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
-  document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
   updateSourceNote();

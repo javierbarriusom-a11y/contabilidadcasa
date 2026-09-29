@@ -510,10 +510,10 @@
       const p2 = state(); save({ ...p2, ownership: { ...p2.ownership, [select.dataset.ownerKey]: select.value } }); renderFamilyAndExport();
     }));
     target.querySelector("[data-owner-filter]")?.addEventListener("change", (event) => target.querySelectorAll("[data-owner-row]").forEach((row) => { row.hidden = event.target.value !== "all" && row.dataset.ownerRow !== event.target.value; }));
-    ["pdf", "xlsx"].forEach((format) => target.querySelector(`[data-export-${format}]`)?.addEventListener("click", () => {
+    ["pdf", "xlsx"].forEach((format) => target.querySelector(`[data-export-${format}]`)?.addEventListener("click", async () => {
       try {
         const p2 = state(); const version = p2.exportVersion; const model = bridge().exportModel(version);
-        if (format === "pdf") root.P2Export.downloadPdf(model, `informe-financiero-v${version}.pdf`); else root.P2Export.downloadExcel(model, `informe-financiero-v${version}.xlsx`);
+        if (format === "pdf") root.P2Export.downloadPdf(model, `informe-financiero-v${version}.pdf`); else await root.P2Export.downloadExcel(model, `informe-financiero-v${version}.xlsx`);
         save({ ...p2, exportVersion: version + 1, exportHistory: [...p2.exportHistory, { id: uid("export"), version, format, createdAt: new Date().toISOString() }] });
         renderFamilyAndExport();
       } catch (error) { notice(target.querySelector("[data-export-notice]"), error.message, true); }

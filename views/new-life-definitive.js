@@ -273,7 +273,7 @@ function lifeDefCustomDebtSteps(ctx, state) {
   const relief = debtMonthlyReliefForMode(target, mode) || Number(state.debtRelief || 0);
   const duration = Math.max(1, Number(state.debtDuration || 1));
   const optimized = mode.endsWith("-optimize") || mode === "optimize";
-  const best = optimized ? evaluateDebtCandidate(target, amount || targetPrincipal, relief, duration, "full", { resume: isDebtResumeMode(mode) }) : null;
+  const best = optimized ? withPlanningBreakdownMemo(() => evaluateDebtCandidate(target, amount || targetPrincipal, relief, duration, "full", { resume: isDebtResumeMode(mode) })) : null;
   const startIndex = Math.max(0, Number(best?.month?.index ?? state.debtMonthIndex ?? 0));
   const labelBase = `Deuda: ${debtTargetDisplayName(target)}`;
   if (isDebtResumeMode(mode)) {
