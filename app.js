@@ -2388,7 +2388,7 @@ function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
 }
 
 function canonicalLedgerTransactions() {
-  return (baseData?.transactions || []).map((transaction, index) => {
+  return withPlanningBreakdownMemo(() => (baseData?.transactions || []).map((transaction, index) => {
     const mapping = mappingForMovement(transaction);
     return {
       ...transaction,
@@ -2405,7 +2405,7 @@ function canonicalLedgerTransactions() {
           }
         : { status: "unclassified" },
     };
-  });
+  }));
 }
 
 function canonicalLedgerActuals() {
@@ -25723,31 +25723,23 @@ function updateManualDataKindUi() {
 }
 
 function availableSeriesRows(kind) {
+  const memoKey = `rows|${kind}`;
+  if (planningBreakdownMemo?.has(memoKey)) return planningBreakdownMemo.get(memoKey);
   const seen = new Set();
   const rows = [];
-  baseData.monthlyPlanning.sections
-    .filter((section) => section.kind === kind)
-    .forEach((section) => {
-      section.rows.forEach((row) => {
-        if (isPlanningRowSeriesDeleted(row, section.name)) return;
-        const key = seriesKeyForRow(row);
-        if (seen.has(key)) return;
-        seen.add(key);
-        rows.push({ ...row, sectionName: section.name });
-      });
-    });
-  customPlanningRows
-    .filter((row) => row.kind === kind)
-    .forEach((row) => {
-      if (isPlanningRowSeriesDeleted(row, row.sectionName)) return;
-      const key = seriesKeyForRow(row);
-      if (seen.has(key)) return;
-      seen.add(key);
-      rows.push(row);
-    });
-  return rows.sort((a, b) =>
+  const add = (row, section) => {
+    const sectionName = section ? section.name : row.sectionName;
+    if (isPlanningRowSeriesDeleted(row, sectionName) || seen.has(seriesKeyForRow(row))) return;
+    seen.add(seriesKeyForRow(row));
+    rows.push(section ? { ...row, sectionName } : row);
+  };
+  baseData.monthlyPlanning.sections.filter((section) => section.kind === kind).forEach((section) => section.rows.forEach((row) => add(row, section)));
+  customPlanningRows.filter((row) => row.kind === kind).forEach((row) => add(row));
+  rows.sort((a, b) =>
     `${a.sectionName} ${displayLabelForRow(a)}`.localeCompare(`${b.sectionName} ${displayLabelForRow(b)}`, "es"),
   );
+  planningBreakdownMemo?.set(memoKey, rows);
+  return rows;
 }
 
 function selectedSeriesRow() {
@@ -29757,7 +29749,7 @@ function p2SeriesRows(kind) {
 }
 
 function p2MovementRows() {
-  return (baseData?.transactions || []).map((transaction) => {
+  return withPlanningBreakdownMemo(() => (baseData?.transactions || []).map((transaction) => {
     const mapping = mappingForMovement(transaction);
     const rowKey = mapping?.row ? seriesKeyForRow(mapping.row) : "";
     const label = mapping?.row ? displayLabelForRow(mapping.row) : transaction.movement || transaction.details || "Movimiento";
@@ -29777,7 +29769,7 @@ function p2MovementRows() {
       reconciled: Boolean(mapping?.row),
       source: transaction.source || "extracto bancario",
     };
-  });
+  }));
 }
 
 function p2DebtRows() {

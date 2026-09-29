@@ -35,3 +35,10 @@ test("los topes deterministas de llamadas siguen en el orden de magnitud medido 
   assert.ok(limits["planificacion-partidas"].calls <= 50000);
   for (const screen of Object.values(limits)) assert.ok(screen.ms <= 1500, "el tope de tiempo es una red de seguridad, no un permiso para volver a 1,5 s en pantallas ya optimizadas");
 });
+
+test("el test de render con muchos movimientos sigue distinguiendo el estado optimizado del roto", () => {
+  const spec = read("tests/p4-presupuesto-pantallas.spec.cjs");
+  const cap = Number(spec.match(/toBeLessThanOrEqual\((\d+)\);\n    expect\(median, `render con 3\.000 movimientos/)?.[1]);
+  // Sin la memoria de availableSeriesRows el render hacía 452.850 llamadas; con ella, 89.745.
+  assert.ok(cap > 89745 && cap < 452850 / 2, `el tope (${cap}) debe quedar por encima de lo medido y muy por debajo del estado roto`);
+});

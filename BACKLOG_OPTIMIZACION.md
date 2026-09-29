@@ -22,8 +22,12 @@
 > **`OPT-17` queda matizada:** su descarte se calculó sin contar `xlsx` (23 % del JS publicado), que sí era
 > diferible sin ES modules. **Ola 2 (sesión 262):** Planificación de partidas ✅ (~1,05 s → ~0,2 s, bucle con
 > invariante izada); **P8 descartada** (reescribir los `?v=` ya se había rechazado con motivo en el build).
-> Pendientes de la misma auditoría: P5 guardado incremental, P6 no persistir lo derivado, P7 arranque en
-> dos fases. Detalle y cifras en los cierres de sesión 261 y 262 de `PROJECT_STATE.md`.
+> **Sesión 263:** medido el coste de arrancar y guardar con datos sembrados a escala; el coste crecía con los
+> movimientos por `availableSeriesRows` reconstruida por movimiento → ✅ corregido (con 3.000 movimientos:
+> arranque 2,24 → 1,40 s, edición 1,76 → 0,69 s). **P5 guardado incremental descartada** (guardar cuesta ~20 ms);
+> **P6 reformulada** (cuota de `localStorage` y payload remoto, no velocidad; sin ejecutar) y P7 subsumida.
+> Pendiente: `expenseTimingFromMovements` y el resto del coste que crece con los movimientos. Detalle y cifras
+> en los cierres de sesión 261, 262 y 263 de `PROJECT_STATE.md`.
 
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
