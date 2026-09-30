@@ -14,7 +14,7 @@
     // «plan» o «cierre» en el buscador se quedaba sin resultado con ese nombre. Deuda sí sigue sin
     // entrada propia a propósito — su nav apunta a `deuda-ruta`, que ya lleva "deuda" en sus
     // keywords.
-    { target: "planificacion-partidas", label: "Planificación de partidas", group: "main", keywords: "planificacion partidas forecast unificado confirmado provisional previsto real usado" },
+    { target: "planificacion-partidas", label: "Planificación de partidas", group: "analysis", keywords: "planificacion partidas forecast unificado confirmado provisional previsto real usado" },
     { target: "registrar", label: "Registrar", group: "main", keywords: "registrar saldo cuentas reales del mes extracto bancario lote excel puerta escritura datos previsto real usado" },
     { target: "plan", label: "Plan", group: "main", keywords: "plan previsto mes ahorro sobres reserva protegida colchon guardar sesion" },
     { target: "cierre", label: "Cierre", group: "main", keywords: "cierre conciliacion confianza del dato" },
@@ -43,13 +43,14 @@
     { target: "escenario-simular", label: "Escenario · simular", group: "main", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
-    { target: "deuda-ruta", label: "Plan de deuda · ruta", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
+    { target: "deuda-ruta", label: "Plan de deuda · ruta", group: "main", keywords: "deuda ruta plan libre nuevo e20" },
     { target: "deuda-contratos", label: "Contratos de deuda", group: "analysis", keywords: "deuda contratos capital tae cuota editar corregir nuevo e20 d-2" },
     { target: "deuda-simulador", label: "Simulador visual de deuda", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
     // I1 (Contabilidadcasa 2.0): hub único de Inversión, mismo patrón de pestañas que Deuda —
     // Cartera es la entrada principal del menú lateral; las otras 4 viven en Herramientas
-    // avanzadas, igual que las de Deuda de arriba.
-    { target: "inversion-cartera", label: "Inversión · Cartera", group: "analysis", keywords: "inversion cartera posiciones xirr rentabilidad registro i1" },
+    // avanzadas, igual que las de Deuda de arriba. Ola 1.4: `group` describe dónde vive la pantalla
+    // en el menú (`main` = entrada principal); un test cruza este campo con index.html.
+    { target: "inversion-cartera", label: "Inversión · Cartera", group: "main", keywords: "inversion cartera posiciones xirr rentabilidad registro i1" },
     { target: "inversion-rebalanceo", label: "Inversión · Rebalanceo", group: "analysis", keywords: "inversion rebalanceo objetivo reparto umbral desapalancar vender primero i1" },
     { target: "inversion-fiscal", label: "Inversión · Fiscal", group: "analysis", keywords: "inversion fiscal dividendos venta parcial compensacion perdidas plusvalia i1" },
     { target: "inversion-apalancamiento", label: "Inversión · Apalancamiento", group: "analysis", keywords: "inversion apalancamiento lombard margin call ltv deuda invertir i1" },
