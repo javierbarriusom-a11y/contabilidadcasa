@@ -76,6 +76,7 @@ test("los identificadores de las tres pantallas no cambian y siguen con su enlac
 });
 
 test("el estilo distingue la franja de familia (nivel superior) de las franjas internas, sin clases nuevas", () => {
-  assert.match(tokens, /\.e19-registrar-tabs\[aria-label="Pantallas de Plan"\] \{\s*margin-bottom: 14px;/);
-  assert.match(tokens, /\.e19-registrar-tabs\[aria-label="Pantallas de Plan"\] \.e19-registrar-tab \{\s*padding: 6px 12px;/);
+  // Desde la entrega 3 la regla cubre todas las franjas «Pantallas de …» (Plan y Escenarios).
+  assert.match(tokens, /\.e19-registrar-tabs\[aria-label\^="Pantallas de "\] \{\s*margin-bottom: 14px;/);
+  assert.match(tokens, /\.e19-registrar-tabs\[aria-label\^="Pantallas de "\] \.e19-registrar-tab \{\s*padding: 6px 12px;/);
 });
