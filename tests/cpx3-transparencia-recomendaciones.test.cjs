@@ -114,3 +114,33 @@ test("window.FinanceP2Bridge expone trackRecommendation y dismissRecommendation 
   assert.match(app, /trackRecommendation: cpx3TrackRecommendation,/);
   assert.match(app, /dismissRecommendation: cpx3DismissRecommendation,/);
 });
+
+test("cpx3TrackRecommendation · repetir la misma recomendación el mismo día no cambia el estado ni pide guardar (evita una copia remota por visita)", () => {
+  const ctx = sandbox();
+  ctx.cpx3TrackRecommendation(ACTION_A);
+  const before = JSON.stringify(ctx.scenarioSettings);
+  ctx.saved = false;
+  ctx.cpx3TrackRecommendation(ACTION_A);
+  ctx.cpx3TrackRecommendation(ACTION_A);
+  assert.equal(ctx.saved, false, "no vuelve a guardar los ajustes");
+  assert.equal(JSON.stringify(ctx.scenarioSettings), before, "el estado sincronizado queda idéntico");
+});
+
+test("cpx3TrackRecommendation · un cambio de etiqueta o de gravedad sí se guarda", () => {
+  const ctx = sandbox();
+  ctx.cpx3TrackRecommendation(ACTION_A);
+  ctx.saved = false;
+  ctx.cpx3TrackRecommendation({ ...ACTION_A, severity: "high" });
+  assert.equal(ctx.saved, true);
+  assert.equal(ctx.cpx3RecommendationLog()[0].severity, "high");
+});
+
+test("cpx3TrackRecommendation · si lastShownAt es de otro día se actualiza y se guarda", () => {
+  const ctx = sandbox();
+  ctx.cpx3TrackRecommendation(ACTION_A);
+  ctx.cpx3RecommendationLog()[0].lastShownAt = "2020-01-01T10:00:00.000Z";
+  ctx.saved = false;
+  const entry = ctx.cpx3TrackRecommendation(ACTION_A);
+  assert.equal(ctx.saved, true);
+  assert.notEqual(entry.lastShownAt.slice(0, 10), "2020-01-01");
+});

@@ -4929,6 +4929,8 @@ async function saveNormalizedRemoteState(payload) {
     sourceKey: sourceStateKey(),
   });
   if (store.canSkipUnchangedSave(remoteHeadSettled, { known: remoteHeadKnown, snapshotId: remoteHeadSnapshotId }, bundle.fingerprint)) return { mode: "normalized", unchanged: true, fingerprint: bundle.fingerprint };
+  // Sin cabecera conocida el guardado no puede completarse: se corta antes de subir la copia (antes dejaba una copia huérfana por intento).
+  if (!remoteHeadKnown) throw Object.assign(new Error("No se conoce la revisión remota de partida; recarga antes de guardar."), { code: "REMOTE_WRITE_CONFLICT", retryable: false });
   const startResult = await supabaseClient.from("finance_sync_runs").insert(bundle.syncRun);
   if (startResult.error) {
     if (store.isMissingSchemaError(startResult.error)) return { mode: "blocked", reason: "schema-missing" };
@@ -4940,12 +4942,7 @@ async function saveNormalizedRemoteState(payload) {
     if (snapshotResult.error) throw snapshotResult.error;
 
     let headResult;
-    if (!remoteHeadKnown) {
-      const error = new Error("No se conoce la revisión remota de partida; recarga antes de guardar.");
-      error.code = "REMOTE_WRITE_CONFLICT";
-      error.retryable = false;
-      throw error;
-    } else if (remoteHeadSnapshotId) {
+    if (remoteHeadSnapshotId) {
       headResult = await supabaseClient
         .from("finance_source_heads")
         .update(bundle.sourceHead)
@@ -13003,7 +13000,8 @@ function cpx3SignatureFor(action) {
 
 // Se llama en cada render de CP1 con la recomendación actual (o null si no hay ninguna). Una
 // recomendación nueva (concepto/cita distinta) abre una entrada nueva; la misma recomendación
-// seguida solo actualiza `lastShownAt`, para saber desde cuándo lleva abierta sin resolverse.
+// seguida solo actualiza `lastShownAt`, y a lo sumo una vez al día: escribirlo en cada render cambiaba
+// el estado sincronizado y creaba una copia remota completa por cada visita a la pantalla.
 function cpx3TrackRecommendation(action) {
   if (!action) return null;
   const signature = cpx3SignatureFor(action);
@@ -13012,6 +13010,7 @@ function cpx3TrackRecommendation(action) {
   const log = cpx3RecommendationLog();
   const existing = log.find((entry) => entry.signature === signature && !entry.dismissedAt);
   if (existing) {
+    if (existing.lastShownAt?.slice(0, 10) === now.slice(0, 10) && existing.label === action.label && existing.severity === action.severity) return existing;
     existing.lastShownAt = now;
     existing.label = action.label;
     existing.severity = action.severity;
