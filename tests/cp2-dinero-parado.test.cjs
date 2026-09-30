@@ -119,7 +119,7 @@ test("app.js: el puente expone idleCash para que p2-ui.js lo consuma", () => {
 });
 
 test("p2-ui.js: renderE16Monitoring pinta el dinero parado (CP2) en su propia sección, junto a CP1", () => {
-  assert.match(ui, /Dinero parado \(CP2\)/);
+  assert.match(ui, /Dinero parado/);
   assert.match(ui, /cp2IdleCashSignal\(\)/);
   assert.match(ui, /cp2IdleCashHtml\(idleCashSignal\)/);
 });

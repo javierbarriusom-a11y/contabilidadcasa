@@ -58,7 +58,7 @@ test("P-1 · el menú principal «Plan» aterriza en #plan, no en la heredada #c
 
 test("P-1 · #cuadro-mandos sigue existiendo y accesible desde Herramientas avanzadas (no se retira nada)", () => {
   assert.match(html, /id="cuadro-mandos"/);
-  assert.match(html, /<a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos \(nuevo\)<\/a>/);
+  assert.match(html, /<a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos<\/a>/);
 });
 
 test("P-1 · #plan trae sus tres pestañas y sus migajas", () => {

@@ -116,7 +116,7 @@ test("cp1NextBestActionHtml · con acción, muestra la etiqueta, el mensaje y la
 });
 
 test("p2-ui.js: renderE16Monitoring pinta la próxima mejor acción (CP1) en su propia sección", () => {
-  assert.match(ui, /Próxima mejor acción \(CP1\)/);
+  assert.match(ui, /Próxima mejor acción/);
   assert.match(ui, /cp1NextBestAction\(model\)/);
   assert.match(ui, /cp1NextBestActionHtml\(nextBestAction, cpx3Entry\)/);
 });

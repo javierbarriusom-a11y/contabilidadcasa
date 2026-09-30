@@ -126,5 +126,5 @@ test("app.js: pvx5CausalTreeHtml declara explícitamente que «evento puntual» 
   const block = appSource.slice(appSource.indexOf("function pvx5CausalTreeHtml("), appSource.indexOf("function pvx5CausalTreeHtml(") + 1600);
   assert.match(block, /Elige un mes con previsión calculada/);
   assert.match(block, /Evento puntual.*sale siempre en 0/);
-  assert.match(block, /Sin cambio de aprendizaje \(PV5\) registrado/);
+  assert.match(block, /Sin cambio de aprendizaje registrado/);
 });

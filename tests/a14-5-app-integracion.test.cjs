@@ -37,7 +37,7 @@ test("A14-5: renderE13ScenarioLab construye el laboratorio con los activos decla
   // 7200 a 7900 a 8400 a 10200 a 10900 a 11600, la comprobación sigue siendo la misma.
   const block = appSource.slice(appSource.indexOf("function renderE13ScenarioLab("), appSource.indexOf("function renderE13ScenarioLab(") + 11600);
   assert.match(block, /E13\.buildLab\(forecast, e13ScenarioEvents, \{ generatedAt: forecast\.generatedAt, assets: e13AssetsForLab\(\) \}\)/);
-  assert.match(block, /Patrimonio simulado \(A14-5\)/);
+  assert.match(block, /Patrimonio simulado/);
   assert.match(block, /e13AssetImpactHtml\(lab\.assetImpact\)/);
 });
 

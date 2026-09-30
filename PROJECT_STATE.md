@@ -103,6 +103,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (268): Ola 0 del plan de mejora de UX, entrega 1 — lenguaje visible
+
+- **Origen**: análisis de producto pedido por el hogar (UX/UI, experiencia de uso y funcionalidades, sin foco
+  técnico), hecho sobre la app real en escritorio y móvil con el dataset demo. Diagnóstico y plan por olas
+  registrados en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. Dato del hogar que condiciona el plan: **dos personas;
+  una registra y opera, la otra solo consulta**. `Registrar` se rediseña después de la Ola 1.
+- **Medición previa** (recorrido con navegador por las 59 secciones, solo texto visible, no comentarios): **63
+  líneas de jerga interna** en 14 pantallas — códigos de backlog entre paréntesis (`LEV14`, `INV17`, `GOB13`,
+  `CP1`…), «Fase 6/7», prefijos de entrega (`E8 ·`, `E16 ·`…), nombres de módulos de código en Hoy y
+  «(nuevo)» en 20 entradas del menú y del lanzador. Tras el cambio quedan 0 salvo `PSD2` (término real).
+- **Qué se cambió** (solo texto; ninguna lógica, cálculo, dato ni pantalla): 56 líneas con código entre
+  paréntesis eliminado por regla mecánica sobre texto visible (nunca comentarios), más 31 reescrituras a mano.
+  Las cabeceras de tarjeta pasan de «PV1 · autoajuste…» a «Autoajuste…». La cabecera de Registrar deja de decir
+  «Sustituye al formulario de Cuadro de mandos» y pasa a «Declara cuánto hay en cada cuenta». La línea «Fuente:»
+  de la cabecera (3 líneas en cada pantalla) queda en una, con el detalle en el tooltip. En Hoy, la cita técnica
+  de «Dinero parado» pasa a un desplegable «Ver por qué» (GOB17 la exige por trazabilidad: se conserva
+  el contenido, se quita de la vista por defecto). Un texto obsoleto de Calendario decía «falta A15-2» cuando el
+  estimador de IRPF ya existe: corregido.
+- **Pruebas**: 17 pruebas asertaban las cadenas antiguas (y 1 más, la de GOB18, apareció en `verify`); se
+  actualizaron a los textos nuevos. Donde una prueba usaba un código interno como señal de que existía un
+  chequeo (`PVC15`, `DEB14`, `INV17`, `LEV15`) se sustituyó por su texto legible equivalente, no se relajó.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929** (referencia previa: 4929/4929);
+  accesibilidad estructural con 1.403 IDs únicos; rendimiento: forecast y escenarios en 422,7 ms, recursos
+  2.149 KB; privacidad y smoke test correctos. Comprobado además en navegador recorriendo las 59 secciones.
+- **Caché offline**: no requiere subir versiones a mano; `tools/build-public-site.mjs` estampa `CACHE_NAME` con el
+  SHA del commit en cada despliegue.
+- **Pendiente de la Ola 0** (entregas siguientes, cada una con su PR): (2) marco de pantalla — un solo título,
+  cabecera y tira de estado colapsadas, barra lateral sin login ni escenario; (3) estados vacíos con siguiente
+  acción y sin colores de alarma cuando no hay datos, y una sola cifra coherente entre la cabecera y cada pantalla
+  (Deuda decía «sin fecha estimada» mientras su cabecera decía «ago 29»).
+
 ## Cierre de sesión — 30 de septiembre de 2026 (267): `canonicalLedgerSnapshot.reason` creaba una copia por carga
 
 - **Qué pasó**: tras desplegar la sesión 266, la prueba real del hogar (recargas sin editar) seguía creando un

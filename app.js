@@ -4009,7 +4009,7 @@ function updateSyncUi(message, tone = "local") {
       ? `Guardado a las ${new Date(lastLocalSaveAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
       : "Sin guardar todavía en esta sesión";
   }
-  durability.title = qs("sourceNote")?.textContent || "";
+  durability.title = qs("sourceNote")?.title || qs("sourceNote")?.textContent || "";
 }
 
 function durableOutboxId(userId = remoteUser?.id) {
@@ -4715,8 +4715,8 @@ function updateSourceNote() {
   const sourceNote = qs("sourceNote");
   if (!sourceNote || !baseData?.metadata) return;
   const sourceFile = (baseData.metadata.sourceWorkbook || "").split("/").pop() || "Excel financiero";
-  sourceNote.textContent =
-    `Fuente: ${sourceFile}. Lee Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y movimientos de cuenta.`;
+  sourceNote.textContent = `Fuente: ${sourceFile}`;
+  sourceNote.title = `Fuente: ${sourceFile}. Lee Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y movimientos de cuenta.`;
 }
 
 function initSupabaseClient() {
@@ -7631,7 +7631,7 @@ function gob12ApplyIncomeLossToReal(values) {
   const current = gob20IncomeAdjustments();
   saveGob20IncomeAdjustments([...current, {
     id: `gob20-${Date.now()}-${current.length + 1}`,
-    label: "Evento de vida (GOB12)",
+    label: "Evento de vida",
     monthlyAmount: values.incomeAmount,
     startMonthKey: values.incomeMonth,
     duration: values.incomeDuration,
@@ -15836,7 +15836,7 @@ function lev10CostCurveHtml(result) {
   return `<p>Con ${money(result.debtAmount, true)} de deuda nueva: coste anual combinado <strong>${money(result.annualCost, true)}</strong> (tipo medio ${result.blendedRatePct}%). El siguiente euro que pidas prestado costaría al <strong>${result.marginalRatePct}%</strong> — el tipo marginal del tramo en el que caes hoy.</p>
     <table class="e19-table"><thead><tr><th>Tramo</th><th>Tipo</th><th>Importe en el tramo</th><th>Coste anual</th></tr></thead><tbody>${rows}</tbody></table>
     ${compareLine}
-    <p class="e19-kpi-note">Tramos declarados por ti según ofertas reales de tu banco — nunca una curva de mercado inventada. No rellena «Tipo de la deuda nueva» por su cuenta: si quieres que el simulador de apalancamiento (AP3) lo use, escribe tú el tipo medio o el marginal arriba.</p>`;
+    <p class="e19-kpi-note">Tramos declarados por ti según ofertas reales de tu banco — nunca una curva de mercado inventada. No rellena «Tipo de la deuda nueva» por su cuenta: si quieres que el simulador de apalancamiento lo use, escribe tú el tipo medio o el marginal arriba.</p>`;
 }
 
 function renderLev10DebtCostCurve() {
@@ -16109,7 +16109,7 @@ function renderLev12ProactiveMarginCallAlert() {
   }
   const SEVERITY_LABEL = { critical: "llamada de garantía ya en marcha", high: "muy cerca del LTV de mantenimiento", medium: "acercándose al LTV de mantenimiento" };
   const severityClass = alert.severity === "critical" ? "negative" : "warning";
-  note.innerHTML = `<p class="e19-kpi-note ${severityClass}"><strong>Alerta proactiva de LTV (LEV12):</strong> ${alert.currentLtvPct}% de LTV frente al ${alert.maintenanceLtvPct}% de mantenimiento (${alert.ratioToMaintenancePct}% del camino recorrido) — ${SEVERITY_LABEL[alert.severity]}.</p>`;
+  note.innerHTML = `<p class="e19-kpi-note ${severityClass}"><strong>Alerta proactiva de LTV:</strong> ${alert.currentLtvPct}% de LTV frente al ${alert.maintenanceLtvPct}% de mantenimiento (${alert.ratioToMaintenancePct}% del camino recorrido) — ${SEVERITY_LABEL[alert.severity]}.</p>`;
 }
 
 // LEV11 (Oleada 4, Bloque 5): alcance reducido por el propio backlog — reutiliza tal cual la caída
@@ -16162,7 +16162,7 @@ function renderLev11PreventiveDeleveragingAlert() {
   const allocation = priority.calculable
     ? engine.preventiveDeleveragingAllocation({ amountToCover: marginCall.forcedLiquidationAmount, priorityRows: priority.rows })
     : { calculable: false };
-  const headline = `<p class="e19-kpi-note warning"><strong>Desapalancamiento preventivo (LEV11):</strong> con la caída ponderada estimada de tu cartera (${stress.weightedDropPct}%) ya se dispararía una llamada de garantía por ${money(marginCall.additionalCollateralNeeded, true)} de garantía adicional, o ${money(marginCall.forcedLiquidationAmount, true)} de liquidación forzosa — antes de que llegue a pasar de verdad, esto es lo que tocaría vender primero (LEV6):</p>`;
+  const headline = `<p class="e19-kpi-note warning"><strong>Desapalancamiento preventivo:</strong> con la caída ponderada estimada de tu cartera (${stress.weightedDropPct}%) ya se dispararía una llamada de garantía por ${money(marginCall.additionalCollateralNeeded, true)} de garantía adicional, o ${money(marginCall.forcedLiquidationAmount, true)} de liquidación forzosa — antes de que llegue a pasar de verdad, esto es lo que tocaría vender primero:</p>`;
   if (!allocation.calculable) {
     note.innerHTML = `${headline}<p class="e19-kpi-note">Sin posiciones con valor para priorizar la venta.</p>`;
     return;
@@ -16237,7 +16237,7 @@ function lev15MarginCallExitCostHtml(marginCallResult) {
   const cheaperLine = collateralCost <= liquidationTotalCost
     ? `Aportar garantía sale ${money(difference, true)} más barato en esta simulación.`
     : `La liquidación forzosa sale ${money(difference, true)} más barata en esta simulación.`;
-  return `<div class="e19-kpi-note"><p><strong>Coste comparado de las dos salidas (LEV15)</strong>:</p><ul class="commit-barrier-list">
+  return `<div class="e19-kpi-note"><p><strong>Coste comparado de las dos salidas</strong>:</p><ul class="commit-barrier-list">
       <li>Aportar garantía: <strong>${money(collateralCost, true)}</strong>, sin efecto fiscal (no es una venta).</li>
       <li>Liquidación forzosa: ${money(marginCallResult.forcedLiquidationAmount, true)} vendidos${fiscalNote} = <strong>${money(liquidationTotalCost, true)}</strong> de coste total.</li>
     </ul><p class="${collateralCost <= liquidationTotalCost ? "positive" : "negative"}">${cheaperLine} Ninguna de las dos se ejecuta sola: la elección final sigue siendo tuya.</p></div>`;
@@ -16853,8 +16853,8 @@ function dlx2SurplusAllocationHtml(allocation) {
   if (!allocation || !allocation.calculable) return "";
   const parts = [];
   if (allocation.toCushion > 0) parts.push(`${money(allocation.toCushion, true)} para reforzar el colchón hasta su suelo`);
-  if (allocation.toDebt > 0) parts.push(`${money(allocation.toDebt, true)} a amortizar deuda (AP1: amortizar gana)`);
-  if (allocation.toInvestment > 0) parts.push(`${money(allocation.toInvestment, true)} a invertir (AP1: invertir gana)`);
+  if (allocation.toDebt > 0) parts.push(`${money(allocation.toDebt, true)} a amortizar deuda (amortizar gana)`);
+  if (allocation.toInvestment > 0) parts.push(`${money(allocation.toInvestment, true)} a invertir (invertir gana)`);
   if (allocation.unassigned > 0) parts.push(`${money(allocation.unassigned, true)} sin reparto automático — AP1 no tiene un veredicto claro (empate o sin rentabilidad de cartera), decide tú`);
   if (!parts.length) return "";
   return `<p class="e19-kpi-note"><strong>Reparto automático del excedente (DLX2)</strong>: ${parts.join("; ")}.</p>`;
@@ -16877,10 +16877,10 @@ function deb2DimensionHtml(allocation) {
   });
   if (!result.calculable) return "";
   if (penaltyPct <= 0) {
-    return `<p class="e19-kpi-note"><strong>Amortización dimensionada (DEB2)</strong>: ${money(result.amount, true)}${result.fullPayoff ? " (liquida la deuda entera)" : ""} — sin comisión de amortización anticipada declarada.</p>`;
+    return `<p class="e19-kpi-note"><strong>Amortización dimensionada</strong>: ${money(result.amount, true)}${result.fullPayoff ? " (liquida la deuda entera)" : ""} — sin comisión de amortización anticipada declarada.</p>`;
   }
   const payoffNote = result.fullPayoff ? " — liquida la deuda entera" : "";
-  return `<p class="e19-kpi-note"><strong>Amortización dimensionada (DEB2)</strong>: ${money(result.amount, true)}${payoffNote}, más ${money(result.penaltyCost, true)} de comisión (${penaltyPct}%) = ${money(result.totalCash, true)} de caja necesaria de los ${money(allocation.toDebt, true)} destinados a esta deuda${result.leftoverSurplus > 0 ? ` (sobran ${money(result.leftoverSurplus, true)} sin usar)` : ""}.</p>`;
+  return `<p class="e19-kpi-note"><strong>Amortización dimensionada</strong>: ${money(result.amount, true)}${payoffNote}, más ${money(result.penaltyCost, true)} de comisión (${penaltyPct}%) = ${money(result.totalCash, true)} de caja necesaria de los ${money(allocation.toDebt, true)} destinados a esta deuda${result.leftoverSurplus > 0 ? ` (sobran ${money(result.leftoverSurplus, true)} sin usar)` : ""}.</p>`;
 }
 
 // DEB10 (Oleada 4, Bloque 6): sugiere en el propio comparador AP1 qué deuda amortizar primero,
@@ -16961,8 +16961,8 @@ function deb11ReduceQuotaVsTermHtml(allocation) {
   const quotaTag = preference === "reducir-cuota" ? ` <span class="e19-kpi-note positive">— tu decisión declarada</span>` : "";
   const termTag = preference === "reducir-plazo" ? ` <span class="e19-kpi-note positive">— tu decisión declarada</span>` : "";
   const preferenceNote = preference
-    ? `<p class="e19-kpi-note">Tu decisión declarada (DEB11): ${DEB11_PREFERENCE_LABEL[preference]}.</p>`
-    : `<p class="e19-kpi-note warning">Todavía no has declarado si prefieres reducir cuota o reducir plazo para este importe — elige arriba (DEB11).</p>`;
+    ? `<p class="e19-kpi-note">Tu decisión declarada: ${DEB11_PREFERENCE_LABEL[preference]}.</p>`
+    : `<p class="e19-kpi-note warning">Todavía no has declarado si prefieres reducir cuota o reducir plazo para este importe — elige arriba.</p>`;
   return `<div class="e19-kpi-note"><p><strong>Reducir cuota vs. reducir plazo, sobre el importe ya dimensionado (DEB11/DEB2: ${money(dimension.amount, true)})</strong> — plazo real restante: ${result.months} meses:</p><ul class="commit-barrier-list">
     <li>Reducir cuota: pasa de ${money(result.currentPayment, true)}/mes a ${money(result.reduceQuota.newPayment, true)}/mes (−${money(result.reduceQuota.paymentReduction, true)}), mismo plazo — ahorra ${money(result.reduceQuota.interestSaved, true)} en intereses.${quotaTag}</li>
     <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} mes(es) antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.${termTag}</li>
@@ -17044,7 +17044,7 @@ function deb3OptionValueHtml(result) {
   const runwayNote = result.liquidityRunwayMonths === null
     ? ""
     : ` Mientras tanto, esos ${money(result.amount, true)} en caja cubrirían por sí solos ${result.liquidityRunwayMonths} mes(es) de tu gasto total (GOB9) si hiciera falta usarlos para otra cosa.`;
-  return `<p class="e19-kpi-note"><strong>Valor de la opcionalidad de esperar (DEB3):</strong> esperar ${result.waitMonths} mes(es) antes de amortizar cuesta con seguridad ${money(result.waitingCost, true)} en interés no evitado.${runwayNote}</p>`;
+  return `<p class="e19-kpi-note"><strong>Valor de la opcionalidad de esperar:</strong> esperar ${result.waitMonths} mes(es) antes de amortizar cuesta con seguridad ${money(result.waitingCost, true)} en interés no evitado.${runwayNote}</p>`;
 }
 
 function renderDeb3OptionValue(amount, debtAnnualRatePct) {
@@ -17153,11 +17153,11 @@ const DEB9_VERDICT_LABEL = {
 
 function deb9SynthesisHtml(result) {
   if (!result || !result.calculable) {
-    return `<p class="e19-kpi-note">Completa el comparador de arriba (AP1) para ver la síntesis.</p>`;
+    return `<p class="e19-kpi-note">Completa el comparador de arriba para ver la síntesis.</p>`;
   }
   const verdictLabel = DEB9_VERDICT_LABEL[result.verdict] || result.verdict;
   const cautionLine = result.liquidityCaution
-    ? `<p class="e19-kpi-note warning">Aviso de liquidez (INV7): el suelo del colchón no queda cubierto por tramos de liquidez inmediata o corta todavía, aunque el balance total sea suficiente.</p>`
+    ? `<p class="e19-kpi-note warning">Aviso de liquidez: el suelo del colchón no queda cubierto por tramos de liquidez inmediata o corta todavía, aunque el balance total sea suficiente.</p>`
     : "";
   return `<p><strong>${escapeHtml(verdictLabel)}</strong></p><p>${escapeHtml(result.headline)}</p>${cautionLine}`;
 }
@@ -17311,7 +17311,7 @@ function handleAp1Compare() {
 // un tercero, mezclando la deuda de apalancamiento realmente tomada con la deuda existente
 // (`escenarioMotorDebtOptions`) en una única lista. Una deuda solo explorada en AP3 (sin `takenAt`)
 // nunca entra en la cola: no es una deuda real todavía.
-const AP5_SOURCE_LABELS = { existente: "Deuda existente", apalancamiento: "Apalancamiento (AP3, tomada)" };
+const AP5_SOURCE_LABELS = { existente: "Deuda existente", apalancamiento: "Apalancamiento (tomada)" };
 
 function ap5UnifiedDebtQueue(strategyId) {
   const existing = escenarioMotorDebtOptions().map((contract) => ({
@@ -17483,7 +17483,7 @@ function renderDeb4RefinancingRadar() {
   }
   const script = deb4RenegotiationScriptText(saved, scenarios, breakEven);
   const freshness = deb4BenchmarkFreshnessText(saved);
-  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
+  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación:</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
     ${freshness}
     <details>
       <summary>Guion para llamar al banco (D4)</summary>
@@ -17540,7 +17540,7 @@ function deb14MarketCheckAlertHtml(result) {
       ? `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: nunca has registrado una oferta de mercado para compararla (Deuda › Ruta).</li>`
       : `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: llevas ${row.monthsSince} mes(es) sin registrar una oferta de mercado nueva — la última es de ${escapeHtml(row.latest)}, tu umbral declarado es de ${result.maxMonths} mes(es).</li>`)
     .join("");
-  return `<p class="e19-kpi-note warning"><strong>Llevas tiempo sin mirar el mercado (DEB14):</strong> distinto del radar de arriba (DEB4), que solo avisa si TU cálculo de tipos cambia de sentido — esto es que no has comparado contra ninguna oferta real registrada.</p><ul class="commit-barrier-list">${items}</ul>`;
+  return `<p class="e19-kpi-note warning"><strong>Llevas tiempo sin mirar el mercado:</strong> distinto del radar de arriba, que solo avisa si TU cálculo de tipos cambia de sentido — esto es que no has comparado contra ninguna oferta real registrada.</p><ul class="commit-barrier-list">${items}</ul>`;
 }
 
 function renderDeb14MarketCheckAlert() {
@@ -18511,7 +18511,7 @@ function renderLpx4SuccessionTaxEstimate() {
   if (!note) return;
   const snapshot = lpNetWorthSnapshot();
   if (!snapshot.calculable) {
-    note.innerHTML = `<p>Registra al menos un activo (A14-1) para ver este aviso.</p>`;
+    note.innerHTML = `<p>Registra al menos un activo para ver este aviso.</p>`;
     return;
   }
   const result = lpx4SuccessionTaxEstimate();
@@ -18594,7 +18594,7 @@ function renderT13DonationVsInheritance() {
   const result = t13DonationVsInheritanceEstimate();
   if (!result.calculable) {
     if (result.reason === "missing-net-worth") {
-      note.innerHTML = `<p>Registra al menos un activo (A14-1) para ver este comparador.</p>`;
+      note.innerHTML = `<p>Registra al menos un activo para ver este comparador.</p>`;
     } else if (result.reason === "missing-scale") {
       note.innerHTML = `<p>Sin la escala de Sucesiones y Donaciones declarada en <a href="#ajustes">Ajustes → Fiscal</a> (con fuente completa), no hay ninguna cifra que comparar.</p>`;
     } else {
@@ -18709,7 +18709,7 @@ function renderLpx1FinancialIndependence() {
   const monthlyOutflow = lpAverageMonthlyOutflow();
   const withdrawalRatePct = parseAmount(qs("lpx1WithdrawalRatePct")?.value);
   if (!engine || !snapshot.calculable) {
-    note.innerHTML = `<p>Registra al menos un activo (A14-1) para calcular tu capital objetivo de independencia financiera.</p>`;
+    note.innerHTML = `<p>Registra al menos un activo para calcular tu capital objetivo de independencia financiera.</p>`;
     return;
   }
   if (!monthlyOutflow) {
@@ -18741,7 +18741,7 @@ function renderLpx2NetWorthRunway() {
   const snapshot = lpNetWorthSnapshot();
   const monthlyOutflow = lpAverageMonthlyOutflow();
   if (!engine || !snapshot.calculable) {
-    note.innerHTML = `<p>Registra al menos un activo (A14-1) para calcular el runway de tu patrimonio.</p>`;
+    note.innerHTML = `<p>Registra al menos un activo para calcular el runway de tu patrimonio.</p>`;
     return;
   }
   if (!monthlyOutflow) {
@@ -18944,7 +18944,7 @@ function renderGob11Panel() {
   });
   const pensionNote = values.pensionValue > 0
     ? ""
-    : ` <span class="e19-kpi-note">Sin ninguna posición declarada como plan de pensiones (INV11) — la pensión privada cuenta como 0€. Decláralo en Cartera si tienes una.</span>`;
+    : ` <span class="e19-kpi-note">Sin ninguna posición declarada como plan de pensiones — la pensión privada cuenta como 0€. Decláralo en Cartera si tienes una.</span>`;
   if (!result.calculable) {
     const labels = {
       retirementMonth: "fecha de jubilación", withdrawalRatePct: "tasa de retirada objetivo",
@@ -22389,17 +22389,17 @@ function renderE13ScenarioLab() {
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
   const inverseScenario = E13.inverseScenario(forecast, e13ScenarioEvents);
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
-    <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
-    <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
+    <article class="e6-quality-card"><header><strong>Aprendizaje · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
+    <article class="e6-quality-card"><header><strong>Autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands, confidenceBandsDominant)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calculable && prudent.calibrated ? "good" : "warn"}">${escapeHtml(PVC14_SOURCE_LABELS[prudent.source] || prudent.source)}</span></header>${pvc14PrudentSimulationHtml(prudent)}</article>
-    <article class="e6-quality-card"><header><strong>PVC2 · banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
-    <article class="e6-quality-card"><header><strong>ESX1 · Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
+    <article class="e6-quality-card"><header><strong>Banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
+    <article class="e6-quality-card"><header><strong>Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
-    <article class="e6-quality-card"><header><strong>ESX3 · escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
-    <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>ESX4 · malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
-    <article class="e6-quality-card pvx2-horizon-card"><header><strong>PVX2 · multihorizonte simultáneo</strong><span class="status-pill">${horizon.length} periodos</span></header><p class="e19-kpi-note">Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo, todas a la vez.</p>${pvx2AdaptiveHorizonHtml(horizon)}</article>
-    <article class="e6-quality-card"><header><strong>Patrimonio simulado (A14-5)</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
+    <article class="e6-quality-card"><header><strong>Escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
+    <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>Malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
+    <article class="e6-quality-card pvx2-horizon-card"><header><strong>Multihorizonte simultáneo</strong><span class="status-pill">${horizon.length} periodos</span></header><p class="e19-kpi-note">Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo, todas a la vez.</p>${pvx2AdaptiveHorizonHtml(horizon)}</article>
+    <article class="e6-quality-card"><header><strong>Patrimonio simulado</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
   </div>`;
   let localSaved = [];
   try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
@@ -33370,7 +33370,7 @@ function pvx5CausalTreeHtml(tree) {
   };
   const diaryHtml = tree.root.diary.length
     ? tree.root.diary.map((entry) => `<p class="e19-kpi-note">${escapeHtml(entry.reason)}</p>`).join("")
-    : '<p class="e19-kpi-note">Sin cambio de aprendizaje (PV5) registrado en el cierre de este mes.</p>';
+    : '<p class="e19-kpi-note">Sin cambio de aprendizaje registrado en el cierre de este mes.</p>';
   return `<details class="decision-history-events" open>
       <summary>Flujo neto del mes (${escapeHtml(tree.label)}): ${money(tree.root.amount, true)}</summary>
       ${diaryHtml}
@@ -35150,7 +35150,7 @@ const LABORATORIO_CATALOG = [
   },
   {
     hash: "alerts-center", label: "Centro de alertas", veredicto: "adoptada", dondeViveAhora: "Ajustes · Umbrales de aviso",
-    destino: null, backlogTask: "V6-2 (BACKLOG.md) · Umbrales de aviso",
+    destino: null, backlogTask: "Umbrales de aviso",
     queHacia: "Reglas de alerta por umbral, con motivo y frecuencia de revisión.",
     nota: "Se aparta del mockup (ver cabecera de este bloque): «AJ-3» no existe como tarea real.",
     guardKey: "alerts",
