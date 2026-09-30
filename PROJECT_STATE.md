@@ -103,6 +103,31 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (278): Ola 2 — diseño de «Hoy con veredicto y modo consulta» (solo documento)
+
+- **Qué se entrega:** `docs/OLA2_HOY_Y_CONSULTA.md`, sin código, en el mismo formato que el diseño de la Ola 1. **A la espera de cinco decisiones del
+  hogar** (§8): qué es «el número», si Mediolanum cuenta como gastable, qué es la «carta del mes», modo consulta solo nivel 1 y si el detalle de
+  Hoy se pliega en modo consulta.
+- **Diagnóstico medido** (dataset demo público, no los datos reales del hogar): `#home` mide 6.601 px en escritorio y 11.422 px en móvil; da
+  **ocho cifras** que se parecen a «¿cuánto me sobra?» y hay **cuatro problemas verificados**: (1) «Liquidez hoy» y «Caja disponible» son la misma
+  cifra (9.540 €) en dos bloques; (2) CaixaBank tiene 6.140 € frente a una reserva de 7.230 € (−1.090 €) pero la tarjeta dice «conserva hoy 0,00 € por
+  encima del mínimo» (`Math.max(0, …)`) y a la vez «fuera de umbral»; (3) «Reserva protegida: fuera de umbral» frente a «Próximo riesgo: sin déficit»
+  usan bases distintas (foto de hoy frente a modelo mensual) sin decirlo; (4) el margen «hasta el siguiente ingreso» sale «—» sin gasto diario
+  aprendido, y su cálculo es tosco (caja − días × gasto medio, sin las salidas ya previstas). La respuesta empieza a ~1.246 px en móvil (~987 px sin el
+  aviso de primeros pasos).
+- **Hallazgo que condiciona el diseño:** la «reserva protegida» es el suelo de reserva **más las salidas de todo el mes siguiente**
+  (`canonical-decisions.js`, `transferForMonth`), pensada para decidir cuánto se traspasa a ahorro; no sirve de base para «cuánto se puede gastar hasta el
+  día Y». Propuesta: cascada caja de CaixaBank − suelo − salidas previstas hasta el próximo ingreso, con el negativo dicho y los datos que faltan
+  nombrados.
+- **Modo consulta:** solo nivel 1 (preferencia de este dispositivo; no protege). El nivel 2 (rol `viewer` real) contradice `docs/OPT22_MODELO_HOGAR.md`
+  (una sola cuenta compartida; «Javi/Tere» es una etiqueta inferida) y se desaconseja.
+- **Techo de `app.js`** (37.530): sin cambios; la entrega 2 debería liberar 60–100 líneas al sacar la lógica pura de la tarjeta de cobertura, **estimación
+  sin medir** (esas funciones tocan estado y DOM de `app.js`).
+- **Backlog:** fila de la Ola 2 actualizada y párrafo del hallazgo de rendimiento de la sesión 269 marcado como resuelto en la 277 (había quedado
+  «pendiente de decisión»).
+- **Validación:** solo documentación; `npm test` 4966/4966 (sin cambios).
+- **Siguiente:** no se construye nada hasta que el hogar conteste el §8. La entrega 5 de la Ola 1 sigue bloqueada por el informe «Uso de la app».
+
 ## Cierre de sesión — 30 de septiembre de 2026 (277): rendimiento — «carga honesta» (secciones ocultas, cabecera final, puerta nueva)
 
 - **Decisión del hogar («opción 1, adelante»):** cambio A + cabecera ya en su estado final + puerta de LCP de Lighthouse a aviso +
