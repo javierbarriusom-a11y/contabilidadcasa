@@ -7,9 +7,11 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
-test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteriores", () => {
+test("Registrar sigue a Hoy (Ola 1: «Datos» ya no es entrada) y Movimientos no está en Versiones anteriores", () => {
   const home = html.indexOf('href="#home"');
-  const update = html.indexOf('href="#update-hub"');
+  // Ola 1 (entrega 1): «Datos» (#update-hub) sale del menú principal — desde R-10 redirige a
+  // Registrar, era la misma pantalla con dos entradas. La que sigue a Hoy es Registrar.
+  const update = html.indexOf('href="#registrar"');
   // E-14 (bloque 5, 20 de agosto) retira el enlace de `#new-life-definitive` del menú avanzado;
   // se usa `#operations-manual` (última heredada que queda en el grupo legacy) como referencia de
   // posición equivalente, más adelante en el documento que la pestaña principal de Actualizar.
@@ -25,7 +27,8 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   const legacyLabel = html.indexOf('data-e17-nav-label="legacy"');
   const dataEntry = html.indexOf('href="#data-entry"');
 
-  assert.ok(home < update && update < primaryPlan, "Actualizar debe aparecer inmediatamente después de Hoy");
+  assert.ok(home < update && update < primaryPlan, "Registrar debe aparecer inmediatamente después de Hoy");
+  assert.doesNotMatch(html, /<a href="#update-hub" class="nav-primary-link">/, "«Datos» ya no es entrada principal: es alias de Registrar");
   // V3-5 relegó `#debt-roadmap`: ya no basta con que aparezca tras los escenarios nuevos, tiene que
   // estar dentro de «Versiones anteriores». Lo primero lo cumpliría también si se hubiera quedado en
   // Decidir, así que la comprobación se aprieta en vez de dejarla pasando por el sitio equivocado.
@@ -104,11 +107,14 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // existente en vez de crear uno propio, así no toca el fieldset de preferencias.
   // I1 (Contabilidadcasa 2.0) añade las 5 pestañas del hub Inversión (Cartera/Rebalanceo/Fiscal/
   // Apalancamiento/Jubilación), mismo patrón que las 4 de Deuda de arriba: diecinueve + cinco.
-  assert.equal(byGroup.analysis.length, 24, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión, Patrimonio e Inversión suman veinticuatro enlaces tras I1");
+  // Ola 1 (entrega 1) añade «Planificación de partidas» al frente de Analizar: sale del menú
+  // principal (pasa a pestaña de Plan) y conserva aquí un enlace propio, que además resalta y abre
+  // el desplegable cuando se está en esa pantalla.
+  assert.equal(byGroup.analysis.length, 25, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión, Patrimonio e Inversión suman veinticinco enlaces tras la Ola 1");
   // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros, Fiscal, Segunda
   // opinión, Patrimonio y Análisis de previsión: treinta y cinco.
   // OPT-25 fase 6 añade «Continuidad, compartir y archivo» al grupo Datos; fase 7 añade el acceso
   // rápido a Laboratorio: treinta y siete, cierre del plan de 7 fases. I1 añade las 5 de
   // Inversión: cuarenta y dos.
-  assert.equal(links.length, 42, "cuarenta y dos enlaces en el menú avanzado tras I1");
+  assert.equal(links.length, 43, "cuarenta y tres enlaces en el menú avanzado tras la Ola 1 (entrega 1)");
 });

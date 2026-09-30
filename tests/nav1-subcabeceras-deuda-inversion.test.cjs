@@ -49,7 +49,9 @@ test("NAV-1 · las cinco categorías nombradas por el backlog (Deuda/Inversión/
   });
 });
 
-test("NAV-1 · sigue habiendo exactamente 24 enlaces en el grupo «analysis» (esto no añade ni quita pantallas)", () => {
+test("NAV-1 · sigue habiendo exactamente 25 enlaces en el grupo «analysis» (esto no añade ni quita pantallas)", () => {
   const links = [...html.matchAll(/<a href="#[\w-]+" data-e17-group="analysis">/g)];
-  assert.equal(links.length, 24, "NAV-1 solo añade subcabeceras visuales, nunca enlaces");
+  // 24 hasta la Ola 1; la entrega 1 añade el enlace de «Planificación de partidas», que sale del
+  // menú principal y conserva aquí una entrada (no añade ninguna pantalla).
+  assert.equal(links.length, 25, "NAV-1 solo añade subcabeceras visuales, nunca enlaces");
 });

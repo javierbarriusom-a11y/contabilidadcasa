@@ -13,13 +13,16 @@ const experience = read("e17-experience.js");
 // Sustituye los cuatro verbos (Hoy, Actualizar, Prever, Decidir) por las seis vistas del
 // rediseño: Hoy, Plan, Deuda, Datos, Cierre y Ajustes.
 
-test("T-1 · las seis vistas son pestaña principal, con el destino correcto cada una", () => {
+// Ola 1 (entrega 1, 30 de septiembre de 2026): de las seis vistas de T-1, «Datos» (#update-hub) deja de
+// ser entrada principal — desde R-10 redirige a Registrar, era la misma pantalla con dos entradas — y
+// Cierre pasa a «Cada mes», junto a Plan. Las otras cuatro siguen siendo pestaña principal y el
+// destino de `#update-hub` sigue existiendo (alias). Ningún #id cambia.
+test("T-1 · las vistas de T-1 que siguen siendo pestaña principal conservan destino y orden (Datos ya es alias de Registrar)", () => {
   const expected = [
     ["#home", "Hoy"],
     ["#plan", "Plan"],
-    ["#deuda-ruta", "Deuda"],
-    ["#update-hub", "Datos"],
     ["#cierre", "Cierre"],
+    ["#deuda-ruta", "Deuda"],
     ["#ajustes", "Ajustes"],
   ];
   for (const [href] of expected) {
@@ -27,11 +30,13 @@ test("T-1 · las seis vistas son pestaña principal, con el destino correcto cad
   }
   const positions = expected.map(([href]) => html.indexOf(`href="${href}" class="nav-primary-link`));
   for (let index = 1; index < positions.length; index += 1) {
-    assert.ok(positions[index - 1] < positions[index], "las seis vistas deben mantener el orden Hoy, Plan, Deuda, Datos, Cierre, Ajustes");
+    assert.ok(positions[index - 1] < positions[index], "las vistas deben mantener el orden Hoy, Plan, Cierre, Deuda, Ajustes");
   }
   for (const [, label] of expected) {
     assert.match(html, new RegExp(`<span>${label}</span>`));
   }
+  assert.ok(!html.includes('<a href="#update-hub" class="nav-primary-link">'), "«Datos» ya no es entrada principal");
+  assert.match(html, /id="update-hub"[^>]*view-section|view-section[^>]*id="update-hub"/, "el destino #update-hub sigue existiendo");
 });
 
 test("T-1 · Prever y Decidir dejan de ser pestaña principal, sin desconectar sus pantallas", () => {

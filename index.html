@@ -50,10 +50,6 @@
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
-          <a href="#planificacion-partidas" class="nav-primary-link">
-            <span>Planificación de partidas</span>
-            <small>Forecast con lo confirmado y lo provisional</small>
-          </a>
           <!-- R-2: nueva pantalla con cuatro pestañas; el saldo (R-3/R-4) ya vive aquí, las otras
                tres pestañas enlazan de vuelta a su heredada hasta que R-5/R-8/R-9 las construyan. -->
           <a href="#registrar" class="nav-primary-link">
@@ -66,13 +62,22 @@
             <span>Movimientos</span>
             <small>Extracto, clasificación y saldo por cuenta</small>
           </a>
-          <p class="nav-section-label">Principal</p>
+          <!-- Ola 1 (entrega 1): el menú se agrupa por ritmo (docs/OLA1_ARQUITECTURA_NAVEGACION.md).
+               «Datos» sale porque #update-hub redirige a Registrar desde R-10 (era la misma pantalla
+               con dos entradas); «Planificación de partidas» pasa a pestaña de Plan; «Escenarios»
+               sube desde «Herramientas avanzadas». Ningún #id cambia. -->
+          <p class="nav-section-label">Cada mes</p>
           <!-- P-1: el previsto se edita ahora en #plan (pestaña Mes); #cuadro-mandos sigue intacta
                y accesible desde «Herramientas avanzadas», el mismo estado que #update-data. -->
           <a href="#plan" class="nav-primary-link">
             <span>Plan</span>
-            <small>Mes, previsión y ahorro</small>
+            <small>Mes, previsión, ahorro y partidas</small>
           </a>
+          <a href="#cierre" class="nav-primary-link">
+            <span>Cierre</span>
+            <small>Conciliación y confianza del dato</small>
+          </a>
+          <p class="nav-section-label">A largo plazo</p>
           <a href="#deuda-ruta" class="nav-primary-link">
             <span>Deuda</span>
             <small>Ruta, estrategias y ofertas</small>
@@ -84,14 +89,12 @@
             <span>Inversión</span>
             <small>Cartera, rebalanceo, fiscal, apalancamiento y jubilación</small>
           </a>
-          <a href="#update-hub" class="nav-primary-link">
-            <span>Datos</span>
-            <small>Saldos, reales e importaciones</small>
+          <p class="nav-section-label">Para decidir</p>
+          <a href="#escenario-simular" class="nav-primary-link">
+            <span>Escenarios</span>
+            <small>Prueba una decisión sin tocar el plan</small>
           </a>
-          <a href="#cierre" class="nav-primary-link">
-            <span>Cierre</span>
-            <small>Conciliación y confianza del dato</small>
-          </a>
+          <p class="nav-section-label">Sistema</p>
           <a href="#ajustes" class="nav-primary-link">
             <span>Ajustes</span>
             <small>Cuentas, reserva, partidas y exportación</small>
@@ -152,6 +155,7 @@
               <a href="#herramientas-patrimonio" data-e17-group="analysis">Comparadores de patrimonio e inversión</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
+              <a href="#planificacion-partidas" data-e17-group="analysis">Planificación de partidas</a>
               <a href="#presupuesto-mes" data-e17-group="analysis">Presupuesto del mes</a>
               <a href="#estado-semana" data-e17-group="analysis">Estado de la semana</a>
               <a href="#analisis" data-e17-group="analysis">Análisis</a>
@@ -951,6 +955,7 @@
               <button type="button" class="e19-registrar-tab" data-plan-tab="mes" aria-selected="true">Mes</button>
               <button type="button" class="e19-registrar-tab" data-plan-tab="prevision" aria-selected="false">Previsión</button>
               <button type="button" class="e19-registrar-tab" data-plan-tab="ahorro" aria-selected="false">Ahorro y objetivos</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="planificacion-partidas">Partidas</button>
             </nav>
             <p class="e19-registrar-crumb" id="planCrumb" aria-live="polite"></p>
 

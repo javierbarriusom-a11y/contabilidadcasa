@@ -14,18 +14,19 @@ const E17Experience = require(path.join(root, "e17-experience.js"));
 // T-1 sustituye los cuatro verbos (Hoy, Actualizar, Prever, Decidir) por las seis vistas del
 // rediseño: Hoy, Plan, Deuda, Datos, Cierre y Ajustes. «Prever» y «Decidir» dejan de ser pestaña
 // principal — el primero sigue accesible desde el menú avanzado, el segundo se releva.
-test("E17 prioriza las seis vistas del rediseño y conserva las herramientas en segundo nivel", () => {
+test("E17 prioriza las vistas del rediseño (agrupadas por ritmo desde la Ola 1) y conserva las herramientas en segundo nivel", () => {
   const home = html.indexOf('<a href="#home" class="nav-primary-link active">');
   const plan = html.indexOf('<a href="#plan" class="nav-primary-link">');
-  const deuda = html.indexOf('<a href="#deuda-ruta" class="nav-primary-link">');
-  const datos = html.indexOf('<a href="#update-hub" class="nav-primary-link">');
   const cierre = html.indexOf('<a href="#cierre" class="nav-primary-link">');
+  const deuda = html.indexOf('<a href="#deuda-ruta" class="nav-primary-link">');
   const ajustes = html.indexOf('<a href="#ajustes" class="nav-primary-link">');
   const advanced = html.indexOf('id="advancedNav"');
+  // Ola 1 (entrega 1): «Datos» sale (alias de Registrar) y Cierre pasa a «Cada mes», junto a Plan.
   assert.ok(
-    home < plan && plan < deuda && deuda < datos && datos < cierre && cierre < ajustes && ajustes < advanced,
-    "las seis vistas deben aparecer en orden Hoy, Plan, Deuda, Datos, Cierre, Ajustes, antes del menú avanzado",
+    home < plan && plan < cierre && cierre < deuda && deuda < ajustes && ajustes < advanced,
+    "las vistas deben aparecer en orden Hoy, Plan, Cierre, Deuda, Ajustes, antes del menú avanzado",
   );
+  assert.ok(!html.includes('<a href="#update-hub" class="nav-primary-link">'), "«Datos» ya no es entrada principal");
   assert.match(html, /Herramientas avanzadas/);
   assert.ok(!html.includes('<a href="#forecast" class="nav-primary-link">'), "Prever ya no es pestaña principal");
   assert.ok(!html.includes('<a href="#new-life-definitive" class="nav-primary-link">'), "Decidir ya no es pestaña principal");

@@ -604,6 +604,11 @@ h2 {
   padding: 0 12px 3px;
 }
 
+/* Ola 1: con cinco grupos por ritmo, cada cabecera necesita aire sobre la entrada anterior. */
+.side-nav a + .nav-section-label {
+  margin-top: 10px;
+}
+
 .side-nav a {
   display: block;
   color: #bfd0d5;
