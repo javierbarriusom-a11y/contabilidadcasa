@@ -103,6 +103,38 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (270): Ola 0 del plan de mejora de UX, entrega 3 — estados vacíos y cifras coherentes
+
+- **Qué se cambió** (cierra la Ola 0; ningún cálculo ni dato cambia, no se retira ninguna pantalla):
+  1. **Estados vacíos sin alarma.** «Sin presupuestos», «Sin datos» (objetivos) y «Sin datos» (acierto de la
+     previsión) salían con color de aviso y la insignia «Cerca del umbral», que promete un umbral que nadie ha
+     cruzado (el acierto histórico, además, en verde sin tener datos). `renderHomeKpi` admite ahora el estado
+     `neutral`: sin clase de color y sin insignia. Conservan su llamada a la acción.
+  2. **Una sola lectura de «Libre de deuda».** La tira superior decía «ago 29 · queda deuda sin cuota activa» y
+     la pantalla de Deuda «sin fecha estimable · sin cuota activa»: el titular daba una fecha que su propia
+     coletilla desmentía. Cuando queda deuda sin cuota activa, la tira dice **«Sin fecha»** y la fecha de las
+     cuotas activas baja a la línea secundaria («ago 29 en las cuotas activas · queda deuda sin cuota activa»).
+     Con fecha limpia o sin deuda, sin cambios. Ojo: la tira usa la estrategia «no tocar» y el título de Deuda la
+     estrategia elegida (por defecto «avalancha»); son dos preguntas distintas y solo se ha unificado la frase, no
+     la estrategia de referencia — decisión pendiente de producto si debe haber una sola.
+  3. **«Capacidad de endeudamiento» una sola vez** en Deuda · ruta: era una tarjeta dentro de otra con el mismo
+     título; se quita el envoltorio de `index.html` (la tarjeta interior ya lleva título y contenido).
+  4. **Cierre**: los cuatro contadores en una fila de cuatro en escritorio (con tres columnas quedaba uno
+     huérfano) y sin la altura mínima de 148 px de un KPI con nota (de ~146 a ~72 px cada uno); las tarjetas que
+     cuelgan de la pantalla (historial, aprendizaje, ritual anual) reciben padding y separación — tenían el
+     título pegado al borde y estaban unas contra otras. Móvil sin cambios (colapso a una columna).
+  5. **Barra lateral**: el formulario de acceso va plegado en «Entrar o crear cuenta» (ids intactos; el estado de
+     la sincronización, arriba, ya dice si hace falta entrar). Con Supabase sin configurar sigue oculto entero.
+- **Techo de `app.js`** (`ARQ-4`, 37.530): queda exactamente en **37.530**, sin margen. El siguiente cambio en
+  `app.js` tendrá que sacar código, no añadirlo.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4935/4935** (4.929 anteriores + 6 nuevos en
+  `tests/ola0-3-estados-vacios-coherencia.test.cjs`); `test:mobile-overflow` 201 visitas sin contenido cortado;
+  `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3; `test:performance-lh` exit 0 (todas las
+  aserciones pasan; el LCP local lo produce el `<h1>` provisional, ver sesión 269).
+- **Pendiente tras la Ola 0**: nada de higiene. Siguen abiertos el hallazgo de rendimiento de la sesión 269
+  (LCP real ~7,4 s en móvil lento y salto de layout: esqueleto de Hoy en el HTML o arranque diferido de `app.js`)
+  y la Ola 1 (arquitectura por ritmos), que exige decidir antes qué pantallas se retiran.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (269): Ola 0 del plan de mejora de UX, entrega 2 — marco de pantalla
 
 - **Medición previa** (recorrido con navegador por las 59 secciones a 1440×900, y a 390×844 en cinco pantallas):

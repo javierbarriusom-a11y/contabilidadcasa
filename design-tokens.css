@@ -3361,6 +3361,30 @@
 /* subtítulo de cada paso.                                                                         */
 /* -------------------------------------------------------------------------------------------- */
 
+/* Ola 0.3: cuatro contadores en una sola fila (con tres columnas quedaba uno huérfano) y sin la
+   altura mínima de 148 px de un KPI con nota: aquí solo llevan un número. */
+.e19-cierre #cierreCounters .e19-kpi {
+  min-height: 0;
+}
+
+@media (min-width: 861px) {
+  .e19-cierre #cierreCounters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.e19-cierre #cierreSobresNote {
+  margin: 10px 0 14px;
+}
+
+/* Las tarjetas que cuelgan directamente de la pantalla (historial, aprendizaje, ritual anual) no
+   recibían padding de ningún contenedor: el título quedaba pegado al borde y las tarjetas, unas
+   contra otras. */
+.e19-cierre > article.e19-card {
+  padding: 18px;
+  margin-top: 16px;
+}
+
 .e19-cierre .cierre-steps {
   display: flex;
   flex-wrap: wrap; /* T9 (recorte): los pasos del asistente se salían de la pantalla en móvil */
