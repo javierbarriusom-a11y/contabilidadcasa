@@ -20,6 +20,7 @@
     "test:performance-lh": "node tools/check-lighthouse-budget.mjs",
     "test:mobile-overflow": "node tools/check-mobile-overflow.mjs",
     "measure:load": "node tools/measure-load.mjs",
+    "test:load-budget": "node tools/measure-load.mjs --budget=5000",
     "test:visual": "playwright test --project=desktop --project=mobile",
     "test:e2e": "playwright test --project=e2e",
     "test:a11y-axe": "playwright test --project=a11y",

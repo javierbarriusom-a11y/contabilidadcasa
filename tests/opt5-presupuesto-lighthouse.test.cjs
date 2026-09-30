@@ -29,7 +29,10 @@ test(".lighthouserc.cjs define presupuestos reales de LCP, TBT y CLS contra dist
   assert.ok(assertions["largest-contentful-paint"], "Falta el presupuesto de LCP");
   assert.ok(assertions["total-blocking-time"], "Falta el presupuesto de TBT (proxy de laboratorio de INP)");
   assert.ok(assertions["cumulative-layout-shift"], "Falta el presupuesto de CLS");
-  assert.equal(assertions["largest-contentful-paint"][0], "error");
+  // Ola de rendimiento (30/09/2026): el LCP pasa a aviso con el mismo umbral; su exigencia la asume
+  // `test:load-budget`. TBT y CLS siguen siendo error (ver tests/ola-rend-2-carga-honesta.test.cjs).
+  assert.equal(assertions["largest-contentful-paint"][0], "warn");
+  assert.equal(assertions["largest-contentful-paint"][1].maxNumericValue, 4000);
   assert.equal(assertions["total-blocking-time"][0], "error");
   assert.equal(assertions["cumulative-layout-shift"][0], "error");
 });

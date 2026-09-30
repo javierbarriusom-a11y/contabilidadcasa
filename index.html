@@ -279,10 +279,15 @@
       </aside>
 
       <div class="workspace">
+        <!-- Rendimiento (30/09/2026): la cabecera nace ya en su estado final —eyebrow oculto y <h1> solo para
+             lectores de pantalla—, que es lo que `setActiveView` deja en las 59 pantallas (comprobado en enlace
+             directo a cada una: todas traen cabecera propia). Antes nacían visibles (un titular de tres líneas) y
+             el script principal los ocultaba al terminar de arrancar: el contenido saltaba ~140 px hacia arriba
+             (CLS 0,147). Si una pantalla futura no trae cabecera propia, `setActiveView` los muestra al abrirla. -->
         <header class="topbar">
           <div>
-            <p class="eyebrow" id="viewEyebrow">Cuadro de mandos</p>
-            <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <p class="eyebrow" id="viewEyebrow" hidden>Cuadro de mandos</p>
+            <h1 id="viewTitle" tabindex="-1" class="sr-only">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
             <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor
