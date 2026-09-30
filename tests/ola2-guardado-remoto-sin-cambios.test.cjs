@@ -173,3 +173,17 @@ test("cableado en app.js: omite antes de crear la ejecución, asienta solo al co
   assert.match(app, /remoteHeadSettled = remoteHeadKnown \? await normalizedStore\.loadSettledHead\(supabaseClient, headResult\.data\) : null;/);
   assert.match(app, /const detail = normalizedResult\.mode === "normalized" && !normalizedResult\.unchanged/);
 });
+
+test("sin cabecera remota conocida el guardado se corta ANTES de crear nada (antes dejaba una copia huérfana por intento)", async () => {
+  const calls = [];
+  const sb = loadSave(calls);
+  sb.remoteHeadKnown = false;
+  sb.remoteHeadSnapshotId = null;
+  await assert.rejects(
+    () => sb.save(payloadWith(3)),
+    (error) => error.code === "REMOTE_WRITE_CONFLICT" && error.retryable === false && /No se conoce la revisión remota/.test(error.message),
+  );
+  assert.deepEqual(calls, [], "ni ejecución de sincronización ni copia del estado");
+  const save = app.slice(app.indexOf("async function saveNormalizedRemoteState"));
+  assert.ok(save.indexOf("if (!remoteHeadKnown) throw") < save.indexOf('from("finance_sync_runs").insert('));
+});

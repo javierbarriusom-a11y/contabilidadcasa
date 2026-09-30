@@ -103,6 +103,41 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (266): por qué la omisión de guardados idénticos no bastaba — causa raíz de las copias
+
+- **Qué pasó**: la comprobación real de la sesión 265 (3 recargas sin editar nada) creó **6 copias**. Las
+  consultas del hogar a Supabase lo explicaron con datos, no con hipótesis:
+  1. **Huella distinta en cada copia.** Entre dos copias seguidas solo cambiaban, además de campos que la
+     huella ya ignora (`updatedAt`, `generatedAt`, `auditTrail`), `scenarioSettings.cpx3RecommendationLog`.
+     Causa: `cpx3TrackRecommendation` se llama en **cada render** de la tarjeta CP1 y escribía
+     `lastShownAt = ahora` + `saveScenarioSettings()` → `queueRemoteSave()`. Cada visita cambiaba el estado
+     sincronizado y creaba una copia completa (~0,4 MB) y ~3.700 filas. Es con toda probabilidad el origen
+     de la mayor parte de las 878 copias de la sesión 265; la omisión de idénticos no podía actuar porque el
+     estado nunca era idéntico. `lastShownAt` no lo lee ninguna pantalla (solo `firstShownAt`).
+  2. **Copias huérfanas de guardados fallidos.** De las 10 últimas ejecuciones, solo 3 `complete`; 6 `failed`
+     y 1 `running`. Motivo de los fallos: «No se conoce la revisión remota de partida» (guardado disparado
+     antes de que termine la carga inicial, `remoteHeadKnown` aún falso) y `TypeError: Failed to fetch`.
+     El guardado comprobaba la cabecera **después** de insertar la ejecución y la copia completa, así que
+     cada intento fallido dejaba una copia huérfana.
+- **Implementado** (`app.js`, saldo **−1 línea**: 37.529, por debajo del techo ARQ-4):
+  - `cpx3TrackRecommendation` solo toca el registro (y por tanto guarda) si la recomendación es nueva, cambia
+    de etiqueta/gravedad o `lastShownAt` es de otro día. `lastShownAt` pasa a tener precisión de día.
+  - `saveNormalizedRemoteState` corta con el mismo error (`REMOTE_WRITE_CONFLICT`, no reintentable) **antes**
+    de crear la ejecución y la copia cuando no hay cabecera conocida.
+- **Guardas**: 3 pruebas nuevas en `tests/cpx3-transparencia-recomendaciones.test.cjs` (repetir el mismo día no
+  cambia el estado ni guarda; cambio de gravedad sí guarda; `lastShownAt` de otro día se actualiza) y 1 en
+  `tests/ola2-guardado-remoto-sin-cambios.test.cjs` (sin cabecera: cero peticiones, mismo error). Demostrado
+  que muerden: con el `app.js` anterior fallan las dos pruebas de comportamiento.
+- **Validación**: `npm run verify` completo en verde (`npm test` **4924/4924**, ESLint, `tsc`, a11y,
+  performance, build, privacidad, smoke). **No comprobado contra el Supabase real** hasta que el hogar repita
+  la prueba tras el despliegue (recargar 3 veces sin editar y contar copias).
+- **Sigue sin resolver**: (a) las copias huérfanas `failed`/`running` ya existentes (limpieza manual con el
+  mismo freno de seguridad; no la referencia ninguna otra tabla); (b) el guardado sigue pudiendo dispararse
+  antes de terminar la carga inicial (ahora falla barato, pero no se reintenta solo tras la carga); (c) los
+  `Failed to fetch` son de red y el guardado los deja a medias; (d) la causa de ~16 actualizaciones por fila
+  en `finance_audit_log` está por confirmar (puede compartir origen con este); (e) la descarga del `state` de
+  20 copias al arrancar.
+
 ## Cierre de sesión — 29 de septiembre de 2026 (265): base de Supabase por encima del límite gratuito — diagnóstico real y guardados idénticos omitidos
 
 - **Qué pasó**: tras pedir al hogar tres comprobaciones (movimientos, tamaño remoto, despliegue), los datos
