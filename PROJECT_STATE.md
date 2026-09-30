@@ -103,6 +103,35 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (274): Ola 1, entrega 3 — franja de Escenarios con cuatro destinos
+
+- **Decisión del hogar:** cuatro destinos, no cinco. El diseño proponía «Simular · Guardados · Asesor · Segunda opinión ·
+  Comparadores», pero «Comparadores» agrupa tres pantallas (Seguros, Fiscal, Patrimonio) y habría exigido una pantalla de
+  índice nueva, que el camino B se comprometió a no crear. Los tres comparadores **se quedan en el menú avanzado**.
+- **Qué se cambió:** las cuatro pantallas de decisión —**Simular** (`#escenario-simular`), **Guardados**
+  (`#escenario-guardados`), **Asesor** (`#asesor-decision`) y **Segunda opinión** (`#segunda-opinion`)— llevan una
+  franja gemela «Pantallas de Escenarios» con las cuatro, la actual marcada y `aria-current="page"`, antes del contenido
+  de cada una. Mismo mecanismo (i) que Plan: sin mover código, sin tocar el motor, con los `#id` intactos. Ninguna de las
+  cuatro tenía franja propia, así que no hay dos niveles apilados. La entrada «Escenarios» del menú principal (entrega 1)
+  ya llevaba a Simular.
+- **Los pasos del flujo no son pestañas:** `escenario-aplicar` y `escenario-comparar` (con su botón «Volver») no llevan
+  franja, y un test lo fija junto con los tres comparadores.
+- **Estilo:** las reglas de la entrega 2 pasan de `[aria-label="Pantallas de Plan"]` a `[aria-label^="Pantallas de "]`,
+  de modo que cubren ambas franjas sin duplicar CSS ni crear clases; el test de la entrega 2 se actualizó por esa razón.
+- **`app.js` sin líneas nuevas (37.530)**: se navega con el manejador global `data-e17-target`.
+- **Limitación conocida (heredada de la entrega 2):** en Guardados, Asesor y Segunda opinión el menú lateral resalta el
+  enlace del menú avanzado, no «Escenarios»; en Simular sí resalta «Escenarios». Se corrige en la entrega 4.
+- **Fuera de alcance, ya existente:** el encabezado de Simular queda apretado (la insignia «Modo simulación · nada se
+  guarda» se parte en cuatro líneas junto al título). No lo introduce esta entrega y no se ha tocado.
+- **Verificado en el navegador real:** del menú a Escenarios, y de Simular a Guardados, Asesor, Segunda opinión y de vuelta
+  a Simular; en móvil sin desbordamiento (`scrollWidth` 390).
+- **Validación:** `npm run verify` completo en verde, `npm test` **4948/4948** (4.944 anteriores + 4 nuevos en
+  `tests/ola1-3-escenarios-pestanas.test.cjs`); `test:mobile-overflow` 201 visitas sin contenido cortado; `test:e2e` 8/8;
+  `test:a11y-axe` 6/6; `test:perf-screens` 3/3; `test:performance-lh` exit 0.
+- **Siguiente:** entrega 4 (coherencia de «Personalizar» y buscador, resaltado de «Plan» y «Escenarios» en sus pantallas
+  hermanas, y liberar líneas en `app.js` antes de tocar `setActiveView`). Los retiros del §7 siguen bloqueados hasta tener
+  el informe «Uso de la app».
+
 ## Cierre de sesión — 30 de septiembre de 2026 (273): Ola 1, entrega 2 — Presupuesto, Esta semana y Partidas como pestañas de Plan
 
 - **Qué se cambió:** la franja de Plan gana tres pestañas que enlazan a pantallas independientes —**Presupuesto**
