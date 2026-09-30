@@ -4794,7 +4794,7 @@ async function loadRemoteStateOnce() {
     .find((error) => error && !normalizedStore?.isMissingSchemaError(error));
   remoteHeadKnown = Boolean(normalizedStore && !headResult.error);
   remoteHeadSnapshotId = remoteHeadKnown ? headResult.data?.snapshot_id || null : null;
-  remoteHeadSettled = remoteHeadKnown ? await normalizedStore.loadSettledHead(supabaseClient, headResult.data) : null;
+  remoteHeadSettled = remoteHeadKnown ? await normalizedStore.loadSettledHead(supabaseClient, headResult.data, activeSnapshotResult.data) : null;
   const authoritative = normalizedStore
     ? normalizedStore.selectAuthoritativeState({
         head: headResult.error ? null : headResult.data,
@@ -4928,7 +4928,7 @@ async function saveNormalizedRemoteState(payload) {
     userId: remoteUser.id,
     sourceKey: sourceStateKey(),
   });
-  if (store.canSkipUnchangedSave(remoteHeadSettled, { known: remoteHeadKnown, snapshotId: remoteHeadSnapshotId }, bundle.fingerprint)) return { mode: "normalized", unchanged: true, fingerprint: bundle.fingerprint };
+  if (store.canSkipUnchangedSave(remoteHeadSettled, { known: remoteHeadKnown, snapshotId: remoteHeadSnapshotId }, bundle.fingerprint, bundle.changeKey)) return { mode: "normalized", unchanged: true, fingerprint: bundle.fingerprint };
   // Sin cabecera conocida el guardado no puede completarse: se corta antes de subir la copia (antes dejaba una copia huérfana por intento).
   if (!remoteHeadKnown) throw Object.assign(new Error("No se conoce la revisión remota de partida; recarga antes de guardar."), { code: "REMOTE_WRITE_CONFLICT", retryable: false });
   const startResult = await supabaseClient.from("finance_sync_runs").insert(bundle.syncRun);
@@ -5043,7 +5043,7 @@ async function saveNormalizedRemoteState(payload) {
       .update({ status: "complete", completed_at: new Date().toISOString() })
       .eq("id", bundle.syncId);
     if (completeResult.error) throw completeResult.error;
-    remoteHeadSettled = { snapshotId: bundle.sourceHead.snapshot_id, fingerprint: bundle.fingerprint };
+    remoteHeadSettled = { snapshotId: bundle.sourceHead.snapshot_id, fingerprint: bundle.fingerprint, changeKey: bundle.changeKey };
     return { mode: "normalized", fingerprint: bundle.fingerprint, entityCount: bundle.syncRun.entity_count };
   } catch (error) {
     await supabaseClient
