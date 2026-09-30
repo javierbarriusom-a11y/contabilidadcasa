@@ -103,6 +103,34 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (267): `canonicalLedgerSnapshot.reason` creaba una copia por carga
+
+- **Qué pasó**: tras desplegar la sesión 266, la prueba real del hogar (recargas sin editar) seguía creando un
+  guardado por carga (08:00:14, 08:02:03, 08:04:50 UTC; base en 106 copias). Diferencia recursiva entre dos
+  copias consecutivas sin edición: **una sola ruta cambia**, `canonicalLedgerSnapshot > reason`
+  (`"state-change"` → `"movements-view"`). Es el motivo del último recálculo del libro
+  (`refreshCanonicalLedger`, p. ej. `app.js` al pintar Movimientos), se persiste dentro del estado y
+  `fingerprintPayload` no lo ignora. Las demás claves que aparecían en la consulta de segundo nivel
+  (`forecastAssumptions`, `canonicalEngineRuns`) eran solo horas que la huella ya excluye.
+- **Restricción de diseño**: `fingerprintPayload` también **verifica cada copia ya guardada** (`verifySnapshot`
+  recalcula y compara). Hacerla ignorar `reason` habría invalidado las ~100 copias existentes. No se toca.
+- **Implementado** (`canonical-supabase-store.js`; `app.js` con 3 líneas editadas en su sitio, **saldo 0**: 37.529):
+  `changeKey(payload)`, una clave de comparación aparte que ignora solo `canonicalLedgerSnapshot.reason`, usada
+  únicamente para decidir si un guardado se omite. `buildNormalizedBundle` la devuelve, `canSkipUnchangedSave`
+  acepta huella **o** clave igual (siempre con la misma copia y cabecera conocida), `loadSettledHead` la calcula
+  desde la copia activa que la carga ya descarga (solo si es esa copia y su huella), y el guardado la asienta.
+  El motivo de un cierre de mes u otro `reason` fuera del libro **sí** cuenta como cambio.
+- **Guardas**: 5 pruebas nuevas en `tests/ola2-guardado-remoto-sin-cambios.test.cjs`, entre ellas la huella de un
+  estado fijo fijada al valor anterior al cambio (`c63dcd356680ab090000009d`) y el guardado real de `app.js`
+  contra un cliente falso (otro `reason` = cero peticiones; un movimiento nuevo sí guarda). Con el código
+  anterior fallan 7 pruebas.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929**. **No comprobado contra el
+  Supabase real** hasta que el hogar repita la prueba tras el despliegue.
+- **Observado, sin causa confirmada**: el aviso «Hay cambios pendientes de una sesión anterior» sale cuando se
+  recarga con un guardado en marcha (ejecución `running` sin cerrar). Con un guardado por carga era fácil de
+  provocar; debería desaparecer casi siempre. Sigue pendiente la limpieza de copias huérfanas (`failed`/`running`)
+  y el arranque que descarga el `state` de 20 copias.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (266): por qué la omisión de guardados idénticos no bastaba — causa raíz de las copias
 
 - **Qué pasó**: la comprobación real de la sesión 265 (3 recargas sin editar nada) creó **6 copias**. Las

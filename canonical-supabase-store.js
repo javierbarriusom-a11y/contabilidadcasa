@@ -68,6 +68,20 @@
     return hashText(stableStringify(withoutVolatile(payload)));
   }
 
+  /**
+   * Clave de comparación SOLO para decidir si un guardado se omite; nunca sustituye a `fingerprintPayload`, que
+   * verifica cada copia ya guardada (cambiarla invalidaría todas). Ignora `canonicalLedgerSnapshot.reason`, que
+   * solo dice qué pantalla disparó el último recálculo ("state-change", "movements-view"...): medido en una base
+   * real, era lo único que cambiaba entre dos cargas sin edición y creaba una copia completa por carga.
+   */
+  function changeKey(payload) {
+    const ledger = payload?.canonicalLedgerSnapshot;
+    if (!ledger || typeof ledger !== "object") return fingerprintPayload(payload);
+    const ledgerWithoutReason = { ...ledger };
+    delete ledgerWithoutReason.reason;
+    return fingerprintPayload({ ...payload, canonicalLedgerSnapshot: ledgerWithoutReason });
+  }
+
   function verifySnapshot(snapshotRow) {
     if (!snapshotRow?.state || !snapshotRow?.fingerprint) {
       return { valid: false, expected: "", actual: "", reason: "snapshot-incomplete" };
@@ -221,6 +235,7 @@
       schemaId: SCHEMA_ID,
       syncId,
       fingerprint,
+      changeKey: changeKey(persistedPayload),
       syncRun: {
         id: syncId,
         user_id: context.userId,
@@ -373,16 +388,18 @@
    * Ola 2 · omitir guardados idénticos. Con sesión, cada guardado sube la copia completa del estado y ~3.700
    * filas aunque nada haya cambiado (medido: 878 copias con solo 548 huellas distintas). Se omite ÚNICAMENTE si
    * (a) esta sesión conoce una cabecera «asentada» —producida por un guardado normal terminado con éxito—,
-   * (b) la cabecera remota sigue siendo esa misma copia y (c) el estado nuevo tiene su misma huella. Cualquier
-   * otro caso (cabecera de otra sesión, de un cierre/reapertura de mes, o guardado a medias) guarda como siempre.
-   * @param {{snapshotId?: string, fingerprint?: string} | null | undefined} settled
+   * (b) la cabecera remota sigue siendo esa misma copia y (c) el estado nuevo tiene su misma huella o su misma
+   * clave de comparación (`changeKey`). Cualquier otro caso (cabecera de otra sesión, de un cierre/reapertura de
+   * mes, o guardado a medias) guarda como siempre.
+   * @param {{snapshotId?: string, fingerprint?: string, changeKey?: string} | null | undefined} settled
    * @param {{known?: boolean, snapshotId?: string | null}} head
    * @param {string} fingerprint
+   * @param {string} [key]
    */
-  function canSkipUnchangedSave(settled, head, fingerprint) {
+  function canSkipUnchangedSave(settled, head, fingerprint, key) {
     return Boolean(
-      head?.known && settled?.snapshotId && text(fingerprint)
-      && settled.snapshotId === head.snapshotId && settled.fingerprint === fingerprint,
+      head?.known && settled?.snapshotId && settled.snapshotId === head.snapshotId
+      && ((text(fingerprint) && settled.fingerprint === fingerprint) || (text(key) && settled.changeKey === key)),
     );
   }
 
@@ -392,13 +409,16 @@
    * derivadas). Nunca lanza: ante cualquier duda devuelve null y el guardado sigue su camino habitual.
    * @param {*} client
    * @param {{snapshot_id?: string, sync_id?: string, fingerprint?: string} | null | undefined} head
+   * @param {{id?: string, fingerprint?: string, state?: *} | null} [snapshot] copia a la que apunta la cabecera, si ya se cargó
    */
-  async function loadSettledHead(client, head) {
+  async function loadSettledHead(client, head, snapshot) {
     try {
       if (!head?.snapshot_id || !head.sync_id || !head.fingerprint) return null;
       const { data, error } = await client.from("finance_sync_runs").select("status, metadata").eq("id", head.sync_id).maybeSingle();
       const normalSave = !error && data?.status === "complete" && !data?.metadata?.operation;
-      return normalSave ? { snapshotId: head.snapshot_id, fingerprint: head.fingerprint } : null;
+      if (!normalSave) return null;
+      const sameCopy = snapshot?.state && snapshot.id === head.snapshot_id && text(snapshot.fingerprint) === text(head.fingerprint);
+      return { snapshotId: head.snapshot_id, fingerprint: head.fingerprint, changeKey: sameCopy ? changeKey(snapshot.state) : "" };
     } catch {
       return null;
     }
@@ -409,6 +429,7 @@
     stableStringify,
     hashText,
     fingerprintPayload,
+    changeKey,
     verifySnapshot,
     reconcileLedgerRows,
     createUuid,

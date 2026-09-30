@@ -45,7 +45,7 @@ function clientReturning(runRow, { error = null, throws = false } = {}) {
 
 test("loadSettledHead: solo una ejecución completa de un guardado normal asienta la cabecera; nunca lanza", async () => {
   const head = { snapshot_id: "s1", sync_id: "r1", fingerprint: "f1" };
-  const settled = { snapshotId: "s1", fingerprint: "f1" };
+  const settled = { snapshotId: "s1", fingerprint: "f1", changeKey: "" }; // sin la copia a la que apunta, no hay clave de comparación
   assert.deepEqual(await Store.loadSettledHead(clientReturning({ status: "complete", metadata: { payloadVersion: 1 } }), head), settled);
   assert.equal(await Store.loadSettledHead(clientReturning({ status: "complete", metadata: { operation: "month-close" } }), head), null, "cierre de mes: no actualiza las filas derivadas");
   assert.equal(await Store.loadSettledHead(clientReturning({ status: "complete", metadata: { operation: "import-undo" } }), head), null);
@@ -170,7 +170,7 @@ test("cableado en app.js: omite antes de crear la ejecución, asienta solo al co
   assert.ok(save.indexOf("canSkipUnchangedSave") < save.indexOf('from("finance_sync_runs").insert('), "la omisión va antes de crear nada");
   assert.ok(save.indexOf("remoteHeadSettled = {") > save.indexOf('.update({ status: "complete"'), "solo se asienta tras completar la ejecución");
   assert.match(app, /\.select\("snapshot_id, sync_id, fingerprint, schema_version, updated_at"\)/);
-  assert.match(app, /remoteHeadSettled = remoteHeadKnown \? await normalizedStore\.loadSettledHead\(supabaseClient, headResult\.data\) : null;/);
+  assert.match(app, /remoteHeadSettled = remoteHeadKnown \? await normalizedStore\.loadSettledHead\(supabaseClient, headResult\.data, activeSnapshotResult\.data\) : null;/);
   assert.match(app, /const detail = normalizedResult\.mode === "normalized" && !normalizedResult\.unchanged/);
 });
 
@@ -186,4 +186,72 @@ test("sin cabecera remota conocida el guardado se corta ANTES de crear nada (ant
   assert.deepEqual(calls, [], "ni ejecución de sincronización ni copia del estado");
   const save = app.slice(app.indexOf("async function saveNormalizedRemoteState"));
   assert.ok(save.indexOf("if (!remoteHeadKnown) throw") < save.indexOf('from("finance_sync_runs").insert('));
+});
+
+// --- Clave de comparación: `canonicalLedgerSnapshot.reason` no debe crear una copia por carga -------------
+
+const ledgerPayload = (reason, amount = 10) => ({
+  version: 1,
+  canonicalLedgerSnapshot: { reason, generatedAt: "2026-01-01T00:00:00Z", entries: [{ id: "a", amount }] },
+  monthClosures: [{ id: "m1", reason: "Cierre de enero" }],
+});
+
+test("la huella guardada NO cambia (verifica las copias ya almacenadas) y la clave de comparación ignora solo canonicalLedgerSnapshot.reason", () => {
+  const base = { ...ledgerPayload("state-change"), updatedAt: "x" };
+  // Valor medido con el código anterior a este cambio: si varía, las ~100 copias existentes dejarían de verificarse.
+  assert.equal(Store.fingerprintPayload(base), "c63dcd356680ab090000009d");
+  assert.notEqual(Store.fingerprintPayload(ledgerPayload("state-change")), Store.fingerprintPayload(ledgerPayload("movements-view")), "la huella sigue viendo el reason");
+  assert.equal(Store.changeKey(ledgerPayload("state-change")), Store.changeKey(ledgerPayload("movements-view")));
+  assert.notEqual(Store.changeKey(ledgerPayload("state-change", 10)), Store.changeKey(ledgerPayload("state-change", 11)), "un importe distinto sí cambia la clave");
+  const closureReason = ledgerPayload("state-change");
+  closureReason.monthClosures[0].reason = "Otro motivo";
+  assert.notEqual(Store.changeKey(ledgerPayload("state-change")), Store.changeKey(closureReason), "el motivo de un cierre de mes NO se ignora");
+  assert.equal(Store.changeKey({ sinLibro: true }), Store.fingerprintPayload({ sinLibro: true }), "sin libro coincide con la huella");
+});
+
+test("canSkipUnchangedSave: también omite por clave de comparación, pero solo con la misma copia y cabecera conocida", () => {
+  const settled = { snapshotId: "s1", fingerprint: "f1", changeKey: "k1" };
+  const known = { known: true, snapshotId: "s1" };
+  assert.equal(Store.canSkipUnchangedSave(settled, known, "otra", "k1"), true);
+  assert.equal(Store.canSkipUnchangedSave(settled, known, "otra", "k2"), false);
+  assert.equal(Store.canSkipUnchangedSave(settled, known, "otra", ""), false);
+  assert.equal(Store.canSkipUnchangedSave({ ...settled, changeKey: "" }, known, "otra", ""), false, "una clave vacía nunca coincide");
+  assert.equal(Store.canSkipUnchangedSave(settled, { known: true, snapshotId: "s2" }, "otra", "k1"), false);
+  assert.equal(Store.canSkipUnchangedSave(settled, { known: false, snapshotId: "s1" }, "otra", "k1"), false);
+  assert.equal(Store.canSkipUnchangedSave(settled, known, "f1", undefined), true, "la vía por huella sigue igual");
+});
+
+test("loadSettledHead: calcula la clave de la copia a la que apunta la cabecera solo si es esa copia y su huella", async () => {
+  const head = { snapshot_id: "s1", sync_id: "r1", fingerprint: "f1" };
+  const client = clientReturning({ status: "complete", metadata: {} });
+  const state = ledgerPayload("movements-view");
+  const withSnapshot = await Store.loadSettledHead(client, head, { id: "s1", fingerprint: "f1", state });
+  assert.equal(withSnapshot.changeKey, Store.changeKey(ledgerPayload("state-change")));
+  assert.equal((await Store.loadSettledHead(client, head, { id: "otra", fingerprint: "f1", state })).changeKey, "");
+  assert.equal((await Store.loadSettledHead(client, head, { id: "s1", fingerprint: "distinta", state })).changeKey, "");
+  assert.equal((await Store.loadSettledHead(client, head)).changeKey, "");
+});
+
+test("guardado real: cambiar SOLO el reason del libro (otra pantalla) no toca la nube; un cambio real de importe sí", async () => {
+  const calls = [];
+  const sb = loadSave(calls);
+  const withReason = (reason, count) => {
+    const payload = payloadWith(count);
+    payload.canonicalLedgerSnapshot.reason = reason;
+    return payload;
+  };
+  await sb.save(withReason("state-change", 3));
+  assert.ok(sb.remoteHeadSettled.changeKey, "queda asentada la clave de comparación");
+  calls.length = 0;
+  const other = await sb.save(withReason("movements-view", 3));
+  assert.equal(other.unchanged, true);
+  assert.deepEqual(calls, [], "otro reason no hace NINGUNA petición");
+  const changed = await sb.save(withReason("movements-view", 4));
+  assert.ok(!changed.unchanged);
+  assert.ok(calls.includes("finance_state_snapshots.insert"), "un movimiento nuevo sí crea copia");
+});
+
+test("cableado en app.js: el guardado usa y asienta la clave de comparación", () => {
+  assert.match(app, /canSkipUnchangedSave\(remoteHeadSettled, \{ known: remoteHeadKnown, snapshotId: remoteHeadSnapshotId \}, bundle\.fingerprint, bundle\.changeKey\)/);
+  assert.match(app, /remoteHeadSettled = \{ snapshotId: bundle\.sourceHead\.snapshot_id, fingerprint: bundle\.fingerprint, changeKey: bundle\.changeKey \};/);
 });
