@@ -45,7 +45,9 @@ test("V4-6 · relegar no desconecta: el hub sigue llevando a las dos pantallas",
 });
 
 test("V4-6 · el lanzador sigue encontrando Movimientos, esté el grupo encendido o apagado", () => {
-  assert.match(experience, /target: "movements"[^}]*group: "legacy"/);
+  // Ola 1 (entrega 1): «Movimientos» es entrada principal desde M-1; su grupo en el lanzador pasa de
+  // «legacy» a «main» (el grupo es solo metadato: findTasks no filtra por él, ver la aserción de abajo).
+  assert.match(experience, /target: "movements"[^}]*group: "main"/);
   assert.match(experience, /target: "movements"[^}]*keywords: "movimientos banco categorias buscar"/);
   const finder = experience.slice(experience.indexOf("function findTasks"));
   assert.ok(!finder.slice(0, finder.indexOf("\n  }")).includes("group"), "findTasks no filtra por grupo");

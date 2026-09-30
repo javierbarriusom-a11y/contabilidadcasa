@@ -142,7 +142,7 @@ no del código; se deshace en un commit.** Nada de esto se ejecuta sin el inform
 | # | Dependencia | Qué implica |
 |---|---|---|
 | D1 | **Los `#id` no cambian** | Las 4.935 pruebas que citan una pantalla siguen valiendo. Se reescriben solo las **16** que citan el menú (`navigation-structure`, `nav1`, `t1-seis-vistas`, `t0-versiones-anteriores`, `e14-a12-c14`, `e17-interface`, `r1-r4-registrar`, `p1-p7-plan-mes`, `d1-d2-deuda-tabs-contratos`, `track3-estado-semana`, `v4-4` y las `v*-relegar-*`). |
-| D2 | **Preferencias «Personalizar»** | El menú avanzado se filtra por grupo (`analysis`, `data`, `assistants`, `legacy`) guardado en el navegador. Si Presupuesto o Escenarios pasan al menú principal, **no pueden seguir dependiendo de esos grupos**: quien tenga «analysis» apagado los perdería. Hay que sacarlas del filtro. |
+| D2 | **Preferencias «Personalizar»** | El menú avanzado se filtra por grupo (`analysis`, `data`, `assistants`, `legacy`) guardado en el navegador. Si Presupuesto o Escenarios pasan al menú principal, **no pueden seguir dependiendo de esos grupos**: quien tenga «analysis» apagado los perdería. Hay que sacarlas del filtro. **Verificado en la entrega 1:** `applyE17Preferences` solo oculta elementos con `data-e17-group` (los enlaces del menú avanzado); el campo `group` de las entradas del lanzador es metadato y `findTasks` no filtra por él. Las entradas principales no llevan `data-e17-group` y `tests/ola1-menu-por-ritmos.test.cjs` lo guarda. |
 | D3 | **Techo de `app.js`** (ARQ-4: 37.530, sin margen) | La lógica nueva de menú va a `e17-experience.js` o a un fichero nuevo, **nunca a `app.js`**. `PLAN_TABS` vive en `app.js`: por eso recomiendo el mecanismo (i). |
 | D4 | **Fichero nuevo** | Si se crea, debe versionarse en `index.html` y entrar en la caché del service worker (hay pruebas que lo exigen). |
 | D5 | **Motor compartido** | Retirar una pantalla no retira su motor: `unifiedActionCenterModel` y el agente de ahorro pintan también Hoy. |
@@ -157,7 +157,7 @@ Cada entrega es un PR, con `npm run verify` y las pruebas de navegador del CI, y
 
 | Entrega | Contenido | Se mide con |
 |---|---|---|
-| **1** | Menú declarado como datos (D9); sale «Datos»; «Planificación de partidas» a pestaña de Plan; entra «Escenarios»; rótulos por ritmo; corregir el grupo de «Movimientos» en el lanzador | Entradas principales 11 → 10; clics a Escenarios: 2 + desplazamiento → 1 |
+| **1** ✅ *(30/09/2026, sesión 272)* | ~~Menú declarado como datos (D9)~~ **aplazado**: renderizar el menú desde JavaScript lo sacaría del HTML estático y pondría en riesgo el primer pintado (hallazgo de rendimiento de la sesión 269); se hará en la Ola 2 si el modo consulta lo exige, y mientras tanto la fuente única es `index.html`, fijada por un test. Hecho: sale «Datos»; «Planificación de partidas» a pestaña de Plan (con enlace propio en el menú avanzado); entra «Escenarios»; rótulos por ritmo; corregido el grupo de «Movimientos» y «Escenario · simular» en el lanzador | Entradas principales 11 → 10; clics a Escenarios: 2 + desplazamiento → 1 |
 | **2** | Franja de pestañas de Plan con Presupuesto y Esta semana (mecanismo i) | Clics a Presupuesto y Semana: 2 + desplazamiento → 2 |
 | **3** | Franja de pestañas de Escenarios: Simular · Guardados · Asesor · Segunda opinión · Comparadores | Las 5 pantallas alcanzables desde una sola entrada |
 | **4** | Coherencia de Personalizar y buscador (D2); guardián que impida que una pantalla del menú principal dependa de un grupo filtrable | Prueba nueva en el CI |

@@ -40,7 +40,7 @@
     { target: "analisis", label: "Análisis", group: "analysis", keywords: "analisis colchon doce meses patrimonio neto hitos confianza del dato acierta el plan previsto real meses cerrados" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
     { target: "prevision", label: "Previsión mensual", group: "analysis", keywords: "prevision mensual dia a dia horizonte previsto" },
-    { target: "escenario-simular", label: "Escenario · simular", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
+    { target: "escenario-simular", label: "Escenario · simular", group: "main", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
     { target: "deuda-ruta", label: "Plan de deuda · ruta", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
@@ -71,7 +71,7 @@
     { target: "herramientas-datos", label: "Continuidad, compartir y archivo", group: "data", keywords: "simulacro perdida acceso hogar compartido enlace solo lectura asesor externo informe pdf certificado cierre archivados opt-25" },
     { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "legacy", keywords: "objetivos huchas aportaciones ahorro" },
-    { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
+    { target: "movements", label: "Movimientos", group: "main", keywords: "movimientos banco categorias buscar" },
     { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
     // V2-8 relegó cuatro pantallas que solo se alcanzaban desde el menú avanzado. Bloque 5
     // (E-14/A-12, 20 de agosto) retira del lanzador simulador, plan ahorro y flujo mensual — ya

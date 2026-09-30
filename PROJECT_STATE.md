@@ -103,6 +103,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (272): Ola 1, entrega 1 — menú principal agrupado por ritmo (camino B)
+
+- **Decisión del hogar:** camino **B** de `docs/OLA1_ARQUITECTURA_NAVEGACION.md` (nueve pantallas corregida, ritmos como
+  rótulos, cero pantallas nuevas), empezando por la entrega 1.
+- **Qué se cambió:** el menú principal pasa de **11 a 10 entradas**, agrupadas en cinco rótulos: *Día a día* (Hoy,
+  Registrar, Movimientos), *Cada mes* (Plan, Cierre), *A largo plazo* (Deuda, Inversión), *Para decidir* (Escenarios),
+  *Sistema* (Ajustes, FAQs y ayuda). (1) **Sale «Datos»** (`#update-hub`): redirige a Registrar desde R-10, era la
+  misma pantalla con dos entradas; el destino sigue existiendo. (2) **«Planificación de partidas» pasa a pestaña de
+  Plan** («Partidas», mediante el manejador global `data-e17-target`, sin tocar `app.js`) y conserva un enlace en el
+  menú avanzado, que resalta y abre el desplegable al estar en esa pantalla. (3) **Entra «Escenarios»**
+  (`#escenario-simular`), que solo estaba en el menú avanzado. (4) En el lanzador, «Movimientos» y «Escenario · simular»
+  pasan al grupo `main`. (5) Aire sobre las cabeceras de grupo en la barra lateral.
+- **Ningún `#id` cambia**, no se retira ninguna pantalla y `app.js` no gana ninguna línea (**37.530**, en su techo).
+- **Correcciones a lo escrito en el diseño (§8 D2 y §9):** el campo `group` de las entradas del lanzador es solo
+  metadato (`findTasks` no filtra por él); los interruptores de «Personalizar» solo ocultan los enlaces del menú
+  avanzado con `data-e17-group`, así que mi cambio del lanzador es de coherencia y no funcional. Y **queda aplazado el
+  «menú declarado como datos» (D9)**: renderizarlo desde JavaScript lo sacaría del HTML estático y pondría en riesgo
+  el primer pintado (hallazgo de la sesión 269); la fuente única sigue siendo `index.html`, fijada por
+  `tests/ola1-menu-por-ritmos.test.cjs`, que incluye un guardián: ninguna entrada principal lleva `data-e17-group`.
+- **Pruebas actualizadas (no relajadas):** 6 archivos que afirmaban la estructura anterior — `e17-interface`,
+  `navigation-structure` (2), `nav1-subcabeceras-deuda-inversion`, `t1-seis-vistas`, `v4-6-relegar-datos` — con el
+  motivo en un comentario en cada uno (enlaces del grupo `analysis` 24 → 25 y avanzados 42 → 43 por el enlace de
+  Partidas; «Datos» fuera; Cierre junto a Plan).
+- **Verificado en el navegador real:** el botón «Partidas» abre la pantalla y resalta su enlace avanzado; «Escenarios»
+  queda activa; `#update-hub` sigue llevando a Registrar; el menú móvil muestra los cinco grupos.
+- **Validación:** `npm run verify` completo en verde, `npm test` **4940/4940** (4.935 anteriores + 5 nuevos);
+  accesibilidad estructural con 1.403 IDs únicos; `test:mobile-overflow` 201 visitas sin contenido cortado;
+  `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3; `test:performance-lh` exit 0.
+- **Siguiente:** entrega 2 (franja de pestañas de Plan con Presupuesto y Esta semana). Los retiros del §7 del documento
+  siguen bloqueados hasta tener el informe «Uso de la app» y tu visto bueno.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (271): Ola 1 del plan de mejora de UX — diseño de la arquitectura de navegación (sin código)
 
 - **Qué se hizo:** solo diseño, en [`docs/OLA1_ARQUITECTURA_NAVEGACION.md`](docs/OLA1_ARQUITECTURA_NAVEGACION.md): inventario medido
