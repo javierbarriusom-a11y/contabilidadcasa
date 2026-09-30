@@ -158,7 +158,7 @@ Cada entrega es un PR, con `npm run verify` y las pruebas de navegador del CI, y
 | Entrega | Contenido | Se mide con |
 |---|---|---|
 | **1** ✅ *(30/09/2026, sesión 272)* | ~~Menú declarado como datos (D9)~~ **aplazado**: renderizar el menú desde JavaScript lo sacaría del HTML estático y pondría en riesgo el primer pintado (hallazgo de rendimiento de la sesión 269); se hará en la Ola 2 si el modo consulta lo exige, y mientras tanto la fuente única es `index.html`, fijada por un test. Hecho: sale «Datos»; «Planificación de partidas» a pestaña de Plan (con enlace propio en el menú avanzado); entra «Escenarios»; rótulos por ritmo; corregido el grupo de «Movimientos» y «Escenario · simular» en el lanzador | Entradas principales 11 → 10; clics a Escenarios: 2 + desplazamiento → 1 |
-| **2** | Franja de pestañas de Plan con Presupuesto y Esta semana (mecanismo i) | Clics a Presupuesto y Semana: 2 + desplazamiento → 2 |
+| **2** ✅ *(30/09/2026, sesión 273)* | Franja de pestañas de Plan con Presupuesto, Esta semana y Partidas (mecanismo i), y franja gemela «Pantallas de Plan» en las tres pantallas destino | Clics a Presupuesto y Semana: 2 + desplazamiento → 2 |
 | **3** | Franja de pestañas de Escenarios: Simular · Guardados · Asesor · Segunda opinión · Comparadores | Las 5 pantallas alcanzables desde una sola entrada |
 | **4** | Coherencia de Personalizar y buscador (D2); guardián que impida que una pantalla del menú principal dependa de un grupo filtrable | Prueba nueva en el CI |
 | **5** | Redirecciones de §7, **solo con informe de uso y tu OK, una a una** | Pantallas en el menú avanzado |
