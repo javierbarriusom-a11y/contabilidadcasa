@@ -272,11 +272,8 @@
       <div class="workspace">
         <header class="topbar">
           <div>
-            <!-- Ola 0 (UX): nacen ocultos, igual que los deja setActiveView() en Hoy y en casi todas las
-                 demás vistas (que traen su propio <h2>). Nacer visibles hacía que el JS los ocultara tarde
-                 y subiera todo el contenido ~140 px en móvil (CLS 0,16 medido con la CPU frenada). -->
-            <p class="eyebrow" id="viewEyebrow" hidden>Cuadro de mandos</p>
-            <h1 id="viewTitle" class="sr-only" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <p class="eyebrow" id="viewEyebrow">Cuadro de mandos</p>
+            <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
             <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor

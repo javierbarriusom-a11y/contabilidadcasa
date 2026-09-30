@@ -196,7 +196,7 @@ opera (intensa) y otra solo consulta**; la lectora usa Hoy como producto entero.
 
 | Ola | Contenido | Estado |
 |---|---|---|
-| 0 · Higiene | (1) lenguaje visible sin jerga; (2) marco de pantalla: un título, cabecera y tira colapsadas, barra lateral sin login/escenario; (3) estados vacíos con siguiente acción y una sola cifra coherente entre cabecera y pantalla | (1) hecha 30/09/2026 — ver `PROJECT_STATE.md` sesión 268; (2) hecha 30/09/2026 — sesión 269 (contenido de 339 a 202 px, CLS móvil 0,161 → 0,0007); (3) pendiente |
+| 0 · Higiene | (1) lenguaje visible sin jerga; (2) marco de pantalla: un título, cabecera y tira colapsadas, barra lateral sin login/escenario; (3) estados vacíos con siguiente acción y una sola cifra coherente entre cabecera y pantalla | (1) hecha 30/09/2026 — ver `PROJECT_STATE.md` sesión 268; (2) hecha 30/09/2026 — sesión 269 (contenido de 339 a 202 px); (3) pendiente |
 | 1 · Arquitectura por ritmos | Hoy / Semana / Mes / Camino / Decidir; navegación completa y navegación de consulta; regla «ninguna pantalla nueva sin retirar otra» (retirar una heredada se consulta al hogar) | Pendiente; decide también la identidad visual (navy/crema del handoff frente al teal actual) |
 | 2 · Hoy + Modo consulta | Un veredicto («podéis gastar X hasta el día Y») con cascada que reconcilia las cifras; frescura del dato en primer plano; carta del mes | Pendiente. Nivel 1 = interfaz de consulta por dispositivo (misma cuenta); nivel 2 = rol `viewer` real, que exige revisar `docs/OPT22_MODELO_HOGAR.md` |
 | 3 · Registrar y captura | Rediseño de Registrar, captura en móvil, importador de un gesto, revisión semanal guiada | **Decisión del hogar: después de la Ola 1** |
@@ -205,3 +205,10 @@ opera (intensa) y otra solo consulta**; la lectora usa Hoy como producto entero.
 Métricas de éxito: tiempo hasta responder «¿cuánto puedo gastar?», tiempo por gasto desde el móvil, duración del
 cierre mensual, sesiones que completan la revisión semanal; instrumentación local sin datos financieros
 (`ARQ-0` ya cuenta aperturas por pantalla).
+
+**Hallazgo de rendimiento (sesión 269), pendiente de decisión.** La puerta de LCP de Lighthouse (< 4 s) mide hoy un
+marcador de posición: el `<h1>` provisional que nace visible en el HTML se pinta en el primer fotograma (LCP
+1,5-1,7 s). Quitarlo deja el LCP en el momento en que el JavaScript pinta el contenido real de Hoy: **~7,4 s en un
+móvil lento simulado** (CI de #406). Además, ese mismo `<h1>` provoca un salto de layout de ~140 px en móvil lento
+(CLS 0,15-0,16 medido con CPU ×4). Arreglar el fondo —esqueleto de Hoy desde el HTML o arranque diferido de
+`app.js`— es una tarea de rendimiento propia; no se ha hecho ni se ha tocado el umbral.
