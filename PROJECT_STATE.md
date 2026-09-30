@@ -103,6 +103,43 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (276): Ola 1, entrega 4 (parte 2) — el menú resalta la entrada de la familia
+
+- **Decisión del hogar (30/09/2026, «sí a las dos»):** los dos pasos del flujo de Escenarios (`escenario-aplicar`,
+  `escenario-comparar`) resaltan «Escenarios», y dentro de Presupuesto, Esta semana y Partidas el menú marca «Plan» y no el
+  enlace concreto; la marca precisa queda en la franja de pestañas, que ya la lleva.
+- **Corrección a lo dicho en la sesión 275:** no hacía falta liberar líneas en `app.js`. El cambio cabe sin añadir ninguna
+  (37.530 líneas, 1.947.034 bytes frente al techo de 2.000.000): una línea nueva para leer la familia, compensada al
+  reflowar el comentario contiguo de cinco líneas a cuatro sin perder contenido. **Sigue sin haber margen**: la próxima
+  vez que haga falta tocar `app.js` habrá que extraer código de verdad.
+- **Cómo funciona:** el HTML declara `data-nav-family` en nueve secciones (`plan` para Presupuesto, Esta semana y
+  Partidas; `escenario-simular` para Guardados, Asesor, Segunda opinión, aplicar y comparar, y para Simular misma).
+  `setActiveView` lo lee y, si existe, resalta solo la entrada principal de esa familia; sin atributo, coincidencia exacta
+  como antes. **Solo casa con enlaces `nav-primary-link`**: el menú avanzado conserva un enlace «Escenario · simular» con
+  el mismo destino que la entrada principal, y sin esa restricción se resaltaba y abría el desplegable en Guardados.
+- **Defecto anterior corregido de paso:** en Simular se marcaban a la vez la entrada principal y el duplicado del menú
+  avanzado (dos `aria-current="page"`) y se abría el desplegable. Ahora solo la principal. Plan no lo necesita: no tiene
+  enlace duplicado.
+- **Comprobado en el navegador real (escritorio 1280 y móvil 390, página nueva por pantalla):** Presupuesto, Esta semana y
+  Partidas → solo `#plan`; Guardados, Asesor, Segunda opinión y Comparar → solo `#escenario-simular`; Simular → solo
+  `#escenario-simular`; en todas el menú avanzado cerrado y `aria-current` único; sin desbordamiento. No se pudo ver
+  `escenario-aplicar` directamente: sin un escenario seleccionado redirige a Simular (guarda anterior, no tocada); cuando se
+  muestra lleva el mismo atributo que Comparar.
+- **Límite conocido, sin cambiar:** el desplegable avanzado se abre pero nunca se cierra solo al cambiar de pantalla
+  (comportamiento anterior); quien ha abierto «Herramientas avanzadas» lo sigue viendo abierto en las demás.
+- **Prueba antigua ajustada, no relajada:** `tests/track3-estado-semana.test.cjs` fijaba la etiqueta exacta
+  `id="estado-semana">`; ahora admite el atributo nuevo, con comentario. Su intención (la sección existe en `index.html`)
+  se conserva.
+- **Guardián nuevo** (`tests/ola1-4b-resaltado-familia.test.cjs`, 4 pruebas): extrae la línea real de `setActiveView` y la
+  ejecuta con enlaces simulados, más las comprobaciones del HTML. Comprobado que muerde: sin la restricción a enlaces
+  principales falla.
+- **Validación:** `npm run verify` completo en verde, `npm test` **4958/4958** (4.954 anteriores + 4 nuevas);
+  `test:mobile-overflow` 201 visitas sin contenido cortado; `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3;
+  `test:performance-lh` exit 0.
+- **Con esto queda cerrada la entrega 4.** Siguiente: entrega 5 (retiradas del §7), **bloqueada** hasta tener el informe
+  de Ajustes › «Uso de la app» —que vive en el navegador y solo cuenta el dispositivo donde se abre— y el OK del hogar,
+  pantalla a pantalla. Pendiente de decisión aparte: el hallazgo de LCP/CLS de la sesión 269.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (275): Ola 1, entrega 4 (parte 1) — coherencia de «Personalizar» y del buscador
 
 - **Qué había:** tres cosas hablaban de la misma navegación sin comprobarse entre sí: los enlaces del menú (que
