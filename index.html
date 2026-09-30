@@ -219,26 +219,29 @@
           <small id="familyContextNote">Todas las cuentas, ingresos, gastos y deudas del hogar.</small>
         </section>
 
-        <div class="sidebar-card">
-          <span>Escenario activo</span>
-          <strong id="scenarioName">Base</strong>
+        <!-- Ola 0 (UX): el escenario y sus tres cifras eran dos tarjetas siempre abiertas (~330 px de
+             barra lateral). Plegadas por defecto: el nombre del escenario queda en el resumen. -->
+        <details class="sidebar-scenario">
+          <summary>
+            <span>Escenario activo</span>
+            <strong id="scenarioName">Base</strong>
+          </summary>
           <p id="scenarioStatus">Plan viable con ahorro controlado.</p>
-        </div>
-
-        <div class="sidebar-metrics">
-          <div>
-            <span>Tasa ahorro</span>
-            <strong id="miniSavingsRate"></strong>
+          <div class="sidebar-metrics">
+            <div>
+              <span>Tasa ahorro</span>
+              <strong id="miniSavingsRate"></strong>
+            </div>
+            <div>
+              <span>Meses colchón</span>
+              <strong id="miniRunway"></strong>
+            </div>
+            <div>
+              <span>Deuda anterior</span>
+              <strong id="miniDebtShift"></strong>
+            </div>
           </div>
-          <div>
-            <span>Meses colchón</span>
-            <strong id="miniRunway"></strong>
-          </div>
-          <div>
-            <span>Deuda anterior</span>
-            <strong id="miniDebtShift"></strong>
-          </div>
-        </div>
+        </details>
 
         <div class="sync-panel" id="syncPanel">
           <div class="sync-head">
@@ -269,8 +272,11 @@
       <div class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow" id="viewEyebrow">Cuadro de mandos</p>
-            <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <!-- Ola 0 (UX): nacen ocultos, igual que los deja setActiveView() en Hoy y en casi todas las
+                 demás vistas (que traen su propio <h2>). Nacer visibles hacía que el JS los ocultara tarde
+                 y subiera todo el contenido ~140 px en móvil (CLS 0,16 medido con la CPU frenada). -->
+            <p class="eyebrow" id="viewEyebrow" hidden>Cuadro de mandos</p>
+            <h1 id="viewTitle" class="sr-only" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
             <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor

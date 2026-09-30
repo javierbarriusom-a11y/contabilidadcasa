@@ -103,6 +103,42 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (269): Ola 0 del plan de mejora de UX, entrega 2 — marco de pantalla
+
+- **Medición previa** (recorrido con navegador por las 59 secciones a 1440×900, y a 390×844 en cinco pantallas):
+  el contenido empezaba de media a **339 px** del borde superior (hasta 462 px en Control de deuda) y el primer
+  título de la pantalla a 370 px. Causa: 52 de 59 vistas repetían el título — el `<h1>` del cromado (una frase
+  entera) más el `<h2>` propio —, la cabecera de estado apilaba tres píldoras (dato, guardado, fuente) y la
+  guía de pantalla ocupaba una fila entera con tres textos casi genéricos («Siguiente paso: usa Buscar o abrir…»).
+  La deduplicación existía, pero escrita a mano solo para `home`, `registrar` y `movements`.
+- **Qué se cambió**: (1) el `<h1>` queda `sr-only` en toda vista con `<h2>` propio (sigue siendo el objetivo de
+  foco); el eyebrow, el nombre corto, se queda como orientación; (2) las tres píldoras de estado van en una fila
+  (cabecera de 150-260 px → 55 px) y «Fuente» pasa a una línea con elipsis; (3) la guía de pantalla es una línea de
+  «Estado» + botón «Guía de este flujo», con «para qué sirve» y «siguiente paso» en un desplegable (el contenido se
+  conserva); (4) en la barra lateral, el escenario activo y sus tres cifras pasan a un `<details>` plegado por
+  defecto; (5) en móvil, la tira de cifras clave pasa de cinco filas a dos columnas.
+- **Resultado medido**: contenido a **202 px** de media en escritorio (339 → 202) y primer título a 233 px (370 →
+  233); títulos duplicados visibles 52/59 → 0/59. Móvil: Plan 881 → 565 px, Cierre 833 → 565, Deuda 787 → 581,
+  Registrar 479 → 411; sin desbordamiento horizontal (`scrollWidth` 390).
+- **Defecto de fondo encontrado y corregido**: con el móvil emulado y la CPU frenada 4×, el contenido saltaba
+  ~140 px hacia arriba a los ~5,6 s (**CLS 0,161**, ya presente antes de este cambio) porque el `<h1>` y el
+  eyebrow nacían visibles en el HTML estático y el JavaScript los ocultaba tarde en Hoy. Ahora nacen ocultos:
+  **CLS 0,0007** medido en seis cargas. Sin este arreglo el cambio de cabecera dejaba el CLS en 0,147 en algunas
+  ejecuciones de Lighthouse (umbral 0,1, mediana de 3): no era una regresión, pero sí un riesgo real de CI rojo.
+- **Techo de `app.js`** (`ARQ-4`, 37.530 líneas): el primer intento dejó 37.534 y falló; se reescribió para no
+  ganar ninguna línea (37.529, igual que antes). No se ha subido el techo.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929**; accesibilidad estructural con 1.403
+  IDs únicos; rendimiento: forecast y escenarios en 310,8 ms; sin contenido cortado en 201 visitas
+  (360/768/1280 px); `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3. **Lighthouse local no es
+  concluyente**: LCP ~8,3 s y TBT ~2,5 s tanto antes como después (8.301/2.495 frente a 8.262/2.481 ms), por la
+  CPU compartida del contenedor — lo avisa el propio `.lighthouserc.cjs`; decide el CI. Su CLS local pasa de
+  intermitente (0 o 0,147) a 0.
+- **Pendiente de la Ola 0** (entrega 3): estados vacíos sin etiquetas amarillas de alarma («CERCA DEL UMBRAL»
+  sobre «Sin presupuestos»), una sola cifra coherente entre la tira superior y cada pantalla (Deuda: título «sin
+  fecha estimada» frente a tira «ago 29»; «Capacidad de endeudamiento» repetido en su tarjeta), y la composición de
+  las tarjetas de Cierre (cuatro contadores con una fila huérfana). Queda también el formulario de acceso de la
+  barra lateral, que sigue siempre abierto.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (268): Ola 0 del plan de mejora de UX, entrega 1 — lenguaje visible
 
 - **Origen**: análisis de producto pedido por el hogar (UX/UI, experiencia de uso y funcionalidades, sin foco
