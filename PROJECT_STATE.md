@@ -103,6 +103,30 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (271): Ola 1 del plan de mejora de UX — diseño de la arquitectura de navegación (sin código)
+
+- **Qué se hizo:** solo diseño, en [`docs/OLA1_ARQUITECTURA_NAVEGACION.md`](docs/OLA1_ARQUITECTURA_NAVEGACION.md): inventario medido
+  de las 59 pantallas (enlaces entrantes, archivos de prueba que las citan, ubicación actual en el menú), mapa de
+  destino y dos caminos con su coste. No se ha tocado ningún fichero de código.
+- **Hallazgos que corrigen el diagnóstico de la sesión 268:** (1) las pantallas «asesor» **no son duplicadas**
+  (`asesor-decision` es la decisión sobre una oferta de deuda abierta; `executive-advisor` es otra vista sobre el
+  motor compartido que también pinta Hoy); (2) de las 9 pantallas sin enlace, **7 ya se retiraron el 20/08**
+  (E-14, A-12, C-14) y las otras 2 son pasos de un flujo; (3) «Datos» y «Registrar» abren la misma pantalla
+  (`#update-hub` redirige desde R-10); (4) el menú actual es el resultado de T-1 (seis vistas, 12/08) y del diseño
+  de nueve pantallas (14/08): proponer cinco hubs de ritmo sería la tercera reescritura en seis semanas.
+- **Recomendación registrada (camino B):** conservar la estructura de nueve pantallas, corregir su deriva y usar los
+  ritmos como rótulos de sección. Menú principal de **11 a 10 entradas**, cero pantallas nuevas: sale «Datos»
+  (alias), «Planificación de partidas» pasa a pestaña de Plan, entra «Escenarios», y Presupuesto y Estado de la
+  semana —hoy solo en el menú avanzado— quedan a dos clics. **Pendiente de la decisión del hogar.**
+- **Dependencias que condicionan la ejecución:** 16 archivos de prueba citan la estructura del menú; los
+  identificadores de las pantallas no cambian; las preferencias de «Personalizar» filtran por grupo, así que lo que
+  suba al menú principal no puede depender de ese filtro; `app.js` está en su techo (37.530), la lógica de menú va a
+  otro fichero.
+- **Retiros:** 9 candidatas identificadas (§7 del documento), **ninguna se ejecuta** sin el informe «Uso de la app» y
+  sin visto bueno; las tres de deuda (D-14) siguen esperando datos de uso reales por decisión previa (T-4).
+- **Validación:** solo documentación; `npm test` **4935/4935** (sin cambios de código). Las cifras del inventario se calcularon con
+  un script sobre `index.html`, `app.js`, `views/*.js` y `tests/` en `main` (`c043870`).
+
 ## Cierre de sesión — 30 de septiembre de 2026 (270): Ola 0 del plan de mejora de UX, entrega 3 — estados vacíos y cifras coherentes
 
 - **Qué se cambió** (cierra la Ola 0; ningún cálculo ni dato cambia, no se retira ninguna pantalla):
