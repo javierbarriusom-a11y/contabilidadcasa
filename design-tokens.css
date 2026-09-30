@@ -308,6 +308,18 @@
   opacity: 0.85;
 }
 
+/* Ola 1 (entrega 2): la franja «Pantallas de Plan» de Presupuesto, Esta semana y Partidas es el nivel
+   superior; algunas de esas pantallas (Presupuesto) llevan debajo su propia franja interna. Más
+   pequeña y con aire debajo, para que las dos no se lean como el mismo nivel. */
+.e19-registrar-tabs[aria-label="Pantallas de Plan"] {
+  margin-bottom: 14px;
+}
+
+.e19-registrar-tabs[aria-label="Pantallas de Plan"] .e19-registrar-tab {
+  padding: 6px 12px;
+  font-size: var(--e19-text-xs);
+}
+
 /* D10 · Deuda pasa de pestañas sueltas a un flujo con navegación de progreso — círculo numerado
    por pestaña e is-done en las anteriores a la activa, mismo lenguaje visual que
    .datos-importar-steps (más abajo en este fichero) pero sobre los <a href> ya existentes. */

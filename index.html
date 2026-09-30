@@ -561,6 +561,12 @@
                 <p>Añade, edita o borra partidas y ve al momento el impacto en el colchón — junto con lo confirmado y lo provisional de deuda, proyectos y escenarios, sin ir pantalla por pantalla.</p>
               </div>
             </div>
+            <nav class="e19-registrar-tabs" aria-label="Pantallas de Plan">
+              <button type="button" class="e19-registrar-tab" data-e17-target="plan">‹ Plan</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="presupuesto-mes">Presupuesto</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="estado-semana">Esta semana</button>
+              <button type="button" class="e19-registrar-tab is-active" aria-current="page">Partidas</button>
+            </nav>
             <div id="planificacionPartidasRoot"></div>
             <!-- ARQ-6 (24 sept. 2026): el editor de series vivía en #data-entry, que Registrar redirige
                  desde R-10/R-11 (15 ago.) y nunca se muestra; desde entonces no había forma de cambiar de
@@ -955,6 +961,8 @@
               <button type="button" class="e19-registrar-tab" data-plan-tab="mes" aria-selected="true">Mes</button>
               <button type="button" class="e19-registrar-tab" data-plan-tab="prevision" aria-selected="false">Previsión</button>
               <button type="button" class="e19-registrar-tab" data-plan-tab="ahorro" aria-selected="false">Ahorro y objetivos</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="presupuesto-mes">Presupuesto</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="estado-semana">Esta semana</button>
               <button type="button" class="e19-registrar-tab" data-e17-target="planificacion-partidas">Partidas</button>
             </nav>
             <p class="e19-registrar-crumb" id="planCrumb" aria-live="polite"></p>
@@ -5676,6 +5684,12 @@
                 <p class="e19-subtitle">Analiza los últimos 6 meses de gasto por categoría, sugiere un presupuesto mensual y compara el ritmo diario con lo realmente gastado. La proyección de fin de mes usa una regla lineal simple: gasto acumulado ÷ días transcurridos × días del mes.</p>
               </div>
             </div>
+            <nav class="e19-registrar-tabs" aria-label="Pantallas de Plan">
+              <button type="button" class="e19-registrar-tab" data-e17-target="plan">‹ Plan</button>
+              <button type="button" class="e19-registrar-tab is-active" aria-current="page">Presupuesto</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="estado-semana">Esta semana</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="planificacion-partidas">Partidas</button>
+            </nav>
             <div id="presupuestoMesRoot"></div>
           </section>
 
@@ -5687,6 +5701,12 @@
                 <p class="e19-subtitle">Tres lecturas que hoy viven en pantallas separadas, juntas y de solo lectura: alertas de caja anticipadas (E16), ritmo de presupuesto de esta semana y este mes, y los próximos vencimientos de tus objetivos (E15). Nada se cambia aquí — cada tarjeta enlaza a la pantalla donde sí se actúa.</p>
               </div>
             </div>
+            <nav class="e19-registrar-tabs" aria-label="Pantallas de Plan">
+              <button type="button" class="e19-registrar-tab" data-e17-target="plan">‹ Plan</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="presupuesto-mes">Presupuesto</button>
+              <button type="button" class="e19-registrar-tab is-active" aria-current="page">Esta semana</button>
+              <button type="button" class="e19-registrar-tab" data-e17-target="planificacion-partidas">Partidas</button>
+            </nav>
             <div id="estadoSemanaRoot"></div>
           </section>
 

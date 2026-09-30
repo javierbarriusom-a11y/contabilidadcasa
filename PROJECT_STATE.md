@@ -103,6 +103,32 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (273): Ola 1, entrega 2 — Presupuesto, Esta semana y Partidas como pestañas de Plan
+
+- **Qué se cambió:** la franja de Plan gana tres pestañas que enlazan a pantallas independientes —**Presupuesto**
+  (`#presupuesto-mes`), **Esta semana** (`#estado-semana`) y **Partidas** (`#planificacion-partidas`)— tras sus tres
+  pestañas internas (Mes · Previsión · Ahorro y objetivos). Es el mecanismo (i) del diseño, el de Deuda e Inversión:
+  no mueve código entre ficheros, no toca el motor y conserva la carga diferida de cada fragmento. «Presupuesto» y
+  «Estado de la semana», que solo se alcanzaban desde «Herramientas avanzadas» (2 clics más un desplazamiento largo),
+  quedan a 2 clics desde Plan.
+- **Franja gemela en las tres pantallas destino** («Pantallas de Plan»: «‹ Plan», Presupuesto, Esta semana,
+  Partidas, con la actual marcada y `aria-current="page"`), colocada antes del contenedor que el fragmento diferido
+  reescribe. Se navega con el manejador global `data-e17-target`: **`app.js` no gana ninguna línea (37.530)**.
+- **Jerarquía visual:** Presupuesto lleva debajo su propia franja interna (Mensual · Semanal · Anual/Trim.) y las dos se
+  leían como el mismo nivel; la de «Pantallas de Plan» va más pequeña y con 14 px de aire (reglas sobre
+  `[aria-label="Pantallas de Plan"]`, sin clases nuevas).
+- **Ningún `#id` cambia** y no se retira ninguna pantalla; las tres siguen con su enlace en el menú avanzado.
+- **Limitación conocida:** en esas tres pantallas el menú lateral resalta el enlace del menú avanzado (y abre el
+  desplegable), no «Plan» del menú principal. Resaltar la familia entera exige lógica en `setActiveView`, que vive en
+  `app.js` (en su techo); queda para la entrega 4, junto con liberar líneas.
+- **Verificado en el navegador real:** de Plan a cada una de las tres, entre hermanas y de vuelta a Plan; en móvil las
+  seis pestañas de Plan se pliegan en dos filas (`scrollWidth` 390).
+- **Validación:** `npm run verify` completo en verde, `npm test` **4944/4944** (4.940 anteriores + 4 nuevos en
+  `tests/ola1-2-plan-pestanas.test.cjs`); `test:mobile-overflow` 201 visitas sin contenido cortado; `test:e2e` 8/8;
+  `test:a11y-axe` 6/6; `test:perf-screens` 3/3; `test:performance-lh` exit 0. Ningún test existente hubo que tocar.
+- **Siguiente:** entrega 3 (franja de pestañas de Escenarios: Simular · Guardados · Asesor · Segunda opinión ·
+  Comparadores). Los retiros del §7 del documento siguen bloqueados hasta tener el informe «Uso de la app».
+
 ## Cierre de sesión — 30 de septiembre de 2026 (272): Ola 1, entrega 1 — menú principal agrupado por ritmo (camino B)
 
 - **Decisión del hogar:** camino **B** de `docs/OLA1_ARQUITECTURA_NAVEGACION.md` (nueve pantallas corregida, ritmos como
