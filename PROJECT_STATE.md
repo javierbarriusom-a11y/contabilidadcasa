@@ -103,6 +103,39 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (277): rendimiento — «carga honesta» (secciones ocultas, cabecera final, puerta nueva)
+
+- **Decisión del hogar («opción 1, adelante»):** cambio A + cabecera ya en su estado final + puerta de LCP de Lighthouse a aviso +
+  puerta nueva de contenido de Hoy. Móviles del hogar: iPhone 17 y iPhone 15 Pro, rápidos: la mejora para ellos es de décimas de
+  segundo (no medido en WebKit); lo tangible es el fin del salto de layout. Descartados por no compensar: memorizar el cálculo de
+  filas de planificación y el barrido de tablas `markScrollableTableWraps` (`app.js` en su techo).
+- **1 · Las 59 pantallas se pintaban a la vez durante la carga.** Ninguna sección `view-section` nacía con `hidden` y el CSS
+  tampoco las ocultaba; solo `setActiveView` lo hacía al terminar de arrancar. Ahora 58 nacen con `hidden` (todas menos `#home`, la vista
+  por defecto). Móvil emulado (390 px, CPU 4×, 1,6 Mbps, gzip como GitHub Pages): visita repetida, contenido de Hoy
+  **5,8–6,0 s → 3,2–3,8 s**; primera visita 10,5–11,1 s → 8,8–10,9 s (mejora menor y ruidosa). Guardián:
+  `tests/ola-rend-1-secciones-ocultas.test.cjs`. 10 pruebas antiguas ajustadas por fijar la etiqueta `<section …>` exacta.
+- **2 · El salto de layout (CLS 0,147) estaba oculto por la puerta, no ausente.** El titular provisional de la cabecera (tres líneas)
+  nacía visible y el script principal lo contraía al arrancar: el contenido subía ~140 px, más visible en un teléfono rápido. La
+  puerta de Lighthouse agrega con el mejor valor de cada métrica por separado: en `main` las tres ejecuciones eran bimodales (dos con
+  LCP 8,1–8,3 s y CLS 0; una con LCP 1,7 s y CLS 0,147) y pasaba porque el mejor LCP y el mejor CLS salían de ejecuciones distintas.
+  Ahora eyebrow y titular nacen en su estado final (`hidden` / `sr-only`); comprobado en enlace directo a las 59 pantallas: todas traen
+  cabecera propia, ninguna dependía del titular provisional. **CLS 0,147 → 0–0,0007 en las tres ejecuciones.**
+- **3 · La puerta de LCP de 4 s solo pasaba por el titular provisional.** El LCP real de Hoy, con primera visita y red lenta, es ~8 s
+  (7,9–8,7 s) y bajarlo exige partir `app.js` (324 KB comprimidos + una tarea larga de ~3,8 s a CPU 4×): fuera de alcance. Cambio
+  en `.lighthouserc.cjs`: LCP de «error» a **«warn» con el mismo umbral de 4000 ms** (sigue saliendo en el informe); CLS ≤ 0,1 y TBT ≤ 5000
+  siguen siendo «error». Sin tocar `numberOfRuns` ni la agregación.
+- **4 · Puerta nueva `npm run test:load-budget`** (`tools/measure-load.mjs --budget=5000`, en `.github/workflows/pages.yml` tras
+  instalar Chromium y en cada PR): tres visitas repetidas (service worker ya instalado, el uso diario) a CPU 4× y falla si la
+  **mediana** del momento en que `#homeKpis` recibe contenido supera **5000 ms**. Medido 3,2–3,8 s (medianas 3.232 y 3.625 ms en dos
+  ejecuciones); se comprobó que falla con un presupuesto de 1000 ms. El presupuesto protege de regresiones grandes en un móvil lento
+  simulado; no mide la experiencia de un iPhone actual. `npm run measure:load` queda como informe informativo (primera visita +
+  repetida, sin umbral). Guardián: `tests/ola-rend-2-carga-honesta.test.cjs`.
+- **Fragilidad conocida, sin resolver:** la agregación «mejor valor por métrica» de Lighthouse sigue ahí (`optimistic`); con el CLS
+  ya en ~0 deja de enmascarar nada relevante, pero un LCP o un TBT malo aún podría taparse con otra ejecución.
+- **Validación:** `npm run verify` completo en verde, `npm test` **4966/4966**; `test:performance-lh` exit 0 (CLS 0 / 0,0007 / 0,0007;
+  LCP en aviso, ~8 s; TBT 2,0–3,0 s); `test:load-budget` exit 0 (mediana 3.232 ms); `test:mobile-overflow` 201 visitas sin contenido
+  cortado; `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3. `app.js` sin líneas nuevas (37.530).
+
 ## Cierre de sesión — 30 de septiembre de 2026 (276): Ola 1, entrega 4 (parte 2) — el menú resalta la entrada de la familia
 
 - **Decisión del hogar (30/09/2026, «sí a las dos»):** los dos pasos del flujo de Escenarios (`escenario-aplicar`,

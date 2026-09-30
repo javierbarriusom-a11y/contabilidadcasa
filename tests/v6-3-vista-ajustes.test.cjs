@@ -13,7 +13,8 @@ const app = read("app.js");
 // mandos hasta que existiera esta vista); el resto de tarjetas enlazan a donde ya se editan.
 
 test("V6-3 · la vista existe con piel nueva y aparece antes de las heredadas", () => {
-  assert.match(html, /<section class="e19-ajustes view-section" id="ajustes">/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(html, /<section class="e19-ajustes view-section" id="ajustes"(?: hidden)?>/);
   const ajustes = html.indexOf('id="ajustes"');
   const legacyFirst = html.indexOf('id="visual-detail"');
   assert.ok(ajustes > 0 && ajustes < legacyFirst, "Ajustes debe aparecer entre las pantallas nuevas, antes de las heredadas");

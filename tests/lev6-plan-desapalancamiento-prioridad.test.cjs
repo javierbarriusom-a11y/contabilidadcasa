@@ -138,7 +138,8 @@ test("wiring: renderLev6DeleveragingPriority usa deleveragingPriority, normalize
 // pantallas distintas: IV6 vive arriba, en Configuración, y LEV6 justo debajo, en Herramientas,
 // dentro de la misma pestaña.
 test("wiring: la tarjeta de LEV6 vive en Inversión › Rebalanceo, justo después de los objetivos de reparto de IV6", () => {
-  const rebalanceo = /<section class="e19-deuda-decidir view-section" id="inversion-rebalanceo">/.exec(indexSource);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  const rebalanceo = /<section class="e19-deuda-decidir view-section" id="inversion-rebalanceo"(?: hidden)?>/.exec(indexSource);
   assert.ok(rebalanceo, "No existe la sección inversion-rebalanceo");
   const start = rebalanceo.index + rebalanceo[0].length;
   const end = indexSource.indexOf("</section>", start);

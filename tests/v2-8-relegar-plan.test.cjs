@@ -37,7 +37,8 @@ test("V2-8 · `#forecast` no se relega: tiene la piel nueva, aunque T-1 le quite
   // que reutiliza el mismo motor). Relegarlo sí habría sido degradar una pantalla migrada; quitarle
   // solo la pestaña principal no lo es.
   assert.equal(groupOf("forecast"), "analysis");
-  assert.match(html, /<section class="analytics-grid view-section e19-forecast" id="forecast">/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(html, /<section class="analytics-grid view-section e19-forecast" id="forecast"(?: hidden)?>/);
   assert.ok(!html.includes('<a href="#forecast" class="nav-primary-link">'), "T-1 retira Prever como pestaña principal");
 });
 

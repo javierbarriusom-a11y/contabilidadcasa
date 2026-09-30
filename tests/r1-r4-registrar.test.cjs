@@ -60,7 +60,8 @@ test("R-2 · el menú lateral abre Registrar bajo «Día a día», entre Hoy y M
   const registrar = html.indexOf('href="#registrar" class="nav-primary-link');
   const movements = html.indexOf('href="#movements" class="nav-primary-link');
   assert.ok(home >= 0 && registrar > home && movements > registrar, "Registrar va entre Hoy y Movimientos");
-  assert.match(html, /<section class="view-section e19-registrar" id="registrar">/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(html, /<section class="view-section e19-registrar" id="registrar"(?: hidden)?>/);
 });
 
 test("R-2 · las cuatro pestañas existen y abre en Saldo de cuentas", () => {
