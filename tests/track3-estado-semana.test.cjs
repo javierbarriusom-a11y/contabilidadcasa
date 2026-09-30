@@ -255,7 +255,9 @@ test("TRACK-3 · la nueva pantalla está registrada en VIEW_CHUNKS, HEAVY_RENDER
 test("TRACK-3 · el enlace de navegación y la sección viven en index.html", () => {
   const html = read("index.html");
   assert.match(html, /<a href="#estado-semana" data-e17-group="analysis">Estado de la semana<\/a>/);
-  assert.match(html, /<section class="[^"]*view-section" id="estado-semana">/);
+  // Ola 1.4: la sección lleva ahora `data-nav-family="plan"` tras el id (el menú resalta «Plan» en ella); la
+  // prueba comprueba que la sección existe, no que su etiqueta no admita atributos.
+  assert.match(html, /<section class="[^"]*view-section" id="estado-semana"(?: data-nav-family="plan")?>/);
   assert.match(html, /id="estadoSemanaRoot"/);
 });
 

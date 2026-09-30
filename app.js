@@ -4560,8 +4560,9 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   document.querySelectorAll(".view-section").forEach((section) => {
     section.hidden = section.id !== viewId;
   });
+  const navFamily = document.getElementById(viewId)?.dataset.navFamily; // Ola 1: la pantalla hermana resalta solo la entrada principal de su familia
   document.querySelectorAll(".side-nav a").forEach((link) => {
-    const isActive = link.getAttribute("href") === `#${viewId}`;
+    const isActive = navFamily ? link.classList.contains("nav-primary-link") && link.getAttribute("href") === `#${navFamily}` : link.getAttribute("href") === `#${viewId}`;
     link.classList.toggle("active", isActive);
     if (isActive) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -4573,11 +4574,10 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     if (containsActiveView) advancedNav.open = true;
   }
   const copy = viewTitles[viewId] || viewTitles.home;
-  // Hoy.pdf «Hoy, alineada», Registrar.pdf «Registrar, alineada» y Movimientos.pdf «Movimientos,
-  // alineada»: sin cabecera genérica duplicada — #home, #registrar y #movements ya traen su
-  // propio título y subtítulo. El eyebrow y el <h1> compartidos por el resto de vistas se
-  // ocultan aquí solo para estas tres (el <h1> queda sr-only, no desaparece: sigue siendo el
-  // objetivo de foco de accesibilidad tras navegar). Ola 0 (UX): toda vista con <h2> propio hace lo mismo con el <h1>; su eyebrow sí queda.
+  // Hoy.pdf «Hoy, alineada», Registrar.pdf «Registrar, alineada» y Movimientos.pdf «Movimientos, alineada»: sin cabecera genérica
+  // duplicada — #home, #registrar y #movements ya traen su propio título y subtítulo. El eyebrow y el <h1> compartidos por el resto
+  // de vistas se ocultan aquí solo para estas tres (el <h1> queda sr-only, no desaparece: sigue siendo el objetivo de foco de accesibilidad
+  // tras navegar). Ola 0 (UX): toda vista con <h2> propio hace lo mismo con el <h1>; su eyebrow sí queda.
   const hasOwnHeader = viewId === "home" || viewId === "registrar" || viewId === "movements";
   const viewEyebrow = qs("viewEyebrow");
   if (viewEyebrow) {
