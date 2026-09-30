@@ -148,7 +148,7 @@
     const api = root.FinanceCanonicalE15;
     const planning = bridge()?.goalPlanning?.();
     if (!api || !planning) return;
-    const target = mount("savings-agent", "e15-planning", "beforeend", panel("e15-planning", "E15 · objetivos y calendario", "Capacidad futura y revisión mensual", "Las propuestas respetan caja, deuda y reserva; no cambian el plan sin confirmación."));
+    const target = mount("savings-agent", "e15-planning", "beforeend", panel("e15-planning", "Objetivos y calendario", "Capacidad futura y revisión mensual", "Las propuestas respetan caja, deuda y reserva; no cambian el plan sin confirmación."));
     if (!target) return;
     const p2 = state();
     const plan = api.contributionPlan({ ...planning, goals: p2.goals });
@@ -156,7 +156,7 @@
     const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [] });
     const currentMonth = calendar.rows[0]?.monthKey || "";
     const scenarioComparison = e15ScenarioComparison(planning.forecast);
-    target.querySelector("[data-p2-body]").innerHTML = `${recomputedAgoHtml()}${reforecastMaterialityHtml()}<div class="p2-kpis"><div class="p2-kpi"><span>Capacidad mensual</span><strong>${euro(plan.monthlyCapacity)}</strong></div><div class="p2-kpi"><span>Reserva</span><strong>${euro(plan.reserve)}</strong></div><div class="p2-kpi"><span>Conflictos</span><strong>${conflicts.conflicts.length}</strong></div><div class="p2-kpi"><span>Sin asignar</span><strong>${euro(plan.unassignedCapacity)}</strong></div></div><div class="p2-list">${plan.plans.length ? plan.plans.map((goal) => `<section class="p2-item"><div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${goal.months} meses · ${esc(goal.priority)}</p></div><span class="p2-status${goal.delayed ? " warn" : ""}">${goal.delayed ? "Revisar" : "Compatible"}</span></div><p><strong>${euro(goal.proposedMonthly)}/mes</strong> de ${euro(goal.requiredMonthly)}/mes.</p><p class="p2-help">${esc(goal.explanation)}</p></section>`).join("") : '<div class="p2-empty">Crea un objetivo para calcular aportaciones.</div>'}</div><div class="p2-list">${conflicts.conflicts.length ? conflicts.conflicts.map((item) => `<div class="p2-contribution"><span>${esc(item.goal)} · faltan ${euro(item.shortage)}/mes</span><small>${esc(item.alternatives.join(" · "))}</small></div>`).join("") : '<p class="p2-help">No hay conflictos de capacidad.</p>'}</div><div class="p2-list">${calendar.rows.slice(0, 12).map((row) => `<div class="p2-contribution"><span><strong>${esc(row.label)}</strong> · cierre ${euro(row.closingLiquidity)}</span><small>${esc(row.events.map((event) => event.label).join(" · "))}</small></div>`).join("")}</div><h4>Comparación automática de escenarios (CP4)</h4>${e15ScenarioComparisonHtml(scenarioComparison)}<div class="p2-actions"><button class="p2-button secondary" type="button" data-e15-review>Registrar revisión de ${esc(currentMonth || "este mes")}</button></div>`;
+    target.querySelector("[data-p2-body]").innerHTML = `${recomputedAgoHtml()}${reforecastMaterialityHtml()}<div class="p2-kpis"><div class="p2-kpi"><span>Capacidad mensual</span><strong>${euro(plan.monthlyCapacity)}</strong></div><div class="p2-kpi"><span>Reserva</span><strong>${euro(plan.reserve)}</strong></div><div class="p2-kpi"><span>Conflictos</span><strong>${conflicts.conflicts.length}</strong></div><div class="p2-kpi"><span>Sin asignar</span><strong>${euro(plan.unassignedCapacity)}</strong></div></div><div class="p2-list">${plan.plans.length ? plan.plans.map((goal) => `<section class="p2-item"><div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${goal.months} meses · ${esc(goal.priority)}</p></div><span class="p2-status${goal.delayed ? " warn" : ""}">${goal.delayed ? "Revisar" : "Compatible"}</span></div><p><strong>${euro(goal.proposedMonthly)}/mes</strong> de ${euro(goal.requiredMonthly)}/mes.</p><p class="p2-help">${esc(goal.explanation)}</p></section>`).join("") : '<div class="p2-empty">Crea un objetivo para calcular aportaciones.</div>'}</div><div class="p2-list">${conflicts.conflicts.length ? conflicts.conflicts.map((item) => `<div class="p2-contribution"><span>${esc(item.goal)} · faltan ${euro(item.shortage)}/mes</span><small>${esc(item.alternatives.join(" · "))}</small></div>`).join("") : '<p class="p2-help">No hay conflictos de capacidad.</p>'}</div><div class="p2-list">${calendar.rows.slice(0, 12).map((row) => `<div class="p2-contribution"><span><strong>${esc(row.label)}</strong> · cierre ${euro(row.closingLiquidity)}</span><small>${esc(row.events.map((event) => event.label).join(" · "))}</small></div>`).join("")}</div><h4>Comparación automática de escenarios</h4>${e15ScenarioComparisonHtml(scenarioComparison)}<div class="p2-actions"><button class="p2-button secondary" type="button" data-e15-review>Registrar revisión de ${esc(currentMonth || "este mes")}</button></div>`;
     target.querySelector("[data-e15-review]")?.addEventListener("click", () => {
       if (!currentMonth) return;
       const latest = state();
@@ -322,7 +322,7 @@
     // GOB17: la cita interna (id de categoría) va acompañada de la función real cuando existe, en
     // vez de mostrar solo `metric:idle-cash` sin decir qué archivo/función lo sustenta.
     const sourceLine = signal.citedSource ? ` · Fuente real: ${esc(signal.citedSource)}` : "";
-    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes (AP1).</p><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}${sourceLine}.</p></article>`;
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes.</p><details class="p2-details"><summary>Ver por qué</summary><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}${sourceLine}.</p></details></article>`;
   }
 
   // TT2: escalera de vencimientos para el exceso sobre el colchón. Depende de CP2 (idleCash, ya
@@ -347,7 +347,7 @@
     const api = root.FinanceCanonicalE16;
     const input = bridge()?.e16Input?.();
     if (!api || !input) return;
-    const target = mount("home", "e16-monitoring", "beforeend", panel("e16-monitoring", "E16 · seguimiento predictivo", "Alertas y explicaciones", "El seguimiento anticipa riesgos y explica su evidencia; no cambia el plan ni toma decisiones por ti."));
+    const target = mount("home", "e16-monitoring", "beforeend", panel("e16-monitoring", "Seguimiento predictivo", "Alertas y explicaciones", "El seguimiento anticipa riesgos y explica su evidencia; no cambia el plan ni toma decisiones por ti."));
     if (!target) return;
     const p2 = state();
     const model = api.buildReadModel(input);
@@ -358,9 +358,9 @@
     const cpx3Entry = bridge()?.trackRecommendation?.(nextBestAction) || null;
     const idleCashSignal = cp2IdleCashSignal();
     target.querySelector("[data-p2-body]").innerHTML = `${recomputedAgoHtml()}${reforecastMaterialityHtml()}
-      <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction, cpx3Entry)}</section>
-      <section class="p2-list"><h4>Dinero parado (CP2)</h4>${cp2IdleCashHtml(idleCashSignal)}</section>
-      <section class="p2-list"><h4>Escalera de vencimientos (TT2)</h4>${tt2MaturityLadderHtml()}</section>
+      <section class="p2-list"><h4>Próxima mejor acción</h4>${cp1NextBestActionHtml(nextBestAction, cpx3Entry)}</section>
+      <section class="p2-list"><h4>Dinero parado</h4>${cp2IdleCashHtml(idleCashSignal)}</section>
+      <section class="p2-list"><h4>Escalera de vencimientos</h4>${tt2MaturityLadderHtml()}</section>
       <form class="p2-form p2-grid three" data-e16-budget-form>
         <label class="p2-field"><span>Caja mínima (€)</span><input name="minimumLiquidity" type="number" min="0" step="0.01" value="${esc(budget.minimumLiquidity)}" /></label>
         <label class="p2-field"><span>Variación mensual máxima (€)</span><input name="maximumMonthlyVariation" type="number" min="0" step="0.01" value="${esc(budget.maximumMonthlyVariation)}" /></label>
@@ -474,7 +474,7 @@
   function renderE9ActivationStatus() {
     const target = mount("ajustes-datos", "e9-activation-status", "beforeend", panel(
       "e9-activation-status",
-      "E9 · Servicios opcionales",
+      "Servicios opcionales",
       "Pendientes de activación externa",
       "Los contratos de seguridad están preparados localmente, pero estos servicios todavía no tratan ni comparten datos reales.",
     ));

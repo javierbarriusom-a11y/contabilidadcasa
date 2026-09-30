@@ -125,7 +125,7 @@ test("app.js: el puente expone maturityLadder para que p2-ui.js lo consuma", () 
 });
 
 test("p2-ui.js: renderE16Monitoring pinta la escalera de vencimientos (TT2) junto a CP2", () => {
-  assert.match(ui, /Escalera de vencimientos \(TT2\)/);
+  assert.match(ui, /Escalera de vencimientos/);
   assert.match(ui, /tt2MaturityLadderHtml\(\)/);
 });
 

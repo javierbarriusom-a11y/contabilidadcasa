@@ -24,51 +24,51 @@
     // A17-1 (bloque 3, septiembre): solo lectura, pensado para un atajo del icono instalado, no
     // para navegar desde el menú — pero sigue siendo localizable desde el buscador como cualquier
     // otra pantalla.
-    { target: "widget", label: "Widget de solo lectura (nuevo)", group: "data", keywords: "widget saldo colchon proximo evento atajo shortcut inicio reloj a17 solo lectura" },
-    { target: "datos-importar", label: "Importar extracto en 4 pasos (nuevo)", group: "data", keywords: "importar extracto csv excel duplicados reglas clasificar incorporar deshacer nuevo e20 v4-4" },
-    { target: "registrar-mes", label: "Registrar el mes (nuevo)", group: "data", keywords: "registrar mes real previsto usado desviacion partida guardado automatico nuevo e20 copiar reales" },
-    { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida (nuevo)", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
-    { target: "cambios-pendientes", label: "Cambios pendientes (nuevo)", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
-    { target: "mapa-calor", label: "Mapa de calor mensual (nuevo)", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
+    { target: "widget", label: "Widget de solo lectura", group: "data", keywords: "widget saldo colchon proximo evento atajo shortcut inicio reloj a17 solo lectura" },
+    { target: "datos-importar", label: "Importar extracto en 4 pasos", group: "data", keywords: "importar extracto csv excel duplicados reglas clasificar incorporar deshacer nuevo e20 v4-4" },
+    { target: "registrar-mes", label: "Registrar el mes", group: "data", keywords: "registrar mes real previsto usado desviacion partida guardado automatico nuevo e20 copiar reales" },
+    { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
+    { target: "cambios-pendientes", label: "Cambios pendientes", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
+    { target: "mapa-calor", label: "Mapa de calor mensual", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
     // U-4 (FASE 5): mismo destino, vocabulario ampliado con lo construido en FASE 2-4 — simulador,
     // objetivos/rachas, badges, reto y patrones estacionales no eran localizables por su propio
     // nombre en el buscador, solo por "presupuesto".
-    { target: "presupuesto-mes", label: "Presupuesto del mes (nuevo)", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha simulador y si simulacion recorte ahorro impacto caja cobertura objetivos racha badge logro ahorrista equilibrador reto record notificaciones patrones estacionales cohortes" },
-    { target: "estado-semana", label: "Estado de la semana (nuevo)", group: "analysis", keywords: "estado semana mes resumen alertas caja riesgo e16 ritmo presupuesto objetivos vencimientos calendario e15 track-3" },
+    { target: "presupuesto-mes", label: "Presupuesto del mes", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha simulador y si simulacion recorte ahorro impacto caja cobertura objetivos racha badge logro ahorrista equilibrador reto record notificaciones patrones estacionales cohortes" },
+    { target: "estado-semana", label: "Estado de la semana", group: "analysis", keywords: "estado semana mes resumen alertas caja riesgo e16 ritmo presupuesto objetivos vencimientos calendario e15 track-3" },
     // T2 (sesión 199): otras dos de «Herramientas avanzadas» (data-e17-group="analysis" en
     // index.html) sin entrada propia hasta ahora.
-    { target: "analisis", label: "Análisis (nuevo)", group: "analysis", keywords: "analisis colchon doce meses patrimonio neto hitos confianza del dato acierta el plan previsto real meses cerrados" },
+    { target: "analisis", label: "Análisis", group: "analysis", keywords: "analisis colchon doce meses patrimonio neto hitos confianza del dato acierta el plan previsto real meses cerrados" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
     { target: "prevision", label: "Previsión mensual", group: "analysis", keywords: "prevision mensual dia a dia horizonte previsto" },
-    { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
-    { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
-    { target: "deuda-comparar", label: "Comparar estrategias de deuda (nuevo)", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
-    { target: "deuda-ruta", label: "Plan de deuda · ruta (nuevo)", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
-    { target: "deuda-contratos", label: "Contratos de deuda (nuevo)", group: "analysis", keywords: "deuda contratos capital tae cuota editar corregir nuevo e20 d-2" },
-    { target: "deuda-simulador", label: "Simulador visual de deuda (nuevo)", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
+    { target: "escenario-simular", label: "Escenario · simular", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
+    { target: "escenario-guardados", label: "Escenario · guardados", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
+    { target: "deuda-comparar", label: "Comparar estrategias de deuda", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
+    { target: "deuda-ruta", label: "Plan de deuda · ruta", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
+    { target: "deuda-contratos", label: "Contratos de deuda", group: "analysis", keywords: "deuda contratos capital tae cuota editar corregir nuevo e20 d-2" },
+    { target: "deuda-simulador", label: "Simulador visual de deuda", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
     // I1 (Contabilidadcasa 2.0): hub único de Inversión, mismo patrón de pestañas que Deuda —
     // Cartera es la entrada principal del menú lateral; las otras 4 viven en Herramientas
     // avanzadas, igual que las de Deuda de arriba.
     { target: "inversion-cartera", label: "Inversión · Cartera", group: "analysis", keywords: "inversion cartera posiciones xirr rentabilidad registro i1" },
-    { target: "inversion-rebalanceo", label: "Inversión · Rebalanceo (nuevo)", group: "analysis", keywords: "inversion rebalanceo objetivo reparto umbral desapalancar vender primero i1" },
-    { target: "inversion-fiscal", label: "Inversión · Fiscal (nuevo)", group: "analysis", keywords: "inversion fiscal dividendos venta parcial compensacion perdidas plusvalia i1" },
-    { target: "inversion-apalancamiento", label: "Inversión · Apalancamiento (nuevo)", group: "analysis", keywords: "inversion apalancamiento lombard margin call ltv deuda invertir i1" },
-    { target: "inversion-jubilacion", label: "Inversión · Jubilación (nuevo)", group: "analysis", keywords: "inversion jubilacion pension rescate aportacion proyeccion i1" },
-    { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
-    { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
+    { target: "inversion-rebalanceo", label: "Inversión · Rebalanceo", group: "analysis", keywords: "inversion rebalanceo objetivo reparto umbral desapalancar vender primero i1" },
+    { target: "inversion-fiscal", label: "Inversión · Fiscal", group: "analysis", keywords: "inversion fiscal dividendos venta parcial compensacion perdidas plusvalia i1" },
+    { target: "inversion-apalancamiento", label: "Inversión · Apalancamiento", group: "analysis", keywords: "inversion apalancamiento lombard margin call ltv deuda invertir i1" },
+    { target: "inversion-jubilacion", label: "Inversión · Jubilación", group: "analysis", keywords: "inversion jubilacion pension rescate aportacion proyeccion i1" },
+    { target: "conciliar", label: "Conciliación", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
+    { target: "asesor-decision", label: "Asesor ejecutivo", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
     // OPT-25 (fase 3, 11 sept. 2026): trasladada desde Ajustes > Fiscal > Herramientas.
     { target: "segunda-opinion", label: "Segunda opinión: decisión externa al plan", group: "analysis", keywords: "segunda opinion decision externa compromiso oferta prestamo cambio ingresos caja tension cpx2 opt-25" },
     // OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026): primera categoría nueva de
     // Herramientas avanzadas — las 4 tarjetas vivían en Ajustes > Seguros > Herramientas.
-    { target: "herramientas-seguros", label: "Seguros: comparadores y simuladores (nuevo)", group: "analysis", keywords: "seguros deducible franquicia autoseguro poliza vida hogar reposicion cobertura siniestro opt-25" },
+    { target: "herramientas-seguros", label: "Seguros: comparadores y simuladores", group: "analysis", keywords: "seguros deducible franquicia autoseguro poliza vida hogar reposicion cobertura siniestro opt-25" },
     // OPT-25 (fase 2, 11 sept. 2026): las 7 tarjetas vivían en Ajustes > Fiscal > Herramientas.
-    { target: "herramientas-fiscal", label: "Fiscal: calculadoras y comparadores (nuevo)", group: "analysis", keywords: "fiscal irpf dividendos retencion doble imposicion venta parcial tramo ahorro pension aportacion rescate renta borrador perdidas ganancias compensacion opt-25" },
+    { target: "herramientas-fiscal", label: "Fiscal: calculadoras y comparadores", group: "analysis", keywords: "fiscal irpf dividendos retencion doble imposicion venta parcial tramo ahorro pension aportacion rescate renta borrador perdidas ganancias compensacion opt-25" },
     // OPT-25 (fase 4, 11 sept. 2026): 8 tarjetas vivían en Ajustes > Patrimonio, Reserva y Fiscal.
-    { target: "herramientas-patrimonio", label: "Patrimonio e inversión: comparadores (nuevo)", group: "analysis", keywords: "patrimonio inversion cartera analisis comparativa indice benchmark comisiones concentracion glide path escalera liquidez dca aportacion periodica desapalancar vender primero continuidad independencia financiera runway resiliencia linea credito emergencia perdidas latentes opt-25" },
+    { target: "herramientas-patrimonio", label: "Patrimonio e inversión: comparadores", group: "analysis", keywords: "patrimonio inversion cartera analisis comparativa indice benchmark comisiones concentracion glide path escalera liquidez dca aportacion periodica desapalancar vender primero continuidad independencia financiera runway resiliencia linea credito emergencia perdidas latentes opt-25" },
     // OPT-25 (fase 5, 11 sept. 2026): 6 tarjetas vivían en Ajustes > Operación y Ajustes > Fiscal.
-    { target: "herramientas-analizar", label: "Análisis de previsión: control de versiones, deriva y backtesting (nuevo)", group: "analysis", keywords: "prevision control versiones snapshot diario recalibracion deriva partida arbol causal cifra revision anual backtesting acierto opt-25" },
+    { target: "herramientas-analizar", label: "Análisis de previsión: control de versiones, deriva y backtesting", group: "analysis", keywords: "prevision control versiones snapshot diario recalibracion deriva partida arbol causal cifra revision anual backtesting acierto opt-25" },
     // OPT-25 (fase 6, 11 sept. 2026): 4 tarjetas vivían en Ajustes > Datos y exportación.
-    { target: "herramientas-datos", label: "Continuidad, compartir y archivo (nuevo)", group: "data", keywords: "simulacro perdida acceso hogar compartido enlace solo lectura asesor externo informe pdf certificado cierre archivados opt-25" },
+    { target: "herramientas-datos", label: "Continuidad, compartir y archivo", group: "data", keywords: "simulacro perdida acceso hogar compartido enlace solo lectura asesor externo informe pdf certificado cierre archivados opt-25" },
     { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "legacy", keywords: "objetivos huchas aportaciones ahorro" },
     { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },

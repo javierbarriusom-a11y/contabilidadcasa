@@ -139,6 +139,6 @@ test("wiring: el listener delegado de #gob10DecisionList distingue exportar de q
 test("wiring: index.html menciona la exportación en la tarjeta de GOB10", () => {
   const cardStart = indexSource.indexOf("Registro de decisiones con revisión programada");
   const card = indexSource.slice(cardStart, cardStart + 2200);
-  assert.match(card, /GOB18/);
+  assert.match(card, /paquete en PDF/);
   assert.match(card, /id="gob10DecisionList"/);
 });

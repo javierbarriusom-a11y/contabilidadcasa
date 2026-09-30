@@ -254,14 +254,14 @@ test("TRACK-3 · la nueva pantalla está registrada en VIEW_CHUNKS, HEAVY_RENDER
 
 test("TRACK-3 · el enlace de navegación y la sección viven en index.html", () => {
   const html = read("index.html");
-  assert.match(html, /<a href="#estado-semana" data-e17-group="analysis">Estado de la semana \(nuevo\)<\/a>/);
+  assert.match(html, /<a href="#estado-semana" data-e17-group="analysis">Estado de la semana<\/a>/);
   assert.match(html, /<section class="[^"]*view-section" id="estado-semana">/);
   assert.match(html, /id="estadoSemanaRoot"/);
 });
 
 test("TRACK-3 · el lanzador (Buscar o abrir) encuentra la pantalla nueva", () => {
   const e17 = read("e17-experience.js");
-  assert.match(e17, /\{ target: "estado-semana", label: "Estado de la semana \(nuevo\)"/);
+  assert.match(e17, /\{ target: "estado-semana", label: "Estado de la semana"/);
   assert.match(e17, /"estado-semana": \["Para qué sirve"/);
 });
 

@@ -185,3 +185,23 @@ contratar, `OPT-10`-`OPT-13` aplazadas al 23/10/2026 y a uso real intensivo. No 
 `BACKLOG_INDICE.md`. El único paso que depende del hogar y no de un tercero es la Cola B (§4):
 falta que el hogar mire el informe «Uso de la app» (Ajustes, desde sesión 220) y diga qué
 pantallas abre de verdad.
+
+## 9. Plan de mejora de UX por olas — sesión 268 (30/09/2026)
+
+Origen: análisis de producto sobre la app real (escritorio y móvil, dataset demo). Hallazgos: Hoy mide
+5.900 px (11.800 en móvil) con ~12 bloques y seis cifras distintas de «cuánto me sobra»; 10 entradas de menú
+primarias + 42 avanzadas + ~10 heredadas; Ajustes mide 15.500 px; jerga interna visible; cabecera de tres
+capas con título repetido; móvil sin diseño propio en las tablas de trabajo. Dato del hogar: **dos personas, una
+opera (intensa) y otra solo consulta**; la lectora usa Hoy como producto entero.
+
+| Ola | Contenido | Estado |
+|---|---|---|
+| 0 · Higiene | (1) lenguaje visible sin jerga; (2) marco de pantalla: un título, cabecera y tira colapsadas, barra lateral sin login/escenario; (3) estados vacíos con siguiente acción y una sola cifra coherente entre cabecera y pantalla | (1) hecha 30/09/2026 — ver `PROJECT_STATE.md` sesión 268; (2) y (3) pendientes |
+| 1 · Arquitectura por ritmos | Hoy / Semana / Mes / Camino / Decidir; navegación completa y navegación de consulta; regla «ninguna pantalla nueva sin retirar otra» (retirar una heredada se consulta al hogar) | Pendiente; decide también la identidad visual (navy/crema del handoff frente al teal actual) |
+| 2 · Hoy + Modo consulta | Un veredicto («podéis gastar X hasta el día Y») con cascada que reconcilia las cifras; frescura del dato en primer plano; carta del mes | Pendiente. Nivel 1 = interfaz de consulta por dispositivo (misma cuenta); nivel 2 = rol `viewer` real, que exige revisar `docs/OPT22_MODELO_HOGAR.md` |
+| 3 · Registrar y captura | Rediseño de Registrar, captura en móvil, importador de un gesto, revisión semanal guiada | **Decisión del hogar: después de la Ola 1** |
+| 4 · Funcionalidades | «¿Me puedo permitir X?», objetivos visuales, acta de reunión, motivación de deuda, cuentas claras en pareja | Pendiente |
+
+Métricas de éxito: tiempo hasta responder «¿cuánto puedo gastar?», tiempo por gasto desde el móvil, duración del
+cierre mensual, sesiones que completan la revisión semanal; instrumentación local sin datos financieros
+(`ARQ-0` ya cuenta aperturas por pantalla).

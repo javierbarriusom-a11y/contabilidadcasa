@@ -157,9 +157,9 @@ test("gob13AnnualReviewStatus · marcado hace un mes, todavía dentro del año",
 test("gob13AnnualReviewHtml · lista los tres chequeos y el estado del propio ritual", () => {
   const ctx = sandbox({ forecastExpired: [], deb14Result: { calculable: false } });
   const html = ctx.gob13AnnualReviewHtml();
-  assert.match(html, /PVC15/);
-  assert.match(html, /DEB14/);
-  assert.match(html, /INV17/);
+  assert.match(html, /Supuestos fiscales al día/);
+  assert.match(html, /Comparación de mercado de tu hipoteca/);
+  assert.match(html, /revisión de rebalanceo/);
   assert.match(html, /Todavía no has marcado ningún ritual anual/);
 });
 

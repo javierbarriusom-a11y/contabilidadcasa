@@ -360,7 +360,7 @@ test("V4-4 · las decisiones de clasificación se escriben en el mismo diccionar
 });
 
 test("V4-4 · la pantalla está en el menú, en el lanzador y en el orden del flujo", () => {
-  assert.match(html, /<a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos \(nuevo\)<\/a>/);
+  assert.match(html, /<a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos<\/a>/);
   assert.match(html, /<section class="e19-datos-importar view-section" id="datos-importar">/);
   assert.match(html, /id="datosImportarSteps"/);
   assert.match(html, /id="datosImportarPanel"/);

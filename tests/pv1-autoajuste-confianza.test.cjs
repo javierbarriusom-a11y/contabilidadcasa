@@ -191,6 +191,6 @@ test("PVC3: pv1AutoAdjustBiasNote explica el bloqueo de persistencia reciente, n
 
 test("el Laboratorio de escenarios (E13) muestra el estado del autoajuste junto al resto del aprendizaje", () => {
   const body = functionBody("renderE13ScenarioLab");
-  assert.match(body, /PV1 · autoajuste de la previsión/);
+  assert.match(body, /Autoajuste de la previsión/);
   assert.match(body, /pv1AutoAdjustBiasNote\(forecast\.series\[0\]\?\.learnedBias\)/);
 });

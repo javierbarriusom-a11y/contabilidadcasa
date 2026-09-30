@@ -221,8 +221,8 @@ test("D-1 · el enlace principal «Deuda» sigue apuntando a #deuda-ruta, sin re
 });
 
 test("D-1 · #deuda-contratos tiene entrada en el menú avanzado y en el lanzador", () => {
-  assert.match(html, /<a href="#deuda-contratos" data-e17-group="analysis">Contratos de deuda \(nuevo\)<\/a>/);
-  assert.match(experience, /target: "deuda-contratos", label: "Contratos de deuda \(nuevo\)", group: "analysis"/);
+  assert.match(html, /<a href="#deuda-contratos" data-e17-group="analysis">Contratos de deuda<\/a>/);
+  assert.match(experience, /target: "deuda-contratos", label: "Contratos de deuda", group: "analysis"/);
 });
 
 test("D-1 · renderActiveSection sabe pintar deuda-contratos", () => {
@@ -237,8 +237,8 @@ test("D-1 · renderActiveSection sabe pintar deuda-contratos", () => {
 // ofertas (E14b) y su propio enlace, sin relación con este cambio.
 
 test("D-15 · #deuda-simulador tiene entrada en el menú avanzado y en el lanzador", () => {
-  assert.match(html, /<a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda \(nuevo\)<\/a>/);
-  assert.match(experience, /target: "deuda-simulador", label: "Simulador visual de deuda \(nuevo\)", group: "analysis"/);
+  assert.match(html, /<a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda<\/a>/);
+  assert.match(experience, /target: "deuda-simulador", label: "Simulador visual de deuda", group: "analysis"/);
 });
 
 test("D-15 · renderActiveSection sabe pintar deuda-simulador", () => {

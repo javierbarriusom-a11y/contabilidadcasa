@@ -104,7 +104,7 @@ test("deb11ReduceQuotaVsTermHtml · con preferencia declarada, la refleja junto 
   ctx.domValues.ap1DebtSelect = "hipoteca";
   ctx.domValues.ap1DebtRate = "5";
   const html = ctx.deb11ReduceQuotaVsTermHtml({ calculable: true, toDebt: 2000 });
-  assert.match(html, /Tu decisión declarada \(DEB11\): reducir cuota\./);
+  assert.match(html, /Tu decisión declarada: reducir cuota\./);
   const quotaLine = html.split("<li>")[1];
   assert.match(quotaLine, /tu decisión declarada/);
   const termLine = html.split("<li>")[2];

@@ -512,7 +512,7 @@ test("L-8 · renderAjustes() orquesta renderAjustesLaboratorio(), igual que hace
 
 test("L-8 · index.html incluye las dos notas fijas del mockup (solo lectura y retirada)", () => {
   assert.match(html, /Solo lectura, sin excepciones/);
-  assert.match(html, /Retirada · Fase 7/);
+  assert.match(html, /Retirada de pantallas heredadas/);
   assert.match(html, /El código de las heredadas se borra del proyecto/);
 });
 

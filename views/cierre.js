@@ -144,35 +144,35 @@ function cierreFirmChecksHtml(checks) {
 function gob13AssumptionExpiryCheck() {
   const engine = window.FinanceCanonicalForecast;
   if (!engine?.buildAssumptionRegistry || !engine?.assumptionExpiryAlerts) {
-    return { id: "supuestos", label: "Supuestos fiscales al día (PVC15)", met: null };
+    return { id: "supuestos", label: "Supuestos fiscales al día", met: null };
   }
   const registry = engine.buildAssumptionRegistry(assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" });
   const expiredCount = engine.assumptionExpiryAlerts(registry).expired.length;
   return {
     id: "supuestos",
     label: expiredCount
-      ? `${expiredCount} supuesto(s) fiscal(es) caducado(s) sin confirmar (PVC15)`
-      : "Supuestos fiscales al día (PVC15)",
+      ? `${expiredCount} supuesto(s) fiscal(es) caducado(s) sin confirmar`
+      : "Supuestos fiscales al día",
     met: expiredCount === 0,
   };
 }
 
 function gob13DebtOfferCheck() {
   const result = deb14MarketCheckFreshness();
-  if (!result.calculable) return { id: "ofertas", label: "Comparación de mercado de tu hipoteca (DEB14, sin umbral declarado)", met: null };
+  if (!result.calculable) return { id: "ofertas", label: "Comparación de mercado de tu hipoteca (sin umbral declarado)", met: null };
   const overdueCount = result.rows.filter((row) => row.overdue).length;
   return {
     id: "ofertas",
     label: overdueCount
-      ? `${overdueCount} deuda(s) sin comparar contra el mercado a tiempo (DEB14)`
-      : "Ofertas de mercado comparadas a tiempo (DEB14)",
+      ? `${overdueCount} deuda(s) sin comparar contra el mercado a tiempo`
+      : "Ofertas de mercado comparadas a tiempo",
     met: overdueCount === 0,
   };
 }
 
 function gob13PortfolioDeviationCheck() {
   const engine = window.FinanceCanonicalPortfolio;
-  if (!engine) return { id: "cartera", label: "Revisión de rebalanceo de cartera (INV17)", met: null };
+  if (!engine) return { id: "cartera", label: "Revisión de rebalanceo de cartera", met: null };
   const status = engine.rebalanceCalendarReviewStatus({
     lastReviewedAt: scenarioSettings.inv17LastRebalanceReviewAt || "",
     intervalMonths: inv17RebalanceReviewIntervalMonths(),
@@ -180,10 +180,10 @@ function gob13PortfolioDeviationCheck() {
   return {
     id: "cartera",
     label: !status.reviewed
-      ? "Todavía no has marcado ninguna revisión de rebalanceo (INV17)"
+      ? "Todavía no has marcado ninguna revisión de rebalanceo"
       : status.due
-        ? `Revisión de rebalanceo pendiente (INV17, hace ${status.monthsSinceReview} mes(es))`
-        : `Rebalanceo revisado hace ${status.monthsSinceReview} mes(es) (INV17)`,
+        ? `Revisión de rebalanceo pendiente (hace ${status.monthsSinceReview} mes(es))`
+        : `Rebalanceo revisado hace ${status.monthsSinceReview} mes(es)`,
     met: status.reviewed && !status.due,
   };
 }
@@ -1128,8 +1128,8 @@ function renderCierre() {
   const sobresNote = qs("cierreSobresNote");
   if (sobresNote) {
     sobresNote.textContent = sobresEnabled()
-      ? "Sobres · Fase 6 activados: el cierre tiene cuatro pasos. La bandera y la regla de cada sobre se editan en Ajustes."
-      : "Sobres · Fase 6 desactivados: el cierre tiene tres pasos, no cuatro. Se activa en Ajustes.";
+      ? "Sobres activados: el cierre tiene cuatro pasos. La bandera y la regla de cada sobre se editan en Ajustes."
+      : "Sobres desactivados: el cierre tiene tres pasos, no cuatro. Se activan en Ajustes.";
   }
 
   const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");

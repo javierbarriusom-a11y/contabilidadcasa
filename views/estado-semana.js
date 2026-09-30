@@ -158,7 +158,7 @@ function estadoSemanaPriorityHtml() {
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Empieza por aquí esta semana</h3>
-        <p class="e19-subtitle">La alerta más urgente con evidencia citable (CP1), antes de las tres lecturas de abajo.</p>
+        <p class="e19-subtitle">La alerta más urgente con evidencia citable, antes de las tres lecturas de abajo.</p>
       </div>
     </div>
     ${cpx1WeeklyPriorityHtml(estadoSemanaCashAlerts())}

@@ -87,7 +87,7 @@ test("registrar revisión guarda la fotografía de escenarios dentro del propio 
 
 test("la vista se pinta antes de registrar la revisión: la comparación es automática, no bajo pedido", () => {
   const body = extractFunction("renderE15Planning", p2ui);
-  assert.match(body, /Comparación automática de escenarios \(CP4\)/);
+  assert.match(body, /Comparación automática de escenarios/);
 });
 
 test("p2-ui.js viaja versionado en el shell tras el cambio", () => {

@@ -88,7 +88,7 @@ test("lev15MarginCallExitCostHtml · sin plusvalía declarada, compara sin coste
   const html = ctx.lev15MarginCallExitCostHtml({
     calculable: true, marginCallTriggered: true, additionalCollateralNeeded: 2000, forcedLiquidationAmount: 8000,
   });
-  assert.match(html, /LEV15/);
+  assert.match(html, /Coste comparado de las dos salidas/);
   assert.match(html, /2000€/);
   assert.match(html, /8000€/);
   assert.match(html, /Aportar garantía sale/);
