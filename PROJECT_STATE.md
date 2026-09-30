@@ -103,6 +103,29 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (275): Ola 1, entrega 4 (parte 1) — coherencia de «Personalizar» y del buscador
+
+- **Qué había:** tres cosas hablaban de la misma navegación sin comprobarse entre sí: los enlaces del menú (que
+  «Personalizar» oculta por `data-e17-group`), el catálogo del lanzador `TASKS` (que no mira esas preferencias) y las
+  pestañas de familia de las entregas 2 y 3 (botones de la propia pantalla). El campo `group` del catálogo es metadato
+  —ningún código lo lee—, pero describe dónde vive cada pantalla, y tras la entrega 1 estaba desfasado en tres entradas.
+- **Qué se cambió:** en `e17-experience.js`, «Plan de deuda · ruta» e «Inversión · Cartera» pasan a `main` (son entradas
+  principales desde la entrega 1) y «Planificación de partidas» a `analysis` (ya solo cuelga del menú avanzado y de la
+  pestaña de Plan). En `index.html`, el diálogo «Personalizar» añade una frase: apagar un grupo quita sus enlaces del
+  menú, pero las pestañas de Plan y de Escenarios y el buscador siguen llevando a todas las pantallas.
+- **Guardián nuevo** (`tests/ola1-4-personalizar-buscador.test.cjs`, 6 pruebas): cada grupo es uno de los cinco
+  conocidos y los cuatro filtrables tienen interruptor; el grupo del catálogo coincide con el enlace real del menú; solo
+  son `main` las 10 entradas principales y el alias documentado `update-hub`; todo enlace del menú tiene entrada en el
+  buscador; ninguna pestaña de familia lleva `data-e17-group` y sus destinos están en el buscador; el aviso de
+  «Personalizar» existe. Comprobado que muerde: al devolver «Plan de deuda · ruta» a `analysis`, fallan dos pruebas.
+- **Sin cambios de comportamiento visible salvo la frase del diálogo.** `app.js` sin líneas nuevas (37.530).
+- **Validación:** `npm run verify` completo en verde, `npm test` **4954/4954** (4.948 anteriores + 6 nuevas). No se han
+  repetido en local las pruebas de navegador (`mobile-overflow`, `e2e`, `a11y-axe`, `perf-screens`, `performance-lh`):
+  el cambio no toca estilos ni estructura de pantallas y las cubre el CI.
+- **Pendiente de la entrega 4 (parte 2):** resaltar «Plan» y «Escenarios» en sus pantallas hermanas. Exige tocar
+  `setActiveView` y, antes, liberar líneas en `app.js` (en su techo de 37.530): se propondrá el plan al hogar antes de
+  escribir código. Los retiros del §7 siguen bloqueados hasta tener el informe «Uso de la app».
+
 ## Cierre de sesión — 30 de septiembre de 2026 (274): Ola 1, entrega 3 — franja de Escenarios con cuatro destinos
 
 - **Decisión del hogar:** cuatro destinos, no cinco. El diseño proponía «Simular · Guardados · Asesor · Segunda opinión ·
