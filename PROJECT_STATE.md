@@ -103,6 +103,48 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (269): Ola 0 del plan de mejora de UX, entrega 2 — marco de pantalla
+
+- **Medición previa** (recorrido con navegador por las 59 secciones a 1440×900, y a 390×844 en cinco pantallas):
+  el contenido empezaba de media a **339 px** del borde superior (hasta 462 px en Control de deuda) y el primer
+  título de la pantalla a 370 px. Causa: 52 de 59 vistas repetían el título — el `<h1>` del cromado (una frase
+  entera) más el `<h2>` propio —, la cabecera de estado apilaba tres píldoras (dato, guardado, fuente) y la
+  guía de pantalla ocupaba una fila entera con tres textos casi genéricos («Siguiente paso: usa Buscar o abrir…»).
+  La deduplicación existía, pero escrita a mano solo para `home`, `registrar` y `movements`.
+- **Qué se cambió**: (1) el `<h1>` queda `sr-only` en toda vista con `<h2>` propio (sigue siendo el objetivo de
+  foco); el eyebrow, el nombre corto, se queda como orientación; (2) las tres píldoras de estado van en una fila
+  (cabecera de 150-260 px → 55 px) y «Fuente» pasa a una línea con elipsis; (3) la guía de pantalla es una línea de
+  «Estado» + botón «Guía de este flujo», con «para qué sirve» y «siguiente paso» en un desplegable (el contenido se
+  conserva); (4) en la barra lateral, el escenario activo y sus tres cifras pasan a un `<details>` plegado por
+  defecto; (5) en móvil, la tira de cifras clave pasa de cinco filas a dos columnas.
+- **Resultado medido**: contenido a **202 px** de media en escritorio (339 → 202) y primer título a 233 px (370 →
+  233); títulos duplicados visibles 52/59 → 0/59. Móvil: Plan 881 → 565 px, Cierre 833 → 565, Deuda 787 → 581,
+  Registrar 479 → 411; sin desbordamiento horizontal (`scrollWidth` 390).
+- **Intento revertido y hallazgo de rendimiento**: con el móvil emulado y la CPU frenada 4×, el contenido salta
+  ~140 px hacia arriba a los ~5,6 s (**CLS 0,161 antes de esta entrega, 0,147 después**) porque el `<h1>` y el
+  eyebrow nacen visibles en el HTML y el JavaScript los oculta tarde. Se probó hacerlos nacer ocultos: el CLS
+  bajaba a 0,0007, pero **el CI de #406 falló en LCP: 7,4 s frente al umbral de 4 s** (7.430 / 7.442 / 7.516
+  ms). Motivo: el LCP de 1,5-1,7 s que da Lighthouse hoy lo produce ese mismo `<h1>` provisional («Planifica
+  liquidez, ahorro y refinanciación…»), que se pinta en el primer fotograma. Sin él, el LCP pasa a ser el momento
+  en que el JavaScript pinta por primera vez el contenido real de Hoy: **~7,4 s en un móvil lento simulado**. Se
+  revirtió esa parte (sin ella, el CI de #405 pasaba). Queda como hallazgo: la puerta de LCP mide un marcador
+  de posición; el tiempo real hasta ver contenido en un móvil lento es ~7,4 s y el salto de layout sigue ahí.
+  Se resuelven juntos con un esqueleto de Hoy pintado desde el HTML o difiriendo el arranque de `app.js`:
+  tarea propia, no de la Ola 0. Nota: el comprobador (`lhci`) agrega con la mejor de las tres ejecuciones, así
+  que un CLS intermitente no rompe la puerta; el LCP sí, porque las tres salieron por encima.
+- **Techo de `app.js`** (`ARQ-4`, 37.530 líneas): el primer intento dejó 37.534 y falló; se reescribió para no
+  ganar ninguna línea (37.529, igual que antes). No se ha subido el techo.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929**; accesibilidad estructural con 1.403
+  IDs únicos; rendimiento: forecast y escenarios en 310,8 ms; sin contenido cortado en 201 visitas
+  (360/768/1280 px); `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3. **Lighthouse local no es
+  concluyente**: LCP ~8,3 s y TBT ~2,5 s tanto antes como después (8.301/2.495 frente a 8.262/2.481 ms), por la
+  CPU compartida del contenedor — lo avisa el propio `.lighthouserc.cjs`; decide el CI.
+- **Pendiente de la Ola 0** (entrega 3): estados vacíos sin etiquetas amarillas de alarma («CERCA DEL UMBRAL»
+  sobre «Sin presupuestos»), una sola cifra coherente entre la tira superior y cada pantalla (Deuda: título «sin
+  fecha estimada» frente a tira «ago 29»; «Capacidad de endeudamiento» repetido en su tarjeta), y la composición de
+  las tarjetas de Cierre (cuatro contadores con una fila huérfana). Queda también el formulario de acceso de la
+  barra lateral, que sigue siempre abierto.
+
 ## Cierre de sesión — 30 de septiembre de 2026 (268): Ola 0 del plan de mejora de UX, entrega 1 — lenguaje visible
 
 - **Origen**: análisis de producto pedido por el hogar (UX/UI, experiencia de uso y funcionalidades, sin foco

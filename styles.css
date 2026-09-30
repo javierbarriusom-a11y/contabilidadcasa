@@ -729,17 +729,22 @@ h2 {
 }
 
 .e17-view-guide {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  gap: 10px;
-  margin: 0 24px 16px;
-  padding: 13px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 24px 12px;
+  padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
 }
 
 .e17-view-guide div { display: grid; gap: 3px; }
+/* Ola 0 (UX): una sola línea de estado; «para qué sirve» y «siguiente paso» quedan plegados. */
+.e17-guide-details { flex: 1 1 auto; min-width: 0; }
+.e17-guide-details summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; padding: 5px 0; }
+.e17-guide-details[open] > div { margin-top: 8px; }
 /* OPT-4 (axe: color-contrast): var(--teal) (#0f8f8c) da 3,94:1 sobre --surface, por debajo de
    4,5:1 — override local en vez de tocar --teal (84 usos en toda la hoja de estilos, muchos como
    fondo con texto claro encima donde ya cumple), 15% más oscuro y 5,16:1. */
@@ -778,11 +783,11 @@ h2 {
 .e17-preferences label { display: flex; align-items: center; gap: 9px; }
 
 @media (max-width: 860px) {
-  .e17-view-guide { grid-template-columns: 1fr; margin: 0 14px 14px; }
-  .e17-view-guide button { justify-self: start; }
+  .e17-view-guide { flex-direction: column; margin: 0 14px 12px; }
+  .e17-view-guide button { align-self: flex-start; }
 }
 
-.sidebar-card,
+.sidebar-scenario,
 .sidebar-metrics,
 .sync-panel {
   margin-top: 24px;
@@ -792,7 +797,7 @@ h2 {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.sidebar-card span,
+.sidebar-scenario span,
 .sidebar-metrics span {
   display: block;
   color: #aabdc4;
@@ -801,16 +806,29 @@ h2 {
   margin-bottom: 6px;
 }
 
-.sidebar-card strong {
-  display: block;
-  font-size: 24px;
-  margin-bottom: 8px;
+/* Ola 0 (UX): escenario plegado — el nombre en el resumen, el estado y las tres cifras al abrir. */
+.sidebar-scenario { padding: 0; }
+.sidebar-scenario summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
 }
-
-.sidebar-card p {
+.sidebar-scenario summary span { margin-bottom: 0; }
+.sidebar-scenario summary strong { font-size: 18px; }
+.sidebar-scenario p {
+  padding: 0 16px;
   color: #c9d8dc;
   font-size: 13px;
   line-height: 1.45;
+}
+.sidebar-scenario .sidebar-metrics {
+  margin-top: 12px;
+  padding: 0 16px 16px;
+  border: 0;
+  background: none;
 }
 
 .sidebar-metrics {
@@ -939,10 +957,10 @@ h2 {
 
 .topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 28px;
-  padding: 34px 34px 22px;
+  padding: 12px 34px;
   background:
     linear-gradient(90deg, #fbfcfd 0%, #fbfcfd 72%, #eef7f6 100%);
   border-bottom: 1px solid var(--line);
@@ -961,18 +979,31 @@ h2 {
   margin-bottom: 8px;
 }
 
-.source-note {
-  width: min(460px, 38vw);
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
-  text-align: right;
+/* Ola 0 (UX): con el <h1> largo en sr-only, el eyebrow es el único texto de la izquierda; sin el
+   margen inferior que reservaba para el título que ya no se ve. */
+.topbar .eyebrow {
+  margin-bottom: 0;
 }
 
+.source-note {
+  max-width: min(320px, 30vw);
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ola 0 (UX): las tres píldoras de estado (dato, guardado, fuente) en una fila en vez de apiladas
+   en tres: la cabecera baja de 150-260 px a ~60 px. */
 .topbar-status {
-  display: grid;
-  justify-items: end;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
 }
 
 /* UX2: mismo lenguaje visual de píldora que .durability-status, justo al lado en el cromado. */
@@ -9778,7 +9809,7 @@ tbody tr:hover {
 
   .topbar {
     display: block;
-    padding: 24px 18px 18px;
+    padding: 12px 18px;
   }
 
   .project-form,
@@ -9792,14 +9823,13 @@ tbody tr:hover {
   }
 
   .source-note {
-    width: auto;
-    margin-top: 12px;
+    max-width: 100%;
     text-align: left;
   }
 
   .topbar-status {
-    justify-items: start;
-    margin-top: 12px;
+    justify-content: flex-start;
+    margin-top: 8px;
   }
 
   .durability-status {
@@ -9808,8 +9838,10 @@ tbody tr:hover {
   }
 
   .topbar-status-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 10px 18px;
-    gap: 12px 20px;
+    gap: 10px 16px;
   }
 
   main {

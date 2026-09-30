@@ -778,7 +778,7 @@ function renderE17ViewGuide(viewId = viewFromHash()) {
   const example = Number.isFinite(Number(nextLiquidity))
     ? `Ejemplo con tus datos: la liquidez del primer mes previsto es ${money(nextLiquidity, true)}.`
     : "Ejemplo: los importes mostrados siempre se calculan con la copia actual.";
-  target.innerHTML = `<div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div><button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
+  target.innerHTML = `<details class="e17-guide-details"><summary><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></summary><div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div></details><button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
 }
 
 function navigateE17(target) {
@@ -4577,7 +4577,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   // alineada»: sin cabecera genérica duplicada — #home, #registrar y #movements ya traen su
   // propio título y subtítulo. El eyebrow y el <h1> compartidos por el resto de vistas se
   // ocultan aquí solo para estas tres (el <h1> queda sr-only, no desaparece: sigue siendo el
-  // objetivo de foco de accesibilidad tras navegar).
+  // objetivo de foco de accesibilidad tras navegar). Ola 0 (UX): toda vista con <h2> propio hace lo mismo con el <h1>; su eyebrow sí queda.
   const hasOwnHeader = viewId === "home" || viewId === "registrar" || viewId === "movements";
   const viewEyebrow = qs("viewEyebrow");
   if (viewEyebrow) {
@@ -4587,7 +4587,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   const viewTitle = qs("viewTitle");
   if (viewTitle) {
     viewTitle.textContent = copy.title;
-    viewTitle.classList.toggle("sr-only", hasOwnHeader);
+    viewTitle.classList.toggle("sr-only", hasOwnHeader || Boolean(document.getElementById(viewId)?.querySelector("h1, h2")));
   }
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
   renderDataNatureBadge(viewId);
