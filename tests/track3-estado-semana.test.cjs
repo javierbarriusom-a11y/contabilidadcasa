@@ -257,7 +257,8 @@ test("TRACK-3 · el enlace de navegación y la sección viven en index.html", ()
   assert.match(html, /<a href="#estado-semana" data-e17-group="analysis">Estado de la semana<\/a>/);
   // Ola 1.4: la sección lleva ahora `data-nav-family="plan"` tras el id (el menú resalta «Plan» en ella); la
   // prueba comprueba que la sección existe, no que su etiqueta no admita atributos.
-  assert.match(html, /<section class="[^"]*view-section" id="estado-semana"(?: data-nav-family="plan")?>/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(html, /<section class="[^"]*view-section" id="estado-semana"(?: data-nav-family="plan")?(?: hidden)?>/);
   assert.match(html, /id="estadoSemanaRoot"/);
 });
 

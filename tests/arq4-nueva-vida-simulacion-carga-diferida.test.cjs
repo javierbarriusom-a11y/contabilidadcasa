@@ -72,7 +72,8 @@ test("ARQ-4 · ninguna función movida se usa desde app.js ni desde otra vista, 
 });
 
 test("ARQ-4 · todos los nodos que pinta la vista viven dentro de su sección", () => {
-  const start = index.indexOf('<section class="new-life-simulation view-section" id="new-life-simulation">');
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  const start = index.indexOf('<section class="new-life-simulation view-section" id="new-life-simulation" hidden>');
   assert.ok(start >= 0, "Falta la sección new-life-simulation en index.html");
   const end = index.indexOf("<section", start + 1);
   const section = index.slice(start, end);

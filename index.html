@@ -521,7 +521,7 @@
                → shortcuts), no navegando desde el menú principal. Sin ninguna capacidad de
                escritura — solo lectura de las mismas cifras que ya calcula Hoy/Deuda. T10 añade la
                cuarta tarjeta (deuda cara) que pedía la nota original del widget «de un vistazo». -->
-          <section class="view-section widget-view" id="widget">
+          <section class="view-section widget-view" id="widget" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Widget de solo lectura</p>
@@ -553,7 +553,7 @@
             </div>
           </section>
 
-          <section class="view-section e19-planificacion-partidas e19-analisis e19-cuadro-mandos" id="planificacion-partidas" data-nav-family="plan">
+          <section class="view-section e19-planificacion-partidas e19-analisis e19-cuadro-mandos" id="planificacion-partidas" data-nav-family="plan" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Planificación de partidas</p>
@@ -622,7 +622,7 @@
             </article>
           </section>
 
-          <section class="view-section e19-registrar" id="registrar">
+          <section class="view-section e19-registrar" id="registrar" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Registrar</p>
@@ -933,7 +933,7 @@
             <aside class="e19-impact-bar e19-registrar-impact" id="registrarImpactBar" hidden aria-live="polite"></aside>
           </section>
 
-          <section class="view-section e19-plan" id="plan">
+          <section class="view-section e19-plan" id="plan" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Plan</p>
@@ -1000,7 +1000,7 @@
             <aside class="e19-impact-bar e19-plan-impact" id="planMesImpactBar" hidden aria-live="polite"></aside>
           </section>
 
-          <section class="update-hub view-section e19-update-hub" id="update-hub">
+          <section class="update-hub view-section e19-update-hub" id="update-hub" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Actualizar mis datos</p>
@@ -1063,7 +1063,7 @@
             <article class="update-next-step e19-next-step" id="updateNextStep" aria-live="polite"></article>
           </section>
 
-          <section class="alerts-center view-section" id="alerts-center">
+          <section class="alerts-center view-section" id="alerts-center" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Centro de alertas</p>
@@ -1086,7 +1086,7 @@
             </article>
           </section>
 
-          <section class="executive-advisor view-section" id="executive-advisor">
+          <section class="executive-advisor view-section" id="executive-advisor" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Asesor ejecutivo</p>
@@ -1211,7 +1211,7 @@
             </article>
           </section>
 
-          <section class="new-life-simulation view-section" id="new-life-simulation">
+          <section class="new-life-simulation view-section" id="new-life-simulation" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Simulación nueva vida</p>
@@ -1516,7 +1516,7 @@
             </article>
           </section>
 
-          <section class="debt-roadmap-view view-section" id="debt-roadmap">
+          <section class="debt-roadmap-view view-section" id="debt-roadmap" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Negociación y aplicación segura</p>
@@ -1545,7 +1545,7 @@
             </article>
           </section>
 
-          <section class="new-life-definitive view-section" id="new-life-definitive">
+          <section class="new-life-definitive view-section" id="new-life-definitive" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Simulación nueva vida definitiva</p>
@@ -1745,7 +1745,7 @@
             </article>
           </section>
 
-          <section class="e19-escenario-motor view-section" id="escenario-simular" data-nav-family="escenario-simular">
+          <section class="e19-escenario-motor view-section" id="escenario-simular" data-nav-family="escenario-simular" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · escenario</p>
@@ -1862,7 +1862,7 @@
             </div>
           </section>
 
-          <section class="e19-escenario-motor view-section" id="escenario-aplicar" data-nav-family="escenario-simular">
+          <section class="e19-escenario-motor view-section" id="escenario-aplicar" data-nav-family="escenario-simular" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · aplicar escenario</p>
@@ -1919,7 +1919,7 @@
             </div>
           </section>
 
-          <section class="e19-escenario-motor view-section" id="escenario-guardados" data-nav-family="escenario-simular">
+          <section class="e19-escenario-motor view-section" id="escenario-guardados" data-nav-family="escenario-simular" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · escenarios guardados</p>
@@ -1943,7 +1943,7 @@
             <p class="e19-subtitle" id="escenarioGuardadosEmpty">Todavía no has aplicado ningún escenario.</p>
           </section>
 
-          <section class="e19-escenario-motor view-section" id="escenario-comparar" data-nav-family="escenario-simular">
+          <section class="e19-escenario-motor view-section" id="escenario-comparar" data-nav-family="escenario-simular" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · comparar escenarios</p>
@@ -1963,7 +1963,7 @@
             </div>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="deuda-comparar">
+          <section class="e19-deuda-decidir view-section" id="deuda-comparar" hidden>
             <nav class="e19-registrar-tabs" id="deudaCompararScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <!-- D10: navegación de flujo (Anterior/Siguiente) entre las 4 pestañas de Deuda. -->
             <nav class="deuda-flow-nav" id="deudaCompararFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
@@ -2044,7 +2044,7 @@
             <p class="e19-kpi-note deuda-decidir-note">«Consolidar» se simula con la oferta que hayas introducido arriba, nunca con condiciones inventadas: sin TIN y plazo la tarjeta se queda sin cifras a propósito. La comisión de apertura se financia dentro del préstamo (se suma al principal), que es como suelen firmarse; todavía no se modela como pago aparte en el mes de la firma. El resto de gastos de una reunificación —cancelación anticipada de las deudas viejas, notaría, seguros vinculados— no se piden y por tanto no están en la cifra.</p>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="deuda-ruta">
+          <section class="e19-deuda-decidir view-section" id="deuda-ruta" hidden>
             <nav class="e19-registrar-tabs" id="deudaRutaScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaRutaFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
@@ -2112,7 +2112,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir e19-deuda-contratos view-section" id="deuda-contratos">
+          <section class="e19-deuda-decidir e19-deuda-contratos view-section" id="deuda-contratos" hidden>
             <nav class="e19-registrar-tabs" id="deudaContratosScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaContratosFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
@@ -2249,7 +2249,7 @@
             </div>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="deuda-simulador">
+          <section class="e19-deuda-decidir view-section" id="deuda-simulador" hidden>
             <nav class="e19-registrar-tabs" id="deudaSimuladorScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaSimuladorFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
@@ -2270,7 +2270,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="inversion-cartera">
+          <section class="e19-deuda-decidir view-section" id="inversion-cartera" hidden>
             <nav class="e19-registrar-tabs" id="inversionCarteraScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
@@ -2682,7 +2682,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="inversion-rebalanceo">
+          <section class="e19-deuda-decidir view-section" id="inversion-rebalanceo" hidden>
             <nav class="e19-registrar-tabs" id="inversionRebalanceoScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
@@ -2756,7 +2756,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="inversion-fiscal">
+          <section class="e19-deuda-decidir view-section" id="inversion-fiscal" hidden>
             <nav class="e19-registrar-tabs" id="inversionFiscalScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
@@ -2893,7 +2893,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="inversion-jubilacion">
+          <section class="e19-deuda-decidir view-section" id="inversion-jubilacion" hidden>
             <nav class="e19-registrar-tabs" id="inversionJubilacionScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
@@ -2975,7 +2975,7 @@
             </article>
           </section>
 
-          <section class="e19-deuda-decidir view-section" id="inversion-apalancamiento">
+          <section class="e19-deuda-decidir view-section" id="inversion-apalancamiento" hidden>
             <nav class="e19-registrar-tabs" id="inversionApalancamientoScreenTabs" aria-label="Pestañas de Inversión"></nav>
             <div class="section-title with-action">
               <div>
@@ -3699,7 +3699,7 @@
             </article>
           </section>
 
-          <section class="e19-analisis view-section" id="analisis">
+          <section class="e19-analisis view-section" id="analisis" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Analizar · Análisis</p>
@@ -3838,7 +3838,7 @@
             </article>
           </section>
 
-          <section class="e19-cierre view-section" id="cierre">
+          <section class="e19-cierre view-section" id="cierre" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Fin de mes · Cierre</p>
@@ -3892,7 +3892,7 @@
             </article>
           </section>
 
-          <section class="e19-conciliar view-section" id="conciliar">
+          <section class="e19-conciliar view-section" id="conciliar" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Control · conciliación</p>
@@ -3932,7 +3932,7 @@
             </div>
           </section>
 
-          <section class="e19-datos-importar view-section" id="datos-importar">
+          <section class="e19-datos-importar view-section" id="datos-importar" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Datos · importar en 4 pasos</p>
@@ -3957,7 +3957,7 @@
                  `if (!nextButton || !backButton || !blockNote ...) return;` sin ellos. -->
           </section>
 
-          <section class="e19-registrar-mes view-section" id="registrar-mes">
+          <section class="e19-registrar-mes view-section" id="registrar-mes" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow" id="registrarMesEyebrow">Actualizar</p>
@@ -3978,7 +3978,7 @@
             <div class="registrar-mes-tables" id="registrarMesTables"></div>
           </section>
 
-          <section class="e19-cuadro-mandos view-section" id="cuadro-mandos">
+          <section class="e19-cuadro-mandos view-section" id="cuadro-mandos" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow" id="cuadroMandosEyebrow">Cuadro de mandos</p>
@@ -4012,7 +4012,7 @@
             <p class="e19-kpi-note cuadro-mandos-reserve-note" id="cuadroMandosReserveNote"></p>
           </section>
 
-          <section class="e19-cuadro-mandos view-section" id="cambios-pendientes">
+          <section class="e19-cuadro-mandos view-section" id="cambios-pendientes" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow" id="cambiosPendientesEyebrow">Cambios pendientes</p>
@@ -4046,7 +4046,7 @@
             </div>
           </section>
 
-          <section class="e19-cuadro-mandos view-section" id="mapa-calor">
+          <section class="e19-cuadro-mandos view-section" id="mapa-calor" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Cuadro de mandos · salud mensual</p>
@@ -4080,7 +4080,7 @@
             </div>
           </section>
 
-          <section class="e19-asesor-decision view-section" id="asesor-decision" data-nav-family="escenario-simular">
+          <section class="e19-asesor-decision view-section" id="asesor-decision" data-nav-family="escenario-simular" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · asesor ejecutivo</p>
@@ -4142,7 +4142,7 @@
                Decidir (escenario-simular, deuda-comparar, asesor-decision...) — no encaja
                temáticamente en ninguna de ellas (no es deuda ni una oferta registrada), así que se
                le da entrada propia en vez de forzarla dentro de otra. Mismo id, motor y listener. -->
-          <section class="e19-asesor-decision view-section" id="segunda-opinion" data-nav-family="escenario-simular">
+          <section class="e19-asesor-decision view-section" id="segunda-opinion" data-nav-family="escenario-simular" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Decidir</p>
@@ -4181,7 +4181,7 @@
                (renderAjustes() se sigue llamando también aquí, ver case "herramientas-seguros" en
                scheduleActiveSectionRender). Ajustes se queda solo con el inventario de pólizas
                (configuración). -->
-          <section class="e19-asesor-decision view-section" id="herramientas-seguros">
+          <section class="e19-asesor-decision view-section" id="herramientas-seguros" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Seguros</p>
@@ -4257,7 +4257,7 @@
                también aquí). Ajustes > Fiscal se queda con la configuración (tablas, escalas,
                supuestos, pérdidas arrastradas) y con Backtesting/Segunda opinión/Pérdidas latentes,
                pendientes de sus propias fases (Analizar, Decidir, Patrimonio e inversión). -->
-          <section class="e19-asesor-decision view-section" id="herramientas-fiscal">
+          <section class="e19-asesor-decision view-section" id="herramientas-fiscal" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Fiscal</p>
@@ -4312,7 +4312,7 @@
                Ajustes › Reserva y colchón) y Pérdidas latentes candidatas a compensación INV6
                (venía de Ajustes › Fiscal, temáticamente es de cartera, no fiscal). Mismos ids,
                motores canónicos y listeners — renderAjustes() se sigue llamando también aquí. -->
-          <section class="e19-asesor-decision view-section" id="herramientas-patrimonio">
+          <section class="e19-asesor-decision view-section" id="herramientas-patrimonio" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Patrimonio e inversión</p>
@@ -4475,7 +4475,7 @@
                label en vez de crear uno propio, siguiendo el criterio de menor coste. 6 tarjetas:
                las 5 que vivían en ajustes-operacion > Herramientas, más Backtesting PVX1 (venía de
                Ajustes › Fiscal, temáticamente es de previsión, no fiscal). -->
-          <section class="e19-asesor-decision view-section" id="herramientas-analizar">
+          <section class="e19-asesor-decision view-section" id="herramientas-analizar" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Analizar</p>
@@ -4605,7 +4605,7 @@
                label, siguiendo el criterio de menor coste (fase 5). 4 tarjetas: las 4 de
                ajustes-datos > Herramientas que no son la exportación (protegida por el subtítulo
                de Ajustes, V6-4 — se queda donde está). -->
-          <section class="e19-asesor-decision view-section" id="herramientas-datos">
+          <section class="e19-asesor-decision view-section" id="herramientas-datos" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Datos</p>
@@ -4732,7 +4732,7 @@
                duplicar el editor; cuentas y partidas siguen editándose donde ya vivían — cada
                tarjeta lleva directamente ahí — porque construir un editor nuevo hoy duplicaría
                lógica sin necesidad. -->
-          <section class="e19-ajustes view-section" id="ajustes">
+          <section class="e19-ajustes view-section" id="ajustes" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
@@ -5528,7 +5528,7 @@
 
           </section>
 
-          <section class="e19-faqs view-section" id="faqs-ayuda">
+          <section class="e19-faqs view-section" id="faqs-ayuda" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Ayuda</p>
@@ -5704,7 +5704,7 @@
             </article>
           </section>
 
-          <section class="e19-presupuesto-mes e19-plan-mes view-section" id="presupuesto-mes" data-nav-family="plan">
+          <section class="e19-presupuesto-mes e19-plan-mes view-section" id="presupuesto-mes" data-nav-family="plan" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Presupuesto</p>
@@ -5721,7 +5721,7 @@
             <div id="presupuestoMesRoot"></div>
           </section>
 
-          <section class="e19-presupuesto-mes view-section" id="estado-semana" data-nav-family="plan">
+          <section class="e19-presupuesto-mes view-section" id="estado-semana" data-nav-family="plan" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Estado</p>
@@ -5738,7 +5738,7 @@
             <div id="estadoSemanaRoot"></div>
           </section>
 
-          <section class="visual-detail view-section" id="visual-detail">
+          <section class="visual-detail view-section" id="visual-detail" hidden>
             <div class="hero-grid dashboard-hero" aria-label="Resumen del plan">
               <article class="summary-card primary">
                 <span>Liquidez proyectada final</span>
@@ -5997,7 +5997,7 @@
             <article class="monthly-budget-panel" id="monthlyBudgetPanel"></article>
           </section>
 
-          <section class="debt-liquidation-plan view-section" id="debt-liquidation-plan">
+          <section class="debt-liquidation-plan view-section" id="debt-liquidation-plan" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Plan deuda óptimo</p>
@@ -6030,7 +6030,7 @@
             <article class="debt-plan-panel accelerated-debt-panel" id="acceleratedDebtPlan"></article>
           </section>
 
-          <section class="savings-agent view-section" id="savings-agent">
+          <section class="savings-agent view-section" id="savings-agent" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Agente automático</p>
@@ -6149,7 +6149,7 @@
             </article>
           </section>
 
-          <section class="virtual-advisor view-section" id="virtual-advisor">
+          <section class="virtual-advisor view-section" id="virtual-advisor" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Asesor virtual</p>
@@ -6250,7 +6250,7 @@
             </article>
           </section>
 
-          <section class="debt-control view-section" id="debt-control">
+          <section class="debt-control view-section" id="debt-control" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Refinanciación</p>
@@ -6345,7 +6345,7 @@
             </div>
           </section>
 
-          <section class="prevision-section view-section e19-prevision" id="prevision">
+          <section class="prevision-section view-section e19-prevision" id="prevision" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Previsión</p>
@@ -6405,7 +6405,7 @@
             </div>
           </section>
 
-          <section class="table-section overview-monthly-panel update-data-view view-section" id="update-data">
+          <section class="table-section overview-monthly-panel update-data-view view-section" id="update-data" hidden>
               <div class="section-title with-action">
                 <div>
                   <p class="panel-kicker">Actualización individual</p>
@@ -6474,7 +6474,7 @@
               </div>
             </section>
 
-          <section class="decision-studio view-section" id="simulator">
+          <section class="decision-studio view-section" id="simulator" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Escenarios y proyectos</p>
@@ -6712,7 +6712,7 @@
             </div>
           </section>
 
-          <section class="analytics-grid view-section e19-forecast" id="forecast">
+          <section class="analytics-grid view-section e19-forecast" id="forecast" hidden>
             <div class="chart-panel wide e19-card">
               <div class="section-title">
                 <div>
@@ -6735,7 +6735,7 @@
             </div>
           </section>
 
-          <section class="savings-plan view-section" id="savings-plan">
+          <section class="savings-plan view-section" id="savings-plan" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Plan ahorro 821</p>
@@ -6791,7 +6791,7 @@
             </div>
           </section>
 
-          <section class="data-workbench view-section e19-data-entry" id="data-entry">
+          <section class="data-workbench view-section e19-data-entry" id="data-entry" hidden>
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Entrada operativa</p>
@@ -6844,7 +6844,7 @@
                  retirarlas o no, pendiente del hogar. -->
           </section>
 
-          <section class="data-audit view-section" id="data-audit">
+          <section class="data-audit view-section" id="data-audit" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Confianza del modelo</p>
@@ -6954,7 +6954,7 @@
             </article>
           </section>
 
-          <section class="reconciliation view-section" id="reconciliation">
+          <section class="reconciliation view-section" id="reconciliation" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Cierre y confianza</p>
@@ -7117,7 +7117,7 @@
             </article>
           </section>
 
-          <section class="table-section view-section" id="cashflow">
+          <section class="table-section view-section" id="cashflow" hidden>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Detalle operativo</p>
@@ -7147,12 +7147,12 @@
             </div>
           </section>
 
-          <section class="table-section view-section" id="operations-manual">
+          <section class="table-section view-section" id="operations-manual" hidden>
             <div class="section-title"><div><p class="panel-kicker">Guía operativa offline</p><h2>Recuperar, exportar y resolver conflictos</h2><p>Estas instrucciones funcionan sin conexión y no envían datos fuera.</p></div></div>
             <div class="ledger-layout"><article class="ledger-panel"><h3>Antes de importar</h3><p>Revisa la bandeja previa, compara cambios y confirma. Un extracto nunca modifica el libro automáticamente.</p></article><article class="ledger-panel"><h3>Recuperar una copia</h3><p>Abre Datos y auditoría, selecciona una versión, previsualiza diferencias y confirma. La restauración crea una revisión nueva.</p></article><article class="ledger-panel"><h3>Conflicto de sincronización</h3><p>Conserva o descarga la copia local antes de elegir la nube. Ninguna versión sustituye otra sin confirmación.</p></article><article class="ledger-panel"><h3>Cierre y servicios externos</h3><p>Cierra el mes solo tras conciliar. Los servicios externos siguen opcionales y el modo local siempre permanece disponible.</p></article></div>
           </section>
 
-          <section class="table-section view-section" id="movements">
+          <section class="table-section view-section" id="movements" hidden>
             <div class="section-title movement-detail-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Movimientos</p>

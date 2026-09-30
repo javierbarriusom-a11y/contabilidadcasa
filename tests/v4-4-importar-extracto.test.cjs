@@ -361,7 +361,8 @@ test("V4-4 · las decisiones de clasificación se escriben en el mismo diccionar
 
 test("V4-4 · la pantalla está en el menú, en el lanzador y en el orden del flujo", () => {
   assert.match(html, /<a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos<\/a>/);
-  assert.match(html, /<section class="e19-datos-importar view-section" id="datos-importar">/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(html, /<section class="e19-datos-importar view-section" id="datos-importar"(?: hidden)?>/);
   assert.match(html, /id="datosImportarSteps"/);
   assert.match(html, /id="datosImportarPanel"/);
   // ARQ-6 (sesión 244): sus botones gemelos («Atrás»/«Continuar») se retiraron — la pantalla

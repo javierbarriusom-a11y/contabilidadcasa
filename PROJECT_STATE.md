@@ -103,6 +103,35 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de septiembre de 2026 (277): rendimiento — secciones ocultas de partida (pendiente de decisión, NO fusionar)
+
+- **Estado:** rama y PR en borrador **a la espera de decisión del hogar**. No se fusiona: la puerta de Lighthouse falla en CLS (ver abajo) y no se cambian umbrales sin OK. Móviles del hogar: iPhone 17 y iPhone 15 Pro, es decir, rápidos; la mejora para ellos es de décimas de segundo, no se ha medido en WebKit.
+- **Hallazgo 1 — las 59 pantallas se pintaban a la vez durante la carga.** Ninguna sección `view-section` nacía con `hidden` y el CSS
+  tampoco las ocultaba; solo `setActiveView` las ocultaba al terminar de arrancar `app.js`. Cambio: 58 secciones nacen con `hidden`
+  (todas menos `#home`, la vista por defecto). Medido con móvil emulado (390 px, CPU 4×, 1,6 Mbps, gzip como GitHub Pages), dos
+  ejecuciones por caso: visita repetida, contenido de Hoy **5,8–6,0 s → 3,6–4,4 s**; bloqueo del hilo principal 5,4 s → 3,2 s;
+  primera visita 10,5–11,1 s → 8,8–10,9 s (mejora menor y ruidosa). El hilo principal sin frenar cuesta ~1,06 s en la visita repetida:
+  `app.js` 490 ms, layout 220, estilos 124, HTML 60, pintado 80.
+- **Hallazgo 2 — la puerta de Lighthouse no mide algo fiable.** Agrega con el mejor valor de cada métrica por separado. En `main` sin
+  cambios las tres ejecuciones son bimodales: dos con LCP 8,1–8,3 s y CLS 0 (el salto ocurre tras la ventana de medida) y una con LCP
+  1,7 s y CLS 0,147; pasa porque el mejor LCP y el mejor CLS salen de ejecuciones distintas. Con las secciones ocultas las tres salen
+  rápidas y las tres muestran CLS 0,1466 > 0,1: **`test:performance-lh` falla en local**.
+- **Hallazgo 3 — el salto de layout es real** y afecta más a un teléfono rápido: el titular provisional de la cabecera (nace visible)
+  se contrae cuando `app.js` lo oculta y el contenido sube ~140 px. Probado con eyebrow y titular ya en su estado final: CLS
+  **0,0007**, pero el LCP pasa a **~8 s** en las tres ejecuciones (umbral 4 s), el mismo muro de la sesión 269. El LCP de 4 s solo
+  pasaba porque el titular provisional cuenta como contenido pintado. Bajarlo de verdad exige partir `app.js` (324 KB comprimidos +
+  una tarea larga de 3,8 s en primera visita a CPU 4×): fuera de alcance.
+- **Descartado:** memorizar el cálculo de filas de planificación (`init` ~480 ms sin frenar: recalcular el modelo ~210, pintar Hoy
+  ~185; solo relevante para móviles lentos); barrido de tablas `markScrollableTableWraps` (~56 ms; exige tocar `app.js`, en su techo).
+- **Opciones planteadas al hogar:** (1) «carga honesta»: este cambio + eyebrow y titular ya en su estado final + puerta de LCP de
+  Lighthouse a aviso + puerta nueva `measure:load` de «contenido de Hoy, visita repetida, CPU 4×» ≤ 5 s (medido 3,6–4,4 s); el CLS
+  se queda en ≤ 0,1; (2) aparcar y descartar; (3) solo este cambio, imposible con el CI en rojo.
+- **Incluye:** `tools/measure-load.mjs` (`npm run measure:load`, informativo, fuera de `verify` y del CI),
+  `tests/ola-rend-1-secciones-ocultas.test.cjs` (3 pruebas) y 10 pruebas ajustadas por fijar la etiqueta `<section …>` exacta.
+- **Validación:** `npm run verify` completo en verde, `npm test` **4961/4961**; `test:mobile-overflow` 201 visitas sin contenido
+  cortado; `test:e2e` 8/8; `test:a11y-axe` 6/6; `test:perf-screens` 3/3; **`test:performance-lh` FALLA (CLS 0,1466 en las tres
+  ejecuciones)**. `app.js` sin líneas nuevas (37.530).
+
 ## Cierre de sesión — 30 de septiembre de 2026 (276): Ola 1, entrega 4 (parte 2) — el menú resalta la entrada de la familia
 
 - **Decisión del hogar (30/09/2026, «sí a las dos»):** los dos pasos del flujo de Escenarios (`escenario-aplicar`,

@@ -56,7 +56,8 @@ test("ARQ-4 · la pantalla está registrada como vista diferida, en el build pub
   assert.match(app, /reconciliation: \{ src: "views\/reconciliation\.js\?v=[^"]+", rootId: "reconciliation" \}/);
   assert.match(read("tools/build-public-site.mjs"), /"views\/reconciliation\.js"/);
   assert.match(read("service-worker.js"), /"\.\/views\/reconciliation\.js"/);
-  assert.match(read("index.html"), /<section class="reconciliation view-section" id="reconciliation">/);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  assert.match(read("index.html"), /<section class="reconciliation view-section" id="reconciliation"(?: hidden)?>/);
 });
 
 test("ARQ-4 · app.js nunca llama a renderReconciliation() sin garantizar que su fichero está cargado", () => {

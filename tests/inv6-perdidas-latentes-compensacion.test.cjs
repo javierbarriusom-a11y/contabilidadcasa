@@ -54,7 +54,8 @@ const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "u
 // falta enlaces cruzados entre pantallas distintas: la tarjeta de INV6 remite a "la calculadora de
 // arriba", en la misma pestaña.
 test("wiring: la tarjeta de INV6 vive en Inversión › Fiscal, después de la calculadora de compensación de FC3", () => {
-  const inversionFiscal = /<section class="e19-deuda-decidir view-section" id="inversion-fiscal">/.exec(indexSource);
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  const inversionFiscal = /<section class="e19-deuda-decidir view-section" id="inversion-fiscal"(?: hidden)?>/.exec(indexSource);
   assert.ok(inversionFiscal, "No existe la sección inversion-fiscal");
   const start = inversionFiscal.index + inversionFiscal[0].length;
   const end = indexSource.indexOf("</section>", start);

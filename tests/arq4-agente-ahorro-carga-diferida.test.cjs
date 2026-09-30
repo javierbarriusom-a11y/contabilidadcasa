@@ -117,7 +117,8 @@ test("ARQ-4 · app.js nunca llama a renderSavingsAgent() sin garantizar que su f
 });
 
 test("ARQ-4 · todos los nodos que pinta la vista viven dentro de su sección", () => {
-  const start = index.indexOf('<section class="savings-agent view-section" id="savings-agent">');
+  // Ola 1 (rendimiento): las secciones nacen con `hidden` salvo #home; la prueba busca la sección, no fija que su etiqueta no admita atributos.
+  const start = index.indexOf('<section class="savings-agent view-section" id="savings-agent" hidden>');
   assert.ok(start >= 0, "Falta la sección savings-agent en index.html");
   const section = index.slice(start, index.indexOf('id="virtual-advisor"', start));
   const targets = [...new Set([...view.matchAll(/qs\("([A-Za-z0-9]+)"\)/g)].map((match) => match[1]))];
