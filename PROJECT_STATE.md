@@ -124,12 +124,24 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   estado fijo fijada al valor anterior al cambio (`c63dcd356680ab090000009d`) y el guardado real de `app.js`
   contra un cliente falso (otro `reason` = cero peticiones; un movimiento nuevo sí guarda). Con el código
   anterior fallan 7 pruebas.
-- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929**. **No comprobado contra el
-  Supabase real** hasta que el hogar repita la prueba tras el despliegue.
+- **Validación**: `npm run verify` completo en verde, `npm test` **4929/4929**.
+- **Comprobado en el Supabase real (30-sep-2026, tras el despliegue del PR #403)**: con la caché del service worker
+  ya en la versión `04025b39`, 3 recargas sin editar y visitando Movimientos entre ellas dejaron el recuento en
+  **107 copias antes y 107 después** (la última, `08:25:52 UTC`, es la de la primera carga con el código nuevo,
+  esperable porque la copia previa de la nube no llevaba `changeKey`). Antes: un guardado por carga. **Muestra
+  corta** (3 recargas, una pantalla distinta, ninguna edición real): la verificación firme es contar copias tras
+  un día de uso normal.
 - **Observado, sin causa confirmada**: el aviso «Hay cambios pendientes de una sesión anterior» sale cuando se
   recarga con un guardado en marcha (ejecución `running` sin cerrar). Con un guardado por carga era fácil de
-  provocar; debería desaparecer casi siempre. Sigue pendiente la limpieza de copias huérfanas (`failed`/`running`)
-  y el arranque que descarga el `state` de 20 copias.
+  provocar; debería desaparecer casi siempre. No volvió a salir de forma reportada en la prueba anterior.
+- **Pendiente**: (1) contar copias y medir `finance_audit_log` (97 MB, más de la mitad de la base de 180 MB) a
+  las 24 h; si la auditoría no crece, su origen eran los guardados de más y no hay que tocar nada; si crece sin
+  guardados nuevos, hay otra fuente (consulta de diferencia de campos por hacer). (2) Copias huérfanas
+  `failed`/`running` (~15-20, unos 6-8 MB): limpieza opcional y de poco valor ahora; la regla de retención de 60
+  días las absorberá. (3) El arranque que descarga el `state` completo de 20 copias: solo si el 500 en
+  `finance_state_snapshots` reaparece con la base ya en ~180 MB. (4) Nota de operación: al desplegar, el
+  navegador puede tardar en cambiar de service worker; comprobar `caches.keys()` antes de medir, y **no usar
+  «Borrar datos del sitio»** (borraría la copia local y la bandeja de guardados pendientes).
 
 ## Cierre de sesión — 30 de septiembre de 2026 (266): por qué la omisión de guardados idénticos no bastaba — causa raíz de las copias
 
