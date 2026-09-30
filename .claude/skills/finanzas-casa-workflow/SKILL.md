@@ -44,6 +44,9 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
    sección 0 («Estado maestro de entregas»), sigue siendo la tabla de estado de las entregas
    E1-E26. Si algo no cuadra entre documentos, `BACKLOG_INDICE.md` tiene la tabla completa de qué
    sustituye a qué.
+   Si el trabajo es de UX (olas 0-4 del plan de mejora, Hoy, navegación, rendimiento de carga), lee
+   además `BACKLOG_UX_OLAS.md` §0: es el traspaso del plan de UX entre sesiones (hecho, bloqueos por
+   decisión del hogar, deuda técnica y trampas del repositorio).
 3. **Git, brevemente** (no exhaustivo, no ejecutivo — solo lectura):
    - `git status` (¿hay cambios sin commitear?)
    - `git branch --show-current` (¿en qué rama estamos?)
