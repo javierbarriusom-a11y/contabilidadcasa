@@ -895,6 +895,20 @@ h2 {
   line-height: 1.4;
 }
 
+/* Ola 0.3: el formulario de acceso va plegado; el estado de la sincronización (arriba) ya dice si hace falta. */
+.sync-details summary {
+  cursor: pointer;
+  color: #dff9f5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sync-details-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .sync-form {
   display: grid;
   gap: 8px;

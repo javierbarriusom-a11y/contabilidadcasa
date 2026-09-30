@@ -250,13 +250,18 @@
           </div>
           <p id="syncStatus">Guardando solo en este navegador.</p>
           <div class="sync-form" id="syncForm">
-            <input id="syncEmail" type="email" placeholder="Email" autocomplete="username" />
-            <input id="syncPassword" type="password" placeholder="Contraseña" autocomplete="current-password" />
-            <div class="sync-actions">
-              <button id="syncLogin" type="button">Entrar</button>
-              <button id="syncSignup" type="button">Crear</button>
-            </div>
-            <button id="syncResend" class="sync-secondary" type="button">Reenviar email</button>
+            <details class="sync-details">
+              <summary>Entrar o crear cuenta</summary>
+              <div class="sync-details-body">
+                <input id="syncEmail" type="email" placeholder="Email" autocomplete="username" />
+                <input id="syncPassword" type="password" placeholder="Contraseña" autocomplete="current-password" />
+                <div class="sync-actions">
+                  <button id="syncLogin" type="button">Entrar</button>
+                  <button id="syncSignup" type="button">Crear</button>
+                </div>
+                <button id="syncResend" class="sync-secondary" type="button">Reenviar email</button>
+              </div>
+            </details>
           </div>
           <div class="sync-session" id="syncSession" hidden>
             <span id="syncUser"></span>
@@ -2066,10 +2071,7 @@
                   <div id="deudaRutaOffer"></div>
                 </article>
 
-                <article class="e19-card">
-                  <h3 class="escenario-motor-panel-title">Capacidad de endeudamiento</h3>
-                  <div id="deudaRutaCapacity"></div>
-                </article>
+                <div id="deudaRutaCapacity"></div>
               </div>
             </div>
 

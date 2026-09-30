@@ -4655,8 +4655,9 @@ function topbarStatusFigures() {
   const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
   const margin = round2(Number(balances.total || 0) - protectedReserve);
   const debtOutlook = homeDebtOutlook();
-  const libreDeDeudaValue = debtOutlook.settled ? "Sin deuda" : debtOutlook.estimable ? debtOutlook.libreDeDeudaLabel : "—";
-  const libreDeDeudaSub = debtOutlook.settled ? "sin contratos vivos" : debtOutlook.estimable ? "" : String(debtOutlook.libreDeDeuda || "sin fecha estimable");
+  const libreParcial = debtOutlook.estimable && / · /.test(debtOutlook.libreDeDeudaLabel); // con deuda sin cuota activa no hay fecha de libertad (Deuda dice «sin fecha estimable»): la fecha baja a la línea secundaria
+  const libreDeDeudaValue = debtOutlook.settled ? "Sin deuda" : debtOutlook.estimable && !libreParcial ? debtOutlook.libreDeDeudaLabel : "Sin fecha";
+  const libreDeDeudaSub = debtOutlook.settled ? "sin contratos vivos" : libreParcial ? debtOutlook.libreDeDeudaLabel.replace(" · ", " en las cuotas activas · ") : debtOutlook.estimable ? "" : String(debtOutlook.libreDeDeuda || "sin fecha estimable");
   const months = cuadroMandosAllMonths().slice(0, 12);
   const cushionBand = analisisCushionBand(months, lastSimulation, Number(state?.emergencyBufferMonths || 0));
   const worst = analisisCushionWorst(cushionBand);
@@ -29415,7 +29416,7 @@ function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
 }
 
 function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata }) {
-  const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : "is-good";
+  const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : status === "neutral" ? "" : "is-good";
   // H-4: insignia visible cuando el indicador rompe su umbral, además de la barra de color del borde.
   const badge = status === "danger"
     ? `<span class="e19-badge e19-badge-danger e19-kpi-badge">Fuera de umbral</span>`
@@ -30834,7 +30835,7 @@ function renderHomeBudgetGlance(balances) {
           label: "Presupuesto del mes",
           value: "Sin presupuestos",
           note: "Aún no hay presupuestos para este mes." + homeBudgetWeekNoteSuffix(weekSummary),
-          status: "warn",
+          status: "neutral",
           cta: "Sugerir presupuestos",
           target: "presupuesto-mes",
         }),
@@ -30865,7 +30866,7 @@ function renderHomeBudgetGlance(balances) {
           label: "Objetivos",
           value: "Sin datos",
           note: "Crea presupuestos para empezar a acumular rachas.",
-          status: "warn",
+          status: "neutral",
           cta: "Ir a presupuesto",
           target: "presupuesto-mes",
         }),
@@ -31093,7 +31094,7 @@ function renderHomeDashboard() {
       note: accuracyScore.calculable
         ? `Desviación media de ${money(accuracyLearning.deviations[0].averageDelta, true)} sobre ${accuracyScore.sampleMonths} mes(es) conciliado(s), confianza ${accuracyScore.confidence}.`
         : "Se calcula en cuanto haya al menos un mes cerrado y conciliado con el banco.",
-      status: !accuracyScore.calculable ? "good" : accuracyScore.severity === "high" ? "danger" : accuracyScore.severity === "medium" ? "warn" : "good",
+      status: !accuracyScore.calculable ? "neutral" : accuracyScore.severity === "high" ? "danger" : accuracyScore.severity === "medium" ? "warn" : "good",
       cta: "Ver backtesting",
       target: "herramientas-analizar",
     }),
