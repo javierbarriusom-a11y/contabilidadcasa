@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 12 de septiembre de 2026.
+Fecha de revisión: 30 de septiembre de 2026 (sesión 279). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -13,6 +13,12 @@ completo. Se regenera una vez por trimestre (próxima revisión: T4 2026, oct-di
 quede invalidada por un cierre posterior se retira de aquí en la siguiente regeneración, no al
 momento.
 
+- **Plan de UX por olas (30 de septiembre de 2026, sesiones 268–279)**: decisiones del hogar que siguen aplicando — camino B de la Ola 1 (nueve pantallas, ritmos como
+  rótulos, **cero pantallas nuevas**); retirar una pantalla = **redirigir sin borrar código** y solo con el informe «Uso de la app» y OK pantalla a pantalla (el contador vive
+  en el navegador de cada dispositivo); rendimiento «carga honesta» (pantallas ocultas de partida, cabecera en su estado final, LCP de Lighthouse a aviso con el mismo umbral,
+  puerta `test:load-budget` de contenido de Hoy en visita repetida); **nunca cambiar umbrales de CI ni relajar una prueba para dar verde**. Móviles del hogar: iPhone 17 e
+  iPhone 15 Pro. La Ola 2 (Hoy con veredicto, modo consulta) **espera cinco decisiones del hogar**; el modo consulta recomendado es solo nivel 1 y **no protege** —el nivel 2
+  contradice `docs/OPT22_MODELO_HOGAR.md`—. Estado completo, bloqueos y deuda técnica en `BACKLOG_UX_OLAS.md`.
 - **Repositorio vivo**: `contabilidadcasa` es el único repositorio en desarrollo; `finanzas-casa-def`
   queda congelado desde el 10 de agosto de 2026 y no recibe cambios. Detalle y motivo en `CLAUDE.md`.
 - **Publicación sin pedir permiso cada vez**: validar → actualizar estado → commit/push → PR en
@@ -102,6 +108,19 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 30 de septiembre de 2026 (279): traspaso del plan de UX a otra sesión (solo documentación)
+
+- **Qué se entrega:** `BACKLOG_UX_OLAS.md`, backlog autocontenido para retomar el plan de UX sin releer la conversación: cómo empezar en 10 minutos (§0), qué está hecho con PR y sesión
+  (§1), la Ola 2 bloqueada con sus cinco decisiones y sus entregas con criterio de hecho (§2), las retiradas de la Ola 1 bloqueadas por el informe de uso (§3), la deuda técnica y de rendimiento
+  priorizada para el hogar real —dos iPhone— (§4, `UX-P1`…`UX-N4`), las olas 3 y 4 (§5), recetas y trampas del repositorio (§6) y el orden recomendado (§7).
+- **Estado y índices actualizados:** `PROJECT_STATE.md` (fecha de revisión —seguía en el 12 de septiembre— y una decisión vigente nueva en el índice), `BACKLOG_INDICE.md` (párrafo de
+  «qué hacer a continuación» y fila del mapa) y `BACKLOG_CONTABILIDADCASA_3_0.md` §9 (puntero).
+- **Descubribilidad:** el Modo Inicio de la skill `finanzas-casa-workflow` (paso 2) manda ahora también a `BACKLOG_UX_OLAS.md` §0 cuando el trabajo es de UX. Dos guardianes
+  existentes lo condicionaron: todo `BACKLOG*.md` debe enlazar a `BACKLOG_INDICE.md`, y el índice solo admite **una** fila «🟢 Vigente» (la que nombra la skill), así que el nuevo
+  va como «🟡 Activo — eje de UX del vigente 3.0».
+- **Sin cambios de código.** `npm test` **4966/4966**, lint limpio. `app.js` en 37.530.
+- **Pendiente, sin cambios:** cinco decisiones del hogar para la Ola 2; informe «Uso de la app» y OK para la entrega 5 de la Ola 1.
 
 ## Cierre de sesión — 30 de septiembre de 2026 (278): Ola 2 — diseño de «Hoy con veredicto y modo consulta» (solo documento)
 

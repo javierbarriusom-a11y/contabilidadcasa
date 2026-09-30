@@ -188,6 +188,8 @@ pantallas abre de verdad.
 
 ## 9. Plan de mejora de UX por olas — sesión 268 (30/09/2026)
 
+**Para retomar este plan en otra sesión, ir a [`BACKLOG_UX_OLAS.md`](BACKLOG_UX_OLAS.md)** (estado, bloqueos, deuda técnica, recetas). Esta sección conserva el plan original y su estado por ola.
+
 Origen: análisis de producto sobre la app real (escritorio y móvil, dataset demo). Hallazgos: Hoy mide
 5.900 px (11.800 en móvil) con ~12 bloques y seis cifras distintas de «cuánto me sobra»; 10 entradas de menú
 primarias + 42 avanzadas + ~10 heredadas; Ajustes mide 15.500 px; jerga interna visible; cabecera de tres

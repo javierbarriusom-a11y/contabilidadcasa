@@ -12,6 +12,12 @@
 
 ## Para saber qué hacer a continuación
 
+**Actualizado el 30 de septiembre de 2026 (sesión 279): nace [`BACKLOG_UX_OLAS.md`](BACKLOG_UX_OLAS.md).** Es la fuente viva del **plan de mejora de UX por olas**
+(`BACKLOG_CONTABILIDADCASA_3_0.md` §9) y de la deuda de rendimiento y navegación que dejó, escrito para retomarse en otra sesión sin releer la conversación: qué está hecho
+(PRs #405–#415), qué está **bloqueado por decisiones del hogar** (Ola 2: cinco preguntas; entrega 5 de la Ola 1: informe «Uso de la app» y OK pantalla a pantalla), qué se
+puede hacer sin ellas (deuda técnica, con su prioridad real para dos iPhone), y las recetas y trampas del repositorio. **Empezar por su §0.** No sustituye a
+`BACKLOG_CONTABILIDADCASA_3_0.md`: lo continúa en el eje de UX. El horizonte de funcionalidades y la Cola B siguen donde estaban.
+
 **Checkpoint del 28 de septiembre de 2026 (sesión 258, sin cambios de código — cierre de
 ciclo de `D1`).** Con `D1` cerrada (sesiones 255-257, 3 fases) y `D6` cerrada (sesión 254), se
 revisó qué queda prioritario en el backlog vigente y el resultado es que **no queda ningún
@@ -227,6 +233,7 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
+| **[`BACKLOG_UX_OLAS.md`](BACKLOG_UX_OLAS.md)** | 🟡 Activo — nace sesión 279 (eje de UX del vigente 3.0) | Plan de mejora de UX por olas (0 a 4) y su deuda de rendimiento/navegación, en formato de traspaso entre sesiones: hecho, bloqueos por decisión del hogar (Ola 2, retiradas de la Ola 1), deuda técnica priorizada, recetas y trampas. Diseños asociados: `docs/OLA1_ARQUITECTURA_NAVEGACION.md` y `docs/OLA2_HOY_Y_CONSULTA.md` | Ninguno — continúa el eje de UX de `BACKLOG_CONTABILIDADCASA_3_0.md` §9 |
 | **[`BACKLOG_CONTABILIDADCASA_3_0.md`](BACKLOG_CONTABILIDADCASA_3_0.md)** | 🟢 Vigente — nace sesión 219 | Cuarta auditoría crítica de producto, foco en UX/UI y modelo de periodo mensual/trimestral/semestral, cruzada contra código real y contra `BACKLOG_CONTABILIDADCASA_2_0.md` (absorbido en una sola cola priorizada, no sustituido). Deliberadamente no activa toda su superficie de golpe — ver su §0 y §4 | Ninguno — es el backlog vigente |
 | [`BACKLOG_CONTABILIDADCASA_2_0.md`](BACKLOG_CONTABILIDADCASA_2_0.md) | 🟡 Casi cerrado — 42/52 cerradas (sesión 218), 10 activas + 6 heredadas en §7 | Tercera auditoría crítica de producto («Contabilidadcasa 2.0», 10 hallazgos + 48 propuestas), en 4 bloques propios (`P-`/`I-`/`D-`/`T-`: previsión, inversión, deuda, transversales) tras descartar/reducir 3 propuestas por el cruce contra código real. Incorpora al final (§7) todo lo pendiente heredado de ciclos anteriores | `BACKLOG_CONTABILIDADCASA_3_0.md` incorpora sus 16 tareas pendientes a la cola única (§5-§6); el detalle de cada una sigue viviendo aquí |
 | [`BACKLOG_SUCESION_Y_CONTINUIDAD.md`](BACKLOG_SUCESION_Y_CONTINUIDAD.md) | ✅ Cerrado (sesión 194) — 3/3 tareas accionables construidas (`LPX6`, `LPX5`, `LPX4`); Copiloto/IA y multidispositivo auditados en sesión 195, sin hueco accionable | Recupera el hallazgo de fiscalidad/continuidad de la auditoría de la sesión 164, nunca formalizada. Alcance confirmado por el hogar: Patrimonio/Grandes Fortunas descartado, Sucesiones y Donaciones como aviso temprano (no calculadora completa), continuidad extendida. Copiloto/IA sigue bloqueado por `A5-1` (condición externa), no por código pendiente; multidispositivo verificado sólido | Continúa `LPX1`-`LPX3` (Oleada 2) en vez de un prefijo nuevo; ningún backlog siguiente identificado todavía |
