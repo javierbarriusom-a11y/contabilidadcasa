@@ -6401,7 +6401,7 @@ function incomeTimingForRow(row, month, amount) {
     return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "" };
   }
   if (isMainPayrollIncomeRow(row)) {
-    const day = lastBusinessDayOfMonth(date).getDate();
+    const day = monthEndDate(date).getDate(); // último día natural, decisión del hogar 1/10/2026 (más prudente)
     return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
   }
   const movementTiming = incomeTimingFromMovements(row, month, amount);
@@ -6573,7 +6573,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
   breakdown.incomeEvents = incomeEventsForMonth(month, forecastIndex, options);
   if (breakdown.incomeEvents.length) {
     const monthDate = dateFromMonthKey(month.key);
-    const payrollDay = lastBusinessDayOfMonth(monthDate).getDate();
+    const payrollDay = monthEndDate(monthDate).getDate();
     breakdown.prePayrollIncome = sumRows(
       breakdown.incomeEvents.filter((event) => event.day < payrollDay),
       (event) => event.amount,
@@ -7192,7 +7192,7 @@ function simulateHistoricalReference(projectOutflows = [], options = {}) {
     const outflowsBeforeSaving = coreSpend + carPayment + refi + projectOutflow;
     const incomeEvents = detail.incomeEvents || [];
     const monthDate = dateFromMonthKey(detail.monthKey);
-    const payrollDate = lastBusinessDayOfMonth(monthDate);
+    const payrollDate = monthEndDate(monthDate);
     const lastIncomeDay = incomeEvents.length ? Math.max(...incomeEvents.map((event) => Number(event.day || 1))) : payrollDate.getDate();
     const prePayrollIncome = detail.prePayrollIncome;
     const transferDateLabel = shortDate(payrollDate);
@@ -7335,7 +7335,7 @@ function canonicalDailyInput(monthlyInput, rows) {
   const events = [];
   const months = (monthlyInput.months || []).map((month, index) => {
     const row = rows[index] || {};
-    const payrollDate = month.mainPayrollDate || dailyAuditFallbackDate(month.monthKey, lastBusinessDayOfMonth(dateFromMonthKey(month.monthKey)).getDate());
+    const payrollDate = month.mainPayrollDate || dailyAuditFallbackDate(month.monthKey, monthEndDate(dateFromMonthKey(month.monthKey)).getDate());
     const fixedCoreSpend = round2(Number(row.fixedCoreSpend ?? Math.max(0, Number(row.coreSpend || 0) - Number(row.variableOperationalSpend || 0))));
     const variableOperationalSpend = round2(Number(row.variableOperationalSpend || 0));
     const car = round2(Number(row.car || 0));
@@ -7692,7 +7692,7 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
     const detail = planningBreakdownMemoized(i, date, options);
     const incomeEvents = planningBreakdownMemo ? (detail.incomeEvents || []).slice() : detail.incomeEvents || [];
     const monthDate = dateFromMonthKey(detail.monthKey);
-    const payrollDate = lastBusinessDayOfMonth(monthDate);
+    const payrollDate = monthEndDate(monthDate);
     const lastIncomeDay = incomeEvents.length
       ? Math.max(...incomeEvents.map((event) => Number(event.day || 1)))
       : payrollDate.getDate();
