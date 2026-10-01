@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 285). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 286). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,19 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (286): S1 de la Ola 2 — `canonicalDailyInput` y sus ayudantes salen de `app.js` a un módulo (sin cambio de comportamiento)
+
+- **Qué se hizo:** la entrega **S1** (aprobada el 1/10/2026; el hogar pidió «solo S1»). Se extrae a `canonical-daily-input.js` (`FinanceCanonicalDailyInput.build`, factory UMD como `canonical-decisions.js`) el grupo `dailyAuditFallbackDate` + `pushDailyAuditEvent` + `distributeDailyAuditEvents` + `canonicalDailyInput`: **166 líneas** de `app.js`, no las ~110 que decía el diseño, porque los tres ayudantes solo los usaba esa función y salían con ella. `app.js` pasa de **37.530 a 37.365 líneas (−165)**; `refreshCanonicalDailyAudit` llama ahora al módulo (+2 líneas de guarda si no está cargado).
+- **Sin cambio de comportamiento, comprobado en dos niveles:** (1) antes de borrar nada se ejecutaron el código original (extraído de `app.js` a un `vm`) y el módulo sobre las mismas entradas — 102 casos: 20 variantes de importes/fechas × 5 valores de reserva (0, 1.500, 2.500, texto, `undefined`) más dos casos vacíos — y el resultado fue idéntico campo a campo; (2) los datasets dorados (`golden:datasets`, `golden:debt-cases`, `golden:combined-cases`) se regeneraron y **Git no vio ninguna diferencia**. El único dato que la función leía del estado de la app, `state.operatingReserve`, llega ahora por `options.operatingReserve`; el módulo conserva a propósito el `Number(...)` original (un texto no numérico da `NaN`, igual que antes): una extracción no «arregla» comportamiento.
+- **Registro del módulo:** `index.html` (después de `canonical-daily-engine.js` y antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`; `dist/` lo incluye. Versión de `app.js` en `index.html`: `20260922i5a1` → `20261001s1a1`.
+- **Pruebas ajustadas, sin relajar ninguna intención:** `arq4-techo-app-js` (trinquete: techo **37.530 → 37.495**, historial anotado en su cabecera); `arq3-canonical-sin-consumidor-ui` (recuento 67 → 68; el módulo tiene consumidor real desde el primer día, sin excepción); `nomina-javi-ultimo-dia-natural` (la aserción sobre el respaldo de la auditoría diaria, el último día **natural**, ahora lee `canonical-daily-input.js`, con la misma expresión); y **26 pruebas** que fijaban la versión literal de `app.js` en `index.html`, actualizadas al valor nuevo. `opt6-mover-cobertura-a-ajustes` y `f1-contrato-ejecutivo-deuda`, que el diseño daba por afectadas, **no necesitaron ningún cambio**.
+- **Pruebas nuevas:** `tests/canonical-daily-input.test.cjs` (5): contrato del módulo, reparto en eventos con fechas observadas y de relleno, respaldo al último día natural, entrada vacía, y que `app.js` ya no define las cuatro funciones y el módulo está registrado y cargado antes que `app.js`.
+- **Resultado de la validación:** `npm run verify` **verde** (salida 0): `npm test` **4979/4979** (4974 de la línea base + 5 nuevas), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. **No se ejecutaron en local** las puertas de navegador que corre el CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); las valida el CI del PR. No hay cambio visible: ninguna pantalla se toca.
+- **Decisión de la sesión:** solo S1, **no** S2. Motivo (recomendación aceptada por el hogar): S2 añade un parámetro que solo lee el número «Disponible» de S3; si la medición con datos reales (`BACKLOG_UX_OLAS.md` §8.6) da un `porcentajeEstimado` alto, S3 pierde justificación y S2 sería un control en Ajustes que no usa nada. Orden: **S1 → medir → decidir S2/S3**.
+- **Pendiente (sin cambios respecto al 285, detalle en `BACKLOG_UX_OLAS.md` §9):** medir `porcentajeEstimado` con datos reales (lo hace el hogar en su navegador); regla de parada v2, línea base cronometrada e informe de uso sin hacer; D3–D5 sin contestar; la lectura «S1 + S-3 + S-4 + S-5» del mensaje «s1, s3, s5, s5» sigue sin confirmar; y el PR #416 sigue en borrador, aparcado y desfasado (se preguntó si cerrarlo y no hay respuesta).
+- **Revisión mensual de Nielsen:** no vencida; la última fue el 16/09/2026 y vence el 16/10/2026. `OPT-10`–`OPT-13` siguen aplazadas al 23/10/2026.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR del cambio abierto en borrador contra `main`.
 
 ## Cierre de sesión — 1 de octubre de 2026 (285): cierre de la jornada de decisiones de la Ola 2; backlog de UX al día (solo documentación)
 

@@ -98,7 +98,9 @@ test("los sitios que fechan la nómina usan el último día natural y solo el bo
   // previos a la nómina, y los dos cálculos de `mainPayrollDate`; más el respaldo de la auditoría diaria.
   assert.equal((app.match(/const payrollDate = monthEndDate\(monthDate\);/g) || []).length, 2);
   assert.match(app, /const payrollDay = monthEndDate\(monthDate\)\.getDate\(\);/);
-  assert.match(app, /dailyAuditFallbackDate\(month\.monthKey, monthEndDate\(dateFromMonthKey\(month\.monthKey\)\)\.getDate\(\)\)/);
+  // S1 (sesión 286): el respaldo de la auditoría diaria se extrajo de app.js a canonical-daily-input.js.
+  const dailyInput = fs.readFileSync(path.join(root, "canonical-daily-input.js"), "utf8");
+  assert.match(dailyInput, /dailyAuditFallbackDate\(month\.monthKey, monthEndDate\(dateFromMonthKey\(month\.monthKey\)\)\.getDate\(\)\)/);
   assert.match(app, /const day = monthEndDate\(date\)\.getDate\(\); \/\/ último día natural/);
   // Solo quedan la definición y la regla del bonus de Javi (no la nómina).
   const uses = app.match(/lastBusinessDayOfMonth\(/g) || [];

@@ -14,7 +14,7 @@
 
 **Actualizado el 30 de septiembre de 2026 (sesión 279): nace [`BACKLOG_UX_OLAS.md`](BACKLOG_UX_OLAS.md).** Es la fuente viva del **plan de mejora de UX por olas**
 (`BACKLOG_CONTABILIDADCASA_3_0.md` §9) y de la deuda de rendimiento y navegación que dejó, escrito para retomarse en otra sesión sin releer la conversación: qué está hecho
-(PRs #405–#415), qué está **bloqueado por decisiones del hogar** (Ola 2: decidida en lo esencial el 1/10/2026 —ver `BACKLOG_UX_OLAS.md` §8.5—, siguiente entrega S1; entrega 5 de la Ola 1: informe «Uso de la app» y OK pantalla a pantalla), qué se
+(PRs #405–#415), qué está **bloqueado por decisiones del hogar** (Ola 2: decidida en lo esencial el 1/10/2026 —ver `BACKLOG_UX_OLAS.md` §8.5—, S1 hecha el 1/10/2026 (sesión 286); siguiente paso: medir con datos reales y decidir S2/S3; entrega 5 de la Ola 1: informe «Uso de la app» y OK pantalla a pantalla), qué se
 puede hacer sin ellas (deuda técnica, con su prioridad real para dos iPhone), y las recetas y trampas del repositorio. **Empezar por su §0.** No sustituye a
 `BACKLOG_CONTABILIDADCASA_3_0.md`: lo continúa en el eje de UX. El horizonte de funcionalidades y la Cola B siguen donde estaban.
 

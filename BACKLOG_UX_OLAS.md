@@ -5,7 +5,7 @@ deuda de rendimiento y navegación que dejó. Autocontenido a propósito: quien 
 decidir qué hacer primero en 10 minutos. El detalle histórico de cada cosa vive en `PROJECT_STATE.md` (sesiones 268–278) y en los
 documentos de diseño enlazados.
 
-**Actualizado el 1 de octubre de 2026 (sesión 285, cierre de una sesión de decisiones del hogar y de diseño).** Estado en una línea: la Ola 2 tiene **diseño cerrado y decisiones tomadas** (§8.5); no hay código nuevo de Hoy; la **siguiente entrega es S1** (§7).
+**Actualizado el 1 de octubre de 2026 (sesión 286, tras hacer S1).** Estado en una línea: la Ola 2 tiene **diseño cerrado y decisiones tomadas** (§8.5); **S1 está hecha** (`canonicalDailyInput` sale de `app.js`, que baja a 37.365 líneas); no hay código nuevo de Hoy; lo siguiente es **medir con datos reales (§8.6) y decidir S2/S3** (§7). *(Sesión 285: cierre de una sesión de decisiones del hogar y de diseño.)*
 
 Su lugar en el mapa de backlogs: `BACKLOG_INDICE.md` (eje de UX del backlog vigente `BACKLOG_CONTABILIDADCASA_3_0.md`, no lo sustituye).
 
@@ -17,7 +17,7 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 
 1. Leer este documento entero y, de `PROJECT_STATE.md`, solo las entradas **285, 284 y 283** (arriba del todo) y, del diseño, `docs/OLA2_SUELO_Y_DISPONIBLE.md`.
 2. `git status` y `git log --oneline -5`; comprobar que la rama de trabajo parte de `origin/main` (§6, «reiniciar la rama»).
-3. **Las decisiones esenciales de la Ola 2 ya están tomadas** (§8.5). Lo siguiente es **S1** (§7). Antes de tocar nada de Hoy, leer §2.3 (lo que enseñó construir O2-1) y §8.5: corrigen el diseño de la sesión 278 y el módulo de O2-1 está aparcado y desfasado.
+3. **Las decisiones esenciales de la Ola 2 ya están tomadas** (§8.5). **S1 está hecha (sesión 286)**; lo siguiente es medir y decidir S2/S3 (§7). Antes de tocar nada de Hoy, leer §2.3 (lo que enseñó construir O2-1) y §8.5: corrigen el diseño de la sesión 278 y el módulo de O2-1 está aparcado y desfasado.
 4. Si el hogar aún no ha contestado, la única cosa útil sin bloqueo es **§4 (deuda técnica)** y, si el informe de uso existe, **§3**.
 5. Cuando haya datos reales: ejecutar el script del §8.6 **en el navegador donde el hogar usa la app** y mirar `porcentajeEstimado` antes de S3. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, commit/push, PR en borrador, esperar CI, fusionar en verde (§6).
 
@@ -37,13 +37,14 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 | 2 · Hallazgos y decisiones | Hallazgos de construir y ejecutar O2-1 (§2.3) y hoja de sesión con el hogar (§8); registro de decisiones (§8.5) | #417, #418 | 280–281 |
 | 2 · Fechas de ingresos | La nómina de Javi se fecha el **último día natural** (antes, el hábil); y la de diciembre el 31, no el 15 (la regla de diciembre la adelantaba por superar 2.500 €). Prueba `tests/nomina-javi-ultimo-dia-natural.test.cjs` | #419, #421 | 282, 284 |
 | 2 · Diseño del número de Hoy | `docs/OLA2_SUELO_Y_DISPONIBLE.md`: suelo de liquidez (nuevo parámetro, sobre el total) y «disponible» = mínimo proyectado a 30 días; entregas S1–S4 | #420 | 283 |
+| 2 · S1 | `canonicalDailyInput` y sus tres ayudantes (166 líneas) salen de `app.js` a `canonical-daily-input.js`, sin cambio de comportamiento (102 casos idénticos, datasets dorados sin diferencias); `app.js` 37.530 → 37.365 y techo 37.495 | PR de la sesión 286 | 286 |
 
 **Decisiones del hogar vigentes** (30/09/2026 salvo indicación): camino B; retirar pantallas = **«redirigir sin borrar código»**; «avanza sin el
 informe, solo agrupando» (no retirar sin informe y OK); Escenarios con **cuatro** destinos; los pasos del flujo de Escenarios resaltan
 «Escenarios» y dentro de Presupuesto/Esta semana/Partidas el menú marca «Plan»; rendimiento **opción 1**; Registrar se rediseña **después de la
 Ola 1**. Ver también `docs/OPT22_MODELO_HOGAR.md` (29/08/2026): **no construir control de acceso por persona** sobre el modelo actual. **Decisiones del 1/10/2026 (número de Hoy, suelo, cobros, fechas de ingresos): §8.5.**
 
-## 2. Ola 2 — Hoy con veredicto y modo consulta (diseño cerrado el 1/10/2026; siguiente entrega: S1)
+## 2. Ola 2 — Hoy con veredicto y modo consulta (diseño cerrado el 1/10/2026; S1 hecha en la sesión 286; sigue medir y decidir S2/S3)
 
 Diseño completo y datos en `docs/OLA2_HOY_Y_CONSULTA.md`. **El número de Hoy se rediseñó el 1/10/2026 tras las decisiones del hogar: vigente `docs/OLA2_SUELO_Y_DISPONIBLE.md` (sustituye la definición A del §3).** Resumen del diagnóstico (dataset demo, no datos reales): Hoy da **ocho cifras** de «cuánto me
 sobra» con cuatro problemas verificados (duplicado «Liquidez hoy» = «Caja disponible»; negativo −1.090 € recortado a «0,00 € por encima»; «Reserva protegida:
@@ -189,9 +190,8 @@ fusionada; sin esto el hook de parada protesta por commits sin subir). Un PR de 
 
 ## 7. Orden recomendado para las próximas sesiones
 
-0. **S1** (`docs/OLA2_SUELO_Y_DISPONIBLE.md` §8): extraer `canonicalDailyInput` (~110 líneas, acopladas a `state` y a helpers de fecha) de `app.js` a un módulo. Hecho cuando el techo de `app.js` baja, `npm run verify` y los datasets dorados salen idénticos, y
-   `opt6-mover-cobertura-a-ajustes` y `f1-contrato-ejecutivo-deuda` se ajustan **sin relajar su intención**. Registrar el módulo nuevo en `index.html`, `service-worker.js` y `tools/build-public-site.mjs` (como `canonical-decisions.js`) y comprobar el orden de carga.
-1. **S2** (parámetro «suelo de liquidez», persistido como `operatingReserve`; ninguna cifra existente cambia) → **medir con datos reales** (script del §8.6) → **S3** (módulo v2 **y** consumidor en Hoy, en un solo PR por ARQ-3; medir `test:load-budget` antes y después) → **S4** (frescura).
+0. **S1 — ✅ hecha (sesión 286).** Extraídas a `canonical-daily-input.js` la función y sus tres ayudantes (166 líneas, no ~110); `app.js` 37.530 → 37.365, techo 37.495; `opt6-mover-cobertura-a-ajustes` y `f1-contrato-ejecutivo-deuda` no necesitaron ajuste. **Un módulo nuevo `canonical-*.js` obliga a: registrarlo en `index.html`, `service-worker.js` y `tools/build-public-site.mjs`, actualizar el recuento de `arq3-canonical-sin-consumidor-ui` (hoy 68) y subir la versión de `app.js` en `index.html` y en las 26 pruebas que la fijan.**
+1. **Ahora: medir con datos reales** (script del §8.6) **antes** de S2: S2 solo la lee S3 y, si `porcentajeEstimado` es alto, S3 pierde justificación. Después: **S2** (parámetro «suelo de liquidez», persistido como `operatingReserve`; ninguna cifra existente cambia) → **S3** (módulo v2 **y** consumidor en Hoy, en un solo PR por ARQ-3; medir `test:load-budget` antes y después) → **S4** (frescura).
    Si `porcentajeEstimado` es alto con los datos reales, el «disponible» no es fiable (§2.3-1): se muestran las dos lecturas con el motivo (S-5) y se valora si compensa seguir.
 2. **Si el hogar trae el informe de uso:** entrega 5 de la Ola 1, una pantalla cada vez, con su OK.
 3. **Sin nada de los dos:** UX-N2 y UX-N3 (baratos), o UX-P2 si el hogar quiere que el CI sea más exigente. **No** empezar UX-P1/UX-P5: no compensan con los iPhone del hogar.
@@ -265,7 +265,7 @@ consulta usa Hoy como producto entero») queda por tanto **sin contrastar con qu
 | **Valores iniciales** | **Suelo de liquidez 1.500 €; mínimo operativo en CaixaBank sin tocar (1.500 € en Ajustes); ambos parametrizables** | El 2.500 € que aparecía en mis ejemplos es el valor por defecto del código y de la demo, no el del hogar |
 | **Aviso de CaixaBank** | Sí: Hoy avisa si CaixaBank baja de su mínimo operativo aunque el total esté por encima del suelo | Línea secundaria; no cambia el «disponible» |
 | **«Bonus» y Hacienda** | No hay bonus mensual. «Hacienda-otros ingresos» (3.000 €) llega sobre el **10/12**; la app la fecha el **15 de diciembre**, y el hogar **lo mantiene** (más tarde es más prudente, como Tere) | Sin cambio de código para esta partida. Corrección de la nómina de Javi en diciembre: ver su fila |
-| **Entrega S1** | **Aprobada (1/10/2026)** | Primera entrega de la próxima sesión; no se empezó en esta: es una refactorización con riesgo y no se deja a medias al cerrar |
+| **Entrega S1** | **Aprobada (1/10/2026)** · ✅ **hecha el 1/10/2026 (sesión 286)** | Refactorización sin cambio de comportamiento; detalle en §7 y en `PROJECT_STATE.md` |
 | **S-3 · horizonte** | **Fijo, 30 días, en la primera versión** | Recomendación aceptada |
 | **S-4 · nombre** | **«Disponible»**, con el suelo visible al lado | Recomendación aceptada |
 | **S-5 / D6 · fechas de relleno** | **Dos lecturas con el motivo** (prudente / si los ingresos van primero) | Recomendación aceptada |
@@ -322,12 +322,12 @@ Cómo leerlo:
 - En el dataset demo da 3.580 € frente a 8.310 € y `porcentajeEstimado` del 100 %: cifras de la demo, **no del hogar**.
 - No pegar en el repositorio público los resultados con importes reales.
 
-## 9. Pendiente al cierre de la sesión 285 (1 de octubre de 2026)
+## 9. Pendiente al cierre de la sesión 286 (1 de octubre de 2026)
 
 | Qué | Estado | Quién |
 |---|---|---|
-| **S1** liberar líneas de `app.js` | Aprobada; sin empezar | Siguiente sesión de código |
-| S2, S3, S4 | Diseñadas (`docs/OLA2_SUELO_Y_DISPONIBLE.md` §8); dependen de S1 | — |
+| **S1** liberar líneas de `app.js` | ✅ Hecha (sesión 286) | — |
+| S2, S3, S4 | Diseñadas (`docs/OLA2_SUELO_Y_DISPONIBLE.md` §8); S1 ya está hecha. **S2 se aplaza hasta medir (§8.6)** | — |
 | Medir `porcentajeEstimado` con datos reales (§8.6) | Sin hacer | El hogar, en su navegador |
 | **Regla de parada del plan de UX** (§8.4, versión 2 con umbral numérico, tareas exentas y reapertura) | **Sin contestar** | El hogar |
 | Línea base cronometrada (§8.1) e informe de uso por dispositivo (§8.2) | Sin hacer; el informe desbloquea la entrega 5 de la Ola 1 | El hogar |
