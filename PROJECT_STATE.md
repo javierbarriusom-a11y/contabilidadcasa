@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 282). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 283). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,21 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (283): diseño del número de Hoy tras las decisiones del hogar (solo documentación)
+
+- **Qué se entrega:** `docs/OLA2_SUELO_Y_DISPONIBLE.md`, sin código, que **sustituye la definición A** de `docs/OLA2_HOY_Y_CONSULTA.md` §3 (con aviso en ese documento). Antes se fusionó el PR #419 (la nómina de Javi pasa al último día natural; `npm run verify`
+  con salida 0 y 4.970/4.970 pruebas en local, y CI en verde).
+- **Hallazgo que cambia el diseño:** el parámetro que hoy se llama «suelo» (`state.operatingReserve`, `agentCaixaFloor()`) **ya es un mínimo operativo de CaixaBank**: el barrido de traspasos (`canonical-savings-agent.js`) lo usa con ese significado, incluido el
+  rescate desde Mediolanum, y los datasets dorados lo definen sobre la cuenta operativa. **Corrige** lo anotado en la sesión 281 («cambio de modelo transversal»): reinterpretarlo sí lo sería; **añadir un parámetro nuevo (suelo de liquidez, sobre el total)** no.
+  El existente no cambia de significado ni de cifras.
+- **Especificación del «disponible»** (mínimo proyectado a 30 días): saldo total − suelo de liquidez + punto más bajo del acumulado de movimientos fechados (traspasos entre cuentas = 0; dentro de un día, primero las salidas; negativo dicho con su
+  importe, fecha y causa; dato ausente nombrado; fiabilidad visible). **Caso de prueba de aceptación** con un calendario ilustrativo (no del hogar): el día en que cobra Javi, «hasta cobrar» da 8.350 € y el mínimo proyectado 6.900 €; al entrar el local
+  (+800 €) «hasta cobrar» baja a 6.900 € y el mínimo proyectado no se mueve. Un primer cálculo con el saldo al *empezar* el día escondía este efecto; se rehízo con el saldo al *final* del día.
+- **Entregas propuestas:** S1 liberar líneas de `app.js` (extraer `canonicalDailyInput`) → S2 parámetro «suelo de liquidez» (persistido como `operatingReserve`; ninguna cifra existente cambia) → S3 módulo v2 **y** consumidor en Hoy en un solo PR (ARQ-3) → S4 frescura.
+- **Sin contestar (§9 del diseño):** valores iniciales de los dos parámetros, aviso si CaixaBank baja de su mínimo operativo, horizonte fijo o configurable, nombre en pantalla, D6 y el bonus de Javi (conserva «último día hábil»). Siguen sin contestar la regla
+  de parada v2, D3–D5, la línea base cronometrada y el informe de uso.
+- **Validación:** solo documentación; `npm test` **4970/4970** (no se ejecutó `npm run verify` completo: no hay cambios de código). El módulo del número de Hoy (rama `claude/o2-1-home-verdict`, PR #416) sigue desfasado y aparcado.
 
 ## Cierre de sesión — 1 de octubre de 2026 (282): la nómina de Javi pasa al último día natural; aprobados el mínimo proyectado a 30 días y el diseño del suelo sobre el total
 
