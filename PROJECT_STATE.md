@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 281). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 282). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,18 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (282): la nómina de Javi pasa al último día natural; aprobados el mínimo proyectado a 30 días y el diseño del suelo sobre el total
+
+- **Decisiones del hogar (1/10/2026), las tres con «ok»:** (1) la nómina de Javi se fecha el **último día natural**, no el hábil; (2) el número de Hoy usa el **mínimo proyectado a 30 días** en vez de «hasta el próximo cobro»; (3) se abre el
+  **diseño del suelo sobre el total, con dos parámetros** (suelo total y mínimo operativo en CaixaBank). Tras la sesión 281 quedó fusionado el PR #418 con el registro de decisiones.
+- **Código (decisión 1):** cinco sitios de `app.js` pasan de `lastBusinessDayOfMonth` a `monthEndDate`: la regla «nómina Javi», el corte de ingresos previos a la nómina, los dos cálculos de `mainPayrollDate` y el respaldo de la auditoría
+  diaria. **Sin líneas nuevas** (el techo sigue en 37.530). Efecto real: oct 2026 (sáb 31, antes vie 30), ene, feb y jul 2027. **No se tocó** la regla del bonus de Javi (sigue en último día hábil) ni la de Tere (día 25, a propósito).
+  Prueba nueva `tests/nomina-javi-ultimo-dia-natural.test.cjs` (4 pruebas, comprobada deshaciendo el cambio: fallan 3).
+- **Sin construir, a propósito:** el módulo del número de Hoy (rama `claude/o2-1-home-verdict`, PR #416, desfasado) y su integración en pantalla. Dependen del diseño del suelo sobre el total y siguen sujetos al guardián ARQ-3 (módulo y consumidor, en un solo PR).
+- **Validación:** `npm run verify` completo con salida 0 — `npm test` **4970/4970** (4966 + 4 nuevas), y después lint, tipos, accesibilidad estructural, rendimiento, build del sitio, privacidad y humo. Las puertas de navegador (e2e, axe, load-budget,
+  mobile-overflow, Lighthouse) las ejecuta el CI del PR.
+- **Siguiente:** el diseño del suelo sobre el total (documento propio, con inventario de consumidores y decisiones del hogar). Siguen sin contestar la regla de parada v2, D3–D6, la línea base cronometrada y el informe de uso.
 
 ## Cierre de sesión — 1 de octubre de 2026 (281): decisiones del hogar sobre «el número» de Hoy, el suelo y el cierre de mes (solo documentación)
 
