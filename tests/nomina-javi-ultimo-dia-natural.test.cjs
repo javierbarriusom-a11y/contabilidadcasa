@@ -12,7 +12,13 @@ const vm = require("node:vm");
 // Lo que NO se cambia, y esta prueba también lo fija:
 // - Tere: la app la fecha el 25 aunque cobra el 22, A PROPÓSITO (más prudente). No «corregirlo».
 // - Local: día 1.
-// - El bonus de Javi (que no es la nómina) conserva su regla del último día hábil: el hogar no dijo nada de él.
+// - La regla de diciembre (día 15) para «bonus/bono», Hacienda, «extra» o cualquier ingreso >= 2.500 € que no sea la nómina
+//   de Javi, Tere o el local. La partida «Hacienda-otros ingresos» (3.000 €) llega sobre el 10/12 y la app la fecha el 15 a
+//   propósito (más tarde es más prudente, como en Tere). La regla del «bonus» del resto de meses no se usa en los datos del hogar.
+//
+// Fallo que esta prueba cierra (1/10/2026): la regla de diciembre se evaluaba ANTES que la de la nómina de Javi y fechaba el
+// día 15 cualquier ingreso >= 2.500 €. La nómina de Javi (3.400 € todos los meses) quedaba fechada el 15 de diciembre en vez
+// del 31: 16 días ANTES de lo real, lo contrario de prudente.
 
 const root = path.resolve(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
@@ -98,4 +104,54 @@ test("los sitios que fechan la nómina usan el último día natural y solo el bo
   const uses = app.match(/lastBusinessDayOfMonth\(/g) || [];
   assert.equal(uses.length, 2, "definición + regla del bonus");
   assert.match(app, /const day = date\.getMonth\(\) === 11 \? 15 : lastBusinessDayOfMonth\(date\)\.getDate\(\);/);
+});
+
+test("la nómina de Javi de diciembre (3.400 €) cae el 31 y no el 15, aunque supere los 2.500 € de la regla de diciembre", () => {
+  const sandbox = loadSandbox();
+  for (const amount of [3400, 2500, 2400, 6800]) {
+    const result = timing(sandbox, "Nómina Javi", "2026-12", amount);
+    assert.equal(result.day, 31, `importe ${amount}`);
+    assert.equal(result.source, "regla nómina Javi", `importe ${amount}`);
+    assert.equal(result.role, "main-payroll");
+  }
+  // El resto del año ya caía bien: se fija para que ningún reordenamiento lo estropee.
+  for (let month = 1; month <= 11; month += 1) {
+    const monthKey = `2026-${String(month).padStart(2, "0")}`;
+    const result = timing(sandbox, "Nómina Javi", monthKey, 3400);
+    assert.equal(result.day, new Date(2026, month, 0).getDate(), monthKey);
+    assert.equal(result.source, "regla nómina Javi", monthKey);
+  }
+});
+
+test("la regla de diciembre sigue fechando el día 15 lo que no es la nómina: Hacienda, extra, bonus y cualquier ingreso >= 2.500 €", () => {
+  const sandbox = loadSandbox();
+  const december = [
+    ["Hacienda-otros ingresos", 3000],
+    ["Paga extra", 2000],
+    ["Bonus", 500],
+    ["Otros ingresos", 2600],
+  ];
+  for (const [label, amount] of december) {
+    const result = timing(sandbox, label, "2026-12", amount);
+    assert.equal(result.day, 15, label);
+    assert.equal(result.source, "regla bono diciembre", label);
+  }
+  // Fuera de diciembre «Hacienda-otros ingresos» no tiene regla: cae en la estimación de relleno (día 8).
+  const october = timing(sandbox, "Hacienda-otros ingresos", "2026-10", 3000);
+  assert.equal(october.day, 8);
+  assert.equal(october.confidence, "estimated");
+});
+
+test("Tere (día 25) y el local (día 1) no cambian en diciembre aunque superen los 2.500 €", () => {
+  const sandbox = loadSandbox();
+  assert.equal(timing(sandbox, "Nómina Tere", "2026-12", 2600).day, 25);
+  assert.equal(timing(sandbox, "Local", "2026-12", 800).day, 1);
+});
+
+test("en incomeTimingForRow la regla de la nómina de Javi se evalúa antes que la de diciembre", () => {
+  const fn = block("function incomeTimingForRow", "function isEndOfMonthExpenseRow");
+  const payroll = fn.indexOf("isMainPayrollIncomeRow(row)");
+  const december = fn.indexOf("date.getMonth() === 11 && (label.includes(\"hacienda\")");
+  assert.ok(payroll > 0 && december > 0, "no se encontraron las dos reglas");
+  assert.ok(payroll < december, "la nómina de Javi debe evaluarse antes que la regla de diciembre");
 });

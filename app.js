@@ -6392,6 +6392,10 @@ function incomeTimingForRow(row, month, amount) {
   if (/(\bnomina\b|\bsalario\b).*\btere\b|\btere\b.*(\bnomina\b|\bsalario\b)/.test(label)) {
     return { day: 25, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 25, 12)), source: "regla salario Tere", label: dateWithMonthLabel(date, 25), confidence: "rule", role: "" };
   }
+  if (isMainPayrollIncomeRow(row)) {
+    const day = monthEndDate(date).getDate(); // último día natural, decisión del hogar 1/10/2026 (más prudente)
+    return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
+  }
   if (
     label.includes("bonus") ||
     label.includes("bono") ||
@@ -6399,10 +6403,6 @@ function incomeTimingForRow(row, month, amount) {
   ) {
     const day = date.getMonth() === 11 ? 15 : lastBusinessDayOfMonth(date).getDate();
     return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "" };
-  }
-  if (isMainPayrollIncomeRow(row)) {
-    const day = monthEndDate(date).getDate(); // último día natural, decisión del hogar 1/10/2026 (más prudente)
-    return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
   }
   const movementTiming = incomeTimingFromMovements(row, month, amount);
   if (movementTiming) return movementTiming;
