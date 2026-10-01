@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 283). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 284). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,20 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (284): la nómina de Javi de diciembre se fechaba el 15 en vez del 31; valores iniciales del suelo y de Hacienda decididos
+
+- **Fallo corregido (verificado, con prueba):** la regla de diciembre de `incomeTimingForRow` (día 15 para «bonus/bono», «hacienda», «extra» o **cualquier ingreso ≥ 2.500 €**) se evaluaba **antes** que la de la nómina de Javi. Con una nómina de **3.400 €
+  todos los meses** (dato del hogar), la app fechaba su nómina de diciembre el **15 en vez del 31**: 16 días antes de lo real, lo contrario de prudente, y habría deshecho la decisión de la sesión 282 sin que se notara hasta diciembre. Se intercambia el orden de
+  los dos bloques (sin líneas nuevas: `app.js` sigue en 37.530). El hogar confirmó que en diciembre Javi no cobra nada distinto en esa partida.
+- **No cambia:** Tere (día 25, a propósito) ni el local (día 1), aunque superen los 2.500 € en diciembre; la regla de diciembre para lo que no es la nómina (Hacienda, extra, bonus, ingresos ≥ 2.500 €); y la regla del «bonus» del resto de meses, que **no se usa
+  en los datos del hogar** (no hay bonus mensual). La partida que cae en la regla de diciembre es **«Hacienda-otros ingresos»** (3.000 €, llega sobre el 10/12): la app la fecha el **15** y el hogar lo mantiene (más tarde es más prudente).
+- **Decisiones del hogar registradas:** valores iniciales — suelo de liquidez **1.500 €**, mínimo operativo en CaixaBank **sin tocar (1.500 € en Ajustes)**, ambos parametrizables (el 2.500 € de los ejemplos era el valor por defecto del código y de la demo); Hoy **avisa** si
+  CaixaBank baja de su mínimo operativo aunque el total esté por encima del suelo. Quedan en `docs/OLA2_SUELO_Y_DISPONIBLE.md` §4 y §9 (S-1, S-2 y S-6 cerradas) y en `BACKLOG_UX_OLAS.md` §8.5.
+- **Pruebas:** `tests/nomina-javi-ultimo-dia-natural.test.cjs` pasa de 4 a 8 pruebas (diciembre con 3.400, 2.500, 2.400 y 6.800 €; el resto del año; Hacienda/extra/bonus/≥ 2.500 € siguen el 15; Tere y el local no cambian; orden de las reglas). Comprobadas deshaciendo el
+  cambio: fallan las dos pruebas de diciembre.
+- **Pendiente (§9 del diseño):** S-3 horizonte fijo o configurable, S-4 nombre en pantalla, S-5 (D6). Siguen sin contestar la regla de parada v2, D3–D5, la línea base cronometrada y el informe de uso.
+- **Validación:** `npm run verify` completo con salida 0 — `npm test` **4974/4974** (4970 + 4 nuevas), y después lint, tipos, accesibilidad estructural, rendimiento, build del sitio, privacidad y humo. Las puertas de navegador (e2e, axe, load-budget, mobile-overflow, Lighthouse) las ejecuta el CI del PR. `app.js` sin líneas nuevas (37.530).
 
 ## Cierre de sesión — 1 de octubre de 2026 (283): diseño del número de Hoy tras las decisiones del hogar (solo documentación)
 

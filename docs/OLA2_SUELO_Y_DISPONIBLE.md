@@ -54,7 +54,7 @@ un suelo sobre el total. Persistencia actual: `state.operatingReserve` viaja en 
 
 Reglas:
 - El «disponible» **solo** usa el suelo de liquidez. El mínimo operativo no entra en su fórmula.
-- Valor inicial propuesto del suelo de liquidez: **2.500 €**, que es lo que el hogar cree que es «el suelo». El mínimo operativo se queda como está (2.500 € hoy), de modo que **no cambia ninguna cifra existente**; si el hogar quiere otro, se
+- **Valores iniciales decididos (1/10/2026):** suelo de liquidez **1.500 €**; mínimo operativo en CaixaBank **sin tocar**, es decir, el que el hogar tiene en Ajustes (**1.500 €**). Los dos son **parametrizables**. El valor por defecto del código (`DEFAULT_AGENT_CAIXA_FLOOR`, 2.500 €) y las cifras de la demo y de los ejemplos de este documento no son los del hogar. No cambia ninguna cifra existente; si el hogar quiere otro valor del mínimo operativo, se cambia después y se ve en las pantallas de deuda y traspasos.
   cambia después y se ve en las pantallas de deuda y traspasos.
 - Si CaixaBank queda por debajo de su mínimo operativo aunque el total esté por encima del suelo, Hoy lo dice en una línea secundaria («mueve X a CaixaBank»); no cambia el «disponible».
 - **No se renombra todavía** el control visible «Reserva operativa»: muchas pruebas fijan ese texto. Se añade una nota que aclara que es el mínimo de la cuenta operativa.
@@ -80,7 +80,7 @@ Reglas, cada una con su prueba:
 ## 6. Por qué mínimo proyectado y no «hasta cobrar»: ejemplo y caso de prueba
 
 Calendario **ilustrativo e inventado** con el patrón de ingresos del hogar: local el día 1 (+800 €), Tere el 25 (+2.200 €), Javi el último día (+3.300 €); salidas el 3 (900), 8 (350), 12 (200), 15 (500), 20 (300) y 28 (400);
-suelo 2.500 €; saldo total 7.200 € al empezar el día 1. Consulta al **final** del día (el saldo ya incluye lo de ese día).
+suelo 2.500 € (ilustrativo: el del hogar es 1.500 €); saldo total 7.200 € al empezar el día 1. Consulta al **final** del día (el saldo ya incluye lo de ese día).
 
 | Consulta | Saldo total | Ventana «hasta cobrar» | **Hasta cobrar** | **Mínimo proyectado a 30 días** | Punto más bajo |
 |---|---|---|---|---|---|
@@ -123,12 +123,12 @@ Cada entrega pasa por la **regla de parada** (`BACKLOG_UX_OLAS.md` §8.4, versi�
 
 | # | Pregunta | Recomendación |
 |---|---|---|
-| S-1 | Valor inicial del suelo de liquidez y del mínimo operativo en CaixaBank | Suelo 2.500 €; mínimo operativo sin tocar (2.500 €) |
-| S-2 | Si CaixaBank baja de su mínimo operativo pero el total está por encima del suelo, ¿Hoy lo avisa? | Sí, en una línea secundaria |
+| S-1 | Valor inicial del suelo de liquidez y del mínimo operativo en CaixaBank | ✅ **Decidido 1/10/2026:** suelo de liquidez 1.500 €; mínimo operativo sin tocar (1.500 € en Ajustes); ambos parametrizables |
+| S-2 | Si CaixaBank baja de su mínimo operativo pero el total está por encima del suelo, ¿Hoy lo avisa? | ✅ **Decidido 1/10/2026: sí**, en una línea secundaria |
 | S-3 | ¿Horizonte fijo de 30 días o configurable? | Fijo en la primera versión |
 | S-4 | ¿Cómo se llama en pantalla? («Disponible», «Podéis gastar», otro) | «Disponible», con el suelo visible al lado |
 | S-5 | Con fechas de relleno (D6): ¿dos lecturas con el motivo, o esconder la cifra? | Dos lecturas con el motivo |
-| S-6 | ¿El bonus de Javi llega con la nómina? (hoy conserva «último día hábil») | Decirlo y alinearlo |
+| S-6 | ¿El bonus de Javi llega con la nómina? (hoy conserva «último día hábil») | ✅ **Resuelto 1/10/2026: no hay bonus mensual.** La partida que cae en la regla de diciembre es «Hacienda-otros ingresos» (3.000 €, llega sobre el 10/12); la app la fecha el **15 a propósito** (más tarde es más prudente) y el hogar lo mantiene. La regla del «bonus» del resto de meses no se usa en sus datos y no se toca |
 
 ## 10. Riesgos
 
