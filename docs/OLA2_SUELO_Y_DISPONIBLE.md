@@ -112,7 +112,7 @@ Estos números son el **caso de prueba de aceptación** del módulo (§8, S3), j
 | Entrega | Contenido | Hecho cuando | Riesgo |
 |---|---|---|---|
 | **S0** | Este documento | Fusionado | — |
-| **S1** | Liberar líneas de `app.js`: extraer `canonicalDailyInput` (~110 líneas, acopladas a `state` y a helpers de fecha) a un módulo | Techo de `app.js` reducido; `npm run verify` y los datasets dorados idénticos; `opt6-…` y `f1-…` ajustados sin relajar su intención | Medio |
+| **S1** (✅ aprobada el 1/10/2026; **primera entrega de la próxima sesión**) | Liberar líneas de `app.js`: extraer `canonicalDailyInput` (~110 líneas, acopladas a `state` y a helpers de fecha) a un módulo | Techo de `app.js` reducido; `npm run verify` y los datasets dorados idénticos; `opt6-…` y `f1-…` ajustados sin relajar su intención | Medio |
 | **S2** | Parámetro «suelo de liquidez»: dato del hogar persistido y sincronizado como `operatingReserve`, control en Ajustes con ayuda, nota sobre el mínimo operativo | Prueba equivalente a «V6-1»; **ninguna cifra existente cambia**; techo de `app.js` respetado | Bajo |
 | **S3** | `canonical-home-verdict.js` v2 (esta especificación) **y** su consumidor en Hoy, **en un solo PR** (guardián ARQ-3). Medición previa con datos reales del hogar (`estimatedShare`) y `test:load-budget` antes y después | Casos del §5 y §6 como pruebas; veredicto visible sin desplazarse en 390×844 (< 700 px); axe y `mobile-overflow` en verde | Medio (pantalla más vista) |
 | **S4** | Frescura del dato pegada a la cifra (saldos a…, último movimiento hace N días) | Prueba de navegador | Bajo |
@@ -125,9 +125,9 @@ Cada entrega pasa por la **regla de parada** (`BACKLOG_UX_OLAS.md` §8.4, versi�
 |---|---|---|
 | S-1 | Valor inicial del suelo de liquidez y del mínimo operativo en CaixaBank | ✅ **Decidido 1/10/2026:** suelo de liquidez 1.500 €; mínimo operativo sin tocar (1.500 € en Ajustes); ambos parametrizables |
 | S-2 | Si CaixaBank baja de su mínimo operativo pero el total está por encima del suelo, ¿Hoy lo avisa? | ✅ **Decidido 1/10/2026: sí**, en una línea secundaria |
-| S-3 | ¿Horizonte fijo de 30 días o configurable? | Fijo en la primera versión |
-| S-4 | ¿Cómo se llama en pantalla? («Disponible», «Podéis gastar», otro) | «Disponible», con el suelo visible al lado |
-| S-5 | Con fechas de relleno (D6): ¿dos lecturas con el motivo, o esconder la cifra? | Dos lecturas con el motivo |
+| S-3 | ¿Horizonte fijo de 30 días o configurable? | ✅ **Decidido 1/10/2026: fijo en la primera versión** (recomendación aceptada) |
+| S-4 | ¿Cómo se llama en pantalla? («Disponible», «Podéis gastar», otro) | ✅ **Decidido 1/10/2026: «Disponible»**, con el suelo visible al lado (recomendación aceptada) |
+| S-5 | Con fechas de relleno (D6): ¿dos lecturas con el motivo, o esconder la cifra? | ✅ **Decidido 1/10/2026: dos lecturas con el motivo** (recomendación aceptada). Es la respuesta a D6 de `BACKLOG_UX_OLAS.md` |
 | S-6 | ¿El bonus de Javi llega con la nómina? (hoy conserva «último día hábil») | ✅ **Resuelto 1/10/2026: no hay bonus mensual.** La partida que cae en la regla de diciembre es «Hacienda-otros ingresos» (3.000 €, llega sobre el 10/12); la app la fecha el **15 a propósito** (más tarde es más prudente) y el hogar lo mantiene. La regla del «bonus» del resto de meses no se usa en sus datos y no se toca |
 
 ## 10. Riesgos

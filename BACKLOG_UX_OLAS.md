@@ -5,6 +5,8 @@ deuda de rendimiento y navegación que dejó. Autocontenido a propósito: quien 
 decidir qué hacer primero en 10 minutos. El detalle histórico de cada cosa vive en `PROJECT_STATE.md` (sesiones 268–278) y en los
 documentos de diseño enlazados.
 
+**Actualizado el 1 de octubre de 2026 (sesión 285, cierre de una sesión de decisiones del hogar y de diseño).** Estado en una línea: la Ola 2 tiene **diseño cerrado y decisiones tomadas** (§8.5); no hay código nuevo de Hoy; la **siguiente entrega es S1** (§7).
+
 Su lugar en el mapa de backlogs: `BACKLOG_INDICE.md` (eje de UX del backlog vigente `BACKLOG_CONTABILIDADCASA_3_0.md`, no lo sustituye).
 
 Origen del plan: análisis de producto pedido por el hogar (UX/UI, experiencia de uso y funcionalidades, **sin foco tecnológico**),
@@ -13,12 +15,11 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 
 ## 0. Cómo empezar la próxima sesión (10 minutos)
 
-1. Leer este documento entero y, de `PROJECT_STATE.md`, solo las entradas **278, 277 y 276** (arriba del todo).
+1. Leer este documento entero y, de `PROJECT_STATE.md`, solo las entradas **285, 284 y 283** (arriba del todo) y, del diseño, `docs/OLA2_SUELO_Y_DISPONIBLE.md`.
 2. `git status` y `git log --oneline -5`; comprobar que la rama de trabajo parte de `origin/main` (§6, «reiniciar la rama»).
-3. **No construir nada de la Ola 2 sin las decisiones del hogar** (§2, §8.3). Si el hogar ya contestó, pasar a §2.2. **Antes de cualquier otra cosa, mirar §8 (sesión de 20 minutos con línea base) y §2.3
-   (lo que enseñó construir O2-1)**: corrigen el diseño de la sesión 278 y el módulo de O2-1 ya existe, aparcado en una rama.
+3. **Las decisiones esenciales de la Ola 2 ya están tomadas** (§8.5). Lo siguiente es **S1** (§7). Antes de tocar nada de Hoy, leer §2.3 (lo que enseñó construir O2-1) y §8.5: corrigen el diseño de la sesión 278 y el módulo de O2-1 está aparcado y desfasado.
 4. Si el hogar aún no ha contestado, la única cosa útil sin bloqueo es **§4 (deuda técnica)** y, si el informe de uso existe, **§3**.
-5. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, commit/push, PR en borrador, esperar CI, fusionar en verde (§6).
+5. Cuando haya datos reales: ejecutar el script del §8.6 **en el navegador donde el hogar usa la app** y mirar `porcentajeEstimado` antes de S3. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, commit/push, PR en borrador, esperar CI, fusionar en verde (§6).
 
 ## 1. Qué está hecho (no rehacer)
 
@@ -32,13 +33,17 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 | 1 · Entrega 4 | Catálogo del buscador coherente con el menú + guardián; el menú resalta «Plan» y «Escenarios» en sus pantallas hermanas (`data-nav-family`) | #412, #413 | 275–276 |
 | Rendimiento | «Carga honesta»: pantallas ocultas de partida, cabecera en su estado final (CLS 0,147 → ~0), LCP de Lighthouse a aviso, puerta nueva `test:load-budget` | #414 | 277 |
 | 2 · Diseño | `docs/OLA2_HOY_Y_CONSULTA.md` (diagnóstico de Hoy, veredicto, modo consulta) | #415 | 278 |
+| 2 · O2-1 (aparcado) | Módulo `canonical-home-verdict.js` con 24 pruebas, **sin fusionar** (guardián ARQ-3) y **desfasado** por las decisiones del 1/10 | [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416) (borrador) | 280 |
+| 2 · Hallazgos y decisiones | Hallazgos de construir y ejecutar O2-1 (§2.3) y hoja de sesión con el hogar (§8); registro de decisiones (§8.5) | #417, #418 | 280–281 |
+| 2 · Fechas de ingresos | La nómina de Javi se fecha el **último día natural** (antes, el hábil); y la de diciembre el 31, no el 15 (la regla de diciembre la adelantaba por superar 2.500 €). Prueba `tests/nomina-javi-ultimo-dia-natural.test.cjs` | #419, #421 | 282, 284 |
+| 2 · Diseño del número de Hoy | `docs/OLA2_SUELO_Y_DISPONIBLE.md`: suelo de liquidez (nuevo parámetro, sobre el total) y «disponible» = mínimo proyectado a 30 días; entregas S1–S4 | #420 | 283 |
 
 **Decisiones del hogar vigentes** (30/09/2026 salvo indicación): camino B; retirar pantallas = **«redirigir sin borrar código»**; «avanza sin el
 informe, solo agrupando» (no retirar sin informe y OK); Escenarios con **cuatro** destinos; los pasos del flujo de Escenarios resaltan
 «Escenarios» y dentro de Presupuesto/Esta semana/Partidas el menú marca «Plan»; rendimiento **opción 1**; Registrar se rediseña **después de la
-Ola 1**. Ver también `docs/OPT22_MODELO_HOGAR.md` (29/08/2026): **no construir control de acceso por persona** sobre el modelo actual.
+Ola 1**. Ver también `docs/OPT22_MODELO_HOGAR.md` (29/08/2026): **no construir control de acceso por persona** sobre el modelo actual. **Decisiones del 1/10/2026 (número de Hoy, suelo, cobros, fechas de ingresos): §8.5.**
 
-## 2. Ola 2 — Hoy con veredicto y modo consulta (BLOQUEADA por decisiones del hogar)
+## 2. Ola 2 — Hoy con veredicto y modo consulta (diseño cerrado el 1/10/2026; siguiente entrega: S1)
 
 Diseño completo y datos en `docs/OLA2_HOY_Y_CONSULTA.md`. **El número de Hoy se rediseñó el 1/10/2026 tras las decisiones del hogar: vigente `docs/OLA2_SUELO_Y_DISPONIBLE.md` (sustituye la definición A del §3).** Resumen del diagnóstico (dataset demo, no datos reales): Hoy da **ocho cifras** de «cuánto me
 sobra» con cuatro problemas verificados (duplicado «Liquidez hoy» = «Caja disponible»; negativo −1.090 € recortado a «0,00 € por encima»; «Reserva protegida:
@@ -55,7 +60,7 @@ fuera de umbral» frente a «Próximo riesgo: sin déficit»; el margen «hasta 
 | D4 | Modo consulta | **Solo nivel 1** (preferencia de este dispositivo; **no protege**). El nivel 2 (`viewer` real) contradice OPT-22 |
 | D5 | ¿Se pliega el detalle de Hoy por defecto en modo consulta? | Sí (Hoy mide 11.400 px en móvil) |
 
-### 2.2 Entregas (empezar por la 1 cuando D1 y D2 estén contestadas)
+### 2.2 Entregas (histórico de la sesión 278; **las vigentes son S1–S4 de `docs/OLA2_SUELO_Y_DISPONIBLE.md` §8**: S3 = O2-1 rehecho + O2-2 en un solo PR, S4 = O2-3)
 
 | Entrega | Contenido | Hecho cuando | Riesgo |
 |---|---|---|---|
@@ -184,9 +189,10 @@ fusionada; sin esto el hook de parada protesta por commits sin subir). Un PR de 
 
 ## 7. Orden recomendado para las próximas sesiones
 
-0. **Primero la sesión del §8** (línea base + informe de uso + decisiones D1–D6): es lo único que mueve el plan y no cuesta una línea de código.
-1. **Si el hogar contesta D1–D6:** O2-1 (ya construido, rama `claude/o2-1-home-verdict`) + O2-2 **en un solo PR** por el guardián ARQ-3 → O2-3 (medir siempre `test:load-budget` antes y después) → O2-4.
-   Antes de O2-2, comprobar con los datos reales del hogar, en local y sin subirlos al repositorio público, que `breakdown.estimatedShare` es bajo: si es alto, el veredicto no es fiable (§2.3-1).
+0. **S1** (`docs/OLA2_SUELO_Y_DISPONIBLE.md` §8): extraer `canonicalDailyInput` (~110 líneas, acopladas a `state` y a helpers de fecha) de `app.js` a un módulo. Hecho cuando el techo de `app.js` baja, `npm run verify` y los datasets dorados salen idénticos, y
+   `opt6-mover-cobertura-a-ajustes` y `f1-contrato-ejecutivo-deuda` se ajustan **sin relajar su intención**. Registrar el módulo nuevo en `index.html`, `service-worker.js` y `tools/build-public-site.mjs` (como `canonical-decisions.js`) y comprobar el orden de carga.
+1. **S2** (parámetro «suelo de liquidez», persistido como `operatingReserve`; ninguna cifra existente cambia) → **medir con datos reales** (script del §8.6) → **S3** (módulo v2 **y** consumidor en Hoy, en un solo PR por ARQ-3; medir `test:load-budget` antes y después) → **S4** (frescura).
+   Si `porcentajeEstimado` es alto con los datos reales, el «disponible» no es fiable (§2.3-1): se muestran las dos lecturas con el motivo (S-5) y se valora si compensa seguir.
 2. **Si el hogar trae el informe de uso:** entrega 5 de la Ola 1, una pantalla cada vez, con su OK.
 3. **Sin nada de los dos:** UX-N2 y UX-N3 (baratos), o UX-P2 si el hogar quiere que el CI sea más exigente. **No** empezar UX-P1/UX-P5: no compensan con los iPhone del hogar.
 4. Cierre de sesión: actualizar `PROJECT_STATE.md` y **este documento** (tabla de §1 y las decisiones de §2.1).
@@ -221,13 +227,13 @@ prueba que nadie la use. Con eso se puede abrir la entrega 5 de la Ola 1, pantal
 
 | # | Pregunta concreta | Recomendación | Por qué importa |
 |---|---|---|---|
-| D1 | Es día 22 y abrís Hoy: ¿qué número esperáis ver? ¿Caja de CaixaBank − suelo − salidas previstas hasta cobrar (definición A), lo que queda del presupuesto del mes, otra? **Que conteste quien consulta** | A | Define el módulo; si quien consulta espera otra cosa, se ajusta una sola función |
-| D1b | ¿Cada cuántos días se registran o importan movimientos? | — | Sin movimientos recientes y conciliados las fechas de las salidas son de relleno y la cifra cambia hasta 4.730 € en la demo (§2.3-1) |
-| D2 | ¿Mediolanum cuenta como gastable? | No: «ahorro aparte» | Cambia el margen |
+| D1 | Es día 22 y abrís Hoy: ¿qué número esperáis ver? ¿Caja de CaixaBank − suelo − salidas previstas hasta cobrar (definición A), lo que queda del presupuesto del mes, otra? **Que conteste quien consulta** | A | Define el módulo; si quien consulta espera otra cosa, se ajusta una sola función · ✅ **Contestada el 1/10/2026 (por quien opera): ver §8.5** |
+| D1b | ¿Cada cuántos días se registran o importan movimientos? | — | Sin movimientos recientes y conciliados las fechas de las salidas son de relleno y la cifra cambia hasta 4.730 € en la demo (§2.3-1) · ✅ **Contestada: extractos 3 veces por semana y registro manual casi diario (§8.5)** |
+| D2 | ¿Mediolanum cuenta como gastable? | No: «ahorro aparte» | Cambia el margen · ✅ **Contestada: sí cuenta (§8.5)** |
 | D3 | «Carta del mes»: ¿qué esperáis? | Párrafo llano con cifras, **solo si** se define | Sin definir no se construye |
 | D4 | Modo consulta: ¿solo nivel 1, sabiendo que no protege? | Sí | El nivel 2 contradice `docs/OPT22_MODELO_HOGAR.md` |
 | D5 | En modo consulta, ¿se pliega el detalle de Hoy por defecto? | Sí | Hoy mide ~11.400 px en móvil |
-| D6 | Si las fechas son de relleno, ¿el veredicto enseña las dos lecturas con el motivo en una línea, o esconde la cifra? | Enseñar las dos con el motivo | Esconderla repite el «—» sin explicación; darla como cierta engaña |
+| D6 | Si las fechas son de relleno, ¿el veredicto enseña las dos lecturas con el motivo en una línea, o esconde la cifra? | Enseñar las dos con el motivo | Esconderla repite el «—» sin explicación; darla como cierta engaña · ✅ **Contestada el 1/10/2026: dos lecturas con el motivo (S-5)** |
 
 ### 8.4 Regla de parada del plan de UX — **propuesta, no decisión**
 
@@ -259,4 +265,76 @@ consulta usa Hoy como producto entero») queda por tanto **sin contrastar con qu
 | **Valores iniciales** | **Suelo de liquidez 1.500 €; mínimo operativo en CaixaBank sin tocar (1.500 € en Ajustes); ambos parametrizables** | El 2.500 € que aparecía en mis ejemplos es el valor por defecto del código y de la demo, no el del hogar |
 | **Aviso de CaixaBank** | Sí: Hoy avisa si CaixaBank baja de su mínimo operativo aunque el total esté por encima del suelo | Línea secundaria; no cambia el «disponible» |
 | **«Bonus» y Hacienda** | No hay bonus mensual. «Hacienda-otros ingresos» (3.000 €) llega sobre el **10/12**; la app la fecha el **15 de diciembre**, y el hogar **lo mantiene** (más tarde es más prudente, como Tere) | Sin cambio de código para esta partida. Corrección de la nómina de Javi en diciembre: ver su fila |
-| D3, D4, D5, D6 | Sin contestar | — |
+| **Entrega S1** | **Aprobada (1/10/2026)** | Primera entrega de la próxima sesión; no se empezó en esta: es una refactorización con riesgo y no se deja a medias al cerrar |
+| **S-3 · horizonte** | **Fijo, 30 días, en la primera versión** | Recomendación aceptada |
+| **S-4 · nombre** | **«Disponible»**, con el suelo visible al lado | Recomendación aceptada |
+| **S-5 / D6 · fechas de relleno** | **Dos lecturas con el motivo** (prudente / si los ingresos van primero) | Recomendación aceptada |
+| D3, D4, D5 | Sin contestar | — |
+
+> **Nota de lectura:** el hogar escribió «s1, s3, s5, s5»; lo leí como la entrega S1 y las decisiones S-3, S-4 y S-5 con mis recomendaciones (el segundo «s5» sería S-4). Si no era eso, corregir esta fila.
+
+### 8.6 Script de medición con los datos reales (para ejecutar antes de S3)
+
+Abre la app **en el navegador donde el hogar la usa** (es donde viven sus datos), pulsa F12, ve a «Consola» y pega esto. **Es de solo lectura**: no guarda ni envía nada (se comprobó que el estado no cambia). Si Chrome no deja pegar, pide escribir `allow pasting`. No se puede ejecutar en el móvil. `SUELO` es el suelo de liquidez (1.500 € decididos); `DIAS` el horizonte (30 decididos).
+
+```js
+(() => {
+  // Solo lectura: no guarda ni cambia nada y no envía nada a ningún sitio.
+  const SUELO = 1500; // suelo de liquidez (total de las dos cuentas); cámbialo si usas otro
+  const DIAS = 30;    // horizonte
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const hoy = state?.balanceDate || defaultBalanceDate();
+  const saldos = accountBalancesFromState(); // { caixa, mediolanum, total }
+  const fin = new Date(new Date(`${hoy}T12:00:00Z`).getTime() + DIAS * 86400000).toISOString().slice(0, 10);
+  const eventos = (canonicalDailyEngineRuns.active?.rows || []).flatMap((fila) => fila.events || [])
+    .filter((e) => e.date > hoy && e.date <= fin && e.kind !== "transfer") // los traspasos entre cuentas no cambian el total
+    .map((e) => ({ ...e, delta: e.kind === "income" ? Number(e.amount) : -Number(e.amount) }));
+  const fechas = [...new Set(eventos.map((e) => e.date))].sort();
+  const recorrer = (salidasPrimero) => {
+    let acumulado = 0, minimo = 0, cuando = "—";
+    for (const fecha of fechas) {
+      const delDia = eventos.filter((e) => e.date === fecha);
+      const orden = [...delDia.filter((e) => (e.delta < 0) === salidasPrimero), ...delDia.filter((e) => (e.delta < 0) !== salidasPrimero)];
+      for (const e of orden) { acumulado += e.delta; if (acumulado < minimo) { minimo = acumulado; cuando = `${fecha} · ${e.label}`; } }
+    }
+    return { minimo: r2(minimo), cuando };
+  };
+  const prudente = recorrer(true);   // dentro de un día, primero las salidas
+  const optimista = recorrer(false); // dentro de un día, primero los ingresos
+  const salidas = eventos.filter((e) => e.kind === "outflow");
+  const total = r2(salidas.reduce((t, e) => t + Number(e.amount), 0));
+  const por = (nivel) => r2(salidas.filter((e) => e.confidence === nivel).reduce((t, e) => t + Number(e.amount), 0));
+  console.table(eventos.slice(0, 40).map((e) => ({ fecha: e.date, concepto: e.label, tipo: e.kind, importe: e.amount, fiabilidad: e.confidence })));
+  console.log(JSON.stringify({
+    hoy, hasta: fin, saldoTotal: saldos.total, saldoCaixaBank: saldos.caixa, saldoMediolanum: saldos.mediolanum, sueloDeLiquidez: SUELO,
+    disponible_prudente: r2(saldos.total - SUELO + prudente.minimo), puntoMasBajo_prudente: prudente.cuando,
+    disponible_siIngresosPrimero: r2(saldos.total - SUELO + optimista.minimo),
+    elSignoDependeDelOrden: (saldos.total - SUELO + prudente.minimo < 0) !== (saldos.total - SUELO + optimista.minimo < 0),
+    salidasEnElHorizonte: total, importeObservado: por("observed"), importePorRegla: por("rule"), importeEstimado: por("estimated"),
+    porcentajeEstimado: total ? Math.round((por("estimated") / total) * 100) + " %" : "sin salidas en el horizonte",
+  }, null, 2));
+})();
+```
+
+Cómo leerlo:
+- **`porcentajeEstimado`** es lo que más importa: el porcentaje de las salidas del horizonte cuya fecha es de relleno (día 8). Alto = el «disponible» no es fiable (§2.3-1); bajo = lo es.
+- **`disponible_prudente`** (dentro de un día, primero las salidas) frente a **`disponible_siIngresosPrimero`**: si el signo cambia (`elSignoDependeDelOrden`) o la diferencia es grande, la cifra depende de un supuesto de calendario y la pantalla debe mostrar las dos lecturas (S-5).
+- En el dataset demo da 3.580 € frente a 8.310 € y `porcentajeEstimado` del 100 %: cifras de la demo, **no del hogar**.
+- No pegar en el repositorio público los resultados con importes reales.
+
+## 9. Pendiente al cierre de la sesión 285 (1 de octubre de 2026)
+
+| Qué | Estado | Quién |
+|---|---|---|
+| **S1** liberar líneas de `app.js` | Aprobada; sin empezar | Siguiente sesión de código |
+| S2, S3, S4 | Diseñadas (`docs/OLA2_SUELO_Y_DISPONIBLE.md` §8); dependen de S1 | — |
+| Medir `porcentajeEstimado` con datos reales (§8.6) | Sin hacer | El hogar, en su navegador |
+| **Regla de parada del plan de UX** (§8.4, versión 2 con umbral numérico, tareas exentas y reapertura) | **Sin contestar** | El hogar |
+| Línea base cronometrada (§8.1) e informe de uso por dispositivo (§8.2) | Sin hacer; el informe desbloquea la entrega 5 de la Ola 1 | El hogar |
+| D3 (carta del mes), D4 (modo consulta nivel 1), D5 (pliegue del detalle en modo consulta) | Sin contestar; no bloquean S1–S4 | El hogar |
+| Cierre de mes: recomendación de mes natural, cierre entre el día 1 y el 3, saldo del último día (§8.5) | **Recomendación sin confirmar**; falta verificar en el código que el cierre use el saldo de fin de mes | El hogar / código |
+| Suelo sobre el total: mínimo operativo en CaixaBank y suelo de liquidez | Valores decididos (1.500 € los dos); **la entrega S2 los crea** | Código (S2) |
+| PR #416 (módulo aparcado y desfasado) | Abierto en borrador; **no fusionar** hasta que S3 lo reescriba y lo conecte | — |
+| Revisión mensual de Nielsen (`OPT-21`) | La última fue el 16/09/2026: **vence el 16/10/2026** | Quien abra esa sesión |
+| `OPT-10`–`OPT-13` | Aplazadas al 23/10/2026 y a la conversación de uso real del hogar | El hogar |
+| Premisa «quien consulta usa Hoy como producto entero» | **Sin contrastar** (todo lo contestó quien opera); mitigación: que quien solo consulta pruebe S3 dos minutos | El hogar |
