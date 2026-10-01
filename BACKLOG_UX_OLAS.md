@@ -49,8 +49,8 @@ fuera de umbral» frente a «Próximo riesgo: sin déficit»; el margen «hasta 
 
 | # | Pregunta al hogar | Recomendación |
 |---|---|---|
-| D1 | ¿Qué es «el número»? | Caja de CaixaBank − suelo de reserva − **salidas ya previstas hasta el próximo ingreso** (definición A del diseño) |
-| D2 | ¿Mediolanum cuenta como gastable? | No: «ahorro aparte» en una línea |
+| D1 | ¿Qué es «el número»? | Caja de CaixaBank − suelo de reserva − **salidas ya previstas hasta el próximo ingreso** (definición A del diseño). **Respondida el 1/10/2026 con otra definición: ver §8.5** |
+| D2 | ¿Mediolanum cuenta como gastable? | No: «ahorro aparte» en una línea. **Respondida el 1/10/2026: sí cuenta (§8.5)** |
 | D3 | «Carta del mes»: ¿qué esperan? | Un párrafo llano con las cifras del mes, sin IA generativa; **solo si** se define, y después del veredicto |
 | D4 | Modo consulta | **Solo nivel 1** (preferencia de este dispositivo; **no protege**). El nivel 2 (`viewer` real) contradice OPT-22 |
 | D5 | ¿Se pliega el detalle de Hoy por defecto en modo consulta? | Sí (Hoy mide 11.400 px en móvil) |
@@ -59,7 +59,7 @@ fuera de umbral» frente a «Próximo riesgo: sin déficit»; el margen «hasta 
 
 | Entrega | Contenido | Hecho cuando | Riesgo |
 |---|---|---|---|
-| **O2-1** | Módulo `canonical-home-verdict.js`: cálculo puro de la cascada y estados honestos (negativo dicho, dato que falta nombrado). **Sin cambiar la pantalla** | 🟡 **Construido y aparcado (1/10/2026)** en la rama `claude/o2-1-home-verdict` (PR [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), no fusionar): 24 pruebas, `app.js` sin tocar. Los datasets dorados **no sirven** (§2.3-4); se probó con fixtures sintéticos y con la app real. Líneas medidas: **~20–25 puras, no 60–100** (§2.3-5). No entra en `main` hasta O2-2 por el guardián ARQ-3 (§2.3-6) | Bajo |
+| **O2-1** | Módulo `canonical-home-verdict.js`: cálculo puro de la cascada y estados honestos (negativo dicho, dato que falta nombrado). **Sin cambiar la pantalla** | 🟡 **Construido y aparcado (1/10/2026)** en la rama `claude/o2-1-home-verdict` (PR [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), no fusionar): 24 pruebas, `app.js` sin tocar. Los datasets dorados **no sirven** (§2.3-4); se probó con fixtures sintéticos y con la app real. Líneas medidas: **~20–25 puras, no 60–100** (§2.3-5). No entra en `main` hasta O2-2 por el guardián ARQ-3 (§2.3-6). **Desfasado por las decisiones del 1/10/2026 (§8.5): suma las dos cuentas y el suelo cambia de ámbito; hay que rehacerlo** | Bajo |
 | **O2-2** | La tarjeta oscura «Hasta el siguiente ingreso» pasa a ser el veredicto (misma posición); se quita el duplicado Liquidez/Caja; el margen sobre la reserva se muestra **con signo**; «Próximo riesgo» dice fecha y base | `verify` verde + e2e + axe + `mobile-overflow`; un test que fije que el duplicado no vuelve | Medio: es la pantalla más vista |
 | **O2-3** | Frescura del dato pegada a la cifra («saldos a … · último movimiento hace N días · guardado hh:mm») | Prueba de navegador: **veredicto < 700 px en 390×844 sin desplazarse** (hoy ~1.246 px) | Bajo |
 | **O2-4** | Modo consulta nivel 1 (interruptor por dispositivo en `localStorage`, oculta escrituras, simplifica menú, reutiliza «Modo reunión» y «Vista por titular») | Interruptor visible con la leyenda «comodidad, no protección»; guardián de que ninguna entrada principal desaparece | Medio |
@@ -96,6 +96,14 @@ Se construyó `canonical-home-verdict.js` (módulo puro, 24 pruebas, sin cablear
    rama **`claude/o2-1-home-verdict`** (PR en borrador [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), aparcado, CI rojo a propósito) y se fusionan **junto con O2-2**,
    cuando haya pantalla que lo consuma y el hogar haya contestado D1/D1b/D6 (§8.3), porque esas respuestas pueden cambiar su API. Al retomar O2-2: partir de esa rama (o `git cherry-pick 1689bde`),
    cablear el consumidor y comprobar que el guardián pasa sin excepciones.
+7. **Con tres ingresos de distinto tamaño, «hasta el próximo cobro» da una cifra que sube y baja con el calendario, no con el dinero.** Con las fechas del hogar (local el 1, Tere el 25 en la app,
+   Javi el último día) la ventana mide ~1 día tras cobrar Javi, ~24 tras el local y ~6 tras Tere: justo al entrar el local (~800 €) la ventana salta de 1 a 24 días y «lo disponible» **baja el día que entra
+   dinero**. Alternativa propuesta (sin construir ni decidir): **mínimo proyectado a 30 días**, es decir saldo total − suelo + el punto más bajo del acumulado de ingresos y salidas fechados en ese horizonte.
+   Es lo que se puede gastar hoy sin que el total baje del suelo en ningún momento del mes; es continua, admite ingresos de cualquier tamaño y reutiliza los eventos del motor diario. Sigue dependiendo de la
+   fecha de las salidas (§2.3-1), pero ya no de que una fecha caiga a un lado u otro de un ingreso.
+8. **El suelo sobre el total cambia el papel de los traspasos.** Hoy el traspaso a Mediolanum existe para dejar CaixaBank en suelo + salidas del mes siguiente (`transferForMonth`). Con el suelo sobre el total,
+   mover dinero entre cuentas no cambia el total: la decisión de «cuánto debe quedar en CaixaBank» pasa a ser otro parámetro (mínimo operativo de la cuenta) distinto del suelo. Diseñar **dos parámetros**
+   (suelo total y mínimo operativo en CaixaBank) antes de tocar ninguna de las ~11 piezas que hoy leen el suelo.
 
 ## 3. Ola 1, entrega 5 — retiradas (BLOQUEADA por el informe de uso y el OK del hogar)
 
@@ -228,3 +236,22 @@ No se aplica hasta que el hogar la acepte.
 2. Se mide antes y después **con las dos personas**, no solo con pruebas automáticas.
 3. Si la línea base ya cumple el objetivo, o dos entregas seguidas no mueven su métrica, **se detiene el plan de UX** y el esfuerzo pasa a lo que el hogar pida.
 4. Sin informe de uso y sin línea base no se abre una ola nueva (Ola 3 y Ola 4 incluidas).
+
+La versión 2 de esta regla (umbral numérico, tareas exentas, reapertura y revisión mensual de Nielsen como punto de control) se propuso el 1/10/2026 y **sigue sin contestar**.
+
+### 8.5 Registro de decisiones del hogar — 1 de octubre de 2026
+
+Respuestas dadas **por quien opera la app**. **Decisión del hogar: el paso 1 se consulta con quien opera, no con otra persona.** La premisa de este plan («una persona opera y otra solo consulta, y la que
+consulta usa Hoy como producto entero») queda por tanto **sin contrastar con quien solo consulta**: riesgo asumido. Mitigación barata: cuando exista O2-2, quien solo consulta lo prueba 2 minutos.
+
+| Tema | Decisión | Efecto |
+|---|---|---|
+| **D1 · el número** | **(CaixaBank + Mediolanum) − suelo − compromisos conocidos hasta el próximo cobro** | Sustituye a la definición A del §2.1 (que usaba solo CaixaBank). El módulo `canonical-home-verdict.js` (rama `claude/o2-1-home-verdict`) está **desfasado** y hay que rehacerlo |
+| **D2 · Mediolanum** | Sí cuenta: «se puede disponer» | Contradice mi recomendación (ahorro aparte); es la definición del hogar y coincide con «Liquidez hoy» |
+| **D1b · frecuencia de datos** | Extractos importados **3 veces por semana** una vez la app esté «cerrada al 100 %»; el día a día se registrará **a mano, casi a diario** | Registrar a mano guarda un importe por partida y mes **sin fecha** (`handleRegistrarMesAddSubmit`): no mejora las fechas de las salidas. Solo los extractos las mejoran, y solo para partidas del mismo mes que casen por etiqueta e importe |
+| **Qué es «cobrar»** | Las dos nóminas **y el ingreso del local** | Con el calendario del hogar (1 · 22/25 · último día) la ventana «hasta cobrar» mide ~1, ~24 y ~6 días según el momento del mes (ver §2.3-7) |
+| **Tere cobra el 22; la app usa el 25** | **No cambiar, a propósito: es más prudente** | No «corregirlo»: `incomeTimingForRow` (`app.js`) fecha «Nómina/Salario Tere» el día 25 por prudencia |
+| **Javi cobra el último día natural, nunca el día 1** | La app usa el último día **hábil** (`lastBusinessDayOfMonth`): fecha la nómina uno o dos días **antes** de lo real en 4 de 12 meses (oct 2026: sáb 31 → vie 30; ene, feb y jul 2027) | **Pendiente de confirmar** si se pasa a día natural (más prudente). Toca `mainPayrollDate` (7 usos) y la fecha del traspaso a Mediolanum; correr los datasets dorados |
+| **El suelo** | **Es sobre el total de las dos cuentas y debe poder parametrizarse** | **Cambio de modelo transversal, no de Hoy:** hoy es la reserva **de CaixaBank** y la leen ~63 líneas de `app.js` y 10 ficheros (`canonical-daily-engine`, `canonical-decisions`, `canonical-savings-agent` y seis vistas), y los datasets dorados la definen sobre la cuenta operativa (`reservaOperativaCuentaOperativa: 3000`). Requiere diseño propio antes de construir (ver §2.3-8) |
+| **Cierre de mes** | **Recomendación (no confirmada):** mes natural; cierre contable entre el día 1 y el 3 del mes siguiente, con el extracto que cubra el último día y el saldo **del último día del mes**, no el de hoy; la decisión de asignación (gastar/ahorrar/invertir) al cobrar Javi | La app ya trabaja por mes natural (`monthKey` AAAA-MM); un ciclo por nómina no cuadra con dos nóminas y un ingreso el día 1. Comprobar que el cierre usa el saldo de fin de mes (**sin verificar en el código**) |
+| D3, D4, D5, D6 | Sin contestar | — |
