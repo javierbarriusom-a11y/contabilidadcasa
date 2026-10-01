@@ -36,7 +36,10 @@ const path = require("node:path");
 // renderE14bPanel() (estado real de app.js, no extraíble) y una entrada nueva en decisionInboxItems()
 // — la lógica pura (resolución de cuenta→contrato, construcción de la oferta) ya se movió entera a
 // canonical-e14-debt-adapter.js antes de pedir esto. app.js quedó en 37.513 tras esta fase.
-const CEILING_LINES = 37530;
+// → 37.495 (S1 de la Ola 2, 1 de octubre de 2026, sesión 286): `canonicalDailyInput` y sus tres
+// ayudantes (166 líneas) se extraen a canonical-daily-input.js, sin cambio de comportamiento, para
+// hacer sitio al parámetro «suelo de liquidez» (S2) y al número «Disponible» (S3). app.js quedó en 37.365.
+const CEILING_LINES = 37495;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

@@ -35,6 +35,7 @@ const files = [
   "canonical-scenario-schema.js",
   "canonical-scenario-engine.js",
   "canonical-daily-engine.js",
+  "canonical-daily-input.js",
   "canonical-debt-contracts.js",
   "canonical-e14-debt-adapter.js",
   "legacy-debt-roadmap-engine.js",
