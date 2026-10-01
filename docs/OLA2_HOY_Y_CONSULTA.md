@@ -1,5 +1,9 @@
 # Ola 2 — Hoy con veredicto y modo consulta: diseño
 
+> **Actualización del 1 de octubre de 2026:** el hogar contestó D1 y D2 con otra definición y aprobó otro horizonte. **El §3 (definición A) está sustituido por
+> [`docs/OLA2_SUELO_Y_DISPONIBLE.md`](OLA2_SUELO_Y_DISPONIBLE.md)**: el número es (CaixaBank + Mediolanum) − suelo de liquidez + el punto más bajo del acumulado de los próximos
+> 30 días. El diagnóstico del §2, el modo consulta (§6) y las restricciones técnicas (§4) siguen vigentes.
+
 Fecha: 30 de septiembre de 2026 (sesión 278). Estado: **propuesta para decidir; no hay código**. Sigue el patrón de
 `docs/OLA1_ARQUITECTURA_NAVEGACION.md`: primero el diagnóstico con datos reales, luego las decisiones que son del hogar.
 
