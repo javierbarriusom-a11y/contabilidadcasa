@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 280). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 281). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,23 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (281): decisiones del hogar sobre «el número» de Hoy, el suelo y el cierre de mes (solo documentación)
+
+- **Qué se hizo:** `BACKLOG_UX_OLAS.md` §8.5 (registro de decisiones) y §2.3-7/8 (hallazgos nuevos). Sin código. Todas las respuestas las dio **quien opera la app**; decisión del hogar: **el paso 1 se consulta con
+  quien opera, no con otra persona**, así que la premisa «quien consulta usa Hoy como producto entero» queda **sin contrastar** (riesgo asumido; mitigación: que quien solo consulta pruebe O2-2 dos minutos).
+- **Decisiones:** el número de Hoy es **(CaixaBank + Mediolanum) − suelo − compromisos conocidos hasta el próximo cobro** (D1, D2: Mediolanum sí cuenta); «cobrar» son las dos nóminas **y** el local; el suelo es **sobre
+  el total y parametrizable**; extractos 3 veces por semana con la app cerrada al 100 % y registro manual casi diario; Tere cobra el 22 pero la app usa el 25 **a propósito** (prudencia, no corregir); Javi cobra el último
+  día natural, nunca el día 1.
+- **Hallazgos (verificados en el código):** (1) registrar a mano guarda importes por partida **sin fecha**: solo los extractos mejoran las fechas de las salidas; (2) la app fecha la nómina de Javi el último día
+  **hábil**: 1–2 días antes que la realidad en 4 de 12 meses (oct 2026 sáb 31 → vie 30; ene, feb y jul 2027), pendiente de confirmar el cambio; (3) con tres ingresos de distinto tamaño «hasta el próximo cobro» da una
+  ventana de ~1, ~24 y ~6 días y la cifra **baja el día que entra el local**; se propone sin decidir el **mínimo proyectado a 30 días**; (4) el suelo sobre el total es un cambio de modelo (~63 líneas de `app.js`, 10
+  ficheros más y el guardarraíl dorado `reservaOperativaCuentaOperativa`) y cambia el papel de los traspasos: pide **dos parámetros** (suelo total y mínimo operativo en CaixaBank) y diseño propio.
+- **Consecuencia:** el módulo de O2-1 (rama `claude/o2-1-home-verdict`, PR en borrador #416) queda **desfasado** y hay que rehacerlo; no entra en `main`.
+- **Cierre de mes:** recomendación, no decisión: mes natural, cierre contable entre el día 1 y el 3 con el saldo del último día del mes; la asignación (gastar/ahorrar/invertir) al cobrar Javi. Sin verificar en el
+  código que el cierre use el saldo de fin de mes.
+- **Sin contestar:** regla de parada v2 (§8.4), D3–D6, la línea base cronometrada (§8.1) y el informe de uso (§8.2). Revisión mensual de Nielsen: vence el 16/10/2026.
+- **Validación:** solo documentación; `npm test` **4966/4966** (no se ejecutó `npm run verify` completo: no hay cambios de código).
 
 ## Cierre de sesión — 1 de octubre de 2026 (280): O2-1 construido y aparcado; hallazgos que corrigen el diseño de la Ola 2 y hoja de sesión con el hogar (solo documentación en `main`)
 
