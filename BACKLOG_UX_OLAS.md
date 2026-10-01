@@ -15,7 +15,8 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 
 1. Leer este documento entero y, de `PROJECT_STATE.md`, solo las entradas **278, 277 y 276** (arriba del todo).
 2. `git status` y `git log --oneline -5`; comprobar que la rama de trabajo parte de `origin/main` (§6, «reiniciar la rama»).
-3. **No construir nada de la Ola 2 sin las cinco decisiones del hogar** (§2). Si el hogar ya contestó, pasar a §2.2.
+3. **No construir nada de la Ola 2 sin las decisiones del hogar** (§2, §8.3). Si el hogar ya contestó, pasar a §2.2. **Antes de cualquier otra cosa, mirar §8 (sesión de 20 minutos con línea base) y §2.3
+   (lo que enseñó construir O2-1)**: corrigen el diseño de la sesión 278 y el módulo de O2-1 ya existe, aparcado en una rama.
 4. Si el hogar aún no ha contestado, la única cosa útil sin bloqueo es **§4 (deuda técnica)** y, si el informe de uso existe, **§3**.
 5. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, commit/push, PR en borrador, esperar CI, fusionar en verde (§6).
 
@@ -58,7 +59,7 @@ fuera de umbral» frente a «Próximo riesgo: sin déficit»; el margen «hasta 
 
 | Entrega | Contenido | Hecho cuando | Riesgo |
 |---|---|---|---|
-| **O2-1** | Módulo `canonical-home-verdict.js`: cálculo puro de la cascada y estados honestos (negativo dicho, dato que falta nombrado). **Sin cambiar la pantalla** | Pruebas contra los datasets dorados (`npm run golden:datasets`); `app.js` sin líneas nuevas; **medir cuántas líneas se pueden liberar** de la tarjeta de cobertura (~`app.js` 21.657–21.810; estimación 60–100, sin verificar) | Bajo |
+| **O2-1** | Módulo `canonical-home-verdict.js`: cálculo puro de la cascada y estados honestos (negativo dicho, dato que falta nombrado). **Sin cambiar la pantalla** | 🟡 **Construido y aparcado (1/10/2026)** en la rama `claude/o2-1-home-verdict` (PR [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), no fusionar): 24 pruebas, `app.js` sin tocar. Los datasets dorados **no sirven** (§2.3-4); se probó con fixtures sintéticos y con la app real. Líneas medidas: **~20–25 puras, no 60–100** (§2.3-5). No entra en `main` hasta O2-2 por el guardián ARQ-3 (§2.3-6) | Bajo |
 | **O2-2** | La tarjeta oscura «Hasta el siguiente ingreso» pasa a ser el veredicto (misma posición); se quita el duplicado Liquidez/Caja; el margen sobre la reserva se muestra **con signo**; «Próximo riesgo» dice fecha y base | `verify` verde + e2e + axe + `mobile-overflow`; un test que fije que el duplicado no vuelve | Medio: es la pantalla más vista |
 | **O2-3** | Frescura del dato pegada a la cifra («saldos a … · último movimiento hace N días · guardado hh:mm») | Prueba de navegador: **veredicto < 700 px en 390×844 sin desplazarse** (hoy ~1.246 px) | Bajo |
 | **O2-4** | Modo consulta nivel 1 (interruptor por dispositivo en `localStorage`, oculta escrituras, simplifica menú, reutiliza «Modo reunión» y «Vista por titular») | Interruptor visible con la leyenda «comodidad, no protección»; guardián de que ninguna entrada principal desaparece | Medio |
@@ -66,6 +67,35 @@ fuera de umbral» frente a «Próximo riesgo: sin déficit»; el margen «hasta 
 
 **Trampa conocida:** `requiredReserve` (`canonical-decisions.js`, `transferForMonth`) = suelo **+ las salidas de todo el mes siguiente**; sirve para decidir
 traspasos a ahorro, **no** como base de «cuánto se puede gastar». No reutilizarla.
+
+### 2.3 Lo que enseñó construir O2-1 (1 de octubre de 2026) — corrige el diseño de la sesión 278
+
+Se construyó `canonical-home-verdict.js` (módulo puro, 24 pruebas, sin cablear; **aparcado en la rama `claude/o2-1-home-verdict`, ver el punto 6**) y se **ejecutó contra la app real con el dataset demo público**. Cifras de la demo, **no del hogar**.
+
+1. **El número depende de la calidad de las fechas del plan, y sin histórico esa calidad es de relleno.** Con el dataset demo (sin transacciones, por privacidad) las seis partidas
+   de gasto de octubre (**4.730 €**) llevan la fecha de relleno «día 8» (`expenseTimingForRow`, `confidence: "estimated"`), **el mismo día que el ingreso** (3.000 + 2.000 €). Con
+   CaixaBank 5.610 € y suelo 2.500 €, el margen hasta el 8 de octubre es **−1.620 €** si esas salidas caen antes del ingreso y **+3.110 €** si caen después: 4.730 € de
+   diferencia por un supuesto de calendario. El módulo lo declara (`sameDayOutflows`, `marginIfSameDayAfterIncome`, `signDependsOnSameDay`, `breakdown.estimatedShare`).
+   **Consecuencia para O2-2:** el veredicto solo es fiable cuando el plan tiene salidas con fecha observada (movimientos conciliados) o de regla (fin de mes). Con datos de relleno
+   debe decir *de qué depende*, no dar la cifra como cierta.
+2. **Con fechas de relleno, la definición A no aporta nada nuevo:** coincide con el margen sobre la «reserva protegida» (suelo 2.500 + 4.730 = 7.230 €), es decir, el −1.620 € que
+   la tarjeta de Hoy recorta a «0,00 € por encima del mínimo». El valor de O2-2 aparece solo con calendario real.
+3. **La comparación con el ritmo habitual de gasto (idea de la sesión del 1/10) no puede usar `typicalDailyOutflow` del motor diario:** es la media de **todas** las salidas
+   conciliadas ÷ (meses × 30), incluidos alquiler y cuotas que ya están en «salidas previstas»: doble cuenta. Haría falta un gasto variable *no planificado* que hoy no existe.
+   Descartada para O2-1; si el hogar la quiere, es una entrega propia con su definición.
+4. **Los datasets dorados no sirven para O2-1 tal como están:** alimentan el motor mensual (`engineInput`); los eventos diarios los construye `canonicalDailyInput` en `app.js`
+   (~7334–7444, ~110 líneas acopladas a `state` y a helpers de fecha), que no se puede importar desde Node. Las pruebas usan fixtures sintéticos más la medición contra la app
+   real. Extraer `canonicalDailyInput` a un módulo es un trabajo con valor propio (libera ~110 líneas del techo de `app.js`), pero no es trivial.
+5. **La estimación «60–100 líneas liberadas» era optimista.** La tarjeta de cobertura ocupa 157 líneas (`app.js` 21.657–21.813); lo **puro y extraíble** son ~20–25 (las dos
+   insignias y la frase), el resto (~130) es DOM, estado y cableado. Liberar de verdad exige mover el **pintado y el editor** a un módulo de interfaz (patrón `views/*.js` o
+   módulo diferido como `ux-shell.js`), ajustando sin relajar su intención `tests/opt6-mover-cobertura-a-ajustes.test.cjs` (fija nombres de función dentro de `app.js`) y
+   `tests/f1-contrato-ejecutivo-deuda.test.cjs` (simula `executiveCoverageSnapshot`). Hoy sigue habiendo 8 usos de esas funciones fuera del bloque.
+6. **Guardián ARQ-3** (`tests/arq3-canonical-sin-consumidor-ui.test.cjs`): todo `canonical-*.js` debe tener consumidor en `app.js` o `views/`, salvo excepciones documentadas.
+   Un módulo que nace antes que su pantalla lo incumple por diseño: es exactamente el patrón que ese guardián se escribió para detectar (con el módulo, `npm test` da 4988/4990: los dos
+   fallos son ese guardián y su recuento 67→68). **Decisión del hogar (1/10/2026): no tocar el guardián ni añadir excepción.** El módulo y sus 24 pruebas **no están en `main`**: viven en la
+   rama **`claude/o2-1-home-verdict`** (PR en borrador [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), aparcado, CI rojo a propósito) y se fusionan **junto con O2-2**,
+   cuando haya pantalla que lo consuma y el hogar haya contestado D1/D1b/D6 (§8.3), porque esas respuestas pueden cambiar su API. Al retomar O2-2: partir de esa rama (o `git cherry-pick 1689bde`),
+   cablear el consumidor y comprobar que el guardián pasa sin excepciones.
 
 ## 3. Ola 1, entrega 5 — retiradas (BLOQUEADA por el informe de uso y el OK del hogar)
 
@@ -146,7 +176,55 @@ fusionada; sin esto el hook de parada protesta por commits sin subir). Un PR de 
 
 ## 7. Orden recomendado para las próximas sesiones
 
-1. **Si el hogar contesta D1–D5:** O2-1 → O2-2 → O2-3 (una entrega por PR; medir siempre `test:load-budget` antes y después) → O2-4.
+0. **Primero la sesión del §8** (línea base + informe de uso + decisiones D1–D6): es lo único que mueve el plan y no cuesta una línea de código.
+1. **Si el hogar contesta D1–D6:** O2-1 (ya construido, rama `claude/o2-1-home-verdict`) + O2-2 **en un solo PR** por el guardián ARQ-3 → O2-3 (medir siempre `test:load-budget` antes y después) → O2-4.
+   Antes de O2-2, comprobar con los datos reales del hogar, en local y sin subirlos al repositorio público, que `breakdown.estimatedShare` es bajo: si es alto, el veredicto no es fiable (§2.3-1).
 2. **Si el hogar trae el informe de uso:** entrega 5 de la Ola 1, una pantalla cada vez, con su OK.
 3. **Sin nada de los dos:** UX-N2 y UX-N3 (baratos), o UX-P2 si el hogar quiere que el CI sea más exigente. **No** empezar UX-P1/UX-P5: no compensan con los iPhone del hogar.
 4. Cierre de sesión: actualizar `PROJECT_STATE.md` y **este documento** (tabla de §1 y las decisiones de §2.1).
+
+## 8. Sesión con el hogar (20 minutos) — cómo salir de los rendimientos decrecientes
+
+**Por qué:** quince sesiones de UX (268–279 y la de O2-1) y **ninguna medida previa en personas**. Todas las métricas de éxito del plan (§5) carecen de línea base, y los dos
+desbloqueos que quedan (Ola 2, retiradas de la Ola 1) dependen del hogar, no de código. Construir más sin esto es el patrón que hay que cortar.
+
+### 8.1 Línea base (10 min, con cronómetro)
+
+Cada persona, **en su móvil**, tres intentos:
+- **¿Cuánto podemos gastar hasta cobrar?** Cronometrar desde abrir la app hasta decir una cifra en voz alta. Anotar segundos, cifra dicha, si hizo scroll y si las dos personas dicen la
+  misma cifra.
+- **Registrar un gasto** (quien opera): segundos desde abrir la app hasta guardado.
+
+| Persona | Pregunta | Intento 1 (s) | 2 (s) | 3 (s) | Cifra dicha | ¿Scroll? | ¿Coincide con la otra persona? |
+|---|---|---|---|---|---|---|---|
+| quien consulta | ¿cuánto hasta cobrar? | | | | | | |
+| quien opera | ¿cuánto hasta cobrar? | | | | | | |
+| quien opera | registrar un gasto | | | | | | — |
+
+**Umbral propuesto (a fijar por el hogar, no inventado por la medición):** si quien consulta responde en ≲15 s y las dos cifras coinciden, la Ola 2 no tiene un problema que
+resolver y se aparca. Si tarda más o las cifras no coinciden, la Ola 2 está justificada y esta tabla es su «antes».
+
+### 8.2 Informe de uso (5 min)
+
+Ajustes › «Uso de la app» **en cada dispositivo** (el contador vive en el navegador de cada uno). Anotar las pantallas con 0 aperturas en cada uno; un cero en un solo dispositivo no
+prueba que nadie la use. Con eso se puede abrir la entrega 5 de la Ola 1, pantalla a pantalla.
+
+### 8.3 Decisiones de la Ola 2, formuladas con la evidencia del §2.3 (5 min)
+
+| # | Pregunta concreta | Recomendación | Por qué importa |
+|---|---|---|---|
+| D1 | Es día 22 y abrís Hoy: ¿qué número esperáis ver? ¿Caja de CaixaBank − suelo − salidas previstas hasta cobrar (definición A), lo que queda del presupuesto del mes, otra? **Que conteste quien consulta** | A | Define el módulo; si quien consulta espera otra cosa, se ajusta una sola función |
+| D1b | ¿Cada cuántos días se registran o importan movimientos? | — | Sin movimientos recientes y conciliados las fechas de las salidas son de relleno y la cifra cambia hasta 4.730 € en la demo (§2.3-1) |
+| D2 | ¿Mediolanum cuenta como gastable? | No: «ahorro aparte» | Cambia el margen |
+| D3 | «Carta del mes»: ¿qué esperáis? | Párrafo llano con cifras, **solo si** se define | Sin definir no se construye |
+| D4 | Modo consulta: ¿solo nivel 1, sabiendo que no protege? | Sí | El nivel 2 contradice `docs/OPT22_MODELO_HOGAR.md` |
+| D5 | En modo consulta, ¿se pliega el detalle de Hoy por defecto? | Sí | Hoy mide ~11.400 px en móvil |
+| D6 | Si las fechas son de relleno, ¿el veredicto enseña las dos lecturas con el motivo en una línea, o esconde la cifra? | Enseñar las dos con el motivo | Esconderla repite el «—» sin explicación; darla como cierta engaña |
+
+### 8.4 Regla de parada del plan de UX — **propuesta, no decisión**
+
+No se aplica hasta que el hogar la acepte.
+1. Cada entrega declara antes de construirse su métrica y su objetivo (hoy: veredicto a < 700 px y tiempo de respuesta de §8.1).
+2. Se mide antes y después **con las dos personas**, no solo con pruebas automáticas.
+3. Si la línea base ya cumple el objetivo, o dos entregas seguidas no mueven su métrica, **se detiene el plan de UX** y el esfuerzo pasa a lo que el hogar pida.
+4. Sin informe de uso y sin línea base no se abre una ola nueva (Ola 3 y Ola 4 incluidas).

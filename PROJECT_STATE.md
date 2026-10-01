@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 30 de septiembre de 2026 (sesión 279). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 280). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,25 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (280): O2-1 construido y aparcado; hallazgos que corrigen el diseño de la Ola 2 y hoja de sesión con el hogar (solo documentación en `main`)
+
+- **Qué se hizo:** se construyó `canonical-home-verdict.js` (módulo puro de «cuánto podemos gastar hasta el próximo ingreso») con 24 pruebas, comprobadas rompiendo el módulo a propósito de tres formas
+  (recortar el negativo a 0, tratar `null` como 0, excluir las salidas del día del ingreso), y se **ejecutó contra la app real con el dataset demo público**. Cifras de la demo, **no del hogar**.
+- **Decisión del usuario (1/10/2026):** camino A del plan de la sesión, con mis recomendaciones para D1 (definición A) y D2 (Mediolanum fuera del margen) *asumidas, no contestadas*; y, ante el guardián
+  ARQ-3, **«fusionar la documentación y guardar el módulo aparte»**: el módulo **no está en `main`**; vive en la rama `claude/o2-1-home-verdict` (PR en borrador
+  [#416](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/416), aparcado, **CI rojo a propósito**, sin suscripción a sus eventos). No se tocó ningún guardián ni se añadió ninguna excepción.
+- **Hallazgos (detalle en `BACKLOG_UX_OLAS.md` §2.3):** (1) sin histórico, las seis partidas de gasto del mes (4.730 €) llevan la fecha de relleno «día 8», la misma del ingreso, así que el margen es
+  **−1.620 € o +3.110 €** según un supuesto de calendario; (2) con esas fechas, la definición A coincide con el margen sobre la «reserva protegida» (2.500 + 4.730 = 7.230 €) y no aporta nada nuevo hasta que haya
+  calendario real; (3) `typicalDailyOutflow` del motor diario cuenta todas las salidas y **doble cuenta** con las previstas: la comparación con el ritmo habitual de gasto, propuesta en la sesión, queda
+  descartada hasta definir un gasto variable no planificado; (4) los datasets dorados no alimentan este cálculo (los eventos diarios los construye `canonicalDailyInput` en `app.js`, ~110 líneas, no
+  importables desde Node); (5) la estimación de «60–100 líneas liberadas» era optimista: la tarjeta de cobertura son 157 líneas, **~20–25 puras**; (6) ARQ-3 rechaza un motor sin consumidor.
+- **Documentación:** `BACKLOG_UX_OLAS.md` — §2.3 nuevo (hallazgos), fila de O2-1 corregida, §8 nuevo (sesión de 20 minutos con el hogar: línea base cronometrada, informe de uso por dispositivo, decisiones D1–D6
+  formuladas con la evidencia, y una **propuesta** de regla de parada del plan de UX que no se aplica hasta que el hogar la acepte), y punteros desde §0 y §7. O2-1 y O2-2 deberán ir en un solo PR por ARQ-3.
+- **Validación (árbol de solo documentación):** `npm run verify` completo con salida 0 — `npm test` **4966/4966**, y después lint, tipos, accesibilidad estructural, rendimiento, build del sitio, privacidad y humo
+  en verde. Con el módulo en el árbol (rama aparte) `npm test` da 4988/4990: los dos fallos son el guardián ARQ-3 y su recuento 67→68, esperados. `app.js` sin tocar (37.530).
+- **Siguiente:** la sesión del §8 del backlog (línea base, informe de uso, D1–D6). Nada de la Ola 2 se construye antes, y O2-2 solo si la línea base lo justifica. Entrega 5 de la Ola 1 sigue bloqueada por el
+  informe de uso.
 
 ## Cierre de sesión — 30 de septiembre de 2026 (279): traspaso del plan de UX a otra sesión (solo documentación)
 
