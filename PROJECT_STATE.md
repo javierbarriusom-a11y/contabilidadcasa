@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 284). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 1 de octubre de 2026 (sesión 285). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,18 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 1 de octubre de 2026 (285): cierre de la jornada de decisiones de la Ola 2; backlog de UX al día (solo documentación)
+
+- **Qué se cierra:** el hogar aprobó la entrega **S1** (liberar líneas de `app.js` extrayendo `canonicalDailyInput`) y aceptó las recomendaciones de **S-3** (horizonte fijo de 30 días), **S-4** (el número se llama «Disponible», con el suelo al lado) y **S-5/D6** (con fechas de relleno, dos lecturas con el motivo). El mensaje del hogar decía
+  «s1, s3, s5, s5»; **se leyó** como S1 + S-3, S-4 y S-5 (queda anotado como supuesto en `BACKLOG_UX_OLAS.md` §8.5). **S1 no se empezó a propósito**: es una refactorización con riesgo y no se deja a medias al cerrar.
+- **Backlog actualizado** (`BACKLOG_UX_OLAS.md`): estado en una línea y arranque de la próxima sesión (§0); tabla de lo hecho con los PRs #416–#421 (§1); Ola 2 «diseño cerrado, siguiente entrega S1» (§2); orden recomendado rehecho con S1→S2→medir→S3→S4 (§7); D1, D1b, D2 y D6 marcadas como contestadas (§8.3); registro de decisiones con S1, S-3, S-4 y S-5 (§8.5); **script de medición con datos reales** (§8.6, nuevo, de solo lectura,
+  actualizado a la definición vigente: mínimo proyectado a 30 días sobre el total) y **tabla de pendientes al cierre** (§9, nueva). También `BACKLOG_CONTABILIDADCASA_3_0.md` §9 (fila de la Ola 2), `BACKLOG_INDICE.md` (párrafo de «qué hacer a continuación») y `docs/OLA2_SUELO_Y_DISPONIBLE.md` (§8 y §9).
+- **Script de medición:** probado contra la app con el dataset demo — da 3.580 € en el criterio prudente y 8.310 € si los ingresos van primero, con `porcentajeEstimado` del 100 %; el estado de la app no cambia al ejecutarlo. Cifras de la demo, **no del hogar**. Es lo primero que hay que ejecutar con datos reales antes de S3.
+- **Pendiente (detalle en `BACKLOG_UX_OLAS.md` §9):** S1 (siguiente sesión de código); medir `porcentajeEstimado` con datos reales; regla de parada v2 sin contestar; línea base cronometrada e informe de uso sin hacer; D3–D5 sin contestar; cierre de mes natural (recomendación sin confirmar; falta verificar en el código que el cierre use el saldo del último día del mes); PR #416 aparcado y desfasado.
+  **Revisión mensual de Nielsen: la última fue el 16/09/2026 y vence el 16/10/2026.** `OPT-10`–`OPT-13` siguen aplazadas al 23/10/2026.
+- **Hecho hoy en `main`:** #417 y #418 (hallazgos y decisiones), #419 (nómina de Javi al último día natural), #420 (diseño del número de Hoy), #421 (la nómina de Javi de diciembre se fechaba el 15 en vez del 31). Todos con el CI en verde antes de fusionar.
+- **Validación:** solo documentación; `npm test` **4974/4974** (no se ejecutó `npm run verify` completo: no hay cambios de código). `app.js` sin tocar (37.530).
 
 ## Cierre de sesión — 1 de octubre de 2026 (284): la nómina de Javi de diciembre se fechaba el 15 en vez del 31; valores iniciales del suelo y de Hacienda decididos
 
