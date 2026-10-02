@@ -3,6 +3,8 @@
 Fecha: 1 de octubre de 2026 (sesión 283). Estado: **diseño; no hay código.** Recoge las decisiones del hogar del 1/10/2026 (`BACKLOG_UX_OLAS.md` §8.5) y **sustituye la definición A de
 `docs/OLA2_HOY_Y_CONSULTA.md` §3** (caja de CaixaBank − suelo − salidas hasta el próximo ingreso), que ya no responde a lo que el hogar necesita.
 
+> **2/10/2026 — parcialmente sustituido por [`docs/OLA2_RECALIBRACION.md`](OLA2_RECALIBRACION.md).** La medición con datos reales dio un 100 % de salidas con fecha estimada: el «disponible» a 30 días (§5, §6), la entrega S3 y las «dos lecturas» (S-5) **se cancelan**; el horizonte pasa a ser el mes natural (S-3 sustituida) y S2 se funde con la nueva S3′. **Siguen vigentes:** el suelo sobre el total, los dos parámetros, los valores iniciales (§2–§4) y S1.
+
 Todas las cifras de ejemplo de este documento son **ilustrativas o del dataset demo público, no del hogar**.
 
 ## 1. Resumen
@@ -113,9 +115,9 @@ Estos números son el **caso de prueba de aceptación** del módulo (§8, S3), j
 |---|---|---|---|
 | **S0** | Este documento | Fusionado | — |
 | **S1** (✅ aprobada el 1/10/2026; ✅ **hecha el 1/10/2026, sesión 286**) | Liberar líneas de `app.js`: extraer `canonicalDailyInput` (~110 líneas, acopladas a `state` y a helpers de fecha) a un módulo | Techo de `app.js` reducido; `npm run verify` y los datasets dorados idénticos; `opt6-…` y `f1-…` ajustados sin relajar su intención · **Resultado:** extraídas 166 líneas (la función y sus tres ayudantes) a `canonical-daily-input.js`; `app.js` 37.530 → 37.365 y techo a 37.495; datasets dorados sin diferencias; `opt6-…` y `f1-…` no necesitaron ajuste | Medio |
-| **S2** | Parámetro «suelo de liquidez»: dato del hogar persistido y sincronizado como `operatingReserve`, control en Ajustes con ayuda, nota sobre el mínimo operativo | Prueba equivalente a «V6-1»; **ninguna cifra existente cambia**; techo de `app.js` respetado | Bajo |
-| **S3** | `canonical-home-verdict.js` v2 (esta especificación) **y** su consumidor en Hoy, **en un solo PR** (guardián ARQ-3). Medición previa con datos reales del hogar (`estimatedShare`) y `test:load-budget` antes y después | Casos del §5 y §6 como pruebas; veredicto visible sin desplazarse en 390×844 (< 700 px); axe y `mobile-overflow` en verde | Medio (pantalla más vista) |
-| **S4** | Frescura del dato pegada a la cifra (saldos a…, último movimiento hace N días) | Prueba de navegador | Bajo |
+| **S2** (2/10/2026: **se funde con S3′**, ver `OLA2_RECALIBRACION.md`) | Parámetro «suelo de liquidez»: dato del hogar persistido y sincronizado como `operatingReserve`, control en Ajustes con ayuda, nota sobre el mínimo operativo | Prueba equivalente a «V6-1»; **ninguna cifra existente cambia**; techo de `app.js` respetado | Bajo |
+| **S3** (2/10/2026: **cancelada**, sustituida por S3′) | `canonical-home-verdict.js` v2 (esta especificación) **y** su consumidor en Hoy, **en un solo PR** (guardián ARQ-3). Medición previa con datos reales del hogar (`estimatedShare`) y `test:load-budget` antes y después | Casos del §5 y §6 como pruebas; veredicto visible sin desplazarse en 390×844 (< 700 px); axe y `mobile-overflow` en verde | Medio (pantalla más vista) |
+| **S4** (2/10/2026: **primera entrega**, independiente de las demás) | Frescura del dato pegada a la cifra (saldos a…, último movimiento hace N días) | Prueba de navegador | Bajo |
 
 Cada entrega pasa por la **regla de parada** (`BACKLOG_UX_OLAS.md` §8.4, versión 2 aún sin contestar): métrica y objetivo antes de construir, medida con las dos personas, y se detiene si no mueve la métrica.
 

@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de octubre de 2026 (sesión 286). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 2 de octubre de 2026 (sesión 287). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,19 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 2 de octubre de 2026 (287): medición con datos reales de la Ola 2; S2 y S3 recalibradas, S4 primero (solo documentación)
+
+- **Qué se hizo:** el hogar ejecutó con sus datos reales el script de `BACKLOG_UX_OLAS.md` §8.6 y completó la hoja de la sesión de 20 minutos (artefacto de Claude, no está en el repositorio). Resultado, **sin importes reales** (repositorio público): `porcentajeEstimado` **100 %**, 0 de importe observado, 0 por regla; las dos lecturas (salidas primero / ingresos primero) dieron **la misma** cifra; los saldos eran del **27/9**, cinco días antes de la medición.
+- **Por qué es estructural (verificado en el código):** en `expenseTimingForRow` solo hay fecha «por regla» para tres etiquetas de fin de mes y las nóminas, y «observada» solo si ya existe un movimiento real del mismo mes que case; el resto cae en el día 8. Una salida futura no puede ser observada, así que **importar extractos no baja el porcentaje de la ventana futura** (corrige D1b). El mínimo proyectado a 30 días se convierte en una resta de calendario y las «dos lecturas» (S-5) no cubren la incertidumbre de la fecha. Detalle en `docs/OLA2_RECALIBRACION.md` §2.
+- **Línea base:** ninguna de las dos personas, ni quien opera, encontró la cifra «¿cuánto podemos gastar hasta cobrar?» en Hoy; las cifras no coinciden; **no se registraron tiempos**. La Ola 2 queda justificada por la regla acordada, con línea base a repetir con segundos. Informe de uso: solo `alerts-center` a 0 en los dos móviles (el resto, posiblemente inflado por la propia sesión).
+- **Decisiones del hogar:** regla acordada antes de medir (consulta ≤ 15 s; estimado bajo ≤ 25 %, alto ≥ 70 %); lectura «s1, s3, s5, s5» confirmada; regla de parada «con ajustes» (los propone Claude); **alcance de S2/S3 delegado en Claude**; `alerts-center` **se deja de momento**; PR #416 **cerrado sin fusionar** (la rama se conserva).
+- **Recalibración (decidida por Claude por delegación):** S3 («Disponible» a 30 días, `canonical-home-verdict.js`, dos lecturas) **cancelada**; **S4** (frescura del dato) pasa a ser la **primera y sola** entrega siguiente; S2 se funde con **S3′** («Disponible hoy» = saldo total − suelo, y «Disponible a fin de mes (previsión)» = liquidez prevista del motor mensual − suelo, sin módulo nuevo ni dependencia del día de cargo). Sustituye S-3 (horizonte) y S-5; mantiene S-4. Aparcada la inferencia del día de cargo desde el histórico (hipótesis, requiere medir antes).
+- **Regla de parada v2:** propuesta en `docs/OLA2_RECALIBRACION.md` §5, pendiente del OK del hogar.
+- **Documentos tocados:** `docs/OLA2_RECALIBRACION.md` (nuevo), `BACKLOG_UX_OLAS.md` (estado, §0, §1, §2, §7, §8.4, §8.5, §9, UX-P4), `docs/OLA2_SUELO_Y_DISPONIBLE.md` (aviso y estado de S2/S3/S4), `BACKLOG_CONTABILIDADCASA_3_0.md` §9, `BACKLOG_INDICE.md` y este archivo.
+- **Pendiente:** S4; línea base con tiempos; OK a la regla de parada v2 y veto o confirmación del cambio de horizonte (30 días → mes natural); ¿saldos actualizados después del 27/9 y nómina del 30/9 recogida?; D3–D5. **Revisión mensual de Nielsen: vence el 16/10/2026**; `OPT-10`–`OPT-13` siguen aplazadas al 23/10/2026.
+- **Validación:** solo documentación. `npm test` **4979/4979** (no se ejecutó `npm run verify` completo: no hay cambios de código; lo valida el CI del PR). `app.js` sin tocar (37.365).
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR de documentación contra `main`.
 
 ## Cierre de sesión — 1 de octubre de 2026 (286): S1 de la Ola 2 — `canonicalDailyInput` y sus ayudantes salen de `app.js` a un módulo (sin cambio de comportamiento)
 
