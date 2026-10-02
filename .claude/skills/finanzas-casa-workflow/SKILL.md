@@ -37,16 +37,18 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
 2. **Backlog**: el repositorio acumula varios documentos `BACKLOG*.md` de distintas
    generaciones — `BACKLOG_INDICE.md` (OPT-20) es el mapa que dice cuál es la fuente viva de
    cada uno. El backlog vigente es el que `BACKLOG_INDICE.md` marca como «🟢 Vigente» — hoy
-   `BACKLOG_CONTABILIDADCASA_3_0.md`: para saber qué es lo siguiente, ve directo a su §6 («Plan
-   priorizado único») y a la fila de la tarea en §1-§2 o, si es heredada, en
-   `BACKLOG_CONTABILIDADCASA_2_0.md` (su §5 dice cuáles). Si el índice ya marca como vigente otro
-   documento, manda el índice y esta línea está desfasada: dilo y corrígela. `BACKLOG_STATUS.md`,
-   sección 0 («Estado maestro de entregas»), sigue siendo la tabla de estado de las entregas
-   E1-E26. Si algo no cuadra entre documentos, `BACKLOG_INDICE.md` tiene la tabla completa de qué
-   sustituye a qué.
-   Si el trabajo es de UX (olas 0-4 del plan de mejora, Hoy, navegación, rendimiento de carga), lee
-   además `BACKLOG_UX_OLAS.md` §0: es el traspaso del plan de UX entre sesiones (hecho, bloqueos por
-   decisión del hogar, deuda técnica y trampas del repositorio).
+   `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (desde el 2/10/2026 es el **único** backlog vivo): lee su §0
+   («Estado en una línea») y su §1 («Cómo empezar»); lo que espera al hogar está en su §2, lo
+   congelado por la regla de parada v2 en su §4 y el calendario en su §9. Los demás `BACKLOG*.md`
+   (`BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`, `BACKLOG_UX_OLAS.md`…)
+   quedan como detalle histórico de por qué se hizo cada cosa; su §12 lista lo que en ellos está
+   desfasado. Si el índice ya marca como vigente otro documento, manda el índice y esta línea está
+   desfasada: dilo y corrígela. `BACKLOG_STATUS.md`, sección 0 («Estado maestro de entregas»),
+   sigue siendo la tabla de estado de las entregas E1-E26. Si algo no cuadra entre documentos,
+   `BACKLOG_INDICE.md` tiene la tabla completa de qué sustituye a qué.
+   Si el trabajo es de UX (olas 0-4 del plan de mejora, Hoy, navegación, rendimiento de carga), el
+   plan, sus bloqueos y la deuda técnica ya están en el backlog vigente; `BACKLOG_UX_OLAS.md` y
+   `docs/OLA2_RECALIBRACION.md` guardan el detalle (decisiones del hogar, medición, diseño).
 3. **Git, brevemente** (no exhaustivo, no ejecutivo — solo lectura):
    - `git status` (¿hay cambios sin commitear?)
    - `git branch --show-current` (¿en qué rama estamos?)

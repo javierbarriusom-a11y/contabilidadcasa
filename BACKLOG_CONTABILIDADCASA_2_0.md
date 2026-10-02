@@ -1,5 +1,7 @@
 # Backlog — Contabilidadcasa 2.0
 
+> **2/10/2026 (sesión 292): lo pendiente de este documento vive ahora en [`BACKLOG_INICIO_OLEADA_OCTUBRE.md`](BACKLOG_INICIO_OLEADA_OCTUBRE.md)**, el único backlog vivo. Este se conserva como detalle histórico de por qué se hizo cada cosa; no actuar sobre sus estados sin contrastarlos con aquel (su §12 lista lo desfasado).
+
 > Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md).
 > Códigos propios de este documento (`P-`/`I-`/`D-`/`T-`) — no continúan las familias `PVC`/`INV`/
 > `LEV`/`DEB`/`GOB`/`A14` ya existentes. Varias tareas sí extienden un motor de esas familias; se cita

@@ -1,5 +1,7 @@
 # Backlog — Contabilidadcasa 3.0 (cuarta auditoría crítica, cruzada y unificada)
 
+> **2/10/2026 (sesión 292): lo pendiente de este documento vive ahora en [`BACKLOG_INICIO_OLEADA_OCTUBRE.md`](BACKLOG_INICIO_OLEADA_OCTUBRE.md)**, el único backlog vivo. Este se conserva como detalle histórico de por qué se hizo cada cosa; no actuar sobre sus estados sin contrastarlos con aquel (su §12 lista lo desfasado).
+
 ## 0. Origen y cruce contra el código real
 
 Nace de la auditoría crítica pedida por el usuario el 21 de septiembre de 2026, publicada primero
