@@ -150,3 +150,54 @@ El hogar aceptó «con ajustes» la regla de `BACKLOG_UX_OLAS.md` §8.4 y pidió
 | 13 | Revisión mensual de Nielsen (**16/10**) y reevaluación de `OPT-10`–`OPT-13` (**23/10**): ¿hay uso intenso que contar? | Traer el informe de uso | Decide si se desaplazan |
 | 14 | Idea aparcada: inferir el día de cargo de cada recibo desde el histórico. ¿Queréis el script de viabilidad (solo lectura)? | Sí, cuando haya ≥ 3 meses de movimientos importados; no antes | Es lo único que recuperaría el aviso «bajaréis del suelo antes de cobrar» |
 | — | `alerts-center`: redirigir a Ajustes › Alertas | **Se deja** (decisión del hogar, 2/10) | Si se retoma, antes verificar que Ajustes › Alertas cubre todos los umbrales |
+
+## 8. Respuestas del hogar a las 14 preguntas (2/10/2026, 15:21–15:27 UTC) y qué implican
+
+Contestaron las dos personas a través de la hoja de preguntas (artefacto de Claude, almacén privado). Aquí solo constan hechos y decisiones; **ninguna cifra de dinero**.
+
+| # | Respuesta | Consecuencia |
+|---|---|---|
+| 1 · medición (quien consulta) | **30, 28 y 20 s**; «no la encontró» | **No cumple el objetivo (≤ 15 s con la misma cifra)**. Ver §8.1 |
+| 2 · móvil (quien consulta) | iPhone Plus o Pro Max | La ficha de margen **cabe entera sin scroll** (≈ 760 px útiles en Safari frente a 735 que ocupa): el scroll **no** explica «no la encontró» |
+| 3 · saldos y nómina (quien opera) | Saldos **sin actualizar desde el 27/9**; nómina del 30/9: **«no lo sé»** | La cifra se calcula sobre una foto vieja y la ficha ya lo avisa («Actualizar saldos»). **Acción del hogar:** actualizar saldos y comprobar si la nómina del 30/9 está como real |
+| 4 · reales (quien opera) | «Casi siempre, en 1 o 2 días»; «intento llevarlo al día, pero no siempre puedo» | La cifra de fin de mes puede estar desfasada por partidas sin registrar; el aviso de saldo antiguo es la única red |
+| 5 · titular = el menor | **Sí** (las dos personas) | Sin cambios |
+| 6 · regla de parada v2 | **OK tal cual** (las dos personas) | **Vigente**. Ver §8.2 |
+| 7 · mes natural | **Confirmado** (las dos personas) | Sin cambios |
+| 8 · suelo y mínimo | **Mantener los dos** (1.500 € cada uno) | Sin cambios |
+| 9 · confianza con saldo antiguo | **Sí, a «media» desde los 4 días** (las dos personas) | **Hecho** en esta entrega: `confidence` de la liquidez pasa de «high» a «medium» con saldo declarado de ≥ 4 días (mismo umbral que el aviso de la ficha); lo verifica una prueba y el navegador real |
+| 10 · cierre de mes | **Confirmado** (mes natural, cierre entre el día 1 y el 3, saldo del último día) | **Pendiente de Claude:** verificar en el código que el cierre usa el saldo de fin de mes |
+| 11 · D3 carta del mes | **La quieren; alcance delegado en Claude** («el mejor alcance») | Ver §8.3 |
+| 11 · D4 modo consulta / D5 plegar el detalle | **Sí / Sí** (quien opera); **quien consulta no contestó** | Falta la respuesta de quien consulta: es su modo |
+| 12 · cabecera del móvil (quien consulta) | Plegar solo el bloque «DATO REAL / LOCAL / Fuente» a una línea | Aprobado, **no construido todavía** (ver §8.2) |
+| 13 · Nielsen y `OPT-10`–`OPT-13` | **No hay uso intenso todavía** (las dos personas) | `OPT-10`–`OPT-13` siguen aplazadas; la revisión de Nielsen del 16/10 se hace sin informe de uso |
+| 14 · script de viabilidad | **Sí, cuando haya al menos 3 meses de movimientos** | Aparcado hasta entonces |
+
+### 8.1 «No la encontró» tras 20–30 s: lo que se sabe y lo que no
+
+La medición tiene un solo dato por intento (segundos) y una etiqueta («no la encontró»): no dice **qué** miró ni **qué versión** vio. Hipótesis, de más a menos probable con lo medido:
+1. **Versión vista.** El service worker sirve **primero la copia en caché** y baja la nueva en segundo plano: tras cada despliegue, la primera apertura en el móvil muestra la versión anterior y la nueva aparece en la siguiente carga (S5 estaba desplegada desde las 13:45 UTC y se contestó hacia las 15:25). La etiqueta de la primera ficha lo distingue: «Disponible para gastar» = S5; «Disponible hoy» = S3′; «Caja disponible» = anterior.
+2. **Carga.** El cronómetro empieza al abrir la app. Medido en móvil emulado lento (CPU 4×, 1,6 Mbps): la cifra de Hoy tarda **4,5 s en una visita repetida y 9,6 s en la primera tras un despliegue**. Un iPhone Pro Max va mucho más rápido, pero parte de los 20–30 s no es «encontrar».
+3. **Saldo de hace días.** Con el saldo del 27/9 la ficha lleva el aviso de antigüedad, y el margen puede salir en negativo o llamativo; puede leerse como «no es la cifra».
+4. **Vocabulario.** La pregunta es «¿cuánto podemos gastar **hasta cobrar**?» y la ficha dice «Disponible para gastar … a fin de octubre».
+5. **Descartada: el scroll.** Con un Plus/Pro Max la ficha entera cabe sin hacerlo.
+
+**Preguntas para discriminar** (una por hipótesis; no son un cuestionario nuevo): ¿qué decía la primera ficha, con sus palabras? ¿qué cifra dijo cada persona (en el chat, no en el repositorio)? ¿abrís la app desde el icono de la pantalla de inicio o desde Safari? ¿el cronómetro contó la carga?
+
+### 8.2 La regla de parada v2, aprobada, aplicada
+
+- **Se cumple lo que prohibía:** van **tres** entregas visibles sobre Hoy (S4, S3′, S5) cuando el máximo es dos, y la medición posterior **no alcanza el objetivo** (mediana 28 s, «no la encontró»). Como el «antes» fue el supuesto «malo», no se puede comprobar el −30 %; sí el objetivo absoluto, y no se cumple.
+- **Lo que dice la regla para seguir:** solo por petición del hogar, gravedad alta en Nielsen o regresión de la línea base. **El hogar ha pedido** la carta del mes (P11) y plegar el bloque de sincronización (P12), así que se pueden construir; pero **no se construye nada más sobre Hoy** hasta contestar §8.1: sin saber qué falla, otra entrega visible es ajustar a ciegas. Una excepción razonable: P12 es barato y lo pidió quien consulta; con un Plus/Pro Max **no** arregla «no la encontró» y se hará, si se hace, como mejora general de móvil y no como arreglo de esta métrica.
+- **Exentas por la propia regla** (no cuentan): errores de datos o de cálculo, refactorizaciones habilitantes, deuda de CI y rendimiento, accesibilidad. P9 está en ese grupo.
+
+### 8.3 Carta del mes: alcance (decidido por Claude por delegación, vetable)
+
+Un **párrafo en lenguaje llano, determinista (sin IA generativa)**, generado con cifras que la app ya calcula, y **en Cierre de mes, no en Hoy**: Hoy ya mide unos 11.400 px en móvil y un párrafo más contradice el objetivo de encontrar una cifra rápido. Contenido: cómo cierra el mes (margen), cuánto se desvió el gasto del previsto (en %), qué queda de deuda, y lo próximo que viene. Sin importes que no estén ya en pantalla. **No se construye hasta** contestar §8.1 y tener un informe de uso (el hogar dice que aún no hay uso intenso: sin uso, es una pieza más que nadie abrirá).
+
+### 8.4 Qué falta del hogar
+
+1. Las cuatro respuestas de §8.1.
+2. Que **quien consulta** conteste D4 y D5 (modo consulta; plegar el detalle).
+3. **Actualizar los saldos** y comprobar la nómina del 30/9 antes de la siguiente medición: sin eso se mide la cifra sobre una foto de hace días.
+4. Repetir la medición **una vez** con la app recargada y los saldos al día, apuntando también qué miró.
+
