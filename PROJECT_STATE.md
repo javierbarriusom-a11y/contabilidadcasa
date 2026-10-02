@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de octubre de 2026 (sesión 289). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 2 de octubre de 2026 (sesión 290). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,17 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 2 de octubre de 2026 (290): S5 de la Ola 2 — titular único en la ficha de margen y preguntas abiertas consolidadas
+
+- **Petición:** «asumamos un tiempo malo para que mejores la experiencia y recopila las preguntas pendientes». Supuesto de trabajo: la línea base es **mala** (no hay segundos medidos); la mejora ya no se puede cuantificar contra un «antes», solo cuenta la medición posterior.
+- **Qué se hizo, con lo medido:** a 390 px había **206 px** de cabecera común de la app y **319 px** de cabecera de Hoy antes de la ficha de margen, que empezaba a 557 px y medía 250; en un iPhone con la barra de Safari (~660 px útiles) solo asomaba el rótulo, y las dos cifras («hoy», «a fin de mes») podían leerse como dos respuestas distintas. (1) **Titular único:** «Disponible para gastar» = el **menor** de los dos márgenes (`spendable` en `canonical-home-margin.js`); gastar X baja las dos cifras en X, así que el menor es lo que se puede gastar sin cruzar el suelo ni hoy ni a fin de mes; las dos cifras pasan a una línea de apoyo; el nombre «Disponible» con el suelo al lado se mantiene (S-4). (2) **Ficha 33 px más baja** (250 → 217). (3) **Subtítulo de Hoy oculto en móvil** (≤ 640 px, 41 px), con la versión de `design-tokens.css` subida (`20261002s5a1`).
+- **Resultado medido** (Chromium, datos de demostración, sin aviso de primeros pasos): la ficha empieza a **517 px** y la cifra termina en **576 px**; cabe en 664 px útiles (iPhone con Safari) y en 844; **no cabe en un iPhone SE con Safari** (553 px útiles, la cifra termina en 594). Lo que queda encima es cabecera común (120 px de «DATO REAL / LOCAL / Fuente» en cada pantalla) y los controles de Hoy (109 px): decisión del hogar, pregunta 12 de `docs/OLA2_RECALIBRACION.md` §7. Sin errores de consola ni desbordamiento horizontal.
+- **Preguntas abiertas:** consolidadas en **14, numeradas y con recomendación**, en `docs/OLA2_RECALIBRACION.md` §7 (para medir; datos que condicionan la cifra; decisiones de producto; calendario y aparcados). La tabla del §9 de `BACKLOG_UX_OLAS.md` queda como histórico.
+- **Aviso de proceso, dicho:** con S5 son **tres** entregas visibles sobre Hoy en un día sin medir; la regla de parada v2 (aún sin el OK del hogar) fija un máximo de dos. Se construyó porque el hogar lo pidió expresamente; **recomiendo congelar Hoy hasta la medición**. Es reversible: el titular es una función (`homeMarginTile`) y el módulo conserva `today` y `endOfMonth` intactos.
+- **Pruebas:** `tests/canonical-home-margin.test.cjs` pasa de 15 a **18** (titular = menor de los dos con su propiedad, titular y apoyo en la ficha, regla CSS móvil y versión). Versión de `app.js` `20261002s3a1` → `20261002s5a1` en `index.html` y 27 pruebas; `design-tokens.css` `20260918t8a1` → `20261002s5a1` en `index.html` y las pruebas que la fijan.
+- **Resultado de la validación:** `npm run verify` **verde** (salida 0): `npm test` **5007/5007** (4989 de S4 + 15 de S3′ + 3 de S5), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. `app.js` **37.413 → 37.412 líneas (−1)**; margen bajo el techo ARQ-4 (37.495): **83**. **No se ejecutaron en local** las puertas de navegador del CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); las valida el CI del PR.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR contra `main`.
 
 ## Cierre de sesión — 2 de octubre de 2026 (289): S3′ de la Ola 2 — el margen de Hoy («Disponible hoy» y «A fin de mes (previsión)») (fusionada, #426)
 

@@ -53,6 +53,27 @@ test("un margen negativo se dice con su signo y nunca se recorta a 0", () => {
   assert.equal(margin.endOfMonth.margin, -1200);
 });
 
+test("el titular es el menor de los dos márgenes: gastar X baja las dos cifras en X", () => {
+  // Fin de mes por encima de hoy (entran más ingresos de los que salen): manda hoy.
+  const above = HomeMargin.build(base);
+  assert.deepEqual(above.spendable, { value: 5500, basis: "today" });
+  // Fin de mes por debajo de hoy (queda por pagar más de lo que queda por cobrar): manda el fin de mes.
+  const below = HomeMargin.build({ ...base, rows: [{ detailMonthKey: "2026-10", month: "oct 26", totalLiquidity: 4000 }] });
+  assert.deepEqual(below.spendable, { value: 2500, basis: "endOfMonth" });
+  // Comprobación de la propiedad: tras gastar el titular, ninguno de los dos márgenes queda por debajo de 0.
+  const spent = below.spendable.value;
+  assert.equal(below.today.margin - spent >= 0, true);
+  assert.equal(below.endOfMonth.margin - spent, 0);
+  // Empate: la base es hoy. Sin previsión: la base es hoy.
+  assert.equal(HomeMargin.build({ ...base, rows: [{ detailMonthKey: "2026-10", month: "oct 26", totalLiquidity: 7000 }] }).spendable.basis, "today");
+  assert.deepEqual(HomeMargin.build({ ...base, rows: [] }).spendable, { value: 5500, basis: "today" });
+  // Negativo: se dice con su signo, y puede mandar cualquiera de los dos.
+  const negative = HomeMargin.build({ ...base, balances: { caixa: 800, mediolanum: 200 }, rows: [{ detailMonthKey: "2026-10", month: "oct 26", totalLiquidity: 300 }] });
+  assert.deepEqual(negative.spendable, { value: -1200, basis: "endOfMonth" });
+  // Sin saldo no hay titular.
+  assert.equal(HomeMargin.build({ ...base, balances: { caixa: null, mediolanum: 1 } }).spendable, null);
+});
+
 test("el nombre del mes sale de la clave, en español y sin año: «oct 26» se leería como «26 de octubre»", () => {
   for (const [today, name] of [["2026-01-15", "enero"], ["2026-09-30", "septiembre"], ["2026-10-02", "octubre"], ["2026-12-31", "diciembre"]]) {
     const margin = HomeMargin.build({ ...base, today, rows: [{ detailMonthKey: today.slice(0, 7), month: "etiqueta cualquiera", totalLiquidity: 1 }] });
@@ -217,4 +238,22 @@ test("el módulo y el control están registrados: index.html (antes de app.js), 
   assert.match(html, /<input id="ajustesLiquidityFloor" type="number" min="0"/);
   // El suelo de liquidez no se confunde con la reserva operativa: cada uno tiene su propio campo.
   assert.match(html, /id="ajustesReserve"/);
+});
+
+test("S5 · el titular de la ficha es «Disponible para gastar» (el menor de los dos márgenes) y las dos cifras van de apoyo", () => {
+  const tile = extractFunction("homeMarginTile");
+  assert.match(tile, /label: "Disponible para gastar"/);
+  assert.match(tile, /value: money\(spendable\.value, true\)/);
+  assert.match(tile, /Hoy: \$\{money\(today\.margin, true\)\} · A fin de \$\{eom\.monthLabel\} \(previsión\): \$\{money\(eom\.margin, true\)\}/);
+  assert.match(tile, /spendable\.value < 0 \? "danger"/);
+  // El nombre «Disponible» lo aprobó el hogar (S-4) con el suelo al lado: la nota lo dice.
+  assert.match(tile, /Sin bajar del suelo de \$\{money\(today\.floor, true\)\}/);
+});
+
+test("S5 · en móvil el subtítulo de Hoy se oculta (41 px antes de la cifra), y la versión de la hoja de estilos cambia con ello", () => {
+  const css = read("design-tokens.css");
+  assert.match(css, /@media \(max-width: 640px\) \{\s*#home \.e19-subtitle \{ display: none; \}\s*\}/);
+  // Solo en móvil: la regla base del subtítulo no oculta nada en escritorio.
+  assert.ok(!/\.e19-subtitle \{[^}]*display: none/.test(css.replace(/@media[^{]*\{[^}]*\{[^}]*\}[^}]*\}/g, "")));
+  assert.match(read("index.html"), /design-tokens\.css\?v=20261002s5a1/);
 });

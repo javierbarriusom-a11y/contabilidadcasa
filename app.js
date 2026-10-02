@@ -30682,34 +30682,33 @@ function homeBudgetWeekNoteSuffix(weekSummary) {
 // U-2 (FASE 5): rejilla "de un vistazo" en Hoy — presupuesto, caja, objetivos y accesos rápidos en
 // 2×2, mobile-first. Reutiliza homeBudgetSummary() (P-2/U-1), los saldos ya calculados por
 // renderHomeDashboard() y las rachas de GAME-1 — no recalcula nada que ya exista.
-// S3′ · el margen de Hoy: «Disponible hoy» y «Disponible a fin de mes (previsión)», las dos sobre el
-// suelo de liquidez (canonical-home-margin.js). Sustituye a «Caja disponible» y a «Liquidez hoy», que
-// repetían el mismo total. `extra` lleva la segunda cifra; todo lo demás es el renderHomeKpi de siempre.
+// S3′/S5 · el margen de Hoy (canonical-home-margin.js). Titular: «Disponible para gastar» = el menor de
+// «hoy» y «a fin de mes (previsión)», las dos sobre el suelo de liquidez; las dos cifras van debajo, como
+// apoyo. Sustituye a «Caja disponible» y a «Liquidez hoy», que repetían el mismo total. `extra` lleva las
+// líneas de apoyo; todo lo demás es el renderHomeKpi de siempre.
 function homeMarginTile(balances) {
   const margin = window.FinanceCanonicalHomeMargin?.build({
     balances, liquidityFloor: state?.liquidityFloor, caixaMinimum: agentCaixaFloor(),
     rows: openSimulationRows(lastSimulation), today: isoLocalDate(new Date()),
   });
   const age = homeDataAge();
-  const common = { label: "Disponible hoy", cta: age?.stale ? "Actualizar saldos" : "Ver saldos", target: "update-hub" };
+  const common = { label: "Disponible para gastar", cta: age?.stale ? "Actualizar saldos" : "Ver saldos", target: "update-hub" };
   if (margin?.status !== "ok") {
     return renderHomeKpi({ ...common, value: "—", status: "neutral", note: margin?.missing?.length ? `Falta el ${margin.missing.join(" y el ")}.` : "No se puede calcular el margen." });
   }
-  const { today, endOfMonth: eom } = margin;
-  const second = eom.available
-    ? `<span class="e19-kpi-label">A fin de ${escapeHtml(eom.monthLabel)} (previsión)</span><strong class="e19-kpi-value">${escapeHtml(money(eom.margin, true))}</strong>
-       <p class="e19-kpi-note">Lo que falta por cobrar y pagar este mes según el plan. No ve bajadas intermedias antes de cobrar.</p>`
-    : `<p class="e19-kpi-note">Sin previsión para este mes: el mes de hoy no está en el plan abierto.</p>`;
+  const { today, endOfMonth: eom, spendable } = margin;
+  const support = eom.available
+    ? `Hoy: ${money(today.margin, true)} · A fin de ${eom.monthLabel} (previsión): ${money(eom.margin, true)}.`
+    : `Hoy: ${money(today.margin, true)}. Sin previsión para este mes: el mes de hoy no está en el plan abierto.`;
   const caixa = margin.caixaShortfall > 0
     ? `<p class="e19-kpi-note">CaixaBank está ${escapeHtml(money(margin.caixaShortfall, true))} por debajo de su mínimo operativo${margin.moveFromMediolanum > 0 ? `: mueve ${escapeHtml(money(margin.moveFromMediolanum, true))} desde Mediolanum` : ""}.</p>`
     : "";
-  const negative = today.margin < 0 || (eom.available && eom.margin < 0);
   return renderHomeKpi({
     ...common,
-    value: money(today.margin, true),
-    note: `Saldo ${money(today.total, true)} − suelo ${money(today.floor, true)}. ${age ? `${age.label}.` : ""}${age?.stale ? ` ${age.warning}` : ""}`,
-    status: negative ? "danger" : margin.caixaShortfall > 0 || age?.stale ? "warn" : "good",
-    extra: second + caixa,
+    value: money(spendable.value, true),
+    note: `Sin bajar del suelo de ${money(today.floor, true)}. ${age ? `${age.label}.` : ""}${age?.stale ? ` ${age.warning}` : ""}`,
+    status: spendable.value < 0 ? "danger" : margin.caixaShortfall > 0 || age?.stale ? "warn" : "good",
+    extra: `<p class="e19-kpi-note">${escapeHtml(support)} No ve bajadas intermedias antes de cobrar.</p>${caixa}`,
   });
 }
 

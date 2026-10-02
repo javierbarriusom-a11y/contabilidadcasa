@@ -116,3 +116,37 @@ El hogar aceptó «con ajustes» la regla de `BACKLOG_UX_OLAS.md` §8.4 y pidió
 | OK del hogar a la regla de parada v2 (§5) | Pendiente |
 | Veto o confirmación del cambio de horizonte (30 días → mes natural) | Pendiente |
 | D3, D4, D5 (carta del mes, modo consulta, pliegue del detalle) | Sin contestar; no bloquean S4 |
+
+## 7. S5 — el titular, y las preguntas abiertas al hogar (2/10/2026, sesión 290)
+
+**Supuesto de trabajo acordado con el hogar:** el tiempo de la línea base es **malo**. No hay segundos medidos; se parte de que el hogar no encontró la cifra (hecho registrado el 2/10) y de que el objetivo sigue siendo ≤ 15 s con las dos personas diciendo la misma cifra. Consecuencia: la mejora ya **no se puede cuantificar contra un «antes»**; solo cuenta la medición posterior a S5.
+
+**Qué se hizo (S5), con lo medido y no con una corazonada.** A 390 px, con el aviso de primeros pasos descartado, antes de la ficha de margen hay **206 px** de cabecera común de la app (barra 70 + bloque «DATO REAL / LOCAL / Fuente» 120) y **319 px** de cabecera de Hoy (título 64, subtítulo 41, fila de avisos 88, controles 109): la ficha empezaba a 557 px y medía 250. Un iPhone con la barra de Safari ve unos 660 px útiles, así que solo asomaba el rótulo y la segunda cifra quedaba bajo el pliegue. Además había **dos cifras** compitiendo («hoy» y «a fin de mes»), y la causa más probable de «las cifras no coinciden» es que cada persona mire una distinta.
+- **Un solo titular:** «Disponible para gastar» = el **menor** de los dos márgenes. Gastar X baja las dos cifras en X, así que el menor es lo que se puede gastar sin cruzar el suelo ni hoy ni a fin de mes (una prueba lo comprueba como propiedad). Las dos cifras pasan a una línea de apoyo. Se mantiene el nombre «Disponible» con el suelo al lado (S-4, aprobada).
+- **Ficha más baja** (250 → 217 px) y **subtítulo de Hoy oculto en móvil** (41 px de texto que no dice nada que la pantalla no diga).
+- **Resultado medido** (Chromium, datos de demostración): la ficha empieza a 517 px y la cifra termina en 576 px, dentro de los 664 px útiles de un iPhone con Safari y de los 844 de uno sin barras. **No basta** para un iPhone SE con Safari (553 px útiles: la cifra termina en 594). Lo que queda encima es cabecera común y controles, y decidirlo es del hogar (pregunta 12).
+- **Lo que S5 no resuelve, dicho:** la cifra sigue dando por hechos los reales registrados y sigue sin ver bajadas intermedias antes de cobrar; el titular solo protege el fin de mes y hoy.
+
+**Preguntas abiertas, consolidadas, con mi recomendación.** Las que condicionan lo demás van primero.
+
+| # | Pregunta | Mi recomendación | Qué cambia según la respuesta |
+|---|---|---|---|
+| **Para medir** | | | |
+| 1 | Con S4, S3′ y S5 ya en el sitio: ¿cuántos segundos tarda quien **solo consulta** en decir la cifra de «¿cuánto podemos gastar hasta cobrar?» (3 intentos, cronómetro) y la dicen igual las dos personas? | Medirlo una vez, **después** de S5 (el «antes» es el supuesto «malo») | Es lo único que dice si el plan de UX sigue o se detiene (regla de parada) |
+| 2 | ¿Qué modelo de iPhone usa quien consulta? | — | Con un SE el titular no entra sin quitar cabecera; con un 13 o posterior sí |
+| **Datos que condicionan la cifra** | | | |
+| 3 | ¿Actualizasteis los saldos después del 27/9? ¿Está registrada la nómina del 30/9, y **como real**? | Actualizar saldos y registrar el real el mismo día | La cifra de fin de mes depende de ello |
+| 4 | ¿Registráis cada gasto **como real el mismo día** que ocurre? | Sí; si no, el aviso de saldo antiguo es la única red | La cifra da por hechos los reales registrados: una partida pasada y no registrada se cuenta dos veces |
+| **Decisiones de producto** | | | |
+| 5 | ¿Queréis que el titular sea el **menor** de «hoy» y «a fin de mes»? | Sí (prudente; una sola cifra) | Alternativa: titular siempre «hoy» y fin de mes aparte (más alto, menos prudente) |
+| 6 | **Regla de parada v2** (§5): ¿OK o ajustar umbrales (−30 % / ≤ 15 s / máx. 2 entregas visibles)? | OK. Nota: con S5 ya van **tres** entregas visibles sobre Hoy sin medir; propongo congelar Hoy hasta la medición | Sin su OK sigue siendo una propuesta mía |
+| 7 | Mes natural como horizonte (sustituye a los 30 días): ¿confirmado? | Confirmado (ya construido en S3′) | Vetable; implicaría rehacer la fila elegida |
+| 8 | Valores: suelo de liquidez **1.500 €** sobre el total y mínimo operativo de CaixaBank **1.500 €** | Mantener; revisar cuando haya un mes de uso | Parametrizables en Ajustes |
+| 9 | Con un saldo de 4 o más días, ¿baja a «media» la **confianza** («high» hoy) que alimenta informes y asistente? | Sí | Hoy la ficha antigua ya no se ve, pero informes y asistente siguen diciendo «high» |
+| 10 | Cierre de mes: mes natural, cierre entre el día 1 y el 3, con el saldo del último día (§8.5) | Confirmar; yo verifico en código que el cierre usa el saldo de fin de mes | Sin verificar |
+| 11 | D3 «Carta del mes» (¿qué esperáis?), D4 modo consulta nivel 1, D5 pliegue del detalle en modo consulta | D3: **no construir** hasta que la definan; D4: sí (no protege); D5: sí (Hoy mide ~11.400 px en móvil) | No bloquean nada |
+| 12 | El bloque «DATO REAL / LOCAL / Fuente» ocupa 120 px en **cada** pantalla del móvil, y los controles de Hoy 109 px: ¿se pueden compactar o plegar en móvil? | Plegar el bloque de sincronización a una línea; dejar «Registrar gasto» | Es lo que más pesa antes de la cifra |
+| **Calendario y aparcados** | | | |
+| 13 | Revisión mensual de Nielsen (**16/10**) y reevaluación de `OPT-10`–`OPT-13` (**23/10**): ¿hay uso intenso que contar? | Traer el informe de uso | Decide si se desaplazan |
+| 14 | Idea aparcada: inferir el día de cargo de cada recibo desde el histórico. ¿Queréis el script de viabilidad (solo lectura)? | Sí, cuando haya ≥ 3 meses de movimientos importados; no antes | Es lo único que recuperaría el aviso «bajaréis del suelo antes de cobrar» |
+| — | `alerts-center`: redirigir a Ajustes › Alertas | **Se deja** (decisión del hogar, 2/10) | Si se retoma, antes verificar que Ajustes › Alertas cubre todos los umbrales |

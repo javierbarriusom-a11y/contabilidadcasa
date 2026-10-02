@@ -5,7 +5,7 @@ deuda de rendimiento y navegación que dejó. Autocontenido a propósito: quien 
 decidir qué hacer primero en 10 minutos. El detalle histórico de cada cosa vive en `PROJECT_STATE.md` (sesiones 268–278) y en los
 documentos de diseño enlazados.
 
-**Actualizado el 2 de octubre de 2026 (sesión 288: S4 y S3′ fusionadas (#425 y #426), a la espera de que el hogar las pruebe y de re-medir; antes, sesión 287: medición con datos reales).** Estado en una línea: la medición dio **100 % de fechas de salida estimadas**, así que **S2 y S3 tal como estaban diseñadas se cancelan** y se recalibran en [`docs/OLA2_RECALIBRACION.md`](docs/OLA2_RECALIBRACION.md); **S4** (frescura del dato) **está fusionada** (#425) y **S3′** («margen de Hoy», sin depender de fechas) **está fusionada** (#426) por orden del hogar, sin haberla probado antes con sus datos. S1 está hecha (sesión 286); el PR #416 está cerrado. *(Sesiones 285–286: decisiones del hogar, diseño y S1.)*
+**Actualizado el 2 de octubre de 2026 (sesión 290: S5 — titular único «Disponible para gastar» y ficha más baja; supuesto de trabajo «tiempo base malo»; las preguntas abiertas están consolidadas en `docs/OLA2_RECALIBRACION.md` §7; antes, sesión 288: S4 y S3′ fusionadas (#425 y #426), a la espera de que el hogar las pruebe y de re-medir; antes, sesión 287: medición con datos reales).** Estado en una línea: la medición dio **100 % de fechas de salida estimadas**, así que **S2 y S3 tal como estaban diseñadas se cancelan** y se recalibran en [`docs/OLA2_RECALIBRACION.md`](docs/OLA2_RECALIBRACION.md); **S4** (frescura del dato) **está fusionada** (#425) y **S3′** («margen de Hoy», sin depender de fechas) **está fusionada** (#426) por orden del hogar, sin haberla probado antes con sus datos. S1 está hecha (sesión 286); el PR #416 está cerrado. *(Sesiones 285–286: decisiones del hogar, diseño y S1.)*
 
 Su lugar en el mapa de backlogs: `BACKLOG_INDICE.md` (eje de UX del backlog vigente `BACKLOG_CONTABILIDADCASA_3_0.md`, no lo sustituye).
 
@@ -40,6 +40,7 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 | 2 · S1 | `canonicalDailyInput` y sus tres ayudantes (166 líneas) salen de `app.js` a `canonical-daily-input.js`, sin cambio de comportamiento (102 casos idénticos, datasets dorados sin diferencias); `app.js` 37.530 → 37.365 y techo 37.495 | [#423](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/423) | 286 |
 | 2 · Medición y recalibración | Medición con datos reales y sesión del hogar: 100 % de salidas con fecha estimada (estructural, no arreglable con extractos). S2 y S3 canceladas tal como estaban; S4 primero; S3′ sin dependencia de fechas; regla de parada v2 propuesta. Solo documentación; `docs/OLA2_RECALIBRACION.md` | PR de la sesión 287 | 287 |
 | 2 · S4 frescura del dato | `canonical-data-age.js` + tres puntos de uso (cabecera de Hoy con píldora de aviso, ficha de margen con «Actualizar saldos», tira superior). Umbral de aviso: 4 días. Fusionada por orden del hogar | [#425](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/425) | 288 |
+| 2 · S5 titular de Hoy | Titular único «Disponible para gastar» = el menor de «hoy» y «a fin de mes»; ficha 33 px más baja; subtítulo de Hoy oculto en móvil. Medido: la cifra termina en 576 px (cabe en 664 de un iPhone con Safari; **no** en un SE de 553) | PR de la sesión 290 | 290 |
 | 2 · S3′ margen de Hoy | `canonical-home-margin.js`; ficha «Disponible hoy» + «A fin de mes (previsión)» la primera de la rejilla; retira «Caja disponible» y «Liquidez hoy»; parámetro nuevo «suelo de liquidez» en Ajustes. Fusionada por orden del hogar | [#426](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/426) | 288 |
 
 **Decisiones del hogar vigentes** (30/09/2026 salvo indicación): camino B; retirar pantallas = **«redirigir sin borrar código»**; «avanza sin el
@@ -335,6 +336,8 @@ Cómo leerlo:
 - No pegar en el repositorio público los resultados con importes reales.
 
 ## 9. Pendiente al cierre de la sesión 287 (2 de octubre de 2026)
+
+> **Actualización de la sesión 290:** las preguntas abiertas al hogar están **consolidadas, numeradas y con mi recomendación en `docs/OLA2_RECALIBRACION.md` §7**. Esta tabla queda como histórico de la sesión 287.
 
 | Qué | Estado | Quién |
 |---|---|---|
