@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de octubre de 2026 (sesión 287). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 2 de octubre de 2026 (sesión 288). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,19 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 2 de octubre de 2026 (288): S4 de la Ola 2 — la edad de los saldos, dicha junto a la cifra (PR abierto, sin fusionar a propósito)
+
+- **Qué se hizo:** la entrega **S4** (`docs/OLA2_RECALIBRACION.md` §3), primera de las recalibradas. Módulo nuevo `canonical-data-age.js` (`FinanceCanonicalDataAge.describe`, puro: la fecha de los saldos, el día de hoy y el modo llegan por parámetro) y tres puntos de uso en `app.js` a través de un único ayudante, `homeDataAge()`: (1) **cabecera de Hoy**: la etiqueta «Saldos del 27/9 · hace 5 días» sustituye al «Analizado a 2026-09-27» en ISO crudo y, si el saldo es antiguo, sale como **píldora de aviso** (`status-pill warn`, ya con contraste revisado en claro y oscuro); (2) **tarjeta «Liquidez hoy»**: la nota lleva la misma etiqueta y, si es antiguo, añade «Pueden faltar movimientos posteriores a esa fecha.» y la acción pasa de «Ver saldos» a **«Actualizar saldos»**; (3) **tira superior** (visible en todas las pantallas salvo Hoy): «27 sep · hace 5 días».
+- **Reglas del módulo:** hoy / ayer / «hace N días» en días naturales (inmune al cambio de horario); **umbral de aviso: 4 días** (con importación tres veces por semana el hueco normal es de 3; a la cuarta se ha saltado una carga; parametrizable); en modo **automático** no hay aviso (el saldo se calcula por calendario, no es una foto del banco); fecha **posterior a hoy** se dice tal cual (sin «hace −N días»); **sin fecha válida** dice «Saldos sin fecha» (31 de febrero incluido) en vez de inventar una edad. Si el módulo no estuviera cargado, la pantalla cae al texto anterior.
+- **No decidida por mí, y por eso el PR no se fusiona solo:** S4 cambia la pantalla más vista y **todavía no existe la línea base con tiempos** (`docs/OLA2_RECALIBRACION.md` §5.2), así que fusionarla ahora dejaría sin «antes». Queda abierto para que el hogar lo pruebe y mida el «antes» en el sitio vivo; se fusiona cuando lo diga.
+- **Comprobado en navegador real** (Chromium, `dist/` con los datos de demostración, móvil 390 px y escritorio 1280 px; saldos de hoy, de hace 5 días y en modo automático): textos correctos, sin errores de consola, sin desbordamiento horizontal, píldora ámbar visible en el móvil.
+- **Hallazgo que no he tocado:** en la misma tarjeta, la línea «Fuente: … · confianza high» sigue diciendo **«high»** aunque el saldo tenga 5 días y la nota avise de que pueden faltar movimientos: una contradicción menor. La confianza sale del modelo de lectura (`readModel.metrics.liquidity`), que también alimenta informes y respuestas del asistente, así que bajarla es otra decisión (apuntada en `BACKLOG_UX_OLAS.md` §7).
+- **Pruebas:** nueva `tests/canonical-data-age.test.cjs` (**10**: cinco días, hoy/ayer, umbral 3→4 y parametrizable, cambio de mes/año/horario, año distinto, modo automático, fecha futura, fechas inválidas, ISO con hora, y el uso desde `app.js` + registro). `arq3-canonical-sin-consumidor-ui`: recuento 68 → **69** (consumidor real desde el primer día). Versión de `app.js` en `index.html` y en **27** pruebas que la fijan: `20261001s1a1` → `20261002s4a1`.
+- **Registro del módulo:** `index.html` (antes de `app.js`), `service-worker.js`, `tools/build-public-site.mjs`.
+- **Resultado de la validación:** `npm run verify` **verde** (salida 0): `npm test` **4989/4989** (4979 + 10 nuevas), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. `app.js` pasa de **37.365 a 37.373 líneas (+8)**; margen bajo el techo ARQ-4 (37.495): **122**. **No se ejecutaron en local** las puertas de navegador del CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); las valida el CI del PR.
+- **Pendiente:** el hogar prueba S4 y mide la línea base con tiempos (2 minutos, 3 intentos de quien consulta) **antes** de fusionar; OK a la regla de parada v2 y veto o confirmación del horizonte natural; ¿saldos actualizados después del 27/9 y nómina del 30/9 recogida?; después, S3′. **Revisión mensual de Nielsen: vence el 16/10/2026**; `OPT-10`–`OPT-13` siguen aplazadas al 23/10/2026.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR contra `main`, en borrador.
 
 ## Cierre de sesión — 2 de octubre de 2026 (287): medición con datos reales de la Ola 2; S2 y S3 recalibradas, S4 primero (solo documentación)
 

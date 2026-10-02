@@ -101,8 +101,8 @@ El hogar aceptó «con ajustes» la regla de `BACKLOG_UX_OLAS.md` §8.4 y pidió
 
 | Qué | Estado |
 |---|---|
-| Entrega **S4** (frescura del dato) | Siguiente entrega de código |
-| Línea base **con tiempos** de quien consulta | Sin hacer |
+| Entrega **S4** (frescura del dato) | **Construida** (sesión 288, `canonical-data-age.js`); PR abierto, **sin fusionar** hasta tener la línea base con tiempos |
+| Línea base **con tiempos** de quien consulta | Sin hacer; **bloquea la fusión de S4** (sin «antes» no se puede medir el efecto) |
 | ¿Se actualizaron los saldos después del 27/9? ¿Está recogida la nómina del 30/9? | Sin respuesta |
 | `alerts-center`: redirigir a Ajustes › Alertas | **Se deja de momento** (decisión del hogar, 2/10/2026) |
 | OK del hogar a la regla de parada v2 (§5) | Pendiente |
