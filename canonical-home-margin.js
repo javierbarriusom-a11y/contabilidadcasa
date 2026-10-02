@@ -9,6 +9,7 @@
   // en que se carga cada recibo:
   //   · Disponible hoy                 = saldo total (CaixaBank + Mediolanum) − suelo de liquidez.
   //   · Disponible a fin de mes (prev.) = liquidez prevista a fin de mes por el motor mensual − suelo.
+  //   · Disponible para gastar (titular) = la menor de las dos.
   // Es puro: los saldos, el suelo, las filas del motor mensual y el día de hoy llegan por parámetro.
   // No usa el motor diario (sus fechas de salida son estimadas casi al 100 %, ver §2 del documento).
 
@@ -49,7 +50,7 @@
     const floor = normalizeFloor(input.liquidityFloor);
     if (caixa === null || mediolanum === null) {
       // Sin saldo no hay cifra: se dice cuál falta y no se rellena con un 0.
-      return { status: "missing", missing: [caixa === null ? "saldo de CaixaBank" : "", mediolanum === null ? "saldo de Mediolanum" : ""].filter(Boolean), floor, today: null, endOfMonth: null, caixaShortfall: 0, moveFromMediolanum: 0 };
+      return { status: "missing", missing: [caixa === null ? "saldo de CaixaBank" : "", mediolanum === null ? "saldo de Mediolanum" : ""].filter(Boolean), floor, today: null, endOfMonth: null, spendable: null, caixaShortfall: 0, moveFromMediolanum: 0 };
     }
     const total = round2(caixa + mediolanum);
     const today = { total, floor, margin: round2(total - floor) };
@@ -69,7 +70,13 @@
     const caixaShortfall = caixaMinimum !== null && caixaMinimum > 0 && caixa < caixaMinimum ? round2(caixaMinimum - caixa) : 0;
     const moveFromMediolanum = caixaShortfall > 0 ? round2(Math.min(caixaShortfall, Math.max(0, mediolanum))) : 0;
 
-    return { status: "ok", missing: [], floor, today, endOfMonth, caixaShortfall, moveFromMediolanum };
+    // El titular: lo que se puede gastar sin cruzar el suelo ni hoy ni a fin de mes. Gastar X baja las dos
+    // cifras en X, así que vale la menor. Con empate, o sin previsión, la base es hoy.
+    const spendable = endOfMonth.available && endOfMonth.margin < today.margin
+      ? { value: endOfMonth.margin, basis: "endOfMonth" }
+      : { value: today.margin, basis: "today" };
+
+    return { status: "ok", missing: [], floor, today, endOfMonth, spendable, caixaShortfall, moveFromMediolanum };
   }
 
   return { DEFAULT_LIQUIDITY_FLOOR, normalizeFloor, build };

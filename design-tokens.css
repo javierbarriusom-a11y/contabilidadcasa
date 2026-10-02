@@ -216,6 +216,13 @@
   margin: 0;
 }
 
+/* S5 (Ola 2): en móvil el subtítulo de Hoy («Saldo, capacidad, siguiente riesgo…») ocupa 41 px antes de la
+   cifra que se busca y no dice nada que la propia pantalla no diga. Medido: la ficha de margen empieza a
+   557 px; un iPhone con la barra de Safari ve unos 660 px. */
+@media (max-width: 640px) {
+  #home .e19-subtitle { display: none; }
+}
+
 /* H-1: estado + fecha de análisis + fuente + guía, debajo del subtítulo de Hoy. */
 .e19-home-meta {
   display: flex;
