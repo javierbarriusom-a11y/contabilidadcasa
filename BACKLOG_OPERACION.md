@@ -1,5 +1,7 @@
 # Backlog operativo — decisiones rápidas y uso diario
 
+> **2/10/2026 (sesión 292): lo pendiente de este documento vive ahora en [`BACKLOG_INICIO_OLEADA_OCTUBRE.md`](BACKLOG_INICIO_OLEADA_OCTUBRE.md)**, el único backlog vivo. Este se conserva como detalle histórico de por qué se hizo cada cosa; no actuar sobre sus estados sin contrastarlos con aquel (su §12 lista lo desfasado).
+
 > Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
 
 Fecha: 21 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.

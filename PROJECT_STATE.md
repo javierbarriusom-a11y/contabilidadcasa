@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de octubre de 2026 (sesión 291). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 2 de octubre de 2026 (sesión 292). **Único backlog vivo: `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (§0 y §1); el detalle del plan de UX sigue en `BACKLOG_UX_OLAS.md` y `docs/OLA2_RECALIBRACION.md`.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,17 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 2 de octubre de 2026 (292): todos los backlogs pendientes consolidados en `BACKLOG_INICIO_OLEADA_OCTUBRE.md`
+
+- **Qué pidió el hogar:** «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único que se llame `inicio_oleada_octubre`». Solo documentación y skill; ningún cambio de código.
+- **Hecho:** nace `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (único backlog vivo): estado en una línea; qué espera al hogar (H1–H6); lo que hace Claude sin bloqueo (C1–C3); lo congelado por la regla de parada v2 con un árbol de decisión para cuando llegue el diagnóstico; lo condicionado por terceros (`A5-1`, `A5-4`, PSD2); lo aplazado o aparcado por decisión del hogar (`OPT-10`–`OPT-13`, entrega 5 de la Ola 1, `NAV-3`, Visual Detail, `I3`, `I6`); Cola B; deuda técnica; calendario; Olas 3 y 4; reglas y recetas verificadas (incluida la de fusión sin `--force-with-lease`); lo que quedó desfasado en los backlogs antiguos; y el mapa de dónde está el detalle de cada cosa.
+- **No se ha borrado ni reescrito ningún backlog anterior:** los seis que seguían activos (`BACKLOG_UX_OLAS.md`, `BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`, `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, `BACKLOG_OPERACION.md`) llevan un aviso de una línea en la cabecera. `BACKLOG_INDICE.md`: fila nueva «🟢 Vigente» (la única); el 3.0 y el de UX pasan a «🟡 Absorbido».
+- **Skill `finanzas-casa-workflow` (Modo Inicio, paso 2):** apunta al backlog nuevo, como exigen los guardianes `opt20-indice-backlogs` y `proc-skill-alineada-con-claude-md` (que pasan sin tocar sus pruebas).
+- **Hallazgo nuevo (C2), verificado en el código y sin cambiar:** el cierre de mes real **no usa ningún saldo**. `closeCurrentMonthTransaction` (`app.js`) cierra `openMonthCutoffKey()` = el mes de hoy y `closeMonth` (`canonical-month-close.js`) guarda solo los reales del mes, el motivo, el autor y los asientos de sobres. Lo que el hogar confirmó el 2/10 (mes natural, cierre entre el día 1 y el 3, saldo del último día) **no es lo que hace hoy la app**. Se deja como decisión del hogar (H5): modifica una operación firmada y transaccional (`close_finance_month`).
+- **Sin decisión nueva del hogar en esta sesión** más allá de pedir la consolidación; el resto de pendientes sigue como estaba (diagnóstico de «no la encontró», D4/D5, saldos y remedición).
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008** (sin pruebas nuevas ni cambiadas), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Revisión mensual de Nielsen: la última fue el 16/09/2026; vence el **16/10/2026**.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR contra `main`.
 
 ## Cierre de sesión — 2 de octubre de 2026 (291): respuestas del hogar a las 14 preguntas, P9 y diagnóstico de «no la encontró»
 
