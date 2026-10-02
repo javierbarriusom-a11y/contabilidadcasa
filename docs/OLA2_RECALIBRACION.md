@@ -109,8 +109,8 @@ El hogar aceptó «con ajustes» la regla de `BACKLOG_UX_OLAS.md` §8.4 y pidió
 | Qué | Estado |
 |---|---|
 | Entrega **S4** (frescura del dato) | ✅ **Fusionada** el 2/10/2026 ([#425](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/425)) por orden del hogar |
-| Entrega **S3′** (margen de Hoy) | **Construida** (sesión 288, `canonical-home-margin.js`); PR abierto, **sin fusionar** hasta que el hogar lo pruebe: retira una ficha de la pantalla más vista |
-| Línea base **con tiempos** de quien consulta | Sin hacer. S4 se fusionó por orden del hogar sin ella; **sigue haciendo falta antes de fusionar S3′**: el «antes» ya no existe en el sitio vivo sin S4, así que se mide con la versión de S4 y se compara con S3′ |
+| Entrega **S3′** (margen de Hoy) | ✅ **Fusionada** el 2/10/2026 ([#426](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/426)) por orden del hogar, sin prueba previa con sus datos |
+| Línea base **con tiempos** de quien consulta | Sin hacer. S4 y S3′ se fusionaron por orden del hogar sin ella: el «antes» limpio ya no existe. **Se mide ahora el estado actual** (2 minutos, 3 intentos de quien consulta) y es lo que decide la re-medición con las dos personas |
 | ¿Se actualizaron los saldos después del 27/9? ¿Está recogida la nómina del 30/9? | Sin respuesta |
 | `alerts-center`: redirigir a Ajustes › Alertas | **Se deja de momento** (decisión del hogar, 2/10/2026) |
 | OK del hogar a la regla de parada v2 (§5) | Pendiente |
