@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de octubre de 2026 (sesión 290). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
+Fecha de revisión: 2 de octubre de 2026 (sesión 291). **Para retomar el plan de UX en otra sesión: `BACKLOG_UX_OLAS.md`, §0 y §8.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -109,6 +109,18 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 2 de octubre de 2026 (291): respuestas del hogar a las 14 preguntas, P9 y diagnóstico de «no la encontró»
+
+- **Qué llegó:** las dos personas contestaron la hoja de preguntas (artefacto de Claude con almacén privado; las respuestas se leyeron del almacén y coinciden con el resumen pegado). Detalle, decisión por decisión y sin cifras de dinero, en `docs/OLA2_RECALIBRACION.md` §8.
+- **Hecho medido:** quien consulta tardó **30, 28 y 20 s** y dijo «no la encontró»; **no cumple** el objetivo (≤ 15 s con la misma cifra). Usa un iPhone Plus o Pro Max (la ficha cabe sin scroll: el scroll **no** es la causa). Quien opera: saldos **sin actualizar desde el 27/9**, nómina del 30/9 «no lo sé», reales «casi siempre en 1 o 2 días».
+- **Decisiones del hogar:** P5 (titular = el menor), P6 (**regla de parada v2 aprobada y vigente**), P7 (mes natural), P8 (mantener 1.500 € y 1.500 €), P9 (confianza a «media» desde los 4 días), P10 (cierre de mes natural), P13 (sin uso intenso: `OPT-10`–`OPT-13` siguen aplazadas), P14 (script de viabilidad con ≥ 3 meses de movimientos), P12 (plegar el bloque de sincronización en móvil, pedido por quien consulta), P11 (carta del mes **querida, alcance delegado en Claude**; D4 y D5 «sí» de quien opera, sin respuesta de quien consulta).
+- **Hecho (P9):** `confidence` de la métrica de liquidez pasa de «high» a «medium» con saldo declarado de **4 o más días** (el mismo umbral de `canonical-data-age.js`); `app.js` sin líneas nuevas (37.413). Verificado en Chromium: manual hoy y 3 días «high»; 4 y 5 días «medium»; automático «medium»; sin errores. Prueba nueva en `tests/canonical-data-age.test.cjs`.
+- **Diagnóstico de «no la encontró» (sin cambiar código):** el service worker sirve **primero la copia en caché** y baja la nueva después, así que la primera apertura tras cada despliegue muestra la versión anterior; y la cifra de Hoy tarda **4,5 s en visita repetida y 9,6 s en la primera tras un despliegue** en móvil emulado lento (CPU 4×, 1,6 Mbps), tiempo que el cronómetro incluye. Hipótesis ordenadas y cuatro preguntas para discriminar en `docs/OLA2_RECALIBRACION.md` §8.1.
+- **Regla v2 aplicada, dicho:** van tres entregas visibles sobre Hoy (máximo dos) y el objetivo no se cumple. **No se construye más sobre Hoy** hasta contestar §8.1; P12 y la carta del mes quedan **aprobadas pero sin construir** (la carta, además, propuesta en Cierre de mes y no en Hoy, §8.3).
+- **Pendiente:** el hogar contesta §8.1 y D4/D5 (quien consulta), actualiza saldos y comprueba la nómina del 30/9, y repite la medición una vez con la app recargada; Claude verifica en el código que el cierre usa el saldo de fin de mes (P10). **Revisión mensual de Nielsen: vence el 16/10/2026**, sin informe de uso; `OPT-10`–`OPT-13` aplazadas al 23/10/2026.
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008** (5007 + 1 nueva), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Primera pasada: 4 pruebas «F1» fallaron porque montan `unifiedActionCenterModel` en un sandbox y `homeDataAge` no estaba simulado; se añadió esa simulación en el límite (`homeDataAge: () => null`), sin tocar ninguna aserción. `app.js` **37.413 líneas** (sin cambio); margen bajo el techo ARQ-4: 82. **No se ejecutaron en local** las puertas de navegador del CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); las valida el CI del PR.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR contra `main`.
+
 ## Cierre de sesión — 2 de octubre de 2026 (290): S5 de la Ola 2 — titular único en la ficha de margen y preguntas abiertas consolidadas
 
 - **Petición:** «asumamos un tiempo malo para que mejores la experiencia y recopila las preguntas pendientes». Supuesto de trabajo: la línea base es **mala** (no hay segundos medidos); la mejora ya no se puede cuantificar contra un «antes», solo cuenta la medición posterior.
@@ -118,7 +130,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Aviso de proceso, dicho:** con S5 son **tres** entregas visibles sobre Hoy en un día sin medir; la regla de parada v2 (aún sin el OK del hogar) fija un máximo de dos. Se construyó porque el hogar lo pidió expresamente; **recomiendo congelar Hoy hasta la medición**. Es reversible: el titular es una función (`homeMarginTile`) y el módulo conserva `today` y `endOfMonth` intactos.
 - **Pruebas:** `tests/canonical-home-margin.test.cjs` pasa de 15 a **18** (titular = menor de los dos con su propiedad, titular y apoyo en la ficha, regla CSS móvil y versión). Versión de `app.js` `20261002s3a1` → `20261002s5a1` en `index.html` y 27 pruebas; `design-tokens.css` `20260918t8a1` → `20261002s5a1` en `index.html` y las pruebas que la fijan.
 - **Resultado de la validación:** `npm run verify` **verde** (salida 0): `npm test` **5007/5007** (4989 de S4 + 15 de S3′ + 3 de S5), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. `app.js` **37.413 → 37.412 líneas (−1)**; margen bajo el techo ARQ-4 (37.495): **83**. **No se ejecutaron en local** las puertas de navegador del CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); las valida el CI del PR.
-- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; PR contra `main`.
+- **Rama/PR:** `claude/eager-bardeen-xl8wcp`; [#428](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/428), fusionado (`f0e28f9`), despliegue en `success` a las 13:45 UTC.
 
 ## Cierre de sesión — 2 de octubre de 2026 (289): S3′ de la Ola 2 — el margen de Hoy («Disponible hoy» y «A fin de mes (previsión)») (fusionada, #426)
 

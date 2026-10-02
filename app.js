@@ -21442,7 +21442,8 @@ function unifiedActionCenterModel({ context = null } = {}) {
         source: state?.balanceMode === "manual" ? "declared-balances" : "canonical-balance-engine",
         method: "sum-active-accounts",
         coverage: "checking+savings",
-        confidence: state?.balanceMode === "manual" ? "high" : "medium",
+        // P9 (hogar, 2/10/2026): con un saldo declarado de 4 o más días (el umbral de canonical-data-age.js) ya no es «alta».
+        confidence: state?.balanceMode === "manual" && !homeDataAge()?.stale ? "high" : "medium",
       },
       freeCapacity: {
         label: "Capacidad libre real",

@@ -54,6 +54,8 @@ function sandbox(debtOutlook, coverage) {
     currentFamilyContext: () => ({}),
     executiveCoverageSnapshot: () => coverage,
     homeDebtOutlook: () => debtOutlook,
+    // P9: la confianza de la liquidez mira la edad del saldo (canonical-data-age.js); aquí se simula en el límite, sin saldo antiguo.
+    homeDataAge: () => null,
     ExecutiveReadModel,
   };
   vm.createContext(context);

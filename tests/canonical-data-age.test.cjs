@@ -105,3 +105,10 @@ test("app.js usa el módulo en la tira superior, la cabecera de Hoy y la ficha d
   assert.match(read("service-worker.js"), /"\.\/canonical-data-age\.js"/);
   assert.match(read("tools/build-public-site.mjs"), /"canonical-data-age\.js"/);
 });
+
+test("P9 · un saldo declarado de 4 o más días baja a «media» la confianza de la liquidez que leen informes y asistente", () => {
+  const app = read("app.js");
+  // Mismo umbral que el aviso de la ficha de Hoy: homeDataAge().stale (4 días, STALE_AFTER_DAYS).
+  assert.match(app, /confidence: state\?\.balanceMode === "manual" && !homeDataAge\(\)\?\.stale \? "high" : "medium"/);
+  assert.equal(DataAge.STALE_AFTER_DAYS, 4);
+});
