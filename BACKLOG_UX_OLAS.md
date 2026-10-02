@@ -5,7 +5,7 @@ deuda de rendimiento y navegación que dejó. Autocontenido a propósito: quien 
 decidir qué hacer primero en 10 minutos. El detalle histórico de cada cosa vive en `PROJECT_STATE.md` (sesiones 268–278) y en los
 documentos de diseño enlazados.
 
-**Actualizado el 2 de octubre de 2026 (sesión 287, tras medir con datos reales).** Estado en una línea: la medición dio **100 % de fechas de salida estimadas**, así que **S2 y S3 tal como estaban diseñadas se cancelan** y se recalibran en [`docs/OLA2_RECALIBRACION.md`](docs/OLA2_RECALIBRACION.md); **la siguiente entrega es S4** (frescura del dato); después S3′ («margen de Hoy», sin depender de fechas). S1 está hecha (sesión 286); el PR #416 está cerrado. *(Sesiones 285–286: decisiones del hogar, diseño y S1.)*
+**Actualizado el 2 de octubre de 2026 (sesión 288: S4 construida, PR abierto a la espera de que el hogar lo pruebe y mida el «antes»; antes, sesión 287: medición con datos reales).** Estado en una línea: la medición dio **100 % de fechas de salida estimadas**, así que **S2 y S3 tal como estaban diseñadas se cancelan** y se recalibran en [`docs/OLA2_RECALIBRACION.md`](docs/OLA2_RECALIBRACION.md); **S4** (frescura del dato) **está construida y sin fusionar** (el hogar la prueba y mide la línea base con tiempos antes); después S3′ («margen de Hoy», sin depender de fechas). S1 está hecha (sesión 286); el PR #416 está cerrado. *(Sesiones 285–286: decisiones del hogar, diseño y S1.)*
 
 Su lugar en el mapa de backlogs: `BACKLOG_INDICE.md` (eje de UX del backlog vigente `BACKLOG_CONTABILIDADCASA_3_0.md`, no lo sustituye).
 
@@ -17,7 +17,7 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 
 1. Leer este documento entero y, de `PROJECT_STATE.md`, solo las entradas **285, 284 y 283** (arriba del todo) y, del diseño, `docs/OLA2_SUELO_Y_DISPONIBLE.md`.
 2. `git status` y `git log --oneline -5`; comprobar que la rama de trabajo parte de `origin/main` (§6, «reiniciar la rama»).
-3. **Las decisiones esenciales de la Ola 2 ya están tomadas** (§8.5) **y recalibradas el 2/10/2026** tras medir (`docs/OLA2_RECALIBRACION.md`). **S1 está hecha (sesión 286)**; lo siguiente es **S4** (§7). Antes de tocar nada de Hoy, leer §2.3 (lo que enseñó construir O2-1) y §8.5: corrigen el diseño de la sesión 278 y el módulo de O2-1 está aparcado y desfasado.
+3. **Las decisiones esenciales de la Ola 2 ya están tomadas** (§8.5) **y recalibradas el 2/10/2026** tras medir (`docs/OLA2_RECALIBRACION.md`). **S1 está hecha (sesión 286)**; **S4 está construida (sesión 288) y espera la prueba del hogar**; lo siguiente es S3′ (§7). Antes de tocar nada de Hoy, leer §2.3 (lo que enseñó construir O2-1) y §8.5: corrigen el diseño de la sesión 278 y el módulo de O2-1 está aparcado y desfasado.
 4. Si el hogar aún no ha contestado, la única cosa útil sin bloqueo es **§4 (deuda técnica)** y, si el informe de uso existe, **§3**.
 5. **La medición con datos reales ya se hizo (2/10/2026): `porcentajeEstimado` = 100 %.** El script del §8.6 queda como herramienta por si se quiere repetir. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, commit/push, PR en borrador, esperar CI, fusionar en verde (§6).
 
@@ -39,6 +39,7 @@ recogido en `BACKLOG_CONTABILIDADCASA_3_0.md` §9. **Dato del hogar que condicio
 | 2 · Diseño del número de Hoy | `docs/OLA2_SUELO_Y_DISPONIBLE.md`: suelo de liquidez (nuevo parámetro, sobre el total) y «disponible» = mínimo proyectado a 30 días; entregas S1–S4 | #420 | 283 |
 | 2 · S1 | `canonicalDailyInput` y sus tres ayudantes (166 líneas) salen de `app.js` a `canonical-daily-input.js`, sin cambio de comportamiento (102 casos idénticos, datasets dorados sin diferencias); `app.js` 37.530 → 37.365 y techo 37.495 | [#423](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/423) | 286 |
 | 2 · Medición y recalibración | Medición con datos reales y sesión del hogar: 100 % de salidas con fecha estimada (estructural, no arreglable con extractos). S2 y S3 canceladas tal como estaban; S4 primero; S3′ sin dependencia de fechas; regla de parada v2 propuesta. Solo documentación; `docs/OLA2_RECALIBRACION.md` | PR de la sesión 287 | 287 |
+| 2 · S4 frescura del dato | `canonical-data-age.js` + tres puntos de uso (cabecera de Hoy con píldora de aviso, tarjeta «Liquidez hoy» con «Actualizar saldos», tira superior). Umbral de aviso: 4 días. **Sin fusionar a propósito** hasta tener la línea base con tiempos | PR de la sesión 288 | 288 |
 
 **Decisiones del hogar vigentes** (30/09/2026 salvo indicación): camino B; retirar pantallas = **«redirigir sin borrar código»**; «avanza sin el
 informe, solo agrupando» (no retirar sin informe y OK); Escenarios con **cuatro** destinos; los pasos del flujo de Escenarios resaltan
@@ -193,7 +194,7 @@ fusionada; sin esto el hook de parada protesta por commits sin subir). Un PR de 
 ## 7. Orden recomendado para las próximas sesiones
 
 0. **S1 — ✅ hecha (sesión 286).** Extraídas a `canonical-daily-input.js` la función y sus tres ayudantes (166 líneas, no ~110); `app.js` 37.530 → 37.365, techo 37.495; `opt6-mover-cobertura-a-ajustes` y `f1-contrato-ejecutivo-deuda` no necesitaron ajuste. **Un módulo nuevo `canonical-*.js` obliga a: registrarlo en `index.html`, `service-worker.js` y `tools/build-public-site.mjs`, actualizar el recuento de `arq3-canonical-sin-consumidor-ui` (hoy 68) y subir la versión de `app.js` en `index.html` y en las 26 pruebas que la fijan.**
-1. **S4 — siguiente entrega de código** (`docs/OLA2_RECALIBRACION.md` §3): frescura del dato pegada a la cifra de Hoy («saldos del 27/9 · hace 5 días») y aviso si es antiguo. No depende de ningún número nuevo. Antes de construirla: línea base **con tiempos** de quien consulta (2 minutos, 3 intentos).
+1. **S4 — construida (sesión 288), PR abierto sin fusionar** (`docs/OLA2_RECALIBRACION.md` §3): frescura del dato pegada a la cifra de Hoy («Saldos del 27/9 · hace 5 días») y aviso si es antiguo (≥ 4 días). **Antes de fusionar:** línea base **con tiempos** de quien consulta en el sitio vivo (2 minutos, 3 intentos) y prueba del hogar. **Observación abierta:** la tarjeta «Liquidez hoy» sigue diciendo «confianza high» con un saldo antiguo (viene del modelo de lectura, que alimenta también informes y asistente); decidir si el aviso de antigüedad debe rebajar esa confianza.
    Después, **S3′** («margen de Hoy», que absorbe S2): «Disponible hoy» (saldo total − suelo) y «Disponible a fin de mes (previsión)» (liquidez prevista del motor mensual − suelo), sin módulo nuevo ni dependencia del día de cargo. **Cancelados:** el mínimo proyectado a 30 días, `canonical-home-verdict.js` y las «dos lecturas» (S-3 y S-5 sustituidas).
    Regla de parada v2 propuesta: máximo dos entregas visibles antes de re-medir con las dos personas (§8.4).
 2. **Si el hogar trae el informe de uso:** entrega 5 de la Ola 1, una pantalla cada vez, con su OK.
@@ -337,7 +338,7 @@ Cómo leerlo:
 | Qué | Estado | Quién |
 |---|---|---|
 | **S1** liberar líneas de `app.js` | ✅ Hecha (sesión 286) | — |
-| S2, S3, S4 | **Recalibradas el 2/10/2026** (`docs/OLA2_RECALIBRACION.md` §3): **S4 primero** (siguiente entrega de código); S2 se funde con **S3′** (margen de Hoy sin dependencia de fechas); S3 original cancelada | Código |
+| S2, S3, S4 | **Recalibradas el 2/10/2026** (`docs/OLA2_RECALIBRACION.md` §3): **S4 primero** (construida el 2/10, sesión 288, sin fusionar hasta la línea base); S2 se funde con **S3′** (margen de Hoy sin dependencia de fechas); S3 original cancelada | Código |
 | Medir `porcentajeEstimado` con datos reales (§8.6) | ✅ Hecho el 2/10/2026: **100 %** | — |
 | **Regla de parada del plan de UX** (§8.4) | «Con ajustes»; **versión 2 propuesta** en `docs/OLA2_RECALIBRACION.md` §5 | El hogar (OK) |
 | Línea base cronometrada (§8.1) e informe de uso por dispositivo (§8.2) | Hecho el 2/10/2026 **sin tiempos** (no encontraron la cifra): **repetir con segundos** antes de la primera entrega visible. Informe: solo `alerts-center` a 0 en los dos móviles; el resto, posiblemente inflado por la propia sesión | El hogar |

@@ -4647,6 +4647,12 @@ function watchScrollableTableWraps() {
 // financiero nuevo: las cinco reutilizan piezas ya construidas (homeDebtOutlook de D-4/D-9,
 // analisisCushionBand/analisisCushionWorst de A-2) — Capacidad libre, la cuarta cifra anterior, se
 // retira porque el mockup no la incluye; sigue disponible en Deuda · Ruta.
+// S4: edad de los saldos (canonical-data-age.js), la misma para la tira superior, la cabecera de
+// Hoy y la tarjeta «Liquidez hoy». Devuelve null si el módulo no está cargado.
+function homeDataAge() {
+  return window.FinanceCanonicalDataAge?.describe({ asOfDate: state?.balanceDate || defaultBalanceDate(), today: isoLocalDate(new Date()), mode: state?.balanceMode }) || null;
+}
+
 function topbarStatusFigures() {
   const actionCenter = unifiedActionCenterModel();
   const ctx = actionCenter.context || {};
@@ -4665,7 +4671,7 @@ function topbarStatusFigures() {
     {
       label: "Liquidez hoy",
       value: money(balances.total, true),
-      sub: shortDate(state?.balanceDate || defaultBalanceDate()).replace(/ \d{2}$/, ""),
+      sub: [shortDate(state?.balanceDate || defaultBalanceDate()).replace(/ \d{2}$/, ""), homeDataAge()?.ageLabel].filter(Boolean).join(" · "),
     },
     {
       label: "Reserva protegida",
@@ -30600,7 +30606,7 @@ function renderDecisionInboxCard() {
     </li>`).join("");
 }
 
-function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
+function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance, age }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
   const overall = homeOverallStatus(statuses);
@@ -30609,7 +30615,7 @@ function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
     : "";
   meta.innerHTML = `<span class="status-pill ${overall.tone}">${escapeHtml(overall.label)}</span>
     ${healthHtml}
-    <span class="e19-home-meta-item">Analizado a ${escapeHtml(asOf ?? HOME_MISSING_VALUE)} · ${escapeHtml(source)}</span>
+    ${age?.stale ? `<span class="status-pill warn">${escapeHtml(age.label)}</span><span class="e19-home-meta-item">${escapeHtml(source)}</span>` : `<span class="e19-home-meta-item">${escapeHtml(age ? age.label : `Analizado a ${asOf ?? HOME_MISSING_VALUE}`)} · ${escapeHtml(source)}</span>`}
     <span class="e19-home-meta-item">${escapeHtml(guidance)}</span>`;
 }
 
@@ -30811,6 +30817,7 @@ function renderHomeDashboard() {
     ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth} (${metrics.adjustedMinDate || "fecha estimada"}).`
     : "Sin rango suficiente para calcular mínimos.";
   const balanceDateText = actionCenter.asOf;
+  const dataAge = homeDataAge();
   const reserveMargin = round2(Number(balances.caixa || 0) - protectedReserve);
   const riskStatus = nextRiskRow ? "warn" : "good";
   const reserveStatus = reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good";
@@ -30822,6 +30829,7 @@ function renderHomeDashboard() {
     statuses: [adjustedStatus, debtRatioStatus, freeCapacityStatus, reserveStatus, riskStatus],
     health: homeHealthScore([adjustedStatus, debtRatioStatus, freeCapacityStatus, reserveStatus, riskStatus, coverageStatus]),
     asOf: balanceDateText,
+    age: dataAge,
     source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
     guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
   });
@@ -30851,9 +30859,9 @@ function renderHomeDashboard() {
     renderHomeKpi({
       label: "Liquidez hoy",
       value: money(balances.total, true),
-      note: `A ${balanceDateText}: CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
+      note: `${dataAge ? dataAge.label : `A ${balanceDateText}`}: CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.${dataAge?.stale ? ` ${dataAge.warning}` : ""}`,
       status: adjustedStatus,
-      cta: "Ver saldos",
+      cta: dataAge?.stale ? "Actualizar saldos" : "Ver saldos",
       // Mismo motivo que la tarjeta "Caja disponible" de la rejilla de un vistazo: Registrar ·
       // Saldo de cuentas es la pantalla real que edita el saldo; #visual-detail solo lo enseña
       // en modo solo lectura y redirige ahí de todas formas.

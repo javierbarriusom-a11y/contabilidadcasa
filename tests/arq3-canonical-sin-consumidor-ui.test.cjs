@@ -99,7 +99,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 66 → 67 (R-13): canonical-registrar-actuals-confirm.js, también con consumidor real desde el
 // primer día (RegistrarActualsConfirm en app.js, techo de líneas de ARQ-4 sin margen).
 // 67 → 68 (S1, Ola 2): canonical-daily-input.js, también con consumidor real desde el primer día
+// 68 → 69 (S4, Ola 2): canonical-data-age.js, con consumidor real (homeDataAge) desde el primer día
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 68 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 68);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 69 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 69);
 });
