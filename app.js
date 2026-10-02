@@ -3912,6 +3912,9 @@ function saveScenarioSettings() {
     savingsAgent: scenarioSettings.savingsAgent || {},
     executiveAdvisor: scenarioSettings.executiveAdvisor || {},
     migrations: scenarioSettings.migrations || {},
+    // S3′ · suelo de liquidez (sobre el total de las dos cuentas), el que lee el «Disponible» de Hoy.
+    // null = sin configurar: Hoy usa el valor inicial de canonical-home-margin.js.
+    liquidityFloor: state.liquidityFloor ?? null,
   };
   const serialized = JSON.stringify(next);
   scenarioSettings = next;
@@ -7036,6 +7039,10 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesReserve",
     "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto de Plan, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
+  );
+  addHelpToControl(
+    "ajustesLiquidityFloor",
+    "Lo que no quieres que baje la liquidez total (CaixaBank + Mediolanum), en euros. Es el suelo del «Disponible» de Hoy. Vacío significa el valor inicial, no cero; escribe 0 si no quieres suelo.",
   );
   addHelpToControl(
     "ajustesLifeInsuranceCapital",
@@ -27995,6 +28002,7 @@ function renderAjustes() {
   // llegue rellena aunque Ajustes se visite antes que Hoy en la sesión.
   renderE6Coverage();
   syncOperatingReserveControl();
+  syncLiquidityFloorControl();
   renderAjustesReserveNote();
   renderAjustesOptimalDeductibleNote();
   syncLifeInsuranceCapitalControl();
@@ -28422,6 +28430,26 @@ function handleOperatingReserveChange(event) {
       : "Reserva operativa sin configurar. Cada pantalla vuelve a su respaldo declarado.",
   );
   render();
+}
+
+// S3′ · suelo de liquidez de Ajustes: vacío (o no interpretable) = sin configurar, no cero; el 0 escrito sí vale.
+function handleLiquidityFloorChange(event) {
+  if (!state) return;
+  const text = String(event.target.value ?? "").trim().replace(",", ".");
+  const parsed = text === "" ? NaN : Number(text);
+  const next = Number.isFinite(parsed) && parsed >= 0 ? round2(parsed) : null;
+  event.target.value = next === null ? "" : String(next);
+  if (next === (state.liquidityFloor ?? null)) return;
+  state.liquidityFloor = next;
+  saveScenarioSettings();
+  announceStatus(next === null ? "Suelo de liquidez sin configurar: Hoy usa el valor inicial." : `Suelo de liquidez guardado en ${money(next, true)}.`);
+  render();
+}
+
+function syncLiquidityFloorControl() {
+  const field = qs("ajustesLiquidityFloor");
+  if (!field || document.activeElement === field) return;
+  field.value = state?.liquidityFloor ?? "";
 }
 
 function cuadroMandosSummary(rows) {
@@ -29256,7 +29284,7 @@ function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
   return "good";
 }
 
-function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata }) {
+function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata, extra = "" }) {
   const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : status === "neutral" ? "" : "is-good";
   // H-4: insignia visible cuando el indicador rompe su umbral, además de la barra de color del borde.
   const badge = status === "danger"
@@ -29268,6 +29296,7 @@ function renderHomeKpi({ label, value, note, status = "good", cta, target, metad
     <div class="e19-kpi-head"><span class="e19-kpi-label">${escapeHtml(label)}</span>${badge}</div>
     <strong class="e19-kpi-value">${escapeHtml(value)}</strong>
     <p class="e19-kpi-note">${escapeHtml(note)}</p>
+    ${extra}
     ${metadata ? `<p class="e19-kpi-meta">${escapeHtml(`Fuente: ${metadata.source} · ${metadata.asOf} · confianza ${metadata.confidence}`)}</p>` : ""}
     ${cta ? `<button type="button" class="e19-btn e19-btn-secondary e19-kpi-cta" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
   </article>`;
@@ -30653,6 +30682,37 @@ function homeBudgetWeekNoteSuffix(weekSummary) {
 // U-2 (FASE 5): rejilla "de un vistazo" en Hoy — presupuesto, caja, objetivos y accesos rápidos en
 // 2×2, mobile-first. Reutiliza homeBudgetSummary() (P-2/U-1), los saldos ya calculados por
 // renderHomeDashboard() y las rachas de GAME-1 — no recalcula nada que ya exista.
+// S3′ · el margen de Hoy: «Disponible hoy» y «Disponible a fin de mes (previsión)», las dos sobre el
+// suelo de liquidez (canonical-home-margin.js). Sustituye a «Caja disponible» y a «Liquidez hoy», que
+// repetían el mismo total. `extra` lleva la segunda cifra; todo lo demás es el renderHomeKpi de siempre.
+function homeMarginTile(balances) {
+  const margin = window.FinanceCanonicalHomeMargin?.build({
+    balances, liquidityFloor: state?.liquidityFloor, caixaMinimum: agentCaixaFloor(),
+    rows: openSimulationRows(lastSimulation), today: isoLocalDate(new Date()),
+  });
+  const age = homeDataAge();
+  const common = { label: "Disponible hoy", cta: age?.stale ? "Actualizar saldos" : "Ver saldos", target: "update-hub" };
+  if (margin?.status !== "ok") {
+    return renderHomeKpi({ ...common, value: "—", status: "neutral", note: margin?.missing?.length ? `Falta el ${margin.missing.join(" y el ")}.` : "No se puede calcular el margen." });
+  }
+  const { today, endOfMonth: eom } = margin;
+  const second = eom.available
+    ? `<span class="e19-kpi-label">A fin de ${escapeHtml(eom.monthLabel)} (previsión)</span><strong class="e19-kpi-value">${escapeHtml(money(eom.margin, true))}</strong>
+       <p class="e19-kpi-note">Lo que falta por cobrar y pagar este mes según el plan. No ve bajadas intermedias antes de cobrar.</p>`
+    : `<p class="e19-kpi-note">Sin previsión para este mes: el mes de hoy no está en el plan abierto.</p>`;
+  const caixa = margin.caixaShortfall > 0
+    ? `<p class="e19-kpi-note">CaixaBank está ${escapeHtml(money(margin.caixaShortfall, true))} por debajo de su mínimo operativo${margin.moveFromMediolanum > 0 ? `: mueve ${escapeHtml(money(margin.moveFromMediolanum, true))} desde Mediolanum` : ""}.</p>`
+    : "";
+  const negative = today.margin < 0 || (eom.available && eom.margin < 0);
+  return renderHomeKpi({
+    ...common,
+    value: money(today.margin, true),
+    note: `Saldo ${money(today.total, true)} − suelo ${money(today.floor, true)}. ${age ? `${age.label}.` : ""}${age?.stale ? ` ${age.warning}` : ""}`,
+    status: negative ? "danger" : margin.caixaShortfall > 0 || age?.stale ? "warn" : "good",
+    extra: second + caixa,
+  });
+}
+
 function renderHomeBudgetGlance(balances) {
   const root = qs("homeBudgetGlance");
   if (!root) return;
@@ -30660,6 +30720,8 @@ function renderHomeBudgetGlance(balances) {
   const weekSummary = homeBudgetWeekSummary(); // TRACK-1
   const goals = homeBudgetGoalsSummary();
   root.innerHTML = [
+    // S3′: el margen va el primero: es la cifra que se busca y en móvil, detrás del presupuesto, quedaba bajo el pliegue.
+    homeMarginTile(balances),
     budgetSummary
       ? renderHomeKpi({
           label: "Presupuesto del mes",
@@ -30680,17 +30742,6 @@ function renderHomeBudgetGlance(balances) {
           cta: "Sugerir presupuestos",
           target: "presupuesto-mes",
         }),
-    renderHomeKpi({
-      label: "Caja disponible",
-      value: money(balances.total, true),
-      note: `CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
-      status: balances.total < 0 ? "danger" : "good",
-      cta: "Ver saldos",
-      // R-11 ya redirige "update-hub" a Registrar · Saldo de cuentas (setActiveView +
-      // REGISTRAR_LEGACY_HASH_TABS): la pantalla real donde se ven y editan los saldos hoy,
-      // en vez del cuadro de mandos heredado, que solo los muestra en modo solo lectura.
-      target: "update-hub",
-    }),
     goals
       ? renderHomeKpi({
           label: "Objetivos",
@@ -30856,18 +30907,6 @@ function renderHomeDashboard() {
   const accuracyScore = window.FinanceCanonicalForecast?.historicalAccuracyScore(accuracyLearning.deviations?.[0]) || { calculable: false };
 
   qs("homeKpis").innerHTML = [
-    renderHomeKpi({
-      label: "Liquidez hoy",
-      value: money(balances.total, true),
-      note: `${dataAge ? dataAge.label : `A ${balanceDateText}`}: CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.${dataAge?.stale ? ` ${dataAge.warning}` : ""}`,
-      status: adjustedStatus,
-      cta: dataAge?.stale ? "Actualizar saldos" : "Ver saldos",
-      // Mismo motivo que la tarjeta "Caja disponible" de la rejilla de un vistazo: Registrar ·
-      // Saldo de cuentas es la pantalla real que edita el saldo; #visual-detail solo lo enseña
-      // en modo solo lectura y redirige ahí de todas formas.
-      target: "update-hub",
-      metadata: actionCenter.readModel?.metrics?.liquidity,
-    }),
     renderHomeKpi({
       label: "Deuda pendiente",
       value: money(debtOutlook.pendingPrincipal, true),
@@ -36989,6 +37028,7 @@ async function init() {
     document.getElementById(button.dataset.ajustesAnchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
+  qs("ajustesLiquidityFloor")?.addEventListener("change", handleLiquidityFloorChange);
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesHomeInsuranceCoverage")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceCoverage"));
   qs("ajustesHomeInsuranceReplacementValue")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceReplacementValue"));

@@ -86,17 +86,17 @@ test("acepta fechas con hora (ISO completo) quedándose con el día", () => {
   assert.equal(DataAge.describe({ asOfDate: "2026-09-27T10:15:00.000Z", today: "2026-10-02" }).ageDays, 5);
 });
 
-test("app.js usa el módulo en la tira superior, la cabecera de Hoy y la tarjeta «Liquidez hoy»", () => {
+test("app.js usa el módulo en la tira superior, la cabecera de Hoy y la ficha de margen", () => {
   const app = read("app.js");
   assert.match(app, /function homeDataAge\(\)/);
   assert.match(app, /window\.FinanceCanonicalDataAge\?\.describe\(/);
-  // Tira superior (visible en todas las pantallas): edad junto a la fecha.
+  // Tira superior (visible en todas las pantallas salvo Hoy): edad junto a la fecha.
   assert.match(app, /homeDataAge\(\)\?\.ageLabel/);
   // Cabecera de Hoy: píldora de aviso si es antiguo; la etiqueta sustituye al «Analizado a» crudo.
   assert.match(app, /age\?\.stale \? `<span class="status-pill warn">/);
-  // Tarjeta «Liquidez hoy»: etiqueta con edad, aviso y acción de actualizar cuando es antiguo.
-  assert.match(app, /dataAge \? dataAge\.label/);
-  assert.match(app, /cta: dataAge\?\.stale \? "Actualizar saldos" : "Ver saldos"/);
+  // Ficha de margen de Hoy (S3′ absorbió la antigua «Liquidez hoy»): etiqueta con edad, aviso y acción de actualizar.
+  assert.match(app, /\$\{age \? `\$\{age\.label\}\.` : ""\}\$\{age\?\.stale \? ` \$\{age\.warning\}` : ""\}/);
+  assert.match(app, /cta: age\?\.stale \? "Actualizar saldos" : "Ver saldos"/);
 
   const html = read("index.html");
   const moduleAt = html.indexOf('src="canonical-data-age.js');
