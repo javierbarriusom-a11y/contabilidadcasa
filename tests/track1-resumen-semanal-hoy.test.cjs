@@ -89,6 +89,9 @@ function glanceSandbox({ monthlySummary = null, weeklySummary = null, goals = nu
       return `<article>${opts.label}</article>`;
     },
     renderHomeBudgetGlanceActions: () => "<article>Acciones</article>",
+    // S3′: la ficha de margen (antes «Caja disponible», dentro de esta función) es ahora una función propia,
+    // con su prueba en canonical-home-margin.test.cjs; aquí se simula en el límite como el resto.
+    homeMarginTile: () => "<article>Disponible</article>",
   };
   vm.createContext(context);
   vm.runInContext(
@@ -162,5 +165,5 @@ test("TRACK-1 · renderHomeBudgetGlance consulta homeBudgetWeekSummary()", () =>
 
 test("TRACK-1 · la versión de app.js está actualizada en index.html", () => {
   const html = read("index.html");
-  assert.match(html, /<script defer src="app.js\?v=20261002s4a1"><\/script>/);
+  assert.match(html, /<script defer src="app.js\?v=20261002s3a1"><\/script>/);
 });

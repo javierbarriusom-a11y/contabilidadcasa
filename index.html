@@ -4987,6 +4987,16 @@
               </label>
               <p class="e19-kpi-note" id="ajustesReserveNote"></p>
             </article>
+            <!-- S3′ (Ola 2): el suelo de la liquidez TOTAL, distinto de la reserva operativa de arriba (que es el
+                 mínimo de la cuenta operativa, CaixaBank). Solo lo lee el «Disponible» de Hoy. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Suelo de liquidez</h3>
+              <p class="e19-kpi-note">Lo que no quieres que baje la suma de CaixaBank y Mediolanum. Solo lo usa el «Disponible» de Hoy; no cambia la reserva operativa ni los traspasos.</p>
+              <label class="month-picker">
+                <span>Suelo de liquidez</span>
+                <input id="ajustesLiquidityFloor" type="number" min="0" step="50" inputmode="decimal" placeholder="Valor inicial: 1500" />
+              </label>
+            </article>
 
             <!-- OPT-25 (fase 4, 11 sept. 2026): se movió a Herramientas avanzadas → Patrimonio e
                  inversión (#herramientas-patrimonio), junto con el resto de comparadores de esa
@@ -7447,6 +7457,7 @@
     <script defer src="canonical-daily-engine.js?v=20260714a"></script>
     <script defer src="canonical-daily-input.js?v=20261001s1a1"></script>
     <script defer src="canonical-data-age.js?v=20261002s4a1"></script>
+    <script defer src="canonical-home-margin.js?v=20261002s3a1"></script>
     <script defer src="canonical-debt-contracts.js?v=20260714b"></script>
     <script defer src="canonical-scenario-schema.js?v=20260809e20b1"></script>
     <script defer src="canonical-scenario-engine.js?v=20260809e20b1"></script>
@@ -7516,7 +7527,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20261002s4a1"></script>
+    <script defer src="app.js?v=20261002s3a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

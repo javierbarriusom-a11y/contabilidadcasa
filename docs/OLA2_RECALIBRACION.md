@@ -62,12 +62,19 @@ El hogar pidió «recalibrar el alcance de S2 y S3 a lo que Claude crea mejor».
 - Etiqueta honesta junto a la segunda: «previsión del plan; no depende de qué día se cargue cada recibo».
 - Un margen negativo se dice con su signo; nunca se recorta a 0.
 - Se quitan los duplicados de las ocho cifras actuales (Liquidez hoy = Caja disponible, etc.) y se conserva el aviso S-2 (CaixaBank por debajo de su mínimo operativo).
-- **No lleva módulo de cálculo nuevo:** reutiliza las filas del motor mensual. Esto evita el guardián ARQ-3 y el riesgo de `app.js`.
+- ~~**No lleva módulo de cálculo nuevo.**~~ **Corregido al construir (sesión 288):** lleva un módulo pequeño y puro, `canonical-home-margin.js` (`FinanceCanonicalHomeMargin.build`), con su prueba; no calcula el motor, solo resta el suelo y elige la fila. Con consumidor real desde el primer día, el guardián ARQ-3 pasa de 69 a 70. Reutiliza las filas del motor mensual tal cual y **no usa el motor diario**.
 
-**Qué hay que comprobar antes de construir** (son tareas de la entrega, no suposiciones):
-1. Que la fila del motor mensual que se usa corresponde al mes natural en curso y arranca del saldo vigente cuando la fecha del saldo cae en el mes anterior (el caso del 27/9 con el plan empezando en octubre).
-2. Que el cálculo no pasa por el motor diario.
-3. Techo de `app.js` (37.495; margen ~130 líneas) y `test:load-budget` antes y después. Si no cabe, extraer antes, como en S1.
+**Qué había que comprobar antes de construir, y qué se encontró (sesión 288):**
+1. **¿La fila del motor mensual corresponde al mes en curso?** No siempre, y de ahí sale la regla final. El motor toma como mes de partida **el mes de la fecha de los saldos** (`modelStartIndex`) y le aplica el mes completo sobre ese saldo: probado con el motor real, con los saldos fechados el día 1, el 15 y el 28 la primera fila suma exactamente el mismo mes. **Pero** `forwardPlanningInfo` hace que, en modo manual y en ese mes de partida, **toda partida con un real registrado cuente 0** («Realizado · incluido en saldo»): la fila solo suma lo **pendiente de registrar**, no cuenta dos veces lo ya registrado. Consecuencias: (a) la fila de «a fin de mes» es la del **mes de hoy** (con saldos del 27/9 y hoy 2/10, la primera fila es septiembre y la que vale es octubre, que encadena el cierre de septiembre); (b) la cifra **da por hechos los reales registrados**: una partida que ya pasó, está en el saldo y no se registró como real se cuenta dos veces; una registrada después de la fecha del saldo sin actualizarlo se pierde. Es el límite de la cifra y la razón de que S4 vaya primero.
+2. **¿Pasa por el motor diario?** No; una prueba lo vigila.
+3. **Techo de `app.js` (37.495):** 37.373 → **37.413 líneas (+40)**; margen **82**. `test:load-budget` lo valida el CI del PR.
+
+**Construido (sesión 288), decisiones de diseño tomadas por Claude por delegación, todas reversibles:**
+- La ficha de margen es la **primera** de la rejilla de arriba de Hoy y sustituye a «Caja disponible»; la ficha «Liquidez hoy» de la rejilla de abajo **se retira** (repetía el mismo total). Su contenido útil pasó a la ficha nueva: edad del saldo (S4), aviso S-2 y la acción «Actualizar saldos». Motivo de ir la primera: medido en un móvil de 844 px de alto, detrás de «Presupuesto del mes» la segunda cifra quedaba cortada en el borde de la pantalla; la primera de la rejilla cabe entera.
+- Parámetro nuevo, **suelo de liquidez**, en Ajustes › Reserva y colchón, distinto de la reserva operativa (que sigue siendo el mínimo de la cuenta operativa y no se toca). Vacío = valor inicial (1.500 €); el 0 escrito vale. Se persiste con `scenarioSettings` y se sincroniza como la reserva.
+- El nombre del mes sale de la clave («a fin de octubre»): la etiqueta del motor, «oct 26», se leía como «26 de octubre».
+- Aviso honesto en la ficha: «No ve bajadas intermedias antes de cobrar». Es lo que se pierde al no usar fechas.
+- Un margen negativo se dice con su signo; sin saldo no hay cifra y se nombra cuál falta; sin fila para el mes de hoy (mes cerrado) se dice «sin previsión» y se sigue mostrando «hoy».
 
 **Hecho cuando:** quien consulta encuentra la cifra en ≤ 15 s y las dos personas dicen la misma, medido **con tiempos** antes y después.
 
@@ -101,8 +108,9 @@ El hogar aceptó «con ajustes» la regla de `BACKLOG_UX_OLAS.md` §8.4 y pidió
 
 | Qué | Estado |
 |---|---|
-| Entrega **S4** (frescura del dato) | **Construida** (sesión 288, `canonical-data-age.js`); PR abierto, **sin fusionar** hasta tener la línea base con tiempos |
-| Línea base **con tiempos** de quien consulta | Sin hacer; **bloquea la fusión de S4** (sin «antes» no se puede medir el efecto) |
+| Entrega **S4** (frescura del dato) | ✅ **Fusionada** el 2/10/2026 ([#425](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/425)) por orden del hogar |
+| Entrega **S3′** (margen de Hoy) | **Construida** (sesión 288, `canonical-home-margin.js`); PR abierto, **sin fusionar** hasta que el hogar lo pruebe: retira una ficha de la pantalla más vista |
+| Línea base **con tiempos** de quien consulta | Sin hacer. S4 se fusionó por orden del hogar sin ella; **sigue haciendo falta antes de fusionar S3′**: el «antes» ya no existe en el sitio vivo sin S4, así que se mide con la versión de S4 y se compara con S3′ |
 | ¿Se actualizaron los saldos después del 27/9? ¿Está recogida la nómina del 30/9? | Sin respuesta |
 | `alerts-center`: redirigir a Ajustes › Alertas | **Se deja de momento** (decisión del hogar, 2/10/2026) |
 | OK del hogar a la regla de parada v2 (§5) | Pendiente |
