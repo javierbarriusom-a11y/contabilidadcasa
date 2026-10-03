@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 3 de octubre de 2026 (sesión 293). **Único backlog vivo: `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (§0 y §1); el detalle del plan de UX sigue en `BACKLOG_UX_OLAS.md` y `docs/OLA2_RECALIBRACION.md`.**
+Fecha de revisión: 3 de octubre de 2026 (sesión 298). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,18 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 3 de octubre de 2026 (298): arranca la Ola 1 — WP-01 sello de versión y «Novedades»
+
+- **El hogar dijo «empecemos»** sobre el artefacto de seguimiento y el backlog definitivo: el desarrollo queda iniciado (antes de la fecha orientativa del 5/10). Actualizados `BACKLOG_DEFINITIVO.md` §0/§1/§5, `docs/PLAN_DESARROLLO_DEFINITIVO.md`, `BACKLOG_INDICE.md` y la skill `finanzas-casa-workflow` (ya no dice «no construir»).
+- **Decisiones del hogar en esta sesión** (a propuesta de Claude): (a) **un solo móvil** → WP-03 se queda en contador local, sin sincronización ni revisión de privacidad de NTC-03; (b) **WP-23 (campaña fiscal) se adelanta** a la siguiente sesión tras WP-02/WP-03, con los datos fiscales pedidos ya por el chat; (c) el interruptor A/B del titular de WP-02 se construye pero **no alterna** hasta tener la línea base con el texto A (n = 1: preferencia, no resultado medido).
+- **WP-01 (NXP-02) construido:** `ux-shell.js` lleva `BUILD_INFO` (vale «dev» en el repositorio; `tools/build-public-site.mjs` lo reescribe en `dist` con el `GITHUB_SHA` y la hora del build, la misma referencia que `version.json`). La página compara su versión con `version.json` (`cache: "no-store"`, nunca pasa por el Service Worker) al cargar y al volver a la app (como mucho una vez por minuto). Si hay otra publicada, avisa «Descargando la versión nueva…» y solo ofrece **Actualizar** cuando la caché nueva existe y la anterior ya se borró (el worker hace `skipWaiting` + `clients.claim`, así que no hay worker «en espera»: recargar antes serviría la vieja); `controllerchange` con controlador previo también avisa. **Nunca recarga sola.** Pie del menú: sello «Versión abc1234 · fecha» y «Novedades» (nuevo `novedades.js`, una línea por cambio visible, la más reciente primero; contador «1 nueva» por dispositivo con la clave `novedades-ultima-vista`, excluida de la copia en `arq6` con motivo). Cero líneas en `app.js`.
+- **Comprobado en Chromium real a 393 px:** sello y «Novedades» se pintan sin errores de JavaScript; el aviso se partía en una columna estrecha y tapaba la cifra de Hoy → ancho propio y pegado al borde inferior.
+- **Trampas pisadas y corregidas:** un comentario con el literal del script principal en `index.html` (trampa 1) rompió 9 pruebas de orden de carga; el sello nuevo de `styles.css` estaba fijado en `t8` y `e17` (actualizado, sin relajar ninguna comprobación).
+- **Prueba nueva:** `tests/nxp2-sello-version.test.cjs` (15 casos: sello, comparación, caché lista, `controllerchange`, formato de `novedades.js`, marcado fuera de Hoy y del script principal, build real con `GITHUB_SHA` y enganche con DOM simulado).
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5023/5023** (5008 + 15 nuevas).
+- **Pendiente del hogar:** nada de WP-01; tras el despliegue, comprobar en el móvil que el sello aparece en Menú y que el siguiente despliegue muestra el aviso.
+- **Rama/PR:** `claude/admiring-mccarthy-xrrv5q` → PR en borrador contra `main`.
 
 ## Cierre de sesión — 3 de octubre de 2026 (297): respuestas del hogar al backlog definitivo; plan comprimido a 3 olas (solo documentación)
 

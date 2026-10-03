@@ -103,6 +103,7 @@ const SHELL_URLS = [
   "./durable-outbox.js",
   "./remote-save-queue.js",
   "./ux-settings.js",
+  "./novedades.js",
   "./ux-shell.js",
   "./p2-domain.js",
   "./p2-private-store.js",
