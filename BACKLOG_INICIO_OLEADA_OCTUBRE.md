@@ -1,6 +1,6 @@
 # Backlog `inicio_oleada_octubre` — todo lo pendiente, en un solo documento
 
-Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
+**Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
 **Es la única fuente viva de lo que falta por hacer.** Los demás `BACKLOG*.md` no se han borrado ni reescrito: conservan el detalle de por qué se hizo cada cosa
 y llevan un aviso en su cabecera que apunta aquí. Mapa de todos ellos: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26:
 `BACKLOG_STATUS.md` §0 (no cambia).
@@ -10,36 +10,37 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
-**No hay nada que construir hasta tener el diagnóstico de «no la encontró».** La Ola 2 entregó tres cambios visibles en Hoy (S4, S3′, S5; máximo permitido por la regla v2: dos),
-y la métrica sigue sin cumplirse: quien consulta tardó **30, 28 y 20 s** y **no encontró la cifra** (objetivo: ≤ 15 s y la misma cifra). Lo que queda es esperar al hogar,
-una comprobación mía sobre el cierre de mes (§3, C2) y vigilar las condiciones externas. Premisa de producto aún sin contrastar: «quien consulta usa Hoy como producto
-entero» (todo lo contestó quien opera, salvo la medición de 30/28/20 s).
+**Hay trabajo aprobado que no toca Hoy** (§14): el tramo 0 (medir y desbloquear: sello de versión, prueba cronometrada dentro de la app, contador de uso combinado, viabilidad del día de cargo, spike de PSD2) y el tramo A (la verdad entra barata: motor de fechas extraído, día de cargo por partida, cierre con saldo, medidor de calidad, campo de importe). **Nada nuevo sobre Hoy** hasta tener la prueba cronometrada de quien consulta.
+La Ola 2 entregó tres cambios visibles en Hoy (S4, S3′, S5; máximo permitido por la regla v2: dos) y la métrica sigue sin cumplirse: quien consulta tardó **30, 28 y 20 s** y **no encontró la cifra** (objetivo: ≤ 15 s y la misma cifra). Premisa de producto aún sin contrastar: «quien consulta usa Hoy como producto entero» (decisión Q12: se valida con la prueba de §14, WP-02).
+Detalle del plan: [`docs/PLAN_IMPLEMENTACION_2026-10-03.md`](docs/PLAN_IMPLEMENTACION_2026-10-03.md). Porqué de cada propuesta: [`docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md`](docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md).
 
 ## 1. Cómo empezar la próxima sesión (10 minutos)
 
 1. Leer este documento y, de `PROJECT_STATE.md`, las entradas **288 a 292**.
 2. `git status`, `git log --oneline -5`; la rama de trabajo parte de `origin/main` (receta en §11).
-3. Mirar §2: **¿ha contestado el hogar?** Si sí, aplicar el árbol de decisión de §4 y proponer solo el arreglo mínimo. Si no, no construir nada sobre Hoy.
-4. Sin respuesta del hogar, lo único legítimo es lo exento por la regla v2 (§10) y los avisos de calendario (§9).
+3. Mirar §14 (cola aprobada) y §2 (lo que espera al hogar). **Empezar por el primer paquete de §14 cuya puerta esté abierta.** Nada sobre Hoy hasta que quien consulta haga la prueba cronometrada (WP-02); si ya la hizo, aplicar el árbol de decisión de §4 con sus segundos.
+4. Lo exento por la regla v2 (§10) puede hacerse sin esperar al hogar: casi todo el tramo 0 y el tramo A lo son. Más los avisos de calendario (§9).
 5. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales y **este documento**, commit/push, PR en borrador, esperar CI, fusionar en verde.
 
 ## 2. Esperan al hogar (lo único que desbloquea algo)
 
 | ID | Qué | Quién | Por qué importa |
 |---|---|---|---|
-| **H1** | **Diagnóstico de «no la encontró»**: cuatro respuestas cortas, **en el chat, no en el repositorio** (qué decía con sus palabras la primera tarjeta; qué cifra dijo cada persona; si abrió la app desde el icono de inicio o desde Safari; si el cronómetro incluía la carga) | Quien consulta y quien opera | Discrimina entre las cuatro hipótesis de `docs/OLA2_RECALIBRACION.md` §8.1 (versión vista por la caché, tiempo de carga, saldo antiguo, vocabulario). Decide si se construye algo o se detiene el plan de UX |
+| **H1** | **Diagnóstico de «no la encontró»**. *Desde el 3/10 (Q2) se sustituye por la prueba cronometrada de la app (WP-02, §14); mientras no exista, siguen valiendo las cuatro respuestas cortas, **en el chat, no en el repositorio*** (qué decía con sus palabras la primera tarjeta; qué cifra dijo cada persona; si abrió la app desde el icono de inicio o desde Safari; si el cronómetro incluía la carga) | Quien consulta y quien opera | Discrimina entre las cuatro hipótesis de `docs/OLA2_RECALIBRACION.md` §8.1 (versión vista por la caché, tiempo de carga, saldo antiguo, vocabulario). Decide si se construye algo o se detiene el plan de UX |
 | **H2** | Actualizar saldos (último declarado: 27/9), comprobar si la nómina del 30/9 está registrada como real y **repetir la medición una vez** con la app recién recargada, anotando qué mira quien consulta | Quien opera, luego quien consulta | La cifra da por hechos los reales registrados: una partida pasada y no registrada se cuenta dos veces. Con 5 días de antigüedad el aviso de S4 puede estar dominando la lectura |
 | **H3** | D4 (modo consulta nivel 1: «comodidad, no protección») y D5 (plegar el detalle de Hoy por defecto en modo consulta) | Quien consulta (el operador ya dijo Sí/Sí) | Sin su respuesta no se construye; además es la persona a la que van dirigidos |
 | **H4** | Tiempo de **registrar un gasto** desde el móvil (3 intentos) | Quien opera | Es la métrica de la Ola 3 y no tiene línea base |
-| **H5** | **Decidir qué hacer con el cierre de mes** (hallazgo C2 de §3): el cierre real no guarda saldo y cierra el mes en curso | El hogar | Lo acordado el 2/10 (mes natural, cierre entre el 1 y el 3, saldo del último día) **no es lo que hace hoy la app** |
-| **H6** | Cola B (§7) y `OPT-10`–`OPT-13` (§6): contestar si el uso ha sido **intenso** (no basta el calendario) | El hogar | Antes del 23/10/2026. Sin esa respuesta no se activa ni se retira nada |
+| **H5** | ✅ **Decidido el 3/10 (Q1): se abre C2.** El cierre guardará el saldo por cuenta y podrá cerrar el mes anterior, sin tocar el RPC → **WP-09 (NPV-03)**, §14 | El hogar | Lo acordado el 2/10 (mes natural, cierre entre el 1 y el 3, saldo del último día) **no es lo que hace hoy la app** |
+| **H6** | Cola B (§7) y `OPT-10`–`OPT-13` (§6). **Decidido el 3/10 (Q10): no se retira nada el 23/10.** El uso se medirá con el contador combinado de los dos móviles (**WP-03**, §14) en vez de preguntarlo | El hogar | Se reevalúa con datos, no con calendario |
+| **H7** | **Dato de la hipoteca: ¿variable, mixta o fija?** (Q7) | El hogar | Decide si `NDB-02` (revisión de tipo variable) se construye o se archiva |
+| **H8** | **Antes del 30/11/2026: activar `A5-1`/`A5-4` (despliegue y clave) o aceptar el archivo** de `RGX3`, `DEX6`, `GOB5`, `P4`, `P10` y la UI del Copiloto (Q9; plazo fijado por Claude, veto posible) | El hogar | Deja de arrastrarse trabajo «condicionado» sin fecha |
 
 ## 3. Del lado de Claude, sin bloqueo
 
 | ID | Qué | Estado |
 |---|---|---|
 | C1 | Confirmar el despliegue de #429 (`c6f4a5e`) | Se confirma con el despliegue del PR que fusiona este documento (contiene #429) |
-| **C2** | **Verificar que el cierre de mes usa el saldo del último día (pregunta 10 de la ola)** | **Verificado el 2/10/2026: NO lo hace.** `closeCurrentMonthTransaction` (`app.js`) cierra `openMonthCutoffKey()` = **el mes de hoy**, y `closeMonth` (`canonical-month-close.js`) guarda solo los reales del mes, motivo, autor y los asientos de sobres: **ningún saldo bancario**. Consecuencias: (a) cerrar «entre el día 1 y el 3» cerraría el mes que empieza, no el que acaba (los meses pasados se consideran cerrados implícitamente por `isClosedMonthKey`, pero sin firma); (b) el saldo de fin de mes no queda fijado, así que no hay con qué cuadrar el cierre ni comparar la previsión de S3′ con la realidad. **No se cambia sin decisión (H5): modifica una operación firmada y transaccional (`close_finance_month`).** Propuesta: guardar en el cierre el saldo declarado por cuenta y su fecha, y permitir cerrar el mes anterior; con prueba y sin tocar el RPC existente |
+| **C2** | **Verificar que el cierre de mes usa el saldo del último día (pregunta 10 de la ola)** | **Aprobado el 3/10 (Q1) → WP-09.** *Verificado el 2/10/2026: NO lo hace.* `closeCurrentMonthTransaction` (`app.js`) cierra `openMonthCutoffKey()` = **el mes de hoy**, y `closeMonth` (`canonical-month-close.js`) guarda solo los reales del mes, motivo, autor y los asientos de sobres: **ningún saldo bancario**. Consecuencias: (a) cerrar «entre el día 1 y el 3» cerraría el mes que empieza, no el que acaba (los meses pasados se consideran cerrados implícitamente por `isClosedMonthKey`, pero sin firma); (b) el saldo de fin de mes no queda fijado, así que no hay con qué cuadrar el cierre ni comparar la previsión de S3′ con la realidad. **No se cambia sin decisión (H5): modifica una operación firmada y transaccional (`close_finance_month`).** Propuesta: guardar en el cierre el saldo declarado por cuenta y su fecha, y permitir cerrar el mes anterior; con prueba y sin tocar el RPC existente |
 | C3 | Observación del backlog UX: la confianza de la liquidez alimentaba informes con «high» aunque el saldo fuera antiguo | ✅ Hecha (P9, #429): desde 4 días baja a «media» |
 
 ## 4. Congelado por la regla de parada v2 (aprobado, no se construye)
@@ -120,7 +121,7 @@ aviso opcional «hay versión nueva» para el service worker (solo si H1 confirm
 ## 10. Olas 3 y 4 y lo que sí se puede hacer sin permiso
 
 - **Ola 3** (Registrar y captura: rediseño de Registrar, captura en móvil, importador de un gesto, revisión semanal guiada; métrica: tiempo por gasto desde el móvil) y **Ola 4** (¿me puedo permitir X?, objetivos visuales, acta de reunión, motivación de deuda, cuentas claras en pareja)
-  **no se abren**: la regla exige línea base e informe de uso, y la Ola 2 aún no cumple su métrica. «Cuentas claras en pareja» necesita antes un campo explícito de titular (`inferOwner` es una etiqueta inferida por texto; `docs/OPT22_MODELO_HOGAR.md`: no construir control de acceso por persona).
+  **no se abren**: la regla exige línea base e informe de uso, y la Ola 2 aún no cumple su métrica. **Desde el 3/10 sus piezas están diseñadas en la quinta auditoría** (ND-01, ND-02, ND-14; NDB-03, NHG-01, NHG-02, NHG-04, NHG-05) y se abren solo con la línea base de la prueba cronometrada (WP-02) y H4. «Cuentas claras en pareja» necesita antes un campo explícito de titular (`inferOwner` es una etiqueta inferida por texto; `docs/OPT22_MODELO_HOGAR.md`: no construir control de acceso por persona).
 - **Exento de la regla v2** (puede hacerse sin esperar): arreglos de datos o cálculo (p. ej. C2 una vez decidido H5), refactorizaciones habilitadoras (p. ej. liberar líneas de `app.js`), deuda de CI/rendimiento, accesibilidad.
 
 ## 11. Reglas vigentes y recetas verificadas
@@ -174,4 +175,64 @@ Límites declarados: da por hechos los reales registrados y no ve bajadas interm
 | Hecho de las olas 0 a 2 con sus PRs (#405–#429) | `BACKLOG_UX_OLAS.md` §1 |
 | Tareas y cierres del producto (`ARQ`, `PER`, `NAV`, `FLU`, `FIN`, `PROC`, 2.0) | `BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md` |
 | Oleadas de septiembre, Operación, Sucesión, Optimización | `BACKLOG_ULTIMATE_SEPTIEMBRE*.md`, `BACKLOG_OPERACION.md`, `BACKLOG_SUCESION_Y_CONTINUIDAD.md`, `BACKLOG_OPTIMIZACION.md` |
+| **Quinta auditoría: porqué de cada propuesta (59), diagnóstico, descartadas y decisiones** | `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` |
+| **Plan de implementación: paquetes WP-01…WP-22, enfoque técnico, pruebas, trampas, calendario y riesgos** | `docs/PLAN_IMPLEMENTACION_2026-10-03.md` |
 | Registro sesión a sesión | `PROJECT_STATE.md` |
+
+## 14. Cola aprobada de la quinta auditoría (3 de octubre de 2026, sesión 293)
+
+El hogar contestó «ok» a las 12 decisiones de la propuesta **con las recomendaciones de Claude**. Esta sección es la lista viva: el detalle técnico de cada paquete está en `docs/PLAN_IMPLEMENTACION_2026-10-03.md`; el porqué, en `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md`. Criterio de entrada (`PROC-1`): petición explícita del hogar. **Las propuestas marcadas [H] en la propuesta (hipótesis sin uso medido) quedan en catálogo hasta que el contador de uso o la prueba cronometrada las respalden.**
+
+### 14.1 Decisiones registradas
+
+| # | Decisión | Efecto |
+|---|---|---|
+| Q1 | Se abre **C2** (cierre con saldo y mes anterior; sin tocar el RPC) | WP-09 |
+| Q2 | Quien consulta hace la **prueba cronometrada** | WP-02; sustituye a las 4 preguntas de H1 |
+| Q3 | **Aviso de versión nueva**, empezando por el sello | WP-01 |
+| Q4 | **30 minutos, una vez**, de alta del día de cargo | WP-08 |
+| Q5 | **PSD2:** spike de 2 semanas con otro proveedor, con criterio de salida | WP-05; `O-6` reformulada (GoCardless, a verificar, ya no es el candidato) |
+| Q6 | **Precios manuales primero** (`NIN-02`); ND-12 solo si lo pide el hogar | WP-15 |
+| Q7 | Hipoteca variable/mixta/fija | **Sin respuesta** → H7 |
+| Q8 | Reparto en pareja **proporcional a ingresos como opción** y titular explícito | NHG-01 en cola (Ola 4) |
+| Q9 | `A5-1`/`A5-4`: activar con fecha o archivar | **Plazo 30/11/2026** (fijado por Claude, veto posible) → H8 |
+| Q10 | **No retirar nada** el 23/10 | WP-03 mide el uso |
+| Q11 | **Modo discreto sí; passkey más tarde** | NXP-06 partido |
+| Q12 | **Validar la premisa** de Hoy antes de más Ola 2 | WP-02 con las dos personas |
+
+### 14.2 Cola activa (en este orden; la puerta manda, no la fecha)
+
+| WP | Qué | ID propuesta | Puerta | Esf. | Tipo | Estado |
+|---|---|---|---|---|---|---|
+| **Tramo 0 · medir y desbloquear (5–16/10)** | | | | | | |
+| WP-01 | Sello de versión y aviso de «versión nueva» (no en Hoy) | NXP-02 | — | S | Exenta | ⏳ |
+| WP-02 | Prueba de hallazgo cronometrada dentro de la app | NXP-01 | — | S-M | Exenta (medida) | ⏳ |
+| WP-03 | Contador de uso combinado de los dos móviles | NTC-03 | Revisión de privacidad | S-M | Exenta | ⏳ |
+| WP-04 | Script de viabilidad del día de cargo (solo lectura, sin importes) | ND-03 (paso 0) | ≥ 3 meses de movimientos | S | Documental | ⏳ |
+| WP-05 | Spike PSD2 + modelo de amenazas | ND-13, NTC-06 | Criterio de salida a 16/10 | S | Documental | ⏳ |
+| WP-06 | Gobierno: Nielsen 16/10, 23/10 sin retirar nada, plazo 30/11 | — | — | S | — | ⏳ |
+| **Tramo A · la verdad entra barata (19/10–27/11)** | | | | | | |
+| WP-07 | Extraer el motor de fechas a `canonical-timing.js` (equivalencia + datasets dorados) | NTC-01 | Tramo 0 | M | Habilitadora | ⏳ |
+| WP-08 | Día de cargo por partida (declarado; sugerido si WP-04 lo justifica) | ND-03 | WP-07 | M | Exenta | ⏳ |
+| WP-09 | Cierre con saldo y firma; cerrar el mes anterior | NPV-03 (C2) | Q1 ✅ | M | Exenta | ⏳ |
+| WP-10 | Medidor de calidad de datos de la previsión (en Plan › Previsión) | NPV-08 | WP-07 | S | **Visible 1/2** | ⏳ |
+| WP-11 | Campo de importe unificado, fase 1 (Registrar) | NXP-05 | — | S-M | Exenta (a11y) | ⏳ |
+
+### 14.3 Cola en espera (se abre al cumplirse la puerta del tramo anterior)
+
+| Tramo | Contenido | Puerta de entrada |
+|---|---|---|
+| **B · previsión que se contrasta (30/11–22/1)** | WP-12 backtest de caja (NPV-02) · WP-13 índices oficiales (ND-11) · WP-14 cobros esperados (ND-08) · **WP-15 hoja de valoración rápida (NIN-02)** · WP-16 banda de caja diaria (NPV-01) | Métrica del tramo A; NTC-06 |
+| **C · inversión viva (25/1–5/3)** | WP-17 cartera como tablero (NIN-01) · WP-18 aportado frente a valor y TWR (NIN-03) | WP-15 con ≥ 3 puntos |
+| **D · deuda con guion (8/3–16/4)** | WP-19 camino a deuda cero (NDB-01) · WP-20 revisión de tipo variable (NDB-02, **solo si H7 = variable o mixta**) · WP-21 informe fiscal de inversión (NIN-10, listo antes del 31/3) | Tramo C; H7 |
+| **E · hogar** | NXP-03 procedencia bajo demanda · NXP-07 modo consulta · NHG-05 carta del mes · NHG-02 reunión mensual · NHG-01 cuentas en pareja · NHG-04 objetivos · NDB-03 «¿me puedo permitir X?» · y la Ola 3 (ND-01, ND-02, ND-14) | Prueba de WP-02 hecha y re-medición con las dos personas aprobada |
+
+### 14.4 Catálogo (no activado; se activa citando uso real)
+ND-04, ND-05, ND-06, ND-07, ND-09, ND-10, ND-12; NPV-04, NPV-05, NPV-06, NPV-07, NPV-09, NPV-10, NPV-11, NPV-12; NIN-04…NIN-09; NDB-04, NDB-05; NXP-04, NXP-06 (modo discreto); NHG-03 (candidata a descartar); NTC-02, NTC-04, NTC-05.
+
+### 14.5 Métricas del conjunto
+Tiempo hasta la verdad de quien consulta ≤ 15 s y la misma cifra · actualizar saldos ≤ 20 s · un gasto ≤ 8 s · saldos con ≤ 3 días en ≥ 90 % de los días · **≥ 70 % del gasto con fecha declarada u observada** · cobertura de P10-P90 de caja ≈ 80 % tras ≥ 6 meses · valoraciones de cartera al día cada mes. **Regla de parada:** si un tramo no mueve su métrica, no se abre el siguiente.
+
+### 14.6 Corrección registrada
+En la primera versión de la propuesta se dio por existente una edición parcial de posiciones de cartera (confundiendo `applyFundTransfer`). **No existe:** una posición solo se puede añadir, borrar, traspasar de fondo a fondo o marcar como revisada; **no se puede actualizar su valor sin borrarla y recrearla.** Por eso `NIN-02` sube a prioridad crítica y pasa al tramo B (el mismo hueco figuraba ya en la nota de `I12`, `BACKLOG_CONTABILIDADCASA_2_0.md`).
+
