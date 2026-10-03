@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-03-wp03",
+      fecha: "2026-10-03",
+      texto: "Panel de uso: días de uso, saldos frescos y minutos por semana, frente a sus objetivos. En Ajustes › Uso de la app.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-03-wp02",
       fecha: "2026-10-03",
       texto: "Prueba de 30 segundos: mide cuánto tardas en tener la cifra de Hoy al abrir la app. En Ajustes › Uso de la app.",

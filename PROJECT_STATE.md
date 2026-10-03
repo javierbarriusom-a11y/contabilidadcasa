@@ -109,6 +109,16 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (299, tercer PR): WP-03 panel de uso
+
+- **WP-03 (UXS-04 + NTC-03 reducido) construido** en `usage-panel.js` (lógica pura y montaje, como `ux-shell.js`; cero líneas en `app.js`): días de uso por semana (media de las semanas completas desde el primer uso; una semana anterior al primer uso no cuenta como semana sin uso), **saldos frescos** los días de uso (la mejor edad del día, ≤ 3 días y solo saldos tecleados del banco; sin veredicto hasta 7 días de uso), **minutos autodeclarados** por semana (formulario en el panel; el campo vacío no se guarda como «0») y la mediana de la prueba de Hoy (WP-02). Objetivos del backlog §9: ≥ 4 días, ≥ 90 %, ≤ 10 min, ≤ 15 s.
+- **Lo que no se puede medir se dice:** «% del gasto registrado en < 48 h» queda **sin medir** porque la app no guarda cuándo se registra cada gasto, solo su fecha (llega con la captura, WP-25/WP-30); «decisiones registradas» también, hasta acordar qué cuenta como decisión. Nunca un cero inventado.
+- **Un solo móvil** (decisión del hogar): almacén local `usage-days` (excluido de la copia en `arq6` con motivo), sin sincronización ni la revisión de privacidad que exigía NTC-03. Solo agregados: días, edad y modo de los saldos, minutos.
+- **Comprobado en Chromium a 393 px:** la primera versión era una tabla de 5 columnas que en el móvil escondía los valores tras un desplazamiento horizontal → fichas apiladas; «Sin datos aún» salía en verde → tono neutro con los tokens del tema (vale en modo oscuro).
+- **Prueba nueva:** `tests/uxs4-panel-uso.test.cjs` (11 casos).
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5052/5052** (5041 + 11 nuevas); e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Pendiente del hogar:** decir los minutos de cada semana en el panel (≈ 10 s, el domingo o el lunes).
+
 ## Cierre de sesión — 3 de octubre de 2026 (299, segundo PR): WP-02 prueba cronometrada de Hoy
 
 - **WP-02 (NXP-01 + PRV-06 + UXS-05) construido** como instrumento de medida (no cambia cifras). Motor puro `canonical-finding-test.js` (lectura de importes en formato español, «misma cifra» con ±1 €, validez GOV-05, mediana, línea base = 3 intentos válidos con A, semana ISO, €/día hasta cobrar) y controlador `finding-test-ui.js` (cronómetro, barra y tarjeta). **Decisión de diseño de Claude:** la prueba se *prepara* en Ajustes › Uso de la app y cronometra la **siguiente apertura real** (desde el arranque de la página si se abre de cero; desde que vuelve a primer plano si estaba en memoria, lo normal en iPhone), empezando en lo alto de Hoy: el tiempo incluye la carga, que es lo que vive el hogar. El tiempo se para con «Ya la tengo»; teclear la cifra no cuenta.
