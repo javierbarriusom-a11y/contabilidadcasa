@@ -1,6 +1,6 @@
 # Quinta auditoría crítica — propuesta de mejoras y nuevas funcionalidades
 
-Fecha: 2 de octubre de 2026. Estado: **propuesta para decidir; no es un backlog y no activa nada.**
+Fecha: 2 de octubre de 2026. Estado: **aprobada el 3/10/2026 con las recomendaciones del §10** (el hogar contestó «ok» a todas con mis sugerencias). Qué se activa, en qué orden y con qué puertas: `docs/PLAN_IMPLEMENTACION_2026-10-03.md` y `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §14. Este documento queda como catálogo y razonamiento; **lo que manda es el backlog**.
 Alcance pedido: más de 40 propuestas nuevas, con profundidad en previsión y actualización de datos, inversión y deuda (actual y nueva), cruzadas con `BACKLOG_INICIO_OLEADA_OCTUBRE.md` e incorporando lo pendiente.
 
 **Este documento no contiene importes reales del hogar** (el repositorio es público). Solo porcentajes, tiempos medidos y hechos cualitativos.
@@ -46,7 +46,7 @@ Persistencia local primero, cola remota, copia completa verificada y restauraci�
 | D3 | Crítico | **Previsión sofisticada sobre entrada gruesa.** En `expenseTimingForRow` solo hay fecha «por regla» para 3 etiquetas fijas; «observada» solo si el movimiento ya ocurrió; el resto cae en el día 8. Medido: 0 observadas, 0 por regla, 100 % estimadas. Una salida futura **no puede** ser observada, así que importar más extractos no lo arregla (corrige D1b de las decisiones del 1/10). Las bandas P10-P90 no incluyen la incertidumbre de fecha. | [M][C] |
 | D4 | Alto | **Sin contraste de caja.** `closeMonth` guarda reales, motivo, autor y asientos de sobres; **ningún saldo bancario**; además cierra el mes en curso, no el que acaba (C2). `predictiveHealthIndex` mide error por categoría, no error de liquidez. El hallazgo 4 de `2.0` (patrimonio sin serie) sigue abierto porque `I2` solo guarda valoraciones por posición. | [C] |
 | D5 | Alto | **La métrica falla donde importa y la causa puede ser de vocabulario.** El hogar dijo «hasta cobrar»; la app muestra «Disponible para gastar» = menor de dos márgenes: un constructo que la app inventó. Hipótesis 4 de `docs/OLA2_RECALIBRACION.md` §8.1. Además, 120 px de cabecera de procedencia en cada pantalla a 390 px (medido en S5). | [M][C] |
-| D6 | Alto | **Inversión: calculadora, no tablero.** Cinco pestañas de análisis; la primera no responde a «¿cómo voy y qué hago?». Sin precios; el historial (`I2`) solo crece al cerrar mes, y el cierre es atípico (C2). La edición de posiciones permite tipo, etiqueta, ticker, cantidad y valor, pero **no coste, fecha ni cada aportación/venta** (`canonical-portfolio.js`: `costBasis: position.initialCost`). | [C] |
+| D6 | Alto | **Inversión: calculadora, no tablero.** Cinco pestañas de análisis; la primera no responde a «¿cómo voy y qué hago?». Sin precios; el historial (`I2`) solo crece al cerrar mes, y el cierre es atípico (C2). **Una posición solo se puede añadir (`saveIv1Position`), borrar (`removeIv1Position`), traspasar de fondo a fondo (`applyFundTransfer`) o marcar como revisada: no hay forma de actualizar el valor de una posición existente sin borrarla y volver a crearla** (perdiendo aportaciones y ventas registradas). | [C] |
 | D7 | Alto | **Deuda: siete secciones** (`deuda-comparar`, `deuda-ruta`, `deuda-contratos`, `deuda-simulador`, `debt-roadmap`, `debt-liquidation-plan`, `debt-control`), dos motores vigilados por `canonical-e14-parity.js` y un iframe heredado que `D1` amplió (decisión del hogar), es decir, vivo. El hogar necesita un guion por mes, no siete pantallas. | [C] |
 | D8 | Alto | **Cuello de botella humano.** H1-H6 esperan respuestas en el chat; mientras tanto el backlog dice «no hay nada que construir». La regla exime datos/cálculo, pero la inercia lo ha leído como «parado». | [C] |
 | D9 | Alto | **Dependencias de terceros caducadas o sin fecha:** `A5-1`, `A5-4` y PSD2 llevan semanas «sin producción real» y fingen ser trabajo futuro. El candidato de `O-6` parece cerrado a altas nuevas (verificar). | [C] + web |
@@ -136,7 +136,7 @@ Persistencia local primero, cola remota, copia completa verificada y restauraci�
 - *Dependencias:* ninguna. *Éxito:* una sola operación por visita al banco.
 
 **ND-03 · Día de cargo por partida (declarado, con sugerencia aprendida)** [M][C] · M · Crítico · E
-- *Qué:* campo opcional «Día de cargo» por partida (1-31, «último día», «sin fecha») que sustituye al día 8 por defecto: orden de precedencia **declarado > observado > regla > estimado**. Sugerencia con confianza desde el histórico («suele cargarse el 5 · 6 de 6 meses») y botón «Aplicar las N sugerencias fiables».
+- *Qué:* campo opcional «Día de cargo» por partida (1-31, «último día», «sin fecha») que sustituye al día 8 por defecto: orden de precedencia **declarado > regla > observado > estimado** (el orden actual de `expenseTimingForRow` conserva regla y observado; solo se antepone lo declarado). Sugerencia con confianza desde el histórico («suele cargarse el 5 · 6 de 6 meses») y botón «Aplicar las N sugerencias fiables».
 - *Por qué:* es la pieza que falta (D3). Verificado: no existe un día de cargo propio por partida en el código. Convierte el 100 % estimado en una cifra gestionable.
 - *UX/UI:* columna en Plan › Partidas con *stepper* y chip de sugerencia; resumen «quedan 9 partidas con fecha estimada (22 % del gasto)». Una sola sesión de ~30 minutos de alta, no un trabajo continuo.
 - *Dependencias:* **paso 0**: script de viabilidad de solo lectura (decisión P14, ≥ 3 meses de movimientos). NTC-01 antes (seam limpio). *Riesgo:* fechas declaradas que caducan: se revisan con el medidor NPV-08.
@@ -254,9 +254,9 @@ Persistencia local primero, cola remota, copia completa verificada y restauraci�
 - *Qué:* arriba, un resumen de una línea (valor, aportado, ganancia en € y %, rentabilidad) y **una acción** elegida por reglas deterministas con su motivo (aportación pendiente · deriva sobre el umbral · revisión de convicción vencida · venta fiscalmente óptima). Debajo, barra «objetivo vs. actual» (nada de tarta) y posiciones como tarjetas en móvil, con *sparkline* cuando haya historial.
 - *Por qué:* hoy la primera pestaña es un conjunto de calculadoras. *UX/UI:* jerarquía visual, revelación progresiva, una acción primaria. *Dependencias:* NIN-02/03 para el *sparkline*.
 
-**NIN-02 · Hoja de valoración rápida con snapshots propios** [C] · S-M · Alto · V
+**NIN-02 · Hoja de valoración rápida con snapshots propios** [C] · M · **Crítico** · V
 - *Qué:* tabla ordenada por tamaño con el valor anterior, un campo para el nuevo (o «% de variación») y chip de variación; «Pegar desde el bróker» que casa por nombre/ISIN/ticker; fecha de valoración; al guardar, **un snapshot fuera del cierre de mes**.
-- *Por qué:* hoy el historial solo crece al cerrar mes (`I2`) y el cierre es atípico (C2). Esto acelera `I3` y es el 80 % del valor de ND-12 con el 10 % del riesgo.
+- *Por qué:* hoy **no existe forma de actualizar el valor de una posición** sin borrarla y recrearla, así que el valor actual solo se refresca así; el historial (`I2`) solo crece al cerrar mes y el cierre es atípico (C2). Esto acelera `I3` y es el 80 % del valor de ND-12 con el 10 % del riesgo. **Sube de prioridad: es un hueco funcional, no solo de comodidad.**
 
 **NIN-03 · «Aportado vs. valor» y rentabilidad ponderada por tiempo** [H] · M · Alto · V
 - *Qué:* gráfico de aportaciones acumuladas (escalón) frente al valor de mercado; la distancia es el efecto mercado. Dos rentabilidades con explicación: XIRR (ya existe) y TWR.
@@ -272,7 +272,7 @@ Persistencia local primero, cola remota, copia completa verificada y restauraci�
 
 **NIN-06 · Operaciones editables e importador del bróker** [C] · L · Alto · V
 - *Qué:* libro de operaciones por posición (fecha, unidades, precio, comisiones) editable, con recálculo FIFO y diff antes/después; importación pegando el CSV del bróker con la misma identidad y deduplicación que la bancaria.
-- *Por qué:* hoy no se pueden corregir coste, fecha ni aportaciones individuales (D6); un error de alta obliga a borrar la posición.
+- *Por qué:* hoy no se puede corregir **nada** de una posición ya creada (ni valor, ni coste, ni fecha, ni aportaciones; D6): un error de alta o una revalorización obligan a borrarla y recrearla.
 - *Riesgo:* cálculo fiscal: pruebas de oro con `FIN-2`.
 
 **NIN-07 · Patrimonio neto de impuestos latentes** [C] · S-M · Medio · V
@@ -421,7 +421,7 @@ NTC-06 ─► ND-05, ND-12, ND-13      NXP-01 ─► abrir Ola 3
 | Regla de recompra (2 meses/1 año) y traspaso entre fondos | Ya en `canonical-portfolio.js` (`FC2`, comentario de la regla legal) |
 | Marcar gasto esencial/prescindible | Existe el eje `movementActionTypes` (deuda/discrecional/recurrente) y el colchón se basa en gasto esencial medio; solo falta la **palanca** (NPV-09) |
 | Cuadre saldo declarado vs. extracto | Ya en Movimientos y Cierre (`M-8c`, `C-2`); lo que falta es usarlo para pedir menos (ND-01/ND-02) |
-| Edición de posiciones | Existe parcial (tipo, etiqueta, ticker, cantidad, valor); falta coste, fecha y operaciones (NIN-06) |
+| Edición de posiciones | **No existe** (corrección de una primera lectura mía: confundí `applyFundTransfer`, el traspaso entre fondos, con una edición general). Solo alta, baja, traspaso y revisión de convicción: ver NIN-02 y NIN-06 |
 | Comparador contra benchmark, coste de comisiones, DCA | `IVX2`, `IVX4`, `INV15`, `INV19`, `IVX7` |
 | Amortizar o invertir, cancelar o mantener deuda, prioridad por fiscalidad | `AP1`, `DEB9`, `DEB5`, `DEB10` |
 | Captura por voz | Decisión explícita del hogar (`DEX2`, `P7`): descartada |
@@ -443,7 +443,7 @@ Principios: la métrica se declara antes; como máximo **dos entregas visibles p
 | **0 · Semanas 1-2 («medir y desbloquear»)** | NXP-02 (sello de versión), NXP-01 (prueba cronometrada), NTC-03 (contador combinado), script de viabilidad de ND-03, decisión de C2 (H5), ND-13 (decidir spike), NTC-06 | E | Línea base con segundos; 2 personas; versión visible |
 | **A · «La verdad entra barata»** (sem. 3-8) | NTC-01 → ND-03 · NPV-03 (C2) · NXP-05 · NPV-08 | E (4 entregas exentas) | % del gasto con fecha declarada/observada ≥ 70 %; actualizar saldos ≤ 20 s |
 | **B · «Previsión que se contrasta»** (sem. 9-14) | NPV-02 (backtest) · ND-11 · ND-08 · luego NPV-01 | E + 1 visible | Primer backtest con datos; Euribor/IPC sin teclear |
-| **C · «Inversión viva»** (sem. 12-18) | NIN-02 → NIN-01 · NIN-03 | 2 visibles | Valoraciones actualizadas ≥ mensualmente; «cómo voy» en 1 pantalla |
+| **C · «Inversión viva»** (sem. 12-18; **NIN-02 se adelanta al tramo B**: es un hueco funcional, ver el plan) | NIN-02 → NIN-01 · NIN-03 | 2 visibles | Valoraciones actualizadas ≥ mensualmente; «cómo voy» en 1 pantalla |
 | **D · «Deuda con guion»** (sem. 16-22) | NDB-01 · NDB-02 | 2 visibles | «¿cuándo acabamos y qué cambia con más?» en < 30 s |
 | **E · «Hogar»** (cuando haya H1/H3/H5) | NHG-05 · NHG-02 · NXP-03 · NXP-07 | H, tras re-medición | Reunión mensual celebrada ≥ 10 de 12 |
 

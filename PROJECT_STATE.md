@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de octubre de 2026 (sesión 292). **Único backlog vivo: `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (§0 y §1); el detalle del plan de UX sigue en `BACKLOG_UX_OLAS.md` y `docs/OLA2_RECALIBRACION.md`.**
+Fecha de revisión: 3 de octubre de 2026 (sesión 293). **Único backlog vivo: `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (§0 y §1); el detalle del plan de UX sigue en `BACKLOG_UX_OLAS.md` y `docs/OLA2_RECALIBRACION.md`.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,19 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 3 de octubre de 2026 (293): quinta auditoría crítica aprobada, backlog cerrado y plan de implementación (solo documentación)
+
+- **Qué pidió el hogar:** una auditoría crítica de la app con más de 40 propuestas nuevas (previsión y actualización de datos, inversión, deuda actual y nueva), cruzada con `BACKLOG_INICIO_OLEADA_OCTUBRE.md`; después, «ok a las respuestas con tus sugerencias, cierra backlog, artefacto visual y plan de implementación».
+- **Hecho:** `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` (diagnóstico crítico en 12 hallazgos, 59 propuestas —54 nuevas y 5 pendientes rehechas—, disposición de cada pendiente del backlog, descartadas tras el cruce con el código, 12 decisiones, lo no verificado); `docs/PLAN_IMPLEMENTACION_2026-10-03.md` (22 paquetes de trabajo por tramos, enfoque técnico anclado en el código, pruebas, guardianes, calendario, tareas del hogar y riesgos); `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §0, §1, §2 y §10 actualizados y **§14 nueva** (decisiones, cola activa, cola en espera, catálogo, métricas); `BACKLOG_INDICE.md` (párrafo nuevo; sigue habiendo **una** sola fila «🟢 Vigente»).
+- **Decisiones del hogar (3/10/2026), todas con las recomendaciones de Claude:** Q1 abrir C2 (cierre con saldo y mes anterior, sin tocar el RPC); Q2 prueba cronometrada dentro de la app; Q3 sello y aviso de versión; Q4 30 minutos, una vez, de alta del día de cargo; Q5 spike de PSD2 de 2 semanas con criterio de salida; Q6 precios manuales primero; Q8 reparto en pareja proporcional como opción y titular explícito; Q9 **plazo 30/11/2026 para `A5-1`/`A5-4` (fijado por Claude, veto posible)**; Q10 no retirar nada el 23/10; Q11 modo discreto sí, passkey más tarde; Q12 validar la premisa de Hoy. **Sin respuesta:** Q7 (¿hipoteca variable, mixta o fija?; es un dato) y el contenido de H1 (qué decía la tarjeta).
+- **Hallazgos verificados en el código, que cambian el plan:** (1) `service-worker.js` hace `skipWaiting` + `clients.claim`: **no hay worker «en espera»**, así que el aviso de versión nueva se hace con `version.json` y `controllerchange`, no con el «waiting» clásico; (2) `expenseTimingForRow` solo tiene tres fuentes (regla, observada, estimada) y **no hay día de cargo por partida**; (3) `parseAmount` ya acepta coma, punto y «€»: el problema de la entrada numérica es el campo (`type="number"`, 238 en `index.html`), no el análisis; (4) **no existe forma de actualizar el valor de una posición de cartera sin borrarla y recrearla** (solo alta, baja, traspaso de fondo a fondo y revisión de convicción); (5) el único `fetch` de datos fuera de Supabase es `../data/finance_data.json`: ninguna fuente externa de mercado.
+- **Error propio corregido:** la primera versión de la propuesta daba por existente una edición parcial de posiciones (confundí `applyFundTransfer`, el traspaso entre fondos, con una edición general). Corregido en la propuesta y registrado en el backlog (§14.6). `NIN-02` sube a prioridad crítica.
+- **Hecho de terceros a verificar:** GoCardless Bank Account Data parece haber cerrado altas nuevas (el candidato de `O-6`); no confirmado en su sitio.
+- **No construido a propósito:** ninguna propuesta. Todo lo visible sobre Hoy sigue congelado por la regla de parada v2 hasta tener la prueba cronometrada de quien consulta. El primer paquete es WP-01 (sello de versión).
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008** (sin pruebas nuevas ni cambiadas), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Primero hubo que instalar las dependencias del contenedor (`npm ci`): sin ellas fallaban 6 pruebas de `build:site` por falta de esbuild, en un entorno sin `node_modules` (también sin mis cambios); no era un fallo del código. `app.js` sin tocar (37.413 líneas; margen 82). **No se ejecutaron en local** las puertas de navegador del CI (`test:e2e`, `test:a11y-axe`, `test:mobile-overflow`, `test:performance-lh`, `test:load-budget`, `test:perf-screens`); no hay cambio de código ni de pantallas.
+- **Artefacto visual (privado, no está en el repositorio):** «Hoja de ruta Contabilidadcasa», con las decisiones, la hoja de ruta por tramos y el catálogo filtrable de las 59 propuestas. Sin importes reales.
+- **Rama/PR:** `claude/adoring-mccarthy-8x3xit`; [#431](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/431).
 
 ## Cierre de sesión — 2 de octubre de 2026 (292): todos los backlogs pendientes consolidados en `BACKLOG_INICIO_OLEADA_OCTUBRE.md`
 
