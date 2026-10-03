@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 3 de octubre de 2026 (sesión 298). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 3 de octubre de 2026 (sesión 299). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -109,7 +109,7 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
-## Cierre de sesión — 3 de octubre de 2026 (298): arranca la Ola 1 — WP-01 sello de versión y «Novedades»
+## Cierre de sesión — 3 de octubre de 2026 (299): arranca la Ola 1 — WP-01 sello de versión y «Novedades»
 
 - **El hogar dijo «empecemos»** sobre el artefacto de seguimiento y el backlog definitivo: el desarrollo queda iniciado (antes de la fecha orientativa del 5/10). Actualizados `BACKLOG_DEFINITIVO.md` §0/§1/§5, `docs/PLAN_DESARROLLO_DEFINITIVO.md`, `BACKLOG_INDICE.md` y la skill `finanzas-casa-workflow` (ya no dice «no construir»).
 - **Decisiones del hogar en esta sesión** (a propuesta de Claude): (a) **un solo móvil** → WP-03 se queda en contador local, sin sincronización ni revisión de privacidad de NTC-03; (b) **WP-23 (campaña fiscal) se adelanta** a la siguiente sesión tras WP-02/WP-03, con los datos fiscales pedidos ya por el chat; (c) el interruptor A/B del titular de WP-02 se construye pero **no alterna** hasta tener la línea base con el texto A (n = 1: preferencia, no resultado medido).
@@ -117,9 +117,21 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Comprobado en Chromium real a 393 px:** sello y «Novedades» se pintan sin errores de JavaScript; el aviso se partía en una columna estrecha y tapaba la cifra de Hoy → ancho propio y pegado al borde inferior.
 - **Trampas pisadas y corregidas:** un comentario con el literal del script principal en `index.html` (trampa 1) rompió 9 pruebas de orden de carga; el sello nuevo de `styles.css` estaba fijado en `t8` y `e17` (actualizado, sin relajar ninguna comprobación).
 - **Prueba nueva:** `tests/nxp2-sello-version.test.cjs` (15 casos: sello, comparación, caché lista, `controllerchange`, formato de `novedades.js`, marcado fuera de Hoy y del script principal, build real con `GITHUB_SHA` y enganche con DOM simulado).
-- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5023/5023** (5008 + 15 nuevas).
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5027/5027** tras traer `main` con #435 (5012 + 15 nuevas); e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Fusión con la sesión 298 en paralelo** (#435, panel de seguimiento): conflictos en `BACKLOG_DEFINITIVO.md`, `BACKLOG_INDICE.md` y este fichero, resueltos conservando las dos (cifras ≈ 138 sesiones y protocolo del panel de #435; arranque y decisiones de esta sesión). Al inicio de esta sesión se dijo que `tests/plan-seguimiento-sincronizado.test.cjs` no existía: era cierto en la rama, no en `main`, donde llegó a la vez.
 - **Pendiente del hogar:** nada de WP-01; tras el despliegue, comprobar en el móvil que el sello aparece en Menú y que el siguiente despliegue muestra el aviso.
 - **Rama/PR:** `claude/admiring-mccarthy-xrrv5q` → PR en borrador contra `main`.
+
+## Cierre de sesión — 3 de octubre de 2026 (298): backlog en datos y panel de seguimiento del plan (sin cambios en la app)
+
+- **Qué pidió el hogar:** «genera un backlog y artefacto para poder ver el plan y controlar el grado de avance».
+- **Decisión de Claude, explicada al hogar:** no se crea un segundo backlog en Markdown (habría dos fuentes vivas y el guardián del índice exige una sola). El backlog de ejecución es **`docs/plan/plan-definitivo.json`**: 3 olas, **53 paquetes** con sesiones estimadas, dependencias y «hecho cuando», las **104 propuestas** (sacadas por script de `BACKLOG_DEFINITIVO.md` §5), 16 hitos, 21 tareas del hogar (incluidos los cierres de mes hasta abril de 2027) y 10 métricas. **`tests/plan-seguimiento-sincronizado.test.cjs`** (4 pruebas) falla si el JSON y el backlog se separan, si una propuesta queda en dos paquetes, si una dependencia no existe o si aparece un importe en euros.
+- **Panel de seguimiento** (artefacto privado, enlace en `BACKLOG_DEFINITIVO.md` §12): plantilla en `docs/plan/panel-seguimiento.html`, generada con `tools/build-plan-panel.mjs`. Avance **ponderado por esfuerzo** (hecho 100 %, en revisión 90 %, en curso 50 %) frente a una **línea base fija** del 3/10, desvío en sesiones, índice real/previsto y días de retraso; **valor comprobado** separado de construido; revisión de salida por ola (regla de parada); tareas del hogar, lecturas de métricas, catálogo P3/P4/archivo con su estado y registro de cambios. El estado vive en la base del artefacto (solo escribe el titular); sembrado con el arranque vacío y dos entradas de registro del 3/10.
+- **Ajuste de cifras:** la suma exacta por paquete da **137,5 sesiones** en las tres olas (Ola 1 21,5 · Ola 2 31,5 · Ola 3 84,5) más la prueba trimestral: el plan pasa de «≈ 140» a «≈ 138» y la Ola 3 de «≈ 87» a «≈ 85».
+- **Protocolo nuevo:** al cerrar cada sesión de desarrollo, Claude actualiza el panel (`BACKLOG_DEFINITIVO.md` §12; Modo Cierre de la skill `finanzas-casa-workflow`).
+- **No construido:** nada en la app; el desarrollo sigue sin iniciarse hasta «empezamos».
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5012/5012** (4 pruebas nuevas).
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, reiniciada sobre `main` tras fusionar #434.
 
 ## Cierre de sesión — 3 de octubre de 2026 (297): respuestas del hogar al backlog definitivo; plan comprimido a 3 olas (solo documentación)
 
