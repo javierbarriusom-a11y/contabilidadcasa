@@ -37,9 +37,11 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
 2. **Backlog**: el repositorio acumula varios documentos `BACKLOG*.md` de distintas
    generaciones — `BACKLOG_INDICE.md` (OPT-20) es el mapa que dice cuál es la fuente viva de
    cada uno. El backlog vigente es el que `BACKLOG_INDICE.md` marca como «🟢 Vigente» — hoy
-   `BACKLOG_INICIO_OLEADA_OCTUBRE.md` (desde el 2/10/2026 es el **único** backlog vivo): lee su §0
-   («Estado en una línea») y su §1 («Cómo empezar»); lo que espera al hogar está en su §2, lo
-   congelado por la regla de parada v2 en su §4 y el calendario en su §9. Los demás `BACKLOG*.md`
+   `BACKLOG_DEFINITIVO.md` (desde el 3/10/2026 es el **único** backlog vivo): lee su §0
+   («Estado en una línea») y su §1 («Cómo empezar»); la prioridad de cada propuesta está en su §5,
+   las reglas de ritmo en su §4, el calendario en su §7 y las decisiones abiertas en su §8. El
+   cómo y el cuándo de cada paquete, en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. **No empezar a
+   construir hasta que el hogar lo pida** (decisión del 3/10/2026). Los demás `BACKLOG*.md`
    (`BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`, `BACKLOG_UX_OLAS.md`…)
    quedan como detalle histórico de por qué se hizo cada cosa; su §12 lista lo que en ellos está
    desfasado. Si el índice ya marca como vigente otro documento, manda el índice y esta línea está

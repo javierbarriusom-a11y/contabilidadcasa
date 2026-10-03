@@ -109,6 +109,16 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (296): backlog definitivo y plan de desarrollo (solo documentación; desarrollo no iniciado)
+
+- **Qué pidió el hogar:** «la persona que responde es la misma porque de momento es solo un usuario. No quiero empezar el desarrollo aún: genérame el backlog definitivo y el plan de desarrollo resultante de tu análisis y las nuevas propuestas, incluyéndolas todas, pero priorizadas».
+- **Hecho:** nace **`BACKLOG_DEFINITIVO.md`**, único backlog vivo (🟢 en `BACKLOG_INDICE.md`; `BACKLOG_INICIO_OLEADA_OCTUBRE.md` pasa a 🟡 absorbido, con aviso en su cabecera; la skill `finanzas-casa-workflow`, Modo Inicio, paso 2, lo nombra). Contiene las **104 propuestas** (59 de la quinta auditoría y 45 de la sexta), comprobadas por script, cada una **una sola vez**: **P0 17** (T0-T1, octubre-noviembre), **P1 24** (T2-T5), **P2 26** (T5-T12), **P3 27** (catálogo con disparador), **P4 9** (segunda persona usuaria, tercero o evento) y **1 a archivar** (`NHG-03`). Además: pendientes que no son propuestas (H1-H8, terceros, aparcados, deuda técnica, Cola B), calendario, 6 decisiones abiertas (D1-D6), métricas y recetas. Nace **`docs/PLAN_DESARROLLO_DEFINITIVO.md`**: 13 tramos de 4 semanas (T0 5/10/2026 … T12 17/9/2027), máximo 2 entregas visibles por tramo, paquetes WP-01…WP-54 (WP-01…WP-21 heredados con ajustes; WP-22 retirado y repartido; WP-23…WP-54 nuevos con código reutilizado, enfoque, pruebas y criterio de hecho), dependencias, lo que necesita el hogar y cuándo, y riesgos. Estimación ≈ 140 sesiones.
+- **Cambio de premisa aplicado:** con **un solo usuario**, la métrica de la regla v2 pasa a ser la del usuario (≤ 15 s con saldos del día) más adopción (≥ 4 días activos por semana); modo consulta, D4/D5, reunión mensual y captura desde un segundo móvil pasan a **P4** hasta que se incorpore otra persona; el contador de los dos móviles se reduce a multi-dispositivo.
+- **Primer paquete con fecha:** campaña fiscal de fin de año con el tope de la deducción por vivienda (WP-23), lista antes del 15/11/2026; necesita los datos fiscales del hogar **en el chat** hacia el 20/10.
+- **No construido:** nada, por decisión del hogar.
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008** (incluidos los guardianes `opt20-indice-backlogs` y `proc-skill-alineada-con-claude-md`, que comprueban el índice y la skill), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Sin cambios de código.
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, mismo PR que la sesión 295.
+
 ## Cierre de sesión — 3 de octubre de 2026 (295): triaje de la sexta auditoría respondido y orden resultante (solo documentación)
 
 - **Qué hizo el hogar:** respondió el artefacto «Triaje sexta auditoría» y pegó el resumen en el chat.

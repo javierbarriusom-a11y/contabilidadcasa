@@ -1,5 +1,7 @@
 # Backlog `inicio_oleada_octubre` — todo lo pendiente, en un solo documento
 
+> **Sustituido el 3 de octubre de 2026 (sesión 296) por [`BACKLOG_DEFINITIVO.md`](BACKLOG_DEFINITIVO.md)**, que es ahora el único backlog vivo (las 104 propuestas priorizadas y el plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`). Este documento queda como detalle histórico: su razonamiento y las respuestas del triaje (§15.4) siguen valiendo; su orden y sus colas, no.
+
 **Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** **Sesión 294 (mismo día): sexta auditoría propuesta y triaje respondido (§15).** Las 8 decisiones están contestadas y las 45 propuestas tienen orden (§15.5): primero la **campaña fiscal con el tope de la deducción por vivienda (antes del 15/11)**. La cola activa de §14 sigue igual; §15.5 se suma a ella. Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
 **Es la única fuente viva de lo que falta por hacer.** Los demás `BACKLOG*.md` no se han borrado ni reescrito: conservan el detalle de por qué se hizo cada cosa
 y llevan un aviso en su cabecera que apunta aquí. Mapa de todos ellos: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26:
