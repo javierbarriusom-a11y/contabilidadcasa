@@ -237,7 +237,8 @@ anterior de este manual, esta lista **no incluye** objetivos y calendario (E15),
 y en uso. Lo que sigue genuinamente pendiente:
 
 - **Conexión bancaria PSD2 real** (`O-6`): bloqueada por la contratación de un proveedor externo
-  (candidato evaluado: GoCardless), no por trabajo pendiente propio.
+  (GoCardless cerró las altas en julio de 2025; desde octubre de 2026 se evalúa Enable Banking, ver
+  `docs/ND13_SPIKE_CONEXION.md`), no por trabajo pendiente propio.
 - **Asistente de IA en producción real** (`A5-1`): construido con backend privado propio, pero
   todavía no activo fuera de base local. Mientras tanto, la captura por voz y un puñado de tareas
   condicionadas (`DEX6`, `RGX3`) quedan a la espera de esa activación — el resto de la aplicación

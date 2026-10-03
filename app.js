@@ -26015,6 +26015,8 @@ function toggleE11bInbox() {
 // ---------------------------------------------------------------------------------------------
 
 const RECEIPT_OCR_CDN_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+// NTC-06 (docs/NTC06_AMENAZAS.md): código de un tercero en el origen de la app → huella SRI del fichero publicado en npm.
+const RECEIPT_OCR_CDN_INTEGRITY = "sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F";
 let receiptOcrEngineLoad = null;
 let receiptCaptureDraft = null;
 
@@ -26027,6 +26029,8 @@ function loadReceiptOcrEngine() {
   receiptOcrEngineLoad = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = RECEIPT_OCR_CDN_URL;
+    script.integrity = RECEIPT_OCR_CDN_INTEGRITY;
+    script.crossOrigin = "anonymous";
     script.async = true;
     script.onload = () => (window.Tesseract ? resolve(window.Tesseract) : reject(new Error("El motor de OCR no se pudo inicializar.")));
     script.onerror = () => reject(new Error("No se pudo cargar el motor de OCR. Comprueba la conexión e inténtalo de nuevo."));
