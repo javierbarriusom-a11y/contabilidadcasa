@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (299, cuarto PR): WP-04 viabilidad del día de cargo; WP-23 aparcado
+
+- **WP-23 (campaña fiscal) aparcado** por decisión del hogar: no tiene los datos fiscales a mano. **Riesgo anotado:** la lista tiene que estar antes del 15/11 y son ≈ 4 sesiones; hay que retomarlo como tarde el **1/11**. El motor no necesita los datos; solo los euros.
+- **WP-04 (ND-03 paso 0) construido, con un cambio sobre el plan:** en vez de un script que el hogar pegara en la consola, es una **tarjeta de solo lectura en Ajustes › Presupuesto y operación** que se calcula sola sobre los datos reales del navegador. Motor puro `canonical-charge-day-viability.js` (agrupa por partida, día dominante ± 1, «fiable» = 80 % de los meses con 3 o más meses importados; un mes sin cargo encontrado cuenta como fallo; las partidas con regla de fin de mes no se aprenden); en `app.js` solo `chargeDayObservations()` (mismo emparejamiento que la previsión, `expenseTimingFromMovements`) y el pintado (+18 líneas, 37.436 de 37.495). `arq3` 71 → 72.
+- **Resultado:** con los datos de demostración, **insuficiente** (no traen movimientos importados); con los del hogar se lee en la tarjeta (no se copia aquí: repositorio público). **Decisión para WP-08** (propuesta de Claude, `docs/ND03_VIABILIDAD.md`): no elegir a ciegas; WP-08 usará este motor en tiempo de ejecución y sugerirá el día **solo en las partidas «fiables»**, el resto se declara.
+- **Comprobado en Chromium a 393 px:** sin datos pintaba una línea de ceros («0 partidas… 0 % del gasto») que parecía un dato → solo el veredicto; el texto citaba «WP-08» → lenguaje del hogar.
+- **Prueba nueva:** `tests/nd3-viabilidad-dia-cargo.test.cjs` (9 casos, incluida la recogida de `app.js` en un `vm`).
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5061/5061** (5052 + 9 nuevas); e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas).
+
 ## Cierre de sesión — 3 de octubre de 2026 (299, tercer PR): WP-03 panel de uso
 
 - **WP-03 (UXS-04 + NTC-03 reducido) construido** en `usage-panel.js` (lógica pura y montaje, como `ux-shell.js`; cero líneas en `app.js`): días de uso por semana (media de las semanas completas desde el primer uso; una semana anterior al primer uso no cuenta como semana sin uso), **saldos frescos** los días de uso (la mejor edad del día, ≤ 3 días y solo saldos tecleados del banco; sin veredicto hasta 7 días de uso), **minutos autodeclarados** por semana (formulario en el panel; el campo vacío no se guarda como «0») y la mediana de la prueba de Hoy (WP-02). Objetivos del backlog §9: ≥ 4 días, ≥ 90 %, ≤ 10 min, ≤ 15 s.

@@ -28058,6 +28058,7 @@ function renderAjustes() {
   renderAjustesSobres();
   renderAjustesLaboratorio();
   renderAjustesUsoApp();
+  renderAjustesChargeDayViability();
   renderCierreReportArchive();
   renderPv5Diary();
   renderPvc11PendingLearning();
@@ -35452,6 +35453,23 @@ function renderAjustesUsoApp() {
   const rows = usoAppRows();
   if (summaryEl) summaryEl.textContent = usoAppSummaryText(rows);
   if (bodyEl) bodyEl.innerHTML = usoAppTableHtml(rows);
+}
+
+// WP-04 (ND-03 paso 0): ¿se puede aprender el día de cargo? Una observación por partida de gasto y mes con
+// movimientos importados, con el mismo emparejamiento que la previsión; cálculo y HTML viven en el motor.
+function chargeDayObservations() {
+  const imported = new Set((baseData?.transactions || []).map((transaction) => transaction.month || String(transaction.date || "").slice(0, 7)));
+  return (baseData?.monthlyPlanning?.months || []).filter((month) => imported.has(month.key)).flatMap((month) =>
+    planningSectionsForMonth("expense", month).flatMap((section) => section.rows.map((row) => {
+      const amount = plannedValueForRow(row, month);
+      return { key: seriesKeyForRow(row), label: displayLabelForRow(row), month: month.key, amount, rule: isEndOfMonthExpenseRow(row), day: amount ? expenseTimingFromMovements(row, month, amount)?.day ?? null : null };
+    })));
+}
+
+function renderAjustesChargeDayViability() {
+  const target = qs("cargoViabilidad");
+  const engine = window.FinanceCanonicalChargeDayViability;
+  if (target && engine) target.innerHTML = engine.renderHtml(engine.analyze(chargeDayObservations()));
 }
 
 let laboratorioSelectedHash = LABORATORIO_CATALOG[0]?.hash || null;

@@ -5431,6 +5431,13 @@
 
             <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-operacion-title">Presupuesto y operación</h3>
+              <!-- WP-04 (ND-03 paso 0): solo lectura. Dice si el día de cargo de cada partida se puede
+                   aprender de los movimientos importados o tendrá que declararse (WP-08). Sin importes. -->
+              <article class="e19-card" id="cargoViabilidadCard">
+                <h3 class="escenario-motor-panel-title">Día de cargo: ¿se puede aprender?</h3>
+                <p class="e19-kpi-note">La previsión pone muchos gastos el día 8 porque no sabe cuándo se cobran. Esta lectura mira tus movimientos importados: si una partida cae siempre el mismo día (± 1 en el 80 % de los meses, con 3 meses o más), la app podrá sugerirte ese día; si no, lo declararás tú. No cambia ninguna fecha.</p>
+                <div id="cargoViabilidad"></div>
+              </article>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
                  configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
@@ -7592,11 +7599,12 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261003wp03a1"></script>
+    <script defer src="novedades.js?v=20261003wp04a1"></script>
     <script defer src="ux-shell.js?v=20261003wp01a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
     <script defer src="usage-panel.js?v=20261003wp03a1"></script>
+    <script defer src="canonical-charge-day-viability.js?v=20261003wp04a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
