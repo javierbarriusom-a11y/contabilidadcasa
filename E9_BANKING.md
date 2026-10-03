@@ -6,6 +6,11 @@ El código usa un contrato AISP independiente del proveedor. GoCardless Bank Acc
 candidato para el piloto español por su cobertura declarada en el EEE, acceso a cuentas, saldos y
 movimientos, y flujo de consentimiento alojado. La contratación y aceptación real siguen pendientes.
 
+**Actualización del 3/10/2026 (WP-05):** GoCardless Bank Account Data **no admite altas nuevas desde julio
+de 2025**, así que deja de ser candidato. La alternativa evaluada es Enable Banking en modo restringido
+(gratuito, solo cuentas propias). La matriz y la decisión del 16/10 están en `docs/ND13_SPIKE_CONEXION.md`, y los requisitos
+de seguridad previos en `docs/NTC06_AMENAZAS.md`.
+
 ## Reglas
 
 - Solo se solicitan cuentas, saldos y movimientos; nunca iniciación de pagos.

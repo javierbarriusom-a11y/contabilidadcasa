@@ -109,6 +109,33 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (299, quinto PR): WP-05 spike PSD2 y modelo de amenazas (NTC-06)
+
+- **Spike de conexión** (`docs/ND13_SPIKE_CONEXION.md`). Matriz que compara PSD2, Apple Pay + Atajos (CAP-01) y avisos del banco (CAP-03). Hechos comprobados el 3/10, con fuente:
+  - GoCardless (el candidato de `O-6`) **no admite altas desde julio de 2025**;
+  - **Enable Banking** tiene un modo restringido gratuito (solo cuentas propias, de **evaluación**), su lista de España incluye **CaixaBank y Banco Mediolanum** y da hasta 180 días de acceso;
+  - **las alertas de CaixaBank llegan por notificación de la app o por correo, no por SMS**, y Atajos no se dispara con notificaciones de otras apps.
+
+  Quedan sin comprobar el portal de Enable Banking (bloqueado por la red de este entorno, y necesita las credenciales del hogar) y los avisos de Mediolanum en España.
+- **Lectura crítica:** la regla de la sexta auditoría («cerrar PSD2 si Apple Pay y los avisos cubren ≥ 70 %») mide la captura y no la métrica que falla: ninguna de esas dos vías da **saldos**. CAP-03 por SMS no sirve para CaixaBank y queda en P3. CAP-01 nivel 1 sigue por WP-25 en cualquier caso.
+- **Decisión propuesta para el 16/10:** con la verificación práctica del hogar en el portal (≈ 20 min) y la frescura del panel de uso:
+  - las dos entidades enlazan con ≥ 180 días y la frescura es < 90 % → prototipo **solo de saldos** en la Ola 2;
+  - enlazan, pero la frescura es ≥ 90 % → `O-6` se aparca en P3 con disparador;
+  - falla una entidad → se cierra `O-6`;
+  - sin verificación → se cierra.
+- **Modelo de amenazas** (`docs/NTC06_AMENAZAS.md`): activos, atacantes probables, inventario de los servidores que usa la app (2 conexiones y 3 enlaces; sin telemetría), 12 amenazas con su estado, **13 requisitos** para cualquier conexión nueva (RQ-01 a RQ-13) y el procedimiento de móvil perdido.
+- **Hallazgos:**
+  - el motor de tickets (Tesseract.js en jsDelivr) se cargaba **sin huella SRI** → **corregido**: `integrity` sha384 calculado del paquete de npm 5.1.1 y `crossOrigin` anónimo. `app.js` +4 líneas, 37.440 de 37.495;
+  - pendientes con destino: sin CSP (requisito antes de enlazar un banco), `assistant-query` sin CORS ni límites (no desplegada) y altas abiertas en Supabase;
+  - un fallo funcional (la base de datos de enlaces compartidos no admite `kids-summary`) queda propuesto como tarea aparte.
+- **Prueba nueva:** `tests/ntc6-conexiones-externas.test.cjs`, con 5 casos:
+  - todo servidor que nombra el código publicado ha de estar en la tabla §2 del documento, y al revés;
+  - el script de otro origen lleva SRI;
+  - ningún secreto ni `eval` en lo publicado.
+
+  Comprobado que falla si se añade un servidor sin declarar.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5066/5066** (5061 + 5 nuevas); e2e + axe 14/14.
+
 ## Cierre de sesión — 3 de octubre de 2026 (299, cuarto PR): WP-04 viabilidad del día de cargo; WP-23 aparcado
 
 - **WP-23 (campaña fiscal) aparcado** por decisión del hogar: no tiene los datos fiscales a mano. **Riesgo anotado:** la lista tiene que estar antes del 15/11 y son ≈ 4 sesiones; hay que retomarlo como tarde el **1/11**. El motor no necesita los datos; solo los euros.
