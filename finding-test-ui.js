@@ -60,7 +60,14 @@
 
   // Lo que pinta Hoy: variante y cifra (importe o €/día). Solo en memoria, nunca se guarda.
   function noteShown(info) {
-    shown = info && Number.isFinite(Number(info.value)) ? { ...info, value: Number(info.value) } : { variant: info?.variant || "A", value: null, ageDays: info?.ageDays ?? null, balanceMode: info?.balanceMode };
+    shown = info && Number.isFinite(Number(info.value)) && info.value !== null ? { ...info, value: Number(info.value) } : { variant: info?.variant || "A", value: null, ageDays: info?.ageDays ?? null, balanceMode: info?.balanceMode };
+    // WP-03: el panel de uso anota la edad de los saldos que enseñó Hoy ese día (sin la cifra).
+    root.FinanceUsagePanel?.noteFreshness?.({ ageDays: shown.ageDays, balanceMode: shown.balanceMode });
+  }
+
+  // Resumen de la prueba para el panel de uso (WP-03).
+  function summary() {
+    return engine() ? engine().summarize(readStore().attempts) : null;
   }
 
   function fromIcon() {
@@ -240,7 +247,7 @@
     renderCard();
   }
 
-  const api = { variantToday, noteShown, renderCard, mount, _internals: { start, found, save, cancel, togglePrepared, setMode, readStore } };
+  const api = { variantToday, noteShown, summary, renderCard, mount, _internals: { start, found, save, cancel, togglePrepared, setMode, readStore } };
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.FinanceFindingTestUi = api;
   if (root?.document) {

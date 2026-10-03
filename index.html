@@ -27,7 +27,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261003wp02a1" />
+    <link rel="stylesheet" href="styles.css?v=20261003wp03a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261002s5a1" />
   </head>
@@ -5373,6 +5373,22 @@
                  construir telemetría nueva. -->
             <div class="e19-ajustes-group" id="ajustes-uso-app" aria-labelledby="ajustes-uso-app-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-uso-app-title">Uso de la app</h3>
+              <!-- WP-03 (UXS-04): panel de uso real, base de la regla de parada de cada ola. Lo rellena
+                   usage-panel.js; solo agregados de este móvil, ningún importe. -->
+              <article class="e19-card" id="panelUsoCard">
+                <h3 class="escenario-motor-panel-title">Panel de uso</h3>
+                <p class="e19-kpi-note">Si la app se usa de verdad y cuánto cuesta mantenerla. Al cerrar cada ola del plan se mira esta tabla: si una ola entera no mueve nada, se para y se revisa el plan antes de seguir.</p>
+                <p class="e19-kpi-note" id="panelUsoDesde"></p>
+                <ul class="panel-uso-lista" id="panelUsoLista" aria-label="Métricas de uso de la app"></ul>
+                <form class="panel-uso-minutos" id="panelUsoForm">
+                  <label for="panelUsoMinutos">Minutos que has dedicado esta semana a mantener la app (aprox.)</label>
+                  <div class="panel-uso-minutos-fila">
+                    <input id="panelUsoMinutos" type="number" inputmode="numeric" min="0" max="600" step="1" />
+                    <button type="submit" class="e19-btn e19-btn-secondary">Guardar</button>
+                  </div>
+                  <p class="e19-kpi-note" id="panelUsoMinutosEstado" role="status" aria-live="polite"></p>
+                </form>
+              </article>
               <article class="e19-card" id="usoAppCard">
                 <h3 class="escenario-motor-panel-title">Uso de la app</h3>
                 <p class="e19-kpi-note">Cuántas veces se ha abierto cada pantalla y cuándo fue la última vez, solo en este navegador: no sale de aquí, no hay ningún dato personal ni de movimientos, solo el nombre de la pantalla y la fecha. Sirve para decidir con datos reales qué priorizar, no con intuición.</p>
@@ -7576,10 +7592,11 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261003wp01a1"></script>
+    <script defer src="novedades.js?v=20261003wp03a1"></script>
     <script defer src="ux-shell.js?v=20261003wp01a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
-    <script defer src="finding-test-ui.js?v=20261003wp02a1"></script>
+    <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
+    <script defer src="usage-panel.js?v=20261003wp03a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>

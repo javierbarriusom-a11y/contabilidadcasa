@@ -1391,6 +1391,64 @@ main {
   padding: 0;
 }
 
+/* WP-03 (UXS-04): fichas del panel de uso, apiladas para que el valor se vea en el móvil. */
+.panel-uso-lista {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-uso-lista li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, rgba(19, 31, 38, 0.12));
+  border-radius: 8px;
+}
+
+.panel-uso-lista p {
+  margin: 0;
+}
+
+.panel-uso-lista .status-pill.neutral {
+  background: var(--surface-soft);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+.panel-uso-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.panel-uso-valor {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* WP-03 (UXS-04): pregunta semanal de minutos del panel de uso. */
+.panel-uso-minutos {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.panel-uso-minutos-fila {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.panel-uso-minutos-fila input {
+  width: 7em;
+}
+
 .prueba-hoy-modo legend {
   font-weight: 700;
   margin-bottom: 4px;
