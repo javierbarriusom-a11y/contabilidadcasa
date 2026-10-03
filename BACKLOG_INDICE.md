@@ -12,7 +12,7 @@
 
 ## Para saber qué hacer a continuación
 
-**Actualizado el 3 de octubre de 2026 (sesión 294): sexta auditoría propuesta, sin aprobar.** Sin backlog nuevo: el único vivo sigue siendo `BACKLOG_INICIO_OLEADA_OCTUBRE.md`, que gana una **§15** (pendiente de decisión del hogar) con 45 propuestas nuevas, la crítica de la quinta y del artefacto de la Ola 2 y ocho decisiones (S1-S8). Detalle: `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md`.
+**Actualizado el 3 de octubre de 2026 (sesiones 294-295): sexta auditoría propuesta y triaje respondido (orden en §15.5 del backlog vivo).** Sin backlog nuevo: el único vivo sigue siendo `BACKLOG_INICIO_OLEADA_OCTUBRE.md`, que gana una **§15** (pendiente de decisión del hogar) con 45 propuestas nuevas, la crítica de la quinta y del artefacto de la Ola 2 y ocho decisiones (S1-S8). Detalle: `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md`.
 
 **Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprueba la quinta auditoría crítica y se cierra el backlog.** Sin backlog nuevo (el único vivo sigue siendo `BACKLOG_INICIO_OLEADA_OCTUBRE.md`): su **§14** recoge las 12 decisiones del hogar (todas con las recomendaciones de Claude), la cola activa (tramo 0 «medir y desbloquear» y tramo A «la verdad entra barata», sin tocar Hoy), la cola en espera por tramos y el catálogo de 59 propuestas que no se activan hasta que el uso real las respalde. El porqué de cada propuesta está en `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` y el plan técnico (paquetes WP-01…WP-22, pruebas, trampas del repositorio, calendario y riesgos) en `docs/PLAN_IMPLEMENTACION_2026-10-03.md`. **Empezar por §0, §1 y §14 del backlog vivo.**
 

@@ -109,6 +109,17 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (295): triaje de la sexta auditoría respondido y orden resultante (solo documentación)
+
+- **Qué hizo el hogar:** respondió el artefacto «Triaje sexta auditoría» y pegó el resumen en el chat.
+- **Hecho verificado en el almacén del artefacto:** 53 respuestas, **todas con el rol «quien opera»**, en menos de 4 minutos (≈ 4 s por elemento). El bloque «quien consulta» del resumen es idéntico respuesta a respuesta, incluidos los seis cambios de opinión, y no está en el almacén. Se registra como **una sola voz**; la opinión propia de quien consulta sigue sin recogerse.
+- **Decisiones:** S1-S8 Sí (S2 y S7, tras cambiar de «No» después de ver la recomendación). **S4: la vivienda habitual se adquirió antes de 2013 con deducción**, así que el tope de la deducción (DAC-02) es real y vence el 31/12. Catálogo: 35 Sí, 10 Más tarde, 0 No.
+- **Registrado en `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §15.4-§15.5:** las respuestas, cinco contradicciones con su resolución por defecto (R1-R5; R3 —medir los minutos del operador— queda pendiente de confirmar) y el **orden resultante**: 1) campaña fiscal con el tope de vivienda y la retención (FIS-01 + DAC-02 + FIS-02), lista antes del 15/11; 2) asignación personal desde el 1/11; 3) re-medición de Hoy con saldos del día y experimento de vocabulario; 4) panel de uso; 5) enlaces prellenados; después, los tramos A-D. `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` y `BACKLOG_INDICE.md`: estado actualizado.
+- **Datos que faltan para la campaña fiscal** (se piden en el chat, nunca en el repositorio): titulares y si deducían los dos, tributación conjunta o individual, cantidades pagadas por la vivienda en 2026, tipo marginal y plan de empresa.
+- **No construido:** nada. El primer paquete con fecha es la campaña fiscal.
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008**, lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Sin cambios de código.
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, reiniciada sobre `main` tras la fusión de #432.
+
 ## Cierre de sesión — 3 de octubre de 2026 (294): sexta auditoría crítica propuesta (sin aprobar), 45 propuestas nuevas y crítica de la quinta y del artefacto de la Ola 2 (solo documentación)
 
 - **Qué pidió el hogar:** analizar críticamente el artefacto «Preguntas de la Ola 2» y el backlog de la sesión 293 (quinta auditoría), mejorarlos y proponer **más de 40 funcionalidades nuevas adicionales** (previsión y actualización de datos, inversión, deuda actual y nueva) con buenas prácticas de UX/UI.
