@@ -109,6 +109,18 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (299, segundo PR): WP-02 prueba cronometrada de Hoy
+
+- **WP-02 (NXP-01 + PRV-06 + UXS-05) construido** como instrumento de medida (no cambia cifras). Motor puro `canonical-finding-test.js` (lectura de importes en formato español, «misma cifra» con ±1 €, validez GOV-05, mediana, línea base = 3 intentos válidos con A, semana ISO, €/día hasta cobrar) y controlador `finding-test-ui.js` (cronómetro, barra y tarjeta). **Decisión de diseño de Claude:** la prueba se *prepara* en Ajustes › Uso de la app y cronometra la **siguiente apertura real** (desde el arranque de la página si se abre de cero; desde que vuelve a primer plano si estaba en memoria, lo normal en iPhone), empezando en lo alto de Hoy: el tiempo incluye la carga, que es lo que vive el hogar. El tiempo se para con «Ya la tengo»; teclear la cifra no cuenta.
+- **GOV-05 aplicado con más rigor que el plan:** con saldos **calculados por calendario** (modo automático) la edad sale 0 días pero no son saldos del banco: el intento se guarda y **no cuenta**, con el motivo a la vista. Igual con saldos de más de 1 día o sin fecha.
+- **Privacidad:** el almacén `finding-test` (local, excluido de la copia en `arq6` con motivo) guarda solo segundos, «misma cifra sí/no», edad y modo de los saldos, variante, si se abrió desde el icono y la versión; **nunca el importe** (comprobado en prueba y en navegador).
+- **Texto B** («Al día hasta cobrar · ≈ X €/día»): se calcula en `homeMarginTile` con el motor (consumidor real para `arq3`, 70 → 71). Sin días hasta el cobro (los datos de demostración no los tienen) Hoy se queda en A y la tarjeta explica por qué. «Alternar por semanas» no arranca hasta la línea base, como decidió el hogar.
+- **`app.js`:** +5 líneas (37.413 → 37.418, techo 37.495). Una prueba de S5 fijaba `value: money(spendable.value, true)`: se reordenó el código (la variante B sustituye con un *spread* posterior) en vez de tocar la prueba.
+- **Comprobado en Chromium a 393 px:** preparar → recargar → barra en Hoy → «Ya la tengo» → teclear → resultado; B pintado al forzar una fecha de cobro. Corregidos en el camino: la barra quedaba bajo la cabecera fija (ahora abajo) y los botones de opción heredaban un estilo enorme.
+- **Prueba nueva:** `tests/nxp1-prueba-hallazgo.test.cjs` (14 casos, con DOM simulado para el flujo completo).
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5041/5041** (5027 + 14 nuevas); e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas). Un primer `verify` cayó en `typecheck` (parámetros desestructurados sin JSDoc en el motor): corregido.
+- **Pendiente del hogar (≈ 5 min, esta semana):** actualizar saldos del banco, Ajustes › Uso de la app › «Preparar prueba», salir y abrir desde el icono; tres veces. Con eso hay línea base.
+
 ## Cierre de sesión — 3 de octubre de 2026 (299): arranca la Ola 1 — WP-01 sello de versión y «Novedades»
 
 - **El hogar dijo «empecemos»** sobre el artefacto de seguimiento y el backlog definitivo: el desarrollo queda iniciado (antes de la fecha orientativa del 5/10). Actualizados `BACKLOG_DEFINITIVO.md` §0/§1/§5, `docs/PLAN_DESARROLLO_DEFINITIVO.md`, `BACKLOG_INDICE.md` y la skill `finanzas-casa-workflow` (ya no dice «no construir»).

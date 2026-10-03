@@ -1329,6 +1329,87 @@ main {
   color: #ffffff;
 }
 
+/* WP-02 (NXP-01): barra de la prueba cronometrada de Hoy — abajo (arriba la tapa la cabecera fija en
+   móvil y deja el titular a la vista); solo existe mientras dura una prueba. */
+.finding-test-bar {
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 62;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px 10px 18px;
+  border-radius: 14px;
+  background: rgba(19, 31, 38, 0.96);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 18px 38px rgba(15, 31, 38, 0.18);
+}
+
+.finding-test-bar[hidden],
+.finding-test-bar [hidden] {
+  display: none;
+}
+
+.finding-test-bar form {
+  display: flex;
+  gap: 8px;
+}
+
+.finding-test-bar input {
+  min-width: 0;
+  width: 10em;
+  font-size: 16px;
+}
+
+.finding-test-bar .e19-btn {
+  background: #fff;
+  color: #131f26;
+  border-color: #fff;
+}
+
+.finding-test-cancel {
+  background: none;
+  border: 0;
+  color: #c9d8dc;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.prueba-hoy-modo {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  border: 0;
+  padding: 0;
+}
+
+.prueba-hoy-modo legend {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.prueba-hoy-modo label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.prueba-hoy-modo input[type="radio"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
 @keyframes viewIn {
   from {
     opacity: 0;

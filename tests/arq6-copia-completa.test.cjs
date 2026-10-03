@@ -33,6 +33,7 @@ const EXCLUDED = {
   "period-selector-preference": "preferencia de cadencia por pantalla de este dispositivo",
   "visit-counts": "contador de uso de este dispositivo (ARQ-0), no un dato financiero",
   "theme-preference": "tema claro/oscuro de este dispositivo",
+  "finding-test": "prueba cronometrada de Hoy en este dispositivo (WP-02): segundos y «misma cifra sí/no», sin importes; mide este móvil, no es un dato del hogar",
   "novedades-ultima-vista": "hasta qué línea de «Novedades» se ha leído en este dispositivo (WP-01), no un dato del hogar",
   "finance-e18-local-health": "métricas técnicas locales (E18)",
   // Trabajo a medias y ayudas de este dispositivo.

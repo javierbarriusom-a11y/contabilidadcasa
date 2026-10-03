@@ -30695,9 +30695,13 @@ function homeMarginTile(balances) {
   const age = homeDataAge();
   const common = { label: "Disponible para gastar", cta: age?.stale ? "Actualizar saldos" : "Ver saldos", target: "update-hub" };
   if (margin?.status !== "ok") {
+    window.FinanceFindingTestUi?.noteShown({ variant: "A", value: null, ageDays: age?.ageDays, balanceMode: state?.balanceMode });
     return renderHomeKpi({ ...common, value: "—", status: "neutral", note: margin?.missing?.length ? `Falta el ${margin.missing.join(" y el ")}.` : "No se puede calcular el margen." });
   }
   const { today, endOfMonth: eom, spendable } = margin;
+  // WP-02: el texto B («≈ X €/día hasta cobrar») solo si la prueba de Hoy lo pide; la prueba anota qué cifra se pinta (sin guardarla).
+  const perDay = window.FinanceFindingTestUi?.variantToday() === "B" ? window.FinanceCanonicalFindingTest?.perDayUntilPayday({ spendable: spendable.value, days: executiveCoverageSnapshot().days }) ?? null : null;
+  window.FinanceFindingTestUi?.noteShown({ variant: perDay === null ? "A" : "B", value: perDay ?? spendable.value, ageDays: age?.ageDays, balanceMode: state?.balanceMode });
   const support = eom.available
     ? `Hoy: ${money(today.margin, true)} · A fin de ${eom.monthLabel} (previsión): ${money(eom.margin, true)}.`
     : `Hoy: ${money(today.margin, true)}. Sin previsión para este mes: el mes de hoy no está en el plan abierto.`;
@@ -30707,6 +30711,7 @@ function homeMarginTile(balances) {
   return renderHomeKpi({
     ...common,
     value: money(spendable.value, true),
+    ...(perDay === null ? {} : { label: "Al día hasta cobrar", value: `≈ ${money(perDay)}/día` }),
     note: `Sin bajar del suelo de ${money(today.floor, true)}. ${age ? `${age.label}.` : ""}${age?.stale ? ` ${age.warning}` : ""}`,
     status: spendable.value < 0 ? "danger" : margin.caixaShortfall > 0 || age?.stale ? "warn" : "good",
     extra: `<p class="e19-kpi-note">${escapeHtml(support)} No ve bajadas intermedias antes de cobrar.</p>${caixa}`,

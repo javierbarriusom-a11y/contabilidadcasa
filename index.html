@@ -27,7 +27,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261003wp01a1" />
+    <link rel="stylesheet" href="styles.css?v=20261003wp02a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261002s5a1" />
   </head>
@@ -334,6 +334,17 @@
         <div class="update-toast" id="updateToast" role="status" aria-live="polite" hidden>
           <span id="updateToastMessage"></span>
           <button type="button" class="e19-btn e19-btn-secondary" id="updateToastButton" hidden>Actualizar</button>
+        </div>
+        <!-- WP-02 (NXP-01): barra de la prueba cronometrada; solo existe mientras dura una prueba. -->
+        <div class="finding-test-bar" id="findingTestBar" role="status" aria-live="polite" hidden>
+          <span id="findingTestMessage"></span>
+          <button type="button" class="e19-btn e19-btn-secondary" id="findingTestFound">Ya la tengo</button>
+          <form id="findingTestForm" hidden>
+            <label for="findingTestInput" class="sr-only">Cifra que has visto</label>
+            <input id="findingTestInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Cifra que has visto" />
+            <button type="submit" class="e19-btn e19-btn-secondary">Guardar</button>
+          </form>
+          <button type="button" class="finding-test-cancel" id="findingTestCancel">Cancelar</button>
         </div>
 
         <main id="mainContent" tabindex="-1">
@@ -5375,6 +5386,31 @@
                   </table>
                 </div>
               </article>
+              <!-- WP-02 (NXP-01): prueba cronometrada de Hoy. La rellena finding-test-ui.js; la lógica es de
+                   canonical-finding-test.js. Mide, no cambia cifras; no guarda importes. -->
+              <article class="e19-card" id="pruebaHoyCard">
+                <h3 class="escenario-motor-panel-title">Prueba de 30 segundos (Hoy)</h3>
+                <p class="e19-kpi-note">Mide cuánto tardas, abriendo la app desde el icono, en tener la cifra de «Disponible para gastar», y si la que lees es la que calcula la app. Solo cuenta con saldos del día: actualízalos antes. Se guarda solo en este móvil: segundos y «misma cifra sí/no», nunca el importe.</p>
+                <p class="e19-kpi-note" id="pruebaHoyEstado"></p>
+                <button type="button" class="e19-btn e19-btn-secondary" id="pruebaHoyPreparar">Preparar prueba</button>
+                <p class="e19-kpi-note" id="pruebaHoyResumen"></p>
+                <fieldset class="prueba-hoy-modo">
+                  <legend>Texto del titular de Hoy</legend>
+                  <label><input type="radio" name="pruebaHoyModo" value="A" /> A · «Disponible para gastar»</label>
+                  <label><input type="radio" name="pruebaHoyModo" value="B" /> B · «≈ X €/día hasta cobrar»</label>
+                  <label><input type="radio" name="pruebaHoyModo" value="alternar" /> Alternar por semanas (empieza con 3 intentos válidos con A)</label>
+                  <p class="e19-kpi-note" id="pruebaHoyModoNota"></p>
+                </fieldset>
+                <div class="table-wrap">
+                  <table class="e19-table">
+                    <caption class="sr-only">Últimos intentos de la prueba de Hoy</caption>
+                    <thead>
+                      <tr><th scope="col">Fecha</th><th scope="col">Tiempo</th><th scope="col">Misma cifra</th><th scope="col">Texto</th><th scope="col">¿Cuenta?</th><th scope="col">Abierta desde</th></tr>
+                    </thead>
+                    <tbody id="pruebaHoyIntentos"></tbody>
+                  </table>
+                </div>
+              </article>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
@@ -7542,6 +7578,8 @@
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
     <script defer src="novedades.js?v=20261003wp01a1"></script>
     <script defer src="ux-shell.js?v=20261003wp01a1"></script>
+    <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
+    <script defer src="finding-test-ui.js?v=20261003wp02a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
