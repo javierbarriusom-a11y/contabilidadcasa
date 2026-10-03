@@ -109,6 +109,27 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (296): backlog definitivo y plan de desarrollo (solo documentación; desarrollo no iniciado)
+
+- **Qué pidió el hogar:** «la persona que responde es la misma porque de momento es solo un usuario. No quiero empezar el desarrollo aún: genérame el backlog definitivo y el plan de desarrollo resultante de tu análisis y las nuevas propuestas, incluyéndolas todas, pero priorizadas».
+- **Hecho:** nace **`BACKLOG_DEFINITIVO.md`**, único backlog vivo (🟢 en `BACKLOG_INDICE.md`; `BACKLOG_INICIO_OLEADA_OCTUBRE.md` pasa a 🟡 absorbido, con aviso en su cabecera; la skill `finanzas-casa-workflow`, Modo Inicio, paso 2, lo nombra). Contiene las **104 propuestas** (59 de la quinta auditoría y 45 de la sexta), comprobadas por script, cada una **una sola vez**: **P0 17** (T0-T1, octubre-noviembre), **P1 24** (T2-T5), **P2 26** (T5-T12), **P3 27** (catálogo con disparador), **P4 9** (segunda persona usuaria, tercero o evento) y **1 a archivar** (`NHG-03`). Además: pendientes que no son propuestas (H1-H8, terceros, aparcados, deuda técnica, Cola B), calendario, 6 decisiones abiertas (D1-D6), métricas y recetas. Nace **`docs/PLAN_DESARROLLO_DEFINITIVO.md`**: 13 tramos de 4 semanas (T0 5/10/2026 … T12 17/9/2027), máximo 2 entregas visibles por tramo, paquetes WP-01…WP-54 (WP-01…WP-21 heredados con ajustes; WP-22 retirado y repartido; WP-23…WP-54 nuevos con código reutilizado, enfoque, pruebas y criterio de hecho), dependencias, lo que necesita el hogar y cuándo, y riesgos. Estimación ≈ 140 sesiones.
+- **Cambio de premisa aplicado:** con **un solo usuario**, la métrica de la regla v2 pasa a ser la del usuario (≤ 15 s con saldos del día) más adopción (≥ 4 días activos por semana); modo consulta, D4/D5, reunión mensual y captura desde un segundo móvil pasan a **P4** hasta que se incorpore otra persona; el contador de los dos móviles se reduce a multi-dispositivo.
+- **Primer paquete con fecha:** campaña fiscal de fin de año con el tope de la deducción por vivienda (WP-23), lista antes del 15/11/2026; necesita los datos fiscales del hogar **en el chat** hacia el 20/10.
+- **No construido:** nada, por decisión del hogar.
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008** (incluidos los guardianes `opt20-indice-backlogs` y `proc-skill-alineada-con-claude-md`, que comprueban el índice y la skill), lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Sin cambios de código.
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, mismo PR que la sesión 295.
+
+## Cierre de sesión — 3 de octubre de 2026 (295): triaje de la sexta auditoría respondido y orden resultante (solo documentación)
+
+- **Qué hizo el hogar:** respondió el artefacto «Triaje sexta auditoría» y pegó el resumen en el chat.
+- **Hecho verificado en el almacén del artefacto:** 53 respuestas, **todas con el rol «quien opera»**, en menos de 4 minutos (≈ 4 s por elemento). El bloque «quien consulta» del resumen es idéntico respuesta a respuesta, incluidos los seis cambios de opinión, y no está en el almacén. Se registra como **una sola voz**; la opinión propia de quien consulta sigue sin recogerse.
+- **Decisiones:** S1-S8 Sí (S2 y S7, tras cambiar de «No» después de ver la recomendación). **S4: la vivienda habitual se adquirió antes de 2013 con deducción**, así que el tope de la deducción (DAC-02) es real y vence el 31/12. Catálogo: 35 Sí, 10 Más tarde, 0 No.
+- **Registrado en `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §15.4-§15.5:** las respuestas, cinco contradicciones con su resolución por defecto (R1-R5; R3 —medir los minutos del operador— queda pendiente de confirmar) y el **orden resultante**: 1) campaña fiscal con el tope de vivienda y la retención (FIS-01 + DAC-02 + FIS-02), lista antes del 15/11; 2) asignación personal desde el 1/11; 3) re-medición de Hoy con saldos del día y experimento de vocabulario; 4) panel de uso; 5) enlaces prellenados; después, los tramos A-D. `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` y `BACKLOG_INDICE.md`: estado actualizado.
+- **Datos que faltan para la campaña fiscal** (se piden en el chat, nunca en el repositorio): titulares y si deducían los dos, tributación conjunta o individual, cantidades pagadas por la vivienda en 2026, tipo marginal y plan de empresa.
+- **No construido:** nada. El primer paquete con fecha es la campaña fiscal.
+- **Validación:** `npm run verify` **verde** (salida 0): `npm test` **5008/5008**, lint, tipos, accesibilidad estructural, rendimiento, `build:site`, privacidad y smoke. Sin cambios de código.
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, reiniciada sobre `main` tras la fusión de #432.
+
 ## Cierre de sesión — 3 de octubre de 2026 (294): sexta auditoría crítica propuesta (sin aprobar), 45 propuestas nuevas y crítica de la quinta y del artefacto de la Ola 2 (solo documentación)
 
 - **Qué pidió el hogar:** analizar críticamente el artefacto «Preguntas de la Ola 2» y el backlog de la sesión 293 (quinta auditoría), mejorarlos y proponer **más de 40 funcionalidades nuevas adicionales** (previsión y actualización de datos, inversión, deuda actual y nueva) con buenas prácticas de UX/UI.

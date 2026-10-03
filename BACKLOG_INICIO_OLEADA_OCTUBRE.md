@@ -1,6 +1,8 @@
 # Backlog `inicio_oleada_octubre` — todo lo pendiente, en un solo documento
 
-**Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** **Sesión 294 (mismo día): sexta auditoría propuesta, sin aprobar (§15)** — 45 propuestas nuevas, crítica del artefacto de la Ola 2 y de la quinta, y 8 decisiones para el hogar. No cambia la cola activa hasta que el hogar decida. Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
+> **Sustituido el 3 de octubre de 2026 (sesión 296) por [`BACKLOG_DEFINITIVO.md`](BACKLOG_DEFINITIVO.md)**, que es ahora el único backlog vivo (las 104 propuestas priorizadas y el plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`). Este documento queda como detalle histórico: su razonamiento y las respuestas del triaje (§15.4) siguen valiendo; su orden y sus colas, no.
+
+**Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** **Sesión 294 (mismo día): sexta auditoría propuesta y triaje respondido (§15).** Las 8 decisiones están contestadas y las 45 propuestas tienen orden (§15.5): primero la **campaña fiscal con el tope de la deducción por vivienda (antes del 15/11)**. La cola activa de §14 sigue igual; §15.5 se suma a ella. Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
 **Es la única fuente viva de lo que falta por hacer.** Los demás `BACKLOG*.md` no se han borrado ni reescrito: conservan el detalle de por qué se hizo cada cosa
 y llevan un aviso en su cabecera que apunta aquí. Mapa de todos ellos: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26:
 `BACKLOG_STATUS.md` §0 (no cambia).
@@ -237,9 +239,9 @@ Tiempo hasta la verdad de quien consulta ≤ 15 s y la misma cifra · actualizar
 ### 14.6 Corrección registrada
 En la primera versión de la propuesta se dio por existente una edición parcial de posiciones de cartera (confundiendo `applyFundTransfer`). **No existe:** una posición solo se puede añadir, borrar, traspasar de fondo a fondo o marcar como revisada; **no se puede actualizar su valor sin borrarla y recrearla.** Por eso `NIN-02` sube a prioridad crítica y pasa al tramo B (el mismo hueco figuraba ya en la nota de `I12`, `BACKLOG_CONTABILIDADCASA_2_0.md`).
 
-## 15. Sexta auditoría — propuesta pendiente de decisión (3 de octubre de 2026, sesión 294)
+## 15. Sexta auditoría — propuesta y triaje (3 de octubre de 2026, sesión 294)
 
-**Estado: propuesta, no aprobada.** Nada de esta sección entra en §14 hasta que el hogar conteste las decisiones S1-S8. Detalle y porqué: [`docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md`](docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md).
+**Estado: triaje respondido el 3/10/2026 (§15.4); orden resultante en §15.5.** §15.1-§15.3 conservan la propuesta tal como se presentó. Detalle y porqué: [`docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md`](docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md).
 
 **Hallazgos nuevos (de las respuestas guardadas en el artefacto de la Ola 2):** (1) las dos personas: «no hay uso intenso todavía» → falta una métrica de **adopción**; (2) la medición de 30/28/20 s se hizo con saldos de 5 días → **línea base contaminada**; (3) quien consulta usa un Plus/Pro Max → `NXP-03` no arregla la métrica de este hogar; (4) casi todas las respuestas coinciden con la opción recomendada → riesgo de **anclaje**; (5) quien opera «no siempre puede» → la cola de §14 le **añade** trabajo y ninguna pieza se lo quita de forma estructural.
 
@@ -262,3 +264,40 @@ Cambios propuestos a §14: WP-05 compara PSD2 con CAP-01/CAP-03; WP-08 se prerre
 
 ### 15.3 Catálogo de la sexta (no activado)
 CAP-01…CAP-10 · PRV-01…PRV-08 · CAR-01…CAR-06 · DAC-01…DAC-05 · DNU-01…DNU-03 · FIS-01…FIS-03 · UXS-01…UXS-06 · HOG-01…HOG-04. Reglas de gobierno GOV-01…GOV-06 (no son funcionalidades).
+
+### 15.4 Respuestas del triaje (3/10/2026, artefacto «Triaje sexta auditoría»)
+
+**Cómo se respondió (hecho verificado en el almacén del artefacto):** hay **53 respuestas, todas con el rol «quien opera»**, dadas entre las 12:15 y las 12:19 (≈ 4 s por elemento). El bloque «quien consulta» del resumen pegado en el chat es **idéntico respuesta a respuesta**, incluidos los seis cambios de opinión, y no está en el almacén. Se trata como **una sola voz** (o una respuesta conjunta), no como dos opiniones independientes. La métrica de quien consulta sigue sin una respuesta propia.
+
+**Decisiones:** S1 Sí (≤ 10 min/semana) · S2 Sí (*primera respuesta: No*) · S3 Sí · **S4: vivienda habitual adquirida antes de 2013 y con deducción → aplica el régimen transitorio; DAC-02 pasa a ser real y con fecha (31/12)** · S5 Sí, 3 meses de prueba · S6 Sí · S7 Sí (*primera respuesta: No*) · S8 Sí.
+
+**Catálogo:** 35 Sí · 10 Más tarde (CAP-01, CAP-03, CAP-04, CAP-08, PRV-03, DAC-03, DAC-05, UXS-01, UXS-02, UXS-03) · 0 No. Cambios tras ver la recomendación: S2, S7, CAP-01, PRV-03, DAC-03, UXS-03; cuatro de seis se movieron hacia la recomendación. **El anclaje se reduce, pero no desaparece:** S7 («¿responder a ciegas?») pasó de No a Sí después de ver la recomendación.
+
+**Contradicciones y cómo se resuelven (salvo veto del hogar):**
+| # | Contradicción | Resolución por defecto |
+|---|---|---|
+| R1 | S2 Sí, pero CAP-01 Más tarde | Se construye **CAP-02** (enlaces prellenados). Del CAP-01 solo se entrega la **plantilla del Atajo** como prueba de CAP-02 (coste casi nulo); el nivel 2 (servidor) queda para más tarde |
+| R2 | S6 Sí, pero UXS-01 Más tarde | S6 queda como aprobación de principio; UXS-01 espera a la revisión de privacidad del enlace |
+| R3 | S1 Sí (presupuesto de minutos), pero UXS-03 Más tarde (*primera respuesta: No*) | Sin medir, el presupuesto no se puede comprobar. Mínimo: una pregunta semanal de autodeclaración («¿cuántos minutos esta semana?») dentro de UXS-04, que sí está aprobado. **Pendiente de confirmar por el hogar** |
+| R4 | PRV-06 y UXS-05 Sí, pero tocan Hoy (congelado) | Se hacen **como parte de la re-medición S8**: el texto B de UXS-05 es PRV-06. Es la manera de diagnosticar H1, no una entrega visible más |
+| R5 | 35 Sí: no es una priorización (≈ 70-90 sesiones) | Claude fija el orden de §15.5 por **fecha límite → euros → dependencias → minutos del operador**; el hogar solo veta |
+
+### 15.5 Orden resultante (se suma a §14; la puerta manda, no la fecha)
+
+| Orden | Qué | IDs | Puerta / fecha |
+|---|---|---|---|
+| **1** | **Campaña fiscal de fin de año con el tope de la deducción por vivienda y la retención** | FIS-01 + DAC-02 + FIS-02 | **Lista antes del 15/11/2026.** Necesita datos del hogar **en el chat, no en el repositorio**: titulares y si deducían los dos, tributación conjunta o individual, cantidades pagadas por la vivienda en 2026, tipo marginal y plan de empresa |
+| 2 | Asignación personal, prueba de 3 meses | HOG-02 | Configuración; arranque el 1/11, revisión a finales de enero |
+| 3 | Re-medición de Hoy con saldos del día + experimento de vocabulario | S8 + UXS-05 + PRV-06 | Junto a WP-02; es el diagnóstico de H1 |
+| 4 | Panel de uso real (y autodeclaración de minutos si R3 se confirma) | UXS-04 | Ampliando WP-03 |
+| 5 | Enlaces de registro prellenado + plantilla del Atajo | CAP-02 (+ CAP-01 plantilla) | Tramo A |
+| 6 | Cargos que no llegan · nómina en PDF · recordatorios útiles | CAP-06 · CAP-05 · CAP-09 | Tramo A (CAP-05 alimenta la Renta) |
+| 7 | Previsión: tres capas, ingresos inciertos, plan B, puente del fin de año, tareas por valor | PRV-02 · PRV-04 · PRV-05 · PRV-01 · CAP-07 | Tramo B (PRV-01 necesita WP-09) |
+| 8 | Inversión: política firmada → próximo euro → calma, cobertura, exposición, índice | CAR-01 → CAR-03 → CAR-02 · CAR-05 · CAR-06 · CAR-04 | Tramo C (CAR-01 antes de WP-17) |
+| 9 | Deuda: deuda en la sombra, CIRBE, TAE real | DAC-04 · DAC-01 · DNU-03 | Tramo D |
+| Con fecha propia | Revisión base cero del plan (enero) · impuestos del local (antes de la Renta) | PRV-08 · FIS-03 | Enero 2027 · marzo 2027 |
+| Bajo demanda | Cuánto prestaría un banco · coche · modo viaje · horizonte de acierto | DNU-01 · DNU-02 · HOG-04 · PRV-07 | Cuando haya préstamo, coche o viaje; PRV-07 con ≥ 6 cierres |
+| Después | Acuerdos vigilados · modo relevo · respuestas en el buscador · sin duplicados | HOG-01 · HOG-03 · UXS-06 · CAP-10 | CAP-10 solo cuando haya más de un canal de captura |
+| Más tarde (decisión del hogar) | | CAP-01 n2 · CAP-03 · CAP-04 · CAP-08 · PRV-03 · DAC-03 · DAC-05 · UXS-01 · UXS-02 · UXS-03 | Revisar en la revisión mensual |
+
+**Regla que se mantiene:** máximo dos entregas visibles por tramo (regla v2) y uno entra, uno sale (GOV-02, propuesta; no se votó). Si un tramo no mueve su métrica, no se abre el siguiente.

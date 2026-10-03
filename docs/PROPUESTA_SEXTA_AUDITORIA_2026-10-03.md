@@ -1,6 +1,6 @@
 # Sexta auditoría crítica — revisión de la quinta, del artefacto de la Ola 2 y 45 propuestas nuevas
 
-Fecha: 3 de octubre de 2026 (sesión 294). Estado: **PROPUESTA, sin aprobar.** Nada de este documento entra en la cola activa (`BACKLOG_INICIO_OLEADA_OCTUBRE.md` §14) hasta que el hogar lo decida (§10). Lo que manda sigue siendo el backlog.
+Fecha: 3 de octubre de 2026 (sesión 294). Estado: **triaje respondido el 3/10/2026**; respuestas, contradicciones y orden resultante en `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §15.4-§15.5. Este documento queda como catálogo y razonamiento; lo que manda es el backlog.
 **Este documento no contiene importes reales del hogar** (el repositorio es público): solo porcentajes, segundos medidos y hechos cualitativos.
 
 Encargo: analizar críticamente el artefacto «Preguntas de la Ola 2» y el backlog que salió de la sesión anterior (quinta auditoría y su plan), mejorarlos, y proponer **más de 40 funcionalidades nuevas, adicionales a las existentes**, con profundidad en previsión y actualización de datos, inversión y deuda actual y nueva, con buenas prácticas de UX/UI.

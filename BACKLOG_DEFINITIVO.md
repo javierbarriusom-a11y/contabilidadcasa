@@ -1,0 +1,329 @@
+# Backlog definitivo — Contabilidadcasa
+
+**Creado el 3 de octubre de 2026 (sesión 296), a petición del hogar:** «genérame el backlog definitivo y el plan de desarrollo resultante de tu análisis y las nuevas propuestas, incluyéndolas todas, pero priorizadas. No quiero empezar el desarrollo aún».
+**Es la única fuente viva de lo que falta por hacer.** Sustituye como backlog vigente a `BACKLOG_INICIO_OLEADA_OCTUBRE.md`, que queda como detalle histórico (sus §0-§15 siguen siendo válidos como razonamiento). Mapa de todos los backlogs: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26: `BACKLOG_STATUS.md` §0.
+**Plan de desarrollo** (paquetes, enfoque técnico, pruebas, calendario y riesgos): [`docs/PLAN_DESARROLLO_DEFINITIVO.md`](docs/PLAN_DESARROLLO_DEFINITIVO.md). **Porqué de cada propuesta:** `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` (IDs `ND`, `NPV`, `NIN`, `NDB`, `NXP`, `NHG`, `NTC`) y `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` (IDs `CAP`, `PRV`, `CAR`, `DAC`, `DNU`, `FIS`, `UXS`, `HOG`, `GOV`).
+**El repositorio es público: ninguna cifra real del hogar aquí.** Los importes van en el chat o en artefactos privados.
+
+Autocontenido a propósito: quien lo abra sin haber visto la conversación debe poder decidir qué hacer primero en 10 minutos.
+
+---
+
+## 0. Estado en una línea
+
+**Desarrollo no iniciado por decisión del hogar (3/10/2026).** Las 104 propuestas de la quinta y la sexta auditoría están todas aquí, priorizadas en cinco niveles (§5): **67 entran en el plan** (P0-P2, en 13 tramos de octubre de 2026 a septiembre de 2027, ≈ 140 sesiones), **27 quedan en catálogo con disparador** (P3), **9 bloqueadas** por una segunda persona usuaria, un tercero o un evento (P4) y **1 se propone archivar**. El primer paquete con fecha es la **campaña fiscal de fin de año con el tope de la deducción por vivienda** (lista antes del 15/11/2026). Cuando el hogar diga «empezamos», se arranca por el tramo T0 (§4).
+
+## 1. Cómo empezar la próxima sesión (10 minutos)
+
+1. Leer este documento (§0, §2, §4 y §5) y la última entrada de `PROJECT_STATE.md`.
+2. `git status`, `git log --oneline -5`; la rama de trabajo parte de `origin/main` (receta en §10).
+3. **No empezar a construir hasta que el hogar lo pida explícitamente** (decisión del 3/10/2026). Cuando lo pida: el primer paquete de §4 cuya puerta esté abierta, con el detalle de `docs/PLAN_DESARROLLO_DEFINITIVO.md`.
+4. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales y **este documento**, commit/push, PR en borrador, esperar CI, fusionar en verde.
+
+---
+
+## 2. Cambio de premisa: hoy la app tiene **un solo usuario**
+
+Dato del hogar del 3/10/2026: «la persona que responde es la misma porque de momento es solo un usuario». La Ola 2 y la quinta auditoría estaban construidas sobre **dos personas** (quien opera y quien consulta). Consecuencias, ya aplicadas a la priorización:
+
+| Lo que dependía de dos personas | Qué pasa ahora |
+|---|---|
+| **Métrica de la regla de parada v2** («mediana de **quien consulta** ≤ 15 s con la misma cifra») | Se redefine: **mediana del usuario ≤ 15 s, con la misma cifra que la app, con saldos actualizados ese día y abriendo desde el icono** (WP-02). Se añade una métrica de adopción: **≥ 4 días activos por semana** (WP-03) |
+| La medición de 30/28/20 s «sin encontrar la cifra» | Si la hizo la misma persona que usa la app a diario, el resultado es **más grave**, no menos. Se repite con saldos del día (S8) antes de tocar Hoy |
+| Modo consulta (`NXP-07`), D4/D5 (H3), captura desde el segundo móvil (`CAP-08`), reunión mensual (`NHG-02`) | **P4: bloqueados hasta que haya una segunda persona usuaria** |
+| Contador de uso de «los dos móviles» (`NTC-03`) | Se reduce a **multi-dispositivo** (móvil y ordenador del mismo usuario) dentro de WP-03 |
+| Cuentas en pareja (`NHG-01`), acuerdos vigilados (`HOG-01`) | Siguen teniendo sentido para el dinero del hogar, pero sin segunda persona usuaria su valor baja: **P3** |
+| Asignación personal (`HOG-02`) | **Sigue en P0**: es una regla del dinero del hogar, no de usuarios; además reduce la captura |
+| Modo relevo (`HOG-03`) | **El riesgo que cubre crece** (si el único usuario no puede, nadie mantiene la app), pero exige que la otra persona aprenda a usarla: **P3**, y se activa junto a `NAV-3` (recorrido de bienvenida) si se incorpora alguien |
+
+**Si se incorpora una segunda persona:** se reabre el grupo P4-«segunda persona» y `NAV-3` (aparcada) pasa a P1.
+
+---
+
+## 3. Cómo se ha priorizado
+
+**Orden de criterios** (decidido en el triaje, R5): **1) fecha límite externa → 2) euros que ahorra o protege → 3) dependencias (lo que desbloquea otras) → 4) minutos por semana que quita al usuario → 5) evidencia** ([M] medido > [C] código > [H] hipótesis).
+
+**Niveles:**
+| Nivel | Significado | Cuántas |
+|---|---|---|
+| **P0** | Con fecha o habilitadora inmediata: tramos T0-T1 (octubre-noviembre 2026) | 17 |
+| **P1** | Siguiente: tramos T2-T5 (noviembre 2026 - marzo 2027) | 24 |
+| **P2** | Planificada: tramos T6-T12 (marzo - septiembre 2027) | 26 |
+| **P3** | Catálogo con disparador: se activa cuando se cumple su condición (uso real, petición, dato) | 27 |
+| **P4** | Bloqueada por segunda persona usuaria, tercero o evento (préstamo, coche, viaje) | 9 |
+| **Archivo** | Se propone descartar | 1 |
+| | **Total** | **104** |
+
+Las respuestas «Más tarde» del triaje (3/10/2026) van a P3 salvo que el plan necesite una parte mínima (se indica). Las respuestas «Sí» están en P0-P2 salvo las que dependen de un evento o de una segunda persona (P4).
+
+---
+
+## 4. Reglas vigentes
+
+**Ritmo de entregas (ajuste de la regla v2, veto posible del hogar):** tramos de **4 semanas**, con **máximo 2 entregas visibles por tramo**; lo exento (datos, cálculo, habilitadoras, CI, accesibilidad, fuera de la app) no cuenta. Al cerrar cada tramo se mira el panel de uso (WP-03) y la métrica de Hoy; **si dos tramos seguidos no mueven ninguna, se detiene el plan de UX** (la regla v2 sigue igual en lo esencial; solo cambia la duración del tramo, porque con un único usuario medir cuesta minutos). Con este ritmo caben **unas 24 entregas visibles al año**: la capacidad de desarrollo (unas cinco sesiones al día de media desde agosto) no es el cuello de botella; **lo son la atención del usuario y la complejidad de la app**.
+
+**Reglas de gobierno adoptadas** (sexta auditoría, §6):
+- **GOV-01 · Presupuesto de ≤ 10 min/semana** para mantener la app (S1, Sí). Cada paquete declara su Δ. Medición mínima: autodeclaración semanal dentro del panel de uso (R3 por defecto).
+- **GOV-04 · Decisiones a ciegas** en los formularios de decisión (S7, Sí).
+- **GOV-05 · Medir Hoy solo con saldos del día** (S8, Sí).
+- **GOV-02 · Uno entra, uno sale** y **GOV-03 · puntuación por euros**: adoptadas por defecto como reglas de trabajo de Claude (no se votaron; veto posible).
+- **GOV-06 · Prueba con 5 personas ajenas** con datos de demostración, trimestral: con un solo usuario, es la única forma de separar problemas de diseño de hábitos propios (WP-54).
+
+**Frenos de `CLAUDE.md` (sin cambios):** nunca fusionar en rojo ni forzar; nunca push directo a `main`; nunca `finanzas-casa-def`; consultar antes de ir más allá de lo pedido, borrar datos del usuario o retirar una pantalla en uso; nunca cambiar umbrales de CI ni relajar una prueba para dar verde.
+
+---
+
+## 5. Backlog priorizado (las 104 propuestas)
+
+Columnas: **#** orden dentro del nivel · **ID** · **Qué** · **Origen** (5ª/6ª auditoría) · **Valor** · **Esf.** (S ≤ 1 sesión, M 2-3, L 4+) · **Puerta** (E exenta, V visible, T tercero, X fuera de la app, H toca Hoy) · **Δ min/sem** del usuario · **WP** paquete del plan · **Tramo**.
+
+### 5.1 P0 — con fecha o habilitadora inmediata (T0-T1, 5/10 - 13/11/2026)
+
+| # | ID | Qué | Origen | Valor | Esf. | Puerta | Δ | WP | Tramo |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | **FIS-01** | Campaña fiscal de fin de año: acciones ordenadas por euros y fecha límite | 6ª | Alto · **31/12** | M | V | +10/año | WP-23 | T0-T1 |
+| 2 | **DAC-02** | Tope de la deducción por vivienda (régimen transitorio, **confirmado que aplica**, S4) | 6ª | **Alto** · 31/12 | S | E | 0 | WP-23 | T0-T1 |
+| 3 | FIS-02 | Ajustar la retención voluntaria para no pagar en junio | 6ª | Medio | S | V | 0 | WP-23 | T1 |
+| 4 | HOG-02 | Asignación personal sin detalle, prueba de 3 meses desde el 1/11 | 6ª | Medio-Alto | S | V (configuración) | −10 | WP-24 | T0 |
+| 5 | NXP-02 | Sello de versión y aviso de «versión nueva» | 5ª | Alto | S | E | 0 | WP-01 | T0 |
+| 6 | NXP-01 | Prueba cronometrada dentro de la app (un usuario, saldos del día) | 5ª | Crítico | S-M | E | 0 | WP-02 | T0 |
+| 7 | PRV-06 | «X € al día hasta cobrar», **como variante B de la medición** (no como entrega) | 6ª | Alto | S | H → medición | 0 | WP-02 | T0 |
+| 8 | UXS-05 | Dos textos para la cifra de Hoy, dentro de la medición | 6ª | Medio (n = 1) | S | H → medición | 0 | WP-02 | T0 |
+| 9 | UXS-04 | Panel de uso real (+ minutos autodeclarados, R3) | 6ª | Alto | S | E | 0 | WP-03 | T0 |
+| 10 | NTC-03 | Contador de uso **multi-dispositivo** (reducido: un usuario) | 5ª | Medio | S | E | 0 | WP-03 | T0 |
+| 11 | ND-13 | Spike PSD2 de 2 semanas, comparado con Apple Pay y avisos del banco | 5ª | Alto | S | T (documental) | — | WP-05 | T0 |
+| 12 | NTC-06 | Revisión de seguridad previa a cualquier conexión externa | 5ª | Alto | S | E | 0 | WP-05 | T0 |
+| 13 | NTC-01 | Extraer el motor de fechas a `canonical-timing.js` | 5ª | Alto (habilita) | M | E | 0 | WP-07 | T1 |
+| 14 | NPV-03 | Cierre de mes con saldo y firma; cerrar el mes anterior (C2) | 5ª | Crítico | M | E | +2/mes | WP-09 | T1 |
+| 15 | NPV-08 | Medidor de calidad de datos de la previsión | 5ª | Alto | S | V | 0 | WP-10 | T1 |
+| 16 | NXP-05 | Campo de importe unificado (es-ES) | 5ª | Alto | S-M | E | −1 | WP-11 | T1 |
+| 17 | CAP-02 | Enlaces de registro prellenado (+ plantilla del Atajo de Apple Pay, R1) | 6ª | Alto | S | E | −5 | WP-25 | T1 |
+
+*ND-03 paso 0 (script de viabilidad del día de cargo, WP-04) y el gobierno de octubre (WP-06: Nielsen 16/10, 23/10 sin retirar nada, plazo 30/11 de `A5-1`/`A5-4`) también son T0; no son propuestas, son tareas.*
+
+### 5.2 P1 — siguiente (T2-T5, 16/11/2026 - 5/3/2027)
+
+| # | ID | Qué | Origen | Valor | Esf. | Puerta | Δ | WP | Tramo |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | NIN-02 | Hoja de valoración rápida con snapshots (hoy no se puede actualizar el valor de una posición) | 5ª | **Crítico** | M | V | +3/mes | WP-15 | T2 |
+| 2 | ND-01 | Actualizar saldos por excepción («Coincide» / «Corregir») | 5ª | Crítico | M | V | −10 | WP-26 | T2 |
+| 3 | ND-02 | Un extracto actualiza saldo y movimientos a la vez | 5ª | Alto | S-M | V | −3 | WP-26 | T2 |
+| 4 | ND-03 | Día de cargo por partida (declarado; sugerido si WP-04 lo justifica) | 5ª | Crítico | M | E | +30 una vez | WP-08 | T2 |
+| 5 | CAP-06 | Cargos esperados que no llegaron | 6ª | Alto | S-M | E | 0 | WP-27 | T2 |
+| 6 | ND-08 | Cobros esperados: confirmar o informar de un retraso | 5ª | Alto | S-M | E | 0 | WP-14 | T2 |
+| 7 | ND-11 | Euribor, €STR e IPC oficiales con caducidad | 5ª | Alto | S-M | E | −2 | WP-13 | T2 |
+| 8 | NPV-07 | Kit de gráficos táctil y accesible | 5ª | Alto (habilita) | M-L | E | 0 | WP-28 | T2 |
+| 9 | NHG-05 | Carta del mes determinista (lo único que se pidió explícitamente en la Ola 2) | 5ª | Medio-Alto | M | V | 0 | WP-29 | T3 |
+| 10 | ND-14 | Hoja de captura de un gasto en ≤ 8 s | 5ª | Alto | M | V | −10 | WP-30 | T3 |
+| 11 | NPV-02 | Backtest de liquidez a fin de mes (dice «datos insuficientes» hasta 3 cierres) | 5ª | Alto | M | E | 0 | WP-12 | T3 |
+| 12 | CAP-05 | Lector de la nómina en PDF | 6ª | Alto | M | E | −5/mes | WP-31 | T3 |
+| 13 | NPV-11 | Retenciones acumuladas automáticas para el estimador de Renta | 5ª | Medio-Alto | S-M | E | −1 | WP-31 | T3 |
+| 14 | CAP-09 | Recordatorios en el momento de máximo valor (absorbe ND-10) | 6ª | Alto | S | X | −3 | WP-32 | T3 |
+| 15 | ND-10 | Recordatorios suscribibles (absorbido por CAP-09) | 5ª | — | — | X | — | WP-32 | T3 |
+| 16 | NTC-02 | Historiales sintéticos con verdad conocida (calibrar ND-03 y NPV-01) | 5ª | Alto (habilita) | M | E | 0 | WP-33 | T3 |
+| 17 | PRV-08 | Revisión base cero del plan (enero) | 6ª | Medio | S-M | V | +15/año | WP-34 | T4 |
+| 18 | PRV-02 | Previsión en tres capas: comprometido, probable y discrecional | 6ª | Alto | M | V | 0 | WP-35 | T4 |
+| 19 | PRV-04 | Ingresos inciertos con probabilidad (paga extra, variable, Renta, local) | 6ª | Alto | M | V | 0 | WP-35 | T4 |
+| 20 | ND-07 | Detector de anomalías en el extracto (a la bandeja) | 5ª | Alto | M | E | 0 | WP-36 | T4 |
+| 21 | NXP-04 | Estados completos y «deshacer» en lugar de confirmar | 5ª | Alto | M | E | 0 | WP-37 | T4 → continuo |
+| 22 | NTC-04 | WebKit en la medición de carga | 5ª | Medio | S-M | E | 0 | WP-52 | T4 |
+| 23 | PRV-05 | Plan B acordado en frío, con disparador | 6ª | Alto | M | V | 0 | WP-38 | T5 |
+| 24 | NPV-09 | Palanca de recorte («¿cuánto aguanta el colchón?»), dentro del plan B | 5ª | Medio | M | V | 0 | WP-38 | T5 |
+
+*En T5 entran también `CAR-01` (P2-1, primera de inversión), `DAC-01`, `DAC-04`/`DNU-03` y `CAP-10`, que abren el nivel P2.*
+
+### 5.3 P2 — planificada (T5-T12, febrero - septiembre 2027)
+
+| # | ID | Qué | Origen | Valor | Esf. | Puerta | Δ | WP | Tramo |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | CAR-01 | Política de inversión del hogar (una página, firmada) | 6ª | Alto | M | V | 0 | WP-39 | T5 |
+| 2 | DAC-01 | Conciliar la deuda con la CIRBE, operación a operación | 6ª | Medio-Alto | S-M | E | +10/año | WP-40 | T5 |
+| 3 | DAC-04 | Deuda en la sombra (permanencias, aplazamientos, financiación en factura) | 6ª | Medio | M | E | 0 | WP-41 | T5 |
+| 4 | DNU-03 | TAE real del «0 %» y de los aplazamientos de tarjeta | 6ª | Medio | S | E | 0 | WP-41 | T5 |
+| 5 | CAP-10 | Sin duplicados entre canales de captura | 6ª | Crítico con ≥ 2 canales | M | E | −2 | WP-53 | T5 |
+| 6 | NIN-10 | Informe fiscal anual de inversión para la Renta (antes del 31/3) | 5ª | Alto en temporada | M | V | 0 | WP-21 | T6 |
+| 7 | FIS-03 | Impuestos del local alquilado y actualización de la renta | 6ª | Medio-Alto | M | V | +5/año | WP-21 | T6 |
+| 8 | NIN-01 | Cartera como tablero con «siguiente mejor acción» (reglas de CAR-01) | 5ª | Alto | M-L | V | 0 | WP-17 | T6 |
+| 9 | ND-04 | Perfiles de extracto con autodetección | 5ª | Alto | M | E | −2 | WP-51 | T6 |
+| 10 | NDB-01 | Camino a deuda cero: una narrativa, un control | 5ª | Alto | M-L | V | 0 | WP-19 | T7 |
+| 11 | CAR-03 | Dónde va el próximo euro (escalera) | 6ª | Alto | M | V | 0 | WP-42 | T7 |
+| 12 | NIN-05 | Rebalanceo por aportaciones (sin vender), dentro de la escalera | 5ª | Alto | M | V | 0 | WP-42 | T7 |
+| 13 | NIN-08 | Dónde poner la liquidez ociosa, peldaño de la escalera | 5ª | Medio-Alto | M | V | 0 | WP-42 | T7 |
+| 14 | NPV-01 | Banda de caja diaria con ventanas de fecha | 5ª | Alto | L | V | 0 | WP-16 | T8 |
+| 15 | PRV-01 | Puente de previsión: por qué cambió el fin de año | 6ª | Alto | M | V | 0 | WP-43 | T8 |
+| 16 | NIN-03 | Aportado frente a valor y rentabilidad ponderada por tiempo | 5ª | Alto | M | V | 0 | WP-18 | T9 |
+| 17 | CAR-02 | Panel de calma en caídas | 6ª | Medio-Alto | S-M | V | 0 | WP-44 | T9 |
+| 18 | CAR-05 | Qué parte de los gastos pagan ya los activos | 6ª | Medio | S | V | 0 | WP-44 | T9 |
+| 19 | CAR-06 | Exposición por entidad y garantía | 6ª | Medio | S | V | 0 | WP-44 | T9 |
+| 20 | ND-09 | Frescura por fuente en el centro de datos | 5ª | Alto | S | V | 0 | WP-45 | T10 |
+| 21 | CAP-07 | Tareas de datos ordenadas por lo que mueven la cifra | 6ª | Alto | M | V | −5 | WP-45 | T10 |
+| 22 | NPV-10 | Patrimonio neto: serie histórica y proyección con hitos | 5ª | Alto | L | V | 0 | WP-46 | T10 |
+| 23 | NPV-05 | Reparto de la nómina en un paso (sobre la escalera) | 5ª | Alto | M | V | −5 | WP-47 | T11 |
+| 24 | NIN-06 | Operaciones de cartera editables e importador del bróker | 5ª | Alto | L | V | −3 | WP-48 | T11 |
+| 25 | NPV-04 | Mapa anual de pagos grandes con su sobre | 5ª | Medio-Alto | M | V | 0 | WP-49 | T12 |
+| 26 | CAR-04 | Vivienda y local revalorizados por índice oficial | 6ª | Medio | S-M | V/T | −2/trim. | WP-50 | T12 |
+
+### 5.4 P3 — catálogo con disparador (27)
+
+| ID | Qué | Origen | Triaje | Se activa cuando |
+|---|---|---|---|---|
+| CAP-01 (nivel 2) | Pagos de Apple Pay a la bandeja sin abrir la app (servidor) | 6ª | Más tarde | La plantilla de WP-25 se usa ≥ 3 semanas seguidas y pasa NTC-06 |
+| CAP-03 | Avisos del banco por SMS o correo | 6ª | Más tarde | El spike WP-05 lo recomienda frente a PSD2 |
+| CAP-04 | Saldo desde una captura de pantalla | 6ª | Más tarde | Tras WP-26, actualizar saldos sigue costando > 20 s |
+| PRV-03 | Inflación propia del hogar | 6ª | Más tarde | ≥ 13 meses de reales por partida |
+| PRV-07 | Hasta dónde acierta la previsión | 6ª | Sí | ≥ 6 cierres con previsión congelada (WP-12) |
+| DAC-03 | ¿Compensan las vinculaciones? | 6ª | Más tarde | Renovación de un seguro vinculado o revisión del préstamo |
+| DAC-05 | ¿Cobra el banco la cuota pactada? | 6ª | Más tarde | Una cuota distinta de la esperada (recomendación de Claude: **subirla en cuanto haya extractos mensuales regulares**; protege dinero cada mes) |
+| UXS-01 | Siri dice la cifra sin abrir la app | 6ª | Más tarde (S6 Sí en principio) | Revisión de privacidad del enlace hecha |
+| UXS-02 | Resumen semanal por correo | 6ª | Más tarde | Decisión del 30/11 sobre `A5-4` (push): si se archiva, esta es la alternativa |
+| UXS-03 | Medición automática de cuánto tarda cada tarea | 6ª | Más tarde | La autodeclaración de WP-03 no basta para controlar GOV-01 |
+| UXS-06 | Respuestas sin IA en el buscador | 6ª | Sí | El panel de uso muestra búsquedas frecuentes sin resultado |
+| HOG-01 | Acuerdos del hogar vigilados | 6ª | Sí | Hay acuerdos escritos y una segunda persona que los consulta |
+| HOG-03 | Modo relevo | 6ª | Sí | Se incorpora otra persona, o el usuario lo pide para una ausencia |
+| ND-05 | Bandeja por gesto desde el móvil (Atajo + función privada) | 5ª | — | Igual que CAP-01 nivel 2 (se fusionan) |
+| ND-06 | Gestor de reglas de clasificación | 5ª | — | Una partida mal clasificada se repite ≥ 2 meses |
+| NPV-06 | «¿Y si…?» desde Previsión | 5ª | — | El panel de uso muestra visitas al Laboratorio desde Previsión |
+| NPV-12 | Control global de prudencia de la previsión | 5ª | — | Si ND-03 no reduce el error de caja en 3 meses |
+| NIN-04 | Cumplimiento del plan de aportación | 5ª | — | Tras NIN-02, aportaciones registradas ≥ 3 meses |
+| NIN-07 | Patrimonio neto de impuestos latentes | 5ª | — | Tras NPV-10 |
+| NIN-09 | Prueba de estrés en una pulsación | 5ª | — | Tras CAR-01 (la política define los escenarios) |
+| NDB-03 | «¿Me puedo permitir X?» con tres vías de pago | 5ª | — | Tras NDB-01 y con la métrica de Hoy cumplida |
+| NDB-04 | Cambiar de banco o subrogar: coste y punto de equilibrio | 5ª | — | Oferta de otro banco o LTV favorable (CAR-04) |
+| NXP-03 | Procedencia bajo demanda (P12) | 5ª | — | Medición de WP-02: si la cabecera molesta (en un Pro Max no es la causa) |
+| NXP-06 | Modo discreto (y passkey, más tarde) | 5ª | — | Petición del usuario |
+| NHG-01 | Cuentas claras en pareja (titular explícito, liquidación mensual) | 5ª | — | La asignación personal (HOG-02) se mantiene tras la prueba de 3 meses |
+| NHG-04 | Objetivos visuales | 5ª | — | Tras la carta del mes (WP-29): si se piden objetivos en ella |
+| NTC-05 | Fecha de retirada del doble motor de deuda | 5ª | — | Tras NDB-01 con paridad en verde 3 versiones |
+
+### 5.5 P4 — bloqueadas por una segunda persona usuaria, un tercero o un evento (9)
+
+| ID | Qué | Bloqueo | Se desbloquea |
+|---|---|---|---|
+| NXP-07 | Modo consulta nivel 1 (D4/D5) | Segunda persona usuaria | Cuando se incorpore (con `NAV-3`) |
+| NHG-02 | Reunión mensual del hogar | Segunda persona usuaria | Ídem |
+| CAP-08 | Captura desde el móvil de quien consulta | Segunda persona usuaria | Ídem |
+| NDB-02 | Revisión de tipo variable con el índice oficial | **Dato H7: ¿hipoteca variable, mixta o fija?** | Si es variable o mixta → entra en T6-T7 desplazando una visible |
+| ND-12 | Precios de mercado por ISIN | Decisión del hogar (Q6: manual primero) | Petición explícita |
+| NDB-05 | Evaluador de una oferta de deuda nueva | Evento | Llega una oferta real |
+| DNU-01 | Cuánto os prestaría un banco | Evento | Se plantea un préstamo o hipoteca |
+| DNU-02 | Coche: contado, préstamo, cuota final o renting | Evento | Se plantea cambiar de coche |
+| HOG-04 | Modo viaje | Evento | Un viaje largo previsto |
+
+### 5.6 Archivo propuesto (1)
+
+| ID | Qué | Por qué |
+|---|---|---|
+| NHG-03 | Lista de deseos con enfriamiento | La propia quinta auditoría la marcó como la de menos evidencia; con un usuario y sin petición, no se construye. Se borra del catálogo salvo veto |
+
+---
+
+## 6. Pendientes que no son propuestas
+
+| ID | Qué | Disposición |
+|---|---|---|
+| H1 | Diagnóstico de «no la encontró» | WP-02, con un usuario y saldos del día |
+| H2 | Actualizar saldos y repetir la medición | WP-02 (S8) |
+| H3 | D4/D5 (modo consulta) | P4 (segunda persona) |
+| H4 | Tiempo de registrar un gasto | WP-02 + autodeclaración de WP-03; mejora con WP-30 |
+| H5 / C2 | Cierre con saldo y mes anterior | WP-09 |
+| H6 | Retiradas y Cola B | 23/10: no se retira nada; se decide con el panel de uso (WP-03) en la revisión de enero |
+| **H7** | **¿Hipoteca variable, mixta o fija?** | **Abierta** (decide `NDB-02`) |
+| H8 | `A5-1`/`A5-4`: activar o archivar antes del 30/11/2026 | Abierta; si se archivan, `UXS-02` es la alternativa a `P4`/`GOB5` |
+| `RGX3`, `DEX6`, `GOB5`, `P4`, `P10`, UI del Copiloto | Condicionadas a `A5-1`/`A5-4` | Se archivan el 30/11 si no se activan (H8) |
+| `O-6` | PSD2 | WP-05 (spike con criterio de salida) |
+| `OPT-10`–`OPT-13`, entrega 5 de la Ola 1 | Retirar pantallas sin uso | Revisión en enero con 3 meses de panel de uso; mecanismo: redirigir sin borrar código (GOV-02) |
+| `NAV-3` | Recorrido de bienvenida | P4 → P1 si se incorpora una segunda persona |
+| `ARQ-4` | Visual Detail sin extraer de `app.js` | Aparcado (sin cambios) |
+| `I3` | Mapa de correlación | P3: se activa con ≥ 6 valoraciones de NIN-02 |
+| `I6` | Fiscalidad de cripto/derivados | P4: sin posiciones de ese tipo |
+| Cola B | 42 mejoras de la cuarta auditoría (artefacto externo) | P3: criterio `PROC-1`, se activa con uso real |
+| UX-P4 | Margen de 82 líneas en `app.js` | Se resuelve extrayendo (WP-07 y cada paquete nuevo en su módulo) |
+| UX-P2 | Lighthouse con `optimistic` | Decisión del hogar (cambia lo que promete el CI); sin fecha |
+| UX-P1, P3, P5, P6, P7, UX-N1…N4 | Rendimiento y estética menores | Sin cambios (P3 de hecho); UX-P3 lo cubre WP-52 |
+
+---
+
+## 7. Calendario con fecha (hitos)
+
+| Fecha | Qué |
+|---|---|
+| 5/10/2026 | **Inicio posible de T0**, si el hogar dice «empezamos» |
+| 16/10/2026 | Revisión mensual de Nielsen (`OPT-21`) |
+| ≈ 20/10/2026 | **Datos fiscales del hogar en el chat** (necesarios para WP-23) |
+| 23/10/2026 | `OPT-10`–`OPT-13`: no se retira nada |
+| 1/11/2026 | Arranque de la asignación personal (WP-24) |
+| **14/11/2026** | **Campaña fiscal lista** (WP-23) |
+| 30/11/2026 | Plazo de `A5-1`/`A5-4` (H8) |
+| 1-3/12/2026 | Primer cierre de mes con saldo (noviembre) |
+| 31/12/2026 | Fecha límite de las acciones fiscales (plan de pensiones, amortización dentro del tope, minusvalías, donativos) |
+| 1-3/1/2027 | Cierre de diciembre → **primera carta del mes** (WP-29) |
+| Enero 2027 | Revisión base cero del plan (WP-34) · revisión de la asignación personal · revisión de retiradas con el panel de uso |
+| 31/3/2027 | Informe fiscal de inversión y del local listo (WP-21) |
+| Abril-junio 2027 | Campaña de la Renta (*verificar fechas oficiales*) |
+
+---
+
+## 8. Decisiones abiertas (mínimas)
+
+| # | Pregunta | Por defecto si no hay respuesta |
+|---|---|---|
+| D1 | ¿Hipoteca variable, mixta o fija? (H7) | `NDB-02` sigue en P4 |
+| D2 | Datos para la campaña fiscal, **en el chat**: titulares y si deducíais los dos; tributación conjunta o individual; pagado por la vivienda en 2026 y lo previsto hasta diciembre; tipo marginal y plan de empresa; plusvalías y minusvalías realizadas | Sin ellos, WP-23 sale con las acciones pero sin euros |
+| D3 | ¿Aceptáis tramos de 4 semanas con 2 entregas visibles (§4)? | Se aplica; veto posible |
+| D4 | ¿Se va a incorporar una segunda persona, y cuándo? | Grupo P4-«segunda persona» bloqueado |
+| D5 | R3: minutos autodeclarados una vez por semana en el panel de uso | Se aplica |
+| D6 | ¿Archivar `NHG-03`? | Se archiva |
+
+---
+
+## 9. Métricas
+
+| Métrica | Objetivo | Se mide con |
+|---|---|---|
+| Tiempo hasta la cifra de Hoy | Mediana ≤ 15 s, misma cifra, saldos del día | WP-02 |
+| Adopción | ≥ 4 días activos por semana | WP-03 |
+| Coste de mantener la app | ≤ 10 min/semana | WP-03 (autodeclarado) |
+| Frescura | Saldos de ≤ 3 días en ≥ 90 % de los días | WP-03 |
+| Resolución de la previsión | ≥ 70 % del gasto con fecha declarada u observada | WP-10 |
+| Calibración | Error de caja a fin de mes decreciente; cobertura P10-P90 ≈ 80 % tras 6 meses | WP-12 |
+| Captura | Un gasto en ≤ 8 s | WP-30 |
+| Dinero | Campaña fiscal ejecutada antes del 31/12, con su ahorro estimado anotado | WP-23 |
+| Inversión | Valoraciones de la cartera al día cada mes | WP-15 |
+
+**Regla de parada:** si dos tramos seguidos no mueven ninguna métrica de su paquete, no se abre el siguiente tramo visible y se revisa el plan con el hogar.
+
+---
+
+## 10. Recetas y trampas del repositorio (verificadas)
+
+**Flujo (`CLAUDE.md`):** validar (`npm run verify`, ~4-6 min) → `PROJECT_STATE.md` con cifras reales → commit/push a la rama de trabajo → PR **en borrador** → esperar CI → fusionar en verde (squash), sin preguntar.
+
+**Reiniciar la rama tras una fusión por squash:** el `push --force-with-lease` está denegado. Patrón: `git fetch origin main <rama>` → `git checkout -B <rama> origin/<rama>` → `git merge --no-edit origin/main` → (cherry-pick si hay commits locales) → comprobar `git diff --stat origin/main HEAD` → `git push -u origin <rama>`.
+
+**Trampas:**
+1. `index.html` no puede contener el literal `app.js` fuera del `<script src>`; el sello `app.js?v=` y `design-tokens.css?v=` está fijado en `index.html` y en ~27 pruebas (subir con una expresión regular sobre `tests/*.cjs`).
+2. Toda `view-section` nueva lleva `hidden` salvo `#home`; las hermanas de familia llevan `data-nav-family`.
+3. Muchas pruebas leen ventanas fijas de caracteres de funciones de `app.js` o fijan la etiqueta `<section …>` exacta; una dependencia nueva dentro de una función extraída a un `vm` exige su stub.
+4. **Módulo `canonical-*.js` nuevo:** registrarlo en `index.html` (antes de `app.js`), `service-worker.js` (`SHELL_URLS`) y `tools/build-public-site.mjs`; subir el recuento de `arq3-canonical-sin-consumidor-ui` (hoy 70) y darle un consumidor real en `app.js`.
+5. **`app.js` no puede crecer** (techo 37.495 con trinquete; margen 82): cada paquete nuevo vive en su módulo y deja en `app.js` solo el enganche.
+6. **Almacén nuevo en el navegador:** clasificarlo en `BACKUP_LOCAL_STORES` o excluirlo con motivo en `tests/arq6-copia-completa.test.cjs`.
+7. **Campo nuevo en el estado (`appStatePayload`):** migración y *fixtures* con la herramienta (`state-contract.js`, A13-4), nunca a mano.
+8. **Un `BACKLOG*.md` nuevo** debe enlazar a `BACKLOG_INDICE.md`; el índice solo puede tener **una** fila «🟢 Vigente» y la skill `finanzas-casa-workflow` (Modo Inicio, paso 2) debe nombrarla.
+9. Service worker «primero caché»: la primera apertura tras un despliegue muestra la versión anterior (lo resuelve WP-01).
+10. Tras crear un PR: `subscribe_pr_activity`; al fusionar, `unsubscribe_pr_activity`.
+11. Los datos de demostración son anonimizados: decir siempre si una cifra es de la demo o del hogar.
+
+---
+
+## 11. Dónde está el detalle
+
+| Tema | Documento |
+|---|---|
+| Plan de desarrollo: paquetes WP-01…WP-54, enfoque técnico, pruebas, calendario, riesgos | `docs/PLAN_DESARROLLO_DEFINITIVO.md` |
+| Porqué de las propuestas `ND`/`NPV`/`NIN`/`NDB`/`NXP`/`NHG`/`NTC` | `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` |
+| Porqué de las propuestas `CAP`/`PRV`/`CAR`/`DAC`/`DNU`/`FIS`/`UXS`/`HOG`/`GOV` | `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` |
+| Enfoque técnico de WP-01…WP-21 | `docs/PLAN_IMPLEMENTACION_2026-10-03.md` (sigue valiendo; WP-22 queda retirado y repartido) |
+| Respuestas del triaje y contradicciones R1-R5 | `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §15.4 |
+| Historia de la Ola 2 y sus mediciones | `docs/OLA2_RECALIBRACION.md` |
+| Registro sesión a sesión | `PROJECT_STATE.md` |
