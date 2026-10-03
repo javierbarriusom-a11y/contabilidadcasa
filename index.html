@@ -27,7 +27,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20260918t8a1" />
+    <link rel="stylesheet" href="styles.css?v=20261003wp01a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261002s5a1" />
   </head>
@@ -276,6 +276,17 @@
             </div>
           </div>
         </div>
+
+        <!-- WP-01 (NXP-02): sello de la versión que corre en este dispositivo y «Novedades», una línea
+             por cada cambio visible desplegado (novedades.js). Lo pinta ux-shell.js, fuera del script principal. -->
+        <details class="version-stamp" id="versionStamp">
+          <summary>
+            <span id="versionStampLabel">Versión de desarrollo</span>
+            <span class="version-stamp-badge" id="novedadesBadge" hidden></span>
+            <strong>Novedades</strong>
+          </summary>
+          <ul class="version-stamp-list" id="novedadesList"></ul>
+        </details>
       </aside>
 
       <div class="workspace">
@@ -317,6 +328,12 @@
           <span id="undoToastMessage"></span>
           <span class="undo-toast-count" id="undoToastCount" hidden></span>
           <button type="button" class="e19-btn e19-btn-secondary" id="undoToastButton">Deshacer</button>
+        </div>
+        <!-- WP-01 (NXP-02): aviso de versión nueva. Nunca recarga solo: el botón aparece cuando la
+             versión nueva ya está descargada, y la recarga la decide el hogar. -->
+        <div class="update-toast" id="updateToast" role="status" aria-live="polite" hidden>
+          <span id="updateToastMessage"></span>
+          <button type="button" class="e19-btn e19-btn-secondary" id="updateToastButton" hidden>Actualizar</button>
         </div>
 
         <main id="mainContent" tabindex="-1">
@@ -7523,7 +7540,8 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="ux-shell.js?v=20260716a"></script>
+    <script defer src="novedades.js?v=20261003wp01a1"></script>
+    <script defer src="ux-shell.js?v=20261003wp01a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>

@@ -1,0 +1,33 @@
+// WP-01 (NXP-02, BACKLOG_DEFINITIVO.md §5.1): «Novedades» — una línea por cada cambio visible
+// desplegado, la más reciente arriba. Sin límite de entregas visibles (decisión del hogar del
+// 3/10/2026), es la forma de que el único usuario sepa qué ha cambiado sin leer el repositorio.
+//
+// Regla para cada paquete visible: añade aquí su línea en el mismo PR que lo construye.
+// - `id`: único y estable (fecha + paquete); marca hasta dónde se ha leído en este dispositivo.
+// - `fecha`: AAAA-MM-DD del despliegue.
+// - `texto`: una frase de ≤ 140 caracteres, en lenguaje del hogar, sin cifras reales.
+// - `href` (opcional): la pantalla donde se ve el cambio (`#vista`).
+// tests/nxp2-sello-version.test.cjs comprueba el formato y el orden.
+(function exposeFinanceNovedades(root) {
+  const NOVEDADES = [
+    {
+      id: "2026-10-03-wp01",
+      fecha: "2026-10-03",
+      texto: "Sello de versión y «Novedades» en el menú: ves qué versión usas, qué ha cambiado y un aviso cuando hay una nueva.",
+    },
+    {
+      id: "2026-10-02-p9",
+      fecha: "2026-10-02",
+      texto: "Hoy dice la edad de tus saldos junto a la cifra, y un saldo antiguo baja la confianza de la liquidez a «media».",
+      href: "#home",
+    },
+    {
+      id: "2026-10-02-s5",
+      fecha: "2026-10-02",
+      texto: "Hoy tiene un único titular: «Disponible para gastar».",
+      href: "#home",
+    },
+  ];
+  if (typeof module === "object" && module.exports) module.exports = NOVEDADES;
+  if (root) root.FinanceNovedades = NOVEDADES;
+})(typeof globalThis !== "undefined" ? globalThis : this);

@@ -1246,6 +1246,89 @@ main {
   border-color: #fff;
 }
 
+/* WP-01 (NXP-02): aviso de versión nueva — mismo lenguaje que .undo-toast, pegado al borde inferior
+   para no tapar la cifra de Hoy (el de deshacer queda encima si coinciden). Sello de versión y
+   «Novedades» en el pie del menú lateral. */
+.update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px 10px 18px;
+  border-radius: 999px;
+  background: rgba(19, 31, 38, 0.94);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 18px 38px rgba(15, 31, 38, 0.18);
+}
+
+.update-toast[hidden],
+.update-toast button[hidden],
+.version-stamp-badge[hidden] {
+  display: none;
+}
+
+.update-toast #updateToastButton {
+  background: #fff;
+  color: #131f26;
+  border-color: #fff;
+}
+
+.version-stamp {
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9d8dc;
+  font-size: 12px;
+}
+
+.version-stamp summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.version-stamp summary strong {
+  margin-left: auto;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.version-stamp-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #131f26;
+  font-weight: 700;
+}
+
+.version-stamp-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 14px 14px 30px;
+  line-height: 1.45;
+}
+
+.version-stamp-list time {
+  color: #aabdc4;
+  font-weight: 700;
+}
+
+.version-stamp-list a {
+  color: #ffffff;
+}
+
 @keyframes viewIn {
   from {
     opacity: 0;

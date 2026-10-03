@@ -11,13 +11,13 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
-**Desarrollo no iniciado por decisión del hogar (3/10/2026).** Las 104 propuestas de la quinta y la sexta auditoría están todas aquí, priorizadas en cinco niveles (§5): **68 entran en el plan** (P0-P2, en **3 olas de octubre de 2026 a enero de 2027**, ≈ 138 sesiones), **27 quedan en catálogo con disparador** (P3), **5 bloqueadas** por un tercero o un evento (P4) y **4 se archivan**. **Respuestas del hogar del 3/10 (sesión 297):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable** (entra la revisión de tipo, `NDB-02`); **nadie más usará la app** (lo que solo servía a una segunda persona se archiva); **sin límite de entregas visibles** (el plan se comprime de 13 tramos a 3 olas). El primer paquete con fecha es la **campaña fiscal de fin de año con el tope de la deducción por vivienda** (lista antes del 15/11/2026). Cuando el hogar diga «empezamos», se arranca por la Ola 1 (§4).
+**Desarrollo iniciado el 3/10/2026 (sesión 299): el hogar dijo «empecemos». Ola 1 en curso; hecho: WP-01 (sello de versión y «Novedades»).** Decisiones de esa sesión: (a) **un solo móvil** → `NTC-03` (contador multi-dispositivo) se reduce al contador local, sin sincronización; (b) **WP-23 (campaña fiscal) se adelanta** a la siguiente sesión y los datos fiscales se piden ya, sin esperar al 20/10; (c) en WP-02 el interruptor A/B del titular se construye pero **no alterna** hasta tener la línea base con el texto A (con n = 1 es preferencia, no resultado medido). Las 104 propuestas de la quinta y la sexta auditoría están todas aquí, priorizadas en cinco niveles (§5): **68 entran en el plan** (P0-P2, en **3 olas de octubre de 2026 a enero de 2027**, ≈ 138 sesiones), **27 quedan en catálogo con disparador** (P3), **5 bloqueadas** por un tercero o un evento (P4) y **4 se archivan**. **Respuestas del hogar del 3/10 (sesión 297):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable** (entra la revisión de tipo, `NDB-02`); **nadie más usará la app** (lo que solo servía a una segunda persona se archiva); **sin límite de entregas visibles** (el plan se comprime de 13 tramos a 3 olas). El primer paquete con fecha es la **campaña fiscal de fin de año con el tope de la deducción por vivienda** (lista antes del 15/11/2026). Orden de la Ola 1 tras la sesión 299: WP-02 → WP-03 → WP-23 → resto (§4).
 
 ## 1. Cómo empezar la próxima sesión (10 minutos)
 
 1. Leer este documento (§0, §2, §4 y §5) y la última entrada de `PROJECT_STATE.md`.
 2. `git status`, `git log --oneline -5`; la rama de trabajo parte de `origin/main` (receta en §10).
-3. **No empezar a construir hasta que el hogar lo pida explícitamente** (decisión del 3/10/2026). Cuando lo pida: el primer paquete de la Ola 1 cuya puerta esté abierta, con el detalle de `docs/PLAN_DESARROLLO_DEFINITIVO.md`.
+3. **El desarrollo está en marcha desde el 3/10/2026** (el hogar dijo «empecemos»). Siguiente paquete: el primero de la Ola 1 sin hacer según §0, con el detalle de `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Cada paquete visible añade su línea a `novedades.js`.
 4. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, **este documento** y **el panel de seguimiento** (§12), commit/push, PR en borrador, esperar CI, fusionar en verde.
 
 ---
@@ -88,12 +88,12 @@ Columnas: **#** orden dentro del nivel · **ID** · **Qué** · **Origen** (5ª/
 | 2 | **DAC-02** | Tope de la deducción por vivienda (régimen transitorio, **confirmado que aplica**, S4) | 6ª | **Alto** · 31/12 | S | E | 0 | WP-23 | Ola 1 |
 | 3 | FIS-02 | Ajustar la retención voluntaria para no pagar en junio | 6ª | Medio | S | V | 0 | WP-23 | Ola 1 |
 | 4 | HOG-02 | Asignación personal sin detalle, prueba de 3 meses desde el 1/11 | 6ª | Medio-Alto | S | V (configuración) | −10 | WP-24 | Ola 1 |
-| 5 | NXP-02 | Sello de versión y aviso de «versión nueva» | 5ª | Alto | S | E | 0 | WP-01 | Ola 1 |
+| 5 | NXP-02 | Sello de versión y aviso de «versión nueva» — **✅ hecho 3/10/2026 (WP-01, sesión 299)** | 5ª | Alto | S | E | 0 | WP-01 | Ola 1 |
 | 6 | NXP-01 | Prueba cronometrada dentro de la app (un usuario, saldos del día) | 5ª | Crítico | S-M | E | 0 | WP-02 | Ola 1 |
-| 7 | PRV-06 | «X € al día hasta cobrar», **como variante B de la medición** (no como entrega) | 6ª | Alto | S | H → medición | 0 | WP-02 | Ola 1 |
+| 7 | PRV-06 | «X € al día hasta cobrar», **como variante B de la medición** (no como entrega; no alterna hasta tener la línea base con A, 3/10) | 6ª | Alto | S | H → medición | 0 | WP-02 | Ola 1 |
 | 8 | UXS-05 | Dos textos para la cifra de Hoy, dentro de la medición | 6ª | Medio (n = 1) | S | H → medición | 0 | WP-02 | Ola 1 |
 | 9 | UXS-04 | Panel de uso real (+ minutos autodeclarados, R3) | 6ª | Alto | S | E | 0 | WP-03 | Ola 1 |
-| 10 | NTC-03 | Contador de uso **multi-dispositivo** (reducido: un usuario) | 5ª | Medio | S | E | 0 | WP-03 | Ola 1 |
+| 10 | NTC-03 | Contador de uso **multi-dispositivo** (reducido: un usuario; **y un solo móvil, 3/10: sin sincronización**) | 5ª | Medio | S | E | 0 | WP-03 | Ola 1 |
 | 11 | ND-13 | Spike PSD2 de 2 semanas, comparado con Apple Pay y avisos del banco | 5ª | Alto | S | T (documental) | — | WP-05 | Ola 1 |
 | 12 | NTC-06 | Revisión de seguridad previa a cualquier conexión externa | 5ª | Alto | S | E | 0 | WP-05 | Ola 1 |
 | 13 | NTC-01 | Extraer el motor de fechas a `canonical-timing.js` | 5ª | Alto (habilita) | M | E | 0 | WP-07 | Ola 1 |

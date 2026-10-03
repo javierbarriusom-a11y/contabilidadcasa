@@ -40,8 +40,8 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
    `BACKLOG_DEFINITIVO.md` (desde el 3/10/2026 es el **único** backlog vivo): lee su §0
    («Estado en una línea») y su §1 («Cómo empezar»); la prioridad de cada propuesta está en su §5,
    las reglas de ritmo en su §4, el calendario en su §7 y las decisiones abiertas en su §8. El
-   cómo y el cuándo de cada paquete, en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. **No empezar a
-   construir hasta que el hogar lo pida** (decisión del 3/10/2026). Los demás `BACKLOG*.md`
+   cómo y el cuándo de cada paquete, en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. El desarrollo está **en marcha desde el 3/10/2026** (el hogar dijo «empecemos»): el
+   siguiente paquete es el primero de la Ola 1 sin hacer según su §0. Los demás `BACKLOG*.md`
    (`BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`, `BACKLOG_UX_OLAS.md`…)
    quedan como detalle histórico de por qué se hizo cada cosa; su §12 lista lo que en ellos está
    desfasado. Si el índice ya marca como vigente otro documento, manda el índice y esta línea está

@@ -102,6 +102,7 @@ const files = [
   "durable-outbox.js",
   "remote-save-queue.js",
   "ux-settings.js",
+  "novedades.js",
   "ux-shell.js",
   "p2-domain.js",
   "p2-private-store.js",
@@ -192,11 +193,22 @@ const versionedWorker = workerSource.replace(
 if (versionedWorker === workerSource) throw new Error("No se encontró CACHE_NAME en service-worker.js para versionarlo.");
 fs.writeFileSync(workerPath, versionedWorker);
 
-fs.writeFileSync(path.join(destination, ".nojekyll"), "");
-fs.writeFileSync(
-  path.join(destination, "version.json"),
-  `${JSON.stringify({ version: process.env.GITHUB_SHA || "local", builtAt: new Date().toISOString() }, null, 2)}\n`,
+// WP-01 (NXP-02): version.json dice qué versión está publicada; para saber si la que corre en el
+// dispositivo es otra (el Service Worker sirve primero de caché), `ux-shell.js` lleva dentro la suya.
+// Se reescribe aquí, en la copia de dist y antes de minificar, con la misma referencia que
+// version.json; en el repositorio vale «dev» y la app no avisa de nada.
+const buildInfo = { version: process.env.GITHUB_SHA || "local", builtAt: new Date().toISOString() };
+const shellPath = path.join(destination, "ux-shell.js");
+const shellSource = fs.readFileSync(shellPath, "utf8");
+const versionedShell = shellSource.replace(
+  /const BUILD_INFO = \{ version: "[^"]*", builtAt: "[^"]*" \};/,
+  `const BUILD_INFO = { version: ${JSON.stringify(buildInfo.version)}, builtAt: ${JSON.stringify(buildInfo.builtAt)} };`,
 );
+if (versionedShell === shellSource) throw new Error("No se encontró BUILD_INFO en ux-shell.js para versionarlo.");
+fs.writeFileSync(shellPath, versionedShell);
+
+fs.writeFileSync(path.join(destination, ".nojekyll"), "");
+fs.writeFileSync(path.join(destination, "version.json"), `${JSON.stringify(buildInfo, null, 2)}\n`);
 
 // OPT-3: el artefacto publicado copiaba el código fuente tal cual, sin minificar — 1,54 MB de app.js
 // sin comprimir, en cada visita. Minifica JS y CSS **solo en la copia de `dist`**, después de todo lo

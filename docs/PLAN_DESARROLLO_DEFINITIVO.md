@@ -1,6 +1,6 @@
 # Plan de desarrollo definitivo — Contabilidadcasa
 
-Fecha: 3 de octubre de 2026 (sesiones 296-297; **reorganizado en 3 olas** tras la decisión del hogar de quitar el límite de entregas visibles). Estado: **plan aprobado como documento; desarrollo no iniciado por decisión del hogar.** Deriva de [`BACKLOG_DEFINITIVO.md`](../BACKLOG_DEFINITIVO.md), que es la única fuente viva (prioridades, niveles P0-P4, decisiones abiertas). Este documento dice **cómo** y **cuándo**; el backlog dice **qué** y **por qué en ese orden**.
+Fecha: 3 de octubre de 2026 (sesiones 296-297; **reorganizado en 3 olas** tras la decisión del hogar de quitar el límite de entregas visibles). Estado: **desarrollo iniciado el 3/10/2026 (sesión 298); Ola 1 en curso.** Deriva de [`BACKLOG_DEFINITIVO.md`](../BACKLOG_DEFINITIVO.md), que es la única fuente viva (prioridades, niveles P0-P4, decisiones abiertas). Este documento dice **cómo** y **cuándo**; el backlog dice **qué** y **por qué en ese orden**.
 **No contiene importes reales del hogar** (repositorio público).
 
 > Las fechas son orientativas; **mandan las puertas**. Una ola no empieza hasta que la anterior cumple su salida, y nada empieza hasta que el hogar diga «empezamos».
@@ -65,7 +65,7 @@ El enfoque técnico de cada uno está en `docs/PLAN_IMPLEMENTACION_2026-10-03.md
 |---|---|
 | **WP-01** (sello de versión) | Se amplía con **«Novedades»**: una línea por cada cambio visible desplegado, junto al sello, con enlace a la pantalla. Sin límite de entregas visibles, es la forma de que el único usuario sepa qué ha cambiado |
 | **WP-02** (prueba cronometrada) | **Un solo usuario.** La prueba se descarta si el saldo tiene más de 1 día (GOV-05) y registra si la app se abrió desde el icono. Incluye un interruptor de **texto del titular** para alternar por semanas A «Disponible para gastar» y B «≈ X €/día hasta cobrar» (PRV-06 y UXS-05): es un instrumento de medida, no una entrega. Si B gana con claridad, pasa a ser el texto definitivo con el OK del hogar |
-| **WP-03** (contador de uso) | Se convierte en **panel de uso** (UXS-04): días activos por semana, frescura media de saldos, % del gasto registrado en < 48 h, decisiones registradas, y una pregunta semanal de minutos dedicados (R3). Multi-dispositivo del mismo usuario (NTC-03 reducido). Solo agregados, sin importes |
+| **WP-03** (contador de uso) | Se convierte en **panel de uso** (UXS-04): días activos por semana, frescura media de saldos, % del gasto registrado en < 48 h, decisiones registradas, y una pregunta semanal de minutos dedicados (R3). ~~Multi-dispositivo del mismo usuario (NTC-03 reducido)~~ **Un solo móvil (3/10/2026): contador local, sin sincronización** — quita el riesgo de tocar la sincronización y la revisión de privacidad que exigía. Solo agregados, sin importes |
 | **WP-05** (spike PSD2) | La matriz de decisión compara **PSD2, Apple Pay + Atajos (CAP-01) y avisos del banco (CAP-03)** por cobertura, coste, fricción y riesgo. Criterio de salida a los 14 días |
 | **WP-08** (día de cargo) | Prerrellenado desde los recurrentes (`A16-3`) para que sea «confirmar» (~10 min) y no «declarar» (30 min) |
 | **WP-15** (valoración) | Sin cambios; es el hueco funcional más grave de inversión |
