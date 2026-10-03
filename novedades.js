@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-03-wp04",
+      fecha: "2026-10-03",
+      texto: "Ajustes dice si el día de cobro de cada gasto se puede aprender de tus extractos o tendrás que indicarlo tú.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-03-wp03",
       fecha: "2026-10-03",
       texto: "Panel de uso: días de uso, saldos frescos y minutos por semana, frente a sus objetivos. En Ajustes › Uso de la app.",

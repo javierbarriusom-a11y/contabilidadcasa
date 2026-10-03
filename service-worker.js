@@ -108,6 +108,7 @@ const SHELL_URLS = [
   "./canonical-finding-test.js",
   "./finding-test-ui.js",
   "./usage-panel.js",
+  "./canonical-charge-day-viability.js",
   "./p2-domain.js",
   "./p2-private-store.js",
   "./p2-export.js",
