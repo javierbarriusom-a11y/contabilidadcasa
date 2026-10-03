@@ -104,6 +104,8 @@ const files = [
   "ux-settings.js",
   "novedades.js",
   "ux-shell.js",
+  "canonical-finding-test.js",
+  "finding-test-ui.js",
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",

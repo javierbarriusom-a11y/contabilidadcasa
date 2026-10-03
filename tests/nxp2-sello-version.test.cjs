@@ -67,7 +67,7 @@ test("«Novedades» cuenta solo lo no visto en este dispositivo", () => {
 test("novedades.js cumple el formato: id único, fecha, ≤ 140 caracteres, #vista y la más reciente primero", () => {
   assert.ok(Array.isArray(novedades) && novedades.length > 0);
   assert.deepEqual(shell.validateNovedades(novedades), []);
-  assert.equal(novedades[0].id, "2026-10-03-wp01", "WP-01 se anuncia a sí mismo");
+  assert.ok(novedades.some((entry) => entry.id === "2026-10-03-wp01"), "WP-01 se anuncia a sí mismo");
   assert.deepEqual(
     shell.validateNovedades([{ id: "x", fecha: "2026-10-01", texto: "a" }, { id: "x", fecha: "2026-10-02", texto: "", href: "javascript:alert(1)" }]),
     ["x: id repetido", "x: sin texto", "x: href debe ser #vista", "x: fuera de orden (la más reciente primero)"],

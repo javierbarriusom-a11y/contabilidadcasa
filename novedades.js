@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-03-wp02",
+      fecha: "2026-10-03",
+      texto: "Prueba de 30 segundos: mide cuánto tardas en tener la cifra de Hoy al abrir la app. En Ajustes › Uso de la app.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-03-wp01",
       fecha: "2026-10-03",
       texto: "Sello de versión y «Novedades» en el menú: ves qué versión usas, qué ha cambiado y un aviso cuando hay una nueva.",
