@@ -11,14 +11,14 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
-**Desarrollo no iniciado por decisión del hogar (3/10/2026).** Las 104 propuestas de la quinta y la sexta auditoría están todas aquí, priorizadas en cinco niveles (§5): **68 entran en el plan** (P0-P2, en **3 olas de octubre de 2026 a enero de 2027**, ≈ 140 sesiones), **27 quedan en catálogo con disparador** (P3), **5 bloqueadas** por un tercero o un evento (P4) y **4 se archivan**. **Respuestas del hogar del 3/10 (sesión 297):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable** (entra la revisión de tipo, `NDB-02`); **nadie más usará la app** (lo que solo servía a una segunda persona se archiva); **sin límite de entregas visibles** (el plan se comprime de 13 tramos a 3 olas). El primer paquete con fecha es la **campaña fiscal de fin de año con el tope de la deducción por vivienda** (lista antes del 15/11/2026). Cuando el hogar diga «empezamos», se arranca por la Ola 1 (§4).
+**Desarrollo no iniciado por decisión del hogar (3/10/2026).** Las 104 propuestas de la quinta y la sexta auditoría están todas aquí, priorizadas en cinco niveles (§5): **68 entran en el plan** (P0-P2, en **3 olas de octubre de 2026 a enero de 2027**, ≈ 138 sesiones), **27 quedan en catálogo con disparador** (P3), **5 bloqueadas** por un tercero o un evento (P4) y **4 se archivan**. **Respuestas del hogar del 3/10 (sesión 297):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable** (entra la revisión de tipo, `NDB-02`); **nadie más usará la app** (lo que solo servía a una segunda persona se archiva); **sin límite de entregas visibles** (el plan se comprime de 13 tramos a 3 olas). El primer paquete con fecha es la **campaña fiscal de fin de año con el tope de la deducción por vivienda** (lista antes del 15/11/2026). Cuando el hogar diga «empezamos», se arranca por la Ola 1 (§4).
 
 ## 1. Cómo empezar la próxima sesión (10 minutos)
 
 1. Leer este documento (§0, §2, §4 y §5) y la última entrada de `PROJECT_STATE.md`.
 2. `git status`, `git log --oneline -5`; la rama de trabajo parte de `origin/main` (receta en §10).
 3. **No empezar a construir hasta que el hogar lo pida explícitamente** (decisión del 3/10/2026). Cuando lo pida: el primer paquete de la Ola 1 cuya puerta esté abierta, con el detalle de `docs/PLAN_DESARROLLO_DEFINITIVO.md`.
-4. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales y **este documento**, commit/push, PR en borrador, esperar CI, fusionar en verde.
+4. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, **este documento** y **el panel de seguimiento** (§12), commit/push, PR en borrador, esperar CI, fusionar en verde.
 
 ---
 
@@ -334,3 +334,33 @@ Columnas: **#** orden dentro del nivel · **ID** · **Qué** · **Origen** (5ª/
 | Respuestas del triaje y contradicciones R1-R5 | `BACKLOG_INICIO_OLEADA_OCTUBRE.md` §15.4 |
 | Historia de la Ola 2 y sus mediciones | `docs/OLA2_RECALIBRACION.md` |
 | Registro sesión a sesión | `PROJECT_STATE.md` |
+| Plan en datos (paquetes, propuestas, hitos, tareas del hogar, métricas) | `docs/plan/plan-definitivo.json` |
+| Avance real (estado de cada paquete, lecturas de métricas, tareas del hogar hechas) | Panel de seguimiento (artefacto privado, §12) |
+
+---
+
+## 12. Seguimiento del avance
+
+**Petición del hogar (3/10/2026, sesión 298):** «genera un backlog y artefacto para poder ver el plan y controlar el grado de avance».
+
+**Tres piezas, cada una con un solo trabajo:**
+| Pieza | Qué guarda | Quién la cambia |
+|---|---|---|
+| Este documento | Qué se hace y por qué en ese orden (prioridades, niveles, decisiones) | Claude, cuando cambia el plan |
+| `docs/plan/plan-definitivo.json` | El mismo plan en datos: 3 olas, 53 paquetes con sesiones estimadas, dependencias y «hecho cuando», las 104 propuestas, 16 hitos, 21 tareas del hogar y 10 métricas | Se regenera cuando cambia este documento; `tests/plan-seguimiento-sincronizado.test.cjs` falla si los dos se separan |
+| **Panel de seguimiento** (https://claude.ai/artifact/7k86qmrcqn8hdhAzx9xcrg, privado) | El **estado**: paquete a paquete (estado, PR, fechas, sesiones reales, resultado de su métrica), tareas del hogar hechas, lecturas de métricas, revisión de salida de cada ola y registro de cambios | Claude al cerrar cada sesión; el hogar marca sus tareas y añade lecturas |
+
+**Cómo mide el avance** (para que «vamos bien» signifique algo):
+- **Avance ponderado por esfuerzo**, no por número de paquetes: hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %. Un paquete de 7 sesiones (WP-42) pesa siete veces uno de 1 sesión.
+- **Línea base fija** (fijada el 3/10/2026): lo previsto a una fecha reparte las sesiones de cada ola de forma lineal entre su inicio y su fin. El desvío se da en sesiones, como índice real/previsto y en **días de retraso** (la fecha en la que la línea base esperaba el avance que hay hoy). Si el arranque se retrasa, el panel lo muestra como retraso; no se mueve la línea base sin decisión del hogar.
+- **Construido no es lo mismo que comprobado:** cada paquete con métrica lleva su resultado («sin medir», «cumple», «no cumple»). El panel cuenta aparte los paquetes con valor comprobado. Es la defensa contra el riesgo alto del plan (§6 del plan: construir para nadie).
+- **Regla de parada visible:** cada ola tiene su «revisión de salida» (pendiente · seguir · parar y revisar) junto a las métricas que hay que mirar.
+
+**Protocolo de Claude al cerrar cada sesión de desarrollo** (después de fusionar):
+1. `ArtifactData` → `get` de `wp/<WP-ID>` y `set` con su `version` como `if_version`: `estado`, `pr`, `inicio`, `fin`, `sesionesReales`, `resultado` (si se midió), `nota`, y una línea más en `historial` (`{fecha, texto, por: "Claude"}`, se guardan las 20 últimas).
+2. Una entrada en `registro` (`{fecha, ts, texto, por: "Claude"}`).
+3. Al pasar el primer paquete a «en curso», `meta/plan.arranque` con la fecha.
+4. Si cambia el plan (no el estado): regenerar el JSON, `node tools/build-plan-panel.mjs <scratchpad>/plan-contabilidadcasa.html` y volver a publicar el panel **en la misma URL** (`Artifact` con `url`). El estado no se pierde: vive en la base del panel, no en la página.
+
+**Privacidad:** el panel no guarda importes. Las cifras fiscales y de la hipoteca siguen yendo solo por el chat.
+

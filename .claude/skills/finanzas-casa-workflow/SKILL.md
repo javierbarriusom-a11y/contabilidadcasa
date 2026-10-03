@@ -100,6 +100,9 @@ autoriza de principio a fin, hasta la fusión a `main`. Si esta skill y `CLAUDE.
      su registro va en `docs/OPT21_CHECKLIST_NIELSEN.md` y sus hallazgos al backlog vigente.
    - Marca la tarea en el backlog vigente (su fila y el plan priorizado) y, si el estado de alguna
      entrega E1-E26 cambió, actualiza también `BACKLOG_STATUS.md`.
+   - Si la sesión avanzó un paquete del plan (WP-xx), actualiza también el **panel de seguimiento**
+     con `ArtifactData` (estado, PR, fechas, sesiones reales, resultado de la métrica y una línea de
+     registro), siguiendo el protocolo de `BACKLOG_DEFINITIVO.md` §12.
    - No inventes cifras ni resultados: usa exactamente los que arrojó la validación del
      paso 1.
 3. **Commit y push**: mensaje coherente con el estilo del historial (prefijos como `feat:`,
