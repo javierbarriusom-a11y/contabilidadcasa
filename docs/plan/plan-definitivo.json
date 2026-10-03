@@ -1,0 +1,2278 @@
+{
+ "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog.",
+ "version": "2026-10-03",
+ "lineaBase": {
+  "inicio": "2026-10-05",
+  "fin": "2027-01-22",
+  "fijadaEl": "2026-10-03"
+ },
+ "pesos": {
+  "pendiente": 0,
+  "bloqueado": 0,
+  "en curso": 0.5,
+  "en revisión": 0.9,
+  "hecho": 1,
+  "descartado": 0
+ },
+ "olas": [
+  {
+   "id": 1,
+   "nombre": "Medir, dinero con fecha y verdad barata",
+   "inicio": "2026-10-05",
+   "fin": "2026-10-23",
+   "salida": "Línea base de Hoy con saldos del día; panel de uso en marcha; octubre cerrado con saldo.",
+   "metricas": [
+    "M-HOY",
+    "M-ADOP"
+   ],
+   "sesiones": 21.5
+  },
+  {
+   "id": 2,
+   "nombre": "Actualizar y capturar cuesta poco",
+   "inicio": "2026-10-26",
+   "fin": "2026-11-20",
+   "salida": "Saldos ≤ 20 s; un gasto ≤ 8 s; ≥ 70 % del gasto con fecha; próxima revisión de la hipoteca con cuota estimada.",
+   "metricas": [
+    "M-SALDOS",
+    "M-CAPT",
+    "M-RESOL"
+   ],
+   "sesiones": 31.5
+  },
+  {
+   "id": 3,
+   "nombre": "Previsión, inversión y deuda con guion",
+   "inicio": "2026-11-23",
+   "fin": "2027-01-22",
+   "salida": "Primera carta del mes; plan B y política de inversión firmados; «¿cuándo acabamos la deuda?» en < 30 s.",
+   "metricas": [
+    "M-HOY",
+    "M-ADOP",
+    "M-COSTE"
+   ],
+   "sesiones": 84.5
+  }
+ ],
+ "paquetes": [
+  {
+   "id": "WP-01",
+   "nombre": "Sello de versión y «Novedades»",
+   "ola": 1,
+   "propuestas": [
+    "NXP-02"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "La app muestra la versión desplegada, avisa cuando hay una nueva y lista cada cambio visible en «Novedades» con enlace a su pantalla."
+  },
+  {
+   "id": "WP-02",
+   "nombre": "Prueba cronometrada de Hoy (un usuario, saldos del día)",
+   "ola": 1,
+   "propuestas": [
+    "NXP-01",
+    "PRV-06",
+    "UXS-05"
+   ],
+   "sesiones": 1.5,
+   "tipo": "medición",
+   "depende": [],
+   "hechoCuando": "Línea base registrada: mediana de 3 pruebas con saldos del día, abriendo desde el icono; el interruptor de texto A/B del titular alterna por semanas.",
+   "metrica": "M-HOY",
+   "necesitaDelHogar": "Actualizar saldos y hacer la prueba 3 veces (≈ 5 min)."
+  },
+  {
+   "id": "WP-03",
+   "nombre": "Panel de uso real",
+   "ola": 1,
+   "propuestas": [
+    "UXS-04",
+    "NTC-03"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Panel con días activos por semana, frescura de saldos, % del gasto registrado en < 48 h, decisiones y minutos autodeclarados; solo agregados, multi-dispositivo.",
+   "metrica": "M-ADOP"
+  },
+  {
+   "id": "WP-04",
+   "nombre": "Viabilidad del día de cargo (ND-03, paso 0)",
+   "ola": 1,
+   "propuestas": [],
+   "sesiones": 1,
+   "tipo": "documental",
+   "depende": [],
+   "hechoCuando": "Un script sobre el histórico dice, por partida, si la fecha de cargo observada es predecible; conclusión anotada en el backlog."
+  },
+  {
+   "id": "WP-05",
+   "nombre": "Spike PSD2 y revisión de seguridad",
+   "ola": 1,
+   "propuestas": [
+    "ND-13",
+    "NTC-06"
+   ],
+   "sesiones": 1.5,
+   "tipo": "documental",
+   "depende": [],
+   "hechoCuando": "Matriz PSD2 / Apple Pay + Atajos / avisos del banco con decisión a los 14 días; modelo de amenazas aprobado antes de cualquier conexión externa."
+  },
+  {
+   "id": "WP-06",
+   "nombre": "Gobierno de octubre",
+   "ola": 1,
+   "propuestas": [],
+   "sesiones": 1,
+   "tipo": "proceso",
+   "depende": [],
+   "hechoCuando": "Revisión de Nielsen el 16/10; el 23/10 no se retira nada; decisión sobre A5-1/A5-4 registrada antes del 30/11.",
+   "fechaLimite": "2026-11-30"
+  },
+  {
+   "id": "WP-24",
+   "nombre": "Asignación personal sin detalle",
+   "ola": 1,
+   "propuestas": [
+    "HOG-02"
+   ],
+   "sesiones": 1,
+   "tipo": "configuración",
+   "depende": [],
+   "hechoCuando": "Partida activa el 1/11 y sus movimientos fuera de la bandeja; revisión a finales de enero (¿bajaron los minutos?).",
+   "fechaLimite": "2026-11-01",
+   "necesitaDelHogar": "Hacer la primera transferencia el 1/11."
+  },
+  {
+   "id": "WP-23",
+   "nombre": "Campaña fiscal de fin de año (tope de vivienda incluido)",
+   "ola": 1,
+   "propuestas": [
+    "FIS-01",
+    "DAC-02",
+    "FIS-02"
+   ],
+   "sesiones": 4,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Lista visible antes del 15/11 con cada acción aplicable, su ahorro estimado en euros, su fuente y su fecha límite; eventos de calendario el 1/12 y el 20/12.",
+   "metrica": "M-FISCAL",
+   "fechaLimite": "2026-11-14",
+   "necesitaDelHogar": "Datos fiscales que faltan, en el chat (≈ 20/10)."
+  },
+  {
+   "id": "WP-07",
+   "nombre": "Motor de fechas a canonical-timing.js",
+   "ola": 1,
+   "propuestas": [
+    "NTC-01"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-04"
+   ],
+   "hechoCuando": "Motor de fechas extraído y probado en Node; app.js gana margen bajo el techo; sin cambio visible."
+  },
+  {
+   "id": "WP-09",
+   "nombre": "Cierre de mes con saldo y firma",
+   "ola": 1,
+   "propuestas": [
+    "NPV-03"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Octubre cerrado con saldo y firma entre el 1 y el 3/11; el cierre guarda la previsión congelada.",
+   "necesitaDelHogar": "Cerrar octubre con saldo (1-3/11)."
+  },
+  {
+   "id": "WP-10",
+   "nombre": "Medidor de calidad de la previsión",
+   "ola": 1,
+   "propuestas": [
+    "NPV-08"
+   ],
+   "sesiones": 1,
+   "tipo": "visible",
+   "depende": [
+    "WP-07"
+   ],
+   "hechoCuando": "Plan › Previsión muestra qué parte del gasto tiene fecha declarada u observada.",
+   "metrica": "M-RESOL"
+  },
+  {
+   "id": "WP-11",
+   "nombre": "Campo de importe unificado (es-ES)",
+   "ola": 1,
+   "propuestas": [
+    "NXP-05"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Registrar acepta coma, punto, miles y «€» con el mismo componente; pruebas de accesibilidad en verde."
+  },
+  {
+   "id": "WP-25",
+   "nombre": "Enlaces de registro prellenado y Atajo de Apple Pay",
+   "ola": 1,
+   "propuestas": [
+    "CAP-02"
+   ],
+   "sesiones": 1,
+   "tipo": "exento",
+   "depende": [
+    "WP-11"
+   ],
+   "hechoCuando": "Un enlace con importe, concepto, fecha y cuenta abre Registrar relleno (nunca guarda solo); guía del Atajo publicada."
+  },
+  {
+   "id": "WP-15",
+   "nombre": "Valoración rápida de la cartera",
+   "ola": 2,
+   "propuestas": [
+    "NIN-02"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Cada posición se revaloriza sin borrarla, con snapshot propio y fecha.",
+   "metrica": "M-INV"
+  },
+  {
+   "id": "WP-26",
+   "nombre": "Saldos por excepción y extracto que actualiza saldo",
+   "ola": 2,
+   "propuestas": [
+    "ND-01",
+    "ND-02"
+   ],
+   "sesiones": 4,
+   "tipo": "visible",
+   "depende": [
+    "WP-11"
+   ],
+   "hechoCuando": "Actualizar todas las cuentas cuesta ≤ 20 s con «Coincide» / «Corregir»; el extracto propone su saldo final.",
+   "metrica": "M-SALDOS"
+  },
+  {
+   "id": "WP-08",
+   "nombre": "Día de cargo por partida",
+   "ola": 2,
+   "propuestas": [
+    "ND-03"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-04",
+    "WP-07"
+   ],
+   "hechoCuando": "Cada partida recurrente tiene su día de cargo confirmado (prerrellenado desde los recurrentes).",
+   "metrica": "M-RESOL",
+   "necesitaDelHogar": "≈ 10 min para confirmar los días de cargo."
+  },
+  {
+   "id": "WP-27",
+   "nombre": "Cargos esperados que no llegaron",
+   "ola": 2,
+   "propuestas": [
+    "CAP-06"
+   ],
+   "sesiones": 2,
+   "tipo": "exento",
+   "depende": [
+    "WP-08"
+   ],
+   "hechoCuando": "Ningún recibo esperado queda sin estado más de 3 días; la respuesta ajusta la previsión."
+  },
+  {
+   "id": "WP-14",
+   "nombre": "Cobros esperados: confirmar o retraso",
+   "ola": 2,
+   "propuestas": [
+    "ND-08"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-08"
+   ],
+   "hechoCuando": "Los cobros esperados entran en la bandeja única y se confirman o se aplazan."
+  },
+  {
+   "id": "WP-13",
+   "nombre": "Euribor, €STR e IPC oficiales con caducidad",
+   "ola": 2,
+   "propuestas": [
+    "ND-11"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-05"
+   ],
+   "hechoCuando": "Los índices se leen de fuente oficial (o función privada si no hay CORS) con fecha y vuelta al valor tecleado."
+  },
+  {
+   "id": "WP-20",
+   "nombre": "Revisión del tipo variable de la hipoteca",
+   "ola": 2,
+   "propuestas": [
+    "NDB-02"
+   ],
+   "sesiones": 1.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-13"
+   ],
+   "hechoCuando": "«Próxima revisión el dd/mm: cuota estimada de A a B», avisos a 60 y 30 días y evento de calendario.",
+   "necesitaDelHogar": "Índice, diferencial, periodicidad, próxima revisión y bonificaciones en Deuda › Contratos."
+  },
+  {
+   "id": "WP-28",
+   "nombre": "Kit de gráficos táctil y accesible",
+   "ola": 2,
+   "propuestas": [
+    "NPV-07"
+   ],
+   "sesiones": 3.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Cono de previsión migrado al kit: recorrido táctil, teclado, frase automática y «ver como tabla»."
+  },
+  {
+   "id": "WP-30",
+   "nombre": "Hoja de captura de un gasto",
+   "ola": 2,
+   "propuestas": [
+    "ND-14"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-25"
+   ],
+   "hechoCuando": "Un gasto se registra con mediana ≤ 8 s.",
+   "metrica": "M-CAPT"
+  },
+  {
+   "id": "WP-31",
+   "nombre": "Nómina en PDF y retenciones automáticas",
+   "ola": 2,
+   "propuestas": [
+    "CAP-05",
+    "NPV-11"
+   ],
+   "sesiones": 4,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "La nómina en PDF crea el ingreso real y acumula retenciones; aviso si cambia el %; el PDF no se guarda."
+  },
+  {
+   "id": "WP-32",
+   "nombre": "Recordatorios en el momento de máximo valor",
+   "ola": 2,
+   "propuestas": [
+    "CAP-09",
+    "ND-10"
+   ],
+   "sesiones": 1,
+   "tipo": "fuera de la app",
+   "depende": [
+    "WP-07"
+   ],
+   "hechoCuando": "Calendario suscribible regenerado con la previsión (antes de cobrar, tras un cargo grande, día 1, 1/12)."
+  },
+  {
+   "id": "WP-33",
+   "nombre": "Historiales sintéticos con verdad conocida",
+   "ola": 2,
+   "propuestas": [
+    "NTC-02"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Generador de hogar ficticio en tools/ usado por las pruebas de WP-08, WP-16 y WP-51."
+  },
+  {
+   "id": "WP-12",
+   "nombre": "Backtest de liquidez a fin de mes",
+   "ola": 2,
+   "propuestas": [
+    "NPV-02"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-09"
+   ],
+   "hechoCuando": "Se congela la liquidez prevista el día 1 y el 15 y se compara con el cierre; «datos insuficientes» hasta 3 cierres.",
+   "metrica": "M-CALIB",
+   "nota": "Da resultado desde febrero de 2027."
+  },
+  {
+   "id": "WP-29",
+   "nombre": "Carta del mes",
+   "ola": 3,
+   "propuestas": [
+    "NHG-05"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-09",
+    "WP-10"
+   ],
+   "hechoCuando": "Párrafo determinista de ≤ 120 palabras en Cierre de mes; primera carta con el cierre de diciembre."
+  },
+  {
+   "id": "WP-35",
+   "nombre": "Previsión en tres capas e ingresos inciertos",
+   "ola": 3,
+   "propuestas": [
+    "PRV-02",
+    "PRV-04"
+   ],
+   "sesiones": 5,
+   "tipo": "visible",
+   "depende": [
+    "WP-28"
+   ],
+   "hechoCuando": "Salidas separadas en comprometidas, probables y discrecionales; cada ingreso con su certeza; Hoy solo cuenta lo confirmado."
+  },
+  {
+   "id": "WP-36",
+   "nombre": "Anomalías del extracto",
+   "ola": 3,
+   "propuestas": [
+    "ND-07"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Duplicados, devoluciones, comisiones nuevas y atípicos llegan a la bandeja con evidencia; falsos positivos < 20 %."
+  },
+  {
+   "id": "WP-37",
+   "nombre": "Estados completos y «deshacer»",
+   "ola": 3,
+   "propuestas": [
+    "NXP-04"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Catálogo de estados en design-system.html y aplicado a las pantallas que toca cada paquete."
+  },
+  {
+   "id": "WP-52",
+   "nombre": "WebKit en la medición de carga",
+   "ola": 3,
+   "propuestas": [
+    "NTC-04"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "tools/measure-load.mjs mide también con WebKit."
+  },
+  {
+   "id": "WP-38",
+   "nombre": "Plan B acordado en frío",
+   "ola": 3,
+   "propuestas": [
+    "PRV-05",
+    "NPV-09"
+   ],
+   "sesiones": 4,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Plan B firmado con disparador, acciones ordenadas y palanca de recorte; se evalúa en cada recálculo y nunca ejecuta.",
+   "necesitaDelHogar": "Contestar las preguntas del plan B (diciembre)."
+  },
+  {
+   "id": "WP-34",
+   "nombre": "Revisión base cero del plan",
+   "ola": 3,
+   "propuestas": [
+    "PRV-08"
+   ],
+   "sesiones": 1.5,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Cada partida revisada (mantener, ajustar o eliminar) con fecha; se usa en enero.",
+   "necesitaDelHogar": "≈ 15 min en enero."
+  },
+  {
+   "id": "WP-39",
+   "nombre": "Política de inversión del hogar",
+   "ola": 3,
+   "propuestas": [
+    "CAR-01"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Una página firmada con fecha, prerrellenada desde lo ya declarado; fuente de reglas de WP-17.",
+   "necesitaDelHogar": "Contestar las seis preguntas (diciembre)."
+  },
+  {
+   "id": "WP-40",
+   "nombre": "Conciliación con la CIRBE",
+   "ola": 3,
+   "propuestas": [
+    "DAC-01"
+   ],
+   "sesiones": 1.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Cada operación del informe aparece como «cuadra», «falta en la app» o «diferencia»."
+  },
+  {
+   "id": "WP-41",
+   "nombre": "Deuda en la sombra y TAE real",
+   "ola": 3,
+   "propuestas": [
+    "DAC-04",
+    "DNU-03"
+   ],
+   "sesiones": 3.5,
+   "tipo": "exento",
+   "depende": [],
+   "hechoCuando": "Financiaciones en factura, aplazamientos y permanencias detectados; TAE efectiva calculada."
+  },
+  {
+   "id": "WP-53",
+   "nombre": "Sin duplicados entre canales de captura",
+   "ola": 3,
+   "propuestas": [
+    "CAP-10"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-25",
+    "WP-30"
+   ],
+   "hechoCuando": "Captura manual, enlaces y extracto se emparejan; el extracto manda en importe y fecha."
+  },
+  {
+   "id": "WP-21",
+   "nombre": "Paquete Renta: inversión y local alquilado",
+   "ola": 3,
+   "propuestas": [
+    "NIN-10",
+    "FIS-03"
+   ],
+   "sesiones": 5,
+   "tipo": "visible",
+   "depende": [
+    "WP-31"
+   ],
+   "hechoCuando": "Informe fiscal anual de inversión y del local con los datos de 2026, listo antes del 31/3/2027.",
+   "fechaLimite": "2027-03-31"
+  },
+  {
+   "id": "WP-17",
+   "nombre": "Cartera como tablero con «siguiente mejor acción»",
+   "ola": 3,
+   "propuestas": [
+    "NIN-01"
+   ],
+   "sesiones": 3.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-15",
+    "WP-39"
+   ],
+   "hechoCuando": "Reglas deterministas con prioridad y motivo, tomadas de la política de inversión."
+  },
+  {
+   "id": "WP-51",
+   "nombre": "Perfiles de extracto con autodetección",
+   "ola": 3,
+   "propuestas": [
+    "ND-04"
+   ],
+   "sesiones": 2.5,
+   "tipo": "exento",
+   "depende": [
+    "WP-33"
+   ],
+   "hechoCuando": "Delimitador, decimales, fechas, signo y codificación detectados; errores por fila."
+  },
+  {
+   "id": "WP-19",
+   "nombre": "Camino a deuda cero",
+   "ola": 3,
+   "propuestas": [
+    "NDB-01"
+   ],
+   "sesiones": 3.5,
+   "tipo": "visible",
+   "depende": [],
+   "hechoCuando": "Un control («extra al mes») y tres cifras; responde «¿cuándo acabamos la deuda y qué cambia con más?» en < 30 s."
+  },
+  {
+   "id": "WP-42",
+   "nombre": "Escalera del próximo euro",
+   "ola": 3,
+   "propuestas": [
+    "CAR-03",
+    "NIN-05",
+    "NIN-08"
+   ],
+   "sesiones": 7,
+   "tipo": "visible",
+   "depende": [
+    "WP-17",
+    "WP-13"
+   ],
+   "hechoCuando": "Orden integrado (colchón, deuda cara, pensiones, fondos, amortizar o invertir) con euro de beneficio y coste de liquidez por peldaño."
+  },
+  {
+   "id": "WP-16",
+   "nombre": "Banda de caja diaria con ventanas de fecha",
+   "ola": 3,
+   "propuestas": [
+    "NPV-01"
+   ],
+   "sesiones": 5,
+   "tipo": "visible",
+   "depende": [
+    "WP-08",
+    "WP-10",
+    "WP-28",
+    "WP-33"
+   ],
+   "hechoCuando": "Banda P10-P90, probabilidad de cruzar el suelo y día del mínimo en Plan › Previsión."
+  },
+  {
+   "id": "WP-43",
+   "nombre": "Puente de previsión",
+   "ola": 3,
+   "propuestas": [
+    "PRV-01"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-09",
+    "WP-28"
+   ],
+   "hechoCuando": "Cascada entre dos previsiones sucesivas a 31/12.",
+   "nota": "Da resultado con 3 cierres (febrero de 2027)."
+  },
+  {
+   "id": "WP-18",
+   "nombre": "Aportado frente a valor y TWR",
+   "ola": 3,
+   "propuestas": [
+    "NIN-03"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-15"
+   ],
+   "hechoCuando": "Aportado, valor, XIRR y TWR por posición, con explicación."
+  },
+  {
+   "id": "WP-44",
+   "nombre": "Calma, cobertura y exposición",
+   "ola": 3,
+   "propuestas": [
+    "CAR-02",
+    "CAR-05",
+    "CAR-06"
+   ],
+   "sesiones": 3.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-15",
+    "WP-39"
+   ],
+   "hechoCuando": "Caída desde máximos, gasto cubierto por rentas y exposición por entidad."
+  },
+  {
+   "id": "WP-45",
+   "nombre": "Frescura por fuente y cola de tareas por valor",
+   "ola": 3,
+   "propuestas": [
+    "ND-09",
+    "CAP-07"
+   ],
+   "sesiones": 3.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-03"
+   ],
+   "hechoCuando": "Fichas de frescura y cola ordenada por euros de incertidumbre por minuto."
+  },
+  {
+   "id": "WP-46",
+   "nombre": "Patrimonio neto: serie y proyección",
+   "ola": 3,
+   "propuestas": [
+    "NPV-10"
+   ],
+   "sesiones": 5,
+   "tipo": "visible",
+   "depende": [
+    "WP-09",
+    "WP-15",
+    "WP-28"
+   ],
+   "hechoCuando": "Serie mensual y abanico de tres escenarios con hitos; estado vacío honesto con < 3 cierres.",
+   "nota": "Da resultado con 3 cierres (febrero de 2027)."
+  },
+  {
+   "id": "WP-47",
+   "nombre": "Reparto de la nómina en un paso",
+   "ola": 3,
+   "propuestas": [
+    "NPV-05"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-42",
+    "WP-14"
+   ],
+   "hechoCuando": "Al confirmarse la nómina, hoja con la escalera prerrellenada que crea la lista de transferencias (nunca ejecuta)."
+  },
+  {
+   "id": "WP-48",
+   "nombre": "Operaciones de cartera editables e importador",
+   "ola": 3,
+   "propuestas": [
+    "NIN-06"
+   ],
+   "sesiones": 5,
+   "tipo": "visible",
+   "depende": [
+    "WP-15"
+   ],
+   "hechoCuando": "Libro de operaciones editable con recálculo FIFO y CSV del bróker con deduplicación."
+  },
+  {
+   "id": "WP-49",
+   "nombre": "Mapa anual de pagos grandes",
+   "ola": 3,
+   "propuestas": [
+    "NPV-04"
+   ],
+   "sesiones": 2.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-28"
+   ],
+   "hechoCuando": "Franja de 12 meses con cada pago grande y su nivel de financiación por sobre."
+  },
+  {
+   "id": "WP-50",
+   "nombre": "Vivienda y local revalorizados por índice",
+   "ola": 3,
+   "propuestas": [
+    "CAR-04"
+   ],
+   "sesiones": 1.5,
+   "tipo": "visible",
+   "depende": [
+    "WP-13",
+    "WP-05"
+   ],
+   "hechoCuando": "Revalorización trimestral con índice público y chip «estimado por índice»."
+  },
+  {
+   "id": "WP-54",
+   "nombre": "Prueba con 5 personas ajenas (GOV-06)",
+   "ola": 0,
+   "propuestas": [],
+   "sesiones": 1,
+   "tipo": "proceso",
+   "depende": [],
+   "hechoCuando": "Cada trimestre, 5 personas hacen 5 tareas con datos de demostración; hallazgos al backlog.",
+   "nota": "Continuo: una sesión por trimestre desde diciembre de 2026."
+  }
+ ],
+ "propuestas": [
+  {
+   "id": "FIS-01",
+   "que": "Campaña fiscal de fin de año: acciones ordenadas por euros y fecha límite",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Alto · 31/12",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "+10/año",
+   "wp": "WP-23",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "DAC-02",
+   "que": "Tope de la deducción por vivienda (régimen transitorio, confirmado que aplica, S4)",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Alto · 31/12",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-23",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "FIS-02",
+   "que": "Ajustar la retención voluntaria para no pagar en junio",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-23",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "HOG-02",
+   "que": "Asignación personal sin detalle, prueba de 3 meses desde el 1/11",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "S",
+   "puerta": "V (configuración)",
+   "deltaMinSemana": "−10",
+   "wp": "WP-24",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NXP-02",
+   "que": "Sello de versión y aviso de «versión nueva»",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-01",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NXP-01",
+   "que": "Prueba cronometrada dentro de la app (un usuario, saldos del día)",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Crítico",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-02",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "PRV-06",
+   "que": "«X € al día hasta cobrar», como variante B de la medición (no como entrega)",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "H → medición",
+   "deltaMinSemana": "0",
+   "wp": "WP-02",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "UXS-05",
+   "que": "Dos textos para la cifra de Hoy, dentro de la medición",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Medio (n = 1)",
+   "esfuerzo": "S",
+   "puerta": "H → medición",
+   "deltaMinSemana": "0",
+   "wp": "WP-02",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "UXS-04",
+   "que": "Panel de uso real (+ minutos autodeclarados, R3)",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-03",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NTC-03",
+   "que": "Contador de uso multi-dispositivo (reducido: un usuario)",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Medio",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-03",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "ND-13",
+   "que": "Spike PSD2 de 2 semanas, comparado con Apple Pay y avisos del banco",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "T (documental)",
+   "deltaMinSemana": "—",
+   "wp": "WP-05",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NTC-06",
+   "que": "Revisión de seguridad previa a cualquier conexión externa",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-05",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NTC-01",
+   "que": "Extraer el motor de fechas a canonical-timing.js",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto (habilita)",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-07",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NPV-03",
+   "que": "Cierre de mes con saldo y firma; cerrar el mes anterior (C2)",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Crítico",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "+2/mes",
+   "wp": "WP-09",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NPV-08",
+   "que": "Medidor de calidad de datos de la previsión",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-10",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NXP-05",
+   "que": "Campo de importe unificado (es-ES)",
+   "nivel": "P0",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "−1",
+   "wp": "WP-11",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "CAP-02",
+   "que": "Enlaces de registro prellenado (+ plantilla del Atajo de Apple Pay, R1)",
+   "nivel": "P0",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "−5",
+   "wp": "WP-25",
+   "ola": "Ola 1"
+  },
+  {
+   "id": "NIN-02",
+   "que": "Hoja de valoración rápida con snapshots (hoy no se puede actualizar el valor de una posición)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Crítico",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "+3/mes",
+   "wp": "WP-15",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-01",
+   "que": "Actualizar saldos por excepción («Coincide» / «Corregir»)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Crítico",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "−10",
+   "wp": "WP-26",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-02",
+   "que": "Un extracto actualiza saldo y movimientos a la vez",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "V",
+   "deltaMinSemana": "−3",
+   "wp": "WP-26",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-03",
+   "que": "Día de cargo por partida (declarado; sugerido si WP-04 lo justifica)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Crítico",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "+30 una vez",
+   "wp": "WP-08",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "CAP-06",
+   "que": "Cargos esperados que no llegaron",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-27",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-08",
+   "que": "Cobros esperados: confirmar o informar de un retraso",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-14",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-11",
+   "que": "Euribor, €STR e IPC oficiales con caducidad",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "−2",
+   "wp": "WP-13",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NDB-02",
+   "que": "Revisión del tipo variable con el Euribor oficial: cuota estimada en la próxima revisión, avisos a 60 y 30 días (hipoteca variable, confirmado)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S-M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-20",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NPV-07",
+   "que": "Kit de gráficos táctil y accesible",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto (habilita)",
+   "esfuerzo": "M-L",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-28",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NHG-05",
+   "que": "Carta del mes determinista (lo único que se pidió explícitamente en la Ola 2)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-29",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "ND-14",
+   "que": "Hoja de captura de un gasto en ≤ 8 s",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "−10",
+   "wp": "WP-30",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NPV-02",
+   "que": "Backtest de liquidez a fin de mes (dice «datos insuficientes» hasta 3 cierres)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-12",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "CAP-05",
+   "que": "Lector de la nómina en PDF",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "−5/mes",
+   "wp": "WP-31",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NPV-11",
+   "que": "Retenciones acumuladas automáticas para el estimador de Renta",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "−1",
+   "wp": "WP-31",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "CAP-09",
+   "que": "Recordatorios en el momento de máximo valor (absorbe ND-10)",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "X",
+   "deltaMinSemana": "−3",
+   "wp": "WP-32",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "ND-10",
+   "que": "Recordatorios suscribibles (absorbido por CAP-09)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "—",
+   "esfuerzo": "—",
+   "puerta": "X",
+   "deltaMinSemana": "—",
+   "wp": "WP-32",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "NTC-02",
+   "que": "Historiales sintéticos con verdad conocida (calibrar ND-03 y NPV-01)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto (habilita)",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-33",
+   "ola": "Ola 2"
+  },
+  {
+   "id": "PRV-08",
+   "que": "Revisión base cero del plan (enero)",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S-M",
+   "puerta": "V",
+   "deltaMinSemana": "+15/año",
+   "wp": "WP-34",
+   "ola": "Ola 3 (enero)"
+  },
+  {
+   "id": "PRV-02",
+   "que": "Previsión en tres capas: comprometido, probable y discrecional",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-35",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "PRV-04",
+   "que": "Ingresos inciertos con probabilidad (paga extra, variable, Renta, local)",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-35",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "ND-07",
+   "que": "Detector de anomalías en el extracto (a la bandeja)",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-36",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NXP-04",
+   "que": "Estados completos y «deshacer» en lugar de confirmar",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-37",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NTC-04",
+   "que": "WebKit en la medición de carga",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Medio",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-52",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "PRV-05",
+   "que": "Plan B acordado en frío, con disparador",
+   "nivel": "P1",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-38",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NPV-09",
+   "que": "Palanca de recorte («¿cuánto aguanta el colchón?»), dentro del plan B",
+   "nivel": "P1",
+   "origen": "5ª",
+   "valor": "Medio",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-38",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-01",
+   "que": "Política de inversión del hogar (una página, firmada)",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-39",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "DAC-01",
+   "que": "Conciliar la deuda con la CIRBE, operación a operación",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "S-M",
+   "puerta": "E",
+   "deltaMinSemana": "+10/año",
+   "wp": "WP-40",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "DAC-04",
+   "que": "Deuda en la sombra (permanencias, aplazamientos, financiación en factura)",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-41",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "DNU-03",
+   "que": "TAE real del «0 %» y de los aplazamientos de tarjeta",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S",
+   "puerta": "E",
+   "deltaMinSemana": "0",
+   "wp": "WP-41",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAP-10",
+   "que": "Sin duplicados entre canales de captura",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Crítico con ≥ 2 canales",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "−2",
+   "wp": "WP-53",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-10",
+   "que": "Informe fiscal anual de inversión para la Renta (antes del 31/3)",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto en temporada",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-21",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "FIS-03",
+   "que": "Impuestos del local alquilado y actualización de la renta",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "+5/año",
+   "wp": "WP-21",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-01",
+   "que": "Cartera como tablero con «siguiente mejor acción» (reglas de CAR-01)",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M-L",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-17",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "ND-04",
+   "que": "Perfiles de extracto con autodetección",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "E",
+   "deltaMinSemana": "−2",
+   "wp": "WP-51",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NDB-01",
+   "que": "Camino a deuda cero: una narrativa, un control",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M-L",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-19",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-03",
+   "que": "Dónde va el próximo euro (escalera)",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-42",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-05",
+   "que": "Rebalanceo por aportaciones (sin vender), dentro de la escalera",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-42",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-08",
+   "que": "Dónde poner la liquidez ociosa, peldaño de la escalera",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-42",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NPV-01",
+   "que": "Banda de caja diaria con ventanas de fecha",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "L",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-16",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "PRV-01",
+   "que": "Puente de previsión: por qué cambió el fin de año",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-43",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-03",
+   "que": "Aportado frente a valor y rentabilidad ponderada por tiempo",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-18",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-02",
+   "que": "Panel de calma en caídas",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "S-M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-44",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-05",
+   "que": "Qué parte de los gastos pagan ya los activos",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-44",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-06",
+   "que": "Exposición por entidad y garantía",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-44",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "ND-09",
+   "que": "Frescura por fuente en el centro de datos",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "S",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-45",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAP-07",
+   "que": "Tareas de datos ordenadas por lo que mueven la cifra",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "−5",
+   "wp": "WP-45",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NPV-10",
+   "que": "Patrimonio neto: serie histórica y proyección con hitos",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "L",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-46",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NPV-05",
+   "que": "Reparto de la nómina en un paso (sobre la escalera)",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "−5",
+   "wp": "WP-47",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NIN-06",
+   "que": "Operaciones de cartera editables e importador del bróker",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Alto",
+   "esfuerzo": "L",
+   "puerta": "V",
+   "deltaMinSemana": "−3",
+   "wp": "WP-48",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "NPV-04",
+   "que": "Mapa anual de pagos grandes con su sobre",
+   "nivel": "P2",
+   "origen": "5ª",
+   "valor": "Medio-Alto",
+   "esfuerzo": "M",
+   "puerta": "V",
+   "deltaMinSemana": "0",
+   "wp": "WP-49",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAR-04",
+   "que": "Vivienda y local revalorizados por índice oficial",
+   "nivel": "P2",
+   "origen": "6ª",
+   "valor": "Medio",
+   "esfuerzo": "S-M",
+   "puerta": "V/T",
+   "deltaMinSemana": "−2/trim.",
+   "wp": "WP-50",
+   "ola": "Ola 3"
+  },
+  {
+   "id": "CAP-01",
+   "que": "Pagos de Apple Pay a la bandeja sin abrir la app (servidor) (nivel 2)",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "La plantilla de WP-25 se usa ≥ 3 semanas seguidas y pasa NTC-06"
+  },
+  {
+   "id": "CAP-03",
+   "que": "Avisos del banco por SMS o correo",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "El spike WP-05 lo recomienda frente a PSD2"
+  },
+  {
+   "id": "CAP-04",
+   "que": "Saldo desde una captura de pantalla",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "Tras WP-26, actualizar saldos sigue costando > 20 s"
+  },
+  {
+   "id": "PRV-03",
+   "que": "Inflación propia del hogar",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "≥ 13 meses de reales por partida"
+  },
+  {
+   "id": "PRV-07",
+   "que": "Hasta dónde acierta la previsión",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Sí",
+   "disparador": "≥ 6 cierres con previsión congelada (WP-12)"
+  },
+  {
+   "id": "DAC-03",
+   "que": "¿Compensan las vinculaciones?",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "Renovación de un seguro vinculado o revisión del préstamo"
+  },
+  {
+   "id": "DAC-05",
+   "que": "¿Cobra el banco la cuota pactada?",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "Una cuota distinta de la esperada (recomendación de Claude: subirla en cuanto haya extractos mensuales regulares; protege dinero cada mes)"
+  },
+  {
+   "id": "UXS-01",
+   "que": "Siri dice la cifra sin abrir la app",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde (S6 Sí en principio)",
+   "disparador": "Revisión de privacidad del enlace hecha"
+  },
+  {
+   "id": "UXS-02",
+   "que": "Resumen semanal por correo",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "Decisión del 30/11 sobre A5-4 (push): si se archiva, esta es la alternativa"
+  },
+  {
+   "id": "UXS-03",
+   "que": "Medición automática de cuánto tarda cada tarea",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Más tarde",
+   "disparador": "La autodeclaración de WP-03 no basta para controlar GOV-01"
+  },
+  {
+   "id": "UXS-06",
+   "que": "Respuestas sin IA en el buscador",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Sí",
+   "disparador": "El panel de uso muestra búsquedas frecuentes sin resultado"
+  },
+  {
+   "id": "HOG-01",
+   "que": "Acuerdos del hogar vigilados",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Sí",
+   "disparador": "El hogar escribe acuerdos de gasto que quiere vigilar"
+  },
+  {
+   "id": "HOG-03",
+   "que": "Modo relevo (pausa y puesta al día tras una ausencia)",
+   "nivel": "P3",
+   "origen": "6ª",
+   "triaje": "Sí",
+   "disparador": "El usuario lo pide antes de una ausencia larga"
+  },
+  {
+   "id": "ND-05",
+   "que": "Bandeja por gesto desde el móvil (Atajo + función privada)",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Igual que CAP-01 nivel 2 (se fusionan)"
+  },
+  {
+   "id": "ND-06",
+   "que": "Gestor de reglas de clasificación",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Una partida mal clasificada se repite ≥ 2 meses"
+  },
+  {
+   "id": "NPV-06",
+   "que": "«¿Y si…?» desde Previsión",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "El panel de uso muestra visitas al Laboratorio desde Previsión"
+  },
+  {
+   "id": "NPV-12",
+   "que": "Control global de prudencia de la previsión",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Si ND-03 no reduce el error de caja en 3 meses"
+  },
+  {
+   "id": "NIN-04",
+   "que": "Cumplimiento del plan de aportación",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras NIN-02, aportaciones registradas ≥ 3 meses"
+  },
+  {
+   "id": "NIN-07",
+   "que": "Patrimonio neto de impuestos latentes",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras NPV-10"
+  },
+  {
+   "id": "NIN-09",
+   "que": "Prueba de estrés en una pulsación",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras CAR-01 (la política define los escenarios)"
+  },
+  {
+   "id": "NDB-03",
+   "que": "«¿Me puedo permitir X?» con tres vías de pago",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras NDB-01 y con la métrica de Hoy cumplida"
+  },
+  {
+   "id": "NDB-04",
+   "que": "Cambiar de banco o subrogar: coste y punto de equilibrio",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Oferta de otro banco o LTV favorable (CAR-04)"
+  },
+  {
+   "id": "NXP-03",
+   "que": "Procedencia bajo demanda (P12)",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Medición de WP-02: si la cabecera molesta (en un Pro Max no es la causa)"
+  },
+  {
+   "id": "NXP-06",
+   "que": "Modo discreto (y passkey, más tarde)",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Petición del usuario"
+  },
+  {
+   "id": "NHG-01",
+   "que": "Cuentas claras en pareja (titular explícito, liquidación mensual)",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "La asignación personal (HOG-02) se mantiene tras la prueba de 3 meses"
+  },
+  {
+   "id": "NHG-04",
+   "que": "Objetivos visuales",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras la carta del mes (WP-29): si se piden objetivos en ella"
+  },
+  {
+   "id": "NTC-05",
+   "que": "Fecha de retirada del doble motor de deuda",
+   "nivel": "P3",
+   "origen": "5ª",
+   "triaje": "—",
+   "disparador": "Tras NDB-01 con paridad en verde 3 versiones"
+  },
+  {
+   "id": "ND-12",
+   "que": "Precios de mercado por ISIN",
+   "nivel": "P4",
+   "bloqueo": "Decisión del hogar (Q6: manual primero)",
+   "disparador": "Petición explícita"
+  },
+  {
+   "id": "NDB-05",
+   "que": "Evaluador de una oferta de deuda nueva",
+   "nivel": "P4",
+   "bloqueo": "Evento",
+   "disparador": "Llega una oferta real"
+  },
+  {
+   "id": "DNU-01",
+   "que": "Cuánto os prestaría un banco",
+   "nivel": "P4",
+   "bloqueo": "Evento",
+   "disparador": "Se plantea un préstamo o hipoteca"
+  },
+  {
+   "id": "DNU-02",
+   "que": "Coche: contado, préstamo, cuota final o renting",
+   "nivel": "P4",
+   "bloqueo": "Evento",
+   "disparador": "Se plantea cambiar de coche"
+  },
+  {
+   "id": "HOG-04",
+   "que": "Modo viaje",
+   "nivel": "P4",
+   "bloqueo": "Evento",
+   "disparador": "Un viaje largo previsto"
+  },
+  {
+   "id": "NXP-07",
+   "que": "Modo consulta nivel 1 (D4/D5)",
+   "nivel": "Archivo",
+   "motivo": "Solo servía a una segunda persona usuaria; «nadie más» (3/10/2026)",
+   "disparador": "Se incorpora otra persona"
+  },
+  {
+   "id": "NHG-02",
+   "que": "Reunión mensual del hogar",
+   "nivel": "Archivo",
+   "motivo": "Ídem",
+   "disparador": "Ídem"
+  },
+  {
+   "id": "CAP-08",
+   "que": "Captura desde el móvil de quien consulta",
+   "nivel": "Archivo",
+   "motivo": "Ídem",
+   "disparador": "Ídem"
+  },
+  {
+   "id": "NHG-03",
+   "que": "Lista de deseos con enfriamiento",
+   "nivel": "Archivo",
+   "motivo": "La de menos evidencia de la quinta auditoría; sin petición",
+   "disparador": "Petición explícita"
+  }
+ ],
+ "hitos": [
+  {
+   "fecha": "2026-10-03",
+   "que": "Backlog definitivo y plan aprobados como documento; respuestas del hogar incorporadas",
+   "tipo": "decisión"
+  },
+  {
+   "fecha": "2026-10-05",
+   "que": "Inicio posible de la Ola 1 (si el hogar dice «empezamos»)",
+   "tipo": "ola"
+  },
+  {
+   "fecha": "2026-10-16",
+   "que": "Revisión mensual de Nielsen (OPT-21)",
+   "tipo": "gobierno",
+   "wp": "WP-06"
+  },
+  {
+   "fecha": "2026-10-20",
+   "que": "Datos fiscales que faltan, en el chat",
+   "tipo": "hogar",
+   "wp": "WP-23"
+  },
+  {
+   "fecha": "2026-10-23",
+   "que": "Fin de la Ola 1 · OPT-10…13: no se retira nada",
+   "tipo": "ola"
+  },
+  {
+   "fecha": "2026-11-01",
+   "que": "Arranque de la asignación personal",
+   "tipo": "hogar",
+   "wp": "WP-24"
+  },
+  {
+   "fecha": "2026-11-14",
+   "que": "Campaña fiscal lista",
+   "tipo": "fecha límite",
+   "wp": "WP-23"
+  },
+  {
+   "fecha": "2026-11-20",
+   "que": "Fin de la Ola 2",
+   "tipo": "ola"
+  },
+  {
+   "fecha": "2026-11-30",
+   "que": "Plazo para activar o archivar A5-1/A5-4",
+   "tipo": "gobierno",
+   "wp": "WP-06"
+  },
+  {
+   "fecha": "2026-12-03",
+   "que": "Cierre de noviembre con saldo",
+   "tipo": "hogar",
+   "wp": "WP-09"
+  },
+  {
+   "fecha": "2026-12-31",
+   "que": "Fecha límite de las acciones fiscales",
+   "tipo": "fecha límite",
+   "wp": "WP-23"
+  },
+  {
+   "fecha": "2027-01-03",
+   "que": "Primera carta del mes (cierre de diciembre)",
+   "tipo": "entrega",
+   "wp": "WP-29"
+  },
+  {
+   "fecha": "2027-01-22",
+   "que": "Fin de la Ola 3: todo P0-P2 construido",
+   "tipo": "ola"
+  },
+  {
+   "fecha": "2027-02-03",
+   "que": "3 cierres con saldo: primer backtest de caja y serie de patrimonio con contenido",
+   "tipo": "datos",
+   "wp": "WP-12"
+  },
+  {
+   "fecha": "2027-03-31",
+   "que": "Informe fiscal de inversión y del local (datos de 2026)",
+   "tipo": "fecha límite",
+   "wp": "WP-21"
+  },
+  {
+   "fecha": "2027-05-03",
+   "que": "6 cierres: se puede activar PRV-07",
+   "tipo": "datos"
+  }
+ ],
+ "tareasHogar": [
+  {
+   "id": "H-01",
+   "que": "Decir «empezamos»",
+   "fecha": "2026-10-05",
+   "para": [
+    "WP-01"
+   ],
+   "minutos": 0
+  },
+  {
+   "id": "H-02",
+   "que": "Actualizar saldos y hacer la prueba cronometrada 3 veces",
+   "fecha": "2026-10-09",
+   "para": [
+    "WP-02"
+   ],
+   "minutos": 5
+  },
+  {
+   "id": "H-03",
+   "que": "Datos fiscales que faltan, en el chat (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías)",
+   "fecha": "2026-10-20",
+   "para": [
+    "WP-23"
+   ],
+   "minutos": 20
+  },
+  {
+   "id": "H-04",
+   "que": "Mirar «Novedades» y el panel de uso: revisión de la Ola 1",
+   "fecha": "2026-10-23",
+   "para": [],
+   "minutos": 5,
+   "ola": 1
+  },
+  {
+   "id": "H-05",
+   "que": "Primera transferencia de la asignación personal",
+   "fecha": "2026-11-01",
+   "para": [
+    "WP-24"
+   ],
+   "minutos": 2
+  },
+  {
+   "id": "H-06",
+   "que": "Cerrar octubre con saldo",
+   "fecha": "2026-11-03",
+   "para": [
+    "WP-09"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-07",
+   "que": "Datos del contrato de la hipoteca en Deuda › Contratos",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-20"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-08",
+   "que": "Confirmar los días de cargo prerrellenados",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-08"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-09",
+   "que": "Mirar «Novedades» y el panel de uso: revisión de la Ola 2",
+   "fecha": "2026-11-20",
+   "para": [],
+   "minutos": 5,
+   "ola": 2
+  },
+  {
+   "id": "H-10",
+   "que": "Activar o archivar A5-1/A5-4",
+   "fecha": "2026-11-30",
+   "para": [
+    "WP-06"
+   ],
+   "minutos": 5
+  },
+  {
+   "id": "H-11",
+   "que": "Cerrar noviembre con saldo",
+   "fecha": "2026-12-03",
+   "para": [
+    "WP-09"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-12",
+   "que": "Contestar las preguntas de la política de inversión y del plan B",
+   "fecha": "2026-12-18",
+   "para": [
+    "WP-39",
+    "WP-38"
+   ],
+   "minutos": 30
+  },
+  {
+   "id": "H-13",
+   "que": "Proponer 5 personas para la prueba de usabilidad (opcional)",
+   "fecha": "2026-12-15",
+   "para": [
+    "WP-54"
+   ],
+   "minutos": 5
+  },
+  {
+   "id": "H-14",
+   "que": "Ejecutar las acciones de la campaña fiscal",
+   "fecha": "2026-12-31",
+   "para": [
+    "WP-23"
+   ],
+   "minutos": 60
+  },
+  {
+   "id": "H-15",
+   "que": "Cerrar diciembre con saldo",
+   "fecha": "2027-01-03",
+   "para": [
+    "WP-09",
+    "WP-29"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-16",
+   "que": "Mirar «Novedades» y el panel de uso: revisión de la Ola 3",
+   "fecha": "2027-01-22",
+   "para": [],
+   "minutos": 5,
+   "ola": 3
+  },
+  {
+   "id": "H-17",
+   "que": "Revisión base cero del plan y de la asignación personal",
+   "fecha": "2027-01-29",
+   "para": [
+    "WP-34",
+    "WP-24"
+   ],
+   "minutos": 20
+  },
+  {
+   "id": "H-18",
+   "que": "Cerrar enero con saldo",
+   "fecha": "2027-02-03",
+   "para": [
+    "WP-09",
+    "WP-12"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-19",
+   "que": "Cerrar febrero con saldo",
+   "fecha": "2027-03-03",
+   "para": [
+    "WP-09"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-20",
+   "que": "Cerrar marzo con saldo",
+   "fecha": "2027-04-03",
+   "para": [
+    "WP-09"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-21",
+   "que": "Cerrar abril con saldo (sexto cierre)",
+   "fecha": "2027-05-03",
+   "para": [
+    "WP-09"
+   ],
+   "minutos": 10
+  }
+ ],
+ "metricas": [
+  {
+   "id": "M-HOY",
+   "nombre": "Tiempo hasta la cifra de Hoy",
+   "objetivo": 15,
+   "unidad": "s",
+   "sentido": "menor",
+   "detalle": "Mediana, misma cifra que la app, saldos del día",
+   "wp": "WP-02"
+  },
+  {
+   "id": "M-ADOP",
+   "nombre": "Días activos por semana",
+   "objetivo": 4,
+   "unidad": "días",
+   "sentido": "mayor",
+   "detalle": "Adopción real",
+   "wp": "WP-03"
+  },
+  {
+   "id": "M-COSTE",
+   "nombre": "Minutos por semana para mantener la app",
+   "objetivo": 10,
+   "unidad": "min",
+   "sentido": "menor",
+   "detalle": "Autodeclarado (GOV-01)",
+   "wp": "WP-03"
+  },
+  {
+   "id": "M-FRESC",
+   "nombre": "Días con saldos de ≤ 3 días",
+   "objetivo": 90,
+   "unidad": "%",
+   "sentido": "mayor",
+   "detalle": "Frescura",
+   "wp": "WP-03"
+  },
+  {
+   "id": "M-SALDOS",
+   "nombre": "Tiempo para actualizar todos los saldos",
+   "objetivo": 20,
+   "unidad": "s",
+   "sentido": "menor",
+   "detalle": "Salida de la Ola 2",
+   "wp": "WP-26"
+  },
+  {
+   "id": "M-CAPT",
+   "nombre": "Tiempo para registrar un gasto",
+   "objetivo": 8,
+   "unidad": "s",
+   "sentido": "menor",
+   "detalle": "Mediana",
+   "wp": "WP-30"
+  },
+  {
+   "id": "M-RESOL",
+   "nombre": "Gasto con fecha declarada u observada",
+   "objetivo": 70,
+   "unidad": "%",
+   "sentido": "mayor",
+   "detalle": "Resolución de la previsión",
+   "wp": "WP-10"
+  },
+  {
+   "id": "M-CALIB",
+   "nombre": "Cobertura de la banda P10-P90",
+   "objetivo": 80,
+   "unidad": "%",
+   "sentido": "aprox",
+   "detalle": "Tras 6 cierres; error de caja decreciente",
+   "wp": "WP-12"
+  },
+  {
+   "id": "M-FISCAL",
+   "nombre": "Acciones fiscales hechas antes del 31/12",
+   "objetivo": 100,
+   "unidad": "%",
+   "sentido": "mayor",
+   "detalle": "Sobre las aplicables, con ahorro anotado",
+   "wp": "WP-23"
+  },
+  {
+   "id": "M-INV",
+   "nombre": "Meses con la cartera valorada",
+   "objetivo": 100,
+   "unidad": "%",
+   "sentido": "mayor",
+   "detalle": "Valoraciones al día cada mes",
+   "wp": "WP-15"
+  }
+ ]
+}

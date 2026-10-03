@@ -109,6 +109,17 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (298): backlog en datos y panel de seguimiento del plan (sin cambios en la app)
+
+- **Qué pidió el hogar:** «genera un backlog y artefacto para poder ver el plan y controlar el grado de avance».
+- **Decisión de Claude, explicada al hogar:** no se crea un segundo backlog en Markdown (habría dos fuentes vivas y el guardián del índice exige una sola). El backlog de ejecución es **`docs/plan/plan-definitivo.json`**: 3 olas, **53 paquetes** con sesiones estimadas, dependencias y «hecho cuando», las **104 propuestas** (sacadas por script de `BACKLOG_DEFINITIVO.md` §5), 16 hitos, 21 tareas del hogar (incluidos los cierres de mes hasta abril de 2027) y 10 métricas. **`tests/plan-seguimiento-sincronizado.test.cjs`** (4 pruebas) falla si el JSON y el backlog se separan, si una propuesta queda en dos paquetes, si una dependencia no existe o si aparece un importe en euros.
+- **Panel de seguimiento** (artefacto privado, enlace en `BACKLOG_DEFINITIVO.md` §12): plantilla en `docs/plan/panel-seguimiento.html`, generada con `tools/build-plan-panel.mjs`. Avance **ponderado por esfuerzo** (hecho 100 %, en revisión 90 %, en curso 50 %) frente a una **línea base fija** del 3/10, desvío en sesiones, índice real/previsto y días de retraso; **valor comprobado** separado de construido; revisión de salida por ola (regla de parada); tareas del hogar, lecturas de métricas, catálogo P3/P4/archivo con su estado y registro de cambios. El estado vive en la base del artefacto (solo escribe el titular); sembrado con el arranque vacío y dos entradas de registro del 3/10.
+- **Ajuste de cifras:** la suma exacta por paquete da **137,5 sesiones** en las tres olas (Ola 1 21,5 · Ola 2 31,5 · Ola 3 84,5) más la prueba trimestral: el plan pasa de «≈ 140» a «≈ 138» y la Ola 3 de «≈ 87» a «≈ 85».
+- **Protocolo nuevo:** al cerrar cada sesión de desarrollo, Claude actualiza el panel (`BACKLOG_DEFINITIVO.md` §12; Modo Cierre de la skill `finanzas-casa-workflow`).
+- **No construido:** nada en la app; el desarrollo sigue sin iniciarse hasta «empezamos».
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5012/5012** (4 pruebas nuevas).
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, reiniciada sobre `main` tras fusionar #434.
+
 ## Cierre de sesión — 3 de octubre de 2026 (297): respuestas del hogar al backlog definitivo; plan comprimido a 3 olas (solo documentación)
 
 - **Respuestas del hogar (sin cifras):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable**; **nadie más** usará la app; **quitar el límite** de entregas visibles (confirmado con una pregunta, porque «quitamos el veto» admitía dos lecturas). Siguen pendientes, en el chat: lo pagado por la vivienda en 2026 por titular, si deducían los dos, el tipo marginal y las plusvalías o minusvalías realizadas.

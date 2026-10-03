@@ -1,0 +1,813 @@
+<title>Plan Contabilidadcasa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Libro de obra: resumen arriba, curva plan frente a real, y debajo el libro por olas con su estado. */
+:root {
+  --bg: #f3f5f2; --surface: #ffffff; --ink: #18211d; --muted: #5b6862; --line: #d9e0db;
+  --accent: #1f5c99; --accent-soft: #e3ecf6;
+  --ok: #2e7d4f; --ok-soft: #e1f1e7; --warn: #9a6200; --warn-soft: #fbefd6;
+  --bad: #b3261e; --bad-soft: #f8e1df; --rev: #6a4bb0; --rev-soft: #ece6f7;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --surface: #1a211e; --ink: #e6ece8; --muted: #9aa8a1; --line: #2c3632;
+    --accent: #7db0e6; --accent-soft: #1f2e3e;
+    --ok: #6cc892; --ok-soft: #1d3326; --warn: #e2b14f; --warn-soft: #3a2e14;
+    --bad: #f08a80; --bad-soft: #3e1f1c; --rev: #b7a0ec; --rev-soft: #2c2540;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --surface: #1a211e; --ink: #e6ece8; --muted: #9aa8a1; --line: #2c3632;
+  --accent: #7db0e6; --accent-soft: #1f2e3e;
+  --ok: #6cc892; --ok-soft: #1d3326; --warn: #e2b14f; --warn-soft: #3a2e14;
+  --bad: #f08a80; --bad-soft: #3e1f1c; --rev: #b7a0ec; --rev-soft: #2c2540;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+.wrap > *, .panel > *, .chart-card > *, .ola > * { min-width: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 30px; font-weight: 700; }
+h2 { font-size: 20px; font-weight: 700; }
+h3 { font-size: 16px; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.small { font-size: 13px; }
+header { display: grid; gap: 8px; }
+.status-line { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.banner { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 14px; font-size: 14px; }
+.banner.warn { border-color: var(--warn); background: var(--warn-soft); }
+
+/* Resumen */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.kpi .v { font-family: var(--font-display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.kpi .v small { font-size: 15px; font-weight: 500; color: var(--muted); }
+.kpi .d { font-size: 13px; color: var(--muted); }
+.next { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.next > div { border-top: 2px solid var(--ink); padding-top: 8px; display: grid; gap: 2px; min-width: 0; }
+
+/* Curva */
+.chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 10px; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+#chart { width: 100%; overflow-x: auto; }
+#chart svg { display: block; }
+#chart text { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
+
+/* Pestañas */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; font: 600 14px var(--font-body); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab .count { font-family: var(--font-data); font-weight: 400; font-size: 12px; margin-left: 4px; }
+.tab:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Olas y paquetes */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbtn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; font: 500 13px var(--font-body); cursor: pointer; }
+.chipbtn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.ola { display: grid; gap: 10px; }
+.ola-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: end; padding-bottom: 8px; border-bottom: 1px solid var(--ink); }
+.ola-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; position: relative; }
+.bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.bar > .pv { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.ola-review { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
+.list { display: grid; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.wp { border-top: 1px solid var(--line); }
+.wp:first-child { border-top: 0; }
+.wp > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 112px 64px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 14px; }
+.wp > summary::-webkit-details-marker { display: none; }
+.wp > summary:hover { background: var(--bg); }
+.wp[open] > summary { background: var(--bg); }
+.wp-name { min-width: 0; }
+.wp-name b { font-weight: 600; }
+.wp-sub { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.wp-right { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.s-pendiente { color: var(--muted); border-color: var(--line); }
+.s-bloqueado { color: var(--warn); background: var(--warn-soft); }
+.s-encurso { color: var(--accent); background: var(--accent-soft); }
+.s-enrevision { color: var(--rev); background: var(--rev-soft); }
+.s-hecho { color: var(--ok); background: var(--ok-soft); }
+.s-descartado { color: var(--muted); text-decoration: line-through; }
+.tag { font-family: var(--font-data); font-size: 11.5px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.due { border-color: var(--warn); color: var(--warn); }
+.tag.late { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.tag.okv { border-color: var(--ok); color: var(--ok); }
+.tag.badv { border-color: var(--bad); color: var(--bad); }
+.wp-body { padding: 4px 14px 16px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px 24px; }
+.facts { display: grid; gap: 8px; align-content: start; }
+.facts dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-data); }
+.facts dd { margin: 0 0 4px; }
+form.edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+form.edit .full { grid-column: 1 / -1; }
+label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+input, select, textarea { font: 14px var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
+textarea { min-height: 58px; resize: vertical; }
+.btn { appearance: none; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: 4px; padding: 7px 14px; font: 600 14px var(--font-body); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.form-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.saved { font-size: 13px; color: var(--ok); }
+.history { font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+
+/* Tablas */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; font: 500 12px var(--font-data); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--bg); white-space: nowrap; }
+td.num, th.num { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.done td { color: var(--muted); }
+tr.done td.what { text-decoration: line-through; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar input[type="search"] { max-width: 280px; }
+.toolbar select { width: auto; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.inline-form input { width: 110px; }
+.inline-form input[type="text"] { width: 160px; }
+.log { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.log > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.log > div:first-child { border-top: 0; }
+.empty { padding: 18px; color: var(--muted); font-size: 14px; }
+.panel { display: grid; gap: 14px; }
+.note { font-size: 13px; color: var(--muted); max-width: 72ch; }
+
+@media (max-width: 760px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .next { grid-template-columns: minmax(0, 1fr); }
+  .wp > summary { grid-template-columns: auto minmax(0, 1fr); }
+  .wp > summary .wp-id { order: -1; }
+  .wp-state { justify-self: start; }
+  .wp-name, .wp-right { grid-column: 1 / -1; }
+  .wp-right { justify-content: flex-start; }
+  .wp-body { grid-template-columns: minmax(0, 1fr); }
+  form.edit { grid-template-columns: minmax(0, 1fr); }
+  .ola-head { grid-template-columns: minmax(0, 1fr); }
+  .log > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  h1 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar > span { transition: width 300ms ease; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Contabilidadcasa · seguimiento del plan definitivo · línea base del 3/10/2026</span>
+    <h1>Plan Contabilidadcasa</h1>
+    <div class="status-line">
+      <span id="estado-global" class="pill s-pendiente">Cargando estado…</span>
+      <span id="estado-texto" class="muted small"></span>
+    </div>
+    <div id="aviso" class="banner" hidden></div>
+  </header>
+
+  <section aria-labelledby="t-resumen" class="panel">
+    <h2 id="t-resumen" class="eyebrow" style="font-family: var(--font-data); font-size: 12px; font-weight: 400;">Resumen a hoy</h2>
+    <div class="kpis" id="kpis"></div>
+    <div class="next" id="next"></div>
+  </section>
+
+  <section class="chart-card" aria-labelledby="t-curva">
+    <div class="chart-head">
+      <h2 id="t-curva">Plan frente a real, en sesiones de trabajo</h2>
+      <div class="legend">
+        <span><i style="background: var(--muted)"></i>Línea base</span>
+        <span><i style="background: var(--accent); height: 4px"></i>Avance real (ponderado)</span>
+        <span><i style="background: var(--bad); width: 2px; height: 12px"></i>Hoy</span>
+      </div>
+    </div>
+    <div id="chart" role="img" aria-describedby="chart-desc"></div>
+    <p id="chart-desc" class="note"></p>
+  </section>
+
+  <section class="panel">
+    <div class="tabs" role="tablist" aria-label="Secciones">
+      <button class="tab" role="tab" id="tab-paquetes" aria-controls="p-paquetes" aria-selected="true">Paquetes<span class="count" id="c-paquetes"></span></button>
+      <button class="tab" role="tab" id="tab-hogar" aria-controls="p-hogar" aria-selected="false">Tareas del hogar<span class="count" id="c-hogar"></span></button>
+      <button class="tab" role="tab" id="tab-metricas" aria-controls="p-metricas" aria-selected="false">Métricas<span class="count" id="c-metricas"></span></button>
+      <button class="tab" role="tab" id="tab-propuestas" aria-controls="p-propuestas" aria-selected="false">Propuestas<span class="count" id="c-propuestas"></span></button>
+      <button class="tab" role="tab" id="tab-hitos" aria-controls="p-hitos" aria-selected="false">Hitos</button>
+      <button class="tab" role="tab" id="tab-registro" aria-controls="p-registro" aria-selected="false">Registro</button>
+    </div>
+
+    <div id="p-paquetes" role="tabpanel" aria-labelledby="tab-paquetes" class="panel">
+      <div class="filters" id="wp-filters"></div>
+      <div id="olas" class="panel"></div>
+    </div>
+
+    <div id="p-hogar" role="tabpanel" aria-labelledby="tab-hogar" class="panel" hidden>
+      <p class="note">Lo que el plan necesita de ti, con fecha. Marca cada tarea cuando esté hecha; los datos fiscales y los importes van siempre por el chat, nunca aquí ni en el repositorio.</p>
+      <div class="table-wrap"><table id="hogar-table"></table></div>
+    </div>
+
+    <div id="p-metricas" role="tabpanel" aria-labelledby="tab-metricas" class="panel" hidden>
+      <p class="note">Construir un paquete no es lo mismo que conseguir lo que promete. Cada ola se cierra mirando estas cifras (regla de parada): si una ola entera no mueve ninguna, se para y se revisa el plan antes de seguir.</p>
+      <div class="table-wrap"><table id="metricas-table"></table></div>
+    </div>
+
+    <div id="p-propuestas" role="tabpanel" aria-labelledby="tab-propuestas" class="panel" hidden>
+      <div class="toolbar">
+        <label for="q" class="small" style="display:flex; gap:6px; align-items:center;">Buscar <input type="search" id="q" placeholder="ID o texto"></label>
+        <label for="nivel" class="small" style="display:flex; gap:6px; align-items:center;">Nivel
+          <select id="nivel">
+            <option value="">Todos</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>Archivo</option>
+          </select>
+        </label>
+        <span class="muted small" id="prop-count"></span>
+      </div>
+      <div class="table-wrap"><table id="prop-table"></table></div>
+    </div>
+
+    <div id="p-hitos" role="tabpanel" aria-labelledby="tab-hitos" class="panel" hidden>
+      <div class="table-wrap"><table id="hitos-table"></table></div>
+    </div>
+
+    <div id="p-registro" role="tabpanel" aria-labelledby="tab-registro" class="panel" hidden>
+      <p class="note">Cada cambio de estado queda aquí con su fecha y quién lo hizo. Claude lo actualiza al cerrar cada sesión de trabajo.</p>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+</div>
+
+<script type="application/json" id="plan-data">__PLAN_JSON__</script>
+<script>
+(() => {
+  const PLAN = JSON.parse(document.getElementById("plan-data").textContent);
+  const ESTADOS = ["pendiente", "en curso", "en revisión", "hecho", "bloqueado", "descartado"];
+  const RESULTADOS = ["sin medir", "cumple", "no cumple"];
+  const PESO = PLAN.pesos;
+  const WPS = PLAN.paquetes;
+  const WP_BY = Object.fromEntries(WPS.map((w) => [w.id, w]));
+  const MET_BY = Object.fromEntries(PLAN.metricas.map((m) => [m.id, m]));
+  const BASE = WPS.filter((w) => w.ola > 0);
+  const TOTAL = BASE.reduce((s, w) => s + w.sesiones, 0);
+  const DAY = 86400000;
+
+  const state = { wp: {}, hogar: {}, metricas: {}, catalogo: {}, olas: {}, registro: [], meta: {} };
+  let db = null; let canWrite = false; let whoAmI = "usuario";
+  let filter = "todas";
+
+  // ---------- utilidades ----------
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const d = (iso) => new Date(iso + "T00:00:00");
+  const todayIso = () => { const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const TODAY = d(todayIso());
+  const fmt = (iso, opts) => iso ? d(iso).toLocaleDateString("es-ES", opts || { day: "numeric", month: "short", year: "numeric" }) : "—";
+  const fmtShort = (iso) => fmt(iso, { day: "numeric", month: "short" });
+  const n1 = (x) => (Math.round(x * 10) / 10).toLocaleString("es-ES", { maximumFractionDigits: 1 });
+  const pct = (x) => Math.round(x * 100) + " %";
+  const cls = (estado) => "s-" + estado.replace(/\s|é/g, (c) => (c === "é" ? "e" : ""));
+  const daysBetween = (a, b) => Math.round((b - a) / DAY);
+
+  function wpState(id) { return state.wp[id] || { estado: "pendiente" }; }
+  function depsPending(w) { return w.depende.filter((dep) => wpState(dep).estado !== "hecho"); }
+  function effectiveEstado(w) {
+    const s = wpState(w.id).estado || "pendiente";
+    if (s === "pendiente" && depsPending(w).length) return "espera";
+    return s;
+  }
+  function plannedAt(date) {
+    let pv = 0;
+    for (const ola of PLAN.olas) {
+      const a = d(ola.inicio), b = new Date(d(ola.fin).getTime() + DAY);
+      const f = Math.max(0, Math.min(1, (date - a) / (b - a)));
+      pv += ola.sesiones * f;
+    }
+    return pv;
+  }
+  function earned() { return BASE.reduce((s, w) => s + w.sesiones * (PESO[wpState(w.id).estado || "pendiente"] ?? 0), 0); }
+  function earnedAt(date) {
+    // Curva real: solo cuenta lo hecho por su fecha de fin (lo «en curso» suma hoy, no en el pasado).
+    return BASE.reduce((s, w) => {
+      const st = wpState(w.id);
+      return s + (st.estado === "hecho" && st.fin && d(st.fin) <= date ? w.sesiones : 0);
+    }, 0);
+  }
+  function delayDays(ev) {
+    // Fecha de la línea base en la que el plan esperaba el avance que hoy tenemos.
+    if (ev <= 0) return null;
+    const start = d(PLAN.lineaBase.inicio);
+    for (let t = start; t <= d("2027-02-28"); t = new Date(t.getTime() + DAY)) {
+      if (plannedAt(t) >= ev - 1e-9) return daysBetween(t, TODAY);
+    }
+    return null;
+  }
+
+  // ---------- render: cabecera y resumen ----------
+  function renderHeader() {
+    const started = !!state.meta.arranque;
+    const pill = document.getElementById("estado-global");
+    const txt = document.getElementById("estado-texto");
+    const doneCount = BASE.filter((w) => wpState(w.id).estado === "hecho").length;
+    if (!started) {
+      pill.className = "pill s-pendiente"; pill.textContent = "Desarrollo no iniciado";
+      const days = daysBetween(TODAY, d(PLAN.lineaBase.inicio));
+      txt.textContent = days > 0
+        ? `La línea base arranca el ${fmt(PLAN.lineaBase.inicio)} (en ${days} días). Nada se construye hasta que digas «empezamos».`
+        : `La línea base arrancaba el ${fmt(PLAN.lineaBase.inicio)}. Nada se construye hasta que digas «empezamos»; cada día sin empezar es retraso sobre la línea base.`;
+    } else if (doneCount === BASE.length) {
+      pill.className = "pill s-hecho"; pill.textContent = "Plan construido";
+      txt.textContent = `Arrancó el ${fmt(state.meta.arranque)}. Queda la maduración por datos (febrero-mayo de 2027).`;
+    } else {
+      pill.className = "pill s-encurso"; pill.textContent = "En desarrollo";
+      txt.textContent = `Arrancó el ${fmt(state.meta.arranque)}.`;
+    }
+  }
+
+  function renderKpis() {
+    const ev = earned(), pv = plannedAt(TODAY);
+    const hechos = BASE.filter((w) => wpState(w.id).estado === "hecho");
+    const comprobados = hechos.filter((w) => wpState(w.id).resultado === "cumple").length;
+    const conMetrica = hechos.filter((w) => w.metrica).length;
+    let desvio, desvioD;
+    if (pv <= 0) { desvio = "—"; desvioD = "Sin plan exigible todavía"; }
+    else {
+      const gap = ev - pv;
+      const spi = ev / pv;
+      const dd = delayDays(ev);
+      desvio = (gap >= 0 ? "+" : "−") + n1(Math.abs(gap)) + " <small>ses.</small>";
+      desvioD = `Índice plan/real ${spi.toFixed(2).replace(".", ",")}` + (dd !== null && dd > 0 ? ` · ${dd} días tarde` : ev === 0 ? " · sin avance" : "");
+    }
+    const real = hechos.reduce((s, w) => s + (Number(wpState(w.id).sesionesReales) || 0), 0);
+    const est = hechos.filter((w) => Number(wpState(w.id).sesionesReales) > 0).reduce((s, w) => s + w.sesiones, 0);
+    document.getElementById("kpis").innerHTML = `
+      <div class="kpi"><span class="eyebrow">Avance real</span><span class="v">${pct(ev / TOTAL)}</span><span class="d">${n1(ev)} de ${n1(TOTAL)} sesiones ponderadas por estado</span></div>
+      <div class="kpi"><span class="eyebrow">Previsto a hoy</span><span class="v">${pct(pv / TOTAL)}</span><span class="d">${n1(pv)} sesiones según la línea base</span></div>
+      <div class="kpi"><span class="eyebrow">Desvío</span><span class="v">${desvio}</span><span class="d">${desvioD}</span></div>
+      <div class="kpi"><span class="eyebrow">Paquetes hechos</span><span class="v">${hechos.length}<small> / ${BASE.length}</small></span><span class="d">Valor comprobado: ${comprobados} de ${conMetrica} con métrica${est ? ` · real/estimado ${n1(real / est)}×` : ""}</span></div>`;
+
+    const next = BASE.find((w) => effectiveEstado(w) === "pendiente");
+    const enCurso = BASE.filter((w) => ["en curso", "en revisión"].includes(wpState(w.id).estado));
+    const hito = PLAN.hitos.find((h) => d(h.fecha) >= TODAY);
+    const tarea = PLAN.tareasHogar.find((t) => !(state.hogar[t.id] || {}).hecho);
+    const tareaLate = tarea && d(tarea.fecha) < TODAY;
+    document.getElementById("next").innerHTML = `
+      <div><span class="eyebrow">${enCurso.length ? "En marcha" : "Siguiente paquete desbloqueado"}</span>
+        ${enCurso.length ? enCurso.map((w) => `<span><span class="mono">${w.id}</span> ${esc(w.nombre)}</span>`).join("") : next ? `<span><span class="mono">${next.id}</span> ${esc(next.nombre)}</span><span class="muted small">Ola ${next.ola} · ${n1(next.sesiones)} sesiones</span>` : "<span>Ninguno</span>"}</div>
+      <div><span class="eyebrow">Próximo hito</span>${hito ? `<span>${esc(hito.que)}</span><span class="muted small">${fmt(hito.fecha)} · ${daysBetween(TODAY, d(hito.fecha)) === 0 ? "hoy" : "en " + daysBetween(TODAY, d(hito.fecha)) + " días"}</span>` : "<span>Ninguno</span>"}</div>
+      <div><span class="eyebrow">Te toca</span>${tarea ? `<span>${esc(tarea.que)}</span><span class="small ${tareaLate ? "" : "muted"}" style="${tareaLate ? "color: var(--bad)" : ""}">${tareaLate ? "Vencida el " : "Antes del "}${fmt(tarea.fecha)}${tarea.minutos ? ` · ≈ ${tarea.minutos} min` : ""}</span>` : "<span>Nada pendiente</span>"}</div>`;
+  }
+
+  // ---------- render: curva ----------
+  function renderChart() {
+    const host = document.getElementById("chart");
+    const W = Math.max(560, host.clientWidth || 800), H = 240;
+    const m = { l: 44, r: 16, t: 26, b: 28 };
+    const x0 = d("2026-10-01"), x1 = d("2027-02-01");
+    const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+    const Y = (v) => H - m.b - (v / TOTAL) * (H - m.t - m.b);
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    // bandas de olas
+    PLAN.olas.forEach((o, i) => {
+      const a = X(d(o.inicio)), b = X(new Date(d(o.fin).getTime() + DAY));
+      s += `<rect x="${a}" y="${m.t}" width="${b - a}" height="${H - m.t - m.b}" fill="var(--accent-soft)" opacity="${i % 2 ? 0.55 : 0.9}"/>`;
+      s += `<text x="${a + 6}" y="${m.t - 8}">Ola ${o.id}</text>`;
+    });
+    // rejilla Y
+    [0, 0.25, 0.5, 0.75, 1].forEach((f) => {
+      const y = Y(TOTAL * f);
+      s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
+      s += `<text x="${m.l - 6}" y="${y + 4}" text-anchor="end">${Math.round(TOTAL * f)}</text>`;
+    });
+    // meses
+    for (let mo = new Date(x0); mo < x1; mo = new Date(mo.getFullYear(), mo.getMonth() + 1, 1)) {
+      const x = X(mo);
+      s += `<line x1="${x}" x2="${x}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--muted)"/>`;
+      s += `<text x="${x + 3}" y="${H - 8}">${mo.toLocaleDateString("es-ES", { month: "short" })}${mo.getMonth() === 0 ? " " + String(mo.getFullYear()).slice(2) : ""}</text>`;
+    }
+    // línea base
+    let path = "";
+    for (let t = new Date(x0); t <= x1; t = new Date(t.getTime() + DAY)) path += (path ? "L" : "M") + X(t).toFixed(1) + "," + Y(plannedAt(t)).toFixed(1);
+    s += `<path d="${path}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    // real
+    const end = TODAY < x1 ? TODAY : x1;
+    let rp = "", area = "";
+    if (end >= x0) {
+      for (let t = new Date(x0); t <= end; t = new Date(t.getTime() + DAY)) {
+        const v = t.getTime() === TODAY.getTime() ? earned() : earnedAt(t);
+        rp += (rp ? "L" : "M") + X(t).toFixed(1) + "," + Y(v).toFixed(1);
+      }
+      area = rp + `L${X(end).toFixed(1)},${Y(0)}L${X(x0).toFixed(1)},${Y(0)}Z`;
+      s += `<path d="${area}" fill="var(--accent)" opacity="0.12"/>`;
+      s += `<path d="${rp}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+      s += `<circle cx="${X(end)}" cy="${Y(earned())}" r="4" fill="var(--accent)"/>`;
+    }
+    // hitos con fecha límite
+    PLAN.hitos.filter((h) => h.tipo === "fecha límite" && d(h.fecha) <= x1).forEach((h) => {
+      const x = X(d(h.fecha));
+      s += `<path d="M${x},${H - m.b - 7} l5,5 l-5,5 l-5,-5Z" transform="translate(0,-3)" fill="var(--warn)"><title>${esc(h.que)} · ${fmt(h.fecha)}</title></path>`;
+    });
+    // hoy
+    if (TODAY >= x0 && TODAY <= x1) {
+      const x = X(TODAY);
+      s += `<line x1="${x}" x2="${x}" y1="${m.t}" y2="${H - m.b}" stroke="var(--bad)" stroke-width="1.5"/>`;
+      s += `<text x="${x + 4}" y="${m.t + 12}" style="fill: var(--bad)">hoy</text>`;
+    }
+    s += "</svg>";
+    host.innerHTML = s;
+    const pv = plannedAt(TODAY), ev = earned();
+    document.getElementById("chart-desc").textContent =
+      `Eje vertical: sesiones de trabajo acumuladas (${n1(TOTAL)} en total, sin contar la prueba trimestral WP-54). A hoy la línea base espera ${n1(pv)} y el avance real ponderado es ${n1(ev)}. ` +
+      `Ponderación: hecho 100 %, en revisión 90 %, en curso 50 %. Los rombos marcan fechas límite externas (campaña fiscal, 31/12, Renta).`;
+  }
+
+  // ---------- render: paquetes ----------
+  const FILTERS = [
+    ["todas", "Todas"], ["ola1", "Ola 1"], ["ola2", "Ola 2"], ["ola3", "Ola 3"], ["continuo", "Continuo"],
+    ["abiertos", "Sin terminar"], ["fecha", "Con fecha límite"], ["visibles", "Cambian lo que ves"],
+  ];
+  function renderFilters() {
+    const el = document.getElementById("wp-filters");
+    el.innerHTML = FILTERS.map(([k, l]) => `<button class="chipbtn" data-f="${k}" aria-pressed="${filter === k}">${l}</button>`).join("");
+  }
+  function passes(w) {
+    const st = wpState(w.id).estado || "pendiente";
+    switch (filter) {
+      case "ola1": return w.ola === 1;
+      case "ola2": return w.ola === 2;
+      case "ola3": return w.ola === 3;
+      case "continuo": return w.ola === 0;
+      case "abiertos": return !["hecho", "descartado"].includes(st);
+      case "fecha": return !!w.fechaLimite;
+      case "visibles": return w.tipo === "visible";
+      default: return true;
+    }
+  }
+  function estadoPill(w) {
+    const e = effectiveEstado(w);
+    if (e === "espera") { const p = depsPending(w); return `<span class="pill s-pendiente" title="Depende de ${p.join(", ")}">Espera ${p[0]}${p.length > 1 ? ` +${p.length - 1}` : ""}</span>`; }
+    const label = e.charAt(0).toUpperCase() + e.slice(1);
+    return `<span class="pill ${cls(e)}">${label}</span>`;
+  }
+  function dueTag(w) {
+    if (!w.fechaLimite) return "";
+    const st = wpState(w.id).estado;
+    const days = daysBetween(TODAY, d(w.fechaLimite));
+    if (st === "hecho") return `<span class="tag">límite ${fmtShort(w.fechaLimite)}</span>`;
+    const c = days < 0 ? "late" : days <= 21 ? "due" : "";
+    return `<span class="tag ${c}">${days < 0 ? "vencido " : "límite "}${fmtShort(w.fechaLimite)}</span>`;
+  }
+  function resultTag(w) {
+    const r = wpState(w.id).resultado;
+    if (!w.metrica) return "";
+    if (r === "cumple") return `<span class="tag okv">cumple ${w.metrica}</span>`;
+    if (r === "no cumple") return `<span class="tag badv">no cumple ${w.metrica}</span>`;
+    return wpState(w.id).estado === "hecho" ? `<span class="tag due">${w.metrica} sin medir</span>` : "";
+  }
+  function wpRow(w) {
+    const st = wpState(w.id);
+    const hist = (st.historial || []).slice().reverse();
+    const disabled = canWrite ? "" : "disabled";
+    return `<details class="wp" data-wp="${w.id}">
+      <summary>
+        <span class="wp-state">${estadoPill(w)}</span>
+        <span class="wp-id mono">${w.id}</span>
+        <span class="wp-name"><b>${esc(w.nombre)}</b>
+          <span class="wp-sub"><span>${w.propuestas.length ? w.propuestas.join(" · ") : "Tarea sin propuesta"}</span><span>${esc(w.tipo)}</span></span></span>
+        <span class="wp-right">${resultTag(w)}${dueTag(w)}${st.pr ? `<span class="tag">PR ${esc(st.pr)}</span>` : ""}<span class="tag">${n1(w.sesiones)} ses.</span></span>
+      </summary>
+      <div class="wp-body">
+        <dl class="facts">
+          <div><dt>Hecho cuando</dt><dd>${esc(w.hechoCuando)}</dd></div>
+          ${w.metrica ? `<div><dt>Métrica que debe mover</dt><dd>${esc(MET_BY[w.metrica].nombre)} · objetivo ${MET_BY[w.metrica].sentido === "menor" ? "≤" : MET_BY[w.metrica].sentido === "mayor" ? "≥" : "≈"} ${MET_BY[w.metrica].objetivo} ${esc(MET_BY[w.metrica].unidad)}</dd></div>` : ""}
+          ${w.depende.length ? `<div><dt>Depende de</dt><dd>${w.depende.map((x) => `<span class="mono">${x}</span> ${esc(WP_BY[x].nombre)} (${wpState(x).estado || "pendiente"})`).join("<br>")}</dd></div>` : ""}
+          ${w.necesitaDelHogar ? `<div><dt>Necesita de ti</dt><dd>${esc(w.necesitaDelHogar)}</dd></div>` : ""}
+          ${w.nota ? `<div><dt>Nota</dt><dd>${esc(w.nota)}</dd></div>` : ""}
+          ${hist.length ? `<div><dt>Historial</dt><dd class="history">${hist.map((h) => `<span>${fmt(h.fecha)} · ${esc(h.texto)}${h.por ? ` · ${esc(h.por)}` : ""}</span>`).join("")}</dd></div>` : ""}
+        </dl>
+        <form class="edit" data-wp="${w.id}">
+          <label for="e-${w.id}">Estado<select id="e-${w.id}" name="estado" ${disabled}>${ESTADOS.map((e) => `<option ${((st.estado || "pendiente") === e) ? "selected" : ""}>${e}</option>`).join("")}</select></label>
+          <label for="pr-${w.id}">PR<input id="pr-${w.id}" name="pr" inputmode="numeric" value="${esc(st.pr || "")}" placeholder="número" ${disabled}></label>
+          <label for="i-${w.id}">Inicio<input id="i-${w.id}" type="date" name="inicio" value="${esc(st.inicio || "")}" ${disabled}></label>
+          <label for="f-${w.id}">Fin (fusionado)<input id="f-${w.id}" type="date" name="fin" value="${esc(st.fin || "")}" ${disabled}></label>
+          <label for="sr-${w.id}">Sesiones reales<input id="sr-${w.id}" name="sesionesReales" inputmode="decimal" value="${esc(st.sesionesReales ?? "")}" placeholder="estimadas: ${n1(w.sesiones)}" ${disabled}></label>
+          <label for="r-${w.id}">Resultado de la métrica<select id="r-${w.id}" name="resultado" ${disabled || (w.metrica ? "" : "disabled")}>${RESULTADOS.map((r) => `<option ${((st.resultado || "sin medir") === r) ? "selected" : ""}>${r}</option>`).join("")}</select></label>
+          <label class="full" for="n-${w.id}">Nota<textarea id="n-${w.id}" name="nota" ${disabled}>${esc(st.nota || "")}</textarea></label>
+          <div class="full form-actions">
+            <button class="btn" type="submit" ${disabled}>Guardar</button>
+            <span class="saved" aria-live="polite"></span>
+            ${canWrite ? "" : `<span class="muted small">Solo lectura en esta vista.</span>`}
+          </div>
+        </form>
+      </div>
+    </details>`;
+  }
+  function olaBlock(ola, list) {
+    const ev = list.reduce((s, w) => s + w.sesiones * (PESO[wpState(w.id).estado || "pendiente"] ?? 0), 0);
+    const tot = list.reduce((s, w) => s + w.sesiones, 0);
+    const olaTot = WPS.filter((w) => w.ola === ola.id).reduce((s, w) => s + w.sesiones, 0);
+    const a = d(ola.inicio), b = new Date(d(ola.fin).getTime() + DAY);
+    const pvF = Math.max(0, Math.min(1, (TODAY - a) / (b - a)));
+    const rev = state.olas[String(ola.id)] || {};
+    const disabled = canWrite ? "" : "disabled";
+    const done = WPS.filter((w) => w.ola === ola.id && wpState(w.id).estado === "hecho").length;
+    const all = WPS.filter((w) => w.ola === ola.id).length;
+    const metr = (ola.metricas || []).map((id) => MET_BY[id] ? MET_BY[id].nombre : id).join(" · ");
+    return `<section class="ola">
+      <div class="ola-head">
+        <div style="display:grid; gap:4px; min-width:0;">
+          <span class="eyebrow">Ola ${ola.id} · ${fmt(ola.inicio)} – ${fmt(ola.fin)}</span>
+          <h3>${esc(ola.nombre)}</h3>
+          <div class="ola-meta"><span>${done}/${all} paquetes hechos</span><span>${n1(ev)} de ${n1(tot)} sesiones${tot !== olaTot ? " (filtradas)" : ""}</span><span>Salida: ${esc(ola.salida)}</span></div>
+        </div>
+        <div class="ola-review">
+          <label for="ola-r-${ola.id}" style="display:flex; gap:6px; align-items:center;">Revisión de salida
+            <select id="ola-r-${ola.id}" data-ola="${ola.id}" style="width:auto" ${disabled}>
+              ${["pendiente", "seguir", "parar y revisar"].map((o) => `<option ${(rev.decision || "pendiente") === o ? "selected" : ""}>${o}</option>`).join("")}
+            </select></label>
+          ${metr ? `<span class="muted">Mira: ${esc(metr)}</span>` : ""}
+        </div>
+      </div>
+      <div class="bar" title="Avance de la ola frente a lo previsto a hoy"><span style="width:${tot ? (ev / tot) * 100 : 0}%"></span>${pvF > 0 && pvF < 1 ? `<i class="pv" style="left:${pvF * 100}%"></i>` : ""}</div>
+      <div class="list">${list.map(wpRow).join("")}</div>
+    </section>`;
+  }
+  function renderPaquetes() {
+    const open = new Set([...document.querySelectorAll("details.wp[open]")].map((x) => x.dataset.wp));
+    const blocks = [];
+    for (const ola of PLAN.olas) {
+      const list = WPS.filter((w) => w.ola === ola.id && passes(w));
+      if (list.length) blocks.push(olaBlock(ola, list));
+    }
+    const cont = WPS.filter((w) => w.ola === 0 && passes(w));
+    if (cont.length) {
+      blocks.push(`<section class="ola"><div class="ola-head"><div style="display:grid; gap:4px;"><span class="eyebrow">Continuo · trimestral desde diciembre de 2026</span><h3>Fuera de las olas</h3></div></div><div class="list">${cont.map(wpRow).join("")}</div></section>`);
+    }
+    document.getElementById("olas").innerHTML = blocks.join("") || `<p class="empty">Ningún paquete cumple el filtro.</p>`;
+    open.forEach((id) => { const el = document.querySelector(`details.wp[data-wp="${id}"]`); if (el) el.open = true; });
+    const done = BASE.filter((w) => wpState(w.id).estado === "hecho").length;
+    document.getElementById("c-paquetes").textContent = `${done}/${BASE.length}`;
+  }
+
+  // ---------- render: hogar ----------
+  function renderHogar() {
+    const rows = PLAN.tareasHogar.map((t) => {
+      const st = state.hogar[t.id] || {};
+      const late = !st.hecho && d(t.fecha) < TODAY;
+      const soon = !st.hecho && !late && daysBetween(TODAY, d(t.fecha)) <= 7;
+      return `<tr class="${st.hecho ? "done" : ""}">
+        <td><input type="checkbox" id="h-${t.id}" data-h="${t.id}" ${st.hecho ? "checked" : ""} ${canWrite ? "" : "disabled"} aria-label="Hecha: ${esc(t.que)}"></td>
+        <td class="num">${fmt(t.fecha)}${late ? ` <span class="tag late">vencida</span>` : soon ? ` <span class="tag due">esta semana</span>` : ""}</td>
+        <td class="what"><label for="h-${t.id}" style="display:inline; color: inherit; font-size: inherit;">${esc(t.que)}</label>${st.hecho && st.fecha ? `<div class="muted small">Hecha el ${fmt(st.fecha)}</div>` : ""}</td>
+        <td class="num">${t.minutos ? "≈ " + t.minutos + " min" : "—"}</td>
+        <td class="mono small">${(t.para || []).join(" · ") || "Regla de parada"}</td>
+      </tr>`;
+    }).join("");
+    document.getElementById("hogar-table").innerHTML = `<thead><tr><th><span class="eyebrow" style="font-size:11px">Hecha</span></th><th class="num">Cuándo</th><th>Qué</th><th class="num">Tiempo</th><th>Para</th></tr></thead><tbody>${rows}</tbody>`;
+    const pend = PLAN.tareasHogar.filter((t) => !(state.hogar[t.id] || {}).hecho).length;
+    document.getElementById("c-hogar").textContent = String(pend);
+  }
+
+  // ---------- render: métricas ----------
+  function metStatus(m, v) {
+    if (v == null) return "";
+    const okv = m.sentido === "menor" ? v <= m.objetivo : m.sentido === "mayor" ? v >= m.objetivo : Math.abs(v - m.objetivo) <= 5;
+    return okv ? `<span class="tag okv">cumple</span>` : `<span class="tag badv">no cumple</span>`;
+  }
+  function spark(m, lect) {
+    if (lect.length < 2) return "";
+    const W = 90, H = 24, vals = lect.map((l) => l.valor);
+    const lo = Math.min(...vals, m.objetivo), hi = Math.max(...vals, m.objetivo);
+    const Y = (v) => H - 3 - ((v - lo) / (hi - lo || 1)) * (H - 6);
+    const X = (i) => 3 + (i / (lect.length - 1)) * (W - 6);
+    const p = lect.map((l, i) => (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(l.valor).toFixed(1)).join("");
+    return `<svg width="${W}" height="${H}" aria-hidden="true"><line x1="0" x2="${W}" y1="${Y(m.objetivo)}" y2="${Y(m.objetivo)}" stroke="var(--line)" stroke-dasharray="3 2"/><path d="${p}" fill="none" stroke="var(--accent)" stroke-width="1.5"/><circle cx="${X(lect.length - 1)}" cy="${Y(lect[lect.length - 1].valor)}" r="2.5" fill="var(--accent)"/></svg>`;
+  }
+  function renderMetricas() {
+    const rows = PLAN.metricas.map((m) => {
+      const lect = ((state.metricas[m.id] || {}).lecturas || []).slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+      const last = lect[lect.length - 1];
+      const sign = m.sentido === "menor" ? "≤" : m.sentido === "mayor" ? "≥" : "≈";
+      return `<tr>
+        <td><b>${esc(m.nombre)}</b><div class="muted small">${esc(m.detalle)} · <span class="mono">${m.wp}</span> (${wpState(m.wp).estado || "pendiente"})</div></td>
+        <td class="num">${sign} ${m.objetivo} ${esc(m.unidad)}</td>
+        <td class="num">${last ? `${String(last.valor).replace(".", ",")} ${esc(m.unidad)}<div class="muted small">${fmt(last.fecha)}</div>` : `<span class="muted">sin lecturas</span>`}</td>
+        <td>${last ? metStatus(m, last.valor) : ""} ${spark(m, lect)}</td>
+        <td>${canWrite ? `<form class="inline-form" data-m="${m.id}">
+          <input type="date" name="fecha" value="${todayIso()}" aria-label="Fecha de la lectura" required>
+          <input type="number" step="any" name="valor" placeholder="valor" aria-label="Valor en ${esc(m.unidad)}" required>
+          <button class="btn ghost" type="submit">Añadir</button></form>` : ""}</td>
+      </tr>`;
+    }).join("");
+    document.getElementById("metricas-table").innerHTML = `<thead><tr><th>Métrica</th><th class="num">Objetivo</th><th class="num">Última</th><th>Estado</th><th>${canWrite ? "Nueva lectura" : ""}</th></tr></thead><tbody>${rows}</tbody>`;
+    const ok = PLAN.metricas.filter((m) => { const l = (state.metricas[m.id] || {}).lecturas || []; return l.length; }).length;
+    document.getElementById("c-metricas").textContent = `${ok}/${PLAN.metricas.length}`;
+  }
+
+  // ---------- render: propuestas ----------
+  function renderPropuestas() {
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const nv = document.getElementById("nivel").value;
+    const list = PLAN.propuestas.filter((p) => (!nv || p.nivel === nv) && (!q || (p.id + " " + p.que).toLowerCase().includes(q)));
+    const rows = list.map((p) => {
+      let estado, donde;
+      if (p.wp) {
+        const w = WP_BY[p.wp];
+        estado = estadoPill(w);
+        donde = `<span class="mono">${p.wp}</span> · Ola ${w.ola}`;
+      } else {
+        const c = (state.catalogo[p.id] || {}).estado || (p.nivel === "Archivo" ? "archivada" : "dormida");
+        const opts = p.nivel === "Archivo" ? ["archivada", "reactivada"] : ["dormida", "activada", "descartada"];
+        estado = canWrite
+          ? `<select data-cat="${p.id}" aria-label="Estado de ${p.id}" style="width:auto">${opts.map((o) => `<option ${c === o ? "selected" : ""}>${o}</option>`).join("")}</select>`
+          : `<span class="pill ${c === "activada" || c === "reactivada" ? "s-encurso" : "s-pendiente"}">${c}</span>`;
+        donde = `<span class="small">${esc(p.disparador)}</span>`;
+      }
+      return `<tr><td class="mono">${p.id}</td><td>${esc(p.que)}${p.valor ? `<div class="muted small">Valor ${esc(p.valor)} · esfuerzo ${esc(p.esfuerzo)}</div>` : ""}</td><td class="mono">${p.nivel}</td><td>${donde}</td><td>${estado}</td></tr>`;
+    }).join("");
+    document.getElementById("prop-table").innerHTML = `<thead><tr><th>ID</th><th>Qué</th><th>Nivel</th><th>Paquete o disparador</th><th>Estado</th></tr></thead><tbody>${rows || `<tr><td colspan="5" class="empty">Nada coincide con la búsqueda.</td></tr>`}</tbody>`;
+    document.getElementById("prop-count").textContent = `${list.length} de ${PLAN.propuestas.length}`;
+    const activas = PLAN.propuestas.filter((p) => !p.wp && ["activada", "reactivada"].includes((state.catalogo[p.id] || {}).estado)).length;
+    document.getElementById("c-propuestas").textContent = activas ? `104 · ${activas} activadas` : "104";
+  }
+
+  // ---------- render: hitos ----------
+  function renderHitos() {
+    const rows = PLAN.hitos.map((h) => {
+      const past = d(h.fecha) < TODAY;
+      const w = h.wp ? WP_BY[h.wp] : null;
+      return `<tr class="${past ? "done" : ""}"><td class="num">${fmt(h.fecha)}</td><td class="what">${esc(h.que)}</td><td><span class="tag">${esc(h.tipo)}</span></td><td>${w ? `<span class="mono small">${w.id}</span> ${estadoPill(w)}` : ""}</td></tr>`;
+    }).join("");
+    document.getElementById("hitos-table").innerHTML = `<thead><tr><th class="num">Fecha</th><th>Hito</th><th>Tipo</th><th>Paquete</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  // ---------- render: registro ----------
+  function renderRegistro() {
+    const items = state.registro.slice().sort((a, b) => String(b.ts || b.fecha).localeCompare(String(a.ts || a.fecha))).slice(0, 200);
+    document.getElementById("log").innerHTML = items.length
+      ? items.map((r) => `<div><span class="mono small muted">${fmt(r.fecha)}${r.por ? " · " + esc(r.por) : ""}</span><span>${esc(r.texto)}</span></div>`).join("")
+      : `<p class="empty">Todavía no hay cambios registrados. El primero llegará cuando empiece la Ola 1.</p>`;
+  }
+
+  function renderAll() {
+    renderHeader(); renderKpis(); renderChart(); renderFilters(); renderPaquetes(); renderHogar(); renderMetricas(); renderPropuestas(); renderHitos(); renderRegistro();
+  }
+
+  // ---------- escritura ----------
+  function stamp() { return new Date().toISOString(); }
+  async function log(texto) {
+    if (!db) return;
+    try { await db.collection("registro").add({ fecha: todayIso(), ts: stamp(), texto, por: whoAmI }); } catch (e) { /* el registro es secundario */ }
+  }
+  async function saveWp(id, patch, statusEl) {
+    const cur = state.wp[id] || {};
+    const changes = [];
+    for (const k of Object.keys(patch)) if ((cur[k] ?? "") !== (patch[k] ?? "")) changes.push(k);
+    if (!changes.length) { if (statusEl) statusEl.textContent = "Sin cambios"; return; }
+    const texto = changes.includes("estado") ? `${id}: ${cur.estado || "pendiente"} → ${patch.estado}` : `${id}: ${changes.join(", ")} actualizado`;
+    const historial = (cur.historial || []).concat([{ fecha: todayIso(), texto, por: whoAmI }]).slice(-20);
+    const next = { ...cur, ...patch, historial, actualizado: stamp() };
+    if (patch.estado === "hecho" && !next.fin) next.fin = todayIso();
+    if (["en curso", "en revisión"].includes(patch.estado) && !next.inicio) next.inicio = todayIso();
+    try {
+      await db.doc("wp/" + id).set(next);
+      if (statusEl) statusEl.textContent = "Guardado";
+      await log(texto);
+      if (!state.meta.arranque && ["en curso", "en revisión", "hecho"].includes(next.estado)) {
+        await db.doc("meta/plan").set({ ...state.meta, arranque: next.inicio || todayIso() });
+      }
+    } catch (e) {
+      if (statusEl) { statusEl.style.color = "var(--bad)"; statusEl.textContent = "No se pudo guardar: " + (e && e.code === "invalid_argument" ? "esta vista no puede escribir." : "inténtalo de nuevo."); }
+    }
+  }
+
+  document.addEventListener("submit", async (ev) => {
+    const f = ev.target;
+    if (f.matches("form.edit")) {
+      ev.preventDefault();
+      if (!canWrite) return;
+      const fd = new FormData(f);
+      const patch = {};
+      for (const [k, v] of fd.entries()) patch[k] = String(v).trim();
+      if (patch.sesionesReales) patch.sesionesReales = Number(patch.sesionesReales.replace(",", ".")) || "";
+      if (patch.pr) patch.pr = patch.pr.replace(/^#/, "");
+      f.querySelector(".saved").style.color = "";
+      f.querySelector(".saved").textContent = "Guardando…";
+      await saveWp(f.dataset.wp, patch, f.querySelector(".saved"));
+    } else if (f.matches("form.inline-form")) {
+      ev.preventDefault();
+      if (!canWrite) return;
+      const id = f.dataset.m;
+      const fecha = f.fecha.value, valor = Number(String(f.valor.value).replace(",", "."));
+      if (!fecha || !Number.isFinite(valor)) return;
+      const cur = state.metricas[id] || {};
+      const lecturas = (cur.lecturas || []).concat([{ fecha, valor, por: whoAmI }]).slice(-120);
+      try {
+        await db.doc("metricas/" + id).set({ ...cur, lecturas });
+        await log(`${MET_BY[id].nombre}: ${String(valor).replace(".", ",")} ${MET_BY[id].unidad} (${fmt(fecha)})`);
+      } catch (e) { /* la vista se queda como estaba */ }
+    }
+  });
+
+  document.addEventListener("change", async (ev) => {
+    const t = ev.target;
+    if (!canWrite || !db) return;
+    if (t.matches("input[data-h]")) {
+      const id = t.dataset.h, cur = state.hogar[id] || {};
+      const tarea = PLAN.tareasHogar.find((x) => x.id === id);
+      try {
+        await db.doc("hogar/" + id).set({ ...cur, hecho: t.checked, fecha: t.checked ? todayIso() : null });
+        await log(`${t.checked ? "Hecha" : "Reabierta"}: ${tarea.que}`);
+      } catch (e) { t.checked = !t.checked; }
+    } else if (t.matches("select[data-cat]")) {
+      const id = t.dataset.cat, cur = state.catalogo[id] || {};
+      try { await db.doc("catalogo/" + id).set({ ...cur, estado: t.value, fecha: todayIso() }); await log(`${id}: ${t.value}`); } catch (e) { /* sin cambios */ }
+    } else if (t.matches("select[data-ola]")) {
+      const id = t.dataset.ola, cur = state.olas[id] || {};
+      try { await db.doc("olas/" + id).set({ ...cur, decision: t.value, fecha: todayIso() }); await log(`Revisión de salida de la Ola ${id}: ${t.value}`); } catch (e) { /* sin cambios */ }
+    }
+  });
+
+  // ---------- interacción ----------
+  document.getElementById("wp-filters").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-f]");
+    if (!b) return;
+    filter = b.dataset.f;
+    try { localStorage.setItem("plan-filtro", filter); } catch (e) { /* opcional */ }
+    renderFilters(); renderPaquetes();
+  });
+  document.getElementById("q").addEventListener("input", renderPropuestas);
+  document.getElementById("nivel").addEventListener("change", renderPropuestas);
+
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function selectTab(tab) {
+    tabs.forEach((t) => {
+      const on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+    try { localStorage.setItem("plan-tab", tab.id); } catch (e) { /* opcional */ }
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => selectTab(t));
+    t.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const n = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+        selectTab(n); n.focus();
+      }
+    });
+  });
+  try {
+    const savedTab = localStorage.getItem("plan-tab"); if (savedTab && document.getElementById(savedTab)) selectTab(document.getElementById(savedTab));
+    const savedF = localStorage.getItem("plan-filtro"); if (savedF) filter = savedF;
+  } catch (e) { /* opcional */ }
+  const hashTab = location.hash.replace("#", "");
+  if (hashTab && document.getElementById("tab-" + hashTab)) selectTab(document.getElementById("tab-" + hashTab));
+
+  let rt = null;
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderChart, 150); });
+
+  renderAll();
+
+  // ---------- conexión con la base ----------
+  let pending = null;
+  const scheduleRender = () => { if (pending) return; pending = requestAnimationFrame(() => { pending = null; renderAll(); }); };
+  function showNotice(text, warn) {
+    const el = document.getElementById("aviso");
+    el.hidden = !text; el.textContent = text || ""; el.className = "banner" + (warn ? " warn" : "");
+  }
+
+  (async () => {
+    const claude = window.claude;
+    if (!claude || typeof claude.use !== "function") {
+      showNotice("Vista sin conexión con la base del panel: se muestra el plan con todo en «pendiente».", true);
+      return;
+    }
+    const [dbNs, userNs] = await Promise.all([claude.use("db"), claude.use("user")]);
+    db = dbNs;
+    if (!db) { showNotice("No hay acceso a la base del panel en esta vista: se muestra el plan sin estado guardado.", true); return; }
+    if (userNs) {
+      try {
+        const w = await userNs.can("data.write");
+        canWrite = w === null ? true : !!w;
+        whoAmI = userNs.isOwner && (await userNs.isOwner()) ? "titular" : "editor";
+      } catch (e) { canWrite = true; }
+    } else { canWrite = true; }
+    const onErr = () => showNotice("Se perdió la conexión con la base del panel; recarga la página para ver el estado actualizado.", true);
+    const sub = (col, target) => db.collection(col).onSnapshot((snap) => {
+      const obj = {};
+      snap.docs.forEach((doc) => { if (doc.exists) obj[doc.id] = doc.data(); });
+      state[target] = obj; scheduleRender();
+    }, onErr);
+    sub("wp", "wp"); sub("hogar", "hogar"); sub("metricas", "metricas"); sub("catalogo", "catalogo"); sub("olas", "olas");
+    db.collection("registro").onSnapshot((snap) => { state.registro = snap.docs.filter((x) => x.exists).map((x) => x.data()); scheduleRender(); }, onErr);
+    db.doc("meta/plan").onSnapshot((snap) => { state.meta = snap.exists ? snap.data() : {}; scheduleRender(); }, onErr);
+    scheduleRender();
+  })();
+})();
+</script>
