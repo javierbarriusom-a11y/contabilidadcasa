@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 3 de octubre de 2026 (297): respuestas del hogar al backlog definitivo; plan comprimido a 3 olas (solo documentación)
+
+- **Respuestas del hogar (sin cifras):** tributación **individual**; **sin plan de pensiones de empresa**; **hipoteca variable**; **nadie más** usará la app; **quitar el límite** de entregas visibles (confirmado con una pregunta, porque «quitamos el veto» admitía dos lecturas). Siguen pendientes, en el chat: lo pagado por la vivienda en 2026 por titular, si deducían los dos, el tipo marginal y las plusvalías o minusvalías realizadas.
+- **Efectos en `BACKLOG_DEFINITIVO.md`:** `NDB-02` (revisión del tipo variable) pasa de P4 a **P1** (WP-20, Ola 2); `NXP-07`, `NHG-02` y `CAP-08` pasan a **archivo** (solo servían a una segunda persona usuaria), igual que `NAV-3` y H3; reparto final **P0 17 · P1 25 · P2 26 · P3 27 · P4 5 · archivo 4 = 104** (comprobado por script, cada ID una sola vez). §0, §2, §3, §4, §5, §6, §7 y §8 actualizados.
+- **Efectos en `docs/PLAN_DESARROLLO_DEFINITIVO.md`:** sin límite de visibles, los 13 tramos se sustituyen por **3 olas**: Ola 1 (5/10 - 23/10/2026), Ola 2 (26/10 - 20/11) y Ola 3 (23/11/2026 - 22/1/2027), más la maduración por datos (febrero - mayo 2027). Se mantienen, por recomendación de Claude, la regla de parada por olas, «Novedades» dentro de WP-01 y «uno entra, uno sale». WP-23 incorpora los datos fiscales conocidos; WP-20 queda activo con los campos de contrato que necesita.
+- **No construido:** nada; el desarrollo sigue sin iniciarse por decisión del hogar.
+- **Validación:** `npm run verify` **verde** (salida 0), `npm test` **5008/5008**. Sin cambios de código.
+- **Rama/PR:** `claude/beautiful-keller-v71w2x`, reiniciada sobre `main` tras la fusión de #433.
+
 ## Cierre de sesión — 3 de octubre de 2026 (296): backlog definitivo y plan de desarrollo (solo documentación; desarrollo no iniciado)
 
 - **Qué pidió el hogar:** «la persona que responde es la misma porque de momento es solo un usuario. No quiero empezar el desarrollo aún: genérame el backlog definitivo y el plan de desarrollo resultante de tu análisis y las nuevas propuestas, incluyéndolas todas, pero priorizadas».
