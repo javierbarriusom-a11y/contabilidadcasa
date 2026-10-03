@@ -1,6 +1,6 @@
 # Backlog `inicio_oleada_octubre` — todo lo pendiente, en un solo documento
 
-**Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
+**Actualizado el 3 de octubre de 2026 (sesión 293): el hogar aprobó la quinta auditoría con las recomendaciones del Claude (§14).** **Sesión 294 (mismo día): sexta auditoría propuesta, sin aprobar (§15)** — 45 propuestas nuevas, crítica del artefacto de la Ola 2 y de la quinta, y 8 decisiones para el hogar. No cambia la cola activa hasta que el hogar decida. Creado el **2 de octubre de 2026 (sesión 292)**, a petición del hogar: «cierra y fusiona todo lo pendiente de los backlogs que tenemos en uno único».
 **Es la única fuente viva de lo que falta por hacer.** Los demás `BACKLOG*.md` no se han borrado ni reescrito: conservan el detalle de por qué se hizo cada cosa
 y llevan un aviso en su cabecera que apunta aquí. Mapa de todos ellos: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26:
 `BACKLOG_STATUS.md` §0 (no cambia).
@@ -177,6 +177,7 @@ Límites declarados: da por hechos los reales registrados y no ve bajadas interm
 | Oleadas de septiembre, Operación, Sucesión, Optimización | `BACKLOG_ULTIMATE_SEPTIEMBRE*.md`, `BACKLOG_OPERACION.md`, `BACKLOG_SUCESION_Y_CONTINUIDAD.md`, `BACKLOG_OPTIMIZACION.md` |
 | **Quinta auditoría: porqué de cada propuesta (59), diagnóstico, descartadas y decisiones** | `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` |
 | **Plan de implementación: paquetes WP-01…WP-22, enfoque técnico, pruebas, trampas, calendario y riesgos** | `docs/PLAN_IMPLEMENTACION_2026-10-03.md` |
+| **Sexta auditoría (propuesta, sin aprobar): 45 propuestas nuevas, crítica de la quinta y del artefacto, gobierno por minutos del operador** | `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` |
 | Registro sesión a sesión | `PROJECT_STATE.md` |
 
 ## 14. Cola aprobada de la quinta auditoría (3 de octubre de 2026, sesión 293)
@@ -236,3 +237,28 @@ Tiempo hasta la verdad de quien consulta ≤ 15 s y la misma cifra · actualizar
 ### 14.6 Corrección registrada
 En la primera versión de la propuesta se dio por existente una edición parcial de posiciones de cartera (confundiendo `applyFundTransfer`). **No existe:** una posición solo se puede añadir, borrar, traspasar de fondo a fondo o marcar como revisada; **no se puede actualizar su valor sin borrarla y recrearla.** Por eso `NIN-02` sube a prioridad crítica y pasa al tramo B (el mismo hueco figuraba ya en la nota de `I12`, `BACKLOG_CONTABILIDADCASA_2_0.md`).
 
+## 15. Sexta auditoría — propuesta pendiente de decisión (3 de octubre de 2026, sesión 294)
+
+**Estado: propuesta, no aprobada.** Nada de esta sección entra en §14 hasta que el hogar conteste las decisiones S1-S8. Detalle y porqué: [`docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md`](docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md).
+
+**Hallazgos nuevos (de las respuestas guardadas en el artefacto de la Ola 2):** (1) las dos personas: «no hay uso intenso todavía» → falta una métrica de **adopción**; (2) la medición de 30/28/20 s se hizo con saldos de 5 días → **línea base contaminada**; (3) quien consulta usa un Plus/Pro Max → `NXP-03` no arregla la métrica de este hogar; (4) casi todas las respuestas coinciden con la opción recomendada → riesgo de **anclaje**; (5) quien opera «no siempre puede» → la cola de §14 le **añade** trabajo y ninguna pieza se lo quita de forma estructural.
+
+### 15.1 Decisiones que se piden al hogar
+
+| # | Pregunta | Recomendación de Claude |
+|---|---|---|
+| S1 | Presupuesto de ≤ 10 min/semana para quien opera como restricción del plan (GOV-01) | Sí |
+| S2 | Abrir CAP-02 + CAP-01 nivel 1 (URL de captura y Atajo de Apple Pay sin servidor) como excepción de la Ola 3 | Sí |
+| S3 | Campaña fiscal de fin de año (FIS-01) antes del 15/11 | Sí |
+| S4 | ¿Vivienda habitual comprada antes de 2013 con deducción? (dato) | Decide DAC-02 |
+| S5 | Asignación personal sin detalle (HOG-02) | Probar 3 meses |
+| S6 | Atajo de Siri con enlace caducable de una sola cifra (UXS-01) | Sí, tras revisión de privacidad |
+| S7 | Respuesta a ciegas en los artefactos de decisión (GOV-04) | Sí |
+| S8 | Medir Hoy solo con saldos del día (GOV-05) | Sí |
+
+### 15.2 Los 8 recomendados para 90 días (si se aprueban)
+UXS-03 + UXS-04 (ampliando WP-02/WP-03) · CAP-02 + CAP-01 n1 · **FIS-01 (antes del 15/11)** · DAC-05 · CAP-06 · UXS-01 (experimento) · PRV-05 (tramo B) · CAR-01 (tramo C, antes de WP-17).
+Cambios propuestos a §14: WP-05 compara PSD2 con CAP-01/CAP-03; WP-08 se prerrellena desde A16-3 y CAP-06; WP-02 solo vale con saldos ≤ 1 día; `NXP-03` pasa a catálogo; `NHG-05` (carta del mes) encabeza el tramo E; antes de archivar `P4`/`GOB5` el 30/11, valorar el correo (UXS-02).
+
+### 15.3 Catálogo de la sexta (no activado)
+CAP-01…CAP-10 · PRV-01…PRV-08 · CAR-01…CAR-06 · DAC-01…DAC-05 · DNU-01…DNU-03 · FIS-01…FIS-03 · UXS-01…UXS-06 · HOG-01…HOG-04. Reglas de gobierno GOV-01…GOV-06 (no son funcionalidades).
