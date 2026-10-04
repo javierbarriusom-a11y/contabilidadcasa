@@ -109,6 +109,49 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, séptimo PR): WP-09 cierre con saldo y mes anterior (C2)
+
+- **Hallazgo previo y decisión del hogar (4/10).** Firmar el cierre exige la sesión de la nube: sin ella, «Firmar cierre» está desactivado. El hogar confirma que **sí** inicia sesión, así que se sigue el plan sin tocar el RPC `close_finance_month` ni el registro del cierre.
+- **`canonical-month-close-balances.js`** (puro):
+  - `closeTarget`: del 1 al 3 se cierra el mes que acaba; desde el 4, el mes en curso. Se puede cambiar al otro mes mientras no esté firmado, y siempre se puede volver al mes por defecto;
+  - `isGraceMonth`;
+  - `buildEntry`: saldo por cuenta, fecha, días respecto al fin de mes, y si son calculados;
+  - `recordEntry`: idempotente al reabrir y volver a cerrar, con número de revisión;
+  - `continuity`: saldo anterior + movimientos del banco en (D1, D2] = saldo de cierre. Los tickets y las capturas rápidas no entran. Avisa, no bloquea, y dice «no se puede cuadrar» en vez de comparar contra cero.
+- **`app.js`** (+23 líneas, 37.363 de 37.495):
+  - el cierre comprueba que el mes esté **firmado**, no «implícitamente cerrado», y guarda los saldos **solo tras el RPC**. El almacén `month-close-balances` está en `BACKUP_LOCAL_STORES`;
+  - **`isClosedMonthKey`**: del 1 al 3, el mes anterior sin firmar está **abierto**. Sin esto, la app proponía cerrar octubre sin dejar corregir sus reales.
+- **Medido en Chromium con el reloj fijado:**
+
+  | Fecha | Hoy, Previsión y Registrar | Cuadro de mandos |
+  |---|---|---|
+  | 2/11 | Idénticos a `main` | Empieza en octubre y no lo marca «cerrado» |
+  | 5/11 | Idénticos | Idéntico |
+- **`views/cierre.js`:**
+  - mes que se cierra, con botón para cambiarlo. La elección caduca al cambiar de día y no arrastra las elecciones de sobres;
+  - «Saldos que se guardarán» con el cuadre, y los saldos del mes cerrado;
+  - «Reabrir mes» reabre el mes que se ve en pantalla.
+
+  Conciliación y la pantalla heredada siguen cerrando el mes en curso, que es el que rotulan.
+- **Revisión adversarial antes de fusionar**, como pide el plan para una operación firmada:
+  - 0 bloqueos y 7 puntos a corregir: el mes anterior quedaba en solo lectura, rótulos de Conciliación, la reapertura del mes en pantalla, la elección que se arrastraba, sobres, cuadres falsos con tickets, y una prueba con sustitutos;
+  - además, detalles menores: fechas invertidas, el efectivo mediante `efectivoBalanceValue()` y que los saldos de una copia sean números.
+
+  **Todos corregidos.** Queda a sabiendas: tras reabrir un mes, su entrada de saldos sigue sirviendo de «anterior» hasta que se vuelva a cerrar.
+- **Fallo previo corregido en el móvil:** a 393 px, el paso de firma aplastaba y cortaba la columna «Al firmar el cierre». Ahora se apila, y las tarjetas tienen margen interior (`design-tokens.css`; sello y 9 pruebas que lo fijan).
+- **Pruebas:** nueva `tests/npv3-cierre-con-saldo.test.cjs` (16 casos, con los motores reales de cierre y reapertura en un `vm`):
+  - mes objetivo, gracia, fechas, idempotencia y cuadre;
+  - octubre el 2/11 con el mismo RPC;
+  - **dos sesiones**: un puntero obsoleto no escribe saldos ni mueve el puntero;
+  - **reabrir y cerrar**: revisión 2;
+  - Conciliación y un clic;
+  - caducidad de la elección;
+  - `isClosedMonthKey`, comprobado que falla sin la regla de gracia.
+
+  Las pruebas de cierre y reapertura que ya había no se tocaron.
+- **Navegador (Chromium, 393 px, con la nube simulada):** cerrar septiembre → reabrir → volver a cerrar dejó `close_finance_month`, `reopen_finance_month` y `close_finance_month`, una sola entrada en revisión 2 y 0 errores.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5089/5089**; e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas).
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, sexto PR): WP-07 motor de fechas extraído a `canonical-timing.js`
 
 - **Qué se movió.** De `app.js` a `canonical-timing.js` (puro, `createTimingEngine(deps)`):

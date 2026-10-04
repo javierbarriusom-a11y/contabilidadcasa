@@ -3597,6 +3597,29 @@
   color: var(--e19-ink);
 }
 
+/* WP-09: a 393 px las dos columnas del paso de firma dejaban la segunda («Al firmar el cierre») aplastada y
+   cortada; en el móvil se apilan. Las tarjetas de ese paso, la de saldos y la del mes cerrado no recibían
+   margen interior (el texto quedaba pegado al borde). */
+@media (max-width: 860px) {
+  .e19-cierre .cierre-step3-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.e19-cierre .cierre-step3-layout > article.e19-card,
+.e19-cierre .cierre-balances-card,
+.e19-cierre #cierreClosedInfo {
+  padding: 18px;
+}
+
+.e19-cierre .cierre-balances-card {
+  margin-top: 18px;
+}
+
+.e19-cierre #cierreClosedInfo {
+  align-self: stretch;
+}
+
 .e19-cierre #cierreClosedState {
   display: flex;
   flex-direction: column;
