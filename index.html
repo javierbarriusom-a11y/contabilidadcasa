@@ -27,9 +27,9 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261004wp08a1" />
+    <link rel="stylesheet" href="styles.css?v=20261004wp11a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
-    <link rel="stylesheet" href="design-tokens.css?v=20261004wp09a1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20261004wp11a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -729,22 +729,22 @@
                       <tbody>
                         <tr>
                           <td class="account-balance-name">CaixaBank</td>
-                          <td><input id="registrarCaixaBalance" type="number" step="0.01" /><small data-registrar-delta="caixa"></small></td>
+                          <td><input id="registrarCaixaBalance" type="text" inputmode="decimal" autocomplete="off" data-amount-input aria-label="Saldo de CaixaBank" /><button type="button" class="amount-sign" data-amount-sign="registrarCaixaBalance" aria-label="Cambiar el signo del saldo de CaixaBank">±</button><small data-registrar-delta="caixa"></small></td>
                           <td>Cuenta de la que salen los recibos y contra la que se mide la reserva.</td>
                         </tr>
                         <tr>
                           <td class="account-balance-name">Mediolanum</td>
-                          <td><input id="registrarMediolanumBalance" type="number" step="0.01" /><small data-registrar-delta="mediolanum"></small></td>
+                          <td><input id="registrarMediolanumBalance" type="text" inputmode="decimal" autocomplete="off" data-amount-input aria-label="Saldo de Mediolanum" /><button type="button" class="amount-sign" data-amount-sign="registrarMediolanumBalance" aria-label="Cambiar el signo del saldo de Mediolanum">±</button><small data-registrar-delta="mediolanum"></small></td>
                           <td>Destino de los traspasos de ahorro.</td>
                         </tr>
                         <tr>
                           <td class="account-balance-name">Efectivo</td>
-                          <td><input id="registrarEfectivoBalance" type="number" step="0.01" /></td>
+                          <td><input id="registrarEfectivoBalance" type="text" inputmode="decimal" autocomplete="off" data-amount-input aria-label="Efectivo" /></td>
                           <td>Efectivo no tiene extracto que lo respalde: se guarda como referencia y no se suma al total de liquidez proyectada.</td>
                         </tr>
                         <tr class="account-balance-total-row">
                           <td class="account-balance-name">Total liquidez</td>
-                          <td><input id="registrarTotalBalance" type="number" step="0.01" readonly /></td>
+                          <td><input id="registrarTotalBalance" type="text" aria-label="Total liquidez" readonly /></td>
                           <td>La fecha sitúa el saldo dentro del calendario de cobros y pagos.</td>
                         </tr>
                       </tbody>
@@ -912,11 +912,11 @@
                       </label>
                       <label>
                         <span>Previsto</span>
-                        <input id="manualDataPlanned" type="number" step="0.01" placeholder="0,00" />
+                        <input id="manualDataPlanned" type="text" inputmode="decimal" autocomplete="off" data-amount-input placeholder="0,00" />
                       </label>
                       <label>
                         <span>Real / importe</span>
-                        <input id="manualDataActual" type="number" step="0.01" placeholder="0,00" />
+                        <input id="manualDataActual" type="text" inputmode="decimal" autocomplete="off" data-amount-input placeholder="0,00" />
                       </label>
                       <label class="manual-project-field">
                         <span>Duración proyecto</span>
@@ -7610,8 +7610,8 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261004wp08a1"></script>
-    <script defer src="ux-shell.js?v=20261003wp01a1"></script>
+    <script defer src="novedades.js?v=20261004wp11a1"></script>
+    <script defer src="ux-shell.js?v=20261004wp11a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
     <script defer src="usage-panel.js?v=20261003wp03a1"></script>

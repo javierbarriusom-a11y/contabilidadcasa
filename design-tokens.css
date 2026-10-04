@@ -472,7 +472,7 @@
   color: var(--e19-heading);
 }
 
-.e19-registrar .registrar-actuals-table input[type="number"] {
+.e19-registrar .registrar-actuals-table input[data-amount-input] {
   width: 108px;
   text-align: right;
   padding: 6px 10px;
@@ -494,7 +494,7 @@
   white-space: nowrap;
 }
 
-.e19-registrar .registrar-actuals-table input[type="number"]:disabled {
+.e19-registrar .registrar-actuals-table input[data-amount-input]:disabled {
   background: var(--e19-surface-sunken);
   color: var(--e19-faint);
 }
@@ -520,6 +520,79 @@
   font-weight: 700;
   color: var(--e19-heading);
   border-top: 2px solid var(--e19-border-strong);
+}
+
+/* WP-11: en el móvil la tabla medía 760 px y para escribir un real había que desplazarse en horizontal en
+   cada fila. Cada partida pasa a ser un bloque: bloque y concepto arriba, el campo «Real» a lo ancho y
+   debajo Previsto, Usado y Desviación con su rótulo (data-label) y el estado. */
+@media (max-width: 640px) {
+  .e19-registrar .registrar-actuals-table {
+    min-width: 0;
+  }
+
+  .e19-registrar .registrar-actuals-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .e19-registrar .registrar-actuals-table,
+  .e19-registrar .registrar-actuals-table tbody,
+  .e19-registrar .registrar-actuals-table tfoot {
+    display: block;
+  }
+
+  .e19-registrar .registrar-actuals-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    padding: 12px;
+    border-bottom: 1px solid var(--e19-border);
+  }
+
+  .e19-registrar .registrar-actuals-table td:nth-child(n) {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .e19-registrar .registrar-actuals-table td:nth-child(-n+2),
+  .e19-registrar .registrar-actuals-table td:nth-child(4) {
+    flex: 1 1 100%;
+  }
+
+  .e19-registrar .registrar-actuals-table td:nth-child(1) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--e19-text-xs);
+    color: var(--e19-muted);
+  }
+
+  .e19-registrar .registrar-actuals-table .registrar-actuals-select {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
+    margin: 0;
+  }
+
+  .e19-registrar .registrar-actuals-table td:empty {
+    display: none;
+  }
+
+  .e19-registrar .registrar-actuals-table td[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--e19-muted);
+    font-weight: 400;
+  }
+
+  .e19-registrar .registrar-actuals-table input[data-amount-input] {
+    width: 100%;
+  }
 }
 
 .e19-registrar .registrar-actuals-plan-link,
@@ -647,6 +720,32 @@
   gap: 10px;
   margin-left: auto;
   flex-wrap: wrap;
+}
+
+/* WP-11: en el móvil el pie de Registrar ocupaba más de media pantalla (454 de 852 px) y tapaba los
+   saldos que faltaban por escribir, con el teclado del iPhone abierto aún más. Ahí se queda en el resumen
+   y los dos botones; las cuatro cifras ya se ven en «Qué se recalcula al guardar», junto a los saldos. */
+@media (max-width: 640px) {
+  .e19-impact-bar.e19-registrar-impact {
+    z-index: 5;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .e19-impact-bar.e19-registrar-impact dl {
+    display: none;
+  }
+
+  .e19-registrar-impact-actions {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+
+  .e19-registrar-impact-actions .e19-btn {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
 }
 
 /* -------------------------------------------------------------------------------------------- */

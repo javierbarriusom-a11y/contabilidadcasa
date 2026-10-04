@@ -12324,3 +12324,100 @@ tbody tr:hover {
 .cargo-dia-sugerencia .cargo-dia-propuesta {
   min-height: 44px;
 }
+
+/* WP-11 (NXP-05): campo de importe de Registrar. Texto con teclado decimal; 16 px para que el iPhone no
+   amplíe la página al tocarlo; 44 px de alto; cifras alineadas. El estado de error lleva texto (title y
+   aria-invalid), no solo color. */
+input[data-amount-input] {
+  min-height: 44px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+input[data-amount-input][aria-invalid="true"] {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(196, 73, 69, 0.25);
+}
+
+.amount-sign {
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: 6px;
+  padding: 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+  vertical-align: top;
+}
+
+.amount-sign:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.account-balance-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.account-balance-table td:nth-child(2) input[data-amount-input] {
+  width: calc(100% - 50px);
+  max-width: 150px;
+}
+
+.account-balance-table td:nth-child(2) small[data-registrar-delta] {
+  white-space: normal;
+}
+
+/* En el móvil, cada cuenta es un bloque: nombre y campo a lo ancho, y debajo qué representa. Antes el
+   campo quedaba en ~55 px y el nombre se partía letra a letra («Cai xaB ank»). */
+@media (max-width: 640px) {
+  .account-balance-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .account-balance-table,
+  .account-balance-table tbody,
+  .account-balance-table tr,
+  .account-balance-table td:nth-child(n) {
+    display: block;
+    width: 100%;
+  }
+
+  .account-balance-table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .account-balance-table td {
+    padding: 4px 10px;
+    border-bottom: 0;
+  }
+
+  .account-balance-table td:nth-child(2) input[data-amount-input],
+  .account-balance-table td:nth-child(2) input[readonly] {
+    width: calc(100% - 50px);
+    max-width: none;
+  }
+
+  .account-balance-total-row td:nth-child(2) input[readonly] {
+    width: 100%;
+  }
+}
+
+.account-balance-total-row input[readonly] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-input-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: normal;
+}

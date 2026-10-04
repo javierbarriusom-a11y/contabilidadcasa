@@ -149,6 +149,15 @@ mira está acotado a los próximos 18 meses, no al final del modelo. Para el det
 Una recomendación con confianza baja indica falta de datos o histórico suficiente — no debe
 interpretarse como una certeza.
 
+### Escribir importes en Registrar
+
+Los saldos, los reales y el dato manual se escriben como en España: **1.234,56**, **1234,56** o
+**1.234** (mil doscientos treinta y cuatro). También se puede pegar **1.234,56 €** desde el banco. Al
+salir del campo se pone el separador de miles. En el iPhone sale el teclado numérico; como no tiene la
+tecla del menos, el botón **±** junto al saldo de cada cuenta cambia el signo. Si lo escrito no es un
+importe, el campo se marca en rojo, dice por qué debajo y **no se guarda**. Un real **vacío** significa
+«sin real» (la previsión usa el previsto); un **0** es un real de cero.
+
 ### Día de cargo de cada partida (Plan › Partidas)
 
 La previsión día a día pone cada gasto el día del mes en que se cobra. Si no lo sabe, lo estima el
