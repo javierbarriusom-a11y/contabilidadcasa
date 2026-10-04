@@ -124,7 +124,8 @@ test("lastActualForEntry · nunca mira meses iguales o posteriores al selecciona
 test("registrarActualsRowHtml · la sugerencia solo llega como placeholder, nunca como value — sin real propio, el input sigue vacío", () => {
   const source = extractFunction(app, "registrarActualsRowHtml");
   assert.match(source, /const suggestion = entry\.hasActual \? null : lastActualForEntry\(entry, month\);/);
-  assert.match(source, /value="\$\{entry\.hasActual \? entry\.actual : ""\}"/);
+  // WP-11: el real propio se muestra con formato es-ES («1.234,56»); sigue siendo el único que llega a `value`.
+  assert.match(source, /value="\$\{entry\.hasActual \? formatAmountField\(entry\.actual\) : ""\}"/);
   assert.match(source, /placeholder="\$\{escapeHtml\(placeholder\)\}"/);
 });
 

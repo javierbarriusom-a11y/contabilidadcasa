@@ -5,6 +5,7 @@
   if (root && typeof document !== "undefined" && typeof window !== "undefined") {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => api.mountReleaseInfo());
     else api.mountReleaseInfo();
+    api.mountAmountInputs(document);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function buildFinanceUxShell() {
   "use strict";
@@ -263,6 +264,123 @@
     });
   }
 
+  // --- WP-11 · campo de importe (NXP-05) ------------------------------------------------------
+  //
+  // `<input type="number">` en un iPhone en español no deja escribir «1.234,56», no pega «1.234,56 €» y
+  // muestra flechas que suman céntimos. Los campos de importe de Registrar pasan a `type="text"` con
+  // teclado decimal y `data-amount-input`; este lector entiende cómo escribe un hogar español, y al salir
+  // del campo se pone el separador de miles. Es un lector PROPIO: el `parseAmount` general de app.js lee
+  // también tipos y años de campos numéricos, donde «2.125» es 2,125 %, y no se toca.
+  //
+  // Vacío NO es cero: vacío = «sin dato» (un real vacío usa el previsto), «0» = cero de verdad.
+
+  const MINUS_SIGNS = /[\u2212\u2012\u2013\u2014\uFE63\uFF0D]/g;
+
+  /**
+   * Importe escrito o pegado → número; `null` si está vacío o no es un importe.
+   * «1.234,56», «1234,56», «1.234», «1 234,56 €», «-12,5», «−12,5», «1,234.56» (pegado de un sitio en inglés).
+   */
+  function parseAmountInput(value) {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    let text = String(value ?? "").replace(MINUS_SIGNS, "-").replace(/[\s\u00A0\u202F€]/g, "").replace(/^\+/, "");
+    if (!text) return null;
+    const negative = /^-/.test(text) || /-$/.test(text);
+    text = text.replace(/^-|-$/g, "");
+    text = text.replace(/^(\d+),$/, "$1"); // «12,» a medio escribir es 12
+    if (!/^\d[\d.,]*$/.test(text) || /[.,]$/.test(text)) return null;
+    const lastComma = text.lastIndexOf(",");
+    const lastDot = text.lastIndexOf(".");
+    let integer = text;
+    let decimals = "";
+    if (lastComma >= 0 && lastDot >= 0) {
+      // Los dos: el último es el decimal y el otro, el de miles («1.234,56» o «1,234.56»).
+      const decimalSep = lastComma > lastDot ? "," : ".";
+      const thousandsSep = decimalSep === "," ? "." : ",";
+      [integer, decimals] = [text.slice(0, text.lastIndexOf(decimalSep)), text.slice(text.lastIndexOf(decimalSep) + 1)];
+      if (integer.includes(decimalSep) || !new RegExp(`^\\d{1,3}(\\${thousandsSep}\\d{3})*$`).test(integer)) return null;
+      integer = integer.split(thousandsSep).join("");
+    } else if (lastComma >= 0) {
+      if (text.indexOf(",") !== lastComma) return null;
+      [integer, decimals] = text.split(",");
+    } else if (lastDot >= 0) {
+      // Solo puntos: «1.234» y «1.234.567» son miles (así se escribe en España); «12.5» o «12.50», decimal.
+      if (/^\d{1,3}(\.\d{3})+$/.test(text)) integer = text.split(".").join("");
+      else if (text.indexOf(".") === lastDot) [integer, decimals] = text.split(".");
+      else return null;
+    }
+    const number = Number(`${integer}.${decimals || "0"}`);
+    if (!Number.isFinite(number)) return null;
+    return negative && number !== 0 ? -number : number;
+  }
+
+  // Número → «1.234,56» (siempre dos decimales y separador de miles, también en «1.234»). Vacío si no hay número.
+  function formatAmountInput(value) {
+    if (value === "" || value === null || value === undefined) return "";
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+    const [integer, decimals] = Math.abs(number).toFixed(2).split(".");
+    return `${number < 0 && Number(Math.abs(number).toFixed(2)) !== 0 ? "-" : ""}${integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${decimals}`;
+  }
+
+  /** @param {{ value?: string }} input */
+  function readAmountInput(input) {
+    const text = String(input?.value ?? "").trim();
+    const value = parseAmountInput(text);
+    return { empty: text === "", value, invalid: text !== "" && value === null };
+  }
+
+  const AMOUNT_ERROR_TEXT = "No es un importe: escríbelo como 1.234,56. No se ha guardado.";
+  let amountErrorSeq = 0;
+
+  // Al salir del campo: con un importe válido, se reescribe con formato; si no, queda marcado y con el
+  // motivo a la vista debajo (texto, no solo el borde rojo), enlazado al campo con aria-describedby.
+  function normalizeAmountField(input) {
+    const { empty, value, invalid } = readAmountInput(input);
+    const doc = input.ownerDocument;
+    if (!input.id) input.id = `importe-${(amountErrorSeq += 1)}`;
+    const errorId = `${input.id}-error`;
+    const existing = doc?.getElementById(errorId);
+    if (invalid) {
+      input.setAttribute("aria-invalid", "true");
+      if (!existing && doc) {
+        const message = doc.createElement("small");
+        message.id = errorId;
+        message.className = "amount-input-error";
+        message.textContent = AMOUNT_ERROR_TEXT;
+        input.parentNode?.appendChild(message);
+      }
+      input.setAttribute("aria-describedby", errorId);
+      return;
+    }
+    input.removeAttribute("aria-invalid");
+    if (input.getAttribute("aria-describedby") === errorId) input.removeAttribute("aria-describedby");
+    existing?.remove();
+    if (!empty) input.value = formatAmountInput(value);
+  }
+
+  // Signo «−» explícito: el teclado decimal del iPhone no tiene la tecla del menos. Avisa como si se escribiera.
+  function toggleAmountSign(input) {
+    if (!input || input.readOnly || input.disabled) return;
+    const { value, empty } = readAmountInput(input);
+    if (empty || value === null || value === 0) return;
+    input.value = formatAmountInput(-value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  // Delegado en el documento: vale para los campos de index.html y para los que app.js pinta después.
+  function mountAmountInputs(doc) {
+    if (!doc?.addEventListener || doc.amountInputsMounted) return;
+    doc.amountInputsMounted = true;
+    doc.addEventListener("focusout", (event) => {
+      if (event.target?.matches?.("input[data-amount-input]")) normalizeAmountField(event.target);
+    });
+    doc.addEventListener("click", (event) => {
+      const button = event.target?.closest?.("[data-amount-sign]");
+      if (button) toggleAmountSign(doc.getElementById(button.dataset.amountSign));
+    });
+  }
+
   return {
     shouldRenderView,
     makeDocumentTitle,
@@ -278,5 +396,12 @@
     formatNovedadDate,
     validateNovedades,
     mountReleaseInfo,
+    parseAmountInput,
+    formatAmountInput,
+    readAmountInput,
+    normalizeAmountField,
+    toggleAmountSign,
+    mountAmountInputs,
+    AMOUNT_ERROR_TEXT,
   };
 });

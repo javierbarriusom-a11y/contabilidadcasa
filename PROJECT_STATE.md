@@ -109,6 +109,35 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, décimo PR): WP-11 campo de importe en Registrar
+
+- **Pedido por el hogar («sigue con wp-11»).** Fase 1 de NXP-05: los campos de importe de Registrar (saldo de CaixaBank, Mediolanum y efectivo; real de cada partida; previsto y real del dato manual).
+- **`ux-shell.js`, ayudante nuevo** (`data-amount-input`, delegado en el documento, sin listeners por campo):
+  - `parseAmountInput` entiende «1.234,56», «1.234» (miles, como se escribe en España), «1 234,56 €», «−12,5», «12,5-» y «1,234.56» (pegado de una web en inglés). Vacío o texto que no es importe da `null`, nunca 0;
+  - `formatAmountInput` escribe «1.234,56» al salir del campo, con separador de miles también en 4 cifras;
+  - con un texto inválido, el campo queda marcado (`aria-invalid`) y con el motivo **a la vista** debajo («No es un importe… No se ha guardado»), enlazado con `aria-describedby`;
+  - **botón «±»** en los saldos de las dos cuentas: el teclado decimal del iPhone no tiene la tecla del menos. Se deshabilita en «Auto por fecha». El efectivo no lo lleva, porque no puede ser negativo.
+- **Decisión técnica: no se toca `parseAmount` general.** También lee tipos y años de campos numéricos, donde el navegador escribe «2.125» para 2,125 %. Leerlo como miles habría multiplicado por mil un tipo de interés. El lector nuevo es solo para los campos de texto de importe; una prueba fija que `parseAmount("2.125")` sigue siendo 2,125.
+- **Trampa encontrada al leer el código:** Registrar copiaba el TEXTO del saldo a los campos numéricos heredados de Cuadro de mandos. Con «1.234,56», esos campos quedarían vacíos y el saldo pasaría a **0 €**. Ahora se copia el número, y un saldo inválido no se aplica.
+- **Fallo previo corregido (lo pedía el «hecho cuando»):** «1.234» escrito en un real o en el efectivo se guardaba como **1,234 €**.
+- **Fallos previos de móvil corregidos (en `main` también estaban):**
+  - la tabla de saldos dejaba el campo en ~55 px, con «CaixaBank» partido en «Cai xaB ank» y el saldo cortado («56» en vez de 5.610,00). Ahora, por debajo de 640 px, cada cuenta es un bloque con el campo a lo ancho;
+  - la tabla de reales medía 760 px y había que desplazarse en horizontal para cada real. Ahora cada partida es un bloque, con el real a lo ancho y Previsto, Usado y Desviación rotulados;
+  - **el pie «Impacto de la sesión» ocupaba 454 de 852 px** al cambiar un saldo y tapaba los demás, con nombres de cuenta pintados por encima. En el móvil se queda en el resumen y los dos botones (102 px); las cuatro cifras siguen en «Qué se recalcula al guardar».
+- **Accesibilidad:** los campos de saldo no tenían nombre accesible (axe, 4 violaciones `label` en `main`); ahora llevan `aria-label`. 16 px de letra (el iPhone no amplía la página al tocar) y 44 px de alto.
+- **`app.js`** (+14 líneas, 37.473 de 37.495): `parseAmountField` y `formatAmountField` (envoltorios del ayudante, con vuelta a `parseAmount` si falta), y los lectores de saldos, efectivo, reales y dato manual. **Vacío = sin real (usa el previsto); «0» = real cero**, sin cambios.
+- **Medido en Chromium a 393 y 1280 px:**
+  - «1.234» → 1.234 € y el campo muestra 1.234,00; ± → −1.234; «abc» no cambia el saldo y avisa;
+  - efectivo «1 500,5 €» → 1.500,50; un real pegado «1.234,56 €» → 1.234,56; «0» → 0; vacío → sin real; «12,5» con Intro → 12,50;
+  - sin desbordar en horizontal y sin errores de página.
+- **Pruebas:**
+  - nueva `tests/nxp5-campo-importe.test.cjs` (12 casos): lector, formato e ida y vuelta, vacío/cero/inválido, mensaje de error con un DOM mínimo, signo, los lectores de `app.js` en un `vm` (también la copia del número a los campos heredados), `parseAmount` sin cambios, marcado y estilos. Prueba de mutación: volver a `Number(input.value)`, volver a copiar el texto o quitar la regla de miles hace fallar 1-3 casos;
+  - **nueva prueba e2e** en `qa1-flujos-completos.spec.cjs`, a 390 y 1280 px, que corre en el CI.
+
+  Ajustadas sin relajar su intención: `r1-r4` y `r5` (sus entornos `vm` reciben el lector), `dex-oleada2-bloque1` (el real propio sigue siendo lo único que llega a `value`, ahora con formato) y los sellos de `styles.css` y `design-tokens.css`.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5125/5125**; e2e + axe **16/16**; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Fuera de alcance, sin tocar:** los ~230 `type="number"` restantes, fuera de Registrar (fase 2); el contraste de los rótulos verdes y de las cabeceras de la tabla de saldos (axe, previo); `money()` no pone separador de miles en 4 cifras («3000,00 €»).
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, noveno PR): WP-08 día de cargo por partida
 
 - **Pedido por el hogar («sigue con wp-08»)**, adelantado de la Ola 2. Es el paquete que baja el «100 % estimado» que medía WP-10.

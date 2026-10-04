@@ -378,3 +378,53 @@ test.describe("QA-1 · deshacer un lote importado desde Registrar", () => {
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-11 (NXP-05): el campo de importe de Registrar en un navegador real, a tamaño de iPhone y de escritorio.
+// Escribir o pegar como en España («1.234», «1.234,56 €»), vacío ≠ 0, un texto que no es importe no se
+// guarda y avisa con texto, y el signo «±» (el teclado decimal del iPhone no tiene la tecla del menos).
+test.describe("QA-1 · campo de importe de Registrar (WP-11)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`saldos y reales a ${viewport.width} px: «1.234», pegar «1.234,56 €», vacío ≠ 0, error con texto y signo`, async ({ page }) => {
+      const consoleErrors = [];
+      page.on("pageerror", (error) => consoleErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#registrar");
+      await expect(page.locator("#registrarCaixaBalance")).not.toHaveValue("");
+      await expect(page.locator("#registrarCaixaBalance")).toHaveAttribute("inputmode", "decimal");
+
+      await page.selectOption("#registrarBalanceMode", "manual");
+      await page.fill("#registrarCaixaBalance", "1.234");
+      await page.press("#registrarCaixaBalance", "Tab");
+      await expect.poll(() => page.evaluate(() => state.caixaBalance)).toBe(1234);
+      await expect(page.locator("#registrarCaixaBalance")).toHaveValue("1.234,00");
+
+      await page.$eval('[data-amount-sign="registrarCaixaBalance"]', (button) => button.click());
+      await expect.poll(() => page.evaluate(() => state.caixaBalance)).toBe(-1234);
+
+      await page.fill("#registrarCaixaBalance", "doce");
+      await page.press("#registrarCaixaBalance", "Tab");
+      await expect(page.locator("#registrarCaixaBalance")).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator("#registrarCaixaBalance-error")).toContainText("No es un importe");
+      expect(await page.evaluate(() => state.caixaBalance), "un texto que no es importe no cambia el saldo").toBe(-1234);
+
+      await page.click('[data-registrar-tab="actuals"]');
+      const input = page.locator("[data-registrar-actuals-actual]").first();
+      const key = await input.getAttribute("data-registrar-actuals-actual");
+      const kind = await input.getAttribute("data-registrar-actuals-kind");
+      const actual = () => page.evaluate(([k, kd]) => (Object.prototype.hasOwnProperty.call(actualsForKind(kd), k) ? actualsForKind(kd)[k] : "sin real"), [key, kind]);
+      const field = page.locator(`[data-registrar-actuals-actual="${key}"]`);
+      await field.fill("1.234,56 €");
+      await field.press("Tab");
+      await expect.poll(actual).toBe(1234.56);
+      await expect(field).toHaveValue("1.234,56");
+      await field.fill("0");
+      await field.press("Tab");
+      await expect.poll(actual, { message: "«0» es un real de cero" }).toBe(0);
+      await field.fill("");
+      await field.press("Tab");
+      await expect.poll(actual, { message: "vacío vuelve a «sin real» (usa el previsto), no es un cero" }).toBe("sin real");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

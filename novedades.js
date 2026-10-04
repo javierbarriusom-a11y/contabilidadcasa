@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp11",
+      fecha: "2026-10-04",
+      texto: "Registrar: los importes se escriben y pegan como en España (1.234,56 €), con botón ± para el signo y saldos legibles en el móvil.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-04-wp08",
       fecha: "2026-10-04",
       texto: "Plan › Partidas: indica qué día se cobra cada gasto y la previsión día a día lo pone ahí. Te propone el que ve en tus extractos.",

@@ -42,6 +42,8 @@ function extractFunction(name) {
 
 function sandboxWith(names, extra = {}) {
   const context = {
+    // WP-11: los campos de importe leen con el lector es-ES de ux-shell.js (parseAmountField en app.js).
+    parseAmountField: require("../ux-shell.js").parseAmountInput,
     money: (value) => `€${Number(value || 0).toFixed(2)}`,
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
     escenarioMotorMonthLabel: (value) => `mes-${value}`,

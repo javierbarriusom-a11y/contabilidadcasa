@@ -3970,7 +3970,9 @@ function saveEfectivoBalance(value) {
 function handleRegistrarEfectivoBalanceInput() {
   const input = qs("registrarEfectivoBalance");
   if (!input) return;
-  saveEfectivoBalance(parseAmount(input.value) ?? 0);
+  const amount = parseAmountField(input.value);
+  if (amount === null && input.value.trim()) return; // texto que no es un importe: no se guarda (el campo lo marca)
+  saveEfectivoBalance(amount ?? 0);
   renderAccountBalancePanels();
 }
 
@@ -5523,6 +5525,11 @@ function parseAmount(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+// WP-11 (NXP-05): campos de importe de Registrar (`data-amount-input`: texto con teclado decimal). Lector y formato
+// es-ES de ux-shell.js, que entienden «1.234,56 €»; `parseAmount` (tipos, años, campos numéricos) no se toca.
+function parseAmountField(value) { return globalThis.FinanceUxShell?.parseAmountInput ? globalThis.FinanceUxShell.parseAmountInput(value) : parseAmount(value); }
+function formatAmountField(value) { return globalThis.FinanceUxShell?.formatAmountInput ? globalThis.FinanceUxShell.formatAmountInput(value) : String(value ?? ""); }
+
 function amountInputValue(value) {
   if (value === "" || value === null || value === undefined) return "";
   const number = Number(value);
@@ -6675,6 +6682,7 @@ function updateBalanceModeUi() {
     if (!input) return;
     input.readOnly = auto;
     input.classList.toggle("derived-control", auto);
+    document.querySelector(`[data-amount-sign="${id}"]`)?.toggleAttribute("disabled", auto);
   });
   ["balanceDate", "registrarBalanceDate"].forEach((id) => {
     const input = qs(id);
@@ -6800,10 +6808,10 @@ function renderAccountBalancePanels() {
   // estado, no una segunda puerta de escritura (regla transversal 01).
   if (qs("registrarBalanceDate")) qs("registrarBalanceDate").value = state.balanceDate || defaultBalanceDate();
   if (qs("registrarBalanceMode")) qs("registrarBalanceMode").value = mode;
-  if (qs("registrarCaixaBalance")) qs("registrarCaixaBalance").value = balances.caixa.toFixed(2);
-  if (qs("registrarMediolanumBalance")) qs("registrarMediolanumBalance").value = balances.mediolanum.toFixed(2);
-  if (qs("registrarEfectivoBalance")) qs("registrarEfectivoBalance").value = efectivoBalanceValue().toFixed(2);
-  if (qs("registrarTotalBalance")) qs("registrarTotalBalance").value = balances.total.toFixed(2);
+  if (qs("registrarCaixaBalance")) qs("registrarCaixaBalance").value = formatAmountField(balances.caixa);
+  if (qs("registrarMediolanumBalance")) qs("registrarMediolanumBalance").value = formatAmountField(balances.mediolanum);
+  if (qs("registrarEfectivoBalance")) qs("registrarEfectivoBalance").value = formatAmountField(efectivoBalanceValue());
+  if (qs("registrarTotalBalance")) qs("registrarTotalBalance").value = formatAmountField(balances.total);
   if (qs("registrarBalanceDateLabel")) qs("registrarBalanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("registrarBalanceSource")) {
     qs("registrarBalanceSource").textContent = mode === "manual"
@@ -6898,8 +6906,11 @@ function handleRegistrarBalanceControlChange() {
 function handleRegistrarAccountBalanceInput() {
   if (!state) return;
   const before = accountBalancesFromState();
-  if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = qs("registrarCaixaBalance")?.value ?? "";
-  if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = qs("registrarMediolanumBalance")?.value ?? "";
+  // WP-11: se copia el NÚMERO; el texto «1.234,56» en un campo numérico quedaría vacío y el saldo pasaría a 0 €.
+  const [caixa, mediolanum] = ["registrarCaixaBalance", "registrarMediolanumBalance"].map((id) => parseAmountField(qs(id)?.value));
+  if (caixa === null || mediolanum === null) return;
+  if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = String(caixa);
+  if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = String(mediolanum);
   applyVisualAccountBalanceInput();
   registrarRecordBalanceChanges(before);
   resetRegistrarBalanceBaseline();
@@ -26189,8 +26200,8 @@ function handleManualData() {
     month: qs("manualDataMonth").value,
     sectionName: qs("manualDataSection").value,
     label: qs("manualDataLabel").value,
-    planned: qs("manualDataPlanned").value,
-    actual: qs("manualDataActual").value,
+    planned: parseAmountField(qs("manualDataPlanned").value) ?? "",
+    actual: parseAmountField(qs("manualDataActual").value) ?? "",
     duration: qs("manualProjectDuration").value,
     mode: qs("manualProjectMode").value,
   };
@@ -33540,15 +33551,15 @@ function lastActualForEntry(entry, month) {
 function registrarActualsRowHtml(entry, monthClosed, month) {
   const status = registrarActualsStatus(entry);
   const suggestion = entry.hasActual ? null : lastActualForEntry(entry, month);
-  const placeholder = suggestion ? suggestion.amount.toFixed(2) : "sin real";
+  const placeholder = suggestion ? formatAmountField(suggestion.amount) : "sin real";
   const titleAttr = suggestion ? ` title="Sugerido: último real registrado, ${escapeHtml(money(suggestion.amount, true))} en ${escapeHtml(suggestion.monthLabel)}"` : "";
   return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
     <td>${!entry.hasActual && !monthClosed ? `<input type="checkbox" class="registrar-actuals-select" data-registrar-actuals-select="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Seleccionar ${escapeHtml(entry.label)}"${registrarActualsSelectedKeys.has(entry.key) ? " checked" : ""} />` : ""}${escapeHtml(entry.sectionName)}</td>
     <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
-    <td>${money(entry.planned, true)}</td>
-    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
-    <td><strong>${money(entry.used, true)}</strong></td>
-    <td class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+    <td data-label="Previsto">${money(entry.planned, true)}</td>
+    <td><input type="text" inputmode="decimal" autocomplete="off" data-amount-input data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? formatAmountField(entry.actual) : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
+    <td data-label="Usado"><strong>${money(entry.used, true)}</strong></td>
+    <td data-label="Desviación" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
     <td><span class="status-pill ${status.tone}">${escapeHtml(status.label)}</span></td>
   </tr>`;
 }
@@ -33596,10 +33607,10 @@ function renderRegistrarActuals() {
   if (qs("registrarActualsTotals")) {
     qs("registrarActualsTotals").innerHTML = `<tr class="registrar-actuals-totals-row">
       <td colspan="2">Total (${totals.captured}/${totals.lines} con real)</td>
-      <td>${money(totals.planned, true)}</td>
+      <td data-label="Previsto">${money(totals.planned, true)}</td>
       <td></td>
-      <td><strong>${money(totals.used, true)}</strong></td>
-      <td>${totals.captured ? registrarMesSignedMoney(totals.variance) : "—"}</td>
+      <td data-label="Usado"><strong>${money(totals.used, true)}</strong></td>
+      <td data-label="Desviación">${totals.captured ? registrarMesSignedMoney(totals.variance) : "—"}</td>
       <td></td>
     </tr>`;
   }
@@ -33613,8 +33624,11 @@ function handleRegistrarActualsChange(input) {
   if (!kind || !key) return;
   const actuals = actualsForKind(kind);
   const previous = Object.prototype.hasOwnProperty.call(actuals, key) ? actuals[key] : null;
-  if (input.value === "") delete actuals[key];
-  else actuals[key] = Number(input.value);
+  // Vacío = sin real (usa el previsto); «0» = real cero. Un texto que no es importe no se guarda.
+  const amount = parseAmountField(input.value);
+  if (amount === null && input.value.trim()) return;
+  if (amount === null) delete actuals[key];
+  else actuals[key] = amount;
   const next = Object.prototype.hasOwnProperty.call(actuals, key) ? actuals[key] : null;
   if (next !== previous) registrarRecordSessionChange({ kind: "actual", actualsKind: kind, key, previous });
   saveActualsForKind(kind)();
@@ -33723,9 +33737,9 @@ function renderRegistrarBalanceDelta() {
   if (!registrarBalanceBaseline) return;
   const caixaEl = document.querySelector('[data-registrar-delta="caixa"]');
   const mediolanumEl = document.querySelector('[data-registrar-delta="mediolanum"]');
-  if (caixaEl) caixaEl.textContent = registrarDeltaText(parseAmount(qs("registrarCaixaBalance")?.value), registrarBalanceBaseline.caixa);
+  if (caixaEl) caixaEl.textContent = registrarDeltaText(parseAmountField(qs("registrarCaixaBalance")?.value), registrarBalanceBaseline.caixa);
   if (mediolanumEl) {
-    mediolanumEl.textContent = registrarDeltaText(parseAmount(qs("registrarMediolanumBalance")?.value), registrarBalanceBaseline.mediolanum);
+    mediolanumEl.textContent = registrarDeltaText(parseAmountField(qs("registrarMediolanumBalance")?.value), registrarBalanceBaseline.mediolanum);
   }
 }
 
