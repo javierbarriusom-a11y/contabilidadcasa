@@ -109,6 +109,29 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, octavo PR): WP-10 medidor de calidad de la previsión
+
+- **`canonical-forecast-quality.js`** (puro), con tres barras ponderadas por importe:
+  - **fechas del gasto** con día conocido (indicado por el hogar, observado en un movimiento o por regla de la casa) frente al estimado (día 8), sobre los meses del horizonte. Objetivo M-RESOL ≥ 70 %;
+  - **gasto del mes en curso** con real o cancelado;
+  - **ingresos del mes** confirmados.
+
+  Sin filas, «sin datos» (nunca 0 %); sin importes; estado con texto, no solo color; un `<meter>` accesible y «Para subirla: …» con enlace a Registrar.
+- **Dónde:** Plan › Previsión (**no Hoy**), tarjeta **plegada** bajo la franja de saldos para no empujar la cifra en el móvil. El resumen dice «Calidad de los datos: X % del gasto con día conocido (objetivo ≥ 70 %)».
+- **De dónde salen los datos:** las fechas, del mismo desglose que el panel día a día (`planningBreakdownForForecastMonth`); los importes y los ingresos, de `forwardPlanningInfo` sobre el primer mes abierto, sin las partidas borradas. `app.js` +23 líneas (37.386 de 37.495).
+- **Fallo encontrado al probar:** las filas de la simulación no traen los `expenseEvents`, así que la primera versión decía «sin datos». Ahora se toman del desglose. **Con la demo: 0 % de días conocidos (estimado 100 %)**, que es exactamente el hallazgo que WP-08 debe bajar.
+- **Propuesto como tarea aparte:** la franja de saldos de Previsión corta las cifras a 393 px (fallo previo, no de este paquete).
+- **Pruebas:** nueva `tests/npv8-calidad-prevision.test.cjs` (8 casos):
+  - porcentajes con casos conocidos, ponderación, redondeo y confianza desconocida;
+  - «sin datos» con 0 filas;
+  - real o cancelado frente a pendiente;
+  - tarjeta sin importes;
+  - recogida de `app.js` en un `vm`;
+  - registro (no en Hoy).
+
+  Además, `arq3` 74 → 75 y el sello de `styles.css` (`t8`, `e17`).
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5097/5097**; e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas). Comprobado en Chromium a 393 px, plegado y desplegado, sin errores de página.
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, séptimo PR): WP-09 cierre con saldo y mes anterior (C2)
 
 - **Hallazgo previo y decisión del hogar (4/10).** Firmar el cierre exige la sesión de la nube: sin ella, «Firmar cierre» está desactivado. El hogar confirma que **sí** inicia sesión, así que se sigue el plan sin tocar el RPC `close_finance_month` ni el registro del cierre.

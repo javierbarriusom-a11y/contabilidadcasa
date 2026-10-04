@@ -110,6 +110,7 @@ const files = [
   "canonical-charge-day-viability.js",
   "canonical-timing.js",
   "canonical-month-close-balances.js",
+  "canonical-forecast-quality.js",
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",

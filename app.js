@@ -22580,6 +22580,28 @@ function renderPrevisionReliabilityBadge() {
   box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} mes(es) conciliado(s) con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
 }
 
+// WP-10 (NPV-08): calidad de los datos de la previsión (canonical-forecast-quality.js). Fechas: los
+// expenseEvents del horizonte, del mismo desglose que el panel día a día (previsionProjectedEntriesForItem). Importes e ingresos: el estado
+// real/pendiente/cancelado de cada partida del primer mes abierto.
+function forecastQualityInput(items) {
+  const first = items[0];
+  const month = first ? planningMonthForDate(addMonths(modelStartDate(), first.index), first.index) : null;
+  const rowsOf = (kind) => (month ? planningSectionsForMonth(kind, month).flatMap((section) => section.rows.filter((row) => !isPlanningRowDeleted(row, month, section.name)).map((row) => {
+    const info = forwardPlanningInfo(row, month);
+    return { planned: info.planned, status: info.status };
+  })) : []);
+  const dates = items.flatMap((item) => planningBreakdownForForecastMonth(item.index, addMonths(modelStartDate(), item.index)).expenseEvents || []);
+  return { monthKey: month?.key || "", dates, amounts: rowsOf("expense"), income: rowsOf("income") };
+}
+function renderPrevisionQuality(items) {
+  const box = qs("previsionCalidad");
+  const engine = window.FinanceCanonicalForecastQuality;
+  if (!box || !engine) return;
+  const quality = engine.measure(forecastQualityInput(items));
+  box.innerHTML = engine.renderHtml(quality);
+  if (qs("previsionCalidadResumen")) qs("previsionCalidadResumen").textContent = engine.summaryText(quality);
+}
+
 // PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): resumen agregado por periodo natural (trimestre/
 // semestre/año) — Previsión no tenía ningún concepto de periodo calendario hasta ahora, solo el
 // horizonte (cuántos meses hacia delante) y el mes elegido para el panel día a día. Reutiliza
@@ -22683,6 +22705,7 @@ function renderPrevision() {
   if (!qs("previsionMonthlyTable") || !lastSimulation.length) return;
   const items = previsionHorizonRows(previsionHorizonKey);
   renderPrevisionReliabilityBadge();
+  renderPrevisionQuality(items);
   renderPrevisionPeriodSummary();
   if (!items.length) {
     if (qs("previsionHeadline")) qs("previsionHeadline").textContent = "Sin meses abiertos en este horizonte";
