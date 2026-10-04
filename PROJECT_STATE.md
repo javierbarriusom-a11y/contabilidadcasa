@@ -109,6 +109,40 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299): cierre de la jornada y backlog al día
+
+- **Pedido por el hogar:** «cierre y actualizar backlog». No hay código nuevo: todo lo de la jornada ya está fusionado y desplegado.
+- **Fusionado en la jornada (5 paquetes, 6 PR):**
+
+  | Paquete | Qué | PR |
+  |---|---|---|
+  | WP-11 | campo de importe es-ES en Registrar | #445 |
+  | WP-25 | enlaces de registro prellenado | #446 |
+  | WP-24 | asignación personal | #447 |
+  | WP-26 · ND-01 | «Pulso de saldos» | #448 |
+  | WP-26 · ND-02 | el extracto actualiza el saldo | #449 |
+
+  En la sesión anterior, WP-08 (#444).
+- **Decisiones del hogar de hoy:**
+  1. **WP-24:** transferencia a una cuenta propia, sale del gasto variable, para los dos.
+  2. **WP-23 programado para la semana del 12/10** (límite: 1/11).
+  3. **WP-26 adelantado a WP-15.**
+- **Hallazgos que condicionan lo que viene:**
+  - **WP-25 → WP-30:** la ventana «Registrar gasto» crea una partida nueva, así que un pago ya previsto contaría dos veces. El hogar tiene que decidir cómo se anota un pago «a cuenta de una partida» antes de usar el Atajo de Apple Pay a diario.
+  - **Una sola fecha para los saldos de las dos cuentas:** al aplicar un extracto de una cuenta, o al escribir un saldo, la fecha pasa a valer para las dos. El «Pulso de saldos» lo mitiga diciendo qué cuenta falta. Separarla por cuenta tocaría el motor de previsión.
+  - **`app.js` en 37.487 de 37.495:** el código de pantalla nuevo va en scripts aparte cargados antes (`partidas-ui.js`, `registrar-ui.js`).
+- **Backlog al día (`BACKLOG_DEFINITIVO.md`):**
+  - §0: la Ola 1 queda construida salvo WP-23; además, de la Ola 2, WP-08 y WP-26. Siguiente: **WP-15**. WP-30 espera la decisión de arriba.
+  - §7: calendario corregido. Semana del 12/10, campaña fiscal; 16/10, Nielsen y `O-6`; antes del 1/11, alta de la asignación personal; **1-3/11, primer cierre con saldo (octubre)**, que el calendario ponía, por error, en diciembre.
+- **Pendiente del hogar** (nada de esto es código):
+  - **Antes del 16/10:** cronometrar una vez cómo actualiza hoy los saldos (línea base de WP-26) y los 3 intentos de la prueba de Hoy (WP-02).
+  - **Antes del 16/10:** la verificación de Enable Banking (`O-6`).
+  - **Días de cargo** (10-30 min, WP-08).
+  - **Antes del 1/11:** las dos fichas de la asignación personal y las transferencias con concepto fijo.
+  - **Semana del 12/10:** los datos fiscales, en el chat.
+- **Revisión mensual de Nielsen:** no está vencida (la última, el 16/9). Toca el 16/10.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5192/5192**.
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, decimocuarto PR): WP-26 · ND-02 el extracto actualiza el saldo
 
 - **Segunda mitad de WP-26.** Con ND-01 fusionado, **WP-26 queda hecho**.
