@@ -109,6 +109,32 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, sexto PR): WP-07 motor de fechas extraído a `canonical-timing.js`
+
+- **Qué se movió.** De `app.js` a `canonical-timing.js` (puro, `createTimingEngine(deps)`):
+  - `incomeTimingForRow`, `incomeTimingFromMovements` e `isMainPayrollIncomeRow`;
+  - `isEndOfMonthExpenseRow`, `expenseTimingFromMovements` y `expenseTimingForRow`.
+
+  Las utilidades de fecha y texto (`monthEndDate`, `lastBusinessDayOfMonth`, `shortDate`…) siguen en `app.js` y entran por inyección, igual que los movimientos importados, que se leen en cada llamada. En `app.js` quedan cuatro delegados de una línea con los mismos nombres, así que ninguna llamada cambia. El motor se crea al primer uso. `app.js` baja de 37.440 a **37.340** líneas (−100). El techo no se baja: el plan solo lo pide si se liberan más de 300.
+- **Sin cambio de comportamiento, en tres niveles:**
+  1. el original (`app.js` antes del cambio, en un `vm`) y el módulo, sobre **60.276 casos**:
+     - 36 meses, 17 etiquetas de ingreso y 14 de gasto, 9 importes;
+     - con y sin movimientos casables, y fechas vacías, inválidas o con hora;
+
+     resultado: **0 diferencias campo a campo**;
+  2. un oro de **493 casos**, que cubre todas las reglas, en `tests/fixtures/ntc1-timing-golden.json`. Los movimientos sintéticos y deterministas están en `ntc1-timing-transactions.cjs`;
+  3. **la app antigua y la nueva en Chromium**, con 24 meses de previsión de la demo:
+     - 192 eventos, sin movimientos, con movimientos que no casan y con 72 que sí casan: **idénticos**;
+     - texto de Hoy idéntico;
+     - 0 errores de página.
+
+  Aviso: `golden:datasets`, `golden:debt-cases` y `golden:combined-cases` se regeneraron sin diferencias, pero **no pasan por `app.js`**, así que no demuestran nada sobre este cambio. Lo demuestran los niveles 1 a 3.
+- **Pruebas:**
+  - nueva `tests/ntc1-motor-fechas.test.cjs` (7 casos): oro, cobertura de reglas, movimiento casado, lectura viva de los movimientos, pureza, delegación y registro. Comprobado que falla si se cambia una regla (Tere 25 → 24);
+  - `nomina-javi-ultimo-dia-natural` (el guardián de la nómina y de diciembre) lee las reglas del módulo, **con las mismas aserciones**. El recuento de `lastBusinessDayOfMonth(` se reparte: 1 en `app.js` (la definición) y 1 en el módulo (la regla del bonus);
+  - `arq3` pasa de 72 a 73.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5073/5073** (5066 + 7 nuevas); e2e + axe 14/14.
+
 ## Cierre de sesión — 3 de octubre de 2026 (299, quinto PR): WP-05 spike PSD2 y modelo de amenazas (NTC-06)
 
 - **Spike de conexión** (`docs/ND13_SPIKE_CONEXION.md`). Matriz que compara PSD2, Apple Pay + Atajos (CAP-01) y avisos del banco (CAP-03). Hechos comprobados el 3/10, con fuente:
