@@ -519,3 +519,50 @@ test.describe("QA-1 · asignación personal (WP-24)", () => {
     });
   }
 });
+
+// WP-26 (ND-01): «Pulso de saldos» en un navegador real. Con las dos cuentas respondidas («Coincide» o «Corregir»),
+// los saldos quedan con fecha de hoy y se puede deshacer; con una sola, dice cuál falta y no da los saldos por mirados.
+test.describe("QA-1 · pulso de saldos (WP-26)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`pulso a ${viewport.width} px: «Coincide», «Corregir», fecha de hoy y deshacer`, async ({ page }) => {
+      const consoleErrors = [];
+      page.on("pageerror", (error) => consoleErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#registrar");
+      const pulse = page.locator("#pulsoSaldos");
+      await expect(pulse).toContainText("Pulso de saldos");
+      if (await page.locator("[data-pulso-manual]").count()) await page.click("[data-pulso-manual]");
+      await page.evaluate(() => {
+        state.balanceDate = "2026-09-28";
+        ["balanceDate", "registrarBalanceDate"].forEach((id) => { qs(id).value = "2026-09-28"; });
+        saveBalanceSettings();
+        render();
+      });
+      const today = await page.evaluate(() => isoLocalDate(new Date()));
+      const before = await page.evaluate(() => accountBalancesFromState());
+
+      await page.click('[data-pulso-coincide="mediolanum"]');
+      await expect(pulse).toContainText("Falta confirmar CaixaBank");
+      await expect(page.locator("#pulsoSaldosEstado")).toHaveText("");
+      await page.click('[data-pulso-coincide="caixa"]');
+      await expect(page.locator("#pulsoSaldosEstado")).toContainText("Saldos al día · hoy");
+      expect(await page.evaluate(() => state.balanceDate)).toBe(today);
+      expect(await page.evaluate(() => accountBalancesFromState())).toEqual(before);
+
+      await page.$eval("#undoToast button", (button) => button.click());
+      await expect.poll(() => page.evaluate(() => state.balanceDate), { message: "deshacer devuelve la fecha anterior" }).toBe("2026-09-28");
+
+      await page.click('[data-pulso-corregir="caixa"]');
+      await expect(page.locator("#registrarCaixaBalance")).toBeFocused();
+      await page.fill("#registrarCaixaBalance", "4.321,50");
+      await page.press("#registrarCaixaBalance", "Tab");
+      await expect(pulse).toContainText("Corregido ✓");
+      await page.click('[data-pulso-coincide="mediolanum"]');
+      await expect(page.locator("#pulsoSaldosEstado")).toContainText("Saldos al día");
+      expect(await page.evaluate(() => accountBalancesFromState().caixa)).toBe(4321.5);
+      expect(await page.evaluate(() => FinanceBalancePulseUi.summary().count), "el tiempo queda medido para el panel de uso").toBe(2);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

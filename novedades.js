@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp26-pulso",
+      fecha: "2026-10-04",
+      texto: "Registrar › Saldos: «Pulso de saldos». Ves lo último que se sabe de cada cuenta y basta con «Coincide» o «Corregir».",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-04-wp24",
       fecha: "2026-10-04",
       texto: "Plan › Partidas: asignación personal para cada uno, sin detalle. Sale del gasto variable, así que el gasto total previsto no cambia.",
