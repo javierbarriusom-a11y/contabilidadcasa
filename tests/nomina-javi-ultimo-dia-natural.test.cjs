@@ -22,23 +22,25 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+// WP-07 (NTC-01): las reglas de fecha viven en canonical-timing.js; las utilidades de fecha y texto siguen en app.js
+// y se le inyectan, igual que en el navegador. Las aserciones de esta prueba no cambian.
+const timingModule = fs.readFileSync(path.join(root, "canonical-timing.js"), "utf8");
 
-function block(startMarker, endMarker) {
-  const start = app.indexOf(startMarker);
-  const end = app.indexOf(endMarker, start);
+function block(startMarker, endMarker, source = app) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start);
   assert.ok(start >= 0 && end > start, `No se encontró el bloque ${startMarker}`);
-  return app.slice(start, end);
+  return source.slice(start, end);
 }
 
 function loadSandbox() {
   const source = [
     block("function dateFromMonthKey", "function defaultBalanceDate"),
     block("function normalizedText", "function isCarPlanningRow"),
-    block("function isPrePayrollIncomeRow", "function incomeTimingFromMovements"),
-    block("function incomeTimingForRow", "function isEndOfMonthExpenseRow"),
     "function displayLabelForRow(row) { return row.label; }",
-    "function incomeTimingFromMovements() { return null; }",
-    "this.incomeTimingForRow = incomeTimingForRow;",
+    timingModule,
+    // Sin movimientos importados: equivale al antiguo `incomeTimingFromMovements() { return null; }`.
+    "this.incomeTimingForRow = FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => [] }).incomeTimingForRow;",
   ].join("\n");
   const sandbox = {};
   vm.createContext(sandbox);
@@ -101,11 +103,11 @@ test("los sitios que fechan la nómina usan el último día natural y solo el bo
   // S1 (sesión 286): el respaldo de la auditoría diaria se extrajo de app.js a canonical-daily-input.js.
   const dailyInput = fs.readFileSync(path.join(root, "canonical-daily-input.js"), "utf8");
   assert.match(dailyInput, /dailyAuditFallbackDate\(month\.monthKey, monthEndDate\(dateFromMonthKey\(month\.monthKey\)\)\.getDate\(\)\)/);
-  assert.match(app, /const day = monthEndDate\(date\)\.getDate\(\); \/\/ último día natural/);
-  // Solo quedan la definición y la regla del bonus de Javi (no la nómina).
-  const uses = app.match(/lastBusinessDayOfMonth\(/g) || [];
-  assert.equal(uses.length, 2, "definición + regla del bonus");
-  assert.match(app, /const day = date\.getMonth\(\) === 11 \? 15 : lastBusinessDayOfMonth\(date\)\.getDate\(\);/);
+  assert.match(timingModule, /const day = monthEndDate\(date\)\.getDate\(\); \/\/ último día natural/);
+  // Solo quedan la definición (app.js) y la regla del bonus de Javi (canonical-timing.js, WP-07), no la nómina.
+  assert.equal((app.match(/lastBusinessDayOfMonth\(/g) || []).length, 1, "definición");
+  assert.equal((timingModule.match(/lastBusinessDayOfMonth\(/g) || []).length, 1, "regla del bonus");
+  assert.match(timingModule, /const day = date\.getMonth\(\) === 11 \? 15 : lastBusinessDayOfMonth\(date\)\.getDate\(\);/);
 });
 
 test("la nómina de Javi de diciembre (3.400 €) cae el 31 y no el 15, aunque supere los 2.500 € de la regla de diciembre", () => {
@@ -151,7 +153,7 @@ test("Tere (día 25) y el local (día 1) no cambian en diciembre aunque superen 
 });
 
 test("en incomeTimingForRow la regla de la nómina de Javi se evalúa antes que la de diciembre", () => {
-  const fn = block("function incomeTimingForRow", "function isEndOfMonthExpenseRow");
+  const fn = block("function incomeTimingForRow", "function isEndOfMonthExpenseRow", timingModule);
   const payroll = fn.indexOf("isMainPayrollIncomeRow(row)");
   const december = fn.indexOf("date.getMonth() === 11 && (label.includes(\"hacienda\")");
   assert.ok(payroll > 0 && december > 0, "no se encontraron las dos reglas");

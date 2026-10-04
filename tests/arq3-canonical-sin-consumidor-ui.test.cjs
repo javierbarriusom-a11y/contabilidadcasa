@@ -103,7 +103,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 69 → 70 (S3′, Ola 2): canonical-home-margin.js, con consumidor real (homeMarginTile) desde el primer día
 // 70 → 71 (WP-02, Ola 1 del plan definitivo): canonical-finding-test.js, con consumidor real (homeMarginTile calcula el texto B con él)
 // 71 → 72 (WP-04): canonical-charge-day-viability.js, con consumidor real (renderAjustesChargeDayViability)
+// 72 → 73 (WP-07): canonical-timing.js, con consumidor real (timingEngine() en app.js: previsión de ingresos y gastos)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 72 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 72);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 73 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 73);
 });
