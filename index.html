@@ -7467,6 +7467,8 @@
         <p class="panel-kicker">Registrar gasto</p>
         <h2 id="homeQuickExpenseTitle">Registrar gasto nuevo</h2>
         <p class="e19-kpi-note" id="homeQuickExpenseMonth"></p>
+        <!-- WP-25: solo cuando la ventana la abre un enlace de registro (#registrar?importe=…): de dónde viene y qué no se usó. -->
+        <p class="e19-kpi-note capture-link-note" id="homeQuickExpenseLinkNote" role="status" hidden></p>
         <label>
           <span>Concepto</span>
           <input id="homeQuickExpenseLabel" type="text" required placeholder="Ej. Supermercado, gasolina" />
@@ -7477,7 +7479,7 @@
         </label>
         <label>
           <span>Importe</span>
-          <input id="homeQuickExpenseAmount" type="number" step="0.01" min="0.01" required placeholder="0,00" />
+          <input id="homeQuickExpenseAmount" type="text" inputmode="decimal" autocomplete="off" data-amount-input required placeholder="0,00" />
         </label>
         <div class="dialog-actions">
           <button value="cancel" class="secondary" type="submit" formnovalidate>Cancelar</button>
@@ -7610,16 +7612,17 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261004wp11a1"></script>
-    <script defer src="ux-shell.js?v=20261004wp11a1"></script>
+    <script defer src="novedades.js?v=20261004wp25a1"></script>
+    <script defer src="ux-shell.js?v=20261004wp25a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
-    <script defer src="usage-panel.js?v=20261003wp03a1"></script>
+    <script defer src="usage-panel.js?v=20261004wp25a1"></script>
     <script defer src="canonical-charge-day-viability.js?v=20261004wp08a1"></script>
     <script defer src="canonical-timing.js?v=20261004wp08a1"></script>
     <script defer src="canonical-month-close-balances.js?v=20261004wp09a1"></script>
     <script defer src="canonical-forecast-quality.js?v=20261004wp08a1"></script>
     <script defer src="canonical-charge-days.js?v=20261004wp08a1"></script>
+    <script defer src="canonical-capture-link.js?v=20261004wp25a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>

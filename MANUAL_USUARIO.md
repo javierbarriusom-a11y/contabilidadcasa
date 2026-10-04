@@ -158,6 +158,47 @@ tecla del menos, el botón **±** junto al saldo de cada cuenta cambia el signo.
 importe, el campo se marca en rojo, dice por qué debajo y **no se guarda**. Un real **vacío** significa
 «sin real» (la previsión usa el previsto); un **0** es un real de cero.
 
+### Registrar un gasto desde un enlace o un Atajo del iPhone
+
+Un enlace con esta forma abre **Registrar gasto** con los campos ya rellenos (la primera parte es la
+dirección donde usas la app):
+
+`https://javierbarriusom-a11y.github.io/contabilidadcasa/#registrar?importe=23,40&concepto=Mercadona&fecha=hoy&cuenta=Caixa&origen=applepay`
+
+- **importe** (obligatorio para registrar): como en España, «23,40», «1.234,56» o «23,40 €».
+- **concepto** (o **comercio**): hasta 80 caracteres; si trae «<» o «>», no se usa.
+- **fecha**: 2026-10-04, 04/10/2026, **hoy** o **ayer**. Sin fecha, es hoy. Elige el mes en el que se
+  registra si ese mes está abierto; si no, va al primer mes abierto y la ventana lo dice.
+- **cuenta** (o **tarjeta**) y **origen** (applepay, atajo, banco): solo informan de dónde viene.
+
+**Nunca se guarda solo**: el gasto no existe hasta que pulsas **Registrar**. Lo que el enlace trae mal
+no se descarta en silencio: la ventana dice qué no ha usado y por qué («importe no reconocido: "12,3,4"»).
+El enlace se borra de la barra de direcciones al abrirse.
+
+**Ojo, cuenta doble.** Esta ventana crea una **partida nueva** con su real. Úsala para gastos que no
+estaban en el plan. Un pago que ya está dentro de una partida (súper, gasolina) se anota en **Registrar ›
+Reales del mes**; si lo registras aquí, contará dos veces.
+
+**Atajo de Apple Pay (iOS 17 o posterior).** Los nombres de los menús pueden variar algo según la
+versión de iOS: compruébalo con un pago pequeño.
+
+1. **Atajos › Automatización › Nueva automatización › Transacción.** Elige tus tarjetas de Wallet y
+   **Ejecutar después de confirmar** (empieza así; «inmediatamente» cuando te fíes).
+2. Acción **Texto**: escribe la dirección de arriba hasta `importe=` e inserta las variables de la
+   transacción: `…#registrar?importe=` *Importe* `&comercio=` *Comercio* `&tarjeta=` *Tarjeta* `&fecha=hoy&origen=applepay`.
+   Pasa antes cada variable por **Codificar URL**: un espacio o un «&» en el comercio o en «23,40 €»
+   partirían el enlace.
+3. Acción **Abrir URL** con ese texto.
+
+**Antes de usarlo a diario, dos comprobaciones:**
+
+- **Dónde se abre.** Un Atajo abre los enlaces en **Safari**, no en la app de la pantalla de inicio, y
+  Safari guarda sus datos aparte. Si usas la app desde la pantalla de inicio, inicia sesión también en
+  Safari y espera a ver **Sincronizado** antes de registrar; si no, el gasto se queda en Safari.
+- **Qué registra.** Apple Pay solo ve los pagos con el móvil o el reloj (no la tarjeta física, ni los
+  recibos, ni las transferencias). Y por lo de la cuenta doble, de momento sirve para gastos fuera del
+  plan; la hoja de captura de WP-30 decidirá cómo se anota un pago a cuenta de una partida.
+
 ### Día de cargo de cada partida (Plan › Partidas)
 
 La previsión día a día pone cada gasto el día del mes en que se cobra. Si no lo sabe, lo estima el

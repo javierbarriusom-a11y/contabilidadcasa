@@ -428,3 +428,47 @@ test.describe("QA-1 · campo de importe de Registrar (WP-11)", () => {
     });
   }
 });
+
+// WP-25 (CAP-02): un enlace de registro prellenado en un navegador real. Abre «Registrar gasto» relleno al
+// cargar la app y al cambiar el «#» con la app abierta, se borra de la barra de direcciones, nunca guarda sin el
+// toque en «Registrar», dice lo que no ha usado y un importe ilegible no cierra la ventana como si registrara.
+test.describe("QA-1 · enlace de registro prellenado (WP-25)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`enlace a ${viewport.width} px: rellena, no guarda solo, avisa de lo no usado y registra con un toque`, async ({ page }) => {
+      const consoleErrors = [];
+      page.on("pageerror", (error) => consoleErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#registrar?importe=1.234,56&concepto=Prueba%20enlace&fecha=hoy&cuenta=Caixa&origen=applepay");
+      const dialog = page.locator("#homeQuickExpenseDialog");
+      await expect(dialog).toBeVisible();
+      await expect(page.locator("#homeQuickExpenseLabel")).toHaveValue("Prueba enlace");
+      await expect(page.locator("#homeQuickExpenseAmount")).toHaveValue("1.234,56");
+      await expect(page.locator("#homeQuickExpenseLinkNote")).toContainText("Apple Pay · cuenta Caixa");
+      await expect(page.locator("#homeQuickExpenseSubmit")).toBeFocused();
+      expect(await page.evaluate(() => location.hash), "el enlace sale de la barra de direcciones").toBe("#registrar");
+      const rows = () => page.evaluate(() => customPlanningRows.length);
+      const before = await rows();
+
+      await page.click("#homeQuickExpenseDialog button[value=cancel]");
+      await expect(dialog).toBeHidden();
+      expect(await rows(), "cancelar no guarda nada").toBe(before);
+
+      await page.evaluate(() => { location.hash = "#registrar?importe=12,3,4&concepto=%3Cb%3Ex%3C/b%3E"; });
+      await expect(dialog).toBeVisible();
+      await expect(page.locator("#homeQuickExpenseLinkNote")).toContainText("importe no reconocido: «12,3,4»");
+      await expect(page.locator("#homeQuickExpenseLinkNote")).toContainText("concepto con caracteres no permitidos");
+      await expect(page.locator("#homeQuickExpenseLabel")).toHaveValue("");
+      await page.fill("#homeQuickExpenseLabel", "Prueba enlace");
+      await page.fill("#homeQuickExpenseAmount", "abc");
+      await page.click("#homeQuickExpenseSubmit");
+      await expect(dialog, "un importe ilegible no cierra la ventana").toBeVisible();
+      expect(await rows()).toBe(before);
+      await page.fill("#homeQuickExpenseAmount", "23,40");
+      await page.click("#homeQuickExpenseSubmit");
+      await expect(dialog).toBeHidden();
+      expect(await rows(), "un toque en «Registrar» crea la partida").toBe(before + 1);
+      expect(await page.evaluate(() => customPlanningRows.at(-1).plannedValue)).toBe(23.4);
+      expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

@@ -113,6 +113,7 @@ const SHELL_URLS = [
   "./canonical-month-close-balances.js",
   "./canonical-forecast-quality.js",
   "./canonical-charge-days.js",
+  "./canonical-capture-link.js",
   "./p2-domain.js",
   "./p2-private-store.js",
   "./p2-export.js",

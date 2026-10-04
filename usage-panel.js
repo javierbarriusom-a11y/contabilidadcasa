@@ -16,8 +16,9 @@
   // que el hogar declara por semana. Ningún importe, ningún movimiento.
   //
   // Lo que todavía no se puede medir se dice, no se inventa: el «% del gasto registrado en < 48 h»
-  // necesita la fecha en la que se registra cada gasto, que la app no guarda hoy (llega con la captura,
-  // WP-25/WP-30), y «decisiones registradas» necesita acordar qué cuenta como decisión.
+  // necesita la fecha en la que se registra cada gasto, que la app no guarda hoy, y «decisiones registradas»
+  // necesita acordar qué cuenta como decisión. Los enlaces de WP-25 no lo resuelven: registran en el momento del
+  // pago por construcción (saldría ~100 % sin medir nada); la medida honesta cruza lo registrado con el extracto (WP-53).
 
   const USAGE_DAYS_KEY = "usage-days";
   const KEEP_DAYS = 180;
@@ -241,7 +242,7 @@
       const a = findingSummary.A;
       rows.push(metricRow("Segundos hasta la cifra de Hoy", a.medianSeconds === null ? "—" : `${formatNumber(a.medianSeconds)} s`, "≤ 15 s", findingSummary.baselineReady ? findingSummary.meetsTarget : null, `Mediana de la prueba de 30 segundos: ${a.valid} de ${findingSummary.baselineAttempts} intentos válidos para la línea base.`));
     }
-    rows.push(metricRow("Gasto registrado en menos de 48 h", "—", "—", null, "Sin medir: la app no guarda cuándo registras cada gasto. Llega con la captura de gastos (WP-25/WP-30).", "Sin medir"));
+    rows.push(metricRow("Gasto registrado en menos de 48 h", "—", "—", null, "Sin medir: la app no guarda cuándo registras cada gasto. Los enlaces (WP-25) registran al pagar; la medida real cruza lo registrado con el extracto (WP-53).", "Sin medir"));
     rows.push(metricRow("Decisiones registradas", "—", "—", null, "Sin medir: falta acordar qué cuenta como decisión.", "Sin medir"));
     return rows.join("");
   }

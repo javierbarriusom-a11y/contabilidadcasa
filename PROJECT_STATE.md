@@ -109,6 +109,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, undécimo PR): WP-25 enlaces de registro prellenado
+
+- **Pedido por el hogar («sigue con wp-25»).** CAP-02 y la plantilla del nivel 1 de CAP-01: `…/#registrar?importe=&concepto=&fecha=&cuenta=&origen=` abre la ventana **«Registrar gasto»** que ya existía (FLU-2) con los campos rellenos. **Nunca guarda solo:** un enlace lo puede fabricar cualquiera, así que el gasto no existe hasta el toque en «Registrar».
+- **`canonical-capture-link.js` (nuevo, puro, `FinanceCanonicalCaptureLink`):**
+  - lee el enlace y lo valida. El importe se lee con el lector de WP-11 («23,40 €», «1.234,56»); tiene que ser mayor que 0 y como mucho 100.000 €. La fecha admite ISO (también con hora), dd/mm/aaaa, d/m/aa, «hoy» y «ayer»; no puede ser futura ni de hace más de un año. El concepto, hasta 80 caracteres;
+  - **rechaza HTML**: un concepto o una cuenta con «<» o «>» no se usa. Además la ventana lo pinta con `value`/`textContent`, nunca como HTML. Un enlace de más de 2.000 caracteres no se lee;
+  - alias del Atajo de iOS: `comercio` = concepto y `tarjeta` = cuenta. Un origen desconocido queda como «enlace»;
+  - **lo que no vale no se tira en silencio**: vuelve como error citando lo recibido («importe no reconocido: «12,3,4»») y la ventana lo dice.
+- **`app.js`** (+21 líneas, **37.494 de 37.495**: el techo de ARQ-4 queda sin margen; el siguiente paquete con código en `app.js` tendrá que sacar algo antes):
+  - el enrutado ignora lo que va tras «?» (`viewFromHash`, `registrarTabFromHash`), así que `#registrar?…` abre Registrar y no Hoy. El resto de rutas no cambia (`#household-invite=` no lleva «?»);
+  - `openCaptureLinkFromHash()` decide el mes: el de la fecha, si está abierto; si no, el primer mes abierto, y la ventana lo dice. Propone el bloque con la regla de Movimientos para ese concepto (`mappingForMovement`) o, si no hay, el de gastos variables. Después **quita el enlace de la barra de direcciones**: no se repite al recargar ni deja el importe en el historial;
+  - se abre al cambiar el «#» con la app abierta, y al arrancar **después de cargar la nube y la página**. Así no se registra sobre un estado que la nube está a punto de reemplazar. Medido: abriendo la ventana antes de `load`, Chrome le quitaba el foco;
+  - la ventana: el importe pasa a **campo de texto con teclado decimal** (WP-11) y se lee con `parseAmountField`. Antes, `parseAmount` leía «1.234» como 1,23 € también aquí. Un importe que no se entiende **no cierra la ventana** como si se hubiera registrado; antes se cerraba sin guardar ni avisar. Con enlace, el foco va al primer dato que falta o a «Registrar», sin abrir el teclado.
+- **`ux-shell.js`, fallo de WP-11 encontrado al medir:** el aviso «No es un importe» se quitaba al salir del campo. Al tocar «Registrar», el botón subía bajo el dedo y el toque caía fuera: la ventana no se cerraba y no se registraba nada (medido a 390 px). Ahora el aviso se quita **al corregir** (evento `input`), no al salir.
+- **Riesgo de fondo, dicho en la ventana y en el manual:** «Registrar gasto» crea una **partida nueva** con su real. Un pago que ya está previsto en otra partida (súper, gasolina) contaría **dos veces**. El enlace sirve hoy para gastos fuera del plan. Anotar un pago **a cuenta** de una partida, sin rebajar la previsión del resto del mes, no existe en el modelo: lo tiene que decidir WP-30.
+- **Panel de uso (WP-03):** «Gasto registrado en menos de 48 h» sigue **sin medir**. Los enlaces registran en el momento del pago por construcción (saldría ~100 % sin medir nada); la medida honesta cruza lo registrado con el extracto (WP-53).
+- **Medido en Chromium a 390 y 1280 px:**
+  - el enlace completo abre la ventana con «Mercadona», 23,40, «Gastos variables» y la nota (Apple Pay · cuenta · fecha), y el «#» queda en `#registrar`;
+  - un toque en «Registrar» crea la partida (23,4); recargar no la vuelve a abrir;
+  - un enlace con «12,3,4», `<b>x</b>` y 31/02 abre la ventana vacía y con los tres motivos;
+  - «abc» no cierra la ventana y «1.234» guarda 1.234;
+  - el botón de Hoy, sin enlace, funciona como antes (sin nota y con el foco en el concepto);
+  - axe: solo el contraste del rótulo «Registrar gasto», que ya estaba en `main`.
+- **Pruebas:**
+  - nueva `tests/cap2-enlace-registro.test.cjs` (39 casos): **30 casos de contrato** (16 válidos, 10 malformados y 4 de inyección o enlace descomunal), errores con la cita, rutas que no son enlace, recorte a 80, construir y leer como inversos, la nota, la pureza del módulo y el enganche en `app.js` (no guarda solo) y en `index.html`. Pruebas de mutación: quitar el rechazo de «<», el de la fecha futura o el `split("?")` del enrutado hace fallar un caso cada una;
+  - un caso nuevo en `nxp5` (el aviso se quita al corregir) y una **prueba e2e nueva** en `qa1-flujos-completos.spec.cjs`, a 390 y 1280 px, que corre en el CI.
+
+  Ajustadas sin relajar: `flu2` (el entorno `vm` recibe el lector real, el botón llama sin argumentos, y dos casos nuevos: «1.234» son 1.234 € y «abc» no guarda) y `arq3` (76 → 77 motores, con consumidor real).
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5165/5165**; e2e + axe **18/18**; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Pendiente del hogar (no es código):** probar el Atajo con un pago pequeño (guía en `MANUAL_USUARIO.md`, «Registrar un gasto desde un enlace o un Atajo del iPhone»). **Ojo:** el Atajo abre Safari, no la app de la pantalla de inicio, y Safari guarda sus datos aparte. Hay que iniciar sesión también en Safari y ver «Sincronizado», o el gasto se queda allí.
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, décimo PR): WP-11 campo de importe en Registrar
 
 - **Pedido por el hogar («sigue con wp-11»).** Fase 1 de NXP-05: los campos de importe de Registrar (saldo de CaixaBank, Mediolanum y efectivo; real de cada partida; previsto y real del dato manual).
