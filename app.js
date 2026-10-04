@@ -6795,6 +6795,20 @@ function writeDerivedControls(rows) {
   });
 }
 
+// WP-26 (canonical-balance-pulse.js): lo último que se sabe de cada cuenta (el saldo declarado o el final del extracto,
+// el más reciente) y cuánto esperaba moverla la previsión desde entonces, para el «Pulso de saldos» (registrar-ui.js).
+function balancePulseAccounts() {
+  const engine = globalThis.FinanceCanonicalBalancePulse;
+  if (!engine || !state) return [];
+  const declared = accountBalancesFromState();
+  const declaredDate = state.balanceMode === "manual" ? state.balanceDate : "";
+  const today = isoLocalDate(new Date());
+  return engine.ACCOUNTS.map((account) => {
+    const known = engine.knownBalance({ declared: { value: declared[account.id], date: declaredDate }, statement: engine.statementFinalBalance(baseData?.transactions || [], account) });
+    return { id: account.id, label: account.label, known, planDelta: engine.planDelta(canonicalDailyEngineRuns.active?.rows, known.date, today, account.engineField) };
+  });
+}
+
 function renderAccountBalancePanels() {
   if (!state) return;
   const balances = accountBalancesFromState();
@@ -6848,6 +6862,7 @@ function renderAccountBalancePanels() {
       .join("");
   }
   updateBalanceModeUi();
+  renderBalancePulse(); // WP-26
 }
 
 // R-11: la auditoría del 15 de agosto encontró que `#visual-detail` (Cuadro de mandos) se había
@@ -33693,6 +33708,7 @@ function renderRegistrarTabs() {
   });
   const activeTab = REGISTRAR_TABS.find((tab) => tab.id === registrarActiveTab);
   if (qs("registrarCrumb")) qs("registrarCrumb").textContent = `Registrar › ${activeTab?.label || ""}`;
+  renderBalancePulse(); // WP-26: el reloj del pulso sabe en qué pestaña se está
 }
 
 function renderRegistrarHeaderMeta() {
@@ -36282,7 +36298,9 @@ async function init() {
   ["registrarCaixaBalance", "registrarMediolanumBalance"].forEach((id) => {
     qs(id)?.addEventListener("change", handleRegistrarAccountBalanceInput);
     qs(id)?.addEventListener("input", renderRegistrarBalanceDelta);
+    qs(id)?.addEventListener("change", handleBalancePulseCorrection); // WP-26: escribir el saldo es «Corregir»
   });
+  qs("pulsoSaldos")?.addEventListener("click", handleBalancePulseClick);
   qs("registrarEfectivoBalance")?.addEventListener("change", handleRegistrarEfectivoBalanceInput);
   qs("registrarTabs")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-registrar-tab]");

@@ -12372,6 +12372,53 @@ tbody tr:hover {
   display: none;
 }
 
+/* WP-26 (ND-01): «Pulso de saldos» en Registrar › Saldo de cuentas. Una fila por cuenta con lo último que se sabe y
+   dos botones de 44 px en la zona del pulgar; la respuesta queda escrita, no solo en color. */
+.pulso-saldos {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.pulso-saldos-titulo {
+  margin: 0 0 8px;
+}
+
+.pulso-saldos-lista {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-saldos-cifra {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.pulso-saldos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pulso-saldos-acciones button,
+.pulso-saldos [data-pulso-manual] {
+  min-height: 44px;
+  min-width: 7.5rem;
+}
+
+.pulso-saldos-respuesta {
+  margin: 6px 0 0;
+}
+
+.pulso-saldos-estado:empty {
+  display: none;
+}
+
 /* WP-11 (NXP-05): campo de importe de Registrar. Texto con teclado decimal; 16 px para que el iPhone no
    amplíe la página al tocarlo; 44 px de alto; cifras alineadas. El estado de error lleva texto (title y
    aria-invalid), no solo color. */

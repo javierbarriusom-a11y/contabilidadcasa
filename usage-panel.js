@@ -231,7 +231,7 @@
     return `<li><div class="panel-uso-cabecera"><strong>${escapeHtml(name)}</strong><span class="panel-uso-valor">${escapeHtml(value)}</span></div><p><span class="status-pill ${tone}">${escapeHtml(verdict(meets, pending))}</span>${objective}</p><p class="e19-kpi-note">${escapeHtml(detail)}</p></li>`;
   }
 
-  function panelRows(summary, findingSummary) {
+  function panelRows(summary, findingSummary, pulseSummary = null) {
     const weeksLabel = summary.weeks.length ? `${summary.weeks.length} semana${summary.weeks.length === 1 ? "" : "s"} completa${summary.weeks.length === 1 ? "" : "s"}` : "aún no hay una semana completa";
     const rows = [
       metricRow("Días de uso por semana", formatNumber(summary.adoption.value), "≥ 4", summary.adoption.meets, `Media de ${weeksLabel}; esta semana, ${summary.activeThisWeek}.`),
@@ -241,6 +241,11 @@
     if (findingSummary) {
       const a = findingSummary.A;
       rows.push(metricRow("Segundos hasta la cifra de Hoy", a.medianSeconds === null ? "—" : `${formatNumber(a.medianSeconds)} s`, "≤ 15 s", findingSummary.baselineReady ? findingSummary.meetsTarget : null, `Mediana de la prueba de 30 segundos: ${a.valid} de ${findingSummary.baselineAttempts} intentos válidos para la línea base.`));
+    }
+    // WP-26: el «Pulso de saldos» de Registrar mide cuánto se tarda en dejar las dos cuentas al día.
+    if (pulseSummary) {
+      const share = pulseSummary.coincideShare === null ? "" : ` «Coincide» en el ${pulseSummary.coincideShare} % de las respuestas (si roza el 100 % con saldos que se mueven, puede que se confirme sin mirar).`;
+      rows.push(metricRow("Segundos para actualizar saldos", pulseSummary.medianSeconds === null ? "—" : `${formatNumber(pulseSummary.medianSeconds)} s`, "≤ 20 s", pulseSummary.medianSeconds === null ? null : pulseSummary.medianSeconds <= 20, pulseSummary.count ? `Mediana de las últimas ${pulseSummary.count} veces con el Pulso de saldos de Registrar.${share}` : "Aún sin medir: se mide al usar el Pulso de saldos de Registrar.", "Sin medir"));
     }
     rows.push(metricRow("Gasto registrado en menos de 48 h", "—", "—", null, "Sin medir: la app no guarda cuándo registras cada gasto. Los enlaces (WP-25) registran al pagar; la medida real cruza lo registrado con el extracto (WP-53).", "Sin medir"));
     rows.push(metricRow("Decisiones registradas", "—", "—", null, "Sin medir: falta acordar qué cuenta como decisión.", "Sin medir"));
@@ -252,7 +257,7 @@
     if (!body) return;
     const today = localIsoDate();
     const summary = summarize(readStore(), today);
-    body.innerHTML = panelRows(summary, rootRef?.FinanceFindingTestUi?.summary?.() || null);
+    body.innerHTML = panelRows(summary, rootRef?.FinanceFindingTestUi?.summary?.() || null, rootRef?.FinanceBalancePulseUi?.summary?.() || null);
     const since = el("panelUsoDesde");
     if (since) since.textContent = summary.firstDay ? `Datos desde el ${summary.firstDay.split("-").reverse().join("/")}, solo en este móvil.` : "Aún no hay datos: el panel empieza a contar hoy.";
     const input = el("panelUsoMinutos");

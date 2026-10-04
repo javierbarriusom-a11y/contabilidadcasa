@@ -109,6 +109,42 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, decimotercer PR): WP-26 · ND-01 «Pulso de saldos»
+
+- **Pedido por el hogar.** El hogar eligió WP-26 antes que WP-15, porque ataca la frescura de los saldos antes de la decisión de `O-6` (16/10) y del primer cierre (1-3/11). **WP-23 queda programado para la semana del 12/10.**
+- **WP-26 se parte en dos PR:**
+  - este, **ND-01**: el pulso de saldos en Registrar;
+  - el siguiente, **ND-02**: el extracto que actualiza el saldo y comprueba su continuidad, con la etiqueta de cuenta del extracto.
+- **Hallazgos del mapa del código** (que cambian el diseño de la auditoría):
+  1. **No existe un «saldo esperado hoy».** «Auto por fecha» es una proyección mensual del plan, y el motor diario coloca el saldo declarado en el día 1 de su mes.
+  2. **La importación real nunca toca los saldos.** Solo lo hacía el camino antiguo de Excel, que está apagado.
+  3. **La etiqueta de cuenta de un extracto («Mediolanum») no llega al libro**: todo cuenta como CaixaBank en C-2, M-8c y la continuidad. Se arregla en ND-02.
+- **Decisión de diseño: el «esperado» es un dato real, no una estimación.** Es lo último que se sabe de cada cuenta: el saldo declarado (con su fecha, solo en modo manual) o el saldo final del extracto de esa cuenta, el más reciente de los dos. Comparar el banco con una estimación haría que casi nunca coincidiera. La previsión solo aparece como **aviso**: «desde entonces esperaba que se moviera −810 €: es raro que siga igual». Es la mitigación del riesgo de ND-01, pulsar «Coincide» sin mirar.
+- **`canonical-balance-pulse.js` (nuevo, puro):**
+  - el saldo final del extracto por cuenta: el último día y, en ese día, el movimiento que cierra la cadena (su saldo no es el «anterior» de otro), así que vale con los bancos que listan en los dos órdenes;
+  - lo último que se sabe, el aviso de la previsión (con las filas del motor diario), el modelo de respuestas, los saldos resultantes y la pantalla;
+  - los tiempos: solo segundos y recuentos, los 20 últimos.
+- **`registrar-ui.js` (nuevo, pantalla, antes de `app.js`):**
+  - **Coincide**, y **Corregir**, que lleva al campo de siempre. Escribir un saldo y salir del campo también cuenta como «Corregir».
+  - Con las dos cuentas respondidas: «Coincide» toma lo último que se sabía, la fecha pasa a hoy y sale «Saldos al día · hoy hh:mm», con **deshacer de 8 s**.
+  - Mide el tiempo desde que se ve el pulso en la pestaña Saldos: no cuenta más de 10 minutos y se para al salir.
+- **Lo que no se cambia, a propósito:** escribir un saldo a mano ya lo fecha hoy, para las dos cuentas, desde R-3. Retrasar esa fecha haría que la previsión colocara un saldo recién escrito en un día pasado. Por eso el pulso **dice qué cuenta falta** («Falta confirmar Mediolanum: sin eso, la fecha de hoy no es la de todas las cuentas») y solo da «Saldos al día» con las dos.
+- **Panel de uso:** fila nueva «Segundos para actualizar saldos» (objetivo ≤ 20 s), con la mediana y el % de «Coincide», que delata si se confirma sin mirar. **No hay línea base del método anterior**: la prueba cronometrada de WP-02 sigue pendiente. Se pidió al hogar cronometrar una vez cómo actualiza hoy.
+- **`app.js`:** +18 líneas (37.484 de 37.495): `balancePulseAccounts()` y tres enganches.
+- **Medido en Chromium a 390 y 1280 px:**
+  - «Coincide» en una cuenta dice cuál falta y no cambia la fecha; con las dos, fecha de hoy y los mismos saldos; deshacer devuelve la fecha anterior;
+  - «Corregir» lleva el foco al campo; «4.321,50» y «Coincide» en la otra cuenta dejan 4.321,50;
+  - un extracto de CaixaBank del 02/10, más reciente que el declarado del 28/09, se ofrece como «saldo final del extracto del 02/10»;
+  - el aviso de la previsión sale en las dos cuentas;
+  - «Auto por fecha» explica que no hay nada que confirmar y ofrece pasar a manual;
+  - axe sin violaciones, sin desbordar y sin errores de página.
+- **Pruebas:**
+  - nueva `tests/nd1-pulso-saldos.test.cjs` (10 casos);
+  - **prueba e2e nueva** a 390 y 1280 px.
+
+  Ajustadas sin relajar: `arq3` (78 → 79), `arq6` (la clave `balance-pulse-times` queda excluida de la copia con su motivo: mide este móvil, sin importes) y los sellos de `styles.css`.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5185/5185**; e2e + axe **22/22**; `test:mobile-overflow` sin contenido cortado (201 visitas). La previsión es idéntica a `main` (192 eventos, con y sin movimientos, y Hoy igual).
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, duodécimo PR): WP-24 asignación personal
 
 - **Pedido por el hogar («sigue con wp-24»).** HOG-02, prueba de 3 meses desde el 1/11. Antes de construir se preguntaron tres decisiones que cambiaban el diseño. Respuestas:

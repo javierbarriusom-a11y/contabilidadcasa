@@ -149,6 +149,27 @@ mira está acotado a los próximos 18 meses, no al final del modelo. Para el det
 Una recomendación con confianza baja indica falta de datos o histórico suficiente — no debe
 interpretarse como una certeza.
 
+### Pulso de saldos (Registrar › Saldo de cuentas)
+
+Arriba de los saldos, el **Pulso de saldos** enseña lo último que se sabe de cada cuenta: el saldo que
+declaraste o el saldo final del último extracto importado de esa cuenta, el más reciente, con su fecha. Abre
+tu banco y, para cada cuenta:
+
+- **Coincide** si el banco marca la misma cifra. Si lo último era un extracto más reciente que tu saldo, ese
+  saldo del extracto pasa a ser el declarado.
+- **Corregir** si no: lleva al campo de esa cuenta para escribir la cifra nueva.
+
+Con las dos cuentas respondidas, los saldos quedan con **fecha de hoy** y sale «Saldos al día», que se
+puede **deshacer** durante 8 segundos. Si solo respondes una, el pulso dice cuál falta. Ojo: escribir un saldo
+ya lo fecha hoy, así que no des la otra cuenta por mirada.
+
+Si desde la fecha de ese dato la previsión esperaba movimientos en la cuenta, lo avisa («es raro que siga
+igual»): míralo en el banco antes de pulsar «Coincide». En «Auto por fecha» los saldos son una estimación del
+plan y no hay nada que confirmar.
+
+El **panel de uso** mide cuánto tardas (objetivo: 20 segundos o menos) y qué parte de las respuestas son
+«Coincide». Si casi todas lo son con cuentas que se mueven, puede que se esté confirmando sin mirar.
+
 ### Escribir importes en Registrar
 
 Los saldos, los reales y el dato manual se escriben como en España: **1.234,56**, **1234,56** o
