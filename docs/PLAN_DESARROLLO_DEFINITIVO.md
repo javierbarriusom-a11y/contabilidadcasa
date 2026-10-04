@@ -89,6 +89,7 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 - *Qué:* una línea de plan por persona («Asignación personal») que se ejecuta como transferencia mensual y no se detalla. Los gastos de esa cuenta o tarjeta no se piden en la bandeja.
 - *Enfoque:* sin módulo nuevo: partida del plan + regla de clasificación que agrupa los movimientos de esa cuenta en la partida. Si hace falta código, solo una marca «sin detalle» en la partida.
 - *Hecho cuando:* activa el 1/11; revisión a finales de enero (¿bajaron los minutos? ¿se mantiene?).
+- **Construido el 4/10/2026** (`canonical-personal-allowance.js`, `partidas-ui.js`, `tests/hog2-asignacion-personal.test.cjs`). Hizo falta algo más que una marca: una partida por persona con id estable y el descuento sobre el valor final del gasto variable, que la migración de junio fija a mano. Queda la activación del hogar (alta de las dos fichas y transferencias periódicas con concepto fijo) antes del 1/11.
 
 **WP-25 · Enlaces de registro prellenado** (CAP-02 + plantilla de CAP-01) · Ola 1 · exento · S
 - *Qué:* `…/#registrar?importe=&concepto=&fecha=&cuenta=&origen=` abre la **ventana de registro existente** con los campos rellenos. Nunca guarda solo. Más una guía paso a paso del Atajo «Transacción» de iOS que construye ese enlace con cada pago de Apple Pay.

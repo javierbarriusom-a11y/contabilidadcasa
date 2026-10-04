@@ -200,7 +200,8 @@ test("app.js: las partidas de los 12 meses siguientes, sumadas por serie y sin l
 test("app.js: el almacén se relee solo si cambia el texto guardado; dañado o vacío, sin días", () => {
   const storage = { "charge-days:finance": JSON.stringify({ series: { "expense|luz": { day: 5 } } }) };
   const context = { window: { FinanceCanonicalChargeDays: chargeDays }, storageGet: (key, fallback) => storage[key] ?? fallback, storageKey: (name) => `${name}:finance`, seriesKeyForRow: (row) => `${row.kind}|${row.id}`, JSON };
-  vm.runInNewContext(`${block("let chargeDaysCache", "function incomeTimingForRow")}\nthis.load = loadChargeDays; this.forRow = chargeDayForRow;`, context);
+  // WP-24: la caché es ahora común a los almacenes locales (cachedLocalStore); el comportamiento probado es el mismo.
+  vm.runInNewContext(`${block("const localStoreCaches", "// WP-24: una partida por persona")}\nthis.load = loadChargeDays; this.forRow = chargeDayForRow;`, context);
   assert.equal(context.forRow({ kind: "expense", id: "luz" }).day, 5);
   assert.equal(context.load(), context.load(), "misma referencia mientras no cambia");
   storage["charge-days:finance"] = "{dañado";

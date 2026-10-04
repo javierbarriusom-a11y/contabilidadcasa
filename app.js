@@ -1356,6 +1356,7 @@ const BACKUP_LOCAL_STORES = [
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
   "charge-days", // WP-08: día de cargo indicado por el hogar para cada partida
+  "personal-allowances", // WP-24: asignación personal de cada persona (importe y meses)
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -5408,8 +5409,8 @@ function plannedValueForRow(row, month) {
   if (isVariableOperationalRow(row)) {
     const override = seriesOverrideForRow(row, month);
     if (override?.deleted) return 0;
-    if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
-    return variableOperationalFormulaValue(month);
+    const base = override?.planned !== undefined && override?.planned !== "" ? Number(override.planned || 0) : variableOperationalFormulaValue(month);
+    return round2(Math.max(0, base - personalAllowanceTotal(month)));
   }
   return plannedValueForRowRaw(row, month);
 }
@@ -5432,6 +5433,7 @@ function sourcePlannedValueForRow(row, month) {
 
 function basePlannedValueForRow(row, month) {
   if (row.custom) return Number(row.plannedValue || 0);
+  if (row.personalAllowance) return globalThis.FinanceCanonicalPersonalAllowance?.amountForMonth(loadPersonalAllowances(), row.id, month.key) || 0; // WP-24
   const sourceMonth = sourcePlanningMonthForMonth(month);
   return Number(row.planned[sourceMonth.index] || 0);
 }
@@ -6287,7 +6289,7 @@ function planningSectionsForMonth(kind, month) {
       const sourceRowCount = section.rows.length;
       const rows = section.rows
         .filter((row) => !isPlanningRowDeleted(row, month, section.name))
-        .concat(customRowsForSection(section.kind, section.name, month));
+        .concat(customRowsForSection(section.kind, section.name, month), personalAllowanceRows(section.kind, section.name, month));
       return { ...section, rows, sourceRows: section.rows, sourceRowCount };
     });
 
@@ -6387,18 +6389,25 @@ let timingEngineInstance = null;
 function timingEngine() {
   return (timingEngineInstance ||= window.FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => baseData?.transactions || [], chargeDay: chargeDayForRow }));
 }
-// WP-08 (ND-03): día de cargo por partida, almacén `charge-days` (copia y nube). El motor lo consulta fila a fila
-// en cada mes del horizonte: se relee solo si cambió el texto guardado (también al llegar de la nube o de una copia).
-let chargeDaysCache = { raw: null, store: { series: {} } };
-function loadChargeDays() {
-  const raw = storageGet(storageKey("charge-days"), "");
-  if (raw === chargeDaysCache.raw) return chargeDaysCache.store;
-  let store = { series: {} };
-  try { store = window.FinanceCanonicalChargeDays.normalizeStore(JSON.parse(raw || "null")); } catch { /* sin motor o texto dañado: sin días indicados */ }
-  chargeDaysCache = { raw, store };
+// Almacenes locales de WP-08 (`charge-days`) y WP-24 (`personal-allowances`), en la copia y la nube. La previsión los
+// consulta fila a fila en cada mes: se releen solo si cambió el texto guardado (también al llegar de la nube o de una copia).
+const localStoreCaches = {};
+function cachedLocalStore(name, normalize, empty) {
+  const raw = storageGet(storageKey(name), "");
+  if (localStoreCaches[name]?.raw === raw) return localStoreCaches[name].store;
+  let store = empty;
+  try { store = normalize(JSON.parse(raw || "null")); } catch { /* sin motor o texto dañado: vacío */ }
+  localStoreCaches[name] = { raw, store };
   return store;
 }
+function loadChargeDays() { return cachedLocalStore("charge-days", (raw) => window.FinanceCanonicalChargeDays.normalizeStore(raw), { series: {} }); }
 function chargeDayForRow(row) { return loadChargeDays().series[seriesKeyForRow(row)] || null; }
+// WP-24: una partida por persona en Gastos variables, con id estable; el gasto variable estimado baja lo mismo.
+function loadPersonalAllowances() { return cachedLocalStore("personal-allowances", (raw) => globalThis.FinanceCanonicalPersonalAllowance.normalizeStore(raw), { people: [] }); }
+// Sale del gasto variable, fijado a mano o por fórmula (la migración de junio lo fija a mano en toda la previsión), con el
+// previsto de cada partida en ese mes: si se edita en Partidas, el variable baja lo editado.
+function personalAllowanceTotal(month) { return personalAllowanceRows("expense", VARIABLE_OPERATIONAL_SECTION, month).reduce((sum, row) => sum + plannedValueForRowRaw(row, month), 0); }
+function personalAllowanceRows(kind, sectionName, month) { return (globalThis.FinanceCanonicalPersonalAllowance?.rowsForMonth(loadPersonalAllowances(), { kind, sectionName, monthKey: month.key }) || []).filter((row) => !isPlanningRowDeleted(row, month, sectionName)); }
 function incomeTimingForRow(row, month, amount) { return timingEngine().incomeTimingForRow(row, month, amount); }
 function isEndOfMonthExpenseRow(row) { return timingEngine().isEndOfMonthExpenseRow(row); }
 function expenseTimingFromMovements(row, month, amount) { return timingEngine().expenseTimingFromMovements(row, month, amount); }
@@ -7629,6 +7638,7 @@ function modelComputationSignature() {
     seriesOverrides,
     rowLabelOverrides,
     chargeDays: loadChargeDays().series, // WP-08: indicar un día de cargo mueve la previsión día a día al momento
+    personalAllowances: loadPersonalAllowances().people, // WP-24
   });
 }
 
@@ -10777,7 +10787,7 @@ function customRowForVisualMonth(row, month) {
 
 function visualRowsForSection(section, months) {
   const monthKeys = new Set(months.map((month) => month.key));
-  const rows = section.rows.slice();
+  const rows = section.rows.slice().concat((globalThis.FinanceCanonicalPersonalAllowance?.seriesRows(loadPersonalAllowances(), section.kind) || []).filter((row) => row.sectionName === section.name));
   customPlanningRows
     .filter((row) => row.kind === section.kind && row.sectionName === section.name && monthKeys.has(row.monthKey))
     .forEach((row) => {
@@ -25580,6 +25590,7 @@ function availableSeriesRows(kind) {
   };
   baseData.monthlyPlanning.sections.filter((section) => section.kind === kind).forEach((section) => section.rows.forEach((row) => add(row, section)));
   customPlanningRows.filter((row) => row.kind === kind).forEach((row) => add(row));
+  (globalThis.FinanceCanonicalPersonalAllowance?.seriesRows(loadPersonalAllowances(), kind) || []).forEach((row) => add(row)); // WP-24
   rows.sort((a, b) =>
     `${a.sectionName} ${displayLabelForRow(a)}`.localeCompare(`${b.sectionName} ${displayLabelForRow(b)}`, "es"),
   );
@@ -35482,47 +35493,6 @@ function chargeDayRows() {
   return [...rows.values()];
 }
 
-// Lo que hay que decir y dónde dejar el foco tras guardar: render() vuelve a pintar la pantalla después.
-let chargeDaysPending = { status: "", focusKey: "", html: "" };
-function renderChargeDays() {
-  const engine = window.FinanceCanonicalChargeDays;
-  const target = qs("cargoDia");
-  if (!engine || !target) return;
-  const observations = chargeDayObservations();
-  const viability = window.FinanceCanonicalChargeDayViability?.analyze(observations).partidas || [];
-  const model = engine.buildModel({ rows: chargeDayRows(), store: loadChargeDays(), suggestions: engine.suggestions(observations, viability) });
-  const html = engine.renderHtml(model);
-  // Sin cambios, no se repinta: el render diferido de la pantalla no se lleva el foco ni el aviso.
-  if (html !== chargeDaysPending.html) target.innerHTML = chargeDaysPending.html = html;
-  qs("cargoDiaResumen").textContent = engine.summaryText(model);
-  qs("cargoDiaEstado").textContent = chargeDaysPending.status;
-  const focusKey = chargeDaysPending.focusKey;
-  (focusKey === "*" ? qs("cargoDiaResumen") : [...target.querySelectorAll("[data-cargo-dia]")].find((select) => select.dataset.cargoDia === focusKey))?.focus();
-  chargeDaysPending.focusKey = "";
-}
-
-// Guarda al momento (sin botón «Guardar») y recalcula la previsión; el foco vuelve al mismo selector.
-function saveChargeDays(changes, status) {
-  const engine = window.FinanceCanonicalChargeDays;
-  const store = changes.reduce((current, [key, value, source]) => engine.setDay(current, key, value, { source, now: new Date().toISOString() }), loadChargeDays());
-  storageSet(storageKey("charge-days"), JSON.stringify(store));
-  Object.assign(chargeDaysPending, { status, focusKey: changes.length === 1 ? changes[0][0] : "*" });
-  render();
-  renderChargeDays();
-}
-
-function handleChargeDayEvent(event) {
-  const engine = window.FinanceCanonicalChargeDays;
-  const select = event.type === "change" ? event.target.closest("[data-cargo-dia]") : null;
-  const use = event.type === "click" ? event.target.closest("[data-cargo-dia-usar]") : null;
-  if (select) saveChargeDays([[select.dataset.cargoDia, select.value, "declarado"]], select.value ? `Guardado: ${engine.dayText(engine.normalizeDay(select.value))}. La previsión ya lo usa.` : "Sin día indicado: vuelve a la fecha automática.");
-  else if (use) saveChargeDays([[use.dataset.cargoDiaUsar, use.dataset.cargoDiaValor, "sugerido"]], `Guardado: día ${use.dataset.cargoDiaValor}. La previsión ya lo usa.`);
-  else if (event.type === "click" && event.target.closest("[data-cargo-dia-fiables]")) {
-    const changes = [...document.querySelectorAll("#cargoDia [data-cargo-dia-fiable]")].map((button) => [button.dataset.cargoDiaUsar, button.dataset.cargoDiaValor, "sugerido"]);
-    saveChargeDays(changes, `Aplicadas ${changes.length} propuestas fiables. La previsión ya las usa.`);
-  }
-}
-
 let laboratorioSelectedHash = LABORATORIO_CATALOG[0]?.hash || null;
 let laboratorioFiltro = "todas";
 let laboratorioViewMode = "tarjetas";
@@ -35893,6 +35863,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "planificacion-partidas":
       renderPlanificacionPartidas();
       renderChargeDays();
+      renderPersonalAllowances();
       populateSeriesEditor();
       break;
     case "registrar":
@@ -36174,6 +36145,7 @@ async function init() {
   qs("addProject").addEventListener("click", handleAddProject);
   qs("saveProjectPending")?.addEventListener("click", saveProjectDecisionAsPending);
   ["change", "click"].forEach((type) => qs("cargoDia")?.addEventListener(type, handleChargeDayEvent));
+  ["submit", "click"].forEach((type) => qs("asignacionPersonal")?.addEventListener(type, handlePersonalAllowanceEvent)); // WP-24
   qs("planificacionPartidasRoot")?.addEventListener("click", (event) => {
     const sectionToggle = event.target.closest("[data-partidas-section-toggle]");
     if (sectionToggle) { togglePartidasSection(sectionToggle.dataset.partidasSectionToggle); return; }

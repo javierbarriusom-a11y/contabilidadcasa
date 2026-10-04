@@ -109,6 +109,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, duodécimo PR): WP-24 asignación personal
+
+- **Pedido por el hogar («sigue con wp-24»).** HOG-02, prueba de 3 meses desde el 1/11. Antes de construir se preguntaron tres decisiones que cambiaban el diseño. Respuestas:
+  1. se paga por **transferencia a una cuenta propia** que la app no importa: lo gastado de ahí no se registra ni se clasifica, sin código para eso;
+  2. el dinero **sale del gasto variable**: el gasto total previsto no cambia;
+  3. **para los dos**.
+- **`canonical-personal-allowance.js` (nuevo, puro):**
+  - almacén `personal-allowances` (`{people:[{id,name,amount,from,to}]}`, como mucho 6) que viaja en la copia y en la nube (`BACKUP_LOCAL_STORES`), igual que WP-08 y WP-09;
+  - alta y cambio con errores por campo. El nombre no admite «<» ni «>»; el importe tiene que ser mayor que 0 y como mucho 100.000; el último mes no puede ser anterior al primero;
+  - **id estable por persona**, sacado del nombre sin tildes y sin chocar con otro;
+  - las partidas del mes (`Asignación personal · Nombre`, en Gastos variables) y la tarjeta de Plan › Partidas.
+- **Decisión técnica: no son partidas `custom`.** Las propias del plan viven una por mes en `customPlanningRows`, con un id distinto cada mes. Con ellas, el día de la transferencia (WP-08), la regla que casa la transferencia del extracto y los reales habría que repetirlos cada mes; además, el cuadro de mandos las busca en `customPlanningRows` y las habría pintado a 0 y como «nuevo». Llevan una marca propia (`personalAllowance`), y `basePlannedValueForRow` les da el importe del mes, o 0 fuera de sus meses.
+- **Hallazgo al medir: el descuento no podía ir en la fórmula.** El primer intento restaba las asignaciones en `variableOperationalFormulaValue`, y en el navegador el gasto total de noviembre **subía 550,50 €**. La migración de junio (`variable-operational-1750-from-2026-06-v2`) fija a mano el «Gasto variable estimado» en toda la previsión, así que la fórmula no se usa. Ahora el descuento va sobre el **valor final** de esa partida, venga de la fórmula o de la cifra fijada, y nunca la deja por debajo de 0. La tarjeta avisa de los meses en los que las asignaciones agotan el variable.
+- **`partidas-ui.js` (nuevo, script de pantalla cargado antes de `app.js`):** la tarjeta de WP-24 (alta, cambio y quitar con deshacer) y la de **WP-08, movida sin cambios** desde `app.js` para hacer sitio.
+  - **`app.js` pasa de 37.494 a 37.466 líneas** (techo 37.495), con 29 de margen.
+  - La caché de los dos almacenes locales es ahora común (`cachedLocalStore`).
+  - Las referencias al motor van por `globalThis`, como `parseAmountField`, para que los entornos `vm` de las pruebas no fallen.
+- **Medido en Chromium a 390 y 1280 px:**
+  - alta de dos personas (300 y 250,50 desde noviembre): sus partidas aparecen en Gastos variables desde ese mes, en la tabla de Partidas, en «Días de cargo» y en las partidas para asignar un movimiento. El gasto total de cada mes sigue en **4.730** (antes y después), con el variable bajando lo mismo;
+  - en el motor día a día, la de Javi cae el día 2 (indicado en Días de cargo); la que termina en noviembre deja de estar en diciembre; el total de gasto del mes no cambia;
+  - persiste al recargar; quitar se deshace; un importe que no lo es se dice en la ficha y no se guarda;
+  - axe sin violaciones en la tarjeta, sin desbordar y sin errores de página;
+  - **sin asignaciones, la previsión es idéntica a `main`** (192 eventos, con y sin movimientos, y Hoy igual).
+- **Pruebas:**
+  - nueva `tests/hog2-asignacion-personal.test.cjs` (10 casos): almacén, alta y errores, partidas por mes, tarjeta, el descuento sobre el variable (por fórmula, fijado a mano, nunca bajo 0) y el previsto por mes en un `vm`, el registro en el plan, la copia y la firma, y la pureza del módulo. Pruebas de mutación: quitar el descuento o el fin de la asignación hace fallar un caso cada una;
+  - **prueba e2e nueva** en `qa1-flujos-completos.spec.cjs`, a 390 y 1280 px, que corre en el CI.
+
+  Ajustadas sin relajar: `nd3` (la caché probada es la común), `arq3` (77 → 78) y los sellos de `styles.css` (`e17`, `t8`).
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5175/5175**; e2e + axe **20/20**; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Pendiente del hogar (no es código):** dar de alta las dos fichas (importe y mes de la primera transferencia, el de noviembre); programar las transferencias periódicas con el **mismo concepto** cada mes; indicar su día en Días de cargo; y, con el primer extracto de noviembre, asignar cada transferencia a su partida una vez. **Revisión a finales de enero** con el panel de uso: ¿bajaron los minutos de registro? ¿se mantiene?
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, undécimo PR): WP-25 enlaces de registro prellenado
 
 - **Pedido por el hogar («sigue con wp-25»).** CAP-02 y la plantilla del nivel 1 de CAP-01: `…/#registrar?importe=&concepto=&fecha=&cuenta=&origen=` abre la ventana **«Registrar gasto»** que ya existía (FLU-2) con los campos rellenos. **Nunca guarda solo:** un enlace lo puede fabricar cualquiera, así que el gasto no existe hasta el toque en «Registrar».

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp24",
+      fecha: "2026-10-04",
+      texto: "Plan › Partidas: asignación personal para cada uno, sin detalle. Sale del gasto variable, así que el gasto total previsto no cambia.",
+      href: "#planificacion-partidas",
+    },
+    {
       id: "2026-10-04-wp25",
       fecha: "2026-10-04",
       texto: "Enlaces de registro: un Atajo del iPhone abre «Registrar gasto» ya relleno (importe, concepto, fecha). Nada se guarda sin tu toque.",

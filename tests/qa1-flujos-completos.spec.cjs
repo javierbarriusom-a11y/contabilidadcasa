@@ -472,3 +472,50 @@ test.describe("QA-1 · enlace de registro prellenado (WP-25)", () => {
     });
   }
 });
+
+// WP-24 (HOG-02): asignación personal en un navegador real. Dar de alta a dos personas en Plan › Partidas crea su
+// partida en Gastos variables desde el mes elegido, el gasto total previsto NO cambia (sale del gasto variable),
+// sobrevive a recargar y un importe que no lo es se dice y no se guarda.
+test.describe("QA-1 · asignación personal (WP-24)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`asignación a ${viewport.width} px: alta, gasto total igual, error con texto y recarga`, async ({ page }) => {
+      const consoleErrors = [];
+      page.on("pageerror", (error) => consoleErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#planificacion-partidas");
+      await expect(page.locator('#asignacionPersonal form[data-asignacion="nueva"]')).toHaveCount(1);
+      const totals = () => page.evaluate(() => [0, 1, 2].map((index) => {
+        const month = planningMonthForDate(addMonths(modelStartDate(), index), index);
+        return Math.round(planningSectionsForMonth("expense", month).flatMap((section) => section.rows).reduce((sum, row) => sum + plannedValueForRow(row, month), 0) * 100) / 100;
+      }));
+      const before = await totals();
+      await page.click("#asignacionResumen");
+
+      await page.fill("#asignacion-0-nombre", "Prueba");
+      await page.fill("#asignacion-0-importe", "abc");
+      await page.$eval('form[data-asignacion="nueva"]', (form) => form.requestSubmit());
+      await expect(page.locator("#asignacion-0-error")).toContainText("Escribe el importe al mes");
+      expect(await page.evaluate(() => loadPersonalAllowances().people.length), "un importe que no lo es no se guarda").toBe(0);
+
+      await page.fill("#asignacion-0-importe", "300");
+      await page.$eval('form[data-asignacion="nueva"]', (form) => form.requestSubmit());
+      await expect(page.locator("#asignacionEstado")).toContainText("Guardado: Asignación personal · Prueba");
+      await page.fill("#asignacion-1-nombre", "Otra");
+      await page.fill("#asignacion-1-importe", "250,50");
+      await page.$eval('form[data-asignacion="nueva"]', (form) => form.requestSubmit());
+      await expect(page.locator("#asignacionResumen")).toHaveText("Asignación personal: Prueba y Otra");
+
+      const rows = await page.evaluate(() => {
+        const month = planningMonthForDate(addMonths(modelStartDate(), 1), 1);
+        return planningSectionsForMonth("expense", month).flatMap((section) => section.rows).filter((row) => row.personalAllowance).map((row) => `${displayLabelForRow(row)}=${plannedValueForRow(row, month)}`);
+      });
+      expect(rows).toEqual(["Asignación personal · Prueba=300", "Asignación personal · Otra=250.5"]);
+      expect(await totals(), "sale del gasto variable: el gasto total previsto no cambia").toEqual(before);
+
+      await page.reload();
+      await expect.poll(() => page.evaluate(() => loadPersonalAllowances().people.map((person) => person.name))).toEqual(["Prueba", "Otra"]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

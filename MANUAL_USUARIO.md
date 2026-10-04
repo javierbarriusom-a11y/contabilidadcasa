@@ -199,6 +199,24 @@ versión de iOS: compruébalo con un pago pequeño.
   recibos, ni las transferencias). Y por lo de la cuenta doble, de momento sirve para gastos fuera del
   plan; la hoja de captura de WP-30 decidirá cómo se anota un pago a cuenta de una partida.
 
+### Asignación personal (Plan › Partidas)
+
+Cada persona recibe una cantidad al mes, por **transferencia a una cuenta propia** que la app no importa. Lo
+que gaste de ahí **no se registra ni se clasifica**. Se configura en **Plan › Partidas › Asignación
+personal**, con una ficha por persona: nombre, importe al mes, mes de la primera transferencia y, si se
+quiere, de la última (para la prueba de tres meses, por ejemplo). Quitar una ficha se puede deshacer
+durante unos segundos.
+
+- En el plan aparece una partida por persona, **Asignación personal · Nombre**, en Gastos variables.
+- **Sale del gasto variable**: el «Gasto variable estimado» de cada mes baja lo que sumen las asignaciones,
+  también si lo fijaste a mano. El gasto total previsto no cambia. Si en algún mes las asignaciones superan
+  el gasto variable, este se queda en 0 y la tarjeta lo avisa: lo que pase de ahí sí sube el total.
+- Indica el **día de la transferencia** en **Días de cargo**, justo debajo.
+- Al importar el extracto, asigna la transferencia de cada uno a su partida **una vez**. La app recuerda la
+  relación y pone el real cada mes. La reconoce por el texto exacto del movimiento: programa la
+  transferencia periódica con el mismo concepto todos los meses. Si el banco le añade una referencia o una
+  fecha que cambia, habrá que asignarla cada mes.
+
 ### Día de cargo de cada partida (Plan › Partidas)
 
 La previsión día a día pone cada gasto el día del mes en que se cobra. Si no lo sabe, lo estima el
