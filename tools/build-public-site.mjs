@@ -113,6 +113,8 @@ const files = [
   "canonical-forecast-quality.js",
   "canonical-charge-days.js",
   "canonical-capture-link.js",
+  "canonical-personal-allowance.js",
+  "partidas-ui.js",
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",

@@ -12325,6 +12325,53 @@ tbody tr:hover {
   min-height: 44px;
 }
 
+/* WP-24 (HOG-02): Plan › Partidas › asignación personal. Una ficha por persona, campos en rejilla que se apila
+   en el móvil, botones de 44 px. */
+.asignacion-lista {
+  display: grid;
+  gap: 12px;
+}
+
+.asignacion-persona {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.asignacion-titulo {
+  margin: 0 0 8px;
+}
+
+.asignacion-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 8px 12px;
+}
+
+.asignacion-campos label {
+  display: grid;
+  gap: 4px;
+}
+
+.asignacion-campos select {
+  min-height: 44px;
+}
+
+.asignacion-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.asignacion-acciones button {
+  min-height: 44px;
+}
+
+.asignacion-error:empty {
+  display: none;
+}
+
 /* WP-11 (NXP-05): campo de importe de Registrar. Texto con teclado decimal; 16 px para que el iPhone no
    amplíe la página al tocarlo; 44 px de alto; cifras alineadas. El estado de error lleva texto (title y
    aria-invalid), no solo color. */

@@ -27,7 +27,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261004wp11a1" />
+    <link rel="stylesheet" href="styles.css?v=20261004wp24a1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261004wp11a1" />
   </head>
@@ -601,6 +601,11 @@
               <button type="button" class="e19-registrar-tab is-active" aria-current="page">Partidas</button>
             </nav>
             <!-- WP-08 (ND-03): día de cargo por partida, plegado; el resumen dice cuántas siguen con fecha estimada. -->
+            <!-- WP-24 (HOG-02): asignación personal sin detalle, una partida por persona que sale del gasto variable. -->
+            <details class="e19-card prevision-calidad-card asignacion-card" id="asignacionCard">
+              <summary id="asignacionResumen">Asignación personal</summary>
+              <div id="asignacionPersonal"></div>
+            </details>
             <details class="e19-card prevision-calidad-card cargo-dia-card" id="cargoDiaCard">
               <summary id="cargoDiaResumen">Días de cargo de las partidas</summary>
               <div id="cargoDia"></div>
@@ -7612,7 +7617,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261004wp25a1"></script>
+    <script defer src="novedades.js?v=20261004wp24a1"></script>
     <script defer src="ux-shell.js?v=20261004wp25a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -7623,6 +7628,8 @@
     <script defer src="canonical-forecast-quality.js?v=20261004wp08a1"></script>
     <script defer src="canonical-charge-days.js?v=20261004wp08a1"></script>
     <script defer src="canonical-capture-link.js?v=20261004wp25a1"></script>
+    <script defer src="canonical-personal-allowance.js?v=20261004wp24a1"></script>
+    <script defer src="partidas-ui.js?v=20261004wp24a1"></script>
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
