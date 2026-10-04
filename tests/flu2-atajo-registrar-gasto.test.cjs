@@ -48,6 +48,8 @@ function sandboxWith(names, extra = {}) {
       const parsed = Number(String(value).replace(",", "."));
       return Number.isFinite(parsed) ? parsed : null;
     },
+    // WP-25: el importe de la ventana es texto y se lee como en Registrar (WP-11), con el lector real.
+    parseAmountField: require("../ux-shell.js").parseAmountInput,
     escapeHtml: (value) => String(value ?? ""),
     actualKeyForRow: (row, month) => `${row.id}|${month.key}`,
     ...extra,
@@ -86,7 +88,8 @@ test("FLU-2 · el diálogo trae los tres campos (concepto, bloque, importe) y co
 });
 
 test("FLU-2 · el botón está enganchado a openHomeQuickExpenseDialog y el listener se registra", () => {
-  assert.match(app, /qs\("homeQuickExpenseOpen"\)\?\.addEventListener\("click", openHomeQuickExpenseDialog\)/);
+  // WP-25: sin argumentos, para que el evento del clic no se lea como datos de un enlace.
+  assert.match(app, /qs\("homeQuickExpenseOpen"\)\?\.addEventListener\("click", \(\) => openHomeQuickExpenseDialog\(\)\)/);
 });
 
 test("FLU-2 · homeQuickExpenseSections() solo devuelve bloques de gasto", () => {
@@ -183,6 +186,8 @@ test("FLU-2 · submitHomeQuickExpense() crea la partida y su real a la vez, con 
   const key = `${row.id}|2026-09`;
   assert.equal(expenseActuals[key], 38.5);
   assert.deepEqual(calls, ["saved-rows", "saved-actuals", "rendered"]);
+  submitHomeQuickExpense({ key: "2026-09", label: "Septiembre" }, "Ocio", "Sofá", "1.234");
+  assert.equal(customPlanningRows[1].plannedValue, 1234, "WP-25: «1.234» son mil doscientos treinta y cuatro, no 1,23 €");
 });
 
 test("FLU-2 · submitHomeQuickExpense() no escribe nada sin concepto, sin bloque, sin mes o con importe no positivo", () => {
@@ -193,6 +198,7 @@ test("FLU-2 · submitHomeQuickExpense() no escribe nada sin concepto, sin bloque
     [{ key: "2026-09" }, "Ocio", "Cena", "0"],
     [{ key: "2026-09" }, "Ocio", "Cena", "-5"],
     [{ key: "2026-09" }, "Ocio", "Cena", ""],
+    [{ key: "2026-09" }, "Ocio", "Cena", "abc"],
   ];
   scenarios.forEach(([month, sectionName, label, rawAmount]) => {
     const customPlanningRows = [];

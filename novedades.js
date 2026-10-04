@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp25",
+      fecha: "2026-10-04",
+      texto: "Enlaces de registro: un Atajo del iPhone abre «Registrar gasto» ya relleno (importe, concepto, fecha). Nada se guarda sin tu toque.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-04-wp11",
       fecha: "2026-10-04",
       texto: "Registrar: los importes se escriben y pegan como en España (1.234,56 €), con botón ± para el signo y saldos legibles en el móvil.",

@@ -95,6 +95,11 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 - *Dónde:* el enrutado por `#` de `ux-shell.js`, `parseAmount` (ya acepta coma, punto y «€»), el modal de registro (`FLU-2`).
 - *Enfoque:* módulo puro `canonical-capture-link.js` (parseo y validación, rechaza HTML y valores fuera de rango); enganche de una línea en el enrutado. **Verificar** que el enrutado acepta parámetros tras el `#` sin romper la navegación actual.
 - *Pruebas:* 30 casos (válidos, malformados, inyección, fecha «hoy», importes con miles). *Riesgo:* bajo; el enlace no guarda nada.
+- **Hecho el 4/10/2026** (`canonical-capture-link.js`, `tests/cap2-enlace-registro.test.cjs`, guía en `MANUAL_USUARIO.md`). Dos hallazgos que cambian WP-30:
+  1. La ventana existente (FLU-2) crea una **partida nueva** con su real. Un pago que ya está dentro de una partida contaría dos veces.
+  2. Un real sustituye al previsto: anotar el primer ticket del súper como real dejaría la previsión del mes en ese ticket.
+
+  Hoy el enlace vale para gastos fuera del plan. El Atajo de Apple Pay a diario espera a que WP-30 tenga «a cuenta de una partida».
 
 **WP-26 · Saldos por excepción y extracto que actualiza saldo** (ND-01 + ND-02) · Ola 2 · visible · M+S-M ≈ 4
 - *Qué:* «Actualizar saldos» muestra el **saldo esperado** por cuenta con «Coincide» / «Corregir»; al importar un extracto, propone usar su saldo final y comprueba la continuidad del saldo corrido.
@@ -115,6 +120,7 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 
 **WP-30 · Hoja de captura en ≤ 8 s** (ND-14) · Ola 2 · visible · M ≈ 2,5
 - Hoja inferior con el importe primero (teclado abierto), los 5 conceptos más frecuentes a esa hora, «hoy/ayer», guardar con la tecla «hecho» y deshacer 8 s. Es la misma hoja que abre WP-25. Métrica: mediana ≤ 8 s (WP-02).
+- **Requisito nuevo de WP-25 (4/10):** decidir cómo se anota un pago **a cuenta de una partida** existente: acumular lo gastado sin rebajar la previsión del resto del mes y sin crear una partida por ticket. Sin eso, los enlaces de WP-25 y el Atajo de Apple Pay cuentan dos veces el gasto previsto.
 
 **WP-31 · Nómina en PDF y retenciones automáticas** (CAP-05 + NPV-11) · Ola 2 · exento · M+S-M ≈ 4
 - *Enfoque:* lector de texto de PDF cargado bajo demanda (mismo patrón que el OCR de A17-3; *verificar* librería, tamaño y licencia) o captura + OCR; plantilla por pagador; extrae líquido, bruto, retención %, cotizaciones; crea el ingreso real, acumula `irpfWithholdingsPaid` y avisa si cambia el %. El PDF no se guarda.

@@ -4187,7 +4187,7 @@ const REGISTRAR_LEGACY_HASH_TABS = {
 };
 
 function viewFromHash() {
-  let id = (window.location.hash || "#home").replace("#", "");
+  let id = (window.location.hash || "#home").replace("#", "").split("?")[0]; // WP-25: «#registrar?importe=…»
   if (id === "overview") return "home";
   if (id === "monthly-detail") id = "update-data";
   if (Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, id)) return "registrar";
@@ -4195,7 +4195,7 @@ function viewFromHash() {
 }
 
 function registrarTabFromHash() {
-  let id = (window.location.hash || "#home").replace("#", "");
+  let id = (window.location.hash || "#home").replace("#", "").split("?")[0];
   if (id === "monthly-detail") id = "update-data";
   return REGISTRAR_LEGACY_HASH_TABS[id] || null;
 }
@@ -4624,6 +4624,7 @@ function setupViewNavigation() {
   window.addEventListener("hashchange", () => {
     setMobileNavOpen(false);
     setActiveView(viewFromHash(), { focus: true });
+    openCaptureLinkFromHash();
   });
   setActiveView(viewFromHash(), { focus: false, announce: false });
 }
@@ -12236,30 +12237,46 @@ function updateHomeQuickExpenseAvailability() {
   button.title = available ? "" : "No hay ningún mes abierto con bloques de gasto declarados todavía.";
 }
 
-function openHomeQuickExpenseDialog() {
+function openHomeQuickExpenseDialog(prefill = null) {
   const dialog = qs("homeQuickExpenseDialog");
   const sectionSelect = qs("homeQuickExpenseSection");
   const labelInput = qs("homeQuickExpenseLabel");
   const amountInput = qs("homeQuickExpenseAmount");
   const monthNote = qs("homeQuickExpenseMonth");
-  if (!dialog || !sectionSelect || !labelInput || !amountInput) return;
-  const month = homeQuickExpenseTargetMonth();
+  if (!dialog || !sectionSelect || !labelInput || !amountInput || dialog.open) return;
+  const month = prefill?.month || homeQuickExpenseTargetMonth();
   const sections = homeQuickExpenseSections();
   if (!month || isClosedMonthKey(month.key) || !sections.length) return;
-  sectionSelect.innerHTML = sections.map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`).join("");
-  labelInput.value = "";
-  amountInput.value = "";
+  sectionSelect.innerHTML = sections.map((section) => `<option value="${escapeHtml(section.name)}"${section.name === prefill?.section ? " selected" : ""}>${escapeHtml(section.name)}</option>`).join("");
+  labelInput.value = prefill?.label || "";
+  amountInput.value = prefill?.amount || "";
   if (monthNote) monthNote.textContent = `Se registrará en ${month.label}, como gasto ya realizado.`;
+  Object.assign(qs("homeQuickExpenseLinkNote") || {}, { hidden: !prefill?.note, textContent: prefill?.note || "" });
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "confirm") return;
     submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value);
   }, { once: true });
   dialog.showModal();
-  labelInput.focus();
+  // Desde un enlace, el foco va al primer dato que falta; si no falta nada, a «Registrar» (sin abrir el teclado).
+  (prefill ? [labelInput, amountInput].find((input) => !input.value) || qs("homeQuickExpenseSubmit") : labelInput).focus();
+}
+
+// WP-25 (canonical-capture-link.js): «#registrar?importe=…» abre esta ventana rellena y NUNCA guarda sola. La fecha elige su
+// mes si está abierto; el bloque, la regla de Movimientos del concepto (o el variable). El enlace sale de la barra de direcciones.
+function openCaptureLinkFromHash() {
+  const link = window.FinanceCanonicalCaptureLink?.parseCaptureLink(location.hash, { today: isoLocalDate(new Date()), parseAmount: parseAmountField });
+  if (!link) return;
+  history.replaceState(null, "", "#registrar");
+  const dateMonth = (baseData?.monthlyPlanning?.months || []).find((month) => month.key === link.fields.date.slice(0, 7) && !isClosedMonthKey(month.key));
+  const month = dateMonth || homeQuickExpenseTargetMonth();
+  if (!month || isClosedMonthKey(month.key) || !homeQuickExpenseSections().length) return announceStatus("El enlace de registro no se puede abrir: no hay un mes abierto con bloques de gasto.");
+  const mapped = link.fields.label ? mappingForMovement({ amount: -(link.fields.amount || 1), movement: link.fields.label, details: "", date: link.fields.date }) : null;
+  const note = window.FinanceCanonicalCaptureLink.noteText(link, { monthLabel: month.label, sameMonth: Boolean(dateMonth) });
+  openHomeQuickExpenseDialog({ month, label: link.fields.label, amount: link.fields.amount === null ? "" : formatAmountField(link.fields.amount), section: mapped?.kind === "expense" ? mapped.row.sectionName : homeQuickExpenseSections().find((section) => /variable/i.test(section.name))?.name, note });
 }
 
 function submitHomeQuickExpense(month, sectionName, label, rawAmount) {
-  const parsedAmount = parseAmount(rawAmount);
+  const parsedAmount = parseAmountField(rawAmount);
   if (!month || !label || !sectionName || parsedAmount === null || parsedAmount <= 0) return;
   const amount = round2(parsedAmount);
   const id = `custom-expense-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -37000,7 +37017,9 @@ async function init() {
     setActiveView(target, { focus: true });
   });
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
-  qs("homeQuickExpenseOpen")?.addEventListener("click", openHomeQuickExpenseDialog);
+  qs("homeQuickExpenseOpen")?.addEventListener("click", () => openHomeQuickExpenseDialog());
+  // WP-25: el importe es texto (WP-11); uno que no se entiende no cierra la ventana como si se hubiera registrado.
+  qs("homeQuickExpenseForm")?.addEventListener("submit", (event) => { if (event.submitter?.value === "confirm" && !(parseAmountField(qs("homeQuickExpenseAmount")?.value) > 0)) event.preventDefault(); });
   qs("homeMeetingModeToggle")?.addEventListener("click", toggleMeetingMode);
   qs("meetingModePrev")?.addEventListener("click", () => meetingModeGo(-1));
   qs("meetingModeNext")?.addEventListener("click", () => meetingModeGo(1));
@@ -37466,6 +37485,8 @@ async function init() {
   watchScrollableTableWraps();
   render();
   await setupSupabaseSync();
+  // WP-25: tras la nube (no registrar sobre un estado que va a cambiar) y tras «load» (antes, Chrome quita el foco).
+  if (document.readyState === "complete") openCaptureLinkFromHash(); else window.addEventListener("load", () => openCaptureLinkFromHash(), { once: true });
 }
 
 init().catch((error) => {

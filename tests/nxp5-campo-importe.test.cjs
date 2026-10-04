@@ -90,6 +90,28 @@ test("al salir del campo: con formato si vale; si no, marcado y con el motivo a 
   assert.equal(input.value, "", "vacío se queda vacío, no pasa a 0,00");
 });
 
+test("WP-25: el aviso se quita al corregir (input), no al tocar el botón: así el botón no se mueve bajo el dedo", () => {
+  const doc = fakeDocument();
+  const listeners = {};
+  Object.assign(doc, { addEventListener: (type, fn) => { listeners[type] = fn; } });
+  shell.mountAmountInputs(doc);
+  const cell = doc.el("div");
+  const input = doc.el("input", { id: "importe" });
+  Object.assign(input, { ownerDocument: doc, matches: (selector) => selector === "input[data-amount-input]" || (selector === "input[data-amount-input][aria-invalid]" && input.getAttribute("aria-invalid") !== null) });
+  cell.appendChild(input);
+  input.value = "abc";
+  listeners.focusout({ target: input });
+  assert.ok(doc.getElementById("importe-error"), "marcado al salir");
+  input.value = "12,";
+  listeners.input({ target: input });
+  assert.equal(doc.getElementById("importe-error"), null, "al escribir algo válido el aviso se va ya");
+  assert.equal(input.getAttribute("aria-invalid"), null);
+  assert.equal(input.value, "12,", "sin formatear a medio escribir");
+  input.value = "1,2,3";
+  listeners.input({ target: input });
+  assert.equal(doc.getElementById("importe-error"), null, "escribir no marca: solo salir del campo");
+});
+
 test("signo «±»: cambia el signo y avisa como si se escribiera; no toca un campo de solo lectura, vacío o cero", () => {
   const input = { value: "1.234,00", readOnly: false, disabled: false, events: [], dispatchEvent(e) { this.events.push(e.type); } };
   global.Event = global.Event || class { constructor(type) { this.type = type; } };

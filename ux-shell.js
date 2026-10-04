@@ -352,10 +352,15 @@
       input.setAttribute("aria-describedby", errorId);
       return;
     }
+    clearAmountError(input);
+    if (!empty) input.value = formatAmountInput(value);
+  }
+
+  function clearAmountError(input) {
+    const errorId = `${input.id}-error`;
     input.removeAttribute("aria-invalid");
     if (input.getAttribute("aria-describedby") === errorId) input.removeAttribute("aria-describedby");
-    existing?.remove();
-    if (!empty) input.value = formatAmountInput(value);
+    input.ownerDocument?.getElementById(errorId)?.remove();
   }
 
   // Signo «−» explícito: el teclado decimal del iPhone no tiene la tecla del menos. Avisa como si se escribiera.
@@ -374,6 +379,12 @@
     doc.amountInputsMounted = true;
     doc.addEventListener("focusout", (event) => {
       if (event.target?.matches?.("input[data-amount-input]")) normalizeAmountField(event.target);
+    });
+    // El aviso se quita al corregir, no al salir: si se quitara al tocar «Registrar», el botón subiría bajo el
+    // dedo y el toque caería fuera (WP-25, medido en la ventana «Registrar gasto» a 390 px).
+    doc.addEventListener("input", (event) => {
+      const input = event.target;
+      if (input?.matches?.("input[data-amount-input][aria-invalid]") && !readAmountInput(input).invalid) clearAmountError(input);
     });
     doc.addEventListener("click", (event) => {
       const button = event.target?.closest?.("[data-amount-sign]");
