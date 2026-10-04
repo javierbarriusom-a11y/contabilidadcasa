@@ -1119,11 +1119,14 @@ function cierreTargetHtml(target) {
   const other = target.alternative
     ? ` <button type="button" class="e19-btn e19-btn-secondary" id="cierreTargetSwitch" data-month="${escapeHtml(target.alternative)}">Cerrar ${escapeHtml(ledgerMonthLabel(target.alternative))} en su lugar</button>`
     : "";
-  return `${isSignedClosedMonthKey(target.monthKey) ? "Mes cerrado" : "Mes que se cierra"}: <strong>${escapeHtml(label)}</strong> (${escapeHtml(target.reason)}).${other}`;
+  if (isSignedClosedMonthKey(target.monthKey)) return `Mes cerrado: <strong>${escapeHtml(label)}</strong>.${other}`;
+  return `Mes que se cierra: <strong>${escapeHtml(label)}</strong> (${escapeHtml(target.reason)}).${other}`;
 }
 
 function handleCierreTargetSwitch(monthKey) {
-  closeTargetChoice = monthKey || "";
+  closeTargetChoice = { monthKey: monthKey || "", day: isoLocalDate(new Date()) };
+  // Las elecciones de origen/destino de los sobres son de un mes concreto: no pasan al otro.
+  cierreSobresChoices = {};
   cierreActiveStep = 1;
   renderCierre();
 }
@@ -1135,6 +1138,7 @@ const CIERRE_CONTINUITY_TEXT = {
   "sin-cierre-anterior": "sin cierre anterior con saldo: se podrá cuadrar a partir del próximo",
   calculado: "saldos calculados por la app: no se cuadran",
   "sin-movimientos": "sin movimientos importados entre los dos saldos: no se puede cuadrar",
+  "fechas-invertidas": "la fecha de estos saldos no es posterior a la del cierre anterior: actualízalos antes de firmar",
 };
 
 function cierreBalancesHtml(entry, entries, monthKey) {
@@ -1215,7 +1219,7 @@ function renderCierre() {
     const closedInfo = qs("cierreClosedInfo");
     if (closedInfo) {
       const savedBalances = loadMonthCloseBalances().months[currentMonthKey];
-      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>${savedBalances ? cierreBalancesHtml(savedBalances, entries, currentMonthKey) : `<p class="e19-kpi-note">Este cierre no guardó saldos: es anterior a que el cierre los guardara (octubre de 2026).</p>`}`;
+      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>${savedBalances ? cierreBalancesHtml(savedBalances, entries, currentMonthKey) : `<p class="e19-kpi-note">Este cierre no tiene saldos guardados (los cierres anteriores a octubre de 2026 no los guardaban).</p>`}`;
     }
     const reopenButton = qs("cierreReopen");
     if (reopenButton) reopenButton.disabled = !remoteUser || !supabaseClient;
@@ -1274,7 +1278,7 @@ async function handleCierreSign() {
 }
 
 async function handleCierreReopen() {
-  await reopenLatestMonthTransaction();
+  await reopenLatestMonthTransaction({ monthKey: closeTargetMonthKey() });
   const statusEl = qs("cierreStatus");
   if (statusEl) statusEl.textContent = qs("monthCloseStatus")?.textContent || "";
   renderCierre();

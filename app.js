@@ -5081,17 +5081,24 @@ function monthCloseConfirmMessage(month, pending) {
 }
 
 // WP-09 (C2): qué mes se cierra (del 1 al 3, el que acaba) y sus saldos; la lógica, en canonical-month-close-balances.js.
-let closeTargetChoice = "";
+// La elección del mes (botón de Cierre) vale solo el día en que se hizo: una app abierta varios días no la arrastra.
+let closeTargetChoice = { monthKey: "", day: "" };
 const closeBalancesEngine = () => window.FinanceCanonicalMonthCloseBalances;
 function isSignedClosedMonthKey(key) { return window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, key)?.status === "closed"; }
-function closeTargetInfo() { return closeBalancesEngine().closeTarget({ today: isoLocalDate(new Date()), isSigned: isSignedClosedMonthKey, choice: closeTargetChoice }); }
+function closeTargetInfo() {
+  const today = isoLocalDate(new Date());
+  if (!closeBalancesEngine()) return { monthKey: openMonthCutoffKey(), alternative: null, isDefault: true, reason: "mes en curso" };
+  return closeBalancesEngine().closeTarget({ today, isSigned: isSignedClosedMonthKey, choice: closeTargetChoice.day === today ? closeTargetChoice.monthKey : "" });
+}
 function closeTargetMonthKey() { return closeTargetInfo().monthKey; }
 function loadMonthCloseBalances() { try { return closeBalancesEngine().normalizeStore(JSON.parse(storageGet(storageKey("month-close-balances"), "null"))); } catch { return { months: {} }; } }
-function pendingMonthCloseBalances(monthKey, closedAt = "") { const b = accountBalancesFromState(); try { return closeBalancesEngine().buildEntry({ monthKey, accounts: { caixabank: b.caixa, mediolanum: b.mediolanum, efectivo: balanceSettings?.efectivoBalance }, date: String(state?.balanceDate || defaultBalanceDate()).slice(0, 10), mode: state?.balanceMode, closedAt }); } catch { return null; } }
+function pendingMonthCloseBalances(monthKey, closedAt = "") { const b = accountBalancesFromState(); try { return closeBalancesEngine().buildEntry({ monthKey, accounts: { caixabank: b.caixa, mediolanum: b.mediolanum, efectivo: efectivoBalanceValue() }, date: String(state?.balanceDate || defaultBalanceDate()).slice(0, 10), mode: state?.balanceMode, closedAt }); } catch { return null; } }
 function recordMonthCloseBalances(monthKey, closedAt) { const entry = pendingMonthCloseBalances(monthKey, closedAt); if (entry) storageSet(storageKey("month-close-balances"), JSON.stringify(closeBalancesEngine().recordEntry(loadMonthCloseBalances(), entry))); return entry; }
 
-async function closeCurrentMonthTransaction() {
-  const month = closeTargetMonthKey();
+// Cierre cierra el mes que enseña (closeTargetMonthKey); Conciliación y la pantalla heredada pasan el mes en curso,
+// que es el que rotulan. Como manejador de clic recibe el evento: solo cuenta un `monthKey` de texto.
+async function closeCurrentMonthTransaction(options = {}) {
+  const month = typeof options?.monthKey === "string" ? options.monthKey : closeTargetMonthKey();
   const status = qs("monthCloseStatus");
   if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) {
     if (status) status.textContent = "Inicia sesión y sincroniza una versión antes de cerrar el mes.";
@@ -5174,10 +5181,11 @@ async function closeCurrentMonthTransaction() {
   }
 }
 
-async function reopenLatestMonthTransaction() {
+async function reopenLatestMonthTransaction(options = {}) {
   const status = qs("monthCloseStatus");
   const e5 = window.FinanceCanonicalE5;
-  const closed = monthClosures.filter((item) => item.status === "closed" && isClosedMonthKey(item.monthKey))
+  const onlyMonth = typeof options?.monthKey === "string" ? options.monthKey : ""; // WP-09: Cierre reabre el mes que enseña
+  const closed = monthClosures.filter((item) => item.status === "closed" && isClosedMonthKey(item.monthKey) && (!onlyMonth || item.monthKey === onlyMonth))
     .sort((a, b) => String(b.closedAt || b.occurredAt).localeCompare(String(a.closedAt || a.occurredAt)))[0];
   if (!closed) { if (status) status.textContent = "No hay ningún mes cerrado que se pueda reabrir."; return; }
   if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) { if (status) status.textContent = "Inicia sesión y sincroniza antes de reabrir."; return; }
@@ -7933,6 +7941,8 @@ function isClosedMonthKey(key) {
   if (!key) return false;
   const operation = window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, key);
   if (operation) return operation.status === "closed";
+  // WP-09: del 1 al 3, el mes que acaba sigue abierto hasta que se firma (se terminan de anotar sus reales).
+  if (window.FinanceCanonicalMonthCloseBalances?.isGraceMonth?.(key, isoLocalDate(new Date()))) return false;
   return key < openMonthCutoffKey();
 }
 
@@ -36636,7 +36646,7 @@ async function init() {
     setActiveView(target);
   });
   qs("conciliarDownload")?.addEventListener("click", downloadCanonicalLedger);
-  qs("conciliarClose")?.addEventListener("click", closeCurrentMonthTransaction);
+  qs("conciliarClose")?.addEventListener("click", () => closeCurrentMonthTransaction({ monthKey: openMonthCutoffKey() }));
   qs("conciliarTasks")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-conciliar-task-target]");
     if (!button) return;
@@ -36951,7 +36961,7 @@ async function init() {
     refreshReconciliationView();
   });
   qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);
-  qs("closeCurrentMonth")?.addEventListener("click", closeCurrentMonthTransaction);
+  qs("closeCurrentMonth")?.addEventListener("click", () => closeCurrentMonthTransaction({ monthKey: openMonthCutoffKey() }));
   qs("reopenLatestMonth")?.addEventListener("click", reopenLatestMonthTransaction);
   qs("openMovementReview")?.addEventListener("click", () => {
     history.pushState(null, "", "#movements");

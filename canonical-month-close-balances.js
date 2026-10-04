@@ -17,6 +17,9 @@
   const MAX_MONTHS = 120;
   const ACCOUNTS = Object.freeze(["caixabank", "mediolanum", "efectivo"]);
   const RECONCILABLE = Object.freeze(["caixabank", "mediolanum"]);
+  // Apuntes que no vienen del extracto del banco: no entran en el cuadre (un ticket en efectivo, o uno de
+  // tarjeta que luego llega también en el extracto, harían saltar un «no cuadra» falso).
+  const NON_BANK_SOURCES = Object.freeze(["manual-quick-capture", "receipt-photo"]);
 
   function text(value) {
     return String(value ?? "").trim();
@@ -56,6 +59,13 @@
     return Math.round((utcDay(toIso) - utcDay(fromIso)) / 86400000);
   }
 
+  // Del día 1 al 3, el mes que acaba sigue ABIERTO mientras no se firme: es cuando se terminan de anotar
+  // sus reales para cerrarlo (sin esto, la app proponía cerrar un mes que ya no dejaba corregir).
+  function isGraceMonth(monthKey, today) {
+    if (!validMonthKey(monthKey) || !validIsoDate(today)) return false;
+    return Number(today.slice(8, 10)) <= GRACE_DAYS && monthKey === previousMonthKey(today.slice(0, 7));
+  }
+
   /**
    * Qué mes se cierra. Del día 1 al 3, el mes que acaba (firmado o no: si ya se firmó, la pantalla lo
    * enseña cerrado y se puede reabrir); el resto del mes, el mes en curso, como hasta ahora. La otra
@@ -74,7 +84,8 @@
     return {
       monthKey,
       isDefault: monthKey === byDefault,
-      alternative: isSigned(other) ? null : other,
+      // Volver al mes por defecto siempre es posible; el otro, solo si aún no está firmado.
+      alternative: other === byDefault || !isSigned(other) ? other : null,
       reason: monthKey === previous
         ? (inGrace ? `del 1 al ${GRACE_DAYS} se cierra el mes que acaba` : "elegido: cerrar tarde el mes anterior")
         : (inGrace ? "elegido: cerrar el mes en curso" : "mes en curso"),
@@ -111,7 +122,10 @@
     const months = raw && typeof raw === "object" && !Array.isArray(raw) && raw.months && typeof raw.months === "object" ? raw.months : {};
     const clean = {};
     Object.entries(months).forEach(([key, entry]) => {
-      if (validMonthKey(key) && entry && typeof entry === "object" && validIsoDate(entry.date) && entry.accounts && typeof entry.accounts === "object") clean[key] = entry;
+      if (!validMonthKey(key) || !entry || typeof entry !== "object" || !validIsoDate(entry.date) || !entry.accounts || typeof entry.accounts !== "object") return;
+      // Una copia o una versión de la nube corrupta no puede colar un saldo que no sea número.
+      const accounts = Object.fromEntries(Object.entries(entry.accounts).filter(([, value]) => typeof value === "number" && Number.isFinite(value)));
+      clean[key] = { ...entry, accounts };
     });
     return { months: clean };
   }
@@ -144,8 +158,9 @@
       const closing = current.accounts[accountId];
       if (!previous || previous.accounts?.[accountId] === undefined) return { accountId, status: "sin-cierre-anterior", closing };
       if (previous.mode === "auto" || current.mode === "auto") return { accountId, status: "calculado", closing };
+      if (current.date <= previous.date) return { accountId, status: "fechas-invertidas", closing, from: previous.date, to: current.date };
       const opening = previous.accounts[accountId];
-      const moves = transactions.filter((item) => text(item.accountId || "caixabank") === accountId && !item.duplicateOf
+      const moves = transactions.filter((item) => text(item.accountId || "caixabank") === accountId && !item.duplicateOf && !NON_BANK_SOURCES.includes(text(item.source))
         && validIsoDate(text(item.date).slice(0, 10)) && text(item.date).slice(0, 10) > previous.date && text(item.date).slice(0, 10) <= current.date);
       if (!moves.length) return { accountId, status: "sin-movimientos", opening, closing, from: previous.date, to: current.date };
       const movements = round2(moves.reduce((sum, item) => sum + Number(item.signedAmount ?? item.amount ?? 0), 0));
@@ -167,5 +182,5 @@
     return `saldos del ${formatDate(entry.date)}, ${days} día${days === 1 ? "" : "s"} ${entry.offsetDays > 0 ? "después" : "antes"} del fin de mes`;
   }
 
-  return { STORE_NAME, GRACE_DAYS, TOLERANCE, ACCOUNTS, previousMonthKey, lastDayOfMonth, closeTarget, buildEntry, normalizeStore, recordEntry, previousEntry, continuity, describeDate };
+  return { STORE_NAME, GRACE_DAYS, TOLERANCE, ACCOUNTS, previousMonthKey, lastDayOfMonth, isGraceMonth, closeTarget, buildEntry, normalizeStore, recordEntry, previousEntry, continuity, describeDate };
 });

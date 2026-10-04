@@ -34,7 +34,17 @@ test("la otra opción se ofrece solo si no está firmada, y se puede elegir", ()
   assert.match(late.reason, /cerrar tarde/);
   const previousSigned = engine.closeTarget({ today: "2026-11-15", isSigned: (key) => key === "2026-10" });
   assert.equal(previousSigned.alternative, null, "un mes ya firmado no se ofrece");
+  const back = engine.closeTarget({ today: "2026-11-15", choice: "2026-10", isSigned: () => true });
+  assert.equal(back.alternative, "2026-11", "volver al mes por defecto siempre es posible, aunque esté firmado");
   assert.equal(engine.closeTarget({ today: "2026-11-02", choice: "2026-07" }).monthKey, "2026-10", "solo el mes en curso o el anterior");
+});
+
+test("del 1 al 3 el mes que acaba sigue abierto (se pueden terminar sus reales); el 4 ya no", () => {
+  assert.equal(engine.isGraceMonth("2026-10", "2026-11-01"), true);
+  assert.equal(engine.isGraceMonth("2026-10", "2026-11-03"), true);
+  assert.equal(engine.isGraceMonth("2026-10", "2026-11-04"), false);
+  assert.equal(engine.isGraceMonth("2026-09", "2026-11-02"), false, "solo el mes inmediatamente anterior");
+  assert.equal(engine.isGraceMonth("2026-12", "2027-01-02"), true);
 });
 
 test("cada cierre guarda los saldos con su fecha y dice si son de fin de mes, de después o calculados", () => {
@@ -68,6 +78,7 @@ test("reabrir y volver a cerrar sustituye la entrada del mes (idempotente), sin 
   assert.equal(engine.previousEntry(store, "2026-10").monthKey, "2026-09");
   assert.equal(engine.previousEntry(store, "2026-09"), null);
   assert.deepEqual(engine.normalizeStore({ months: { "2026-13": {}, "2026-08": { date: "2026-08-31", accounts: {} }, bad: 1 } }), { months: { "2026-08": { date: "2026-08-31", accounts: {} } } });
+  assert.deepEqual(engine.normalizeStore({ months: { "2026-08": { date: "2026-08-31", accounts: { caixabank: "100", mediolanum: 5, efectivo: null } } } }).months["2026-08"].accounts, { mediolanum: 5 }, "un saldo que no es número no entra desde una copia corrupta");
 });
 
 test("cuadre: saldo anterior + movimientos entre las dos fechas = saldo de cierre (avisa, no bloquea)", () => {
@@ -88,6 +99,9 @@ test("cuadre: saldo anterior + movimientos entre las dos fechas = saldo de cierr
   assert.deepEqual([off.status, off.diff], ["descuadra", -50]);
   assert.equal(engine.continuity({ previous: null, current, transactions: entries })[0].status, "sin-cierre-anterior");
   assert.equal(engine.continuity({ previous: { ...previous, mode: "auto" }, current, transactions: entries })[0].status, "calculado");
+  const withManual = engine.continuity({ previous, current, transactions: [...entries, { accountId: "caixabank", date: "2026-10-20", signedAmount: -30, source: "receipt-photo" }, { date: "2026-10-21", signedAmount: -12, source: "manual-quick-capture" }] })[0];
+  assert.equal(withManual.status, "cuadra", "un ticket o una captura rápida no son movimientos del banco: no entran en el cuadre");
+  assert.equal(engine.continuity({ previous, current: { ...current, date: "2026-09-30" }, transactions: entries })[0].status, "fechas-invertidas", "saldos sin actualizar desde el cierre anterior");
   const raw = engine.continuity({ previous, current, transactions: [{ date: "2026-10-02", amount: 1150 }] })[0];
   assert.equal(raw.status, "cuadra", "movimientos sin cuenta son de CaixaBank, como en el libro; `amount` con signo también vale");
 });
@@ -102,7 +116,9 @@ function extractFunction(name, source = app) {
 
 function wp09Block() {
   const start = app.indexOf("// WP-09 (C2): qué mes se cierra");
-  return app.slice(start, app.indexOf("async function closeCurrentMonthTransaction()", start));
+  const end = app.indexOf("// Cierre cierra el mes que enseña", start);
+  assert.ok(start > 0 && end > start && end - start < 4000, "no se encontró el bloque de WP-09 en app.js");
+  return app.slice(start, end);
 }
 
 function loadClose({ today, rpcError = null, closures = [], balanceDate = "2026-10-31", balanceMode = "manual" }) {
@@ -122,11 +138,12 @@ function loadClose({ today, rpcError = null, closures = [], balanceDate = "2026-
     statusEl: { textContent: "" },
   };
   vm.createContext(sandbox);
-  vm.runInContext(read("canonical-month-close-balances.js"), sandbox);
+  // Los motores reales del cierre y de la reapertura (no sustitutos): el orden de las operaciones lo decide E5.
+  for (const name of ["canonical-month-close-balances.js", "canonical-e5-operations.js", "canonical-month-close.js"]) vm.runInContext(read(name), sandbox);
   vm.runInContext(`
     window.FinanceCanonicalMonthCloseBalances = FinanceCanonicalMonthCloseBalances;
-    window.FinanceCanonicalE5 = { latestMonthOperation: (payload, key) => payload.monthClosures.filter((item) => item.monthKey === key).at(-1) || null };
-    window.FinanceCanonicalMonthClose = { closeMonth: (payload, month, meta) => ({ ...payload, monthClosures: [...payload.monthClosures, { monthKey: month, status: "closed", id: meta.id, closedAt: meta.closedAt }] }) };
+    window.FinanceCanonicalE5 = FinanceCanonicalE5;
+    window.FinanceCanonicalMonthClose = FinanceCanonicalMonthClose;
     window.FinanceCanonicalSupabaseStore = { createUuid: (prefix) => prefix + "-id", fingerprintPayload: () => "fp" };
     function isoLocalDate() { return ${JSON.stringify(today)}; }
     function defaultBalanceDate() { return "2026-10-31"; }
@@ -134,13 +151,15 @@ function loadClose({ today, rpcError = null, closures = [], balanceDate = "2026-
     function storageGet(key, fallback) { return key in storage ? storage[key] : fallback; }
     function storageSet(key, value) { storage[key] = value; }
     function accountBalancesFromState() { return { caixa: 1234.5, mediolanum: 600, total: 1834.5 }; }
+    function efectivoBalanceValue() { return balanceSettings.efectivoBalance; }
+    function openMonthCutoffKey() { return isoLocalDate().slice(0, 7); }
     function qs(id) { return id === "monthCloseStatus" ? statusEl : null; }
     async function requestOperationConfirmation() { return { reason: "Mes revisado" }; }
     function monthCloseConfirmMessage() { return ""; }
     function pendingActualsForMonthKey() { return null; }
     function cuadroMandosAllMonths() { return []; }
     function sobresSettlementsForSign() { return []; }
-    function appStatePayload() { return { monthClosures }; }
+    function appStatePayload() { return { monthClosures, incomeActuals: {}, expenseActuals: {} }; }
     function sourceStateKey() { return "demo"; }
     function ensureRemoteSaveQueue() { return { acknowledge() {} }; }
     let cierreSobresChoices = {};
@@ -150,7 +169,8 @@ function loadClose({ today, rpcError = null, closures = [], balanceDate = "2026-
     ${extractFunction("closeCurrentMonthTransaction")}
     this.run = closeCurrentMonthTransaction;
     this.getState = () => ({ monthClosures, remoteHeadSnapshotId, closeTargetChoice });
-    this.setChoice = (value) => { closeTargetChoice = value; };
+    this.setChoice = (value, day = ${JSON.stringify(today)}) => { closeTargetChoice = { monthKey: value, day }; };
+    this.target = () => closeTargetInfo();
   `, sandbox);
   return sandbox;
 }
@@ -169,13 +189,33 @@ test("el 2 de noviembre se firma octubre y se guardan sus saldos, con el mismo R
   assert.match(sandbox.statusEl.textContent, /2026-10 cerrado.*Saldos guardados\./);
 });
 
-test("se puede elegir el mes de hoy aunque sea del 1 al 3; tras firmar, la pantalla sigue en el mes firmado", async () => {
+test("se puede elegir el mes de hoy aunque sea del 1 al 3; tras firmar, Cierre sigue en el mes firmado", async () => {
   const sandbox = loadClose({ today: "2026-11-02" });
   sandbox.setChoice("2026-11");
   await sandbox.run();
   assert.equal(sandbox.calls[0].args.p_month_key, "2026-11");
-  // La elección se mantiene (solo en memoria): la pantalla enseña el mes recién firmado, no salta a otro.
-  assert.equal(sandbox.getState().closeTargetChoice, "2026-11");
+  const after = sandbox.target();
+  assert.equal(after.monthKey, "2026-11", "la pantalla enseña el mes recién firmado, no salta a otro");
+  assert.equal(after.alternative, "2026-10", "y ofrece volver al mes por defecto");
+});
+
+test("la elección del mes caduca al cambiar de día: una app abierta varios días no la arrastra", () => {
+  const sandbox = loadClose({ today: "2026-12-05" });
+  sandbox.setChoice("2026-11", "2026-11-02");
+  assert.equal(sandbox.target().monthKey, "2026-12");
+});
+
+test("Conciliación y la pantalla heredada cierran el mes que rotulan (el en curso), no el elegido en Cierre", async () => {
+  const sandbox = loadClose({ today: "2026-11-15" });
+  sandbox.setChoice("2026-10");
+  await sandbox.run({ monthKey: "2026-11" });
+  assert.equal(sandbox.calls[0].args.p_month_key, "2026-11");
+  const clickEvent = { type: "click", target: {} };
+  const viaClick = loadClose({ today: "2026-11-15" });
+  await viaClick.run(clickEvent);
+  assert.equal(viaClick.calls[0].args.p_month_key, "2026-11", "un evento de clic no se confunde con un mes");
+  assert.match(app, /qs\("conciliarClose"\)\?\.addEventListener\("click", \(\) => closeCurrentMonthTransaction\(\{ monthKey: openMonthCutoffKey\(\) \}\)\);/);
+  assert.match(app, /qs\("closeCurrentMonth"\)\?\.addEventListener\("click", \(\) => closeCurrentMonthTransaction\(\{ monthKey: openMonthCutoffKey\(\) \}\)\);/);
 });
 
 test("un mes pasado sin firmar se puede firmar: «implícitamente cerrado» no es «firmado»", async () => {
@@ -200,9 +240,12 @@ test("dos sesiones: si otra sesión publicó antes, el RPC lo rechaza y no se es
 test("reabrir y volver a cerrar: una sola entrada de saldos por mes, la última", async () => {
   const sandbox = loadClose({ today: "2026-11-02" });
   await sandbox.run();
-  // Reapertura registrada (como la deja reopenLatestMonthTransaction) y nuevo cierre.
-  vm.runInContext(`monthClosures = [...monthClosures, { monthKey: "2026-10", status: "reopened", id: "r1" }]; state.balanceDate = "2026-11-02";`, sandbox);
+  // Reapertura con el motor real (como la deja reopenLatestMonthTransaction), un instante después del cierre.
+  vm.runInContext(`monthClosures = FinanceCanonicalE5.reopenMonth({ monthClosures }, "2026-10", { id: "r1", reopenedAt: new Date(Date.now() + 1000).toISOString(), reason: "Corrección" }).monthClosures; state.balanceDate = "2026-11-02";`, sandbox);
+  assert.equal(sandbox.getState().monthClosures.at(-1).status, "reopened");
+  await new Promise((resolve) => setTimeout(resolve, 1100)); // el nuevo cierre, posterior a la reapertura
   await sandbox.run();
+  assert.equal(sandbox.calls.length, 2, "reabierto: se vuelve a firmar");
   const months = JSON.parse(sandbox.storage["month-close-balances:demo"]).months;
   assert.deepEqual(Object.keys(months), ["2026-10"]);
   assert.equal(months["2026-10"].revision, 2);
@@ -233,4 +276,29 @@ test("registro: copia y nube, carga antes que app.js, caché offline y pantalla 
   assert.match(cierre, /Saldos que se guardarán/);
   assert.match(app, /cierre: \{ src: "views\/cierre\.js\?v=20261004wp09a1"/);
   assert.match(app, /if \(event\.target\.id === "cierreTargetSwitch"\) handleCierreTargetSwitch\(event\.target\.dataset\.month\);/);
+  assert.match(cierre, /await reopenLatestMonthTransaction\(\{ monthKey: closeTargetMonthKey\(\) \}\);/, "Cierre reabre el mes que enseña");
+  assert.match(cierre, /closeTargetChoice = \{ monthKey: monthKey \|\| "", day: isoLocalDate\(new Date\(\)\) \};\n\s+\/\/[^\n]*\n\s+cierreSobresChoices = \{\};/, "cambiar de mes no arrastra las elecciones de sobres");
+});
+
+test("isClosedMonthKey: del 1 al 3 el mes anterior sin firmar está abierto (Registrar deja corregirlo); firmado o desde el 4, cerrado", () => {
+  const source = extractFunction("isClosedMonthKey");
+  const run = (today, closures) => {
+    const sandbox = { monthClosures: closures, window: {} };
+    vm.createContext(sandbox);
+    for (const name of ["canonical-month-close-balances.js", "canonical-e5-operations.js"]) vm.runInContext(read(name), sandbox);
+    vm.runInContext(`window.FinanceCanonicalMonthCloseBalances = FinanceCanonicalMonthCloseBalances; window.FinanceCanonicalE5 = FinanceCanonicalE5;
+      function isoLocalDate() { return ${JSON.stringify(today)}; }
+      function openMonthCutoffKey() { return ${JSON.stringify(today.slice(0, 7))}; }
+      ${source}
+      this.closed = JSON.stringify(["2026-09", "2026-10", "2026-11"].map((key) => isClosedMonthKey(key)));`, sandbox);
+    return JSON.parse(sandbox.closed);
+  };
+  assert.deepEqual(run("2026-11-02", []), [true, false, false]);
+  assert.deepEqual(run("2026-11-04", []), [true, true, false]);
+  assert.deepEqual(run("2026-11-02", [{ monthKey: "2026-10", status: "closed", closedAt: "2026-11-02T08:00:00Z", occurredAt: "2026-11-02T08:00:00Z" }]), [true, true, false]);
+  // Sin el motor cargado se comporta como antes (falla cerrado para los meses pasados).
+  const sandbox = { monthClosures: [], window: {} };
+  vm.createContext(sandbox);
+  vm.runInContext(`function isoLocalDate() { return "2026-11-02"; } function openMonthCutoffKey() { return "2026-11"; } ${source} this.closed = isClosedMonthKey("2026-10");`, sandbox);
+  assert.equal(sandbox.closed, true);
 });
