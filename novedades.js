@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp10",
+      fecha: "2026-10-04",
+      texto: "Previsión dice qué parte de los gastos tiene día conocido y cuánto del mes ya es real, con qué hacer para mejorarlo.",
+      href: "#prevision",
+    },
+    {
       id: "2026-10-04-wp09",
       fecha: "2026-10-04",
       texto: "Cierre de mes: guarda el saldo de cada cuenta con su fecha y, del día 1 al 3, propone cerrar el mes que acaba.",
