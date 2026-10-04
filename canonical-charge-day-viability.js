@@ -97,12 +97,12 @@
 
   function verdictText(summary) {
     if (summary.verdict === "insuficiente") {
-      return `Aún no se puede aprender ningún día de cargo: ninguna partida tiene ${MIN_MONTHS} meses o más con movimientos importados. Cuando llegue el día de cargo por partida, lo indicarás tú; importar más extractos cambia esta lectura.`;
+      return `Aún no se puede aprender ningún día de cargo: ninguna partida tiene ${MIN_MONTHS} meses o más con movimientos importados. El día de cargo de cada partida se indica en Plan › Partidas; importar más extractos cambia esta lectura.`;
     }
     if (summary.verdict === "solo-declarado") {
-      return `Ninguna partida cae en el mismo día (± ${TOLERANCE_DAYS}) en el ${RELIABLE_PCT} % de los meses: el día de cargo de cada partida lo indicarás tú.`;
+      return `Ninguna partida cae en el mismo día (± ${TOLERANCE_DAYS}) en el ${RELIABLE_PCT} % de los meses: el día de cargo de cada partida se indica en Plan › Partidas.`;
     }
-    return `${summary.reliable} partida${summary.reliable === 1 ? "" : "s"} (${summary.reliableSpendPct} % del gasto) caen en el mismo día (± ${TOLERANCE_DAYS}) en el ${RELIABLE_PCT} % de los meses o más: la app podrá sugerirte su día; el resto lo indicarás tú.`;
+    return `${summary.reliable} partida${summary.reliable === 1 ? "" : "s"} (${summary.reliableSpendPct} % del gasto) caen en el mismo día (± ${TOLERANCE_DAYS}) en el ${RELIABLE_PCT} % de los meses o más: Plan › Partidas te propone su día; el resto lo indicas tú.`;
   }
 
   // HTML de la tarjeta de Ajustes: veredicto, cifras y las partidas con su estado. Sin importes.

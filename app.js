@@ -1355,6 +1355,7 @@ const BACKUP_LOCAL_STORES = [
   "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
+  "charge-days", // WP-08: día de cargo indicado por el hogar para cada partida
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -6376,8 +6377,20 @@ function isPrePayrollIncomeRow(row) {
 // inyectan las utilidades de fecha y texto y los movimientos importados. Se crea al primer uso.
 let timingEngineInstance = null;
 function timingEngine() {
-  return (timingEngineInstance ||= window.FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => baseData?.transactions || [] }));
+  return (timingEngineInstance ||= window.FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => baseData?.transactions || [], chargeDay: chargeDayForRow }));
 }
+// WP-08 (ND-03): día de cargo por partida, almacén `charge-days` (copia y nube). El motor lo consulta fila a fila
+// en cada mes del horizonte: se relee solo si cambió el texto guardado (también al llegar de la nube o de una copia).
+let chargeDaysCache = { raw: null, store: { series: {} } };
+function loadChargeDays() {
+  const raw = storageGet(storageKey("charge-days"), "");
+  if (raw === chargeDaysCache.raw) return chargeDaysCache.store;
+  let store = { series: {} };
+  try { store = window.FinanceCanonicalChargeDays.normalizeStore(JSON.parse(raw || "null")); } catch { /* sin motor o texto dañado: sin días indicados */ }
+  chargeDaysCache = { raw, store };
+  return store;
+}
+function chargeDayForRow(row) { return loadChargeDays().series[seriesKeyForRow(row)] || null; }
 function incomeTimingForRow(row, month, amount) { return timingEngine().incomeTimingForRow(row, month, amount); }
 function isEndOfMonthExpenseRow(row) { return timingEngine().isEndOfMonthExpenseRow(row); }
 function expenseTimingFromMovements(row, month, amount) { return timingEngine().expenseTimingFromMovements(row, month, amount); }
@@ -7603,6 +7616,7 @@ function modelComputationSignature() {
     deletedPlanningRows,
     seriesOverrides,
     rowLabelOverrides,
+    chargeDays: loadChargeDays().series, // WP-08: indicar un día de cargo mueve la previsión día a día al momento
   });
 }
 
@@ -35421,6 +35435,63 @@ function renderAjustesChargeDayViability() {
   if (target && engine) target.innerHTML = engine.renderHtml(engine.analyze(chargeDayObservations()));
 }
 
+// WP-08 (ND-03): Plan › Partidas › «Días de cargo». Las partidas de gasto de los próximos 12 meses (sin las
+// borradas), con su peso, y la propuesta sacada de los extractos (WP-04). Modelo y HTML, en el motor.
+function chargeDayRows() {
+  const rows = new Map();
+  for (let index = 0; index < 12; index += 1) {
+    const month = planningMonthForDate(addMonths(modelStartDate(), index), index);
+    planningSectionsForMonth("expense", month).forEach((section) => section.rows.forEach((row) => {
+      const key = seriesKeyForRow(row);
+      const item = rows.get(key) || { key, label: displayLabelForRow(row), section: section.name, amount: 0, rule: isEndOfMonthExpenseRow(row), spread: isVariableOperationalRow(row) };
+      item.amount += Math.abs(Number(plannedValueForRow(row, month)) || 0);
+      rows.set(key, item);
+    }));
+  }
+  return [...rows.values()];
+}
+
+// Lo que hay que decir y dónde dejar el foco tras guardar: render() vuelve a pintar la pantalla después.
+let chargeDaysPending = { status: "", focusKey: "", html: "" };
+function renderChargeDays() {
+  const engine = window.FinanceCanonicalChargeDays;
+  const target = qs("cargoDia");
+  if (!engine || !target) return;
+  const observations = chargeDayObservations();
+  const viability = window.FinanceCanonicalChargeDayViability?.analyze(observations).partidas || [];
+  const model = engine.buildModel({ rows: chargeDayRows(), store: loadChargeDays(), suggestions: engine.suggestions(observations, viability) });
+  const html = engine.renderHtml(model);
+  // Sin cambios, no se repinta: el render diferido de la pantalla no se lleva el foco ni el aviso.
+  if (html !== chargeDaysPending.html) target.innerHTML = chargeDaysPending.html = html;
+  qs("cargoDiaResumen").textContent = engine.summaryText(model);
+  qs("cargoDiaEstado").textContent = chargeDaysPending.status;
+  const focusKey = chargeDaysPending.focusKey;
+  (focusKey === "*" ? qs("cargoDiaResumen") : [...target.querySelectorAll("[data-cargo-dia]")].find((select) => select.dataset.cargoDia === focusKey))?.focus();
+  chargeDaysPending.focusKey = "";
+}
+
+// Guarda al momento (sin botón «Guardar») y recalcula la previsión; el foco vuelve al mismo selector.
+function saveChargeDays(changes, status) {
+  const engine = window.FinanceCanonicalChargeDays;
+  const store = changes.reduce((current, [key, value, source]) => engine.setDay(current, key, value, { source, now: new Date().toISOString() }), loadChargeDays());
+  storageSet(storageKey("charge-days"), JSON.stringify(store));
+  Object.assign(chargeDaysPending, { status, focusKey: changes.length === 1 ? changes[0][0] : "*" });
+  render();
+  renderChargeDays();
+}
+
+function handleChargeDayEvent(event) {
+  const engine = window.FinanceCanonicalChargeDays;
+  const select = event.type === "change" ? event.target.closest("[data-cargo-dia]") : null;
+  const use = event.type === "click" ? event.target.closest("[data-cargo-dia-usar]") : null;
+  if (select) saveChargeDays([[select.dataset.cargoDia, select.value, "declarado"]], select.value ? `Guardado: ${engine.dayText(engine.normalizeDay(select.value))}. La previsión ya lo usa.` : "Sin día indicado: vuelve a la fecha automática.");
+  else if (use) saveChargeDays([[use.dataset.cargoDiaUsar, use.dataset.cargoDiaValor, "sugerido"]], `Guardado: día ${use.dataset.cargoDiaValor}. La previsión ya lo usa.`);
+  else if (event.type === "click" && event.target.closest("[data-cargo-dia-fiables]")) {
+    const changes = [...document.querySelectorAll("#cargoDia [data-cargo-dia-fiable]")].map((button) => [button.dataset.cargoDiaUsar, button.dataset.cargoDiaValor, "sugerido"]);
+    saveChargeDays(changes, `Aplicadas ${changes.length} propuestas fiables. La previsión ya las usa.`);
+  }
+}
+
 let laboratorioSelectedHash = LABORATORIO_CATALOG[0]?.hash || null;
 let laboratorioFiltro = "todas";
 let laboratorioViewMode = "tarjetas";
@@ -35790,6 +35861,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "planificacion-partidas":
       renderPlanificacionPartidas();
+      renderChargeDays();
       populateSeriesEditor();
       break;
     case "registrar":
@@ -36070,6 +36142,7 @@ async function init() {
   qs("migrateLegacyRemote")?.addEventListener("click", migrateLegacyRemoteState);
   qs("addProject").addEventListener("click", handleAddProject);
   qs("saveProjectPending")?.addEventListener("click", saveProjectDecisionAsPending);
+  ["change", "click"].forEach((type) => qs("cargoDia")?.addEventListener(type, handleChargeDayEvent));
   qs("planificacionPartidasRoot")?.addEventListener("click", (event) => {
     const sectionToggle = event.target.closest("[data-partidas-section-toggle]");
     if (sectionToggle) { togglePartidasSection(sectionToggle.dataset.partidasSectionToggle); return; }

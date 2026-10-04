@@ -42,6 +42,10 @@ salgan «fiables»** con los datos reales de ese momento; el resto se declara (p
 recurrentes de `A16-3`, como ya decía el plan). Si ninguna sale fiable, WP-08 es solo declarado, sin
 código muerto: el chip simplemente no aparece. Coste marginal: casi nulo, porque el motor ya existe.
 
+**Hecho en WP-08 (4/10/2026, `canonical-charge-days.js`):** así se construyó. Además de la propuesta
+«fiable», cada partida propone el **último día en que se vio** su cargo, como ayuda para confirmar y no
+para declarar; nunca se aplica sola. Los gastos repartidos por el mes no reciben propuesta.
+
 ## Pruebas
 
 `tests/nd3-viabilidad-dia-cargo.test.cjs`: día dominante a ± 1, clasificación (fiable, variable,

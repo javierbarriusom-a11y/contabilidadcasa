@@ -7,14 +7,16 @@
 
   // WP-07 (NTC-01, docs/PLAN_IMPLEMENTACION_2026-10-03.md): el motor que decide QUÉ DÍA del mes cae cada
   // ingreso y cada gasto del plan, extraído de app.js SIN CAMBIO DE COMPORTAMIENTO (equivalencia campo a
-  // campo en tests/ntc1-motor-fechas.test.cjs). Es la costura donde WP-08 añadirá el día de cargo
-  // declarado (declarado > regla > observado > estimado).
+  // campo en tests/ntc1-motor-fechas.test.cjs). WP-08 añade aquí el día de cargo indicado por el hogar.
   //
   // Orden de las reglas, que no se cambia sin decisión del hogar (tests/nomina-javi-ultimo-dia-natural.test.cjs):
   // - Ingresos: local (día 1) → Tere (día 25, a propósito más tarde de lo real) → nómina de Javi (último día
   //   NATURAL, antes que la regla de diciembre) → bonus/diciembre (día 15 en diciembre, último hábil el resto)
   //   → movimiento real casado → estimación alisada (día 8).
   // - Gastos: regla de fin de mes (trastero, parking, psicólogo) → movimiento real casado → estimación (día 8).
+  // - Gastos con día de cargo indicado (WP-08, `chargeDay(row)`): movimiento real casado en ese mes (es lo que
+  //   pasó) → día indicado, que gana a la regla de fin de mes y a la estimación. Sin día indicado, lo de arriba
+  //   sin cambios (oro de 493 casos de WP-07). Solo gastos: los ingresos con fecha ya tienen su regla.
   //
   // Las utilidades de fecha y texto de app.js (que usan muchos otros sitios) entran por inyección, igual que
   // los movimientos importados (`transactions()`, leídos en cada llamada porque cambian al importar).
@@ -31,6 +33,7 @@
    *   shortDate: (value: any) => string,
    *   dateWithMonthLabel: (date: Date, day: number) => string,
    *   transactions: () => Array<any>,
+   *   chargeDay?: (row: any) => ({ day: number | "eom", source?: string } | null),
    * }} deps
    */
   function createTimingEngine(deps) {
@@ -137,8 +140,22 @@
       return { day: date.getDate(), date: isoLocalDate(date), source: "movimiento real identificado", label: shortDate(date), confidence: "observed", role: "" };
     }
 
+    // «Fin de mes» es el último día natural; un 31 en un mes corto cae en su último día. Si coincide con el
+    // último día, cuenta como gasto de fin de mes (después de la nómina), igual que la regla.
+    function declaredExpenseTiming(row, date) {
+      const entry = deps.chargeDay ? deps.chargeDay(row) : null;
+      const lastDay = monthEndDate(date).getDate();
+      const value = entry?.day;
+      const day = value === "eom" ? lastDay : Number.isInteger(value) && value >= 1 && value <= 31 ? Math.min(value, lastDay) : null;
+      if (!day) return null;
+      const timing = { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: entry.source === "sugerido" ? "día de cargo propuesto y aceptado" : "día de cargo indicado", label: dateWithMonthLabel(date, day), confidence: "declared", role: "" };
+      return day === lastDay ? { ...timing, endOfMonth: true } : timing;
+    }
+
     function expenseTimingForRow(row, month, amount) {
       const date = dateFromMonthKey(month.key);
+      const declared = declaredExpenseTiming(row, date);
+      if (declared) return expenseTimingFromMovements(row, month, amount) || declared;
       if (isEndOfMonthExpenseRow(row)) {
         const day = monthEndDate(date).getDate();
         return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla gasto fin de mes", label: dateWithMonthLabel(date, day), confidence: "rule", role: "", endOfMonth: true };
@@ -148,7 +165,7 @@
       return { day: 8, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 8, 12)), source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8), confidence: "estimated", role: "" };
     }
 
-    return { isMainPayrollIncomeRow, incomeTimingFromMovements, incomeTimingForRow, isEndOfMonthExpenseRow, expenseTimingFromMovements, expenseTimingForRow };
+    return { isMainPayrollIncomeRow, incomeTimingFromMovements, incomeTimingForRow, isEndOfMonthExpenseRow, expenseTimingFromMovements, declaredExpenseTiming, expenseTimingForRow };
   }
 
   return { createTimingEngine };
