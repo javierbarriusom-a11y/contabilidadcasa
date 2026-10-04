@@ -93,7 +93,7 @@ test("app.js delega en el módulo y ya no contiene las reglas", () => {
   for (const gone of ["function incomeTimingFromMovements", "function isMainPayrollIncomeRow", "regla salario Tere", "regla gasto fin de mes", "estimación alisada 1-15"]) {
     assert.ok(!app.includes(gone), `app.js aún contiene «${gone}»`);
   }
-  assert.match(app, /timingEngineInstance \|\|= window\.FinanceCanonicalTiming\.createTimingEngine\(\{ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: \(\) => baseData\?\.transactions \|\| \[\] \}\)/);
+  assert.match(app, /timingEngineInstance \|\|= window\.FinanceCanonicalTiming\.createTimingEngine\(\{ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: \(\) => baseData\?\.transactions \|\| \[\], chargeDay: chargeDayForRow \}\)/);
 });
 
 test("registro: el módulo carga antes que app.js y está en la caché offline y en el sitio publicado", () => {

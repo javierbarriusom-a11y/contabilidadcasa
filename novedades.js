@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp08",
+      fecha: "2026-10-04",
+      texto: "Plan › Partidas: indica qué día se cobra cada gasto y la previsión día a día lo pone ahí. Te propone el que ve en tus extractos.",
+      href: "#planificacion-partidas",
+    },
+    {
       id: "2026-10-04-wp10",
       fecha: "2026-10-04",
       texto: "Previsión dice qué parte de los gastos tiene día conocido y cuánto del mes ya es real, con qué hacer para mejorarlo.",

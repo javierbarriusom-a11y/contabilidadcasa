@@ -149,6 +149,22 @@ mira está acotado a los próximos 18 meses, no al final del modelo. Para el det
 Una recomendación con confianza baja indica falta de datos o histórico suficiente — no debe
 interpretarse como una certeza.
 
+### Día de cargo de cada partida (Plan › Partidas)
+
+La previsión día a día pone cada gasto el día del mes en que se cobra. Si no lo sabe, lo estima el
+**día 8**, y **Plan › Previsión › Calidad de los datos** dice qué parte del gasto está en esa situación.
+Para corregirlo, abre **Plan › Partidas › Días de cargo**. Las partidas van de mayor a menor gasto, y
+en cada una eliges el día (1-31), **Fin de mes** o **Sin indicar** (vuelve a lo automático). Se guarda
+al momento, viaja con la copia y la nube, y vale para todos los meses. Un 31 cae en el último día de
+los meses cortos.
+
+- Si en tus extractos ya se ve el cargo, la app te **propone** el día («Usar el día 12»). Las
+  propuestas **fiables** (el mismo día ± 1 en el 80 % de 3 meses o más) se aplican todas con un botón.
+- Si un mes llega el cargo real, **manda la fecha real** de ese mes; el día indicado vale para los
+  meses sin cargo todavía.
+- Un gasto que se reparte por todo el mes (súper, gasolina) no tiene día de cargo. La previsión lo
+  pone entero en un solo día: el **día 1** es lo prudente.
+
 ## 6. Copias, restauración y recuperación
 
 ### Descargar una copia completa

@@ -110,7 +110,7 @@
       ].filter(([, part]) => part > 0).map(([label, part]) => `${label} ${part} %`).concat(`estimado (día 8) ${dates.parts.estimated} %`).join(" · "))}.`;
     const settledText = (part, noun, empty) => (part.value === null ? empty : `${part.settledCount} de ${part.count} ${noun} de ${month}.`);
     return `<ul class="panel-uso-lista prevision-calidad">${[
-      card({ title: "Fechas de los gastos", value: dates.value, pill: datePill, detail: dateDetail, action: "indicar el día de cargo de cada partida (llegará a Plan › Partidas). Los meses con extracto importado también suben solos.", href: "" }),
+      card({ title: "Fechas de los gastos", value: dates.value, pill: datePill, detail: dateDetail, action: "indicar el día de cargo de cada partida en Plan › Partidas.", href: "#planificacion-partidas" }),
       card({ title: `Gastos de ${month} con real`, value: amounts.value, pill: { tone: "neutral", text: "Sin objetivo" }, detail: settledText(amounts, "partidas", "No hay gasto previsto este mes."), action: "anotar los reales del mes en Registrar.", href: "#registrar" }),
       card({ title: `Ingresos de ${month} confirmados`, value: income.value, pill: { tone: "neutral", text: "Sin objetivo" }, detail: settledText(income, "ingresos", "No hay ingresos esperados este mes."), action: "confirmar los cobros del mes en Registrar.", href: "#registrar" }),
     ].join("")}</ul>`;

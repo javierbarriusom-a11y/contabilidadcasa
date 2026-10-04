@@ -109,6 +109,41 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, noveno PR): WP-08 día de cargo por partida
+
+- **Pedido por el hogar («sigue con wp-08»)**, adelantado de la Ola 2. Es el paquete que baja el «100 % estimado» que medía WP-10.
+- **`canonical-charge-days.js`** (puro):
+  - almacén `charge-days`: `{ series: { "expense|id": { day: 1-31 | "eom", source: "declarado" | "sugerido", updatedAt } } }`; un valor inválido no se guarda y «sin indicar» borra la entrada;
+  - `resolveDay`: «fin de mes» es el último día natural y un 31 cae en el último día de los meses cortos;
+  - `suggestions`: el día «fiable» de WP-04 (mismo día ± 1 en el 80 % de 3 meses o más) y, si no, el último día en que se vio el cargo. Nunca se aplica sola;
+  - `buildModel` y `renderHtml`: de mayor a menor gasto, estado de cada partida, `% del gasto` sin importes, selector etiquetado y propuestas con botón.
+- **`canonical-timing.js`:** una rama nueva en `expenseTimingForRow`, solo si la partida tiene día indicado. **Precedencia: movimiento real casado en ese mes > día indicado > regla de fin de mes > estimado (día 8).**
+  - **Cambio respecto al plan, razonado:** el plan ponía «declarado > regla > observado». Pero un cargo real de ese mes es lo que pasó: si el hogar dijo «día 20» y el banco lo cobró el 3, la previsión de ese mes debe decir 3. En los meses futuros no hay movimientos, así que manda el día indicado.
+  - Un día indicado que coincide con el último del mes cuenta como gasto de fin de mes (después de la nómina), igual que la regla; un trastero pasado al día 12 deja de serlo.
+- **`app.js`** (+73 líneas, 37.459 de 37.495):
+  - `loadChargeDays`/`chargeDayForRow`, con caché por el texto guardado (el motor lo consulta fila a fila en cada mes);
+  - **el día de cargo entra en `modelComputationSignature`**: sin eso, la previsión no se habría recalculado al cambiarlo (encontrado al leer el código, antes de probar);
+  - `chargeDayRows` (partidas de gasto de los 12 meses siguientes, sin las borradas), `renderChargeDays`, `saveChargeDays` (guarda al momento, recalcula y devuelve el foco al mismo selector) y `handleChargeDayEvent`;
+  - `"charge-days"` en `BACKUP_LOCAL_STORES`: viaja con la copia y la nube **sin migrar el contrato de estado** (el plan pedía meterlo en el estado; mismo recorrido que WP-09, menos riesgo).
+- **Pantalla:** Plan › Partidas, tarjeta **plegada** arriba («Días de cargo: quedan N partidas con fecha estimada (X % del gasto)»). Al gasto repartido por el mes (súper, gasolina) **no se le propone día** y se avisa de que el día 1 es lo prudente.
+- **De paso:** el medidor de WP-10 enlaza ahora a Plan › Partidas, y la tarjeta de viabilidad de WP-04 (Ajustes) dice dónde se indica el día.
+- **Medido en Chromium a 393 px con la demo:**
+  - sin días indicados, la previsión es **idéntica a `main`**: 192 eventos sobre 24 meses, con y sin movimientos (72 casados), y Hoy igual;
+  - indicando dos partidas (día 2 y fin de mes), los eventos se mueven a esos días en todos los meses (30 en noviembre, 31 en octubre y diciembre). El resumen pasa del 100 % al 34 % estimado y **el medidor de WP-10, del 0 % al 66 % de días conocidos**;
+  - persiste al recargar, va en `localStores` de la copia y «sin indicar» devuelve la fecha automática;
+  - el foco vuelve al selector tocado; axe sin violaciones con la tarjeta abierta a 360 y 1280 px, sin desbordar.
+- **Pruebas:** nueva `tests/nd3-dia-de-cargo.test.cjs` (16 casos):
+  - el oro de 493 casos de WP-07 sigue idéntico con `chargeDay` conectado;
+  - precedencia (indicado sobre la estimación y la regla; el movimiento real sobre lo indicado);
+  - «fin de mes» y 31 en febrero (28 y 29), abril y noviembre; valores inválidos;
+  - los ingresos no cambian;
+  - almacén, propuestas, modelo, HTML sin importes, gasto repartido;
+  - `chargeDayRows` y la caché de `app.js` en un `vm`; la firma de la previsión; registro.
+
+  Prueba de mutación: quitar la rama, quitar la precedencia del movimiento real o el fin de mes hace fallar 1-3 casos cada vez. Ajustadas sin relajar su intención: `ntc1` (la línea que fija las dependencias del motor añade `chargeDay`), `arq3` 75 → 76 y el sello de `styles.css` (`t8`, `e17`).
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5113/5113**; e2e + axe 14/14; `test:mobile-overflow` sin contenido cortado (201 visitas).
+- **Pendiente del hogar:** una sesión de 10-30 minutos en Plan › Partidas para indicar los días, empezando por arriba. Es lo que lleva el medidor al objetivo ≥ 70 %.
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, octavo PR): WP-10 medidor de calidad de la previsión
 
 - **`canonical-forecast-quality.js`** (puro), con tres barras ponderadas por importe:
