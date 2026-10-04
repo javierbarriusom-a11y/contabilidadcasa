@@ -109,6 +109,7 @@ const files = [
   "usage-panel.js",
   "canonical-charge-day-viability.js",
   "canonical-timing.js",
+  "canonical-month-close-balances.js",
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",

@@ -238,8 +238,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261004wp09a1", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261004wp09a1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
@@ -1354,6 +1354,7 @@ const BACKUP_LOCAL_STORES = [
   "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
   "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
+  "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -5079,14 +5080,24 @@ function monthCloseConfirmMessage(month, pending) {
   return `${base} ${verb} ${pending.count} ${noun} sin real: ${preview}${rest}.`;
 }
 
+// WP-09 (C2): qué mes se cierra (del 1 al 3, el que acaba) y sus saldos; la lógica, en canonical-month-close-balances.js.
+let closeTargetChoice = "";
+const closeBalancesEngine = () => window.FinanceCanonicalMonthCloseBalances;
+function isSignedClosedMonthKey(key) { return window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, key)?.status === "closed"; }
+function closeTargetInfo() { return closeBalancesEngine().closeTarget({ today: isoLocalDate(new Date()), isSigned: isSignedClosedMonthKey, choice: closeTargetChoice }); }
+function closeTargetMonthKey() { return closeTargetInfo().monthKey; }
+function loadMonthCloseBalances() { try { return closeBalancesEngine().normalizeStore(JSON.parse(storageGet(storageKey("month-close-balances"), "null"))); } catch { return { months: {} }; } }
+function pendingMonthCloseBalances(monthKey, closedAt = "") { const b = accountBalancesFromState(); try { return closeBalancesEngine().buildEntry({ monthKey, accounts: { caixabank: b.caixa, mediolanum: b.mediolanum, efectivo: balanceSettings?.efectivoBalance }, date: String(state?.balanceDate || defaultBalanceDate()).slice(0, 10), mode: state?.balanceMode, closedAt }); } catch { return null; } }
+function recordMonthCloseBalances(monthKey, closedAt) { const entry = pendingMonthCloseBalances(monthKey, closedAt); if (entry) storageSet(storageKey("month-close-balances"), JSON.stringify(closeBalancesEngine().recordEntry(loadMonthCloseBalances(), entry))); return entry; }
+
 async function closeCurrentMonthTransaction() {
-  const month = openMonthCutoffKey();
+  const month = closeTargetMonthKey();
   const status = qs("monthCloseStatus");
   if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) {
     if (status) status.textContent = "Inicia sesión y sincroniza una versión antes de cerrar el mes.";
     return;
   }
-  if (isClosedMonthKey(month)) {
+  if (isSignedClosedMonthKey(month)) {
     if (status) status.textContent = `${month} ya está cerrado.`;
     return;
   }
@@ -5152,11 +5163,12 @@ async function closeCurrentMonthTransaction() {
     // posición — mismo espíritu local que C-13/D-2b/PVC6, un snapshot más por cierre.
     recordIv1ValuationSnapshot(month, closedAt);
     renderIv1ValuationHistoryNote();
+    const closeBalances = recordMonthCloseBalances(month, closedAt);
     saveLocalSnapshot();
     refreshReconciliationView();
     if (qs("conciliarTitle")) renderConciliar();
     if (qs("cierreSteps")) renderCierre();
-    if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable.`;
+    if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable. ${closeBalances ? "Saldos guardados." : "Sin saldos guardados: no había saldos con fecha válida."}`;
   } catch (error) {
     if (status) status.textContent = `No se cerró el mes: ${error.message}`;
   }
@@ -36654,6 +36666,7 @@ async function init() {
     const createPartidaOpen = event.target.closest("[data-cierre-task-create-partida]");
     if (createPartidaOpen) { handleCierreTaskClassifyOpen(createPartidaOpen.dataset.cierreTaskCreatePartida, "new"); return; }
     if (event.target.id === "cierreSignButton") handleCierreSign();
+    if (event.target.id === "cierreTargetSwitch") handleCierreTargetSwitch(event.target.dataset.month);
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
     if (event.target.closest("[data-gob13-mark-done]")) markGob13AnnualReviewDone();

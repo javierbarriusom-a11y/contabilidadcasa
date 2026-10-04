@@ -442,6 +442,7 @@ function cierreEffectsHtml(monthLabel, sobresRows = []) {
   return `<ol class="cierre-effects-list">
     <li>Los reales de ${escapeHtml(monthLabel)} quedan congelados: dejan de aceptar cambios sin reabrir el mes.</li>
     ${sobresItem}
+    <li>Se guarda el saldo de cada cuenta con su fecha, para cuadrar el mes siguiente.</li>
     <li>Se crea una versión nueva del cierre, con su fecha y su motivo.</li>
     <li>El mes se puede reabrir después: la reapertura pide un motivo y queda registrada como una versión más.</li>
   </ol>`;
@@ -1111,6 +1112,48 @@ function handleCierreDownloadEvidence(kind, accountRows, tasks, closure, current
   document.body.classList.remove("is-printing-cierre-evidence");
 }
 
+// WP-09 (C2): del día 1 al 3 se cierra el mes que acaba; el resto del mes, el mes en curso. La otra opción
+// se ofrece con un botón mientras no esté firmada. El mes elegido vive en `closeTargetChoice` (app.js).
+function cierreTargetHtml(target) {
+  const label = ledgerMonthLabel(target.monthKey);
+  const other = target.alternative
+    ? ` <button type="button" class="e19-btn e19-btn-secondary" id="cierreTargetSwitch" data-month="${escapeHtml(target.alternative)}">Cerrar ${escapeHtml(ledgerMonthLabel(target.alternative))} en su lugar</button>`
+    : "";
+  return `${isSignedClosedMonthKey(target.monthKey) ? "Mes cerrado" : "Mes que se cierra"}: <strong>${escapeHtml(label)}</strong> (${escapeHtml(target.reason)}).${other}`;
+}
+
+function handleCierreTargetSwitch(monthKey) {
+  closeTargetChoice = monthKey || "";
+  cierreActiveStep = 1;
+  renderCierre();
+}
+
+// WP-09: saldos de un cierre (los que se guardarán al firmar o los ya guardados) y su cuadre con el
+// cierre anterior: «saldo anterior + movimientos = saldo de cierre». Avisa, no bloquea.
+const CIERRE_BALANCE_ACCOUNT_LABELS = { caixabank: "CaixaBank", mediolanum: "Mediolanum", efectivo: "Efectivo" };
+const CIERRE_CONTINUITY_TEXT = {
+  "sin-cierre-anterior": "sin cierre anterior con saldo: se podrá cuadrar a partir del próximo",
+  calculado: "saldos calculados por la app: no se cuadran",
+  "sin-movimientos": "sin movimientos importados entre los dos saldos: no se puede cuadrar",
+};
+
+function cierreBalancesHtml(entry, entries, monthKey) {
+  const engine = window.FinanceCanonicalMonthCloseBalances;
+  if (!engine) return "";
+  if (!entry) return `<p class="e19-kpi-note is-warn">No hay saldos con fecha válida: el cierre se firmará sin saldos. Actualízalos en Registrar antes de firmar.</p>`;
+  const accounts = Object.entries(entry.accounts).map(([id, value]) => `${escapeHtml(CIERRE_BALANCE_ACCOUNT_LABELS[id] || id)} ${money(value, true)}`).join(" · ");
+  const previous = engine.previousEntry(loadMonthCloseBalances(), monthKey);
+  const rows = engine.continuity({ previous, current: entry, transactions: entries || [] }).map((row) => {
+    const label = escapeHtml(CIERRE_BALANCE_ACCOUNT_LABELS[row.accountId] || row.accountId);
+    if (row.status === "cuadra") return `<li>${label}: cuadra con el cierre anterior (${row.count} movimientos).</li>`;
+    if (row.status === "descuadra") return `<li class="is-warn">${label}: no cuadra con el cierre anterior por ${money(Math.abs(row.diff), true)} (saldo anterior + ${row.count} movimientos = ${money(row.expected, true)}). Revisa si falta importar algún movimiento.</li>`;
+    return `<li>${label}: ${escapeHtml(CIERRE_CONTINUITY_TEXT[row.status] || row.status)}.</li>`;
+  }).join("");
+  const warn = entry.mode === "auto" || entry.offsetDays !== 0;
+  const sentence = engine.describeDate(entry);
+  return `<p class="e19-kpi-note${warn ? " is-warn" : ""}">${escapeHtml(sentence.charAt(0).toUpperCase() + sentence.slice(1))}: ${accounts}.</p>${rows ? `<ul class="cierre-effects-list">${rows}</ul>` : ""}`;
+}
+
 function renderCierre() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("cierre-view");
@@ -1118,10 +1161,13 @@ function renderCierre() {
   const entries = snapshot.entries || [];
   const checks = snapshot.balanceChecks || [];
   const lines = snapshot.reconciliation?.lines || [];
-  const currentMonthKey = openMonthCutoffKey();
-  const currentClosure = isClosedMonthKey(currentMonthKey)
+  const target = closeTargetInfo();
+  const currentMonthKey = target.monthKey;
+  const currentClosure = isSignedClosedMonthKey(currentMonthKey)
     ? window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, currentMonthKey)
     : null;
+  const targetEl = qs("cierreTarget");
+  if (targetEl) targetEl.innerHTML = cierreTargetHtml(target);
 
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");
@@ -1168,7 +1214,8 @@ function renderCierre() {
     qs("cierreClosedState")?.removeAttribute("hidden");
     const closedInfo = qs("cierreClosedInfo");
     if (closedInfo) {
-      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>`;
+      const savedBalances = loadMonthCloseBalances().months[currentMonthKey];
+      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>${savedBalances ? cierreBalancesHtml(savedBalances, entries, currentMonthKey) : `<p class="e19-kpi-note">Este cierre no guardó saldos: es anterior a que el cierre los guardara (octubre de 2026).</p>`}`;
     }
     const reopenButton = qs("cierreReopen");
     if (reopenButton) reopenButton.disabled = !remoteUser || !supabaseClient;
@@ -1204,7 +1251,7 @@ function renderCierre() {
     else if (cierreActiveStep === 2) body.innerHTML = cierreStep2Html(tasks);
     else if (sobresStepEntry && cierreActiveStep === sobresStepEntry.step) body.innerHTML = cierreStep3SobresHtml(sobresRows, currentMonthKey);
     else if (propuestoStepEntry && cierreActiveStep === propuestoStepEntry.step) body.innerHTML = cierreStepPropuestoHtml(propuestos);
-    else if (cierreActiveStep === firmStep) body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows);
+    else if (cierreActiveStep === firmStep) body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows) + `<article class="e19-card cierre-balances-card"><h3 class="escenario-motor-panel-title">Saldos que se guardarán</h3>${cierreBalancesHtml(pendingMonthCloseBalances(currentMonthKey), entries, currentMonthKey)}</article>`;
   }
 }
 

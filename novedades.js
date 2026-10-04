@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp09",
+      fecha: "2026-10-04",
+      texto: "Cierre de mes: guarda el saldo de cada cuenta con su fecha y, del día 1 al 3, propone cerrar el mes que acaba.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-03-wp04",
       fecha: "2026-10-03",
       texto: "Ajustes dice si el día de cobro de cada gasto se puede aprender de tus extractos o tendrás que indicarlo tú.",
