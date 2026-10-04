@@ -2402,7 +2402,7 @@ function canonicalLedgerTransactions() {
     return {
       ...transaction,
       sourceRow: transaction.statementOrder ?? index,
-      accountId: transaction.accountId || "caixabank",
+      accountId: transaction.accountId || globalThis.FinanceCanonicalBalancePulse?.ledgerAccountId(transaction.account) || "caixabank", // WP-26: la cuenta elegida al importar
       mapping: mapping
         ? {
             status: "classified",
@@ -24200,6 +24200,7 @@ function datosImportarApply(session, { motivo }) {
   baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
   refreshMovementRollups();
   const appliedActuals = applyMovementMappingsToActuals();
+  const balance = applyDatosImportarBalanceOffer(session); // WP-26 · ND-02: dentro del lote, para que «Deshacer» lo devuelva
 
   saveMovementMappings();
   datosImportarSaveIgnored(ignored);
@@ -24218,7 +24219,7 @@ function datosImportarApply(session, { motivo }) {
   const duplicadosDescartados = rows.filter((row) => row.duplicateDecision === "duplicado").length;
   applyE11bReceipt(session.inboxItem, {
     batchId: batch.id,
-    changed: { records: incoming.length, movements: incoming.length, actuals: appliedActuals },
+    changed: { records: incoming.length, movements: incoming.length, actuals: appliedActuals, balances: balance ? 1 : 0 },
   });
 
   datosImportarRecordAppliedHash(session.fileMeta.hash, { fileName: session.fileMeta.fileName, batchId: batch.id });
@@ -24227,7 +24228,7 @@ function datosImportarApply(session, { motivo }) {
   queueRemoteSave();
   refreshAllSectionsAfterDataChange();
 
-  return { imported: incoming.length, duplicadosDescartados, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id };
+  return { imported: incoming.length, duplicadosDescartados, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -24552,7 +24553,7 @@ function renderDatosImportarStep3() {
 function datosImportarSuccessMarkup(result) {
   return `<div class="e19-insight">
       <strong>Importación confirmada</strong>
-      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}. Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
+      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }
@@ -24599,7 +24600,9 @@ function renderDatosImportarStep4() {
             .join("")}</tbody>
         </table></div>`
       : `<p class="e19-kpi-note">Ningún real cambiaría con las decisiones actuales.</p>`}
+    ${datosImportarBalanceOfferHtml(session)}
     <button type="button" class="e19-btn e19-btn-primary" id="${target.confirmId}">Incorporar al plan</button>`;
+  wireDatosImportarBalanceOffer(session); // WP-26 · ND-02 (registrar-ui.js)
   qs(target.confirmId)?.addEventListener("click", handleDatosImportarConfirmar);
   datosImportarUpdateBar();
 }

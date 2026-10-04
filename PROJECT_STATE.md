@@ -109,6 +109,30 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 4 de octubre de 2026 (299, decimocuarto PR): WP-26 · ND-02 el extracto actualiza el saldo
+
+- **Segunda mitad de WP-26.** Con ND-01 fusionado, **WP-26 queda hecho**.
+- **Lo que había:** la importación guiada (`datosImportarApply`) **nunca tocaba los saldos**; solo lo hacía el camino antiguo de Excel, que está apagado. Además, la cuenta que se elige al importar se guardaba en el movimiento (`account`) pero **no llegaba al libro canónico**: todo era `caixabank` en el cuadre de Cierre (C-2), en el de Movimientos (M-8c) y en la continuidad.
+- **`canonical-balance-pulse.js` (ampliado, puro):**
+  - `ledgerAccountId` traduce la etiqueta a la cuenta del libro. `canonicalLedgerTransactions` la usa, y sin etiqueta se queda en CaixaBank, como antes;
+  - `statementContinuity` comprueba la continuidad del saldo corrido de **un solo fichero**. Va por número de fila en Excel y por orden de lectura en CSV, prueba los dos órdenes del banco y dice entre qué fechas falta algo y cuánto. Se hace por fichero porque la continuidad del libro mezcla ficheros cuyas filas reinician la numeración;
+  - `statementOffer` y `renderOfferHtml`: la oferta, marcada por defecto, solo aparece con una de las dos cuentas, con saldo en el extracto y si este no es más antiguo que lo declarado. Cada caso sin oferta se explica.
+- **`registrar-ui.js`:** la oferta del paso 4, que viaja con el borrador, y su aplicación. **Dentro del mismo lote**, antes de la foto del «después», así que «Deshacer último lote» devuelve el saldo y su fecha (medido). El resumen final dice «Saldo de CaixaBank: 970,00 € a 02/10/2026».
+- **Límite conocido, dicho en el manual:** la fecha de los saldos es una para las dos cuentas. Al aplicar el extracto de una, pasa a ser la del extracto.
+- **`app.js`:** +3 líneas (37.487 de 37.495). La llamada en el paso 4, la aplicación dentro del lote con su `changed.balances` y su resultado, la línea del resumen y la cuenta del libro.
+- **Medido en Chromium a 390 px**, con un CSV de CaixaBank del más nuevo al más antiguo:
+  - sin cuenta elegida, explica que hay que elegirla y comprueba la continuidad («Sin huecos», 2 comprobaciones);
+  - con CaixaBank, ofrece «970,00 € el 02/10», marcado;
+  - al incorporar, CaixaBank pasa a 970 con fecha 02/10, Mediolanum no cambia, y el cuadre de Cierre pasa a «cuadra»;
+  - el Pulso de saldos lo enseña como declarado del 02/10;
+  - «Deshacer último lote» devuelve 5.610 € y el 28/09 y retira los movimientos;
+  - un extracto de Mediolanum con un hueco avisa: «faltan movimientos entre el 02/10 y el 03/10».
+- **Pruebas:**
+  - nueva `tests/nd2-extracto-actualiza-saldo.test.cjs` (7 casos): la cuenta del libro, la continuidad en los dos órdenes, en Excel y en CSV, el hueco, la oferta y sus cinco estados, la pantalla, y la aplicación en un `vm` (marcada, desmarcada y extracto más antiguo);
+  - el orden dentro del lote en `app.js`;
+  - **prueba e2e nueva** a 390 y 1280 px, con CSV, oferta, saldo, deshacer el lote.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5192/5192**; e2e + axe **24/24**; `test:mobile-overflow` sin contenido cortado (201 visitas). La previsión es idéntica a `main` (192 eventos, con y sin movimientos, y Hoy igual): los movimientos sin cuenta siguen siendo CaixaBank.
+
 ## Cierre de sesión — 4 de octubre de 2026 (299, decimotercer PR): WP-26 · ND-01 «Pulso de saldos»
 
 - **Pedido por el hogar.** El hogar eligió WP-26 antes que WP-15, porque ataca la frescura de los saldos antes de la decisión de `O-6` (16/10) y del primer cierre (1-3/11). **WP-23 queda programado para la semana del 12/10.**

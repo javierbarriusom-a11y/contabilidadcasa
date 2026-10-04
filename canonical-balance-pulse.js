@@ -149,6 +149,81 @@
     return `${head}<ul class="pulso-saldos-lista">${rows}</ul>${progress}${statusLine}`;
   }
 
+  // --- WP-26 · ND-02: un extracto actualiza el saldo y se comprueba que no le falten movimientos ----------------------
+
+  // La cuenta del libro canónico para la etiqueta que se eligió al importar (antes todo caía en «caixabank»).
+  const LEDGER_ACCOUNT = Object.freeze({ CaixaBank: "caixabank", Mediolanum: "mediolanum", Efectivo: "efectivo" });
+  function ledgerAccountId(label) {
+    return Object.prototype.hasOwnProperty.call(LEDGER_ACCOUNT, label) ? LEDGER_ACCOUNT[label] : "";
+  }
+
+  // Las filas del fichero en su orden: el número de fila si lo hay (Excel); si no (CSV, todo 0), el orden de lectura.
+  function fileOrder(rows) {
+    const withBalance = (rows || []).filter((row) => row && Number.isFinite(Number(row.amount)) && row.balance !== null && row.balance !== undefined && row.balance !== "" && Number.isFinite(Number(row.balance)));
+    const orders = new Set(withBalance.map((row) => Number(row.statementOrder || 0)));
+    return orders.size > 1 ? withBalance.slice().sort((a, b) => Number(a.statementOrder || 0) - Number(b.statementOrder || 0)) : withBalance;
+  }
+
+  /**
+   * Continuidad del saldo corrido de UN fichero: cada fila tiene que cumplir saldo = saldo anterior + importe. Se prueba
+   * en los dos órdenes (del más antiguo al más nuevo y al revés) y vale el que menos rupturas da. Cada ruptura dice
+   * entre qué fechas faltan movimientos.
+   */
+  function statementContinuity(rows) {
+    const ordered = fileOrder(rows);
+    if (ordered.length < 2) return { checked: 0, gaps: [] };
+    const gapsFor = (list) => {
+      const gaps = [];
+      for (let index = 1; index < list.length; index += 1) {
+        const expected = round2(Number(list[index - 1].balance) + Number(list[index].amount));
+        if (Math.abs(expected - Number(list[index].balance)) > 0.02) {
+          const dates = [isoDay(list[index - 1].date), isoDay(list[index].date)].sort();
+          gaps.push({ from: dates[0], to: dates[1], difference: round2(Number(list[index].balance) - expected) });
+        }
+      }
+      return gaps;
+    };
+    const ascending = gapsFor(ordered);
+    const descending = gapsFor(ordered.slice().reverse());
+    return { checked: ordered.length - 1, gaps: descending.length < ascending.length ? descending : ascending };
+  }
+
+  /**
+   * Lo que el paso 4 de la importación ofrece: usar el saldo final del extracto como saldo declarado de su cuenta.
+   * Solo se ofrece si se eligió una de las dos cuentas, el extracto trae saldo y no es más antiguo que lo declarado
+   * (no se cambia un saldo por otro más viejo).
+   * @param {{ rows: Array<any>, accountLabel: string, declared: { value: number|null, date: string } }} input
+   */
+  function statementOffer({ rows, accountLabel, declared }) {
+    const account = ACCOUNTS.find((item) => item.importLabel === accountLabel);
+    const continuity = statementContinuity(rows);
+    if (!account) return { status: accountLabel ? "cuenta-sin-saldo" : "sin-cuenta", continuity };
+    const final = statementFinalBalance((rows || []).map((row) => ({ ...row, account: accountLabel })), account);
+    if (!final) return { status: "sin-saldo", account: account.id, accountLabel: account.label, continuity };
+    const declaredDate = isoDay(declared?.date);
+    if (declaredDate && declaredDate > final.date) return { status: "declarado-mas-reciente", account: account.id, accountLabel: account.label, value: final.value, date: final.date, declaredDate, continuity };
+    const same = Number.isFinite(Number(declared?.value)) && Math.abs(Number(declared.value) - final.value) < CENT;
+    return { status: "ofrecer", account: account.id, accountLabel: account.label, value: final.value, date: final.date, same, ambiguous: final.ambiguous, continuity };
+  }
+
+  /**
+   * @param {ReturnType<typeof statementOffer>} offer
+   * @param {{ money?: (value: number) => string, checked?: boolean }} [options]
+   */
+  function renderOfferHtml(offer, { money = (value) => String(value), checked = true } = {}) {
+    const continuity = offer.continuity.checked
+      ? offer.continuity.gaps.length
+        ? `<p class="e19-kpi-note is-warn">⚠ Al extracto le faltan movimientos: ${offer.continuity.gaps.slice(0, 3).map((gap) => escapeHtml(gap.from === gap.to ? `el ${shortDate(gap.from)}` : `entre el ${shortDate(gap.from)} y el ${shortDate(gap.to)}`)).join("; ")}${offer.continuity.gaps.length > 3 ? ` y ${offer.continuity.gaps.length - 3} tramo(s) más` : ""}. Los reales de esos días quedarán incompletos: descarga ese tramo del banco. El saldo final sí es el que da el banco.</p>`
+        : `<p class="e19-kpi-note">✓ Sin huecos en el extracto: cada saldo es el anterior más su movimiento (${offer.continuity.checked} comprobaciones).</p>`
+      : "";
+    if (offer.status === "sin-cuenta") return `<div class="datos-importar-saldo"><p class="e19-kpi-note">Elige en el paso 1 de qué cuenta es el extracto y podrás usar su saldo final como saldo de esa cuenta.</p>${continuity}</div>`;
+    if (offer.status === "cuenta-sin-saldo" || offer.status === "sin-saldo") return `<div class="datos-importar-saldo"><p class="e19-kpi-note">Este extracto no trae saldo para actualizar el de la cuenta.</p>${continuity}</div>`;
+    if (offer.status === "declarado-mas-reciente") return `<div class="datos-importar-saldo"><p class="e19-kpi-note">El saldo final del extracto (${escapeHtml(money(offer.value))}, ${escapeHtml(shortDate(offer.date))}) es más antiguo que el que ya declaraste para ${escapeHtml(offer.accountLabel)} (${escapeHtml(shortDate(offer.declaredDate))}): no se cambia.</p>${continuity}</div>`;
+    const note = offer.same ? " Es el mismo que ya tenías: solo cambia la fecha." : "";
+    const ambiguous = offer.ambiguous ? `<p class="e19-kpi-note is-warn">El último día del extracto tiene varios movimientos y no se ve cuál es el último: comprueba la cifra con el banco.</p>` : "";
+    return `<div class="datos-importar-saldo"><label class="datos-importar-saldo-oferta"><input type="checkbox" id="datosImportarSaldoOferta"${checked ? " checked" : ""} /> <span>Usar el saldo final del extracto, <strong>${escapeHtml(money(offer.value))}</strong> el ${escapeHtml(shortDate(offer.date))}, como saldo declarado de ${escapeHtml(offer.accountLabel)}.${note}</span></label>${ambiguous}${continuity}</div>`;
+  }
+
   // Tiempos del pulso (WP-26, «Hecho cuando: actualizar las cuentas ≤ 20 s»): solo segundos y recuentos, ni importes.
   function normalizeTimings(raw) {
     const list = raw && Array.isArray(raw.times) ? raw.times : [];
@@ -175,5 +250,5 @@
     return { count: times.length, medianSeconds: Math.round(median * 10) / 10, coincideShare: answers ? Math.round((coincided / answers) * 100) : null };
   }
 
-  return { ACCOUNTS, statementFinalBalance, knownBalance, planDelta, buildModel, resultingBalances, renderHtml, normalizeTimings, recordTiming, summarizeTimings };
+  return { ACCOUNTS, ledgerAccountId, statementContinuity, statementOffer, renderOfferHtml, statementFinalBalance, knownBalance, planDelta, buildModel, resultingBalances, renderHtml, normalizeTimings, recordTiming, summarizeTimings };
 });

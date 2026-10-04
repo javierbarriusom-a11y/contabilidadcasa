@@ -566,3 +566,54 @@ test.describe("QA-1 · pulso de saldos (WP-26)", () => {
     });
   }
 });
+
+// WP-26 (ND-02): importar un extracto con saldo en un navegador real. El paso 4 ofrece (marcado) usar su saldo final
+// como saldo de la cuenta elegida y dice si faltan movimientos; al incorporar, la cuenta toma ese saldo con su fecha, el
+// cuadre de Cierre lo ve como de esa cuenta y «Deshacer último lote» lo devuelve todo.
+test.describe("QA-1 · el extracto actualiza el saldo (WP-26)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`extracto a ${viewport.width} px: oferta marcada, saldo con su fecha, cuadre y deshacer`, async ({ page }) => {
+      const consoleErrors = [];
+      page.on("pageerror", (error) => consoleErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#registrar");
+      await expect(page.locator("#pulsoSaldos")).toContainText("Pulso de saldos");
+      if (await page.locator("[data-pulso-manual]").count()) await page.click("[data-pulso-manual]");
+      await page.evaluate(() => {
+        state.balanceDate = "2026-09-28";
+        ["balanceDate", "registrarBalanceDate"].forEach((id) => { qs(id).value = "2026-09-28"; });
+        saveBalanceSettings();
+        render();
+      });
+      const before = await page.evaluate(() => ({ balances: accountBalancesFromState(), date: state.balanceDate }));
+      await page.click('[data-registrar-tab="import"]');
+      const csv = "Fecha;Concepto;Importe;Saldo\n02/10/2026;COMPRA B;-20,00;970,00\n02/10/2026;COMPRA A;-10,00;990,00\n01/10/2026;RECIBO LUZ;-5,00;1000,00\n";
+      await page.setInputFiles("#registrarImportFileInput", { name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      await page.selectOption("#registrarImportAccount", "CaixaBank");
+      await page.$eval("#registrarImportNext", (button) => button.click());
+      for (let index = 0; index < 5; index += 1) {
+        const pending = await page.evaluate(() => { const button = document.querySelector('[data-datos-importar-classify="ignorar"]:not(.is-active)'); button?.click(); return Boolean(button); });
+        if (!pending) break;
+      }
+      await page.$eval("#registrarImportNext", (button) => button.click());
+      await page.$eval("#registrarImportNext", (button) => button.click());
+      const offer = page.locator(".datos-importar-saldo");
+      await expect(offer).toContainText("Usar el saldo final del extracto, 970,00 € el 02/10, como saldo declarado de CaixaBank.");
+      await expect(offer).toContainText("Sin huecos en el extracto");
+      await expect(page.locator("#datosImportarSaldoOferta")).toBeChecked();
+
+      await page.$eval("#registrarImportConfirm", (button) => button.click());
+      await page.$eval("#operationConfirmSubmit", (button) => button.click());
+      await expect(page.locator("#registrarImportPanel")).toContainText("Saldo de CaixaBank: 970,00 € a 02/10/2026.");
+      expect(await page.evaluate(() => ({ caixa: accountBalancesFromState().caixa, date: state.balanceDate, mode: state.balanceMode }))).toEqual({ caixa: 970, date: "2026-10-02", mode: "manual" });
+      expect(await page.evaluate(() => accountBalancesFromState().mediolanum), "la otra cuenta no cambia").toBe(before.balances.mediolanum);
+
+      await page.evaluate(() => { undoLastImportBatch(); }); // pide confirmación: no se espera aquí
+      await page.waitForSelector("#operationConfirmDialog[open]");
+      await page.$eval("#operationConfirmSubmit", (button) => button.click());
+      await expect.poll(() => page.evaluate(() => ({ balances: accountBalancesFromState(), date: state.balanceDate })), { message: "«Deshacer último lote» devuelve el saldo y su fecha" }).toEqual(before);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

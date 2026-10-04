@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-04-wp26-extracto",
+      fecha: "2026-10-04",
+      texto: "Importar extracto: su saldo final puede pasar a ser el de la cuenta, y te avisa si al fichero le faltan movimientos.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-04-wp26-pulso",
       fecha: "2026-10-04",
       texto: "Registrar › Saldos: «Pulso de saldos». Ves lo último que se sabe de cada cuenta y basta con «Coincide» o «Corregir».",
