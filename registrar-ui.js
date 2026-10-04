@@ -111,3 +111,43 @@ function handleBalancePulseCorrection(event) {
   if (!account || parseAmountField(event.target.value) === null) return;
   answerBalancePulse(account.id, "corregido");
 }
+
+// WP-26 · ND-02: el paso 4 de «Importar extracto» ofrece (marcado) usar el saldo final del extracto como saldo declarado
+// de su cuenta y dice si al fichero le faltan movimientos. Se aplica dentro del mismo lote de la importación, así que
+// «Deshacer último lote» también devuelve el saldo y su fecha.
+function datosImportarBalanceOffer(session) {
+  const declared = accountBalancesFromState();
+  const account = window.FinanceCanonicalBalancePulse?.ACCOUNTS.find((item) => item.importLabel === session?.fileMeta?.bankAccount);
+  return window.FinanceCanonicalBalancePulse?.statementOffer({
+    rows: datosImportarIncludedTransactions(session?.rows || []),
+    accountLabel: session?.fileMeta?.bankAccount || "",
+    declared: { value: account ? declared[account.id] : null, date: state?.balanceMode === "manual" ? state.balanceDate : "" },
+  }) || null;
+}
+
+function datosImportarBalanceOfferHtml(session) {
+  const offer = datosImportarBalanceOffer(session);
+  return offer ? window.FinanceCanonicalBalancePulse.renderOfferHtml(offer, { money: (value) => `${formatAmountField(value)} €`, checked: session.balanceOffer !== false }) : "";
+}
+
+function wireDatosImportarBalanceOffer(session) {
+  qs("datosImportarSaldoOferta")?.addEventListener("change", (event) => {
+    session.balanceOffer = event.target.checked;
+    datosImportarPersistDraft();
+  });
+}
+
+// Devuelve lo aplicado (para el resumen) o null. La fecha de los saldos es una para las dos cuentas: pasa a la del
+// extracto, que nunca es más antigua que la declarada (si lo fuera, no se ofrece).
+function applyDatosImportarBalanceOffer(session) {
+  const offer = datosImportarBalanceOffer(session);
+  if (offer?.status !== "ofrecer" || session.balanceOffer === false) return null;
+  const balances = accountBalancesFromState();
+  state.balanceMode = "manual";
+  state.balanceDate = offer.date;
+  ["balanceDate", "registrarBalanceDate", "visualBalanceDate"].forEach((id) => { if (qs(id)) qs(id).value = offer.date; });
+  ["balanceMode", "registrarBalanceMode", "visualBalanceMode"].forEach((id) => { if (qs(id)) qs(id).value = "manual"; });
+  setStateAccountBalances({ caixa: balances.caixa, mediolanum: balances.mediolanum, [offer.account]: offer.value });
+  saveBalanceSettings();
+  return { account: offer.accountLabel, value: offer.value, date: offer.date, gaps: offer.continuity.gaps.length };
+}

@@ -170,6 +170,19 @@ plan y no hay nada que confirmar.
 El **panel de uso** mide cuánto tardas (objetivo: 20 segundos o menos) y qué parte de las respuestas son
 «Coincide». Si casi todas lo son con cuentas que se mueven, puede que se esté confirmando sin mirar.
 
+### Un extracto actualiza también el saldo (Registrar › Importar extracto)
+
+Si en el paso 1 eliges de qué cuenta es el extracto (CaixaBank o Mediolanum) y el fichero trae la columna
+de **saldo**, el paso 4 ofrece, ya marcado, **usar su saldo final como saldo declarado de esa cuenta**, con la
+fecha del último movimiento. Así una sola visita al banco deja al día los movimientos y el saldo. Si ya habías
+declarado un saldo más reciente que el extracto, no se ofrece: no se cambia un saldo por otro más viejo.
+
+El paso 4 también comprueba que **no falten movimientos**: cada saldo tiene que ser el anterior más su
+movimiento. Si no cuadra, dice entre qué fechas falta algo; los reales de esos días quedarán incompletos
+(el saldo final sí es el que da el banco). Todo va en el mismo lote: **Deshacer último lote** también
+devuelve el saldo y su fecha. Ojo: la fecha de los saldos es una para las dos cuentas, así que pasa a ser la
+del extracto.
+
 ### Escribir importes en Registrar
 
 Los saldos, los reales y el dato manual se escriben como en España: **1.234,56**, **1234,56** o
