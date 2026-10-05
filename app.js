@@ -1358,6 +1358,7 @@ const BACKUP_LOCAL_STORES = [
   "charge-days", // WP-08: día de cargo indicado por el hogar para cada partida
   "personal-allowances", // WP-24: asignación personal de cada persona (importe y meses)
   "liquidity-backtest", // WP-12: liquidez prevista a fin de mes, congelada los días 1 y 15 (solo se añade)
+  "card-cycles", // WP-30: ciclo de corte y cargo de cada tarjeta de crédito y la fila donde se liquida
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -5462,6 +5463,14 @@ function adjustedDebtPlannedValue(row, month) {
   return null;
 }
 
+// WP-30 (canonical-card-cycles.js): compras con tarjeta aún sin su cargo, por fila y mes de cargo; se recalcula una vez por render.
+function loadCardCycles() { return cachedLocalStore("card-cycles", (raw) => globalThis.FinanceCanonicalCardCycles.normalizeStore(raw), { cards: [] }); }
+let cardAccrualCache = { revision: -1, map: new Map() };
+function cardAccruedForRow(row, month) {
+  if (cardAccrualCache.revision !== applicationRenderRevision) cardAccrualCache = { revision: applicationRenderRevision, map: globalThis.FinanceCanonicalCardCycles?.accruedByRowMonth(loadCardCycles(), baseData?.transactions) || new Map() };
+  return cardAccrualCache.map.size ? cardAccrualCache.map.get(`${seriesKeyForRow(row)}|${month.key}`) || 0 : 0;
+}
+
 function actualAwareInfo(row, month) {
   const actuals = actualsForKind(row.kind);
   const key = actualKeyForRow(row, month);
@@ -5481,13 +5490,15 @@ function actualAwareInfo(row, month) {
   const hasActual = hasOverrideActual || (stored !== undefined && stored !== "");
   const actual = hasOverrideActual ? Number(override.actual) : hasActual ? Number(stored) : null;
   const status = override?.actualStatus === "cancelled" ? "cancelled" : hasActual ? "realized" : "pending";
+  const accrued = hasActual || row.kind !== "expense" ? 0 : cardAccruedForRow(row, month); // WP-30: sin cargo todavía, lo mayor entre lo previsto y lo anotado
   return {
     planned,
     actual,
     hasActual,
     status,
-    value: status === "cancelled" ? 0 : hasActual ? actual : planned,
-    source: status === "cancelled" ? "Cancelado" : hasActual ? "Realizado" : "Pendiente",
+    accrued,
+    value: status === "cancelled" ? 0 : hasActual ? actual : accrued ? Math.max(planned, accrued) : planned,
+    source: status === "cancelled" ? "Cancelado" : hasActual ? "Realizado" : accrued ? "Acumulado con tarjeta" : "Pendiente",
   };
 }
 
@@ -23571,6 +23582,7 @@ function applyMovementMappingsToActuals() {
     expense: new Map(),
   };
   (baseData.transactions || []).forEach((transaction) => {
+    if (transaction.source === "captura-hoja") return; // WP-30: compra provisional con tarjeta; cuenta por su ciclo (cardAccruedForRow), no como real
     const mapping = mappingForMovement(transaction);
     if (!mapping) return;
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
@@ -35791,6 +35803,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       renderPlanificacionPartidas();
       renderChargeDays();
       renderPersonalAllowances();
+      renderCardCycles(); // WP-30 (partidas-ui.js)
       populateSeriesEditor();
       break;
     case "registrar":

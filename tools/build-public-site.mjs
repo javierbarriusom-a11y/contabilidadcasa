@@ -114,6 +114,7 @@ const files = [
   "canonical-charge-days.js",
   "canonical-capture-link.js",
   "canonical-personal-allowance.js",
+  "canonical-card-cycles.js",
   "partidas-ui.js",
   "canonical-balance-pulse.js",
   "registrar-ui.js",

@@ -119,6 +119,76 @@ function handlePersonalAllowanceEvent(event) {
   savePersonalAllowances(result.store, `Guardado: Asignación personal · ${person.name}, ${money(person.amount, true)} al mes desde ${fromLabel}. El gasto variable estimado baja lo mismo.`, "asignacionResumen");
 }
 
+// WP-30 · PR-1: «Tarjetas de crédito» (canonical-card-cycles.js). Una ficha por tarjeta con su ciclo de corte y cargo y la fila de
+// Financiaciones donde se liquida; guardar recalcula la previsión. Los días los introduce el hogar: viven en un almacén privado.
+let cardCyclesPending = { status: "", html: "" };
+
+// Las filas de Financiaciones del plan, entre las que se elige dónde se liquida cada tarjeta.
+function cardCycleRows() {
+  return chargeDayRows().filter((item) => normalizedText(item.section).includes("financi")).map(({ key, label, section }) => ({ key, label, section }));
+}
+
+// El real de esa fila ese mes (lo que dejó el extracto o lo tecleado en Registrar), o null si aún no hay.
+function cardCyclesReal(rowKey, monthKey) {
+  const value = expenseActuals[`${rowKey.slice(rowKey.indexOf("|") + 1)}|${monthKey}`];
+  return value === undefined || value === "" ? null : Number(value);
+}
+
+function renderCardCycles() {
+  const engine = window.FinanceCanonicalCardCycles;
+  const target = qs("tarjetasCiclo");
+  if (!engine || !target) return;
+  const store = loadCardCycles();
+  const today = isoLocalDate(new Date());
+  const views = engine.cyclesView({ store, transactions: baseData?.transactions || [], realFor: cardCyclesReal, today });
+  const html = engine.renderHtml({ store, views, rows: cardCycleRows(), today }, { money: (value) => money(value, true), status: cardCyclesPending.status });
+  // Sin cambios, no se repinta: el render diferido de la pantalla no se lleva lo que se está escribiendo.
+  if (html !== cardCyclesPending.html) target.innerHTML = cardCyclesPending.html = html;
+  qs("tarjetasResumen").textContent = engine.summaryText(store);
+}
+
+function saveCardCycles(store, status) {
+  storageSet(storageKey("card-cycles"), JSON.stringify(store));
+  cardCyclesPending.status = status;
+  render();
+  renderCardCycles();
+}
+
+function handleCardCycleEvent(event) {
+  const engine = window.FinanceCanonicalCardCycles;
+  const form = event.target.closest?.("form[data-tarjeta]");
+  const remove = event.type === "click" ? event.target.closest("[data-tarjeta-quitar]") : null;
+  if (remove) {
+    const before = loadCardCycles();
+    const card = before.cards.find((item) => item.id === remove.dataset.tarjetaQuitar);
+    saveCardCycles(engine.removeCard(before, remove.dataset.tarjetaQuitar), `Quitada la tarjeta ${card?.label || ""}. Sus compras dejan de contar en la previsión.`);
+    showUndoToast(`Tarjeta ${card?.label || ""} quitada.`, () => saveCardCycles(before, "Deshecho: la tarjeta vuelve a estar."));
+    return;
+  }
+  if (event.type !== "submit" || !form) return;
+  event.preventDefault();
+  const field = (name) => form.elements.namedItem(name);
+  const fields = ["label", "rowKey", "cutDay", "chargeMonthOffset", "chargeDay", "trackedFrom"];
+  const result = engine.upsertCard(loadCardCycles(), {
+    id: form.dataset.tarjeta === "nueva" ? undefined : form.dataset.tarjeta,
+    ...Object.fromEntries(fields.map((name) => [name, field(name).value])),
+  }, { rowKeys: cardCycleRows().map((row) => row.key) });
+  const errorBox = form.querySelector(".asignacion-error");
+  fields.forEach((name) => {
+    if (result.errors[name]) field(name).setAttribute("aria-invalid", "true");
+    else field(name).removeAttribute("aria-invalid");
+  });
+  if (!result.card) {
+    errorBox.textContent = Object.values(result.errors).join(" ");
+    field(fields.find((name) => result.errors[name]) || "label").focus();
+    return;
+  }
+  errorBox.textContent = "";
+  saveCardCycles(result.store, `Guardada la tarjeta ${result.card.label}. Sus compras se cargan en su fila según este ciclo.`);
+}
+
+["submit", "click"].forEach((type) => document.getElementById("tarjetasCiclo")?.addEventListener(type, handleCardCycleEvent));
+
 // Movido sin cambios desde app.js (WP-30 · PR-0) para hacer sitio bajo el techo de líneas (ARQ-4): gráfico de liquidez de Plan ›
 // Partidas y banda de colchón. Solo se pinta; sus entradas (lastSimulation, lastBaseSimulation, state…) son globales de app.js.
 // --- Bloque analítico: banda de colchón + gráfico de 3-4 líneas --------------------------------
