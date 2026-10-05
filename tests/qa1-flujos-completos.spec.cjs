@@ -713,3 +713,107 @@ test.describe("QA-1 · backtest de liquidez (WP-12)", () => {
     });
   }
 });
+
+// WP-30 · PR-1: tarjetas de crédito en un navegador real. Configurar una tarjeta SIN compras no cambia la previsión; una compra
+// acumulada sin cargo hace que su fila valga lo mayor entre lo previsto y lo anotado; al llegar el cargo, manda el cargo.
+// Los ciclos de estas pruebas son inventados (los reales los introduce el hogar y no van al repositorio).
+test.describe("QA-1 · tarjetas de crédito (WP-30)", () => {
+  const openCards = async (page) => {
+    await page.goto("/index.html#planificacion-partidas");
+    await page.waitForFunction(() => typeof cardCycleRows === "function" && document.querySelector("#tarjetasCiclo form"));
+    await page.click("#tarjetasCard > summary");
+  };
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la ficha de tarjetas se configura y se ve bien a ${viewport.width} px`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await openCards(page);
+      const rowKey = await page.evaluate(() => cardCycleRows()[0]?.key || "");
+      expect(rowKey, "la demo tiene al menos una fila de Financiaciones donde liquidar una tarjeta").not.toBe("");
+      const form = page.locator('#tarjetasCiclo form[data-tarjeta="nueva"]');
+      await form.locator('[name="label"]').fill("Tarjeta de prueba");
+      await form.locator('[name="rowKey"]').selectOption(rowKey);
+      await form.locator('[name="cutDay"]').selectOption("10");
+      await form.locator('[name="chargeMonthOffset"]').selectOption("1");
+      await form.locator('[name="chargeDay"]').selectOption("5");
+      await form.locator('button[type="submit"]').click();
+      await expect(page.locator("#tarjetasCiclo")).toContainText("Guardada la tarjeta Tarjeta de prueba");
+      await expect(page.locator("#tarjetasResumen")).toHaveText("Tarjetas de crédito: Tarjeta de prueba");
+      await expect(page.locator("#tarjetasCiclo")).toContainText("Ejemplo: una compra del 15/");
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("card-cycles"))));
+      expect(stored.cards).toHaveLength(1);
+      expect(stored.cards[0]).toMatchObject({ label: "Tarjeta de prueba", rowKey, cutDay: 10, chargeMonthOffset: 1, chargeDay: 5 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Un nombre vacío no guarda y dice por qué.
+      const extra = page.locator('#tarjetasCiclo form[data-tarjeta="nueva"]');
+      await extra.locator('button[type="submit"]').click();
+      await expect(extra.locator(".asignacion-error")).toContainText("Pon un nombre a la tarjeta.");
+      expect((await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("card-cycles"))))).cards).toHaveLength(1);
+
+      // Quitar se puede deshacer.
+      await page.locator("[data-tarjeta-quitar]").click();
+      expect((await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("card-cycles"))))).cards).toHaveLength(0);
+      await page.$eval("#undoToast button", (button) => button.click());
+      await expect.poll(async () => (await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("card-cycles"))))).cards.length).toBe(1);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("sin compras la previsión es idéntica; con una compra sin cargo la fila vale lo mayor; con el cargo, manda el cargo", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openCards(page);
+    const snapshot = () => page.evaluate(() => JSON.stringify(canonicalDailyEngineRuns.active.rows));
+    const before = await snapshot();
+    const setup = await page.evaluate(() => {
+      const rowKey = cardCycleRows()[0].key;
+      const store = { cards: [{ id: "t1", label: "Prueba", rowKey, cutDay: 10, chargeMonthOffset: 1, chargeDay: 5, trackedFrom: "" }] };
+      storageSet(storageKey("card-cycles"), JSON.stringify(store));
+      render();
+      return { rowKey };
+    });
+    expect(await snapshot(), "configurar una tarjeta sin compras no cambia ni un día de la previsión").toBe(before);
+
+    // Una compra grande de hoy: su cargo cae en el mes de cargo de la tarjeta.
+    const probe = () => page.evaluate(({ rowKey }) => {
+      const today = isoLocalDate(new Date());
+      const cycle = FinanceCanonicalCardCycles.cycleFor(today, loadCardCycles().cards[0]);
+      const start = monthKey(modelStartDate());
+      const index = (Number(cycle.chargeMonth.slice(0, 4)) * 12 + Number(cycle.chargeMonth.slice(5, 7))) - (Number(start.slice(0, 4)) * 12 + Number(start.slice(5, 7)));
+      const month = planningMonthForDate(addMonths(modelStartDate(), index), index);
+      const row = planningSectionsForMonth("expense", month).flatMap((section) => section.rows).find((item) => seriesKeyForRow(item) === rowKey);
+      const info = actualAwareInfo(row, month);
+      return { chargeMonth: cycle.chargeMonth, planned: info.planned, accrued: info.accrued, value: info.value, hasActual: info.hasActual, source: info.source, expenseTotal: planningBreakdownForForecastMonth(index, addMonths(modelStartDate(), index)).expenseTotal };
+    }, setup);
+    const none = await probe();
+    expect(none.accrued).toBe(0);
+    expect(none.value).toBe(none.planned);
+
+    await page.evaluate(() => {
+      const today = isoLocalDate(new Date());
+      baseData.transactions.push({ date: today, valueDate: today, month: today.slice(0, 7), movement: "Compra de prueba", details: "", amount: -50000, source: "captura-hoja", card: "t1" });
+      render();
+    });
+    const accrued = await probe();
+    expect(accrued.accrued).toBe(50000);
+    expect(accrued.value, "lo mayor entre lo previsto y lo anotado").toBe(Math.max(none.planned, 50000));
+    expect(accrued.hasActual, "sin cargo todavía no hay real").toBe(false);
+    expect(accrued.source).toBe("Acumulado con tarjeta");
+    expect(accrued.expenseTotal, "el total previsto del mes de cargo sube lo que la compra pasa de lo previsto").toBeCloseTo(none.expenseTotal + (50000 - none.planned), 2);
+    await expect(page.locator("#tarjetasCiclo")).toContainText("1 compra");
+
+    // Llega el cargo del extracto (o se teclea el real): manda el cargo y las compras provisionales dejan de sumar.
+    await page.evaluate(({ rowKey, chargeMonth }) => {
+      expenseActuals[`${rowKey.slice(rowKey.indexOf("|") + 1)}|${chargeMonth}`] = 321.5;
+      render();
+    }, { rowKey: setup.rowKey, chargeMonth: accrued.chargeMonth });
+    const charged = await probe();
+    expect(charged.hasActual).toBe(true);
+    expect(charged.value).toBe(321.5);
+    expect(charged.accrued).toBe(0);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

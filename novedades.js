@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-05-wp30-tarjetas",
+      fecha: "2026-10-05",
+      texto: "Plan › Partidas: «Tarjetas de crédito». Indica el corte y el cargo de cada tarjeta; la hoja para anotar compras llega después.",
+      href: "#planificacion-partidas",
+    },
+    {
       id: "2026-10-05-wp12",
       fecha: "2026-10-05",
       texto: "Plan › Previsión: «Acierto de la caja a fin de mes». Los días 1 y 15 congela lo que espera tener y lo compara al cerrar el mes.",

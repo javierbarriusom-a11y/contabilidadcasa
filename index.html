@@ -610,6 +610,11 @@
               <summary id="cargoDiaResumen">Días de cargo de las partidas</summary>
               <div id="cargoDia"></div>
             </details>
+            <!-- WP-30 (PR-1): ciclo de corte y cargo de cada tarjeta de crédito. Plegada, como las demás fichas de configuración. -->
+            <details class="e19-card prevision-calidad-card asignacion-card" id="tarjetasCard">
+              <summary id="tarjetasResumen">Tarjetas de crédito (ciclos de corte y cargo)</summary>
+              <div id="tarjetasCiclo"></div>
+            </details>
             <div id="planificacionPartidasRoot"></div>
             <!-- ARQ-6 (24 sept. 2026): el editor de series vivía en #data-entry, que Registrar redirige
                  desde R-10/R-11 (15 ago.) y nunca se muestra; desde entonces no había forma de cambiar de
@@ -7636,7 +7641,8 @@
     <script defer src="canonical-charge-days.js?v=20261004wp08a1"></script>
     <script defer src="canonical-capture-link.js?v=20261004wp25a1"></script>
     <script defer src="canonical-personal-allowance.js?v=20261004wp24a1"></script>
-    <script defer src="partidas-ui.js?v=20261005wp30a0"></script>
+    <script defer src="canonical-card-cycles.js?v=20261005wp30b1"></script>
+    <script defer src="partidas-ui.js?v=20261005wp30b1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
     <script defer src="registrar-ui.js?v=20261004wp26b1"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>

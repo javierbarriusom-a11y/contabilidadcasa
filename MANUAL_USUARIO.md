@@ -267,6 +267,33 @@ los meses cortos.
 - Un gasto que se reparte por todo el mes (súper, gasolina) no tiene día de cargo. La previsión lo
   pone entero en un solo día: el **día 1** es lo prudente.
 
+### Tarjetas de crédito (Plan › Partidas)
+
+Con tarjeta de crédito, el dinero sale de tu cuenta el día del **cargo**, no el de la compra, y las compras
+sueltas no aparecen en el extracto del banco: solo su liquidación. Para que la previsión lo sepa, cada
+tarjeta tiene su **ciclo**. En **Plan › Partidas › Tarjetas de crédito** indicas, por tarjeta:
+
+- **Fila donde se liquida:** la fila de Financiaciones donde ya registras el cargo de esa tarjeta.
+- **Día de corte:** una compra hasta ese día (incluido) cierra el ciclo de su mes; una posterior, el del siguiente.
+- **Se carga** y **día de cargo:** cuántos meses después del corte sale el dinero y qué día. «Último día del
+  mes» vale para el corte y para el cargo.
+- **Anoto desde (opcional):** la fecha desde la que empiezas a anotar compras de esa tarjeta.
+
+Al guardar, la ficha te enseña un ejemplo («una compra del 15/10 se carga el …») para que compruebes el ciclo
+de un vistazo. Si cambias el ciclo, las compras ya anotadas se reasignan solas.
+
+Cómo se usa después (la hoja para anotar compras llega en la siguiente entrega):
+
+- Una compra va a la fila de su tarjeta **en el mes del cargo**. Mientras no llega el cargo del extracto, esa
+  fila vale **lo mayor entre lo previsto y lo que llevas anotado**: un primer ticket no hunde la previsión
+  del mes, y pasarte de lo previsto la sube.
+- Cuando llega el cargo del extracto (o tecleas el real en Registrar), **manda el cargo**: las compras
+  provisionales dejan de sumar y la ficha las compara: «tus compras suman X y el cargo fue Y: faltan Z
+  (compras sin anotar, intereses o comisiones)».
+- Un ciclo que **empezó antes de tu primera compra anotada** se marca como incompleto y no se compara, porque
+  faltarían compras que la app nunca vio. Con «Anoto desde» puedes dar por completo un ciclo anterior.
+- Los días de corte y de cargo se guardan en tu copia y en la nube, nunca en el código ni en el repositorio.
+
 ### Acierto de la caja a fin de mes (Plan › Previsión)
 
 Hoy la app mide cuánto se equivoca en cada categoría de gasto, pero no cuánto dinero hay a final de

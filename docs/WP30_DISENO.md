@@ -1,6 +1,6 @@
 # WP-30 · Hoja de captura de compras con tarjeta — diseño
 
-**Estado:** diseño cerrado el 5/10/2026 con las respuestas del hogar. Implementación en tres PR (§7); el PR-0 (hacer sitio en `app.js`) ya está hecho.
+**Estado:** diseño cerrado el 5/10/2026 con las respuestas del hogar. Implementación en tres PR (§7); **PR-0 y PR-1 hechos** (sitio en `app.js` y modelo de tarjetas); queda el PR-2 (la hoja).
 **Fuente:** `ND-14` (`docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md`), ficha de WP-30 en `docs/PLAN_DESARROLLO_DEFINITIVO.md`, hallazgo de WP-25.
 **El repositorio es público: ningún dato real del hogar aquí.** Los días de corte y de cargo de cada tarjeta se introducen en la app y viven en un almacén privado; los ejemplos de este documento son ficticios.
 
@@ -28,17 +28,19 @@ Anotar una compra con tarjeta en **≤ 8 s de mediana** (métrica `M-CAPT`), con
 
 ## 4. Modelo
 
-### 4.1 Tarjeta (configuración)
-Almacén local `card-cycles` (en la copia y la nube, como `charge-days`). Por tarjeta: nombre, fila del plan que recibe su liquidación, **día de corte** (día N o fin de mes) y **regla de cargo** (día N, número de meses de desfase respecto al corte). Se edita en Plan › Partidas, junto a «Días de cargo».
+### 4.1 Tarjeta (configuración) — hecho en el PR-1
+Almacén local `card-cycles` (en la copia y la nube, como `charge-days`; `canonical-card-cycles.js`). Por tarjeta: nombre, fila de Financiaciones que recibe su liquidación, **día de corte** (1-28 o fin de mes), **meses hasta el cargo** (0-3, contados desde el mes en que cierra el ciclo), **día de cargo** (1-28 o fin de mes) y «anoto desde» (opcional). Máximo 8 tarjetas. Se edita en Plan › Partidas › «Tarjetas de crédito», junto a «Días de cargo», y la ficha enseña un ejemplo («una compra del 15/10 se carga el …») para comprobar el ciclo de un vistazo.
 
 ### 4.2 La compra es un movimiento
-Movimiento con `source: "captura-hoja"`, importe negativo, `date` = fecha de la compra, `valueDate` = fecha de cargo, `month` = mes del cargo, el concepto en `movement`, la tarjeta, `capturedAt` (cuándo se anotó), y asignado a la fila de la tarjeta. Reutiliza el lote reversible («Deshacer»), la copia, la nube y la clasificación. Nunca una partida nueva por compra.
+Movimiento con `source: "captura-hoja"`, importe negativo, `date` = fecha de la compra, el concepto en `movement`, `card` = id de la tarjeta y `capturedAt` (cuándo se anotó; PR-2). Reutiliza el lote reversible («Deshacer»), la copia, la nube y la clasificación. Nunca una partida nueva por compra.
+**El mes de cargo y la fila se calculan, no se guardan en el movimiento:** salen de la configuración de la tarjeta (`cycleFor`), de modo que si el hogar cambia el ciclo las compras se reasignan solas. `month` sigue siendo el mes de la compra (`date.slice(0, 7)`, como en cualquier movimiento). Esto sustituye lo previsto al principio (`valueDate` y `month` del cargo).
 
 ### 4.3 Fecha de cargo
 Función pura `chargeDateFor(fechaCompra, tarjeta)`. Ejemplo ficticio: corte el día 10 y cargo el día 5 del mes siguiente al corte → una compra del 8/10 corta el 10/10 y se carga el 5/11; una del 12/10 corta el 10/11 y se carga el 5/12. Una compra va a la fila **del mes de cargo**, no a la del mes de compra.
 
 ### 4.4 Valor en la previsión y retirada por cargo
-- **Antes del cargo:** una fila de tarjeta con compras vale `max(previsto, acumulado)`. La salida de caja cae en la fecha de cargo (ya soportado por WP-08). Sin compras, todo idéntico a hoy.
+- **Antes del cargo:** una fila de tarjeta con compras vale `max(previsto, acumulado)` (`actualAwareInfo`; sin acumulado se devuelve el previsto tal cual, también si es negativo o cero). La salida de caja cae en la fecha de cargo (ya soportado por WP-08). Sin compras, todo idéntico a hoy: la prueba e2e lo comprueba día a día sobre la previsión diaria.
+- **Las compras provisionales no se escriben como real:** se acumulan por «fila|mes de cargo» una vez por render (se invalida con `applicationRenderRevision`) y `applyMovementMappingsToActuals` ignora los movimientos de la hoja. Así el real sigue significando «lo que ocurrió de verdad» y no hace falta distinguir una compra provisional de un cargo.
 - **Cuando llega el cargo en el extracto** (asignado a la misma fila por regla, `source` distinto de `captura-hoja`), **el cargo manda**: las compras provisionales de ese mes dejan de sumar y quedan visibles como «cubiertas por el cargo». Regla determinista, sin pareo difuso (el pareo fino es de WP-53).
 - **Conciliación:** «tus compras sumaban X, el cargo fue Y, diferencia Z» (compras sin anotar, intereses o comisiones).
 - **Ciclos incompletos:** un ciclo que empezó antes de la primera captura de esa tarjeta se marca «incompleto» y no se concilia; solo se ve lo acumulado como mínimo.
@@ -62,19 +64,25 @@ Importe primero (teclado decimal es-ES, WP-11), concepto con sugerencias, tarjet
 | PR | Contenido | Cambia comportamiento |
 |---|---|---|
 | **PR-0** (hecho) | Mover el gráfico de liquidez de Plan › Partidas de `app.js` a `partidas-ui.js`. `app.js` pasa de 37.490 a 37.396 líneas (99 de margen bajo el techo de 37.495) | No |
-| **PR-1** | Almacén `card-cycles`, `chargeDateFor`, valor `max(previsto, acumulado)`, retirada por cargo, conciliación, configuración en Partidas | Solo filas de tarjeta con compras (hoy ninguna): paridad exacta de la previsión sin compras |
+| **PR-1** (hecho) | Almacén `card-cycles`, `cycleFor`, valor `max(previsto, acumulado)`, el cargo manda, conciliación, ficha en Partidas. `app.js` 37.396 → 37.409 | Solo filas de tarjeta con compras (hoy ninguna): paridad exacta de la previsión sin compras |
 | **PR-2** | La hoja, camino de creación, tiempos, informe por concepto, enlace de WP-25 | Sí (pantalla nueva) |
 
 Cada PR cierra con la prueba de paridad de la previsión frente a `main` (como WP-26: 192 eventos, con y sin movimientos, y Hoy igual). Estimación: ≈ 4-5 sesiones en total.
 
 ## 8. Riesgos y verificaciones pendientes
 
-- Que un movimiento manual sin saldo no altere la continuidad del extracto ni los cuadres del libro (`NON_BANK_SOURCES` ya excluye `manual-quick-capture`; hay que añadir `captura-hoja`).
-- Cómo se asigna `transaction.month` al importar (debe poder fijarse al mes de cargo).
-- Que la retirada por cargo no deje sin contar una compra cuando el extracto aún no incluye el cargo (mientras no esté, las compras cuentan).
+- ~~Que un movimiento manual no altere los cuadres del libro~~ (PR-1): `captura-hoja` entra en `NON_BANK_SOURCES` del cierre; falta comprobar la continuidad del saldo del extracto (`statementFinalBalance`) con una compra sin saldo (PR-2).
+- ~~Cómo se asigna `transaction.month`~~ (PR-1): es el mes de la compra; el mes de cargo se calcula, no hace falta tocarlo.
+- ~~Que la retirada por cargo no deje sin contar una compra~~ (PR-1): mientras no hay real, las compras cuentan; en cuanto hay real (extracto o tecleado), manda el real.
+- **PR-2:** una compra de la hoja no debe aparecer en Movimientos como «sin clasificar»; hay que asignarla a la fila de su tarjeta al crearla (sin que `applyMovementMappingsToActuals` la sume, porque la ignora por su origen).
+- Con un cargo cuya fecha ya pasó y sin extracto importado, la fila sigue valiendo `max(previsto, acumulado)` hasta que llegue el real: es el mismo criterio que cualquier partida pendiente.
 - Rendimiento: `actualAwareInfo` se llama decenas de miles de veces en Partidas; el valor nuevo no debe añadir trabajo por llamada (presupuesto de `p4-presupuesto-pantallas`).
 
 ## 9. Preguntas abiertas al hogar
 
 - Confirmar en la pantalla de configuración la regla de cargo de cada tarjeta (la app admite «día N del mes M+k» y «fin de mes»).
 - Si las dos tarjetas de comercio del mismo emisor se usan por igual o solo una de ellas.
+
+## 10. Hallazgo fuera de alcance (mismo defecto, otra fila)
+
+`applyMovementMappingsToActuals` escribe la **suma parcial** de los movimientos asignados a una partida como su real, y `actualAwareInfo` hace que un real sustituya al previsto. Una importación de extracto a mitad de mes puede dejar «Gasto variable estimado» valiendo solo lo gastado hasta entonces, y en «Real manual» el mes de arranque con real vale 0 (`forwardPlanningInfo`). **Deducido leyendo el código, sin reproducir.** WP-30 no lo arregla (solo trata las filas de tarjeta); queda propuesto como tarea aparte con un test rojo primero.

@@ -19,7 +19,7 @@
   const RECONCILABLE = Object.freeze(["caixabank", "mediolanum"]);
   // Apuntes que no vienen del extracto del banco: no entran en el cuadre (un ticket en efectivo, o uno de
   // tarjeta que luego llega también en el extracto, harían saltar un «no cuadra» falso).
-  const NON_BANK_SOURCES = Object.freeze(["manual-quick-capture", "receipt-photo"]);
+  const NON_BANK_SOURCES = Object.freeze(["manual-quick-capture", "receipt-photo", "captura-hoja"]); // «captura-hoja»: WP-30, compra con tarjeta aún sin su cargo
 
   function text(value) {
     return String(value ?? "").trim();
