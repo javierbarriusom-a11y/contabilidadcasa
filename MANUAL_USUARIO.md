@@ -294,6 +294,19 @@ Cómo se usa después (la hoja para anotar compras llega en la siguiente entrega
   faltarían compras que la app nunca vio. Con «Anoto desde» puedes dar por completo un ciclo anterior.
 - Los días de corte y de cargo se guardan en tu copia y en la nube, nunca en el código ni en el repositorio.
 
+### Gasto variable del mes en curso
+
+Al importar un extracto a mitad de mes, el **Gasto variable estimado** recibe solo lo gastado hasta ese día. Esa cifra
+no es el total del mes, así que ya no sustituye a la previsión mientras el mes sigue abierto:
+
+- **Mes en curso:** la partida vale lo **mayor entre lo previsto y lo real** que llevas. Si gastas más de lo previsto, sube; si
+  llevas poco, no baja la previsión del mes. En **Registrar › Reales del mes** el valor usado lleva la marca «en curso».
+- **«Real manual», mes de arranque:** vale **lo que falta por gastar** (previsto menos lo real, sin bajar de 0), porque lo ya
+  gastado está dentro del saldo que declaraste.
+- **Meses ya pasados** (aunque no estén firmados) y **el resto de partidas** no cambian: en ellos el real sigue sustituyendo
+  al previsto.
+- Si quieres dar por terminado el mes con un real menor que el previsto, firma el cierre del mes.
+
 ### Acierto de la caja a fin de mes (Plan › Previsión)
 
 Hoy la app mide cuánto se equivoca en cada categoría de gasto, pero no cuánto dinero hay a final de

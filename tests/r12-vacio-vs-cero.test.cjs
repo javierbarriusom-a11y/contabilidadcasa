@@ -55,6 +55,7 @@ test("R-12 · sin real guardado (clave ausente): «sin real», usado = previsto"
     seriesOverrideForRow: () => undefined,
     plannedValueForRow: () => 80,
     cardAccruedForRow: () => 0, // WP-30: sin tarjetas configuradas no hay compras acumuladas; esta prueba es de «vacío frente a cero»
+    isVariableOperationalRow: () => false, openMonthCutoffKey: () => "", // real parcial del mes en curso: estas filas no son «Gasto variable»
   });
   const info = actualAwareInfo({ kind: "expense" }, { key: "2026-08" });
   assert.equal(info.hasActual, false);
@@ -70,6 +71,7 @@ test("R-12 · real explícito de 0 («ocurrió por cero»): hasActual true, usad
     seriesOverrideForRow: () => undefined,
     plannedValueForRow: () => 80,
     cardAccruedForRow: () => 0, // WP-30: sin tarjetas configuradas no hay compras acumuladas; esta prueba es de «vacío frente a cero»
+    isVariableOperationalRow: () => false, openMonthCutoffKey: () => "", // real parcial del mes en curso: estas filas no son «Gasto variable»
   });
   const info = actualAwareInfo({ kind: "expense" }, { key: "2026-08" });
   assert.equal(info.hasActual, true, "un 0 explícito cuenta como real registrado");
@@ -85,6 +87,7 @@ test("R-12 · un real normal (no cero) se usa tal cual, no el previsto", () => {
     seriesOverrideForRow: () => undefined,
     plannedValueForRow: () => 80,
     cardAccruedForRow: () => 0, // WP-30: sin tarjetas configuradas no hay compras acumuladas; esta prueba es de «vacío frente a cero»
+    isVariableOperationalRow: () => false, openMonthCutoffKey: () => "", // real parcial del mes en curso: estas filas no son «Gasto variable»
   });
   const info = actualAwareInfo({ kind: "expense" }, { key: "2026-08" });
   assert.equal(info.hasActual, true);
@@ -109,6 +112,7 @@ test("R-12 · registrarMesCollect propaga la misma distinción en el campo `used
       seriesOverrideForRow: () => undefined,
       plannedValueForRow: () => 40,
       cardAccruedForRow: () => 0, // WP-30: ídem
+      isVariableOperationalRow: () => false, openMonthCutoffKey: () => "",
       displayLabelForRow: (row) => row.id,
       deleteKeyForRow: (row) => `${row.id}|2026-08`,
     },

@@ -215,6 +215,8 @@ function valueSandbox({ transactions = [], store = { cards: [card("t1", A)] }, r
     actualKeyForRow: (row, month) => `${row.id}|${month.key}`,
     seriesOverrideForRow: () => override,
     plannedValueForRow: () => planned,
+    isVariableOperationalRow: () => false, // real parcial del mes en curso: la fila de tarjeta no es «Gasto variable»
+    openMonthCutoffKey: () => "",
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
