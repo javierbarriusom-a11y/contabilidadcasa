@@ -108,6 +108,11 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 - *Hecho cuando:* actualizar las cuentas ≤ 20 s (panel de uso / WP-02). *Riesgo:* «Coincide» sin mirar → la diferencia se muestra siempre que supere una tolerancia.
 - **ND-01 hecho el 4/10/2026** («Pulso de saldos», `canonical-balance-pulse.js` + `registrar-ui.js`). El «saldo esperado» es el **último dato real** (declarado o saldo final del extracto, el más reciente), no una estimación: no existe un saldo esperado de hoy y comparar el banco con una estimación casi nunca coincidiría. La previsión solo avisa si esperaba movimientos. El riesgo de confirmar sin mirar se vigila en el panel de uso (% de «Coincide»). **ND-02 hecho el 4/10/2026:** la importación guiada no tocaba los saldos y la cuenta del extracto no llegaba al libro; ahora el paso 4 ofrece el saldo final (marcado), comprueba la continuidad del fichero y lo aplica dentro del lote. **WP-26 hecho.**
 
+**WP-12 · Backtest de liquidez a fin de mes** (NPV-02) · Ola 2 · exento · M ≈ 2,5
+- *Qué:* el día 1 y el 15 se congela la liquidez prevista a fin de mes; al firmar el cierre (WP-09) se compara con el saldo real. Sesgo y error medio en euros y %, con «datos insuficientes» hasta 3 cierres.
+- *Por qué antes que el resto de la Ola 2:* necesita la foto previa de cada cierre, así que cada mes sin congelar retrasa un mes el primer resultado (reloj de datos).
+- **Hecho el 5/10/2026** (`canonical-liquidity-backtest.js`, `liquidity-backtest-ui.js`, `tests/wp12-backtest-liquidez.test.cjs`, guía en `MANUAL_USUARIO.md`). Ventanas 1-3 y 15-17; foto de solo añadir, con 10 días de cola; comparación en la fecha de los saldos del cierre; solo saldos del banco (modo manual); tendencia con 6 cierres. La banda P10-P90 y su ajuste siguen siendo de WP-16.
+
 **WP-27 · Cargos que no llegaron** (CAP-06) · Ola 2 · exento · S-M ≈ 2
 - *Dónde:* recurrentes de `A16-3`, bandeja (`buildInboxItem`), fechas de WP-08. *Enfoque:* detector puro que, pasada la ventana + 3 días sin movimiento casado, crea una tarjeta con las cuatro respuestas (baja · cambio de cuenta · llegará tarde · pagado de otra forma) y ajusta la previsión según la respuesta.
 - *Pruebas:* ventana, festivos, recibo bimestral, recibo dado de baja. *Hecho cuando:* ningún recibo esperado sin estado más de 3 días.
@@ -123,6 +128,7 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 **WP-30 · Hoja de captura en ≤ 8 s** (ND-14) · Ola 2 · visible · M ≈ 2,5
 - Hoja inferior con el importe primero (teclado abierto), los 5 conceptos más frecuentes a esa hora, «hoy/ayer», guardar con la tecla «hecho» y deshacer 8 s. Es la misma hoja que abre WP-25. Métrica: mediana ≤ 8 s (WP-02).
 - **Requisito nuevo de WP-25 (4/10):** decidir cómo se anota un pago **a cuenta de una partida** existente: acumular lo gastado sin rebajar la previsión del resto del mes y sin crear una partida por ticket. Sin eso, los enlaces de WP-25 y el Atajo de Apple Pay cuentan dos veces el gasto previsto.
+- **Decidido por el hogar el 5/10/2026:** el pago a cuenta de una partida **se acumula dentro de la partida** (una sola partida, con lo gastado hasta ahora), sin crear una partida por ticket y sin rebajar la previsión del resto del mes por cada pago. Cambia el modelo de partidas: se diseña (qué se guarda, cómo se migra, cómo se deshace) antes de escribir código, en su propio PR.
 
 **WP-31 · Nómina en PDF y retenciones automáticas** (CAP-05 + NPV-11) · Ola 2 · exento · M+S-M ≈ 4
 - *Enfoque:* lector de texto de PDF cargado bajo demanda (mismo patrón que el OCR de A17-3; *verificar* librería, tamaño y licencia) o captura + OCR; plantilla por pagador; extrae líquido, bruto, retención %, cotizaciones; crea el ingreso real, acumula `irpfWithholdingsPaid` y avisa si cambia el %. El PDF no se guarda.

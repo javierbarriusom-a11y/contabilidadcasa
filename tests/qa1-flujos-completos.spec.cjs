@@ -617,3 +617,99 @@ test.describe("QA-1 · el extracto actualiza el saldo (WP-26)", () => {
     });
   }
 });
+
+// WP-12 (NPV-02): backtest de liquidez en un navegador real, con el reloj en día de foto. Se congela al abrir (tras la
+// nube), la foto es de solo añadir, y Plan › Previsión cuenta lo que espera su cierre. La demo parte en «Auto por
+// fecha»: ahí la foto se guarda pero NO cuenta (los saldos de partida no son del banco, GOV-05); con saldos manuales sí.
+test.describe("QA-1 · backtest de liquidez (WP-12)", () => {
+  const photo = (page) => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("liquidity-backtest")) || "null"));
+
+  test("el día 15 se congela al abrir y es lo que prevé el motor a fin de mes; al volver a abrir no se reescribe", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 15, 9, 0, 0) });
+    await page.goto("/index.html#prevision");
+    await expect.poll(async () => Object.keys((await photo(page))?.freezes || {}), { message: "la foto del día 15 se guarda sola al abrir" }).toEqual(["2026-10:d15"]);
+    const frozen = (await photo(page)).freezes["2026-10:d15"];
+    const live = await page.evaluate(() => canonicalDailyEngineRuns.active.rows.find((row) => row.date === "2026-10-31").total);
+    expect(frozen.date).toBe("2026-10-15");
+    expect(frozen.closing, "lo congelado es lo que el motor diario prevé para el 31/10").toBe(live);
+    expect(frozen.balanceMode, "la demo parte en saldos «Auto por fecha»").toBe("auto");
+
+    await page.click("#previsionBacktestCard > summary");
+    await expect(page.locator("#previsionBacktestResumen")).toContainText("datos insuficientes (0 de 3 cierres)");
+    await expect(page.locator("#previsionBacktest")).toContainText("Esperan su cierre: foto del 15/10/2026");
+    await expect(page.locator("#previsionBacktest")).not.toContainText("Error medio");
+
+    await page.clock.setSystemTime(new Date(2026, 9, 16, 9, 0, 0));
+    await page.reload();
+    await expect(page.locator("#previsionBacktestResumen")).toContainText("Acierto de la caja a fin de mes");
+    const again = (await photo(page)).freezes["2026-10:d15"];
+    expect(again.frozenAt, "el día 16 la ventana sigue abierta pero ya tiene su foto: no se reescribe").toBe(frozen.frozenAt);
+    expect(again.totals).toEqual(frozen.totals);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("fuera de los días 1-3 y 15-17 no se congela nada", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 9, 20, 9, 0, 0) });
+    await page.goto("/index.html#prevision");
+    await expect(page.locator("#previsionBacktestResumen")).toContainText("Acierto de la caja a fin de mes");
+    expect(await photo(page)).toBeNull();
+  });
+
+  test("con saldos manuales la foto sí cuenta: al firmar el cierre se compara en la fecha de sus saldos, y con 1 cierre sigue sin haber error", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 15, 9, 0, 0) });
+    await page.goto("/index.html#prevision");
+    await expect.poll(async () => Object.keys((await photo(page))?.freezes || {})).toEqual(["2026-10:d15"]);
+    // Saldos del banco, como los deja el Pulso de saldos; se rehace la foto del día 15 con ellos (la anterior era de saldos calculados).
+    await page.evaluate(() => {
+      localStorage.removeItem(storageKey("liquidity-backtest"));
+      qs("registrarBalanceMode").value = "manual"; // como el botón «Real manual» del Pulso de saldos
+      qs("registrarBalanceMode").dispatchEvent(new Event("change", { bubbles: true }));
+      state.balanceDate = "2026-10-14";
+      ["balanceDate", "registrarBalanceDate"].forEach((id) => { qs(id).value = "2026-10-14"; });
+      saveBalanceSettings();
+      render();
+    });
+    const frozen = await page.evaluate(() => freezeLiquidityForecast());
+    expect(frozen.balanceMode).toBe("manual");
+    expect(frozen.balanceDate).toBe("2026-10-14");
+    // Cierre real de octubre con saldos del 31/10 (mismo formato que escribe WP-09).
+    await page.evaluate(() => {
+      state.balanceDate = "2026-10-31";
+      recordMonthCloseBalances("2026-10", "2026-11-01T09:00:00.000Z");
+    });
+    const expected = await page.evaluate(() => {
+      const close = loadMonthCloseBalances().months["2026-10"];
+      return { actual: Math.round((close.accounts.caixabank + close.accounts.mediolanum) * 100) / 100, date: close.date };
+    });
+    expect(expected.date).toBe("2026-10-31");
+    await page.click("#previsionBacktestCard > summary");
+    await page.evaluate(() => render());
+    await expect(page.locator("#previsionBacktestResumen")).toContainText("datos insuficientes (1 de 3 cierres)");
+    await expect(page.locator("#previsionBacktest")).not.toContainText("Esperan su cierre");
+    await expect(page.locator("#previsionBacktest")).not.toContainText("No cuentan");
+    const row = await page.evaluate(() => FinanceCanonicalLiquidityBacktest.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: "2026-11-02" }).rows[0]);
+    expect(row.status).toBe("comparable");
+    expect(row.closeDate).toBe("2026-10-31");
+    expect(row.actual).toBe(expected.actual);
+    expect(row.predicted).toBe(frozen.closing);
+    expect(row.error).toBe(Math.round((frozen.closing - expected.actual) * 100) / 100);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la tarjeta se ve y no desborda a ${viewport.width} px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 9, 15, 9, 0, 0) });
+      await page.goto("/index.html#prevision");
+      await expect.poll(async () => Object.keys((await photo(page))?.freezes || {})).toEqual(["2026-10:d15"]);
+      await page.click("#previsionBacktestCard > summary");
+      await expect(page.locator("#previsionBacktest")).toContainText("Foto del día 1 (días 1-3)");
+      await expect(page.locator("#previsionBacktest")).toContainText("Foto del día 15 (días 15-17)");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    });
+  }
+});

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-05-wp12",
+      fecha: "2026-10-05",
+      texto: "Plan › Previsión: «Acierto de la caja a fin de mes». Los días 1 y 15 congela lo que espera tener y lo compara al cerrar el mes.",
+      href: "#prevision",
+    },
+    {
       id: "2026-10-04-wp26-extracto",
       fecha: "2026-10-04",
       texto: "Importar extracto: su saldo final puede pasar a ser el de la cuenta, y te avisa si al fichero le faltan movimientos.",
