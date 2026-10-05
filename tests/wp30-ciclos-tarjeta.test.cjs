@@ -208,7 +208,9 @@ function valueSandbox({ transactions = [], store = { cards: [card("t1", A)] }, r
     globalThis: null,
     FinanceCanonicalCardCycles: engine,
     applicationRenderRevision: revision,
-    baseData: { transactions },
+    baseData: { transactions: [] },
+    FinanceCanonicalCardPurchases: { toMovements: () => transactions }, // PR-2: las compras viven en su almacén (captura-ui.js); aquí, ya con forma de movimiento
+    loadCardPurchases: () => ({ purchases: [] }),
     cachedLocalStore: () => store,
     seriesKeyForRow: (row) => `${row.kind}|${row.id}`,
     actualsForKind: () => actuals,
@@ -355,7 +357,9 @@ function uiSandbox({ stored = { cards: [] }, rows = [{ key: ROW, label: "Tarjeta
     chargeDayRows: () => rows,
     normalizedText: (value) => String(value || "").toLowerCase(),
     isoLocalDate: () => today,
-    baseData: { transactions },
+    FinanceCanonicalCardPurchases: { toMovements: () => transactions },
+    loadCardPurchases: () => ({ purchases: [] }),
+    renderCardPurchases: () => {}, // el apartado de compras tiene su propia prueba (wp30-hoja-captura)
     expenseActuals: {},
     money: (value) => `${value} €`,
     storageKey: (name) => `${name}:demo`,

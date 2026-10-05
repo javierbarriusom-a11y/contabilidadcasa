@@ -89,7 +89,8 @@ test("FLU-2 · el diálogo trae los tres campos (concepto, bloque, importe) y co
 
 test("FLU-2 · el botón está enganchado a openHomeQuickExpenseDialog y el listener se registra", () => {
   // WP-25: sin argumentos, para que el evento del clic no se lea como datos de un enlace.
-  assert.match(app, /qs\("homeQuickExpenseOpen"\)\?\.addEventListener\("click", \(\) => openHomeQuickExpenseDialog\(\)\)/);
+  // WP-30 (PR-2): con tarjetas dadas de alta abre antes la hoja de captura (captura-ui.js); sin ellas, esta ventana, igual que siempre.
+  assert.match(app, /qs\("homeQuickExpenseOpen"\)\?\.addEventListener\("click", \(\) => \{ if \(!globalThis\.openCapturaHoja\?\.\(\)\) openHomeQuickExpenseDialog\(\); \}\)/);
 });
 
 test("FLU-2 · homeQuickExpenseSections() solo devuelve bloques de gasto", () => {

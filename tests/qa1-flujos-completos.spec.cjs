@@ -794,7 +794,8 @@ test.describe("QA-1 · tarjetas de crédito (WP-30)", () => {
 
     await page.evaluate(() => {
       const today = isoLocalDate(new Date());
-      baseData.transactions.push({ date: today, valueDate: today, month: today.slice(0, 7), movement: "Compra de prueba", details: "", amount: -50000, source: "captura-hoja", card: "t1" });
+      // PR-2: las compras viven en su propio almacén (card-purchases), no entre los movimientos del banco.
+      storageSet(storageKey("card-purchases"), JSON.stringify({ purchases: [{ id: "e2e-compra-1", date: today, concept: "Compra de prueba", card: "t1", amount: 50000, capturedAt: new Date().toISOString() }] }));
       render();
     });
     const accrued = await probe();
@@ -853,4 +854,136 @@ test.describe("QA-1 · real parcial del mes en curso", () => {
     expect(result.manual, "en Real manual: previsto menos lo ya gastado").toBeCloseTo(result.base - result.spent, 2);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+});
+
+// WP-30 · PR-2: la hoja de captura de compras con tarjeta en un navegador real. Sin tarjetas, «+ Registrar gasto» sigue abriendo la
+// ventana de siempre (y mide su tiempo); con tarjetas abre la hoja, que guarda con «Hecho» del teclado, acumula en la fila de la tarjeta,
+// deja deshacer y mide los segundos. Los ciclos son inventados (los reales los introduce el hogar y no van al repositorio).
+test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
+  const configureCard = (page, label = "Tarjeta de prueba") => page.evaluate((cardLabel) => {
+    const rowKey = cardCycleRows()[0].key;
+    storageSet(storageKey("card-cycles"), JSON.stringify({ cards: [{ id: "t1", label: cardLabel, rowKey, cutDay: 10, chargeMonthOffset: 1, chargeDay: 5, trackedFrom: "" }] }));
+    render();
+    return rowKey;
+  }, label);
+  const purchasesStored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("card-purchases")) || '{"purchases":[],"timings":[]}'));
+  const ready = async (page, hash = "#home") => {
+    await page.goto(`/index.html${hash}`);
+    await page.waitForFunction(() => typeof cardCycleRows === "function" && typeof openCapturaHoja === "function" && document.querySelector("#capturaHojaDialog"));
+  };
+
+  test("sin tarjetas, «+ Registrar gasto» abre la ventana de siempre y mide su tiempo; con tarjetas, la hoja", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page);
+    await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
+    await page.click("#homeQuickExpenseOpen");
+    await expect(page.locator("#homeQuickExpenseDialog")).toBeVisible();
+    await expect(page.locator("#capturaHojaDialog")).not.toBeVisible();
+    await page.fill("#homeQuickExpenseLabel", "Gasto de prueba");
+    await page.fill("#homeQuickExpenseAmount", "12,5");
+    await page.click("#homeQuickExpenseSubmit");
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    const afterLegacy = await purchasesStored(page);
+    expect(afterLegacy.timings.map((item) => item.kind), "el tiempo de la ventana anterior queda medido").toEqual(["dialogo"]);
+    expect(afterLegacy.purchases).toEqual([]);
+
+    await configureCard(page);
+    await page.click("#homeQuickExpenseOpen");
+    await expect(page.locator("#capturaHojaDialog")).toBeVisible();
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    await expect(page.locator("#capturaHojaAmount")).toBeFocused();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("anotar con el teclado, ver la compra acumulada en la fila y deshacerla", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page);
+    const rowKey = await configureCard(page);
+    await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
+    await page.click("#homeQuickExpenseOpen");
+    await page.keyboard.type("23,40");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("Mercadona");
+    // Una sola tarjeta: ya está elegida. «Hecho» del teclado guarda.
+    await expect(page.locator('#capturaHojaCards [aria-pressed="true"]')).toHaveText("Tarjeta de prueba");
+    await expect(page.locator("#capturaHojaPreview")).toContainText("Se carga el ");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#capturaHojaDialog")).not.toBeVisible();
+    const saved = await purchasesStored(page);
+    expect(saved.purchases).toHaveLength(1);
+    expect(saved.purchases[0]).toMatchObject({ amount: 23.4, concept: "Mercadona", card: "t1" });
+    expect(saved.lastCard).toBe("t1");
+    expect(saved.timings.map((item) => item.kind)).toEqual(["hoja"]);
+    await expect(page.locator("#undoToast")).toBeVisible();
+    await expect(page.locator("#undoToastMessage")).toContainText("Anotada: 23,40");
+    await expect(page.locator("#undoToastMessage")).toContainText("Mercadona");
+
+    // La compra se acumula en la fila de la tarjeta, en el mes de cargo, sin crear real ni tocar los movimientos del banco.
+    const row = await page.evaluate((key) => {
+      const purchase = JSON.parse(localStorage.getItem(storageKey("card-purchases"))).purchases[0];
+      const cycle = FinanceCanonicalCardCycles.cycleFor(purchase.date, loadCardCycles().cards[0]);
+      const start = monthKey(modelStartDate());
+      const index = (Number(cycle.chargeMonth.slice(0, 4)) * 12 + Number(cycle.chargeMonth.slice(5, 7))) - (Number(start.slice(0, 4)) * 12 + Number(start.slice(5, 7)));
+      const month = planningMonthForDate(addMonths(modelStartDate(), index), index);
+      const found = planningSectionsForMonth("expense", month).flatMap((section) => section.rows).find((item) => seriesKeyForRow(item) === key);
+      const info = actualAwareInfo(found, month);
+      return { accrued: info.accrued, hasActual: info.hasActual, transactions: (baseData.transactions || []).filter((item) => item.source === "captura-hoja").length };
+    }, rowKey);
+    expect(row.accrued).toBe(23.4);
+    expect(row.hasActual).toBe(false);
+    expect(row.transactions, "no entra entre los movimientos del banco").toBe(0);
+
+    await page.click("#undoToastButton");
+    expect((await purchasesStored(page)).purchases).toHaveLength(0);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("el enlace de registro abre la hoja rellena y no guarda solo", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page, "#home");
+    await configureCard(page, "Tarjeta de prueba");
+    await page.evaluate(() => { location.hash = "#registrar?importe=23,40&concepto=Mercadona&tarjeta=prueba&origen=applepay"; });
+    await expect(page.locator("#capturaHojaDialog")).toBeVisible();
+    await expect(page.locator("#capturaHojaAmount")).toHaveValue("23,40");
+    await expect(page.locator("#capturaHojaConcept")).toHaveValue("Mercadona");
+    await expect(page.locator('#capturaHojaCards [aria-pressed="true"]')).toHaveText("Tarjeta de prueba");
+    await expect(page.locator("#capturaHojaNote")).toContainText("no se guarda nada hasta que pulses «Guardar»");
+    expect((await purchasesStored(page)).purchases, "abrir el enlace no guarda nada").toHaveLength(0);
+    await page.click("#capturaHojaSubmit");
+    expect((await purchasesStored(page)).purchases).toHaveLength(1);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la hoja y el informe de compras se ven bien a ${viewport.width} px`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await ready(page);
+      await configureCard(page);
+      await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      await page.click("#homeQuickExpenseOpen");
+      const box = await page.locator("#capturaHojaDialog").boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, "la hoja cabe en la pantalla").toBeLessThanOrEqual(viewport.width + 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await page.keyboard.type("5");
+      await page.fill("#capturaHojaConcept", "Café");
+      await page.click("#capturaHojaSubmit");
+      await expect(page.locator("#capturaHojaDialog")).not.toBeVisible();
+      await page.evaluate(() => { location.hash = "#planificacion-partidas"; });
+      await page.waitForFunction(() => document.querySelector("#tarjetasCiclo form"));
+      await page.click("#tarjetasCard > summary");
+      await expect(page.locator("#tarjetasCompras")).toContainText("Compras anotadas");
+      await expect(page.locator("#tarjetasCompras")).toContainText("Café");
+      await expect(page.locator("#tarjetasCompras")).toContainText("mediana");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "el informe no desborda").toBe(true);
+      await page.click("[data-compra-quitar]");
+      await expect(page.locator("#tarjetasCompras")).toContainText("Todavía no hay compras anotadas");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
 });

@@ -614,6 +614,7 @@
             <details class="e19-card prevision-calidad-card asignacion-card" id="tarjetasCard">
               <summary id="tarjetasResumen">Tarjetas de crédito (ciclos de corte y cargo)</summary>
               <div id="tarjetasCiclo"></div>
+              <div id="tarjetasCompras"></div>
             </details>
             <div id="planificacionPartidasRoot"></div>
             <!-- ARQ-6 (24 sept. 2026): el editor de series vivía en #data-entry, que Registrar redirige
@@ -7505,6 +7506,41 @@
       </form>
     </dialog>
 
+    <!-- WP-30 (PR-2): hoja de captura de compras con tarjeta de crédito. La abre «+ Registrar gasto» (Hoy) y el enlace de registro cuando hay
+         tarjetas configuradas; sin tarjetas, esos dos abren la ventana de arriba. Guardar es el único botón de envío: «Hecho» del teclado guarda. -->
+    <dialog class="action-review-dialog" id="capturaHojaDialog" aria-labelledby="capturaHojaTitle">
+      <form method="dialog" id="capturaHojaForm" novalidate>
+        <p class="panel-kicker">Compra con tarjeta</p>
+        <h2 id="capturaHojaTitle">Anotar una compra</h2>
+        <p class="e19-kpi-note capture-link-note" id="capturaHojaNote" role="status" hidden></p>
+        <label>
+          <span>Importe</span>
+          <input id="capturaHojaAmount" type="text" inputmode="decimal" autocomplete="off" data-amount-input placeholder="0,00" />
+        </label>
+        <label>
+          <span>Concepto</span>
+          <input id="capturaHojaConcept" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Mercadona, gasolina" />
+        </label>
+        <div id="capturaHojaSuggest" class="data-actions" aria-label="Conceptos habituales"></div>
+        <fieldset>
+          <legend>Tarjeta</legend>
+          <div id="capturaHojaCards" class="data-actions"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Fecha</legend>
+          <div id="capturaHojaDates" class="data-actions"></div>
+          <input id="capturaHojaDate" type="date" aria-label="Fecha de la compra" hidden />
+        </fieldset>
+        <p class="e19-kpi-note" id="capturaHojaPreview"></p>
+        <p class="e19-kpi-note asignacion-error" id="capturaHojaError" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="capturaHojaCancel">Cancelar</button>
+          <button type="submit" id="capturaHojaSubmit">Guardar</button>
+        </div>
+        <p><button type="button" class="ghost-button" id="capturaHojaLegacy">Gasto sin tarjeta (crea una partida)</button></p>
+      </form>
+    </dialog>
+
     <dialog class="action-review-dialog" id="escenarioMotorLimitDialog" aria-labelledby="escenarioMotorLimitTitle">
       <form method="dialog">
         <p class="panel-kicker">Diez planes vivos como máximo</p>
@@ -7642,7 +7678,9 @@
     <script defer src="canonical-capture-link.js?v=20261004wp25a1"></script>
     <script defer src="canonical-personal-allowance.js?v=20261004wp24a1"></script>
     <script defer src="canonical-card-cycles.js?v=20261005wp30b1"></script>
-    <script defer src="partidas-ui.js?v=20261005wp30b1"></script>
+    <script defer src="canonical-card-purchases.js?v=20261005wp30c1"></script>
+    <script defer src="partidas-ui.js?v=20261005wp30c1"></script>
+    <script defer src="captura-ui.js?v=20261005wp30c1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
     <script defer src="registrar-ui.js?v=20261004wp26b1"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>

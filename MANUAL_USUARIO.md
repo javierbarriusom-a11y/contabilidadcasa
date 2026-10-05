@@ -282,7 +282,7 @@ tarjeta tiene su **ciclo**. En **Plan › Partidas › Tarjetas de crédito** in
 Al guardar, la ficha te enseña un ejemplo («una compra del 15/10 se carga el …») para que compruebes el ciclo
 de un vistazo. Si cambias el ciclo, las compras ya anotadas se reasignan solas.
 
-Cómo se usa después (la hoja para anotar compras llega en la siguiente entrega):
+Cómo funciona con las compras que anotas (la hoja, en la sección siguiente):
 
 - Una compra va a la fila de su tarjeta **en el mes del cargo**. Mientras no llega el cargo del extracto, esa
   fila vale **lo mayor entre lo previsto y lo que llevas anotado**: un primer ticket no hunde la previsión
@@ -293,6 +293,23 @@ Cómo se usa después (la hoja para anotar compras llega en la siguiente entrega
 - Un ciclo que **empezó antes de tu primera compra anotada** se marca como incompleto y no se compara, porque
   faltarían compras que la app nunca vio. Con «Anoto desde» puedes dar por completo un ciclo anterior.
 - Los días de corte y de cargo se guardan en tu copia y en la nube, nunca en el código ni en el repositorio.
+
+### Anotar una compra con tarjeta (la hoja)
+
+Con al menos una tarjeta dada de alta, **«+ Registrar gasto»** en Hoy abre la **hoja de compra** (sin tarjetas abre la ventana de siempre):
+
+1. **Importe** (el teclado numérico se abre solo; vale «23,40»).
+2. **Concepto:** teclea o toca uno de los habituales (los más repetidos en los últimos 120 días, con prioridad a los de esta hora). Cada compra lleva su concepto.
+3. **Tarjeta** (si solo hay una, ya está elegida; si no, se recuerda la última) y **fecha** (hoy, ayer u otra; no puede ser futura).
+4. **Guardar**, o la tecla «Hecho» del teclado. La hoja dice antes de guardar **cuándo se carga** («Se carga el 05/12/2026») y, al guardar, **8 segundos para deshacer**.
+
+Una compra no es un movimiento del banco: **no sale en Movimientos ni en el análisis**, no se concilia con el extracto y no crea una partida por ticket. Se **acumula en la fila de su tarjeta** en el mes del cargo (ver arriba). Si te equivocas pasados los 8 segundos, en **Plan › Partidas › Tarjetas de crédito › Compras anotadas** cada compra tiene su botón **Quitar** (y se puede deshacer).
+
+Ahí mismo ves las compras **por tarjeta, ciclo y concepto**, de la más cara a la más barata, y dos medidas: la **mediana de segundos** que tardas en anotar una compra (objetivo ≤ 8 s) —frente a la de la ventana anterior, que también se mide— y el **% de compras que anotas el mismo día o el siguiente**. Hasta que no haya tiempos, la pantalla no afirma ninguna cifra.
+
+- **Gasto sin tarjeta** (efectivo, transferencia): el enlace que hay al pie de la hoja abre la ventana anterior, que crea una partida con su real.
+- **El enlace de registro** (Atajo de Apple Pay, WP-25) abre esta misma hoja rellena cuando hay tarjetas; el nombre que traiga en `tarjeta=` elige la tarjeta si coincide con una sola. **Nunca guarda solo.**
+- Se guardan en tu copia y en la nube (almacén `card-purchases`), hasta las últimas 4.000 compras.
 
 ### Gasto variable del mes en curso
 
