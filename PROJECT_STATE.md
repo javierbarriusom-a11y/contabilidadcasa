@@ -138,11 +138,46 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5220/5220**; e2e **23/23** y axe **6/6**; `test:mobile-overflow` sin contenido cortado (201 visitas); `test:perf-screens` 3/3; `test:load-budget` mediana de «Hoy con contenido» **2.525 ms** (presupuesto 5.000). **`test:performance-lh` no se pudo ejecutar en este contenedor** (el script espera el Chromium de Playwright `chromium-1234` y está instalado el 1194): lo decide el CI; no se cambió ningún umbral.
 - **Falta de la sesión del hogar:** declarar los saldos como «Real manual» y **abrir la app del 15 al 17/10** (foto de octubre); cerrar octubre con saldo del 1 al 3/11. Con foto de octubre, el tercer cierre comparable llega en **enero de 2027**; si la primera foto es la del 1/11, en **febrero de 2027**.
 - **Siguiente (orden del hogar):**
-  - **C · WP-30** (hoja de captura ≤ 8 s) **está bloqueado por una decisión del hogar** que sigue sin responderse: cómo se anota un pago **«a cuenta de una partida»** sin contar dos veces el gasto previsto ni rebajar la previsión del resto del mes (hallazgo de WP-25). Es un cambio de modelo: se propone antes de escribir código.
+  - **C · WP-30** (hoja de captura ≤ 8 s): **desbloqueado el 5/10.** Decisión del hogar sobre el pago «a cuenta de una partida» (hallazgo de WP-25): **se acumula dentro de la partida**, sin crear una partida por ticket y sin rebajar la previsión del resto del mes por cada pago. Es un cambio de modelo de las partidas: va en su propio PR y se diseña antes de escribir código.
   - **A · WP-15** (valoración rápida de la cartera) va después.
-  - Siguen sin respuesta: fecha de la próxima revisión de la hipoteca variable (WP-20) y las 3 pruebas cronometradas de Hoy (WP-02).
+  - **WP-20** (revisión del tipo variable de la hipoteca): el hogar ya dijo por el chat cuándo es la próxima revisión. **La fecha no se anota aquí** (`BACKLOG_DEFINITIVO.md` §8: los datos de la hipoteca van solo por el chat). Condiciona el calendario: WP-13 y WP-20 tienen que estar hechos antes de que caiga el aviso de 60 días.
+  - Siguen sin respuesta: las 3 pruebas cronometradas de Hoy (WP-02).
 - **Entorno:** se instalaron las dependencias con `npm ci` para poder ejecutar lint y typecheck (`node_modules` no se versiona).
 - Revisión mensual de Nielsen: no vencida (última real, 16/9); toca el 16/10 (WP-06).
+
+## Cierre de sesión — 4 de octubre de 2026 (299): cierre de la jornada y backlog al día
+
+- **Pedido por el hogar:** «cierre y actualizar backlog». No hay código nuevo: todo lo de la jornada ya está fusionado y desplegado.
+- **Fusionado en la jornada (5 paquetes, 6 PR):**
+
+  | Paquete | Qué | PR |
+  |---|---|---|
+  | WP-11 | campo de importe es-ES en Registrar | #445 |
+  | WP-25 | enlaces de registro prellenado | #446 |
+  | WP-24 | asignación personal | #447 |
+  | WP-26 · ND-01 | «Pulso de saldos» | #448 |
+  | WP-26 · ND-02 | el extracto actualiza el saldo | #449 |
+
+  En la sesión anterior, WP-08 (#444).
+- **Decisiones del hogar de hoy:**
+  1. **WP-24:** transferencia a una cuenta propia, sale del gasto variable, para los dos.
+  2. **WP-23 programado para la semana del 12/10** (límite: 1/11).
+  3. **WP-26 adelantado a WP-15.**
+- **Hallazgos que condicionan lo que viene:**
+  - **WP-25 → WP-30:** la ventana «Registrar gasto» crea una partida nueva, así que un pago ya previsto contaría dos veces. El hogar tiene que decidir cómo se anota un pago «a cuenta de una partida» antes de usar el Atajo de Apple Pay a diario.
+  - **Una sola fecha para los saldos de las dos cuentas:** al aplicar un extracto de una cuenta, o al escribir un saldo, la fecha pasa a valer para las dos. El «Pulso de saldos» lo mitiga diciendo qué cuenta falta. Separarla por cuenta tocaría el motor de previsión.
+  - **`app.js` en 37.487 de 37.495:** el código de pantalla nuevo va en scripts aparte cargados antes (`partidas-ui.js`, `registrar-ui.js`).
+- **Backlog al día (`BACKLOG_DEFINITIVO.md`):**
+  - §0: la Ola 1 queda construida salvo WP-23; además, de la Ola 2, WP-08 y WP-26. Siguiente: **WP-15**. WP-30 espera la decisión de arriba.
+  - §7: calendario corregido. Semana del 12/10, campaña fiscal; 16/10, Nielsen y `O-6`; antes del 1/11, alta de la asignación personal; **1-3/11, primer cierre con saldo (octubre)**, que el calendario ponía, por error, en diciembre.
+- **Pendiente del hogar** (nada de esto es código):
+  - **Antes del 16/10:** cronometrar una vez cómo actualiza hoy los saldos (línea base de WP-26) y los 3 intentos de la prueba de Hoy (WP-02).
+  - **Antes del 16/10:** la verificación de Enable Banking (`O-6`).
+  - **Días de cargo** (10-30 min, WP-08).
+  - **Antes del 1/11:** las dos fichas de la asignación personal y las transferencias con concepto fijo.
+  - **Semana del 12/10:** los datos fiscales, en el chat.
+- **Revisión mensual de Nielsen:** no está vencida (la última, el 16/9). Toca el 16/10.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5192/5192**.
 
 ## Cierre de sesión — 4 de octubre de 2026 (299, decimocuarto PR): WP-26 · ND-02 el extracto actualiza el saldo
 
