@@ -117,6 +117,8 @@ const files = [
   "partidas-ui.js",
   "canonical-balance-pulse.js",
   "registrar-ui.js",
+  "canonical-liquidity-backtest.js",
+  "liquidity-backtest-ui.js",
   "p2-domain.js",
   "p2-private-store.js",
   "p2-export.js",

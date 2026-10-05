@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 3 de octubre de 2026 (sesión 299). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 5 de octubre de 2026 (sesión 299). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,41 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 5 de octubre de 2026 (299, decimoquinto PR): WP-12 backtest de liquidez a fin de mes
+
+- **Orden elegido por el hogar para esta sesión: B → C → A** (WP-12, WP-30, WP-15). Este PR es el **B**. C y A siguen pendientes (ver el final).
+- **Por qué WP-12 va primero (comprobado en la fuente, NPV-02):** la comparación necesita la **foto previa** del día 1 y del 15. Para que haya 3 cierres comparables, la congelación tiene que estar activa **antes del 1/11**: cada mes de retraso retrasa un mes el primer resultado. Es un paquete que corre con el calendario, no uno que se pueda construir cualquier día sin perder datos.
+- **`canonical-liquidity-backtest.js` (nuevo, puro, con su pantalla):**
+  - **Foto:** los días **1-3 y 15-17** de cada mes congela la liquidez (CaixaBank + Mediolanum, la misma suma del motor diario) al cierre de cada día, desde hoy hasta fin de mes y **10 días de cola**, por si el cierre se firma con saldos de después. Guarda también el modo y la fecha de los saldos de partida.
+  - **De solo añadir:** la primera foto de cada ventana gana; ni `recordFreeze` ni `freezeIfDue` la reescriben. Rehacerla con el mes ya cerrado compararía la realidad con una previsión escrita sabiendo el resultado.
+  - **Media foto no se guarda:** si la previsión no cubre hoy y el fin de mes, no hay foto ni hueco, y se reintenta al abrir otra vez dentro de la ventana.
+  - **Comparación en la fecha real de los saldos del cierre** (`month-close-balances`, WP-09), no en una fecha supuesta. Error = previsto − real (positivo: previsión optimista). El efectivo queda fuera de las dos partes.
+  - **Solo cuentan los saldos del banco (GOV-05):** una fila con saldos de partida calculados («Auto por fecha»), cierre calculado, cuenta sin saldo o fecha fuera de lo congelado **no cuenta**, y la pantalla dice por qué.
+  - **Con menos de 3 cierres comparables no hay error, ni sesgo, ni porcentaje:** «datos insuficientes». Cada ventana cuenta cierres distintos (dos fotos de un mismo mes no inflan el recuento). La tendencia (baja/sube/estable) exige 6.
+  - **No corrige nada:** la banda P10-P90 y su ajuste son de WP-16 (Ola 3).
+- **`liquidity-backtest-ui.js` (nuevo, pantalla):** guarda la foto, repinta la tarjeta y la repite al volver a ser visible la app (el móvil que se queda abierto de un día a otro). Tarjeta plegada **«Acierto de la caja a fin de mes»** en Plan › Previsión, junto a la de WP-10, con las clases ya existentes (sin cambios en `styles.css`).
+- **Cuándo se congela:** `app.js` llama a `freezeLiquidityForecast()` como **última sentencia de `init()`**, tras la nube (no se congela sobre un estado que va a cambiar, como WP-25).
+- **Decisiones de diseño que cambiaron por el camino:**
+  1. **No se engancha dentro de `refreshCanonicalDailyAudit`:** esa función **sale pronto** cuando la huella no cambia, así que el día 1 casi nunca habría congelado nada (la previsión no cambia de un día a otro).
+  2. **La guarda ARQ-3 exige un consumidor real del motor en `app.js`:** lo resuelve `renderPrevisionQuality`, que calcula `evaluate` (es quien posee los cierres y la fecha) y se lo pasa a la pantalla. No se tocó la guarda.
+  3. **La prueba de WP-25 fija con una regex** que tras `await setupSupabaseSync();` hay exactamente una línea antes de su `if`. Mi primera colocación la rompió (`npm run verify` en rojo); se movió la llamada tras el bloque de WP-25, **sin relajar su prueba**.
+  4. **Defecto de la primera versión, cazado por el e2e:** la foto se hace **después** del primer pintado de Previsión, así que la tarjeta seguía diciendo «Hoy toca foto» con la foto ya hecha. Tras congelar ahora se repinta.
+- **Hallazgo para el hogar:** la demo arranca en **«Auto por fecha»**, y en ese modo la foto se guarda pero **no cuenta**. Para que el backtest mida algo hay que declarar los saldos como **«Real manual»** (Registrar › Saldo de cuentas, o el botón del Pulso de saldos). Escrito en el manual y explicado en la propia pantalla.
+- **Almacén `liquidity-backtest`:** en `BACKUP_LOCAL_STORES` (copia y nube), tope de 96 fotos, lectura tolerante a copias corruptas.
+- **`app.js`:** +3 líneas (37.490 de 37.495). Quedan **5** de margen: todo paquete nuevo va en módulo propio.
+- **Pruebas:**
+  - nueva `tests/wp12-backtest-liquidez.test.cjs` (28 casos): ventanas, foto y cola, media foto, solo añadir, almacén corrupto y tope, error en la fecha del cierre, cada motivo de exclusión, datos insuficientes, sesgo, tendencia, cierres distintos, próxima foto, **equivalencia con `closingLiquidity` del motor diario real**, pantalla, capa de UI en `vm` y cableado;
+  - **5 pruebas e2e** en `qa1-flujos-completos.spec.cjs` con el reloj en día de foto: congela al abrir y coincide con el motor, no se reescribe al día siguiente, fuera de ventana no congela, **cruce con un cierre real firmado por el código de WP-09**, y la tarjeta a 390 y 1280 px sin desbordar;
+  - `arq3`: recuento de módulos 79 → 80.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5220/5220**; e2e **23/23** y axe **6/6**; `test:mobile-overflow` sin contenido cortado (201 visitas); `test:perf-screens` 3/3; `test:load-budget` mediana de «Hoy con contenido» **2.525 ms** (presupuesto 5.000). **`test:performance-lh` no se pudo ejecutar en este contenedor** (el script espera el Chromium de Playwright `chromium-1234` y está instalado el 1194): lo decide el CI; no se cambió ningún umbral.
+- **Falta de la sesión del hogar:** declarar los saldos como «Real manual» y **abrir la app del 15 al 17/10** (foto de octubre); cerrar octubre con saldo del 1 al 3/11. Con foto de octubre, el tercer cierre comparable llega en **enero de 2027**; si la primera foto es la del 1/11, en **febrero de 2027**.
+- **Siguiente (orden del hogar):**
+  - **C · WP-30** (hoja de captura ≤ 8 s) **está bloqueado por una decisión del hogar** que sigue sin responderse: cómo se anota un pago **«a cuenta de una partida»** sin contar dos veces el gasto previsto ni rebajar la previsión del resto del mes (hallazgo de WP-25). Es un cambio de modelo: se propone antes de escribir código.
+  - **A · WP-15** (valoración rápida de la cartera) va después.
+  - Siguen sin respuesta: fecha de la próxima revisión de la hipoteca variable (WP-20) y las 3 pruebas cronometradas de Hoy (WP-02).
+- **Entorno:** se instalaron las dependencias con `npm ci` para poder ejecutar lint y typecheck (`node_modules` no se versiona).
+- Revisión mensual de Nielsen: no vencida (última real, 16/9); toca el 16/10 (WP-06).
 
 ## Cierre de sesión — 4 de octubre de 2026 (299, decimocuarto PR): WP-26 · ND-02 el extracto actualiza el saldo
 

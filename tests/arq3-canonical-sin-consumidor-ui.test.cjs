@@ -110,7 +110,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 76 → 77 (WP-25): canonical-capture-link.js, con consumidor real (openCaptureLinkFromHash en app.js)
 // 77 → 78 (WP-24): canonical-personal-allowance.js, con consumidor real (loadPersonalAllowances y la fórmula del gasto variable en app.js)
 // 78 → 79 (WP-26): canonical-balance-pulse.js, con consumidor real (balancePulseAccounts en app.js; su pantalla, en registrar-ui.js)
+// 79 → 80 (WP-12): canonical-liquidity-backtest.js, con consumidor real (renderPrevisionQuality en app.js llama a evaluate; la foto y la pantalla, en liquidity-backtest-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 79 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 79);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 80 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 80);
 });

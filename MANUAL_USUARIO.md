@@ -267,6 +267,32 @@ los meses cortos.
 - Un gasto que se reparte por todo el mes (súper, gasolina) no tiene día de cargo. La previsión lo
   pone entero en un solo día: el **día 1** es lo prudente.
 
+### Acierto de la caja a fin de mes (Plan › Previsión)
+
+Hoy la app mide cuánto se equivoca en cada categoría de gasto, pero no cuánto dinero hay a final de
+mes, que es lo que importa. **Plan › Previsión › Acierto de la caja a fin de mes** lo mide solo, sin que
+tengas que hacer nada más que abrir la app y cerrar el mes como siempre:
+
+- **Los días 1 al 3 y 15 al 17 de cada mes**, al abrir la app, se **congela** cuánto dinero espera
+  tener la previsión en CaixaBank y Mediolanum a fin de mes. La foto es de **solo añadir**: la primera
+  de cada ventana se queda como está y nada la rehace, porque comparar con una previsión escrita
+  sabiendo el resultado no mediría nada. Si no abres la app esos días, ese mes no tiene foto.
+- **Al firmar el cierre** con los saldos del banco, se compara con lo que había en **la fecha de
+  esos saldos**, aunque no sea el último día del mes. Se cuenta CaixaBank más Mediolanum (el efectivo
+  no entra).
+- **Hacen falta 3 cierres** para que salga un error medio. Con menos, la pantalla dice «Datos
+  insuficientes» y no enseña ninguna cifra: sería precisión inventada. Con 6 cierres añade si el error
+  **baja**, **sube** o se mantiene.
+- «**Optimista**» quiere decir que la previsión esperaba más dinero del que hubo; «pesimista», menos.
+- **Solo cuentan los saldos del banco.** Si la foto se hizo con los saldos en «Auto por fecha», o el
+  cierre se firmó con saldos calculados por la app, esa fila **no cuenta** y la pantalla dice por qué.
+  Para que cuente, declara los saldos reales en **Registrar › Saldo de cuentas** («Real manual»).
+
+La pantalla solo mide: no cambia la previsión ni sus bandas. El primer cierre comparable es el de
+octubre (del 1 al 3 de noviembre), si abres la app del 15 al 17 de octubre con los saldos reales
+declarados. El primer error medio sale con el tercer cierre: **enero de 2027** si hay foto de octubre,
+**febrero de 2027** si la primera foto es la del 1 de noviembre.
+
 ## 6. Copias, restauración y recuperación
 
 ### Descargar una copia completa

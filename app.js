@@ -1357,6 +1357,7 @@ const BACKUP_LOCAL_STORES = [
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
   "charge-days", // WP-08: día de cargo indicado por el hogar para cada partida
   "personal-allowances", // WP-24: asignación personal de cada persona (importe y meses)
+  "liquidity-backtest", // WP-12: liquidez prevista a fin de mes, congelada los días 1 y 15 (solo se añade)
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -22667,6 +22668,7 @@ function renderPrevisionQuality(items) {
   const quality = engine.measure(forecastQualityInput(items));
   box.innerHTML = engine.renderHtml(quality);
   if (qs("previsionCalidadResumen")) qs("previsionCalidadResumen").textContent = engine.summaryText(quality);
+  renderLiquidityBacktest(window.FinanceCanonicalLiquidityBacktest?.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: isoLocalDate(new Date()) })); // WP-12 (liquidity-backtest-ui.js)
 }
 
 // PER-4 (BACKLOG_CONTABILIDADCASA_3_0.md §2.1): resumen agregado por periodo natural (trimestre/
@@ -37480,6 +37482,7 @@ async function init() {
   await setupSupabaseSync();
   // WP-25: tras la nube (no registrar sobre un estado que va a cambiar) y tras «load» (antes, Chrome quita el foco).
   if (document.readyState === "complete") openCaptureLinkFromHash(); else window.addEventListener("load", () => openCaptureLinkFromHash(), { once: true });
+  freezeLiquidityForecast(); // WP-12: también tras la nube, y la última de init (liquidity-backtest-ui.js)
 }
 
 init().catch((error) => {
