@@ -817,3 +817,40 @@ test.describe("QA-1 · tarjetas de crédito (WP-30)", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// Real parcial del mes en curso (decisión del hogar del 5/10/2026): una importación de extracto a mitad de mes asigna a «Gasto
+// variable estimado» solo lo gastado hasta ahora. Ese real parcial no debe rebajar el gasto previsto del mes; en «Real manual»
+// el mes de arranque vale lo que falta por gastar, no 0 ni el previsto entero. Se mide con el gasto total del mes de la previsión.
+test.describe("QA-1 · real parcial del mes en curso", () => {
+  test("un real parcial de Gasto variable no rebaja el mes; en Real manual resta solo lo ya gastado", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#planificacion-partidas");
+    await page.waitForFunction(() => typeof actualAwareInfo === "function" && typeof baseData !== "undefined" && baseData && document.querySelector("#tarjetasCiclo form"));
+    const result = await page.evaluate(() => {
+      const startKey = monthKey(modelStartDate());
+      const month = planningMonthForDate(modelStartDate(), 0);
+      const row = planningSectionsForMonth("expense", month).flatMap((s) => s.rows).find((r) => isVariableOperationalRow(r));
+      if (!row) return { found: false };
+      const total = () => Math.round(planningBreakdownForForecastMonth(0, modelStartDate()).expenseTotal * 100) / 100;
+      const out = { found: true, currentMonth: startKey === monthKey(new Date()), base: total(), planned: actualAwareInfo(row, month).planned };
+      const spent = Math.min(200, out.planned / 2);
+      const tx = { date: `${startKey}-10`, valueDate: `${startKey}-10`, month: startKey, movement: "SUPERMERCADO PRUEBA", details: "", amount: -spent, balance: null, source: "extracto", account: "CaixaBank" };
+      baseData.transactions.push(tx);
+      movementMappings[transactionIdentity(tx)] = { kind: "expense", rowKey: seriesKeyForRow(row) };
+      applyMovementMappingsToActuals();
+      out.spent = spent;
+      out.auto = total();
+      out.info = { hasActual: actualAwareInfo(row, month).hasActual, inProgress: actualAwareInfo(row, month).inProgress };
+      state.balanceMode = "manual";
+      out.manual = total();
+      return out;
+    });
+    expect(result.found, "la demo tiene la fila de Gasto variable estimado").toBe(true);
+    expect(result.currentMonth, "el mes de arranque es el mes en curso").toBe(true);
+    expect(result.info).toEqual({ hasActual: true, inProgress: true });
+    expect(result.auto, "con el real parcial, el gasto del mes sigue siendo el previsto").toBe(result.base);
+    expect(result.manual, "en Real manual: previsto menos lo ya gastado").toBeCloseTo(result.base - result.spent, 2);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

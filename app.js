@@ -5491,14 +5491,17 @@ function actualAwareInfo(row, month) {
   const actual = hasOverrideActual ? Number(override.actual) : hasActual ? Number(stored) : null;
   const status = override?.actualStatus === "cancelled" ? "cancelled" : hasActual ? "realized" : "pending";
   const accrued = hasActual || row.kind !== "expense" ? 0 : cardAccruedForRow(row, month); // WP-30: sin cargo todavía, lo mayor entre lo previsto y lo anotado
+  // Real parcial: en el mes en curso, el real de «Gasto variable estimado» es lo gastado hasta ahora, no el total del mes.
+  const inProgress = status === "realized" && row.kind === "expense" && isVariableOperationalRow(row) && month.key >= openMonthCutoffKey();
   return {
     planned,
     actual,
     hasActual,
     status,
     accrued,
-    value: status === "cancelled" ? 0 : hasActual ? actual : accrued ? Math.max(planned, accrued) : planned,
-    source: status === "cancelled" ? "Cancelado" : hasActual ? "Realizado" : accrued ? "Acumulado con tarjeta" : "Pendiente",
+    inProgress,
+    value: status === "cancelled" ? 0 : hasActual ? (inProgress ? Math.max(planned, actual) : actual) : accrued ? Math.max(planned, accrued) : planned,
+    source: status === "cancelled" ? "Cancelado" : hasActual ? (inProgress ? "En curso" : "Realizado") : accrued ? "Acumulado con tarjeta" : "Pendiente",
   };
 }
 
@@ -5506,6 +5509,7 @@ function forwardPlanningInfo(row, month) {
   const info = actualAwareInfo(row, month);
   const isManualStartMonth = state?.balanceMode === "manual" && month?.key === monthKey(modelStartDate());
   if (isManualStartMonth && info.status === "realized") {
+    if (info.inProgress) return { ...info, value: Math.max(info.planned - info.actual, 0), source: "En curso · resto del mes" };
     return { ...info, value: 0, source: "Realizado · incluido en saldo" };
   }
   return info;
@@ -26703,6 +26707,7 @@ function registrarMesCollect(month) {
           actual,
           used: Number(info.value || 0),
           hasActual: Boolean(info.hasActual),
+          inProgress: Boolean(info.inProgress),
           variance: info.hasActual ? actual - planned : null,
           key: actualKeyForRow(row, month),
           deleteKey: deleteKeyForRow(row, month),
@@ -26783,7 +26788,7 @@ function registrarMesRowHtml(entry, monthClosed, monthKey) {
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}${entry.row.custom ? " <small>añadida aquí</small>" : ""}</td>
     <td data-registrar-mes-cell="planned">${money(entry.planned, true)}</td>
     <td><input type="number" step="0.01" inputmode="decimal" data-registrar-mes-actual="${escapeHtml(entry.key)}" data-registrar-mes-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${locked ? " disabled" : ""} /></td>
-    <td data-registrar-mes-cell="used"><strong>${money(entry.used, true)}</strong></td>
+    <td data-registrar-mes-cell="used"><strong>${money(entry.used, true)}</strong>${entry.inProgress ? " <small>en curso</small>" : ""}</td>
     <td data-registrar-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
     <td class="registrar-mes-row-actions">${
       entry.row.custom && !locked
@@ -26903,7 +26908,7 @@ function registrarMesRefreshCells(entries) {
     const planned = row.querySelector('[data-registrar-mes-cell="planned"]');
     if (planned) planned.textContent = money(entry.planned, true);
     const used = row.querySelector('[data-registrar-mes-cell="used"]');
-    if (used) used.innerHTML = `<strong>${money(entry.used, true)}</strong>`;
+    if (used) used.innerHTML = `<strong>${money(entry.used, true)}</strong>${entry.inProgress ? " <small>en curso</small>" : ""}`;
     const variance = row.querySelector('[data-registrar-mes-cell="variance"]');
     if (variance) {
       variance.textContent = entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—";

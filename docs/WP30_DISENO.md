@@ -83,6 +83,8 @@ Cada PR cierra con la prueba de paridad de la previsión frente a `main` (como W
 - Confirmar en la pantalla de configuración la regla de cargo de cada tarjeta (la app admite «día N del mes M+k» y «fin de mes»).
 - Si las dos tarjetas de comercio del mismo emisor se usan por igual o solo una de ellas.
 
-## 10. Hallazgo fuera de alcance (mismo defecto, otra fila)
+## 10. Hallazgo fuera de alcance (mismo defecto, otra fila) — corregido el 5/10/2026
 
-`applyMovementMappingsToActuals` escribe la **suma parcial** de los movimientos asignados a una partida como su real, y `actualAwareInfo` hace que un real sustituya al previsto. Una importación de extracto a mitad de mes puede dejar «Gasto variable estimado» valiendo solo lo gastado hasta entonces, y en «Real manual» el mes de arranque con real vale 0 (`forwardPlanningInfo`). **Deducido leyendo el código, sin reproducir.** WP-30 no lo arregla (solo trata las filas de tarjeta); queda propuesto como tarea aparte con un test rojo primero.
+`applyMovementMappingsToActuals` escribe la **suma parcial** de los movimientos asignados a una partida como su real, y `actualAwareInfo` hacía que un real sustituyera al previsto. Una importación de extracto a mitad de mes dejaba «Gasto variable estimado» valiendo solo lo gastado hasta entonces, y en «Real manual» el mes de arranque con real valía 0 (`forwardPlanningInfo`). **Reproducido el 5/10/2026** en el navegador (previsto del mes 4.730 €, con un real de 200 € en la partida el mes bajaba a 3.180 € en automático y a 2.980 € en «Real manual»).
+
+**Criterio aprobado por el hogar (5/10/2026):** solo en «Gasto variable estimado» y solo mientras el mes no ha pasado (`month.key >= openMonthCutoffKey()`): valor `max(previsto, real)`; en «Real manual», mes de arranque, `max(previsto − real, 0)`; Registrar marca «en curso»; los meses pasados sin firmar y las demás partidas, como antes. Con las mismas cifras: 4.730 € en automático y 4.530 € en «Real manual». Prueba: `tests/real-parcial-en-curso.test.cjs` y el e2e «real parcial del mes en curso».

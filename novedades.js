@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-05-real-parcial",
+      fecha: "2026-10-05",
+      texto: "El gasto variable del mes en curso ya no baja a lo gastado hasta ahora: vale lo mayor entre previsto y real. Registrar lo marca «en curso».",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-05-wp30-tarjetas",
       fecha: "2026-10-05",
       texto: "Plan › Partidas: «Tarjetas de crédito». Indica el corte y el cargo de cada tarjeta; la hoja para anotar compras llega después.",

@@ -109,6 +109,20 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 5 de octubre de 2026 (299, decimoctavo PR): real parcial del mes en curso en «Gasto variable estimado»
+
+- **Corrige el hallazgo del §10 de `docs/WP30_DISENO.md`**, ahora **reproducido** en un navegador real (antes solo deducido leyendo código): un real parcial de «Gasto variable estimado» (extracto importado a mitad de mes) sustituía al previsto. Con el previsto del mes en 4.730 € y 200 € reales en la partida, el gasto del mes bajaba a **3.180 €** en automático y a **2.980 €** en «Real manual». Criterio propuesto con esos números y **aprobado por el hogar (sí a las cuatro preguntas)**.
+- **Qué cambia (`app.js`, +5 líneas netas: 37.409 → 37.414 de 37.495):**
+  - `actualAwareInfo`: nuevo campo `inProgress` (real de una partida de gasto, **solo «Gasto variable estimado»**, en un mes `>= openMonthCutoffKey()`). En curso, el valor es `max(previsto, real)` y la fuente «En curso».
+  - `forwardPlanningInfo`: en «Real manual», mes de arranque en curso, el valor es `max(previsto − real, 0)` («En curso · resto del mes») en vez de 0. Resto de partidas: siguen valiendo 0 como antes.
+  - Registrar › Reales del mes: marca «en curso» junto al valor usado (también al refrescar celdas).
+  - **Sin cambios:** meses pasados sin firmar (el real sustituye al previsto, como hoy), el resto de partidas, ingresos, cancelados y sin real.
+  - Con las mismas cifras: **4.730 €** en automático y **4.530 €** en «Real manual».
+- **Pruebas, rojo primero:** nueva `tests/real-parcial-en-curso.test.cjs` (**9 casos**; 5 fallaban antes del cambio) y un e2e «real parcial del mes en curso» sobre el gasto total real de la previsión (falló antes del cambio, en la primera aserción). Mi primera versión aplicaba la regla también a ingresos: lo cazó mi propia prueba y se limitó a gastos. `r12-vacio-vs-cero` y `wp30-ciclos-tarjeta` ejecutan `actualAwareInfo` aislada con stubs: se les dieron los dos colaboradores nuevos (`isVariableOperationalRow`, `openMonthCutoffKey`); **ninguna aserción cambió**.
+- **Validación:** el primer `npm run verify` salió **rojo** (5254 ok, 1 fallo): mi frase de «Novedades» tenía 147 caracteres y el límite es 140; se acortó el texto, no la prueba. Segundo `verify` **verde** (salida 0): `npm test` **5255/5255** (5246 + 9); e2e **27/27** y axe **6/6** en local. `test:performance-lh` no se ejecuta en este contenedor: lo decide el CI; no se cambió ningún umbral.
+- **Límite conocido:** en «Real manual» se asume que el real parcial recoge lo gastado hasta la fecha del saldo; un movimiento asignado posterior a esa fecha se descontaría del resto del mes aunque aún no esté en el saldo. Es una aproximación aceptada para el mes de arranque.
+- **Siguiente: WP-30 PR-2, la hoja de captura** (y después WP-15). Falta del hogar lo ya anotado en el cierre anterior.
+
 ## Cierre de sesión — 5 de octubre de 2026 (299, decimoséptimo PR): WP-30 · PR-1 ciclos de tarjeta y valor de la partida
 
 - **Segundo de los tres PR de WP-30** (diseño en `docs/WP30_DISENO.md`). Es el que **cambia el valor de las partidas**, por eso su prueba central es que **sin compras todo queda idéntico a hoy**. Hasta el PR-2 (la hoja) no hay forma de anotar compras: lo único usable ya es dar de alta las tarjetas.
