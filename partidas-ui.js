@@ -140,11 +140,12 @@ function renderCardCycles() {
   if (!engine || !target) return;
   const store = loadCardCycles();
   const today = isoLocalDate(new Date());
-  const views = engine.cyclesView({ store, transactions: baseData?.transactions || [], realFor: cardCyclesReal, today });
+  const views = engine.cyclesView({ store, transactions: globalThis.FinanceCanonicalCardPurchases?.toMovements(loadCardPurchases()) || [], realFor: cardCyclesReal, today }); // compras: captura-ui.js
   const html = engine.renderHtml({ store, views, rows: cardCycleRows(), today }, { money: (value) => money(value, true), status: cardCyclesPending.status });
   // Sin cambios, no se repinta: el render diferido de la pantalla no se lleva lo que se está escribiendo.
   if (html !== cardCyclesPending.html) target.innerHTML = cardCyclesPending.html = html;
   qs("tarjetasResumen").textContent = engine.summaryText(store);
+  renderCardPurchases(); // compras anotadas, por concepto y ciclo (captura-ui.js)
 }
 
 function saveCardCycles(store, status) {

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-05-wp30-hoja",
+      fecha: "2026-10-05",
+      texto: "Hoy › «+ Registrar gasto»: con tarjetas dadas de alta, una hoja para anotar cada compra con su concepto y deshacer en 8 s.",
+      href: "#home",
+    },
+    {
       id: "2026-10-05-real-parcial",
       fecha: "2026-10-05",
       texto: "El gasto variable del mes en curso ya no baja a lo gastado hasta ahora: vale lo mayor entre previsto y real. Registrar lo marca «en curso».",

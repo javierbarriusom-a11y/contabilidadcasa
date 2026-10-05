@@ -1359,6 +1359,7 @@ const BACKUP_LOCAL_STORES = [
   "personal-allowances", // WP-24: asignación personal de cada persona (importe y meses)
   "liquidity-backtest", // WP-12: liquidez prevista a fin de mes, congelada los días 1 y 15 (solo se añade)
   "card-cycles", // WP-30: ciclo de corte y cargo de cada tarjeta de crédito y la fila donde se liquida
+  "card-purchases", // WP-30 (PR-2): compras con tarjeta anotadas con la hoja (concepto, tarjeta, fecha) y los tiempos de captura
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -5467,7 +5468,7 @@ function adjustedDebtPlannedValue(row, month) {
 function loadCardCycles() { return cachedLocalStore("card-cycles", (raw) => globalThis.FinanceCanonicalCardCycles.normalizeStore(raw), { cards: [] }); }
 let cardAccrualCache = { revision: -1, map: new Map() };
 function cardAccruedForRow(row, month) {
-  if (cardAccrualCache.revision !== applicationRenderRevision) cardAccrualCache = { revision: applicationRenderRevision, map: globalThis.FinanceCanonicalCardCycles?.accruedByRowMonth(loadCardCycles(), baseData?.transactions) || new Map() };
+  if (cardAccrualCache.revision !== applicationRenderRevision) cardAccrualCache = { revision: applicationRenderRevision, map: globalThis.FinanceCanonicalCardCycles?.accruedByRowMonth(loadCardCycles(), globalThis.FinanceCanonicalCardPurchases?.toMovements(loadCardPurchases())) || new Map() }; // las compras: almacén propio (captura-ui.js)
   return cardAccrualCache.map.size ? cardAccrualCache.map.get(`${seriesKeyForRow(row)}|${month.key}`) || 0 : 0;
 }
 
@@ -12293,8 +12294,10 @@ function openHomeQuickExpenseDialog(prefill = null) {
   amountInput.value = prefill?.amount || "";
   if (monthNote) monthNote.textContent = `Se registrará en ${month.label}, como gasto ya realizado.`;
   Object.assign(qs("homeQuickExpenseLinkNote") || {}, { hidden: !prefill?.note, textContent: prefill?.note || "" });
+  const openedAt = Date.now();
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "confirm") return;
+    globalThis.recordLegacyCaptureTime?.((Date.now() - openedAt) / 1000); // M-CAPT: el tiempo de la ventana anterior, para comparar con la hoja
     submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value);
   }, { once: true });
   dialog.showModal();
@@ -12308,6 +12311,7 @@ function openCaptureLinkFromHash() {
   const link = window.FinanceCanonicalCaptureLink?.parseCaptureLink(location.hash, { today: isoLocalDate(new Date()), parseAmount: parseAmountField });
   if (!link) return;
   history.replaceState(null, "", "#registrar");
+  if (globalThis.openCapturaHoja?.({ amount: link.fields.amount, label: link.fields.label, date: link.fields.date, account: link.fields.account, note: captureLinkSheetNote(link) })) return; // WP-30: con tarjetas, la hoja (captura-ui.js)
   const dateMonth = (baseData?.monthlyPlanning?.months || []).find((month) => month.key === link.fields.date.slice(0, 7) && !isClosedMonthKey(month.key));
   const month = dateMonth || homeQuickExpenseTargetMonth();
   if (!month || isClosedMonthKey(month.key) || !homeQuickExpenseSections().length) return announceStatus("El enlace de registro no se puede abrir: no hay un mes abierto con bloques de gasto.");
@@ -36936,7 +36940,7 @@ async function init() {
     setActiveView(target, { focus: true });
   });
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
-  qs("homeQuickExpenseOpen")?.addEventListener("click", () => openHomeQuickExpenseDialog());
+  qs("homeQuickExpenseOpen")?.addEventListener("click", () => { if (!globalThis.openCapturaHoja?.()) openHomeQuickExpenseDialog(); }); // WP-30: con tarjetas, la hoja (captura-ui.js)
   // WP-25: el importe es texto (WP-11); uno que no se entiende no cierra la ventana como si se hubiera registrado.
   qs("homeQuickExpenseForm")?.addEventListener("submit", (event) => { if (event.submitter?.value === "confirm" && !(parseAmountField(qs("homeQuickExpenseAmount")?.value) > 0)) event.preventDefault(); });
   qs("homeMeetingModeToggle")?.addEventListener("click", toggleMeetingMode);
