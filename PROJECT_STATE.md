@@ -109,6 +109,28 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 5 de octubre de 2026 (299, decimosexto PR): WP-30 · diseño cerrado y PR-0
+
+- **Orden del hogar para la sesión: B → C → A.** WP-12 (B) está fusionado y desplegado. Esto es el **inicio de C (WP-30)**: el diseño, cerrado con las respuestas del hogar, y el PR-0 que hace sitio en `app.js`. **No hay cambio de comportamiento.**
+- **Decisiones del hogar (5/10/2026):**
+  1. El pago «a cuenta de una partida» **se acumula dentro de la partida**, sin una partida por ticket ni rebajar la previsión del resto.
+  2. **Todas las compras son con tarjeta de crédito** (dos tarjetas de comercio, con ciclo propio de corte y cargo). Cada una liquida en un cargo único.
+  3. **Cada compra con su concepto** (no basta una lectura del «dispuesto»).
+  4. **El concepto es una etiqueta** (opción «a»); la contabilidad por devengo queda para WP-35.
+- **Hallazgos del código que cambiaron el diseño** (detalle en `docs/WP30_DISENO.md` §3):
+  - Un real **sustituye** al previsto por completo (`actualAwareInfo`); en «Real manual», el mes de arranque con real vale 0 (`forwardPlanningInfo`). Un primer ticket dejaría el mes en lo gastado. Deducido de la lectura del código, **sin reproducir**; será el primer test rojo del PR-1.
+  - «Acumular» **ya existe para movimientos** (`applyMovementMappingsToActuals` suma los asignados y sobrescribe el real); la ventana de WP-25 crea una partida nueva por ticket.
+  - El motor diario **reparte totales mensuales** (`canonical-daily-input.js`): el arreglo va en el valor mensual de la partida.
+  - **La app no tiene concepto de ciclo de tarjeta**, y modela las tarjetas como filas de Financiaciones.
+  - **Corrección de mi propuesta anterior:** acumular en «Gasto variable estimado» **era un error** con tarjeta de crédito (el dinero sale en la liquidación y el plan ya tiene filas de liquidación; habría doble conteo). Las compras van a la fila de la tarjeta **del mes de cargo**.
+- **Diseño:** `docs/WP30_DISENO.md`. Cada compra es un movimiento asignado a la fila de la tarjeta; antes del cargo la fila vale `max(previsto, acumulado)`; al llegar el cargo del extracto **el cargo manda** y las compras provisionales dejan de sumar; conciliación «compras frente a cargo»; los ciclos que empezaron antes de la primera captura se marcan «incompletos». **Los días de corte y de cargo de cada tarjeta no se anotan en el repositorio**: los introduce el hogar en la app (almacén privado `card-cycles`).
+- **PR-0 (este):** el gráfico de liquidez y la banda de colchón de Plan › Partidas (93 líneas, puramente de pantalla) pasan de `app.js` a `partidas-ui.js`, **sin cambiar una coma de lógica**. **`app.js`: 37.490 → 37.396 líneas (99 de margen bajo el techo de 37.495).** El techo no se toca: el trinquete solo exige bajarlo si `app.js` cae más de 300 líneas.
+  - **Cambio de plan:** se había anunciado extraer el núcleo de valoración de partidas (`actualAwareInfo` y familia). Se descartó al medir su coste: lo leen 7 ficheros de prueba. Mover código de pantalla autocontenido es mucho menos arriesgado y da margen de sobra.
+  - Pruebas: `tests/planificacion-partidas.test.cjs` lee también `partidas-ui.js` (ya concatenaba `app.js` y las vistas); **ninguna aserción cambió ni se relajó**. Sufijo de versión de `partidas-ui.js` subido en `index.html`.
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5220/5220**; e2e **23/23** y axe **6/6**; `test:perf-screens` 3/3 (incluida la de Partidas); `test:mobile-overflow` sin contenido cortado (201 visitas); `test:load-budget` mediana de «Hoy con contenido» **2.829 ms** (presupuesto 5.000). **`test:performance-lh` no se ejecuta en este contenedor** (falta el Chromium que espera): lo decide el CI; no se cambió ningún umbral.
+- **Siguiente:** PR-1 (almacén `card-cycles`, fecha de cargo, valor `max(previsto, acumulado)`, retirada por cargo, conciliación, configuración en Partidas; previsión idéntica a `main` sin compras) y PR-2 (la hoja, tiempos, informe por concepto, enlace de WP-25). Estimación revisada: **≈ 4-5 sesiones**, no 2,5. Antes de depender del Atajo de Apple Pay, probar la convergencia de datos cuando abre Safari y no la app de la pantalla de inicio.
+- **Falta del hogar:** confirmar en la pantalla de configuración la **regla de cargo de Carrefour** (se dieron dos formulaciones que cruzan el límite de mes); la fecha de la próxima revisión de la hipoteca ya se dijo por el chat (no se anota aquí). Siguen sin hacer las 3 pruebas cronometradas de Hoy (WP-02), los saldos en «Real manual» y abrir la app del 15 al 17/10 (WP-12).
+
 ## Cierre de sesión — 5 de octubre de 2026 (299, decimoquinto PR): WP-12 backtest de liquidez a fin de mes
 
 - **Orden elegido por el hogar para esta sesión: B → C → A** (WP-12, WP-30, WP-15). Este PR es el **B**. C y A siguen pendientes (ver el final).

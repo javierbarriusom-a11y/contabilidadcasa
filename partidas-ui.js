@@ -118,3 +118,99 @@ function handlePersonalAllowanceEvent(event) {
   const fromLabel = personalAllowanceMonths().find((month) => month.key === person.from)?.label || person.from;
   savePersonalAllowances(result.store, `Guardado: Asignación personal · ${person.name}, ${money(person.amount, true)} al mes desde ${fromLabel}. El gasto variable estimado baja lo mismo.`, "asignacionResumen");
 }
+
+// Movido sin cambios desde app.js (WP-30 · PR-0) para hacer sitio bajo el techo de líneas (ARQ-4): gráfico de liquidez de Plan ›
+// Partidas y banda de colchón. Solo se pinta; sus entradas (lastSimulation, lastBaseSimulation, state…) son globales de app.js.
+// --- Bloque analítico: banda de colchón + gráfico de 3-4 líneas --------------------------------
+// La banda reutiliza analisisCushionBand/analisisCushionBandHtml/analisisCushionWorst (Análisis,
+// A-2) tal cual — mismo cálculo y misma escala de tres niveles, sin duplicar lógica ni CSS (el
+// wrapper de esta sección carga la clase `e19-analisis` para heredar sus estilos).
+function partidasCushionBand(months) {
+  const targetMonths = Number(state.emergencyBufferMonths || 0);
+  const band = analisisCushionBand(months, lastSimulation, targetMonths);
+  const worst = analisisCushionWorst(band);
+  return { band, worst, html: analisisCushionBandHtml(band, worst?.key || "") };
+}
+
+// Gráfico con eje de meses, puntos finales etiquetados y un crosshair/tooltip al pasar el ratón
+// (mismo patrón de trazos que `cambiosPendientesChartHtml`, ampliado con lectura por mes en vez
+// de solo la leyenda final). El payload de datos va en `data-partidas-chart-points` para que
+// `handlePartidasChartHover` no tenga que recalcular nada al mover el ratón.
+function partidasImpactChartHtml(ghosts) {
+  const baseRows = lastBaseSimulation.slice(0, 24);
+  const confirmedRows = lastSimulation.slice(0, 24);
+  if (baseRows.length < 2 || confirmedRows.length < 2) {
+    return `<p class="e19-kpi-note">Hace falta más de un mes de horizonte para dibujar la comparación.</p>`;
+  }
+  const impact = cuadroMandosImpact();
+  const draftRows = impact.drafts.length && impact.ok ? impact.rowsAfter.slice(0, 24) : null;
+  const reserve = cuadroMandosReserve();
+  const series = [
+    { label: "Sin decisiones", cls: "cambios-chart-before", dotCls: "partidas-chart-dot-before", keyCls: "cambios-chart-key-before", rows: baseRows },
+    { label: "Confirmado", cls: "cambios-chart-after", dotCls: "partidas-chart-dot-after", keyCls: "cambios-chart-key-after", rows: confirmedRows },
+  ];
+  if (draftRows) series.push({ label: "Con tus ediciones sin guardar", cls: "partidas-chart-draft", dotCls: "partidas-chart-dot-draft", keyCls: "partidas-chart-key-draft", rows: draftRows });
+  ghosts.forEach((ghost) => {
+    if (ghost.series) {
+      series.push({
+        label: ghost.entry.nombre || "Escenario propuesto",
+        cls: "partidas-chart-ghost",
+        dotCls: "partidas-chart-dot-ghost",
+        keyCls: "partidas-chart-key-ghost",
+        rows: ghost.series.slice(0, 24),
+      });
+    }
+  });
+  const monthCount = Math.max(...series.map((item) => item.rows.length));
+  const values = series.flatMap((item) => item.rows.map((row) => Number(row.totalLiquidity || 0)));
+  const max = Math.max(...values, reserve);
+  const min = Math.min(...values, 0, reserve);
+  const width = 640;
+  const height = 220;
+  const padTop = 14;
+  const padBottom = 26;
+  const plotHeight = height - padTop - padBottom;
+  const span = max - min || 1;
+  const xFor = (index) => (index / Math.max(1, monthCount - 1)) * width;
+  const yFor = (value) => padTop + plotHeight - ((value - min) / span) * plotHeight;
+  const path = (rows) => rows.map((row, index) => `${index ? "L" : "M"}${xFor(index).toFixed(1)} ${yFor(Number(row.totalLiquidity || 0)).toFixed(1)}`).join(" ");
+  const reserveY = yFor(reserve);
+  const monthLabels = baseRows.map((row) => row.month || row.detailMonthKey || "");
+  const axisIndexes = [...new Set([0, Math.round((monthLabels.length - 1) / 2), monthLabels.length - 1])];
+  const axisLabels = axisIndexes
+    .map(
+      (index) =>
+        `<text x="${xFor(index).toFixed(1)}" y="${height - 8}" class="partidas-chart-axis-label" text-anchor="${index === 0 ? "start" : index === monthLabels.length - 1 ? "end" : "middle"}">${escapeHtml(monthLabels[index] || "")}</text>`,
+    )
+    .join("");
+  const endpointDots = series
+    .map((item) => {
+      const lastRow = item.rows.at(-1);
+      if (!lastRow) return "";
+      const x = xFor(item.rows.length - 1);
+      const y = yFor(Number(lastRow.totalLiquidity || 0));
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="${item.dotCls}" />`;
+    })
+    .join("");
+  const legend = series
+    .map((item) => `<span><i class="${item.keyCls}"></i>${escapeHtml(item.label)}</span>`)
+    .concat(reserve > 0 ? [`<span><i class="cambios-chart-key-reserve"></i>Reserva ${money(reserve, true)}</span>`] : [])
+    .join("");
+  const payload = JSON.stringify({
+    width,
+    monthCount,
+    months: monthLabels,
+    series: series.map((item) => ({ label: item.label, values: item.rows.map((row) => round2(Number(row.totalLiquidity || 0))) })),
+  });
+  return `<div class="planificacion-partidas-chart-wrap" data-partidas-chart-points="${escapeHtml(payload)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Liquidez mes a mes: sin decisiones, confirmado, ediciones sin guardar y escenarios propuestos" preserveAspectRatio="none" data-partidas-chart-svg>
+      ${reserve > 0 ? `<line x1="0" y1="${reserveY.toFixed(1)}" x2="${width}" y2="${reserveY.toFixed(1)}" class="cambios-chart-reserve" />` : ""}
+      ${series.map((item) => `<path d="${path(item.rows)}" class="${item.cls}" />`).join("")}
+      ${endpointDots}
+      ${axisLabels}
+      <line x1="0" y1="${padTop}" x2="0" y2="${height - padBottom}" class="partidas-chart-crosshair" hidden data-partidas-chart-crosshair />
+    </svg>
+    <div class="partidas-chart-tooltip" hidden data-partidas-chart-tooltip></div>
+    <div class="cambios-chart-legend">${legend}</div>
+  </div>`;
+}
