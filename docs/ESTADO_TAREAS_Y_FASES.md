@@ -1,0 +1,145 @@
+# Estado de tareas y fases — 6 de octubre de 2026
+
+**Foto del cierre de sesión del 6/10/2026.** Los 53 paquetes (WP-xx) del plan definitivo, por fase, con su estado real, sus dependencias (✅ = ya hecha) y el plan de siguientes pasos. El **estado vivo** está en el panel de seguimiento (privado, `BACKLOG_DEFINITIVO.md` §12); esta tabla se rehace al cerrar cada sesión. Fuentes: `docs/plan/plan-definitivo.json` (plan, dependencias, sesiones), el panel (estado) y `PROJECT_STATE.md` (detalle). **El repositorio es público: ninguna cifra real del hogar aquí.**
+
+**Leyenda de estatus:** ✅ Hecho (construido, validado y desplegado) · ✅ Hecho · sin medir (construido, pero su métrica depende de que el hogar lo use) · 🔎 En revisión · ⛔ Bloqueado · ⏳ Pendiente · 🔁 Continuo.
+
+## 1. Resumen
+
+| Fase | Fechas | Paquetes | Hechos | Sesiones estimadas | Avance ponderado por esfuerzo |
+|---|---|---|---|---|---|
+| Ola 1 · Medir, dinero con fecha y verdad barata | 5/10 – 23/10/2026 | 13 | 10 | 21,5 | 76 % |
+| Ola 2 · Actualizar y capturar cuesta poco | 26/10 – 20/11/2026 | 13 | 5 | 31,5 | 44 % |
+| Ola 3 · Previsión, inversión y deuda con guion | 23/11/2026 – 22/1/2027 | 26 | 0 | 84,5 | 0 % |
+| Continuo · prueba trimestral | trimestral desde diciembre | 1 | 0 | 1 | 0 % |
+| **Total** | | **53** | **15** | **138,5** | **22 %** |
+
+- **Avance ponderado** (hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %; un paquete de 7 sesiones pesa siete veces uno de 1): **21,9 %** del plan. **Sesiones reales:** 15 en el panel frente a 138,5 estimadas para todo el plan.
+- **Adelantados:** de la Ola 2 ya están WP-08, WP-12, WP-15, WP-26 y WP-30 (el calendario los situaba entre el 26/10 y el 20/11).
+- **Construido no es lo mismo que comprobado:** de los 15 paquetes hechos, 8 llevan una métrica asociada y **ninguna está leída todavía con datos reales del hogar** (las lecturas que hay son de la demo o de pruebas). Dependen de que el hogar use lo construido: saldos del día, cierre con saldo, valoraciones, tarjetas dadas de alta. Es el riesgo principal del plan; la regla de parada de cada ola exige mirarlas.
+- **Cuello de botella: el tiempo del hogar, no el de desarrollo.** Hasta el 3/11 hay cinco tareas suyas en el plan (H-02 a H-06) y cuatro más surgidas en estas sesiones (verificación de O-6, abrir la app del 15 al 17/10, dar de alta las tarjetas y valorar la cartera); véase §7.
+
+## 2. Ola 1 · Medir, dinero con fecha y verdad barata (5/10 – 23/10/2026)
+
+13 paquete(s), 10 hecho(s), 21,5 sesiones estimadas.
+
+| Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
+|---|---|---|---|---|
+| **WP-01** · Sello de versión y «Novedades» | Sello de versión visible, aviso de versión nueva y «Novedades» con enlace a cada cambio. | ✅ Hecho | — | Ninguno. Regla permanente: cada cambio visible añade su línea a «Novedades» en su propio PR. |
+| **WP-02** · Prueba cronometrada de Hoy (un usuario, saldos del día) | Prueba cronometrada de «cuánto tardo en ver la cifra de Hoy», con interruptor A/B del titular. | ✅ Hecho · métrica sin medir | — | Hogar: 3 pruebas con saldos del día (H-02, 9/10) fijan la línea base de M-HOY (objetivo ≤ 15 s). Hasta entonces el interruptor A/B no alterna. |
+| **WP-03** · Panel de uso real | Panel de uso real: días activos, frescura de saldos, % del gasto anotado a tiempo y minutos por semana. | ✅ Hecho · métrica sin medir | — | Dejarlo correr y contestar la pregunta semanal de minutos (M-COSTE ≤ 10 min). Alimenta las revisiones de salida de cada ola (H-04, 23/10). |
+| **WP-04** · Viabilidad del día de cargo (ND-03, paso 0) | Dice, por partida, si su día de cargo se puede predecir con los extractos. | ✅ Hecho | — | Ninguno. Su conclusión (fiable = mismo día ±1 en el 80 % de ≥ 3 meses) ya la usa WP-08. |
+| **WP-05** · Spike PSD2 y revisión de seguridad | Matriz PSD2 / Apple Pay + Atajos / avisos del banco y modelo de amenazas antes de cualquier conexión externa. | 🔎 En revisión | — | Decisión de O-6 el 16/10 con la verificación práctica del hogar (≈ 20 min); sin verificación, O-6 se cierra. Hasta entonces no se conecta nada externo (frena a WP-13 y WP-50). |
+| **WP-06** · Gobierno de octubre | Gobierno de octubre: revisión de Nielsen, ninguna retirada el 23/10 y decisión sobre A5-1/A5-4. | ⏳ Pendiente | — | Revisión mensual de Nielsen el 16/10 (última real: 16/9, no vencida); el 23/10 no se retira nada; decidir A5-1/A5-4 antes del 30/11 (H-10). |
+| **WP-24** · Asignación personal sin detalle | Asignación personal por persona que sale del gasto variable sin cambiar el total previsto. | ✅ Hecho | — | Hogar: dar de alta la asignación antes del 1/11 (H-05); revisión a finales de enero (H-17). |
+| **WP-23** · Campaña fiscal de fin de año (tope de vivienda incluido) | Campaña fiscal de fin de año: lista de acciones con su ahorro en €, fuente y fecha límite (incluye el tope de vivienda). | ⛔ Bloqueado (a la espera de datos del hogar) | — | Hogar: datos fiscales por el chat (H-03, 20/10). **Límite: retomarlo como tarde el 1/11** (≈ 4 sesiones) para tener la lista antes del 15/11. El motor puede construirse sin datos; solo los euros los necesitan. |
+| **WP-07** · Motor de fechas a canonical-timing.js | Motor de fechas extraído a `canonical-timing.js`, sin cambio visible. | ✅ Hecho | WP-04 ✅ | Ninguno. Es la costura de WP-08 y libera margen bajo el techo de `app.js`. |
+| **WP-09** · Cierre de mes con saldo y firma | Cierre de mes con saldo de cada cuenta y firma; guarda la previsión congelada. | ✅ Hecho | — | Hogar: cerrar octubre con saldo entre el 1 y el 3/11 (H-06); después, un cierre al mes (H-11, H-15…). Alimenta WP-12, WP-29, WP-43 y WP-46. |
+| **WP-10** · Medidor de calidad de la previsión | Medidor de calidad de la previsión: qué parte del gasto tiene día de cargo y qué parte del mes es real. | ✅ Hecho | WP-07 ✅ | Sube con la confirmación de días de cargo (WP-08, H-08, 13/11): objetivo M-RESOL ≥ 70 % (la demo marca 0 %). |
+| **WP-11** · Campo de importe unificado (es-ES) | Campo de importe unificado es-ES (coma, punto, miles, «€», ±) en Registrar. | ✅ Hecho | — | Ninguno. Lo reutilizan WP-30 y WP-15. |
+| **WP-25** · Enlaces de registro prellenado y Atajo de Apple Pay | Enlaces de registro prellenado y guía del Atajo de Apple Pay; nunca guarda solo. | ✅ Hecho | WP-11 ✅ | Probar la convergencia de datos entre Safari y la app de la pantalla de inicio antes de depender del Atajo a diario. |
+
+## 3. Ola 2 · Actualizar y capturar cuesta poco (26/10 – 20/11/2026)
+
+13 paquete(s), 5 hecho(s), 31,5 sesiones estimadas.
+
+| Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
+|---|---|---|---|---|
+| **WP-15** · Valoración rápida de la cartera | Hoja de valoración de la cartera: valor y fecha por posición, serie con fecha, variación de mercado, frescura y aviso en el cierre. | ✅ Hecho · métrica sin medir | — | Hogar: valorar la cartera en el cierre del 1-3/11 y mandar por el chat nº y tipo de posiciones y una muestra del formato de su bróker. Eso desbloquea el PR-2 «pegar desde el bróker» (aparcado) y a WP-18, WP-44, WP-46, WP-48. |
+| **WP-26** · Saldos por excepción y extracto que actualiza saldo | «Pulso de saldos» (Coincide / Corregir) y extracto que propone su saldo final. | ✅ Hecho | WP-11 ✅ | Hogar: declarar los saldos en «Real manual» (lo necesitan WP-09 y WP-12). Falta la línea base del método anterior (M-SALDOS ≤ 20 s). |
+| **WP-08** · Día de cargo por partida | Día de cargo por partida, prerrellenado desde los extractos; la previsión diaria lo respeta. | ✅ Hecho | WP-04 ✅, WP-07 ✅ | Hogar: confirmar los días prerrellenados (H-08, 13/11) → M-RESOL ≥ 70 %. Desbloquea WP-27, WP-14 y WP-16. |
+| **WP-27** · Cargos esperados que no llegaron | Avisa de los recibos esperados que no llegaron; la respuesta ajusta la previsión. | ⏳ Pendiente | WP-08 ✅ | Listo para empezar (≈ 2 sesiones): necesita los días de cargo confirmados de WP-08 para saber qué esperar. |
+| **WP-14** · Cobros esperados: confirmar o retraso | Cobros esperados en la bandeja: confirmar o aplazar. | ⏳ Pendiente | WP-08 ✅ | Listo para empezar (≈ 1,5 sesiones), tras WP-08. Alimenta WP-47. |
+| **WP-13** · Euribor, €STR e IPC oficiales con caducidad | Euribor, €STR e IPC de fuente oficial con fecha y vuelta al valor tecleado. | ⏳ Pendiente | WP-05 | Tras la decisión de O-6 (WP-05, 16/10): fuente oficial directa si hay CORS o función privada. Desbloquea WP-20, WP-42 y WP-50. |
+| **WP-20** · Revisión del tipo variable de la hipoteca | Revisión del tipo variable de la hipoteca: próxima revisión, cuota estimada A–B, avisos a 60 y 30 días. | ⏳ Pendiente | WP-13 | **Camino crítico por fecha:** la hipoteca es variable, la revisión es en marzo y el plan marca tenerlo antes del preaviso (≈ primeros de enero). Orden: WP-13 → WP-20 en noviembre. Hogar: datos del contrato en Deuda › Contratos (H-07, 13/11). |
+| **WP-28** · Kit de gráficos táctil y accesible | Kit de gráficos táctil y accesible (recorrido táctil, teclado, frase automática, «ver como tabla»). | ⏳ Pendiente | — | Listo para empezar (≈ 3,5 sesiones, sin dependencias). Habilita WP-35, WP-16, WP-43, WP-46 y WP-49: conviene antes del 23/11. |
+| **WP-30** · Hoja de captura de un gasto | Hoja de captura de compras con tarjeta: concepto, tarjeta y fecha, acumuladas en la fila de su tarjeta. | ✅ Hecho · métrica sin medir | WP-25 ✅ | Hogar: dar de alta las tarjetas, confirmar la regla de cargo de Carrefour y usar la hoja unos días (M-CAPT ≤ 8 s sale de su uso real). Desbloquea WP-53. |
+| **WP-31** · Nómina en PDF y retenciones automáticas | Nómina en PDF: crea el ingreso real y acumula retenciones; el PDF no se guarda. | ⏳ Pendiente | — | Listo para empezar (≈ 4 sesiones), pero primero decidir el lector de PDF (verificar librería, tamaño y licencia) y preparar nóminas sintéticas. Alimenta WP-21 y WP-23 del año siguiente. |
+| **WP-32** · Recordatorios en el momento de máximo valor | Calendario suscribible regenerado con la previsión (antes de cobrar, tras un cargo grande, día 1, 1/12). | ⏳ Pendiente | WP-07 ✅ | Listo para empezar (≈ 1 sesión): reutiliza la exportación `.ics` de `app.js`; WP-07 ya está. |
+| **WP-33** · Historiales sintéticos con verdad conocida | Generador de hogar ficticio con verdad conocida, para probar la previsión. | ⏳ Pendiente | — | Listo para empezar (≈ 2,5 sesiones, sin dependencias). Lo usan WP-08, WP-16 y WP-51. |
+| **WP-12** · Backtest de liquidez a fin de mes | Backtest de liquidez a fin de mes: foto los días 1 y 15, comparada con el cierre. | ✅ Hecho · métrica sin medir | WP-09 ✅ | Hogar: abrir la app del 15 al 17/10 (foto) y cerrar octubre con saldo. Primer error medio: enero de 2027 (hacen falta 3 cierres comparables, con saldos en «Real manual»). |
+
+## 4. Ola 3 · Previsión, inversión y deuda con guion (23/11/2026 – 22/1/2027)
+
+26 paquete(s), 0 hecho(s), 84,5 sesiones estimadas.
+
+| Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
+|---|---|---|---|---|
+| **WP-29** · Carta del mes | Carta del mes: párrafo determinista de ≤ 120 palabras en Cierre. | ⏳ Pendiente | WP-09 ✅, WP-10 ✅ | Listo cuando quieras (WP-09 y WP-10 hechos); primera carta con el cierre de diciembre (H-15, 3/1/2027). ≈ 2,5 sesiones. |
+| **WP-35** · Previsión en tres capas e ingresos inciertos | Previsión en tres capas (comprometidas, probables, discrecionales) e ingresos con certeza. | ⏳ Pendiente | WP-28 | Tras WP-28. Es el paquete más grande de la Ola 3 (≈ 5 sesiones); el devengo completo de las tarjetas (WP-30) se retoma aquí. |
+| **WP-36** · Anomalías del extracto | Anomalías del extracto (duplicados, devoluciones, comisiones nuevas, atípicos) con evidencia. | ⏳ Pendiente | — | Sin dependencias (≈ 2,5 sesiones). Objetivo: falsos positivos < 20 %; nunca actúa solo. |
+| **WP-37** · Estados completos y «deshacer» | Catálogo de estados (vacío, cargando, error…) y «deshacer» aplicado a las pantallas que se toquen. | ⏳ Pendiente | — | Sin dependencias (≈ 2,5 sesiones); se aplica por pantalla a medida que otros paquetes las tocan. |
+| **WP-52** · WebKit en la medición de carga | La medición de carga también con WebKit. | ⏳ Pendiente | — | Sin dependencias (≈ 1,5 sesiones): `tools/measure-load.mjs`; el contenedor solo trae Chromium. |
+| **WP-38** · Plan B acordado en frío | Plan B acordado en frío: disparador, acciones ordenadas y palanca de recorte. | ⏳ Pendiente | — | Hogar: contestar las preguntas del plan B y de la política de inversión (H-12, 18/12). Se evalúa en cada recálculo y nunca ejecuta. |
+| **WP-34** · Revisión base cero del plan | Revisión base cero: cada partida «mantener / ajustar / eliminar» con fecha. | ⏳ Pendiente | — | Se usa en enero (H-17, 29/1/2027). ≈ 1,5 sesiones; añade el campo «revisada» a las partidas (migración del contrato de estado). |
+| **WP-39** · Política de inversión del hogar | Política de inversión del hogar: una página firmada con fecha, prerrellenada desde lo ya declarado. | ⏳ Pendiente | — | Hogar: contestar sus preguntas (H-12, 18/12). Es la fuente de reglas de WP-17 y de WP-44. |
+| **WP-40** · Conciliación con la CIRBE | Conciliación con la CIRBE: cada operación «cuadra», «falta en la app» o «diferencia». | ⏳ Pendiente | — | Sin dependencias (≈ 1,5 sesiones); necesita el informe CIRBE del hogar (por el chat). |
+| **WP-41** · Deuda en la sombra y TAE real | Deuda en la sombra y TAE real: financiaciones en factura, aplazamientos y permanencias. | ⏳ Pendiente | — | Sin dependencias (≈ 3,5 sesiones); parte de lo ya registrado en Financiaciones y de los extractos. |
+| **WP-53** · Sin duplicados entre canales de captura | Sin duplicados entre captura manual, enlaces y extracto: el extracto manda en importe y fecha. | ⏳ Pendiente | WP-25 ✅, WP-30 ✅ | Listo para diseñar (WP-25 y WP-30 hechos; ≈ 2,5 sesiones). Conviene tras usar la hoja unos días para ver duplicados reales. |
+| **WP-21** · Paquete Renta: inversión y local alquilado | Paquete Renta: informe fiscal anual de inversión y local alquilado con los datos de 2026. | ⏳ Pendiente | WP-31 | Tras WP-31 (retenciones). Datos de 2026 completos en marzo; listo antes del 31/3/2027 (≈ 5 sesiones). |
+| **WP-17** · Cartera como tablero con «siguiente mejor acción» | Cartera como tablero con «siguiente mejor acción» por reglas deterministas. | ⏳ Pendiente | WP-15 ✅, WP-39 | Tras WP-39 (WP-15 ya está). Las reglas salen de la política de inversión firmada. |
+| **WP-51** · Perfiles de extracto con autodetección | Perfiles de extracto con autodetección de delimitador, decimales, fechas, signo y codificación. | ⏳ Pendiente | WP-33 | Tras WP-33 (historiales sintéticos para probarlo). ≈ 2,5 sesiones. |
+| **WP-19** · Camino a deuda cero | Camino a deuda cero: un control («extra al mes») y tres cifras. | ⏳ Pendiente | — | Sin dependencias (≈ 3,5 sesiones). Objetivo: «¿cuándo acabamos la deuda?» en < 30 s. |
+| **WP-42** · Escalera del próximo euro | Escalera del próximo euro: colchón, deuda cara, pensiones, fondos, amortizar o invertir. | ⏳ Pendiente | WP-17, WP-13 | Tras WP-17 y WP-13. El más grande del plan (≈ 7 sesiones); habilita WP-47. |
+| **WP-16** · Banda de caja diaria con ventanas de fecha | Banda de caja diaria P10–P90, probabilidad de cruzar el suelo y día del mínimo. | ⏳ Pendiente | WP-08 ✅, WP-10 ✅, WP-28, WP-33 | Tras WP-28 y WP-33 (WP-08 y WP-10 ya están). ≈ 5 sesiones. |
+| **WP-43** · Puente de previsión | Puente de previsión: cascada entre dos previsiones sucesivas a 31/12. | ⏳ Pendiente | WP-09 ✅, WP-28 | Tras WP-28 (WP-09 ya está). Da resultado con 3 cierres (febrero). |
+| **WP-18** · Aportado frente a valor y TWR | Aportado frente a valor, XIRR y TWR por posición, con explicación. | ⏳ Pendiente | WP-15 ✅ | Listo en cuanto haya ≥ 3 valoraciones (WP-15): hoy hay 0 → noviembre, diciembre y enero. Candidato a corregir antes el XIRR de las ventas parciales. |
+| **WP-44** · Calma, cobertura y exposición | Calma, cobertura y exposición: caída desde máximos, gasto cubierto por rentas y exposición por entidad. | ⏳ Pendiente | WP-15 ✅, WP-39 | Tras WP-39 (WP-15 ya está) y con ≥ 3 valoraciones para la caída desde máximos. |
+| **WP-45** · Frescura por fuente y cola de tareas por valor | Frescura por fuente y cola de tareas ordenada por euros de incertidumbre por minuto. | ⏳ Pendiente | WP-03 ✅ | Listo para diseñar (WP-03 hecho; ≈ 3,5 sesiones). Reutiliza la frescura de saldos y de la cartera. |
+| **WP-46** · Patrimonio neto: serie y proyección | Patrimonio neto: serie mensual y abanico de tres escenarios con hitos. | ⏳ Pendiente | WP-09 ✅, WP-15 ✅, WP-28 | Tras WP-28; necesita ≥ 3 cierres (WP-09) y valoraciones (WP-15). Estado vacío honesto mientras tanto. |
+| **WP-47** · Reparto de la nómina en un paso | Reparto de la nómina en un paso: escalera prerrellenada que crea la lista de transferencias (nunca ejecuta). | ⏳ Pendiente | WP-42, WP-14 | Tras WP-42 y WP-14. |
+| **WP-48** · Operaciones de cartera editables e importador | Operaciones de cartera editables (FIFO) e importador de CSV del bróker con deduplicación. | ⏳ Pendiente | WP-15 ✅ | Tras WP-15; el formato del CSV del bróker sale de la muestra que mande el hogar (como el PR-2 de WP-15). ≈ 5 sesiones. |
+| **WP-49** · Mapa anual de pagos grandes | Mapa anual de pagos grandes: franja de 12 meses y su financiación por sobre. | ⏳ Pendiente | WP-28 | Tras WP-28 (≈ 2,5 sesiones). |
+| **WP-50** · Vivienda y local revalorizados por índice | Vivienda y local revalorizados por índice público, con el chip «estimado por índice». | ⏳ Pendiente | WP-13, WP-05 | Tras WP-13 y la decisión de WP-05 (≈ 1,5 sesiones). |
+
+## 5. Continuo · prueba trimestral
+
+1 paquete(s), 0 hecho(s), 1 sesiones estimadas.
+
+| Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
+|---|---|---|---|---|
+| **WP-54** · Prueba con 5 personas ajenas (GOV-06) | Prueba trimestral con 5 personas ajenas y datos de demostración; hallazgos al backlog. | 🔁 Continuo (desde diciembre) | — | Opcional (H-13): proponer 5 personas antes del 15/12. Una vez por trimestre desde diciembre. |
+
+## 6. Fuera de los 53 paquetes (hallazgos y trabajo derivado)
+
+| Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
+|---|---|---|---|---|
+| **Real parcial del gasto variable** | En el mes en curso, un real parcial de «Gasto variable estimado» sustituía al previsto (3.180 € en lugar de 4.730 € con las cifras de prueba). | ✅ Hecho (#454, 5/10) | Hallazgo de WP-30 | Ninguno. Valor `max(previsto, real)` en el mes en curso; en «Real manual», previsto − real; Registrar marca «en curso». |
+| **XIRR sin ventas parciales** | `positionCashFlows` no cuenta las ventas parciales como dinero devuelto, así que tras vender una parte la rentabilidad anualizada sale más baja de la real (deducido leyendo el código, sin reproducir). | ⏳ Propuesto, sin reproducir | Hallazgo de WP-15 | Decisión del hogar. Si se hace: reproducir primero (test rojo con una venta parcial), proponer el criterio y corregir en su propio PR; conviene antes de WP-18, que muestra el XIRR por posición. |
+| **«Pegar desde el bróker» (PR-2 de WP-15)** | Casar por ISIN, ticker o nombre un texto pegado del bróker; lo no casado se asigna a mano y nunca crea posiciones. | ⏳ Aparcado | WP-15 hecho; muestra real del formato | Hogar, por el chat: nº y tipo de posiciones, cómo lee hoy su valor y dos líneas con los nombres tapados. Sin muestra no se diseña. |
+| **Atajo de Apple Pay a diario** | Registrar cada compra con un toque desde Apple Pay (enlace de registro de WP-25 + hoja de WP-30). | ⏳ Pendiente de probar | WP-25 ✅, WP-30 ✅ | Probar la convergencia de datos cuando el Atajo abre Safari y no la app de la pantalla de inicio; hasta entonces, no depender de él. |
+| **Alta de tarjetas y regla de cargo de Carrefour** | Sin tarjetas dadas de alta, la hoja de captura no se activa (sale la ventana de siempre). | ⏳ Pendiente del hogar | WP-30 ✅ | Hogar: dar de alta Carrefour y ECI en Plan › Partidas › Tarjetas de crédito y confirmar la regla de cargo de Carrefour (dos formulaciones que cruzan el límite de mes). |
+| **Revisión mensual de Nielsen (OPT-21)** | Revisión de usabilidad mensual contra la checklist. | ⏳ Toca el 16/10 | WP-06 | Última real: 16/9 (no vencida). Hacerla el 16/10 con sus hallazgos al backlog. |
+
+## 7. Plan de siguientes pasos (propuesta)
+
+Orden recomendado de **desarrollo**, por fechas y dependencias (decide el hogar):
+
+| Cuándo | Qué | Por qué |
+|---|---|---|
+| Antes del 16/10 | **WP-28** kit de gráficos (3,5 ses.) y **WP-33** historiales sintéticos (2,5 ses.); en huecos, **WP-27**, **WP-14** y **WP-32** (se pueden construir ya). Opcional: corregir el XIRR de las ventas parciales (≈ 1 ses.). | No dependen de nada pendiente y se construyen sin datos del hogar; WP-28 habilita 5 paquetes de la Ola 3 y WP-33, dos. WP-27 y WP-14 darán resultado cuando el hogar confirme los días de cargo (H-08, 13/11). |
+| 16/10 | Revisión de Nielsen (WP-06) y **decisión de O-6** (WP-05). | Desbloquea cualquier conexión externa: WP-13 y WP-50. |
+| Semana del 19/10 | **WP-13** (índices oficiales) y a continuación **WP-20** (revisión del tipo variable). | **Camino crítico por fecha:** la hipoteca es variable, la revisión es en marzo y el preaviso es ≈ 60 días antes. Necesita los datos del contrato (H-07, 13/11) para la parte con cifras. |
+| 20/10 → 1/11 | **WP-23** campaña fiscal (≈ 4 ses.), con los datos fiscales del hogar (H-03). | Límite duro: retomarlo como tarde el 1/11 para tener la lista antes del 15/11. |
+| 1-3/11 | Hogar: **cerrar octubre con saldo**, **valorar la cartera** y declarar saldos en «Real manual». | Es lo que convierte en medibles WP-09, WP-12, WP-15 y WP-26. |
+| 13/11 | Hogar: confirmar los días de cargo prerrellenados (H-08) y los datos de la hipoteca (H-07). | M-RESOL ≥ 70 % y WP-20 con cifras. |
+| Desde el 23/11 (Ola 3) | **WP-29** carta del mes (primera con el cierre de diciembre), **WP-35**, **WP-39**/**WP-17**, **WP-18**/**WP-44** con ≥ 3 valoraciones. | Dependencias cumplidas por orden; la regla de parada pide mirar las métricas de la Ola 2 antes. |
+
+**Tareas del hogar con fecha (según el plan):**
+
+| Fecha | Tarea | Para |
+|---|---|---|
+| 09/10/2026 | Actualizar saldos y hacer la prueba cronometrada 3 veces | WP-02 |
+| 20/10/2026 | Datos fiscales que faltan, en el chat (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías) | WP-23 |
+| 23/10/2026 | Mirar «Novedades» y el panel de uso: revisión de la Ola 1 | — |
+| 01/11/2026 | Primera transferencia de la asignación personal | WP-24 |
+| 03/11/2026 | Cerrar octubre con saldo | WP-09 |
+| 13/11/2026 | Datos del contrato de la hipoteca en Deuda › Contratos | WP-20 |
+| 13/11/2026 | Confirmar los días de cargo prerrellenados | WP-08 |
+| 20/11/2026 | Mirar «Novedades» y el panel de uso: revisión de la Ola 2 | — |
+| 30/11/2026 | Activar o archivar A5-1/A5-4 | WP-06 |
+| 03/12/2026 | Cerrar noviembre con saldo | WP-09 |
+| 18/12/2026 | Contestar las preguntas de la política de inversión y del plan B | WP-39, WP-38 |
+
+**Riesgos a vigilar:** (1) tiempo del hogar (nueve tareas hasta el 3/11); (2) construido sin medir (ninguna métrica leída); (3) WP-23 bloqueado por datos fiscales; (4) WP-20 y su preaviso de enero; (5) `app.js` con 74 líneas de margen bajo el techo de 37.495: cada paquete nuevo lleva su lógica a módulos y su pantalla a scripts propios.
+
