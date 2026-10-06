@@ -1126,3 +1126,31 @@ test.describe("QA-1 · valoración de la cartera (WP-15)", () => {
     });
   }
 });
+
+// WP-23: la campaña fiscal de fin de año, con cifras de ejemplo marcadas como tal, en Herramientas avanzadas › Fiscal.
+test.describe("WP-23 · campaña fiscal con cifras de ejemplo", () => {
+  test("la tarjeta aparece marcada como ejemplo, con todas sus cifras marcadas, sin errores y sin desbordar en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      const card = page.locator("#campanaFiscalCard");
+      await expect(card).toBeVisible();
+      await expect(card).toHaveAttribute("data-ejemplo", "true");
+      await expect(card.locator(".fc-etiqueta-ejemplo")).toHaveText("Ejemplo");
+      await expect(card.locator(".fc-aviso")).toContainText("Cifras de ejemplo.");
+      await expect(card.locator(".fc-accion")).toHaveCount(5);
+      const cifras = await card.locator(".fc-cifra").count();
+      expect(cifras, "hay cifras").toBeGreaterThan(5);
+      await expect(card.locator(".fc-cifra-ejemplo"), "ninguna cifra del ejemplo sin marcar").toHaveCount(cifras);
+      await expect(card.locator(".fc-cifra-ejemplo .sr-only").first()).toHaveText("(cifra de ejemplo)");
+      await expect(card).toContainText("de ahorro estimado en la Renta de");
+      await card.locator(".fc-accion details summary").first().click();
+      await expect(card.locator(".fc-accion details").first()).toHaveJSProperty("open", true);
+      await expect(card.locator(".fc-accion details").first()).toContainText("Persona A");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

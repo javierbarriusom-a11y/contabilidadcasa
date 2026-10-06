@@ -35860,6 +35860,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     // OPT-25 (fase 2): mismo patrón que herramientas-seguros — Fiscal.
     case "herramientas-fiscal":
       renderAjustes();
+      globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":

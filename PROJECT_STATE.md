@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 5 de octubre de 2026 (sesión 299). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 6 de octubre de 2026 (sesión 300). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,26 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 6 de octubre de 2026 (300): WP-23 adelantado con un hogar de ejemplo (campaña fiscal) y las tareas del hogar en el calendario
+
+- **Decisiones del hogar al abrir la sesión (plan propuesto tras leer el artefacto de seguimiento):** (1) **WP-23 se adelanta con datos ficticios y se señala en la app «de forma elegante»** (UI/UX); (2) **XIRR con ventas parciales: no** — el hogar no tiene ventas parciales, así que el hallazgo de WP-15 queda aparcado sin urgencia (reproducirlo antes de WP-18 sigue siendo lo prudente); (3) orden de los demás paquetes «el que prefieras» (WP-33 antes que WP-28, **sin empezar hoy**); (4) **sí a volcar las tareas del hogar con fecha en Google Calendar**.
+- **WP-23 · campaña fiscal de fin de año (FIS-01 + DAC-02 + FIS-02), construido a medias a propósito** (diseño en `docs/WP23_DISENO.md`). Una lista de cinco acciones por declarante (tributación individual), con su euro estimado, su fecha límite y la fuente, en **Herramientas avanzadas › Fiscal** (primera tarjeta; cero pantallas nuevas; línea en «Novedades»):
+  - **Vivienda** (régimen transitorio: 15 % sobre un máximo de 9.040 € por declarante; por encima del tope no deduce), **pensiones** (límite individual 1.500 €, con el coste real: queda inmovilizado), **compensación** de plusvalías con minusvalías (aviso de recompra), **donativos** (dos tramos) y **retención voluntaria**.
+  - **«Sin dato = no calculable»:** una acción sin dato dice cuál falta; una calculada para un declarante y sin dato para otro sale «parcial». Los parámetros legales viajan en el resultado marcados **«pendientes de contrastar con la fuente oficial»** (`verified: false`), igual que en la pantalla.
+  - **Desviación de FIS-02, anotada en el diseño:** ajustar ahora la retención no evita el pago de junio de 2027 (solo alcanza a las nóminas que quedan de 2026); rinde en 2027. Se presenta como caja, no como ahorro, y no suma al total.
+  - **Cómo se marca el ejemplo (no depende del color):** etiqueta «Ejemplo», aviso con texto, borde discontinuo con sombreado diagonal tenue (se retira con alto contraste) y subrayado punteado en cada cifra con «cifra de ejemplo» para el lector de pantalla. Con datos reales (`example: false`) desaparecen las cinco marcas sin tocar nada más. Una prueba garantiza que ninguna cifra del ejemplo queda sin marcar.
+  - **Revisión visual hecha de verdad** (capturas en claro, oscuro y móvil) y axe-core sobre la tarjeta en los cuatro casos: encontró un contraste insuficiente de la píldora de fecha en claro, corregido con la tinta propia de las insignias de aviso.
+- **Archivos:** `canonical-year-end-tax.js` (puro, módulo 84 de `canonical-*`), `fiscal-campana-ui.js`, `fiscal-campana.css` (hoja propia: `styles.css` y `design-tokens.css` tienen su versión fijada por decenas de pruebas), tarjeta en `index.html`, una línea en `renderActiveSection` de `app.js` (consumidor real exigido por ARQ-3), listas de `service-worker.js` y `tools/build-public-site.mjs`, `novedades.js`, sección del manual y `docs/WP23_DISENO.md`.
+- **Lo que falta de WP-23 (por eso sigue «en curso», no «hecho»):** PR-2, formulario «Tus datos fiscales» (almacén privado, migración del contrato de estado con la herramienta) con los datos que mande el hogar el 20/10 (H-03); PR-3, «Hecho» por acción y eventos de calendario el 1/12 y el 20/12; contrastar los parámetros con la fuente oficial y la comunidad autónoma. Límite: lista con euros reales antes del 15/11. El riesgo de calendario baja: el 20/10 solo hay que rellenar datos, no construir.
+- **Calendario del hogar:** 21 eventos de día completo creados en el calendario principal de Google (H-02 a H-21 y la decisión de O-6 con la revisión de Nielsen del 16/10), con aviso el día anterior a las 9:00 y el de H-14 también tres días antes. Sin cifras, solo qué hacer, cuándo y para qué paquete.
+- **Pruebas (cifras reales):** `npm run verify` en verde, salida 0 — `npm test` **5345/5345** (5315 + 30 de `tests/fis1-campana-fiscal.test.cjs`), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Aparte, lo que el CI corre además: **e2e 38/38** (1 nuevo: tarjeta marcada como ejemplo a 1280 y 390 px), **axe 6/6**, **perf-screens 3/3** y **presupuesto de carga** en 2.526 ms de mediana (tope 5.000). `app.js` **37.422 de 37.495** (+1 línea).
+  - **Mis pruebas y el verify cazaron antes de publicar:** un tipo mal declarado en un JSDoc (`typecheck` rojo en la primera pasada: `holders?: Array<object>`), corregido; y el contraste de la píldora, corregido tras axe.
+  - **`test:mobile-overflow` falla a 360 px en `#faqs-ayuda` (`label.faqs-search`), y falla igual en `origin/main` sin mis cambios**: no es de este PR; no se ha tocado (no es lo pedido). La tarjeta nueva no desborda en ningún ancho. Queda como hallazgo para quien lo recoja.
+- **Estado del plan:** 15 de 53 paquetes hechos (sin cambios), **WP-23 pasa de «bloqueado» a «en curso»**, WP-05 en revisión. Avance ponderado por esfuerzo ≈ **23,4 %** (32,35 de 138,5 sesiones: el «en curso» cuenta un 50 %). Sigue siendo **construido, no comprobado**: ninguna métrica leída con datos reales.
+- **Siguiente:** WP-33 (historiales sintéticos) y WP-28 (kit de gráficos) antes del 23/10; el hogar, H-02 el **9/10** (prueba cronometrada de Hoy: sin esa línea base no se puede mover Hoy) y H-03 el 20/10.
+- **Revisión mensual de Nielsen:** no vencida (última real el 16/9); toca el 16/10 (WP-06).
+- **Rama:** `claude/sharp-keller-cpfv7a`.
 
 ## Cierre de sesión — 6 de octubre de 2026 (299): cierre de la jornada y backlog al día (solo documentación)
 
