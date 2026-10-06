@@ -109,6 +109,22 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 6 de octubre de 2026 (300, segundo PR): WP-33 · hogar sintético con verdad conocida y primera medición de la inferencia del día de cargo
+
+- **WP-23, fusionado antes en esta misma sesión (#459, `e29753b`)**: panel de seguimiento actualizado (WP-23 pasa de «bloqueado» a «en curso») y despliegue a Pages lanzado por el push a `main`.
+- **WP-33 (NTC-02), primera entrega.** Orden elegido por mí («lo que prefieras»): WP-33 antes que WP-28, porque es lo único que da **evidencia** sobre lo ya construido sin esperar al hogar.
+  - `tools/build-synthetic-household.mjs`: hogar ficticio **determinista por semilla** (mulberry32; nada de `Math.random` ni de la hora), con **cinco tipos de partida de verdad conocida** (fijo, casi-fijo a ±1 día, errático, «a medias» y con regla), sobresaltos conocidos (`shockMonths`: importes ×3 sin mover los días) y un **banco de calibración de bandas** (`coverage`, `trueBand`, `sampleAmounts`) para que WP-16 compruebe que su P10-P90 contiene la realidad ≈ 80 % de las veces. No escribe en disco; se mira con `node tools/build-synthetic-household.mjs --seed 7 --months 18`.
+  - `tests/wp33-hogar-sintetico.test.cjs` (**16 casos**): generador (determinismo, forma, tipos, sobresaltos, entradas inválidas, privacidad, línea de órdenes), exactitud de WP-04/WP-08 con verdad conocida sobre 300 semillas y calibración del banco (banda verdadera ≈ 80,1 %; el banco detecta bandas estrechas, anchas y sesgadas).
+- **Lo que midió (hallazgos reales sobre el motor ya publicado; los umbrales de las pruebas salen de estas cifras, no de lo que se querría que acertase):**
+  - **Cargos fijos y reglas: 100 %** con ≥ 3 meses, con el día exacto; toda propuesta «fiable» de WP-08 está a ±1 de la verdad.
+  - **Errático «fiable» por azar:** 0 % con 12 meses; 1,7 % con 3 meses.
+  - **Límite conocido:** el cargo que cae a ±1 día (festivos, fines de semana) solo se reconoce «fiable» en el **≈ 77 % con 3 meses**, ≈ 94 % con 6, **99,3 % con 12** y 100 % con 24. Causa: `dominantDay` solo prueba como centro los días **observados**; con pocos meses el día central puede no haberse visto (p. ej. solo aparecen d−1 y d+1). No se ha tocado el motor: es una **decisión del hogar** (mejorarlo es probar todos los centros posibles, ≈ media sesión con su test rojo primero). Con 12 meses de extractos el problema casi desaparece.
+  - **«A medias»:** con 3 meses, el 13,7 % parece fiable por azar (esperado 12,5 %: encontrarlo en los tres meses); 2,3 % con 12 y 0,3 % con 24. Es un límite del tamaño de muestra, no un fallo.
+- **Estado del plan:** **WP-33 pasa a «en curso»**, no «hecho»: su criterio de hecho pide que lo usen WP-08, WP-16 y WP-51, y los dos últimos aún no existen. Avance ponderado por esfuerzo ≈ **24,3 %** (33,6 de 138,5 sesiones; «en curso» = 50 %). Sigue siendo **construido, no comprobado** en lo que depende de datos reales del hogar.
+- **Siguiente:** WP-28 (kit de gráficos). El hogar: H-02 el **9/10** (prueba cronometrada de Hoy) y H-03 el 20/10.
+- **Revisión mensual de Nielsen:** no vencida (última real el 16/9); toca el 16/10.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **5361/5361** (5345 + 16 de WP-33), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Sin cambios de interfaz (solo `tools/`, pruebas y documentación), así que los e2e/axe del CI no se ven afectados; `app.js` sin cambios (37.422 de 37.495). Rama: `claude/sharp-keller-cpfv7a`.
+
 ## Cierre de sesión — 6 de octubre de 2026 (300): WP-23 adelantado con un hogar de ejemplo (campaña fiscal) y las tareas del hogar en el calendario
 
 - **Decisiones del hogar al abrir la sesión (plan propuesto tras leer el artefacto de seguimiento):** (1) **WP-23 se adelanta con datos ficticios y se señala en la app «de forma elegante»** (UI/UX); (2) **XIRR con ventas parciales: no** — el hogar no tiene ventas parciales, así que el hallazgo de WP-15 queda aparcado sin urgencia (reproducirlo antes de WP-18 sigue siendo lo prudente); (3) orden de los demás paquetes «el que prefieras» (WP-33 antes que WP-28, **sin empezar hoy**); (4) **sí a volcar las tareas del hogar con fecha en Google Calendar**.

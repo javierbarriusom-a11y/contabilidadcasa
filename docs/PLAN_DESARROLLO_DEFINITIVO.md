@@ -140,6 +140,7 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 
 **WP-33 · Historiales sintéticos** (NTC-02) · Ola 2 · exento · M ≈ 2,5
 - `tools/build-synthetic-household.mjs` (patrón de `tools/build-golden-datasets.mjs`): un hogar ficticio con días de cargo, distribuciones y sobresaltos conocidos. Sirve para medir la sugerencia de WP-08, probar WP-51 y calibrar la banda de WP-16 (que P10-P90 contenga la realidad ≈ 80 % de las veces).
+- **Construido a medias el 6/10/2026:** `tools/build-synthetic-household.mjs` (PRNG mulberry32, cinco tipos de partida: fijo, casi-fijo, errático, a-medias y regla; sobresaltos conocidos; `coverage`/`trueBand`/`sampleAmounts` para calibrar bandas) y `tests/wp33-hogar-sintetico.test.cjs`. Falta que lo usen la banda de WP-16 y los perfiles de WP-51 (por eso sigue «en curso»).
 
 **WP-34 · Revisión base cero del plan** (PRV-08) · Ola 3 (se usa en enero) · visible · S-M ≈ 1,5
 - Una partida por pantalla con sus 12 meses de real: mantener · ajustar a lo real · eliminar; progreso y guardado parcial. Marca «revisada (fecha)» por partida (campo nuevo en `customPlanningRows` → migración del contrato de estado).
