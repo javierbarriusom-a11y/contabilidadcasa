@@ -21,7 +21,7 @@
 
 ## 2. Ola 1 · Medir, dinero con fecha y verdad barata (5/10 – 23/10/2026)
 
-13 paquete(s), 10 hecho(s), 21,5 sesiones estimadas.
+13 paquetes, 10 hechos, 21,5 sesiones estimadas.
 
 | Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
 |---|---|---|---|---|
@@ -41,7 +41,7 @@
 
 ## 3. Ola 2 · Actualizar y capturar cuesta poco (26/10 – 20/11/2026)
 
-13 paquete(s), 5 hecho(s), 31,5 sesiones estimadas.
+13 paquetes, 5 hechos, 31,5 sesiones estimadas.
 
 | Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
 |---|---|---|---|---|
@@ -61,7 +61,7 @@
 
 ## 4. Ola 3 · Previsión, inversión y deuda con guion (23/11/2026 – 22/1/2027)
 
-26 paquete(s), 0 hecho(s), 84,5 sesiones estimadas.
+26 paquetes, 0 hechos, 84,5 sesiones estimadas.
 
 | Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
 |---|---|---|---|---|
@@ -94,7 +94,7 @@
 
 ## 5. Continuo · prueba trimestral
 
-1 paquete(s), 0 hecho(s), 1 sesiones estimadas.
+1 paquete, 0 hechos, 1 sesion estimada.
 
 | Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
 |---|---|---|---|---|
