@@ -2331,6 +2331,14 @@
               </div>
             </div>
 
+            <!-- WP-15: actualizar el valor de las posiciones (hasta ahora solo se podían crear o quitar). La hoja es un diálogo (#valoracionDialog). -->
+            <article class="e19-card" id="valoracionCard">
+              <h3 class="escenario-motor-panel-title">Valoración de la cartera</h3>
+              <p class="e19-kpi-note">Actualiza el valor de tus posiciones, con la fecha de la valoración. Cada valoración queda en una serie con fecha y se puede deshacer durante 8 segundos.</p>
+              <p class="e19-kpi-note" id="valoracionResumen"></p>
+              <div class="data-actions"><button type="button" class="e19-btn e19-btn-primary" id="valoracionAbrir">Actualizar valoración</button></div>
+            </article>
+
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
                  Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR, construida
@@ -3896,6 +3904,8 @@
                 <h2 class="e19-heading" id="cierreTitle">Cierre</h2>
                 <p class="e19-subtitle" id="cierreSubtitle"></p>
                 <p class="e19-kpi-note" id="cierreTarget"></p>
+                <!-- WP-15: aviso no bloqueante si la cartera lleva más de 35 días sin valorarse. -->
+                <p class="e19-kpi-note" id="cierreValoracionAviso" hidden></p>
               </div>
               <div class="visual-controls">
                 <button type="button" class="e19-btn e19-btn-secondary" id="cierreDownloadPdf">PDF</button>
@@ -7541,6 +7551,26 @@
       </form>
     </dialog>
 
+    <!-- WP-15: hoja de valoración de la cartera. Guardar es el único botón de envío: «Hecho» del teclado guarda. Las filas las pinta valoracion-ui.js. -->
+    <dialog class="action-review-dialog" id="valoracionDialog" aria-labelledby="valoracionTitle">
+      <form method="dialog" id="valoracionForm" novalidate>
+        <p class="panel-kicker">Inversión · Cartera</p>
+        <h2 id="valoracionTitle">Actualizar valoración</h2>
+        <p class="e19-kpi-note">Las posiciones más antiguas, primero. Deja una fila vacía si no cambia; pulsa «Sin cambios» para renovar su fecha; un 0 significa que vale cero.</p>
+        <fieldset>
+          <legend>Fecha de la valoración</legend>
+          <div id="valoracionFechas" class="data-actions"></div>
+          <input id="valoracionFecha" type="date" aria-label="Fecha de la valoración" hidden />
+        </fieldset>
+        <div id="valoracionFilas"></div>
+        <p class="e19-kpi-note asignacion-error" id="valoracionError" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="valoracionCancelar">Cancelar</button>
+          <button type="submit" id="valoracionGuardar">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="action-review-dialog" id="escenarioMotorLimitDialog" aria-labelledby="escenarioMotorLimitTitle">
       <form method="dialog">
         <p class="panel-kicker">Diez planes vivos como máximo</p>
@@ -7681,6 +7711,8 @@
     <script defer src="canonical-card-purchases.js?v=20261005wp30c1"></script>
     <script defer src="partidas-ui.js?v=20261005wp30c1"></script>
     <script defer src="captura-ui.js?v=20261005wp30c1"></script>
+    <script defer src="canonical-portfolio-valuation.js?v=20261006wp15a1"></script>
+    <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
     <script defer src="registrar-ui.js?v=20261004wp26b1"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>

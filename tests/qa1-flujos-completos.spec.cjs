@@ -987,3 +987,142 @@ test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
     });
   }
 });
+
+// WP-15: la hoja de valoración de la cartera en un navegador real. Hasta ahora una posición no se podía actualizar. Las posiciones son
+// ficticias; la hoja actualiza valor y fecha, añade un punto a la serie con fecha, descuenta aportaciones en la variación, pide confirmar
+// un 0 o un salto, no mueve el presente con una fecha pasada, mide el tiempo y se deshace durante 8 segundos.
+test.describe("QA-1 · valoración de la cartera (WP-15)", () => {
+  const seed = (page) => page.evaluate(() => {
+    const iso = (offset) => { const date = new Date(); date.setDate(date.getDate() + offset); return isoLocalDate(date); };
+    saveIv1PositionsList([
+      { id: "e2e-vieja", type: "fondo", label: "Fondo de prueba antiguo", quantity: 10, costBasis: 1000, currentValue: 1200, asOf: iso(-60), acquisitionDate: iso(-400), provenance: "declared", contributions: [{ id: "c1", date: iso(-30), amount: 500, quantity: 0 }], disposals: [], scheduledContributions: [] },
+      { id: "e2e-nueva", type: "cripto", label: "Cripto de prueba", quantity: 0, costBasis: 200, currentValue: 300, asOf: iso(-3), acquisitionDate: iso(-200), provenance: "declared", contributions: [], disposals: [], scheduledContributions: [] },
+    ]);
+    renderIv1PositionList();
+    return { oldAsOf: iso(-60), today: iso(0), past: iso(-90) };
+  });
+  const position = (page, id) => page.evaluate((positionId) => iv1PositionsList().find((item) => item.id === positionId), id);
+  const stored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("portfolio-valuations")) || '{"valuations":[],"timings":[]}'));
+  const ready = async (page, hash = "#inversion-cartera") => {
+    await page.goto(`/index.html${hash}`);
+    await page.waitForFunction(() => typeof openValoracionHoja === "function" && typeof saveIv1PositionsList === "function" && document.querySelector("#valoracionAbrir"));
+  };
+
+  test("valorar la cartera: valor y fecha de la posición, punto en la serie, variación descontando la aportación, tiempo medido y deshacer", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page);
+    const dates = await seed(page);
+    await expect(page.locator("#valoracionResumen")).toContainText("1 de 2");
+    await expect(page.locator("#iv1PositionList")).toContainText("valorada hace 60 días");
+    await page.click("#valoracionAbrir");
+    await expect(page.locator("#valoracionDialog")).toBeVisible();
+    const order = await page.locator("[data-valoracion-fila] legend").allTextContents();
+    expect(order[0], "las más antiguas, primero").toContain("Fondo de prueba antiguo");
+    await expect(page.locator('[data-valoracion-valor="e2e-vieja"]')).toBeFocused();
+    await page.keyboard.type("1.750,00");
+    await expect(page.locator('[data-valoracion-chip="e2e-vieja"]')).toContainText("Variación de mercado: +50");
+    await expect(page.locator('[data-valoracion-chip="e2e-vieja"]')).toContainText("descontadas aportaciones netas de 500");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#valoracionDialog")).not.toBeVisible();
+    const after = await position(page, "e2e-vieja");
+    expect(after).toMatchObject({ currentValue: 1750, asOf: dates.today, provenance: "declared" });
+    expect((await position(page, "e2e-nueva")).currentValue, "la fila que no se tocó no cambia").toBe(300);
+    const store = await stored(page);
+    expect(store.valuations).toHaveLength(1);
+    expect(store.valuations[0]).toMatchObject({ date: dates.today, points: [{ id: "e2e-vieja", value: 1750, cost: 1500 }] });
+    expect(store.timings, "el tiempo hasta guardar queda medido").toHaveLength(1);
+    await expect(page.locator("#undoToast")).toBeVisible();
+    await expect(page.locator("#iv1PositionList")).toContainText("valorada hoy");
+    await expect(page.locator("#valoracionResumen")).toContainText("2 de 2");
+    await page.click("#undoToastButton");
+    expect(await position(page, "e2e-vieja")).toMatchObject({ currentValue: 1200, asOf: dates.oldAsOf });
+    expect((await stored(page)).valuations, "deshacer quita el punto").toHaveLength(0);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("vacío no cambia, «Sin cambios» renueva la fecha, un 0 y un salto piden confirmar, una fecha pasada no mueve el presente", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page);
+    const dates = await seed(page);
+
+    // Sin nada que guardar: no guarda y lo dice.
+    await page.click("#valoracionAbrir");
+    await page.click("#valoracionGuardar");
+    await expect(page.locator("#valoracionError")).toContainText("No hay ningún valor que guardar");
+    expect((await stored(page)).valuations).toHaveLength(0);
+
+    // «Sin cambios» renueva la fecha y conserva el valor.
+    await page.click('[data-valoracion-igual="e2e-vieja"]');
+    await page.click("#valoracionGuardar");
+    await expect(page.locator("#valoracionDialog")).not.toBeVisible();
+    expect(await position(page, "e2e-vieja")).toMatchObject({ currentValue: 1200, asOf: dates.today });
+    await page.click("#undoToastButton");
+
+    // Un 0 explícito pide confirmar; confirmado, vale cero.
+    await page.click("#valoracionAbrir");
+    await page.fill('[data-valoracion-valor="e2e-nueva"]', "0");
+    await page.click("#valoracionGuardar");
+    await expect(page.locator("#valoracionError")).toContainText("Confirma las filas marcadas");
+    await expect(page.locator('[data-valoracion-confirmar="e2e-nueva"]')).toBeVisible();
+    expect((await position(page, "e2e-nueva")).currentValue, "sin confirmar no se guarda").toBe(300);
+    await page.check('[data-valoracion-confirmado="e2e-nueva"]');
+    await page.click("#valoracionGuardar");
+    expect((await position(page, "e2e-nueva")).currentValue).toBe(0);
+    await page.click("#undoToastButton");
+
+    // Una coma de más pide confirmar.
+    await page.click("#valoracionAbrir");
+    await page.fill('[data-valoracion-valor="e2e-nueva"]', "30000");
+    await expect(page.locator('[data-valoracion-chip="e2e-nueva"]')).toContainText("falta o sobra una coma");
+    await page.click("#valoracionCancelar");
+    await expect(page.locator("#valoracionDialog")).not.toBeVisible();
+    expect((await position(page, "e2e-nueva")).currentValue, "cancelar no guarda").toBe(300);
+
+    // Una fecha pasada añade un punto y no mueve el valor actual ni su fecha.
+    await page.click("#valoracionAbrir");
+    await page.click('[data-valoracion-fecha="otra"]');
+    await page.fill("#valoracionFecha", dates.past);
+    await page.fill('[data-valoracion-valor="e2e-vieja"]', "1100");
+    await expect(page.locator('[data-valoracion-chip="e2e-vieja"]')).toContainText("solo añade un punto histórico");
+    await page.click("#valoracionGuardar");
+    await expect(page.locator("#valoracionDialog")).not.toBeVisible();
+    expect(await position(page, "e2e-vieja")).toMatchObject({ currentValue: 1200, asOf: dates.oldAsOf });
+    const store = await stored(page);
+    expect(store.valuations.map((item) => item.date)).toEqual([dates.past]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("el cierre avisa, sin bloquear, de la cartera sin valorar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await ready(page);
+    await seed(page);
+    await page.evaluate(() => { location.hash = "#cierre"; });
+    await page.waitForFunction(() => document.querySelector("#cierreValoracionAviso") && !document.querySelector("#cierreValoracionAviso").hidden);
+    await expect(page.locator("#cierreValoracionAviso")).toContainText("1 de 2 posiciones sin valorar hace más de 35 días (Fondo de prueba antiguo)");
+    await expect(page.locator("#cierreValoracionAviso")).toContainText("no impide cerrar el mes");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la hoja de valoración se ve bien a ${viewport.width} px`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await ready(page);
+      await seed(page);
+      await page.click("#valoracionAbrir");
+      const box = await page.locator("#valoracionDialog").boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, "la hoja cabe en la pantalla").toBeLessThanOrEqual(viewport.width + 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await page.locator("#valoracionGuardar").scrollIntoViewIfNeeded();
+      await expect(page.locator("#valoracionGuardar")).toBeVisible();
+      await page.click("#valoracionCancelar");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "la tarjeta de la cartera no desborda").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

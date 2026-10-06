@@ -1172,6 +1172,13 @@ function renderCierre() {
     : null;
   const targetEl = qs("cierreTarget");
   if (targetEl) targetEl.innerHTML = cierreTargetHtml(target);
+  // WP-15: aviso no bloqueante si la cartera lleva más de 35 días sin valorarse (canonical-portfolio-valuation.js).
+  const valuationNote = qs("cierreValoracionAviso");
+  if (valuationNote) {
+    const note = window.FinanceCanonicalPortfolioValuation && window.FinanceCanonicalPortfolio ? window.FinanceCanonicalPortfolioValuation.closeNote(valuationPositions(), isoLocalDate(new Date())) : "";
+    valuationNote.textContent = note;
+    valuationNote.hidden = !note;
+  }
 
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");

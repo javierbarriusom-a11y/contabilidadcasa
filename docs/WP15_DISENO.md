@@ -1,6 +1,6 @@
 # WP-15 · Hoja de valoración de la cartera — diseño
 
-**Estado:** diseño cerrado el 6/10/2026 con las respuestas del hogar. Implementación en dos PR (§8); **este PR-0 es solo documentación**. El PR-1 construye la hoja manual; el PR-2 («pegar desde el bróker») queda **aparcado** hasta tener una muestra real del formato (§2, decisión 1).
+**Estado:** diseño cerrado el 6/10/2026 con las respuestas del hogar. Implementación en dos PR (§8); **PR-0 (diseño) y PR-1 (la hoja manual) hechos** (§10); el PR-2 («pegar desde el bróker») queda **aparcado** hasta tener una muestra real del formato (§2, decisión 1).
 **Fuente:** `NIN-02` (`docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md`), ficha de WP-15 en `docs/PLAN_IMPLEMENTACION_2026-10-03.md`, orden del hogar del 5/10/2026 (WP-12, WP-30, WP-15).
 **El repositorio es público: ningún dato real del hogar aquí.** Las posiciones, sus valores y las entidades viven en el almacén privado de la app; los ejemplos de este documento y las pruebas usan fondos ficticios.
 
@@ -73,7 +73,7 @@ Acción principal arriba: **«Actualizar valoración»**. Diálogo con:
 - **Una fecha para toda la hoja** (hoy por defecto; ayer y otra fecha, nunca futura).
 - **Una fila por posición:** nombre y tipo, valor anterior con «hace N días», **campo de importe es-ES** de WP-11 (vacío = no cambia), **botón «Sin cambios»**, chip de variación de mercado en color neutro (la app no empuja a actuar).
 - **Orden:** más antiguas primero, luego por tamaño (decisión 5).
-- **Salvaguardas que avisan y no bloquean:** variación de mercado > ±20 % (±40 % en cripto) pide confirmar la fila; un **0 explícito** pide confirmar; un valor que parece tecleado en miles (la fila se multiplica o divide por 1.000) avisa.
+- **Salvaguardas que avisan y no bloquean:** variación de mercado > ±20 % (±40 % en cripto) pide confirmar la fila; un **0 explícito** pide confirmar; un valor que cambia por un factor de 100 o más («¿falta o sobra una coma?», incluye el caso de los miles) avisa.
 - **Guardar** (único botón de envío: «Hecho» del teclado guarda): actualiza posiciones, añade el punto, repinta y da **deshacer 8 s**. Deshacer devuelve valor, fecha y procedencia a cada fila y quita sus puntos; no usa ningún lote del libro.
 - Mide los segundos hasta guardar (M-VAL2).
 
@@ -101,8 +101,8 @@ Acción principal arriba: **«Actualizar valoración»**. Diálogo con:
 
 | PR | Contenido | Cambia comportamiento |
 |---|---|---|
-| **PR-0** (este) | Diseño cerrado con las respuestas del hogar; solo documentación | No |
-| **PR-1** | `canonical-portfolio-valuation.js` (variación neta, series, frescura, salvaguardas), almacén, hoja manual con deshacer, frescura visible, aviso en el cierre, cableado en `app.js`, pruebas y paridad | Sí (pantalla nueva; las posiciones pasan a ser actualizables) |
+| **PR-0** (hecho) | Diseño cerrado con las respuestas del hogar; solo documentación | No |
+| **PR-1** (hecho) | `canonical-portfolio-valuation.js` (variación neta, series, frescura, salvaguardas), almacén, hoja manual con deshacer, frescura visible, aviso en el cierre, cableado en `app.js`, pruebas y paridad | Sí (pantalla nueva; las posiciones pasan a ser actualizables) |
 | **PR-2** (aparcado) | «Pegar desde el bróker»: casa por ISIN, ticker o nombre; lo no casado se asigna a mano y **nunca crea posiciones**; nota de serie y M-VAL en el panel de uso | Solo cuando el hogar dé una muestra del formato |
 
 Estimación: ≈ 2-3 sesiones (PR-0 y PR-1; el PR-2 depende de la muestra).
@@ -112,3 +112,20 @@ Estimación: ≈ 2-3 sesiones (PR-0 y PR-1; el PR-2 depende de la muestra).
 - **Cuántas posiciones tiene y de qué tipo (sin nombres)**, para fijar el objetivo de M-VAL2.
 - **Cómo lee hoy su valor** (app del bróker, PDF, web de la gestora) y una **muestra de dos líneas con los nombres tapados**: desbloquea el PR-2.
 - **Si registra unidades (participaciones)** y su bróker solo enseña el valor liquidativo por unidad: añadiría «precio por unidad» como entrada alternativa.
+
+## 10. PR-1 (6/10/2026): qué se construyó y qué cambió respecto al diseño
+
+**Construido:** `canonical-portfolio-valuation.js` (puro, módulo 83 de `canonical-*`), `valoracion-ui.js`, la tarjeta «Valoración de la cartera» y el diálogo `#valoracionDialog` en Inversión › Cartera, la frescura en cada posición («valorada hace 12 días»), el aviso no bloqueante en Cierre (`#cierreValoracionAviso`) y el almacén `portfolio-valuations` en la copia y la nube. `app.js`: 37.418 → 37.421 líneas (3 de cableado; techo 37.495).
+
+**Cambios respecto al diseño:**
+- **Confirmar una fila** (0 explícito, salto de mercado o factor de 100) es una casilla «Es correcto, guardar este valor» que aparece en esa fila; sin marcarla, Guardar no guarda y señala la fila. Avisa y pide confirmar; no hay ningún bloqueo que no se pueda levantar.
+- **El factor de «coma de más o de menos»** es ≥ 100 (no 1.000): incluye el caso de los miles y también el de las centenas.
+- **«Sin cambios» con una fecha anterior a la última valoración queda desactivado** (renovar la fecha de una valoración con una fecha pasada diría que el valor de hoy era el de entonces).
+- **La cadena de repintado** de Inversión (21 funciones que cada manejador repetía a mano) se llama desde `valoracion-ui.js`; una que falle no impide las demás.
+- **La instantánea de cierre de I2 no se toca** (sus pruebas fijan su forma); la serie sale solo del almacén nuevo.
+- **Los tiempos de la hoja (M-VAL2)** se guardan en el mismo almacén (hasta 100) y se ven en la tarjeta; sin tiempos no se afirma ninguno.
+
+**No construido (por diseño):** el modo «% de variación» como entrada, «precio por unidad» y «pegar desde el bróker» (PR-2 aparcado).
+
+**Hallazgo fuera de alcance (no corregido):** `positionCashFlows` (`canonical-portfolio.js`) arma los flujos del XIRR con el alta, las aportaciones y el valor final, **sin las ventas parciales**: tras vender una parte, su importe no cuenta como dinero devuelto y la rentabilidad anualizada sale más baja de lo real. **Deducido leyendo el código, sin reproducir.** Queda propuesto como tarea aparte, con un test rojo primero; la valoración con fecha lo hace más visible porque pone al día el valor final.
+
