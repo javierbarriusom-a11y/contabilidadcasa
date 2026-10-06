@@ -109,6 +109,21 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 6 de octubre de 2026 (299): cierre de la jornada y backlog al día (solo documentación)
+
+- **Qué se hizo en esta jornada (5-6/10), todo fusionado y desplegado, en el orden que pidió el hogar (WP-12, WP-30, WP-15):**
+  - **WP-12** backtest de liquidez a fin de mes (#451).
+  - **WP-30** hoja de captura de compras con tarjeta, en tres PR: el sitio en `app.js` (#452), los ciclos de tarjeta (#453) y la hoja con almacén propio de compras (#455).
+  - **Real parcial de «Gasto variable estimado»** (#454): reproducido, criterio aprobado por el hogar y corregido con test rojo primero.
+  - **WP-15** hoja de valoración de la cartera: diseño cerrado (#456) y hoja manual (#457).
+- **Esta entrada:** `docs/ESTADO_TAREAS_Y_FASES.md` (nuevo), la tabla de los 53 paquetes por fase con **estatus, dependencias y plan de siguientes pasos**, más los hallazgos fuera de los paquetes, la propuesta de orden de desarrollo y las tareas del hogar con fecha; y una línea en `BACKLOG_DEFINITIVO.md` §0 que la enlaza. Se generó a partir de `docs/plan/plan-definitivo.json` (plan y dependencias) y del panel de seguimiento (estado); ninguna cifra real del hogar.
+- **Estado del plan:** **15 de 53 paquetes hechos** (WP-01, 02, 03, 04, 07, 08, 09, 10, 11, 12, 15, 24, 25, 26, 30), **1 en revisión** (WP-05, decisión de O-6 el 16/10), **1 bloqueado** (WP-23, a la espera de los datos fiscales del hogar; límite para retomarlo: 1/11), el resto pendiente. **Avance ponderado por esfuerzo: 21,9 %** (30,35 de 138,5 sesiones estimadas; 15 sesiones reales en el panel). Por fases: Ola 1, 10 de 13 hechos; Ola 2, 5 de 13 (WP-08, 12, 15, 26 y 30, adelantados); Ola 3, 0 de 26.
+- **Lo que hay que mirar con frialdad:** **construido no es comprobado.** De los 15 hechos, 8 llevan una métrica asociada y ninguna está leída con datos reales del hogar (las lecturas que hay son de la demo o de pruebas). Depende de que el hogar use lo construido.
+- **Siguientes pasos (propuesta, en el documento):** antes del 16/10, WP-28 (kit de gráficos) y WP-33 (historiales sintéticos), más WP-27, WP-14 y WP-32 en huecos; el 16/10, Nielsen y la decisión de O-6; la semana del 19/10, WP-13 y WP-20 (camino crítico por fecha: la hipoteca es variable, revisión en marzo, preaviso a primeros de enero); del 20/10 al 1/11, WP-23 si llegan los datos fiscales; el 1-3/11, el hogar cierra octubre con saldo, valora la cartera y declara saldos en «Real manual».
+- **Decisión pendiente del hogar:** si se corrige ya el XIRR de las ventas parciales (hallazgo de WP-15, deducido leyendo el código, sin reproducir) o se sigue con la Ola 2; mi recomendación es WP-20 antes.
+- **Revisión mensual de Nielsen:** no vencida (la última real, el 16/9); toca el 16/10 (WP-06).
+- **Validación:** solo documentación: `npm test` **5315/5315** (salida 0); el `verify` completo lo corre el CI. `app.js` sin cambios: 37.421 de 37.495.
+
 ## Cierre de sesión — 6 de octubre de 2026 (299, vigesimoprimer PR): WP-15 · PR-1 la hoja de valoración de la cartera
 
 - **Primer cambio de comportamiento de WP-15** (diseño en `docs/WP15_DISENO.md`, con el §10 nuevo). Cierra el hueco funcional más grave de Inversión: **hasta ahora una posición no se podía actualizar** y todo (ganancia, XIRR, concentración, glide path, apalancamiento) calculaba con el valor del alta.
