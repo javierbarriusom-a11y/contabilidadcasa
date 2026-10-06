@@ -109,6 +109,21 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 6 de octubre de 2026 (299, vigésimo PR): WP-15 · PR-0 diseño cerrado (solo documentación)
+
+- **Solo documentación; ningún cambio de código ni de comportamiento.** `docs/WP15_DISENO.md` (nuevo) fija el diseño de la hoja de valoración de la cartera (NIN-02), con las respuestas del hogar del 6/10 («todas con tu recomendación»).
+- **Qué dice el código (verificado leyendo `app.js` el 6/10):** una posición solo se crea o se quita; su valor no se puede actualizar (salvo en un traspaso fondo→fondo), así que ganancia, XIRR, concentración, glide path y apalancamiento calculan con el valor del alta. **Las instantáneas de cierre de I2 repiten ese valor: son una línea plana** y no se mezclan con las valoraciones nuevas. El XIRR depende de `currentValue` y `asOf`: al actualizarlos, todo se refresca solo.
+- **Decisiones del diseño:**
+  - **Almacén propio `portfolio-valuations`** (valoraciones con fecha: valor y coste por posición; una por fecha; hasta 500 puntos, los de más de 24 meses reducidos a uno por mes). Deshacer de 8 s sin lote del libro (lección de WP-30: guarda una foto entera del estado).
+  - **Variación de mercado, no de valor:** valor nuevo − anterior − aportaciones netas desde la valoración anterior (leer una aportación como ganancia es el mismo vicio que el real parcial). Una valoración con fecha pasada añade un punto pero no mueve el valor actual.
+  - **Hoja:** una fecha para todo; «Sin cambios» por fila; vacío = no cambia, 0 = vale cero; más antiguas primero; confirmar variaciones de más de ±20 % (±40 % en cripto), ceros y valores que parecen tecleados en miles; aviso no bloqueante en el cierre de mes; **frescura ≤ 35 días**.
+  - **Criterio de «Hecho» corregido:** todas las posiciones valoradas hace ≤ 35 días y serie con ≥ 3 puntos para «caída desde máximos». **`I3` no se acelera**: 6 puntos son 5 rentabilidades, ruido, no correlación; sigue aparcada hasta unas 24 valoraciones.
+  - **«Pegar desde el bróker» aparcado (PR-2)** hasta tener una muestra real del formato; la entrada «precio por unidad» no se ofrece hasta saber si el hogar registra unidades.
+- **Plan:** PR-1 (módulo puro `canonical-portfolio-valuation.js`, almacén, hoja manual con deshacer, frescura, aviso en el cierre, cableado ≤ 12 líneas en `app.js`, que tiene 77 líneas de margen: 37.418 de 37.495). Estimación ≈ 2-3 sesiones.
+- **Validación:** solo documentación: `npm test` **5283/5283** (salida 0); `verify` completo lo corre el CI. No se tocó ningún umbral.
+- **Falta del hogar (por el chat: datos privados):** cuántas posiciones tiene y de qué tipo (sin nombres), cómo lee hoy su valor y una muestra de dos líneas con los nombres tapados (desbloquea el PR-2), y si registra unidades. Siguen sin hacer: dar de alta las tarjetas de WP-30 y confirmar la regla de Carrefour, abrir la app del 15 al 17/10 (WP-12), saldos en «Real manual» y las 3 pruebas de Hoy (WP-02).
+- **Siguiente: WP-15 · PR-1.**
+
 ## Cierre de sesión — 5 de octubre de 2026 (299, decimonoveno PR): WP-30 · PR-2 la hoja de captura de compras con tarjeta
 
 - **Último de los tres PR de WP-30** (diseño en `docs/WP30_DISENO.md`, con el §11 nuevo). **WP-30 queda hecho.**
