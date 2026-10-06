@@ -334,6 +334,16 @@ La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones
 - **Ajustar la retención** se presenta como caja, no como ahorro, y rinde en 2027: pedirla ahora solo alcanza a las nóminas que quedan de 2026.
 - Los parámetros legales (límites, topes, porcentajes) están todavía **pendientes de contrastar con la fuente oficial**; la tarjeta lo dice. Es una estimación: confirma cada acción con un asesor antes de actuar. La app nunca aporta, amortiza, vende ni dona por ti.
 
+### Leer un gráfico (cono de previsión)
+
+El cono de **Escenarios › Análisis avanzado › Bandas de confianza** se lee de tres maneras, sin necesidad de ratón:
+
+- **Con el dedo:** apoya y desliza en horizontal por el dibujo; una raya marca el mes y **la lectura aparece fija debajo** (mes, P10, P50 y P90). Si deslizas en vertical, la página sigue desplazándose como siempre.
+- **Con el ratón:** pasa por encima, sin pulsar.
+- **Con el teclado:** tabula hasta el gráfico y usa **← →** (mes a mes), **Inicio** / **Fin** (primer y último mes) o **Re Pág** / **Av Pág** (saltos de unos tres meses). El lector de pantalla dice cada lectura.
+- **«Ver como tabla»** (bajo el gráfico) da los mismos números en una tabla, mes a mes, con el margen.
+- Mientras no haya histórico conciliado suficiente, la banda tiene **ancho cero** y el cono es una línea: no se inventa un margen.
+
 ### Valoración de la cartera (Inversión › Cartera)
 
 Hasta ahora una posición solo se podía añadir o quitar: su valor era el del día del alta. **Inversión › Cartera › Valoración de la cartera › «Actualizar valoración»** abre una hoja con **una fila por posición, las más antiguas primero**:

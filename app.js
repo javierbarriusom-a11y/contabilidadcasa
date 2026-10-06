@@ -21805,18 +21805,12 @@ const PV4_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
 // números ya lo reflejaran. Corrección de renderizado únicamente (mismo low/high/center de
 // siempre, ningún cálculo nuevo): un polígono SVG continuo entre el límite bajo y el alto de cada
 // mes es la forma de cono en sí, con una línea central para el valor previsto sin margen.
-// P2 (Horizonte 4): tooltip por mes sobre el mismo cono, sin librería nueva ni motor nuevo. El
-// viewBox 0-100 con preserveAspectRatio="none" estira x e y en proporciones distintas (ver arriba)
-// — un <circle> con radio fijo saldría deformado, así que el marcador es un <button> HTML normal
-// posicionado en porcentaje sobre `.pv4-cone-wrap` (mismo xAt/yAt que ya usa el propio SVG, ningún
-// cálculo de posición nuevo), con foco de teclado ya cubierto por la regla global
-// `:focus-visible` de la hoja de estilos. Cada marcador dice el rango del mes — low/center/high,
-// la misma forma del cono, aquí etiquetados P10/P50/P90 como pide la nota — y, cuando hay
-// categorías con historial suficiente, cuál es la que más pesa en el margen (mismo `deviations` de
-// `learnFromHistory`/E12b que ya usa el termómetro de desviación por partida, sin recalcular nada;
-// ver `pv4DominantDeviationCategory`). El margen es una sola cifra agregada, no una por categoría y
-// mes: la nota dice "la partida que más pesa" en singular y es la misma en los doce meses, nunca un
-// desglose que el motor no calcula.
+// P2 (Horizonte 4) puso un marcador con `title` por mes; WP-28 lo sustituye por el recorrido del kit de gráficos (chart-kit.js): sin
+// ratón no hay hover, así que el cono se lee con el dedo, el ratón o las flechas, con la lectura fija bajo el dibujo y «Ver como tabla».
+// Cada mes dice su rango P10/P50/P90 y, cuando hay categorías con historial suficiente, cuál es la que más pesa en el margen (mismo
+// `deviations` de `learnFromHistory`/E12b que usa el termómetro de desviación por partida, sin recalcular nada; ver
+// `pv4DominantDeviationCategory`). El margen es una sola cifra agregada, no una por categoría y mes: la nota dice "la partida que más
+// pesa" en singular y es la misma en los doce meses, nunca un desglose que el motor no calcula.
 function pv4DominantDeviationCategory(deviations) {
   const withSample = (Array.isArray(deviations) ? deviations : []).filter((item) => item.sampleMonths > 0);
   if (!withSample.length) return null;
@@ -21825,35 +21819,18 @@ function pv4DominantDeviationCategory(deviations) {
 
 function pv4ConfidenceBandHtml(bands, dominant = null) {
   if (!bands.length) return '<p class="e19-kpi-note">Sin previsión disponible todavía.</p>';
-  const values = bands.flatMap((band) => [band.low, band.high]);
-  const min = Math.min(0, ...values);
-  const max = Math.max(1, ...values);
-  const span = Math.max(1, max - min);
-  const stepX = bands.length > 1 ? 100 / (bands.length - 1) : 0;
-  const xAt = (index) => round2(bands.length > 1 ? index * stepX : 50);
-  const yAt = (value) => round2(100 - ((value - min) / span) * 100);
-  const highPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.high)}`);
-  const lowPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.low)}`).reverse();
-  const centerPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.center)}`).join(" ");
+  // WP-28 (chart-kit.js): el dibujo, el recorrido (táctil, ratón y flechas), la lectura fija y «Ver como tabla» viven en el kit. Aquí solo
+  // queda lo propio del cono: qué se lee en cada mes, la nota y las clases de siempre (el aspecto no cambia).
+  const kit = globalThis.ChartKit;
   const first = bands[0];
   const last = bands[bands.length - 1];
   const growthNote = bands.length > 1 && last.margin > first.margin
     ? `El margen crece de ±${money(first.margin, true)} en ${first.label} a ±${money(last.margin, true)} en ${last.label}.`
     : "";
-  const chartLabel = `Cono de incertidumbre de la liquidez proyectada, de ${first.label} a ${last.label}. ${growthNote || "Margen constante en todo el horizonte."}`;
-  const dominantSuffix = dominant
-    ? ` Partida que más pesa en el margen: "${dominant.label}" (${money(dominant.averageDelta, true)} de media sobre ${dominant.sampleMonths} mes(es)).`
-    : "";
-  const markers = bands
-    .map((band, index) => {
-      const title = `${band.label}: P10 ${money(band.low, true)} · P50 ${money(band.center, true)} · P90 ${money(band.high, true)}.${dominantSuffix}`;
-      return `<button type="button" class="pv4-cone-marker" style="left:${xAt(index)}%;top:${yAt(band.center)}%" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"></button>`;
-    })
-    .join("");
-  const svg = `<svg class="pv4-cone-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(chartLabel)}">
-    <polygon class="pv4-cone-area" points="${[...highPoints, ...lowPoints].join(" ")}"></polygon>
-    <polyline class="pv4-cone-center" points="${centerPoints}" vector-effect="non-scaling-stroke"></polyline>
-  </svg>`;
+  const trend = kit.trendSentence({ subject: "La liquidez prevista (valor central)", points: bands.map((band) => ({ label: band.label, value: band.center })), format: (value) => money(value, true) });
+  const chartLabel = `Cono de incertidumbre de la liquidez proyectada, de ${first.label} a ${last.label}. ${growthNote || "Margen constante en todo el horizonte."} ${trend}`;
+  const plot = kit.bandPlotHtml({ points: bands, ariaLabel: chartLabel, classes: { svg: "pv4-cone-chart", area: "pv4-cone-area", center: "pv4-cone-center" } });
+  const readings = bands.map((band) => `${band.label}: P10 ${money(band.low, true)} · P50 ${money(band.center, true)} · P90 ${money(band.high, true)}.`);
   const labelsRow = `<div class="pv4-cone-labels">${bands.map((band) => `<span>${escapeHtml(band.label)}</span>`).join("")}</div>`;
   const note = first.sampleConcepts
     ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. ${growthNote || "Se ensancha cuanto más lejos está el mes."}`
@@ -21863,7 +21840,16 @@ function pv4ConfidenceBandHtml(bands, dominant = null) {
   const measuredNote = first.marginSource === "measured-error"
     ? ` Ensanchada hasta el error medio real medido (${money(first.measuredMae, true)}), mayor que el sesgo medio por partida.`
     : "";
-  return `<div class="pv4-cone-wrap">${svg}${markers}</div>${labelsRow}<p class="e19-kpi-note">${note}${measuredNote} Pasa el ratón o el foco por cada punto del cono para ver su detalle.</p>`;
+  // P2: la partida que más pesa en el margen es la misma en los doce meses (el margen es una cifra agregada): se dice una vez, no en cada mes.
+  const dominantNote = dominant
+    ? ` Partida que más pesa en el margen: "${escapeHtml(dominant.label)}" (${money(dominant.averageDelta, true)} de media sobre ${dominant.sampleMonths} mes(es)).`
+    : "";
+  return kit.figureHtml({
+    id: "pv4-cone", plotHtml: plot.svg, plotClass: "pv4-cone-wrap", belowPlotHtml: labelsRow, readings, xs: plot.xs,
+    sliderLabel: "Recorrer el cono de incertidumbre mes a mes",
+    noteHtml: `<p class="e19-kpi-note">${note}${measuredNote}${dominantNote}</p>`,
+    table: { caption: "Liquidez proyectada por mes, con su banda P10-P90", columns: ["Mes", "P10", "P50", "P90", "Margen"], rows: bands.map((band) => [band.label, money(band.low, true), money(band.center, true), money(band.high, true), `±${money(band.margin, true)}`]) },
+  });
 }
 
 // ESX4: malla de dos supuestos cruzados — extiende la tarjeta de Sensibilidad (que varía un
@@ -22074,6 +22060,8 @@ function renderPvc5RecalibrationNote() {
   qs("pvc5RevertWindow")?.addEventListener("click", () => savePvc5WindowConfirmation(false));
 }
 
+let e13AdvancedHtmlShown = "";
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -22156,7 +22144,7 @@ function renderE13ScenarioLab() {
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
   const inverseScenario = E13.inverseScenario(forecast, e13ScenarioEvents);
-  qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
+  const e13AdvancedHtml = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>Autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands, confidenceBandsDominant)}</article>
@@ -22169,6 +22157,13 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card pvx2-horizon-card"><header><strong>Multihorizonte simultáneo</strong><span class="status-pill">${horizon.length} periodos</span></header><p class="e19-kpi-note">Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo, todas a la vez.</p>${pvx2AdaptiveHorizonHtml(horizon)}</article>
     <article class="e6-quality-card"><header><strong>Patrimonio simulado</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
   </div>`;
+  // WP-28: un repintado idéntico borraría la lectura y el foco del gráfico que el hogar está recorriendo (la vista se repinta sola poco
+  // después de abrirse). Si el HTML no cambió, no se toca.
+  const e13AdvancedHost = qs("e13AdvancedAnalysis");
+  if (e13AdvancedHtml !== e13AdvancedHtmlShown || !e13AdvancedHost.firstElementChild) {
+    e13AdvancedHost.innerHTML = e13AdvancedHtml;
+    e13AdvancedHtmlShown = e13AdvancedHtml;
+  }
   let localSaved = [];
   try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
   const saved = Array.isArray(scenarioSettings.e13SavedScenarios) && scenarioSettings.e13SavedScenarios.length
@@ -36052,6 +36047,7 @@ async function init() {
   updateSourceNote();
   qs("scenarioName").textContent = currentScenario;
 
+  globalThis.ChartKit?.attach(document); // WP-28 (chart-kit.js): recorrido táctil y de teclado de los gráficos
   qs("familyContextSwitch")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-family-context]");
     if (button) setFamilyContext(button.dataset.familyContext);

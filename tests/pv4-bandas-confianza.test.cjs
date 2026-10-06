@@ -43,6 +43,7 @@ function sandbox() {
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     round2: (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100,
     PV4_CONFIDENCE_LABEL: { high: "alta", medium: "media", low: "baja" },
+    ChartKit: require("../chart-kit.js"), // WP-28: el cono se dibuja con el kit de gráficos
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("pv4ConfidenceBandHtml"), context);

@@ -85,7 +85,7 @@ test("pvx2AdaptiveHorizonHtml · pinta corto, medio y largo plazo a la vez, en e
 });
 
 test("app.js: renderE13ScenarioLab pinta la tabla de PVX2 junto a la tarjeta de horizonte adaptativo", () => {
-  const start = app.indexOf('qs("e13AdvancedAnalysis").innerHTML');
+  const start = app.indexOf('const e13AdvancedHtml = ');
   assert.ok(start >= 0, "No existe el render de e13AdvancedAnalysis en app.js");
   const end = app.indexOf(";\n", start);
   const body = app.slice(start, end);

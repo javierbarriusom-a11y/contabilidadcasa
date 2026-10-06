@@ -82,7 +82,7 @@ test("deviationThermometerHtml · sin previsto medio, la barra queda a tope si h
 });
 
 test("la tarjeta de Análisis avanzado usa el termómetro por partida", () => {
-  const start = app.indexOf('qs("e13AdvancedAnalysis").innerHTML');
+  const start = app.indexOf('const e13AdvancedHtml = ');
   assert.ok(start >= 0, "No existe el render de e13AdvancedAnalysis en app.js");
   const end = app.indexOf(";\n", start);
   const body = app.slice(start, end);

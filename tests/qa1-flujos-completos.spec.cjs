@@ -1154,3 +1154,70 @@ test.describe("WP-23 · campaña fiscal con cifras de ejemplo", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-28: el cono de previsión migrado al kit de gráficos (chart-kit.js): se lee con el ratón, el teclado y el dedo, con lectura fija y tabla.
+test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
+  test("se recorre con teclado y ratón, la lectura es fija, la tabla da los mismos datos y no desborda en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#new-life-simulation");
+      await page.reload(); // la misma URL con almohadilla no recarga: sin esto el segundo ancho heredaría la lectura del primero
+      const figure = page.locator("#e13AdvancedAnalysis .ck-figure");
+      await expect(figure).toBeVisible({ timeout: 15000 });
+      const slider = figure.locator(".ck-scrub");
+      const readout = figure.locator("[data-ck-readout]");
+      const last = Number(await slider.getAttribute("aria-valuemax"));
+      expect(last, "el cono tiene varios meses").toBeGreaterThan(2);
+      await expect(figure.locator("svg[role='img']")).toHaveAttribute("aria-label", /Cono de incertidumbre[\s\S]*La liquidez prevista/);
+      await expect(readout).toContainText("Toca o desliza");
+      // Teclado: las flechas leen mes a mes, Fin y Inicio saltan a los extremos, el tabulador no queda atrapado.
+      await slider.focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(slider).toHaveAttribute("aria-valuenow", "1");
+      await expect(readout).toContainText(/P10 .*P50 .*P90/);
+      const secondReading = await readout.textContent();
+      await page.keyboard.press("End");
+      await expect(slider).toHaveAttribute("aria-valuenow", String(last));
+      expect(await readout.textContent(), "la lectura cambia con el punto").not.toBe(secondReading);
+      await page.keyboard.press("Home");
+      await expect(slider).toHaveAttribute("aria-valuenow", "0");
+      // Ratón: leer con solo pasar por encima, sin pulsar; el último punto está en el borde derecho.
+      const box = await slider.boundingBox();
+      await page.mouse.move(box.x + box.width - 1, box.y + box.height / 2);
+      await expect(slider).toHaveAttribute("aria-valuenow", String(last));
+      await page.mouse.move(box.x + 1, box.y + box.height / 2);
+      await expect(slider).toHaveAttribute("aria-valuenow", "0");
+      await expect(figure.locator(".ck-cursor")).toBeVisible();
+      // La lectura es fija: leer un punto no mueve nada por debajo de ella.
+      const before = (await figure.locator("[data-ck-readout]").boundingBox()).y;
+      await page.keyboard.press("Tab");
+      await slider.focus();
+      await page.keyboard.press("End");
+      expect((await figure.locator("[data-ck-readout]").boundingBox()).y).toBeCloseTo(before, 0);
+      // Ver como tabla: una fila por mes, los mismos números.
+      await figure.locator(".ck-tabla summary").click();
+      await expect(figure.locator(".ck-tabla table tbody tr")).toHaveCount(last + 1);
+      await expect(figure.locator(".ck-tabla thead th")).toHaveText(["Mes", "P10", "P50", "P90", "Margen"]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("con el dedo: apoyar lee, soltar deja la lectura, y el gesto vertical sigue siendo desplazar", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/index.html#new-life-simulation");
+    const slider = page.locator("#e13AdvancedAnalysis .ck-scrub");
+    await expect(slider).toBeVisible({ timeout: 15000 });
+    expect(await slider.evaluate((node) => getComputedStyle(node).touchAction), "el gesto vertical sigue desplazando la página").toBe("pan-y");
+    const last = Number(await slider.getAttribute("aria-valuemax"));
+    await slider.scrollIntoViewIfNeeded();
+    const box = await slider.boundingBox();
+    await slider.tap({ position: { x: box.width - 2, y: box.height / 2 } });
+    await expect(slider).toHaveAttribute("aria-valuenow", String(last));
+    await expect(page.locator("#e13AdvancedAnalysis [data-ck-readout]")).toContainText(/P10/);
+    await context.close();
+  });
+});

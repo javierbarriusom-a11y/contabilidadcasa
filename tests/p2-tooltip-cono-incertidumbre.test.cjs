@@ -43,6 +43,7 @@ function sandboxWith(names) {
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     round2: (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100,
     PV4_CONFIDENCE_LABEL: { high: "alta", medium: "media", low: "baja" },
+    ChartKit: require("../chart-kit.js"), // WP-28: el cono se dibuja con el kit de gráficos
   };
   vm.createContext(context);
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
@@ -84,26 +85,36 @@ test("pv4DominantDeviationCategory · sin categorías con muestra, null en vez d
   assert.equal(ctx.pv4DominantDeviationCategory([deviation({ sampleMonths: 0 })]), null);
 });
 
-// --- pv4ConfidenceBandHtml (marcadores) ---------------------------------------------------------
+// --- pv4ConfidenceBandHtml (lectura por mes) -----------------------------------------------------
+// P2 puso un marcador con `title` por mes; WP-28 lo sustituye por el recorrido del kit (chart-kit.js). Lo que P2 garantizaba sigue
+// garantizado: cada mes se puede leer con P10/P50/P90 SIN ratón, y la partida dominante se dice. Ahora además hay lectura fija, teclado y tabla.
 
-test("pv4ConfidenceBandHtml · un marcador con tooltip por cada mes, con P10/P50/P90", () => {
+function readingsOf(output) {
+  const match = /data-ck-readings="([^"]*)"/.exec(output);
+  assert.ok(match, "debe existir la capa de recorrido con las lecturas");
+  return JSON.parse(match[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+}
+
+test("pv4ConfidenceBandHtml · una lectura por cada mes, con P10/P50/P90", () => {
   const ctx = sandboxWith(["pv4ConfidenceBandHtml"]);
   const output = ctx.pv4ConfidenceBandHtml([
     band({ monthKey: "2026-09", label: "sep 26", low: 900, center: 1000, high: 1100 }),
     band({ monthKey: "2026-10", label: "oct 26", low: 850, center: 950, high: 1050 }),
   ]);
-  const markers = [...output.matchAll(/<button type="button" class="pv4-cone-marker"[^>]*>/g)];
-  assert.equal(markers.length, 2);
-  assert.match(output, /P10 900\.00 €/);
-  assert.match(output, /P50 1000\.00 €/);
-  assert.match(output, /P90 1100\.00 €/);
+  const readings = readingsOf(output);
+  assert.equal(readings.length, 2);
+  assert.match(readings[0], /sep 26: P10 900\.00 € · P50 1000\.00 € · P90 1100\.00 €/);
+  assert.match(readings[1], /oct 26: P10 850\.00 € · P50 950\.00 € · P90 1050\.00 €/);
 });
 
-test("pv4ConfidenceBandHtml · cada marcador queda posicionado en el mismo x/y que ya usa el propio SVG", () => {
+test("pv4ConfidenceBandHtml · la capa de recorrido es un deslizador accesible por teclado con un valor legible", () => {
   const ctx = sandboxWith(["pv4ConfidenceBandHtml"]);
   const output = ctx.pv4ConfidenceBandHtml([band(), band({ monthKey: "2026-10", label: "oct 26" })]);
-  assert.match(output, /style="left:0%;top:[\d.]+%"/);
-  assert.match(output, /style="left:100%;top:[\d.]+%"/);
+  assert.match(output, /role="slider" tabindex="0"/);
+  assert.match(output, /aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"/);
+  assert.match(output, /aria-valuetext="sep 26: P10/);
+  // Las posiciones del cursor son las del propio dibujo: primer mes en 0 %, último en 100 %.
+  assert.match(output, /data-ck-x="\[0,100\]"/);
 });
 
 test("pv4ConfidenceBandHtml · sin categoría dominante, no fabrica una frase de «partida que más pesa»", () => {
@@ -112,34 +123,27 @@ test("pv4ConfidenceBandHtml · sin categoría dominante, no fabrica una frase de
   assert.doesNotMatch(output, /Partida que más pesa/);
 });
 
-test("pv4ConfidenceBandHtml · con categoría dominante, la incluye en el tooltip de cada marcador", () => {
+test("pv4ConfidenceBandHtml · con categoría dominante, la dice UNA vez en la nota (es la misma en los doce meses)", () => {
   const ctx = sandboxWith(["pv4ConfidenceBandHtml"]);
   const output = ctx.pv4ConfidenceBandHtml(
     [band({ monthKey: "2026-09", label: "sep 26" }), band({ monthKey: "2026-10", label: "oct 26" })],
     deviation({ conceptId: "colegio", label: "Colegio", averageDelta: -120, sampleMonths: 8 }),
   );
-  // Cada marcador repite el aviso en `title` y en `aria-label` (mismo texto en los dos, ver el
-  // siguiente test) — dos meses × dos atributos = 4 apariciones.
-  const occurrences = (output.match(/Partida que más pesa en el margen: "Colegio"/g) || []).length;
-  assert.equal(occurrences, 4, "el aviso debe aparecer en title y aria-label de cada uno de los dos meses");
+  assert.equal((output.match(/Partida que más pesa en el margen: "Colegio"/g) || []).length, 1);
   assert.match(output, /-120\.00 €/);
 });
 
-test("pv4ConfidenceBandHtml · el aria-label del marcador coincide con su title (accesible sin ratón)", () => {
+test("pv4ConfidenceBandHtml · ofrece «Ver como tabla» con los mismos P10/P50/P90 de cada mes", () => {
   const ctx = sandboxWith(["pv4ConfidenceBandHtml"]);
-  const output = ctx.pv4ConfidenceBandHtml([band()]);
-  const markerMatch = /<button type="button" class="pv4-cone-marker"[^>]*>/.exec(output);
-  assert.ok(markerMatch, "debe existir el marcador");
-  const titleMatch = /title="([^"]*)"/.exec(markerMatch[0]);
-  const ariaMatch = /aria-label="([^"]*)"/.exec(markerMatch[0]);
-  assert.ok(titleMatch && ariaMatch);
-  assert.equal(titleMatch[1], ariaMatch[1]);
+  const output = ctx.pv4ConfidenceBandHtml([band({ low: 900, center: 1000, high: 1100, margin: 100 }), band({ monthKey: "2026-10", label: "oct 26" })]);
+  assert.match(output, /<summary>Ver como tabla<\/summary>/);
+  assert.match(output, /<th scope="row">sep 26<\/th><td>900\.00 €<\/td><td>1000\.00 €<\/td><td>1100\.00 €<\/td><td>±100\.00 €<\/td>/);
 });
 
-test("pv4ConfidenceBandHtml · la nota final invita a pasar el ratón o el foco por el cono", () => {
+test("pv4ConfidenceBandHtml · la nota final explica cómo leer el cono sin ratón", () => {
   const ctx = sandboxWith(["pv4ConfidenceBandHtml"]);
   const output = ctx.pv4ConfidenceBandHtml([band()]);
-  assert.match(output, /Pasa el ratón o el foco por cada punto del cono/);
+  assert.match(output, /Toca o desliza por el gráfico, o usa las flechas/);
 });
 
 // --- wiring ----------------------------------------------------------------------------------

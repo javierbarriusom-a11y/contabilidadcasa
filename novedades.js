@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-06-wp28",
+      fecha: "2026-10-06",
+      texto: "Escenarios › Bandas de confianza: el cono se lee con el dedo, el ratón o las flechas, con la lectura fija y «Ver como tabla».",
+      href: "#new-life-simulation",
+    },
+    {
       id: "2026-10-06-wp23",
       fecha: "2026-10-06",
       texto: "Herramientas › Fiscal: campaña fiscal de fin de año, con cifras de ejemplo marcadas hasta que haya datos tuyos.",
