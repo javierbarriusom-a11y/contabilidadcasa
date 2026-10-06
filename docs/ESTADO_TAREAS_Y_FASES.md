@@ -8,13 +8,13 @@
 
 | Fase | Fechas | Paquetes | Hechos | Sesiones estimadas | Avance ponderado por esfuerzo |
 |---|---|---|---|---|---|
-| Ola 1 · Medir, dinero con fecha y verdad barata | 5/10 – 23/10/2026 | 13 | 10 | 21,5 | 76 % |
-| Ola 2 · Actualizar y capturar cuesta poco | 26/10 – 20/11/2026 | 13 | 5 | 31,5 | 44 % |
+| Ola 1 · Medir, dinero con fecha y verdad barata | 5/10 – 23/10/2026 | 13 | 10 | 21,5 | 85 % |
+| Ola 2 · Actualizar y capturar cuesta poco | 26/10 – 20/11/2026 | 13 | 5 | 31,5 | 54 % |
 | Ola 3 · Previsión, inversión y deuda con guion | 23/11/2026 – 22/1/2027 | 26 | 0 | 84,5 | 0 % |
 | Continuo · prueba trimestral | trimestral desde diciembre | 1 | 0 | 1 | 0 % |
-| **Total** | | **53** | **15** | **138,5** | **22 %** |
+| **Total** | | **53** | **15** | **138,5** | **25,5 %** |
 
-- **Avance ponderado** (hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %; un paquete de 7 sesiones pesa siete veces uno de 1): **21,9 %** del plan. **Sesiones reales:** 15 en el panel frente a 138,5 estimadas para todo el plan.
+- **Avance ponderado** (hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %; un paquete de 7 sesiones pesa siete veces uno de 1): **25,5 %** del plan (35,35 de 138,5 sesiones; WP-23, WP-28 y WP-33 «en curso» al 50 %). **Sesiones reales:** 15 en el panel frente a 138,5 estimadas para todo el plan.
 - **Adelantados:** de la Ola 2 ya están WP-08, WP-12, WP-15, WP-26 y WP-30 (el calendario los situaba entre el 26/10 y el 20/11).
 - **Construido no es lo mismo que comprobado:** de los 15 paquetes hechos, 8 llevan una métrica asociada y **ninguna está leída todavía con datos reales del hogar** (las lecturas que hay son de la demo o de pruebas). Dependen de que el hogar use lo construido: saldos del día, cierre con saldo, valoraciones, tarjetas dadas de alta. Es el riesgo principal del plan; la regla de parada de cada ola exige mirarlas.
 - **Cuello de botella: el tiempo del hogar, no el de desarrollo.** Hasta el 3/11 hay cinco tareas suyas en el plan (H-02 a H-06) y cuatro más surgidas en estas sesiones (verificación de O-6, abrir la app del 15 al 17/10, dar de alta las tarjetas y valorar la cartera); véase §7.
@@ -52,7 +52,7 @@
 | **WP-14** · Cobros esperados: confirmar o retraso | Cobros esperados en la bandeja: confirmar o aplazar. | ⏳ Pendiente | WP-08 ✅ | Listo para empezar (≈ 1,5 sesiones), tras WP-08. Alimenta WP-47. |
 | **WP-13** · Euribor, €STR e IPC oficiales con caducidad | Euribor, €STR e IPC de fuente oficial con fecha y vuelta al valor tecleado. | ⏳ Pendiente | WP-05 | Tras la decisión de O-6 (WP-05, 16/10): fuente oficial directa si hay CORS o función privada. Desbloquea WP-20, WP-42 y WP-50. |
 | **WP-20** · Revisión del tipo variable de la hipoteca | Revisión del tipo variable de la hipoteca: próxima revisión, cuota estimada A–B, avisos a 60 y 30 días. | ⏳ Pendiente | WP-13 | **Camino crítico por fecha:** la hipoteca es variable, la revisión es en marzo y el plan marca tenerlo antes del preaviso (≈ primeros de enero). Orden: WP-13 → WP-20 en noviembre. Hogar: datos del contrato en Deuda › Contratos (H-07, 13/11). |
-| **WP-28** · Kit de gráficos táctil y accesible | Kit de gráficos táctil y accesible (recorrido táctil, teclado, frase automática, «ver como tabla»). | ⏳ Pendiente | — | Listo para empezar (≈ 3,5 sesiones, sin dependencias). Habilita WP-35, WP-16, WP-43, WP-46 y WP-49: conviene antes del 23/11. |
+| **WP-28** · Kit de gráficos táctil y accesible | Kit de gráficos táctil y accesible (recorrido táctil, teclado, frase automática, «ver como tabla»). | 🔧 En curso (6/10): kit construido y primer gráfico migrado (el cono de previsión); faltan cartera y deuda | — | Hecho: `chart-kit.js` / `chart-kit.css` (frase automática, recorrido con dedo, ratón y flechas con lectura fija, «Ver como tabla», `prefers-reduced-motion`/`prefers-contrast`), el cono migrado y `docs/WP28_DISENO.md`. Corrige de paso un SVG de 350 px dentro de un contenedor de 120 px y un repintado que borraba la lectura. Queda: barras y cascadas (cartera `I9`, ruta de deuda) y series con umbral, que pedirá WP-16. Habilita WP-35, WP-16, WP-43, WP-46 y WP-49: ya se pueden empezar los que solo necesitan líneas y bandas (WP-16). |
 | **WP-30** · Hoja de captura de un gasto | Hoja de captura de compras con tarjeta: concepto, tarjeta y fecha, acumuladas en la fila de su tarjeta. | ✅ Hecho · métrica sin medir | WP-25 ✅ | Hogar: dar de alta las tarjetas, confirmar la regla de cargo de Carrefour y usar la hoja unos días (M-CAPT ≤ 8 s sale de su uso real). Desbloquea WP-53. |
 | **WP-31** · Nómina en PDF y retenciones automáticas | Nómina en PDF: crea el ingreso real y acumula retenciones; el PDF no se guarda. | ⏳ Pendiente | — | Listo para empezar (≈ 4 sesiones), pero primero decidir el lector de PDF (verificar librería, tamaño y licencia) y preparar nóminas sintéticas. Alimenta WP-21 y WP-23 del año siguiente. |
 | **WP-32** · Recordatorios en el momento de máximo valor | Calendario suscribible regenerado con la previsión (antes de cobrar, tras un cargo grande, día 1, 1/12). | ⏳ Pendiente | WP-07 ✅ | Listo para empezar (≈ 1 sesión): reutiliza la exportación `.ics` de `app.js`; WP-07 ya está. |

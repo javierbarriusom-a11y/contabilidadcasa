@@ -109,6 +109,20 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 6 de octubre de 2026 (300, tercer PR): WP-28 · kit de gráficos táctil y accesible, con el cono de previsión migrado
+
+- **Qué se hizo:** `chart-kit.js` / `chart-kit.css` (no es un motor `canonical-*`: solo dibuja y lee lo que le dan). Frase automática de la serie, **recorrido con el dedo, el ratón o las flechas con la lectura fija bajo el gráfico**, «Ver como tabla», y respeto de `prefers-reduced-motion`, `prefers-contrast` y colores forzados. El cono de previsión (Escenarios › Análisis avanzado › Bandas de confianza) ya lo usa, con el mismo aspecto. Diseño en `docs/WP28_DISENO.md`; guía de lectura en `MANUAL_USUARIO.md`; entrada en «Novedades».
+- **Por qué importa:** en el móvil, único aparato del hogar, el cono no se podía leer (el rango por mes de P2 solo aparecía al pasar el ratón). El kit habilita WP-16, WP-35, WP-43, WP-46 y WP-49.
+- **Hallazgos corregidos de paso (no estaban en el alcance, pero se vieron al probar con un dedo táctil real):**
+  - `styles.css` fija `svg { min-height: 350px }` para todos los SVG: el cono se dibujaba con 350 px dentro de un contenedor de 120 px, se salía 230 px y tapaba la nota y lo de debajo (y los clics). Se corrige en la hoja del kit; `styles.css` no se toca. **Otros SVG de la app con contenedor fijo pueden tener el mismo defecto**: no se han revisado.
+  - La vista de escenarios repintaba el análisis avanzado a los ~600 ms de abrirse, borrando la lectura y el foco del gráfico que el hogar ya estaba recorriendo. `renderE13ScenarioLab` ya no repinta si el HTML no cambió.
+- **Qué cambia en las pruebas:** `tests/wp28-kit-graficos.test.cjs` (21 casos nuevos); 2 casos e2e nuevos (teclado + ratón en 1280 y 390 px; dedo táctil real con `pan-y`); las pruebas P2 del cono se reescriben (los marcadores desaparecen; se conserva lo que garantizaban: leer P10/P50/P90 de cada mes sin ratón y decir la partida dominante, ahora **una vez** en la nota); `pv4`, `pvc19`, `pvc13`, `pv2` y `pvx2` se adaptan (cargan el kit o anclan en el nuevo nombre del render).
+- **Estado del plan:** **WP-28 pasa a «en curso»**, no «hecho»: la especificación pide migrar tres gráficos (cono, cartera, deuda) y solo está el cono; el kit cubre líneas y bandas, no barras ni cascadas. Avance ponderado por esfuerzo ≈ **25,5 %** (35,35 de 138,5 sesiones; «en curso» = 50 %). Se corrige además el resumen de `docs/ESTADO_TAREAS_Y_FASES.md`, que seguía en 21,9 % tras WP-23 y WP-33.
+- **Pendiente del kit:** migrar `I9` (cartera) y ruta de deuda; series con umbral y varios trazos (lo pedirá WP-16); etiquetas del eje en 390 px (12 meses se parten en dos líneas); retirar el CSS muerto de `.pv4-cone-marker` cuando se vuelva a tocar `styles.css`.
+- **`app.js`:** 37.418 de 37.495 (−4 líneas netas: el kit se lleva la geometría del cono).
+- **Siguiente:** WP-16 (banda de caja diaria) ya tiene sus cuatro dependencias construidas (WP-08, WP-10, WP-28 y WP-33; las dos últimas «en curso»); WP-27 / WP-14 / WP-32 en huecos. El hogar: H-02 el **9/10** (prueba cronometrada de Hoy) y H-03 el 20/10.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **5382/5382** (5361 + 21 de WP-28), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Además: e2e **40/40** (+2), axe **6/6**, perf-screens **3/3**, presupuesto de carga: mediana de «Hoy con contenido» **2.258 ms** (tope 5.000). `test:mobile-overflow` sigue fallando solo por `label.faqs-search` de `#faqs-ayuda` a 360 px, ya reproducido en `main` limpio antes de estos cambios (no es de este paquete).
+
 ## Cierre de sesión — 6 de octubre de 2026 (300, segundo PR): WP-33 · hogar sintético con verdad conocida y primera medición de la inferencia del día de cargo
 
 - **WP-23, fusionado antes en esta misma sesión (#459, `e29753b`)**: panel de seguimiento actualizado (WP-23 pasa de «bloqueado» a «en curso») y despliegue a Pages lanzado por el push a `main`.

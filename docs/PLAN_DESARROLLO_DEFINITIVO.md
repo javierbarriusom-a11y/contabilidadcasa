@@ -120,6 +120,7 @@ Formato: *Qué · Dónde (código existente que se reutiliza) · Enfoque · Prue
 
 **WP-28 · Kit de gráficos** (NPV-07) · Ola 2 · exento (accesibilidad) · M-L ≈ 3,5
 - Módulo `chart-kit` (SVG propio, sin librerías): recorrido táctil con lectura fija, teclado, frase automática, «ver como tabla», tokens de `design-tokens.css`, `prefers-reduced-motion`. Migrar primero el cono de previsión. Habilita WP-35, WP-16, WP-43, WP-46 y WP-49. Saca código de `app.js`.
+- **Construido a medias el 6/10/2026** (`chart-kit.js`, `chart-kit.css`, `docs/WP28_DISENO.md`, `tests/wp28-kit-graficos.test.cjs`): frase automática, recorrido con dedo/ratón/flechas con lectura fija, «Ver como tabla» y el **cono de previsión migrado**. Falta migrar cartera (`I9`) y ruta de deuda (barras y cascadas) y las series con umbral que pida WP-16. `app.js` 37.418 de 37.495.
 
 **WP-29 · Carta del mes** (NHG-05) · Ola 3 · visible · M ≈ 2,5
 - *Qué:* un párrafo determinista de ≤ 120 palabras en **Cierre de mes** con cinco huecos: resultado frente a previsión, mayor desviación y su causa (`PVX5`), un hito, una acción sugerida y la calidad del dato (WP-10).
