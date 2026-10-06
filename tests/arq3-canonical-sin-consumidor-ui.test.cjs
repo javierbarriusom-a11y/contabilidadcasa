@@ -114,7 +114,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 80 → 81 (WP-30 · PR-1): canonical-card-cycles.js, con consumidor real (loadCardCycles y cardAccruedForRow en app.js; su ficha, en partidas-ui.js)
 // 81 → 82 (WP-30 · PR-2): canonical-card-purchases.js, con consumidor real (cardAccruedForRow en app.js lee sus compras; la hoja y el informe, en captura-ui.js)
 // 82 → 83 (WP-15): canonical-portfolio-valuation.js, con consumidor real (renderIv1PositionList en app.js pinta la frescura con él; renderCierre, el aviso; la hoja, en valoracion-ui.js)
+// 83 → 84 (WP-23): canonical-year-end-tax.js, con consumidor real (renderActiveSection en app.js se lo pasa a la tarjeta de fiscal-campana-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 83 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 83);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 84 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 84);
 });

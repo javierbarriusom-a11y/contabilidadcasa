@@ -1,0 +1,239 @@
+/* WP-23 · «Campaña fiscal de fin de año» (Herramientas avanzadas › Fiscal). Hoja propia para no tocar styles.css ni design-tokens.css, cuyas
+   versiones fijan decenas de pruebas. Solo usa los tokens --e19-* (claro, oscuro y alto contraste los resuelven ellos).
+
+   La marca de «ejemplo» no depende del color: etiqueta con texto, aviso con texto, borde discontinuo, sombreado diagonal y cifras con
+   subrayado punteado (y «cifra de ejemplo» para el lector de pantalla, en el HTML). El color solo las refuerza. */
+
+.fc-campana {
+  position: relative;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.fc-campana[data-ejemplo="true"] {
+  border-style: dashed;
+  border-color: var(--e19-warning-soft-border);
+  background-image: repeating-linear-gradient(135deg, transparent 0 20px, color-mix(in srgb, var(--e19-warning) 6%, transparent) 20px 21px);
+}
+
+#campanaFiscalCuerpo {
+  display: grid;
+  gap: 14px;
+}
+
+.fc-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fc-cabecera .escenario-motor-panel-title {
+  margin: 0;
+}
+
+.fc-etiqueta-ejemplo {
+  flex: none;
+  font: 700 var(--e19-text-eyebrow) / 1 var(--e19-font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e19-warning-badge-ink);
+  background: var(--e19-warning-soft);
+  border: 1px dashed var(--e19-warning);
+  border-radius: var(--e19-radius-pill);
+  padding: 5px 10px;
+}
+
+.fc-campana[data-ejemplo="false"] .fc-etiqueta-ejemplo {
+  display: none;
+}
+
+.fc-aviso {
+  margin: 0;
+  padding: 10px 14px;
+  font: 400 var(--e19-text-base) / 1.45 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-warning-soft);
+  border: 1px solid var(--e19-warning-soft-border);
+  border-left: 3px solid var(--e19-warning);
+  border-radius: var(--e19-radius-sm);
+}
+
+.fc-cuenta-atras {
+  margin: 0;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+/* Cifra de ejemplo: subrayado punteado, sin cambiar el color del texto (sigue siendo legible en cualquier tema). */
+.fc-cifra {
+  font-variant-numeric: tabular-nums;
+}
+
+.fc-cifra-ejemplo {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--e19-warning);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.fc-total {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+}
+
+.fc-total-cifra {
+  font: 700 var(--e19-text-display) / 1.1 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.fc-total-texto {
+  flex: 1 1 14rem;
+  font: 400 var(--e19-text-base) / 1.4 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.fc-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.fc-accion {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  background: var(--e19-surface-soft);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+.fc-accion-sin_dato,
+.fc-accion-no_aplica {
+  border-style: dashed;
+}
+
+.fc-orden {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-accent-ink);
+  background: var(--e19-accent);
+  border-radius: var(--e19-radius-pill);
+}
+
+.fc-accion-sin_dato .fc-orden,
+.fc-accion-no_aplica .fc-orden {
+  color: var(--e19-muted);
+  background: transparent;
+  border: 1px solid var(--e19-border-strong);
+}
+
+.fc-accion-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px 16px;
+  flex-wrap: wrap;
+}
+
+.fc-accion-cabecera h4 {
+  margin: 0;
+  flex: 1 1 14rem;
+  font: 600 var(--e19-text-md) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.fc-ahorro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font: 700 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.fc-ahorro small {
+  font: 400 var(--e19-text-xs) / 1.3 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.fc-sin-dato {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-base);
+  font-weight: 600;
+}
+
+.fc-accion-etiquetas {
+  margin: 6px 0 0;
+}
+
+/* El ámbar de la píldora de aviso no llega a 4,5:1 sobre su fondo claro; la tinta propia de las insignias de aviso (OPT-4/T7) sí. */
+.fc-accion-etiquetas .e19-pill-warn {
+  color: var(--e19-warning-badge-ink);
+}
+
+.fc-accion-etiquetas .e19-pill:not(.e19-pill-warn) {
+  color: var(--e19-muted);
+  border-color: var(--e19-border-strong);
+}
+
+.fc-falta {
+  margin: 6px 0 0;
+}
+
+.fc-detalle {
+  margin-top: 6px;
+}
+
+.fc-detalle summary {
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  font: 600 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.fc-por-declarante {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font: 400 var(--e19-text-base) / 1.45 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.fc-detalle .e19-kpi-note {
+  margin: 8px 0 0;
+}
+
+.fc-parametros {
+  margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .fc-campana {
+    padding: 14px;
+  }
+
+  .fc-ahorro {
+    align-items: flex-start;
+  }
+}
+
+/* Con contraste alto, el sombreado diagonal sobra: queda el borde discontinuo y el texto. */
+@media (prefers-contrast: more) {
+  .fc-campana[data-ejemplo="true"] {
+    background-image: none;
+  }
+}

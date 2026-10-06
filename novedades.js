@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-06-wp23",
+      fecha: "2026-10-06",
+      texto: "Herramientas › Fiscal: campaña fiscal de fin de año, con cifras de ejemplo marcadas hasta que haya datos tuyos.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-06-wp15",
       fecha: "2026-10-06",
       texto: "Inversión › Cartera: «Actualizar valoración». Pon al día el valor de cada posición, con la fecha, y deshaz en 8 s. El cierre avisa si falta.",

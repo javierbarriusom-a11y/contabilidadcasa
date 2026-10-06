@@ -324,6 +324,16 @@ no es el total del mes, así que ya no sustituye a la previsión mientras el mes
   al previsto.
 - Si quieres dar por terminado el mes con un real menor que el previsto, firma el cierre del mes.
 
+### Campaña fiscal de fin de año (Herramientas avanzadas › Fiscal)
+
+La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones de diciembre que ahorran impuestos: **aportar al plan de pensiones, llenar el tope de la deducción por vivienda, compensar plusvalías con minusvalías, donativos** y **ajustar la retención**. Cada acción trae su ahorro estimado en euros (por declarante, porque se tributa por separado), su fecha límite y, plegado, el detalle y la fuente.
+
+- **Mientras no haya tus datos fiscales, lo que ves es un ejemplo.** La tarjeta lo marca de cinco maneras: etiqueta «Ejemplo», un aviso, borde discontinuo con sombreado diagonal, y un subrayado punteado en cada cifra. Son cifras de un hogar ficticio: no son las tuyas. Cuando entregues tus datos, el ejemplo se sustituye y las marcas desaparecen.
+- **Si falta un dato, la acción dice cuál y no se calcula**: nunca una cifra inventada.
+- La lista va ordenada por euros ahorrados. «Ahorrar impuestos» no es «coste cero»: aportar a un plan de pensiones inmoviliza el dinero, y la tarjeta muestra también el coste real.
+- **Ajustar la retención** se presenta como caja, no como ahorro, y rinde en 2027: pedirla ahora solo alcanza a las nóminas que quedan de 2026.
+- Los parámetros legales (límites, topes, porcentajes) están todavía **pendientes de contrastar con la fuente oficial**; la tarjeta lo dice. Es una estimación: confirma cada acción con un asesor antes de actuar. La app nunca aporta, amortiza, vende ni dona por ti.
+
 ### Valoración de la cartera (Inversión › Cartera)
 
 Hasta ahora una posición solo se podía añadir o quitar: su valor era el del día del alta. **Inversión › Cartera › Valoración de la cartera › «Actualizar valoración»** abre una hoja con **una fila por posición, las más antiguas primero**:
