@@ -109,6 +109,26 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 6 de octubre de 2026 (299, vigesimoprimer PR): WP-15 · PR-1 la hoja de valoración de la cartera
+
+- **Primer cambio de comportamiento de WP-15** (diseño en `docs/WP15_DISENO.md`, con el §10 nuevo). Cierra el hueco funcional más grave de Inversión: **hasta ahora una posición no se podía actualizar** y todo (ganancia, XIRR, concentración, glide path, apalancamiento) calculaba con el valor del alta.
+- **Qué hace:**
+  - **Hoja** (`valoracion-ui.js`, `#valoracionDialog`; tarjeta «Valoración de la cartera» en Inversión › Cartera): una fecha para toda la hoja (hoy / ayer / otra, nunca futura), una fila por posición **las más antiguas primero**, campo de importe es-ES (WP-11), «Sin cambios» (renueva la fecha), **vacío = no cambia, 0 = vale cero**, variación **de mercado** (valor nuevo − anterior − aportaciones y ventas desde la valoración anterior), «Guardar» como único botón de envío («Hecho» del teclado guarda) y **deshacer 8 s** (devuelve valor, fecha y procedencia solo a las posiciones movidas; no usa ningún lote del libro).
+  - **Salvaguardas que piden confirmar** (casilla «Es correcto»): un 0 explícito, una variación de mercado de más del 20 % (40 % en cripto) y un cambio por un factor de 100 o más. Una aportación de 1.000 € no cuenta como salto de mercado (prueba).
+  - **Una fecha pasada** añade un punto histórico y **no mueve el valor actual ni su fecha**; «Sin cambios» con fecha pasada se desactiva.
+  - **Almacén `portfolio-valuations`** (copia y nube): valoraciones con fecha (valor y coste por posición), una por fecha, hasta 500 (las de más de 24 meses se reducen a una por mes), y los tiempos de la hoja. **Las instantáneas de cierre de I2 no se tocan ni se mezclan** (repiten el valor del alta: línea plana).
+  - **Frescura:** «valorada hace N días» en cada posición, resumen en la tarjeta (M-VAL1: ≤ 35 días) y **aviso no bloqueante en Cierre** si alguna lleva más tiempo (decisión del hogar). Sin posiciones, la tarjeta lo dice y desactiva el botón.
+- **Archivos:** `canonical-portfolio-valuation.js` (puro, módulo 83 de `canonical-*`), `valoracion-ui.js`, tarjeta y diálogo en `index.html`, aviso en `views/cierre.js`, listas de `service-worker.js` y `tools/build-public-site.mjs`. **`app.js`: 37.418 → 37.421 líneas** (74 de margen bajo el techo de 37.495).
+- **Pruebas:**
+  - nueva `tests/wp15-valoracion-cartera.test.cjs` (**32 casos**: almacén tolerante, una valoración por fecha, retención, frescura en su frontera de 35/36 días, orden, variación de mercado con aportación, venta, aportación del mismo día y sin valoración anterior, salvaguardas, guardar, vacío frente a cero, fecha pasada, deshacer, aviso del cierre, tiempos, la pantalla en un `vm`, cableado);
+  - **5 e2e nuevos** en `qa1-flujos-completos.spec.cjs` (valorar con teclado y deshacer; vacío, «Sin cambios», 0, coma de más y fecha pasada; aviso del cierre; hoja a 390 y 1280 px sin desbordar);
+  - **mis pruebas cazaron dos fallos míos antes de publicar:** el plural «posiciónes» / «valoraciónes» (acento mal) y un `console.error` que no existía en el `vm`;
+  - **3 pruebas antiguas fallaron en `npm test`** y se ajustaron sin tocar sus aserciones: `arq3` (82 → 83 módulos) y dos (`iv2-app-integracion`, `ivx7-coste-medio-adquisicion`) que leen una ventana de caracteres fija de `renderIv1PositionList`, que he alargado con la frescura (se ensanchó la ventana, como ya se hizo en IVX7).
+- **Validación:** `npm run verify` **verde** (salida 0); `npm test` **5315/5315** (5283 + 32); e2e **37/37** (32 + 5), axe **6/6**, `test:perf-screens` 3/3 en local. `test:performance-lh` no se ejecuta en este contenedor: lo decide el CI; no se cambió ningún umbral.
+- **Hallazgo fuera de alcance (sin corregir):** el XIRR (`positionCashFlows`, `canonical-portfolio.js`) no cuenta las ventas parciales como dinero devuelto, así que tras vender una parte la rentabilidad anualizada sale más baja de la real. **Deducido leyendo el código, sin reproducir**; queda propuesto con un test rojo primero (`docs/WP15_DISENO.md` §10).
+- **Falta del hogar:** valorar la cartera en el cierre del 1-3/11 (la hoja está lista) y mandar por el chat cuántas posiciones tiene y de qué tipo, cómo lee hoy su valor y una muestra de dos líneas con los nombres tapados (desbloquea el PR-2 «pegar desde el bróker», aparcado). Sin hacer aún: dar de alta las tarjetas de WP-30, abrir la app del 15 al 17/10 (WP-12) y las 3 pruebas de Hoy (WP-02).
+- **Siguiente:** el orden del hogar (B, C y A) queda completo con WP-12, WP-30 y WP-15; después, por el orden de la Ola 2: WP-27, WP-14, WP-13, WP-20 y WP-28.
+
 ## Cierre de sesión — 6 de octubre de 2026 (299, vigésimo PR): WP-15 · PR-0 diseño cerrado (solo documentación)
 
 - **Solo documentación; ningún cambio de código ni de comportamiento.** `docs/WP15_DISENO.md` (nuevo) fija el diseño de la hoja de valoración de la cartera (NIN-02), con las respuestas del hogar del 6/10 («todas con tu recomendación»).

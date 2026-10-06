@@ -62,7 +62,7 @@ test("ivx7AverageCostLabel · sin posición, no revienta — cadena vacía", () 
 });
 
 test("app.js: renderIv1PositionList añade la nota de coste medio a la línea de cada posición, sin sustituir el resto", () => {
-  const block = app.slice(app.indexOf("function renderIv1PositionList("), app.indexOf("function renderIv1PositionList(") + 1400);
+  const block = app.slice(app.indexOf("function renderIv1PositionList("), app.indexOf("function renderIv1PositionList(") + 1800); // WP-15: la frescura de la valoración alargó la función (1400 → 1800)
   assert.match(block, /ivx7AverageCostLabel\(position\)/);
   assert.match(block, /coste \$\{money\(position\.costBasis, true\)\}/, "no debe sustituir el coste total ya existente");
 });

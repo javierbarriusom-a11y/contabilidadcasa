@@ -54,8 +54,8 @@ test("IV2: renderIv1ContributionOptions existe y se llama junto al resto de rend
 
 test("IV2: renderIv1PositionList muestra la XIRR de cada posición junto al resto de cifras", () => {
   // IVX7 añadió la nota de coste medio de adquisición justo antes de esta línea — la ventana crece
-  // de 1200 a 1600, la comprobación sigue siendo la misma.
-  const block = appSource.slice(appSource.indexOf("function renderIv1PositionList"), appSource.indexOf("function renderIv1PositionList") + 1600);
+  // de 1200 a 1600, la comprobación sigue siendo la misma. WP-15 añadió la frescura de la valoración y el resumen: de 1600 a 2000.
+  const block = appSource.slice(appSource.indexOf("function renderIv1PositionList"), appSource.indexOf("function renderIv1PositionList") + 2000);
   assert.match(block, /iv2XirrLabel\(position\.xirr\)/);
 });
 

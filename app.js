@@ -1360,6 +1360,7 @@ const BACKUP_LOCAL_STORES = [
   "liquidity-backtest", // WP-12: liquidez prevista a fin de mes, congelada los días 1 y 15 (solo se añade)
   "card-cycles", // WP-30: ciclo de corte y cargo de cada tarjeta de crédito y la fila donde se liquida
   "card-purchases", // WP-30 (PR-2): compras con tarjeta anotadas con la hoja (concepto, tarjeta, fecha) y los tiempos de captura
+  "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -20193,6 +20194,7 @@ function renderIv1PositionChart() {
 function renderIv1PositionList() {
   const list = qs("iv1PositionList");
   if (!list) return;
+  globalThis.renderValuationSummary?.(); // WP-15 (valoracion-ui.js): frescura de la cartera
   const engine = window.FinanceCanonicalPortfolio;
   const rows = iv1PositionsList();
   if (!engine || !rows.length) {
@@ -20202,13 +20204,14 @@ function renderIv1PositionList() {
   const normalized = engine.normalizePositions(rows);
   list.innerHTML = normalized.positions.map((position) => {
     const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
+    const age = globalThis.FinanceCanonicalPortfolioValuation?.freshness(position, isoLocalDate(new Date())); // WP-15: valorada hace N días
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
     const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
     const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
     const averageCostNote = ivx7AverageCostLabel(position);
     const feeCostNote = ivx4FeeCostLabel(position);
     const totalCostNote = inv15TotalCostOfOwnershipLabel(position);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span>${i12ConvictionReviewHtml(position)}<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)}${age ? ` (${escapeHtml(age.label)})` : ""} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span>${i12ConvictionReviewHtml(position)}<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 

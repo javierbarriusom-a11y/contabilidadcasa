@@ -324,6 +324,22 @@ no es el total del mes, así que ya no sustituye a la previsión mientras el mes
   al previsto.
 - Si quieres dar por terminado el mes con un real menor que el previsto, firma el cierre del mes.
 
+### Valoración de la cartera (Inversión › Cartera)
+
+Hasta ahora una posición solo se podía añadir o quitar: su valor era el del día del alta. **Inversión › Cartera › Valoración de la cartera › «Actualizar valoración»** abre una hoja con **una fila por posición, las más antiguas primero**:
+
+- **Fecha** de la valoración (hoy por defecto; ayer u otra fecha, nunca futura).
+- **Valor nuevo (€)** de cada posición (vale «1.234,56»). **Una fila vacía no cambia**; **un 0 significa que vale cero** y pide confirmación.
+- **«Sin cambios»** conserva el valor y renueva la fecha: es lo habitual cuando una posición apenas se ha movido.
+- **Variación de mercado:** la hoja no te dice «+500 €» cuando has aportado 500 €. Descuenta las aportaciones y las ventas registradas desde la valoración anterior: **valor nuevo − valor anterior − aportaciones netas**.
+- **Avisos que piden confirmar** (casilla «Es correcto»): un 0, una variación de mercado de más del 20 % (40 % en cripto) y un cambio por un factor de 100 o más («¿falta o sobra una coma?»).
+- **Guardar** (o la tecla «Hecho» del teclado) actualiza el valor, la fecha y la procedencia («declarado») de cada posición, repinta la cartera, el XIRR, la concentración y el apalancamiento, y deja **8 segundos para deshacer**.
+- **Una fecha anterior** a la última valoración de una posición solo añade un **punto histórico**: no cambia su valor actual. Sirve para empezar la serie con valoraciones pasadas que tú teclees; la app no reconstruye nada por su cuenta.
+
+Cada valoración queda en una **serie con fecha** (hasta 500 puntos; los de más de 24 meses se reducen a uno por mes) en tu copia y en la nube. Las instantáneas de «cierre de mes» de antes repiten el valor del alta y no forman una serie: no se mezclan.
+
+**Frescura:** cada posición dice «valorada hace N días» y la tarjeta cuenta cuántas están al día (35 días o menos). **El cierre de mes te avisa**, sin impedirlo, si alguna lleva más tiempo sin valorarse. El ritmo recomendado es una vez al mes, junto con los saldos del cierre (1-3).
+
 ### Acierto de la caja a fin de mes (Plan › Previsión)
 
 Hoy la app mide cuánto se equivoca en cada categoría de gasto, pero no cuánto dinero hay a final de

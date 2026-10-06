@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-06-wp15",
+      fecha: "2026-10-06",
+      texto: "Inversión › Cartera: «Actualizar valoración». Pon al día el valor de cada posición, con la fecha, y deshaz en 8 s. El cierre avisa si falta.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-05-wp30-hoja",
       fecha: "2026-10-05",
       texto: "Hoy › «+ Registrar gasto»: con tarjetas dadas de alta, una hoja para anotar cada compra con su concepto y deshacer en 8 s.",

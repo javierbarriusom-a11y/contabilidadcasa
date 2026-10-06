@@ -119,6 +119,8 @@ const SHELL_URLS = [
   "./canonical-card-purchases.js",
   "./partidas-ui.js",
   "./captura-ui.js",
+  "./canonical-portfolio-valuation.js",
+  "./valoracion-ui.js",
   "./canonical-balance-pulse.js",
   "./registrar-ui.js",
   "./canonical-liquidity-backtest.js",
