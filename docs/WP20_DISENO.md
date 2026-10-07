@@ -39,7 +39,7 @@ Una tarjeta en **Deuda › Contratos › «Revisión del tipo variable de la hip
 
 | Qué | Cuándo |
 |---|---|
-| **Evento de calendario** con los avisos de 60 y 30 días (WP-32 `.ics`) | PR-2 de WP-20: añade un tipo de aviso al motor de recordatorios. No se hace ahora para no ampliar el alcance de este PR |
+| ~~**Evento de calendario** con los avisos de 60 y 30 días (WP-32 `.ics`)~~ | **Hecho el 7/10/2026 (PR-2 de WP-20):** nuevo tipo `rateReview` en `canonical-reminders.js`; la tarjeta de recordatorios lo ofrece (5.ª opción) y recibe las revisiones de `rateReviewCalendarItems()`. Solo los avisos que aún caen en el futuro; si ya pasaron los dos y la revisión sigue por delante, uno para hoy. Título sin importes; la cuota estimada, solo en el detalle |
 | **Datos reales del contrato** (diferencial, fecha, regla, tipo aplicado) | Hogar, H-07 (13/11): en Deuda › Contratos. Hasta entonces la tarjeta enseña «Rellena los datos…» y el ejemplo |
 | **Leer el Euribor oficial** | WP-13 PR-2, tras `O-6` (16/10) |
 | **Unificar con el radar DEB4** (Ajustes) | PR-2 de WP-13: hoy hay dos sitios donde teclear el Euribor |
@@ -48,5 +48,5 @@ Una tarjeta en **Deuda › Contratos › «Revisión del tipo variable de la hip
 ## 5. Cómo se prueba
 
 - `tests/wp20-revision-tipo.test.cjs`: cuota francesa igual a la de DI1 y a un caso conocido (100.000 € al 3 % a 20 años = 554,60 €), capital proyectado, regla del contrato (media de N meses antes cruzando de año; valor de un día), cada dato que falta, banda ordenada, Euribor negativo, proyección con y sin tipo aplicado y con cuota que no cubre intereses, avisos en 61/60/31/30/0 días, desplazamiento de revisiones pasadas (12 y 6 meses, fin de mes, bisiesto, cinco años), Euribor caducado, bonificación, ausencia de red y de DOM, y cableado.
-- `tests/qa1-flujos-completos.spec.cjs`: alta de una hipoteca, datos de la revisión, resultado en 1280 y 390 px, rechazo de datos mal tecleados, aviso en la bandeja de Hoy solo dentro de los 60 días.
+- `tests/qa1-flujos-completos.spec.cjs`: alta de una hipoteca, el aviso en el `.ics` (título sin importes, cuota en el detalle), datos de la revisión, resultado en 1280 y 390 px, rechazo de datos mal tecleados, aviso en la bandeja de Hoy solo dentro de los 60 días.
 - `tests/opt4-axe-accessibility.spec.cjs`: la tarjeta en claro y en oscuro, con resultado y ejemplo.

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp20b",
+      fecha: "2026-10-07",
+      texto: "Ajustes › Recordatorios: avisos en el calendario del móvil 60 y 30 días antes de revisar el tipo de la hipoteca.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-07-wp20",
       fecha: "2026-10-07",
       texto: "Deuda › Contratos › Revisión del tipo variable: cuándo se revisa y entre qué cuotas caerá la nueva, con avisos a 60 y 30 días.",

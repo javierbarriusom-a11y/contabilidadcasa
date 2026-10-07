@@ -226,3 +226,57 @@ test("WP-20 · las fechas del texto se leen como en España y los campos usan co
   assert.equal(engine.shortDate("2026-10-07"), "7/10/2026");
   assert.match(read("revision-tipo-ui.js"), /function revisionNum\(value\)[\s\S]*replace\("\.", ","\)/);
 });
+
+// --- Evento de calendario (PR-2 de WP-20, sobre el motor de recordatorios de WP-32) ----------------
+
+const Reminders = require(path.join(root, "canonical-reminders.js"));
+const reviewOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: true } };
+const reviewEvents = (date, extra = {}) => Reminders.build({ today: TODAY, options: reviewOnly, reviews: [{ date, low: 627.16, high: 747.12, ...extra }] }).events;
+
+test("WP-20 · calendario: avisos a 60 y 30 días antes de la revisión, con identificadores estables y sin importes en el título", () => {
+  const events = reviewEvents("2027-03-15");
+  assert.deepEqual(events.map((event) => [event.date, event.uid, event.title]), [
+    ["2027-01-14", "rec-revision-2027-03-15-60", "Revisión del tipo de la hipoteca en 60 días"],
+    ["2027-02-13", "rec-revision-2027-03-15-30", "Revisión del tipo de la hipoteca en 30 días"],
+  ]);
+  events.forEach((event) => assert.doesNotMatch(event.title, /€|\d{3}/, "la pantalla de bloqueo no enseña importes"));
+  assert.match(events[0].description, /Cuota estimada de 627,16 € a 747,12 €/, "el detalle sí lleva la cuota");
+  assert.match(events[0].description, /estimación, no un pronóstico/);
+  assert.match(events[0].description, /la app no ejecuta nada/);
+  assert.deepEqual(reviewEvents("2027-03-15").map((event) => event.uid), events.map((event) => event.uid), "regenerar da los mismos identificadores");
+});
+
+test("WP-20 · calendario: solo los avisos que aún caen en el futuro; si ya pasaron los dos, uno para hoy; una revisión pasada no genera nada", () => {
+  assert.deepEqual(reviewEvents("2026-11-20").map((event) => [event.date, event.title]), [["2026-10-21", "Revisión del tipo de la hipoteca en 30 días"]], "el de 60 días ya pasó");
+  const late = reviewEvents("2026-10-20");
+  assert.deepEqual(late.map((event) => [event.date, event.title, event.uid]), [["2026-10-07", "Revisión del tipo de la hipoteca en 13 días", "rec-revision-2026-10-20-aviso"]]);
+  assert.deepEqual(reviewEvents("2026-10-07").map((event) => event.title), ["Hoy se revisa el tipo de la hipoteca"]);
+  assert.match(reviewEvents("2026-10-08")[0].title, /en 1 día$/);
+  assert.deepEqual(reviewEvents("2026-10-06"), []);
+});
+
+test("WP-20 · calendario: respeta el horizonte del fichero y se puede apagar", () => {
+  assert.deepEqual(reviewEvents("2027-06-01").map((event) => event.uid), ["rec-revision-2027-06-01-60"], "el de 30 días cae fuera de los 6 meses del fichero");
+  assert.deepEqual(reviewEvents("2028-01-01"), []);
+  const off = Reminders.build({ today: TODAY, options: { kinds: { rateReview: false } }, reviews: [{ date: "2027-03-15" }] });
+  assert.equal(off.counts.rateReview, 0);
+  assert.equal(Reminders.build({ today: TODAY, options: reviewOnly }).events.length, 0, "sin revisiones no hay nada");
+  assert.equal(Reminders.build({ today: TODAY, options: reviewOnly, reviews: [null, {}, { date: "mal" }] }).events.length, 0, "datos basura no lanzan");
+});
+
+test("WP-20 · calendario: sin la cuota estimada el evento sigue valiendo; entra en el .ics con su alarma", () => {
+  const events = reviewEvents("2027-03-15", { low: undefined, high: undefined });
+  assert.doesNotMatch(events[0].description, /Cuota estimada/);
+  const ics = Reminders.toIcs(events, { now: "2026-10-07T10:00:00Z" });
+  assert.match(ics, /UID:rec-revision-2027-03-15-60@contabilidadcasa/);
+  assert.equal((ics.match(/BEGIN:VALARM/g) || []).length, 2);
+});
+
+test("WP-20 · calendario: la tarjeta de recordatorios ofrece el tipo y le pasa las revisiones; la de WP-20 las calcula con su motor", () => {
+  assert.match(read("index.html"), /data-recordatorios-kind="rateReview" checked/);
+  assert.match(read("recordatorios-ui.js"), /reviews: globalThis\.rateReviewCalendarItems\?\.\(\) \|\| \[\]/);
+  assert.match(read("recordatorios-ui.js"), /rateReview: "avisos de la hipoteca"/);
+  const ui = read("revision-tipo-ui.js");
+  assert.match(ui, /function rateReviewCalendarItems\(\)/);
+  assert.match(ui, /date: result\.nextReview, low: result\.payment\.low, high: result\.payment\.high/, "usa la fecha ya desplazada si la guardada pasó");
+});

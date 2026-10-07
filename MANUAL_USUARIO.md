@@ -357,6 +357,7 @@ Lo que **no** pregunta, a propósito:
 - **El día después de un cargo grande** (desde 500 €, editable): comprobad que ha llegado y actualizad el saldo.
 - **El día 1:** cerrad el mes (la ventana de cierre es del 1 al 3).
 - **Campaña fiscal:** 1/12 (mirad la lista) y 20/12 (últimas decisiones).
+- **Revisión del tipo de la hipoteca:** 60 y 30 días antes de la fecha que guardaste en Deuda › Contratos. El título no lleva importes; la cuota estimada de A a B va en el detalle. Si la fecha que guardaste ya pasó, usa la siguiente (cada 6 o 12 meses). Solo sale si has rellenado los datos de la revisión.
 
 Cómo se usa: pulsa **«Descargar recordatorios (.ics)»** y abre el fichero desde el móvil; el calendario te pregunta si lo añade. Cada aviso suena a las 9:00 del día.
 
@@ -392,7 +393,7 @@ Qué te enseña:
 - **Si pierdes la bonificación**, la cuota con ese punto más.
 - **Avisos a 60 y 30 días antes**. Dentro de esos plazos aparece también una pregunta en la bandeja de Hoy; antes, no sale nada.
 
-Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
+Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. **Los avisos también van al calendario del móvil:** en Ajustes › Recordatorios, descarga el fichero de nuevo y traerá los de 60 y 30 días. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
 
 ### Banda de caja a 30 días (Plan › Previsión)
 

@@ -21,12 +21,14 @@
   // Es puro: la fecha de hoy y los movimientos fechados del plan llegan por parámetro. No ejecuta nada.
 
   const SCHEMA_ID = "finance-canonical-reminders/v1";
-  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal"]);
-  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true }) });
+  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview"]);
+  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true }) });
   // Solo los días que el plan SABE: un ingreso con fecha «estimada» (el día 8 de relleno) generaría un aviso en un día cualquiera, que es
   // justo el ruido que este paquete quiere evitar.
   const CERTAIN = Object.freeze(["rule", "observed"]);
   const MAX_EVENTS = 150;
+  // WP-20: avisos de la revisión del tipo variable, los mismos que la tarjeta y la bandeja de Hoy.
+  const REVIEW_NOTICE_DAYS = Object.freeze([60, 30]);
 
   const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const WEEKDAYS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -67,6 +69,7 @@
    *   today?: string,
    *   incomes?: Array<{date: string, label?: string, amount?: number, confidence?: string}>,
    *   outflows?: Array<{date: string, label?: string, amount: number, confidence?: string}>,
+   *   reviews?: Array<{date: string, low?: number, high?: number}>,
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */
@@ -146,6 +149,33 @@
           title: "Últimos días para decisiones fiscales",
           description: "Las aportaciones y donativos que deban contar en este año tienen que estar hechos antes del 31/12. Repasad la lista de Herramientas avanzadas › Fiscal y decidid hoy lo que falte.",
         });
+      });
+    }
+
+    // 5) Revisión del tipo variable de la hipoteca (WP-20): 60 y 30 días antes, solo los avisos que aún caen en el futuro. Si los dos ya pasaron
+    // y la revisión sigue por delante, uno para hoy: mejor tarde que nunca. El título no lleva importes; la cuota estimada va en el detalle.
+    if (options.kinds.rateReview) {
+      (Array.isArray(input.reviews) ? input.reviews : []).forEach((review) => {
+        const reviewDate = utc(review?.date) ? isoOf(utc(review.date)) : "";
+        if (!reviewDate || reviewDate < today) return;
+        const low = Number(review.low);
+        const high = Number(review.high);
+        const range = Number.isFinite(low) && Number.isFinite(high) && low > 0 && high > 0 ? ` Cuota estimada de ${euros(low)} a ${euros(high)} (± 1 punto sobre el último Euribor tecleado).` : "";
+        const description = (days) => `El ${longDate(reviewDate)} se revisa el tipo de la hipoteca (${days === 0 ? "es hoy" : `faltan ${days} días`}).${range} Es una estimación, no un pronóstico. El detalle está en Deuda › Contratos. Si queréis comparar ofertas o hablar con el banco, este es el momento; la app no ejecuta nada.`;
+        const notices = REVIEW_NOTICE_DAYS.map((days) => ({ days, date: addDays(reviewDate, -days) }));
+        const upcoming = notices.filter((notice) => notice.date >= today);
+        upcoming.forEach((notice) => put({
+          uid: `rec-revision-${reviewDate}-${notice.days}`, kind: "rateReview", date: notice.date,
+          title: `Revisión del tipo de la hipoteca en ${notice.days} días`, description: description(notice.days),
+        }));
+        if (!upcoming.length) {
+          const left = Math.round((utc(reviewDate).getTime() - utc(today).getTime()) / 86400000);
+          put({
+            uid: `rec-revision-${reviewDate}-aviso`, kind: "rateReview", date: today,
+            title: left === 0 ? "Hoy se revisa el tipo de la hipoteca" : `Revisión del tipo de la hipoteca en ${left} día${left === 1 ? "" : "s"}`,
+            description: description(left),
+          });
+        }
       });
     }
 

@@ -233,6 +233,26 @@ function rateReviewInboxItems(engine) {
   }
 }
 
+// Para los recordatorios del calendario (recordatorios-ui.js): la fecha de revisión de cada hipoteca con sus datos rellenados y la cuota estimada
+// de A a B, que solo va en el detalle del evento (el título no lleva importes).
+function rateReviewCalendarItems() {
+  const engine = globalThis.FinanceCanonicalRateReview;
+  if (!engine) return [];
+  try {
+    const today = isoLocalDate(new Date());
+    const store = revisionLoad();
+    return revisionMortgages(today).flatMap((mortgage) => {
+      const settings = store.byContract[mortgage.id];
+      if (!settings) return [];
+      const result = revisionEvaluate(engine, mortgage, settings, today);
+      return result.status === "ok" ? [{ date: result.nextReview, low: result.payment.low, high: result.payment.high }] : [];
+    });
+  } catch (error) {
+    console.error(`rateReviewCalendarItems: ${error.message}`);
+    return [];
+  }
+}
+
 // Una sola vez, por delegación.
 function attachRevisionTipo(doc) {
   if (!doc || doc.__revisionTipoAttached) return false;

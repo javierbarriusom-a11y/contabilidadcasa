@@ -16,6 +16,7 @@ Una tarjeta en **Ajustes › «Recordatorios en el calendario del móvil»** que
 | **Cargo grande** | El día siguiente | El día del cargo es seguro y el importe ≥ umbral (500 €, editable) |
 | **Cerrar el mes** | El día 1 | Siempre (la ventana de cierre es del 1 al 3) |
 | **Campaña fiscal** | 1/12 y 20/12 | Siempre; el texto dice que son estimaciones |
+| **Revisión de la hipoteca** (añadido con WP-20) | 60 y 30 días antes de la fecha de revisión | Solo los avisos que aún caen en el futuro (si ya pasaron los dos y la revisión sigue por delante, uno para hoy). Título sin importes; la cuota estimada, solo en el detalle |
 
 Cada evento es de día completo, **transparente** (no bloquea el calendario) y con una alarma a las 9:00.
 

@@ -1279,7 +1279,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(4);
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(5);
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
       // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
@@ -1591,6 +1591,56 @@ test.describe("WP-20 · revisión del tipo variable de la hipoteca", () => {
       await expect(page.locator("#homeDecisionInboxList")).toContainText("Cuota estimada de");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
     }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// WP-20 (PR-2): los avisos de la revisión del tipo llegan al .ics de recordatorios, con la cuota solo en el detalle.
+test.describe("WP-20 · avisos de la revisión en el calendario del móvil", () => {
+  test("una revisión a 45 días genera su aviso de 30 días en el .ics, sin importes en el título y con la cuota en el detalle", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#revisionTipoCard")).toBeVisible({ timeout: 15000 });
+    await page.fill("#deudaContratosAddEntity", "Banco Ejemplo");
+    await page.selectOption("#deudaContratosAddType", "Hipoteca");
+    await page.fill("#deudaContratosAddPrincipal", "120000");
+    await page.fill("#deudaContratosAddPayment", "680");
+    await page.fill("#deudaContratosAddInstallments", "240");
+    await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+    await expect(page.locator("#revisionTipoForm")).toBeVisible({ timeout: 15000 });
+    await page.fill('[data-indices-index="euribor12m"] [data-indices-valor]', "2,35");
+    await page.locator('[data-indices-index="euribor12m"] [data-indices-guardar]').click();
+    await page.fill("#revisionTipoSpread", "0,99");
+    await page.fill("#revisionTipoRate", "3,10");
+    await page.fill("#revisionTipoDate", await page.evaluate(() => isoLocalDate(new Date(Date.now() + 45 * 86400000))));
+    await page.locator("#revisionTipoGuardar").click();
+    await expect(page.locator("#revisionTipoResultado")).toContainText("Próxima revisión:");
+    const expected = await page.evaluate(() => {
+      const mortgage = revisionMortgages(isoLocalDate(new Date()))[0];
+      const r = revisionEvaluate(FinanceCanonicalRateReview, mortgage, revisionLoad().byContract[mortgage.id], isoLocalDate(new Date()));
+      return `${money(r.payment.low, true).replace(/ /g, " ")}`;
+    });
+
+    await page.evaluate(() => { location.hash = "#ajustes"; });
+    const card = page.locator("#recordatoriosCard");
+    await expect(card.locator("#recordatoriosResumen")).toContainText("avisos de la hipoteca", { timeout: 15000 });
+    await expect(card.locator('[data-recordatorios-kind="rateReview"]')).toBeChecked();
+    const [download] = await Promise.all([page.waitForEvent("download"), card.locator("#recordatoriosDescargar").click()]);
+    const text = await new Promise((resolve, reject) => { const chunks = []; download.createReadStream().then((stream) => { stream.on("data", (chunk) => chunks.push(chunk)); stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8"))); stream.on("error", reject); }, reject); });
+    const unfolded = text.replace(/\r\n /g, "");
+    const titles = [...unfolded.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
+    expect(titles).toContain("Revisión del tipo de la hipoteca en 30 días");
+    titles.forEach((title) => expect(title, `el título «${title}» enseña un importe`).not.toMatch(/€|\d{3}/));
+    const detail = unfolded.split("BEGIN:VEVENT").find((chunk) => chunk.includes("Revisión del tipo de la hipoteca en 30 días")) || "";
+    expect(detail).toContain("Cuota estimada de");
+    expect(detail.replace(/\\,/g, ",")).toContain(expected.replace(/ /g, " ").replace(/\s/g, " "));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
