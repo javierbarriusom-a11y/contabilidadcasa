@@ -42,6 +42,12 @@ Una tarjeta en **Deuda › Contratos › «Índices de referencia»** (`indices-
 | PR-2: fuente oficial | Tras `O-6` (16/10). Si `O-6` se cierra sin verificación práctica, PR-2 se archiva y los índices siguen siendo manuales |
 | Medir: «índices vigentes cuando hacen falta» | Con uso real; hoy sin medir |
 
+## 4 bis. Correcciones posteriores (mismo día, en el PR de WP-20)
+
+- **Un clic muy temprano se perdía:** el formulario se pinta antes de que `init()` enganche sus eventos. Pintar la tarjeta ahora garantiza (de forma idempotente) que están enganchados. Era la causa de una prueba de axe intermitente en oscuro (≈ 1 de cada 4-6 ejecuciones; 0 en 8 tras el arreglo).
+- **Fechas en prosa como en España** (`7/10/2026`, no `2026-10-07`).
+- Al guardar o quitar un valor, la tarjeta de WP-20 se repinta: su resultado usa este Euribor.
+
 ## 5. Cómo se prueba
 
 - `tests/wp13-indices.test.cjs`: parseo de tipos, validación (coma de más, fecha futura/inexistente/antigua, rangos), sustitución por fecha, caducidad exacta de cada índice (último día vigente y primero caducado), historial acotado, almacén corrupto, media mensual y valor a una fecha, ausencia de red y cableado (tarjeta, scripts, copia, service worker, build).

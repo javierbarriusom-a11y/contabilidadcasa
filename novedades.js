@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp20",
+      fecha: "2026-10-07",
+      texto: "Deuda › Contratos › Revisión del tipo variable: cuándo se revisa y entre qué cuotas caerá la nueva, con avisos a 60 y 30 días.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-07-wp13",
       fecha: "2026-10-07",
       texto: "Deuda › Contratos › Índices de referencia: Euribor, €STR e IPC con la fecha del dato y su caducidad.",

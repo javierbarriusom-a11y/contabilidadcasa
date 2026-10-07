@@ -191,3 +191,16 @@ test("WP-13 · «Novedades» anuncia los índices y el manual los explica", () =
   assert.match(read("novedades.js"), /wp13/);
   assert.match(read("MANUAL_USUARIO.md"), /Índices de referencia/);
 });
+
+test("WP-13 · las fechas de las etiquetas se leen como en España (7/10/2026), no en ISO", () => {
+  const label = engine.status(add(empty(), "euribor12m", "2,35", "2026-10-02").store, "euribor12m", TODAY).label;
+  assert.match(label, /2,35 % del 2\/10\/2026: vigente/);
+  assert.equal(engine.shortDate("2026-01-09"), "9/1/2026");
+});
+
+test("WP-13 · pintar la tarjeta garantiza que sus eventos están enganchados (un clic temprano no se pierde)", () => {
+  const source = read("indices-ui.js");
+  const render = source.slice(source.indexOf("function renderIndicesReferencia("), source.indexOf("function indicesNote("));
+  assert.match(render, /attachIndices\(document\); \/\/ idempotente/);
+  assert.match(source, /if \(!doc \|\| doc\.__indicesAttached\) return false;/, "el enganche es idempotente");
+});

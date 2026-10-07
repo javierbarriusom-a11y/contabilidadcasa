@@ -1494,3 +1494,103 @@ test.describe("WP-13 · índices de referencia con fecha y caducidad", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-20: revisión del tipo variable de la hipoteca (Deuda › Contratos). Lee la hipoteca ya declarada y el Euribor de la tarjeta de índices; los
+// datos de la revisión son inventados (los reales los introduce el hogar y no van al repositorio).
+test.describe("WP-20 · revisión del tipo variable de la hipoteca", () => {
+  const addMortgage = async (page) => {
+    await page.fill("#deudaContratosAddEntity", "Banco Ejemplo");
+    await page.selectOption("#deudaContratosAddType", "Hipoteca");
+    await page.fill("#deudaContratosAddPrincipal", "120000");
+    await page.fill("#deudaContratosAddPayment", "680");
+    await page.fill("#deudaContratosAddInstallments", "240");
+    await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+  };
+  const inDays = (page, days) => page.evaluate((n) => isoLocalDate(new Date(Date.now() + n * 86400000)), days);
+
+  test("sin hipoteca avisa y enseña el ejemplo marcado; con ella calcula, valida, recuerda, y avisa en Hoy solo dentro de los 60 días", async ({ page }) => {
+    test.setTimeout(90000); // dos tamaños de pantalla y varios guardados, como la prueba de la cartera
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#revisionTipoCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+
+      // Sin hipoteca: lo dice, no enseña formulario, y el ejemplo está marcado como tal.
+      await expect(card.locator("#revisionTipoContratoInfo")).toContainText("No hay ninguna hipoteca activa");
+      await expect(card.locator("#revisionTipoForm")).toBeHidden();
+      await card.locator("#revisionTipoEjemplo summary").click();
+      await expect(card.locator("#revisionTipoEjemplo")).toContainText("EJEMPLO · cifras inventadas, no son las tuyas");
+      await expect(card.locator("#revisionTipoEjemplo")).toContainText("Cuota estimada: de");
+
+      // Alta de la hipoteca (se lee de aquí: no se escribe dos veces).
+      await addMortgage(page);
+      await expect(card.locator("#revisionTipoContratoInfo")).toContainText("Banco Ejemplo", { timeout: 15000 });
+      await expect(card.locator("#revisionTipoContratoInfo")).toContainText("240 plazos restantes");
+      await expect(card.locator("#revisionTipoForm")).toBeVisible();
+      await expect(card.locator("#revisionTipoResultado")).toContainText("Rellena los datos");
+
+      // Sin Euribor tecleado no se calcula y dice qué falta.
+      await page.fill("#revisionTipoSpread", "0,99");
+      await page.fill("#revisionTipoDate", await inDays(page, 150));
+      await card.locator("#revisionTipoGuardar").click();
+      await expect(card.locator("#revisionTipoResultado")).toContainText("el valor del Euribor (tarjeta de índices)");
+
+      // Datos mal tecleados: se rechazan, se dice cuál y no se guardan.
+      await page.fill("#revisionTipoSpread", "abc");
+      await card.locator("#revisionTipoGuardar").click();
+      await expect(card.locator("#revisionTipoNota")).toContainText("El diferencial va en %");
+      await expect(page.locator("#revisionTipoSpread")).toHaveAttribute("aria-invalid", "true");
+      await page.fill("#revisionTipoSpread", "0,99");
+      await page.fill("#revisionTipoLag", "9");
+      await card.locator("#revisionTipoGuardar").click();
+      await expect(card.locator("#revisionTipoNota")).toContainText("Los meses antes van de 1 a 3");
+      await page.fill("#revisionTipoLag", "1");
+
+      // Con Euribor tecleado, calcula; la cuota mostrada es la del motor.
+      await page.fill('[data-indices-index="euribor12m"] [data-indices-valor]', "2,35");
+      await page.locator('[data-indices-index="euribor12m"] [data-indices-guardar]').click();
+      await page.fill("#revisionTipoBonus", "0,30");
+      await page.fill("#revisionTipoRate", "3,10");
+      await card.locator("#revisionTipoGuardar").click();
+      const result = card.locator("#revisionTipoResultado");
+      await expect(result).toContainText("Próxima revisión:");
+      await expect(result).toContainText("la media mensual del Euribor de");
+      await expect(result).toContainText("Si pierdes la bonificación");
+      await expect(result).toContainText("estimación, no un pronóstico");
+      const expected = await page.evaluate(() => {
+        const mortgage = revisionMortgages(isoLocalDate(new Date()))[0];
+        const settings = revisionLoad().byContract[mortgage.id];
+        const r = revisionEvaluate(FinanceCanonicalRateReview, mortgage, settings, isoLocalDate(new Date()));
+        return { text: `de ${money(r.payment.low, true)} a ${money(r.payment.high, true)}`, central: r.centralRate };
+      });
+      await expect(result).toContainText(expected.text);
+      expect(expected.central).toBe(3.34);
+
+      // Se recuerda tras recargar, sin pisar lo escrito en otros campos.
+      await page.reload();
+      await expect(page.locator("#revisionTipoSpread")).toHaveValue("0,99", { timeout: 15000 });
+      await expect(page.locator("#revisionTipoRate")).toHaveValue("3,1");
+      await expect(card.locator("#revisionTipoResultado")).toContainText("Próxima revisión:");
+
+      // Fuera de los 60 días, Hoy no cambia; dentro, aparece la pregunta con su cuota.
+      await page.evaluate(() => { location.hash = "#home"; });
+      await expect(page.locator("#home")).toBeVisible();
+      await expect(page.locator("#homeDecisionInboxList")).not.toContainText("Revisión del tipo", { timeout: 5000 });
+      await page.evaluate(() => { location.hash = "#deuda-contratos"; });
+      await page.fill("#revisionTipoDate", await inDays(page, 45));
+      await card.locator("#revisionTipoGuardar").click();
+      await expect(result).toContainText("aviso activo");
+      await page.evaluate(() => { location.hash = "#home"; });
+      await expect(page.locator("#homeDecisionInboxList")).toContainText("Hipoteca variable: Revisión del tipo en 45 días", { timeout: 15000 });
+      await expect(page.locator("#homeDecisionInboxList")).toContainText("Cuota estimada de");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

@@ -2192,6 +2192,38 @@
               <p class="e19-kpi-note" id="indicesNota" role="status"></p>
             </article>
 
+            <!-- WP-20 (NDB-02, docs/WP20_DISENO.md): revisión del tipo variable de la hipoteca. La pinta revision-tipo-ui.js con el Euribor de la tarjeta de índices. Estimación, no pronóstico; no ejecuta nada. -->
+            <article class="e19-card" id="revisionTipoCard" aria-labelledby="revisionTipoTitulo">
+              <h3 class="escenario-motor-panel-title" id="revisionTipoTitulo">Revisión del tipo variable de la hipoteca</h3>
+              <p class="e19-kpi-note">Dice <strong>cuándo es la próxima revisión</strong>, qué dato del Euribor se leerá según tu contrato y <strong>entre qué cuotas</strong> caerá la nueva. Usa el último Euribor de la tarjeta de índices de arriba. Es una <strong>estimación, no un pronóstico</strong>, y no ejecuta nada.</p>
+              <p class="e19-kpi-note" id="revisionTipoContratoInfo"></p>
+              <div id="revisionTipoForm" hidden>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker" hidden><span>Hipoteca</span>
+                    <select id="revisionTipoContrato"></select></label>
+                  <label class="month-picker"><span>Diferencial (%)</span>
+                    <input id="revisionTipoSpread" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 0,99" /></label>
+                  <label class="month-picker"><span>Bonificación incluida en el diferencial (puntos)</span>
+                    <input id="revisionTipoBonus" type="text" inputmode="decimal" autocomplete="off" placeholder="Opcional, ej. 0,30" /></label>
+                  <label class="month-picker"><span>Tipo aplicado actualmente (%)</span>
+                    <input id="revisionTipoRate" type="text" inputmode="decimal" autocomplete="off" placeholder="Opcional, ej. 3,10" /></label>
+                  <label class="month-picker"><span>Próxima revisión</span>
+                    <input id="revisionTipoDate" type="date" /></label>
+                  <label class="month-picker"><span>Se revisa cada</span>
+                    <select id="revisionTipoPeriod"><option value="12">12 meses</option><option value="6">6 meses</option></select></label>
+                  <label class="month-picker"><span>Regla del Euribor en tu contrato</span>
+                    <select id="revisionTipoRule"><option value="monthlyAverage">Media mensual</option><option value="dayValue">Valor de un día</option></select></label>
+                  <label class="month-picker"><span id="revisionTipoLagLabel">Cuántos meses antes (media mensual)</span>
+                    <input id="revisionTipoLag" type="text" inputmode="numeric" autocomplete="off" /></label>
+                </div>
+                <button type="button" class="e19-btn e19-btn-secondary" id="revisionTipoGuardar">Guardar datos de la revisión</button>
+              </div>
+              <p class="e19-kpi-note" id="revisionTipoNota" role="status"></p>
+              <div id="revisionTipoResultado"></div>
+              <p class="e19-kpi-note">Cubre el <strong>Euribor a 12 meses</strong> (no IRPH ni otros índices). Se teclea en la tarjeta «Índices de referencia», justo encima. El «diferencial» es el efectivo: si ya incluye una bonificación por vinculaciones, indícala aparte y verás la cuota si la pierdes.</p>
+              <details class="idx-historial" id="revisionTipoEjemplo"></details>
+            </article>
+
             <!-- DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad. Cuando hay
                  más de una deuda activa con deducción fiscal distinta (p. ej. hipoteca con deducción
                  autonómica vigente vs. préstamo personal sin deducción), el orden de "mayor coste" no
@@ -7771,6 +7803,8 @@
     <script defer src="esperados-ui.js?v=20261007wp14a1"></script>
     <script defer src="canonical-rate-indices.js?v=20261007wp13a1"></script>
     <script defer src="indices-ui.js?v=20261007wp13a1"></script>
+    <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
+    <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>
