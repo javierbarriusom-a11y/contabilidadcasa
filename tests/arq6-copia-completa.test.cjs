@@ -36,6 +36,7 @@ const EXCLUDED = {
   "usage-days": "panel de uso de este móvil (WP-03): qué días se abrió, edad de los saldos y minutos declarados; sin importes. Un solo móvil (3/10/2026): no se sincroniza",
   "finding-test": "prueba cronometrada de Hoy en este dispositivo (WP-02): segundos y «misma cifra sí/no», sin importes; mide este móvil, no es un dato del hogar",
   "balance-pulse-times": "tiempos del Pulso de saldos en este dispositivo (WP-26): segundos y recuentos de «Coincide»/«Corregir», sin importes; mide este móvil, no es un dato del hogar",
+  "reminders-settings": "qué recordatorios quiere este móvil, el umbral de «cargo grande» y cuándo se generó su último .ics (WP-32): describe el calendario de este dispositivo, sin importes del hogar",
   "novedades-ultima-vista": "hasta qué línea de «Novedades» se ha leído en este dispositivo (WP-01), no un dato del hogar",
   "finance-e18-local-health": "métricas técnicas locales (E18)",
   // Trabajo a medias y ayudas de este dispositivo.

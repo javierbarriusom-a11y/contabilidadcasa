@@ -1194,11 +1194,15 @@ test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
       await expect(slider).toHaveAttribute("aria-valuenow", "0");
       await expect(figure.locator(".ck-cursor")).toBeVisible();
       // La lectura es fija: leer un punto no mueve nada por debajo de ella.
-      const before = (await figure.locator("[data-ck-readout]").boundingBox()).y;
-      await page.keyboard.press("Tab");
+      // Se mide en coordenadas de DOCUMENTO (posición + desplazamiento): al enfocar o pulsar teclas la página puede desplazarse, y eso mueve la
+      // posición en la ventana sin que el diseño cambie. Lo que no debe pasar es que leer un punto empuje lo de debajo.
+      const readoutTop = () => figure.locator("[data-ck-readout]").evaluate((node) => Math.round(node.getBoundingClientRect().top + window.scrollY));
       await slider.focus();
+      await page.keyboard.press("Home");
+      const before = await readoutTop();
       await page.keyboard.press("End");
-      expect((await figure.locator("[data-ck-readout]").boundingBox()).y).toBeCloseTo(before, 0);
+      await page.keyboard.press("ArrowLeft");
+      expect(await readoutTop(), "leer otro punto no mueve la lectura ni lo que hay debajo").toBe(before);
       // Ver como tabla: una fila por mes, los mismos números.
       await figure.locator(".ck-tabla summary").click();
       await expect(figure.locator(".ck-tabla table tbody tr")).toHaveCount(last + 1);
@@ -1258,6 +1262,132 @@ test.describe("WP-16 · banda de caja a 30 días", () => {
       await expect(figure.locator(".ck-tabla thead th")).toHaveText(["Día", "P10", "P50", "P90", "Según el plan"]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
     }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// WP-32: recordatorios en el calendario del móvil (Ajustes): opciones que se recuerdan, descarga de un .ics válido y sin datos privados en los títulos.
+test.describe("WP-32 · recordatorios en el calendario", () => {
+  test("opciones, descarga de un .ics válido sin importes en los títulos y sin desbordar en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#recordatoriosCard");
+      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(4);
+      await expect(card).toContainText("no es un calendario que se actualice solo");
+      await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
+      // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
+      await card.locator('[data-recordatorios-kind="monthClose"]').uncheck();
+      await expect(card.locator("#recordatoriosResumen")).not.toContainText("cierres de mes");
+      await page.reload();
+      await expect(card.locator('[data-recordatorios-kind="monthClose"]')).not.toBeChecked();
+      await card.locator('[data-recordatorios-kind="monthClose"]').check();
+      await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
+      // La descarga: un .ics con alarma en cada evento y sin importes ni nombres en los títulos.
+      const [download] = await Promise.all([page.waitForEvent("download"), card.locator("#recordatoriosDescargar").click()]);
+      expect(download.suggestedFilename()).toBe("recordatorios-finanzas-casa.ics");
+      const text = await new Promise((resolve, reject) => { const chunks = []; download.createReadStream().then((stream) => { stream.on("data", (chunk) => chunks.push(chunk)); stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8"))); stream.on("error", reject); }, reject); });
+      expect(text.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
+      const events = (text.match(/BEGIN:VEVENT/g) || []).length;
+      expect(events).toBeGreaterThan(0);
+      expect((text.match(/BEGIN:VALARM/g) || []).length, "cada evento lleva su alarma").toBe(events);
+      const titles = [...text.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
+      titles.forEach((title) => expect(title, `el título «${title}» enseña un importe`).not.toMatch(/€|\d{3}/));
+      await expect(card.locator("#recordatoriosNota")).toContainText("Recordatorios descargados");
+      await expect(card.locator("#recordatoriosResumen")).toContainText("Generado hoy.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// WP-14 + WP-27: «¿ha llegado…?» en la bandeja de Hoy. La demo no tiene fechas de regla (el detector calla, que es lo correcto), así que se inyectan
+// dos esperados vencidos sobre filas REALES de la demo y se comprueban de verdad los efectos en la previsión.
+async function injectExpected(page) {
+  return page.evaluate(() => {
+    const today = isoLocalDate(new Date());
+    const key = today.slice(0, 7);
+    const month = monthByKey(key);
+    const incomeRow = planningSectionsForMonth("income", month)[0].rows[0];
+    const expRow = planningSectionsForMonth("expense", month).find((section) => section.name !== VARIABLE_OPERATIONAL_SECTION).rows[0];
+    const back = (days) => { const date = new Date(); date.setDate(date.getDate() - days); return isoLocalDate(date); };
+    window.__esperados = { incomeKey: seriesKeyForRow(incomeRow), expKey: seriesKeyForRow(expRow), key, incomeLabel: displayLabelForRow(incomeRow), expLabel: displayLabelForRow(expRow) };
+    expectedMovementExpectations = () => [
+      { id: `${seriesKeyForRow(incomeRow)}|${key}`, kind: "income", seriesKey: seriesKeyForRow(incomeRow), label: displayLabelForRow(incomeRow), month: key, expectedDate: back(5), certain: true, plannedAmount: actualAwareInfo(incomeRow, month).planned, arrived: Boolean(actualAwareInfo(incomeRow, month).hasActual), cancelled: false, history: [] },
+      { id: `${seriesKeyForRow(expRow)}|${key}`, kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: actualAwareInfo(expRow, month).planned, arrived: Boolean(actualAwareInfo(expRow, month).hasActual), cancelled: actualAwareInfo(expRow, month).status === "cancelled", history: [{ date: back(40), amount: 1 }] },
+    ];
+    expectedLedgerCoveredUntil = () => today;
+    renderDecisionInboxCard();
+  });
+}
+
+test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () => {
+  test("responder registra el real, se puede deshacer, «aún no» calla y se recuerda, y la baja anula la serie y se deshace", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/index.html#home");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.removeItem(`expected-answers:${baseData?.metadata?.sourceWorkbook || "finance"}`); } catch { /* sin almacenamiento */ } });
+    await expect(page.locator("#homeDecisionInboxCard")).toBeAttached({ timeout: 15000 });
+    await page.waitForFunction(() => typeof expectedMovementExpectations === "function" && typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+    await injectExpected(page);
+    const card = page.locator("#homeDecisionInboxCard");
+    await expect(card).toBeVisible();
+    await expect(card.locator("li")).toHaveCount(2);
+    await expect(card.locator("li").first()).toContainText("¿Ha llegado");
+    await expect(card.locator("li").first()).toContainText("5 días de retraso");
+    await expect(card.locator("li").nth(1)).toContainText("no ha llegado");
+    await expect(card.locator("li").nth(1)).toContainText("Últimos cargos");
+    // La demo no importa extractos: sin ellos, un cargo NO se pregunta (no aparece ≠ no lo he importado).
+    const silent = await page.evaluate(() => { const real = globalThis.FinanceCanonicalExpectedMovements; return real.detect({ today: isoLocalDate(new Date()), ledgerCoveredUntil: null, expectations: [{ id: "x", kind: "expense", expectedDate: "2020-01-01", certain: true }] }).items.length; });
+    expect(silent).toBe(0);
+
+    const realized = () => page.evaluate(() => { const month = monthByKey(window.__esperados.key); const info = actualAwareInfo(rowForSeriesKey(window.__esperados.incomeKey), month); return { has: info.hasActual, actual: info.actual }; });
+    // «Sí, por el importe previsto»: registra el real; el aviso de deshacer lo revierte.
+    expect((await realized()).has).toBe(false);
+    await card.locator('[data-expected-response="yes"]').click();
+    await expect.poll(async () => (await realized()).has).toBe(true);
+    expect((await realized()).actual).toBe(3000);
+    await expect(card.locator("li")).toHaveCount(1);
+    await page.getByRole("button", { name: "Deshacer" }).click();
+    await expect.poll(async () => (await realized()).has).toBe(false);
+    await injectExpected(page);
+    await expect(card.locator("li")).toHaveCount(2);
+
+    // «Sí, otro importe»: pide el importe (con coma española) y lo registra.
+    await card.locator('[data-expected-response="yesOther"]').click();
+    const input = card.locator("[data-expected-amount]");
+    await expect(input).toBeFocused();
+    await input.fill("2.950,50");
+    await input.press("Enter");
+    await expect.poll(async () => (await realized()).actual).toBe(2950.5);
+    await page.getByRole("button", { name: "Deshacer" }).click();
+    await expect.poll(async () => (await realized()).has).toBe(false);
+    await injectExpected(page);
+
+    // «Aún no»: la pregunta desaparece, y tras recargar sigue callada (el almacén persiste).
+    await card.locator('[data-expected-response="notYet"]').click();
+    await expect(card.locator("li")).toHaveCount(1);
+    await page.reload();
+    await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+    await injectExpected(page);
+    await expect(card.locator("li")).toHaveCount(1);
+    await expect(card.locator("li").first()).toContainText("no ha llegado");
+
+    // «Se ha dado de baja»: el mes y los siguientes dejan de contar; deshacer los devuelve.
+    const eliminated = () => page.evaluate(() => { const months = selectableMonths().slice(0, 3); const row = rowForSeriesKey(window.__esperados.expKey); return months.map((month) => actualAwareInfo(row, month).source === "Eliminado"); });
+    expect((await eliminated()).some(Boolean)).toBe(false);
+    await card.locator('[data-expected-response="cancelled"]').click();
+    await expect.poll(async () => (await eliminated()).every(Boolean)).toBe(true);
+    await page.getByRole("button", { name: "Deshacer" }).click();
+    await expect.poll(async () => (await eliminated()).some(Boolean)).toBe(false);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
