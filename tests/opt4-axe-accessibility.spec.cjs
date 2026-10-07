@@ -92,3 +92,46 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// Auditoría del 7/10/2026: dos reglas globales de styles.css rompían cosas sin que ninguna prueba lo viera. Se mide el RESULTADO en el navegador
+// (las causas están fijadas en tests/audit-svg-tablas-oscuro.test.cjs).
+//   · Modo oscuro: ninguna fila de tabla con texto y fondo a menos de 3:1 (antes ≈ 1,1:1 en 24 vistas).
+//   · Ningún SVG se sale por debajo de su contenedor (antes, las barras de «Valor por posición» medían 350 px en pistas de 14 px).
+const DARK_TABLE_VIEWS = ["home", "registrar", "plan", "new-life-simulation", "deuda-ruta", "registrar-mes", "ajustes", "visual-detail", "debt-liquidation-plan", "cashflow"];
+
+test.describe("auditoría 7/10 · tablas en modo oscuro", () => {
+  test.use({ colorScheme: "dark" });
+  for (const view of DARK_TABLE_VIEWS) {
+    test(`#${view}: ninguna fila de tabla ilegible`, async ({ page }) => {
+      await page.goto(`/index.html#${view}`);
+      await page.reload();
+      await page.waitForTimeout(1500);
+      await page.evaluate((id) => document.querySelectorAll(`#${id} details`).forEach((d) => { d.open = true; }), view);
+      const bad = await page.evaluate((id) => {
+        const lum = (c) => { const m = c.match(/[\d.]+/g); if (!m) return 0; const [r, g, b] = m.slice(0, 3).map((n) => { n = Number(n) / 255; return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const found = [];
+        document.querySelectorAll(`#${id} tbody tr, #${id} thead tr`).forEach((tr) => {
+          if (tr.getBoundingClientRect().height === 0) return;
+          const cell = tr.querySelector("td, th");
+          if (!cell) return;
+          const bg = getComputedStyle(tr).backgroundColor;
+          if ((bg.match(/[\d.]+/g) || [])[3] === "0") return;
+          const bl = lum(bg);
+          const fl = lum(getComputedStyle(cell).color);
+          const ratio = (Math.max(bl, fl) + 0.05) / (Math.min(bl, fl) + 0.05);
+          if (ratio < 3) found.push(`${(tr.closest("table")?.id || tr.closest("table")?.className || "table").toString().slice(0, 40)}: ${ratio.toFixed(2)}`);
+        });
+        return [...new Set(found)];
+      }, view);
+      expect(bad, `filas ilegibles en ${view}: ${bad.join(", ")}`).toEqual([]);
+    });
+  }
+});
+
+test("auditoría 7/10 · ningún SVG de Inversión › Cartera se sale de su contenedor", async ({ page }) => {
+  await page.goto("/index.html#inversion-cartera");
+  await page.reload();
+  await expect(page.locator("#iv1ChartScroll .iv1-chart-row-track svg").first()).toBeAttached({ timeout: 15000 });
+  const overflowing = await page.evaluate(() => [...document.querySelectorAll("#iv1ChartScroll svg")].map((svg) => Math.round(svg.getBoundingClientRect().bottom - svg.parentElement.getBoundingClientRect().bottom)).filter((px) => px > 4));
+  expect(overflowing, "barras de «Valor por posición» que se salen de su pista").toEqual([]);
+});
+

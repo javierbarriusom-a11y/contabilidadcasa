@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-audit",
+      fecha: "2026-10-07",
+      texto: "Arreglos: «Valor por posición» (Inversión) ya no solapa sus barras y las tablas se leen bien en modo oscuro.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-07-wp16",
       fecha: "2026-10-07",
       texto: "Plan › Previsión: «Banda de caja a 30 días», con la probabilidad de bajar del suelo en vez de una línea que finge saber el día.",
