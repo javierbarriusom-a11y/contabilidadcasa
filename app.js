@@ -20079,6 +20079,7 @@ const IV2_XIRR_REASON_LABELS = {
   "same-date-flows": "aportación y valoración están en la misma fecha",
   "no-bracket": "no se encontró una tasa anualizada razonable",
   "not-converged": "el cálculo no convergió",
+  "disposal-proceeds-unknown": "una venta no tiene el importe cobrado",
 };
 
 function iv2XirrLabel(result) {
