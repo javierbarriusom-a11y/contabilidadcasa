@@ -6456,6 +6456,9 @@ body {
 .iv1-chart-row-track svg {
   width: 100%;
   height: 100%;
+  /* La regla global de svg (min-height: 350px) ganaba a `height: 100%`: cada barra medía 350 px dentro de una pista de 14 px y se solapaban unas con
+     otras (auditoría del 7/10/2026). */
+  min-height: 0;
   display: block;
 }
 
@@ -9415,12 +9418,14 @@ thead th:first-child {
   background: #edf3f5;
 }
 
+/* Cebra y hover de TODAS las tablas. Antes eran #fafbfc y #f0f7f6 fijos: en modo oscuro dejaban texto claro sobre casi blanco (contraste ≈ 1,1:1)
+   en 24 vistas y 34 tablas (auditoría del 7/10/2026). Ahora salen de tokens, que sí cambian con el tema. */
 tbody tr:nth-child(even) {
-  background: #fafbfc;
+  background: var(--surface-soft);
 }
 
 tbody tr:hover {
-  background: #f0f7f6;
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface));
 }
 
 .cashflow-row {
@@ -9553,26 +9558,26 @@ tbody tr:hover {
 
 .cashflow-year-row {
   cursor: pointer;
-  background: #e9f1f3;
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
 }
 
 .cashflow-year-row td {
   position: relative;
-  border-top: 2px solid #cfdde2;
-  border-bottom-color: #cfdde2;
+  border-top: 2px solid var(--line);
+  border-bottom-color: var(--line);
   font-weight: 900;
 }
 
 .cashflow-year-row td:first-child {
-  background: #e9f1f3;
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
 }
 
 .cashflow-year-row.expanded {
-  background: #e4f2ef;
+  background: color-mix(in srgb, var(--teal) 14%, var(--surface));
 }
 
 .cashflow-year-row.expanded td:first-child {
-  background: #e4f2ef;
+  background: color-mix(in srgb, var(--teal) 14%, var(--surface));
 }
 
 .cashflow-year-row small {
@@ -9610,7 +9615,7 @@ tbody tr:hover {
 }
 
 .cashflow-row.selected {
-  background: #eef7f5;
+  background: color-mix(in srgb, var(--teal) 6%, var(--surface));
 }
 
 .cashflow-row:focus {
