@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="design-tokens.css?v=20261004wp11a1" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261006wp23a1" />
     <link rel="stylesheet" href="chart-kit.css?v=20261006wp28a1" />
+    <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -5587,6 +5588,27 @@
               <p class="e19-kpi-note" id="ajustesExportNote"></p>
             </article>
 
+            <!-- WP-32 (CAP-09 + ND-10): recordatorios calculados con la previsión, como fichero .ics para el calendario del móvil. La pinta recordatorios-ui.js. -->
+            <article class="e19-card" id="recordatoriosCard" aria-labelledby="recordatoriosTitulo">
+              <h3 class="escenario-motor-panel-title" id="recordatoriosTitulo">Recordatorios en el calendario del móvil</h3>
+              <p class="e19-kpi-note">Avisos en el momento en que sirven, no a horas fijas: dos días antes de cobrar, el día después de un cargo grande, el día 1 para cerrar el mes y la campaña fiscal. Es un <strong>fichero</strong> que se genera aquí, en este dispositivo, con la previsión de hoy: no es un calendario que se actualice solo (este sitio es público y estático, y una dirección con vuestras finanzas no puede existir). Cuando cambie el plan, descargadlo de nuevo: importarlo otra vez actualiza los avisos que siguen valiendo, pero no puede borrar los que ya no valen. Los títulos no llevan importes ni nombres, para que la pantalla de bloqueo no los enseñe.</p>
+              <fieldset class="rec-opciones">
+                <legend>Qué avisar</legend>
+                <label><input type="checkbox" data-recordatorios-kind="income" checked /> Dos días antes de cobrar</label>
+                <label><input type="checkbox" data-recordatorios-kind="bigCharge" checked /> El día después de un cargo grande</label>
+                <label><input type="checkbox" data-recordatorios-kind="monthClose" checked /> El día 1: cerrar el mes</label>
+                <label><input type="checkbox" data-recordatorios-kind="fiscal" checked /> Campaña fiscal (1/12 y 20/12)</label>
+                <label class="rec-importe">Cargo grande desde (€)
+                  <input type="text" inputmode="decimal" id="recordatoriosMin" value="500" autocomplete="off" />
+                </label>
+              </fieldset>
+              <div id="recordatoriosResumen"></div>
+              <div class="cuadro-mandos-controls">
+                <button type="button" class="e19-btn e19-btn-primary" id="recordatoriosDescargar">Descargar recordatorios (.ics)</button>
+              </div>
+              <p class="e19-kpi-note" id="recordatoriosNota" role="status"></p>
+            </article>
+
             <!-- ARQ-6 (24 sept. 2026): la copia de emergencia (A0-9) vivía en #data-entry, que Registrar
                  redirige desde R-10/R-11 (15 ago.) y nunca se muestra: desde entonces no había ningún
                  botón para descargar la copia completa ni para restaurarla. Se trae aquí, donde el
@@ -7734,6 +7756,8 @@
     <script defer src="chart-kit.js?v=20261006wp28a1"></script>
     <script defer src="canonical-cash-band.js?v=20261007wp16a1"></script>
     <script defer src="cash-band-ui.js?v=20261007wp16a1"></script>
+    <script defer src="canonical-reminders.js?v=20261007wp32a1"></script>
+    <script defer src="recordatorios-ui.js?v=20261007wp32a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

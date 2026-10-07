@@ -135,3 +135,18 @@ test("auditoría 7/10 · ningún SVG de Inversión › Cartera se sale de su con
   expect(overflowing, "barras de «Valor por posición» que se salen de su pista").toEqual([]);
 });
 
+// WP-32: la tarjeta de recordatorios de Ajustes, medida en claro y en oscuro (casillas, lista, avisos).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-32 · contraste de la tarjeta de recordatorios en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#ajustes: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#ajustes");
+      await page.reload();
+      await expect(page.locator("#recordatoriosResumen .rec-lista")).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#recordatoriosCard").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+

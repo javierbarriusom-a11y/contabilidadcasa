@@ -334,6 +334,21 @@ La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones
 - **Ajustar la retención** se presenta como caja, no como ahorro, y rinde en 2027: pedirla ahora solo alcanza a las nóminas que quedan de 2026.
 - Los parámetros legales (límites, topes, porcentajes) están todavía **pendientes de contrastar con la fuente oficial**; la tarjeta lo dice. Es una estimación: confirma cada acción con un asesor antes de actuar. La app nunca aporta, amortiza, vende ni dona por ti.
 
+### Recordatorios en el calendario del móvil (Ajustes)
+
+**Ajustes › Recordatorios en el calendario del móvil** genera un fichero `.ics` con avisos **en el momento en que sirven**, no a horas fijas:
+
+- **Dos días antes de cobrar:** «Cobro en 2 días: actualizad saldos». Con los saldos al día, Hoy puede decir cuánto se gasta.
+- **El día después de un cargo grande** (desde 500 €, editable): comprobad que ha llegado y actualizad el saldo.
+- **El día 1:** cerrad el mes (la ventana de cierre es del 1 al 3).
+- **Campaña fiscal:** 1/12 (mirad la lista) y 20/12 (últimas decisiones).
+
+Cómo se usa: pulsa **«Descargar recordatorios (.ics)»** y abre el fichero desde el móvil; el calendario te pregunta si lo añade. Cada aviso suena a las 9:00 del día.
+
+- **No es un calendario que se actualice solo.** Esta web es pública y estática: una dirección con vuestras finanzas no puede existir. El fichero se genera en este dispositivo con la previsión de hoy. **Cuando cambie el plan, descárgalo otra vez**: los avisos que siguen valiendo se actualizan, pero **los que ya no valen no se borran** (un `.ics` no puede borrar nada): bórralos a mano. La tarjeta te dice cuándo regenerarlo (nunca generado, más de 30 días, o menos de un mes por delante).
+- **Solo avisa de lo que el plan sabe con seguridad.** Un cobro o un cargo con el día estimado (el 8 de relleno) no genera aviso: caería en un día cualquiera. La tarjeta dice cuántos se quedan fuera; declara el día de cargo en Plan › Partidas y entrarán.
+- **Los títulos no llevan importes ni nombres**, para que no se vean en la pantalla de bloqueo; el detalle (importe, concepto) sale al abrir el evento.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.

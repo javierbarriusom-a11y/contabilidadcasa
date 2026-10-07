@@ -1262,3 +1262,44 @@ test.describe("WP-16 · banda de caja a 30 días", () => {
   });
 });
 
+// WP-32: recordatorios en el calendario del móvil (Ajustes): opciones que se recuerdan, descarga de un .ics válido y sin datos privados en los títulos.
+test.describe("WP-32 · recordatorios en el calendario", () => {
+  test("opciones, descarga de un .ics válido sin importes en los títulos y sin desbordar en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#recordatoriosCard");
+      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(4);
+      await expect(card).toContainText("no es un calendario que se actualice solo");
+      await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
+      // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
+      await card.locator('[data-recordatorios-kind="monthClose"]').uncheck();
+      await expect(card.locator("#recordatoriosResumen")).not.toContainText("cierres de mes");
+      await page.reload();
+      await expect(card.locator('[data-recordatorios-kind="monthClose"]')).not.toBeChecked();
+      await card.locator('[data-recordatorios-kind="monthClose"]').check();
+      await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
+      // La descarga: un .ics con alarma en cada evento y sin importes ni nombres en los títulos.
+      const [download] = await Promise.all([page.waitForEvent("download"), card.locator("#recordatoriosDescargar").click()]);
+      expect(download.suggestedFilename()).toBe("recordatorios-finanzas-casa.ics");
+      const text = await new Promise((resolve, reject) => { const chunks = []; download.createReadStream().then((stream) => { stream.on("data", (chunk) => chunks.push(chunk)); stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8"))); stream.on("error", reject); }, reject); });
+      expect(text.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
+      const events = (text.match(/BEGIN:VEVENT/g) || []).length;
+      expect(events).toBeGreaterThan(0);
+      expect((text.match(/BEGIN:VALARM/g) || []).length, "cada evento lleva su alarma").toBe(events);
+      const titles = [...text.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
+      titles.forEach((title) => expect(title, `el título «${title}» enseña un importe`).not.toMatch(/€|\d{3}/));
+      await expect(card.locator("#recordatoriosNota")).toContainText("Recordatorios descargados");
+      await expect(card.locator("#recordatoriosResumen")).toContainText("Generado hoy.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+

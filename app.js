@@ -27973,6 +27973,7 @@ function renderAjustes() {
   // que solo el calendario financiero necesita y que hasta ahora no alimentaban ni el .ics ni el
   // widget.
   renderAjustesFinancialCalendar();
+  globalThis.renderRecordatorios?.(globalThis.FinanceCanonicalReminders); // WP-32 (recordatorios-ui.js)
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();
@@ -36049,6 +36050,7 @@ async function init() {
   qs("scenarioName").textContent = currentScenario;
 
   globalThis.ChartKit?.attach(document); // WP-28 (chart-kit.js): recorrido táctil y de teclado de los gráficos
+  globalThis.attachRecordatorios?.(document); // WP-32 (recordatorios-ui.js)
   qs("familyContextSwitch")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-family-context]");
     if (button) setFamilyContext(button.dataset.familyContext);
