@@ -10,7 +10,7 @@ const R = require("../canonical-reminders.js");
 const income = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const charge = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const base = { today: "2026-10-07" };
-const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, [kind]: true } });
+const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, [kind]: true } });
 
 test("sin la fecha de hoy no hay recordatorios: dice qué falta", () => {
   const r = R.build({});
@@ -81,14 +81,14 @@ test("campaña fiscal: 1/12 y 20/12, y el año siguiente si cae en el horizonte"
 });
 
 test("cada tipo se puede apagar, y apagarlos todos no deja nada", () => {
-  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)] };
+  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)], reviews: [{ date: "2027-03-15", low: 627.16, high: 747.12 }] };
   const all = R.build(input);
   R.KINDS.forEach((kind) => {
     const without = R.build({ ...input, options: { kinds: { [kind]: false } } });
     assert.equal(without.counts[kind], 0);
     assert.ok(all.counts[kind] > 0, `el tipo ${kind} debe dar eventos en este escenario`);
   });
-  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false } } }).events.length, 0);
+  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false } } }).events.length, 0);
 });
 
 test("orden por fecha, sin duplicados, con identificadores estables entre generaciones", () => {

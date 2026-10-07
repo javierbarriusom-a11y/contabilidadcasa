@@ -6,7 +6,7 @@
 // cargarse: app.js llama a `renderRecordatorios` al pintar Ajustes y a `attachRecordatorios` una vez en init.
 
 const RECORDATORIOS_STORE = "reminders-settings";
-const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales" };
+const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca" };
 
 function recordatoriosSettings() {
   const engine = globalThis.FinanceCanonicalReminders;
@@ -32,6 +32,8 @@ function recordatoriosInput(settings, today) {
     today,
     incomes: events.filter((event) => event.kind === "income").map((event) => ({ date: event.date, label: event.label, amount: event.amount, confidence: event.confidence })),
     outflows: events.filter((event) => event.kind === "outflow").map((event) => ({ date: event.date, label: event.label, amount: event.amount, confidence: event.confidence })),
+    // WP-20 (revision-tipo-ui.js): las fechas de revisión del tipo variable de las hipotecas con sus datos rellenados.
+    reviews: globalThis.rateReviewCalendarItems?.() || [],
     options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin },
   };
 }
