@@ -1221,3 +1221,41 @@ test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
     await context.close();
   });
 });
+
+// WP-16: la banda de caja a 30 días (Plan › Previsión), con el kit de gráficos de WP-28 y el suelo de liquidez.
+test.describe("WP-16 · banda de caja a 30 días", () => {
+  test("se abre, se recorre con teclado, dice su frase y su tabla, no se repinta sola y no desborda en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#prevision");
+      await page.reload();
+      const card = page.locator("#previsionBandaCard");
+      await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
+      await page.locator("#previsionBandaResumen").click();
+      const figure = card.locator(".ck-figure");
+      await expect(figure).toBeVisible();
+      await expect(card.locator(".ck-frase")).toContainText(/trayectorias/);
+      await expect(figure.locator("svg[role='img']")).toHaveAttribute("aria-label", /Banda de caja de los próximos 30 días[\s\S]*La liquidez central \(P50\)/);
+      await expect(figure.locator(".ck-umbral")).toHaveCount(1); // el suelo se ve
+      await expect(card.locator(".ck-leyenda")).toContainText("Suelo");
+      const slider = figure.locator(".ck-scrub");
+      const last = Number(await slider.getAttribute("aria-valuemax"));
+      expect(last, "30 días de horizonte desde hoy").toBe(30);
+      await slider.focus();
+      await page.keyboard.press("End");
+      await expect(slider).toHaveAttribute("aria-valuenow", String(last));
+      await expect(figure.locator("[data-ck-readout]")).toContainText(/P10 .*P50 .*P90 .*según el plan/);
+      // Se repinta cuando cambian los datos, no por pintar: tras esperar, la lectura sigue donde estaba.
+      await page.waitForTimeout(1500);
+      await expect(slider).toHaveAttribute("aria-valuenow", String(last));
+      await figure.locator(".ck-tabla summary").click();
+      await expect(figure.locator(".ck-tabla tbody tr")).toHaveCount(last + 1);
+      await expect(figure.locator(".ck-tabla thead th")).toHaveText(["Día", "P10", "P50", "P90", "Según el plan"]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+

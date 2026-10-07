@@ -41,6 +41,10 @@ Un módulo `chart-kit.js` (global `ChartKit`, sin dependencias, SVG propio) y un
 
 **Efecto lateral corregido:** la vista repintaba el análisis avanzado a los ~600 ms de abrirse (el repintado pesado), borrando la lectura y el foco del gráfico que el hogar ya estaba recorriendo. `renderE13ScenarioLab` ya no repinta si el HTML no cambió. Se detectó con la prueba táctil.
 
+## 4 bis. Defecto detectado después de fusionar: tablas ilegibles en modo oscuro (corregido en WP-16)
+
+Al añadir WP-16 se midió el contraste del kit (axe, en claro y en oscuro). **«Ver como tabla» del cono, ya fusionado en WP-28, era ilegible en oscuro**: una regla global de `styles.css` (`tbody tr:nth-child(even) { background: #fafbfc }`, sin tema) dejaba texto claro sobre casi blanco (contraste **1,12:1**). La suite de axe existente excluye el contraste (OPT-4), por eso no saltó. Además, las etiquetas de mes del cono quedaban en 4,36:1 en claro. Corregido en `chart-kit.css` con tokens y fijado con 4 pruebas de axe nuevas (cono y banda de caja, claro y oscuro). **Lección:** una prueba de contraste en oscuro debía haber estado en el PR de WP-28; esas pruebas ya existen.
+
 ## 5. Pendiente
 
 | Qué | Cuándo |

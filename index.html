@@ -6495,6 +6495,11 @@
               </div>
             </div>
             <div class="account-balance-strip" id="previsionBalanceSummary"></div>
+            <!-- WP-16 (NPV-01): banda de caja a 30 días (P10-P90, probabilidad de cruzar el suelo). La pinta cash-band-ui.js con el kit de gráficos (WP-28). -->
+            <details class="e19-card prevision-calidad-card" id="previsionBandaCard">
+              <summary id="previsionBandaResumen">Banda de caja a 30 días</summary>
+              <div id="previsionBanda"></div>
+            </details>
             <!-- WP-10 (NPV-08): calidad de los datos de la previsión, plegada para no empujar la cifra en el móvil. -->
             <details class="e19-card prevision-calidad-card" id="previsionCalidadCard">
               <summary id="previsionCalidadResumen">Calidad de los datos de la previsión</summary>
@@ -7727,6 +7732,8 @@
     <script defer src="captura-ui.js?v=20261005wp30c1"></script>
     <script defer src="canonical-portfolio-valuation.js?v=20261006wp15a1"></script>
     <script defer src="chart-kit.js?v=20261006wp28a1"></script>
+    <script defer src="canonical-cash-band.js?v=20261007wp16a1"></script>
+    <script defer src="cash-band-ui.js?v=20261007wp16a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

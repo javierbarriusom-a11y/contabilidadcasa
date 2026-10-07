@@ -334,6 +334,17 @@ La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones
 - **Ajustar la retención** se presenta como caja, no como ahorro, y rinde en 2027: pedirla ahora solo alcanza a las nóminas que quedan de 2026.
 - Los parámetros legales (límites, topes, porcentajes) están todavía **pendientes de contrastar con la fuente oficial**; la tarjeta lo dice. Es una estimación: confirma cada acción con un asesor antes de actuar. La app nunca aporta, amortiza, vende ni dona por ti.
 
+### Banda de caja a 30 días (Plan › Previsión)
+
+Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.
+
+- **La banda:** el 80 % de las trayectorias queda dentro de la zona sombreada (P10-P90); la línea es la mediana. Una raya discontinua marca tu **suelo de liquidez** (Ajustes).
+- **La probabilidad de bajar del suelo:** «En 3 de cada 10 trayectorias la liquidez baja del suelo entre el 8 y el 12 de noviembre». Es probabilidad, no calendario: no dice qué día cae cada recibo. Si declaras el día de cargo de una partida (Plan › Partidas), deja de ser incierta y la banda se estrecha.
+- **El día más probable del mínimo** (o «el punto más bajo es el saldo de hoy», si ningún día baja de ahí).
+- Se recorre con el dedo, el ratón o las flechas (como el cono de escenarios) y **«Ver como tabla»** da los 31 días, con la trayectoria «según el plan» al lado.
+- **Cuándo no informa:** si el 70 % o más de lo que se mueve tiene fecha estimada, la tarjeta dice que la banda es ancha: sirve para ver cuánto puede variar la caja, poco para saber en qué día.
+- **Lo que no cubre:** solo recoge la incertidumbre de las **fechas**, no la de los **importes** (un gasto que salga más caro). Y parte de tus saldos declarados: si son de hace días, la banda se ensancha por los días sin declarar; si son calculados (no «Real manual»), te lo dice.
+
 ### Leer un gráfico (cono de previsión)
 
 El cono de **Escenarios › Análisis avanzado › Bandas de confianza** se lee de tres maneras, sin necesidad de ratón:

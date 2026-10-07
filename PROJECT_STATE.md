@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 6 de octubre de 2026 (sesión 300). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 7 de octubre de 2026 (sesión 301). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,17 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 7 de octubre de 2026 (301): WP-16 · banda de caja a 30 días (probabilidad de cruzar el suelo), y un defecto de WP-28 corregido
+
+- **Qué se hizo (WP-16, NPV-01):** `canonical-cash-band.js` (motor puro, determinista) y la tarjeta plegada **«Banda de caja a 30 días»** en Plan › Previsión (`cash-band-ui.js`, con el kit de WP-28). Simula 500 trayectorias y da la **banda P10-P90** de la liquidez (CaixaBank + Mediolanum) día a día, la **probabilidad de cruzar el suelo** con su tramo de días («En 3 de cada 10 trayectorias baja del suelo entre el 8 y el 12») y el día más probable del mínimo. Eventos con día cierto (observado, regla, día de cargo del hogar) caen en su día; los de **fecha estimada** se reparten uniformes en la ventana 1-28; el **gasto variable estimado** se reparte por igual entre los días que quedan del mes (sin azar: tratarlo como un pago en un día al azar inventaría varianza); dentro de un día, primero lo que sale (prudente). Diseño y calibración en `docs/WP16_DISENO.md`; guía en `MANUAL_USUARIO.md`; entrada en «Novedades». El kit gana la **línea de umbral** (el suelo).
+- **Calibración con el hogar sintético de WP-33 (600 hogares):** la banda cubre el **87-94 %** (nominal 80 %: algo conservadora por la discretización a días) y la probabilidad media de cruzar el suelo es **0,225 frente a 0,247** real (dentro del ruido). **Contraste:** la previsión actual (todo lo desconocido el día 8, como cierto) afirma que se cruza el suelo en el **100 %** de los meses cuando en ese hogar ocurre en el **25 %**. Es calibración en su propio terreno (fechas erráticas uniformes 1-28): **no demuestra que esa ventana sea la del hogar real**.
+- **Lo que la tarjeta dice de sí misma:** «banda ancha» cuando ≥ 70 % de lo que se mueve (por importe) tiene fecha estimada (el mismo umbral que WP-10; con la demo, 100 %); «solo recoge la incertidumbre de las fechas, no la de los importes»; «saldos calculados, no declarados» si no es «Real manual»; sin suelo declarado, no afirma ningún cruce.
+- **Defecto de WP-28 encontrado y corregido:** «Ver como tabla» del cono (fusionado ayer) era **ilegible en modo oscuro**: una regla global de `styles.css` pinta toda fila par de toda tabla con `#fafbfc` (contraste 1,12:1), y la suite de axe excluye el contraste desde OPT-4, así que no saltó. Se corrige en el kit con tokens y se fijan **4 pruebas de axe nuevas** (cono y banda, claro y oscuro). Las etiquetas de mes del cono, en 4,36:1, también. Error mío: la prueba de contraste en oscuro debía haber estado en el PR de WP-28.
+- **Estado del plan:** **WP-16 «hecho · sin medir»** (el motor y la tarjeta están construidos y calibrados con datos sintéticos; no se ha leído con datos reales del hogar). Faltan, y no se dan por hechos: la ventana **aprendida** por partida (hoy 1-28), la dispersión de **importes**, y una línea en Hoy (**solo tras H1**, la prueba del 9/10). Avance ponderado ≈ **29,1 %** (40,35 de 138,5 sesiones).
+- **Siguiente (pedido por el hogar):** auditar el defecto de `svg { min-height: 350px }` en el resto de SVG, y las tablas en oscuro (la regla de la cebra es global: otras tablas pueden estar igual).
+- **`app.js`:** 37.419 de 37.495 (+1 línea: la llamada a la tarjeta). `canonical-*.js`: 85 (ARQ-3 actualizado).
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **5407/5407** (5382 + 25: 24 de WP-16 y 1 del kit), lint, typecheck (dos errores propios corregidos antes: aritmética de fechas y tipo del parámetro), accesibilidad, rendimiento, build, privacidad y smoke. Además: e2e **41/41** (+1), axe **10/10** (+4), perf-screens **3/3**, presupuesto de carga: mediana **2.757 ms** (tope 5.000). `test:mobile-overflow` sigue fallando solo por `label.faqs-search` de `#faqs-ayuda` a 360 px (preexistente).
 
 ## Cierre de sesión — 6 de octubre de 2026 (300, tercer PR): WP-28 · kit de gráficos táctil y accesible, con el cono de previsión migrado
 

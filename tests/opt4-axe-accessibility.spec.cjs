@@ -67,3 +67,28 @@ test.describe("OPT-4 · axe-core contra las pantallas de QA-1", () => {
     });
   }
 });
+
+// WP-28 / WP-16: las tablas «Ver como tabla» del kit de gráficos. En modo oscuro, una regla global de styles.css (`tbody tr:nth-child(even)
+// { background: #fafbfc }`) dejaba texto claro sobre casi blanco (1,12:1) y nadie lo vio porque el contraste queda fuera de la suite de arriba.
+// Aquí SÍ se mide, solo en lo que es del kit, en claro y en oscuro, con el cono de Escenarios y la banda de caja de Previsión.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-28/WP-16 · contraste de los gráficos del kit en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const view of [
+      { hash: "#new-life-simulation", host: "#e13AdvancedAnalysis", open: null },
+      { hash: "#prevision", host: "#previsionBandaCard", open: "#previsionBandaResumen" },
+    ]) {
+      test(`${view.hash}: sin fallos de contraste dentro de .ck-figure`, async ({ page }) => {
+        await page.goto(`/index.html${view.hash}`);
+        await page.reload();
+        if (view.open) await page.locator(view.open).click();
+        await expect(page.locator(`${view.host} .ck-figure`)).toBeVisible({ timeout: 15000 });
+        await page.locator(`${view.host} .ck-tabla summary`).click();
+        const results = await new AxeBuilder({ page }).include(`${view.host} .ck-figure`).withRules(["color-contrast"]).analyze();
+        const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${node.target.join(" ")}: ${node.any[0]?.data?.contrastRatio}`));
+        expect(nodes, nodes.slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
+
