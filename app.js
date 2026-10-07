@@ -1528,6 +1528,7 @@ function compactCanonicalDailyRun(run) {
     fingerprint: run.fingerprint,
     sourceStatus: run.sourceStatus,
     monthlyFingerprint: run.monthlyFingerprint || "",
+    datesSignature: run.datesSignature || "",
     rowCount: Number(run.rowCount || run.rows?.length || 0),
     eventCount: Number(run.eventCount || 0),
     policy: run.policy || null,
@@ -6406,7 +6407,7 @@ function isPrePayrollIncomeRow(row) {
 // inyectan las utilidades de fecha y texto y los movimientos importados. Se crea al primer uso.
 let timingEngineInstance = null;
 function timingEngine() {
-  return (timingEngineInstance ||= window.FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => baseData?.transactions || [], chargeDay: chargeDayForRow }));
+  return (timingEngineInstance ||= window.FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => baseData?.transactions || [], chargeDay: chargeDayForRow, deferral: expectedDeferralForRow }));
 }
 // Almacenes locales de WP-08 (`charge-days`) y WP-24 (`personal-allowances`), en la copia y la nube. La previsión los
 // consulta fila a fila en cada mes: se releen solo si cambió el texto guardado (también al llegar de la nube o de una copia).
@@ -7281,13 +7282,15 @@ function refreshCanonicalDailyAudit(monthlyInput, rows, context) {
   const engine = requiredCanonicalDailyEngine();
   const monthlyRun = canonicalEngineRuns[context];
   const previous = canonicalDailyEngineRuns[context];
-  if (previous?.monthlyFingerprint && previous.monthlyFingerprint === monthlyRun?.fingerprint && previous?.invariants?.valid) return previous;
   const inputBuilder = window.FinanceCanonicalDailyInput;
+  const datesSignature = inputBuilder?.datesSignature(monthlyInput) || "";
+  if (previous?.monthlyFingerprint && previous.monthlyFingerprint === monthlyRun?.fingerprint && previous.datesSignature === datesSignature && previous?.invariants?.valid) return previous;
   if (!inputBuilder) throw new Error("Entrada de la auditoría diaria canónica no disponible.");
   const input = inputBuilder.build(monthlyInput, rows, { operatingReserve: state.operatingReserve });
   const snapshot = engine.buildSnapshot(input, previous, { reason: `simulation-${context}` });
   snapshot.schemaId = engine.SCHEMA_ID;
   snapshot.monthlyFingerprint = monthlyRun?.fingerprint || "";
+  snapshot.datesSignature = datesSignature;
   snapshot.sourceStatus = "canonical-daily";
   assertCanonicalDailySnapshot(snapshot, context);
   canonicalDailyEngineRuns[context] = snapshot;

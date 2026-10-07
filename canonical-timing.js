@@ -18,6 +18,12 @@
   //   pasó) → día indicado, que gana a la regla de fin de mes y a la estimación. Sin día indicado, lo de arriba
   //   sin cambios (oro de 493 casos de WP-07). Solo gastos: los ingresos con fecha ya tienen su regla.
   //
+  // WP-14/WP-27 PR-2: una partida aplazada con «Aún no» / «Llegará tarde» (`deferral(row, month)`, vigente solo mientras dura el aplazamiento)
+  // mueve su FECHA al día en que se vuelve a preguntar, para que el motor diario cuente ese cobro o cargo todavía pendiente en vez de darlo por
+  // ocurrido. Solo mueve `date`, `label` y `source`: `day` (que ordena el mes y decide qué va antes de la nómina) y `confidence` no cambian, y solo
+  // afecta a fechas ciertas (regla o declarada) ya vencidas: lo observado ya llegó y lo estimado no se pregunta. Sin `deferral`, el motor es el de
+  // WP-07 (los 493 casos oro). `options.ignoreDeferral` da la fecha original: el detector de WP-14/27 pregunta por ella, no por la movida.
+  //
   // Las utilidades de fecha y texto de app.js (que usan muchos otros sitios) entran por inyección, igual que
   // los movimientos importados (`transactions()`, leídos en cada llamada porque cambian al importar).
 
@@ -34,6 +40,7 @@
    *   dateWithMonthLabel: (date: Date, day: number) => string,
    *   transactions: () => Array<any>,
    *   chargeDay?: (row: any) => ({ day: number | "eom", source?: string } | null),
+   *   deferral?: (row: any, month: any) => ({ date: string } | null),
    * }} deps
    */
   function createTimingEngine(deps) {
@@ -80,7 +87,20 @@
       };
     }
 
-    function incomeTimingForRow(row, month, amount) {
+    // Aplaza una fecha cierta ya vencida hasta `deferral.date`. Cualquier otra cosa (estimada, observada, aún no vencida) queda como estaba.
+    function deferred(timing, row, month, options) {
+      if (options?.ignoreDeferral || !deps.deferral || !["rule", "declared"].includes(timing.confidence)) return timing;
+      const entry = deps.deferral(row, month);
+      const target = localDateFromIso(entry?.date);
+      if (!entry || !target || entry.date <= timing.date) return timing;
+      return { ...timing, date: isoLocalDate(new Date(target.getFullYear(), target.getMonth(), target.getDate(), 12)), label: shortDate(target), source: `${timing.source}, aplazado hasta el ${shortDate(target)}`, deferredFrom: timing.date };
+    }
+
+    function incomeTimingForRow(row, month, amount, options) {
+      return deferred(incomeTimingBase(row, month, amount), row, month, options);
+    }
+
+    function incomeTimingBase(row, month, amount) {
       const label = normalizedText(displayLabelForRow(row));
       const date = dateFromMonthKey(month.key);
       if (label.includes("local")) {
@@ -152,7 +172,11 @@
       return day === lastDay ? { ...timing, endOfMonth: true } : timing;
     }
 
-    function expenseTimingForRow(row, month, amount) {
+    function expenseTimingForRow(row, month, amount, options) {
+      return deferred(expenseTimingBase(row, month, amount), row, month, options);
+    }
+
+    function expenseTimingBase(row, month, amount) {
       const date = dateFromMonthKey(month.key);
       const declared = declaredExpenseTiming(row, date);
       if (declared) return expenseTimingFromMovements(row, month, amount) || declared;

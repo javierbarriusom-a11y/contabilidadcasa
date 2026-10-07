@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp14b",
+      fecha: "2026-10-07",
+      texto: "«Aún no» y «Llegará tarde» ya cuentan en la previsión diaria. Los días de cargo que indicas también la actualizan.",
+      href: "#home",
+    },
+    {
       id: "2026-10-07-wp14",
       fecha: "2026-10-07",
       texto: "Hoy › Bandeja: «¿Ha llegado la nómina?» y «este recibo no ha llegado», con respuesta en un toque y deshacer.",
