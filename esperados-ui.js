@@ -28,6 +28,15 @@ function expectedPreviousMonthKey(monthKeyValue, back) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+// PR-2: lo aplazado con «Aún no» / «Llegará tarde» cuenta en la previsión en el día en que se vuelve a preguntar, solo mientras dure el aplazamiento
+// (el motor de fechas lo consulta fila a fila; sin aplazamientos no cuesta nada).
+function expectedDeferralForRow(row, month) {
+  const { snoozes } = loadExpectedAnswers();
+  if (!Object.keys(snoozes).length) return null;
+  const snooze = snoozes[`${seriesKeyForRow(row)}|${month.key}`];
+  return snooze && isoLocalDate(new Date()) < snooze.until ? { date: snooze.until } : null;
+}
+
 // Las partidas que se esperan: ingresos y gastos del mes anterior y del actual, con la fecha que el plan les da y lo bien que la sabe.
 function expectedMovementExpectations(today) {
   const currentKey = today.slice(0, 7);
@@ -43,7 +52,8 @@ function expectedMovementExpectations(today) {
           const info = actualAwareInfo(row, month);
           const planned = Number(info.planned || 0);
           if (!(planned > 0) && !info.hasActual) return;
-          const timing = kind === "income" ? incomeTimingForRow(row, month, planned) : expenseTimingForRow(row, month, planned);
+          const original = { ignoreDeferral: true }; // se pregunta por la fecha de siempre, no por la movida
+          const timing = kind === "income" ? timingEngine().incomeTimingForRow(row, month, planned, original) : timingEngine().expenseTimingForRow(row, month, planned, original);
           const fromMovements = kind === "income" ? timingEngine().incomeTimingFromMovements(row, month, planned) : timingEngine().expenseTimingFromMovements(row, month, planned);
           const history = kind === "expense"
             ? [1, 2, 3, 4, 5, 6].map((back) => timingEngine().expenseTimingFromMovements(row, { key: expectedPreviousMonthKey(key, back) }, planned)).filter(Boolean).map((found) => ({ date: found.date, amount: planned }))
@@ -165,15 +175,17 @@ function answerExpectedMovement(itemId, response, typedAmount = null) {
   } else if (resolved.patch?.type === "moved") {
     message = `«${item.label}»: no se volverá a preguntar por ese recibo. La previsión sigue contando la salida.`;
   } else {
-    message = `Vale: te lo vuelvo a preguntar el ${shortDate(resolved.patch.until)}.`;
+    message = `Vale: te lo vuelvo a preguntar el ${shortDate(resolved.patch.until)}. Hasta entonces la previsión lo cuenta ese día.`;
   }
   if (resolved.patch) saveExpectedAnswers(engine.prune(engine.applyPatch(previousAnswers, resolved.patch), today));
   expectedAmountEditing = "";
-  if (resolved.effect.type !== "none") refreshAllSectionsAfterDataChange(); else renderDecisionInboxCard();
+  if (resolved.effect.type !== "none" || resolved.patch?.type === "snooze") refreshAllSectionsAfterDataChange(); // las fechas de la previsión cambian
+  if (resolved.effect.type === "none") renderDecisionInboxCard(); // la tarjeta no repinta por las respuestas: se hace aquí
   showUndoToast(message, () => {
     undo();
     saveExpectedAnswers(previousAnswers);
     refreshAllSectionsAfterDataChange();
+    renderDecisionInboxCard();
   });
   announceStatus(message);
 }

@@ -1390,5 +1390,51 @@ test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () =
     await expect.poll(async () => (await eliminated()).some(Boolean)).toBe(false);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+
+  // PR-2: lo aplazado cuenta en la previsión en el día en que se vuelve a preguntar. Sobre una fila REAL de la demo con día de cargo declarado
+  // (fecha cierta) y la ejecución diaria REAL: la fecha del evento se mueve, vuelve al deshacer y sobrevive a recargar. Es también la prueba de que
+  // la ejecución diaria guardada se recalcula cuando solo cambia la fecha de un gasto (antes la huella mensual no lo veía).
+  test("«Llegará tarde» mueve el cargo en la previsión diaria hasta el día en que se vuelve a preguntar; deshacer lo devuelve y recargar lo conserva", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 20, 9, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/index.html#home");
+    await page.reload();
+    await expect(page.locator("#homeDecisionInboxCard")).toBeAttached({ timeout: 15000 });
+    await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey("2026-10"));
+    const prepare = () => page.evaluate(() => {
+      const month = monthByKey("2026-10");
+      const row = planningSectionsForMonth("expense", month).filter((section) => section.name !== VARIABLE_OPERATIONAL_SECTION).flatMap((section) => section.rows).find((candidate) => !isEndOfMonthExpenseRow(candidate));
+      localStorage.removeItem(storageKey("expected-answers"));
+      saveChargeDays([[seriesKeyForRow(row), "3", "declarado"]], "e2e"); // el día 3: cierto y vencido el 20/10 (ventana 1 + margen 3)
+      expectedLedgerCoveredUntil = () => "2026-10-20"; // la demo no importa extractos
+      renderDecisionInboxCard();
+      return displayLabelForRow(row);
+    });
+    const label = await prepare();
+    const dateOf = () => page.evaluate((text) => {
+      const events = (canonicalDailyEngineRuns.active?.rows || []).flatMap((row) => row.events || []);
+      return events.filter((event) => event.kind === "outflow" && event.label === text && event.date.startsWith("2026-10")).map((event) => event.date);
+    }, label);
+    const card = page.locator("#homeDecisionInboxCard");
+    const question = card.locator("li", { hasText: `«${label}» no ha llegado` });
+    await expect(question).toBeVisible();
+    await expect.poll(dateOf).toEqual(["2026-10-03"]);
+
+    await question.locator('[data-expected-response="late"]').click();
+    await expect(question).toBeHidden(); // sin más preguntas la tarjeta se oculta
+    await expect.poll(dateOf, { message: "el cargo aplazado cuenta el 23/10 (20/10 + 3 días)" }).toEqual(["2026-10-23"]);
+    await page.getByRole("button", { name: "Deshacer" }).click();
+    await expect.poll(dateOf, { message: "deshacer devuelve el cargo a su día" }).toEqual(["2026-10-03"]);
+    await expect(question).toBeVisible();
+
+    await question.locator('[data-expected-response="late"]').click();
+    await expect.poll(dateOf).toEqual(["2026-10-23"]);
+    await page.reload();
+    await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey("2026-10"));
+    await expect.poll(dateOf, { message: "el aplazamiento sobrevive a recargar" }).toEqual(["2026-10-23"]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 

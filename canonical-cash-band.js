@@ -29,7 +29,7 @@
   // Mismo umbral que el medidor de calidad de la previsión (WP-10, decisión del hogar del 2/10): con ≥ 70 % por importe de eventos con
   // fecha estimada, la banda es de poca utilidad.
   const WIDE_ESTIMATED_SHARE = 0.7;
-  const KNOWN_CONFIDENCE = ["observed", "rule", "estimated"];
+  const KNOWN_CONFIDENCE = ["observed", "rule", "declared", "estimated"]; // «declared»: día de cargo indicado por el hogar (WP-08), tan cierto como una regla
 
   const MONTH_NAMES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 

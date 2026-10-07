@@ -338,8 +338,8 @@ La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones
 
 La **bandeja de decisiones de Hoy** pregunta por lo que se esperaba y no ha aparecido:
 
-- **Un cobro** (p. ej. la nómina), **dos días después** de su fecha: «¿Ha llegado «Nómina Javi»?». Respuestas: **Sí, por el importe previsto** (registra el real, como en Registrar el mes) · **Sí, otro importe** (te pide el importe, con coma española) · **Aún no** (calla 2 días y vuelve a preguntar).
-- **Un cargo** (p. ej. un seguro): ««Seguro del coche» no ha llegado», con las fechas de sus últimos cargos para ver el patrón. Respuestas: **Se ha dado de baja** (los meses siguientes dejan de contar en la previsión) · **Ha cambiado de cuenta** (no se vuelve a preguntar por ese recibo; la salida sigue en la previsión) · **Llegará tarde** (calla 3 días) · **Ya está pagado de otra forma** (registra el real). Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.
+- **Un cobro** (p. ej. la nómina), **dos días después** de su fecha: «¿Ha llegado «Nómina Javi»?». Respuestas: **Sí, por el importe previsto** (registra el real, como en Registrar el mes) · **Sí, otro importe** (te pide el importe, con coma española) · **Aún no** (calla 2 días y vuelve a preguntar; mientras tanto la previsión diaria cuenta el cobro ese día, no el original).
+- **Un cargo** (p. ej. un seguro): ««Seguro del coche» no ha llegado», con las fechas de sus últimos cargos para ver el patrón. Respuestas: **Se ha dado de baja** (los meses siguientes dejan de contar en la previsión) · **Ha cambiado de cuenta** (no se vuelve a preguntar por ese recibo; la salida sigue en la previsión) · **Llegará tarde** (calla 3 días; la previsión diaria cuenta el cargo ese día) · **Ya está pagado de otra forma** (registra el real). Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.
 - Cada respuesta con efecto da un aviso de **Deshacer** unos segundos.
 
 Lo que **no** pregunta, a propósito:

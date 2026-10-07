@@ -211,7 +211,7 @@ test("app.js: el almacén se relee solo si cambia el texto guardado; dañado o v
 });
 
 test("app.js: el motor recibe el día de cargo, la previsión se recalcula al cambiarlo y viaja con la copia y la nube", () => {
-  assert.match(app, /transactions: \(\) => baseData\?\.transactions \|\| \[\], chargeDay: chargeDayForRow \}\)/);
+  assert.match(app, /transactions: \(\) => baseData\?\.transactions \|\| \[\], chargeDay: chargeDayForRow, deferral: expectedDeferralForRow \}\)/); // PR-2 de WP-14/27 añade el gancho de aplazamientos
   assert.match(block("function modelComputationSignature", "function recomputeModelIfNeeded"), /chargeDays: loadChargeDays\(\)\.series/);
   assert.match(block("const BACKUP_LOCAL_STORES = [", "];"), /"charge-days", \/\/ WP-08/);
   assert.match(app, /case "planificacion-partidas":\n\s+renderPlanificacionPartidas\(\);\n\s+renderChargeDays\(\);/);

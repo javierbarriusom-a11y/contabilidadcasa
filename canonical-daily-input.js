@@ -201,5 +201,15 @@
     };
   }
 
-  return { build };
+  // PR-2 de WP-14/27: la huella del motor mensual recoge las fechas de los ingresos pero no las de los gastos, así que la ejecución diaria
+  // guardada no se enteraba de que un cargo cambiaba de día (aplazado, o con el día de cargo indicado en WP-08). Esta firma cubre día, importe
+  // y partida de cada gasto fechado; app.js la compara junto a la huella antes de reutilizar la ejecución anterior.
+  function datesSignature(monthlyInput) {
+    let hash = 5381;
+    const text = (monthlyInput?.months || []).map((month) => (month.expenseEvents || []).map((event) => `${event.date}|${event.field}|${round2(event.amount)}|${event.confidence || ""}`).join(";")).join("/");
+    for (let index = 0; index < text.length; index += 1) hash = ((hash * 33) ^ text.charCodeAt(index)) >>> 0;
+    return hash.toString(36);
+  }
+
+  return { build, datesSignature };
 });
