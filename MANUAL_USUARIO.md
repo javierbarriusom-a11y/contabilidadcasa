@@ -364,6 +364,17 @@ Cómo se usa: pulsa **«Descargar recordatorios (.ics)»** y abre el fichero des
 - **Solo avisa de lo que el plan sabe con seguridad.** Un cobro o un cargo con el día estimado (el 8 de relleno) no genera aviso: caería en un día cualquiera. La tarjeta dice cuántos se quedan fuera; declara el día de cargo en Plan › Partidas y entrarán.
 - **Los títulos no llevan importes ni nombres**, para que no se vean en la pantalla de bloqueo; el detalle (importe, concepto) sale al abrir el evento.
 
+### Índices de referencia: Euribor, €STR e IPC (Deuda › Contratos)
+
+La tarjeta **«Índices de referencia»** de **Deuda › Contratos** guarda los tres índices que la app necesita para la hipoteca variable y, más adelante, para comparar dónde poner el próximo euro. **Los tecleas tú, con la fecha a la que se refiere el dato**: la app **no consulta ninguna fuente externa** (esa decisión es del 16/10/2026).
+
+- **Cada valor caduca.** Euribor 12 meses: a los 35 días; €STR: a los 10; IPC: a los 75. Pasado el plazo la tarjeta dice «Caducado (hace N días)» y pide el último publicado, en vez de usar un tipo viejo como si fuera el de hoy. Son plazos de criterio, no de mercado.
+- **Pon la fecha del dato, no la de hoy**, si no coinciden: el Euribor del 1 de octubre tecleado el día 7 es del día 1. Un segundo valor con la misma fecha sustituye al primero.
+- **La coma importa.** Escribe `2,35` (también vale `2.35` y `-0,5`). Un valor fuera de lo razonable (por ejemplo `23,5`) se rechaza y te avisa de revisar la coma.
+- **Historial y «Quitar».** Se conservan los últimos 120 valores de cada índice y puedes quitar uno tecleado por error.
+- **Va en la copia de emergencia**, porque son datos públicos y sin importes del hogar.
+- **Pendiente de unificar:** el campo «Euribor actual» del radar de refinanciación (Ajustes) sigue siendo un campo aparte con su propia fecha mensual. Hoy hay que teclear el Euribor en los dos sitios.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.

@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="fiscal-campana.css?v=20261006wp23a1" />
     <link rel="stylesheet" href="chart-kit.css?v=20261006wp28a1" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
+    <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2182,6 +2183,14 @@
             </div>
             <div id="deudaContratosCuadre"></div>
             <p class="e19-kpi-note">Entidad, tipo, número, capital, TAE, cuota, deducción fiscal, plazos restantes y estado se editan directamente en la tabla. Cualquier contrato se puede eliminar, incluidos los de ejemplo — se pide confirmación antes de borrarlo.</p>
+
+            <!-- WP-13 · PR-1 (docs/WP13_DISENO.md): índices de referencia tecleados con fecha y caducidad. Los pinta indices-ui.js. No consultan ninguna fuente externa (PR-2, tras la decisión de O-6). -->
+            <article class="e19-card" id="indicesCard" aria-labelledby="indicesTitulo">
+              <h3 class="escenario-motor-panel-title" id="indicesTitulo">Índices de referencia (Euribor, €STR, IPC)</h3>
+              <p class="e19-kpi-note">Los tecleas tú, <strong>con la fecha a la que se refiere el dato</strong>. Cada valor caduca (el Euribor y el IPC se publican una vez al mes, el €STR cada día hábil) y la app lo dice en vez de usar un tipo viejo como si fuera el de hoy. <strong>No consulta ninguna fuente externa</strong>: la conexión con la fuente oficial se decide el 16/10/2026.</p>
+              <div id="indicesLista"></div>
+              <p class="e19-kpi-note" id="indicesNota" role="status"></p>
+            </article>
 
             <!-- DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad. Cuando hay
                  más de una deuda activa con deducción fiscal distinta (p. ej. hipoteca con deducción
@@ -7760,6 +7769,8 @@
     <script defer src="recordatorios-ui.js?v=20261007wp32a1"></script>
     <script defer src="canonical-expected-movements.js?v=20261007wp14a1"></script>
     <script defer src="esperados-ui.js?v=20261007wp14a1"></script>
+    <script defer src="canonical-rate-indices.js?v=20261007wp13a1"></script>
+    <script defer src="indices-ui.js?v=20261007wp13a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

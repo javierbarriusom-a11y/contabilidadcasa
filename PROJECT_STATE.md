@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 7 de octubre de 2026 (sesión 301). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 7 de octubre de 2026 (sesión 302). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,18 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 7 de octubre de 2026 (302, primer PR): WP-13 PR-1 · índices de referencia tecleados con fecha y caducidad, y Hoy congelado hasta leer H-02
+
+- **Origen (decisión del hogar tras el plan de inicio de sesión: «plan de bajo volumen»):** en vez de seguir la cola de la Ola 3, se prioriza lo que tiene fecha (la hipoteca variable se revisa en marzo y el preaviso cae a primeros de enero) y se frena lo que añade superficie sin que el hogar pueda comprobarla: había 19 paquetes construidos y **ninguna métrica leída con datos reales**, con nueve tareas del hogar hasta el 3/11.
+- **WP-13 se corta en dos PRs (aprobado por el hogar).** **PR-1 (este):** Deuda › Contratos › **«Índices de referencia»** — Euribor 12 meses, €STR e IPC **tecleados con la fecha del dato**, con caducidad (35, 10 y 75 días: de criterio, no de mercado), estado vigente / caducado / sin dato, historial acotado a 120 puntos y «Quitar». `canonical-rate-indices.js` (puro) + `indices-ui.js`; almacén `rate-indices` en la copia y la nube (datos públicos). **No consulta ninguna fuente externa** (una prueba lo impide). **PR-2** (fuente oficial) **espera a la decisión de `O-6` del 16/10**; el valor tecleado es su vuelta atrás, así que PR-1 no se tira. Diseño y decisiones a cuestionar: `docs/WP13_DISENO.md`.
+- **Dos defectos encontrados al probarlo, corregidos antes de publicar:** (1) `parsePercent` quitaba los espacios interiores y leía «2 3» como 23 (lo cazó su propia prueba); ahora solo recorta el borde. (2) **Repintado que borraba lo escrito:** la vista se repinta por motivos ajenos (sincronización, cambio de mes) y vaciaba el campo a medio teclear; ahora no se toca el DOM si nada cambia y, si cambia, se conservan los valores de las otras filas y el foco (lo fija la prueba e2e). Además axe midió «Quitar» en 4,28:1 en oscuro: ahora usa la tinta del tema con subrayado.
+- **Regla nueva — «Hoy congelado hasta leer H-02»** (`BACKLOG_DEFINITIVO.md` §4, con veto posible del hogar): hasta tener ≥ 3 intentos válidos con el texto A de la prueba del 9/10 no se cambia lo que Hoy muestra por defecto (titular, orden, bandeja). Quedan fuera correcciones de errores/contraste/accesibilidad y avisos que solo existen en una fecha futura. **Lo ya publicado el 7/10 cuenta como parte de la línea base.**
+- **Instrumento del 9/10 comprobado** sobre la build de `main` (`b847a1d`, Pages y «Published availability» en verde) a 390×844 y 393×852, claro y oscuro: el flujo preparar → barra → «Ya la tengo» → cifra → resultado funciona sin errores de consola ni de página; contrastes de la tarjeta 4,73:1 (claro) y 5,92:1 (oscuro); sin desbordamiento. Con la demo y sin la guía de primeros pasos, «Disponible para gastar» queda a ≈ 60 % de la altura de pantalla. **Aviso para el hogar:** la prueba solo cuenta con saldos tecleados del banco («Real manual»); con saldos calculados por calendario sale «no cuenta» (comprobado con la demo).
+- **Duplicación conocida, no resuelta:** el «Euribor actual» del radar de refinanciación (Ajustes, DEB4) sigue siendo un campo propio con fecha mensual; hoy hay dos sitios donde teclearlo. Se unifica en PR-2 para no gastar líneas de `app.js` sin necesidad.
+- **Una observación de la validación:** la prueba de axe de la tarjeta falló una vez en oscuro (de ≈ 17 ejecuciones) y no se pudo reproducir en 14 repeticiones seguidas; si vuelve a salir en el CI se trata como real, no como «flaky». El presupuesto de carga midió 3,9-4,4 s **tanto en `main` como en la rama** (alternadas, mismo contenedor, hoy más lento que en las sesiones previas): sin regresión atribuible.
+- **Estado del plan:** **WP-13 «en curso» (PR-1 hecho, PR-2 espera a O-6)**. Sin cambio en el avance ponderado (≈ 32,4 %). `canonical-*.js`: 88 (ARQ-3). `app.js` 37.431 de 37.495 (+3: pintar la tarjeta, engancharla y la clave de la copia).
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **5480/5480** (5462 + 18), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Además: e2e **45/45** (+1), axe **29/29** (+2), perf-screens **3/3**, presupuesto de carga: mediana **4.093 ms** (tope 5.000; `main` en la misma máquina: 3.949-4.393).
 
 ## Cierre de sesión — 7 de octubre de 2026 (301, quinto PR): PR-2 de WP-14 + WP-27 · lo aplazado cuenta en la previsión diaria (y dos fallos que salieron al hacerlo)
 

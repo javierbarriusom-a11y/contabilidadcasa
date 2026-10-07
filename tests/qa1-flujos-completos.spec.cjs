@@ -1438,3 +1438,59 @@ test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () =
   });
 });
 
+
+// WP-13 · PR-1: índices de referencia tecleados con fecha (Deuda › Contratos): guardar, rechazar una coma de más, caducar, recordar tras recargar y quitar.
+test.describe("WP-13 · índices de referencia con fecha y caducidad", () => {
+  test("guardar, rechazar 23,5, caducar un dato viejo, recordarlo tras recargar y quitarlo, sin desbordar en móvil", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#indicesCard");
+      await expect(card.locator("[data-indices-index]")).toHaveCount(3, { timeout: 15000 });
+      await expect(card).toContainText("No consulta ninguna fuente externa");
+      const row = (id) => card.locator(`[data-indices-index="${id}"]`);
+      for (const id of ["euribor12m", "estr", "ipc"]) await expect(row(id)).toContainText("Sin dato");
+      const daysAgo = (days) => page.evaluate((n) => isoLocalDate(new Date(Date.now() - n * 86400000)), days);
+
+      // Un valor con la coma de más se rechaza y no se guarda nada.
+      await row("euribor12m").locator("[data-indices-valor]").fill("23,5");
+      await row("euribor12m").locator("[data-indices-guardar]").click();
+      await expect(card.locator("#indicesNota")).toContainText("fuera de lo razonable");
+      await expect(row("euribor12m").locator("[data-indices-valor]")).toHaveAttribute("aria-invalid", "true");
+      await expect(row("euribor12m")).toContainText("Sin dato");
+
+      // Lo que se está escribiendo en otra fila sobrevive a los repintados que provoca guardar las demás.
+      await row("ipc").locator("[data-indices-valor]").fill("3,1");
+
+      // Uno de hace 3 días está vigente; uno de €STR de hace 15 días, caducado.
+      await row("euribor12m").locator("[data-indices-valor]").fill("2,35");
+      await row("euribor12m").locator("[data-indices-fecha]").fill(await daysAgo(3));
+      await row("euribor12m").locator("[data-indices-guardar]").click();
+      await expect(row("euribor12m")).toContainText("Vigente");
+      await expect(row("euribor12m")).toContainText("2,35 %");
+      await row("estr").locator("[data-indices-valor]").fill("1.9");
+      await row("estr").locator("[data-indices-fecha]").fill(await daysAgo(15));
+      await row("estr").locator("[data-indices-guardar]").click();
+      await expect(row("estr")).toContainText("Caducado");
+      await expect(row("estr")).toContainText("hace 15 días");
+      await expect(row("ipc")).toContainText("Sin dato");
+      await expect(row("ipc").locator("[data-indices-valor]"), "el texto a medio escribir en IPC no se pierde").toHaveValue("3,1");
+
+      // Se recuerdan tras recargar; «Quitar» devuelve el índice a «Sin dato».
+      await page.reload();
+      await expect(row("euribor12m")).toContainText("Vigente", { timeout: 15000 });
+      await expect(row("estr")).toContainText("Caducado");
+      await row("estr").locator("summary").click();
+      await row("estr").locator("[data-indices-quitar]").first().click();
+      await expect(row("estr")).toContainText("Sin dato");
+      await expect(card.locator("#indicesNota")).toContainText("Quitado el dato");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

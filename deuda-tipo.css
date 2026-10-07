@@ -1,0 +1,51 @@
+/* WP-13 (índices de referencia) y WP-20 (revisión del tipo variable) · tarjetas de Deuda › Contratos. Hoja propia: styles.css y
+   design-tokens.css llevan versiones fijadas por pruebas. Solo usa tokens --e19-*. */
+.idx-fila {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+.idx-fila:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.idx-titulo {
+  margin: 0;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.idx-titulo small {
+  font-weight: 400;
+  color: var(--e19-muted);
+}
+
+.idx-fila input[type="text"],
+.idx-fila input[type="date"] {
+  min-height: 44px;
+}
+
+.idx-historial {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.idx-historial ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.idx-historial li {
+  min-height: 32px;
+}
+
+/* «Quitar» heredaba un color atenuado (4,28:1 en oscuro): tinta del tema y subrayado, como cualquier enlace de acción. */
+.idx-historial .link-button {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 32px;
+  padding: 0 6px;
+}
