@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp13",
+      fecha: "2026-10-07",
+      texto: "Deuda › Contratos › Índices de referencia: Euribor, €STR e IPC con la fecha del dato y su caducidad.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-07-wp14b",
       fecha: "2026-10-07",
       texto: "«Aún no» y «Llegará tarde» ya cuentan en la previsión diaria. Los días de cargo que indicas también la actualizan.",

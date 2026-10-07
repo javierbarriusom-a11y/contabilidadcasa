@@ -196,3 +196,30 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+
+// WP-13: la tarjeta de índices de Deuda › Contratos, medida en claro y en oscuro con sus tres estados (vigente, caducado, sin dato).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-13 · contraste de la tarjeta de índices en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deuda-contratos: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      const card = page.locator("#indicesCard");
+      await expect(card.locator("[data-indices-index]")).toHaveCount(3, { timeout: 15000 });
+      const daysAgo = (days) => page.evaluate((n) => isoLocalDate(new Date(Date.now() - n * 86400000)), days);
+      await card.locator('[data-indices-index="euribor12m"] [data-indices-valor]').fill("2,35");
+      await card.locator('[data-indices-index="euribor12m"] [data-indices-fecha]').fill(await daysAgo(2));
+      await card.locator('[data-indices-index="euribor12m"] [data-indices-guardar]').click();
+      await card.locator('[data-indices-index="estr"] [data-indices-valor]').fill("1,9");
+      await card.locator('[data-indices-index="estr"] [data-indices-fecha]').fill(await daysAgo(20));
+      await card.locator('[data-indices-index="estr"] [data-indices-guardar]').click();
+      await card.locator('[data-indices-index="estr"] summary').click();
+      await expect(card).toContainText("Vigente");
+      await expect(card).toContainText("Caducado");
+      await expect(card).toContainText("Sin dato");
+      const results = await new AxeBuilder({ page }).include("#indicesCard").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
