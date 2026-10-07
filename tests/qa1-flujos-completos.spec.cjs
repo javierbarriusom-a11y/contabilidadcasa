@@ -1184,10 +1184,13 @@ test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
       await page.keyboard.press("Home");
       await expect(slider).toHaveAttribute("aria-valuenow", "0");
       // Ratón: leer con solo pasar por encima, sin pulsar; el último punto está en el borde derecho.
+      // `hover` con posición relativa al control: mide la geometría en el momento y comprueba que el control recibe el evento (si algo lo tapara o la
+      // página se moviera, falla con un motivo claro). Con `mouse.move` a coordenadas medidas antes, un reajuste de la maquetación en un CI lento dejaba
+      // el ratón fuera del gráfico y la prueba fallaba solo allí.
       const box = await slider.boundingBox();
-      await page.mouse.move(box.x + box.width - 1, box.y + box.height / 2);
+      await slider.hover({ position: { x: box.width - 1, y: box.height / 2 } });
       await expect(slider).toHaveAttribute("aria-valuenow", String(last));
-      await page.mouse.move(box.x + 1, box.y + box.height / 2);
+      await slider.hover({ position: { x: 1, y: box.height / 2 } });
       await expect(slider).toHaveAttribute("aria-valuenow", "0");
       await expect(figure.locator(".ck-cursor")).toBeVisible();
       // La lectura es fija: leer un punto no mueve nada por debajo de ella.
