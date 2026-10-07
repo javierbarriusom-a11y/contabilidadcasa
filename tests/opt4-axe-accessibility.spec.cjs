@@ -223,3 +223,50 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-20: la tarjeta de revisión del tipo variable, en claro y en oscuro: sin hipoteca (ejemplo desplegado) y con resultado, avisos, bonificación y Euribor caducado.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-20 · contraste de la tarjeta de revisión del tipo en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deuda-contratos: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      const card = page.locator("#revisionTipoCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await card.locator("#revisionTipoEjemplo summary").click();
+      await expect(card.locator("#revisionTipoEjemplo")).toContainText("EJEMPLO");
+      const sinHipoteca = await new AxeBuilder({ page }).include("#revisionTipoCard").analyze();
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fmt(sinHipoteca), fmt(sinHipoteca).slice(0, 5).join("\n")).toEqual([]);
+
+      await page.fill("#deudaContratosAddEntity", "Banco Ejemplo");
+      await page.selectOption("#deudaContratosAddType", "Hipoteca");
+      await page.fill("#deudaContratosAddPrincipal", "120000");
+      await page.fill("#deudaContratosAddPayment", "680");
+      await page.fill("#deudaContratosAddInstallments", "240");
+      await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+      await expect(card.locator("#revisionTipoForm")).toBeVisible({ timeout: 15000 });
+      const daysFromNow = (days) => page.evaluate((n) => isoLocalDate(new Date(Date.now() + n * 86400000)), days);
+      const daysAgo = (days) => page.evaluate((n) => isoLocalDate(new Date(Date.now() - n * 86400000)), days);
+      // Euribor caducado (hace 50 días: vale 35) para que salga el aviso, y una revisión ya pasada que se desplaza.
+      await page.fill('[data-indices-index="euribor12m"] [data-indices-valor]', "2,35");
+      await page.fill('[data-indices-index="euribor12m"] [data-indices-fecha]', await daysAgo(50));
+      await page.locator('[data-indices-index="euribor12m"] [data-indices-guardar]').click();
+      await page.fill("#revisionTipoSpread", "0,99");
+      await page.fill("#revisionTipoBonus", "0,30");
+      await page.fill("#revisionTipoDate", await daysFromNow(-20));
+      await card.locator("#revisionTipoGuardar").click();
+      const result = card.locator("#revisionTipoResultado");
+      await expect(result).toContainText("caducado");
+      await expect(result).toContainText("ya pasó");
+      await expect(result).toContainText("Si pierdes la bonificación");
+      const conResultado = await new AxeBuilder({ page }).include("#revisionTipoCard").analyze();
+      expect(fmt(conResultado), fmt(conResultado).slice(0, 5).join("\n")).toEqual([]);
+      await page.fill("#revisionTipoDate", await daysFromNow(20));
+      await card.locator("#revisionTipoGuardar").click();
+      await expect(result).toContainText("aviso activo");
+      const conAviso = await new AxeBuilder({ page }).include("#revisionTipoCard").analyze();
+      expect(fmt(conAviso), fmt(conAviso).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

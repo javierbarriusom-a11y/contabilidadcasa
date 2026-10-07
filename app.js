@@ -1362,6 +1362,7 @@ const BACKUP_LOCAL_STORES = [
   "card-purchases", // WP-30 (PR-2): compras con tarjeta anotadas con la hoja (concepto, tarjeta, fecha) y los tiempos de captura
   "expected-answers", // WP-14 + WP-27: lo respondido y lo callado en «¿ha llegado…?» (aplazamientos y recibos que cambiaron de cuenta)
   "rate-indices", // WP-13: índices de referencia (Euribor, €STR, IPC) tecleados con la fecha del dato; son datos públicos, sin importes del hogar
+  "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
   "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
@@ -30561,6 +30562,7 @@ function decisionInboxItems() {
   }
 
   items.push(...(globalThis.expectedMovementInboxItems?.(globalThis.FinanceCanonicalExpectedMovements) || [])); // WP-14 + WP-27 (esperados-ui.js)
+  items.push(...(globalThis.rateReviewInboxItems?.(globalThis.FinanceCanonicalRateReview) || [])); // WP-20 (revision-tipo-ui.js): solo en los 60 días previos
 
   const ghostExpenses = ghostExpenseCandidatesResult();
   if (ghostExpenses?.candidates.length) {
@@ -35914,6 +35916,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "deuda-contratos":
       renderDeudaContratos();
       globalThis.renderIndicesReferencia?.(globalThis.FinanceCanonicalRateIndices); // WP-13 (indices-ui.js)
+      globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20 (revision-tipo-ui.js)
       break;
     case "deuda-simulador":
       renderDeudaSimulador();
@@ -36061,6 +36064,7 @@ async function init() {
   globalThis.attachRecordatorios?.(document); // WP-32 (recordatorios-ui.js)
   globalThis.attachEsperados?.(document); // WP-14 + WP-27 (esperados-ui.js)
   globalThis.attachIndices?.(document); // WP-13 (indices-ui.js)
+  globalThis.attachRevisionTipo?.(document); // WP-20 (revision-tipo-ui.js)
   qs("familyContextSwitch")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-family-context]");
     if (button) setFamilyContext(button.dataset.familyContext);

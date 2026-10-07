@@ -47,6 +47,7 @@ function indicesRowHtml(engine, store, indexId, today) {
 function renderIndicesReferencia(engine, resetIndex = "") {
   const box = qs("indicesLista");
   if (!box || !engine) return;
+  attachIndices(document); // idempotente: el formulario se pinta antes de que init() termine y un clic temprano no puede perderse
   try {
     const store = indicesLoad();
     const today = isoLocalDate(new Date());
@@ -98,6 +99,7 @@ function indicesSaveFromRow(row) {
   indicesSave(result.store);
   const label = engine.INDICES[indexId].short;
   renderIndicesReferencia(engine, indexId);
+  globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20: la revisión usa este Euribor
   indicesNote(`${label} guardado${result.replaced ? " (sustituye al de esa fecha)" : ""}.`);
 }
 
@@ -105,6 +107,7 @@ function indicesRemoveFromRow(row, date) {
   const engine = globalThis.FinanceCanonicalRateIndices;
   indicesSave(engine.removePoint(indicesLoad(), row.dataset.indicesIndex, date));
   renderIndicesReferencia(engine);
+  globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20: la revisión usa este Euribor
   indicesNote(`Quitado el dato del ${date}.`);
 }
 

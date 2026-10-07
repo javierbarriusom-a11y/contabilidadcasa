@@ -133,6 +133,8 @@ const SHELL_URLS = [
   "./esperados-ui.js",
   "./canonical-rate-indices.js",
   "./indices-ui.js",
+  "./canonical-rate-review.js",
+  "./revision-tipo-ui.js",
   "./valoracion-ui.js",
   "./canonical-year-end-tax.js",
   "./fiscal-campana-ui.js",

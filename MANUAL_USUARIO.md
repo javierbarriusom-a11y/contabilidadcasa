@@ -375,6 +375,25 @@ La tarjeta **«Índices de referencia»** de **Deuda › Contratos** guarda los 
 - **Va en la copia de emergencia**, porque son datos públicos y sin importes del hogar.
 - **Pendiente de unificar:** el campo «Euribor actual» del radar de refinanciación (Ajustes) sigue siendo un campo aparte con su propia fecha mensual. Hoy hay que teclear el Euribor en los dos sitios.
 
+### Revisión del tipo variable de la hipoteca (Deuda › Contratos)
+
+La tarjeta **«Revisión del tipo variable de la hipoteca»**, justo debajo de los índices, responde tres preguntas antes de que llegue la carta del banco: **¿cuándo es la próxima revisión?**, **¿qué dato del Euribor se leerá?** y **¿entre qué cuotas caerá la nueva?**
+
+Cómo se usa:
+
+1. Da de alta la hipoteca en la tabla de arriba (tipo «Hipoteca», con capital pendiente, cuota y plazos restantes o vencimiento). La tarjeta los lee de ahí; no se escriben dos veces.
+2. Teclea el último **Euribor 12 meses** en «Índices de referencia» (con su fecha).
+3. En la tarjeta, rellena lo que dice tu contrato o la última carta de revisión: **diferencial**, **fecha de la próxima revisión**, cada cuánto se revisa (12 o 6 meses), la **regla del Euribor** (media mensual de N meses antes, o valor de un día, con cuántos días antes) y, si lo sabes, el **tipo aplicado actualmente** y la **bonificación** incluida en el diferencial.
+
+Qué te enseña:
+
+- **La fecha y lo que se leerá**, por ejemplo: «la media mensual del Euribor de febrero de 2027».
+- **La cuota estimada «de A a B»**: el tipo central es el último Euribor tecleado más tu diferencial; A y B son ese tipo **menos y más un punto**. El capital y los plazos se proyectan hasta la fecha de revisión si indicas el tipo aplicado.
+- **Si pierdes la bonificación**, la cuota con ese punto más.
+- **Avisos a 60 y 30 días antes**. Dentro de esos plazos aparece también una pregunta en la bandeja de Hoy; antes, no sale nada.
+
+Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.

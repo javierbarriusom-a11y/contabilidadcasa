@@ -46,6 +46,12 @@
     return dayNumber(toIso) - dayNumber(fromIso);
   }
 
+  // 7/10/2026
+  function shortDate(iso) {
+    const [year, month, day] = iso.split("-").map(Number);
+    return `${day}/${month}/${year}`;
+  }
+
   function addDays(iso, days) {
     return new Date((dayNumber(iso) + days) * 86400000).toISOString().slice(0, 10);
   }
@@ -135,9 +141,9 @@
     if (ageDays === null) return { state: "missing", point, ageDays: null, label: "Falta la fecha de hoy." };
     const value = String(point.value).replace(".", ",");
     if (ageDays > index.staleAfterDays) {
-      return { state: "stale", point, ageDays, label: `${value} % del ${point.date}: caducado (hace ${ageDays} días; vale ${index.staleAfterDays}). Teclea el último publicado.` };
+      return { state: "stale", point, ageDays, label: `${value} % del ${shortDate(point.date)}: caducado (hace ${ageDays} días; vale ${index.staleAfterDays}). Teclea el último publicado.` };
     }
-    return { state: "fresh", point, ageDays, label: `${value} % del ${point.date}: vigente (hace ${ageDays} día${ageDays === 1 ? "" : "s"}; caduca a los ${index.staleAfterDays}).` };
+    return { state: "fresh", point, ageDays, label: `${value} % del ${shortDate(point.date)}: vigente (hace ${ageDays} día${ageDays === 1 ? "" : "s"}; caduca a los ${index.staleAfterDays}).` };
   }
 
   // Media de los puntos de un mes (YYYY-MM). Es la media de lo tecleado, no de todos los días del mes: `count` dice con cuántos.
@@ -157,6 +163,6 @@
   return {
     SCHEMA_ID, INDICES, INDEX_IDS, MAX_POINTS_PER_INDEX,
     parsePercent, normalizeStore, seriesOf, latest, addPoint, removePoint, status, monthlyAverage, valueAt,
-    isIsoDate, daysBetween, addDays,
+    isIsoDate, daysBetween, addDays, shortDate,
   };
 });

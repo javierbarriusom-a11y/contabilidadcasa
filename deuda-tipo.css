@@ -49,3 +49,34 @@
   min-height: 32px;
   padding: 0 6px;
 }
+
+/* WP-20 · resultado de la revisión del tipo variable. Borde de acento propio (no .e19-insight: pone todo <strong> en bloque y parte las frases). */
+.rev-resultado {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 4px 0 4px 14px;
+  border-left: 4px solid var(--e19-accent, var(--e19-border));
+}
+
+.rev-resultado p {
+  margin: 0;
+}
+
+.rev-titular {
+  font: 600 var(--e19-text-base) / 1.35 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.rev-cuota {
+  font: 400 var(--e19-text-base) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.rev-ejemplo {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--e19-border);
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
