@@ -2806,7 +2806,9 @@ fieldset {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfd;
+  /* Era #fbfcfd fijo: en oscuro dejaba el texto claro sobre casi blanco (1,14:1) en 5 de los 8 fieldset visibles, entre ellos el selector de la
+     prueba cronometrada de Hoy (Ajustes). Mismo tono en claro (#f7fafb), tema en oscuro. */
+  background: var(--surface-soft);
 }
 
 legend {
@@ -6374,6 +6376,9 @@ body {
 .commit-barrier-item.warning { border-left: 4px solid #c98516; }
 .commit-barrier-overview.blocked,
 .commit-barrier-item.blocker { border-left: 4px solid #c54d49; }
+/* El texto de apoyo de un aviso de la bandeja heredaba el ámbar de `.warning` (#c98516): 3,06:1 sobre blanco, por debajo de AA. Misma tinta que las
+   insignias de aviso (--e19-warning-badge-ink: 4,5:1 en claro; en oscuro es el ámbar, que ahí sí contrasta). */
+.commit-barrier-item.warning small { color: var(--e19-warning-badge-ink, #95680e); }
 
 .commit-barrier-overview span,
 .commit-barrier-item span {

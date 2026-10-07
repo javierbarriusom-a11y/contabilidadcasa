@@ -35,8 +35,18 @@ test("las barras de «Valor por posición» anulan el min-height global de los S
   assert.match(css, /\nsvg \{\s*display: block;\s*width: 100%;\s*min-height: 350px;/, "la regla global sigue ahí (otros gráficos dependen de ella); lo que cambia es que sus víctimas la anulan");
 });
 
+test("el fondo de los fieldset sale del tema, no de un color fijo (5 de los 8 visibles eran ilegibles en oscuro)", () => {
+  const block = ruleBody("fieldset");
+  assert.match(block, /background:\s*var\(--surface-soft\)/);
+  assert.doesNotMatch(block.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-fA-F]{3,8}\b/);
+});
+
+test("el texto de apoyo de los avisos de la bandeja usa la tinta accesible de las insignias de aviso", () => {
+  assert.match(css, /\.commit-barrier-item\.warning small \{ color: var\(--e19-warning-badge-ink/);
+});
+
 test("la versión de styles.css cambió con la regla (si no, el navegador y el service worker servirían la antigua)", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  assert.match(html, /styles\.css\?v=20261007audit1/);
+  assert.match(html, /styles\.css\?v=20261007audit3/);
   assert.doesNotMatch(html, /styles\.css\?v=20261004wp26a1/);
 });
