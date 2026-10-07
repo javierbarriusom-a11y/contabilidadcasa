@@ -43,7 +43,7 @@ Lo que sí hay: un fichero que se genera **en el dispositivo**, no sale de él y
 | El aviso «si no ha llegado, la app lo preguntará» del cargo grande | Cuando exista WP-27 (cargos que no llegaron): hoy el texto solo pide comprobarlo |
 | Eventos de la campaña fiscal con la fecha límite real de cada acción (WP-23 PR-3) | Con los datos fiscales (H-03, 20/10) |
 | Medir el éxito: «frescura ≤ 1 día en los momentos de decisión en ≥ 90 % de los meses» | Hay que medirlo con la frescura de los saldos cuando exista uso real; hoy está sin medir |
-| Fondo claro fijo de los 15 `<fieldset>` de la app en modo oscuro (`styles.css`: `fieldset { background: #fbfcfd }`; la tarjeta de esta tarea lo anula en su hoja) | Hallazgo de esta tarea; se corrige en `styles.css` en un PR aparte, midiendo antes cuántos se ven mal |
+| ~~Fondo claro fijo de los `<fieldset>` en modo oscuro~~ | **Corregido** en el PR de WP-14/27: medidos 5 de 8 visibles ilegibles (1,14:1), entre ellos el selector de la prueba de Hoy; `fieldset` usa ahora el token del tema |
 
 ## 5. Cómo se prueba
 

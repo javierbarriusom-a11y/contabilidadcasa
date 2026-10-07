@@ -127,6 +127,8 @@ const files = [
   "cash-band-ui.js",
   "canonical-reminders.js",
   "recordatorios-ui.js",
+  "canonical-expected-movements.js",
+  "esperados-ui.js",
   "valoracion-ui.js",
   "canonical-year-end-tax.js",
   "fiscal-campana-ui.js",

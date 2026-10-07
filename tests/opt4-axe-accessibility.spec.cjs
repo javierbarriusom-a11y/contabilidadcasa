@@ -150,3 +150,49 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// WP-14 + WP-27: las preguntas de «¿ha llegado…?» en la bandeja de Hoy, en claro y en oscuro (con dos esperados inyectados sobre filas reales).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-14/27 · contraste de las preguntas de la bandeja en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#home: sin fallos de contraste ni de accesibilidad dentro de la bandeja", async ({ page }) => {
+      await page.goto("/index.html#home");
+      await page.reload();
+      await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+      await page.evaluate(() => {
+        const today = isoLocalDate(new Date());
+        const key = today.slice(0, 7);
+        const month = monthByKey(key);
+        const incomeRow = planningSectionsForMonth("income", month)[0].rows[0];
+        const expRow = planningSectionsForMonth("expense", month).find((section) => section.name !== VARIABLE_OPERATIONAL_SECTION).rows[0];
+        const back = (days) => { const date = new Date(); date.setDate(date.getDate() - days); return isoLocalDate(date); };
+        expectedMovementExpectations = () => [
+          { id: "i", kind: "income", seriesKey: seriesKeyForRow(incomeRow), label: displayLabelForRow(incomeRow), month: key, expectedDate: back(5), certain: true, plannedAmount: 3000, history: [] },
+          { id: "e", kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: 80, history: [{ date: back(40), amount: 80 }] },
+        ];
+        expectedLedgerCoveredUntil = () => today;
+        renderDecisionInboxCard();
+      });
+      await expect(page.locator("#homeDecisionInboxList [data-expected-response]").first()).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#homeDecisionInboxCard").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// El selector de la prueba cronometrada de Hoy (Ajustes) era un fieldset blanco en oscuro: 1,14:1. Es el control que el hogar usa el 9/10 (WP-02).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`auditoría 7/10 · selector de la prueba de Hoy en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#ajustes › .prueba-hoy-modo: texto legible", async ({ page }) => {
+      await page.goto("/index.html#ajustes");
+      await page.reload();
+      await expect(page.locator(".prueba-hoy-modo")).toBeAttached({ timeout: 15000 });
+      await page.locator(".prueba-hoy-modo").scrollIntoViewIfNeeded();
+      const results = await new AxeBuilder({ page }).include(".prueba-hoy-modo").withRules(["color-contrast"]).analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.join("\n")).toEqual([]);
+    });
+  });
+}
+

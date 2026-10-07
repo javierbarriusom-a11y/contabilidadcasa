@@ -334,6 +334,21 @@ La primera tarjeta de **Herramientas avanzadas › Fiscal** junta las decisiones
 - **Ajustar la retención** se presenta como caja, no como ahorro, y rinde en 2027: pedirla ahora solo alcanza a las nóminas que quedan de 2026.
 - Los parámetros legales (límites, topes, porcentajes) están todavía **pendientes de contrastar con la fuente oficial**; la tarjeta lo dice. Es una estimación: confirma cada acción con un asesor antes de actuar. La app nunca aporta, amortiza, vende ni dona por ti.
 
+### «¿Ha llegado…?»: cobros esperados y cargos que no llegaron (Hoy › Bandeja)
+
+La **bandeja de decisiones de Hoy** pregunta por lo que se esperaba y no ha aparecido:
+
+- **Un cobro** (p. ej. la nómina), **dos días después** de su fecha: «¿Ha llegado «Nómina Javi»?». Respuestas: **Sí, por el importe previsto** (registra el real, como en Registrar el mes) · **Sí, otro importe** (te pide el importe, con coma española) · **Aún no** (calla 2 días y vuelve a preguntar).
+- **Un cargo** (p. ej. un seguro): ««Seguro del coche» no ha llegado», con las fechas de sus últimos cargos para ver el patrón. Respuestas: **Se ha dado de baja** (los meses siguientes dejan de contar en la previsión) · **Ha cambiado de cuenta** (no se vuelve a preguntar por ese recibo; la salida sigue en la previsión) · **Llegará tarde** (calla 3 días) · **Ya está pagado de otra forma** (registra el real). Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.
+- Cada respuesta con efecto da un aviso de **Deshacer** unos segundos.
+
+Lo que **no** pregunta, a propósito:
+
+- **Partidas con la fecha estimada** (el 8 de relleno): «no ha llegado» sería mentira. Solo pregunta por fechas fijadas por regla (las nóminas y el local) o por **día de cargo que tú has indicado** en Plan › Partidas. Cuantos más días de cargo declares, más recibos vigila.
+- **Cargos, si no has importado el extracto hasta ese día.** Sin extracto al día, «no aparece» no quiere decir «no ha llegado»: puede ser que no lo hayas importado. Por eso la vigilancia de cargos solo funciona si importas extractos con regularidad. Los **cobros** sí se preguntan siempre: tu respuesta es la forma más barata de registrarlos.
+- Lo que ya tiene un real registrado o un movimiento importado que coincide, el gasto variable y lo que ya respondiste.
+- Como mucho **5 preguntas** a la vez; las demás esperan.
+
 ### Recordatorios en el calendario del móvil (Ajustes)
 
 **Ajustes › Recordatorios en el calendario del móvil** genera un fichero `.ics` con avisos **en el momento en que sirven**, no a horas fijas:

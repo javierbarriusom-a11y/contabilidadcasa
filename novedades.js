@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp14",
+      fecha: "2026-10-07",
+      texto: "Hoy › Bandeja: «¿Ha llegado la nómina?» y «este recibo no ha llegado», con respuesta en un toque y deshacer.",
+      href: "#home",
+    },
+    {
       id: "2026-10-07-wp32",
       fecha: "2026-10-07",
       texto: "Ajustes › Recordatorios: un fichero .ics para el calendario del móvil con avisos antes de cobrar, tras un cargo grande y al cerrar el mes.",
