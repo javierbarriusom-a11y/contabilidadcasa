@@ -1194,11 +1194,15 @@ test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
       await expect(slider).toHaveAttribute("aria-valuenow", "0");
       await expect(figure.locator(".ck-cursor")).toBeVisible();
       // La lectura es fija: leer un punto no mueve nada por debajo de ella.
-      const before = (await figure.locator("[data-ck-readout]").boundingBox()).y;
-      await page.keyboard.press("Tab");
+      // Se mide en coordenadas de DOCUMENTO (posición + desplazamiento): al enfocar o pulsar teclas la página puede desplazarse, y eso mueve la
+      // posición en la ventana sin que el diseño cambie. Lo que no debe pasar es que leer un punto empuje lo de debajo.
+      const readoutTop = () => figure.locator("[data-ck-readout]").evaluate((node) => Math.round(node.getBoundingClientRect().top + window.scrollY));
       await slider.focus();
+      await page.keyboard.press("Home");
+      const before = await readoutTop();
       await page.keyboard.press("End");
-      expect((await figure.locator("[data-ck-readout]").boundingBox()).y).toBeCloseTo(before, 0);
+      await page.keyboard.press("ArrowLeft");
+      expect(await readoutTop(), "leer otro punto no mueve la lectura ni lo que hay debajo").toBe(before);
       // Ver como tabla: una fila por mes, los mismos números.
       await figure.locator(".ck-tabla summary").click();
       await expect(figure.locator(".ck-tabla table tbody tr")).toHaveCount(last + 1);
