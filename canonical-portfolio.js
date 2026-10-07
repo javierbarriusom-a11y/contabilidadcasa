@@ -162,13 +162,22 @@
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  function positionCashFlows({ acquisitionDate, initialCost, contributions, asOf, currentValue }) {
+  // Dinero aportado (negativo), dinero cobrado en ventas parciales (positivo) y valor actual de lo que queda (positivo). Las
+  // ventas son dinero devuelto: sin ellas, tras vender una parte la rentabilidad anualizada salía más baja de la real (con 1.000 €
+  // comprados, 700 € cobrados a un año y 600 € de valor a dos, −22,5 % en vez de 20 %). Una venta sin importe cobrado no aporta
+  // flujo, y por eso `unknownProceeds` invalida la XIRR en vez de dejarla calcularse sin ese dinero.
+  function positionCashFlows({ acquisitionDate, initialCost, contributions, disposals = [], asOf, currentValue }) {
     const flows = [];
     if (acquisitionDate && initialCost > 0) flows.push({ date: acquisitionDate, amount: -initialCost });
     contributions.forEach((contribution) => flows.push({ date: contribution.date, amount: -contribution.amount }));
+    disposals.forEach((disposal) => {
+      if (disposal.saleProceeds > 0) flows.push({ date: disposal.date, amount: disposal.saleProceeds });
+    });
     if (asOf && currentValue > 0) flows.push({ date: asOf, amount: currentValue });
     return flows;
   }
+
+  const DISPOSAL_PROCEEDS_UNKNOWN = Object.freeze({ rate: null, ratePct: null, converged: false, reason: "disposal-proceeds-unknown" });
 
   // FC1: FIFO real sobre los lotes con unidades conocidas (adquisición inicial + aportaciones con
   // `quantity`), procesados en orden cronológico estricto — nunca por el orden en que se
@@ -268,7 +277,9 @@
     const costBasis = hasDisposals
       ? round2(ledger.remainingCost + untrackedContributionsCost)
       : round2(initialCost + additionalContributed);
-    const cashFlows = positionCashFlows({ acquisitionDate, initialCost, contributions, asOf, currentValue });
+    const cashFlows = positionCashFlows({ acquisitionDate, initialCost, contributions, disposals, asOf, currentValue });
+    // Una venta sin importe cobrado: el dinero devuelto se desconoce, así que la rentabilidad no se calcula (dato ausente no es cero).
+    const unknownProceeds = disposals.some((disposal) => !(disposal.saleProceeds > 0));
     const position = {
       id: String(raw.id || `position-${index + 1}`),
       schemaId: SCHEMA_ID,
@@ -326,7 +337,7 @@
       // dato. Solo para cuando el tipo no refleja la liquidez real de esta posición concreta.
       liquidityTierOverride: LIQUIDITY_TIERS.some((tier) => tier.tier === raw.liquidityTierOverride) ? raw.liquidityTierOverride : null,
     };
-    return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
+    return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: unknownProceeds ? { ...DISPOSAL_PROCEEDS_UNKNOWN } : xirr(cashFlows) };
   }
 
   function validatePositions(positions = []) {
@@ -379,7 +390,8 @@
       gainLossPct: totalCost > 0 ? round2((gainLoss / totalCost) * 100) : 0,
       totalsByType,
       count: positions.length,
-      xirr: xirr(pooledCashFlows),
+      // Si una sola posición tiene una venta sin importe cobrado, la cifra agregada tampoco es fiable: mismo motivo, no un número a medias.
+      xirr: positions.some((position) => position.xirr?.reason === "disposal-proceeds-unknown") ? { ...DISPOSAL_PROCEEDS_UNKNOWN } : xirr(pooledCashFlows),
     };
   }
 
