@@ -10,13 +10,13 @@
 |---|---|---|---|---|---|
 | Ola 1 · Medir, dinero con fecha y verdad barata | 5/10 – 23/10/2026 | 13 | 10 | 21,5 | 85 % |
 | Ola 2 · Actualizar y capturar cuesta poco | 26/10 – 20/11/2026 | 13 | 5 | 31,5 | 54 % |
-| Ola 3 · Previsión, inversión y deuda con guion | 23/11/2026 – 22/1/2027 | 26 | 0 | 84,5 | 0 % |
+| Ola 3 · Previsión, inversión y deuda con guion | 23/11/2026 – 22/1/2027 | 26 | 1 | 84,5 | 6 % |
 | Continuo · prueba trimestral | trimestral desde diciembre | 1 | 0 | 1 | 0 % |
-| **Total** | | **53** | **15** | **138,5** | **25,5 %** |
+| **Total** | | **53** | **16** | **138,5** | **29,1 %** |
 
-- **Avance ponderado** (hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %; un paquete de 7 sesiones pesa siete veces uno de 1): **25,5 %** del plan (35,35 de 138,5 sesiones; WP-23, WP-28 y WP-33 «en curso» al 50 %). **Sesiones reales:** 15 en el panel frente a 138,5 estimadas para todo el plan.
-- **Adelantados:** de la Ola 2 ya están WP-08, WP-12, WP-15, WP-26 y WP-30 (el calendario los situaba entre el 26/10 y el 20/11).
-- **Construido no es lo mismo que comprobado:** de los 15 paquetes hechos, 8 llevan una métrica asociada y **ninguna está leída todavía con datos reales del hogar** (las lecturas que hay son de la demo o de pruebas). Dependen de que el hogar use lo construido: saldos del día, cierre con saldo, valoraciones, tarjetas dadas de alta. Es el riesgo principal del plan; la regla de parada de cada ola exige mirarlas.
+- **Avance ponderado** (hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %; un paquete de 7 sesiones pesa siete veces uno de 1): **29,1 %** del plan (40,35 de 138,5 sesiones; WP-23, WP-28 y WP-33 «en curso» al 50 %). **Sesiones reales:** 16 en el panel frente a 138,5 estimadas para todo el plan.
+- **Adelantados:** WP-16 (de la Ola 3) y, de la Ola 2, WP-08, WP-12, WP-15, WP-26 y WP-30 (el calendario los situaba entre el 26/10 y el 20/11).
+- **Construido no es lo mismo que comprobado:** de los 16 paquetes hechos, 9 llevan una métrica asociada y **ninguna está leída todavía con datos reales del hogar** (las lecturas que hay son de la demo o de pruebas). Dependen de que el hogar use lo construido: saldos del día, cierre con saldo, valoraciones, tarjetas dadas de alta. Es el riesgo principal del plan; la regla de parada de cada ola exige mirarlas.
 - **Cuello de botella: el tiempo del hogar, no el de desarrollo.** Hasta el 3/11 hay cinco tareas suyas en el plan (H-02 a H-06) y cuatro más surgidas en estas sesiones (verificación de O-6, abrir la app del 15 al 17/10, dar de alta las tarjetas y valorar la cartera); véase §7.
 
 ## 2. Ola 1 · Medir, dinero con fecha y verdad barata (5/10 – 23/10/2026)
@@ -81,7 +81,7 @@
 | **WP-51** · Perfiles de extracto con autodetección | Perfiles de extracto con autodetección de delimitador, decimales, fechas, signo y codificación. | ⏳ Pendiente | WP-33 | Tras WP-33 (historiales sintéticos para probarlo). ≈ 2,5 sesiones. |
 | **WP-19** · Camino a deuda cero | Camino a deuda cero: un control («extra al mes») y tres cifras. | ⏳ Pendiente | — | Sin dependencias (≈ 3,5 sesiones). Objetivo: «¿cuándo acabamos la deuda?» en < 30 s. |
 | **WP-42** · Escalera del próximo euro | Escalera del próximo euro: colchón, deuda cara, pensiones, fondos, amortizar o invertir. | ⏳ Pendiente | WP-17, WP-13 | Tras WP-17 y WP-13. El más grande del plan (≈ 7 sesiones); habilita WP-47. |
-| **WP-16** · Banda de caja diaria con ventanas de fecha | Banda de caja diaria P10–P90, probabilidad de cruzar el suelo y día del mínimo. | ⏳ Pendiente | WP-08 ✅, WP-10 ✅, WP-28, WP-33 | Tras WP-28 y WP-33 (WP-08 y WP-10 ya están). ≈ 5 sesiones. |
+| **WP-16** · Banda de caja diaria con ventanas de fecha | Banda de caja diaria P10–P90, probabilidad de cruzar el suelo y día del mínimo. | ✅ Hecho · sin medir (7/10) | WP-08 ✅, WP-10 ✅, WP-28, WP-33 | Hecho: `canonical-cash-band.js` (500 trayectorias, fechas estimadas en ventana 1-28, gasto variable repartido, prudente dentro del día), tarjeta en Plan › Previsión con el kit de WP-28 y calibración con el hogar sintético de WP-33 (cobertura 87-94 %; probabilidad media 0,225 frente a 0,247 real). Sin medir con datos reales. Queda: ventana aprendida por partida, dispersión de importes, línea en Hoy (solo tras H1). `docs/WP16_DISENO.md`. |
 | **WP-43** · Puente de previsión | Puente de previsión: cascada entre dos previsiones sucesivas a 31/12. | ⏳ Pendiente | WP-09 ✅, WP-28 | Tras WP-28 (WP-09 ya está). Da resultado con 3 cierres (febrero). |
 | **WP-18** · Aportado frente a valor y TWR | Aportado frente a valor, XIRR y TWR por posición, con explicación. | ⏳ Pendiente | WP-15 ✅ | Listo en cuanto haya ≥ 3 valoraciones (WP-15): hoy hay 0 → noviembre, diciembre y enero. Candidato a corregir antes el XIRR de las ventas parciales. |
 | **WP-44** · Calma, cobertura y exposición | Calma, cobertura y exposición: caída desde máximos, gasto cubierto por rentas y exposición por entidad. | ⏳ Pendiente | WP-15 ✅, WP-39 | Tras WP-39 (WP-15 ya está) y con ≥ 3 valoraciones para la caída desde máximos. |

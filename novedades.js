@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-07-wp16",
+      fecha: "2026-10-07",
+      texto: "Plan › Previsión: «Banda de caja a 30 días», con la probabilidad de bajar del suelo en vez de una línea que finge saber el día.",
+      href: "#prevision",
+    },
+    {
       id: "2026-10-06-wp28",
       fecha: "2026-10-06",
       texto: "Escenarios › Bandas de confianza: el cono se lee con el dedo, el ratón o las flechas, con la lectura fija y «Ver como tabla».",

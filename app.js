@@ -22591,6 +22591,7 @@ function renderPrevisionQuality(items) {
   const quality = engine.measure(forecastQualityInput(items));
   box.innerHTML = engine.renderHtml(quality);
   if (qs("previsionCalidadResumen")) qs("previsionCalidadResumen").textContent = engine.summaryText(quality);
+  globalThis.renderCashBand?.(globalThis.FinanceCanonicalCashBand); // WP-16 (cash-band-ui.js)
   renderLiquidityBacktest(window.FinanceCanonicalLiquidityBacktest?.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: isoLocalDate(new Date()) })); // WP-12 (liquidity-backtest-ui.js)
 }
 

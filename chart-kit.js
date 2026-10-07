@@ -101,10 +101,12 @@
    * El dibujo de un cono / banda P10-P90: un polígono continuo entre el límite bajo y el alto, más la línea central. viewBox 0-100 con
    * preserveAspectRatio="none" (se estira al ancho real; por eso el trazo central es `non-scaling-stroke`).
    * Devuelve también `xs`, la posición horizontal (0-100) de cada punto, que el recorrido necesita.
-   * @param {{points: Array<{low: number, center: number, high: number}>, ariaLabel: string, classes?: {svg?: string, area?: string, center?: string}}} spec
+   * `threshold` (WP-16): una línea horizontal discontinua, por ejemplo el suelo de caja. Entra en la escala para que siempre se vea.
+   * @param {{points: Array<{low: number, center: number, high: number}>, ariaLabel: string, classes?: {svg?: string, area?: string, center?: string}, threshold?: {value: number}|null}} spec
    */
-  function bandPlotHtml({ points, ariaLabel, classes = {} }) {
-    const values = points.flatMap((point) => [point.low, point.high]);
+  function bandPlotHtml({ points, ariaLabel, classes = {}, threshold = null }) {
+    const thresholdValue = threshold && Number.isFinite(Number(threshold.value)) ? Number(threshold.value) : null;
+    const values = [...points.flatMap((point) => [point.low, point.high]), ...(thresholdValue === null ? [] : [thresholdValue])];
     const min = Math.min(0, ...values);
     const max = Math.max(1, ...values);
     const span = Math.max(1, max - min);
@@ -116,7 +118,9 @@
     const center = points.map((point, index) => `${xAt(index)},${yAt(point.center)}`).join(" ");
     const svg = `<svg class="${esc(classes.svg || "ck-svg")}" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${esc(ariaLabel)}">
     <polygon class="${esc(classes.area || "ck-banda")}" points="${[...high, ...low].join(" ")}"></polygon>
-    <polyline class="${esc(classes.center || "ck-centro")}" points="${center}" vector-effect="non-scaling-stroke"></polyline>
+    <polyline class="${esc(classes.center || "ck-centro")}" points="${center}" vector-effect="non-scaling-stroke"></polyline>${
+      thresholdValue === null ? "" : `\n    <line class="ck-umbral" x1="0" x2="100" y1="${yAt(thresholdValue)}" y2="${yAt(thresholdValue)}" vector-effect="non-scaling-stroke"></line>`
+    }
   </svg>`;
     return { svg, xs: points.map((_, index) => xAt(index)) };
   }

@@ -122,6 +122,8 @@ const files = [
   "captura-ui.js",
   "canonical-portfolio-valuation.js",
   "chart-kit.js",
+  "canonical-cash-band.js",
+  "cash-band-ui.js",
   "valoracion-ui.js",
   "canonical-year-end-tax.js",
   "fiscal-campana-ui.js",

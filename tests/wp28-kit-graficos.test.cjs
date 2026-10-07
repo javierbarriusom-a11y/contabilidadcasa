@@ -96,6 +96,15 @@ test("bandPlotHtml · las clases se pueden sustituir (así el cono conserva su a
   assert.match(plot.svg, /aria-label="a &quot;b&quot; &lt;c&gt;"/);
 });
 
+test("bandPlotHtml · el umbral (el suelo) entra en la escala y se dibuja como línea discontinua", () => {
+  const withIt = kit.bandPlotHtml({ points: [{ low: 900, center: 1000, high: 1100 }, { low: 900, center: 1000, high: 1100 }], ariaLabel: "x", threshold: { value: 100 } });
+  assert.match(withIt.svg, /<line class="ck-umbral" x1="0" x2="100" y1="[\d.]+" y2="[\d.]+" vector-effect="non-scaling-stroke">/);
+  const y = Number(/class="ck-umbral" x1="0" x2="100" y1="([\d.]+)"/.exec(withIt.svg)[1]);
+  assert.ok(y > 0 && y <= 100, `el umbral por debajo de la banda tiene que quedar dentro del dibujo (y = ${y})`);
+  assert.doesNotMatch(kit.bandPlotHtml({ points: [{ low: 1, center: 2, high: 3 }], ariaLabel: "x" }).svg, /ck-umbral/);
+  assert.doesNotMatch(kit.bandPlotHtml({ points: [{ low: 1, center: 2, high: 3 }], ariaLabel: "x", threshold: { value: "no" } }).svg, /ck-umbral/);
+});
+
 // ---- tableHtml ----
 test("tableHtml · tabla de verdad plegada: leyenda, cabeceras de columna y de fila, y todo escapado", () => {
   const html = kit.tableHtml({ caption: "Tabla <x>", columns: ["Mes", "Valor"], rows: [["ene", "10 €"], ["feb <b>", "20 €"]] });
@@ -245,6 +254,9 @@ test("diseño: el CSS del kit solo usa tokens --e19-*, recorrido con pan-y, movi
   assert.match(css, /@media \(prefers-reduced-motion: no-preference\)/); // el movimiento es la excepción, no la regla
   assert.match(css, /@media \(prefers-contrast: more\)/);
   assert.match(css, /@media \(forced-colors: active\)/);
+  // La cebra y el hover de las tablas salen de tokens: styles.css fija #fafbfc a toda fila par sin tema (ilegible en oscuro).
+  assert.match(css, /\.ck-tabla tbody tr:nth-child\(even\)\s*\{\s*background:\s*var\(--e19-surface-soft\)/);
+  assert.match(css, /\.ck-tabla tbody tr:hover\s*\{\s*background:\s*var\(--e19-accent-soft\)/);
   const vars = [...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
   assert.ok(vars.length > 5);
   vars.forEach((name) => assert.match(name, /^--e19-/, `${name} no es un token --e19-*`));
