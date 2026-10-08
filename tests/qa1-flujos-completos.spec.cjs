@@ -1731,3 +1731,93 @@ test.describe("WP-19 · camino a deuda cero", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-31 (PR-1): nóminas y retenciones acumuladas en Herramientas avanzadas › Fiscal. Nóminas INVENTADAS; las reales las apunta el hogar y no van al repositorio.
+test.describe("WP-31 · nóminas y retenciones", () => {
+  test("apunta nóminas, avisa de los meses que faltan y del cambio de %, lee un texto sin guardarlo y pasa la suma al estimador", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#nominasCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator("#nominasResumen")).toContainText("Aún no hay nóminas");
+      const year = (await page.evaluate(() => new Date().getFullYear())) - 1; // el año pasado: siempre es pasado, sea cual sea el día de hoy
+      const save = async (month, extra = {}) => {
+        await page.fill("#nominasTitular", "Persona A");
+        await page.fill("#nominasMes", `${year}-${String(month).padStart(2, "0")}`);
+        await page.fill("#nominasBruto", extra.gross ?? "2.100,00");
+        await page.fill("#nominasLiquido", extra.net ?? "1.644,93");
+        await page.fill("#nominasPct", extra.pct ?? "15,32");
+        await page.fill("#nominasRetencion", extra.amount ?? "");
+        await page.locator('#nominasForm button[type="submit"]').click();
+      };
+
+      // Sin retención no hay nómina (dato ausente no es cero).
+      await page.fill("#nominasTitular", "Persona A");
+      await page.fill("#nominasMes", `${year}-01`);
+      await page.fill("#nominasBruto", "2.100,00");
+      await page.fill("#nominasLiquido", "1.644,93");
+      await page.locator('#nominasForm button[type="submit"]').click();
+      await expect(card.locator("#nominasNota")).toContainText("Falta la retención");
+      await expect(card.locator("#nominasResumen")).toContainText("Aún no hay nóminas");
+
+      // Enero, febrero y abril: marzo falta y se dice. La retención se calcula del % y se marca.
+      await save(1);
+      await expect(card.locator("#nominasNota")).toContainText("guardada");
+      await save(2);
+      await save(4);
+      await expect(card.locator(".nom-faltan")).toContainText(`marzo, mayo a diciembre de ${year}`);
+      await expect(card.locator(".nom-cifra")).toContainText("965,16");
+      await expect(card.locator("#nominasResumen")).toContainText("retenciones están calculadas desde el %");
+      await save(3);
+      await expect(card.locator(".nom-faltan")).not.toContainText("marzo"); // un año ya cerrado se espera entero: siguen faltando mayo a diciembre
+      await expect(card.locator(".nom-faltan")).toContainText(`mayo a diciembre de ${year}`);
+      await expect(card.locator(".nom-cifra")).toContainText("1286,88");
+
+      // Cambio del %: aviso con su explicación.
+      await save(5, { pct: "13,1" });
+      await expect(card.locator(".nom-aviso")).toContainText("La retención bajó del 15,32 % al 13,1 %");
+      await expect(card.locator(".nom-aviso")).toContainText("regularización");
+
+      // Lector de texto: rellena el formulario, borra lo pegado y no guarda hasta pulsar «Guardar».
+      await card.locator(".nom-texto summary").click();
+      await page.fill("#nominasTextoPegado", `NÓMINA\nPeriodo: 01/06/${year} a 30/06/${year}\nTOTAL DEVENGADO 2.100,00\nIRPF 15,32 % 321,72\nLÍQUIDO A PERCIBIR 1.644,93\nNIF 12345678Z`);
+      await card.locator("[data-nominas-leer]").click();
+      await expect(card.locator("#nominasNota")).toContainText("He leído");
+      await expect(card.locator("#nominasNota")).toContainText("Revisa todo");
+      await expect(page.locator("#nominasTextoPegado")).toHaveValue("");
+      await expect(page.locator("#nominasMes")).toHaveValue(`${year}-06`);
+      await expect(page.locator("#nominasBruto")).toHaveValue("2100");
+      await expect(page.locator("#nominasLiquido")).toHaveValue("1644,93");
+      await expect(card.locator(".nom-lista summary")).toContainText("(5)", { timeout: 5000 });
+      await page.fill("#nominasTitular", "Persona A");
+      await page.locator('#nominasForm button[type="submit"]').click();
+      await expect(card.locator(".nom-lista summary")).toContainText("(6)");
+
+      // Solo cifras en el almacenamiento: nada del texto pegado, ni el NIF.
+      const stored = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.includes("payslips")).map(([, value]) => value).join("|"));
+      expect(stored).toContain("withholdingAmount");
+      expect(stored).not.toMatch(/12345678Z|DEVENGADO|NÓMINA|Periodo/);
+
+      // «Usar» pasa la suma al estimador de Renta y avisa de lo que falta (julio a diciembre del año pasado).
+      await card.locator('[data-nominas-usar="Persona A"]').click();
+      const expected = await page.evaluate((y) => String(FinanceCanonicalPayroll.summarize(nominasLoad(), { year: y, today: isoLocalDate(new Date()) }).holders[0].withheld), year);
+      await expect(page.locator("#irpfWithholdingsPaid")).toHaveValue(expected);
+      await expect(card.locator("#nominasNota")).toContainText("faltan nóminas");
+
+      // Quitar una nómina.
+      await card.locator(".nom-lista summary").click();
+      await card.locator("[data-nominas-quitar]").first().click();
+      await expect(card.locator(".nom-lista summary")).toContainText("(5)");
+
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    }
+    expect(pageErrors).toEqual([]);
+  });
+});

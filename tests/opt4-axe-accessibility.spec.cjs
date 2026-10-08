@@ -290,3 +290,34 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-31: la tarjeta «Nóminas y retenciones» de Herramientas › Fiscal, en claro y en oscuro: vacía, y con nóminas, aviso de cambio y meses que faltan.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-31 · contraste de la tarjeta de nóminas en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#herramientas-fiscal: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.reload();
+      const card = page.locator("#nominasCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await card.locator(".nom-texto summary").click();
+      const vacia = await new AxeBuilder({ page }).include("#nominasCard").analyze();
+      expect(fmt(vacia), fmt(vacia).slice(0, 5).join("\n")).toEqual([]);
+      const year = (await page.evaluate(() => new Date().getFullYear())) - 1;
+      for (const [month, pct] of [[1, "15,32"], [2, "15,32"], [4, "13,1"]]) {
+        await page.fill("#nominasTitular", "Persona A");
+        await page.fill("#nominasMes", `${year}-${String(month).padStart(2, "0")}`);
+        await page.fill("#nominasBruto", "2.100,00");
+        await page.fill("#nominasLiquido", "1.644,93");
+        await page.fill("#nominasPct", pct);
+        await page.locator('#nominasForm button[type="submit"]').click();
+      }
+      await expect(card.locator(".nom-aviso")).toBeVisible();
+      await expect(card.locator(".nom-faltan")).toBeVisible();
+      await card.locator(".nom-lista summary").click();
+      const llena = await new AxeBuilder({ page }).include("#nominasCard").analyze();
+      expect(fmt(llena), fmt(llena).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-08-wp31",
+      fecha: "2026-10-08",
+      texto: "Herramientas › Fiscal › Nóminas y retenciones: apunta cada nómina y suma lo retenido en el año; avisa si cambia el %.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-08-wp19",
       fecha: "2026-10-08",
       texto: "Deuda › Ruta › Camino a deuda cero: pon un extra al mes y mira cuándo acabáis y cuántos intereses os ahorráis.",

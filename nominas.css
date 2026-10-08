@@ -1,0 +1,113 @@
+/* WP-31 · tarjeta «Nóminas y retenciones» de Herramientas avanzadas › Fiscal. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas
+   por pruebas). Solo usa tokens --e19-*. */
+.nom-card {
+  margin-bottom: 16px;
+}
+
+.nom-texto {
+  margin: 8px 0;
+}
+
+.nom-texto summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--e19-ink);
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.nom-texto textarea {
+  width: 100%;
+  min-height: 96px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+}
+
+.nom-form .cuadro-mandos-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+  margin: 8px 0;
+}
+
+.nom-form .month-picker,
+.nom-texto .month-picker {
+  display: grid;
+  gap: 4px;
+}
+
+.nom-form input[type="text"],
+.nom-form input[type="month"],
+.nom-form select {
+  min-height: 44px;
+}
+
+.nom-anio {
+  max-width: 160px;
+}
+
+.nom-titular {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-accent, var(--e19-border));
+}
+
+.nom-titular-nombre {
+  margin: 0;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.nom-cifra {
+  margin: 0;
+  font: 400 var(--e19-text-base) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.nom-aviso {
+  padding: 4px 0 4px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.nom-lista {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.nom-lista summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nom-lista ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.nom-lista li {
+  min-height: 32px;
+}
+
+.nom-lista .link-button {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 32px;
+  padding: 0 6px;
+}
+
+/* Los <summary> pierden su marcador en esta app: se pone uno visible para que se vea que se despliega. */
+.nom-texto summary::before,
+.nom-lista summary::before {
+  content: "▸ ";
+  margin-right: 4px;
+}
+
+.nom-texto[open] summary::before,
+.nom-lista[open] summary::before {
+  content: "▾ ";
+}

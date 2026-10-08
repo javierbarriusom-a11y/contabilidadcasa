@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "payslips", // WP-31: nóminas (solo cifras: periodo, bruto, líquido, retención), para el acumulado del estimador de Renta
   "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
   "pvc6-forecast-snapshots", // PVC6: previsión congelada en cada cierre
   "cierre-aprendizaje", // C-13: previsto frente a real por mes firmado
@@ -35869,6 +35870,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "herramientas-fiscal":
       renderAjustes();
       globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
+      globalThis.renderNominas?.(globalThis.FinanceCanonicalPayroll); // WP-31 (nominas-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":
