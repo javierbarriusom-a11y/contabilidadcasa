@@ -1644,3 +1644,90 @@ test.describe("WP-20 · avisos de la revisión en el calendario del móvil", () 
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-19: «Camino a deuda cero» (Deuda › Ruta). Un solo control (extra al mes), tres cifras, "por cada 100 €" y el aviso de lo que no entra en la cuenta.
+// Los contratos son los de ejemplo del repositorio (anonimizados) más uno inventado con TAE; los reales los declara el hogar.
+test.describe("WP-19 · camino a deuda cero", () => {
+  test("lee los contratos declarados, mueve fecha e intereses con el extra, rechaza un importe inválido y no se desborda en móvil", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      // Un préstamo con TAE declarada (inventado), dado de alta donde se declaran los contratos.
+      const pendienteAntes = await page.evaluate(() => homeDebtOutlook().pendingPrincipal); // llena la caché de Hoy antes del alta
+      await page.fill("#deudaContratosAddEntity", "Banco Prueba");
+      await page.selectOption("#deudaContratosAddType", "Préstamo");
+      await page.fill("#deudaContratosAddPrincipal", "5000");
+      await page.fill("#deudaContratosAddApr", "9");
+      await page.fill("#deudaContratosAddPayment", "150");
+      await page.fill("#deudaContratosAddInstallments", "40");
+      await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+      // Regresión: Hoy contaba la deuda anterior hasta recargar (la caché no miraba los contratos) y contradecía a esta pantalla.
+      expect(await page.evaluate(() => homeDebtOutlook().pendingPrincipal)).toBe(pendienteAntes + 5000);
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      const card = page.locator("#caminoDeudaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const result = card.locator("#caminoDeudaResultado");
+
+      // Sin extra: tres cifras, el calendario actual y lo que NO entra en la cuenta (dato ausente no es cero).
+      await expect(result.locator(".cam-hero")).toHaveCount(3, { timeout: 15000 });
+      await expect(result).toContainText("Libre de las deudas con cuota"); // hay deudas sin cuota: no se anuncia «libre de deuda» a secas
+      await expect(result).toContainText("Cuota total al mes");
+      await expect(result).toContainText("Intereses pendientes");
+      await expect(result).toContainText("Sin extra, el calendario actual acaba en");
+      await expect(result).toContainText("No entran en la cuenta");
+      await expect(result).toContainText("sin cuota activa");
+      await expect(result).toContainText("Sin TAE declarada");
+      await expect(result).toContainText("Cada 100 € más al mes");
+      await expect(result).toContainText("no ejecuta nada");
+      const sinExtra = await result.locator(".cam-hero-value").allTextContents();
+
+      // Con extra: acaba antes y paga menos; el deslizador y la caja numérica van juntos.
+      await page.fill("#caminoDeudaExtra", "200");
+      await expect(result).toContainText("más al mes");
+      await expect(result).toContainText("antes (");
+      await expect(result).toContainText("menos de intereses");
+      await expect(result).toContainText("(sin extra:");
+      const conExtra = await result.locator(".cam-hero-value").allTextContents();
+      expect(conExtra[0]).not.toEqual(sinExtra[0]);
+      await expect(page.locator("#caminoDeudaRango")).toHaveValue("200");
+      await page.locator("#caminoDeudaRango").fill("300");
+      await expect(page.locator("#caminoDeudaExtra")).toHaveValue("300");
+      await expect(page.locator("#caminoDeudaRango")).toHaveAttribute("aria-valuetext", /300,00.*libres de deuda en/);
+
+      // Un importe inválido se rechaza sin mover el resultado.
+      const antes = await result.innerHTML();
+      await page.fill("#caminoDeudaExtra", "-5");
+      await expect(page.locator("#caminoDeudaNota")).toContainText("0 € o más");
+      await expect(page.locator("#caminoDeudaExtra")).toHaveAttribute("aria-invalid", "true");
+      expect(await result.innerHTML()).toEqual(antes);
+      await page.fill("#caminoDeudaExtra", "0");
+      await expect(page.locator("#caminoDeudaExtra")).not.toHaveAttribute("aria-invalid", "true");
+
+      // Paridad con el calendario de Deuda › Ruta: con extra 0 los intereses del préstamo son los de debtAmortizationSchedule (mismo cálculo).
+      const parity = await page.evaluate(() => {
+        const contracts = escenarioMotorDebtOptions();
+        const run = FinanceCanonicalDebtPayoffPath.project(contracts, { startMonthKey: isoLocalDate(new Date()).slice(0, 7), extraMonthly: 0 });
+        const row = run.included.find((item) => /Banco Prueba/.test(item.label));
+        const contract = contracts.find((item) => item.entity === "Banco Prueba");
+        const schedule = debtAmortizationSchedule(contract, 600);
+        const interest = schedule.rows.reduce((sum, item) => sum + item.interest, 0);
+        const started = performance.now();
+        for (let i = 0; i < 20; i += 1) FinanceCanonicalDebtPayoffPath.project(contracts, { startMonthKey: "2026-10", extraMonthly: 250 });
+        return { engine: row.interest, calendar: interest, months: row.payoffIndex + 1, calendarMonths: schedule.rows.length, perRun: (performance.now() - started) / 20 };
+      });
+      expect(Math.abs(parity.engine - parity.calendar)).toBeLessThan(0.02);
+      expect(parity.months).toBe(parity.calendarMonths);
+      expect(parity.perRun, "recalcular en vivo no necesita estado «recalculando»").toBeLessThan(50);
+
+      // Nada se desborda a lo ancho.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    }
+    expect(pageErrors).toEqual([]);
+  });
+});

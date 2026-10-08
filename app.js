@@ -32242,9 +32242,10 @@ function debtStrategySummary(strategyId, baseInput, reserveValue) {
 // llega a evaluarse, así que la cifra tampoco depende de lo que haya escrito en la casilla del
 // comparador —una pantalla no puede mover el número de otra sin querer—.
 function homeDebtOutlook() {
-  const key = simulationSignature || modelComputationSignature();
-  if (homeDebtOutlookCache.key === key && homeDebtOutlookCache.value) return homeDebtOutlookCache.value;
   const contracts = escenarioMotorDebtOptions();
+  // La firma del modelo no incluye los contratos: dar de alta, editar o quitar uno no la mueve, y Hoy seguía enseñando la deuda anterior hasta recargar.
+  const key = `${simulationSignature || modelComputationSignature()}|${JSON.stringify(contracts.map((c) => [c.id, c.paymentStatus, c.currentPrincipal, c.currentPayment, c.apr, c.remainingInstallments]))}`;
+  if (homeDebtOutlookCache.key === key && homeDebtOutlookCache.value) return homeDebtOutlookCache.value;
   const summary = debtStrategySummary("no-tocar", escenarioMotorBaseInput(), debtStrategyReserveDefault());
   const value = {
     pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),

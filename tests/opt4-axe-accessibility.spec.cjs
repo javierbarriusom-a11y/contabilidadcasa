@@ -270,3 +270,23 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-19: la tarjeta «Camino a deuda cero» de Deuda › Ruta, en claro y en oscuro, sin extra y con extra (hitos, frase y avisos visibles).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-19 · contraste de la tarjeta de camino a deuda cero en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deuda-ruta: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#deuda-ruta");
+      await page.reload();
+      const card = page.locator("#caminoDeudaCard");
+      await expect(card.locator(".cam-hero")).toHaveCount(3, { timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const sinExtra = await new AxeBuilder({ page }).include("#caminoDeudaCard").analyze();
+      expect(fmt(sinExtra), fmt(sinExtra).slice(0, 5).join("\n")).toEqual([]);
+      await page.fill("#caminoDeudaExtra", "120");
+      await expect(card).toContainText("más al mes");
+      const conExtra = await new AxeBuilder({ page }).include("#caminoDeudaCard").analyze();
+      expect(fmt(conExtra), fmt(conExtra).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

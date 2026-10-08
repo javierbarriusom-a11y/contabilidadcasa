@@ -1,0 +1,132 @@
+/* WP-19 · tarjeta «Camino a deuda cero» de Deuda › Ruta. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*. */
+.cam-card {
+  margin-bottom: 16px;
+}
+
+.cam-control {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  gap: 12px 16px;
+  align-items: end;
+  margin: 8px 0;
+}
+
+.cam-control input[type="number"] {
+  min-height: 44px;
+}
+
+.cam-rango input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+}
+
+.cam-heroes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.cam-hero {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: 8px;
+}
+
+.cam-hero-label {
+  font: 400 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.cam-hero-value {
+  font: 700 var(--e19-text-lg, 1.25rem) / 1.25 var(--e19-font-sans);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.cam-hero-note {
+  font: 400 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.cam-frase {
+  margin: 8px 0;
+  padding: 4px 0 4px 14px;
+  border-left: 4px solid var(--e19-accent, var(--e19-border));
+  font: 400 var(--e19-text-base) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.cam-frase.cam-referencia {
+  border-left-color: var(--e19-border);
+  font-size: var(--e19-text-sm);
+}
+
+.cam-hitos {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.cam-hito {
+  display: grid;
+  grid-template-columns: minmax(90px, 30%) minmax(0, 1fr) minmax(110px, auto);
+  gap: 8px;
+  align-items: center;
+  font: 400 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.cam-hito-barra {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--e19-border);
+  overflow: hidden;
+}
+
+.cam-hito-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--e19-accent, var(--e19-ink));
+}
+
+.cam-hoy {
+  font-weight: 600;
+}
+
+.cam-hoy .cam-hito-barra {
+  background: transparent;
+  border-left: 3px solid var(--e19-ink);
+  border-radius: 0;
+}
+
+@media (max-width: 560px) {
+  .cam-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cam-hito {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cam-hito-barra {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+.cam-card .e19-kpi-note + .e19-kpi-note {
+  margin-top: 8px;
+}
+
+@media (max-width: 560px) {
+  .cam-hito {
+    row-gap: 3px;
+    padding-bottom: 8px;
+  }
+}

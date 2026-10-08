@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-08-wp19",
+      fecha: "2026-10-08",
+      texto: "Deuda › Ruta › Camino a deuda cero: pon un extra al mes y mira cuándo acabáis y cuántos intereses os ahorráis.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-10-07-wp20b",
       fecha: "2026-10-07",
       texto: "Ajustes › Recordatorios: avisos en el calendario del móvil 60 y 30 días antes de revisar el tipo de la hipoteca.",

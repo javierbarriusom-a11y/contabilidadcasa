@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="chart-kit.css?v=20261006wp28a1" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
+    <link rel="stylesheet" href="camino-deuda.css?v=20261008wp19a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2112,6 +2113,20 @@
                 <a class="e19-btn e19-btn-secondary" href="#deuda-comparar">Comparar estrategias</a>
               </div>
             </div>
+
+            <!-- WP-19 (NDB-01, docs/WP19_DISENO.md): «¿cuándo acabamos y qué cambia con más?». La pinta camino-deuda-ui.js; no borra ni sustituye nada de lo de abajo. Proyección, no compromiso; no ejecuta nada. -->
+            <article class="e19-card cam-card" id="caminoDeudaCard" aria-labelledby="caminoDeudaTitulo">
+              <h3 class="escenario-motor-panel-title" id="caminoDeudaTitulo">Camino a deuda cero</h3>
+              <p class="e19-kpi-note">¿Cuándo acabamos y qué cambia con más? Un solo control: <strong>cuánto extra ponéis al mes</strong>. Se calcula con el capital, la cuota y la TAE que cada contrato tiene declarados. Es una proyección: no ejecuta nada.</p>
+              <div class="cam-control">
+                <label class="month-picker"><span>Extra al mes (€)</span>
+                  <input type="number" id="caminoDeudaExtra" min="0" max="100000" step="10" inputmode="decimal" value="0" /></label>
+                <label class="month-picker cam-rango"><span>Ajustar con el deslizador</span>
+                  <input type="range" id="caminoDeudaRango" min="0" max="1000" step="10" value="0" /></label>
+              </div>
+              <p class="e19-kpi-note" id="caminoDeudaNota" role="status"></p>
+              <div id="caminoDeudaResultado"></div>
+            </article>
 
             <div class="deuda-ruta-layout">
               <div class="deuda-ruta-main">
@@ -7806,6 +7821,8 @@
     <script defer src="indices-ui.js?v=20261007wp13a1"></script>
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
+    <script defer src="canonical-debt-payoff-path.js?v=20261008wp19a1"></script>
+    <script defer src="camino-deuda-ui.js?v=20261008wp19a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>
