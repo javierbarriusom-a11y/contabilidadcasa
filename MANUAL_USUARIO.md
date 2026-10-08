@@ -395,6 +395,18 @@ Qué te enseña:
 
 Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. **Los avisos también van al calendario del móvil:** en Ajustes › Recordatorios, descarga el fichero de nuevo y traerá los de 60 y 30 días. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
 
+### Camino a deuda cero (Deuda › Ruta)
+
+Al principio de **Deuda › Ruta**, la tarjeta **«Camino a deuda cero»** contesta una pregunta: **¿cuándo acabamos y qué cambia si ponemos más?** Tiene un solo control, **«Extra al mes (€)»** (escribe el importe o mueve el deslizador), y enseña:
+
+- **Libre de deuda**: el mes en que se salda la última deuda y cuánto falta.
+- **Cuota total al mes**: la suma de las cuotas actuales más el extra.
+- **Intereses pendientes**: lo que queda por pagar de intereses y cuánto menos que sin extra.
+- Una frase («con 200 € más al mes acabáis N meses antes y pagáis X € menos de intereses»), qué pasaría **por cada 100 € más** y a qué deuda iría el extra primero (la de coste más alto, contando la deducción fiscal si la declaraste).
+- **Cuándo acaba cada deuda**, con «Hoy» como marca y, si hay extra, la fecha que tendría sin él.
+
+Lo que conviene saber: usa el **capital, la cuota y la TAE de cada contrato**; las deudas **sin cuota activa** o sin TAE ni plazo **no entran** en la cuenta y la tarjeta las lista (entonces el titular dice «de las deudas con cuota»). Si falta la TAE pero hay plazo, la deduce y lo marca. **Las cuotas que se liberan al saldar una deuda no se redirigen**: solo el extra pasa de una deuda a la siguiente. No cuenta comisiones por amortizar antes de tiempo, no sabe si el extra **cabe** en tu mes y no guarda el importe (al salir de la pantalla vuelve a 0). Es una proyección: la app no ejecuta ningún pago. Si Hoy y esta tarjeta dan fechas distintas por más de dos meses, avisa: revisa los datos en Contratos.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.
