@@ -395,6 +395,20 @@ Qué te enseña:
 
 Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. **Los avisos también van al calendario del móvil:** en Ajustes › Recordatorios, descarga el fichero de nuevo y traerá los de 60 y 30 días. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
 
+### Nóminas y retenciones (Herramientas avanzadas › Fiscal)
+
+La tarjeta **«Nóminas y retenciones»**, justo encima del estimador de Renta, suma **lo que te han retenido de IRPF en el año** a partir de tus nóminas, te dice **qué meses faltan** y **avisa si cambia el % de retención**. Guarda solo cifras: ni el PDF, ni el NIF, ni el IBAN.
+
+Cómo se usa:
+
+1. Por cada nómina, escribe el **titular**, el **mes**, el **bruto** (total devengado), el **líquido a percibir** y la **retención de IRPF** (el % o el importe: si falta uno, se calcula del otro y se marca como calculado). El pagador y la cotización son opcionales. Una paga extra se marca con «Tipo». Guardar otra nómina del mismo mes y titular la sustituye.
+2. Si prefieres no teclear, abre la nómina en PDF, **copia su texto** y pégalo en «Rellenar desde el texto de la nómina». La app lee solo el mes y los importes, rellena el formulario y **borra lo pegado**: revisa contra tu nómina y pulsa «Guardar». Lo que no encuentra queda vacío y te lo dice.
+3. Pulsa **«Usar X € en el estimador de Renta»** para pasar lo retenido al campo «Retenciones y pagos a cuenta ya realizados». No se rellena solo. Si faltan nóminas, te avisa de que la cifra queda corta.
+
+Qué te enseña: lo retenido y el bruto del año por titular (con el % efectivo), los meses sin nómina («marzo, mayo a diciembre de 2025») y, si el % de dos nóminas ordinarias seguidas difiere en medio punto o más, «La retención bajó del 15,32 % al 13,1 %…». Suele deberse a una regularización de la empresa o a un cambio de tu situación familiar.
+
+Lo que **no** hace: no lee el PDF directamente (todavía), no apunta el cobro en tu plan (eso lo sigue preguntando Hoy con «¿Ha llegado la nómina?»), no proyecta el año y no sabe si la retención es la correcta.
+
 ### Camino a deuda cero (Deuda › Ruta)
 
 Al principio de **Deuda › Ruta**, la tarjeta **«Camino a deuda cero»** contesta una pregunta: **¿cuándo acabamos y qué cambia si ponemos más?** Tiene un solo control, **«Extra al mes (€)»** (escribe el importe o mueve el deslizador), y enseña:

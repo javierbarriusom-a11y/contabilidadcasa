@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
     <link rel="stylesheet" href="camino-deuda.css?v=20261008wp19a1" />
+    <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -4400,6 +4401,48 @@
               <div id="campanaFiscalCuerpo"></div>
             </article>
 
+            <!-- WP-31 (CAP-05 + NPV-11, docs/WP31_DISENO.md): nóminas y retenciones acumuladas. La pinta nominas-ui.js con canonical-payroll.js. Solo cifras: ni PDF, ni NIF, ni IBAN. No ejecuta nada. -->
+            <article class="e19-card nom-card" id="nominasCard" aria-labelledby="nominasTitulo">
+              <h3 class="escenario-motor-panel-title" id="nominasTitulo">Nóminas y retenciones</h3>
+              <p class="e19-kpi-note">Apunta cada nómina (el mes, el bruto, el líquido y la retención de IRPF) y la app suma <strong>lo que te han retenido en el año</strong>, te dice qué meses faltan y <strong>avisa si cambia el %</strong>. Guarda solo esas cifras: ni el PDF, ni el NIF, ni el IBAN. Con el botón «Usar» pasa la suma al estimador de Renta de abajo.</p>
+              <details class="nom-texto">
+                <summary>Rellenar desde el texto de la nómina (opcional)</summary>
+                <p class="e19-kpi-note">Abre la nómina en PDF, copia su texto y pégalo aquí. La app lee solo el mes y los importes, rellena el formulario y <strong>borra lo pegado</strong>: tú revisas y guardas. Si no encuentra algo, te lo dice.</p>
+                <label class="month-picker"><span>Texto copiado de la nómina</span>
+                  <textarea id="nominasTextoPegado" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
+                <button type="button" class="e19-btn e19-btn-secondary" data-nominas-leer>Leer el texto</button>
+              </details>
+              <form id="nominasForm" class="nom-form" data-fuente="manual" novalidate>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker"><span>Titular</span>
+                    <input type="text" id="nominasTitular" list="nominasTitulares" maxlength="40" autocomplete="off" placeholder="Ej. Persona A" required /></label>
+                  <datalist id="nominasTitulares"></datalist>
+                  <label class="month-picker"><span>Mes de la nómina</span>
+                    <input type="month" id="nominasMes" required /></label>
+                  <label class="month-picker"><span>Pagador (opcional)</span>
+                    <input type="text" id="nominasPagador" maxlength="40" autocomplete="off" placeholder="Ej. Empresa" /></label>
+                  <label class="month-picker"><span>Tipo</span>
+                    <select id="nominasTipo"><option value="ordinaria">Ordinaria</option><option value="extra">Paga extra</option></select></label>
+                </div>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker"><span>Bruto: total devengado (€)</span>
+                    <input type="text" id="nominasBruto" inputmode="decimal" autocomplete="off" placeholder="Ej. 2.100,00" required /></label>
+                  <label class="month-picker"><span>Líquido a percibir (€)</span>
+                    <input type="text" id="nominasLiquido" inputmode="decimal" autocomplete="off" placeholder="Ej. 1.644,93" required /></label>
+                  <label class="month-picker"><span>Retención de IRPF (%)</span>
+                    <input type="text" id="nominasPct" inputmode="decimal" autocomplete="off" placeholder="Ej. 15,32" /></label>
+                  <label class="month-picker"><span>Retención de IRPF (€)</span>
+                    <input type="text" id="nominasRetencion" inputmode="decimal" autocomplete="off" placeholder="Ej. 321,72" /></label>
+                  <label class="month-picker"><span>Cotización del trabajador (€, opcional)</span>
+                    <input type="text" id="nominasSS" inputmode="decimal" autocomplete="off" placeholder="Ej. 133,35" /></label>
+                </div>
+                <p class="e19-kpi-note">Basta el % <em>o</em> el importe de la retención: si falta uno, se calcula del otro (y se marca como calculado).</p>
+                <button type="submit" class="e19-btn e19-btn-primary">Guardar nómina</button>
+              </form>
+              <p class="e19-kpi-note" id="nominasNota" role="status"></p>
+              <div id="nominasResumen"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
               <p class="e19-kpi-note">Estimación orientativa a partir de las escalas registradas en Ajustes → Fiscal — nunca sustituye asesoría fiscal ni el simulador oficial de la Agencia Tributaria. El resultado se muestra como rango, no como una única cifra.</p>
@@ -7823,6 +7866,8 @@
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261008wp19a1"></script>
     <script defer src="camino-deuda-ui.js?v=20261008wp19a1"></script>
+    <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
+    <script defer src="nominas-ui.js?v=20261008wp31a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>
