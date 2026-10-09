@@ -2276,3 +2276,121 @@ test.describe("WP-39 · política de inversión del hogar", () => {
     expect(despues).toBe(antes);
   });
 });
+
+// WP-40 (DAC-01): conciliación del informe de la CIRBE con los contratos de Deuda › Contratos. Se teclea fila a fila; la app no se conecta a nada ni cambia
+// ningún contrato: «Añadir a Contratos» solo rellena el formulario de alta que ya existe.
+test.describe("WP-40 · conciliación con la CIRBE", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#deuda-contratos");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#cirbeCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const addRow = async (page, { persona = "Ana", entidad, tipo, titularidad = "titular", importe, vencido = "" }) => {
+    await page.locator("#cirbePersona").fill(persona);
+    await page.locator("#cirbeEntidad").fill(entidad);
+    await page.locator("#cirbeTipo").selectOption(tipo);
+    await page.locator("#cirbeTitularidad").selectOption(titularidad);
+    await page.locator("#cirbeImporte").fill(String(importe));
+    await page.locator("#cirbeVencido").fill(String(vencido));
+    await page.locator('#cirbeForm button[type="submit"]').click();
+  };
+
+  test("vacío accionable, filas con validación, cuadra / difiere / falta, aval, vencido, añadir a Contratos sin crearlo, quitar y borrar con deshacer, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const body = card.locator("#cirbeCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Todavía no habéis traído el informe de la CIRBE");
+      const contratosAntes = await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal])));
+
+      await body.locator('[data-estado-accion="cirbe-empezar"]').click();
+      await expect(page.locator("#cirbeFecha")).toBeFocused();
+      const hace60 = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 60); return isoLocalDate(d); });
+      await page.locator("#cirbeFecha").fill(hace60);
+      await page.locator("#cirbeFecha").dispatchEvent("change");
+
+      // Validación: una fila sin entidad o sin importe no entra.
+      await page.locator("#cirbeTipo").selectOption("prestamo");
+      await page.locator('#cirbeForm button[type="submit"]').click();
+      await expect(page.locator("#cirbeError")).toContainText("Falta la entidad");
+      await page.locator("#cirbeEntidad").fill("Cetelem");
+      await page.locator('#cirbeForm button[type="submit"]').click();
+      await expect(page.locator("#cirbeError")).toContainText("Falta el importe");
+
+      await addRow(page, { entidad: "Cetelem", tipo: "prestamo", importe: 6100 });
+      await addRow(page, { entidad: "Entidad B", tipo: "tarjeta", importe: 3000, vencido: 250 });
+      await addRow(page, { entidad: "Wizink", tipo: "tarjeta", importe: 1800 });
+      await addRow(page, { entidad: "Banco Fiador", tipo: "aval", importe: 20000 });
+
+      const filas = body.locator(".cir-fila");
+      await expect(body.locator('[data-cirbe-resumen="open"]')).toContainText("De 4 operaciones del informe: 1 cuadra, 1 difiere, 2 faltan en la app");
+      await expect(body.locator('[data-cirbe-estado="fits"]')).toContainText("Cetelem");
+      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("La app tiene 500,00 € más que el informe");
+      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("El informe dice vencido: 250,00 €");
+      await expect(body.locator('[data-cirbe-estado="missing-in-app"]').filter({ hasText: "Wizink" })).toContainText("Falta en la app");
+      await expect(body.locator('[data-cirbe-estado="missing-in-app"]').filter({ hasText: "Banco Fiador" })).toContainText("No hay ningún aval declarado");
+      await expect(body.locator('[data-cirbe-estado="missing-in-report"]')).toContainText("Entidad C");
+      await expect(filas).toHaveCount(5);
+      await expect(page.locator("#cirbeCard .cir-aviso")).toHaveCount(0); // 60 días: al día
+      await expect(body).toContainText("Tiene 60 días");
+
+      // «Añadir a Contratos» rellena el formulario de alta, no crea nada.
+      await body.locator('[data-cirbe-anadir]').first().click();
+      await expect(page.locator("#deudaContratosAddEntity")).toHaveValue("Wizink");
+      await expect(page.locator("#deudaContratosAddPrincipal")).toHaveValue("1800");
+      expect(await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal])))).toBe(contratosAntes);
+
+      // Persiste al recargar.
+      await page.reload();
+      await expect(page.locator('#cirbeCuerpo [data-cirbe-resumen="open"]')).toBeVisible();
+
+      // Quitar una fila con deshacer.
+      await page.locator("#cirbeCuerpo .cir-filas summary").click();
+      await page.locator('[data-cirbe-quitar]').first().click();
+      await expect(page.locator('#cirbeCuerpo [data-cirbe-resumen="open"]')).toContainText("De 3 operaciones");
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator('#cirbeCuerpo [data-cirbe-resumen="open"]')).toContainText("De 4 operaciones");
+
+      // Borrar el informe con deshacer.
+      await page.locator("#cirbeCuerpo .cir-filas summary").click();
+      await page.locator("[data-cirbe-borrar]").click();
+      await expect(page.locator('#cirbeCuerpo [data-estado="vacio"]')).toBeVisible();
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator('#cirbeCuerpo [data-cirbe-resumen="open"]')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún confirm(): lo reversible se deshace").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("un informe de hace más de un año se dice viejo, y a 30 días del año avisa de renovarlo; sin fecha, no concilia", async ({ page }) => {
+    const card = await open(page);
+    const body = card.locator("#cirbeCuerpo");
+    const poner = async (dias) => {
+      await page.evaluate((days) => {
+        const d = new Date(); d.setDate(d.getDate() - days);
+        storageSet(storageKey("cirbe-report"), JSON.stringify({ reportDate: isoLocalDate(d), rows: [{ id: "x", entity: "Cetelem", kind: "prestamo", amount: 6000 }] }));
+        renderCirbe(FinanceCanonicalCirbe, true);
+      }, dias);
+    };
+    await poner(400);
+    await expect(body.locator(".cir-aviso")).toContainText("El informe tiene más de un año");
+    await poner(345);
+    await expect(body.locator(".cir-aviso")).toContainText("Toca pedir el informe otra vez");
+    await page.evaluate(() => {
+      storageSet(storageKey("cirbe-report"), JSON.stringify({ reportDate: "", rows: [{ id: "x", entity: "Cetelem", kind: "prestamo", amount: 6000 }] }));
+      renderCirbe(FinanceCanonicalCirbe, true);
+    });
+    await expect(body.locator(".cir-aviso")).toContainText("Falta la fecha del informe");
+    await expect(body.locator(".cir-fila")).toHaveCount(0);
+  });
+});

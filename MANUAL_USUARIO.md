@@ -415,6 +415,19 @@ Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»
 
 Si el último movimiento importado tiene más de 45 días, la tarjeta dice que **no puede mirar lo reciente**: sin un extracto al día, que no salga nada no significa que todo esté bien. De momento los avisos no aparecen en Hoy.
 
+### Conciliación con la CIRBE (Deuda › Contratos)
+
+Una vez al año, la tarjeta **«Conciliación con la CIRBE»**, bajo la tabla de contratos, compara **lo que ve el Banco de España** de cada persona con **los contratos de esta pantalla**. Tú pides el informe de la CIRBE (es gratuito, con certificado digital o Cl@ve; **verifica el procedimiento actual**) y **tecleas una fila por operación**: de quién es el informe, la entidad, el tipo, la titularidad, el importe dispuesto y, si lo hay, el vencido, además de la fecha del informe.
+
+La app te dice, fila a fila, si **cuadra**, si **difiere** (y de cuánto: «la app tiene 500 € más que el informe») o si **falta en la app**, con un botón **«Añadir a Contratos»** que solo **rellena el formulario de alta** (lo envías tú, si es una deuda vuestra). Aparte, te enseña los **contratos de la app que no salen en el informe** (no siempre es un error: el informe no suele recoger préstamos entre particulares ni importes pequeños) y destaca **«el informe dice vencido»**, que es lo que más pesa en una negociación con un banco. Una hipoteca de los dos sale en los dos informes: **cuenta una vez**.
+
+Cuatro cosas que conviene saber:
+
+- **No se conecta a la CIRBE ni cambia ningún contrato.** Todo lo teclea una persona.
+- **Los avales no se casan con contratos:** la app guarda una cuota mensual de avales, no una lista. Sin aval declarado, el del informe «falta»; con él, se revisa a mano.
+- **Una diferencia pequeña a favor del informe es normal** si lo pediste hace meses: has pagado cuotas desde entonces. Con un informe de más de un año la tarjeta lo dice y te pide uno nuevo; a **30 días** del año te avisa de que toca renovarlo.
+- **Todavía no hay recordatorio en el calendario del móvil**: el aviso solo está dentro de la tarjeta.
+
 ### Política de inversión del hogar (Inversión › Rebalanceo)
 
 Al principio de **Rebalanceo**, la tarjeta **«Política de inversión del hogar»** reúne en una página, **escrita con calma y firmada con fecha**, lo que las dos personas acordáis sobre vuestras inversiones. Son seis preguntas: **para qué es el dinero y para cuándo**, **cómo se reparte** (ya rellenado con el reparto objetivo que fijaste, y tiene que sumar 100 %), **cómo se aporta**, **qué no se compra nunca**, **qué hacéis si la cartera cae un 20 % y un 35 %**, y **cuándo se revisa**. Si dejas una sin responder, la app dice cuál falta y no deja firmar.

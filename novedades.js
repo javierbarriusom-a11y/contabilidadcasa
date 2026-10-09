@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-09-wp40",
+      fecha: "2026-10-09",
+      texto: "Deuda › Contratos › Conciliación con la CIRBE: compara el informe del Banco de España con vuestros contratos.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-09-wp39",
       fecha: "2026-10-09",
       texto: "Inversión › Rebalanceo › Política de inversión: seis preguntas firmadas y la cartera comparada con ellas.",

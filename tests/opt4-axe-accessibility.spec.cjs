@@ -498,3 +498,48 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-40: la tarjeta «Conciliación con la CIRBE» de Deuda › Contratos, en claro y en oscuro: vacía, con la conciliación (cuadra, difiere, falta, aval, vencido,
+// contratos que no salen en el informe) y con el informe viejo.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-40 · contraste de la tarjeta de la CIRBE en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Deuda › Contratos: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#cirbeCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#cirbeCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await revisar("vacío");
+      await page.evaluate(() => {
+        const d = new Date(); d.setDate(d.getDate() - 60);
+        storageSet(storageKey("cirbe-report"), JSON.stringify({ reportDate: isoLocalDate(d), rows: [
+          { id: "a", entity: "Cetelem", kind: "prestamo", amount: 6100, titularidad: "titular", reportOf: "Ana" },
+          { id: "b", entity: "Entidad B", kind: "tarjeta", amount: 3000, overdue: 250, titularidad: "cotitular", reportOf: "Ana" },
+          { id: "c", entity: "Wizink", kind: "tarjeta", amount: 1800 },
+          { id: "d", entity: "Banco Fiador", kind: "aval", amount: 20000 },
+        ] }));
+        renderCirbe(FinanceCanonicalCirbe, true);
+      });
+      await expect(card.locator(".cir-fila")).toHaveCount(5);
+      await revisar("conciliación");
+      await card.locator(".cir-form summary").click();
+      await card.locator(".cir-filas summary").click();
+      await revisar("formulario y filas abiertos");
+      await page.evaluate(() => {
+        const d = new Date(); d.setDate(d.getDate() - 400);
+        storageSet(storageKey("cirbe-report"), JSON.stringify({ reportDate: isoLocalDate(d), rows: [{ id: "a", entity: "Cetelem", kind: "prestamo", amount: 6000 }] }));
+        renderCirbe(FinanceCanonicalCirbe, true);
+      });
+      await expect(card.locator(".cir-aviso")).toContainText("más de un año");
+      await revisar("informe viejo");
+    });
+  });
+}

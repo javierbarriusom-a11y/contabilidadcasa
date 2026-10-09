@@ -1,0 +1,132 @@
+/* WP-40 · tarjeta «Conciliación con la CIRBE» de Deuda › Contratos. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas).
+   Solo usa tokens --e19-*. Filas en lista (no tabla): se leen igual en móvil sin desbordar. */
+.cir-card {
+  margin: 16px 0;
+}
+
+.cir-resumen,
+.cir-aviso {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.cir-lista {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.cir-fila {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-border-strong);
+  color: var(--e19-ink);
+}
+
+.cir-fila[data-cirbe-estado="differs"],
+.cir-fila[data-cirbe-estado="missing-in-app"] {
+  border-left-color: var(--e19-ink);
+}
+
+.cir-fila p {
+  margin: 0;
+}
+
+.cir-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.cir-estado {
+  padding: 0 8px;
+  border: 1px solid var(--e19-ink);
+  border-radius: 999px;
+  font: 600 var(--e19-text-sm) / 1.6 var(--e19-font-sans);
+}
+
+.cir-vencido {
+  color: var(--e19-ink);
+}
+
+.cir-sub {
+  margin: 16px 0 6px;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.cir-fila .e19-btn {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.cir-form,
+.cir-filas {
+  margin: 12px 0 0;
+}
+
+.cir-form summary,
+.cir-filas summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--e19-ink);
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.cir-form summary::before,
+.cir-filas summary::before {
+  content: "▸ ";
+  margin-right: 4px;
+}
+
+.cir-form[open] summary::before,
+.cir-filas[open] summary::before {
+  content: "▾ ";
+}
+
+.cir-form .cuadro-mandos-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px 16px;
+  margin: 8px 0;
+}
+
+.cir-form .month-picker {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.cir-form input[type="text"],
+.cir-form input[type="number"],
+.cir-form input[type="date"],
+.cir-form select {
+  min-height: 44px;
+  width: 100%;
+}
+
+.cir-filas ul {
+  margin: 6px 0;
+  padding-left: 18px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+}
+
+.cir-filas li {
+  min-height: 32px;
+}
+
+.cir-quitar {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 32px;
+  padding: 0 6px;
+}
