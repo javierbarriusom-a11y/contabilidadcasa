@@ -35809,11 +35809,12 @@ async function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   const chunk = VIEW_CHUNKS[viewId];
   if (chunk && !viewChunkLoaded(viewId)) {
+    globalThis.renderEstadoVista?.(qs(chunk.rootId), "cargando"); // WP-37 (estados-ui.js): esqueleto mientras se descarga
     try {
       await loadViewChunk(viewId);
+      globalThis.renderEstadoVista?.(qs(chunk.rootId), null);
     } catch (error) {
-      const root = qs(chunk.rootId);
-      if (root) root.innerHTML = `<p class="e19-subtitle">No se pudo cargar esta pantalla (${escapeHtml(error.message)}). Comprueba la conexión y recarga la página.</p>`;
+      globalThis.renderEstadoVista?.(qs(chunk.rootId), "error", { error, retry: () => renderActiveSection(viewId) }); // causa, qué sigue funcionando y «Reintentar»
       return;
     }
   }

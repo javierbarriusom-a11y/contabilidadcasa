@@ -51,7 +51,7 @@ function nominasMissingText(periods) {
 }
 
 function nominasSummaryHtml(engine, store, today) {
-  if (!store.entries.length) return '<p class="e19-kpi-note">Aún no hay nóminas apuntadas. Apunta la primera con el formulario de arriba.</p>';
+  if (!store.entries.length) return estadoHtml({ kind: "vacio", titulo: "Aún no hay nóminas apuntadas", texto: "Con la primera, la app suma lo que te retienen y te avisa si cambia el %.", accion: { label: "Apuntar la primera", id: "nominas-primera" } });
   const years = engine.yearsWithData(store);
   const year = years.includes(nominasYear) ? nominasYear : years.includes(nominasDefaultYear(today)) ? nominasDefaultYear(today) : years[0];
   const summary = engine.summarize(store, { year, today });
@@ -178,11 +178,19 @@ function attachNominas(doc) {
     if (read) { nominasRead(); return; }
     const use = event.target?.closest?.("[data-nominas-usar]");
     if (use) { nominasUse(use.dataset.nominasUsar); return; }
+    if (event.target?.closest?.('[data-estado-accion="nominas-primera"]')) { qs("nominasTitular")?.focus(); return; }
     const remove = event.target?.closest?.("[data-nominas-quitar]");
     if (remove) {
-      nominasSave(globalThis.FinanceCanonicalPayroll.removeEntry(nominasLoad(), remove.dataset.nominasQuitar));
+      const before = nominasLoad();
+      nominasSave(globalThis.FinanceCanonicalPayroll.removeEntry(before, remove.dataset.nominasQuitar));
       renderNominas(globalThis.FinanceCanonicalPayroll);
       nominasNote("Nómina quitada.");
+      // WP-37 (NXP-04): quitar una nómina es reversible, así que avisa con «Deshacer».
+      showUndoToast("Nómina quitada.", () => {
+        nominasSave(before);
+        renderNominas(globalThis.FinanceCanonicalPayroll);
+        nominasNote("Nómina recuperada.");
+      });
     }
   });
   doc.addEventListener("change", (event) => {

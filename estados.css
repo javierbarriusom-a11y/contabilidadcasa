@@ -1,0 +1,75 @@
+/* WP-37 · NXP-04 · estados completos: vacío accionable, cargando con esqueleto, error con causa y salida, sin conexión, dato obsoleto y éxito con
+   deshacer. Catálogo vivo en design-system.html; el marcado lo genera `estadoHtml` (estados-ui.js). Hoja propia (styles.css y design-tokens.css llevan
+   versiones fijadas por pruebas). Solo usa tokens --e19-*. Ningún estado se distingue solo por el color: cada uno lleva su título en texto, su borde
+   de un estilo propio y, si la hay, su acción. */
+.est {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--e19-border);
+  border-left-width: 4px;
+  border-left-color: var(--e19-muted);
+  border-radius: var(--e19-radius-sm, 8px);
+  color: var(--e19-ink);
+}
+
+.est-titulo {
+  margin: 0;
+  font: 700 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.est-texto,
+.est-detalle {
+  margin: 0;
+  font: 400 var(--e19-text-sm) / 1.45 var(--e19-font-sans);
+}
+
+.est-detalle {
+  color: var(--e19-muted);
+}
+
+.est-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.est-acciones .e19-btn {
+  min-height: 44px;
+}
+
+/* El borde dice el tipo sin depender del color. */
+.est-vacio { border-left-style: dashed; }
+.est-cargando { border-left-style: dotted; }
+.est-error { border-left-style: solid; border-left-color: var(--e19-ink); }
+.est-sin-conexion { border-left-style: double; border-left-width: 6px; }
+.est-obsoleto { border-left-style: dashed; border-left-color: var(--e19-ink); }
+.est-exito { border-left-style: solid; }
+
+/* Esqueleto: tres barras que ocupan el sitio de lo que va a llegar. Sin movimiento si el sistema lo pide. */
+.est-esqueleto {
+  display: grid;
+  gap: 8px;
+}
+
+.est-esqueleto > span {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--e19-border);
+}
+
+.est-esqueleto > span:nth-child(2) { width: 82%; }
+.est-esqueleto > span:nth-child(3) { width: 56%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .est-esqueleto > span {
+    animation: est-latido 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes est-latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

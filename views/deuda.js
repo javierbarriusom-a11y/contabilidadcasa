@@ -1862,16 +1862,18 @@ function handleDeudaContratosAddSubmit(event) {
 
 // D-2d · eliminar ya no está reservado a lo dado de alta a mano: un contrato de ejemplo también se
 // puede quitar, aunque no exista en ningún array borrable (`DEBT_PORTFOLIO` es código). Se marca en
-// `debtContractHiddenExampleIds` — la misma puerta única que ya filtra `debtPortfolioWithOverrides`
-// — en vez de mutar la constante. Cualquier borrado pide confirmación primero, mismo patrón que
-// `handleSavingsGoalAction`/objetivos: no hay deshacer.
+// `debtContractHiddenExampleIds` — la misma puerta única que ya filtra `debtPortfolioWithOverrides` —
+// en vez de mutar la constante.
+// WP-37 (NXP-04): quitar un contrato es reversible, así que se hace al momento y avisa con «Deshacer»
+// (10 s, la misma pila que alertas y objetivos) en lugar de pedir un `confirm()` nativo. Se guardan las
+// tres colecciones tal como estaban —ninguna se muta, se sustituyen— y deshacer las devuelve enteras.
 function handleDeudaContratosRemove(id) {
   if (!id) return;
   const isCustom = debtContractCustomEntries.some((entry) => entry.id === id);
   const isExample = !isCustom && DEBT_PORTFOLIO.some((entry) => entry.id === id) && !debtContractHiddenExampleIds.includes(id);
   if (!isCustom && !isExample) return;
   const label = debtContractSourceRows().find((row) => row.id === id)?.entity || "este contrato";
-  if (!window.confirm(`¿Eliminar el contrato de «${label}»?`)) return;
+  const before = { custom: debtContractCustomEntries, hidden: debtContractHiddenExampleIds, overrides: debtContractOverrides };
   if (isCustom) {
     debtContractCustomEntries = debtContractCustomEntries.filter((entry) => entry.id !== id);
     saveDebtContractCustomEntries();
@@ -1886,6 +1888,16 @@ function handleDeudaContratosRemove(id) {
     saveDebtContractOverrides();
   }
   renderDeudaContratos();
+  showUndoToast(`Contrato de «${label}» eliminado.`, () => {
+    debtContractCustomEntries = before.custom;
+    debtContractHiddenExampleIds = before.hidden;
+    debtContractOverrides = before.overrides;
+    saveDebtContractCustomEntries();
+    saveDebtContractHiddenExampleIds();
+    saveDebtContractOverrides();
+    renderDeudaContratos();
+    announceStatus(`Contrato de «${label}» recuperado.`);
+  });
 }
 
 function deudaContratosCuadreHtml(cuadre) {

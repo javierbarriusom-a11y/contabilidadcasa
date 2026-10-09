@@ -49,8 +49,9 @@ function anomaliasStatsHtml(stats) {
 function anomaliasBodyHtml(result) {
   if (result.status === "missing") return `<p class="e19-kpi-note">Para mirar el extracto falta ${escapeHtml(result.missing.join(", "))}.</p>`;
   if (result.status === "stale") {
-    const since = result.coveredUntil ? `El último movimiento importado es del ${escapeHtml(anomaliasDate(result.coveredUntil))}` : "Todavía no hay movimientos importados";
-    return `<p class="e19-kpi-note"><strong>No puedo mirar lo reciente.</strong> ${since}: sin un extracto al día, que no salga nada no significa que todo esté bien. Importa el extracto en <a href="#registrar">Registrar</a>.</p>${anomaliasStatsHtml(result.stats)}`;
+    const since = result.coveredUntil ? `El último movimiento importado es del ${anomaliasDate(result.coveredUntil)}` : "Todavía no hay movimientos importados";
+    // WP-37 (NXP-04): dato obsoleto = cuánto, y qué lo renueva (una acción, no solo un aviso).
+    return `${estadoHtml({ kind: "obsoleto", titulo: "No puedo mirar lo reciente", texto: `${since}: sin un extracto al día, que no salga nada no significa que todo esté bien.`, accion: { label: "Importar el extracto", href: "#registrar" } })}${anomaliasStatsHtml(result.stats)}`;
   }
   const covered = `Mirado hasta el ${escapeHtml(anomaliasDate(result.coveredUntil))} (últimos 45 días).`;
   if (!result.items.length) {

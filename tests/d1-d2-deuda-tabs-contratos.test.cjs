@@ -459,14 +459,16 @@ test("D-2c · un alta válida se añade a debtContractCustomEntries, se guarda y
 });
 
 // D-2d · handleDeudaContratosRemove sustituye a handleDeudaContratosRemoveCustom: ahora también
-// sabe borrar un contrato de ejemplo (ocultándolo, ver debtPortfolioWithOverrides) y siempre pide
-// confirmación antes — `confirmResult` deja simular tanto el "sí" como el "cancelar" del usuario.
-function sandboxRemove(customEntries, overrides, { debtPortfolio = [], hiddenExampleIds = [], confirmResult = true } = {}) {
+// sabe borrar un contrato de ejemplo (ocultándolo, ver debtPortfolioWithOverrides). WP-37 (NXP-04): ya no
+// pide confirmación (era reversible y no tenía deshacer): lo hace al momento y avisa con «Deshacer», que
+// el sandbox recoge en `toast` para poder pulsarlo.
+function sandboxRemove(customEntries, overrides, { debtPortfolio = [], hiddenExampleIds = [] } = {}) {
   let savedEntries = null;
   let savedOverrides = null;
   let savedHiddenIds = null;
   let rendered = 0;
-  let confirmMessage = null;
+  let toast = null;
+  const announced = [];
   const context = {
     DEBT_PORTFOLIO: debtPortfolio,
     debtContractCustomEntries: customEntries,
@@ -485,10 +487,13 @@ function sandboxRemove(customEntries, overrides, { debtPortfolio = [], hiddenExa
     renderDeudaContratos: () => {
       rendered += 1;
     },
+    showUndoToast: (message, onUndo) => {
+      toast = { message, onUndo };
+    },
+    announceStatus: (message) => announced.push(message),
     window: {
-      confirm: (message) => {
-        confirmMessage = message;
-        return confirmResult;
+      confirm: () => {
+        throw new Error("quitar un contrato ya no pide confirmación: avisa con «Deshacer»");
       },
     },
   };
@@ -500,16 +505,17 @@ function sandboxRemove(customEntries, overrides, { debtPortfolio = [], hiddenExa
     getSavedOverrides: () => savedOverrides,
     getSavedHiddenIds: () => savedHiddenIds,
     getRenderCount: () => rendered,
-    getConfirmMessage: () => confirmMessage,
+    getToast: () => toast,
+    getAnnounced: () => announced,
   };
 }
 
-test("D-2c/D-2d · eliminar un contrato dado de alta (confirmado) lo quita de la lista y de sus overrides", () => {
+test("D-2c/D-2d · eliminar un contrato dado de alta lo quita de la lista y de sus overrides, y avisa con «Deshacer»", () => {
   const custom = [{ id: "debt-custom-1", entity: "Entidad D" }];
   const overrides = { "debt-custom-1": { currentPrincipal: 500 } };
-  const { context, getSavedEntries, getSavedOverrides, getRenderCount, getConfirmMessage } = sandboxRemove(custom, overrides);
+  const { context, getSavedEntries, getSavedOverrides, getRenderCount, getToast } = sandboxRemove(custom, overrides);
   context.handleDeudaContratosRemove("debt-custom-1");
-  assert.match(getConfirmMessage(), /Entidad D/);
+  assert.match(getToast().message, /Entidad D/);
   assert.deepEqual(plain(context.debtContractCustomEntries), []);
   assert.deepEqual(plain(context.debtContractOverrides), {});
   assert.deepEqual(plain(getSavedEntries()), []);
@@ -517,12 +523,19 @@ test("D-2c/D-2d · eliminar un contrato dado de alta (confirmado) lo quita de la
   assert.equal(getRenderCount(), 1);
 });
 
-test("D-2d · eliminar un contrato dado de alta sin confirmar no cambia nada", () => {
-  const custom = [{ id: "debt-custom-1", entity: "Entidad D" }];
-  const { context, getRenderCount } = sandboxRemove(custom, {}, { confirmResult: false });
+test("WP-37 · deshacer devuelve el contrato dado de alta y sus overrides tal como estaban", () => {
+  const custom = [{ id: "debt-custom-1", entity: "Entidad D" }, { id: "debt-custom-2", entity: "Entidad E" }];
+  const overrides = { "debt-custom-1": { currentPrincipal: 500 } };
+  const { context, getSavedEntries, getSavedOverrides, getRenderCount, getToast, getAnnounced } = sandboxRemove(custom, overrides);
   context.handleDeudaContratosRemove("debt-custom-1");
   assert.equal(context.debtContractCustomEntries.length, 1);
-  assert.equal(getRenderCount(), 0);
+  getToast().onUndo();
+  assert.deepEqual(plain(context.debtContractCustomEntries), plain(custom));
+  assert.deepEqual(plain(context.debtContractOverrides), { "debt-custom-1": { currentPrincipal: 500 } });
+  assert.deepEqual(plain(getSavedEntries()), plain(custom), "lo recuperado también se guarda");
+  assert.deepEqual(plain(getSavedOverrides()), { "debt-custom-1": { currentPrincipal: 500 } });
+  assert.equal(getRenderCount(), 2);
+  assert.match(getAnnounced().join(" "), /recuperado/);
 });
 
 test("D-2c · eliminar un id que no existe no hace nada", () => {
@@ -532,14 +545,17 @@ test("D-2c · eliminar un id que no existe no hace nada", () => {
   assert.equal(getRenderCount(), 0);
 });
 
-test("D-2d · eliminar un contrato de ejemplo lo oculta en vez de tocar DEBT_PORTFOLIO", () => {
+test("D-2d · eliminar un contrato de ejemplo lo oculta en vez de tocar DEBT_PORTFOLIO, y deshacer lo vuelve a mostrar", () => {
   const portfolio = [{ id: "debt-1", entity: "Entidad A" }];
-  const { context, getSavedHiddenIds, getRenderCount } = sandboxRemove([], {}, { debtPortfolio: portfolio });
+  const { context, getSavedHiddenIds, getRenderCount, getToast } = sandboxRemove([], {}, { debtPortfolio: portfolio });
   context.handleDeudaContratosRemove("debt-1");
   assert.deepEqual(plain(context.debtContractHiddenExampleIds), ["debt-1"]);
   assert.deepEqual(plain(getSavedHiddenIds()), ["debt-1"]);
   assert.deepEqual(context.DEBT_PORTFOLIO, portfolio, "DEBT_PORTFOLIO no se muta nunca");
   assert.equal(getRenderCount(), 1);
+  getToast().onUndo();
+  assert.deepEqual(plain(context.debtContractHiddenExampleIds), []);
+  assert.deepEqual(plain(getSavedHiddenIds()), []);
 });
 
 test("D-2d · un contrato de ejemplo ya oculto no se puede volver a eliminar", () => {

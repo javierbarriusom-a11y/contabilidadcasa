@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Finanzas Casa · Sistema de diseño E19</title>
 <link rel="stylesheet" href="design-tokens.css">
+<link rel="stylesheet" href="estados.css">
 <style>
   body {
     margin: 0;
@@ -64,6 +65,9 @@
     gap: 14px;
     padding: 8px 0;
     border-top: 1px solid var(--e19-border);
+  }
+  .e19-table.est-tabla th, .e19-table.est-tabla td {
+    text-align: left !important;
   }
   .type-scale > div:first-child {
     border-top: none;
@@ -194,6 +198,69 @@
         </tbody>
       </table>
     </div>
+  </section>
+
+  <section id="estados">
+    <h2>Estados completos (WP-37 · NXP-04)</h2>
+    <p class="e19-subtitle">Toda pantalla o tarjeta que muestra algo que puede faltar, tardar o fallar tiene sus seis estados resueltos. El marcado lo genera <code>estadoHtml</code> (<code>estados-ui.js</code>) y la hoja es <code>estados.css</code>. <strong>Ningún estado se distingue solo por el color</strong>: cada uno tiene su título en texto y un borde de estilo propio (discontinuo, punteado, sólido, doble).</p>
+
+    <h3>Vacío accionable</h3>
+    <p class="e19-kpi-note">Dice qué falta <strong>y ofrece la acción que lo llena</strong>. «No hay nada» a secas es un callejón sin salida.</p>
+    <div class="est est-vacio" role="status" data-estado="vacio">
+      <p class="est-titulo">Aún no hay nóminas apuntadas</p>
+      <p class="est-texto">Con la primera, la app suma lo que te retienen y te avisa si cambia el %.</p>
+      <div class="est-acciones"><button type="button" class="e19-btn e19-btn-primary">Apuntar la primera</button></div>
+    </div>
+
+    <h3>Cargando, con esqueleto</h3>
+    <p class="e19-kpi-note">Esqueleto en el sitio de lo que llega, <code>role="status"</code> y <code>aria-busy</code>. Nunca una pantalla en blanco. Sin movimiento si el sistema pide menos animación.</p>
+    <div class="est est-cargando" role="status" aria-busy="true" data-estado="cargando">
+      <p class="est-titulo">Cargando esta pantalla…</p>
+      <p class="est-texto">Se descarga la primera vez que se abre.</p>
+      <div class="est-esqueleto" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+
+    <h3>Error con causa y salida</h3>
+    <p class="e19-kpi-note">Qué pasó, <strong>qué sigue funcionando</strong> y <strong>una</strong> salida. <code>role="alert"</code>. La causa técnica, en pequeño.</p>
+    <div class="est est-error" role="alert" data-estado="error">
+      <p class="est-titulo">No se ha podido descargar esta pantalla</p>
+      <p class="est-texto">El resto de la app sigue funcionando. Pulsa «Reintentar»; si sigue fallando, recarga la página (puede haber una versión nueva).</p>
+      <p class="est-detalle">Causa: no se pudo descargar el fichero.</p>
+      <div class="est-acciones"><button type="button" class="e19-btn e19-btn-primary">Reintentar</button></div>
+    </div>
+
+    <h3>Sin conexión</h3>
+    <p class="e19-kpi-note">No es un fallo de la app y no se pinta como tal: dice qué hacer (conectarse una vez) y que lo demás sigue disponible.</p>
+    <div class="est est-sin-conexion" role="alert" data-estado="sin-conexion">
+      <p class="est-titulo">Sin conexión</p>
+      <p class="est-texto">Esta pantalla se descarga la primera vez que se abre y aún no está guardada en el móvil. Conéctate un momento y pulsa «Reintentar»: después funcionará sin conexión.</p>
+      <div class="est-acciones"><button type="button" class="e19-btn e19-btn-primary">Reintentar</button></div>
+    </div>
+
+    <h3>Dato obsoleto</h3>
+    <p class="e19-kpi-note">El dato está, pero es viejo: <strong>cuánto</strong> y <strong>qué lo renueva</strong>. No se esconde ni se presenta como actual (ejemplos vivos: el sello de edad de los saldos, el Euribor caducado, el extracto sin importar).</p>
+    <div class="est est-obsoleto" role="status" data-estado="obsoleto">
+      <p class="est-titulo">No puedo mirar lo reciente</p>
+      <p class="est-texto">El último movimiento importado es del 20/9/2026: sin un extracto al día, que no salga nada no significa que todo esté bien.</p>
+      <div class="est-acciones"><a class="e19-btn e19-btn-primary" href="#">Importar el extracto</a></div>
+    </div>
+
+    <h3>Éxito con «Deshacer»</h3>
+    <p class="e19-kpi-note">Lo <strong>reversible se hace al momento</strong> y avisa con «Deshacer» durante 10 segundos (<code>showUndoToast</code>, pila de hasta cinco). No se pregunta «¿seguro?» antes de algo que se puede deshacer.</p>
+    <div class="est est-exito" role="status" data-estado="exito">
+      <p class="est-titulo">Contrato de «Banco Ejemplo» eliminado.</p>
+      <div class="est-acciones"><button type="button" class="e19-btn e19-btn-secondary">Deshacer</button></div>
+    </div>
+
+    <h3>¿Deshacer o confirmar?</h3>
+    <table class="e19-table est-tabla">
+      <thead><tr><th>Es…</th><th>Se hace así</th><th>Ejemplos en la app</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Reversible</strong> (se puede volver a poner tal cual)</td><td>Al momento + «Deshacer» 10 s</td><td>Quitar un contrato, una hucha, una aportación, una nómina, un dato de índice, una alerta, un objetivo, una respuesta a un aviso</td></tr>
+        <tr><td><strong>Irreversible</strong> o que quita una red de seguridad</td><td>Confirmación que dice la consecuencia en el propio botón («Sí, dejar la reserva bajo el mínimo»)</td><td>Consolidar cambios que dejan la reserva bajo el mínimo. Es el único <code>confirm()</code> que queda: hoy es el diálogo nativo; debería pasar a un diálogo propio con la consecuencia en el botón (pendiente)</td></tr>
+        <tr><td><strong>Algo que se importa o se envía fuera</strong></td><td>Paso de revisión antes de incorporar; lote revertible</td><td>Importar extracto (cuatro pasos y «Deshacer último lote»)</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <section>

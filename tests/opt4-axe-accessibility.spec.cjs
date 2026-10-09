@@ -363,3 +363,20 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-37: el catálogo de estados completos (design-system.html#estados), en claro y en oscuro. Es la referencia de la que copian las pantallas.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-37 · contraste del catálogo de estados en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("design-system.html#estados: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      // design-system.html es una página de referencia que no se publica en el sitio: se abre desde el disco, con sus hojas al lado.
+      await page.goto(require("node:url").pathToFileURL(require("node:path").join(__dirname, "..", "design-system.html")).href + "#estados");
+      const section = page.locator("#estados");
+      await expect(section).toBeVisible();
+      await expect(section.locator("[data-estado]")).toHaveCount(6);
+      const results = await new AxeBuilder({ page }).include("#estados").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

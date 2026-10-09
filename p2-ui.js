@@ -428,12 +428,26 @@
         const p2 = state();
         save({ ...p2, goals: p2.goals.map((goal) => goal.id === goalId ? { ...goal, status: goal.status === "paused" ? "active" : "paused" } : goal) }); renderGoals();
       });
+      // WP-37 (NXP-04): quitar una hucha (con sus aportaciones, que viven dentro de ella) o una aportación es reversible: se hace al momento y avisa con
+      // «Deshacer» en vez de un `confirm()`. Deshacer devuelve SOLO esa hucha (en su sitio), sin pisar lo que se haya tocado mientras tanto.
       card.querySelector("[data-goal-delete]")?.addEventListener("click", () => {
-        if (!confirm("¿Eliminar esta hucha y sus aportaciones vinculadas?")) return;
-        const p2 = state(); save({ ...p2, goals: p2.goals.filter((goal) => goal.id !== goalId) }); renderGoals();
+        const p2 = state();
+        const index = p2.goals.findIndex((goal) => goal.id === goalId);
+        const removed = p2.goals[index];
+        if (!removed) return;
+        save({ ...p2, goals: p2.goals.filter((goal) => goal.id !== goalId) }); renderGoals();
+        showUndoToast(`Hucha «${removed.name || removed.label || "sin nombre"}» eliminada con sus aportaciones.`, () => {
+          const current = state();
+          if (current.goals.some((goal) => goal.id === goalId)) return;
+          const goals = current.goals.slice();
+          goals.splice(Math.min(index, goals.length), 0, removed);
+          save({ ...current, goals }); renderGoals();
+        });
       });
       card.querySelectorAll("[data-contribution-delete]").forEach((button) => button.addEventListener("click", () => {
+        const before = state().goals.find((goal) => goal.id === goalId);
         save(domain().removeGoalContribution(state(), goalId, button.dataset.contributionDelete)); renderGoals();
+        if (before) showUndoToast("Aportación quitada.", () => { const current = state(); save({ ...current, goals: current.goals.map((goal) => (goal.id === goalId ? before : goal)) }); renderGoals(); });
       }));
     });
   }
