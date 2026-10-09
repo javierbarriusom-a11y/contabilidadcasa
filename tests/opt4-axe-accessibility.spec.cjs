@@ -475,3 +475,26 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// Hover del botón primario, en claro y en oscuro: con el puntero encima el texto tiene que seguir cumpliendo 4,5:1. En oscuro daba 3,91:1
+// (--e19-accent-hover, más claro que el reposo, con texto blanco) y el resto de pruebas lo esquivaban moviendo el puntero fuera.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Hover del botón primario en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("el botón principal de un estado vacío cumple el contraste con el puntero encima", async ({ page }) => {
+      await page.goto("/index.html#plan");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const boton = page.locator('#planBCuerpo [data-estado-accion="planb-empezar"]');
+      await expect(boton).toBeVisible({ timeout: 15000 });
+      await boton.hover();
+      await page.waitForTimeout(400); // la transición del fondo dura 0,15 s: se mide ya asentado
+      const colores = await boton.evaluate((el) => { const s = getComputedStyle(el); return { fondo: s.backgroundColor, texto: s.color }; });
+      const resultado = await new AxeBuilder({ page }).include('#planBCuerpo [data-estado-accion="planb-empezar"]').analyze();
+      const fallos = resultado.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, `hover (${colores.fondo} con ${colores.texto}): ${fallos.join("\n")}`).toEqual([]);
+    });
+  });
+}

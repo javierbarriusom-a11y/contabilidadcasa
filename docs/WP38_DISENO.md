@@ -49,9 +49,9 @@ Un plan B vale por el **aviso a tiempo**, y hoy el aviso solo existe si alguien 
 5. **La horquilla temporal manda:** con 2 meses seguidos y 6 de horizonte, un bache de 3 meses que empieza dentro de 7 no se ve. Es la configuración por defecto; se cambia en el paso 1.
 6. **Pausar el ahorro, en este modelo, casi nunca ayuda al disparador.** Es correcto, pero puede sorprender: lo que sí ayuda es recortar gasto variable o pedir crédito. Si el hogar de verdad envía el ahorro a un fondo, tiene que marcarlo; la previsión de la app, en cambio, sigue contándolo como liquidez (decisión previa, no de este paquete).
 
-## 6. Hallazgo aparte: contraste del hover de los botones primarios en oscuro
+## 6. Hallazgo aparte: contraste del hover de los botones primarios en oscuro (corregido el 9/10)
 
-Midiendo la accesibilidad de la tarjeta, axe marcó un **3,9 : 1** en un botón primario (`.e19-btn-primary`) **con el puntero encima en modo oscuro** (`--e19-accent-hover: #748296` con texto claro). Es del sistema de diseño, no de este paquete (el mismo estilo afecta a todos los botones primarios), y **no se ha tocado** porque `design-tokens.css` lleva versiones fijadas por pruebas. La prueba de este paquete mide sin el puntero encima. Queda anotado para corregirlo en una tarea propia.
+Midiendo la accesibilidad de la tarjeta, axe marcó un **3,9 : 1** en un botón primario (`.e19-btn-primary`) **con el puntero encima en modo oscuro**: el fondo de hover era `--e19-accent-hover` (#748296), **más claro** que el de reposo, con texto blanco. Afectaba a todos los botones primarios de la app. **Corregido en un PR propio** con un token nuevo, `--e19-accent-hover-bg` (#54657e en oscuro, 5,93 : 1; en claro, el mismo navy de siempre): en oscuro el hover oscurece, como en claro. `--e19-accent-hover` se queda para texto. Había además una prueba en este paquete que esquivaba el problema moviendo el puntero fuera; ahora hay una que mide con el puntero encima, y se comprobó que **falla con la regla antigua (3,9) y pasa con la nueva**.
 
 ## 7. Pendiente
 
