@@ -425,3 +425,53 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-39: la tarjeta «Política de inversión del hogar» de Inversión › Rebalanceo, en claro y en oscuro: vacía, el formulario de seis preguntas, la política
+// firmada con la cartera fuera de ella y la consulta de una operación.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-39 · contraste de la tarjeta de política de inversión en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Rebalanceo: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#inversion-rebalanceo");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#politicaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const body = card.locator("#politicaCuerpo");
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0); // sin el puntero encima: el estado «hover» de un botón no es lo que se mide aquí
+        const results = await new AxeBuilder({ page }).include("#politicaCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await page.evaluate(() => {
+        scenarioSettings.portfolioTargets = { etf: 70, fondo: 30 };
+        scenarioSettings.portfolioPositions = [
+          { id: "p-etf", type: "etf", label: "ETF", quantity: 10, costBasis: 5000, currentValue: 5000, asOf: "2026-10-01" },
+          { id: "p-cripto", type: "cripto", label: "Cripto", quantity: 1, costBasis: 2000, currentValue: 2000, asOf: "2026-10-01" },
+          { id: "p-fondo", type: "fondo", label: "Fondo", quantity: 1, costBasis: 3000, currentValue: 3000, asOf: "2026-10-01" },
+        ];
+        saveScenarioSettings();
+        renderPoliticaInversion(FinanceCanonicalInvestmentPolicy, true);
+      });
+      await revisar("vacío");
+      await body.locator('[data-estado-accion="politica-empezar"]').click();
+      await revisar("formulario");
+      await body.locator('input[data-pol-path="purpose.text"]').fill("jubilación");
+      await body.locator('input[data-pol-path="purpose.horizonYears"]').fill("20");
+      await body.locator('select[data-pol-path="contribution.mode"]').selectOption("surplus");
+      await body.locator('input[data-pol-path="exclusions.noCrypto"]').check();
+      await body.locator('[data-pol-firma="0"]').fill("Ana");
+      await body.locator('[data-pol-firma="1"]').fill("Luis");
+      await body.locator("[data-politica-firmar]").click();
+      await expect(body.locator("[data-politica-estado]")).toBeVisible();
+      await revisar("firmada con la cartera fuera de la política");
+      await body.locator(".pol-consulta summary").click();
+      await body.locator("#politicaOpActivo").selectOption("cripto");
+      await body.locator("[data-politica-probar]").click();
+      await expect(body.locator("[data-politica-veredicto]")).toBeVisible();
+      await revisar("consulta con veredicto");
+    });
+  });
+}

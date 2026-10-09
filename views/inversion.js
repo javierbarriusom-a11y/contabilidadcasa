@@ -74,6 +74,7 @@ function renderInversionRebalanceo() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderInv17RebalanceCalendarReview();
+  globalThis.renderPoliticaInversion?.(globalThis.FinanceCanonicalInvestmentPolicy); // WP-39 (politica-ui.js)
 }
 
 // I1 · Fiscal: solo el subconjunto de FISCALIDAD DE INVERSIÓN (FC4 dividendos, FC3 pérdidas

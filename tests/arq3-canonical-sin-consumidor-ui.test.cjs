@@ -115,6 +115,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 81 → 82 (WP-30 · PR-2): canonical-card-purchases.js, con consumidor real (cardAccruedForRow en app.js lee sus compras; la hoja y el informe, en captura-ui.js)
 // 82 → 83 (WP-15): canonical-portfolio-valuation.js, con consumidor real (renderIv1PositionList en app.js pinta la frescura con él; renderCierre, el aviso; la hoja, en valoracion-ui.js)
 // 83 → 84 (WP-23): canonical-year-end-tax.js, con consumidor real (renderActiveSection en app.js se lo pasa a la tarjeta de fiscal-campana-ui.js)
+// 93 → 94 (WP-39): canonical-investment-policy.js, con consumidor real (renderInversionRebalanceo en views/inversion.js se lo pasa a la tarjeta de politica-ui.js)
 // 92 → 93 (WP-38): canonical-contingency-plan.js, con consumidor real (renderPlanPrevision en app.js se lo pasa a la tarjeta de contingencia-ui.js)
 // 91 → 92 (WP-36): canonical-statement-anomalies.js, con consumidor real (el case «movements» de renderActiveSection en app.js se lo pasa a la tarjeta de anomalias-ui.js)
 // 90 → 91 (WP-31 · PR-1): canonical-payroll.js, con consumidor real (renderActiveSection en app.js se lo pasa a la tarjeta de nominas-ui.js)
@@ -125,6 +126,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 93 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 93);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 94 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 94);
 });
