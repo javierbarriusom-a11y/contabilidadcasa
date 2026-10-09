@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261009wp36a1" />
     <link rel="stylesheet" href="estados.css?v=20261009wp37a1" />
+    <link rel="stylesheet" href="contingencia.css?v=20261009wp38a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1049,6 +1050,13 @@
                 </div>
                 <div class="plan-prevision-milestones" id="planPrevisionMilestones"></div>
                 <div class="plan-prevision-worst-breakdown" id="planPrevisionWorstBreakdown"></div>
+                <!-- WP-38 (PRV-05 + NPV-09, docs/WP38_DISENO.md): plan B acordado en frío. Lo pinta contingencia-ui.js con canonical-contingency-plan.js. Solo enseña lo acordado: no ejecuta nada. No está en Hoy (congelado hasta leer H-02). -->
+                <article class="e19-card pb-card" id="planBCard" aria-labelledby="planBTitulo">
+                  <h3 class="escenario-motor-panel-title" id="planBTitulo">Plan B del hogar</h3>
+                  <p class="e19-kpi-note">Lo que haremos si el mes va mal, <strong>acordado ahora, con calma</strong>: cuándo salta, qué hacer y en qué orden. La app vigila la previsión y, si se cumple, os enseña lo acordado con lo que aporta cada paso. <strong>No hace nada por vosotros</strong>: las decisiones las tomáis las dos personas.</p>
+                  <p class="e19-kpi-note" id="planBNota" role="status"></p>
+                  <div id="planBCuerpo"></div>
+                </article>
                 <p class="e19-kpi-note">Sigue disponible, con más detalle día a día, en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
               </div>
             </div>
@@ -7881,6 +7889,8 @@
     <script defer src="estados-ui.js?v=20261009wp37a1"></script>
     <script defer src="canonical-statement-anomalies.js?v=20261009wp36a1"></script>
     <script defer src="anomalias-ui.js?v=20261009wp36a1"></script>
+    <script defer src="canonical-contingency-plan.js?v=20261009wp38a1"></script>
+    <script defer src="contingencia-ui.js?v=20261009wp38a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

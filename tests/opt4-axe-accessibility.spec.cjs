@@ -380,3 +380,48 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-38: la tarjeta «Plan B del hogar» de Plan › Previsión, en claro y en oscuro: vacía, el asistente (disparador, acciones, firma) y el plan firmado.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-38 · contraste de la tarjeta del plan B en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#plan");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const card = page.locator("#planBCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const body = card.locator("#planBCuerpo");
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0); // sin el puntero encima: el estado «hover» de un botón no es lo que se mide aquí
+        const results = await new AxeBuilder({ page }).include("#planBCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await card.locator(".pb-palanca summary").click();
+      await revisar("vacío con la palanca abierta");
+      await body.locator('[data-estado-accion="planb-empezar"]').click();
+      await body.locator('input[name="planbModo"][value="amount"]').check();
+      await body.locator('input[data-planb-campo="amount"]').fill("12000");
+      await body.locator('input[data-planb-campo="amount"]').dispatchEvent("change");
+      await revisar("paso 1");
+      await body.locator('[data-planb-paso="2"]').click();
+      await revisar("paso 2 vacío");
+      await body.locator("[data-planb-anadir]").click();
+      await body.locator("[data-planb-anadir]").click();
+      await body.locator('select[data-planb-accion="1"]').selectOption("credit-line");
+      await body.locator('input[data-planb-accion="1"][data-planb-campo="amount"]').fill("3000");
+      await body.locator('input[data-planb-accion="1"][data-planb-campo="amount"]').dispatchEvent("change");
+      await revisar("paso 2 con acciones");
+      await body.locator('[data-planb-paso="3"]').click();
+      await revisar("paso 3");
+      await body.locator('[data-planb-firma="0"]').fill("Ana");
+      await body.locator('[data-planb-firma="1"]').fill("Luis");
+      await body.locator("[data-planb-firmar]").click();
+      await expect(body.locator("[data-planb-status]")).toBeVisible();
+      await revisar("plan firmado");
+    });
+  });
+}

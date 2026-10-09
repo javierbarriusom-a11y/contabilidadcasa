@@ -1,0 +1,155 @@
+/* WP-38 · tarjeta «Plan B del hogar» de Plan › Previsión. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas).
+   Solo usa tokens --e19-*. */
+.pb-card {
+  margin: 16px 0;
+}
+
+.pb-estado {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.pb-motivos {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pb-pasos,
+.pb-acciones-lista {
+  margin: 8px 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.pb-paso {
+  display: block;
+}
+
+.pb-nota {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.pb-cierre {
+  margin: 8px 0;
+}
+
+.pb-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.pb-acciones .e19-btn {
+  min-height: 44px;
+}
+
+.pb-pasos-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  color: var(--e19-muted);
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+}
+
+.pb-pasos-nav [aria-current="step"] {
+  color: var(--e19-ink);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.pb-fieldset {
+  border: 1px solid var(--e19-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 8px 0;
+}
+
+.pb-fieldset legend {
+  padding: 0 6px;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pb-radio {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 44px;
+  text-align: left;
+  font: 400 var(--e19-text-base) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pb-radio input[type="radio"] {
+  flex: none;
+  width: 22px;
+  min-height: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.pb-fieldset .cuadro-mandos-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+  margin: 8px 0;
+}
+
+.pb-fieldset .month-picker {
+  display: grid;
+  gap: 4px;
+}
+
+.pb-fieldset input[type="text"],
+.pb-fieldset input[type="number"],
+.pb-fieldset select {
+  min-height: 44px;
+  width: 100%;
+}
+
+.pb-accion {
+  list-style: decimal;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.pb-palanca {
+  margin: 12px 0 0;
+}
+
+.pb-palanca summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--e19-ink);
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+}
+
+.pb-palanca summary::before {
+  content: "▸ ";
+  margin-right: 4px;
+}
+
+.pb-palanca[open] summary::before {
+  content: "▾ ";
+}
+
+.pb-tabla th,
+.pb-tabla td {
+  text-align: left !important;
+}

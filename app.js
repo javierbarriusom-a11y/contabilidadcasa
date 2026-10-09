@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "contingency-plan", // WP-38: el plan B acordado en frío (disparador, acciones en orden, firma)
   "statement-anomaly-answers", // WP-36: lo que el hogar respondió a cada aviso del extracto (de ahí sale la tasa de falsos positivos)
   "payslips", // WP-31: nóminas (solo cifras: periodo, bruto, líquido, retención), para el acumulado del estimador de Renta
   "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
@@ -34671,6 +34672,7 @@ function renderPlanPrevision() {
   if (milestonesEl) {
     milestonesEl.innerHTML = planPrevisionHorizonMilestonesHtml(planPrevisionHorizonMilestones(months, liquidityByMonth, floor.value), floor.source);
   }
+  globalThis.renderPlanB?.(globalThis.FinanceCanonicalContingencyPlan); // WP-38 (contingencia-ui.js)
 }
 
 // P-10: "Descomposición del peor mes" — reutiliza la cascada de A-4 (`analisisCascadaRows`) sobre un

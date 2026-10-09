@@ -2022,3 +2022,115 @@ test.describe("WP-37 · estados completos", () => {
     await expect(page.locator("#nominasTitular")).toBeFocused();
   });
 });
+
+// WP-38 (PRV-05 + NPV-09): el plan B acordado en frío, en Plan › Previsión. Asistente de tres pasos, firma de dos personas, vigilancia del disparador y «Deshacer».
+test.describe("WP-38 · plan B del hogar", () => {
+  const openPrevision = async (page) => {
+    await page.goto("/index.html#plan");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const card = page.locator("#planBCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+
+  test("vacío accionable, asistente de tres pasos, firma, disparo, firma invalidada al cambiar y deshacer, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await openPrevision(page);
+      const body = card.locator("#planBCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Todavía no habéis acordado un plan B");
+      await expect(card.locator(".pb-palanca summary")).toContainText("¿Cuánto aguanta el colchón?");
+      await card.locator(".pb-palanca summary").click();
+      await expect(card.locator(".pb-tabla thead th")).toHaveCount(4);
+
+      // Paso 1: disparador con una cifra tan alta que, con la previsión de hoy, ya saltaría.
+      await body.locator('[data-estado-accion="planb-empezar"]').click();
+      await expect(body.locator(".pb-pasos-nav [aria-current='step']")).toContainText("1. Disparador");
+      await body.locator('input[name="planbModo"][value="amount"]').check();
+      await body.locator('input[data-planb-campo="amount"]').fill("99999999");
+      await body.locator('input[data-planb-campo="amount"]').dispatchEvent("change");
+      await expect(body.locator("[data-planb-previa]")).toContainText("YA saltaría");
+
+      // Paso 2: dos acciones, la segunda subida al primer puesto.
+      await body.locator('[data-planb-paso="2"]').click();
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Todavía no hay ninguna acción");
+      await body.locator('[data-estado-accion="planb-anadir"]').click();
+      await body.locator("[data-planb-anadir]").click();
+      await expect(body.locator(".pb-accion")).toHaveCount(2);
+      await body.locator('select[data-planb-accion="1"]').selectOption("credit-line");
+      await body.locator('input[data-planb-accion="1"][data-planb-campo="amount"]').fill("1500");
+      await body.locator('input[data-planb-accion="1"][data-planb-campo="amount"]').dispatchEvent("change");
+      await body.locator('[data-planb-subir="1"]').click();
+      await expect(body.locator('select[data-planb-accion="0"]')).toHaveValue("credit-line");
+      await body.locator('[data-planb-quitar="0"]').click();
+      await expect(body.locator(".pb-accion")).toHaveCount(1);
+      await page.locator("#undoToastButton").click();
+      await expect(body.locator(".pb-accion")).toHaveCount(2);
+
+      // Paso 3: no se firma con una sola persona; con dos, sí.
+      await body.locator('[data-planb-paso="3"]').click();
+      await body.locator('[data-planb-firma="0"]').fill("Ana");
+      await body.locator("[data-planb-firmar]").click();
+      await expect(body.locator("[data-planb-aviso-firma]")).toContainText("dos personas distintas");
+      await body.locator('[data-planb-firma="1"]').fill("Luis");
+      await body.locator("[data-planb-firmar]").click();
+      await expect(body.locator("[data-planb-status]")).toHaveAttribute("data-planb-status", "triggered");
+      await expect(body).toContainText("Se cumple vuestro plan B");
+      await expect(body).toContainText("Ana y Luis");
+      await expect(body.locator(".pb-pasos .pb-paso")).toHaveCount(2);
+      await expect(body.locator(".pb-pasos")).toContainText("No es dinero propio");
+      await expect(body).toContainText("crédito antes de agotar lo propio");
+
+      // Persiste al recargar.
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(page.locator("#planBCuerpo [data-planb-status]")).toHaveAttribute("data-planb-status", "triggered");
+      await expect(page.locator("#planBCuerpo")).toContainText("Firmado el");
+
+      // Cambiar el plan y guardarlo sin firmar deja un borrador (la firma antigua ya no vale).
+      await page.locator("[data-planb-editar]").click();
+      await page.locator('[data-planb-paso="2"]').click();
+      await page.locator('[data-planb-bajar="0"]').click();
+      await page.locator('[data-planb-paso="3"]').click();
+      await page.locator("[data-planb-guardar]").click();
+      await expect(page.locator("#planBCuerpo")).toContainText("Sin firmar: es un borrador");
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#planBCuerpo")).toContainText("Firmado el");
+
+      // Borrar con deshacer.
+      await page.locator("[data-planb-borrar]").click();
+      await expect(page.locator('#planBCuerpo [data-estado="vacio"]')).toBeVisible();
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#planBCuerpo [data-planb-status]")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún confirm(): lo reversible se deshace").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("con una cifra baja el plan no salta y lo dice; nada de esto toca Hoy", async ({ page }) => {
+    const card = await openPrevision(page);
+    const body = card.locator("#planBCuerpo");
+    await body.locator('[data-estado-accion="planb-empezar"]').click();
+    await body.locator('input[name="planbModo"][value="amount"]').check();
+    await body.locator('input[data-planb-campo="amount"]').fill("1");
+    await body.locator('input[data-planb-campo="amount"]').dispatchEvent("change");
+    await expect(body.locator("[data-planb-previa]")).toContainText("no saltaría");
+    await body.locator('[data-planb-paso="2"]').click();
+    await body.locator("[data-planb-anadir]").click();
+    await body.locator('[data-planb-paso="3"]').click();
+    await body.locator("[data-planb-guardar]").click();
+    await expect(body.locator("[data-planb-status]")).toHaveAttribute("data-planb-status", "ok");
+    await expect(body).toContainText("Sin firmar: es un borrador");
+    await page.goto("/index.html#home");
+    await expect(page.locator("body")).not.toContainText("Se cumple vuestro plan B");
+  });
+});
