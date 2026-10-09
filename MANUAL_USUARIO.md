@@ -415,6 +415,19 @@ Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»
 
 Si el último movimiento importado tiene más de 45 días, la tarjeta dice que **no puede mirar lo reciente**: sin un extracto al día, que no salga nada no significa que todo esté bien. De momento los avisos no aparecen en Hoy.
 
+### Política de inversión del hogar (Inversión › Rebalanceo)
+
+Al principio de **Rebalanceo**, la tarjeta **«Política de inversión del hogar»** reúne en una página, **escrita con calma y firmada con fecha**, lo que las dos personas acordáis sobre vuestras inversiones. Son seis preguntas: **para qué es el dinero y para cuándo**, **cómo se reparte** (ya rellenado con el reparto objetivo que fijaste, y tiene que sumar 100 %), **cómo se aporta**, **qué no se compra nunca**, **qué hacéis si la cartera cae un 20 % y un 35 %**, y **cuándo se revisa**. Si dejas una sin responder, la app dice cuál falta y no deja firmar.
+
+Una vez firmada, la tarjeta te enseña **las reglas numeradas**, avisa **30 días antes** de que toque revisarla y compara **la cartera de hoy con ella** (un tipo fuera de su banda, cripto si no se compra, un préstamo declarado si no se admite apalancamiento). Con **«¿Esta operación cumple la política?»** puedes probar una compra o una venta **antes** de hacerla: te dice qué regla choca, si alguna. Si la política dice «no vender» cuando la cartera cae, **tienes que escribir cuánto ha caído**: si no lo sabes, te avisa de que no puede comprobarlo.
+
+Cuatro cosas que conviene saber:
+
+- **La app no compra, vende ni rebalancea nada**, y no toca tu cartera ni tu reparto objetivo: solo los lee.
+- **La consulta es voluntaria.** Al registrar una compra o una venta, la app **todavía no te avisa sola** ni te pide el motivo.
+- **La banda que pongas aquí no cambia el aviso de la herramienta de rebalanceo**, que sigue avisando a los 10 puntos.
+- Si cambias una respuesta después de firmar, **la firma deja de valer** hasta firmar de nuevo. Tanto cambiar como borrar se pueden deshacer 10 segundos.
+
 ### Plan B del hogar (Plan › Previsión)
 
 Bajo el desglose del peor mes, la tarjeta **«Plan B del hogar»** sirve para **acordar en calma qué haremos si el mes va mal**, en vez de decidirlo cuando ya hay prisa. Son tres pasos:

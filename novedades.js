@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-09-wp39",
+      fecha: "2026-10-09",
+      texto: "Inversión › Rebalanceo › Política de inversión: seis preguntas firmadas y la cartera comparada con ellas.",
+      href: "#inversion-rebalanceo",
+    },
+    {
       id: "2026-10-09-wp38",
       fecha: "2026-10-09",
       texto: "Plan › Previsión › Plan B del hogar: acordad en calma cuándo salta y qué hacer, y firmadlo las dos personas.",

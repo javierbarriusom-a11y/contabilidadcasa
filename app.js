@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "investment-policy", // WP-39: la política de inversión del hogar (seis respuestas, firma y fecha de revisión)
   "contingency-plan", // WP-38: el plan B acordado en frío (disparador, acciones en orden, firma)
   "statement-anomaly-answers", // WP-36: lo que el hogar respondió a cada aviso del extracto (de ahí sale la tasa de falsos positivos)
   "payslips", // WP-31: nóminas (solo cifras: periodo, bruto, líquido, retención), para el acumulado del estimador de Renta

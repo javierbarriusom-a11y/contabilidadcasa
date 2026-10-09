@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="anomalias.css?v=20261009wp36a1" />
     <link rel="stylesheet" href="estados.css?v=20261009wp37a1" />
     <link rel="stylesheet" href="contingencia.css?v=20261009wp38a1" />
+    <link rel="stylesheet" href="politica.css?v=20261009wp39a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2820,6 +2821,14 @@
                 <p class="e19-subtitle">Objetivo de reparto por tipo de activo, revisión por calendario y prioridad de venta al desapalancar.</p>
               </div>
             </div>
+
+            <!-- WP-39 (CAR-01, docs/WP39_DISENO.md): política de inversión del hogar. La pinta politica-ui.js con canonical-investment-policy.js. Solo avisa: no opera nada (A11-4). -->
+            <article class="e19-card pol-card" id="politicaCard" aria-labelledby="politicaTitulo">
+              <h3 class="escenario-motor-panel-title" id="politicaTitulo">Política de inversión del hogar</h3>
+              <p class="e19-kpi-note">Seis preguntas, respondidas <strong>con calma y firmadas con fecha</strong>: para qué es el dinero, cómo se reparte, cómo se aporta, qué no se compra y qué se hace si la cartera cae. Después, la app <strong>compara la cartera con ella</strong> y os dice si una operación la contradice. <strong>No compra, vende ni rebalancea nada.</strong></p>
+              <p class="e19-kpi-note" id="politicaNota" role="status"></p>
+              <div id="politicaCuerpo"></div>
+            </article>
 
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
@@ -7891,6 +7900,8 @@
     <script defer src="anomalias-ui.js?v=20261009wp36a1"></script>
     <script defer src="canonical-contingency-plan.js?v=20261009wp38a1"></script>
     <script defer src="contingencia-ui.js?v=20261009wp38a1"></script>
+    <script defer src="canonical-investment-policy.js?v=20261009wp39a1"></script>
+    <script defer src="politica-ui.js?v=20261009wp39a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

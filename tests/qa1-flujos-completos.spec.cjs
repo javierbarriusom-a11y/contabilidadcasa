@@ -2134,3 +2134,145 @@ test.describe("WP-38 · plan B del hogar", () => {
     await expect(page.locator("body")).not.toContainText("Se cumple vuestro plan B");
   });
 });
+
+// WP-39 (CAR-01): la política de inversión del hogar, en Inversión › Rebalanceo. Seis preguntas con lo ya declarado, firma de dos personas, la cartera frente a la
+// política y la consulta «¿esta operación la cumple?».
+test.describe("WP-39 · política de inversión del hogar", () => {
+  const seed = async (page) => {
+    await page.evaluate(() => {
+      scenarioSettings.portfolioTargets = { etf: 70, fondo: 30 };
+      scenarioSettings.portfolioPositions = [
+        { id: "p-etf", type: "etf", label: "ETF mundial", quantity: 10, costBasis: 6000, currentValue: 7000, asOf: "2026-10-01" },
+        { id: "p-fondo", type: "fondo", label: "Fondo mixto", quantity: 10, costBasis: 2500, currentValue: 3000, asOf: "2026-10-01" },
+      ];
+      saveScenarioSettings();
+      renderPoliticaInversion(FinanceCanonicalInvestmentPolicy, true);
+    });
+  };
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-rebalanceo");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#politicaCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    await seed(page);
+    return card;
+  };
+
+  test("vacío accionable, seis preguntas prerrellenas, firma, cartera frente a la política, consulta de operación, borrador, borrar y deshacer", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const body = card.locator("#politicaCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Todavía no habéis escrito vuestra política");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("tu reparto objetivo");
+      await body.locator('[data-estado-accion="politica-empezar"]').click();
+
+      // Prerrellena con lo ya declarado y avisa de lo que falta.
+      await expect(body.locator('input[data-pol-path="allocation.targets.etf"]')).toHaveValue("70");
+      await expect(body.locator('input[data-pol-path="allocation.targets.fondo"]')).toHaveValue("30");
+      await expect(body.locator("[data-pol-suma]")).toContainText("Suma ahora: 100 %");
+      await body.locator('input[data-pol-path="allocation.targets.fondo"]').fill("20");
+      await expect(body.locator("[data-pol-suma]")).toContainText("tiene que ser 100 %");
+      await body.locator('input[data-pol-path="allocation.targets.fondo"]').fill("30");
+      await body.locator("[data-politica-firmar]").click();
+      await expect(body.locator("[data-pol-aviso]")).toContainText("Falta responder: pregunta 1, pregunta 3");
+
+      await body.locator('input[data-pol-path="purpose.text"]').fill("jubilación");
+      await body.locator('input[data-pol-path="purpose.horizonYears"]').fill("20");
+      await body.locator('select[data-pol-path="contribution.mode"]').selectOption("fixed");
+      await body.locator('input[data-pol-path="contribution.monthly"]').fill("300");
+      await body.locator('input[data-pol-path="exclusions.noCrypto"]').check();
+      await body.locator('select[data-pol-path="drawdown.at35"]').selectOption("hold");
+      await body.locator("[data-politica-firmar]").click();
+      await expect(body.locator("[data-pol-aviso]")).toContainText("dos personas distintas");
+      await body.locator('[data-pol-firma="0"]').fill("Ana");
+      await body.locator('[data-pol-firma="1"]').fill("Ana");
+      await body.locator("[data-politica-firmar]").click();
+      await expect(body.locator("[data-pol-aviso]")).toContainText("dos personas distintas");
+      await body.locator('[data-pol-firma="1"]').fill("Luis");
+      await body.locator("[data-politica-firmar]").click();
+
+      await expect(body.locator("[data-politica-estado]")).toHaveAttribute("data-politica-estado", "signed");
+      await expect(body).toContainText("Firmada el");
+      await expect(body).toContainText("Ana y Luis");
+      await expect(body.locator(".pol-reglas li")).toHaveCount(7);
+      await expect(body.locator(".pol-reglas")).toContainText("No compramos cripto");
+      await expect(body.locator(".pol-ok")).toContainText("dentro de la política");
+
+      // Consulta de operación: vender con una caída del 40 % contradice la regla de no vender.
+      await body.locator(".pol-consulta summary").click();
+      await body.locator("#politicaOpTipo").selectOption("sell");
+      await body.locator("#politicaOpImporte").fill("500");
+      await body.locator("#politicaOpCaida").fill("40");
+      await body.locator("[data-politica-probar]").click();
+      await expect(body.locator("[data-politica-veredicto]")).toHaveAttribute("data-politica-veredicto", "contradicts");
+      await expect(body.locator("#politicaOpResultado")).toContainText("Regla 6");
+      await body.locator("#politicaOpCaida").fill("");
+      await body.locator("[data-politica-probar]").click();
+      await expect(body.locator("[data-politica-veredicto]")).toHaveAttribute("data-politica-veredicto", "warns");
+      await expect(body.locator("#politicaOpResultado")).toContainText("No sé cuánto ha caído");
+      await body.locator("#politicaOpTipo").selectOption("buy");
+      await body.locator("#politicaOpActivo").selectOption("cripto");
+      await body.locator("[data-politica-probar]").click();
+      await expect(body.locator("[data-politica-veredicto]")).toHaveAttribute("data-politica-veredicto", "contradicts");
+
+      // Persiste al recargar (la cartera se vuelve a sembrar porque el almacén de pruebas es limpio por contexto).
+      await page.reload();
+      await expect(page.locator("#politicaCuerpo [data-politica-estado]")).toHaveAttribute("data-politica-estado", "signed");
+
+      // Cambiar y guardar sin firmar deja un borrador; deshacer devuelve la firmada.
+      await page.locator("[data-politica-editar]").click();
+      await page.locator('input[data-pol-path="purpose.horizonYears"]').fill("25");
+      await page.locator("[data-politica-guardar]").click();
+      await expect(page.locator("#politicaCuerpo")).toContainText("Borrador sin firmar");
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#politicaCuerpo")).toContainText("Firmada el");
+
+      // Borrar con deshacer.
+      await page.locator("[data-politica-borrar]").click();
+      await expect(page.locator('#politicaCuerpo [data-estado="vacio"]')).toBeVisible();
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#politicaCuerpo [data-politica-estado]")).toHaveAttribute("data-politica-estado", "signed");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún confirm(): lo reversible se deshace").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("una cartera fuera de la política se señala con su regla, y la revisión vencida se avisa; no se opera nada", async ({ page }) => {
+    const card = await open(page);
+    const body = card.locator("#politicaCuerpo");
+    // Política firmada hace 13 meses y con «sin cripto»; la cartera tiene cripto.
+    await page.evaluate(() => {
+      const engine = FinanceCanonicalInvestmentPolicy;
+      const policy = engine.normalizePolicy({ purpose: { text: "casa", horizonYears: 8 }, allocation: { targets: { etf: 70, fondo: 30 }, bandPct: 5 }, contribution: { mode: "surplus" }, exclusions: { noCrypto: true }, review: { everyMonths: 12 } });
+      const signed = engine.sign(policy, { signers: ["Ana", "Luis"], today: "2025-09-01" }).policy;
+      storageSet(storageKey("investment-policy"), JSON.stringify(signed));
+      scenarioSettings.portfolioPositions = [
+        { id: "p-etf", type: "etf", label: "ETF", quantity: 1, costBasis: 5000, currentValue: 5000, asOf: "2026-10-01" },
+        { id: "p-cripto", type: "cripto", label: "Cripto", quantity: 1, costBasis: 2000, currentValue: 2000, asOf: "2026-10-01" },
+        { id: "p-fondo", type: "fondo", label: "Fondo", quantity: 1, costBasis: 3000, currentValue: 3000, asOf: "2026-10-01" },
+      ];
+      saveScenarioSettings();
+      renderPoliticaInversion(engine, true);
+    });
+    await expect(body.locator(".pol-revision")).toContainText("La revisión de la política está vencida");
+    await expect(body.locator(".pol-fuera")).toContainText("se salen de la política");
+    await expect(body.locator(".pol-fuera")).toBeVisible();
+    await expect(body.locator(".pol-lista")).toContainText("Regla 4. Hay cripto");
+    await expect(body.locator(".pol-lista")).toContainText("Hay cripto en la cartera");
+    // No toca la cartera ni el reparto objetivo.
+    const antes = await page.evaluate(() => JSON.stringify([scenarioSettings.portfolioPositions, scenarioSettings.portfolioTargets]));
+    await body.locator(".pol-consulta summary").click();
+    await body.locator("[data-politica-probar]").click();
+    const despues = await page.evaluate(() => JSON.stringify([scenarioSettings.portfolioPositions, scenarioSettings.portfolioTargets]));
+    expect(despues).toBe(antes);
+  });
+});
