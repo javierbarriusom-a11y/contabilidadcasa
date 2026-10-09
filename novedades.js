@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-09-wp38",
+      fecha: "2026-10-09",
+      texto: "Plan › Previsión › Plan B del hogar: acordad en calma cuándo salta y qué hacer, y firmadlo las dos personas.",
+      href: "#plan",
+    },
+    {
       id: "2026-10-09-wp37",
       fecha: "2026-10-09",
       texto: "Quitar un contrato, una hucha, una nómina o un dato de índice ya no pregunta: lo hace y deja «Deshacer» 10 segundos.",

@@ -415,6 +415,24 @@ Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»
 
 Si el último movimiento importado tiene más de 45 días, la tarjeta dice que **no puede mirar lo reciente**: sin un extracto al día, que no salga nada no significa que todo esté bien. De momento los avisos no aparecen en Hoy.
 
+### Plan B del hogar (Plan › Previsión)
+
+Bajo el desglose del peor mes, la tarjeta **«Plan B del hogar»** sirve para **acordar en calma qué haremos si el mes va mal**, en vez de decidirlo cuando ya hay prisa. Son tres pasos:
+
+1. **Cuándo salta:** por debajo del colchón de la app o de una cifra vuestra, durante **1 a 4 meses seguidos**, mirando de 3 a 12 meses de previsión. Mientras lo eliges te dice si, con la previsión de hoy, **ya saltaría**.
+2. **Qué hacemos, y en qué orden** (hasta 6 pasos): recortar el gasto variable un % durante unos meses, pausar el ahorro, usar la línea de crédito de emergencia u otra cosa que escribáis. Se puede subir, bajar y quitar (con «Deshacer»). Lo propio primero y el crédito el último.
+3. **Fecha y firma:** los nombres de **dos personas distintas**. «Guardar sin firmar» deja un borrador.
+
+Después la tarjeta te dice, **con palabras**, si el plan **salta**, está **en vigilancia** (hay meses por debajo, pero no seguidos), **no salta** o está **incompleto**. Si salta, te enseña **lo acordado en orden, con lo que aporta cada paso**, con cuál ya no salta y, si ni con todos llega, **cuánto falta**.
+
+Tres cosas que conviene saber:
+
+- **Pausar el ahorro no sube la liquidez total**: el ahorro ya cuenta como liquidez, así que pausarlo solo pasa dinero de la cuenta de ahorro a la corriente. Solo suma si marcas que **ese ahorro va a un fondo o inversión** (fuera de la liquidez).
+- **El crédito no es dinero vuestro**: suma, pero se marca «hay que devolverlo» y con su coste estimado.
+- **La app solo enseña lo acordado: no hace nada por vosotros.** Y **solo lo vigila al abrir esta pestaña**: de momento no avisa sola ni aparece en Hoy. Si cambias el plan después de firmarlo, la firma deja de valer.
+
+Debajo, **«¿Cuánto aguanta el colchón?»** calcula, si se cortaran los ingresos, cuántos meses duraría la liquidez con un recorte del 0, 10, 20, 30 y 50 % del gasto variable. Es un suelo, no una previsión.
+
 ### Nóminas y retenciones (Herramientas avanzadas › Fiscal)
 
 La tarjeta **«Nóminas y retenciones»**, justo encima del estimador de Renta, suma **lo que te han retenido de IRPF en el año** a partir de tus nóminas, te dice **qué meses faltan** y **avisa si cambia el % de retención**. Guarda solo cifras: ni el PDF, ni el NIF, ni el IBAN.
