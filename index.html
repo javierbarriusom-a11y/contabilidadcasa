@@ -36,6 +36,7 @@
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
     <link rel="stylesheet" href="camino-deuda.css?v=20261008wp19a1" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
+    <link rel="stylesheet" href="anomalias.css?v=20261009wp36a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -7467,6 +7468,14 @@
               </div>
             </div>
 
+            <!-- WP-36 (ND-07, docs/WP36_DISENO.md): anomalías del extracto. La pinta anomalias-ui.js con canonical-statement-anomalies.js. Solo señala con su evidencia y deja responder; no reclama, no clasifica, no borra. No va a la bandeja de Hoy (Hoy congelado hasta leer H-02). -->
+            <article class="e19-card ano-card" id="anomaliasCard" aria-labelledby="anomaliasTitulo">
+              <h3 class="escenario-motor-panel-title" id="anomaliasTitulo">Cosas raras en tus movimientos</h3>
+              <p class="e19-kpi-note">Mira el extracto ya importado (los últimos 45 días) y señala lo que merece un vistazo: <strong>cargos duplicados, recibos devueltos, comisiones nuevas, cobros mensuales sin partida e importes fuera de lo normal</strong>. Cada aviso trae su evidencia. <strong>No hace nada por su cuenta</strong>: ni reclama al banco, ni clasifica, ni borra. Tus respuestas lo afinan.</p>
+              <p class="e19-kpi-note" id="anomaliasNota" role="status"></p>
+              <div id="anomaliasCuerpo"></div>
+            </article>
+
             <!-- Repaso pixel-perfect del 20 de agosto: «Cargar movimientos desde Excel» era una
                  segunda puerta de escritura de baseData.transactions — el mismo loadTransactionsFromWorkbook
                  que ya usa Registrar › Importar extracto (R-8), pero sin su asistente de clasificación,
@@ -7868,6 +7877,8 @@
     <script defer src="camino-deuda-ui.js?v=20261008wp19a1"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
     <script defer src="nominas-ui.js?v=20261008wp31a1"></script>
+    <script defer src="canonical-statement-anomalies.js?v=20261009wp36a1"></script>
+    <script defer src="anomalias-ui.js?v=20261009wp36a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

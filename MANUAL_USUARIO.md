@@ -395,6 +395,20 @@ Qué te enseña:
 
 Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. **Los avisos también van al calendario del móvil:** en Ajustes › Recordatorios, descarga el fichero de nuevo y traerá los de 60 y 30 días. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
 
+### Cosas raras en tus movimientos (Movimientos)
+
+Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»** mira el extracto que ya has importado (los últimos 45 días) y señala lo que merece un vistazo. Cada aviso trae su evidencia:
+
+- **Recibo devuelto**: el banco ha devuelto un recibo (te dice cuál era el cargo).
+- **Posible duplicado**: el mismo cargo dos veces con un día de diferencia como mucho.
+- **Comisión**: una que nunca habías pagado, o que sube un 25 % o más.
+- **Sin partida en el plan**: un cobro que se repite cada mes y no está en ninguna partida.
+- **Importe alto**: un cargo muy por encima de lo habitual de su partida.
+
+**No hace nada por su cuenta**: ni reclama al banco, ni clasifica, ni borra. Tú respondes cada aviso con **«Es algo real»**, **«Es normal»** o **«Es normal siempre»** (no vuelve a avisar de ese patrón), y puedes **deshacer** la última respuesta. De tus respuestas sale cuántos avisos sobran; el objetivo es menos del 20 %, y hasta tener 10 respuestas lo dice como «todavía no se puede medir».
+
+Si el último movimiento importado tiene más de 45 días, la tarjeta dice que **no puede mirar lo reciente**: sin un extracto al día, que no salga nada no significa que todo esté bien. De momento los avisos no aparecen en Hoy.
+
 ### Nóminas y retenciones (Herramientas avanzadas › Fiscal)
 
 La tarjeta **«Nóminas y retenciones»**, justo encima del estimador de Renta, suma **lo que te han retenido de IRPF en el año** a partir de tus nóminas, te dice **qué meses faltan** y **avisa si cambia el % de retención**. Guarda solo cifras: ni el PDF, ni el NIF, ni el IBAN.

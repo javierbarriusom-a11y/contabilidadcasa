@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "statement-anomaly-answers", // WP-36: lo que el hogar respondió a cada aviso del extracto (de ahí sale la tasa de falsos positivos)
   "payslips", // WP-31: nóminas (solo cifras: periodo, bruto, líquido, retención), para el acumulado del estimador de Renta
   "iv1-valuation-snapshots", // IV1: valoración por posición en cada cierre (la historia que espera I3)
   "pvc6-forecast-snapshots", // PVC6: previsión congelada en cada cierre
@@ -35989,6 +35990,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "movements":
       renderMerchants();
+      globalThis.renderAnomalias?.(globalThis.FinanceCanonicalStatementAnomalies); // WP-36 (anomalias-ui.js)
       break;
     case "data-entry":
       populateDataEntryControls();
