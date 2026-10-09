@@ -40,6 +40,7 @@
      nuevo; `--e19-accent-strong` no cambia: ya era navy oscuro y no es el token que nombra T-2. */
   --e19-accent: #293e5e;
   --e19-accent-hover: #1b2c48;
+  --e19-accent-hover-bg: #1b2c48; /* fondo del botón primario al pasar el puntero (en claro, el mismo navy) */
   --e19-accent-ink: #ffffff;
   --e19-accent-soft: #eef0f2;
   --e19-accent-soft-border: #d8dce2;
@@ -135,6 +136,9 @@
        4,75:1 sin apenas mover el resto de usos (texto/borde). */
     --e19-accent: #65748b;
     --e19-accent-hover: #748296;
+    /* Fondo del botón primario al pasar el puntero. --e19-accent-hover es más CLARO que --e19-accent y con texto blanco da 3,91:1 (<4,5): en oscuro el
+       hover oscurece, como en claro. #54657e (= --e19-accent-strong) da 5,93:1 con --e19-accent-ink. --e19-accent-hover se queda para texto. */
+    --e19-accent-hover-bg: #54657e;
     --e19-accent-ink: #ffffff;
     --e19-accent-soft: #1d232c;
     --e19-accent-soft-border: #384357;
@@ -171,6 +175,7 @@
   --e19-eyebrow: #7f8b9e;
   --e19-accent: #65748b;
   --e19-accent-hover: #748296;
+  --e19-accent-hover-bg: #54657e;
   --e19-accent-ink: #ffffff;
   --e19-accent-soft: #1d232c;
   --e19-accent-soft-border: #384357;
@@ -799,7 +804,7 @@
 }
 
 .e19-btn-primary:hover {
-  background: var(--e19-accent-hover);
+  background: var(--e19-accent-hover-bg, var(--e19-accent-hover));
 }
 
 .e19-btn-secondary {
