@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-09-wp36",
+      fecha: "2026-10-09",
+      texto: "Movimientos › Cosas raras: señala duplicados, recibos devueltos, comisiones nuevas e importes altos, con su evidencia.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-08-wp31",
       fecha: "2026-10-08",
       texto: "Herramientas › Fiscal › Nóminas y retenciones: apunta cada nómina y suma lo retenido en el año; avisa si cambia el %.",

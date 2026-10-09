@@ -321,3 +321,45 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-36: la tarjeta «Cosas raras en tus movimientos», en claro y en oscuro: sin extracto reciente y con avisos y sus respuestas.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-36 · contraste de la tarjeta de anomalías en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#movements: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
+      await page.goto("/index.html#movements");
+      await page.reload();
+      const card = page.locator("#anomaliasCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await expect(card.locator("#anomaliasCuerpo")).toContainText("No puedo mirar lo reciente");
+      const sinExtracto = await new AxeBuilder({ page }).include("#anomaliasCard").analyze();
+      expect(fmt(sinExtracto), fmt(sinExtracto).slice(0, 5).join("\n")).toEqual([]);
+      await page.evaluate(() => {
+        const iso = (date) => isoLocalDate(date);
+        const today = new Date();
+        const back = (days) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+        const rows = [];
+        let balance = 3000;
+        const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+        for (let k = 1; k <= 6; k += 1) {
+          const month = new Date(today.getFullYear(), today.getMonth() - k, 1);
+          add(iso(new Date(month.getFullYear(), month.getMonth(), 5)), -12.99, "SUSCRIPCION FICTICIA");
+        }
+        add(back(9), -62.3, "RECIBO SEGURO FICTICIO");
+        add(back(6), 62.3, "DEVOLUCION RECIBO SEGURO FICTICIO");
+        add(back(4), -45, "COMPRA TARJ GASOLINERA FICTICIA");
+        add(back(4), -45, "COMPRA TARJ GASOLINERA FICTICIA");
+        add(back(2), -4.5, "COMISION MANTENIMIENTO CUENTA");
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        renderAnomalias(FinanceCanonicalStatementAnomalies);
+      });
+      await expect(card.locator(".ano-aviso")).toHaveCount(4); // los tres de siempre y la suscripción mensual sin partida
+      await card.locator('[data-anomalia-respuesta="normal"]').first().click();
+      await expect(card.locator("#anomaliasNota")).toContainText("Deshacer");
+      const conAvisos = await new AxeBuilder({ page }).include("#anomaliasCard").analyze();
+      expect(fmt(conAvisos), fmt(conAvisos).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

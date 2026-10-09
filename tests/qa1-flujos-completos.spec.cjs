@@ -1821,3 +1821,86 @@ test.describe("WP-31 · nóminas y retenciones", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-36: anomalías del extracto (Movimientos). Movimientos INVENTADOS, sembrados con la misma ruta que usa el importador real (mergeTransactions).
+// Fechas relativas a hoy: el detector solo mira los últimos 45 días.
+async function seedAnomalies(page) {
+  await page.evaluate(() => {
+    const iso = (date) => isoLocalDate(date);
+    const today = new Date();
+    const back = (days) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+    const rows = [];
+    let balance = 3000;
+    const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+    for (let k = 1; k <= 6; k += 1) {
+      const month = new Date(today.getFullYear(), today.getMonth() - k, 1);
+      const day = (d) => iso(new Date(month.getFullYear(), month.getMonth(), d));
+      add(day(1), -900, "RECIBO ALQUILER FICTICIO");
+      add(day(5), -12.99, "SUSCRIPCION FICTICIA");
+      add(day(10), -52, "COMPRA TARJ SUPER FICTICIO");
+      add(day(20), -48, "COMPRA TARJ SUPER FICTICIO");
+    }
+    add(back(9), -62.3, "RECIBO SEGURO FICTICIO");
+    add(back(6), 62.3, "DEVOLUCION RECIBO SEGURO FICTICIO");
+    add(back(4), -45, "COMPRA TARJ GASOLINERA FICTICIA");
+    add(back(4), -45, "COMPRA TARJ GASOLINERA FICTICIA");
+    add(back(2), -4.5, "COMISION MANTENIMIENTO CUENTA");
+    baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+    refreshMovementRollups();
+    renderAnomalias(FinanceCanonicalStatementAnomalies);
+  });
+}
+
+test.describe("WP-36 · anomalías del extracto", () => {
+  test("señala con evidencia, deja responder y deshacer, recuerda lo respondido y no toca ningún movimiento", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#anomaliasCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      // Sin extracto reciente no se vigila lo reciente.
+      await expect(card.locator("#anomaliasCuerpo")).toContainText("No puedo mirar lo reciente");
+
+      await seedAnomalies(page);
+      const total = await page.evaluate(() => baseData.transactions.length);
+      const avisos = card.locator(".ano-aviso");
+      await expect(avisos).toHaveCount(5); // los tres de abajo y los dos cobros mensuales (alquiler y suscripción) que en esta app de prueba no tienen partida
+      await expect(avisos.nth(0)).toContainText("Recibo devuelto");
+      await expect(avisos.nth(0)).toContainText("Devuelve el cargo de 62,30 €");
+      await expect(avisos.nth(1)).toContainText("Posible duplicado");
+      await expect(avisos.nth(1)).toContainText("2 cargos de 45,00 €");
+      await expect(avisos.nth(2)).toContainText("Comisión");
+      await expect(avisos.nth(2)).toContainText("primera vez");
+      await expect(avisos.nth(3)).toContainText("Sin partida en el plan");
+      await expect(card.locator(".ano-medida")).toContainText("hacen falta 10 respuestas y llevas 0");
+
+      // «Es normal» + deshacer.
+      await avisos.nth(1).locator('[data-anomalia-respuesta="normal"]').click();
+      await expect(avisos).toHaveCount(4);
+      await expect(card.locator("#anomaliasNota")).toContainText("era normal");
+      await card.locator("[data-anomalia-deshacer]").click();
+      await expect(avisos).toHaveCount(5);
+
+      // «Es normal siempre» calla el patrón y se recuerda tras recargar.
+      await card.locator(".ano-aviso", { hasText: "Comisión" }).locator('[data-anomalia-respuesta="normalAlways"]').click();
+      await expect(avisos).toHaveCount(4);
+      await page.reload();
+      await seedAnomalies(page);
+      await expect(page.locator("#anomaliasCard .ano-aviso")).toHaveCount(4);
+      await expect(page.locator("#anomaliasCard .ano-aviso", { hasText: "Comisión" })).toHaveCount(0);
+      const stored = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.includes("statement-anomaly-answers")).map(([, value]) => value).join("|"));
+      expect(stored).toContain("normalAlways");
+
+      // Nunca toca el extracto.
+      expect(await page.evaluate(() => baseData.transactions.length)).toBe(total);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    }
+    expect(pageErrors).toEqual([]);
+  });
+});
