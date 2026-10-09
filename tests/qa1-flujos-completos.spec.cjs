@@ -1904,3 +1904,121 @@ test.describe("WP-36 · anomalías del extracto", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-37 (NXP-04): estados completos. Una vista que se descarga bajo demanda enseña el esqueleto, y si falla, la causa y una salida; lo reversible se
+// deshace en vez de confirmarse. Sin service worker: así la descarga de la vista pasa por la red (y por lo que aquí se bloquea o se retrasa).
+test.describe("WP-37 · estados completos", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("una vista que tarda enseña un esqueleto; si falla, la causa y «Reintentar»; sin conexión lo dice distinto; al volver, se carga", async ({ page, context }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+
+    // 1) Tarda: esqueleto en el sitio, y desaparece al llegar.
+    await page.route("**/views/deuda.js*", async (route) => { await new Promise((resolve) => setTimeout(resolve, 1500)); await route.continue(); });
+    await page.goto("/index.html#deuda-ruta");
+    await expect(page.locator('#deuda-ruta [data-estado="cargando"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#deuda-ruta [data-estado="cargando"] .est-esqueleto')).toBeVisible();
+    await expect(page.locator("#caminoDeudaCard")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#deuda-ruta [data-estado-vista]")).toHaveCount(0);
+    await page.unroute("**/views/deuda.js*");
+
+    // 2) Falla: causa, qué sigue funcionando y una salida.
+    await page.route("**/views/deuda.js*", (route) => route.abort());
+    await page.goto("/index.html#home");
+    await page.reload();
+    await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+    const error = page.locator('#deuda-ruta [data-estado="error"]');
+    await expect(error).toBeVisible({ timeout: 15000 });
+    await expect(error).toContainText("No se ha podido descargar esta pantalla");
+    await expect(error).toContainText("El resto de la app sigue funcionando");
+    await expect(error).toContainText("Causa:");
+    await expect(error.locator('[data-estado-accion="reintentar"]')).toBeVisible();
+    await expect(error).toHaveAttribute("role", "alert");
+
+    // 3) Sin conexión: no es lo mismo que un error de la app.
+    await context.setOffline(true);
+    await page.evaluate(() => { location.hash = "#home"; });
+    await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+    const offline = page.locator('#deuda-ruta [data-estado="sin-conexion"]');
+    await expect(offline).toBeVisible({ timeout: 15000 });
+    await expect(offline).toContainText("Conéctate un momento");
+    await context.setOffline(false);
+
+    // 4) Vuelve la red: «Reintentar» carga la pantalla y el estado desaparece.
+    await page.unroute("**/views/deuda.js*");
+    await page.locator('#deuda-ruta [data-estado-accion="reintentar"]').click();
+    await expect(page.locator("#caminoDeudaCard")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#deuda-ruta [data-estado-vista]")).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("quitar un contrato no pide confirmación: avisa con «Deshacer» y lo devuelve en su sitio", async ({ page }) => {
+    test.setTimeout(60000);
+    const dialogs = [];
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    await page.goto("/index.html#deuda-contratos");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await page.fill("#deudaContratosAddEntity", "Banco Prueba");
+    await page.selectOption("#deudaContratosAddType", "Préstamo");
+    await page.fill("#deudaContratosAddPrincipal", "5000");
+    await page.fill("#deudaContratosAddPayment", "150");
+    await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+    const remove = page.locator('button[aria-label="Eliminar el contrato de Banco Prueba"]').first();
+    await expect(remove).toBeVisible({ timeout: 15000 });
+    const before = await page.locator("#deuda-contratos").innerText();
+    expect(before).toContain("Banco Prueba");
+    await remove.click();
+    await expect(page.locator("#undoToast")).toBeVisible();
+    await expect(page.locator("#undoToastMessage")).toContainText("Contrato de «Banco Prueba» eliminado");
+    await expect(page.locator('button[aria-label="Eliminar el contrato de Banco Prueba"]')).toHaveCount(0);
+    await page.locator("#undoToastButton").click();
+    await expect(page.locator('button[aria-label="Eliminar el contrato de Banco Prueba"]')).toHaveCount(1);
+    expect(dialogs).toEqual([]);
+  });
+
+  test("quitar una hucha y una aportación avisa con «Deshacer» y devuelve solo esa hucha, en su sitio", async ({ page }) => {
+    test.setTimeout(60000);
+    const dialogs = [];
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    await page.goto("/index.html#savings-agent");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const form = page.locator("[data-goal-form]");
+    await expect(form).toBeVisible({ timeout: 20000 });
+    for (const name of ["Coche", "Reforma"]) {
+      await form.locator('input[name="name"]').fill(name);
+      await form.locator('input[name="target"]').fill("1000");
+      await form.locator('button[type="submit"]').click();
+      await expect(page.locator("[data-goal-list]")).toContainText(name);
+    }
+    const goals = page.locator("[data-goal-list] [data-goal-delete]");
+    await expect(goals).toHaveCount(2);
+    await goals.first().click();
+    await expect(page.locator("#undoToastMessage")).toContainText("eliminada con sus aportaciones");
+    await expect(page.locator("[data-goal-list] [data-goal-delete]")).toHaveCount(1);
+    await page.locator("#undoToastButton").click();
+    await expect(page.locator("[data-goal-list] [data-goal-delete]")).toHaveCount(2);
+    const order = await page.locator("[data-goal-list]").innerText();
+    expect(order.indexOf("Coche")).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf("Coche")).toBeLessThan(order.indexOf("Reforma")); // vuelve en su sitio, no al final
+    expect(dialogs).toEqual([]);
+  });
+
+  test("el vacío de nóminas lleva su acción principal, que lleva al formulario", async ({ page }) => {
+    await page.goto("/index.html#herramientas-fiscal");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const empty = page.locator('#nominasResumen [data-estado="vacio"]');
+    await expect(empty).toBeVisible({ timeout: 15000 });
+    await expect(empty).toContainText("Aún no hay nóminas apuntadas");
+    await empty.locator('[data-estado-accion="nominas-primera"]').click();
+    await expect(page.locator("#nominasTitular")).toBeFocused();
+  });
+});

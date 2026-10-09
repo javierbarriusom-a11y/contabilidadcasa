@@ -395,6 +395,12 @@ Qué te enseña:
 
 Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el Euribor: lo deja donde lo tecleaste y lo mueve un punto arriba y abajo como rango. Solo cubre el **Euribor a 12 meses** (no IRPH ni otros índices). Si la fecha que guardaste ya pasó, la tarjeta la desplaza por periodos completos y te lo dice: compruébalo con la carta del banco. Con un Euribor caducado, avisa. No ejecuta nada. **Los avisos también van al calendario del móvil:** en Ajustes › Recordatorios, descarga el fichero de nuevo y traerá los de 60 y 30 días. Con el botón «Ver un ejemplo» ves la tarjeta con cifras inventadas, marcadas como tal.
 
+### Deshacer en vez de preguntar «¿seguro?»
+
+Cuando quitas algo que se puede volver a poner —**un contrato de deuda, una hucha, una aportación, una nómina, un dato de índice, una alerta o un objetivo**— la app lo hace **al momento** y te deja un aviso con **«Deshacer»** durante **10 segundos** (si quitas varias cosas seguidas, se apilan hasta cinco). Pasados esos 10 segundos ya no se puede recuperar. El único «¿seguro?» que queda es el de consolidar cambios que dejan la reserva por debajo del mínimo, porque ese quita una red de seguridad.
+
+Si una pantalla tarda en descargarse la primera vez, verás un **esqueleto** en su sitio. Si falla, te dirá **por qué**, que **el resto de la app sigue funcionando** y te dejará un botón **«Reintentar»**; si estás sin conexión, te lo dice aparte (conéctate un momento y reintenta: después funcionará sin conexión).
+
 ### Cosas raras en tus movimientos (Movimientos)
 
 Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»** mira el extracto que ya has importado (los últimos 45 días) y señala lo que merece un vistazo. Cada aviso trae su evidencia:

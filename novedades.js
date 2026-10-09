@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-09-wp37",
+      fecha: "2026-10-09",
+      texto: "Quitar un contrato, una hucha, una nómina o un dato de índice ya no pregunta: lo hace y deja «Deshacer» 10 segundos.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-09-wp36",
       fecha: "2026-10-09",
       texto: "Movimientos › Cosas raras: señala duplicados, recibos devueltos, comisiones nuevas e importes altos, con su evidencia.",

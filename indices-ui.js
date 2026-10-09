@@ -105,10 +105,18 @@ function indicesSaveFromRow(row) {
 
 function indicesRemoveFromRow(row, date) {
   const engine = globalThis.FinanceCanonicalRateIndices;
-  indicesSave(engine.removePoint(indicesLoad(), row.dataset.indicesIndex, date));
+  const before = indicesLoad();
+  indicesSave(engine.removePoint(before, row.dataset.indicesIndex, date));
   renderIndicesReferencia(engine);
   globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20: la revisión usa este Euribor
   indicesNote(`Quitado el dato del ${date}.`);
+  // WP-37 (NXP-04): quitar un dato es reversible, así que avisa con «Deshacer».
+  showUndoToast(`Dato del ${date} quitado.`, () => {
+    indicesSave(before);
+    renderIndicesReferencia(engine);
+    globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview);
+    indicesNote(`Recuperado el dato del ${date}.`);
+  });
 }
 
 // Una sola vez, por delegación.
