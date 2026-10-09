@@ -173,3 +173,10 @@ test("WP-40 · cableado: el almacén va en la copia, la tarjeta está en Deuda �
   assert.match(ui, /showUndoToast\("Fila quitada\."/);
   assert.match(ui, /showUndoToast\("Informe borrado\."/);
 });
+
+test("WP-40 · la rejilla del formulario no se sale de la pantalla: sus etiquetas y selectores pueden encogerse (min-width: 0)", () => {
+  const css = read("cirbe.css");
+  assert.match(css, /\.cir-form \.month-picker\s*\{[^}]*min-width:\s*0/);
+  assert.match(css, /\.cir-form select\s*\{[^}]*min-width:\s*0/);
+  assert.match(css, /minmax\(min\(170px,\s*100%\),\s*1fr\)/);
+});

@@ -95,7 +95,7 @@
 
 .cir-form .cuadro-mandos-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
   gap: 12px 16px;
   margin: 8px 0;
 }
@@ -104,6 +104,7 @@
   display: grid;
   gap: 4px;
   margin: 6px 0;
+  min-width: 0; /* sin esto un <select> con opciones largas ensancha su columna de la rejilla y se sale de la pantalla (768 px) */
 }
 
 .cir-form input[type="text"],
@@ -112,6 +113,9 @@
 .cir-form select {
   min-height: 44px;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .cir-filas ul {
