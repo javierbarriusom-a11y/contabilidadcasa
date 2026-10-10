@@ -232,13 +232,15 @@
     let modeDay = -1;
     tally.forEach((count, day) => { if (modeDay < 0 || count > tally[modeDay]) modeDay = day; });
     lowDays.sort((a, b) => a - b);
+    const sortedMinima = Array.from(minimumValue).sort((a, b) => a - b);
     const minimum = {
       atStart: round2(atStartRuns / trajectories),
       date: lowDays.length ? addDays(asOf, modeDay) : null,
       probability: lowDays.length ? round2(tally[modeDay] / trajectories) : 0,
       from: lowDays.length ? addDays(asOf, Math.round(percentile(lowDays, 0.1))) : null,
       to: lowDays.length ? addDays(asOf, Math.round(percentile(lowDays, 0.9))) : null,
-      valueP50: round2(percentile(Array.from(minimumValue).sort((a, b) => a - b), 0.5)),
+      valueP50: round2(percentile(sortedMinima, 0.5)),
+      valueP10: round2(percentile(sortedMinima, 0.1)), // WP-47: el mínimo al que llega la trayectoria en 9 de cada 10 casos (cuánto cabe sacar sin cruzar el suelo)
     };
 
     const crossing = floor === null

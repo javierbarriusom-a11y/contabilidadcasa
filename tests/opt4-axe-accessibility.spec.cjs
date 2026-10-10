@@ -847,3 +847,49 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-47: la tarjeta «Repartir la nómina» de Deuda › Comparar, en claro y en oscuro: vacía, con el reparto (filas, steppers, avisos), con un aviso de tope y con el borrador guardado.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-47 · contraste del reparto de la nómina en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Deuda › Comparar: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#deuda-comparar");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#nominaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#nominaCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await revisar("vacía");
+      await page.evaluate(() => {
+        globalThis.accountBalancesFromState = () => ({ total: 4000 });
+        globalThis.cuadroMandosReserve = () => 3000;
+        globalThis.canonicalDebtContractRows = () => [{ id: "t1", entity: "Tarjeta Ficticia", type: "Tarjeta", paymentStatus: "active", currentPrincipal: 400, apr: 21, fiscalDeductionPct: 0 }, { id: "p1", entity: "Préstamo Ficticio", type: "Préstamo", paymentStatus: "active", currentPrincipal: 5000, apr: 3, fiscalDeductionPct: 0 }];
+        state.fiscalWithholdingRate = 37;
+        const original = nominaConfirmed;
+        globalThis.nominaConfirmed = (today) => original(today, (label) => /Ingreso Persona A/.test(label));
+        globalThis.nominaHeadroom = () => ({ headroom: 1200, floor: 1500, lowest: 2700, staleDays: 2, declared: false, quality: "wide" });
+        const month = monthByKey(isoLocalDate(new Date()).slice(0, 7));
+        actualsForKind("income")[actualKeyForRow(planningSectionsForMonth("income", month)[0].rows[0], month)] = 3000;
+        renderNominaReparto(FinanceCanonicalPayrollSplit);
+      });
+      await expect(card.locator("[data-nom-row]")).toHaveCount(6);
+      await revisar("con el reparto");
+      await card.locator('[data-nom-row="pension"] [data-nom-step="50"]').click();
+      await expect(card.locator(".nom-nota")).toBeVisible();
+      await revisar("con aviso de tope");
+      await card.locator('[data-nom-row="pension"] [data-nom-step="-50"]').click();
+      await revisar("con dinero sin repartir");
+      await card.locator('[data-nom-action="aplicar"]').click();
+      await expect(card.locator("[data-nom-draft]")).toHaveCount(1);
+      await revisar("con el borrador guardado");
+      await card.locator("input[data-nom-done]").first().check();
+      await revisar("con una transferencia hecha");
+    });
+  });
+}

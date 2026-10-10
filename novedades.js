@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp47",
+      fecha: "2026-10-10",
+      texto: "Deuda › Comparar › Repartir la nómina: lo que cabe sobre el suelo, con botones para ajustarlo y una lista de transferencias.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-10-10-wp46",
       fecha: "2026-10-10",
       texto: "Inversión › Cartera › Patrimonio neto: la serie por cierres y la proyección a 10 años en tres escenarios, con vuestros supuestos.",
