@@ -440,6 +440,16 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Calma, cobertura y exposición (Inversión › Cartera)
+
+Bajo la valoración de la cartera, la tarjeta **«Calma, cobertura y exposición»** reúne tres cifras para **mirar con calma, no para actuar**: no tiene botones de vender ni de comprar.
+
+- **Calma en caídas.** Con **al menos 3 valoraciones de toda la cartera** (Actualizar valoración, una vez al mes), dice cuánto ha **restado el mercado** desde su máximo, en € y en %, **sin contar lo que habéis aportado o vendido** (aportar no es subir ni vender es perder). Lo traduce a **meses de aportación**, enseña **lo que acordasteis en la política** para ese nivel (20 % y 35 %) y **cuánto habéis aportado frente a cuánto vale**. Sin tres valoraciones, dice cuántas llevas y qué posiciones faltan por valorar.
+- **¿Qué parte del gasto pagan ya vuestros activos?** Suma el **alquiler neto** que hayáis declarado en un activo y la **retirada sostenible** (la **tasa que escribís** × vuestros fondos, acciones y ETF), y la compara con el gasto medio de los próximos 12 meses de la previsión. Lo que no declaráis **no suma y se nombra**. Los dividendos no se suman aparte: ya van dentro de una tasa de retirada sostenible.
+- **Depósitos por entidad.** Lo que hay en cada cuenta frente al límite de **100.000 € por titular y entidad** (**verifica el vigente**). Si una cuenta lo supera y no habéis dicho cuántos titulares tiene, no dice «cubierta» ni «descubierta»: os lo pide.
+
+Tres cosas que conviene saber: **hoy no puede enseñar casi nada** (sin valoraciones no hay caída, y sin tasa ni alquiler no hay cobertura); **no incluye cuánto tardaron en recuperarse caídas parecidas** (no hay una fuente histórica verificada); y **fondos y seguros por entidad no están** (las posiciones no guardan en qué entidad están).
+
 ### Puente de previsión: por qué cambió el fin de año (Plan › Previsión)
 
 En **Plan › Previsión**, bajo el plan B, la tarjeta **«Puente de previsión»** responde a «¿por qué mi fin de año ya no es el que esperábamos?». **En cada cierre del mes** la app **congela cuánto preveía para el 31/12** (la liquidez de las cuentas) y guarda también lo que **realmente** pasó ese mes. Con **dos cierres del mismo año**, compara las dos previsiones y reparte la diferencia en **cinco barras**: **ingresos**, **gasto recurrente**, **extraordinarios**, **deuda y financiaciones** y **otros y supuestos**, con una frase del estilo «Desde septiembre, el fin de 2026 empeora en 1.300 €: 77 % por extraordinarios…». Puedes **elegir con qué cierre anterior comparar** y ver las mismas cifras **como tabla**.

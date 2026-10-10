@@ -63,6 +63,7 @@ function renderInversionCartera() {
   renderInv13DcaTaxProjection();
   syncInv16CorrelationControls();
   renderIvx6GlidePath();
+  globalThis.renderCalmaCobertura?.(globalThis.FinanceCanonicalCalmCoverage); // WP-44 (calma-ui.js)
 }
 
 // I1 · Rebalanceo: objetivo de reparto por tipo de activo (IV6), revisión por calendario (INV17) y

@@ -694,3 +694,60 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-44: la tarjeta «Calma, cobertura y exposición» de Inversión › Cartera, en claro y en oscuro: sin serie, con la caída (nivel alto, sin política firmada), con cobertura y con un depósito por encima del límite.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-44 · contraste de calma, cobertura y exposición en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Cartera: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#calmaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#calmaCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await expect(card.locator("#calmaCaida")).toContainText("Todavía no hay serie");
+      await revisar("sin serie");
+      await card.locator("#calmaTasa").fill("20");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaError")).toBeVisible();
+      await revisar("con error de validación");
+      await page.evaluate(() => {
+        const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+        scenarioSettings.portfolioPositions = [{ id: "cal-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: 700, asOf: iso(-10), acquisitionDate: iso(-400), provenance: "declared", contributions: [{ id: "c1", date: iso(-55), amount: 300, quantity: 0 }] }];
+        scenarioSettings.assets = [{ id: "cal-local", type: "inmueble", label: "Local de prueba", value: 100000, monthlyRentIncome: 300, provenance: "declared" }];
+        saveScenarioSettings();
+        savePortfolioValuations({ valuations: [
+          { date: iso(-100), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1000, cost: 1000 }] },
+          { date: iso(-40), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1200, cost: 1300 }] },
+          { date: iso(-10), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 700, cost: 1300 }] },
+        ], timings: [] });
+        globalThis.accountBalancesFromState = () => ({ caixa: 150000, mediolanum: 90000, total: 240000 });
+        renderCalmaCobertura(FinanceCanonicalCalmCoverage);
+      });
+      await card.locator("#calmaTasa").fill("4");
+      await card.locator("#calmaTitulares-caixa").fill("1");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaCaida .cal-cifra")).toBeVisible();
+      await expect(card.locator("#calmaDepositos .cal-aviso")).toBeVisible();
+      await revisar("caída, cobertura y depósito por encima del límite");
+      await page.evaluate(() => {
+        const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+        savePortfolioValuations({ valuations: [
+          { date: iso(-200), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1000, cost: 1000 }] },
+          { date: iso(-150), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1200, cost: 1300 }] },
+          { date: iso(-100), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 700, cost: 1300 }] },
+        ], timings: [] });
+        renderCalmaCobertura(FinanceCanonicalCalmCoverage);
+      });
+      await expect(card.locator("#calmaCaida .cal-aviso").first()).toContainText("La última valoración es del");
+      await revisar("valoración antigua");
+    });
+  });
+}

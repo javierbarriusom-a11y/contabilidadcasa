@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
     <link rel="stylesheet" href="escalera.css?v=20261010wp42a1" />
     <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
+    <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2452,6 +2453,29 @@
               <p class="e19-kpi-note">Actualiza el valor de tus posiciones, con la fecha de la valoración. Cada valoración queda en una serie con fecha y se puede deshacer durante 8 segundos.</p>
               <p class="e19-kpi-note" id="valoracionResumen"></p>
               <div class="data-actions"><button type="button" class="e19-btn e19-btn-primary" id="valoracionAbrir">Actualizar valoración</button></div>
+            </article>
+
+            <!-- WP-44 (CAR-02 + CAR-05 + CAR-06, docs/WP44_DISENO.md): calma en caídas, cobertura del gasto y depósitos por entidad. La pinta calma-ui.js con canonical-calm-coverage.js. Solo enseña cifras: no recomienda vender ni comprar (A11-4). -->
+            <article class="e19-card cal-card" id="calmaCard" aria-labelledby="calmaTitulo">
+              <h3 class="escenario-motor-panel-title" id="calmaTitulo">Calma, cobertura y exposición</h3>
+              <p class="e19-kpi-note">Tres cifras para mirar <strong>con calma</strong>, no para actuar: cuánto ha caído la cartera desde su máximo (sin contar lo que aportáis), qué parte de vuestros gastos pagan ya los activos y cuánto hay en depósitos por entidad.</p>
+              <div id="calmaCuerpo">
+                <h4>Calma en caídas</h4>
+                <div id="calmaCaida"></div>
+                <h4>¿Qué parte del gasto pagan ya vuestros activos?</h4>
+                <div id="calmaCobertura"></div>
+                <h4>Depósitos por entidad</h4>
+                <div id="calmaDepositos"></div>
+                <form id="calmaForm" novalidate>
+                  <div class="cal-campos">
+                    <label class="month-picker"><span>Tasa de retirada sostenible (% al año)</span><input type="number" id="calmaTasa" min="0" max="15" step="0.1" inputmode="decimal" aria-describedby="calmaError" /></label>
+                    <label class="month-picker"><span>Titulares de la cuenta de CaixaBank</span><input type="number" id="calmaTitulares-caixa" min="1" max="10" step="1" inputmode="numeric" /></label>
+                    <label class="month-picker"><span>Titulares de la cuenta de Banca Mediolanum</span><input type="number" id="calmaTitulares-mediolanum" min="1" max="10" step="1" inputmode="numeric" /></label>
+                  </div>
+                  <p id="calmaError" role="alert" hidden></p>
+                  <div><button type="submit" class="e19-btn e19-btn-secondary">Guardar estos datos</button></div>
+                </form>
+              </div>
             </article>
 
             <h3 class="e19-ajustes-group-title">Configuración</h3>
@@ -7954,6 +7978,8 @@
     <script defer src="escalera-ui.js?v=20261010wp42a1"></script>
     <script defer src="canonical-forecast-bridge.js?v=20261010wp43a1"></script>
     <script defer src="puente-ui.js?v=20261010wp43a1"></script>
+    <script defer src="canonical-calm-coverage.js?v=20261010wp44a1"></script>
+    <script defer src="calma-ui.js?v=20261010wp44a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>
