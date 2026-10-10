@@ -3,8 +3,8 @@
 // el borrador con la lista de transferencias en `payroll-split-drafts`. NO mueve dinero ni anota ningún movimiento en las cuentas (A11-4): la lista la ejecuta el hogar, a mano.
 // Tampoco va a Hoy (congelado hasta H-02): el aviso «reparte esta nómina» no sale de la pregunta «¿ha llegado…?».
 //
-// Script de pantalla: se carga después de escalera-ui.js y comparte su ámbito global (qs, money, escapeHtml, estadoHtml, announceStatus, showUndoToast, parseAmount, storageGet,
-// storageSet, storageKey, queueRemoteSave, isoLocalDate, state, monthByKey, planningSectionsForMonth, actualAwareInfo, displayLabelForRow, seriesKeyForRow, timingEngine,
+// Script de pantalla: se carga después de escalera-ui.js y comparte su ámbito global (qs, money, escapeHtml, estadoHtml, announceStatus, showUndoToast, storageGet,
+// storageSet, storageKey, queueRemoteSave, isoLocalDate, state, monthByKey, parseAmountField, planningSectionsForMonth, actualAwareInfo, displayLabelForRow, seriesKeyForRow, timingEngine,
 // expectedPreviousMonthKey, cashBandInput, proxEuroSources, proxEuroLoad, proxEuroDebts). Sin llamadas al DOM ni escuchas al cargarse: app.js llama a `renderNominaReparto`.
 
 const NOMINA_STORE = "payroll-split-drafts"; // en la copia (BACKUP_LOCAL_STORES)
@@ -284,7 +284,7 @@ function nominaChange(event) {
     const id = target.getAttribute("data-nom-amount");
     const row = nominaWorking.rows.find((item) => item.id === id);
     const raw = String(target.value || "").trim();
-    nominaSetRows(engine.setRowAmount(nominaWorking.rows, id, raw === "" ? 0 : parseAmount(raw)), row ? row.label : "Esta fila");
+    nominaSetRows(engine.setRowAmount(nominaWorking.rows, id, raw === "" ? 0 : parseAmountField(raw)), row ? row.label : "Esta fila");
     nominaBodyReset();
     nominaRepaint();
   } else if (target.hasAttribute("data-nom-source")) {

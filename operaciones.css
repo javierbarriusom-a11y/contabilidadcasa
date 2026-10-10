@@ -1,0 +1,133 @@
+/* WP-48 · tarjeta «Libro de operaciones» de Inversión › Cartera. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*. Rejillas con
+   min-width: 0 y minmax(min(Npx, 100%), 1fr) (el CI mira el desbordamiento a 360 y 768 px). El estado va en TEXTO e icono, no solo en color. */
+.ops-card {
+  margin: 16px 0;
+}
+
+.ops-subtitulo {
+  margin: 14px 0 6px;
+  color: var(--e19-ink);
+  text-align: left;
+}
+
+.ops-lista {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.ops-fila {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.ops-fila[data-ops-kind="disposal"] {
+  border-left-style: dashed;
+}
+
+.ops-fila p,
+.ops-editor p {
+  margin: 0;
+}
+
+.ops-resumen,
+.ops-detalle {
+  overflow-wrap: anywhere;
+}
+
+.ops-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.ops-boton {
+  min-height: 44px;
+  border: 1px solid var(--e19-ink);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+.ops-botones .e19-btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.ops-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 12px;
+}
+
+.ops-campos label,
+.ops-campos input {
+  min-width: 0;
+}
+
+.ops-campos input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ops-editor {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.ops-error,
+.ops-aviso-fuerte {
+  margin: 4px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-danger);
+  color: var(--e19-ink);
+  font-weight: 600;
+}
+
+.ops-aviso {
+  font-weight: 600;
+}
+
+.ops-avisos {
+  margin: 8px 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+  color: var(--e19-ink);
+}
+
+.ops-cambios {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ops-cambio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 2px 12px;
+  min-width: 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.ops-concepto {
+  grid-column: 1 / -1;
+}
+
+.ops-etiqueta {
+  font-weight: 600;
+}

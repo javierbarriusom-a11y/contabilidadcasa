@@ -41,7 +41,8 @@ La tarjeta **«Repartir la nómina»** en **Deuda › Comparar**, justo debajo d
 4. **«Hecha» no se verifica.** La app no sabe si la transferencia se hizo; se descuenta de la holgura mientras los saldos no se redeclaren.
 5. **Se reconoce la nómina por el nombre.** Si la partida se llama «Ingreso Javi» no sale; es un criterio frágil elegido porque la app no marca el tipo de ingreso (canonical-timing ya depende de «nómina»/«salario» + nombre).
 6. **El paso de ±50 € es mío**, y los botones están en el idioma de «mover el dinero», no «calcular»: con importes grandes (3.000 €) son 60 toques; el importe editable cubre ese caso.
-7. **Repintar sustituye el DOM**: si se escribe un importe y se pulsa un botón de otra fila sin salir antes del campo, el primer clic puede perderse (el cambio del campo repinta). Se repite el clic.
+7. **Corregido después de publicar (en el PR de WP-48):** los importes escritos en la hoja se leían con `parseAmount`, que entiende «2.000» como **dos**; ahora usan el lector es-ES de la app (`parseAmountField`: «2.000» son dos mil). El campo se repintaba con el valor leído, así que el fallo era visible, pero **leía mal un importe escrito sin decimales**.
+8. **Repintar sustituye el DOM**: si se escribe un importe y se pulsa un botón de otra fila sin salir antes del campo, el primer clic puede perderse (el cambio del campo repinta). Se repite el clic.
 
 ## 5. Pendiente
 

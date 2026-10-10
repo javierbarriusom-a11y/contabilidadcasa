@@ -254,6 +254,7 @@ test("WP-47 · el motor es puro: sin DOM, red, almacenamiento ni reloj", () => {
 
 test("WP-47 · la tarjeta no ejecuta ni anota nada: ni red, ni movimientos, ni confirm()", () => {
   const source = read("nomina-ui.js");
+  assert.ok(source.includes("parseAmountField(raw)") && !/parseAmount\(/.test(source), "los importes escritos se leen con el lector es-ES («2.000» son dos mil, no dos)");
   ["fetch(", "confirm(", "XMLHttpRequest", "transactions.push", "setActualFor", "baseData.transactions"].forEach((banned) => assert.ok(!source.includes(banned), `no debe usar ${banned}`));
   assert.match(source, /No mueve dinero ni anota ningún movimiento|NO mueve dinero ni anota ningún movimiento/);
   assert.match(source, /showUndoToast\(/, "aplicar, descartar y apartar se pueden deshacer");

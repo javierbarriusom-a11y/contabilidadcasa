@@ -440,6 +440,22 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Libro de operaciones (Inversión › Cartera)
+
+En **Inversión › Cartera**, junto al formulario de ventas, la tarjeta **«Libro de operaciones»** deja **corregir una compra o una venta ya registrada** sin borrar la posición. Elegís la posición y salen sus operaciones en orden: la **compra inicial**, las **aportaciones** y las **ventas**, con la plusvalía FIFO de cada venta.
+
+- **Editar, quitar o añadir** una aportación o una venta. La compra inicial se edita (se corrige su fecha, sus unidades o su coste) pero no se quita.
+- **Antes de guardar** la app enseña **qué cambia**: las unidades y el coste que quedan, la plusvalía de cada venta afectada y **cómo se mueve la compensación de cada ejercicio fiscal** (con las demás posiciones y las pérdidas arrastradas que hayáis declarado). **No se guarda nada hasta que pulsáis «Guardar»**, y se puede deshacer.
+- **Una venta sin lotes suficientes a su fecha** (por ejemplo, si movéis una compra a después de la venta) se **marca y no se bloquea**: puede ser un paso intermedio. Mientras siga así, su plusvalía y la compensación de ese ejercicio salen «no calculables».
+- **Escribid los importes como en España**: «14.000» son catorce mil y «1,5», uno y medio. Importe de una venta: **neto de comisiones**; importe de una compra: **con las comisiones incluidas** (la app no tiene un campo aparte, y sin ello la plusvalía sale mayor que la fiscal).
+
+Cuatro cosas que conviene saber:
+
+- **No hay importador del CSV del bróker todavía**: hace falta una muestra real del formato (mandadla por el chat).
+- **El FIFO es por posición**: si el mismo valor está repartido en dos posiciones, el FIFO fiscal real los trata juntos y aquí no.
+- **La norma de no recompra solo se avisa** (una venta con pérdida y una compra en los dos meses siguientes); **no se aplica** al cálculo y no se evalúan las compras anteriores a la venta.
+- **Contrastad la primera vez con el informe fiscal de vuestro bróker**: esto cambia las cifras de la Renta.
+
 ### Repartir la nómina (Deuda › Comparar)
 
 En **Deuda › Comparar**, bajo «¿Dónde va el próximo euro?», la tarjeta **«Repartir la nómina»** parte de una nómina que **ya hayáis confirmado** (la partida de ingreso con «nómina», «salario» o «sueldo» en el nombre y su importe real registrado este mes) y la reparte según la escalera, **solo con lo que cabe sin que la liquidez baje del suelo** en los próximos 30 días.
