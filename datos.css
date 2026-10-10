@@ -1,0 +1,91 @@
+/* WP-45 · tarjeta «Frescura de tus datos y qué hacer primero» de Actualizar mis datos. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas).
+   Solo usa tokens --e19-*. El estado va en TEXTO e ICONO, no solo en color (✓ al día · ◐ reciente · ⚠ antiguo · ? sin dato). Rejillas con min-width: 0 y minmax(min(220px, 100%), 1fr). */
+.dat-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.dat-card h4 {
+  margin: 16px 0 6px;
+  font-size: 1rem;
+}
+
+.dat-fichas {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+}
+
+.dat-ficha {
+  min-width: 0;
+  padding: 8px 0 8px 12px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.dat-ficha[data-dat-tono="stale"] {
+  border-left-style: double;
+}
+
+.dat-ficha[data-dat-tono="unknown"] {
+  border-left-style: dashed;
+}
+
+.dat-ficha p,
+.dat-tarea p {
+  margin: 2px 0;
+}
+
+.dat-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dat-icono,
+.dat-num {
+  font-weight: 700;
+}
+
+.dat-estado {
+  font-weight: 600;
+}
+
+.dat-plan {
+  margin: 12px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.dat-lista {
+  margin: 8px 0;
+  padding: 0 0 0 20px;
+  display: grid;
+  gap: 12px;
+}
+
+ul.dat-lista {
+  list-style: none;
+  padding-left: 0;
+}
+
+.dat-tarea {
+  min-width: 0;
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.dat-ir {
+  margin-top: 6px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

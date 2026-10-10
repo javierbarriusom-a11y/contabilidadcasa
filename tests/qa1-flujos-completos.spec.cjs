@@ -2785,3 +2785,89 @@ test.describe("WP-44 · calma, cobertura y exposición", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-45 (ND-09 + CAP-07): frescura por fuente y cola de tareas de datos ordenada por «euros de incertidumbre por minuto», en Registrar › Saldos. No hace ninguna tarea ni guarda nada.
+test.describe("WP-45 · frescura y cola de tareas de datos", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#registrar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#datosCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const stub = (page, { balanceAge, mode = "manual", statementAge, pending = 0, pulse = [], positions = false }) => page.evaluate(({ balanceAge, mode, statementAge, pending, pulse, positions }) => {
+    const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+    state.balanceMode = mode;
+    state.balanceDate = iso(-balanceAge);
+    globalThis.canonicalLedgerTransactions = () => (statementAge === null ? [] : [{ date: iso(-statementAge) }]);
+    globalThis.expectedMovementsResult = () => ({ status: "ok", items: Array.from({ length: pending }, (_, i) => ({ id: `p${i}`, plannedAmount: 100 })), overflow: 0 });
+    globalThis.readBalancePulseTimes = () => ({ times: pulse.map((seconds) => ({ seconds })) });
+    scenarioSettings.portfolioPositions = positions ? [{ id: "dat-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: 1000, asOf: iso(-50), acquisitionDate: iso(-400), provenance: "declared" }] : [];
+    renderDatosCola(FinanceCanonicalDataQueue);
+    const series = canonicalScenarioResults.base.forecast.series.slice(0, 12).map((row) => row.totals.outflowsBeforeSaving);
+    return series.reduce((sum, value) => sum + value, 0) / series.length / 30;
+  }, { balanceAge, mode, statementAge, pending, pulse, positions });
+
+  test("seis fichas con edad, cola por euros por minuto con su tiempo medido o supuesto, lo no estimable aparte, plazo de cierre, sin hacer nada ni guardar, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const storageAntes = await page.evaluate(() => JSON.stringify(Object.entries(localStorage).sort()));
+      // Saldos de hace 10 días, extracto de hace 6, 3 cobros o cargos sin responder, sin tiempos medidos.
+      const daily = await stub(page, { balanceAge: 10, statementAge: 6, pending: 3, positions: true });
+      await expect(card.locator("[data-dat-ficha]")).toHaveCount(6);
+      await expect(card.locator('[data-dat-ficha="balances"]')).toContainText("hace 10 días");
+      await expect(card.locator('[data-dat-ficha="balances"]')).toContainText("Antiguo");
+      await expect(card.locator('[data-dat-ficha="balances"] .dat-icono')).toHaveText("⚠");
+      await expect(card.locator('[data-dat-ficha="statement"]')).toContainText("hace 6 días");
+      await expect(card.locator('[data-dat-ficha="pending"]')).toContainText("3 por responder");
+      await expect(card.locator('[data-dat-ficha="valuation"]')).toContainText("hace 50 días");
+      // Orden por incertidumbre por minuto: saldos (≈ 1.577 € en 20 s) > cobros esperados (300 € en 30 s) > extracto (≈ 946 € en 2 min).
+      expect(await card.locator("ol.dat-lista > li").evaluateAll((nodes) => nodes.map((n) => n.dataset.datTarea))).toEqual(["balances", "pending", "statement"]);
+      const euros = Math.round(daily * 10); // 10 días × el gasto diario medio de la previsión
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText(new RegExp(`hasta\\s*${String(euros).slice(0, 2)}\\d\\d,\\d\\d`));
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("20 s (sin medir: supuesto)");
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("Puede moverse hasta");
+      await expect(card.locator(".dat-plan")).toContainText("Con 3 minutos hoy");
+      await expect(card.locator(".dat-plan")).toContainText("actualizar saldos");
+      await expect(card.locator(".dat-plan")).toContainText("supuesto, no una medida");
+      // Lo que no se sabe estimar va aparte, con su motivo, y no entra en el orden.
+      await expect(card.locator("h4", { hasText: "Sin estimar" })).toBeVisible();
+      await expect(card.locator('[data-dat-tarea="valuation"]')).toContainText("No sé cuánto se ha movido");
+      expect(await card.locator("ol.dat-lista > li").evaluateAll((nodes) => nodes.map((n) => n.dataset.datTarea))).not.toContain("valuation");
+
+      // Con tres usos medidos, el tiempo pasa a ser el medido (la mediana).
+      await stub(page, { balanceAge: 10, statementAge: 6, pending: 3, pulse: [12, 18, 30], positions: true });
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("18 s (medido, 3 usos)");
+
+      // Saldos calculados por calendario: sin foto del banco no hay estimación, y se dice.
+      await stub(page, { balanceAge: 10, mode: "auto", statementAge: 6, pending: 0, positions: true });
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("se calculan por calendario");
+      expect(await card.locator("ol.dat-lista > li").evaluateAll((nodes) => nodes.map((n) => n.dataset.datTarea))).toEqual(["statement"]);
+
+      // El plazo de cierre solo existe los días 1 a 3 y mientras el mes que acaba no esté cerrado.
+      const plazos = await page.evaluate(() => [datosCloseDeadline("2026-11-02", "2026-09"), datosCloseDeadline("2026-11-10", "2026-09"), datosCloseDeadline("2026-11-02", "2026-10"), datosCloseDeadline("2026-11-03", null)]);
+      expect(plazos[0]?.key).toBe("2026-10");
+      expect(plazos[1]).toBeNull();
+      expect(plazos[2]).toBeNull();
+      expect(plazos[3]?.key).toBe("2026-10");
+
+      // Solo enseña y enlaza: ningún botón de guardar, y no cambia lo guardado.
+      await expect(card.locator(".dat-ir").first()).toBeVisible();
+      expect(await card.locator(".dat-ir").evaluateAll((nodes) => nodes.every((n) => n.tagName === "A" && n.getAttribute("href").startsWith("#")))).toBe(true);
+      await expect(card.getByRole("button")).toHaveCount(0);
+      expect(await page.evaluate(() => JSON.stringify(Object.entries(localStorage).sort()))).toBe(storageAntes);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

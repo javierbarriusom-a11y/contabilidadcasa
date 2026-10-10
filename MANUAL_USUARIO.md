@@ -440,6 +440,18 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Frescura de tus datos y qué hacer primero (Registrar › Saldos)
+
+Al final de **Registrar › Saldos**, bajo el pulso de saldos, la tarjeta **«Frescura de tus datos y qué hacer primero»** enseña **seis fuentes con su edad**, con **icono y texto, no solo color** (✓ al día · ◐ reciente · ⚠ antiguo · ? sin dato): los **saldos**, el **último movimiento importado**, la **valoración de la cartera**, los **índices de referencia** (Euribor, €STR, IPC), el **último cierre de mes** y los **cobros y cargos esperados sin responder**. Cada una te lleva a la pantalla donde se arregla.
+
+Debajo, una **cola de tareas ordenada por lo que más puede moverse una cifra por minuto que cuesta**: «Actualizar saldos · puede moverse hasta 1.577 € · 20 s». Arriba, **qué hacer con 3 minutos hoy**. Lo que **no sé estimar** (la cartera, los índices) va aparte en «Sin estimar» **con el motivo**, en vez de ordenarlo con un euro inventado, y las tareas con plazo (cerrar el mes, los días 1 a 3) no se ordenan por euros.
+
+Tres cosas que conviene saber:
+
+- **«Puede moverse hasta» es una estimación mía, no un dato**: gasto diario medio de la previsión × los días sin actualizar (tope de 30). Dice cuánto puede haber cambiado una cifra, no cuánto ha cambiado.
+- **El tiempo de cada tarea es el medido si hay al menos 3 usos** (hoy, el pulso de saldos y la hoja de valoración) **y un supuesto marcado «sin medir» si no**. Mientras sean supuestos, **el orden refleja mis supuestos**.
+- **No hace ninguna tarea ni guarda nada**: cada tarea es un enlace a su pantalla.
+
 ### Calma, cobertura y exposición (Inversión › Cartera)
 
 Bajo la valoración de la cartera, la tarjeta **«Calma, cobertura y exposición»** reúne tres cifras para **mirar con calma, no para actuar**: no tiene botones de vender ni de comprar.

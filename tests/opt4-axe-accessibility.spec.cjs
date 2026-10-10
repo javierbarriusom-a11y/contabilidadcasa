@@ -751,3 +751,46 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-45: la tarjeta «Frescura de tus datos y qué hacer primero» de Registrar › Saldos, en claro y en oscuro: con datos antiguos y cola, con tiempos medidos y con lo no estimable.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-45 · contraste de la frescura y la cola de datos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Registrar › Saldos: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#registrar");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#datosCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#datosCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      const stub = (opts) => page.evaluate(({ balanceAge, mode, statementAge, pending, pulse, positions }) => {
+        const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+        state.balanceMode = mode;
+        state.balanceDate = iso(-balanceAge);
+        globalThis.canonicalLedgerTransactions = () => (statementAge === null ? [] : [{ date: iso(-statementAge) }]);
+        globalThis.expectedMovementsResult = () => ({ status: "ok", items: Array.from({ length: pending }, (_, i) => ({ id: `p${i}`, plannedAmount: 100 })), overflow: 0 });
+        globalThis.readBalancePulseTimes = () => ({ times: pulse.map((seconds) => ({ seconds })) });
+        scenarioSettings.portfolioPositions = positions ? [{ id: "dat-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: 1000, asOf: iso(-50), acquisitionDate: iso(-400), provenance: "declared" }] : [];
+        renderDatosCola(FinanceCanonicalDataQueue);
+      }, opts);
+      await stub({ balanceAge: 0, mode: "manual", statementAge: 0, pending: 0, pulse: [], positions: false });
+      await expect(card.locator("[data-dat-ficha]")).toHaveCount(6);
+      await revisar("todo al día");
+      await stub({ balanceAge: 10, mode: "manual", statementAge: 6, pending: 3, pulse: [], positions: true });
+      await expect(card.locator(".dat-plan")).toContainText("Con 3 minutos hoy");
+      await revisar("datos antiguos y cola");
+      await stub({ balanceAge: 10, mode: "manual", statementAge: 6, pending: 3, pulse: [12, 18, 30], positions: true });
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("medido");
+      await revisar("con tiempos medidos");
+      await stub({ balanceAge: 10, mode: "auto", statementAge: null, pending: 0, pulse: [], positions: true });
+      await expect(card.locator("h4", { hasText: "Sin estimar" })).toBeVisible();
+      await revisar("solo lo no estimable");
+    });
+  });
+}
