@@ -543,3 +543,59 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-41: la tarjeta «Deuda en la sombra y TAE real» de Deuda › Contratos, en claro y en oscuro: sin extracto reciente, con avisos (y su respuesta) y con el resultado de la calculadora.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-41 · contraste de la tarjeta de deuda en la sombra en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Deuda › Contratos: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#sombraCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#sombraCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await expect(card.locator("#sombraLista")).toContainText("No puedo mirar lo reciente");
+      await revisar("sin extracto reciente");
+      await page.evaluate(() => {
+        const iso = (date) => isoLocalDate(date);
+        const today = new Date();
+        const back = (days) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+        const rows = [];
+        let balance = 3000;
+        const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+        add(back(40), -30, "MOVISTAR CUOTA TERMINAL 2 DE 24");
+        add(back(10), -30, "MOVISTAR CUOTA TERMINAL 3 DE 24");
+        add(back(72), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+        add(back(42), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+        add(back(12), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        renderDeudaSombra(FinanceCanonicalShadowDebt);
+      });
+      await expect(card.locator(".som-aviso")).toHaveCount(2);
+      await revisar("con avisos");
+      await card.locator('[data-sombra-respuesta="not-debt"]').first().click();
+      await expect(card.locator("#sombraNota")).toContainText("Deshacer");
+      await revisar("tras responder");
+      await card.locator(".som-calc summary").click();
+      await card.locator("#sombraPrecio").fill("1000");
+      await card.locator("#sombraPlazos").fill("10");
+      await card.locator("#sombraCuota").fill("100");
+      await card.locator("#sombraComision").fill("30");
+      await card.locator('#sombraForm button[type="submit"]').click();
+      await expect(card.locator(".som-tae")).toBeVisible();
+      await revisar("calculadora con resultado");
+      await card.locator("#sombraPrecio").fill("");
+      await card.locator('#sombraForm button[type="submit"]').click();
+      await expect(card.locator("#sombraError")).toBeVisible();
+      await revisar("calculadora con error");
+    });
+  });
+}

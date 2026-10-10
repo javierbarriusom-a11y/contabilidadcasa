@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
   "investment-policy", // WP-39: la política de inversión del hogar (seis respuestas, firma y fecha de revisión)
   "contingency-plan", // WP-38: el plan B acordado en frío (disparador, acciones en orden, firma)
@@ -35928,6 +35929,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       globalThis.renderIndicesReferencia?.(globalThis.FinanceCanonicalRateIndices); // WP-13 (indices-ui.js)
       globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20 (revision-tipo-ui.js)
       globalThis.renderCirbe?.(globalThis.FinanceCanonicalCirbe); // WP-40 (cirbe-ui.js)
+      globalThis.renderDeudaSombra?.(globalThis.FinanceCanonicalShadowDebt); // WP-41 (sombra-ui.js)
       break;
     case "deuda-simulador":
       renderDeudaSimulador();

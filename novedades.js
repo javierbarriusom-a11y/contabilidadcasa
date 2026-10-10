@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp41",
+      fecha: "2026-10-10",
+      texto: "Deuda › Contratos › Deuda en la sombra: financiaciones en la factura y la TAE real de una oferta «sin intereses».",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-09-wp40",
       fecha: "2026-10-09",
       texto: "Deuda › Contratos › Conciliación con la CIRBE: compara el informe del Banco de España con vuestros contratos.",

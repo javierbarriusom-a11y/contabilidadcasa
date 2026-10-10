@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="contingencia.css?v=20261009wp38a1" />
     <link rel="stylesheet" href="politica.css?v=20261009wp39a1" />
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
+    <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2217,6 +2218,14 @@
               <p class="e19-kpi-note">Una vez al año, compara <strong>lo que ve el Banco de España</strong> (el informe de la CIRBE, que tecleas fila a fila) <strong>con los contratos de esta pantalla</strong>: operaciones que faltan en la app, avales olvidados e importes que no cuadran. Lo que ve un banco cuando pides una hipoteca es lo del informe. <strong>No se conecta a nada y no cambia ningún contrato.</strong></p>
               <p class="e19-kpi-note" id="cirbeNota" role="status"></p>
               <div id="cirbeCuerpo"></div>
+            </article>
+
+            <!-- WP-41 (DAC-04 + DNU-03, docs/WP41_DISENO.md): deuda en la sombra y TAE real. La pinta sombra-ui.js con canonical-shadow-debt.js. Solo propone: no da de alta nada (A11-4). -->
+            <article class="e19-card som-card" id="sombraCard" aria-labelledby="sombraTitulo">
+              <h3 class="escenario-motor-panel-title" id="sombraTitulo">Deuda en la sombra y TAE real</h3>
+              <p class="e19-kpi-note">Un móvil financiado en la factura, una compra «en 3 plazos» o un aplazamiento de tarjeta <strong>son deuda aunque no lo parezcan</strong>, y hoy no cuentan en vuestra fecha libre de deuda. La app los busca en el extracto que ya importaste y os propone darlos de alta como deuda corta. <strong>No da de alta nada por vosotros.</strong> Abajo, una calculadora de la TAE real de una oferta «sin intereses».</p>
+              <p class="e19-kpi-note" id="sombraNota" role="status"></p>
+              <div id="sombraCuerpo"><div id="sombraLista"></div><div id="sombraCalcBox"></div></div>
             </article>
             <p class="e19-kpi-note">Entidad, tipo, número, capital, TAE, cuota, deducción fiscal, plazos restantes y estado se editan directamente en la tabla. Cualquier contrato se puede eliminar, incluidos los de ejemplo — se pide confirmación antes de borrarlo.</p>
 
@@ -7913,6 +7922,8 @@
     <script defer src="politica-ui.js?v=20261009wp39a1"></script>
     <script defer src="canonical-cirbe.js?v=20261009wp40a1"></script>
     <script defer src="cirbe-ui.js?v=20261009wp40a1"></script>
+    <script defer src="canonical-shadow-debt.js?v=20261010wp41a1"></script>
+    <script defer src="sombra-ui.js?v=20261010wp41a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

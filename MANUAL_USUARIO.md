@@ -428,6 +428,18 @@ Cuatro cosas que conviene saber:
 - **Una diferencia pequeña a favor del informe es normal** si lo pediste hace meses: has pagado cuotas desde entonces. Con un informe de más de un año la tarjeta lo dice y te pide uno nuevo; a **30 días** del año te avisa de que toca renovarlo.
 - **Todavía no hay recordatorio en el calendario del móvil**: el aviso solo está dentro de la tarjeta.
 
+### Deuda en la sombra y TAE real (Deuda › Contratos)
+
+Debajo de la conciliación con la CIRBE, la tarjeta **«Deuda en la sombra y TAE real»** busca en los **movimientos importados** compromisos que **se comportan como deuda sin figurar como deuda**: el móvil financiado en la factura («cuota 3 de 24»), una compra «a plazos», un pago fraccionado, Klarna y servicios parecidos. De cada uno enseña la **cuota al mes**, la **evidencia literal** (qué dice el extracto y por qué lo ha marcado) y, **solo si el propio extracto lo dice**, cuántas cuotas quedan y en qué mes acaba. Con **«Añadir a Contratos»** se **rellena el formulario de alta** (lo envías tú); con **«No es deuda»** se descarta y puedes **deshacerlo**.
+
+Debajo hay una calculadora plegada, **«¿Cuánto cuesta de verdad una oferta “sin intereses”?»**: pones el precio al contado, los plazos, la cuota, la comisión de apertura y el seguro, y te da la **TAE efectiva**, lo que pagas de más y si pagar al contado te dejaría **por debajo del colchón**. Un campo que dejes en blanco **no se toma como cero**: si falta el precio al contado, no calcula.
+
+Tres cosas que conviene saber:
+
+- **Solo ve lo que el extracto delata**: un contador «cuota 3 de 12» o la palabra «financiación», «aplazado», «a plazos». **Que no salga nada no prueba que no haya deudas**, y una permanencia con penalización no aparece en un extracto. Si el último movimiento importado tiene más de 45 días, la tarjeta dice que no puede mirar lo reciente.
+- **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
+- **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
+
 ### Política de inversión del hogar (Inversión › Rebalanceo)
 
 Al principio de **Rebalanceo**, la tarjeta **«Política de inversión del hogar»** reúne en una página, **escrita con calma y firmada con fecha**, lo que las dos personas acordáis sobre vuestras inversiones. Son seis preguntas: **para qué es el dinero y para cuándo**, **cómo se reparte** (ya rellenado con el reparto objetivo que fijaste, y tiene que sumar 100 %), **cómo se aporta**, **qué no se compra nunca**, **qué hacéis si la cartera cae un 20 % y un 35 %**, y **cuándo se revisa**. Si dejas una sin responder, la app dice cuál falta y no deja firmar.
