@@ -2394,3 +2394,113 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
     await expect(body.locator(".cir-fila")).toHaveCount(0);
   });
 });
+
+// WP-41 (DAC-04 + DNU-03): deuda en la sombra y TAE real, en Deuda › Contratos. Busca en el extracto lo que se comporta como deuda, propone el alta (sin darla) y
+// calcula la TAE de una oferta «sin intereses».
+async function seedSombra(page) {
+  await page.evaluate(() => {
+    const iso = (date) => isoLocalDate(date);
+    const today = new Date();
+    const back = (days) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+    const rows = [];
+    let balance = 3000;
+    const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+    add(back(70), -30, "MOVISTAR CUOTA TERMINAL 1 DE 24");
+    add(back(40), -30, "MOVISTAR CUOTA TERMINAL 2 DE 24");
+    add(back(10), -30, "MOVISTAR CUOTA TERMINAL 3 DE 24");
+    add(back(38), -49.9, "KLARNA PAGO 1 DE 3");
+    add(back(8), -49.9, "KLARNA PAGO 2 DE 3");
+    add(back(72), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+    add(back(42), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+    add(back(12), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+    add(back(63), -12.99, "NETFLIX FICTICIO");
+    add(back(33), -12.99, "NETFLIX FICTICIO");
+    add(back(3), -12.99, "NETFLIX FICTICIO");
+    add(back(32), -80, "CUOTA COMUNIDAD 2/12");
+    add(back(2), -80, "CUOTA COMUNIDAD 3/12");
+    baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+    refreshMovementRollups();
+    renderDeudaSombra(FinanceCanonicalShadowDebt);
+  });
+}
+
+test.describe("WP-41 · deuda en la sombra y TAE real", () => {
+  test("sin extracto se dice, con extracto señala lo que parece deuda (y no las suscripciones), propone el alta sin darla, responde con deshacer y calcula la TAE", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#sombraCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator("#sombraLista")).toContainText("No puedo mirar lo reciente");
+      const contratosAntes = await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal])));
+
+      await seedSombra(page);
+      const avisos = card.locator(".som-aviso");
+      await expect(avisos).toHaveCount(3); // Netflix y la cuota de comunidad no se marcan
+      await expect(avisos.nth(0)).toContainText("KLARNA PAGO 2 DE 3");
+      await expect(avisos.nth(0)).toContainText("quedan 1 cuota");
+      await expect(avisos.nth(1)).toContainText("MOVISTAR CUOTA TERMINAL 3 DE 24");
+      await expect(avisos.nth(1)).toContainText("quedan 21 cuotas, 630,00 €");
+      await expect(avisos.nth(2)).toContainText("COMPRA FINANCIADA");
+      await expect(avisos.nth(2)).toContainText("no se sabe cuándo");
+      await expect(card.locator(".som-resumen")).toContainText("3 compromisos que se comportan como deuda");
+      await expect(card.locator(".som-resumen")).toContainText("Ninguno cuenta hoy en vuestra fecha libre de deuda");
+      await expect(card.locator(".som-medida")).toContainText("hacen falta 10 respuestas y llevas 0");
+
+      // «Añadir a Contratos» rellena el formulario de alta, no crea nada.
+      await avisos.nth(1).locator("[data-sombra-anadir]").click();
+      await expect(page.locator("#deudaContratosAddEntity")).toHaveValue(/MOVISTAR/);
+      await expect(page.locator("#deudaContratosAddPrincipal")).toHaveValue("630");
+      await expect(page.locator("#deudaContratosAddPayment")).toHaveValue("30");
+      await expect(page.locator("#deudaContratosAddInstallments")).toHaveValue("21");
+      expect(await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal])))).toBe(contratosAntes);
+
+      // «No es deuda» + deshacer; la respuesta se recuerda al recargar.
+      await avisos.nth(2).locator('[data-sombra-respuesta="not-debt"]').click();
+      await expect(avisos).toHaveCount(2);
+      await expect(card.locator("#sombraNota")).toContainText("no volveré a avisar");
+      await card.locator("[data-sombra-deshacer]").click();
+      await expect(avisos).toHaveCount(3);
+      await card.locator(".som-aviso", { hasText: "COMPRA FINANCIADA" }).locator('[data-sombra-respuesta="not-debt"]').click();
+      await page.reload();
+      await seedSombra(page);
+      await expect(page.locator("#sombraCard .som-aviso")).toHaveCount(2);
+
+      // Calculadora preparada desde un aviso: falta el precio al contado.
+      await page.locator("#sombraCard .som-aviso", { hasText: "MOVISTAR" }).locator("[data-sombra-tae]").click();
+      await expect(page.locator("#sombraCuota")).toHaveValue("30");
+      await expect(page.locator("#sombraPlazos")).toHaveValue("24");
+      await page.locator('#sombraForm button[type="submit"]').click();
+      await expect(page.locator("#sombraError")).toContainText("precio al contado");
+      await page.locator("#sombraPrecio").fill("600");
+      await page.locator('#sombraForm button[type="submit"]').click();
+      await expect(page.locator("#sombraResultado .som-tae")).toContainText("120,00 € más que al contado");
+      await expect(page.locator("#sombraResultado .som-tae strong").first()).toContainText("TAE efectiva");
+      const taeConsulta = Number(await page.locator("#sombraResultado .som-tae").getAttribute("data-sombra-tae-resultado"));
+      expect(taeConsulta).toBeGreaterThan(5);
+
+      // Oferta «al 0 %»: sin comisión es 0 %; con una comisión y un seguro, no.
+      await page.locator("#sombraPrecio").fill("1000");
+      await page.locator("#sombraPlazos").fill("10");
+      await page.locator("#sombraCuota").fill("100");
+      await page.locator('#sombraForm button[type="submit"]').click();
+      await expect(page.locator("#sombraResultado .som-tae")).toHaveAttribute("data-sombra-tae-resultado", "0");
+      await page.locator("#sombraComision").fill("30");
+      await page.locator("#sombraSeguro").fill("3");
+      await page.locator('#sombraForm button[type="submit"]').click();
+      expect(Number(await page.locator("#sombraResultado .som-tae").getAttribute("data-sombra-tae-resultado"))).toBeGreaterThan(10);
+      await expect(page.locator("#sombraResultado")).toContainText("más que al contado");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
