@@ -3055,6 +3055,10 @@ test.describe("WP-47 · reparto de la nómina", () => {
       await row(card, "debt:p1").locator("input").fill("1.000,50");
       await row(card, "debt:p1").locator("input").press("Enter");
       await expect(row(card, "debt:p1").locator("input")).toHaveValue("50");
+      // «1.000» sin decimales son mil (no uno): se recorta igual que «1.000,50».
+      await row(card, "debt:p1").locator("input").fill("1.000");
+      await row(card, "debt:p1").locator("input").press("Enter");
+      await expect(row(card, "debt:p1").locator("input")).toHaveValue("50");
       await expect(body.locator(".nom-nota")).toContainText("no queda más por repartir");
       await expect(body.locator(".nom-estado")).toContainText("Repartido todo");
       // Un negativo se deja en 0.
@@ -3129,6 +3133,155 @@ test.describe("WP-47 · reparto de la nómina", () => {
       await expect(page.locator("#nominaCuerpo")).toContainText("Sin comprobar");
 
       expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => /payroll-split-drafts/.test(key)).length)).toBeGreaterThan(0);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// WP-48 (NIN-06): libro de operaciones editable, en Inversión › Cartera. Editar, añadir o quitar una compra o una venta enseña un «antes / después» (unidades, coste, plusvalía de cada venta y
+// compensación del ejercicio) ANTES de guardar; una venta que se queda sin lotes se marca y no se bloquea; todo se deshace. Cifras calculadas a mano: lote 1 de 100 u a 10.000 € (2020),
+// lote 2 de 50 u a 6.000 € (2021) y una venta de 120 u por 15.000 € en 2026 → coste FIFO 12.400 €, plusvalía 2.600 €, quedan 30 u a 3.600 €.
+test.describe("WP-48 · libro de operaciones", () => {
+  const POSITIONS = [
+    { id: "A", type: "fondo", label: "Fondo A", provenance: "manual", asOf: "2026-09-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 10000, currentValue: 5200, contributions: [{ id: "c1", date: "2021-06-01", amount: 6000, quantity: 50 }], disposals: [{ id: "s1", date: "2026-03-01", quantitySold: 120, saleProceeds: 15000 }] },
+    { id: "B", type: "accion", label: "Acción B", provenance: "manual", asOf: "2026-09-01", acquisitionDate: "2020-01-01", quantity: 10, costBasis: 1000, currentValue: 0, contributions: [], disposals: [{ id: "b1", date: "2026-05-05", quantitySold: 10, saleProceeds: 2000 }] },
+  ];
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#opsCard");
+    await expect(card).toBeAttached({ timeout: 15000 });
+    return card;
+  };
+  const seed = (page) => page.evaluate((positions) => { saveIv1PositionsList(positions); renderIv1PositionList(); }, POSITIONS);
+  const stored = (page) => page.evaluate(() => JSON.parse(JSON.stringify(iv1PositionsList().find((position) => position.id === "A"))));
+  const row = (card, id) => card.locator(`[data-ops-row="${id}"]`);
+  const edit = async (card, id) => card.locator(`[data-ops-row="${id}"] [data-ops-action="edit"]`).click();
+  const submit = async (card) => card.locator('#opsForm button[type="submit"]').click();
+
+  test("vacío accionable, libro en orden con la plusvalía FIFO, edición con «antes / después» sin guardar, venta sin lotes marcada y no bloqueada, validación, quitar, añadir, deshacer, persistencia, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const body = card.locator("#opsCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Aún no hay posiciones");
+
+      await seed(page);
+      await expect(body.locator("[data-ops-row]")).toHaveCount(3);
+      expect(await body.locator("[data-ops-row]").evaluateAll((nodes) => nodes.map((n) => n.dataset.opsRow))).toEqual(["initial", "c1", "s1"]);
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+      await expect(row(card, "initial").locator('[data-ops-action="remove"]')).toHaveCount(0);
+      const original = await stored(page);
+
+      // Editar el importe de la venta: el «antes / después» sale SIN guardar.
+      await edit(card, "s1");
+      await expect(card.locator("#opsFecha")).toHaveValue("2026-03-01");
+      await card.locator("#opsImporte").fill("14.000");
+      await submit(card);
+      const cambios = body.locator(".ops-cambios");
+      await expect(cambios).toContainText("Plusvalía realizada (FIFO)");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Antes: 2600,00");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Después: 1600,00");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3600,00");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Después: neto 2600,00");
+      await expect(body).toContainText("No se ha guardado nada todavía");
+      expect(await stored(page), "ver los cambios no guarda").toEqual(original);
+      await expect(card.locator('[data-ops-action="save"]')).toHaveText("Guardar los cambios");
+      await card.locator('[data-ops-action="save"]').click();
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 1600,00");
+      expect((await stored(page)).disposals[0].saleProceeds).toBe(14000);
+      // El resto de la app sigue al libro: la lista de posiciones ya enseña la plusvalía nueva.
+      await expect(page.locator("#iv1PositionList")).toContainText("plusvalía realizada 1600,00");
+      // Deshacer lo devuelve a como estaba.
+      await page.getByRole("button", { name: "Deshacer" }).click();
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+      expect(await stored(page)).toEqual(original);
+
+      // Mover la aportación a después de la venta deja la venta sin lotes: se avisa, no se bloquea, y «Volver a editar» conserva lo escrito.
+      await edit(card, "c1");
+      await card.locator("#opsFecha").fill("2026-06-01");
+      await submit(card);
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Después: no calculable");
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Venta del 01/03/2026" })).toContainText("sin lotes (faltan 20 u)");
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("no calculable");
+      await expect(body.locator(".ops-aviso-fuerte")).toContainText("una venta se queda sin lotes");
+      await expect(card.locator('[data-ops-action="save"]')).toHaveText("Guardar aunque deje ventas sin lotes");
+      await card.locator('[data-ops-action="back"]').click();
+      await expect(card.locator("#opsFecha")).toHaveValue("2026-06-01");
+      await card.locator('[data-ops-action="cancel"]').click();
+      await expect(card.locator("#opsForm")).toHaveCount(0);
+      expect(await stored(page), "cancelar no guarda").toEqual(original);
+
+      // Validación: fecha vacía y venta sin unidades.
+      await edit(card, "c1");
+      await card.locator("#opsFecha").fill("");
+      await submit(card);
+      await expect(card.locator("#opsError")).toContainText("fecha");
+      await card.locator('[data-ops-action="cancel"]').click();
+      await edit(card, "s1");
+      await card.locator("#opsUnidades").fill("0");
+      await submit(card);
+      await expect(card.locator("#opsError")).toContainText("unidades vendidas");
+      await card.locator('[data-ops-action="cancel"]').click();
+
+      // Quitar la aportación: el cambio sale directo, sin editor, y se guarda al confirmar.
+      await row(card, "c1").locator('[data-ops-action="remove"]').click();
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Unidades que quedan" })).toContainText("Después: 0");
+      await expect(card.locator('[data-ops-action="back"]')).toHaveCount(0);
+      await expect(card.locator('[data-ops-action="save"]')).toHaveText("Guardar aunque deje ventas sin lotes");
+      await card.locator('[data-ops-action="save"]').click();
+      await expect(body.locator("[data-ops-row]")).toHaveCount(2);
+      await expect(row(card, "s1")).toContainText("sin lotes suficientes (faltan 20 u)");
+      await page.getByRole("button", { name: "Deshacer" }).click();
+      await expect(body.locator("[data-ops-row]")).toHaveCount(3);
+      expect(await stored(page)).toEqual(original);
+
+      // Añadir una segunda venta de las 30 u que quedan: 30 × 120 € = 3.600 € de coste → plusvalía 400 €; la posición queda a cero.
+      await card.locator('[data-ops-action="add-sell"]').click();
+      await card.locator("#opsFecha").fill("2026-04-01");
+      await card.locator("#opsUnidades").fill("30");
+      await card.locator("#opsImporte").fill("4000");
+      await submit(card);
+      await expect(body.locator(".ops-cambio").filter({ hasText: "· nueva" })).toContainText("Después: 400,00");
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Unidades que quedan" })).toContainText("Después: 0");
+      await card.locator('[data-ops-action="save"]').click();
+      await expect(body.locator('[data-ops-kind="disposal"]')).toHaveCount(2);
+      // Persiste al recargar.
+      await page.reload();
+      await expect(page.locator('#opsCuerpo [data-ops-kind="disposal"]')).toHaveCount(2);
+      await page.evaluate((positions) => { saveIv1PositionsList(positions); refreshAllSectionsAfterDataChange(); renderIv1PositionList(); }, POSITIONS);
+
+      // La compra inicial se edita (no se quita): sin fecha no entra en el FIFO y se avisa; ponerle fecha lo arregla.
+      await page.evaluate(() => { const rows = iv1PositionsList(); saveIv1PositionsList(rows.map((position) => (position.id === "A" ? { ...position, acquisitionDate: "" } : position))); renderIv1PositionList(); });
+      await expect(card.locator("#opsCuerpo")).toContainText("La compra inicial no tiene fecha");
+      await expect(row(card, "s1")).toContainText("sin lotes suficientes");
+      await edit(card, "initial");
+      await card.locator("#opsFecha").fill("2020-01-10");
+      await submit(card);
+      await expect(body).toContainText("Esto arregla 1 venta");
+      await card.locator('[data-ops-action="save"]').click();
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+
+      // Cambiar de posición reinicia el editor; la otra posición cuenta en la compensación del ejercicio.
+      await card.locator("#opsPosicion").selectOption("B");
+      await expect(body.locator("[data-ops-row]")).toHaveCount(2);
+      await card.locator("#opsPosicion").selectOption("A");
+      await edit(card, "s1");
+      await card.locator("#opsImporte").fill("14000");
+      await submit(card);
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3600,00");
+      await card.locator('[data-ops-action="cancel"]').click();
+
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
     }

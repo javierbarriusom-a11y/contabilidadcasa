@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
     <link rel="stylesheet" href="escalera.css?v=20261010wp42a1" />
     <link rel="stylesheet" href="nomina.css?v=20261010wp47a1" />
+    <link rel="stylesheet" href="operaciones.css?v=20261010wp48a1" />
     <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
     <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
@@ -2763,6 +2764,13 @@
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
+              <!-- WP-48 (NIN-06, docs/WP48_DISENO.md): el libro de operaciones de cada posición, editable. Lo pinta operaciones-ui.js con canonical-portfolio-ledger.js, que pregunta el FIFO a
+                   canonical-portfolio.js y enseña un «antes / después» ANTES de guardar. Sin almacén propio: las posiciones se siguen guardando donde ya vivían. -->
+              <article class="e19-card ops-card" id="opsCard" aria-labelledby="opsTitulo">
+                <h3 class="escenario-motor-panel-title" id="opsTitulo">Libro de operaciones</h3>
+                <p class="e19-kpi-note">Corrige una compra o una venta ya registrada sin borrar la posición: ves <strong>qué cambia antes de guardar</strong> (unidades, coste, plusvalía de cada venta y compensación de cada ejercicio) y puedes deshacerlo.</p>
+                <div id="opsCuerpo" aria-live="polite"></div>
+              </article>
               <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
                    importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
                    destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
@@ -8000,6 +8008,8 @@
     <script defer src="partidas-ui.js?v=20261005wp30c1"></script>
     <script defer src="captura-ui.js?v=20261005wp30c1"></script>
     <script defer src="canonical-portfolio-valuation.js?v=20261006wp15a1"></script>
+    <script defer src="canonical-portfolio-ledger.js?v=20261010wp48a1"></script>
+    <script defer src="operaciones-ui.js?v=20261010wp48a1"></script>
     <script defer src="chart-kit.js?v=20261006wp28a1"></script>
     <script defer src="canonical-cash-band.js?v=20261007wp16a1"></script>
     <script defer src="cash-band-ui.js?v=20261007wp16a1"></script>

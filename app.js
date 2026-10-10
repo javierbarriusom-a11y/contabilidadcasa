@@ -20215,6 +20215,7 @@ function renderIv1PositionList() {
   const list = qs("iv1PositionList");
   if (!list) return;
   globalThis.renderValuationSummary?.(); // WP-15 (valoracion-ui.js): frescura de la cartera
+  globalThis.renderLibroOperaciones?.(globalThis.FinanceCanonicalPortfolioLedger); // WP-48 (operaciones-ui.js)
   const engine = window.FinanceCanonicalPortfolio;
   const rows = iv1PositionsList();
   if (!engine || !rows.length) {

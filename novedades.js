@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp48",
+      fecha: "2026-10-10",
+      texto: "Inversión › Cartera › Libro de operaciones: corrige compras y ventas viendo antes qué cambia en las plusvalías.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-10-wp47",
       fecha: "2026-10-10",
       texto: "Deuda › Comparar › Repartir la nómina: lo que cabe sobre el suelo, con botones para ajustarlo y una lista de transferencias.",

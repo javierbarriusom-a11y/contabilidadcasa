@@ -893,3 +893,48 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-48: la tarjeta «Libro de operaciones» de Inversión › Cartera, en claro y en oscuro: vacía, con el libro, con el editor (y su error), con el «antes / después» y con una venta sin lotes.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-48 · contraste del libro de operaciones en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Cartera: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#opsCard");
+      await expect(card).toBeAttached({ timeout: 15000 });
+      await card.scrollIntoViewIfNeeded();
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#opsCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await revisar("vacía");
+      await page.evaluate(() => {
+        saveIv1PositionsList([{ id: "A", type: "fondo", label: "Fondo A", provenance: "manual", asOf: "2026-09-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 10000, currentValue: 5200, contributions: [{ id: "c1", date: "2021-06-01", amount: 6000, quantity: 50 }, { id: "c2", date: "2022-01-01", amount: 500, quantity: 0 }], disposals: [{ id: "s1", date: "2026-03-01", quantitySold: 120, saleProceeds: 15000 }] }]);
+        renderIv1PositionList();
+      });
+      await expect(card.locator("[data-ops-row]")).toHaveCount(4);
+      await revisar("con el libro");
+      await card.locator('[data-ops-row="c1"] [data-ops-action="edit"]').click();
+      await revisar("con el editor");
+      await card.locator("#opsFecha").fill("");
+      await card.locator('#opsForm button[type="submit"]').click();
+      await expect(card.locator("#opsError")).toBeVisible();
+      await revisar("con error de validación");
+      await card.locator("#opsFecha").fill("2026-06-01");
+      await card.locator('#opsForm button[type="submit"]').click();
+      await expect(card.locator(".ops-aviso-fuerte")).toBeVisible();
+      await revisar("con una venta sin lotes");
+      await card.locator('[data-ops-action="cancel"]').click();
+      await card.locator('[data-ops-row="s1"] [data-ops-action="edit"]').click();
+      await card.locator("#opsImporte").fill("14000");
+      await card.locator('#opsForm button[type="submit"]').click();
+      await expect(card.locator(".ops-cambios")).toBeVisible();
+      await revisar("con el antes y después");
+    });
+  });
+}

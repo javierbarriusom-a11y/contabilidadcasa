@@ -115,6 +115,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 81 → 82 (WP-30 · PR-2): canonical-card-purchases.js, con consumidor real (cardAccruedForRow en app.js lee sus compras; la hoja y el informe, en captura-ui.js)
 // 82 → 83 (WP-15): canonical-portfolio-valuation.js, con consumidor real (renderIv1PositionList en app.js pinta la frescura con él; renderCierre, el aviso; la hoja, en valoracion-ui.js)
 // 83 → 84 (WP-23): canonical-year-end-tax.js, con consumidor real (renderActiveSection en app.js se lo pasa a la tarjeta de fiscal-campana-ui.js)
+// 102 → 103 (WP-48): canonical-portfolio-ledger.js, con consumidor real (renderIv1PositionList de app.js se lo pasa a la tarjeta de operaciones-ui.js)
 // 101 → 102 (WP-47): canonical-payroll-split.js, con consumidor real (el case «deuda-comparar» de renderActiveSection en app.js se lo pasa a la tarjeta de nomina-ui.js)
 // 100 → 101 (WP-46): canonical-net-worth.js, con consumidor real (renderInversionCartera de views/inversion.js se lo pasa a la tarjeta de patrimonio-ui.js)
 // 99 → 100 (WP-45): canonical-data-queue.js, con consumidor real (renderRegistrar en app.js se lo pasa a la tarjeta de datos-ui.js)
@@ -134,6 +135,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 102 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 102);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 103 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 103);
 });
