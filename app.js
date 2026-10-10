@@ -33913,6 +33913,7 @@ function renderRegistrar() {
   renderRegistrarRecalcCard();
   resetRegistrarBalanceBaseline();
   renderRegistrarImpactFooter();
+  globalThis.renderDatosCola?.(globalThis.FinanceCanonicalDataQueue); // WP-45 (datos-ui.js)
 }
 
 /* --------------------------------------------------------------------------------------------- */

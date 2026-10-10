@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp45",
+      fecha: "2026-10-10",
+      texto: "Registrar › Saldos › Frescura de tus datos: la edad de cada fuente y qué tarea quita más incertidumbre por minuto.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-10-wp44",
       fecha: "2026-10-10",
       texto: "Inversión › Cartera › Calma, cobertura y exposición: la caída desde el máximo, qué parte del gasto pagan los activos y depósitos.",
