@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp42",
+      fecha: "2026-10-10",
+      texto: "Deuda › Comparar › ¿Dónde va el próximo euro?: colchón, deuda cara, pensión e inversión, en orden y con su porqué.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-10-10-wp41",
       fecha: "2026-10-10",
       texto: "Deuda › Contratos › Deuda en la sombra: financiaciones en la factura y la TAE real de una oferta «sin intereses».",

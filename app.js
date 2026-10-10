@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
   "investment-policy", // WP-39: la política de inversión del hogar (seis respuestas, firma y fecha de revisión)
@@ -35920,6 +35921,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "deuda-comparar":
       renderDeudaComparar();
+      globalThis.renderProximoEuro?.(globalThis.FinanceCanonicalNextEuro); // WP-42 (escalera-ui.js)
       break;
     case "deuda-ruta":
       renderDeudaRuta();
