@@ -42,6 +42,7 @@
     <link rel="stylesheet" href="politica.css?v=20261009wp39a1" />
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
+    <link rel="stylesheet" href="escalera.css?v=20261010wp42a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2051,6 +2052,24 @@
                 </label>
               </div>
             </div>
+
+            <!-- WP-42 (CAR-03 + NIN-05 + NIN-08, docs/WP42_DISENO.md): ¿dónde va el próximo euro? La pinta escalera-ui.js con canonical-next-euro.js. Solo propone un orden: no mueve dinero (A11-4). -->
+            <article class="e19-card peu-card" id="proxEuroCard" aria-labelledby="proxEuroTitulo">
+              <h3 class="escenario-motor-panel-title" id="proxEuroTitulo">¿Dónde va el próximo euro?</h3>
+              <p class="e19-kpi-note">Escribe un importe y la app lo reparte en este orden: <strong>colchón</strong>, <strong>deuda con coste alto</strong>, <strong>plan de pensiones</strong> (si el ahorro fiscal lo justifica) y, con lo que sobra, <strong>amortizar o invertir</strong>. Cada peldaño dice cuánto, por qué y qué liquidez pierdes. Es un orden para decidir, no una orden: no mueve dinero.</p>
+              <form id="proxEuroForm" novalidate>
+                <div class="peu-campos">
+                  <label class="month-picker"><span>Importe a colocar (€)</span><input type="number" id="proxEuroImporte" min="0" step="0.01" inputmode="decimal" aria-describedby="proxEuroError" /></label>
+                  <label class="month-picker"><span>Rentabilidad que esperáis de invertir (% al año, antes de impuestos)</span><input type="number" id="proxEuroRentabilidad" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="proxEuroPista" /></label>
+                  <label class="month-picker"><span>Ya aportado a planes de pensiones este año (€, opcional)</span><input type="number" id="proxEuroPension" min="0" step="0.01" inputmode="decimal" /></label>
+                </div>
+                <label class="peu-check"><input type="checkbox" id="proxEuroEnCuentas" /><span>Ese dinero ya está en mis cuentas (cuenta como liquidez). Sin marcar, es dinero nuevo que aún no ha llegado.</span></label>
+                <p class="e19-kpi-note" id="proxEuroPista"></p>
+                <p id="proxEuroError" role="alert" hidden></p>
+                <div><button type="submit" class="e19-btn e19-btn-primary">Ver la escalera</button></div>
+              </form>
+              <div id="proxEuroResultado" aria-live="polite"></div>
+            </article>
 
             <div id="deudaCompararCapacity"></div>
 
@@ -7924,6 +7943,8 @@
     <script defer src="cirbe-ui.js?v=20261009wp40a1"></script>
     <script defer src="canonical-shadow-debt.js?v=20261010wp41a1"></script>
     <script defer src="sombra-ui.js?v=20261010wp41a1"></script>
+    <script defer src="canonical-next-euro.js?v=20261010wp42a1"></script>
+    <script defer src="escalera-ui.js?v=20261010wp42a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

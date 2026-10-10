@@ -440,6 +440,19 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### ¿Dónde va el próximo euro? (Deuda › Comparar)
+
+Al principio de **Deuda › Comparar**, la tarjeta **«¿Dónde va el próximo euro?»** reparte un importe (una paga, un sobrante del mes, dinero parado) **en un orden fijo**: **1) colchón** hasta su suelo, **2) deuda con coste alto**, **3) plan de pensiones** si el ahorro fiscal compensa, y **4) lo que sobra**, para invertir. Cada peldaño dice **cuánto, por qué y qué liquidez pierdes**. Marca «ese dinero ya está en mis cuentas» si ya cuenta como liquidez: entonces solo se reparte lo que supera el suelo del colchón.
+
+Te enseña **tres beneficios por separado, que no se suman**: los **intereses que dejas de pagar** (cierto), el **ahorro fiscal de la pensión** (de una vez: **difiere el impuesto, no lo elimina**, porque al rescatar se tributa) y la **rentabilidad esperada** de lo invertido (no garantizada, y depende de lo que **tú** escribas). Lo que invierte se reparte **aportando, sin vender nada**, hacia lo que está por debajo de su objetivo en Rebalanceo.
+
+Cuatro cosas que conviene saber:
+
+- **No mueve dinero ni crea transferencias**: es un orden para decidir, no una orden.
+- **Una deuda sin interés declarado no se da por gratis**: la tarjeta la nombra y te pide declarar su TAE en Deuda › Contratos. Si la deuda al corriente no tiene TAE, usa el coste **implícito en su cuota y sus plazos** y lo marca como estimación.
+- **Sin una rentabilidad esperada escrita por ti, lo que sobra queda «sin reparto»**: no hay veredicto entre amortizar e invertir, y la app no se inventa uno.
+- **Si faltan datos** (saldos, suelo del colchón, tu tipo marginal), el reparto sale **parcial** y lo dice. Y si la pensión ahorra más impuestos el primer año de lo que cuesta la deuda, **te lo avisa sin cambiar el orden**.
+
 ### Política de inversión del hogar (Inversión › Rebalanceo)
 
 Al principio de **Rebalanceo**, la tarjeta **«Política de inversión del hogar»** reúne en una página, **escrita con calma y firmada con fecha**, lo que las dos personas acordáis sobre vuestras inversiones. Son seis preguntas: **para qué es el dinero y para cuándo**, **cómo se reparte** (ya rellenado con el reparto objetivo que fijaste, y tiene que sumar 100 %), **cómo se aporta**, **qué no se compra nunca**, **qué hacéis si la cartera cae un 20 % y un 35 %**, y **cuándo se revisa**. Si dejas una sin responder, la app dice cuál falta y no deja firmar.

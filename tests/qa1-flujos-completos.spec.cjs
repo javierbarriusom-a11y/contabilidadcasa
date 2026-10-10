@@ -2504,3 +2504,97 @@ test.describe("WP-41 · deuda en la sombra y TAE real", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-42 (CAR-03 + NIN-05 + NIN-08): ¿dónde va el próximo euro?, en Deuda › Comparar. Orden colchón → deuda cara → pensión → amortizar o invertir; cada peldaño con su porqué y su
+// liquidez; los tres beneficios (cierto, fiscal de una vez, esperado) por separado; nada se mueve. Las cifras de la app se fijan para que el reparto sea determinista.
+test.describe("WP-42 · escalera del próximo euro", () => {
+  const stub = async (page, { liquidity = 1000, floor = 3000, withholding = 37 } = {}) => {
+    await page.evaluate(({ liquidity, floor, withholding }) => {
+      globalThis.accountBalancesFromState = () => (liquidity === null ? { total: null } : { total: liquidity });
+      globalThis.cuadroMandosReserve = () => floor;
+      globalThis.canonicalDebtContractRows = () => [{ id: "t1", entity: "Tarjeta Ficticia", type: "Tarjeta", paymentStatus: "active", currentPrincipal: 1000, apr: 21, fiscalDeductionPct: 0 }];
+      state.fiscalWithholdingRate = withholding;
+      state.dividendSpanishSavingsRatePct = 19;
+      renderProximoEuro(FinanceCanonicalNextEuro);
+    }, { liquidity, floor, withholding });
+  };
+  const open = async (page) => {
+    await page.goto("/index.html#deuda-comparar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#proxEuroCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+
+  test("vacío accionable, validación, orden de peldaños con su porqué, tres beneficios por separado, sin veredicto sin rentabilidad, parcial sin datos, persistencia, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const out = card.locator("#proxEuroResultado");
+      await stub(page);
+      await expect(out.locator('[data-estado="vacio"]')).toContainText("¿Cuánto hay que colocar?");
+
+      // Validación: sin importe no hay escalera.
+      await card.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(card.locator("#proxEuroError")).toContainText("mayor que cero");
+      await expect(out.locator(".peu-escalera")).toHaveCount(0);
+
+      // 6.000 € de dinero nuevo con 1.000 € de liquidez y suelo de 3.000 €: colchón 2.000, la tarjeta del 21 % entera, pensión hasta el límite, el resto a invertir.
+      await card.locator("#proxEuroImporte").fill("6000");
+      await card.locator("#proxEuroRentabilidad").fill("7");
+      await card.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(out.locator("[data-peu-rung]")).toHaveCount(4);
+      expect(await out.locator("[data-peu-rung]").evaluateAll((nodes) => nodes.map((n) => n.dataset.peuRung))).toEqual(["cushion", "debt", "pension", "invest"]);
+      await expect(out.locator('[data-peu-rung="cushion"]')).toContainText("Faltan 2000 € para el suelo del colchón");
+      await expect(out.locator('[data-peu-rung="debt"]')).toContainText("Tarjeta Ficticia");
+      await expect(out.locator('[data-peu-rung="debt"]')).toContainText("la liquida");
+      await expect(out.locator('[data-peu-rung="debt"]')).toContainText("Pierdes liquidez");
+      await expect(out.locator('[data-peu-rung="pension"]')).toContainText("Tipo marginal 37 %");
+      await expect(out.locator('[data-peu-rung="pension"]')).toContainText("Inmovilizado hasta la jubilación");
+      await expect(out.locator('[data-peu-rung="pension"]')).toContainText("difiere el impuesto");
+      await expect(out.locator('[data-peu-rung="invest"]')).toContainText("no garantizada");
+      await expect(out.locator(".peu-resumen")).toContainText("De 6000,00");
+      // Tres beneficios distintos, nunca sumados: 1.000 × 21 % = 210 de intereses; 1.500 × 37 % = 555 de ahorro fiscal; y la rentabilidad esperada de lo invertido.
+      const beneficios = out.locator(".peu-beneficios li");
+      await expect(beneficios).toHaveCount(3);
+      await expect(beneficios.nth(0)).toContainText("Intereses que dejas de pagar (cierto)");
+      await expect(beneficios.nth(0)).toContainText("210");
+      await expect(beneficios.nth(1)).toContainText("555");
+      await expect(beneficios.nth(2)).toContainText("no garantizada");
+      await expect(out).toContainText("no se suman");
+
+      // Persistencia: el importe y la rentabilidad vuelven al recargar, y la escalera se recalcula con las cifras de la app.
+      await page.reload();
+      await stub(page);
+      await expect(page.locator("#proxEuroImporte")).toHaveValue("6000");
+      await expect(page.locator("#proxEuroRentabilidad")).toHaveValue("7");
+      await expect(page.locator("#proxEuroResultado [data-peu-rung]")).toHaveCount(4);
+
+      // Sin rentabilidad esperada no hay veredicto: lo que sobra queda sin reparto, nunca un 50/50.
+      await page.locator("#proxEuroRentabilidad").fill("");
+      await page.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(page.locator('#proxEuroResultado [data-peu-rung="invest"]')).toContainText("Sin veredicto");
+      await expect(page.locator('#proxEuroResultado [data-peu-rung="invest"]')).toContainText("no voy a inventar un 50/50");
+      await expect(page.locator("#proxEuroResultado .peu-resumen")).toContainText("sin reparto");
+
+      // Sin la liquidez de las cuentas, el colchón dice «no sé» y el reparto es parcial.
+      await stub(page, { liquidity: null });
+      await expect(page.locator('#proxEuroResultado [data-peu-rung="cushion"]')).toContainText("Sin datos");
+      await expect(page.locator("#proxEuroResultado .peu-aviso")).toContainText("Reparto parcial");
+
+      // No toca nada de la app: ni contratos ni saldos (solo el almacén propio de la tarjeta).
+      expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => /next-euro/.test(key)).length)).toBeGreaterThan(0);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

@@ -599,3 +599,50 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-42: la tarjeta «¿Dónde va el próximo euro?» de Deuda › Comparar, en claro y en oscuro: vacía, con error de validación, con la escalera completa (los cuatro peldaños), sin veredicto y parcial.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-42 · contraste de la escalera del próximo euro en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Deuda › Comparar: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#deuda-comparar");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#proxEuroCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#proxEuroCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      const stub = (liquidity) => page.evaluate((liq) => {
+        globalThis.accountBalancesFromState = () => ({ total: liq });
+        globalThis.cuadroMandosReserve = () => 3000;
+        globalThis.canonicalDebtContractRows = () => [{ id: "t1", entity: "Tarjeta Ficticia", type: "Tarjeta", paymentStatus: "active", currentPrincipal: 1000, apr: 21, fiscalDeductionPct: 0 }];
+        state.fiscalWithholdingRate = 37;
+        state.dividendSpanishSavingsRatePct = 19;
+        renderProximoEuro(FinanceCanonicalNextEuro);
+      }, liquidity);
+      await stub(1000);
+      await expect(card.locator("#proxEuroResultado")).toContainText("¿Cuánto hay que colocar?");
+      await revisar("vacía");
+      await card.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(card.locator("#proxEuroError")).toBeVisible();
+      await revisar("con error de validación");
+      await card.locator("#proxEuroImporte").fill("6000");
+      await card.locator("#proxEuroRentabilidad").fill("7");
+      await card.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(card.locator("[data-peu-rung]")).toHaveCount(4);
+      await revisar("escalera completa");
+      await card.locator("#proxEuroRentabilidad").fill("");
+      await card.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(card.locator('[data-peu-rung="invest"]')).toContainText("Sin veredicto");
+      await revisar("sin veredicto");
+      await stub(null);
+      await expect(card.locator(".peu-aviso")).toBeVisible();
+      await revisar("parcial");
+    });
+  });
+}
