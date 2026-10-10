@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
     <link rel="stylesheet" href="escalera.css?v=20261010wp42a1" />
+    <link rel="stylesheet" href="nomina.css?v=20261010wp47a1" />
     <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
     <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
@@ -2085,6 +2086,13 @@
                 <div><button type="submit" class="e19-btn e19-btn-primary">Ver la escalera</button></div>
               </form>
               <div id="proxEuroResultado" aria-live="polite"></div>
+            </article>
+
+            <!-- WP-47 (NPV-05, docs/WP47_DISENO.md): repartir la nómina en un paso. La pinta nomina-ui.js con canonical-payroll-split.js, sobre la escalera de arriba. Guarda un borrador y una lista de transferencias que hace el hogar a mano: no mueve dinero ni anota nada en las cuentas (A11-4). -->
+            <article class="e19-card nom-card" id="nominaCard" aria-labelledby="nominaTitulo">
+              <h3 class="escenario-motor-panel-title" id="nominaTitulo">Repartir la nómina</h3>
+              <p class="e19-kpi-note">Cuando confirmas una nómina, esta hoja parte de lo que la escalera del próximo euro propone para esa cantidad, pero solo de lo que <strong>cabe sin que la liquidez baje del suelo</strong> en los próximos 30 días. Mueves importes con los botones y el total repartible no cambia nunca. <strong>«Aplicar» guarda un borrador con la lista de transferencias que haces tú en el banco</strong>: la app no mueve dinero.</p>
+              <div id="nominaCuerpo" aria-live="polite"></div>
             </article>
 
             <div id="deudaCompararCapacity"></div>
@@ -8020,6 +8028,8 @@
     <script defer src="sombra-ui.js?v=20261010wp41a1"></script>
     <script defer src="canonical-next-euro.js?v=20261010wp42a1"></script>
     <script defer src="escalera-ui.js?v=20261010wp42a1"></script>
+    <script defer src="canonical-payroll-split.js?v=20261010wp47a1"></script>
+    <script defer src="nomina-ui.js?v=20261010wp47a1"></script>
     <script defer src="canonical-forecast-bridge.js?v=20261010wp43a1"></script>
     <script defer src="puente-ui.js?v=20261010wp43a1"></script>
     <script defer src="canonical-calm-coverage.js?v=20261010wp44a1"></script>

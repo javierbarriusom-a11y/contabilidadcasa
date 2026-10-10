@@ -1344,6 +1344,7 @@ const BACKUP_LOCAL_STORES = [
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
+  "payroll-split-drafts", // WP-47: borradores del reparto de la nómina y su lista de transferencias
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
   "investment-policy", // WP-39: la política de inversión del hogar (seis respuestas, firma y fecha de revisión)
@@ -35929,6 +35930,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "deuda-comparar":
       renderDeudaComparar();
       globalThis.renderProximoEuro?.(globalThis.FinanceCanonicalNextEuro); // WP-42 (escalera-ui.js)
+      globalThis.renderNominaReparto?.(globalThis.FinanceCanonicalPayrollSplit); // WP-47 (nomina-ui.js)
       break;
     case "deuda-ruta":
       renderDeudaRuta();

@@ -1,0 +1,146 @@
+/* WP-47 · tarjeta «Repartir la nómina» de Deuda › Comparar. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Reutiliza las clases peu-* de escalera.css
+   para casillas y avisos. Solo usa tokens --e19-*. Rejillas con min-width: 0 y minmax(min(Npx, 100%), 1fr) (el CI mira el desbordamiento a 360 y 768 px). El estado va en TEXTO e icono. */
+.nom-card {
+  margin: 16px 0;
+}
+
+.nom-subtitulo {
+  margin: 14px 0 6px;
+  color: var(--e19-ink);
+}
+
+.nom-fuentes,
+.nom-filas,
+.nom-borradores,
+.nom-transferencias {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.nom-fuentes li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.nom-disponible {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.nom-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.nom-fila.nom-libre {
+  border-left-style: dashed;
+}
+
+.nom-etiqueta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nom-sugerido {
+  font-size: 0.85em;
+}
+
+.nom-control {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.nom-input {
+  flex: 1 1 90px;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  text-align: right;
+}
+
+.nom-paso,
+.nom-secundario {
+  min-height: 44px;
+  border: 1px solid var(--e19-ink);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+.nom-paso {
+  flex: none;
+  min-width: 56px;
+}
+
+.nom-paso:disabled,
+.nom-secundario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nom-importe-fijo {
+  text-align: right;
+}
+
+.nom-estado,
+.nom-nota,
+.nom-cabecera {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+}
+
+.nom-nota {
+  border-left-color: var(--e19-danger);
+  font-weight: 600;
+}
+
+.nom-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.nom-acciones .e19-btn {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.nom-borrador {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-ink);
+}
+
+.nom-borrador p {
+  margin: 0;
+}
+
+.nom-transferencias {
+  gap: 6px;
+}

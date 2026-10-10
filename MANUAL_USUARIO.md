@@ -440,6 +440,21 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Repartir la nómina (Deuda › Comparar)
+
+En **Deuda › Comparar**, bajo «¿Dónde va el próximo euro?», la tarjeta **«Repartir la nómina»** parte de una nómina que **ya hayáis confirmado** (la partida de ingreso con «nómina», «salario» o «sueldo» en el nombre y su importe real registrado este mes) y la reparte según la escalera, **solo con lo que cabe sin que la liquidez baje del suelo** en los próximos 30 días.
+
+- **Disponible para repartir** es lo **menor entre la nómina y la holgura** sobre el suelo de liquidez (Ajustes) en el peor punto de la banda de caja. Si ya estáis en el suelo, dice que hoy no hay nada que repartir. Si no se puede calcular, reparte la nómina entera y lo marca **«sin comprobar»**.
+- **Una fila por peldaño**: colchón, cada deuda, plan de pensiones e inversión por tipo de activo, con lo que sugiere la escalera. Con **−50 / +50** o escribiendo un importe movéis dinero entre esa fila y **«Sin repartir»**: **el total no cambia nunca** ni queda un importe negativo, y cada fila respeta su tope (el saldo de la deuda, el límite anual de la pensión). Lo que no sugiere la escalera se puede añadir, pero queda marcado «distinto de lo sugerido».
+- **«Aplicar»** guarda un **borrador con la lista de transferencias** que tendréis que hacer vosotros en el banco, cada una con su aviso (la comisión de amortización anticipada, que la pensión inmoviliza, que invertir no está garantizado) y una casilla **«hecha»**. **No mueve dinero ni anota nada en vuestras cuentas.** Se puede deshacer, y «Descartar» devuelve la nómina.
+
+Cuatro cosas que conviene saber:
+
+- **No hay aviso al confirmar la nómina**: Hoy está congelado. Hay que abrir esta pantalla.
+- **La banda solo recoge la incertidumbre de las fechas y mira 30 días**: un gasto más caro de lo previsto o un pago grande dentro de seis semanas no entran. Con saldos calculados (no declarados) o con casi todas las fechas estimadas, la holgura es poco fiable y lo dice.
+- **Lo apuntado en un borrador se descuenta del siguiente reparto** hasta que declaréis los saldos después de hacer las transferencias.
+- **La escalera de arriba tiene sus umbrales sin calibrar** (2 puntos de prima, 6 %, 30 % de tipo marginal) y la hoja los deja a un toque: leed el porqué de cada fila antes de aplicar.
+
 ### Patrimonio neto: serie y proyección (Inversión › Cartera)
 
 En **Inversión › Cartera**, sobre la tarjeta de calma, la tarjeta **«Patrimonio neto: serie y proyección»** responde a «¿cuánto tenemos, cómo ha evolucionado y hacia dónde va?». El **patrimonio neto** es **efectivo en cuentas + cartera de inversión + vivienda, local y otros activos − deuda pendiente**. Los activos que hayáis registrado en Activos como **cuenta, inversión o pensión no se suman**: el dinero ya entra por los saldos y por la cartera, y sumarlos lo contaría dos veces. La tarjeta los enumera por si falta alguno.

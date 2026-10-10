@@ -2971,3 +2971,168 @@ test.describe("WP-46 · patrimonio neto: serie y proyección", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-47 (NPV-05): repartir la nómina en un paso, en Deuda › Comparar. Parte de la escalera (WP-42) y de la holgura sobre el suelo (banda de WP-16); los «steppers» mueven dinero con
+// «sin repartir» sin cambiar el total; «Aplicar» solo guarda un borrador con una lista de transferencias (nada se mueve ni se anota). El real de la nómina se registra sobre una fila REAL
+// de la demo; las cifras de la escalera y de la holgura se fijan para que el reparto sea determinista.
+test.describe("WP-47 · reparto de la nómina", () => {
+  const prepare = async (page, { headroom = 1200 } = {}) => {
+    await page.evaluate(({ headroom }) => {
+      globalThis.accountBalancesFromState = () => ({ total: 4000 });
+      globalThis.cuadroMandosReserve = () => 3000;
+      globalThis.canonicalDebtContractRows = () => [
+        { id: "t1", entity: "Tarjeta Ficticia", type: "Tarjeta", paymentStatus: "active", currentPrincipal: 400, apr: 21, fiscalDeductionPct: 0 },
+        { id: "p1", entity: "Préstamo Ficticio", type: "Préstamo", paymentStatus: "active", currentPrincipal: 5000, apr: 3, fiscalDeductionPct: 0 },
+      ];
+      state.fiscalWithholdingRate = 37;
+      state.dividendSpanishSavingsRatePct = 19;
+      // La demo no tiene una partida llamada «nómina»: el reconocimiento por nombre se prueba aparte (unitaria); aquí se reconoce la primera fila de ingresos.
+      const original = window.__nominaConfirmedOriginal || nominaConfirmed;
+      window.__nominaConfirmedOriginal = original;
+      globalThis.nominaConfirmed = (today) => original(today, (label) => /Ingreso Persona A/.test(label));
+      globalThis.nominaHeadroom = () => (headroom === null ? { headroom: null, reason: "no hay movimientos fechados en el plan" } : { headroom, floor: 1500, lowest: 1500 + headroom, staleDays: 0, declared: true, quality: "ok" });
+      const month = monthByKey(isoLocalDate(new Date()).slice(0, 7));
+      const row = planningSectionsForMonth("income", month)[0].rows[0];
+      actualsForKind("income")[actualKeyForRow(row, month)] = 3000;
+      renderNominaReparto(FinanceCanonicalPayrollSplit);
+    }, { headroom });
+  };
+  const open = async (page) => {
+    await page.goto("/index.html#deuda-comparar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#nominaCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const row = (card, id) => card.locator(`[data-nom-row="${id}"]`);
+
+  test("vacío accionable, disponible limitado por el suelo, steppers que conservan el total, topes, restablecer, aplicar guarda solo una lista, hecha, descartar y deshacer, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const body = card.locator("#nominaCuerpo");
+      // Sin nómina confirmada no hay nada que repartir, y se dice cómo se reconoce una.
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Ninguna nómina por repartir");
+      await expect(body).toContainText("«nómina», «salario» o «sueldo»");
+
+      await prepare(page, { headroom: 1200 });
+      await expect(body.locator(".nom-fuentes li")).toHaveCount(1);
+      await expect(body.locator(".nom-fuentes li")).toContainText("3000,00");
+      // Disponible = lo menor entre la nómina y la holgura sobre el suelo; la banda solo recoge fechas.
+      await expect(body.locator(".nom-disponible")).toContainText("Disponible para repartir: 1200,00");
+      await expect(body.locator(".nom-disponible")).toContainText("limitado por el suelo");
+      await expect(body).toContainText("solo caben 1200 € por encima del suelo");
+      await expect(body).toContainText("solo recoge la incertidumbre de las fechas");
+      // Filas de la escalera: la tarjeta cara entera (400) y la pensión con el resto (800); el colchón ya está completo.
+      await expect(row(card, "cushion").locator("input")).toHaveValue("0");
+      await expect(row(card, "debt:t1").locator("input")).toHaveValue("400");
+      await expect(row(card, "pension").locator("input")).toHaveValue("800");
+      await expect(row(card, "debt:p1").locator("input")).toHaveValue("0");
+      await expect(row(card, "debt:p1")).toContainText("la escalera no propone nada aquí");
+      await expect(body.locator(".nom-estado")).toContainText("Repartido todo: 1200,00");
+
+      // Con todo repartido, añadir más no cabe: el aviso lo dice y nada cambia.
+      await row(card, "pension").locator('[data-nom-step="50"]').click();
+      await expect(body.locator(".nom-nota")).toContainText("no queda más por repartir");
+      await expect(row(card, "pension").locator("input")).toHaveValue("800");
+
+      // Quitar 50 de la pensión: 50 quedan sin repartir y el total sigue siendo 1.200.
+      await row(card, "pension").locator('[data-nom-step="-50"]').click();
+      await expect(row(card, "pension").locator("input")).toHaveValue("750");
+      await expect(row(card, "free")).toContainText("50,00");
+      await expect(body.locator(".nom-estado")).toContainText("Quedan 50,00");
+      await expect(row(card, "pension")).toContainText("distinto de lo sugerido (800,00");
+      // El foco no se pierde al repintar.
+      await expect(row(card, "pension").locator('[data-nom-step="-50"]')).toBeFocused();
+      // Un importe escrito con coma española, que no cabe en lo que queda, se recorta.
+      await row(card, "debt:p1").locator("input").fill("1.000,50");
+      await row(card, "debt:p1").locator("input").press("Enter");
+      await expect(row(card, "debt:p1").locator("input")).toHaveValue("50");
+      await expect(body.locator(".nom-nota")).toContainText("no queda más por repartir");
+      await expect(body.locator(".nom-estado")).toContainText("Repartido todo");
+      // Un negativo se deja en 0.
+      await row(card, "debt:p1").locator("input").fill("-20");
+      await row(card, "debt:p1").locator("input").press("Enter");
+      await expect(row(card, "debt:p1").locator("input")).toHaveValue("0");
+      await expect(row(card, "free")).toContainText("50,00");
+
+      // Restablecer vuelve a lo que sugiere la escalera.
+      await card.locator('[data-nom-action="restablecer"]').click();
+      await expect(row(card, "pension").locator("input")).toHaveValue("800");
+      await expect(card.locator('[data-nom-action="restablecer"]')).toBeDisabled();
+
+      // Aplicar: guarda el borrador y la lista; no se mueve dinero ni se anota nada en las cuentas.
+      const before = await page.evaluate(() => ({ transactions: (baseData?.transactions || []).length, actual: actualAwareInfo(planningSectionsForMonth("income", monthByKey(isoLocalDate(new Date()).slice(0, 7)))[0].rows[0], monthByKey(isoLocalDate(new Date()).slice(0, 7))).actual }));
+      await card.locator('[data-nom-action="aplicar"]').click();
+      const draft = body.locator("[data-nom-draft]");
+      await expect(draft).toHaveCount(1);
+      await expect(draft.locator(".nom-transferencias li")).toHaveCount(2);
+      await expect(draft.locator(".nom-transferencias li").first()).toContainText("Amortizar Tarjeta Ficticia");
+      await expect(draft.locator(".nom-transferencias li").first()).toContainText("comisión por amortización anticipada");
+      await expect(draft.locator(".nom-transferencias li").nth(1)).toContainText("Aportar al plan de pensiones");
+      await expect(draft).toContainText("0 de 2 hechas");
+      await expect(draft).toContainText("la app no sabe si la transferencia se hizo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Ninguna nómina por repartir");
+      const after = await page.evaluate(() => ({ transactions: (baseData?.transactions || []).length, actual: actualAwareInfo(planningSectionsForMonth("income", monthByKey(isoLocalDate(new Date()).slice(0, 7)))[0].rows[0], monthByKey(isoLocalDate(new Date()).slice(0, 7))).actual }));
+      expect(after, "Aplicar no anota ningún movimiento ni toca el real de la nómina").toEqual(before);
+
+      // «Hecha» es una casilla del hogar y se recuerda al recargar.
+      await draft.locator("input[data-nom-done]").first().check();
+      await expect(draft).toContainText("1 de 2 hechas");
+      await page.reload();
+      await prepare(page, { headroom: 1200 });
+      await expect(page.locator("[data-nom-draft]")).toContainText("1 de 2 hechas");
+      await expect(page.locator("[data-nom-draft] input[data-nom-done]").first()).toBeChecked();
+
+      // Una segunda nómina (la de otra persona) no vuelve a ofrecer lo ya apuntado: 400 € de la tarjeta se hicieron hoy (los saldos son de hoy: reflejados) y quedan 800 € apuntados.
+      await page.evaluate(() => {
+        const original = window.__nominaConfirmedOriginal;
+        globalThis.nominaConfirmed = (today) => original(today, (label) => /Ingreso Persona/.test(label));
+        const month = monthByKey(isoLocalDate(new Date()).slice(0, 7));
+        actualsForKind("income")[actualKeyForRow(planningSectionsForMonth("income", month)[0].rows[1], month)] = 2000;
+        renderNominaReparto(FinanceCanonicalPayrollSplit);
+      });
+      await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toHaveCount(1);
+      await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toContainText("Ingreso Persona B");
+      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 400,00");
+      await expect(page.locator("#nominaCuerpo")).toContainText("800 € apuntados en borradores abiertos");
+      await prepare(page, { headroom: 1200 });
+
+      // Deshacer el aviso de «Aplicar» no hace falta ya (expiró o se cambió de pantalla): descartar devuelve la nómina y se puede deshacer.
+      await page.locator('[data-nom-action="descartar"]').click();
+      await expect(page.locator("[data-nom-draft]")).toHaveCount(0);
+      await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toHaveCount(1);
+      await page.getByRole("button", { name: "Deshacer" }).click();
+      await expect(page.locator("[data-nom-draft]")).toHaveCount(1);
+      await page.locator('[data-nom-action="descartar"]').click();
+
+      // Apartar una nómina del reparto, con deshacer.
+      await page.locator('[data-nom-action="ocultar"]').click();
+      await expect(page.locator("#nominaCuerpo .nom-fuentes")).toHaveCount(0);
+      await page.getByRole("button", { name: "Deshacer" }).click();
+      await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toHaveCount(1);
+
+      // Sin nada por encima del suelo no hay nada que repartir hoy.
+      await prepare(page, { headroom: -300 });
+      await expect(page.locator("#nominaCuerpo")).toContainText("Hoy no hay nada que repartir");
+      await expect(page.locator("#nominaCuerpo [data-nom-row]")).toHaveCount(0);
+      // Si no se puede calcular la holgura, se reparte la nómina entera pero marcada «sin comprobar».
+      await prepare(page, { headroom: null });
+      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 3000,00");
+      await expect(page.locator("#nominaCuerpo")).toContainText("Sin comprobar");
+
+      expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => /payroll-split-drafts/.test(key)).length)).toBeGreaterThan(0);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});
