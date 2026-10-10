@@ -440,6 +440,17 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Puente de previsión: por qué cambió el fin de año (Plan › Previsión)
+
+En **Plan › Previsión**, bajo el plan B, la tarjeta **«Puente de previsión»** responde a «¿por qué mi fin de año ya no es el que esperábamos?». **En cada cierre del mes** la app **congela cuánto preveía para el 31/12** (la liquidez de las cuentas) y guarda también lo que **realmente** pasó ese mes. Con **dos cierres del mismo año**, compara las dos previsiones y reparte la diferencia en **cinco barras**: **ingresos**, **gasto recurrente**, **extraordinarios**, **deuda y financiaciones** y **otros y supuestos**, con una frase del estilo «Desde septiembre, el fin de 2026 empeora en 1.300 €: 77 % por extraordinarios…». Puedes **elegir con qué cierre anterior comparar** y ver las mismas cifras **como tabla**.
+
+Cuatro cosas que conviene saber:
+
+- **La suma de las barras es siempre la diferencia total.** Lo que la app no sabe atribuir **se ve en «otros y supuestos»**, no se esconde. Si esa barra es grande, no es un fallo del puente: es lo que la previsión no sabe explicar (un traspaso, un saldo mal tecleado, intereses…).
+- **Hace falta cerrar el mes desde la app** (con sesión iniciada): sin cierre no hay foto, y sin dos cierres del mismo año no hay puente. **El primero que podréis ver es el de diciembre**, con los cierres de octubre y noviembre.
+- **La cartera («mercado») no entra**: la previsión de liquidez no la proyecta. Tampoco hay todavía un toque en cada barra para ver las partidas que la explican.
+- **No cambia la previsión**: solo la explica. Un cambio se marca como **relevante** si mueve al menos el 5 % de lo que se preveía.
+
 ### ¿Dónde va el próximo euro? (Deuda › Comparar)
 
 Al principio de **Deuda › Comparar**, la tarjeta **«¿Dónde va el próximo euro?»** reparte un importe (una paga, un sobrante del mes, dinero parado) **en un orden fijo**: **1) colchón** hasta su suelo, **2) deuda con coste alto**, **3) plan de pensiones** si el ahorro fiscal compensa, y **4) lo que sobra**, para invertir. Cada peldaño dice **cuánto, por qué y qué liquidez pierdes**. Marca «ese dinero ya está en mis cuentas» si ya cuenta como liquidez: entonces solo se reparte lo que supera el suelo del colchón.

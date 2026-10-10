@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
     <link rel="stylesheet" href="escalera.css?v=20261010wp42a1" />
+    <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1060,6 +1061,12 @@
                   <p class="e19-kpi-note">Lo que haremos si el mes va mal, <strong>acordado ahora, con calma</strong>: cuándo salta, qué hacer y en qué orden. La app vigila la previsión y, si se cumple, os enseña lo acordado con lo que aporta cada paso. <strong>No hace nada por vosotros</strong>: las decisiones las tomáis las dos personas.</p>
                   <p class="e19-kpi-note" id="planBNota" role="status"></p>
                   <div id="planBCuerpo"></div>
+                </article>
+                <!-- WP-43 (PRV-01, docs/WP43_DISENO.md): puente de previsión, por qué cambió el fin de año. Lo pinta puente-ui.js con canonical-forecast-bridge.js. Solo explica la previsión: no la modifica (A11-4). -->
+                <article class="e19-card pte-card" id="puenteCard" aria-labelledby="puenteTitulo">
+                  <h3 class="escenario-motor-panel-title" id="puenteTitulo">Puente de previsión: por qué cambió el fin de año</h3>
+                  <p class="e19-kpi-note">En cada cierre la app <strong>congela cuánto preveía para el 31/12</strong>. Al cerrar el mes siguiente, compara las dos previsiones y reparte la diferencia en barras: ingresos, gasto recurrente, extraordinarios, deuda y «otros». Lo que la app no sabe atribuir se ve en «otros», no se esconde.</p>
+                  <div id="puenteCuerpo"></div>
                 </article>
                 <p class="e19-kpi-note">Sigue disponible, con más detalle día a día, en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
               </div>
@@ -7945,6 +7952,8 @@
     <script defer src="sombra-ui.js?v=20261010wp41a1"></script>
     <script defer src="canonical-next-euro.js?v=20261010wp42a1"></script>
     <script defer src="escalera-ui.js?v=20261010wp42a1"></script>
+    <script defer src="canonical-forecast-bridge.js?v=20261010wp43a1"></script>
+    <script defer src="puente-ui.js?v=20261010wp43a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

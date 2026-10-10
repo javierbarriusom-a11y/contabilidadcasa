@@ -1340,6 +1340,7 @@ function isActiveInMonth(monthStart, endDate) {
 // decisión del hogar del 24/09/2026). tests/arq6-copia-completa.test.cjs obliga a clasificar aquí, o
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
+  "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
@@ -5179,6 +5180,7 @@ async function closeCurrentMonthTransaction(options = {}) {
     // PVC6: mismo cierre firmado también congela el registro de supuestos de la previsión, para
     // poder compararlo más adelante contra la previsión de un momento futuro.
     recordPvc6ForecastSnapshot(month, closedAt);
+    globalThis.recordPuenteSnapshot?.(month, closedAt); // WP-43 (puente-ui.js)
     renderPvc6SnapshotOptions();
     // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
     // C-13, no toca el RPC transaccional ni el esquema remoto.
@@ -34677,6 +34679,7 @@ function renderPlanPrevision() {
     milestonesEl.innerHTML = planPrevisionHorizonMilestonesHtml(planPrevisionHorizonMilestones(months, liquidityByMonth, floor.value), floor.source);
   }
   globalThis.renderPlanB?.(globalThis.FinanceCanonicalContingencyPlan); // WP-38 (contingencia-ui.js)
+  globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // WP-43 (puente-ui.js)
 }
 
 // P-10: "Descomposición del peor mes" — reutiliza la cascada de A-4 (`analisisCascadaRows`) sobre un

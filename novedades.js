@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp43",
+      fecha: "2026-10-10",
+      texto: "Plan › Previsión › Puente de previsión: cada cierre congela el fin de año y el siguiente explica por qué cambió.",
+      href: "#plan",
+    },
+    {
       id: "2026-10-10-wp42",
       fecha: "2026-10-10",
       texto: "Deuda › Comparar › ¿Dónde va el próximo euro?: colchón, deuda cara, pensión e inversión, en orden y con su porqué.",
