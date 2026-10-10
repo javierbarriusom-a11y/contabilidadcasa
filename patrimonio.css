@@ -1,0 +1,73 @@
+/* WP-46 · tarjeta «Patrimonio neto: serie y proyección» de Inversión › Cartera. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas).
+   Solo usa tokens --e19-*. El estado va en TEXTO, no solo en color. Rejillas con min-width: 0 y minmax(min(150px, 100%), 1fr) (el CI mira el desbordamiento a 360 y 768 px). */
+.pat-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.pat-card h4 {
+  margin: 18px 0 6px;
+  font-size: 1rem;
+}
+
+.pat-cifra {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.pat-aviso {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  border-left-style: double;
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.pat-lista {
+  margin: 6px 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+
+.pat-supuestos {
+  display: grid;
+  gap: 12px;
+  margin: 10px 0;
+  min-width: 0;
+}
+
+.pat-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 10px;
+  min-width: 0;
+  align-items: end;
+}
+
+.pat-fila legend,
+.pat-fila strong {
+  font-weight: 600;
+}
+
+.pat-fila label,
+.pat-fila input {
+  min-width: 0;
+}
+
+.pat-fila input[type="number"],
+.pat-card #patrimonioObjetivo {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#patrimonioError {
+  margin: 4px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-danger);
+  color: var(--e19-ink);
+  font-weight: 600;
+}

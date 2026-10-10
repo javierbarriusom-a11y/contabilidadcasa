@@ -2871,3 +2871,103 @@ test.describe("WP-45 · frescura y cola de tareas de datos", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-46 (NPV-10): patrimonio neto, serie por cierres y proyección en tres escenarios, en Inversión › Cartera. No cambia ningún dato; no supone ningún rendimiento de mercado.
+test.describe("WP-46 · patrimonio neto: serie y proyección", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#patrimonioCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const seed = (page) => page.evaluate(() => {
+    scenarioSettings.assets = [
+      { id: "pat-casa", type: "inmueble", label: "Vivienda de prueba", value: 150000, provenance: "declared" },
+      { id: "pat-cuenta", type: "cuenta", label: "Cuenta vieja", value: 3000, provenance: "declared" },
+    ];
+    scenarioSettings.portfolioPositions = [{ id: "pat-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 18000, currentValue: 20000, asOf: "2026-10-01", acquisitionDate: "2025-01-01", provenance: "declared" }];
+    saveScenarioSettings();
+    globalThis.accountBalancesFromState = () => ({ caixa: 6000, mediolanum: 4000, total: 10000 });
+    globalThis.totalDebtOutstanding = () => 12000;
+    renderPatrimonio(FinanceCanonicalNetWorth);
+    return JSON.stringify(scenarioSettings.portfolioPositions);
+  });
+
+  test("hoy con lo que suma y lo que no, sin serie con menos de 3 cierres, serie con su cambio, proyección que no supone rendimientos, tres escenarios con hitos, valida y persiste, sin tocar datos, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const antes = await seed(page);
+      // Hoy: 10.000 + 20.000 + 150.000 − 12.000; la «Cuenta vieja» (tipo cuenta) no suma porque el efectivo ya entra por los saldos.
+      await expect(card.locator("#patrimonioHoy .pat-cifra")).toContainText("168.000,00 €");
+      await expect(card.locator("#patrimonioHoy")).toContainText("Deuda pendiente");
+      await expect(card.locator("#patrimonioHoy")).toContainText("No sumo");
+      await expect(card.locator("#patrimonioHoy")).toContainText("Cuenta vieja");
+
+      // Serie: sin fotos, con 2 (no es serie) y con 3 (sí).
+      await expect(card.locator("#patrimonioSerie [data-estado=\"vacio\"]")).toContainText("Todavía no hay ninguna foto del patrimonio");
+      const snap = (month, cash) => page.evaluate(({ month, cash }) => recordPatrimonioSnapshot(month, `${month}-28T10:00:00Z`, { total: cash }), { month, cash });
+      expect(await snap("2026-08", 9000)).toBe(true);
+      expect(await snap("2026-09", 9500)).toBe(true);
+      await page.evaluate(() => renderPatrimonio(FinanceCanonicalNetWorth));
+      await expect(card.locator("#patrimonioSerie")).toContainText("Hacen falta 3 cierres completos y llevas 2");
+      await expect(card.locator("#patrimonioSerie .ck-figure")).toHaveCount(0);
+      expect(await snap("2026-10", 10500)).toBe(true);
+      await page.evaluate(() => renderPatrimonio(FinanceCanonicalNetWorth));
+      await expect(card.locator("#patrimonioSerie .ck-frase")).toContainText("Patrimonio neto");
+      await expect(card.locator("#patrimonioSerie .ck-figure")).toHaveCount(1);
+      await expect(card.locator("#patrimonioSerie")).toContainText("Último cambio");
+      await expect(card.locator("#patrimonioSerie")).toContainText("Efectivo en cuentas +");
+      // La foto congela el efectivo REAL del cierre (los saldos guardados), no el de hoy.
+      const store = await page.evaluate(() => patrimonioLoad().snapshots.map((s) => [s.monthKey, s.cash, s.net]));
+      expect(store).toEqual([["2026-10", 10500, 168500], ["2026-09", 9500, 168500 - 1000], ["2026-08", 9000, 168500 - 1500]]);
+
+      // Proyección sin supuestos: nada de rendimientos inventados, y se dice.
+      await expect(card.locator("#patrimonioProyeccion .pat-aviso")).toContainText("Faltan supuestos");
+      await expect(card.locator("#patrimonioProyeccion .ck-frase")).toContainText("los tres escenarios coinciden");
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("Deuda cero");
+
+      // Validación, supuestos de tres escenarios y objetivo.
+      await card.locator("#patrimonioRend-low").fill("80");
+      await card.locator('#patrimonioForm button[type="submit"]').click();
+      await expect(card.locator("#patrimonioError")).toContainText("no es creíble");
+      const set = async (id, value) => { await card.locator(`#${id}`).fill(String(value)); };
+      await set("patrimonioRend-low", 1); await set("patrimonioReval-low", 0);
+      await set("patrimonioRend-base", 4); await set("patrimonioReval-base", 2);
+      await set("patrimonioRend-high", 7); await set("patrimonioReval-high", 4);
+      await set("patrimonioObjetivo", 200000);
+      await card.locator('#patrimonioForm button[type="submit"]').click();
+      await expect(card.locator("#patrimonioError")).toBeHidden();
+      await expect(card.locator("#patrimonioProyeccion .pat-aviso")).toHaveCount(0);
+      await expect(card.locator("#patrimonioProyeccion .ck-frase")).toContainText("estaría entre");
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("Prudente: llega a 200.000,00 €");
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("Optimista: llega a 200.000,00 €");
+      await expect(card.locator("#patrimonioProyeccion .ck-figure")).toHaveCount(1);
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("El abanico es de supuestos tecleados");
+      // Tabla alternativa: un año por fila, 10 años.
+      await card.locator("#patrimonioProyeccion .ck-tabla summary").click();
+      await expect(card.locator("#patrimonioProyeccion .ck-tabla tbody tr")).toHaveCount(10);
+
+      // Persisten tras recargar (y la serie, que está en la misma copia).
+      await page.reload();
+      await expect(page.locator("#patrimonioRend-base")).toHaveValue("4");
+      await expect(page.locator("#patrimonioObjetivo")).toHaveValue("200000");
+      expect(await page.evaluate(() => patrimonioLoad().snapshots.length)).toBe(3);
+
+      // Solo explica: no cambia la cartera ni los activos.
+      expect(await page.evaluate(() => JSON.stringify(scenarioSettings.portfolioPositions))).toBe(antes);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

@@ -63,6 +63,7 @@ function renderInversionCartera() {
   renderInv13DcaTaxProjection();
   syncInv16CorrelationControls();
   renderIvx6GlidePath();
+  globalThis.renderPatrimonio?.(globalThis.FinanceCanonicalNetWorth); // WP-46 (patrimonio-ui.js)
   globalThis.renderCalmaCobertura?.(globalThis.FinanceCanonicalCalmCoverage); // WP-44 (calma-ui.js)
 }
 

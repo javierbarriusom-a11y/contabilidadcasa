@@ -46,6 +46,7 @@
     <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
     <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
+    <link rel="stylesheet" href="patrimonio.css?v=20261010wp46a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2460,6 +2461,42 @@
               <p class="e19-kpi-note">Actualiza el valor de tus posiciones, con la fecha de la valoración. Cada valoración queda en una serie con fecha y se puede deshacer durante 8 segundos.</p>
               <p class="e19-kpi-note" id="valoracionResumen"></p>
               <div class="data-actions"><button type="button" class="e19-btn e19-btn-primary" id="valoracionAbrir">Actualizar valoración</button></div>
+            </article>
+
+            <!-- WP-46 (NPV-10, docs/WP46_DISENO.md): patrimonio neto, su serie por cierres y la proyección en tres escenarios. La pinta patrimonio-ui.js con canonical-net-worth.js. No cambia ningún dato (A11-4). -->
+            <article class="e19-card pat-card" id="patrimonioCard" aria-labelledby="patrimonioTitulo">
+              <h3 class="escenario-motor-panel-title" id="patrimonioTitulo">Patrimonio neto: serie y proyección</h3>
+              <p class="e19-kpi-note">Lo que tenéis menos lo que debéis: <strong>efectivo en cuentas, cartera de inversión, vivienda, local y otros activos, menos la deuda</strong>. En cada cierre la app guarda una foto y, con 3, dibuja la serie. Debajo, una <strong>proyección a 10 años en tres escenarios</strong> que dependen de los supuestos que escribáis: no se supone ningún rendimiento de mercado.</p>
+              <div id="patrimonioCuerpo">
+                <h4>Hoy</h4>
+                <div id="patrimonioHoy"></div>
+                <h4>La serie, cierre a cierre</h4>
+                <div id="patrimonioSerie"></div>
+                <h4>La proyección a 10 años</h4>
+                <div id="patrimonioProyeccion"></div>
+                <form id="patrimonioForm" novalidate>
+                  <div class="pat-supuestos">
+                  <fieldset class="pat-fila">
+                    <legend>Escenario prudente</legend>
+                    <label class="month-picker"><span>Rendimiento de la cartera (% al año)</span><input type="number" id="patrimonioRend-low" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="patrimonioError" /></label>
+                    <label class="month-picker"><span>Revalorización de vivienda y otros activos (% al año)</span><input type="number" id="patrimonioReval-low" min="-50" max="50" step="0.1" inputmode="decimal" /></label>
+                  </fieldset>
+                  <fieldset class="pat-fila">
+                    <legend>Escenario central</legend>
+                    <label class="month-picker"><span>Rendimiento de la cartera (% al año)</span><input type="number" id="patrimonioRend-base" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="patrimonioError" /></label>
+                    <label class="month-picker"><span>Revalorización de vivienda y otros activos (% al año)</span><input type="number" id="patrimonioReval-base" min="-50" max="50" step="0.1" inputmode="decimal" /></label>
+                  </fieldset>
+                  <fieldset class="pat-fila">
+                    <legend>Escenario optimista</legend>
+                    <label class="month-picker"><span>Rendimiento de la cartera (% al año)</span><input type="number" id="patrimonioRend-high" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="patrimonioError" /></label>
+                    <label class="month-picker"><span>Revalorización de vivienda y otros activos (% al año)</span><input type="number" id="patrimonioReval-high" min="-50" max="50" step="0.1" inputmode="decimal" /></label>
+                  </fieldset>
+                  </div>
+                  <label class="month-picker"><span>Objetivo de patrimonio neto (€, opcional)</span><input type="number" id="patrimonioObjetivo" min="0" step="100" inputmode="decimal" /></label>
+                  <p id="patrimonioError" role="alert" hidden></p>
+                  <div><button type="submit" class="e19-btn e19-btn-secondary">Guardar los supuestos</button></div>
+                </form>
+              </div>
             </article>
 
             <!-- WP-44 (CAR-02 + CAR-05 + CAR-06, docs/WP44_DISENO.md): calma en caídas, cobertura del gasto y depósitos por entidad. La pinta calma-ui.js con canonical-calm-coverage.js. Solo enseña cifras: no recomienda vender ni comprar (A11-4). -->
@@ -7989,6 +8026,8 @@
     <script defer src="calma-ui.js?v=20261010wp44a1"></script>
     <script defer src="canonical-data-queue.js?v=20261010wp45a1"></script>
     <script defer src="datos-ui.js?v=20261010wp45a1"></script>
+    <script defer src="canonical-net-worth.js?v=20261010wp46a1"></script>
+    <script defer src="patrimonio-ui.js?v=20261010wp46a1"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
     <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>

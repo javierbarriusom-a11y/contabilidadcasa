@@ -440,6 +440,20 @@ Tres cosas que conviene saber:
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
 
+### Patrimonio neto: serie y proyección (Inversión › Cartera)
+
+En **Inversión › Cartera**, sobre la tarjeta de calma, la tarjeta **«Patrimonio neto: serie y proyección»** responde a «¿cuánto tenemos, cómo ha evolucionado y hacia dónde va?». El **patrimonio neto** es **efectivo en cuentas + cartera de inversión + vivienda, local y otros activos − deuda pendiente**. Los activos que hayáis registrado en Activos como **cuenta, inversión o pensión no se suman**: el dinero ya entra por los saldos y por la cartera, y sumarlos lo contaría dos veces. La tarjeta los enumera por si falta alguno.
+
+- **La serie.** **En cada cierre del mes** la app guarda una **foto del patrimonio** con el efectivo real de ese cierre. Con **3 cierres completos** dibuja la serie (con recorrido táctil y «Ver como tabla») y dice **de dónde viene el último cambio**: efectivo, cartera, activos o deuda. Con menos de 3 enseña las fotos que hay.
+- **La proyección a 10 años** en **tres escenarios** (prudente, central y optimista) que dependen de **lo que escribáis**: el rendimiento de la cartera y la revalorización de la vivienda y otros activos, en % al año. La liquidez es la de la previsión y la deuda sigue su calendario. Marca cuándo llega la **deuda cero**, cuándo el patrimonio **deja de ser negativo** y cuándo alcanza un **objetivo** que tecleéis.
+
+Cuatro cosas que conviene saber:
+
+- **No se supone ningún rendimiento de mercado.** Lo que no declaréis se mantiene en 0 % y lo dice; con los tres escenarios sin rellenar, coinciden.
+- **El abanico es de supuestos tecleados, no un intervalo de probabilidad.** Con un 7 % optimista, casi cualquier objetivo parece alcanzable.
+- **Hace falta cerrar el mes desde la app**: sin cierre no hay foto. **La primera serie aparece con el tercer cierre** (octubre, noviembre y diciembre → enero).
+- **«Deuda cero» no se puede decir mientras haya deuda sin calendario** (sin TAE o plazo en Contratos): esa parte se mantiene.
+
 ### Frescura de tus datos y qué hacer primero (Registrar › Saldos)
 
 Al final de **Registrar › Saldos**, bajo el pulso de saldos, la tarjeta **«Frescura de tus datos y qué hacer primero»** enseña **seis fuentes con su edad**, con **icono y texto, no solo color** (✓ al día · ◐ reciente · ⚠ antiguo · ? sin dato): los **saldos**, el **último movimiento importado**, la **valoración de la cartera**, los **índices de referencia** (Euribor, €STR, IPC), el **último cierre de mes** y los **cobros y cargos esperados sin responder**. Cada una te lleva a la pantalla donde se arregla.

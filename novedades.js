@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp46",
+      fecha: "2026-10-10",
+      texto: "Inversión › Cartera › Patrimonio neto: la serie por cierres y la proyección a 10 años en tres escenarios, con vuestros supuestos.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-10-wp45",
       fecha: "2026-10-10",
       texto: "Registrar › Saldos › Frescura de tus datos: la edad de cada fuente y qué tarea quita más incertidumbre por minuto.",

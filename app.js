@@ -1341,6 +1341,7 @@ function isActiveInMonth(monthStart, endDate) {
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
   "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
+  "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
@@ -5194,6 +5195,7 @@ async function closeCurrentMonthTransaction(options = {}) {
     recordIv1ValuationSnapshot(month, closedAt);
     renderIv1ValuationHistoryNote();
     const closeBalances = recordMonthCloseBalances(month, closedAt);
+    globalThis.recordPatrimonioSnapshot?.(month, closedAt, closeBalances); // WP-46 (patrimonio-ui.js)
     saveLocalSnapshot();
     refreshReconciliationView();
     if (qs("conciliarTitle")) renderConciliar();
