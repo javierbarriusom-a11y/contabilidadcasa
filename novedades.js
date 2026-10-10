@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-10-wp44",
+      fecha: "2026-10-10",
+      texto: "Inversión › Cartera › Calma, cobertura y exposición: la caída desde el máximo, qué parte del gasto pagan los activos y depósitos.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-10-wp43",
       fecha: "2026-10-10",
       texto: "Plan › Previsión › Puente de previsión: cada cierre congela el fin de año y el siguiente explica por qué cambió.",

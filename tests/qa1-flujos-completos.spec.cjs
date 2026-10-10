@@ -2697,3 +2697,91 @@ test.describe("WP-43 · puente de previsión", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-44 (CAR-02 + CAR-05 + CAR-06): calma en caídas, cobertura del gasto y depósitos por entidad, en Inversión › Cartera. Solo enseña cifras: no toca la cartera ni recomienda nada.
+test.describe("WP-44 · calma, cobertura y exposición", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#calmaCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+
+  test("sin serie lo dice, mide la caída en mercado (no una aportación), cobertura con lo declarado, depósitos con titulares, valida la tasa, persiste, sin tocar la cartera, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      await expect(card.locator("#calmaCaida [data-estado=\"vacio\"]")).toContainText("Todavía no hay serie para medir una caída");
+      await expect(card.locator("#calmaCaida")).toContainText("llevas 0");
+      await expect(card.locator("#calmaCobertura")).toContainText("Todavía no puedo calcular");
+      await expect(card.locator("#calmaCobertura")).toContainText("tasa de retirada");
+
+      // Validación de la tasa y persistencia de lo tecleado.
+      await card.locator("#calmaTasa").fill("20");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaError")).toContainText("entre 0 y 15");
+      await card.locator("#calmaTasa").fill("4");
+      await card.locator("#calmaTitulares-caixa").fill("2");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaError")).toBeHidden();
+      await page.reload();
+      await expect(page.locator("#calmaTasa")).toHaveValue("4");
+      await expect(page.locator("#calmaTitulares-caixa")).toHaveValue("2");
+
+      // Una cartera con tres valoraciones: 1.000 → 1.200 tras aportar 300 (el mercado hizo −100) → 700. Desde el máximo, el mercado resta 600 (60 %), no 500 (41,7 %) desde 1.200.
+      const antes = await page.evaluate(() => {
+        const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+        scenarioSettings.portfolioPositions = [{ id: "cal-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: 700, asOf: iso(-10), acquisitionDate: iso(-400), provenance: "declared", contributions: [{ id: "c1", date: iso(-55), amount: 300, quantity: 0 }] }];
+        scenarioSettings.assets = [{ id: "cal-local", type: "inmueble", label: "Local de prueba", value: 100000, monthlyRentIncome: 300, provenance: "declared" }];
+        saveScenarioSettings();
+        savePortfolioValuations({ valuations: [
+          { date: iso(-100), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1000, cost: 1000 }] },
+          { date: iso(-40), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1200, cost: 1300 }] },
+          { date: iso(-10), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 700, cost: 1300 }] },
+        ], timings: [] });
+        globalThis.accountBalancesFromState = () => ({ caixa: 150000, mediolanum: 90000, total: 240000 });
+        renderCalmaCobertura(FinanceCanonicalCalmCoverage);
+        return JSON.stringify(scenarioSettings.portfolioPositions);
+      });
+      await expect(card.locator("#calmaCaida .cal-cifra")).toContainText("ha restado 600,00 €");
+      await expect(card.locator("#calmaCaida .cal-cifra")).toContainText("60 %");
+      await expect(card.locator("#calmaCaida")).toContainText("12 meses de aportación");
+      await expect(card.locator("#calmaCaida")).toContainText("la media de lo aportado en los últimos 6 meses");
+      await expect(card.locator("#calmaCaida")).toContainText("hablarlo las dos personas");
+      await expect(card.locator("#calmaCaida")).toContainText("Habéis aportado 1300,00 €");
+      await expect(card.locator("#calmaCaida")).toContainText("no tengo una fuente histórica verificada");
+
+      // Cobertura: alquiler declarado + 4 % de la cartera líquida (700 €); los dividendos no se suman.
+      await expect(card.locator("#calmaCobertura .cal-cifra")).toContainText("pagan ya el");
+      await expect(card.locator("#calmaCobertura .cal-lista")).toContainText("Alquiler neto");
+      await expect(card.locator("#calmaCobertura .cal-lista")).toContainText("Retirada sostenible");
+      await expect(card.locator("#calmaCobertura")).toContainText("Los dividendos no se suman aparte");
+
+      // Depósitos: 150.000 € en CaixaBank con 2 titulares queda dentro de lo cubierto; 90.000 € en la otra, por debajo del límite individual.
+      await expect(card.locator("#calmaDepositos")).toContainText("dentro de lo cubierto para 2 titulares");
+      await expect(card.locator("#calmaDepositos")).toContainText("por debajo del límite individual");
+      await card.locator("#calmaTitulares-caixa").fill("1");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaDepositos")).toContainText("50.000,00 € por encima de lo cubierto");
+      await card.locator("#calmaTitulares-caixa").fill("");
+      await card.locator('#calmaForm button[type="submit"]').click();
+      await expect(card.locator("#calmaDepositos")).toContainText("no sé cuántos titulares");
+
+      // Solo enseña cifras: la cartera no cambia, y no hay botones de vender ni comprar en la tarjeta.
+      expect(await page.evaluate(() => JSON.stringify(scenarioSettings.portfolioPositions))).toBe(antes);
+      await expect(card.getByRole("button", { name: /vender|comprar/i })).toHaveCount(0);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});
