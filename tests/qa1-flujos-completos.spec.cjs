@@ -2598,3 +2598,102 @@ test.describe("WP-42 · escalera del próximo euro", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-43 (PRV-01): puente de previsión, en Plan › Previsión. En cada cierre se congela la previsión a 31/12; con dos cierres de un mismo año, la diferencia se reparte en una cascada que
+// siempre cuadra. No modifica la previsión.
+test.describe("WP-43 · puente de previsión", () => {
+  const openPrevision = async (page) => {
+    await page.goto("/index.html#plan");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const card = page.locator("#puenteCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+
+  test("vacío, congela la previsión real a 31/12, falta un segundo cierre, cascada que cuadra, comparar con otro cierre, tabla, sin tocar la previsión, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await openPrevision(page);
+      const body = card.locator("#puenteCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Todavía no hay ninguna previsión congelada");
+      const fingerprintAntes = await page.evaluate(() => canonicalScenarioResults.base.forecast.fingerprint);
+
+      // Congelar de verdad con la previsión de la app: la foto coincide con la liquidez de diciembre de la serie.
+      const frozen = await page.evaluate(() => {
+        const series = canonicalScenarioResults.base.forecast.series;
+        const year = Number(series[0].monthKey.slice(0, 4));
+        const closed = `${year}-09`;
+        const ok = recordPuenteSnapshot(closed, `${year}-10-02T10:00:00Z`);
+        renderPuentePrevision(FinanceCanonicalForecastBridge);
+        const store = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => /forecast-bridge-snapshots/.test(key))) || "[]");
+        return { ok, year, store, decemberLiquidity: series.find((row) => row.monthKey === `${year}-12`).totals.closingLiquidity };
+      });
+      expect(frozen.ok).toBe(true);
+      expect(frozen.store).toHaveLength(1);
+      expect(frozen.store[0].yearEndLiquidity).toBe(frozen.decemberLiquidity);
+      expect(frozen.store[0].months.map((m) => m.monthKey)).toEqual([`${frozen.year}-10`, `${frozen.year}-11`, `${frozen.year}-12`]);
+      await expect(body).toContainText("preveíais acabar");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("Falta un segundo cierre");
+
+      // Un segundo cierre del mismo año (previsión algo peor: un extraordinario nuevo en diciembre y menos ingresos en noviembre) → la cascada.
+      await page.evaluate(() => {
+        const engine = FinanceCanonicalForecastBridge;
+        const series = JSON.parse(JSON.stringify(canonicalScenarioResults.base.forecast.series));
+        const year = Number(series[0].monthKey.slice(0, 4));
+        let shift = 0;
+        series.forEach((row) => {
+          if (row.monthKey === `${year}-11`) { row.totals.income -= 300; row.components.income.recurrence -= 300; shift -= 300; }
+          if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += 1000; row.components.outflow.project = 1000; shift -= 1000; }
+          if (row.monthKey >= `${year}-11`) row.totals.closingLiquidity += shift;
+        });
+        const result = engine.freezeYearEnd({ monthKey: `${year}-10`, closedAt: `${year}-11-02T10:00:00Z`, series, actuals: { income: 5000, recurring: 4250, debt: 480 } });
+        puenteSave(engine.upsert(puenteLoad(), result.snapshot));
+        renderPuentePrevision(engine);
+      });
+      await expect(body.locator(".pte-frase")).toContainText("empeora");
+      await expect(body.locator(".pte-frase")).toContainText("por extraordinarios");
+      await expect(body.locator(".pte-aviso")).toContainText("Cambio relevante");
+      await expect(body.locator(".analisis-cascada-row")).toHaveCount(7); // cinco causas + el total (A-4 lo pinta dentro de un contenedor que también es una fila)
+      await expect(body.locator(".pte-cascada")).toContainText("Extraordinarios");
+      await expect(body.locator(".pte-cascada")).toContainText("Otros y supuestos");
+      await expect(body.locator(".pte-notas")).toContainText("cartera");
+      // La tabla equivalente suma lo mismo que el total.
+      await body.locator(".pte-tabla summary").click();
+      const filas = await body.locator(".pte-tabla tbody tr").allInnerTexts();
+      expect(filas).toHaveLength(6);
+      expect(filas.at(-1)).toContain("Total");
+      expect(filas.at(-1)).toContain("1300,00");
+      expect(filas.at(-1)).toContain("−");
+
+      // Un tercer cierre (anterior) permite elegir con cuál comparar.
+      await page.evaluate(() => {
+        const engine = FinanceCanonicalForecastBridge;
+        const series = canonicalScenarioResults.base.forecast.series;
+        const year = Number(series[0].monthKey.slice(0, 4));
+        const result = engine.freezeYearEnd({ monthKey: `${year}-08`, closedAt: `${year}-09-02T10:00:00Z`, series: [{ ...series[0], monthKey: `${year}-09` }, ...series] });
+        puenteSave(engine.upsert(puenteLoad(), result.snapshot));
+        renderPuentePrevision(engine);
+      });
+      await expect(body.locator("#puenteComparar")).toBeVisible();
+      await expect(body.locator("#puenteComparar option")).toHaveCount(2);
+      await body.locator("#puenteComparar").selectOption({ index: 1 });
+      await expect(body.locator(".pte-frase")).toContainText("Desde agosto");
+      await expect(body.locator(".pte-notas")).toContainText("hay cierres sin foto");
+
+      // Explicar no cambia la previsión.
+      expect(await page.evaluate(() => canonicalScenarioResults.base.forecast.fingerprint)).toBe(fingerprintAntes);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

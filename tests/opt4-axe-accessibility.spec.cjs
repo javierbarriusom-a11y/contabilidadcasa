@@ -646,3 +646,51 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-43: la tarjeta «Puente de previsión» de Plan › Previsión, en claro y en oscuro: vacía, con un solo cierre, con la cascada (relevante y pequeña) y con la tabla abierta.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-43 · contraste del puente de previsión en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#plan");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const card = page.locator("#puenteCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#puenteCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await expect(card.locator("#puenteCuerpo")).toContainText("Todavía no hay ninguna previsión congelada");
+      await revisar("vacía");
+      const freezeWith = (month, tweak) => page.evaluate(({ month, tweak }) => {
+        const engine = FinanceCanonicalForecastBridge;
+        const series = JSON.parse(JSON.stringify(canonicalScenarioResults.base.forecast.series));
+        const year = Number(series[0].monthKey.slice(0, 4));
+        let shift = 0;
+        if (tweak) series.forEach((row) => {
+          if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += tweak; row.components.outflow.project = tweak; shift -= tweak; }
+          if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+        });
+        const result = engine.freezeYearEnd({ monthKey: `${year}-${month}`, closedAt: `${year}-${month}-28T10:00:00Z`, series, actuals: { income: 5000, recurring: 4250, debt: 480 } });
+        puenteSave(engine.upsert(puenteLoad(), result.snapshot));
+        renderPuentePrevision(engine);
+      }, { month, tweak });
+      await freezeWith("08", 0);
+      await expect(card.locator('[data-estado="vacio"]')).toContainText("Falta un segundo cierre");
+      await revisar("un solo cierre");
+      await freezeWith("09", 1000);
+      await expect(card.locator(".pte-frase")).toBeVisible();
+      await revisar("cascada relevante");
+      await card.locator(".pte-tabla summary").click();
+      await revisar("tabla abierta");
+      await freezeWith("10", 1000);
+      await expect(card.locator(".pte-frase")).toContainText("no cambia");
+      await revisar("sin cambio");
+    });
+  });
+}
