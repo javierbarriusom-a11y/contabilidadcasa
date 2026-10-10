@@ -794,3 +794,56 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-46: la tarjeta «Patrimonio neto: serie y proyección» de Inversión › Cartera, en claro y en oscuro: sin cierres, con 2, con la serie, con la proyección sin supuestos y con los tres escenarios y la tabla abierta.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-46 · contraste del patrimonio neto en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Cartera: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#patrimonioCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#patrimonioCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await page.evaluate(() => {
+        scenarioSettings.assets = [{ id: "pat-casa", type: "inmueble", label: "Vivienda de prueba", value: 150000, provenance: "declared" }, { id: "pat-cuenta", type: "cuenta", label: "Cuenta vieja", value: 3000, provenance: "declared" }];
+        scenarioSettings.portfolioPositions = [{ id: "pat-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 18000, currentValue: 20000, asOf: "2026-10-01", acquisitionDate: "2025-01-01", provenance: "declared" }];
+        saveScenarioSettings();
+        globalThis.accountBalancesFromState = () => ({ caixa: 6000, mediolanum: 4000, total: 10000 });
+        globalThis.totalDebtOutstanding = () => 12000;
+        renderPatrimonio(FinanceCanonicalNetWorth);
+      });
+      await expect(card.locator("#patrimonioSerie")).toContainText("Todavía no hay ninguna foto");
+      await revisar("sin cierres");
+      const snap = (month, cash) => page.evaluate(({ month, cash }) => { recordPatrimonioSnapshot(month, `${month}-28T10:00:00Z`, { total: cash }); renderPatrimonio(FinanceCanonicalNetWorth); }, { month, cash });
+      await snap("2026-08", 9000);
+      await snap("2026-09", 9500);
+      await expect(card.locator("#patrimonioSerie")).toContainText("llevas 2");
+      await revisar("con 2 cierres");
+      await snap("2026-10", 10500);
+      await expect(card.locator("#patrimonioSerie .ck-figure")).toHaveCount(1);
+      await expect(card.locator("#patrimonioProyeccion .pat-aviso")).toBeVisible();
+      await revisar("serie y proyección sin supuestos");
+      const set = (id, value) => card.locator(`#${id}`).fill(String(value));
+      await set("patrimonioRend-low", 1); await set("patrimonioReval-low", 0);
+      await set("patrimonioRend-base", 4); await set("patrimonioReval-base", 2);
+      await set("patrimonioRend-high", 7); await set("patrimonioReval-high", 4);
+      await set("patrimonioObjetivo", 200000);
+      await card.locator('#patrimonioForm button[type="submit"]').click();
+      await expect(card.locator("#patrimonioProyeccion .ck-frase")).toContainText("estaría entre");
+      await card.locator("#patrimonioProyeccion .ck-tabla summary").click();
+      await revisar("tres escenarios y tabla abierta");
+      await card.locator("#patrimonioRend-low").fill("80");
+      await card.locator('#patrimonioForm button[type="submit"]').click();
+      await expect(card.locator("#patrimonioError")).toBeVisible();
+      await revisar("con error de validación");
+    });
+  });
+}
