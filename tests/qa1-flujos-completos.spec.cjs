@@ -3525,3 +3525,94 @@ test.describe("WP-50 · vivienda y local por índice", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-51 (ND-04): perfiles de extracto con autodetección, en Registrar › Importar extracto. Un CSV con filas de título y fechas ambiguas se lee sin exigir el formato de siempre; el panel dice lo que se dedujo y
+// avisa de lo que no se sabe; corregirlo rehace la lectura; un perfil guardado se aplica solo la vez siguiente; un fichero sin cabecera falla con motivo y se rescata indicando las columnas; las filas
+// que no se pueden leer salen con su número y no se importan; el diagnóstico copiable no lleva el contenido.
+test.describe("WP-51 · perfiles de extracto", () => {
+  const abrir = async (page) => {
+    await page.goto("/index.html#registrar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await page.click('[data-registrar-tab="import"]');
+    await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
+  };
+  const subir = (page, name, text) => page.setInputFiles("#registrarImportFileInput", { name, mimeType: "text/csv", buffer: Buffer.from(text) });
+  const TITULADO = "Movimientos de la cuenta\nConsulta;11/10/2026\n\nFecha;Concepto;Importe;Saldo\n03/04/2026;SUPER SECRETO-A;-10,00;90,00\n05/06/2026;RECIBO B;-5,00;85,00\n07/06/2026;NOMINA C;1.000,00;1.085,00\n";
+
+  test("fichero con título y fechas ambiguas: se lee, avisa, se corrige, se guarda como perfil y se reconoce al volver", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await abrir(page);
+      await subir(page, "extracto-titulado.csv", TITULADO);
+      const panel = page.locator("#registrarImportPanel .epf");
+      await expect(panel).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
+      await expect(panel).toContainText("3 movimiento(s) leídos");
+      await expect(panel).toContainText("Ninguna fecha decide entre día/mes y mes/día");
+      await expect(panel.locator(".epf-previa tbody tr")).toHaveCount(3);
+      await expect(page.locator("#registrarImportPanel")).toContainText("del 03/04/2026 al 07/06/2026");
+      // Corregir: mes/día/año → las fechas cambian y el aviso desaparece.
+      await panel.locator('[data-epf-ajuste="dateOrder"]').selectOption("MDY");
+      await expect(page.locator("#registrarImportPanel")).toContainText("del 04/03/2026 al 06/07/2026");
+      await expect(page.locator("#registrarImportPanel .epf")).not.toContainText("Ninguna fecha decide");
+      // Guardar el perfil.
+      await page.locator("#registrarImportPanel .epf [data-epf-guardar] input[name=nombre]").fill("Mi banco");
+      await page.locator("#registrarImportPanel .epf [data-epf-guardar] button").click();
+      await expect(page.locator("#registrarImportPanel .epf-perfiles")).toContainText("Mi banco");
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("statement-profiles-data"))).profiles[0].dateOrder)).toBe("MDY");
+      // El contenido del extracto no se guarda en ningún almacén.
+      expect(await page.evaluate(() => Object.keys(localStorage).some((k) => (localStorage.getItem(k) || "").includes("SUPER SECRETO-A") && /statement-profiles/.test(k)))).toBe(false);
+      // Otro fichero con la misma cabecera: el perfil se aplica solo y no hay aviso de ambigüedad.
+      await page.click("#registrarImportReplaceFile");
+      await subir(page, "otro-mes.csv", TITULADO.replace("SUPER SECRETO-A", "OTRO"));
+      await expect(page.locator("#registrarImportPanel .epf")).toContainText("Perfil aplicado: Mi banco");
+      await expect(page.locator("#registrarImportPanel")).toContainText("del 04/03/2026 al 06/07/2026");
+      // Con el perfil aplicado y nada que avisar, el panel va cerrado (no estorba); se abre para copiar el diagnóstico: sin contenido.
+      await expect(page.locator("#registrarImportPanel .epf")).not.toHaveAttribute("open", "");
+      await page.locator("#registrarImportPanel .epf > summary").click();
+      await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error("sin portapapeles")); });
+      await page.locator("#registrarImportPanel .epf [data-epf-copiar]").click();
+      const diag = await page.locator("#registrarImportPanel .epf-diagnostico").inputValue();
+      expect(diag).toContain("Diagnóstico de lectura de extracto");
+      expect(diag).not.toContain("OTRO");
+      expect(diag).not.toContain("NOMINA");
+      // Quitar el perfil se deshace.
+      await page.locator("#registrarImportPanel .epf [data-epf-borrar]").click();
+      await expect(page.locator("#registrarImportPanel .epf-perfiles")).toHaveCount(0);
+      await page.click("#undoToastButton");
+      await expect(page.locator("#registrarImportPanel .epf-perfiles")).toContainText("Mi banco");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("sin cabecera: falla con motivo, enseña las filas, se rescata indicando las columnas; las filas rotas salen con su número", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await abrir(page);
+    await subir(page, "sin-cabecera.csv", "25/09/2026;SUPER;-12,50;100,00\n26/09/2026;LUZ;-60,00;40,00\n27/09/2026;ROTO;12abc;40,00\n28/09/2026;NOMINA;1.800,00;1.840,00\n");
+    const panel = page.locator("#registrarImportPanel .epf");
+    await expect(panel).toBeVisible({ timeout: 15000 });
+    await expect(panel).toContainText("No he podido leer el fichero");
+    await expect(panel.locator('[role="alert"]').first()).toBeVisible();
+    await expect(panel.locator(".epf-previa tbody tr")).toHaveCount(4);
+    for (const [index, role] of [[0, "date"], [1, "movement"], [2, "amount"], [3, "balance"]]) {
+      await panel.locator(`[data-epf-ajuste="col-${index}"]`).selectOption(role);
+      if (index < 3) await expect(page.locator(`#registrarImportPanel [data-epf-ajuste="col-${index + 1}"]`)).toBeVisible();
+    }
+    await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("Fila 3: importe no reconocido");
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("1 fila(s) sin leer");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, "sin desbordar a 390 px").toBeLessThanOrEqual(1);
+    expect(pageErrors).toEqual([]);
+  });
+});

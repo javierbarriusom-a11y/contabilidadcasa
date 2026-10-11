@@ -1341,6 +1341,7 @@ function isActiveInMonth(monthStart, endDate) {
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
   "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
+  "statement-profiles-data", // WP-51: perfiles de lectura de extracto con nombre (separador, decimal, fechas, columnas) guardados por el hogar
   "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
@@ -24046,49 +24047,13 @@ function datosImportarImpactRows(rows) {
   return impact.sort((a, b) => Math.abs(b.desviacion) - Math.abs(a.desviacion));
 }
 
-// Interpreta un CSV de movimientos con las mismas cabeceras que la hoja Movimientos_cuenta del
-// libro Excel (Fecha, Movimiento, Importe, Saldo, y opcionalmente Fecha valor / Más datos), para
-// que el paso 1 acepte tanto el volcado del banco en Excel como en CSV.
-function movementCsvHeaderKey(value) {
-  const text = normalizedText(value).replace(/[^a-z0-9]/g, "");
-  const aliases = {
-    fechavalor: "valueDate", masdatos: "details", masinformacion: "details", detalle: "details",
-    concepto: "movement", movimiento: "movement", importe: "amount", saldo: "balance", fecha: "date",
-  };
-  return aliases[text] || text;
-}
-
-function parseMovementsFromCsvText(text) {
-  const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
-  const headers = splitDataLine(lines[0]).map(movementCsvHeaderKey);
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cells = splitDataLine(line);
-      const record = headers.reduce((acc, header, index) => {
-        acc[header] = cells[index] ?? "";
-        return acc;
-      }, {});
-      const date = isoFromWorkbookValue(record.date);
-      const amount = parseAmount(record.amount);
-      if (!date || !record.movement || amount === null) return null;
-      const transaction = {
-        date,
-        valueDate: isoFromWorkbookValue(record.valueDate) || date,
-        movement: String(record.movement),
-        details: String(record.details || ""),
-        amount: round2(amount),
-        balance: parseAmount(record.balance),
-        category: "",
-        source: "csv",
-        statementOrder: 0,
-        month: date.slice(0, 7),
-      };
-      transaction.category = classifyTransaction(transaction);
-      return transaction;
-    })
-    .filter(Boolean);
+// WP-51: la lectura del CSV (separador, decimal, fechas, columnas, filas con error) vive en canonical-statement-profiles.js; aquí solo se completa cada movimiento leído con lo que añade la app.
+function movementsFromStatementRows(rows) {
+  return rows.map((row) => {
+    const transaction = { ...row, category: "", source: "csv", statementOrder: 0, month: row.date.slice(0, 7) };
+    transaction.category = classifyTransaction(transaction);
+    return transaction;
+  });
 }
 
 // Rango de fechas y cuenta detectados en el fichero, para el aviso de mes cerrado y la ficha del
@@ -24295,6 +24260,7 @@ async function handleDatosImportarFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+  if (isExcel) extractoPerfilesOlvidar();
   let transactions = [];
   try {
     if (isExcel) {
@@ -24305,7 +24271,9 @@ async function handleDatosImportarFile(event) {
       const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
       transactions = loadTransactionsFromWorkbook(workbook);
     } else {
-      transactions = parseMovementsFromCsvText(await file.text());
+      const lectura = extractoPerfilesLeer(file, new Uint8Array(await file.arrayBuffer()), globalThis.FinanceCanonicalStatementProfiles);
+      transactions = movementsFromStatementRows(lectura.transactions);
+      if (!transactions.length) { datosImportarSession = null; datosImportarClearDraft(); renderDatosImportar(); return; } // el panel de lectura explica por qué
     }
   } catch (error) {
     datosImportarShowStep1Note(`No se pudo leer el fichero: ${error.message}`, true);
@@ -24322,6 +24290,9 @@ async function handleDatosImportarFile(event) {
   const hash = datosImportarContentHash(JSON.stringify(transactions));
   const repeated = datosImportarFindAppliedHash(hash);
   const rows = datosImportarBuildRows(transactions);
+  // WP-51: corregir la lectura rehace la sesión desde el paso 1; la entrada anterior de la bandeja (misma lectura, peor) se descarta y la cuenta ya elegida se conserva.
+  const previous = datosImportarSession;
+  if (previous?.inboxItem) dataInbox = dataInbox.map((item) => item.id === previous.inboxItem.id && ["draft", "ready", "blocked"].includes(item.status) ? E11bInbox.transition(item, "discarded") : item);
   const inboxItem = addE11bInboxItem({
     source: isExcel ? "excel-workbook" : "csv",
     fileName: file.name,
@@ -24340,6 +24311,7 @@ async function handleDatosImportarFile(event) {
       sourceLabel: file.name,
       hash,
       repeated: repeated ? { fileName: repeated.fileName, appliedAt: repeated.appliedAt } : null,
+      ...(previous?.fileMeta?.fileName === file.name && previous.fileMeta.bankAccount ? { bankAccount: previous.fileMeta.bankAccount } : {}),
     },
     inboxItem,
     rows,
@@ -24355,11 +24327,12 @@ function datosImportarStep1Markup() {
     return `<div class="e19-card datos-importar-upload">
       <label class="datos-importar-file-label" for="${target.fileInputId}">
         <strong>Cargar extracto</strong>
-        <span>CSV o Excel con Fecha, Movimiento, Importe y Saldo — el mismo formato que ya lee el importador de movimientos.</span>
+        <span>CSV o Excel con fecha, concepto, importe (o debe/haber) y, si lo hay, saldo. En CSV se deducen solos el separador, los decimales, las fechas y las columnas.</span>
       </label>
-      <input type="file" id="${target.fileInputId}" accept=".csv,.xlsx,.xls" />
+      <input type="file" id="${target.fileInputId}" accept=".csv,.txt,.xlsx,.xls" />
       <p class="e19-kpi-note" id="${target.step1NoteId}"></p>
-    </div>`;
+    </div>
+    <div id="extractoPerfilesPanel">${extractoPerfilesHtml()}</div>`;
   }
   const summary = datosImportarFileSummary(session.rows.map((row) => row.transaction), session.fileMeta.sourceLabel);
   const counters = datosImportarCounters(session.rows);
@@ -24392,7 +24365,8 @@ function datosImportarStep1Markup() {
       <div><strong>${counters.posiblesDuplicados}</strong><span>posibles duplicados</span></div>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${target.replaceFileId}">Cambiar de fichero</button>
-  </div>`;
+  </div>
+  <div id="extractoPerfilesPanel">${extractoPerfilesHtml()}</div>`;
 }
 
 function handleDatosImportarAccountChange() {
@@ -24406,6 +24380,7 @@ function datosImportarWireStep1() {
   const target = datosImportarTarget();
   qs(target.fileInputId)?.addEventListener("change", handleDatosImportarFile);
   qs(target.replaceFileId)?.addEventListener("click", () => {
+    extractoPerfilesOlvidar();
     datosImportarSession = null;
     datosImportarClearDraft();
     renderDatosImportar();

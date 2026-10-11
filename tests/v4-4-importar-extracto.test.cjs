@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const profiles = require("../canonical-statement-profiles.js"); // WP-51: la lectura del CSV vive en el motor puro
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -119,12 +120,11 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
     extractFunction("datosImportarSessionMappingsDelta"),
     extractFunction("datosImportarComputeActuals"),
     extractFunction("datosImportarImpactRows"),
-    extractFunction("movementCsvHeaderKey"),
     extractFunction("splitDataLine"),
     extractFunction("parseAmount"),
     extractFunction("isoFromWorkbookValue"),
     extractFunction("classifyTransaction"),
-    extractFunction("parseMovementsFromCsvText"),
+    extractFunction("movementsFromStatementRows"),
     extractFunction("datosImportarFileSummary"),
   ].forEach((source) => vm.runInContext(source, context));
   return { context, storage, incomeActuals, expenseActuals };
@@ -328,7 +328,7 @@ test("V4-4 · el CSV de movimientos se interpreta con las mismas cabeceras que l
     "01/08/2026;NOMINA EMPRESA;1800,00;2500,00",
     "03/08/2026;RECIBO IBERDROLA;-60,00;2440,00",
   ].join("\n");
-  const rows = context.parseMovementsFromCsvText(csv);
+  const rows = context.movementsFromStatementRows(profiles.analyze(csv).transactions);
   assert.equal(rows.length, 2);
   assert.equal(rows[0].date, "2026-08-01");
   assert.equal(rows[0].amount, 1800);
@@ -336,10 +336,11 @@ test("V4-4 · el CSV de movimientos se interpreta con las mismas cabeceras que l
   assert.equal(rows[1].category, "Suministros y telecom");
 });
 
-test("V4-4 · una fila de CSV sin fecha, concepto o importe válido se descarta, no revienta el parseo", () => {
+test("V4-4 · una fila de CSV vacía de datos se omite sin error, no revienta el parseo (WP-51: las que traen datos pero no se leen salen con su motivo)", () => {
   const { context } = baseSandbox();
   const csv = ["Fecha;Movimiento;Importe;Saldo", ";;;", "01/08/2026;NOMINA;1800,00;2500,00"].join("\n");
-  const rows = context.parseMovementsFromCsvText(csv);
+  const analysis = profiles.analyze(csv);
+  const rows = context.movementsFromStatementRows(analysis.transactions);
   assert.equal(rows.length, 1);
 });
 
