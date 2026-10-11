@@ -68,6 +68,7 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
     // V6-2 · datosImportarBuildRows pasa ahora la ventana configurable de Ajustes en vez del valor
     // por defecto implícito de la función; `state` vacío reproduce «sin configurar» → 7 días.
     state: {},
+    capturaDuplicadosAnotar: (rows) => rows, // WP-53: el emparejamiento con capturas vive en captura-duplicados-ui.js
     round2: (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100,
     normalizedText: (value) => String(value ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim(),
     storageKey: (name) => `${name}:test`,

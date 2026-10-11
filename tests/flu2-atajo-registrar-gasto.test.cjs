@@ -168,14 +168,20 @@ test("FLU-2 · submitHomeQuickExpense() crea la partida y su real a la vez, con 
   const customPlanningRows = [];
   const expenseActuals = {};
   const calls = [];
+  const logged = [];
   const { submitHomeQuickExpense } = sandboxWith(["submitHomeQuickExpense"], {
     customPlanningRows,
     expenseActuals,
     saveCustomPlanningRows: () => calls.push("saved-rows"),
     saveExpenseActuals: () => calls.push("saved-actuals"),
     render: () => calls.push("rendered"),
+    isoLocalDate: () => "2026-09-14",
+    recordCaptureLog: (entry) => logged.push(entry), // WP-53: lo anotado queda en el registro de capturas para emparejarlo con el extracto
   });
   submitHomeQuickExpense({ key: "2026-09", label: "Septiembre" }, "Ocio", "Cena fuera", "38,50");
+  assert.equal(logged.length, 1);
+  assert.deepEqual({ ...logged[0], rowId: "x" }, { rowId: "x", monthKey: "2026-09", date: "2026-09-14", concept: "Cena fuera", amount: -38.5, channel: "ventana" });
+  assert.equal(logged[0].rowId, customPlanningRows[0].id);
   assert.equal(customPlanningRows.length, 1);
   const row = customPlanningRows[0];
   assert.equal(row.custom, true);
@@ -211,6 +217,8 @@ test("FLU-2 · submitHomeQuickExpense() no escribe nada sin concepto, sin bloque
       saveCustomPlanningRows: () => calls.push("saved-rows"),
       saveExpenseActuals: () => calls.push("saved-actuals"),
       render: () => calls.push("rendered"),
+      isoLocalDate: () => "2026-09-14",
+      recordCaptureLog: () => calls.push("logged"),
     });
     submitHomeQuickExpense(month, sectionName, label, rawAmount);
     assert.equal(customPlanningRows.length, 0, `no debe crear fila con ${JSON.stringify({ month, sectionName, label, rawAmount })}`);

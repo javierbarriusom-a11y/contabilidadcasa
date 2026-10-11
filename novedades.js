@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-11-wp53",
+      fecha: "2026-10-11",
+      texto: "Importar extracto empareja lo anotado a mano con su fila del banco (importe, ±2 días, comercio) y deja la del banco.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-11-wp51",
       fecha: "2026-10-11",
       texto: "Registrar › Importar extracto: lee CSV de otros formatos, avisa de lo dudoso, lista las filas ilegibles y guarda perfiles.",

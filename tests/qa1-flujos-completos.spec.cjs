@@ -3616,3 +3616,120 @@ test.describe("WP-51 · perfiles de extracto", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-53 (CAP-10): sin duplicados entre lo anotado a mano y el extracto. Una captura rápida (movimiento) y una partida de «Registrar gasto» se emparejan con su fila del banco por importe exacto,
+// ±2 días y comercio; el paso 3 lo explica y pregunta; al confirmar, manda el extracto; «Deshacer último lote» lo devuelve todo.
+test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
+  const fechaCsv = (iso) => iso.split("-").reverse().join("/");
+  const sumarDias = (iso, dias) => new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + dias)).toISOString().slice(0, 10);
+  const importar = async (page, csv, decision) => {
+    await page.click('[data-registrar-tab="import"]');
+    await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
+    await page.setInputFiles("#registrarImportFileInput", { name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+    await page.selectOption("#registrarImportAccount", "CaixaBank");
+    await page.$eval("#registrarImportNext", (button) => button.click());
+    for (let index = 0; index < 5; index += 1) {
+      const pending = await page.evaluate(() => { const button = document.querySelector('[data-datos-importar-classify="ignorar"]:not(.is-active)'); button?.click(); return Boolean(button); });
+      if (!pending) break;
+    }
+    await page.$eval("#registrarImportNext", (button) => button.click());
+    await decision?.();
+    await page.$eval("#registrarImportNext", (button) => button.click());
+    await page.$eval("#registrarImportConfirm", (button) => button.click());
+    await page.$eval("#operationConfirmSubmit", (button) => button.click());
+    await expect(page.locator("#registrarImportPanel")).toContainText("Importación confirmada", { timeout: 15000 });
+  };
+  const deshacer = async (page) => {
+    await page.evaluate(() => { undoLastImportBatch(); });
+    await page.waitForSelector("#operationConfirmDialog[open]");
+    await page.$eval("#operationConfirmSubmit", (button) => button.click());
+  };
+
+  test("captura rápida: el paso 3 propone la pareja, «misma» deja la fila del banco y deshacer devuelve la captura", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#registrar");
+    await page.waitForFunction(() => typeof capturaDuplicadosAnotar === "function" && typeof handleE17QuickCapture === "function");
+    const today = await page.evaluate(() => isoLocalDate(new Date()));
+    await page.evaluate((date) => handleE17QuickCapture({ e17CreateAmount: "23.4", e17CreateConcept: "Mercadona", e17CreateKind: "expense", e17CreateDate: date }), today);
+    const captured = () => page.evaluate(() => (baseData.transactions || []).filter((item) => item.source === "manual-quick-capture").length);
+    expect(await captured()).toBe(1);
+    const csv = `Fecha;Concepto;Importe;Saldo\n${fechaCsv(sumarDias(today, 1))};COMPRA TARJ. 4412 MERCADONA SA;-23,40;976,60\n${fechaCsv(sumarDias(today, 1))};OTRO CARGO;-5,00;971,60\n`;
+    await importar(page, csv, async () => {
+      const fila = page.locator("#registrarImportPanel [data-captura-duplicado]");
+      await expect(fila).toHaveCount(1);
+      await expect(fila).toHaveAttribute("data-captura-duplicado", "alta");
+      await expect(fila).toContainText("Anotado a mano");
+      await expect(fila).toContainText("Misma compra probable");
+      await expect(fila).toContainText("se queda la fila del banco");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, "sin desbordar a 390 px").toBeLessThanOrEqual(1);
+      await fila.locator('[data-datos-importar-duplicate="misma"]').click();
+      await expect(page.locator("#registrarImportPanel")).toContainText("No hay candidatos a duplicado sin resolver"); // decidida, sale de la lista
+    });
+    await expect(page.locator("#registrarImportPanel")).toContainText("1 captura(s) a mano sustituida(s) por su fila del banco");
+    expect(await captured(), "la captura se fue").toBe(0);
+    const rows = await page.evaluate(() => (baseData.transactions || []).map((item) => `${item.date}|${item.amount}|${item.movement}`));
+    expect(rows.filter((row) => row.includes("MERCADONA"))).toHaveLength(1); // sólo la del banco
+    await deshacer(page);
+    await expect.poll(captured, { message: "«Deshacer último lote» devuelve la captura" }).toBe(1);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("«Registrar gasto» sin tarjetas: queda en el registro, y al confirmar «misma» la partida pasa a valer el extracto sin sumarse aparte", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => typeof capturaDuplicadosAnotar === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+    await page.click("#homeQuickExpenseOpen");
+    await page.fill("#homeQuickExpenseLabel", "Supermercado prueba");
+    await page.fill("#homeQuickExpenseAmount", "37,45");
+    await page.click("#homeQuickExpenseSubmit");
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
+    expect(entry).toMatchObject({ concept: "Supermercado prueba", amount: -37.45, channel: "ventana", monthKey: entry.date.slice(0, 7) });
+    const rowKey = `expense|${entry.rowId}`;
+    const real = () => page.evaluate(({ id, month }) => expenseActuals[`${id}|${month}`], { id: entry.rowId, month: entry.monthKey });
+    expect(await real()).toBe(37.45);
+    await page.evaluate(() => { location.hash = "#registrar"; });
+    await expect(page.locator('[data-registrar-tab="import"]')).toBeVisible();
+    const csv = `Fecha;Concepto;Importe;Saldo\n${fechaCsv(entry.date)};COMPRA SUPERMERCADO PRUEBA SA;-37,45;962,55\n`;
+    await importar(page, csv, async () => {
+      const fila = page.locator("#registrarImportPanel [data-captura-duplicado]");
+      await expect(fila).toHaveCount(1);
+      await expect(fila).toContainText("Anotado con «Registrar gasto»");
+      await expect(fila).toContainText("pasa a valer lo que dice el banco");
+      await fila.locator('[data-datos-importar-duplicate="misma"]').click();
+    });
+    const after = await page.evaluate(({ id, month }) => ({ mapped: Object.values(movementMappings).filter((item) => item.rowKey === `expense|${id}`).length, real: expenseActuals[`${id}|${month}`], rows: customPlanningRows.filter((row) => row.id === id).length }), { id: entry.rowId, month: entry.monthKey });
+    expect(after).toEqual({ mapped: 1, real: 37.45, rows: 1 });
+    await deshacer(page);
+    await expect.poll(() => page.evaluate((key) => Object.values(movementMappings).filter((item) => item.rowKey === key).length, rowKey), { message: "deshacer quita la asignación" }).toBe(0);
+    expect(await real(), "y la partida anotada sigue valiendo lo anotado").toBe(37.45);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("una fila sin captura que cuadre no cambia el paso 3, y «Son distintas» conserva las dos", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#registrar");
+    await page.waitForFunction(() => typeof handleE17QuickCapture === "function");
+    const today = await page.evaluate(() => isoLocalDate(new Date()));
+    await page.evaluate((date) => handleE17QuickCapture({ e17CreateAmount: "12.5", e17CreateConcept: "Mercadona", e17CreateKind: "expense", e17CreateDate: date }), today);
+    const csv = `Fecha;Concepto;Importe;Saldo\n${fechaCsv(today)};FARMACIA LOPEZ;-12,50;987,50\n`;
+    await importar(page, csv, async () => {
+      const fila = page.locator("#registrarImportPanel [data-captura-duplicado]");
+      await expect(fila).toHaveAttribute("data-captura-duplicado", "media");
+      await expect(fila).toContainText("comercio distinto");
+      await fila.locator('[data-datos-importar-duplicate="distinto"]').click();
+    });
+    expect(await page.evaluate(() => (baseData.transactions || []).filter((item) => item.source === "manual-quick-capture").length), "«Son distintas» no toca la captura").toBe(1);
+    expect(await page.evaluate(() => (baseData.transactions || []).some((item) => /FARMACIA/.test(item.movement)))).toBe(true);
+    expect(pageErrors).toEqual([]);
+  });
+});

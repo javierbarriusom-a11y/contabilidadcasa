@@ -1054,3 +1054,32 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-53: el candidato del paso 3 de Importar extracto cuando es algo anotado a mano (captura rápida), en claro y en oscuro: la tarjeta con las dos filas, el motivo y las dos decisiones (con y sin decidir).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-53 · contraste del candidato «anotado a mano» en el paso 3 en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Registrar › Importar extracto › duplicados: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#registrar");
+      await page.waitForFunction(() => typeof handleE17QuickCapture === "function");
+      const today = await page.evaluate(() => isoLocalDate(new Date()));
+      await page.evaluate((date) => handleE17QuickCapture({ e17CreateAmount: "23.4", e17CreateConcept: "Mercadona", e17CreateKind: "expense", e17CreateDate: date }), today);
+      await page.click('[data-registrar-tab="import"]');
+      await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
+      const fecha = today.split("-").reverse().join("/");
+      await page.setInputFiles("#registrarImportFileInput", { name: "a.csv", mimeType: "text/csv", buffer: Buffer.from(`Fecha;Concepto;Importe;Saldo\n${fecha};COMPRA TARJ. 4412 MERCADONA SA;-23,40;976,60\n${fecha};FARMACIA LOPEZ;-23,40;953,20\n`) });
+      await page.selectOption("#registrarImportAccount", "CaixaBank");
+      await page.$eval("#registrarImportNext", (button) => button.click());
+      for (let index = 0; index < 5; index += 1) {
+        const pending = await page.evaluate(() => { const button = document.querySelector('[data-datos-importar-classify="ignorar"]:not(.is-active)'); button?.click(); return Boolean(button); });
+        if (!pending) break;
+      }
+      await page.$eval("#registrarImportNext", (button) => button.click());
+      await expect(page.locator("#registrarImportPanel [data-captura-duplicado]").first()).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#registrarImportPanel").analyze();
+      expect(fmt(results), `con candidatos sin decidir: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+    });
+  });
+}
