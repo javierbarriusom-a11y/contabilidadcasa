@@ -1025,3 +1025,32 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-51: el panel «Cómo he leído este fichero» de Registrar › Importar extracto, en claro y en oscuro: con avisos y filas con error, y con la lectura fallida (estado de error y columnas sin papel).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-51 · contraste del panel de lectura de extracto en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Registrar › Importar extracto: sin fallos de contraste ni de accesibilidad con avisos, errores y lectura fallida", async ({ page }) => {
+      await page.goto("/index.html#registrar");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.click('[data-registrar-tab="import"]');
+      await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#registrarImportPanel").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await page.setInputFiles("#registrarImportFileInput", { name: "a.csv", mimeType: "text/csv", buffer: Buffer.from("Titulo\nFecha;Concepto;Importe;Saldo\n03/04/2026;A;-10,00;90,00\n05/06/2026;B;12abc;85,00\n07/06/2026;C;1.000,00;1.085,00\n") });
+      await expect(page.locator("#registrarImportPanel .epf")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#registrarImportPanel .epf-errores")).toBeVisible();
+      await revisar("con avisos y filas con error");
+      await page.click("#registrarImportReplaceFile");
+      await page.setInputFiles("#registrarImportFileInput", { name: "b.csv", mimeType: "text/csv", buffer: Buffer.from("25/09/2026;SUPER;-12,50;100,00\n26/09/2026;LUZ;-60,00;40,00\n") });
+      await expect(page.locator("#registrarImportPanel .epf")).toContainText("No he podido leer el fichero");
+      await revisar("con la lectura fallida y las columnas sin papel");
+    });
+  });
+}

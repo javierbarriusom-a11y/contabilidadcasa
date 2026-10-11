@@ -110,6 +110,7 @@ test("R-8 · datosImportarStep1Markup() apunta el input de fichero y la nota al 
     activeViewId: "registrar",
     datosImportarSession: null,
     escapeHtml: (value) => String(value ?? ""),
+    extractoPerfilesHtml: () => "", // WP-51: el panel de lectura vive en extracto-perfiles-ui.js
   });
   const markup = datosImportarStep1Markup();
   assert.match(markup, /id="registrarImportFileInput"/);
@@ -126,6 +127,7 @@ test("M-2/M-6 · datosImportarStep1Markup() ofrece elegir la cuenta del extracto
   const { datosImportarStep1Markup } = sandboxWith(["datosImportarStep1Markup", "datosImportarTarget"], {
     activeViewId: "registrar",
     escapeHtml: (value) => String(value ?? ""),
+    extractoPerfilesHtml: () => "", // WP-51: el panel de lectura vive en extracto-perfiles-ui.js
     formatIsoDate: (value) => String(value || ""),
     datosImportarFileSummary: () => ({ from: "2026-08-01", to: "2026-08-10", closedMonths: [] }),
     datosImportarCounters: () => ({ conReglaPrevia: 2, pidenDecision: 1, posiblesDuplicados: 0 }),
@@ -145,6 +147,7 @@ test("M-2/M-6 · datosImportarStep1Markup() marca la cuenta ya elegida como sele
   const { datosImportarStep1Markup } = sandboxWith(["datosImportarStep1Markup", "datosImportarTarget"], {
     activeViewId: "registrar",
     escapeHtml: (value) => String(value ?? ""),
+    extractoPerfilesHtml: () => "", // WP-51: el panel de lectura vive en extracto-perfiles-ui.js
     formatIsoDate: (value) => String(value || ""),
     datosImportarFileSummary: () => ({ from: "2026-08-01", to: "2026-08-10", closedMonths: [] }),
     datosImportarCounters: () => ({ conReglaPrevia: 0, pidenDecision: 0, posiblesDuplicados: 0 }),

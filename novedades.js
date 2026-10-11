@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-11-wp51",
+      fecha: "2026-10-11",
+      texto: "Registrar › Importar extracto: lee CSV de otros formatos, avisa de lo dudoso, lista las filas ilegibles y guarda perfiles.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-11-wp50",
       fecha: "2026-10-11",
       texto: "Inversión › Cartera › Vivienda y local por índice: revaloriza lo declarado con un índice que tecleáis y enseña el LTV.",

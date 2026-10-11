@@ -544,6 +544,19 @@ Cuatro cosas que conviene saber:
 - **La banda que pongas aquí no cambia el aviso de la herramienta de rebalanceo**, que sigue avisando a los 10 puntos.
 - Si cambias una respuesta después de firmar, **la firma deja de valer** hasta firmar de nuevo. Tanto cambiar como borrar se pueden deshacer 10 segundos.
 
+### Importar un extracto en CSV de otro formato («Cómo he leído este fichero»)
+
+Al cargar un **CSV o TXT** en **Registrar › Importar extracto**, la app ya no exige las cabeceras «Fecha / Movimiento / Importe / Saldo» en la primera fila: **deduce sola** el separador, los decimales (coma o punto), el orden de las fechas, la fila de cabecera (aunque haya filas de título antes), el papel de cada columna (incluidas **debe/haber** o una columna D/H) y la codificación (UTF-8 o Windows-1252). Debajo del resumen del fichero aparece el panel **«Cómo he leído este fichero»**:
+
+- **Qué ha entendido**, las **cinco primeras filas ya interpretadas** y los **avisos** de lo que no puede saber: fechas que valen igual como día/mes que como mes/día (supone día/mes/año), importes como «1.234» (supone que el punto agrupa miles), un fichero que no es UTF-8.
+- **Las filas que no ha podido leer**, con su **número de fila y el motivo** («Fila 17: fecha no reconocida»). **Esas filas no se importan**: ni como cero ni a medias. Si hay alguna, revisad que no os falte un movimiento antes de continuar.
+- **Si hay una columna de saldo**, comprueba que cada saldo es el anterior más el movimiento. Si encaja **al revés**, os avisa de que cargos y abonos pueden estar cambiados y ofrece **«Invertir el signo»**; no lo corrige por su cuenta.
+- **Corregir la lectura**: separador, decimal, orden de las fechas, fila de la cabecera y papel de cada columna. Al cambiar algo, el fichero se vuelve a leer al momento (solo mientras estáis en el paso 1). Si no encuentra cabecera, os enseña las primeras filas y os deja decir qué es cada columna.
+- **Perfiles**: con «Guardar como perfil» y un nombre, la lectura corregida se recuerda; la próxima vez que llegue un fichero con **las mismas cabeceras**, se aplica sola («Perfil aplicado: …»). Se pueden quitar (y se deshace). **No hay perfiles de banco preinstalados**: no se conoce el formato real de cada banco y no se inventa.
+- **«Copiar diagnóstico»** copia la estructura de la lectura (formatos, columnas, números de fila y motivos) **sin ningún concepto, importe ni fecha del fichero**, para pedir ayuda sin enseñar datos.
+
+El contenido del extracto solo está en memoria mientras lo importáis; lo único que se guarda (y va en la copia de seguridad) son los perfiles. **Aún no se ha probado con un extracto real de ningún banco**: si veis avisos o filas sin leer en el vuestro, copiad el diagnóstico y decidlo. El Excel (.xlsx) sigue necesitando una hoja de movimientos con sus cabeceras.
+
 ### Vivienda y local por índice (Inversión › Cartera)
 
 En **Inversión › Cartera**, sobre el patrimonio neto, la tarjeta **«Vivienda y local por índice»** **revaloriza el último valor declarado** de cada inmueble con un **índice de precios que tecleáis vosotros**, y enseña el **LTV** con el valor declarado y con el estimado. La app **no se conecta a ninguna fuente**.
