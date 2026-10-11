@@ -47,12 +47,18 @@ test("la puerta nueva existe, mide la mediana de visitas repetidas y falla por e
   assert.equal(pkg.scripts["test:load-budget"], "node tools/measure-load.mjs --budget=5000");
   assert.equal(pkg.scripts["measure:load"], "node tools/measure-load.mjs");
   const tool = read("tools/measure-load.mjs");
+  // WP-52: la lógica pura (CPU por defecto, mediana, veredicto) vive en tools/measure-load-core.mjs, con pruebas de comportamiento en wp52-medicion-webkit.test.cjs;
+  // aquí se sigue exigiendo el mismo contrato, ahora en su sitio.
+  const core = read("tools/measure-load-core.mjs");
   assert.match(tool, /const REPEATS = 3;/);
-  assert.match(tool, /Number\(process\.env\.MEASURE_CPU \|\| 4\)/);
-  assert.match(tool, /median\(values\)/);
-  assert.match(tool, /if \(mid > budget\) failure = /);
+  assert.match(core, /export const DEFAULT_CPU = 4;/);
+  assert.match(core, /env\.MEASURE_CPU/);
+  assert.match(core, /median: median\(values\)/);
+  assert.match(core, /repeats\.median > budget\) return `Hoy tarda/);
   // Sin medida válida la puerta falla en vez de pasar en silencio.
-  assert.match(tool, /values\.some\(\(value\) => value === null\)/);
+  assert.match(core, /values\.some\(\(value\) => value === null\)/);
+  assert.match(core, /Hoy no llegó a pintar #homeKpis en alguna visita repetida: la medida no es válida/);
+  assert.match(tool, /failure = verdict\("chromium", rows, \{ budget, cpu \}\)/);
   assert.match(tool, /if \(failure\) throw new Error\(failure\)/);
 });
 
