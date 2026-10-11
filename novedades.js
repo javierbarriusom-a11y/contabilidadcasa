@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-11-wp50",
+      fecha: "2026-10-11",
+      texto: "Inversión › Cartera › Vivienda y local por índice: revaloriza lo declarado con un índice que tecleáis y enseña el LTV.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-11-wp49",
       fecha: "2026-10-11",
       texto: "Plan › Previsión › Mapa anual de pagos grandes: lo que cae de golpe en los próximos 12 meses y cuánto hay reservado.",

@@ -3394,3 +3394,134 @@ test.describe("WP-49 · mapa anual de pagos grandes", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-50 (CAR-04): vivienda y local revalorizados por un índice que teclea el hogar, en Inversión › Cartera. No se conecta a nada; no toca lo declarado; la estimación solo entra en el patrimonio si se activa
+// inmueble a inmueble; sin el índice del trimestre de la declaración no se inventa nada.
+test.describe("WP-50 · vivienda y local por índice", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#indiceViviendaCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const seed = (page) => page.evaluate(() => {
+    scenarioSettings.assets = [
+      { id: "ivi-casa", type: "inmueble", label: "Vivienda de prueba", value: 300000, asOf: "2025-05-10", provenance: "declared" },
+      { id: "ivi-local", type: "inmueble", label: "Local de prueba", value: 200000, asOf: "2024-02-01", provenance: "declared" },
+      { id: "ivi-coche", type: "vehiculo", label: "Coche de prueba", value: 15000, asOf: "2025-05-10", provenance: "declared" },
+    ];
+    scenarioSettings.portfolioPositions = [];
+    saveScenarioSettings();
+    globalThis.accountBalancesFromState = () => ({ caixa: 6000, mediolanum: 4000, total: 10000 });
+    globalThis.totalDebtOutstanding = () => 12000;
+    globalThis.canonicalDebtContractRows = () => [{ type: "Hipoteca", entity: "Banco de prueba", currentPrincipal: 150000 }, { type: "Tarjeta", entity: "Otra", currentPrincipal: 900 }];
+    renderIndiceVivienda(FinanceCanonicalIndexValuation);
+    renderPatrimonio(FinanceCanonicalNetWorth);
+  });
+  const point = async (serie, quarter, year, value) => {
+    await serie.locator('select[name="t"]').selectOption(quarter);
+    await serie.locator('input[name="y"]').fill(String(year));
+    await serie.locator('input[name="v"]').fill(String(value));
+    await serie.locator('button[type="submit"]').click();
+  };
+
+  test("vacío, validación, series y puntos, estimación con su chip, sin índice del trimestre no se inventa nada, LTV con los dos valores, el interruptor mueve el patrimonio sin tocar lo declarado, deshacer, persiste, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const body = card.locator("#indiceViviendaCuerpo");
+      await expect(body.locator('[data-estado="vacio"]')).toContainText("No hay ninguna vivienda ni local registrado");
+      await seed(page);
+      await expect(body.locator(".ivi-inmueble")).toHaveCount(2);
+      await expect(body).not.toContainText("Coche de prueba");
+      await expect(body.locator(".ivi-inmueble").first()).toContainText("Declarado: 300.000,00 €");
+      await expect(body).toContainText("la app no se conecta a ninguna fuente");
+
+      // Validación de la serie y de los puntos.
+      await body.locator("[data-ivi-add-series] button").click();
+      await expect(body.locator("[data-ivi-add-series] [data-ivi-error]")).toContainText("Ponle un nombre");
+      await body.locator('[data-ivi-add-series] input[name="label"]').fill("IPV vivienda · prueba");
+      await body.locator("[data-ivi-add-series] button").click();
+      const serie = body.locator("[data-ivi-series]").first();
+      await expect(serie).toContainText("IPV vivienda · prueba");
+      await expect(serie).toContainText("Sin ningún índice tecleado todavía");
+      await point(serie, "T2", 2025, "abc");
+      await expect(serie.locator("[data-ivi-error]")).toContainText("mayor que cero");
+      await expect(serie.locator("[data-ivi-error]")).toContainText("187,4");
+      await point(serie, "T2", 1800, "165");
+      await expect(serie.locator("[data-ivi-error]")).toContainText("año no es válido");
+      await point(serie, "T2", 2025, "165");
+      await point(serie, "T2", 2026, "180");
+      await point(serie, "T1", 2024, "150");
+      await expect(serie.locator(".ivi-puntos li")).toHaveCount(3);
+      await expect(serie.locator(".ivi-puntos li").first()).toContainText("T2 2026: 180");
+
+      // Elegir el índice: 300.000 × 180 ÷ 165; y el local, 200.000 × 180 ÷ 150.
+      const casa = body.locator('[data-ivi-asset="ivi-casa"]');
+      const local = body.locator('[data-ivi-asset="ivi-local"]');
+      await casa.locator("select[data-ivi-link]").selectOption({ index: 1 });
+      await local.locator("select[data-ivi-link]").selectOption({ index: 1 });
+      await expect(casa.locator(".ivi-chip")).toContainText("estimado por índice · T2 2026");
+      await expect(casa.locator(".ivi-estimado")).toContainText("327.272,73 €");
+      await expect(casa.locator(".ivi-estimado")).toContainText("+27.272,73 €");
+      await expect(casa.locator(".ivi-frase")).toContainText("sube un 9,09 %");
+      await expect(local.locator(".ivi-estimado")).toContainText("240.000,00 €");
+      // LTV: 150.000 ÷ 500.000 = 30 %; con lo estimado, 150.000 ÷ 567.272,73 = 26,44 %. Solo cuenta la hipoteca, no la tarjeta.
+      await expect(body.locator(".ivi-ltv")).toContainText("30 % con el valor declarado");
+      await expect(body.locator(".ivi-ltv")).toContainText("26,44 % con el estimado por índice");
+
+      // Sin el índice del trimestre de la declaración no se inventa nada.
+      await page.evaluate(() => { scenarioSettings.assets = scenarioSettings.assets.map((asset) => (asset.id === "ivi-casa" ? { ...asset, asOf: "2025-11-20" } : asset)); saveScenarioSettings(); renderIndiceVivienda(FinanceCanonicalIndexValuation); });
+      await expect(casa.locator(".ivi-chip")).toHaveCount(0);
+      await expect(casa.locator(".ivi-frase")).toContainText("Falta el índice de T4 2025");
+      await expect(casa.locator("input[data-ivi-use]")).toBeEnabled();
+      await page.evaluate(() => { scenarioSettings.assets = scenarioSettings.assets.map((asset) => (asset.id === "ivi-casa" ? { ...asset, asOf: "2025-05-10" } : asset)); saveScenarioSettings(); renderIndiceVivienda(FinanceCanonicalIndexValuation); });
+      await expect(casa.locator(".ivi-chip")).toBeVisible();
+
+      // El patrimonio: apagado por defecto (10.000 + 515.000 − 12.000); activar la vivienda lo sube lo estimado; lo declarado no cambia; el local sigue declarado.
+      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000,00 €");
+      await expect(casa.locator("input[data-ivi-use]")).not.toBeChecked();
+      await casa.locator("input[data-ivi-use]").check();
+      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("540.272,73 €");
+      await expect(page.locator("#patrimonioHoy")).toContainText("Incluye 1 inmueble con valor estimado por índice");
+      const declared = await page.evaluate(() => scenarioSettings.assets.map((asset) => [asset.id, asset.value, asset.provenance]));
+      expect(declared).toEqual([["ivi-casa", 300000, "declared"], ["ivi-local", 200000, "declared"], ["ivi-coche", 15000, "declared"]]);
+      await expect(body.locator('[data-ivi-asset="ivi-casa"]')).toContainText("(activada)");
+      await body.locator('[data-ivi-asset="ivi-casa"] input[data-ivi-use]').uncheck();
+      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000,00 €");
+      await expect(page.locator("#patrimonioHoy")).not.toContainText("Incluye 1 inmueble");
+
+      // Quitar un índice se deshace: sin el de T2 2025 la vivienda no se puede revalorizar.
+      await serie.locator('[data-ivi-quarter="2025-T2"]').click();
+      await expect(casa.locator(".ivi-chip")).toHaveCount(0);
+      await expect(casa.locator(".ivi-frase")).toContainText("Falta el índice de T2 2025");
+      await page.getByRole("button", { name: "Deshacer" }).first().click();
+      await expect(casa.locator(".ivi-chip")).toContainText("estimado por índice");
+
+      // Persiste tras recargar, en la misma copia que las demás series.
+      await casa.locator("input[data-ivi-use]").check();
+      await page.reload();
+      await expect(page.locator('[data-ivi-asset="ivi-casa"] .ivi-chip')).toContainText("estimado por índice · T2 2026", { timeout: 15000 });
+      await expect(page.locator('[data-ivi-asset="ivi-casa"] input[data-ivi-use]')).toBeChecked();
+      const claves = await page.evaluate(() => Object.keys(localStorage).filter((key) => /housing-index-data/.test(key)));
+      expect(claves).toHaveLength(1);
+
+      // Quitar la serie desvincula los inmuebles (vuelven al valor declarado) y se deshace.
+      await page.locator("[data-ivi-remove-series]").first().click();
+      await expect(page.locator(".ivi-chip")).toHaveCount(0);
+      await expect(page.locator('[data-ivi-asset="ivi-casa"] input[data-ivi-use]')).toBeDisabled();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

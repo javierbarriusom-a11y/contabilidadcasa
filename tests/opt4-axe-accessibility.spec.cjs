@@ -981,3 +981,47 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-50: la tarjeta «Vivienda y local por índice» de Inversión › Cartera, en claro y en oscuro: vacía, con inmuebles sin índice, con la estimación activada y el LTV, con un aviso de validación y con un inmueble sin índice de su trimestre.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-50 · contraste de la vivienda y el local por índice en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Cartera: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#indiceViviendaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#indiceViviendaCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await expect(card.locator('[data-estado="vacio"]')).toContainText("No hay ninguna vivienda ni local registrado");
+      await revisar("vacía");
+      await page.evaluate(() => {
+        scenarioSettings.assets = [
+          { id: "ax-casa", type: "inmueble", label: "Vivienda", value: 300000, asOf: "2025-05-10", provenance: "declared" },
+          { id: "ax-local", type: "inmueble", label: "Local", value: 200000, asOf: "2025-11-20", provenance: "declared" },
+        ];
+        saveScenarioSettings();
+        globalThis.canonicalDebtContractRows = () => [{ type: "Hipoteca", entity: "Banco", currentPrincipal: 150000 }];
+        renderIndiceVivienda(FinanceCanonicalIndexValuation);
+      });
+      await expect(card.locator(".ivi-inmueble")).toHaveCount(2);
+      await revisar("inmuebles sin índice");
+      await card.locator("[data-ivi-add-series] button").click();
+      await expect(card.locator("[data-ivi-add-series] [data-ivi-error]")).toContainText("Ponle un nombre");
+      await revisar("con un aviso de validación");
+      await page.evaluate(() => {
+        indiceViviendaSave(FinanceCanonicalIndexValuation.normalizeStore({ series: [{ id: "serie-1", label: "IPV prueba", points: [{ quarter: "2025-T2", value: 165 }, { quarter: "2026-T2", value: 180 }] }], links: { "ax-casa": { seriesId: "serie-1", useEstimate: true }, "ax-local": { seriesId: "serie-1", useEstimate: false } } }));
+        renderIndiceVivienda(FinanceCanonicalIndexValuation);
+      });
+      await expect(card.locator(".ivi-chip")).toBeVisible();
+      await expect(card.locator(".ivi-ltv")).toContainText("con el estimado");
+      await revisar("con la estimación activada, el LTV y un inmueble sin índice de su trimestre");
+    });
+  });
+}
