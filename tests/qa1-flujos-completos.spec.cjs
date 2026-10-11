@@ -3289,3 +3289,108 @@ test.describe("WP-48 · libro de operaciones", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-49 (NPV-04): mapa anual de pagos grandes, en Plan › Previsión. Junta partidas del plan que pesan de golpe, seguros con fecha, objetivos con fecha y la Renta, y dice cuánto hay reservado de
+// cada uno (solo los objetivos tienen dinero declarado). Solo enseña: no reserva ni guarda nada.
+test.describe("WP-49 · mapa anual de pagos grandes", () => {
+  const openPrevision = async (page) => {
+    await page.goto("/index.html#plan");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const card = page.locator("#mapaPagosCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  // Datos relativos a hoy (la prueba no caduca): un seguro declarado dentro de 3 meses (410 €) que además está en el plan; una partida suelta de 900 € dentro de 5 meses; un objetivo de 3.000 € con
+  // 1.200 € ahorrados dentro de 8 meses; un fondo de emergencia (no es un pago); un seguro pequeño (90 €) y otro sin fecha.
+  const seed = (page) => page.evaluate(() => {
+    const at = (offset, day = 5) => { const date = addMonths(new Date(), offset); return { key: monthKey(date), iso: `${monthKey(date)}-${String(day).padStart(2, "0")}` }; };
+    const hogar = at(3);
+    insurancePolicies().push(
+      { id: "e2e-hogar", name: "Seguro del hogar", renewalDate: hogar.iso, premium: 410 },
+      { id: "e2e-movil", name: "Seguro del móvil", renewalDate: at(1).iso, premium: 90 },
+      { id: "e2e-roto", name: "Seguro sin fecha", renewalDate: "", premium: 200 },
+    );
+    saveScenarioSettings();
+    customPlanningRows.push(
+      { id: "e2e-ibi", custom: true, kind: "expense", sectionName: "Gastos fijos", label: "IBI", monthKey: at(5).key, plannedValue: 900 },
+      { id: "e2e-hogar-plan", custom: true, kind: "expense", sectionName: "Gastos fijos", label: "Seguro del hogar", monthKey: hogar.key, plannedValue: 410 },
+    );
+    const goal = (id, name, type, target, targetDate, saved) => ({ id, name, type, target, targetDate, status: "active", contributions: saved ? [{ id: `${id}-c`, amount: saved, date: "2026-01-01", label: "Ahorro" }] : [] });
+    saveP2State({ ...p2State(), goals: [goal("e2e-vacaciones", "Vacaciones", "project", 3000, `${at(8, 15).iso}`, 1200), goal("e2e-fondo", "Fondo de emergencia", "emergency", 10000, at(2).iso, 2000)] });
+    renderMapaPagos(FinanceCanonicalLargePayments);
+    return { hogar: hogar.key };
+  });
+
+  test("solo la Renta sin importe, datos reales, un pago en plan y seguro contado una vez, objetivo con reserva, el fondo de emergencia fuera, mínimo, tabla, sin tocar nada, sin confirm() ni desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await openPrevision(page);
+      const body = card.locator("#mapaPagosCuerpo");
+      // Sin datos del hogar solo hay un pago conocido: la campaña de la Renta, y sin importe (no es cero).
+      await expect(body).toContainText("ninguno con importe conocido");
+      await expect(body.locator(".mpg-item")).toHaveCount(1);
+      await expect(body.locator(".mpg-item")).toContainText("Campaña de la Renta");
+      await expect(body.locator(".mpg-item")).toContainText("Importe sin determinar");
+      await expect(body.locator(".mpg-mes")).toHaveCount(12);
+
+      const fingerprintAntes = await page.evaluate(() => canonicalScenarioResults.base.forecast.fingerprint);
+      const claves = Object.keys(await page.evaluate(() => ({ ...localStorage }))).sort();
+      await seed(page);
+      await expect(body).toContainText("3 pagos grandes que suman 4310,00");
+      await expect(body).toContainText("1 más sin importe, fuera de la suma");
+      await expect(body).toContainText("1200,00");
+      // Seguro del hogar: una sola vez aunque esté también en el plan; el fondo de emergencia no es un pago; el seguro del móvil (90 €) no es grande; el seguro sin fecha se dice.
+      await expect(body.locator(".mpg-item").filter({ hasText: "Seguro del hogar" })).toHaveCount(1);
+      await expect(body.locator(".mpg-item").filter({ hasText: "Fondo de emergencia" })).toHaveCount(0);
+      await expect(body.locator(".mpg-item").filter({ hasText: "Seguro del móvil" })).toHaveCount(0);
+      await expect(body.locator(".mpg-notas")).toContainText("Seguro sin fecha");
+      await expect(body.locator(".mpg-notas")).toContainText("se cuenta una sola vez");
+      await expect(body.locator(".mpg-notas")).toContainText("no se muestra");
+      // Los estados van en texto: reservado 40 % (objetivo), sin reserva asignada (plan y seguro).
+      await expect(body.locator(".mpg-item").filter({ hasText: "Vacaciones" })).toContainText("Reservado 40 %");
+      await expect(body.locator(".mpg-item").filter({ hasText: "IBI" })).toContainText("Sin reserva asignada");
+      await expect(body.locator(".mpg-datos")).toContainText("Apartar al mes");
+
+      // Tocar un pago abre el detalle con lo que falta y cuánto apartar al mes.
+      const vacaciones = body.locator(".mpg-item").filter({ hasText: "Vacaciones" });
+      await vacaciones.locator("summary").click();
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("Reservado: 1200,00");
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("225,00");
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("faltan 1800,00");
+      // El detalle abierto sobrevive a una repintada (p. ej. al cambiar el mínimo).
+
+      // El mínimo se aplica: con 1.000 € solo quedan las vacaciones (y la Renta sin importe).
+      await body.locator("#mapaPagosMinimo").selectOption("1000");
+      await expect(body).toContainText("1 pago grande que suma 3000,00");
+      await expect(body.locator(".mpg-item")).toHaveCount(2);
+      await expect(vacaciones.locator(".mpg-detalle")).toBeVisible();
+      await expect(body.locator("#mapaPagosMinimo")).toBeFocused();
+      await body.locator("#mapaPagosMinimo").selectOption("300");
+      await expect(body.locator(".mpg-item")).toHaveCount(4);
+
+      // La tabla equivalente trae las mismas filas.
+      await body.locator(".mpg-tabla summary").click();
+      const filas = await body.locator(".mpg-tabla tbody tr").allInnerTexts();
+      expect(filas).toHaveLength(4);
+      expect(filas.join("\n")).toContain("sin determinar");
+
+      // Solo enseña: ni la previsión ni lo guardado cambian por pintar el mapa.
+      expect(await page.evaluate(() => canonicalScenarioResults.base.forecast.fingerprint)).toBe(fingerprintAntes);
+      const clavesDespues = Object.keys(await page.evaluate(() => ({ ...localStorage }))).sort();
+      expect(clavesDespues.filter((key) => /large-payments|mapa-pagos/.test(key))).toEqual([]);
+      expect(clavesDespues.length).toBeGreaterThanOrEqual(claves.length);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(dialogs, "ningún confirm()").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

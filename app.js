@@ -34686,6 +34686,7 @@ function renderPlanPrevision() {
   }
   globalThis.renderPlanB?.(globalThis.FinanceCanonicalContingencyPlan); // WP-38 (contingencia-ui.js)
   globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // WP-43 (puente-ui.js)
+  globalThis.renderMapaPagos?.(globalThis.FinanceCanonicalLargePayments); // WP-49 (mapa-pagos-ui.js)
 }
 
 // P-10: "Descomposición del peor mes" — reutiliza la cascada de A-4 (`analisisCascadaRows`) sobre un
