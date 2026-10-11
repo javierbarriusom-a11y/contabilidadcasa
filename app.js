@@ -1376,6 +1376,7 @@ const BACKUP_LOCAL_STORES = [
   "expected-answers", // WP-14 + WP-27: lo respondido y lo callado en «¿ha llegado…?» (aplazamientos y recibos que cambiaron de cuenta)
   "rate-indices", // WP-13: índices de referencia (Euribor, €STR, IPC) tecleados con la fecha del dato; son datos públicos, sin importes del hogar
   "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
+  "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
   "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
@@ -12320,7 +12321,7 @@ function openHomeQuickExpenseDialog(prefill = null) {
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "confirm") return;
     globalThis.recordLegacyCaptureTime?.((Date.now() - openedAt) / 1000); // M-CAPT: el tiempo de la ventana anterior, para comparar con la hoja
-    submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value);
+    submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value, prefill?.date || "");
   }, { once: true });
   dialog.showModal();
   // Desde un enlace, el foco va al primer dato que falta; si no falta nada, a «Registrar» (sin abrir el teclado).
@@ -12339,10 +12340,10 @@ function openCaptureLinkFromHash() {
   if (!month || isClosedMonthKey(month.key) || !homeQuickExpenseSections().length) return announceStatus("El enlace de registro no se puede abrir: no hay un mes abierto con bloques de gasto.");
   const mapped = link.fields.label ? mappingForMovement({ amount: -(link.fields.amount || 1), movement: link.fields.label, details: "", date: link.fields.date }) : null;
   const note = window.FinanceCanonicalCaptureLink.noteText(link, { monthLabel: month.label, sameMonth: Boolean(dateMonth) });
-  openHomeQuickExpenseDialog({ month, label: link.fields.label, amount: link.fields.amount === null ? "" : formatAmountField(link.fields.amount), section: mapped?.kind === "expense" ? mapped.row.sectionName : homeQuickExpenseSections().find((section) => /variable/i.test(section.name))?.name, note });
+  openHomeQuickExpenseDialog({ month, date: link.fields.date, label: link.fields.label, amount: link.fields.amount === null ? "" : formatAmountField(link.fields.amount), section: mapped?.kind === "expense" ? mapped.row.sectionName : homeQuickExpenseSections().find((section) => /variable/i.test(section.name))?.name, note });
 }
 
-function submitHomeQuickExpense(month, sectionName, label, rawAmount) {
+function submitHomeQuickExpense(month, sectionName, label, rawAmount, linkDate = "") {
   const parsedAmount = parseAmountField(rawAmount);
   if (!month || !label || !sectionName || parsedAmount === null || parsedAmount <= 0) return;
   const amount = round2(parsedAmount);
@@ -12351,6 +12352,7 @@ function submitHomeQuickExpense(month, sectionName, label, rawAmount) {
   saveCustomPlanningRows();
   expenseActuals[actualKeyForRow({ id }, month)] = amount;
   saveExpenseActuals();
+  recordCaptureLog({ rowId: id, monthKey: month.key, date: linkDate || isoLocalDate(new Date()), concept: label, amount: -amount, channel: linkDate ? "enlace" : "ventana" }); // WP-53: para emparejarla con el extracto
   render();
 }
 
@@ -23934,7 +23936,7 @@ function datosImportarSuggestionFor(transaction) {
 function datosImportarBuildRows(transactions) {
   const ignored = datosImportarLoadIgnored();
   const existing = baseData.transactions || [];
-  return transactions.map((transaction, index) => {
+  return capturaDuplicadosAnotar(transactions.map((transaction, index) => {
     const prior = datosImportarPriorClassification(transaction, ignored);
     return {
       rowId: `fila-${index}`,
@@ -23948,7 +23950,7 @@ function datosImportarBuildRows(transactions) {
       // duplicateDecision: "duplicado" | "distinto", o null mientras el paso 3 no la haya resuelto.
       duplicateDecision: null,
     };
-  });
+  }), globalThis.FinanceCanonicalCaptureDedupe);
 }
 
 function datosImportarCounters(rows) {
@@ -24089,6 +24091,7 @@ function datosImportarApply(session, { motivo }) {
   // sobre los datos tal cual están, antes de fotografiar nada.
   if (baseData?.metadata?.sourceWorkbookStatus !== "Leído desde la app") refreshMovementRollups();
   const beforeState = appStatePayload({ includeCanonical: false });
+  movementMappings = { ...movementMappings }; // el «antes» guarda esta referencia: sin copia, las reglas del lote seguían al deshacerlo
 
   const ignored = datosImportarLoadIgnored();
   let nuevasReglas = 0;
@@ -24110,6 +24113,7 @@ function datosImportarApply(session, { motivo }) {
     }
   });
 
+  const capturasSustituidas = capturaDuplicadosAplicar(rows); // WP-53: dentro del lote, para que «Deshacer» devuelva la captura
   const incoming = datosImportarIncludedTransactions(rows, session.fileMeta.bankAccount);
   baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
   refreshMovementRollups();
@@ -24142,7 +24146,7 @@ function datosImportarApply(session, { motivo }) {
   queueRemoteSave();
   refreshAllSectionsAfterDataChange();
 
-  return { imported: incoming.length, duplicadosDescartados, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
+  return { imported: incoming.length, duplicadosDescartados, capturasSustituidas, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -24234,7 +24238,7 @@ function datosImportarRestoreSession() {
     step: Math.min(4, Math.max(1, Number(draft.step) || 1)),
     fileMeta: draft.fileMeta || { fileName: "", sourceLabel: "", hash: "" },
     inboxItem,
-    rows: draft.rows.map((saved) => {
+    rows: capturaDuplicadosAnotar(draft.rows.map((saved) => {
       const prior = datosImportarPriorClassification(saved.transaction, ignored);
       return {
         rowId: saved.rowId,
@@ -24245,7 +24249,7 @@ function datosImportarRestoreSession() {
         decision: saved.decision || null,
         duplicateDecision: saved.duplicateDecision || null,
       };
-    }),
+    }), globalThis.FinanceCanonicalCaptureDedupe),
   };
 }
 
@@ -24437,6 +24441,7 @@ function renderDatosImportarStep2() {
 }
 
 function datosImportarDuplicateRowMarkup(row) {
+  if (row.capturePair) return capturaDuplicadosRowMarkup(row); // WP-53: el candidato es algo anotado a mano
   const decided = row.duplicateDecision;
   const existing = row.duplicates[0];
   return `<tr class="${decided ? "is-decided" : ""}">
@@ -24463,7 +24468,7 @@ function renderDatosImportarStep3() {
   if (!panel || !session) return;
   const pending = datosImportarRowsPendingDuplicate(session.rows);
   panel.innerHTML = pending.length
-    ? `<div class="table-wrap"><table class="datos-importar-table">
+    ? `<div class="table-wrap"><table class="datos-importar-table${pending.some((row) => row.capturePair) ? " cdup-tabla" : ""}">
         <thead><tr><th>Candidato del fichero</th><th>Ya registrado</th><th>Decisión</th></tr></thead>
         <tbody>${pending.map((row) => datosImportarDuplicateRowMarkup(row)).join("")}</tbody>
       </table></div>`
@@ -24477,7 +24482,7 @@ function renderDatosImportarStep3() {
 function datosImportarSuccessMarkup(result) {
   return `<div class="e19-insight">
       <strong>Importación confirmada</strong>
-      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
+      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}${result.capturasSustituidas ? `, ${result.capturasSustituidas} captura(s) a mano sustituida(s) por su fila del banco` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }
@@ -24507,7 +24512,7 @@ function renderDatosImportarStep4() {
   const impact = datosImportarImpactRows(session.rows);
   const included = datosImportarIncludedTransactions(session.rows).length;
   const duplicados = session.rows.filter((row) => row.duplicateDecision === "duplicado").length;
-  panel.innerHTML = `<p class="e19-kpi-note">${included} movimiento(s) entrarían en el plan; ${duplicados} queda(n) fuera por marcarse como duplicado.</p>
+  panel.innerHTML = `<p class="e19-kpi-note">${included} movimiento(s) entrarían en el plan; ${duplicados} queda(n) fuera por marcarse como duplicado.${capturaDuplicadosResumen(session.rows)}</p>
     ${impact.length
       ? `<div class="table-wrap"><table class="datos-importar-table">
           <thead><tr><th>Partida</th><th>Mes</th><th>Actual</th><th>Tras importar</th><th>Desviación</th></tr></thead>

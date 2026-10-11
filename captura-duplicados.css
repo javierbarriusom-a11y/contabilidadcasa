@@ -1,0 +1,43 @@
+/* WP-53 · el candidato del paso 3 de Importar extracto cuando es algo anotado a mano. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*.
+   Rejillas con min-width: 0 y minmax(min(Npx, 100%), 1fr): el CI mira el desbordamiento a 360 y 768 px. El estado y la decisión van en TEXTO (botones con aria-pressed), no solo en color. */
+
+/* La tabla genérica pide 1.120 px de ancho mínimo; con textos largos el botón quedaba fuera de la pantalla en el móvil. */
+.datos-importar-table.cdup-tabla {
+  min-width: 0;
+  table-layout: auto;
+}
+
+.datos-importar-table.cdup-tabla th,
+.datos-importar-table.cdup-tabla td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cdup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cdup-lados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+.cdup-lados > div {
+  min-width: 0;
+}
+
+.cdup-lados p,
+.cdup-motivo {
+  margin: 2px 0 0;
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.cdup-motivo {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}

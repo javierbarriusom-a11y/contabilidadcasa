@@ -557,6 +557,22 @@ Al cargar un **CSV o TXT** en **Registrar › Importar extracto**, la app ya no 
 
 El contenido del extracto solo está en memoria mientras lo importáis; lo único que se guarda (y va en la copia de seguridad) son los perfiles. **Aún no se ha probado con un extracto real de ningún banco**: si veis avisos o filas sin leer en el vuestro, copiad el diagnóstico y decidlo. El Excel (.xlsx) sigue necesitando una hoja de movimientos con sus cabeceras.
 
+### Lo anotado a mano y el extracto: sin contar dos veces (Registrar › Importar extracto)
+
+Cuando importáis un extracto, el **paso 3 («Duplicados»)** ahora compara cada fila del banco con **lo que anotasteis a mano** y os propone la pareja cuando coinciden **el importe exacto (al céntimo)**, **la fecha a dos días o menos** y **el comercio** (se ignora el ruido del banco: «COMPRA TARJ. 4412 … SA»). Lo que se compara:
+
+- **Captura rápida** y **foto de ticket**: ya guardaban fecha e importe.
+- **«+ Registrar gasto» y el enlace de registro sin tarjetas**: ahora dejan constancia de la fecha y de cuándo lo anotasteis (las anotadas **antes** de esta versión no se pueden emparejar).
+- **Las compras de la hoja de captura con tarjeta no se emparejan una a una**: la tarjeta se liquida con un cargo único en el extracto y de eso se ocupa la conciliación de Plan › Partidas › Tarjetas.
+
+Cada candidato enseña **de dónde sale lo anotado, por qué se propone** («mismo importe, 1 día después de anotarlo, comercio parecido en un 100 %») **y qué se conservará**. Vosotros decidís: **«Es la misma compra»** o **«Son distintas»**. Nada cambia hasta el último paso, y **«Deshacer último lote»** lo devuelve todo.
+
+- Si es **la misma compra** y era una captura rápida o un ticket, **se quita lo anotado y se queda la fila del banco**: manda el extracto en importe y fecha.
+- Si era una **partida de «Registrar gasto»**, **la fila del banco se asigna a esa partida** y pasa a valer lo que dice el banco, **sin sumarse aparte**. Solo se empareja con una fila **del mismo mes** de la partida.
+- Si el comercio no se parece, la propuesta sale como **«comercio distinto»**: mismo importe y fecha cercana no bastan para darla por buena.
+
+Dos límites que conviene saber: **no empareja importes aproximados** (una propina o un redondeo dejan la captura sin pareja, y se ve), y la tabla del **paso 4 («Tras importar»)** todavía no refleja la asignación de la partida, aunque el resultado final sí es el correcto. Aún no se ha probado con un extracto real: si algún emparejamiento os parece raro, decid cuál.
+
 ### Vivienda y local por índice (Inversión › Cartera)
 
 En **Inversión › Cartera**, sobre el patrimonio neto, la tarjeta **«Vivienda y local por índice»** **revaloriza el último valor declarado** de cada inmueble con un **índice de precios que tecleáis vosotros**, y enseña el **LTV** con el valor declarado y con el estimado. La app **no se conecta a ninguna fuente**.
