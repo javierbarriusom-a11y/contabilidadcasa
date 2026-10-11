@@ -45,6 +45,7 @@ function sandbox({ housing = 0, portfolio = 0 } = {}) {
   const context = {
     round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
     assetsList: () => [],
+    assetsEffectiveList: () => [], // WP-50: la exposición lee los inmuebles con la estimación por índice activada
     iv1PositionsList: () => [],
     window: {
       FinanceCanonicalAssets: { normalizeAssets: () => ({ summary: { totalsByType: { inmueble: housing } } }) },
@@ -95,6 +96,7 @@ test("ivx8HousingExposure · sin motores canónicos disponibles, no revienta —
   const context = {
     round2: (v) => v,
     assetsList: () => [],
+    assetsEffectiveList: () => [], // WP-50: la exposición lee los inmuebles con la estimación por índice activada
     iv1PositionsList: () => [],
     window: {},
   };
@@ -110,6 +112,7 @@ test("renderIvx8HousingExposure · sin dominante, deja el contenedor vacío", ()
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     qs: (id) => (id === "ivx8HousingExposure" ? container : null),
     assetsList: () => [],
+    assetsEffectiveList: () => [], // WP-50: la exposición lee los inmuebles con la estimación por índice activada
     iv1PositionsList: () => [],
     window: {
       FinanceCanonicalAssets: { normalizeAssets: () => ({ summary: { totalsByType: { inmueble: 250000 } } }) },
@@ -130,6 +133,7 @@ test("renderIvx8HousingExposure · con dominante, avisa nombrando cuál y su por
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     qs: (id) => (id === "ivx8HousingExposure" ? container : null),
     assetsList: () => [],
+    assetsEffectiveList: () => [], // WP-50: la exposición lee los inmuebles con la estimación por índice activada
     iv1PositionsList: () => [],
     window: {
       FinanceCanonicalAssets: { normalizeAssets: () => ({ summary: { totalsByType: { inmueble: 400000 } } }) },

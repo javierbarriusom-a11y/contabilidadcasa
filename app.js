@@ -1341,6 +1341,7 @@ function isActiveInMonth(monthStart, endDate) {
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
   "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
+  "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
@@ -19573,7 +19574,7 @@ function totalDebtOutstanding() {
 // (cascada mensual, más abajo) parta del mismo cálculo en vez de duplicarlo.
 function a14NetWorthToday() {
   const engine = window.FinanceCanonicalAssets;
-  const rows = assetsList();
+  const rows = assetsEffectiveList();
   if (!engine || !rows.length) return { calculable: false };
   const result = engine.normalizeAssets(rows);
   const netWorth = result.summary.netWorth;
@@ -19707,7 +19708,7 @@ function ivx8HousingExposure() {
   const assetsEngine = window.FinanceCanonicalAssets;
   const portfolioEngine = window.FinanceCanonicalPortfolio;
   if (!assetsEngine || !portfolioEngine) return null;
-  const housingValue = assetsEngine.normalizeAssets(assetsList()).summary.totalsByType.inmueble || 0;
+  const housingValue = assetsEngine.normalizeAssets(assetsEffectiveList()).summary.totalsByType.inmueble || 0;
   const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue || 0;
   const combined = round2(housingValue + portfolioValue);
   if (combined <= 0) return null;

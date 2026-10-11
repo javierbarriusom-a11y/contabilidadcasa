@@ -1,0 +1,182 @@
+/* WP-50 · tarjeta «Vivienda y local por índice» de Inversión › Cartera. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*. Rejillas con
+   min-width: 0 y minmax(min(Npx, 100%), 1fr) (el CI mira el desbordamiento a 360 y 768 px). La estimación va marcada en TEXTO («estimado por índice · T2 2026») y con un borde discontinuo,
+   no solo en color; lo declarado, con borde continuo. */
+.ivi-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.ivi-subtitulo {
+  margin: 14px 0 6px;
+  color: var(--e19-ink);
+  text-align: left;
+}
+
+.ivi-fuente,
+.ivi-notas,
+.ivi-frase {
+  overflow-wrap: anywhere;
+}
+
+.ivi-lista {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 10px;
+}
+
+.ivi-inmueble,
+.ivi-serie {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  color: var(--e19-ink);
+}
+
+.ivi-usa {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.ivi-nombre {
+  margin: 0 0 4px;
+  font-size: var(--e19-text-md);
+  color: var(--e19-ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.ivi-declarado,
+.ivi-estimado,
+.ivi-ltv {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+  color: var(--e19-ink);
+}
+
+.ivi-chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px dashed var(--e19-ink);
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-warning-soft);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.ivi-delta {
+  font-size: var(--e19-text-sm);
+}
+
+.ivi-serie-pick {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ivi-serie-pick select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ivi-usar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.ivi-usar input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.ivi-serie {
+  margin: 8px 0;
+}
+
+.ivi-serie-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.ivi-puntos {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+  gap: 4px 12px;
+}
+
+.ivi-puntos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ivi-boton {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--e19-ink);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+.ivi-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr));
+  gap: 8px;
+  align-items: end;
+  margin: 8px 0;
+}
+
+.ivi-form label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ivi-form input,
+.ivi-form select {
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.ivi-guardar {
+  min-height: 44px;
+}
+
+.ivi-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  min-height: 0;
+  color: var(--e19-ink);
+  font-weight: 700;
+}
+
+.ivi-error:not(:empty)::before {
+  content: "⚠ ";
+}
+
+.ivi-notas {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: var(--e19-ink);
+}

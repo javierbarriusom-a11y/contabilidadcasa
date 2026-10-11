@@ -544,6 +544,23 @@ Cuatro cosas que conviene saber:
 - **La banda que pongas aquí no cambia el aviso de la herramienta de rebalanceo**, que sigue avisando a los 10 puntos.
 - Si cambias una respuesta después de firmar, **la firma deja de valer** hasta firmar de nuevo. Tanto cambiar como borrar se pueden deshacer 10 segundos.
 
+### Vivienda y local por índice (Inversión › Cartera)
+
+En **Inversión › Cartera**, sobre el patrimonio neto, la tarjeta **«Vivienda y local por índice»** **revaloriza el último valor declarado** de cada inmueble con un **índice de precios que tecleáis vosotros**, y enseña el **LTV** con el valor declarado y con el estimado. La app **no se conecta a ninguna fuente**.
+
+- **Primero**, los inmuebles tienen que estar en **Ajustes › Patrimonio** (tipo «inmueble»), con su valor y **la fecha de ese valor**.
+- **Después**, creáis una **serie de índice** (por ejemplo, «IPV vivienda · Cataluña») y tecleáis su valor por trimestre: **el del trimestre de vuestro último valor declarado y el del último trimestre publicado** (escrito como en España: «187,4»). Una opción es el Índice de Precios de Vivienda (IPV) del INE por comunidad autónoma (*a verificar en la web del INE*).
+- **En cada inmueble**, elegís la serie y sale la estimación con el chip **«estimado por índice · T2 2026»**: valor declarado × índice del último trimestre ÷ índice del trimestre de la declaración.
+- **El interruptor «Usar la estimación en el patrimonio y en el LTV» está apagado por defecto**: sin activarlo, el patrimonio sigue con el valor declarado. Al activarlo, el patrimonio neto (el de Ajustes y el de esta pantalla) y la exposición a vivienda leen el estimado, y la tarjeta de patrimonio lo dice. **El valor declarado no se modifica nunca.**
+
+Cinco cosas que conviene saber:
+
+- **Es una estimación, no una tasación**: una comunidad autónoma entera no es vuestro barrio, y el índice de vivienda no sirve tal cual para un local (necesita su propia serie). **El banco usa su propia tasación.**
+- **Sin el índice del trimestre de la declaración no se inventa nada**: no se interpola ni se usa el trimestre más cercano; la app dice qué trimestre falta y se queda con el valor declarado. Tampoco se extrapola más allá del último trimestre tecleado: si ese queda a más de dos trimestres del actual, **avisa de que la estimación envejece**.
+- **Hay que teclear un número por serie cada trimestre.** Si no vais a hacerlo, esta tarjeta no os sirve: la descarga automática espera a la revisión de seguridad de conexiones externas (WP-05).
+- **El LTV** compara la suma de los contratos de Deuda con «hipoteca» en el tipo o la entidad con la suma de los inmuebles (la app no sabe qué hipoteca es de qué inmueble).
+- **Al firmar un cierre**, la foto del patrimonio guarda el valor que estuviera activo en ese momento, estimado o declarado, sin marcar cuál.
+
 ### Mapa anual de pagos grandes (Plan › Previsión)
 
 En **Plan › Previsión**, bajo el puente de previsión, la tarjeta **«Mapa anual de pagos grandes»** enseña **los próximos 12 meses, mes a mes, con los pagos que caen de golpe** y **cuánto hay reservado para cada uno**. Solo enseña: no reserva ni mueve dinero.

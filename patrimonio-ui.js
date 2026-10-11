@@ -43,7 +43,7 @@ function patrimonioComponents(cashOverride = undefined) {
   const portfolioEngine = globalThis.FinanceCanonicalPortfolio;
   const assetsEngine = globalThis.FinanceCanonicalAssets;
   const positions = portfolioEngine ? patrimonioGuard(() => portfolioEngine.normalizePositions(iv1PositionsList()), null) : null;
-  const assets = assetsEngine ? patrimonioGuard(() => assetsEngine.normalizeAssets(assetsList()), null) : null;
+  const assets = assetsEngine ? patrimonioGuard(() => assetsEngine.normalizeAssets(typeof assetsEffectiveList === "function" ? assetsEffectiveList() : assetsList()), null) : null; // WP-50: con la estimación por índice activada, el inmueble lleva el valor estimado
   const balances = patrimonioGuard(() => accountBalancesFromState(), null);
   const cash = cashOverride !== undefined ? cashOverride : (balances && Number.isFinite(Number(balances.total)) ? Number(balances.total) : null);
   const rows = assets ? assets.assets : [];
@@ -96,7 +96,11 @@ function patrimonioTodayHtml(engine, now) {
   const excluded = s.excludedAssets.length
     ? `<p class="e19-kpi-note"><strong>No sumo</strong> ${s.excludedAssets.map((row) => `«${escapeHtml(row.label)}» (${patrimonioEuros(row.value)})`).join(", ")}: están registrados como cuentas, inversiones o pensión en Activos, y el dinero ya entra por los saldos y la cartera. Si no estuviera en ninguno de los dos, falta en este total.</p>`
     : "";
-  return `${head}<ul class="pat-lista">${lines}</ul>${excluded}`;
+  const applied = typeof indiceViviendaApplied === "function" ? indiceViviendaApplied() : [];
+  const estimated = applied.length
+    ? `<p class="e19-kpi-note"><strong>Incluye ${applied.length} inmueble${applied.length === 1 ? "" : "s"} con valor estimado por índice</strong> (${applied.map((row) => `«${escapeHtml(row.label)}» ${row.delta >= 0 ? "+" : "−"}${patrimonioEuros(Math.abs(row.delta))} frente a lo declarado`).join("; ")}). Es una estimación, no una tasación; se desactiva en «Vivienda y local por índice».</p>`
+    : "";
+  return `${head}<ul class="pat-lista">${lines}</ul>${estimated}${excluded}`;
 }
 
 function patrimonioSeriesHtml(engine, data) {
