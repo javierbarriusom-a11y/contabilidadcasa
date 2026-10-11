@@ -1,0 +1,251 @@
+/* WP-49 · tarjeta «Mapa anual de pagos grandes» de Plan › Previsión. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*. Rejillas con
+   min-width: 0 y minmax(min(Npx, 100%), 1fr) (el CI mira el desbordamiento a 360 y 768 px). El estado de financiación va en TEXTO e icono y, además, en el PATRÓN de la barra (lleno = reservado;
+   rayado = lo que falta; punteado = nada ahorrado; discontinuo = sin importe), no solo en color. */
+.mpg-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.mpg-minimo {
+  display: block;
+  margin-top: 12px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mpg-minimo select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mpg-frase {
+  margin: 10px 0 6px;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.mpg-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.mpg-dato {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  color: var(--e19-ink);
+}
+
+.mpg-dato dt {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.mpg-dato dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mpg-dato dd:first-of-type {
+  font-size: var(--e19-text-lg);
+  font-weight: 700;
+}
+
+.mpg-dato-nota {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.mpg-meses {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  gap: 10px;
+}
+
+.mpg-mes {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  color: var(--e19-ink);
+}
+
+.mpg-mes-vacio {
+  border-style: dashed;
+}
+
+.mpg-mes-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+  margin: 0 0 6px;
+  font-size: var(--e19-text-md);
+  color: var(--e19-ink);
+  text-align: left;
+}
+
+.mpg-total {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.mpg-total-vacio {
+  font-weight: 400;
+}
+
+.mpg-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mpg-item {
+  min-width: 0;
+}
+
+.mpg-item details {
+  min-width: 0;
+}
+
+.mpg-item summary {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.mpg-linea {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+
+.mpg-nombre {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mpg-importe {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* La barra: su ancho es el coste (frente al pago más caro del año); lo lleno es lo reservado. */
+.mpg-barra {
+  display: block;
+  box-sizing: border-box;
+  max-width: 100%;
+  height: 12px;
+  border: 1px solid var(--e19-ink);
+  border-radius: 3px;
+  background: repeating-linear-gradient(45deg, var(--e19-ink) 0 2px, transparent 2px 7px);
+  overflow: hidden;
+}
+
+.mpg-lleno {
+  display: block;
+  height: 100%;
+  background: var(--e19-ink);
+}
+
+.mpg-barra-financiado {
+  background: var(--e19-ink);
+}
+
+.mpg-barra-sin-reserva {
+  background: repeating-linear-gradient(45deg, var(--e19-ink) 0 1px, transparent 1px 5px);
+  border-style: dashed;
+}
+
+.mpg-barra-vacio {
+  background: radial-gradient(circle, var(--e19-ink) 0 1px, transparent 1.5px) 0 0 / 6px 6px;
+  border-style: dotted;
+}
+
+.mpg-barra-desconocido {
+  width: 30%;
+  background: none;
+  border-style: dashed;
+}
+
+.mpg-estado {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid var(--e19-ink);
+  border-radius: var(--e19-radius-pill);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.mpg-estado-financiado {
+  background: var(--e19-success-soft);
+}
+
+.mpg-estado-parcial {
+  background: var(--e19-warning-soft);
+}
+
+.mpg-estado-sin-reserva,
+.mpg-estado-vacio {
+  background: var(--e19-danger-soft);
+  border-style: dashed;
+}
+
+.mpg-estado-desconocido {
+  background: var(--e19-surface-soft);
+  border-style: dotted;
+}
+
+.mpg-detalle {
+  padding: 4px 0 8px 10px;
+  border-left: 2px solid var(--e19-border-strong);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.mpg-detalle p {
+  margin: 4px 0;
+}
+
+.mpg-etiquetas,
+.mpg-origen {
+  color: var(--e19-ink);
+}
+
+.mpg-tabla {
+  margin: 8px 0;
+  min-width: 0;
+}
+
+.mpg-tabla summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.mpg-notas {
+  margin: 8px 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+  color: var(--e19-ink);
+}

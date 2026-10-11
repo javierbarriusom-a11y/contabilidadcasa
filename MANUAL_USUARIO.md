@@ -544,6 +544,21 @@ Cuatro cosas que conviene saber:
 - **La banda que pongas aquí no cambia el aviso de la herramienta de rebalanceo**, que sigue avisando a los 10 puntos.
 - Si cambias una respuesta después de firmar, **la firma deja de valer** hasta firmar de nuevo. Tanto cambiar como borrar se pueden deshacer 10 segundos.
 
+### Mapa anual de pagos grandes (Plan › Previsión)
+
+En **Plan › Previsión**, bajo el puente de previsión, la tarjeta **«Mapa anual de pagos grandes»** enseña **los próximos 12 meses, mes a mes, con los pagos que caen de golpe** y **cuánto hay reservado para cada uno**. Solo enseña: no reserva ni mueve dinero.
+
+- **De dónde salen los pagos:** las **partidas de vuestro plan de gastos** que un mes pesan mucho más que de costumbre (IBI, colegio, vacaciones; una cuota igual cada mes no cuenta), los **seguros** del inventario en cada aniversario (si la renovación que escribisteis ya pasó, se repite cada año y sale **«estimado»**), los **objetivos con fecha** y la **campaña de la Renta**.
+- **Cada pago tiene una barra**: su largo es lo que cuesta frente al pago más caro del año y lo **lleno** es lo reservado. El estado va también en palabras: **✓ Financiado**, **% Reservado N %**, **○ Sin reserva asignada**, **○ Objetivo sin ahorrar aún**, **? Importe sin determinar**. **Tocad un pago** para ver el detalle y cuánto habría que apartar al mes para llegar sin tocar la caja.
+- **Arriba**: lo que suman, lo reservado, lo que falta, **cuánto apartar al mes** y lo que **vence este mes** sin cubrir. «Contar como grande desde» cambia el mínimo (300 € por defecto) mientras la pantalla está abierta.
+
+Cuatro cosas que conviene saber:
+
+- **Solo los objetivos tienen dinero reservado.** Los «sobres» de gastos variables son el sobrante de cada mes, no un fondo para un pago concreto: por eso el IBI o un seguro salen «sin reserva asignada» y no «0 %». Si queréis fondos por pago, es una decisión vuestra (decídmelo).
+- **Un importe que no se conoce no es cero**: la Renta y los seguros sin prima salen «sin determinar» y **no suman**.
+- **Si un pago no sale, no está en el plan, en un seguro ni en un objetivo.** Si cambia de mes o de importe, ajustadlo en el plan. Un pago que está en el plan y en el inventario de seguros se cuenta una vez.
+- **Los umbrales (300 € y «2,5 veces lo habitual») son una primera idea mía**: decidme qué pagos faltan o sobran con vuestro plan real.
+
 ### Plan B del hogar (Plan › Previsión)
 
 Bajo el desglose del peor mes, la tarjeta **«Plan B del hogar»** sirve para **acordar en calma qué haremos si el mes va mal**, en vez de decidirlo cuando ya hay prisa. Son tres pasos:

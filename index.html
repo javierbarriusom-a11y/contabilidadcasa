@@ -46,6 +46,7 @@
     <link rel="stylesheet" href="nomina.css?v=20261010wp47a1" />
     <link rel="stylesheet" href="operaciones.css?v=20261010wp48a1" />
     <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
+    <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
     <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261010wp46a1" />
@@ -1078,6 +1079,12 @@
                   <h3 class="escenario-motor-panel-title" id="puenteTitulo">Puente de previsión: por qué cambió el fin de año</h3>
                   <p class="e19-kpi-note">En cada cierre la app <strong>congela cuánto preveía para el 31/12</strong>. Al cerrar el mes siguiente, compara las dos previsiones y reparte la diferencia en barras: ingresos, gasto recurrente, extraordinarios, deuda y «otros». Lo que la app no sabe atribuir se ve en «otros», no se esconde.</p>
                   <div id="puenteCuerpo"></div>
+                </article>
+                <!-- WP-49 (NPV-04, docs/WP49_DISENO.md): mapa anual de pagos grandes. Lo pinta mapa-pagos-ui.js con canonical-large-payments.js, que junta lo que ya existe (partidas del plan, seguros, objetivos, Renta). Solo enseña: no reserva ni mueve dinero (A11-4). -->
+                <article class="e19-card mpg-card" id="mapaPagosCard" aria-labelledby="mapaPagosTitulo">
+                  <h3 class="escenario-motor-panel-title" id="mapaPagosTitulo">Mapa anual de pagos grandes</h3>
+                  <p class="e19-kpi-note">Los pagos que caen <strong>de golpe</strong> en los próximos 12 meses (seguros, impuestos, colegio, vacaciones, objetivos con fecha) y <strong>cuánto hay reservado</strong> para cada uno. Una barra llena es dinero ahorrado de verdad; una rayada, lo que falta. <strong>No reserva ni mueve nada</strong>: enseña para que decidáis.</p>
+                  <div id="mapaPagosCuerpo"></div>
                 </article>
                 <p class="e19-kpi-note">Sigue disponible, con más detalle día a día, en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
               </div>
@@ -8042,6 +8049,8 @@
     <script defer src="nomina-ui.js?v=20261010wp47a1"></script>
     <script defer src="canonical-forecast-bridge.js?v=20261010wp43a1"></script>
     <script defer src="puente-ui.js?v=20261010wp43a1"></script>
+    <script defer src="canonical-large-payments.js?v=20261011wp49a1"></script>
+    <script defer src="mapa-pagos-ui.js?v=20261011wp49a1"></script>
     <script defer src="canonical-calm-coverage.js?v=20261010wp44a1"></script>
     <script defer src="calma-ui.js?v=20261010wp44a1"></script>
     <script defer src="canonical-data-queue.js?v=20261010wp45a1"></script>

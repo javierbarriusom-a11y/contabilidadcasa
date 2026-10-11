@@ -938,3 +938,46 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-49: la tarjeta «Mapa anual de pagos grandes» de Plan › Previsión, en claro y en oscuro: con solo la Renta sin importe, con pagos de todos los estados (sin reserva, reservado, financiado, vacío) y con un detalle abierto.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-49 · contraste del mapa de pagos grandes en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#plan");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const card = page.locator("#mapaPagosCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#mapaPagosCard").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await expect(card.locator("#mapaPagosCuerpo")).toContainText("ninguno con importe conocido");
+      await revisar("solo la Renta, sin importe");
+      await page.evaluate(() => {
+        const at = (offset, day = 5) => { const date = addMonths(new Date(), offset); return { key: monthKey(date), iso: `${monthKey(date)}-${String(day).padStart(2, "0")}` }; };
+        insurancePolicies().push({ id: "ax-hogar", name: "Seguro del hogar", renewalDate: at(3).iso, premium: 410 });
+        saveScenarioSettings();
+        customPlanningRows.push({ id: "ax-ibi", custom: true, kind: "expense", sectionName: "Gastos fijos", label: "IBI", monthKey: at(5).key, plannedValue: 900 });
+        const goal = (id, name, target, targetDate, saved) => ({ id, name, type: "project", target, targetDate, status: "active", contributions: saved ? [{ id: `${id}-c`, amount: saved, date: "2026-01-01", label: "Ahorro" }] : [] });
+        saveP2State({ ...p2State(), goals: [goal("ax-coche", "Coche", 8000, at(4, 28).iso, 8000), goal("ax-reforma", "Reforma", 2500, at(7, 10).iso, 600), goal("ax-dentista", "Dentista", 800, at(2, 10).iso, 0)] });
+        renderMapaPagos(FinanceCanonicalLargePayments);
+      });
+      await expect(card.locator(".mpg-item")).toHaveCount(6);
+      await expect(card.locator(".mpg-estado-financiado")).toBeVisible();
+      await expect(card.locator(".mpg-estado-parcial")).toBeVisible();
+      await expect(card.locator(".mpg-estado-sin-reserva").first()).toBeVisible();
+      await expect(card.locator(".mpg-estado-vacio")).toBeVisible();
+      await revisar("todos los estados");
+      await card.locator(".mpg-item summary").first().click();
+      await revisar("con un detalle abierto");
+      await card.locator(".mpg-tabla summary").click();
+      await revisar("tabla abierta");
+    });
+  });
+}

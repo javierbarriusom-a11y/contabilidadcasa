@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-11-wp49",
+      fecha: "2026-10-11",
+      texto: "Plan › Previsión › Mapa anual de pagos grandes: lo que cae de golpe en los próximos 12 meses y cuánto hay reservado.",
+      href: "#plan",
+    },
+    {
       id: "2026-10-10-wp48",
       fecha: "2026-10-10",
       texto: "Inversión › Cartera › Libro de operaciones: corrige compras y ventas viendo antes qué cambia en las plusvalías.",
