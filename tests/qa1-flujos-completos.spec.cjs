@@ -624,6 +624,20 @@ test.describe("QA-1 · el extracto actualiza el saldo (WP-26)", () => {
 test.describe("QA-1 · backtest de liquidez (WP-12)", () => {
   const photo = (page) => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("liquidity-backtest")) || "null"));
 
+  // Si una de estas pruebas falla, el registro del CI solo decía su nombre. Ahora deja también el estado de la página en ese instante
+  // (foto, cierres, modo de saldos, visibilidad), que es lo que hace falta para saber por qué.
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status === testInfo.expectedStatus) return;
+    const snapshot = await page.evaluate(() => ({
+      photo: JSON.parse(localStorage.getItem(storageKey("liquidity-backtest")) || "null"),
+      closes: JSON.parse(localStorage.getItem(storageKey("month-close-balances")) || "null"),
+      balanceMode: state?.balanceMode, balanceDate: state?.balanceDate, hidden: document.hidden, now: new Date().toISOString(),
+    })).catch((error) => ({ sinEstado: String(error) }));
+    const text = JSON.stringify(snapshot, null, 2);
+    await testInfo.attach("estado-al-fallar", { body: text, contentType: "application/json" });
+    console.log(`WP-12 · estado de la página al fallar «${testInfo.title}»:\n${text}`);
+  });
+
   test("el día 15 se congela al abrir y es lo que prevé el motor a fin de mes; al volver a abrir no se reescribe", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -662,9 +676,13 @@ test.describe("QA-1 · backtest de liquidez (WP-12)", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.clock.install({ time: new Date(2026, 9, 15, 9, 0, 0) });
     await page.goto("/index.html#prevision");
-    await expect.poll(async () => Object.keys((await photo(page))?.freezes || {})).toEqual(["2026-10:d15"]);
+    // La espera es larga a propósito: en un runner lento la app tarda en abrir, y si va bien no cuesta nada.
+    await expect.poll(async () => Object.keys((await photo(page))?.freezes || {}), { timeout: 20000, message: "la foto del día 15 se guarda sola al abrir" }).toEqual(["2026-10:d15"]);
     // Saldos del banco, como los deja el Pulso de saldos; se rehace la foto del día 15 con ellos (la anterior era de saldos calculados).
-    await page.evaluate(() => {
+    // TODO en una sola tarea de la página: si se hiciera en pasos sueltos, entre ellos podría colarse la foto automática que la app
+    // repite al volver a ser visible (liquidity-backtest-ui.js), con los saldos viejos, y `freezeLiquidityForecast()` devolvería null.
+    // La foto se lee del almacén, que es lo que de verdad compara el motor, no del valor devuelto.
+    const frozen = await page.evaluate(() => {
       localStorage.removeItem(storageKey("liquidity-backtest"));
       qs("registrarBalanceMode").value = "manual"; // como el botón «Real manual» del Pulso de saldos
       qs("registrarBalanceMode").dispatchEvent(new Event("change", { bubbles: true }));
@@ -672,23 +690,24 @@ test.describe("QA-1 · backtest de liquidez (WP-12)", () => {
       ["balanceDate", "registrarBalanceDate"].forEach((id) => { qs(id).value = "2026-10-14"; });
       saveBalanceSettings();
       render();
+      freezeLiquidityForecast();
+      return JSON.parse(localStorage.getItem(storageKey("liquidity-backtest")) || "null")?.freezes?.["2026-10:d15"] ?? null;
     });
-    const frozen = await page.evaluate(() => freezeLiquidityForecast());
+    expect(frozen, "tras pasar a saldos manuales la foto del día 15 debe quedar guardada").not.toBeNull();
     expect(frozen.balanceMode).toBe("manual");
     expect(frozen.balanceDate).toBe("2026-10-14");
-    // Cierre real de octubre con saldos del 31/10 (mismo formato que escribe WP-09).
-    await page.evaluate(() => {
+    // Cierre real de octubre con saldos del 31/10 (mismo formato que escribe WP-09), y lo que quedó guardado, en la misma tarea.
+    const expected = await page.evaluate(() => {
       state.balanceDate = "2026-10-31";
       recordMonthCloseBalances("2026-10", "2026-11-01T09:00:00.000Z");
-    });
-    const expected = await page.evaluate(() => {
       const close = loadMonthCloseBalances().months["2026-10"];
-      return { actual: Math.round((close.accounts.caixabank + close.accounts.mediolanum) * 100) / 100, date: close.date };
+      return close ? { actual: Math.round((close.accounts.caixabank + close.accounts.mediolanum) * 100) / 100, date: close.date } : null;
     });
+    expect(expected, "el cierre de octubre con sus saldos debe quedar guardado").not.toBeNull();
     expect(expected.date).toBe("2026-10-31");
     await page.click("#previsionBacktestCard > summary");
     await page.evaluate(() => render());
-    await expect(page.locator("#previsionBacktestResumen")).toContainText("datos insuficientes (1 de 3 cierres)");
+    await expect(page.locator("#previsionBacktestResumen")).toContainText("datos insuficientes (1 de 3 cierres)", { timeout: 15000 });
     await expect(page.locator("#previsionBacktest")).not.toContainText("Esperan su cierre");
     await expect(page.locator("#previsionBacktest")).not.toContainText("No cuentan");
     const row = await page.evaluate(() => FinanceCanonicalLiquidityBacktest.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: "2026-11-02" }).rows[0]);
