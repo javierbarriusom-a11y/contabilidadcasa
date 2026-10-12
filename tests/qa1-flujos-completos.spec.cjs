@@ -3733,3 +3733,54 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-54 (GOV-06): el guion de la prueba con 5 personas ajenas (docs/WP54_PRUEBA_USABILIDAD.md) se puede hacer en la demostración. No mide usabilidad —no hay personas—: protege que cada tarea siga
+// teniendo su sitio, su dato y su respuesta, para que el guion no se pudra entre una ronda y la siguiente. Fechas relativas a hoy, como el extracto ficticio.
+test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la demo", () => {
+  test("las cinco tareas tienen sitio y respuesta; la tarea 3 propone la pareja de la tarea 2 y no la de la farmacia", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => typeof capturaDuplicadosAnotar === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled && document.querySelector("#homeKpis")?.textContent.trim().length > 20);
+    // T1: la pantalla de inicio dice una cifra de capacidad libre y la deuda.
+    await expect(page.locator("#homeKpis")).toContainText("Capacidad libre real");
+    await expect(page.locator("#homeKpis")).toContainText("Deuda pendiente");
+    // T2: anotar el gasto con la ventana de siempre (la demo no tiene tarjetas).
+    expect(await page.evaluate(() => loadCardCycles().cards.length), "la demo no tiene tarjetas: la tarea 2 prueba la ventana anterior").toBe(0);
+    await page.click("#homeQuickExpenseOpen");
+    await page.fill("#homeQuickExpenseLabel", "Mercadona");
+    await page.fill("#homeQuickExpenseAmount", "23,40");
+    await page.click("#homeQuickExpenseSubmit");
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    // T3: el extracto ficticio de hoy se lee entero y el paso 3 propone SOLO la compra de la tarea 2.
+    const today = await page.evaluate(() => isoLocalDate(new Date()));
+    const { buildExtract } = await import("../tools/build-usability-extract.mjs");
+    const { csv } = buildExtract({ today });
+    await page.evaluate(() => { location.hash = "#registrar"; });
+    await page.click('[data-registrar-tab="import"]');
+    await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
+    await page.setInputFiles("#registrarImportFileInput", { name: "extracto-demo.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimiento(s) leídos", { timeout: 15000 });
+    await page.selectOption("#registrarImportAccount", "CaixaBank");
+    await page.$eval("#registrarImportNext", (button) => button.click());
+    for (let index = 0; index < 20; index += 1) {
+      const pending = await page.evaluate(() => { const button = document.querySelector('[data-datos-importar-classify="ignorar"]:not(.is-active)'); button?.click(); return Boolean(button); });
+      if (!pending) break;
+    }
+    await page.$eval("#registrarImportNext", (button) => button.click());
+    const pareja = page.locator("#registrarImportPanel [data-captura-duplicado]");
+    await expect(pareja).toHaveCount(1);
+    await expect(pareja).toContainText("MERCADONA");
+    await expect(pareja).not.toContainText("FARMACIA");
+    // T4: la ruta de deuda enseña el camino a deuda cero con el control de extra al mes.
+    await page.goto("/index.html#deuda-ruta");
+    await expect(page.locator("main")).toContainText("Camino a deuda cero", { timeout: 15000 });
+    await expect(page.locator("main")).toContainText("Extra al mes");
+    // T5: Previsión dice cuál es el punto delicado.
+    await page.goto("/index.html#prevision");
+    await expect(page.locator("main")).toContainText("El punto delicado", { timeout: 15000 });
+    expect(pageErrors).toEqual([]);
+  });
+});
