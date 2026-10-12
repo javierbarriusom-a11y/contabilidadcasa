@@ -32,10 +32,15 @@
   const MIN_ANSWERS_FOR_RATE = 10;
   const DEFAULT_LIMIT = 6;
   const RESPONSES = Object.freeze(["real", "normal", "normalAlways"]);
+  const KIND_LABEL = Object.freeze({ devolucion: "Recibo devuelto", duplicado: "Posible duplicado", comision: "Comisión", recurrente: "Sin partida en el plan", atipico: "Importe alto" });
   const SEVERITY = Object.freeze({ devolucion: 5, duplicado: 4, comision: 3, recurrente: 2, atipico: 1 });
   const RETURN_RE = /devoluci[oó]n\s+(?:de\s+)?recibo|recibo\s+devuelto|recibos?\s+impagad|impagado|recibo\s+rechazad|rechazo\s+de\s+recibo/i;
   const COMMISSION_RE = /comisi[oó]n|comis\.|gastos?\s+(?:de\s+)?(?:devoluci[oó]n|correo|mantenimiento)|intereses?\s+deudor|descubierto|mantenimiento\s+(?:de\s+)?cuenta/i;
   const RETURN_WORDS = new Set(["devolucion", "devuelto", "impagado", "rechazado", "rechazo", "de"]);
+  // Palabras de la forma de pago que casi todos los bancos ponen delante del comercio («COMPRA CON TARJETA …», «PAGO MOVIL …»): sin quitarlas gastan las cuatro palabras
+  // del concepto y todos los comercios se confunden en uno solo. Solo se quitan si queda algo detrás.
+  const PAYMENT_WORDS = new Set(["compra", "tarj", "tarjeta", "pago", "con", "comercio", "adeudo", "domiciliacion", "movil", "tpv"]);
+  const MAX_LABELS = 200;
 
   function round2(value) {
     return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -65,7 +70,8 @@
   // Las primeras palabras del concepto, sin números ni referencias (que cambian en cada cargo): «compra tarj mercadona».
   function conceptKey(row) {
     const tokens = plain(`${row.movement || ""} ${row.details || ""}`).split(/[^a-z]+/).filter((token) => token.length >= 3);
-    return tokens.slice(0, 4).join(" ");
+    const merchant = tokens.filter((token) => !PAYMENT_WORDS.has(token));
+    return (merchant.length ? merchant : tokens).slice(0, 4).join(" ");
   }
 
   function coreKey(key) {
@@ -75,20 +81,28 @@
   function normalizeAnswers(raw) {
     const byId = {};
     const silenced = {};
+    const labels = {};
     if (raw && typeof raw === "object") {
       Object.entries(raw.byId && typeof raw.byId === "object" ? raw.byId : {}).forEach(([id, value]) => {
-        if (value && RESPONSES.includes(value.response) && typeof value.at === "string") byId[id] = { response: value.response, at: value.at };
+        if (value && RESPONSES.includes(value.response) && typeof value.at === "string") {
+          byId[id] = { response: value.response, at: value.at };
+          if (value.response === "normalAlways" && typeof value.silenceKey === "string" && value.silenceKey) byId[id].silenceKey = value.silenceKey; // para poder deshacerla con «Volver a vigilar»
+        }
       });
       Object.entries(raw.silenced && typeof raw.silenced === "object" ? raw.silenced : {}).forEach(([key, at]) => {
         if (typeof at === "string") silenced[key] = at;
       });
+      // El nombre legible de lo silenciado, para poder enseñarlo y devolverlo a vigilar; solo de lo que sigue silenciado.
+      Object.entries(raw.labels && typeof raw.labels === "object" ? raw.labels : {}).forEach(([key, label]) => {
+        if (silenced[key] && typeof label === "string" && label.trim()) labels[key] = label.trim().slice(0, 120);
+      });
     }
-    return { byId, silenced };
+    return { byId, silenced, labels };
   }
 
   /**
    * @param {{byId?: Record<string, any>, silenced?: Record<string, any>}} answers
-   * @param {{id: string, silenceKey?: string}} item
+   * @param {{id: string, silenceKey?: string, kind?: string, label?: string}} item
    * @param {string} response
    * @param {string} today
    */
@@ -96,7 +110,35 @@
     if (!RESPONSES.includes(response)) throw new Error("Esa respuesta no existe: usa «real», «normal» o «normalAlways».");
     const next = normalizeAnswers(answers);
     next.byId[item.id] = { response, at: today };
-    if (response === "normalAlways" && item.silenceKey) next.silenced[item.silenceKey] = today;
+    if (response === "normalAlways" && item.silenceKey) {
+      next.byId[item.id].silenceKey = item.silenceKey;
+      next.silenced[item.silenceKey] = today;
+      if (item.label) next.labels[item.silenceKey] = `${KIND_LABEL[item.kind] || item.kind}: ${item.label}`.slice(0, 120);
+      // Tope de etiquetas (el almacén no crece sin límite): se olvidan las más antiguas; la silenciada sigue silenciada, solo pierde el nombre.
+      Object.keys(next.labels).sort((a, b) => next.silenced[a].localeCompare(next.silenced[b])).slice(0, Math.max(0, Object.keys(next.labels).length - MAX_LABELS)).forEach((key) => { delete next.labels[key]; });
+    }
+    return next;
+  }
+
+  /** Lo que el hogar ha silenciado con «es normal siempre», de lo más reciente a lo más antiguo, con un nombre legible aunque falte la etiqueta. */
+  function silencedList(answers) {
+    const clean = normalizeAnswers(answers);
+    return Object.entries(clean.silenced).map(([key, at]) => {
+      const [kind, ...rest] = key.split("|");
+      const fallback = `${KIND_LABEL[kind] || kind}: ${rest.filter((part) => !/^-?\d+$/.test(part)).join(" ") || "patrón sin nombre"}`;
+      return { key, at, label: clean.labels[key] || fallback };
+    }).sort((a, b) => b.at.localeCompare(a.at) || a.key.localeCompare(b.key));
+  }
+
+  /**
+   * «Volver a vigilar»: quita el silencio de un patrón y deshace los «es normal siempre» que lo pusieron, de modo que los avisos que se silenciaron vuelven a verse.
+   * Una respuesta «real» o «es normal» a otro aviso no se toca. Un «es normal siempre» guardado antes de PR-2 (sin su clave) sigue contestado: solo vuelve el patrón.
+   */
+  function unsilence(answers, silenceKey) {
+    const next = normalizeAnswers(answers);
+    delete next.silenced[silenceKey];
+    delete next.labels[silenceKey];
+    Object.entries(next.byId).forEach(([id, entry]) => { if (entry.response === "normalAlways" && entry.silenceKey === silenceKey) delete next.byId[id]; });
     return next;
   }
 
@@ -309,5 +351,5 @@
     return { answered: all.length, normal, real: all.length - normal, minAnswered: MIN_ANSWERS_FOR_RATE, falsePositiveRate: all.length >= MIN_ANSWERS_FOR_RATE ? round2(normal / all.length) : null };
   }
 
-  return { SCHEMA_ID, LOOKBACK_DAYS, RESPONSES, SEVERITY, detect, normalizeAnswers, applyAnswer, conceptKey };
+  return { SCHEMA_ID, LOOKBACK_DAYS, RESPONSES, SEVERITY, KIND_LABEL, detect, normalizeAnswers, applyAnswer, silencedList, unsilence, conceptKey };
 });

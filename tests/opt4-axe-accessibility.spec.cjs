@@ -360,6 +360,12 @@ for (const scheme of ["light", "dark"]) {
       await expect(card.locator("#anomaliasNota")).toContainText("Deshacer");
       const conAvisos = await new AxeBuilder({ page }).include("#anomaliasCard").analyze();
       expect(fmt(conAvisos), fmt(conAvisos).slice(0, 5).join("\n")).toEqual([]);
+      // Con la lista de patrones silenciados abierta.
+      await card.locator(".ano-aviso", { hasText: "Comisión" }).locator('[data-anomalia-respuesta="normalAlways"]').click();
+      await card.locator(".ano-silenciados summary").click();
+      await expect(card.locator("[data-anomalia-vigilar]")).toBeVisible();
+      const conSilenciados = await new AxeBuilder({ page }).include("#anomaliasCard").analyze();
+      expect(fmt(conSilenciados), fmt(conSilenciados).slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }

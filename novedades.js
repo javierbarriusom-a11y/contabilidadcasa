@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-12-wp36b",
+      fecha: "2026-10-12",
+      texto: "Cosas raras: ahora puedes ver lo que silenciaste y volver a vigilarlo, y dos comercios con el mismo prefijo del banco ya no se confunden.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-12-wp35",
       fecha: "2026-10-12",
       texto: "Plan › Previsión: el mes en tres capas (comprometido, probable, discrecional) y los ingresos con su certeza; solo lee.",

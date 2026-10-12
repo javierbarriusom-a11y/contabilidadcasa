@@ -1897,6 +1897,24 @@ test.describe("WP-36 · anomalías del extracto", () => {
       const stored = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.includes("statement-anomaly-answers")).map(([, value]) => value).join("|"));
       expect(stored).toContain("normalAlways");
 
+      // Lo silenciado se ve, con su nombre, y se devuelve a vigilar (con «Deshacer»); la lista abierta no se cierra al repintar y no se sale de la tarjeta.
+      const silenciados = page.locator("#anomaliasCard .ano-silenciados");
+      await expect(silenciados.locator("summary")).toContainText("Patrones que has silenciado (1)");
+      await silenciados.locator("summary").click();
+      await expect(silenciados).toContainText("Comisión: COMISION MANTENIMIENTO CUENTA");
+      const cardBox = await page.locator("#anomaliasCard").boundingBox();
+      for (const box of await silenciados.locator("li, button").evaluateAll((nodes) => nodes.map((node) => { const r = node.getBoundingClientRect(); return { left: r.left, right: r.right }; }))) {
+        expect(box.left).toBeGreaterThanOrEqual(cardBox.x - 1);
+        expect(box.right).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+      }
+      await silenciados.locator('[data-anomalia-vigilar]').click();
+      await expect(page.locator("#anomaliasCard .ano-aviso", { hasText: "Comisión" })).toHaveCount(1);
+      await expect(page.locator("#anomaliasCard .ano-silenciados")).toHaveCount(0);
+      await expect(page.locator("#anomaliasNota")).toContainText("Vuelvo a vigilar");
+      await page.locator("#anomaliasCard [data-anomalia-deshacer]").click();
+      await expect(page.locator("#anomaliasCard .ano-aviso", { hasText: "Comisión" })).toHaveCount(0);
+      await expect(page.locator("#anomaliasCard .ano-silenciados summary")).toContainText("(1)");
+
       // Nunca toca el extracto.
       expect(await page.evaluate(() => baseData.transactions.length)).toBe(total);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
