@@ -164,7 +164,65 @@ test("WP-36 · las respuestas se normalizan y no se mutan", () => {
   assert.deepEqual(Object.keys(clean.byId), ["a"]);
   assert.deepEqual(Object.keys(clean.silenced), ["duplicado|k"]);
   assert.equal(JSON.stringify(raw), snapshot);
-  assert.deepEqual(engine.normalizeAnswers(null), { byId: {}, silenced: {} });
+  assert.deepEqual(engine.normalizeAnswers(null), { byId: {}, silenced: {}, labels: {} });
+});
+
+test("WP-36 · el concepto no gasta sus palabras en la forma de pago: dos comercios con el mismo prefijo del banco no se confunden", () => {
+  const key = (movement, details = "") => engine.conceptKey({ movement, details });
+  assert.equal(key("COMPRA CON TARJETA EN COMERCIO PANADERIA FICTICIA 4412"), "panaderia ficticia");
+  assert.notEqual(key("COMPRA CON TARJETA COMERCIO PANADERIA FICTICIA"), key("COMPRA CON TARJETA COMERCIO FERRETERIA FICTICIA"));
+  assert.equal(key("PAGO MOVIL TPV LIBRERIA FICTICIA"), "libreria ficticia");
+  assert.equal(key("COMPRA TARJ. 4412 SUPER FICTICIO"), "super ficticio", "el mismo comercio con cualquier prefijo se reconoce");
+  assert.equal(key("COMPRA TARJ"), "compra tarj", "si solo hay forma de pago no se queda sin concepto");
+  assert.equal(key("COMISION MANTENIMIENTO CUENTA 123"), "comision mantenimiento cuenta", "lo que no es forma de pago se queda");
+  // Con el prefijo genérico de 4 palabras, antes dos comercios distintos con el mismo importe el mismo día contaban como un duplicado.
+  const result = detect([tx("2026-10-03", -45, "COMPRA CON TARJETA EN COMERCIO PANADERIA FICTICIA"), tx("2026-10-03", -45, "COMPRA CON TARJETA EN COMERCIO FERRETERIA FICTICIA")]);
+  assert.deepEqual(result.items, []);
+  const same = detect([tx("2026-10-03", -45, "COMPRA CON TARJETA EN COMERCIO PANADERIA FICTICIA"), tx("2026-10-03", -45, "COMPRA TARJ. 4412 PANADERIA FICTICIA")]);
+  assert.deepEqual(kinds(same), ["duplicado"], "el mismo comercio escrito de dos maneras sí es un posible duplicado");
+});
+
+test("WP-36 · lo silenciado se puede ver y devolver a vigilar: vuelve a avisar, sin mutar y sin tocar las demás respuestas", () => {
+  const rows = [tx("2026-10-03", -45, "COMPRA TARJ GASOLINERA FICTICIA"), tx("2026-10-03", -45, "COMPRA TARJ GASOLINERA FICTICIA")];
+  const item = detect(rows).items[0];
+  const always = engine.applyAnswer(engine.normalizeAnswers({}), item, "normalAlways", TODAY);
+  const list = engine.silencedList(always);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].key, item.silenceKey);
+  assert.match(list[0].label, /^Posible duplicado: COMPRA TARJ GASOLINERA FICTICIA$/);
+  assert.equal(list[0].at, TODAY);
+  const solo = engine.applyAnswer(engine.normalizeAnswers({}), item, "normal", TODAY);
+  assert.deepEqual(engine.silencedList(solo), [], "«es normal» no silencia el patrón");
+  const snapshot = JSON.stringify(always);
+  const back = engine.unsilence(always, item.silenceKey);
+  assert.equal(JSON.stringify(always), snapshot, "no muta");
+  assert.deepEqual(engine.silencedList(back), []);
+  assert.deepEqual(back.labels, {});
+  assert.equal(back.byId[item.id], undefined, "el «es normal siempre» que lo silenció se deshace: el aviso silenciado vuelve a verse");
+  assert.deepEqual(kinds(detect(rows, { answers: back })), ["duplicado"]);
+  assert.equal(detect(rows, { answers: back }).suppressed, 0);
+  assert.equal(detect([], { answers: back }).stats.answered, 0, "y esa respuesta, equivocada, deja de contar para la tasa");
+  const other = engine.applyAnswer(always, { id: "otro", kind: "comision", silenceKey: "comision|x", label: "X" }, "real", TODAY);
+  assert.equal(engine.unsilence(other, item.silenceKey).byId.otro.response, "real", "las respuestas a otros avisos no se tocan");
+  const legacy = { byId: { [item.id]: { response: "normalAlways", at: TODAY } }, silenced: { [item.silenceKey]: TODAY } };
+  assert.deepEqual(kinds(detect(rows, { answers: engine.unsilence(legacy, item.silenceKey) })), [], "un «es normal siempre» antiguo, sin clave, sigue contestado (solo vuelve el patrón)");
+  const another = detect([...rows, tx("2026-10-07", -45, "COMPRA TARJ GASOLINERA FICTICIA"), tx("2026-10-07", -45, "COMPRA TARJ GASOLINERA FICTICIA")], { answers: back });
+  assert.deepEqual(kinds(another), ["duplicado", "duplicado"], "el de antes y otro nuevo del mismo patrón: ambos avisan");
+  assert.deepEqual(engine.unsilence(always, "no|existe").silenced, always.silenced);
+});
+
+test("WP-36 · un silencio antiguo, sin etiqueta, sigue siendo legible; las etiquetas no crecen sin tope y no sobreviven sin su silencio", () => {
+  const old = { byId: {}, silenced: { "comision|comision mantenimiento cuenta": "2026-09-01", "duplicado|gasolinera ficticia|4500": "2026-09-02" } };
+  const list = engine.silencedList(old);
+  assert.deepEqual(list.map((entry) => entry.label), ["Posible duplicado: gasolinera ficticia", "Comisión: comision mantenimiento cuenta"]);
+  assert.deepEqual(engine.normalizeAnswers({ ...old, labels: { huerfana: "x", "comision|comision mantenimiento cuenta": "  Comisión: mantenimiento  " } }).labels, { "comision|comision mantenimiento cuenta": "Comisión: mantenimiento" });
+  let answers = engine.normalizeAnswers({});
+  for (let index = 0; index < 230; index += 1) {
+    answers = engine.applyAnswer(answers, { id: `i${index}`, kind: "duplicado", silenceKey: `duplicado|k${index}|100`, label: `K${index}` }, "normalAlways", `2026-10-${String((index % 28) + 1).padStart(2, "0")}`);
+  }
+  assert.equal(Object.keys(answers.silenced).length, 230, "todo lo silenciado sigue silenciado");
+  assert.ok(Object.keys(answers.labels).length <= 200, "pero las etiquetas tienen tope");
+  assert.equal(engine.silencedList(answers).length, 230, "sin etiqueta se lee igual");
 });
 
 test("WP-36 · muestra pocas cosas, las más graves primero, y dice cuántas quedan", () => {

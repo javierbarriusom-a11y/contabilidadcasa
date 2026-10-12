@@ -46,7 +46,18 @@ function anomaliasStatsHtml(stats) {
   return `<p class="e19-kpi-note ano-medida">De ${stats.answered} avisos respondidos, <strong>${stats.normal} eran normales (${pct} %)</strong>. El objetivo es menos del 20 %${stats.falsePositiveRate >= 0.2 ? ": está por encima, el detector necesita afinarse" : ""}.</p>`;
 }
 
-function anomaliasBodyHtml(result) {
+// Lo que el hogar ha silenciado con «Es normal siempre»: sin esto un silencio solo se podía deshacer justo después de darlo.
+function anomaliasSilencedHtml(list) {
+  if (!list.length) return "";
+  const items = list.map((entry) => `<li class="ano-silenciado"><span>${escapeHtml(entry.label)} <span class="ano-desde">(desde el ${escapeHtml(anomaliasDate(entry.at))})</span></span> <button type="button" class="e19-btn e19-btn-secondary" data-anomalia-vigilar="${escapeHtml(entry.key)}" aria-label="Volver a vigilar: ${escapeHtml(entry.label)}">Volver a vigilar</button></li>`).join("");
+  return `<details class="ano-silenciados"><summary>Patrones que has silenciado (${list.length})</summary><p class="e19-kpi-note">No vuelvo a avisar de estos. «Volver a vigilar» los reactiva; no borra nada del extracto.</p><ul class="ano-lista">${items}</ul></details>`;
+}
+
+function anomaliasBodyHtml(result, silenced = []) {
+  return `${anomaliasStatusHtml(result)}${anomaliasSilencedHtml(silenced)}`;
+}
+
+function anomaliasStatusHtml(result) {
   if (result.status === "missing") return `<p class="e19-kpi-note">Para mirar el extracto falta ${escapeHtml(result.missing.join(", "))}.</p>`;
   if (result.status === "stale") {
     const since = result.coveredUntil ? `El último movimiento importado es del ${anomaliasDate(result.coveredUntil)}` : "Todavía no hay movimientos importados";
@@ -66,12 +77,15 @@ function renderAnomalias(engine) {
   if (!box || !engine) return;
   attachAnomalias(document); // idempotente: la pantalla se pinta antes de que init() termine y un clic temprano no puede perderse
   try {
-    const result = engine.detect({ today: isoLocalDate(new Date()), transactions: canonicalLedgerTransactions(), answers: anomaliasLoad() });
+    const answers = anomaliasLoad();
+    const result = engine.detect({ today: isoLocalDate(new Date()), transactions: canonicalLedgerTransactions(), answers });
     anomaliasShown = result.items;
-    const html = anomaliasBodyHtml(result);
+    const html = anomaliasBodyHtml(result, engine.silencedList(answers));
     if (box.__anomaliasHtml !== html) {
+      const wasOpen = Boolean(box.querySelector("details.ano-silenciados[open]")); // un repintado no debe cerrar la lista que se está usando
       box.innerHTML = html;
       box.__anomaliasHtml = html;
+      if (wasOpen) box.querySelector("details.ano-silenciados")?.setAttribute("open", "");
     }
   } catch (error) {
     console.error(`renderAnomalias: ${error.message}`);
@@ -113,6 +127,15 @@ function attachAnomalias(doc) {
   doc.addEventListener("click", (event) => {
     const answer = event.target?.closest?.("[data-anomalia-respuesta]");
     if (answer) { anomaliasAnswer(answer.dataset.anomaliaRespuesta, answer.dataset.anomaliaRef); return; }
+    const watch = event.target?.closest?.("[data-anomalia-vigilar]");
+    if (watch) {
+      const engine = globalThis.FinanceCanonicalStatementAnomalies;
+      anomaliasUndo = { before: anomaliasLoad() };
+      anomaliasSave(engine.unsilence(anomaliasUndo.before, watch.dataset.anomaliaVigilar));
+      renderAnomalias(engine);
+      anomaliasNote("Vuelvo a vigilar ese patrón: si vuelve a pasar, aviso.", true);
+      return;
+    }
     if (event.target?.closest?.("[data-anomalia-deshacer]") && anomaliasUndo) {
       anomaliasSave(anomaliasUndo.before);
       anomaliasUndo = null;

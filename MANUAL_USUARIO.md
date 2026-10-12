@@ -411,7 +411,7 @@ Al principio de **Movimientos**, la tarjeta **«Cosas raras en tus movimientos»
 - **Sin partida en el plan**: un cobro que se repite cada mes y no está en ninguna partida.
 - **Importe alto**: un cargo muy por encima de lo habitual de su partida.
 
-**No hace nada por su cuenta**: ni reclama al banco, ni clasifica, ni borra. Tú respondes cada aviso con **«Es algo real»**, **«Es normal»** o **«Es normal siempre»** (no vuelve a avisar de ese patrón), y puedes **deshacer** la última respuesta. De tus respuestas sale cuántos avisos sobran; el objetivo es menos del 20 %, y hasta tener 10 respuestas lo dice como «todavía no se puede medir».
+**No hace nada por su cuenta**: ni reclama al banco, ni clasifica, ni borra. Tú respondes cada aviso con **«Es algo real»**, **«Es normal»** o **«Es normal siempre»** (no vuelve a avisar de ese patrón), y puedes **deshacer** la última respuesta. Si te arrepientes de un «Es normal siempre», bajo los avisos aparece **«Patrones que has silenciado»**: ahí ves cuáles son y pulsas **«Volver a vigilar»** (no borra nada del extracto). De tus respuestas sale cuántos avisos sobran; el objetivo es menos del 20 %, y hasta tener 10 respuestas lo dice como «todavía no se puede medir».
 
 Si el último movimiento importado tiene más de 45 días, la tarjeta dice que **no puede mirar lo reciente**: sin un extracto al día, que no salga nada no significa que todo esté bien. De momento los avisos no aparecen en Hoy.
 

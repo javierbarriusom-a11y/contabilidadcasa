@@ -62,3 +62,37 @@
   min-height: 32px;
   padding: 0 6px;
 }
+
+.ano-silenciados {
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.ano-silenciados > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font: 600 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.ano-silenciado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.ano-silenciado .e19-btn {
+  min-height: 44px;
+}
+
+.ano-desde {
+  color: var(--e19-ink-muted, var(--e19-ink));
+}
