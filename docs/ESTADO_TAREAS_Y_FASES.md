@@ -98,7 +98,7 @@
 
 | Tarea | Descripción | Estatus | Dependencias | Plan de siguientes pasos |
 |---|---|---|---|---|
-| **WP-54** · Prueba con 5 personas ajenas (GOV-06) | Prueba trimestral con 5 personas ajenas y datos de demostración; hallazgos al backlog. | 🔁 Continuo (desde diciembre) | — | Opcional (H-13): proponer 5 personas antes del 15/12. Una vez por trimestre desde diciembre. |
+| **WP-54** · Prueba con 5 personas ajenas (GOV-06) | Prueba trimestral con 5 personas ajenas y datos de demostración; hallazgos al backlog. | 🔁 Continuo (desde diciembre) · **kit preparado (12/10); ninguna ronda hecha** | — | Hecho: protocolo, guion de 30 min con 5 tareas (Hoy, anotar un gasto, cargar el extracto, deuda, fin de mes), hoja de observación, reglas de privacidad y ayuda, gravedad y paso al backlog (`docs/WP54_PRUEBA_USABILIDAD.md`), el generador del **extracto ficticio** de la tarea 3 (`tools/build-usability-extract.mjs`, con una fila que empareja con el gasto de la tarea 2 y una trampa del mismo importe) y la sección de hallazgos de `BACKLOG_DEFINITIVO.md` (§13, vacía). **No cuenta en el avance del plan hasta tener una ronda completa** (sigue al 0 %: un protocolo no es un resultado). **Límites:** la demo no tiene tarjetas (la tarea 2 prueba la ventana anterior, no la hoja de WP-30); «Hoy» sigue congelado hasta H-02; las respuestas esperadas caducan y hay que reescribirlas en cada ensayo. **Riesgo previsible anotado (R-1):** la demo da dos mensajes de «libre de deuda» que una persona nueva puede leer como contradictorios. Hogar (H-13): proponer 5 personas **antes del 15/12** y una más para la ronda 0; si dirige la sesión alguien distinto de quien diseña, mejor. |
 
 ## 6. Fuera de los 53 paquetes (hallazgos y trabajo derivado)
 

@@ -369,3 +369,12 @@ Columnas: **#** orden dentro del nivel · **ID** · **Qué** · **Origen** (5ª/
 
 **Privacidad:** el panel no guarda importes. Las cifras fiscales y de la hipoteca siguen yendo solo por el chat.
 
+---
+
+## 13. Hallazgos de las pruebas con personas ajenas (WP-54 · GOV-06)
+
+Aquí entran los problemas de usabilidad que salgan de la prueba trimestral con 5 personas ajenas (protocolo, guion y hoja de observación en [`docs/WP54_PRUEBA_USABILIDAD.md`](docs/WP54_PRUEBA_USABILIDAD.md)). **Todavía no se ha hecho ninguna ronda: esta sección está vacía a propósito.** Reglas (detalle en §8 del protocolo): un hallazgo es un problema visto en **≥ 2 personas** y **lleva su evidencia** (resultado A/B/C, segundos, cita literal sin identificar a nadie); visto en 1 es una **observación**; una respuesta equivocada con seguridad es siempre **gravedad alta**. No son paquetes del plan ni cuentan en su avance.
+
+| ID | Tarea | Gravedad | Visto en | Estado |
+|---|---|---|---|---|
+| — | — | — | — | Sin rondas todavía |
