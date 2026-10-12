@@ -1180,6 +1180,8 @@ function renderCierre() {
     valuationNote.hidden = !note;
   }
 
+  globalThis.renderCartaMes?.(window.FinanceCanonicalMonthLetter, currentMonthKey, Boolean(currentClosure)); // WP-29 (carta-mes-ui.js)
+
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");
   const sobresNote = qs("cierreSobresNote");

@@ -3784,3 +3784,113 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-29 (NHG-05): la carta del mes en Cierre. Con la demo y el reloj el 2 de noviembre, Cierre enseña octubre: abierto, un borrador con las cifras del mes (previsto 5.000 € de ingresos y 4.730 € de
+// gastos = 270 € de margen; con 180 € de más en la primera partida de gasto, 90 € y 180 € peor de lo previsto); firmado, la carta guardada con los datos de ese momento, que no se reescribe si los datos cambian
+// después. La firma real pasa por Supabase (RPC), que la demo no tiene: se simula con el mismo motor de cierre y la misma función que llama app.js al firmar.
+test.describe("WP-29 · la carta del mes en Cierre", () => {
+  const openCierre = async (page, viewport = { width: 1280, height: 720 }) => {
+    await page.setViewportSize(viewport);
+    await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+    await page.goto("/index.html#cierre");
+    await page.waitForFunction(() => typeof recordCartaMes === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+  };
+  // Anota los reales de octubre: todo igual a lo previsto salvo la primera partida de gasto, 180 € más.
+  const annotateOctober = (page) => page.evaluate(() => {
+    const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
+    const rows = planMesCollect(month);
+    const set = (entry, value) => { (entry.kind === "income" ? incomeActuals : expenseActuals)[actualKeyForRow(entry.row, month)] = value; };
+    rows.income.forEach((entry) => { if (entry.planned) set(entry, entry.planned); });
+    rows.expense.filter((entry) => entry.planned).forEach((entry, index) => set(entry, index === 0 ? entry.planned + 180 : entry.planned));
+    renderCierre();
+  });
+  const sign = (page) => page.evaluate(() => {
+    const payload = FinanceCanonicalMonthClose.closeMonth(appStatePayload(), "2026-10", { id: "wp29-cierre", closedAt: "2026-11-02T09:00:00.000Z", reason: "prueba e2e" });
+    monthClosures = payload.monthClosures;
+    const saved = recordCartaMes("2026-10", "2026-11-02T09:00:00.000Z", null);
+    renderCierre();
+    return saved;
+  });
+
+  test("abierto es un borrador honesto: sin ningún real no hay «resultado», y con reales cuenta el mes", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openCierre(page);
+    const card = page.locator("#cartaMes");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Carta de octubre de 2026 · borrador");
+    await expect(card.locator("[data-carta-mes-texto]")).toContainText(/Octubre no tiene ningún real anotado: el margen que sale, 270\s€, es solo el previsto\./);
+    await expect(card).not.toContainText("tal como se preveía");
+    await expect(card).toContainText(/Se basa en 0 de 8 partidas con real/);
+    await annotateOctober(page);
+    const text = card.locator("[data-carta-mes-texto]");
+    await expect(text).toContainText(/Octubre cierra con 90\s€ de margen, 180\s€ peor de lo previsto\./);
+    await expect(text).toContainText(/La mayor desviación está en .*: gasto de .* frente a .* previstos, toda la diferencia\./);
+    await expect(text).toContainText(/Se basa en las 8 partidas, todas con real\./);
+    expect(await page.evaluate(() => FinanceCanonicalMonthLetter.countWords(document.querySelector("[data-carta-mes-texto]").textContent))).toBeLessThanOrEqual(120);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("al firmar se guarda; la carta firmada no se reescribe cuando los datos cambian después, y viaja en la copia de seguridad", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openCierre(page);
+    await annotateOctober(page);
+    expect(await sign(page)).toBe(true);
+    const card = page.locator("#cartaMes");
+    await expect(card).not.toContainText("borrador");
+    await expect(card).toContainText("Escrita al firmar el cierre, el 02/11/2026, con los datos de entonces.");
+    const written = await card.locator("[data-carta-mes-texto]").innerText();
+    expect(written).toMatch(/Octubre cierra con 90\s€ de margen, 180\s€ peor de lo previsto\./);
+    const stored = await page.evaluate(() => JSON.parse(storageGet(storageKey("month-letters"), "[]")));
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ monthKey: "2026-10", closedAt: "2026-11-02T09:00:00.000Z", reconstructed: false, realNet: 90, plannedNet: 270, diffNet: -180 });
+    expect(stored[0].text).toBe(written);
+    // Un real que cambia después (reabriendo, o por un error) no reescribe lo firmado: la carta sigue siendo la de aquel momento.
+    await page.evaluate(() => {
+      const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
+      const first = planMesCollect(month).expense.find((entry) => entry.planned);
+      expenseActuals[actualKeyForRow(first.row, month)] = first.planned + 900;
+      renderCierre();
+    });
+    await expect(card.locator("[data-carta-mes-texto]")).toHaveText(written);
+    expect(await page.evaluate(() => BACKUP_LOCAL_STORES.includes("month-letters"))).toBe(true);
+    // Reabrir y firmar de nuevo el mismo mes la reescribe (una sola carta por mes) con los datos de entonces: app.js llama a la misma función tras el RPC.
+    expect(await page.evaluate(() => recordCartaMes("2026-10", "2026-11-04T09:00:00.000Z", null))).toBe(true);
+    await page.evaluate(() => renderCierre());
+    expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("month-letters"), "[]")).length)).toBe(1);
+    await expect(card.locator("[data-carta-mes-texto]")).toContainText(/Octubre cierra con 0\s€ de margen|Octubre cierra sin margen ni déficit|de déficit/);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("un cierre anterior a la carta enseña una reconstruida y lo dice; «Copiar la carta» copia el texto", async ({ page }) => {
+    await openCierre(page);
+    await annotateOctober(page);
+    await page.evaluate(() => {
+      const payload = FinanceCanonicalMonthClose.closeMonth(appStatePayload(), "2026-10", { id: "wp29-antiguo", closedAt: "2026-11-02T09:00:00.000Z", reason: "firmado antes de la carta" });
+      monthClosures = payload.monthClosures;
+      renderCierre();
+    });
+    const card = page.locator("#cartaMes");
+    await expect(card).toContainText("Reconstruida hoy con los datos actuales: este cierre se firmó antes de que existiera la carta");
+    expect(await page.evaluate(() => storageGet(storageKey("month-letters"), "[]")), "pintar una reconstruida no escribe nada").toBe("[]");
+    await page.evaluate(() => { window.__copied = []; Object.defineProperty(navigator, "clipboard", { value: { writeText: async (value) => { window.__copied.push(value); } }, configurable: true }); });
+    await card.getByRole("button", { name: "Copiar la carta" }).click();
+    await expect(page.locator("#appLiveStatus")).toHaveText("Carta copiada.");
+    expect(await page.evaluate(() => window.__copied)).toEqual([await card.locator("[data-carta-mes-texto]").innerText()]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la tarjeta se ve y no desborda a ${viewport.width} px`, async ({ page }) => {
+      await openCierre(page, viewport);
+      await annotateOctober(page);
+      await expect(page.locator("#cartaMes")).toBeVisible();
+      await page.locator("#cartaMes").scrollIntoViewIfNeeded();
+      await expect(page.getByRole("button", { name: "Copiar la carta" })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      const box = await page.locator("#cartaMes").boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+    });
+  }
+});

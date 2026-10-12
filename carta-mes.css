@@ -1,0 +1,42 @@
+/* WP-29 · la carta del mes en Cierre. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*.
+   El párrafo se limita a una medida de lectura cómoda y rompe palabras largas: el CI mira el desbordamiento a 360 y 768 px. El estado (borrador / firmada / reconstruida) va en TEXTO. */
+
+.carta-mes {
+  min-width: 0;
+}
+
+.carta-mes-texto {
+  margin: 8px 0;
+  max-width: 68ch;
+  color: var(--e19-ink);
+  font-size: var(--e19-text-md, 1rem);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.carta-mes-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.carta-mes-previas {
+  margin-top: 12px;
+}
+
+.carta-mes-previas ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.carta-mes-previas p {
+  margin: 2px 0 0;
+  max-width: 68ch;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+  overflow-wrap: anywhere;
+}

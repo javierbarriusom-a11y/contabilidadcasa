@@ -1083,3 +1083,47 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-29: la carta del mes en Cierre, en claro y en oscuro, como borrador (mes abierto) y firmada con «Cartas anteriores» desplegadas.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-29 · contraste de la carta del mes en Cierre en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Cierre › carta del mes: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof recordCartaMes === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
+        const rows = planMesCollect(month);
+        const set = (entry, value) => { (entry.kind === "income" ? incomeActuals : expenseActuals)[actualKeyForRow(entry.row, month)] = value; };
+        rows.income.forEach((entry) => { if (entry.planned) set(entry, entry.planned); });
+        rows.expense.filter((entry) => entry.planned).forEach((entry, index) => set(entry, index === 0 ? entry.planned + 180 : entry.planned));
+        renderCierre();
+      });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await expect(page.locator("#cartaMes")).toContainText("borrador");
+      await page.mouse.move(0, 0);
+      const draft = await new AxeBuilder({ page }).include("#cartaMes").analyze();
+      expect(fmt(draft), `borrador: ${fmt(draft).slice(0, 5).join("\n")}`).toEqual([]);
+      // Firmada, con una carta anterior desplegada.
+      await page.evaluate(() => {
+        recordCartaMes("2026-09", "2026-10-02T09:00:00.000Z", null); // sin partidas en septiembre: no escribe nada, no rompe
+        const store = FinanceCanonicalMonthLetter.upsert(JSON.parse(storageGet(storageKey("month-letters"), "[]")), FinanceCanonicalMonthLetter.toRecord({ calculable: true, monthKey: "2026-09", text: "Septiembre cierra con 400 € de margen, tal como se preveía. Se basa en las 6 partidas, todas con real.", words: 17, summary: { plannedNet: 400, realNet: 400, diffNet: 0, total: 6, withReal: 6 } }, { closedAt: "2026-10-02T09:00:00.000Z" }));
+        storageSet(storageKey("month-letters"), JSON.stringify(store));
+        // La carta de septiembre solo se lista si septiembre está firmado (una carta de un mes reabierto no vale).
+        const september = FinanceCanonicalMonthClose.closeMonth(appStatePayload(), "2026-09", { id: "axe29-sep", closedAt: "2026-10-02T09:00:00.000Z", reason: "axe" });
+        monthClosures = september.monthClosures;
+        const payload = FinanceCanonicalMonthClose.closeMonth(appStatePayload(), "2026-10", { id: "axe29", closedAt: "2026-11-02T09:00:00.000Z", reason: "axe" });
+        monthClosures = payload.monthClosures;
+        recordCartaMes("2026-10", "2026-11-02T09:00:00.000Z", null);
+        renderCierre();
+      });
+      await expect(page.locator("#cartaMes")).toContainText("Escrita al firmar el cierre");
+      await page.locator("#cartaMes summary").click();
+      await expect(page.locator("#cartaMes")).toContainText("Septiembre cierra con 400");
+      await page.mouse.move(0, 0);
+      const signed = await new AxeBuilder({ page }).include("#cartaMes").analyze();
+      expect(fmt(signed), `firmada: ${fmt(signed).slice(0, 5).join("\n")}`).toEqual([]);
+    });
+  });
+}

@@ -712,6 +712,22 @@ octubre (del 1 al 3 de noviembre), si abres la app del 15 al 17 de octubre con l
 declarados. El primer error medio sale con el tercer cierre: **enero de 2027** si hay foto de octubre,
 **febrero de 2027** si la primera foto es la del 1 de noviembre.
 
+### La carta del mes (Cierre)
+
+En **Cierre** hay una tarjeta, **«Carta de <mes>»**, con un párrafo corto (**120 palabras como máximo**) que cuenta cómo ha ido el mes. **No la escribe ninguna IA**: la app compone el texto con plantillas a partir de **vuestras cifras**, y cada número del texto sale de vuestros datos. Cinco cosas, siempre en este orden:
+
+1. **El resultado** frente a lo previsto: «Septiembre cierra con 1.358 € de margen, 142 € peor de lo previsto.»
+2. **La mayor desviación**: qué partida se apartó más de lo previsto y qué parte de la diferencia explica. **Dice dónde, no por qué**: la app no sabe por qué se gastó más. Solo cuenta desviaciones de **25 € o más y del 5 % de la partida** o más.
+3. **Un hito**, si lo hay: tres cierres seguidos igual o mejor que lo previsto, el patrimonio neto en su máximo, la deuda que baja o el patrimonio que sube. Si no hay, no se inventa uno (y que el patrimonio baje no sale aquí: lo enseña su tarjeta).
+4. **Una acción**, si hay una: revisar el previsto de una partida que se desvió en contra dos cierres seguidos, anotar las partidas que se quedaron sin real, o ajustar el plan si el mes cerró en déficit.
+5. **Cuánto del mes es real**: «Se basa en 3 de 4 partidas con real (el 96 % del importe); el resto cuenta como previsto.» **Esta frase nunca falta**, y si hay poco real, avisa de que la leáis con cautela.
+
+**Cuándo se escribe.** Con el mes **abierto**, la tarjeta es un **borrador con los datos de hoy**: sirve para ver, antes de firmar, qué dirá y cuánto del mes tenéis anotado. **Al firmar el cierre** la carta se **guarda con los datos de aquel momento** y **no cambia** aunque luego se corrija algo; si reabrís el mes y lo volvéis a firmar, se reescribe. Un cierre firmado **antes** de que existiera la carta (si hay alguno) enseña una **reconstruida con los datos de hoy**, y lo dice. Debajo, «Cartas anteriores» y un botón **«Copiar la carta»** para pegarla en el chat.
+
+**Una carta con pocos reales no es un resultado.** Si no hay **ningún** real anotado, la carta no dice «cierra con…»: dice que el margen que sale **es solo el previsto**. Anotad los reales (Registrar › Reales del mes) antes de cerrar y la carta pasa a contar el mes de verdad.
+
+**Qué falta.** Todavía **no la ha leído nadie del hogar con un cierre real**: el texto, los umbrales y lo que debería destacar son una primera lectura del plan. Cuando tengáis la de diciembre (se escribe al firmar, del 1 al 3 de enero), decid qué sobra, qué falta y si el tono sirve. No aparece aún en «Hoy», ni en el PDF del cierre, ni se envía sola.
+
 ## 6. Copias, restauración y recuperación
 
 ### Descargar una copia completa
@@ -764,8 +780,9 @@ copia (sección 6).
 3. Conciliar movimientos, saldos y reales en **Cierre**.
 4. Revisar la previsión del mes siguiente en **Plan**.
 5. Descargar evidencia o copia completa (sección 6).
-6. Cerrar el mes con vista previa y confirmación.
-7. Comprobar que la revisión queda sincronizada.
+6. Leer la **carta del mes** (borrador en Cierre): si dice que hay poco real, anotarlo antes de firmar.
+7. Cerrar el mes con vista previa y confirmación.
+8. Comprobar que la revisión queda sincronizada.
 
 ### Antes de una decisión importante
 
