@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-12-wp34",
+      fecha: "2026-10-12",
+      texto: "Plan › Partidas: revisión base cero, una partida por pantalla con sus reales: mantener, ajustar a lo real o quitar.",
+      href: "#planificacion-partidas",
+    },
+    {
       id: "2026-10-12-wp29",
       fecha: "2026-10-12",
       texto: "Cierre escribe la carta del mes: resultado frente a lo previsto, la mayor desviación, un hito, una acción y cuánto es real.",

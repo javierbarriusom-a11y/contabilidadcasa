@@ -3894,3 +3894,127 @@ test.describe("WP-29 · la carta del mes en Cierre", () => {
     });
   }
 });
+
+// WP-34 (PRV-08): la revisión base cero en Plan › Partidas, con el reloj el 12 de enero de 2027. La demo parte de julio de 2026: hay 6 meses ya pasados. «Mantener» solo anota la marca (y sobrevive a recargar);
+// «Ajustar» y «Quitar» PREPARAN el cambio en el borrador de Partidas y es el «Guardar» de siempre el que lo aplica: los meses pasados no se tocan y «Descartar» lo deja todo como estaba.
+test.describe("WP-34 · revisión base cero del plan", () => {
+  const openBaseCero = async (page, viewport = { width: 1280, height: 720 }) => {
+    await page.setViewportSize(viewport);
+    await page.clock.install({ time: new Date(2027, 0, 12, 9, 0, 0) });
+    await page.goto("/index.html#planificacion-partidas");
+    await page.waitForFunction(() => typeof renderBaseCero === "function" && document.querySelector("#baseCeroResumen")?.textContent.includes("partidas"), null, { timeout: 20000 });
+    await page.locator("#baseCeroCard > summary").click();
+    await expect(page.locator("#baseCero .bc-card")).toBeVisible();
+  };
+  // Reales de la «Vivienda» (previsto 750): mediana 867,5 → 868 € (un 15,7 % más).
+  const seedHousing = (page) => page.evaluate(() => {
+    [860, 880, 850, 870, 865, 875].forEach((value, index) => { expenseActuals[`expense-home|2026-${String(7 + index).padStart(2, "0")}`] = value; });
+    applicationRenderRevision += 1;
+    renderBaseCero(FinanceCanonicalZeroBase);
+  });
+  const selectItem = (page, key) => page.evaluate((rowKey) => { baseCeroState.key = rowKey; baseCeroState.cache.revision = -1; renderBaseCero(FinanceCanonicalZeroBase); }, key);
+
+  test("sin reales no hay propuestas ni «¿sigue existiendo?», y «Mantener» guarda la marca y sobrevive a recargar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openBaseCero(page);
+    const body = page.locator("#baseCero");
+    await expect(body).toContainText("Solo hay reales anotados en 0 de los últimos 6 meses");
+    await expect(body).toContainText("no entran en la revisión");
+    await expect(body.locator('[data-bc="ajustar"]')).toHaveCount(0);
+    await expect(body.locator("table.bc-tabla tbody tr")).toHaveCount(6);
+    const first = await body.locator("#bcTitulo").innerText();
+    const total = await page.evaluate(() => baseCeroModel().progress.total);
+    expect(total).toBeGreaterThan(5);
+    await body.locator('[data-bc="mantener"]').click();
+    await expect(page.locator("#baseCeroResumen")).toHaveText(`Revisión base cero del plan: 1 de ${total} partidas revisadas`);
+    await expect(body.locator("#bcTitulo")).not.toHaveText(first);
+    await expect(body).toContainText("Ya revisadas (1)");
+    expect(await page.evaluate(() => Object.values(JSON.parse(storageGet(storageKey("zero-base-data"), "{}")).reviews).map((review) => [review.decision, review.reviewedAt]))).toEqual([["mantener", "2027-01-12"]]);
+    expect(await page.evaluate(() => visualPendingCounts())).toMatchObject({ cells: 0, deletes: 0 });
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector("#baseCeroResumen")?.textContent.includes("partidas"));
+    await expect(page.locator("#baseCeroResumen")).toHaveText(`Revisión base cero del plan: 1 de ${total} partidas revisadas`);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("«Ajustar a lo real» prepara el importe de los meses por venir y solo «Guardar» lo aplica; los meses pasados no se tocan", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openBaseCero(page);
+    await seedHousing(page);
+    await selectItem(page, "expense|expense-home");
+    const body = page.locator("#baseCero");
+    await expect(body.locator("#bcTitulo")).toHaveText("Vivienda");
+    await expect(body).toContainText("6 de los últimos 6 meses con real: mediana de 868 € al mes, entre 850 € y 880 €");
+    const adjust = body.locator('[data-bc="ajustar"]');
+    await expect(adjust).toContainText(/Ajustar a 868,00\s€ al mes/);
+    const planned = (month) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), month);
+    expect(await planned("2027-02")).toBe(750);
+    await adjust.click();
+    await expect(body).toContainText(/36 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText("ajuste preparado, sin guardar");
+    expect(await planned("2027-02"), "preparar no cambia el plan guardado").toBe(750);
+    await body.locator('[data-bc="guardar"]').click();
+    await expect(body).not.toContainText("cambio(s) preparado(s)");
+    expect(await planned("2027-02")).toBe(868);
+    expect(await planned("2029-12")).toBe(868);
+    expect(await planned("2026-12"), "un mes ya pasado no se toca").toBe(750);
+    await expect(body).toContainText(/Vivienda · ajustada a 868,00\s€ al mes/);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("«Quitar» solo prepara el borrado: «Descartar» deja la partida en el plan y «Guardar» la quita", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openBaseCero(page);
+    await selectItem(page, "expense|expense-services");
+    const body = page.locator("#baseCero");
+    await expect(body.locator("#bcTitulo")).toHaveText("Servicios");
+    const exists = () => page.evaluate(() => planningSectionsForMonth("expense", cuadroMandosAllMonths().find((month) => month.key === "2027-02")).some((section) => section.rows.some((row) => displayLabelForRow(row) === "Servicios")));
+    await body.locator('[data-bc="quitar"]').click();
+    await expect(body).toContainText(/1 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText("borrado preparado, sin guardar");
+    expect(await exists(), "preparar no borra").toBe(true);
+    await body.locator('[data-bc="descartar"]').click();
+    await expect(body).toContainText("decidida quitar, sigue en el plan");
+    expect(await exists()).toBe(true);
+    await body.locator(".bc-hechas summary").click();
+    await body.locator('[data-bc="reabrir"]').click();
+    await body.locator('[data-bc="quitar"]').click();
+    await body.locator('[data-bc="guardar"]').click();
+    expect(await exists(), "guardado: ya no está en el plan").toBe(false);
+    expect(await page.evaluate(() => baseCeroModel().items.some((item) => item.label === "Servicios"))).toBe(false);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("las partidas que manda otra cosa solo se pueden mantener, y se dice quién las manda", async ({ page }) => {
+    await openBaseCero(page);
+    await selectItem(page, "expense|variable-operational-spend");
+    const body = page.locator("#baseCero");
+    await expect(body.locator("#bcTitulo")).toHaveText("Gasto variable estimado");
+    await expect(body).toContainText("Su importe lo manda otra cosa: se calcula con la fórmula del gasto variable");
+    await expect(body.locator('[data-bc="quitar"], [data-bc="ajustar"]')).toHaveCount(0);
+    await expect(body.locator('[data-bc="mantener"]')).toBeVisible();
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la tarjeta se ve y no desborda a ${viewport.width} px`, async ({ page }) => {
+      await openBaseCero(page, viewport);
+      await seedHousing(page);
+      await selectItem(page, "expense|expense-home");
+      await page.locator('#baseCero [data-bc="ajustar"]').click();
+      await page.locator("#baseCeroCard").scrollIntoViewIfNeeded();
+      await expect(page.locator('#baseCero [data-bc="guardar"]')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      const box = await page.locator("#baseCeroCard").boundingBox();
+      expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+      // El desborde no siempre llega a la página (un contenedor lo recorta): ningún elemento de dentro puede salirse de la tarjeta.
+      const outside = await page.evaluate(() => {
+        const limit = document.querySelector("#baseCeroCard").getBoundingClientRect().right + 1;
+        return [...document.querySelectorAll("#baseCero *")].filter((element) => element.getBoundingClientRect().right > limit).map((element) => `${element.tagName.toLowerCase()}.${element.className}`);
+      });
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+    });
+  }
+});

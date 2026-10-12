@@ -1,0 +1,115 @@
+/* WP-34 · la revisión base cero en Plan › Partidas. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*.
+   Rejillas con min-width: 0 y textos que rompen: el CI mira el desbordamiento a 360 y 768 px. El estado (preparado, sin guardar, mantenida…) va en TEXTO, no solo en color. */
+
+.base-cero-card {
+  min-width: 0;
+}
+
+.bc-progreso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0;
+}
+
+.bc-progreso progress {
+  width: min(280px, 100%);
+}
+
+.bc-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--e19-line, currentColor);
+  border-radius: 8px;
+}
+
+.bc-card h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bc-evidencia,
+.bc-nota,
+.bc-aviso-estado {
+  margin: 0;
+  max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+
+.bc-nota {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+.bc-aviso {
+  color: var(--e19-ink);
+}
+
+/* La tabla genérica pide 1.120 px de ancho mínimo y empujaba el contenido de la tarjeta fuera de la pantalla del móvil (mismo defecto que se vio en WP-53). */
+.bc-tabla {
+  width: 100%;
+  min-width: 0;
+  max-width: 360px;
+  border-collapse: collapse;
+  font-size: var(--e19-text-sm);
+}
+
+.bc-tabla caption {
+  text-align: left;
+  color: var(--e19-muted);
+  padding-bottom: 4px;
+}
+
+.bc-tabla th,
+.bc-tabla td {
+  padding: 2px 8px 2px 0;
+  text-align: left;
+  font-weight: normal;
+}
+
+.bc-tabla thead th {
+  font-weight: 600;
+}
+
+.bc-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bc-pendiente {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--e19-line, currentColor);
+  border-radius: 8px;
+}
+
+.bc-pendiente p {
+  margin: 0;
+}
+
+.bc-hechas {
+  margin-top: 12px;
+}
+
+.bc-hechas ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.bc-hechas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  overflow-wrap: anywhere;
+}
