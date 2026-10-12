@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-12-wp35",
+      fecha: "2026-10-12",
+      texto: "Plan › Previsión: el mes en tres capas (comprometido, probable, discrecional) y los ingresos con su certeza; solo lee.",
+      href: "#prevision",
+    },
+    {
       id: "2026-10-12-wp34",
       fecha: "2026-10-12",
       texto: "Plan › Partidas: revisión base cero, una partida por pantalla con sus reales: mantener, ajustar a lo real o quitar.",
