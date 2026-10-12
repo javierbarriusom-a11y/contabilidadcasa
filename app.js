@@ -1343,6 +1343,7 @@ const BACKUP_LOCAL_STORES = [
   "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
   "statement-profiles-data", // WP-51: perfiles de lectura de extracto con nombre (separador, decimal, fechas, columnas) guardados por el hogar
   "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación
+  "month-letters", // WP-29: la carta de cada cierre firmado, escrita con los datos de ese momento
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
@@ -5200,6 +5201,7 @@ async function closeCurrentMonthTransaction(options = {}) {
     renderIv1ValuationHistoryNote();
     const closeBalances = recordMonthCloseBalances(month, closedAt);
     globalThis.recordPatrimonioSnapshot?.(month, closedAt, closeBalances); // WP-46 (patrimonio-ui.js)
+    globalThis.recordCartaMes?.(month, closedAt, closeBalances); // WP-29 (carta-mes-ui.js): después de la foto del patrimonio, que la carta lee
     saveLocalSnapshot();
     refreshReconciliationView();
     if (qs("conciliarTitle")) renderConciliar();

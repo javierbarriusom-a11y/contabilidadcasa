@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-12-wp29",
+      fecha: "2026-10-12",
+      texto: "Cierre escribe la carta del mes: resultado frente a lo previsto, la mayor desviación, un hito, una acción y cuánto es real.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-11-wp53",
       fecha: "2026-10-11",
       texto: "Importar extracto empareja lo anotado a mano con su fila del banco (importe, ±2 días, comercio) y deja la del banco.",
