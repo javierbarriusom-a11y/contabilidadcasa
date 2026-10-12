@@ -115,6 +115,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 81 → 82 (WP-30 · PR-2): canonical-card-purchases.js, con consumidor real (cardAccruedForRow en app.js lee sus compras; la hoja y el informe, en captura-ui.js)
 // 82 → 83 (WP-15): canonical-portfolio-valuation.js, con consumidor real (renderIv1PositionList en app.js pinta la frescura con él; renderCierre, el aviso; la hoja, en valoracion-ui.js)
 // 83 → 84 (WP-23): canonical-year-end-tax.js, con consumidor real (renderActiveSection en app.js se lo pasa a la tarjeta de fiscal-campana-ui.js)
+// 108 → 109 (WP-34): canonical-zero-base.js, con consumidor real (renderActiveSection de app.js se lo pasa a renderBaseCero, de base-cero-ui.js)
 // 107 → 108 (WP-29): canonical-month-letter.js, con consumidor real (renderCierre de views/cierre.js se lo pasa a renderCartaMes, de carta-mes-ui.js)
 // 106 → 107 (WP-53): canonical-capture-dedupe.js, con consumidor real (datosImportarBuildRows y la restauración de la sesión, en app.js, se lo pasan a capturaDuplicadosAnotar, de captura-duplicados-ui.js)
 // 105 → 106 (WP-51): canonical-statement-profiles.js, con consumidor real (handleDatosImportarFile de app.js lee el CSV con él a través de extractoPerfilesLeer, de extracto-perfiles-ui.js)
@@ -140,6 +141,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 108 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 108);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 109 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 109);
 });

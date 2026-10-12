@@ -1344,6 +1344,7 @@ const BACKUP_LOCAL_STORES = [
   "statement-profiles-data", // WP-51: perfiles de lectura de extracto con nombre (separador, decimal, fechas, columnas) guardados por el hogar
   "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación
   "month-letters", // WP-29: la carta de cada cierre firmado, escrita con los datos de ese momento
+  "zero-base-data", // WP-34: la marca «revisada (fecha)» de cada partida en la revisión base cero
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
@@ -35826,6 +35827,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       renderChargeDays();
       renderPersonalAllowances();
       renderCardCycles(); // WP-30 (partidas-ui.js)
+      globalThis.renderBaseCero?.(window.FinanceCanonicalZeroBase); // WP-34 (base-cero-ui.js)
       populateSeriesEditor();
       break;
     case "registrar":

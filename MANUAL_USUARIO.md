@@ -649,6 +649,26 @@ Al principio de **Deuda › Ruta**, la tarjeta **«Camino a deuda cero»** conte
 
 Lo que conviene saber: usa el **capital, la cuota y la TAE de cada contrato**; las deudas **sin cuota activa** o sin TAE ni plazo **no entran** en la cuenta y la tarjeta las lista (entonces el titular dice «de las deudas con cuota»). Si falta la TAE pero hay plazo, la deduce y lo marca. **Las cuotas que se liberan al saldar una deuda no se redirigen**: solo el extra pasa de una deuda a la siguiente. No cuenta comisiones por amortizar antes de tiempo, no sabe si el extra **cabe** en tu mes y no guarda el importe (al salir de la pantalla vuelve a 0). Es una proyección: la app no ejecuta ningún pago. Si Hoy y esta tarjeta dan fechas distintas por más de dos meses, avisa: revisa los datos en Contratos.
 
+### Revisión base cero del plan (Plan › Partidas)
+
+Una vez al año (la idea es **enero**, unos 15 minutos), en **Plan › Partidas** hay una tarjeta plegable, **«Revisión base cero del plan: N de M partidas revisadas»**. Os enseña **una partida por pantalla**, empezando por las que **más pesan** en el plan, con **lo que de verdad pasó**: una frase («4 de los últimos 6 meses con real: mediana de 705 € al mes…»), la tabla de reales mes a mes y lo previsto hoy. Para cada una decidís:
+
+- **Mantener como está**: queda anotada como revisada, con su fecha. No toca el plan.
+- **Ajustar a X € al mes**: solo aparece si hay **al menos 3 meses con real**, el real se aparta **un 10 % y 10 €** o más de lo previsto y la partida vale **lo mismo todos los meses por venir**. X es la **mediana** de lo real (un mes raro no manda), redondeada al euro. Se aplica a los **meses por venir**, nunca a los pasados.
+- **Quitar la partida**: si no tiene ningún real en meses en los que sí anotasteis otras partidas, la tarjeta pregunta **«¿sigue existiendo?»**.
+- **Saltar por ahora**: la deja para luego sin marcarla.
+
+**«Ajustar» y «Quitar» no cambian el plan por sí solos: preparan el cambio.** Aparece un aviso («36 cambio(s) preparado(s) en el plan») con **Guardar los cambios** y **Descartar**: hasta que guardáis, el plan sigue como estaba (y lo preparado se ve en la tabla de Partidas, más abajo). **Ojo: una partida quitada y guardada no tiene «deshacer»**; si os equivocáis, hay que darla de alta otra vez.
+
+Todo lo que decidís **se guarda al momento**: podéis dejarlo y seguir otro día (en «Ya revisadas» está lo hecho, con **Revisar de nuevo**). Una marca **vale un año**; pasado ese plazo, la partida vuelve a tocar.
+
+Cosas que conviene saber:
+- **Solo hay «real» si lo anotasteis** (Registrar › Reales del mes o un extracto importado). Si hay reales en menos de 3 meses, la tarjeta lo dice y casi no habrá propuestas de ajuste: podréis mantener y quitar, pero no ajustar «a lo real». **Anotad los reales cada mes antes de enero.**
+- Las partidas cuyo importe **manda otra cosa** (el gasto variable, la asignación personal, un escenario, una fila que se liquida con tarjeta, una deuda con su calendario) **solo se pueden mantener**, y la tarjeta dice quién las manda.
+- Una partida **que cambia de un mes a otro** (un seguro anual, un contrato que acaba) **no se ajusta** a un importe único: editadla mes a mes en la tabla.
+- Las partidas **sin importe previsto y sin ningún real** no entran en la revisión: no hay nada que decidir sobre ellas.
+- Todavía **nadie ha hecho una revisión con datos reales**: los umbrales (3 meses, 10 %, 10 €) son una primera lectura.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.

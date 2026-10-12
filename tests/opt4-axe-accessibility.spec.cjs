@@ -1127,3 +1127,35 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-34: la revisión base cero en Plan › Partidas, en claro y en oscuro: una partida con propuesta y aviso de «¿sigue existiendo?», el aviso de cambios preparados y la lista de ya revisadas desplegada.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-34 · contraste de la revisión base cero en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Partidas › revisión base cero: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2027, 0, 12, 9, 0, 0) });
+      await page.goto("/index.html#planificacion-partidas");
+      await page.waitForFunction(() => typeof renderBaseCero === "function" && document.querySelector("#baseCeroResumen")?.textContent.includes("partidas"), null, { timeout: 20000 });
+      await page.locator("#baseCeroCard > summary").click();
+      await page.evaluate(() => {
+        [860, 880, 850, 870, 865, 875].forEach((value, index) => { expenseActuals[`expense-home|2026-${String(7 + index).padStart(2, "0")}`] = value; });
+        applicationRenderRevision += 1;
+        baseCeroState.key = "expense|expense-home";
+        renderBaseCero(FinanceCanonicalZeroBase);
+      });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await expect(page.locator('#baseCero [data-bc="ajustar"]')).toBeVisible();
+      await page.mouse.move(0, 0);
+      const first = await new AxeBuilder({ page }).include("#baseCeroCard").analyze();
+      expect(fmt(first), `con propuesta: ${fmt(first).slice(0, 5).join("\n")}`).toEqual([]);
+      // Con un ajuste preparado, el aviso de cambios y una partida mantenida en la lista de ya revisadas.
+      await page.locator('#baseCero [data-bc="ajustar"]').click();
+      await page.locator('#baseCero [data-bc="mantener"]').click();
+      await page.locator("#baseCero .bc-hechas summary").click();
+      await expect(page.locator("#baseCero .bc-pendiente")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const second = await new AxeBuilder({ page }).include("#baseCeroCard").analyze();
+      expect(fmt(second), `con cambios preparados y revisadas: ${fmt(second).slice(0, 5).join("\n")}`).toEqual([]);
+    });
+  });
+}

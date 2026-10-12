@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="indice-vivienda.css?v=20261011wp50a1" />
     <link rel="stylesheet" href="extracto-perfiles.css?v=20261011wp51a1" />
     <link rel="stylesheet" href="captura-duplicados.css?v=20261011wp53a1" />
+    <link rel="stylesheet" href="base-cero.css?v=20261012wp34a1" />
     <link rel="stylesheet" href="carta-mes.css?v=20261012wp29a1" />
     <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
     <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
@@ -639,6 +640,11 @@
               <summary id="tarjetasResumen">Tarjetas de crédito (ciclos de corte y cargo)</summary>
               <div id="tarjetasCiclo"></div>
               <div id="tarjetasCompras"></div>
+            </details>
+            <!-- WP-34 (docs/WP34_DISENO.md): revisión base cero, una partida por pantalla. La pinta base-cero-ui.js con canonical-zero-base.js; solo PREPARA cambios en el borrador de Partidas. -->
+            <details class="e19-card prevision-calidad-card asignacion-card base-cero-card" id="baseCeroCard">
+              <summary id="baseCeroResumen">Revisión base cero del plan</summary>
+              <div id="baseCero"></div>
             </details>
             <div id="planificacionPartidasRoot"></div>
             <!-- ARQ-6 (24 sept. 2026): el editor de series vivía en #data-entry, que Registrar redirige
@@ -8068,6 +8074,8 @@
     <script defer src="extracto-perfiles-ui.js?v=20261011wp51a1"></script>
     <script defer src="canonical-capture-dedupe.js?v=20261011wp53a1"></script>
     <script defer src="captura-duplicados-ui.js?v=20261011wp53a1"></script>
+    <script defer src="canonical-zero-base.js?v=20261012wp34a1"></script>
+    <script defer src="base-cero-ui.js?v=20261012wp34a1"></script>
     <script defer src="canonical-month-letter.js?v=20261012wp29a1"></script>
     <script defer src="carta-mes-ui.js?v=20261012wp29a1"></script>
     <script defer src="canonical-large-payments.js?v=20261011wp49a1"></script>
