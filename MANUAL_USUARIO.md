@@ -669,6 +669,22 @@ Cosas que conviene saber:
 - Las partidas **sin importe previsto y sin ningún real** no entran en la revisión: no hay nada que decidir sobre ellas.
 - Todavía **nadie ha hecho una revisión con datos reales**: los umbrales (3 meses, 10 %, 10 €) son una primera lectura.
 
+### El mes en tres capas y los ingresos con certeza (Plan › Previsión)
+
+En **Plan › Previsión** hay una tarjeta plegable, **«Previsión en tres capas e ingresos con certeza»**. Elegís un mes (por defecto, el de hoy) y la tarjeta separa **lo que sale** en tres capas, con una frase, una barra y su leyenda:
+
+- **Comprometido**: cuotas, recibos y lo fijo. No tiene incertidumbre.
+- **Probable**: lo variable que se repite. Si hay **al menos 3 meses cerrados con real** en esas partidas, aparece una banda (± lo que de verdad se desvió); si no, **la tarjeta dice que no hay banda** en vez de inventarla.
+- **Discrecional**: lo que decidís vosotros. Empieza vacío: solo cuenta lo que vosotros declaréis así.
+
+La barra distingue las capas por **patrón** (liso, rayas, puntos) y por texto, no solo por color. Debajo, **«con los ingresos confirmados queda un margen de X»** (o «faltan X»). Si ningún real del mes está anotado, la tarjeta avisa de que **todo es lo previsto**.
+
+**La capa de cada partida está sugerida por su bloque** (fijos y financiaciones: comprometido; el resto: probable) y se cambia en «Gastos: en qué capa está cada partida». La tarjeta dice cuántas siguen siendo solo sugeridas.
+
+**Ingresos con certeza.** Hoy todos los ingresos cuentan como seguros. En «Ingresos: certeza de cada uno» podéis marcar uno como **Confirmado**, **Probable** o **Incierto** y teclear **la probabilidad que le dais** (de 1 a 99 %): una paga extra, un variable, la devolución de la Renta o el **alquiler del local con su riesgo de vacío**. Con alguno no seguro, la tarjeta da tres márgenes: **con lo confirmado**, **contando su probabilidad** y **si llegara todo**. La app **no estima** esa probabilidad: la ponéis vosotros.
+
+**Importante:** esta tarjeta **solo lee**. **No cambia la previsión, ni «Hoy», ni el reparto de la nómina**: aunque marquéis un ingreso como incierto, el resto de la app lo sigue contando entero. (Que «Hoy» solo cuente lo confirmado es un paso posterior y todavía no está hecho.) Lo que marcáis se guarda al momento y viaja en la copia de seguridad.
+
 ### Banda de caja a 30 días (Plan › Previsión)
 
 Una línea de previsión finge saber el día de cada recibo. La tarjeta plegada **«Banda de caja a 30 días»** (Plan › Previsión) dice lo que sí se sabe: simula 500 formas posibles de que caigan los pagos cuyo día **no** conoces y te da tres cosas.

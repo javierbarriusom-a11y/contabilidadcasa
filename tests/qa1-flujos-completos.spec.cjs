@@ -4018,3 +4018,109 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     });
   }
 });
+
+// WP-35 (PRV-02 + PRV-04): la previsión de un mes en tres capas y los ingresos con certeza, en Plan › Previsión, con el reloj el 12 de octubre de 2026. La demo en octubre: ingresos 5.000 €, gastos 4.730 €
+// (comprometido 2.980 € = fijos 2.500 € + financiaciones 480 €; probable 1.750 € = el gasto variable), margen 270 €. La tarjeta SOLO LEE: declarar la certeza de un ingreso o la capa de una partida no cambia ninguna cifra
+// de la previsión, y se guarda en la copia.
+test.describe("WP-35 · previsión en capas e ingresos con certeza", () => {
+  const openCapas = async (page, viewport = { width: 1280, height: 720 }) => {
+    await page.setViewportSize(viewport);
+    await page.clock.install({ time: new Date(2026, 9, 12, 9, 0, 0) });
+    await page.goto("/index.html#prevision");
+    await page.waitForFunction(() => typeof renderCapasPrevision === "function" && document.querySelector("#capasResumen"), null, { timeout: 20000 });
+    await page.locator("#capasCard > summary").click();
+    await expect(page.locator("#capas .cp-barra")).toBeVisible({ timeout: 15000 });
+  };
+  const forecastIncome = (page) => page.evaluate(() => JSON.stringify(canonicalScenarioResults.base.forecast.series.slice(0, 6).map((row) => [row.monthKey, row.totals.income, row.totals.outflowsBeforeSaving])));
+
+  test("la demo en octubre: comprometido, probable y margen cuadran con el plan, y todo es lo previsto (sin reales)", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openCapas(page);
+    const body = page.locator("#capas");
+    await expect(body).toContainText(/En octubre: comprometido 2\.980\s€; probable 1\.750\s€; discrecional 0\s€\./);
+    await expect(body).toContainText(/Con los ingresos confirmados \(5\.000\s€\) queda un margen de 270\s€\./);
+    await expect(body).toContainText(/Ninguna de las \d+ partidas de este mes tiene real anotado: todo lo que ves es lo previsto\./);
+    await expect(body).toContainText("Sin banda para lo probable");
+    await expect(body.locator(".cp-barra .cp-seg")).toHaveCount(2);
+    await expect(body.locator(".cp-barra")).toHaveAttribute("role", "img");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("declarar un ingreso como incierto cambia lo que se LEE aquí, no la previsión, y sobrevive a recargar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await openCapas(page);
+    const before = await forecastIncome(page);
+    const kpis = await page.evaluate(() => document.querySelector("#previsionHeadline")?.textContent);
+    await page.locator("#capas summary", { hasText: "Ingresos: certeza de cada uno" }).click();
+    const row = page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" });
+    await expect(row.locator(".cp-chip")).toHaveText("Confirmado");
+    await row.locator("[data-capa-nivel]").selectOption("incierto");
+    await expect(page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" }).locator(".cp-chip")).toHaveText("Incierto 50 %");
+    await expect(page.locator("#capas .cp-frase").nth(1)).toContainText(/Con los ingresos confirmados \(3\.000\s€\) faltan 1\.730\s€\./);
+    await expect(page.locator("#capas .cp-frase").nth(2)).toContainText(/Hay 2\.000\s€ de ingresos que no son seguros: contando su probabilidad faltan 730\s€, y si llegara todo, queda un margen de 270\s€\./);
+    await page.locator("#capas [data-capa-prob]").fill("80");
+    await page.locator("#capas [data-capa-prob]").press("Tab");
+    await expect(page.locator("#capas .cp-frase").nth(2)).toContainText(/contando su probabilidad faltan 130\s€/);
+    expect(await forecastIncome(page), "la previsión no cambia").toBe(before);
+    expect(await page.evaluate(() => document.querySelector("#previsionHeadline")?.textContent), "ni el titular de Previsión").toBe(kpis);
+    expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("forecast-layers-data"), "{}")).incomes)).toEqual({ "income:income|income-b": { level: "incierto", probability: 80 } });
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector("#capasResumen"));
+    await page.locator("#capasCard > summary").click();
+    await page.locator("#capas summary", { hasText: "Ingresos: certeza de cada uno" }).click();
+    await expect(page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" }).locator(".cp-chip")).toHaveText("Incierto 80 %");
+    // «Confirmado» quita la declaración: vuelve a lo de siempre.
+    await page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" }).locator("[data-capa-nivel]").selectOption("confirmado");
+    await expect(page.locator("#capas .cp-frase")).toHaveCount(2);
+    expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("forecast-layers-data"), "{}")).incomes)).toEqual({});
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("cambiar la capa de una partida mueve el tramo, y la capa sugerida se puede recuperar", async ({ page }) => {
+    await openCapas(page);
+    await page.locator("#capas summary", { hasText: "Gastos: en qué capa está cada partida" }).click();
+    const select = page.locator('#capas [data-capa-layer="expense:expense|variable-operational-spend"]');
+    await expect(select).toHaveValue("probable");
+    await select.selectOption("discrecional");
+    await expect(page.locator("#capas .cp-frase").first()).toContainText(/comprometido 2\.980\s€; probable 0\s€; discrecional 1\.750\s€\./);
+    await expect(page.locator('#capas [data-capa-layer="expense:expense|variable-operational-spend"]')).toBeFocused();
+    await expect(page.locator(".cp-barra .cp-seg.cp-discrecional")).toHaveCount(1);
+    await page.locator('#capas [data-capa-layer="expense:expense|variable-operational-spend"]').selectOption("probable");
+    await expect(page.locator("#capas .cp-frase").first()).toContainText(/probable 1\.750\s€; discrecional 0\s€\./);
+  });
+
+  test("con reales anotados en meses cerrados, la banda de lo probable sale de lo que se desvió", async ({ page }) => {
+    await openCapas(page);
+    await page.evaluate(() => {
+      // Tres meses cerrados con real en el gasto variable: +100, −60, +200 sobre lo previsto.
+      const planned = (key) => plannedValueForRow(rowForSeriesKey("expense|variable-operational-spend"), { key });
+      [["2026-07", 100], ["2026-08", -60], ["2026-09", 200]].forEach(([key, gap]) => { expenseActuals[`variable-operational-spend|${key}`] = planned(key) + gap; });
+      applicationRenderRevision += 1;
+      capasState.monthKey = "";
+      renderCapasPrevision(FinanceCanonicalForecastLayers);
+      document.querySelector("#capas").__cpHtml = "";
+      renderCapasPrevision(FinanceCanonicalForecastLayers);
+    });
+    await expect(page.locator("#capas .cp-frase").first()).toContainText(/probable 1\.750\s€ \(± \d+\s€ según los meses cerrados\)/);
+    await expect(page.locator("#capas")).not.toContainText("Sin banda para lo probable");
+    await expect(page.locator("#capas .cp-leyenda")).toContainText("(3 meses cerrados)");
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
+    test(`la tarjeta se ve y nada se sale de ella a ${viewport.width} px`, async ({ page }) => {
+      await openCapas(page, viewport);
+      await page.locator("#capas summary", { hasText: "Ingresos: certeza de cada uno" }).click();
+      await page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" }).locator("[data-capa-nivel]").selectOption("probable");
+      await page.locator("#capas summary", { hasText: "Gastos: en qué capa está cada partida" }).click();
+      await page.locator("#capasCard").scrollIntoViewIfNeeded();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      const outside = await page.evaluate(() => {
+        const limit = document.querySelector("#capasCard").getBoundingClientRect().right + 1;
+        return [...document.querySelectorAll("#capas *")].filter((element) => element.getBoundingClientRect().right > limit).map((element) => `${element.tagName.toLowerCase()}.${element.className}`);
+      });
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+    });
+  }
+});

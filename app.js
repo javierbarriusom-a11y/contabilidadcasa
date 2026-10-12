@@ -1344,6 +1344,7 @@ const BACKUP_LOCAL_STORES = [
   "statement-profiles-data", // WP-51: perfiles de lectura de extracto con nombre (separador, decimal, fechas, columnas) guardados por el hogar
   "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación
   "month-letters", // WP-29: la carta de cada cierre firmado, escrita con los datos de ese momento
+  "forecast-layers-data", // WP-35: la capa de cada partida y la certeza de cada ingreso que declara el hogar
   "zero-base-data", // WP-34: la marca «revisada (fecha)» de cada partida en la revisión base cero
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
@@ -22620,6 +22621,7 @@ function renderPrevisionQuality(items) {
   box.innerHTML = engine.renderHtml(quality);
   if (qs("previsionCalidadResumen")) qs("previsionCalidadResumen").textContent = engine.summaryText(quality);
   globalThis.renderCashBand?.(globalThis.FinanceCanonicalCashBand); // WP-16 (cash-band-ui.js)
+  globalThis.renderCapasPrevision?.(globalThis.FinanceCanonicalForecastLayers); // WP-35 (capas-ui.js)
   renderLiquidityBacktest(window.FinanceCanonicalLiquidityBacktest?.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: isoLocalDate(new Date()) })); // WP-12 (liquidity-backtest-ui.js)
 }
 

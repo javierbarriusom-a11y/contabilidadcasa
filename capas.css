@@ -1,0 +1,142 @@
+/* WP-35 · «Previsión en capas e ingresos con certeza» en Plan › Previsión. Hoja propia (styles.css y design-tokens.css llevan versiones fijadas por pruebas). Solo usa tokens --e19-*.
+   La barra y la leyenda distinguen las capas por PATRÓN y por TEXTO, no solo por color. Rejillas con min-width: 0 y textos que rompen: el CI mira el desbordamiento a 360 y 768 px. */
+
+.capas-card {
+  min-width: 0;
+}
+
+.cp-mes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.cp-frase {
+  margin: 4px 0;
+  max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+
+.cp-barra {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  margin: 10px 0;
+  overflow: hidden;
+  border: 1px solid var(--e19-ink, currentColor);
+  border-radius: 6px;
+}
+
+.cp-seg {
+  min-width: 2px;
+  border-right: 1px solid var(--e19-ink, currentColor);
+}
+
+.cp-seg:last-child {
+  border-right: 0;
+}
+
+/* Comprometido: relleno liso. Probable: rayas. Discrecional: puntos. */
+.cp-comprometida {
+  background: var(--e19-ink, currentColor);
+}
+
+.cp-probable {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(45deg, var(--e19-ink, currentColor) 0, var(--e19-ink, currentColor) 2px, transparent 2px, transparent 7px);
+}
+
+.cp-discrecional {
+  background-color: transparent;
+  background-image: radial-gradient(var(--e19-ink, currentColor) 1.5px, transparent 1.6px);
+  background-size: 7px 7px;
+}
+
+.cp-leyenda {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cp-leyenda li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cp-muestra {
+  flex: none;
+  width: 22px;
+  height: 14px;
+  margin-top: 3px;
+  border: 1px solid var(--e19-ink, currentColor);
+  border-radius: 3px;
+}
+
+.cp-pista {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+.cp-detalle {
+  margin-top: 12px;
+}
+
+.cp-lista {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.cp-ingreso,
+.cp-campo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.cp-nombre {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cp-importe {
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-chip {
+  padding: 1px 8px;
+  border: 1px solid var(--e19-ink, currentColor);
+  border-radius: 999px;
+  font-size: var(--e19-text-sm);
+  white-space: nowrap;
+}
+
+/* El ingreso que no es seguro: borde discontinuo (no solo color). */
+.cp-nivel-probable,
+.cp-nivel-incierto {
+  border-style: dashed;
+}
+
+.cp-prob input {
+  width: 4.5em;
+}
+
+.cp-grupo {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--e19-line, currentColor);
+  border-radius: 8px;
+  min-width: 0;
+}

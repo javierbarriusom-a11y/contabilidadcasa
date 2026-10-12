@@ -1159,3 +1159,25 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-35: la previsión en capas y los ingresos con certeza en Plan › Previsión, en claro y en oscuro: la barra con patrón y su leyenda, un ingreso incierto con su chip y su probabilidad, y las listas desplegadas.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-35 · contraste de la previsión en capas en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión › capas: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 9, 12, 9, 0, 0) });
+      await page.goto("/index.html#prevision");
+      await page.waitForFunction(() => typeof renderCapasPrevision === "function" && document.querySelector("#capasResumen"), null, { timeout: 20000 });
+      await page.locator("#capasCard > summary").click();
+      await expect(page.locator("#capas .cp-barra")).toBeVisible({ timeout: 15000 });
+      await page.locator("#capas summary", { hasText: "Ingresos: certeza de cada uno" }).click();
+      await page.locator("#capas .cp-ingreso", { hasText: "Ingreso Persona B" }).locator("[data-capa-nivel]").selectOption("incierto");
+      await page.locator("#capas summary", { hasText: "Gastos: en qué capa está cada partida" }).click();
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await expect(page.locator("#capas .cp-chip", { hasText: "Incierto 50 %" })).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#capasCard").analyze();
+      expect(fmt(results), `capas: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+    });
+  });
+}

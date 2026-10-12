@@ -174,7 +174,14 @@ function renderBaseCero(engine) {
     const model = baseCeroModel();
     qs("baseCeroResumen").textContent = engine.summaryText(model);
     const html = card.open ? baseCeroBodyHtml(model) : "";
-    if (body.__bcHtml !== html) { body.innerHTML = html; body.__bcHtml = html; }
+    if (body.__bcHtml !== html) {
+      // Repintar no puede cerrar «Ya revisadas» mientras se usa: se recuerda si estaba abierta.
+      const wasOpen = Boolean(body.querySelector?.("details.bc-hechas")?.open);
+      body.innerHTML = html;
+      body.__bcHtml = html;
+      const done = body.querySelector?.("details.bc-hechas");
+      if (done && wasOpen) done.open = true;
+    }
   } catch (error) {
     console.error(`renderBaseCero: ${error.message}`);
     body.innerHTML = '<p class="e19-kpi-note">No se pudo preparar la revisión con los datos actuales.</p>';
