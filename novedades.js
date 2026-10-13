@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp40b",
+      fecha: "2026-10-13",
+      texto: "Recordatorios: si tecleaste un informe de la CIRBE, el calendario avisa a los 11 meses de que toca pedir otro.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-13-wp39b",
       fecha: "2026-10-13",
       texto: "Cartera: al añadir una compra o venta, se compara con vuestra política y, si la contradice, pide el motivo (sin bloquear).",

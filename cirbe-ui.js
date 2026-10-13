@@ -22,6 +22,17 @@ function cirbeLoad() {
   return cirbeEngine().normalizeStore(saved);
 }
 
+// Para los recordatorios del calendario (recordatorios-ui.js): cuándo toca pedir el informe otra vez. Sin informe tecleado, nada.
+function cirbeCalendarItems() {
+  try {
+    const status = cirbeEngine().reportStatus(cirbeLoad(), { today: isoLocalDate(new Date()) });
+    return status.renewOn ? [{ reportDate: cirbeLoad().reportDate, renewOn: status.renewOn }] : [];
+  } catch (error) {
+    console.error(`cirbeCalendarItems: ${error.message}`);
+    return [];
+  }
+}
+
 function cirbeSave(store) {
   storageSet(storageKey(CIRBE_STORE), JSON.stringify({ ...store, updatedAt: isoLocalDate(new Date()) }));
   queueRemoteSave();

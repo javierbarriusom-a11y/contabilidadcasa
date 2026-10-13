@@ -1298,7 +1298,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(5);
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(6);
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
       // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
@@ -1322,6 +1322,33 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await expect(card.locator("#recordatoriosResumen")).toContainText("Generado hoy.");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
     }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  // WP-40 PR-2: el aviso anual de la CIRBE. Sin informe tecleado no hay aviso; con uno de hace casi un año, entra en el fichero y su título no lleva datos.
+  test("el aviso de la CIRBE solo existe si hay un informe tecleado, sale en el .ics sin datos en el título y se puede apagar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#ajustes");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#recordatoriosCard");
+    await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+    await expect(card.locator("#recordatoriosResumen"), "sin informe tecleado no se inventa un aviso").not.toContainText("aviso de la CIRBE");
+    await page.evaluate(() => {
+      const d = new Date(); d.setDate(d.getDate() - 340);
+      storageSet(storageKey("cirbe-report"), JSON.stringify({ reportDate: isoLocalDate(d), rows: [{ id: "x", entity: "Cetelem", kind: "prestamo", amount: 6000 }] }));
+    });
+    await page.reload();
+    await expect(card.locator("#recordatoriosResumen")).toContainText("1 aviso de la CIRBE", { timeout: 15000 });
+    const [download] = await Promise.all([page.waitForEvent("download"), card.locator("#recordatoriosDescargar").click()]);
+    const text = await new Promise((resolve, reject) => { const chunks = []; download.createReadStream().then((stream) => { stream.on("data", (chunk) => chunks.push(chunk)); stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8"))); stream.on("error", reject); }, reject); });
+    const titles = [...text.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
+    expect(titles, "el título del aviso no lleva fechas ni importes").toContain("Toca pedir el informe de la CIRBE");
+    await card.locator('[data-recordatorios-kind="cirbe"]').uncheck();
+    await expect(card.locator("#recordatoriosResumen")).not.toContainText("aviso de la CIRBE");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });

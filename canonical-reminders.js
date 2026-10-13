@@ -21,8 +21,8 @@
   // Es puro: la fecha de hoy y los movimientos fechados del plan llegan por parámetro. No ejecuta nada.
 
   const SCHEMA_ID = "finance-canonical-reminders/v1";
-  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview"]);
-  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true }) });
+  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe"]);
+  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true }) });
   // Solo los días que el plan SABE: un ingreso con fecha «estimada» (el día 8 de relleno) generaría un aviso en un día cualquiera, que es
   // justo el ruido que este paquete quiere evitar.
   const CERTAIN = Object.freeze(["rule", "observed"]);
@@ -70,6 +70,7 @@
    *   incomes?: Array<{date: string, label?: string, amount?: number, confidence?: string}>,
    *   outflows?: Array<{date: string, label?: string, amount: number, confidence?: string}>,
    *   reviews?: Array<{date: string, low?: number, high?: number}>,
+   *   cirbe?: Array<{reportDate?: string, renewOn: string}>,
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */
@@ -176,6 +177,23 @@
             description: description(left),
           });
         }
+      });
+    }
+
+    // 6) Informe de la CIRBE (WP-40): el aviso anual para pedirlo otra vez, a los 335 días del informe tecleado (30 días antes del año), el mismo
+    // día que la tarjeta de Deuda › Contratos pasa a «toca pedirlo». Sin informe tecleado no hay fecha y no hay aviso: no se inventa. Si el día
+    // ya pasó (informe de hace más de 335 días), uno para hoy; el título no lleva datos del informe ni de quién es.
+    if (options.kinds.cirbe) {
+      (Array.isArray(input.cirbe) ? input.cirbe : []).forEach((item) => {
+        const renewOn = utc(item?.renewOn) ? isoOf(utc(item.renewOn)) : "";
+        if (!renewOn) return;
+        const reportDate = utc(item?.reportDate) ? isoOf(utc(item.reportDate)) : "";
+        const late = renewOn < today;
+        put({
+          uid: `rec-cirbe-${renewOn}`, kind: "cirbe", date: late ? today : renewOn,
+          title: "Toca pedir el informe de la CIRBE",
+          description: `${reportDate ? `El último informe tecleado es del ${longDate(reportDate)}` : "El último informe tecleado"} y ya ${late ? "ha pasado" : "se acerca"} el año. Pedid el nuevo (es gratuito y se pide al Banco de España; verificad el procedimiento actual) y teclead sus filas en Deuda › Contratos › Conciliación con la CIRBE. Es la comprobación de que lo que la app sabe de vuestras deudas es lo que ven los bancos.`,
+        });
       });
     }
 
