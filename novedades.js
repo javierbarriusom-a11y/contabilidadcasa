@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp43b",
+      fecha: "2026-10-13",
+      texto: "Cierre: si la previsión de fin de año cambia mucho desde el cierre anterior, ahora lo avisa y lleva al puente.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-13-wp42b",
       fecha: "2026-10-13",
       texto: "Deuda › Comparar: el reparto del próximo euro avisa si choca con vuestra política firmada o si el plan B está activo.",

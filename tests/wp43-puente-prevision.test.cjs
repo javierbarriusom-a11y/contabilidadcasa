@@ -194,3 +194,76 @@ test("WP-43 · el color de cada barra sigue su efecto (a favor, en contra, sin e
   // Lo que pesa menos que el umbral se agrupa en «el resto», para que los porcentajes lleguen a 100.
   assert.match(B.describe(r), /% entre /);
 });
+
+// --- PR-2 (13/10/2026): el aviso en Cierre y el contraste del verde de A-4 -----------------------------------------------------------------------------------
+
+const euros = (value) => `${Math.round(Math.abs(value))} €`;
+const noticeOf = (previous, current) => B.closeNotice(B.bridge(previous, current), { labelOf: (key) => key, euros });
+
+test("WP-43 PR-2 · closeNotice: sin puente, o con un cambio pequeño, no dice nada", () => {
+  assert.deepEqual(B.closeNotice(null), { show: false });
+  assert.deepEqual(B.closeNotice({}), { show: false });
+  assert.deepEqual(B.closeNotice(B.bridge(null, null)), { show: false }, "faltan dos cierres");
+  const a = freeze("2026-09", makeSeries({ start: "2026-10" }));
+  const b = freeze("2026-10", makeSeries({ start: "2026-11", opening: 10000 + 480 }));
+  assert.equal(B.bridge(a, b).calculable, true);
+  const pequeno = B.closeNotice({ ...B.bridge(a, b), relevant: false });
+  assert.deepEqual(pequeno, { show: false }, "un cambio pequeño sigue estando en la tarjeta de Previsión, no en Cierre");
+  const otroAno = freeze("2027-01", makeSeries({ start: "2027-02" }));
+  assert.deepEqual(B.closeNotice(B.bridge(a, otroAno)), { show: false }, "dos fines de año distintos no se comparan");
+});
+
+test("WP-43 PR-2 · closeNotice: un cambio relevante dice la dirección, la frase del puente y, si «Otros» pesa, que la explicación es floja", () => {
+  const previous = freeze("2026-09", makeSeries({ start: "2026-10", opening: 10000 }));
+  const worse = freeze("2026-10", makeSeries({ start: "2026-11", opening: 10000, extra: { "2026-12": 2500 } }), { income: 5000, recurring: 4250, debt: 480, partial: false });
+  const n = noticeOf(previous, worse);
+  assert.equal(n.show, true);
+  assert.equal(n.level, "worsens");
+  assert.equal(n.icon, "▼");
+  assert.match(n.title, /^El fin de 2026 empeora desde el cierre anterior$/);
+  assert.match(n.lines[0], /^Desde 2026-09, el fin de 2026 empeora en/);
+  const better = freeze("2026-10", makeSeries({ start: "2026-11", opening: 10000, incomeBy: { "2026-11": 8000 } }), { income: 5000, recurring: 4250, debt: 480, partial: false });
+  const m = noticeOf(previous, better);
+  assert.equal(m.level, "improves");
+  assert.equal(m.icon, "▲");
+  assert.match(m.title, /mejora desde el cierre anterior/);
+  // Sin el real del mes cerrado todo lo ocurrido hasta el cierre va a «Otros»: el aviso lo dice.
+  const noReal = noticeOf(previous, freeze("2026-10", makeSeries({ start: "2026-11", opening: 6000 })));
+  assert.equal(noReal.show, true);
+  assert.ok(noReal.lines.some((line) => /Sin el real del mes cerrado/.test(line)), noReal.lines.join(" | "));
+  assert.ok(noReal.lines.some((line) => /cae en «Otros y supuestos»/.test(line)), "si Otros pesa, se dice que la explicación es floja");
+  assert.doesNotMatch(JSON.stringify([n, m, noReal]), /todo bien|sin cambios importantes/i);
+});
+
+test("WP-43 PR-2 · el aviso de Cierre solo lee y su botón lleva a Plan › Previsión", () => {
+  const ui = read("puente-ui.js");
+  const fn = ui.slice(ui.indexOf("function renderPuenteAviso"), ui.indexOf("// Una sola vez, por delegación."));
+  assert.doesNotMatch(fn, /puenteSave|storageSet|queueRemoteSave|upsert|freezeYearEnd/, "el aviso no escribe ni congela nada");
+  assert.match(ui, /event\.target\?\.closest\?\.\("\[data-puente-aviso-ver\]"\)\) \{ setActiveView\("plan", \{ focus: true \}\); setPlanTab\("prevision"\); \}/);
+  assert.match(read("views/cierre.js"), /globalThis\.renderPuenteAviso\?\.\(window\.FinanceCanonicalForecastBridge\)/);
+  assert.match(read("index.html"), /id="puenteAviso" aria-live="off" hidden/);
+});
+
+// El verde de A-4 (`.is-positivo` de la cascada de Análisis) daba 3,49:1 sobre la tarjeta en claro (mínimo AA 4,5:1). Se calcula con los tokens reales, no con un número copiado.
+function channel(hex, shift) { return (parseInt(hex.slice(1), 16) >> shift) & 255; }
+function luminance(hex) {
+  const c = [16, 8, 0].map((shift) => { const v = channel(hex, shift) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+// color-mix(in srgb, A 70%, B): interpolación por canal en sRGB codificado.
+const mix = (a, b, pctA) => "#" + [16, 8, 0].map((shift) => Math.round(channel(a, shift) * pctA + channel(b, shift) * (1 - pctA)).toString(16).padStart(2, "0")).join("");
+
+test("WP-43 PR-2 · el verde de los valores positivos de la cascada de Análisis cumple AA (4,5:1) en claro y en oscuro", () => {
+  const css = read("design-tokens.css");
+  const light = (name) => css.match(new RegExp(`^  --e19-${name}: (#[0-9a-fA-F]{6});`, "m"))[1];
+  const dark = (name) => css.match(new RegExp(`^ {4}--e19-${name}: (#[0-9a-fA-F]{6});`, "m"))[1];
+  // Antes: el verde de relleno puro, en claro, no llegaba.
+  assert.ok(contrast(light("success"), light("surface")) < 4.5, "el verde de relleno solo no cumple: por eso se mezcla con la tinta");
+  const rule = css.match(/\.e19-analisis \.analisis-cascada-value\.is-positivo,\s*\.e19-plan \.analisis-cascada-value\.is-positivo \{[^}]*color: ([^;]+);/)[1];
+  assert.match(rule, /^color-mix\(in srgb, var\(--e19-success\) 70%, var\(--e19-ink\)\)$/);
+  const lightText = mix(light("success"), light("ink"), 0.7);
+  const darkText = mix(dark("success"), dark("ink"), 0.7);
+  assert.ok(contrast(lightText, light("surface")) >= 4.5, `claro: ${contrast(lightText, light("surface")).toFixed(2)}`);
+  assert.ok(contrast(darkText, dark("surface")) >= 4.5, `oscuro: ${contrast(darkText, dark("surface")).toFixed(2)}`);
+});

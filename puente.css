@@ -63,3 +63,25 @@
   color: var(--e19-ink);
   font-weight: 600;
 }
+
+/* WP-43 PR-2 · aviso del puente en Cierre. La dirección no se distingue solo por color: lleva icono (▼/▲), título y borde propios. */
+.pte-aviso-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pte-aviso-estado {
+  padding-left: 10px;
+  border-left: 6px solid var(--e19-ink);
+}
+
+.pte-aviso-estado[data-puente-aviso-nivel="improves"] {
+  border-left-style: dashed;
+}
+
+.pte-aviso-card .pte-ver {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 44px;
+  padding: 0 6px;
+}

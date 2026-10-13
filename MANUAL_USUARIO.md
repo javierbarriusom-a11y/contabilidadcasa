@@ -519,6 +519,7 @@ Cuatro cosas que conviene saber:
 - **Hace falta cerrar el mes desde la app** (con sesión iniciada): sin cierre no hay foto, y sin dos cierres del mismo año no hay puente. **El primero que podréis ver es el de diciembre**, con los cierres de octubre y noviembre.
 - **La cartera («mercado») no entra**: la previsión de liquidez no la proyecta. Tampoco hay todavía un toque en cada barra para ver las partidas que la explican.
 - **No cambia la previsión**: solo la explica. Un cambio se marca como **relevante** si mueve al menos el 5 % de lo que se preveía.
+- **Al abrir Cierre**, si hay puente y el cambio es relevante, sale un aviso con la frase y el botón **«Ver el puente»**, que lleva a Plan › Previsión. Si «otros y supuestos» explica el 40 % o más del cambio, el aviso lo dice. Sin puente o con un cambio pequeño **no sale nada**; solo lee y no cambia nada.
 
 ### ¿Dónde va el próximo euro? (Deuda › Comparar)
 

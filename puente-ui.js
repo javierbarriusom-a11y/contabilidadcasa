@@ -124,10 +124,43 @@ function renderPuentePrevision(engine) {
   }
 }
 
+// WP-43 PR-2 (docs/WP43_DISENO.md §6): el aviso también en Cierre, que se abre cada mes. Mismo puente (el último cierre contra el anterior del mismo año) y mismo motor; el texto
+// lo compone `closeNotice`. Sin puente o con un cambio pequeño no sale nada. Solo lee.
+function puenteAvisoHtml(notice) {
+  const lines = notice.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  return `<h3 class="escenario-motor-panel-title">Puente de previsión</h3>
+    <p class="pte-aviso-estado" data-puente-aviso-nivel="${escapeHtml(notice.level)}"><span aria-hidden="true">${escapeHtml(notice.icon)}</span> <strong>${escapeHtml(notice.title)}</strong></p>
+    ${lines}
+    <p class="e19-kpi-note">Es una explicación de la previsión, no la cambia. <button type="button" class="link-button pte-ver" data-puente-aviso-ver>Ver el puente completo</button></p>`;
+}
+
+function renderPuenteAviso(engine) {
+  const box = qs("puenteAviso");
+  if (!box || !engine) return;
+  attachPuente(document); // idempotente: aquí no se ha pintado antes Plan › Previsión y el botón necesita su escucha
+  try {
+    const store = puenteLoad();
+    const latest = store[0];
+    const earlier = latest ? store.filter((item) => item.monthKey < latest.monthKey && item.targetYear === latest.targetYear) : [];
+    const notice = earlier.length ? engine.closeNotice(engine.bridge(earlier[0], latest), { labelOf: puenteMonthName, euros: puenteEuros }) : { show: false };
+    const html = notice.show ? puenteAvisoHtml(notice) : "";
+    if (box.__puenteAvisoHtml !== html) {
+      box.innerHTML = html;
+      box.__puenteAvisoHtml = html;
+    }
+    box.hidden = !notice.show;
+  } catch (error) {
+    console.error(`renderPuenteAviso: ${error.message}`);
+  }
+}
+
 // Una sola vez, por delegación.
 function attachPuente(doc) {
   if (!doc || doc.__puenteAttached) return false;
   doc.__puenteAttached = true;
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-puente-aviso-ver]")) { setActiveView("plan", { focus: true }); setPlanTab("prevision"); }
+  });
   doc.addEventListener("change", (event) => {
     if (event.target?.id !== "puenteComparar") return;
     puenteCompareKey = event.target.value;

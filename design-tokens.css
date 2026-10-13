@@ -4189,7 +4189,8 @@
 
 .e19-analisis .analisis-cascada-value.is-positivo,
 .e19-plan .analisis-cascada-value.is-positivo {
-  color: var(--e19-success);
+  /* Texto: el verde de relleno (--e19-success) da 3,49:1 sobre la tarjeta en claro (mínimo 4,5:1). Mezclado con la tinta sube a 5,7:1 en claro y se mantiene en oscuro. */
+  color: color-mix(in srgb, var(--e19-success) 70%, var(--e19-ink));
 }
 
 .e19-analisis .analisis-cascada-value.is-negativo,
