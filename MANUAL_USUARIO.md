@@ -440,6 +440,7 @@ Tres cosas que conviene saber:
 - **Solo ve lo que el extracto delata**: un contador «cuota 3 de 12» o la palabra «financiación», «aplazado», «a plazos». **Que no salga nada no prueba que no haya deudas**, y una permanencia con penalización no aparece en un extracto. Si el último movimiento importado tiene más de 45 días, la tarjeta dice que no puede mirar lo reciente.
 - **El capital que propone es lo que queda por pagar** (cuotas × importe) y **no incluye intereses**, que el extracto no dice. Si no hay contador, no se sabe cuándo acaba y lo dice.
 - **Hipotecas, préstamos, depósitos y planes de pensiones nunca se proponen**, ni lo que ya está en Contratos. El objetivo es que sobren menos del 20 % de los avisos; hasta tener 10 respuestas lo dice como «todavía no se puede medir». De momento los avisos no aparecen en Hoy.
+- **También avisa en Cierre**, que abrís cada mes: si hay compromisos, un resumen (cuántos, cuánto al mes y los tres mayores) con un botón a Deuda › Contratos; si el último extracto importado es viejo, dice que **no puede mirar**. Si nunca habéis importado un extracto, o no hay nada, **no sale nada** (no se presenta como «todo bien»). Solo lee: no responde ni da de alta nada. Reconoce también «fracc.» como fraccionado (una suposición mía, sin extracto real que la confirme).
 
 ### Libro de operaciones (Inversión › Cartera)
 

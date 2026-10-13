@@ -189,3 +189,81 @@ test("WP-41 · el motor es puro: sin DOM, red ni almacenamiento", () => {
   const source = read("canonical-shadow-debt.js").replace(/\/\/.*$/gm, "");
   for (const forbidden of [/\bdocument\b/, /\bwindow\b/, /localStorage/, /sessionStorage/, /\bfetch\(/, /XMLHttpRequest/, /\bqs\(/]) assert.doesNotMatch(source, forbidden);
 });
+
+// --- PR-2 (13/10/2026): el aviso en Cierre y la variante «fracc.» --------------------------------------------------
+
+const eur = (value) => `${value} €`;
+const notice = (rows, extra = {}) => S.closeNotice(detect(rows, extra), { fmt: eur });
+
+test("WP-41 PR-2 · closeNotice: sin resultado, sin fecha de hoy o sin nada que decir no sale nada (y no se dice «todo bien»)", () => {
+  assert.deepEqual(S.closeNotice(null), { show: false });
+  assert.deepEqual(S.closeNotice(undefined), { show: false });
+  assert.deepEqual(S.closeNotice({}), { show: false });
+  assert.deepEqual(S.closeNotice(S.detectShadowDebt({ transactions: terminal })), { show: false }, "sin fecha de hoy (missing)");
+  // Un extracto reciente en el que solo hay un recurrente normal: no hay nada que avisar, y el aviso no presume de «no hay deuda oculta».
+  const netflix = [tx("2026-08-13", -12.99, "NETFLIX"), tx("2026-09-13", -12.99, "NETFLIX"), tx("2026-10-13", -12.99, "NETFLIX")];
+  assert.deepEqual(notice(netflix), { show: false });
+});
+
+test("WP-41 PR-2 · closeNotice: con compromisos dice cuántos, la cuota total, los tres mayores y que no cuentan hoy; no dice «todo bien»", () => {
+  const n = notice(terminal);
+  assert.equal(n.show, true);
+  assert.equal(n.level, "watch");
+  assert.match(n.title, /^1 compromiso parece deuda sin figurar como deuda$/);
+  assert.match(n.lines[0], /30 € al mes entre este compromiso/);
+  assert.match(n.lines[0], /Ninguno cuenta hoy en la fecha libre de deuda ni en el ratio de esfuerzo/);
+  assert.match(n.lines[1], /MOVISTAR CUOTA TERMINAL 3 DE 24: 30 € al mes, quedan 21 cuotas\./);
+  const cuatro = [
+    ...terminal,
+    tx("2026-09-10", -49.9, "KLARNA PAGO 1 DE 3"), tx("2026-10-10", -49.9, "KLARNA PAGO 2 DE 3"),
+    tx("2026-08-12", -25, "COMPRA FINANCIADA TIENDA X"), tx("2026-09-12", -25, "COMPRA FINANCIADA TIENDA X"), tx("2026-10-12", -25, "COMPRA FINANCIADA TIENDA X"),
+    tx("2026-08-20", -10, "PAGO FRACCIONADO OTRA"), tx("2026-09-20", -10, "PAGO FRACCIONADO OTRA"), tx("2026-10-20", -10, "PAGO FRACCIONADO OTRA"),
+  ];
+  const grande = notice(cuatro);
+  assert.match(grande.title, /^4 compromisos parecen deuda/);
+  assert.equal(grande.lines.length, 5, "el resumen + los tres mayores + «y 1 más»");
+  assert.match(grande.lines[4], /^Y 1 más en Deuda › Contratos\.$/);
+  assert.match(grande.lines[1], /KLARNA.*quedan 1 cuota\./, "primero lo que tiene fecha de fin y más cuota (misma regla que la tarjeta)");
+  assert.match(grande.lines[3], /COMPRA FINANCIADA.*sin fecha de fin conocida/);
+  assert.doesNotMatch(JSON.stringify(grande), /todo bien|no hay deuda|sin deuda oculta/i);
+});
+
+test("WP-41 PR-2 · closeNotice: una última cuota se dice, y lo ya respondido o ya en Contratos no vuelve a avisar", () => {
+  const ultima = notice([tx("2026-10-10", -49.9, "KLARNA PAGO 3 DE 3")]);
+  assert.match(ultima.lines[1], /la última cuota\./);
+  const first = detect(terminal).items[0];
+  const answers = S.applyAnswer(null, first, "not-debt", "2026-10-14");
+  assert.deepEqual(notice(terminal, { answers }), { show: false }, "«No es deuda» silencia también el aviso de Cierre");
+  const contracts = [{ entity: "Movistar", currentPayment: 30, paymentStatus: "active" }];
+  assert.deepEqual(notice(terminal, { contracts }), { show: false }, "ya está dada de alta");
+});
+
+test("WP-41 PR-2 · closeNotice: un extracto viejo avisa de que no se puede mirar, y sin ningún extracto no sale nada", () => {
+  const viejo = S.closeNotice(S.detectShadowDebt({ today: "2027-03-01", transactions: terminal }), { fmt: eur });
+  assert.equal(viejo.show, true);
+  assert.equal(viejo.level, "blind");
+  assert.match(viejo.title, /el extracto no es reciente/);
+  assert.match(viejo.lines[0], /5\/10\/2026/);
+  assert.match(viejo.lines[0], /que no salga nada no significa que no haya/);
+  assert.deepEqual(S.closeNotice(S.detectShadowDebt({ today, transactions: [] }), { fmt: eur }), { show: false }, "nunca se importó nada: la tarjeta de Contratos ya lo dice; en Cierre sería ruido permanente");
+});
+
+test("WP-41 PR-2 · «fracc.» se reconoce como fraccionado (suposición mía, sin extracto real que la confirme), sin abrir la puerta a recurrentes normales", () => {
+  const conContador = detect([tx("2026-09-14", -40, "TIENDA FRACC. 1/6"), tx("2026-10-14", -40, "TIENDA FRACC. 2/6")]);
+  assert.equal(conContador.items.length, 1);
+  assert.equal(conContador.items[0].remaining, 4);
+  const soloPalabra = detect([tx("2026-08-14", -20, "TIENDA FRACC"), tx("2026-09-14", -20, "TIENDA FRACC"), tx("2026-10-14", -20, "TIENDA FRACC")]);
+  assert.equal(soloPalabra.items.length, 1, "la palabra sola exige tres cargos mensuales del mismo importe (dos como mínimo)");
+  assert.equal(soloPalabra.items[0].confidence, "media");
+  assert.equal(detect([tx("2026-10-14", -20, "TIENDA FRACC")]).items.length, 0, "un solo cargo con solo la palabra no basta");
+  assert.equal(detect([tx("2026-09-14", -80, "FRACCIONES SL"), tx("2026-10-14", -80, "FRACCIONES SL")]).items.length, 0, "una palabra parecida no cuenta");
+});
+
+test("WP-41 PR-2 · el aviso de Cierre solo lee: no responde, no da de alta, y su botón lleva a Deuda › Contratos", () => {
+  const ui = read("sombra-ui.js");
+  const fn = ui.slice(ui.indexOf("function renderSombraAviso"), ui.indexOf("// Una sola vez, por delegación."));
+  assert.doesNotMatch(fn, /sombraSave|storageSet|queueRemoteSave|applyAnswer|setItem/, "el aviso no escribe nada");
+  assert.match(ui, /target\?\.closest\?\.\("\[data-sombra-aviso-ver\]"\)\) \{ location\.hash = "#deuda-contratos"; return; \}/);
+  assert.match(read("views/cierre.js"), /globalThis\.renderSombraAviso\?\.\(window\.FinanceCanonicalShadowDebt\)/);
+  assert.match(read("index.html"), /id="sombraAviso" aria-live="off" hidden/);
+});

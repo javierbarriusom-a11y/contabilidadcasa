@@ -4455,3 +4455,71 @@ test.describe("WP-39 · la política al registrar una compra o venta", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-41 PR-2 (docs/WP41_DISENO.md §6): el aviso de deuda en la sombra también en Cierre, que se abre cada mes. Sin nada que decir no sale; con compromisos en el extracto
+// los cuenta (sin dar nada de alta); con un extracto viejo avisa de que no puede mirar; su botón lleva a Deuda › Contratos. Extracto INVENTADO, sembrado en memoria.
+test.describe("WP-41 · aviso de deuda en la sombra en Cierre", () => {
+  const sembrar = (page, { recientes }) => page.evaluate(({ recientes: reciente }) => {
+    const today = new Date();
+    const back = (days) => isoLocalDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+    const rows = [];
+    let balance = 3000;
+    const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+    const offset = reciente ? 0 : 120;
+    add(back(offset + 40), -30, "MOVISTAR CUOTA TERMINAL 2 DE 24");
+    add(back(offset + 10), -30, "MOVISTAR CUOTA TERMINAL 3 DE 24");
+    add(back(offset + 8), -49.9, "KLARNA PAGO 2 DE 3");
+    baseData.transactions = mergeTransactions([], rows);
+    refreshMovementRollups();
+    renderCierre(); // el repintado real de Cierre: así se prueba también el enganche de views/cierre.js, no solo la función del aviso
+  }, { recientes });
+  const aviso = (page) => page.locator("#sombraAviso");
+  const abrirCierre = async (page) => {
+    await page.goto("/index.html#cierre");
+    await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+  };
+
+  test("sin extracto no sale nada; con compromisos los cuenta sin darlos de alta; con extracto viejo avisa de que no puede mirar; el botón lleva a Contratos", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#cierre");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await abrirCierre(page);
+      await page.evaluate(() => { baseData.transactions = []; refreshMovementRollups(); renderCierre(); });
+      await expect(aviso(page), "sin ningún extracto importado no sale nada").toBeHidden();
+      const contratosAntes = await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal])));
+
+      await sembrar(page, { recientes: true });
+      await expect(aviso(page)).toBeVisible();
+      await expect(aviso(page)).toContainText("2 compromisos parecen deuda sin figurar como deuda");
+      await expect(aviso(page)).toContainText("al mes entre estos 2");
+      await expect(aviso(page)).toContainText("MOVISTAR CUOTA TERMINAL 3 DE 24");
+      await expect(aviso(page)).toContainText("Ninguno cuenta hoy en la fecha libre de deuda");
+      await expect(aviso(page)).toContainText("la app no da de alta nada");
+      await expect(aviso(page)).not.toContainText(/todo bien|no hay deuda/i);
+      const outside = await aviso(page).evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+      expect(await page.evaluate(() => JSON.stringify(canonicalDebtContractRows().map((c) => [c.id, c.entity, c.currentPrincipal]))), "el aviso no da de alta nada").toBe(contratosAntes);
+      expect(await page.evaluate(() => storageGet(storageKey("shadow-debt-answers"), "null")), "ni responde por vosotros").not.toContain("not-debt");
+
+      await sembrar(page, { recientes: false });
+      await expect(aviso(page)).toBeVisible();
+      await expect(aviso(page)).toContainText("el extracto no es reciente");
+      await expect(aviso(page)).toContainText("que no salga nada no significa que no haya");
+
+      await sembrar(page, { recientes: true });
+      await aviso(page).locator("[data-sombra-aviso-ver]").click();
+      await expect(page.locator("#sombraCard")).toBeVisible({ timeout: 15000 });
+      expect(new URL(page.url()).hash).toBe("#deuda-contratos");
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

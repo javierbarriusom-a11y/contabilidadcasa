@@ -153,3 +153,25 @@
   color: var(--e19-ink);
   font-weight: 600;
 }
+
+/* WP-41 PR-2 · aviso de deuda en la sombra en Cierre. El nivel no se distingue solo por color: lleva icono, título y borde propios. */
+.som-aviso-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.som-aviso-estado {
+  padding-left: 10px;
+  border-left: 6px dashed var(--e19-ink);
+}
+
+.som-aviso-estado[data-sombra-aviso-level="blind"] {
+  border-left-style: double;
+}
+
+.som-aviso-card .som-ver {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 44px;
+  padding: 0 6px;
+}
