@@ -61,6 +61,54 @@ function opsRowHtml(operation, sales) {
     </li>`;
 }
 
+// ---- WP-39 PR-2: la política de inversión al registrar una compra o venta (docs/WP39_DISENO.md §3, segunda entrega) ----
+// NO bloquea: solo con una política FIRMADA que la operación contradiga se pide un motivo, y queda anotado aparte (`policy-reasons`). Solo al AÑADIR.
+const OPS_POLICY_ICON = { contradicts: "⚠", warns: "◐", ok: "✓", unknown: "?" };
+
+function opsPolicyEngine() {
+  return globalThis.FinanceCanonicalInvestmentPolicy;
+}
+
+function opsPolicyActive() {
+  const engine = opsPolicyEngine();
+  return Boolean(engine) && engine.signatureState(politicaLoad()) !== "none";
+}
+
+function opsPolicyNotice(action, operation, drawdownRaw) {
+  const engine = opsPolicyEngine();
+  if (!engine || action !== "add" || (operation.kind !== "buy" && operation.kind !== "sell")) return null;
+  const position = opsPosition();
+  const portfolio = politicaPortfolio();
+  const type = globalThis.FinanceCanonicalPortfolio?.normalizePositions([position]).positions[0]?.type || "otro";
+  const drawdown = String(drawdownRaw ?? "").trim();
+  const notice = engine.registrationNotice({
+    policy: politicaLoad(),
+    operation: { kind: operation.kind, type, amount: Number(operation.amount) || 0 },
+    totalsByType: portfolio.totalsByType,
+    totalValue: portfolio.totalValue,
+    drawdownPct: drawdown === "" ? null : Number(drawdown.replace(",", ".")),
+  });
+  return notice.show ? { ...notice, type } : null;
+}
+
+function opsPolicyHtml(preview) {
+  const notice = preview.policy;
+  if (!notice) return "";
+  const lines = notice.lines.length ? `<ul class="ops-avisos">${notice.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : "";
+  const reason = notice.reason ? `<p class="e19-kpi-note">${escapeHtml(notice.reason)}</p>` : "";
+  const draft = notice.draft ? `<p class="e19-kpi-note">${escapeHtml(notice.draft)}</p>` : "";
+  const asks = notice.level === "contradicts" || notice.level === "warns";
+  const field = asks
+    ? `<label class="month-picker ops-motivo"><span>${notice.requiresReason ? "Motivo (hace falta para registrarla)" : "Motivo (opcional)"}</span><textarea id="opsMotivo" rows="2" maxlength="400" aria-describedby="opsMotivoError"></textarea></label><p class="ops-error" id="opsMotivoError" role="alert" hidden></p>`
+    : "";
+  return `<div class="ops-politica" data-ops-politica="${escapeHtml(notice.level)}">
+      <h4 class="ops-subtitulo">Frente a vuestra política de inversión</h4>
+      <p class="ops-aviso-fuerte" role="note"><span aria-hidden="true">${OPS_POLICY_ICON[notice.level] || "?"}</span> <strong>${escapeHtml(notice.title)}</strong></p>
+      ${lines}${reason}${draft}${field}
+      <p class="e19-kpi-note">No se bloquea nada: es dinero vuestro y la decisión es vuestra. ${asks ? "Si anotas un motivo, queda guardado con la operación." : ""}</p>
+    </div>`;
+}
+
 function opsEditorHtml(mode) {
   const op = mode.operation;
   const isSale = op.kind === "sell";
@@ -75,6 +123,7 @@ function opsEditorHtml(mode) {
         <label class="month-picker"><span>${quantityLabel}</span><input type="text" inputmode="decimal" id="opsUnidades" value="${op.quantity > 0 ? escapeHtml(String(op.quantity).replace(".", ",")) : ""}" /></label>
         <label class="month-picker"><span>${amountLabel}</span><input type="text" inputmode="decimal" id="opsImporte" value="${op.amount > 0 ? escapeHtml(String(op.amount).replace(".", ",")) : ""}" /></label>
       </div>
+      ${isSale && opsPolicyActive() ? `<label class="month-picker"><span>Caída de la cartera desde su máximo (%, si la sabes)</span><input type="text" inputmode="decimal" id="opsCaida" value="${escapeHtml(String(mode.drawdown ?? ""))}" aria-describedby="opsCaidaAyuda" /></label><p class="e19-kpi-note" id="opsCaidaAyuda">Solo para comprobar la política: no se guarda en la operación. Sin ella, la política avisa de que no sabe cuánto ha caído.</p>` : ""}
       <p class="e19-kpi-note">${isSale ? "Importe recibido: neto de comisiones y gastos (lo que entró en la cuenta)." : "Importe: con las comisiones de la compra incluidas."} Así la plusvalía se parece a la fiscal; la app no tiene campo de comisiones aparte.</p>
       ${err}
       <p class="ops-botones"><button type="submit" class="e19-btn e19-btn-primary" data-ops-focus="ver">Ver qué cambia</button> <button type="button" class="e19-btn ops-boton" data-ops-action="cancel" data-ops-focus="cancel">Cancelar</button></p>
@@ -107,7 +156,7 @@ function opsDiffHtml(preview) {
     ? `<p class="ops-aviso-fuerte" role="note"><span aria-hidden="true">⚠</span> <strong>Si guardas así, ${diff.newShortfalls.length === 1 ? "una venta se queda" : `${diff.newShortfalls.length} ventas se quedan`} sin lotes</strong> y la compensación de su ejercicio dejará de ser calculable hasta que lo corrijas. Puede ser un paso intermedio (corriges la compra después); no se bloquea.</p>`
     : "";
   const actionVerb = preview.action === "remove" ? "Quitar y guardar" : "Guardar los cambios";
-  return `${table}${warnings}${resolved}${confirm}
+  return `${table}${warnings}${resolved}${confirm}${opsPolicyHtml(preview)}
     <p class="ops-botones"><button type="button" class="e19-btn e19-btn-primary" data-ops-action="save" data-ops-focus="save">${risky ? "Guardar aunque deje ventas sin lotes" : actionVerb}</button> ${preview.action === "remove" ? "" : `<button type="button" class="e19-btn ops-boton" data-ops-action="back" data-ops-focus="back">Volver a editar</button> `}<button type="button" class="e19-btn ops-boton" data-ops-action="cancel" data-ops-focus="cancel">Cancelar</button></p>
     <p class="e19-kpi-note">No se ha guardado nada todavía. Al guardar se podrá deshacer.</p>`;
 }
@@ -186,6 +235,21 @@ function opsSave() {
   const position = opsPosition();
   const before = iv1PositionsList();
   const label = position.label || "la posición";
+  const notice = opsPreview.policy || null;
+  const note = String(qs("opsMotivo")?.value ?? "");
+  const allowed = opsPolicyEngine() && notice ? opsPolicyEngine().canRegister(notice, note) : { ok: true, message: "" };
+  if (!allowed.ok) {
+    const warning = qs("opsMotivoError");
+    if (warning) { warning.textContent = allowed.message; warning.hidden = false; }
+    qs("opsMotivo")?.focus();
+    announceStatus(allowed.message);
+    return;
+  }
+  const reasonsBefore = notice ? politicaReasonsLoad() : null;
+  if (notice) {
+    const operation = opsPreview.operation;
+    politicaReasonsSave(opsPolicyEngine().addReason(reasonsBefore, { operationId: operation.id, positionId: position.id, label, kind: operation.kind, type: notice.type, amount: Number(operation.amount) || 0, notice, note, today: isoLocalDate(new Date()) }));
+  }
   saveIv1PositionsList(before.map((row) => (row.id === position.id ? opsPreview.after : row)));
   const verb = opsPreview.action === "remove" ? "quitada" : opsPreview.action === "add" ? "añadida" : "cambiada";
   opsReset();
@@ -193,6 +257,7 @@ function opsSave() {
   opsRepaint(true);
   announceStatus(`Operación ${verb} en «${label}». Plusvalías recalculadas.`);
   showUndoToast(`Operación ${verb} en «${label}».`, () => {
+    if (reasonsBefore) politicaReasonsSave(reasonsBefore); // el motivo anotado vuelve a como estaba
     saveIv1PositionsList(before);
     opsReset();
     refreshAllSectionsAfterDataChange();
@@ -238,8 +303,9 @@ function opsSubmit(event) {
     announceStatus(result.reason);
     return;
   }
-  opsMode = { ...opsMode, operation, error: "" };
-  opsPreview = result.preview;
+  const drawdown = String(qs("opsCaida")?.value ?? "");
+  opsMode = { ...opsMode, operation, error: "", drawdown };
+  opsPreview = { ...result.preview, policy: opsPolicyNotice(opsMode.action, operation, drawdown) };
   opsRepaint(true);
 }
 

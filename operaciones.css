@@ -131,3 +131,31 @@
 .ops-etiqueta {
   font-weight: 600;
 }
+
+/* WP-39 PR-2 · la política de inversión al registrar una compra o venta. */
+.ops-politica {
+  margin: 12px 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ops-politica[data-ops-politica="contradicts"] .ops-aviso-fuerte {
+  border-left-width: 8px;
+  border-left-style: solid;
+}
+
+.ops-politica[data-ops-politica="warns"] .ops-aviso-fuerte {
+  border-left-style: dashed;
+}
+
+.ops-politica[data-ops-politica="unknown"] .ops-aviso-fuerte {
+  border-left-style: double;
+}
+
+.ops-motivo textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font: inherit;
+}
+

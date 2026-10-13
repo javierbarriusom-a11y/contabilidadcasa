@@ -540,7 +540,7 @@ Una vez firmada, la tarjeta te enseña **las reglas numeradas**, avisa **30 día
 Cuatro cosas que conviene saber:
 
 - **La app no compra, vende ni rebalancea nada**, y no toca tu cartera ni tu reparto objetivo: solo los lee.
-- **La consulta es voluntaria.** Al registrar una compra o una venta, la app **todavía no te avisa sola** ni te pide el motivo.
+- **Al registrar una compra o una venta, la app la compara con la política.** En **Inversión › Cartera**, al añadir una aportación o una venta nueva, el paso «Qué cambia si guardas» enseña un bloque **«Frente a vuestra política de inversión»**: si **contradice** una política **firmada** (por ejemplo, comprar cripto si no se compra), dice **qué regla** y **te pide un motivo** para registrarla —**sin él no se registra esa operación, y te dice por qué; no se bloquea nada más**—; si solo pide cuidado («ojo»), el motivo es opcional; si no choca o no puede comprobarlo, lo dice. Una política **sin firmar** avisa como borrador y **no** pide motivo. El motivo queda anotado aparte y **se deshace junto con la operación**; en la tarjeta de la política ves **cuántas operaciones se registraron con aviso, cuántas contradecían la política y cuántas de esas llevan motivo**. Solo al **añadir** (no al editar ni quitar). En una venta puedes teclear la **caída de la cartera desde su máximo** (opcional, no se guarda): sin ella, la política avisa de que no sabe cuánto ha caído.
 - **La banda que pongas aquí no cambia el aviso de la herramienta de rebalanceo**, que sigue avisando a los 10 puntos.
 - Si cambias una respuesta después de firmar, **la firma deja de valer** hasta firmar de nuevo. Tanto cambiar como borrar se pueden deshacer 10 segundos.
 

@@ -4298,3 +4298,133 @@ test.describe("WP-38 · aviso del plan B en Cierre", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-39 PR-2 (docs/WP39_DISENO.md §3): la política de inversión al REGISTRAR una compra o venta, en el libro de operaciones (Inversión › Cartera). No bloquea: con una política
+// FIRMADA que la operación contradice, pide un motivo y lo deja anotado aparte; sin motivo no se registra esa operación (y se dice por qué), pero nada más se bloquea. Datos INVENTADOS.
+test.describe("WP-39 · la política al registrar una compra o venta", () => {
+  const POSITIONS = [
+    // Reparto de la política: fondo 80 % / acción 20 % (banda 5). Con estos valores la cartera está dentro de banda, así que comprar fondo NO choca.
+    { id: "A", type: "fondo", label: "Fondo A ficticio", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 7000, currentValue: 8000, contributions: [], disposals: [] },
+    { id: "D", type: "accion", label: "Acción D ficticia", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2021-01-10", quantity: 10, costBasis: 1500, currentValue: 2000, contributions: [], disposals: [] },
+    { id: "C", type: "cripto", label: "Cripto C ficticia", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2024-01-10", quantity: 1, costBasis: 100, currentValue: 100, contributions: [], disposals: [] },
+  ];
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#opsCard")).toBeAttached({ timeout: 15000 });
+    await page.evaluate((positions) => { saveIv1PositionsList(positions); renderIv1PositionList(); }, POSITIONS);
+    return page.locator("#opsCuerpo");
+  };
+  const signPolicy = (page) => page.evaluate(() => {
+    const engine = FinanceCanonicalInvestmentPolicy;
+    const draft = engine.normalizePolicy({ purpose: { text: "jubilación", horizonYears: 20 }, allocation: { targets: { fondo: 80, accion: 20 }, bandPct: 5 }, contribution: { mode: "fixed", monthly: 300 }, exclusions: { noCrypto: true }, drawdown: { at20: "keep-contributing", at35: "hold" }, review: { everyMonths: 12 } });
+    politicaSave(engine.sign(draft, { signers: ["Ana", "Luis"], today: "2026-10-13" }).policy);
+  });
+  const reasons = (page) => page.evaluate(() => JSON.parse(JSON.stringify(politicaReasonsLoad())));
+  const contributions = (page, id) => page.evaluate((positionId) => iv1PositionsList().find((p) => p.id === positionId).contributions.length, id);
+  const startBuy = async (page, body, positionId, amount) => {
+    await body.locator("#opsPosicion").selectOption(positionId);
+    await body.locator('[data-ops-action="add-buy"]').click();
+    await body.locator("#opsFecha").fill("2026-10-10");
+    await body.locator("#opsImporte").fill(String(amount));
+    await body.locator('#opsForm button[type="submit"]').click();
+  };
+
+  test("contradice una política firmada: pide motivo, sin él no se registra y lo dice; con él se registra, queda anotado, se deshace y se cuenta en la tarjeta de la política; sin política o sin choque no pide nada", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      let body = await open(page);
+
+      // Sin política: ni bloque ni motivo.
+      await startBuy(page, body, "C", 500);
+      await expect(body).toContainText("Qué cambia si guardas");
+      await expect(body.locator("[data-ops-politica]")).toHaveCount(0);
+      await expect(body.locator("#opsMotivo")).toHaveCount(0);
+
+      // Con la política firmada: comprar cripto la contradice.
+      body = await open(page);
+      await signPolicy(page);
+      await startBuy(page, body, "C", 500);
+      const bloque = body.locator('[data-ops-politica="contradicts"]');
+      await expect(bloque).toBeVisible();
+      await expect(bloque).toContainText("Esta operación contradice la política");
+      await expect(bloque).toContainText("Comprar cripto");
+      await expect(bloque).toContainText(/Regla \d+\./);
+      await expect(bloque).toContainText("No se bloquea nada");
+      await expect(body.locator("#opsMotivo")).toBeVisible();
+      await expect(bloque.locator("label.ops-motivo")).toContainText("hace falta para registrarla");
+
+      // Sin motivo no se registra ESA operación, y se dice por qué (sin diálogos).
+      const before = await contributions(page, "C");
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(body.locator("#opsMotivoError")).toBeVisible();
+      await expect(body.locator("#opsMotivoError")).toContainText("escribe el motivo");
+      expect(await contributions(page, "C"), "sin motivo no se guarda").toBe(before);
+      expect(Object.keys((await reasons(page)).byOperation)).toHaveLength(0);
+
+      // Con motivo: se registra, queda anotado y se deshace.
+      await body.locator("#opsMotivo").fill("Prueba pequeña que decidimos las dos personas");
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(page.locator("#undoToastMessage")).toContainText("Operación añadida");
+      expect(await contributions(page, "C")).toBe(before + 1);
+      const stored = Object.values((await reasons(page)).byOperation);
+      expect(stored).toHaveLength(1);
+      expect(stored[0].note).toBe("Prueba pequeña que decidimos las dos personas");
+      expect(stored[0].verdict).toBe("contradicts");
+      await page.click("#undoToastButton");
+      expect(await contributions(page, "C"), "deshacer devuelve la cartera").toBe(before);
+      expect(Object.keys((await reasons(page)).byOperation), "y quita el motivo").toHaveLength(0);
+
+      // Otra vez, y se cuenta en la tarjeta de la política (Inversión › Rebalanceo).
+      await startBuy(page, body, "C", 700);
+      await body.locator("#opsMotivo").fill("Segunda prueba");
+      await body.locator('[data-ops-action="save"]').click();
+      expect(await contributions(page, "C")).toBe(before + 1);
+      await page.goto("/index.html#inversion-rebalanceo");
+      const card = page.locator("#politicaCard");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator("[data-politica-constancia]")).toHaveAttribute("data-politica-constancia", "1-0");
+      await expect(card).toContainText("contradecían la política");
+      await card.locator(".pol-constancia-lista summary").click();
+      await expect(card.locator(".pol-constancia-lista")).toContainText("Segunda prueba");
+
+      // Sin choque: comprar un fondo (80 % del objetivo) no pide nada y no deja constancia.
+      await page.goto("/index.html#inversion-cartera");
+      body = page.locator("#opsCuerpo");
+      await expect(body).toBeVisible({ timeout: 15000 });
+      await startBuy(page, body, "A", 300);
+      await expect(body.locator("[data-ops-politica]")).toHaveCount(1);
+      await expect(body.locator('[data-ops-politica="contradicts"]')).toHaveCount(0);
+      await expect(body.locator("#opsMotivo")).toHaveCount(0);
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(page.locator("#undoToastMessage")).toContainText("Operación añadida");
+      expect(Object.keys((await reasons(page)).byOperation), "no choca: sin constancia").toHaveLength(1);
+
+      // Una venta sin saber la caída: «ojo», motivo opcional, y no bloquea.
+      await body.locator('[data-ops-action="add-sell"]').click();
+      await expect(body.locator("#opsCaida")).toBeVisible();
+      await body.locator("#opsFecha").fill("2026-10-11");
+      await body.locator("#opsUnidades").fill("1");
+      await body.locator("#opsImporte").fill("120");
+      await body.locator('#opsForm button[type="submit"]').click();
+      const ojo = body.locator('[data-ops-politica="warns"]');
+      await expect(ojo).toContainText("Ojo");
+      await expect(ojo.locator("label.ops-motivo")).toContainText("opcional");
+      // Nada se sale de la tarjeta.
+      const outside = await body.locator(".ops-politica").evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera del bloque: ${outside.join(", ")}`).toEqual([]);
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(page.locator("#undoToastMessage")).toContainText("Operación añadida");
+      expect(Object.keys((await reasons(page)).byOperation)).toHaveLength(2);
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

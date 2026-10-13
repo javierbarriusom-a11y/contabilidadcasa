@@ -158,3 +158,120 @@ test("WP-39 · cableado: el almacén va en la copia, la tarjeta está en Rebalan
   assert.doesNotMatch(ui, /saveIv1PositionsList|saveIv6Targets|scenarioSettings\.portfolio/, "la política no escribe en la cartera ni en el reparto objetivo: solo lee");
   assert.match(ui, /showUndoToast\("Política borrada\."/);
 });
+
+// ---- PR-2 (13/10): la política al registrar una compra o venta, con nota de motivo ----
+
+const signedPolicy = (extra = {}) => P.sign(complete(extra), { signers: ["Ana", "Luis"], today: "2026-10-13" }).policy;
+const notice = (operation, policy = signedPolicy(), drawdownPct = 0, base = portfolio) => P.registrationNotice({ policy, operation, ...base, drawdownPct });
+
+test("WP-39 PR-2 · sin política guardada no hay nada que enseñar al registrar", () => {
+  assert.deepEqual(P.registrationNotice({ policy: null, operation: { kind: "buy", type: "cripto", amount: 100 } }), { show: false, requiresReason: false });
+  assert.deepEqual(P.registrationNotice({}), { show: false, requiresReason: false });
+});
+
+test("WP-39 PR-2 · contradice una política FIRMADA: lo dice con su regla numerada y pide motivo; nunca bloquea (devuelve un aviso, no un veto)", () => {
+  const result = notice({ kind: "buy", type: "cripto", amount: 500 });
+  assert.equal(result.show, true);
+  assert.equal(result.level, "contradicts");
+  assert.equal(result.verdict, "contradicts");
+  assert.equal(result.requiresReason, true);
+  assert.match(result.title, /contradice la política/);
+  assert.match(result.lines[0], /^Regla \d+\. Comprar cripto/);
+  assert.equal(result.rules.length, 1);
+  assert.equal(result.draft, "");
+  const sale = notice({ kind: "sell", type: "etf", amount: 1000 }, signedPolicy(), 40);
+  assert.equal(sale.level, "contradicts", "vender con la cartera 40 % por debajo de su máximo, con «mantener» a partir del 35 %");
+  assert.equal(sale.requiresReason, true);
+  assert.equal(P.canRegister(result, "").ok, false);
+  assert.match(P.canRegister(result, "   ").message, /escribe el motivo/);
+  assert.match(P.canRegister(result, "").message, /no se bloquea nada/);
+  assert.deepEqual(P.canRegister(result, "Es para la entrada de la casa"), { ok: true, message: "" });
+});
+
+test("WP-39 PR-2 · una política sin firmar, o cambiada tras firmar, avisa como borrador y NO exige motivo", () => {
+  const draft = notice({ kind: "buy", type: "cripto", amount: 500 }, complete());
+  assert.equal(draft.level, "contradicts");
+  assert.equal(draft.requiresReason, false);
+  assert.match(draft.draft, /borrador sin firmar/);
+  assert.equal(P.canRegister(draft, "").ok, true);
+  const signed = signedPolicy();
+  const changed = notice({ kind: "buy", type: "cripto", amount: 500 }, { ...signed, contribution: { mode: "fixed", monthly: 999 } });
+  assert.equal(changed.requiresReason, false);
+  assert.match(changed.draft, /cambió después de firmar/);
+});
+
+test("WP-39 PR-2 · avisos que no contradicen: «ojo» pide cuidado sin exigir motivo, «no choca» se dice, y lo que no se puede comprobar NO es «cumple»", () => {
+  const sinCaida = notice({ kind: "sell", type: "etf", amount: 100 }, signedPolicy(), null);
+  assert.equal(sinCaida.level, "warns");
+  assert.equal(sinCaida.requiresReason, false);
+  assert.match(sinCaida.lines.join(" "), /No sé cuánto ha caído la cartera/);
+  const ok = notice({ kind: "buy", type: "etf", amount: 100 });
+  assert.equal(ok.level, "ok");
+  assert.match(ok.title, /No choca con ninguna regla/);
+  const unknown = P.registrationNotice({ policy: signedPolicy(), operation: { kind: "buy", type: "etf", amount: 100 }, totalsByType: {}, totalValue: 0, drawdownPct: 0 });
+  assert.equal(unknown.level, "unknown");
+  assert.notEqual(unknown.level, "ok");
+  assert.match(unknown.reason, /Sin cartera registrada/);
+  const incomplete = P.registrationNotice({ policy: signedPolicy(), operation: { kind: "", type: "" } });
+  assert.equal(incomplete.level, "unknown");
+});
+
+test("WP-39 PR-2 · la constancia: solo se anotan las operaciones con aviso que importan, y el almacén está acotado y limpio", () => {
+  const contradicts = notice({ kind: "buy", type: "cripto", amount: 500 });
+  const warns = notice({ kind: "sell", type: "etf", amount: 100 }, signedPolicy(), null);
+  const ok = notice({ kind: "buy", type: "etf", amount: 100 });
+  let store = P.normalizeReasons(null);
+  assert.deepEqual(store, { byOperation: {} });
+  store = P.addReason(store, { operationId: "op-1", positionId: "p1", label: "Fondo A", kind: "buy", type: "cripto", amount: 500, notice: contradicts, note: "  Es una prueba pequeña  ", today: "2026-10-13" });
+  store = P.addReason(store, { operationId: "op-2", positionId: "p1", label: "Fondo A", kind: "sell", type: "etf", amount: 100, notice: warns, note: "", today: "2026-10-14" });
+  const before = JSON.stringify(store);
+  store = P.addReason(store, { operationId: "op-3", kind: "buy", type: "etf", amount: 100, notice: ok, note: "algo", today: "2026-10-15" });
+  store = P.addReason(store, { operationId: "op-4", kind: "buy", type: "etf", amount: 100, notice: null, today: "2026-10-15" });
+  store = P.addReason(store, { operationId: "", kind: "buy", type: "etf", amount: 100, notice: contradicts, today: "2026-10-15" });
+  store = P.addReason(store, { operationId: "op-5", kind: "buy", type: "etf", amount: 100, notice: contradicts, today: "ayer" });
+  assert.equal(JSON.stringify(store), before, "«no choca», sin aviso, sin id o con una fecha inválida no dejan constancia");
+  assert.equal(store.byOperation["op-1"].note, "Es una prueba pequeña", "el motivo se recorta de espacios");
+  assert.deepEqual(Object.keys(store.byOperation), ["op-2", "op-1"], "las más recientes primero");
+  const wild = P.normalizeReasons({ byOperation: { a: { at: "2026-01-01", kind: "buy", type: "inventado", amount: -5, verdict: "raro", rules: ["x", 3], note: "z".repeat(900) }, b: null, c: { at: "mal", kind: "buy" }, d: { at: "2026-01-02", kind: "otro" } } });
+  assert.deepEqual(Object.keys(wild.byOperation), ["a"]);
+  assert.equal(wild.byOperation.a.type, "otro");
+  assert.equal(wild.byOperation.a.amount, 0);
+  assert.equal(wild.byOperation.a.verdict, "unknown");
+  assert.deepEqual(wild.byOperation.a.rules, [3]);
+  assert.equal(wild.byOperation.a.note.length, P.REASON_MAX_LENGTH);
+  const many = {};
+  for (let i = 0; i < P.MAX_REASONS + 40; i += 1) many[`o${i}`] = { at: `2026-01-${String((i % 28) + 1).padStart(2, "0")}`, kind: "buy", type: "etf", amount: 1, verdict: "warns", rules: [], note: "" };
+  assert.equal(Object.keys(P.normalizeReasons({ byOperation: many }).byOperation).length, P.MAX_REASONS, "el almacén no crece sin límite");
+});
+
+test("WP-39 PR-2 · el resumen mide el criterio del plan: cuántas contradecían la política y cuántas de ésas llevan motivo", () => {
+  const contradicts = notice({ kind: "buy", type: "cripto", amount: 500 });
+  const warns = notice({ kind: "sell", type: "etf", amount: 100 }, signedPolicy(), null);
+  assert.deepEqual(P.reasonsSummary(null), { total: 0, contradicts: 0, contradictsWithoutNote: 0, latest: [] });
+  let store = P.addReason(null, { operationId: "a", kind: "buy", type: "cripto", amount: 500, notice: contradicts, note: "porque sí", today: "2026-10-01" });
+  store = P.addReason(store, { operationId: "b", kind: "buy", type: "cripto", amount: 500, notice: contradicts, note: "", today: "2026-10-02" });
+  store = P.addReason(store, { operationId: "c", kind: "sell", type: "etf", amount: 100, notice: warns, note: "", today: "2026-10-03" });
+  const summary = P.reasonsSummary(store);
+  assert.equal(summary.total, 3);
+  assert.equal(summary.contradicts, 2);
+  assert.equal(summary.contradictsWithoutNote, 1, "una contradicción sin motivo se cuenta como tal");
+  assert.equal(summary.latest[0].operationId, "c");
+  assert.ok(summary.latest.length <= 5);
+});
+
+test("WP-39 PR-2 · cableado: solo al AÑADIR, el motivo se pide solo si contradice una política firmada, queda en la copia, se deshace y no escribe en la política", () => {
+  const ops = read("operaciones-ui.js");
+  assert.match(ops, /action !== "add" \|\| \(operation\.kind !== "buy" && operation\.kind !== "sell"\)\) return null/, "solo al registrar una compra o venta nueva");
+  assert.match(ops, /canRegister\(notice, note\)/);
+  assert.match(ops, /if \(reasonsBefore\) politicaReasonsSave\(reasonsBefore\)/, "deshacer devuelve el motivo a como estaba");
+  assert.doesNotMatch(ops, /savePolitica|politicaSave\(/, "la política no se escribe desde el libro de operaciones");
+  assert.match(ops, /No se bloquea nada: es dinero vuestro/);
+  assert.match(read("app.js"), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"policy-reasons"/);
+  const ui = read("politica-ui.js");
+  assert.match(ui, /const POLITICA_REASONS_STORE = "policy-reasons"/);
+  assert.match(ui, /politicaReasonsHtml\(\)/);
+  assert.doesNotMatch(read("canonical-investment-policy.js").replace(/\/\/.*$/gm, ""), /\bdocument\b|\bwindow\b|localStorage|\bfetch\(/, "el motor sigue siendo puro");
+  const html = read("index.html");
+  for (const asset of ["operaciones-ui.js", "operaciones.css", "politica-ui.js", "politica.css", "canonical-investment-policy.js"]) assert.match(html, new RegExp(`${asset.replace(".", "\\.")}\\?v=20261013wp39a2`), asset);
+});
+

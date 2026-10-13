@@ -1353,6 +1353,7 @@ const BACKUP_LOCAL_STORES = [
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
   "investment-policy", // WP-39: la política de inversión del hogar (seis respuestas, firma y fecha de revisión)
+  "policy-reasons", // WP-39 PR-2: nota de motivo de las operaciones registradas contra (o con cuidado ante) la política
   "contingency-plan", // WP-38: el plan B acordado en frío (disparador, acciones en orden, firma)
   "statement-anomaly-answers", // WP-36: lo que el hogar respondió a cada aviso del extracto (de ahí sale la tasa de falsos positivos)
   "payslips", // WP-31: nóminas (solo cifras: periodo, bruto, líquido, retención), para el acumulado del estimador de Renta

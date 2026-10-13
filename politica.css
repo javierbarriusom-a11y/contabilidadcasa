@@ -163,3 +163,21 @@
     display: none;
   }
 }
+
+/* WP-39 PR-2 · constancia de las operaciones registradas con aviso. */
+.pol-constancia-lista {
+  margin: 8px 0;
+  min-width: 0;
+}
+
+.pol-constancia-lista > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.pol-constancia-lista li {
+  overflow-wrap: anywhere;
+}
+

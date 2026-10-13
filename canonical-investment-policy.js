@@ -243,5 +243,71 @@
     return { verdict, findings, reason: verdict === "no-data" ? "Sin cartera registrada no se puede comparar el reparto: solo se miran las reglas que no dependen de él." : "" };
   }
 
-  return { SCHEMA_ID, TYPES, DRAWDOWN_ACTIONS, CONTRIBUTION_MODES, DEFAULT_BAND_PCT, REVIEW_MONTH_CHOICES, DRAWDOWN_LEVELS, defaultPolicy, normalizePolicy, fingerprint, targetsSum, problems, signatureState, sign, reviewStatus, rules, assessPortfolio, checkOperation };
+  // ---- PR-2: la política al REGISTRAR una compra o venta, con nota de motivo (docs/WP39_DISENO.md §3, segunda entrega) ----
+
+  const MAX_REASONS = 200;
+  const REASON_MAX_LENGTH = 400;
+
+  /**
+   * Lo que se le enseña al hogar cuando está a punto de registrar una compra o venta. NO BLOQUEA el registro (es dinero que ya se movió o se va a mover: la app no
+   * manda): solo avisa, y cuando la operación CONTRADICE una política FIRMADA pide un motivo para dejar constancia. Reglas:
+   *   · sin política guardada no hay nada que enseñar;
+   *   · un aviso contra una política sin firmar, o cambiada tras firmar, se marca como borrador y NO exige motivo (no es un acuerdo);
+   *   · «no se puede comprobar» se dice, nunca se presenta como «cumple».
+   * @param {{policy?: *, operation?: {kind?: string, type?: string, amount?: number}, totalsByType?: Object<string, number>, totalValue?: number, drawdownPct?: number|null}} [input]
+   * @returns {{show: boolean, level?: "contradicts"|"warns"|"ok"|"unknown", verdict?: string, requiresReason: boolean, title?: string, lines?: string[], rules?: number[], draft?: string, reason?: string}}
+   */
+  function registrationNotice({ policy, operation = {}, totalsByType = {}, totalValue = 0, drawdownPct = null } = {}) {
+    const p = normalizePolicy(policy);
+    const state = signatureState(p);
+    if (state === "none") return { show: false, requiresReason: false };
+    const check = checkOperation({ policy: p, operation, totalsByType, totalValue, drawdownPct });
+    const draft = state === "signed" ? "" : state === "changed" ? "La política se cambió después de firmar: este aviso no es un acuerdo y no pide motivo hasta que se firme de nuevo." : "La política todavía es un borrador sin firmar: este aviso no es un acuerdo y no pide motivo.";
+    const lines = check.findings.map((finding) => `${finding.n ? `Regla ${finding.n}. ` : ""}${finding.text}`);
+    const rulesHit = [...new Set(check.findings.map((finding) => finding.n).filter((n) => Number.isFinite(n)))];
+    const base = { show: true, verdict: check.verdict, lines, rules: rulesHit, draft, requiresReason: false };
+    if (check.verdict === "contradicts") return { ...base, level: "contradicts", title: "Esta operación contradice la política", requiresReason: state === "signed" };
+    if (check.verdict === "warns") return { ...base, level: "warns", title: "Ojo: la política pide cuidado con esta operación" };
+    if (check.verdict === "complies") return { ...base, level: "ok", title: "No choca con ninguna regla que la app pueda comprobar" };
+    return { ...base, level: "unknown", title: "No puedo comprobar esta operación con la política", reason: check.reason || "" };
+  }
+
+  /** ¿Se puede registrar ya? Solo se pide algo cuando el aviso EXIGE motivo y no hay ninguno. */
+  function canRegister(notice, note) {
+    if (notice && notice.requiresReason && !text(note)) return { ok: false, message: "Esta operación contradice la política firmada: escribe el motivo para registrarla. Queda anotado, no se bloquea nada." };
+    return { ok: true, message: "" };
+  }
+
+  /** @param {*} raw */
+  function normalizeReasons(raw) {
+    const source = raw && typeof raw === "object" && raw.byOperation && typeof raw.byOperation === "object" ? raw.byOperation : {};
+    const entries = Object.entries(source).filter(([id, record]) => text(id) && record && typeof record === "object" && isIso(record.at) && (record.kind === "buy" || record.kind === "sell")).map(([id, record]) => ({ id, record: {
+      at: text(record.at), positionId: text(record.positionId), label: text(record.label).slice(0, 80), kind: record.kind, type: Object.hasOwn(TYPES, record.type) ? record.type : "otro", amount: Math.max(0, round2(record.amount)),
+      verdict: ["contradicts", "warns", "ok", "unknown"].includes(record.verdict) ? record.verdict : "unknown", rules: (Array.isArray(record.rules) ? record.rules : []).map(Number).filter(Number.isFinite).slice(0, 8), note: text(record.note).slice(0, REASON_MAX_LENGTH),
+    } }));
+    entries.sort((a, b) => b.record.at.localeCompare(a.record.at) || a.id.localeCompare(b.id));
+    return { byOperation: Object.fromEntries(entries.slice(0, MAX_REASONS).map((entry) => [entry.id, entry.record])) };
+  }
+
+  /**
+   * Deja constancia de una operación registrada con aviso. Solo anota las que la política CONTRADICE o ante las que pide cuidado: «no choca» y «no se puede comprobar» no
+   * tienen un motivo que explicar y llenarían el almacén de ruido.
+   * @param {*} store
+   * @param {{operationId?: string, positionId?: string, label?: string, kind?: string, type?: string, amount?: number, notice?: any, note?: string, today?: string}} [input]
+   */
+  function addReason(store, { operationId, positionId = "", label = "", kind, type, amount, notice, note = "", today = "" } = {}) {
+    const current = normalizeReasons(store);
+    if (!text(operationId) || !notice || !notice.show || !(["contradicts", "warns"].includes(notice.level)) || !isIso(today)) return current;
+    const record = { at: today, positionId, label, kind, type, amount, verdict: notice.verdict, rules: notice.rules || [], note: text(note).slice(0, REASON_MAX_LENGTH) };
+    return normalizeReasons({ byOperation: { ...current.byOperation, [operationId]: record } });
+  }
+
+  /** Cuántas operaciones se registraron con aviso, cuántas contradecían la política y cuántas de ésas llevan motivo. Es la medida del criterio de éxito del plan. */
+  function reasonsSummary(store) {
+    const records = Object.entries(normalizeReasons(store).byOperation).map(([operationId, record]) => ({ operationId, ...record }));
+    const contradicts = records.filter((record) => record.verdict === "contradicts");
+    return { total: records.length, contradicts: contradicts.length, contradictsWithoutNote: contradicts.filter((record) => !record.note).length, latest: records.slice(0, 5) };
+  }
+
+  return { SCHEMA_ID, TYPES, DRAWDOWN_ACTIONS, CONTRIBUTION_MODES, DEFAULT_BAND_PCT, REVIEW_MONTH_CHOICES, DRAWDOWN_LEVELS, MAX_REASONS, REASON_MAX_LENGTH, defaultPolicy, normalizePolicy, fingerprint, targetsSum, problems, signatureState, sign, reviewStatus, rules, assessPortfolio, checkOperation, registrationNotice, canRegister, normalizeReasons, addReason, reasonsSummary };
 });
