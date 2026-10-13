@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp42b",
+      fecha: "2026-10-13",
+      texto: "Deuda › Comparar: el reparto del próximo euro avisa si choca con vuestra política firmada o si el plan B está activo.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-10-13-wp41b",
       fecha: "2026-10-13",
       texto: "Cierre: si el extracto muestra compras o móviles financiados que no están en Contratos, ahora os lo cuenta cada mes.",

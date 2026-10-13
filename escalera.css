@@ -119,3 +119,39 @@
   color: var(--e19-ink);
   font-weight: 600;
 }
+
+/* WP-42 PR-2 · el reparto frente a la política y el plan B. El nivel no se distingue solo por color: lleva icono, título y borde propios. */
+.peu-cruce {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin-top: 12px;
+}
+
+.peu-cruce-cabecera {
+  margin: 0 0 6px;
+}
+
+.peu-cruce-bloque {
+  padding: 6px 10px;
+  margin: 6px 0;
+  border-left: 4px dashed var(--e19-ink);
+}
+
+.peu-cruce-bloque[data-peu-cruce-nivel="contradicts"],
+.peu-cruce-bloque[data-peu-cruce-nivel="alert"] {
+  border-left-style: solid;
+  border-left-width: 8px;
+}
+
+.peu-cruce-bloque[data-peu-cruce-nivel="unknown"] {
+  border-left-style: double;
+  border-left-width: 6px;
+}
+
+.peu-cruce-bloque[data-peu-cruce-nivel="ok"] {
+  border-left-style: dotted;
+}
+
+.peu-cruce-titulo {
+  margin: 0 0 4px;
+}

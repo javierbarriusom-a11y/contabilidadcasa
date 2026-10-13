@@ -532,6 +532,7 @@ Cuatro cosas que conviene saber:
 - **Una deuda sin interés declarado no se da por gratis**: la tarjeta la nombra y te pide declarar su TAE en Deuda › Contratos. Si la deuda al corriente no tiene TAE, usa el coste **implícito en su cuota y sus plazos** y lo marca como estimación.
 - **Sin una rentabilidad esperada escrita por ti, lo que sobra queda «sin reparto»**: no hay veredicto entre amortizar e invertir, y la app no se inventa uno.
 - **Si faltan datos** (saldos, suelo del colchón, tu tipo marginal), el reparto sale **parcial** y lo dice. Y si la pensión ahorra más impuestos el primer año de lo que cuesta la deuda, **te lo avisa sin cambiar el orden**.
+- **Si ya tenéis una política de inversión o un plan B guardados, el reparto se cruza con ellos** (bloque «Frente a vuestra política y vuestro plan B»): dice si parte de lo que se invertiría **contradice la política firmada** (por ejemplo, comprar cripto si la política dice que no), y si el **plan B salta o está en vigilancia** mientras se manda dinero a pensión o inversión. **Solo avisa**: no reordena nada ni bloquea nada. Una política o un plan sin firmar se marcan como **borrador**; lo que no se puede comprobar se dice. Sin política ni plan B guardados, el bloque no sale.
 
 ### Política de inversión del hogar (Inversión › Rebalanceo)
 
