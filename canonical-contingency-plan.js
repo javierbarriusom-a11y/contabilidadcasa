@@ -307,5 +307,37 @@
     return { calculable: true, liquidity: cash, floor: floorValue, monthlyOutflow: outflow, discretionaryMonthly: hasDiscretionary ? discretionary : null, hasLever: hasDiscretionary, rows };
   }
 
-  return { SCHEMA_ID, KINDS, MAX_ACTIONS, defaultPlan, normalizePlan, normalizeAction, fingerprint, problems, signatureState, sign, evaluate, cutLeverage };
+  /**
+   * WP-38 PR-2 · lo que enseña el aviso del plan B en Cierre (que se abre cada mes), para que el plan no dependa de que alguien entre a Plan › Previsión.
+   * Texto y nivel salen del resultado de `evaluate`; no recalcula nada. Reglas:
+   *   · sin plan (`none`) no hay aviso: no se le recuerda a nadie lo que no ha decidido;
+   *   · lo que NO se puede vigilar (sin previsión, plan incompleto) se dice como tal, nunca se calla ni se presenta como «todo bien»;
+   *   · un plan sin firmar, o cambiado tras firmar, se marca como borrador: no es un acuerdo.
+   * @param {any} result lo que devuelve `evaluate`
+   * @param {{fmt?: (value: number) => string}} [options]
+   * @returns {{show: boolean, level?: "alert"|"watch"|"ok"|"blind", icon?: string, title?: string, lines?: string[], steps?: string[], draft?: string, status?: string}}
+   */
+  function closeNotice(result, { fmt } = {}) {
+    const eur = typeof fmt === "function" ? fmt : (value) => `${value} €`;
+    if (!result || !result.status || result.status === "none") return { show: false };
+    const draft = result.signature === "changed" ? "Se ha cambiado después de firmar: la firma ya no vale hasta que se firme de nuevo." : result.signature === "unsigned" ? "Todavía es un borrador sin firmar: no es un acuerdo hasta que lo firmen dos personas." : "";
+    const evidence = Array.isArray(result.evidence) ? result.evidence.map(text).filter(Boolean) : [];
+    const reasons = Array.isArray(result.reasons) ? result.reasons.map(text).filter(Boolean) : [];
+    const base = { show: true, status: result.status, draft, steps: [] };
+    if (result.status === "triggered") {
+      const actions = Array.isArray(result.actions) ? result.actions : [];
+      const lines = [...evidence];
+      if (result.afterAll) {
+        if (result.afterAll.stillTriggered) lines.push(`Ni con todos los pasos llega: faltarían ${eur(result.afterAll.short)} para no bajar de ${eur(result.threshold)}. Conviene revisar el plan, mejor ahora que en el mes malo.`);
+        else if (result.resolvedAtStep) lines.push(`Con ${result.resolvedAtStep === 1 ? "el primer paso" : `los ${result.resolvedAtStep} primeros pasos`} la liquidez ya no baja de ${eur(result.threshold)}.`);
+      }
+      return { ...base, level: "alert", icon: "⚠", title: "Se cumple vuestro plan B", lines, steps: actions.slice(0, 3).map((row) => `${row.index}. ${text(row.label)}`) };
+    }
+    if (result.status === "watch") return { ...base, level: "watch", icon: "◐", title: "Plan B en vigilancia: hay meses por debajo, el plan aún no salta", lines: evidence };
+    if (result.status === "ok") return { ...base, level: "ok", icon: "✓", title: "Plan B sin disparar: la liquidez aguanta", lines: evidence };
+    if (result.status === "no-data") return { ...base, level: "blind", icon: "?", title: "No puedo vigilar el plan B: no hay previsión", lines: reasons };
+    return { ...base, level: "blind", icon: "…", title: "El plan B está incompleto, no puedo vigilarlo", lines: reasons };
+  }
+
+  return { SCHEMA_ID, KINDS, MAX_ACTIONS, defaultPlan, normalizePlan, normalizeAction, fingerprint, problems, signatureState, sign, evaluate, cutLeverage, closeNotice };
 });

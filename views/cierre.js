@@ -1181,6 +1181,7 @@ function renderCierre() {
   }
 
   globalThis.renderCartaMes?.(window.FinanceCanonicalMonthLetter, currentMonthKey, Boolean(currentClosure)); // WP-29 (carta-mes-ui.js)
+  globalThis.renderPlanBAviso?.(window.FinanceCanonicalContingencyPlan); // WP-38 PR-2 (contingencia-ui.js)
 
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");

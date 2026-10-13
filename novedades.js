@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp38b",
+      fecha: "2026-10-13",
+      texto: "Cierre: si ya acordasteis un plan B, ahora lo vigila y os dice si salta, está en vigilancia o no se puede vigilar.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-13-wp37b",
       fecha: "2026-10-13",
       texto: "Ajustes: quitar una cuenta remunerada, póliza, tabla fiscal o escala de IRPF ya se puede deshacer 10 segundos.",

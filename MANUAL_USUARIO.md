@@ -619,7 +619,7 @@ Tres cosas que conviene saber:
 
 - **Pausar el ahorro no sube la liquidez total**: el ahorro ya cuenta como liquidez, así que pausarlo solo pasa dinero de la cuenta de ahorro a la corriente. Solo suma si marcas que **ese ahorro va a un fondo o inversión** (fuera de la liquidez).
 - **El crédito no es dinero vuestro**: suma, pero se marca «hay que devolverlo» y con su coste estimado.
-- **La app solo enseña lo acordado: no hace nada por vosotros.** Y **solo lo vigila al abrir esta pestaña**: de momento no avisa sola ni aparece en Hoy. Si cambias el plan después de firmarlo, la firma deja de valer.
+- **La app solo enseña lo acordado: no hace nada por vosotros.** Y **solo lo vigila cuando abres una pantalla donde está**: esta pestaña o **Cierre** (ahí sale un aviso, arriba, **solo si ya hay un plan**: si salta, si está en vigilancia, si no salta o si **no puede vigilarlo** —sin previsión o con el plan incompleto, que no es lo mismo que «todo va bien»—). De momento no avisa sola ni aparece en Hoy: si no abrís Cierre ni esta pestaña, no os enteráis. Si cambias el plan después de firmarlo, la firma deja de valer, y un plan sin firmar se avisa como **borrador**.
 
 Debajo, **«¿Cuánto aguanta el colchón?»** calcula, si se cortaran los ingresos, cuántos meses duraría la liquidez con un recorte del 0, 10, 20, 30 y 50 % del gasto variable. Es un suelo, no una previsión.
 

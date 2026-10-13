@@ -40,6 +40,19 @@ Un plan B vale por el **aviso a tiempo**, y hoy el aviso solo existe si alguien 
 2. **Recordatorio en el calendario del móvil** (WP-32): un evento «Revisar el plan B» no sabe si el disparador salta, así que sería un recordatorio periódico, no un aviso condicional.
 3. **Avisar en Cierre** al firmar el mes (ya se abre cada mes): factible sin tocar Hoy y la opción que yo haría primero.
 
+### Segunda entrega (PR-2, 13/10/2026): el aviso en Cierre (vía 3)
+
+Es la opción que este mismo documento marcaba como la primera a hacer. **El aviso del plan B sale ahora también en Cierre**, arriba, antes de la carta del mes (`contingencia-ui.js › renderPlanBAviso`, texto en el motor: `canonical-contingency-plan.js › closeNotice`, enganche de una línea en `views/cierre.js`). Reutiliza el mismo motor y la misma previsión viva: no hay una segunda evaluación ni umbrales nuevos.
+
+- **Sin plan guardado, no sale nada** (y ni siquiera se calcula la previsión): no se le recuerda a nadie lo que no ha decidido.
+- **Cinco casos, cada uno con icono, título y borde propios** (no solo color): **salta** (con cuándo, lo acordado en orden —los tres primeros pasos— y si bastan o cuánto falta), **en vigilancia**, **sin disparar** (con el mínimo previsto), y dos que **no pueden vigilar**: sin previsión e incompleto. **Un plan que no se puede vigilar se dice, no se presenta como «todo va bien»** (con prueba).
+- **Un plan sin firmar, o cambiado tras firmar, se marca como borrador**: avisa igual (merece verse), pero dice que no es un acuerdo.
+- **«Ver el plan completo»** abre Plan › Previsión. El aviso solo lee: no escribe nada (con prueba).
+
+**Lo que esto NO cierra, y por qué el paquete sigue «en curso» (50 %):** el aviso depende de que alguien **abra Cierre**. Cierre se abre una vez al mes (el 1-3), de modo que un mes malo que se vea venir a mitad de mes **puede tardar hasta unas semanas en avisar**. Estrecha el agujero del §4, no lo cierra: el aviso de verdad (bandeja de Hoy) sigue esperando a H-02, y el recordatorio en el calendario del móvil (vía 2, WP-32) no se ha hecho. **Tampoco he visto el aviso con un plan real del hogar**: nadie ha firmado un plan B todavía (H-12, 18/12).
+
+**Prueba del aviso:** unitarias del texto (sin plan, salta, borrador, cambiado tras firmar, no bastan los pasos, bastan al primero, vigilancia, sin disparar, sin previsión, incompleto), cableado y que no escribe; navegador en Cierre con los cuatro niveles y el botón, a 390 y 1280 px, sin diálogos ni desbordes; axe en claro y oscuro en cada nivel. **Comprobado que la prueba de navegador detecta el fallo**: quitando el enganche de Cierre en el sitio construido, cae justo en el aviso.
+
 ## 5. Riesgos y decisiones a cuestionar
 
 1. **La firma es una convención, no una prueba.** Son dos nombres tecleados en el mismo dispositivo: nadie verifica que sean esas personas. Sirve para dejar constancia de «lo acordamos tal día», no como compromiso exigible. Lo que impide el sesgo del mes malo es la costumbre de leerlo, no la firma.
@@ -55,7 +68,7 @@ Midiendo la accesibilidad de la tarjeta, axe marcó un **3,9 : 1** en un botón 
 
 ## 7. Pendiente
 
-- Aviso proactivo (Cierre, y la bandeja de Hoy tras H-02).
+- Aviso proactivo en la bandeja de Hoy (tras H-02) y/o recordatorio en el calendario (WP-32). **El aviso en Cierre está hecho (13/10)**, pero solo llega al abrir Cierre.
 - Que el hogar lo use: acordar el plan (H-12, 18/12 según el plan) y ver si el umbral por defecto salta cuando debe.
 - Decidir si la firma debe ser algo más que dos nombres.
 - Contraste del hover primario en oscuro (§6).

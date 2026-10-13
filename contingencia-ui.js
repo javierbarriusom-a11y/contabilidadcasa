@@ -235,6 +235,37 @@ function renderPlanB(engine, force = false) {
   }
 }
 
+// WP-38 PR-2 (docs/WP38_DISENO.md §4, vía 3): el aviso del plan B también en Cierre, que se abre cada mes, para que el plan no dependa de que alguien entre a
+// Plan › Previsión. Mismo motor y misma previsión viva; el texto lo compone `closeNotice`. Sin plan guardado no se calcula nada y no sale nada.
+function planBAvisoHtml(notice) {
+  const lines = (notice.lines || []).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  const steps = notice.steps && notice.steps.length ? `<p><strong>Lo acordado, en orden:</strong></p><ol class="pb-pasos">${notice.steps.map((step) => `<li>${escapeHtml(step.replace(/^\d+\.\s*/, ""))}</li>`).join("")}</ol>` : "";
+  const draft = notice.draft ? `<p class="e19-kpi-note">${escapeHtml(notice.draft)}</p>` : "";
+  return `<h3 class="escenario-motor-panel-title">Plan B del hogar</h3>
+    <p class="pb-estado" data-planb-aviso-status="${escapeHtml(notice.status)}" data-planb-aviso-level="${escapeHtml(notice.level)}"><span aria-hidden="true">${escapeHtml(notice.icon)}</span> <strong>${escapeHtml(notice.title)}</strong></p>
+    ${lines}${steps}${draft}
+    <p class="e19-kpi-note">Es una estimación sobre la previsión de hoy. La app solo lo enseña, no hace nada por vosotros. <button type="button" class="link-button pb-ver" data-planb-aviso-ver>Ver el plan completo</button></p>`;
+}
+
+function renderPlanBAviso(engine) {
+  const box = qs("planBAviso");
+  if (!box || !engine) return;
+  attachPlanB(document); // idempotente: aquí no se ha pintado antes Plan › Previsión, y el botón del aviso necesita su escucha
+  try {
+    const plan = planBLoad();
+    const notice = engine.signatureState(plan) === "none" ? { show: false } : engine.closeNotice(engine.evaluate({ plan, ...planBContext() }), { fmt: planBEuros });
+    const html = notice.show ? planBAvisoHtml(notice) : "";
+    if (box.__planBAvisoHtml !== html) {
+      box.innerHTML = html;
+      box.__planBAvisoHtml = html;
+    }
+    box.hidden = !notice.show;
+    box.dataset.planbAvisoLevel = notice.show ? notice.level : "";
+  } catch (error) {
+    console.error(`renderPlanBAviso: ${error.message}`);
+  }
+}
+
 function planBNote(message) {
   const note = qs("planBNota");
   if (note) note.textContent = message;
@@ -319,6 +350,8 @@ function attachPlanB(doc) {
   const inCard = (target) => target?.closest?.("#planBCard");
   doc.addEventListener("click", (event) => {
     const target = event.target;
+    // El botón del aviso de Cierre está fuera de la tarjeta: abre Plan › Previsión, donde vive el plan completo.
+    if (target?.closest?.("[data-planb-aviso-ver]")) { setActiveView("plan", { focus: true }); setPlanTab("prevision"); return; }
     if (!inCard(target)) return;
     if (target.closest("[data-planb-editar]")) { planBStart(planBLoad()); return; }
     if (target.closest('[data-estado-accion="planb-empezar"]')) { planBStart(planBEngine().defaultPlan()); return; }

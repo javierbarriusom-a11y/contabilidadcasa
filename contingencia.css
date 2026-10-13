@@ -153,3 +153,35 @@
 .pb-tabla td {
   text-align: left !important;
 }
+
+/* WP-38 PR-2 · aviso del plan B en Cierre. El nivel no se distingue solo por color: cada uno lleva su icono, su título y un borde distinto. */
+.pb-aviso {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pb-aviso[data-planb-aviso-level="alert"] .pb-estado {
+  border-left-width: 8px;
+  border-left-style: solid;
+}
+
+.pb-aviso[data-planb-aviso-level="watch"] .pb-estado {
+  border-left-style: dashed;
+}
+
+.pb-aviso[data-planb-aviso-level="ok"] .pb-estado {
+  border-left-style: dotted;
+}
+
+.pb-aviso[data-planb-aviso-level="blind"] .pb-estado {
+  border-left-style: double;
+  border-left-width: 6px;
+}
+
+.pb-aviso .pb-ver {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 44px;
+  padding: 0 6px;
+}
+
