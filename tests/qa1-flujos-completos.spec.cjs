@@ -4219,3 +4219,82 @@ test.describe("WP-37 · quitar un registro de Ajustes se puede deshacer", () => 
     expect(pageErrors).toEqual([]);
   });
 });
+
+// WP-38 PR-2 (docs/WP38_DISENO.md §4): el aviso del plan B también en Cierre, que se abre cada mes. Sin plan no sale nada; con plan, dice si salta, está en vigilancia,
+// no salta o no puede vigilarse; un plan sin firmar se marca como borrador. Planes INVENTADOS, sembrados en el almacén con el motor real.
+test.describe("WP-38 · aviso del plan B en Cierre", () => {
+  const seed = (page, { trigger, actions, signed }) => page.evaluate(({ trigger: t, actions: a, signed: s }) => {
+    const engine = FinanceCanonicalContingencyPlan;
+    let plan = engine.normalizePlan({ trigger: t, actions: a });
+    if (s) plan = engine.sign(plan, { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+    storageSet(storageKey("contingency-plan"), JSON.stringify(plan));
+  }, { trigger, actions, signed });
+  const openCierre = async (page) => {
+    await page.goto("/index.html#cierre");
+    await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+  };
+  const aviso = (page) => page.locator("#planBAviso");
+
+  test("sin plan no sale nada; con plan: salta, borrador, sin disparar, incompleto; el botón lleva al plan, sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#cierre");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await openCierre(page);
+      await expect(aviso(page)).toBeHidden();
+
+      const actions = [{ kind: "cut-discretionary", pct: 20, months: 3 }, { kind: "credit-line", amount: 1500 }];
+      // Firmado y con un umbral tan alto que, con la previsión de hoy, salta.
+      await seed(page, { trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions, signed: true });
+      await page.reload();
+      await openCierre(page);
+      await expect(aviso(page)).toBeVisible({ timeout: 15000 });
+      await expect(aviso(page).locator("[data-planb-aviso-status]")).toHaveAttribute("data-planb-aviso-status", "triggered");
+      await expect(aviso(page)).toContainText("Se cumple vuestro plan B");
+      await expect(aviso(page)).toContainText("Lo acordado, en orden:");
+      await expect(aviso(page).locator(".pb-pasos li")).toHaveCount(2);
+      await expect(aviso(page)).not.toContainText("borrador");
+      await expect(aviso(page)).toContainText("La app solo lo enseña, no hace nada por vosotros");
+      // Nada se sale de la tarjeta.
+      const box = await aviso(page).boundingBox();
+      const outside = await aviso(page).evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+      expect(box.width).toBeLessThanOrEqual(viewport.width);
+
+      // Sin firmar: sigue avisando, pero como borrador.
+      await seed(page, { trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions, signed: false });
+      await page.reload();
+      await openCierre(page);
+      await expect(aviso(page)).toContainText("Se cumple vuestro plan B");
+      await expect(aviso(page)).toContainText("borrador sin firmar");
+
+      // Sin disparar: un umbral de 1 € no salta nunca.
+      await seed(page, { trigger: { mode: "amount", amount: 1, consecutive: 2, horizon: 6 }, actions, signed: true });
+      await page.reload();
+      await openCierre(page);
+      await expect(aviso(page).locator("[data-planb-aviso-status]")).toHaveAttribute("data-planb-aviso-status", "ok");
+      await expect(aviso(page)).toContainText("sin disparar");
+      await expect(aviso(page).locator(".pb-pasos")).toHaveCount(0);
+
+      // Incompleto: lo dice, no lo da por bueno.
+      await seed(page, { trigger: { mode: "amount", amount: 5000, consecutive: 2, horizon: 6 }, actions: [], signed: false });
+      await page.reload();
+      await openCierre(page);
+      await expect(aviso(page).locator("[data-planb-aviso-status]")).toHaveAttribute("data-planb-aviso-status", "incomplete");
+      await expect(aviso(page)).toContainText("incompleto");
+      await expect(aviso(page)).toContainText("Falta al menos una acción");
+
+      // El botón lleva al plan completo (Plan › Previsión).
+      await aviso(page).getByRole("button", { name: "Ver el plan completo" }).click();
+      await expect(page.locator("#planBCard")).toBeVisible({ timeout: 15000 });
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});

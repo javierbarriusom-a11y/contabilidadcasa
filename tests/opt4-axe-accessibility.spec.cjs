@@ -1187,3 +1187,38 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-38 PR-2: el aviso del plan B en Cierre, en claro y en oscuro, en cada nivel (salta, borrador, sin disparar, no se puede vigilar).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-38 · contraste del aviso del plan B en Cierre en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#cierre: sin fallos de contraste ni de accesibilidad dentro del aviso, en cada nivel", async ({ page }) => {
+      await page.goto("/index.html#cierre");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const niveles = [
+        ["salta, firmado", { trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }, { kind: "credit-line", amount: 1500 }], signed: true }, "triggered"],
+        ["salta, borrador", { trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }], signed: false }, "triggered"],
+        ["sin disparar", { trigger: { mode: "amount", amount: 1, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }], signed: true }, "ok"],
+        ["no se puede vigilar", { trigger: { mode: "amount", amount: 5000, consecutive: 2, horizon: 6 }, actions: [], signed: false }, "incomplete"],
+      ];
+      for (const [etiqueta, plan, estado] of niveles) {
+        await page.evaluate(({ trigger, actions, signed }) => {
+          const engine = FinanceCanonicalContingencyPlan;
+          let value = engine.normalizePlan({ trigger, actions });
+          if (signed) value = engine.sign(value, { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+          storageSet(storageKey("contingency-plan"), JSON.stringify(value));
+        }, plan);
+        await page.reload();
+        const aviso = page.locator("#planBAviso");
+        await expect(aviso.locator("[data-planb-aviso-status]")).toHaveAttribute("data-planb-aviso-status", estado, { timeout: 15000 });
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#planBAviso").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      }
+    });
+  });
+}
+

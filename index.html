@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
     <link rel="stylesheet" href="estados.css?v=20261009wp37a1" />
-    <link rel="stylesheet" href="contingencia.css?v=20261009wp38a1" />
+    <link rel="stylesheet" href="contingencia.css?v=20261013wp38a2" />
     <link rel="stylesheet" href="politica.css?v=20261009wp39a1" />
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
     <link rel="stylesheet" href="sombra.css?v=20261010wp41a1" />
@@ -4157,6 +4157,9 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="cierreReopen">Reabrir mes</button>
             </div>
 
+            <!-- WP-38 PR-2 (docs/WP38_DISENO.md §4): el aviso del plan B en Cierre. Lo pinta contingencia-ui.js (renderPlanBAviso) desde views/cierre.js; vacío y oculto si no hay plan. -->
+            <article class="e19-card pb-card pb-aviso" id="planBAviso" aria-live="off" hidden></article>
+
             <!-- WP-29 (docs/WP29_DISENO.md): la carta del mes. La compone canonical-month-letter.js y la pinta carta-mes-ui.js; visible con el mes abierto (borrador) y cerrado. -->
             <article class="e19-card carta-mes" id="cartaMes" hidden></article>
 
@@ -8060,8 +8063,8 @@
     <script defer src="estados-ui.js?v=20261009wp37a1"></script>
     <script defer src="canonical-statement-anomalies.js?v=20261012wp36a2"></script>
     <script defer src="anomalias-ui.js?v=20261012wp36a2"></script>
-    <script defer src="canonical-contingency-plan.js?v=20261009wp38a1"></script>
-    <script defer src="contingencia-ui.js?v=20261009wp38a1"></script>
+    <script defer src="canonical-contingency-plan.js?v=20261013wp38a2"></script>
+    <script defer src="contingencia-ui.js?v=20261013wp38a2"></script>
     <script defer src="canonical-investment-policy.js?v=20261009wp39a1"></script>
     <script defer src="politica-ui.js?v=20261009wp39a1"></script>
     <script defer src="canonical-cirbe.js?v=20261009wp40a1"></script>

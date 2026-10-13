@@ -198,3 +198,79 @@ test("WP-38 · pausar el ahorro NO sube la liquidez total si el ahorro se queda 
   assert.equal(fuera.actions[0].typicalPerMonth, 300);
   assert.notEqual(E.fingerprint(dentro), E.fingerprint(planWith([{ kind: "pause-saving", months: 3, outside: true }])), "cambiar de dónde sale el ahorro cambia lo firmado");
 });
+
+// ---- PR-2 (13/10): el aviso del plan B en Cierre ----
+
+const signed = (plan) => E.sign(plan, { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+const notice = (plan, values, over = {}) => E.closeNotice(E.evaluate({ plan, series: values === null ? [] : series(values), floor: 3000, ...ctx, ...over }), { fmt: (value) => `${value} €` });
+
+test("WP-38 PR-2 · sin plan no hay aviso: no se le recuerda a nadie lo que no ha decidido", () => {
+  assert.deepEqual(E.closeNotice(E.evaluate({ plan: null, series: series([100]), floor: 3000 })), { show: false });
+  assert.deepEqual(E.closeNotice(null), { show: false });
+  assert.deepEqual(E.closeNotice(undefined), { show: false });
+  assert.deepEqual(E.closeNotice({}), { show: false });
+});
+
+test("WP-38 PR-2 · si salta, el aviso dice cuándo, con qué pasos y si bastan; un plan sin firmar se marca como borrador", () => {
+  const plan = signed(standard());
+  const n = notice(plan, [3500, 2500, 2400, 2300, 3500, 3600]);
+  assert.equal(n.show, true);
+  assert.equal(n.level, "alert");
+  assert.equal(n.status, "triggered");
+  assert.equal(n.title, "Se cumple vuestro plan B");
+  assert.match(n.lines.join(" "), /por debajo de 3000 €/);
+  assert.equal(n.steps.length, 3);
+  assert.match(n.steps[0], /^1\. /);
+  assert.equal(n.draft, "", "firmado: sin nota de borrador");
+  const draft = notice(standard(), [3500, 2500, 2400, 2300, 3500, 3600]);
+  assert.equal(draft.level, "alert");
+  assert.match(draft.draft, /borrador sin firmar/);
+  assert.match(draft.draft, /no es un acuerdo/);
+  const changed = notice({ ...plan, trigger: { ...plan.trigger, amount: 3100 } }, [3500, 2500, 2400, 2300, 3500, 3600]);
+  assert.match(changed.draft, /cambiado después de firmar/i);
+  const insufficient = notice(signed(planWith([{ kind: "other", label: "Hablar con el banco" }])), [3500, 2000, 1900, 1800, 1700, 1600]);
+  assert.match(insufficient.lines.join(" "), /Ni con todos los pasos llega/);
+  assert.match(insufficient.lines.join(" "), /mejor ahora que en el mes malo/);
+  const resolved = notice(plan, [3500, 2500, 2400, 3500, 3500, 3500]);
+  assert.match(resolved.lines.join(" "), /(primer paso|primeros pasos) la liquidez ya no baja de 3000 €/);
+});
+
+test("WP-38 PR-2 · vigilancia y sin disparar: lo dice con su evidencia, sin dramatizar", () => {
+  const plan = signed(standard());
+  const watch = notice(plan, [3500, 2500, 3500, 2400, 3500, 3600]);
+  assert.equal(watch.level, "watch");
+  assert.match(watch.title, /en vigilancia/);
+  assert.match(watch.lines.join(" "), /no 2 seguidos|pero no 2 seguidos/);
+  assert.deepEqual(watch.steps, [], "si no salta, no se enseñan los pasos");
+  const ok = notice(plan, [5000, 5200, 5100, 5300, 5200, 5400]);
+  assert.equal(ok.level, "ok");
+  assert.match(ok.title, /sin disparar/);
+  assert.match(ok.lines.join(" "), /el mínimo es 5000 €/);
+});
+
+test("WP-38 PR-2 · lo que no se puede vigilar se dice como tal: sin previsión o con el plan incompleto NO es «todo va bien»", () => {
+  const blind = notice(signed(standard()), null);
+  assert.equal(blind.level, "blind");
+  assert.match(blind.title, /No puedo vigilar/);
+  assert.match(blind.lines.join(" "), /no significa que todo vaya bien/);
+  const incomplete = notice(planWith([]), [100, 100]);
+  assert.equal(incomplete.level, "blind");
+  assert.match(incomplete.title, /incompleto/);
+  assert.ok(incomplete.lines.length >= 1, "dice qué falta");
+  for (const result of [blind, incomplete]) assert.notEqual(result.level, "ok");
+});
+
+test("WP-38 PR-2 · cableado del aviso: está en Cierre, lo engancha views/cierre.js junto a la carta del mes, no hay Hoy ni bandeja, y sin plan no calcula", () => {
+  const html = read("index.html");
+  const cierre = html.slice(html.indexOf('id="cierreClosedState"'), html.indexOf('id="cierreVersions"'));
+  assert.match(cierre, /id="planBAviso"[^>]*hidden/, "oculto por defecto");
+  assert.ok(cierre.indexOf('id="planBAviso"') < cierre.indexOf('id="cartaMes"'), "el aviso va antes que la carta");
+  assert.match(read("views/cierre.js"), /globalThis\.renderPlanBAviso\?\.\(window\.FinanceCanonicalContingencyPlan\)/);
+  const ui = read("contingencia-ui.js");
+  const render = ui.slice(ui.indexOf("function renderPlanBAviso"), ui.indexOf("function planBNote"));
+  assert.match(render, /signatureState\(plan\) === "none" \? \{ show: false \}/, "sin plan guardado no se calcula la previsión");
+  assert.doesNotMatch(ui, /decisionInboxItems/, "Hoy sigue congelado hasta leer H-02");
+  assert.doesNotMatch(render, /storageSet|planBSave|queueRemoteSave/, "el aviso solo lee: no escribe nada");
+  assert.match(ui, /<button type="button" class="link-button pb-ver" data-planb-aviso-ver>Ver el plan completo<\/button>/);
+  assert.match(ui, /\[data-planb-aviso-ver\]"\)\) \{ setActiveView\("plan", \{ focus: true \}\); setPlanTab\("prevision"\)/, "abre Plan › Previsión, donde vive el plan completo");
+});
