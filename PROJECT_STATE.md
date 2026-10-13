@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 13 de octubre de 2026 (307, primer PR): WP-37 · segunda entrega (seis registros de Ajustes que se quitaban sin aviso)
+
+- **Qué se hizo:** una búsqueda de manejadores de borrado encontró **seis listas de Ajustes que se vaciaban al instante, sin confirmación ni vuelta atrás**: objetivos de compra grande, cuentas remuneradas, cuentas con comisión de mantenimiento, pólizas, tablas fiscales y escalas de IRPF (datos que el hogar teclea a mano). Ahora se quitan al momento y avisan con **«Deshacer» 10 s**; el registro vuelve **a su sitio** (no al final), **sin pisar** lo tocado mientras tanto y **sin duplicarse**. Ayudante común `quitarConDeshacer` en `estados-ui.js`; las funciones `removeX` de datos **no se tocan** (sus pruebas unitarias siguen igual). `app.js` **baja 11 líneas** (37.449 → 37.438). Novedad `2026-10-13-wp37b` y línea nueva en el manual.
+- **Fuera, con motivo:** proyectos y decisiones de deuda (ya tienen vía de recuperación, `restoreWorkflowDecision`) y el último `confirm()` (consolidar con la reserva bajo el mínimo: UX1 lo mantuvo a propósito).
+- **Lo que NO he visto funcionar:** en navegador solo se prueba con el botón real **cuentas remuneradas y pólizas**; tablas fiscales, escalas de IRPF, cuentas con comisión y objetivos de compra grande pasan por el mismo ayudante y están cubiertas por la prueba unitaria y por una que fija su cableado, **pero no las he clicado una a una**.
+- **Defecto de la prueba que detecté al escribirla:** la prueba de navegador pasó a la primera, así que comprobé que de verdad detecta el fallo: estropeé a propósito el manejador en el sitio construido y cayó justo en el aviso. Cuatro pruebas existentes fijaban el texto exacto de los manejadores (A15-2, LPX3, LPX4, T13); las actualicé para comprobar lo mismo con la forma nueva, sin relajar lo que exigen.
+- **No cambia el estado del paquete (sigue «en curso», 50 %) ni el avance del plan (61,4 %; Ola 3 al 49 %).** `canonical-*.js`: 110.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **5894/5894** (+3), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. e2e **94/94** (+1). axe **77/77**, perf-screens **3/3**.
+
 ## Cierre de sesión — 12 de octubre de 2026 (306, decimonoveno PR): prueba e2e de WP-12 endurecida (solo test; causa del fallo NO demostrada)
 
 - **Qué pasó:** el CI de `main` tras fusionar WP-36 PR-2 falló una vez en `QA-1 · backtest de liquidez (WP-12) › con saldos manuales la foto sí cuenta…` (92/93) y pasó al repetir. Esa prueba pasó 10/10 en local y en el CI del PR con el mismo árbol.

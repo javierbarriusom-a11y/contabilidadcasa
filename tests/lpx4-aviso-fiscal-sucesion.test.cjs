@@ -160,7 +160,7 @@ test("app.js: renderLpx4SuccessionTaxEstimate nunca inventa una cifra sin escala
 test("app.js: registrar o quitar una escala de IRPF repinta también el aviso de LPX4", () => {
   const saveBlock = appSource.slice(appSource.indexOf("function saveIrpfBracketScaleFromControls("), appSource.indexOf("function saveIrpfBracketScaleFromControls(") + 900);
   assert.match(saveBlock, /renderLpx4SuccessionTaxEstimate\(\);/);
-  const removeBlock = appSource.slice(appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"'), appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"') + 350);
+  const removeBlock = appSource.slice(appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"'), appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"') + 900); // WP-37: idem (una sola línea con quitarConDeshacer)
   assert.match(removeBlock, /renderLpx4SuccessionTaxEstimate\(\);/);
 });
 

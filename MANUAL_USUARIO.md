@@ -397,7 +397,7 @@ Lo que **no** es: **una estimación, no un pronóstico.** No sabe qué hará el 
 
 ### Deshacer en vez de preguntar «¿seguro?»
 
-Cuando quitas algo que se puede volver a poner —**un contrato de deuda, una hucha, una aportación, una nómina, un dato de índice, una alerta o un objetivo**— la app lo hace **al momento** y te deja un aviso con **«Deshacer»** durante **10 segundos** (si quitas varias cosas seguidas, se apilan hasta cinco). Pasados esos 10 segundos ya no se puede recuperar. El único «¿seguro?» que queda es el de consolidar cambios que dejan la reserva por debajo del mínimo, porque ese quita una red de seguridad.
+Cuando quitas algo que se puede volver a poner —**un contrato de deuda, una hucha, una aportación, una nómina, un dato de índice, una alerta o un objetivo, y en Ajustes una cuenta remunerada, una cuenta con comisión, una póliza, una tabla fiscal, una escala de IRPF o un objetivo de compra grande**— la app lo hace **al momento** y te deja un aviso con **«Deshacer»** durante **10 segundos** (si quitas varias cosas seguidas, se apilan hasta cinco). Pasados esos 10 segundos ya no se puede recuperar. Lo que recuperas vuelve **a su sitio** de la lista, no al final. El único «¿seguro?» que queda es el de consolidar cambios que dejan la reserva por debajo del mínimo, porque ese quita una red de seguridad.
 
 Si una pantalla tarda en descargarse la primera vez, verás un **esqueleto** en su sitio. Si falla, te dirá **por qué**, que **el resto de la app sigue funcionando** y te dejará un botón **«Reintentar»**; si estás sin conexión, te lo dice aparte (conéctate un momento y reintenta: después funcionará sin conexión).
 

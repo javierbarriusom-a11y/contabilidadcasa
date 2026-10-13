@@ -36476,8 +36476,7 @@ async function init() {
     }
     const removeGoalButton = event.target.closest("[data-big-purchase-remove]");
     if (removeGoalButton) {
-      removeBigPurchaseGoal(removeGoalButton.dataset.bigPurchaseRemove);
-      scheduleExecutiveAdvisorRender();
+      quitarConDeshacer({ key: "bigPurchaseGoals", id: removeGoalButton.dataset.bigPurchaseRemove, quitar: removeBigPurchaseGoal, mensaje: (goal) => `Objetivo «${goal.label || goal.name || "sin nombre"}» quitado.`, repintar: scheduleExecutiveAdvisorRender });
       return;
     }
     const debtButton = event.target.closest("[data-executive-debt-target]");
@@ -37091,16 +37090,13 @@ async function init() {
   qs("ajustesRemuneratedAccounts")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-remunerated-remove]");
     if (!removeButton) return;
-    removeRemuneratedAccount(removeButton.dataset.remuneratedRemove);
-    renderRemuneratedAccounts();
+    quitarConDeshacer({ key: "remuneratedAccounts", id: removeButton.dataset.remuneratedRemove, quitar: removeRemuneratedAccount, mensaje: (account) => `Cuenta «${account.name || "sin nombre"}» quitada.`, repintar: renderRemuneratedAccounts });
   });
   qs("ajustesMaintenanceFeeAdd")?.addEventListener("click", addMaintenanceFeeAccountFromControls);
   qs("ajustesMaintenanceFeeAccounts")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-maintenance-remove]");
     if (!removeButton) return;
-    removeMaintenanceFeeAccount(removeButton.dataset.maintenanceRemove);
-    renderMaintenanceFeeAccounts();
-    renderAjustesFinancialCalendar();
+    quitarConDeshacer({ key: "maintenanceFeeAccounts", id: removeButton.dataset.maintenanceRemove, quitar: removeMaintenanceFeeAccount, mensaje: (account) => `Cuenta «${account.name || "sin nombre"}» quitada.`, repintar: () => { renderMaintenanceFeeAccounts(); renderAjustesFinancialCalendar(); } });
   });
   qs("ajustesMaintenanceFeeAccounts")?.addEventListener("change", (event) => {
     const checkbox = event.target.closest("[data-maintenance-met]");
@@ -37113,10 +37109,7 @@ async function init() {
   qs("ajustesInsurancePolicies")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-policy-remove]");
     if (!removeButton) return;
-    removeInsurancePolicy(removeButton.dataset.policyRemove);
-    renderInsurancePolicies();
-    renderLpx3ContinuityChecklist();
-    renderAjustesFinancialCalendar();
+    quitarConDeshacer({ key: "insurancePolicies", id: removeButton.dataset.policyRemove, quitar: removeInsurancePolicy, mensaje: (policy) => `Póliza «${policy.name || "sin nombre"}» quitada.`, repintar: () => { renderInsurancePolicies(); renderLpx3ContinuityChecklist(); renderAjustesFinancialCalendar(); } });
   });
   qs("lpx3ContinuityChecklist")?.addEventListener("change", (event) => {
     const checkbox = event.target.closest("[data-lpx3-manual-check]");
@@ -37127,17 +37120,13 @@ async function init() {
   qs("ajustesTaxTables")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-tax-table-remove]");
     if (!removeButton) return;
-    removeTaxTable(removeButton.dataset.taxTableRemove);
-    renderTaxTables();
+    quitarConDeshacer({ key: "taxTables", id: removeButton.dataset.taxTableRemove, quitar: removeTaxTable, mensaje: (table) => `Tabla «${table.label || "sin nombre"}» quitada.`, repintar: renderTaxTables });
   });
   qs("irpfScaleAdd")?.addEventListener("click", saveIrpfBracketScaleFromControls);
   qs("irpfBracketScaleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-irpf-scale-remove]");
     if (!removeButton) return;
-    removeIrpfBracketScale(removeButton.dataset.irpfScaleRemove);
-    renderIrpfBracketScales();
-    renderLpx4SuccessionTaxEstimate();
-    renderT13DonationVsInheritance();
+    quitarConDeshacer({ key: "irpfBracketScales", id: removeButton.dataset.irpfScaleRemove, quitar: removeIrpfBracketScale, mensaje: (scale) => `${IRPF_SCALE_KIND_LABELS[scale.kind] || "Escala"}${scale.year ? ` ${scale.year}` : ""} quitada.`, repintar: () => { renderIrpfBracketScales(); renderLpx4SuccessionTaxEstimate(); renderT13DonationVsInheritance(); } });
   });
   qs("lpx4ExemptAmount")?.addEventListener("change", handleLpx4ExemptAmountChange);
   qs("t13DonationAmount")?.addEventListener("change", handleT13DonationAmountChange);

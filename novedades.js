@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp37b",
+      fecha: "2026-10-13",
+      texto: "Ajustes: quitar una cuenta remunerada, póliza, tabla fiscal o escala de IRPF ya se puede deshacer 10 segundos.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-12-wp36b",
       fecha: "2026-10-12",
       texto: "Cosas raras: ahora puedes ver lo que silenciaste y volver a vigilarlo, y dos comercios con el mismo prefijo del banco ya no se confunden.",

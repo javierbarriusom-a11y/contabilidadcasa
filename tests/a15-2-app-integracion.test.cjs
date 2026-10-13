@@ -37,7 +37,7 @@ test("A15-2: irpfResultLabel nunca inventa un resultado cuando faltan tramos —
 test("A15-2: los controles y el listado están cableados", () => {
   assert.match(appSource, /qs\("irpfScaleAdd"\)\?\.addEventListener\("click", saveIrpfBracketScaleFromControls\);/);
   assert.match(appSource, /qs\("irpfBracketScaleList"\)\?\.addEventListener\("click"/);
-  assert.match(appSource, /removeIrpfBracketScale\(removeButton\.dataset\.irpfScaleRemove\)/);
+  assert.match(appSource, /quitarConDeshacer\(\{ key: "irpfBracketScales", id: removeButton\.dataset\.irpfScaleRemove, quitar: removeIrpfBracketScale,/); // WP-37: se quita al momento y se puede deshacer
   assert.match(appSource, /qs\("irpfEstimateRun"\)\?\.addEventListener\("click", handleAjustesEstimateIrpf\);/);
 });
 

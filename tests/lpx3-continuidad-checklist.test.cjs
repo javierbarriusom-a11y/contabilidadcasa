@@ -175,7 +175,8 @@ test("app.js: los checks manuales se persisten en scenarioSettings.lpx3ManualChe
 test("app.js: el checklist se recalcula al añadir o quitar un activo o una póliza (A14-1/SP1), no solo en el render global", () => {
   const addAssetBlock = app.slice(app.indexOf("saveAssetsList(next);"), app.indexOf("saveAssetsList(next);") + 200);
   assert.match(addAssetBlock, /renderLpx3ContinuityChecklist\(\);/);
-  assert.match(app, /removeInsurancePolicy\(removeButton\.dataset\.policyRemove\);\s*\n\s*renderInsurancePolicies\(\);\s*\n\s*renderLpx3ContinuityChecklist\(\);/);
+  // WP-37: quitar una póliza se hace al momento y se puede deshacer; tanto al quitarla como al deshacer se repinta también el checklist.
+  assert.match(app, /quitarConDeshacer\(\{ key: "insurancePolicies", id: removeButton\.dataset\.policyRemove, quitar: removeInsurancePolicy,[^\n]*repintar: \(\) => \{ renderInsurancePolicies\(\); renderLpx3ContinuityChecklist\(\);/);
 });
 
 test("app.js: el checkbox de cada punto manual está cableado a handleLpx3ManualCheckToggle", () => {

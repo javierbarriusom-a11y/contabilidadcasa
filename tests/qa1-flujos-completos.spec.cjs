@@ -4161,3 +4161,61 @@ test.describe("WP-35 · previsión en capas e ingresos con certeza", () => {
     });
   }
 });
+
+// WP-37 (NXP-04), segunda entrega: seis registros de Ajustes (cuentas remuneradas, cuentas con comisión, pólizas, tablas fiscales, escalas de IRPF y
+// objetivos de compra grande) se quitaban al instante y sin vuelta atrás. Ahora avisan con «Deshacer» y lo devuelven a su sitio. Datos INVENTADOS.
+test.describe("WP-37 · quitar un registro de Ajustes se puede deshacer", () => {
+  test("cuentas remuneradas y pólizas: se quita con el botón real, avisa, y «Deshacer» lo devuelve en su sitio sin diálogos del navegador", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", (dialog) => { dialogs.push(dialog.message()); dialog.dismiss(); });
+    await page.goto("/index.html#ajustes");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#ajustesRemuneratedAccounts")).toBeAttached({ timeout: 15000 });
+    await page.evaluate(() => {
+      ["Cuenta A ficticia", "Cuenta B ficticia", "Cuenta C ficticia"].forEach((name, index) => addRemuneratedAccount({ name, balance: 1000 * (index + 1), rate: 2 + index, notes: "" }));
+      ["Póliza A ficticia", "Póliza B ficticia"].forEach((name) => addInsurancePolicy({ name, renewalDate: "2027-03-01", premium: 100, notes: "", isLife: false, beneficiary: "" }));
+      renderRemuneratedAccounts();
+      renderInsurancePolicies();
+      document.querySelectorAll("#ajustesRemuneratedAccounts, #ajustesInsurancePolicies").forEach((node) => { for (let el = node.parentElement; el; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true; });
+    });
+    const order = () => page.evaluate(() => remuneratedAccounts().map((account) => account.name));
+    const before = await order();
+    expect(before).toHaveLength(3);
+    const botones = page.locator("#ajustesRemuneratedAccounts [data-remunerated-remove]");
+    await expect(botones).toHaveCount(3);
+    await botones.nth(1).scrollIntoViewIfNeeded();
+    await botones.nth(1).click();
+    await expect(botones).toHaveCount(2);
+    await expect(page.locator("#undoToast")).toBeVisible();
+    await expect(page.locator("#undoToastMessage")).toContainText("Cuenta «");
+    await expect(page.locator("#undoToastMessage")).toContainText("quitada");
+    await page.click("#undoToastButton");
+    await expect(botones).toHaveCount(3);
+    expect(await order(), "vuelve en el mismo sitio, no al final").toEqual(before);
+
+    const polizas = page.locator("#ajustesInsurancePolicies [data-policy-remove]");
+    await expect(polizas).toHaveCount(2);
+    await polizas.first().scrollIntoViewIfNeeded();
+    await polizas.first().click();
+    await expect(polizas).toHaveCount(1);
+    await expect(page.locator("#undoToastMessage")).toContainText("Póliza «");
+    await page.click("#undoToastButton");
+    await expect(polizas).toHaveCount(2);
+    const stored = await page.evaluate(() => insurancePolicies().map((policy) => policy.name));
+    expect(stored).toEqual(["Póliza A ficticia", "Póliza B ficticia"]);
+
+    // Sobrevive a recargar: lo deshecho quedó guardado, y lo quitado sin deshacer también se queda quitado.
+    await botones.nth(2).click();
+    await expect(botones).toHaveCount(2);
+    await page.waitForTimeout(300);
+    await page.reload();
+    await expect(page.locator("#ajustesRemuneratedAccounts")).toBeAttached();
+    expect(await page.evaluate(() => remuneratedAccounts().length)).toBe(2);
+    expect(dialogs, "ningún diálogo nativo del navegador").toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+});
