@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp39b",
+      fecha: "2026-10-13",
+      texto: "Cartera: al añadir una compra o venta, se compara con vuestra política y, si la contradice, pide el motivo (sin bloquear).",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-13-wp38b",
       fecha: "2026-10-13",
       texto: "Cierre: si ya acordasteis un plan B, ahora lo vigila y os dice si salta, está en vigilancia o no se puede vigilar.",

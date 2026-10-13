@@ -40,6 +40,23 @@ Una vez firmada, la tarjeta muestra:
 | «Alimenta la siguiente mejor acción de WP-17» | Las reglas están numeradas y estructuradas para que WP-17 las lea, pero **WP-17 no existe todavía** | Es un paquete aparte |
 | Vista final imprimible | «Imprimir una página» con una hoja de impresión que deja solo la tarjeta | La regla de impresión se ha comprobado en pantalla emulando el medio `print`, no en una impresora |
 
+### Segunda entrega (PR-2, 13/10/2026): la política al registrar una compra o venta, con nota de motivo
+
+Es lo que la tabla de arriba dejaba pendiente («cero operaciones contrarias sin una nota de motivo»). **Dónde:** en el libro de operaciones (WP-48, Inversión › Cartera), en el paso «Qué cambia si guardas», **solo al añadir** una aportación o una venta nueva; no al editar ni quitar.
+
+- **No bloquea nunca el registro** (es dinero que ya se movió o se va a mover: la app no manda). Lo único que **no se registra sin motivo** es **una operación que contradice una política FIRMADA**; todo lo demás se registra siempre. Una política **sin firmar o cambiada tras firmar** avisa **como borrador y no pide motivo** (no es un acuerdo).
+- **Cuatro niveles, con icono, título y borde propios:** contradice (con la regla numerada, motivo **obligatorio**), «ojo» (motivo **opcional**), no choca, y **no se puede comprobar** (sin cartera, sin tipo): esto último **no se presenta como «cumple»**.
+- **La nota de motivo** se guarda en un almacén **aparte** (`policy-reasons`, en la copia; tope de 200 con las más recientes primero y motivo de hasta 400 caracteres), **no en el libro de operaciones**: no se toca el contrato de las posiciones. Solo dejan constancia las operaciones que contradicen o piden cuidado (llenarlo de «no choca» sería ruido). **Deshacer la operación devuelve también el motivo a como estaba.**
+- **El criterio del plan se puede medir ya**: la tarjeta de la política cuenta **operaciones registradas con aviso, cuántas contradecían y cuántas de ésas sin motivo**. Con el motivo obligatorio, ese último número solo puede ser distinto de cero si la política estaba **sin firmar** o si el aviso se anotó antes de firmarla.
+- **Caída de la cartera (venta):** campo **opcional** que no se guarda en la operación; sin él, el motor dice que no sabe cuánto ha caído la cartera (aviso «ojo»). Hasta WP-44, la regla más importante de la política sigue dependiendo de que alguien la teclee.
+
+**Lo que NO se ha hecho o no se ha visto:**
+- **Solo al añadir.** Editar o quitar una operación **no** pasa por la política, y una compra o venta anotada por otra vía (el alta de posiciones, el importador) **tampoco**. El aviso solo protege una puerta.
+- **Un motivo no hace que la operación fuera una buena idea**: deja constancia, nada más. La app no puede saber si el motivo es cierto ni si lo acordaron las dos personas.
+- **No se ha probado con una política real del hogar**: nadie ha firmado la suya (H-12, 18/12). Los casos probados son inventados.
+- **La banda de la política sigue sin gobernar IV6**, y «no vender por caídas» pide teclear la caída (WP-44).
+- **Comprobado que la prueba de navegador detecta el fallo**: con el control del motivo desactivado en el sitio construido, cae justo al intentar guardar sin motivo.
+
 ## 4. Riesgos y decisiones a cuestionar
 
 1. **La banda de la política no gobierna todavía la herramienta de rebalanceo.** Esa herramienta (IV6) avisa con su propio umbral de 10 puntos. Si el hogar pone una banda de 5, la tarjeta de la política dirá «fuera de banda» y la de abajo, no. La pantalla lo dice. Unificarlo cambiaría el comportamiento de una herramienta existente; queda para un PR con decisión del hogar.
@@ -52,7 +69,7 @@ Una vez firmada, la tarjeta muestra:
 
 ## 5. Pendiente
 
-- Enganchar la comprobación a los formularios de compra y venta, con nota de motivo (cierra el criterio de éxito).
+- ~~Enganchar la comprobación a los formularios de compra y venta, con nota de motivo~~ — **hecho el 13/10 (PR-2) solo para añadir en el libro de operaciones**; faltan editar/quitar y las otras vías de alta.
 - Caída desde el máximo con las valoraciones (WP-44) para que «no vender por caídas» se vigile sola.
 - Decidir si la banda de la política sustituye al umbral de 10 puntos de IV6.
 - Que el hogar la escriba y firme (H-12, 18/12 según el plan).

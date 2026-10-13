@@ -27,6 +27,20 @@ function politicaSave(policy) {
   queueRemoteSave();
 }
 
+// WP-39 PR-2: la nota de motivo de las operaciones registradas contra (o con cuidado ante) la política. Almacén aparte: no toca el libro de operaciones.
+const POLITICA_REASONS_STORE = "policy-reasons"; // en la copia (BACKUP_LOCAL_STORES)
+
+function politicaReasonsLoad() {
+  let saved = null;
+  try { saved = JSON.parse(storageGet(storageKey(POLITICA_REASONS_STORE), "null")); } catch { saved = null; }
+  return politicaEngine().normalizeReasons(saved);
+}
+
+function politicaReasonsSave(store) {
+  storageSet(storageKey(POLITICA_REASONS_STORE), JSON.stringify(store));
+  queueRemoteSave();
+}
+
 function politicaToday() {
   return isoLocalDate(new Date());
 }
@@ -85,6 +99,17 @@ function politicaAssessmentHtml(policy, portfolio) {
     <p class="e19-kpi-note">La herramienta de rebalanceo de arriba sigue avisando con su propio umbral (10 puntos): la banda de la política todavía no la gobierna.</p>`;
 }
 
+// Operaciones registradas con aviso (PR-2): cuántas, cuántas contradecían la política y cuántas de esas llevan motivo. Es la medida del criterio del plan.
+function politicaReasonsHtml() {
+  const summary = politicaEngine().reasonsSummary(politicaReasonsLoad());
+  const heading = '<h4 class="pol-sub">Operaciones registradas con aviso</h4>';
+  if (!summary.total) return `${heading}<p class="e19-kpi-note">Todavía ninguna. Al registrar una compra o venta en Inversión › Cartera, la app la compara con esta política y, si la contradice, pide el motivo.</p>`;
+  const kind = { buy: "Compra", sell: "Venta" };
+  const items = summary.latest.map((record) => `<li><strong>${politicaDate(record.at)}</strong> · ${kind[record.kind] || "Operación"} de ${escapeHtml(politicaEngine().TYPES[record.type] || "otro")}${record.label ? ` en «${escapeHtml(record.label)}»` : ""}, ${escapeHtml(money(record.amount, true))}${record.rules.length ? ` · regla ${record.rules.join(", ")}` : ""} · ${record.verdict === "contradicts" ? "contradecía" : "con cuidado"}. ${record.note ? `Motivo: ${escapeHtml(record.note)}` : "<em>Sin motivo anotado.</em>"}</li>`).join("");
+  return `${heading}<p class="pol-constancia" data-politica-constancia="${summary.contradicts}-${summary.contradictsWithoutNote}"><strong>${summary.total}</strong> con aviso; <strong>${summary.contradicts}</strong> contradecían la política, <strong>${summary.contradictsWithoutNote}</strong> sin motivo.</p>
+    <details class="pol-constancia-lista"><summary>Ver las últimas ${summary.latest.length}</summary><ul class="pol-lista">${items}</ul></details>`;
+}
+
 function politicaViewHtml(policy) {
   const engine = politicaEngine();
   const today = politicaToday();
@@ -107,6 +132,7 @@ function politicaViewHtml(policy) {
       <button type="button" class="e19-btn e19-btn-secondary" data-politica-imprimir>Imprimir una página</button>
       <button type="button" class="e19-btn e19-btn-secondary" data-politica-borrar>Borrar la política</button>
     </div>
+    ${politicaReasonsHtml()}
     ${politicaChecker(portfolio)}`;
 }
 

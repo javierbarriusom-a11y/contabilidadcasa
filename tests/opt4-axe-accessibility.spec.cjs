@@ -1222,3 +1222,64 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+
+// WP-39 PR-2: la política al registrar una compra o venta (bloque en «Qué cambia si guardas», con y sin motivo pedido) y la constancia en la tarjeta de la política, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-39 · contraste de la política al registrar en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Inversión › Cartera y Rebalanceo: sin fallos de contraste ni de accesibilidad en el aviso, el motivo y la constancia", async ({ page }) => {
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await expect(page.locator("#opsCard")).toBeAttached({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await page.evaluate(() => {
+        saveIv1PositionsList([
+          { id: "A", type: "fondo", label: "Fondo A ficticio", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 7000, currentValue: 8000, contributions: [], disposals: [] },
+          { id: "D", type: "accion", label: "Acción D ficticia", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2021-01-10", quantity: 10, costBasis: 1500, currentValue: 2000, contributions: [], disposals: [] },
+          { id: "C", type: "cripto", label: "Cripto C ficticia", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2024-01-10", quantity: 1, costBasis: 100, currentValue: 100, contributions: [], disposals: [] },
+        ]);
+        renderIv1PositionList();
+        const engine = FinanceCanonicalInvestmentPolicy;
+        const draft = engine.normalizePolicy({ purpose: { text: "jubilación", horizonYears: 20 }, allocation: { targets: { fondo: 80, accion: 20 }, bandPct: 5 }, contribution: { mode: "fixed", monthly: 300 }, exclusions: { noCrypto: true }, drawdown: { at20: "keep-contributing", at35: "hold" }, review: { everyMonths: 12 } });
+        politicaSave(engine.sign(draft, { signers: ["Ana", "Luis"], today: "2026-10-13" }).policy);
+      });
+      const body = page.locator("#opsCuerpo");
+      // Contradice (motivo obligatorio, con su error visible).
+      await body.locator("#opsPosicion").selectOption("C");
+      await body.locator('[data-ops-action="add-buy"]').click();
+      await body.locator("#opsFecha").fill("2026-10-10");
+      await body.locator("#opsImporte").fill("500");
+      await body.locator('#opsForm button[type="submit"]').click();
+      await expect(body.locator('[data-ops-politica="contradicts"]')).toBeVisible();
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(body.locator("#opsMotivoError")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const contradice = await new AxeBuilder({ page }).include("#opsCuerpo").analyze();
+      expect(fmt(contradice), `contradice: ${fmt(contradice).slice(0, 5).join("\n")}`).toEqual([]);
+      // Se registra con motivo y se mira la constancia en la tarjeta de la política.
+      await body.locator("#opsMotivo").fill("Prueba pequeña");
+      await body.locator('[data-ops-action="save"]').click();
+      await expect(page.locator("#undoToastMessage")).toContainText("Operación añadida");
+      // Un «ojo»: venta sin saber la caída.
+      await body.locator("#opsPosicion").selectOption("A");
+      await body.locator('[data-ops-action="add-sell"]').click();
+      await body.locator("#opsFecha").fill("2026-10-11");
+      await body.locator("#opsUnidades").fill("1");
+      await body.locator("#opsImporte").fill("120");
+      await body.locator('#opsForm button[type="submit"]').click();
+      await expect(body.locator('[data-ops-politica="warns"]')).toBeVisible();
+      await page.mouse.move(0, 0);
+      const ojo = await new AxeBuilder({ page }).include("#opsCuerpo").analyze();
+      expect(fmt(ojo), `ojo: ${fmt(ojo).slice(0, 5).join("\n")}`).toEqual([]);
+      await page.goto("/index.html#inversion-rebalanceo");
+      const card = page.locator("#politicaCard");
+      await expect(card.locator("[data-politica-constancia]")).toBeVisible({ timeout: 15000 });
+      await card.locator(".pol-constancia-lista summary").click();
+      await page.mouse.move(0, 0);
+      const constancia = await new AxeBuilder({ page }).include("#politicaCard").analyze();
+      expect(fmt(constancia), `constancia: ${fmt(constancia).slice(0, 5).join("\n")}`).toEqual([]);
+    });
+  });
+}
