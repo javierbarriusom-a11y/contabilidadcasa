@@ -4614,3 +4614,69 @@ test.describe("WP-42 · la escalera frente a la política y el plan B", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-43 PR-2 (docs/WP43_DISENO.md §6): el aviso del puente de previsión en Cierre. Sin puente o con un cambio pequeño no sale nada; con un cambio relevante dice la dirección y la frase
+// del puente, y su botón lleva a Plan › Previsión. Dos cierres INVENTADOS a partir de la previsión real de la app, sembrados en el almacén con el motor real.
+test.describe("WP-43 · aviso del puente en Cierre", () => {
+  const seed = (page, { shiftPct }) => page.evaluate(({ shiftPct: pct }) => {
+    const engine = FinanceCanonicalForecastBridge;
+    const series = JSON.parse(JSON.stringify(canonicalScenarioResults.base.forecast.series));
+    const year = Number(series[0].monthKey.slice(0, 4));
+    const first = engine.freezeYearEnd({ monthKey: `${year}-09`, closedAt: `${year}-10-02T10:00:00Z`, series, actuals: null });
+    const amount = Math.max(1, Math.round(Math.abs(first.snapshot.yearEndLiquidity) * pct / 100));
+    const worse = JSON.parse(JSON.stringify(series));
+    let shift = 0;
+    worse.forEach((row) => {
+      if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += amount; row.components.outflow.project = (row.components.outflow.project || 0) + amount; shift -= amount; }
+      if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+    });
+    const second = engine.freezeYearEnd({ monthKey: `${year}-10`, closedAt: `${year}-11-02T10:00:00Z`, series: worse, actuals: null });
+    puenteSave(engine.upsert(engine.upsert([], first.snapshot), second.snapshot));
+    renderCierre();
+    return { year, amount, calculable: first.calculable && second.calculable };
+  }, { shiftPct });
+  const aviso = (page) => page.locator("#puenteAviso");
+  const openCierre = async (page) => {
+    await page.goto("/index.html#cierre");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+  };
+
+  test("sin puente no sale nada; un cambio pequeño tampoco; un cambio relevante dice la dirección y la frase; el botón lleva a Previsión; sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await openCierre(page);
+      await expect(aviso(page), "sin ninguna previsión congelada no sale nada").toBeHidden();
+
+      const small = await seed(page, { shiftPct: 1 });
+      expect(small.calculable).toBe(true);
+      await expect(aviso(page), "un cambio de un 1 % no es relevante: no sale en Cierre").toBeHidden();
+
+      const big = await seed(page, { shiftPct: 30 });
+      expect(big.calculable).toBe(true);
+      await expect(aviso(page)).toBeVisible();
+      await expect(aviso(page).locator("[data-puente-aviso-nivel]")).toHaveAttribute("data-puente-aviso-nivel", "worsens");
+      await expect(aviso(page)).toContainText(`El fin de ${big.year} empeora desde el cierre anterior`);
+      await expect(aviso(page)).toContainText("Desde septiembre");
+      await expect(aviso(page)).toContainText("Es una explicación de la previsión, no la cambia");
+      await expect(aviso(page)).not.toContainText(/todo bien|sin cambios importantes/i);
+      const outside = await aviso(page).evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+
+      // El aviso solo lee: el almacén sigue con las dos fotos.
+      expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("forecast-bridge-snapshots"), "[]")).length)).toBe(2);
+
+      await aviso(page).locator("[data-puente-aviso-ver]").click();
+      await expect(page.locator("#puenteCard")).toBeVisible({ timeout: 15000 });
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

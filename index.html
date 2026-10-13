@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="escalera.css?v=20261013wp42b2" />
     <link rel="stylesheet" href="nomina.css?v=20261010wp47a1" />
     <link rel="stylesheet" href="operaciones.css?v=20261013wp39a2" />
-    <link rel="stylesheet" href="puente.css?v=20261010wp43a1" />
+    <link rel="stylesheet" href="puente.css?v=20261013wp43b2" />
     <link rel="stylesheet" href="indice-vivienda.css?v=20261011wp50a1" />
     <link rel="stylesheet" href="extracto-perfiles.css?v=20261011wp51a1" />
     <link rel="stylesheet" href="captura-duplicados.css?v=20261011wp53a1" />
@@ -4163,6 +4163,9 @@
             <!-- WP-41 PR-2 (docs/WP41_DISENO.md §6): el aviso de deuda en la sombra en Cierre. Lo pinta sombra-ui.js (renderSombraAviso) desde views/cierre.js; vacío y oculto si no hay nada que decir. -->
             <article class="e19-card som-card som-aviso-card" id="sombraAviso" aria-live="off" hidden></article>
 
+            <!-- WP-43 PR-2 (docs/WP43_DISENO.md §6): el aviso del puente de previsión en Cierre. Lo pinta puente-ui.js (renderPuenteAviso) desde views/cierre.js; vacío y oculto si no hay puente o el cambio es pequeño. -->
+            <article class="e19-card pte-card pte-aviso-card" id="puenteAviso" aria-live="off" hidden></article>
+
             <!-- WP-29 (docs/WP29_DISENO.md): la carta del mes. La compone canonical-month-letter.js y la pinta carta-mes-ui.js; visible con el mes abierto (borrador) y cerrado. -->
             <article class="e19-card carta-mes" id="cartaMes" hidden></article>
 
@@ -8079,8 +8082,8 @@
     <script defer src="escalera-ui.js?v=20261013wp42b2"></script>
     <script defer src="canonical-payroll-split.js?v=20261010wp47a1"></script>
     <script defer src="nomina-ui.js?v=20261010wp47a1"></script>
-    <script defer src="canonical-forecast-bridge.js?v=20261010wp43a1"></script>
-    <script defer src="puente-ui.js?v=20261010wp43a1"></script>
+    <script defer src="canonical-forecast-bridge.js?v=20261013wp43b2"></script>
+    <script defer src="puente-ui.js?v=20261013wp43b2"></script>
     <script defer src="canonical-index-valuation.js?v=20261011wp50a1"></script>
     <script defer src="indice-vivienda-ui.js?v=20261011wp50a1"></script>
     <script defer src="canonical-statement-profiles.js?v=20261011wp51a1"></script>

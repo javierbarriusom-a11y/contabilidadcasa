@@ -21,6 +21,7 @@
   const SCHEMA_ID = "finance-forecast-bridge/v1";
   const MAX_SNAPSHOTS = 36;
   const RELEVANT_PCT = 5; // un cambio del fin de año de al menos el 5 % del anterior se marca «relevante» (decisión mía; el plan lo mide sobre el ahorro anual).
+  const OTHER_WARN_PCT = 40; // decisión mía: si «Otros y supuestos» explica al menos el 40 % del cambio, se avisa de que la explicación es floja.
   const MAIN_DRIVER_SHARE = 15; // una causa se nombra en la frase si pesa al menos el 15 % de lo que mueve en esa dirección.
 
   const number = (value, fallback = 0) => (Number.isFinite(Number(value)) && value !== "" && value !== null && value !== undefined ? Number(value) : fallback);
@@ -192,5 +193,22 @@
     return `Desde ${since}, el fin de ${result.targetYear} ${verb} en ${euros(Math.abs(result.delta))}${pct}${causes ? `: ${causes}` : ""}${counter}.`;
   }
 
-  return { SCHEMA_ID, MAX_SNAPSHOTS, describe, RELEVANT_PCT, MAIN_DRIVER_SHARE, ROW_META, addMonths, targetYearFor, freezeYearEnd, normalizeStore, upsert, bridge };
+  /**
+   * WP-43 PR-2: el aviso que va a Cierre. Solo sale si hay puente (dos cierres del mismo año) Y el cambio es RELEVANTE; un puente que no se puede calcular o un cambio
+   * pequeño no dicen nada (no se presenta «todo igual» como una buena noticia: lo pequeño sigue estando en la tarjeta de Plan › Previsión). Si buena parte del cambio cae
+   * en «Otros y supuestos», lo dice: es la medida de cuánto no se sabe explicar.
+   * @param {any} result lo que devuelve `bridge` @param {{labelOf?: (monthKey: string) => string, euros?: (value: number) => string}} [options]
+   * @returns {{show: boolean, level?: string, icon?: string, title?: string, lines?: string[]}}
+   */
+  function closeNotice(result, options = {}) {
+    if (!result || !result.calculable || !result.relevant || result.direction === "flat") return { show: false };
+    const worsens = result.direction === "worsens";
+    const lines = [describe(result, options)];
+    if (result.otherSharePct >= OTHER_WARN_PCT) lines.push(`Ojo: ${result.otherSharePct} % de ese cambio cae en «Otros y supuestos». La app no sabe explicarlo del todo; mirad la tabla antes de fiaros de las causas.`);
+    const noReal = (result.notes || []).find((note) => /^Sin el real del mes cerrado/.test(note));
+    if (noReal) lines.push(noReal);
+    return { show: true, level: worsens ? "worsens" : "improves", icon: worsens ? "▼" : "▲", title: worsens ? `El fin de ${result.targetYear} empeora desde el cierre anterior` : `El fin de ${result.targetYear} mejora desde el cierre anterior`, lines };
+  }
+
+  return { SCHEMA_ID, MAX_SNAPSHOTS, describe, closeNotice, RELEVANT_PCT, MAIN_DRIVER_SHARE, ROW_META, addMonths, targetYearFor, freezeYearEnd, normalizeStore, upsert, bridge };
 });
