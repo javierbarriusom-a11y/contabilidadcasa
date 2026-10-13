@@ -9,6 +9,7 @@
 
 const PROX_EURO_STORE = "next-euro-inputs"; // en la copia (BACKUP_LOCAL_STORES)
 const PROX_EURO_CERTAINTY = { cierto: "Cierto", esperado: "Esperado, no garantizado", fiscal: "Ahorro fiscal, de una vez" };
+const PROX_EURO_CROSS_ICON = { contradicts: "✕", alert: "⚠", warns: "⚠", watch: "◐", unknown: "?", ok: "✓" };
 const PROX_EURO_STATUS = { ok: "Aquí va dinero", skipped: "Hoy no toca", "no-data": "Sin datos", "no-verdict": "Sin veredicto" };
 
 function proxEuroEngine() {
@@ -91,6 +92,59 @@ function proxEuroRungHtml(rung, index) {
     </li>`;
 }
 
+// WP-42 PR-2 (docs/WP42_DISENO.md §6): el reparto frente a la política firmada (WP-39) y al plan B (WP-38). Aquí solo se recoge lo que dicen esos motores; el texto lo compone
+// `crossChecks`. Solo avisa: no reordena la escalera ni bloquea nada.
+function proxEuroCrossInputs(ladder) {
+  const guard = (fn, fallback = null) => { try { const value = fn(); return value === undefined ? fallback : value; } catch { return fallback; } };
+  const policy = guard(() => {
+    const engine = globalThis.FinanceCanonicalInvestmentPolicy;
+    if (!engine) return null;
+    const saved = politicaLoad();
+    const state = engine.signatureState(saved);
+    if (state === "none") return { state };
+    const portfolio = politicaPortfolio();
+    const invest = ladder.rungs.find((rung) => rung.id === "invest");
+    const rows = invest && invest.split && invest.split.calculable ? invest.split.rows.filter((row) => row.amount > 0) : [];
+    return {
+      state,
+      checks: rows.map((row) => {
+        const check = engine.checkOperation({ policy: saved, operation: { kind: "buy", type: row.type, amount: row.amount }, totalsByType: portfolio.totalsByType, totalValue: portfolio.totalValue, drawdownPct: null });
+        return { type: row.type, amount: row.amount, verdict: check.verdict, lines: check.findings.map((finding) => finding.text) };
+      }),
+    };
+  });
+  const planB = guard(() => {
+    const engine = globalThis.FinanceCanonicalContingencyPlan;
+    if (!engine) return null;
+    const plan = planBLoad();
+    const state = engine.signatureState(plan);
+    if (state === "none") return { state };
+    return { state, status: engine.evaluate({ plan, ...planBContext() }).status };
+  });
+  return { policy, planB };
+}
+
+function proxEuroCrossBlockHtml(title, block) {
+  const lines = block.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+  const draft = block.draft ? `<p class="e19-kpi-note">${escapeHtml(block.draft)}</p>` : "";
+  return `<div class="peu-cruce-bloque" data-peu-cruce="${escapeHtml(title)}" data-peu-cruce-nivel="${escapeHtml(block.level)}">
+      <p class="peu-cruce-titulo"><span aria-hidden="true">${escapeHtml(PROX_EURO_CROSS_ICON[block.level] || "?")}</span> <strong>${escapeHtml(block.title)}</strong></p>
+      ${lines ? `<ul class="peu-lineas">${lines}</ul>` : ""}${draft}
+    </div>`;
+}
+
+function proxEuroCrossHtml(ladder) {
+  const engine = proxEuroEngine();
+  if (!engine || typeof engine.crossChecks !== "function") return "";
+  const cross = engine.crossChecks({ ladder, ...proxEuroCrossInputs(ladder), fmt: proxEuroEuros });
+  if (!cross.show) return "";
+  return `<section class="peu-cruce" aria-label="El reparto frente a vuestra política y vuestro plan B">
+      <h4 class="peu-cruce-cabecera">Frente a vuestra política y vuestro plan B</h4>
+      ${cross.policy ? proxEuroCrossBlockHtml("politica", cross.policy) : ""}${cross.planB ? proxEuroCrossBlockHtml("plan-b", cross.planB) : ""}
+      <p class="e19-kpi-note">Solo avisa: la escalera no se reordena y no se bloquea nada. La app no sabe si lo acordado sigue siendo lo que queréis.</p>
+    </section>`;
+}
+
 function proxEuroResultHtml(ladder) {
   if (ladder.status === "invalid") return estadoHtml({ kind: "vacio", titulo: "Escribe un importe", texto: ladder.reason });
   const parts = ladder.rungs.filter((rung) => rung.amount > 0).map((rung) => `${proxEuroEuros(rung.amount)} a «${rung.label.toLowerCase()}»`);
@@ -106,7 +160,7 @@ function proxEuroResultHtml(ladder) {
   const notes = ladder.notes.length ? `<ul class="peu-lineas">${ladder.notes.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : "";
   return `<p class="peu-resumen"><strong>De ${proxEuroEuros(ladder.amount)}:</strong> ${parts.length ? parts.join(" · ") : "nada que repartir"}.</p>${partial}
     <ol class="peu-escalera">${ladder.rungs.map(proxEuroRungHtml).join("")}</ol>
-    ${benefits ? `<ul class="peu-beneficios" aria-label="Beneficio esperado, por naturaleza">${benefits}</ul>` : ""}${notes}
+    ${proxEuroCrossHtml(ladder)}${benefits ? `<ul class="peu-beneficios" aria-label="Beneficio esperado, por naturaleza">${benefits}</ul>` : ""}${notes}
     <p class="e19-kpi-note">Son tres tipos de beneficio distintos y no se suman. La app no mueve dinero: es un orden para decidir, no una orden.</p>`;
 }
 

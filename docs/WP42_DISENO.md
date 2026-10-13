@@ -1,6 +1,6 @@
 # WP-42 · Escalera del próximo euro — diseño
 
-Paquete del plan definitivo (CAR-03 + NIN-05 + NIN-08, Ola 3, ≈ 7 sesiones: el más grande). **Primera entrega el 10/10/2026**, sin esperar a WP-17 (cartera como tablero), que el plan marca como dependencia y sigue pendiente: lo que WP-42 necesita de ella (el reparto de la cartera y sus objetivos) ya existe en Inversión › Rebalanceo y se lee de ahí. Estado: **en curso**. Están cuatro de los cinco peldaños y el rebalanceo por aportaciones; **faltan los fondos traspasables y el comparador de la liquidez ociosa** (§3), y nada se ha probado con datos reales del hogar.
+Paquete del plan definitivo (CAR-03 + NIN-05 + NIN-08, Ola 3, ≈ 7 sesiones: el más grande). **Primera entrega el 10/10/2026**, sin esperar a WP-17 (cartera como tablero), que el plan marca como dependencia y sigue pendiente: lo que WP-42 necesita de ella (el reparto de la cartera y sus objetivos) ya existe en Inversión › Rebalanceo y se lee de ahí. Estado: **en curso**. Están cuatro de los cinco peldaños y el rebalanceo por aportaciones; **faltan los fondos traspasables y el comparador de la liquidez ociosa** (§3), y nada se ha probado con datos reales del hogar. Segunda entrega el 13/10/2026: el reparto se cruza con la política firmada y con el plan B (§6).
 
 ## 1. Qué hace
 
@@ -47,7 +47,17 @@ Los **tres tipos de beneficio se enseñan por separado y no se suman**: son de n
 ## 5. Pendiente
 
 - Peldaño de **fondos traspasables** y comparador de **liquidez ociosa** (NIN-08) con los tipos de WP-13.
-- Cruzar con la **política de inversión firmada** (WP-39) y con el **plan B** (WP-38: si el disparador salta, el euro va al colchón).
+- ~~Cruzar con la política de inversión firmada (WP-39) y con el plan B (WP-38)~~ (hecho el 13/10/2026, §6, **solo como aviso**: el euro no se redirige solo al colchón).
 - Aviso proactivo en Cierre; en Hoy, tras H-02.
 - **WP-47** (reparto de la nómina en un paso) consume este motor.
 - Del hogar: declarar la **TAE de cada contrato** (hoy ninguno la trae), anotar lo aportado a pensiones en el año, y decir con qué rentabilidad esperada quiere comparar.
+
+## 6. Segunda entrega (PR-2, 13/10/2026): el reparto frente a la política firmada y el plan B
+
+Los riesgos 4.7 y la fila «cruzar con WP-39 y WP-38» del §5 eran el siguiente paso natural. Se hace como **aviso**, no como regla:
+
+- **Qué hace:** `crossChecks` (motor puro, `canonical-next-euro.js`) recibe ya calculado lo que dicen los otros motores y compone un bloque «Frente a vuestra política y vuestro plan B» bajo la escalera. **Política:** cada tipo de activo al que iría lo que se invierte se comprueba como una *compra* con `checkOperation` (el mismo motor que la consulta de WP-39 y que el registro de operaciones); dice cuáles contradicen (con la regla), cuáles piden cuidado y cuáles no se pueden comprobar. **Plan B:** si `evaluate` da «salta» o «en vigilancia» y el reparto manda dinero a pensión o inversión (lo que se inmoviliza o puede bajar), lo dice con el importe.
+- **Lo que NO hace, a propósito:** **no reordena la escalera ni redirige el euro al colchón** (el diseño original lo sugería para el plan B). Reordenar en silencio contradice la regla del §2 («el orden es el del plan y no se reordena en silencio»), y la app no sabe si lo acordado en el plan B sigue siendo lo que queréis hoy. **No bloquea** nada y no pide motivo (eso es del registro de operaciones, WP-39).
+- **Honestidad:** sin política ni plan B guardados, **no sale nada**; sin dinero a invertir, no se comprueba la política; una política o un plan **sin firmar o cambiado tras firmar** se marca como borrador; **«no se puede comprobar» no se presenta como «cumple»** (sin objetivos por tipo en Rebalanceo, la tarjeta dice que no sabe en qué tipos iría); un plan B incompleto o sin previsión se dice, no se presenta como «va bien». «No choca con ninguna regla que la app pueda comprobar» es todo lo que se afirma cuando todo cumple.
+- **Lo que se comprobó:** pruebas unitarias del cruce (cinco casos y sus límites, y que la tarjeta solo pinta y no escribe) y una prueba de navegador con datos INVENTADOS (cartera 100 % fondos, objetivos 50/50 con cripto, política firmada que no compra cripto, plan B firmado con un umbral que salta): sin nada guardado no sale nada, con política avisa de la cripto, con plan B avisa del dinero que se inmoviliza, el reparto es el mismo con o sin el cruce. **Comprobado que la prueba de navegador detecta el fallo**: quitando el bloque de la tarjeta en el sitio construido, cae justo en él.
+- **Lo que sigue sin cerrar el paquete:** los **tres umbrales de la escalera siguen siendo míos y sin calibrar** (2 puntos, 6 %, 30 %): cruzarla con la política no los mejora. **Fondos traspasables y liquidez ociosa siguen sin estar** (necesitan el régimen de traspaso de cada fondo y los tipos de WP-13). **Nada se ha visto con una política o un plan B reales**: nadie ha firmado ninguno (H-12, 18/12). Las alertas del cruce solo se ven al abrir Deuda › Comparar; no hay aviso en Cierre ni en Hoy.

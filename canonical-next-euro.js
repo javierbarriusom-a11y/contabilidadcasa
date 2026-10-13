@@ -11,6 +11,7 @@
   // Dentro de invertir, `contributionRebalance` reparte por APORTACIONES (sin vender nada) hacia lo que está por debajo de su objetivo.
   // Motor puro: ni DOM, ni red, ni almacenamiento; recibe cifras ya calculadas por los motores que existen (colchón, contratos, simulador de pensiones, cartera).
   // NUNCA mueve dinero (A11-4): propone un reparto.
+  // `crossChecks` (PR-2) cruza el reparto con la política firmada y el plan B: solo avisa.
   //
   // Reglas de honestidad:
   //   · dato ausente no es cero: sin liquidez o sin suelo del colchón no se sabe si hay hueco → el peldaño 1 dice «no sé» y el resultado queda «parcial».
@@ -244,5 +245,68 @@
     };
   }
 
-  return { SCHEMA_ID, DEFAULT_RISK_PREMIUM_PCT, DEFAULT_HIGH_COST_APR_PCT, DEFAULT_MIN_MARGINAL_PCT, PENSION_LIMITS, pensionLimitForYear, contributionRebalance, buildLadder };
+  const TYPE_LABEL = Object.freeze({ fondo: "fondos", accion: "acciones", etf: "ETF", renta_fija: "renta fija", cripto: "cripto", otro: "otros" });
+  const typeLabel = (type) => TYPE_LABEL[type] || String(type || "otro").replace(/_/g, " ");
+
+  /**
+   * WP-42 PR-2: el reparto de la escalera frente a la política de inversión firmada (WP-39) y al plan B (WP-38). SOLO AVISA: no reordena los peldaños, no
+   * bloquea nada y no mueve dinero. Es puro: recibe ya calculado lo que dicen los otros motores, no los importa.
+   *   · política: solo se mira lo que va a «invertir» (el reparto por tipo de activo, como compras); sin política guardada o sin dinero a invertir no se dice nada;
+   *     una política SIN firmar o cambiada tras firmar se marca como borrador; lo que no se puede comprobar se dice y nunca se presenta como «cumple».
+   *   · plan B: si ha saltado o está en vigilancia y el reparto manda dinero a algo que se inmoviliza (pensión) o puede bajar (invertir), se avisa; un plan B que no se
+   *     puede vigilar se dice, no se presenta como «todo va bien»; sin plan guardado no se dice nada.
+   * @param {{ladder?: *, policy?: {state?: string, checks?: Array<{type?: string, amount?: number, verdict?: string, lines?: string[]}>|null}|null, planB?: {state?: string, status?: string}|null, fmt?: (value: number) => string}} [input]
+   * @returns {{show: boolean, policy: null|{level: string, title: string, lines: string[], draft: string}, planB: null|{level: string, title: string, lines: string[], draft: string}}}
+   */
+  function crossChecks({ ladder = null, policy = null, planB = null, fmt } = {}) {
+    const eur = typeof fmt === "function" ? fmt : (value) => `${value} €`;
+    const none = { show: false, policy: null, planB: null };
+    if (!ladder || ladder.status === "invalid" || !Array.isArray(ladder.rungs)) return none;
+    const rung = (id) => ladder.rungs.find((candidate) => candidate.id === id) || { amount: 0 };
+    const invest = round2(number(rung("invest").amount));
+    const pension = round2(number(rung("pension").amount));
+    const draftOf = (state, what) => (state === "unsigned" ? `${what} está sin firmar: es un borrador, no un acuerdo.` : state === "changed" ? `${what} se cambió después de firmar: la firma ya no vale hasta que se firme de nuevo.` : "");
+
+    let policyBlock = null;
+    if (policy && policy.state && policy.state !== "none" && invest > 0) {
+      const draft = draftOf(policy.state, "La política");
+      const checks = Array.isArray(policy.checks) ? policy.checks.filter((check) => number(check.amount) > 0) : [];
+      if (!checks.length) {
+        policyBlock = { level: "unknown", title: "No puedo comprobar este reparto con vuestra política", lines: ["No sé en qué tipos de activo iría lo que se invierte: sin objetivos por tipo en Rebalanceo no hay con qué compararlo."], draft };
+      } else {
+        const lines = [];
+        let contradicts = 0;
+        let warns = 0;
+        let unknown = 0;
+        checks.forEach((check) => {
+          const label = `${eur(check.amount)} a ${typeLabel(check.type)}`;
+          if (check.verdict === "contradicts" || check.verdict === "warns") {
+            if (check.verdict === "contradicts") contradicts += 1; else warns += 1;
+            (check.lines || []).forEach((line) => lines.push(`${label}: ${line}`));
+          } else if (check.verdict !== "complies") { unknown += 1; lines.push(`${label}: no se puede comprobar con los datos que hay.`); }
+        });
+        const level = contradicts ? "contradicts" : warns ? "warns" : unknown ? "unknown" : "ok";
+        const title = level === "contradicts" ? "Parte de este reparto contradice vuestra política" : level === "warns" ? "Ojo: la política pide cuidado con parte de este reparto" : level === "unknown" ? "No puedo comprobar todo el reparto con vuestra política" : "El reparto no choca con ninguna regla que la app pueda comprobar";
+        policyBlock = { level, title, lines, draft };
+      }
+    }
+
+    let planBBlock = null;
+    if (planB && planB.state && planB.state !== "none") {
+      const draft = draftOf(planB.state, "El plan B");
+      const exposed = round2(invest + pension);
+      if (planB.status === "triggered") {
+        planBBlock = { level: "alert", title: "Vuestro plan B se cumple hoy", lines: [exposed > 0 ? `Este reparto manda ${eur(exposed)} a pensión e inversión: dinero que se inmoviliza o puede bajar justo cuando el plan B dice que la liquidez va justa. Mirad sus pasos antes de colocarlo. La escalera no se reordena: es decisión vuestra.` : "Este reparto no manda dinero a nada que se inmovilice. Aun así, mirad los pasos del plan B."], draft };
+      } else if (planB.status === "watch") {
+        planBBlock = { level: "watch", title: "Vuestro plan B está en vigilancia", lines: [exposed > 0 ? `Hay meses por debajo del umbral y este reparto manda ${eur(exposed)} a pensión e inversión. El plan B aún no salta, pero conviene dejar margen antes de inmovilizar dinero.` : "Hay meses por debajo del umbral; el plan B aún no salta."], draft };
+      } else if (planB.status === "ok") {
+        planBBlock = { level: "ok", title: "Vuestro plan B no salta con la previsión de hoy", lines: [], draft };
+      } else {
+        planBBlock = { level: "unknown", title: "No puedo comprobar este reparto con vuestro plan B", lines: [planB.status === "incomplete" ? "El plan B está incompleto, no puedo vigilarlo." : "No hay previsión con la que vigilar el plan B."], draft };
+      }
+    }
+    return { show: Boolean(policyBlock || planBBlock), policy: policyBlock, planB: planBBlock };
+  }
+
+  return { SCHEMA_ID, DEFAULT_RISK_PREMIUM_PCT, DEFAULT_HIGH_COST_APR_PCT, DEFAULT_MIN_MARGINAL_PCT, PENSION_LIMITS, pensionLimitForYear, contributionRebalance, buildLadder, crossChecks };
 });

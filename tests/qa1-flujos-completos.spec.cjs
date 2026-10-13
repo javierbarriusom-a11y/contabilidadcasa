@@ -4523,3 +4523,94 @@ test.describe("WP-41 · aviso de deuda en la sombra en Cierre", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-42 PR-2 (docs/WP42_DISENO.md §6): el reparto de la escalera frente a la política firmada (WP-39) y al plan B (WP-38). Solo avisa: no reordena ni bloquea. Datos INVENTADOS:
+// cartera 100 % fondos, objetivos 50/50 fondo-cripto (el reparto manda dinero a cripto), política firmada que no compra cripto, plan B firmado con un umbral que salta.
+test.describe("WP-42 · la escalera frente a la política y el plan B", () => {
+  const prepare = async (page) => {
+    await page.goto("/index.html#deuda-comparar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#proxEuroCard")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      globalThis.accountBalancesFromState = () => ({ total: 10000 });
+      globalThis.cuadroMandosReserve = () => 3000;
+      globalThis.canonicalDebtContractRows = () => [];
+      globalThis.iv6PortfolioTargets = () => ({ fondo: 50, cripto: 50 });
+      state.fiscalWithholdingRate = 37;
+      state.dividendSpanishSavingsRatePct = 19;
+      saveIv1PositionsList([{ id: "A", type: "fondo", label: "Fondo A ficticio", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 8000, currentValue: 10000, contributions: [], disposals: [] }]);
+    });
+    return page.locator("#proxEuroCard");
+  };
+  const calculate = async (card) => {
+    await card.locator("#proxEuroImporte").fill("4000");
+    await card.locator("#proxEuroRentabilidad").fill("7");
+    await card.locator('#proxEuroForm button[type="submit"]').click();
+    await expect(card.locator("[data-peu-rung]")).toHaveCount(4);
+  };
+  const signPolicy = (page) => page.evaluate(() => {
+    const engine = FinanceCanonicalInvestmentPolicy;
+    const draft = engine.normalizePolicy({ purpose: { text: "jubilación", horizonYears: 20 }, allocation: { targets: { fondo: 50, cripto: 50 }, bandPct: 5 }, contribution: { mode: "fixed", monthly: 300 }, exclusions: { noCrypto: true }, drawdown: { at20: "keep-contributing", at35: "hold" }, review: { everyMonths: 12 } });
+    politicaSave(engine.sign(draft, { signers: ["Ana", "Luis"], today: "2026-10-13" }).policy);
+    renderProximoEuro(FinanceCanonicalNextEuro);
+  });
+  const savePlanB = (page, signed) => page.evaluate((isSigned) => {
+    const engine = FinanceCanonicalContingencyPlan;
+    let plan = engine.normalizePlan({ trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }, { kind: "credit-line", amount: 1500 }] });
+    if (isSigned) plan = engine.sign(plan, { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+    planBSave(plan);
+    renderProximoEuro(FinanceCanonicalNextEuro);
+  }, signed);
+
+  test("sin política ni plan B no sale nada; con política firmada avisa de la cripto; con plan B que salta avisa del dinero que se inmoviliza; el reparto no cambia; sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(150000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await prepare(page);
+      await calculate(card);
+      const out = card.locator("#proxEuroResultado");
+      const cruce = out.locator(".peu-cruce");
+      await expect(cruce, "sin política ni plan B guardados no sale nada").toHaveCount(0);
+      const repartoAntes = await out.locator("[data-peu-rung]").evaluateAll((nodes) => nodes.map((n) => `${n.dataset.peuRung}:${n.querySelector(".peu-importe").textContent}`));
+      expect(repartoAntes.join("|")).toContain("invest:");
+
+      // Política firmada que no compra cripto, con un reparto que manda dinero a cripto.
+      await signPolicy(page);
+      await expect(cruce).toBeVisible();
+      const politica = cruce.locator('[data-peu-cruce="politica"]');
+      await expect(politica).toHaveAttribute("data-peu-cruce-nivel", "contradicts");
+      await expect(politica).toContainText("contradice vuestra política");
+      await expect(politica).toContainText("cripto");
+      await expect(politica).toContainText("la política dice que no se compra");
+      await expect(cruce.locator('[data-peu-cruce="plan-b"]'), "sin plan B guardado, ni una palabra").toHaveCount(0);
+
+      // Plan B firmado que salta: avisa del dinero que se inmoviliza o puede bajar.
+      await savePlanB(page, true);
+      const planB = cruce.locator('[data-peu-cruce="plan-b"]');
+      await expect(planB).toHaveAttribute("data-peu-cruce-nivel", "alert");
+      await expect(planB).toContainText("Vuestro plan B se cumple hoy");
+      await expect(planB).toContainText("pensión e inversión");
+      await expect(planB).toContainText("La escalera no se reordena");
+      await expect(planB).not.toContainText("borrador");
+
+      // Sin firmar: sigue avisando, pero como borrador.
+      await savePlanB(page, false);
+      await expect(cruce.locator('[data-peu-cruce="plan-b"]')).toContainText("El plan B está sin firmar: es un borrador");
+
+      // Solo avisa: el reparto es el mismo que sin política ni plan B, y nada se desborda.
+      const repartoDespues = await out.locator("[data-peu-rung]").evaluateAll((nodes) => nodes.map((n) => `${n.dataset.peuRung}:${n.querySelector(".peu-importe").textContent}`));
+      expect(repartoDespues).toEqual(repartoAntes);
+      const outside = await cruce.evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

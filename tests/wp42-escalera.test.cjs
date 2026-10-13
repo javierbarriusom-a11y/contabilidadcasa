@@ -178,3 +178,87 @@ test("WP-42 · la casilla de «ya está en mis cuentas» no hereda el ancho comp
   assert.match(css, /\.peu-check input\[type="checkbox"\]\s*\{[^}]*width:\s*22px/);
   assert.match(css, /\.peu-campos\s*\{[^}]*minmax\(min\(170px, 100%\), 1fr\)/);
 });
+
+// --- PR-2 (13/10/2026): el reparto frente a la política firmada (WP-39) y al plan B (WP-38) ----------------------------------------------------------------
+
+const targets = { fondo: 50, cripto: 50 };
+const investLadder = (extra = {}) => N.buildLadder({ ...base, amount: 4000, debts: [], pension: { year: 2026, marginalRatePct: 20 }, portfolio: { totalsByType: { fondo: 10000 }, targets }, ...extra });
+const eurText = (value) => `${value} €`;
+const cross = (input) => N.crossChecks({ fmt: eurText, ...input });
+
+test("WP-42 PR-2 · crossChecks: sin escalera, sin política ni plan B guardados, o sin dinero a invertir, no dice nada", () => {
+  assert.deepEqual(cross({}), { show: false, policy: null, planB: null });
+  assert.deepEqual(cross({ ladder: N.buildLadder({ ...base, amount: 0 }) }), { show: false, policy: null, planB: null }, "escalera inválida");
+  const ladder = investLadder();
+  assert.deepEqual(cross({ ladder, policy: { state: "none" }, planB: { state: "none" } }), { show: false, policy: null, planB: null });
+  assert.deepEqual(cross({ ladder: N.buildLadder({ ...base, liquidity: 1000, amount: 500 }), policy: { state: "signed", checks: [] } }).policy, null, "todo va al colchón: nada se invierte, nada que comprobar");
+});
+
+test("WP-42 PR-2 · crossChecks: lo que contradice la política firmada se dice con su tipo y su importe; lo que cumple no se adorna", () => {
+  const ladder = investLadder();
+  assert.ok(rung(ladder, "invest").amount > 0);
+  const out = cross({ ladder, policy: { state: "signed", checks: [{ type: "cripto", amount: 1500, verdict: "contradicts", lines: ["Comprar cripto: la política dice que no se compra."] }, { type: "fondo", amount: 500, verdict: "complies", lines: [] }] } });
+  assert.equal(out.show, true);
+  assert.equal(out.policy.level, "contradicts");
+  assert.match(out.policy.title, /contradice vuestra política/);
+  assert.deepEqual(out.policy.lines, ["1500 € a cripto: Comprar cripto: la política dice que no se compra."]);
+  assert.equal(out.policy.draft, "");
+});
+
+test("WP-42 PR-2 · crossChecks: una política sin firmar o cambiada se marca como borrador; «no se puede comprobar» no se presenta como «cumple»", () => {
+  const ladder = investLadder();
+  const warns = { state: "unsigned", checks: [{ type: "fondo", amount: 2000, verdict: "warns", lines: ["Comprar dejaría fondos fuera de banda."] }] };
+  assert.equal(cross({ ladder, policy: warns }).policy.level, "warns");
+  assert.match(cross({ ladder, policy: warns }).policy.draft, /sin firmar: es un borrador/);
+  assert.match(cross({ ladder, policy: { ...warns, state: "changed" } }).policy.draft, /cambió después de firmar/);
+  const unknown = cross({ ladder, policy: { state: "signed", checks: [{ type: "fondo", amount: 1000, verdict: "complies", lines: [] }, { type: "otro", amount: 500, verdict: "no-data", lines: [] }] } }).policy;
+  assert.equal(unknown.level, "unknown");
+  assert.match(unknown.lines[0], /no se puede comprobar/);
+  const sinTipos = cross({ ladder, policy: { state: "signed", checks: null } }).policy;
+  assert.equal(sinTipos.level, "unknown");
+  assert.match(sinTipos.lines[0], /sin objetivos por tipo/);
+  const ok = cross({ ladder, policy: { state: "signed", checks: [{ type: "fondo", amount: 2000, verdict: "complies", lines: [] }] } }).policy;
+  assert.equal(ok.level, "ok");
+  assert.match(ok.title, /ninguna regla que la app pueda comprobar/);
+  assert.doesNotMatch(JSON.stringify(ok), /cumple la política|todo bien/i);
+});
+
+test("WP-42 PR-2 · crossChecks: si el plan B salta o está en vigilancia y se manda dinero a pensión o inversión, avisa con el importe; sin reordenar nada", () => {
+  const ladder = investLadder();
+  const exposed = rung(ladder, "invest").amount + rung(ladder, "pension").amount;
+  assert.ok(exposed > 0);
+  const salta = cross({ ladder, planB: { state: "signed", status: "triggered" } }).planB;
+  assert.equal(salta.level, "alert");
+  assert.match(salta.lines[0], new RegExp(`${exposed} €`));
+  assert.match(salta.lines[0], /La escalera no se reordena/);
+  const vigila = cross({ ladder, planB: { state: "signed", status: "watch" } }).planB;
+  assert.equal(vigila.level, "watch");
+  assert.match(vigila.lines[0], /aún no salta/);
+  // El reparto de la escalera no cambia por mirar el plan B.
+  assert.deepEqual(JSON.parse(JSON.stringify(ladder)), JSON.parse(JSON.stringify(investLadder())));
+});
+
+test("WP-42 PR-2 · crossChecks: un plan B que no salta lo dice sin adornos, y uno que no se puede vigilar se dice, no se presenta como «va bien»", () => {
+  const ladder = investLadder();
+  const ok = cross({ ladder, planB: { state: "signed", status: "ok" } }).planB;
+  assert.equal(ok.level, "ok");
+  assert.deepEqual(ok.lines, []);
+  for (const status of ["no-data", "incomplete"]) {
+    const blind = cross({ ladder, planB: { state: "signed", status } }).planB;
+    assert.equal(blind.level, "unknown", status);
+    assert.match(blind.title, /No puedo comprobar/);
+    assert.match(blind.lines[0], status === "incomplete" ? /incompleto, no puedo vigilarlo/ : /No hay previsión con la que vigilar/, status);
+    assert.doesNotMatch(JSON.stringify(blind), /todo bien|va bien/i);
+  }
+  assert.match(cross({ ladder, planB: { state: "unsigned", status: "triggered" } }).planB.draft, /El plan B está sin firmar/);
+});
+
+test("WP-42 PR-2 · la tarjeta recoge lo que dicen los otros motores y solo lo pinta: no escribe nada ni reordena", () => {
+  const ui = read("escalera-ui.js");
+  const fn = ui.slice(ui.indexOf("function proxEuroCrossInputs"), ui.indexOf("function proxEuroResultHtml"));
+  assert.doesNotMatch(fn, /proxEuroSave|storageSet|queueRemoteSave|politicaSave|planBSave/, "el cruce no escribe nada");
+  assert.match(fn, /engine\.checkOperation\(\{ policy: saved, operation: \{ kind: "buy", type: row\.type, amount: row\.amount \}/);
+  assert.match(fn, /engine\.evaluate\(\{ plan, \.\.\.planBContext\(\) \}\)\.status/);
+  assert.match(ui, /\$\{proxEuroCrossHtml\(ladder\)\}\$\{benefits/);
+  assert.match(read("index.html"), /escalera-ui\.js\?v=20261013wp42b2/);
+});
