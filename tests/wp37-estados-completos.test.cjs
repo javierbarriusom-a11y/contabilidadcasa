@@ -110,3 +110,69 @@ test("WP-37 · quitar un contrato, una hucha, una aportación, una nómina o un 
   assert.match(read("nominas-ui.js"), /showUndoToast\("Nómina quitada\."/);
   assert.match(read("indices-ui.js"), /showUndoToast\(`Dato del \$\{date\} quitado\.`/);
 });
+
+// ---- PR-2 (13/10): los registros de Ajustes que se quitaban sin aviso ----
+
+function loadQuitar(initial) {
+  const toasts = [];
+  const context = {
+    scenarioSettings: JSON.parse(JSON.stringify(initial)),
+    escapeHtml: (value) => String(value ?? ""),
+    saves: 0,
+    repaints: 0,
+    showUndoToast: (message, onUndo) => toasts.push({ message, onUndo }),
+    saveScenarioSettings: () => { context.saves += 1; },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${read("estados-ui.js")}\nthis.quitarConDeshacer = quitarConDeshacer;`, context);
+  const quitar = (key) => (id) => { context.scenarioSettings[key] = (context.scenarioSettings[key] || []).filter((item) => item.id !== id); };
+  const run = (key, id) => context.quitarConDeshacer({ key, id, quitar: quitar(key), mensaje: (item) => `Quitado «${item.name}».`, repintar: () => { context.repaints += 1; } });
+  return { context, toasts, run };
+}
+const names = (context, key) => Array.from(context.scenarioSettings[key], (item) => item.id); // Array.from: un array creado dentro del contexto vm no compara igual con deepEqual
+
+test("WP-37 · quitar un registro de Ajustes avisa con «Deshacer» y deshacer lo devuelve a SU sitio, repintando", () => {
+  const { context, toasts, run } = loadQuitar({ policies: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }] });
+  assert.equal(run("policies", "b"), true);
+  assert.deepEqual(names(context, "policies"), ["a", "c"]);
+  assert.equal(toasts.length, 1);
+  assert.equal(toasts[0].message, "Quitado «B».");
+  assert.equal(context.repaints, 1, "repinta al quitar");
+  toasts[0].onUndo();
+  assert.deepEqual(names(context, "policies"), ["a", "b", "c"], "vuelve en el mismo orden, no al final");
+  assert.equal(context.repaints, 2, "y repinta al deshacer");
+  assert.equal(context.saves, 1, "se guarda al deshacer (al quitar guarda la función de datos de siempre)");
+});
+
+test("WP-37 · deshacer no pisa lo que se tocó mientras tanto, no duplica y no inventa un aviso si el registro ya no estaba", () => {
+  const { context, toasts, run } = loadQuitar({ policies: [{ id: "a", name: "A" }, { id: "b", name: "B" }] });
+  run("policies", "b");
+  context.scenarioSettings.policies.push({ id: "z", name: "Z" }); // se da de alta otra mientras tanto
+  toasts[0].onUndo();
+  assert.deepEqual(names(context, "policies"), ["a", "b", "z"], "lo nuevo se conserva");
+  toasts[0].onUndo(); // un segundo «Deshacer» no duplica
+  assert.deepEqual(names(context, "policies"), ["a", "b", "z"]);
+  assert.equal(run("policies", "no-existe"), false);
+  assert.equal(toasts.length, 1, "si no estaba, no se avisa de nada");
+  // El índice puede quedarse fuera de rango si la lista se acortó mientras tanto.
+  const second = loadQuitar({ policies: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }] });
+  second.run("policies", "c");
+  second.context.scenarioSettings.policies = [];
+  second.toasts[0].onUndo();
+  assert.deepEqual(names(second.context, "policies"), ["c"]);
+  // Una lista que aún no existe tampoco rompe nada.
+  const empty = loadQuitar({});
+  assert.equal(empty.run("policies", "a"), false);
+});
+
+test("WP-37 · los seis registros de Ajustes que se quitaban sin aviso pasan por «Deshacer», con cada repintado de siempre", () => {
+  const app = read("app.js");
+  for (const [key, remover] of [["bigPurchaseGoals", "removeBigPurchaseGoal"], ["remuneratedAccounts", "removeRemuneratedAccount"], ["maintenanceFeeAccounts", "removeMaintenanceFeeAccount"], ["insurancePolicies", "removeInsurancePolicy"], ["taxTables", "removeTaxTable"], ["irpfBracketScales", "removeIrpfBracketScale"]]) {
+    assert.match(app, new RegExp(`quitarConDeshacer\\(\\{ key: "${key}", id: [^,]+, quitar: ${remover},`), key);
+    assert.doesNotMatch(app, new RegExp(`^\\s+${remover}\\(removeButton|^\\s+${remover}\\(removeGoalButton`, "m"), `${remover} ya no se llama sin pasar por quitarConDeshacer`);
+  }
+  assert.match(app, /repintar: \(\) => \{ renderMaintenanceFeeAccounts\(\); renderAjustesFinancialCalendar\(\); \}/, "las comisiones repintan también el calendario");
+  assert.match(app, /repintar: \(\) => \{ renderIrpfBracketScales\(\); renderLpx4SuccessionTaxEstimate\(\); renderT13DonationVsInheritance\(\); \}/, "las escalas repintan sus dos estimaciones");
+  assert.match(read("estados-ui.js"), /function quitarConDeshacer\(/);
+});
+

@@ -156,7 +156,7 @@ test("app.js: renderT13DonationVsInheritance nunca inventa una cifra sin escala/
 test("app.js: registrar o quitar una escala de IRPF repinta también el comparador de T13", () => {
   const saveBlock = appSource.slice(appSource.indexOf("function saveIrpfBracketScaleFromControls("), appSource.indexOf("function saveIrpfBracketScaleFromControls(") + 1000);
   assert.match(saveBlock, /renderT13DonationVsInheritance\(\);/);
-  const removeBlock = appSource.slice(appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"'), appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"') + 400);
+  const removeBlock = appSource.slice(appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"'), appSource.indexOf('qs("irpfBracketScaleList")?.addEventListener("click"') + 900); // WP-37: el manejador es una sola línea con quitarConDeshacer (repintar sirve para quitar y para deshacer)
   assert.match(removeBlock, /renderT13DonationVsInheritance\(\);/);
 });
 

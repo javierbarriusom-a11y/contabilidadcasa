@@ -71,3 +71,27 @@ function renderEstadoVista(root, kind, { error = null, retry = null } = {}) {
   }
   if (!previous) root.insertBefore(holder, root.firstChild);
 }
+
+/**
+ * Quitar un registro de una lista de Ajustes (dentro de `scenarioSettings`) se hace al momento y se puede deshacer 10 s: el registro vuelve a SU sitio
+ * (mismo orden), sin pisar lo que se haya tocado mientras tanto en la lista. Antes borraba sin aviso y sin vuelta atrás.
+ * `quitar` es la función de datos de siempre (la que ya prueban las pruebas unitarias); aquí solo se guarda lo que había y se avisa.
+ * @param {{key: string, id: string, quitar: (id: string) => void, mensaje: (removed: any) => string, repintar: () => void}} options
+ * @returns {boolean} false si ese registro ya no estaba (no se avisa de nada)
+ */
+function quitarConDeshacer({ key, id, quitar, mensaje, repintar }) {
+  const lista = Array.isArray(scenarioSettings[key]) ? scenarioSettings[key] : [];
+  const index = lista.findIndex((item) => item.id === id);
+  const removed = index >= 0 ? lista[index] : null;
+  quitar(id);
+  repintar();
+  if (!removed) return false;
+  showUndoToast(mensaje(removed), () => {
+    const actual = Array.isArray(scenarioSettings[key]) ? scenarioSettings[key] : [];
+    if (actual.some((item) => item.id === id)) return; // ya está de vuelta (se volvió a dar de alta): no se duplica
+    scenarioSettings[key] = [...actual.slice(0, Math.min(index, actual.length)), removed, ...actual.slice(Math.min(index, actual.length))];
+    saveScenarioSettings();
+    repintar();
+  });
+  return true;
+}
