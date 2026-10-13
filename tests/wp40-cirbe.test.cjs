@@ -180,3 +180,76 @@ test("WP-40 · la rejilla del formulario no se sale de la pantalla: sus etiqueta
   assert.match(css, /\.cir-form select\s*\{[^}]*min-width:\s*0/);
   assert.match(css, /minmax\(min\(170px,\s*100%\),\s*1fr\)/);
 });
+
+// --- Recordatorio anual en el calendario (PR-2 de WP-40, sobre el motor de recordatorios de WP-32) ----------------
+
+const Reminders = require("../canonical-reminders.js");
+const vm = require("node:vm");
+const TODAY = "2026-10-13";
+const cirbeOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: true } };
+const cirbeEvents = (cirbe, today = TODAY) => Reminders.build({ today, options: cirbeOnly, cirbe }).events;
+
+test("WP-40 · calendario: el aviso cae a los 335 días del informe, el mismo día que la tarjeta pasa a «toca pedirlo»", () => {
+  const status = C.reportStatus(C.normalizeStore({ reportDate: "2026-01-10", rows: [] }), { today: TODAY });
+  const events = cirbeEvents([{ reportDate: "2026-01-10", renewOn: status.renewOn }]);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].date, status.renewOn, "misma fecha que la tarjeta: una sola fuente de verdad");
+  assert.equal(events[0].date, "2026-12-11");
+  assert.equal(events[0].kind, "cirbe");
+  assert.equal(events[0].uid, "rec-cirbe-2026-12-11");
+});
+
+test("WP-40 · calendario: sin informe tecleado no hay aviso (no se inventa una fecha) y apagarlo lo quita", () => {
+  assert.deepEqual(cirbeEvents([]), []);
+  assert.deepEqual(cirbeEvents(undefined), []);
+  assert.deepEqual(cirbeEvents([{ reportDate: "", renewOn: "" }, { renewOn: "no-es-fecha" }, null]), []);
+  const off = Reminders.build({ today: TODAY, options: { kinds: { ...cirbeOnly.kinds, cirbe: false } }, cirbe: [{ renewOn: "2026-12-11" }] });
+  assert.equal(off.counts.cirbe, 0);
+});
+
+test("WP-40 · calendario: si el día ya pasó (informe de hace más de 335 días) hay un aviso para hoy, no uno en el pasado", () => {
+  const events = cirbeEvents([{ reportDate: "2025-08-01", renewOn: "2026-07-02" }]);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].date, TODAY);
+  assert.match(events[0].description, /ya ha pasado el año/);
+  assert.equal(events[0].uid, "rec-cirbe-2026-07-02", "mismo identificador al regenerar: reimportar actualiza, no duplica");
+});
+
+test("WP-40 · calendario: fuera del horizonte del fichero (6 meses) no sale todavía", () => {
+  assert.deepEqual(cirbeEvents([{ reportDate: "2026-09-01", renewOn: "2027-08-02" }]), []);
+});
+
+test("WP-40 · calendario: el título no lleva datos del informe ni de quién es; el detalle dice qué hacer y no promete nada del procedimiento", () => {
+  const [event] = cirbeEvents([{ reportDate: "2026-01-10", renewOn: "2026-12-11" }]);
+  assert.equal(event.title, "Toca pedir el informe de la CIRBE");
+  assert.doesNotMatch(event.title, /\d{4}|€|Javi|Tere/);
+  assert.match(event.description, /verificad el procedimiento actual/);
+  assert.match(event.description, /Deuda › Contratos › Conciliación con la CIRBE/);
+  const ics = Reminders.toIcs([event], { now: "2026-10-13T10:00:00Z" });
+  assert.match(ics, /UID:rec-cirbe-2026-12-11@contabilidadcasa/);
+});
+
+test("WP-40 · calendario: cirbeCalendarItems() lee el almacén con el motor de la tarjeta y no devuelve nada sin informe", () => {
+  const load = (stored, today = TODAY) => {
+    const context = { globalThis: null, console, JSON, Date, Array };
+    context.globalThis = context;
+    context.FinanceCanonicalCirbe = C;
+    context.storageKey = (name) => name;
+    context.storageGet = () => stored;
+    context.isoLocalDate = () => today;
+    vm.createContext(context);
+    vm.runInContext(`${read("cirbe-ui.js")}\nthis.cirbeCalendarItems = cirbeCalendarItems;`, context);
+    return Array.from(context.cirbeCalendarItems(), (item) => ({ ...item }));
+  };
+  assert.deepEqual(load("null"), []);
+  assert.deepEqual(load(JSON.stringify({ reportDate: "", rows: [] })), []);
+  assert.deepEqual(load(JSON.stringify({ reportDate: "2026-01-10", rows: [] })), [{ reportDate: "2026-01-10", renewOn: "2026-12-11" }]);
+});
+
+test("WP-40 · calendario: la tarjeta de recordatorios ofrece el tipo (marcado por defecto) y le pasa la fecha", () => {
+  assert.match(read("index.html"), /data-recordatorios-kind="cirbe" checked/);
+  assert.match(read("recordatorios-ui.js"), /cirbe: globalThis\.cirbeCalendarItems\?\.\(\) \|\| \[\]/);
+  assert.match(read("recordatorios-ui.js"), /cirbe: "aviso de la CIRBE"/);
+  assert.ok(Reminders.KINDS.includes("cirbe"));
+  assert.equal(Reminders.DEFAULTS.kinds.cirbe, true);
+});

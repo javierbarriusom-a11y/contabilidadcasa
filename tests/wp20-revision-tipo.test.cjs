@@ -230,7 +230,7 @@ test("WP-20 · las fechas del texto se leen como en España y los campos usan co
 // --- Evento de calendario (PR-2 de WP-20, sobre el motor de recordatorios de WP-32) ----------------
 
 const Reminders = require(path.join(root, "canonical-reminders.js"));
-const reviewOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: true } };
+const reviewOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: true, cirbe: false } };
 const reviewEvents = (date, extra = {}) => Reminders.build({ today: TODAY, options: reviewOnly, reviews: [{ date, low: 627.16, high: 747.12, ...extra }] }).events;
 
 test("WP-20 · calendario: avisos a 60 y 30 días antes de la revisión, con identificadores estables y sin importes en el título", () => {

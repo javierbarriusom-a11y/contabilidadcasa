@@ -357,7 +357,8 @@ Lo que **no** pregunta, a propósito:
 - **El día después de un cargo grande** (desde 500 €, editable): comprobad que ha llegado y actualizad el saldo.
 - **El día 1:** cerrad el mes (la ventana de cierre es del 1 al 3).
 - **Campaña fiscal:** 1/12 (mirad la lista) y 20/12 (últimas decisiones).
-- **Revisión del tipo de la hipoteca:** 60 y 30 días antes de la fecha que guardaste en Deuda › Contratos. El título no lleva importes; la cuota estimada de A a B va en el detalle. Si la fecha que guardaste ya pasó, usa la siguiente (cada 6 o 12 meses). Solo sale si has rellenado los datos de la revisión.
+- **Revisión del tipo de la hipoteca:** 60 y 30 días antes de la fecha que guardaste en Deuda › Contratos. El título no lleva importes; la cuota estimada de A a B va en el detalle. Si la fecha que guardaste ya pasó, usa la siguiente (cada 6 o 12 meses). 
+- **Informe de la CIRBE:** un aviso, «Toca pedir el informe de la CIRBE», a los 335 días del último informe que tecleaste en Deuda › Contratos (30 días antes del año). Sin informe tecleado, no hay aviso. El título no lleva datos.Solo sale si has rellenado los datos de la revisión.
 
 Cómo se usa: pulsa **«Descargar recordatorios (.ics)»** y abre el fichero desde el móvil; el calendario te pregunta si lo añade. Cada aviso suena a las 9:00 del día.
 
@@ -426,7 +427,7 @@ Cuatro cosas que conviene saber:
 - **No se conecta a la CIRBE ni cambia ningún contrato.** Todo lo teclea una persona.
 - **Los avales no se casan con contratos:** la app guarda una cuota mensual de avales, no una lista. Sin aval declarado, el del informe «falta»; con él, se revisa a mano.
 - **Una diferencia pequeña a favor del informe es normal** si lo pediste hace meses: has pagado cuotas desde entonces. Con un informe de más de un año la tarjeta lo dice y te pide uno nuevo; a **30 días** del año te avisa de que toca renovarlo.
-- **Todavía no hay recordatorio en el calendario del móvil**: el aviso solo está dentro de la tarjeta.
+- **El recordatorio anual va al calendario del móvil** (Ajustes › Recordatorios): «Toca pedir el informe de la CIRBE», a los 11 meses del informe que tecleaste. **Sin informe tecleado no hay aviso**, y el fichero hay que volver a descargarlo para que lo incluya; si actualizas el informe, borra a mano el aviso viejo del calendario (un fichero no puede borrarlo).
 
 ### Deuda en la sombra y TAE real (Deuda › Contratos)
 
