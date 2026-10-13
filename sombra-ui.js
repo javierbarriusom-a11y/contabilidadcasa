@@ -227,6 +227,39 @@ function sombraCalculate(event) {
   announceStatus(`TAE efectiva ${aprText}`);
 }
 
+// WP-41 PR-2 (docs/WP41_DISENO.md §6): el aviso también en Cierre, que se abre cada mes. Mismo detector y mismas respuestas que la tarjeta de Deuda › Contratos;
+// el texto lo compone `closeNotice`. Sin nada que decir (o sin ningún extracto importado) no sale nada.
+function sombraAvisoHtml(notice) {
+  const lines = (notice.lines || []).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  return `<h3 class="escenario-motor-panel-title">Deuda en la sombra</h3>
+    <p class="som-aviso-estado" data-sombra-aviso-level="${escapeHtml(notice.level)}"><span aria-hidden="true">${escapeHtml(notice.icon)}</span> <strong>${escapeHtml(notice.title)}</strong></p>
+    ${lines}
+    <p class="e19-kpi-note">Solo veo lo que el extracto delata; la app no da de alta nada. <button type="button" class="link-button som-ver" data-sombra-aviso-ver>Revisar en Deuda › Contratos</button></p>`;
+}
+
+function renderSombraAviso(engine) {
+  const box = qs("sombraAviso");
+  if (!box || !engine) return;
+  attachSombra(document); // idempotente: aquí no se ha pintado antes Deuda › Contratos y el botón necesita su escucha
+  try {
+    const result = engine.detectShadowDebt({
+      today: isoLocalDate(new Date()),
+      transactions: canonicalLedgerTransactions(),
+      contracts: typeof canonicalDebtContractRows === "function" ? canonicalDebtContractRows() : [],
+      answers: sombraLoad(),
+    });
+    const notice = engine.closeNotice(result, { fmt: sombraEuros });
+    const html = notice.show ? sombraAvisoHtml(notice) : "";
+    if (box.__sombraAvisoHtml !== html) {
+      box.innerHTML = html;
+      box.__sombraAvisoHtml = html;
+    }
+    box.hidden = !notice.show;
+  } catch (error) {
+    console.error(`renderSombraAviso: ${error.message}`);
+  }
+}
+
 // Una sola vez, por delegación.
 function attachSombra(doc) {
   if (!doc || doc.__sombraAttached) return false;
@@ -235,6 +268,7 @@ function attachSombra(doc) {
   doc.addEventListener("submit", (event) => { if (event.target?.id === "sombraForm") sombraCalculate(event); });
   doc.addEventListener("click", (event) => {
     const target = event.target;
+    if (target?.closest?.("[data-sombra-aviso-ver]")) { location.hash = "#deuda-contratos"; return; } // navegación normal: la dirección y el botón «atrás» cuadran
     if (!inCard(target)) return;
     const answer = target.closest("[data-sombra-respuesta]");
     if (answer) { sombraAnswer(answer.dataset.sombraRespuesta, answer.dataset.sombraRef); return; }

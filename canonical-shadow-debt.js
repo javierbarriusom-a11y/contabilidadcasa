@@ -43,14 +43,14 @@
   };
 
   // «cuota 3 de 12», «plazo 4/10», «pago 2 de 6», «mensualidad 5/24», «3 de 12 cuotas».
-  const COUNTER_AFTER_WORD = /\b(?:cuota|plazo|pago|mensualidad|recibo|cargo|financiacion)\s*(?:n[ºo.]?\s*)?(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/;
+  const COUNTER_AFTER_WORD = /\b(?:cuota|plazo|pago|mensualidad|recibo|cargo|financiacion|fracc\.?)\s*(?:n[ºo.]?\s*)?(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/;
   const COUNTER_BEFORE_WORD = /\b(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\s*(?:cuotas|plazos|pagos|mensualidades)\b/;
   // Palabras que delatan financiación. Se evita «plazo fijo» (depósito) y «cuota» a secas (comunidad, colegio, gimnasio).
   /** @type {Array<[RegExp, string]>} */
   const KEYWORDS = [
     [/\bfinanciacion\b|\bfinanciado\b|\bfinanciada\b|\bfinanciero\b|\bfinanciera\b/, "dice «financiación»"],
     [/\baplaz(?:amiento|ado|ada|o)\b/, "dice «aplazado»"],
-    [/\bfracciona(?:do|da|miento)\b/, "dice «fraccionado»"],
+    [/\bfracciona(?:do|da|miento)\b|\bfracc\b/, "dice «fraccionado»"],
     [/\b(?:pago|compra)\s+a\s+plazos\b|\ba\s+plazos\b/, "dice «a plazos»"],
     [/\bcuota\s+(?:de\s+)?terminal\b|\bterminal\s+movil\b|\bcuota\s+movil\b/, "es la cuota de un terminal"],
     [/\b(?:klarna|sequra|aplazame|pagantis|oney|scalapay|clearpay|afterpay)\b/, "es un servicio de pago aplazado"],
@@ -267,5 +267,31 @@
     return { verdict, extraCost: apr.extraCost, aprPct: apr.aprPct, afterCash, belowFloor, notes };
   }
 
-  return { SCHEMA_ID, RESPONSES, RECENT_DAYS, MIN_ANSWERED, conceptKey, normalizeAnswers, applyAnswer, stats, detectShadowDebt, proposal, effectiveApr, cashVsFinance };
+  /**
+   * El aviso que va a Cierre (WP-41 PR-2), que se abre cada mes: lo que el detector ha encontrado, dicho en pocas líneas y con la misma honestidad que la tarjeta.
+   *   · hay compromisos → «se comportan como deuda» con cuota total, los tres mayores y cuántos no tienen fecha de fin;
+   *   · el extracto no es reciente (pero ya se importó alguno) → «no puedo mirar»: que no salga nada NO significa que no haya;
+   *   · nunca se importó un extracto, o no hay nada que decir → no sale nada (no se presenta «todo bien»: el detector solo ve lo que el extracto delata).
+   * @param {*} result lo que devuelve `detectShadowDebt` @param {{fmt?: (value: number) => string}} [options]
+   */
+  function closeNotice(result, { fmt } = {}) {
+    const eur = typeof fmt === "function" ? fmt : (value) => `${value} €`;
+    if (!result || typeof result !== "object") return { show: false };
+    if (result.status === "stale") {
+      const since = text(result.coveredUntil);
+      if (!isIso(since)) return { show: false };
+      const [y, m, d] = since.slice(0, 10).split("-").map(Number);
+      return { show: true, level: "blind", icon: "?", title: "No puedo mirar si hay financiaciones ocultas: el extracto no es reciente", lines: [`El último movimiento importado es del ${d}/${m}/${y}. Sin un extracto al día, que no salga nada no significa que no haya.`] };
+    }
+    if (result.status !== "ok" || !Array.isArray(result.items) || !result.items.length) return { show: false };
+    const items = result.items;
+    const lines = [`${eur(result.monthlyTotal)} al mes entre ${items.length === 1 ? "este compromiso" : `estos ${items.length}`}${result.overflow ? ` (y ${result.overflow} más sin mirar)` : ""}. Ninguno cuenta hoy en la fecha libre de deuda ni en el ratio de esfuerzo.`];
+    items.slice(0, 3).forEach((item) => {
+      lines.push(`${item.label}: ${eur(item.monthlyAmount)} al mes${item.remaining === null ? ", sin fecha de fin conocida" : item.remaining === 0 ? ", la última cuota" : `, quedan ${item.remaining} ${item.remaining === 1 ? "cuota" : "cuotas"}`}.`);
+    });
+    if (items.length > 3) lines.push(`Y ${items.length - 3} más en Deuda › Contratos.`);
+    return { show: true, level: "watch", icon: "◐", title: `${items.length} ${items.length === 1 ? "compromiso parece" : "compromisos parecen"} deuda sin figurar como deuda`, lines };
+  }
+
+  return { SCHEMA_ID, RESPONSES, RECENT_DAYS, MIN_ANSWERED, conceptKey, normalizeAnswers, applyAnswer, stats, detectShadowDebt, proposal, effectiveApr, cashVsFinance, closeNotice };
 });

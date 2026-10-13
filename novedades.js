@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-13-wp41b",
+      fecha: "2026-10-13",
+      texto: "Cierre: si el extracto muestra compras o móviles financiados que no están en Contratos, ahora os lo cuenta cada mes.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-13-wp40b",
       fecha: "2026-10-13",
       texto: "Recordatorios: si tecleaste un informe de la CIRBE, el calendario avisa a los 11 meses de que toca pedir otro.",

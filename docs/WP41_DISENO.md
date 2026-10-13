@@ -1,6 +1,6 @@
 # WP-41 · Deuda en la sombra y TAE real — diseño
 
-Paquete del plan definitivo (DAC-04 + DNU-03, Ola 3, ≈ 3,5 sesiones). **Primera entrega el 10/10/2026**, sin dependencias del hogar para construirla (lo que sí necesita del hogar es contestar los avisos, §5). Estado: **en curso**. Están el detector sobre los movimientos importados y la función pura de TAE efectiva con su calculadora; **falta la prueba con datos reales** (nunca se ha ejecutado el detector sobre un extracto del hogar) y el aviso fuera de la pestaña.
+Paquete del plan definitivo (DAC-04 + DNU-03, Ola 3, ≈ 3,5 sesiones). **Primera entrega el 10/10/2026**, sin dependencias del hogar para construirla (lo que sí necesita del hogar es contestar los avisos, §5). Estado: **en curso**. Están el detector sobre los movimientos importados y la función pura de TAE efectiva con su calculadora; **falta la prueba con datos reales** (nunca se ha ejecutado el detector sobre un extracto del hogar). Segunda entrega el 13/10/2026: el aviso en Cierre (§6).
 
 ## 1. Qué hace
 
@@ -47,5 +47,15 @@ Nada da de alta, borra ni paga (A11-4). Descartar una propuesta se puede **desha
 
 - Ejecutar el detector sobre un extracto real (del hogar) y ajustar palabras y contadores con lo que salga.
 - Contestar ≥ 10 avisos para leer la tasa de avisos que sobran.
-- Llevar el aviso a la bandeja de Hoy y/o al Cierre, **tras H-02**.
+- ~~Llevar el aviso al Cierre~~ (hecho el 13/10/2026, §6). Falta la bandeja de Hoy, **tras H-02**.
 - Enlazar la propuesta con el plan de amortización (WP-19) cuando el contrato exista.
+
+## 6. Segunda entrega (PR-2, 13/10/2026): el aviso en Cierre
+
+Hasta ahora el detector solo hablaba si alguien abría Deuda › Contratos. Cierre se abre cada mes, y la deuda en la sombra es justo lo que no se mira por iniciativa propia; es el mismo razonamiento (y el mismo patrón) que el aviso del plan B (WP-38 PR-2).
+
+- **Qué hace:** `closeNotice` (motor puro) compone el texto desde el resultado del detector, sin umbrales ni evaluación nuevos. Con compromisos: cuántos, la cuota total al mes, los tres mayores (con lo que queda o «sin fecha de fin conocida») y que **ninguno cuenta hoy en la fecha libre de deuda ni en el ratio de esfuerzo**; botón «Revisar en Deuda › Contratos» (navegación normal por la dirección, así el botón «atrás» cuadra). Con el último extracto viejo: «no puedo mirar», y que no salga nada no significa que no haya. `sombra-ui.js › renderSombraAviso`, un solo enganche en `views/cierre.js`, tarjeta oculta por defecto en `index.html`.
+- **Qué NO hace, a propósito:** no sale nada si **nunca se ha importado un extracto** (la tarjeta de Contratos ya lo dice y en Cierre sería ruido permanente), ni si el detector no encuentra nada: **no se presenta «no hay deuda oculta»**, porque el detector solo ve lo que el extracto delata. No responde ni da de alta nada (una prueba comprueba que la función no escribe). Lo respondido «No es deuda» y lo ya dado de alta no vuelve a aparecer, igual que en la tarjeta.
+- **Variante «fracc.»:** se reconoce como «fraccionado», solo y con contador («FRACC. 2/6»). **Es una suposición mía**: no hay ningún extracto real del hogar que la confirme, y «TERM IPHONE» o cualquier otra abreviatura sigue sin detectarse. Una palabra parecida («FRACCIONES SL») no cuenta.
+- **Lo que se comprobó:** pruebas unitarias del aviso (cinco casos y los límites) y de la variante; una prueba de navegador con extracto INVENTADO que repinta Cierre de verdad. **Comprobado que la prueba de navegador detecta el fallo**: con el enganche de Cierre roto en el sitio construido, cae justo en el aviso. (Mi primera versión de la prueba llamaba a la función del aviso directamente y **no habría detectado** ese fallo; se rehízo para repintar Cierre.)
+- **Lo que sigue sin cerrar el paquete:** el detector **sigue sin haberse ejecutado sobre un extracto real** y nadie ha contestado ≥ 10 avisos, así que la métrica del plan (avisos que sobran) no se puede leer. Un aviso mensual sobre un detector sin calibrar puede ser **ruido mensual**: si resulta que sobran muchos, el aviso de Cierre los multiplica. Y solo avisa **al abrir Cierre**.
