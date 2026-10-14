@@ -4742,3 +4742,69 @@ test.describe("WP-44 · aviso de calma en Cierre", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-46 PR-2 (docs/WP46_DISENO.md §6): la antigüedad del dato de cada componente del patrimonio. Hoy y en la foto del cierre. Datos INVENTADOS; las fechas se calculan respecto a hoy.
+test.describe("WP-46 · antigüedad por componente del patrimonio", () => {
+  const open = async (page) => {
+    await page.goto("/index.html#inversion-cartera");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const card = page.locator("#patrimonioCard");
+    await expect(card).toBeVisible({ timeout: 15000 });
+    return card;
+  };
+  const seed = (page, { portfolioDays }) => page.evaluate(({ portfolioDays: portfolioAge }) => {
+    const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+    scenarioSettings.assets = [{ id: "pat-casa", type: "inmueble", label: "Vivienda de prueba", value: 150000, asOf: iso(-10), provenance: "declared" }];
+    scenarioSettings.portfolioPositions = [{ id: "pat-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 18000, currentValue: 20000, asOf: iso(-portfolioAge), acquisitionDate: "2025-01-01", provenance: "declared" }];
+    saveScenarioSettings();
+    state.balanceDate = iso(-1);
+    globalThis.accountBalancesFromState = () => ({ caixa: 6000, mediolanum: 4000, total: 10000 });
+    globalThis.totalDebtOutstanding = () => 12000;
+    renderPatrimonio(FinanceCanonicalNetWorth);
+    return iso(-portfolioAge);
+  }, { portfolioDays });
+
+  test("hoy avisa de la cartera vieja y de la deuda sin fecha, calla si todo está al día, la foto del cierre guarda las fechas y avisa, y todo solo lee, sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await open(page);
+      const portfolioDate = await seed(page, { portfolioDays: 60 });
+      const note = card.locator("#patrimonioHoy [data-patrimonio-antiguedad]");
+      await expect(note).toBeVisible();
+      await expect(note).toContainText("Cartera de inversión: el dato más antiguo es del");
+      await expect(note).toContainText("hace 60 días");
+      await expect(note).not.toContainText("Efectivo en cuentas");
+      await expect(note).not.toContainText("Vivienda");
+      await expect(note).toContainText("La deuda no guarda la fecha de su último dato");
+      const outside = await note.evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera del aviso: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+
+      // Con todo al día no sale nada (la deuda sola, que no guarda fecha, no dispara el aviso).
+      await seed(page, { portfolioDays: 5 });
+      await expect(card.locator("#patrimonioHoy [data-patrimonio-antiguedad]")).toHaveCount(0);
+
+      // La foto de un cierre guarda las fechas de sus componentes y avisa de lo viejo que heredó.
+      await seed(page, { portfolioDays: 60 });
+      expect(await page.evaluate(() => recordPatrimonioSnapshot("2026-10", "2026-11-02T10:00:00Z", { total: 10000 }))).toBe(true);
+      const saved = await page.evaluate(() => patrimonioLoad().snapshots[0].asOf);
+      expect(saved.cash).toBe("2026-11-02");
+      expect(saved.portfolio).toBe(portfolioDate);
+      await page.evaluate(() => renderPatrimonio(FinanceCanonicalNetWorth));
+      await expect(card.locator("#patrimonioSerie [data-patrimonio-antiguedad]")).toContainText("usa datos antiguos");
+
+      // El aviso solo lee: el patrimonio de hoy y la cartera siguen igual.
+      expect(await page.evaluate(() => scenarioSettings.portfolioPositions.length)).toBe(1);
+      expect(await page.evaluate(() => patrimonioLoad().snapshots.length)).toBe(1);
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

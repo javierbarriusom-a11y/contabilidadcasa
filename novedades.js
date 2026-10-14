@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-14-wp46b",
+      fecha: "2026-10-14",
+      texto: "Patrimonio neto: avisa si algún dato (cartera, activos, saldos) es viejo o no tiene fecha, también en cada cierre.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-14-wp44b",
       fecha: "2026-10-14",
       texto: "Cierre: si la cartera cae un 20 % o más desde su máximo, lo avisa con calma y recuerda lo que acordasteis.",

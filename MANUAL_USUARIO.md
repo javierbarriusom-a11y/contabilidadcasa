@@ -480,12 +480,13 @@ En **Inversión › Cartera**, sobre la tarjeta de calma, la tarjeta **«Patrimo
 - **La serie.** **En cada cierre del mes** la app guarda una **foto del patrimonio** con el efectivo real de ese cierre. Con **3 cierres completos** dibuja la serie (con recorrido táctil y «Ver como tabla») y dice **de dónde viene el último cambio**: efectivo, cartera, activos o deuda. Con menos de 3 enseña las fotos que hay.
 - **La proyección a 10 años** en **tres escenarios** (prudente, central y optimista) que dependen de **lo que escribáis**: el rendimiento de la cartera y la revalorización de la vivienda y otros activos, en % al año. La liquidez es la de la previsión y la deuda sigue su calendario. Marca cuándo llega la **deuda cero**, cuándo el patrimonio **deja de ser negativo** y cuándo alcanza un **objetivo** que tecleéis.
 
-Cuatro cosas que conviene saber:
+Cinco cosas que conviene saber:
 
 - **No se supone ningún rendimiento de mercado.** Lo que no declaréis se mantiene en 0 % y lo dice; con los tres escenarios sin rellenar, coinciden.
 - **El abanico es de supuestos tecleados, no un intervalo de probabilidad.** Con un 7 % optimista, casi cualquier objetivo parece alcanzable.
 - **Hace falta cerrar el mes desde la app**: sin cierre no hay foto. **La primera serie aparece con el tercer cierre** (octubre, noviembre y diciembre → enero).
 - **«Deuda cero» no se puede decir mientras haya deuda sin calendario** (sin TAE o plazo en Contratos): esa parte se mantiene.
+- **Antigüedad de los datos.** Si la cartera, los activos o los saldos tienen un dato de **más de 35 días** (o no se sabe de cuándo es), la tarjeta lo avisa bajo las cifras, con la fecha. Lo mismo bajo la serie: **si el patrimonio de un cierre usó datos antiguos, el cambio con el cierre anterior mezcla lo que hizo el mercado con lo viejo del dato.** La deuda no guarda fecha, y se dice. Si todo está al día, no sale nada. Solo avisa: no corrige ninguna cifra.
 
 ### Frescura de tus datos y qué hacer primero (Registrar › Saldos)
 
