@@ -4808,3 +4808,91 @@ test.describe("WP-46 · antigüedad por componente del patrimonio", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-47 PR-2 (docs/WP47_DISENO.md §6): el reparto de la nómina frente a la política firmada y al plan B. Se cruzan los importes EDITADOS con los botones; solo avisa y «Aplicar» sigue disponible.
+// Datos INVENTADOS: una nómina de 3.000 €, holgura de 2.000 €, objetivos 50/50 fondo-cripto, política firmada que no compra cripto, plan B firmado que salta.
+test.describe("WP-47 · el reparto de la nómina frente a la política y el plan B", () => {
+  const prepare = async (page) => {
+    await page.goto("/index.html#deuda-comparar");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#nominaCard")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      globalThis.accountBalancesFromState = () => ({ total: 4000 });
+      globalThis.cuadroMandosReserve = () => 3000;
+      globalThis.canonicalDebtContractRows = () => [];
+      globalThis.iv6PortfolioTargets = () => ({ fondo: 50, cripto: 50 });
+      state.fiscalWithholdingRate = 37;
+      state.dividendSpanishSavingsRatePct = 19;
+      saveIv1PositionsList([{ id: "A", type: "fondo", label: "Fondo A ficticio", provenance: "manual", asOf: "2026-10-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 8000, currentValue: 10000, contributions: [], disposals: [] }]);
+      const original = window.__nominaConfirmedOriginal || nominaConfirmed;
+      window.__nominaConfirmedOriginal = original;
+      globalThis.nominaConfirmed = (today) => original(today, (label) => /Ingreso Persona A/.test(label));
+      globalThis.nominaHeadroom = () => ({ headroom: 2000, floor: 1500, lowest: 3500, staleDays: 0, declared: true, quality: "ok" });
+      const month = monthByKey(isoLocalDate(new Date()).slice(0, 7));
+      const row = planningSectionsForMonth("income", month)[0].rows[0];
+      actualsForKind("income")[actualKeyForRow(row, month)] = 3000;
+    });
+    // La rentabilidad esperada de invertir se escribe en la escalera, y la nómina la lee.
+    await page.locator("#proxEuroImporte").fill("1000");
+    await page.locator("#proxEuroRentabilidad").fill("7");
+    await page.locator('#proxEuroForm button[type="submit"]').click();
+    await expect(page.locator("[data-peu-rung]")).toHaveCount(4);
+    await page.evaluate(() => renderNominaReparto(FinanceCanonicalPayrollSplit));
+    return page.locator("#nominaCard");
+  };
+  const signPolicy = (page) => page.evaluate(() => {
+    const engine = FinanceCanonicalInvestmentPolicy;
+    const draft = engine.normalizePolicy({ purpose: { text: "jubilación", horizonYears: 20 }, allocation: { targets: { fondo: 50, cripto: 50 }, bandPct: 5 }, contribution: { mode: "fixed", monthly: 300 }, exclusions: { noCrypto: true }, drawdown: { at20: "keep-contributing", at35: "hold" }, review: { everyMonths: 12 } });
+    politicaSave(engine.sign(draft, { signers: ["Ana", "Luis"], today: "2026-10-13" }).policy);
+    renderNominaReparto(FinanceCanonicalPayrollSplit);
+  });
+  const savePlanB = (page) => page.evaluate(() => {
+    const engine = FinanceCanonicalContingencyPlan;
+    const plan = engine.sign(engine.normalizePlan({ trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }, { kind: "credit-line", amount: 1500 }] }), { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+    planBSave(plan);
+    renderNominaReparto(FinanceCanonicalPayrollSplit);
+  });
+
+  test("sin política ni plan B no sale nada; con política firmada avisa de la cripto y cambia al mover los importes; con plan B que salta avisa del dinero que se inmoviliza; «Aplicar» sigue disponible; sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(180000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const card = await prepare(page);
+      const body = card.locator("#nominaCuerpo");
+      await expect(body.locator("[data-nom-row]").first()).toBeVisible();
+      await expect(body.locator("[data-nom-cruce]"), "sin política ni plan B no sale nada").toHaveCount(0);
+
+      // El reparto de la escalera ya manda parte a cripto (objetivo 50/50): la política firmada, que no la admite, lo contradice.
+      await signPolicy(page);
+      const cruce = body.locator("[data-nom-cruce]");
+      await expect(cruce).toBeVisible();
+      await expect(cruce.locator('[data-peu-cruce="politica"]')).toHaveAttribute("data-peu-cruce-nivel", "contradicts");
+      await expect(cruce).toContainText(/\d[\d.]*,\d{2}\s€\sa cripto/);
+      await expect(cruce).toContainText("Solo avisa");
+
+      // Se deja la cripto a cero con el importe editado: el aviso de contradicción desaparece.
+      await page.evaluate(() => { nominaSetRows(FinanceCanonicalPayrollSplit.setRowAmount(nominaWorking.rows, "invest:cripto", 0), "Cripto"); nominaRepaint(); });
+      await expect(body.locator('[data-peu-cruce="politica"][data-peu-cruce-nivel="contradicts"]')).toHaveCount(0);
+
+      // Plan B firmado que salta hoy: avisa de cuánto se manda a pensión e inversión.
+      await savePlanB(page);
+      await body.locator('[data-nom-id="invest:cripto"][data-nom-step="50"]').click();
+      await expect(body.locator('[data-peu-cruce="plan-b"]')).toHaveAttribute("data-peu-cruce-nivel", "alert");
+      await expect(body.locator('[data-peu-cruce="plan-b"]')).toContainText("Vuestro plan B se cumple hoy");
+
+      // Solo avisa: «Aplicar» sigue disponible y el aviso no desborda.
+      await expect(body.locator('[data-nom-action="aplicar"]')).toBeEnabled();
+      const outside = await cruce.evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera del aviso: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

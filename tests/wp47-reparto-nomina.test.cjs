@@ -275,3 +275,55 @@ test("WP-47 · cableado: tarjeta en Deuda › Comparar bajo la escalera, scripts
     ["nomina.css", "canonical-payroll-split.js", "nomina-ui.js"].forEach((name) => assert.ok(source.includes(`"${file === "service-worker.js" ? "./" : ""}${name}"`), `${file} lista ${name}`));
   });
 });
+
+// WP-47 PR-2 (docs/WP47_DISENO.md §6): el reparto de la nómina frente a la política firmada (WP-39) y al plan B (WP-38). Se cruzan los importes EDITADOS, no los sugeridos.
+test("WP-47 PR-2 · crossLadder: lo que va a inversión por tipo y a pensión, con los importes editados; lo demás no se cruza", () => {
+  const rows = [
+    { id: "cushion", amount: 100 }, { id: "debt:t1", amount: 400 }, { id: "pension", amount: 50 },
+    { id: "invest:fondo", amount: 200 }, { id: "invest:cripto", amount: 150 }, { id: "invest:etf", amount: 0 }, { id: "free", amount: 99 },
+  ];
+  const ladder = P.crossLadder(rows);
+  assert.equal(ladder.status, "ok");
+  const invest = ladder.rungs.find((rung) => rung.id === "invest");
+  assert.equal(invest.amount, 350);
+  assert.deepEqual(invest.split, { calculable: true, rows: [{ type: "fondo", amount: 200 }, { type: "cripto", amount: 150 }] }, "los tipos sin importe no se cruzan");
+  assert.equal(ladder.rungs.find((rung) => rung.id === "pension").amount, 50);
+  assert.equal(ladder.rungs.length, 2, "ni colchón, ni deuda, ni «sin repartir» se cruzan con la política o el plan B");
+});
+
+test("WP-47 PR-2 · crossLadder: una fila de inversión sin tipos no inventa tipos; filas vacías o ausentes dan cero; no muta lo que recibe", () => {
+  const single = P.crossLadder([{ id: "invest", amount: 80 }]);
+  assert.equal(single.rungs.find((rung) => rung.id === "invest").amount, 80);
+  assert.equal(single.rungs.find((rung) => rung.id === "invest").split, undefined, "sin tipos no hay reparto por tipo: la política dirá que no puede comprobarlo");
+  assert.deepEqual(P.crossLadder(null).rungs.map((rung) => rung.amount), [0, 0]);
+  assert.deepEqual(P.crossLadder([{ id: "pension", amount: -5 }]).rungs.map((rung) => rung.amount), [0, 0], "un importe negativo no cuenta");
+  const rows = [{ id: "invest:fondo", amount: 10 }];
+  const frozen = JSON.stringify(rows);
+  P.crossLadder(rows);
+  assert.equal(JSON.stringify(rows), frozen);
+});
+
+test("WP-47 PR-2 · el cruce reutiliza crossChecks de la escalera: política que contradice, plan B que salta y cambio al mover los importes", () => {
+  const policy = (state, verdict) => ({ state, checks: [{ type: "cripto", amount: 150, verdict, lines: ["La política dice que no se compra cripto."] }] });
+  const cross = (rows, policyInput, planB) => Ladder.crossChecks({ ladder: P.crossLadder(rows), policy: policyInput, planB, fmt: (v) => `${v} €` });
+  const withCrypto = [{ id: "invest:fondo", amount: 200 }, { id: "invest:cripto", amount: 150 }];
+  const first = cross(withCrypto, policy("signed", "contradicts"), { state: "signed", status: "triggered" });
+  assert.equal(first.policy.level, "contradicts");
+  assert.match(first.policy.lines.join(" "), /150 € a .*cripto/i);
+  assert.equal(first.planB.level, "alert");
+  assert.match(first.planB.lines.join(" "), /350 €/, "el plan B ve lo que se manda a inversión editado");
+  const moved = cross([{ id: "invest:fondo", amount: 200 }, { id: "invest:cripto", amount: 0 }], { state: "signed", checks: [] }, { state: "signed", status: "ok" });
+  assert.equal(moved.policy.level, "unknown", "sin cripto ya no hay nada que contradiga, pero sin tipos que comprobar tampoco se dice «cumple»");
+  assert.equal(cross([{ id: "cushion", amount: 100 }], null, null).show, false, "sin política ni plan B no sale nada");
+});
+
+test("WP-47 PR-2 · la interfaz del reparto pinta el cruce sobre las filas editadas, sin guardar nada ni bloquear «Aplicar»", () => {
+  const ui = read("nomina-ui.js");
+  assert.match(ui, /\$\{status\}\$\{nominaCrossHtml\(rows\)\}/, "el cruce va justo bajo el estado del reparto, con las filas del editor");
+  const body = ui.slice(ui.indexOf("function nominaCrossHtml"), ui.indexOf("function nominaEditorHtml"));
+  assert.ok(body.length > 400, "se localizó la función");
+  assert.match(body, /crossLadder\(rows\)/);
+  assert.match(body, /crossChecks\(\{ ladder, \.\.\.proxEuroCrossInputs\(ladder\)/);
+  assert.doesNotMatch(body, /nominaStoreSave|storageSet|queueRemoteSave|disabled|nominaSetRows|nominaWorking\s*=/, "solo lee: no guarda, no cambia las filas y no desactiva nada");
+  assert.match(body, /«Aplicar» sigue disponible/);
+});

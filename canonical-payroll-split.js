@@ -258,9 +258,31 @@
     return { total, done, finished: total > 0 && done === total };
   }
 
+  /**
+   * WP-47 PR-2: las filas EDITADAS del reparto, en la forma que entiende el cruce con la política firmada y el plan B (`crossChecks` de WP-42): lo que va a inversión (por tipo de activo,
+   * si el reparto distingue tipos) y lo que va a pensión. Lo demás (colchón, deuda, «sin repartir») no se cruza con ninguna de las dos. Es una función pura: no toca las filas.
+   * @param {Array<Record<string, any>>} rows
+   */
+  function crossLadder(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    const amountOf = (row) => Math.max(0, round2(number(row && row.amount)));
+    const typed = list.filter((row) => text(row && row.id).startsWith("invest:"));
+    const single = list.find((row) => text(row && row.id) === "invest");
+    const split = typed.map((row) => ({ type: text(row.id).slice("invest:".length), amount: amountOf(row) })).filter((row) => row.type && row.amount > 0);
+    const investAmount = round2(typed.length ? typed.reduce((sum, row) => sum + amountOf(row), 0) : amountOf(single));
+    const pension = list.find((row) => text(row && row.id) === "pension");
+    return {
+      status: "ok",
+      rungs: [
+        { id: "invest", amount: investAmount, ...(typed.length ? { split: { calculable: true, rows: split } } : {}) },
+        { id: "pension", amount: amountOf(pension) },
+      ],
+    };
+  }
+
   return {
     SCHEMA_ID, DEFAULT_STEP, MAX_DRAFTS, GROUP_ORDER, isPayrollLabel,
     availableToSplit, rowsFromLadder, setRowAmount, moveAmount, resetRows, summarize, transferList,
-    normalizeStore, appliedSourceIds, makeDraft, addDraft, setTransferDone, discardDraft, hideSource, draftProgress, earmarkedAmount,
+    normalizeStore, appliedSourceIds, makeDraft, addDraft, setTransferDone, discardDraft, hideSource, draftProgress, earmarkedAmount, crossLadder,
   };
 });

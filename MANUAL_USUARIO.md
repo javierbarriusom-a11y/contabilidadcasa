@@ -473,6 +473,8 @@ Cuatro cosas que conviene saber:
 - **Lo apuntado en un borrador se descuenta del siguiente reparto** hasta que declaréis los saldos después de hacer las transferencias.
 - **La escalera de arriba tiene sus umbrales sin calibrar** (2 puntos de prima, 6 %, 30 % de tipo marginal) y la hoja los deja a un toque: leed el porqué de cada fila antes de aplicar.
 
+- **Si tenéis una política de inversión o un plan B guardados, el reparto se cruza con ellos** (bloque «Frente a vuestra política y vuestro plan B», bajo el estado del reparto). Se cruza **lo que vais dejando con los botones**, no lo sugerido: si mandáis dinero a un tipo de activo que vuestra política firmada excluye, o si el plan B salta mientras mandáis dinero a pensión o inversión, lo dice, y el aviso cambia al mover los importes. **Solo avisa**: no cambia el reparto y «Aplicar» sigue disponible. Una política o un plan sin firmar se marcan como borrador. Sin política ni plan B guardados, el bloque no sale.
+
 ### Patrimonio neto: serie y proyección (Inversión › Cartera)
 
 En **Inversión › Cartera**, sobre la tarjeta de calma, la tarjeta **«Patrimonio neto: serie y proyección»** responde a «¿cuánto tenemos, cómo ha evolucionado y hacia dónde va?». El **patrimonio neto** es **efectivo en cuentas + cartera de inversión + vivienda, local y otros activos − deuda pendiente**. Los activos que hayáis registrado en Activos como **cuenta, inversión o pensión no se suman**: el dinero ya entra por los saldos y por la cartera, y sumarlos lo contaría dos veces. La tarjeta los enumera por si falta alguno.
