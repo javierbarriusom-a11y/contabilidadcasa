@@ -146,3 +146,50 @@ test("WP-46 · el motor es puro: ni DOM, ni red, ni almacenamiento, ni reloj", (
   assert.doesNotMatch(source, /\b(document|window|localStorage|sessionStorage|fetch|XMLHttpRequest|indexedDB)\b/);
   assert.doesNotMatch(source, /new Date\(\)|Date\.now/);
 });
+
+// WP-46 PR-2 (docs/WP46_DISENO.md §6): la antigüedad del dato de cada componente. El patrimonio de un cierre heredaba sin avisar una valoración vieja.
+test("WP-46 PR-2 · buildSnapshot guarda la fecha de cada componente y no inventa las que faltan", () => {
+  const { snapshot } = N.buildSnapshot({ monthKey: "2026-10", closedAt: "2026-11-02T10:00:00Z", cash: 1000, portfolio: 500, assets: 2000, debt: 300, asOf: { cash: "2026-11-02", portfolio: "2026-09-01T00:00:00Z" } });
+  assert.deepEqual(snapshot.asOf, { cash: "2026-11-02", portfolio: "2026-09-01", assets: null }, "la fecha se recorta al día y la que no se pasó queda en null");
+  assert.deepEqual(N.buildSnapshot({ monthKey: "2026-10", cash: 1, portfolio: 1, assets: 1, debt: 0 }).snapshot.asOf, { cash: null, portfolio: null, assets: null });
+  assert.deepEqual(N.buildSnapshot({ monthKey: "2026-10", cash: 1, portfolio: 1, assets: 1, debt: 0, asOf: { cash: "mañana", portfolio: 42 } }).snapshot.asOf, { cash: null, portfolio: null, assets: null }, "una fecha mal formada no vale");
+});
+
+test("WP-46 PR-2 · componentAges: reciente, vieja y sin fecha; la deuda nunca se da por fechada; un componente sin importe no tiene nada que fechar", () => {
+  const ages = N.componentAges({ today: "2026-11-03", asOf: { cash: "2026-11-03", portfolio: "2026-09-01", assets: null } });
+  const by = Object.fromEntries(ages.map((row) => [row.id, row]));
+  assert.equal(by.cash.status, "fresh");
+  assert.equal(by.cash.ageDays, 0);
+  assert.equal(by.portfolio.status, "stale");
+  assert.equal(by.portfolio.ageDays, 63);
+  assert.equal(by.assets.status, "undated", "sin fecha no se supone reciente");
+  assert.equal(by.debt.status, "undated", "la deuda no guarda fecha");
+  const edge = N.componentAges({ today: "2026-11-03", asOf: { cash: "2026-09-29", portfolio: "2026-09-28", assets: "2026-11-04" } });
+  assert.equal(edge[0].status, "fresh", "35 días justos no es viejo");
+  assert.equal(edge[1].status, "stale", "36 días sí");
+  assert.equal(edge[2].status, "undated", "una fecha futura no se presenta como reciente");
+  const empty = N.componentAges({ today: "2026-11-03", asOf: { cash: "2026-11-03" }, values: { cash: 100, portfolio: 0, assets: null } });
+  assert.deepEqual(empty.map((row) => row.status), ["fresh", "none", "none", "undated"]);
+});
+
+test("WP-46 PR-2 · ageNotice: solo habla de lo viejo o sin fecha; si todo está al día no dice nada; no corrige la cifra", () => {
+  const ok = N.ageNotice(N.componentAges({ today: "2026-11-03", asOf: { cash: "2026-11-03", portfolio: "2026-11-01", assets: "2026-10-20" } }));
+  assert.deepEqual(ok, { show: false, lines: [], stale: [], undated: [] }, "la deuda sola (sin fecha) no dispara el aviso");
+  const bad = N.ageNotice(N.componentAges({ today: "2026-11-03", asOf: { cash: "2026-11-03", portfolio: "2026-09-01", assets: null } }), { dateLabel: (iso) => iso.split("-").reverse().join("/") });
+  assert.equal(bad.show, true);
+  assert.deepEqual(bad.stale, ["portfolio"]);
+  assert.deepEqual(bad.undated, ["assets"]);
+  assert.match(bad.lines[0], /Cartera de inversión: el dato más antiguo es del 01\/09\/2026 \(hace 63 días\)\./);
+  assert.match(bad.lines[1], /no sé de cuándo es el dato, así que no puedo decir si está al día/);
+  assert.equal(N.ageNotice(null).show, false);
+});
+
+test("WP-46 PR-2 · la interfaz pasa las fechas al cerrar y al enseñar hoy, y el aviso solo lee", () => {
+  const ui = fs.readFileSync(path.join(root, "patrimonio-ui.js"), "utf8");
+  assert.match(ui, /patrimonioComponents\(cash, String\(closedAt \|\| ""\)\.slice\(0, 10\)\)/, "al cerrar, el efectivo lleva la fecha del cierre");
+  assert.match(ui, /patrimonioOldestDate\(positions\.positions/, "la cartera lleva la fecha más antigua de sus posiciones");
+  const slice = ui.slice(ui.indexOf("function patrimonioAgeHtml"), ui.indexOf("function patrimonioTodayHtml"));
+  assert.ok(slice.length > 200);
+  assert.doesNotMatch(slice, /patrimonioSave|storageSet|queueRemoteSave|upsert/, "el aviso de antigüedad solo lee");
+  assert.match(slice, /La deuda no guarda la fecha de su último dato/);
+});

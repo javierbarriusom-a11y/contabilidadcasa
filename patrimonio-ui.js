@@ -39,7 +39,15 @@ function patrimonioGuard(fn, fallback = null) {
 }
 
 // Los componentes del patrimonio con lo que ya existe; lo que no se sabe va como null (dato ausente no es cero).
-function patrimonioComponents(cashOverride = undefined) {
+// La fecha más antigua de lo que entra en un componente (el eslabón más débil). Si alguna parte con valor no tiene fecha, devuelve null: no se supone reciente.
+function patrimonioOldestDate(rows, valueOf) {
+  const counted = rows.filter((row) => Number(valueOf(row)) > 0);
+  if (!counted.length) return null;
+  const dates = counted.map((row) => String(row.asOf || "").slice(0, 10));
+  return dates.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date)) ? null : dates.sort()[0];
+}
+
+function patrimonioComponents(cashOverride = undefined, cashDate = undefined) {
   const portfolioEngine = globalThis.FinanceCanonicalPortfolio;
   const assetsEngine = globalThis.FinanceCanonicalAssets;
   const positions = portfolioEngine ? patrimonioGuard(() => portfolioEngine.normalizePositions(iv1PositionsList()), null) : null;
@@ -50,6 +58,11 @@ function patrimonioComponents(cashOverride = undefined) {
   const sumOf = (types) => rows.filter((row) => types.includes(row.type)).reduce((sum, row) => sum + Number(row.value || 0), 0);
   return {
     cash,
+    asOf: {
+      cash: String(cashDate !== undefined ? cashDate : patrimonioGuard(() => state?.balanceDate, "") || "").slice(0, 10) || null,
+      portfolio: positions ? patrimonioOldestDate(positions.positions, (row) => row.currentValue) : null,
+      assets: assets ? patrimonioOldestDate(rows.filter((row) => ["inmueble", "vehiculo", "alternativo", "otro"].includes(row.type)), (row) => row.value) : null,
+    },
     portfolio: positions ? positions.summary.totalValue : null,
     portfolioIlliquid: positions ? Number(positions.summary.totalsByType["plan-pension"] || 0) : null,
     assets: assets ? sumOf(["inmueble", "vehiculo", "alternativo", "otro"]) : null,
@@ -64,7 +77,7 @@ function recordPatrimonioSnapshot(monthKey, closedAt, closeBalances) {
     const engine = patrimonioEngine();
     if (!engine) return false;
     const cash = closeBalances && Number.isFinite(Number(closeBalances.total)) ? Number(closeBalances.total) : null;
-    const result = engine.buildSnapshot({ monthKey, closedAt, ...patrimonioComponents(cash) });
+    const result = engine.buildSnapshot({ monthKey, closedAt, ...patrimonioComponents(cash, String(closedAt || "").slice(0, 10)) });
     if (!result.calculable) return false;
     const data = patrimonioLoad();
     patrimonioSave({ ...data, snapshots: engine.upsert(data.snapshots, result.snapshot) });
@@ -81,6 +94,14 @@ function patrimonioMonthLabel(key) {
 function patrimonioShortMonth(key) {
   const date = typeof dateFromMonthKey === "function" ? dateFromMonthKey(key) : null;
   return date ? date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" }) : String(key || "");
+}
+
+// WP-46 PR-2 (docs/WP46_DISENO.md §6): la antigüedad del dato de cada componente. El patrimonio hereda sin avisar una valoración vieja; aquí se avisa. Solo lee.
+function patrimonioAgeHtml(engine, source, today, intro) {
+  const ages = engine.componentAges({ today, asOf: source.asOf, values: { cash: source.cash, portfolio: source.portfolio, assets: source.assets } });
+  const notice = engine.ageNotice(ages, { dateLabel: (iso) => iso.split("-").reverse().join("/") });
+  if (!notice.show) return "";
+  return `<div class="pat-aviso" role="note" data-patrimonio-antiguedad><p><strong>${escapeHtml(intro)}</strong></p><ul class="pat-lista">${notice.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul><p class="e19-kpi-note">La deuda no guarda la fecha de su último dato, así que no puedo decir su antigüedad. Más de ${engine.STALE_DAYS} días cuenta como viejo (margen mío, sin calibrar).</p></div>`;
 }
 
 function patrimonioTodayHtml(engine, now) {
@@ -100,7 +121,8 @@ function patrimonioTodayHtml(engine, now) {
   const estimated = applied.length
     ? `<p class="e19-kpi-note"><strong>Incluye ${applied.length} inmueble${applied.length === 1 ? "" : "s"} con valor estimado por índice</strong> (${applied.map((row) => `«${escapeHtml(row.label)}» ${row.delta >= 0 ? "+" : "−"}${patrimonioEuros(Math.abs(row.delta))} frente a lo declarado`).join("; ")}). Es una estimación, no una tasación; se desactiva en «Vivienda y local por índice».</p>`
     : "";
-  return `${head}<ul class="pat-lista">${lines}</ul>${estimated}${excluded}`;
+  const ageNote = patrimonioAgeHtml(engine, now, isoLocalDate(new Date()), "Ojo con lo antiguo de algunos datos: el patrimonio de hoy puede no ser el de hoy.");
+  return `${head}<ul class="pat-lista">${lines}</ul>${ageNote}${estimated}${excluded}`;
 }
 
 function patrimonioSeriesHtml(engine, data) {
@@ -108,9 +130,14 @@ function patrimonioSeriesHtml(engine, data) {
   if (!series.all.length) {
     return estadoHtml({ kind: "vacio", titulo: "Todavía no hay ninguna foto del patrimonio", texto: "Al firmar el cierre del mes, la app guarda el patrimonio de ese día. Con 3 cierres completos dibuja la serie." });
   }
+  const latest = series.all[series.all.length - 1];
+  const closedDay = String(latest.closedAt || "").slice(0, 10);
+  const ageHtml = latest.asOf && closedDay
+    ? patrimonioAgeHtml(engine, latest, closedDay, `El patrimonio de ${patrimonioMonthLabel(latest.monthKey)} usa datos antiguos: el cambio con el cierre anterior mezcla lo que hizo el mercado con lo viejo del dato.`)
+    : "";
   const rows = series.all.map((s) => `<li>${escapeHtml(patrimonioMonthLabel(s.monthKey))}: <strong>${s.net === null ? `incompleto (falta ${escapeHtml(s.missing.join(" y "))})` : patrimonioEuros(s.net)}</strong></li>`).join("");
   if (!series.enough) {
-    return `${estadoHtml({ kind: "vacio", titulo: "Todavía no hay serie", texto: `Hacen falta ${series.need} cierres completos y llevas ${series.have}${series.incomplete ? ` (y ${series.incomplete} incompleto${series.incomplete === 1 ? "" : "s"})` : ""}.` })}<ul class="pat-lista">${rows}</ul>`;
+    return `${estadoHtml({ kind: "vacio", titulo: "Todavía no hay serie", texto: `Hacen falta ${series.need} cierres completos y llevas ${series.have}${series.incomplete ? ` (y ${series.incomplete} incompleto${series.incomplete === 1 ? "" : "s"})` : ""}.` })}<ul class="pat-lista">${rows}</ul>${ageHtml}`;
   }
   const kit = globalThis.ChartKit;
   const points = series.complete;
@@ -125,7 +152,7 @@ function patrimonioSeriesHtml(engine, data) {
     xs: plot.xs, sliderLabel: "Recorrer el patrimonio neto cierre a cierre",
     table: { caption: "Patrimonio neto por cierre", columns: ["Cierre", "Neto", "Efectivo", "Cartera", "Activos", "Deuda"], rows: points.map((s) => [patrimonioMonthLabel(s.monthKey), patrimonioEuros(s.net), patrimonioEuros(s.cash), patrimonioEuros(s.portfolio), patrimonioEuros(s.assets), patrimonioEuros(s.debt)]) },
   });
-  return `<p class="ck-frase">${escapeHtml(sentence)}</p>${figure}${moveHtml}`;
+  return `<p class="ck-frase">${escapeHtml(sentence)}</p>${figure}${moveHtml}${ageHtml}`;
 }
 
 function patrimonioProjectionInput(data, now) {

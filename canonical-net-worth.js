@@ -22,12 +22,14 @@
   const MIN_SERIES = 3;
   const MAX_SNAPSHOTS = 120;
   const MAX_HORIZON_MONTHS = 240;
+  const STALE_DAYS = 35; // el mismo margen que la valoración de la cartera (WP-44 y WP-45); decisión mía, sin calibrar con un cierre real
 
   const number = (value, fallback = 0) => (Number.isFinite(Number(value)) && value !== "" && value !== null && value !== undefined ? Number(value) : fallback);
   const known = (value) => value !== "" && value !== null && value !== undefined && Number.isFinite(Number(value));
   const round2 = (value) => Math.round((number(value) + Number.EPSILON) * 100) / 100;
   const text = (value) => String(value ?? "").trim();
   const isMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(text(value));
+  const isoDate = (value) => (/^\d{4}-\d{2}-\d{2}/.test(text(value)) ? text(value).slice(0, 10) : "");
 
   /** @param {string} monthKey @param {number} months */
   function addMonths(monthKey, months) {
@@ -45,9 +47,9 @@
 
   /**
    * La foto del patrimonio. Cada componente es un número o null (no se sabe); `net` solo existe si se conocen los cuatro.
-   * @param {{monthKey?: string, closedAt?: string, cash?: number|null, portfolio?: number|null, portfolioIlliquid?: number|null, assets?: number|null, debt?: number|null, excludedAssets?: Array<{label?: string, type?: string, value?: number}>}} [params]
+   * @param {{monthKey?: string, closedAt?: string, cash?: number|null, portfolio?: number|null, portfolioIlliquid?: number|null, assets?: number|null, debt?: number|null, excludedAssets?: Array<{label?: string, type?: string, value?: number}>, asOf?: {cash?: string|null, portfolio?: string|null, assets?: string|null}|null}} [params]
    */
-  function buildSnapshot({ monthKey = "", closedAt = "", cash = null, portfolio = null, portfolioIlliquid = null, assets = null, debt = null, excludedAssets = [] } = {}) {
+  function buildSnapshot({ monthKey = "", closedAt = "", cash = null, portfolio = null, portfolioIlliquid = null, assets = null, debt = null, excludedAssets = [], asOf = null } = {}) {
     if (!isMonth(monthKey)) return { calculable: false, reason: "Falta el mes de la foto." };
     const parts = { cash: known(cash) ? round2(cash) : null, portfolio: known(portfolio) ? round2(portfolio) : null, assets: known(assets) ? round2(assets) : null, debt: known(debt) ? round2(Math.max(0, number(debt))) : null };
     const missing = COMPONENTS.filter((component) => parts[component.id] === null).map((component) => component.label.toLowerCase());
@@ -57,6 +59,7 @@
       snapshot: {
         schemaId: SCHEMA_ID, monthKey, closedAt: text(closedAt), ...parts, net, missing,
         portfolioIlliquid: known(portfolioIlliquid) ? round2(portfolioIlliquid) : null,
+        asOf: { cash: isoDate(asOf && asOf.cash) || null, portfolio: isoDate(asOf && asOf.portfolio) || null, assets: isoDate(asOf && asOf.assets) || null },
         excludedAssets: (Array.isArray(excludedAssets) ? excludedAssets : []).slice(0, 12).map((row) => ({ label: text(row && row.label).slice(0, 60), type: text(row && row.type), value: round2(row && row.value) })),
       },
     };
@@ -156,5 +159,49 @@
     });
   }
 
-  return { SCHEMA_ID, MIN_SERIES, MAX_SNAPSHOTS, COMPONENTS, SCENARIO_IDS, addMonths, buildSnapshot, normalizeStore, upsert, series, movement, project, fan };
+
+  function daysBetween(fromIso, toIso) {
+    const from = Date.parse(`${fromIso}T00:00:00Z`);
+    const to = Date.parse(`${toIso}T00:00:00Z`);
+    return Number.isFinite(from) && Number.isFinite(to) ? Math.round((to - from) / 86400000) : null;
+  }
+
+  /**
+   * Cuántos días tiene el dato de cada componente. La deuda no guarda fecha y se dice, no se supone fresca; una fecha futura o ausente no se presenta como «reciente».
+   * `asOf` es la fecha MÁS ANTIGUA de lo que entra en el componente (el eslabón más débil), o null si alguna parte no tiene fecha.
+   * Si se pasan los importes (`values`), un componente sin importe (0 o desconocido) no tiene nada que fechar y queda en «none».
+   * @param {{today?: string, asOf?: {cash?: string|null, portfolio?: string|null, assets?: string|null}|null, values?: {cash?: number|null, portfolio?: number|null, assets?: number|null}|null, staleDays?: number}} [params]
+   * @returns {Array<{id: string, label: string, asOf: string|null, ageDays: number|null, status: "fresh"|"stale"|"undated"|"none"}>}
+   */
+  function componentAges({ today = "", asOf = null, values = null, staleDays = STALE_DAYS } = {}) {
+    const now = isoDate(today);
+    return COMPONENTS.map((component) => {
+      if (values && component.id !== "debt" && !(known(values[component.id]) && number(values[component.id]) !== 0)) return { id: component.id, label: component.label, asOf: null, ageDays: null, status: "none" };
+      const date = component.id === "debt" ? "" : isoDate(asOf && asOf[component.id]);
+      const age = date && now ? daysBetween(date, now) : null;
+      const usable = age !== null && age >= 0;
+      return { id: component.id, label: component.label, asOf: date || null, ageDays: usable ? age : null, status: !usable ? "undated" : age > staleDays ? "stale" : "fresh" };
+    });
+  }
+
+  /**
+   * El aviso de antigüedad de un patrimonio (el de hoy o el de una foto al cerrar). Solo habla de lo que está viejo o sin fecha entre cartera, activos y efectivo; si todo tiene fecha
+   * y es reciente no dice nada (y la deuda, que no guarda fecha, se nombra solo en una línea aparte que pone la tarjeta). Nunca corrige la cifra: solo avisa de que puede no ser la de hoy.
+   * @param {Array<{id: string, label: string, asOf: string|null, ageDays: number|null, status: string}>} ages lo que devuelve `componentAges`
+   * @param {{dateLabel?: (iso: string) => string, subject?: string}} [options]
+   * @returns {{show: boolean, lines: string[], stale: string[], undated: string[]}}
+   */
+  function ageNotice(ages, options = {}) {
+    const dateLabel = typeof options.dateLabel === "function" ? options.dateLabel : (iso) => iso;
+    const rows = (Array.isArray(ages) ? ages : []).filter((row) => row && row.id !== "debt");
+    const stale = rows.filter((row) => row.status === "stale");
+    const undated = rows.filter((row) => row.status === "undated");
+    const lines = [
+      ...stale.map((row) => `${row.label}: el dato más antiguo es del ${dateLabel(row.asOf)} (hace ${row.ageDays} días).`),
+      ...undated.map((row) => `${row.label}: no sé de cuándo es el dato, así que no puedo decir si está al día.`),
+    ];
+    return { show: lines.length > 0, lines, stale: stale.map((row) => row.id), undated: undated.map((row) => row.id) };
+  }
+
+  return { SCHEMA_ID, MIN_SERIES, MAX_SNAPSHOTS, STALE_DAYS, COMPONENTS, SCENARIO_IDS, addMonths, buildSnapshot, normalizeStore, upsert, series, movement, project, fan, componentAges, ageNotice };
 });

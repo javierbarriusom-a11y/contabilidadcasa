@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 14 de octubre de 2026 (309, segundo PR): WP-46 · segunda entrega (antigüedad por componente del patrimonio)
+
+- **Qué se hizo:** el riesgo que `docs/WP46_DISENO.md` §4 dejaba apuntado: el patrimonio de un cierre **heredaba sin avisar** una valoración de cartera de hace más de 35 días. `componentAges` y `ageNotice` en el motor puro (`canonical-net-worth.js`); la foto de cada cierre guarda ahora la fecha de cada componente (`asOf`); `patrimonio-ui.js` (`patrimonioAgeHtml`) avisa en «hoy» y bajo la serie. `app.js` no se toca.
+- **Reglas con prueba:** fecha ausente o futura no es reciente («sin fecha»); 35 días justos no es viejo, 36 sí; un componente sin importe no tiene nada que fechar; si todo está al día **no sale nada**; la deuda, que no guarda fecha, no dispara el aviso por sí sola y se dice; **no corrige la cifra**; solo lee; las fotos antiguas sin `asOf` no avisan (no se inventa la fecha).
+- **Lo que NO cierra (y por qué sigue «en curso» al 50 %):** **no hay ningún cierre real** (el primero, 1-3/11); **los 35 días son un margen mío, sin calibrar** (un hogar que valore cada trimestre lo vería casi siempre en aviso); «el más antiguo» avisa de toda una cartera por una sola posición vieja; la antigüedad de la deuda y de cada inmueble con índice sigue sin estar; la barra de «mercado» del puente (cambia lo que se guarda; se consulta), los hitos de jubilación y de objetivos de ahorro, las aportaciones futuras de la política y los impuestos latentes siguen pendientes.
+- **Comprobado que las pruebas detectan el fallo:** en el sitio construido y minificado (`dist/canonical-net-worth.js`), cambiar `show:u.length>0` por `show:false` hace que la prueba de navegador del aviso falle en `toBeVisible`; restaurado después.
+- **No cambia el estado del paquete (sigue «en curso», 50 %) ni el avance del plan (61,4 %).** `canonical-*.js`: 110.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 5939/5939 (+4 respecto a 5935), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. E2E 102/102 (+1), axe 81/81, rendimiento por pantallas 3/3 (ejecutados por bloques tras los reinicios de la máquina).
+
 ## Cierre de sesión — 14 de octubre de 2026 (309, primer PR): WP-44 · segunda entrega (el aviso de calma en caídas en Cierre)
 
 - **Qué se hizo:** lo que `docs/WP44_DISENO.md` §5 dejaba pendiente y no tocaba datos del hogar. `closeNotice` en el motor puro (`canonical-calm-coverage.js`), `renderCalmaAviso` en `calma-ui.js` (comparte con la tarjeta el cálculo `calmaDrawdownState`, para que no puedan discrepar), una línea en `views/cierre.js` y una tarjeta oculta `#calmaAviso` en `index.html`. El botón lleva a Inversión › Cartera. `app.js` no se toca.

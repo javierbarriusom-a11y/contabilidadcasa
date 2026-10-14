@@ -1,6 +1,6 @@
 # WP-46 · Patrimonio neto: serie y proyección — diseño
 
-Paquete del plan definitivo (NPV-10, Ola 3, ≈ 5 sesiones: el mayor de la ola). **Primera entrega el 10/10/2026.** Estado: **en curso**. Están la definición del patrimonio, la foto en cada cierre, la serie con su «de dónde viene el cambio» y la proyección a 10 años en tres escenarios con hitos; **falta la mayor parte de lo que haría de esto una herramienta de decisión** (§3) y **no hay ninguna serie real todavía**: la primera foto es la del cierre de octubre (1-3/11) y con 3 cierres completos aparece la serie (enero).
+Paquete del plan definitivo (NPV-10, Ola 3, ≈ 5 sesiones: el mayor de la ola). **Primera entrega el 10/10/2026; segunda (antigüedad por componente) el 14/10/2026.** Estado: **en curso**. Están la definición del patrimonio, la foto en cada cierre, la serie con su «de dónde viene el cambio» y la proyección a 10 años en tres escenarios con hitos; **falta la mayor parte de lo que haría de esto una herramienta de decisión** (§3) y **no hay ninguna serie real todavía**: la primera foto es la del cierre de octubre (1-3/11) y con 3 cierres completos aparece la serie (enero).
 
 ## 1. Qué hace
 
@@ -45,7 +45,33 @@ No cambia ningún dato (A11-4): una prueba comprueba que la cartera no se toca. 
 ## 5. Pendiente
 
 - **Barra de «mercado»** del puente de previsión (WP-43) con la serie de la cartera, y **toque en un punto para ver qué lo explica**.
-- **Aviso de antigüedad por componente** (WP-50 para vivienda y local; WP-45 ya tiene la frescura de la cartera).
+- **Antigüedad de la deuda** (no guarda la fecha de su último dato) y de cada inmueble con su índice (WP-50). La antigüedad de cartera, activos y efectivo ya está (§6).
 - **Hitos de objetivos de ahorro y de jubilación (GOB11)**; **impuestos latentes (NIN-07, tras esta serie)**.
 - **Aportaciones futuras a la cartera** (política de WP-39) en la proyección.
 - Del hogar: **cerrar octubre, noviembre y diciembre desde la app** (la serie aparece con el tercero), **declarar la TAE de cada contrato** (para que haya «deuda cero») y **teclear los tres escenarios**.
+
+## 6. Segunda entrega (14/10/2026): antigüedad por componente
+
+**Qué hace.** El riesgo que §4 dejaba apuntado: el patrimonio de un cierre **heredaba sin avisar** una valoración de la cartera de hace más de 35 días. Ahora cada componente lleva su fecha y la tarjeta avisa:
+
+- **Hoy:** si la cartera, los activos o los saldos tienen un dato de más de **35 días**, o no se sabe de cuándo es, un aviso bajo las cifras lo nombra con la fecha («el dato más antiguo es del 01/09/2026, hace 63 días»). Para cada componente se toma la fecha **más antigua** de lo que lo forma (el eslabón más débil); si alguna parte con valor **no tiene fecha**, el componente se da por «sin fecha», no por reciente.
+- **En la foto de cada cierre:** la foto guarda ahora la fecha de cada componente (`asOf`: el efectivo, la del cierre; la cartera y los activos, la más antigua de sus posiciones) y, bajo la serie, la tarjeta avisa de que **el patrimonio de ese cierre usa datos antiguos y el cambio con el cierre anterior mezcla lo que hizo el mercado con lo viejo del dato**.
+
+Motor: `componentAges` y `ageNotice` en `canonical-net-worth.js` (puros); la interfaz (`patrimonio-ui.js › patrimonioAgeHtml`) solo lee. `app.js` no se toca.
+
+**Reglas con prueba** (`tests/wp46-patrimonio.test.cjs`, 16 pruebas; e2e «WP-46 · antigüedad por componente del patrimonio»):
+
+- **Fecha ausente no es reciente**, y una fecha futura tampoco: ambas quedan «sin fecha».
+- **35 días justos no es viejo; 36, sí.**
+- **Un componente sin importe (0 o desconocido) no tiene nada que fechar** y no avisa.
+- **Si todo está al día no sale nada.** La deuda, que no guarda fecha, **no dispara el aviso por sí sola**; cuando el aviso sale, se dice en una línea que no puedo decir su antigüedad.
+- **No corrige la cifra**: solo dice que puede no ser la de hoy. Solo lee: no guarda ni cambia nada.
+- **Compatibilidad:** las fotos que ya existieran sin `asOf` no avisan (no se inventa la fecha de lo que no se guardó). Hoy no hay ninguna foto real, así que no hay nada que migrar.
+
+**Decisiones mías, a cuestionar.**
+
+1. **35 días como límite** es el margen de la valoración de la cartera (WP-44 y WP-45); un hogar que valore cada trimestre lo vería casi siempre en aviso. Sin cierre real con el que calibrarlo.
+2. **«El más antiguo» castiga al conjunto por su eslabón más débil**: una sola posición vieja entre diez avisa de toda la cartera. Es lo prudente, pero puede avisar de más.
+3. **El efectivo de «hoy» toma la fecha de los saldos de la app**, que puede ser una fecha calculada y no tecleada: la antigüedad dice cuándo es el dato, no si es real.
+
+**Lo que sigue sin estar** (por eso el paquete sigue «en curso» al 50 %): ningún cierre real todavía (el primero, 1-3/11), la barra de «mercado» del puente (cambia lo que se guarda en las fotos del puente; se consulta), hitos de jubilación y de objetivos de ahorro, aportaciones futuras de la política en la proyección, impuestos latentes y la antigüedad de la deuda y de cada inmueble con índice.
