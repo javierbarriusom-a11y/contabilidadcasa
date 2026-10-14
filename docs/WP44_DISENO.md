@@ -1,6 +1,6 @@
 # WP-44 · Calma, cobertura y exposición — diseño
 
-Paquete del plan definitivo (CAR-02 + CAR-05 + CAR-06, Ola 3, ≈ 3,5 sesiones). **Primera entrega el 10/10/2026.** Estado: **en curso**. Están las tres lecturas con su motor y su tarjeta; **faltan partes que el plan pide y que hoy no se pueden hacer con honestidad** (§3) y **ninguna se ha visto con datos reales**: hoy hay 0 valoraciones de la cartera, y sin 3 no hay caída que medir.
+Paquete del plan definitivo (CAR-02 + CAR-05 + CAR-06, Ola 3, ≈ 3,5 sesiones). **Primera entrega el 10/10/2026; segunda (aviso en Cierre) el 14/10/2026.** Estado: **en curso**. Están las tres lecturas con su motor y su tarjeta; **faltan partes que el plan pide y que hoy no se pueden hacer con honestidad** (§3) y **ninguna se ha visto con datos reales**: hoy hay 0 valoraciones de la cartera, y sin 3 no hay caída que medir.
 
 ## 1. Qué hace
 
@@ -46,5 +46,24 @@ La tarjeta **«Calma, cobertura y exposición»** en **Inversión › Cartera**,
 - **Fondos y seguros por entidad:** un campo «entidad» en las posiciones.
 - **Evolución de la cobertura** (foto en cada cierre) y fecha estimada de los hitos.
 - **Caídas históricas con fuente** (elegir y citar una).
-- **Aviso en Cierre** si la caída pasa de un nivel; en Hoy, tras H-02. Enlazar con el plan B (WP-38) y con la política (WP-39: nota de motivo al vender en caída).
+- **Aviso en Hoy**, tras H-02 (en Cierre ya está, §6). Enlazar con el plan B (WP-38) y con la política (WP-39: nota de motivo al vender en caída).
 - Del hogar: **valorar la cartera** (Actualizar valoración, 1-3/11, y los meses siguientes) y **declarar la tasa de retirada** y los **titulares** de cada cuenta.
+
+## 6. Segunda entrega (14/10/2026): el aviso en Cierre
+
+**Qué hace.** Al abrir **Cierre**, si hay serie (≥ 3 valoraciones completas) **y la caída medida en mercado ha alcanzado el primer nivel** (20 %), aparece una tarjeta «Calma en caídas»: el porcentaje bajo el máximo, cuánto ha restado el mercado **sin contar lo que habéis aportado o vendido**, el nivel que se pasó (20 % o 35 %), a cuántos meses de aportación equivale (si hay aportación mensual), **lo que dice vuestra política firmada para ese nivel** y, si la última valoración tiene más de 35 días, un aviso de que la cifra puede no ser la de hoy. Un botón lleva a **Inversión › Cartera**. Motor puro: `closeNotice` en `canonical-calm-coverage.js`; pintado en `calma-ui.js › renderCalmaAviso`, que comparte con la tarjeta el mismo cálculo (`calmaDrawdownState`) para que nunca discrepen; una línea en `views/cierre.js`. `app.js` no se toca.
+
+**Reglas con prueba** (`tests/wp44-calma-cobertura.test.cjs`, 18 pruebas; e2e «WP-44 · aviso de calma en Cierre»):
+
+- **Sin serie, sin caída o por debajo del primer nivel no sale nada.** Ni «todo bien» ni «faltan datos» (eso ya lo dice la tarjeta de Inversión › Cartera).
+- **Nunca recomienda vender ni comprar**: da la cifra y lo que *vosotros* acordasteis.
+- **Sin política firmada no se inventa el acuerdo**: dice que no hay y que, antes de tocar nada, lo hablen las dos personas. Una política sin firmar no cuenta como acuerdo aunque tenga una acción escrita.
+- **Solo lee**: ni guarda ni toca la cartera ni las valoraciones (una prueba lo comprueba en el código y el e2e comprueba que las tres valoraciones siguen).
+
+**Decisiones mías, a cuestionar.**
+
+1. **El umbral es el primer nivel (20 %)**, el mismo de la política; no hay un cierre real con el que decidir si avisar antes o después.
+2. **El aviso sale en cada apertura de Cierre mientras la caída siga por encima del 20 %**, también si ya lo habéis visto. Si molesta, el paso siguiente es recordar cuál se vio (guarda estado: lo consultaría).
+3. **Solo mira la caída.** No incluye cobertura ni depósitos: sin datos del hogar no hay umbral con sentido para ellos, y un aviso por una cifra inventada es peor que ninguno.
+
+**Lo que sigue sin estar** (por eso el paquete sigue «en curso» al 50 %): **hoy no puede salir** (0 valoraciones; hacen falta 3, y la primera es la del 1-3/11); fondos y seguros por entidad (**un campo «entidad» en las posiciones: cambia datos del hogar, se consulta antes**); evolución de la cobertura (foto en cada cierre: guarda datos nuevos, se consulta); caídas históricas con fuente (no se inventa); aviso en Hoy, tras H-02.

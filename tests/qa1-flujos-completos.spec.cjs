@@ -4680,3 +4680,65 @@ test.describe("WP-43 · aviso del puente en Cierre", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// WP-44 PR-2 (docs/WP44_DISENO.md §6): el aviso de calma en caídas en Cierre. Sin serie o con una caída por debajo del primer nivel no sale nada; con una caída de nivel 2 dice la cifra, lo que falta
+// de política firmada, y su botón lleva a Inversión › Cartera. Una cartera de un fondo con tres valoraciones INVENTADAS (1.000 → 1.200 → último valor), sin aportaciones, sembradas con el motor real.
+test.describe("WP-44 · aviso de calma en Cierre", () => {
+  const seed = (page, { last }) => page.evaluate(({ last: lastValue }) => {
+    const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+    scenarioSettings.portfolioPositions = [{ id: "cal-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: lastValue, asOf: iso(-10), acquisitionDate: iso(-400), provenance: "declared", contributions: [] }];
+    saveScenarioSettings();
+    savePortfolioValuations({ valuations: [
+      { date: iso(-100), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1000, cost: 1000 }] },
+      { date: iso(-40), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1200, cost: 1000 }] },
+      { date: iso(-10), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: lastValue, cost: 1000 }] },
+    ], timings: [] });
+    renderCierre();
+    return loadPortfolioValuations().valuations.length;
+  }, { last });
+  const aviso = (page) => page.locator("#calmaAviso");
+  const openCierre = async (page) => {
+    await page.goto("/index.html#cierre");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+  };
+
+  test("sin serie no sale nada; una caída por debajo del primer nivel tampoco; una de nivel 2 dice la cifra y la falta de política; el botón lleva a la tarjeta; sin diálogos ni desbordes", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    const dialogs = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await openCierre(page);
+      await expect(aviso(page), "sin valoraciones no hay serie ni aviso").toBeHidden();
+
+      expect(await seed(page, { last: 1100 })).toBe(3);
+      await expect(aviso(page), "una caída del 8,3 % no llega al primer nivel (20 %): no sale en Cierre").toBeHidden();
+
+      await seed(page, { last: 700 });
+      await expect(aviso(page)).toBeVisible();
+      await expect(aviso(page).locator("[data-calma-aviso-nivel]")).toHaveAttribute("data-calma-aviso-nivel", "alert");
+      await expect(aviso(page)).toContainText("La cartera está un 41,7 % por debajo de su máximo");
+      await expect(aviso(page)).toContainText("ha restado 500,00 €");
+      await expect(aviso(page)).toContainText("sin contar lo que habéis aportado o vendido");
+      await expect(aviso(page)).toContainText("No hay una política de inversión firmada");
+      await expect(aviso(page)).not.toContainText(/todo bien|sin problema/i);
+      await expect(aviso(page).locator("button")).toHaveCount(1);
+      const outside = await aviso(page).evaluate((node) => [...node.querySelectorAll("*")].filter((el) => { const r = el.getBoundingClientRect(); const c = node.getBoundingClientRect(); return r.width > 0 && (r.right > c.right + 1 || r.left < c.left - 1); }).map((el) => el.tagName));
+      expect(outside, `elementos fuera de la tarjeta: ${outside.join(", ")}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+
+      // El aviso solo lee: las valoraciones guardadas siguen siendo las tres.
+      expect(await page.evaluate(() => loadPortfolioValuations().valuations.length)).toBe(3);
+
+      await aviso(page).locator("[data-calma-aviso-ver]").click();
+      await expect(page.locator("#calmaCard")).toBeVisible({ timeout: 15000 });
+      expect(new URL(page.url()).hash).toBe("#inversion-cartera");
+    }
+    expect(dialogs, "ningún diálogo nativo").toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

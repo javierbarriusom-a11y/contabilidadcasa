@@ -1184,6 +1184,7 @@ function renderCierre() {
   globalThis.renderPlanBAviso?.(window.FinanceCanonicalContingencyPlan); // WP-38 PR-2 (contingencia-ui.js)
   globalThis.renderSombraAviso?.(window.FinanceCanonicalShadowDebt); // WP-41 PR-2 (sombra-ui.js)
   globalThis.renderPuenteAviso?.(window.FinanceCanonicalForecastBridge); // WP-43 PR-2 (puente-ui.js)
+  globalThis.renderCalmaAviso?.(window.FinanceCanonicalCalmCoverage); // WP-44 PR-2 (calma-ui.js)
 
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");

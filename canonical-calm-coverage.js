@@ -160,5 +160,26 @@
     return { limit, rows, total: round2(rows.reduce((sum, row) => sum + row.balance, 0)), anyOver: rows.some((row) => row.status === "over"), anyUnknown: rows.some((row) => row.status === "unknown-holders") };
   }
 
-  return { SCHEMA_ID, MIN_VALUATIONS, STALE_DAYS, DEFAULT_LEVELS, DEPOSIT_LIMIT, MAX_WITHDRAWAL_PCT, MILESTONES, LIQUID_TYPES, netFlows, portfolioSeries, calmDrawdown, coverage, depositExposure };
+  /**
+   * WP-44 PR-2: el aviso que va a Cierre. Solo sale si hay serie (≥ 3 valoraciones completas) Y la caída medida en mercado ha alcanzado el primer nivel; en cualquier otro caso no dice nada
+   * (ni «todo bien» ni «faltan datos»: eso ya lo dice la tarjeta de Inversión › Cartera). Nunca recomienda nada: da la cifra y lo que dice la política FIRMADA; sin política firmada no se inventa
+   * qué acordasteis. Si la última valoración es antigua, lo dice.
+   * @param {any} result lo que devuelve `calmDrawdown`
+   * @param {{signed?: boolean, policyAction?: string, euros?: (value: number) => string, dateLabel?: (iso: string) => string}} [options]
+   * @returns {{show: boolean, level?: string, icon?: string, title?: string, lines?: string[]}}
+   */
+  function closeNotice(result, options = {}) {
+    if (!result || result.status !== "ok" || !(result.level >= 1) || !(result.drawdownAmount < 0)) return { show: false };
+    const euros = typeof options.euros === "function" ? options.euros : (value) => `${round2(value)} €`;
+    const dateLabel = typeof options.dateLabel === "function" ? options.dateLabel : (iso) => iso;
+    const pct = String(Math.abs(result.drawdownPct)).replace(".", ",");
+    const lines = [`Desde el máximo (${dateLabel(result.peakDate)}) el mercado ha restado ${euros(Math.abs(result.drawdownAmount))}, sin contar lo que habéis aportado o vendido. Se pasó el nivel del ${result.levels[result.level - 1]} %.`];
+    if (result.monthsOfContribution !== null) lines.push(`Equivale a ${String(result.monthsOfContribution).replace(".", ",")} meses de aportación.`);
+    if (options.signed === true && text(options.policyAction)) lines.push(`Lo que acordasteis en la política para este nivel: ${text(options.policyAction)}.`);
+    else lines.push("No hay una política de inversión firmada que diga qué hacer en este nivel: antes de tocar nada, hablarlo las dos personas.");
+    if (result.stale) lines.push(`Ojo: la última valoración es del ${dateLabel(result.lastDate)} (hace ${result.ageDays} días). Si el mercado se ha movido desde entonces, esta cifra no es la de hoy.`);
+    return { show: true, level: result.level >= 2 ? "alert" : "watch", icon: "▼", title: `La cartera está un ${pct} % por debajo de su máximo`, lines };
+  }
+
+  return { SCHEMA_ID, MIN_VALUATIONS, STALE_DAYS, DEFAULT_LEVELS, DEPOSIT_LIMIT, MAX_WITHDRAWAL_PCT, MILESTONES, LIQUID_TYPES, netFlows, portfolioSeries, calmDrawdown, coverage, depositExposure, closeNotice };
 });

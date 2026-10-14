@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-14-wp44b",
+      fecha: "2026-10-14",
+      texto: "Cierre: si la cartera cae un 20 % o más desde su máximo, lo avisa con calma y recuerda lo que acordasteis.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-13-wp43b",
       fecha: "2026-10-13",
       texto: "Cierre: si la previsión de fin de año cambia mucho desde el cierre anterior, ahora lo avisa y lleva al puente.",

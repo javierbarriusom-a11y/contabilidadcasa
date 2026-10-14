@@ -57,3 +57,25 @@
   color: var(--e19-ink);
   font-weight: 600;
 }
+
+/* WP-44 PR-2 · aviso de calma en Cierre. El nivel no se distingue solo por color: lleva icono (▼), título y un borde de grosor distinto. */
+.cal-aviso-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cal-aviso-estado {
+  padding-left: 10px;
+  border-left: 6px solid var(--e19-ink);
+}
+
+.cal-aviso-estado[data-calma-aviso-nivel="alert"] {
+  border-left-width: 10px;
+}
+
+.cal-aviso-card .cal-ver {
+  color: var(--e19-ink);
+  text-decoration: underline;
+  min-height: 44px;
+  padding: 0 6px;
+}

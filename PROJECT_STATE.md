@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 14 de octubre de 2026 (309, primer PR): WP-44 · segunda entrega (el aviso de calma en caídas en Cierre)
+
+- **Qué se hizo:** lo que `docs/WP44_DISENO.md` §5 dejaba pendiente y no tocaba datos del hogar. `closeNotice` en el motor puro (`canonical-calm-coverage.js`), `renderCalmaAviso` en `calma-ui.js` (comparte con la tarjeta el cálculo `calmaDrawdownState`, para que no puedan discrepar), una línea en `views/cierre.js` y una tarjeta oculta `#calmaAviso` en `index.html`. El botón lleva a Inversión › Cartera. `app.js` no se toca.
+- **Reglas con prueba:** solo sale con serie (≥ 3 valoraciones) y una caída que llegue al primer nivel (20 %); sin serie o con menos caída **no sale nada** (ni «todo bien» ni «faltan datos»); **nunca recomienda vender ni comprar**; con política firmada cita lo acordado para ese nivel y **sin firmar no se lo inventa** (una política sin firmar no cuenta); avisa si la última valoración tiene más de 35 días; solo lee.
+- **Lo que NO cierra (y por qué sigue «en curso» al 50 %):** **hoy no puede salir**: hay 0 valoraciones y la primera es la del 1-3/11; el campo «entidad» en las posiciones (fondos y seguros por entidad) **cambia datos del hogar y se consulta antes**; la evolución de la cobertura guarda datos nuevos (se consulta); las caídas históricas con fuente no se inventan; **el 20 % como umbral de aviso es el de la política, sin calibrar con un caso real**; el aviso sale en cada apertura de Cierre mientras la caída siga ≥ 20 % (posible ruido).
+- **Comprobado que las pruebas detectan el fallo:** en el sitio construido y minificado, quitando la llamada del aviso en `views/cierre.js`, la prueba de navegador cae justo en él («Expected: visible / Received: hidden»); restaurado el fichero después.
+- **No cambia el estado del paquete (sigue «en curso», 50 %) ni el avance del plan (61,4 %).** `canonical-*.js`: 110.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 5935/5935 (+6), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. E2E 101/101 (+1: aviso de calma en Cierre), accesibilidad (axe) 81/81, rendimiento por pantallas 3/3.
+
 ## Cierre de sesión — 13 de octubre de 2026 (308, cuarto PR): WP-43 · segunda entrega (el aviso del puente de previsión en Cierre)
 
 - **Qué se hizo:** lo que `docs/WP43_DISENO.md` §5 dejaba pendiente. `closeNotice` en el motor puro (`canonical-forecast-bridge.js`), `renderPuenteAviso` en `puente-ui.js`, una línea en `views/cierre.js` y una tarjeta oculta `#puenteAviso` en `index.html` junto a los avisos del plan B y de la sombra de deuda. El botón «Ver el puente» lleva a Plan › Previsión. `app.js` no se toca.
