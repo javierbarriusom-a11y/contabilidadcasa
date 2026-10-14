@@ -145,6 +145,25 @@ function nominaRowHtml(row) {
     </li>`;
 }
 
+// WP-47 PR-2 (docs/WP47_DISENO.md §6): lo que se está repartiendo frente a la política firmada (WP-39) y al plan B (WP-38), con la misma lógica que la escalera (`crossChecks`, WP-42) pero
+// sobre los importes EDITADOS con los botones, no sobre lo sugerido. Solo avisa: no cambia el reparto ni desactiva «Aplicar». Solo lee.
+function nominaCrossHtml(rows) {
+  const ladderEngine = globalThis.FinanceCanonicalNextEuro;
+  if (!ladderEngine || typeof ladderEngine.crossChecks !== "function" || typeof proxEuroCrossInputs !== "function" || typeof proxEuroCrossBlockHtml !== "function") return "";
+  try {
+    const ladder = nominaEngine().crossLadder(rows);
+    const cross = ladderEngine.crossChecks({ ladder, ...proxEuroCrossInputs(ladder), fmt: nominaEuros });
+    if (!cross.show) return "";
+    return `<section class="peu-cruce" data-nom-cruce aria-label="El reparto frente a vuestra política y vuestro plan B">
+      <h4 class="peu-cruce-cabecera">Frente a vuestra política y vuestro plan B</h4>
+      ${cross.policy ? proxEuroCrossBlockHtml("politica", cross.policy) : ""}${cross.planB ? proxEuroCrossBlockHtml("plan-b", cross.planB) : ""}
+      <p class="e19-kpi-note">Solo avisa: el reparto no se cambia y «Aplicar» sigue disponible. La app no sabe si lo acordado sigue siendo lo que queréis; cambia con lo que muevas con los botones.</p>
+    </section>`;
+  } catch {
+    return "";
+  }
+}
+
 function nominaEditorHtml(model) {
   const engine = nominaEngine();
   const { candidates, chosen, availability, rows } = model;
@@ -165,7 +184,7 @@ function nominaEditorHtml(model) {
   return `${head}${inAccounts}${nominaAvailabilityHtml(model)}${ladderNote}${investNote}
     <h4 class="nom-subtitulo">Reparto</h4>
     <ul class="nom-filas">${rows.map(nominaRowHtml).join("")}</ul>
-    ${status}${nominaNote ? `<p class="nom-nota" role="status"><span aria-hidden="true">⚠</span> ${escapeHtml(nominaNote)}</p>` : ""}
+    ${status}${nominaCrossHtml(rows)}${nominaNote ? `<p class="nom-nota" role="status"><span aria-hidden="true">⚠</span> ${escapeHtml(nominaNote)}</p>` : ""}
     <p class="e19-kpi-note">Los botones mueven dinero entre una fila y «sin repartir»: el total nunca cambia ni queda un importe negativo. Lo que la escalera no propone se puede añadir, pero queda marcado.</p>
     <div class="nom-acciones">
       <button type="button" class="e19-btn e19-btn-primary" data-nom-action="aplicar" data-nom-focus="aplicar"${summary.assigned > 0 ? "" : " disabled"}>Aplicar: guardar borrador y lista de transferencias</button>

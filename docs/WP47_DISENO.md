@@ -48,6 +48,32 @@ La tarjeta **«Repartir la nómina»** en **Deuda › Comparar**, justo debajo d
 
 - **El aviso al confirmar la nómina** (tras H-02: el «Sí» de «¿Ha llegado «Nómina»?» en Hoy debería ofrecer «Repartir»).
 - Destino de cada transferencia (cuenta de origen y de destino) y un resumen para copiar.
-- Que la hoja vea la **política de inversión firmada** (WP-39) y el **plan B** (WP-38), como la escalera.
+- Que la hoja **actúe** con la política firmada (WP-39) y el plan B (WP-38): hoy solo **avisa** (§6); pedir motivo al aplicar un reparto que contradice la política guardaría datos nuevos y se consulta.
 - Reparto por titular, y un aviso en el cierre mensual de las nóminas sin repartir.
 - Del hogar: confirmar una nómina real desde la app, declarar los saldos tras ella, declarar el suelo de liquidez y teclear la rentabilidad esperada y lo aportado a pensiones.
+
+## 6. Segunda entrega (14/10/2026): el reparto frente a la política y el plan B
+
+**Qué hace.** Bajo el estado del reparto, un bloque **«Frente a vuestra política y vuestro plan B»**, con la misma lógica que la escalera (`crossChecks`, WP-42) pero aplicada a **los importes que vais dejando con los botones**, no a lo sugerido:
+
+- **Política firmada (WP-39):** cada tipo de activo al que mandáis dinero se comprueba como una compra; si la política lo excluye o pide cuidado, lo dice con el importe («150 € a cripto: …»). Si el reparto no distingue tipos, dice que no puede comprobarlo, **no que cumple**.
+- **Plan B (WP-38):** si salta o está en vigilancia y mandáis dinero a pensión o inversión, lo dice con la suma.
+- **Una política o un plan sin firmar** (o cambiados después de firmar) se marcan como borrador, no como acuerdo.
+- **Cambia al mover los importes:** quitar el dinero de la cripto hace desaparecer el aviso de contradicción. **Solo avisa:** no cambia el reparto, no desactiva «Aplicar» y no pide motivo.
+
+Motor: `crossLadder(rows)` en `canonical-payroll-split.js` (puro: traduce las filas editadas a lo que entiende `crossChecks`); interfaz: `nominaCrossHtml` en `nomina-ui.js`, que reutiliza los bloques de `escalera-ui.js`. `app.js` no se toca.
+
+**Reglas con prueba** (`tests/wp47-reparto-nomina.test.cjs`, 25 pruebas; e2e «WP-47 · el reparto de la nómina frente a la política y el plan B»):
+
+- **Sin política ni plan B guardados no sale nada.**
+- **Solo se cruzan la inversión (por tipo) y la pensión**; colchón, deuda y «sin repartir» no tienen nada que cruzar.
+- **Un importe negativo o un tipo sin importe no cuenta**, y la función no muta las filas.
+- **Solo lee:** una prueba comprueba que no guarda, no toca las filas y no desactiva nada.
+
+**Decisiones mías, a cuestionar.**
+
+1. **Solo avisa, no pide motivo** (a diferencia de WP-39 al registrar una operación): pedirlo al aplicar guardaría un dato nuevo (el motivo) en cada borrador. Si queréis que el reparto deje constancia de que se aplicó contra la política, lo consulto.
+2. **El aviso depende de la política y del plan B que haya guardados hoy**, que nadie ha firmado todavía (H-12, 18/12): hasta entonces solo podrá salir con borradores.
+3. **El bloque se repinta en cada pulsación de un botón**, con las mismas comprobaciones que la escalera; no se ha medido su coste.
+
+**Lo que sigue sin estar** (por eso el paquete sigue «en curso» al 50 %): el aviso al confirmar la nómina (en Hoy, congelado hasta H-02), el destino de cada transferencia, el reparto por titular y un aviso en el cierre de las nóminas sin repartir. Y, sobre todo, **nada de esto se ha visto con una nómina real ni con una política o un plan firmados.**

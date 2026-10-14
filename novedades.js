@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-14-wp47b",
+      fecha: "2026-10-14",
+      texto: "Repartir la nómina: avisa si lo que repartes choca con tu política firmada o si el plan B está activo.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-10-14-wp46b",
       fecha: "2026-10-14",
       texto: "Patrimonio neto: avisa si algún dato (cartera, activos, saldos) es viejo o no tiene fecha, también en cada cierre.",

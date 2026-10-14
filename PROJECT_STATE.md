@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 14 de octubre de 2026 (309, tercer PR): WP-47 · segunda entrega (el reparto de la nómina frente a la política firmada y el plan B)
+
+- **Qué se hizo:** lo que `docs/WP47_DISENO.md` §5 dejaba pendiente y no guarda datos nuevos. `crossLadder` en el motor puro (`canonical-payroll-split.js`: traduce las filas EDITADAS del reparto a lo que entiende `crossChecks`, de WP-42) y `nominaCrossHtml` en `nomina-ui.js`, que reutiliza los bloques de la escalera. Se cruza lo que se va dejando con los botones, no lo sugerido. `app.js` no se toca.
+- **Reglas con prueba:** **solo avisa**: no cambia el reparto, no desactiva «Aplicar» y no pide motivo; sin política ni plan B guardados **no sale nada**; solo se cruzan inversión (por tipo) y pensión; si el reparto no distingue tipos, dice que no puede comprobarlo, **no que cumple**; sin firmar se marca como borrador; el aviso cambia al mover los importes; solo lee y no muta las filas.
+- **Lo que NO cierra (y por qué sigue «en curso» al 50 %):** **nadie ha firmado una política ni un plan B** (H-12, 18/12), así que solo puede salir con borradores; **ninguna nómina real se ha repartido**; pedir motivo al aplicar un reparto que contradice la política guardaría datos nuevos (se consulta); siguen pendientes el aviso al confirmar la nómina (Hoy, congelado hasta H-02), el destino de cada transferencia, el reparto por titular y el aviso en el cierre de nóminas sin repartir; los umbrales de la escalera siguen sin calibrar.
+- **Comprobado que las pruebas detectan el fallo:** en el sitio construido y minificado (`dist/nomina-ui.js`), quitar la llamada `${nominaCrossHtml(t)}` hace que la prueba de navegador del cruce falle en `toBeVisible`; restaurado después.
+- **No cambia el estado del paquete (sigue «en curso», 50 %) ni el avance del plan (61,4 %).** `canonical-*.js`: 110.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 5943/5943 (+4 respecto a 5939), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. E2E 103/103 (+1), axe 81/81, rendimiento por pantallas 3/3 (ejecutados por bloques tras los reinicios de la máquina). La prueba de navegador de esta entrega no se había ejecutado nunca antes de hoy: al correrla se ajustaron dos supuestos suyos (la escalera ya manda parte a cripto con el objetivo 50/50, y los importes llevan espacio duro), no el aviso.
+
 ## Cierre de sesión — 14 de octubre de 2026 (309, segundo PR): WP-46 · segunda entrega (antigüedad por componente del patrimonio)
 
 - **Qué se hizo:** el riesgo que `docs/WP46_DISENO.md` §4 dejaba apuntado: el patrimonio de un cierre **heredaba sin avisar** una valoración de cartera de hace más de 35 días. `componentAges` y `ageNotice` en el motor puro (`canonical-net-worth.js`); la foto de cada cierre guarda ahora la fecha de cada componente (`asOf`); `patrimonio-ui.js` (`patrimonioAgeHtml`) avisa en «hoy» y bajo la serie. `app.js` no se toca.
