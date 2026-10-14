@@ -56,7 +56,8 @@ function calmaMonthlyContribution(positions, today) {
   return total > 0 ? { monthly: Math.round((total / 6) * 100) / 100, source: "la media de lo aportado en los últimos 6 meses" } : { monthly: null, source: "" };
 }
 
-function calmaDrawdownHtml(engine, positions, normalized, today) {
+// La caída medida con lo que hay guardado hoy: la usan la tarjeta de Inversión › Cartera y el aviso de Cierre, para que nunca puedan discrepar.
+function calmaDrawdownState(engine, positions, normalized, today) {
   const store = loadPortfolioValuations();
   const series = engine.portfolioSeries({ valuations: store.valuations, positions });
   const policyEngine = globalThis.FinanceCanonicalInvestmentPolicy;
@@ -67,6 +68,11 @@ function calmaDrawdownHtml(engine, positions, normalized, today) {
     series, positions, today, monthlyContribution: contribution.monthly, levels: engine.DEFAULT_LEVELS,
     contributed: normalized.summary.totalCost, value: normalized.summary.totalValue,
   });
+  return { result, policy, policyEngine, signed, contribution };
+}
+
+function calmaDrawdownHtml(engine, positions, normalized, today) {
+  const { result, policy, policyEngine, signed, contribution } = calmaDrawdownState(engine, positions, normalized, today);
   if (result.status === "not-enough") {
     const missing = result.neverValued.length ? ` Faltan por valorar: ${result.neverValued.map((name) => escapeHtml(name)).join(", ")}.` : "";
     return estadoHtml({
@@ -133,6 +139,39 @@ function calmaDepositsHtml(engine, inputs) {
   return `<ul class="cal-lista">${result.rows.map(line).join("")}</ul>${notices}<p class="e19-kpi-note">Límite de ${calmaEuros(result.limit)} por titular y entidad (Fondo de Garantía de Depósitos; <strong>verifica el vigente</strong>). Solo miro las cuentas: los fondos son patrimonio separado de la gestora y los seguros de ahorro tienen otro régimen, y no se calculan aquí porque las posiciones no guardan en qué entidad están.</p>`;
 }
 
+// WP-44 PR-2 (docs/WP44_DISENO.md §6): el aviso en Cierre, que se abre cada mes. Misma caída que la tarjeta; solo sale si ha alcanzado el primer nivel. Solo lee.
+function calmaAvisoHtml(notice) {
+  const lines = notice.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  return `<h3 class="escenario-motor-panel-title">Calma en caídas</h3>
+    <p class="cal-aviso-estado" data-calma-aviso-nivel="${escapeHtml(notice.level)}"><span aria-hidden="true">${escapeHtml(notice.icon)}</span> <strong>${escapeHtml(notice.title)}</strong></p>
+    ${lines}
+    <p class="e19-kpi-note">Es una cifra para mirar con calma, no una orden. <button type="button" class="link-button cal-ver" data-calma-aviso-ver>Ver la tarjeta completa</button></p>`;
+}
+
+function renderCalmaAviso(engine) {
+  const box = qs("calmaAviso");
+  if (!box || !engine) return;
+  attachCalma(document); // idempotente: aquí no se ha pintado antes Inversión › Cartera y el botón necesita su escucha
+  try {
+    const positions = iv1PositionsList();
+    const normalized = globalThis.FinanceCanonicalPortfolio.normalizePositions(positions);
+    const state = calmaDrawdownState(engine, normalized.positions, normalized, isoLocalDate(new Date()));
+    const { result } = state;
+    const at = result.status === "ok" && result.level >= 1 ? `at${engine.DEFAULT_LEVELS[Math.min(result.level, engine.DEFAULT_LEVELS.length) - 1]}` : "";
+    const actions = state.policyEngine ? state.policyEngine.DRAWDOWN_ACTIONS : {};
+    const policyAction = state.signed && at && state.policy.drawdown ? actions[state.policy.drawdown[at]] || "" : "";
+    const notice = engine.closeNotice(result, { signed: state.signed, policyAction, euros: calmaEuros, dateLabel: calmaDate });
+    const html = notice.show ? calmaAvisoHtml(notice) : "";
+    if (box.__calmaAvisoHtml !== html) {
+      box.innerHTML = html;
+      box.__calmaAvisoHtml = html;
+    }
+    box.hidden = !notice.show;
+  } catch (error) {
+    console.error(`renderCalmaAviso: ${error.message}`);
+  }
+}
+
 function renderCalmaCobertura(engine) {
   const box = qs("calmaCuerpo");
   if (!box || !engine) return;
@@ -181,5 +220,6 @@ function attachCalma(doc) {
   if (!doc || doc.__calmaAttached) return false;
   doc.__calmaAttached = true;
   doc.addEventListener("submit", (event) => { if (event.target?.id === "calmaForm") calmaSubmit(event); });
+  doc.addEventListener("click", (event) => { if (event.target?.closest?.("[data-calma-aviso-ver]")) { location.hash = "#inversion-cartera"; } });
   return true;
 }

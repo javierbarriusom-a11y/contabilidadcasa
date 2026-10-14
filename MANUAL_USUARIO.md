@@ -509,6 +509,8 @@ Bajo la valoración de la cartera, la tarjeta **«Calma, cobertura y exposición
 
 Tres cosas que conviene saber: **hoy no puede enseñar casi nada** (sin valoraciones no hay caída, y sin tasa ni alquiler no hay cobertura); **no incluye cuánto tardaron en recuperarse caídas parecidas** (no hay una fuente histórica verificada); y **fondos y seguros por entidad no están** (las posiciones no guardan en qué entidad están).
 
+**Aviso en Cierre.** Al abrir **Cierre**, si ya hay tres valoraciones de la cartera y la caída desde su máximo (medida en mercado, sin contar lo que aportáis o vendéis) ha llegado al **20 %**, sale una tarjeta «Calma en caídas» con la cifra, el nivel que se pasó y **lo que acordasteis en vuestra política firmada** para ese nivel. Si no hay política firmada, lo dice y propone hablarlo las dos personas antes de tocar nada. **No recomienda vender ni comprar.** Con menos caída, o sin tres valoraciones, **no sale nada**. Solo lee: no guarda ni cambia nada.
+
 ### Puente de previsión: por qué cambió el fin de año (Plan › Previsión)
 
 En **Plan › Previsión**, bajo el plan B, la tarjeta **«Puente de previsión»** responde a «¿por qué mi fin de año ya no es el que esperábamos?». **En cada cierre del mes** la app **congela cuánto preveía para el 31/12** (la liquidez de las cuentas) y guarda también lo que **realmente** pasó ese mes. Con **dos cierres del mismo año**, compara las dos previsiones y reparte la diferencia en **cinco barras**: **ingresos**, **gasto recurrente**, **extraordinarios**, **deuda y financiaciones** y **otros y supuestos**, con una frase del estilo «Desde septiembre, el fin de 2026 empeora en 1.300 €: 77 % por extraordinarios…». Puedes **elegir con qué cierre anterior comparar** y ver las mismas cifras **como tabla**.

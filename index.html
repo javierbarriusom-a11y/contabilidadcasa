@@ -53,7 +53,7 @@
     <link rel="stylesheet" href="base-cero.css?v=20261012wp34a1" />
     <link rel="stylesheet" href="carta-mes.css?v=20261012wp29a1" />
     <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
-    <link rel="stylesheet" href="calma.css?v=20261010wp44a1" />
+    <link rel="stylesheet" href="calma.css?v=20261014wp44b2" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261010wp46a1" />
   </head>
@@ -4166,6 +4166,9 @@
             <!-- WP-43 PR-2 (docs/WP43_DISENO.md §6): el aviso del puente de previsión en Cierre. Lo pinta puente-ui.js (renderPuenteAviso) desde views/cierre.js; vacío y oculto si no hay puente o el cambio es pequeño. -->
             <article class="e19-card pte-card pte-aviso-card" id="puenteAviso" aria-live="off" hidden></article>
 
+            <!-- WP-44 PR-2 (docs/WP44_DISENO.md §6): el aviso de calma en caídas en Cierre. Lo pinta calma-ui.js (renderCalmaAviso) desde views/cierre.js; vacío y oculto si la caída no ha llegado al primer nivel o no hay serie. -->
+            <article class="e19-card cal-card cal-aviso-card" id="calmaAviso" aria-live="off" hidden></article>
+
             <!-- WP-29 (docs/WP29_DISENO.md): la carta del mes. La compone canonical-month-letter.js y la pinta carta-mes-ui.js; visible con el mes abierto (borrador) y cerrado. -->
             <article class="e19-card carta-mes" id="cartaMes" hidden></article>
 
@@ -8098,8 +8101,8 @@
     <script defer src="carta-mes-ui.js?v=20261012wp29a1"></script>
     <script defer src="canonical-large-payments.js?v=20261011wp49a1"></script>
     <script defer src="mapa-pagos-ui.js?v=20261011wp49a1"></script>
-    <script defer src="canonical-calm-coverage.js?v=20261010wp44a1"></script>
-    <script defer src="calma-ui.js?v=20261010wp44a1"></script>
+    <script defer src="canonical-calm-coverage.js?v=20261014wp44b2"></script>
+    <script defer src="calma-ui.js?v=20261014wp44b2"></script>
     <script defer src="canonical-data-queue.js?v=20261010wp45a1"></script>
     <script defer src="datos-ui.js?v=20261010wp45a1"></script>
     <script defer src="canonical-net-worth.js?v=20261010wp46a1"></script>

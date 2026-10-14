@@ -130,3 +130,69 @@ test("WP-44 · el motor es puro y no recomienda: ni DOM, ni red, ni almacenamien
   assert.doesNotMatch(source, /\b(document|window|localStorage|sessionStorage|fetch|XMLHttpRequest|indexedDB)\b/);
   assert.doesNotMatch(source, /new Date\(|Date\.now/);
 });
+
+// WP-44 PR-2 (docs/WP44_DISENO.md §6): el aviso de calma en Cierre. Solo sale con serie y una caída que haya alcanzado el primer nivel; nunca recomienda; sin política firmada no se inventa qué acordasteis.
+const okDrawdown = (extra = {}) => ({
+  status: "ok", firstDate: "2026-06-01", lastDate: "2026-11-01", peakDate: "2026-09-01", valuationCount: 4, drawdownAmount: -500, drawdownPct: -41.7, level: 2, levels: [20, 35],
+  valueNow: 700, valuePeak: 1200, monthsOfContribution: null, monthlyContribution: null, stale: false, ageDays: 10, contributed: null, value: null, ...extra,
+});
+
+test("WP-44 PR-2 · closeNotice: sin serie, sin caída o por debajo del primer nivel no dice nada (ni «todo bien» ni «faltan datos»)", () => {
+  assert.deepEqual(C.closeNotice(null), { show: false });
+  assert.deepEqual(C.closeNotice({ status: "not-enough", have: 1, need: 3, neverValued: [] }), { show: false });
+  assert.deepEqual(C.closeNotice(okDrawdown({ level: 0, drawdownAmount: -50, drawdownPct: -4.2 })), { show: false }, "una caída del 4 % no llega al 20 %");
+  assert.deepEqual(C.closeNotice(okDrawdown({ level: 1, drawdownAmount: 0, drawdownPct: 0 })), { show: false }, "sin importe negativo no hay aviso aunque el nivel fuese incoherente");
+});
+
+test("WP-44 PR-2 · closeNotice: nivel 1 vigila, nivel 2 alerta; porcentaje en español; la cifra y el nivel alcanzado van en el texto", () => {
+  const watch = C.closeNotice(okDrawdown({ level: 1, drawdownAmount: -260, drawdownPct: -21.7 }), { euros: (v) => `${v} €`, dateLabel: (d) => d.split("-").reverse().join("/") });
+  assert.equal(watch.show, true);
+  assert.equal(watch.level, "watch");
+  assert.equal(watch.title, "La cartera está un 21,7 % por debajo de su máximo");
+  assert.match(watch.lines[0], /ha restado 260 €/);
+  assert.match(watch.lines[0], /01\/09\/2026/);
+  assert.match(watch.lines[0], /nivel del 20 %/);
+  const alert = C.closeNotice(okDrawdown());
+  assert.equal(alert.level, "alert");
+  assert.match(alert.lines[0], /nivel del 35 %/);
+});
+
+test("WP-44 PR-2 · closeNotice: con política firmada cita lo acordado; sin firmar no se lo inventa aunque le pasen una acción", () => {
+  const signed = C.closeNotice(okDrawdown(), { signed: true, policyAction: "Seguir aportando como siempre, sin vender" });
+  assert.ok(signed.lines.some((line) => /Lo que acordasteis en la política para este nivel: Seguir aportando como siempre, sin vender\./.test(line)));
+  assert.ok(!signed.lines.some((line) => /No hay una política de inversión firmada/.test(line)));
+  const unsigned = C.closeNotice(okDrawdown(), { signed: false, policyAction: "Seguir aportando como siempre, sin vender" });
+  assert.ok(unsigned.lines.some((line) => /No hay una política de inversión firmada.*hablarlo las dos personas/.test(line)));
+  assert.ok(!unsigned.lines.some((line) => /Seguir aportando/.test(line)), "una política sin firmar no vale como acuerdo");
+  const empty = C.closeNotice(okDrawdown(), { signed: true, policyAction: "" });
+  assert.ok(empty.lines.some((line) => /No hay una política de inversión firmada/.test(line)), "firmada pero sin acción para este nivel: tampoco se inventa");
+});
+
+test("WP-44 PR-2 · closeNotice: dice los meses de aportación solo si se conocen y avisa si la última valoración es antigua", () => {
+  assert.ok(!C.closeNotice(okDrawdown()).lines.some((line) => /meses de aportación/.test(line)), "sin aportación mensual no se inventa la equivalencia");
+  assert.ok(C.closeNotice(okDrawdown({ monthsOfContribution: 4.5 })).lines.some((line) => /Equivale a 4,5 meses de aportación\./.test(line)));
+  const stale = C.closeNotice(okDrawdown({ stale: true, ageDays: 52, lastDate: "2026-09-20" }), { dateLabel: (d) => d });
+  assert.ok(stale.lines.some((line) => /la última valoración es del 2026-09-20 \(hace 52 días\)/.test(line)));
+  assert.ok(!C.closeNotice(okDrawdown()).lines.some((line) => /última valoración/.test(line)));
+});
+
+test("WP-44 PR-2 · closeNotice nunca recomienda vender ni comprar, y es pura (no muta lo que recibe)", () => {
+  const input = okDrawdown({ monthsOfContribution: 3 });
+  const frozen = JSON.stringify(input);
+  const notice = C.closeNotice(input, { signed: false });
+  assert.equal(JSON.stringify(input), frozen);
+  const text = [notice.title, ...notice.lines].join(" ");
+  assert.doesNotMatch(text, /\b(vende|vended|vender|compra|comprar|deberíais|debéis|recomiendo)\b/i);
+});
+
+test("WP-44 PR-2 · el aviso está cableado en Cierre, oculto en el HTML, solo lee y no ofrece acciones sobre la cartera", () => {
+  assert.match(read("views/cierre.js"), /globalThis\.renderCalmaAviso\?\.\(window\.FinanceCanonicalCalmCoverage\)/);
+  assert.match(read("index.html"), /<article[^>]*id="calmaAviso"[^>]*aria-live="off"[^>]*hidden><\/article>/);
+  const ui = read("calma-ui.js");
+  const body = ui.slice(ui.indexOf("function renderCalmaAviso"), ui.indexOf("function renderCalmaCobertura"));
+  assert.ok(body.length > 200, "se localizó la función");
+  assert.doesNotMatch(body, /storageSet|calmaSave|queueRemoteSave|savePortfolioValuations|scenarioSettings\./, "el aviso solo lee");
+  const html = ui.slice(ui.indexOf("function calmaAvisoHtml"), ui.indexOf("function renderCalmaAviso"));
+  assert.doesNotMatch(html, /vender|comprar|rebalancear/i);
+  assert.equal((html.match(/<button/g) || []).length, 1, "un único botón: ver la tarjeta");
+});
