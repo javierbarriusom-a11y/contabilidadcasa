@@ -20601,7 +20601,7 @@ function renderIv1DisposalOptions() {
 // medias que parezca completa.
 function fc1RealizedGainLabel(realizedGain, disposalCount) {
   if (!disposalCount) return "";
-  if (realizedGain === null) return "plusvalía realizada no calculable (venta sin lotes suficientes a esa fecha)";
+  if (realizedGain === null) return "plusvalía realizada no calculable (alguna venta sin lotes suficientes a su fecha o sin importe cobrado)";
   return `plusvalía realizada ${money(realizedGain, true)} (FIFO, ${disposalCount} venta(s))`;
 }
 
@@ -20627,7 +20627,7 @@ function renderIv1PositionSummary() {
   // (no realizada, sobre lo que queda) — sumarlas sería mezclar ganancia ya cobrada con ganancia
   // todavía sobre el papel.
   const realizedNote = totalRealizedGain === null
-    ? "Hay ventas registradas sin lotes suficientes a su fecha — la plusvalía realizada de la cartera no es calculable hasta corregirlas."
+    ? "Hay ventas registradas sin lotes suficientes a su fecha o sin importe cobrado — la plusvalía realizada de la cartera no es calculable hasta corregirlas."
     : totalRealizedGain !== 0
       ? `Plusvalía realizada (ya vendida, FIFO): <strong class="${totalRealizedGain > 0 ? "positive" : "negative"}">${money(totalRealizedGain, true)}</strong>.`
       : "";
