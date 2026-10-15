@@ -215,7 +215,10 @@
         ...disposal,
         consumedCost: roundedConsumedCost,
         shortfall,
-        realizedGain: shortfall > 0 ? null : round2(disposal.saleProceeds - roundedConsumedCost),
+        // Una venta sin importe cobrado (el formulario lo deja vacío = 0) no tiene plusvalía: restar 0 al coste daba «menos el
+        // coste entero», una minusvalía falsa que además entraba en la compensación fiscal del año. Mismo criterio que la XIRR.
+        proceedsMissing: !(disposal.saleProceeds > 0),
+        realizedGain: shortfall > 0 || !(disposal.saleProceeds > 0) ? null : round2(disposal.saleProceeds - roundedConsumedCost),
       };
     });
 

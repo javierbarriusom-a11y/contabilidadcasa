@@ -49,7 +49,7 @@ const OPS_KIND_LABEL = { initial: "Compra inicial", contribution: "Aportación",
 function opsRowHtml(operation, sales) {
   const sale = operation.source === "disposal" ? sales.get(operation.id) : null;
   const detail = sale
-    ? (sale.shortfall > 0 ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin lotes suficientes (faltan ${opsUnits(sale.shortfall)} u): plusvalía no calculable</span>` : `plusvalía FIFO ${opsEuros(sale.realizedGain)}`)
+    ? (sale.shortfall > 0 ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin lotes suficientes (faltan ${opsUnits(sale.shortfall)} u): plusvalía no calculable</span>` : sale.realizedGain === null ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin importe recibido: plusvalía no calculable</span>` : `plusvalía FIFO ${opsEuros(sale.realizedGain)}`)
     : (operation.quantity > 0 ? "" : `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin unidades: no entra en el FIFO</span>`);
   const undated = operation.date ? opsDate(operation.date) : "<em>sin fecha</em>";
   const label = escapeHtml(OPS_KIND_LABEL[operation.source] || "Operación");
@@ -140,7 +140,7 @@ function opsDiffHtml(preview) {
   ];
   diff.sales.forEach((row) => {
     const sale = row.after || row.before;
-    const render = (view) => (view ? (view.shortfall > 0 ? `sin lotes (faltan ${opsUnits(view.shortfall)} u)` : opsEuros(view.realizedGain)) : "—");
+    const render = (view) => (view ? (view.shortfall > 0 ? `sin lotes (faltan ${opsUnits(view.shortfall)} u)` : view.realizedGain === null ? "sin importe recibido" : opsEuros(view.realizedGain)) : "—");
     rows.push([`Venta del ${opsDate(sale.date)} (${opsUnits(sale.quantitySold)} u)${row.change === "added" ? " · nueva" : row.change === "removed" ? " · quitada" : ""}`, render(row.before), render(row.after)]);
   });
   diff.years.forEach((year) => {

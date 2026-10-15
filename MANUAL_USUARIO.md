@@ -449,6 +449,7 @@ En **Inversión › Cartera**, junto al formulario de ventas, la tarjeta **«Lib
 - **Editar, quitar o añadir** una aportación o una venta. La compra inicial se edita (se corrige su fecha, sus unidades o su coste) pero no se quita.
 - **Antes de guardar** la app enseña **qué cambia**: las unidades y el coste que quedan, la plusvalía de cada venta afectada y **cómo se mueve la compensación de cada ejercicio fiscal** (con las demás posiciones y las pérdidas arrastradas que hayáis declarado). **No se guarda nada hasta que pulsáis «Guardar»**, y se puede deshacer.
 - **Una venta sin lotes suficientes a su fecha** (por ejemplo, si movéis una compra a después de la venta) se **marca y no se bloquea**: puede ser un paso intermedio. Mientras siga así, su plusvalía y la compensación de ese ejercicio salen «no calculables».
+- **Una venta sin importe recibido** (el campo vacío o en 0) tampoco inventa una pérdida: su plusvalía sale «no calculable», se dice «sin importe recibido» en el libro y en la lista de posiciones, y la compensación de ese ejercicio no se calcula hasta que anotéis lo cobrado (neto de comisiones). Si de verdad no cobrasteis nada, anotad 0,01 €.
 - **Escribid los importes como en España**: «14.000» son catorce mil y «1,5», uno y medio. Importe de una venta: **neto de comisiones**; importe de una compra: **con las comisiones incluidas** (la app no tiene un campo aparte, y sin ello la plusvalía sale mayor que la fiscal).
 
 Cuatro cosas que conviene saber:

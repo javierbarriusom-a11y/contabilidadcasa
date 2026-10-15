@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-15-venta-sin-importe",
+      fecha: "2026-10-15",
+      texto: "Una venta sin importe cobrado ya no cuenta como pérdida: su plusvalía sale «no calculable» hasta que lo anotes.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-10-14-wp47b",
       fecha: "2026-10-14",
       texto: "Repartir la nómina: avisa si lo que repartes choca con tu política firmada o si el plan B está activo.",

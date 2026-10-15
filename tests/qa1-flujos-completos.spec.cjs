@@ -2853,6 +2853,9 @@ test.describe("WP-44 · calma, cobertura y exposición", () => {
 // WP-45 (ND-09 + CAP-07): frescura por fuente y cola de tareas de datos ordenada por «euros de incertidumbre por minuto», en Registrar › Saldos. No hace ninguna tarea ni guarda nada.
 test.describe("WP-45 · frescura y cola de tareas de datos", () => {
   const open = async (page) => {
+    // Los días 1-3 y 15-17 de cada mes la foto de liquidez (WP-12) y los motores escriben solos en el almacenamiento al abrir la app. Esta prueba
+    // comprueba que la ficha NO guarda nada, así que se fija un día fuera de esas ventanas; sin esto fallaba (y el CI se ponía en rojo) seis días al mes.
+    await page.clock.install({ time: new Date(2026, 9, 12, 12, 0, 0) });
     await page.goto("/index.html#registrar");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
@@ -4894,5 +4897,35 @@ test.describe("WP-47 · el reparto de la nómina frente a la política y el plan
     }
     expect(dialogs, "ningún diálogo nativo").toEqual([]);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// Hallazgo vecino de WP-15 (anotado el 7/10, corregido el 15/10): una venta sin importe cobrado se guardaba con 0 y su plusvalía salía «menos el coste entero» (y entraba en la compensación fiscal).
+// Ahora la plusvalía de esa venta es «no calculable» y se dice por qué, en el libro de operaciones y en la lista de posiciones; la venta con importe sigue calculándose.
+test.describe("Venta sin importe cobrado · plusvalía no calculable", () => {
+  const POSITION = { id: "A", type: "fondo", label: "Fondo A", provenance: "manual", asOf: "2026-09-01", acquisitionDate: "2020-01-10", quantity: 100, costBasis: 10000, currentValue: 7000, contributions: [], disposals: [{ id: "s1", date: "2026-03-01", quantitySold: 10, saleProceeds: 1500 }, { id: "s2", date: "2026-04-01", quantitySold: 10, saleProceeds: 0 }] };
+  test("la venta con importe da su plusvalía, la que no lo tiene lo dice y no inventa una pérdida; sin desbordes ni errores", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await page.reload();
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const card = page.locator("#opsCard");
+      await expect(card).toBeAttached({ timeout: 15000 });
+      await page.evaluate((position) => { saveIv1PositionsList([position]); renderIv1PositionList(); }, POSITION);
+      const body = card.locator("#opsCuerpo");
+      await expect(body.locator('[data-ops-row="s1"]')).toContainText("plusvalía FIFO 500,00");
+      await expect(body.locator('[data-ops-row="s2"]')).toContainText("sin importe recibido: plusvalía no calculable");
+      await expect(body.locator('[data-ops-row="s2"]')).not.toContainText("-1000");
+      await expect(page.locator("#iv1PositionList")).toContainText("sin importe cobrado");
+      await expect(page.locator("#iv1PositionList")).not.toContainText("plusvalía realizada -");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `sin desbordar en ${viewport.width} px`).toBeLessThanOrEqual(1);
+    }
+    expect(pageErrors).toEqual([]);
   });
 });
