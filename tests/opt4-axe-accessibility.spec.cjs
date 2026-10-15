@@ -1283,3 +1283,69 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// Bloque D (15-oct-2026): Cierre con el asistente, las listas de comprobación y los cuatro avisos
+// (plan B, deuda en la sombra, puente, calma) a la vez, en claro y en oscuro y en ancho de escritorio
+// y de móvil. Los avisos ya estaban limpios; lo que fallaba era el asistente (pasos bloqueados con
+// opacity), las listas de comprobación y la nota ámbar: se corrigió en cierre-a11y.css.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Bloque D · contraste de Cierre con los cuatro avisos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Cierre con datos: sin fallos de contraste ni de accesibilidad, en 1280 y en 390", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && typeof puenteSave === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+      const iso = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return isoLocalDate(d); };
+      // Plan B firmado y que salta.
+      const plan = FinanceCanonicalContingencyPlan;
+      let p = plan.normalizePlan({ trigger: { mode: "amount", amount: 99999999, consecutive: 2, horizon: 6 }, actions: [{ kind: "cut-discretionary", pct: 20, months: 3 }, { kind: "credit-line", amount: 1500 }] });
+      p = plan.sign(p, { signers: ["Ana", "Luis"], today: "2026-10-13" }).plan;
+      storageSet(storageKey("contingency-plan"), JSON.stringify(p));
+      // Deuda en la sombra.
+      const rows = [];
+      let balance = 3000;
+      const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+      const back = (days) => { const d = new Date(); d.setDate(d.getDate() - days); return isoLocalDate(d); };
+      add(back(40), -30, "MOVISTAR CUOTA TERMINAL 2 DE 24");
+      add(back(10), -30, "MOVISTAR CUOTA TERMINAL 3 DE 24");
+      add(back(8), -49.9, "KLARNA PAGO 2 DE 3");
+      baseData.transactions = mergeTransactions([], rows);
+      refreshMovementRollups();
+      // Puente con un cambio relevante.
+      const bridge = FinanceCanonicalForecastBridge;
+      const series = JSON.parse(JSON.stringify(canonicalScenarioResults.base.forecast.series));
+      const year = Number(series[0].monthKey.slice(0, 4));
+      const first = bridge.freezeYearEnd({ monthKey: `${year}-09`, closedAt: `${year}-10-02T10:00:00Z`, series, actuals: null });
+      const amount = Math.max(1, Math.round(Math.abs(first.snapshot.yearEndLiquidity) * 30 / 100));
+      const worse = JSON.parse(JSON.stringify(series));
+      let shift = 0;
+      worse.forEach((row) => {
+        if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += amount; row.components.outflow.project = (row.components.outflow.project || 0) + amount; shift -= amount; }
+        if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+      });
+      const second = bridge.freezeYearEnd({ monthKey: `${year}-10`, closedAt: `${year}-11-02T10:00:00Z`, series: worse, actuals: null });
+      puenteSave(bridge.upsert(bridge.upsert([], first.snapshot), second.snapshot));
+      // Calma en caídas: tres valoraciones y una caída del 41 %.
+      scenarioSettings.portfolioPositions = [{ id: "cal-a", type: "fondo", label: "Fondo de prueba", quantity: 0, costBasis: 1000, currentValue: 700, asOf: iso(-10), acquisitionDate: iso(-400), provenance: "declared", contributions: [] }];
+      saveScenarioSettings();
+      savePortfolioValuations({ valuations: [
+        { date: iso(-100), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1000, cost: 1000 }] },
+        { date: iso(-40), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 1200, cost: 1000 }] },
+        { date: iso(-10), savedAt: new Date().toISOString(), points: [{ id: "cal-a", value: 700, cost: 1000 }] },
+      ], timings: [] });
+      renderCierre();
+      });
+      const visibles = await page.evaluate(() => ["planBAviso", "sombraAviso", "puenteAviso", "calmaAviso"].filter((id) => { const el = document.getElementById(id); return el && !el.hidden && el.getBoundingClientRect().height > 0; }));
+      expect(visibles, "los cuatro avisos tienen que estar a la vista para que la medida valga").toHaveLength(4);
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      for (const size of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(size);
+        await page.waitForTimeout(300);
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#cierre").analyze();
+        expect(fmt(results), `${size.width}: ${fmt(results).slice(0, 6).join("\n")}`).toEqual([]);
+      }
+    });
+  });
+}

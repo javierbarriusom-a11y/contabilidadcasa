@@ -41,6 +41,7 @@ const SHELL_URLS = [
   "./calma.css",
   "./datos.css",
   "./patrimonio.css",
+  "./cierre-a11y.css",
   "./manifest.webmanifest",
   "./icon.svg",
   "./data.js",

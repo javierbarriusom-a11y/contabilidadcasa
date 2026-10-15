@@ -167,6 +167,18 @@ test("C-5 · con todo en orden, incluido el recálculo (GOB6), las cuatro compro
   assert.ok(checks.every((check) => check.met));
 });
 
+test("C-5 · una cuenta sin conciliar no se da por cuadrada: la comprobación lo dice (y no bloquea la firma)", () => {
+  const context = baseContext(["cierreFirmChecks", "cierreAccountsSettled", "cierreFirmChecksHtml"]);
+  const mixed = context.cierreFirmChecks([{ status: "cuadra" }, { status: "sin-conciliar" }, { status: "sin-conciliar" }], [], 10);
+  assert.equal(mixed[0].label, "Ninguna cuenta descuadra · 2 sin conciliar");
+  assert.equal(mixed[0].met, true, "sin conciliar no bloquea, como hasta ahora");
+  assert.doesNotMatch(context.cierreFirmChecksHtml(mixed), /Las cuentas cuadran/);
+  const allOk = context.cierreFirmChecks([{ status: "cuadra" }, { status: "cuadra" }], [], 10);
+  assert.equal(allOk[0].label, "Las cuentas cuadran", "con todas conciliadas, el texto de siempre");
+  const bad = context.cierreFirmChecks([{ status: "descuadra" }, { status: "sin-conciliar" }], [], 10);
+  assert.equal(bad[0].met, false, "una que descuadra sigue bloqueando");
+});
+
 // --- cierreRecalcCheck (GOB6, Oleada 3 Bloque 3) --------------------------------------------------
 
 test("GOB6 · sin ningún recálculo todavía (lastModelRecomputeAt nulo), la comprobación no cumple", () => {

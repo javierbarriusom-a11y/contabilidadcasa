@@ -1,0 +1,43 @@
+/* Contraste en Cierre con datos (15-oct-2026, bloque D).
+   Un axe sobre Cierre con el asistente, las listas de comprobación y los avisos a la vez dio
+   fallos de contraste que la suite no veía porque nunca pintaba ese estado: pasos bloqueados
+   atenuados con `opacity` (2,49:1), «Todo cuadra/No cuadra» en verde/rojo sobre fondo teñido
+   (3,0:1), la nota ámbar de la revisión anual (2,9:1) y el texto gris del objetivo (4,36:1).
+   Se corrige sin tocar `design-tokens.css`: el color del texto se mezcla con la tinta del tema
+   (`--e19-ink`, oscura en claro y clara en oscuro), de modo que sube el contraste en los dos temas.
+   Solo cambia el color del texto dentro de `.e19-cierre`; ni datos, ni tamaños, ni espacios. */
+
+.e19-cierre .cierre-step.is-locked {
+  opacity: 1;
+}
+
+.e19-cierre .cierre-step.is-locked strong,
+.e19-cierre .cierre-step.is-locked small,
+.e19-cierre .cierre-step small {
+  color: color-mix(in srgb, var(--e19-ink) 55%, var(--e19-muted));
+}
+
+.e19-cierre .cierre-step.is-locked {
+  border-style: dashed;
+}
+
+.e19-cierre #cierreTarget,
+.e19-cierre #cierreTarget strong {
+  color: color-mix(in srgb, var(--e19-ink) 45%, var(--e19-muted));
+}
+
+.e19-cierre .deuda-ruta-check.is-ok {
+  color: color-mix(in srgb, var(--e19-ink) 38%, var(--e19-success));
+}
+
+.e19-cierre .deuda-ruta-check.is-danger {
+  color: color-mix(in srgb, var(--e19-ink) 38%, var(--e19-danger));
+}
+
+.e19-cierre .e19-badge-danger {
+  color: color-mix(in srgb, var(--e19-ink) 38%, var(--e19-danger));
+}
+
+.e19-cierre .e19-kpi-note.is-warn {
+  color: color-mix(in srgb, var(--e19-ink) 45%, var(--e19-warning));
+}
