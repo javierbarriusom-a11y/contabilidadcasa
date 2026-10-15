@@ -119,8 +119,11 @@ function cierreRecalcCheck() {
 // activo — con la bandera apagada se documenta como paso inexistente en vez de fingir un estado que
 // cumple (regla transversal 04), igual que antes de que Sobres existiera.
 function cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows = []) {
+  // «Sin conciliar» (no hay extracto con que comparar) no descuadra, pero tampoco cuadra: decir «las cuentas cuadran» con una cuenta sin
+  // comparar es dar un dato desconocido por cumplido. No bloquea (como antes), pero lo dice.
+  const sinConciliar = accountRows.filter((row) => row.status === "sin-conciliar").length;
   const checks = [
-    { id: "cuentas", label: "Las cuentas cuadran", met: cierreAccountsSettled(accountRows) },
+    { id: "cuentas", label: sinConciliar ? `Ninguna cuenta descuadra · ${sinConciliar} sin conciliar` : "Las cuentas cuadran", met: cierreAccountsSettled(accountRows) },
     { id: "diferencias", label: "Ninguna diferencia abierta", met: tasks.length === 0 },
   ];
   if (sobresEnabled()) checks.push({ id: "sobres", label: "Ningún sobre sin destino", met: cierreSobresAllResolved(sobresRows) });

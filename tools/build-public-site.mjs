@@ -43,6 +43,7 @@ const files = [
   "calma.css",
   "datos.css",
   "patrimonio.css",
+  "cierre-a11y.css",
   "data.js",
   "app.js",
   "state-contract.js",

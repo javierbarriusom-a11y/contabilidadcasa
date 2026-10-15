@@ -123,7 +123,7 @@ function datosTasks(engine, source, today) {
   if (source.indices && (source.indices.expired || source.indices.missing)) {
     tasks.push({
       id: "indices", label: "Teclear los índices de referencia", uncertainty: null,
-      reasonUnknown: "No sé cuánto cambia una cifra: hace falta el contrato de la hipoteca con su índice para estimar la cuota (H-07).",
+      reasonUnknown: "No sé cuánto cambia una cifra: hace falta el contrato de la hipoteca con su índice para estimar la cuota (se teclea en Deuda › Contratos).",
       minutes: engine.taskMinutes({ measuredSeconds: [], assumedMinutes: 1 }), action: { label: "Teclear índices", href: "#deuda-contratos" },
     });
   }
