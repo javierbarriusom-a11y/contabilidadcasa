@@ -54,6 +54,10 @@
     [/\b(?:pago|compra)\s+a\s+plazos\b|\ba\s+plazos\b/, "dice «a plazos»"],
     [/\bcuota\s+(?:de\s+)?terminal\b|\bterminal\s+movil\b|\bcuota\s+movil\b/, "es la cuota de un terminal"],
     [/\b(?:klarna|sequra|aplazame|pagantis|oney|scalapay|clearpay|afterpay)\b/, "es un servicio de pago aplazado"],
+    // 15/10/2026 · añadidos por conocimiento general, NO por un extracto del hogar (siguen sin calibrar): «paga en 3 plazos», «en 4 cuotas» (con cifra: «en cuotas» a secas no
+    // basta) y las financieras de crédito al consumo, cuyo único negocio es prestar: un cargo mensual suyo es deuda. No se añaden bancos con tarjeta (su cargo puede ser un extracto).
+    [/\ben\s+\d{1,2}\s+(?:plazos|cuotas|pagos|mensualidades)\b/, "dice «en varios plazos»"],
+    [/\b(?:cofidis|cetelem|younited)\b|\bsantander\s+consumer\b/, "es una financiera de crédito al consumo"],
   ];
   const NOT_DEBT = /\bplazo\s+fijo\b|\bdeposito\b|\bfondo\s+de\s+pensiones\b|\bhipoteca\b|\bprestamo\b/;
   const STOP_TOKENS = new Set(["cuota", "cuotas", "plazo", "plazos", "pago", "pagos", "mensualidad", "recibo", "cargo", "de", "del", "la", "el", "los", "las", "num", "numero"]);
