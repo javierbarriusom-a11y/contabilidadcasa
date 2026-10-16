@@ -408,3 +408,43 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ---- PR-3 · «Hecho» por tarea y declarante (16/10/2026). Mismos tokens --e19-*; el estado se dice con texto y con ✓, no solo con el color. ---- */
+.fc-progreso {
+  margin: 0;
+  padding: 10px 14px;
+  font: 400 var(--e19-text-base) / 1.45 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface-soft);
+  border: 1px solid var(--e19-border);
+  border-left: 3px solid var(--e19-accent);
+  border-radius: var(--e19-radius-sm);
+}
+
+.fc-hecho {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.fc-hecho-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border: 1px dashed var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+}
+
+.fc-hecho-hecha {
+  border-style: solid;
+  border-left: 3px solid var(--e19-success);
+}
+
+.fc-hecho-estado {
+  color: var(--e19-ink);
+  font-size: var(--e19-text-sm);
+}

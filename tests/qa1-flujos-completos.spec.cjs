@@ -1295,6 +1295,91 @@ test.describe("WP-23 PR-2 · tus datos fiscales", () => {
   });
 });
 
+// WP-23 PR-3: «Hecho» por tarea y declarante, y el calendario del móvil. Cifras FICTICIAS: marcar guarda en el almacén de la copia, persiste, se quita con «Deshacer», el
+// ejemplo no se puede marcar y el aviso del 20/12 se calla solo cuando TODAS las tareas con ahorro están marcadas (no cuando no hay tareas).
+test.describe("WP-23 PR-3 · hecho y calendario", () => {
+  const datos = { schemaId: "finance-wp23-fiscal-data/v1", year: 2026, updatedAt: "2026-11-19", holders: [
+    { id: "persona-1", label: "Ana", marginalRatePct: 30, pension: { contributedYear: 0, hasEmployerPlan: false }, housing: { applies: true, paidYear: 6000 }, donations: { amountYear: 300 } },
+    { id: "persona-2", label: "Luis", marginalRatePct: 24, pension: { contributedYear: 1500, hasEmployerPlan: false }, housing: { applies: true, paidYear: 9040 }, donations: { amountYear: 0 } },
+  ] };
+
+  test("el ejemplo no tiene botones; con datos se marca, persiste, viaja en la copia, se quita con Deshacer y el calendario lo sabe", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 20, 12, 0, 0) });
+    await page.goto("/index.html#herramientas-fiscal");
+    const card = page.locator("#campanaFiscalCard");
+    await expect(card).toHaveAttribute("data-ejemplo", "true");
+    await expect(card.locator("[data-fiscal-hecho]"), "el ejemplo no se marca").toHaveCount(0);
+    await expect(card.locator(".fc-progreso")).toHaveCount(0);
+
+    await page.evaluate((value) => { storageSet(storageKey("fiscal-data"), JSON.stringify(value)); }, datos);
+    await page.reload();
+    await expect(card).toHaveAttribute("data-ejemplo", "false");
+    await expect(card.locator("[data-fiscal-hecho]"), "pensiones, vivienda y donativos de Ana; Luis no tiene nada que hacer").toHaveCount(3);
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 0 de 3 tareas.");
+    await expect(card.locator(".fc-progreso")).toContainText("la app no comprueba que se hiciera");
+
+    // El calendario, con tareas pendientes: lo dice, y el título no lleva cifras.
+    const antes = await page.evaluate(() => recordatoriosPlan().result.events.filter((event) => event.kind === "fiscal").map((event) => ({ date: event.date, title: event.title, description: event.description })));
+    expect(antes.map((event) => event.date)).toEqual(["2026-12-01", "2026-12-20"]);
+    expect(antes[1].description).toContain("quedaban 3 tareas sin marcar como hechas");
+    antes.forEach((event) => expect(event.title).not.toMatch(/\d/));
+
+    // Marcar una.
+    await card.getByRole("button", { name: "Marcar como hecho: Ana, Aportar al plan de pensiones" }).click();
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 1 de 3 tareas.");
+    await expect(card.locator(".fc-accion", { hasText: "Aportar al plan de pensiones" })).toContainText("hecho (marcado el 20/11/2026)");
+    await expect(card.locator(".fc-accion", { hasText: "Aportar al plan de pensiones" }).locator(".e19-pill", { hasText: "Hecha" })).toBeVisible();
+    const guardado = await page.evaluate(() => ({ raw: storageGet(storageKey("fiscal-done"), ""), copia: appStatePayload().localStores["fiscal-done"] }));
+    expect(JSON.parse(guardado.raw).marks).toEqual({ "pensiones|persona-1": { at: "2026-11-20" } });
+    expect(guardado.copia, "viaja en la copia").toBe(guardado.raw);
+
+    // Persiste al recargar.
+    await page.reload();
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 1 de 3 tareas.");
+
+    // Quitar la marca se puede deshacer, sin diálogos del navegador.
+    page.on("dialog", (dialog) => { throw new Error(`diálogo inesperado: ${dialog.message()}`); });
+    await card.getByRole("button", { name: "Quitar la marca de hecho: Ana, Aportar al plan de pensiones" }).click();
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 0 de 3 tareas.");
+    await expect(page.locator("#undoToastMessage")).toContainText("Marca de hecho quitada");
+    await page.locator("#undoToastButton").click();
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 1 de 3 tareas.");
+
+    // Con todas marcadas, el aviso del 20/12 se calla (el del 1/12 sigue) y la tarjeta lo dice.
+    await card.getByRole("button", { name: "Marcar como hecho: Ana, Llenar el tope de la deducción por vivienda" }).click();
+    await card.getByRole("button", { name: "Marcar como hecho: Ana, Donativos deducibles" }).click();
+    await expect(card.locator(".fc-progreso")).toContainText("Hecho: 3 tareas de 3. Todas marcadas como hechas");
+    const despues = await page.evaluate(() => { const result = recordatoriosPlan().result; return { fiscal: result.events.filter((event) => event.kind === "fiscal").map((event) => event.date), skipped: result.skipped.fiscalDone }; });
+    expect(despues.fiscal).toEqual(["2026-12-01"]);
+    expect(despues.skipped).toBe(1);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("sin tareas con ahorro NO se calla el aviso del 20/12; no desborda en móvil con el estado «hecho»", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 20, 12, 0, 0) });
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.evaluate((value) => { storageSet(storageKey("fiscal-data"), JSON.stringify({ ...value, holders: [value.holders[1]] })); storageSet(storageKey("fiscal-done"), ""); }, datos);
+      await page.reload();
+      await expect(page.locator("#campanaFiscalCard")).toHaveAttribute("data-ejemplo", "false");
+      await expect(page.locator("#campanaFiscalCard .fc-progreso"), "sin tareas no hay progreso ni «todo hecho»").toHaveCount(0);
+      const fiscal = await page.evaluate(() => recordatoriosPlan().result.events.filter((event) => event.kind === "fiscal").map((event) => event.date));
+      expect(fiscal, "no se sabe nada de tareas: salen los dos avisos de siempre").toEqual(["2026-12-01", "2026-12-20"]);
+      // Con tareas y una marcada, a 390 px.
+      await page.evaluate((value) => { storageSet(storageKey("fiscal-data"), JSON.stringify(value)); storageSet(storageKey("fiscal-done"), JSON.stringify({ year: 2026, marks: { "pensiones|persona-1": { at: "2026-11-19" } } })); }, datos);
+      await page.reload();
+      await expect(page.locator("#campanaFiscalCard .fc-progreso")).toContainText("Hecho: 1 de 3 tareas.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // WP-28: el cono de previsión migrado al kit de gráficos (chart-kit.js): se lee con el ratón, el teclado y el dedo, con lectura fija y tabla.
 test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
   test("se recorre con teclado y ratón, la lectura es fija, la tabla da los mismos datos y no desborda en móvil", async ({ page }) => {

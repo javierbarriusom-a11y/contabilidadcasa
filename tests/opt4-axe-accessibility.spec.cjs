@@ -1356,13 +1356,13 @@ for (const scheme of ["light", "dark"]) {
   test.describe(`WP-23 PR-2 · contraste de «Tus datos fiscales» en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
     test("#herramientas-fiscal: formulario vacío, con errores y guardado, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
-      test.setTimeout(120000); // seis análisis de axe y dos anchos en una sola prueba: en una máquina lenta pasa de los 30 s por defecto
+      test.setTimeout(180000); // ocho análisis de axe y dos anchos en una sola prueba: en una máquina lenta pasa de los 30 s por defecto
       await page.clock.install({ time: new Date(2026, 9, 20, 12, 0, 0) });
       const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       for (const size of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(size);
         await page.goto("/index.html#herramientas-fiscal");
-        await page.evaluate(() => { storageSet(storageKey("fiscal-data"), ""); });
+        await page.evaluate(() => { storageSet(storageKey("fiscal-data"), ""); storageSet(storageKey("fiscal-done"), ""); });
         await page.reload();
         const card = page.locator("#campanaFiscalCard");
         await expect(card).toBeVisible({ timeout: 15000 });
@@ -1391,6 +1391,12 @@ for (const scheme of ["light", "dark"]) {
         await page.mouse.move(0, 0);
         const guardado = await new AxeBuilder({ page }).include("#campanaFiscalCard").analyze();
         expect(fmt(guardado), `${size.width} guardado: ${fmt(guardado).slice(0, 5).join("\n")}`).toEqual([]);
+        // PR-3: con una tarea marcada como hecha (botones, progreso, fila «hecho» y la píldora «Hecha»).
+        await card.getByRole("button", { name: /^Marcar como hecho: Ana, Aportar/ }).click();
+        await expect(card.locator(".fc-hecho-hecha")).toHaveCount(1);
+        await page.mouse.move(0, 0);
+        const hecho = await new AxeBuilder({ page }).include("#campanaFiscalCard").analyze();
+        expect(fmt(hecho), `${size.width} hecho: ${fmt(hecho).slice(0, 5).join("\n")}`).toEqual([]);
       }
     });
   });

@@ -71,17 +71,18 @@
    *   outflows?: Array<{date: string, label?: string, amount: number, confidence?: string}>,
    *   reviews?: Array<{date: string, low?: number, high?: number}>,
    *   cirbe?: Array<{reportDate?: string, renewOn: string}>,
+   *   fiscal?: {year: number, total: number, pending: number},
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */
   function build(input = {}) {
     const today = utc(input.today) ? isoOf(utc(input.today)) : "";
-    if (!today) return { schemaId: SCHEMA_ID, status: "missing", missing: ["la fecha de hoy"], events: [], skipped: { uncertainIncomes: 0, uncertainCharges: 0 }, counts: {} };
+    if (!today) return { schemaId: SCHEMA_ID, status: "missing", missing: ["la fecha de hoy"], events: [], skipped: { uncertainIncomes: 0, uncertainCharges: 0, fiscalDone: 0 }, counts: {} };
     const options = normalizeOptions(input.options);
     const horizonEnd = isoOf(new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1 + options.horizonMonths, Number(today.slice(8, 10)), 12)));
     const within = (date) => date >= today && date <= horizonEnd;
     const events = new Map();
-    const skipped = { uncertainIncomes: 0, uncertainCharges: 0 };
+    const skipped = { uncertainIncomes: 0, uncertainCharges: 0, fiscalDone: 0 };
     const put = (event) => { if (within(event.date) && !events.has(event.uid)) events.set(event.uid, event); };
 
     // 1) Dos días antes de cobrar: «actualizad saldos antes de decidir cuánto se gasta».
@@ -137,18 +138,30 @@
       }
     }
 
-    // 4) Campaña fiscal: 1/12 (la lista) y 20/12 (últimas decisiones).
+    // 4) Campaña fiscal: 1/12 (la lista) y 20/12 (últimas decisiones). Con los datos fiscales del hogar tecleados (WP-23 PR-2) y las tareas marcadas «hecho»
+    // (PR-3), `input.fiscal = {year, total, pending}` afina los dos avisos SOLO para el año de la campaña: el 1/12 dice cuántas tareas hay y cuántas faltan, y el
+    // 20/12 dice cuántas quedan o, si estaban TODAS marcadas, no se genera (un aviso de «decidid lo que falte» sin nada que decidir es ruido). Sin datos o sin
+    // tareas (`total` 0) no se sabe nada y salen los avisos de siempre: «no hay tareas» no es «todo hecho». Los títulos no llevan cifras (salen en la pantalla
+    // de bloqueo); el detalle dice a qué día se contó, porque el fichero es una foto y puede quedar viejo (un .ics no puede borrar el aviso si luego se hace todo).
     if (options.kinds.fiscal) {
+      const fiscal = input.fiscal && typeof input.fiscal === "object" ? input.fiscal : null;
+      const fiscalYear = Math.trunc(Number(fiscal && fiscal.year));
+      const total = Math.trunc(Number(fiscal && fiscal.total));
+      const pending = Math.trunc(Number(fiscal && fiscal.pending));
+      const known = Boolean(fiscal) && Number.isInteger(total) && total > 0 && Number.isInteger(pending) && pending >= 0 && pending <= total;
+      const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
       [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1].forEach((year) => {
+        const own = known && fiscalYear === year;
         put({
           uid: `rec-fiscal-${year}-12-01`, kind: "fiscal", date: `${year}-12-01`,
           title: "Campaña fiscal: mirad la lista",
-          description: "Quedan 30 días para las decisiones que ahorran impuestos de este año (pensiones, vivienda, compensación de pérdidas, donativos). La lista está en Herramientas avanzadas › Fiscal. Son estimaciones: confirmadlas con un asesor.",
+          description: `Quedan 30 días para las decisiones que ahorran impuestos de este año (pensiones, vivienda, compensación de pérdidas, donativos). La lista está en Herramientas avanzadas › Fiscal.${own ? ` Según la app el ${longDate(today)}: ${plural(total, "tarea con ahorro", "tareas con ahorro")} y ${plural(pending, "sin marcar como hecha", "sin marcar como hechas")}.` : ""} Son estimaciones: confirmadlas con un asesor.`,
         });
+        if (own && pending === 0) { skipped.fiscalDone += 1; return; }
         put({
           uid: `rec-fiscal-${year}-12-20`, kind: "fiscal", date: `${year}-12-20`,
           title: "Últimos días para decisiones fiscales",
-          description: "Las aportaciones y donativos que deban contar en este año tienen que estar hechos antes del 31/12. Repasad la lista de Herramientas avanzadas › Fiscal y decidid hoy lo que falte.",
+          description: `Las aportaciones y donativos que deban contar en este año tienen que estar hechos antes del 31/12. Repasad la lista de Herramientas avanzadas › Fiscal y decidid hoy lo que falte.${own ? ` Según la app el ${longDate(today)} quedaban ${plural(pending, "tarea sin marcar como hecha", "tareas sin marcar como hechas")}: si ya las habéis hecho, marcadlas en la app.` : ""}`,
         });
       });
     }
