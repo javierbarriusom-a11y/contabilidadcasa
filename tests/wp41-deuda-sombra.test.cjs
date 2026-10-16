@@ -185,6 +185,21 @@ test("WP-41 · calibración sintética: ningún aviso en hogares limpios y la fi
   assert.equal(found, injected, `se encuentran ${found} de ${injected}`);
 });
 
+test("WP-41 · 15/10 · «en 3 plazos» y las financieras de consumo se reconocen (añadidos por conocimiento general, sin extracto real), sin marcar lo que no es deuda", () => {
+  const mensual = (concepto, importe = 35.5) => [tx("2026-08-14", -importe, concepto), tx("2026-09-14", -importe, concepto), tx("2026-10-14", -importe, concepto)];
+  ["PAGO EN 3 PLAZOS PAYPAL", "AMAZON PAGO EN 4 CUOTAS", "COFIDIS CUOTA", "CETELEM CONSUMO", "YOUNITED CREDIT", "SANTANDER CONSUMER FINANCE"].forEach((concepto) => {
+    const r = detect(mensual(concepto));
+    assert.equal(r.items.length, 1, `debería marcar «${concepto}»`);
+    assert.equal(r.items[0].confidence, "media", "sin contador no hay fecha de fin: confianza media");
+    assert.equal(r.items[0].endMonth, null, "la fecha de fin no se inventa");
+  });
+  // Lo que se parece pero no es: sin cifra, un banco con tarjeta, un depósito, un solo cargo.
+  ["PAGO EN CUOTAS TIENDA", "PAGO EN TIENDA", "WIZINK TARJETA", "DEPOSITO EN 12 PLAZOS", "SANTANDER SEGUROS"].forEach((concepto) => {
+    assert.equal(detect(mensual(concepto)).items.length, 0, `no debería marcar «${concepto}»`);
+  });
+  assert.equal(detect([tx("2026-10-14", -35.5, "COFIDIS CUOTA")]).items.length, 0, "un solo cargo de una financiera sin contador no basta");
+});
+
 test("WP-41 · el motor es puro: sin DOM, red ni almacenamiento", () => {
   const source = read("canonical-shadow-debt.js").replace(/\/\/.*$/gm, "");
   for (const forbidden of [/\bdocument\b/, /\bwindow\b/, /localStorage/, /sessionStorage/, /\bfetch\(/, /XMLHttpRequest/, /\bqs\(/]) assert.doesNotMatch(source, forbidden);
