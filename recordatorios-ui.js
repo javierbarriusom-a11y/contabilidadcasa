@@ -36,6 +36,8 @@ function recordatoriosInput(settings, today) {
     reviews: globalThis.rateReviewCalendarItems?.() || [],
     // WP-40 (cirbe-ui.js): cuándo toca pedir el informe de la CIRBE otra vez, si hay uno tecleado.
     cirbe: globalThis.cirbeCalendarItems?.() || [],
+    // WP-23 PR-3 (fiscal-datos-ui.js): cuántas tareas fiscales hay con los datos del hogar y cuántas faltan por marcar como hechas; null si no hay datos de este año.
+    fiscal: globalThis.fiscalCampaignReminder?.() || null,
     options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin },
   };
 }
@@ -55,9 +57,11 @@ function recordatoriosSummaryHtml({ engine, settings, today, result }) {
     result.skipped.uncertainIncomes ? `${result.skipped.uncertainIncomes} cobro(s)` : "",
     result.skipped.uncertainCharges ? `${result.skipped.uncertainCharges} cargo(s) grande(s)` : "",
   ].filter(Boolean).join(" y ");
+  const fiscalDone = result.skipped.fiscalDone ? `<p class="e19-kpi-note">Sin aviso del 20/12: las tareas fiscales están todas marcadas como hechas. El calendario de tu móvil no puede borrar un aviso que ya importaste: si lo tienes de antes, bórralo a mano.</p>` : "";
   const next = result.events.slice(0, 5).map((event) => `<li><strong>${escapeHtml(engine.longDate(event.date))}</strong> · ${escapeHtml(event.title)}</li>`).join("");
   return `<p class="rec-resumen"><strong>${result.events.length} recordatorio(s)</strong> hasta el ${escapeHtml(engine.longDate(result.horizonEnd))}${counts ? ` — ${escapeHtml(counts)}` : ""}.</p>
     ${next ? `<ol class="rec-lista" aria-label="Próximos recordatorios">${next}</ol>` : `<p class="e19-kpi-note">No hay ningún recordatorio con estas opciones.</p>`}
+    ${fiscalDone}
     ${skipped ? `<p class="e19-kpi-note">Sin aviso: ${escapeHtml(skipped)} con fecha <strong>estimada</strong>. El plan no sabe qué día caen y un aviso en un día cualquiera es ruido. Declara el día de cargo en Plan › Partidas y entrarán.</p>` : ""}
     <p class="e19-kpi-note ${stale.stale ? "negative" : ""}" role="status">${escapeHtml(stale.label)}</p>`;
 }

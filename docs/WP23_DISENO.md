@@ -54,7 +54,7 @@ Estructura: cuenta atrás discreta («La campaña se abre el 1 de noviembre (en 
 ## 6. Pendiente (PR siguientes, con los datos del hogar)
 
 - ~~**PR-2 · datos del hogar**~~ — **hecho el 16/10/2026** (§8). Los datos ya no entran por el chat (el repositorio es público): los teclea el hogar en la app.
-- **PR-3 · «Hecho» y calendario:** estado «hecho» por acción con fecha (M-FISCAL ≥ 100 % de las aplicables antes del 31/12) y eventos de calendario el 1/12 y el 20/12 con la exportación `.ics` existente (A17-2).
+- ~~**PR-3 · «Hecho» y calendario**~~ — **hecho el 16/10/2026** (§9).
 - Contrastar los parámetros con la fuente oficial y la comunidad autónoma, y pasarlos a `verified: true` con su fuente.
 - Fecha de los datos de entrada: H-03 (20/10). Límite para tener la lista con euros reales: 15/11.
 
@@ -73,5 +73,15 @@ El hogar no podía teclear sus datos fiscales (el ensayo del 15/10 lo encontró)
 - **Qué NO hace:** no deduce nada de las nóminas (WP-31) ni del estimador de Renta (A15-2) — **todo se teclea**, aunque el bruto y la retención ya estén en las nóminas, y el resultado y el tipo marginal podrían salir del estimador; unirlos es una decisión de diseño aparte (arrastra datos de otro almacén). Tampoco contrasta las cifras con ninguna fuente oficial ni da por buenos los parámetros legales (siguen `verified: false`).
 - **Qué se comprobó:** 23 pruebas unitarias nuevas (`tests/fis2-datos-fiscales.test.cjs`) y 2 de navegador (guardar, recargar, error, copia, quitar y deshacer; «Rellenar mis datos»), más axe en claro y oscuro × 1280/390 en tres estados (vacío, con errores, guardado). **Mutaciones comprobadas:** vacío→0, sin rango, año ajeno, «no lo sé»→«no», la lista sin datos reales y el formato de importe en un %: cada una hace caer una prueba.
 - **Hallazgos corregidos en el camino:** el aviso «No es un importe» de la app daba **3,89:1** de contraste en oscuro dentro de esta tarjeta (se dice con tinta y barra); mi mensaje de error repetía el `id` del aviso del lector de importes (ids duplicados): ahora uno solo por campo; y al guardar, el formulario se plegaba y escondía su propio «guardado» (ahora respeta cómo estaba).
-- **Pendiente:** PR-3 («Hecho» por acción y calendario 1/12 y 20/12) y contrastar los parámetros legales.
+- **Pendiente:** contrastar los parámetros legales (PR-3 hecho: §9).
 
+## 9. Tercera entrega (PR-3, 16/10/2026): «Hecho» por tarea y un aviso del 20/12 que sabe lo que falta
+
+- **Qué es:** en cada tarea de la lista, por declarante, un botón «Marcar como hecho» (y «Quitar marca»). Se guarda con la fecha de hoy en el almacén **`fiscal-done`** (hermano de `fiscal-data`) (`{schemaId: finance-wp23-fiscal-done/v1, year, marks}`; clave `acción|declarante`; en `BACKUP_LOCAL_STORES`, así que viaja en la copia y en la nube). Encima de la lista, un resumen: «Hecho: X de N tareas. Quedan M antes del 31 de diciembre, con <cifra> de ahorro estimado por hacer».
+- **«Hecho» lo declara el hogar:** la app no puede comprobar que se aportó al plan o se donó. El resumen lo dice. Si lo hecho cambia las cifras (aportar baja el margen del tope), hay que actualizar «Tus datos fiscales»: la app no lo deduce.
+- **Qué cuenta como tarea:** solo las filas **accionables** (calculables y, si la acción tiene ahorro, con ahorro > 0) de acciones **con fecha límite**. «Sin calcular» no es una tarea hecha ni pendiente (no se puede marcar); **ajustar la retención** no tiene fecha límite y es caja, no ahorro: no cuenta para el 31/12. Sin tareas (`total` 0) no hay progreso: **«sin tareas» no es «todo hecho»**.
+- **Datos de un año:** las marcas de otro año no se aplican (empieza de cero), las de acciones desconocidas se descartan al leer y una fecha fuera del año o mal formada no se guarda. El **ejemplo no se puede marcar**: es un hogar ficticio.
+- **Calendario (`canonical-reminders.js`):** los eventos del 1/12 y 20/12 ya existían (genéricos). Ahora, con datos reales de este año, el del 1/12 añade en la descripción «Según la app el <fecha>: N tareas con ahorro y M sin marcar»; el del 20/12 dice cuántas quedaban sin marcar, y **si no queda ninguna, ese evento no se genera** (se avisa en pantalla). Los títulos no llevan cifras (se leen con el móvil bloqueado). **Límite:** un `.ics` no puede borrar un evento que ya importaste; la pantalla lo dice.
+- **Qué NO hace:** no cambia nada en Hoy; no emite avisos nuevos; no calcula cuánto ahorro se «consiguió» (solo cuánto queda por hacer); no verifica nada con la Agencia Tributaria.
+- **Qué se comprobó:** 23 pruebas unitarias (`tests/fis3-fiscal-hecho.test.cjs`: almacén, progreso, calendario, UI en vm, cableado), 2 de navegador (marcar, recargar, quitar y deshacer; el `.ics`) y axe en claro/oscuro × 1280/390 con una cuarta etapa (tarea marcada). **Mutaciones comprobadas (7):** cada una hace caer al menos una prueba.
+- **Hallazgo en el camino:** la prueba axe de PR-2 reutilizaba el estado entre anchos; con la marca persistida el botón era «Quitar marca». Era un fallo del aislamiento de la prueba, no de la app: ahora limpia `fiscal-done` además de `fiscal-data`.

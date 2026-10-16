@@ -53,6 +53,21 @@ function fiscalCampaignHolderLine(action, row, example) {
   }
 }
 
+// «Hecho» (PR-3): una línea por declarante con algo que hacer. Lo marca el hogar y la app no lo comprueba; la fecha es la del día en que se marcó. Con el ejemplo no se muestra.
+function fiscalCampaignDoneHtml(action, campaign) {
+  if (campaign.example) return "";
+  const rows = action.rows.filter((row) => row.actionable);
+  if (!rows.length) return "";
+  const date = (iso) => String(iso).split("-").reverse().map(Number).join("/");
+  const items = rows.map((row) => {
+    const data = `data-accion="${escapeHtml(action.id)}" data-declarante="${escapeHtml(row.holderId)}"`;
+    return row.done
+      ? `<li class="fc-hecho-fila fc-hecho-hecha"><span class="fc-hecho-estado"><span aria-hidden="true">✓ </span><strong>${escapeHtml(row.label)}</strong>: hecho (marcado el ${escapeHtml(date(row.done.at))})</span> <button type="button" class="fc-rellenar" data-fiscal-deshacer ${data} aria-label="Quitar la marca de hecho: ${escapeHtml(row.label)}, ${escapeHtml(action.title)}">Quitar marca</button></li>`
+      : `<li class="fc-hecho-fila"><span class="fc-hecho-estado"><strong>${escapeHtml(row.label)}</strong>: pendiente</span> <button type="button" class="e19-btn e19-btn-secondary" data-fiscal-hecho ${data} aria-label="Marcar como hecho: ${escapeHtml(row.label)}, ${escapeHtml(action.title)}">Marcar como hecho</button></li>`;
+  }).join("");
+  return `<ul class="fc-hecho" aria-label="Estado de esta tarea por declarante">${items}</ul>`;
+}
+
 function fiscalCampaignActionHtml(action, index, campaign) {
   const example = campaign.example;
   const state = action.status === "calculable"
@@ -70,7 +85,8 @@ function fiscalCampaignActionHtml(action, index, campaign) {
     <span class="fc-orden" aria-hidden="true">${index + 1}</span>
     <div class="fc-accion-cuerpo">
       <div class="fc-accion-cabecera"><h4>${escapeHtml(action.title)}</h4>${state}</div>
-      <p class="fc-accion-etiquetas">${deadline}</p>
+      <p class="fc-accion-etiquetas">${deadline}${!campaign.example && action.doneCount > 0 && action.pendingCount === 0 ? ' <span class="e19-pill">Hecha</span>' : ""}</p>
+      ${fiscalCampaignDoneHtml(action, campaign)}
       ${missing}
       <details class="fc-detalle"><summary>Por declarante y fuente</summary>
         <ul class="fc-por-declarante">${holders}</ul>
@@ -78,6 +94,17 @@ function fiscalCampaignActionHtml(action, index, campaign) {
       </details>
     </div>
   </li>`;
+}
+
+// Cuántas tareas con fecha límite están marcadas. «Sin tareas» no se pinta como «todo hecho». Con el ejemplo no hay progreso.
+function fiscalCampaignProgressHtml(campaign) {
+  const progress = campaign.progress;
+  if (campaign.example || !progress || progress.total === 0) return "";
+  const tasks = (count) => `${count} ${count === 1 ? "tarea" : "tareas"}`;
+  const text = progress.allDone
+    ? `<strong>Hecho: ${tasks(progress.total)} de ${progress.total}.</strong> Todas marcadas como hechas`
+    : `<strong>Hecho: ${progress.done} de ${tasks(progress.total)}.</strong> Quedan ${progress.pending} antes del 31 de diciembre, con ${fiscalCampaignAmount(progress.pendingSavingEur, false)} de ahorro estimado por hacer`;
+  return `<p class="fc-progreso" role="status">${text}. Lo marcáis vosotros: la app no comprueba que se hiciera. Si lo hecho cambia vuestras cifras (por ejemplo, lo aportado a pensiones), actualizadlas en «Tus datos fiscales» para que lo que queda esté bien calculado.</p>`;
 }
 
 // `engine`: el motor puro; lo pasa app.js (renderActiveSection) al llegar a la pantalla, que es cuando la sección deja de estar oculta.
@@ -92,7 +119,9 @@ function renderFiscalCampaign(engine, options = {}) {
   // si no hay datos, o son de otro año, sigue el ejemplo (y lo dice).
   const stored = typeof globalThis.fiscalDatosResolve === "function" ? globalThis.fiscalDatosResolve(engine, year) : null;
   const household = stored && stored.status === "real" ? stored.household : exampleHousehold;
-  const campaign = engine.buildCampaign({ ...household, year }, { today });
+  // PR-3: lo marcado «hecho». Con el ejemplo no se marca nada (son cifras de un hogar ficticio) y no se pasa.
+  const done = stored && stored.status === "real" && typeof globalThis.fiscalHechoLoad === "function" ? globalThis.fiscalHechoLoad() : null;
+  const campaign = engine.buildCampaign({ ...household, year }, { today, done });
   if (!campaign.calculable) {
     card.hidden = true;
     return;
@@ -116,6 +145,7 @@ function renderFiscalCampaign(engine, options = {}) {
     <p class="fc-cuenta-atras">${escapeHtml(fiscalCampaignCountdown(campaign))}</p>
     <p class="fc-total"><span class="fc-total-cifra">${fiscalCampaignAmount(campaign.totalSavingEur, example)}</span>
       <span class="fc-total-texto">de ahorro estimado en la Renta de ${campaign.rentaYear} si se hacen las ${campaign.calculableCount} acciones con ahorro${campaign.missingCount ? ` · ${campaign.missingCount} sin calcular` : ""}</span></p>
+    ${fiscalCampaignProgressHtml(campaign)}
     <ol class="fc-lista">${campaign.actions.map((action, index) => fiscalCampaignActionHtml(action, index, campaign)).join("")}</ol>
     <details class="fc-detalle fc-parametros"><summary>Parámetros que usa el cálculo</summary><ul class="fc-por-declarante">${parametros}</ul></details>
     <p class="e19-kpi-note">${escapeHtml(campaign.warning)} La app nunca ejecuta nada por sí sola: aportar, amortizar, vender o donar lo decides tú.</p>`;

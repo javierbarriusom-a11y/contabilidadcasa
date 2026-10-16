@@ -26,6 +26,10 @@
   const STORE_SCHEMA_ID = "finance-wp23-fiscal-data/v1";
   const MAX_HOLDERS = 2;
   const MAX_LABEL = 40;
+  // PR-3 (16/10/2026): «Hecho» por acción y declarante, con la fecha en que el hogar lo marcó. Almacén aparte del de los datos: quitar los datos no borra qué se hizo.
+  const DONE_STORE_NAME = "fiscal-done";
+  const DONE_SCHEMA_ID = "finance-wp23-fiscal-done/v1";
+  const MAX_DONE_MARKS = 40;
 
   // Parámetros legales por año. `verified: false` = tomado del plan, aún no contrastado con la fuente oficial (ni con la comunidad
   // autónoma del hogar, que en vivienda y donativos puede cambiar el reparto). Los valores no se usan en silencio: viajan en el resultado.
@@ -230,12 +234,16 @@
     return round2(rows.reduce((sum, row) => sum + (row.result.status === "calculable" ? row.result.savingEur : 0), 0));
   }
 
-  function buildAction(definition, holders, params) {
-    const rows = holders.map((holder) => ({
-      holderId: text(holder.id),
-      label: text(holder.label) || text(holder.id),
-      result: definition.compute(holder, params),
-    }));
+  function buildAction(definition, holders, params, doneMarks = {}) {
+    const rows = holders.map((holder) => {
+      const result = definition.compute(holder, params);
+      const holderId = text(holder.id);
+      // «Accionable»: hay algo que hacer. Calculable y, si la acción ahorra, con ahorro > 0 (un tope ya lleno o un límite ya cubierto no es una tarea pendiente).
+      const actionable = result.status === "calculable" && (!definition.hasSaving || result.savingEur > 0);
+      const mark = actionable ? doneMarks[doneKey(definition.id, holderId)] : null;
+      return { holderId, label: text(holder.label) || text(holder.id), result, actionable, done: mark ? { at: mark.at } : null };
+    });
+    const actionableRows = rows.filter((row) => row.actionable);
     const calculable = rows.filter((row) => row.result.status === "calculable");
     const missing = [...new Set(rows.filter((row) => row.result.status === "sin_dato").flatMap((row) => row.result.missing))];
     const applicable = rows.filter((row) => row.result.status !== "no_aplica");
@@ -254,6 +262,8 @@
       cashEur: definition.id === "retencion" && status === "calculable" ? round2(calculable.reduce((sum, row) => sum + row.result.cashEur, 0)) : null,
       missing,
       rows,
+      doneCount: actionableRows.filter((row) => row.done).length,
+      pendingCount: actionableRows.filter((row) => !row.done).length,
       deadline: definition.id === "retencion" ? null : `${params.year}-${DEADLINE}`,
       hasSaving: definition.hasSaving,
       verified: Boolean(params[definition.param].verified),
@@ -392,9 +402,74 @@
     return { status: "real", household: { year: Number(year), example: false, holders: normalized.holders }, storedYear: normalized.year, updatedAt: normalized.updatedAt };
   }
 
+  // ---------- «Hecho» (PR-3) ----------
+  // Lo marca el hogar: la app NO comprueba que se hiciera (no ve el banco ni el plan). La fecha es la del día en que se marcó, no la de la operación.
+  // Una marca solo cuenta si es del año de la campaña y de una acción que sigue teniendo algo que hacer; las demás se ignoran, no se borran.
+  const doneKey = (actionId, holderId) => `${actionId}|${holderId}`;
+
+  /** Lo que hay en el almacén de «hecho», saneado: siempre una forma válida (vacía si no hay nada, está dañado o no dice de qué año es). */
+  function normalizeDone(raw) {
+    const empty = { schemaId: DONE_SCHEMA_ID, year: null, marks: {} };
+    if (!raw || typeof raw !== "object") return empty;
+    const year = Math.trunc(number(raw.year, NaN));
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) return empty;
+    const ids = ACTIONS.map((action) => action.id);
+    const marks = {};
+    const source = raw.marks && typeof raw.marks === "object" && !Array.isArray(raw.marks) ? raw.marks : {};
+    Object.entries(source).slice(0, MAX_DONE_MARKS).forEach(([key, value]) => {
+      const [actionId, holderId, extra] = String(key).split("|");
+      const at = text(value && value.at);
+      if (extra !== undefined || !ids.includes(actionId) || !holderId || holderId.length > MAX_LABEL || !validIsoDate(at) || Number(at.slice(0, 4)) !== year) return;
+      marks[doneKey(actionId, holderId)] = { at };
+    });
+    return { schemaId: DONE_SCHEMA_ID, year, marks };
+  }
+
+  /**
+   * Marca una acción como hecha para un declarante. Devuelve el almacén nuevo o un error (nunca guarda una marca inventada).
+   * @param {*} store
+   * @param {{year: number, actionId: string, holderId: string, at: string}} mark
+   */
+  function markDone(store, mark) {
+    const year = Math.trunc(number(mark && mark.year, NaN));
+    const actionId = text(mark && mark.actionId);
+    const holderId = text(mark && mark.holderId);
+    const at = text(mark && mark.at);
+    if (!Number.isInteger(year) || !ACTIONS.some((action) => action.id === actionId) || !holderId || holderId.length > MAX_LABEL) return { error: "invalid-mark", store: normalizeDone(store) };
+    if (!validIsoDate(at) || Number(at.slice(0, 4)) !== year) return { error: "date-outside-year", store: normalizeDone(store) };
+    const current = normalizeDone(store);
+    // Un año nuevo empieza sin marcas: lo hecho en 2026 no cuenta para 2027.
+    const base = current.year === year ? current : { schemaId: DONE_SCHEMA_ID, year, marks: {} };
+    return { error: null, store: { ...base, marks: { ...base.marks, [doneKey(actionId, holderId)]: { at } } } };
+  }
+
+  /** Quita una marca (si no estaba, no hace nada). */
+  function unmarkDone(store, mark) {
+    const current = normalizeDone(store);
+    const marks = { ...current.marks };
+    delete marks[doneKey(text(mark && mark.actionId), text(mark && mark.holderId))];
+    return { ...current, marks };
+  }
+
+  // M-FISCAL: de las tareas con fecha límite del 31/12 y algo que hacer, cuántas están marcadas. «Sin tareas» NO es «todo hecho»: el 100 % solo existe si había algo que hacer.
+  function progressOf(actions) {
+    const rows = actions.filter((action) => action.deadline).flatMap((action) => action.rows.filter((row) => row.actionable));
+    const done = rows.filter((row) => row.done);
+    const sum = (list) => round2(list.reduce((total, row) => total + row.result.savingEur, 0));
+    return {
+      total: rows.length,
+      done: done.length,
+      pending: rows.length - done.length,
+      pct: rows.length ? Math.round((done.length / rows.length) * 100) : null,
+      allDone: rows.length > 0 && done.length === rows.length,
+      doneSavingEur: sum(done),
+      pendingSavingEur: sum(rows.filter((row) => !row.done)),
+    };
+  }
+
   /**
    * @param {{year?: number, holders?: Array<Record<string, any>>, parameters?: Record<string, any>, example?: boolean}} [household]
-   * @param {{today?: string}} [options]
+   * @param {{today?: string, done?: any}} [options]
    */
   function buildCampaign(household = {}, options = {}) {
     const year = Math.trunc(number(household.year, NaN));
@@ -407,7 +482,9 @@
     const holders = (Array.isArray(household.holders) ? household.holders : []).filter((holder) => holder && text(holder.id));
     if (!holders.length) return { schemaId: SCHEMA_ID, calculable: false, reason: "no-holders", year };
 
-    const actions = order(ACTIONS.map((definition) => buildAction(definition, holders, params)));
+    const doneStore = normalizeDone(options.done);
+    const doneMarks = doneStore.year === year ? doneStore.marks : {};
+    const actions = order(ACTIONS.map((definition) => buildAction(definition, holders, params, doneMarks)));
     const calculable = actions.filter((action) => action.status === "calculable");
     const opens = `${year}-${CAMPAIGN_OPENS}`;
     const deadline = `${year}-${DEADLINE}`;
@@ -427,6 +504,7 @@
       holders: holders.map((holder) => ({ id: text(holder.id), label: text(holder.label) || text(holder.id) })),
       parameters: params,
       actions,
+      progress: progressOf(actions),
       totalSavingEur: round2(calculable.reduce((sum, action) => sum + (action.savingEur || 0), 0)),
       calculableCount: calculable.filter((action) => action.hasSaving && action.savingEur > 0).length,
       missingCount: actions.filter((action) => action.status === "sin_dato").length,
@@ -490,5 +568,11 @@
     holderHasData,
     normalizeStore,
     resolveHousehold,
+    DONE_STORE_NAME,
+    DONE_SCHEMA_ID,
+    doneKey,
+    normalizeDone,
+    markDone,
+    unmarkDone,
   };
 });

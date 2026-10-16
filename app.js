@@ -1341,6 +1341,7 @@ function isActiveInMonth(monthStart, endDate) {
 // como excluida con motivo, cualquier clave nueva. Declarada junto a storageSet(), que la consulta.
 const BACKUP_LOCAL_STORES = [
   "fiscal-data", // WP-23 PR-2: los datos fiscales que teclea el hogar (por declarante) para la campaña de fin de año
+  "fiscal-done", // WP-23 PR-3: qué tareas de la campaña fiscal ha marcado el hogar como hechas y el día en que las marcó
   "forecast-bridge-snapshots", // WP-43: la previsión a 31/12 congelada en cada cierre firmado
   "statement-profiles-data", // WP-51: perfiles de lectura de extracto con nombre (separador, decimal, fechas, columnas) guardados por el hogar
   "housing-index-data", // WP-50: series de índice de vivienda y local tecleadas por el hogar, y qué inmuebles usan su estimación

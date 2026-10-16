@@ -324,7 +324,7 @@ test("cableado: index.html tiene la tarjeta (oculta y marcada como ejemplo por d
   assert.ok(at("fiscal-campana-ui.js") < at("app.js"));
   assert.ok(at("fiscal-datos-ui.js") > 0 && at("fiscal-datos-ui.js") < at("app.js"), "el formulario de datos se carga antes de app.js");
   assert.equal((index.match(/id="campanaFiscalDatos"/g) || []).length, 1, "un solo contenedor para el formulario");
-  assert.match(index, /<link rel="stylesheet" href="fiscal-campana\.css\?v=\d+wp23[ab]1" \/>/);
+  assert.match(index, /<link rel="stylesheet" href="fiscal-campana\.css\?v=\d+wp23[abc]1" \/>/);
   ["canonical-year-end-tax.js", "fiscal-campana-ui.js", "fiscal-datos-ui.js", "fiscal-campana.css"].forEach((name) => {
     assert.match(read("service-worker.js"), new RegExp(`"\\./${name.replace(".", "\\.")}",`), `${name} en el service worker`);
     assert.match(read("tools/build-public-site.mjs"), new RegExp(`"${name.replace(".", "\\.")}",`), `${name} en el build del sitio`);

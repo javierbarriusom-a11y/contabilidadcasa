@@ -13,6 +13,7 @@
 // isoLocalDate, FinanceUxShell…). Sin llamadas al DOM ni escuchas al cargarse: fiscal-campana-ui.js llama a `renderFiscalDatos` al pintar la tarjeta, que engancha las escuchas.
 
 const FISCAL_DATOS_STORE = "fiscal-data"; // en la copia (BACKUP_LOCAL_STORES)
+const FISCAL_HECHO_STORE = "fiscal-done"; // PR-3: qué acciones ha marcado el hogar como hechas y cuándo (en la copia)
 
 // Qué se pide, en qué orden y dónde se encuentra. Los ids son los de FIELD_SPECS / TRISTATE_SPECS del motor.
 const FISCAL_DATOS_SECCIONES = [
@@ -66,6 +67,56 @@ function fiscalDatosLoad() {
 function fiscalDatosWrite(text) {
   storageSet(storageKey(FISCAL_DATOS_STORE), text);
   queueRemoteSave();
+}
+
+// «Hecho» (PR-3): lo que el hogar ha marcado, en un almacén aparte para que quitar los datos no borre qué se hizo. La app no comprueba que se hiciera.
+function fiscalHechoLoad() {
+  let saved = null;
+  try { saved = JSON.parse(storageGet(storageKey(FISCAL_HECHO_STORE), "") || "null"); } catch { saved = null; }
+  return fiscalDatosEngine().normalizeDone(saved);
+}
+
+function fiscalHechoWrite(store) {
+  storageSet(storageKey(FISCAL_HECHO_STORE), JSON.stringify(store));
+  queueRemoteSave();
+}
+
+// Para el calendario del móvil (recordatorios-ui.js → canonical-reminders.js): {year, total, pending} de la campaña con datos reales, o null si no hay datos
+// del hogar de este año o no hay tareas con ahorro (sin datos no se sabe nada, y «sin tareas» no es «todo hecho»).
+function fiscalCampaignReminder() {
+  const engine = fiscalDatosEngine();
+  if (!engine) return null;
+  const today = isoLocalDate(new Date());
+  const year = fiscalDatosYear(engine, today);
+  const resolved = engine.resolveHousehold(fiscalDatosLoad(), year);
+  if (resolved.status !== "real") return null;
+  const campaign = engine.buildCampaign(resolved.household, { today, done: fiscalHechoLoad() });
+  return campaign.calculable && campaign.progress.total > 0 ? { year, total: campaign.progress.total, pending: campaign.progress.pending } : null;
+}
+
+function fiscalHechoMark(actionId, holderId) {
+  const engine = fiscalDatosEngine();
+  if (!engine) return;
+  const today = isoLocalDate(new Date());
+  const { store, error } = engine.markDone(fiscalHechoLoad(), { year: fiscalDatosYear(engine, today), actionId, holderId, at: today });
+  if (error) { announceStatus("No se ha podido marcar como hecho."); return; }
+  fiscalHechoWrite(store);
+  renderFiscalCampaign(engine);
+  announceStatus(`Marcado como hecho el ${fiscalDatosDate(today)}.`);
+}
+
+function fiscalHechoUnmark(actionId, holderId) {
+  const engine = fiscalDatosEngine();
+  if (!engine) return;
+  const before = fiscalHechoLoad();
+  fiscalHechoWrite(engine.unmarkDone(before, { actionId, holderId }));
+  renderFiscalCampaign(engine);
+  announceStatus("Marca de hecho quitada.");
+  showUndoToast("Marca de hecho quitada.", () => {
+    fiscalHechoWrite(before);
+    renderFiscalCampaign(engine);
+    announceStatus("Marca de hecho recuperada.");
+  });
 }
 
 // Lo que usa la tarjeta: { status: "real" | "empty" | "stale-year", household, storedYear, updatedAt }.
@@ -286,8 +337,12 @@ function attachFiscalDatos(doc) {
   doc.__fiscalDatosAttached = true;
   doc.addEventListener("submit", (event) => { if (event.target?.id === "fiscalDatosForm") fiscalDatosSubmit(event); });
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("[data-fiscal-quitar]")) fiscalDatosRemove();
-    else if (event.target?.closest?.("[data-fiscal-abrir]")) fiscalDatosOpen();
+    const target = event.target?.closest?.("[data-fiscal-quitar], [data-fiscal-abrir], [data-fiscal-hecho], [data-fiscal-deshacer]");
+    if (!target) return;
+    if (target.hasAttribute("data-fiscal-quitar")) fiscalDatosRemove();
+    else if (target.hasAttribute("data-fiscal-abrir")) fiscalDatosOpen();
+    else if (target.hasAttribute("data-fiscal-hecho")) fiscalHechoMark(target.dataset.accion || "", target.dataset.declarante || "");
+    else fiscalHechoUnmark(target.dataset.accion || "", target.dataset.declarante || "");
   });
   return true;
 }

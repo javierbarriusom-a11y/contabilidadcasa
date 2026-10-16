@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-16-wp23c",
+      fecha: "2026-10-16",
+      texto: "Campaña fiscal: marca cada tarea como «hecha» y el aviso del 20/12 solo te recuerda lo que falte.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-16-wp23b",
       fecha: "2026-10-16",
       texto: "Campaña fiscal: ya puedes teclear tus datos fiscales y la lista deja de ser un ejemplo. Lo que no sepas, déjalo vacío.",
