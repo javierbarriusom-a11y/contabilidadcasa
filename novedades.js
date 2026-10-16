@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-16-wp23b",
+      fecha: "2026-10-16",
+      texto: "Campaña fiscal: ya puedes teclear tus datos fiscales y la lista deja de ser un ejemplo. Lo que no sepas, déjalo vacío.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-15-venta-sin-importe",
       fecha: "2026-10-15",
       texto: "Una venta sin importe cobrado ya no cuenta como pérdida: su plusvalía sale «no calculable» hasta que lo anotes.",

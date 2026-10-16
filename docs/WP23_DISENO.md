@@ -53,7 +53,7 @@ Estructura: cuenta atrás discreta («La campaña se abre el 1 de noviembre (en 
 
 ## 6. Pendiente (PR siguientes, con los datos del hogar)
 
-- **PR-2 · datos del hogar:** formulario «Tus datos fiscales» (almacén privado, en la copia y la nube; migración del contrato de estado con la herramienta) que sustituye el ejemplo. Entrada: lo que mande el hogar el 20/10 (H-03).
+- ~~**PR-2 · datos del hogar**~~ — **hecho el 16/10/2026** (§8). Los datos ya no entran por el chat (el repositorio es público): los teclea el hogar en la app.
 - **PR-3 · «Hecho» y calendario:** estado «hecho» por acción con fecha (M-FISCAL ≥ 100 % de las aplicables antes del 31/12) y eventos de calendario el 1/12 y el 20/12 con la exportación `.ics` existente (A17-2).
 - Contrastar los parámetros con la fuente oficial y la comunidad autónoma, y pasarlos a `verified: true` con su fuente.
 - Fecha de los datos de entrada: H-03 (20/10). Límite para tener la lista con euros reales: 15/11.
@@ -61,3 +61,17 @@ Estructura: cuenta atrás discreta («La campaña se abre el 1 de noviembre (en 
 ## 7. Riesgo
 
 Normativa mal aplicada (probabilidad media): cada acción con su fuente, etiqueta «estimación», parámetros sin verificar a la vista, pruebas de los bordes (por debajo, justo en y por encima del tope), «sin dato = no calculable» y confirmación con asesor antes de actuar (H-14, 31/12).
+
+## 8. Segunda entrega (PR-2, 16/10/2026): «Tus datos fiscales»
+
+El hogar no podía teclear sus datos fiscales (el ensayo del 15/10 lo encontró), y mandarlos por el chat no es una opción con un repositorio público. Ahora hay un formulario debajo de la lista, en la misma tarjeta.
+
+- **Qué es:** un formulario por declarante (hasta `MAX_HOLDERS` = 2) con los once datos que usa el motor y dos respuestas sí/no/«no lo sé». Se guarda en el almacén **`fiscal-data`** (`BACKUP_LOCAL_STORES`: copia en fichero y nube), con `{schemaId, year, holders, updatedAt}`. Piezas: motor puro (`holderFromInput`, `holderHasData`, `normalizeStore`, `resolveHousehold`, `FIELD_SPECS`), `fiscal-datos-ui.js` (formulario) y un enganche en `fiscal-campana-ui.js` (si hay datos de este año, `example: false` y desaparecen las cinco marcas del ejemplo). **`app.js`: +1 línea** (la clave del almacén).
+- **Vacío no es cero (la regla que más importa):** un campo vacío es `null` = «sin dato» y deja la acción en «sin calcular» diciendo qué falta; un `0` escrito es un dato. «No lo sé» en las respuestas sí/no es `null`, nunca un «no». Una prueba lo verifica campo por campo y de punta a punta (aportado «vacío» → sin calcular; aportado «0» → caben los 1.500 €).
+- **Una cifra mala no se guarda ni se corrige en silencio:** texto que no es un número o fuera de rango (sentido común, no límite legal: p. ej. tipo marginal 0–60 %) → no se guarda **nada**, se marcan los campos (`aria-invalid`, mensaje con texto y barra, no solo color), se resume arriba y el foco va al primero. Al **leer** del almacén, un valor dañado vuelve a «sin dato», no a 0 ni al máximo.
+- **Los datos son de un año:** los del año anterior no se usan para la campaña nueva (`stale-year`): la tarjeta lo dice y vuelve al ejemplo; el formulario los ofrece, editables, para revisarlos.
+- **Qué NO hace:** no deduce nada de las nóminas (WP-31) ni del estimador de Renta (A15-2) — **todo se teclea**, aunque el bruto y la retención ya estén en las nóminas, y el resultado y el tipo marginal podrían salir del estimador; unirlos es una decisión de diseño aparte (arrastra datos de otro almacén). Tampoco contrasta las cifras con ninguna fuente oficial ni da por buenos los parámetros legales (siguen `verified: false`).
+- **Qué se comprobó:** 23 pruebas unitarias nuevas (`tests/fis2-datos-fiscales.test.cjs`) y 2 de navegador (guardar, recargar, error, copia, quitar y deshacer; «Rellenar mis datos»), más axe en claro y oscuro × 1280/390 en tres estados (vacío, con errores, guardado). **Mutaciones comprobadas:** vacío→0, sin rango, año ajeno, «no lo sé»→«no», la lista sin datos reales y el formato de importe en un %: cada una hace caer una prueba.
+- **Hallazgos corregidos en el camino:** el aviso «No es un importe» de la app daba **3,89:1** de contraste en oscuro dentro de esta tarjeta (se dice con tinta y barra); mi mensaje de error repetía el `id` del aviso del lector de importes (ids duplicados): ahora uno solo por campo; y al guardar, el formulario se plegaba y escondía su propio «guardado» (ahora respeta cómo estaba).
+- **Pendiente:** PR-3 («Hecho» por acción y calendario 1/12 y 20/12) y contrastar los parámetros legales.
+

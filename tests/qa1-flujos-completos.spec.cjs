@@ -1174,6 +1174,127 @@ test.describe("WP-23 · campaña fiscal con cifras de ejemplo", () => {
   });
 });
 
+// WP-23 PR-2: «Tus datos fiscales». Cifras FICTICIAS (el repositorio es público): lo tecleado sustituye al ejemplo, un campo vacío no es un 0, una cifra mala no se guarda,
+// quitar los datos se puede deshacer y el almacén viaja en la copia.
+test.describe("WP-23 PR-2 · tus datos fiscales", () => {
+  test("lo tecleado sustituye al ejemplo; vacío no es 0; una cifra mala no se guarda; persiste, viaja en la copia y quitar se deshace", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 20, 12, 0, 0) });
+    await page.goto("/index.html#herramientas-fiscal");
+    const card = page.locator("#campanaFiscalCard");
+    const accion = (titulo) => card.locator(".fc-accion", { hasText: titulo });
+    await expect(card).toHaveAttribute("data-ejemplo", "true");
+    const form = page.locator("#fiscalDatosForm");
+    await expect(page.locator("#fiscalDatosDetails")).toHaveJSProperty("open", true);
+    await expect(form).toContainText("Todavía no has guardado ningún dato");
+
+    // 1 · Sin ningún dato no se guarda nada y se dice.
+    await form.getByRole("button", { name: "Guardar mis datos" }).click();
+    await expect(page.locator("#fiscalDatosError")).toContainText("No has escrito ninguna cifra");
+    expect(await page.evaluate(() => storageGet(storageKey("fiscal-data"), "")), "no se guardó nada").toBe("");
+    await expect(card).toHaveAttribute("data-ejemplo", "true");
+
+    // 2 · Datos de un declarante: solo algunos campos. Los demás, vacíos.
+    await page.fill("#fiscalDatos-0-label", "Ana");
+    await page.fill("#fiscalDatos-0-annualGross", "40.000");
+    await page.fill("#fiscalDatos-0-marginalRatePct", "30");
+    await page.fill("#fiscalDatos-0-pensionContributed", "0");
+    await page.selectOption("#fiscalDatos-0-hasEmployerPlan", "no");
+    await page.selectOption("#fiscalDatos-0-housingApplies", "si");
+    await page.fill("#fiscalDatos-0-housingPaid", "6.000");
+    await form.getByRole("button", { name: "Guardar mis datos" }).click();
+    await expect(card).toHaveAttribute("data-ejemplo", "false");
+    await expect(card.locator(".fc-aviso-real")).toContainText("Con tus datos. Declarante: Ana");
+    await expect(card.locator(".fc-etiqueta-ejemplo")).toBeHidden();
+    await expect(card.locator(".fc-cifra-ejemplo")).toHaveCount(0);
+    await expect(card).not.toContainText("Cifras de ejemplo");
+    // (1.500 − 0) × 30 % = 450 y (9.040 − 6.000) × 15 % = 456; el total es la suma de lo calculado.
+    await expect(accion("Aportar al plan de pensiones")).toContainText("450");
+    await expect(accion("Llenar el tope de la deducción por vivienda")).toContainText("456");
+    await expect(card.locator(".fc-total")).toContainText("906");
+    // Lo que no se rellenó NO es un 0: sale sin calcular y dice qué falta (no «no aplica»).
+    for (const titulo of ["Compensar plusvalías con minusvalías", "Donativos deducibles", "Ajustar la retención"]) {
+      await expect(accion(titulo)).toContainText("Sin calcular");
+      await expect(accion(titulo)).not.toContainText("No aplica");
+    }
+    await expect(accion("Donativos deducibles")).toContainText("los donativos de este año");
+    await expect(page.locator("#fiscalDatosEstado")).toContainText("Datos guardados el 20/10/2026");
+
+    // 3 · Persiste al recargar: plegado, con las cifras formateadas.
+    await page.reload();
+    await expect(card).toHaveAttribute("data-ejemplo", "false");
+    await expect(page.locator("#fiscalDatosDetails")).toHaveJSProperty("open", false);
+    await page.locator("#fiscalDatosDetails summary").click();
+    await expect(page.locator("#fiscalDatos-0-annualGross")).toHaveValue("40.000,00");
+    await expect(page.locator("#fiscalDatos-0-marginalRatePct")).toHaveValue("30");
+    await expect(page.locator("#fiscalDatos-0-hasEmployerPlan")).toHaveValue("no");
+    await expect(page.locator("#fiscalDatos-1-annualGross")).toHaveValue("");
+
+    // 4 · Una cifra mala no se guarda ni se corrige en silencio.
+    await page.fill("#fiscalDatos-0-marginalRatePct", "300");
+    await page.fill("#fiscalDatos-0-donationsAmount", "abc");
+    await form.getByRole("button", { name: "Guardar mis datos" }).click();
+    const errores = page.locator("#fiscalDatosError");
+    await expect(errores).toBeVisible();
+    await expect(errores).toContainText("No se ha guardado nada");
+    await expect(errores).toContainText("El tipo marginal de IRPF tiene que estar entre 0 % y 60 %");
+    await expect(errores).toContainText("No entiendo los donativos del año");
+    await expect(page.locator("#fiscalDatos-0-marginalRatePct")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#fiscalDatos-0-marginalRatePct-fallo")).toContainText("entre 0 % y 60 %");
+    await expect(page.locator("#fiscalDatos-0-donationsAmount-error"), "el texto que no es un número lo explica el lector de importes, una sola vez").toHaveCount(1);
+    await expect(page.locator("#fiscalDatos-0-marginalRatePct")).toBeFocused();
+    expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("fiscal-data"), "{}")).holders[0].marginalRatePct), "lo guardado sigue siendo 30").toBe(30);
+    // Corregido, se guarda y los errores desaparecen; un 0 escrito en donativos SÍ es un dato (no aplica).
+    await page.fill("#fiscalDatos-0-marginalRatePct", "30");
+    await page.fill("#fiscalDatos-0-donationsAmount", "0");
+    await form.getByRole("button", { name: "Guardar mis datos" }).click();
+    await expect(page.locator("#fiscalDatosError")).toBeHidden();
+    await expect(accion("Donativos deducibles")).toContainText("No aplica");
+
+    // 5 · El almacén es el de la copia y no lleva nada del ejemplo.
+    const stored = await page.evaluate(() => ({ raw: storageGet(storageKey("fiscal-data"), ""), copia: appStatePayload().localStores["fiscal-data"] }));
+    expect(stored.copia, "viaja en la copia").toBe(stored.raw);
+    expect(stored.raw).not.toContain("Persona A");
+    expect(JSON.parse(stored.raw).holders).toHaveLength(1);
+    expect(JSON.parse(stored.raw).year).toBe(2026);
+
+    // 6 · Quitar se puede deshacer, sin diálogos del navegador.
+    page.on("dialog", (dialog) => { throw new Error(`diálogo inesperado: ${dialog.message()}`); });
+    await form.getByRole("button", { name: "Quitar mis datos y volver al ejemplo" }).click();
+    await expect(card).toHaveAttribute("data-ejemplo", "true");
+    await expect(page.locator("#fiscalDatos-0-annualGross")).toHaveValue("");
+    await expect(page.locator("#undoToastMessage")).toContainText("Datos fiscales quitados");
+    await page.locator("#undoToastButton").click();
+    await expect(card).toHaveAttribute("data-ejemplo", "false");
+    await expect(accion("Aportar al plan de pensiones")).toContainText("450");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("«Rellenar mis datos» abre el formulario y lleva al primer campo vacío; no desborda en móvil con datos y con errores", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 20, 12, 0, 0) });
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.evaluate(() => { storageSet(storageKey("fiscal-data"), JSON.stringify({ schemaId: "finance-wp23-fiscal-data/v1", year: 2026, updatedAt: "2026-10-19", holders: [{ id: "persona-1", label: "Ana", marginalRatePct: 30, pension: { hasEmployerPlan: false } }] })); });
+      await page.reload();
+      const card = page.locator("#campanaFiscalCard");
+      await expect(card.locator(".fc-aviso-real")).toBeVisible();
+      await expect(page.locator("#fiscalDatosDetails")).toHaveJSProperty("open", false);
+      await card.locator(".fc-accion", { hasText: "Aportar al plan de pensiones" }).locator("[data-fiscal-abrir]").click();
+      await expect(page.locator("#fiscalDatosDetails")).toHaveJSProperty("open", true);
+      await expect(page.locator("#fiscalDatos-0-annualGross"), "el primer campo vacío").toBeFocused();
+      await page.fill("#fiscalDatos-0-marginalRatePct", "999");
+      await page.getByRole("button", { name: "Guardar mis datos" }).click();
+      await expect(page.locator("#fiscalDatosError")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // WP-28: el cono de previsión migrado al kit de gráficos (chart-kit.js): se lee con el ratón, el teclado y el dedo, con lectura fija y tabla.
 test.describe("WP-28 · kit de gráficos en el cono de previsión", () => {
   test("se recorre con teclado y ratón, la lectura es fija, la tabla da los mismos datos y no desborda en móvil", async ({ page }) => {

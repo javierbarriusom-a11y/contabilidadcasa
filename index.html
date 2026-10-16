@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="styles.css?v=20261007audit3" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261009hover1" />
-    <link rel="stylesheet" href="fiscal-campana.css?v=20261006wp23a1" />
+    <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23b1" />
     <link rel="stylesheet" href="chart-kit.css?v=20261006wp28a1" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
@@ -4586,6 +4586,8 @@
                 <span class="fc-etiqueta-ejemplo" title="Cifras ficticias de un hogar de ejemplo">Ejemplo</span>
               </div>
               <div id="campanaFiscalCuerpo"></div>
+              <!-- WP-23 PR-2: «Tus datos fiscales». Lo pinta fiscal-datos-ui.js; se guardan en el almacén fiscal-data (copia y nube), nunca en el repositorio. -->
+              <div id="campanaFiscalDatos"></div>
             </article>
 
             <!-- WP-31 (CAP-05 + NPV-11, docs/WP31_DISENO.md): nóminas y retenciones acumuladas. La pinta nominas-ui.js con canonical-payroll.js. Solo cifras: ni PDF, ni NIF, ni IBAN. No ejecuta nada. -->
@@ -8109,8 +8111,9 @@
     <script defer src="canonical-net-worth.js?v=20261014wp46b2"></script>
     <script defer src="patrimonio-ui.js?v=20261014wp46b2"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
-    <script defer src="canonical-year-end-tax.js?v=20261006wp23a1"></script>
-    <script defer src="fiscal-campana-ui.js?v=20261006wp23a1"></script>
+    <script defer src="canonical-year-end-tax.js?v=20261016wp23b1"></script>
+    <script defer src="fiscal-datos-ui.js?v=20261016wp23b1"></script>
+    <script defer src="fiscal-campana-ui.js?v=20261016wp23b1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
     <script defer src="registrar-ui.js?v=20261004wp26b1"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>

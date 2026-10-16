@@ -203,6 +203,7 @@ const files = [
   "valoracion-ui.js",
   "canonical-year-end-tax.js",
   "fiscal-campana-ui.js",
+  "fiscal-datos-ui.js",
   "canonical-balance-pulse.js",
   "registrar-ui.js",
   "canonical-liquidity-backtest.js",

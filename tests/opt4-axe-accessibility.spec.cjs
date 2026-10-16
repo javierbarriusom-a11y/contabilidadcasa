@@ -1349,3 +1349,49 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-23 PR-2: «Tus datos fiscales» en la tarjeta de la campaña fiscal, en claro y en oscuro y en escritorio y móvil: con el formulario abierto y vacío (ejemplo), con
+// errores (campos marcados y resumen) y guardado con datos (sin las marcas de ejemplo). Cifras ficticias.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-23 PR-2 · contraste de «Tus datos fiscales» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#herramientas-fiscal: formulario vacío, con errores y guardado, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      test.setTimeout(120000); // seis análisis de axe y dos anchos en una sola prueba: en una máquina lenta pasa de los 30 s por defecto
+      await page.clock.install({ time: new Date(2026, 9, 20, 12, 0, 0) });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      for (const size of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(size);
+        await page.goto("/index.html#herramientas-fiscal");
+        await page.evaluate(() => { storageSet(storageKey("fiscal-data"), ""); });
+        await page.reload();
+        const card = page.locator("#campanaFiscalCard");
+        await expect(card).toBeVisible({ timeout: 15000 });
+        await expect(page.locator("#fiscalDatosDetails")).toHaveJSProperty("open", true);
+        await page.mouse.move(0, 0);
+        const vacio = await new AxeBuilder({ page }).include("#campanaFiscalCard").analyze();
+        expect(fmt(vacio), `${size.width} vacío: ${fmt(vacio).slice(0, 5).join("\n")}`).toEqual([]);
+        // Con errores: una cifra fuera de rango y un texto que no es un número.
+        await page.fill("#fiscalDatos-0-marginalRatePct", "300");
+        await page.fill("#fiscalDatos-0-donationsAmount", "abc");
+        await page.fill("#fiscalDatos-1-label", "Luis");
+        await page.fill("#fiscalDatos-1-annualGross", "30000");
+        await page.getByRole("button", { name: "Guardar mis datos" }).click();
+        await expect(page.locator("#fiscalDatosError")).toBeVisible();
+        await page.mouse.move(0, 0);
+        const errores = await new AxeBuilder({ page }).include("#campanaFiscalCard").analyze();
+        expect(fmt(errores), `${size.width} errores: ${fmt(errores).slice(0, 5).join("\n")}`).toEqual([]);
+        // Guardado.
+        await page.fill("#fiscalDatos-0-label", "Ana");
+        await page.fill("#fiscalDatos-0-marginalRatePct", "30");
+        await page.fill("#fiscalDatos-0-donationsAmount", "300");
+        await page.fill("#fiscalDatos-0-pensionContributed", "500");
+        await page.selectOption("#fiscalDatos-0-hasEmployerPlan", "no");
+        await page.getByRole("button", { name: "Guardar mis datos" }).click();
+        await expect(card).toHaveAttribute("data-ejemplo", "false");
+        await page.mouse.move(0, 0);
+        const guardado = await new AxeBuilder({ page }).include("#campanaFiscalCard").analyze();
+        expect(fmt(guardado), `${size.width} guardado: ${fmt(guardado).slice(0, 5).join("\n")}`).toEqual([]);
+      }
+    });
+  });
+}

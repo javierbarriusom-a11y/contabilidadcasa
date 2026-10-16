@@ -64,7 +64,7 @@ function fiscalCampaignActionHtml(action, index, campaign) {
       : `<span class="fc-ahorro fc-sin-dato"><span>No aplica</span></span>`;
   const deadline = action.deadline ? `<span class="e19-pill e19-pill-warn">Antes del ${escapeHtml(fiscalCampaignDate(action.deadline).replace(/ de \d{4}$/, ""))}</span>` : `<span class="e19-pill">Sin fecha límite</span>`;
   const holders = action.rows.map((row) => `<li><strong>${escapeHtml(row.label)}.</strong> ${fiscalCampaignHolderLine(action, row, example)}</li>`).join("");
-  const missing = action.status === "sin_dato" && action.missing.length ? `<p class="e19-kpi-note fc-falta">Para calcularla necesito: ${escapeHtml(action.missing.join("; "))}.</p>` : "";
+  const missing = action.status === "sin_dato" && action.missing.length ? `<p class="e19-kpi-note fc-falta">Para calcularla necesito: ${escapeHtml(action.missing.join("; "))}. <button type="button" class="fc-rellenar" data-fiscal-abrir>Rellenar mis datos</button></p>` : "";
   const verified = action.verified ? "" : " Parámetros legales pendientes de contrastar con la fuente oficial.";
   return `<li class="fc-accion fc-accion-${escapeHtml(action.status)}">
     <span class="fc-orden" aria-hidden="true">${index + 1}</span>
@@ -81,12 +81,18 @@ function fiscalCampaignActionHtml(action, index, campaign) {
 }
 
 // `engine`: el motor puro; lo pasa app.js (renderActiveSection) al llegar a la pantalla, que es cuando la sección deja de estar oculta.
-function renderFiscalCampaign(engine) {
+// `options.forceForm`: repinta también el formulario «Tus datos fiscales» aunque se esté escribiendo (tras guardar o quitar).
+function renderFiscalCampaign(engine, options = {}) {
   const card = qs("campanaFiscalCard");
   if (!card || !engine) return;
   const today = isoLocalDate(new Date());
-  const household = engine.EXAMPLE_HOUSEHOLD;
-  const campaign = engine.buildCampaign({ ...household, year: Math.max(household.year, Number(today.slice(0, 4))) }, { today });
+  const exampleHousehold = engine.EXAMPLE_HOUSEHOLD;
+  const year = Math.max(exampleHousehold.year, Number(today.slice(0, 4)));
+  // PR-2: si el hogar ha tecleado sus datos fiscales (fiscal-datos-ui.js) y son del año de la campaña, la lista se calcula con ellos y desaparecen las marcas de ejemplo;
+  // si no hay datos, o son de otro año, sigue el ejemplo (y lo dice).
+  const stored = typeof globalThis.fiscalDatosResolve === "function" ? globalThis.fiscalDatosResolve(engine, year) : null;
+  const household = stored && stored.status === "real" ? stored.household : exampleHousehold;
+  const campaign = engine.buildCampaign({ ...household, year }, { today });
   if (!campaign.calculable) {
     card.hidden = true;
     return;
@@ -94,9 +100,15 @@ function renderFiscalCampaign(engine) {
   const example = campaign.example;
   card.hidden = false;
   card.dataset.ejemplo = example ? "true" : "false";
-  const aviso = example
-    ? `<p class="fc-aviso" role="note"><strong>Cifras de ejemplo.</strong> Esto muestra cómo quedará tu lista con un hogar ficticio de dos declarantes. Cuando entregues tus datos fiscales, este ejemplo se sustituye por tus números y desaparecen las marcas.</p>`
+  const stale = stored && stored.status === "stale-year"
+    ? `<p class="fc-aviso" role="note"><strong>Tus datos son de ${escapeHtml(String(stored.storedYear || "otro año"))}.</strong> Esta campaña es la de ${campaign.year} y no se usan: revisa cada cifra en «Tus datos fiscales» y guarda.</p>`
     : "";
+  const labels = campaign.holders.map((holder) => holder.label).join(" y ");
+  const aviso = example
+    ? `<p class="fc-aviso" role="note"><strong>Cifras de ejemplo.</strong> Esto muestra cómo quedará tu lista con un hogar ficticio de dos declarantes. Cuando teclees tus datos fiscales (abajo, en «Tus datos fiscales»), este ejemplo se sustituye por tus números y desaparecen las marcas.</p>${stale}`
+    : stored && stored.status === "real"
+      ? `<p class="fc-aviso fc-aviso-real" role="note"><strong>Con tus datos.</strong> ${campaign.holders.length === 1 ? "Declarante" : "Declarantes"}: ${escapeHtml(labels)}${stored.updatedAt ? `, datos del ${escapeHtml(stored.updatedAt.split("-").reverse().map(Number).join("/"))}` : ""}. Son estimaciones con parámetros legales por contrastar; lo que no has rellenado sale «sin calcular», no como 0 €.</p>`
+      : "";
   const parametros = Object.entries({ Pensiones: campaign.parameters.pension, Vivienda: campaign.parameters.housing, Donativos: campaign.parameters.donations, Compensación: campaign.parameters.compensation, Retención: campaign.parameters.withholding })
     .map(([label, row]) => `<li><strong>${escapeHtml(label)}.</strong> ${escapeHtml(row.reference)} <em>${row.verified ? "Contrastado con la fuente oficial." : "Pendiente de contrastar con la fuente oficial."}</em></li>`).join("");
   qs("campanaFiscalCuerpo").innerHTML = `
@@ -107,4 +119,5 @@ function renderFiscalCampaign(engine) {
     <ol class="fc-lista">${campaign.actions.map((action, index) => fiscalCampaignActionHtml(action, index, campaign)).join("")}</ol>
     <details class="fc-detalle fc-parametros"><summary>Parámetros que usa el cálculo</summary><ul class="fc-por-declarante">${parametros}</ul></details>
     <p class="e19-kpi-note">${escapeHtml(campaign.warning)} La app nunca ejecuta nada por sí sola: aportar, amortizar, vender o donar lo decides tú.</p>`;
+  if (typeof globalThis.renderFiscalDatos === "function") globalThis.renderFiscalDatos(engine, { year: campaign.year, force: Boolean(options.forceForm) });
 }
