@@ -237,3 +237,174 @@
     background-image: none;
   }
 }
+
+
+/* ---- PR-2 · «Tus datos fiscales» (formulario, 16/10/2026). Mismos tokens --e19-*; ningún color suelto. ---- */
+.fc-aviso-real {
+  background: var(--e19-surface-soft);
+  border-color: var(--e19-border);
+  border-left-color: var(--e19-accent);
+}
+
+.fc-rellenar {
+  font: inherit;
+  color: var(--e19-ink);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fc-datos {
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  padding: 0 14px;
+}
+
+.fc-datos > summary {
+  padding: 12px 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fc-datos form {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 14px;
+}
+
+.fc-datos-persona {
+  margin: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+  display: grid;
+  gap: 14px;
+}
+
+.fc-datos-persona legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.fc-datos-grupo {
+  display: grid;
+  gap: 10px;
+}
+
+.fc-datos-grupo h5 {
+  margin: 4px 0 0;
+  font: 700 var(--e19-text-eyebrow) / 1.2 var(--e19-font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e19-ink);
+}
+
+.fc-datos-campo {
+  display: grid;
+  gap: 4px;
+}
+
+.fc-datos-entrada {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.fc-datos-entrada input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fc-datos-ayuda,
+.fc-datos-error {
+  font-size: var(--e19-text-sm);
+  line-height: 1.4;
+}
+
+.fc-datos-ayuda {
+  font-weight: 400;
+  color: var(--e19-muted);
+}
+
+/* La etiqueta manda; la ayuda acompaña. (`.month-picker span` las pinta al revés: etiqueta pálida y ayuda en negrita.) */
+.fc-datos-campo > span:first-child {
+  color: var(--e19-ink);
+}
+
+.fc-datos-campo > span:first-child {
+  font-weight: 600;
+}
+
+/* El error se dice con texto y con una barra, no solo con el color. */
+.fc-datos-error {
+  color: var(--e19-ink);
+  padding-left: 8px;
+  border-left: 3px solid var(--e19-danger);
+}
+
+/* El aviso «No es un importe» de la app (styles.css) va en rojo sobre el fondo y da 3,89:1 en esta tarjeta: aquí se dice con tinta y barra, como los demás. */
+.fc-datos .amount-input-error {
+  color: var(--e19-ink);
+  padding-left: 8px;
+  border-left: 3px solid var(--e19-danger);
+}
+
+.fc-datos-casilla {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 8px;
+}
+
+.fc-datos-casilla input {
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: 3px;
+}
+
+.fc-datos-casilla > span {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.fc-datos-casilla small {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.fc-datos-errores {
+  padding: 10px 14px;
+  border: 1px solid var(--e19-danger-soft-border);
+  border-left: 3px solid var(--e19-danger);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-danger-soft);
+  color: var(--e19-ink);
+}
+
+.fc-datos-errores p,
+.fc-datos-errores ul {
+  margin: 0;
+}
+
+.fc-datos-errores ul {
+  padding-left: 18px;
+}
+
+.fc-datos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (min-width: 760px) {
+  .fc-datos-grupo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fc-datos-grupo h5 {
+    grid-column: 1 / -1;
+  }
+}

@@ -21,6 +21,11 @@
   const PROFESSIONAL_WARNING = "Estimación orientativa: confirma cada acción con un asesor fiscal o con el simulador oficial de la Agencia Tributaria antes de actuar.";
   const CAMPAIGN_OPENS = "11-01";
   const DEADLINE = "12-31";
+  // PR-2 (16/10/2026): los datos fiscales los teclea el hogar en la app y viven en un almacén propio (en la copia y la nube). Nunca en el repositorio.
+  const STORE_NAME = "fiscal-data";
+  const STORE_SCHEMA_ID = "finance-wp23-fiscal-data/v1";
+  const MAX_HOLDERS = 2;
+  const MAX_LABEL = 40;
 
   // Parámetros legales por año. `verified: false` = tomado del plan, aún no contrastado con la fuente oficial (ni con la comunidad
   // autónoma del hogar, que en vivienda y donativos puede cambiar el reparto). Los valores no se usan en silencio: viajan en el resultado.
@@ -266,6 +271,127 @@
     });
   }
 
+  // ---------- Datos fiscales del hogar (PR-2) ----------
+  // Cada campo es un número, o `null` = «no lo sé». Vacío NO es cero: un campo vacío deja la acción en «sin calcular» y dice cuál falta; un 0 escrito es un cero de verdad.
+  // Los límites son de sentido común (para cazar una coma mal puesta), no límites legales.
+  /** @type {ReadonlyArray<{id: string, path: string[], label: string, kind: "eur" | "pct", min: number, max: number}>} */
+  const FIELD_SPECS = Object.freeze([
+    { id: "annualGross", path: ["annualGross"], label: "el bruto anual", kind: "eur", min: 0, max: 2000000 },
+    { id: "marginalRatePct", path: ["marginalRatePct"], label: "el tipo marginal de IRPF", kind: "pct", min: 0, max: 60 },
+    { id: "estimatedResult", path: ["estimatedResult"], label: "el resultado estimado de la Renta", kind: "eur", min: -1000000, max: 1000000 },
+    { id: "currentWithholdingPct", path: ["currentWithholdingPct"], label: "la retención actual", kind: "pct", min: 0, max: 60 },
+    { id: "pensionContributed", path: ["pension", "contributedYear"], label: "lo aportado este año al plan de pensiones", kind: "eur", min: 0, max: 100000 },
+    { id: "pensionAvailable", path: ["pension", "availableToContribute"], label: "lo que podéis aportar todavía", kind: "eur", min: 0, max: 1000000 },
+    { id: "housingPaid", path: ["housing", "paidYear"], label: "lo pagado este año por la vivienda", kind: "eur", min: 0, max: 1000000 },
+    { id: "realizedNet", path: ["capital", "realizedNet"], label: "el resultado neto de las ventas del año", kind: "eur", min: -10000000, max: 10000000 },
+    { id: "latentLosses", path: ["capital", "latentLosses"], label: "las minusvalías latentes", kind: "eur", min: 0, max: 10000000 },
+    { id: "savingsRatePct", path: ["capital", "savingsRatePct"], label: "el tipo de la base del ahorro", kind: "pct", min: 0, max: 35 },
+    { id: "donationsAmount", path: ["donations", "amountYear"], label: "los donativos del año", kind: "eur", min: 0, max: 1000000 },
+  ]);
+  // Sí / No / «no lo sé» (null): una respuesta que no se sabe no es un «no».
+  const TRISTATE_SPECS = Object.freeze([
+    { id: "hasEmployerPlan", path: ["pension", "hasEmployerPlan"], label: "si hay plan de pensiones de empresa" },
+    { id: "housingApplies", path: ["housing", "applies"], label: "si aplica la deducción por vivienda" },
+  ]);
+
+  function setPath(target, path, value) {
+    let node = target;
+    path.slice(0, -1).forEach((key) => { node[key] = node[key] || {}; node = node[key]; });
+    node[path[path.length - 1]] = value;
+  }
+
+  function getPath(source, path) {
+    return path.reduce((node, key) => (node && typeof node === "object" ? node[key] : undefined), source);
+  }
+
+  function cleanLabel(value) {
+    return text(value).replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").slice(0, MAX_LABEL).trim();
+  }
+
+  // Un valor de entrada → { value, error }. Vacío (null, undefined, "") = sin dato; NaN o texto = no es un número; fuera de rango = error. Nunca se corrige en silencio a 0.
+  function readField(spec, raw) {
+    if (raw === null || raw === undefined || raw === "") return { value: null, error: null };
+    const parsed = typeof raw === "number" ? raw : Number.NaN;
+    if (!Number.isFinite(parsed)) return { value: null, error: `No entiendo ${spec.label}: escribe solo un número.` };
+    if (parsed < spec.min || parsed > spec.max) {
+      const unit = spec.kind === "pct" ? " %" : " €";
+      const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return { value: null, error: `${spec.label[0].toUpperCase()}${spec.label.slice(1)} tiene que estar entre ${fmt(spec.min)}${unit} y ${fmt(spec.max)}${unit}.` };
+    }
+    return { value: round2(parsed), error: null };
+  }
+
+  /**
+   * Un declarante a partir de lo tecleado. `values` lleva, por id de campo, un número, null/"" (sin dato) o NaN (texto que no es un número);
+   * `choices` lleva, por id de respuesta, true / false / null; `recurring` es el «donativos recurrentes» (true / false).
+   * Devuelve el declarante normalizado y los errores por campo; con algún error el llamador no debe guardar.
+   * @param {{id?: string, label?: string, values?: Record<string, any>, choices?: Record<string, any>, recurring?: any}} input
+   */
+  function holderFromInput(input = {}) {
+    const holder = { id: text(input.id), label: cleanLabel(input.label) };
+    const errors = {};
+    FIELD_SPECS.forEach((spec) => {
+      const { value, error } = readField(spec, input.values ? input.values[spec.id] : null);
+      if (error) errors[spec.id] = error;
+      setPath(holder, spec.path, value);
+    });
+    TRISTATE_SPECS.forEach((spec) => {
+      const raw = input.choices ? input.choices[spec.id] : null;
+      setPath(holder, spec.path, raw === true || raw === false ? raw : null);
+    });
+    holder.donations = { ...(holder.donations || {}), recurring: input.recurring === true };
+    return { holder, errors };
+  }
+
+  // ¿Ha escrito algo este declarante? Un 0 escrito cuenta (es un dato); el nombre solo y la casilla «recurrente» sin importe no: no hay nada que calcular.
+  function holderHasData(holder) {
+    if (!holder || typeof holder !== "object") return false;
+    if (FIELD_SPECS.some((spec) => number(getPath(holder, spec.path)) !== null)) return true;
+    return TRISTATE_SPECS.some((spec) => { const v = getPath(holder, spec.path); return v === true || v === false; });
+  }
+
+  function normalizeHolder(raw, fallbackId) {
+    if (!raw || typeof raw !== "object") return null;
+    const values = {};
+    FIELD_SPECS.forEach((spec) => { values[spec.id] = getPath(raw, spec.path); });
+    const choices = {};
+    TRISTATE_SPECS.forEach((spec) => { choices[spec.id] = getPath(raw, spec.path); });
+    // Al leer del almacén, un campo fuera de rango o dañado vuelve a «sin dato»: nunca se convierte en un cero ni en un máximo.
+    const { holder } = holderFromInput({ id: text(raw.id) || fallbackId, label: raw.label, values: Object.fromEntries(Object.entries(values).map(([key, value]) => [key, typeof value === "number" ? value : value === null || value === undefined ? null : Number(value)])), choices, recurring: raw.donations?.recurring });
+    FIELD_SPECS.forEach((spec) => { const { error } = readField(spec, getPath(holder, spec.path)); if (error) setPath(holder, spec.path, null); });
+    return holder;
+  }
+
+  /** Lo que hay en el almacén, saneado. Siempre devuelve una forma válida (vacía si no hay nada o está dañado). */
+  function normalizeStore(raw) {
+    const empty = { schemaId: STORE_SCHEMA_ID, year: null, holders: [], updatedAt: null };
+    if (!raw || typeof raw !== "object") return empty;
+    const year = Math.trunc(number(raw.year, NaN));
+    const holders = (Array.isArray(raw.holders) ? raw.holders : []).slice(0, MAX_HOLDERS)
+      .map((holder, index) => normalizeHolder(holder, `persona-${index + 1}`))
+      .filter(holderHasData);
+    // Dos declarantes no pueden compartir identificador.
+    const seen = new Set();
+    holders.forEach((holder, index) => { if (!holder.id || seen.has(holder.id)) holder.id = `persona-${index + 1}`; seen.add(holder.id); });
+    return {
+      schemaId: STORE_SCHEMA_ID,
+      year: Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : null,
+      holders,
+      updatedAt: validIsoDate(raw.updatedAt) ? raw.updatedAt : null,
+    };
+  }
+
+  /**
+   * ¿Qué hogar usa la campaña? El de los datos tecleados si son del año de la campaña; si no, nada (la pantalla cae al ejemplo y lo dice).
+   * @returns {{status: "real" | "empty" | "stale-year", household: any, storedYear: number | null, updatedAt: string | null}}
+   */
+  function resolveHousehold(store, year) {
+    const normalized = normalizeStore(store);
+    if (!normalized.holders.length) return { status: "empty", household: null, storedYear: normalized.year, updatedAt: normalized.updatedAt };
+    if (normalized.year !== Number(year)) return { status: "stale-year", household: null, storedYear: normalized.year, updatedAt: normalized.updatedAt };
+    return { status: "real", household: { year: Number(year), example: false, holders: normalized.holders }, storedYear: normalized.year, updatedAt: normalized.updatedAt };
+  }
+
   /**
    * @param {{year?: number, holders?: Array<Record<string, any>>, parameters?: Record<string, any>, example?: boolean}} [household]
    * @param {{today?: string}} [options]
@@ -353,7 +479,16 @@
     PROFESSIONAL_WARNING,
     PARAMETERS,
     EXAMPLE_HOUSEHOLD,
+    STORE_NAME,
+    STORE_SCHEMA_ID,
+    MAX_HOLDERS,
+    FIELD_SPECS,
+    TRISTATE_SPECS,
     parametersFor,
     buildCampaign,
+    holderFromInput,
+    holderHasData,
+    normalizeStore,
+    resolveHousehold,
   };
 });
