@@ -2084,11 +2084,14 @@ async function seedAnomalies(page) {
     const rows = [];
     let balance = 3000;
     const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+    // Los cobros mensuales caen el mismo día del mes que hoy (como mucho el 28): el del mes pasado queda siempre a 28-34 días, dentro de la
+    // ventana de 45. Con día fijo (el 1 y el 5) la prueba fallaba en la segunda mitad de cada mes: el alquiler del día 1 ya se salía.
+    const ancla = Math.min(today.getDate(), 28);
     for (let k = 1; k <= 6; k += 1) {
       const month = new Date(today.getFullYear(), today.getMonth() - k, 1);
       const day = (d) => iso(new Date(month.getFullYear(), month.getMonth(), d));
-      add(day(1), -900, "RECIBO ALQUILER FICTICIO");
-      add(day(5), -12.99, "SUSCRIPCION FICTICIA");
+      add(day(ancla), -900, "RECIBO ALQUILER FICTICIO");
+      add(day(ancla), -12.99, "SUSCRIPCION FICTICIA");
       add(day(10), -52, "COMPRA TARJ SUPER FICTICIO");
       add(day(20), -48, "COMPRA TARJ SUPER FICTICIO");
     }
