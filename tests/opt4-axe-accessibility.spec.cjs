@@ -342,9 +342,12 @@ for (const scheme of ["light", "dark"]) {
         const rows = [];
         let balance = 3000;
         const add = (date, amount, movement) => rows.push({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += 1), accountId: "caixabank" });
+        // El mismo día del mes que hoy (como mucho el 28): el cobro del mes pasado queda siempre dentro de la ventana de 45 días. Con el día 5 fijo
+        // la prueba fallaba a partir del ~21 de cada mes (como la de qa1, sesión 314).
+        const ancla = Math.min(today.getDate(), 28);
         for (let k = 1; k <= 6; k += 1) {
           const month = new Date(today.getFullYear(), today.getMonth() - k, 1);
-          add(iso(new Date(month.getFullYear(), month.getMonth(), 5)), -12.99, "SUSCRIPCION FICTICIA");
+          add(iso(new Date(month.getFullYear(), month.getMonth(), ancla)), -12.99, "SUSCRIPCION FICTICIA");
         }
         add(back(9), -62.3, "RECIBO SEGURO FICTICIO");
         add(back(6), 62.3, "DEVOLUCION RECIBO SEGURO FICTICIO");
