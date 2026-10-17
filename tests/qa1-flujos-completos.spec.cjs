@@ -300,8 +300,17 @@ test.describe("QA-1 · Nuevo dato manual en Registrar", () => {
 // sincronización — y aplicar lo que llega de la nube no puede volver a enviarlo.
 test.describe("QA-1 · almacenes propios en la sincronización con la nube", () => {
   test("escribir un almacén propio programa una sincronización y viaja en el estado que se envía", async ({ page }) => {
+    // Al arrancar, la propia app escribe almacenes sincronizables (p. ej. liquidity-backtest) y su sincronización sale 900 ms después.
+    // Si esa salida caía ya con el contador puesto, se contaban 2 envíos en vez de 1 (fallo intermitente en el CI del 17/10/2026).
+    // Se espera a que la app lleve más que ese retardo sin escribir nada antes de empezar a contar.
+    await page.addInitScript(() => {
+      window.__qa1LastStoreWrite = performance.now();
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (...args) { window.__qa1LastStoreWrite = performance.now(); return setItem.apply(this, args); };
+    });
     await page.goto("/index.html#home");
     await page.waitForLoadState("networkidle");
+    await page.waitForFunction(() => performance.now() - window.__qa1LastStoreWrite > 1200, null, { timeout: 15000 });
     await page.evaluate(() => {
       window.__qa1RemoteSaves = 0;
       window.queueRemoteSave = () => { window.__qa1RemoteSaves += 1; };
@@ -4007,6 +4016,48 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
     expect(await page.evaluate(() => (baseData.transactions || []).filter((item) => item.source === "manual-quick-capture").length), "«Son distintas» no toca la captura").toBe(1);
     expect(await page.evaluate(() => (baseData.transactions || []).some((item) => /FARMACIA/.test(item.movement)))).toBe(true);
     expect(pageErrors).toEqual([]);
+  });
+});
+
+// Decisión del hogar (17/10/2026): del 1 al 3 el mes que se cierra sigue abierto (WP-09), pero «Registrar gasto» apunta al mes de la
+// fecha, como el extracto; un enlace lo lleva al mes anterior y otro lo devuelve. Fuera de esos días el enlace no sale.
+test.describe("Registrar gasto · del 1 al 3, al mes de la fecha con un enlace al que se cierra", () => {
+  const abrir = async (page, time) => {
+    await page.clock.install({ time });
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
+    await page.click("#homeQuickExpenseOpen");
+    await expect(page.locator("#homeQuickExpenseDialog")).toBeVisible();
+  };
+
+  test("el día 2 va a noviembre, el enlace lo lleva a octubre y vuelve; se guarda en el mes elegido", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await abrir(page, new Date(2026, 10, 2, 10, 0, 0));
+    const note = page.locator("#homeQuickExpenseMonth");
+    const enlace = page.locator("#homeQuickExpenseMonthSwitch");
+    await expect(note).toContainText("nov");
+    await expect(enlace).toBeVisible();
+    await expect(enlace).toContainText("¿Era de oct");
+    await enlace.click();
+    await expect(note).toContainText("oct");
+    await expect(enlace).toContainText("Volver a nov");
+    await enlace.click();
+    await expect(note).toContainText("nov");
+    await enlace.click();
+    await page.fill("#homeQuickExpenseLabel", "Compra atrasada");
+    await page.fill("#homeQuickExpenseAmount", "12,30");
+    await page.click("#homeQuickExpenseSubmit");
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
+    expect(entry).toMatchObject({ concept: "Compra atrasada", amount: -12.3, monthKey: "2026-10", date: "2026-11-02" });
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("el día 10 va al mes de la fecha y no hay enlace", async ({ page }) => {
+    await abrir(page, new Date(2026, 10, 10, 10, 0, 0));
+    await expect(page.locator("#homeQuickExpenseMonth")).toContainText("nov");
+    await expect(page.locator("#homeQuickExpenseMonthSwitch")).toBeHidden();
   });
 });
 

@@ -219,7 +219,12 @@ test("gob16RateReviewStatus · con intervalo declarado y sin revisión previa, v
 });
 
 test("gob16RateReviewStatus · revisión reciente dentro del intervalo declarado, no vencida", () => {
-  const ctx = sandbox({ scenarioSettings: { gob16DebtClauses: { hipoteca: { rateReviewIntervalMonths: 12, lastRateReviewAt: "2026-08" } } } });
+  // Revisada hace dos meses, sea cual sea hoy: con «2026-08» fijo la revisión pasaba a vencida en agosto de 2027.
+  const reviewed = new Date();
+  reviewed.setDate(1);
+  reviewed.setMonth(reviewed.getMonth() - 2);
+  const lastRateReviewAt = `${reviewed.getFullYear()}-${String(reviewed.getMonth() + 1).padStart(2, "0")}`;
+  const ctx = sandbox({ scenarioSettings: { gob16DebtClauses: { hipoteca: { rateReviewIntervalMonths: 12, lastRateReviewAt } } } });
   const status = ctx.gob16RateReviewStatus("hipoteca");
   assert.equal(status.reviewed, true);
   assert.equal(status.due, false);

@@ -325,8 +325,10 @@ test("M-3 · renderMovementChips pinta los seis botones con su recuento y marca 
 });
 
 test("M-3 · los cuatro atajos de rango calculan meses de calendario completos hasta hoy, y «todo» vacía el rango", () => {
+  // Con la fecha local, como el isoLocalDate real: con toISOString (UTC) la prueba fallaba en cualquier equipo con hora de Madrid
+  // (la medianoche local del 1/08 es el 31/07 en UTC). El CI corre en UTC y no lo veía.
   const { movementsRangeShortcutBounds } = sandboxWith(["movementsRangeShortcutBounds"], {
-    isoLocalDate: (d) => d.toISOString().slice(0, 10),
+    isoLocalDate: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
   });
   const today = new Date(2026, 7, 15); // 15 de agosto de 2026 (mes 7 = agosto, 0-indexado)
   const check = (kind, from, to) => {

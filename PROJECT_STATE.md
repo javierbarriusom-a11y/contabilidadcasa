@@ -109,6 +109,31 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 17 de octubre de 2026 (316): pruebas que dependían de la fecha y «Registrar gasto» del 1 al 3 al mes de su fecha
+
+- **Qué pidió el hogar:** revisar las pruebas que dependen de la fecha, tras la bomba del e2e de WP-36 (entrada 314).
+- **Método:** cada suite con el reloj desplazado, sin congelarlo, en Node, en las páginas de Playwright y en los contextos `vm` donde las pruebas cargan `app.js`. Los `Date` que una prueba ya simula se respetan. El arnés vive fuera del repositorio. Control con la fecha real: 0 fallos de 5999.
+  - **Unitarias:** 20 combinaciones de fecha y zona: fin y principio de mes, 20-21/12, Nochevieja a las 23:30 y Año Nuevo a las 00:30, febrero, 29/02/2028, campaña de la Renta, +1 y +2 años, y medianoche y cambios de hora en Madrid.
+  - **De navegador (e2e y a11y):** 25/10/2026, 1/01/2027 a las 00:30, 10/02/2027 y 31/03/2027.
+- **Seis pruebas frágiles, arregladas solo en la prueba (los motores calculaban bien):**
+  - **Accesibilidad de la tarjeta de anomalías (`opt4`, WP-36).** Gemela de la de `qa1`: suscripción el día 5 fijo; fallaría desde el ~21 de cada mes. El cobro cae ahora el mismo día del mes que hoy.
+  - **Sincronización de almacenes (`qa1`, ARQ-6).** Fallo intermitente del CI de hoy, 2 envíos en vez de 1. La app escribe `liquidity-backtest` al arrancar y su envío sale 900 ms después. La prueba espera ahora a más de 1,2 s sin escrituras. Antes fallaban 2 de 8 repeticiones; con el cambio, 16 de 16 bajo carga.
+  - **Semestre en curso (PER-4).** Esperaba «2026» fijo: fallaría siempre desde el 1/01/2027.
+  - **Revisión del tipo de la hipoteca (GOB-16).** «2026-08» fijo con intervalo de 12 meses: vencida desde agosto de 2027.
+  - **Ritual anual (GOB-13).** `setFullYear` desde el 29/02/2028 daba el 1/03/2027. Se recorta al último día del mes, en UTC como `monthsSinceDate`.
+  - **Atajos de rango (M-3).** El stub de `isoLocalDate` usaba UTC: `npm test` fallaba en cualquier equipo con hora de Madrid. El CI corre en UTC y no lo veía.
+- **Un fallo real de la app, con decisión del hogar (17/10/2026, en esta conversación).**
+  - **El fallo.** Del 1 al 3, «Registrar gasto» imputaba el gasto al mes que se cierra, aún abierto por WP-09, y el emparejamiento de WP-53 solo une una partida con una fila de SU mes. Un gasto anotado el día 2 no se emparejaba con su fila del extracto, que cae en el mes en curso, y **contaba dos veces**. Lo destaparon WP-53 y WP-54 en la fecha simulada del 1/01/2027 y del 2/02/2027; el 5/02 pasaban.
+  - **La regla decidida.** El gasto va al **mes de su fecha** si está abierto, y si no, al de siempre. Solo del 1 al 3, un enlace «¿Era de oct 26? Anotarlo en ese mes» lo lleva al mes que se cierra, y «Volver a…» lo devuelve. Desde un enlace de registro (WP-25) no cambia nada: ya mandaba su fecha. La hoja de tarjetas (WP-30) no imputa a meses del plan y no estaba afectada.
+  - **El código.** `homeQuickExpenseTargetMonth()` y `openHomeQuickExpenseDialog()` en `app.js`, que sube 12 líneas (37.441 → 37.453; techo 37.495), y un botón `link-button` en el diálogo de `index.html`, sin clases nuevas.
+- **Fallo intermitente sin arreglar:** el e2e del backtest de liquidez (WP-12, «con saldos manuales…») falló una vez en el CI del PR 513 y pasó al relanzarlo. En local pasó 10 de 10 bajo carga y en las cuatro fechas simuladas. No se pudo leer su error: el log que entrega la herramienta se corta antes. Si vuelve a salir, se trata como real.
+- **Riesgo menor anotado, no corregido:** `monthsSinceDate` (`canonical-portfolio.js`) cuenta en UTC. Entre medianoche y la 1-2 h en Madrid, «meses desde la última revisión» va un día por detrás.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6002/6002 (+3), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Suite unitaria con `TZ=Europe/Madrid`, en verde.
+  - Barrido e2e+a11y: 193/193 el 25/10/2026, el 10/02/2027 y el 31/03/2027; el 1/01/2027, 191/193 antes del cambio (WP-53 y WP-54).
+  - Tras el cambio, 6/6 (los dos e2e nuevos, WP-53 y WP-54) con la fecha real, el 2/02/2027 y el 1/11/2026.
+
 ## Cierre de sesión — 17 de octubre de 2026 (314): séptima auditoría de producto (propuesta, sin código)
 
 - **Qué se hizo:** a petición del hogar, lectura crítica del artefacto «Backlog cierre octubre» y de la sesión que lo generó, y propuesta de mejoras: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (también como artefacto privado «Séptima auditoría de producto»). Siete hallazgos, once cambios al backlog de octubre, diez principios de diseño, rediseño de Inversión, Deuda actual y Deuda nueva, **57 funciones nuevas** (16 «Ahora», 26 «Siguiente», 10 «Después», 5 condicionadas; ≈ 99 sesiones estimadas) y doce mejoras sobre propuestas ya catalogadas.

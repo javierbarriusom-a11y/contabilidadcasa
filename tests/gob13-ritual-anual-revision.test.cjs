@@ -137,8 +137,12 @@ test("gob13AnnualReviewStatus · nunca marcado, no revisado y pendiente (usa la 
 });
 
 test("gob13AnnualReviewStatus · marcado hace un año exacto, ya toca repetirlo", () => {
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  // El mismo día del año pasado, recortado al último día del mes: el 29/02 no existe el año anterior y setFullYear lo convertía en el 1/03,
+  // que queda a menos de un año (la prueba fallaba el 29/02/2028). En UTC, como cuenta los meses el motor (monthsSinceDate).
+  const today = new Date();
+  const year = today.getUTCFullYear() - 1;
+  const day = Math.min(today.getUTCDate(), new Date(Date.UTC(year, today.getUTCMonth() + 1, 0)).getUTCDate());
+  const oneYearAgo = new Date(Date.UTC(year, today.getUTCMonth(), day));
   const ctx = sandbox({ scenarioSettings: { gob13LastAnnualReviewAt: oneYearAgo.toISOString().slice(0, 10) } });
   const status = ctx.gob13AnnualReviewStatus();
   assert.equal(status.reviewed, true);
