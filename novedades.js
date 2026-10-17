@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-16-wp41d",
+      fecha: "2026-10-16",
+      texto: "Deuda en la sombra: ahora ves aparte los cargos que se repiten cada mes y no he marcado, por si alguno es una financiación.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-10-16-wp23c",
       fecha: "2026-10-16",
       texto: "Campaña fiscal: marca cada tarea como «hecha» y el aviso del 20/12 solo te recuerda lo que falte.",

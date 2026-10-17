@@ -581,12 +581,19 @@ for (const scheme of ["light", "dark"]) {
         add(back(72), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
         add(back(42), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
         add(back(12), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
+        add(back(63), -12.99, "NETFLIX FICTICIO");
+        add(back(33), -12.99, "NETFLIX FICTICIO");
+        add(back(3), -12.99, "NETFLIX FICTICIO");
         baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
         refreshMovementRollups();
         renderDeudaSombra(FinanceCanonicalShadowDebt);
       });
       await expect(card.locator(".som-aviso")).toHaveCount(2);
       await revisar("con avisos");
+      // PR-4: la lista plegada de cargos mensuales sin marcar, primero cerrada (ya revisada arriba) y luego abierta.
+      await card.locator("#sombraRecurrentes summary").click();
+      await expect(card.locator("#sombraRecurrentes li")).toHaveCount(1);
+      await revisar("con la lista de cargos sin marcar abierta");
       await card.locator('[data-sombra-respuesta="not-debt"]').first().click();
       await expect(card.locator("#sombraNota")).toContainText("Deshacer");
       await revisar("tras responder");

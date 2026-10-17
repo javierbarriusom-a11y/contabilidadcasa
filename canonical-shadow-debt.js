@@ -17,6 +17,8 @@
   //   · la fecha de fin solo sale de un contador «cuota 3 de 12» del propio extracto; sin él se dice «no se sabe cuándo acaba».
   //   · el capital de la propuesta es lo que queda por pagar (cuotas × importe): NO incluye intereses desconocidos y se dice.
   //   · la TAE solo es calculable si se sabe el precio al contado; un campo en blanco no se presume «sin comisión».
+  //   · lo que NO se marca tampoco se esconde: los cargos que se repiten cada mes sin ninguna pista de financiación (WP-41 PR-4) salen aparte, en una lista de solo
+  //     lectura, para que el hogar los mire — un falso negativo da sensación de «no hay deuda oculta». No son avisos, no se responden y no cuentan en ningún total.
 
   const SCHEMA_ID = "finance-shadow-debt/v1";
   const RESPONSES = Object.freeze(["not-debt", "added"]);
@@ -25,6 +27,8 @@
   const MIN_KEYWORD_CHARGES = 2;
   const MAX_ITEMS = 8;
   const MIN_ANSWERED = 10;
+  const MIN_RECURRING_CHARGES = 3; // la lista de «cargos mensuales sin marcar» pide tres cargos del mismo importe: con dos, cualquier gasto repetido entraría
+  const MAX_RECURRING = 10;
 
   const number = (value, fallback = 0) => (Number.isFinite(Number(value)) && value !== "" && value !== null && value !== undefined ? Number(value) : fallback);
   const round2 = (value) => Math.round((number(value) + Number.EPSILON) * 100) / 100;
@@ -120,6 +124,18 @@
     });
   }
 
+  // Un cargo mensual sin pista de plazos ni de financiación: no es un aviso, pero se enseña para que el hogar lo reconozca (o no). Mismo criterio de «mensual» que el detector
+  // (importe ±2 %, 24–38 días entre cargos), con tres cargos como mínimo. Lo que ya está dado de alta en la app no se repite aquí.
+  function unflaggedMonthly(charges, last, contracts) {
+    const same = charges.filter((c) => Math.abs(c.amount - last.amount) <= last.amount * AMOUNT_TOLERANCE);
+    const months = new Set(same.map((c) => c.date.slice(0, 7)));
+    if (same.length < MIN_RECURRING_CHARGES || months.size < MIN_RECURRING_CHARGES) return null;
+    const gaps = same.slice(1).map((c, i) => daysBetween(same[i].date, c.date));
+    if (!gaps.every((gap) => gap >= 24 && gap <= 38)) return null;
+    const item = { label: last.label, monthlyAmount: last.amount, charges: same.length, lastDate: last.date };
+    return alreadyInApp(item, contracts) ? null : item;
+  }
+
   /**
    * @param {{today?: string, transactions?: Array<Object>, contracts?: Array<Object>, answers?: *, limit?: number}} [input]
    */
@@ -140,6 +156,7 @@
     });
     const answered = normalizeAnswers(answers).byId;
     const found = [];
+    const unflagged = [];
     let suppressed = 0;
     groups.forEach((charges, key) => {
       charges.sort((a, b) => a.date.localeCompare(b.date));
@@ -147,7 +164,11 @@
       if (daysBetween(last.date, today) > RECENT_DAYS) return; // ya no se cobra
       const counter = charges.map((c) => counterOf(c.raw, keywordsOf(c.raw).length > 0)).filter(Boolean).at(-1) || null;
       const words = [...new Set(charges.flatMap((c) => keywordsOf(c.raw)))];
-      if (!counter && !words.length) return; // sin pista de plazos ni de financiación: es un recurrente, no deuda
+      if (!counter && !words.length) { // sin pista de plazos ni de financiación: es un recurrente, no deuda; si es mensual, se enseña aparte sin marcarlo
+        const quiet = unflaggedMonthly(charges, last, contracts);
+        if (quiet) unflagged.push(quiet);
+        return;
+      }
       // Mismo importe (±2 %) en los cargos que se tienen en cuenta: el último y los que lo igualan.
       const same = charges.filter((c) => Math.abs(c.amount - last.amount) <= last.amount * AMOUNT_TOLERANCE);
       if (!counter && same.length < MIN_KEYWORD_CHARGES) return;
@@ -177,8 +198,10 @@
     const items = found.slice(0, Math.max(1, number(limit, MAX_ITEMS)));
     const monthlyTotal = round2(items.reduce((sum, item) => sum + item.monthlyAmount, 0));
     const withEnd = items.filter((item) => item.endMonth);
+    unflagged.sort((a, b) => b.monthlyAmount - a.monthlyAmount || a.label.localeCompare(b.label, "es"));
+    const recurring = { total: unflagged.length, items: unflagged.slice(0, MAX_RECURRING), overflow: Math.max(0, unflagged.length - MAX_RECURRING) };
     return {
-      schemaId: SCHEMA_ID, status: "ok", coveredUntil, items, suppressed, overflow: Math.max(0, found.length - items.length), stats: stats(answers),
+      schemaId: SCHEMA_ID, status: "ok", coveredUntil, items, recurring, suppressed, overflow: Math.max(0, found.length - items.length), stats: stats(answers),
       monthlyTotal, latestEnd: withEnd.length ? withEnd.map((item) => item.endMonth).sort().at(-1) : null, withoutEnd: items.filter((item) => !item.endMonth).length,
     };
   }
