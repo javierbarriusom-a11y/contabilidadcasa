@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>B4 · Clasificar por lotes</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:52px;padding:0 16px;border-radius:14px;font:600 15px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.opt{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #D5DBD6;background:#FFFFFF;font:500 13.5px 'Geist',system-ui,sans-serif;color:#111814;cursor:pointer}
+</style>
+
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; position: relative; background: #F4F5F2; font-family: 'Geist', system-ui, sans-serif; color: #111814; overflow: hidden">
+<div style="padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; opacity: 0.5">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em">Movimientos</h1>
+<div style="height: 160px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E1E5E1"></div>
+<div style="height: 120px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E1E5E1"></div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(17,24,20,0.42)"></div>
+
+<section role="dialog" aria-label="Clasificar grupos sin partida" style="position: absolute; left: 0; right: 0; bottom: 0; height: 640px; background: #FFFFFF; border-radius: 24px 24px 0 0; box-shadow: 0 -8px 30px rgba(17,24,20,0.18); display: flex; flex-direction: column; gap: 18px; padding: 10px 20px 34px; box-sizing: border-box">
+<span style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #D5DBD6"></span>
+<div style="display: flex; justify-content: space-between; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 2px"><b style="font-size: 18px; font-weight: 650">Clasificar</b><span class="meta">3 de 12 · menos de un minuto</span></div>
+<button type="button" class="btn" aria-label="Cerrar" style="width: 44px; min-height: 44px; padding: 0; border-radius: 50%"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px"><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span></div>
+
+<div style="border: 1px solid #E1E5E1; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 6px 18px rgba(17,24,20,0.06)">
+<span class="lab">Grupo · comercio normalizado</span>
+<b style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em">MERCADONA</b>
+<div style="display: flex; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span class="meta">Movimientos</span><span class="num" style="font-size: 18px; font-weight: 600">7</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span class="meta">En octubre</span><span class="num" style="font-size: 18px; font-weight: 600">412,30 €</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span class="meta">Importe típico</span><span class="num" style="font-size: 18px; font-weight: 600">40-90 €</span></div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #DDEBE4">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span class="meta" style="color: #24493F">Propuesta</span><b style="font-size: 17px; font-weight: 650; color: #0E3B32">Supermercado</b></span>
+<span class="lab" style="color: #0E3B32">confianza alta</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" class="opt">Gastos del hogar</button><button type="button" class="opt">Comer fuera</button><button type="button" class="opt">Otra…</button>
+</div>
+</div>
+
+<p class="meta" style="margin: 0">Al aceptar creo la regla «MERCADONA → Supermercado» para siempre. Puedes deshacerla aquí o en Ajustes › Reglas.</p>
+<div style="margin-top: auto; display: flex; gap: 10px">
+<button type="button" class="btn" style="flex: 1">Saltar</button>
+<button type="button" class="btn btn-p" style="flex: 2">Aceptar y siguiente</button>
+</div>
+</section>
+</div>
+
+</body>
+</html>

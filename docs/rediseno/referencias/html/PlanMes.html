@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>C1 · Plan › Mes</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0E6B4F}a:hover{color:#09503B}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.card{background:#FFFFFF;border:1px solid #E1E5E1;border-radius:16px}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.grp{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#F7F8F6;border-top:1px solid #EEF1EE}
+.pr{display:flex;flex-direction:column;gap:7px;padding:12px 16px;border-top:1px solid #EEF1EE}
+.bar{height:6px;border-radius:3px;background:repeating-linear-gradient(135deg,#E9ECE9 0 5px,#F4F5F2 5px 10px)}
+.amt{min-width:84px;text-align:right;padding:6px 10px;border-radius:9px;border:1px solid #E1E5E1;font-weight:600}
+</style>
+
+</head>
+<body>
+
+<div style="width: 390px; height: 1500px; position: relative; background: #F4F5F2; font-family: 'Geist', system-ui, sans-serif; color: #111814; box-sizing: border-box; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 18px; padding: 20px 16px 120px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em">Plan</h1>
+<div style="display: flex; align-items: center; gap: 2px">
+<button type="button" class="btn" aria-label="Mes anterior" style="width: 40px; min-height: 40px; padding: 0; border: 0; background: transparent"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+<button type="button" class="btn" style="min-height: 40px; padding: 0 12px">octubre 2026</button>
+<button type="button" class="btn" aria-label="Mes siguiente" style="width: 40px; min-height: 40px; padding: 0; border: 0; background: transparent"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; border-radius: 12px; background: #E9ECE9; gap: 4px" role="tablist" aria-label="Plan">
+<button type="button" role="tab" aria-selected="true" style="min-height: 38px; border: 0; border-radius: 9px; background: #FFFFFF; font: 600 14px 'Geist', system-ui, sans-serif; box-shadow: 0 1px 2px rgba(17,24,20,0.08)">Mes</button>
+<a href="Prevision.html" role="tab" aria-selected="false" style="min-height: 38px; display: grid; place-items: center; border-radius: 9px; font-size: 14px; color: #56615B; text-decoration: none">Previsión</a>
+<button type="button" role="tab" aria-selected="false" style="min-height: 38px; border: 0; border-radius: 9px; background: transparent; font: 500 14px 'Geist', system-ui, sans-serif; color: #56615B">Objetivos</button>
+</div>
+
+<section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<span class="lab">Sin asignar</span>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<span class="num" style="font-size: 44px; font-weight: 700; line-height: 1; color: #0E6B4F">270 €</span>
+<button type="button" class="btn btn-p">Asignar</button>
+</div>
+<p style="margin: 0; font-size: 14px; line-height: 1.45; color: #2E3832">De 5.000 € de ingreso previsto ya tienen destino 4.730 €. Sugerencia: al colchón, que está en 0,9 meses.</p>
+<div style="display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px" role="img" aria-label="Fijos 2.500, variables 1.750, financiaciones 480, sin asignar 270">
+<span style="flex: 2500; background: #111814"></span><span style="flex: 1750; background: #5D6B64"></span><span style="flex: 480; background: #A9B3AD"></span><span style="flex: 270; background: #1B7A4B"></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px" class="meta">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #111814"></span>Fijos 2.500 €</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #5D6B64"></span>Variables 1.750 €</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #A9B3AD"></span>Financiaciones 480 €</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1B7A4B"></span>Sin asignar 270 €</span>
+</div>
+</section>
+
+<section class="card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 15px; font-weight: 600">Ritmo del mes</b><span class="meta">día 17 de 31</span></div>
+<div style="height: 10px; border-radius: 5px; background: repeating-linear-gradient(135deg, #E9ECE9 0 6px, #F4F5F2 6px 12px); position: relative"><span style="position: absolute; left: 55%; top: -4px; width: 2px; height: 18px; background: #2B59C3"></span></div>
+<span class="meta">Sin gasto real: la barra se llena con el extracto. La marca azul es lo que esperabas haber gastado hoy.</span>
+</section>
+
+<section class="card" style="overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px"><b style="font-size: 15px; font-weight: 600">Partidas</b><span class="meta">previsto · real</span></div>
+<div class="grp"><span class="lab">Ingresos</span><span class="num" style="font-weight: 600">5.000 €</span></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Ingreso Persona A</span><span class="num amt">3.000 €</span></div><div class="bar"></div></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Ingreso Persona B</span><span class="num amt">2.000 €</span></div><div class="bar"></div></div>
+<div class="grp"><span class="lab">Gastos fijos</span><span class="num" style="font-weight: 600">2.500 €</span></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Vivienda</span><span class="num amt">750 €</span></div><div class="bar"></div></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Gastos del hogar</span><span class="num amt">1.350 €</span></div><div class="bar"></div></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Servicios</span><span class="num amt">400 €</span></div><div class="bar"></div></div>
+<div class="grp"><span class="lab">Gastos variables</span><span class="num" style="font-weight: 600">1.750 €</span></div>
+<div class="pr"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 14.5px">Gasto variable estimado</span><span class="num amt">1.750 €</span></div><div class="bar"></div><span class="meta">Una sola partida para todo lo variable: divídela para que la previsión aprenda.</span></div>
+<a href="Deuda.html" class="grp" style="text-decoration: none; color: #111814"><span style="display: flex; flex-direction: column; gap: 2px"><span class="lab">Financiaciones</span><span class="meta">15 contratos · 13 a 0 € · se editan en Deuda</span></span><span style="display: flex; align-items: center; gap: 6px"><span class="num" style="font-weight: 600">480 €</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></span></a>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid #EEF1EE">
+<button type="button" class="btn" style="min-height: 40px; font-size: 13.5px">Copiar septiembre</button>
+<button type="button" class="btn" style="min-height: 40px; font-size: 13.5px; border: 0; color: #0E6B4F">+ Partida</button>
+</div>
+</section>
+
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0">
+<nav aria-label="Destinos principales" style="width:390px;height:88px;box-sizing:border-box;background:rgba(255,255,255,.96);border-top:1px solid #E1E5E1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 6px 24px;font-family:Geist,system-ui,sans-serif"><a href="Main.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg></span><span>Hoy</span></a><a href="Movimientos.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></span><span>Movimientos</span></a><a href="PlanMes.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:600;color:#0E3B32"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:#DDEBE4"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v14H4zM4 10.5h16M8 3.5v5M16 3.5v5"/></svg></span><span>Plan</span></a><a href="Patrimonio.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 8.5 4.75L12 13 3.5 8.25zM3.5 12.5 12 17.25l8.5-4.75M3.5 16.5 12 21.25l8.5-4.75"/></svg></span><span>Patrimonio</span></a><a href="Taller.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>Decidir</span></a></nav>
+</div>
+</div>
+
+</body>
+</html>

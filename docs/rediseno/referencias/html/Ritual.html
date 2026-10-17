@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>B5 · Repaso semanal</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.acc{background:#FFFFFF;border:1px solid #E1E5E1;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+</style>
+
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; background: #F4F5F2; font-family: 'Geist', system-ui, sans-serif; color: #111814; display: flex; flex-direction: column; box-sizing: border-box; padding: 16px 20px 34px; gap: 22px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<a href="Hoy.html" class="btn" aria-label="Salir del repaso" style="width: 44px; padding: 0; border-radius: 50%"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
+<span class="meta" style="display: flex; align-items: center; gap: 6px"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 16px; height: 16px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>1 min 10 s</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px"><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #D5DBD6"></span><span style="height: 4px; border-radius: 2px; background: #D5DBD6"></span><span style="height: 4px; border-radius: 2px; background: #D5DBD6"></span></div>
+<span class="lab">Paso 2 de 5 · Saldos</span>
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15">¿Coincide lo que dice tu banco?</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #2E3832">Abre la app del banco y compara. Si cuadra, un toque.</p>
+</div>
+
+<div class="acc">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 16px">CaixaBank</b><span class="meta">estimado hoy</span></div>
+<span class="num" style="font-size: 30px; font-weight: 700">7.230 €</span>
+<div style="display: flex; gap: 8px"><button type="button" class="btn" style="flex: 1">Corregir</button><button type="button" class="btn btn-p" style="flex: 1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>Coincide</button></div>
+</div>
+
+<div class="acc" style="border-color: #0E3B32">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 16px">Mediolanum</b><span class="meta">estimado 2.580 €</span></div>
+<label for="med" class="meta" style="color: #2E3832">Saldo que ves en el banco</label>
+<input id="med" type="text" inputmode="decimal" value="2.614,20 €" style="min-height: 52px; border-radius: 12px; border: 1.5px solid #0E3B32; padding: 0 14px; font: 600 22px 'Geist', system-ui, sans-serif; color: #111814; font-variant-numeric: tabular-nums">
+<span class="meta">Diferencia +34,20 €. La previsión se recalcula al guardar.</span>
+</div>
+
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+<span class="meta" style="text-align: center">Después: extracto · lo que vino · bandeja · listo</span>
+<button type="button" class="btn btn-p" style="min-height: 56px; border-radius: 16px; font-size: 16px">Guardar y seguir</button>
+</div>
+</div>
+
+</body>
+</html>

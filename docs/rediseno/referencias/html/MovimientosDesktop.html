@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>B3d · Movimientos + clasificar (escritorio)</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0E6B4F}a:hover{color:#09503B}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.card{background:#FFFFFF;border:1px solid #E1E5E1;border-radius:16px}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tr{display:grid;grid-template-columns:72px minmax(0,1.6fr) 110px 150px 110px;gap:12px;align-items:center;padding:0 18px;min-height:48px;border-top:1px solid #EEF1EE;font-size:14px}
+.th{min-height:38px;background:#F7F8F6;border-top:0}
+.tag{font-size:12px;padding:3px 9px;border-radius:999px;background:#EEF1EE;color:#2E3832;justify-self:start}
+.tag-q{font-size:12px;padding:3px 9px;border-radius:999px;border:1px dashed #8F5A00;color:#6B4400;justify-self:start}
+.kbd{font:500 11px 'Geist Mono',monospace;padding:2px 6px;border-radius:5px;border:1px solid #D5DBD6;color:#2E3832;background:#F7F8F6}
+.opt{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #D5DBD6;background:#FFFFFF;font:500 13px 'Geist',system-ui,sans-serif;color:#111814;display:inline-flex;align-items:center;gap:6px}
+</style>
+
+</head>
+<body>
+
+<div style="width: 1440px; height: 1000px; display: flex; font-family: 'Geist', system-ui, sans-serif; color: #111814; background: #F4F5F2; overflow: hidden">
+<aside style="width:256px;flex:none;height:1000px;box-sizing:border-box;background:#0E3B32;color:#fff;display:flex;flex-direction:column;gap:24px;padding:24px 16px;font-family:Geist,system-ui,sans-serif">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: #DDEBE4; color: #0E3B32; display: grid; place-items: center; font-weight: 700; font-size: 14px">FC</span>
+<div style="display: flex; flex-direction: column"><b style="font-size: 15px">Finanzas Casa</b><span style="font-size: 12px; color: #A9C3B8">Plan 2026-2036</span></div>
+</div>
+<button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #2F5A50; background: #123F36; color: #C9DAD3; font: 500 13.5px 'Geist', system-ui, sans-serif; cursor: pointer">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m20 20-4.2-4.2"></path></svg><span style="flex: 1; text-align: left">Buscar o hacer…</span><span style="font: 500 11px 'Geist Mono', monospace">⌘K</span>
+</button>
+<nav aria-label="Destinos principales" style="display: flex; flex-direction: column; gap: 4px">
+<a href="HoyDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg><span style="display:flex;flex-direction:column"><b style="font-size:14.5px;font-weight:600;color:#fff">Hoy</b><span style="font-size:12px">¿Vamos bien?</span></span></a><a href="MovimientosDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;background:#1D5245;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span style="display:flex;flex-direction:column"><b style="font-size:14.5px;font-weight:600;color:#fff">Movimientos</b><span style="font-size:12px">¿Qué ha pasado?</span></span></a><a href="PlanMesDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v14H4zM4 10.5h16M8 3.5v5M16 3.5v5"/></svg><span style="display:flex;flex-direction:column"><b style="font-size:14.5px;font-weight:600;color:#fff">Plan</b><span style="font-size:12px">¿Qué viene?</span></span></a><a href="PatrimonioDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 8.5 4.75L12 13 3.5 8.25zM3.5 12.5 12 17.25l8.5-4.75M3.5 16.5 12 21.25l8.5-4.75"/></svg><span style="display:flex;flex-direction:column"><b style="font-size:14.5px;font-weight:600;color:#fff">Patrimonio</b><span style="font-size:12px">¿Cuánto tenemos y debemos?</span></span></a><a href="TallerDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM15.5 8.5l-2 5-5 2 2-5z"/></svg><span style="display:flex;flex-direction:column"><b style="font-size:14.5px;font-weight:600;color:#fff">Decidir</b><span style="font-size:12px">¿Qué hacemos con el dinero?</span></span></a>
+</nav>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 10px; background: #123F36" role="group" aria-label="Persona">
+<button type="button" style="min-height: 34px; border: 0; border-radius: 8px; background: #DDEBE4; color: #0E3B32; font: 600 13px 'Geist', system-ui, sans-serif">Hogar</button>
+<button type="button" style="min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: #C9DAD3; font: 500 13px 'Geist', system-ui, sans-serif">Javi</button>
+<button type="button" style="min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: #C9DAD3; font: 500 13px 'Geist', system-ui, sans-serif">Tere</button>
+</div>
+<a href="LoQuePideDesktop.html" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:#C9DAD3;">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true" style="flex: none"><circle cx="12" cy="12" r="3"></circle><path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2 18 18M6 18l1.8-1.8M16.2 7.8 18 6"></path></svg>
+<span style="display: flex; flex-direction: column"><b style="font-size: 14.5px; font-weight: 600; color: #FFFFFF">Ajustes</b><span style="font-size: 12px">Local · guardado 14:49</span></span>
+</a>
+</div>
+</aside>
+<main style="flex: 1; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px; padding: 7px 36px; background: repeating-linear-gradient(135deg, #FBF1DC 0 10px, #F7E8C8 10px 20px); color: #5E3C00"><span class="lab" style="color: #5E3C00">Ejemplo</span><span style="font-size: 12.5px">la demo no tiene movimientos importados</span></div>
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 400px">
+
+<div style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0">
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em">Movimientos</h1>
+<div style="display: flex; gap: 8px"><a href="CierreDesktop.html" class="btn">Cierre de octubre</a><a href="ImportarDesktop.html" class="btn btn-p"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M12 5v14M5 12h14"></path></svg>Importar</a></div>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-color: #0E3B32"><span class="lab" style="color: #0E3B32">Bandeja · extracto nuevo</span><b style="font-size: 15px">CaixaBank · 1-16 oct</b><span class="meta">46 movimientos · cuadra al céntimo</span><div style="display: flex; gap: 6px; margin-top: 4px"><a href="ImportarDesktop.html" class="btn" style="min-height: 34px; font-size: 13px">Revisar</a><button type="button" class="btn btn-p" style="min-height: 34px; font-size: 13px">Importar 46</button></div></div>
+<div class="card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-color: #111814; box-shadow: 0 0 0 1px #111814"><span class="lab">Bandeja · sin partida</span><b style="font-size: 15px">12 grupos</b><span class="meta">Abierto a la derecha · menos de 1 min</span></div>
+<div class="card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Bandeja · hecho solo</span><b style="font-size: 15px">3 cobros confirmados</b><span class="meta">por el extracto del 16 oct · deshacer</span></div>
+</div>
+
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 150px; gap: 8px 14px; align-items: center" class="meta">
+<span style="color: #111814; font-weight: 600">CaixaBank</span><div style="display: flex; height: 10px; gap: 2px"><span style="flex: 52; background: #1B7A4B; border-radius: 3px 0 0 3px"></span><span style="flex: 6; background: repeating-linear-gradient(135deg, #B3361F 0 3px, #F8E1DF 3px 6px)"></span><span style="flex: 7; background: #1B7A4B"></span><span style="flex: 25; background: #E9ECE9; border-radius: 0 3px 3px 0"></span></div><span>hueco 4-9 oct</span>
+<span style="color: #111814; font-weight: 600">Mediolanum</span><div style="height: 10px; border-radius: 3px; background: #E9ECE9"></div><span>sin extractos</span>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<label for="busca" style="position: absolute; left: -9999px">Buscar movimientos</label>
+<input id="busca" type="search" placeholder="Buscar concepto, importe o partida" style="flex: 1; min-height: 40px; border-radius: 12px; border: 1px solid #D5DBD6; padding: 0 14px; font: 14px 'Geist', system-ui, sans-serif; background: #FFFFFF">
+<span class="opt" style="background: #111814; color: #FFFFFF; border-color: #111814">Todas las cuentas</span><span class="opt">Octubre</span><span class="opt">Sin partida</span>
+</div>
+
+<section class="card" style="overflow: hidden">
+<div class="tr th"><span class="lab">Fecha</span><span class="lab">Concepto</span><span class="lab">Cuenta</span><span class="lab">Partida</span><span class="lab" style="text-align: right">Importe</span></div>
+<div class="tr"><span class="num meta">16 oct</span><b style="font-weight: 600">Mercadona</b><span class="meta">CaixaBank</span><span class="tag">Supermercado</span><span class="num" style="text-align: right; font-weight: 600">−86,40 €</span></div>
+<div class="tr"><span class="num meta">16 oct</span><span style="display: flex; gap: 8px; align-items: baseline"><b style="font-weight: 600">Recibo Cetelem</b><span class="meta">cuota esperada ✓</span></span><span class="meta">CaixaBank</span><span class="tag">Plan reunificado</span><span class="num" style="text-align: right; font-weight: 600">−180,00 €</span></div>
+<div class="tr" style="background: #FBF8F0"><span class="num meta">16 oct</span><b style="font-weight: 600">Bizum 6123…</b><span class="meta">CaixaBank</span><span class="tag-q">¿partida?</span><span class="num" style="text-align: right; font-weight: 600">−25,00 €</span></div>
+<div class="tr"><span class="num meta">15 oct</span><span style="display: flex; gap: 8px; align-items: baseline"><b style="font-weight: 600">Iberdrola</b><span class="meta">+18 % vs. media</span></span><span class="meta">CaixaBank</span><span class="tag">Servicios</span><span class="num" style="text-align: right; font-weight: 600">−94,12 €</span></div>
+<div class="tr"><span class="num meta">15 oct</span><span style="display: flex; gap: 8px; align-items: baseline"><b style="font-weight: 600">Nómina · Persona A</b><span class="meta">confirmado solo</span></span><span class="meta">CaixaBank</span><span class="tag">Ingreso</span><span class="num" style="text-align: right; font-weight: 600; color: #1B7A4B">+3.000,00 €</span></div>
+<div class="tr"><span class="num meta">14 oct</span><b style="font-weight: 600">MERCADONA VALDEMORO</b><span class="meta">CaixaBank</span><span class="tag-q">¿partida?</span><span class="num" style="text-align: right; font-weight: 600">−62,15 €</span></div>
+<div class="tr"><span class="num meta">13 oct</span><b style="font-weight: 600">Repsol</b><span class="meta">CaixaBank</span><span class="tag">Coche</span><span class="num" style="text-align: right; font-weight: 600">−58,00 €</span></div>
+</section>
+</div>
+
+<aside aria-label="Clasificar grupos sin partida" style="background: #FFFFFF; border-left: 1px solid #E1E5E1; padding: 24px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 2px"><b style="font-size: 18px">Clasificar</b><span class="meta">3 de 12 grupos</span></div>
+<button type="button" class="btn" aria-label="Cerrar panel" style="width: 40px; padding: 0"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px"><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #0E3B32"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span><span style="height: 4px; border-radius: 2px; background: #E1E5E1"></span></div>
+<div style="border: 1px solid #E1E5E1; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<span class="lab">Comercio normalizado</span>
+<b style="font-size: 24px; letter-spacing: -0.02em">MERCADONA</b>
+<div style="display: flex; gap: 18px"><div style="display: flex; flex-direction: column"><span class="meta">Movimientos</span><span class="num" style="font-weight: 600; font-size: 17px">7</span></div><div style="display: flex; flex-direction: column"><span class="meta">Octubre</span><span class="num" style="font-weight: 600; font-size: 17px">412,30 €</span></div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #DDEBE4"><span style="flex: 1; display: flex; flex-direction: column"><span class="meta" style="color: #24493F">Propuesta · confianza alta</span><b style="font-size: 17px; color: #0E3B32">Supermercado</b></span><span class="kbd">↵</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" class="opt" style="justify-content: space-between"><span>Gastos del hogar</span><span class="kbd">1</span></button>
+<button type="button" class="opt" style="justify-content: space-between"><span>Comer fuera</span><span class="kbd">2</span></button>
+<button type="button" class="opt" style="justify-content: space-between"><span>Otra partida…</span><span class="kbd">3</span></button>
+</div>
+</div>
+<p class="meta" style="margin: 0">Crea la regla «MERCADONA → Supermercado». Deshacer con <span class="kbd">⌘Z</span>.</p>
+<div style="margin-top: auto; display: flex; gap: 8px"><button type="button" class="btn" style="flex: 1">Saltar <span class="kbd">S</span></button><button type="button" class="btn btn-p" style="flex: 2">Aceptar y siguiente</button></div>
+</aside>
+
+</div>
+</main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>A1 · Sistema de diseño</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0E6B4F}a:hover{color:#09503B}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.card{background:#FFFFFF;border:1px solid #E1E5E1;border-radius:16px}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace;font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d-real{width:8px;height:8px;border-radius:50%;background:#1B7A4B;flex:none}
+.d-est{width:8px;height:8px;border-radius:50%;border:1.5px solid #8F5A00;box-sizing:border-box;flex:none}
+.d-none{width:8px;height:8px;border-radius:50%;border:1.5px dashed #56615B;box-sizing:border-box;flex:none}
+.sw{display:flex;flex-direction:column;gap:6px}
+.chip{display:block;height:56px;border-radius:12px;border:1px solid #E1E5E1}
+h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+h3{margin:0;font-size:15px;font-weight:600}
+</style>
+
+</head>
+<body>
+
+<div style="width: 1440px; height: 1780px; background: #F4F5F2; font-family: 'Geist', system-ui, sans-serif; color: #111814; box-sizing: border-box; padding: 64px 80px; display: flex; flex-direction: column; gap: 48px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+<span class="lab">Finanzas Casa · sistema de diseño v2</span>
+<h1 style="margin: 0; font-size: 48px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.05">Sobrio, numérico, honesto con lo que no sabe</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.5; color: #2E3832">Una cifra protagonista por pantalla, cada cifra con su estado (real, estimada o sin dato) y nada que ocupe sitio si no tiene datos. Se sustituyen las variables CSS actuales; la estructura de motores no cambia.</p>
+</div>
+<div style="display: flex; gap: 8px"><span class="mono" style="padding: 6px 10px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E1E5E1">tokens.css</span><span class="mono" style="padding: 6px 10px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E1E5E1">components/</span></div>
+</header>
+
+<section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2>Color</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<div class="sw"><span class="chip" style="background: #F4F5F2"></span><h3>--ground</h3><span class="mono">#F4F5F2</span><span class="meta">Fondo de la app</span></div>
+<div class="sw"><span class="chip" style="background: #FFFFFF"></span><h3>--surface</h3><span class="mono">#FFFFFF</span><span class="meta">Tarjetas, hojas</span></div>
+<div class="sw"><span class="chip" style="background: #111814"></span><h3>--ink</h3><span class="mono">#111814</span><span class="meta">Texto y cifra real</span></div>
+<div class="sw"><span class="chip" style="background: #56615B"></span><h3>--ink-2</h3><span class="mono">#56615B</span><span class="meta">Secundario (6,3:1)</span></div>
+<div class="sw"><span class="chip" style="background: #0E3B32"></span><h3>--brand</h3><span class="mono">#0E3B32</span><span class="meta">Acción primaria, marca</span></div>
+<div class="sw"><span class="chip" style="background: #2B59C3"></span><h3>--forecast</h3><span class="mono">#2B59C3</span><span class="meta">Todo lo previsto</span></div>
+<div class="sw"><span class="chip" style="background: #8F5A00"></span><h3>--warn</h3><span class="mono">#8F5A00</span><span class="meta">Estimado, vigilar</span></div>
+<div class="sw"><span class="chip" style="background: #B3361F"></span><h3>--neg</h3><span class="mono">#B3361F</span><span class="meta">Bajo el suelo, negativo</span></div>
+</div>
+<p class="meta" style="margin: 0">Regla: azul solo para previsión y gris oscuro para lo real; así un gráfico se lee sin leyenda. Rojo nunca para un simple gasto: solo para lo que rompe una regla del hogar.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2>Tipografía · Geist</h2>
+<div class="card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span class="num" style="font-size: 48px; font-weight: 700; line-height: 1">8.310 €</span><span class="mono">cifra héroe · 48/700 · tnum</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 32px; font-weight: 700; letter-spacing: -0.03em">Hoy</span><span class="mono">título · 32/700</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 19px; font-weight: 650">Decidir esta semana</span><span class="mono">sección · 19/650</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 15px">Cubrís 0,9 meses de gastos.</span><span class="mono">cuerpo · 15/400</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span class="meta">estimado · calendario · hoy</span><span class="mono">meta · 12,5/400</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span class="lab">Disponible hasta cobrar</span><span class="mono">etiqueta · Geist Mono 11</span></div>
+</div>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2>Formato de cifras</h2>
+<div class="card" style="overflow: hidden">
+<div style="display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 0; font-size: 14px">
+<span class="lab" style="padding: 10px 16px; background: #F4F5F2">Contexto</span><span class="lab" style="padding: 10px 16px; background: #F4F5F2">Así</span><span class="lab" style="padding: 10px 16px; background: #F4F5F2">No así (hoy)</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Resumen, tarjeta</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">8.310 €</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">8310,00 €</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Movimiento, cuadre</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">−412,30 €</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">-412.3 €</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Porcentaje</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">9,2 %</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">9.2% DE 32%</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Puntuación</span><span style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">no se usa</span><span class="num" style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">58/100 y 56.2/100</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Fecha corta</span><span style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">17 oct · sept 2029</span><span style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">sept 29</span>
+<span style="padding: 10px 16px; border-top: 1px solid #EEF1EE">Vacío</span><span style="padding: 10px 16px; border-top: 1px solid #EEF1EE; font-weight: 600">fila plegada</span><span style="padding: 10px 16px; border-top: 1px solid #EEF1EE; color: #8A2A18">«Sin datos» en grande</span>
+</div>
+</div>
+<p class="meta" style="margin: 0">Un único formateador <span class="mono">fmtEUR(v, {detalle})</span>: sin decimales salvo en movimientos y cuadres; separador de miles siempre; signo menos tipográfico; espacio fino sin salto antes de €.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2>Cifra con estado</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Saldo CaixaBank</span><span class="num" style="font-size: 26px; font-weight: 700">7.230 €</span><span class="meta" style="display: flex; align-items: center; gap: 6px"><span class="d-real"></span>real · banco · hace 2 d</span></div>
+<div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Fin de octubre</span><span class="num" style="font-size: 26px; font-weight: 700; color: #2B59C3">8.580 €</span><span class="meta" style="display: flex; align-items: center; gap: 6px"><span class="d-est"></span>previsto · ±240 €</span></div>
+<div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 6px; border-style: dashed"><span class="lab">Acierto previsión</span><span class="num" style="font-size: 26px; font-weight: 700; color: #8C958F">—</span><span class="meta" style="display: flex; align-items: center; gap: 6px"><span class="d-none"></span>sin dato · 1 cierre</span></div>
+</div>
+<p class="meta" style="margin: 0">Componente <span class="mono">&lt;Cifra valor estado fuente edad rango&gt;</span> (NXP-03). Estado por forma, no solo color: punto lleno = real; aro = estimado o previsto; aro discontinuo = sin dato. Tocar la línea meta abre la procedencia.</p>
+<h2 style="margin-top: 8px">Lo que no tiene datos se pliega</h2>
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px dashed #C9D0CA; background: #FFFFFF">
+<span class="d-none"></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 14px; font-weight: 600">Presupuesto del mes sin datos</b><span class="meta">Falta: gasto real de octubre · cuesta 2 min · Importar extracto</span></span>
+<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+</div>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2>Acciones</h2>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<button type="button" class="btn btn-p">Importar 46 movimientos</button>
+<button type="button" class="btn">Revisar</button>
+<button type="button" class="btn" aria-label="Buscar" style="width: 44px; padding: 0"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m20 20-4.2-4.2"></path></svg></button>
+</div>
+<p class="meta" style="margin: 0">Un botón primario por pantalla como máximo. Objetivo táctil ≥ 44 px. Sin «Guía de este flujo» ni «Modo reunión» en cabeceras: van al menú de la persona.</p>
+<div style="display: inline-flex; align-self: flex-start; padding: 4px; border-radius: 12px; background: #E9ECE9; gap: 4px">
+<span style="padding: 8px 14px; border-radius: 9px; background: #FFFFFF; font-size: 13.5px; font-weight: 600; box-shadow: 0 1px 2px rgba(17,24,20,0.08)">Mes</span><span style="padding: 8px 14px; font-size: 13.5px; color: #56615B">Previsión</span><span style="padding: 8px 14px; font-size: 13.5px; color: #56615B">Objetivos</span>
+</div>
+<p class="meta" style="margin: 0">Control segmentado: máximo 4 opciones. Más de 4 = es otra pantalla.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2>Barras</h2>
+<div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="meta">Ritmo del mes: gasto frente al día</span>
+<div style="height: 10px; border-radius: 5px; background: #E9ECE9; position: relative"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 5px; background: #111814"></span><span style="position: absolute; left: 55%; top: -4px; width: 2px; height: 18px; background: #2B59C3"></span></div>
+<span class="meta">62 % gastado · marca azul = lo esperado al día 17</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="meta">Reparto frente a su banda objetivo</span>
+<div style="height: 10px; border-radius: 5px; background: #E9ECE9; position: relative"><span style="position: absolute; left: 60%; width: 10%; top: 0; bottom: 0; background: #CFE0D7"></span><span style="position: absolute; left: 68%; top: -4px; width: 2px; height: 18px; background: #111814"></span></div>
+<span class="meta">68 % · banda 60-70 %</span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2>Deshacer y ejemplo</h2>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 16px; border-radius: 14px; background: #111814; color: #FFFFFF">
+<span style="flex: 1; font-size: 14px">Regla creada: MERCADONA → Supermercado</span>
+<button type="button" class="btn" style="min-height: 36px; background: transparent; color: #9FD7BD; border-color: transparent; padding: 0 8px">Deshacer</button>
+</div>
+<p class="meta" style="margin: 0">Deshacer en lugar de preguntar (WP-37): toast 8 s, abajo, encima de la barra.</p>
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 10px; background: repeating-linear-gradient(135deg, #FBF1DC 0 10px, #F7E8C8 10px 20px); color: #5E3C00">
+<span class="lab" style="color: #5E3C00">Ejemplo</span><span style="font-size: 13px">Datos ficticios · no se mezclan con los vuestros</span>
+</div>
+<p class="meta" style="margin: 0">Banda fija de XUX-02. En este lienzo marca las pantallas sin datos reales en la demo.</p>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 16px">
+<h2>Espaciado, radios y sombras</h2>
+<div style="display: flex; gap: 28px; align-items: flex-end; flex-wrap: wrap">
+<div style="display: flex; gap: 10px; align-items: flex-end">
+<span style="width: 4px; height: 4px; background: #0E3B32"></span><span style="width: 8px; height: 8px; background: #0E3B32"></span><span style="width: 12px; height: 12px; background: #0E3B32"></span><span style="width: 16px; height: 16px; background: #0E3B32"></span><span style="width: 20px; height: 20px; background: #0E3B32"></span><span style="width: 24px; height: 24px; background: #0E3B32"></span><span style="width: 32px; height: 32px; background: #0E3B32"></span>
+</div>
+<span class="mono">espacio 4 · 8 · 12 · 16 · 20 · 24 · 32 — margen lateral móvil 16, escritorio 32</span>
+<div style="display: flex; gap: 12px; align-items: flex-end">
+<span style="width: 56px; height: 44px; border-radius: 12px; border: 1.5px solid #111814"></span><span style="width: 72px; height: 56px; border-radius: 16px; border: 1.5px solid #111814"></span><span style="width: 96px; height: 56px; border-radius: 24px 24px 0 0; border: 1.5px solid #111814; border-bottom: 0"></span>
+</div>
+<span class="mono">radio 12 control · 16 tarjeta · 24 hoja inferior · sin sombras salvo hojas y menús</span>
+</div>
+</section>
+
+</div>
+
+</body>
+</html>

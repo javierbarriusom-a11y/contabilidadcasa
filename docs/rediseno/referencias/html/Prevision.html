@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>C2 · Plan › Previsión</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0E6B4F}a:hover{color:#09503B}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:#56615B}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.card{background:#FFFFFF;border:1px solid #E1E5E1;border-radius:16px}
+.meta{font-size:12.5px;line-height:1.45;color:#56615B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid #D5DBD6;background:#FFFFFF;color:#111814;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.btn-p{background:#0E3B32;border-color:#0E3B32;color:#FFFFFF}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.hz{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid #D5DBD6;background:#FFFFFF;font:500 13px 'Geist',system-ui,sans-serif;color:#111814}
+.ev{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #EEF1EE}
+</style>
+
+</head>
+<body>
+
+<div style="width: 390px; height: 1480px; position: relative; background: #F4F5F2; font-family: 'Geist', system-ui, sans-serif; color: #111814; box-sizing: border-box; overflow: hidden">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: repeating-linear-gradient(135deg, #FBF1DC 0 10px, #F7E8C8 10px 20px); color: #5E3C00"><span class="lab" style="color: #5E3C00">Ejemplo</span><span style="font-size: 12.5px">importes del detalle ilustrativos</span></div>
+<div style="display: flex; flex-direction: column; gap: 18px; padding: 16px 16px 120px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em">Plan</h1>
+<button type="button" class="btn" style="min-height: 40px; padding: 0 12px; font-size: 13px">Total · por cuenta</button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; border-radius: 12px; background: #E9ECE9; gap: 4px" role="tablist" aria-label="Plan">
+<a href="PlanMes.html" role="tab" aria-selected="false" style="min-height: 38px; display: grid; place-items: center; border-radius: 9px; font-size: 14px; color: #56615B; text-decoration: none">Mes</a>
+<button type="button" role="tab" aria-selected="true" style="min-height: 38px; border: 0; border-radius: 9px; background: #FFFFFF; font: 600 14px 'Geist', system-ui, sans-serif; box-shadow: 0 1px 2px rgba(17,24,20,0.08)">Previsión</button>
+<button type="button" role="tab" aria-selected="false" style="min-height: 38px; border: 0; border-radius: 9px; background: transparent; font: 500 14px 'Geist', system-ui, sans-serif; color: #56615B">Objetivos</button>
+</div>
+
+<section class="card" style="padding: 18px 16px 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 6px">
+<button type="button" class="hz" style="background: #111814; color: #FFFFFF; border-color: #111814; font-weight: 600">3 m</button><button type="button" class="hz">12 m</button><button type="button" class="hz">24 m</button><button type="button" class="hz">Hasta 2036</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span class="meta">Punto más bajo de los próximos 3 meses</span>
+<span class="num" style="font-size: 30px; font-weight: 700; color: #2B59C3">2.140 € <span style="font-size: 15px; font-weight: 500; color: #56615B">el 23 nov</span></span>
+</div>
+<svg viewBox="0 0 358 180" width="358" height="180" role="img" aria-label="Saldo previsto a 3 meses con banda de incertidumbre; mínimo el 23 de noviembre">
+<path d="M0 40 L50 48 L95 58 L120 92 L150 104 L175 68 L215 74 L240 98 L270 80 L310 72 L358 66 L358 104 L310 108 L270 118 L240 140 L215 112 L175 104 L150 150 L120 136 L95 86 L50 64 L0 40 Z" fill="#E4ECFA"></path>
+<path d="M0 40 L50 56 L95 72 L120 114 L150 128 L175 86 L215 93 L240 119 L270 99 L310 90 L358 85" fill="none" stroke="#2B59C3" stroke-width="2.25"></path>
+<line x1="0" y1="160" x2="358" y2="160" stroke="#B3361F" stroke-width="1.25" stroke-dasharray="4 4"></line>
+<text x="358" y="174" text-anchor="end" font-family="Geist Mono, monospace" font-size="10" fill="#8A2A18">suelo 1.500 €</text>
+<line x1="150" y1="14" x2="150" y2="160" stroke="#111814" stroke-width="1.25"></line>
+<circle cx="150" cy="128" r="5.5" fill="#FFFFFF" stroke="#111814" stroke-width="2"></circle>
+<g font-family="Geist Mono, monospace" font-size="10" fill="#56615B"><text x="0" y="174">oct</text><text x="120" y="174" text-anchor="middle">nov</text><text x="240" y="174" text-anchor="middle">dic</text></g>
+</svg>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span class="meta" style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px dashed #56615B; box-sizing: border-box"></span>Banda sin calibrar · se calibra con 3 cierres</span>
+</div>
+</section>
+
+<section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 4px; border-color: #111814">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 16px">Domingo 23 nov</b><span class="num" style="font-weight: 600">2.140 €</span></div>
+<span class="meta">rango 1.820 – 2.460 € · qué mueve este día</span>
+<div class="ev" style="margin-top: 6px"><span style="flex: 1; font-size: 14px">Seguro del hogar</span><span class="num" style="font-weight: 600">−310 €</span></div>
+<div class="ev"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px">Recibo tarjeta Pass</span><a href="Deuda.html" class="meta" style="display: flex; align-items: center; gap: 4px; color: #6B4400"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>día estimado · ¿sabes el día?</a></span><span class="num" style="font-weight: 600">−120 €</span></div>
+<div class="ev"><span style="flex: 1; font-size: 14px">Gasto variable de la semana</span><span class="num" style="font-weight: 600">−400 €</span></div>
+</section>
+
+<section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span class="lab">De verdad libre</span>
+<div style="display: flex; align-items: baseline; gap: 10px"><span class="num" style="font-size: 26px; font-weight: 700">720 €</span><span class="meta">de 1.200 € libres este trimestre</span></div>
+<div style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px"><span style="flex: 720; background: #1B7A4B"></span><span style="flex: 300; background: #A9B3AD"></span><span style="flex: 180; background: #A9B3AD"></span></div>
+<span class="meta">480 € ya son del IBI (300 €, 5 dic) y del seguro del coche (180 €, 12 ene). Apártalos y no los cuentes.</span>
+<button type="button" class="btn" style="align-self: flex-start">Apartar 480 €</button>
+</section>
+
+<section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #FBF1DC; border-color: #EBD7A8">
+<b style="font-size: 15px; color: #5E3C00">En el peor caso del 23 nov quedáis a 320 € del suelo</b>
+<span class="meta" style="color: #6B4400">Lo más barato, por orden:</span>
+<div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF"><span style="font-size: 14px">Traspasar 300 € desde Mediolanum el 21 nov</span><span class="num" style="font-weight: 600; color: #1B7A4B">0 €</span></div>
+<div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF"><span style="font-size: 14px">Retrasar la aportación de noviembre</span><span class="num" style="font-weight: 600">0 € · retrasa objetivo</span></div>
+</section>
+
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0">
+<nav aria-label="Destinos principales" style="width:390px;height:88px;box-sizing:border-box;background:rgba(255,255,255,.96);border-top:1px solid #E1E5E1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 6px 24px;font-family:Geist,system-ui,sans-serif"><a href="Main.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg></span><span>Hoy</span></a><a href="Movimientos.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></span><span>Movimientos</span></a><a href="PlanMes.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:600;color:#0E3B32"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:#DDEBE4"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v14H4zM4 10.5h16M8 3.5v5M16 3.5v5"/></svg></span><span>Plan</span></a><a href="Patrimonio.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 8.5 4.75L12 13 3.5 8.25zM3.5 12.5 12 17.25l8.5-4.75M3.5 16.5 12 21.25l8.5-4.75"/></svg></span><span>Patrimonio</span></a><a href="Taller.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;text-decoration:none;font-size:11px;font-weight:500;color:#56615B"><span style="display:grid;place-items:center;width:52px;height:30px;border-radius:15px;background:transparent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>Decidir</span></a></nav>
+</div>
+</div>
+
+</body>
+</html>
