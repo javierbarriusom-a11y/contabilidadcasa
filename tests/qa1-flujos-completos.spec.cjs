@@ -4019,6 +4019,48 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
   });
 });
 
+// Decisión del hogar (17/10/2026): del 1 al 3 el mes que se cierra sigue abierto (WP-09), pero «Registrar gasto» apunta al mes de la
+// fecha, como el extracto; un enlace lo lleva al mes anterior y otro lo devuelve. Fuera de esos días el enlace no sale.
+test.describe("Registrar gasto · del 1 al 3, al mes de la fecha con un enlace al que se cierra", () => {
+  const abrir = async (page, time) => {
+    await page.clock.install({ time });
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
+    await page.click("#homeQuickExpenseOpen");
+    await expect(page.locator("#homeQuickExpenseDialog")).toBeVisible();
+  };
+
+  test("el día 2 va a noviembre, el enlace lo lleva a octubre y vuelve; se guarda en el mes elegido", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await abrir(page, new Date(2026, 10, 2, 10, 0, 0));
+    const note = page.locator("#homeQuickExpenseMonth");
+    const enlace = page.locator("#homeQuickExpenseMonthSwitch");
+    await expect(note).toContainText("nov");
+    await expect(enlace).toBeVisible();
+    await expect(enlace).toContainText("¿Era de oct");
+    await enlace.click();
+    await expect(note).toContainText("oct");
+    await expect(enlace).toContainText("Volver a nov");
+    await enlace.click();
+    await expect(note).toContainText("nov");
+    await enlace.click();
+    await page.fill("#homeQuickExpenseLabel", "Compra atrasada");
+    await page.fill("#homeQuickExpenseAmount", "12,30");
+    await page.click("#homeQuickExpenseSubmit");
+    await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
+    expect(entry).toMatchObject({ concept: "Compra atrasada", amount: -12.3, monthKey: "2026-10", date: "2026-11-02" });
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("el día 10 va al mes de la fecha y no hay enlace", async ({ page }) => {
+    await abrir(page, new Date(2026, 10, 10, 10, 0, 0));
+    await expect(page.locator("#homeQuickExpenseMonth")).toContainText("nov");
+    await expect(page.locator("#homeQuickExpenseMonthSwitch")).toBeHidden();
+  });
+});
+
 // WP-54 (GOV-06): el guion de la prueba con 5 personas ajenas (docs/WP54_PRUEBA_USABILIDAD.md) se puede hacer en la demostración. No mide usabilidad —no hay personas—: protege que cada tarea siga
 // teniendo su sitio, su dato y su respuesta, para que el guion no se pudra entre una ronda y la siguiente. Fechas relativas a hoy, como el extracto ficticio.
 test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la demo", () => {

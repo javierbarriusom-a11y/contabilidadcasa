@@ -109,21 +109,40 @@ test("FLU-2 · homeQuickExpenseSections() solo devuelve bloques de gasto", () =>
   assert.deepEqual(sections.map((section) => section.name), ["Vivienda", "Ocio"]);
 });
 
-test("FLU-2 · homeQuickExpenseTargetMonth() usa el mismo mes por defecto que Registrar › Reales del mes", () => {
-  const { homeQuickExpenseTargetMonth } = sandboxWith(["homeQuickExpenseTargetMonth"], {
-    registrarActualsDefaultMonthKey: () => "2026-09",
-    baseData: { monthlyPlanning: { months: [{ key: "2026-08", label: "Agosto" }, { key: "2026-09", label: "Septiembre" }] } },
-  });
-  const month = homeQuickExpenseTargetMonth();
-  assert.equal(month.key, "2026-09");
+// Decisión del hogar (17/10/2026): el mes de la fecha de hoy si está abierto; si no, el que resuelve Registrar › Reales del mes.
+const targetMonthSandbox = ({ today, defaultKey, closed = [], months }) => sandboxWith(["homeQuickExpenseTargetMonth"], {
+  isoLocalDate: () => today,
+  isClosedMonthKey: (key) => closed.includes(key),
+  registrarActualsDefaultMonthKey: () => defaultKey,
+  baseData: { monthlyPlanning: { months } },
+});
+const AGO_SEP_OCT = [{ key: "2026-08", label: "Agosto" }, { key: "2026-09", label: "Septiembre" }, { key: "2026-10", label: "Octubre" }];
+
+test("FLU-2 · homeQuickExpenseTargetMonth() usa el mismo mes por defecto que Registrar › Reales del mes si el de hoy no está en el plan", () => {
+  const { homeQuickExpenseTargetMonth } = targetMonthSandbox({ today: "2026-12-05", defaultKey: "2026-09", months: AGO_SEP_OCT });
+  assert.equal(homeQuickExpenseTargetMonth().key, "2026-09");
+});
+
+test("FLU-2 · del 1 al 3, con el mes que se cierra aún abierto, el gasto va al mes de su fecha (como el extracto), no al anterior", () => {
+  const { homeQuickExpenseTargetMonth } = targetMonthSandbox({ today: "2026-10-02", defaultKey: "2026-09", months: AGO_SEP_OCT });
+  assert.equal(homeQuickExpenseTargetMonth().key, "2026-10");
+});
+
+test("FLU-2 · si el mes de hoy está cerrado, cae al mes por defecto de Registrar", () => {
+  const { homeQuickExpenseTargetMonth } = targetMonthSandbox({ today: "2026-10-20", defaultKey: "2026-09", closed: ["2026-10"], months: AGO_SEP_OCT });
+  assert.equal(homeQuickExpenseTargetMonth().key, "2026-09");
 });
 
 test("FLU-2 · sin mes coincidente, homeQuickExpenseTargetMonth() no fabrica uno", () => {
-  const { homeQuickExpenseTargetMonth } = sandboxWith(["homeQuickExpenseTargetMonth"], {
-    registrarActualsDefaultMonthKey: () => "",
-    baseData: { monthlyPlanning: { months: [{ key: "2026-08", label: "Agosto" }] } },
-  });
+  const { homeQuickExpenseTargetMonth } = targetMonthSandbox({ today: "2026-12-05", defaultKey: "", months: [{ key: "2026-08", label: "Agosto" }] });
   assert.equal(homeQuickExpenseTargetMonth(), null);
+});
+
+test("FLU-2 · la ventana trae el enlace para llevar el gasto al mes que se cierra, oculto por defecto y sin clases nuevas", () => {
+  assert.match(html, /<button type="button" class="link-button" id="homeQuickExpenseMonthSwitch" hidden>Anotarlo en el mes que se cierra<\/button>/);
+  const body = extractFunction("openHomeQuickExpenseDialog");
+  assert.match(body, /const earlier = prefill \? null :/, "desde un enlace de registro manda su fecha: sin cambio de mes");
+  assert.match(body, /submitHomeQuickExpense\(month,/, "guarda en el mes elegido en ese momento, no en el de apertura");
 });
 
 test("FLU-2 · updateHomeQuickExpenseAvailability() deshabilita el botón sin mes abierto o sin bloques de gasto", () => {

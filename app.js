@@ -12291,10 +12291,13 @@ function homeQuickExpenseSections() {
   return (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === "expense");
 }
 
+// Decisión del hogar (17/10/2026): el mes de la fecha de hoy si está abierto, como lo cargará el extracto. Del 1 al 3 el mes que se
+// cierra sigue abierto (WP-09) y antes se elegía ese: el gasto no se emparejaba con su fila del extracto (WP-53) y contaba dos veces.
 function homeQuickExpenseTargetMonth() {
   const months = baseData?.monthlyPlanning?.months || [];
+  const todayKey = isoLocalDate(new Date()).slice(0, 7);
   const key = registrarActualsDefaultMonthKey();
-  return months.find((month) => month.key === key) || null;
+  return months.find((month) => month.key === todayKey && !isClosedMonthKey(month.key)) || months.find((month) => month.key === key) || null;
 }
 
 // Sin mes abierto con bloques de gasto declarados, el atajo no tiene dónde escribir — se
@@ -12316,13 +12319,22 @@ function openHomeQuickExpenseDialog(prefill = null) {
   const amountInput = qs("homeQuickExpenseAmount");
   const monthNote = qs("homeQuickExpenseMonth");
   if (!dialog || !sectionSelect || !labelInput || !amountInput || dialog.open) return;
-  const month = prefill?.month || homeQuickExpenseTargetMonth();
+  const base = prefill?.month || homeQuickExpenseTargetMonth();
+  let month = base;
   const sections = homeQuickExpenseSections();
   if (!month || isClosedMonthKey(month.key) || !sections.length) return;
   sectionSelect.innerHTML = sections.map((section) => `<option value="${escapeHtml(section.name)}"${section.name === prefill?.section ? " selected" : ""}>${escapeHtml(section.name)}</option>`).join("");
   labelInput.value = prefill?.label || "";
   amountInput.value = prefill?.amount || "";
-  if (monthNote) monthNote.textContent = `Se registrará en ${month.label}, como gasto ya realizado.`;
+  // Del 1 al 3, el mes que se cierra sigue abierto: un toque lleva el gasto a ese mes (y otro lo devuelve). Desde un enlace manda su fecha.
+  const earlier = prefill ? null : (baseData?.monthlyPlanning?.months || []).find((item) => item.key === registrarActualsDefaultMonthKey() && item.key < base.key && !isClosedMonthKey(item.key));
+  const monthSwitch = qs("homeQuickExpenseMonthSwitch");
+  const showMonth = () => {
+    if (monthNote) monthNote.textContent = `Se registrará en ${month.label}, como gasto ya realizado.`;
+    Object.assign(monthSwitch || {}, { hidden: !earlier, textContent: !earlier ? "" : month === earlier ? `Volver a ${base.label}` : `¿Era de ${earlier.label}? Anotarlo en ese mes` });
+  };
+  if (monthSwitch) monthSwitch.onclick = () => { month = month === earlier ? base : earlier; showMonth(); };
+  showMonth();
   Object.assign(qs("homeQuickExpenseLinkNote") || {}, { hidden: !prefill?.note, textContent: prefill?.note || "" });
   const openedAt = Date.now();
   dialog.addEventListener("close", () => {
