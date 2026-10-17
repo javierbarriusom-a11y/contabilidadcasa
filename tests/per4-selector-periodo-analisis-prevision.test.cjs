@@ -300,7 +300,9 @@ test("PER-4 · gob14SemesterLabel devuelve la clave tal cual si no es un semestr
 test("PER-4 · gob14SemesterReportContext usa el semestre en curso y las mismas cifras ejecutivas que GOB14/P12", () => {
   const context = gob14SemesterSandbox({ metrics: [{ label: "Colchón", value: 1000 }], decisions: [{ title: "Revisar seguro" }] });
   const reportContext = context.gob14SemesterReportContext();
-  assert.match(reportContext.semesterLabel, /S\d 2026/);
+  // El semestre «en curso» sale del reloj real: se compara con el de hoy, no con un año fijo (con «2026» caducaba el 1 de enero de 2027).
+  const now = new Date();
+  assert.match(reportContext.semesterLabel, new RegExp(`S${now.getMonth() < 6 ? 1 : 2} ${now.getFullYear()}`));
   assert.equal(reportContext.generatedAt, "2026-09-22");
   assert.equal(reportContext.metrics.length, 1);
   assert.equal(reportContext.decisions.length, 1);
