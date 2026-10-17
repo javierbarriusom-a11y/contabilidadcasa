@@ -300,8 +300,17 @@ test.describe("QA-1 · Nuevo dato manual en Registrar", () => {
 // sincronización — y aplicar lo que llega de la nube no puede volver a enviarlo.
 test.describe("QA-1 · almacenes propios en la sincronización con la nube", () => {
   test("escribir un almacén propio programa una sincronización y viaja en el estado que se envía", async ({ page }) => {
+    // Al arrancar, la propia app escribe almacenes sincronizables (p. ej. liquidity-backtest) y su sincronización sale 900 ms después.
+    // Si esa salida caía ya con el contador puesto, se contaban 2 envíos en vez de 1 (fallo intermitente en el CI del 17/10/2026).
+    // Se espera a que la app lleve más que ese retardo sin escribir nada antes de empezar a contar.
+    await page.addInitScript(() => {
+      window.__qa1LastStoreWrite = performance.now();
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (...args) { window.__qa1LastStoreWrite = performance.now(); return setItem.apply(this, args); };
+    });
     await page.goto("/index.html#home");
     await page.waitForLoadState("networkidle");
+    await page.waitForFunction(() => performance.now() - window.__qa1LastStoreWrite > 1200, null, { timeout: 15000 });
     await page.evaluate(() => {
       window.__qa1RemoteSaves = 0;
       window.queueRemoteSave = () => { window.__qa1RemoteSaves += 1; };
