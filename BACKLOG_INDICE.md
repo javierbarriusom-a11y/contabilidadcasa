@@ -12,6 +12,8 @@
 
 ## Para saber qué hacer a continuación
 
+**Actualizado el 17 de octubre de 2026 (sesión 314): séptima auditoría propuesta, sin backlog nuevo.** El único vivo sigue siendo `BACKLOG_DEFINITIVO.md` y el plan no cambia. [`docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md`](docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md) analiza el artefacto «Backlog cierre octubre», propone reordenarlo por camino crítico (H-02, CI que explique sus fallos, desalojo de `app.js`, límite de 3 paquetes en curso) y añade 57 funciones nuevas (`XDA`, `XPR`, `XIN`, `XDO`, `XDN`, `XUX`, `XNF`, `XGO`) cruzadas contra el código y contra las 104 propuestas del plan. **Pendiente de decisión del hogar (siete decisiones en su §10); no activa nada.**
+
 **Actualizado el 3 de octubre de 2026 (sesión 298): seguimiento del avance.** Sin backlog nuevo: el vivo sigue siendo `BACKLOG_DEFINITIVO.md`, que gana una **§12** con el protocolo. El plan pasa a datos en `docs/plan/plan-definitivo.json` (53 paquetes, 104 propuestas, hitos, tareas del hogar y métricas; una prueba impide que se separe del backlog) y el estado se lleva en un panel privado (https://claude.ai/artifact/7k86qmrcqn8hdhAzx9xcrg).
 
 **Actualizado el 3 de octubre de 2026 (sesión 296): nace [`BACKLOG_DEFINITIVO.md`](BACKLOG_DEFINITIVO.md), el único backlog vivo.** A petición del hogar («el backlog definitivo y el plan de desarrollo, con todas las propuestas, priorizadas; no empezar el desarrollo aún»): las 104 propuestas de la quinta y la sexta auditoría en niveles P0-P4, con el cambio de premisa a **un solo usuario**, y el plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. `BACKLOG_INICIO_OLEADA_OCTUBRE.md` queda absorbido.
