@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 18 de octubre de 2026 (sesión 317). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 18 de octubre de 2026 (sesión 318). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,15 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 18 de octubre de 2026 (318): rediseño · fase A2, un solo formato de cifras
+
+- **Qué pidió el hogar:** seguir el rediseño por fases (A1 ya publicado, PR #514). A2: que una misma pantalla no enseñe a la vez «8310,00 €» y «12.000,00 €».
+- **Causa:** `es-ES` no agrupa los miles con 4 cifras (CLDR, `minimumGroupingDigits: 2`) y `money(x, true)` pintaba siempre `,00`.
+- **Cambio (2 líneas de `app.js`, sin crecer: 37.453; techo 37.495):** los dos formateadores de `money()` llevan `useGrouping: "always"` y el preciso, además, `trailingZeroDisplay: "stripIfInteger"`. Resultado: «8.310 €», «1.218 €», «3.617,16 €», «412,30 €». `p2-ui.js` usa el mismo formato. No se toca ningún motor `canonical-*`.
+- **Fuera de A2, a propósito:** los motores que formatean por su cuenta (`canonical-balance-pulse` en la oferta del extracto, `canonical-statement-anomalies`, `canonical-card-*`, `canonical-payroll`…) siguen con su formato; en algún panel aún convive «970,00 €» con «970 €». Se unifican en una entrega aparte, motor a motor, con sus pruebas.
+- **Pruebas:** nueva `tests/redis-a2-cifras.test.cjs` (3). En `qa1-flujos-completos.spec.cjs` se actualizan 52 expectativas al formato nuevo, una a una contra lo que pinta la app (sin relajar ninguna: donde «50,00» habría quedado en «50» se exige «50 €»); las que vienen de motores sin cambiar conservan su formato.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6013/6013 (+3). e2e (`qa1`) 110/110 en local (dos pruebas, WP-37 y WP-54, fallaron una vez en la tanda completa y pasaron solas: intermitentes conocidas, no relacionadas). `test:mobile-overflow` falla igual con y sin el cambio en este entorno (buscador de FAQs a 360 px); en el CI pasa.
 
 ## Cierre de sesión — 18 de octubre de 2026 (317): rediseño · fase A1, tema visual v2 detrás de bandera
 
