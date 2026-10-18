@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 7 de octubre de 2026 (sesión 302). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 18 de octubre de 2026 (sesión 317). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,16 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 18 de octubre de 2026 (317): rediseño · fase A1, tema visual v2 detrás de bandera
+
+- **Qué pidió el hogar:** aplicar la propuesta de rediseño de `docs/rediseno/` por fases (A → B → C), empezando por lo de menos riesgo y sin tocar el menú. Decisión del 17-18/10/2026 en la conversación: **fases A→B→C**; la navegación de 5 destinos (fase C) queda pendiente y solo se abrirá si tras A y B sigue haciendo falta, porque contradice la recomendación de `docs/OLA1_ARQUITECTURA_NAVEGACION.md` (camino B, cero pantallas nuevas).
+- **Qué entra (A1):** `tema-v2.css` redefine los valores de las dos familias de tokens que ya existen (`styles.css`: `--bg`, `--ink`, `--teal`…; `design-tokens.css`: `--e19-*`) en claro, oscuro del sistema y oscuro forzado. No crea un tercer sistema ni toca reglas de componente. Verde de marca `#0E3B32`, azul solo para lo previsto, tipografía del sistema (San Francisco en iPhone y Mac, sin peticiones a terceros) y cifras tabulares.
+- **Detrás de bandera:** sin `<html data-tema="v2">` no cambia nada. `?tema=v2` lo activa y lo recuerda en ese navegador; `?tema=clasico` lo apaga. El script en línea de `<head>` solo lee (criterio de T7); quien guarda es `tema-v2.js`, con `defer` (OPT-1). `app.js` no cambia (37.453; techo 37.495).
+- **Prueba nueva:** `tests/redis-a1-tema-v2.test.cjs` (8): todo cuelga de la bandera, cableado en `index.html`, service worker y sitio público, solo tokens existentes, y contraste WCAG calculado (claro: texto y los seis semánticos ≥ 4,5:1 en los dos sentidos; oscuro: texto y semánticos como texto ≥ 4,5:1, y el mismo compromiso de T7 con texto blanco).
+- **Incidencia anotada:** el 17/10 la carpeta `docs/rediseno/` (solo documentos) entró en `main` con un push directo, contra la regla de `CLAUDE.md`. Sin efecto en la app; desde aquí, rama + PR.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6010/6010 (+8), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Capturas de Hoy, Deuda y Plan en clásico y v2 (escritorio y móvil) revisadas a mano.
+- **Siguiente (A2):** unificar el formato de cifras en `money()` (hoy conviven «8310,00 €» y «12.000,00 €»: 32 `toFixed(2)` en `app.js`); después, A3: Hoy según `docs/rediseno/referencias/png/Hoy.png`.
 
 ## Cierre de sesión — 17 de octubre de 2026 (316): pruebas que dependían de la fecha y «Registrar gasto» del 1 al 3 al mes de su fecha
 

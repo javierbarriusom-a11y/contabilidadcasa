@@ -1,0 +1,212 @@
+/* Rediseño · fase A (docs/rediseno/HANDOFF.md §1): tema visual v2.
+
+   Detrás de una bandera: solo se aplica con <html data-tema="v2">, que fija tema-v2.js
+   (?tema=v2 lo activa y lo recuerda; ?tema=clasico lo apaga). Sin la bandera, nada cambia.
+
+   No crea un sistema paralelo: redefine los valores de las DOS familias de tokens que ya existen
+   (las de styles.css: --bg, --ink, --teal… y las E19 de design-tokens.css: --e19-*), para que todas
+   las pantallas cambien a la vez sin tocar ni una regla de componente.
+
+   Reglas del sistema (ver docs/rediseno/referencias/png/Sistema.png):
+   - Verde de marca (#0E3B32) para la navegación y la acción primaria.
+   - Azul solo para lo previsto; tinta para lo real. Rojo solo para lo que rompe una regla del hogar.
+   - Los seis colores semánticos se usan a la vez como texto y como fondo con texto blanco encima
+     (styles.css, comentario T7): en claro todos dan ≥ 4,5:1 en los dos sentidos; en oscuro se
+     mantiene el mismo compromiso que ya aceptó T7 (≥ 4,5:1 como texto, ≈ 3,4:1 o más con blanco).
+     tests/redis-a1-tema-v2.test.cjs lo comprueba con el cálculo de contraste de WCAG.
+   - Tipografía del sistema (San Francisco en el iPhone y el Mac): sin peticiones a terceros, que
+     el sitio público no hace (test:privacy), y con cifras tabulares nativas. */
+
+/* ---------- Claro ---------- */
+:root[data-tema="v2"] {
+  /* Familia styles.css */
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --surface-soft: #f7f8f6;
+  --ink: #111814;
+  --muted: #56615b;
+  --line: #e1e5e1;
+  --sidebar: #0e3b32;
+  --blue: #2b59c3;
+  --teal: #0e6b4f;
+  --green: #1b7a4b;
+  --red: #b3361f;
+  --amber: #8f5a00;
+  --violet: #5b4bb8;
+  --shadow: 0 12px 32px rgba(17, 24, 20, 0.08);
+  --shadow-soft: 0 6px 18px rgba(17, 24, 20, 0.05);
+  --chart-muted-line: #8c958f;
+  --hero-strong: #0e3b32;
+  --focus-ring: #2b59c3;
+
+  /* Familia E19 */
+  --e19-canvas: #f4f5f2;
+  --e19-surface: #ffffff;
+  --e19-surface-soft: #f7f8f6;
+  --e19-surface-sunken: #eef1ee;
+  --e19-border: #e1e5e1;
+  --e19-border-strong: #d5dbd6;
+  --e19-ink: #111814;
+  --e19-heading: #111814;
+  --e19-muted: #56615b;
+  --e19-faint: #8c958f;
+  --e19-eyebrow: #56615b;
+  --e19-accent: #0e3b32;
+  --e19-accent-hover: #0a2e27;
+  --e19-accent-hover-bg: #0a2e27;
+  --e19-accent-ink: #ffffff;
+  --e19-accent-soft: #ddebe4;
+  --e19-accent-soft-border: #c5dacf;
+  --e19-accent-strong: #0e3b32;
+  --e19-success: #1b7a4b;
+  --e19-success-soft: #e1f1e7;
+  --e19-success-soft-border: #c3e1cd;
+  --e19-warning: #8f5a00;
+  --e19-warning-soft: #fbf1dc;
+  --e19-warning-soft-border: #ebd7a8;
+  --e19-warning-badge-ink: #6b4400;
+  --e19-debt: #8a4b33;
+  --e19-debt-soft: #f6ece3;
+  --e19-debt-soft-border: #ead8c9;
+  --e19-danger: #b3361f;
+  --e19-danger-soft: #fdf3f1;
+  --e19-danger-soft-border: #f3d3cc;
+  --e19-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --e19-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --e19-radius-sm: 10px;
+  --e19-radius-md: 14px;
+  --e19-radius-lg: 16px;
+  --e19-shadow-card: 0 1px 2px rgba(17, 24, 20, 0.05);
+  --e19-shadow-pop: 0 6px 18px rgba(17, 24, 20, 0.1);
+}
+
+/* ---------- Oscuro: el sistema lo pide y el hogar no ha forzado claro ---------- */
+@media (prefers-color-scheme: dark) {
+  :root[data-tema="v2"]:not([data-theme="light"]) {
+    --bg: #111614;
+    --surface: #1a201d;
+    --surface-soft: #202724;
+    --ink: #e8edea;
+    --muted: #9ca8a1;
+    --line: #2c3531;
+    --sidebar: #0b1f1a;
+    --blue: #5a84e0;
+    --teal: #2e9c78;
+    --green: #3f9467;
+    --red: #d0645a;
+    --amber: #b98328;
+    --violet: #8475dd;
+    --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --chart-muted-line: #8c958f;
+    --hero-strong: #123d33;
+    --focus-ring: #f2bf4f;
+    --e19-canvas: #111614;
+    --e19-surface: #1a201d;
+    --e19-surface-soft: #202724;
+    --e19-surface-sunken: #161c19;
+    --e19-border: #2c3531;
+    --e19-border-strong: #3a4540;
+    --e19-ink: #e8edea;
+    --e19-heading: #e8edea;
+    --e19-muted: #9ca8a1;
+    --e19-faint: #7d8983;
+    --e19-eyebrow: #9ca8a1;
+    --e19-accent: #7fd3b0;
+    --e19-accent-hover: #9fe0c4;
+    --e19-accent-hover-bg: #9fe0c4;
+    --e19-accent-ink: #0b1f1a;
+    --e19-accent-soft: #1d332b;
+    --e19-accent-soft-border: #2c4a3f;
+    --e19-accent-strong: #123d33;
+    --e19-success: #5fc08a;
+    --e19-success-soft: #18291f;
+    --e19-success-soft-border: #284534;
+    --e19-warning: #e2b14f;
+    --e19-warning-soft: #2e2512;
+    --e19-warning-soft-border: #4a3c1d;
+    --e19-warning-badge-ink: #e2b14f;
+    --e19-debt: #d79a80;
+    --e19-debt-soft: #2e221c;
+    --e19-debt-soft-border: #4a362c;
+    --e19-danger: #f08a7a;
+    --e19-danger-soft: #2f1d1a;
+    --e19-danger-soft-border: #4d2c27;
+    --e19-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --e19-shadow-pop: 0 6px 18px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ---------- Oscuro forzado desde Personalizar ---------- */
+:root[data-tema="v2"][data-theme="dark"] {
+  --bg: #111614;
+  --surface: #1a201d;
+  --surface-soft: #202724;
+  --ink: #e8edea;
+  --muted: #9ca8a1;
+  --line: #2c3531;
+  --sidebar: #0b1f1a;
+  --blue: #5a84e0;
+  --teal: #2e9c78;
+  --green: #3f9467;
+  --red: #d0645a;
+  --amber: #b98328;
+  --violet: #8475dd;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --chart-muted-line: #8c958f;
+  --hero-strong: #123d33;
+  --focus-ring: #f2bf4f;
+  --e19-canvas: #111614;
+  --e19-surface: #1a201d;
+  --e19-surface-soft: #202724;
+  --e19-surface-sunken: #161c19;
+  --e19-border: #2c3531;
+  --e19-border-strong: #3a4540;
+  --e19-ink: #e8edea;
+  --e19-heading: #e8edea;
+  --e19-muted: #9ca8a1;
+  --e19-faint: #7d8983;
+  --e19-eyebrow: #9ca8a1;
+  --e19-accent: #7fd3b0;
+  --e19-accent-hover: #9fe0c4;
+  --e19-accent-hover-bg: #9fe0c4;
+  --e19-accent-ink: #0b1f1a;
+  --e19-accent-soft: #1d332b;
+  --e19-accent-soft-border: #2c4a3f;
+  --e19-accent-strong: #123d33;
+  --e19-success: #5fc08a;
+  --e19-success-soft: #18291f;
+  --e19-success-soft-border: #284534;
+  --e19-warning: #e2b14f;
+  --e19-warning-soft: #2e2512;
+  --e19-warning-soft-border: #4a3c1d;
+  --e19-warning-badge-ink: #e2b14f;
+  --e19-debt: #d79a80;
+  --e19-debt-soft: #2e221c;
+  --e19-debt-soft-border: #4a362c;
+  --e19-danger: #f08a7a;
+  --e19-danger-soft: #2f1d1a;
+  --e19-danger-soft-border: #4d2c27;
+  --e19-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e19-shadow-pop: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Base tipográfica ---------- */
+:root[data-tema="v2"] body {
+  font-family: var(--e19-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Todas las cifras alineadas en columna (8.310 € sobre 12.000 €) sin tocar cada componente. */
+:root[data-tema="v2"] body,
+:root[data-tema="v2"] input,
+:root[data-tema="v2"] button,
+:root[data-tema="v2"] select {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra lateral: el verde de marca sustituye al degradado petróleo. */
+:root[data-tema="v2"] .sidebar {
+  background: var(--sidebar);
+}
