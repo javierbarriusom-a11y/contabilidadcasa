@@ -5,7 +5,7 @@
   const domain = () => root.P2Domain;
   const byId = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
-  const euro = (value) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
+  const euro = (value) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always", trailingZeroDisplay: "stripIfInteger" }).format(Number(value) || 0); // rediseño A2: mismo formato que money()
   const shortDate = (value) => (value ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(value)) : "Sin fecha");
   const ownerLabel = (owner) => ({ household: "Hogar", javi: "Javi", tere: "Tere" })[owner] || "Hogar";
   const ownerOptions = (selected) => ["household", "javi", "tere"].map((value) => `<option value="${value}" ${value === selected ? "selected" : ""}>${ownerLabel(value)}</option>`).join("");

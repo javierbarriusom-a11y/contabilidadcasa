@@ -70,7 +70,7 @@ test.describe("QA-1 · flujo completo de Presupuesto del mes", () => {
     // así caza el bloqueo de ~14 s que esta prueba destapó.
     expect(changeMs, `editar un presupuesto tardó ${Math.round(changeMs)} ms`).toBeLessThan(2000);
     await expect(row.locator('[data-presupuesto-mes-category="alimentacion"]')).toHaveValue("150");
-    await expect(row.locator("td").nth(5)).toContainText("150,00");
+    await expect(row.locator("td").nth(5)).toContainText("150 €"); // A2: sin céntimos cuando no los hay
 
     const [csvDownload] = await Promise.all([
       page.waitForEvent("download"),
@@ -613,7 +613,7 @@ test.describe("QA-1 · el extracto actualiza el saldo (WP-26)", () => {
 
       await page.$eval("#registrarImportConfirm", (button) => button.click());
       await page.$eval("#operationConfirmSubmit", (button) => button.click());
-      await expect(page.locator("#registrarImportPanel")).toContainText("Saldo de CaixaBank: 970,00 € a 02/10/2026.");
+      await expect(page.locator("#registrarImportPanel")).toContainText("Saldo de CaixaBank: 970 € a 02/10/2026.");
       expect(await page.evaluate(() => ({ caixa: accountBalancesFromState().caixa, date: state.balanceDate, mode: state.balanceMode }))).toEqual({ caixa: 970, date: "2026-10-02", mode: "manual" });
       expect(await page.evaluate(() => accountBalancesFromState().mediolanum), "la otra cuenta no cambia").toBe(before.balances.mediolanum);
 
@@ -1959,7 +1959,7 @@ test.describe("WP-19 · camino a deuda cero", () => {
       await expect(page.locator("#caminoDeudaRango")).toHaveValue("200");
       await page.locator("#caminoDeudaRango").fill("300");
       await expect(page.locator("#caminoDeudaExtra")).toHaveValue("300");
-      await expect(page.locator("#caminoDeudaRango")).toHaveAttribute("aria-valuetext", /300,00.*libres de deuda en/);
+      await expect(page.locator("#caminoDeudaRango")).toHaveAttribute("aria-valuetext", /300\s€.*libres de deuda en/);
 
       // Un importe inválido se rechaza sin mover el resultado.
       const antes = await result.innerHTML();
@@ -2039,7 +2039,7 @@ test.describe("WP-31 · nóminas y retenciones", () => {
       await save(3);
       await expect(card.locator(".nom-faltan")).not.toContainText("marzo"); // un año ya cerrado se espera entero: siguen faltando mayo a diciembre
       await expect(card.locator(".nom-faltan")).toContainText(`mayo a diciembre de ${year}`);
-      await expect(card.locator(".nom-cifra")).toContainText("1286,88");
+      await expect(card.locator(".nom-cifra")).toContainText("1.286,88"); // A2: miles agrupados también con 4 cifras
 
       // Cambio del %: aviso con su explicación.
       await save(5, { pct: "13,1" });
@@ -2616,8 +2616,8 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
       const filas = body.locator(".cir-fila");
       await expect(body.locator('[data-cirbe-resumen="open"]')).toContainText("De 4 operaciones del informe: 1 cuadra, 1 difiere, 2 faltan en la app");
       await expect(body.locator('[data-cirbe-estado="fits"]')).toContainText("Cetelem");
-      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("La app tiene 500,00 € más que el informe");
-      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("El informe dice vencido: 250,00 €");
+      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("La app tiene 500 € más que el informe");
+      await expect(body.locator('[data-cirbe-estado="differs"]')).toContainText("El informe dice vencido: 250 €");
       await expect(body.locator('[data-cirbe-estado="missing-in-app"]').filter({ hasText: "Wizink" })).toContainText("Falta en la app");
       await expect(body.locator('[data-cirbe-estado="missing-in-app"]').filter({ hasText: "Banco Fiador" })).toContainText("No hay ningún aval declarado");
       await expect(body.locator('[data-cirbe-estado="missing-in-report"]')).toContainText("Entidad C");
@@ -2730,7 +2730,7 @@ test.describe("WP-41 · deuda en la sombra y TAE real", () => {
       await expect(avisos.nth(0)).toContainText("KLARNA PAGO 2 DE 3");
       await expect(avisos.nth(0)).toContainText("quedan 1 cuota");
       await expect(avisos.nth(1)).toContainText("MOVISTAR CUOTA TERMINAL 3 DE 24");
-      await expect(avisos.nth(1)).toContainText("quedan 21 cuotas, 630,00 €");
+      await expect(avisos.nth(1)).toContainText("quedan 21 cuotas, 630 €");
       await expect(avisos.nth(2)).toContainText("COMPRA FINANCIADA");
       await expect(avisos.nth(2)).toContainText("no se sabe cuándo");
       await expect(card.locator(".som-resumen")).toContainText("3 compromisos que se comportan como deuda");
@@ -2764,7 +2764,7 @@ test.describe("WP-41 · deuda en la sombra y TAE real", () => {
       await expect(page.locator("#sombraError")).toContainText("precio al contado");
       await page.locator("#sombraPrecio").fill("600");
       await page.locator('#sombraForm button[type="submit"]').click();
-      await expect(page.locator("#sombraResultado .som-tae")).toContainText("120,00 € más que al contado");
+      await expect(page.locator("#sombraResultado .som-tae")).toContainText("120 € más que al contado");
       await expect(page.locator("#sombraResultado .som-tae strong").first()).toContainText("TAE efectiva");
       const taeConsulta = Number(await page.locator("#sombraResultado .som-tae").getAttribute("data-sombra-tae-resultado"));
       expect(taeConsulta).toBeGreaterThan(5);
@@ -2842,7 +2842,7 @@ test.describe("WP-42 · escalera del próximo euro", () => {
       await expect(out.locator('[data-peu-rung="pension"]')).toContainText("Inmovilizado hasta la jubilación");
       await expect(out.locator('[data-peu-rung="pension"]')).toContainText("difiere el impuesto");
       await expect(out.locator('[data-peu-rung="invest"]')).toContainText("no garantizada");
-      await expect(out.locator(".peu-resumen")).toContainText("De 6000,00");
+      await expect(out.locator(".peu-resumen")).toContainText("De 6.000 €");
       // Tres beneficios distintos, nunca sumados: 1.000 × 21 % = 210 de intereses; 1.500 × 37 % = 555 de ahorro fiscal; y la rentabilidad esperada de lo invertido.
       const beneficios = out.locator(".peu-beneficios li");
       await expect(beneficios).toHaveCount(3);
@@ -2952,7 +2952,7 @@ test.describe("WP-43 · puente de previsión", () => {
       const filas = await body.locator(".pte-tabla tbody tr").allInnerTexts();
       expect(filas).toHaveLength(6);
       expect(filas.at(-1)).toContain("Total");
-      expect(filas.at(-1)).toContain("1300,00");
+      expect(filas.at(-1)).toContain("1.300\u00a0€");
       expect(filas.at(-1)).toContain("−");
 
       // Un tercer cierre (anterior) permite elegir con cuál comparar.
@@ -3033,12 +3033,12 @@ test.describe("WP-44 · calma, cobertura y exposición", () => {
         renderCalmaCobertura(FinanceCanonicalCalmCoverage);
         return JSON.stringify(scenarioSettings.portfolioPositions);
       });
-      await expect(card.locator("#calmaCaida .cal-cifra")).toContainText("ha restado 600,00 €");
+      await expect(card.locator("#calmaCaida .cal-cifra")).toContainText("ha restado 600 €");
       await expect(card.locator("#calmaCaida .cal-cifra")).toContainText("60 %");
       await expect(card.locator("#calmaCaida")).toContainText("12 meses de aportación");
       await expect(card.locator("#calmaCaida")).toContainText("la media de lo aportado en los últimos 6 meses");
       await expect(card.locator("#calmaCaida")).toContainText("hablarlo las dos personas");
-      await expect(card.locator("#calmaCaida")).toContainText("Habéis aportado 1300,00 €");
+      await expect(card.locator("#calmaCaida")).toContainText("Habéis aportado 1.300 €");
       await expect(card.locator("#calmaCaida")).toContainText("no tengo una fuente histórica verificada");
 
       // Cobertura: alquiler declarado + 4 % de la cartera líquida (700 €); los dividendos no se suman.
@@ -3052,7 +3052,7 @@ test.describe("WP-44 · calma, cobertura y exposición", () => {
       await expect(card.locator("#calmaDepositos")).toContainText("por debajo del límite individual");
       await card.locator("#calmaTitulares-caixa").fill("1");
       await card.locator('#calmaForm button[type="submit"]').click();
-      await expect(card.locator("#calmaDepositos")).toContainText("50.000,00 € por encima de lo cubierto");
+      await expect(card.locator("#calmaDepositos")).toContainText("50.000 € por encima de lo cubierto");
       await card.locator("#calmaTitulares-caixa").fill("");
       await card.locator('#calmaForm button[type="submit"]').click();
       await expect(card.locator("#calmaDepositos")).toContainText("no sé cuántos titulares");
@@ -3117,7 +3117,7 @@ test.describe("WP-45 · frescura y cola de tareas de datos", () => {
       // Orden por incertidumbre por minuto: saldos (≈ 1.577 € en 20 s) > cobros esperados (300 € en 30 s) > extracto (≈ 946 € en 2 min).
       expect(await card.locator("ol.dat-lista > li").evaluateAll((nodes) => nodes.map((n) => n.dataset.datTarea))).toEqual(["balances", "pending", "statement"]);
       const euros = Math.round(daily * 10); // 10 días × el gasto diario medio de la previsión
-      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText(new RegExp(`hasta\\s*${String(euros).slice(0, 2)}\\d\\d,\\d\\d`));
+      await expect(card.locator('[data-dat-tarea="balances"]')).toContainText(new RegExp(`hasta\\s*${String(euros)[0]}\\.?${String(euros)[1]}\\d\\d(,\\d\\d)?\\s€`));
       await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("20 s (sin medir: supuesto)");
       await expect(card.locator('[data-dat-tarea="balances"]')).toContainText("Puede moverse hasta");
       await expect(card.locator(".dat-plan")).toContainText("Con 3 minutos hoy");
@@ -3192,7 +3192,7 @@ test.describe("WP-46 · patrimonio neto: serie y proyección", () => {
       const card = await open(page);
       const antes = await seed(page);
       // Hoy: 10.000 + 20.000 + 150.000 − 12.000; la «Cuenta vieja» (tipo cuenta) no suma porque el efectivo ya entra por los saldos.
-      await expect(card.locator("#patrimonioHoy .pat-cifra")).toContainText("168.000,00 €");
+      await expect(card.locator("#patrimonioHoy .pat-cifra")).toContainText("168.000 €");
       await expect(card.locator("#patrimonioHoy")).toContainText("Deuda pendiente");
       await expect(card.locator("#patrimonioHoy")).toContainText("No sumo");
       await expect(card.locator("#patrimonioHoy")).toContainText("Cuenta vieja");
@@ -3233,8 +3233,8 @@ test.describe("WP-46 · patrimonio neto: serie y proyección", () => {
       await expect(card.locator("#patrimonioError")).toBeHidden();
       await expect(card.locator("#patrimonioProyeccion .pat-aviso")).toHaveCount(0);
       await expect(card.locator("#patrimonioProyeccion .ck-frase")).toContainText("estaría entre");
-      await expect(card.locator("#patrimonioProyeccion")).toContainText("Prudente: llega a 200.000,00 €");
-      await expect(card.locator("#patrimonioProyeccion")).toContainText("Optimista: llega a 200.000,00 €");
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("Prudente: llega a 200.000 €");
+      await expect(card.locator("#patrimonioProyeccion")).toContainText("Optimista: llega a 200.000 €");
       await expect(card.locator("#patrimonioProyeccion .ck-figure")).toHaveCount(1);
       await expect(card.locator("#patrimonioProyeccion")).toContainText("El abanico es de supuestos tecleados");
       // Tabla alternativa: un año por fila, 10 años.
@@ -3309,9 +3309,9 @@ test.describe("WP-47 · reparto de la nómina", () => {
 
       await prepare(page, { headroom: 1200 });
       await expect(body.locator(".nom-fuentes li")).toHaveCount(1);
-      await expect(body.locator(".nom-fuentes li")).toContainText("3000,00");
+      await expect(body.locator(".nom-fuentes li")).toContainText("3.000 €");
       // Disponible = lo menor entre la nómina y la holgura sobre el suelo; la banda solo recoge fechas.
-      await expect(body.locator(".nom-disponible")).toContainText("Disponible para repartir: 1200,00");
+      await expect(body.locator(".nom-disponible")).toContainText("Disponible para repartir: 1.200 €");
       await expect(body.locator(".nom-disponible")).toContainText("limitado por el suelo");
       await expect(body).toContainText("solo caben 1200 € por encima del suelo");
       await expect(body).toContainText("solo recoge la incertidumbre de las fechas");
@@ -3321,7 +3321,7 @@ test.describe("WP-47 · reparto de la nómina", () => {
       await expect(row(card, "pension").locator("input")).toHaveValue("800");
       await expect(row(card, "debt:p1").locator("input")).toHaveValue("0");
       await expect(row(card, "debt:p1")).toContainText("la escalera no propone nada aquí");
-      await expect(body.locator(".nom-estado")).toContainText("Repartido todo: 1200,00");
+      await expect(body.locator(".nom-estado")).toContainText("Repartido todo: 1.200 €");
 
       // Con todo repartido, añadir más no cabe: el aviso lo dice y nada cambia.
       await row(card, "pension").locator('[data-nom-step="50"]').click();
@@ -3331,9 +3331,9 @@ test.describe("WP-47 · reparto de la nómina", () => {
       // Quitar 50 de la pensión: 50 quedan sin repartir y el total sigue siendo 1.200.
       await row(card, "pension").locator('[data-nom-step="-50"]').click();
       await expect(row(card, "pension").locator("input")).toHaveValue("750");
-      await expect(row(card, "free")).toContainText("50,00");
-      await expect(body.locator(".nom-estado")).toContainText("Quedan 50,00");
-      await expect(row(card, "pension")).toContainText("distinto de lo sugerido (800,00");
+      await expect(row(card, "free")).toContainText("50 €");
+      await expect(body.locator(".nom-estado")).toContainText("Quedan 50 €");
+      await expect(row(card, "pension")).toContainText("distinto de lo sugerido (800 €");
       // El foco no se pierde al repintar.
       await expect(row(card, "pension").locator('[data-nom-step="-50"]')).toBeFocused();
       // Un importe escrito con coma española, que no cabe en lo que queda, se recorta.
@@ -3350,7 +3350,7 @@ test.describe("WP-47 · reparto de la nómina", () => {
       await row(card, "debt:p1").locator("input").fill("-20");
       await row(card, "debt:p1").locator("input").press("Enter");
       await expect(row(card, "debt:p1").locator("input")).toHaveValue("0");
-      await expect(row(card, "free")).toContainText("50,00");
+      await expect(row(card, "free")).toContainText("50 €");
 
       // Restablecer vuelve a lo que sugiere la escalera.
       await card.locator('[data-nom-action="restablecer"]').click();
@@ -3390,7 +3390,7 @@ test.describe("WP-47 · reparto de la nómina", () => {
       });
       await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toHaveCount(1);
       await expect(page.locator("#nominaCuerpo .nom-fuentes li")).toContainText("Ingreso Persona B");
-      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 400,00");
+      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 400 €");
       await expect(page.locator("#nominaCuerpo")).toContainText("800 € apuntados en borradores abiertos");
       await prepare(page, { headroom: 1200 });
 
@@ -3414,7 +3414,7 @@ test.describe("WP-47 · reparto de la nómina", () => {
       await expect(page.locator("#nominaCuerpo [data-nom-row]")).toHaveCount(0);
       // Si no se puede calcular la holgura, se reparte la nómina entera pero marcada «sin comprobar».
       await prepare(page, { headroom: null });
-      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 3000,00");
+      await expect(page.locator("#nominaCuerpo .nom-disponible")).toContainText("Disponible para repartir: 3.000 €");
       await expect(page.locator("#nominaCuerpo")).toContainText("Sin comprobar");
 
       expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => /payroll-split-drafts/.test(key)).length)).toBeGreaterThan(0);
@@ -3464,7 +3464,7 @@ test.describe("WP-48 · libro de operaciones", () => {
       await seed(page);
       await expect(body.locator("[data-ops-row]")).toHaveCount(3);
       expect(await body.locator("[data-ops-row]").evaluateAll((nodes) => nodes.map((n) => n.dataset.opsRow))).toEqual(["initial", "c1", "s1"]);
-      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2.600 €");
       await expect(row(card, "initial").locator('[data-ops-action="remove"]')).toHaveCount(0);
       const original = await stored(page);
 
@@ -3475,21 +3475,21 @@ test.describe("WP-48 · libro de operaciones", () => {
       await submit(card);
       const cambios = body.locator(".ops-cambios");
       await expect(cambios).toContainText("Plusvalía realizada (FIFO)");
-      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Antes: 2600,00");
-      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Después: 1600,00");
-      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3600,00");
-      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Después: neto 2600,00");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Antes: 2.600 €");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Plusvalía realizada" })).toContainText("Después: 1.600 €");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3.600 €");
+      await expect(cambios.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Después: neto 2.600 €");
       await expect(body).toContainText("No se ha guardado nada todavía");
       expect(await stored(page), "ver los cambios no guarda").toEqual(original);
       await expect(card.locator('[data-ops-action="save"]')).toHaveText("Guardar los cambios");
       await card.locator('[data-ops-action="save"]').click();
-      await expect(row(card, "s1")).toContainText("plusvalía FIFO 1600,00");
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 1.600 €");
       expect((await stored(page)).disposals[0].saleProceeds).toBe(14000);
       // El resto de la app sigue al libro: la lista de posiciones ya enseña la plusvalía nueva.
-      await expect(page.locator("#iv1PositionList")).toContainText("plusvalía realizada 1600,00");
+      await expect(page.locator("#iv1PositionList")).toContainText("plusvalía realizada 1.600 €");
       // Deshacer lo devuelve a como estaba.
       await page.getByRole("button", { name: "Deshacer" }).click();
-      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2.600 €");
       expect(await stored(page)).toEqual(original);
 
       // Mover la aportación a después de la venta deja la venta sin lotes: se avisa, no se bloquea, y «Volver a editar» conserva lo escrito.
@@ -3537,7 +3537,7 @@ test.describe("WP-48 · libro de operaciones", () => {
       await card.locator("#opsUnidades").fill("30");
       await card.locator("#opsImporte").fill("4000");
       await submit(card);
-      await expect(body.locator(".ops-cambio").filter({ hasText: "· nueva" })).toContainText("Después: 400,00");
+      await expect(body.locator(".ops-cambio").filter({ hasText: "· nueva" })).toContainText("Después: 400 €");
       await expect(body.locator(".ops-cambio").filter({ hasText: "Unidades que quedan" })).toContainText("Después: 0");
       await card.locator('[data-ops-action="save"]').click();
       await expect(body.locator('[data-ops-kind="disposal"]')).toHaveCount(2);
@@ -3555,7 +3555,7 @@ test.describe("WP-48 · libro de operaciones", () => {
       await submit(card);
       await expect(body).toContainText("Esto arregla 1 venta");
       await card.locator('[data-ops-action="save"]').click();
-      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2600,00");
+      await expect(row(card, "s1")).toContainText("plusvalía FIFO 2.600 €");
 
       // Cambiar de posición reinicia el editor; la otra posición cuenta en la compensación del ejercicio.
       await card.locator("#opsPosicion").selectOption("B");
@@ -3564,7 +3564,7 @@ test.describe("WP-48 · libro de operaciones", () => {
       await edit(card, "s1");
       await card.locator("#opsImporte").fill("14000");
       await submit(card);
-      await expect(body.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3600,00");
+      await expect(body.locator(".ops-cambio").filter({ hasText: "Ejercicio 2026" })).toContainText("Antes: neto 3.600 €");
       await card.locator('[data-ops-action="cancel"]').click();
 
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -3629,9 +3629,9 @@ test.describe("WP-49 · mapa anual de pagos grandes", () => {
       const fingerprintAntes = await page.evaluate(() => canonicalScenarioResults.base.forecast.fingerprint);
       const claves = Object.keys(await page.evaluate(() => ({ ...localStorage }))).sort();
       await seed(page);
-      await expect(body).toContainText("3 pagos grandes que suman 4310,00");
+      await expect(body).toContainText("3 pagos grandes que suman 4.310 €");
       await expect(body).toContainText("1 más sin importe, fuera de la suma");
-      await expect(body).toContainText("1200,00");
+      await expect(body).toContainText("1.200 €");
       // Seguro del hogar: una sola vez aunque esté también en el plan; el fondo de emergencia no es un pago; el seguro del móvil (90 €) no es grande; el seguro sin fecha se dice.
       await expect(body.locator(".mpg-item").filter({ hasText: "Seguro del hogar" })).toHaveCount(1);
       await expect(body.locator(".mpg-item").filter({ hasText: "Fondo de emergencia" })).toHaveCount(0);
@@ -3647,14 +3647,14 @@ test.describe("WP-49 · mapa anual de pagos grandes", () => {
       // Tocar un pago abre el detalle con lo que falta y cuánto apartar al mes.
       const vacaciones = body.locator(".mpg-item").filter({ hasText: "Vacaciones" });
       await vacaciones.locator("summary").click();
-      await expect(vacaciones.locator(".mpg-detalle")).toContainText("Reservado: 1200,00");
-      await expect(vacaciones.locator(".mpg-detalle")).toContainText("225,00");
-      await expect(vacaciones.locator(".mpg-detalle")).toContainText("faltan 1800,00");
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("Reservado: 1.200 €");
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("225 €");
+      await expect(vacaciones.locator(".mpg-detalle")).toContainText("faltan 1.800 €");
       // El detalle abierto sobrevive a una repintada (p. ej. al cambiar el mínimo).
 
       // El mínimo se aplica: con 1.000 € solo quedan las vacaciones (y la Renta sin importe).
       await body.locator("#mapaPagosMinimo").selectOption("1000");
-      await expect(body).toContainText("1 pago grande que suma 3000,00");
+      await expect(body).toContainText("1 pago grande que suma 3.000 €");
       await expect(body.locator(".mpg-item")).toHaveCount(2);
       await expect(vacaciones.locator(".mpg-detalle")).toBeVisible();
       await expect(body.locator("#mapaPagosMinimo")).toBeFocused();
@@ -3727,7 +3727,7 @@ test.describe("WP-50 · vivienda y local por índice", () => {
       await seed(page);
       await expect(body.locator(".ivi-inmueble")).toHaveCount(2);
       await expect(body).not.toContainText("Coche de prueba");
-      await expect(body.locator(".ivi-inmueble").first()).toContainText("Declarado: 300.000,00 €");
+      await expect(body.locator(".ivi-inmueble").first()).toContainText("Declarado: 300.000 €");
       await expect(body).toContainText("la app no se conecta a ninguna fuente");
 
       // Validación de la serie y de los puntos.
@@ -3758,7 +3758,7 @@ test.describe("WP-50 · vivienda y local por índice", () => {
       await expect(casa.locator(".ivi-estimado")).toContainText("327.272,73 €");
       await expect(casa.locator(".ivi-estimado")).toContainText("+27.272,73 €");
       await expect(casa.locator(".ivi-frase")).toContainText("sube un 9,09 %");
-      await expect(local.locator(".ivi-estimado")).toContainText("240.000,00 €");
+      await expect(local.locator(".ivi-estimado")).toContainText("240.000 €");
       // LTV: 150.000 ÷ 500.000 = 30 %; con lo estimado, 150.000 ÷ 567.272,73 = 26,44 %. Solo cuenta la hipoteca, no la tarjeta.
       await expect(body.locator(".ivi-ltv")).toContainText("30 % con el valor declarado");
       await expect(body.locator(".ivi-ltv")).toContainText("26,44 % con el estimado por índice");
@@ -3772,7 +3772,7 @@ test.describe("WP-50 · vivienda y local por índice", () => {
       await expect(casa.locator(".ivi-chip")).toBeVisible();
 
       // El patrimonio: apagado por defecto (10.000 + 515.000 − 12.000); activar la vivienda lo sube lo estimado; lo declarado no cambia; el local sigue declarado.
-      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000,00 €");
+      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000 €");
       await expect(casa.locator("input[data-ivi-use]")).not.toBeChecked();
       await casa.locator("input[data-ivi-use]").check();
       await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("540.272,73 €");
@@ -3781,7 +3781,7 @@ test.describe("WP-50 · vivienda y local por índice", () => {
       expect(declared).toEqual([["ivi-casa", 300000, "declared"], ["ivi-local", 200000, "declared"], ["ivi-coche", 15000, "declared"]]);
       await expect(body.locator('[data-ivi-asset="ivi-casa"]')).toContainText("(activada)");
       await body.locator('[data-ivi-asset="ivi-casa"] input[data-ivi-use]').uncheck();
-      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000,00 €");
+      await expect(page.locator("#patrimonioHoy .pat-cifra")).toContainText("513.000 €");
       await expect(page.locator("#patrimonioHoy")).not.toContainText("Incluye 1 inmueble");
 
       // Quitar un índice se deshace: sin el de T2 2025 la vivienda no se puede revalorizar.
@@ -4275,7 +4275,7 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     await expect(body.locator("#bcTitulo")).toHaveText("Vivienda");
     await expect(body).toContainText("6 de los últimos 6 meses con real: mediana de 868 € al mes, entre 850 € y 880 €");
     const adjust = body.locator('[data-bc="ajustar"]');
-    await expect(adjust).toContainText(/Ajustar a 868,00\s€ al mes/);
+    await expect(adjust).toContainText(/Ajustar a 868\s€ al mes/);
     const planned = (month) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), month);
     expect(await planned("2027-02")).toBe(750);
     await adjust.click();
@@ -4287,7 +4287,7 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     expect(await planned("2027-02")).toBe(868);
     expect(await planned("2029-12")).toBe(868);
     expect(await planned("2026-12"), "un mes ya pasado no se toca").toBe(750);
-    await expect(body).toContainText(/Vivienda · ajustada a 868,00\s€ al mes/);
+    await expect(body).toContainText(/Vivienda · ajustada a 868\s€ al mes/);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 
@@ -4985,7 +4985,7 @@ test.describe("WP-44 · aviso de calma en Cierre", () => {
       await expect(aviso(page)).toBeVisible();
       await expect(aviso(page).locator("[data-calma-aviso-nivel]")).toHaveAttribute("data-calma-aviso-nivel", "alert");
       await expect(aviso(page)).toContainText("La cartera está un 41,7 % por debajo de su máximo");
-      await expect(aviso(page)).toContainText("ha restado 500,00 €");
+      await expect(aviso(page)).toContainText("ha restado 500 €");
       await expect(aviso(page)).toContainText("sin contar lo que habéis aportado o vendido");
       await expect(aviso(page)).toContainText("No hay una política de inversión firmada");
       await expect(aviso(page)).not.toContainText(/todo bien|sin problema/i);
@@ -5136,7 +5136,7 @@ test.describe("WP-47 · el reparto de la nómina frente a la política y el plan
       const cruce = body.locator("[data-nom-cruce]");
       await expect(cruce).toBeVisible();
       await expect(cruce.locator('[data-peu-cruce="politica"]')).toHaveAttribute("data-peu-cruce-nivel", "contradicts");
-      await expect(cruce).toContainText(/\d[\d.]*,\d{2}\s€\sa cripto/);
+      await expect(cruce).toContainText(/\d[\d.]*(,\d{2})?\s€\sa cripto/);
       await expect(cruce).toContainText("Solo avisa");
 
       // Se deja la cripto a cero con el importe editado: el aviso de contradicción desaparece.
@@ -5178,7 +5178,7 @@ test.describe("Venta sin importe cobrado · plusvalía no calculable", () => {
       await expect(card).toBeAttached({ timeout: 15000 });
       await page.evaluate((position) => { saveIv1PositionsList([position]); renderIv1PositionList(); }, POSITION);
       const body = card.locator("#opsCuerpo");
-      await expect(body.locator('[data-ops-row="s1"]')).toContainText("plusvalía FIFO 500,00");
+      await expect(body.locator('[data-ops-row="s1"]')).toContainText("plusvalía FIFO 500 €");
       await expect(body.locator('[data-ops-row="s2"]')).toContainText("sin importe recibido: plusvalía no calculable");
       await expect(body.locator('[data-ops-row="s2"]')).not.toContainText("-1000");
       await expect(page.locator("#iv1PositionList")).toContainText("sin importe cobrado");

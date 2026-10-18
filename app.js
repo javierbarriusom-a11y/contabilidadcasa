@@ -32,13 +32,13 @@ const E18Health = globalThis.FinanceE18Health || null, RegistrarActualsConfirm =
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
   currency: "EUR",
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 0, useGrouping: "always", // rediseño A2: 8.310 €, no 8310 € (es-ES no agrupa 4 cifras)
 });
 
 const euroPrecise = new Intl.NumberFormat("es-ES", {
   style: "currency",
   currency: "EUR",
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 2, useGrouping: "always", trailingZeroDisplay: "stripIfInteger", // A2: 1.218 € y 412,30 €
 });
 
 let baseData;
