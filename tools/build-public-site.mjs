@@ -44,6 +44,8 @@ const files = [
   "datos.css",
   "patrimonio.css",
   "cierre-a11y.css",
+  "tema-v2.css",
+  "tema-v2.js",
   "data.js",
   "app.js",
   "state-contract.js",

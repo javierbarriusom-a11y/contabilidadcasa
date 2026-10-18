@@ -21,6 +21,18 @@
         } catch (e) {}
       })();
     </script>
+    <!-- Rediseño fase A (docs/rediseno/HANDOFF.md): bandera del tema visual v2, en línea y antes de
+         pintar por la misma razón que data-theme (T7), y como aquel solo LEE: ?tema=v2 en la URL o la
+         preferencia ya guardada. Guardarla o borrarla (?tema=clasico) lo hace tema-v2.js, con defer. -->
+    <script>
+      (function () {
+        try {
+          var pedido = new URLSearchParams(window.location.search).get("tema");
+          var guardado = window.localStorage.getItem("tema-preferencia");
+          if (pedido === "v2" || (pedido !== "clasico" && guardado === "v2")) document.documentElement.dataset.tema = "v2";
+        } catch (e) {}
+      })();
+    </script>
     <link rel="manifest" href="manifest.webmanifest?v=20260919t11a1" />
     <!-- T10 (BACKLOG_CONTABILIDADCASA_2_0.md): hasta ahora no había ningún icono declarado — ni
          favicon ni manifest.webmanifest#icons — así que Chrome/Android no ofrecían el instalador
@@ -57,6 +69,8 @@
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
+    <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
+    <link rel="stylesheet" href="tema-v2.css?v=20261018redisA1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -7769,6 +7783,7 @@
 
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
+    <script defer src="tema-v2.js?v=20261018redisA1"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>

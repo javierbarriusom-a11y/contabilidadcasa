@@ -1,0 +1,113 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+// Rediseño · fase A1 (docs/rediseno/HANDOFF.md §0, §1): tema visual v2 detrás de bandera.
+// Comprueba que (1) nada cambia sin la bandera, (2) está cableado en index.html, el service worker
+// y el sitio público, y (3) los colores cumplen el contraste que ya exige el resto de la app.
+
+const root = path.resolve(__dirname, "..");
+const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const css = read("tema-v2.css");
+const html = read("index.html");
+const js = html.slice(0, html.indexOf("</head>"));
+
+function block(selector) {
+  const start = css.indexOf(`${selector} {`);
+  assert.ok(start >= 0, `falta el bloque ${selector}`);
+  const body = css.slice(start, css.indexOf("}", start));
+  const tokens = {};
+  for (const m of body.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) tokens[m[1]] = m[2].trim();
+  return tokens;
+}
+
+function luminance(hex) {
+  const v = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16) / 255).map((c) =>
+    c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+const light = block(':root[data-tema="v2"]');
+const dark = block(':root[data-tema="v2"][data-theme="dark"]');
+
+test("sin la bandera no cambia nada: todas las reglas cuelgan de data-tema=\"v2\"", () => {
+  const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}@]+(?=\{)/g).map((s) => s.trim()).filter(Boolean);
+  for (const s of selectors) {
+    if (s.startsWith("media")) continue;
+    assert.match(s, /data-tema="v2"/, `regla sin bandera: ${s}`);
+  }
+});
+
+test("la bandera se activa con ?tema=v2, se apaga con ?tema=clasico y por defecto es el clásico", () => {
+  assert.match(js, /pedido === "v2"/);
+  assert.match(js, /pedido !== "clasico"/);
+  assert.match(js, /dataset\.tema = "v2"/);
+  const saver = read("tema-v2.js");
+  assert.match(saver, /setItem\("tema-preferencia", "v2"\)/);
+  assert.match(saver, /removeItem\("tema-preferencia"\)/);
+  assert.ok(read("index.html").includes('<script defer src="tema-v2.js'), "quien escribe va con defer");
+  assert.ok(read("service-worker.js").includes('"./tema-v2.js"'));
+  assert.ok(read("tools/build-public-site.mjs").includes('"tema-v2.js"'));
+});
+
+test("cableado: index.html (en <head>, hoja la última), service worker y sitio público", () => {
+  const head = js;
+  assert.ok(head.includes('dataset.tema = "v2"'), "la bandera debe fijarse en <head>, antes de pintar");
+  const links = [...head.matchAll(/<link rel="stylesheet" href="([^"?]+)/g)].map((m) => m[1]);
+  assert.equal(links[links.length - 1], "tema-v2.css", "tema-v2.css debe ser la última hoja para redefinir tokens");
+  assert.ok(read("service-worker.js").includes('"./tema-v2.css"'));
+  assert.ok(read("tools/build-public-site.mjs").includes('"tema-v2.css"'));
+});
+
+test("redefine las dos familias de tokens existentes, sin inventar una tercera", () => {
+  const families = [read("styles.css"), read("design-tokens.css")].join("\n");
+  for (const name of Object.keys(light)) {
+    assert.ok(families.includes(`${name}:`), `${name} no existe en styles.css ni en design-tokens.css`);
+  }
+  for (const name of ["--bg", "--ink", "--teal", "--e19-accent", "--e19-ink", "--e19-canvas"]) {
+    assert.ok(name in light, `falta ${name} en claro`);
+    assert.ok(name in dark, `falta ${name} en oscuro`);
+  }
+});
+
+test("claro: texto principal y secundario ≥ 4,5:1 sobre fondo y superficie", () => {
+  for (const fg of ["--ink", "--muted", "--e19-ink", "--e19-muted", "--e19-heading"]) {
+    for (const bg of ["--bg", "--surface", "--e19-canvas", "--e19-surface"]) {
+      const c = contrast(light[fg], light[bg]);
+      assert.ok(c >= 4.5, `${fg} sobre ${bg}: ${c.toFixed(2)}:1`);
+    }
+  }
+});
+
+test("claro: los seis semánticos sirven como texto y como fondo con texto blanco (≥ 4,5:1)", () => {
+  for (const t of ["--blue", "--teal", "--green", "--red", "--amber", "--violet", "--e19-accent", "--e19-danger", "--e19-success", "--e19-warning"]) {
+    assert.ok(contrast(light[t], "#ffffff") >= 4.5, `${t} con blanco: ${contrast(light[t], "#ffffff").toFixed(2)}:1`);
+    assert.ok(contrast(light[t], light["--bg"]) >= 4.5, `${t} sobre --bg: ${contrast(light[t], light["--bg"]).toFixed(2)}:1`);
+  }
+});
+
+test("oscuro: texto ≥ 4,5:1 y semánticos como texto ≥ 4,5:1 (mismo compromiso que T7)", () => {
+  for (const fg of ["--ink", "--muted", "--e19-ink", "--e19-muted"]) {
+    assert.ok(contrast(dark[fg], dark["--bg"]) >= 4.5, `${fg}: ${contrast(dark[fg], dark["--bg"]).toFixed(2)}:1`);
+    assert.ok(contrast(dark[fg], dark["--surface"]) >= 4.5, `${fg} sobre superficie`);
+  }
+  for (const t of ["--blue", "--teal", "--green", "--red", "--amber", "--violet"]) {
+    assert.ok(contrast(dark[t], dark["--bg"]) >= 4.5, `${t} sobre --bg: ${contrast(dark[t], dark["--bg"]).toFixed(2)}:1`);
+    assert.ok(contrast(dark[t], "#ffffff") >= 2.9, `${t} con blanco: ${contrast(dark[t], "#ffffff").toFixed(2)}:1`);
+  }
+  assert.ok(contrast(dark["--e19-accent-ink"], dark["--e19-accent"]) >= 4.5, "botón primario en oscuro");
+});
+
+test("oscuro forzado y oscuro del sistema dan los mismos valores", () => {
+  const media = css.slice(css.indexOf("@media (prefers-color-scheme: dark)"));
+  const sys = {};
+  const body = media.slice(media.indexOf("{", media.indexOf(":root")), media.indexOf("}"));
+  for (const m of body.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) sys[m[1]] = m[2].trim();
+  assert.deepEqual(sys, dark);
+});
