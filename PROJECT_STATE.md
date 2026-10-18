@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 18 de octubre de 2026 (sesión 318). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 18 de octubre de 2026 (sesión 319). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,14 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 18 de octubre de 2026 (319): rediseño · A1b, conclusiones frente a acciones
+
+- **Qué pidió el hogar (18/10/2026, viendo el tema v2 publicado):** «cambiaría los colores de los CTA frente a los datos importantes / conclusiones». En v2 el botón primario y las tarjetas de datos clave («Qué se recalcula al guardar» en Registrar, «Hasta el siguiente ingreso» en Hoy) compartían el mismo verde oscuro.
+- **Regla nueva del tema v2:** el verde sólido es solo para acciones. Las tarjetas de conclusión (`.e19-registrar-recalc`, `.e6-coverage-card`, `.e19-card-strong`, `.e19-impact-bar`, resumen de Planificación de partidas) pasan a una tarjeta clara teñida de marca (`--e19-accent-soft`) con la cifra en tinta y los rótulos en gris. Solo CSS en `tema-v2.css`, detrás de la bandera; sin la bandera no cambia nada.
+- **También pidió:** terminar el plan (A3 y siguientes) y ajustar después. La impresión de «demasiado parecido al anterior» es esperable: A1 cambia color y tipografía, no la estructura; el cambio grande es A3 (Hoy).
+- **Prueba nueva:** `tests/redis-a1b-conclusiones.test.cjs` (2): las conclusiones ya no usan el fondo de los botones; tinta y gris ≥ 4,5:1 sobre la tarjeta en claro y en oscuro.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6015/6015 (+2). Capturas de Hoy y Registrar en v2 revisadas a mano. Va encima de la rama de A2 (PR #515) para no chocar en este fichero.
 
 ## Cierre de sesión — 18 de octubre de 2026 (318): rediseño · fase A2, un solo formato de cifras
 
