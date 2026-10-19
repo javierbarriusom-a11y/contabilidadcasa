@@ -109,6 +109,15 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 19 de octubre de 2026 (324): cobro manual caducado y gasto diario de 0 €, sin silencio
+
+- **Origen:** la captura de Hoy con datos reales decía «0 días hasta 31 ago · necesidad 0 € · Dato observado». En el motor (`coverageUntilNextIncome`) una fecha pasada solo puede salir de un ajuste manual guardado. Causa probable, en `app.js`: el editor de cobertura (Ajustes › Configuración) se abre con lo aprendido y dejaba «Guardar ajuste» activo, así que un toque congelaba la fecha aprendida como manual; y un gasto diario vacío se guardaba como `null`, que `e6CoverageSettings` convertía en `Number(null) = 0`.
+- **Qué cambia (respuestas P3 y P4 del hogar), sin tocar ningún `canonical-*`:** `views/cobertura-ajuste.js` (nuevo) lee el ajuste manual con estas reglas. Una fecha de cobro manual anterior a la fecha de saldos deja de aplicarse y la tarjeta de Hoy (clásica y v2) avisa «Tu fecha de cobro manual caducó el dd/mm: ponla al día», con un botón al editor, que dice «Caducado». Un gasto diario manual de 0 € se trata como dato sin rellenar y se avisa; vacío ya no es 0 €. «Guardar ajuste» empieza apagado y solo guarda como manual lo que el hogar cambia o lo que ya era manual.
+- **`app.js`:** 37.447 líneas (−7). Cableado en `index.html` (defer, antes de `views/hoy-v2.js`), `service-worker.js` y `tools/build-public-site.mjs`.
+- **Pruebas nuevas:** `tests/datos-cobro-caducado.test.cjs` (5, con fechas inventadas) y una e2e en `qa1` («Cobro caducado · fecha manual pasada»), pasada a mano con el tema clásico y con el v2. `tests/f1-hoy-dato-ausente.test.cjs` gana los dos stubs que la tarjeta necesita ahora.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6028/6028 (+5 sobre main). Lint y typecheck en verde.
+- **Pendiente (nota de P1):** estimar el siguiente cobro con el histórico del mismo mes del año anterior cambia el motor de cobertura; se propone aparte.
+
 ## Cierre de sesión — 19 de octubre de 2026 (321): rediseño · estado y prompts v2 (solo documentación)
 
 - **Qué cambia:** `docs/rediseno/ESTADO.md` (nuevo) pasa a ser el documento principal del rediseño y manda sobre `HANDOFF.md` y los prompts donde discrepen: fases publicadas (A1, A2, A1b, A3, PR #514 a #517), decisiones vigentes, desviaciones del handoff, trampas técnicas, lo aprendido con los datos reales del 19/10 (cobro caducado «0 días hasta 31 ago», 0 movimientos en octubre) y orden de los siguientes pasos. `docs/rediseno/PROMPTS_CLAUDE_CODE.md` pasa a la versión 2 (prompts 0 a 5, empezando donde se quedó A3). `CLAUDE.md` gana la sección «Rediseño en curso» para que toda sesión lea `ESTADO.md` antes de tocar pantallas.
