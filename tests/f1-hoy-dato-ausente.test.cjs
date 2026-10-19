@@ -93,6 +93,9 @@ test("H-10 · H-3 cobertura: con fecha pero sin gasto diario, la necesidad no se
     qs: stubQs,
     shortDate: (v) => `fecha:${v}`,
     HOME_MISSING_VALUE: "—",
+    // Cobro caducado (views/cobertura-ajuste.js): sin ajuste manual, la tarjeta no añade aviso.
+    e6CoverageSettings: () => ({ nextIncomeDate: "", dailyOutflow: null, expiredDate: "", zeroOutflow: false }),
+    coberturaAjusteAvisoHtml: () => "",
   });
   context.renderHomeCoverageCard({ days: 25, dailyOutflow: null, required: null, margin: null, nextIncomeDate: "2026-09-08", confidence: "estimated" });
   const summaryEl = captured.find(([id]) => id === "e6CoverageSummary")[1];
