@@ -240,6 +240,8 @@ const files = [
   "views/reconciliation.js",
   "views/new-life-simulation.js",
   "views/savings-agent.js",
+  // Rediseño A3: views/hoy-v2.js sí lo carga index.html (defer); va aquí junto a sus hermanas.
+  "views/hoy-v2.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el

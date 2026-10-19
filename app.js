@@ -31046,6 +31046,7 @@ function renderHomeDashboard() {
         .join("")}
     </tbody>`;
   renderHomeFamilyAndAlerts();
+  if (typeof hoyV2Render === "function") hoyV2Render({ balances, protectedReserve, reserveStatus, todayRead, decisions, debtOutlook, plannedSaving: savings.currentSavingTarget, asOf: balanceDateText, dataAge }); // rediseño A3 (views/hoy-v2.js)
 }
 
 

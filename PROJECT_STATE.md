@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 18 de octubre de 2026 (sesión 319). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 19 de octubre de 2026 (sesión 320). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -108,6 +108,16 @@ cueste menos: de 19.364 a unas 5.800 líneas. Es un archivo, no un resumen — e
 al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando una tarea concreta pida
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
+
+## Cierre de sesión — 19 de octubre de 2026 (320): rediseño · fase A3, Hoy v2 detrás del tema v2
+
+- **Qué cambia (solo con `?tema=v2`):** Hoy pasa de ~20 bloques a cinco, según `docs/rediseno/referencias/png/Hoy.png` y `HoyDesktop.png`: cifra protagonista «Disponible hasta cobrar» con la frase del suelo y el día de cobro, gráfico del saldo previsto hasta pasado el cobro con la línea del suelo, «Fin de mes» y «Reserva protegida» (con cuánto está CaixaBank por encima o por debajo); «Decidir esta semana» con como mucho 3 decisiones (la lectura urgente primero, luego las abiertas, cada una con su nivel y su botón); el mes en una barra (asignado, día del mes, ahorro, o «Importa el extracto» si no hay gasto real); deuda viva en una línea; y una sola línea plegada con lo que espera datos en vez de tarjetas «Sin datos».
+- **Qué desaparece de la vista (no del código):** puntuación de salud, selector de horizonte, Guía, Modo reunión, Acciones rápidas, tarjetas «Sin datos», tabla de meses y alertas. Siguen en el DOM: «Ver todo el detalle» enseña la Hoy de siempre entera, así que no se retira ninguna pantalla en uso. La Hoy de siempre solo se oculta cuando la v2 ya está pintada (`:has`), así que si `views/hoy-v2.js` fallara se seguiría viendo la de siempre.
+- **Sin motor nuevo ni cambios en `canonical-*`:** `renderHomeDashboard()` le pasa a `hoyV2Render()` los valores que ya calcula (una línea en `app.js`, 37.454 de 37.495). El gráfico usa el calendario del motor diario anclado al saldo real de hoy, para empezar exactamente en la cifra de arriba.
+- **Carga:** `views/hoy-v2.js` (18 KB) va con `defer` antes de `app.js`; sin la bandera solo define funciones. Se descartó inyectarlo solo en v2 porque añadía un cargador dinámico de scripts nuevo, que `ntc6-conexiones-externas` (RQ-13) no admite. Presupuesto de carga: mediana 4.091 ms de 5.000.
+- **Prueba nueva:** `tests/redis-a3-hoy-v2.test.cjs` (8). Con datos reales el motor de cobertura puede devolver un cobro ya pasado («0 días hasta 31 ago»): la v2 solo dice «Cobráis en…» con un cobro futuro; si no, titula «Disponible para gastar».
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6023/6023 (+8). Capturas a 390×844 y 1440×900, claro y oscuro, revisadas a mano; clics comprobados («Apuntar gasto» abre el formulario rápido, cada decisión navega, «Ver todo el detalle» alterna) y con `?tema=clasico` todo sigue igual.
+- **Pendiente visto:** el texto «Cobertura actual 0.9 meses» viene de `app.js` con punto decimal; se corregirá con la unificación de formatos por motor.
 
 ## Cierre de sesión — 18 de octubre de 2026 (319): rediseño · A1b, conclusiones frente a acciones
 
