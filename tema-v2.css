@@ -210,3 +210,60 @@
 :root[data-tema="v2"] .sidebar {
   background: var(--sidebar);
 }
+
+/* ---------- A1b · Conclusiones frente a acciones ----------
+   Petición del hogar (18/10/2026): en v2 el botón primario y las tarjetas de datos clave
+   («Qué se recalcula al guardar», «Hasta el siguiente ingreso»…) compartían el mismo verde oscuro
+   y no se distinguía qué se pulsa de qué se lee. Regla: el verde sólido es SOLO para acciones;
+   las conclusiones van en una tarjeta clara teñida de marca, con la cifra en tinta. */
+:root[data-tema="v2"] :is(
+  .e19-registrar-recalc,
+  .e19-home .home-panel.e6-coverage-card,
+  .e19-card-strong,
+  .e19-impact-bar,
+  .e19-planificacion-partidas .planificacion-partidas-summary
+) {
+  background: var(--e19-accent-soft);
+  border: 1px solid var(--e19-accent-soft-border);
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] :is(
+  .e19-registrar-recalc,
+  .e19-home .home-panel.e6-coverage-card,
+  .e19-card-strong,
+  .e19-impact-bar,
+  .e19-planificacion-partidas .planificacion-partidas-summary
+) :is(.panel-kicker, p, small, span:not([class*="badge"]):not([class*="chip"]):not([class*="pill"])) {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] :is(
+  .e19-registrar-recalc,
+  .e19-home .home-panel.e6-coverage-card,
+  .e19-card-strong,
+  .e19-impact-bar,
+  .e19-planificacion-partidas .planificacion-partidas-summary
+) :is(strong, b, h2, h3, h4) {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] :is(.e19-registrar-recalc-item, .e6-coverage-summary) {
+  border-color: var(--e19-accent-soft-border);
+}
+
+:root[data-tema="v2"] .e6-coverage-summary {
+  background: var(--e19-surface);
+}
+
+/* La cifra protagonista va en tinta aunque esté en un <span> dentro del título («21 día(s)»);
+   la unidad que la acompaña sigue en gris. Misma lista y más especificidad que la regla de los span. */
+:root[data-tema="v2"] :is(
+  .e19-registrar-recalc,
+  .e19-home .home-panel.e6-coverage-card,
+  .e19-card-strong,
+  .e19-impact-bar,
+  .e19-planificacion-partidas .planificacion-partidas-summary
+) :is(h2, h3, h4, strong, b) span:not(.e6-coverage-unit):not([class*="badge"]):not([class*="chip"]):not([class*="pill"]) {
+  color: var(--e19-ink);
+}
