@@ -109,6 +109,12 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 19 de octubre de 2026 (323): el CI guarda las trazas de Playwright cuando algo falla
+
+- **Qué cambia:** `.github/workflows/pages.yml` gana un paso con `if: failure()` que sube `test-results/` (trazas y capturas que Playwright ya conserva con `retain-on-failure`) como artefacto durante 14 días. Va detrás de todas las pruebas en navegador y antes de la medición informativa de WebKit, que no bloquea. No cambia ningún umbral. Es la P5 del cuestionario del rediseño y el primer paso del §8 de `docs/rediseno/ESTADO.md`, antes del desalojo de `app.js`.
+- **Prueba nueva:** `tests/ci-informe-playwright.test.cjs` (3): el paso existe, solo corre en fallo, sube `test-results/` y está en su sitio.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6026/6026 (+3 sobre main). Tras unir main con el v2 por defecto (322): `npm test` 6028/6028.
+
 ## Cierre de sesión — 19 de octubre de 2026 (322): rediseño · el tema v2 pasa a ser el de por defecto
 
 - **Decisión del hogar (19/10):** se trabaja en `https://javierbarriusom-a11y.github.io/contabilidadcasa/` con el diseño más actual y las mismas funciones en las dos versiones. El script de `<head>` aplica el v2 salvo con `?tema=clasico` o si ya se eligió el clásico (lo recuerda `tema-v2.js`; `?tema=v2` lo olvida). El clásico queda como salida hasta que se gradúe (P9: aviso a las dos semanas y confirmación manual).
