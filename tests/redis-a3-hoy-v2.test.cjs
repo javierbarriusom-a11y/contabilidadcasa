@@ -42,6 +42,19 @@ test("app.js solo añade la llamada, con los valores que ya calcula renderHomeDa
   assert.ok(read("index.html").includes('<div class="hoy-v2" id="hoyV2" hidden></div>'));
 });
 
+test("v2 por defecto: la Hoy nueva no esconde funciones (bandeja de decisiones y apuntar gasto)", () => {
+  // La bandeja (cobros esperados, cargos que no llegaron…) sigue saliendo sola cuando hay preguntas.
+  assert.match(css, /:not\(#dex5OnboardingBanner\):not\(\.home-secondary-section\),/);
+  assert.match(css, /> \.home-secondary-section > :not\(#homeDecisionInboxCard\) \{/);
+  const html = read("index.html");
+  const secondary = html.indexOf('<div class="home-secondary-section">');
+  const inbox = html.indexOf('id="homeDecisionInboxCard"');
+  assert.ok(secondary > 0 && inbox > secondary, "la bandeja vive dentro de .home-secondary-section");
+  // «+ Apuntar gasto» abre lo mismo que «+ Registrar gasto» y hereda si se puede usar.
+  assert.match(hoy, /qs\("homeQuickExpenseOpen"\)\?\.click\(\)/);
+  assert.match(hoy, /const disabled = Boolean\(classic\?\.disabled\)/);
+});
+
 test("la Hoy de siempre solo se oculta cuando la v2 está pintada, y el detalle la devuelve", () => {
   assert.match(css, /#home:has\(> #hoyV2:not\(\[hidden\]\)\):not\(\.hoy-v2-detalle\)/);
   assert.match(hoy, /HOY_V2_DETAIL_CLASS = "hoy-v2-detalle"/);

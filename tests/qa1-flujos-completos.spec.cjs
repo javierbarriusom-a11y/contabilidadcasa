@@ -15,6 +15,19 @@ const { test, expect } = require("@playwright/test");
 // real (`mergeTransactions` + `refreshMovementRollups`, ver applyStagedMovementImport en app.js) en
 // vez de tocar el estado a mano de una forma que la app nunca produciría.
 
+// Desde el 19/10/2026 el tema v2 es el de por defecto: su Hoy enseña «+ Apuntar gasto», que abre lo mismo que
+// «+ Registrar gasto» de la Hoy de siempre (oculta mientras no se pida el detalle). Se pulsa el que esté a la vista,
+// así el flujo se prueba tal como lo usa el hogar en cualquiera de los dos temas.
+async function abrirApuntarGasto(page) {
+  const v2 = page.locator("#hoyV2 [data-hoy-v2-expense]");
+  if (await v2.isVisible()) {
+    await expect(v2).toBeEnabled();
+    await v2.click();
+  } else {
+    await page.click("#homeQuickExpenseOpen");
+  }
+}
+
 async function seedExpenseHistory(page, { category = "alimentacion", months = ["2026-04", "2026-05", "2026-06", "2026-07"] } = {}) {
   await page.evaluate(
     ({ category, months }) => {
@@ -905,7 +918,7 @@ test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await ready(page);
     await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await expect(page.locator("#homeQuickExpenseDialog")).toBeVisible();
     await expect(page.locator("#capturaHojaDialog")).not.toBeVisible();
     await page.fill("#homeQuickExpenseLabel", "Gasto de prueba");
@@ -917,7 +930,7 @@ test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
     expect(afterLegacy.purchases).toEqual([]);
 
     await configureCard(page);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await expect(page.locator("#capturaHojaDialog")).toBeVisible();
     await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
     await expect(page.locator("#capturaHojaAmount")).toBeFocused();
@@ -930,7 +943,7 @@ test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
     await ready(page);
     const rowKey = await configureCard(page);
     await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await page.keyboard.type("23,40");
     await page.keyboard.press("Tab");
     await page.keyboard.type("Mercadona");
@@ -993,7 +1006,7 @@ test.describe("QA-1 · hoja de captura de compras con tarjeta (WP-30)", () => {
       await ready(page);
       await configureCard(page);
       await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
-      await page.click("#homeQuickExpenseOpen");
+      await abrirApuntarGasto(page);
       const box = await page.locator("#capturaHojaDialog").boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width, "la hoja cabe en la pantalla").toBeLessThanOrEqual(viewport.width + 1);
@@ -3970,7 +3983,7 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#home");
     await page.waitForFunction(() => typeof capturaDuplicadosAnotar === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await page.fill("#homeQuickExpenseLabel", "Supermercado prueba");
     await page.fill("#homeQuickExpenseAmount", "37,45");
     await page.click("#homeQuickExpenseSubmit");
@@ -4026,7 +4039,7 @@ test.describe("Registrar gasto · del 1 al 3, al mes de la fecha con un enlace a
     await page.clock.install({ time });
     await page.goto("/index.html#home");
     await page.waitForFunction(() => !document.getElementById("homeQuickExpenseOpen")?.disabled);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await expect(page.locator("#homeQuickExpenseDialog")).toBeVisible();
   };
 
@@ -4076,7 +4089,7 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
     await expect(page.locator("#homeKpis")).toContainText("Deuda pendiente");
     // T2: anotar el gasto con la ventana de siempre (la demo no tiene tarjetas).
     expect(await page.evaluate(() => loadCardCycles().cards.length), "la demo no tiene tarjetas: la tarea 2 prueba la ventana anterior").toBe(0);
-    await page.click("#homeQuickExpenseOpen");
+    await abrirApuntarGasto(page);
     await page.fill("#homeQuickExpenseLabel", "Mercadona");
     await page.fill("#homeQuickExpenseAmount", "23,40");
     await page.click("#homeQuickExpenseSubmit");

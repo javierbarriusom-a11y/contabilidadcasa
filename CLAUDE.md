@@ -65,8 +65,10 @@ Esta autorización tampoco necesita repetirse en cada sesión: ya quedó tomada 
 
 ## Rediseño en curso
 
-Desde el 17 de octubre de 2026 se está rediseñando la app por fases, todas detrás de
-la bandera `?tema=v2` (`?tema=clasico` devuelve la de siempre). **Antes de tocar
+Desde el 17 de octubre de 2026 se está rediseñando la app por fases. Desde el 19 de
+octubre el diseño nuevo (tema v2) es el de por defecto en la URL base, que es donde se
+trabaja y se revisa; `?tema=clasico` devuelve la de siempre mientras no se gradúe, y
+las dos versiones tienen que conservar las mismas funciones. **Antes de tocar
 cualquier pantalla, estilo o vista, lee `docs/rediseno/ESTADO.md` entero**: recoge lo
 ya publicado, las decisiones vigentes, en qué se apartó la implementación de
 `docs/rediseno/HANDOFF.md` y el orden de los siguientes pasos. Donde discrepe de
@@ -74,7 +76,8 @@ ya publicado, las decisiones vigentes, en qué se apartó la implementación de
 
 - Cada fase cerrada actualiza `ESTADO.md` §2 (y §8 si cambia el orden), además de
   `PROJECT_STATE.md`.
-- Las referencias visuales están en `docs/rediseno/referencias/` (`png/` y `html/`):
-  se copia el diseño, nunca las cifras de ejemplo.
+- Las referencias visuales están en `docs/rediseno/referencias/` (`png/` y `html/`), las
+  mismas del PDF «Finanzas Casa · Rediseño» de Claude Design. Son la base de toda
+  pantalla que se modifique o se cree: se copia el diseño, nunca las cifras de ejemplo.
 - El rediseño cuenta como 1 de los 3 paquetes en curso de la séptima auditoría
   (`docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md`), no como un frente paralelo.

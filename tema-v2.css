@@ -271,8 +271,12 @@
 /* ---------- A3 · Hoy v2 (views/hoy-v2.js) ----------
    Una cifra, tres decisiones, el mes en una barra y la deuda en una línea (referencias/png/Hoy.png y
    HoyDesktop.png). La Hoy de siempre se oculta SOLO cuando la v2 ya está pintada (:has), así que si
-   views/hoy-v2.js no llegara a cargar se seguiría viendo la de siempre; «Ver todo el detalle» la devuelve. */
-:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :not(#hoyV2):not(#dex5OnboardingBanner) {
+   views/hoy-v2.js no llegara a cargar se seguiría viendo la de siempre; «Ver todo el detalle» la devuelve.
+   La bandeja de decisiones (#homeDecisionInboxCard: cobros esperados, cargos que no llegaron…) NO se oculta:
+   con el v2 por defecto tiene que seguir saliendo sola cuando hay algo que responder (se oculta sin preguntas,
+   con su propio [hidden]). Su sitio final es la bandeja de Movimientos (referencias/png/Movimientos.png, A4). */
+:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :not(#hoyV2):not(#dex5OnboardingBanner):not(.home-secondary-section),
+:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > :not(#homeDecisionInboxCard) {
   display: none !important;
 }
 
