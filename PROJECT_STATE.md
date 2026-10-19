@@ -109,6 +109,12 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 19 de octubre de 2026 (321): rediseño · estado y prompts v2 (solo documentación)
+
+- **Qué cambia:** `docs/rediseno/ESTADO.md` (nuevo) pasa a ser el documento principal del rediseño y manda sobre `HANDOFF.md` y los prompts donde discrepen: fases publicadas (A1, A2, A1b, A3, PR #514 a #517), decisiones vigentes, desviaciones del handoff, trampas técnicas, lo aprendido con los datos reales del 19/10 (cobro caducado «0 días hasta 31 ago», 0 movimientos en octubre) y orden de los siguientes pasos. `docs/rediseno/PROMPTS_CLAUDE_CODE.md` pasa a la versión 2 (prompts 0 a 5, empezando donde se quedó A3). `CLAUDE.md` gana la sección «Rediseño en curso» para que toda sesión lea `ESTADO.md` antes de tocar pantallas.
+- **Sin código:** ningún fichero de la app, prueba ni motor cambia.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6023/6023 (sin cambios: no se añade ni toca ninguna prueba), lint, typecheck, accesibilidad estructural (1623 IDs únicos), rendimiento, build del sitio, privacidad y humo.
+
 ## Cierre de sesión — 19 de octubre de 2026 (320): rediseño · fase A3, Hoy v2 detrás del tema v2
 
 - **Qué cambia (solo con `?tema=v2`):** Hoy pasa de ~20 bloques a cinco, según `docs/rediseno/referencias/png/Hoy.png` y `HoyDesktop.png`: cifra protagonista «Disponible hasta cobrar» con la frase del suelo y el día de cobro, gráfico del saldo previsto hasta pasado el cobro con la línea del suelo, «Fin de mes» y «Reserva protegida» (con cuánto está CaixaBank por encima o por debajo); «Decidir esta semana» con como mucho 3 decisiones (la lectura urgente primero, luego las abiertas, cada una con su nivel y su botón); el mes en una barra (asignado, día del mes, ahorro, o «Importa el extracto» si no hay gasto real); deuda viva en una línea; y una sola línea plegada con lo que espera datos en vez de tarjetas «Sin datos».

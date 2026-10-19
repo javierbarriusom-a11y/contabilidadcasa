@@ -1,131 +1,107 @@
-# Cómo pasar el rediseño a Claude Code
+# Prompts para Claude Code · rediseño (versión 2, 19/10/2026)
 
-## 1. Preparación (una vez, 2 minutos)
+Sustituye a la versión del 17/10. Las fases A1, A2, A1b y A3 ya están hechas (PR #514 a #517); los prompts de abajo
+empiezan donde se quedó el trabajo. Pega **uno cada vez**, en orden, y no pases al siguiente hasta que su PR esté
+fusionado y lo hayas visto en `https://javierbarriusom-a11y.github.io/contabilidadcasa/?tema=v2`.
 
-1. Descomprime el zip y copia la carpeta `finanzas-casa-rediseno` dentro del repositorio como `docs/rediseno/`:
-
-```
-contabilidadcasa/
-└── docs/
-    └── rediseno/
-        ├── HANDOFF.md
-        ├── PROMPTS_CLAUDE_CODE.md
-        └── referencias/
-            ├── INDICE.md
-            ├── png/    (27 capturas)
-            └── html/   (27 pantallas en HTML estático)
-```
-
-2. Haz commit de esa carpeta sola en `main` («docs: referencias del rediseño»), para que todas las ramas la tengan.
-3. Abre Claude Code en la raíz del repositorio.
-4. Pega los prompts **de uno en uno**, en orden. No pases al siguiente hasta haber revisado y fusionado el PR del anterior.
-
-Regla para ti: si Claude Code propone cambiar un motor `canonical-*.js` dentro de estas fases, dile que no y que lo apunte como tarea aparte.
+Todos empiezan igual a propósito: así no dependen de la memoria de la sesión anterior.
 
 ---
 
-## 2. Prompt 0 · Lectura y plan (no toca código)
+## Prompt 0 · Ponerse al día (no toca código)
 
 ```
-Lee docs/rediseno/HANDOFF.md completo y docs/rediseno/referencias/INDICE.md. Mira las capturas de docs/rediseno/referencias/png/ (al menos Sistema, Navegacion, Hoy y HoyDesktop) y abre sus HTML en docs/rediseno/referencias/html/ para ver los valores CSS exactos.
+Lee CLAUDE.md, después docs/rediseno/ESTADO.md entero (manda sobre el resto), docs/rediseno/HANDOFF.md y
+docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md (secciones 1 a 4). Mira las entradas 317 a 320 de PROJECT_STATE.md
+y los ficheros tema-v2.css, tema-v2.js y views/hoy-v2.js para ver cómo se hicieron las fases ya publicadas.
 
-Después explora el repositorio: index.html, app.js, el sistema de navegación actual (side-nav, e19-registrar-tabs, rutas por hash), dónde se definen las variables CSS y cómo se formatean los importes hoy.
-
-No cambies ningún fichero todavía. Devuélveme:
-1. Un mapa: cada vista actual → su destino en la navegación nueva (tabla de la sección 4 del HANDOFF), con el id o la función que la pinta.
-2. Las líneas que le quedan a app.js frente al techo del CI y qué bloques propones sacar a módulos en la fase 0.
-3. Cómo vas a implementar los flags del Laboratorio (lab.nav_v2, lab.hoy_v2…) con lo que ya existe.
-4. Riesgos o contradicciones que veas entre el HANDOFF y el código.
-5. El plan de PRs de las fases 0 a 8 de la sección 6, con el tamaño estimado de cada uno.
+No cambies nada. Devuélveme:
+1. En tus palabras, las decisiones vigentes del §3 de ESTADO.md y las desviaciones del §4.
+2. Si ves alguna contradicción entre ESTADO.md, HANDOFF.md, la auditoría y el código.
+3. Cuántas líneas le quedan a app.js frente al techo del CI.
+4. Tu plan para los pasos 1 a 4 del §8 de ESTADO.md, con el tamaño de cada PR.
 ```
+
+## Prompt 1 · El cobro caducado (tarea de datos, no de diseño)
+
+```
+Lee docs/rediseno/ESTADO.md §6. Rama datos/cobro-caducado.
+1. Confirma o descarta la hipótesis: ¿la tarjeta «Hasta el siguiente ingreso» dice «0 días · hasta 31 ago · Dato
+   observado» porque hay un ajuste manual guardado en scenarioSettings.e6Coverage (nextIncomeDate y/o dailyOutflow)?
+   Enséñame cómo lo has comprobado. No uses ni copies cifras reales del hogar en el código, las pruebas ni los PR.
+2. Si se confirma: un nextIncomeDate manual anterior a la fecha de saldos deja de aplicarse (se usa lo que diga el
+   calendario) y la tarjeta avisa «Tu fecha de cobro manual caducó el dd/mm: ponla al día», con un botón que abre su
+   editor. No toques canonical-daily-engine.js ni ningún otro canonical-*.
+3. Prueba nueva y npm run verify en verde. PROJECT_STATE.md con cifras reales de la validación. PR, y fusión con el
+   CI en verde, como dice CLAUDE.md.
+```
+
+## Prompt 2 · Desalojo de app.js (XGO-01, fase 0 del handoff)
+
+```
+Lee docs/rediseno/ESTADO.md §4 y §8 y HANDOFF.md §0 y §6. Rama rediseno/fase-0-desalojo.
+Saca de app.js a módulos (views/*.js o el patrón de módulos que ya use el repo) unas 3.000 líneas, empezando por los
+bloques más grandes y autocontenidos, sin ningún cambio visible ni de comportamiento.
+Comprueba que los ficheros nuevos están en tools/build-public-site.mjs (una entrada por línea, terminada en ",) y en
+service-worker.js. npm run verify y las e2e en verde, con las mismas cifras que antes. PR con líneas de app.js antes
+y después y la lista de módulos.
+```
+
+## Prompt 3 · Laboratorio con el tema v2 como primer interruptor (XGO-03)
+
+```
+Lee docs/rediseno/ESTADO.md §4 (fila de los flags) y la ficha XGO-03 de docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md.
+Rama rediseno/laboratorio.
+1. Ajustes › Laboratorio: lista de interruptores, todos apagados por defecto, con role="switch", su métrica y su
+   fecha de revisión.
+2. Primer interruptor: «Diseño nuevo (v2)». Encenderlo equivale a ?tema=v2. Los enlaces con ?tema=v2 y ?tema=clasico
+   siguen funcionando y mueven el interruptor. Respeta que el script en línea de <head> solo lee (prueba t7) y que no
+   puede haber cargadores dinámicos de scripts nuevos (tests/ntc6-conexiones-externas.test.cjs).
+3. Pruebas, npm run verify, PROJECT_STATE.md, PR y fusión con el CI en verde.
+```
+
+## Prompt 4 · A4 · Movimientos e Importar
+
+```
+Lee docs/rediseno/ESTADO.md (todo), HANDOFF.md §5 «B3 · Movimientos», «E1 · Importar» y §5b, y reproduce
+docs/rediseno/referencias/png/Movimientos.png, MovimientosDesktop.png, Importar.png e ImportarDesktop.png, con los
+valores exactos de referencias/html/. Copia el diseño, nunca las cifras. Rama rediseno/fase-a4-movimientos, detrás del
+interruptor del tema v2, siguiendo el patrón de A3 (views/*-v2.js, contenedor oculto, la vista antigua sigue entera
+detrás de «Ver todo el detalle», estilos en tema-v2.css colgando de :root[data-tema="v2"]).
+- Reutiliza la importación, los perfiles de extracto, el control de duplicados y las reglas que ya existen. No toques
+  ningún canonical-*.
+- Importar en 3 pasos: elegir fichero, revisar (con cuadre: saldo inicial + movimientos = saldo final; si no cuadra,
+  no se importa) y confirmar con deshacer.
+- Con 0 movimientos, la pantalla no puede parecer rota: un solo bloque que lleva a Importar.
+- Lo que dependa de funciones aún no construidas (buzón por Compartir XDA-02, PDF XDA-03, cobertura XDA-04): plegado
+  en una línea y dímelo en el PR; no lo construyas en esta fase.
+- Decisiones del §3 de ESTADO.md: verde sólido solo en acciones, conclusiones en tarjeta clara, máximo una acción
+  principal por bloque, cifras con money().
+Prueba tests/redis-a4-*.test.cjs, capturas 390×844 y 1440×900 en claro y oscuro junto a la referencia,
+npm run verify y e2e en verde, PROJECT_STATE.md y ESTADO.md §2 actualizados. PR y fusión con el CI en verde.
+```
+
+## Prompt 5 · A5 · Clasificar
+
+```
+Igual que el prompt 4, para HANDOFF.md §5 «B4 · Clasificar por lotes» y referencias/png/Clasificar.png: hoja
+inferior en móvil, panel lateral derecho en escritorio, grupos por comercio, como mucho 5 seguidos, deshacer en cada
+regla. Rama rediseno/fase-a5-clasificar. Si el motor de reglas no da la confianza por grupo, píntala plegada y
+ábreme una tarea aparte.
+```
+
+## Siguientes (preparar cuando lleguemos)
+
+Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5 destinos, Deuda (D3, solo tras NTC-05),
+Taller (D4) y E2. El prompt de cada una sale de la conversación de diseño y se añade aquí.
 
 ---
 
-## 3. Prompts por fase
+## Revisión de cada PR (tú, 5 minutos)
 
-Pega cada uno cuando el anterior esté fusionado. Todos empiezan igual a propósito: así no dependen de la memoria de la sesión anterior.
-
-### Fase 0 · Desalojo de app.js y flags
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 0 y 6). Fase 0: crea una rama rediseno/fase-0.
-1. Saca de app.js a módulos nuevos (ui/… o el patrón de módulos que ya use el repo) los bloques que identificaste, sin ningún cambio visible ni de comportamiento. Objetivo: dejar al menos 3.000 líneas de margen bajo el techo del CI.
-2. Añade un mecanismo de flags de Laboratorio (lab.nav_v2, lab.hoy_v2, lab.movimientos_v2, lab.plan_v2, lab.patrimonio_v2, lab.deuda_v2, lab.decidir_v2, lab.ajustes_v2), todos apagados por defecto y conmutables desde Ajustes › Laboratorio.
-3. Ejecuta toda la batería de pruebas. Todo debe pasar igual que antes.
-Abre un PR con: líneas de app.js antes/después, lista de módulos creados y confirmación de que no hay cambios visibles.
-```
-
-### Fase 1 · Tokens, formato y componentes
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 1, 2 y 3) y mira docs/rediseno/referencias/png/Sistema.png y referencias/html/Sistema.html. Fase 1, rama rediseno/fase-1:
-1. Crea ui/tokens.css con los tokens exactos de la sección 1 (incluido modo oscuro) y carga Geist y Geist Mono. Las pantallas actuales no deben cambiar aún: los tokens nuevos solo se aplican bajo el flag.
-2. Crea ui/format.js con fmtEUR, fmtEUR(v,{detalle:true}), fmtPct y las fechas cortas, con pruebas unitarias de todos los casos de la tabla «Formato de cifras» de Sistema.html (8.310 €, −412,30 €, 9,2 %, 17 oct, sept 2029).
-3. Crea los componentes de la sección 3 (Cifra, TarjetaPlegada, FilaDecision, BarraRitmo, BarraBanda, Segmentado, HojaInferior, ToastDeshacer, BandaEjemplo, BarraInferior, BarraLateral, ChipFrescura) en ui/components/, en el mismo estilo de código que el resto del repo, y una página de muestra interna (solo con el flag) que los enseñe todos.
-Copia colores, tamaños, radios y espaciados de los HTML de referencia, no los redondees. Pruebas Playwright en WebKit 390×844 y Chromium 1440×900 de la página de muestra. PR con capturas.
-```
-
-### Fase 2 · Navegación
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 4 y 5b) y mira referencias/png/Navegacion.png, Hoy.png (barra inferior) y HoyDesktop.png (barra lateral). Fase 2, rama rediseno/fase-2, todo bajo lab.nav_v2:
-1. Implementa los 5 destinos: barra inferior por debajo de 1024 px y barra lateral desde 1024 px, con buscador ⌘K, selector Hogar/Javi/Tere y Ajustes en el avatar/pie.
-2. Monta cada vista actual en su destino nuevo según la tabla de la sección 4 (las pantallas aún con su aspecto viejo; solo cambia dónde viven).
-3. Redirecciones de los hash antiguos a la nueva ubicación.
-4. Corrige los enlaces de las 3 alertas de Hoy que hoy mandan a «Ajustes › Patrimonio e inversión» para que vayan a Patrimonio › Inversión.
-5. «Herramientas avanzadas» desaparece de la barra: todo lo que contenía se alcanza desde el buscador.
-Pruebas: cada vista actual alcanzable en ≤ 2 toques desde su destino o en 1 búsqueda. PR con capturas móvil y escritorio.
-```
-
-### Fase 3 · Hoy
-
-```
-Lee docs/rediseno/HANDOFF.md (sección 5 «B1/B2 · Hoy» y 5b) y reproduce referencias/png/Hoy.png (móvil) y HoyDesktop.png (escritorio), usando referencias/html/Hoy.html y HoyDesktop.html para los valores exactos. Fase 3, rama rediseno/fase-3, bajo lab.hoy_v2.
-Una sola pantalla responsive, no dos. Los datos salen de los motores existentes (canonical-daily-engine, canonical-home-margin, canonical-data-age, decisiones abiertas); no cambies ningún motor. Quita de Hoy lo que la sección 5 manda retirar (puntuación de salud, selector de horizonte, Guía, Modo reunión, Acciones rápidas, tarjetas «Sin datos», líneas «Fuente: canonical-…»).
-Aceptación: a 390×844 se ven sin scroll la cifra principal y la primera decisión; a 1440×900, el gráfico completo y las 3 decisiones. PR con capturas lado a lado: referencia y resultado.
-```
-
-### Fase 4 · Movimientos, Importar, Clasificar y Repaso
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 5 B3, B4, B5, E1 y 5b) y reproduce referencias/png/Movimientos, MovimientosDesktop, Clasificar, Ritual, RitualDesktop, Importar e ImportarDesktop. Son pantallas EJEMPLO: copia el diseño, nunca las cifras. Fase 4, rama rediseno/fase-4, bajo lab.movimientos_v2.
-Reutiliza la importación, los perfiles de extracto, el control de duplicados y las reglas que ya existen. Clasificar es una hoja inferior en móvil y un panel lateral derecho en escritorio, con los atajos del HANDOFF. El Repaso semanal registra solo su duración (UXS-03). El cuadre de un extracto es obligatorio: si no cuadra, no se importa.
-Si alguna pieza de la pantalla depende de una función del backlog que aún no existe (buzón por Compartir, PDF pegado, cobertura), pinta su sitio como TarjetaPlegada y dímelo en el PR; no la construyas en esta fase.
-```
-
-### Fase 5 · Plan y Cierre
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 5 C1, C2, C3 y 5b) y reproduce referencias/png/PlanMes, PlanMesDesktop, Prevision, PrevisionDesktop, Cierre y CierreDesktop. Fase 5, rama rediseno/fase-5, bajo lab.plan_v2.
-Sustituye el desplegable de 120 meses por el selector ‹ mes ›. Pliega las financiaciones a una fila. En Previsión, el horizonte va aquí (3 m · 12 m · 24 m · Hasta 2036) y el detalle de un día abre hoja (móvil) o panel fijado (escritorio). Usa los motores de previsión y cierre existentes sin modificarlos; lo que no tengan, plegado.
-```
-
-### Fase 6 · Patrimonio e Inversión
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 5 D1, D2 y 5b) y reproduce referencias/png/Patrimonio, PatrimonioDesktop, Inversion e InversionDesktop. Fase 6, rama rediseno/fase-6, bajo lab.patrimonio_v2.
-Con la demo sin cartera, Inversión debe mostrar su estado vacío (sin posiciones, con acceso a añadir), no las cifras del ejemplo. El puente del año se dibuja con el kit de gráficos existente o SVG propio, con la etiqueta del eje truncado.
-```
-
-### Fase 7 · Deuda (solo después de NTC-05)
-
-```
-Antes de nada, confirma que existe un único motor de deuda (NTC-05). Si conviven varios, para y dime cuáles y qué cifras dan distintas; no sigas.
-Si hay uno solo: lee docs/rediseno/HANDOFF.md (secciones 5 D3 y 5b) y reproduce referencias/png/Deuda y DeudaDesktop. Fase 7, rama rediseno/fase-7, bajo lab.deuda_v2.
-Corrige las contradicciones listadas en D3 (titular «sin fecha estimable» frente a «septiembre de 2029», cuota 180 € frente a 480 €/mes, coste total frente a intereses 0 €). La fecha libre de deuda dice siempre cuántos contratos incluye. El «extra al mes» se guarda (WP-19).
-```
-
-### Fase 8 · Decidir y Ajustes
-
-```
-Lee docs/rediseno/HANDOFF.md (secciones 5 D4, E2 y 5b) y reproduce referencias/png/Taller, TallerDesktop, LoQuePide y LoQuePideDesktop. Fase 8, rama rediseno/fase-8, bajo lab.decidir_v2 y lab.ajustes_v2.
-El Taller reúne los simuladores de deuda nueva que ya existen en 6 pasos; la política de deuda (XDN-03) y «lo que cambia en vuestros planes» (XDN-06) solo si su motor existe; si no, plegados. «Lo que la app te pide» muestra los minutos como supuestos hasta que haya medición real, y lo dice.
-```
-
----
-
-## 4. Revisión de cada PR (tú, 5 minutos)
-
-- Abre las capturas del PR junto a la PNG de referencia. Si falta algo, pega: `Compara tu captura con docs/rediseno/referencias/png/X.png y corrige las diferencias de espaciado, color y jerarquía.`
-- Comprueba que con el flag apagado la app está exactamente como antes.
-- Cuando una fase lleve 2 semanas encendida sin problemas, pide: `Gradúa lab.X_v2: hazlo el comportamiento por defecto y elimina la vista antigua y su código.`
+- Abre las capturas del PR junto a la PNG de referencia. Si falta algo: `Compara tu captura con
+  docs/rediseno/referencias/png/X.png y corrige espaciado, color y jerarquía.`
+- Con `?tema=clasico` la app debe estar exactamente como antes.
+- ¿Algún botón de conclusión en verde sólido, alguna tarjeta «Sin datos» o algún «0.9» con punto? Devuélvelo.
+- Graduar una pantalla (quitar la vista antigua) solo tras dos semanas de uso sin problemas:
+  `Gradúa <pantalla> v2: hazla la vista por defecto y elimina la antigua y su código.`

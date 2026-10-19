@@ -62,3 +62,19 @@ Los frenos que siguen puestos, y que no dependen de la prisa:
   pantalla en uso se consulta igualmente, por mucho que el CI esté verde.
 
 Esta autorización tampoco necesita repetirse en cada sesión: ya quedó tomada aquí.
+
+## Rediseño en curso
+
+Desde el 17 de octubre de 2026 se está rediseñando la app por fases, todas detrás de
+la bandera `?tema=v2` (`?tema=clasico` devuelve la de siempre). **Antes de tocar
+cualquier pantalla, estilo o vista, lee `docs/rediseno/ESTADO.md` entero**: recoge lo
+ya publicado, las decisiones vigentes, en qué se apartó la implementación de
+`docs/rediseno/HANDOFF.md` y el orden de los siguientes pasos. Donde discrepe de
+`HANDOFF.md` o de `docs/rediseno/PROMPTS_CLAUDE_CODE.md`, manda `ESTADO.md`.
+
+- Cada fase cerrada actualiza `ESTADO.md` §2 (y §8 si cambia el orden), además de
+  `PROJECT_STATE.md`.
+- Las referencias visuales están en `docs/rediseno/referencias/` (`png/` y `html/`):
+  se copia el diseño, nunca las cifras de ejemplo.
+- El rediseño cuenta como 1 de los 3 paquetes en curso de la séptima auditoría
+  (`docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md`), no como un frente paralelo.
