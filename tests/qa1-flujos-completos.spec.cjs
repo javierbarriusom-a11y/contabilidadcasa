@@ -4133,7 +4133,9 @@ test.describe("WP-29 · la carta del mes en Cierre", () => {
     await page.setViewportSize(viewport);
     await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
     await page.goto("/index.html#cierre");
-    await page.waitForFunction(() => typeof recordCartaMes === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+    // renderCierre vive en views/cierre.js, que se carga aparte: esperarla también (sin esto, la llamada
+    // directa de abajo fallaba de vez en cuando con «renderCierre is not defined»).
+    await page.waitForFunction(() => typeof recordCartaMes === "function" && typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
   };
   // Anota los reales de octubre: todo igual a lo previsto salvo la primera partida de gasto, 180 € más.
   const annotateOctober = (page) => page.evaluate(() => {

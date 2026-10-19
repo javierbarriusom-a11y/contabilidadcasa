@@ -864,3 +864,20 @@
     position: relative;
   }
 }
+
+/* ---------- v2 por defecto · móvil estrecho ----------
+   Con la tipografía v2, el buscador de las FAQ (campo con min-width de 180 px) se salía del borde derecho
+   a 360 px (tools/check-mobile-overflow.mjs). En pantallas estrechas ocupa su propia línea y el campo encoge. */
+@media (max-width: 480px) {
+  :root[data-tema="v2"] .e19-faqs .faqs-search {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :root[data-tema="v2"] .e19-faqs .faqs-search input {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
