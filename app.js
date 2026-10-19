@@ -21465,12 +21465,9 @@ function unifiedActionCenterModel({ context = null } = {}) {
   return { context: ctx, actions: readModel?.decisions || actions, asOf, readModel, coverage };
 }
 
+// Cobro caducado (views/cobertura-ajuste.js): fecha manual pasada y gasto diario de 0 € no se aplican; vacío ≠ 0.
 function e6CoverageSettings() {
-  const raw = scenarioSettings?.e6Coverage || {};
-  return {
-    nextIncomeDate: String(raw.nextIncomeDate || ""),
-    dailyOutflow: raw.dailyOutflow === "" || raw.dailyOutflow === undefined ? null : Number(raw.dailyOutflow),
-  };
+  return coberturaAjusteLeer(scenarioSettings?.e6Coverage, state?.balanceDate || defaultBalanceDate());
 }
 
 function executiveCoverageSnapshot(asOf = state?.balanceDate || defaultBalanceDate(), checkingBalance = accountBalancesFromState().caixa) {
@@ -21524,13 +21521,14 @@ function renderHomeCoverageCard(coverage) {
     ? `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
     : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
   qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong class="${marginClass}">${coverage.margin === null ? HOME_MISSING_VALUE : money(coverage.margin, true)}</strong>
-    <p>${sentence}</p>`;
+    <p>${sentence}</p>${coberturaAjusteAvisoHtml(e6CoverageSettings())}`;
 }
 
 // H-3b: la insignia del editor distingue si el dato viene guardado por el usuario, aprendido de
 // movimientos conciliados, o si todavía falta (ni lo uno ni lo otro).
 function homeCoverageEditorBadge(coverage, settings) {
   const hasOverride = Boolean(settings.nextIncomeDate) || Number.isFinite(settings.dailyOutflow);
+  if (settings.expiredDate || settings.zeroOutflow) return { tone: "warn", label: settings.expiredDate ? "Caducado" : "Revisa el gasto" };
   if (hasOverride) return { tone: "good", label: "Guardado" };
   if (coverage.days === null || coverage.dailyOutflow === null) return { tone: "warn", label: "Requiere tu dato" };
   return { tone: "good", label: "Aprendido" };
@@ -21543,16 +21541,12 @@ function e6FieldOverrides() {
   return { nextIncomeDate: dateValue, dailyOutflow: Number.isFinite(outflowValue) ? outflowValue : null };
 }
 
-// H-3b: "Guardar se apaga si nada cambió" — compara los campos del formulario contra lo ya
-// guardado en scenarioSettings.e6Coverage, no contra el valor aprendido que se ve por defecto.
+// H-3b: "Guardar se apaga si nada cambió" — compara los campos con lo que el editor puso al abrirse
+// (lo guardado o lo aprendido): abrirlo y pulsar Guardar ya no congela lo aprendido (views/cobertura-ajuste.js).
 function syncE6SaveButtonState() {
   const button = qs("e6CoverageSave");
   if (!button) return;
-  const fields = e6FieldOverrides();
-  const settings = e6CoverageSettings();
-  const savedDaily = Number.isFinite(settings.dailyOutflow) ? settings.dailyOutflow : null;
-  const unchanged = (fields.nextIncomeDate || "") === (settings.nextIncomeDate || "") && fields.dailyOutflow === savedDaily;
-  button.disabled = unchanged;
+  button.disabled = coberturaAjusteSinCambios({ fecha: qs("e6NextIncomeDate")?.value, gasto: qs("e6DailyOutflow")?.value }, qs("e6CoverageEditor")?.dataset);
 }
 
 function renderHomeCoverageEditor(coverage) {
@@ -21566,10 +21560,10 @@ function renderHomeCoverageEditor(coverage) {
   qs("e6CoverageSource").textContent =
     `Fuente: ${coverage.source} · confianza: ${coverage.confidence} · ${Number(coverage.learned?.reconciledMovementCount || 0)} movimientos conciliados.`;
   if (document.activeElement?.id !== "e6NextIncomeDate") {
-    qs("e6NextIncomeDate").value = settings.nextIncomeDate || coverage.nextIncomeDate || "";
+    editor.dataset.prefillDate = qs("e6NextIncomeDate").value = settings.nextIncomeDate || coverage.nextIncomeDate || "";
   }
   if (document.activeElement?.id !== "e6DailyOutflow") {
-    qs("e6DailyOutflow").value = Number.isFinite(settings.dailyOutflow)
+    editor.dataset.prefillOutflow = qs("e6DailyOutflow").value = Number.isFinite(settings.dailyOutflow)
       ? amountInputValue(settings.dailyOutflow)
       : Number.isFinite(coverage.dailyOutflow)
       ? amountInputValue(coverage.dailyOutflow)
@@ -21609,8 +21603,7 @@ function previewE6Coverage() {
 function saveE6Coverage(event) {
   event?.preventDefault();
   scenarioSettings.e6Coverage = {
-    nextIncomeDate: qs("e6NextIncomeDate")?.value || "",
-    dailyOutflow: parseAmount(qs("e6DailyOutflow")?.value),
+    ...coberturaAjusteAGuardar({ fecha: qs("e6NextIncomeDate")?.value, gasto: qs("e6DailyOutflow")?.value }, qs("e6CoverageEditor")?.dataset, e6CoverageSettings()),
     updatedAt: new Date().toISOString(),
   };
   saveScenarioSettings();

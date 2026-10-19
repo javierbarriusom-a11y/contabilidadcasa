@@ -33,7 +33,9 @@ donde se trabaja y se revisa. El clásico sigue como salida con `?tema=clasico` 
 | A1b · acciones frente a conclusiones | #516 | Petición del hogar: **el verde sólido es solo para lo que se pulsa**. Las tarjetas de conclusión (`.e19-registrar-recalc`, `.e6-coverage-card`, `.e19-card-strong`, `.e19-impact-bar`, resumen de Partidas) pasan a tarjeta clara teñida (`--e19-accent-soft`) con la cifra en tinta | `tema-v2.css` | `tests/redis-a1b-conclusiones.test.cjs` |
 | A3 · Hoy v2 | #517 | Hoy de `Hoy.png`/`HoyDesktop.png`: cabecera, cifra protagonista con gráfico y suelo, «Decidir esta semana» (máx. 3), el mes en una barra, deuda en una línea, una línea plegada con lo que espera datos. La Hoy de siempre sigue en el DOM y vuelve entera con «Ver todo el detalle» | `views/hoy-v2.js` (defer, antes de `app.js`), contenedor `#hoyV2` en `index.html`, 1 línea en `renderHomeDashboard()`, estilos en `tema-v2.css` | `tests/redis-a3-hoy-v2.test.cjs` |
 
-| v2 por defecto | (este PR) | El tema v2 se aplica sin bandera; `?tema=clasico` es la salida y se recuerda. Mismas funciones en los dos: v2 solo cambia estilos y la Hoy, cuya versión completa sigue tras «Ver todo el detalle». Prueba de igualdad: e2e y a11y de Playwright recorridas con el v2 por defecto | `index.html` (script de `<head>`), `tema-v2.js` | `tests/redis-a1-tema-v2.test.cjs` (seis casos de la decisión) |
+| v2 por defecto | #519 | El tema v2 se aplica sin bandera; `?tema=clasico` es la salida y se recuerda. Mismas funciones en los dos: v2 solo cambia estilos y la Hoy, cuya versión completa sigue tras «Ver todo el detalle». Prueba de igualdad: e2e y a11y de Playwright recorridas con el v2 por defecto | `index.html` (script de `<head>`), `tema-v2.js` | `tests/redis-a1-tema-v2.test.cjs` (seis casos de la decisión) |
+| CI con trazas | #520 | Si una prueba en navegador falla, el CI sube `test-results/` (trazas y capturas) 14 días (P5) | `.github/workflows/pages.yml` | `tests/ci-informe-playwright.test.cjs` |
+| Cobro caducado | #521 | Fecha de cobro manual pasada y gasto diario de 0 € dejan de aplicarse con aviso; «Guardar ajuste» no congela lo aprendido (P3, P4). Sin tocar motores | `views/cobertura-ajuste.js` (nuevo), `app.js` (−7 líneas), `views/hoy-v2.js` | `tests/datos-cobro-caducado.test.cjs` y una e2e en `qa1` |
 
 Validación de A3: `npm run verify` 6023/6023, e2e + a11y de Playwright 195/195, presupuesto de carga 4.091 ms de 5.000.
 
@@ -122,9 +124,9 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 
 ## 8. Orden propuesto desde aquí
 
-0. **v2 por defecto** (hecho el 19/10, ver §2).
-1. **CI que guarda el informe y las trazas de Playwright cuando una prueba falla** (P5: antes del desalojo).
-2. **Cobro manual caducado** (P3, P4 y la causa del §6). Sin tocar ningún `canonical-*`. La estimación con el histórico
+0. **v2 por defecto** (hecho el 19/10, #519).
+1. **CI que guarda el informe y las trazas de Playwright cuando una prueba falla** (hecho el 19/10, #520).
+2. **Cobro manual caducado** (hecho el 19/10, #521) (P3, P4 y la causa del §6). Sin tocar ningún `canonical-*`. La estimación con el histórico
    del mismo mes del año anterior (nota de P1) cambia el motor de cobertura: se propone aparte.
 3. **Desalojo de `app.js`** en dos PR (P6), bajando el techo según el trinquete (P7).
 4. **Funciones en prueba** (Laboratorio, XGO-03; nombre según P8) con el tema como primer interruptor, y el aviso de
@@ -134,6 +136,6 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 7. Después, si las anteriores se usan: Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5
    destinos, Deuda (tras NTC-05), Taller y E2. Cada una desde su referencia de `docs/rediseno/referencias/`.
 
-Pendiente de registrar en `BACKLOG_DEFINITIVO.md` (P13) y de añadir el proyecto WebKit a Playwright (P14).
+Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). Pendiente: añadir el proyecto WebKit a Playwright (P14).
 
 **Criterio para graduar una pantalla** (retirar la vista antigua y su código): a las dos semanas de uso la app avisa y el hogar lo confirma a mano (P9); la métrica de referencia sigue siendo la del handoff (Hoy: tiempo hasta la primera acción; Movimientos: extractos importados por semana).

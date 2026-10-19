@@ -5204,3 +5204,29 @@ test.describe("Venta sin importe cobrado · plusvalía no calculable", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// Cobro caducado (docs/rediseno/ESTADO.md §6; respuestas P3 y P4 del hogar, 19/10/2026): una fecha de cobro
+// guardada a mano que ya pasó no se usa en silencio. Fecha inventada, relativa a la de saldos de la demo.
+test.describe("Cobro caducado · fecha manual pasada", () => {
+  test("Hoy avisa y lleva al editor, que dice «Caducado» con Guardar apagado; el cálculo ya no usa esa fecha", async ({ page }) => {
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => typeof coberturaAjusteLeer === "function" && typeof renderHomeDashboard === "function" && typeof state !== "undefined" && state);
+    const caducada = await page.evaluate(() => {
+      const base = new Date(`${state?.balanceDate || defaultBalanceDate()}T12:00:00`);
+      base.setDate(base.getDate() - 20);
+      const iso = isoLocalDate(base);
+      scenarioSettings.e6Coverage = { nextIncomeDate: iso, dailyOutflow: null };
+      saveScenarioSettings();
+      renderHomeDashboard();
+      return iso;
+    });
+    const [, mes, dia] = caducada.split("-");
+    const hoy = page.locator("#hoyV2:visible, #e6CoveragePanel:visible").first();
+    await expect(hoy).toContainText(`Tu fecha de cobro manual caducó el ${dia}/${mes}: ponla al día.`);
+    expect(await page.evaluate(() => executiveCoverageSnapshot().nextIncomeDate), "la fecha pasada ya no entra en el cálculo").not.toBe(caducada);
+    await hoy.locator("[data-cobertura-ajuste-ir]").first().click();
+    await expect(page.locator("#ajustes")).toBeVisible();
+    await expect(page.locator("#e6CoverageEditorStatus")).toHaveText("Caducado");
+    await expect(page.locator("#e6CoverageSave"), "abrir el editor no deja Guardar encendido").toBeDisabled();
+  });
+});

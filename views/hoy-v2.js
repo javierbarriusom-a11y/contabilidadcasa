@@ -117,6 +117,7 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, dataAge, c
       <p class="hoy-v2-kicker">${kicker}</p>
       <p class="hoy-v2-figure">—</p>
       <p class="hoy-v2-sentence">${escapeHtml(reason)}</p>
+      ${coberturaAjusteAvisoHtml(e6CoverageSettings(), "hoy-v2-warning")}
       <button type="button" class="e19-btn e19-btn-primary" data-home-nav="update-hub">Poner los saldos</button>
     </article>`;
   }
@@ -150,6 +151,7 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, dataAge, c
         <p class="hoy-v2-figure">${escapeHtml(money(spendable.value))}</p>
         <p class="hoy-v2-sentence">${sentence}</p>
         ${caixa}
+        ${coberturaAjusteAvisoHtml(e6CoverageSettings(), "hoy-v2-warning")}
       </div>
       <div class="hoy-v2-stats">${stats}</div>
     </div>
