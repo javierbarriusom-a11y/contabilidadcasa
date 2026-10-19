@@ -21,16 +21,19 @@
         } catch (e) {}
       })();
     </script>
-    <!-- Rediseño fase A (docs/rediseno/HANDOFF.md): bandera del tema visual v2, en línea y antes de
-         pintar por la misma razón que data-theme (T7), y como aquel solo LEE: ?tema=v2 en la URL o la
-         preferencia ya guardada. Guardarla o borrarla (?tema=clasico) lo hace tema-v2.js, con defer. -->
+    <!-- Rediseño (docs/rediseno/ESTADO.md): desde el 19/10/2026 el tema v2 es el de por defecto (decisión
+         del hogar). En línea y antes de pintar por la misma razón que data-theme (T7), y como aquel solo
+         LEE: el clásico sale con ?tema=clasico o si ya se eligió antes; ?tema=v2 vuelve al de por defecto.
+         Guardar o borrar la elección lo hace tema-v2.js, con defer. Sin almacenamiento, v2 igualmente. -->
     <script>
       (function () {
+        var clasico = false;
         try {
           var pedido = new URLSearchParams(window.location.search).get("tema");
           var guardado = window.localStorage.getItem("tema-preferencia");
-          if (pedido === "v2" || (pedido !== "clasico" && guardado === "v2")) document.documentElement.dataset.tema = "v2";
+          clasico = pedido === "clasico" || (pedido !== "v2" && guardado === "clasico");
         } catch (e) {}
+        if (!clasico) document.documentElement.dataset.tema = "v2";
       })();
     </script>
     <link rel="manifest" href="manifest.webmanifest?v=20260919t11a1" />
@@ -7785,7 +7788,7 @@
 
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
-    <script defer src="tema-v2.js?v=20261018redisA1"></script>
+    <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
