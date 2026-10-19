@@ -109,6 +109,12 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 19 de octubre de 2026 (323): el CI guarda las trazas de Playwright cuando algo falla
+
+- **Qué cambia:** `.github/workflows/pages.yml` gana un paso con `if: failure()` que sube `test-results/` (trazas y capturas que Playwright ya conserva con `retain-on-failure`) como artefacto durante 14 días. Va detrás de todas las pruebas en navegador y antes de la medición informativa de WebKit, que no bloquea. No cambia ningún umbral. Es la P5 del cuestionario del rediseño y el primer paso del §8 de `docs/rediseno/ESTADO.md`, antes del desalojo de `app.js`.
+- **Prueba nueva:** `tests/ci-informe-playwright.test.cjs` (3): el paso existe, solo corre en fallo, sube `test-results/` y está en su sitio.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6026/6026 (+3 sobre main).
+
 ## Cierre de sesión — 19 de octubre de 2026 (321): rediseño · estado y prompts v2 (solo documentación)
 
 - **Qué cambia:** `docs/rediseno/ESTADO.md` (nuevo) pasa a ser el documento principal del rediseño y manda sobre `HANDOFF.md` y los prompts donde discrepen: fases publicadas (A1, A2, A1b, A3, PR #514 a #517), decisiones vigentes, desviaciones del handoff, trampas técnicas, lo aprendido con los datos reales del 19/10 (cobro caducado «0 días hasta 31 ago», 0 movimientos en octubre) y orden de los siguientes pasos. `docs/rediseno/PROMPTS_CLAUDE_CODE.md` pasa a la versión 2 (prompts 0 a 5, empezando donde se quedó A3). `CLAUDE.md` gana la sección «Rediseño en curso» para que toda sesión lea `ESTADO.md` antes de tocar pantallas.
