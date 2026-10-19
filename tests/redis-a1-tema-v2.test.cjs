@@ -44,16 +44,34 @@ test("sin la bandera no cambia nada: todas las reglas cuelgan de data-tema=\"v2\
   }
 });
 
-test("la bandera se activa con ?tema=v2, se apaga con ?tema=clasico y por defecto es el clásico", () => {
-  assert.match(js, /pedido === "v2"/);
-  assert.match(js, /pedido !== "clasico"/);
-  assert.match(js, /dataset\.tema = "v2"/);
+test("desde el 19/10 el v2 es el de por defecto; el clásico sale con ?tema=clasico y se recuerda", () => {
+  assert.match(js, /pedido === "clasico"/);
+  assert.match(js, /pedido !== "v2" && guardado === "clasico"/);
+  assert.match(js, /if \(!clasico\) document\.documentElement\.dataset\.tema = "v2"/);
   const saver = read("tema-v2.js");
-  assert.match(saver, /setItem\("tema-preferencia", "v2"\)/);
+  assert.match(saver, /setItem\("tema-preferencia", "clasico"\)/);
   assert.match(saver, /removeItem\("tema-preferencia"\)/);
   assert.ok(read("index.html").includes('<script defer src="tema-v2.js'), "quien escribe va con defer");
   assert.ok(read("service-worker.js").includes('"./tema-v2.js"'));
   assert.ok(read("tools/build-public-site.mjs").includes('"tema-v2.js"'));
+});
+
+test("el script de <head> decide bien en los seis casos (URL, preferencia guardada, sin almacenamiento)", () => {
+  const vm = require("node:vm");
+  const src = [...js.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).find((code) => code.includes("tema-preferencia"));
+  assert.ok(src, "falta el script en línea de la bandera");
+  const run = (search, stored, { brokenStorage = false } = {}) => {
+    const dataset = {};
+    const localStorage = { getItem: (key) => { if (brokenStorage) throw new Error("bloqueado"); return key === "tema-preferencia" ? stored : null; } };
+    vm.runInNewContext(src, { window: { location: { search }, localStorage }, document: { documentElement: { dataset } }, URLSearchParams });
+    return dataset.tema || "clasico";
+  };
+  assert.equal(run("", null), "v2", "sin nada: v2 por defecto");
+  assert.equal(run("?tema=clasico", null), "clasico");
+  assert.equal(run("", "clasico"), "clasico", "la elección guardada se respeta");
+  assert.equal(run("?tema=v2", "clasico"), "v2", "?tema=v2 manda sobre lo guardado");
+  assert.equal(run("", "v2"), "v2", "quien ya tenía v2 guardado sigue en v2");
+  assert.equal(run("", null, { brokenStorage: true }), "v2", "sin almacenamiento, v2");
 });
 
 test("cableado: index.html (en <head>, hoja la última), service worker y sitio público", () => {

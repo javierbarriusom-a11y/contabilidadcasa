@@ -267,6 +267,16 @@ function hoyV2Waiting() {
   </button>`;
 }
 
+// «+ Apuntar gasto» abre exactamente lo mismo que «+ Registrar gasto» de la Hoy de siempre (la hoja de compras
+// con tarjeta o el formulario rápido), y hereda de él si se puede usar: sin mes abierto con bloques de gasto
+// queda desactivado y dice por qué, en vez de no hacer nada al pulsarlo.
+function hoyV2ExpenseButton() {
+  const classic = qs("homeQuickExpenseOpen");
+  const disabled = Boolean(classic?.disabled);
+  const title = disabled ? classic?.title || "" : "";
+  return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Apuntar gasto</button>`;
+}
+
 function hoyV2Header(asOf, dataAge) {
   const pill = dataAge?.stale || state?.balanceMode !== "manual"
     ? `<button type="button" class="hoy-v2-age${dataAge?.stale ? " is-stale" : ""}" data-home-nav="update-hub"><span class="hoy-v2-dot" aria-hidden="true"></span>${escapeHtml(dataAge?.stale ? dataAge.warning || dataAge.label : "Saldos estimados · confírmalos con tu banco")}</button>`
@@ -279,7 +289,7 @@ function hoyV2Header(asOf, dataAge) {
     <div class="hoy-v2-header-actions">
       ${pill}
       <button type="button" class="e19-btn e19-btn-secondary" data-hoy-v2-detail aria-expanded="false">Ver todo el detalle</button>
-      <button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense>+ Apuntar gasto</button>
+      ${hoyV2ExpenseButton()}
     </div>
   </header>`;
 }
