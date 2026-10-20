@@ -76,6 +76,23 @@ verificación práctica de abajo.
 4. **CAP-01 nivel 1 sigue adelante pase lo que pase.** Va dentro de WP-25 y no necesita servidor, secretos ni
    esta decisión.
 
+## Decisión del hogar (20/10/2026): `O-6` se cierra
+
+> «No hice la verificación, cierra O-6.»
+
+- **Se cierra por falta de dato,** como decía la regla de abajo: sin la verificación práctica en Enable Banking no se sabe si CaixaBank y Banco Mediolanum enlazan ni cuántos días de validez dan.
+- **Queda marcado para recuperar** (petición del hogar del mismo día; `BACKLOG_DEFINITIVO.md` §6). Se recupera si:
+  1. el hogar lo pide; o
+  2. la frescura de los saldos del panel de uso baja del 90 % dos semanas seguidas, con ≥ 7 días de uso. Es el disparador de «Aparcar» de la tabla de abajo: el «Pulso de saldos» ya no basta.
+
+  Se mira en la revisión de enero de 2027 y en cada revisión mensual. **Al recuperarlo se empieza por la verificación práctica** (pasos de la sección siguiente) y se aplica la tabla de decisión. No se construye nada antes de tener ese dato. Enable Banking puede haber cambiado de condiciones: se vuelven a comprobar los «Hechos» de este documento.
+- **Los saldos siguen como hoy:** el «Pulso de saldos» con «Coincide» (WP-26) y el saldo final del extracto al importar (ND-02). No se conecta ningún banco.
+- **Consecuencias que ya estaban escritas:**
+  - WP-05 queda decidido.
+  - **El PR-2 de WP-13 (fuente oficial de Euribor, €STR e IPC) se archiva** y los índices siguen siendo tecleados (`docs/WP13_DISENO.md`).
+  - La descarga automática del índice de vivienda de WP-50 tampoco se hace: sigue tecleado.
+- **Matiz que queda anotado:** leer el Euribor del BCE o un índice del INE es leer un dato público, no dar acceso al banco. Tiene otro riesgo y su propia revisión NTC-06 (`docs/NTC06_AMENAZAS.md` §4). Se ataron a `O-6` porque WP-05 frenaba cualquier conexión externa. Si el hogar quiere el Euribor automático (útil para la revisión de la hipoteca de marzo, WP-20), se propone aparte, como conexión de solo lectura a un dato público.
+
 ## Decisión propuesta para el 16/10 (la confirma el hogar)
 
 **No cerrar `O-6` hoy ni construir todavía.** Se decide el 16/10 con dos datos que hoy no existen.

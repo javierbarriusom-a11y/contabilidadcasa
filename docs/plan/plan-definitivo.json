@@ -38,7 +38,7 @@
     "M-CAPT",
     "M-RESOL"
    ],
-   "sesiones": 31.5
+   "sesiones": 30.75
   },
   {
    "id": 3,
@@ -311,12 +311,12 @@
    "propuestas": [
     "ND-11"
    ],
-   "sesiones": 1.5,
+   "sesiones": 0.75,
    "tipo": "exento",
    "depende": [
     "WP-05"
    ],
-   "hechoCuando": "Los índices se leen de fuente oficial (o función privada si no hay CORS) con fecha y vuelta al valor tecleado."
+   "hechoCuando": "Índices tecleados con la fecha del dato y su caducidad (PR-1). La fuente oficial (PR-2) se archivó el 20/10/2026 con el cierre de O-6."
   },
   {
    "id": "WP-20",

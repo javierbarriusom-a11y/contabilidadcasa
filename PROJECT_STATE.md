@@ -109,6 +109,23 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (331): `O-6` cerrado y marcado para recuperar
+
+- **Qué dijo el hogar (20/10/2026):** «No hice la verificación, cierra O-6» y, a continuación, «marca el backlog para recuperar O-6 en el futuro».
+- **Qué se decide.** La conexión bancaria PSD2 (CaixaBank y Banco Mediolanum, vía Enable Banking) se cierra por falta de dato, como decía la regla de `docs/ND13_SPIKE_CONEXION.md`. No se conecta ningún banco; los saldos siguen con el «Pulso de saldos» (WP-26) y el saldo final del extracto (ND-02).
+- **Marcado para recuperar** (`BACKLOG_DEFINITIVO.md` §6). O-6 no es una de las 104 propuestas, así que no va en §5, que cuenta la prueba de sincronización.
+  - **Disparador:** que el hogar lo pida, o que la frescura de saldos del panel de uso (días con saldos de ≤ 3 días) baje del 90 % dos semanas seguidas con ≥ 7 días de uso. Ese umbral ya lo mide `usage-panel.js`.
+  - **Cuándo se mira:** en la revisión de enero de 2027 (§7) y en cada revisión mensual.
+  - **Primer paso al recuperarlo:** la verificación práctica de ≈ 20 min y su tabla de decisión. No se construye nada antes.
+- **Consecuencias, ya escritas antes:**
+  - **WP-05 hecho.**
+  - **WP-13 cierra con alcance reducido:** el PR-1 (índices tecleados con fecha) está en uso y el **PR-2 (fuente oficial) se archiva** (`docs/WP13_DISENO.md`). No cumple su «hecho cuando», así que sus 0,75 sesiones **salen del plan en vez de contarse como hechas**: en `docs/plan/plan-definitivo.json`, WP-13 pasa a 0,75 sesiones y la Ola 2, a 30,75.
+  - **WP-50:** la descarga del índice de vivienda sigue siendo tecleada.
+- **Avance del plan:** **61,9 %** (85,25 de 137,75 sesiones; antes 61,4 %, 85,1 de 138,5). 23 paquetes hechos. Es un cambio de contabilidad por la decisión, no trabajo nuevo.
+- **Matiz anotado para el hogar** (`docs/ND13_SPIKE_CONEXION.md`). Leer el Euribor del BCE o un índice del INE es leer un dato público, no dar acceso al banco: es otro riesgo, con su propia revisión NTC-06. Se ató a O-6 porque WP-05 frenaba cualquier conexión externa. Si se quiere el Euribor automático para la revisión de la hipoteca de marzo (WP-20, preaviso a primeros de enero), se propone aparte.
+- **Ficheros:** `BACKLOG_DEFINITIVO.md` (§0, §6 y §7), `docs/ND13_SPIKE_CONEXION.md`, `docs/ESTADO_TAREAS_Y_FASES.md`, `docs/WP13_DISENO.md`, `docs/plan/plan-definitivo.json`, `MANUAL_USUARIO.md`, y los comentarios de `canonical-rate-indices.js` e `index.html`. Ningún cambio de comportamiento.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6049/6049 (incluida la prueba que sincroniza el plan con el backlog), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+
 ## Cierre de sesión — 20 de octubre de 2026 (330): la prueba del aviso de la CIRBE tenía menos tiempo del que necesita
 
 - **Qué pidió el hogar:** publicar el arreglo del fallo intermitente de WP-40 (20/10/2026), tras la investigación de los dos fallos que se repetían en el CI (WP-12 y WP-40).
