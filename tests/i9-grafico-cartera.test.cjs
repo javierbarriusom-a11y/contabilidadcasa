@@ -3,13 +3,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // I9 (Contabilidadcasa 2.0, sesión 216): gráfico de cartera con zoom y tooltip. Decisión de
 // arquitectura del hogar (session en curso): mantener "cero dependencias externas de UI", igual
 // que el resto de gráficos de la app (SVG a mano, sin librería). Sin posiciones reales, se muestra
 // con datos de ejemplo y una nota visible — nunca en silencio.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionViewSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

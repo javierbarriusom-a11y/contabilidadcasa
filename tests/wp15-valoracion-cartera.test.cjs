@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -374,12 +375,12 @@ test("el resumen de la tarjeta: frescura, pendientes y tiempo de la hoja; sin po
 
 // ---- Cableado ----
 test("cableado: app.js pinta la frescura de cada posición y el resumen; el almacén va en la copia y la nube", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /"portfolio-valuations", \/\/ WP-15/);
   assert.match(app, /const age = globalThis\.FinanceCanonicalPortfolioValuation\?\.freshness\(position, isoLocalDate\(new Date\(\)\)\);/);
   assert.match(app, /valor \$\{money\(position\.currentValue, true\)\}\$\{age \? ` \(\$\{escapeHtml\(age\.label\)\}\)` : ""\}/);
   assert.match(app, /function renderIv1PositionList\(\) \{\n\s+const list = qs\("iv1PositionList"\);\n\s+if \(!list\) return;\n\s+globalThis\.renderValuationSummary\?\.\(\);/);
-  const lines = app.split("\n").length;
+  const lines = read("app.js").split("\n").length;
   assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo 37.495)`);
 });
 
@@ -415,7 +416,7 @@ test("valoracion-ui.js no usa `qs` al cargarse (se ejecuta antes que app.js) y l
 });
 
 test("el módulo de valoración no se carga con las instantáneas de cierre de I2: son cosas distintas", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /function recordIv1ValuationSnapshot\(monthKey, closedAt\)/, "I2 sigue como estaba");
   assert.ok(!/portfolio-valuations/.test(app.slice(app.indexOf("function recordIv1ValuationSnapshot("), app.indexOf("function recordIv1ValuationSnapshot(") + 600)));
 });

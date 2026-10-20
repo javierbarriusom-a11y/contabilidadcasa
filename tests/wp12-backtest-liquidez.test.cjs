@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-12 · NPV-02: backtest de liquidez a fin de mes. Los días 1-3 y 15-17 se congela la liquidez que la previsión
 // diaria espera tener; al firmar el cierre se compara con los saldos reales en SU fecha. La foto es de solo añadir
@@ -413,7 +414,7 @@ test("UI: pinta el resultado en la tarjeta y su resumen; sin resultado o sin tar
 
 // ---- Cableado ----
 test("cableado: se congela tras la nube, se evalúa en Plan › Previsión, y el almacén viaja con la copia y la nube", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   const html = read("index.html");
   const init = app.slice(app.indexOf("async function init() {"));
   const afterCloud = init.indexOf("await setupSupabaseSync();");

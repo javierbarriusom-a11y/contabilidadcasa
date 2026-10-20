@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // P2 (Horizonte 4 de BACKLOG_CONTABILIDADCASA_2_0.md): tooltip por mes sobre el cono de
 // incertidumbre (PVC19), sin librería nueva ni motor nuevo. Cada marcador dice low/center/high
@@ -10,7 +9,7 @@ const vm = require("node:vm");
 // margen — mismo `deviations` de learnFromHistory/E12b que ya usa el termómetro de desviación por
 // partida, sin recalcular nada.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

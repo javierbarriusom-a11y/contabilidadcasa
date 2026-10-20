@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { CanonicalBudgetAnalyzer } = require("../canonical-budget-analyzer.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC2 (Oleada 3, Bloque 5): reutiliza budgetAnalysisForCategory()/PVX4 (p25/p75/stdDev históricos
 // por categoría) y los aplica a la banda del horizonte largo (P10-P90 de ESX1) para decidir qué
@@ -65,7 +66,7 @@ test("categoryConfidenceShare · una banda negativa se trata como su valor absol
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: pvc2CategoryConfidenceShare usa budgetAnalysisForCategory y CanonicalBudgetAnalyzer.categoryConfidenceShare", () => {

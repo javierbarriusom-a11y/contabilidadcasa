@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-28 (NPV-07, docs/WP28_DISENO.md): kit de gráficos táctil y accesible. La mitad pura (frase automática, geometría, tabla, figura) se
 // prueba sin DOM; la de eventos, con un documento falso que registra los manejadores y un deslizador falso con atributos.
@@ -234,7 +235,7 @@ test("cableado: index.html, service worker y build público llevan el kit; app.j
   assert.ok(html.indexOf("chart-kit.js") < html.indexOf('src="app.js'), "chart-kit.js debe ir antes que app.js");
   assert.match(read("service-worker.js"), /"\.\/chart-kit\.css"[\s\S]*"\.\/chart-kit\.js"/);
   assert.match(read("tools/build-public-site.mjs"), /"chart-kit\.css"[\s\S]*"chart-kit\.js"/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.equal((app.match(/ChartKit\?\.attach\(document\)/g) || []).length, 1);
   assert.match(app, /function pv4ConfidenceBandHtml[\s\S]*?globalThis\.ChartKit/);
 });

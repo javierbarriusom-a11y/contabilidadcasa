@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
+const app = codigoApp("views/cierre.js");
 
 // Bloque 3 del plan de cierre (docs/BACKLOG_NUEVE_PANTALLAS.md §7): la cadena que cierra Plan ·
 // Ahorro y objetivos. P-13 ("Objetivos con destino y prioridad") declara una lista de objetivos de

@@ -1,15 +1,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 2 · Planificación de partidas: partidasTotalsByKind recalculaba visualRowsForSection(section,
 // months) dentro del bucle por mes, aunque no depende del mes (504 de 510 llamadas al abrir la
 // pantalla, con ~337.000 llamadas a actualAwareInfo detrás). Se iza fuera del bucle: mismo resultado,
 // una llamada por sección.
 
-const app = fs.readFileSync(path.resolve(__dirname, "..", "app.js"), "utf8");
+const app = codigoApp();
 
 function load(stubs) {
   const start = app.indexOf("function partidasTotalsByKind");

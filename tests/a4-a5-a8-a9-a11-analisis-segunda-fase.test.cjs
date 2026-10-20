@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/deuda.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
+const app = codigoApp("views/deuda.js", "views/analisis.js");
 
 // Fase 6 · Análisis, segunda fase (17 de agosto): A-4 (cascada del resultado), A-5 (patrimonio neto
 // proyectado), A-8 (reparto del ingreso), A-9 (qué se repite) y A-11 (exportar). Ningún cálculo

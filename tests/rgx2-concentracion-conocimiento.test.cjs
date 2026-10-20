@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // RGX2 (Oleada 2 Bloque 2/3): alerta de concentración de conocimiento — misma lógica que A14-4
 // (concentración de patrimonio por tipo) aplicada al hogar compartido en vez de al dinero. Solo

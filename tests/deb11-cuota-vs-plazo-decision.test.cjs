@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const CushionEngine = require("../canonical-cushion.js");
 const DebtComparator = require("../canonical-debt-comparator.js");
@@ -13,7 +14,7 @@ const DebtComparator = require("../canonical-debt-comparator.js");
 // DEB2 (no el importe bruto tecleado en AP1, que ya usa APX6 por su cuenta) y añade una preferencia
 // declarada persistida (mismo patrón que DEB7) para que la elección quede explícita.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const layers = require("../canonical-forecast-layers.js");
@@ -283,7 +284,7 @@ test("pantalla: cambiar de mes repinta ese mes; un mes sin partidas lo dice; el 
 
 test("cableado: se pinta con Previsión, se guarda en la copia y se registra en la app y en el sitio publicado", () => {
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /globalThis\.renderCapasPrevision\?\.\(globalThis\.FinanceCanonicalForecastLayers\)/);
   assert.match(app.slice(app.indexOf("const BACKUP_LOCAL_STORES"), app.indexOf("];", app.indexOf("const BACKUP_LOCAL_STORES"))), /"forecast-layers-data"/);
   const html = read("index.html");

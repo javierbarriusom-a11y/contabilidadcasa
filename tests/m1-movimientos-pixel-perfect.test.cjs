@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const p2ui = fs.readFileSync(path.join(root, "p2-ui.js"), "utf8");
 
 // Repaso pixel-perfect del 20 de agosto de 2026 (sesión «pantalla por pantalla», continuación de

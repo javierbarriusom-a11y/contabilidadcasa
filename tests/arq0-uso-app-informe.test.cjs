@@ -3,9 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 // ARQ-0 (BACKLOG_CONTABILIDADCASA_3_0.md §1): el contador de visitas por pantalla ya existía desde

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const F = require("../canonical-forecast.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC9 (Oleada 3, Bloque 5): combina el árbol causal de una cifra (PVX5) con el detector de cambio
 // estructural (PVC3) en una frase — nunca inventa un "por qué" cuando PVC3 ya descartó el cambio
@@ -45,7 +46,7 @@ test("previsionChangeOneLiner está exportada", () => {
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: la frase de PVC9 vive dentro de la tarjeta del árbol causal de PVX5", () => {

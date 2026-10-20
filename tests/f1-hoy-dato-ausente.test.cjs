@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // H-10 · "ninguna cifra se estima en silencio: si falta el dato de origen, se muestra «—» y su
 // motivo". Una prueba por cada indicador de Hoy (H-1, H-3/H-3b, H-4, H-5, H-6) que puede llegar

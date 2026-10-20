@@ -4,10 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const E15 = require("../canonical-e15-goals.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const html = read("index.html");
 
 // SP1 · Bloque 2: inventario de pólizas con vencimientos en el calendario. Mismo patrón de registro

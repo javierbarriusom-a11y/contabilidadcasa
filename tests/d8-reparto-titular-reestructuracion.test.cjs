@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // D8 (BACKLOG_CONTABILIDADCASA_2_0.md): reparto por titular del plan conjunto que ya calcula DI5
 // (canonical-joint-restructuring.js). No repite el plan en dos planes independientes por persona

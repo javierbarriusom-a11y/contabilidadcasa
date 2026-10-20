@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // R-1 a R-4 · Registrar: cabecera, armazón de cuatro pestañas, pestaña Saldo de cuentas y la
 // tarjeta de recálculo siempre visible. R-8/R-9 (Importar/Lote) quedan pendientes; sus pestañas

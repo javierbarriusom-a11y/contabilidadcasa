@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-05 (NTC-06, docs/NTC06_AMENAZAS.md): ninguna conexión externa nueva sin pasar por el modelo de amenazas.
 // Revisa el código propio que se publica (la lista `files` de tools/build-public-site.mjs, sin `vendor/`, que se
@@ -44,7 +45,7 @@ test("RQ-10: cada servidor que nombra el código publicado está en la tabla §2
 });
 
 test("RQ-13: el único script de otro origen (motor de tickets) lleva huella SRI y crossOrigin", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /const RECEIPT_OCR_CDN_URL = "https:\/\/cdn\.jsdelivr\.net\/npm\/tesseract\.js@5\.1\.1\/dist\/tesseract\.min\.js";/, "versión fijada: si cambia, recalcula la huella");
   assert.match(app, /const RECEIPT_OCR_CDN_INTEGRITY = "sha384-[A-Za-z0-9+/]{64}";/);
   assert.match(app, /script\.src = RECEIPT_OCR_CDN_URL;\n\s+script\.integrity = RECEIPT_OCR_CDN_INTEGRITY;\n\s+script\.crossOrigin = "anonymous";/);

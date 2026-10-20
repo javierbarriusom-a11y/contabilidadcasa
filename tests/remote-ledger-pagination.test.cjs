@@ -1,9 +1,8 @@
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const test = require("node:test");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 test("la conciliación remota pagina el libro completo antes de comparar", () => {
   assert.match(appSource, /const ledgerPageSize = 1000/);

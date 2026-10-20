@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const P = require("../canonical-portfolio.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // INV8 (Oleada 3, Bloque 5): IVX7 ya muestra el coste medio de adquisición hacia atrás; esta tarea
 // mira hacia delante — registra el plan de aportación periódica (DCA) y avisa de retraso
@@ -82,7 +83,7 @@ test("dcaPlanStatus está exportada", () => {
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: el registro de posición tiene los dos campos del plan DCA, antes del botón Añadir", () => {

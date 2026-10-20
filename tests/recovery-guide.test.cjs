@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const guide = require("../recovery-guide.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 test("una cola compatible ofrece reanudar sin ocultar las alternativas", () => {
   const result = guide.assessRecovery({
@@ -52,7 +53,7 @@ test("la interfaz registra el modo offline y ofrece las cuatro decisiones de rec
 });
 
 test("la hidratación del plan de deuda no crea una escritura si el iframe devuelve el mismo estado", () => {
-  const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const app = codigoApp();
   assert.match(app, /function debtRoadmapStatesMatch/);
   assert.match(app, /if \(debtRoadmapStatesMatch\(debtRoadmapState, nextState\)\) return;/);
 });

@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
+const app = codigoApp("views/escenarios.js");
 
 // P-2 del "plan de mejora corregido" (ver BACKLOG.md §9): deslizadores sobre el motor de escenarios
 // ya existente. Ningún motor nuevo — `cambio_ingreso`/`cambio_gasto` ya calculaban el impacto exacto

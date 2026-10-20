@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -11,7 +12,7 @@ const Portfolio = require("../canonical-portfolio.js");
 // cartera subyacente, que cambia sin avisar), así que se pregunta directamente. Sin declarar,
 // "sin-declarar" es una categoría más, nunca se asume EUR/España por defecto.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 // I1 (Contabilidadcasa 2.0): la única aparición de este par que vivía en renderAjustes() se movió
 // a renderInversionCartera() (views/inversion.js) — el resto sigue en app.js, en los manejadores
 // de mutación de posiciones.

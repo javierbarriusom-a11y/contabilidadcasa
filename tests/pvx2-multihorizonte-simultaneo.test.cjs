@@ -1,12 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // PVX2 (Oleada 2 Bloque 3): multihorizonte simultáneo. Reutiliza tal cual adaptiveHorizon() (A7-1,
 // canonical-forecast.js) — hasta ahora la tarjeta "Horizonte adaptativo" del Laboratorio de

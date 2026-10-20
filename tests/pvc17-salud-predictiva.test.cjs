@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const E16 = require("../canonical-e16-monitoring.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC17 (Oleada 4, Bloque 3): agrega el MAE que predictionQuality() (E16) ya calcula, hoy disperso
 // por categoría y sin ningún sitio que lo mostrara como cifra única, en un índice de salud
@@ -66,7 +67,7 @@ test("predictiveHealthIndex · sin muestras, meanAbsoluteError 0 y samples 0, nu
 // solo lectura (pvc17PredictiveHealthIndex/renderPvc17PredictiveHealth).
 // ---------------------------------------------------------------------------------------------
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const E = require("../canonical-expected-movements.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-14 (cobros esperados) + WP-27 (cargos que no llegaron), docs/WP14_WP27_DISENO.md. Motor puro: QUÉ se pregunta y QUÉ se hace con cada
 // respuesta. Lo que más importa es lo que NO pregunta: fechas de relleno, gastos sin extracto al día, lo ya respondido.
@@ -174,7 +175,7 @@ test("cableado: motor y pantalla antes que app.js, service worker, build públic
   });
   assert.match(read("service-worker.js"), /"\.\/canonical-expected-movements\.js"[\s\S]*"\.\/esperados-ui\.js"/);
   assert.match(read("tools/build-public-site.mjs"), /"canonical-expected-movements\.js"[\s\S]*"esperados-ui\.js"/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.equal((app.match(/expectedMovementInboxItems\?\.\(globalThis\.FinanceCanonicalExpectedMovements\)/g) || []).length, 1);
   assert.equal((app.match(/attachEsperados\?\.\(document\)/g) || []).length, 1);
   assert.match(app, /"expected-answers", \/\/ WP-14 \+ WP-27/, "las respuestas viajan en la copia: callan preguntas y un recibo que cambió de cuenta no debe volver a preguntarse en otro dispositivo");

@@ -3,9 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // R-10 · Los hashes antiguos que Registrar ya cubre no se rompen: `#update-hub`, `#update-data`,
 // `#datos-importar` y `#data-entry` redirigen a la pestaña equivalente de Registrar en vez de

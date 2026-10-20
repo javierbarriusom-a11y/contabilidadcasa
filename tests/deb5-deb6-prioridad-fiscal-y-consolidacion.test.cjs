@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const DebtContracts = require("../canonical-debt-contracts.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad — el orden de "mayor
 // coste" real no es el TAE nominal cuando hay deducción fiscal declarada (hipoteca con deducción
@@ -156,7 +157,7 @@ test("simulateDebtConsolidation · solo incluye las deudas seleccionadas, ignora
 // --- Wiring: campo declarable en Deuda › Contratos y tarjetas nuevas en la misma pantalla ---
 
 const root = path.resolve(__dirname, "..");
-const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const appSource = codigoApp();
 const deudaSource = fs.readFileSync(path.join(root, "views", "deuda.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 

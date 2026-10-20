@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const IrpfEstimator = require("../canonical-irpf-estimator.js");
 
@@ -13,7 +14,7 @@ const IrpfEstimator = require("../canonical-irpf-estimator.js");
 // tal cual progressiveTax() (canonical-irpf-estimator.js, A15-2) para la suma por tramos, con tramos
 // declarados por el hogar según ofertas reales de su banco — nunca una curva de mercado inventada.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {

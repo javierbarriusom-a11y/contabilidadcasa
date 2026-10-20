@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -425,14 +426,14 @@ test("el texto que trae un enlace de registro se enseña como texto plano y cuen
 
 // ---- Cableado ----
 test("cableado: app.js usa la hoja con tarjetas, la ventana anterior sin ellas, y mide la ventana anterior", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /qs\("homeQuickExpenseOpen"\)\?\.addEventListener\("click", \(\) => \{ if \(!globalThis\.openCapturaHoja\?\.\(\)\) openHomeQuickExpenseDialog\(\); \}\)/);
   assert.match(app, /history\.replaceState\(null, "", "#registrar"\);\n\s+if \(globalThis\.openCapturaHoja\?\.\(\{ amount: link\.fields\.amount, label: link\.fields\.label, date: link\.fields\.date, account: link\.fields\.account, note: captureLinkSheetNote\(link\) \}\)\) return;/);
   assert.match(app, /globalThis\.recordLegacyCaptureTime\?\.\(\(Date\.now\(\) - openedAt\) \/ 1000\)/);
   assert.match(app, /accruedByRowMonth\(loadCardCycles\(\), globalThis\.FinanceCanonicalCardPurchases\?\.toMovements\(loadCardPurchases\(\)\)\)/);
   assert.ok(!/accruedByRowMonth\(loadCardCycles\(\), baseData/.test(app), "las compras ya no salen de los movimientos del banco");
   assert.match(app, /"card-purchases", \/\/ WP-30 \(PR-2\)/);
-  const lines = app.split("\n").length;
+  const lines = read("app.js").split("\n").length;
   assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo 37.495)`);
 });
 
@@ -456,7 +457,7 @@ test("cableado: index.html tiene la hoja y sus scripts, antes de app.js; las lis
 });
 
 test("cableado: las compras viajan con la copia y la nube y la ficha las lee de su almacén", () => {
-  assert.ok(read("app.js").includes('"card-purchases"'));
+  assert.ok(codigoApp().includes('"card-purchases"'));
   const ui = read("partidas-ui.js");
   assert.match(ui, /transactions: globalThis\.FinanceCanonicalCardPurchases\?\.toMovements\(loadCardPurchases\(\)\) \|\| \[\]/);
   assert.match(ui, /renderCardPurchases\(\);/);

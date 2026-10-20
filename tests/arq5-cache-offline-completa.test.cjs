@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -39,7 +40,7 @@ function localResourcesOfIndex() {
 }
 
 function viewChunkFiles() {
-  const block = read("app.js").match(/const VIEW_CHUNKS = \{([\s\S]*?)\n\};/);
+  const block = codigoApp().match(/const VIEW_CHUNKS = \{([\s\S]*?)\n\};/);
   assert.ok(block, "app.js debería declarar VIEW_CHUNKS");
   return [...new Set([...block[1].matchAll(/src: "([^"?]+)/g)].map((match) => match[1]))];
 }

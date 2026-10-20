@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // UX2 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "experiencia" — sin documento de detalle
 // propio, resumen en su Nota): "«dato real / simulación / decisión aplicada», siempre visible —

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const PortfolioEngine = require("../canonical-portfolio.js");
 
@@ -195,7 +196,7 @@ test("wiring: renderCierre() repinta GOB13 en cada render, con el mes abierto o 
 });
 
 test("wiring: app.js conecta el botón de marcar el ritual como hecho, dentro del delegado de clics de #cierre", () => {
-  const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const appSource = codigoApp();
   const start = appSource.indexOf('qs("cierre")?.addEventListener("click"');
   const end = appSource.indexOf("\n  });", start);
   const block = appSource.slice(start, end);

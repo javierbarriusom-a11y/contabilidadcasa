@@ -16,6 +16,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.join(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -52,7 +53,7 @@ test("el menú principal agrupa por ritmo y tiene exactamente 10 entradas, en es
 test("«Datos» ya no es entrada principal pero su destino sigue existiendo como alias de Registrar", () => {
   assert.doesNotMatch(primary, /href="#update-hub"/);
   assert.match(html, /<section[^>]*id="update-hub"[^>]*view-section|<section[^>]*view-section[^>]*id="update-hub"/);
-  assert.match(read("app.js"), /"update-hub": "balances"/);
+  assert.match(codigoApp(), /"update-hub": "balances"/);
 });
 
 test("«Planificación de partidas» es pestaña de Plan y sigue con enlace en el menú avanzado", () => {

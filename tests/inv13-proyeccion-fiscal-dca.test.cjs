@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const PortfolioEngine = require("../canonical-portfolio.js");
 const IrpfEstimator = require("../canonical-irpf-estimator.js");
@@ -13,7 +14,7 @@ const IrpfEstimator = require("../canonical-irpf-estimator.js");
 // ya calculada de cada posición (position.gainLoss, la misma que usa deleveragingPriority/LEV6) —
 // nunca un % de ganancia declarado a mano.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 // I1 (Contabilidadcasa 2.0): renderInv8DcaTracking()/renderInv13DcaTaxProjection() del lote de
 // renderAjustes() se movieron a renderInversionCartera() (views/inversion.js) — la pareja sigue
 // existiendo, solo cambió en cuál de los dos ficheros vive esa llamada concreta.

@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/deuda.js"), "utf8");
+const app = codigoApp("views/deuda.js");
 const E14DebtOperations = require(path.join(root, "canonical-e14-operations.js"));
 
 // D-8/D-9 (auditoría del 15 de agosto, Prioridad 2) · la tarjeta «Oferta en curso» de Deuda › Ruta

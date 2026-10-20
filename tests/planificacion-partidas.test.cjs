@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "partidas-ui.js"), "utf8"); // WP-30 · PR-0: el gráfico de Partidas vive en partidas-ui.js
+const app = codigoApp("views/cierre.js", "views/escenarios.js"); // WP-30 · PR-0: el gráfico de Partidas vive en partidas-ui.js
 
 // Planificación de partidas (21 de agosto de 2026): aterrizaje generalizado del Motor de
 // escenarios (compra/proyecto/imprevisto/propio/deuda_nueva/prestamo_familiar → `projects`;

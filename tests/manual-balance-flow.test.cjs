@@ -2,8 +2,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("el saldo manual conserva reales pero no los vuelve a proyectar en el mes de partida", () => {

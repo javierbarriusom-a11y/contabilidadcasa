@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // ARQ-6 (25 de septiembre de 2026), paso 3: las listas de navegación mantenidas a mano, cruzadas entre
 // sí. Ya había guardianes parciales — menú ↔ buscador (T2, e17-interface), títulos ↔ informe de uso
@@ -13,7 +14,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const e17 = fs.readFileSync(path.join(root, "e17-experience.js"), "utf8");
 const views = fs.readdirSync(path.join(root, "views")).filter((file) => file.endsWith(".js"))
   .map((file) => fs.readFileSync(path.join(root, "views", file), "utf8")).join("\n");

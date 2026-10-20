@@ -3,11 +3,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const deuda = read("views/deuda.js");
-const app = read("app.js") + "\n" + deuda;
+const app = codigoApp() + "\n" + deuda;
 const html = read("index.html");
 
 // A16-5 · Bloque 2: avalancha (ataca primero el TAE más alto, matemáticamente óptima) y bola de

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const zero = require("../canonical-zero-base.js");
@@ -367,7 +368,7 @@ test("pantalla: sin reales anotados lo dice y no inventa propuestas", () => {
 
 test("cableado: se pinta con Partidas, se guarda en la copia y se registra en la app y en el sitio publicado", () => {
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /case "planificacion-partidas":[\s\S]{0,400}globalThis\.renderBaseCero\?\.\(window\.FinanceCanonicalZeroBase\)/);
   assert.match(app.slice(app.indexOf("const BACKUP_LOCAL_STORES"), app.indexOf("];", app.indexOf("const BACKUP_LOCAL_STORES"))), /"zero-base-data"/);
   const html = read("index.html");

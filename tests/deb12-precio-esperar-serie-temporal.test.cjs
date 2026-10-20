@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const comparator = require("../canonical-debt-comparator.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB12 (Oleada 4, Bloque 6, DE-4): waitingOptionValue (DEB3) es una cifra fija calculada el día que
 // se declara "voy a esperar N meses" — sin volver a pulsar «Comparar», la nota se queda congelada
@@ -14,7 +15,7 @@ const comparator = require("../canonical-debt-comparator.js");
 // hechos a mano — sin repetir la cobertura de waitingOptionValue, ya cubierta en
 // tests/deb3-opcionalidad-esperar.test.cjs.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

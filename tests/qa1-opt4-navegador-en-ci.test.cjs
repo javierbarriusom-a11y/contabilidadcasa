@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -46,7 +47,7 @@ test("el recorrido de QA-1 falla si una pantalla bloquea la página demasiado ti
 });
 
 test("la fecha corta está memorizada por día (sin ella, abrir Control de deuda bloqueaba la página ~12 s)", () => {
-  const source = read("app.js");
+  const source = codigoApp();
   const start = source.indexOf("function shortDate(value) {");
   assert.ok(start >= 0);
   const body = source.slice(start, source.indexOf("\n}\n", start));
@@ -59,7 +60,7 @@ test("la fecha corta está memorizada por día (sin ella, abrir Control de deuda
 });
 
 test("la etiqueta de mes está memorizada (sin ella, editar un presupuesto congelaba la pantalla ~14 s)", () => {
-  const source = read("app.js");
+  const source = codigoApp();
   const start = source.indexOf("function monthLabel(date) {");
   assert.ok(start >= 0);
   const body = source.slice(start, source.indexOf("\n}\n", start));

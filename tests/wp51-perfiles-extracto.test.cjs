@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const E = require("../canonical-statement-profiles.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -298,7 +299,7 @@ test("WP-51 · el motor no escribe nada: analizar no cambia la entrada ni devuel
 });
 
 test("WP-51 · cableado: app.js lee el CSV con el motor y no con el parser antiguo; el panel y su almacén están en la copia", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /extractoPerfilesLeer\(file, new Uint8Array\(await file\.arrayBuffer\(\)\), globalThis\.FinanceCanonicalStatementProfiles\)/);
   assert.doesNotMatch(app, /parseMovementsFromCsvText|movementCsvHeaderKey/);
   assert.match(app, /"statement-profiles-data"/);

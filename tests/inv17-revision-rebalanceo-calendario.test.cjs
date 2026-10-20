@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -11,7 +12,7 @@ const Portfolio = require("../canonical-portfolio.js");
 // puede tardar años en cruzarlo. Complementa, no sustituye, ese aviso con un recordatorio por
 // tiempo transcurrido desde la última revisión CONFIRMADA por el hogar, nunca inferida.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {

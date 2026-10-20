@@ -1,7 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // INV2 (Oleada 3, Bloque 5): la desviación de rebalanceo (IV6, ya calculada por
 // rebalanceSuggestions) solo era visible al abrir Ajustes › Patrimonio e inversión. Se conecta al
@@ -9,7 +8,7 @@ const path = require("node:path");
 // de aviso en paralelo — sin objetivos declarados o sin posiciones, la métrica vale 0 y la alerta
 // nunca dispara, mismo guardia que el resto del contrato de IV6.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 test("wiring: UX_ALERT_METRICS declara rebalanceDeviationPct con su propia etiqueta y formato", () => {
   const start = appSource.indexOf("const UX_ALERT_METRICS = {");

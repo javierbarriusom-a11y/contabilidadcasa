@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
 
@@ -50,7 +51,7 @@ test("proactiveLtvAlert reutiliza tal cual lombardMarginCallSimulation, sin ning
   assert.match(block, /lombardMarginCallSimulation\(\{ portfolioValue, loanAmount, maintenanceLtvPct, stressDropPct: 0 \}\)/);
 });
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 test("wiring: renderLev12ProactiveMarginCallAlert existe en app.js y usa la declaración persistida del crédito Lombard", () => {

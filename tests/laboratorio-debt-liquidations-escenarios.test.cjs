@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
+const app = codigoApp("views/cierre.js", "views/escenarios.js");
 
 // Laboratorio · debtLiquidations (20 de agosto de 2026) — la última de las tres decisiones de
 // producto de §7 del backlog. Deuda · Ruta y Deuda · Comparar aplican decisiones de deuda a través

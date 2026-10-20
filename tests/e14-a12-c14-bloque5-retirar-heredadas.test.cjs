@@ -3,12 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
 // ARQ-4 (sesión 237): el enlace a `#cashflow` del Agente de ahorro vive en views/savings-agent.js.
-const app = read("app.js") + "\n" + read("views/analisis.js") + "\n" + read("views/debt-liquidation-plan.js") + "\n" + read("views/savings-agent.js");
+const app = codigoApp("views/analisis.js", "views/debt-liquidation-plan.js", "views/savings-agent.js");
 const experience = read("e17-experience.js");
 
 // Bloque 5 del plan de cierre (docs/BACKLOG_NUEVE_PANTALLAS.md §7, 20 de agosto): E-14, A-12 y

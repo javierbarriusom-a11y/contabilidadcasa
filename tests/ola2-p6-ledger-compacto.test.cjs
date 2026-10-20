@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 2 · P6-lite: el libro canónico se persistía completo en localStorage (1,96 M de caracteres con 3.000
 // movimientos; con ~6.300 el total llega al techo de ~5,2 M y con más cae en silencio a memoria). El 98 % son
@@ -10,8 +9,7 @@ const vm = require("node:vm");
 // reconstruir es la huella y el historial (auditTrail). Se persiste solo eso. El snapshot en memoria y el
 // payload remoto/copia (canonical-supabase-store lee `entries`) siguen completos.
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const Ledger = require("../canonical-ledger.js");
 
 function compactFn() {

@@ -14,11 +14,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
-const app = read("app.js");
+const app = codigoApp();
 const stylesCss = read("styles.css");
 const designTokensCss = read("design-tokens.css");
 const p2Css = read("p2.css");

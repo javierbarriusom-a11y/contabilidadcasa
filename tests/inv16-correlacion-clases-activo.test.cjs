@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -133,7 +134,7 @@ test("qualitativeConcentrationWarnings · varios avisos se ordenan de mayor a me
 // --- Wiring: app.js declara los 6 selects y los persiste sin inventar defaults; index.html expone
 // la tarjeta con las 6 opciones de par, cada una con "Sin declarar" como opción inicial. ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 const INV16_FIELD_IDS = [

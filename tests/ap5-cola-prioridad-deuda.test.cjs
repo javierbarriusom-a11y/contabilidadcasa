@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // AP5 · Bloque 10 (última tarea): deuda nueva y existente en una sola cola de prioridad. Depende de
 // AP3 (escenarios marcados como tomados, AP6 — `takenAt`) y A16-5 (criterios avalancha/bola de

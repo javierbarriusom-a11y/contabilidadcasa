@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB9 (Oleada 4, Bloque 2 — bandera del diagnóstico "El Libro Vivo", F-10, sin precedente en la
 // Oleada 3): síntesis única "cancelar vs. mantener deuda", con las cuatro piezas que la sustentan
@@ -12,7 +13,7 @@ const path = require("node:path");
 
 const Synthesis = require("../canonical-debt-cancel-or-hold-synthesis.js");
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("cancelOrHoldDebtSynthesis · sin AP1 calculable, no hay síntesis", () => {

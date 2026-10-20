@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const DebtContracts = require("../canonical-debt-contracts.js");
 
@@ -13,7 +12,7 @@ const DebtContracts = require("../canonical-debt-contracts.js");
 // avisa si la deuda #1 por TAE efectivo coincide o no con la seleccionada. T4 (retrofit directivo):
 // dice explícitamente qué cambiar en la selección para seguir el orden ya calculado.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

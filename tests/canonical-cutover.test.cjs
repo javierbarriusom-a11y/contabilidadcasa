@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const engine = require("../canonical-engine.js");
 const forecast = require("../canonical-forecast.js");
@@ -12,7 +13,7 @@ const fixture = JSON.parse(fs.readFileSync(
   path.join(__dirname, "fixtures", "anonymized-household.json"),
   "utf8",
 ));
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function workflowFrom(items) {
   return items.reduce((snapshot, item) => workflow.importDecision(snapshot, item, {

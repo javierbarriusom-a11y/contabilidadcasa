@@ -4,10 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const HomeMargin = require("../canonical-home-margin.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // app.js es un script de navegador: se extraen sus funciones por nombre y se ejecutan con lo mínimo.
 function extractFunction(name) {

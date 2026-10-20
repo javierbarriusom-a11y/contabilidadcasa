@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const Leverage = require(path.join(root, "canonical-leverage-simulator.js"));
-const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 // LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call. Decisión del hogar (sesión 159):

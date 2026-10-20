@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-04 (ND-03 paso 0, docs/ND03_VIABILIDAD.md): ¿se puede aprender el día de cargo de cada partida a
 // partir de los movimientos importados? Solo lectura, solo recuentos y porcentajes. Criterios del plan:
@@ -89,7 +90,7 @@ test("el resultado y la tarjeta no llevan importes: solo porcentajes y recuentos
 });
 
 test("app.js: reúne una observación por partida y mes importado con el emparejamiento de la previsión", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   const start = app.indexOf("function chargeDayObservations()");
   const source = app.slice(start, app.indexOf("\n}\n", start) + 2);
   assert.match(source, /expenseTimingFromMovements\(row, month, amount\)/, "mismo emparejamiento que la previsión");
@@ -123,5 +124,5 @@ test("registro: tarjeta en Ajustes › Presupuesto y operación, motor antes de 
   assert.ok(at > 0 && at < html.indexOf('<script defer src="app.js?v='));
   assert.match(read("service-worker.js"), /"\.\/canonical-charge-day-viability\.js",/);
   assert.match(read("tools/build-public-site.mjs"), /"canonical-charge-day-viability\.js",/);
-  assert.match(read("app.js"), /renderAjustesUsoApp\(\);\n\s+renderAjustesChargeDayViability\(\);/);
+  assert.match(codigoApp(), /renderAjustesUsoApp\(\);\n\s+renderAjustesChargeDayViability\(\);/);
 });

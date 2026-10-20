@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // «Hoy» es el día del calendario del hogar (hora local), no el de UTC (decisión del hogar, 20/10/2026; sesión 325 para
 // monthsSinceDate, sesión 326 para el resto). Con `new Date().toISOString().slice(0, 10)`, de 0 a 1-2 h en Madrid se registraba la
@@ -12,7 +13,7 @@ const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const analisis = read("views/analisis.js");
 
 function extractFunction(source, name) {

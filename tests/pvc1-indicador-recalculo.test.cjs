@@ -2,13 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC1 (Oleada 3, Bloque 2) · indicador visible de recálculo. Alcance confirmado por VER-1: el
 // forecast ya se repropaga a metas (E15) y presupuesto de riesgo (E16) sin abrir esas pantallas
 // (recomputeModelIfNeeded() recalcula por firma en cada render() global) — esta tarea no construye
 // ningún motor de cascada nuevo, solo hace visible cuándo ocurrió el último recálculo real.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const p2UiSource = fs.readFileSync(path.join(__dirname, "..", "p2-ui.js"), "utf8");
 
 test("recomputeModelIfNeeded marca lastModelRecomputeAt solo cuando recalcula de verdad (no en cada llamada)", () => {

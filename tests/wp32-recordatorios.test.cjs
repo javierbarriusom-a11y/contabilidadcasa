@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const R = require("../canonical-reminders.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-32 (CAP-09 + ND-10, docs/WP32_DISENO.md): recordatorios calculados, no a horas fijas. Motor puro: qué eventos salen, cuáles NO (un aviso
 // en un día de relleno es ruido), y que el .ics sea válido de verdad (RFC 5545: CRLF, plegado a 75 octetos, escapes, identificadores estables).
@@ -173,7 +174,7 @@ test("cableado: tarjeta en Ajustes, hoja y scripts antes que app.js, service wor
   });
   assert.match(read("service-worker.js"), /"\.\/recordatorios\.css"[\s\S]*"\.\/canonical-reminders\.js"[\s\S]*"\.\/recordatorios-ui\.js"/);
   assert.match(read("tools/build-public-site.mjs"), /"recordatorios\.css"[\s\S]*"canonical-reminders\.js"[\s\S]*"recordatorios-ui\.js"/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.equal((app.match(/renderRecordatorios\?\.\(globalThis\.FinanceCanonicalReminders\)/g) || []).length, 1);
   assert.equal((app.match(/attachRecordatorios\?\.\(document\)/g) || []).length, 1);
 });

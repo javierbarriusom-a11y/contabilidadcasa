@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-03 (UXS-04 + NTC-03 reducido, BACKLOG_DEFINITIVO.md §5.1): panel de uso real, la base de la regla
 // de parada de cada ola. Un solo usuario y un solo móvil (decisión del hogar del 3/10/2026): local, sin
@@ -102,7 +103,7 @@ test("marcado: panel en Ajustes › Uso de la app, sin tocar Hoy ni app.js", () 
   for (const id of ["panelUsoCard", "panelUsoDesde", "panelUsoLista", "panelUsoForm", "panelUsoMinutos", "panelUsoMinutosEstado"]) assert.match(uso, new RegExp(`id="${id}"`));
   assert.ok(uso.indexOf('id="panelUsoCard"') < uso.indexOf('id="usoAppCard"'), "el panel va antes que la tabla de pantallas");
   assert.ok(html.indexOf('src="usage-panel.js?v=') > 0 && html.indexOf('src="usage-panel.js?v=') < html.indexOf('<script defer src="app.js?v='));
-  assert.doesNotMatch(read("app.js"), /FinanceUsagePanel|usage-days/, "WP-03 no ocupa margen de app.js");
+  assert.doesNotMatch(codigoApp(), /FinanceUsagePanel|usage-days/, "WP-03 no ocupa margen de app.js");
   assert.match(read("finding-test-ui.js"), /root\.FinanceUsagePanel\?\.noteFreshness\?\.\(\{ ageDays: shown\.ageDays, balanceMode: shown\.balanceMode \}\)/, "Hoy le pasa al panel solo la edad y el modo de los saldos");
   assert.match(read("service-worker.js"), /"\.\/usage-panel\.js",/);
 });

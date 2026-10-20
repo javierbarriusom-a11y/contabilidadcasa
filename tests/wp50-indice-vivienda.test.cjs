@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -199,7 +200,7 @@ test("WP-50 · lo cableado: tarjeta en Inversión › Cartera, hojas y scripts e
     assert.match(read("service-worker.js"), new RegExp(`"\\./${file.replace(".", "\\.")}"`));
     assert.match(read("tools/build-public-site.mjs"), new RegExp(`"${file.replace(".", "\\.")}"`));
   });
-  assert.match(read("app.js"), /"housing-index-data"/, "el almacén va en la copia de seguridad");
+  assert.match(codigoApp(), /"housing-index-data"/, "el almacén va en la copia de seguridad");
   assert.match(read("views/inversion.js"), /renderIndiceVivienda\?\.\(globalThis\.FinanceCanonicalIndexValuation\)/);
   const ui = read("indice-vivienda-ui.js");
   assert.match(ui, /FinanceCanonicalIndexValuation/);

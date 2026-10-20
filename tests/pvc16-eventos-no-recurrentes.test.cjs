@@ -1,9 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
 const forecast = require("../canonical-forecast.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC16 (Oleada 4, Bloque 3): complemento simétrico de detectStructuralChange (PVC3, que busca
 // persistencia real) — un mes que el hogar declara explícitamente como excepcional
@@ -67,7 +66,7 @@ test("detectStructuralChange · sin registros marcados, comportamiento idéntico
 // propaga la marca, y la UI de Análisis de previsión (formulario + lista) actúa sobre ella.
 // -------------------------------------------------------------------------------------------
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

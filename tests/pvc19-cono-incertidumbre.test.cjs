@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC19 (Oleada 4, Bloque 3): confidenceBands() (PV4) ya calculaba un margen creciente con
 // √(mes+1) — lo que no se veía era el propio ensanche: el render anterior pintaba una columna de
@@ -11,7 +10,7 @@ const vm = require("node:vm");
 // es la forma de cono en sí — se ensancha visualmente cuanto más lejos está el mes, en vez de un
 // conjunto de barras de anchura fija sin relación entre ellas.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

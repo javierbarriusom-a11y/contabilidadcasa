@@ -1,7 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // INV4 (Oleada 3, Bloque 5): alcance reducido a propósito — sin serie histórica de rendimientos ni
 // clasificación de sector/divisa por posición (mismo hueco que ya bloqueó APX4/IVX1/IVX5), no hay
@@ -10,7 +9,7 @@ const path = require("node:path");
 // única posición" — esta tarea lo conecta al framework de alertas ya existente (V6-2), igual que
 // INV2, en vez de un mecanismo de aviso en paralelo.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 test("wiring: UX_ALERT_METRICS declara topPositionConcentrationPct con su propia etiqueta y formato", () => {
   const start = appSource.indexOf("const UX_ALERT_METRICS = {");

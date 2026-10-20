@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const SavingsAgent = require("../canonical-savings-agent.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // ARQ-4 (sesión 237): núcleo puro del agente de ahorro — la regla mensual de traspaso y rescate entre
 // CaixaBank y Mediolanum —, extraído de buildSavingsAgentPlan() (app.js). Dos tipos de prueba:
@@ -167,7 +168,7 @@ test("canonical-savings-agent · idéntico céntimo a céntimo a la implementaci
 });
 
 test("canonical-savings-agent · app.js delega en el módulo y ya no conserva su propia copia de la regla", () => {
-  const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const app = codigoApp();
   const start = app.indexOf("function buildSavingsAgentPlan(");
   const body = app.slice(start, app.indexOf("\n}\n", start));
   assert.match(body, /window\.FinanceCanonicalSavingsAgent\.sweepCashPlan\(\{ sourceRows, startBalances: start, caixaFloor \}\)/);

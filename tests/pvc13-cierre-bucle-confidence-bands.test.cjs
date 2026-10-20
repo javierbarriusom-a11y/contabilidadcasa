@@ -1,7 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const forecast = require("../canonical-forecast.js");
 const E16 = require("../canonical-e16-monitoring.js");
@@ -67,7 +66,7 @@ test("confidenceBands · la anchura por meses hacia delante se sigue aplicando s
   assert.equal(bands[3].margin, 200); // mes 4: ×2 (sqrt(4)) sobre el margen base de 100
 });
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

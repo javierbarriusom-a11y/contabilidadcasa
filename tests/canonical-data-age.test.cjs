@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const DataAge = require("../canonical-data-age.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -87,7 +88,7 @@ test("acepta fechas con hora (ISO completo) quedándose con el día", () => {
 });
 
 test("app.js usa el módulo en la tira superior, la cabecera de Hoy y la ficha de margen", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /function homeDataAge\(\)/);
   assert.match(app, /window\.FinanceCanonicalDataAge\?\.describe\(/);
   // Tira superior (visible en todas las pantallas salvo Hoy): edad junto a la fecha.
@@ -107,7 +108,7 @@ test("app.js usa el módulo en la tira superior, la cabecera de Hoy y la ficha d
 });
 
 test("P9 · un saldo declarado de 4 o más días baja a «media» la confianza de la liquidez que leen informes y asistente", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   // Mismo umbral que el aviso de la ficha de Hoy: homeDataAge().stale (4 días, STALE_AFTER_DAYS).
   assert.match(app, /confidence: state\?\.balanceMode === "manual" && !homeDataAge\(\)\?\.stale \? "high" : "medium"/);
   assert.equal(DataAge.STALE_AFTER_DAYS, 4);

@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js") + "\n" + read("views/presupuesto-mes.js");
+const app = codigoApp("views/presupuesto-mes.js");
 const html = read("index.html");
 
 // INTEG-1 (FASE 6): exportar todos los presupuestos guardados (todas las categorías y meses) a CSV

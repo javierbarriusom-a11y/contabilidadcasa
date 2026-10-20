@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // R-12 · La regla previsto/real/usado depende de que «vacío» y «0» nunca se confundan en el
 // motor compartido (actualAwareInfo, usado por registrarMesCollect y por tanto por Reales del

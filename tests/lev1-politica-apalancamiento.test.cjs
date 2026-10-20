@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { evaluateLeveragePolicy } = require("../canonical-leverage-barrier.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // LEV1 (Oleada 3, Bloque 2) · política de apalancamiento del hogar: un límite máximo de
 // deuda-para-invertir, declarado de antemano como % de patrimonio neto o de ingreso anual, que el
@@ -76,7 +77,7 @@ test("nunca bloquea nada por sí solo: solo informa, incluso muy por encima del 
 
 // --- Integración estática: engine cargado en index.html, tarjeta de Ajustes y wiring en app.js ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("la tarjeta de política de apalancamiento vive en Deuda › Apalancamiento (OPT-24: ya no es una sub-pestaña de Ajustes)", () => {

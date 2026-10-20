@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -11,7 +12,7 @@ const Portfolio = require("../canonical-portfolio.js");
 // trayectoria año a año, sumando cada posición con comisión declarada por separado (nunca un % medio
 // inventado sobre el conjunto).
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 // I1 (Contabilidadcasa 2.0): la única aparición de este trío que vivía en renderAjustes() se
 // movió a renderInversionCartera() (views/inversion.js) — el resto sigue en app.js.
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");

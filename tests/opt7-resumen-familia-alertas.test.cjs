@@ -2,9 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 // OPT-7 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, BACKLOG_OPTIMIZACION.md): «modo familiar» y

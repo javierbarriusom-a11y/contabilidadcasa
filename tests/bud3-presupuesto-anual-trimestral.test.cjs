@@ -23,6 +23,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const { CanonicalBudgetSchema } = require("../canonical-budget-schema.js");
 const { CanonicalBudgetAlerts } = require("../canonical-budget-alerts.js");
@@ -30,7 +31,7 @@ const CanonicalPeriod = require("../canonical-period.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const appSrc = read("app.js");
+const appSrc = codigoApp();
 const viewSrc = read("views/presupuesto-mes.js");
 const app = appSrc + "\n" + viewSrc;
 

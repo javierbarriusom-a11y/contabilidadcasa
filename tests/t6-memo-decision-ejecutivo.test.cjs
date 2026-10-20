@@ -3,9 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 // T6 (BACKLOG_CONTABILIDADCASA_2_0.md, Horizonte 4): memo de decisión ejecutivo de una página —

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-10 (NPV-08): medidor de calidad de los datos de la previsión en Plan › Previsión (no en Hoy). Tres
 // barras ponderadas por importe —fechas conocidas del gasto, gasto del mes con real, ingresos del mes
@@ -81,7 +82,7 @@ test("la tarjeta: texto e icono de estado (no solo color), acción para subir ca
 // --- app.js: recoge las filas del mismo motor que la tabla --------------------------------------
 
 function extractFunction(name) {
-  const app = read("app.js");
+  const app = codigoApp();
   const start = app.indexOf(`function ${name}(`);
   assert.ok(start > 0, name);
   return app.slice(start, app.indexOf("\n}\n", start) + 2);
@@ -123,5 +124,5 @@ test("registro: Plan › Previsión (no Hoy), plegado en la cabecera; motor ante
   assert.ok(at > 0 && at < html.indexOf('<script defer src="app.js?v='));
   assert.match(read("service-worker.js"), /"\.\/canonical-forecast-quality\.js",/);
   assert.match(read("tools/build-public-site.mjs"), /"canonical-forecast-quality\.js",/);
-  assert.match(read("app.js"), /renderPrevisionReliabilityBadge\(\);\n\s+renderPrevisionQuality\(items\);/);
+  assert.match(codigoApp(), /renderPrevisionReliabilityBadge\(\);\n\s+renderPrevisionQuality\(items\);/);
 });

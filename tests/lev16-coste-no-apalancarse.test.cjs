@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // LEV16 (Oleada 4, Bloque 5, AP-9): coste de oportunidad de NO apalancarse, simétrico al riesgo de
 // apalancarse que domina el resto del módulo (AP4/LEV1/AP3/LEV5/LEV11/LEV12/LEV13 solo hablan del
@@ -13,7 +14,7 @@ const vm = require("node:vm");
 // resultado ya calculado de simulateLeverage() — por eso aquí se prueba con resultados simulados,
 // sin tocar accountBalancesFromState/cushionFloor/iv5PortfolioAnnualReturnPct (ya cubiertos por CP2).
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

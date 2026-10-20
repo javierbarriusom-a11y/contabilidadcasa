@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -287,7 +288,7 @@ test("WP-48 · cableado: tarjeta junto al formulario de ventas, scripts tras can
   const at = (name) => html.indexOf(`<script defer src="${name}?v=`);
   assert.ok(at("canonical-portfolio.js") > 0 && at("canonical-portfolio.js") < at("canonical-portfolio-ledger.js") && at("canonical-portfolio-ledger.js") < at("operaciones-ui.js"));
   assert.match(html, /href="operaciones\.css\?v=/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /globalThis\.renderLibroOperaciones\?\.\(globalThis\.FinanceCanonicalPortfolioLedger\); \/\/ WP-48/);
   ["service-worker.js", "tools/build-public-site.mjs"].forEach((file) => {
     const list = read(file);

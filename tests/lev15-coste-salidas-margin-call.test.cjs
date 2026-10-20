@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const IrpfEstimator = require("../canonical-irpf-estimator.js");
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
@@ -13,7 +12,7 @@ const LeverageSimulator = require("../canonical-leverage-simulator.js");
 // llamada de garantía. Se apoya en optimizePartialSale (mismo motor de tramos del ahorro que FC5)
 // para el efecto fiscal de la liquidación forzosa.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

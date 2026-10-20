@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 const Irpf = require("../canonical-irpf-estimator.js");
@@ -204,7 +205,7 @@ test("Ejercicio completo: impuesto del ahorro de 2026 = escala aplicada a la bas
 });
 
 test("Cableado en la app: FC3 enseña la base de partida para FC5 y FC5 admite una base negativa", () => {
-  const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const app = codigoApp();
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const fc3Block = app.slice(app.indexOf("function fc3ResultHtml("), app.indexOf("function handleFc3Compare("));
   assert.match(fc3Block, /fc3MarginalSaleBaseLine\(result\)/);

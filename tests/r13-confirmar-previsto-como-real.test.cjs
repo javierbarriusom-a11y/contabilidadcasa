@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const RegistrarActualsConfirm = require(path.join(root, "canonical-registrar-actuals-confirm.js"));
@@ -179,7 +180,7 @@ test("handleConfirmClick · un clic que no es de este botón devuelve null, sin 
 // ------------------------------------------------------------------------------------------------
 
 test("app.js referencia el módulo y cablea fila, barra y panel", () => {
-  const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  const app = codigoApp();
   assert.match(app, /const .*RegistrarActualsConfirm = globalThis\.FinanceCanonicalRegistrarActualsConfirm \|\| null/);
   assert.match(app, /data-registrar-actuals-confirm="/);
   assert.match(app, /qs\("registrarActualsBulk"\)/);
@@ -188,7 +189,7 @@ test("app.js referencia el módulo y cablea fila, barra y panel", () => {
 });
 
 test("app.js cablea el checkbox de selección de fila y lo pasa como selectedKeys al clic de confirmar", () => {
-  const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  const app = codigoApp();
   assert.match(app, /registrarActualsSelectedKeys = new Set\(\)/);
   assert.match(app, /data-registrar-actuals-select="/);
   assert.match(app, /registrarActualsSelectedKeys\[checkbox\.checked \? "add" : "delete"\]/);

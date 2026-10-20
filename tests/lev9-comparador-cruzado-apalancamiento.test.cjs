@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico "El Libro Vivo", F-07, sin precedente en la
 // Oleada 3): comparador cruzado de instrumentos de apalancamiento (Lombard / hipoteca / línea de
@@ -12,7 +13,7 @@ const Comparator = require("../canonical-leverage-cross-comparator.js");
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
 const EmergencyCreditLine = require("../canonical-emergency-credit-line.js");
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function round2(value) {

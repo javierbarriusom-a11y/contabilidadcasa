@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const F = require("../canonical-forecast.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC8 (Oleada 3, Bloque 5): recomputeModelIfNeeded() ya recalcula el forecast al instante en cada
 // cambio (PVX3) — lo que faltaba era decidir cuándo ese recálculo es lo bastante grande para avisar.
@@ -45,7 +46,7 @@ test("reforecastMaterialityAlert está exportada con sus umbrales por defecto", 
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const p2UiSource = fs.readFileSync(path.join(__dirname, "..", "p2-ui.js"), "utf8");
 
 test("wiring: recomputeModelIfNeeded captura la caja mínima ANTES de sobrescribir lastSimulation", () => {

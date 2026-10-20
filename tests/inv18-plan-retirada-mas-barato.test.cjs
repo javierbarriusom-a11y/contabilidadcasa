@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const IrpfEstimator = require("../canonical-irpf-estimator.js");
 
@@ -15,7 +16,7 @@ const IrpfEstimator = require("../canonical-irpf-estimator.js");
 // líquido, luego la pensión": si una posición de pensión es de verdad más barata dado el estado
 // fiscal acumulado, se elige antes que un fondo con mucha plusvalía ya declarada.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 // I1 (Contabilidadcasa 2.0): renderInv18GoalOptions() se movió de renderAjustes() a
 // renderInversionFiscal() (views/inversion.js), junto al resto de la fiscalidad de inversión.
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");

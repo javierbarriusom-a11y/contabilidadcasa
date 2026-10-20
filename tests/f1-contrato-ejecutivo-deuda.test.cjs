@@ -1,12 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
 const ExecutiveReadModel = require("../executive-read-model.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // F1 · Cimientos: deuda pendiente y fecha libre de deuda se calculaban en Hoy de forma ad hoc
 // (homeDebtOutlook, ya reutilizado por el mapa de calor y el comparador). Este remate las expone

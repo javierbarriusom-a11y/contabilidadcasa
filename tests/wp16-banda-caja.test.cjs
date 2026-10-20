@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const Band = require("../canonical-cash-band.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-16 (NPV-01, docs/WP16_DISENO.md): la banda de caja a 30 días. Se prueba el motor puro: mecánica, bordes, honestidad («sin dato = no
 // calculable»; la banda ancha se dice) y, con el hogar sintético de WP-33, calibración (la banda cubre ~80 %; la probabilidad de cruzar el suelo
@@ -274,7 +275,7 @@ test("cableado: la tarjeta está en Previsión, el motor y la pantalla se cargan
   assert.ok(html.indexOf('src="chart-kit.js') < html.indexOf('src="cash-band-ui.js'), "el kit antes que la pantalla que lo usa");
   assert.match(read("service-worker.js"), /"\.\/canonical-cash-band\.js"[\s\S]*"\.\/cash-band-ui\.js"/);
   assert.match(read("tools/build-public-site.mjs"), /"canonical-cash-band\.js"[\s\S]*"cash-band-ui\.js"/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.equal((app.match(/renderCashBand\?\.\(globalThis\.FinanceCanonicalCashBand\)/g) || []).length, 1);
 });
 

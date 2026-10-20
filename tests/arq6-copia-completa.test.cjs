@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -69,7 +70,7 @@ function writtenKeys() {
 }
 
 function mainStateKeys() {
-  const source = read("app.js");
+  const source = codigoApp();
   const start = source.indexOf("function saveLocalSnapshot() {");
   const body = source.slice(start, source.indexOf("\n}\n", start));
   const keys = new Set();
@@ -79,7 +80,7 @@ function mainStateKeys() {
 }
 
 function backupLocalStores() {
-  const match = read("app.js").match(/const BACKUP_LOCAL_STORES = \[([\s\S]*?)\n\];/);
+  const match = codigoApp().match(/const BACKUP_LOCAL_STORES = \[([\s\S]*?)\n\];/);
   assert.ok(match, "app.js debería declarar BACKUP_LOCAL_STORES");
   return [...match[1].matchAll(/^\s*"([^"]+)",/gm)].map((entry) => entry[1]);
 }
@@ -99,7 +100,7 @@ test("las exclusiones y los almacenes de la copia existen de verdad (fallan si s
 });
 
 test("los almacenes propios viajan en el estado (copia y nube), se restauran y escribirlos sincroniza", () => {
-  const source = read("app.js");
+  const source = codigoApp();
   const payloadBuilder = source.slice(source.indexOf("function appStatePayload("), source.indexOf("function stateBackupSummaryMarkup("));
   assert.match(payloadBuilder, /localStores: backupLocalStoresPayload\(\),/);
   const apply = source.slice(source.indexOf("function applyPersistedPayload("), source.indexOf("function saveLocalSnapshot() {"));
@@ -117,7 +118,7 @@ test("los almacenes propios viajan en el estado (copia y nube), se restauran y e
 
 test("restaurar no borra almacenes ausentes y conserva una vez el valor local que sustituye", () => {
   const vm = require("node:vm");
-  const source = read("app.js");
+  const source = codigoApp();
   const pick = (signature) => {
     const start = source.indexOf(signature);
     assert.ok(start >= 0, signature);

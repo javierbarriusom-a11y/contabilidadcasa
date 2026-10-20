@@ -1,12 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // CPX3 (Oleada 2, Bloque 2): transparencia de recomendaciones ignoradas. CP1 (p2-ui.js) es efímera —
 // se recalcula en cada render sin guardar nunca cuánto lleva mostrándose la misma recomendación.

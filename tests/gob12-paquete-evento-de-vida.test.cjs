@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const BudgetSchema = require("../canonical-budget-schema.js").CanonicalBudgetSchema;
 const P2Domain = require("../p2-domain.js");
@@ -18,7 +19,7 @@ const P2Domain = require("../p2-domain.js");
 // tal cual, igual que ya se hace en tests/deb14-cuanto-hace-que-miraste-mercado.test.cjs con
 // canonical-e14-operations.js.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);
