@@ -130,7 +130,8 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - **Prueba nueva:** `tests/xgo01-sin-funciones-duplicadas.test.cjs` (2). Hace que cada función de primer nivel se declare en un solo script del sitio (170 de `index.html` más las vistas de `VIEW_CHUNKS`), porque partir `app.js` abre la puerta a que una anule a otra en silencio. También fija que Registrar y Datos viven fuera de `app.js` y que el cargador del OCR sigue en él.
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6049/6049 (+2), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - E2e, a11y y rendimiento por pantalla de Playwright: RESULTADO_PW.
+  - E2e, a11y y rendimiento por pantalla de Playwright: **199/199** (17,9 min, 0 líneas `[WebServer]`).
+  - Presupuesto de carga (mediana de «Hoy con contenido» en visita repetida, misma máquina): PR-1 2.924, 2.849 y 2.777 ms frente a `main` 2.813 y 2.846 ms. Es la misma cifra dentro del ruido, porque se cargan los mismos bytes repartidos en los mismos ficheros. Presupuesto: 5.000 ms.
   - En la primera pasada local, una prueba de WP-30 falló al abrir el navegador («Target page, context or browser has been closed»), sin llegar a comprobar nada. Repetida sola, pasó 3/3. La pasada completa de arriba es la que cuenta.
 - **Siguiente paso:** PR-2 (Partidas + Escenarios) mañana, después de un día de uso real de este PR en el móvil (Safari en iOS aún no tiene pruebas en el CI, P14).
 
