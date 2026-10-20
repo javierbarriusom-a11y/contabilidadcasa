@@ -36,6 +36,7 @@ donde se trabaja y se revisa. El clásico sigue como salida con `?tema=clasico` 
 | v2 por defecto | #519 | El tema v2 se aplica sin bandera; `?tema=clasico` es la salida y se recuerda. Mismas funciones en los dos: v2 solo cambia estilos y la Hoy, cuya versión completa sigue tras «Ver todo el detalle». Prueba de igualdad: e2e y a11y de Playwright recorridas con el v2 por defecto | `index.html` (script de `<head>`), `tema-v2.js` | `tests/redis-a1-tema-v2.test.cjs` (seis casos de la decisión) |
 | CI con trazas | #520 | Si una prueba en navegador falla, el CI sube `test-results/` (trazas y capturas) 14 días (P5) | `.github/workflows/pages.yml` | `tests/ci-informe-playwright.test.cjs` |
 | Cobro caducado | #521 | Fecha de cobro manual pasada y gasto diario de 0 € dejan de aplicarse con aviso; «Guardar ajuste» no congela lo aprendido (P3, P4). Sin tocar motores | `views/cobertura-ajuste.js` (nuevo), `app.js` (−7 líneas), `views/hoy-v2.js` | `tests/datos-cobro-caducado.test.cjs` y una e2e en `qa1` |
+| Desalojo, PR-0 y PR-1 | #525 y siguiente | Las pruebas leen el código de la app con un ayudante común; Registrar y Datos salen de `app.js` sin cambiar una coma (37.448 → 34.977 líneas, techo 35.107) | `tests/helpers/codigo-app.cjs`, `registrar-ui.js`, `datos-ui.js`, `app.js` | `tests/xgo01-codigo-app-pruebas.test.cjs`, `tests/xgo01-sin-funciones-duplicadas.test.cjs` |
 
 Validación de A3: `npm run verify` 6023/6023, e2e + a11y de Playwright 195/195, presupuesto de carga 4.091 ms de 5.000.
 
@@ -85,7 +86,7 @@ Recogidas en el artefacto de la séptima auditoría. Mandan sobre los prompts do
 | Código nuevo en `ui/components`, `ui/screens` | `views/*.js` (scripts clásicos, mismo scope que `app.js`) | Es el patrón que ya usa el repo para pantallas (PERF-1) |
 | Cargar la pantalla v2 solo con la bandera | `views/hoy-v2.js` con `defer` para todos (18 KB) | Un cargador dinámico de scripts nuevo lo rechaza `tests/ntc6-conexiones-externas.test.cjs` (RQ-13). No relajar esa prueba |
 | Signo menos tipográfico «−» | Guion normal «-8.310 €» | Decisión del hogar (P15): afecta a la app clásica y a decenas de pruebas, y el guion se pega mejor en una hoja de cálculo |
-| Fase 0 (desalojo de `app.js`) antes que nada | A1-A3 sin desalojo | Cada fase añadió como mucho 1 línea a `app.js` (37.454 de 37.495). **La siguiente pantalla que necesite lógica en `app.js` no cabe: el desalojo es requisito de lo que sigue** |
+| Fase 0 (desalojo de `app.js`) antes que nada | A1-A3 sin desalojo | Cada fase añadió como mucho 1 línea a `app.js` (37.454 de 37.495). **La siguiente pantalla que necesite lógica en `app.js` no cabía: el desalojo es requisito de lo que sigue** (PR-1 del 20/10: 34.977 de 35.107) |
 
 ## 5. Trampas técnicas ya encontradas
 
@@ -130,8 +131,10 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    del mismo mes del año anterior (nota de P1) cambia el motor de cobertura: se propone aparte.
 3. **Desalojo de `app.js`** en dos PR (P6), bajando el techo según el trinquete (P7). **PR-0 hecho el 20/10:** las pruebas leen
    el código de la app con `tests/helpers/codigo-app.cjs` (`app.js` + los ficheros que reciben lo desalojado), así que mover
-   una función no rompe pruebas. Siguen PR-1 (Registrar + Datos) y PR-2 (Partidas + Escenarios), cada uno añadiendo su
-   fichero de destino a `FICHEROS_APP` si es nuevo. Solo declaraciones de función, a scripts clásicos con `defer` antes de `app.js`.
+   una función no rompe pruebas. **PR-1 hecho el 20/10:** 112 funciones de Registrar y Datos a `registrar-ui.js` y
+   `datos-ui.js`, idénticas byte a byte; `app.js` 37.448 → 34.977 y techo 35.107. Sigue PR-2 (Partidas + Escenarios), que
+   añade su fichero de destino a `FICHEROS_APP` si es nuevo. Solo declaraciones de función, a scripts clásicos con `defer`
+   antes de `app.js`; el cargador del OCR de tickets se queda en `app.js` junto a su huella SRI (RQ-13).
 4. **Funciones en prueba** (Laboratorio, XGO-03; nombre según P8) con el tema como primer interruptor, y el aviso de
    graduación a las dos semanas con confirmación manual (P9). Después, en PR aparte, el medidor XGO-02 (P10).
 5. **A4 · Movimientos e Importar** en dos PR (P12), con el cuadre según P11. Lo que dependa del buzón o del PDF, plegado.

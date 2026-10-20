@@ -109,6 +109,31 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (329): desalojo de `app.js`, PR-1 — Registrar y Datos salen a sus scripts
+
+- **Qué pidió el hogar:** el plan de hoy, aprobado: tras el PR-0 (#525), la primera mitad del desalojo (XGO-01, P6: Registrar + Datos). Partidas + Escenarios, mañana, tras un día de este PR en el móvil.
+- **Qué cambia: nada visible.**
+  - **112 funciones** pasan tal cual, sin cambiar una coma, a los scripts clásicos que ya se cargaban con `defer` antes de `app.js`:
+    - **76 de Registrar a `registrar-ui.js`:** saldos, reales del mes, «Registrar mes», datos manuales, carga por lotes y por Excel, recibos.
+    - **36 de Datos a `datos-ui.js`:** Movimientos, importación de extractos, auditoría de datos, enlaces y resúmenes de Herramientas › Datos.
+  - Siguen siendo funciones globales del mismo ámbito y ya existen cuando `app.js` arranca. Solo se movieron declaraciones de función: nada se ejecuta al cargar.
+  - **`app.js` baja de 37.448 a 34.977 líneas (−2.471)** y el techo de ARQ-4 baja de 37.495 a **35.107** por el trinquete que eligió el hogar (P7: lo que queda + ~130). Las cuatro pruebas que repiten el techo (FIS-1, WP-14/27, WP-15 y WP-30) se ajustan con él.
+- **Cómo se eligió qué mover.** Un inventario por los identificadores del DOM: funciones que solo tocan elementos de las secciones de Registrar (`registrar`, `registrar-mes`, `data-entry`, `update-hub`, `update-data`) o de Datos (`datos-importar`, `herramientas-datos`, `data-audit`, `movements`), más los ayudantes a los que solo llaman ellas.
+  - Se dejaron fuera 6 que tocan esos elementos pero son de Hoy o de Cierre (`homeMarginTile`, `homePendingActualsReminder`, `homeImportSessionCandidate`, `e17SearchUsageWeight`, `renderCierreReportArchive`, `handleAlertRuleAction`).
+  - **El cargador del motor OCR de tickets (`loadReceiptOcrEngine`) se queda en `app.js`**, junto a su URL y su huella SRI. Moverlo obligaba a tocar la prueba de seguridad RQ-13 (`ntc6-conexiones-externas`), y `ESTADO.md` §4 dice que no se relaja.
+- **Cómo se comprobó que no cambia nada.**
+  - **Equivalencia:** antes y después hay las mismas 1.931 funciones de primer nivel entre `app.js`, `registrar-ui.js`, `datos-ui.js` y `partidas-ui.js`, idénticas byte a byte. El código que no es función (1.820 líneas) es idéntico y en el mismo orden.
+  - **Antes de mover:** ninguna de las 112 se declara en otro script ni se reasigna en ninguno. Si lo estuviera, el orden de carga, que antes ponía siempre `app.js` al final, cambiaría cuál gana.
+  - **Caché:** el service worker guarda en caché todos los ficheros de cada versión del sitio a la vez, así que no puede servir un `app.js` nuevo con un `registrar-ui.js` viejo. Sin service worker, se sube la versión (`?v=`) de los dos ficheros de destino. La de `app.js` no se toca: la fijan 26 pruebas, y un `app.js` viejo en caché aún lleva las funciones (duplicadas, sin efecto).
+- **Pruebas.**
+  - **Ninguna prueba se tocó por las funciones movidas:** el PR-0 ya leía el código de la app entero.
+  - **Prueba nueva:** `tests/xgo01-sin-funciones-duplicadas.test.cjs` (2). Hace que cada función de primer nivel se declare en un solo script del sitio (170 de `index.html` más las vistas de `VIEW_CHUNKS`), porque partir `app.js` abre la puerta a que una anule a otra en silencio. También fija que Registrar y Datos viven fuera de `app.js` y que el cargador del OCR sigue en él.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6049/6049 (+2), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - E2e, a11y y rendimiento por pantalla de Playwright: RESULTADO_PW.
+  - En la primera pasada local, una prueba de WP-30 falló al abrir el navegador («Target page, context or browser has been closed»), sin llegar a comprobar nada. Repetida sola, pasó 3/3. La pasada completa de arriba es la que cuenta.
+- **Siguiente paso:** PR-2 (Partidas + Escenarios) mañana, después de un día de uso real de este PR en el móvil (Safari en iOS aún no tiene pruebas en el CI, P14).
+
 ## Cierre de sesión — 20 de octubre de 2026 (328): desalojo de `app.js`, PR-0 — las pruebas leen el código de la app, no solo `app.js`
 
 - **Qué pidió el hogar:** el plan de la sesión de hoy y, aprobado, empezar por el PR-0 (20/10/2026). Es el paso previo al desalojo de `app.js` en dos PR (XGO-01, P6 del cuestionario): Registrar y Datos primero, Partidas y Escenarios después.
