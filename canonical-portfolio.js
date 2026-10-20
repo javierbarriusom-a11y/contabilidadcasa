@@ -481,16 +481,25 @@
   const REBALANCE_CALENDAR_REVIEW_SCHEMA_ID = "finance-inv17-rebalance-calendar-review/v1";
   const REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS = 6;
 
+  // «Hoy» es el día del calendario del hogar (hora local), no el de UTC: con UTC, de 0 a 1-2 h en Madrid el contador iba un día por
+  // detrás (decisión del hogar, 20/10/2026). Una referencia AAAA-MM-DD se toma tal cual, sin pasar por ninguna zona horaria.
+  function calendarDay(value) {
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+      return { year, month: month - 1, day };
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : { year: date.getFullYear(), month: date.getMonth(), day: date.getDate() };
+  }
+
   function monthsSinceDate(dateIso, referenceDate = new Date()) {
     const start = asOfDate(dateIso);
-    const reference = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
-    if (!start || Number.isNaN(reference.getTime())) return null;
+    const reference = calendarDay(referenceDate);
+    if (!start || !reference) return null;
     const [sy, sm, sd] = start.split("-").map(Number);
-    const startUtc = Date.UTC(sy, sm - 1, sd);
-    const referenceUtc = Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate());
-    if (referenceUtc < startUtc) return 0;
-    let months = (reference.getUTCFullYear() - sy) * 12 + (reference.getUTCMonth() - (sm - 1));
-    if (reference.getUTCDate() < sd) months -= 1;
+    if (Date.UTC(reference.year, reference.month, reference.day) < Date.UTC(sy, sm - 1, sd)) return 0;
+    let months = (reference.year - sy) * 12 + (reference.month - (sm - 1));
+    if (reference.day < sd) months -= 1;
     return Math.max(0, months);
   }
 

@@ -52,6 +52,7 @@ function sandbox({
   const saveCalls = [];
   const context = {
     scenarioSettings,
+    isoLocalDate: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, // como el de app.js: el día local
     window: {
       FinanceCanonicalForecast: {
         buildAssumptionRegistry: () => ({ items: [] }),
@@ -138,12 +139,12 @@ test("gob13AnnualReviewStatus · nunca marcado, no revisado y pendiente (usa la 
 
 test("gob13AnnualReviewStatus · marcado hace un año exacto, ya toca repetirlo", () => {
   // El mismo día del año pasado, recortado al último día del mes: el 29/02 no existe el año anterior y setFullYear lo convertía en el 1/03,
-  // que queda a menos de un año (la prueba fallaba el 29/02/2028). En UTC, como cuenta los meses el motor (monthsSinceDate).
+  // que queda a menos de un año (la prueba fallaba el 29/02/2028). En el día local, como cuenta los meses el motor (monthsSinceDate).
   const today = new Date();
-  const year = today.getUTCFullYear() - 1;
-  const day = Math.min(today.getUTCDate(), new Date(Date.UTC(year, today.getUTCMonth() + 1, 0)).getUTCDate());
-  const oneYearAgo = new Date(Date.UTC(year, today.getUTCMonth(), day));
-  const ctx = sandbox({ scenarioSettings: { gob13LastAnnualReviewAt: oneYearAgo.toISOString().slice(0, 10) } });
+  const year = today.getFullYear() - 1;
+  const day = Math.min(today.getDate(), new Date(year, today.getMonth() + 1, 0).getDate());
+  const ctx = sandbox({ scenarioSettings: {} });
+  ctx.scenarioSettings.gob13LastAnnualReviewAt = ctx.isoLocalDate(new Date(year, today.getMonth(), day));
   const status = ctx.gob13AnnualReviewStatus();
   assert.equal(status.reviewed, true);
   assert.equal(status.due, true);
@@ -176,7 +177,7 @@ test("renderGob13AnnualReview · pinta el resultado en la nota", () => {
 test("markGob13AnnualReviewDone · guarda la fecha de hoy, persiste, repinta y avisa", () => {
   const ctx = sandbox({ scenarioSettings: {} });
   ctx.markGob13AnnualReviewDone();
-  assert.equal(ctx.scenarioSettings.gob13LastAnnualReviewAt, new Date().toISOString().slice(0, 10));
+  assert.equal(ctx.scenarioSettings.gob13LastAnnualReviewAt, ctx.isoLocalDate(new Date()), "el día local del hogar, no el de UTC");
   assert.equal(ctx.saveCalls.length, 1);
   assert.equal(ctx.announceCalls.length, 1);
   assert.match(ctx.noteEl.innerHTML, /dentro del año/);

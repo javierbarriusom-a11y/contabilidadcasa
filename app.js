@@ -20153,7 +20153,7 @@ function i12ConvictionReviewHtml(position) {
 
 function markIv1PositionConvictionReviewed(positionId) {
   const next = iv1PositionsList().map((position) =>
-    position.id === positionId ? { ...position, convictionReviewedAt: new Date().toISOString().slice(0, 10) } : position,
+    position.id === positionId ? { ...position, convictionReviewedAt: isoLocalDate(new Date()) } : position, // el día local del hogar, como cuenta el motor
   );
   saveIv1PositionsList(next);
   renderIv1PositionList();
@@ -21079,8 +21079,9 @@ function saveInv17RebalanceReviewInterval() {
 
 function markInv17RebalanceReviewed() {
   // Fecha sin hora (YYYY-MM-DD), mismo formato que asOfDate() (canonical-portfolio.js) espera —
-  // una marca de tiempo completa no la reconocería y la revisión parecería no calculable.
-  scenarioSettings.inv17LastRebalanceReviewAt = new Date().toISOString().slice(0, 10);
+  // una marca de tiempo completa no la reconocería y la revisión parecería no calculable. Es el día local del hogar, no el de UTC
+  // (de 0 a 1-2 h en Madrid guardaba la víspera).
+  scenarioSettings.inv17LastRebalanceReviewAt = isoLocalDate(new Date());
   saveScenarioSettings();
   renderInv17RebalanceCalendarReview();
   announceStatus("Revisión de rebalanceo marcada como hecha hoy.");

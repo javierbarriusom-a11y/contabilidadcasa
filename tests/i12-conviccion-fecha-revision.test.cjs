@@ -94,11 +94,12 @@ test("app.js: markIv1PositionConvictionReviewed actualiza solo convictionReviewe
     saveIv1PositionsList: (next) => { saved.next = next; },
     renderIv1PositionList: () => { saved.rendered = true; },
     announceStatus: (message) => { saved.status = message; },
+    isoLocalDate: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, // como el de app.js: el día local
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("markIv1PositionConvictionReviewed"), context);
   context.markIv1PositionConvictionReviewed("position-1");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = context.isoLocalDate(new Date());
   assert.equal(saved.next.find((p) => p.id === "position-1").convictionReviewedAt, today);
   assert.equal(saved.next.find((p) => p.id === "position-2").convictionReviewedAt, "2025-01-01", "no toca otras posiciones");
   assert.equal(saved.rendered, true);

@@ -221,7 +221,7 @@ function renderGob13AnnualReview() {
 }
 
 function markGob13AnnualReviewDone() {
-  scenarioSettings.gob13LastAnnualReviewAt = new Date().toISOString().slice(0, 10);
+  scenarioSettings.gob13LastAnnualReviewAt = isoLocalDate(new Date()); // el día local del hogar, como cuenta el motor
   saveScenarioSettings();
   renderGob13AnnualReview();
   announceStatus("Ritual anual de revisión marcado como hecho hoy.");
