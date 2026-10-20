@@ -109,6 +109,18 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (330): la prueba del aviso de la CIRBE tenía menos tiempo del que necesita
+
+- **Qué pidió el hogar:** publicar el arreglo del fallo intermitente de WP-40 (20/10/2026), tras la investigación de los dos fallos que se repetían en el CI (WP-12 y WP-40).
+- **Causa, reproducida.**
+  - Con la CPU de la máquina saturada y 6 navegadores a la vez, la prueba e2e «el aviso de la CIRBE solo existe si hay un informe tecleado…» (`qa1-flujos-completos.spec.cjs`, WP-32/WP-40) falló **3 de 10** veces por «Test timeout of 30000ms exceeded».
+  - Las trazas de las tres dicen lo mismo: **todas las comprobaciones pasan** y el tiempo se acaba en el último paso, entre los 30 y los 31 s.
+  - La prueba carga la app entera cuatro veces (la del principio, dos para partir de cero y una con el informe) y descarga el `.ics`. En esas condiciones tarda una mediana de **29,3 s**, justo en el límite de 30 s que Playwright pone por defecto.
+  - **No es un fallo de la app:** su tiempo de carga lo vigila su propia prueba de presupuesto (5.000 ms).
+- **Arreglo:** `test.setTimeout(90000)` en esa prueba, con un comentario que lo explica. Es la convención que ya usan otras cinco pruebas del repositorio. No cambia nada de lo que se comprueba. Con él: **12/12** en las mismas condiciones (máximo 30,9 s).
+- **WP-12, sin resolver.** Las cinco pruebas del backtest de liquidez pasaron **70 de 70** veces, también con la CPU saturada. Tardan como mucho 20,8 s, lejos del límite, así que su fallo en el CI (dos en tres días) no se explica por tiempo. No se toca nada sin causa. Desde el #524 el log del CI se lee entero: el próximo fallo dirá qué pasa, y el `afterEach` de esas pruebas vuelca el estado de la página.
+- **Validación:** `npm test` 6049/6049 y lint en verde; la prueba de la CIRBE, 12/12 con la CPU saturada.
+
 ## Cierre de sesión — 20 de octubre de 2026 (329): desalojo de `app.js`, PR-1 — Registrar y Datos salen a sus scripts
 
 - **Qué pidió el hogar:** el plan de hoy, aprobado: tras el PR-0 (#525), la primera mitad del desalojo (XGO-01, P6: Registrar + Datos). Partidas + Escenarios, mañana, tras un día de este PR en el móvil.

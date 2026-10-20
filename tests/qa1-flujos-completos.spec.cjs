@@ -1555,6 +1555,10 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
 
   // WP-40 PR-2: el aviso anual de la CIRBE. Sin informe tecleado no hay aviso; con uno de hace casi un año, entra en el fichero y su título no lleva datos.
   test("el aviso de la CIRBE solo existe si hay un informe tecleado, sale en el .ics sin datos en el título y se puede apagar", async ({ page }) => {
+    // Cuatro cargas completas de la app (dos para partir de cero, una con el informe y la del principio) y una descarga: en una máquina
+    // lenta pasa de los 30 s por defecto con todo en orden. Reproducido el 20/10/2026 con la CPU saturada: 3 de 10 sin tiempo en el
+    // último paso, con todas las comprobaciones anteriores en verde (sesión 330).
+    test.setTimeout(90000);
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.goto("/index.html#ajustes");
