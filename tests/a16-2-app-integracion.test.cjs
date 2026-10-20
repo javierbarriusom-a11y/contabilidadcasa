@@ -20,6 +20,6 @@ test("A16-2: renderHomeHealthScoreTrend dice explícitamente que aún no hay ten
 });
 
 test("A16-2: renderHomeDashboard registra el snapshot del día y pinta la tendencia", () => {
-  assert.match(appSource, /recordHomeHealthScoreSnapshot\(compositeResult\?\.value \?\? null, new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\);/);
+  assert.match(appSource, /recordHomeHealthScoreSnapshot\(compositeResult\?\.value \?\? null, isoLocalDate\(new Date\(\)\)\);/);
   assert.match(appSource, /renderHomeHealthScoreTrend\(\);/);
 });

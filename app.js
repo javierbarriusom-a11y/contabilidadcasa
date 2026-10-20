@@ -983,11 +983,11 @@ function e17ParseQuickCaptureQuery(query, today = new Date()) {
     .join(" ")
     .trim();
   if (!concept) return null;
-  const date = naturalDate?.date || today.toISOString().slice(0, 10);
+  const date = naturalDate?.date || isoLocalDate(today);
   return { amount, concept, kind: isIncome ? "income" : "expense", date };
 }
 
-function e17QuickCaptureHtml(capture, today = new Date().toISOString().slice(0, 10)) {
+function e17QuickCaptureHtml(capture, today = isoLocalDate(new Date())) {
   if (!capture) return "";
   const verb = capture.kind === "income" ? "Ingreso" : "Gasto";
   // DEX2: la fecha solo se menciona cuando no es hoy — "toda cifra futura declara origen/fecha", y
@@ -1007,7 +1007,7 @@ function handleE17QuickCapture(dataset) {
   const concept = String(dataset?.e17CreateConcept || "").trim();
   const kind = dataset?.e17CreateKind === "income" ? "income" : "expense";
   if (!Number.isFinite(amount) || amount <= 0 || !concept) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoLocalDate(new Date());
   const requestedDate = String(dataset?.e17CreateDate || "").trim();
   const date = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today;
   const row = {
@@ -1263,7 +1263,7 @@ function defaultBalanceDate() {
     baseData?.metadata?.generatedAt?.slice(0, 10) ||
     baseData?.sourceBalances?.valuationDate ||
     baseData?.metadata?.forecastStart?.slice(0, 10) ||
-    new Date().toISOString().slice(0, 10)
+    isoLocalDate(new Date())
   );
 }
 
@@ -1666,7 +1666,7 @@ function downloadBackupEnvelope(envelope, filenamePrefix = "finanzas-casa-copia"
   const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
+  const date = isoLocalDate(new Date());
   link.href = url;
   link.download = `${filenamePrefix}-${date}.json`;
   document.body.appendChild(link);
@@ -2757,7 +2757,7 @@ function downloadCanonicalInventory() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `finanzas-casa-inventario-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `finanzas-casa-inventario-${isoLocalDate(new Date())}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -2802,7 +2802,7 @@ function downloadCanonicalLedger() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `finanzas-casa-conciliacion-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `finanzas-casa-conciliacion-${isoLocalDate(new Date())}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -4484,7 +4484,7 @@ function loadVisitCounts() {
 function recordViewVisit(viewId) {
   const counts = loadVisitCounts();
   const previous = counts[viewId] || { count: 0, last: "" };
-  counts[viewId] = { count: previous.count + 1, last: new Date().toISOString().slice(0, 10) };
+  counts[viewId] = { count: previous.count + 1, last: isoLocalDate(new Date()) };
   storageSet(storageKey(VISIT_COUNTS_KEY), JSON.stringify(counts));
 }
 
@@ -15049,7 +15049,7 @@ function handleGob8DownloadDraft() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `borrador-renta-${new Date().toISOString().slice(0, 10)}.txt`;
+  link.download = `borrador-renta-${isoLocalDate(new Date())}.txt`;
   link.style.display = "none";
   document.body.appendChild(link);
   link.click();
@@ -16357,7 +16357,7 @@ function downloadGob18DecisionPackage(id) {
   if (!window.P2Export) return;
   const decision = gob10Decisions().find((row) => row.id === id);
   if (!decision) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoLocalDate(new Date());
   window.P2Export.downloadPlainPdf(gob18DecisionPackageLines(decision), `paquete-decision-${today}.pdf`);
 }
 
@@ -19269,7 +19269,7 @@ function a19CertifiedReportLines() {
 
 function downloadA19CertifiedReport() {
   if (!window.P2Export) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoLocalDate(new Date());
   window.P2Export.downloadPlainPdf(a19CertifiedReportLines(), `informe-certificado-${today}.pdf`);
 }
 
@@ -20780,7 +20780,7 @@ function renderInv8DcaTracking() {
     return;
   }
   const result = engine.normalizePositions(rows);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoLocalDate(new Date());
   const tracked = result.positions
     .filter((position) => position.dcaPlan)
     .map((position) => ({ position, status: engine.dcaPlanStatus(position, today) }))
@@ -25325,7 +25325,7 @@ function handleMovementsExport() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `movimientos-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `movimientos-${isoLocalDate(new Date())}.csv`;
   link.style.display = "none";
   document.body.appendChild(link);
   link.click();
@@ -25875,7 +25875,7 @@ function dataFreshnessReport() {
     movements: baseData?.transactions || [], actuals: actualMonths,
     forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
     debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
-  }, { asOf: new Date().toISOString().slice(0, 10) });
+  }, { asOf: isoLocalDate(new Date()) });
 }
 
 // DEX9: antes solo se veían las 4 últimas entradas por fecha de creación descendente, sin contar
@@ -26009,7 +26009,7 @@ async function runReceiptOcr(file) {
 
 function receiptFieldsFromOcrText(text) {
   if (!ReceiptOcr) return { amount: { calculable: false }, date: { calculable: false }, merchant: { calculable: false } };
-  return ReceiptOcr.extractReceiptFields(text, { today: new Date().toISOString().slice(0, 10) });
+  return ReceiptOcr.extractReceiptFields(text, { today: isoLocalDate(new Date()) });
 }
 
 async function handleReceiptCameraCapture(event) {
@@ -26037,7 +26037,7 @@ function renderReceiptCaptureReview(fields) {
   const container = qs("receiptCameraReview");
   if (!container || !receiptCaptureDraft) return;
   const amountValue = fields.amount?.calculable ? Math.abs(fields.amount.value).toFixed(2) : "";
-  const dateValue = fields.date?.calculable ? fields.date.value : new Date().toISOString().slice(0, 10);
+  const dateValue = fields.date?.calculable ? fields.date.value : isoLocalDate(new Date());
   const merchantValue = fields.merchant?.calculable ? fields.merchant.value : "";
   const allCalculable = fields.amount?.calculable && fields.date?.calculable && fields.merchant?.calculable;
   container.innerHTML = `
@@ -28213,7 +28213,7 @@ function ajustesExportMonthLines(month, entries, totals) {
     }${entry.hasActual ? ` · ${registrarMesSignedMoney(entry.variance)}` : ""}`;
   return [
     `RESUMEN DEL MES - ${monthName.toUpperCase()}`,
-    `Generado: ${new Date().toISOString().slice(0, 10)}`,
+    `Generado: ${isoLocalDate(new Date())}`,
     "",
     "INGRESOS",
     ...(entries.income.length ? entries.income.map(rowLine) : ["Sin partidas de ingreso."]),
@@ -29317,7 +29317,7 @@ const UX_ALERT_METRICS = {
 function uxDateAfterDays(days = 30) {
   const date = new Date();
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return isoLocalDate(date);
 }
 
 function defaultUxAlerts() {
@@ -30867,7 +30867,7 @@ function renderHomeDashboard() {
   });
   const compositeResult = window.FinanceCanonicalHealthScore?.compositeHealthScore(compositeInputs);
   renderHomeHealthScoreCard(compositeResult);
-  recordHomeHealthScoreSnapshot(compositeResult?.value ?? null, new Date().toISOString().slice(0, 10));
+  recordHomeHealthScoreSnapshot(compositeResult?.value ?? null, isoLocalDate(new Date()));
   renderHomeHealthScoreTrend();
   renderHomeForecastChangePanel();
   renderDecisionInboxCard();

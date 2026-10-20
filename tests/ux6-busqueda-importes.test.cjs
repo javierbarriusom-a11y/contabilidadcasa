@@ -55,6 +55,8 @@ function sandboxWith(names, extra = {}) {
       const [year, month, day] = String(v).slice(0, 10).split("-");
       return day && month && year ? `${day}/${month}/${year}` : String(v);
     },
+    // El mismo Date que las pruebas: TODAY se crea fuera del sandbox e isoLocalDate lo reconoce con instanceof.
+    Date,
     ...extra,
   };
   vm.createContext(context);
@@ -64,6 +66,8 @@ function sandboxWith(names, extra = {}) {
   vm.runInContext(extractConst("E17_CAPTURE_MONTHS"), context);
   vm.runInContext(extractConst("E17_CAPTURE_RELATIVE_DAYS"), context);
   vm.runInContext(extractFunction("normalizedText"), context);
+  vm.runInContext(extractFunction("localDateFromIso"), context);
+  vm.runInContext(extractFunction("isoLocalDate"), context);
   vm.runInContext(extractFunction("e17ExtractNaturalDate"), context);
   // NAV-5: renderE17Launcher también resuelve una pregunta de cifra ejecutiva; estos tests no la
   // ejercitan (ninguna consulta de aquí coincide con sus palabras clave), pero la referencia debe
@@ -361,7 +365,7 @@ test("handleE17QuickCapture · una fecha mal formada (o ausente) cae a hoy, nunc
     pendingE11bApply: null,
     qs: () => null,
   });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = ctx.isoLocalDate(new Date()); // el día del hogar (hora local), no el de UTC
   ctx.handleE17QuickCapture({ e17CreateAmount: "20", e17CreateConcept: "gasolina", e17CreateKind: "expense", e17CreateDate: "no-es-una-fecha" });
   assert.equal(calls[0].rows[0].date, today);
 });
