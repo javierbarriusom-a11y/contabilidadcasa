@@ -34,6 +34,13 @@
       updatedAt: text(input.updatedAt) || new Date().toISOString(),
     };
   }
+  // «Hoy» para `mutedUntil` es el día del calendario del hogar, no el de UTC: con UTC, de 0 a 1-2 h en Madrid un silencio «hasta
+  // ayer» seguía callando las alertas de hoy. Quien llama lo pasa como `localDate` (AAAA-MM-DD), igual que pasa `localTime`; sin él, el día local
+  // del proceso que decide.
+  function localDay(value, now) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text(value))) return text(value);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }
   function inQuietHours(preferences, localTime) {
     const now = minutes(validTime(localTime, "12:00"));
     const start = minutes(preferences.quietStart), end = minutes(preferences.quietEnd);
@@ -51,7 +58,7 @@
     if (!preferences.enabled) return { send: false, reason: "channel-disabled", fallback: "app" };
     if (!input.consentActive) return { send: false, reason: "consent-missing", fallback: "app" };
     if (!preferences.subscriptionId) return { send: false, reason: "subscription-missing", fallback: "app" };
-    if (preferences.mutedUntil && preferences.mutedUntil >= now.toISOString().slice(0, 10)) return { send: false, reason: "muted", fallback: "app" };
+    if (preferences.mutedUntil && preferences.mutedUntil >= localDay(input.localDate, now)) return { send: false, reason: "muted", fallback: "app" };
     if (inQuietHours(preferences, input.localTime)) return { send: false, reason: "quiet-hours", fallback: "app", retryAfter: preferences.quietEnd };
     const key = dedupeKey(input.alert, input.reviewKey);
     if (new Set(input.deliveredKeys || []).has(key)) return { send: false, reason: "duplicate", fallback: "app", dedupeKey: key };
