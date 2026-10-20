@@ -869,9 +869,11 @@ anterior de este manual, esta lista **no incluye** objetivos y calendario (E15),
 (E16) ni la aplicación de ofertas de deuda al plan real (E14b): las tres están construidas, verificadas
 y en uso. Lo que sigue genuinamente pendiente:
 
-- **Conexión bancaria PSD2 real** (`O-6`): bloqueada por la contratación de un proveedor externo
-  (GoCardless cerró las altas en julio de 2025; desde octubre de 2026 se evalúa Enable Banking, ver
-  `docs/ND13_SPIKE_CONEXION.md`), no por trabajo pendiente propio.
+- **Conexión bancaria PSD2 real** (`O-6`): **descartada el 20/10/2026** por decisión del hogar, al no
+  hacerse la verificación práctica en Enable Banking (GoCardless cerró las altas en julio de 2025; ver
+  `docs/ND13_SPIKE_CONEXION.md`). Los saldos se ponen al día con el «Pulso de saldos» de Registrar y con
+  el saldo final del extracto al importar. Queda marcada para recuperarla si el hogar lo pide o si los
+  saldos dejan de estar al día (`BACKLOG_DEFINITIVO.md` §6).
 - **Asistente de IA en producción real** (`A5-1`): construido con backend privado propio, pero
   todavía no activo fuera de base local. Mientras tanto, la captura por voz y un puñado de tareas
   condicionadas (`DEX6`, `RGX3`) quedan a la espera de esa activación — el resto de la aplicación

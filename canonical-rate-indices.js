@@ -6,9 +6,9 @@
  * cuatro meses no se trata como el de hoy. Motor puro, sin DOM ni almacenamiento: la tarjeta vive en
  * indices-ui.js.
  *
- * Esto NO consulta ninguna fuente externa. La fuente oficial (PR-2) espera a la decisión de O-6 del
- * 16/10/2026 y a la revisión de seguridad (docs/NTC06_AMENAZAS.md); cuando exista, cada punto traerá
- * `source: "oficial"` y el valor tecleado seguirá siendo el de reserva.
+ * Esto NO consulta ninguna fuente externa. La fuente oficial (PR-2) se archivó el 20/10/2026 al cerrarse O-6
+ * (docs/ND13_SPIKE_CONEXION.md); si algún día se hace, cada punto traerá `source: "oficial"`, pasará la
+ * revisión de seguridad (docs/NTC06_AMENAZAS.md) y el valor tecleado seguirá siendo el de reserva.
  */
 
 (function attachRateIndices(root, factory) {
