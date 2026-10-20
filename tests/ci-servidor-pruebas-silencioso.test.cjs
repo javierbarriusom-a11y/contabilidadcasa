@@ -7,7 +7,7 @@ const { spawn } = require("node:child_process");
 
 // El servidor de las pruebas de Playwright (tools/serve-dist.py) solo registra las peticiones que fallan. Con
 // `python3 -m http.server`, cada fichero servido dejaba una línea en el log del CI (~120.000 por ejecución) y el
-// error de la prueba que fallaba quedaba fuera de lo que se puede leer (sesión 326, 20/10/2026).
+// error de la prueba que fallaba quedaba fuera de lo que se puede leer (sesión 327, 20/10/2026).
 
 const root = path.resolve(__dirname, "..");
 

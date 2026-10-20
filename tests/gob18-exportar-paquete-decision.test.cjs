@@ -50,6 +50,8 @@ function sandbox({ decisions = [], pdfCalls = [] } = {}) {
     pdfCalls,
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction("localDateFromIso"), context);
+  vm.runInContext(extractFunction("isoLocalDate"), context);
   vm.runInContext(extractFunction("gob18DecisionPackageLines"), context);
   vm.runInContext(extractFunction("downloadGob18DecisionPackage"), context);
   return context;

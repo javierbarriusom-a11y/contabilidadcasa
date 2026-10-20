@@ -142,6 +142,8 @@ function dex3Sandbox() {
     pendingE11bApply: null,
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction(app, "localDateFromIso"), context);
+  vm.runInContext(extractFunction(app, "isoLocalDate"), context);
   vm.runInContext(extractFunction(analisis, "handleAnalisisRepeatSubscription"), context);
   return { context, calls };
 }

@@ -60,7 +60,7 @@ test("GOB8: handleGob8DownloadDraft genera un .txt descargable con el mismo meca
   const block = appSource.slice(appSource.indexOf("function handleGob8DownloadDraft("), appSource.indexOf("function handleGob8DownloadDraft(") + 700);
   assert.match(block, /new Blob\(\[content\], \{ type: "text\/plain;charset=utf-8" \}\);/);
   assert.match(block, /URL\.createObjectURL\(blob\);/);
-  assert.match(block, /link\.download = `borrador-renta-\$\{new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\}\.txt`;/);
+  assert.match(block, /link\.download = `borrador-renta-\$\{isoLocalDate\(new Date\(\)\)\}\.txt`;/);
   assert.match(block, /URL\.revokeObjectURL\(url\);/);
 });
 

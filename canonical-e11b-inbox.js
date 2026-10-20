@@ -11,6 +11,7 @@
   const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
   const text = (value) => String(value ?? "").trim();
   const now = (options) => text(options?.at) || new Date().toISOString();
+  const localDay = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const makeId = (prefix, options = {}) => text(options.id) || `${prefix}-${now(options)}-${Math.random().toString(16).slice(2)}`;
 
   function normalizeSource(value) {
@@ -93,7 +94,8 @@
   }
 
   function freshness(input = {}, options = {}) {
-    const asOf = text(options.asOf) || new Date().toISOString().slice(0, 10);
+    // Sin `asOf`, «hoy» es el día del calendario del hogar (hora local), no el de UTC: con UTC, de 0 a 1-2 h en Madrid salía la víspera.
+    const asOf = text(options.asOf) || localDay(new Date());
     const dates = (values) => (Array.isArray(values) ? values : []).map((row) => text(row?.date || row?.updatedAt || row)).filter(Boolean).sort();
     const latest = (values) => dates(values).at(-1) || "";
     const areas = {

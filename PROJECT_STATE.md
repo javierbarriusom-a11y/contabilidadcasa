@@ -109,7 +109,7 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
-## Cierre de sesión — 20 de octubre de 2026 (326): el servidor de las pruebas en navegador solo registra lo que falla
+## Cierre de sesión — 20 de octubre de 2026 (327): el servidor de las pruebas en navegador solo registra lo que falla
 
 - **Qué pidió el hogar:** silenciar el log del servidor web de Playwright (20/10/2026).
 - **Por qué hacía falta.** La ejecución de `main` tras el PR 522 falló en dos e2e que no tocaba: el backtest de liquidez (WP-12 «con saldos manuales…», su segundo fallo en tres días) y la conciliación con la CIRBE (WP-40). En local pasan 8 de 8. No se pudo saber por qué fallaban en el CI:
@@ -124,8 +124,32 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - **Prueba nueva:** `tests/ci-servidor-pruebas-silencioso.test.cjs` arranca el servidor y comprueba que una petición correcta no deja línea y una 404 sí.
 - **Siguiente paso:** el próximo fallo de WP-12 o WP-40 se podrá leer entero en el log. Ahí se busca la causa, en lugar de relanzar.
 - **Validación:**
-  - `npm run verify` en verde, salida 0: `npm test` 6037/6037, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - `npm run verify` en verde, salida 0: `npm test` 6037/6037, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Repetido tras traer `main` con la 326 (#523): 6044/6044.
   - E2e y a11y completas con el servidor nuevo: 196/196, con 0 líneas `[WebServer]` y 43 KB de log en total. Antes, solo esas líneas sumaban varios MB.
+
+## Cierre de sesión — 20 de octubre de 2026 (326): el resto de «hoy» en UTC pasa al día local del hogar
+
+- **Qué pidió el hogar:** revisar los ~20 usos de `new Date().toISOString().slice(0, 10)` (y variantes) que dejó anotados la 325, pasar al día local los que son «el día del hogar» y dejar en UTC solo lo técnico.
+- **Pasan al día local (23 usos):**
+  - **`app.js` (19, con `isoLocalDate`):** fecha por defecto de la captura rápida E17 (`e17ParseQuickCaptureQuery`, `e17QuickCaptureHtml`, `handleE17QuickCapture`); contador de visitas por pantalla (`recordViewVisit`); fecha de saldo por defecto (`defaultBalanceDate`); nombres de los ficheros exportados (copia, inventario, conciliación, borrador de la renta, paquete de decisión, informe certificado, CSV de movimientos); «Generado:» del resumen del mes; estado del plan DCA; frescura de la bandeja previa (`asOf`); fecha por defecto del ticket por OCR (dos usos); plazos de las alertas UX (`uxDateAfterDays`); foto diaria de la salud financiera.
+  - **`views/analisis.js`:** «repetir suscripción» apunta el movimiento con el día local.
+  - **`canonical-e11b-inbox.js`:** `freshness()` ya recibía `asOf` (la app lo pasa); sin él, ahora cae al día local en vez de al de UTC. El motor sigue sin depender de `app.js`.
+  - **`p2-ui.js` (2, con un `localDay` propio del módulo):** la fecha por defecto del formulario y «recuperable hasta» de un documento borrado, que además se calcula con 30 días de calendario y no con 30 × 24 h (con el cambio de hora de octubre salía un día antes).
+- **Se quedan como estaban, a propósito:**
+  - `app.js` · `e17ExtractNaturalDate` (2): ya parte de los componentes locales y hace la aritmética en UTC, que es lo correcto.
+  - `app.js` · `isoFromWorkbookValue` (2): leen valores de una hoja de cálculo, no «hoy». La rama `Date` no se usa porque `XLSX.read` va sin `cellDates`.
+  - `p2-ui.js` · `deletedAt` y `canonical-e9-bank-import.js` · `idempotencyKey`: marcas de tiempo técnicas.
+  - `canonical-card-purchases.js` · `conceptSuggestions`: compara horas UTC con horas UTC (`capturedAt`), es coherente. El margen de un día en una ventana de 120 no cambia nada.
+  - **Pendiente, no corregido:** `canonical-e9-notifications.js` compara `mutedUntil` con el día UTC de `now`. Lo correcto es que reciba la fecha local como ya recibe la hora (`localTime`), pero hoy no tiene llamador en la app (solo `a5-remote-services.js`, que corre en servidor), así que no se añade un parámetro que nadie pasaría.
+  - Los demás `toISOString().slice(0, 10)` de los motores convierten fechas creadas a mediodía UTC (`Date.UTC(...)`), no «hoy»: son correctos.
+- **Pruebas.**
+  - **Regresión nueva:** `tests/dia-local-hoy-hogar.test.cjs` (7). Corre en un proceso hijo con `TZ=Europe/Madrid` y el reloj parado a las 00:30 del 1/11/2026, que en UTC aún es el 31/10. Cubre la captura rápida, el contador de visitas, «repetir suscripción», la fecha de saldo, los plazos y la frescura de E11b, más una guarda que impide volver a escribir `new Date().toISOString().slice(0, 10)` en los ficheros de la app. Con el código anterior fallan 6 de 7. Ejemplo del fallo: a las 00:30, «gasto 20 mercadona» y «ayer gasto 20 mercadona» se apuntaban el mismo día.
+  - **Pruebas ajustadas (8 ficheros):** dos regex que fijaban el texto UTC (A16-2 y GOB8). Seis sandboxes cargan ahora el `isoLocalDate` real de `app.js` (DEX3, GOB18, M-10, T-4, UX6/E17 y V6-4). T-4 y UX6 esperan el día local.
+  - **`app.js`:** 37.448 líneas, sin cambio neto (techo 37.495).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6042/6042 (+7), lint, typecheck, accesibilidad (1623 IDs únicos), rendimiento, build, privacidad y smoke.
+  - `npm test` con `TZ=Europe/Madrid`: 6042/6042.
+  - E2e de captura rápida y WP-53: 8/8.
 
 ## Cierre de sesión — 20 de octubre de 2026 (325): «meses desde la última revisión» cuenta con el día local, no con el de UTC
 

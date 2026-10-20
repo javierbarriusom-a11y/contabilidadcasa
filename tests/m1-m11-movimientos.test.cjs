@@ -575,7 +575,7 @@ test("M-10 · el botón de exportar está cableado a handleMovementsExport", () 
 test("M-10 · exporta exactamente movementsFilteredList (la vista filtrada), no el extracto completo", () => {
   let capturedParts = [];
   const linkEl = { style: {}, click() {}, remove() {} };
-  const context = sandboxWith(["handleMovementsExport"], {
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "handleMovementsExport"], {
     movementsFilteredList: () => [
       { date: "2026-08-01", valueDate: "2026-08-01", movement: "MERCADONA", details: "COMPRA", category: "Alimentación", amount: -45.2, balance: 1000, source: "extracto" },
     ],
@@ -598,7 +598,7 @@ test("M-10 · exporta exactamente movementsFilteredList (la vista filtrada), no 
 test("M-10 · el CSV exportado incluye la columna Cuenta, vacía cuando el movimiento no la tiene", () => {
   let capturedParts = [];
   const linkEl = { style: {}, click() {}, remove() {} };
-  const context = sandboxWith(["handleMovementsExport"], {
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "handleMovementsExport"], {
     movementsFilteredList: () => [
       { date: "2026-08-01", valueDate: "2026-08-01", movement: "MERCADONA", details: "COMPRA", category: "Alimentación", amount: -45.2, balance: 1000, source: "extracto", account: "CaixaBank" },
       { date: "2026-07-20", valueDate: "2026-07-20", movement: "AMAZON", details: "PEDIDO", category: "Compras", amount: -60, balance: 900, source: "extracto" },

@@ -11,6 +11,8 @@
   const ownerOptions = (selected) => ["household", "javi", "tere"].map((value) => `<option value="${value}" ${value === selected ? "selected" : ""}>${ownerLabel(value)}</option>`).join("");
   const state = () => bridge()?.getState() || domain()?.normalizeState({}) || {};
   const save = (next) => bridge()?.saveState(next);
+  // «Hoy» y los plazos que ve el hogar van en su día de calendario (hora local), no en el de UTC: de 0 a 1-2 h en Madrid salía la víspera.
+  const localDay = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const uid = (prefix) => domain()?.id(prefix) || `${prefix}-${Date.now()}`;
 
   function notice(target, message, error = false) {
@@ -86,7 +88,7 @@
         <label class="p2-field"><span>Origen</span><select name="source"><option value="manual">Aportación manual</option><option value="movement">Movimiento conciliado</option></select></label>
         <label class="p2-field" data-manual-field><span>Importe</span><input name="amount" type="number" min="0" step="0.01" /></label>
         <label class="p2-field" data-movement-field hidden><span>Movimiento</span><select name="movementId"><option value="">Seleccionar...</option>${movements.map((row) => `<option value="${esc(row.id)}">${esc(row.date)} · ${esc(row.label)} · ${euro(row.amount)}</option>`).join("")}</select></label>
-        <label class="p2-field"><span>Fecha</span><input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}" /></label>
+        <label class="p2-field"><span>Fecha</span><input name="date" type="date" value="${localDay(new Date())}" /></label>
         <div class="p2-actions"><button class="p2-button" type="submit">Registrar aportación</button><button class="p2-button secondary" type="button" data-goal-status>${goal.status === "paused" ? "Reactivar" : "Pausar"}</button><button class="p2-button danger" type="button" data-goal-delete>Eliminar hucha</button></div>
       </form>
       <div class="p2-contributions">${goal.contributions.length ? goal.contributions.slice().reverse().map((item) => `<div class="p2-contribution"><span>${esc(item.label)}</span><strong>${euro(item.amount)}</strong><small>${esc(item.date || item.month || item.source)}</small><button type="button" data-contribution-delete="${esc(item.id)}">Quitar</button></div>`).join("") : '<p class="p2-help">Sin aportaciones registradas.</p>'}</div>
@@ -647,7 +649,7 @@
       card.querySelector("[data-document-delete]")?.addEventListener("click", (event) => {
         const button = event.currentTarget;
         if (button.dataset.confirming !== "true") { button.dataset.confirming = "true"; button.textContent = "Confirmar recuperación 30 días"; notice(target.querySelector("[data-document-notice]"), "Pulsa de nuevo para mover el archivo a recuperación; todavía no se ha modificado nada."); return; }
-        const p2 = state(); const deletedAt = new Date(); const recoverUntil = new Date(deletedAt.getTime() + 30 * 86400000); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: deletedAt.toISOString(), recoverUntil: recoverUntil.toISOString().slice(0, 10) }) : item) }); renderDocuments();
+        const p2 = state(); const deletedAt = new Date(); const recoverUntil = new Date(deletedAt.getFullYear(), deletedAt.getMonth(), deletedAt.getDate() + 30); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: deletedAt.toISOString(), recoverUntil: localDay(recoverUntil) }) : item) }); renderDocuments();
       });
       card.querySelector("[data-document-restore]")?.addEventListener("click", () => { const p2 = state(); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: "", recoverUntil: "" }) : item) }); renderDocuments(); });
       card.querySelector("[data-document-purge]")?.addEventListener("click", async (event) => {

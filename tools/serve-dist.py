@@ -3,7 +3,7 @@
 Hace lo mismo que `python3 -m http.server 4182 --bind 127.0.0.1 -d dist`, pero solo registra las
 peticiones que fallan (4xx/5xx). Las correctas, unas 120.000 líneas «[WebServer] GET ... 200» por
 ejecución del CI, enterraban el error de la prueba que fallaba: la herramienta que lee el log solo
-entrega el final y el mensaje quedaba fuera (sesión 326, 20/10/2026). Los errores de arranque y los
+entrega el final y el mensaje quedaba fuera (sesión 327, 20/10/2026). Los errores de arranque y los
 avisos del propio servidor se siguen viendo.
 
 Uso: python3 tools/serve-dist.py [puerto=4182] [carpeta=dist]
