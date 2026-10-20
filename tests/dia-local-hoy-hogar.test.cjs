@@ -119,6 +119,15 @@ test("día del hogar · la frescura de la bandeja previa (E11b) sin `asOf` toma 
   assert.deepEqual(result, ["2026-11-01", "stale"], "un saldo del 31/10 ya no es de hoy a las 00:30 del 1/11");
 });
 
+test("día del hogar · un silencio de notificaciones «hasta el 31/10» ya no calla nada a las 00:30 del 1/11", () => {
+  const { result } = inMadridAtHalfPastMidnight(`
+    const notifications = require("./canonical-e9-notifications.js");
+    const preferences = { enabled: true, frequency: "daily", quietStart: "22:00", quietEnd: "08:00", subscriptionId: "s-1" };
+    const decide = (mutedUntil) => notifications.deliveryDecision({ preferences: { ...preferences, mutedUntil }, consentActive: true, localTime: "12:00", alert: { id: "a-1" } }).reason || "send";
+    result = [decide("2026-10-31"), decide("2026-11-01")];`);
+  assert.deepEqual(result, ["send", "muted"]);
+});
+
 // Guarda: ningún fichero de la app vuelve a sacar «hoy» de UTC con este patrón. Una marca de tiempo técnica usa toISOString()
 // entero (con la hora); un día del hogar usa isoLocalDate(new Date()) o recibe `today` como parámetro.
 test("día del hogar · ningún fichero de la app toma «hoy» con new Date().toISOString().slice(0, 10)", () => {

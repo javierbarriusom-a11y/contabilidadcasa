@@ -20,6 +20,12 @@ test("respeta silencio, silenciado manual y frecuencia", () => {
   assert.equal(notifications.deliveryDecision({ preferences: { ...enabled, mutedUntil: "2026-08-02" }, consentActive: true, localTime: "12:00", now: "2026-08-01T10:00:00Z" }).reason, "muted");
   assert.equal(notifications.deliveryDecision({ preferences: enabled, consentActive: true, localTime: "12:00", now: "2026-08-01T10:00:00Z", lastDeliveredAt: "2026-08-01T09:00:00Z" }).reason, "frequency-limited");
 });
+test("el silenciado manual se mide con el día del hogar (`localDate`), no con el día UTC de `now`", () => {
+  // 1/11 a las 00:30 en Madrid = 31/10 23:30 UTC: un silencio «hasta el 31/10» ya ha caducado para el hogar.
+  const input = { preferences: { ...enabled, mutedUntil: "2026-10-31" }, consentActive: true, localTime: "12:00", now: "2026-10-31T23:30:00Z" };
+  assert.notEqual(notifications.deliveryDecision({ ...input, localDate: "2026-11-01" }).reason, "muted");
+  assert.equal(notifications.deliveryDecision({ ...input, localDate: "2026-10-31" }).reason, "muted", "el último día del silencio sigue callado");
+});
 test("deduplica reintentos de la misma alerta y revisión", () => {
   const alert = { id: "alert-1", category: "quality" }; const key = notifications.dedupeKey(alert, "review-1");
   assert.equal(notifications.deliveryDecision({ preferences: enabled, consentActive: true, alert, reviewKey: "review-1", deliveredKeys: [key], localTime: "12:00" }).reason, "duplicate");
