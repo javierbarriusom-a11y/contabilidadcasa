@@ -3,13 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app =
-  fs.readFileSync(path.join(root, "app.js"), "utf8") +
-  "\n" +
-  fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
+const app = codigoApp("views/analisis.js");
 
 // P-1 del "plan de mejora corregido" (auditado el 28 de agosto de 2026): eje de tipo de acción
 // (`actionType`) a nivel de movimiento, aditivo sobre `kind` (income/expense) y sobre la partida

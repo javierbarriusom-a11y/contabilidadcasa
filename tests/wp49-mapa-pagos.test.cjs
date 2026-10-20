@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -231,7 +232,7 @@ test("WP-49 · lo cableado: tarjeta en Plan › Previsión, hoja y script en las
     assert.match(read("service-worker.js"), new RegExp(`"\\./${file.replace(".", "\\.")}"`));
     assert.match(read("tools/build-public-site.mjs"), new RegExp(`"${file.replace(".", "\\.")}"`));
   });
-  assert.match(read("app.js"), /renderMapaPagos\?\.\(globalThis\.FinanceCanonicalLargePayments\)/);
+  assert.match(codigoApp(), /renderMapaPagos\?\.\(globalThis\.FinanceCanonicalLargePayments\)/);
   const ui = read("mapa-pagos-ui.js");
   assert.match(ui, /FinanceCanonicalLargePayments/);
   assert.equal(/storageSet|localStorage/.test(ui), false, "no tiene almacén propio: solo lee");

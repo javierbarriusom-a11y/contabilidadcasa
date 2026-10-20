@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // #5/#6 del "plan de mejora corregido" (28/08/2026, ver BACKLOG.md §9), ola 2 — encadenadas: #5
 // ("Archivo automático del informe de cierre") archiva localmente el mismo informe que V6-4 ya

@@ -3,13 +3,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB14 (Oleada 4, Bloque 6, DE-6, alcance reducido): distinto de DEB4 ("tu cálculo cambió") — esta
 // tarea es "no has mirado el mercado". Cruza la deuda declarada como "Hipoteca" (campo de texto
 // libre de un contrato, igual que DEB16 ya trató `type`) con el registro de ofertas externas de
 // Deuda › Ruta (E14, normalizeOffer) que DEB4 nunca consulta. Sin motor nuevo.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

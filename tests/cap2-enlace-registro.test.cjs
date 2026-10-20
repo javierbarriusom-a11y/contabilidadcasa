@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-25 (CAP-02 + plantilla de CAP-01): contrato de los enlaces de registro prellenado
 // `#registrar?importe=&concepto=&fecha=&cuenta=&origen=`. Abren la ventana «Registrar gasto» (FLU-2) con los
@@ -110,7 +111,7 @@ test("CAP-02 · el módulo es puro: sin DOM ni estado de la app, y nunca guarda"
 });
 
 test("WP-25 · enganche en app.js: el enrutado ignora «?…», el enlace abre la ventana FLU-2 y no guarda", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /function viewFromHash\(\) \{\n\s+let id = \(window\.location\.hash \|\| "#home"\)\.replace\("#", ""\)\.split\("\?"\)\[0\];/);
   assert.match(app, /function registrarTabFromHash\(\) \{\n\s+let id = \(window\.location\.hash \|\| "#home"\)\.replace\("#", ""\)\.split\("\?"\)\[0\];/);
   const start = app.indexOf("function openCaptureLinkFromHash()");

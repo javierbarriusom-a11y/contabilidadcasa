@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 1 · P3: supabase-js dejó de cargarse desde jsDelivr (`@2`, sin versión fija ni SRI, y un
 // <script defer> lento retrasa DOMContentLoaded) y se sirve desde el propio origen, fijado, con su
@@ -37,6 +38,6 @@ test("el Service Worker la precachea y el build la copia sin reminificarla; la g
 });
 
 test("app.js sigue detectando la librería por window.supabase (mismo global que exponía la CDN)", () => {
-  assert.match(read("app.js"), /window\.supabase &&/);
-  assert.match(read("app.js"), /window\.supabase\.createClient\(/);
+  assert.match(codigoApp(), /window\.supabase &&/);
+  assert.match(codigoApp(), /window\.supabase\.createClient\(/);
 });

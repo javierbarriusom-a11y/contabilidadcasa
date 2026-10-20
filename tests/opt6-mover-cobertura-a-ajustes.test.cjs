@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // OPT-6 · Bloque 2: el editor de cobertura aprendida (H-3b, fecha de próximo ingreso y gasto
 // diario) era configuración puntual, no lectura diaria — no encajaba en «Hoy» (mockup 1a: «una

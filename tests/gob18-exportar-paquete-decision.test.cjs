@@ -2,8 +2,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 
 // GOB18 (Oleada 4, Bloque 7, O-10, alcance reducido): GOB10 (Oleada 3) ya generaliza el registro de

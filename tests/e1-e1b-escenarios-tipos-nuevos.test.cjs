@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const vm = require("node:vm");
-const fs = require("node:fs");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const Engine = require(path.join(root, "canonical-scenario-engine.js"));
@@ -132,7 +132,7 @@ test("E-1b · un tipo propio con importe y mensualidad combina el golpe inicial 
 
 // --- app.js: funciones puras de presentación (E-1b, E-6b, E-7, E-8, E-9, E-12) -------------------
 
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/escenarios.js"), "utf8");
+const app = codigoApp("views/escenarios.js");
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);

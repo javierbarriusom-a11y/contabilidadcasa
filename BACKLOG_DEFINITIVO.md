@@ -98,7 +98,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 2 | RD-V2 | Diseño nuevo por defecto en la URL base, mismas funciones que el clásico; `?tema=clasico` como salida | 7ª | 19/10 | **Hecho 19/10** (#519) |
 | 3 | RD-CI | El CI guarda trazas y capturas de Playwright cuando algo falla | 7ª §3 | P5 | **Hecho 19/10** (#520) |
 | 4 | RD-COB | Cobro manual caducado y gasto diario de 0 € sin silencio | datos reales 19/10 | P3, P4 | **Hecho 19/10** (#521) |
-| 5 | XGO-01 | Desalojo de `app.js` en dos PR; techo por trinquete | 7ª | P6, P7 | Siguiente |
+| 5 | XGO-01 | Desalojo de `app.js` en dos PR; techo por trinquete | 7ª | P6, P7 | **En curso 20/10**: PR-0 hecho (las pruebas leen el código de la app con `tests/helpers/codigo-app.cjs`); siguen Registrar + Datos y Partidas + Escenarios |
 | 6 | XGO-03 | «Funciones en prueba» (Ajustes › Simuladores y Laboratorio), el tema como primer interruptor, aviso de graduación a las dos semanas con confirmación manual | 7ª | P8, P9 | Pendiente |
 | 7 | XGO-02 | Medidor de utilidad por función, PR aparte tras XGO-03 | 7ª | P10 | Pendiente |
 | 8 | RD-A4 | Movimientos e Importar (B3, E1) en dos PR; cuadre que solo bloquea si el extracto trae saldos | 7ª | P11, P12 | Pendiente |

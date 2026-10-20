@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const dedupe = require("../canonical-capture-dedupe.js");
 
@@ -260,7 +261,7 @@ test("pantalla: anotar es idempotente y una decisión ya tomada sobrevive a reca
 });
 
 test("cableado: app.js usa el motor en la sesión y en el borrador, sustituye dentro del lote y guarda el registro en la copia", () => {
-  const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const app = codigoApp();
   assert.match(app, /capturaDuplicadosAnotar\(transactions\.map\(/);
   assert.match(app, /capturaDuplicadosAnotar\(draft\.rows\.map\(/);
   assert.equal((app.match(/globalThis\.FinanceCanonicalCaptureDedupe/g) || []).length, 2);

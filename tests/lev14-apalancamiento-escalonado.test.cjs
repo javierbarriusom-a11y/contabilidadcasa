@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
 
@@ -119,7 +120,7 @@ test("staggeredLeverageDeployment · lleva el aviso profesional, igual que el re
 // --- Wiring: app.js reutiliza los campos ya declarados del simulador AP3, e index.html expone la
 // tarjeta con sus propios campos de tramos/intervalo, sin duplicar importe/tipo/escenarios. ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: la tarjeta LEV14 en index.html tiene sus propios campos, sin duplicar los de AP3", () => {

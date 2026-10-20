@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // R-6 · una sola regla de guardado, acotada a Registrar (decisión explícita de la sesión: no se
 // retira el panel de «Guardar cambios/Descartar» de Cuadro de mandos ni la carga por lote de

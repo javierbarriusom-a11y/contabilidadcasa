@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const F = require("../canonical-forecast.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC4 (Oleada 3, Bloque 5): extiende learnFromHistory()/deviations (A11-3) — un único promedio
 // sobre todo el histórico reconciliado — a tres ventanas de tiempo (3/6/12 meses) por partida, para
@@ -59,7 +60,7 @@ test("categoryDriftWindows está exportada", () => {
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: la tarjeta de PVC4 vive en Ajustes › Presupuesto y operación", () => {

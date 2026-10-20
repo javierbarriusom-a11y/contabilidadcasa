@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-26 · ND-02: un extracto actualiza el saldo y los movimientos a la vez. El paso 4 de «Importar extracto» ofrece
 // (marcado) usar el saldo final del extracto como saldo declarado de su cuenta, dice si al fichero le faltan
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const ui = read("registrar-ui.js");
 const pulse = require("../canonical-balance-pulse.js");
 const plain = (value) => JSON.parse(JSON.stringify(value));

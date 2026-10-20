@@ -20,13 +20,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const { CanonicalBudgetSchema } = require("../canonical-budget-schema.js");
 const { CanonicalBudgetAlerts } = require("../canonical-budget-alerts.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js") + "\n" + read("views/presupuesto-mes.js");
+const app = codigoApp("views/presupuesto-mes.js");
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);

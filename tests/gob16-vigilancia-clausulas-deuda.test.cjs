@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const DebtContracts = require("../canonical-debt-contracts.js");
 const PortfolioEngine = require("../canonical-portfolio.js");
@@ -16,7 +17,7 @@ const PortfolioEngine = require("../canonical-portfolio.js");
 // (`scenarioSettings.gob16DebtClauses`) — nunca inferidas.
 
 const source = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {

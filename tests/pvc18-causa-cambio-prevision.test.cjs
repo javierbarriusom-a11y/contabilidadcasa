@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC18 (Oleada 4, Bloque 3): alcance reducido — PVC6 ya compara "qué preveíamos entonces" contra
 // "qué prevemos ahora" con diffAssumptionSnapshots(); esta tarea solo etiqueta la CAUSA de ese
@@ -10,7 +9,7 @@ const vm = require("node:vm");
 // existían (diffAssumptionSnapshots + el diario de PV5 + pv1AutoAdjustTransitionNote), sin motor
 // de comparación nuevo. Las tres causas no son excluyentes entre sí.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

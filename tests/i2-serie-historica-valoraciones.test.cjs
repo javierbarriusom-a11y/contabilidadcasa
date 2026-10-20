@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // I2 (Contabilidadcasa 2.0, sesión 217): serie histórica real de valoraciones por posición — hueco
 // de datos documentado desde la Oleada 2 (APX4/IVX1/IVX5). No se fabrica historial que no existe:
@@ -9,7 +10,7 @@ const path = require("node:path");
 // ya usan C-13/D-2b/PVC6 (recalibrateForecastLearning, saveDebtCapitalSnapshotAtClose,
 // recordPvc6ForecastSnapshot) — no toca el RPC transaccional ni el esquema remoto de Supabase.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionViewSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

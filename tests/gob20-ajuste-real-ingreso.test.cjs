@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // GOB20 (Oleada 4, Bloque 7, nace al partir GOB12 en sesión 185): hasta ahora el único lugar para
 // declarar una caída temporal de ingreso era el Laboratorio de escenarios (E13), explícitamente de
@@ -14,7 +15,7 @@ const vm = require("node:vm");
 // suite existente (miles de tests que ya ejercitan computeCanonicalScenario/canonicalEngineInput
 // sin declarar ningún ajuste).
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -267,7 +268,7 @@ test("WP-47 · cableado: tarjeta en Deuda › Comparar bajo la escalera, scripts
   const at = (name) => html.indexOf(`<script defer src="${name}?v=`);
   assert.ok(at("escalera-ui.js") > 0 && at("escalera-ui.js") < at("canonical-payroll-split.js") && at("canonical-payroll-split.js") < at("nomina-ui.js"), "el motor y la pantalla van después de la escalera, de la que reutiliza funciones");
   assert.match(html, /href="nomina\.css\?v=/);
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /globalThis\.renderNominaReparto\?\.\(globalThis\.FinanceCanonicalPayrollSplit\); \/\/ WP-47/);
   assert.match(app, /"payroll-split-drafts", \/\/ WP-47/);
   ["service-worker.js", "tools/build-public-site.mjs"].forEach((file) => {

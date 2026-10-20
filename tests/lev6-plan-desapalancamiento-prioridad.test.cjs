@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -109,7 +110,7 @@ test("deleveragingPriority está exportado", () => {
 const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
-const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 test("wiring: el formulario de posiciones (IV1) tiene un campo de convicción", () => {

@@ -1,12 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // UX6 · Bloque 5: extiende el lanzador A12-3 para reconocer preguntas de importe, reutilizando la
 // misma caja disponible y reserva protegida que ya calcula Hoy — sin motor nuevo.

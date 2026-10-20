@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const engine = require(path.join(root, "canonical-rate-review.js"));
@@ -191,7 +192,7 @@ test("WP-20 · la tarjeta está en Deuda › Contratos tras la de índices, con 
 });
 
 test("WP-20 · app.js: pinta la tarjeta, mete el aviso en la bandeja, engancha el evento y el almacén entra en la copia", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /case "deuda-contratos":\s*renderDeudaContratos\(\);[\s\S]{0,200}globalThis\.renderRevisionTipo\?\.\(globalThis\.FinanceCanonicalRateReview\)/);
   assert.match(app, /items\.push\(\.\.\.\(globalThis\.rateReviewInboxItems\?\.\(globalThis\.FinanceCanonicalRateReview\) \|\| \[\]\)\)/);
   assert.match(app, /globalThis\.attachRevisionTipo\?\.\(document\)/);

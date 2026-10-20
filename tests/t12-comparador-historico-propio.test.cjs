@@ -3,12 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // T12 (Contabilidadcasa 2.0): comparador «yo vs. mi propio histórico» — mejor mes, peor mes y media
 // de los últimos 12 meses conciliados. Ningún motor nuevo: reconciledMonthlyNetHistory() ya
 // alimentaba P6/PVC17; aquí solo se ordena, se recorta a 12 y se resume.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const analisisSource = fs.readFileSync(path.join(__dirname, "..", "views", "analisis.js"), "utf8");
 
 function extractFunction(name, source = appSource) {

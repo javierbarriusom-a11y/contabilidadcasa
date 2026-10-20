@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const engine = require(path.join(root, "canonical-rate-indices.js"));
@@ -177,7 +178,7 @@ test("WP-13 · la tarjeta está en Deuda › Contratos, los scripts se cargan an
   assert.match(contratos, /No consulta ninguna fuente externa/);
   assert.ok(html.indexOf("canonical-rate-indices.js") < html.indexOf('src="app.js'), "motor antes que app.js");
   assert.ok(html.indexOf("indices-ui.js") < html.indexOf('src="app.js'), "tarjeta antes que app.js");
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /"rate-indices", \/\/ WP-13/);
   assert.match(app, /case "deuda-contratos":\s*renderDeudaContratos\(\);\s*globalThis\.renderIndicesReferencia\?\.\(globalThis\.FinanceCanonicalRateIndices\)/);
   assert.match(app, /globalThis\.attachIndices\?\.\(document\)/);

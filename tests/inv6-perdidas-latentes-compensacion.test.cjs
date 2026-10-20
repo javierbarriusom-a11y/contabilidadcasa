@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const P = require("../canonical-portfolio.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // INV6 (Oleada 3, Bloque 5): VER-3 confirmó que FC3 solo cubre pérdidas ya realizadas por venta
 // (fifoLedger). INV6 identifica posiciones con minusvalía todavía no realizada (gainLoss < 0, ya
@@ -46,7 +47,7 @@ test("latentLossHarvestingCandidates está exportada", () => {
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 // I1 (Contabilidadcasa 2.0): INV6 y la calculadora de compensación de FC3 se movieron juntas al

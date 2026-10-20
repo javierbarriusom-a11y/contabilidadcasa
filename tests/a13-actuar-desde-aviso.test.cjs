@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
+const app = codigoApp("views/analisis.js");
 
 // A-13: "Actuar desde el aviso, sin duplicar el camino" — los avisos de Análisis (A-9 "qué se
 // repite" y A-10 "confianza del dato") dejaban de tener acción real: enlazaban a Movimientos con un

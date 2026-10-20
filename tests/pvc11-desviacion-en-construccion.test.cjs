@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC11 (Oleada 4, Bloque 3): hoy el único disparador de learnFromHistory() es
 // recalibrateForecastLearning(), que solo corre en el cierre de mes firmado (PV3/E12b) — un mes
@@ -12,7 +11,7 @@ const vm = require("node:vm");
 // (loadPv3LearningSnapshot) para contar cuántos meses nuevos están conciliados pero sin aprender
 // — de solo lectura, nunca guarda nada ni aplica ningún ajuste.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // PV4 · Bloque 4: bandas de confianza sobre la liquidez proyectada, en la misma tarjeta donde ya
 // vive el termómetro de desviación de PV2 (renderE13ScenarioLab, "Aprendizaje E12b") — mismos

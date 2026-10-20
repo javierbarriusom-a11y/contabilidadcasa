@@ -2,13 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. Mismo patrón local que C-13/D-2b
 // (#5): un snapshot congelado del registro de supuestos versionado (A7-2/E12a) en cada cierre de
 // mes firmado (A1-2), para poder comparar "qué preveíamos entonces" contra "qué prevemos ahora"
 // con diffAssumptionSnapshots (canonical-forecast.js) — sin tocar el RPC transaccional.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 // OPT-25 (fase 5, 11 sept. 2026): la tarjeta se trasladó de Ajustes › Presupuesto y operación a

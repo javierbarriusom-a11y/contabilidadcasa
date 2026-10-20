@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const E13 = require(path.join(root, "canonical-e13-scenarios.js"));
-const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 // PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo. Decisión del hogar

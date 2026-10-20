@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.join(__dirname, "..");
 const profiles = require("../canonical-statement-profiles.js");
@@ -113,9 +114,9 @@ test("las tareas apuntan a sitios que existen en la app y a funciones ya constru
   ["homeKpis", "homeQuickExpenseOpen", "homeQuickExpenseDialog"].forEach((id) => assert.match(index, new RegExp(`id="${id}"`), id));
   ["#registrar", "#prevision", "#deuda-ruta"].forEach((hash) => assert.match(index, new RegExp(`href="${hash}"`), hash));
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-  assert.match(read("app.js"), /registrarImportFileInput/); // T3: el campo del fichero se pinta desde app.js
-  assert.match(read("app.js"), /Capacidad libre real/); // T1
-  assert.match(read("app.js"), /El punto delicado/); // T5
+  assert.match(codigoApp(), /registrarImportFileInput/); // T3: el campo del fichero se pinta desde app.js
+  assert.match(codigoApp(), /Capacidad libre real/); // T1
+  assert.match(codigoApp(), /El punto delicado/); // T5
   assert.match(read("camino-deuda-ui.js"), /Camino a deuda cero/); // T4
 });
 

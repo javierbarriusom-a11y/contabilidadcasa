@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-08 (ND-03): día de cargo por partida. El hogar indica una vez qué día se cobra cada gasto (o «fin de
 // mes») y la previsión lo usa todos los meses. Precedencia: movimiento real casado en ese mes (lo que pasó)
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const chargeDays = require("../canonical-charge-days.js");
 const golden = require("./fixtures/ntc1-timing-golden.json");
 const { buildTransactions } = require("./fixtures/ntc1-timing-transactions.cjs");

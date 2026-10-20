@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const E13 = require("../canonical-e13-scenarios.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // PVC7 (Oleada 3, Bloque 5): los escenarios guardados (A8-7) no caducaban — reutiliza
 // recalculateSavedScenario() (misma comparación que ya usa el botón «Recalcular copia») para
@@ -62,7 +61,7 @@ test("savedScenarioStaleness y SAVED_SCENARIO_STALE_THRESHOLD_PCT están exporta
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 test("wiring: renderE13ScenarioLab pinta el badge de desactualizado usando recalculateSavedScenario + savedScenarioStaleness", () => {
   const start = appSource.indexOf('qs("e13SavedScenarios").innerHTML');

@@ -3,13 +3,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Cobro caducado (docs/rediseno/ESTADO.md §6 y §8; respuestas P3 y P4 del hogar, 19/10/2026).
 // Datos inventados: ninguna fecha ni cifra del hogar.
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 function sandbox() {
   const listeners = [];

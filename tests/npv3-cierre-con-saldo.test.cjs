@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-09 (NPV-03 / C2): el cierre de mes guarda el saldo de cada cuenta con su fecha y, del día 1 al 3,
 // cierra el mes que ACABA (acuerdo del 2/10/2026: mes natural, cierre entre el 1 y el 3, saldo del último
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const engine = require("../canonical-month-close-balances.js");
 
 // --- Motor puro --------------------------------------------------------------------------------

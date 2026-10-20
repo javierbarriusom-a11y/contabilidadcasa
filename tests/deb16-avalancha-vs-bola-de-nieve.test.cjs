@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const DebtContracts = require("../canonical-debt-contracts.js");
 
@@ -176,12 +177,12 @@ test("wiring: index.html declara el selector de estrategia y su nota de resultad
 });
 
 test("wiring: app.js conecta el cambio del desplegable a handleDeb16PayoffStrategyChange envuelto en una función anónima — nunca por referencia directa, que rompería el arranque porque views/deuda.js (donde vive el manejador) se carga de forma perezosa, después de que este listener se registre", () => {
-  const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const appSource = codigoApp();
   assert.match(appSource, /qs\("deb16PayoffStrategySelect"\)\?\.addEventListener\("change", \(\) => handleDeb16PayoffStrategyChange\(\)\)/);
 });
 
 test("wiring: saveScenarioSettings() incluye deb16PayoffStrategy en su lista explícita de campos persistidos — sin esto, state.deb16PayoffStrategy se pierde al recargar aunque se guarde en memoria (mismo fallo que SP3/FC4 documentan en el propio código)", () => {
-  const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const appSource = codigoApp();
   const start = appSource.indexOf("function saveScenarioSettings(");
   const end = appSource.indexOf("\n}", start);
   const block = appSource.slice(start, end);

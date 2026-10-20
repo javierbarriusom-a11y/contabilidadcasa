@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // RGX1 (Oleada 2 Bloque 2/3): simulacro guiado de pérdida de acceso. Combina la copia de emergencia
 // (A0-9, ya real) y el hogar compartido (A5-3, RGX1/RGX2): si la persona que usa la app hoy pierde

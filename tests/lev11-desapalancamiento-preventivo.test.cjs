@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const LeverageSimulator = require("../canonical-leverage-simulator.js");
 
@@ -56,7 +57,7 @@ test("preventiveDeleveragingAllocation · ni vendiendo toda la cartera priorizab
   assert.equal(result.shortfall, 4000);
 });
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 
 test("wiring: renderLev11PreventiveDeleveragingAlert reutiliza weightedPortfolioStressDropPct (LEV5) y deleveragingPriority (LEV6), sin motor propio de venta", () => {

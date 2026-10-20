@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
 
 // A17-1 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, BACKLOG_PATRIMONIO_Y_FINANZAS.md E24a): un

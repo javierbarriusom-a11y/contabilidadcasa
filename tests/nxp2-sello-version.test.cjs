@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { execFileSync } = require("node:child_process");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-01 (NXP-02, BACKLOG_DEFINITIVO.md §5.1 y docs/PLAN_IMPLEMENTACION_2026-10-03.md): sello de
 // versión, aviso de «versión nueva» y «Novedades». El Service Worker hace skipWaiting() +
@@ -85,7 +86,7 @@ test("el marcado vive fuera de Hoy y fuera de app.js, y novedades.js carga antes
   assert.doesNotMatch(home, /versionStamp|updateToast/);
   assert.match(html, /<div class="update-toast" id="updateToast" role="status" aria-live="polite" hidden>/);
   assert.ok(html.indexOf('src="novedades.js?v=') > 0 && html.indexOf('src="novedades.js?v=') < html.indexOf('src="ux-shell.js?v='));
-  assert.doesNotMatch(read("app.js"), /versionStamp|updateToast|FinanceNovedades/, "WP-01 no ocupa margen de app.js");
+  assert.doesNotMatch(codigoApp(), /versionStamp|updateToast|FinanceNovedades/, "WP-01 no ocupa margen de app.js");
   assert.match(read("service-worker.js"), /"\.\/novedades\.js",/);
   assert.doesNotMatch(read("service-worker.js"), /version\.json/, "version.json nunca pasa por la caché del Service Worker");
 });

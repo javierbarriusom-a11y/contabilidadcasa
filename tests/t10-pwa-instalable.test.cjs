@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // T10 (Horizonte 4 de BACKLOG_CONTABILIDADCASA_2_0.md): PWA instalable con vista «de un vistazo»
 // (colchón, deuda cara, próximo vencimiento). Colchón y próximo evento ya vivían en #widget desde
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 // declarado (ni favicon ni manifest#icons), así que Chrome/Android no ofrecían el instalador nativo.
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
 const serviceWorker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");

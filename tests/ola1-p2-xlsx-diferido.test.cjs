@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 1 · P2: SheetJS (882 KB) deja de cargarse al arrancar; xlsx-loader.js lo pide la primera vez que
 // se importa un Excel o se exporta el informe. Se mantiene en la caché offline y en el build.
@@ -90,7 +91,7 @@ test("un script que carga pero no deja window.XLSX utilizable se trata como fall
 });
 
 test("los tres importadores activos y la exportación esperan a la librería antes de usarla", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.equal((app.match(/if \(!\(await window\.xlsxReady\(\)\)\) \{/g) || []).length, 3);
   assert.doesNotMatch(app, /dataset\.xlsxReady/, "el flag de arranque quedaría siempre en false y nadie lo lee");
   assert.match(read("p2-export.js"), /async downloadExcel\(model, fileName\) \{\s*[^\n]*\n\s*await root\.ensureXlsx\(\);\s*root\.XLSX\.writeFile/);

@@ -1,8 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
+const appSource = codigoApp();
 
 test("AP2: handleAp1Compare también calcula el punto de equilibrio con el mismo TIN/horizonte", () => {
   // DLX1 añadió el cálculo del guardarraíl de colchón y DLX2 el reparto del excedente, ambos entre

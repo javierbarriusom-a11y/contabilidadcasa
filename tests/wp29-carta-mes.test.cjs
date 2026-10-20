@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const letter = require("../canonical-month-letter.js");
@@ -429,7 +430,7 @@ test("pantalla: una carta cuyo mes se reabrió no cuenta para la racha ni se lis
 
 test("cableado: se firma después de la foto del patrimonio, se guarda en la copia, se pinta en Cierre y se registra en la app y en el sitio publicado", () => {
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
-  const app = read("app.js");
+  const app = codigoApp();
   assert.ok(app.indexOf("recordPatrimonioSnapshot?.(month, closedAt, closeBalances)") < app.indexOf("recordCartaMes?.(month, closedAt, closeBalances)"), "la carta lee la foto del patrimonio: va después");
   assert.ok(app.indexOf("recordCartaMes?.(month, closedAt, closeBalances)") < app.indexOf("saveLocalSnapshot();\n    refreshReconciliationView();"), "y antes de guardar el estado local");
   assert.match(app.slice(app.indexOf("const BACKUP_LOCAL_STORES"), app.indexOf("];", app.indexOf("const BACKUP_LOCAL_STORES"))), /"month-letters"/);

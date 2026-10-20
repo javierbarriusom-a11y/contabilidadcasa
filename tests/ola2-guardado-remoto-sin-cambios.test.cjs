@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 2 · omitir guardados remotos idénticos. Con sesión, cada guardado subía la copia completa del estado
 // (~2,8 MB con 3.000 movimientos), ~3.700 filas y una conciliación, aunque nada hubiera cambiado: en una base
@@ -10,8 +9,7 @@ const vm = require("node:vm");
 // Regla (canSkipUnchangedSave): se omite SOLO si el estado tiene la misma huella que la cabecera que esta sesión
 // dejó completa tras un guardado normal Y la cabecera remota sigue siendo esa. En cualquier otro caso, como hoy.
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const Store = require("../canonical-supabase-store.js");
 
 test("canSkipUnchangedSave: solo con cabecera conocida, misma copia y misma huella", () => {

@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const html = read("index.html");
 
 // A17-2 · Bloque 2: exportación del calendario financiero (E15) a .ics, para Google/Apple Calendar.

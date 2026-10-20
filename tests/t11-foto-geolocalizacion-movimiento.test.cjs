@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // T11 (Horizonte 4 de BACKLOG_CONTABILIDADCASA_2_0.md): «ficha de gasto con foto y geolocalización
 // opcional, para reconciliar más rápido sin depender de la descripción del banco». La foto de un
@@ -11,8 +10,7 @@ const vm = require("node:vm");
 // — mismo mecanismo de adjunto que A17-3 (P2PrivateStore/A3-5), sin librería ni servicio externo
 // para la geolocalización (API del navegador + permalink de OpenStreetMap).
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);

@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const P = require("../canonical-portfolio.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // FIN-1 (BACKLOG_CONTABILIDADCASA_3_0.md §2.5): la auditoría previa encontró que DEB15
 // (cancelación de deuda), AP3/AP4/AP6 (apalancamiento) e INV7 (escalera de liquidez) ya comparten
@@ -87,7 +86,7 @@ test("rebalanceLiquidityGuardrail está exportada", () => {
 
 // --- Wiring: renderIv6Rebalance usa el mismo cushionFloor que DEB15/AP3/AP4/AP6/INV7 --------------
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 const SHARED_CUSHION_EXPRESSION = "cushionFloor(lastSimulation, cuadroMandosReserve())";
 

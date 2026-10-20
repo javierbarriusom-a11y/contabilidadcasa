@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 test("Hoy muestra la lectura de cobertura; Ajustes permite revisar, guardar y retirar el ajuste (OPT-6)", () => {
   ["e6CoveragePanel", "e6NextIncomeDate", "e6DailyOutflow", "e6CoverageReset"].forEach((id) => assert.match(html, new RegExp(`id="${id}"`)));

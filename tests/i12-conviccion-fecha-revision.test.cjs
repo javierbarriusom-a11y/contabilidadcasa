@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -10,7 +9,7 @@ const Portfolio = require("../canonical-portfolio.js");
 // ya declarada por posición (LEV6, convictionScore). Ningún motor nuevo: reutiliza tal cual
 // rebalanceCalendarReviewStatus() (INV17) con un intervalo fijo de 12 meses.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 
 function extractFunction(name) {
   const start = appSource.indexOf(`function ${name}(`);

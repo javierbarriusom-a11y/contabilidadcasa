@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // P11 (Horizonte 4 de BACKLOG_CONTABILIDADCASA_2_0.md): comparativa contra el mismo periodo del
 // año anterior, por categoría — separa estacionalidad estructural (colegio, vacaciones...) de
@@ -10,7 +11,7 @@ const vm = require("node:vm");
 // mes/P8/revisión anual) da el gasto real de cada mes; el umbral es el mismo ya declarado en
 // Ajustes (`partidaDeviationThreshold`, V6-2), no uno nuevo.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const analisisSource = fs.readFileSync(path.join(__dirname, "..", "views", "analisis.js"), "utf8");
 const indexHtml = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 

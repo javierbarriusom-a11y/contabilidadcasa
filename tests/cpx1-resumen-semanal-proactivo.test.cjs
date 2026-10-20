@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const appSrc = read("app.js");
+const appSrc = codigoApp();
 const viewSrc = read("views/estado-semana.js");
 const app = appSrc + "\n" + viewSrc;
 

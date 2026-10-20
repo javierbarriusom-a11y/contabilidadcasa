@@ -1,8 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 2 · prioridad 1: con ~3.000 movimientos, abrir la app o editar un importe bloqueaba ~2 s porque
 // mappingForMovement reconstruía y reordenaba availableSeriesRows(kind) por CADA movimiento
@@ -11,7 +10,7 @@ const vm = require("node:vm");
 // Estas pruebas fijan que el resultado es idéntico al de la implementación original y que fuera del
 // alcance nunca se cachea.
 
-const app = fs.readFileSync(path.resolve(__dirname, "..", "app.js"), "utf8");
+const app = codigoApp();
 
 function block(startMarker, endMarker) {
   const start = app.indexOf(startMarker);

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Rediseño · fase A3 (docs/rediseno/HANDOFF.md §5 «B1/B2 · Hoy»): Hoy v2 detrás del tema v2.
 // Comprueba que (1) solo se descarga y se pinta con la bandera, (2) la Hoy de siempre sigue en el DOM y
@@ -36,7 +37,7 @@ test("se carga con defer antes de app.js y está en el sitio público y el servi
 });
 
 test("app.js solo añade la llamada, con los valores que ya calcula renderHomeDashboard", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   const body = app.slice(app.indexOf("function renderHomeDashboard()"), app.indexOf("function carSavingsTargetAmount()"));
   assert.match(body, /if \(typeof hoyV2Render === "function"\) hoyV2Render\(\{/);
   assert.ok(read("index.html").includes('<div class="hoy-v2" id="hoyV2" hidden></div>'));

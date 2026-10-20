@@ -1,11 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const notifications = require(path.join(root, "canonical-e9-notifications.js"));
 
 // O-2/O-3 (BACKLOG_OPERACION.md): recordatorio de reales pendientes en Hoy y aviso al cerrar el mes

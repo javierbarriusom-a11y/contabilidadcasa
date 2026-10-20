@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-24 (HOG-02): asignación personal sin detalle. Una partida por persona («Asignación personal · Nombre») en
 // Gastos variables, con id estable, que se paga por transferencia a una cuenta propia que la app no importa.
@@ -12,7 +13,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const html = read("index.html");
 const allowance = require("../canonical-personal-allowance.js");
 const plain = (value) => JSON.parse(JSON.stringify(value));
@@ -184,7 +185,7 @@ test("registro: tarjeta plegada en Plan › Partidas antes de Días de cargo; mo
   const ui = read("partidas-ui.js");
   ["renderChargeDays", "saveChargeDays", "handleChargeDayEvent", "renderPersonalAllowances", "savePersonalAllowances", "handlePersonalAllowanceEvent"].forEach((name) => {
     assert.match(ui, new RegExp(`function ${name}\\(`), name);
-    assert.doesNotMatch(app, new RegExp(`function ${name}\\(`), `${name} vive en partidas-ui.js, no en app.js`);
+    assert.doesNotMatch(read("app.js"), new RegExp(`function ${name}\\(`), `${name} vive en partidas-ui.js, no en app.js`);
   });
   assert.match(ui, /showUndoToast\(/, "quitar se puede deshacer");
   assert.match(ui, /parseAmountField\(amountText\)/, "el importe se lee como en Registrar (WP-11)");

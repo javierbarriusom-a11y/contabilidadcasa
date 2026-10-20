@@ -2,9 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const html = read("index.html"); const app = read("app.js"); const p2 = read("p2-ui.js"); const schema = read("supabase_schema.sql");
+const html = read("index.html"); const app = codigoApp(); const p2 = read("p2-ui.js"); const schema = read("supabase_schema.sql");
 
 test("E8 expone calidad, historial y presupuesto medible con semántica accesible", () => {
   assert.match(html, /id="e8QualityCenter"/);

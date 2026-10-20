@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -143,7 +144,7 @@ test("WP-39 · el motor es puro: sin DOM, red ni almacenamiento", () => {
 });
 
 test("WP-39 · cableado: el almacén va en la copia, la tarjeta está en Rebalanceo, la pinta views/inversion.js, y no opera ni toca Hoy", () => {
-  assert.match(read("app.js"), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"investment-policy"/);
+  assert.match(codigoApp(), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"investment-policy"/);
   assert.match(read("views/inversion.js"), /globalThis\.renderPoliticaInversion\?\.\(globalThis\.FinanceCanonicalInvestmentPolicy\)/);
   const html = read("index.html");
   const rebalanceo = html.slice(html.indexOf('id="inversion-rebalanceo"'), html.indexOf('id="inversion-fiscal"'));
@@ -266,7 +267,7 @@ test("WP-39 PR-2 · cableado: solo al AÑADIR, el motivo se pide solo si contrad
   assert.match(ops, /if \(reasonsBefore\) politicaReasonsSave\(reasonsBefore\)/, "deshacer devuelve el motivo a como estaba");
   assert.doesNotMatch(ops, /savePolitica|politicaSave\(/, "la política no se escribe desde el libro de operaciones");
   assert.match(ops, /No se bloquea nada: es dinero vuestro/);
-  assert.match(read("app.js"), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"policy-reasons"/);
+  assert.match(codigoApp(), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"policy-reasons"/);
   const ui = read("politica-ui.js");
   assert.match(ui, /const POLITICA_REASONS_STORE = "policy-reasons"/);
   assert.match(ui, /politicaReasonsHtml\(\)/);

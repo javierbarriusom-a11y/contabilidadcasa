@@ -109,6 +109,19 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (328): desalojo de `app.js`, PR-0 — las pruebas leen el código de la app, no solo `app.js`
+
+- **Qué pidió el hogar:** el plan de la sesión de hoy y, aprobado, empezar por el PR-0 (20/10/2026). Es el paso previo al desalojo de `app.js` en dos PR (XGO-01, P6 del cuestionario): Registrar y Datos primero, Partidas y Escenarios después.
+- **Por qué hacía falta.** 389 ficheros de prueba leían `app.js` a pelo y 220 de ellos sacan funciones por su nombre con su propio `extractFunction` (1.270 llamadas). Una función que se muda a un script clásico cargado antes que `app.js` sigue siendo la misma función global para la app, pero las pruebas dejaban de encontrarla. **Ensayo:** mover 8 funciones de Registrar (87 líneas) a `registrar-ui.js` rompía **22 pruebas sin tocar la app**. El desalojo mueve más de 100 funciones, así que la mayor parte del trabajo habría sido reparar pruebas a mano.
+- **Qué cambia (solo pruebas; la app no cambia):**
+  - **`tests/helpers/codigo-app.cjs`**, nuevo: `codigoApp(...extra)` devuelve `app.js` seguido de los ficheros que reciben lo desalojado (`registrar-ui.js`, `datos-ui.js` y `partidas-ui.js`; el PR que desaloje a otro fichero lo añade a `FICHEROS_APP`) y de los que pida cada prueba (p. ej. `views/escenarios.js`). `app.js` va primero, así que las pruebas que comparan posiciones dentro de él siguen igual.
+  - **389 pruebas** pasan a `codigoApp()`, con un cambio automático. Las 43 que ya concatenaban vistas a mano quedan como `codigoApp("views/x.js")`, sin duplicar `partidas-ui.js`. Se quitan 157 declaraciones que quedaban sin uso (`fs`, `path`, `root`, `read`).
+  - **Las que tratan `app.js` como fichero lo siguen leyendo directamente:** el techo de líneas (ARQ-4, y cuatro pruebas más que lo repiten: FIS-1, WP-14/27, WP-15 y WP-30), la versión minificada (OPT-3) y la que comprueba que el código de WP-24 vive en `partidas-ui.js` y no en `app.js`.
+  - **Prueba nueva:** `tests/xgo01-codigo-app-pruebas.test.cjs` (3). Impide volver a leer `app.js` con `fs.readFileSync` fuera de esas excepciones, comprueba que los ficheros de `FICHEROS_APP` son scripts clásicos cargados con `defer` antes de `app.js` y fija qué devuelve `codigoApp()`.
+- **Comprobado:** con el ayudante, el mismo ensayo de 8 funciones deja **6.044/6.044 en verde sin tocar ninguna prueba** (el ensayo se deshizo; `app.js` no cambia en este PR).
+- **Siguiente paso:** PR-1 (Registrar y Datos a `registrar-ui.js` y `datos-ui.js`, solo declaraciones de función, con prueba de equivalencia y bajada del techo por trinquete, P7). Partidas y Escenarios al día siguiente, después de un día del PR-1 en el móvil.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6047/6047 (+3), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. `app.js` sin cambios (37.448 de 37.495).
+
 ## Cierre de sesión — 20 de octubre de 2026 (327): el servidor de las pruebas en navegador solo registra lo que falla
 
 - **Qué pidió el hogar:** silenciar el log del servidor web de Playwright (20/10/2026).

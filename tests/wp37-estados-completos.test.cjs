@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -77,7 +78,7 @@ test("WP-37 · la hoja define cada estado, un borde de estilo propio (no solo co
 });
 
 test("WP-37 · las vistas que se descargan bajo demanda enseñan el esqueleto, la causa y la salida (hooks en app.js)", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /renderEstadoVista\?\.\(qs\(chunk\.rootId\), "cargando"\)/);
   assert.match(app, /renderEstadoVista\?\.\(qs\(chunk\.rootId\), null\)/);
   assert.match(app, /renderEstadoVista\?\.\(qs\(chunk\.rootId\), "error", \{ error, retry: \(\) => renderActiveSection\(viewId\) \}\)/);
@@ -166,7 +167,7 @@ test("WP-37 · deshacer no pisa lo que se tocó mientras tanto, no duplica y no 
 });
 
 test("WP-37 · los seis registros de Ajustes que se quitaban sin aviso pasan por «Deshacer», con cada repintado de siempre", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   for (const [key, remover] of [["bigPurchaseGoals", "removeBigPurchaseGoal"], ["remuneratedAccounts", "removeRemuneratedAccount"], ["maintenanceFeeAccounts", "removeMaintenanceFeeAccount"], ["insurancePolicies", "removeInsurancePolicy"], ["taxTables", "removeTaxTable"], ["irpfBracketScales", "removeIrpfBracketScale"]]) {
     assert.match(app, new RegExp(`quitarConDeshacer\\(\\{ key: "${key}", id: [^,]+, quitar: ${remover},`), key);
     assert.doesNotMatch(app, new RegExp(`^\\s+${remover}\\(removeButton|^\\s+${remover}\\(removeGoalButton`, "m"), `${remover} ya no se llama sin pasar por quitarConDeshacer`);

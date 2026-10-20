@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // T-4 (Laboratorio) · T-4 preguntaba si de verdad se pueden retirar las tres heredadas de Deuda
 // sin dato real de uso — la app no tenía ninguna telemetría, así que este contador mínimo (talla S)

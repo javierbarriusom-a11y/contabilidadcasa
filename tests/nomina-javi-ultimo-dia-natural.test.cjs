@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Decisión del hogar (1 de octubre de 2026): Javi cobra el último día NATURAL del mes y nunca el día 1.
 // La app lo fechaba el último día HÁBIL (`lastBusinessDayOfMonth`): uno o dos días antes que la
@@ -21,7 +22,7 @@ const vm = require("node:vm");
 // del 31: 16 días ANTES de lo real, lo contrario de prudente.
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 // WP-07 (NTC-01): las reglas de fecha viven en canonical-timing.js; las utilidades de fecha y texto siguen en app.js
 // y se le inyectan, igual que en el navegador. Las aserciones de esta prueba no cambian.
 const timingModule = fs.readFileSync(path.join(root, "canonical-timing.js"), "utf8");

@@ -1,10 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const DebtComparator = require(path.join(root, "canonical-debt-comparator.js"));
 
 // APX1 (Oleada 2 Bloque 3): el punto de equilibrio de AP2 (breakEvenInvestmentRatePct) da por hecha

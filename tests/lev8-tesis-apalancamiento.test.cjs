@@ -1,8 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 
 test("LEV8: la tarjeta AP3 tiene los 3 campos de la tesis de apalancamiento", () => {

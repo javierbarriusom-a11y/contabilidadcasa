@@ -128,7 +128,10 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 1. **CI que guarda el informe y las trazas de Playwright cuando una prueba falla** (hecho el 19/10, #520).
 2. **Cobro manual caducado** (hecho el 19/10, #521) (P3, P4 y la causa del §6). Sin tocar ningún `canonical-*`. La estimación con el histórico
    del mismo mes del año anterior (nota de P1) cambia el motor de cobertura: se propone aparte.
-3. **Desalojo de `app.js`** en dos PR (P6), bajando el techo según el trinquete (P7).
+3. **Desalojo de `app.js`** en dos PR (P6), bajando el techo según el trinquete (P7). **PR-0 hecho el 20/10:** las pruebas leen
+   el código de la app con `tests/helpers/codigo-app.cjs` (`app.js` + los ficheros que reciben lo desalojado), así que mover
+   una función no rompe pruebas. Siguen PR-1 (Registrar + Datos) y PR-2 (Partidas + Escenarios), cada uno añadiendo su
+   fichero de destino a `FICHEROS_APP` si es nuevo. Solo declaraciones de función, a scripts clásicos con `defer` antes de `app.js`.
 4. **Funciones en prueba** (Laboratorio, XGO-03; nombre según P8) con el tema como primer interruptor, y el aviso de
    graduación a las dos semanas con confirmación manual (P9). Después, en PR aparte, el medidor XGO-02 (P10).
 5. **A4 · Movimientos e Importar** en dos PR (P12), con el cuadre según P11. Lo que dependa del buzón o del PDF, plegado.

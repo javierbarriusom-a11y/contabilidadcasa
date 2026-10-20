@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const DailyInput = require("../canonical-daily-input.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -84,7 +85,7 @@ test("la entrada vacía no rompe y un monthKey inválido no genera fechas", () =
 });
 
 test("app.js ya no define la entrada diaria y la pide al módulo, registrado y cargado antes que app.js", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   for (const name of ["canonicalDailyInput", "distributeDailyAuditEvents", "pushDailyAuditEvent", "dailyAuditFallbackDate"]) {
     assert.ok(!app.includes(`function ${name}(`), `${name} debe vivir solo en canonical-daily-input.js`);
   }

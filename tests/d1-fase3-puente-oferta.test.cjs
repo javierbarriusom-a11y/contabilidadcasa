@@ -3,9 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const roadmapHtml = fs.readFileSync(path.join(root, "debt-roadmap.html"), "utf8");
 const E14DebtOperations = require(path.join(root, "canonical-e14-operations.js"));
 const E14DebtAdapter = require(path.join(root, "canonical-e14-debt-adapter.js"));

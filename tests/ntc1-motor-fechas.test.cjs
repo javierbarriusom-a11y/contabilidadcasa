@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-07 (NTC-01): el motor de fechas se extrajo de app.js a canonical-timing.js SIN CAMBIO DE COMPORTAMIENTO.
 // Antes de borrar nada se ejecutaron el original (app.js de la sesión 299, en un vm) y el módulo sobre 60.276
@@ -13,7 +14,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const golden = require("./fixtures/ntc1-timing-golden.json");
 const { buildTransactions } = require("./fixtures/ntc1-timing-transactions.cjs");
 

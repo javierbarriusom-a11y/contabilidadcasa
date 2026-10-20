@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // FLU-2 (BACKLOG_CONTABILIDADCASA_3_0.md §2.4): atajo de un clic desde Home para registrar un
 // gasto nuevo — crea a la vez la partida (previsto) y su real, en el mes que Registrar › Reales

@@ -20,6 +20,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const scenarios = require("../canonical-e13-scenarios.js");
 const engine = require("../canonical-engine.js");
@@ -27,7 +28,7 @@ const forecastContract = require("../canonical-forecast.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const appSrc = read("app.js");
+const appSrc = codigoApp();
 const viewSrc = read("views/presupuesto-mes.js");
 const htmlSrc = read("index.html");
 const app = appSrc + "\n" + viewSrc;

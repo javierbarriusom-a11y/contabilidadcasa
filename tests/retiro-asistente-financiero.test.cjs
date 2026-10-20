@@ -25,11 +25,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
-const app = read("app.js");
+const app = codigoApp();
 const css = read("styles.css");
 
 // ============================================================================

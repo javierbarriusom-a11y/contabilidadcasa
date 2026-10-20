@@ -1,12 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 // NAV-5 (BACKLOG_CONTABILIDADCASA_3_0.md §2.3): cuarto tipo de resultado del lanzador — pregunta
 // rápida determinista (sin IA externa) sobre una cifra ya calculada por unifiedActionCenterModel,

@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
+const app = codigoApp("views/cierre.js");
 
 // Fase 5 · Cierre (pantalla 08, Cierre.pdf, auditado el 16 de agosto): ritual secuencial de tres
 // pasos reales — Conciliar cuentas, Resolver diferencias, Firmar y archivar — en vez de los cuatro

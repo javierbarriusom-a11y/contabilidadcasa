@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -166,7 +167,7 @@ test("WP-38 · el motor es puro: sin DOM, red ni almacenamiento", () => {
 });
 
 test("WP-38 · cableado: el almacén va en la copia, la tarjeta está en Plan › Previsión, no en Hoy, y no ejecuta nada", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /const BACKUP_LOCAL_STORES = \[[\s\S]*?"contingency-plan"/);
   assert.match(app, /globalThis\.renderPlanB\?\.\(globalThis\.FinanceCanonicalContingencyPlan\)/);
   const html = read("index.html");

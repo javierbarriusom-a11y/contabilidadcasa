@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cruza la cartera real
 // (INV11: el plan de pensiones ya es una posición más), el gasto medio de la previsión viva y un
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 // pensión pública (dato manual) y tasa de retirada son todos declarados por el hogar — sin alguno de
 // los necesarios, `calculable` es `false` y `missing` dice exactamente qué falta.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function extractFunction(name) {

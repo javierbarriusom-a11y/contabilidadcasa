@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const forecast = require("../canonical-forecast.js");
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 // PV1 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 8, ampliación "previsión viva" — depende de PV5):

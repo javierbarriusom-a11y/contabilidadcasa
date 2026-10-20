@@ -2,13 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB2/DEB8 (Oleada 3, Bloque 3): dimensionador de amortización parcial óptima y alerta de
 // ventana de comisión decreciente. Ambas extienden la misma tarjeta de AP1/DLX2 en Ajustes ›
 // Deuda y apalancamiento, sin motor de reparto nuevo — DEB2 reutiliza surplusAllocation.toDebt
 // (DLX2) y DEB8 reutiliza FinanceDebtContracts.nextCheaperPrepaymentWindow.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("la tarjeta de AP1 tiene el campo de comisión de amortización anticipada (DEB2)", () => {

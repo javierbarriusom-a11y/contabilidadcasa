@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Ola 1 · P1: `normalizedText` se cachea y planningBreakdownForForecastMonth se memoiza con ALCANCE
 // ACOTADO, porque ambas se llaman dentro de bucles (medido en Asesor virtual: >2 s de tiempo propio en
@@ -10,7 +11,7 @@ const vm = require("node:vm");
 // que el resultado es idéntico al original y que la memoria nunca sobrevive a su alcance.
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 function block(startMarker, endMarker) {
   const start = app.indexOf(startMarker);

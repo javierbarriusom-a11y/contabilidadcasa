@@ -2,13 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB1 (Oleada 3, Bloque 2) · aviso de cambio de veredicto de AP1 entre un cierre y el siguiente.
 // Alcance confirmado por VER-2: AP1 ya se recalcula solo por firma (agentDebtOptimizationCacheKey),
 // así que esta tarea no construye ningún motor nuevo — solo guarda la última comparación que el
 // hogar miró de verdad y avisa si, recalculada con los datos vivos actuales, el veredicto cambió.
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

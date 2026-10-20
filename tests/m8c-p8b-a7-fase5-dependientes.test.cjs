@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
+const app = codigoApp("views/analisis.js");
 
 // M-8c (saldo recalculado en Movimientos), P-8b (editar un mes cerrado en Plan · Mes, con aviso) y
 // A-7 (¿acierta el plan?, en Análisis) — las tres dependían de Cierre (Fase 5), que ya está

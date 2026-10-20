@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // Plan (04 · backlog «Nueve pantallas»), P-1 a P-7 — solo la pestaña «Mes» de esta sesión.
 // «Previsión» y «Ahorro» (P-8 en adelante) son Fase 4 y quedan como enlaces a sus heredadas

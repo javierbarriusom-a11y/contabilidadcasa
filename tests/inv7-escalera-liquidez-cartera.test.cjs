@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const P = require("../canonical-portfolio.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // INV7 (Oleada 3, Bloque 5): escalera de liquidez de la cartera — a cuántos días puede convertirse
 // cada posición en caja sin penalización severa, cruzado con el colchón. Distinto de LPX2 (runway
@@ -51,7 +52,7 @@ test("liquidityLadder está exportada", () => {
 
 // --- Wiring ---
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("wiring: la tarjeta de INV7 vive dentro de la tarjeta de análisis de cartera (Ajustes › Patrimonio e inversión)", () => {

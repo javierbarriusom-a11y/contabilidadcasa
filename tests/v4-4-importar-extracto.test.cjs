@@ -4,10 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const profiles = require("../canonical-statement-profiles.js"); // WP-51: la lectura del CSV vive en el motor puro
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const html = read("index.html");
 const experience = read("e17-experience.js");
 const worker = read("service-worker.js");

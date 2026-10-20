@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -332,9 +333,9 @@ test("cableado: index.html tiene la tarjeta (oculta y marcada como ejemplo por d
 });
 
 test("cableado: app.js pinta la tarjeta al llegar a Fiscal, pasando el motor, y sigue bajo el techo de líneas", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /case "herramientas-fiscal":\n\s+renderAjustes\(\);\n\s+globalThis\.renderFiscalCampaign\?\.\(globalThis\.FinanceCanonicalYearEndTax\);/);
-  const lines = app.split("\n").length;
+  const lines = read("app.js").split("\n").length;
   assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo 37.495)`);
 });
 

@@ -1,8 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
+const appSource = codigoApp();
 
 // UX4 · ninguna cifra financiera solo por color. Auditoría real de todos los usos de `.status-pill`
 // y `.e19-badge` en app.js: la mayoría ya empareja el tono con una palabra ("Viable"/"Vigilar",

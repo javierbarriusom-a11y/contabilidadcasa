@@ -2,10 +2,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 test("Registrar sigue a Hoy (Ola 1: «Datos» ya no es entrada) y Movimientos no está en Versiones anteriores", () => {
   const home = html.indexOf('href="#home"');

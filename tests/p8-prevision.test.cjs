@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // P-8 (Previsión mes a mes por bloque, mockup 2c). El catálogo de mockups daba esta pantalla por
 // migrada (E19-5) cuando en realidad #prevision seguía siendo la tabla resumen anual heredada — ver

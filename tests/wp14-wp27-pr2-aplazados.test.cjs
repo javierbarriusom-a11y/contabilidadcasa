@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const Band = require("../canonical-cash-band.js");
 const DailyInput = require("../canonical-daily-input.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-14 + WP-27, PR-2 (docs/WP14_WP27_DISENO.md §4): «Aún no» / «Llegará tarde» mueven la FECHA de la partida al día en que se vuelve a preguntar,
 // para que el motor diario y la banda de WP-16 la cuenten todavía pendiente. Sin esto, un cobro retrasado con fecha cierta ya vencida se daba por
@@ -12,7 +13,7 @@ const DailyInput = require("../canonical-daily-input.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 
 function block(startMarker, endMarker) {
   const start = app.indexOf(startMarker);
@@ -121,6 +122,6 @@ test("cableado: el motor recibe el aplazamiento de esperados-ui, el detector pre
   assert.match(ui, /resolved\.patch\?\.type === "snooze"\) refreshAllSectionsAfterDataChange\(\)/, "responder «aún no» recalcula la previsión");
   assert.match(app, /previous\.datesSignature === datesSignature/);
   assert.match(app, /snapshot\.datesSignature = datesSignature/);
-  const lines = app.split("\n").length;
+  const lines = read("app.js").split("\n").length;
   assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo ARQ-4: 37.495)`);
 });

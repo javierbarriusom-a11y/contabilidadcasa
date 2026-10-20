@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // Rediseño · fase A2 (docs/rediseno/HANDOFF.md §2): un solo formato de cifras.
 // Antes convivían «8310,00 €» (es-ES no agrupa números de 4 cifras y money(x, true) siempre
@@ -9,7 +10,7 @@ const path = require("node:path");
 // siempre los miles y solo enseñan céntimos cuando los hay.
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 function formatter(name) {
   const m = app.match(new RegExp(`const ${name} = (new Intl\\.NumberFormat\\("es-ES", \\{[\\s\\S]*?\\}\\));`));

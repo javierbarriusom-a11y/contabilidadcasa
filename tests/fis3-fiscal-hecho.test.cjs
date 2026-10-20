@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -310,7 +311,7 @@ test("PR-3 · fiscalCampaignReminder: pendientes y total para el calendario; nul
 // ---- Cableado ----
 
 test("PR-3 · cableado: el almacén de «hecho» viaja en la copia y la nube; el calendario recibe la campaña; sin red", () => {
-  assert.match(read("app.js"), /"fiscal-done", \/\/ WP-23 PR-3/);
+  assert.match(codigoApp(), /"fiscal-done", \/\/ WP-23 PR-3/);
   assert.equal(tax.DONE_STORE_NAME, "fiscal-done");
   assert.match(read("fiscal-datos-ui.js"), /const FISCAL_HECHO_STORE = "fiscal-done";/);
   assert.match(read("recordatorios-ui.js"), /fiscal: globalThis\.fiscalCampaignReminder\?\.\(\) \|\| null,/);

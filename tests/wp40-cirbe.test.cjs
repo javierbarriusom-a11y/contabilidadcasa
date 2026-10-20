@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -157,8 +158,8 @@ test("WP-40 · el motor es puro y no escribe: sin DOM, red ni almacenamiento", (
 });
 
 test("WP-40 · cableado: el almacén va en la copia, la tarjeta está en Deuda › Contratos, no toca contratos ni Hoy, y quitar se puede deshacer", () => {
-  assert.match(read("app.js"), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"cirbe-report"/);
-  assert.match(read("app.js"), /globalThis\.renderCirbe\?\.\(globalThis\.FinanceCanonicalCirbe\)/);
+  assert.match(codigoApp(), /const BACKUP_LOCAL_STORES = \[[\s\S]*?"cirbe-report"/);
+  assert.match(codigoApp(), /globalThis\.renderCirbe\?\.\(globalThis\.FinanceCanonicalCirbe\)/);
   const html = read("index.html");
   const contratos = html.slice(html.indexOf('id="deuda-contratos"'), html.indexOf('id="deuda-simulador"'));
   assert.match(contratos, /id="cirbeCard"/);

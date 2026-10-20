@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-26 · ND-01: «Pulso de saldos». Registrar enseña lo último que se sabe de cada cuenta (el saldo declarado o el
 // saldo final del extracto, el más reciente: un dato real, nunca una estimación) con «Coincide» / «Corregir». Con
@@ -11,7 +12,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const html = read("index.html");
 const pulse = require("../canonical-balance-pulse.js");
 const [CAIXA, MEDIOLANUM] = pulse.ACCOUNTS;

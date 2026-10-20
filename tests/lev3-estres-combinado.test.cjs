@@ -2,13 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // LEV3 (Oleada 3, Bloque 3): estrés combinado tipos + mercado, en Ajustes › Deuda y
 // apalancamiento, justo debajo del margin call de APX3. Reutiliza la hipoteca ya declarada
 // (Patrimonio e inversión) y el margin call ya calculado — sin motor nuevo aparte de la
 // composición (evaluateCombinedStress, canonical-mortgage-rate-scenarios.js).
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("la tarjeta de estrés combinado vive justo debajo del margin call de APX3", () => {

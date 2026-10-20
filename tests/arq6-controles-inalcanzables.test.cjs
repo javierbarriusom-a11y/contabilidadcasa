@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // ARQ-6 (25 de septiembre de 2026), paso 3: comprobación automática de controles que nunca se muestran.
 // Tres veces en dos días se encontró una función marcada como hecha cuyo botón vivía en una pantalla a
@@ -18,7 +19,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 const views = fs.readdirSync(path.join(root, "views")).filter((file) => file.endsWith(".js"))
   .map((file) => fs.readFileSync(path.join(root, "views", file), "utf8")).join("\n");
 const code = `${app}\n${views}`;

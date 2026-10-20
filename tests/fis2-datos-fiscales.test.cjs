@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -322,7 +323,7 @@ test("PR-2 · el formulario no se repinta mientras se escribe, salvo que se fuer
 // ---- Cableado ----
 
 test("PR-2 · cableado: el almacén viaja en la copia y la nube, y el script no toca el DOM al cargarse", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   assert.match(app, /const BACKUP_LOCAL_STORES = \[\n  "fiscal-data", \/\/ WP-23 PR-2/);
   assert.equal(tax.STORE_NAME, "fiscal-data");
   assert.match(read("fiscal-datos-ui.js"), /const FISCAL_DATOS_STORE = "fiscal-data";/);

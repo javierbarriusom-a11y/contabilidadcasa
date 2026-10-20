@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-02 (NXP-01 + PRV-06 + UXS-05, BACKLOG_DEFINITIVO.md §5.1): prueba cronometrada de Hoy. Un
 // instrumento de medida para un solo usuario: segundos hasta tener la cifra de «Disponible para
@@ -105,7 +106,7 @@ test("el almacén se normaliza aunque llegue roto", () => {
 });
 
 test("app.js solo engancha Hoy: calcula el texto B con el motor y anota la cifra pintada", () => {
-  const app = read("app.js");
+  const app = codigoApp();
   const tile = app.slice(app.indexOf("function homeMarginTile("), app.indexOf("function renderHomeBudgetGlance("));
   assert.match(tile, /label: "Disponible para gastar"/, "el texto A sigue siendo el titular por defecto");
   assert.match(tile, /FinanceFindingTestUi\?\.variantToday\(\) === "B"/);

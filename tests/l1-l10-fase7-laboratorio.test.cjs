@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // Fase 7 · Laboratorio, reconstruida el 20 de agosto de 2026 sobre el mockup real
 // (`Laboratorio.pdf`, enviado 4 de agosto de 2026): catálogo canónico de las dieciocho pantallas

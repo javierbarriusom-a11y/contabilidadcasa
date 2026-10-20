@@ -1,11 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = codigoApp();
 
 // Real parcial del mes en curso (decisión del hogar del 5/10/2026, docs/WP30_DISENO.md §10): un real de
 // «Gasto variable estimado» que aún no cubre el mes (p. ej. una importación de extracto a mitad de mes) no

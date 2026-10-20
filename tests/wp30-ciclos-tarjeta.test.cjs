@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // WP-30 · PR-1: ciclos de las tarjetas de crédito. Con tarjeta, el dinero sale el día del CARGO y las compras sueltas no están en el
 // extracto: solo su liquidación. Cada tarjeta tiene su ciclo (corte, meses hasta el cargo, día de cargo) y la fila donde se liquida.
@@ -14,7 +15,7 @@ const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const engine = require("../canonical-card-cycles.js");
 const monthClose = require("../canonical-month-close-balances.js");
-const app = read("app.js");
+const app = codigoApp();
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 // Tres formas de ciclo, todas inventadas.

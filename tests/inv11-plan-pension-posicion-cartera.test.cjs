@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 const Portfolio = require("../canonical-portfolio.js");
 
@@ -18,7 +19,7 @@ const Portfolio = require("../canonical-portfolio.js");
 // saldo "Pensión" de A14 (sigue siendo una foto de patrimonio aparte, mismo criterio ya aceptado
 // hoy para "Inversión").
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("POSITION_TYPES incluye plan-pension como tipo de instrumento propio", () => {

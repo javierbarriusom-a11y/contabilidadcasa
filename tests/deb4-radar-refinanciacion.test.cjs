@@ -4,13 +4,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const MortgageScenarios = require(path.join(__dirname, "..", "canonical-mortgage-rate-scenarios.js"));
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // DEB4 (Oleada 3, Bloque 3): radar de refinanciación activo. APX5 (refinancingBreakEvenMonths) ya
 // calcula el punto de equilibrio bajo demanda; DEB4 persiste los campos de la hipoteca (antes
 // calculadora puntual, sin persistencia) y un umbral declarado, para avisar en cada arranque sin
 // tener que reabrir el simulador — mismo patrón que DEB1 (aviso visible sin pulsar el botón).
 
-const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+const appSource = codigoApp();
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inversionSource = fs.readFileSync(path.join(__dirname, "..", "views", "inversion.js"), "utf8");
 

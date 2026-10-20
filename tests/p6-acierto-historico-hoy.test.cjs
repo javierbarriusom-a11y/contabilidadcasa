@@ -1,11 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
-const root = path.resolve(__dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = codigoApp();
 const forecast = require("../canonical-forecast.js");
 
 // P6 (Horizonte 1, sesión 199): puntuación de acierto histórico como KPI fijo en Hoy. Convierte el
