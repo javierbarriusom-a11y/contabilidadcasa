@@ -12,7 +12,9 @@ module.exports = defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run build:site && python3 -m http.server 4182 --bind 127.0.0.1 -d dist",
+    // Servidor que solo registra las peticiones que fallan: las ~120.000 líneas de peticiones correctas enterraban en el log del
+    // CI el error de la prueba que fallaba (tools/serve-dist.py).
+    command: "npm run build:site && python3 tools/serve-dist.py 4182 dist",
     url: "http://127.0.0.1:4182/index.html",
     reuseExistingServer: true,
   },
