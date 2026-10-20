@@ -109,7 +109,7 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
-## Cierre de sesión — 20 de octubre de 2026 (332): cierre del día y panel de seguimiento al día
+## Cierre de sesión — 20 de octubre de 2026 (333): cierre del día y panel de seguimiento al día
 
 - **Publicado hoy en `main`,** todo con el CI en verde y desplegado:
   - #522: «meses desde la última revisión» con el día local (325).
@@ -117,6 +117,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - #525 y #526: desalojo de `app.js`, PR-0 y PR-1 (328 y 329). `app.js` pasa de 37.448 a 34.977 líneas y su techo, a 35.107.
   - #527: el fallo intermitente de la CIRBE (330).
   - #529: O-6 cerrado y marcado para recuperar (331).
+  - De otra sesión, en paralelo: #523 (326) y #528, el silencio de las notificaciones de E9 con el día del hogar (332).
 - **Panel de seguimiento** (`BACKLOG_DEFINITIVO.md` §12, protocolo):
   - WP-05 pasa a «hecho» y WP-13 a «hecho» con alcance reducido, con su historial.
   - Hay registro del día: `2026-10-20-cierre`.
@@ -130,7 +131,23 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
     - usar Registrar y Movimientos en el móvil (prueba real del PR-1 en Safari de iOS);
     - teclear los datos fiscales en la app (H-03, vencía hoy; lista con euros antes del 15/11);
     - antes del 1/11: tarjetas, asignación personal y saldos en «Real manual».
-- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6049/6049 (incluida `plan-seguimiento-sincronizado`), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6049/6049 (incluida `plan-seguimiento-sincronizado`), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Repetido tras traer `main` con #528: 6051/6051.
+
+## Cierre de sesión — 20 de octubre de 2026 (332): el silencio de las notificaciones se mide con el día del hogar
+
+- **Qué pidió el hogar:** arreglar también `mutedUntil` en `canonical-e9-notifications.js`, lo único que la 326 dejó pendiente de los «hoy» en UTC.
+- **El fallo.** `deliveryDecision` comparaba `mutedUntil` con el día UTC de `now`. Entre las 0 h y la 1-2 h en Madrid, un silencio «hasta ayer» seguía callando las alertas de hoy.
+- **Qué cambia (solo el motor):**
+  - `deliveryDecision` acepta `localDate` (`AAAA-MM-DD`, el día del hogar). Es el mismo patrón que `localTime`, que ya recibía para las horas de silencio. Así un servidor en UTC puede decidir con el día del hogar.
+  - Sin `localDate`, usa el día local del proceso que decide, no el de UTC. En el navegador es el día del hogar.
+  - El último día del silencio sigue callado: la comparación sigue siendo `mutedUntil >= hoy`.
+  - `a5-remote-services.js` ya reenvía todo el `input`, así que no cambia. La app sigue sin llamar a `deliveryDecision`: quien conecte el envío real deberá pasar `localDate` junto a `localTime`.
+- **Pruebas nuevas (2), las dos fallan con el motor anterior:**
+  - `tests/canonical-e9-notifications.test.cjs`: con `localDate` explícito, un silencio hasta el 31/10 ya no calla nada el 1/11, aunque `now` en UTC siga siendo el 31/10.
+  - `tests/dia-local-hoy-hogar.test.cjs`: lo mismo sin `localDate`, en el proceso hijo con `TZ=Europe/Madrid` y el reloj a las 00:30 del 1/11.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6051/6051 (+2), lint, typecheck, accesibilidad (1623 IDs únicos), rendimiento, build, privacidad y smoke.
+  - `npm test` con `TZ=Europe/Madrid`: 6051/6051.
 
 ## Cierre de sesión — 20 de octubre de 2026 (331): `O-6` cerrado y marcado para recuperar
 
@@ -231,7 +248,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `app.js` · `isoFromWorkbookValue` (2): leen valores de una hoja de cálculo, no «hoy». La rama `Date` no se usa porque `XLSX.read` va sin `cellDates`.
   - `p2-ui.js` · `deletedAt` y `canonical-e9-bank-import.js` · `idempotencyKey`: marcas de tiempo técnicas.
   - `canonical-card-purchases.js` · `conceptSuggestions`: compara horas UTC con horas UTC (`capturedAt`), es coherente. El margen de un día en una ventana de 120 no cambia nada.
-  - **Pendiente, no corregido:** `canonical-e9-notifications.js` compara `mutedUntil` con el día UTC de `now`. Lo correcto es que reciba la fecha local como ya recibe la hora (`localTime`), pero hoy no tiene llamador en la app (solo `a5-remote-services.js`, que corre en servidor), así que no se añade un parámetro que nadie pasaría.
+  - **Pendiente, no corregido:** `canonical-e9-notifications.js` compara `mutedUntil` con el día UTC de `now`. Lo correcto es que reciba la fecha local como ya recibe la hora (`localTime`), pero hoy no tiene llamador en la app (solo `a5-remote-services.js`, que corre en servidor), así que no se añade un parámetro que nadie pasaría. → Corregido en la 332.
   - Los demás `toISOString().slice(0, 10)` de los motores convierten fechas creadas a mediodía UTC (`Date.UTC(...)`), no «hoy»: son correctos.
 - **Pruebas.**
   - **Regresión nueva:** `tests/dia-local-hoy-hogar.test.cjs` (7). Corre en un proceso hijo con `TZ=Europe/Madrid` y el reloj parado a las 00:30 del 1/11/2026, que en UTC aún es el 31/10. Cubre la captura rápida, el contador de visitas, «repetir suscripción», la fecha de saldo, los plazos y la frescura de E11b, más una guarda que impide volver a escribir `new Date().toISOString().slice(0, 10)` en los ficheros de la app. Con el código anterior fallan 6 de 7. Ejemplo del fallo: a las 00:30, «gasto 20 mercadona» y «ayer gasto 20 mercadona» se apuntaban el mismo día.
