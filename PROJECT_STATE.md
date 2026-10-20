@@ -109,6 +109,30 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (333): cierre del día y panel de seguimiento al día
+
+- **Publicado hoy en `main`,** todo con el CI en verde y desplegado:
+  - #522: «meses desde la última revisión» con el día local (325).
+  - #524: el log del CI se lee entero cuando falla una prueba de navegador (327).
+  - #525 y #526: desalojo de `app.js`, PR-0 y PR-1 (328 y 329). `app.js` pasa de 37.448 a 34.977 líneas y su techo, a 35.107.
+  - #527: el fallo intermitente de la CIRBE (330).
+  - #529: O-6 cerrado y marcado para recuperar (331).
+  - De otra sesión, en paralelo: #523 (326) y #528, el silencio de las notificaciones de E9 con el día del hogar (332).
+- **Panel de seguimiento** (`BACKLOG_DEFINITIVO.md` §12, protocolo):
+  - WP-05 pasa a «hecho» y WP-13 a «hecho» con alcance reducido, con su historial.
+  - Hay registro del día: `2026-10-20-cierre`.
+  - La página se volvió a generar con `tools/build-plan-panel.mjs` y se publicó en la misma URL, porque cambió el plan (WP-13 a 0,75 sesiones). Antes se comprobó que la versión publicada era exactamente la plantilla del repositorio con el plan anterior, así que no se pisó nada.
+- **Corregida una incoherencia** que el registro del panel señalaba desde el 17/10. La pestaña «Tareas del hogar» y la tarea H-03 decían que los datos fiscales van «por el chat»; la regla vigente desde el 16/10 (`docs/WP23_DISENO.md` §8) es teclearlos en la app, en Herramientas avanzadas › Fiscal › «Tus datos fiscales». Se corrigió en `docs/plan/panel-seguimiento.html`, en `docs/plan/plan-definitivo.json` (WP-23, H-03 y el hito del 20/10), en `docs/ESTADO_TAREAS_Y_FASES.md` y en `BACKLOG_DEFINITIVO.md` (§7, §8 y §12). Las cifras de la hipoteca van en Deuda › Contratos.
+- **Revisión mensual de Nielsen:** al día. La última fue el 15/10 y la siguiente vence el 14/11.
+- **Para la próxima sesión:**
+  - **PR-2 del desalojo** (Partidas + Escenarios), después de un día del PR-1 en el móvil. El PR-0 ya deja preparada la herramienta (`tests/helpers/codigo-app.cjs`, `FICHEROS_APP`). El inventario y la prueba de equivalencia se rehacen con los scripts descritos en la entrada 329.
+  - **WP-12:** su fallo intermitente sigue sin causa (70/70 en local con la CPU saturada). El próximo fallo se lee en el log, que ahora está entero.
+  - **Hogar:**
+    - usar Registrar y Movimientos en el móvil (prueba real del PR-1 en Safari de iOS);
+    - teclear los datos fiscales en la app (H-03, vencía hoy; lista con euros antes del 15/11);
+    - antes del 1/11: tarjetas, asignación personal y saldos en «Real manual».
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6049/6049 (incluida `plan-seguimiento-sincronizado`), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Repetido tras traer `main` con #528: 6051/6051.
+
 ## Cierre de sesión — 20 de octubre de 2026 (332): el silencio de las notificaciones se mide con el día del hogar
 
 - **Qué pidió el hogar:** arreglar también `mutedUntil` en `canonical-e9-notifications.js`, lo único que la 326 dejó pendiente de los «hoy» en UTC.
