@@ -2562,150 +2562,6 @@ function canonicalRows(snapshot = canonicalSnapshot) {
   );
 }
 
-function auditBreakdown(counts, labels, total, kind) {
-  return Object.entries(labels).map(([key, label]) => {
-    const value = Number(counts?.[key] || 0);
-    const percentage = total ? Math.round((value / total) * 100) : 0;
-    return `<div class="audit-breakdown-row">
-      <div><span class="audit-badge ${kind}-${escapeHtml(key)}">${escapeHtml(label)}</span><strong>${value}</strong></div>
-      <div class="audit-meter" aria-label="${escapeHtml(label)}: ${percentage}%"><span style="width:${percentage}%"></span></div>
-    </div>`;
-  }).join("");
-}
-
-function renderDataAudit() {
-  if (!window.FinanceCanonicalState) return;
-  const snapshot = refreshCanonicalSnapshot("audit-view");
-  if (!snapshot) return;
-  const rows = canonicalRows(snapshot);
-  const quality = snapshot.quality || {};
-  const generatedDate = new Date(snapshot.generatedAt || Date.now());
-  const generatedLabel = Number.isNaN(generatedDate.getTime())
-    ? "Sin fecha"
-    : generatedDate.toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
-  const verified = Number(quality.provenance?.verified || 0);
-
-  qs("auditKpis").innerHTML = [
-    ["Calidad del inventario", `${Number(quality.score || 0)}%`, `${Number(quality.issueCount || 0)} incidencia(s) detectada(s)`, Number(quality.score || 0) >= 90 ? "good" : "warn"],
-    ["Entidades persistidas", String(rows.length), "Proyectos, deuda, ajustes, reales y saldos", "neutral"],
-    ["Datos verificados", String(verified), `${rows.length ? Math.round((verified / rows.length) * 100) : 0}% del inventario tiene evidencia real`, "good"],
-    ["Última consolidación", generatedLabel, `Huella ${snapshot.fingerprint || "sin huella"}`, "neutral"],
-  ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}">
-    <span>${escapeHtml(label)}</span>
-    <strong>${escapeHtml(value)}</strong>
-    <p>${escapeHtml(detail)}</p>
-  </article>`).join("");
-
-  qs("auditProvenance").innerHTML = auditBreakdown(quality.provenance, canonicalProvenanceLabels, rows.length, "provenance");
-  const issues = Array.isArray(quality.issues) ? quality.issues : [];
-  qs("auditQuality").innerHTML = issues.length
-    ? `<div class="audit-issue-list">${issues.map((issue) => `<div class="audit-issue ${escapeHtml(issue.severity || "warning")}">
-        <strong>${issue.code === "duplicate-identity" ? "Identidad duplicada" : "Dato incompleto"}</strong>
-        <span>${escapeHtml(issue.label || issue.entityId || "Revisar registro")}</span>
-      </div>`).join("")}</div>`
-    : `<div class="audit-empty good"><strong>Sin incidencias estructurales</strong><p>Todos los registros tienen identidad estable, estado, procedencia e importe válido.</p></div>`;
-  renderE6DebtQuality();
-  renderE6KpiQuality();
-
-  qs("auditEntityTable").innerHTML = rows.length
-    ? rows.slice().sort((a, b) => `${a.collection}-${a.label}`.localeCompare(`${b.collection}-${b.label}`, "es")).map((row) => `<tr>
-        <td>${escapeHtml(canonicalTypeLabels[row.collection] || row.kind || row.collection)}</td>
-        <td><strong>${escapeHtml(row.label || "Sin nombre")}</strong><small>${escapeHtml(row.source || "Sin fuente")}</small></td>
-        <td><span class="audit-badge status-${escapeHtml(row.status)}">${escapeHtml(canonicalStatusLabels[row.status] || row.status)}</span></td>
-        <td><span class="audit-badge provenance-${escapeHtml(row.provenance)}">${escapeHtml(canonicalProvenanceLabels[row.provenance] || row.provenance)}</span></td>
-        <td>${money(Number(row.amount || 0), true)}</td>
-        <td>${escapeHtml(row.monthKey || "-")}</td>
-        <td><code>${escapeHtml(row.id)}</code></td>
-      </tr>`).join("")
-    : `<tr><td colspan="7"><div class="audit-empty"><strong>Sin entidades persistidas</strong><p>El modelo base sigue operativo; aquí aparecerán datos cargados, editados o confirmados.</p></div></td></tr>`;
-
-  const trail = Array.isArray(snapshot.auditTrail) ? snapshot.auditTrail : [];
-  qs("auditTimeline").innerHTML = trail.length
-    ? trail.map((item) => {
-        const date = new Date(item.at || Date.now());
-        const dateLabel = Number.isNaN(date.getTime()) ? "Sin fecha" : date.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
-        const changes = item.changes || {};
-        return `<div class="audit-timeline-item">
-          <span>${escapeHtml(dateLabel)}</span>
-          <div><strong>${escapeHtml(String(item.reason || "actualización").replaceAll("-", " "))}</strong>
-          <p>+${Number(changes.added || 0)} altas · ${Number(changes.changed || 0)} cambios · ${Number(changes.removed || 0)} bajas</p></div>
-          <code>${escapeHtml(item.fingerprint || "")}</code>
-        </div>`;
-      }).join("")
-    : `<div class="audit-empty"><strong>Sin cambios registrados</strong><p>La primera modificación generará una entrada de auditoría.</p></div>`;
-  renderE8AuditExtensions(snapshot, rows);
-}
-
-// A16-6 · hitos y rachas en el historial de auditoría. Reutiliza monthClosures tal cual, el mismo
-// historial que ya lee latestMonthOperation/isMonthClosed — sin tabla ni estado nuevo.
-function renderAuditMilestonesStreaks() {
-  const target = qs("a166MilestonesStreaks");
-  if (!target) return;
-  const result = window.FinanceCanonicalE5?.auditMilestonesAndStreaks(monthClosures);
-  if (!result) return;
-  const streakText = result.currentStreak > 0
-    ? `Racha actual: ${result.currentStreak} mes(es) cerrados seguidos${result.currentStreak === result.longestStreak && result.longestStreak > 0 ? " (tu mejor racha)" : ""}.`
-    : "Sin racha activa: el mes más reciente no está cerrado o hay un hueco.";
-  const milestonesText = result.reachedMilestones.length
-    ? `Hitos alcanzados: ${result.reachedMilestones.join(", ")} meses cerrados.`
-    : "Todavía sin hitos alcanzados.";
-  const nextText = result.nextMilestone !== null
-    ? `Próximo hito: ${result.nextMilestone} meses (${result.monthsUntilNextMilestone} por delante).`
-    : "Has alcanzado todos los hitos definidos.";
-  target.innerHTML = `<div class="audit-kpi-grid">
-    <article class="audit-kpi good"><span>Meses cerrados</span><strong>${result.totalClosed}</strong><p>${escapeHtml(streakText)}</p></article>
-    <article class="audit-kpi ${result.longestStreak > 0 ? "good" : "warn"}"><span>Racha más larga</span><strong>${result.longestStreak}</strong><p>meses consecutivos cerrados, sin huecos ni reaperturas</p></article>
-    <article class="audit-kpi"><span>Hitos</span><strong>${result.reachedMilestones.length}/${result.milestones.length}</strong><p>${escapeHtml(milestonesText)} ${escapeHtml(nextText)}</p></article>
-  </div>`;
-}
-
-function renderE8AuditExtensions(snapshot, rows) {
-  const e8 = window.FinanceCanonicalE8;
-  if (!e8) return;
-  const started = performance.now();
-  const movements = p2MovementRows();
-  const debtQuality = canonicalDebtContractRows().map((contract) => {
-    const quality = contract.dataQuality || DebtContracts?.contractQuality(contract, contract) || {};
-    return { id: contract.id, label: `${contract.entity || "Deuda"} ${contract.type || ""}`.trim(), unknownFields: quality.missing || [] };
-  });
-  const executive = Object.values(unifiedActionCenterModel().readModel?.metrics || {});
-  const quality = e8.qualityCenter({ canonicalIssues: snapshot?.quality?.issues, debtQuality, kpis: executive, movements });
-  const qualityTarget = qs("e8QualityCenter");
-  if (qualityTarget) qualityTarget.innerHTML = quality.issues.length
-    ? `<div class="audit-issue-list">${quality.issues.slice(0, 50).map((issue) => `<button type="button" class="audit-issue ${escapeHtml(issue.severity)}" data-e8-quality-target="${escapeHtml(issue.target)}"><strong>${escapeHtml(issue.kind)}</strong><span>${escapeHtml(issue.label)}</span></button>`).join("")}</div>${quality.total > 50 ? `<p>Se muestran 50 de ${quality.total} incidencias.</p>` : ""}`
-    : `<div class="audit-empty good"><strong>Calidad completa</strong><p>No hay elementos pendientes en las fuentes revisadas.</p></div>`;
-  const queueState = remoteSaveQueue?.snapshot?.();
-  const localConflict = queueState?.lastError?.code === "REMOTE_WRITE_CONFLICT"
-    ? [{ id: "local-conflict", created_at: new Date().toISOString(), status: "conflict" }]
-    : [];
-  const timeline = e8.operationalTimeline({ snapshots: e8RemoteHistory.snapshots, syncEvents: [...e8RemoteHistory.syncEvents, ...localConflict], closures: monthClosures, auditTrail: snapshot?.auditTrail });
-  const timelineTarget = qs("e8OperationalTimeline");
-  if (timelineTarget) timelineTarget.innerHTML = timeline.length
-    ? timeline.slice(0, 30).map((item) => `<div class="audit-timeline-item"><span>${escapeHtml(new Date(item.at).toLocaleString("es-ES"))}</span><div><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.type)} · ${escapeHtml(item.status)}</p></div></div>`).join("")
-    : `<div class="audit-empty"><strong>Sin eventos operativos</strong></div>`;
-  renderAuditMilestonesStreaks();
-  const payloadBytes = new TextEncoder().encode(JSON.stringify(appStatePayload({ includeCanonical: false }))).length;
-  const budget = e8.performanceBudget({ rowCount: rows.length + movements.length, renderMs: performance.now() - started, payloadBytes });
-  const budgetTarget = qs("e8PerformanceBudget");
-  if (budgetTarget) budgetTarget.innerHTML = `<div class="audit-kpi-grid"><article class="audit-kpi ${budget.checks.rowCount ? "good" : "warn"}"><span>Filas</span><strong>${budget.measured.rowCount}</strong><p>Límite ${budget.limits.rowCount}</p></article><article class="audit-kpi ${budget.checks.renderMs ? "good" : "warn"}"><span>Preparación</span><strong>${budget.measured.renderMs.toFixed(1)} ms</strong><p>Límite ${budget.limits.renderMs} ms</p></article><article class="audit-kpi ${budget.checks.payloadBytes ? "good" : "warn"}"><span>Estado</span><strong>${(budget.measured.payloadBytes / 1024).toFixed(0)} KB</strong><p>Límite ${(budget.limits.payloadBytes / 1024 / 1024).toFixed(0)} MB</p></article></div>`;
-  loadE8RemoteHistory();
-}
-
-async function loadE8RemoteHistory() {
-  if (!supabaseClient || !remoteUser || e8RemoteHistoryLoading || e8RemoteHistory.snapshots.length) return;
-  e8RemoteHistoryLoading = true;
-  try {
-    const [snapshots, syncEvents] = await Promise.all([
-      supabaseClient.from("finance_state_snapshots").select("id,created_at,fingerprint,state").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(30),
-      supabaseClient.from("finance_sync_runs").select("id,status,started_at,completed_at,metadata").eq("source_key", sourceStateKey()).order("started_at", { ascending: false }).limit(30),
-    ]);
-    if (!snapshots.error && !syncEvents.error) {
-      e8RemoteHistory = { snapshots: snapshots.data || [], syncEvents: (syncEvents.data || []).map((row) => ({ ...row, created_at: row.completed_at || row.started_at, status: row.status === "failed" ? "conflict" : row.status })) };
-      if (viewFromHash() === "data-audit") renderDataAudit();
-    }
-  } finally { e8RemoteHistoryLoading = false; }
-}
-
 const e6DebtFieldLabels = {
   capital: "Capital",
   arrears: "Mora",
@@ -2716,39 +2572,6 @@ const e6DebtFieldLabels = {
   agreement: "Acuerdo",
   provenance: "Procedencia",
 };
-
-function renderE6DebtQuality() {
-  const target = qs("e6DebtQuality");
-  if (!target || !DebtContracts) return;
-  const contracts = canonicalDebtContractRows();
-  target.innerHTML = contracts.length ? `<div class="e6-quality-list">${contracts.map((contract) => {
-    const quality = contract.dataQuality || DebtContracts.contractQuality(contract, contract);
-    const missing = quality.missing || [];
-    // UX4: la píldora de completitud llevaba solo el color como diferencia entre sus tres estados —
-    // se añade la palabra ("completo"/"parcial"/"incompleto") para que no dependa solo de él.
-    const completenessWord = quality.complete ? "completo" : quality.completeness >= 75 ? "parcial" : "incompleto";
-    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}% ${completenessWord}</span></header>
-      <p>${missing.length ? `Desconocido: ${missing.map((field) => e6DebtFieldLabels[field] || field).join(", ")}.` : "Contrato completo para el análisis."}</p>
-      <p>Confianza ${escapeHtml(quality.confidence)} · fuente ${escapeHtml(contract.source || "desconocida")}.</p></article>`;
-  }).join("")}</div>` : `<div class="audit-empty"><strong>Sin contratos</strong><p>No hay deuda que revisar.</p></div>`;
-}
-
-function renderE6KpiQuality() {
-  const target = qs("e6KpiQuality");
-  if (!target) return;
-  const model = unifiedActionCenterModel().readModel;
-  const metrics = Object.values(model?.metrics || {});
-  const ledgerEntries = canonicalLedgerSnapshot?.entries || [];
-  const calibrated = E7Analysis?.calibrateScenarios(ledgerEntries.map((entry) => ({
-    ...entry,
-    reconciled: entry.reconciled === true || entry.status === "matched" || entry.reconciliationStatus === "matched",
-  })), { horizonMonths: forecastMonths().length });
-  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)} · ${scenario.calibrated ? "calibrado" : "sin calibrar"}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
-  target.innerHTML = (metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
-    <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
-    <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>
-  </article>`).join("")}</div>` : `<div class="audit-empty"><strong>Sin lectura ejecutiva</strong><p>Calcula el escenario para generar los KPI.</p></div>`) + scenarioHtml;
-}
 
 function downloadCanonicalInventory() {
   const snapshot = refreshCanonicalSnapshot("inventory-export");
@@ -3988,23 +3811,6 @@ function efectivoBalanceValue() {
   return round2(Number(balanceSettings.efectivoBalance) || 0);
 }
 
-function saveEfectivoBalance(value) {
-  const amount = round2(Number(value) || 0);
-  if (efectivoBalanceValue() === amount) return;
-  balanceSettings = { ...balanceSettings, efectivoBalance: amount };
-  storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
-  queueRemoteSave();
-}
-
-function handleRegistrarEfectivoBalanceInput() {
-  const input = qs("registrarEfectivoBalance");
-  if (!input) return;
-  const amount = parseAmountField(input.value);
-  if (amount === null && input.value.trim()) return; // texto que no es un importe: no se guarda (el campo lo marca)
-  saveEfectivoBalance(amount ?? 0);
-  renderAccountBalancePanels();
-}
-
 function supabaseConfig() {
   return window.SUPABASE_CONFIG || {};
 }
@@ -4221,12 +4027,6 @@ function viewFromHash() {
   if (id === "monthly-detail") id = "update-data";
   if (Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, id)) return "registrar";
   return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
-}
-
-function registrarTabFromHash() {
-  let id = (window.location.hash || "#home").replace("#", "").split("?")[0];
-  if (id === "monthly-detail") id = "update-data";
-  return REGISTRAR_LEGACY_HASH_TABS[id] || null;
 }
 
 // H-5: un target de `data-home-nav` es válido si es una vista real, o una de las claves heredadas
@@ -5645,39 +5445,6 @@ function canonicalHeader(value) {
   return aliases[text] || text;
 }
 
-function normalizeProjectMode(value) {
-  const text = normalizedText(value);
-  return text.includes("opt") ? "optimize" : "fixed";
-}
-
-function normalizeDebtPayoffMode(value, duration = 1) {
-  const text = normalizedText(value);
-  if (text.includes("retomar")) return "retomar";
-  if (text.includes("refinanc") || text.includes("reunific")) return "refinance";
-  if (text.includes("fraccion") || text.includes("repart") || text.includes("varios") || text.includes("mensual") || Number(duration) > 1) return "spread";
-  return "fixed";
-}
-
-function workbookSheet(workbook, candidates) {
-  const names = workbook.SheetNames || [];
-  return names.find((name) => candidates.some((candidate) => normalizedText(name) === normalizedText(candidate))) || null;
-}
-
-function cellValue(sheet, address, fallback = null) {
-  const cell = sheet?.[address];
-  return cell ? (cell.v ?? fallback) : fallback;
-}
-
-function numberCell(sheet, address, fallback = 0) {
-  const value = cellValue(sheet, address, fallback);
-  const number = parseAmount(value);
-  return number ?? fallback;
-}
-
-function dateCell(sheet, address) {
-  return isoFromWorkbookValue(cellValue(sheet, address));
-}
-
 function isoFromWorkbookValue(value) {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -5695,97 +5462,8 @@ function isoFromWorkbookValue(value) {
   return Number.isNaN(date.getTime()) ? raw : date.toISOString().slice(0, 10);
 }
 
-function monthKeyFromWorkbookValue(value) {
-  const iso = isoFromWorkbookValue(value);
-  return iso?.match(/^\d{4}-\d{2}/)?.[0] || null;
-}
-
 function cellByIndex(sheet, rowIndex, colIndex) {
   return sheet?.[window.XLSX.utils.encode_cell({ r: rowIndex, c: colIndex })]?.v;
-}
-
-function loadMonthlyPlanningFromWorkbook(workbook) {
-  const sheetName = workbookSheet(workbook, ["Contabilidad New Life", "Contabilidad New Life (2)"]);
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) throw new Error("No encuentro la pestaña Contabilidad New Life.");
-  const range = window.XLSX.utils.decode_range(sheet["!ref"]);
-  const months = [];
-  const columns = [];
-
-  for (let col = 2; col <= range.e.c; col += 1) {
-    const key = monthKeyFromWorkbookValue(cellByIndex(sheet, 4, col));
-    if (!key) continue;
-    months.push({ key, label: monthLabel(dateFromMonthKey(key)) });
-    columns.push(col);
-  }
-
-  const sectionDefs = [
-    ["Ingresos", "INGRESOS", "income"],
-    ["Gastos fijos", "GASTOS FIJOS", "expense"],
-    ["Suscripciones", "SUSCRIPCIONES", "expense"],
-    ["Financiaciones", "FINANCIACIONES", "expense"],
-    ["Imprevistos / otros", "IMPREVISTOS", "expense"],
-  ];
-
-  const sections = sectionDefs
-    .map(([sectionName, marker, kind]) => {
-      let startRow = -1;
-      let endRow = -1;
-      for (let row = 0; row <= range.e.r; row += 1) {
-        const label = cellByIndex(sheet, row, 1);
-        if (typeof label === "string" && label.toUpperCase().includes(marker)) {
-          startRow = row + 1;
-          break;
-        }
-      }
-      if (startRow < 0) return null;
-      for (let row = startRow; row <= range.e.r; row += 1) {
-        const label = cellByIndex(sheet, row, 1);
-        if (typeof label === "string" && label.trim().toUpperCase() === "TOTAL") {
-          endRow = row - 1;
-          break;
-        }
-      }
-      if (endRow < startRow) return null;
-      const totalRow = endRow + 1;
-      const financingSubgroups = new Set(FINANCING_SUBGROUP_LABELS.map((item) => normalizedText(item)));
-      const rows = [];
-      let currentGroup = "";
-      for (let row = startRow; row <= endRow; row += 1) {
-        const label = cellByIndex(sheet, row, 1);
-        if (label === null || label === undefined || label === "") continue;
-        const labelText = String(label).trim().replace(/\s+/g, " ");
-        const planned = columns.map((col) => Math.abs(parseAmount(cellByIndex(sheet, row, col)) ?? 0));
-        const hasValue = planned.some(Boolean);
-        if (sectionName === "Financiaciones" && financingSubgroups.has(normalizedText(labelText)) && !hasValue) {
-          currentGroup = labelText;
-          continue;
-        }
-        if (!hasValue && sectionName !== "Financiaciones") continue;
-        const displayLabel = sectionName === "Financiaciones" && currentGroup ? `${currentGroup} · ${labelText}` : labelText;
-        rows.push({
-          id: `${sectionName.toLowerCase().replaceAll(" ", "-")}-${row + 1}`,
-          label: displayLabel,
-          row: row + 1,
-          kind,
-          group: currentGroup || null,
-          planned,
-        });
-      }
-      if (!rows.length) return null;
-      return {
-        name: sectionName,
-        kind,
-        rows,
-        totals: columns.map((col, index) => {
-          const totalValue = parseAmount(cellByIndex(sheet, totalRow, col));
-          return round2(totalValue !== null ? Math.abs(totalValue) : rows.reduce((sum, row) => sum + Number(row.planned[index] || 0), 0));
-        }),
-      };
-    })
-    .filter(Boolean);
-
-  return { months, sections };
 }
 
 function round2(value) {
@@ -6206,108 +5884,6 @@ function buildRollupsFromTransactions(transactions) {
     topMerchants,
     historicalCoreSpend: coreMonthly.length ? round2(coreMonthly.reduce((a, b) => a + b, 0) / coreMonthly.length) : 0,
     historicalIncome: incomeMonthly.length ? round2(incomeMonthly.reduce((a, b) => a + b, 0) / incomeMonthly.length) : 0,
-  };
-}
-
-function buildFinanceDataFromWorkbook(workbook, fileName) {
-  const planSheet = workbook.Sheets[workbookSheet(workbook, ["Plan_Ahorro_821"])];
-  const lifeSheet = workbook.Sheets[workbookSheet(workbook, ["Contabilidad New Life", "Contabilidad New Life (2)"])];
-  const refundSheet = workbook.Sheets[workbookSheet(workbook, ["Importe devolucion recibos", "Importe devolución recibos"])];
-  if (!planSheet || !lifeSheet) throw new Error("El libro no contiene Plan_Ahorro_821 y Contabilidad New Life.");
-
-  const monthlyPlanning = loadMonthlyPlanningFromWorkbook(workbook);
-  const sourcePlan = {
-    baseHouseholdIncome: numberCell(planSheet, "B5"),
-    incomeWithExtrasProrated: numberCell(planSheet, "F5"),
-    extraApril: numberCell(planSheet, "B6"),
-    extraDecember: numberCell(planSheet, "B7"),
-    mortgagePayment: numberCell(planSheet, "B8"),
-    bmwPayment: numberCell(planSheet, "B9"),
-    unifiedCreditPayment: numberCell(planSheet, "B10"),
-    otherFixedNonDebt: numberCell(planSheet, "B11"),
-    variableSpendTarget: numberCell(planSheet, "B12"),
-    initialEmergencyFund: numberCell(planSheet, "B13"),
-    emergencyBufferMonths: numberCell(planSheet, "B14", 6),
-    debtServiceMonthlyTotal: numberCell(planSheet, "F6"),
-    debtToIncomeRatio: numberCell(planSheet, "F7"),
-    totalSpendTarget: numberCell(planSheet, "F8"),
-    monthlySavingPotential: numberCell(planSheet, "F9"),
-    savingsRate: numberCell(planSheet, "F10"),
-    emergencyFundTarget: numberCell(planSheet, "F11"),
-    emergencyFundGap: numberCell(planSheet, "F12"),
-    recommendedSaving: numberCell(planSheet, "F16", baseData.assumptions.recommendedSavings),
-    suggestedAmortization: numberCell(planSheet, "F17"),
-    bankinterOutsidePlanPayment: numberCell(planSheet, "B18"),
-    cetelemOutsidePlanPayment: numberCell(planSheet, "B19"),
-    carEndDate: dateCell(planSheet, "F18"),
-    bankinterEndDate: dateCell(planSheet, "H18"),
-    cetelemEndDate: dateCell(planSheet, "F19"),
-    monthWithoutBmwCetelem: dateCell(planSheet, "H19"),
-    oldDebtPrincipal: refundSheet ? numberCell(refundSheet, "K16") : 0,
-    oldDebtMonthlyPayments: refundSheet ? numberCell(refundSheet, "L16") : 0,
-  };
-  const sourceBalances = {
-    valuationDate: dateCell(lifeSheet, "C1") || defaultBalanceDate(),
-    caixaBalance: numberCell(lifeSheet, "C3"),
-    mediolanumBalance: numberCell(lifeSheet, "D3"),
-    totalBalance: numberCell(lifeSheet, "E3"),
-  };
-  const transactions = loadTransactionsFromWorkbook(workbook);
-  const rollups = buildRollupsFromTransactions(transactions);
-  const baseSpendWithMortgage = sourcePlan.otherFixedNonDebt + sourcePlan.variableSpendTarget + sourcePlan.mortgagePayment;
-  const assumptions = {
-    ...baseData.assumptions,
-    initialCash: round2(sourceBalances.totalBalance || sourceBalances.caixaBalance + sourceBalances.mediolanumBalance),
-    caixaBalanceBeforeCar: round2(sourceBalances.caixaBalance),
-    newAccountBalance: round2(sourceBalances.mediolanumBalance),
-    currentCarAdjustment: 0,
-    monthlyIncome: round2(sourcePlan.incomeWithExtrasProrated),
-    baseHouseholdIncome: round2(sourcePlan.baseHouseholdIncome),
-    coreSpend: round2(baseSpendWithMortgage),
-    otherFixedNonDebt: round2(sourcePlan.otherFixedNonDebt),
-    variableSpendTarget: round2(sourcePlan.variableSpendTarget),
-    mortgagePayment: round2(sourcePlan.mortgagePayment),
-    carPayment: round2(sourcePlan.bmwPayment),
-    carEndDate: sourcePlan.carEndDate,
-    refiFirstPayment: round2(sourcePlan.unifiedCreditPayment),
-    remainingHighRefiPayments: 1,
-    extraDebts: [
-      { name: "Bankinter fuera del plan", payment: round2(sourcePlan.bankinterOutsidePlanPayment), endDate: sourcePlan.bankinterEndDate },
-      { name: "Cetelem fuera del plan", payment: round2(sourcePlan.cetelemOutsidePlanPayment), endDate: sourcePlan.cetelemEndDate },
-    ],
-    recommendedSavings: round2(sourcePlan.recommendedSaving),
-    emergencyBufferMonths: round2(sourcePlan.emergencyBufferMonths),
-    annualInflation: 0,
-    annualIncomeGrowth: 0,
-  };
-  const monthlySurplus = assumptions.monthlyIncome - assumptions.coreSpend - assumptions.carPayment - assumptions.refiFirstPayment - assumptions.extraDebts.reduce((sum, item) => sum + item.payment, 0);
-  return {
-    metadata: {
-      generatedAt: new Date().toISOString(),
-      sourceWorkbook: fileName,
-      sourceWorkbookStatus: "Leído desde la app",
-      forecastStart: `${monthlyPlanning.months[0]?.key || "2026-05"}-01`,
-      forecastMonths: 60,
-      currency: "EUR",
-    },
-    assumptions,
-    sourcePlan,
-    sourceBalances,
-    monthlyPlanning,
-    derived: {
-      coreMonthlyAverageJanMar2026: rollups.historicalCoreSpend,
-      incomeMonthlyAverageJanMar2026: rollups.historicalIncome,
-      monthlySurplusAfterRefiAndCar: round2(monthlySurplus),
-      oldCreditMonthlyAverageJanMar2026: round2(sourcePlan.oldDebtMonthlyPayments),
-      oldCreditPrincipal: round2(sourcePlan.oldDebtPrincipal),
-      debtToIncomeRatio: round2(sourcePlan.debtToIncomeRatio),
-      planSavingsRate: round2(sourcePlan.savingsRate),
-      emergencyFundTarget: round2(sourcePlan.emergencyFundTarget),
-      emergencyFundGap: round2(sourcePlan.emergencyFundGap),
-    },
-    categoryMonthly: rollups.categoryMonthly,
-    topMerchants: rollups.topMerchants,
-    transactions,
   };
 }
 
@@ -17889,93 +17465,6 @@ function handleGob19SeparationTemplate() {
 // mismo criterio que las invitaciones de hogar de E9-1).
 const A19_SHARE_VIEW_LABELS = { "debt-plan": "Plan de deuda", "forecast-6m": "Forecast a 6 meses", "kids-summary": "Vista para hijos (colchón y patrimonio)" };
 
-// MDX1: fuente de las cifras de la vista para hijos — colchón (liquidez total de las cuentas
-// declaradas) y patrimonio neto (A14-2, ya calculado por lpNetWorthSnapshot para LPX1/LPX2). Sin
-// activos declarados, netWorth queda null explícito — nunca un cero inventado.
-// T13: añade periodicHelp/projection, ambos opcionales y declarados por el hogar — ver
-// t13KidsSummaryExtras().
-function mdx1KidsSummarySource() {
-  const balances = accountBalancesFromState();
-  const netWorthSnapshot = lpNetWorthSnapshot();
-  const extras = t13KidsSummaryExtras();
-  return {
-    cushion: Number.isFinite(Number(balances?.total)) ? balances.total : null,
-    netWorth: netWorthSnapshot.calculable ? netWorthSnapshot.netWorth : null,
-    periodicHelp: extras.periodicHelp,
-    projection: extras.projection,
-  };
-}
-
-function a19ShareUrl(rawToken) {
-  const basePath = location.pathname.replace(/index\.html$/, "");
-  return `${location.origin}${basePath}share.html#token=${encodeURIComponent(rawToken)}`;
-}
-
-async function saveA19ShareLink() {
-  const engine = window.FinanceCanonicalShareLink;
-  const status = qs("a19ShareStatus");
-  if (!engine) return;
-  if (!supabaseClient || !remoteUser) {
-    if (status) status.textContent = "Inicia sesión para generar un enlace compartible.";
-    return;
-  }
-  const viewType = qs("a19ShareViewType")?.value || "";
-  if (!engine.VIEW_TYPES.includes(viewType)) {
-    if (status) status.textContent = "Selecciona qué vista quieres compartir.";
-    return;
-  }
-  const ttlDays = engine.normalizeTtlDays(parseAmount(qs("a19ShareTtlDays")?.value));
-  const sourceData = viewType === "debt-plan"
-    ? canonicalDebtContractRows()
-    : viewType === "kids-summary"
-      ? mdx1KidsSummarySource()
-      : (canonicalScenarioResults.base?.forecast?.series || []);
-  const payload = engine.buildSharePayload(viewType, sourceData);
-  const rawToken = engine.generateShareToken();
-  const tokenHash = await engine.hashToken(rawToken);
-  const expiresAt = engine.expiresAtFrom(ttlDays);
-  const { error } = await supabaseClient.from("finance_share_links").insert({
-    owner_user_id: remoteUser.id,
-    token_hash: tokenHash,
-    view_type: viewType,
-    payload,
-    expires_at: expiresAt,
-  });
-  if (error) {
-    if (status) status.textContent = "No se pudo generar el enlace. Vuelve a intentarlo.";
-    return;
-  }
-  if (status) status.textContent = `Enlace generado (caduca el ${expiresAt.slice(0, 10)}): ${a19ShareUrl(rawToken)}`;
-  renderA19ShareLinkList();
-}
-
-async function renderA19ShareLinkList() {
-  const list = qs("a19ShareLinkList");
-  if (!list) return;
-  if (!supabaseClient || !remoteUser) {
-    list.innerHTML = `<li class="e19-kpi-note">Inicia sesión para ver tus enlaces compartidos.</li>`;
-    return;
-  }
-  const engine = window.FinanceCanonicalShareLink;
-  const { data, error } = await supabaseClient
-    .from("finance_share_links")
-    .select("id,view_type,created_at,expires_at,revoked_at")
-    .eq("owner_user_id", remoteUser.id)
-    .order("created_at", { ascending: false });
-  if (error || !data) {
-    list.innerHTML = `<li class="e19-kpi-note">No se pudieron cargar los enlaces.</li>`;
-    return;
-  }
-  list.innerHTML = data.length
-    ? data.map((row) => {
-        const expired = engine ? engine.isExpired(row.expires_at, row.revoked_at) : true;
-        const statusLabel = row.revoked_at ? "revocado" : expired ? "caducado" : `activo hasta ${String(row.expires_at).slice(0, 10)}`;
-        const revokeButton = row.revoked_at ? "" : `<button type="button" class="e19-btn e19-btn-secondary" data-a19-share-revoke="${escapeHtml(row.id)}">Revocar</button>`;
-        return `<li class="commit-barrier-item"><strong>${escapeHtml(A19_SHARE_VIEW_LABELS[row.view_type] || row.view_type)}</strong><span>${escapeHtml(statusLabel)} · creado ${escapeHtml(String(row.created_at).slice(0, 10))}</span>${revokeButton}</li>`;
-      }).join("")
-    : `<li class="e19-kpi-note">Sin enlaces compartidos todavía.</li>`;
-}
-
 async function revokeA19ShareLink(id) {
   if (!supabaseClient || !remoteUser || !id) return;
   await supabaseClient.from("finance_share_links").update({ revoked_at: new Date().toISOString() }).eq("id", id).eq("owner_user_id", remoteUser.id);
@@ -18470,38 +17959,6 @@ function t13KidsSummaryExtras() {
       annualReturnPct: state?.t13ChildAnnualReturnPct,
       years: state?.t13ChildYears,
     }),
-  };
-}
-
-function syncT13KidsSummaryControls() {
-  [
-    ["t13PeriodicHelpAmount", state?.t13PeriodicHelpAmount],
-    ["t13ChildMonthlyAmount", state?.t13ChildMonthlyAmount],
-    ["t13ChildYears", state?.t13ChildYears],
-  ].forEach(([id, value]) => {
-    const field = qs(id);
-    if (!field || document.activeElement === field) return;
-    const amount = Number(value || 0);
-    field.value = amount > 0 ? String(amount) : "";
-  });
-  const pctField = qs("t13ChildAnnualReturnPct");
-  if (pctField && document.activeElement !== pctField) {
-    const pct = Number(state?.t13ChildAnnualReturnPct || 0);
-    pctField.value = pct > 0 ? String(pct) : "";
-  }
-}
-
-function handleT13KidsSummaryFieldChange(field, { max = Infinity } = {}) {
-  return (event) => {
-    if (!state) return;
-    const next = field === "t13ChildAnnualReturnPct"
-      ? fiscalNumericFieldFromValue(event.target.value, { max })
-      : lifeInsuranceCapitalFromField(event.target.value);
-    const previous = round2(Math.max(0, Number(state[field] || 0)));
-    event.target.value = next > 0 ? String(next) : "";
-    if (next === previous) return;
-    state[field] = next;
-    saveScenarioSettings();
   };
 }
 
@@ -19185,35 +18642,7 @@ function renderGob9ResiliencePanel() {
 // estado real de cada punto, con la copia y la invitación a un clic de distancia si falta algo.
 const RGX1_BACKUP_STALE_DAYS = 30;
 
-function rgx1AccessLossReadiness(state, backupAt, now = new Date()) {
-  const backupCheck = (() => {
-    const backupTime = backupAt ? new Date(backupAt).getTime() : NaN;
-    if (!Number.isFinite(backupTime)) return { id: "backup", ok: false, detail: "Nunca se ha descargado una copia de emergencia." };
-    const ageDays = Math.floor((now.getTime() - backupTime) / (24 * 60 * 60 * 1000));
-    return ageDays <= RGX1_BACKUP_STALE_DAYS
-      ? { id: "backup", ok: true, detail: `Última copia hace ${ageDays} día(s).` }
-      : { id: "backup", ok: false, detail: `Última copia hace ${ageDays} día(s) — más de ${RGX1_BACKUP_STALE_DAYS}.` };
-  })();
-  const active = (state?.members || []).filter((member) => member.status === "active");
-  const stewards = active.filter((member) => member.role === "owner" || member.role === "admin");
-  const householdCheck = stewards.length >= 2
-    ? { id: "household", ok: true, detail: `${stewards.length} personas con rol de propietario o administrador.` }
-    : { id: "household", ok: false, detail: active.length <= 1 ? "Nadie más tiene acceso al hogar compartido todavía." : "Solo una persona tiene rol de propietario o administrador." };
-  const concentration = rgxKnowledgeConcentration(state);
-  const coverageCheck = { id: "coverage", ok: !concentration, detail: concentration ? `${concentration.areas.length} área(s) con un solo punto de acceso.` : "Cada área compartida tiene al menos dos personas con acceso." };
-  const checks = [backupCheck, householdCheck, coverageCheck];
-  return { checks, ready: checks.every((check) => check.ok) };
-}
-
 const RGX1_CHECK_LABELS = { backup: "Copia de emergencia", household: "Redundancia en el hogar", coverage: "Cobertura por área" };
-
-function renderRgx1AccessDrill() {
-  const container = qs("rgx1AccessDrill");
-  if (!container) return;
-  const result = rgx1AccessLossReadiness(rgxHouseholdState(), scenarioSettings.lastEmergencyBackupAt);
-  const itemsHtml = result.checks.map((check) => `<li class="${check.ok ? "" : "negative"}"><strong>${escapeHtml(RGX1_CHECK_LABELS[check.id])}:</strong> ${escapeHtml(check.detail)}</li>`).join("");
-  container.innerHTML = `<ul class="e19-kpi-note">${itemsHtml}</ul>${result.ready ? "<p>Preparación completa frente a una pérdida de acceso.</p>" : ""}`;
-}
 
 // A19-2: informe PDF certificado. Depende de A14-2/A14-3 (patrimonio, ya construidas): "capacidad de
 // pago, patrimonio neto (si existe E21), calendario de deuda y colchón, con fecha y advertencia de
@@ -23393,20 +22822,6 @@ function renderSavingsPlan() {
   });
 }
 
-function renderMerchants() {
-  qs("merchantList").innerHTML = baseData.topMerchants
-    .slice(0, 12)
-    .map(
-      (item) => `<div class="merchant">
-        <div><strong>${item.Movimiento}</strong><br><span>${item.Categoria}</span></div>
-        <strong>${money(item.amount, true)}</strong>
-      </div>`,
-    )
-    .join("");
-  renderMovementImportReview();
-  renderDetailedMovements();
-}
-
 function movementKindFromAmount(amount) {
   return Number(amount || 0) >= 0 ? "income" : "expense";
 }
@@ -23549,79 +22964,6 @@ function buildPendingMovementMappings(transactions) {
   return [...groups.values()].sort((a, b) => b.total - a.total);
 }
 
-function renderMovementImportReview() {
-  const panel = qs("movementMappingReview");
-  if (!panel) return;
-  // Repaso pixel-perfect del 20 de agosto: este panel vivía dentro de la tarjeta «Cargar
-  // movimientos desde Excel», retirada junto con MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY — sin la
-  // tarjeta que lo aloja, no tiene sitio propio donde pintarse.
-  if (MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY) {
-    panel.hidden = true;
-    panel.innerHTML = "";
-    return;
-  }
-  const dictionaryCount = Object.keys(movementMappings).length;
-  if (!pendingMovementMappings.length) {
-    panel.hidden = false;
-    panel.innerHTML = `<div class="movement-mapping-empty">
-      <strong>Diccionario activo: ${dictionaryCount} relación(es)</strong>
-      <p>Cuando un movimiento no coincida con ninguna partida del Cuadro de mandos, aparecerá aquí para asignarlo.</p>
-    </div>`;
-    return;
-  }
-  panel.hidden = false;
-  panel.innerHTML = `<div class="movement-mapping-head">
-      <div>
-        <strong>${pendingMovementMappings.length} movimiento(s) por relacionar</strong>
-        <p>El signo del importe ya separa ingresos y gastos. Elige la partida del Cuadro de mandos y guardaremos la relación para próximos ficheros.</p>
-      </div>
-      <button id="applyMovementMappings" type="button">Guardar relaciones</button>
-    </div>
-    <div class="table-wrap movement-mapping-table-wrap">
-      <table class="movement-mapping-table">
-        <thead><tr><th>Tipo</th><th>Movimiento del banco</th><th>Total detectado</th><th>Asignar a partida</th></tr></thead>
-        <tbody>
-          ${pendingMovementMappings
-            .map(
-              (item) => `<tr>
-                <td>${item.kind === "income" ? "Ingreso" : "Gasto"}</td>
-                <td><strong>${escapeHtml(item.label)}</strong><small>${item.count} mov.; ejemplo ${escapeHtml(formatIsoDate(item.examples[0]?.date))}</small></td>
-                <td>${money(item.total, true)}</td>
-                <td><select data-movement-map-key="${escapeHtml(item.key)}" data-movement-map-kind="${escapeHtml(item.kind)}">${movementMappingOptions(item.kind)}</select></td>
-              </tr>`,
-            )
-            .join("")}
-        </tbody>
-      </table>
-    </div>`;
-  qs("applyMovementMappings")?.addEventListener("click", applyPendingMovementMappings);
-}
-
-function applyPendingMovementMappings() {
-  let changed = 0;
-  document.querySelectorAll("[data-movement-map-key]").forEach((select) => {
-    if (!select.value) return;
-    movementMappings[select.dataset.movementMapKey] = {
-      kind: select.dataset.movementMapKind,
-      rowKey: select.value,
-      label: select.options[select.selectedIndex]?.textContent || "",
-      updatedAt: new Date().toISOString(),
-    };
-    changed += 1;
-  });
-  if (!changed) {
-    qs("movementImportStatus").innerHTML = `<strong>No se guardó ninguna relación</strong><p>Selecciona una partida antes de guardar.</p>`;
-    return;
-  }
-  saveMovementMappings();
-  const applied = applyMovementMappingsToActuals();
-  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
-  saveIncomeActuals();
-  saveExpenseActuals();
-  refreshAllSectionsAfterDataChange();
-  qs("movementImportStatus").innerHTML = `<strong>${changed} relación(es) guardada(s)</strong><p>${applied} importe(s) reales recalculados desde movimientos. ${fullRefreshMessage()}</p>`;
-}
-
 function applyMovementMappingsToActuals() {
   const monthlyTotals = {
     income: new Map(),
@@ -23674,31 +23016,6 @@ function mergeTransactions(existing, imported) {
   );
 }
 
-function latestStatementBalance(transactions) {
-  return (transactions || [])
-    .filter((row) => row.balance !== null && row.balance !== undefined && row.date)
-    .sort((a, b) => {
-      const dateCompare = String(b.date).localeCompare(String(a.date));
-      if (dateCompare) return dateCompare;
-      return Number(a.statementOrder || 0) - Number(b.statementOrder || 0);
-    })[0];
-}
-
-function applyMovementBalance(transaction) {
-  if (!transaction || transaction.balance === null || transaction.balance === undefined) return null;
-  const current = accountBalancesFromState();
-  qs("balanceMode").value = "manual";
-  qs("balanceDate").value = transaction.date;
-  state.balanceMode = "manual";
-  state.balanceDate = transaction.date;
-  setStateAccountBalances({
-    caixa: Number(transaction.balance || 0),
-    mediolanum: current.mediolanum,
-  });
-  saveBalanceSettings();
-  return accountBalancesFromState();
-}
-
 function refreshMovementRollups() {
   variableOperationalSpendCacheKey = "";
   variableOperationalSpendCache = null;
@@ -23730,67 +23047,6 @@ function refreshMovementRollups() {
 // confirmar: una segunda puerta de escritura para lo mismo. Queda inerte incluso si algo dispara
 // el evento a mano — no solo se oculta la interfaz.
 const MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY = true;
-
-async function handleMovementExcelImport(event) {
-  if (MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY) return;
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    qs("movementImportStatus").innerHTML = `<strong>Excel todavía está cargando</strong><p>Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.</p>`;
-    return;
-  }
-  try {
-    const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
-    const imported = loadTransactionsFromWorkbook(workbook);
-    if (!imported.length) {
-      qs("movementImportStatus").innerHTML = `<strong>Sin movimientos detectados</strong><p>El fichero debe incluir una hoja Movimientos_cuenta con Fecha, Movimiento, Importe y Saldo.</p>`;
-      return;
-    }
-    const before = baseData.transactions || [];
-    const merged = mergeTransactions(before, imported);
-    const comparison = E7Analysis?.compareImport(before, merged, { invariants: { finiteMovements: imported.every((row) => Number.isFinite(Number(row.amount))) } }) || { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
-    const inboxItem = addE11bInboxItem({ source: "bank-statement", fileName: file.name, sourceLabel: file.name, bankStatement: true, rows: imported, comparison, legacyAdapter: "movement-import" });
-    pendingE11bApply = { imported, inboxItem };
-    qs("movementImportStatus").innerHTML = `<strong>Vista previa · aún no se ha incorporado nada</strong><p>${comparison.additions?.length || 0} alta(s), ${comparison.duplicates?.length || 0} duplicado(s) y ${buildPendingMovementMappings(imported).length} relación(es) por revisar.</p><div class="data-actions"><button id="confirmMovementInbox" type="button" ${comparison.valid === false ? "disabled" : ""}>Confirmar extracto</button><button id="cancelMovementInbox" class="secondary" type="button">Cancelar</button></div>`;
-    qs("confirmMovementInbox")?.addEventListener("click", applyStagedMovementImport);
-    wireGestureConfirm(qs("confirmMovementInbox"));
-    qs("cancelMovementInbox")?.addEventListener("click", () => {
-      pendingE11bApply = null;
-      if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
-      saveLocalSnapshot(); renderE11bStatus();
-      qs("movementImportStatus").innerHTML = `<strong>Importación cancelada</strong><p>El extracto se descartó sin modificar los datos.</p>`;
-    });
-  } catch (error) {
-    qs("movementImportStatus").innerHTML = `<strong>No se pudo importar el extracto</strong><p>${escapeHtml(error.message || "Revisa el formato del Excel.")}</p>`;
-  } finally {
-    event.target.value = "";
-  }
-}
-
-function applyStagedMovementImport() {
-  const pending = pendingE11bApply;
-  if (!pending?.imported?.length) return;
-  const beforeState = appStatePayload({ includeCanonical: false });
-  const imported = pending.imported;
-  baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
-  refreshMovementRollups();
-  const latest = latestStatementBalance(imported);
-  const balances = applyMovementBalance(latest);
-  const appliedActuals = applyMovementMappingsToActuals();
-  pendingMovementMappings = buildPendingMovementMappings(imported);
-  saveWorkbookOverride(); saveIncomeActuals(); saveExpenseActuals();
-  const batch = window.FinanceCanonicalE5?.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
-    sourceLabel: pending.inboxItem?.sourceLabel || "Extracto bancario", reason: pending.inboxItem?.sourceLabel || "Extracto bancario", recordCount: imported.length,
-    afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
-  });
-  if (batch) importBatches.push(batch);
-  saveLocalSnapshot(); queueRemoteSave(); refreshAllSectionsAfterDataChange();
-  applyE11bReceipt(pending.inboxItem, { batchId: batch?.id || "", changed: { records: imported.length, movements: imported.length, actuals: appliedActuals, balances: balances ? 1 : 0 } });
-  const balanceText = balances ? `Saldo CaixaBank actualizado a ${money(balances.caixa, true)} con fecha ${formatIsoDate(latest.date)}.` : "No se encontró saldo final utilizable.";
-  qs("movementImportStatus").innerHTML = `<strong>Extracto confirmado</strong><p>${imported.length} movimiento(s). ${balanceText} ${appliedActuals} real(es) recalculados; ${pendingMovementMappings.length} relación(es) pendientes.</p>`;
-  pendingE11bApply = null;
-  renderMovementImportReview();
-}
 
 function formatIsoDate(value) {
   if (!value) return "";
@@ -24217,10 +23473,6 @@ const DATOS_IMPORTAR_TARGETS = {
 // (que sigue siendo descriptivo del fichero, no de una cuenta bancaria real, ver la nota de
 // `datosImportarFileSummary`), es una etiqueta nueva y opcional.
 const DATOS_IMPORTAR_ACCOUNTS = ["CaixaBank", "Mediolanum", "Efectivo"];
-
-function datosImportarTarget() {
-  return activeViewId === "registrar" ? DATOS_IMPORTAR_TARGETS.registrar : DATOS_IMPORTAR_TARGETS.data;
-}
 
 function datosImportarPersistDraft() {
   if (!datosImportarSession) {
@@ -24666,47 +23918,6 @@ let movementsChipFilter = "todos";
 // movementsSelectedIndexes antes de que renderMovementsBulkBar() pinte la barra real de M-8.
 let movementsPendingAutoSelect = null;
 
-function movementsActFromAlert({ search = "", chip = "todos", dateFrom = "", dateTo = "", matcher = null } = {}) {
-  const searchField = qs("movementSearch");
-  if (searchField) searchField.value = search;
-  const fromField = qs("movementDateFrom");
-  if (fromField) fromField.value = dateFrom;
-  const toField = qs("movementDateTo");
-  if (toField) toField.value = dateTo;
-  const actionTypeField = qs("movementActionTypeFilter");
-  if (actionTypeField) actionTypeField.value = "";
-  movementsChipFilter = MOVEMENT_CHIPS.some((item) => item.id === chip) ? chip : "todos";
-  movementsPendingAutoSelect = typeof matcher === "function" ? matcher : null;
-  history.pushState(null, "", "#movements");
-  setActiveView("movements", { focus: true });
-}
-
-// M-3: rango libre (Desde/Hasta) y búsqueda por concepto o importe, sobre `Fecha` — la misma que ya
-// ordenaba la tabla. Separado de `movementsFilteredList()` para que el recuento de cada chip
-// (`movementsChipCounts`) se calcule sobre el mismo rango+búsqueda que ve la tabla, sin el chip
-// activo todavía aplicado.
-function movementsRangeAndSearchList() {
-  const transactions = (baseData.transactions || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  const dateFrom = qs("movementDateFrom")?.value || "";
-  const dateTo = qs("movementDateTo")?.value || "";
-  const search = normalizedText(qs("movementSearch")?.value || "");
-  const actionTypeFilter = qs("movementActionTypeFilter")?.value || "";
-  return transactions.filter((row) => {
-    if (dateFrom && String(row.date) < dateFrom) return false;
-    if (dateTo && String(row.date) > dateTo) return false;
-    if (actionTypeFilter) {
-      const entry = actionTypeForMovement(row);
-      if (actionTypeFilter === "sin-tipo") {
-        if (entry) return false;
-      } else if (!entry || entry.actionType !== actionTypeFilter) return false;
-    }
-    if (!search) return true;
-    const amountText = normalizedText(`${row.amount} ${money(Math.abs(Number(row.amount || 0)), true)}`);
-    if (amountText.includes(search)) return true;
-    return normalizedText(`${row.date} ${row.movement} ${row.details} ${row.category} ${row.source}`).includes(search);
-  });
-}
-
 function movementsChipCounts(rows) {
   const counts = {};
   MOVEMENT_CHIPS.forEach((chip) => {
@@ -24723,38 +23934,10 @@ function movementsFilteredList() {
   return movementsRangeAndSearchList().filter(chip.test);
 }
 
-// M-3: cuatro atajos de rango — «todo» vacía el rango, el resto son meses de calendario completos
-// hasta hoy, igual que «Este mes»/«Año en curso» piden literalmente calendario, no una ventana de
-// N días.
-function movementsRangeShortcutBounds(kind, today = new Date()) {
-  if (kind === "todo") return { from: "", to: "" };
-  const to = isoLocalDate(today);
-  if (kind === "mes") return { from: isoLocalDate(new Date(today.getFullYear(), today.getMonth(), 1)), to };
-  if (kind === "trimestre") return { from: isoLocalDate(new Date(today.getFullYear(), today.getMonth() - 2, 1)), to };
-  if (kind === "anio") return { from: isoLocalDate(new Date(today.getFullYear(), 0, 1)), to };
-  return { from: "", to: "" };
-}
-
-function handleMovementsRangeShortcut(kind) {
-  const bounds = movementsRangeShortcutBounds(kind);
-  if (qs("movementDateFrom")) qs("movementDateFrom").value = bounds.from;
-  if (qs("movementDateTo")) qs("movementDateTo").value = bounds.to;
-  renderDetailedMovements();
-}
-
 function handleMovementsChipFilter(chipId) {
   if (!MOVEMENT_CHIPS.some((chip) => chip.id === chipId)) return;
   movementsChipFilter = chipId;
   renderDetailedMovements();
-}
-
-function renderMovementChips(counts) {
-  const container = qs("movementChips");
-  if (!container) return;
-  container.innerHTML = MOVEMENT_CHIPS.map(
-    (chip) =>
-      `<button type="button" class="registrar-mes-filter${movementsChipFilter === chip.id ? " is-active" : ""}" data-movement-chip="${chip.id}" aria-pressed="${movementsChipFilter === chip.id ? "true" : "false"}">${escapeHtml(chip.label)} · ${counts[chip.id] || 0}</button>`,
-  ).join("");
 }
 
 // M-4: la partida se lee de `mappingForMovement` (el mismo diccionario `movementMappings` que ya
@@ -24764,18 +23947,6 @@ function movementPartidaBadge(row) {
   const mapping = mappingForMovement(row);
   if (!mapping) return `<span class="e19-badge e19-badge-warning">Sin partida</span>`;
   return `<span class="e19-badge e19-badge-neutral">${escapeHtml(mapping.row.sectionName)} · ${escapeHtml(displayLabelForRow(mapping.row))}</span>`;
-}
-
-// P-1: mismo patrón que `movementPartidaBadge` — hueco sin sugerencia ni confirmación, tono
-// "sugerido" (no confirmado por el usuario) o "confirmado" según de dónde salga `actionTypeForMovement`.
-function movementActionTypeBadge(row) {
-  const entry = actionTypeForMovement(row);
-  if (!entry) return `<span class="e19-badge e19-badge-warning">Sin tipo</span>`;
-  const label = ACTION_TYPE_LABELS[entry.actionType] || entry.actionType;
-  const recurringSuffix = entry.recurring === true ? " · recurrente" : entry.recurring === false ? " · puntual" : "";
-  return entry.confirmed
-    ? `<span class="e19-badge e19-badge-neutral">${escapeHtml(label)}${escapeHtml(recurringSuffix)}</span>`
-    : `<span class="e19-badge e19-badge-accent">${escapeHtml(label)} (sugerido)</span>`;
 }
 
 // M-9: totales de la vista filtrada, no del extracto completo — se recalculan con el mismo
@@ -24792,197 +23963,6 @@ function movementsTotals(filtered) {
   );
 }
 
-// M-8c: la misma pieza compartida que ya usa Cierre (C-2, `cierreAccountReconciliation`) — saldo
-// declarado (Registrar) frente al calculado (último `balanceAfter` del extracto ya incorporado),
-// nunca un segundo cálculo. Cierre ya no bloquea esta pieza (Fase 5 está construida), así que M-8c
-// solo tenía que exponerla también en Movimientos, donde vive el extracto real.
-// M-8c, repaso pixel-perfect del 20 de agosto: Movimientos.pdf pinta el cuadre como una única
-// insignia en línea junto a los chips de filtro («Saldo recalculado cuadra con el declarado: X €»),
-// no como una tabla aparte por cuenta — y solo de CaixaBank, la misma cuenta de la que ya es
-// explícitamente la columna Saldo de la tabla (el efectivo no la mueve). Sigue reutilizando
-// cierreAccountReconciliation (C-2), sin segundo cálculo de saldo.
-function renderMovementsReconciliation() {
-  const container = qs("movementsReconciliation");
-  if (!container || !window.FinanceCanonicalLedger) return;
-  const snapshot = refreshCanonicalLedger("movements-view");
-  if (!snapshot) return;
-  const accountRows = cierreAccountReconciliation(snapshot.entries || []);
-  const caixa = accountRows.find((row) => row.id === "caixabank") || accountRows[0];
-  if (!caixa) return;
-  const toneClass = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" }[caixa.status];
-  const text =
-    caixa.status === "cuadra"
-      ? `Saldo recalculado cuadra con el declarado: ${money(caixa.declared, true)}`
-      : caixa.status === "descuadra"
-        ? `Saldo recalculado no cuadra con el declarado: diferencia de ${money(caixa.diff, true)}`
-        : "CaixaBank sin conciliar: falta el extracto para comprobar el saldo recalculado.";
-  container.innerHTML = `<span class="e19-badge ${toneClass} movements-reconcile-badge">${escapeHtml(text)}</span>${
-    caixa.status === "cuadra" ? "" : ` <a href="#cierre" data-home-nav="cierre" class="e19-kpi-note">Se cierra en Cierre.</a>`
-  }`;
-}
-
-function renderDetailedMovements() {
-  const rowsElement = qs("movementRows");
-  if (!rowsElement) return;
-  renderMovementsReconciliation();
-  const rangeAndSearch = movementsRangeAndSearchList();
-  renderMovementChips(movementsChipCounts(rangeAndSearch));
-  const chip = MOVEMENT_CHIPS.find((item) => item.id === movementsChipFilter) || MOVEMENT_CHIPS[0];
-  const filtered = rangeAndSearch.filter(chip.test);
-  const unclassified = filtered.filter((row) => Number(row.amount) && !mappingForMovement(row));
-
-  // M-8: la tabla se reconstruye entera en cada filtro nuevo, así que cualquier selección previa
-  // deja de corresponder a las mismas filas — se vacía aquí, no solo al aplicar el lote.
-  movementsSelectedIndexes.clear();
-  // A-13: si venimos de "actuar desde el aviso", la selección de una sola vez se aplica sobre las
-  // filas ya filtradas de este render y se consume — el siguiente re-render vuelve a partir vacío.
-  if (movementsPendingAutoSelect) {
-    filtered.forEach((row, index) => {
-      if (movementsPendingAutoSelect(row)) movementsSelectedIndexes.add(index);
-    });
-    movementsPendingAutoSelect = null;
-  }
-
-  const countLabel = qs("movementCount");
-  if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales.`;
-
-  // M-5: aviso de cola sin clasificar, sobre la misma vista filtrada — no un recuento aparte del
-  // extracto completo que no coincidiría con lo que la tabla muestra.
-  const banner = qs("movementsUnclassifiedBanner");
-  if (banner) {
-    if (unclassified.length) {
-      banner.hidden = false;
-      banner.textContent = `${unclassified.length} movimiento(s) de esta vista sin partida asignada. Ábrelos con «Ver» para clasificarlos.`;
-    } else {
-      banner.hidden = true;
-      banner.textContent = "";
-    }
-  }
-
-  rowsElement.innerHTML = filtered
-    .map(
-      (row, index) => `<tr>
-        <td><input type="checkbox" class="movements-row-select" data-movement-select-index="${index}"${movementsSelectedIndexes.has(index) ? " checked" : ""} aria-label="Seleccionar movimiento del ${escapeHtml(formatIsoDate(row.date))}" /></td>
-        <td>${formatIsoDate(row.date)}</td>
-        <td>${formatIsoDate(row.valueDate)}</td>
-        <td>${escapeHtml(row.movement)}</td>
-        <td>${escapeHtml(row.details)}</td>
-        <td>${escapeHtml(row.category)}</td>
-        <td>${movementPartidaBadge(row)}</td>
-        <td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>
-        <td>${row.balance === null || row.balance === undefined ? "" : money(row.balance, true)}</td>
-        <td>${movementActionTypeBadge(row)}</td>
-        <td>${escapeHtml(row.source || "")}</td>
-        <td>${escapeHtml(row.account || "—")}</td>
-        <td><button type="button" class="e19-btn e19-btn-secondary movements-row-detail" data-movement-detail-index="${index}">Ver</button></td>
-      </tr>`,
-    )
-    .join("");
-
-  // M-9: totales de la vista filtrada.
-  const totalsLabel = qs("movementsTotals");
-  if (totalsLabel) {
-    const totals = movementsTotals(filtered);
-    totalsLabel.textContent = filtered.length
-      ? `Ingresos de esta vista: ${money(totals.income, true)} · Gastos de esta vista: ${money(totals.expense, true)} · Neto: ${money(totals.income + totals.expense, true)}`
-      : "Sin movimientos en esta vista.";
-  }
-
-  const selectAll = qs("movementsSelectAll");
-  if (selectAll) {
-    selectAll.checked = filtered.length > 0 && movementsSelectedIndexes.size === filtered.length;
-    selectAll.disabled = !filtered.length;
-  }
-  renderMovementsBulkBar();
-}
-
-// M-8: la fila se identifica por su posición en `movementsFilteredList()`, la misma convención que
-// ya usa M-6 para el panel de detalle — determinista mientras no cambien los filtros entre el
-// render y el clic, que es síncrono (y por lo que la selección se vacía en cada re-render de la
-// tabla, ver `renderDetailedMovements`).
-function movementsSelectedRows() {
-  const filtered = movementsFilteredList();
-  return [...movementsSelectedIndexes].map((index) => filtered[index]).filter(Boolean);
-}
-
-// Las claves de concepto distintas entre las filas seleccionadas, con una fila de ejemplo cada
-// una. Una acción en lote escribe una entrada de `movementMappings` por concepto, no una por
-// movimiento — la misma unidad que ya usa M-7: reclasificar 40 movimientos de 3 conceptos escribe
-// 3 reglas, no 40, y esas 3 reglas siguen aplicando a movimientos futuros del mismo concepto.
-function movementsSelectedConceptKeys(rows) {
-  const keys = new Map();
-  rows.forEach((row) => {
-    const key = movementMappingKey(row);
-    if (!keys.has(key)) keys.set(key, row);
-  });
-  return keys;
-}
-
-function renderMovementsBulkBar() {
-  const bar = qs("movementsBulkBar");
-  const countLabel = qs("movementsBulkCount");
-  const partidaSelect = qs("movementsBulkPartida");
-  const actionTypeSelect = qs("movementsBulkActionType");
-  const noteEl = qs("movementsBulkNote");
-  const applyButton = qs("movementsBulkApply");
-  if (!bar) return;
-  const rows = movementsSelectedRows();
-  if (!rows.length) {
-    bar.hidden = true;
-    return;
-  }
-  bar.hidden = false;
-  const concepts = movementsSelectedConceptKeys(rows);
-  const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
-  if (countLabel) countLabel.textContent = `${rows.length} movimiento(s) seleccionados · ${concepts.size} concepto(s) distinto(s)`;
-  // Una partida es de ingresos o de gastos (`availableSeriesRows(kind)`); una selección que mezcla
-  // los dos no tiene una sola partida válida que ofrecer, así que se bloquea con el motivo en vez
-  // de enseñar una lista que solo serviría para la mitad de lo seleccionado (regla transversal 08).
-  // Mismo bloqueo para el tipo de acción, por simplicidad — no añade un segundo criterio de mezcla.
-  if (kinds.size > 1) {
-    if (partidaSelect) {
-      partidaSelect.innerHTML = "";
-      partidaSelect.disabled = true;
-    }
-    if (actionTypeSelect) {
-      actionTypeSelect.innerHTML = "";
-      actionTypeSelect.disabled = true;
-    }
-    if (noteEl) noteEl.textContent = "Selecciona movimientos del mismo tipo (todo ingresos o todo gastos) para asignarles la misma partida o tipo de acción.";
-    if (applyButton) applyButton.disabled = true;
-    return;
-  }
-  const kind = [...kinds][0];
-  if (partidaSelect) {
-    const previousValue = partidaSelect.value;
-    partidaSelect.disabled = false;
-    partidaSelect.innerHTML = movementMappingOptions(kind, previousValue);
-  }
-  if (actionTypeSelect) {
-    const previousValue = actionTypeSelect.value;
-    actionTypeSelect.disabled = false;
-    actionTypeSelect.innerHTML = movementActionTypeOptions(previousValue);
-  }
-  const alreadyMapped = [...concepts.values()].filter((row) => mappingForMovement(row)).length;
-  if (noteEl) {
-    noteEl.textContent = alreadyMapped
-      ? `${alreadyMapped} de los ${concepts.size} concepto(s) ya tenían otra partida asignada: se sobrescribirá.`
-      : `Se aplicará a los ${concepts.size} concepto(s) seleccionados, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida». Partida y tipo de acción se guardan por separado: rellena solo lo que quieras cambiar.`;
-  }
-  if (applyButton) applyButton.disabled = !partidaSelect?.value && !actionTypeSelect?.value;
-}
-
-function handleMovementsSelectToggle(event) {
-  const checkbox = event.target.closest("[data-movement-select-index]");
-  if (!checkbox) return;
-  const index = Number(checkbox.dataset.movementSelectIndex);
-  if (checkbox.checked) movementsSelectedIndexes.add(index);
-  else movementsSelectedIndexes.delete(index);
-  const selectAll = qs("movementsSelectAll");
-  if (selectAll) selectAll.checked = movementsSelectedIndexes.size > 0 && movementsSelectedIndexes.size === movementsFilteredList().length;
-  renderMovementsBulkBar();
-}
-
 function handleMovementsSelectAll(event) {
   const filtered = movementsFilteredList();
   if (event.target.checked) movementsSelectedIndexes = new Set(filtered.map((_, index) => index));
@@ -24990,16 +23970,6 @@ function handleMovementsSelectAll(event) {
   document.querySelectorAll("[data-movement-select-index]").forEach((checkbox) => {
     checkbox.checked = movementsSelectedIndexes.has(Number(checkbox.dataset.movementSelectIndex));
   });
-  renderMovementsBulkBar();
-}
-
-function handleMovementsBulkClear() {
-  movementsSelectedIndexes.clear();
-  document.querySelectorAll("[data-movement-select-index]").forEach((checkbox) => {
-    checkbox.checked = false;
-  });
-  const selectAll = qs("movementsSelectAll");
-  if (selectAll) selectAll.checked = false;
   renderMovementsBulkBar();
 }
 
@@ -25018,56 +23988,6 @@ function datosImportarRefreshRowsForMappings(keys) {
     row.prior = datosImportarPriorClassification(row.transaction, ignored);
     row.suggestion = row.prior.status === "pendiente" ? datosImportarSuggestionFor(row.transaction) : null;
   });
-}
-
-// M-8 · la escritura reutiliza tal cual el mismo diccionario y la misma secuencia de refresco que
-// ya usaban M-7 (`handleMovementReclassify`) y la revisión de importación
-// (`applyPendingMovementMappings`) — regla transversal 01: ninguna tercera forma de escribir una
-// clasificación, solo una tercera forma de elegir a qué conceptos se le aplica.
-//
-// DEX10 (Oleada 2, Bloque 1): partida y tipo de acción son opcionales e independientes — igual que
-// en el detalle individual (`handleMovementReclassify`/`handleMovementActionTypeSave`, dos puertas
-// de guardado separadas), se puede rellenar una, la otra, o las dos a la vez. El tipo de acción en
-// lote nunca toca `recurring`: adivinarlo en lote sería inventar una decisión que nadie tomó — queda
-// `null`, igual que al guardarlo desde el detalle sin marcarlo explícitamente.
-function handleMovementsBulkApply() {
-  const rows = movementsSelectedRows();
-  const partidaSelect = qs("movementsBulkPartida");
-  const actionTypeSelect = qs("movementsBulkActionType");
-  if (!rows.length || (!partidaSelect?.value && !actionTypeSelect?.value)) return;
-  const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
-  if (kinds.size > 1) return;
-  const kind = [...kinds][0];
-  const concepts = movementsSelectedConceptKeys(rows);
-  const messages = [];
-  let applied = 0;
-  if (partidaSelect?.value) {
-    const label = partidaSelect.options[partidaSelect.selectedIndex]?.textContent || "";
-    const rowKeyValue = partidaSelect.value;
-    concepts.forEach((_row, key) => {
-      movementMappings[key] = { kind, rowKey: rowKeyValue, label, updatedAt: new Date().toISOString() };
-    });
-    saveMovementMappings();
-    applied = applyMovementMappingsToActuals();
-    pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
-    datosImportarRefreshRowsForMappings(new Set(concepts.keys()));
-    saveIncomeActuals();
-    saveExpenseActuals();
-    // Mismo texto exacto que antes de DEX10 cuando solo se aplica partida (regresión cero de copy).
-    messages.push(`reclasificados a «${label}». ${applied} importe(s) reales recalculados desde movimientos.`);
-  }
-  if (actionTypeSelect?.value) {
-    const actionLabel = actionTypeSelect.options[actionTypeSelect.selectedIndex]?.textContent || "";
-    concepts.forEach((_row, key) => {
-      movementActionTypes[key] = { actionType: actionTypeSelect.value, recurring: null, updatedAt: new Date().toISOString() };
-    });
-    saveMovementActionTypes();
-    messages.push(`tipo de acción asignado como «${actionLabel}».`);
-  }
-  refreshAllSectionsAfterDataChange();
-  announceStatus(`${concepts.size} concepto(s) (${rows.length} movimiento(s)) ${messages.join(" ")}`);
-  movementsSelectedIndexes.clear();
-  renderDetailedMovements();
 }
 
 // M-6: panel de detalle. No hay id estable en los movimientos importados, así que se identifica la
@@ -25333,160 +24253,6 @@ function handleMovementsExport() {
   URL.revokeObjectURL(url);
 }
 
-function renderPlanningDetails({
-  kind,
-  monthSelectId,
-  summaryId,
-  rowsId,
-  actuals,
-  actualDataKey,
-  saveActuals,
-  renderAgain,
-}) {
-  const planning = baseData.monthlyPlanning;
-  if (!planning?.months?.length) return;
-  const monthIndex = Number(qs(monthSelectId).value || 0);
-  const month = { ...planning.months[monthIndex], index: monthIndex };
-  const monthClosed = isClosedMonthKey(month.key);
-  let totalPlanned = 0;
-  let capturedActual = 0;
-  let capturedPlanned = 0;
-  let capturedRows = 0;
-  const html = [];
-
-  planningSectionsForMonth(kind, month)
-    .forEach((section, sectionIndex) => {
-      const sectionKey = `${kind}:${section.name}`;
-      const expanded = expandedPlanningSections[kind].has(sectionKey);
-      let sectionActual = 0;
-      let sectionCapturedPlanned = 0;
-      let sectionCapturedRows = 0;
-      const sectionPlanned = section.rows.reduce((sum, row) => {
-        const info = actualAwareInfo(row, month);
-        const planned = info.planned;
-        if (info.hasActual) {
-          sectionCapturedRows += 1;
-          sectionActual += Number(info.actual || 0);
-          sectionCapturedPlanned += planned;
-        }
-        return sum + planned;
-      }, 0);
-      totalPlanned += sectionPlanned;
-      capturedRows += sectionCapturedRows;
-      capturedActual += sectionActual;
-      capturedPlanned += sectionCapturedPlanned;
-      const sectionVariance = sectionCapturedRows ? sectionActual - sectionCapturedPlanned : "";
-      const sectionUsed = section.rows.reduce((sum, row) => sum + actualAwareInfo(row, month).value, 0);
-      const sectionVarianceClass = varianceClassForKind(kind, sectionVariance);
-      html.push(
-        `<tr class="section-row planning-section-row ${expanded ? "expanded" : ""}">
-          <td colspan="2">
-            <button class="planning-section-button" data-planning-section="${escapeHtml(sectionKey)}" aria-expanded="${expanded ? "true" : "false"}">
-              <span class="planning-toggle">${expanded ? "-" : "+"}</span>${escapeHtml(section.name)} <small>${section.rows.length} líneas</small>
-            </button>
-          </td>
-          <td>${money(sectionPlanned, true)}</td>
-          <td>${sectionCapturedRows ? money(sectionActual, true) : ""}</td>
-          <td><strong>${money(sectionUsed, true)}</strong></td>
-          <td class="${sectionVarianceClass}">${sectionCapturedRows ? money(sectionVariance, true) : ""}</td>
-          <td></td>
-        </tr>`,
-      );
-
-      if (!expanded) return;
-
-      section.rows.forEach((row) => {
-        const info = actualAwareInfo(row, month);
-        const planned = info.planned;
-        const key = actualKeyForRow(row, month);
-        const deleteKey = deleteKeyForRow(row, month);
-        const actual = info.hasActual ? Number(info.actual || 0) : "";
-        const used = Number(info.value || 0);
-        const variance = info.hasActual ? Number(actual) - planned : "";
-        const varianceClass = varianceClassForKind(kind, variance);
-        html.push(`<tr class="planning-line-row ${row.custom ? "custom-line" : ""}" data-parent-section="${escapeHtml(sectionKey)}">
-          <td>${escapeHtml(section.name)}</td>
-          <td>${escapeHtml(displayLabelForRow(row))}${row.custom ? " <small>nuevo</small>" : ""}</td>
-          <td>${money(planned, true)}</td>
-          <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${info.hasActual ? actual : ""}" placeholder="Real" ${monthClosed ? "disabled" : ""} /></td>
-          <td><strong>${money(used, true)}</strong><small class="detail-used-source">${info.hasActual ? "usa el real" : "usa el previsto"}</small></td>
-          <td class="${varianceClass}">${info.hasActual ? money(variance, true) : ""}</td>
-          <td><button type="button" class="row-delete-button" data-delete-planning-row="${escapeHtml(deleteKey)}" ${monthClosed ? "disabled" : ""}>Eliminar</button></td>
-        </tr>`);
-      });
-    });
-
-  const capturedVariance = capturedRows ? capturedActual - capturedPlanned : 0;
-  const coverage = totalPlanned ? `${capturedRows} líneas` : "Sin datos";
-  const summaryVarianceClass =
-    kind === "income"
-      ? capturedVariance >= 0
-        ? "positive"
-        : "negative"
-      : capturedVariance > 0
-        ? "negative"
-        : "positive";
-  qs(summaryId).innerHTML = [
-    ["Previsto del mes", money(totalPlanned, true), ""],
-    ["Real capturado", capturedRows ? money(capturedActual, true) : "Sin reales", ""],
-    ["Desviación capturada", capturedRows ? money(capturedVariance, true) : "Pendiente", summaryVarianceClass],
-    ["Cobertura", coverage, ""],
-  ]
-    .map(
-      ([label, value, klass]) =>
-        `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`,
-    )
-    .join("");
-  qs(rowsId).innerHTML = html.join("");
-
-  document.querySelectorAll(`#${rowsId} [data-planning-section]`).forEach((button) => {
-    button.addEventListener("click", () => {
-      const key = button.dataset.planningSection;
-      if (expandedPlanningSections[kind].has(key)) {
-        expandedPlanningSections[kind].delete(key);
-      } else {
-        expandedPlanningSections[kind].add(key);
-      }
-      renderAgain();
-    });
-  });
-
-  document.querySelectorAll(`[${actualDataKey}]`).forEach((input) => {
-    input.addEventListener("change", () => {
-      const removed = input.value === "";
-      if (input.value === "") {
-        delete actuals[input.getAttribute(actualDataKey)];
-      } else {
-        actuals[input.getAttribute(actualDataKey)] = Number(input.value);
-      }
-      saveActuals();
-      renderAgain();
-      const status = qs("detailAutoSaveStatus");
-      if (status) {
-        status.textContent = removed
-          ? `Real eliminado en ${month.label}. La partida vuelve a usar el importe previsto.`
-          : `Real guardado automáticamente en ${month.label}. No necesitas pulsar «Guardar cambios».`;
-        status.className = "inline-feedback success";
-      }
-    });
-  });
-
-  document.querySelectorAll(`#${rowsId} [data-delete-planning-row]`).forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      deletePlanningRow(button.getAttribute("data-delete-planning-row"));
-      renderAgain();
-    });
-  });
-}
-
-function selectedPlanningMonth() {
-  const planning = baseData.monthlyPlanning;
-  const monthIndex = Number(qs("detailMonth").value || 0);
-  return { ...planning.months[monthIndex], index: monthIndex };
-}
-
 function populateCustomConceptForms() {
   ["income", "expense"].forEach((kind) => {
     const select = qs(`${kind}CustomSection`);
@@ -25501,41 +24267,6 @@ function populateCustomConceptForms() {
       select.value = previous;
     }
   });
-}
-
-function populateDataEntryControls() {
-  const monthSelect = qs("manualDataMonth");
-  if (monthSelect) {
-    const previous = monthSelect.value;
-    const months = selectableMonths();
-    const signature = months.map((month) => month.key).join("|");
-    if (dataEntryMonthSignature !== signature) {
-      monthSelect.innerHTML = months
-        .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
-        .join("");
-      dataEntryMonthSignature = signature;
-    }
-    if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
-  }
-  updateManualDataKindUi();
-  populateSeriesEditor();
-}
-
-function updateManualDataKindUi() {
-  const kind = qs("manualDataKind")?.value || "expense";
-  const sectionSelect = qs("manualDataSection");
-  if (sectionSelect) {
-    const usesPlanningSection = kind === "income" || kind === "expense";
-    sectionSelect.disabled = !usesPlanningSection;
-    const sections = usesPlanningSection ? baseData.monthlyPlanning.sections.filter((section) => section.kind === kind) : [];
-    sectionSelect.innerHTML = sections.length
-      ? sections.map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`).join("")
-      : '<option value="">No aplica</option>';
-  }
-  document.querySelectorAll(".manual-project-field").forEach((field) => {
-    field.classList.toggle("is-hidden", kind !== "project" && kind !== "debt");
-  });
-  qs("manualDataPlanned")?.closest("label")?.classList.toggle("is-hidden", kind === "project" || kind === "debt");
 }
 
 function availableSeriesRows(kind) {
@@ -25680,14 +24411,6 @@ function applySeriesChange() {
   );
 }
 
-function showImportLog(title, body, tone = "", targetId = "dataImportLog") {
-  const log = qs(targetId);
-  if (!log) return;
-  log.classList.toggle("warning", tone === "warning");
-  log.classList.toggle("danger", tone === "danger");
-  log.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p>`;
-}
-
 function fullRefreshMessage() {
   return "Cuadro de mandos, control de deuda, previsión, simulador, proyección, plan ahorro, flujo mensual y movimientos quedan recalculados.";
 }
@@ -25705,156 +24428,6 @@ function refreshAllSectionsAfterDataChange() {
   if (viewFromHash() === "data-entry") { populateDataEntryControls(); renderE11bStatus(); }
   if (viewFromHash() === "datos-importar") renderDatosImportar();
   if (viewFromHash() === "registrar" && registrarActiveTab === "import") renderDatosImportar();
-}
-
-function findPlanningRow(kind, sectionName, label, month) {
-  const targetSection = normalizedText(sectionName);
-  const targetLabel = normalizedText(label);
-  const sections = planningSectionsForMonth(kind, month);
-  for (const section of sections) {
-    if (normalizedText(section.name) !== targetSection) continue;
-    const row = section.rows.find((item) => normalizedText(displayLabelForRow(item)) === targetLabel);
-    if (row) return row;
-  }
-  return null;
-}
-
-function upsertPlanningRecord(record) {
-  const kind = normalizeDataKind(record.kind);
-  const month = monthFromInput(record.month);
-  const label = String(record.label || "").trim();
-  if (!month) return { ok: false, reason: `Mes no reconocido: ${record.month || ""}` };
-  if (!label) return { ok: false, reason: "Concepto vacío" };
-
-  const fallbackSection = kind === "income" ? "INGRESOS" : "GASTOS FIJOS";
-  const sectionName = String(record.sectionName || fallbackSection).trim() || fallbackSection;
-  const planned = parseAmount(record.planned);
-  const actual = parseAmount(record.actual);
-  let row = findPlanningRow(kind, sectionName, label, month);
-
-  if (!row) {
-    row = {
-      id: `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      custom: true,
-      kind,
-      sectionName,
-      label,
-      monthKey: month.key,
-      plannedValue: planned ?? 0,
-    };
-    customPlanningRows.push(row);
-  } else if (row.custom && planned !== null) {
-    const stored = customPlanningRows.find((item) => item.id === row.id && item.monthKey === month.key);
-    if (stored) stored.plannedValue = planned;
-  }
-
-  if (actual !== null) {
-    const actuals = actualsForKind(kind);
-    actuals[actualKeyForRow(row, month)] = actual;
-  }
-  expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
-  return { ok: true, kind, label, month: month.label };
-}
-
-function upsertProjectRecord(record) {
-  const month = monthFromInput(record.month) || selectableMonths()[0];
-  const label = String(record.label || record.concept || "").trim();
-  const amount = parseAmount(record.actual ?? record.planned);
-  if (!label) return { ok: false, reason: "Proyecto sin nombre" };
-  if (!amount || amount <= 0) return { ok: false, reason: `Proyecto sin importe: ${label}` };
-  const duration = Math.max(1, Number(record.duration || 1));
-  const mode = normalizeProjectMode(record.mode || "fixed");
-  const monthIndex = forecastMonths().findIndex((item) => item.key === month.key);
-  projects.push({
-    id: `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: label,
-    amount,
-    duration,
-    mode,
-    monthIndex: Math.max(0, monthIndex),
-    monthKey: month.key,
-  });
-  return { ok: true, kind: "project", label, month: month.label };
-}
-
-function upsertDebtRecord(record) {
-  const month = monthFromInput(record.month) || selectableMonths()[0];
-  const label = String(record.label || record.concept || "").trim() || "Liquidación deuda";
-  const amount = parseAmount(record.actual ?? record.planned ?? record.amount);
-  if (!amount || amount <= 0) return { ok: false, reason: `Liquidación sin importe: ${label}` };
-  const duration = Math.max(1, Number(record.duration || 1));
-  const payoffMode = normalizeDebtPayoffMode(record.mode || "fixed", duration);
-  const monthIndex = forecastMonths().findIndex((item) => item.key === month.key);
-  const target = debtPortfolioTargetForDecision({ name: label });
-  debtLiquidations.push({
-    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: label,
-    amount: round2(amount),
-    targetId: target?.id || "",
-    targetPrincipal: target ? Number(target.currentPrincipal || 0) : 0,
-    originalPrincipal: target ? Number(target.currentPrincipal || 0) : 0,
-    duration,
-    mode: "fixed",
-    payoffMode,
-    monthIndex: Math.max(0, monthIndex),
-    monthKey: month.key,
-  });
-  return { ok: true, kind: "debt", label, month: month.label };
-}
-
-function processDataRecords(records, sourceLabel = "datos", logId = "dataImportLog") {
-  const beforeState = appStatePayload({ includeCanonical: false });
-  let imported = 0;
-  let projectRows = 0;
-  let debtRows = 0;
-  let planningRows = 0;
-  const warnings = [];
-  records.forEach((record, index) => {
-    const kind = normalizeDataKind(record.kind);
-    const result =
-      kind === "project"
-        ? upsertProjectRecord(record)
-        : kind === "debt"
-          ? upsertDebtRecord(record)
-          : upsertPlanningRecord({ ...record, kind });
-    if (result.ok) {
-      imported += 1;
-      if (result.kind === "project") projectRows += 1;
-      else if (result.kind === "debt") debtRows += 1;
-      else planningRows += 1;
-    } else warnings.push(`Línea ${index + 1}: ${result.reason}`);
-  });
-
-  saveCustomPlanningRows();
-  saveIncomeActuals();
-  saveExpenseActuals();
-  saveProjects();
-  saveDebtLiquidations();
-  refreshAllSectionsAfterDataChange();
-
-  if (imported > 0 && sourceLabel !== "entrada manual") {
-    const e5 = window.FinanceCanonicalE5;
-    const batch = e5.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
-      sourceLabel, reason: sourceLabel, recordCount: imported,
-      afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
-    });
-    importBatches.push(batch);
-    saveLocalSnapshot();
-    queueRemoteSave();
-  }
-
-  const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
-  showImportLog(
-    `${imported} registro(s) importado(s)`,
-    `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
-    warnings.length ? "warning" : "",
-    logId,
-  );
-  return { imported, projectRows, debtRows, planningRows, warnings, batchId: importBatches.at(-1)?.id || "" };
-}
-
-function e11bAreaLabel(key) {
-  return { balances: "Saldos", movements: "Movimientos", actuals: "Reales", forecast: "Previsión", debt: "Deuda" }[key] || key;
 }
 
 // A16-1: extraído de renderE11bStatus() para que el componente "frescura de datos" de la puntuación
@@ -25878,52 +24451,6 @@ function dataFreshnessReport() {
   }, { asOf: isoLocalDate(new Date()) });
 }
 
-// DEX9: antes solo se veían las 4 últimas entradas por fecha de creación descendente, sin contar
-// cuántas seguían abiertas de verdad. "Pendiente" es `ready` (lista para confirmar) o `blocked`
-// (requiere revisión antes) — `applied`/`undone`/`discarded` ya están resueltas, no cuentan.
-function dataInboxPendingSummary(items = []) {
-  const pending = (items || [])
-    .filter((item) => item.status === "ready" || item.status === "blocked")
-    .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
-  return { pending, remaining: pending.length };
-}
-
-function renderE11bStatus() {
-  if (!E11bInbox) return;
-  const toggle = qs("toggleDataInbox");
-  if (toggle) {
-    const enabled = e11bSettings.enabled !== false;
-    toggle.textContent = enabled ? "Bandeja activa" : "Compatibilidad clásica";
-    toggle.setAttribute("aria-pressed", String(enabled));
-  }
-  const summary = qs("dataInboxSummary");
-  if (summary) {
-    const { pending, remaining } = dataInboxPendingSummary(dataInbox);
-    // Con pendientes, se enseñan esas — la más antigua primero, para vaciar la cola por orden de
-    // llegada — en vez de las últimas creadas, que taparían una entrada bloqueada desde hace días.
-    const items = remaining ? pending.slice(0, 4) : dataInbox.slice(-4).reverse();
-    const badgeClass = { ready: "e19-badge-accent", blocked: "e19-badge-warning", applied: "e19-badge-success", undone: "e19-badge-neutral", discarded: "e19-badge-neutral" };
-    const progressHtml = !dataInbox.length
-      ? ""
-      : remaining
-        ? `<p class="e19-kpi-note" id="dataInboxPendingCount"><strong>${remaining}</strong> pendiente${remaining === 1 ? "" : "s"} de confirmar — la más antigua primero.</p>`
-        : `<p class="e19-kpi-note" id="dataInboxPendingCount">Sin pendientes: la bandeja está al día.</p>`;
-    const itemsHtml = items.length ? items.map((item) => {
-      const counts = item.comparison || {};
-      const status = { ready: "Lista para confirmar", blocked: "Requiere revisión", applied: "Aplicada", undone: "Deshecha", discarded: "Descartada" }[item.status] || item.status;
-      return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
-    }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
-    summary.innerHTML = progressHtml + itemsHtml;
-  }
-  const report = dataFreshnessReport();
-  const freshness = qs("updateFreshness");
-  if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => {
-    const pillClass = area.status === "current" ? "e19-pill-safe" : "e19-pill-warn";
-    const pillLabel = area.status === "current" ? "al día" : area.status === "stale" ? "revisar frescura" : "incompleto";
-    return `<article class="e19-freshness-item"><strong>${escapeHtml(e11bAreaLabel(key))}</strong><p>${area.through ? `Hasta ${escapeHtml(formatIsoDate(area.through))}` : `Falta ${escapeHtml(area.missing.join(", "))}`}</p><span class="e19-pill ${pillClass}">${pillLabel}</span></article>`;
-  }).join("");
-}
-
 function addE11bInboxItem(input) {
   if (!E11bInbox || e11bSettings.enabled === false) return null;
   const item = E11bInbox.buildInboxItem(input);
@@ -25931,22 +24458,6 @@ function addE11bInboxItem(input) {
   saveLocalSnapshot();
   renderE11bStatus();
   return item;
-}
-
-// ARQ-6: `logId` — el justificante se pinta donde se confirmó (antes, siempre en #data-entry, oculta).
-function applyE11bReceipt(item, result = {}, logId = "dataImportLog") {
-  if (!item || !E11bInbox) return;
-  const latestBatch = result.batchId || importBatches.filter((batch) => batch.status === "applied").at(-1)?.id || "";
-  const receiptId = `receipt-${Date.now()}`;
-  const applied = E11bInbox.transition(item, "applied", { batchId: latestBatch, receiptId });
-  dataInbox = dataInbox.map((entry) => entry.id === item.id ? applied : entry);
-  const receipt = E11bInbox.buildReceipt(applied, { ...result, batchId: latestBatch, recalculated: ["cuadro de mandos", "conciliación", "previsión", "deuda y ahorro"] }, { id: receiptId });
-  updateReceipts.push(receipt);
-  saveLocalSnapshot();
-  renderE11bStatus();
-  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
-  const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
-  showImportLog("Actualización confirmada", `${receipt.changed.records} registro(s) incorporados. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacerlo con «Deshacer último lote», en Registrar." : "La revisión queda registrada."}${warningText}`, warnings.length ? "warning" : "success", logId);
 }
 
 function toggleE11bInbox() {
@@ -25999,119 +24510,6 @@ function loadReceiptOcrEngine() {
     throw error;
   });
   return receiptOcrEngineLoad;
-}
-
-async function runReceiptOcr(file) {
-  const Tesseract = await loadReceiptOcrEngine();
-  const result = await Tesseract.recognize(file, "spa");
-  return result?.data?.text || "";
-}
-
-function receiptFieldsFromOcrText(text) {
-  if (!ReceiptOcr) return { amount: { calculable: false }, date: { calculable: false }, merchant: { calculable: false } };
-  return ReceiptOcr.extractReceiptFields(text, { today: isoLocalDate(new Date()) });
-}
-
-async function handleReceiptCameraCapture(event) {
-  const file = event.target.files?.[0];
-  event.target.value = "";
-  if (!file) return;
-  const fileNameEl = qs("receiptCameraFileName");
-  if (fileNameEl) fileNameEl.textContent = file.name || "Foto capturada";
-  showImportLog("Reconociendo el ticket…", "El texto se está leyendo en tu propio navegador. Puede tardar unos segundos.", "", "receiptCameraStatus");
-  const reviewEl = qs("receiptCameraReview");
-  if (reviewEl) reviewEl.innerHTML = "";
-  let text = "";
-  try {
-    text = await runReceiptOcr(file);
-  } catch (error) {
-    showImportLog("No se pudo leer el ticket automáticamente", `${error.message || "Inténtalo de nuevo."} Puedes rellenar los datos a mano.`, "warning", "receiptCameraStatus");
-  }
-  const fields = receiptFieldsFromOcrText(text);
-  if (receiptCaptureDraft?.previewUrl) URL.revokeObjectURL(receiptCaptureDraft.previewUrl);
-  receiptCaptureDraft = { file, previewUrl: URL.createObjectURL(file) };
-  renderReceiptCaptureReview(fields);
-}
-
-function renderReceiptCaptureReview(fields) {
-  const container = qs("receiptCameraReview");
-  if (!container || !receiptCaptureDraft) return;
-  const amountValue = fields.amount?.calculable ? Math.abs(fields.amount.value).toFixed(2) : "";
-  const dateValue = fields.date?.calculable ? fields.date.value : isoLocalDate(new Date());
-  const merchantValue = fields.merchant?.calculable ? fields.merchant.value : "";
-  const allCalculable = fields.amount?.calculable && fields.date?.calculable && fields.merchant?.calculable;
-  container.innerHTML = `
-    <div class="receipt-capture-review">
-      <img class="receipt-capture-thumb" src="${receiptCaptureDraft.previewUrl}" alt="Foto del ticket capturado" />
-      <div class="receipt-capture-fields">
-        <label><span>Importe (€)</span><input id="receiptCaptureAmount" type="number" step="0.01" min="0" value="${escapeHtml(amountValue)}" /></label>
-        <label><span>Fecha</span><input id="receiptCaptureDate" type="date" value="${escapeHtml(dateValue)}" /></label>
-        <label><span>Comercio</span><input id="receiptCaptureMerchant" type="text" value="${escapeHtml(merchantValue)}" placeholder="Nombre del comercio" /></label>
-      </div>
-      <p class="data-hint">${allCalculable ? "Reconocido automáticamente — revisa antes de confirmar." : "El reconocimiento no encontró todos los datos con certeza — complétalos antes de confirmar."} La categoría se propondrá igual que en cualquier movimiento importado, desde el detalle del movimiento. Nada se incorpora al libro sin tu confirmación.</p>
-      <div class="data-actions">
-        <button id="receiptCaptureConfirm" type="button">Confirmar y registrar</button>
-        <button id="receiptCaptureCancel" class="secondary" type="button">Descartar</button>
-      </div>
-    </div>`;
-  qs("receiptCaptureConfirm")?.addEventListener("click", confirmReceiptCapture);
-  qs("receiptCaptureCancel")?.addEventListener("click", cancelReceiptCapture);
-  wireGestureConfirm(qs("receiptCaptureConfirm"));
-}
-
-function cancelReceiptCapture() {
-  if (receiptCaptureDraft?.previewUrl) URL.revokeObjectURL(receiptCaptureDraft.previewUrl);
-  receiptCaptureDraft = null;
-  const reviewEl = qs("receiptCameraReview");
-  if (reviewEl) reviewEl.innerHTML = "";
-  showImportLog("Captura descartada", "No se ha registrado ningún movimiento.", "", "receiptCameraStatus");
-}
-
-function confirmReceiptCapture() {
-  if (!receiptCaptureDraft) return;
-  const amount = parseAmount(qs("receiptCaptureAmount")?.value);
-  const date = qs("receiptCaptureDate")?.value;
-  const merchant = String(qs("receiptCaptureMerchant")?.value || "").trim();
-  // DEX8: en vez de "faltan datos" genérico, decir cuál — el reconocimiento automático puede fallar
-  // en un solo campo de los tres, y "faltan datos" obliga a repasarlos todos para averiguar cuál.
-  const missing = [];
-  if (!amount || amount <= 0) missing.push("el importe");
-  if (!date) missing.push("la fecha");
-  if (!merchant) missing.push("el comercio");
-  if (missing.length) {
-    const title = missing.length === 1 ? `Falta ${missing[0]}` : "Faltan datos";
-    const detail = missing.join(", ").replace(/, ([^,]*)$/, " y $1");
-    showImportLog(title, `Completa ${detail} antes de confirmar.`, "danger", "receiptCameraStatus");
-    return;
-  }
-  const row = {
-    date, valueDate: date, movement: merchant,
-    details: "Ticket capturado por cámara (A17-3)",
-    amount: -Math.abs(round2(amount)), balance: null, category: "",
-    source: "receipt-photo", statementOrder: 0,
-  };
-  const imported = [row];
-  const comparison = { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
-  const inboxItem = addE11bInboxItem({ source: "receipt-photo", sourceLabel: merchant, rows: imported, comparison });
-  pendingE11bApply = { imported, inboxItem };
-  const draft = receiptCaptureDraft;
-  applyStagedMovementImport();
-  const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
-  if (inboxItem && store) {
-    store.saveAttachment(inboxItem.id, draft.file).then((meta) => {
-      receiptAttachments[transactionIdentity(row)] = { inboxItemId: inboxItem.id, ...meta };
-      saveLocalSnapshot();
-      if (meta.storage === "cloud") showImportLog("Movimiento registrado", "El ticket se incorporó al libro y la foto se cifró y sincronizó con la nube.", "", "receiptCameraStatus");
-    }).catch(() => {
-      showImportLog("Movimiento registrado sin adjunto", "El ticket se incorporó al libro, pero la foto no se pudo guardar cifrada en este dispositivo.", "warning", "receiptCameraStatus");
-    });
-  }
-  if (draft.previewUrl) URL.revokeObjectURL(draft.previewUrl);
-  receiptCaptureDraft = null;
-  const reviewEl = qs("receiptCameraReview");
-  if (reviewEl) reviewEl.innerHTML = "";
-  const fileNameEl = qs("receiptCameraFileName");
-  if (fileNameEl) fileNameEl.textContent = "Ningún ticket capturado";
 }
 
 async function viewReceiptAttachment(row) {
@@ -26180,24 +24578,6 @@ async function verifyCloudBackups() {
   });
   if (check.error) { setStateBackupStatus("Verificación local completada", `${report.valid}/${report.checked} copias válidas, pero Supabase no pudo registrar el control: ${check.error.message}`, "warning"); return; }
   setStateBackupStatus("Copias verificadas", `${report.valid}/${report.checked} huellas válidas. ${plan.retained.length} copias protegidas por la política; ${plan.candidates.length} candidatas a revisión manual. Nunca se borran automáticamente.`, report.invalid.length ? "danger" : "success");
-}
-
-function handleManualData() {
-  const kind = qs("manualDataKind").value;
-  const record = {
-    kind,
-    month: qs("manualDataMonth").value,
-    sectionName: qs("manualDataSection").value,
-    label: qs("manualDataLabel").value,
-    planned: parseAmountField(qs("manualDataPlanned").value) ?? "",
-    actual: parseAmountField(qs("manualDataActual").value) ?? "",
-    duration: qs("manualProjectDuration").value,
-    mode: qs("manualProjectMode").value,
-  };
-  processDataRecords([record], "entrada manual");
-  qs("manualDataLabel").value = "";
-  qs("manualDataPlanned").value = "";
-  qs("manualDataActual").value = "";
 }
 
 function splitDataLine(line) {
@@ -26345,107 +24725,6 @@ function stageE7Workbook(nextData, fileName, target = "data") {
   });
 }
 
-function handleBatchImport() {
-  const records = parseTabularText(qs("batchDataInput").value);
-  if (!records.length) {
-    showImportLog("No hay datos importables", "Pega una tabla con cabeceras y al menos una línea.", "danger");
-    return;
-  }
-  stageE7Import(records, "lote pegado");
-}
-
-function applyImportedWorkbookData(nextData, fileName, logId = "dataImportLog") {
-  const beforeState = appStatePayload({ includeCanonical: false });
-  baseData = nextData;
-  ensureCompleteFinancingSection();
-  ensureVariableOperationalSection();
-  balanceSettings = {};
-  scenarioSettings = {};
-  currentScenario = "Base";
-  selectedCashflowIndex = null;
-  expandedCashflowYears = new Set();
-  expandedPlanningSections = {
-    income: new Set(),
-    expense: new Set(),
-  };
-  saveWorkbookOverride();
-  writeControls({ ...baseData.assumptions, autoCapSavings: true });
-  updateSourceNote();
-  qs("scenarioName").textContent = currentScenario;
-  saveLocalSnapshot();
-  queueRemoteSave();
-  refreshAllSectionsAfterDataChange();
-
-  const monthCount = baseData.monthlyPlanning?.months?.length || 0;
-  const sectionCount = baseData.monthlyPlanning?.sections?.length || 0;
-  const transactionCount = baseData.transactions?.length || 0;
-  const batch = window.FinanceCanonicalE5?.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
-    sourceLabel: fileName, reason: fileName, recordCount: transactionCount + sectionCount,
-    afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
-  });
-  if (batch) { importBatches.push(batch); saveLocalSnapshot(); queueRemoteSave(); }
-  showImportLog(
-    "Libro Excel cargado completo",
-    `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo. ${fullRefreshMessage()}`,
-    "success",
-    logId,
-  );
-  return { batchId: batch?.id || "", recordCount: transactionCount + sectionCount, movementCount: transactionCount };
-}
-
-async function handleExcelImport(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (qs("excelFileName")) qs("excelFileName").textContent = file.name;
-  const lowerName = file.name.toLowerCase();
-  if (lowerName.endsWith(".csv") || lowerName.endsWith(".txt")) {
-    const records = parseTabularText(await file.text());
-    if (!records.length) {
-      showImportLog("Fichero vacío", "No se han encontrado filas importables.", "danger");
-      return;
-    }
-    stageE7Import(records, file.name);
-    event.target.value = "";
-    return;
-  }
-  if (!(await window.xlsxReady())) {
-    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger");
-    return;
-  }
-  const buffer = await file.arrayBuffer();
-  const workbook = window.XLSX.read(buffer, { type: "array" });
-  try {
-    stageE7Workbook(buildFinanceDataFromWorkbook(workbook, file.name), file.name);
-  } catch (error) {
-    showImportLog(
-      "No se pudo cargar el libro completo",
-      `${error.message}. Comprueba que el Excel mantiene las pestañas Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y Movimientos_cuenta.`,
-      "danger",
-    );
-  }
-  event.target.value = "";
-}
-
-// R-9 · pestaña «Lote y Excel» de Registrar: mismas funciones de bajo nivel que #data-entry
-// (parseTabularText, stageE7Import/stageE7Workbook, processDataRecords/applyImportedWorkbookData
-// vía la bandeja E11b) — solo cambia el elemento de origen y el destino visual (target
-// "registrar"). Ninguna escritura nueva; #data-entry sigue intacto y funcionando igual.
-function handleRegistrarBatchImport() {
-  const input = qs("registrarBatchInput");
-  const records = parseTabularText(input?.value);
-  if (!records.length) {
-    showImportLog("No hay datos importables", "Pega una tabla con cabeceras y al menos una línea.", "danger", "registrarBatchLog");
-    return;
-  }
-  stageE7Import(records, "lote pegado", "registrar");
-}
-
-function handleRegistrarBatchClear() {
-  const input = qs("registrarBatchInput");
-  if (input) input.value = "";
-  showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.", "", "registrarBatchLog");
-}
-
 function downloadRegistrarBatchTemplate() {
   const header = "tipo;mes;bloque;concepto;previsto;real;duracion;modo";
   const example = "gasto;2026-09;GASTOS FIJOS;Luz;120;134,20;;";
@@ -26462,37 +24741,6 @@ function downloadRegistrarBatchTemplate() {
     URL.revokeObjectURL(url);
     link.remove();
   }, 1000);
-}
-
-async function processRegistrarExcelFile(file) {
-  if (!file) return;
-  if (qs("registrarExcelFileName")) qs("registrarExcelFileName").textContent = file.name;
-  const lowerName = file.name.toLowerCase();
-  if (lowerName.endsWith(".csv") || lowerName.endsWith(".txt")) {
-    const records = parseTabularText(await file.text());
-    if (!records.length) {
-      showImportLog("Fichero vacío", "No se han encontrado filas importables.", "danger", "registrarBatchLog");
-      return;
-    }
-    stageE7Import(records, file.name, "registrar");
-    return;
-  }
-  if (!(await window.xlsxReady())) {
-    showImportLog("No se pudo cargar la librería de Excel", "Comprueba la conexión y vuelve a intentarlo, o importa el fichero como CSV.", "danger", "registrarBatchLog");
-    return;
-  }
-  const buffer = await file.arrayBuffer();
-  const workbook = window.XLSX.read(buffer, { type: "array" });
-  try {
-    stageE7Workbook(buildFinanceDataFromWorkbook(workbook, file.name), file.name, "registrar");
-  } catch (error) {
-    showImportLog(
-      "No se pudo cargar el libro completo",
-      `${error.message}. Comprueba que el Excel mantiene las pestañas Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y Movimientos_cuenta.`,
-      "danger",
-      "registrarBatchLog",
-    );
-  }
 }
 
 async function handleRegistrarExcelImport(event) {
@@ -26537,75 +24785,6 @@ function deletePlanningRow(rawKey) {
   saveDeletedPlanningRows();
 }
 
-function renderMonthlySummary() {
-  const planning = baseData.monthlyPlanning;
-  if (!planning?.months?.length) return;
-  const monthIndex = Number(qs("detailMonth").value || 0);
-  const month = { ...planning.months[monthIndex], index: monthIndex };
-  const simulationRow = openSimulationRows(lastSimulation).find((row) => row.detailMonthKey === month.key);
-  const totals = {
-    income: 0,
-    expense: 0,
-    actualRows: 0,
-  };
-
-  planningSectionsForMonth(null, month).forEach((section) => {
-    section.rows.forEach((row) => {
-      const info = actualAwareInfo(row, { ...month, index: monthIndex });
-      if (section.kind === "income") totals.income += info.value;
-      if (section.kind === "expense") totals.expense += info.value;
-      if (info.hasActual) totals.actualRows += 1;
-    });
-  });
-
-  const income = simulationRow ? Number(simulationRow.income || 0) : totals.income;
-  const baseExpense = simulationRow
-    ? Number(simulationRow.coreSpend || 0) + Number(simulationRow.car || 0) + Number(simulationRow.refi || 0)
-    : totals.expense;
-  const decisionImpact = simulationRow ? Number(simulationRow.projectOutflow || 0) : 0;
-  const net = simulationRow ? Number(simulationRow.netBeforeSaving || 0) : totals.income - totals.expense;
-  const saving = simulationRow ? Number(simulationRow.saving || 0) : 0;
-  qs("monthlySummary").innerHTML = [
-    ["Ingresos del mes", money(income, true), "positive"],
-    ["Gastos base + deuda", money(baseExpense, true), "negative"],
-    ["Decisiones/proyectos", money(decisionImpact, true), decisionImpact < 0 ? "positive" : decisionImpact > 0 ? "negative" : ""],
-    ["Resultado del mes", money(net, true), net >= 0 ? "positive" : "negative"],
-    ["Ahorro aplicado", money(saving, true), ""],
-    ["Reales capturados", `${totals.actualRows} líneas`, ""],
-  ]
-    .map(
-      ([label, value, klass]) =>
-        `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`,
-    )
-    .join("");
-}
-
-function renderIncomeDetails() {
-  renderPlanningDetails({
-    kind: "income",
-    monthSelectId: "detailMonth",
-    summaryId: "incomeSummary",
-    rowsId: "incomeDetailRows",
-    actuals: incomeActuals,
-    actualDataKey: "data-income-actual-key",
-    saveActuals: saveIncomeActuals,
-    renderAgain: render,
-  });
-}
-
-function renderExpenseDetails() {
-  renderPlanningDetails({
-    kind: "expense",
-    monthSelectId: "detailMonth",
-    summaryId: "expenseSummary",
-    rowsId: "expenseDetailRows",
-    actuals: expenseActuals,
-    actualDataKey: "data-expense-actual-key",
-    saveActuals: saveExpenseActuals,
-    renderAgain: render,
-  });
-}
-
 function renderMonthlyDetails() {
   populateCustomConceptForms();
   renderMonthlySummary();
@@ -26636,14 +24815,6 @@ let registrarMesLastSaveAt = null;
 // el foco aterrice en la casilla siguiente, así que reescribir el HTML ahí deja el foco en el
 // aire y rompe el tabulado. En ese camino solo se refrescan las celdas derivadas.
 let registrarMesCellsOnly = false;
-
-function registrarMesSelectedMonth() {
-  const months = baseData?.monthlyPlanning?.months;
-  if (!months?.length) return null;
-  const raw = Number(qs("registrarMesMonth")?.value || 0);
-  const index = Math.min(Math.max(Number.isFinite(raw) ? raw : 0, 0), months.length - 1);
-  return { ...months[index], index };
-}
 
 function registrarMesPreviousMonth(month) {
   const months = baseData?.monthlyPlanning?.months || [];
@@ -26752,20 +24923,6 @@ function registrarMesTotals(entries) {
   };
 }
 
-function registrarMesMatchesFilter(entry, filter) {
-  if (filter === "sin-real") return !entry.hasActual;
-  if (filter === "desviacion") return registrarMesIsOff(entry);
-  return true;
-}
-
-function registrarMesFilterCounts(list) {
-  return {
-    "sin-real": list.filter((entry) => registrarMesMatchesFilter(entry, "sin-real")).length,
-    desviacion: list.filter((entry) => registrarMesMatchesFilter(entry, "desviacion")).length,
-    todo: list.length,
-  };
-}
-
 function registrarMesCopyCandidates(kind, month) {
   const previous = registrarMesPreviousMonth(month);
   if (!previous) return [];
@@ -26786,230 +24943,6 @@ function registrarMesCopyCandidates(kind, month) {
 // R-5), pero deja de ser una puerta de escritura — regla transversal 01. Sus reales, altas,
 // bajas, copia y confirmación de «¿es anual?» ahora viven solo en Registrar › Reales del mes.
 const REGISTRAR_MES_LEGACY_READONLY = true;
-
-function registrarMesEmptyMessage(filter, total) {
-  if (!total) return "Este mes no tiene partidas de este tipo.";
-  if (filter === "sin-real") return "Todas las partidas tienen un real registrado. Pulsa «Todo» para verlas.";
-  if (filter === "desviacion") return "Ninguna partida con real se aparta del previsto.";
-  return "Este mes no tiene partidas de este tipo.";
-}
-
-function registrarMesRowHtml(entry, monthClosed, monthKey) {
-  const locked = monthClosed || REGISTRAR_MES_LEGACY_READONLY;
-  const classes = [
-    entry.row.custom ? "registrar-mes-row-custom" : "",
-    registrarMesIsBad(entry) ? "registrar-mes-row-off" : "",
-  ].filter(Boolean);
-  const annualMatch = locked ? null : registrarMesAnnualMatch(entry, baseData?.transactions, monthKey);
-  const showAnnualBanner = Boolean(annualMatch) && !state?.registrarMesAnnualAck?.[entry.key];
-  return `<tr data-registrar-mes-key="${escapeHtml(entry.key)}"${classes.length ? ` class="${classes.join(" ")}"` : ""}>
-    <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
-    <td class="registrar-mes-concept">${escapeHtml(entry.label)}${entry.row.custom ? " <small>añadida aquí</small>" : ""}</td>
-    <td data-registrar-mes-cell="planned">${money(entry.planned, true)}</td>
-    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-mes-actual="${escapeHtml(entry.key)}" data-registrar-mes-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${locked ? " disabled" : ""} /></td>
-    <td data-registrar-mes-cell="used"><strong>${money(entry.used, true)}</strong>${entry.inProgress ? " <small>en curso</small>" : ""}</td>
-    <td data-registrar-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
-    <td class="registrar-mes-row-actions">${
-      entry.row.custom && !locked
-        ? `<button type="button" class="registrar-mes-row-remove" data-registrar-mes-delete="${escapeHtml(entry.deleteKey)}" aria-label="Quitar ${escapeHtml(entry.label)} de este mes">×</button>`
-        : ""
-    }</td>
-  </tr>${showAnnualBanner ? registrarMesAnnualBannerHtml(entry, annualMatch, monthKey) : ""}`;
-}
-
-// V4-3 · el aviso que consume la detección de V4-5. No proyecta el previsto hacia años futuros
-// —eso sigue sin existir, documentado en registrarMesAnnualMatch— solo pregunta y recuerda dónde
-// anotarlo si la respuesta es que sí.
-function registrarMesAnnualBannerHtml(entry, match, monthKey) {
-  const monthName = registrarMesMonthName(monthKey);
-  return `<tr class="registrar-mes-annual-row"><td colspan="7">
-    <span class="registrar-mes-annual-note">Coincide con ${escapeHtml(money(Math.abs(Number(entry.actual || 0)), true))} de hace un año (${escapeHtml(formatIsoDate(match.date))}), sin nada parecido entre medias · ¿es una partida anual? Se repetirá cada ${escapeHtml(monthName)}.</span>
-    <span class="registrar-mes-annual-actions">
-      <button type="button" class="e19-btn e19-btn-primary" data-registrar-mes-annual-key="${escapeHtml(entry.key)}" data-registrar-mes-annual-choice="confirm">Sí, anual</button>
-      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-annual-key="${escapeHtml(entry.key)}" data-registrar-mes-annual-choice="dismiss">Solo este mes</button>
-    </span>
-  </td></tr>`;
-}
-
-function registrarMesAddFormHtml(kind, month) {
-  if (!registrarMesAddOpen[kind]) return "";
-  const options = baseData.monthlyPlanning.sections
-    .filter((section) => section.kind === kind)
-    .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
-    .join("");
-  return `<form class="registrar-mes-add" data-registrar-mes-add-form="${kind}">
-    <label><span>Bloque</span><select data-registrar-mes-add-field="section">${options}</select></label>
-    <label><span>Concepto</span><input type="text" data-registrar-mes-add-field="label" placeholder="Ej.: Seguro del coche" /></label>
-    <label><span>Previsto</span><input type="number" step="0.01" data-registrar-mes-add-field="planned" placeholder="0,00" /></label>
-    <label><span>Real</span><input type="number" step="0.01" data-registrar-mes-add-field="actual" placeholder="Opcional" /></label>
-    <div class="registrar-mes-add-actions">
-      <button type="submit" class="e19-btn e19-btn-primary">Añadir a ${escapeHtml(month.label)}</button>
-      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-add-cancel="${kind}">Cancelar</button>
-    </div>
-  </form>`;
-}
-
-function registrarMesCopyHtml(kind, month) {
-  const previous = registrarMesPreviousMonth(month);
-  if (!previous) return `<span class="e19-kpi-meta">No hay un mes anterior en el plan.</span>`;
-  if (!registrarMesCopyPending[kind]) {
-    return `<button type="button" class="registrar-mes-link" data-registrar-mes-copy="${kind}">Copiar reales del mes anterior</button>`;
-  }
-  const candidates = registrarMesCopyCandidates(kind, month);
-  return `<span class="registrar-mes-copy-confirm">
-    <span>Se copiarán ${candidates.length} real(es) de ${escapeHtml(previous.label)} a las partidas que aún no tienen uno.</span>
-    <button type="button" class="e19-btn e19-btn-primary" data-registrar-mes-copy-confirm="${kind}">Confirmar copia</button>
-    <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-copy-cancel="${kind}">Cancelar</button>
-  </span>`;
-}
-
-function registrarMesCardHtml(meta, list, month, monthClosed) {
-  const kind = meta.kind;
-  const filter = registrarMesFilters[kind];
-  const counts = registrarMesFilterCounts(list);
-  const visible = list.filter((entry) => registrarMesMatchesFilter(entry, filter));
-  const chips = ["sin-real", "desviacion", "todo"]
-    .map(
-      (value) =>
-        `<button type="button" class="registrar-mes-filter${filter === value ? " is-active" : ""}" data-registrar-mes-filter="${kind}:${value}" aria-pressed="${filter === value ? "true" : "false"}">${REGISTRAR_MES_FILTER_LABELS[value]} (${counts[value]})</button>`,
-    )
-    .join("");
-  const body = visible.length
-    ? visible.map((entry) => registrarMesRowHtml(entry, monthClosed, month.key)).join("")
-    : `<tr><td colspan="7" class="registrar-mes-empty">${escapeHtml(registrarMesEmptyMessage(filter, list.length))}</td></tr>`;
-  const hasSections = baseData.monthlyPlanning.sections.some((section) => section.kind === kind);
-  const footer = REGISTRAR_MES_LEGACY_READONLY
-    ? `<p class="e19-kpi-note">Solo lectura (R-11): añade, copia o borra partidas desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Reales del mes</button>.</p>`
-    : monthClosed
-      ? `<p class="e19-kpi-note">El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>`
-      : `<div class="registrar-mes-card-foot">
-        ${hasSections ? `<button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-add="${kind}">+ Añadir partida</button>` : ""}
-        <p class="e19-kpi-note">Vaciar un real recupera el previsto. Escribir 0 significa «ocurrió por cero».</p>
-        ${registrarMesCopyHtml(kind, month)}
-      </div>
-      ${registrarMesAddFormHtml(kind, month)}`;
-  return `<article class="e19-card registrar-mes-card">
-    <div class="registrar-mes-card-head">
-      <h3 class="escenario-motor-panel-title">${escapeHtml(meta.label)}</h3>
-      <div class="registrar-mes-filters" role="group" aria-label="Filtrar partidas de ${escapeHtml(meta.label.toLowerCase())}">${chips}</div>
-    </div>
-    <div class="table-wrap">
-      <table class="e19-table registrar-mes-table">
-        <thead>
-          <tr>
-            <th>Bloque</th>
-            <th>Concepto</th>
-            <th>Previsto</th>
-            <th>Real</th>
-            <th>Usado</th>
-            <th>Desviación</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>
-    ${footer}
-  </article>`;
-}
-
-// Actualiza solo las celdas derivadas (previsto, usado, desviación) y los contadores de los
-// filtros. Se usa cuando el foco sigue dentro de la tabla: reconstruirla entera ahí robaría el
-// foco al tabular de una casilla a la siguiente.
-function registrarMesRefreshCells(entries) {
-  const container = qs("registrarMesTables");
-  if (!container) return;
-  const byKey = new Map();
-  [...entries.income, ...entries.expense].forEach((entry) => byKey.set(entry.key, entry));
-  container.querySelectorAll("tr[data-registrar-mes-key]").forEach((row) => {
-    const entry = byKey.get(row.dataset.registrarMesKey);
-    if (!entry) return;
-    const planned = row.querySelector('[data-registrar-mes-cell="planned"]');
-    if (planned) planned.textContent = money(entry.planned, true);
-    const used = row.querySelector('[data-registrar-mes-cell="used"]');
-    if (used) used.innerHTML = `<strong>${money(entry.used, true)}</strong>${entry.inProgress ? " <small>en curso</small>" : ""}`;
-    const variance = row.querySelector('[data-registrar-mes-cell="variance"]');
-    if (variance) {
-      variance.textContent = entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—";
-      variance.className = varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "");
-    }
-    row.classList.toggle("registrar-mes-row-off", registrarMesIsBad(entry));
-  });
-  REGISTRAR_MES_KINDS.forEach((meta) => {
-    const counts = registrarMesFilterCounts(entries[meta.kind]);
-    container.querySelectorAll(`[data-registrar-mes-filter^="${meta.kind}:"]`).forEach((button) => {
-      const value = String(button.dataset.registrarMesFilter).split(":")[1];
-      button.textContent = `${REGISTRAR_MES_FILTER_LABELS[value]} (${counts[value]})`;
-    });
-  });
-}
-
-function renderRegistrarMes() {
-  if (!qs("registrar-mes") || !baseData?.monthlyPlanning?.months?.length) return;
-  const month = registrarMesSelectedMonth();
-  if (!month) return;
-  const monthClosed = isClosedMonthKey(month.key);
-  const entries = registrarMesCollect(month);
-  const totals = registrarMesTotals(entries);
-
-  const eyebrow = qs("registrarMesEyebrow");
-  if (eyebrow) eyebrow.textContent = `Actualizar · ${registrarMesLongMonth(month.key)}`;
-
-  const netVariance = totals.expenseVariance - totals.incomeVariance;
-  const title = qs("registrarMesTitle");
-  if (title) {
-    const name = registrarMesMonthName(month.key);
-    title.textContent = !totals.captured
-      ? `${name} todavía no tiene ningún real registrado`
-      : Math.abs(netVariance) < 0.005
-        ? `${name} va clavado a lo previsto`
-        : `${name} va ${money(Math.abs(netVariance), true)} ${netVariance > 0 ? "por encima" : "por debajo"} de lo previsto`;
-  }
-
-  const pending = totals.lines - totals.captured;
-  const subtitle = qs("registrarMesSubtitle");
-  if (subtitle) {
-    subtitle.textContent = monthClosed
-      ? "El mes está cerrado: los importes quedan congelados y no se pueden editar aquí."
-      : REGISTRAR_MES_LEGACY_READONLY
-        ? `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Esta pantalla es de solo lectura: edítalas desde Registrar › Reales del mes.`
-        : `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
-  }
-
-  const saved = qs("registrarMesSaved");
-  if (saved) {
-    saved.textContent = registrarMesLastSaveAt
-      ? `Guardado a las ${registrarMesLastSaveAt.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
-      : "Sin cambios en esta sesión";
-    saved.className = registrarMesLastSaveAt ? "e19-badge e19-badge-success" : "e19-badge e19-badge-neutral";
-  }
-
-  const kpis = qs("registrarMesKpis");
-  if (kpis) {
-    const margin = totals.incomeUsed - totals.expenseUsed;
-    const plannedMargin = totals.incomePlanned - totals.expensePlanned;
-    const progress = totals.lines ? Math.round((totals.captured / totals.lines) * 100) : 0;
-    const delta = (variance, goodWhenPositive) =>
-      totals.captured
-        ? `<span class="e19-kpi-delta ${(goodWhenPositive ? variance >= 0 : variance <= 0) ? "is-up" : "is-down"}">${registrarMesSignedMoney(variance)} frente al previsto</span>`
-        : `<span class="e19-kpi-meta">Sin reales todavía</span>`;
-    kpis.innerHTML = [
-      `<div class="e19-kpi"><span class="e19-kpi-label">Ingresos · usado</span><span class="e19-kpi-value">${money(totals.incomeUsed, true)}</span>${delta(totals.incomeVariance, true)}</div>`,
-      `<div class="e19-kpi"><span class="e19-kpi-label">Gastos · usado</span><span class="e19-kpi-value">${money(totals.expenseUsed, true)}</span>${delta(totals.expenseVariance, false)}</div>`,
-      `<div class="e19-kpi${margin < 0 ? " is-danger" : ""}"><span class="e19-kpi-label">Margen del mes</span><span class="e19-kpi-value">${money(margin, true)}</span><span class="e19-kpi-meta">previsto ${money(plannedMargin, true)}</span></div>`,
-      `<div class="e19-kpi"><span class="e19-kpi-label">Completado</span><span class="e19-kpi-value">${totals.captured}/${totals.lines}</span><span class="registrar-mes-progress" role="img" aria-label="${progress}% de las partidas tienen real"><span style="width:${progress}%"></span></span></div>`,
-    ].join("");
-  }
-
-  const container = qs("registrarMesTables");
-  if (!container) return;
-  if (registrarMesCellsOnly && container.dataset.monthKey === month.key) {
-    registrarMesRefreshCells(entries);
-    return;
-  }
-  container.innerHTML = REGISTRAR_MES_KINDS.map((meta) => registrarMesCardHtml(meta, entries[meta.kind], month, monthClosed)).join("");
-  container.dataset.monthKey = month.key;
-}
 
 function handleRegistrarMesActualChange(input) {
   if (REGISTRAR_MES_LEGACY_READONLY) return;
@@ -27042,14 +24975,6 @@ function handleRegistrarMesFilter(value) {
   if (!kind || !filter || !(kind in registrarMesFilters)) return;
   registrarMesFilters[kind] = filter;
   renderRegistrarMes();
-}
-
-function handleRegistrarMesAddToggle(kind, open) {
-  if (REGISTRAR_MES_LEGACY_READONLY) return;
-  if (!(kind in registrarMesAddOpen)) return;
-  registrarMesAddOpen[kind] = open;
-  renderRegistrarMes();
-  if (open) qs("registrarMesTables")?.querySelector('[data-registrar-mes-add-field="label"]')?.focus();
 }
 
 function handleRegistrarMesAddSubmit(form) {
@@ -33432,30 +31357,6 @@ const REGISTRAR_TABS = [
   { id: "batch", label: "Lote y Excel" },
 ];
 
-function registrarBalanceStale() {
-  if (!state) return false;
-  return state.balanceMode === "manual" && (state.balanceDate || "") !== isoLocalDate(new Date());
-}
-
-// R-2 (auditoría del 15 de agosto, Prioridad 4): el criterio pide un recuento vivo en las cuatro
-// pestañas; «import» y «batch» llevaban un marcador de «ausente» permanente, nunca un número.
-// «import» sí tiene un recuento real que ofrecer — los movimientos de la sesión de importación en
-// curso que piden decisión, el mismo `datosImportarCounters` que ya usa `homeImportSessionCandidate`
-// (H-5) —; «batch» (pegar tabla/Excel) es una acción de un solo paso sin sesión que dejar a medias,
-// así que no hay pendiente real que contar todavía: se deja vacío, igual que «balances» cuando no
-// hay nada que avisar, en vez de fabricar un cero (regla transversal 04).
-function registrarTabBadges() {
-  const month = registrarActualsSelectedMonth();
-  const pendingActuals = registrarActualsEntries(month).filter((entry) => !entry.hasActual).length;
-  const importPending = datosImportarSession ? datosImportarCounters(datosImportarSession.rows).pidenDecision : 0;
-  return {
-    balances: registrarBalanceStale() ? "1 desactualizada" : "",
-    actuals: !month ? HOME_MISSING_VALUE : pendingActuals ? `${pendingActuals} sin real` : "Al día",
-    import: importPending ? `${importPending} por decidir` : "",
-    batch: "",
-  };
-}
-
 // R-5: la tabla de Reales del mes reutiliza el mismo modelo de datos y la misma puerta de
 // escritura que ya usaba «Registrar el mes» (registrarMesCollect/actualsForKind/
 // saveActualsForKind) — solo cambia la presentación: una tabla única (ingresos + gastos), filtro
@@ -33475,13 +31376,6 @@ function registrarActualsDefaultMonthKey() {
   return months.find((month) => !month.closed)?.key || months[months.length - 1]?.key || "";
 }
 
-function registrarActualsSelectedMonth() {
-  const months = baseData?.monthlyPlanning?.months || [];
-  if (!months.length) return null;
-  const key = qs("registrarActualsMonth")?.value || registrarActualsDefaultMonthKey();
-  return months.find((month) => month.key === key) || months[0];
-}
-
 function registrarActualsEntries(month) {
   if (!month) return [];
   const collected = registrarMesCollect(month);
@@ -33499,17 +31393,6 @@ function pendingActualsForMonthKey(monthKey) {
   return { count: pending.length, labels: pending.map((entry) => entry.label) };
 }
 
-function registrarActualsBlocks(entries) {
-  return [...new Set(entries.map((entry) => entry.sectionName))].sort((a, b) => a.localeCompare(b, "es"));
-}
-
-function registrarActualsStatus(entry) {
-  if (!entry.hasActual) return { label: "Sin real", tone: "warn" };
-  if (registrarMesIsBad(entry)) return { label: "Desviación", tone: "danger" };
-  if (registrarMesIsOff(entry)) return { label: "A favor", tone: "good" };
-  return { label: "Registrado", tone: "good" };
-}
-
 function registrarActualsTotals(entries) {
   const captured = entries.filter((entry) => entry.hasActual);
   const sum = (list, field) => round2(list.reduce((total, item) => total + Number(item[field] || 0), 0));
@@ -33520,96 +31403,6 @@ function registrarActualsTotals(entries) {
     lines: entries.length,
     captured: captured.length,
   };
-}
-
-// DEX7: sugerencia de importe real por partida, tomada del último mes anterior en que esa misma
-// partida (mismo `row.id`, la primera mitad de `entry.key`) tuvo un real capturado de verdad — nunca
-// se rellena sola: aparece solo como `placeholder` (texto gris, nunca `value`), así que si el usuario
-// no la teclea explícitamente, no se guarda nada (mismo principio que "ninguna escritura durante
-// vistas previas" del resto del backlog). Sin real anterior, no hay sugerencia — hueco, no invención.
-function lastActualForEntry(entry, month) {
-  if (!month) return null;
-  const rowId = String(entry.key || "").split("|")[0];
-  if (!rowId) return null;
-  const actuals = actualsForKind(entry.kind);
-  const priorMonths = (baseData?.monthlyPlanning?.months || [])
-    .filter((item) => item.key < month.key)
-    .sort((a, b) => b.key.localeCompare(a.key));
-  for (const priorMonth of priorMonths) {
-    const stored = actuals[`${rowId}|${priorMonth.key}`];
-    if (Number.isFinite(Number(stored))) return { amount: Number(stored), monthLabel: priorMonth.label };
-  }
-  return null;
-}
-
-// R-6b: el previsto de esta fila no se edita aquí (celda de solo lectura, ninguna escritura de
-// `planned` en toda la pestaña) — el enlace lleva a Plan, la única pantalla donde se edita.
-function registrarActualsRowHtml(entry, monthClosed, month) {
-  const status = registrarActualsStatus(entry);
-  const suggestion = entry.hasActual ? null : lastActualForEntry(entry, month);
-  const placeholder = suggestion ? formatAmountField(suggestion.amount) : "sin real";
-  const titleAttr = suggestion ? ` title="Sugerido: último real registrado, ${escapeHtml(money(suggestion.amount, true))} en ${escapeHtml(suggestion.monthLabel)}"` : "";
-  return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
-    <td>${!entry.hasActual && !monthClosed ? `<input type="checkbox" class="registrar-actuals-select" data-registrar-actuals-select="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Seleccionar ${escapeHtml(entry.label)}"${registrarActualsSelectedKeys.has(entry.key) ? " checked" : ""} />` : ""}${escapeHtml(entry.sectionName)}</td>
-    <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
-    <td data-label="Previsto">${money(entry.planned, true)}</td>
-    <td><input type="text" inputmode="decimal" autocomplete="off" data-amount-input data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? formatAmountField(entry.actual) : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
-    <td data-label="Usado"><strong>${money(entry.used, true)}</strong></td>
-    <td data-label="Desviación" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
-    <td><span class="status-pill ${status.tone}">${escapeHtml(status.label)}</span></td>
-  </tr>`;
-}
-
-function renderRegistrarActuals() {
-  const select = qs("registrarActualsMonth");
-  if (!select) return;
-  const months = registrarActualsMonths();
-  const previous = select.value;
-  select.innerHTML = months
-    .map((month) => `<option value="${escapeHtml(month.key)}">${escapeHtml(month.label)}${month.closed ? " · cerrado" : ""}</option>`)
-    .join("");
-  select.value = months.some((month) => month.key === previous) ? previous : registrarActualsDefaultMonthKey();
-
-  const month = registrarActualsSelectedMonth();
-  const monthClosed = Boolean(month && isClosedMonthKey(month.key));
-  if (qs("registrarActualsClosedNote")) qs("registrarActualsClosedNote").hidden = !monthClosed;
-
-  const allEntries = registrarActualsEntries(month);
-  const blocks = registrarActualsBlocks(allEntries);
-  if (registrarActualsBlockFilter !== "todos" && !blocks.includes(registrarActualsBlockFilter)) {
-    registrarActualsBlockFilter = "todos";
-  }
-  const filtersEl = qs("registrarActualsFilters");
-  if (filtersEl) {
-    filtersEl.innerHTML = ["todos", ...blocks]
-      .map((value) => {
-        const count = value === "todos" ? allEntries.length : allEntries.filter((entry) => entry.sectionName === value).length;
-        const isActive = registrarActualsBlockFilter === value;
-        return `<button type="button" class="registrar-actuals-filter${isActive ? " is-active" : ""}" data-registrar-actuals-block="${escapeHtml(value)}" aria-pressed="${isActive ? "true" : "false"}">${escapeHtml(value === "todos" ? "Todos" : value)} (${count})</button>`;
-      })
-      .join("");
-  }
-
-  const visible = registrarActualsBlockFilter === "todos" ? allEntries : allEntries.filter((entry) => entry.sectionName === registrarActualsBlockFilter);
-  if (qs("registrarActualsBulk")) qs("registrarActualsBulk").innerHTML = RegistrarActualsConfirm?.bulkButtonHtml(visible.filter((entry) => !entry.hasActual).length, registrarActualsBlockFilter, { escapeHtml, disabled: monthClosed, selectedCount: visible.filter((entry) => !entry.hasActual && registrarActualsSelectedKeys.has(entry.key)).length }) || "";
-
-  if (qs("registrarActualsBody")) {
-    qs("registrarActualsBody").innerHTML = visible.length
-      ? visible.map((entry) => registrarActualsRowHtml(entry, monthClosed, month)).join("")
-      : `<tr><td colspan="7" class="registrar-mes-empty">Este bloque no tiene partidas este mes.</td></tr>`;
-  }
-
-  const totals = registrarActualsTotals(visible);
-  if (qs("registrarActualsTotals")) {
-    qs("registrarActualsTotals").innerHTML = `<tr class="registrar-actuals-totals-row">
-      <td colspan="2">Total (${totals.captured}/${totals.lines} con real)</td>
-      <td data-label="Previsto">${money(totals.planned, true)}</td>
-      <td></td>
-      <td data-label="Usado"><strong>${money(totals.used, true)}</strong></td>
-      <td data-label="Desviación">${totals.captured ? registrarMesSignedMoney(totals.variance) : "—"}</td>
-      <td></td>
-    </tr>`;
-  }
 }
 
 function handleRegistrarActualsChange(input) {
@@ -33638,41 +31431,6 @@ function setRegistrarTab(tabId) {
   // #datos-importar lo hace al abrirse — sin esto, la primera visita mostraría el panel vacío
   // hasta el siguiente cambio de datos.
   if (registrarActiveTab === "import") renderDatosImportar();
-}
-
-function renderRegistrarTabs() {
-  const nav = qs("registrarTabs");
-  if (!nav) return;
-  const badges = registrarTabBadges();
-  nav.querySelectorAll("[data-registrar-tab]").forEach((button) => {
-    const isActive = button.dataset.registrarTab === registrarActiveTab;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-selected", isActive ? "true" : "false");
-  });
-  nav.querySelectorAll("[data-registrar-badge]").forEach((badge) => {
-    badge.textContent = badges[badge.dataset.registrarBadge] || "";
-  });
-  document.querySelectorAll("[data-registrar-panel]").forEach((panel) => {
-    panel.hidden = panel.dataset.registrarPanel !== registrarActiveTab;
-  });
-  // ARQ-6: bloques que acompañan a más de una pestaña (bandeja común y «Deshacer último lote»).
-  document.querySelectorAll("[data-registrar-panels]").forEach((panel) => {
-    panel.hidden = !panel.dataset.registrarPanels.split(" ").includes(registrarActiveTab);
-  });
-  const activeTab = REGISTRAR_TABS.find((tab) => tab.id === registrarActiveTab);
-  if (qs("registrarCrumb")) qs("registrarCrumb").textContent = `Registrar › ${activeTab?.label || ""}`;
-  renderBalancePulse(); // WP-26: el reloj del pulso sabe en qué pestaña se está
-}
-
-function renderRegistrarHeaderMeta() {
-  const meta = qs("registrarSourceNote");
-  if (!meta) return;
-  const source = state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado";
-  const savedAt = lastLocalSaveAt
-    ? `guardado hace poco, a las ${new Date(lastLocalSaveAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
-    : "sin guardar todavía en esta sesión";
-  meta.innerHTML = `<span class="e19-registrar-meta-item">Fuente del libro: ${escapeHtml(source)} · ${escapeHtml(savedAt)}</span>
-    <span class="e19-registrar-meta-item">Flujo: Saldo de cuentas → Reales del mes → Importar extracto → Lote y Excel</span>`;
 }
 
 // R-4: mismas cuatro cifras que ya calcula Hoy (unifiedActionCenterModel/homeDebtOutlook), más el
@@ -33706,14 +31464,6 @@ function registrarRecalcFigures() {
   ];
 }
 
-function renderRegistrarRecalcCard() {
-  const grid = qs("registrarRecalcGrid");
-  if (!grid) return;
-  grid.innerHTML = registrarRecalcFigures()
-    .map((item) => `<div class="e19-registrar-recalc-item"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`)
-    .join("");
-}
-
 // R-3: "delta frente al guardado por cuenta" — no una cifra pendiente escondida, sino el hueco
 // vivo entre lo que hay tecleado y lo último que de verdad se guardó. La foto se retoma cada vez
 // que se guarda (resetRegistrarBalanceBaseline) para que el delta vuelva a cero al confirmar.
@@ -33721,23 +31471,6 @@ function resetRegistrarBalanceBaseline() {
   const balances = accountBalancesFromState();
   registrarBalanceBaseline = { caixa: balances.caixa, mediolanum: balances.mediolanum };
   renderRegistrarBalanceDelta();
-}
-
-function registrarDeltaText(current, baseline) {
-  if (!Number.isFinite(current) || !Number.isFinite(baseline)) return "";
-  const delta = round2(current - baseline);
-  if (delta === 0) return "Sin cambios frente al guardado.";
-  return `${delta > 0 ? "+" : ""}${money(delta, true)} frente al guardado.`;
-}
-
-function renderRegistrarBalanceDelta() {
-  if (!registrarBalanceBaseline) return;
-  const caixaEl = document.querySelector('[data-registrar-delta="caixa"]');
-  const mediolanumEl = document.querySelector('[data-registrar-delta="mediolanum"]');
-  if (caixaEl) caixaEl.textContent = registrarDeltaText(parseAmountField(qs("registrarCaixaBalance")?.value), registrarBalanceBaseline.caixa);
-  if (mediolanumEl) {
-    mediolanumEl.textContent = registrarDeltaText(parseAmountField(qs("registrarMediolanumBalance")?.value), registrarBalanceBaseline.mediolanum);
-  }
 }
 
 // R-7: mismas fuentes que registrarRecalcFigures (unifiedActionCenterModel/homeDebtOutlook/
@@ -33762,37 +31495,6 @@ function registrarSessionMetrics() {
     worstMonthValue: worst ? round2(Number(worst.value || 0)) : null,
     worstMonthLabel: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${money(worst.value, true)}` : HOME_MISSING_VALUE,
   };
-}
-
-// Cuatro cifras de la sesión completa (no de la última casilla tocada): cada una compara el valor
-// actual contra la foto tomada antes del primer cambio sin consolidar.
-function registrarImpactRows(baseline, current) {
-  const reserveDelta = round2(current.reserveMargin - baseline.reserveMargin);
-  const coverageDelta = current.coverageDays === null || baseline.coverageDays === null ? null : current.coverageDays - baseline.coverageDays;
-  const worstDelta = current.worstMonthValue === null || baseline.worstMonthValue === null ? null : round2(current.worstMonthValue - baseline.worstMonthValue);
-  return [
-    {
-      label: "Reserva sobre el mínimo",
-      value: money(current.reserveMargin, true),
-      note: reserveDelta === 0 ? "Sin cambios en la sesión" : `${reserveDelta > 0 ? "+" : ""}${money(reserveDelta, true)} en la sesión`,
-      warn: current.reserveMargin < 0,
-    },
-    {
-      label: "Cobertura hasta el siguiente ingreso",
-      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} día(s)`,
-      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} día(s) en la sesión`,
-    },
-    {
-      label: "Fecha libre de deuda",
-      value: current.debtFreeDateLabel,
-      note: current.debtFreeDateRank === baseline.debtFreeDateRank ? "Sin cambios en la sesión" : "Cambia frente al inicio de la sesión",
-    },
-    {
-      label: "Peor mes del horizonte",
-      value: current.worstMonthLabel,
-      note: !worstDelta ? "Sin cambios en la sesión" : `${worstDelta > 0 ? "+" : ""}${money(worstDelta, true)} en la sesión`,
-    },
-  ];
 }
 
 function registrarBeginSessionTrackingIfNeeded() {
@@ -33862,58 +31564,6 @@ function registrarConsolidateSessionChanges() {
     registrarSessionConsolidatedNote = "";
     renderRegistrarImpactFooter();
   }, 2000);
-}
-
-function renderRegistrarImpactFooter() {
-  const bar = qs("registrarImpactBar");
-  if (!bar) return;
-  if (registrarSessionConsolidatedNote) {
-    bar.hidden = false;
-    bar.classList.remove("is-warning");
-    bar.innerHTML = `<p class="e19-registrar-impact-note">${escapeHtml(registrarSessionConsolidatedNote)}</p>`;
-    return;
-  }
-  if (!registrarSessionChanges.length || !registrarSessionBaselineMetrics) {
-    bar.hidden = true;
-    bar.innerHTML = "";
-    return;
-  }
-  const current = registrarSessionMetrics();
-  const rows = registrarImpactRows(registrarSessionBaselineMetrics, current);
-  const belowMinimum = current.reserveMargin < 0;
-  bar.hidden = false;
-  bar.classList.toggle("is-warning", belowMinimum);
-  bar.innerHTML = `
-    <div class="e19-registrar-impact-head">
-      <p class="e19-eyebrow">Impacto de la sesión</p>
-      <small>${registrarSessionChanges.length} cambio(s) sin consolidar${belowMinimum ? " · reserva bajo el mínimo" : ""}</small>
-    </div>
-    ${rows
-      .map(
-        (row) => `<dl><dt>${escapeHtml(row.label)}</dt><dd${row.warn ? " class=\"is-warning\"" : ""}>${escapeHtml(row.value)}</dd><small>${escapeHtml(row.note)}</small></dl>`
-      )
-      .join("")}
-    <div class="e19-registrar-impact-actions">
-      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-impact-discard>Descartar todo</button>
-      <button type="button" class="e19-btn e19-btn-primary" data-registrar-impact-save>Guardar cambios</button>
-    </div>`;
-}
-
-function renderRegistrar() {
-  if (!qs("registrarBalancePanel")) return;
-  renderRegistrarHeaderMeta();
-  renderRegistrarActuals();
-  renderRegistrarTabs();
-  // ARQ-6: la bandeja común vive ahora aquí (el `case "data-entry"` nunca llega: redirige a Registrar).
-  renderE11bStatus();
-  // ARQ-6 (sesión 244): «Nuevo dato manual» vive ahora en la pestaña Lote y Excel. Su única llamada
-  // anterior estaba igual de inalcanzable que el resto (`case "data-entry"` nunca llega) — los
-  // selects de mes y bloque llevaban vacíos, sin poblar, desde el 15 de agosto.
-  populateDataEntryControls();
-  renderRegistrarRecalcCard();
-  resetRegistrarBalanceBaseline();
-  renderRegistrarImpactFooter();
-  globalThis.renderDatosCola?.(globalThis.FinanceCanonicalDataQueue); // WP-45 (datos-ui.js)
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -34150,48 +31800,10 @@ function planMesUsadoMovementCount(entry, monthKey) {
   ).length;
 }
 
-function planMesUsadoTitle(entry, monthKey) {
-  const monthLabel = ledgerMonthLabel(monthKey);
-  if (!entry.hasActual) return `Previsto: sin movimientos registrados en ${monthLabel} todavía.`;
-  const count = planMesUsadoMovementCount(entry, monthKey);
-  return count
-    ? `Real: ${count} movimiento${count === 1 ? "" : "s"} de ${monthLabel}.`
-    : "Real: importe introducido a mano en Registrar › Reales del mes.";
-}
-
 function planMesIsFinancingRowKey(rowKey) {
   const section = baseData?.monthlyPlanning?.sections?.find((item) => item.name === "Financiaciones");
   if (!section) return false;
   return section.rows.some((row) => seriesKeyForRow(row) === rowKey);
-}
-
-// P-2 (auditoría del 15 de agosto, Prioridad 3): con la tabla agrupada por bloque (más abajo), el
-// nombre de sección de cada fila ya lo dice la cabecera de bloque — repetirlo en una columna propia
-// era ruido. Se retira la celda «Bloque»; `data-plan-mes-block` sigue en la fila para que el
-// plegado (`handlePlanMesBlockToggle`) sepa a qué bloque pertenece.
-// Plan.pdf (04 de 9): «Restante» sustituye a «Desviación» — presupuesto menos gastado, siempre
-// visible (nunca «—», incluso sin real todavía: `planMesCollect` lo deja en 0 cuando gastado cae
-// al previsto). Positivo es «sobra» (verde); negativo es «falta» (rojo).
-function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false, sobresBalance = null, showSobresColumn = false) {
-  const rowKey = seriesKeyForRow(entry.row);
-  const isFinancing = entry.sectionName === "Financiaciones";
-  const plannedCell = isFinancing
-    ? `<span class="plan-mes-financing-readonly">${money(entry.planned, true)}<small>se cambia en <button type="button" class="registrar-actuals-plan-link" data-home-nav="deuda-contratos">Deuda</button></small></span>`
-    : `<input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} />`;
-  const restante = Number(entry.restante || 0);
-  const restanteClass = restante > 0 ? "positive" : restante < 0 ? "negative" : "";
-  // P-14: la columna «Arrastre» solo aparece con la bandera activa, y solo tiene valor real para
-  // Gastos variables — el resto de bloques muestra «—» en vez de fingir un sobre que no existe.
-  const sobresCell = showSobresColumn
-    ? `<td data-plan-mes-cell="sobre" class="${sobresBalance === null ? "" : sobresBalance < 0 ? "negative" : "positive"}">${sobresBalance === null ? "—" : money(sobresBalance, true)}</td>`
-    : "";
-  return `<tr data-plan-mes-key="${escapeHtml(entry.key)}" data-plan-mes-block="${escapeHtml(entry.sectionName)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}${collapsed ? " hidden" : ""}>
-    <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
-    <td>${plannedCell}</td>
-    <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta" title="${escapeHtml(planMesUsadoTitle(entry, monthKey))}">${entry.hasActual ? "real" : "previsto"}</small></td>
-    <td data-plan-mes-cell="restante" class="${restanteClass}">${registrarMesSignedMoney(restante)}</td>
-    ${sobresCell}
-  </tr>`;
 }
 
 // P-2: bloques en el orden real en que aparecen las filas (baseData.monthlyPlanning.sections —
@@ -34199,89 +31811,6 @@ function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false, sobresB
 // con el subtotal de previsto de cada uno. `Set` de nombre de sección, no de índice, para que
 // colapsar/expandir sobreviva a que cambien las partidas del mes.
 let planMesCollapsedBlocks = new Set();
-
-function planMesGroupBySection(list) {
-  const order = [];
-  const bySection = new Map();
-  list.forEach((entry) => {
-    if (!bySection.has(entry.sectionName)) {
-      bySection.set(entry.sectionName, []);
-      order.push(entry.sectionName);
-    }
-    bySection.get(entry.sectionName).push(entry);
-  });
-  return order.map((sectionName) => {
-    const sectionEntries = bySection.get(sectionName);
-    return { sectionName, entries: sectionEntries, subtotal: round2(sectionEntries.reduce((sum, entry) => sum + Number(entry.planned || 0), 0)) };
-  });
-}
-
-function planMesBlockRowHtml(block, showSobresColumn = false) {
-  const collapsed = planMesCollapsedBlocks.has(block.sectionName);
-  return `<tr class="plan-mes-block-row">
-    <td colspan="3">
-      <button type="button" class="plan-mes-block-toggle" data-plan-mes-block-toggle="${escapeHtml(block.sectionName)}" aria-expanded="${collapsed ? "false" : "true"}">
-        <span class="plan-mes-block-caret" aria-hidden="true"></span>${escapeHtml(block.sectionName)}
-      </button>
-    </td>
-    <td class="plan-mes-block-subtotal">${money(block.subtotal, true)}</td>
-    ${showSobresColumn ? "<td></td>" : ""}
-  </tr>`;
-}
-
-// Plan.pdf (04 de 9): «una sola tabla «Presupuesto de [mes]» con cabeceras de sección... y
-// subtotal por bloque, plegable». Sustituye la tarjeta plana de Gastos; Ingresos se fusiona aquí
-// como primer bloque (la propia lista de entrada ya lo trae en cabeza — ver renderPlanMes), tal
-// como pide el inventario de la sección A del mockup («agrupada por bloques: ingresos, fijos,
-// variables, deuda y ahorro»). Columnas renombradas a Presupuesto/Gastado/Restante (antes
-// Previsto/Usado/Desviación) para que coincidan con el mockup; «Restante» ya viene calculado en
-// `planMesCollect` (positivo = sobra, negativo = falta), no en esta función.
-function planMesBudgetTableHtml(list, month, monthClosed, extraFootHtml = "") {
-  const showSobres = sobresEnabled();
-  const balanceByKey = new Map(showSobres ? sobresMonthBalances(month).map((item) => [item.rowKey, item.saldo]) : []);
-  const blocks = planMesGroupBySection(list);
-  const body = blocks.length
-    ? blocks
-        .map((block) => {
-          const collapsed = planMesCollapsedBlocks.has(block.sectionName);
-          const rows = block.entries
-            .map((entry) => {
-              const rowKey = seriesKeyForRow(entry.row);
-              const sobresBalance = entry.sectionName === "Gastos variables" && balanceByKey.has(rowKey) ? balanceByKey.get(rowKey) : null;
-              return planMesRowHtml(entry, monthClosed, month.key, collapsed, sobresBalance, showSobres);
-            })
-            .join("");
-          return `${planMesBlockRowHtml(block, showSobres)}${rows}`;
-        })
-        .join("")
-    : `<tr><td colspan="${showSobres ? 5 : 4}" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
-  const pendingCount = list.filter((entry) => entry.plannedDraft).length;
-  const savedBadge = pendingCount
-    ? `<span class="e19-badge e19-badge-warning">${pendingCount} sin guardar</span>`
-    : `<span class="e19-badge e19-badge-success">Todo guardado</span>`;
-  const sobreCount = showSobres ? list.filter((entry) => entry.sectionName === "Gastos variables").length : 0;
-  const footNote = `${list.length} partida${list.length === 1 ? "" : "s"} en ${blocks.length} bloque${blocks.length === 1 ? "" : "s"}${showSobres ? ` · ${sobreCount} declarada${sobreCount === 1 ? "" : "s"} como sobre` : ""}`;
-  return `<article class="e19-card registrar-mes-card">
-    <div class="registrar-mes-card-head plan-mes-budget-head">
-      <div>
-        <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(month.label)}</h3>
-        <p class="e19-subtitle">Presupuesto editable · gastado de solo lectura${showSobres ? " · dos columnas de sobre" : ""}</p>
-      </div>
-      ${savedBadge}
-    </div>
-    <div class="table-wrap">
-      <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Partida</th><th>Presupuesto</th><th>Gastado</th><th>Restante</th>${showSobres ? "<th>Arrastre</th>" : ""}</tr></thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>
-    <div class="registrar-mes-card-foot plan-mes-table-foot">
-      <p class="e19-kpi-note">${escapeHtml(footNote)}</p>
-      <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Añadir partida</button>
-    </div>
-    ${extraFootHtml ? `<div class="registrar-mes-card-foot">${extraFootHtml}</div>` : ""}
-  </article>`;
-}
 
 function handlePlanMesBlockToggle(sectionName) {
   if (!sectionName) return;
