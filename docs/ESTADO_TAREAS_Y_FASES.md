@@ -135,7 +135,7 @@ Orden recomendado de **desarrollo**, por fechas y dependencias (decide el hogar)
 | 09/10/2026 | Actualizar saldos y hacer la prueba cronometrada 3 veces | WP-02 |
 | 15/10/2026 | Abrir la app del 15 al 17 (foto de la liquidez a mitad de mes) | WP-12 |
 | 16/10/2026 | Verificación práctica de O-6 (≈ 20 min); sin ella, O-6 se cierra · **cerrado el 20/10** | WP-05 |
-| 20/10/2026 | Datos fiscales que faltan, en el chat (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías) | WP-23 |
+| 20/10/2026 | Datos fiscales que faltan, **tecleados en la app** (Herramientas avanzadas › Fiscal › «Tus datos fiscales»; no por el chat): pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías | WP-23 |
 | 23/10/2026 | Mirar «Novedades» y el panel de uso: revisión de la Ola 1 | — |
 | 01/11/2026 | Primera transferencia de la asignación personal | WP-24 |
 | 03/11/2026 | Cerrar octubre con saldo | WP-09 |

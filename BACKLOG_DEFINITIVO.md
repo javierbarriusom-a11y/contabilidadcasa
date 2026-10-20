@@ -280,7 +280,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 |---|---|
 | 3/10/2026 | **Arranca la Ola 1** (el hogar dijo «empecemos»); el 4/10 queda construida salvo WP-23 |
 | Antes del 16/10 | El hogar: cronometrar una vez cómo actualiza hoy los saldos (línea base de WP-26) y los 3 intentos de la prueba de Hoy (WP-02) |
-| Semana del 12/10/2026 | **Campaña fiscal (WP-23)**, con los datos fiscales en el chat (decisión del hogar del 4/10) |
+| Semana del 12/10/2026 | **Campaña fiscal (WP-23)**, con los datos fiscales en el chat (decisión del hogar del 4/10; **desde el 16/10 se teclean en la app**, «Tus datos fiscales») |
 | 16/10/2026 | Revisión mensual de Nielsen (`OPT-21`) · **decisión de `O-6`** (conexión bancaria): **cerrado el 20/10, sin verificación** |
 | 23/10/2026 | Fin de la Ola 1 · `OPT-10`–`OPT-13`: no se retira nada |
 | Antes del 1/11 | El hogar: dar de alta las dos fichas de la asignación personal y programar las transferencias con concepto fijo |
@@ -304,7 +304,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 
 **Contestado el 3/10/2026:** D1 hipoteca **variable** · D2 tributación **individual** y **sin plan de pensiones de empresa** · D3 **quitar el límite** de entregas visibles · D4 **nadie más** usará la app · D5 y D6 por defecto (minutos autodeclarados; archivar `NHG-03`).
 
-**Falta, en el chat (nunca en el repositorio):**
+**Falta (nunca en el repositorio). Los datos fiscales se teclean en la app, en Herramientas avanzadas › Fiscal › «Tus datos fiscales» (WP-23 PR-2, 16/10); los de la hipoteca, en Deuda › Contratos:**
 | Dato | Para | Si no llega |
 |---|---|---|
 | Lo pagado por la vivienda en 2026 (cuotas y amortizaciones) y lo previsto hasta diciembre, **por titular** | WP-23 (tope de 9.040 € por declarante: con tributación individual, cada titular que deducía tiene su propio tope sobre lo que paga) | La campaña sale con la acción pero sin euros |
@@ -393,7 +393,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 3. Al pasar el primer paquete a «en curso», `meta/plan.arranque` con la fecha.
 4. Si cambia el plan (no el estado): regenerar el JSON, `node tools/build-plan-panel.mjs <scratchpad>/plan-contabilidadcasa.html` y volver a publicar el panel **en la misma URL** (`Artifact` con `url`). El estado no se pierde: vive en la base del panel, no en la página.
 
-**Privacidad:** el panel no guarda importes. Las cifras fiscales y de la hipoteca siguen yendo solo por el chat.
+**Privacidad:** el panel no guarda importes. Las cifras fiscales se teclean en la app («Tus datos fiscales») y las de la hipoteca, en Deuda › Contratos; nunca en el panel ni en el repositorio.
 
 ---
 

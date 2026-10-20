@@ -160,7 +160,7 @@
    "hechoCuando": "Lista visible antes del 15/11 con cada acción aplicable, su ahorro estimado en euros, su fuente y su fecha límite; eventos de calendario el 1/12 y el 20/12.",
    "metrica": "M-FISCAL",
    "fechaLimite": "2026-11-14",
-   "necesitaDelHogar": "Datos fiscales que faltan, en el chat (≈ 20/10)."
+   "necesitaDelHogar": "Datos fiscales que faltan, tecleados en la app (Herramientas avanzadas › Fiscal › «Tus datos fiscales»), nunca por el chat (≈ 20/10)."
   },
   {
    "id": "WP-07",
@@ -1918,7 +1918,7 @@
   },
   {
    "fecha": "2026-10-20",
-   "que": "Datos fiscales que faltan, en el chat",
+   "que": "Datos fiscales que faltan, tecleados en la app",
    "tipo": "hogar",
    "wp": "WP-23"
   },
@@ -2012,7 +2012,7 @@
   },
   {
    "id": "H-03",
-   "que": "Datos fiscales que faltan, en el chat (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías)",
+   "que": "Datos fiscales que faltan, tecleados en la app (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías)",
    "fecha": "2026-10-20",
    "para": [
     "WP-23"
