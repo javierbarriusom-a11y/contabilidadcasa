@@ -109,6 +109,33 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (325): «meses desde la última revisión» cuenta con el día local, no con el de UTC
+
+- **Qué pidió el hogar:** arreglar el desfase en UTC de `monthsSinceDate`, el riesgo que anotó la entrada 316.
+- **El fallo.** `monthsSinceDate` (`canonical-portfolio.js`) tomaba el «hoy» en UTC. Ese contador lo usan cuatro avisos:
+  - la revisión de rebalanceo (INV-17);
+  - la convicción por posición (I-12);
+  - el ritual anual (GOB-13);
+  - la revisión del tipo de la deuda (GOB-16).
+
+  Entre las 0 h y la 1-2 h en Madrid, el contador iba un día por detrás. Además, las tres marcas «hecho hoy» guardaban también la fecha UTC, así que a esas horas se registraba la víspera.
+- **Qué cambia.**
+  - **El motor:** el «hoy» es el día del calendario local. Una referencia `AAAA-MM-DD` se toma tal cual, sin pasar por ninguna zona horaria.
+  - **Las marcas:** `markIv1PositionConvictionReviewed`, `markInv17RebalanceReviewed` (en `app.js`) y `markGob13AnnualReviewDone` (en `views/cierre.js`) guardan `isoLocalDate(new Date())`.
+  - **Formato:** sigue siendo `AAAA-MM-DD`, así que no hace falta migrar nada. Las fechas ya guardadas siguen valiendo; como mucho alguna tiene un día menos, si se marcó de madrugada.
+  - **`app.js`:** sin cambio neto de líneas.
+- **Pruebas.**
+  - **Regresión:** se ejecuta en un proceso con `TZ=Europe/Madrid`, porque el CI corre en UTC y allí el fallo no se ve. A las 00:30 del 1/11 ya ha pasado un mes desde el 1/10. Falla con el motor anterior y pasa con el nuevo.
+  - **Referencias `AAAA-MM-DD`:** se toman tal cual, y una referencia inválida devuelve `null`.
+  - **Pruebas existentes:** las de INV-17 pasaban la referencia como medianoche UTC; ahora usan fechas sin zona. Las de guardado (INV-17, I-12, GOB-13) esperan el día local. La de GOB-13 «un año exacto» vuelve al día local.
+- **Fuera de este cambio:** quedan 20 usos más de «hoy» en UTC (`new Date().toISOString().slice(0, 10)`) en `app.js`, `canonical-e11b-inbox.js`, `p2-ui.js` y `views/analisis.js`. Entre otros, la fecha por defecto de la captura rápida, el contador de visitas por pantalla y los nombres de los ficheros exportados. Quedan anotados como trabajo aparte.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6035/6035, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Suite unitaria con `TZ=Europe/Madrid`, en verde.
+  - Suite unitaria en Madrid con el reloj simulado a las 00:30 del 1/11/2026, el 1/01/2027 y el 1/03/2027: 0 fallos.
+  - Pruebas afectadas en UTC, Madrid, Nueva York y UTC+14: 62/62.
+  - E2e y a11y de Cierre e Inversión: 42/42.
+
 ## Cierre de sesión — 19 de octubre de 2026 (324): cobro manual caducado y gasto diario de 0 €, sin silencio
 
 - **Origen:** la captura de Hoy con datos reales decía «0 días hasta 31 ago · necesidad 0 € · Dato observado». En el motor (`coverageUntilNextIncome`) una fecha pasada solo puede salir de un ajuste manual guardado. Causa probable, en `app.js`: el editor de cobertura (Ajustes › Configuración) se abre con lo aprendido y dejaba «Guardar ajuste» activo, así que un toque congelaba la fecha aprendida como manual; y un gasto diario vacío se guardaba como `null`, que `e6CoverageSettings` convertía en `Number(null) = 0`.

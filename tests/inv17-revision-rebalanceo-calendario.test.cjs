@@ -49,7 +49,7 @@ test("rebalanceCalendarReviewStatus · sin ninguna revisión registrada, vencida
 test("rebalanceCalendarReviewStatus · revisión reciente dentro del intervalo, no vencida", () => {
   const status = Portfolio.rebalanceCalendarReviewStatus(
     { lastReviewedAt: "2026-06-01", intervalMonths: 6 },
-    new Date("2026-08-01T00:00:00Z"),
+    "2026-08-01",
   );
   assert.equal(status.reviewed, true);
   assert.equal(status.monthsSinceReview, 2);
@@ -59,7 +59,7 @@ test("rebalanceCalendarReviewStatus · revisión reciente dentro del intervalo, 
 test("rebalanceCalendarReviewStatus · revisión antigua fuera del intervalo, vencida", () => {
   const status = Portfolio.rebalanceCalendarReviewStatus(
     { lastReviewedAt: "2025-01-01", intervalMonths: 6 },
-    new Date("2026-08-01T00:00:00Z"),
+    "2026-08-01",
   );
   assert.equal(status.reviewed, true);
   assert.equal(status.due, true);
@@ -67,14 +67,35 @@ test("rebalanceCalendarReviewStatus · revisión antigua fuera del intervalo, ve
 });
 
 test("rebalanceCalendarReviewStatus · un intervalo inválido o ausente cae al valor por defecto (6 meses)", () => {
-  const status = Portfolio.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-01-01", intervalMonths: 0 }, new Date("2026-03-01T00:00:00Z"));
+  const status = Portfolio.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-01-01", intervalMonths: 0 }, "2026-03-01");
   assert.equal(status.intervalMonths, Portfolio.REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS);
+});
+
+// «Hoy» es el día del calendario del hogar (hora local), no el de UTC (decisión del hogar, 20/10/2026). Se comprueba en un proceso con
+// la hora de Madrid porque el CI corre en UTC, donde el fallo no se veía: a las 00:30 del 1/11 en Madrid, en UTC aún es el 31/10.
+test("monthsSinceDate · cuenta con el día local: a las 00:30 del 1/11 en Madrid ya ha pasado un mes desde el 1/10", () => {
+  const { execFileSync } = require("node:child_process");
+  const script = `const P = require(${JSON.stringify(path.join(__dirname, "..", "canonical-portfolio.js"))});
+    const local = new Date(2026, 10, 1, 0, 30); // 1/11/2026 00:30 hora local = 31/10 23:30 UTC
+    console.log(JSON.stringify([P.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-10-01", intervalMonths: 1 }, local), local.toISOString()]));`;
+  const [status, utc] = JSON.parse(execFileSync(process.execPath, ["-e", script], { env: { ...process.env, TZ: "Europe/Madrid" } }).toString());
+  assert.equal(utc.slice(0, 10), "2026-10-31", "la prueba de verdad cae en otro día en UTC");
+  assert.equal(status.monthsSinceReview, 1);
+  assert.equal(status.due, true);
+});
+
+test("monthsSinceDate · una referencia AAAA-MM-DD se toma tal cual, sin zona horaria", () => {
+  const status = Portfolio.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-01-31", intervalMonths: 1 }, "2026-02-28");
+  assert.equal(status.monthsSinceReview, 0, "del 31/01 al 28/02 aún no se cumple el día 31");
+  assert.equal(Portfolio.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-01-31", intervalMonths: 1 }, "2026-03-31").monthsSinceReview, 2);
+  assert.equal(Portfolio.rebalanceCalendarReviewStatus({ lastReviewedAt: "2026-01-31", intervalMonths: 1 }, "no es una fecha").monthsSinceReview, null);
 });
 
 function sandbox({ intervalMonths, lastReviewedAt, activeElementIsInput = false } = {}) {
   const noteContainer = { innerHTML: "" };
   const intervalInput = { value: "" };
   const context = {
+    isoLocalDate: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, // como el de app.js: el día local
     window: { FinanceCanonicalPortfolio: Portfolio },
     scenarioSettings: { inv17RebalanceReviewIntervalMonths: intervalMonths, inv17LastRebalanceReviewAt: lastReviewedAt },
     qs: (id) => {
@@ -112,7 +133,7 @@ test("renderInv17RebalanceCalendarReview · revisión muy antigua (fecha fija, s
 test("markInv17RebalanceReviewed · guarda la fecha de hoy y vuelve a pintar la tarjeta", () => {
   const ctx = sandbox({});
   ctx.markInv17RebalanceReviewed();
-  assert.ok(ctx.scenarioSettings.inv17LastRebalanceReviewAt);
+  assert.equal(ctx.scenarioSettings.inv17LastRebalanceReviewAt, ctx.isoLocalDate(new Date()), "el día local del hogar, no el de UTC");
   assert.match(ctx.noteContainer.innerHTML, /Última revisión hace 0 mes\(es\)/);
 });
 
