@@ -5,7 +5,7 @@ Paquete del plan definitivo (ND-11, Ola 2, ≈ 1,5 sesiones). **Se corta en dos 
 | PR | Qué | Estado |
 |---|---|---|
 | **PR-1** | Euribor 12 meses, €STR e IPC **tecleados con la fecha del dato**, con caducidad y aviso. **Sin ninguna conexión externa.** | Hecho el 7/10/2026 |
-| **PR-2** | Fuente oficial (CORS directo o función privada de solo lectura), con vuelta al valor tecleado | **Espera a la decisión de `O-6` del 16/10/2026** (`docs/ND13_SPIKE_CONEXION.md`) y a la revisión de seguridad (`docs/NTC06_AMENAZAS.md`, prueba `ntc6-conexiones-externas`) |
+| **PR-2** | Fuente oficial (CORS directo o función privada de solo lectura), con vuelta al valor tecleado | **Archivado el 20/10/2026:** el hogar cerró `O-6` sin la verificación práctica (`docs/ND13_SPIKE_CONEXION.md`). Si se recupera, como lectura de un dato público y con su revisión de seguridad (`docs/NTC06_AMENAZAS.md`, prueba `ntc6-conexiones-externas`) |
 
 ## 1. Por qué se corta
 
@@ -39,7 +39,7 @@ Una tarjeta en **Deuda › Contratos › «Índices de referencia»** (`indices-
 | Qué | Cuándo |
 |---|---|
 | **Duplicación con DEB4:** el «Euribor actual» del radar de refinanciación (Ajustes › Hipoteca variable → fija) es un campo propio con fecha mensual. Hoy hay dos sitios donde teclear el Euribor | PR-2: el radar leerá este almacén. No se unifica ahora para no tocar `app.js` (37.4xx de 37.495) sin necesidad |
-| PR-2: fuente oficial | Tras `O-6` (16/10). Si `O-6` se cierra sin verificación práctica, PR-2 se archiva y los índices siguen siendo manuales |
+| PR-2: fuente oficial | Tras `O-6` (16/10). Si `O-6` se cierra sin verificación práctica, PR-2 se archiva y los índices siguen siendo manuales. **Es lo que pasó el 20/10/2026** |
 | Medir: «índices vigentes cuando hacen falta» | Con uso real; hoy sin medir |
 
 ## 4 bis. Correcciones posteriores (mismo día, en el PR de WP-20)
