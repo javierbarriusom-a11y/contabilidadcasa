@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 20 de octubre de 2026 (327): el servidor de las pruebas en navegador solo registra lo que falla
+
+- **Qué pidió el hogar:** silenciar el log del servidor web de Playwright (20/10/2026).
+- **Por qué hacía falta.** La ejecución de `main` tras el PR 522 falló en dos e2e que no tocaba: el backtest de liquidez (WP-12 «con saldos manuales…», su segundo fallo en tres días) y la conciliación con la CIRBE (WP-40). En local pasan 8 de 8. No se pudo saber por qué fallaban en el CI:
+  - `python3 -m http.server` dejaba una línea `[WebServer] GET … 200` por fichero servido, unas 120.000 por ejecución.
+  - La herramienta que lee el log solo entrega el final, y el error y el volcado de estado del `afterEach` de WP-12 quedaban fuera.
+  - Las trazas del #520 no se pueden descargar desde este entorno (el proxy lo bloquea).
+
+  Se relanzó una vez el trabajo fallido de `main`.
+- **Qué cambia.**
+  - **`tools/serve-dist.py`** sirve `dist/` igual que antes. Solo registra las peticiones con respuesta 4xx/5xx y no anota las conexiones que el navegador corta al cambiar de página (`BrokenPipeError`/`ConnectionResetError`). Los errores de arranque y los demás errores del servidor se siguen viendo.
+  - **`playwright.config.cjs`** lo arranca en lugar de `python3 -m http.server`.
+  - **Prueba nueva:** `tests/ci-servidor-pruebas-silencioso.test.cjs` arranca el servidor y comprueba que una petición correcta no deja línea y una 404 sí.
+- **Siguiente paso:** el próximo fallo de WP-12 o WP-40 se podrá leer entero en el log. Ahí se busca la causa, en lugar de relanzar.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6037/6037, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Repetido tras traer `main` con la 326 (#523): 6044/6044.
+  - E2e y a11y completas con el servidor nuevo: 196/196, con 0 líneas `[WebServer]` y 43 KB de log en total. Antes, solo esas líneas sumaban varios MB.
+
 ## Cierre de sesión — 20 de octubre de 2026 (326): el resto de «hoy» en UTC pasa al día local del hogar
 
 - **Qué pidió el hogar:** revisar los ~20 usos de `new Date().toISOString().slice(0, 10)` (y variantes) que dejó anotados la 325, pasar al día local los que son «el día del hogar» y dejar en UTC solo lo técnico.
