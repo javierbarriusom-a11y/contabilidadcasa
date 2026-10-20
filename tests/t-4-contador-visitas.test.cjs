@@ -62,16 +62,16 @@ function fakeStore(initial = {}) {
 
 test("T-4 · la primera visita a una pantalla queda en 1, con la fecha de hoy", () => {
   const store = fakeStore();
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   context.recordViewVisit("debt-roadmap");
   const result = context.viewVisitSummary("debt-roadmap");
   assert.equal(result.count, 1);
-  assert.equal(result.last, new Date().toISOString().slice(0, 10));
+  assert.equal(result.last, vm.runInContext("isoLocalDate(new Date())", context)); // el día del hogar (hora local), no el de UTC
 });
 
 test("T-4 · visitar la misma pantalla otra vez suma, no reemplaza", () => {
   const store = fakeStore();
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   context.recordViewVisit("debt-control");
   context.recordViewVisit("debt-control");
   context.recordViewVisit("debt-control");
@@ -80,7 +80,7 @@ test("T-4 · visitar la misma pantalla otra vez suma, no reemplaza", () => {
 
 test("T-4 · cada pantalla lleva su propio contador, independiente de las demás", () => {
   const store = fakeStore();
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   context.recordViewVisit("debt-roadmap");
   context.recordViewVisit("deuda-ruta");
   context.recordViewVisit("deuda-ruta");
@@ -90,7 +90,7 @@ test("T-4 · cada pantalla lleva su propio contador, independiente de las demás
 
 test("T-4 · una pantalla nunca visitada devuelve 0 sin fecha, sin lanzar", () => {
   const store = fakeStore();
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   const result = context.viewVisitSummary("debt-liquidation-plan");
   assert.equal(result.count, 0);
   assert.equal(result.last, "");
@@ -98,14 +98,14 @@ test("T-4 · una pantalla nunca visitada devuelve 0 sin fecha, sin lanzar", () =
 
 test("T-4 · si el almacén local viene corrupto, se cae a un contador vacío en vez de romper la app", () => {
   const store = fakeStore({ "visit-counts:finance": "{esto no es json" });
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   assert.equal(JSON.stringify(context.loadVisitCounts()), "{}");
   assert.equal(context.viewVisitSummary("debt-roadmap").count, 0);
 });
 
 test("T-4 · el contador se guarda en local (mismo storageGet/storageSet que el resto de preferencias), nunca sale del navegador", () => {
   const store = fakeStore();
-  const context = sandboxWith(["loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
+  const context = sandboxWith(["localDateFromIso", "isoLocalDate", "loadVisitCounts", "recordViewVisit", "viewVisitSummary"], store);
   context.recordViewVisit("debt-control");
   assert.ok(Object.prototype.hasOwnProperty.call(store.backing, "visit-counts:finance"));
   const stored = JSON.parse(store.backing["visit-counts:finance"]);

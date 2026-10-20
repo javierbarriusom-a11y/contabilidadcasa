@@ -68,7 +68,7 @@ function sandbox({ month = null, fields = {} } = {}) {
   };
   vm.createContext(context);
   vm.runInContext(
-    ["ajustesExportMonthLines", "handleAjustesExportPdf", "renderAjustesExportNote"].map(extractFunction).join("\n"),
+    ["localDateFromIso", "isoLocalDate", "ajustesExportMonthLines", "handleAjustesExportPdf", "renderAjustesExportNote"].map(extractFunction).join("\n"),
     context,
     { filename: "app.js#v6-4-exportacion-unica" },
   );

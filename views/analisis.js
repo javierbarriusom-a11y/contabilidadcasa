@@ -329,7 +329,7 @@ function analisisGhostExpenseNote(candidates) {
 function handleAnalisisRepeatSubscription(label, amount, category) {
   const parsedAmount = Number(amount);
   if (!label || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoLocalDate(new Date());
   const [movement, ...detailParts] = String(label).split(" · ");
   const row = {
     date: today, valueDate: today, movement: movement || label,
