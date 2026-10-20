@@ -381,7 +381,7 @@ test("cableado: app.js pinta la frescura de cada posición y el resumen; el alma
   assert.match(app, /valor \$\{money\(position\.currentValue, true\)\}\$\{age \? ` \(\$\{escapeHtml\(age\.label\)\}\)` : ""\}/);
   assert.match(app, /function renderIv1PositionList\(\) \{\n\s+const list = qs\("iv1PositionList"\);\n\s+if \(!list\) return;\n\s+globalThis\.renderValuationSummary\?\.\(\);/);
   const lines = read("app.js").split("\n").length;
-  assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo 37.495)`);
+  assert.ok(lines <= 35107, `app.js tiene ${lines} líneas (techo 35.107)`);
 });
 
 test("cableado: el cierre avisa, sin bloquear, de la cartera sin valorar", () => {

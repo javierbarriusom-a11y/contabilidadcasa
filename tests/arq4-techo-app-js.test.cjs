@@ -39,7 +39,10 @@ const path = require("node:path");
 // → 37.495 (S1 de la Ola 2, 1 de octubre de 2026, sesión 286): `canonicalDailyInput` y sus tres
 // ayudantes (166 líneas) se extraen a canonical-daily-input.js, sin cambio de comportamiento, para
 // hacer sitio al parámetro «suelo de liquidez» (S2) y al número «Disponible» (S3). app.js quedó en 37.365.
-const CEILING_LINES = 37495;
+// → 35.107 (XGO-01 PR-1, 20 de octubre de 2026, sesión 329): 112 funciones de Registrar y de Datos (2.471 líneas
+// con sus comentarios) pasan tal cual a registrar-ui.js y datos-ui.js; app.js queda en 34.977 y el techo baja por el
+// trinquete que eligió el hogar (P7 del cuestionario del rediseño: lo que quede + ~130).
+const CEILING_LINES = 35107;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

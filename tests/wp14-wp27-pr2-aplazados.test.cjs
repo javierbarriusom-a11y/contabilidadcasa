@@ -123,5 +123,5 @@ test("cableado: el motor recibe el aplazamiento de esperados-ui, el detector pre
   assert.match(app, /previous\.datesSignature === datesSignature/);
   assert.match(app, /snapshot\.datesSignature = datesSignature/);
   const lines = read("app.js").split("\n").length;
-  assert.ok(lines <= 37495, `app.js tiene ${lines} líneas (techo ARQ-4: 37.495)`);
+  assert.ok(lines <= 35107, `app.js tiene ${lines} líneas (techo ARQ-4: 35.107)`);
 });
