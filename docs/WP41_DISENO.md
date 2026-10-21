@@ -67,3 +67,16 @@ El riesgo 1 (§4) es el que más pesa: un falso negativo da sensación de «no h
 - **Lo que NO se hizo, a propósito:** `TERM IPHONE` sigue sin detectarse (la sigla es demasiado ambigua para adivinarla) y **no se añaden bancos con tarjeta** (WiZink, Santander a secas…: su cargo mensual puede ser un extracto de tarjeta, no una cuota).
 - **Lo que no prueba:** el banco de conceptos lo escribí yo con lo que conozco; **no demuestra que el hogar vea esos textos**. Subir el vocabulario sube también el ruido posible en el aviso mensual de Cierre. Sigue sin ejecutarse sobre un extracto real ni haberse contestado ≥ 10 avisos.
 - **Comprobado que las pruebas detectan el fallo:** quitando cada patrón nuevo del motor, la prueba nueva cae; restaurados.
+
+## 8. Cuarta entrega (16/10/2026): lo que no se marca tampoco se esconde
+
+El riesgo 1 (§4) —un falso negativo da sensación de «no hay deuda oculta»— no se arregla con más vocabulario (no hay extracto real para calibrarlo), pero sí se puede **dejar de esconder lo que el detector descarta**. Debajo de los avisos (o del «no he encontrado compromisos»), una lista **plegada y de solo lectura**: «N cargos que se repiten cada mes y que no he marcado», con el concepto literal, el importe, cuántos cargos hay y la fecha del último.
+
+- **Qué entra:** un cargo del mismo importe (±2 %) en **tres meses o más**, con 24–38 días entre cargos y el último en los últimos 45 días, **sin contador ni palabra de financiación** (si los tuviera sería un aviso). Se excluyen préstamos e hipotecas (ya son contratos) y lo que ya está dado de alta en la app. De mayor a menor importe, **10 como máximo** y se cuenta cuántos más hay.
+- **Qué NO es:** no es un aviso. Sin botones, sin respuesta guardada (no escribe nada), fuera de los totales y **fuera de Cierre** (`closeNotice` no la mira) y de Hoy. No dice «esto es deuda»: dice «míralo por si acaso».
+- **Por qué tres cargos y no dos:** con dos, cualquier gasto repetido (un seguro, una cuota de comunidad) entraría; la lista perdería el sentido de «mirar de un vistazo».
+- **Lo que no cubre:** un cargo de **importe variable** (con intereses decrecientes) o **no mensual** no sale; tampoco una cuota que el banco agrupe con otros cargos del mismo concepto de importe distinto. La lista da una oportunidad de reconocer una financiación, no una garantía.
+- **Riesgo asumido:** ruido. Con un extracto real habrá suscripciones, recibos y alquiler; el límite de 10 y el plegado lo contienen, pero **no se ha visto con datos reales**. Si resulta inútil, se retira sin tocar el detector.
+- **Un defecto propio corregido:** la primera versión se plegaba sola al responder un aviso (la tarjeta se repinta); ahora conserva si estaba abierta.
+- **Qué se comprobó:** 14 pruebas unitarias nuevas (`tests/wp41-recurrentes.test.cjs`: lista, mínimo de cargos, no duplicar avisos, importe variable/diario/trimestral, cargo antiguo, préstamos, contratos, orden y tope, respondidos, extracto viejo, pantalla en vm con escape de HTML, estado abierto, cableado), una etapa más en la prueba de navegador y en la de accesibilidad (lista abierta, claro y oscuro). **Seis mutaciones comprobadas** (sin mirar contratos, mínimo 2, sin cadencia mensual, sin ordenar, lista abierta, estado abierto no conservado): cada una hace caer una prueba; restauradas.
+
