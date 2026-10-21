@@ -109,6 +109,32 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (335): desalojo de `app.js`, PR-2: Partidas y el motor de escenarios salen a sus scripts
+
+- **Qué pidió el hogar:** el bloque C del plan de hoy, el PR-2 del desalojo (XGO-01, P6: Partidas + Escenarios). Lo pidió en esta misma sesión, sin esperar a confirmar en el móvil que el PR-1 va bien.
+- **Qué cambia: nada visible.**
+  - **113 funciones** pasan tal cual, sin cambiar una coma, a scripts clásicos que se cargan con `defer` antes de `app.js`:
+    - **72 de Plan › Partidas a `partidas-ui.js`:** la tabla de gestión, el alta y la edición por lotes, el editor de series, el simulador «¿y si…?», los hitos, los escenarios fantasma y el gráfico.
+    - **41 del motor de escenarios al nuevo `escenarios-ui.js`:** catálogo de tipos, también los propios del hogar, campos, cálculo, escenarios guardados y la retirada de lo aplicado.
+  - El motor **no** va a `views/escenarios.js`. Esa vista se descarga al visitarla, y el motor lo usan Plan › Partidas, la segunda opinión y el comparador de estrategias de deuda, que no la cargan. Si estuviera ahí, esas pantallas tendrían que esperar a la red.
+  - **`app.js` baja de 34.977 a 33.129 líneas (−1.848)** y el techo de ARQ-4, de 35.107 a **33.259**, por el mismo trinquete (P7). Con las cinco pruebas que lo repiten.
+  - `escenarios-ui.js` se añade a `index.html`, a `tools/build-public-site.mjs`, a `service-worker.js` y a `FICHEROS_APP`. Sube la versión `?v=` de `partidas-ui.js`.
+- **Cómo se eligió qué mover.**
+  - En Partidas, las funciones de su pantalla por su nombre (`*Partidas*`, `partidas*`, más el editor de series). Se deja fuera `ajustesPartidasOverThreshold`, que es de Ajustes.
+  - En Escenarios, las del motor (`*escenarioMotor*`, más las tres `retract*FromEscenario`).
+  - Se dejan en `app.js` las del modelo de planificación que usa toda la app (`planningSectionsForMonth`, `planningBreakdownForForecastMonth`…), porque no son de la pantalla.
+- **Cómo se comprobó que no cambia nada.**
+  - **Equivalencia:** antes y después hay las mismas 1.811 funciones de primer nivel entre `app.js`, `partidas-ui.js` y `escenarios-ui.js`, idénticas byte a byte. Las 1.817 líneas que no son funciones (ni comentarios ni líneas en blanco) son idénticas y van en el mismo orden.
+  - **Antes de mover:** ninguna de las 113 se declara en otro script ni se reasigna.
+- **Pruebas.**
+  - Solo cambió una por la mudanza: `ola2-p1-series-rows-memo` recortaba `availableSeriesRows` hasta la función que la seguía en `app.js` (`selectedSeriesRow`, que se ha ido). Ahora la recorta hasta su cierre. No se relaja nada.
+  - Prueba nueva en `tests/xgo01-sin-funciones-duplicadas.test.cjs`: Partidas y el motor viven fuera de `app.js`, se cargan antes que él y el motor no está en la vista bajo demanda.
+- **Validación (sobre `main` sin #531):**
+  - `npm run verify` en verde, salida 0: `npm test` 6052/6052 (+1), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright: e2e, axe y rendimiento por pantalla, 199/199.
+  - Repetido sobre `main` con #531: `npm test` 6066/6066, lint y typecheck en verde.
+- **Lo que queda de XGO-01:** el desalojo está hecho: entre los dos PR han salido 4.319 líneas. Falta la otra mitad de la propuesta, la prueba de CI de «uno entra, uno sale» (GOV-02). Siguiente en el orden del rediseño: «Funciones en prueba» (XGO-03), luego el medidor de utilidad (XGO-02), luego Movimientos e Importar (A4).
+
 ## Cierre de sesión — 21 de octubre de 2026 (334): WP-41 publicado, límite de 3 en curso aplicado y panel con «construido» y «comprobado»
 
 - **Qué pidió el hogar:** arrancar sesión, analizar el backlog y el panel de seguimiento y proponer un plan. Aprobado tal cual: A (publicar lo hecho), B (que el panel diga la verdad) y C (PR-2 del desalojo), con las cuatro decisiones recomendadas.
