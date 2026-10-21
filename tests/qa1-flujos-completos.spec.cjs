@@ -5459,3 +5459,18 @@ test.describe("Rediseño A5 · Clasificar por lotes", () => {
     });
   }
 });
+
+// La tarjeta «Previsto, real y usado» de Registrar no puede quedar en tres columnas estrechas en el móvil.
+test.describe("Registrar · tarjeta de la regla en el móvil", () => {
+  for (const tema of ["", "?tema=clasico"]) {
+    test(`a 390 px cada concepto ocupa todo el ancho${tema ? " (tema clásico)" : ""}`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`/index.html${tema}#registrar`);
+      const items = page.locator(".e19-registrar-rule-grid > div");
+      await expect(items).toHaveCount(3);
+      for (const box of await items.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width))) expect(box).toBeGreaterThan(280);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    });
+  }
+});
+
