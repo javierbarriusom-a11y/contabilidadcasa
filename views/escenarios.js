@@ -9,7 +9,7 @@
 // Lo que NO se movió, a propósito: el "motor" de escenarios (escenarioMotorBaseInput,
 // escenarioMotorDebtOptions/DebtLabel, el catálogo ESCENARIO_MOTOR_TYPES y sus helpers de campo,
 // runEscenarioMotor, escenarioMotorSummaryFor, escenarioMotorMonthLabel, loadEscenarioMotorSaved…)
-// se queda en app.js porque lo reutilizan otras tres pantallas que NO forman parte de este hub:
+// se queda fuera de este fichero (en app.js hasta el 21/10/2026; desde el PR-2 de XGO-01, en escenarios-ui.js) porque lo reutilizan otras tres pantallas que NO forman parte de este hub:
 // el simulador "¿y si...?"/vista fantasma de escenarios de Planificación de partidas, la segunda
 // opinión (CPX2) y el comparador de las 8 estrategias de deuda. Moverlo también habría exigido
 // que esas tres pantallas cargasen este mismo fragmento antes de poder pintar nada — un cambio de

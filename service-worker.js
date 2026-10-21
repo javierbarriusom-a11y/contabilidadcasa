@@ -209,6 +209,7 @@ const SHELL_URLS = [
   "./fiscal-datos-ui.js",
   "./canonical-balance-pulse.js",
   "./registrar-ui.js",
+  "./escenarios-ui.js",
   "./canonical-liquidity-backtest.js",
   "./liquidity-backtest-ui.js",
   "./p2-domain.js",

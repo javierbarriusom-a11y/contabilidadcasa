@@ -14,7 +14,7 @@ const path = require("node:path");
 // líneas, su versión minificada) siguen leyéndolo directamente.
 const raiz = path.resolve(__dirname, "..", "..");
 
-const FICHEROS_APP = ["app.js", "registrar-ui.js", "datos-ui.js", "partidas-ui.js"];
+const FICHEROS_APP = ["app.js", "registrar-ui.js", "datos-ui.js", "partidas-ui.js", "escenarios-ui.js"];
 
 function leer(fichero) {
   return fs.readFileSync(path.join(raiz, fichero), "utf8");
