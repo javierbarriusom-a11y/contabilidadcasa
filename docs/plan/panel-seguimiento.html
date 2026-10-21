@@ -49,7 +49,7 @@ header { display: grid; gap: 8px; }
 .banner.warn { border-color: var(--warn); background: var(--warn-soft); }
 
 /* Resumen */
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 4px; align-content: start; min-width: 0; }
 .kpi .v { font-family: var(--font-display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .kpi .v small { font-size: 15px; font-weight: 500; color: var(--muted); }
@@ -87,7 +87,7 @@ header { display: grid; gap: 8px; }
 .list { display: grid; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
 .wp { border-top: 1px solid var(--line); }
 .wp:first-child { border-top: 0; }
-.wp > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 112px 64px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 14px; }
+.wp > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 158px 64px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 14px; }
 .wp > summary::-webkit-details-marker { display: none; }
 .wp > summary:hover { background: var(--bg); }
 .wp[open] > summary { background: var(--bg); }
@@ -99,6 +99,8 @@ header { display: grid; gap: 8px; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .s-pendiente { color: var(--muted); border-color: var(--line); }
 .s-bloqueado { color: var(--warn); background: var(--warn-soft); }
+.s-esperandoalhogar { color: var(--warn); border-color: var(--warn); border-style: dashed; }
+.s-aparcado { color: var(--muted); border-color: var(--muted); border-style: dashed; }
 .s-encurso { color: var(--accent); background: var(--accent-soft); }
 .s-enrevision { color: var(--rev); background: var(--rev-soft); }
 .s-hecho { color: var(--ok); background: var(--ok-soft); }
@@ -147,6 +149,7 @@ tr.done td.what { text-decoration: line-through; }
 
 @media (max-width: 760px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis > .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .next { grid-template-columns: minmax(0, 1fr); }
   .wp > summary { grid-template-columns: auto minmax(0, 1fr); }
   .wp > summary .wp-id { order: -1; }
@@ -247,7 +250,10 @@ tr.done td.what { text-decoration: line-through; }
 <script>
 (() => {
   const PLAN = JSON.parse(document.getElementById("plan-data").textContent);
-  const ESTADOS = ["pendiente", "en curso", "en revisión", "hecho", "bloqueado", "descartado"];
+  const ESTADOS = ["pendiente", "en curso", "en revisión", "esperando al hogar", "aparcado", "hecho", "bloqueado", "descartado"];
+  // Límite de trabajo en curso (BACKLOG_DEFINITIVO.md §4, 19/10/2026): el rediseño ocupa uno de los tres y no es un paquete del panel.
+  const LIMITE_EN_CURSO = 3, REDISENO_EN_CURSO = 1;
+  const ALIAS = { curso: "en curso" }; // estados mal escritos en la base: se leen como el bueno en vez de pesar 0
   const RESULTADOS = ["sin medir", "cumple", "no cumple"];
   const PESO = PLAN.pesos;
   const WPS = PLAN.paquetes;
@@ -273,7 +279,10 @@ tr.done td.what { text-decoration: line-through; }
   const cls = (estado) => "s-" + estado.replace(/\s|é/g, (c) => (c === "é" ? "e" : ""));
   const daysBetween = (a, b) => Math.round((b - a) / DAY);
 
-  function wpState(id) { return state.wp[id] || { estado: "pendiente" }; }
+  function wpState(id) {
+    const st = state.wp[id] || { estado: "pendiente" };
+    return ALIAS[st.estado] ? { ...st, estado: ALIAS[st.estado] } : st;
+  }
   function depsPending(w) { return w.depende.filter((dep) => wpState(dep).estado !== "hecho"); }
   function effectiveEstado(w) {
     const s = wpState(w.id).estado || "pendiente";
@@ -342,13 +351,18 @@ tr.done td.what { text-decoration: line-through; }
       desvio = (gap >= 0 ? "+" : "−") + n1(Math.abs(gap)) + " <small>ses.</small>";
       desvioD = `Índice plan/real ${spi.toFixed(2).replace(".", ",")}` + (dd !== null && dd > 0 ? ` · ${dd} días tarde` : ev === 0 ? " · sin avance" : "");
     }
+    // Comprobado: solo lo que tiene su métrica leída con datos reales del hogar y cumple, esté en el estado que esté.
+    const comprobadoSes = BASE.filter((w) => wpState(w.id).resultado === "cumple").reduce((s, w) => s + w.sesiones, 0);
+    const esperando = BASE.filter((w) => wpState(w.id).estado === "esperando al hogar").length;
+    const aparcados = BASE.filter((w) => wpState(w.id).estado === "aparcado").length;
     const real = hechos.reduce((s, w) => s + (Number(wpState(w.id).sesionesReales) || 0), 0);
     const est = hechos.filter((w) => Number(wpState(w.id).sesionesReales) > 0).reduce((s, w) => s + w.sesiones, 0);
     document.getElementById("kpis").innerHTML = `
-      <div class="kpi"><span class="eyebrow">Avance real</span><span class="v">${pct(ev / TOTAL)}</span><span class="d">${n1(ev)} de ${n1(TOTAL)} sesiones ponderadas por estado</span></div>
+      <div class="kpi"><span class="eyebrow">Avance construido</span><span class="v">${pct(ev / TOTAL)}</span><span class="d">${n1(ev)} de ${n1(TOTAL)} sesiones ponderadas por estado</span></div>
+      <div class="kpi"><span class="eyebrow">Avance comprobado</span><span class="v">${pct(comprobadoSes / TOTAL)}</span><span class="d">Métrica leída con datos reales y en objetivo: ${comprobados} de ${conMetrica} hechos con métrica</span></div>
       <div class="kpi"><span class="eyebrow">Previsto a hoy</span><span class="v">${pct(pv / TOTAL)}</span><span class="d">${n1(pv)} sesiones según la línea base</span></div>
       <div class="kpi"><span class="eyebrow">Desvío</span><span class="v">${desvio}</span><span class="d">${desvioD}</span></div>
-      <div class="kpi"><span class="eyebrow">Paquetes hechos</span><span class="v">${hechos.length}<small> / ${BASE.length}</small></span><span class="d">Valor comprobado: ${comprobados} de ${conMetrica} con métrica${est ? ` · real/estimado ${n1(real / est)}×` : ""}</span></div>`;
+      <div class="kpi"><span class="eyebrow">Paquetes hechos</span><span class="v">${hechos.length}<small> / ${BASE.length}</small></span><span class="d">${esperando} esperando al hogar · ${aparcados} aparcados${est ? ` · real/estimado ${n1(real / est)}×` : ""}</span></div>`;
 
     const next = BASE.find((w) => effectiveEstado(w) === "pendiente");
     const enCurso = BASE.filter((w) => ["en curso", "en revisión"].includes(wpState(w.id).estado));
@@ -356,8 +370,10 @@ tr.done td.what { text-decoration: line-through; }
     const tarea = PLAN.tareasHogar.find((t) => !(state.hogar[t.id] || {}).hecho);
     const tareaLate = tarea && d(tarea.fecha) < TODAY;
     document.getElementById("next").innerHTML = `
-      <div><span class="eyebrow">${enCurso.length ? "En marcha" : "Siguiente paquete desbloqueado"}</span>
-        ${enCurso.length ? enCurso.map((w) => `<span><span class="mono">${w.id}</span> ${esc(w.nombre)}</span>`).join("") : next ? `<span><span class="mono">${next.id}</span> ${esc(next.nombre)}</span><span class="muted small">Ola ${next.ola} · ${n1(next.sesiones)} sesiones</span>` : "<span>Ninguno</span>"}</div>
+      <div><span class="eyebrow">En marcha · ${enCurso.length + REDISENO_EN_CURSO} de ${LIMITE_EN_CURSO}</span>
+        <span>Rediseño y plataforma <span class="muted small">(§5.0)</span></span>
+        ${enCurso.map((w) => `<span><span class="mono">${w.id}</span> ${esc(w.nombre)}</span>`).join("")}
+        ${enCurso.length + REDISENO_EN_CURSO > LIMITE_EN_CURSO ? `<span class="small" style="color: var(--bad)">Límite superado: cierra o aparca uno antes de abrir otro.</span>` : !enCurso.length && next ? `<span class="muted small">Siguiente desbloqueado: <span class="mono">${next.id}</span> ${esc(next.nombre)}</span>` : ""}</div>
       <div><span class="eyebrow">Próximo hito</span>${hito ? `<span>${esc(hito.que)}</span><span class="muted small">${fmt(hito.fecha)} · ${daysBetween(TODAY, d(hito.fecha)) === 0 ? "hoy" : "en " + daysBetween(TODAY, d(hito.fecha)) + " días"}</span>` : "<span>Ninguno</span>"}</div>
       <div><span class="eyebrow">Te toca</span>${tarea ? `<span>${esc(tarea.que)}</span><span class="small ${tareaLate ? "" : "muted"}" style="${tareaLate ? "color: var(--bad)" : ""}">${tareaLate ? "Vencida el " : "Antes del "}${fmt(tarea.fecha)}${tarea.minutos ? ` · ≈ ${tarea.minutos} min` : ""}</span>` : "<span>Nada pendiente</span>"}</div>`;
   }
@@ -422,13 +438,13 @@ tr.done td.what { text-decoration: line-through; }
     const pv = plannedAt(TODAY), ev = earned();
     document.getElementById("chart-desc").textContent =
       `Eje vertical: sesiones de trabajo acumuladas (${n1(TOTAL)} en total, sin contar la prueba trimestral WP-54). A hoy la línea base espera ${n1(pv)} y el avance real ponderado es ${n1(ev)}. ` +
-      `Ponderación: hecho 100 %, en revisión 90 %, en curso 50 %. Los rombos marcan fechas límite externas (campaña fiscal, 31/12, Renta).`;
+      `Ponderación: hecho 100 %, en revisión 90 %; en curso, esperando al hogar y aparcado 50 % (lo construido, nunca lo comprobado). Los rombos marcan fechas límite externas (campaña fiscal, 31/12, Renta).`;
   }
 
   // ---------- render: paquetes ----------
   const FILTERS = [
     ["todas", "Todas"], ["ola1", "Ola 1"], ["ola2", "Ola 2"], ["ola3", "Ola 3"], ["continuo", "Continuo"],
-    ["abiertos", "Sin terminar"], ["fecha", "Con fecha límite"], ["visibles", "Cambian lo que ves"],
+    ["abiertos", "Sin terminar"], ["hogar", "Esperando al hogar"], ["fecha", "Con fecha límite"], ["visibles", "Cambian lo que ves"],
   ];
   function renderFilters() {
     const el = document.getElementById("wp-filters");
@@ -442,6 +458,7 @@ tr.done td.what { text-decoration: line-through; }
       case "ola3": return w.ola === 3;
       case "continuo": return w.ola === 0;
       case "abiertos": return !["hecho", "descartado"].includes(st);
+      case "hogar": return st === "esperando al hogar";
       case "fecha": return !!w.fechaLimite;
       case "visibles": return w.tipo === "visible";
       default: return true;
@@ -478,7 +495,7 @@ tr.done td.what { text-decoration: line-through; }
         <span class="wp-id mono">${w.id}</span>
         <span class="wp-name"><b>${esc(w.nombre)}</b>
           <span class="wp-sub"><span>${w.propuestas.length ? w.propuestas.join(" · ") : "Tarea sin propuesta"}</span><span>${esc(w.tipo)}</span></span></span>
-        <span class="wp-right">${resultTag(w)}${dueTag(w)}${st.pr ? `<span class="tag">PR ${esc(st.pr)}</span>` : ""}<span class="tag">${n1(w.sesiones)} ses.</span></span>
+        <span class="wp-right">${resultTag(w)}${dueTag(w)}${st.pr ? `<span class="tag">PR ${esc(String(st.pr).replace(/^.*\/pull\/(\d+).*$/, "#$1"))}</span>` : ""}<span class="tag">${n1(w.sesiones)} ses.</span></span>
       </summary>
       <div class="wp-body">
         <dl class="facts">

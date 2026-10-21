@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**21/10/2026 · límite de 3 en curso aplicado y regla de parada de la Ola 1 activada, por decisión del hogar:** de los 25 paquetes abiertos, 1 sigue en curso (WP-23), 21 pasan a **«esperando al hogar»** con su tarea, 3 se **aparcan** (WP-28, WP-37, WP-42) y WP-33 queda hecho; con el rediseño, **2 de 3 en marcha**. El panel distingue **construido (63,2 %)** de **comprobado (0 %)**. La Ola 1 se cierra sin lecturas de M-HOY ni M-ADOP: **no se abre ningún paquete nuevo** hasta tenerlas (§4). WP-41 publica su cuarta entrega (cargos mensuales sin marcar).
+
 **20/10/2026 · `O-6` cerrado por el hogar, sin verificación práctica:** no se conecta ningún banco (los saldos siguen con WP-26), WP-05 queda hecho y el PR-2 de WP-13 (fuente oficial de índices) se archiva. **`O-6` queda marcado para recuperar** con disparador (§6). Avance del plan: **61,9 %** (`docs/ESTADO_TAREAS_Y_FASES.md`). Desalojo de `app.js` (XGO-01): PR-0 y PR-1 hechos (#525, #526).
 
 **19/10/2026 · el rediseño entra en este backlog (§5.0), por decisión del hogar (P13 del cuestionario):** diseño nuevo por defecto en la URL base (#519), CI con trazas de Playwright (#520) y cobro manual caducado (#521) hechos; siguen el desalojo de `app.js`, «Funciones en prueba», Movimientos e Importar y Clasificar. Detalle vivo del rediseño: `docs/rediseno/ESTADO.md`. Límite de 3 paquetes en curso (§4).
@@ -21,7 +23,7 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 1. Leer este documento (§0, §2, §4 y §5) y la última entrada de `PROJECT_STATE.md`.
 2. `git status`, `git log --oneline -5`; la rama de trabajo parte de `origin/main` (receta en §10).
-3. **El desarrollo está en marcha desde el 3/10/2026** (el hogar dijo «empecemos»). Siguiente paquete: el primero de la Ola 1 sin hacer según §0, con el detalle de `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Cada paquete visible añade su línea a `novedades.js`.
+3. **El desarrollo está en marcha desde el 3/10/2026** (el hogar dijo «empecemos»). **Desde el 21/10 no se abre ningún paquete nuevo** (regla de parada y límite de 3, §4): lo siguiente es el camino del rediseño (§5.0, orden en `docs/rediseno/ESTADO.md` §8) y WP-23; un paquete «esperando al hogar» se retoma cuando llega su dato. Cada cambio visible añade su línea a `novedades.js`.
 4. Antes de cerrar: validar, actualizar `PROJECT_STATE.md` con cifras reales, **este documento** y **el panel de seguimiento** (§12), commit/push, PR en borrador, esperar CI, fusionar en verde.
 
 ---
@@ -79,6 +81,12 @@ Las respuestas «Más tarde» del triaje (3/10/2026) van a P3 salvo que el plan 
 **Hoy congelado hasta leer la prueba del 9/10 (H-02) — regla adoptada el 7/10/2026 por recomendación de Claude, con veto posible del hogar.** La línea base de M-HOY (≤ 15 s, WP-02) se fija sobre lo que Hoy sea el 9/10: si después se cambia lo que Hoy enseña, el antes y el después dejan de ser comparables, y con un solo usuario no hay otro grupo con que contrastar. Hasta que haya ≥ 3 intentos válidos con el texto A **no se cambia lo que Hoy muestra por defecto** (titular, orden de los bloques, contenido de la bandeja). **Quedan fuera de la regla:** (a) correcciones de errores, contraste y accesibilidad que no cambian el contenido; (b) elementos que solo aparecen en una fecha futura y no existen el 9/10 (p. ej. el aviso a 60 días de la revisión del tipo variable, que no sale antes de enero). **Lo ya publicado antes de la regla cuenta como parte de la línea base**: el 7/10 se añadieron a la bandeja las preguntas de WP-14/WP-27 (no salen con la demo ni, probablemente, antes de declarar días de cargo). Con la demo y sin la guía de primeros pasos, «Disponible para gastar» queda a ≈ 60 % de la altura de un iPhone (comprobado a 390×844 y 393×852). Se levanta al leer H-02 (previsto entre el 9 y el 16/10) y se anota en `PROJECT_STATE.md`.
 
 **Límite de 3 paquetes en curso (adoptado el 19/10/2026, P13 del cuestionario del rediseño; séptima auditoría §3):** ningún paquete nuevo se abre hasta cerrar o aparcar formalmente uno de los abiertos. El rediseño cuenta como uno de los tres, no como un frente paralelo.
+
+**Aplicación del límite (21/10/2026, decisión del hogar):** dos estados nuevos en el panel para cumplirlo. **«Esperando al hogar»**: construido, y lo siguiente necesita un dato o una decisión del hogar (la tarea concreta va en la nota del paquete). **«Aparcado»**: le falta desarrollo, pero no cabe en el límite. Los dos cuentan como construido al 50 %, igual que «en curso», y **nunca como comprobado**. Ese día quedaron: en curso WP-23 y el rediseño; 21 esperando al hogar; aparcados WP-28 (los gráficos de cartera y deuda se migran con el rediseño de esas pantallas), WP-37 (los estados se aplican pantalla a pantalla dentro del rediseño) y WP-42.
+
+**Regla de parada de la Ola 1, aplicada el 21/10/2026 (decisión del hogar):** la Ola 1 termina el 23/10 sin una sola lectura de sus métricas (M-HOY y M-ADOP), así que se para: no se abre ningún paquete nuevo hasta que haya lecturas reales. Sigue el camino del rediseño (desalojo de `app.js`, Laboratorio, Movimientos e Importar) y lo que tiene fecha (WP-23).
+
+**Hoy congelado: plazo hasta el 25/10/2026 (decisión del hogar del 21/10):** si para entonces no se ha hecho H-02 (3 pruebas cronometradas con saldos del día, sobre la Hoy v2), **la congelación se levanta** y la línea base de M-HOY se toma después (la séptima auditoría propone medirla de forma pasiva, UXS-03). Mantenerla sin la prueba que la justifica solo frena los avisos de WP-35, WP-36, WP-38 y WP-47 en la bandeja de Hoy.
 
 **Hoy y la regla de congelación (nota del 19/10/2026):** el hogar decidió rediseñar Hoy (A3, #517) y hacer el diseño nuevo el de por defecto (#519). Si se toma la línea base de M-HOY (WP-02), se toma sobre la Hoy v2; el Laboratorio («Funciones en prueba», §5.0) permitirá comparar antes y después.
 
@@ -382,7 +390,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | **Panel de seguimiento** (https://claude.ai/artifact/7k86qmrcqn8hdhAzx9xcrg, privado) | El **estado**: paquete a paquete (estado, PR, fechas, sesiones reales, resultado de su métrica), tareas del hogar hechas, lecturas de métricas, revisión de salida de cada ola y registro de cambios | Claude al cerrar cada sesión; el hogar marca sus tareas y añade lecturas |
 
 **Cómo mide el avance** (para que «vamos bien» signifique algo):
-- **Avance ponderado por esfuerzo**, no por número de paquetes: hecho 100 %, en revisión 90 %, en curso 50 %, el resto 0 %. Un paquete de 7 sesiones (WP-42) pesa siete veces uno de 1 sesión.
+- **Avance ponderado por esfuerzo**, no por número de paquetes: hecho 100 %, en revisión 90 %, en curso, esperando al hogar y aparcado 50 % (desde el 21/10/2026), el resto 0 %. Es el avance **construido**; el **comprobado** solo cuenta los paquetes con su métrica leída con datos reales y en objetivo, y el panel lo da aparte. Un paquete de 7 sesiones (WP-42) pesa siete veces uno de 1 sesión.
 - **Línea base fija** (fijada el 3/10/2026): lo previsto a una fecha reparte las sesiones de cada ola de forma lineal entre su inicio y su fin. El desvío se da en sesiones, como índice real/previsto y en **días de retraso** (la fecha en la que la línea base esperaba el avance que hay hoy). Si el arranque se retrasa, el panel lo muestra como retraso; no se mueve la línea base sin decisión del hogar.
 - **Construido no es lo mismo que comprobado:** cada paquete con métrica lleva su resultado («sin medir», «cumple», «no cumple»). El panel cuenta aparte los paquetes con valor comprobado. Es la defensa contra el riesgo alto del plan (§6 del plan: construir para nadie).
 - **Regla de parada visible:** cada ola tiene su «revisión de salida» (pendiente · seguir · parar y revisar) junto a las métricas que hay que mirar.

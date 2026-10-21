@@ -2754,6 +2754,18 @@ test.describe("WP-41 · deuda en la sombra y TAE real", () => {
       await expect(card.locator(".som-resumen")).toContainText("Ninguno cuenta hoy en vuestra fecha libre de deuda");
       await expect(card.locator(".som-medida")).toContainText("hacen falta 10 respuestas y llevas 0");
 
+      // PR-4: el cargo mensual sin pista (Netflix) no es un aviso, pero se enseña aparte, plegado y sin botones; la cuota de comunidad (dos cargos) no entra.
+      const recurrentes = card.locator("#sombraRecurrentes");
+      await expect(recurrentes).toHaveCount(1);
+      await expect(recurrentes.locator("summary")).toContainText("1 cargo que se repite cada mes y que no he marcado");
+      expect(await recurrentes.evaluate((el) => el.open), "llega plegada").toBe(false);
+      await recurrentes.locator("summary").click();
+      await expect(recurrentes.locator("li")).toHaveCount(1);
+      await expect(recurrentes.locator("li")).toContainText("NETFLIX FICTICIO");
+      await expect(recurrentes.locator("li")).toContainText("12,99");
+      await expect(recurrentes.locator("button")).toHaveCount(0);
+      await expect(recurrentes).not.toContainText("COMUNIDAD");
+
       // «Añadir a Contratos» rellena el formulario de alta, no crea nada.
       await avisos.nth(1).locator("[data-sombra-anadir]").click();
       await expect(page.locator("#deudaContratosAddEntity")).toHaveValue(/MOVISTAR/);
@@ -2765,6 +2777,7 @@ test.describe("WP-41 · deuda en la sombra y TAE real", () => {
       // «No es deuda» + deshacer; la respuesta se recuerda al recargar.
       await avisos.nth(2).locator('[data-sombra-respuesta="not-debt"]').click();
       await expect(avisos).toHaveCount(2);
+      expect(await recurrentes.evaluate((el) => el.open), "la lista abierta no se pliega al responder un aviso").toBe(true);
       await expect(card.locator("#sombraNota")).toContainText("no volveré a avisar");
       await card.locator("[data-sombra-deshacer]").click();
       await expect(avisos).toHaveCount(3);

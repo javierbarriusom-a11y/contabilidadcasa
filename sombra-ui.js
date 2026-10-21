@@ -58,21 +58,39 @@ function sombraItemHtml(item) {
     </li>`;
 }
 
-function sombraBodyHtml(result) {
+function sombraDate(iso) {
+  return escapeHtml(String(iso).slice(0, 10).split("-").reverse().map(Number).join("/"));
+}
+
+// WP-41 PR-4 (docs/WP41_DISENO.md §8): los cargos que se repiten cada mes y que el detector NO marca, en una lista plegada y de solo lectura. No son avisos: sin botones, sin
+// respuesta guardada, fuera de los totales y de Cierre. Existe para que «no he encontrado nada» no se lea como «no hay nada»: si alguno es una financiación sin texto que la
+// delate, quien mira el extracto lo reconoce.
+function sombraRecurringHtml(result, open = false) {
+  const rec = result.recurring;
+  if (!rec || !rec.total) return "";
+  const rows = rec.items.map((item) => `<li><strong>${escapeHtml(item.label)}</strong> <span>${sombraEuros(item.monthlyAmount)} al mes · ${item.charges} cargos · el último, el ${sombraDate(item.lastDate)}</span></li>`).join("");
+  const more = rec.overflow ? `<p class="e19-kpi-note">Hay ${rec.overflow} más, de menor importe.</p>` : "";
+  return `<details class="som-recurrentes" id="sombraRecurrentes"${open ? " open" : ""}><summary>${rec.total} ${rec.total === 1 ? "cargo que se repite" : "cargos que se repiten"} cada mes y que no he marcado</summary>
+      <p class="e19-kpi-note">No dicen «financiación» ni llevan un «cuota 3 de 12», así que no los trato como deuda: la mayoría serán suscripciones, recibos o alquiler. <strong>Míralos por si alguno es una financiación que el extracto no delata</strong> (un móvil, un electrodoméstico). Solo veo cargos del mismo importe (±2 %) durante tres meses seguidos o más; si el importe varía, no sale aquí.</p>
+      <ul class="som-recurrentes-lista">${rows}</ul>${more}
+    </details>`;
+}
+
+function sombraBodyHtml(result, options = {}) {
   if (result.status === "missing") return `<p class="e19-kpi-note">Para mirar el extracto falta ${escapeHtml(result.missing.join(", "))}.</p>`;
   if (result.status === "stale") {
     const since = result.coveredUntil ? `El último movimiento importado es del ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}` : "Todavía no hay movimientos importados";
     return estadoHtml({ kind: "obsoleto", titulo: "No puedo mirar lo reciente", texto: `${since}: sin un extracto al día, que no salga nada no significa que no haya financiaciones.`, accion: { label: "Importar el extracto", href: "#registrar" } });
   }
   if (!result.items.length) {
-    return `<p class="e19-kpi-note"><strong>No he encontrado compromisos que se comporten como deuda.</strong> Miré hasta el ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}${result.suppressed ? `; dejo ${result.suppressed} ya respondido${result.suppressed === 1 ? "" : "s"} o ya en la app` : ""}. Solo veo lo que el extracto delata (un «cuota 3 de 12» o la palabra «financiación»): una permanencia con penalización no sale en un extracto.</p>`;
+    return `<p class="e19-kpi-note"><strong>No he encontrado compromisos que se comporten como deuda.</strong> Miré hasta el ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}${result.suppressed ? `; dejo ${result.suppressed} ya respondido${result.suppressed === 1 ? "" : "s"} o ya en la app` : ""}. Solo veo lo que el extracto delata (un «cuota 3 de 12» o la palabra «financiación»): una permanencia con penalización no sale en un extracto.</p>${sombraRecurringHtml(result, options.recurringOpen)}`;
   }
   const total = `<p class="som-resumen"><strong>${result.items.length} ${result.items.length === 1 ? "compromiso" : "compromisos"} que ${result.items.length === 1 ? "se comporta" : "se comportan"} como deuda</strong>: ${sombraEuros(result.monthlyTotal)} al mes${result.latestEnd ? `; el último con fecha acaba en ${escapeHtml(sombraMonth(result.latestEnd))}` : ""}${result.withoutEnd ? `; ${result.withoutEnd} sin fecha de fin conocida` : ""}. Ninguno cuenta hoy en vuestra fecha libre de deuda ni en el ratio de esfuerzo.</p>`;
   const more = result.overflow ? `<p class="e19-kpi-note">Hay ${result.overflow} más. Responde estos y aparecerán los siguientes.</p>` : "";
   const stats = result.stats.falsePositiveRate === null
     ? `<p class="e19-kpi-note som-medida">Cuántos avisos sobran todavía no se puede medir: hacen falta ${result.stats.minAnswered} respuestas y llevas ${result.stats.answered}.</p>`
     : `<p class="e19-kpi-note som-medida">De ${result.stats.answered} avisos respondidos, <strong>${result.stats.notDebt} no eran deuda (${Math.round(result.stats.falsePositiveRate * 100)} %)</strong>.</p>`;
-  return `${total}<ul class="som-lista">${result.items.map(sombraItemHtml).join("")}</ul>${more}${stats}`;
+  return `${total}<ul class="som-lista">${result.items.map(sombraItemHtml).join("")}</ul>${more}${stats}${sombraRecurringHtml(result, options.recurringOpen)}`;
 }
 
 function sombraCalcHtml() {
@@ -108,7 +126,7 @@ function renderDeudaSombra(engine) {
       answers: sombraLoad(),
     });
     sombraShown = result.items || [];
-    const html = sombraBodyHtml(result);
+    const html = sombraBodyHtml(result, { recurringOpen: Boolean(qs("sombraRecurrentes")?.open) }); // una respuesta repinta la tarjeta: la lista abierta no se pliega sola
     const list = qs("sombraLista");
     if (list && list.__sombraHtml !== html) {
       list.innerHTML = html;
