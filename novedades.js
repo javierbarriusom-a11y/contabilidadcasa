@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-21-redis-a5-clasificar",
+      fecha: "2026-10-21",
+      texto: "Clasificar por lotes: desde «conceptos sin partida», 5 grupos cada vez con propuesta, y cada regla se puede deshacer.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-21-redis-a4-importar",
       fecha: "2026-10-21",
       texto: "Importar extracto, más corto: eliges el fichero, ves si cuadra y lo importas. Los duplicados claros se descartan solos.",

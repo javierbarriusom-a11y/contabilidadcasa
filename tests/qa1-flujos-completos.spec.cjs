@@ -5306,11 +5306,11 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
       await expect(page.locator("#anomaliasCard")).toBeVisible();
       await expect(top).toContainText("conceptos sin partida");
 
-      // Filtro por cuenta y «Sin partida» desde la bandeja.
+      // Filtro por cuenta y «Sin partida» (desde A5 la tarjeta de la bandeja abre Clasificar; el filtro sigue en la lista).
       await lista.locator('[data-mov-v2-filtro="Mediolanum"]').click();
       await expect(lista.locator(".mov-v2-fila")).toHaveCount(1);
       await expect(lista.locator(".mov-v2-fila")).toContainText("GASOLINERA FICTICIA");
-      await top.locator('[data-mov-v2-filtro="sin-partida"]').click();
+      await lista.locator('[data-mov-v2-filtro="sin-partida"]').click();
       await expect(lista.locator('[data-mov-v2-filtro="sin-partida"]')).toHaveAttribute("aria-pressed", "true");
 
       // Tocar un movimiento abre el mismo panel de detalle de siempre, con ese movimiento.
@@ -5382,6 +5382,79 @@ test.describe("Rediseño A4 · Importar v2", () => {
       // El asistente de siempre sigue entero detrás de su botón.
       await v2.locator("[data-imp-v2-clasico]").click();
       await expect(page.locator("#registrarImportSteps")).toBeVisible();
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// Rediseño A5: Clasificar por lotes desde la bandeja de Movimientos v2. Movimientos INVENTADOS.
+test.describe("Rediseño A5 · Clasificar por lotes", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`aceptar, saltar y deshacer una regla a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      const reglasAntes = await page.evaluate(() => {
+        const today = new Date();
+        const back = (days) => isoLocalDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+        const rows = [
+          [0, -40, "SUPER FICTICIO"],
+          [2, -60, "SUPER FICTICIO"],
+          [1, -58, "GASOLINERA FICTICIA"],
+          [1, -25, "BIZUM FICTICIO"],
+        ].map(([days, amount, movement]) => ({ date: back(days), month: back(days).slice(0, 7), movement, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        render();
+        return JSON.stringify(movementMappings);
+      });
+      const top = page.locator("#movimientosV2");
+      await expect(top).toContainText("3 conceptos sin partida");
+      await top.locator("[data-mov-v2-clasificar]").click();
+      const panel = page.locator("#clasificarV2");
+      await expect(panel).toBeVisible();
+      await expect(panel).toContainText("1 de 3");
+      await expect(panel.locator(".clas-v2-nombre")).toHaveText("SUPER FICTICIO");
+      await expect(panel).toContainText("Importe típico");
+
+      // Hoja inferior en móvil; panel derecho de 400 px en escritorio.
+      const box = await panel.boundingBox();
+      if (viewport.width < 1024) {
+        expect(Math.round(box.width)).toBe(viewport.width);
+        expect(Math.round(box.y + box.height)).toBe(viewport.height);
+      } else {
+        expect(Math.round(box.width)).toBe(400);
+        expect(Math.round(box.x + box.width)).toBe(viewport.width);
+      }
+
+      // Elegir partida (con «Otra…» si no hay selector a la vista) y aceptar: regla creada con su aviso para deshacer.
+      if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+      await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+      await expect(panel).toContainText("Elegida");
+      await panel.locator("[data-clas-v2-aceptar]").click();
+      await expect(page.locator("#undoToast")).toContainText("Regla «SUPER FICTICIO");
+      await expect(panel).toContainText("2 de 3");
+      expect(await page.evaluate(() => Boolean(movementMappings[movementMappingKey({ movement: "SUPER FICTICIO", details: "", amount: -40 })]))).toBe(true);
+
+      // Saltar con el botón y con la tecla S.
+      await panel.locator("[data-clas-v2-saltar]").click();
+      await expect(panel).toContainText("3 de 3");
+      await page.keyboard.press("s");
+      await expect(panel).toContainText("Tanda terminada · 1 regla nueva");
+      await expect(panel).toContainText("2 grupos saltados siguen en la bandeja");
+
+      // Deshacer desde el resumen: el diccionario vuelve a como estaba.
+      await panel.locator("[data-clas-v2-deshacer]").click();
+      await expect(panel).toContainText("No se ha creado ninguna regla en esta tanda");
+      expect(await page.evaluate(() => JSON.stringify(movementMappings))).toBe(reglasAntes);
+
+      await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+      await expect(panel).toBeHidden();
+      await expect(top).toContainText("3 conceptos sin partida");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors).toEqual([]);
     });
   }

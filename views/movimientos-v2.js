@@ -93,16 +93,17 @@ function movV2Header(hasRows) {
 
 // Bandeja: lo que pide algo. Hoy solo hay una cosa que lo haga sola, los movimientos sin partida (agrupados por
 // concepto, que es la unidad de las reglas: dar partida a uno se la da a los demás con el mismo concepto). Las
-// anomalías del extracto (WP-36) son su propia tarjeta, justo debajo.
+// anomalías del extracto (WP-36) son su propia tarjeta, justo debajo. La tarjeta abre Clasificar por lotes (A5,
+// views/clasificar-v2.js); el filtro «Sin partida» sigue en la lista.
 function movV2Bandeja(all) {
   const sinPartida = all.filter((item) => Number(item.row.amount) && !item.partida);
   const grupos = new Set(sinPartida.map((item) => movementMappingKey(item.row))).size;
   const head = `<div class="mov-v2-section-head"><h3>Bandeja</h3><span>${grupos ? "1 cosa" : "nada pendiente"}</span></div>`;
   const body = grupos
-    ? `<button type="button" class="mov-v2-card mov-v2-fila-bandeja" data-mov-v2-filtro="sin-partida">
+    ? `<button type="button" class="mov-v2-card mov-v2-fila-bandeja" data-mov-v2-clasificar>
         <span class="mov-v2-av is-warn" aria-hidden="true">${grupos}</span>
         <span class="mov-v2-main"><strong>${grupos === 1 ? "Un concepto sin partida" : `${grupos} conceptos sin partida`}</strong>
-          <span class="mov-v2-meta">${sinPartida.length} ${sinPartida.length === 1 ? "movimiento" : "movimientos"} · dale partida a uno y los demás del mismo concepto la heredan</span></span>
+          <span class="mov-v2-meta">${sinPartida.length} ${sinPartida.length === 1 ? "movimiento" : "movimientos"} · clasifícalos por grupos, de 5 en 5, con propuesta y deshacer</span></span>
         <span aria-hidden="true">›</span>
       </button>`
     : `<p class="mov-v2-card mov-v2-vacio-linea">Todos los movimientos tienen partida.</p>`;
@@ -209,12 +210,13 @@ function movV2BindOnce(root) {
   root.addEventListener("click", (event) => {
     const nav = event.target.closest("[data-mov-v2-nav]");
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
+    const clasificar = event.target.closest("[data-mov-v2-clasificar]");
+    if (clasificar) return globalThis.clasificarV2Open?.(clasificar); // rediseño A5, views/clasificar-v2.js
     const filtro = event.target.closest("[data-mov-v2-filtro]");
     if (filtro) {
       movV2Filter = filtro.dataset.movV2Filtro;
       movV2Limit = MOV_V2_PAGE;
       movimientosV2Render();
-      if (filtro.closest(".mov-v2-bandeja")) qs("movimientosV2Lista")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     const fila = event.target.closest("[data-mov-v2-index]");
