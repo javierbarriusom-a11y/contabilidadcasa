@@ -5407,6 +5407,9 @@ test.describe("Rediseño A5 · Clasificar por lotes", () => {
           [1, -25, "BIZUM FICTICIO"],
         ].map(([days, amount, movement]) => ({ date: back(days), month: back(days).slice(0, 7), movement, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" }));
         baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        // Una regla previa de otro concepto del mismo comercio («SUPER»): la propuesta sale de ahí, con confianza media.
+        const partida = availableSeriesRows("expense")[0];
+        movementMappings["expense|super ficticio antiguo|"] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
         refreshMovementRollups();
         render();
         return JSON.stringify(movementMappings);
@@ -5419,6 +5422,8 @@ test.describe("Rediseño A5 · Clasificar por lotes", () => {
       await expect(panel).toContainText("1 de 3");
       await expect(panel.locator(".clas-v2-nombre")).toHaveText("SUPER FICTICIO");
       await expect(panel).toContainText("Importe típico");
+      await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"]')).toContainText("Ya tienes una regla de «SUPER» a esta partida.");
+      await expect(panel.locator(".clas-v2-propuesta")).toContainText("confianza media");
 
       // Hoja inferior en móvil; panel derecho de 400 px en escritorio.
       const box = await panel.boundingBox();

@@ -7,7 +7,7 @@ const vm = require("node:vm");
 // Rediseño · fase A5 (docs/rediseno/HANDOFF.md §5 «B4 · Clasificar por lotes», referencias/png/Clasificar.png):
 // clasificar los movimientos sin partida por grupos del mismo concepto, de 5 en 5. Comprueba (1) que se abre desde la
 // bandeja de Movimientos v2 y está en el sitio público y el service worker, (2) los grupos y sus cifras, (3) la
-// propuesta de siempre sin confianza inventada y las alternativas que el hogar ya usa, (4) que aceptar escribe en el
+// propuesta con su confianza y su porqué (sin cifras inventadas) y las alternativas que el hogar ya usa, (4) que aceptar escribe en el
 // mismo diccionario de reglas con la misma secuencia de refresco y (5) que deshacer devuelve la regla y los reales.
 
 const root = path.resolve(__dirname, "..");
@@ -40,7 +40,7 @@ function sandbox({ transactions = [], mappings = {}, expenseActuals = {}, closed
     seriesKeyForRow: (row) => `${row.kind}|${row.id}`,
     availableSeriesRows: (kind) => PARTIDAS[kind],
     planningRowBySeriesKey: (kind, key) => PARTIDAS[kind].find((row) => `${row.kind}|${row.id}` === key) || null,
-    datosImportarSuggestionFor: (row) => PARTIDAS[Number(row.amount) >= 0 ? "income" : "expense"].find((p) => p.label.length >= 4 && String(row.movement).toLowerCase().includes(p.label.toLowerCase())) || null,
+    normalizedText: (value) => String(value ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
     monthByKey: (key) => (key ? { key } : null),
     isClosedMonthKey: (key) => closed.includes(key),
     actualKeyForRow: (row, month) => `${row.id}|${month.key}`,
@@ -128,7 +128,7 @@ test("agrupa por concepto los movimientos sin partida, del que más suma al que 
   assert.equal((dialog.innerHTML.match(/<span( class="is-hecho")?><\/span>/g) || []).length, 5, "una marca de progreso por grupo");
 });
 
-test("cifras del grupo: movimientos, lo del mes del último y el importe típico; la propuesta sin confianza inventada", () => {
+test("cifras del grupo: movimientos, lo del mes del último y el importe típico; la propuesta con su confianza y su porqué", () => {
   const transactions = [tx("2026-10-02", "MERCADONA SUPERMERCADO", -86.4), tx("2026-10-09", "MERCADONA SUPERMERCADO", -42), tx("2026-09-20", "MERCADONA SUPERMERCADO", -61)];
   const { context, dialog } = sandbox({ transactions });
   context.clasificarV2Open();
@@ -137,9 +137,9 @@ test("cifras del grupo: movimientos, lo del mes del último y el importe típico
   assert.match(html, /Movimientos<\/span><span class="clas-v2-num">3</);
   assert.match(html, /En octubre<\/span><span class="clas-v2-num">128,40 €</);
   assert.match(html, /Importe típico<\/span><span class="clas-v2-num">42 € – 86 €</);
-  assert.match(html, /Propuesta<\/span><b>Supermercado<\/b>/);
-  assert.ok(!/confianza (alta|media|baja)/i.test(html), "el motor no da confianza: no se inventa");
-  assert.match(html, /class="clas-v2-pending">Aún sin confianza por grupo/);
+  assert.match(html, /Propuesta · Gastos variables<\/span><b>Supermercado<\/b><\/span>\s*<span class="clas-v2-lab">confianza media<\/span><span class="clas-v2-meta clas-v2-porque">El nombre de la partida está en el concepto\.<\/span>/);
+  assert.match(html, /data-confianza="media"/);
+  assert.match(html, /<span class="clas-v2-lab">confianza media<\/span>/);
   assert.match(html, /la regla «MERCADONA SUPERMERCADO → Supermercado» para siempre/);
   assert.match(html, /data-clas-v2-aceptar aria-keyshortcuts="Enter"/, "con propuesta, Aceptar activo");
 });
@@ -166,7 +166,8 @@ test("alternativas: las partidas con más reglas del mismo tipo, sin la propuest
   assert.match(html, /Gastos fijos · Gastos del hogar/);
   assert.match(html, /data-clas-v2-aceptar disabled/);
   vm.runInContext('clasV2Choice = "expense|coche"; clasV2Render();', second.context);
-  assert.match(second.dialog.innerHTML, /Elegida<\/span><b>Coche<\/b>/);
+  assert.match(second.dialog.innerHTML, /Elegida · Gastos variables<\/span><b>Coche<\/b>/);
+  assert.ok(!/confianza/.test(second.dialog.innerHTML), "lo elegido a mano no lleva confianza");
 });
 
 test("aceptar escribe la regla del concepto en el diccionario de siempre, con la misma secuencia de refresco y su aviso para deshacer", () => {
@@ -225,3 +226,55 @@ test("atajos de teclado del handoff y el foco en lo que hará ↵", () => {
   assert.match(clas, /\["\[data-clas-v2-aceptar\]:not\(\[disabled\]\)", "#clasificarV2Otra", "\[data-clas-v2-saltar\]"\]/);
   assert.match(css, /:root\[data-tema="v2"\] \.clas-v2-in > p\.clas-v2-atajos \{\s*display: block;/, "los atajos solo se enseñan en escritorio");
 });
+
+const grupo = (movement, amount = -50) => ({ key: `${amount >= 0 ? "income" : "expense"}|${movement.toLowerCase()}|`, kind: amount >= 0 ? "income" : "expense", name: movement, rows: [tx("2026-10-02", movement, amount)], total: Math.abs(amount) });
+const regla = (rowId) => ({ kind: "expense", rowKey: `expense|${rowId}` });
+
+test("confianza: el comercio es la primera palabra que no dice cómo se pagó", () => {
+  const { context } = sandbox();
+  assert.equal(context.clasV2Merchant({ movement: "COMPRA TARJ. MERCADONA 1234 VALENCIA" }), "mercadona");
+  assert.equal(context.clasV2Merchant({ movement: "RECIBO IBERDROLA CLIENTES" }), "iberdrola");
+  assert.equal(context.clasV2Merchant({ movement: "BIZUM ENVIADO A PEPE" }), "pepe");
+  assert.equal(context.clasV2Merchant({ movement: "TPV 4455 12" }), "", "sin palabra con letras no hay comercio");
+});
+
+test("confianza alta: dos reglas del mismo comercio a la misma partida, o una y además el nombre de la partida en el concepto", () => {
+  const dos = sandbox({ mappings: { "expense|compra mercadona 1111|": regla("super"), "expense|mercadona 2222|": regla("super") } });
+  const a = dos.context.clasV2Proposal(grupo("COMPRA MERCADONA 3333"));
+  assert.equal(a.row.id, "super");
+  assert.equal(a.confidence, "alta");
+  assert.equal(a.reason, "Ya tienes 2 reglas de «MERCADONA» a esta partida.");
+  const una = sandbox({ mappings: { "expense|coche repsol 1|": regla("coche") } });
+  const b = una.context.clasV2Proposal(grupo("COCHE REPSOL 2"));
+  assert.equal(b.confidence, "alta", "una regla y el nombre «Coche» en el concepto");
+  assert.match(b.reason, /y su nombre está en el concepto/);
+});
+
+test("confianza media: una sola regla del comercio, o una sola partida por nombre (o la más concreta que contiene a las demás)", () => {
+  const { context } = sandbox({ mappings: { "expense|mercadona 1111|": regla("super") } });
+  const a = context.clasV2Proposal(grupo("MERCADONA 2222"));
+  assert.deepEqual([a.row.id, a.confidence, a.reason], ["super", "media", "Ya tienes una regla de «MERCADONA» a esta partida."]);
+  const b = context.clasV2Proposal(grupo("GASTOS DEL HOGAR COMUNIDAD"));
+  assert.deepEqual([b.row.id, b.confidence], ["hogar", "media"]);
+  const c = context.clasV2Proposal(grupo("TALLER COCHE"));
+  assert.deepEqual([c.row.id, c.confidence], ["coche", "media"]);
+});
+
+test("confianza baja: el comercio tiene reglas a varias partidas, o encajan por nombre partidas distintas", () => {
+  const { context } = sandbox({ mappings: { "expense|amazon 1|": regla("hogar"), "expense|amazon 2|": regla("hogar"), "expense|amazon 3|": regla("ocio") } });
+  const a = context.clasV2Proposal(grupo("AMAZON 4"));
+  assert.deepEqual([a.row.id, a.confidence], ["hogar", "baja"]);
+  assert.equal(a.reason, "«AMAZON» ya tiene reglas a 2 partidas distintas; esta es la que más.");
+  const b = context.clasV2Proposal(grupo("SUPERMERCADO Y COCHE"));
+  assert.deepEqual([b.row.id, b.confidence], ["super", "baja"], "la más concreta (nombre más largo) entre dos que no se contienen");
+  assert.equal(b.reason, "2 partidas encajan por el nombre; esta es la más concreta.");
+});
+
+test("confianza: una regla del comercio que contradice el nombre baja a media, y las reglas de un solo movimiento no cuentan", () => {
+  const { context } = sandbox({ mappings: { "expense|repsol 1|": regla("hogar"), "expense|repsol 2|": regla("hogar"), "2026-10-01||repsol 9|||": regla("ocio") } });
+  const a = context.clasV2Proposal(grupo("REPSOL COCHE"));
+  assert.deepEqual([a.row.id, a.confidence], ["hogar", "media"]);
+  assert.match(a.reason, /aunque el concepto nombra «Coche»/);
+  assert.equal(context.clasV2Proposal(grupo("BIZUM 6123")), null, "sin reglas ni nombre, sin propuesta");
+});
+

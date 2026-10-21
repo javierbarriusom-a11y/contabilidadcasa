@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-21-redis-a5-confianza",
+      fecha: "2026-10-21",
+      texto: "Clasificar dice cuánta confianza tiene cada propuesta y por qué, y aprovecha las reglas que ya tienes del mismo comercio.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-21-redis-a5-clasificar",
       fecha: "2026-10-21",
       texto: "Clasificar por lotes: desde «conceptos sin partida», 5 grupos cada vez con propuesta, y cada regla se puede deshacer.",

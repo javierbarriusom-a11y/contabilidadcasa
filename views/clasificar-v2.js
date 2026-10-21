@@ -7,10 +7,10 @@
 // en móvil, panel derecho de 400 px en escritorio. Solo se abre desde la bandeja de Movimientos v2.
 //
 // No es un motor nuevo: escribe en el mismo diccionario de reglas (movementMappings, clave movementMappingKey) y con
-// la misma secuencia de refresco que el lote de Movimientos (handleMovementsBulkApply, datos-ui.js). La propuesta es
-// la de siempre al importar (datosImportarSuggestionFor, coincidencia de nombre); el motor de reglas no da confianza
-// por grupo, así que la confianza va plegada en una línea en vez de inventarla. Las alternativas son las partidas que
-// más reglas tienen ya del mismo tipo, sin inventar ninguna.
+// la misma secuencia de refresco que el lote de Movimientos (handleMovementsBulkApply, datos-ui.js). La propuesta y su
+// confianza (alta, media o baja, con el porqué) salen solo de lo que ya existe: las reglas del hogar para el mismo
+// comercio y la coincidencia de nombre de siempre (clasV2Proposal). Las alternativas son las partidas que más reglas
+// tienen ya del mismo tipo, sin inventar ninguna.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const CLAS_V2_MAX = 5;
@@ -60,8 +60,79 @@ function clasV2Stats(group) {
   };
 }
 
+// Palabras de un concepto bancario que dicen cómo se pagó, no a quién: no sirven para reconocer el comercio.
+const CLAS_V2_GENERIC = new Set(
+  "compra compras pago pagos tarj tarjeta credito debito visa mastercard recibo recibos domiciliacion transferencia transf trf bizum enviado enviada recibido recibida cargo adeudo abono tpv cuota comision operacion ref num con del las los por para www com".split(" "),
+);
+
+function clasV2Words(text) {
+  return normalizedText(text || "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+}
+
+// El comercio de un movimiento: la primera palabra del concepto con 3 letras o más que no sea genérica ni un número
+// («COMPRA TARJ. MERCADONA 1234» → «mercadona»).
+function clasV2Merchant(row) {
+  return clasV2Words(row?.movement).find((word) => word.length >= 3 && /[a-z]/.test(word) && !CLAS_V2_GENERIC.has(word)) || "";
+}
+
+// Reglas de concepto que el hogar ya tiene para el mismo comercio (otro concepto con esa palabra), contadas por
+// partida. Las de «solo este movimiento» (clave transactionIdentity, que empieza por la fecha) no cuentan.
+function clasV2SiblingRules(group, merchant) {
+  const byRow = new Map();
+  if (!merchant) return byRow;
+  Object.entries(movementMappings || {}).forEach(([key, mapping]) => {
+    const [kind, movement = ""] = key.split("|");
+    if (kind !== group.kind || mapping?.kind !== group.kind || key === group.key || !movement.split(" ").includes(merchant)) return;
+    if (planningRowBySeriesKey(group.kind, mapping.rowKey)) byRow.set(mapping.rowKey, (byRow.get(mapping.rowKey) || 0) + 1);
+  });
+  return [...byRow.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+// Las partidas cuyo nombre aparece en el concepto (o al revés), con la misma regla que datosImportarSuggestionFor
+// (al menos 4 caracteres), pero todas y de la más concreta (nombre más largo) a la menos.
+function clasV2NameMatches(group) {
+  const row = group.rows[0];
+  const text = normalizedText(`${row.movement || ""} ${row.details || ""}`);
+  if (text.length < 4) return [];
+  return availableSeriesRows(group.kind)
+    .filter((partida) => {
+      const label = normalizedText(displayLabelForRow(partida));
+      return label.length >= 4 && (text.includes(label) || label.includes(text));
+    })
+    .sort((a, b) => displayLabelForRow(b).length - displayLabelForRow(a).length);
+}
+
+// Propuesta con su confianza y el porqué, sin cifras inventadas:
+// - alta: 2 o más reglas del mismo comercio a la misma partida (sin que el nombre apunte a otra), o una regla y además
+//   el nombre de esa partida en el concepto;
+// - media: una regla del mismo comercio, o una sola partida que encaja por nombre (o varias, si la más concreta
+//   contiene a las demás: «Seguro coche» frente a «Seguro»);
+// - baja: el comercio ya tiene reglas a varias partidas, o encajan por nombre varias partidas distintas.
+function clasV2Proposal(group) {
+  const merchant = clasV2Merchant(group.rows[0]);
+  const siblings = clasV2SiblingRules(group, merchant);
+  const byName = clasV2NameMatches(group);
+  const shown = merchant.toUpperCase();
+  if (siblings.length) {
+    const [rowKey, count] = siblings[0];
+    const row = planningRowBySeriesKey(group.kind, rowKey);
+    if (siblings.length > 1) return { row, confidence: "baja", reason: `«${shown}» ya tiene reglas a ${siblings.length} partidas distintas; esta es la que más.` };
+    const nameAgrees = byName.some((partida) => seriesKeyForRow(partida) === rowKey);
+    const rules = count === 1 ? "una regla" : `${count} reglas`;
+    if (nameAgrees) return { row, confidence: "alta", reason: `Ya tienes ${rules} de «${shown}» a esta partida y su nombre está en el concepto.` };
+    if (count >= 2 && !byName.length) return { row, confidence: "alta", reason: `Ya tienes ${rules} de «${shown}» a esta partida.` };
+    return { row, confidence: "media", reason: `Ya tienes ${rules} de «${shown}» a esta partida${byName.length ? `, aunque el concepto nombra «${displayLabelForRow(byName[0])}»` : ""}.` };
+  }
+  if (!byName.length) return null;
+  const top = normalizedText(displayLabelForRow(byName[0]));
+  if (byName.slice(1).every((partida) => top.includes(normalizedText(displayLabelForRow(partida))))) {
+    return { row: byName[0], confidence: "media", reason: "El nombre de la partida está en el concepto." };
+  }
+  return { row: byName[0], confidence: "baja", reason: `${byName.length} partidas encajan por el nombre; esta es la más concreta.` };
+}
+
 function clasV2Suggestion(group) {
-  return datosImportarSuggestionFor(group.rows[0]) || null;
+  return clasV2Proposal(group)?.row || null;
 }
 
 // Las partidas con más reglas del mismo tipo (ingreso o gasto), sin la propuesta: lo que el hogar ya usa.
@@ -118,15 +189,17 @@ function clasV2OtherSelect(group) {
 function clasV2GroupHtml() {
   const group = clasV2Groups[clasV2Index];
   const stats = clasV2Stats(group);
-  const suggestion = clasV2Suggestion(group);
+  const proposalInfo = clasV2Proposal(group);
+  const suggestion = proposalInfo?.row || null;
   const target = clasV2Target(group);
+  const info = clasV2Choice ? null : proposalInfo;
   const alternatives = clasV2Alternatives(group, suggestion);
   const rest = clasV2Remaining();
   const meta = `${clasV2Index + 1} de ${clasV2Groups.length}${rest ? ` · ${rest} más en otra tanda` : ""}`;
   const proposal = target
-    ? `<div class="clas-v2-propuesta">
-        <span><span class="clas-v2-meta">${clasV2Choice ? "Elegida" : "Propuesta"}</span><b>${escapeHtml(displayLabelForRow(target))}</b></span>
-        <span class="clas-v2-lab">${escapeHtml(target.sectionName || "")}</span>
+    ? `<div class="clas-v2-propuesta"${info ? ` data-confianza="${info.confidence}"` : ""}>
+        <span><span class="clas-v2-meta">${clasV2Choice ? "Elegida" : "Propuesta"}${target.sectionName ? ` · ${escapeHtml(target.sectionName)}` : ""}</span><b>${escapeHtml(displayLabelForRow(target))}</b></span>
+        ${info ? `<span class="clas-v2-lab">confianza ${info.confidence}</span><span class="clas-v2-meta clas-v2-porque">${escapeHtml(info.reason)}</span>` : ""}
       </div>`
     : `<div class="clas-v2-propuesta is-vacia"><span class="clas-v2-meta">Sin propuesta para este concepto: elige su partida.</span></div>`;
   const chips = alternatives.map((row, index) => {
@@ -150,7 +223,6 @@ function clasV2GroupHtml() {
       ${chips.length ? `<div class="clas-v2-opts" role="group" aria-label="Otras partidas">${chips.join("")}</div>` : ""}
       ${showSelect ? clasV2OtherSelect(group) : ""}
     </div>
-    ${suggestion ? `<p class="clas-v2-pending">Aún sin confianza por grupo: se propone porque el nombre de la partida está en el concepto.</p>` : ""}
     ${rule ? `<p class="clas-v2-meta clas-v2-regla">${rule}</p>` : ""}
     <p class="clas-v2-meta clas-v2-atajos">↵ aceptar · 1-${CLAS_V2_ALTS} alternativas · S saltar · ⌘Z deshacer</p>
     <div class="clas-v2-botones">
