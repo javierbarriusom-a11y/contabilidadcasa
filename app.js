@@ -22554,6 +22554,7 @@ function handleDatosImportarBackClick() {
 }
 
 function renderDatosImportar() {
+  queueMicrotask(() => globalThis.importarV2Render?.()); // rediseño A4 (views/importar-v2.js), con lo que se pinte aquí
   if (!datosImportarSession && !datosImportarLastResult) datosImportarSession = datosImportarRestoreSession();
   const target = datosImportarTarget();
   const panel = qs(target.panelId);

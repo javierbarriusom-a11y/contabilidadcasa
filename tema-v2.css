@@ -1312,3 +1312,259 @@
     display: block;
   }
 }
+
+/* ---------- A4 · Importar v2 (views/importar-v2.js) ----------
+   Registrar › Importar extracto (referencias/png/Importar.png e ImportarDesktop.png): elegir, revisar con su cuadre y
+   confirmar. Es otra cara del mismo asistente: lo de siempre se oculta SOLO cuando la v2 ya está pintada y vuelve con
+   «Ver el asistente de siempre». Del panel de siempre quedan a la vista la lectura del fichero (WP-51, «Cómo he leído…»)
+   y el aviso de lectura del paso 1 cuando dice algo; el input de fichero sigue ahí, oculto, y lo abre la tarjeta CSV. */
+:root[data-tema="v2"] article.imp-v2-pintado:not(.imp-v2-clasico) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-tema="v2"] article.imp-v2-pintado:not(.imp-v2-clasico) > :not(#importarV2):not(#registrarImportPanel),
+:root[data-tema="v2"] article.imp-v2-pintado:not(.imp-v2-clasico) #registrarImportPanel > :not(#extractoPerfilesPanel):not(.datos-importar-upload),
+:root[data-tema="v2"] article.imp-v2-pintado:not(.imp-v2-clasico) .datos-importar-upload > :not(p),
+:root[data-tema="v2"] article.imp-v2-pintado:not(.imp-v2-clasico) .datos-importar-upload:has(> p:empty) {
+  display: none !important;
+}
+
+:root[data-tema="v2"] .imp-v2 {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .imp-v2-volver,
+:root[data-tema="v2"] .imp-v2-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--e19-accent);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:root[data-tema="v2"] .imp-v2-volver {
+  justify-self: start;
+  text-decoration: none;
+}
+
+:root[data-tema="v2"] .imp-v2-fuente {
+  border-width: 1.5px;
+  border-color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .imp-v2-grid,
+:root[data-tema="v2"] .imp-v2-lado {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-lineas {
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] .imp-v2-lineas-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 14px 16px 10px;
+}
+
+:root[data-tema="v2"] .imp-v2-lineas-head strong {
+  font-size: 15px;
+}
+
+:root[data-tema="v2"] .imp-v2-lineas > .mov-v2-meta {
+  margin: 0 16px 8px;
+}
+
+:root[data-tema="v2"] .imp-v2-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .imp-v2-linea {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--e19-surface-sunken);
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .imp-v2-fecha {
+  font-family: var(--e19-font-mono);
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .imp-v2-concepto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .imp-v2-estado {
+  font-size: 12.5px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .imp-v2-importe {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .imp-v2-linea.is-duda {
+  background: var(--e19-warning-soft);
+}
+
+:root[data-tema="v2"] .imp-v2-linea.is-duda .imp-v2-estado,
+:root[data-tema="v2"] .imp-v2-linea.is-duda .imp-v2-fecha {
+  color: var(--e19-warning-badge-ink);
+}
+
+:root[data-tema="v2"] .imp-v2-linea.is-dup .imp-v2-texto,
+:root[data-tema="v2"] .imp-v2-linea.is-dup .imp-v2-importe {
+  text-decoration: line-through;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .imp-v2-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+:root[data-tema="v2"] .imp-v2-opciones .e19-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+:root[data-tema="v2"] .imp-v2-todas {
+  margin: 4px 16px 12px;
+}
+
+:root[data-tema="v2"] .imp-v2-cuenta {
+  display: grid;
+  gap: 4px;
+}
+
+:root[data-tema="v2"] .imp-v2-cuenta select {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: inherit;
+}
+
+:root[data-tema="v2"] .imp-v2-cuadre {
+  padding: 16px;
+}
+
+:root[data-tema="v2"] .imp-v2-cuadre .mov-v2-meta {
+  margin: 8px 0 0;
+}
+
+:root[data-tema="v2"] .imp-v2-cuadre.is-error {
+  border-color: var(--e19-danger-soft-border);
+  background: var(--e19-danger-soft);
+}
+
+:root[data-tema="v2"] .imp-v2-cuadre.is-error .mov-v2-section-head > span {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .imp-v2-cuadre.is-aviso {
+  border-style: dashed;
+}
+
+:root[data-tema="v2"] .imp-v2-ok {
+  color: var(--e19-success) !important;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .imp-v2-cuentas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .imp-v2-cuentas dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .imp-v2-cuentas .is-total {
+  padding-top: 8px;
+  border-top: 1.5px solid var(--e19-ink);
+  font-weight: 700;
+}
+
+:root[data-tema="v2"] .imp-v2-saldo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .imp-v2-saldo input {
+  margin-top: 3px;
+}
+
+:root[data-tema="v2"] .imp-v2-importar {
+  min-height: 52px;
+  font-size: 16px;
+}
+
+:root[data-tema="v2"] .imp-v2-nota {
+  margin: 0;
+  text-align: center;
+}
+
+:root[data-tema="v2"] .imp-v2-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] .imp-v2-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    align-items: start;
+  }
+}
+
+:root[data-tema="v2"] .imp-v2-importar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -225,6 +225,7 @@ const SHELL_URLS = [
   // viene de que index.html no los carga al arrancar, no de dejarlos fuera de la caché offline.
   "./views/hoy-v2.js",
   "./views/movimientos-v2.js",
+  "./views/importar-v2.js",
   "./views/cobertura-ajuste.js",
   "./views/presupuesto-mes.js",
   "./views/estado-semana.js",
