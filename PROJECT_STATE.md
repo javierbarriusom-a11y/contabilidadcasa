@@ -133,7 +133,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - **Ajustada:** la e2e de Movimientos v2 pulsa «Sin partida» en la lista en vez de en la bandeja, porque la tarjeta de la bandeja ahora abre Clasificar. Misma comprobación.
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6092/6092 (+9), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - Playwright (e2e, axe y rendimiento por pantalla): **205/205** (+2).
   - Capturas a 390 y 1440 px en claro y en oscuro, con y sin propuesta, revisadas. Encontrado y arreglado en ellas: con un concepto largo la hoja desbordaba y, al enfocar «Aceptar», tapaba la cabecera; ahora los botones van fijos abajo y el foco no desplaza la hoja.
 - **Lo que no comprueba nada de esto:** que clasificar sea rápido con un extracto real. Octubre sigue con 0 movimientos importados; la primera tanda real es la prueba de verdad.
 - **Siguiente del rediseño:** «Funciones en prueba» (XGO-03).
