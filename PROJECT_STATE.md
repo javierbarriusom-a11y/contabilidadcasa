@@ -134,7 +134,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - E2E: la de A5 comprueba la confianza «media» con una regla previa del mismo comercio. Una nueva a 390 px en los dos temas mide el ancho real de cada concepto de la tarjeta; sin el arreglo falla (12 px).
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6099/6099 (+7), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - Playwright (e2e, axe y rendimiento por pantalla): **207/207** (+2).
   - Capturas de Clasificar a 390 y 1440 px en claro y en oscuro, y de la tarjeta de Registrar antes y después, revisadas.
 
 ## Cierre de sesión — 21 de octubre de 2026 (338): rediseño A5 — Clasificar por lotes
