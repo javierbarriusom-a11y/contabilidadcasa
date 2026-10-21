@@ -47,3 +47,26 @@ test("Registrar y Datos viven fuera de app.js, en scripts que se cargan antes qu
   // El cargador del motor de tickets se queda junto a su URL y su huella SRI (RQ-13, tests/ntc6-conexiones-externas).
   assert.match(app, /^function loadReceiptOcrEngine\(/m);
 });
+
+// XGO-01 · PR-2 (sesión 334, 21/10/2026): Plan › Partidas a partidas-ui.js y el motor de escenarios al nuevo
+// escenarios-ui.js. El motor no puede ir a views/escenarios.js: esa vista se descarga al visitarla y el motor lo usan
+// también Plan › Partidas, la segunda opinión y el comparador de estrategias de deuda, que no la cargan.
+test("Partidas y el motor de escenarios viven fuera de app.js, en scripts que se cargan antes que él", () => {
+  const app = read("app.js");
+  const partidas = read("partidas-ui.js");
+  const escenarios = read("escenarios-ui.js");
+  ["renderPlanificacionPartidas", "renderPartidasGestionTable", "handlePartidasAddRow", "handlePartidasBulkEdit", "partidasSimuladorEvaluate", "applySeriesChange"].forEach((name) => {
+    assert.match(partidas, new RegExp(`^(async )?function ${name}\\(`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(async )?function ${name}\\(`, "m"), `${name} ya no está en app.js`);
+  });
+  ["runEscenarioMotor", "escenarioMotorSummaryFor", "loadEscenarioMotorSaved", "escenarioMotorFieldControlHtml", "retractPlanningRowsFromEscenario"].forEach((name) => {
+    assert.match(escenarios, new RegExp(`^(async )?function ${name}\\(`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(async )?function ${name}\\(`, "m"), `${name} ya no está en app.js`);
+  });
+  const html = read("index.html");
+  const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
+  ["partidas-ui.js", "escenarios-ui.js"].forEach((src) => {
+    assert.ok(pos(src) !== -1 && pos(src) < pos("app.js"), `${src} se carga con defer antes que app.js`);
+  });
+  assert.doesNotMatch(read("views/escenarios.js"), /^(async )?function (runEscenarioMotor|escenarioMotorSummaryFor)\(/m, "el motor no va en la vista que se carga bajo demanda");
+});

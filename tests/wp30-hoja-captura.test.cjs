@@ -434,7 +434,7 @@ test("cableado: app.js usa la hoja con tarjetas, la ventana anterior sin ellas, 
   assert.ok(!/accruedByRowMonth\(loadCardCycles\(\), baseData/.test(app), "las compras ya no salen de los movimientos del banco");
   assert.match(app, /"card-purchases", \/\/ WP-30 \(PR-2\)/);
   const lines = read("app.js").split("\n").length;
-  assert.ok(lines <= 35107, `app.js tiene ${lines} líneas (techo 35.107)`);
+  assert.ok(lines <= 33259, `app.js tiene ${lines} líneas (techo 33.259)`);
 });
 
 test("cableado: index.html tiene la hoja y sus scripts, antes de app.js; las listas de ficheros los incluyen", () => {

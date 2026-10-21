@@ -336,7 +336,7 @@ test("cableado: app.js pinta la tarjeta al llegar a Fiscal, pasando el motor, y 
   const app = codigoApp();
   assert.match(app, /case "herramientas-fiscal":\n\s+renderAjustes\(\);\n\s+globalThis\.renderFiscalCampaign\?\.\(globalThis\.FinanceCanonicalYearEndTax\);/);
   const lines = read("app.js").split("\n").length;
-  assert.ok(lines <= 35107, `app.js tiene ${lines} líneas (techo 35.107)`);
+  assert.ok(lines <= 33259, `app.js tiene ${lines} líneas (techo 33.259)`);
 });
 
 test("fiscal-campana-ui.js no toca el DOM al cargarse (se ejecuta antes que app.js): solo declara funciones", () => {

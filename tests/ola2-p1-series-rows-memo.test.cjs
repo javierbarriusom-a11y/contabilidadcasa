@@ -57,7 +57,8 @@ function sandboxWith(fixture) {
     block("function seriesDeletionKeyForRow", "function isPlanningRowDeleted"),
     block("function displayLabelForRow", "function overrideKeyForRow"),
     block("function normalizedText", "function isCarPlanningRow"),
-    block("function availableSeriesRows", "function selectedSeriesRow").replace(/\n+$/, ""),
+    // Hasta el cierre de la función: la que la seguía (selectedSeriesRow) se fue a partidas-ui.js en el PR-2 de XGO-01.
+    block("function availableSeriesRows", "\n}\n") + "\n}",
     REFERENCE,
   ].join("\n");
   const sandbox = { ...fixture, Map, Set, String, Boolean };
