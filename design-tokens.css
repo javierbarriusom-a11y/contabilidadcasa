@@ -268,11 +268,13 @@
   margin: 16px 0;
 }
 
+/* Base de 420 px: sin ella la rejilla (columnas minmax(0, 1fr)) se encogía junto al título en vez de bajar
+   debajo, y en el móvil quedaban tres columnas de ~100 px con una palabra por línea. */
 .e19-registrar-rule-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  flex: 1;
+  flex: 1 1 420px;
 }
 
 .e19-registrar-rule-grid span {
@@ -286,6 +288,14 @@
   margin: 0;
   font-size: var(--e19-text-sm);
   color: var(--e19-muted);
+}
+
+/* En el móvil, una fila por concepto: «Previsto», «Real» y «Usado» con su texto debajo. */
+@media (max-width: 640px) {
+  .e19-registrar-rule-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
 }
 
 .e19-registrar-tabs {

@@ -109,6 +109,34 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (339): confianza de la propuesta en Clasificar y tarjeta de Registrar en el móvil
+
+- **Qué pidió el hogar:** hacer aquí las dos tareas aparte que dejó la sesión 338.
+
+**1 · Confianza de la propuesta en Clasificar (rediseño A5, prompt 5).**
+- **Qué cambia (solo con el tema v2):** la caja «Propuesta» dice «confianza alta», «media» o «baja», como la referencia, y debajo el porqué en una frase. Desaparece la línea plegada «Aún sin confianza…». Lo elegido a mano («Elegida») no lleva confianza.
+- **Definición** (`clasV2Proposal`, función pura en `views/clasificar-v2.js`). Solo usa datos que ya existían; no hay ninguna cifra ni porcentaje inventado. Dos señales:
+  - **Reglas del hogar para el mismo comercio.** El comercio es la primera palabra del concepto con 3 letras o más que no dice cómo se pagó (fuera «compra», «tarjeta», «recibo», «bizum», «tpv»…). Así, «MERCADONA 5678» aprovecha la regla de «MERCADONA 1234». Las reglas de «solo este movimiento» no cuentan.
+  - **Coincidencia de nombre**, la de siempre (al menos 4 caracteres), pero contando cuántas partidas encajan y quedándose con la más concreta.
+  - **Alta:** 2 o más reglas del comercio a la misma partida (sin que el nombre apunte a otra), o una regla y además el nombre de esa partida en el concepto.
+  - **Media:** una regla del comercio, o una sola partida por nombre (o varias si la más concreta contiene a las demás, «Seguro coche» frente a «Seguro»). Una regla que contradice el nombre también baja a media y lo dice.
+  - **Baja:** el comercio ya tiene reglas a varias partidas, o encajan por nombre partidas distintas.
+- **Por qué importa:** mitiga el riesgo que dejó abierto la 338. Si el banco mete referencias en el concepto, el mismo comercio sale en varios grupos, pero en cuanto uno tiene regla, los demás la llevan propuesta.
+- **Lo que no cambia:** el asistente de importación sigue con su sugerencia de siempre (`datosImportarSuggestionFor`). Tocarla se hablaría aparte.
+
+**2 · Tarjeta «Previsto, real y usado» de Registrar en el móvil (los dos temas).**
+- **Causa:** la tarjeta es una fila flexible con el título y una rejilla de tres columnas `minmax(0, 1fr)`. La rejilla podía encogerse casi a cero en vez de bajar bajo el título, y a 390 px quedaban tres columnas de ~100 px con una palabra por línea (en la e2e, 12 px).
+- **Arreglo** (`design-tokens.css`): la rejilla tiene base propia de 420 px, así que baja cuando no cabe al lado, y por debajo de 640 px va en una columna. El escritorio no cambia (109 px de alto antes y después); comprobado también a 600, 700, 768, 900, 1024 y 1280 px.
+
+- **Pruebas:**
+  - `tests/redis-a5-clasificar.test.cjs`: 14 (+5), un caso por nivel de confianza y los bordes.
+  - `tests/registrar-regla-movil.test.cjs`: 2, nueva.
+  - E2E: la de A5 comprueba la confianza «media» con una regla previa del mismo comercio. Una nueva a 390 px en los dos temas mide el ancho real de cada concepto de la tarjeta; sin el arreglo falla (12 px).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6099/6099 (+7), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **207/207** (+2).
+  - Capturas de Clasificar a 390 y 1440 px en claro y en oscuro, y de la tarjeta de Registrar antes y después, revisadas.
+
 ## Cierre de sesión — 21 de octubre de 2026 (338): rediseño A5 — Clasificar por lotes
 
 - **Qué pidió el hogar:** «adelante con Clasificar por lotes», por delante de «Funciones en prueba» (XGO-03). Es lo que hace útil la tarjeta «N conceptos sin partida» de la bandeja de Movimientos (A4).

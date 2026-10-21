@@ -1737,6 +1737,17 @@
   text-align: right;
 }
 
+/* El porqué de la confianza, a lo ancho bajo la partida: qué reglas o qué nombre la sostienen. */
+:root[data-tema="v2"] .clas-v2-propuesta:has(> .clas-v2-porque) {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta .clas-v2-porque {
+  flex: 1 0 100%;
+  color: var(--e19-ink);
+}
+
 :root[data-tema="v2"] .clas-v2-propuesta.is-vacia {
   border: 1.5px dashed var(--e19-border-strong);
   background: transparent;
@@ -1773,16 +1784,6 @@
 :root[data-tema="v2"] .clas-v2-otra select {
   min-height: 44px;
   width: 100%;
-}
-
-:root[data-tema="v2"] .clas-v2-pending {
-  margin: 0;
-  padding: 10px 14px;
-  border: 1.5px dashed var(--e19-border-strong);
-  border-radius: var(--e19-radius-md);
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--e19-muted);
 }
 
 :root[data-tema="v2"] .clas-v2-in > p.clas-v2-meta {
