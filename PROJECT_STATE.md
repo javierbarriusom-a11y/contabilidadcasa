@@ -109,6 +109,49 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (334): WP-41 publicado, límite de 3 en curso aplicado y panel con «construido» y «comprobado»
+
+- **Qué pidió el hogar:** arrancar sesión, analizar el backlog y el panel de seguimiento y proponer un plan. Aprobado tal cual: A (publicar lo hecho), B (que el panel diga la verdad) y C (PR-2 del desalojo), con las cuatro decisiones recomendadas.
+- **Decisiones del hogar (21/10):**
+  - «Esperando al hogar» cuenta como construido (50 %) y nunca como comprobado.
+  - Hoy congelado hasta el 25/10: si para entonces no está H-02, la congelación se levanta (`BACKLOG_DEFINITIVO.md` §4).
+  - La regla de parada de la Ola 1 se aplica: sin lecturas de M-HOY ni M-ADOP, no se abre ningún paquete nuevo.
+  - PR-2 del desalojo en esta misma sesión.
+- **A · WP-41, cuarta entrega publicada.** Llevaba desde el 16/10 en la rama `claude/gracious-brahmagupta-mjdhhj` (f8db014), 38 commits por detrás de `main`. Entró sin conflictos. Es la lista plegada y de solo lectura «N cargos que se repiten cada mes y que no he marcado» en Deuda › Contratos (detalle en `docs/WP41_DISENO.md` §8). La línea de «Novedades» lleva la fecha de hoy, que es cuando llega al hogar.
+- **B · El panel y el backlog dicen lo mismo, y lo dicen bien.**
+  - **Hallazgos al cruzar el panel con los documentos:**
+    - 25 paquetes «en curso» con un límite de 3 aprobado el 19/10.
+    - WP-23, WP-28 y WP-33 tenían el estado mal escrito («curso») y pesaban 0: el panel enseñaba 58,7 % y los documentos, 61,9 %.
+    - La pestaña del hogar estaba vacía, ni siquiera H-01. Tampoco había ninguna lectura de métricas.
+    - WP-06 no tenía registro.
+  - **Plantilla del panel** (`docs/plan/panel-seguimiento.html`):
+    - Dos estados nuevos, «esperando al hogar» y «aparcado», con su peso en `docs/plan/plan-definitivo.json`.
+    - Un estado mal escrito se lee como el bueno.
+    - Las cifras se reparten en cinco: avance construido, **avance comprobado** (solo métricas leídas con datos reales y en objetivo), previsto, desvío y paquetes hechos, con los esperando y los aparcados.
+    - «En marcha · N de 3» cuenta el rediseño y avisa si se supera el límite.
+    - Filtro nuevo «Esperando al hogar». El PR se muestra como número y no como enlace.
+    - Comprobado con un navegador y una base simulada, a 1280 y a 390 px.
+  - **Criba de los 25 paquetes:**
+    - **En curso:** WP-23, por la fecha del 14/11 y porque contrastar los parámetros legales no depende del hogar. Con el rediseño, 2 de 3.
+    - **Esperando al hogar (21),** cada uno con su tarea en la nota: WP-06, WP-29, WP-31, WP-34 a WP-36, WP-38 a WP-41 y WP-43 a WP-53.
+    - **Aparcados:** WP-28, WP-37 y WP-42.
+    - **Hecho:** WP-33, porque lo usan WP-08, WP-16 y WP-51.
+  - **Resultado:**
+    - **Construido: 63,2 %** (87 de 137,75 sesiones; el panel da 63,6 % porque no cuenta WP-54).
+    - **Comprobado: 0 %.**
+    - El índice plan/real de 4,8 que da el panel mide lo construido, no lo que sirve.
+  - Documentos al día: `BACKLOG_DEFINITIVO.md` (§0, §1, §4 y §12) y `docs/ESTADO_TAREAS_Y_FASES.md` (§1 y la columna de estado de los 25).
+- **Revisión mensual de Nielsen:** al día. La última fue el 15/10 y la siguiente vence el 14/11.
+- **Validación (A y B, en la rama):**
+  - `npm run verify` en verde, salida 0: `npm test` 6065/6065 (+14 de WP-41), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Repetido `npm test` con los cambios de B: 6065/6065.
+  - Playwright: e2e 111/111 y axe 85/85.
+- **Pendiente de esta sesión:** C, el PR-2 del desalojo, en un PR aparte. Al fusionar este, se escribe la criba en la base del panel y se vuelve a publicar en la misma URL.
+- **Hogar, esta semana:**
+  - H-02, antes del 25/10: 5 min.
+  - H-03, ya vencida: 20 min.
+  - Importar el extracto de octubre de cada cuenta: 15 min.
+  - Antes del 1/11: tarjetas, asignación personal y saldos en «Real manual».
+
 ## Cierre de sesión — 20 de octubre de 2026 (333): cierre del día y panel de seguimiento al día
 
 - **Publicado hoy en `main`,** todo con el CI en verde y desplegado:
