@@ -109,6 +109,47 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (336): rediseño A4, PR-1 — Movimientos v2
+
+- **Qué pidió el hogar:** «adelante con Movimientos e Importar» (21/10). Pasa delante de «Funciones en prueba» (XGO-03) en el orden de `docs/rediseno/ESTADO.md` §8, porque sin movimientos las demás pantallas enseñan datos vacíos. Va en dos PR (P12): este es Movimientos; Importar es el siguiente.
+- **Qué cambia (solo con el tema v2, que es el de por defecto):** Movimientos según `Movimientos.png` y `MovimientosDesktop.png`.
+  - **Cabecera:** «Movimientos», buscar e Importar. En escritorio, también «Cierre de <mes>».
+  - **Bandeja:**
+    - «N conceptos sin partida»: filtra la lista. Dar partida a un movimiento se la da a los del mismo concepto.
+    - La tarjeta de anomalías (WP-36) sigue a la vista, como parte de la bandeja.
+  - **Una línea plegada** con lo que la referencia enseña y aún no existe: extracto por Compartir (XDA-02), cobros confirmados por el extracto (XDA-08) y cobertura de 90 días por cuenta (XDA-04).
+  - **Filtros:** «Todas», uno por cuenta y «Sin partida». El buscador busca por concepto, importe o partida.
+  - **Lista por día:**
+    - Cada movimiento lleva su partida como etiqueta, o «¿partida?» con borde discontinuo si no tiene.
+    - Los ingresos van en verde con «+».
+    - Enseña 40 y se pide «Ver más».
+    - En escritorio es una tabla con Fecha, Concepto, Cuenta, Partida e Importe.
+  - **Al final**, el acceso a Cierre.
+  - **Con 0 movimientos**, un solo bloque que lleva a Importar. La tarjeta de anomalías, que solo repetiría «importa el extracto», queda tras el detalle.
+  - **Tocar un movimiento** abre el panel de detalle de siempre, donde se cambia su partida.
+  - **«Ver todo el detalle»** devuelve la vista de siempre entera: rango, tipo de acción, selección en lote, comercios y totales.
+- **Cómo:**
+  - `views/movimientos-v2.js` (defer, antes de `app.js`), con el patrón de A3.
+  - Dos contenedores en `#movements`: cabecera y bandeja arriba, lista debajo de la tarjeta de anomalías (orden con CSS).
+  - `app.js` +5 líneas: la llamada al pintar Movimientos y `openMovementDetailRow`, que separa abrir el panel de buscar la fila por índice.
+  - Estilos en `tema-v2.css`, bajo `:root[data-tema="v2"]`. Ningún motor tocado.
+- **Desviaciones de la referencia:** recogidas en `docs/rediseno/ESTADO.md` §4.
+  - Clasificar como panel derecho de 400 px es A5.
+  - La bandeja de decisiones de Hoy no se mueve aquí mientras Hoy esté congelado (hasta el 25/10).
+  - Cifras de la referencia como «cuota esperada ✓» o «+18 % vs. media» no se pintan: no hay motor que las dé por movimiento.
+- **Pruebas:**
+  - Nueva: `tests/redis-a4-movimientos.test.cjs` (9).
+  - Una e2e por ancho en `qa1` (390 y 1440 px). Recorre vacío → Importar, lista por día, filtros, panel de detalle, vista de siempre y que no haya desborde.
+  - **Ajustadas:**
+    - Las dos de WP-36 abren el detalle cuando no hay movimientos, que es donde queda ahora la tarjeta. El helper que siembra anomalías repinta la vista, como haría una importación.
+    - `m1-m11` extrae también `openMovementDetailRow`.
+    - No se relaja ninguna comprobación.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6075/6075 (+9), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): 199/201 en la primera pasada. Las 2 que fallaron eran las nuevas de A4: esperaban «+3000» y la app pinta, bien, «+3.000 €». Corregida la expectativa, pasan 2/2.
+  - Capturas a 390×844 y 1440×900, en claro y en oscuro, revisadas frente a la referencia.
+- **Siguiente:** A4 PR-2, Importar. Antes de construirlo hacen falta dos decisiones del hogar. La referencia descarta los duplicados sola (con deshacer) y deja lo dudoso para la bandeja, y el asistente actual pide una decisión explícita en cada caso.
+
 ## Cierre de sesión — 21 de octubre de 2026 (335): desalojo de `app.js`, PR-2: Partidas y el motor de escenarios salen a sus scripts
 
 - **Qué pidió el hogar:** el bloque C del plan de hoy, el PR-2 del desalojo (XGO-01, P6: Partidas + Escenarios). Lo pidió en esta misma sesión, sin esperar a confirmar en el móvil que el PR-1 va bien.

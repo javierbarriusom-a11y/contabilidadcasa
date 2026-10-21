@@ -5290,7 +5290,7 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
       const lista = page.locator("#movimientosV2Lista");
       await expect(lista.locator(".mov-v2-fila")).toHaveCount(4);
       await expect(lista.locator(".mov-v2-fila").first()).toContainText("¿partida?");
-      await expect(lista.locator(".mov-v2-importe.is-pos")).toContainText("+3000");
+      await expect(lista.locator(".mov-v2-importe.is-pos")).toContainText("+3.000 €");
       await expect(page.locator("#anomaliasCard")).toBeVisible();
       await expect(top).toContainText("conceptos sin partida");
 
