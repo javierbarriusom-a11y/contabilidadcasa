@@ -329,6 +329,10 @@ for (const scheme of ["light", "dark"]) {
     test("#movements: sin fallos de contraste ni de accesibilidad dentro de la tarjeta", async ({ page }) => {
       await page.goto("/index.html#movements");
       await page.reload();
+      // Rediseño A4: con el tema v2 y sin movimientos, la tarjeta queda tras «Ver todo el detalle».
+      const detalle = page.locator("#movimientosV2Lista [data-mov-v2-detail]");
+      await detalle.or(page.locator("#anomaliasCard")).first().waitFor({ timeout: 15000 });
+      if (await detalle.isVisible()) await detalle.click();
       const card = page.locator("#anomaliasCard");
       await expect(card).toBeVisible({ timeout: 15000 });
       const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));

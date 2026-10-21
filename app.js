@@ -22697,7 +22697,11 @@ function datosImportarRefreshRowsForMappings(keys) {
 // no cacheada) — determinista mientras no cambien los filtros entre el render y el clic, que es
 // síncrono.
 function handleMovementDetailOpen(index) {
-  const row = movementsFilteredList()[Number(index)];
+  openMovementDetailRow(movementsFilteredList()[Number(index)]);
+}
+
+// Rediseño A4: Movimientos v2 (views/movimientos-v2.js) abre el mismo panel con la fila que pinta, sin índice.
+function openMovementDetailRow(row) {
   if (!row) return;
   movementDetailTransaction = row;
   renderMovementDetailDialog();
@@ -31690,6 +31694,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "movements":
       renderMerchants();
       globalThis.renderAnomalias?.(globalThis.FinanceCanonicalStatementAnomalies); // WP-36 (anomalias-ui.js)
+      globalThis.movimientosV2Render?.(); // rediseño A4 (views/movimientos-v2.js)
       break;
     case "data-entry":
       populateDataEntryControls();

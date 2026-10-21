@@ -398,7 +398,7 @@ test("M-5 · el aviso de cola sin clasificar cuenta sobre la vista filtrada, no 
 test("M-6 · abrir el detalle identifica la fila por su posición en la lista filtrada y abre el diálogo", () => {
   const dialog = { open: false, showModal() { this.open = true; } };
   const content = { innerHTML: "" };
-  const context = sandboxWith(["handleMovementDetailOpen", "renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
+  const context = sandboxWith(["handleMovementDetailOpen", "openMovementDetailRow", "renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
     movementsFilteredList: () => [{ date: "2026-08-01", movement: "MERCADONA" }],
     qs: (id) => (id === "movementDetailDialog" ? dialog : id === "movementDetailContent" ? content : null),
     mappingForMovement: () => null,
@@ -421,7 +421,7 @@ test("M-6 · abrir el detalle identifica la fila por su posición en la lista fi
 
 test("M-6 · un índice fuera de rango no abre nada ni toca el estado", () => {
   const dialog = { open: false, showModal() { this.open = true; } };
-  const context = sandboxWith(["handleMovementDetailOpen"], {
+  const context = sandboxWith(["handleMovementDetailOpen", "openMovementDetailRow"], {
     movementsFilteredList: () => [],
     qs: () => dialog,
   });
