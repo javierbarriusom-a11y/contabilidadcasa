@@ -2100,6 +2100,14 @@ test.describe("WP-31 · nóminas y retenciones", () => {
   });
 });
 
+// Rediseño A4: con el tema v2 y sin movimientos, Movimientos enseña un solo bloque que lleva a Importar y la tarjeta
+// de anomalías queda tras «Ver todo el detalle»; se abre para comprobar la tarjeta tal como la vería el hogar.
+async function verDetalleMovimientosSinDatos(page) {
+  const detalle = page.locator("#movimientosV2Lista [data-mov-v2-detail]");
+  await detalle.or(page.locator("#anomaliasCard")).first().waitFor({ timeout: 15000 });
+  if (await detalle.isVisible()) await detalle.click();
+}
+
 // WP-36: anomalías del extracto (Movimientos). Movimientos INVENTADOS, sembrados con la misma ruta que usa el importador real (mergeTransactions).
 // Fechas relativas a hoy: el detector solo mira los últimos 45 días.
 async function seedAnomalies(page) {
@@ -2129,6 +2137,7 @@ async function seedAnomalies(page) {
     baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
     refreshMovementRollups();
     renderAnomalias(FinanceCanonicalStatementAnomalies);
+    globalThis.movimientosV2Render?.(); // la vista se repinta con los movimientos nuevos, como tras importar
   });
 }
 
@@ -2143,6 +2152,7 @@ test.describe("WP-36 · anomalías del extracto", () => {
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
+      await verDetalleMovimientosSinDatos(page);
       const card = page.locator("#anomaliasCard");
       await expect(card).toBeVisible({ timeout: 15000 });
       // Sin extracto reciente no se vigila lo reciente.
@@ -5246,4 +5256,65 @@ test.describe("Cobro caducado · fecha manual pasada", () => {
     await expect(page.locator("#e6CoverageEditorStatus")).toHaveText("Caducado");
     await expect(page.locator("#e6CoverageSave"), "abrir el editor no deja Guardar encendido").toBeDisabled();
   });
+});
+
+// Rediseño A4 (PR-1): Movimientos v2. Movimientos INVENTADOS, sembrados con la misma ruta que el importador real.
+test.describe("Rediseño A4 · Movimientos v2", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`vacío lleva a Importar; con movimientos, lista por día, filtros, detalle y vista de siempre a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      const top = page.locator("#movimientosV2");
+      await expect(top).toBeVisible({ timeout: 15000 });
+      // Sin movimientos: un solo bloque, que lleva a Importar; anomalías tras el detalle.
+      await expect(top).toContainText("Todavía no hay movimientos");
+      await expect(page.locator("#anomaliasCard")).toBeHidden();
+      await expect(page.locator(".movement-detail-title")).toBeHidden();
+
+      await page.evaluate(() => {
+        const today = new Date();
+        const back = (days) => isoLocalDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+        const rows = [
+          [0, -86.4, "MERCADONA FICTICIA", "CaixaBank"],
+          [0, -25, "BIZUM FICTICIO", "CaixaBank"],
+          [1, 3000, "NOMINA FICTICIA", "CaixaBank"],
+          [3, -58, "GASOLINERA FICTICIA", "Mediolanum"],
+        ].map(([days, amount, movement, account]) => ({ date: back(days), month: back(days).slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        render();
+      });
+      const lista = page.locator("#movimientosV2Lista");
+      await expect(lista.locator(".mov-v2-fila")).toHaveCount(4);
+      await expect(lista.locator(".mov-v2-fila").first()).toContainText("¿partida?");
+      await expect(lista.locator(".mov-v2-importe.is-pos")).toContainText("+3000");
+      await expect(page.locator("#anomaliasCard")).toBeVisible();
+      await expect(top).toContainText("conceptos sin partida");
+
+      // Filtro por cuenta y «Sin partida» desde la bandeja.
+      await lista.locator('[data-mov-v2-filtro="Mediolanum"]').click();
+      await expect(lista.locator(".mov-v2-fila")).toHaveCount(1);
+      await expect(lista.locator(".mov-v2-fila")).toContainText("GASOLINERA FICTICIA");
+      await top.locator('[data-mov-v2-filtro="sin-partida"]').click();
+      await expect(lista.locator('[data-mov-v2-filtro="sin-partida"]')).toHaveAttribute("aria-pressed", "true");
+
+      // Tocar un movimiento abre el mismo panel de detalle de siempre, con ese movimiento.
+      await lista.locator('[data-mov-v2-filtro="todas"]').click();
+      await lista.locator(".mov-v2-fila", { hasText: "MERCADONA FICTICIA" }).click();
+      const dialog = page.locator("#movementDetailDialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toContainText("MERCADONA FICTICIA");
+      await page.keyboard.press("Escape");
+
+      // «Ver todo el detalle» devuelve la vista de siempre entera.
+      await lista.locator("[data-mov-v2-detail]").click();
+      await expect(page.locator(".movement-detail-title")).toBeVisible();
+      await expect(page.locator("#movementRows tr")).toHaveCount(4);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
 });

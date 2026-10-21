@@ -37,6 +37,7 @@ donde se trabaja y se revisa. El clásico sigue como salida con `?tema=clasico` 
 | CI con trazas | #520 | Si una prueba en navegador falla, el CI sube `test-results/` (trazas y capturas) 14 días (P5) | `.github/workflows/pages.yml` | `tests/ci-informe-playwright.test.cjs` |
 | Cobro caducado | #521 | Fecha de cobro manual pasada y gasto diario de 0 € dejan de aplicarse con aviso; «Guardar ajuste» no congela lo aprendido (P3, P4). Sin tocar motores | `views/cobertura-ajuste.js` (nuevo), `app.js` (−7 líneas), `views/hoy-v2.js` | `tests/datos-cobro-caducado.test.cjs` y una e2e en `qa1` |
 | Desalojo, PR-0 y PR-1 | #525 y #526 | Las pruebas leen el código de la app con un ayudante común; Registrar y Datos salen de `app.js` sin cambiar una coma (37.448 → 34.977 líneas, techo 35.107) | `tests/helpers/codigo-app.cjs`, `registrar-ui.js`, `datos-ui.js`, `app.js` | `tests/xgo01-codigo-app-pruebas.test.cjs`, `tests/xgo01-sin-funciones-duplicadas.test.cjs` |
+| A4 · Movimientos (PR-1) | 21/10 | Movimientos de `Movimientos.png`/`MovimientosDesktop.png`: cabecera con buscar e Importar (y Cierre en escritorio), bandeja (conceptos sin partida + la tarjeta de anomalías WP-36, que no se oculta), filtros por cuenta y «Sin partida», lista por día con la partida o «¿partida?» (tabla en escritorio), 40 y «Ver más», acceso a Cierre. Con 0 movimientos, un solo bloque que lleva a Importar. Tocar un movimiento abre el panel de detalle de siempre. Lo de siempre sigue tras «Ver todo el detalle» | `views/movimientos-v2.js` (defer, antes de `app.js`), dos contenedores en `#movements`, `app.js` +5 (llamada y `openMovementDetailRow`), estilos en `tema-v2.css` | `tests/redis-a4-movimientos.test.cjs` y una e2e por ancho en `qa1` |
 | Desalojo, PR-2 | 21/10 | Plan › Partidas (72 funciones) a `partidas-ui.js` y el motor de escenarios (41) al nuevo `escenarios-ui.js`, sin cambiar una coma (34.977 → 33.129 líneas, techo 33.259). El motor no va a `views/escenarios.js` porque esa vista se descarga al visitarla y el motor lo usan otras pantallas | `partidas-ui.js`, `escenarios-ui.js`, `app.js` | `tests/xgo01-sin-funciones-duplicadas.test.cjs` |
 
 Validación de A3: `npm run verify` 6023/6023, e2e + a11y de Playwright 195/195, presupuesto de carga 4.091 ms de 5.000.
@@ -87,6 +88,9 @@ Recogidas en el artefacto de la séptima auditoría. Mandan sobre los prompts do
 | Código nuevo en `ui/components`, `ui/screens` | `views/*.js` (scripts clásicos, mismo scope que `app.js`) | Es el patrón que ya usa el repo para pantallas (PERF-1) |
 | Cargar la pantalla v2 solo con la bandera | `views/hoy-v2.js` con `defer` para todos (18 KB) | Un cargador dinámico de scripts nuevo lo rechaza `tests/ntc6-conexiones-externas.test.cjs` (RQ-13). No relajar esa prueba |
 | Signo menos tipográfico «−» | Guion normal «-8.310 €» | Decisión del hogar (P15): afecta a la app clásica y a decenas de pruebas, y el guion se pega mejor en una hoja de cálculo |
+| Bandeja de Movimientos: extracto por Compartir, «cobros confirmados solos» y cobertura de 90 días por cuenta | Una línea plegada «Aún no llegan solos…» | Dependen de XDA-02, XDA-08 y XDA-04, que no existen; el prompt pide no construirlos en A4 |
+| La bandeja de decisiones de Hoy (`#homeDecisionInboxCard`) «tiene su sitio final en Movimientos» | Sigue en Hoy | Hoy está congelado hasta el 25/10 (`BACKLOG_DEFINITIVO.md` §4): moverla cambia lo que Hoy enseña. Se mueve cuando se levante |
+| Clasificar como panel derecho de 400 px en escritorio | «X conceptos sin partida» filtra la lista; cada movimiento se clasifica en su panel de detalle de siempre | Clasificar por lotes es A5 |
 | Fase 0 (desalojo de `app.js`) antes que nada | A1-A3 sin desalojo | Cada fase añadió como mucho 1 línea a `app.js` (37.454 de 37.495). **La siguiente pantalla que necesite lógica en `app.js` no cabía: el desalojo es requisito de lo que sigue** (PR-1 del 20/10: 34.977 de 35.107; PR-2 del 21/10: 33.129 de 33.259) |
 
 ## 5. Trampas técnicas ya encontradas
@@ -140,7 +144,7 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    antes de `app.js`; el cargador del OCR de tickets se queda en `app.js` junto a su huella SRI (RQ-13).
 4. **Funciones en prueba** (Laboratorio, XGO-03; nombre según P8) con el tema como primer interruptor, y el aviso de
    graduación a las dos semanas con confirmación manual (P9). Después, en PR aparte, el medidor XGO-02 (P10).
-5. **A4 · Movimientos e Importar** en dos PR (P12), con el cuadre según P11. Lo que dependa del buzón o del PDF, plegado.
+5. **A4 · Movimientos e Importar** en dos PR (P12), con el cuadre según P11. Lo que dependa del buzón o del PDF, plegado. **Adelantado por el hogar el 21/10** delante de XGO-03 (sin movimientos, el resto de pantallas enseña datos vacíos). **PR-1 (Movimientos) hecho el 21/10**; sigue el PR-2 (Importar en 3 pasos con cuadre).
 6. **A5 · Clasificar**.
 7. Después, si las anteriores se usan: Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5
    destinos, Deuda (tras NTC-05), Taller y E2. Cada una desde su referencia de `docs/rediseno/referencias/`.

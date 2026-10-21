@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-21-redis-a4-movimientos",
+      fecha: "2026-10-21",
+      texto: "Movimientos con el diseño nuevo: lo pendiente arriba y la lista por día con su partida. Lo de siempre, en «Ver todo el detalle».",
+      href: "#movements",
+    },
+    {
       id: "2026-10-21-wp41d",
       fecha: "2026-10-21",
       texto: "Deuda en la sombra: ahora ves aparte los cargos que se repiten cada mes y no he marcado, por si alguno es una financiación.",
