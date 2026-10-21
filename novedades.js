@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-21-redis-a4-importar",
+      fecha: "2026-10-21",
+      texto: "Importar extracto, más corto: eliges el fichero, ves si cuadra y lo importas. Los duplicados claros se descartan solos.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-10-21-redis-a4-movimientos",
       fecha: "2026-10-21",
       texto: "Movimientos con el diseño nuevo: lo pendiente arriba y la lista por día con su partida. Lo de siempre, en «Ver todo el detalle».",

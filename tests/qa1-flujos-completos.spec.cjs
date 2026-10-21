@@ -18,6 +18,14 @@ const { test, expect } = require("@playwright/test");
 // Desde el 19/10/2026 el tema v2 es el de por defecto: su Hoy enseña «+ Apuntar gasto», que abre lo mismo que
 // «+ Registrar gasto» de la Hoy de siempre (oculta mientras no se pida el detalle). Se pulsa el que esté a la vista,
 // así el flujo se prueba tal como lo usa el hogar en cualquiera de los dos temas.
+// Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
+// queda tras «Ver el asistente de siempre». Las pruebas que recorren ese asistente lo abren antes, como haría el hogar.
+async function abrirAsistenteDeSiempre(page) {
+  const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
+  await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
+  if ((await boton.isVisible()) && (await boton.getAttribute("aria-expanded")) !== "true") await boton.click();
+}
+
 async function abrirApuntarGasto(page) {
   const v2 = page.locator("#hoyV2 [data-hoy-v2-expense]");
   if (await v2.isVisible()) {
@@ -609,6 +617,7 @@ test.describe("QA-1 · el extracto actualiza el saldo (WP-26)", () => {
       });
       const before = await page.evaluate(() => ({ balances: accountBalancesFromState(), date: state.balanceDate }));
       await page.click('[data-registrar-tab="import"]');
+      await abrirAsistenteDeSiempre(page);
       const csv = "Fecha;Concepto;Importe;Saldo\n02/10/2026;COMPRA B;-20,00;970,00\n02/10/2026;COMPRA A;-10,00;990,00\n01/10/2026;RECIBO LUZ;-5,00;1000,00\n";
       await page.setInputFiles("#registrarImportFileInput", { name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
       await page.selectOption("#registrarImportAccount", "CaixaBank");
@@ -3861,6 +3870,7 @@ test.describe("WP-51 · perfiles de extracto", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     await page.click('[data-registrar-tab="import"]');
+    await abrirAsistenteDeSiempre(page);
     await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
   };
   const subir = (page, name, text) => page.setInputFiles("#registrarImportFileInput", { name, mimeType: "text/csv", buffer: Buffer.from(text) });
@@ -3949,6 +3959,7 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
   const sumarDias = (iso, dias) => new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + dias)).toISOString().slice(0, 10);
   const importar = async (page, csv, decision) => {
     await page.click('[data-registrar-tab="import"]');
+    await abrirAsistenteDeSiempre(page);
     await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
     await page.setInputFiles("#registrarImportFileInput", { name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
     await page.selectOption("#registrarImportAccount", "CaixaBank");
@@ -4127,6 +4138,7 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
     const { csv } = buildExtract({ today });
     await page.evaluate(() => { location.hash = "#registrar"; });
     await page.click('[data-registrar-tab="import"]');
+    await abrirAsistenteDeSiempre(page);
     await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
     await page.setInputFiles("#registrarImportFileInput", { name: "extracto-demo.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
     await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimiento(s) leídos", { timeout: 15000 });
@@ -5314,6 +5326,62 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
       await expect(page.locator(".movement-detail-title")).toBeVisible();
       await expect(page.locator("#movementRows tr")).toHaveCount(4);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// Rediseño A4 (PR-2): Importar v2 en Registrar › Importar extracto. Extracto y movimientos INVENTADOS.
+test.describe("Rediseño A4 · Importar v2", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`elegir, revisar con cuadre y duplicados, importar y deshacer a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#registrar");
+      await page.click('[data-registrar-tab="import"]');
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#registrarImportSteps")).toBeHidden();
+      // Ya registrado: uno idéntico a una línea del extracto (seguro) y otro parecido (otro día, otro texto).
+      await page.evaluate(() => {
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [
+          { date: "2026-10-02", month: "2026-10", movement: "MERCADONA FICTICIA", details: "", amount: -86.4, balance: null, source: "Manual" },
+          { date: "2026-09-30", month: "2026-09", movement: "PLATAFORMA FICTICIA", details: "", amount: -13.99, balance: null, source: "Manual" },
+        ]);
+        refreshMovementRollups();
+      });
+      const before = await page.evaluate(() => baseData.transactions.length);
+      const csv = ["Fecha;Concepto;Importe;Saldo", "01/10/2026;NOMINA FICTICIA;3000,00;4000,00", "02/10/2026;MERCADONA FICTICIA;-86,40;3913,60", "03/10/2026;PLATAFORMA.COM;-13,99;3899,61", "04/10/2026;LUZ FICTICIA;-94,12;3805,49"].join("\n");
+      await page.setInputFiles("#registrarImportFileInput", { name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      await expect(v2.locator(".imp-v2-lineas")).toContainText("4 líneas reconocidas", { timeout: 15000 });
+      await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo");
+      await expect(v2.locator(".imp-v2-linea.is-dup")).toContainText("MERCADONA FICTICIA");
+      const importar = v2.locator("[data-imp-v2-importar]");
+      await expect(importar).toBeDisabled();
+      await expect(v2).toContainText("1 posible duplicado por decidir");
+      await v2.locator(".imp-v2-linea.is-duda [data-imp-v2-dup='distinto']").click();
+      await expect(importar).toBeEnabled();
+      await expect(importar).toHaveText("Importar 3 movimientos");
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await importar.click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("3 movimientos importados", { timeout: 15000 });
+      expect(await page.evaluate(() => baseData.transactions.length)).toBe(before + 3);
+      expect(await page.evaluate(() => baseData.transactions.filter((t) => t.account === "CaixaBank").length)).toBe(3);
+
+      // Deshacer es el «Deshacer último lote» de siempre.
+      await v2.locator("[data-imp-v2-deshacer]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => baseData.transactions.length)).toBe(before);
+
+      // El asistente de siempre sigue entero detrás de su botón.
+      await v2.locator("[data-imp-v2-clasico]").click();
+      await expect(page.locator("#registrarImportSteps")).toBeVisible();
       expect(pageErrors).toEqual([]);
     });
   }

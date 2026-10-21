@@ -109,6 +109,42 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (337): rediseño A4, PR-2 — Importar v2
+
+- **Qué pidió el hogar:** la segunda mitad de «Movimientos e Importar». Antes de construirla se le preguntaron dos cosas en las que el diseño choca con el asistente actual, y contestó con la recomendación en las dos (`docs/rediseno/ESTADO.md` §3b):
+  - **P17, duplicados:** solo se descartan solos los **seguros**, los que coinciden en fecha, importe y concepto con algo ya registrado. Salen tachados y con «No es duplicado». Los parecidos (otro día u otro texto) y las capturas a mano siguen preguntando.
+  - **P18, sin partida:** se importa igual y espera en la bandeja de Movimientos. Hasta tener partida no cuenta en los reales de ninguna.
+- **Qué cambia (solo con el tema v2), en Registrar › Importar extracto:**
+  - Arriba, «‹ Movimientos» e «Importar extracto».
+  - **Sin fichero:** una tarjeta «CSV o Excel» que abre el input de siempre. Debajo, una línea plegada con lo que aún no existe: Compartir (XDA-02) y pegar el texto del PDF (XDA-03).
+  - **Con fichero:**
+    - Las líneas reconocidas, primero las que piden decisión, cada una con su estado: su partida, «sin partida: a la bandeja», duplicado tachado, o «¿Duplicado de …?» con dos botones. Se ven 8 y se puede pedir «Ver las N».
+    - La cuenta del extracto.
+    - El **cuadre**: saldo inicial + movimientos = saldo final, en cualquier orden del fichero. Si trae saldos y no cuadran, no se importa y dice entre qué fechas faltan movimientos (P11). Sin saldos, se importa con aviso.
+    - El saldo final del extracto como saldo de la cuenta (WP-26).
+    - «Importar N movimientos». Se desactiva y dice por qué mientras haya duplicados por decidir o el extracto no cuadre.
+  - **Al importar:** la confirmación y el lote de siempre. Después, «N movimientos importados» con «Ver en Movimientos», «Deshacer» (el «Deshacer último lote» de siempre) e «Importar otro».
+  - **Sigue a la vista:** la lectura del fichero (WP-51, «Cómo he leído…») y sus avisos.
+  - **El asistente de cuatro pasos** sigue entero tras «Ver el asistente de siempre». Con él abierto, los duplicados se deciden allí uno a uno, como antes.
+- **Cómo:**
+  - `views/importar-v2.js` (defer, antes de `app.js`) es otra cara del mismo asistente: `datosImportarSession`, `datosImportarApply` y `handleDatosImportarConfirmar`.
+  - El cuadre usa `statementContinuity` del motor de saldos (`canonical-balance-pulse.js`). Ningún motor se toca.
+  - `app.js` +1 línea: `renderDatosImportar` avisa a la v2.
+- **Desviaciones de la referencia:** en `docs/rediseno/ESTADO.md` §4.
+  - Importar sigue en Registrar, no es una pantalla propia; moverlo es parte de la navegación de 5 destinos.
+  - La «fecha dudosa» por línea la cubre la lectura del fichero (WP-51).
+  - La cobertura tras importar es XDA-04.
+- **Pruebas:**
+  - Nueva: `tests/redis-a4-importar.test.cjs` (8).
+  - Una e2e por ancho en `qa1` (390 y 1440 px). Recorre: duplicado seguro tachado, parecido que bloquea hasta decidir, cuadre, cuenta, importar con confirmación, deshacer y asistente de siempre.
+  - **Ajustadas:** las 6 pruebas que recorren el asistente de cuatro pasos (WP-26, WP-51, WP-53, WP-54 y dos de axe) lo abren antes con «Ver el asistente de siempre». No se relaja ninguna comprobación.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6083/6083 (+8), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **203/203**.
+  - Capturas a 390 y 1440 px en claro y en oscuro, revisadas.
+- **Encontrado de paso, sin tocar** (anterior a esta sesión): en el móvil, la tarjeta «Una regla en las cuatro pestañas» de Registrar pinta sus tres columnas (Previsto, Real, Usado) a 390 px y el texto queda roto en una palabra por línea. Pide una tarea aparte: plegarla o pasarla a una columna.
+- **Siguiente del rediseño:** «Funciones en prueba» (XGO-03) y, después, Clasificar por lotes (A5), que es lo que hará útil la bandeja «N conceptos sin partida».
+
 ## Cierre de sesión — 21 de octubre de 2026 (336): rediseño A4, PR-1 — Movimientos v2
 
 - **Qué pidió el hogar:** «adelante con Movimientos e Importar» (21/10). Pasa delante de «Funciones en prueba» (XGO-03) en el orden de `docs/rediseno/ESTADO.md` §8, porque sin movimientos las demás pantallas enseñan datos vacíos. Va en dos PR (P12): este es Movimientos; Importar es el siguiente.

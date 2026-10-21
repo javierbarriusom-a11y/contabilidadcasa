@@ -1,6 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const { AxeBuilder } = require("@axe-core/playwright");
 
+// Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
+// queda tras «Ver el asistente de siempre». Las pruebas que recorren ese asistente lo abren antes, como haría el hogar.
+async function abrirAsistenteDeSiempre(page) {
+  const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
+  await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
+  if ((await boton.isVisible()) && (await boton.getAttribute("aria-expanded")) !== "true") await boton.click();
+}
+
 // OPT-4 (Bloque 1): `tools/check-accessibility.mjs` solo comprueba cuatro patrones de marcado
 // (IDs duplicados, foco principal, estado vivo, diálogos) — cero medida real de WCAG. Este spec
 // corre axe-core contra las pantallas que QA-1 (tests/qa1-flujos-completos.spec.cjs) ya visita, en
@@ -1056,6 +1064,7 @@ for (const scheme of ["light", "dark"]) {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       await page.click('[data-registrar-tab="import"]');
+      await abrirAsistenteDeSiempre(page);
       await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
       const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       const revisar = async (etiqueta) => {
@@ -1085,6 +1094,7 @@ for (const scheme of ["light", "dark"]) {
       const today = await page.evaluate(() => isoLocalDate(new Date()));
       await page.evaluate((date) => handleE17QuickCapture({ e17CreateAmount: "23.4", e17CreateConcept: "Mercadona", e17CreateKind: "expense", e17CreateDate: date }), today);
       await page.click('[data-registrar-tab="import"]');
+      await abrirAsistenteDeSiempre(page);
       await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
       const fecha = today.split("-").reverse().join("/");
       await page.setInputFiles("#registrarImportFileInput", { name: "a.csv", mimeType: "text/csv", buffer: Buffer.from(`Fecha;Concepto;Importe;Saldo\n${fecha};COMPRA TARJ. 4412 MERCADONA SA;-23,40;976,60\n${fecha};FARMACIA LOPEZ;-23,40;953,20\n`) });

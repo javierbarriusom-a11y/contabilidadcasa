@@ -244,6 +244,7 @@ const files = [
   // Rediseño A3: views/hoy-v2.js sí lo carga index.html (defer); va aquí junto a sus hermanas.
   "views/hoy-v2.js",
   "views/movimientos-v2.js",
+  "views/importar-v2.js",
   "views/cobertura-ajuste.js",
 ];
 
