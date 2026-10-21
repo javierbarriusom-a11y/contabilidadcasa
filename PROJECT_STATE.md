@@ -109,6 +109,35 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 21 de octubre de 2026 (338): rediseño A5 — Clasificar por lotes
+
+- **Qué pidió el hogar:** «adelante con Clasificar por lotes», por delante de «Funciones en prueba» (XGO-03). Es lo que hace útil la tarjeta «N conceptos sin partida» de la bandeja de Movimientos (A4).
+- **Qué cambia (solo con el tema v2):**
+  - La tarjeta «N conceptos sin partida» de la bandeja abre **Clasificar**: hoja inferior en el móvil y panel derecho de 400 px en escritorio, sin salir de la lista (`Clasificar.png`, HANDOFF §5b). El filtro «Sin partida» sigue en la lista.
+  - **Grupos del mismo concepto** (la clave de las reglas, `movementMappingKey`), del que más suma al que menos, **5 por tanda** con su barra de progreso («1 de 5 · 3 más en otra tanda»).
+  - Cada grupo: nº de movimientos, lo que suma en el mes del último y el importe típico (de menor a mayor).
+  - **Propuesta:** la de siempre al importar (`datosImportarSuggestionFor`). **Sin confianza inventada**: el motor no la da, así que va plegada en una línea que dice de dónde sale la propuesta. Tarea aparte para calcularla (prompt 5).
+  - **Alternativas:** hasta 3, las partidas con más reglas del mismo tipo que ya tiene el hogar; «Otra…» abre todas. Sin propuesta ni reglas, el selector sale directamente y «Aceptar» espera a que se elija.
+  - **«Aceptar y siguiente»** crea la regla para siempre, con el aviso «Deshacer» de 10 s de siempre (`showUndoToast`). **«Saltar»** la deja en la bandeja.
+  - **Al acabar la tanda:** las reglas creadas, cada una con su «Deshacer», los saltados y «Otros N» si quedan grupos.
+  - **Escritorio:** atajos ↵ aceptar, 1-3 alternativas, S saltar, ⌘Z/Ctrl+Z deshacer.
+- **Cómo:**
+  - `views/clasificar-v2.js` (defer, antes de `app.js`) y un `<dialog id="clasificarV2">` en `index.html`: el fondo, el foco y Escape los pone el navegador.
+  - Escribe en el mismo diccionario de reglas (`movementMappings`) y con la misma secuencia de refresco que el lote de Movimientos (`handleMovementsBulkApply`): guardar, recalcular reales, bandeja, filas del asistente de importación, guardar reales y repintar. No hay una cuarta forma de escribir una clasificación.
+  - **Deshacer** devuelve la regla de antes y el valor de antes de cada real que la regla tocó (partida × mes, salvo meses cerrados y compras provisionales con tarjeta), y vuelve a recalcular. `applyMovementMappingsToActuals` solo escribe, nunca borra: sin guardar esos valores, deshacer dejaba el real inflado.
+  - `app.js` **sin cambios**. Ningún motor se toca.
+- **Desviaciones de la referencia** (`docs/rediseno/ESTADO.md` §4): confianza plegada; grupo por concepto y no por «comercio normalizado» (una regla solo se aplica a su clave; si el banco mete referencias en el detalle, el mismo comercio sale en varios grupos); «Ajustes › Reglas» no existe, así que el texto dice dónde se deshace de verdad.
+- **Pruebas:**
+  - Nueva: `tests/redis-a5-clasificar.test.cjs` (9).
+  - Una e2e por ancho en `qa1` (390 y 1440 px): abrir desde la bandeja, hoja inferior o panel de 400 px, elegir con «Otra…», aceptar con su aviso, saltar con botón y con S, deshacer desde el resumen (el diccionario vuelve a ser idéntico) y cerrar.
+  - **Ajustada:** la e2e de Movimientos v2 pulsa «Sin partida» en la lista en vez de en la bandeja, porque la tarjeta de la bandeja ahora abre Clasificar. Misma comprobación.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6092/6092 (+9), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **205/205** (+2).
+  - Capturas a 390 y 1440 px en claro y en oscuro, con y sin propuesta, revisadas. Encontrado y arreglado en ellas: con un concepto largo la hoja desbordaba y, al enfocar «Aceptar», tapaba la cabecera; ahora los botones van fijos abajo y el foco no desplaza la hoja.
+- **Lo que no comprueba nada de esto:** que clasificar sea rápido con un extracto real. Octubre sigue con 0 movimientos importados; la primera tanda real es la prueba de verdad.
+- **Siguiente del rediseño:** «Funciones en prueba» (XGO-03).
+
 ## Cierre de sesión — 21 de octubre de 2026 (337): rediseño A4, PR-2 — Importar v2
 
 - **Qué pidió el hogar:** la segunda mitad de «Movimientos e Importar». Antes de construirla se le preguntaron dos cosas en las que el diseño choca con el asistente actual, y contestó con la recomendación en las dos (`docs/rediseno/ESTADO.md` §3b):

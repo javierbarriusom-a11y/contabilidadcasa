@@ -112,7 +112,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 6 | XGO-03 | «Funciones en prueba» (Ajustes › Simuladores y Laboratorio), el tema como primer interruptor, aviso de graduación a las dos semanas con confirmación manual | 7ª | P8, P9 | Pendiente |
 | 7 | XGO-02 | Medidor de utilidad por función, PR aparte tras XGO-03 | 7ª | P10 | Pendiente |
 | 8 | RD-A4 | Movimientos e Importar (B3, E1) en dos PR; cuadre que solo bloquea si el extracto trae saldos | 7ª | P11, P12 | **Hecho 21/10** (adelantado por el hogar delante de XGO-03): PR-1 Movimientos v2 (#533) y PR-2 Importar v2 con cuadre; duplicados seguros solos (P17) y sin partida a la bandeja (P18) |
-| 9 | RD-A5 | Clasificar por lotes (B4, XDA-05) | 7ª | — | Pendiente |
+| 9 | RD-A5 | Clasificar por lotes (B4, XDA-05) | 7ª | — | **Hecho 21/10** (adelantado por el hogar): hoja inferior en móvil y panel derecho en escritorio desde la bandeja de Movimientos, 5 grupos por tanda, regla con «Deshacer»; la confianza por grupo queda en tarea aparte |
 | 10 | RD-WK | Pruebas de las pantallas v2 en WebKit (390×844) | 7ª | P14 | Pendiente |
 | 11 | RD-COB2 | Estimar el siguiente cobro con el mismo mes del año anterior (cambia el motor de cobertura) | nota de P1 | por decidir | Propuesta |
 

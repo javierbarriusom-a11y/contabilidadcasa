@@ -1568,3 +1568,314 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ---------- A5 · Clasificar por lotes (views/clasificar-v2.js) ----------
+   Referencias/png/Clasificar.png: hoja inferior sobre Movimientos en móvil; desde 1024 px, panel derecho de 400 px
+   sin salir de la lista (HANDOFF §5b). Un <dialog> modal: el fondo, el foco y Escape los pone el navegador. El verde
+   sólido solo en «Aceptar y siguiente»; la propuesta es una conclusión, en tinte claro (ESTADO.md §3.1). */
+:root[data-tema="v2"] dialog.clas-v2 {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: min(88vh, 720px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  box-shadow: 0 -8px 30px rgba(17, 24, 20, 0.18);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:root[data-tema="v2"] dialog.clas-v2::backdrop {
+  background: rgba(17, 24, 20, 0.42);
+}
+
+:root[data-tema="v2"] .clas-v2-in {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+  padding: 10px 20px 28px;
+  box-sizing: border-box;
+}
+
+:root[data-tema="v2"] .clas-v2-asa {
+  align-self: center;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--e19-border-strong);
+}
+
+:root[data-tema="v2"] .clas-v2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:root[data-tema="v2"] .clas-v2-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+:root[data-tema="v2"] .clas-v2-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .clas-v2-cerrar {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+:root[data-tema="v2"] .clas-v2-meta {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .clas-v2-progreso {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+:root[data-tema="v2"] .clas-v2-progreso > span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--e19-border);
+}
+
+:root[data-tema="v2"] .clas-v2-progreso > span.is-hecho {
+  background: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .clas-v2-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--e19-border);
+  border-radius: 20px;
+  box-shadow: var(--e19-shadow-pop);
+}
+
+:root[data-tema="v2"] .clas-v2-lab {
+  font: 500 11px/1.35 var(--e19-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .clas-v2-nombre {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .clas-v2-nombre.is-largo {
+  font-size: 21px;
+}
+
+:root[data-tema="v2"] .clas-v2-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+:root[data-tema="v2"] .clas-v2-cifras > div {
+  display: grid;
+  gap: 2px;
+}
+
+:root[data-tema="v2"] .clas-v2-num {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--e19-accent-soft);
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta > span:first-child {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta b {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta .clas-v2-lab {
+  color: var(--e19-ink);
+  text-align: right;
+}
+
+:root[data-tema="v2"] .clas-v2-propuesta.is-vacia {
+  border: 1.5px dashed var(--e19-border-strong);
+  background: transparent;
+}
+
+:root[data-tema="v2"] .clas-v2-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .clas-v2-opt {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: 999px;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: 500 13.5px/1 var(--e19-font-sans);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .clas-v2-opt.is-activa {
+  border-color: var(--e19-accent);
+  box-shadow: inset 0 0 0 1px var(--e19-accent);
+  background: var(--e19-accent-soft);
+}
+
+:root[data-tema="v2"] .clas-v2-otra {
+  display: grid;
+  gap: 6px;
+}
+
+:root[data-tema="v2"] .clas-v2-otra select {
+  min-height: 44px;
+  width: 100%;
+}
+
+:root[data-tema="v2"] .clas-v2-pending {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .clas-v2-in > p.clas-v2-meta {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .clas-v2-botones {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  margin: auto -20px -28px;
+  padding: 10px 20px 28px;
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .clas-v2-botones > .e19-btn {
+  flex: 1;
+  min-height: 52px;
+  font-size: 15px;
+}
+
+:root[data-tema="v2"] .clas-v2-botones > .e19-btn-primary {
+  flex: 2;
+}
+
+:root[data-tema="v2"] .clas-v2-botones > .e19-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+:root[data-tema="v2"] .clas-v2-reglas {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .clas-v2-reglas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .clas-v2-reglas li > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .clas-v2-reglas .e19-btn {
+  min-height: 40px;
+}
+
+/* Los atajos solo tienen sentido con teclado físico: en móvil no se enseñan. */
+:root[data-tema="v2"] .clas-v2-atajos {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] dialog.clas-v2 {
+    inset: 0 0 0 auto;
+    width: 400px;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    border-left: 1px solid var(--e19-border);
+    box-shadow: -8px 0 30px rgba(17, 24, 20, 0.18);
+  }
+
+  :root[data-tema="v2"] dialog.clas-v2::backdrop {
+    background: rgba(17, 24, 20, 0.18);
+  }
+
+  :root[data-tema="v2"] .clas-v2-in {
+    padding: 24px;
+  }
+
+  :root[data-tema="v2"] .clas-v2-botones {
+    margin: auto -24px -24px;
+    padding: 10px 24px 24px;
+  }
+
+  :root[data-tema="v2"] .clas-v2-asa {
+    display: none;
+  }
+
+  :root[data-tema="v2"] .clas-v2-in > p.clas-v2-atajos {
+    display: block;
+    text-align: center;
+  }
+}
