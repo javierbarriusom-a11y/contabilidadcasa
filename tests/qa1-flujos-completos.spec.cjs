@@ -5479,3 +5479,43 @@ test.describe("Registrar · tarjeta de la regla en el móvil", () => {
   }
 });
 
+// XGO-03: «Funciones en prueba» en Ajustes. El interruptor del diseño nuevo va y vuelve; a las dos semanas pide revisión.
+test.describe("XGO-03 · Funciones en prueba", () => {
+  test("el interruptor del diseño nuevo apaga y enciende el tema, en los dos sentidos", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#ajustes");
+    const sw = page.locator('[data-fep-interruptor="tema-v2"]');
+    await expect(sw).toHaveAttribute("role", "switch");
+    await expect(sw).toHaveAttribute("aria-checked", "true");
+    await sw.click();
+    await page.waitForURL(/tema=clasico/);
+    await expect(page.locator('[data-fep-interruptor="tema-v2"]')).toHaveAttribute("aria-checked", "false");
+    expect(await page.evaluate(() => [document.documentElement.dataset.tema || "", localStorage.getItem("tema-preferencia")])).toEqual(["", "clasico"]);
+    await expect(page.locator('[data-fep-id="hoy-v2"]')).toContainText("va con el diseño nuevo, que está apagado");
+    await page.locator('[data-fep-interruptor="tema-v2"]').click();
+    await page.waitForURL(/tema=v2/);
+    await expect(page.locator('[data-fep-interruptor="tema-v2"]')).toHaveAttribute("aria-checked", "true");
+    expect(await page.evaluate(() => [document.documentElement.dataset.tema, localStorage.getItem("tema-preferencia")])).toEqual(["v2", null]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("a las dos semanas avisa en el menú; graduar lo anota y «Dos semanas más» aplaza", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-11-03T10:00:00") });
+    await page.goto("/index.html#ajustes");
+    const card = page.locator("#funcionesEnPruebaCard");
+    await expect(card.locator(".fep-fila.is-revisar")).toHaveCount(2);
+    await expect(page.locator('a.nav-primary-link[href="#ajustes"] .fep-aviso')).toHaveText("2 por revisar");
+    await card.locator('[data-fep-graduar="hoy-v2"]').click();
+    await expect(card.locator('[data-fep-id="hoy-v2"]')).toContainText("graduada el 3 nov");
+    await expect(page.locator('a.nav-primary-link[href="#ajustes"] .fep-aviso')).toHaveText("1 por revisar");
+    await card.locator('[data-fep-aplazar="tema-v2"]').click();
+    await expect(card.locator('[data-fep-id="tema-v2"]')).toContainText("revisión el 17 nov");
+    await expect(page.locator(".fep-aviso")).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('#funcionesEnPruebaCard [data-fep-id="hoy-v2"]')).toContainText("graduada el 3 nov");
+    await expect(page.locator(".fep-aviso")).toHaveCount(0);
+  });
+});
+
