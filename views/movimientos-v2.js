@@ -208,6 +208,9 @@ function movV2BindOnce(root) {
   if (root.dataset.bound) return;
   root.dataset.bound = "1";
   root.addEventListener("click", (event) => {
+    // XGO-02: abrir, filtrar, clasificar o ir a otra pantalla es usarla; «Ver todo el detalle» es apartarse de ella.
+    if (event.target.closest("[data-mov-v2-nav], [data-mov-v2-clasificar], [data-mov-v2-filtro], [data-mov-v2-index]")) globalThis.FinanceMedidor?.anotar("movimientos-v2", "accion");
+    else if (event.target.closest("[data-mov-v2-detail]") && !qs("movements")?.classList.contains(MOV_V2_DETAIL_CLASS)) globalThis.FinanceMedidor?.anotar("movimientos-v2", "descarte");
     const nav = event.target.closest("[data-mov-v2-nav]");
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
     const clasificar = event.target.closest("[data-mov-v2-clasificar]");
@@ -281,6 +284,7 @@ function movimientosV2Render() {
       ${movV2DetailButton()}`;
   }
   top.hidden = bottom.hidden = false;
+  if (qs("movements")?.hidden === false) globalThis.FinanceMedidor?.anotar("movimientos-v2", "vista"); // XGO-02
 }
 
 globalThis.movimientosV2Render = movimientosV2Render;

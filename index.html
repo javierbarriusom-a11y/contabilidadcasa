@@ -5671,7 +5671,7 @@
                  el primer interruptor es el diseño nuevo. En los dos temas: desde el clásico es la forma de volver. -->
             <article class="e19-card fep-card" id="funcionesEnPruebaCard" aria-labelledby="funcionesEnPruebaTitulo">
               <h3 class="escenario-motor-panel-title" id="funcionesEnPruebaTitulo">Funciones en prueba</h3>
-              <p class="e19-kpi-note">Lo nuevo se prueba aquí antes de quedarse. A las dos semanas os pregunto si se queda; graduar no borra la versión de siempre. Las métricas aún no se miden: llegan con el medidor de utilidad.</p>
+              <p class="e19-kpi-note">Lo nuevo se prueba aquí antes de quedarse. A las dos semanas os pregunto si se queda; graduar no borra la versión de siempre. Junto a cada métrica va lo medido en este navegador (el informe completo está en Uso de la app).</p>
               <p class="e19-kpi-note fep-resumen" id="funcionesEnPruebaResumen" aria-live="polite"></p>
               <ul class="fep-lista" id="funcionesEnPruebaLista"></ul>
             </article>
@@ -5749,6 +5749,18 @@
                   </div>
                   <p class="e19-kpi-note" id="panelUsoMinutosEstado" role="status" aria-live="polite"></p>
                 </form>
+              </article>
+              <!-- XGO-02 (medidor-utilidad.js): por función, si se vio, si se actuó, si se descartó y si se deshizo.
+                   Solo cuentas de este navegador, ningún importe. Lo mismo, resumido, va en «Funciones en prueba». -->
+              <article class="e19-card" id="medidorUtilidadCard" aria-labelledby="medidorUtilidadTitulo">
+                <h3 class="escenario-motor-panel-title" id="medidorUtilidadTitulo">Medidor de utilidad</h3>
+                <p class="e19-kpi-note">Por función: los días que se vio, en cuántos de ellos actuasteis (la cifra de la derecha), cuántas veces os apartasteis de ella y cuántas deshicisteis lo hecho. Sirve para graduar o retirar con datos.</p>
+                <p class="e19-kpi-note" id="medidorUtilidadDesde"></p>
+                <label class="month-picker medidor-mes">
+                  <span>Mes</span>
+                  <select id="medidorUtilidadMes"></select>
+                </label>
+                <ul class="panel-uso-lista" id="medidorUtilidadLista" aria-label="Utilidad de cada función"></ul>
               </article>
               <article class="e19-card" id="usoAppCard">
                 <h3 class="escenario-motor-panel-title">Uso de la app</h3>
@@ -7804,6 +7816,7 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
+    <script defer src="medidor-utilidad.js?v=20261022xgo02"></script>
     <script defer src="funciones-en-prueba.js?v=20261022xgo03"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>

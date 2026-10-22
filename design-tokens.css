@@ -6912,3 +6912,13 @@
   line-height: 1.5;
   white-space: nowrap;
 }
+
+/* XGO-02: lo medido, junto a la métrica de cada función en prueba (en tinta: es el dato, no una nota). */
+.fep-medido {
+  color: var(--e19-ink);
+}
+
+.medidor-mes {
+  margin: 4px 0 8px;
+}
+
