@@ -1,0 +1,228 @@
+// XGO-03 · «Funciones en prueba» (nombre elegido por el hogar, P8; ficha XGO-03 de
+// docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md y referencias/png/LoQuePide.png, bloque «Laboratorio»).
+//
+// Lo nuevo se prueba aquí antes de quedarse: cada función con su fecha de entrada, su métrica y su revisión. A las dos
+// semanas la app pregunta si se queda (P9: aviso en la app y confirmación a mano): «Graduar» lo anota con su fecha y
+// «Dos semanas más» aplaza la pregunta. Graduar NO borra la versión antigua: retirarla se hace después y con el visto
+// bueno del hogar (CLAUDE.md).
+//
+// Primer interruptor: el diseño nuevo (tema v2, docs/rediseno/ESTADO.md §4). Encenderlo o apagarlo recarga con
+// ?tema=v2 o ?tema=clasico, así que tema-v2.js sigue siendo el único que guarda la elección y el script en línea de
+// <head> el único que la lee antes de pintar. Las pantallas del rediseño van con ese interruptor (hoy no tienen bandera
+// propia) y cada una lleva su propia revisión.
+//
+// La tarjeta está en los dos temas: desde el clásico es la forma de volver al diseño nuevo sin tocar la URL. Las
+// decisiones se guardan en este navegador, como la elección de tema. Las métricas aún no se miden: llegan con el
+// medidor de utilidad (XGO-02).
+(function exposeFinanceFuncionesEnPrueba(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FinanceFuncionesEnPrueba = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function createFinanceFuncionesEnPrueba() {
+  "use strict";
+
+  const STORAGE_KEY = "funciones-en-prueba";
+  const REVISION_DIAS = 14;
+  const VOLVER_KEY = "funciones-en-prueba-volver";
+
+  // Todo lo nuevo entra aquí. `interruptor: "tema"` es el diseño nuevo; `parteDe` dice con qué interruptor va una
+  // función que aún no tiene bandera propia. Una función nueva con bandera propia nace apagada (ficha XGO-03).
+  const CATALOGO = [
+    { id: "tema-v2", nombre: "Diseño nuevo", queHace: "El aspecto nuevo de toda la app. Apagado, vuelve el de siempre.", desde: "2026-10-19", metrica: "que lo uséis sin volver al de siempre", interruptor: "tema" },
+    { id: "hoy-v2", nombre: "Hoy nuevo", queHace: "Una cifra, hasta tres decisiones y el mes en una barra.", desde: "2026-10-19", metrica: "tiempo hasta la primera acción", parteDe: "tema-v2" },
+    { id: "movimientos-v2", nombre: "Movimientos nuevo", queHace: "Bandeja arriba y la lista por día con su partida.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
+    { id: "importar-v2", nombre: "Importar en tres pasos", queHace: "Elegir, revisar con cuadre e importar con deshacer.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
+    { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "conceptos sin partida tras importar", parteDe: "tema-v2" },
+  ];
+
+  function isoDate(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  function addDays(iso, days) {
+    const [y, m, d] = String(iso).split("-").map(Number);
+    return isoDate(new Date(y, m - 1, d + days));
+  }
+
+  function shortDate(iso) {
+    const [y, m, d] = String(iso).split("-").map(Number);
+    return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(y, m - 1, d)).replace(".", "");
+  }
+
+  function readDecisions(storage) {
+    try {
+      const parsed = JSON.parse(storage?.getItem(STORAGE_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeDecisions(storage, decisions) {
+    try {
+      storage?.setItem(STORAGE_KEY, JSON.stringify(decisions));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Estado de una función hoy: graduada (con fecha) o en prueba, con su fecha de revisión y si ya toca. Una función
+  // que va con un interruptor apagado no pide revisión: no se está probando.
+  function estadoDe(item, decisions = {}, hoy = isoDate(new Date()), encendidas = {}) {
+    const decision = decisions[item.id] || {};
+    if (decision.estado === "graduada") return { estado: "graduada", fecha: decision.fecha || "" };
+    const revision = addDays(decision.revisarDesde || item.desde, REVISION_DIAS);
+    const activa = item.parteDe ? Boolean(encendidas[item.parteDe]) : item.interruptor ? Boolean(encendidas[item.id]) : true;
+    return { estado: "en-prueba", desde: item.desde, revision, activa, tocaRevisar: activa && hoy >= revision };
+  }
+
+  function porRevisar(decisions, hoy, encendidas, catalogo = CATALOGO) {
+    return catalogo.filter((item) => estadoDe(item, decisions, hoy, encendidas).tocaRevisar);
+  }
+
+  function graduar(decisions, id, hoy) {
+    return { ...decisions, [id]: { estado: "graduada", fecha: hoy } };
+  }
+
+  function aplazar(decisions, id, hoy) {
+    return { ...decisions, [id]: { estado: "en-prueba", revisarDesde: hoy } };
+  }
+
+  // URL a la que se va al mover el interruptor del diseño nuevo: la misma página con ?tema=… y en Ajustes.
+  function urlTema(href, encender) {
+    const url = new URL(href);
+    url.searchParams.set("tema", encender ? "v2" : "clasico");
+    url.hash = "ajustes";
+    return url.toString();
+  }
+
+  // ---------- Pintado (solo en el navegador) ----------
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  }
+
+  function filaHtml(item, estado, encendidas) {
+    const head = `<span class="fep-texto"><b>${escapeHtml(item.nombre)}</b><span class="fep-meta">${escapeHtml(item.queHace)}</span>`;
+    let linea;
+    if (estado.estado === "graduada") linea = `graduada el ${shortDate(estado.fecha)}${item.interruptor ? " · la versión de siempre sigue disponible" : ""}`;
+    else if (!estado.activa) linea = item.parteDe ? "va con el diseño nuevo, que está apagado" : "apagado: estáis viendo el diseño de siempre";
+    else linea = `en prueba desde el ${shortDate(estado.desde)} · revisión el ${shortDate(estado.revision)} · mide: ${escapeHtml(item.metrica)}`;
+    let lado = "";
+    if (item.interruptor) {
+      const on = Boolean(encendidas[item.id]);
+      lado = `<button type="button" class="fep-switch" role="switch" aria-checked="${on}" aria-label="${escapeHtml(item.nombre)}" data-fep-interruptor="${item.id}"><span aria-hidden="true"></span></button>`;
+    } else if (estado.estado === "graduada") {
+      lado = `<span class="fep-chip is-graduada">graduada</span>`;
+    }
+    const pregunta = estado.tocaRevisar
+      ? `<div class="fep-revision" role="group" aria-label="Revisión de ${escapeHtml(item.nombre)}">
+          <p><strong>Dos semanas en prueba: ¿se queda?</strong> Graduar no borra la versión de siempre; queda anotado para retirarla con vuestro visto bueno.</p>
+          <div class="fep-revision-botones">
+            <button type="button" class="e19-btn e19-btn-primary" data-fep-graduar="${item.id}">Graduar</button>
+            <button type="button" class="e19-btn e19-btn-secondary" data-fep-aplazar="${item.id}">Dos semanas más</button>
+          </div>
+        </div>`
+      : "";
+    return `<li class="fep-fila${item.parteDe ? " is-hija" : ""}${estado.tocaRevisar ? " is-revisar" : ""}" data-fep-id="${item.id}">
+        <div class="fep-fila-main">${head}<span class="fep-meta fep-estado">${linea}</span></span>${lado}</div>
+        ${pregunta}
+      </li>`;
+  }
+
+  function encendidasAhora(doc) {
+    return { "tema-v2": doc.documentElement.dataset.tema === "v2" };
+  }
+
+  function render(doc = globalThis.document, storage = safeStorage(), hoy = isoDate(new Date())) {
+    const lista = doc?.getElementById("funcionesEnPruebaLista");
+    if (!lista) return;
+    const decisions = readDecisions(storage);
+    const encendidas = encendidasAhora(doc);
+    // Las que van con otro interruptor se agrupan bajo él, con un subtítulo, en vez de repetir la etiqueta en cada fila.
+    const padres = CATALOGO.filter((item) => !item.parteDe);
+    lista.innerHTML = padres
+      .map((padre) => {
+        const hijas = CATALOGO.filter((item) => item.parteDe === padre.id);
+        const sub = hijas.length ? `<li class="fep-subtitulo fep-meta">Pantallas que van con «${escapeHtml(padre.nombre)}»</li>` : "";
+        return [filaHtml(padre, estadoDe(padre, decisions, hoy, encendidas), encendidas), sub, ...hijas.map((item) => filaHtml(item, estadoDe(item, decisions, hoy, encendidas), encendidas))].join("");
+      })
+      .join("");
+    const pendientes = porRevisar(decisions, hoy, encendidas).length;
+    const resumen = doc.getElementById("funcionesEnPruebaResumen");
+    if (resumen) resumen.textContent = pendientes ? `${pendientes === 1 ? "Una función pide" : `${pendientes} funciones piden`} vuestra revisión.` : "";
+    // P9: el aviso se ve desde cualquier pantalla, en la entrada «Ajustes» del menú y en su ancla de sección.
+    const texto = pendientes ? `${pendientes} por revisar` : "";
+    doc.querySelectorAll('a.nav-primary-link[href="#ajustes"], [data-ajustes-anchor="ajustes-laboratorio"]').forEach((el) => {
+      let badge = el.querySelector(".fep-aviso");
+      if (!texto) return badge?.remove();
+      if (!badge) {
+        badge = doc.createElement("span");
+        badge.className = "fep-aviso";
+        el.append(badge);
+      }
+      badge.textContent = texto;
+    });
+  }
+
+  function safeStorage() {
+    try {
+      return globalThis.localStorage || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function bind(doc = globalThis.document) {
+    const card = doc?.getElementById("funcionesEnPruebaCard");
+    if (!card || card.dataset.bound) return;
+    card.dataset.bound = "1";
+    card.addEventListener("click", (event) => {
+      const storage = safeStorage();
+      const hoy = isoDate(new Date());
+      const sw = event.target.closest("[data-fep-interruptor]");
+      if (sw) {
+        const encender = sw.getAttribute("aria-checked") !== "true";
+        try {
+          globalThis.sessionStorage?.setItem(VOLVER_KEY, "1");
+        } catch {
+          // Sin almacenamiento: se vuelve a Ajustes, pero sin bajar hasta la tarjeta.
+        }
+        globalThis.location.assign(urlTema(globalThis.location.href, encender));
+        return;
+      }
+      const graduarBtn = event.target.closest("[data-fep-graduar]");
+      const aplazarBtn = event.target.closest("[data-fep-aplazar]");
+      if (!graduarBtn && !aplazarBtn) return;
+      const id = (graduarBtn || aplazarBtn).dataset[graduarBtn ? "fepGraduar" : "fepAplazar"];
+      const decisions = readDecisions(storage);
+      writeDecisions(storage, graduarBtn ? graduar(decisions, id, hoy) : aplazar(decisions, id, hoy));
+      render(doc, storage, hoy);
+      doc.querySelector(`[data-fep-id="${id}"] .fep-estado`)?.setAttribute("tabindex", "-1");
+      doc.querySelector(`[data-fep-id="${id}"] .fep-estado`)?.focus();
+    });
+  }
+
+  function init(doc = globalThis.document) {
+    if (!doc?.getElementById("funcionesEnPruebaCard")) return;
+    bind(doc);
+    render(doc);
+    try {
+      if (globalThis.sessionStorage?.getItem(VOLVER_KEY)) {
+        globalThis.sessionStorage.removeItem(VOLVER_KEY);
+        globalThis.setTimeout(() => doc.getElementById("funcionesEnPruebaCard")?.scrollIntoView({ block: "start" }), 300);
+      }
+    } catch {
+      // Sin almacenamiento: nada que recordar.
+    }
+  }
+
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => init(document));
+    else init(document);
+  }
+
+  return { STORAGE_KEY, REVISION_DIAS, CATALOGO, addDays, estadoDe, porRevisar, graduar, aplazar, urlTema, readDecisions, writeDecisions, render, init };
+});

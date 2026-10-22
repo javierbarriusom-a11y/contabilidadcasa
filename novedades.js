@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-22-xgo03-funciones-en-prueba",
+      fecha: "2026-10-22",
+      texto: "Funciones en prueba, en Ajustes: el diseño nuevo se enciende o apaga ahí, y a las dos semanas os pregunto si cada pantalla se queda.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-21-redis-a5-confianza",
       fecha: "2026-10-21",
       texto: "Clasificar dice cuánta confianza tiene cada propuesta y por qué, y aprovecha las reglas que ya tienes del mismo comercio.",

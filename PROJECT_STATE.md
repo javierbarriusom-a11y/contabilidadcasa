@@ -109,6 +109,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 22 de octubre de 2026 (340): XGO-03 — Funciones en prueba
+
+- **Qué pidió el hogar:** «adelante con Funciones en prueba» (paso 4 de `docs/rediseno/ESTADO.md` §8; P8 y P9).
+- **Qué cambia, en los dos temas:**
+  - **Dónde:** Ajustes › Simuladores y Laboratorio estrena la tarjeta **«Funciones en prueba»**, encima del Laboratorio de pantallas heredadas (que no cambia). Va en los dos temas porque, desde el clásico, es la forma de volver al diseño nuevo sin tocar la URL.
+  - **Primer interruptor, «Diseño nuevo»** (`role="switch"`): encendido, porque es el de por defecto desde el 19/10. Al moverlo recarga con `?tema=clasico` o `?tema=v2` y vuelve a Ajustes, a la tarjeta. Los enlaces con `?tema=` siguen funcionando y mueven el interruptor.
+  - **Pantallas del rediseño:** debajo, agrupadas («Pantallas que van con «Diseño nuevo»»), Hoy, Movimientos, Importar y Clasificar. Cada una con qué hace, desde cuándo está en prueba, su fecha de revisión y su métrica.
+  - **Revisión (P9):** a los 14 días la fila pregunta «Dos semanas en prueba: ¿se queda?» con «Graduar» o «Dos semanas más». El aviso «N por revisar» sale en la entrada Ajustes del menú y en su ancla, visible desde cualquier pantalla. Hoy no se toca porque está congelado hasta el 25/10. Las primeras revisiones saltan el **2/11** (Diseño nuevo y Hoy) y el **4/11** (Movimientos, Importar y Clasificar).
+  - **Graduar solo anota la decisión con su fecha.** La versión de siempre no se borra: retirarla se hace después y con vuestro visto bueno (CLAUDE.md).
+- **Cómo:**
+  - `funciones-en-prueba.js` (nuevo): módulo UMD como los demás, con la lógica pura (catálogo, estado, revisión, graduar, aplazar) probada aparte y el pintado.
+  - Estilos en `design-tokens.css`, para los dos temas. El interruptor apagado lleva borde para el 3:1 de WCAG 1.4.11.
+  - `app.js` sin cambios. `tema-v2.js` sigue siendo el único que guarda la elección de tema y el script de `<head>` el único que la lee.
+- **Desviaciones de la ficha y del prompt 3** (`ESTADO.md` §4):
+  - El diseño nuevo nace encendido, no apagado (decisión 9).
+  - La ficha decía «banderas en `ux-settings.js`», pero ese fichero no tiene banderas: es el reparto por titular.
+  - Las pantallas no tienen interruptor propio, porque van con el tema; si alguna hay que apagar sola, se le añade su bandera.
+  - Solo «Graduar» o «Dos semanas más», sin «Retirar», porque retirar código se consulta.
+  - Las decisiones se guardan en este navegador, como la elección de tema.
+  - Las métricas están escritas pero no se miden: es el medidor XGO-02, el siguiente PR (P10).
+- **Pruebas:**
+  - Nueva: `tests/xgo03-funciones-en-prueba.test.cjs` (7).
+  - Dos e2e en `qa1`:
+    - el interruptor va al clásico y vuelve, con la preferencia guardada y borrada por `tema-v2.js`;
+    - con el reloj del navegador en el 3/11, dos revisiones, el aviso «2 por revisar» en el menú, graduar Hoy, aplazar el diseño nuevo y que persista tras recargar.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` (en curso al hacer el commit), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - Capturas a 390 y 1440 px en claro y en oscuro, con el diseño nuevo y con el clásico, y con revisiones pendientes, revisadas.
+- **Siguiente:** el medidor de utilidad XGO-02 (P10), en PR aparte. Sin él, la pregunta del 2/11 se contestará por impresión, no por datos.
+
 ## Cierre de sesión — 21 de octubre de 2026 (339): confianza de la propuesta en Clasificar y tarjeta de Registrar en el móvil
 
 - **Qué pidió el hogar:** hacer aquí las dos tareas aparte que dejó la sesión 338.
