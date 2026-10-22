@@ -135,8 +135,8 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - Nueva: `tests/xgo02-medidor-utilidad.test.cjs` (9).
   - Una e2e en `qa1`: una tanda de Clasificar (aceptar y saltar) queda medida en el informe y en «Funciones en prueba», y el almacén no guarda conceptos ni importes.
 - **Validación:**
-  - `npm run verify` en verde, salida 0: `npm test` (en curso al hacer el commit), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - `npm run verify` en verde, salida 0: `npm test` 6115/6115 (+9), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **210/210** (+1).
   - Capturas de las dos tarjetas a 390 y 1440 px, en claro y en oscuro, con datos, revisadas.
 - **Lo que esto no arregla:** el medidor cuenta desde hoy y solo en este navegador. Si el 2/11 os encuentra con 0 movimientos importados, medirá que Movimientos, Importar y Clasificar no se han usado, que es la respuesta honesta.
 
