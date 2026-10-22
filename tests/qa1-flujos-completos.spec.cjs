@@ -5519,3 +5519,39 @@ test.describe("XGO-03 · Funciones en prueba", () => {
   });
 });
 
+// XGO-02: el medidor de utilidad cuenta lo que se hace en Clasificar y lo enseña en Ajustes (informe y Funciones en prueba).
+test.describe("XGO-02 · Medidor de utilidad", () => {
+  test("una tanda de Clasificar queda medida en Uso de la app y junto a su métrica en Funciones en prueba", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [[-40, "SUPER FICTICIO"], [-25, "BIZUM FICTICIO"]].map(([amount, movement]) => ({ date: hoy, month: hoy.slice(0, 7), movement, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    await expect(panel).toBeVisible();
+    if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+    await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+
+    await page.goto("/index.html#ajustes");
+    const informe = page.locator("#medidorUtilidadLista li", { hasText: "Clasificar por lotes" });
+    await expect(informe).toContainText("vista 1 día · 1 regla aceptada (actuasteis el 100 % de los días) · 1 grupo saltado · 0 reglas deshechas");
+    await expect(page.locator("#medidorUtilidadLista li", { hasText: "Movimientos nuevo" })).toContainText("vista 1 día");
+    await expect(page.locator('#funcionesEnPruebaCard [data-fep-id="clasificar-v2"] .fep-medido')).toContainText("Medido: vista 1 día · 1 regla aceptada");
+    await expect(page.locator("#medidorUtilidadDesde")).toContainText("solo en este navegador");
+    // Sin conceptos ni importes: solo cuentas y fechas (no se busca «25» o «40», que pueden ser parte de una fecha).
+    expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toMatch(/FICTICIO|amount|importe/i);
+    expect(pageErrors).toEqual([]);
+  });
+});
+

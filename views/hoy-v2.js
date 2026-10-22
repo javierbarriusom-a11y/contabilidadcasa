@@ -294,10 +294,23 @@ function hoyV2Header(asOf, dataAge) {
   </header>`;
 }
 
+// XGO-02: cuándo se pintó Hoy por primera vez en esta visita, para medir los segundos hasta la primera acción.
+let hoyV2PaintedAt = null;
+let hoyV2Measured = false;
+
 function hoyV2BindOnce(root) {
   if (root.dataset.bound) return;
   root.dataset.bound = "1";
   root.addEventListener("click", (event) => {
+    // XGO-02: lo que se pulsa en Hoy es una acción (la primera de la visita, con sus segundos desde que se pintó);
+    // abrir «Ver todo el detalle» es apartarse de ella.
+    const detalle = event.target.closest("[data-hoy-v2-detail]");
+    if (detalle && !qs("home")?.classList.contains(HOY_V2_DETAIL_CLASS)) globalThis.FinanceMedidor?.anotar("hoy-v2", "descarte");
+    else if (!detalle && event.target.closest("a, button")) {
+      const segundos = hoyV2PaintedAt !== null ? (performance.now() - hoyV2PaintedAt) / 1000 : null;
+      hoyV2PaintedAt = null;
+      globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
+    }
     if (event.target.closest("[data-hoy-v2-expense]")) {
       qs("homeQuickExpenseOpen")?.click();
       return;
@@ -346,4 +359,11 @@ function hoyV2Render(model) {
   }
   root.hidden = false;
   hoyV2BindOnce(root);
+  if (qs("home")?.hidden === false) {
+    globalThis.FinanceMedidor?.anotar("hoy-v2", "vista"); // XGO-02
+    if (!hoyV2Measured) {
+      hoyV2Measured = true;
+      hoyV2PaintedAt = performance.now();
+    }
+  }
 }

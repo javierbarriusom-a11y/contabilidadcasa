@@ -247,6 +247,7 @@ const files = [
   "views/importar-v2.js",
   "views/clasificar-v2.js",
   "funciones-en-prueba.js",
+  "medidor-utilidad.js",
   "views/cobertura-ajuste.js",
 ];
 

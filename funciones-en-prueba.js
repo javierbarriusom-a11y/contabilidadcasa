@@ -12,8 +12,8 @@
 // propia) y cada una lleva su propia revisión.
 //
 // La tarjeta está en los dos temas: desde el clásico es la forma de volver al diseño nuevo sin tocar la URL. Las
-// decisiones se guardan en este navegador, como la elección de tema. Las métricas aún no se miden: llegan con el
-// medidor de utilidad (XGO-02).
+// decisiones se guardan en este navegador, como la elección de tema. Junto a la métrica de cada función va lo que ha
+// medido el medidor de utilidad (XGO-02, medidor-utilidad.js), para revisar con datos y no por impresión.
 (function exposeFinanceFuncionesEnPrueba(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -110,6 +110,9 @@
     if (estado.estado === "graduada") linea = `graduada el ${shortDate(estado.fecha)}${item.interruptor ? " · la versión de siempre sigue disponible" : ""}`;
     else if (!estado.activa) linea = item.parteDe ? "va con el diseño nuevo, que está apagado" : "apagado: estáis viendo el diseño de siempre";
     else linea = `en prueba desde el ${shortDate(estado.desde)} · revisión el ${shortDate(estado.revision)} · mide: ${escapeHtml(item.metrica)}`;
+    // XGO-02: lo medido hasta hoy, en este navegador.
+    const medidor = globalThis.FinanceMedidor;
+    const medido = medidor && estado.estado !== "graduada" ? `<span class="fep-meta fep-medido">Medido: ${escapeHtml(medidor.frase(item.id, medidor.resumen(medidor.leer(), item.id)))}</span>` : "";
     let lado = "";
     if (item.interruptor) {
       const on = Boolean(encendidas[item.id]);
@@ -127,7 +130,7 @@
         </div>`
       : "";
     return `<li class="fep-fila${item.parteDe ? " is-hija" : ""}${estado.tocaRevisar ? " is-revisar" : ""}" data-fep-id="${item.id}">
-        <div class="fep-fila-main">${head}<span class="fep-meta fep-estado">${linea}</span></span>${lado}</div>
+        <div class="fep-fila-main">${head}<span class="fep-meta fep-estado">${linea}</span>${medido}</span>${lado}</div>
         ${pregunta}
       </li>`;
   }
@@ -185,6 +188,7 @@
       const sw = event.target.closest("[data-fep-interruptor]");
       if (sw) {
         const encender = sw.getAttribute("aria-checked") !== "true";
+        if (!encender) globalThis.FinanceMedidor?.anotar("tema-v2", "descarte"); // XGO-02: volver al de siempre
         try {
           globalThis.sessionStorage?.setItem(VOLVER_KEY, "1");
         } catch {
@@ -209,6 +213,7 @@
     if (!doc?.getElementById("funcionesEnPruebaCard")) return;
     bind(doc);
     render(doc);
+    globalThis.addEventListener?.("hashchange", () => render(doc)); // lo medido (XGO-02) cambia en otras pantallas
     try {
       if (globalThis.sessionStorage?.getItem(VOLVER_KEY)) {
         globalThis.sessionStorage.removeItem(VOLVER_KEY);

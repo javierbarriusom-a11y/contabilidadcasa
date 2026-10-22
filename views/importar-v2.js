@@ -244,6 +244,7 @@ async function impV2Undo() {
   const batchId = datosImportarLastResult?.batchId;
   await undoLastImportBatch();
   if (batchId && !importBatches.some((batch) => batch.id === batchId && batch.status === "applied")) {
+    globalThis.FinanceMedidor?.anotar("importar-v2", "deshecho", { clave: `deshecho-${batchId}` }); // XGO-02
     datosImportarLastResult = null;
     renderDatosImportar();
   }
@@ -284,6 +285,7 @@ function impV2BindOnce(root) {
       return renderDatosImportar();
     }
     if (event.target.closest("[data-imp-v2-clasico]")) {
+      if (!root.closest("article")?.classList.contains(IMP_V2_CLASSIC_CLASS)) globalThis.FinanceMedidor?.anotar("importar-v2", "descarte"); // XGO-02
       root.closest("article")?.classList.toggle(IMP_V2_CLASSIC_CLASS);
       renderDatosImportar(); // el asistente de siempre se repinta con las decisiones tomadas aquí
     }
@@ -313,9 +315,12 @@ function importarV2Render() {
   }
   impV2BindOnce(root);
   let body;
+  // XGO-02: un extracto importado es la acción (una vez por lote, aunque se repinte); con un fichero cargado, la vista.
   if (datosImportarLastResult) {
+    globalThis.FinanceMedidor?.anotar("importar-v2", "accion", { clave: datosImportarLastResult.batchId || `${datosImportarLastResult.fileName}-${datosImportarLastResult.imported}` });
     body = impV2Success(datosImportarLastResult);
   } else if (datosImportarSession) {
+    globalThis.FinanceMedidor?.anotar("importar-v2", "vista");
     // Con el asistente de siempre abierto, se decide allí como siempre (uno a uno); los seguros solo se marcan aquí.
     if (!article?.classList.contains(IMP_V2_CLASSIC_CLASS)) impV2MarkSafeDuplicates(datosImportarSession);
     body = impV2Review(datosImportarSession);

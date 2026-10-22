@@ -109,6 +109,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 22 de octubre de 2026 (341): XGO-02 — Medidor de utilidad
+
+- **Qué pidió el hogar:** «adelante con el medidor de utilidad» (P10: PR aparte, justo detrás de Funciones en prueba).
+- **Qué mide:** por función y mes, en este navegador y solo en agregado (ningún importe ni concepto), cuatro cosas, más los segundos hasta la primera acción en Hoy (mediana):
+  - **vista:** días distintos en que se vio; un repintado no cuenta;
+  - **acción:** aceptar una regla, importar un extracto, abrir o filtrar un movimiento, pulsar en Hoy;
+  - **descarte:** saltar un grupo, «Ver todo el detalle», ir al asistente de siempre o volver al diseño de siempre;
+  - **deshecho:** deshacer una regla o un lote.
+  - **Tasa de acción:** la parte de los días vistos en que además se actuó.
+- **Qué funciones:** las cinco en prueba (diseño nuevo, Hoy, Movimientos, Importar y Clasificar), porque son las que tienen revisión el 2/11 y el 4/11. El resto de recomendaciones de la app se instrumenta con la misma pieza cuando toque revisarlas.
+- **Dónde se ve:**
+  - En **Ajustes › Uso de la app**, la tarjeta «Medidor de utilidad», junto al panel de uso de WP-03: informe mensual con selector de mes, una ficha por función con su tasa a la derecha.
+  - En **Funciones en prueba**, una línea «Medido: …» junto a la métrica de cada función. Así la pregunta «¿se queda?» llega con datos.
+- **Cómo:**
+  - `medidor-utilidad.js` (nuevo, UMD): lógica pura probada aparte y el pintado del informe.
+  - Las pantallas anotan con `globalThis.FinanceMedidor?.anotar(…)`, una línea por evento, y nada se rompe si el medidor no carga.
+  - Se guardan 6 meses. Un lote importado cuenta una vez aunque se repinte.
+  - `app.js` y `usage-panel.js` sin cambios. Hoy no cambia lo que enseña (sigue congelado hasta el 25/10): solo anota.
+- **Desviaciones** (`ESTADO.md` §4):
+  - Solo las cinco funciones en prueba, no «cada recomendación o aviso».
+  - Módulo propio en vez de ampliar `usage-panel.js`, que mide días y saldos, no funciones.
+  - Dos métricas del catálogo se leen por aproximación: «conceptos sin partida tras importar» (Clasificar) por reglas aceptadas, saltadas y deshechas; «extractos importados por semana» (Movimientos) por sus días de uso y acciones.
+- **Pruebas:**
+  - Nueva: `tests/xgo02-medidor-utilidad.test.cjs` (9).
+  - Una e2e en `qa1`: una tanda de Clasificar (aceptar y saltar) queda medida en el informe y en «Funciones en prueba», y el almacén no guarda conceptos ni importes.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` (en curso al hacer el commit), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - Capturas de las dos tarjetas a 390 y 1440 px, en claro y en oscuro, con datos, revisadas.
+- **Lo que esto no arregla:** el medidor cuenta desde hoy y solo en este navegador. Si el 2/11 os encuentra con 0 movimientos importados, medirá que Movimientos, Importar y Clasificar no se han usado, que es la respuesta honesta.
+
 ## Cierre de sesión — 22 de octubre de 2026 (340): XGO-03 — Funciones en prueba
 
 - **Qué pidió el hogar:** «adelante con Funciones en prueba» (paso 4 de `docs/rediseno/ESTADO.md` §8; P8 y P9).

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-22-xgo02-medidor",
+      fecha: "2026-10-22",
+      texto: "Medidor de utilidad: cuánto usáis cada función nueva y si actuáis con ella. En Uso de la app y junto a cada función en prueba.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-22-xgo03-funciones-en-prueba",
       fecha: "2026-10-22",
       texto: "Funciones en prueba, en Ajustes: el diseño nuevo se enciende o apaga ahí, y a las dos semanas os pregunto si cada pantalla se queda.",

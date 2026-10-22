@@ -287,6 +287,7 @@ function clasificarV2Open(opener = null) {
   clasV2StartBatch();
   clasV2BindOnce(dialog);
   clasV2Render();
+  globalThis.FinanceMedidor?.anotar("clasificar-v2", "vista"); // XGO-02
   if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
   clasV2Focus(dialog);
 }
@@ -327,6 +328,7 @@ function clasV2Accept() {
   movementMappings[group.key] = { kind: group.kind, rowKey: seriesKeyForRow(target), label: `${target.sectionName} · ${partida}`, updatedAt: new Date().toISOString() };
   const applied = clasV2Persist(new Set([group.key]));
   clasV2Created.push(rule);
+  globalThis.FinanceMedidor?.anotar("clasificar-v2", "accion"); // XGO-02
   showUndoToast(`Regla «${group.name} → ${partida}» creada.`, () => clasV2Undo(rule));
   announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} movimiento(s). ${applied} importe(s) reales recalculados desde movimientos.`);
   clasV2Next();
@@ -345,6 +347,7 @@ function clasV2Undo(rule) {
   });
   clasV2Created = clasV2Created.filter((item) => item !== rule);
   clasV2Persist(new Set([rule.key]));
+  globalThis.FinanceMedidor?.anotar("clasificar-v2", "deshecho"); // XGO-02
   announceStatus(`Regla «${rule.name} → ${rule.partida}» deshecha: sus movimientos vuelven a la bandeja.`);
   if (qs("clasificarV2")?.open) clasV2Render();
 }
@@ -353,6 +356,7 @@ function clasV2Skip() {
   const group = clasV2Groups[clasV2Index];
   if (!group) return;
   clasV2Skipped.add(group.key);
+  globalThis.FinanceMedidor?.anotar("clasificar-v2", "descarte"); // XGO-02
   clasV2Next();
 }
 
