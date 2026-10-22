@@ -135,8 +135,8 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
     - el interruptor va al clásico y vuelve, con la preferencia guardada y borrada por `tema-v2.js`;
     - con el reloj del navegador en el 3/11, dos revisiones, el aviso «2 por revisar» en el menú, graduar Hoy, aplazar el diseño nuevo y que persista tras recargar.
 - **Validación:**
-  - `npm run verify` en verde, salida 0: `npm test` (en curso al hacer el commit), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - Playwright (e2e, axe y rendimiento por pantalla): en curso al hacer el commit; el resultado se anota antes de abrir el PR.
+  - `npm run verify` en verde, salida 0: `npm test` 6106/6106 (+7), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **209/209** (+2).
   - Capturas a 390 y 1440 px en claro y en oscuro, con el diseño nuevo y con el clásico, y con revisiones pendientes, revisadas.
 - **Siguiente:** el medidor de utilidad XGO-02 (P10), en PR aparte. Sin él, la pregunta del 2/11 se contestará por impresión, no por datos.
 
