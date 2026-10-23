@@ -181,11 +181,26 @@ test("la lista va por euros: primero lo calculable de más a menos, luego lo que
   assert.equal(result.totalSavingEur, Math.round(savings.reduce((a, b) => a + b, 0) * 100) / 100);
 });
 
-test("cada acción trae su fecha límite del 31/12 (salvo la retención) y su fuente; los parámetros viajan sin verificar", () => {
+test("cada acción trae su fecha límite del 31/12 (salvo la retención) y su fuente; solo lo contrastado se da por verificado", () => {
   const result = campaign([holder()]);
   ["vivienda", "pensiones", "compensacion", "donativos"].forEach((id) => assert.equal(action(result, id).deadline, "2026-12-31"));
   assert.ok(result.actions.every((item) => item.reference.length > 20));
-  assert.ok(result.actions.every((item) => item.verified === false), "ningún parámetro legal está contrastado todavía con la fuente oficial");
+  // Contraste del 23/10/2026: cuatro parámetros con su fuente; vivienda sigue pendiente del tramo autonómico y dice qué le falta.
+  ["pensiones", "compensacion", "donativos", "retencion"].forEach((id) => {
+    const item = action(result, id);
+    assert.equal(item.verified, true, `${id}: contrastado`);
+    assert.match(item.source, /Agencia Tributaria|Reglamento del IRPF|Ley 49\/2002/, `${id}: lleva su fuente`);
+    assert.equal(item.checked, "2026-10-23");
+    assert.equal(item.pending, "");
+  });
+  const vivienda = action(result, "vivienda");
+  assert.equal(vivienda.verified, false, "el tramo autonómico de vivienda no se ha podido confirmar en la fuente oficial");
+  assert.match(vivienda.pending, /tramo autonómico/);
+  // Una tabla «verificada» tiene que decir de dónde sale: nunca verified sin source.
+  Object.entries(tax.parametersFor(2026)).filter(([, row]) => row && typeof row === "object").forEach(([key, row]) => {
+    if (row.verified) assert.ok(row.source && row.checked, `${key}: verificado sin fuente o sin fecha`);
+    else assert.ok(row.pending, `${key}: sin verificar y sin decir qué falta`);
+  });
   assert.match(result.warning, /asesor fiscal/);
   assert.equal(result.rentaYear, 2027);
 });

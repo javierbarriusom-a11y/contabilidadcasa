@@ -392,12 +392,12 @@ function cierreStep1Html(accountRows) {
   const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
   const rows = accountRows
     .map(
-      (row) => `<tr>
-        <td><strong>${escapeHtml(row.label)}</strong></td>
-        <td>${money(row.declared, true)}</td>
-        <td>${row.calculated === null ? "—" : money(row.calculated, true)}</td>
-        <td>${row.diff === null ? "—" : money(row.diff, true)}</td>
-        <td><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span>${
+      (row) => `<tr role="row">
+        <td role="cell"><strong>${escapeHtml(row.label)}</strong></td>
+        <td role="cell" data-label="Declarado">${money(row.declared, true)}</td>
+        <td role="cell" data-label="Calculado">${row.calculated === null ? "—" : money(row.calculated, true)}</td>
+        <td role="cell" data-label="Diferencia">${row.diff === null ? "—" : money(row.diff, true)}</td>
+        <td role="cell" data-label="Estado"><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span>${
         row.status === "descuadra" ? ` <button type="button" class="e19-btn e19-btn-secondary cierre-inline-button" data-cierre-task-target="update-hub">Crear tarea</button>` : ""
       }</td>
       </tr>`
@@ -408,9 +408,9 @@ function cierreStep1Html(accountRows) {
       <div><h3 class="escenario-motor-panel-title">Conciliar cuentas</h3><p class="e19-kpi-note">Saldo declarado frente a saldo calculado.</p></div>
       ${descuadres ? `<span class="e19-badge e19-badge-danger">${descuadres} cuenta(s) descuadran</span>` : ""}
     </div>
-    <div class="table-wrap"><table class="e19-table cierre-accounts-table">
-      <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
-      <tbody>${rows}</tbody>
+    <div class="table-wrap"><table class="e19-table cierre-accounts-table" role="table">
+      <thead role="rowgroup"><tr role="row"><th role="columnheader">Cuenta</th><th role="columnheader">Declarado</th><th role="columnheader">Calculado</th><th role="columnheader">Diferencia</th><th role="columnheader">Estado</th></tr></thead>
+      <tbody role="rowgroup">${rows}</tbody>
     </table></div>
     <p class="e19-kpi-note">El saldo calculado sale del último movimiento del extracto incorporado; el declarado, de lo que escribiste en Registrar. Una diferencia no se corrige sola: revisa el saldo en Datos.</p>
   </article>`;

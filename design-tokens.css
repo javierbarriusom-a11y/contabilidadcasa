@@ -3595,6 +3595,52 @@
   white-space: normal;
 }
 
+/* Ensayo del cierre de octubre (23/10/2026): a 390 px las cinco columnas fijas dejaban ~30 px por cifra y «7.663,38 €» se
+   montaba sobre la columna de al lado, con la insignia de estado cortada. En el móvil cada cuenta pasa a ser un bloque con
+   su nombre arriba y cuatro filas «etiqueta · valor». Los roles ARIA del marcado (views/cierre.js) mantienen la tabla para
+   los lectores de pantalla aunque cambie el `display`. */
+@media (max-width: 640px) {
+  .e19-cierre .cierre-accounts-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .e19-cierre .cierre-accounts-table,
+  .e19-cierre .cierre-accounts-table tbody,
+  .e19-cierre .cierre-accounts-table tr,
+  .e19-cierre .cierre-accounts-table td {
+    display: block;
+  }
+
+  .e19-cierre .cierre-accounts-table tbody tr {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--e19-surface-sunken);
+  }
+
+  .e19-cierre .cierre-accounts-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .e19-cierre .cierre-accounts-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 3px 0;
+    border-bottom: none;
+  }
+
+  .e19-cierre .cierre-accounts-table tbody td[data-label]::before {
+    content: attr(data-label);
+    color: var(--e19-muted);
+    font-size: var(--e19-text-xs);
+  }
+}
+
 .e19-cierre .cierre-inline-button {
   padding: 4px 10px;
   font-size: var(--e19-text-xs);

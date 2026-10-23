@@ -11,6 +11,17 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**23/10/2026 · revisión de salida de la Ola 1: parar y revisar** (detalle en [`docs/REVISION_SALIDA_OLA1_2026-10-23.md`](docs/REVISION_SALIDA_OLA1_2026-10-23.md)). Construido 63,2 %, comprobado 0 %, ninguna lectura de M-HOY ni M-ADOP. El cuello de botella ya no es construir, sino que la app reciba datos. **Decisiones del hogar del día:**
+- **M-HOY se mide sola** con el medidor de utilidad (sustituye a H-02), y la congelación de Hoy se levanta el 25/10 con un cambio por semana.
+- **Comunidad autónoma dada por el chat**, fuera del repositorio.
+- **No se poda ningún paquete:** el hogar alimentará WP-40, WP-48, WP-50 y WP-52.
+
+El panel recibe **12 tareas nuevas del hogar** (H-22 a H-33), así que todo paquete «esperando al hogar» tiene ya la suya con fecha. La de más palanca es **H-22, importar el extracto de octubre antes del 31/10**.
+
+**Ensayo del cierre de octubre:** el recorrido importar → clasificar → firmar funciona a 390 px, y la tabla de cuentas del móvil queda corregida. Para firmar hacen falta tres cosas: movimientos de octubre importados (H-22), ninguno sin partida y la sesión iniciada.
+
+**WP-23:** cuatro de los cinco parámetros legales quedan contrastados con su fuente (`docs/WP23_DISENO.md` §10). Vivienda sigue pendiente del tramo autonómico.
+
 **21/10/2026 · límite de 3 en curso aplicado y regla de parada de la Ola 1 activada, por decisión del hogar:** de los 25 paquetes abiertos, 1 sigue en curso (WP-23), 21 pasan a **«esperando al hogar»** con su tarea, 3 se **aparcan** (WP-28, WP-37, WP-42) y WP-33 queda hecho; con el rediseño, **2 de 3 en marcha**. El panel distingue **construido (63,2 %)** de **comprobado (0 %)**. La Ola 1 se cierra sin lecturas de M-HOY ni M-ADOP: **no se abre ningún paquete nuevo** hasta tenerlas (§4). WP-41 publica su cuarta entrega (cargos mensuales sin marcar).
 
 **20/10/2026 · `O-6` cerrado por el hogar, sin verificación práctica:** no se conecta ningún banco (los saldos siguen con WP-26), WP-05 queda hecho y el PR-2 de WP-13 (fuente oficial de índices) se archiva. **`O-6` queda marcado para recuperar** con disparador (§6). Avance del plan: **61,9 %** (`docs/ESTADO_TAREAS_Y_FASES.md`). Desalojo de `app.js` (XGO-01): PR-0 y PR-1 hechos (#525, #526).
@@ -85,6 +96,16 @@ Las respuestas «Más tarde» del triaje (3/10/2026) van a P3 salvo que el plan 
 **Aplicación del límite (21/10/2026, decisión del hogar):** dos estados nuevos en el panel para cumplirlo. **«Esperando al hogar»**: construido, y lo siguiente necesita un dato o una decisión del hogar (la tarea concreta va en la nota del paquete). **«Aparcado»**: le falta desarrollo, pero no cabe en el límite. Los dos cuentan como construido al 50 %, igual que «en curso», y **nunca como comprobado**. Ese día quedaron: en curso WP-23 y el rediseño; 21 esperando al hogar; aparcados WP-28 (los gráficos de cartera y deuda se migran con el rediseño de esas pantallas), WP-37 (los estados se aplican pantalla a pantalla dentro del rediseño) y WP-42.
 
 **Regla de parada de la Ola 1, aplicada el 21/10/2026 (decisión del hogar):** la Ola 1 termina el 23/10 sin una sola lectura de sus métricas (M-HOY y M-ADOP), así que se para: no se abre ningún paquete nuevo hasta que haya lecturas reales. Sigue el camino del rediseño (desalojo de `app.js`, Laboratorio, Movimientos e Importar) y lo que tiene fecha (WP-23).
+
+**Revisión de salida de la Ola 1 (23/10/2026): parar y revisar.** Se confirma lo aplicado el 21/10. No se abre ningún paquete nuevo hasta tener lecturas de M-HOY y M-ADOP. Tampoco se abre ninguna pantalla nueva del rediseño antes de las revisiones de «Funciones en prueba» del 2/11 y el 4/11, que dirán con el medidor si Hoy, Movimientos, Importar y Clasificar se usan.
+
+**M-HOY se mide sola desde el 23/10/2026 (decisión del hogar):** la línea base es la mediana de los segundos hasta la primera acción en Hoy que registra el medidor de utilidad (XGO-02, desde el 22/10), y la prueba cronometrada H-02 deja de esperarse.
+- **Qué se pierde:** mide «actuar», no «encontrar la cifra con saldos del día» (GOV-05).
+- **Congelación de Hoy:** se levanta el **25/10**, como estaba decidido. Desde entonces, **los cambios de Hoy entran de uno en uno, uno por semana**, cada uno con su línea en «Novedades».
+- **Orden de los cambios:** primero, mover la bandeja de decisiones a Movimientos; después, los avisos de WP-35, WP-36, WP-38 y WP-47.
+- **La línea base es la mediana anterior al primer cambio.**
+
+**Paquetes que dependen de una aportación periódica del hogar (23/10/2026):** WP-40, WP-48, WP-50 y WP-52 se mantienen porque el hogar se compromete a alimentarlos (H-31, H-28, H-27 y H-26). Si una de esas tareas pasa 30 días vencida, el paquete se propone para archivo con disparador.
 
 **Hoy congelado: plazo hasta el 25/10/2026 (decisión del hogar del 21/10):** si para entonces no se ha hecho H-02 (3 pruebas cronometradas con saldos del día, sobre la Hoy v2), **la congelación se levanta** y la línea base de M-HOY se toma después (la séptima auditoría propone medirla de forma pasiva, UXS-03). Mantenerla sin la prueba que la justifica solo frena los avisos de WP-35, WP-36, WP-38 y WP-47 en la bandeja de Hoy.
 
@@ -260,8 +281,8 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 
 | ID | Qué | Disposición |
 |---|---|---|
-| H1 | Diagnóstico de «no la encontró» | WP-02, con un usuario y saldos del día |
-| H2 | Actualizar saldos y repetir la medición | WP-02 (S8) |
+| H1 | Diagnóstico de «no la encontró» | WP-02, con un usuario y saldos del día. **Desde el 23/10, M-HOY se lee con el medidor de utilidad** (§4) |
+| H2 | Actualizar saldos y repetir la medición | WP-02 (S8). **Sustituida el 23/10** por la medición pasiva (§4) |
 | H3 | D4/D5 (modo consulta) | Archivado (nadie más usará la app) |
 | H4 | Tiempo de registrar un gasto | WP-02 + autodeclaración de WP-03; mejora con WP-30 |
 | H5 / C2 | Cierre con saldo y mes anterior | WP-09 |
@@ -290,8 +311,11 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | Antes del 16/10 | El hogar: cronometrar una vez cómo actualiza hoy los saldos (línea base de WP-26) y los 3 intentos de la prueba de Hoy (WP-02) |
 | Semana del 12/10/2026 | **Campaña fiscal (WP-23)**, con los datos fiscales en el chat (decisión del hogar del 4/10; **desde el 16/10 se teclean en la app**, «Tus datos fiscales») |
 | 16/10/2026 | Revisión mensual de Nielsen (`OPT-21`) · **decisión de `O-6`** (conexión bancaria): **cerrado el 20/10, sin verificación** |
-| 23/10/2026 | Fin de la Ola 1 · `OPT-10`–`OPT-13`: no se retira nada |
+| 23/10/2026 | Fin de la Ola 1 · `OPT-10`–`OPT-13`: no se retira nada · **revisión de salida: parar y revisar** |
+| 25/10/2026 | Se levanta la congelación de Hoy; sus cambios entran de uno en uno, uno por semana (§4) |
+| Antes del 31/10 | El hogar: **importar el extracto de octubre de cada cuenta** y clasificar (H-22) |
 | Antes del 1/11 | El hogar: dar de alta las dos fichas de la asignación personal y programar las transferencias con concepto fijo |
+| 2/11 y 4/11/2026 | Revisiones de «Funciones en prueba» con el medidor: diseño nuevo y Hoy (2/11); Movimientos, Importar y Clasificar (4/11) |
 | 1/11/2026 | Arranque de la asignación personal (WP-24) |
 | 1-3/11/2026 | **Primer cierre de mes con saldo** (octubre, WP-09): saldos del día y firma |
 | **14/11/2026** | **Campaña fiscal lista** (WP-23) |
@@ -327,7 +351,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 
 | Métrica | Objetivo | Se mide con |
 |---|---|---|
-| Tiempo hasta la cifra de Hoy | Mediana ≤ 15 s, misma cifra, saldos del día | WP-02 |
+| Tiempo hasta la primera acción en Hoy | Mediana ≤ 15 s | Medidor de utilidad (XGO-02), desde el 23/10; antes, WP-02 con saldos del día |
 | Adopción | ≥ 4 días activos por semana | WP-03 |
 | Coste de mantener la app | ≤ 10 min/semana | WP-03 (autodeclarado) |
 | Frescura | Saldos de ≤ 3 días en ≥ 90 % de los días | WP-03 |
@@ -386,7 +410,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | Pieza | Qué guarda | Quién la cambia |
 |---|---|---|
 | Este documento | Qué se hace y por qué en ese orden (prioridades, niveles, decisiones) | Claude, cuando cambia el plan |
-| `docs/plan/plan-definitivo.json` | El mismo plan en datos: 3 olas, 53 paquetes con sesiones estimadas, dependencias y «hecho cuando», las 104 propuestas, 16 hitos, 21 tareas del hogar y 10 métricas | Se regenera cuando cambia este documento; `tests/plan-seguimiento-sincronizado.test.cjs` falla si los dos se separan |
+| `docs/plan/plan-definitivo.json` | El mismo plan en datos: 3 olas, 53 paquetes con sesiones estimadas, dependencias y «hecho cuando», las 104 propuestas, 19 hitos, 33 tareas del hogar y 10 métricas | Se regenera cuando cambia este documento; `tests/plan-seguimiento-sincronizado.test.cjs` falla si los dos se separan |
 | **Panel de seguimiento** (https://claude.ai/artifact/7k86qmrcqn8hdhAzx9xcrg, privado) | El **estado**: paquete a paquete (estado, PR, fechas, sesiones reales, resultado de su métrica), tareas del hogar hechas, lecturas de métricas, revisión de salida de cada ola y registro de cambios | Claude al cerrar cada sesión; el hogar marca sus tareas y añade lecturas |
 
 **Cómo mide el avance** (para que «vamos bien» signifique algo):

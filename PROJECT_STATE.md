@@ -109,6 +109,41 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 23 de octubre de 2026 (342): revisión de salida de la Ola 1, contraste fiscal de WP-23 y ensayo del cierre de octubre
+
+- **Qué pidió el hogar:** arrancar la sesión analizando el backlog y el panel de seguimiento, y proponer un plan. Plan aprobado («adelante con mis respuestas»), con tres respuestas:
+  1. acepta medir M-HOY de forma pasiva;
+  2. comunidad autónoma dada por el chat;
+  3. no se poda ningún paquete: el hogar alimentará WP-40, WP-48, WP-50 y WP-52.
+- **Diagnóstico de partida:** construido 63,2 %, comprobado 0 %; 21 paquetes esperando al hogar; 1 de 21 tareas del hogar marcada (H-02 y H-03 vencidas); 0 movimientos en octubre. El cuello de botella ya no es construir, sino que la app reciba datos.
+- **1 · Revisión de salida de la Ola 1 (H-04): parar y revisar.** Detalle en `docs/REVISION_SALIDA_OLA1_2026-10-23.md`.
+  - **M-HOY:** la mide sola el medidor de utilidad (XGO-02); H-02 queda sustituida.
+  - **Congelación de Hoy:** se levanta el 25/10 con **un cambio por semana**. El primero, mover la bandeja de decisiones a Movimientos. La línea base es la mediana anterior al primer cambio.
+  - **Rediseño:** ninguna pantalla nueva hasta las revisiones del 2/11 y el 4/11.
+  - **Paquetes con aportación periódica:** si su tarea pasa 30 días vencida, se proponen para archivo.
+  - **Plan:** 12 tareas nuevas del hogar (H-22 a H-33), de modo que los 21 paquetes «esperando al hogar» tienen tarea con fecha (antes, 16 no la tenían). La de más palanca es H-22, importar el extracto de octubre antes del 31/10. También 3 hitos nuevos y M-HOY redefinida.
+  - **Documentos:** `BACKLOG_DEFINITIVO.md` §0, §4, §6, §7, §9 y §12; `docs/plan/plan-definitivo.json` (33 tareas, 19 hitos); `docs/rediseno/ESTADO.md` §8.
+- **2 · WP-23, contraste de los parámetros legales** (`docs/WP23_DISENO.md` §10).
+  - **Contrastados con su fuente:** pensiones, donativos, compensación y retención voluntaria, con el Manual práctico de Renta 2025 de la AEAT, el RDL 6/2023 y el art. 88.5 del RIRPF.
+  - **Vivienda sigue pendiente:** falta confirmar el tramo autonómico de la comunidad del hogar.
+  - **Ninguna cifra cambia.** Los textos ganan matices: tope del 30 % en pensiones, límite del 10 % y regla de recurrencia en donativos, compensación del 25 % y vigencia de la retención voluntaria en los años siguientes, que confirma la desviación de FIS-02.
+  - **En el código:** el motor lleva `source`, `checked` y `pending`, y la pantalla dice con qué fuente se contrastó cada parámetro o qué le falta. Una prueba impide «verificado» sin fuente ni fecha.
+  - **La comunidad autónoma no se escribe en el repositorio.**
+  - **Límite de método:** el contenedor no puede abrir `sede.agenciatributaria.gob.es`, `www.boe.es` ni la web de la comunidad (la red los deniega). El contraste usa el texto del manual tal como lo devuelve el buscador.
+  - **Hallazgo fuera de alcance:** la deducción autonómica por el encarecimiento de la hipoteca variable (25 % del exceso de intereses sobre el Euribor de diciembre de 2022). Se pide en la Renta, no en diciembre. Candidata para WP-21 o A15-2, a decidir por el hogar.
+- **3 · Ensayo del cierre de octubre**, con el reloj en el 2/11 y a 390 y 1440 px, partiendo de 0 movimientos: importar extracto → clasificar la bandeja → Cierre → paso de firma. **Funciona de principio a fin.**
+  - **Para firmar hacen falta tres cosas:**
+    - movimientos de octubre importados (si no, «Extracto incorporado» no se cumple);
+    - ningún concepto sin partida;
+    - **sesión iniciada y sincronizada** (el cierre es un RPC transaccional).
+  - **Error corregido:** en el móvil, la tabla «Conciliar cuentas» montaba las cifras unas sobre otras y cortaba la insignia. Ahora cada cuenta es un bloque, con roles ARIA para que siga siendo tabla en lectores de pantalla.
+  - **Prueba nueva:** una e2e permanente, «Ensayo del cierre de octubre». Su mutación está comprobada: sin el arreglo, falla a 390 px.
+- **Novedades:** dos líneas (fuentes de la campaña fiscal y cierre en el móvil).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6115/6115, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+  - Playwright (e2e, axe y rendimiento por pantalla): **212/212** (+2, las del ensayo del cierre a 390 y 1440 px).
+- **Revisión mensual de Nielsen:** no vencida (última el 15/10; vence el 14/11).
+
 ## Cierre de sesión — 22 de octubre de 2026 (341): XGO-02 — Medidor de utilidad
 
 - **Qué pidió el hogar:** «adelante con el medidor de utilidad» (P10: PR aparte, justo detrás de Funciones en prueba).
