@@ -161,7 +161,8 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    el 22/10**: la revisión llega con lo medido junto a cada métrica.
 5. **A4 · Movimientos e Importar** en dos PR (P12), con el cuadre según P11. Lo que dependa del buzón o del PDF, plegado. **Adelantado por el hogar el 21/10** delante de XGO-03 (sin movimientos, el resto de pantallas enseña datos vacíos). **PR-1 (Movimientos) y PR-2 (Importar) hechos el 21/10**, con P17 y P18 (§3b). Clasificar (paso 6) también, el mismo día; sigue «Funciones en prueba» (paso 4).
 6. **A5 · Clasificar**. **Hecho el 21/10** (adelantado por el hogar delante de «Funciones en prueba»): hoja inferior / panel derecho desde la bandeja, 5 grupos por tanda, regla con deshacer. La confianza por grupo, en tarea aparte.
-7. Después, si las anteriores se usan: Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5
+7. **Antes, el 25/10 (decisión del hogar del 23/10):** cuando se levante la congelación de Hoy, el primer cambio es mover la bandeja de decisiones (`#homeDecisionInboxCard`) a Movimientos (desviación del §4). Después, un cambio de Hoy por semana, para que el medidor compare el antes y el después. **No se abre ninguna pantalla nueva hasta las revisiones del 2/11 y el 4/11** (`docs/REVISION_SALIDA_OLA1_2026-10-23.md`).
+8. Después, si las anteriores se usan: Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5
    destinos, Deuda (tras NTC-05), Taller y E2. Cada una desde su referencia de `docs/rediseno/referencias/`.
 
 Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). Pendiente: añadir el proyecto WebKit a Playwright (P14).

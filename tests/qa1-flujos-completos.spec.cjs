@@ -5555,3 +5555,77 @@ test.describe("XGO-02 · Medidor de utilidad", () => {
   });
 });
 
+
+// Ensayo del cierre de octubre (23/10/2026, docs/REVISION_SALIDA_OLA1_2026-10-23.md): el recorrido real del hogar el 2/11, de
+// principio a fin y con el diseño nuevo. Se parte de cero movimientos, como los datos reales, y se sigue: importar el extracto,
+// clasificar la bandeja y llegar a Firmar. Firmar exige sesión iniciada (RPC transaccional), así que la prueba llega hasta
+// ahí: todas las comprobaciones cumplidas y el botón esperando solo la sesión. Movimientos INVENTADOS.
+test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a firmar", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`de cero movimientos a «Firmar cierre» a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+      await page.goto("/index.html#registrar");
+      await page.click('[data-registrar-tab="import"]');
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => (baseData.transactions || []).length), "se parte sin movimientos, como los datos reales del 19/10").toBe(0);
+
+      const csv = ["Fecha;Concepto;Importe;Saldo", "01/10/2026;NOMINA FICTICIA;3000,00;8080,00", "02/10/2026;SUPER FICTICIO;-86,40;7993,60", "05/10/2026;LUZ FICTICIA;-94,12;7899,48", "09/10/2026;SUPER FICTICIO;-61,10;7838,38", "28/10/2026;COMUNIDAD FICTICIA;-120,00;7718,38"].join("\n");
+      await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo", { timeout: 15000 });
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      await v2.locator("[data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("5 movimientos importados", { timeout: 15000 });
+
+      // La bandeja: todos los conceptos en una tanda, eligiendo partida donde no hay propuesta.
+      await page.goto("/index.html#movements");
+      const top = page.locator("#movimientosV2");
+      await expect(top).toContainText("4 conceptos sin partida", { timeout: 15000 });
+      await top.locator("[data-mov-v2-clasificar]").click();
+      const panel = page.locator("#clasificarV2");
+      await expect(panel).toBeVisible();
+      for (let index = 0; index < 4; index += 1) {
+        const aceptar = panel.locator("[data-clas-v2-aceptar]");
+        if (!(await aceptar.isEnabled())) {
+          if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+          await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+        }
+        await aceptar.click();
+      }
+      await expect(panel).toContainText("Tanda terminada · 4 reglas nuevas");
+      await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+      await expect(top).toContainText("Todos los movimientos tienen partida.");
+
+      // Cierre: la cuenta importada cuadra con su extracto; la otra queda sin conciliar, que no bloquea pero se dice.
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
+      const tabla = page.locator(".cierre-accounts-table");
+      await expect(tabla.locator("tbody tr").first()).toContainText("Cuadra");
+      // Ninguna cifra se sale de su celda: a 390 px las cinco columnas fijas montaban «7.718,38 €» sobre la columna de al lado.
+      const desbordes = await tabla.locator("tbody td").evaluateAll((cells) => cells.filter((cell) => cell.scrollWidth > cell.clientWidth + 1).map((cell) => cell.textContent.trim()));
+      expect(desbordes, "celdas cuyo contenido no cabe").toEqual([]);
+      expect(await tabla.evaluate((table) => getComputedStyle(table).display), viewport.width < 641 ? "en el móvil, una cuenta por bloque" : "en escritorio, tabla").toBe(viewport.width < 641 ? "block" : "table");
+      await expect(tabla).toHaveAttribute("role", "table");
+
+      await page.locator("#cierreSteps li").last().click();
+      const firma = page.locator("#cierreStepBody");
+      await expect(firma).toContainText("Extracto incorporado · 5 movimiento(s)");
+      await expect(firma).toContainText("Ninguna diferencia abierta");
+      await expect(firma).toContainText("Ninguna cuenta descuadra · 1 sin conciliar");
+      // Lo único que falta es la sesión: sin ella el RPC del cierre no se puede llamar.
+      const firmar = page.locator("#cierreSignButton");
+      await expect(firmar).toHaveText("Firmar cierre");
+      await expect(firmar).toBeDisabled();
+      await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
+      await expect(firma).toContainText("Saldos del 28/10/2026");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

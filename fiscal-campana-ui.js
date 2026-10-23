@@ -80,7 +80,7 @@ function fiscalCampaignActionHtml(action, index, campaign) {
   const deadline = action.deadline ? `<span class="e19-pill e19-pill-warn">Antes del ${escapeHtml(fiscalCampaignDate(action.deadline).replace(/ de \d{4}$/, ""))}</span>` : `<span class="e19-pill">Sin fecha límite</span>`;
   const holders = action.rows.map((row) => `<li><strong>${escapeHtml(row.label)}.</strong> ${fiscalCampaignHolderLine(action, row, example)}</li>`).join("");
   const missing = action.status === "sin_dato" && action.missing.length ? `<p class="e19-kpi-note fc-falta">Para calcularla necesito: ${escapeHtml(action.missing.join("; "))}. <button type="button" class="fc-rellenar" data-fiscal-abrir>Rellenar mis datos</button></p>` : "";
-  const verified = action.verified ? "" : " Parámetros legales pendientes de contrastar con la fuente oficial.";
+  const verified = fiscalCampaignSourceText(action);
   return `<li class="fc-accion fc-accion-${escapeHtml(action.status)}">
     <span class="fc-orden" aria-hidden="true">${index + 1}</span>
     <div class="fc-accion-cuerpo">
@@ -90,10 +90,17 @@ function fiscalCampaignActionHtml(action, index, campaign) {
       ${missing}
       <details class="fc-detalle"><summary>Por declarante y fuente</summary>
         <ul class="fc-por-declarante">${holders}</ul>
-        <p class="e19-kpi-note">${escapeHtml(action.reference)}${escapeHtml(verified)}</p>
+        <p class="e19-kpi-note">${escapeHtml(action.reference)} <em>${escapeHtml(verified)}</em></p>
       </details>
     </div>
   </li>`;
+}
+
+// De dónde sale cada parámetro legal: contrastado (con su fuente y fecha) o pendiente (con lo que le falta). Sirve igual para una acción que para una fila de parámetros.
+function fiscalCampaignSourceText(item) {
+  const checked = item.checked ? ` el ${fiscalCampaignDate(item.checked)}` : "";
+  if (item.verified) return item.source ? `Contrastado${checked} con: ${item.source}` : "Contrastado con la fuente oficial.";
+  return `Pendiente de contrastar con la fuente oficial.${item.pending ? ` ${item.pending}` : ""}`;
 }
 
 // Cuántas tareas con fecha límite están marcadas. «Sin tareas» no se pinta como «todo hecho». Con el ejemplo no hay progreso.
@@ -136,10 +143,10 @@ function renderFiscalCampaign(engine, options = {}) {
   const aviso = example
     ? `<p class="fc-aviso" role="note"><strong>Cifras de ejemplo.</strong> Esto muestra cómo quedará tu lista con un hogar ficticio de dos declarantes. Cuando teclees tus datos fiscales (abajo, en «Tus datos fiscales»), este ejemplo se sustituye por tus números y desaparecen las marcas.</p>${stale}`
     : stored && stored.status === "real"
-      ? `<p class="fc-aviso fc-aviso-real" role="note"><strong>Con tus datos.</strong> ${campaign.holders.length === 1 ? "Declarante" : "Declarantes"}: ${escapeHtml(labels)}${stored.updatedAt ? `, datos del ${escapeHtml(stored.updatedAt.split("-").reverse().map(Number).join("/"))}` : ""}. Son estimaciones con parámetros legales por contrastar; lo que no has rellenado sale «sin calcular», no como 0 €.</p>`
+      ? `<p class="fc-aviso fc-aviso-real" role="note"><strong>Con tus datos.</strong> ${campaign.holders.length === 1 ? "Declarante" : "Declarantes"}: ${escapeHtml(labels)}${stored.updatedAt ? `, datos del ${escapeHtml(stored.updatedAt.split("-").reverse().map(Number).join("/"))}` : ""}. Son estimaciones: cada acción dice con qué fuente oficial se contrastó su parámetro legal o qué falta por contrastar; lo que no has rellenado sale «sin calcular», no como 0 €.</p>`
       : "";
   const parametros = Object.entries({ Pensiones: campaign.parameters.pension, Vivienda: campaign.parameters.housing, Donativos: campaign.parameters.donations, Compensación: campaign.parameters.compensation, Retención: campaign.parameters.withholding })
-    .map(([label, row]) => `<li><strong>${escapeHtml(label)}.</strong> ${escapeHtml(row.reference)} <em>${row.verified ? "Contrastado con la fuente oficial." : "Pendiente de contrastar con la fuente oficial."}</em></li>`).join("");
+    .map(([label, row]) => `<li><strong>${escapeHtml(label)}.</strong> ${escapeHtml(row.reference)} <em>${escapeHtml(fiscalCampaignSourceText(row))}</em></li>`).join("");
   qs("campanaFiscalCuerpo").innerHTML = `
     ${aviso}
     <p class="fc-cuenta-atras">${escapeHtml(fiscalCampaignCountdown(campaign))}</p>

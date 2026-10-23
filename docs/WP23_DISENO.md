@@ -26,6 +26,8 @@ La especificación pedía ajustar la retención «para no pagar en junio». La R
 
 ## 3. Parámetros legales: estimaciones sin verificar
 
+> **Actualizado el 23/10/2026 (§10):** cuatro de los cinco parámetros ya están contrastados y dicen su fuente; vivienda sigue pendiente del tramo autonómico.
+
 Los valores (1.500 €, 15 % / 9.040 €, 80 % / 250 € / 40 % / 45 %, regla de 2 meses, 4 años) salen del plan y están marcados `verified: false` en el motor y en la pantalla («Pendiente de contrastar con la fuente oficial»). Viajan en el resultado y se pueden sustituir por los del hogar. Quedan por contrastar con la fuente oficial y con la comunidad autónoma antes de que la campaña se presente como algo más que una estimación. Un año sin tabla propia hereda la del último conocido y lo declara (`inheritedFromYear`). Regla heredada de A15-2/A15-5: nunca un número con apariencia de correcto sobre un parámetro sin fuente. El límite de pensiones está acoplado por una prueba al de `canonical-pension-simulator.js` (A15-4), para que no diverjan en silencio.
 
 Cada acción lleva «estimación; confirmar con asesor» y la app **nunca ejecuta nada** (A11-4): aportar, amortizar, vender o donar lo decide el hogar.
@@ -55,7 +57,7 @@ Estructura: cuenta atrás discreta («La campaña se abre el 1 de noviembre (en 
 
 - ~~**PR-2 · datos del hogar**~~ — **hecho el 16/10/2026** (§8). Los datos ya no entran por el chat (el repositorio es público): los teclea el hogar en la app.
 - ~~**PR-3 · «Hecho» y calendario**~~ — **hecho el 16/10/2026** (§9).
-- Contrastar los parámetros con la fuente oficial y la comunidad autónoma, y pasarlos a `verified: true` con su fuente.
+- ~~Contrastar los parámetros con la fuente oficial~~ — **cuatro de cinco el 23/10/2026** (§10); falta el tramo autonómico de vivienda.
 - Fecha de los datos de entrada: H-03 (20/10). Límite para tener la lista con euros reales: 15/11.
 
 ## 7. Riesgo
@@ -85,3 +87,28 @@ El hogar no podía teclear sus datos fiscales (el ensayo del 15/10 lo encontró)
 - **Qué NO hace:** no cambia nada en Hoy; no emite avisos nuevos; no calcula cuánto ahorro se «consiguió» (solo cuánto queda por hacer); no verifica nada con la Agencia Tributaria.
 - **Qué se comprobó:** 23 pruebas unitarias (`tests/fis3-fiscal-hecho.test.cjs`: almacén, progreso, calendario, UI en vm, cableado), 2 de navegador (marcar, recargar, quitar y deshacer; el `.ics`) y axe en claro/oscuro × 1280/390 con una cuarta etapa (tarea marcada). **Mutaciones comprobadas (7):** cada una hace caer al menos una prueba.
 - **Hallazgo en el camino:** la prueba axe de PR-2 reutilizaba el estado entre anchos; con la marca persistida el botón era «Quitar marca». Era un fallo del aislamiento de la prueba, no de la app: ahora limpia `fiscal-done` además de `fiscal-data`.
+
+## 10. Contraste de los parámetros legales (23/10/2026)
+
+El hogar dio su comunidad autónoma por el chat. **No se escribe en el repositorio**, que es público: el motor sigue con una tabla genérica y la comunidad solo aparece como ejemplo en el texto de donativos.
+
+**Cómo se contrastó.** La tabla de 2026 se comparó con el **Manual práctico de Renta 2025** de la Agencia Tributaria, el del ejercicio 2025 y el último publicado. No se encontró ningún cambio aprobado para 2026 en estos cinco puntos. Hubo un límite de método: el contenedor de desarrollo no puede abrir la sede de la Agencia Tributaria, el BOE ni la web de la comunidad, porque la política de red lo deniega. El contraste se hizo con el texto del manual tal como lo devuelve el buscador, no con la página abierta. Las fuentes van en el motor como texto, sin enlace: el código publicado no nombra servidores sin revisar (NTC-06, `tests/ntc6-conexiones-externas`).
+
+| Parámetro | Antes | Ahora | Fuente | Qué cambió en el texto |
+|---|---|---|---|---|
+| Pensiones | sin verificar | **contrastado** | Manual 2025, cap. 13 (arts. 51-52 LIRPF) | Además del límite de 1.500 €, el tope del 30 % de los rendimientos netos del trabajo (con nóminas normales no muerde), el límite de 8.500 € más con plan de empresa (no calculado) y el arrastre de cinco años |
+| Donativos | sin verificar | **contrastado** | RDL 6/2023 (boletín de la AEAT); manual 2025, deducciones autonómicas | 45 % solo si se donó a la misma entidad, al menos lo mismo, los dos años anteriores; límite del 10 % de la base liquidable; deducción autonómica propia de algunas comunidades, no calculada |
+| Compensación | sin verificar | **contrastado** | Manual 2025, caps. 11-12 (arts. 33.5.f y 49 LIRPF) | Compensación del 25 % con rendimientos del capital mobiliario; la regla de recompra afecta a «valores homogéneos» |
+| Retención | sin verificar | **contrastado** | Art. 88.5 RIRPF, según los modelos de solicitud de la Administración General del Estado | Cinco días de antelación; el tipo nuevo sigue en los años siguientes hasta renunciar por escrito. **Esto confirma la desviación de FIS-02**: pedirlo ahora rinde en 2027 sin volver a pedirlo en enero |
+| Vivienda | sin verificar | **sigue pendiente** | DT 18ª LIRPF; manual 2025, cap. 16 | El 15 % sobre 9.040 € se reparte entre tramo estatal y autonómico. El manual da un 7,5 % autonómico general en Cataluña (9 % en algunos casos), pero la ficha de la comunidad del hogar no se ha podido leer. `pending` lo dice en pantalla |
+
+**Qué cambia en la app.**
+- El motor (`canonical-year-end-tax.js`) lleva por parámetro `source`, `checked` y, si falta algo, `pending`, y cada acción los transporta.
+- La pantalla (`fiscal-campana-ui.js`) dice «Contrastado el 23 de octubre de 2026 con: …» o «Pendiente de contrastar… (qué falta)». Lo hace en cada acción y en «Parámetros que usa el cálculo».
+- Ninguna cifra calculada cambia: los cinco valores numéricos eran correctos.
+- Una prueba nueva impide marcar un parámetro como verificado sin fuente ni fecha, o dejarlo sin verificar sin decir qué falta.
+
+**Hallazgo fuera del alcance: deducción autonómica por el encarecimiento de la hipoteca variable.** El manual de 2025 recoge en la comunidad del hogar una deducción del 25 % sobre el exceso de intereses pagados respecto a los que habría con el Euribor de diciembre de 2022 (artículo 10 del texto refundido de tributos cedidos). Fuentes no oficiales le dan un tope de unos 300 € al año y un límite de renta de la unidad familiar. La hipoteca del hogar es variable (D1), así que puede aplicar. **No es una acción de diciembre**: se pide en la Renta. Por eso no entra en esta campaña. Queda como candidata para el paquete de la Renta (WP-21) o para el estimador de IRPF (A15-2), a decidir por el hogar.
+
+**Para cerrar vivienda:** abrir la ficha de la Agencia Tributaria del tramo autonómico de la deducción por inversión en vivienda habitual de la comunidad del hogar (Manual práctico de Renta 2025, Parte 2) y confirmar el porcentaje. Hay dos maneras: que el hogar lo mire (≈ 2 min) o permitir los servidores `sede.agenciatributaria.gob.es` y `www.boe.es` en la red del entorno de desarrollo.
+

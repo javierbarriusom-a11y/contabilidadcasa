@@ -12,8 +12,8 @@
   // Reglas de este motor, heredadas del estimador de IRPF (A15-2) y de las tablas fiscales (A15-5):
   //   · «sin dato = no calculable»: una acción a la que le falta un dato sale como `sin_dato` y dice cuál; nunca una cifra inventada.
   //   · Toda cifra es una ESTIMACIÓN. Los parámetros legales de abajo (límite de pensiones, tope de vivienda, tramos de donativos)
-  //     vienen del plan (docs/PLAN_DESARROLLO_DEFINITIVO.md §4.2) y están marcados `verified: false` hasta que se compruebe su fuente
-  //     oficial; la pantalla lo dice. Se pueden sustituir pasando `parameters`.
+  //     salieron del plan (docs/PLAN_DESARROLLO_DEFINITIVO.md §4.2); cada uno dice si ya está contrastado (`verified`), con qué fuente
+  //     (`source`) y qué le falta (`pending`), y la pantalla lo enseña. Se pueden sustituir pasando `parameters`.
   //   · Nunca ejecuta ni propone ejecutar nada solo (A11-4): recomienda, el hogar actúa.
   //   · Cada declarante tributa por separado (tributación individual): cada uno con su propio tope y sus propios datos.
 
@@ -31,16 +31,54 @@
   const DONE_SCHEMA_ID = "finance-wp23-fiscal-done/v1";
   const MAX_DONE_MARKS = 40;
 
-  // Parámetros legales por año. `verified: false` = tomado del plan, aún no contrastado con la fuente oficial (ni con la comunidad
-  // autónoma del hogar, que en vivienda y donativos puede cambiar el reparto). Los valores no se usan en silencio: viajan en el resultado.
+  // Parámetros legales por año. `verified: true` = contrastado con la fuente que dice `source` en la fecha `checked`; `verified: false` =
+  // tomado del plan y todavía sin contrastar (`pending` dice qué falta). Los valores no se usan en silencio: viajan en el resultado.
+  // Contraste del 23/10/2026: la tabla del ejercicio 2026 se comparó con el Manual práctico de Renta 2025 de la Agencia Tributaria (el del
+  // ejercicio 2025, el último publicado) y no se encontró ningún cambio aprobado para 2026. Las fuentes van como texto, sin enlace: el
+  // código publicado no nombra servidores que no estén revisados (NTC-06).
   const PARAMETERS = Object.freeze({
     2026: Object.freeze({
       year: 2026,
-      pension: { individualLimit: 1500, reference: "Límite general de aportación individual deducible a planes de pensiones; con plan de empresa el límite combinado es mayor y este motor no lo calcula.", verified: false },
-      housing: { ratePct: 15, annualCap: 9040, reference: "Deducción por vivienda habitual del régimen transitorio (compra anterior a 2013 con deducción aplicada): 15 % sobre un máximo de 9.040 € de cantidades pagadas al año por declarante. El reparto estatal/autonómico depende de la comunidad.", verified: false },
-      donations: { firstTierAmount: 250, firstTierRatePct: 80, restRatePct: 40, restRecurringRatePct: 45, reference: "Donativos a entidades acogidas a la Ley 49/2002: 80 % de los primeros 250 € por declarante y 40 % del resto (45 % si hay recurrencia).", verified: false },
-      compensation: { repurchaseMonths: 2, carryForwardYears: 4, reference: "Compensación de plusvalías con minusvalías del mismo año; en valores cotizados, recomprar los mismos valores en los dos meses anteriores o posteriores difiere la minusvalía.", verified: false },
-      withholding: { reference: "El trabajador puede pedir a la empresa un tipo de retención superior al que le corresponde con el modelo 145; nunca uno inferior.", verified: false },
+      pension: {
+        individualLimit: 1500,
+        reference: "Reducción de la base imponible por aportaciones a planes de pensiones: hasta 1.500 € al año por declarante, y nunca más del 30 % de sus rendimientos netos del trabajo y de actividades (con nóminas normales manda el límite de 1.500 €). Con plan de empresa el límite sube hasta 8.500 € más y este motor no lo calcula. Lo que no se pueda reducir este año se puede aplicar en los cinco siguientes.",
+        source: "Agencia Tributaria, Manual práctico de Renta 2025, capítulo 13: «Límites y exceso de aportaciones» (artículos 51 y 52 de la Ley del IRPF).",
+        checked: "2026-10-23",
+        verified: true,
+      },
+      housing: {
+        ratePct: 15,
+        annualCap: 9040,
+        reference: "Deducción por vivienda habitual del régimen transitorio (compra anterior a 2013 con deducción aplicada): 15 % sobre un máximo de 9.040 € de cantidades pagadas al año por declarante, repartido entre el tramo estatal y el autonómico.",
+        source: "Disposición transitoria decimoctava de la Ley del IRPF; Agencia Tributaria, Manual práctico de Renta 2025, capítulo 16.",
+        pending: "Falta confirmar en la fuente oficial el porcentaje del tramo autonómico de vuestra comunidad (en Cataluña, por ejemplo, el manual de la Agencia Tributaria da un 7,5 % general y un 9 % en algunos casos). Hasta entonces el cálculo usa el 15 % total.",
+        checked: "2026-10-23",
+        verified: false,
+      },
+      donations: {
+        firstTierAmount: 250,
+        firstTierRatePct: 80,
+        restRatePct: 40,
+        restRecurringRatePct: 45,
+        reference: "Donativos a entidades acogidas a la Ley 49/2002: 80 % de los primeros 250 € por declarante y 40 % del resto; 45 % si se donó a la misma entidad, al menos lo mismo, los dos años anteriores. La base de la deducción no puede pasar del 10 % de la base liquidable. Algunas comunidades suman una deducción propia (por ejemplo, la Comunidad de Madrid, un 15 % de lo donado a fundaciones inscritas en su registro) que este motor no calcula.",
+        source: "Real Decreto-ley 6/2023, que reformó los artículos 19 y 20 de la Ley 49/2002 desde el 1/1/2024 (Agencia Tributaria, boletín de novedades); Agencia Tributaria, Manual práctico de Renta 2025, deducciones autonómicas.",
+        checked: "2026-10-23",
+        verified: true,
+      },
+      compensation: {
+        repurchaseMonths: 2,
+        carryForwardYears: 4,
+        reference: "Las plusvalías y minusvalías del año se compensan entre sí; si queda saldo negativo, compensa hasta el 25 % de los rendimientos del capital mobiliario y el resto se arrastra 4 años. En valores cotizados, comprar valores homogéneos en los dos meses anteriores o posteriores a la venta impide computar la minusvalía hasta venderlos.",
+        source: "Agencia Tributaria, Manual práctico de Renta 2025, capítulos 11 y 12 (artículos 33.5.f y 49 de la Ley del IRPF).",
+        checked: "2026-10-23",
+        verified: true,
+      },
+      withholding: {
+        reference: "El trabajador puede pedir por escrito a su pagador un tipo de retención superior al que le corresponde, nunca uno inferior, con al menos cinco días de antelación a la nómina. El nuevo tipo se aplica como mínimo hasta fin de año y sigue en los años siguientes mientras no se renuncie por escrito o se pida otro.",
+        source: "Artículo 88.5 del Reglamento del IRPF, según lo reproducen los modelos de solicitud de la Administración General del Estado.",
+        checked: "2026-10-23",
+        verified: true,
+      },
     }),
   });
 
@@ -268,6 +306,9 @@
       hasSaving: definition.hasSaving,
       verified: Boolean(params[definition.param].verified),
       reference: params[definition.param].reference || "",
+      source: params[definition.param].source || "",
+      checked: params[definition.param].checked || "",
+      pending: params[definition.param].verified ? "" : params[definition.param].pending || "",
     };
   }
 

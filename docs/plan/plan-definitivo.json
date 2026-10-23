@@ -1930,10 +1930,25 @@
    "tipo": "ola"
   },
   {
+   "fecha": "2026-10-25",
+   "que": "Se levanta la congelación de Hoy; sus cambios entran de uno en uno, uno por semana",
+   "tipo": "decisión"
+  },
+  {
    "fecha": "2026-11-01",
    "que": "Arranque de la asignación personal",
    "tipo": "hogar",
    "wp": "WP-24"
+  },
+  {
+   "fecha": "2026-11-02",
+   "que": "Revisión de Funciones en prueba: diseño nuevo y Hoy",
+   "tipo": "gobierno"
+  },
+  {
+   "fecha": "2026-11-04",
+   "que": "Revisión de Funciones en prueba: Movimientos, Importar y Clasificar",
+   "tipo": "gobierno"
   },
   {
    "fecha": "2026-11-14",
@@ -2005,7 +2020,7 @@
   },
   {
    "id": "H-02",
-   "que": "Actualizar saldos y hacer la prueba cronometrada 3 veces",
+   "que": "Prueba cronometrada de Hoy: sustituida el 23/10 por la medición pasiva del medidor de utilidad (basta con usar Hoy)",
    "fecha": "2026-10-09",
    "para": [
     "WP-02"
@@ -2030,6 +2045,27 @@
    "ola": 1
   },
   {
+   "id": "H-22",
+   "que": "Importar el extracto de octubre de cada cuenta (Registrar › Importar extracto) y clasificar sus conceptos; si la lectura avisa de algo, copiar el diagnóstico",
+   "fecha": "2026-10-31",
+   "para": [
+    "WP-09",
+    "WP-36",
+    "WP-41",
+    "WP-51"
+   ],
+   "minutos": 20
+  },
+  {
+   "id": "H-26",
+   "que": "Cronometrar 3 veces en el iPhone cuánto tarda en cargar la app",
+   "fecha": "2026-10-31",
+   "para": [
+    "WP-52"
+   ],
+   "minutos": 5
+  },
+  {
    "id": "H-05",
    "que": "Primera transferencia de la asignación personal",
    "fecha": "2026-11-01",
@@ -2043,7 +2079,38 @@
    "que": "Cerrar octubre con saldo",
    "fecha": "2026-11-03",
    "para": [
-    "WP-09"
+    "WP-09",
+    "WP-46"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-23",
+   "que": "Actualizar saldos con «Coincide» / «Corregir» al menos 4 días por semana durante dos semanas",
+   "fecha": "2026-11-06",
+   "para": [
+    "WP-26",
+    "WP-45"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-24",
+   "que": "Confirmar la nómina de octubre desde la app y mandar el texto de una nómina con las cifras cambiadas",
+   "fecha": "2026-11-06",
+   "para": [
+    "WP-31",
+    "WP-47"
+   ],
+   "minutos": 10
+  },
+  {
+   "id": "H-25",
+   "que": "Actualizar la valoración de la cartera (la primera de tres, una al mes) y declarar tasa de retirada y titulares",
+   "fecha": "2026-11-06",
+   "para": [
+    "WP-15",
+    "WP-44"
    ],
    "minutos": 10
   },
@@ -2066,12 +2133,68 @@
    "minutos": 10
   },
   {
+   "id": "H-27",
+   "que": "Teclear el índice de precios de vivienda del último trimestre (y después, uno por trimestre)",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-50"
+   ],
+   "minutos": 5
+  },
+  {
+   "id": "H-28",
+   "que": "Exportar el CSV de operaciones de cada bróker e importarlo en el libro de operaciones",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-48",
+    "WP-15"
+   ],
+   "minutos": 15
+  },
+  {
+   "id": "H-29",
+   "que": "Declarar la certeza de los ingresos no seguros en Plan › Previsión",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-35"
+   ],
+   "minutos": 5
+  },
+  {
+   "id": "H-30",
+   "que": "Revisar el mapa anual de pagos grandes y decir si queréis un fondo por pago",
+   "fecha": "2026-11-13",
+   "para": [
+    "WP-49"
+   ],
+   "minutos": 5
+  },
+  {
    "id": "H-09",
    "que": "Mirar «Novedades» y el panel de uso: revisión de la Ola 2",
    "fecha": "2026-11-20",
    "para": [],
    "minutos": 5,
    "ola": 2
+  },
+  {
+   "id": "H-31",
+   "que": "Pedir el informe de la CIRBE de cada persona y teclear sus operaciones",
+   "fecha": "2026-11-20",
+   "para": [
+    "WP-40"
+   ],
+   "minutos": 20
+  },
+  {
+   "id": "H-32",
+   "que": "Anotar a mano los gastos de una semana de noviembre e importar después el extracto de ese periodo",
+   "fecha": "2026-11-20",
+   "para": [
+    "WP-53",
+    "WP-30"
+   ],
+   "minutos": 10
   },
   {
    "id": "H-10",
@@ -2083,13 +2206,34 @@
    "minutos": 5
   },
   {
+   "id": "H-33",
+   "que": "Contestar 10 avisos de anomalías del extracto y de deuda en la sombra",
+   "fecha": "2026-11-30",
+   "para": [
+    "WP-36",
+    "WP-41"
+   ],
+   "minutos": 10
+  },
+  {
    "id": "H-11",
    "que": "Cerrar noviembre con saldo",
    "fecha": "2026-12-03",
    "para": [
-    "WP-09"
+    "WP-09",
+    "WP-43",
+    "WP-46"
    ],
    "minutos": 10
+  },
+  {
+   "id": "H-13",
+   "que": "Proponer 5 personas para la prueba de usabilidad (opcional)",
+   "fecha": "2026-12-15",
+   "para": [
+    "WP-54"
+   ],
+   "minutos": 5
   },
   {
    "id": "H-12",
@@ -2100,15 +2244,6 @@
     "WP-38"
    ],
    "minutos": 30
-  },
-  {
-   "id": "H-13",
-   "que": "Proponer 5 personas para la prueba de usabilidad (opcional)",
-   "fecha": "2026-12-15",
-   "para": [
-    "WP-54"
-   ],
-   "minutos": 5
   },
   {
    "id": "H-14",
@@ -2125,7 +2260,9 @@
    "fecha": "2027-01-03",
    "para": [
     "WP-09",
-    "WP-29"
+    "WP-29",
+    "WP-43",
+    "WP-46"
    ],
    "minutos": 10
   },
@@ -2188,11 +2325,11 @@
  "metricas": [
   {
    "id": "M-HOY",
-   "nombre": "Tiempo hasta la cifra de Hoy",
+   "nombre": "Tiempo hasta la primera acción en Hoy",
    "objetivo": 15,
    "unidad": "s",
    "sentido": "menor",
-   "detalle": "Mediana, misma cifra que la app, saldos del día",
+   "detalle": "Mediana medida sola por el medidor de utilidad desde el 22/10 (sustituye a la prueba cronometrada por decisión del 23/10)",
    "wp": "WP-02"
   },
   {

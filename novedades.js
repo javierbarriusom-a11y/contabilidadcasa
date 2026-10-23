@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-23-cierre-movil",
+      fecha: "2026-10-23",
+      texto: "Cierre en el móvil: en «Conciliar cuentas» cada cuenta se lee en su bloque. Antes las cifras se montaban unas sobre otras.",
+      href: "#cierre",
+    },
+    {
+      id: "2026-10-23-wp23-fuentes",
+      fecha: "2026-10-23",
+      texto: "Campaña fiscal: cada acción dice con qué fuente oficial se comprobó. Vivienda aún espera confirmar el tramo autonómico.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-22-xgo02-medidor",
       fecha: "2026-10-22",
       texto: "Medidor de utilidad: cuánto usáis cada función nueva y si actuáis con ella. En Uso de la app y junto a cada función en prueba.",
