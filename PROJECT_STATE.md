@@ -141,7 +141,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Novedades:** dos líneas (fuentes de la campaña fiscal y cierre en el móvil).
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6115/6115, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
-  - Playwright (e2e, axe y rendimiento por pantalla): en ejecución al hacer el primer commit; la cifra final va en el siguiente.
+  - Playwright (e2e, axe y rendimiento por pantalla): **212/212** (+2, las del ensayo del cierre a 390 y 1440 px).
 - **Revisión mensual de Nielsen:** no vencida (última el 15/10; vence el 14/11).
 
 ## Cierre de sesión — 22 de octubre de 2026 (341): XGO-02 — Medidor de utilidad
