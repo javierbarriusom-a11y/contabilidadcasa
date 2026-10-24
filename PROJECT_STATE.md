@@ -137,7 +137,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - E2E: el recorrido completo a 390 y 1440 px, la ida y vuelta a Importar con descarte al cerrar a medias, y la puerta del cambio de Hoy (24/10 frente a 26/10).
   - Axe del repaso en claro y en oscuro × 390 y 1440, y de la bandeja de Movimientos.
   - Las pruebas de WP-14/27 en Hoy pasan al tema clásico.
-- **Validación:** `npm run verify` en verde: 6128 de 6128 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): en curso.
+- **Validación:** `npm run verify` en verde: 6128 de 6128 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 225 de 225 en verde (14,2 min).
 
 ## Cierre de sesión — 24 de octubre de 2026 (345): plurales y decimales unificados en toda la app
 
