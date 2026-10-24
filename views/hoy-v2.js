@@ -282,6 +282,27 @@ function hoyV2Esperados() {
   </button>`;
 }
 
+// Hoy, cambio 2 (semana del 1/11/2026, uno por semana; BACKLOG_DEFINITIVO.md §4): la entrada al Repaso semanal
+// (views/repaso-v2.js). Solo sale mientras el repaso de esta semana (lunes a domingo) está por hacer: hecho, no ocupa
+// pantalla, y el repaso sigue a mano en Movimientos. Se publica antes con puerta de fecha, como el cambio 1.
+const HOY_V2_REPASO_DESDE = "2026-11-01";
+
+function hoyV2Repaso(hoy = isoLocalDate(new Date())) {
+  if (hoy < HOY_V2_REPASO_DESDE || typeof globalThis.repasoV2Open !== "function") return "";
+  const resumen = globalThis.FinanceRepaso?.resumen?.();
+  const ultimo = resumen?.ultimo;
+  if (ultimo && globalThis.FinanceRepaso?.mismaSemana?.(ultimo.date, hoy)) return "";
+  const dias = ultimo ? Math.round((new Date(`${hoy}T12:00:00`) - new Date(`${ultimo.date}T12:00:00`)) / 86400000) : null;
+  const detalle = ultimo
+    ? `El último, hace ${dias} ${dias === 1 ? "día" : "días"}, en ${Math.max(1, Math.round(ultimo.seconds / 60))} min.`
+    : "Saldos, extracto, lo que vino y la bandeja, en orden.";
+  return `<button type="button" class="hoy-v2-pending hoy-v2-repaso" data-hoy-v2-repaso>
+    <span class="hoy-v2-dot" aria-hidden="true"></span>
+    <span><strong>Repaso de esta semana · unos 5 min</strong><br>${escapeHtml(detalle)}</span>
+    <span aria-hidden="true">›</span>
+  </button>`;
+}
+
 // «+ Apuntar gasto» abre exactamente lo mismo que «+ Registrar gasto» de la Hoy de siempre (la hoja de compras
 // con tarjeta o el formulario rápido), y hereda de él si se puede usar: sin mes abierto con bloques de gasto
 // queda desactivado y dice por qué, en vez de no hacer nada al pulsarlo.
@@ -326,6 +347,11 @@ function hoyV2BindOnce(root) {
       hoyV2PaintedAt = null;
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
     }
+    const repaso = event.target.closest("[data-hoy-v2-repaso]");
+    if (repaso) {
+      globalThis.repasoV2Open?.(repaso);
+      return;
+    }
     if (event.target.closest("[data-hoy-v2-expense]")) {
       qs("homeQuickExpenseOpen")?.click();
       return;
@@ -359,6 +385,7 @@ function hoyV2Render(model) {
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, coverage })}
         ${hoyV2Decisions(model.todayRead, model.decisions)}
+        ${hoyV2Repaso()}
         ${hoyV2Esperados()}
       </div>
       <div class="hoy-v2-side">
