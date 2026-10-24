@@ -94,7 +94,7 @@ function newLifePriorityDecision(ctx) {
     return {
       tone: "warn",
       eyebrow: "Ruta ya simulada",
-      title: `Revisar ${ctx.debtSummary.count} paso(s) de deuda antes de fijar`,
+      title: `Revisar ${ctx.debtSummary.count} ${ctx.debtSummary.count === 1 ? "paso" : "pasos"} de deuda antes de fijar`,
       text: `La ruta cargada impacta cuadro de mandos y flujo hasta ${ctx.debtSummary.lastMonth}. Fija solo los acuerdos cerrados; retira lo que sea prueba.`,
       target: "visual-detail",
       label: "Ver impacto",
@@ -105,7 +105,7 @@ function newLifePriorityDecision(ctx) {
       tone: "warn",
       eyebrow: "Siguiente decisión",
       title: "Simular la ruta completa de deuda",
-      text: `${ctx.debtOptimization.steps.length} paso(s), ${money(ctx.debtOptimization.totalPrincipal, true)} pactados hasta ${ctx.debtOptimization.lastMonth}. Es el criterio maestro antes de decidir coche.`,
+      text: `${ctx.debtOptimization.steps.length} ${ctx.debtOptimization.steps.length === 1 ? "paso" : "pasos"}, ${money(ctx.debtOptimization.totalPrincipal, true)} pactados hasta ${ctx.debtOptimization.lastMonth}. Es el criterio maestro antes de decidir coche.`,
       action: "simulate-route",
       label: "Simular ruta",
     };
@@ -157,7 +157,7 @@ function renderNewLifeKpis(ctx) {
     ["Reserva CaixaBank", money(ctx.plan.caixaFloor, true), "Límite mínimo configurable antes de traspasar o ejecutar decisiones."],
     ["Traspaso prudente hoy", money(ctx.immediateTransfer?.amount || 0, true), ctx.immediateTransfer?.needsReview ? "Pendiente de confirmar saldo real." : "Solo si cubre pagos del mes siguiente."],
     ["Coche: colchón pendiente", money(ctx.carReserveGap, true), ctx.carReserveMonth?.month ? `Objetivo alcanzable en ${ctx.carReserveMonth.month}.` : "Aún no alcanzado en el horizonte."],
-    ["Deuda potencial a atacar", money(routeDebt, true), ctx.debtSummary ? `${ctx.debtSummary.count} paso(s), hasta ${ctx.debtSummary.lastMonth}.` : "Sin ruta calculada."],
+    ["Deuda potencial a atacar", money(routeDebt, true), ctx.debtSummary ? `${ctx.debtSummary.count} ${ctx.debtSummary.count === 1 ? "paso" : "pasos"}, hasta ${ctx.debtSummary.lastMonth}.` : "Sin ruta calculada."],
     ["Caja mínima 12m", money(ctx.minCaixaRow?.agentCaixa || 0, true), minLabel],
     ["Capacidad libre media", money(ctx.capacity.avgTransfer12m || 0, true), "Media 12m tras gastos, deuda, proyectos y ahorro objetivo."],
   ];
@@ -181,7 +181,7 @@ function renderNewLifeActions(ctx) {
       rank: 2,
       tone: "warn",
       title: "Ruta de deuda en modo prueba",
-      text: `${ctx.debtSummary.count} impacto(s) están incluidos en saldos. Fija acuerdos cerrados o retira la simulación antes de presentar el plan.`,
+      text: `${ctx.debtSummary.count} ${ctx.debtSummary.count === 1 ? "impacto está incluido" : "impactos están incluidos"} en saldos. Fija acuerdos cerrados o retira la simulación antes de presentar el plan.`,
       action: "clear-route",
       label: "Retirar prueba",
     });
@@ -201,7 +201,7 @@ function renderNewLifeActions(ctx) {
     title: "Decidir coche sin romper caja",
     text: ctx.safeCredit
       ? `La financiación de Tere parece prudente con cuota ${money(ctx.settings.tereCreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%.`
-      : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithTere.toFixed(1)}% y límite prudente 32%.`,
+      : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% y límite prudente 32%.`,
     action: ctx.safeCredit ? "tere-credit" : "car-project",
     label: ctx.safeCredit ? "Simular crédito" : "Preparar hucha",
   });
@@ -287,7 +287,7 @@ function renderNewLifeScenarios(ctx) {
       main: money(ctx.settings.tereCreditCapital, true),
       rows: [
         ["Cuota", `${money(ctx.settings.tereCreditPayment, true)}/mes`],
-        ["Ratio deuda", `${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%`],
+        ["Ratio deuda", `${ctx.debtRatio.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% -> ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`],
         ["Mes coche", ctx.carWithCreditMonth?.month || "No alcanzado"],
       ],
     },

@@ -70,8 +70,8 @@ function renderCanonicalEngineStatus() {
   qs("canonicalEngineParitySummary").textContent = !diagnosticRuns.length
     ? "Diagnóstico histórico no ejecutado. El motor canónico sigue siendo la única fuente de cálculo."
     : differences.length
-      ? `${differences.length} diferencia(s) en la referencia diagnóstica; la fuente sigue siendo canónica.`
-      : `${diagnosticRuns.length} escenario(s) comparado(s), sin diferencias por encima de 0,02 €.`;
+      ? `${differences.length} ${differences.length === 1 ? "diferencia" : "diferencias"} en la referencia diagnóstica; la fuente sigue siendo canónica.`
+      : `${diagnosticRuns.length} ${diagnosticRuns.length === 1 ? "escenario comparado" : "escenarios comparados"}, sin diferencias por encima de 0,02 €.`;
   const comparisonValue = (value, difference) => difference.delta == null
     ? escapeHtml(String(value ?? "-"))
     : money(value, true);
@@ -182,10 +182,10 @@ function renderReconciliation() {
   const balancesContinuous = Number(quality.balanceGapCount || 0) === 0;
   const actualsReconciled = months.length > 0 && months.every((row) => row.status === "matched");
   qs("ledgerInvariantSummary").innerHTML = [
-    renderLedgerInvariant("Sin duplicados", uniqueUsable, uniqueUsable ? "Cada movimiento se contabiliza una sola vez." : `${quality.duplicateCount} duplicado(s) se excluyen de los totales.`),
-    renderLedgerInvariant("Clasificación completa", fullyMapped, fullyMapped ? "Todos los movimientos tienen una partida canónica." : `${quality.unclassifiedCount} movimiento(s) requieren decisión.`),
-    renderLedgerInvariant("Continuidad del saldo", balancesContinuous, balancesContinuous ? "Los saldos del extracto siguen la aritmética bancaria." : `${quality.balanceGapCount} salto(s) necesitan revisar orden o filas ausentes.`),
-    renderLedgerInvariant("Banco igual a real", actualsReconciled, actualsReconciled ? "Los meses importados coinciden con los reales capturados." : `${months.length - balancedMonths} mes(es) tienen diferencias o clasificación pendiente.`),
+    renderLedgerInvariant("Sin duplicados", uniqueUsable, uniqueUsable ? "Cada movimiento se contabiliza una sola vez." : `${quality.duplicateCount} ${quality.duplicateCount === 1 ? "duplicado se excluye" : "duplicados se excluyen"} de los totales.`),
+    renderLedgerInvariant("Clasificación completa", fullyMapped, fullyMapped ? "Todos los movimientos tienen una partida canónica." : `${quality.unclassifiedCount} ${quality.unclassifiedCount === 1 ? "movimiento requiere" : "movimientos requieren"} decisión.`),
+    renderLedgerInvariant("Continuidad del saldo", balancesContinuous, balancesContinuous ? "Los saldos del extracto siguen la aritmética bancaria." : `${quality.balanceGapCount} ${quality.balanceGapCount === 1 ? "salto necesita" : "saltos necesitan"} revisar orden o filas ausentes.`),
+    renderLedgerInvariant("Banco igual a real", actualsReconciled, actualsReconciled ? "Los meses importados coinciden con los reales capturados." : `${months.length - balancedMonths} ${(months.length - balancedMonths) === 1 ? "mes tiene" : "meses tienen"} diferencias o clasificación pendiente.`),
   ].join("");
   renderCanonicalEngineStatus();
   renderCanonicalDailyEngineStatus();
@@ -229,7 +229,7 @@ function renderReconciliation() {
   qs("ledgerBalanceChecks").innerHTML = checks.length
     ? checks.map((check) => `<div class="ledger-balance-item ${check.gaps.length ? "warning" : "passed"}">
         <div><strong>${escapeHtml(check.accountId)}</strong><span>${check.transactionCount} movimientos · orden ${check.orientation === "newest-first" ? "más reciente primero" : "más antiguo primero"}</span></div>
-        <div><strong>${check.gaps.length} salto(s)</strong><span>Error acumulado ${money(check.totalError, true)}</span></div>
+        <div><strong>${check.gaps.length} ${check.gaps.length === 1 ? "salto" : "saltos"}</strong><span>Error acumulado ${money(check.totalError, true)}</span></div>
       </div>`).join("")
     : `<div class="audit-empty"><strong>Sin saldos bancarios</strong><p>El extracto no contiene saldo posterior para comprobar continuidad.</p></div>`;
 

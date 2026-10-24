@@ -157,7 +157,7 @@ function sandboxBulkBar({ selected = [0, 1], mapped = () => null } = {}) {
 test("M-8 · con selección homogénea (todo gasto), la barra se muestra con el recuento y habilita el selector de partida", () => {
   const { els } = sandboxBulkBar({ selected: [0, 1] });
   assert.equal(els.movementsBulkBar.hidden, false);
-  assert.match(els.movementsBulkCount.textContent, /2 movimiento\(s\) seleccionados · 1 concepto\(s\) distinto\(s\)/);
+  assert.match(els.movementsBulkCount.textContent, /2 movimientos seleccionados · 1 concepto distinto/);
   assert.equal(els.movementsBulkPartida.disabled, false);
   assert.match(els.movementsBulkPartida.innerHTML, /x-expense/);
 });
@@ -172,7 +172,7 @@ test("M-8 · mezclar ingresos y gastos en la selección bloquea el selector con 
 
 test("M-8 · si algún concepto seleccionado ya tenía partida, la nota avisa de que se sobrescribirá", () => {
   const { els } = sandboxBulkBar({ selected: [0, 1], mapped: (row) => (row.movement === "MERCADONA" ? { row: {} } : null) });
-  assert.match(els.movementsBulkNote.textContent, /ya tenían otra partida asignada: se sobrescribirá/);
+  assert.match(els.movementsBulkNote.textContent, /ya tenía otra partida asignada: se sobrescribirá/);
 });
 
 test("M-8 · sin partida ya asignada, la nota explica que la regla también cubre movimientos futuros", () => {
@@ -361,7 +361,7 @@ test("M-8 · aplicar el lote sigue exactamente la misma secuencia de refresco qu
     "saveIncomeActuals",
     "saveExpenseActuals",
     "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "1 concepto(s) (2 movimiento(s)) reclasificados a «Gastos fijos · Alimentación». 4 importe(s) reales recalculados desde movimientos."],
+    ["announceStatus", "1 concepto (2 movimientos) reclasificado a «Gastos fijos · Alimentación». 4 importes reales recalculados desde movimientos."],
     "renderDetailedMovements",
   ]);
 });
@@ -513,7 +513,7 @@ test("DEX10 · solo tipo de acción (sin partida): escribe movementActionTypes, 
   assert.ok(calls.includes("saveMovementActionTypes"));
   assert.ok(!calls.includes("saveMovementMappings"));
   assert.ok(!calls.includes("applyMovementMappingsToActuals"), "sin partida, no hay reales que recalcular");
-  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto(s) (2 movimiento(s)) tipo de acción asignado como «Pago de deuda»."]);
+  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto (2 movimientos) tipo de acción asignado como «Pago de deuda»."]);
 });
 
 test("DEX10 · partida y tipo de acción a la vez: escribe los dos diccionarios en el mismo lote", () => {
@@ -533,5 +533,5 @@ test("DEX10 · ni partida ni tipo de acción elegidos: aplicar no hace nada", ()
 
 test("DEX10 · el mensaje de partida sola es exactamente el mismo texto que antes de esta tarea (cero regresión de copy)", () => {
   const { calls } = sandboxBulkApplyWithActionType({ selected: [0, 1], partidaValue: "gastos-alimentacion" });
-  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto(s) (2 movimiento(s)) reclasificados a «Gastos fijos · Alimentación». 4 importe(s) reales recalculados desde movimientos."]);
+  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto (2 movimientos) reclasificado a «Gastos fijos · Alimentación». 4 importes reales recalculados desde movimientos."]);
 });

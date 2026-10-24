@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-24-plurales-decimales",
+      fecha: "2026-10-24",
+      texto: "Toda la app escribe «1 movimiento» y «3 movimientos», no «movimiento(s)», y los decimales con coma: «2,9 meses», «18,9%».",
+      href: "#home",
+    },
+    {
       id: "2026-10-24-fechas-legibles",
       fecha: "2026-10-24",
       texto: "Fechas que se leen a la primera: «19 oct» o «8 ene 2027», no «19 oct 26». La fecha libre de deuda dice el año entero.",

@@ -145,7 +145,7 @@ function baseCeroPendingBanner() {
   const counts = typeof visualPendingCounts === "function" ? visualPendingCounts() : { cells: 0, deletes: 0, labels: 0 };
   const total = counts.cells + counts.deletes + counts.labels;
   if (!total) return "";
-  return `<div class="bc-pendiente" role="group" aria-label="Cambios preparados"><p><strong>${total} cambio(s) preparado(s) en el plan</strong> (importes: ${counts.cells}, borrados: ${counts.deletes}). No cuentan hasta que se guardan; los ves en la tabla de más abajo.</p><div class="bc-acciones"><button type="button" class="e19-btn e19-btn-primary" data-bc="guardar">Guardar los cambios</button><button type="button" class="e19-btn e19-btn-secondary" data-bc="descartar">Descartar</button></div></div>`;
+  return `<div class="bc-pendiente" role="group" aria-label="Cambios preparados"><p><strong>${total} ${total === 1 ? "cambio preparado" : "cambios preparados"} en el plan</strong> (importes: ${counts.cells}, borrados: ${counts.deletes}). No cuentan hasta que se guardan; los ves en la tabla de más abajo.</p><div class="bc-acciones"><button type="button" class="e19-btn e19-btn-primary" data-bc="guardar">Guardar los cambios</button><button type="button" class="e19-btn e19-btn-secondary" data-bc="descartar">Descartar</button></div></div>`;
 }
 
 function baseCeroBodyHtml(model) {
@@ -153,7 +153,7 @@ function baseCeroBodyHtml(model) {
   const { total, reviewed, pending } = model.progress;
   const intro = `<p class="e19-kpi-note">Una vez al año, mirad <strong>cada partida con lo que de verdad pasó</strong> y decidid: <strong>mantener</strong>, <strong>ajustar a lo real</strong> o <strong>quitar</strong>. Se empieza por las que más pesan y lo hecho se guarda al momento: podéis dejarlo y seguir otro día. <strong>Ajustar</strong> y <strong>quitar</strong> solo <strong>preparan</strong> el cambio: no cuenta hasta que lo guardáis.</p>`;
   const coverage = model.coveredMonths < 3 ? `<p class="bc-nota bc-aviso">Solo hay reales anotados en <strong>${model.coveredMonths}</strong> de los últimos ${model.windowMonths.length} meses: casi ninguna partida tendrá una propuesta de ajuste. Anotar los reales de cada mes (Registrar › Reales del mes) es lo que hace útil esta revisión.</p>` : "";
-  const dormant = model.dormant ? `<p class="bc-nota">${model.dormant} partida(s) sin importe previsto y sin ningún real no entran en la revisión: no hay nada que decidir sobre ellas.</p>` : "";
+  const dormant = model.dormant ? `<p class="bc-nota">${model.dormant} ${model.dormant === 1 ? "partida sin importe previsto y sin ningún real no entra" : "partidas sin importe previsto y sin ningún real no entran"} en la revisión: no hay nada que decidir sobre ellas.</p>` : "";
   const progress = `<p class="bc-progreso"><progress max="${total}" value="${reviewed}" aria-label="Partidas revisadas">${reviewed} de ${total}</progress> <span>${reviewed} de ${total} revisadas${pending ? `, ${pending} por revisar` : ""}</span></p>`;
   const current = baseCeroCurrent(model);
   let main;
@@ -221,7 +221,7 @@ function handleBaseCeroClick(event) {
   else if (action === "ajustar" && item && item.suggestion.type) {
     const staged = baseCeroStageAdjust({ ...item, futureMonths: baseCeroCollect().partidas.find((partida) => partida.key === item.key)?.futureMonths || [] });
     baseCeroDecide(item, "ajustar", { from: item.plannedNow, to: item.suggestion.amount });
-    baseCeroState.notice = `«${item.label}»: preparado ${money(item.suggestion.amount, true)} al mes en ${staged} mes(es). Guárdalo para que cuente.`;
+    baseCeroState.notice = `«${item.label}»: preparado ${money(item.suggestion.amount, true)} al mes en ${staged} ${staged === 1 ? "mes" : "meses"}. Guárdalo para que cuente.`;
     if (typeof renderPartidasGestionBlocks === "function") renderPartidasGestionBlocks();
   } else if (action === "quitar" && item && !item.locked) {
     handlePartidasDeleteRow(item.key);

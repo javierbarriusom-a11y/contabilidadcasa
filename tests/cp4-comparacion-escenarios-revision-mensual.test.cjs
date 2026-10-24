@@ -75,7 +75,7 @@ test("e15ScenarioComparisonHtml pinta las tres lecturas con caja mínima y meses
   const context = sandbox(["e15ScenarioComparisonHtml"]);
   const html2 = context.e15ScenarioComparisonHtml([{ label: "Tensión", minChecking: -200, negativeMonths: 2 }]);
   assert.match(html2, /Tensión/);
-  assert.match(html2, /2 mes\(es\) en negativo/);
+  assert.match(html2, /2 meses en negativo/);
 });
 
 test("registrar revisión guarda la fotografía de escenarios dentro del propio registro de A10-5", () => {

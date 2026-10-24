@@ -107,7 +107,7 @@ test("D6 · deb4BenchmarkFreshnessText avisa según hace cuántos meses se actua
   const recentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const fresh = context.deb4BenchmarkFreshnessText({ benchmarkUpdatedAt: recentKey, benchmarkMode: "euribor" });
   assert.match(fresh, /Euribor \+ diferencial/);
-  assert.match(fresh, /hace 0 mes\(es\)\./);
+  assert.match(fresh, /hace 0 meses\./);
   assert.doesNotMatch(fresh, /warning/);
 
   const staleDate = new Date(now.getFullYear(), now.getMonth() - 4, 1);

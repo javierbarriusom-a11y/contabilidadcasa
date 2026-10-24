@@ -112,7 +112,7 @@ test("renderT12HistoricalComparison · calcula mejor, peor y media, y las marca 
   assert.equal(card.hidden, false);
   assert.match(summary.innerHTML, /Mejor mes.*300€.*mes-2025-02/s);
   assert.match(summary.innerHTML, /Peor mes.*-200€.*mes-2025-01/s);
-  assert.match(summary.innerHTML, /Media de los últimos 3 mes\(es\).*67€/s);
+  assert.match(summary.innerHTML, /Media de los últimos 3 meses.*67€/s);
   // El mes más reciente (2025-03, 100€) está por encima de la media (67€).
   assert.match(summary.innerHTML, /por encima de tu propia media/);
   assert.match(band.innerHTML, /is-worst/);

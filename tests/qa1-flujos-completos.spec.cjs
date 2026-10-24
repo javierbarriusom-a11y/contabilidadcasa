@@ -258,7 +258,7 @@ test.describe("QA-1 · editor de series en Planificación de partidas", () => {
     await page.click("#applySeriesChange");
 
     await expect(page.locator("#seriesEditorLog")).toContainText("Serie actualizada");
-    await expect(page.locator("#seriesEditorLog")).toContainText("3 mes(es) modificados");
+    await expect(page.locator("#seriesEditorLog")).toContainText("3 meses modificados");
     const planned = await page.evaluate(() => Object.values(seriesOverrides).filter((value) => value.planned === 123.45).length);
     expect(planned).toBe(3);
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
@@ -378,7 +378,7 @@ test.describe("QA-1 · deshacer un lote importado desde Registrar", () => {
     await page.fill("#registrarBatchInput", `tipo;mes;bloque;concepto;previsto;real\ngasto;1999-01;${target.section};QA1 fuera de rango;77;0`);
     await page.click("#registrarBatchImportBtn");
     await page.click("#confirmRegistrarBatchImport");
-    await expect(page.locator("#registrarBatchLog")).toContainText("0 registro(s) importado(s)");
+    await expect(page.locator("#registrarBatchLog")).toContainText("0 registros importados");
     await expect(page.locator("#registrarBatchLog")).toContainText("Mes no reconocido: 1999-01");
     await expect(page.locator("#dataInboxSummary")).toContainText("Descartada");
     expect(await page.evaluate(() => importBatches.length)).toBe(0);
@@ -1534,7 +1534,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       const card = page.locator("#recordatoriosCard");
-      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
       await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(6);
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
@@ -1575,7 +1575,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const card = page.locator("#recordatoriosCard");
-    await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+    await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
     await expect(card.locator("#recordatoriosResumen"), "sin informe tecleado no se inventa un aviso").not.toContainText("aviso de la CIRBE");
     await page.evaluate(() => {
       const d = new Date(); d.setDate(d.getDate() - 340);
@@ -3886,8 +3886,8 @@ test.describe("WP-51 · perfiles de extracto", () => {
       await subir(page, "extracto-titulado.csv", TITULADO);
       const panel = page.locator("#registrarImportPanel .epf");
       await expect(panel).toBeVisible({ timeout: 15000 });
-      await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
-      await expect(panel).toContainText("3 movimiento(s) leídos");
+      await expect(page.locator("#registrarImportPanel")).toContainText("3 movimientos");
+      await expect(panel).toContainText("3 movimientos leídos");
       await expect(panel).toContainText("Ninguna fecha decide entre día/mes y mes/día");
       await expect(panel.locator(".epf-previa tbody tr")).toHaveCount(3);
       await expect(page.locator("#registrarImportPanel")).toContainText("del 03/04/2026 al 07/06/2026");
@@ -3943,9 +3943,9 @@ test.describe("WP-51 · perfiles de extracto", () => {
       await panel.locator(`[data-epf-ajuste="col-${index}"]`).selectOption(role);
       if (index < 3) await expect(page.locator(`#registrarImportPanel [data-epf-ajuste="col-${index + 1}"]`)).toBeVisible();
     }
-    await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
+    await expect(page.locator("#registrarImportPanel")).toContainText("3 movimientos");
     await expect(page.locator("#registrarImportPanel .epf")).toContainText("Fila 3: importe no reconocido");
-    await expect(page.locator("#registrarImportPanel .epf")).toContainText("1 fila(s) sin leer");
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("1 fila sin leer");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, "sin desbordar a 390 px").toBeLessThanOrEqual(1);
     expect(pageErrors).toEqual([]);
@@ -4005,7 +4005,7 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
       await fila.locator('[data-datos-importar-duplicate="misma"]').click();
       await expect(page.locator("#registrarImportPanel")).toContainText("No hay candidatos a duplicado sin resolver"); // decidida, sale de la lista
     });
-    await expect(page.locator("#registrarImportPanel")).toContainText("1 captura(s) a mano sustituida(s) por su fila del banco");
+    await expect(page.locator("#registrarImportPanel")).toContainText("1 captura a mano sustituida por su fila del banco");
     expect(await captured(), "la captura se fue").toBe(0);
     const rows = await page.evaluate(() => (baseData.transactions || []).map((item) => `${item.date}|${item.amount}|${item.movement}`));
     expect(rows.filter((row) => row.includes("MERCADONA"))).toHaveLength(1); // sólo la del banco
@@ -4141,7 +4141,7 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
     await abrirAsistenteDeSiempre(page);
     await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
     await page.setInputFiles("#registrarImportFileInput", { name: "extracto-demo.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
-    await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimiento(s) leídos", { timeout: 15000 });
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimientos leídos", { timeout: 15000 });
     await page.selectOption("#registrarImportAccount", "CaixaBank");
     await page.$eval("#registrarImportNext", (button) => button.click());
     for (let index = 0; index < 20; index += 1) {
@@ -4333,11 +4333,11 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     const planned = (month) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), month);
     expect(await planned("2027-02")).toBe(750);
     await adjust.click();
-    await expect(body).toContainText(/36 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText(/36 cambios preparados en el plan/);
     await expect(body).toContainText("ajuste preparado, sin guardar");
     expect(await planned("2027-02"), "preparar no cambia el plan guardado").toBe(750);
     await body.locator('[data-bc="guardar"]').click();
-    await expect(body).not.toContainText("cambio(s) preparado(s)");
+    await expect(body).not.toContainText(/cambios? preparados? en el plan/);
     expect(await planned("2027-02")).toBe(868);
     expect(await planned("2029-12")).toBe(868);
     expect(await planned("2026-12"), "un mes ya pasado no se toca").toBe(750);
@@ -4354,7 +4354,7 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     await expect(body.locator("#bcTitulo")).toHaveText("Servicios");
     const exists = () => page.evaluate(() => planningSectionsForMonth("expense", cuadroMandosAllMonths().find((month) => month.key === "2027-02")).some((section) => section.rows.some((row) => displayLabelForRow(row) === "Servicios")));
     await body.locator('[data-bc="quitar"]').click();
-    await expect(body).toContainText(/1 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText(/1 cambio preparado en el plan/);
     await expect(body).toContainText("borrado preparado, sin guardar");
     expect(await exists(), "preparar no borra").toBe(true);
     await body.locator('[data-bc="descartar"]').click();

@@ -91,10 +91,10 @@ function expectedItemText(item) {
   const dateText = displayShortDate(item.expectedDate);
   const late = `${item.daysLate} día${item.daysLate === 1 ? "" : "s"} de retraso`;
   if (item.kind === "income") {
-    return `Se esperaba el ${dateText} (${late}) · previsto ${money(item.plannedAmount, true)}.${item.snoozeCount ? ` Llevas ${item.snoozeCount} aplazamiento(s).` : ""}`;
+    return `Se esperaba el ${dateText} (${late}) · previsto ${money(item.plannedAmount, true)}.${item.snoozeCount ? ` Llevas ${item.snoozeCount} ${item.snoozeCount === 1 ? "aplazamiento" : "aplazamientos"}.` : ""}`;
   }
   const history = item.history.length ? ` Últimos cargos: ${item.history.map((point) => displayShortDate(point.date)).join(", ")}.` : "";
-  return `Solía cargarse hacia el ${dateText} (${late}) · ${money(item.plannedAmount, true)}.${history}${item.snoozeCount ? ` Llevas ${item.snoozeCount} aplazamiento(s).` : ""} Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.`;
+  return `Solía cargarse hacia el ${dateText} (${late}) · ${money(item.plannedAmount, true)}.${history}${item.snoozeCount ? ` Llevas ${item.snoozeCount} ${item.snoozeCount === 1 ? "aplazamiento" : "aplazamientos"}.` : ""} Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.`;
 }
 
 // Lo que se suma a la bandeja única de Hoy (`decisionInboxItems`).
@@ -170,7 +170,7 @@ function answerExpectedMovement(itemId, response, typedAmount = null) {
     const applied = expectedApplyDeleteFrom(resolved.effect);
     if (!applied) { announceStatus("No se encontró la partida; revísala en Registrar el mes."); return; }
     saveSeriesOverrides();
-    message = `«${item.label}» anulado desde ${ledgerMonthLabel(resolved.effect.fromMonth)}: ${applied.count} mes(es) menos en la previsión.`;
+    message = `«${item.label}» anulado desde ${ledgerMonthLabel(resolved.effect.fromMonth)}: ${applied.count} ${applied.count === 1 ? "mes" : "meses"} menos en la previsión.`;
     undo = () => { applied.before.forEach(([key, value]) => { if (value) seriesOverrides[key] = value; else delete seriesOverrides[key]; }); saveSeriesOverrides(); };
   } else if (resolved.patch?.type === "moved") {
     message = `«${item.label}»: no se volverá a preguntar por ese recibo. La previsión sigue contando la salida.`;

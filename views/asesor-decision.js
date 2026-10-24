@@ -88,7 +88,7 @@ function renderAsesorDecision() {
     const cajaOk = simulation ? simulation.minimumLiquidity >= reserve : null;
     const items = [
       { ok: cajaOk, label: `Reserva CaixaBank ${money(reserve, true)} mín.${simulation ? ` · queda en ${money(simulation.minimumLiquidity, true)}` : ""}` },
-      { ok: bufferMonths === null ? null : bufferMonths >= bufferTarget, label: `Colchón ${bufferTarget} mes(es) obj. · ahora ${coverageMonthsText(bufferMonths)}` },
+      { ok: bufferMonths === null ? null : bufferMonths >= bufferTarget, label: `Colchón ${bufferTarget} ${bufferTarget === 1 ? "mes" : "meses"} obj. · ahora ${coverageMonthsText(bufferMonths)}` },
       { ok: maxDebtRatio ? debtRatio <= maxDebtRatio : null, label: maxDebtRatio ? `Deuda/ingresos ${maxDebtRatio}% máx. · ahora ${debtRatio}%` : `Deuda/ingresos ahora ${debtRatio}% (sin límite configurado en Presupuesto de riesgo)` },
     ];
     limitsEl.innerHTML = items.map((item) => `<li class="deuda-ruta-check${item.ok === false ? " is-danger" : item.ok ? " is-ok" : ""}">${escapeHtml(item.label)}</li>`).join("");

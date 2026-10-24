@@ -86,7 +86,7 @@ function extractoPerfilesHtml() {
   const errors = analysis.errors || [];
   const attention = !analysis.ok || errors.length > 0 || (analysis.warnings || []).some((w) => w.code !== "perfil" && w.code !== "codificacion") || (analysis.balanceCheck && analysis.balanceCheck.status !== "cuadra" && analysis.balanceCheck.status !== "sin-datos");
   const head = analysis.ok
-    ? `<p class="epf-estado ${attention ? "is-aviso" : "is-ok"}"><span aria-hidden="true">${attention ? "⚠" : "✔"}</span> ${analysis.transactions.length} movimiento(s) leídos${errors.length ? ` · ${errors.length} fila(s) sin leer` : ""}</p>`
+    ? `<p class="epf-estado ${attention ? "is-aviso" : "is-ok"}"><span aria-hidden="true">${attention ? "⚠" : "✔"}</span> ${analysis.transactions.length} ${analysis.transactions.length === 1 ? "movimiento leído" : "movimientos leídos"}${errors.length ? ` · ${errors.length} ${errors.length === 1 ? "fila" : "filas"} sin leer` : ""}</p>`
     : estadoHtml({ kind: "error", titulo: "No he podido leer el fichero", texto: analysis.failure?.reason || "", detalle: "Corrige la lectura aquí debajo o copia el diagnóstico." });
   const warnings = (analysis.warnings || []).filter((w) => w.code !== "filas-con-error").map((w) => `<li>${escapeHtml(w.text)}</li>`).join("");
   const preview = (analysis.preview || []).length

@@ -94,7 +94,7 @@ test("H-5 · con una sesión abierta, la candidata nombra el fichero y navega a 
   });
   const candidate = context.homeImportSessionCandidate();
   assert.match(candidate.text, /extracto-agosto\.csv/);
-  assert.match(candidate.text, /3 movimiento\(s\) cargados, 2 piden decisión/);
+  assert.match(candidate.text, /3 movimientos cargados, 2 piden decisión/);
   assert.equal(candidate.target, "datos-importar");
   assert.equal(candidate.cta, "Continuar importación");
   assert.equal(candidate.status, "warn");

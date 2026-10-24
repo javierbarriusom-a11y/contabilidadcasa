@@ -219,7 +219,7 @@ test("R-8 · datosImportarUpdateBar() lee y escribe los botones del target activ
   );
   datosImportarUpdateBar();
   assert.equal(registrarNext.disabled, true, "un movimiento sin decidir bloquea Continuar en el panel de Registrar");
-  assert.equal(registrarNote.textContent, "1 movimiento(s) sin decidir.");
+  assert.equal(registrarNote.textContent, "1 movimiento sin decidir.");
 });
 
 test("R-8 · setRegistrarTab pinta el asistente al entrar en la pestaña Importar (si no, la primera visita vería el panel vacío)", () => {

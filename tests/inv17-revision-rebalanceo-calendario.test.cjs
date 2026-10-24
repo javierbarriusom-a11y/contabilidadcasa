@@ -135,7 +135,7 @@ test("markInv17RebalanceReviewed · guarda la fecha de hoy y vuelve a pintar la 
   const ctx = sandbox({});
   ctx.markInv17RebalanceReviewed();
   assert.equal(ctx.scenarioSettings.inv17LastRebalanceReviewAt, ctx.isoLocalDate(new Date()), "el día local del hogar, no el de UTC");
-  assert.match(ctx.noteContainer.innerHTML, /Última revisión hace 0 mes\(es\)/);
+  assert.match(ctx.noteContainer.innerHTML, /Última revisión hace 0 meses/);
 });
 
 test("saveInv17RebalanceReviewInterval · guarda un intervalo positivo, borra uno inválido", () => {

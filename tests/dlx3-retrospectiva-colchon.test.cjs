@@ -74,7 +74,7 @@ test("dlx3RetrospectiveHtml · una fila por mes, con el flujo real y la liquidez
   assert.match(result, /2026-01/);
   assert.match(result, /3000\.00 €/);
   assert.match(result, /1500\.00 €/);
-  assert.match(result, /En 1 de 2 mes\(es\)/);
+  assert.match(result, /En 1 de 2 meses/);
 });
 
 test("dlx3RetrospectiveHtml · sin ninguna brecha, lo dice explícitamente en vez de omitir el resumen", () => {

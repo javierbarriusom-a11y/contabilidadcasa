@@ -154,7 +154,7 @@ function gob13AssumptionExpiryCheck() {
   return {
     id: "supuestos",
     label: expiredCount
-      ? `${expiredCount} supuesto(s) fiscal(es) caducado(s) sin confirmar`
+      ? `${expiredCount} ${expiredCount === 1 ? "supuesto fiscal caducado" : "supuestos fiscales caducados"} sin confirmar`
       : "Supuestos fiscales al día",
     met: expiredCount === 0,
   };
@@ -167,7 +167,7 @@ function gob13DebtOfferCheck() {
   return {
     id: "ofertas",
     label: overdueCount
-      ? `${overdueCount} deuda(s) sin comparar contra el mercado a tiempo`
+      ? `${overdueCount} ${overdueCount === 1 ? "deuda" : "deudas"} sin comparar contra el mercado a tiempo`
       : "Ofertas de mercado comparadas a tiempo",
     met: overdueCount === 0,
   };
@@ -185,8 +185,8 @@ function gob13PortfolioDeviationCheck() {
     label: !status.reviewed
       ? "Todavía no has marcado ninguna revisión de rebalanceo"
       : status.due
-        ? `Revisión de rebalanceo pendiente (hace ${status.monthsSinceReview} mes(es))`
-        : `Rebalanceo revisado hace ${status.monthsSinceReview} mes(es)`,
+        ? `Revisión de rebalanceo pendiente (hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"})`
+        : `Rebalanceo revisado hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"}`,
     met: status.reviewed && !status.due,
   };
 }
@@ -209,8 +209,8 @@ function gob13AnnualReviewHtml() {
   const statusLine = !status.reviewed
     ? `<p class="e19-kpi-note is-warn">Todavía no has marcado ningún ritual anual — hazlo la primera vez para empezar a contar los 12 meses.</p>`
     : status.due
-      ? `<p class="e19-kpi-note is-warn">Han pasado ${status.monthsSinceReview} mes(es) desde tu último ritual anual (${status.lastReviewedAt}) — toca repetirlo.</p>`
-      : `<p class="e19-kpi-note positive">Último ritual anual hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}), dentro del año.</p>`;
+      ? `<p class="e19-kpi-note is-warn">Han pasado ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} desde tu último ritual anual (${status.lastReviewedAt}) — toca repetirlo.</p>`
+      : `<p class="e19-kpi-note positive">Último ritual anual hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} (${status.lastReviewedAt}), dentro del año.</p>`;
   return `<ul class="deuda-ruta-checklist">${items}</ul>${statusLine}`;
 }
 
@@ -1018,7 +1018,7 @@ function cierreAprendizajeHtml() {
         <td>${escapeHtml(row.label)}${reopenedNote}</td>
         <td>${money(row.plannedTotal, true)}</td>
         <td>${money(row.realTotal, true)}</td>
-        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toFixed(1)}%`}</td>
+        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}</td>
         <td>${badge}</td>
       </tr>`;
     })
@@ -1055,7 +1055,7 @@ function cierreEvidenceCsvContent(evidence) {
   const lines = evidence.accounts.map((row) =>
     ["Cuentas", row.label, row.declarado, row.calculado ?? "", row.diferencia ?? "", row.estado, ...versionCols].map(csvValue).join(";")
   );
-  lines.push(["Diferencias", `${evidence.diferenciasAbiertas} abierta(s) en el momento de la descarga`, "", "", "", "", ...versionCols].map(csvValue).join(";"));
+  lines.push(["Diferencias", `${evidence.diferenciasAbiertas} ${evidence.diferenciasAbiertas === 1 ? "abierta" : "abiertas"} en el momento de la descarga`, "", "", "", "", ...versionCols].map(csvValue).join(";"));
   if (evidence.envelopeSettlements.length) {
     evidence.envelopeSettlements.forEach((item) => {
       const destinoTexto = item.saldo >= 0 ? (item.destino === "arrastra" ? "Arrastra al mes siguiente" : item.destino || "") : item.origen || "";

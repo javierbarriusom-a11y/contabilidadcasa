@@ -54,12 +54,12 @@ function recordatoriosSummaryHtml({ engine, settings, today, result }) {
   const stale = engine.staleness({ lastGeneratedAt: settings.lastGeneratedAt, today, coveredUntil: settings.coveredUntil });
   const counts = engine.KINDS.filter((kind) => result.counts[kind] > 0).map((kind) => `${result.counts[kind]} ${RECORDATORIOS_KIND_LABELS[kind]}`).join(" · ");
   const skipped = [
-    result.skipped.uncertainIncomes ? `${result.skipped.uncertainIncomes} cobro(s)` : "",
-    result.skipped.uncertainCharges ? `${result.skipped.uncertainCharges} cargo(s) grande(s)` : "",
+    result.skipped.uncertainIncomes ? `${result.skipped.uncertainIncomes} ${result.skipped.uncertainIncomes === 1 ? "cobro" : "cobros"}` : "",
+    result.skipped.uncertainCharges ? `${result.skipped.uncertainCharges} ${result.skipped.uncertainCharges === 1 ? "cargo grande" : "cargos grandes"}` : "",
   ].filter(Boolean).join(" y ");
   const fiscalDone = result.skipped.fiscalDone ? `<p class="e19-kpi-note">Sin aviso del 20/12: las tareas fiscales están todas marcadas como hechas. El calendario de tu móvil no puede borrar un aviso que ya importaste: si lo tienes de antes, bórralo a mano.</p>` : "";
   const next = result.events.slice(0, 5).map((event) => `<li><strong>${escapeHtml(engine.longDate(event.date))}</strong> · ${escapeHtml(event.title)}</li>`).join("");
-  return `<p class="rec-resumen"><strong>${result.events.length} recordatorio(s)</strong> hasta el ${escapeHtml(engine.longDate(result.horizonEnd))}${counts ? ` — ${escapeHtml(counts)}` : ""}.</p>
+  return `<p class="rec-resumen"><strong>${result.events.length} ${result.events.length === 1 ? "recordatorio" : "recordatorios"}</strong> hasta el ${escapeHtml(engine.longDate(result.horizonEnd))}${counts ? ` — ${escapeHtml(counts)}` : ""}.</p>
     ${next ? `<ol class="rec-lista" aria-label="Próximos recordatorios">${next}</ol>` : `<p class="e19-kpi-note">No hay ningún recordatorio con estas opciones.</p>`}
     ${fiscalDone}
     ${skipped ? `<p class="e19-kpi-note">Sin aviso: ${escapeHtml(skipped)} con fecha <strong>estimada</strong>. El plan no sabe qué día caen y un aviso en un día cualquiera es ruido. Declara el día de cargo en Plan › Partidas y entrarán.</p>` : ""}

@@ -84,7 +84,7 @@ function renderExecutiveDebtRoute(ctx) {
   const steps = ctx.debtOptimization?.steps || [];
   const summary = ctx.routeSummary;
   const header = `<div class="executive-route-summary ${summary?.active ? "active" : ""}">
-    <div><span>${summary?.active ? "Ruta simulada" : "Ruta sugerida"}</span><strong>${summary ? `${summary.count} paso(s)` : "Sin ruta"}</strong></div>
+    <div><span>${summary?.active ? "Ruta simulada" : "Ruta sugerida"}</span><strong>${summary ? `${summary.count} ${summary.count === 1 ? "paso" : "pasos"}` : "Sin ruta"}</strong></div>
     <div><span>Importe pactado</span><strong>${summary ? money(summary.total, true) : money(0, true)}</strong></div>
     <div><span>Último paso</span><strong>${escapeHtml(summary?.lastMonth || "-")}</strong></div>
     <div><span>Patrimonio vs base</span><strong class="${(summary?.netWorthDelta || 0) >= 0 ? "positive" : "negative"}">${summary ? money(summary.netWorthDelta, true) : money(0, true)}</strong></div>

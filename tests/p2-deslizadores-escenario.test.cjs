@@ -385,8 +385,8 @@ test("P-2 · con un borrador válido, muestra la reserva protegida y los meses d
   assert.match(container.innerHTML, /Vista previa en vivo/);
   assert.match(container.innerHTML, /3200\.00 €.*2900\.00 €/s);
   assert.match(container.innerHTML, /-300\.00 €/);
-  assert.match(container.innerHTML, /3\.2.*2\.9/s);
-  assert.match(container.innerHTML, /-0\.3/);
+  assert.match(container.innerHTML, /3,2.*2,9/s);
+  assert.match(container.innerHTML, /-0,3/);
 });
 
 // --- se oculta al cambiar de tipo o al añadir la decisión -----------------------------------------

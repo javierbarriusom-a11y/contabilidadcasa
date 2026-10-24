@@ -71,7 +71,7 @@ test("rgx1AccessLossReadiness · copia reciente (dentro del umbral), el punto de
   const result = ctx.rgx1AccessLossReadiness(stewardHousehold(), daysAgo(5), NOW);
   const backup = result.checks.find((check) => check.id === "backup");
   assert.equal(backup.ok, true);
-  assert.match(backup.detail, /hace 5 día\(s\)/);
+  assert.match(backup.detail, /hace 5 días/);
 });
 
 test("rgx1AccessLossReadiness · copia más antigua que el umbral, falla y da la antigüedad real", () => {
@@ -79,7 +79,7 @@ test("rgx1AccessLossReadiness · copia más antigua que el umbral, falla y da la
   const result = ctx.rgx1AccessLossReadiness(stewardHousehold(), daysAgo(40), NOW);
   const backup = result.checks.find((check) => check.id === "backup");
   assert.equal(backup.ok, false);
-  assert.match(backup.detail, /hace 40 día\(s\)/);
+  assert.match(backup.detail, /hace 40 días/);
 });
 
 test("rgx1AccessLossReadiness · sin hogar (sin miembros), el punto de redundancia falla explícitamente", () => {
@@ -126,7 +126,7 @@ test("rgx1AccessLossReadiness · reutiliza rgxKnowledgeConcentration para el pun
   const result = ctx.rgx1AccessLossReadiness(state, daysAgo(1), NOW);
   const coverage = result.checks.find((check) => check.id === "coverage");
   assert.equal(coverage.ok, false);
-  assert.match(coverage.detail, /área\(s\) con un solo punto de acceso/);
+  assert.match(coverage.detail, /áreas con un solo punto de acceso/);
 });
 
 test("rgx1AccessLossReadiness · los tres puntos en verde marcan ready: true", () => {

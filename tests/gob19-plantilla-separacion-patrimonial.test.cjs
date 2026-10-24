@@ -195,7 +195,7 @@ test("handleGob19SeparationTemplate · avisa de la deuda activa sin titular asig
     p2State: () => ({ ownership: {} }),
   });
   ctx.handleGob19SeparationTemplate();
-  assert.match(note.innerHTML, /2 deuda\(s\) activa\(s\) siguen a nombre de «Hogar»/);
+  assert.match(note.innerHTML, /2 deudas activas siguen a nombre de «Hogar»/);
 });
 
 test("handleGob19SeparationTemplate · reparte la deuda entre Javi y Tere según su titularidad y reestructura cada uno con su propio ingreso", () => {

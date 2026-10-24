@@ -98,7 +98,7 @@ test("inv15TotalCostOfOwnershipLabel · sin horizonte introducido, etiqueta vac�
 test("inv15TotalCostOfOwnershipLabel · con datos, combina gestión y custodia en una sola frase", () => {
   const ctx = sandbox({ years: "10" });
   const label = ctx.inv15TotalCostOfOwnershipLabel({ currentValue: 10000, feePct: 1, custodyFeeAnnual: 30 });
-  assert.match(label, /coste total de propiedad a 10 año\(s\)/);
+  assert.match(label, /coste total de propiedad a 10 años/);
   assert.match(label, /gestión/);
   assert.match(label, /custodia\/corretaje/);
 });

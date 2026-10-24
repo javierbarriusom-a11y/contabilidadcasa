@@ -154,7 +154,7 @@ test("deb14MarketCheckAlertHtml · con una hipoteca nunca comparada, lo dice exp
 test("deb14MarketCheckAlertHtml · con una hipoteca pendiente por tiempo, nombra los meses y la última fecha", () => {
   const ctx = sandbox();
   const html = ctx.deb14MarketCheckAlertHtml({ calculable: true, maxMonths: 12, rows: [{ entity: "Hipoteca BancoX", overdue: true, neverCompared: false, monthsSince: 18, latest: "2024-12" }] });
-  assert.match(html, /18 mes\(es\)/);
+  assert.match(html, /18 meses/);
   assert.match(html, /2024-12/);
 });
 

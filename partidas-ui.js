@@ -552,7 +552,7 @@ function renderPartidasImpactBar() {
     <div class="cuadro-mandos-impact-head">
       <p class="e19-eyebrow">Impacto del cambio</p>
       <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
-      <small>${drafts.length} cambio(s) sin guardar</small>
+      <small>${drafts.length} ${drafts.length === 1 ? "cambio" : "cambios"} sin guardar</small>
     </div>
     <dl><dt>Mínimo del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
     <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
@@ -569,12 +569,12 @@ function renderPartidasSavePanel() {
   if (!panel) return;
   const counts = visualPendingCounts();
   const pending = counts.cells + counts.labels + counts.deletes;
-  qs("partidasSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Planificación guardada";
+  qs("partidasSaveTitle").textContent = pending ? `${pending} ${pending === 1 ? "cambio pendiente" : "cambios pendientes"}` : "Planificación guardada";
   const parts = [];
-  if (counts.cells) parts.push(`${counts.cells} importe(s)`);
-  if (counts.labels) parts.push(`${counts.labels} nombre(s)`);
-  if (counts.deletes) parts.push(`${counts.deletes} partida(s) para borrar`);
-  if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
+  if (counts.cells) parts.push(`${counts.cells} ${counts.cells === 1 ? "importe" : "importes"}`);
+  if (counts.labels) parts.push(`${counts.labels} ${counts.labels === 1 ? "nombre" : "nombres"}`);
+  if (counts.deletes) parts.push(`${counts.deletes} ${counts.deletes === 1 ? "partida" : "partidas"} para borrar`);
+  if (counts.selected) parts.push(`${counts.selected} ${counts.selected === 1 ? "seleccionada" : "seleccionadas"}`);
   qs("partidasSaveSummary").textContent = parts.length
     ? `Se guardarán: ${parts.join(", ")}.`
     : "Añade, edita o borra partidas arriba. Los cambios se acumulan aquí hasta que los guardes.";
@@ -888,7 +888,7 @@ function planificacionPartidasEscenarioGhosts() {
 function planificacionPartidasEscenarioGhostsHtml(ghosts) {
   if (!ghosts.length) return "";
   return `<div class="planificacion-partidas-propuestos">
-    <p>${ghosts.length} escenario(s) propuesto(s) esperando confirmación en Cierre — su trazo aparece punteado en el gráfico de arriba, sin contar todavía en el resto de la pantalla.
+    <p>${ghosts.length} ${ghosts.length === 1 ? "escenario propuesto" : "escenarios propuestos"} esperando confirmación en Cierre — su trazo aparece punteado en el gráfico de arriba, sin contar todavía en el resto de la pantalla.
       <button type="button" data-home-nav="cierre">Ir a Cierre</button>
     </p>
     <ul class="planificacion-partidas-ghost-list">
@@ -1069,7 +1069,7 @@ function partidasSimuladorOpportunityCostHtml(opportunityCost) {
   return `<div class="asesor-decision-stat">
       <span>Coste de oportunidad, si se hubiera invertido en tu cartera</span>
       <strong>${money(opportunityCost.gain, true)}</strong>
-      <em>a la XIRR real de tu cartera (${opportunityCost.annualReturnPct >= 0 ? "+" : ""}${opportunityCost.annualReturnPct}% anual) durante los ${opportunityCost.months} mes(es) restantes del horizonte</em>
+      <em>a la XIRR real de tu cartera (${opportunityCost.annualReturnPct >= 0 ? "+" : ""}${opportunityCost.annualReturnPct}% anual) durante los ${opportunityCost.months} ${opportunityCost.months === 1 ? "mes restante" : "meses restantes"} del horizonte</em>
     </div>`;
 }
 
@@ -1119,7 +1119,7 @@ function partidasSimuladorResultHtml(evaluation) {
         </div>
         <div class="asesor-decision-stat">
           <span>Meses de colchón</span>
-          <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
+          <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}</strong>
         </div>
         ${partidasSimuladorOpportunityCostHtml(opportunityCost)}
       </div>
@@ -1138,7 +1138,7 @@ function partidasSimuladorResultHtml(evaluation) {
   const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
   const testedCount = scan.results.filter((item) => item.summary).length;
   return `<div class="planificacion-partidas-simulador-result">
-    <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(month.label)}</span> de entre ${testedCount} mes(es) probado(s) en el rango elegido.</p>
+    <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(month.label)}</span> de entre ${testedCount} ${testedCount === 1 ? "mes probado" : "meses probados"} en el rango elegido.</p>
     <div class="asesor-decision-stats">
       <div class="asesor-decision-stat">
         <span>Mínimo del horizonte con esta decisión</span>
@@ -1152,7 +1152,7 @@ function partidasSimuladorResultHtml(evaluation) {
       </div>
       <div class="asesor-decision-stat">
         <span>Meses de colchón</span>
-        <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
+        <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}</strong>
       </div>
       ${partidasSimuladorOpportunityCostHtml(opportunityCost)}
     </div>
@@ -1570,7 +1570,7 @@ function renderPlanificacionPartidas() {
       <h3 class="escenario-motor-panel-title">Colchón del horizonte visible</h3>
       <p class="e19-kpi-note">Meses de gasto que cubre la liquidez, mes a mes.</p>
       <div class="analisis-cushion-band">${cushion.html}</div>
-      <p class="e19-kpi-note">${cushion.worst ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(cushion.worst.label)}</span> ${cushion.worst.monthsValue.toFixed(1)} meses de colchón.` : "Sin datos suficientes para calcular el peor mes."}</p>
+      <p class="e19-kpi-note">${cushion.worst ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(cushion.worst.label)}</span> ${cushion.worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses de colchón.` : "Sin datos suficientes para calcular el peor mes."}</p>
       <div class="planificacion-partidas-chart">${partidasImpactChartHtml(ghosts)}</div>
     </article>
 
@@ -1685,7 +1685,7 @@ function applySeriesChange() {
   refreshAllSectionsAfterDataChange();
   showImportLog(
     `Serie actualizada: ${displayLabelForRow(row)}`,
-    `${changed} mes(es) modificados. ${fullRefreshMessage()}`,
+    `${changed} ${changed === 1 ? "mes modificado" : "meses modificados"}. ${fullRefreshMessage()}`,
     "",
     "seriesEditorLog",
   );

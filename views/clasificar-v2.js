@@ -330,7 +330,7 @@ function clasV2Accept() {
   clasV2Created.push(rule);
   globalThis.FinanceMedidor?.anotar("clasificar-v2", "accion"); // XGO-02
   showUndoToast(`Regla «${group.name} → ${partida}» creada.`, () => clasV2Undo(rule));
-  announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} movimiento(s). ${applied} importe(s) reales recalculados desde movimientos.`);
+  announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`);
   clasV2Next();
 }
 

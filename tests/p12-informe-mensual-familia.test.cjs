@@ -142,7 +142,7 @@ test("p12MonthlyReportPrintHtml · con cifras de confianza baja, avisa cuántas 
     decisions: [],
     quality: { complete: false, missingMetadata: [], lowConfidence: ["nextIncomeCoverage", "debtFreeDate"] },
   });
-  assert.match(html, /2 cifra\(s\) de este informe tienen confianza baja/);
+  assert.match(html, /2 cifras de este informe tienen confianza baja/);
 });
 
 // --- downloadP12MonthlyReport -------------------------------------------------------------------

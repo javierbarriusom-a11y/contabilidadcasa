@@ -12,7 +12,7 @@ const appSource = codigoApp();
 
 test("wiring: UX_ALERT_METRICS declara rebalanceDeviationPct con su propia etiqueta y formato", () => {
   const start = appSource.indexOf("const UX_ALERT_METRICS = {");
-  const block = appSource.slice(start, start + 1100);
+  const block = appSource.slice(start, start + 1600);
   assert.match(block, /rebalanceDeviationPct: \{ label: "Desviación de rebalanceo de cartera"/);
 });
 

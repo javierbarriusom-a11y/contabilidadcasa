@@ -190,7 +190,7 @@ function renderLiquidationConnectedDecisions(info) {
         <p class="panel-kicker">Conexión con simulador</p>
         <h4>Deuda ya considerada en el flujo</h4>
       </div>
-      <span class="status-pill ${info.decisions.length ? "good" : "warn"}">${info.pending.length} pend. · ${info.fixed.length} fijo(s)</span>
+      <span class="status-pill ${info.decisions.length ? "good" : "warn"}">${info.pending.length} pend. · ${info.fixed.length} ${info.fixed.length === 1 ? "fijo" : "fijos"}</span>
     </div>
     <div class="debt-connected-metrics">
       <div><span>Impacto cargado</span><strong>${money(info.grossCost, true)}</strong></div>
@@ -219,7 +219,7 @@ function renderDebtPlanStrategyFrame(optimization, agentPlan, connectedDebt) {
   const nextStep = steps[0] || null;
   const summary = routeSimulationSummaryFromActive(agentPlan) || routeSimulationSummaryFromOptimization(optimization);
   const connectedText = connectedDebt.decisions.length
-    ? `${connectedDebt.pending.length} pendiente(s), ${connectedDebt.fixed.length} fijo(s), ${money(connectedDebt.grossCost, true)} ya reflejados.`
+    ? `${connectedDebt.pending.length} ${connectedDebt.pending.length === 1 ? "pendiente" : "pendientes"}, ${connectedDebt.fixed.length} ${connectedDebt.fixed.length === 1 ? "fijo" : "fijos"}, ${money(connectedDebt.grossCost, true)} ya reflejados.`
     : "Sin decisiones de deuda cargadas todavía.";
   return `<section class="debt-plan-strategy">
     <div class="debt-plan-strategy-head">
@@ -322,7 +322,7 @@ function renderDebtPlanExecutiveHero(context) {
       ? `Siguiente decisión: ${firstName}`
       : "Mantener caja y revisar deuda";
   const actionText = active
-    ? `${context.activeSummary.count} paso(s) ya impactan en cuadro de mandos y flujo mensual. Último paso: ${escapeHtml(context.activeSummary.lastMonth || "sin fecha")}.`
+    ? `${context.activeSummary.count} ${context.activeSummary.count === 1 ? "paso ya impacta" : "pasos ya impactan"} en cuadro de mandos y flujo mensual. Último paso: ${escapeHtml(context.activeSummary.lastMonth || "sin fecha")}.`
     : first
       ? `Preparar ${money(first.candidate.principal, true)} en ${escapeHtml(first.monthLabel || "mes óptimo")}; no cuenta como ingreso porque los pagos están suspendidos.`
       : "No hay deuda optimizable con el criterio actual. Mantén la reserva y revisa nuevos acuerdos.";
@@ -408,7 +408,7 @@ function renderDebtPlanPolicyCards(context, scenarios) {
   const aggressive = {
     title: "Deuda rápida",
     badge: "Máxima limpieza",
-    body: `${context.steps.length || 0} amortización(es), fin ${context.routeMonth}. Coche solo cuando Mediolanum mantenga hucha y reserva.`,
+    body: `${context.steps.length || 0} ${(context.steps.length || 0) === 1 ? "amortización" : "amortizaciones"}, fin ${context.routeMonth}. Coche solo cuando Mediolanum mantenga hucha y reserva.`,
     kpis: [
       ["Coste", debtPlanSafeMoney(context.routeCost)],
       ["Deuda final", debtPlanSafeMoney(context.finalDebt)],
@@ -550,7 +550,7 @@ function renderDebtLiquidationPlan() {
     renderLiquidationMetric({
       label: "Ruta óptima calculada",
       value: strategicContext.routeMonth,
-      note: `${strategicContext.steps.length || 0} paso(s), coste ${money(strategicContext.routeCost, true)} y deuda reducida ${money(strategicContext.debtReduced, true)}.`,
+      note: `${strategicContext.steps.length || 0} ${(strategicContext.steps.length || 0) === 1 ? "paso" : "pasos"}, coste ${money(strategicContext.routeCost, true)} y deuda reducida ${money(strategicContext.debtReduced, true)}.`,
       tone: "good",
     }),
     renderLiquidationMetric({
@@ -603,7 +603,7 @@ function renderDebtLiquidationPlan() {
       <div><span>CIRBE dic 2025</span><strong>${money(assumptions.cirbe.december2025.total, true)}</strong><small>Riesgo dispuesto total.</small></div>
       <div><span>CIRBE mayo 2026</span><strong>${money(assumptions.cirbe.may2026.total, true)}</strong><small>Vencidos ${money(assumptions.cirbe.may2026.overdue, true)} + demora/gastos ${money(assumptions.cirbe.may2026.interest, true)}. Reducción desde dic 2025: ${money(cirbeReduction, true)}.</small></div>
       ${operativeAsnef
-        .map((item) => `<div><span>${escapeHtml(item.entity)}</span><strong>${money(item.amount, true)}</strong><small>${item.rows} apunte(s) visibles en ASNEF.</small></div>`)
+        .map((item) => `<div><span>${escapeHtml(item.entity)}</span><strong>${money(item.amount, true)}</strong><small>${item.rows} ${item.rows === 1 ? "apunte visible" : "apuntes visibles"} en ASNEF.</small></div>`)
         .join("")}
       <div><span>Wizink</span><strong>${money(wizinkMonthly, true)}/mes</strong><small>Fuera del objetivo: ya pactado en cuota mensual.</small></div>
     </div>`;

@@ -171,7 +171,7 @@ test("gob14QuarterlyReportPrintHtml · con cifras de confianza baja, avisa cuán
     decisions: [],
     quality: { complete: false, missingMetadata: [], lowConfidence: ["nextIncomeCoverage", "debtFreeDate"] },
   });
-  assert.match(html, /2 cifra\(s\) de este informe tienen confianza baja/);
+  assert.match(html, /2 cifras de este informe tienen confianza baja/);
 });
 
 // --- downloadGob14QuarterlyReport ------------------------------------------------------------

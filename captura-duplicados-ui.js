@@ -123,5 +123,5 @@ function capturaDuplicadosAplicar(rows) {
 // Una frase para el paso de confirmar: cuántas capturas a mano se sustituirían.
 function capturaDuplicadosResumen(rows) {
   const count = rows.filter((row) => row.capturePair && row.duplicateDecision === "misma").length;
-  return count ? ` ${count} captura(s) anotada(s) a mano se sustituyen por su fila del banco (importe y fecha del extracto).` : "";
+  return count ? ` ${count} ${count === 1 ? "captura anotada a mano se sustituye" : "capturas anotadas a mano se sustituyen"} por su fila del banco (importe y fecha del extracto).` : "";
 }

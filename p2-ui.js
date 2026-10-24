@@ -117,7 +117,7 @@
   function e15ScenarioComparisonHtml(scenarios) {
     if (!scenarios) return '<p class="p2-help">Sin forecast suficiente para comparar escenarios.</p>';
     return `<div class="p2-list">${scenarios
-      .map((scenario) => `<div class="p2-contribution"><span><strong>${esc(scenario.label)}</strong></span><small>Caja mínima ${euro(scenario.minChecking)} · ${scenario.negativeMonths} mes(es) en negativo</small></div>`)
+      .map((scenario) => `<div class="p2-contribution"><span><strong>${esc(scenario.label)}</strong></span><small>Caja mínima ${euro(scenario.minChecking)} · ${scenario.negativeMonths} ${scenario.negativeMonths === 1 ? "mes" : "meses"} en negativo</small></div>`)
       .join("")}</div>`;
   }
 
@@ -130,9 +130,9 @@
     if (!iso) return "";
     const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
     const label = minutes < 1 ? "hace un momento"
-      : minutes < 60 ? `hace ${minutes} minuto(s)`
-      : minutes < 1440 ? `hace ${Math.floor(minutes / 60)} hora(s)`
-      : `hace ${Math.floor(minutes / 1440)} día(s)`;
+      : minutes < 60 ? `hace ${minutes} ${minutes === 1 ? "minuto" : "minutos"}`
+      : minutes < 1440 ? `hace ${Math.floor(minutes / 60)} ${(Math.floor(minutes / 60)) === 1 ? "hora" : "horas"}`
+      : `hace ${Math.floor(minutes / 1440)} ${(Math.floor(minutes / 1440)) === 1 ? "día" : "días"}`;
     return `<p class="p2-help" data-pvc1-recomputed>Datos recalculados ${label}.</p>`;
   }
 
@@ -218,7 +218,7 @@
     if (!entry) return "";
     const days = Math.floor((Date.now() - new Date(entry.firstShownAt).getTime()) / 86400000);
     if (days < CPX3_IGNORED_DAYS_THRESHOLD) return "";
-    return `<p class="p2-help">Llevas ${days} día(s) viendo este aviso sin resolverlo. <button type="button" class="p2-button secondary" data-cpx3-dismiss="${esc(entry.signature)}">Descartar</button></p>`;
+    return `<p class="p2-help">Llevas ${days} ${days === 1 ? "día" : "días"} viendo este aviso sin resolverlo. <button type="button" class="p2-button secondary" data-cpx3-dismiss="${esc(entry.signature)}">Descartar</button></p>`;
   }
 
   // RGX4: explicación en dos niveles — capa sobre A7-3/A11-4/CP1, sin motor nuevo. Nivel 1 (siempre
