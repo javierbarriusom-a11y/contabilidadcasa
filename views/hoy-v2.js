@@ -267,6 +267,21 @@ function hoyV2Waiting() {
   </button>`;
 }
 
+// Desde el 25/10/2026 los cobros y cargos esperados se contestan en la bandeja de Movimientos (views/movimientos-v2.js):
+// Hoy solo deja una línea que lleva a ellos, para que una pregunta pendiente no se quede sin ver.
+function hoyV2Esperados() {
+  const items = globalThis.movV2EsperadosAqui?.() && typeof expectedMovementInboxItems === "function" ? expectedMovementInboxItems() : [];
+  if (!items.length) return "";
+  const questions = items.filter((item) => item.id !== "decision-inbox-expected-more").length;
+  const more = items.length > questions;
+  const label = `${questions}${more ? " o más" : ""} ${questions === 1 && !more ? "pregunta" : "preguntas"} sobre cobros y cargos`;
+  return `<button type="button" class="hoy-v2-pending hoy-v2-esperados" data-home-nav="movements">
+    <span class="hoy-v2-dot" aria-hidden="true"></span>
+    <span><strong>${escapeHtml(label)}</strong><br>¿Ha llegado lo que esperabais? Se contesta en la bandeja de Movimientos.</span>
+    <span aria-hidden="true">›</span>
+  </button>`;
+}
+
 // «+ Apuntar gasto» abre exactamente lo mismo que «+ Registrar gasto» de la Hoy de siempre (la hoja de compras
 // con tarjeta o el formulario rápido), y hereda de él si se puede usar: sin mes abierto con bloques de gasto
 // queda desactivado y dice por qué, en vez de no hacer nada al pulsarlo.
@@ -344,6 +359,7 @@ function hoyV2Render(model) {
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, coverage })}
         ${hoyV2Decisions(model.todayRead, model.decisions)}
+        ${hoyV2Esperados()}
       </div>
       <div class="hoy-v2-side">
         ${hoyV2Month(asOf, model.plannedSaving)}

@@ -33,6 +33,7 @@
     { id: "movimientos-v2", nombre: "Movimientos nuevo", queHace: "Bandeja arriba y la lista por día con su partida.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "importar-v2", nombre: "Importar en tres pasos", queHace: "Elegir, revisar con cuadre e importar con deshacer.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "conceptos sin partida tras importar", parteDe: "tema-v2" },
+    { id: "repaso-v2", nombre: "Repaso semanal", queHace: "Saldos, extracto, lo que vino y la bandeja, en orden y con cronómetro.", desde: "2026-10-24", metrica: "minutos de mantenimiento a la semana (10 o menos)", parteDe: "tema-v2" },
   ];
 
   function isoDate(date) {

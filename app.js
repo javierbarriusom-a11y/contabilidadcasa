@@ -1384,6 +1384,7 @@ const BACKUP_LOCAL_STORES = [
   "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
   "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
   "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
+  "repaso-semanal", // B5 (XUX-03): cada Repaso semanal terminado (fecha, segundos, qué se hizo), sin importes; de ahí salen la racha y M-COSTE
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
 const LOCAL_STORE_PRE_SYNC_SUFFIX = ":antes-de-sincronizar";
@@ -27133,7 +27134,10 @@ function renderDecisionInboxCard() {
   const card = qs("homeDecisionInboxCard");
   const list = qs("homeDecisionInboxList");
   if (!card || !list) return;
-  const items = decisionInboxItems();
+  // Rediseño (25/10/2026): con el tema v2, los cobros y cargos esperados se contestan en la bandeja de Movimientos (views/movimientos-v2.js).
+  const v2 = Boolean(globalThis.movV2EsperadosAqui?.());
+  const items = decisionInboxItems().filter((item) => !(v2 && item.id.startsWith("decision-inbox-expected")));
+  if (v2 && qs("movements")?.hidden === false) globalThis.movimientosV2Render?.();
   if (!items.length) { card.hidden = true; return; }
   card.hidden = false;
   list.innerHTML = items.map((item) => `<li class="commit-barrier-item ${DECISION_INBOX_TONE_CLASS[item.tone] || "warning"}">

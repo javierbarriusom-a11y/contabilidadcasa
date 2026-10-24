@@ -32,6 +32,7 @@
     { id: "movimientos-v2", nombre: "Movimientos nuevo", accion: ["acción", "acciones"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "importar-v2", nombre: "Importar en tres pasos", accion: ["extracto importado", "extractos importados"], descarte: ["vez al asistente de siempre", "veces al asistente de siempre"], deshecho: ["lote deshecho", "lotes deshechos"] },
     { id: "clasificar-v2", nombre: "Clasificar por lotes", accion: ["regla aceptada", "reglas aceptadas"], descarte: ["grupo saltado", "grupos saltados"], deshecho: ["regla deshecha", "reglas deshechas"] },
+    { id: "repaso-v2", nombre: "Repaso semanal", accion: ["repaso terminado", "repasos terminados"], descarte: ["repaso a medias", "repasos a medias"], deshecho: null },
   ];
 
   function cuenta(n, [uno, varios]) {
@@ -148,6 +149,7 @@
     const partes = [`vista ${r.vistas} ${r.vistas === 1 ? "día" : "días"}`];
     if (f.accion) partes.push(`${cuenta(r.acciones, f.accion)}${r.tasa === null ? "" : ` (actuasteis el ${r.tasa} % de los días)`}`);
     if (id === "hoy-v2" && r.medianaSegundos !== null) partes.push(`${String(r.medianaSegundos).replace(".", ",")} s hasta la primera acción (mediana de ${r.veces})`);
+    if (id === "repaso-v2" && r.medianaSegundos !== null) partes.push(`${String(Math.round((r.medianaSegundos / 60) * 10) / 10).replace(".", ",")} min por repaso (mediana de ${r.veces})`);
     if (f.descarte) partes.push(cuenta(r.descartes, f.descarte));
     if (f.deshecho) partes.push(cuenta(r.deshechos, f.deshecho));
     return partes.join(" · ");

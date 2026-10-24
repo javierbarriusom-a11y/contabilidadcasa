@@ -1951,6 +1951,11 @@
    "tipo": "gobierno"
   },
   {
+   "fecha": "2026-11-07",
+   "que": "Revisión del Repaso semanal en Funciones en prueba (14 días)",
+   "tipo": "gobierno"
+  },
+  {
    "fecha": "2026-11-14",
    "que": "Campaña fiscal lista",
    "tipo": "fecha límite",
@@ -2347,7 +2352,7 @@
    "objetivo": 10,
    "unidad": "min",
    "sentido": "menor",
-   "detalle": "Autodeclarado (GOV-01)",
+   "detalle": "Minutos de mantenimiento a la semana, medidos solos por el Repaso semanal desde el 24/10 (antes, autodeclarados en el panel de uso)",
    "wp": "WP-03"
   },
   {
