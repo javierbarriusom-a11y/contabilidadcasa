@@ -125,7 +125,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `tests/redis-hoy2-repaso.test.cjs` (7): puerta de fecha, semana ISO, textos, sin script no hay entrada, sitio en Hoy, estilos y Novedades.
   - E2E: la puerta (28/10) y el cambio (3/11) a 390 y 1440 px, con cierre a medias y repaso completo.
   - Axe de la línea en claro y en oscuro.
-- **Validación:** `npm run verify` en verde: 6135 de 6135 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): en curso; la cifra se anota al terminar.
+- **Validación:** `npm run verify` en verde: 6135 de 6135 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 230 de 230 en verde (14,6 min).
 
 ## Cierre de sesión — 24 de octubre de 2026 (346): regla de parada levantada · Repaso semanal y primer cambio de Hoy
 
