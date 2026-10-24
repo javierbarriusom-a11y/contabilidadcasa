@@ -434,7 +434,7 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
     },
     {
       label: "Planes considerados",
-      value: `${planSummary.pending} pend. · ${planSummary.locked} fijo(s)`,
+      value: `${planSummary.pending} pend. · ${planSummary.locked} ${planSummary.locked === 1 ? "fijo" : "fijos"}`,
       tone: planSummary.pending ? "warn" : "good",
       note: `Próximo impacto: ${nextImpactText}.`,
     },
@@ -443,7 +443,7 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
       value: debtOptimization?.lastMonth || "Sin ruta",
       tone: debtOptimization?.steps?.length ? "warn" : "neutral",
       note: debtOptimization?.steps?.length
-        ? `${debtOptimization.steps.length} paso(s), ${money(debtOptimization.totalPrincipal, true)} pactados.`
+        ? `${debtOptimization.steps.length} ${debtOptimization.steps.length === 1 ? "paso" : "pasos"}, ${money(debtOptimization.totalPrincipal, true)} pactados.`
         : "No hay deudas vivas optimizables.",
     },
   ];
@@ -597,7 +597,7 @@ function renderAgentDebtOptimization(optimization) {
   }
   const finalDelta = round2((optimization.finalPlan?.finalMediolanum || 0) - (optimization.baselinePlan?.finalMediolanum || 0));
   const summaryCards = [
-    ["Deuda liquidada", money(optimization.totalPrincipal, true), `${steps.length} deuda(s) en ruta`],
+    ["Deuda liquidada", money(optimization.totalPrincipal, true), `${steps.length} ${steps.length === 1 ? "deuda" : "deudas"} en ruta`],
     ["Fin de ruta", optimization.lastMonth, "Última amortización sugerida"],
     ["Cuota liberable real", money(optimization.totalRelief, true), "No suma cuotas suspendidas como ingreso"],
     ["Patrimonio vs base", money(optimization.netWorthDelta, true), `Mediolanum final: ${money(finalDelta, true)} frente a no amortizar`],
@@ -648,7 +648,7 @@ function renderAgentPlanSummary(plan) {
   const hasPlans = summary.total > 0;
   target.innerHTML = `<div>
       <p class="panel-kicker">Planes en cálculo</p>
-      <h3>${hasPlans ? `${summary.total} plan(es) considerados` : "Sin planes cargados"}</h3>
+      <h3>${hasPlans ? `${summary.total} ${summary.total === 1 ? "plan considerado" : "planes considerados"}` : "Sin planes cargados"}</h3>
       <p>${hasPlans ? "El agente ya los incorpora al flujo hasta que los elimines o los fijes definitivamente." : "Añade proyectos o decisiones de deuda para que el agente calcule impacto, hucha y prioridad."}</p>
     </div>
     <div class="agent-plan-summary-grid">
@@ -673,7 +673,7 @@ function renderAgentRecommendationCard(item, type) {
         <div><small>Pendiente</small><b>${money(item.principal, true)}</b></div>
         <div><small>${suspended ? "Cuota original" : "Cuota liberable"}</small><b>${money(suspended ? item.originalPayment : item.payment, true)}</b></div>
         <div><small>Mes sugerido</small><b>${escapeHtml(item.monthLabel)}</b></div>
-        <div><small>${suspended ? "Flujo liberable" : "Eficiencia"}</small><b>${suspended ? "0,0%" : `${(item.efficiency * 100).toFixed(1)}%`}</b></div>
+        <div><small>${suspended ? "Flujo liberable" : "Eficiencia"}</small><b>${suspended ? "0,0%" : `${(item.efficiency * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}</b></div>
       </div>
       <button type="button" data-agent-debt-target="${escapeHtml(item.id)}" data-agent-debt-month="${escapeHtml(String(item.affordability?.agentIndex ?? ""))}" data-agent-debt-amount="${escapeHtml(String(item.principal || ""))}">Preparar en control de deuda</button>
     </article>`;

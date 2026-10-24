@@ -95,7 +95,7 @@ test("gob13AssumptionExpiryCheck · con supuestos caducados, no cumplido y cuent
   const ctx = sandbox({ forecastExpired: [{ id: "incomeFactor" }, { id: "annualInflation" }] });
   const check = ctx.gob13AssumptionExpiryCheck();
   assert.equal(check.met, false);
-  assert.match(check.label, /2 supuesto\(s\)/);
+  assert.match(check.label, /2 supuestos/);
 });
 
 test("gob13DebtOfferCheck · sin umbral declarado en DEB14, ni cumplido ni incumplido (null)", () => {
@@ -114,7 +114,7 @@ test("gob13DebtOfferCheck · con al menos una deuda pendiente por comparar, no c
   const ctx = sandbox({ deb14Result: { calculable: true, rows: [{ overdue: true }, { overdue: false }] } });
   const check = ctx.gob13DebtOfferCheck();
   assert.equal(check.met, false);
-  assert.match(check.label, /1 deuda\(s\)/);
+  assert.match(check.label, /1 deuda sin comparar/);
 });
 
 test("gob13PortfolioDeviationCheck · sin ninguna revisión de rebalanceo marcada nunca, no cumplido", () => {

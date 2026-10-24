@@ -489,7 +489,7 @@ test("M-7 · sin marcar «recordar» (por defecto), la reclasificación se guard
     "saveIncomeActuals",
     "saveExpenseActuals",
     "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "Partida guardada solo para este movimiento. 3 importe(s) reales recalculados desde movimientos."],
+    ["announceStatus", "Partida guardada solo para este movimiento. 3 importes reales recalculados desde movimientos."],
     "renderMovementDetailDialog",
     "renderDetailedMovements",
   ]);
@@ -508,7 +508,7 @@ test("M-7 · marcando «recordar», la reclasificación escribe en el diccionari
     "saveIncomeActuals",
     "saveExpenseActuals",
     "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "Regla guardada para «MERCADONA · COMPRA»: se aplicará también a movimientos futuros. 3 importe(s) reales recalculados desde movimientos."],
+    ["announceStatus", "Regla guardada para «MERCADONA · COMPRA»: se aplicará también a movimientos futuros. 3 importes reales recalculados desde movimientos."],
     "renderMovementDetailDialog",
     "renderDetailedMovements",
   ]);

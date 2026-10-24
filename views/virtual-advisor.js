@@ -70,7 +70,7 @@ function advisorMainRecommendation(ctx) {
       tone: "good",
       label: "Ruta simulada",
       title: "La ruta óptima ya impacta el modelo",
-      text: `${routeSummary.count} amortización(es) entre ${routeSummary.firstMonth} y ${routeSummary.lastMonth}. Revisa cuadro de mandos y flujo antes de fijar definitivamente cada decisión.`,
+      text: `${routeSummary.count} ${routeSummary.count === 1 ? "amortización" : "amortizaciones"} entre ${routeSummary.firstMonth} y ${routeSummary.lastMonth}. Revisa cuadro de mandos y flujo antes de fijar definitivamente cada decisión.`,
       metric: money(routeSummary.netWorthDelta, true),
       metricLabel: "patrimonio vs base",
       action: "Ver cuadro de mandos",
@@ -84,7 +84,7 @@ function advisorMainRecommendation(ctx) {
       tone: "warn",
       label: "Mejor siguiente paso",
       title: "Simular ruta óptima completa de deuda",
-      text: `${debtOptimization.steps.length} paso(s), ${money(debtOptimization.totalPrincipal, true)} pactados hasta ${debtOptimization.lastMonth}. Esto permite comparar el cuadro de mandos y el flujo con toda la estrategia cargada.`,
+      text: `${debtOptimization.steps.length} ${debtOptimization.steps.length === 1 ? "paso" : "pasos"}, ${money(debtOptimization.totalPrincipal, true)} pactados hasta ${debtOptimization.lastMonth}. Esto permite comparar el cuadro de mandos y el flujo con toda la estrategia cargada.`,
       metric: money(debtOptimization.netWorthDelta, true),
       metricLabel: "mejora patrimonial",
       action: "Simular ruta completa",
@@ -344,7 +344,7 @@ function renderDebtRatioText(decision) {
   const relief = Number(decision?.monthlyRelief || 0);
   const before = income12 ? (debt12 / income12) * 100 : 0;
   const after = income12 ? (Math.max(0, debt12 - relief) / income12) * 100 : 0;
-  return `${before.toFixed(1)}% -> ${after.toFixed(1)}%`;
+  return `${before.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% -> ${after.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
 function applyAdvisorDebtOption(button) {
@@ -371,7 +371,7 @@ function virtualAdvisorActions(ctx) {
     actions.push({
       tone: "good",
       title: "Validar ruta simulada",
-      text: `${routeSummary.count} amortización(es) ya impactan cuadro de mandos y flujo. Si no te convence, retírala y vuelve a simular.`,
+      text: `${routeSummary.count} ${routeSummary.count === 1 ? "amortización ya impacta" : "amortizaciones ya impactan"} cuadro de mandos y flujo. Si no te convence, retírala y vuelve a simular.`,
       action: "Ver flujo",
       target: "cashflow",
     });
@@ -386,7 +386,7 @@ function virtualAdvisorActions(ctx) {
     actions.push({
       tone: "warn",
       title: "Cargar ruta óptima de deuda",
-      text: `${debtOptimization.steps.length} paso(s) hasta ${debtOptimization.lastMonth}. Se aplica como simulación temporal para ver impacto completo.`,
+      text: `${debtOptimization.steps.length} ${debtOptimization.steps.length === 1 ? "paso" : "pasos"} hasta ${debtOptimization.lastMonth}. Se aplica como simulación temporal para ver impacto completo.`,
       action: "Simular ruta completa",
       advisorAction: "simulate-route",
     });
@@ -433,7 +433,7 @@ function virtualAdvisorActions(ctx) {
   actions.push({
     tone: summary.pending ? "warn" : "neutral",
     title: "Auditar planes cargados",
-    text: `${summary.pending} pendiente(s), ${summary.locked} fijo(s). Próximo impacto: ${summary.nextImpactAmount ? `${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}` : "sin impacto próximo"}.`,
+    text: `${summary.pending} ${summary.pending === 1 ? "pendiente" : "pendientes"}, ${summary.locked} ${summary.locked === 1 ? "fijo" : "fijos"}. Próximo impacto: ${summary.nextImpactAmount ? `${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}` : "sin impacto próximo"}.`,
     action: "Ver cuadro",
     target: "visual-detail",
   });
@@ -473,14 +473,14 @@ function renderAdvisorKpis(ctx) {
   if (!target) return;
   const { plan, today, summary, routeSummary, debtOptimization, immediateTransfer } = ctx;
   const routeText = routeSummary?.active
-    ? `${routeSummary.count} simulada(s)`
+    ? `${routeSummary.count} ${routeSummary.count === 1 ? "simulada" : "simuladas"}`
     : debtOptimization?.steps?.length
-      ? `${debtOptimization.steps.length} sugerida(s)`
+      ? `${debtOptimization.steps.length} ${debtOptimization.steps.length === 1 ? "sugerida" : "sugeridas"}`
       : "Sin ruta";
   const cards = [
     ["Caja protegida", money(plan.minCaixa, true), `Mínimo con reserva: ${money(plan.minReserveCoverage, true)}.`, plan.minReserveCoverage >= 0 ? "good" : "danger"],
     ["Capacidad libre real", money(monthlyFreeCapacity(plan.rows || []), true), "Media 12m tras ahorro objetivo y decisiones cargadas.", executiveToneForAmount(monthlyFreeCapacity(plan.rows || []))],
-    ["Planes en cálculo", `${summary.pending} pend. · ${summary.locked} fijo(s)`, summary.nextImpactAmount ? `Próximo: ${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}.` : "Sin impacto próximo.", summary.pending ? "warn" : "good"],
+    ["Planes en cálculo", `${summary.pending} pend. · ${summary.locked} ${summary.locked === 1 ? "fijo" : "fijos"}`, summary.nextImpactAmount ? `Próximo: ${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}.` : "Sin impacto próximo.", summary.pending ? "warn" : "good"],
     ["Ruta deuda", routeText, routeSummary ? `Impacto patrimonio: ${money(routeSummary.netWorthDelta, true)}.` : "Sin deuda optimizable.", routeSummary ? "warn" : "neutral"],
     ["Traspaso seguro", money(immediateTransfer?.needsReview ? 0 : immediateTransfer?.amount || 0, true), immediateTransfer?.needsReview ? immediateTransfer.reviewReason : `Reserva actual: ${money(immediateTransfer?.reserve || today.requiredReserve || plan.caixaFloor, true)}.`, immediateTransfer?.needsReview ? "danger" : Number(immediateTransfer?.amount || 0) > 0 ? "good" : "warn"],
   ];
@@ -512,7 +512,7 @@ function renderAdvisorStatus(ctx) {
     },
     {
       label: "Simulaciones activas",
-      value: routeSummary?.active ? `${routeSummary.count} deuda(s)` : `${summary.pending} pendiente(s)`,
+      value: routeSummary?.active ? `${routeSummary.count} ${routeSummary.count === 1 ? "deuda" : "deudas"}` : `${summary.pending} ${summary.pending === 1 ? "pendiente" : "pendientes"}`,
       note: routeSummary?.active ? "Ya impactan el modelo." : "Pendientes de fijar o descartar.",
       tone: routeSummary?.active || summary.pending ? "warn" : "good",
     },
@@ -583,7 +583,7 @@ function renderAdvisorModel(ctx) {
     ["Planes considerados", `${summary.pending} pendientes, ${summary.locked} fijos`, summary.nextImpactAmount ? `${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}` : "Sin impacto próximo."],
     ["Deuda prioritaria", bestDebt ? `${bestDebt.entity} ${bestDebt.type}` : "Sin deuda viva", bestDebt ? `${money(bestDebt.principal, true)} · ${debtOptimization?.steps?.[0]?.monthLabel || bestDebt.monthLabel}` : "No hay objetivo optimizable."],
     ["Proyecto prioritario", bestProject ? bestProject.name : "Sin proyecto pendiente", bestProject ? `${money(bestProject.pot, true)}/mes · objetivo ${bestProject.monthLabel}` : "Añade proyectos para crear huchas."],
-    ["Ruta completa", routeSummary ? `${routeSummary.count} paso(s)` : "Sin ruta", routeSummary ? `${routeSummary.firstMonth} - ${routeSummary.lastMonth}; caja mínima ${money(routeSummary.minCaixa, true)}` : "No aplicada ni sugerida."],
+    ["Ruta completa", routeSummary ? `${routeSummary.count} ${routeSummary.count === 1 ? "paso" : "pasos"}` : "Sin ruta", routeSummary ? `${routeSummary.firstMonth} - ${routeSummary.lastMonth}; caja mínima ${money(routeSummary.minCaixa, true)}` : "No aplicada ni sugerida."],
     ["Horizonte", `${visibleRows[0]?.month || ""} - ${visibleRows.at(-1)?.month || ""}`, `Patrimonio neto final: ${money(plan.netWorth, true)}.`],
   ];
   target.innerHTML = modelItems

@@ -313,7 +313,7 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
   const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
   const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
   const resumeText = isDebtResumeMode(decision.payoffMode)
-    ? `<p class="debt-review-note">Retomar no amortiza con quita: añade ${money(decision.amount, true)} de atrasos (${decision.resumeArrearsMonths || 0} mes(es)) y después ${money(decision.recurringAmount || 0, true)}/mes durante ${decision.recurringDuration || 0} mes(es), según el vencimiento inicial si existe.</p>`
+    ? `<p class="debt-review-note">Retomar no amortiza con quita: añade ${money(decision.amount, true)} de atrasos (${decision.resumeArrearsMonths || 0} ${(decision.resumeArrearsMonths || 0) === 1 ? "mes" : "meses"}) y después ${money(decision.recurringAmount || 0, true)}/mes durante ${decision.recurringDuration || 0} ${(decision.recurringDuration || 0) === 1 ? "mes" : "meses"}, según el vencimiento inicial si existe.</p>`
     : suspended
       ? `<p class="debt-review-note">Pagos suspendidos: esta liquidación no crea flujo positivo posterior. La cuota original solo se usa si eliges “retomar”.</p>`
       : "";
@@ -546,8 +546,8 @@ function renderDebtControl() {
           const relief = effectiveDebtDecisionMonthlyRelief(item);
           const reliefMonths = debtReliefMonthsForItem(item, (placement?.startIndex ?? item.monthIndex ?? 0) + Math.max(1, Number(item.duration || 1)));
           const detail = isDebtResumeMode(item.payoffMode || item.mode)
-            ? `${debtModeLabel(item.payoffMode || item.mode)} · atrasos ${money(resolvedItem.amount || 0, true)} (${resolvedItem.resumeArrearsMonths || 0} mes(es)) · retoma ${money(resolvedItem.recurringAmount || 0, true)}/mes durante ${resolvedItem.recurringDuration || 0} mes(es) · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}.`
-            : `${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(relief, true)} durante ${reliefMonths} mes(es).`;
+            ? `${debtModeLabel(item.payoffMode || item.mode)} · atrasos ${money(resolvedItem.amount || 0, true)} (${resolvedItem.resumeArrearsMonths || 0} ${(resolvedItem.resumeArrearsMonths || 0) === 1 ? "mes" : "meses"}) · retoma ${money(resolvedItem.recurringAmount || 0, true)}/mes durante ${resolvedItem.recurringDuration || 0} ${(resolvedItem.recurringDuration || 0) === 1 ? "mes" : "meses"} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}.`
+            : `${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} ${item.duration === 1 ? "mes" : "meses"}. Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(relief, true)} durante ${reliefMonths} ${reliefMonths === 1 ? "mes" : "meses"}.`;
           const lifecycleState = decisionLifecycleStatus(item);
           const actions = lifecycleState === "fixed"
             ? `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="false">Desbloquear</button><button data-execute-debt-liquidation="${escapeHtml(item.id)}">Marcar ejecutada</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Cancelar</button>`

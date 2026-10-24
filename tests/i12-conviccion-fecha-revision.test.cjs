@@ -106,7 +106,8 @@ test("app.js: markIv1PositionConvictionReviewed actualiza solo convictionReviewe
 });
 
 test("app.js: renderIv1PositionList llama a i12ConvictionReviewHtml sin sustituir el botón de quitar", () => {
-  const block = appSource.slice(appSource.indexOf("function renderIv1PositionList("), appSource.indexOf("function renderIv1PositionList(") + 2200);
+  const start = appSource.indexOf("function renderIv1PositionList(");
+  const block = appSource.slice(start, appSource.indexOf("\n}\n", start)); // la función entera: un trozo fijo de caracteres se quedaba corto en cuanto crecía
   assert.match(block, /i12ConvictionReviewHtml\(position\)/);
   assert.match(block, /data-iv1-position-remove="\$\{escapeHtml\(position\.id\)\}"/, "no debe sustituir el botón de quitar ya existente");
 });

@@ -86,7 +86,7 @@ test("renderHomeDashboard pinta el KPI «Acierto histórico de la previsión» d
   const source = extractFunction("renderHomeDashboard");
   const start = source.indexOf('label: "Acierto histórico de la previsión"');
   assert.ok(start >= 0, "No existe el KPI de acierto histórico");
-  const block = source.slice(start, start + 700);
+  const block = source.slice(start, start + 1000);
   assert.match(block, /accuracyScore\.calculable \? `\$\{accuracyScore\.score\}%` : "Sin datos"/);
   assert.match(block, /accuracyScore\.severity === "high" \? "danger" : accuracyScore\.severity === "medium" \? "warn" : "good"/);
   assert.match(block, /cta: "Ver backtesting"/);

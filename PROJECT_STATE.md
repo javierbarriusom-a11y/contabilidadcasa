@@ -109,6 +109,52 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 24 de octubre de 2026 (345): plurales y decimales unificados en toda la app
+
+- **Qué pidió el hogar:** «Haz esta tarea aquí: Unificar decimales y plurales en el resto de pantallas», la tarea propuesta al cerrar la 344.
+- **Plurales:** 264 textos con paréntesis («movimiento(s)», «mes(es)», «decisión(es)», «día(s)»…) en 24 ficheros pasan a la forma según el número: «1 movimiento», «3 movimientos».
+  - **Cómo:** con un transformador que repite la misma expresión en un ternario. Pierde la tilde al pluralizar cuando toca («decisión» → «decisiones»).
+  - **Concordancia, revisada aparte:** 45 adjetivos y verbos que siguen al número concuerdan («1 movimiento seleccionado», «1 mes ya cerrado»), y también los verbos antes y lejos del número: «Queda 1 partida», «Falta 1 dato», «1 cifra de este informe tiene confianza baja: revísala…», «1 captura anotada a mano se sustituye», «1 concepto (2 movimientos) reclasificado».
+  - Con un solo concepto, la nota del lote dice «El concepto seleccionado ya tenía otra partida asignada» en vez de «1 de los 1 concepto».
+- **Decimales:** 48 cifras visibles con punto inglés pasan a coma con `toLocaleString("es-ES")`, con los mismos decimales: ratios de deuda, TAE media, tasa de ahorro, meses de colchón, desviaciones, eficiencia, umbrales de alertas, tiempos del presupuesto de datos…
+  - **No se tocan:** los valores de `<input>` (necesitan punto), las coordenadas SVG ni la exportación CSV (no se cambia el formato de un fichero que ya se usa fuera).
+- **Pruebas:**
+  - 37 ficheros actualizados al texto nuevo, sin relajar ninguna aserción.
+  - Siete pruebas de cableado recortaban un trozo fijo de caracteres del código y se quedaron cortas al alargarse las líneas: se amplía la ventana (o se lee la función entera) sin cambiar lo que comprueban.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6119/6119, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo: en ejecución en local al hacer el commit; lo corre también el CI del PR.
+
+## Cierre de sesión — 24 de octubre de 2026 (344): fechas y plurales que se leen a la primera
+
+- **Mismo encargo que la 343** (experiencia de usuario sin abrir paquetes). Sale de las capturas del barrido a 390 px.
+- **Fechas ambiguas.**
+  - «Vence el 23 nov 26», «Se esperaba el 19 oct 26»: el año de dos cifras se leía como un día. Nace `displayShortDate`: «19 oct» si es de este año y «8 ene 2027» si no.
+  - Se usa en lo que el usuario lee: cobertura de Hoy, vencimientos de las decisiones de Hoy y preguntas de cobros y cargos esperados.
+  - `shortDate` no cambia, porque sus etiquetas están fijadas en el oro del motor de fechas (WP-07, 493 casos).
+  - «Libre de deuda: sept 29» se leía como «29 de septiembre»: ahora «sept 2029». La etiqueta de mes «oct 26» se queda, porque es la convención de toda la app (156 líneas de pruebas).
+- **Plurales con paréntesis en el recorrido del cierre** («movimiento(s)», «día(s)», «cuenta(s) descuadran», «cosa(s)», «salto(s)», «hace N minuto(s)»):
+  - corregidos en Cierre, en la tarjeta de recálculo de Registrar y en la cobertura de Hoy;
+  - «Cobertura actual 0.9 meses» pasa a «0,9 meses».
+- **Queda para una tarea aparte:** ~60 decimales más con punto inglés y ~250 plurales con paréntesis en pantallas menos usadas.
+- **Pruebas:**
+  - Nueva: `tests/fechas-y-plurales-legibles.test.cjs` (4).
+  - Dos pruebas adaptadas a los textos nuevos (`r1-r4-registrar` y la e2e del ensayo del cierre).
+  - Cinco contextos de prueba reciben el doble de `displayShortDate` junto al de `shortDate`, sin tocar ninguna aserción.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6119/6119 (+4), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright, en el CI del PR.
+
+## Cierre de sesión — 24 de octubre de 2026 (343): barrido móvil de todas las pantallas; los gráficos ya no se cortan al ver su tabla
+
+- **Qué pidió el hogar:** «adelanta con todo lo que puedas que no dependa de mí o del hogar, priorizando impacto en experiencia de usuario y funcionalidades». Las funcionalidades nuevas chocan con la regla de parada (confirmada el 23/10): esta sesión hace experiencia de usuario sin abrir paquetes nuevos (errores, pulido y el cambio de Hoy ya acordado) y propone al hogar qué abriría si levanta la regla.
+- **Barrido a 390 px**, con el tema v2, en claro y en oscuro, de 41 pantallas: celdas cuyo contenido no cabe, elementos fuera de la pantalla y textos recortados, con los detalles plegables abiertos. Se repitió con 70 movimientos de conceptos largos en las 18 pantallas que los enseñan.
+- **Error encontrado y corregido** en el kit de gráficos (WP-28), usado en Plan › Previsión (banda de caja) e Inversión › Cartera (proyección del patrimonio).
+  - **Qué pasaba:** al abrir «Ver como tabla», la tabla ensanchaba la figura a ~1.120 px en un móvil de 390, por la regla genérica `table { min-width: 1120px }` de `styles.css`. El dibujo, su lectura y la tabla se cortaban por la derecha, y solo se veía la columna del día.
+  - **Arreglo:** la rejilla de la figura es `minmax(0, 1fr)` y la tabla anula el mínimo, como las demás tablas e19. En el móvil, la tabla se desplaza dentro de su caja, con la columna del día fija (también la esquina, por encima de la cabecera fija) y menos relleno.
+- **Sin cambios:** lo demás que marcó el barrido son cabeceras ocultas a propósito en tablas apiladas y textos solo para lectores de pantalla. El «Saltar al contenido» de las capturas largas no es un error: sin foco está fuera de la pantalla.
+- **Pendiente:** queda anotado para una tarea aparte el plural antiguo «día(s)», «movimiento(s)»… (≈ 300 textos).
+- **Pruebas:**
+  - Dos e2e nuevas («Kit de gráficos · Ver como tabla en el móvil»), en Previsión y Patrimonio.
+  - Mutación comprobada: con el CSS anterior, las dos fallan.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6115/6115, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo, en el CI del PR.
+
 ## Cierre de sesión — 23 de octubre de 2026 (342): revisión de salida de la Ola 1, contraste fiscal de WP-23 y ensayo del cierre de octubre
 
 - **Qué pidió el hogar:** arrancar la sesión analizando el backlog y el panel de seguimiento, y proponer un plan. Plan aprobado («adelante con mis respuestas»), con tres respuestas:

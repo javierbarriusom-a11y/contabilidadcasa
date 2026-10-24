@@ -268,7 +268,7 @@ test("A-10 · analisisConfianzaDatoHtml dice cuántos movimientos del mes siguen
     totalMovements: 5,
     unclassifiedCount: 2,
   });
-  assert.match(out, /2 de 5 movimiento\(s\) de agosto de 2026 sin clasificar todavía/);
+  assert.match(out, /2 de 5 movimientos de agosto de 2026 sin clasificar todavía/);
   assert.match(out, /data-home-nav="cierre"/);
   // A-13: con pendientes reales el CTA deja de ser un enlace genérico — lleva ya el mes para
   // preseleccionar sus filas sin clasificar en Movimientos (M-8).

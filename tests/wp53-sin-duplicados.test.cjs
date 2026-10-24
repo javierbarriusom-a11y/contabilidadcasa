@@ -226,7 +226,7 @@ test("pantalla: la tabla del paso 3 enseña por qué, qué se conserva y escapa 
   assert.match(html, /&lt;b&gt;/);
   row.duplicateDecision = "misma";
   assert.match(context.capturaDuplicadosRowMarkup(row), /is-active" data-datos-importar-duplicate="misma"[^>]*aria-pressed="true"/);
-  assert.match(context.capturaDuplicadosResumen([row]), /1 captura\(s\) anotada\(s\) a mano se sustituyen/);
+  assert.match(context.capturaDuplicadosResumen([row]), /1 captura anotada a mano se sustituye/);
   assert.equal(context.capturaDuplicadosResumen([{ ...row, duplicateDecision: "distinto" }]), "");
 });
 

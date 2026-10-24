@@ -13,7 +13,7 @@ const appSource = codigoApp();
 
 test("wiring: UX_ALERT_METRICS declara topPositionConcentrationPct con su propia etiqueta y formato", () => {
   const start = appSource.indexOf("const UX_ALERT_METRICS = {");
-  const block = appSource.slice(start, start + 1300);
+  const block = appSource.slice(start, start + 1900);
   assert.match(block, /topPositionConcentrationPct: \{ label: "Concentración en la mayor posición"/);
 });
 

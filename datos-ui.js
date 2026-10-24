@@ -220,7 +220,7 @@ function renderDataAudit() {
   const verified = Number(quality.provenance?.verified || 0);
 
   qs("auditKpis").innerHTML = [
-    ["Calidad del inventario", `${Number(quality.score || 0)}%`, `${Number(quality.issueCount || 0)} incidencia(s) detectada(s)`, Number(quality.score || 0) >= 90 ? "good" : "warn"],
+    ["Calidad del inventario", `${Number(quality.score || 0)}%`, `${Number(quality.issueCount || 0)} ${(Number(quality.issueCount || 0)) === 1 ? "incidencia detectada" : "incidencias detectadas"}`, Number(quality.score || 0) >= 90 ? "good" : "warn"],
     ["Entidades persistidas", String(rows.length), "Proyectos, deuda, ajustes, reales y saldos", "neutral"],
     ["Datos verificados", String(verified), `${rows.length ? Math.round((verified / rows.length) * 100) : 0}% del inventario tiene evidencia real`, "good"],
     ["Última consolidación", generatedLabel, `Huella ${snapshot.fingerprint || "sin huella"}`, "neutral"],
@@ -278,7 +278,7 @@ function renderAuditMilestonesStreaks() {
   const result = window.FinanceCanonicalE5?.auditMilestonesAndStreaks(monthClosures);
   if (!result) return;
   const streakText = result.currentStreak > 0
-    ? `Racha actual: ${result.currentStreak} mes(es) cerrados seguidos${result.currentStreak === result.longestStreak && result.longestStreak > 0 ? " (tu mejor racha)" : ""}.`
+    ? `Racha actual: ${result.currentStreak} ${result.currentStreak === 1 ? "mes cerrado" : "meses cerrados seguidos"}${result.currentStreak === result.longestStreak && result.longestStreak > 0 ? " (tu mejor racha)" : ""}.`
     : "Sin racha activa: el mes más reciente no está cerrado o hay un hueco.";
   const milestonesText = result.reachedMilestones.length
     ? `Hitos alcanzados: ${result.reachedMilestones.join(", ")} meses cerrados.`
@@ -321,7 +321,7 @@ function renderE8AuditExtensions(snapshot, rows) {
   const payloadBytes = new TextEncoder().encode(JSON.stringify(appStatePayload({ includeCanonical: false }))).length;
   const budget = e8.performanceBudget({ rowCount: rows.length + movements.length, renderMs: performance.now() - started, payloadBytes });
   const budgetTarget = qs("e8PerformanceBudget");
-  if (budgetTarget) budgetTarget.innerHTML = `<div class="audit-kpi-grid"><article class="audit-kpi ${budget.checks.rowCount ? "good" : "warn"}"><span>Filas</span><strong>${budget.measured.rowCount}</strong><p>Límite ${budget.limits.rowCount}</p></article><article class="audit-kpi ${budget.checks.renderMs ? "good" : "warn"}"><span>Preparación</span><strong>${budget.measured.renderMs.toFixed(1)} ms</strong><p>Límite ${budget.limits.renderMs} ms</p></article><article class="audit-kpi ${budget.checks.payloadBytes ? "good" : "warn"}"><span>Estado</span><strong>${(budget.measured.payloadBytes / 1024).toFixed(0)} KB</strong><p>Límite ${(budget.limits.payloadBytes / 1024 / 1024).toFixed(0)} MB</p></article></div>`;
+  if (budgetTarget) budgetTarget.innerHTML = `<div class="audit-kpi-grid"><article class="audit-kpi ${budget.checks.rowCount ? "good" : "warn"}"><span>Filas</span><strong>${budget.measured.rowCount}</strong><p>Límite ${budget.limits.rowCount}</p></article><article class="audit-kpi ${budget.checks.renderMs ? "good" : "warn"}"><span>Preparación</span><strong>${budget.measured.renderMs.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ms</strong><p>Límite ${budget.limits.renderMs} ms</p></article><article class="audit-kpi ${budget.checks.payloadBytes ? "good" : "warn"}"><span>Estado</span><strong>${(budget.measured.payloadBytes / 1024).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} KB</strong><p>Límite ${(budget.limits.payloadBytes / 1024 / 1024).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} MB</p></article></div>`;
   loadE8RemoteHistory();
 }
 
@@ -366,7 +366,7 @@ function renderE6KpiQuality() {
     ...entry,
     reconciled: entry.reconciled === true || entry.status === "matched" || entry.reconciliationStatus === "matched",
   })), { horizonMonths: forecastMonths().length });
-  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)} · ${scenario.calibrated ? "calibrado" : "sin calibrar"}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
+  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} ${calibrated.sampleMonths === 1 ? "mes" : "meses"} · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)} · ${scenario.calibrated ? "calibrado" : "sin calibrar"}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
   target.innerHTML = (metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
     <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
     <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>
@@ -498,8 +498,8 @@ function rgx1AccessLossReadiness(state, backupAt, now = new Date()) {
     if (!Number.isFinite(backupTime)) return { id: "backup", ok: false, detail: "Nunca se ha descargado una copia de emergencia." };
     const ageDays = Math.floor((now.getTime() - backupTime) / (24 * 60 * 60 * 1000));
     return ageDays <= RGX1_BACKUP_STALE_DAYS
-      ? { id: "backup", ok: true, detail: `Última copia hace ${ageDays} día(s).` }
-      : { id: "backup", ok: false, detail: `Última copia hace ${ageDays} día(s) — más de ${RGX1_BACKUP_STALE_DAYS}.` };
+      ? { id: "backup", ok: true, detail: `Última copia hace ${ageDays} ${ageDays === 1 ? "día" : "días"}.` }
+      : { id: "backup", ok: false, detail: `Última copia hace ${ageDays} ${ageDays === 1 ? "día" : "días"} — más de ${RGX1_BACKUP_STALE_DAYS}.` };
   })();
   const active = (state?.members || []).filter((member) => member.status === "active");
   const stewards = active.filter((member) => member.role === "owner" || member.role === "admin");
@@ -507,7 +507,7 @@ function rgx1AccessLossReadiness(state, backupAt, now = new Date()) {
     ? { id: "household", ok: true, detail: `${stewards.length} personas con rol de propietario o administrador.` }
     : { id: "household", ok: false, detail: active.length <= 1 ? "Nadie más tiene acceso al hogar compartido todavía." : "Solo una persona tiene rol de propietario o administrador." };
   const concentration = rgxKnowledgeConcentration(state);
-  const coverageCheck = { id: "coverage", ok: !concentration, detail: concentration ? `${concentration.areas.length} área(s) con un solo punto de acceso.` : "Cada área compartida tiene al menos dos personas con acceso." };
+  const coverageCheck = { id: "coverage", ok: !concentration, detail: concentration ? `${concentration.areas.length} ${concentration.areas.length === 1 ? "área" : "áreas"} con un solo punto de acceso.` : "Cada área compartida tiene al menos dos personas con acceso." };
   const checks = [backupCheck, householdCheck, coverageCheck];
   return { checks, ready: checks.every((check) => check.ok) };
 }
@@ -549,7 +549,7 @@ function renderMovementImportReview() {
   if (!pendingMovementMappings.length) {
     panel.hidden = false;
     panel.innerHTML = `<div class="movement-mapping-empty">
-      <strong>Diccionario activo: ${dictionaryCount} relación(es)</strong>
+      <strong>Diccionario activo: ${dictionaryCount} ${dictionaryCount === 1 ? "relación" : "relaciones"}</strong>
       <p>Cuando un movimiento no coincida con ninguna partida del Cuadro de mandos, aparecerá aquí para asignarlo.</p>
     </div>`;
     return;
@@ -557,7 +557,7 @@ function renderMovementImportReview() {
   panel.hidden = false;
   panel.innerHTML = `<div class="movement-mapping-head">
       <div>
-        <strong>${pendingMovementMappings.length} movimiento(s) por relacionar</strong>
+        <strong>${pendingMovementMappings.length} ${pendingMovementMappings.length === 1 ? "movimiento" : "movimientos"} por relacionar</strong>
         <p>El signo del importe ya separa ingresos y gastos. Elige la partida del Cuadro de mandos y guardaremos la relación para próximos ficheros.</p>
       </div>
       <button id="applyMovementMappings" type="button">Guardar relaciones</button>
@@ -604,7 +604,7 @@ function applyPendingMovementMappings() {
   saveIncomeActuals();
   saveExpenseActuals();
   refreshAllSectionsAfterDataChange();
-  qs("movementImportStatus").innerHTML = `<strong>${changed} relación(es) guardada(s)</strong><p>${applied} importe(s) reales recalculados desde movimientos. ${fullRefreshMessage()}</p>`;
+  qs("movementImportStatus").innerHTML = `<strong>${changed} ${changed === 1 ? "relación guardada" : "relaciones guardadas"}</strong><p>${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos. ${fullRefreshMessage()}</p>`;
 }
 
 function latestStatementBalance(transactions) {
@@ -652,7 +652,7 @@ async function handleMovementExcelImport(event) {
     const comparison = E7Analysis?.compareImport(before, merged, { invariants: { finiteMovements: imported.every((row) => Number.isFinite(Number(row.amount))) } }) || { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
     const inboxItem = addE11bInboxItem({ source: "bank-statement", fileName: file.name, sourceLabel: file.name, bankStatement: true, rows: imported, comparison, legacyAdapter: "movement-import" });
     pendingE11bApply = { imported, inboxItem };
-    qs("movementImportStatus").innerHTML = `<strong>Vista previa · aún no se ha incorporado nada</strong><p>${comparison.additions?.length || 0} alta(s), ${comparison.duplicates?.length || 0} duplicado(s) y ${buildPendingMovementMappings(imported).length} relación(es) por revisar.</p><div class="data-actions"><button id="confirmMovementInbox" type="button" ${comparison.valid === false ? "disabled" : ""}>Confirmar extracto</button><button id="cancelMovementInbox" class="secondary" type="button">Cancelar</button></div>`;
+    qs("movementImportStatus").innerHTML = `<strong>Vista previa · aún no se ha incorporado nada</strong><p>${comparison.additions?.length || 0} ${(comparison.additions?.length || 0) === 1 ? "alta" : "altas"}, ${comparison.duplicates?.length || 0} ${(comparison.duplicates?.length || 0) === 1 ? "duplicado" : "duplicados"} y ${buildPendingMovementMappings(imported).length} ${(buildPendingMovementMappings(imported).length) === 1 ? "relación" : "relaciones"} por revisar.</p><div class="data-actions"><button id="confirmMovementInbox" type="button" ${comparison.valid === false ? "disabled" : ""}>Confirmar extracto</button><button id="cancelMovementInbox" class="secondary" type="button">Cancelar</button></div>`;
     qs("confirmMovementInbox")?.addEventListener("click", applyStagedMovementImport);
     wireGestureConfirm(qs("confirmMovementInbox"));
     qs("cancelMovementInbox")?.addEventListener("click", () => {
@@ -688,7 +688,7 @@ function applyStagedMovementImport() {
   saveLocalSnapshot(); queueRemoteSave(); refreshAllSectionsAfterDataChange();
   applyE11bReceipt(pending.inboxItem, { batchId: batch?.id || "", changed: { records: imported.length, movements: imported.length, actuals: appliedActuals, balances: balances ? 1 : 0 } });
   const balanceText = balances ? `Saldo CaixaBank actualizado a ${money(balances.caixa, true)} con fecha ${formatIsoDate(latest.date)}.` : "No se encontró saldo final utilizable.";
-  qs("movementImportStatus").innerHTML = `<strong>Extracto confirmado</strong><p>${imported.length} movimiento(s). ${balanceText} ${appliedActuals} real(es) recalculados; ${pendingMovementMappings.length} relación(es) pendientes.</p>`;
+  qs("movementImportStatus").innerHTML = `<strong>Extracto confirmado</strong><p>${imported.length} ${imported.length === 1 ? "movimiento" : "movimientos"}. ${balanceText} ${appliedActuals} ${appliedActuals === 1 ? "real recalculado" : "reales recalculados"}; ${pendingMovementMappings.length} ${pendingMovementMappings.length === 1 ? "relación pendiente" : "relaciones pendientes"}.</p>`;
   pendingE11bApply = null;
   renderMovementImportReview();
 }
@@ -826,7 +826,7 @@ function renderDetailedMovements() {
   }
 
   const countLabel = qs("movementCount");
-  if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales.`;
+  if (countLabel) countLabel.textContent = `${filtered.length} ${filtered.length === 1 ? "movimiento real" : "movimientos reales"}.`;
 
   // M-5: aviso de cola sin clasificar, sobre la misma vista filtrada — no un recuento aparte del
   // extracto completo que no coincidiría con lo que la tabla muestra.
@@ -834,7 +834,7 @@ function renderDetailedMovements() {
   if (banner) {
     if (unclassified.length) {
       banner.hidden = false;
-      banner.textContent = `${unclassified.length} movimiento(s) de esta vista sin partida asignada. Ábrelos con «Ver» para clasificarlos.`;
+      banner.textContent = `${unclassified.length} ${unclassified.length === 1 ? "movimiento" : "movimientos"} de esta vista sin partida asignada. Ábrelos con «Ver» para clasificarlos.`;
     } else {
       banner.hidden = true;
       banner.textContent = "";
@@ -916,7 +916,7 @@ function renderMovementsBulkBar() {
   bar.hidden = false;
   const concepts = movementsSelectedConceptKeys(rows);
   const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
-  if (countLabel) countLabel.textContent = `${rows.length} movimiento(s) seleccionados · ${concepts.size} concepto(s) distinto(s)`;
+  if (countLabel) countLabel.textContent = `${rows.length} ${rows.length === 1 ? "movimiento seleccionado" : "movimientos seleccionados"} · ${concepts.size} ${concepts.size === 1 ? "concepto distinto" : "conceptos distintos"}`;
   // Una partida es de ingresos o de gastos (`availableSeriesRows(kind)`); una selección que mezcla
   // los dos no tiene una sola partida válida que ofrecer, así que se bloquea con el motivo en vez
   // de enseñar una lista que solo serviría para la mitad de lo seleccionado (regla transversal 08).
@@ -948,8 +948,8 @@ function renderMovementsBulkBar() {
   const alreadyMapped = [...concepts.values()].filter((row) => mappingForMovement(row)).length;
   if (noteEl) {
     noteEl.textContent = alreadyMapped
-      ? `${alreadyMapped} de los ${concepts.size} concepto(s) ya tenían otra partida asignada: se sobrescribirá.`
-      : `Se aplicará a los ${concepts.size} concepto(s) seleccionados, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida». Partida y tipo de acción se guardan por separado: rellena solo lo que quieras cambiar.`;
+      ? (concepts.size === 1 ? "El concepto seleccionado ya tenía otra partida asignada: se sobrescribirá." : `${alreadyMapped} de los ${concepts.size} conceptos ya ${alreadyMapped === 1 ? "tenía" : "tenían"} otra partida asignada: se sobrescribirá.`)
+      : `Se aplicará a los ${concepts.size} ${concepts.size === 1 ? "concepto seleccionado" : "conceptos seleccionados"}, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida». Partida y tipo de acción se guardan por separado: rellena solo lo que quieras cambiar.`;
   }
   if (applyButton) applyButton.disabled = !partidaSelect?.value && !actionTypeSelect?.value;
 }
@@ -1009,7 +1009,7 @@ function handleMovementsBulkApply() {
     saveIncomeActuals();
     saveExpenseActuals();
     // Mismo texto exacto que antes de DEX10 cuando solo se aplica partida (regresión cero de copy).
-    messages.push(`reclasificados a «${label}». ${applied} importe(s) reales recalculados desde movimientos.`);
+    messages.push(`${concepts.size === 1 ? "reclasificado" : "reclasificados"} a «${label}». ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`);
   }
   if (actionTypeSelect?.value) {
     const actionLabel = actionTypeSelect.options[actionTypeSelect.selectedIndex]?.textContent || "";
@@ -1020,7 +1020,7 @@ function handleMovementsBulkApply() {
     messages.push(`tipo de acción asignado como «${actionLabel}».`);
   }
   refreshAllSectionsAfterDataChange();
-  announceStatus(`${concepts.size} concepto(s) (${rows.length} movimiento(s)) ${messages.join(" ")}`);
+  announceStatus(`${concepts.size} ${concepts.size === 1 ? "concepto" : "conceptos"} (${rows.length} ${rows.length === 1 ? "movimiento" : "movimientos"}) ${messages.join(" ")}`);
   movementsSelectedIndexes.clear();
   renderDetailedMovements();
 }

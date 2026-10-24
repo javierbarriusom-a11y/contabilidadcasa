@@ -251,7 +251,7 @@ test("pantalla: cerrada, solo el resumen; abierta, UNA partida con su evidencia,
   context.renderBaseCero(zero);
   assert.match(body.innerHTML, /<h3 id="bcTitulo" tabindex="-1">Nómina<\/h3>/, "la más pesada primero (3.000 € al mes)");
   assert.doesNotMatch(body.innerHTML, /Solo hay reales anotados en/, "con reales en 6 meses no hay aviso de cobertura");
-  assert.match(body.innerHTML, /1 partida\(s\) sin importe previsto y sin ningún real no entran en la revisión/);
+  assert.match(body.innerHTML, /1 partida sin importe previsto y sin ningún real no entra en la revisión/);
   assert.match(body.innerHTML, /0 de 6 revisadas, 6 por revisar/);
   assert.match(body.innerHTML, /<progress max="6" value="0"/);
   assert.equal((body.innerHTML.match(/<article class="bc-card"/g) || []).length, 1, "una partida por pantalla");
@@ -298,14 +298,14 @@ test("pantalla: «Ajustar» PREPARA el importe en los meses por venir (no escrib
   assert.deepEqual(calls.staged.map(([key, month, value]) => `${key}|${month}|${value}`), FUTURE.map((month) => `expense|super|${month}|705`), "solo meses por venir, y solo los de la partida");
   assert.equal(calls.saved, 0, "no se guarda solo");
   assert.deepEqual(JSON.parse(storage["zero-base-data:demo"]).reviews["expense|super"], { decision: "ajustar", reviewedAt: "2027-01-12", from: 600, to: 705 });
-  assert.match(calls.announced.at(-1), /preparado 705,00 € al mes en 4 mes\(es\)\. Guárdalo para que cuente\./);
-  assert.match(body.innerHTML, /4 cambio\(s\) preparado\(s\) en el plan/);
+  assert.match(calls.announced.at(-1), /preparado 705,00 € al mes en 4 meses\. Guárdalo para que cuente\./);
+  assert.match(body.innerHTML, /4 cambios preparados en el plan/);
   assert.match(body.innerHTML, /ajuste preparado, sin guardar/);
   assert.equal(calls.rendered, 1, "la tabla de Partidas se repinta para enseñar el borrador");
   click("guardar");
   assert.equal(calls.saved, 1);
   assert.match(calls.announced.at(-1), /Cambios guardados en el plan/);
-  assert.doesNotMatch(body.innerHTML, /cambio\(s\) preparado/);
+  assert.doesNotMatch(body.innerHTML, /cambios? preparados? en el plan/);
   // Ajustar sin propuesta no hace nada.
   const before = calls.staged.length;
   click("ajustar", "expense|luz");

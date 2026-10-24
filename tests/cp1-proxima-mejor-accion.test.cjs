@@ -150,7 +150,7 @@ test("cpx3IgnoredNoteHtml · pasado el umbral de días, avisa con el número de 
   const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
   const entry = { signature: "alert:cash-2026-10", firstShownAt: fiveDaysAgo };
   const output = ctx.cpx3IgnoredNoteHtml(entry);
-  assert.match(output, /5 día\(s\)/);
+  assert.match(output, /5 días/);
   assert.match(output, /data-cpx3-dismiss="alert:cash-2026-10"/);
   assert.match(output, /Descartar/);
 });
@@ -167,7 +167,7 @@ test("cp1NextBestActionHtml · con una entrada de seguimiento antigua, añade el
   const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
   const entry = { signature: "alert:cash-2026-10", firstShownAt: tenDaysAgo };
   const output = ctx.cp1NextBestActionHtml(SAMPLE_ACTION, entry);
-  assert.match(output, /10 día\(s\)/);
+  assert.match(output, /10 días/);
   assert.match(output, /Revisar la caja prevista/); // sigue mostrando la acción normal
 });
 

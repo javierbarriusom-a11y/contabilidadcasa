@@ -743,8 +743,8 @@ function processDataRecords(records, sourceLabel = "datos", logId = "dataImportL
 
   const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
   showImportLog(
-    `${imported} registro(s) importado(s)`,
-    `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
+    `${imported} ${imported === 1 ? "registro importado" : "registros importados"}`,
+    `Origen: ${sourceLabel}. ${planningRows} ${planningRows === 1 ? "concepto" : "conceptos"}, ${projectRows} ${projectRows === 1 ? "proyecto" : "proyectos"} y ${debtRows} ${debtRows === 1 ? "liquidación" : "liquidaciones"} de deuda procesados. ${fullRefreshMessage()}${warningText}`,
     warnings.length ? "warning" : "",
     logId,
   );
@@ -788,7 +788,7 @@ function renderE11bStatus() {
     const itemsHtml = items.length ? items.map((item) => {
       const counts = item.comparison || {};
       const status = { ready: "Lista para confirmar", blocked: "Requiere revisión", applied: "Aplicada", undone: "Deshecha", discarded: "Descartada" }[item.status] || item.status;
-      return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
+      return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} ${(item.rows?.length || 0) === 1 ? "fila" : "filas"} · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
     }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
     summary.innerHTML = progressHtml + itemsHtml;
   }
@@ -814,7 +814,7 @@ function applyE11bReceipt(item, result = {}, logId = "dataImportLog") {
   renderE11bStatus();
   const warnings = Array.isArray(result.warnings) ? result.warnings : [];
   const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
-  showImportLog("Actualización confirmada", `${receipt.changed.records} registro(s) incorporados. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacerlo con «Deshacer último lote», en Registrar." : "La revisión queda registrada."}${warningText}`, warnings.length ? "warning" : "success", logId);
+  showImportLog("Actualización confirmada", `${receipt.changed.records} ${receipt.changed.records === 1 ? "registro incorporado" : "registros incorporados"}. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacerlo con «Deshacer último lote», en Registrar." : "La revisión queda registrada."}${warningText}`, warnings.length ? "warning" : "success", logId);
 }
 
 async function runReceiptOcr(file) {
@@ -1241,7 +1241,7 @@ function registrarMesCopyHtml(kind, month) {
   }
   const candidates = registrarMesCopyCandidates(kind, month);
   return `<span class="registrar-mes-copy-confirm">
-    <span>Se copiarán ${candidates.length} real(es) de ${escapeHtml(previous.label)} a las partidas que aún no tienen uno.</span>
+    <span>Se copiarán ${candidates.length} ${candidates.length === 1 ? "real" : "reales"} de ${escapeHtml(previous.label)} a las partidas que aún no tienen uno.</span>
     <button type="button" class="e19-btn e19-btn-primary" data-registrar-mes-copy-confirm="${kind}">Confirmar copia</button>
     <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-copy-cancel="${kind}">Cancelar</button>
   </span>`;
@@ -1356,8 +1356,8 @@ function renderRegistrarMes() {
     subtitle.textContent = monthClosed
       ? "El mes está cerrado: los importes quedan congelados y no se pueden editar aquí."
       : REGISTRAR_MES_LEGACY_READONLY
-        ? `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Esta pantalla es de solo lectura: edítalas desde Registrar › Reales del mes.`
-        : `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
+        ? `${pending ? `${pending === 1 ? "Queda" : "Quedan"} ${pending} ${pending === 1 ? "partida" : "partidas"} sin real.` : "Todas las partidas tienen real."} Esta pantalla es de solo lectura: edítalas desde Registrar › Reales del mes.`
+        : `${pending ? `${pending === 1 ? "Queda" : "Quedan"} ${pending} ${pending === 1 ? "partida" : "partidas"} sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
   }
 
   const saved = qs("registrarMesSaved");
@@ -1610,8 +1610,8 @@ function registrarImpactRows(baseline, current) {
     },
     {
       label: "Cobertura hasta el siguiente ingreso",
-      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} día(s)`,
-      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} día(s) en la sesión`,
+      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} ${current.coverageDays === 1 ? "día" : "días"}`,
+      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} ${Math.abs(coverageDelta) === 1 ? "día" : "días"} en la sesión`,
     },
     {
       label: "Fecha libre de deuda",
@@ -1648,7 +1648,7 @@ function renderRegistrarImpactFooter() {
   bar.innerHTML = `
     <div class="e19-registrar-impact-head">
       <p class="e19-eyebrow">Impacto de la sesión</p>
-      <small>${registrarSessionChanges.length} cambio(s) sin consolidar${belowMinimum ? " · reserva bajo el mínimo" : ""}</small>
+      <small>${registrarSessionChanges.length} ${registrarSessionChanges.length === 1 ? "cambio" : "cambios"} sin consolidar${belowMinimum ? " · reserva bajo el mínimo" : ""}</small>
     </div>
     ${rows
       .map(

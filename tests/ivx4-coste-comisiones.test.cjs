@@ -71,7 +71,7 @@ test("ivx4FeeCostLabel · con comisión y horizonte declarados, muestra el coste
   vm.runInContext(extractFunction("ivx4FeeCostLabel"), context);
   const label = context.ivx4FeeCostLabel({ currentValue: 10000, feePct: 1 });
   assert.match(label, /comisión 1%\/año/);
-  assert.match(label, /coste compuesto a 10 año\(s\)/);
+  assert.match(label, /coste compuesto a 10 años/);
 });
 
 test("ivx4FeeCostLabel · sin comisión declarada o sin horizonte, cadena vacía", () => {

@@ -87,7 +87,7 @@ test("lpx3ContinuityChecklist · un activo con procedencia desconocida hace fall
   const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_UNKNOWN], [], {});
   const assetsCheck = result.checks.find((check) => check.id === "assets");
   assert.equal(assetsCheck.ok, false);
-  assert.match(assetsCheck.detail, /1 activo\(s\) sin procedencia declarada/);
+  assert.match(assetsCheck.detail, /1 activo sin procedencia declarada/);
 });
 
 // LPX5: el punto de destino por activo ya no es una casilla manual — depende del campo real.
@@ -96,7 +96,7 @@ test("lpx3ContinuityChecklist · activos registrados sin ninguno con destino dec
   const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_UNKNOWN], [], {});
   const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
   assert.equal(destinationCheck.ok, false);
-  assert.match(destinationCheck.detail, /2 activo\(s\) sin destino declarado/);
+  assert.match(destinationCheck.detail, /2 activos sin destino declarado/);
 });
 
 test("lpx3ContinuityChecklist · al menos un activo con destino declarado hace pasar el punto", () => {
@@ -104,7 +104,7 @@ test("lpx3ContinuityChecklist · al menos un activo con destino declarado hace p
   const result = ctx.lpx3ContinuityChecklist([ASSET_WITH_PROVENANCE, ASSET_WITH_DESTINATION], [], {});
   const destinationCheck = result.checks.find((check) => check.id === "assetDestination");
   assert.equal(destinationCheck.ok, true);
-  assert.match(destinationCheck.detail, /1 de 2 activo\(s\) con destino declarado/);
+  assert.match(destinationCheck.detail, /1 de 2 activos con destino declarado/);
 });
 
 test("lpx3ContinuityChecklist · LPX6: sin pólizas de vida, el punto de beneficiario falla explícitamente, distinto de sin beneficiario declarado", () => {
@@ -120,7 +120,7 @@ test("lpx3ContinuityChecklist · LPX6: una póliza de vida sin beneficiario decl
   const result = ctx.lpx3ContinuityChecklist([], [POLICY_LIFE_NO_BENEFICIARY], {});
   const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
   assert.equal(beneficiaryCheck.ok, false);
-  assert.match(beneficiaryCheck.detail, /1 póliza\(s\) de vida sin beneficiario declarado/);
+  assert.match(beneficiaryCheck.detail, /1 póliza de vida sin beneficiario declarado/);
 });
 
 test("lpx3ContinuityChecklist · LPX6: una póliza sin isLife nunca cuenta, aunque su nombre diga 'vida'", () => {
@@ -137,7 +137,7 @@ test("lpx3ContinuityChecklist · LPX6: al menos una póliza de vida con benefici
   const result = ctx.lpx3ContinuityChecklist([], [POLICY_LIFE_NO_BENEFICIARY, POLICY_LIFE_WITH_BENEFICIARY], {});
   const beneficiaryCheck = result.checks.find((check) => check.id === "beneficiaries");
   assert.equal(beneficiaryCheck.ok, true);
-  assert.match(beneficiaryCheck.detail, /1 de 2 póliza\(s\) de vida con beneficiario declarado/);
+  assert.match(beneficiaryCheck.detail, /1 de 2 pólizas de vida con beneficiario declarado/);
 });
 
 test("lpx3ContinuityChecklist · los dos puntos manuales empiezan sin confirmar, y nunca se infieren de otros datos", () => {

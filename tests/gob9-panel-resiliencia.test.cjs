@@ -123,7 +123,7 @@ test("renderGob9ResiliencePanel · sin PROFILES/E13 disponible, sigue funcionand
 
 test("renderGob9ResiliencePanel · pinta meses de aguante, liquidez y gasto bajo tensión en el HTML", () => {
   const { container } = sandbox({ liquidity: 12000, monthlyOutflow: 2000, debtService: 500 });
-  assert.match(container.innerHTML, /mes\(es\) de aguante/);
+  assert.match(container.innerHTML, /meses de aguante/);
   assert.match(container.innerHTML, /€/);
 });
 

@@ -100,7 +100,7 @@ test("t6RefinanciarMemoContext · dentro del umbral, recomienda refinanciar y ad
     },
   }));
   const result = context.t6RefinanciarMemoContext();
-  assert.match(result.recommendation, /recupera su coste de cambio en 6 mes\(es\)/);
+  assert.match(result.recommendation, /recupera su coste de cambio en 6 meses/);
   assert.match(result.recommendation, /dentro de tu umbral de 12/);
   assert.equal(result.sensitivity.length, 3);
   assert.match(result.sensitivity[0], /Base:.*empate|más barato/);

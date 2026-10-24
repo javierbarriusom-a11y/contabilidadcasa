@@ -106,7 +106,7 @@ test("deb12WaitingCostSoFarHtml · pasado el plazo declarado, tope en los meses 
   );
   // tope en 6 meses declarados: 10000 * 0.06 * (6/12) = 300, nunca más aunque hayan pasado 11 meses
   assert.match(html, /300\.00/);
-  assert.match(html, /Ya se cumplieron los 6 mes\(es\)/);
+  assert.match(html, /Ya se cumplieron los 6 meses/);
 });
 
 test("deb12WaitingCostSoFarHtml · sin FinanceDebtComparator disponible, no rompe ni inventa nada", () => {

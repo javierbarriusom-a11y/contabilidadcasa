@@ -358,7 +358,7 @@ function renderDeudaCompararOffer() {
   if (!note) return;
   const plan = debtConsolidationPlan();
   if (plan.motivo === "cartera") {
-    note.textContent = `Con ${plan.contracts.length} deuda(s) viva(s) no hay nada que reunificar: hacen falta al menos dos.`;
+    note.textContent = `Con ${plan.contracts.length} ${plan.contracts.length === 1 ? "deuda viva" : "deudas vivas"} no hay nada que reunificar: hacen falta al menos dos.`;
     return;
   }
   if (!plan.available) {
@@ -764,7 +764,7 @@ function deudaRutaAttackRowHtml(index, contract, decisionByContractId, resultado
     <td>${index + 1}</td>
     <td>${escapeHtml(escenarioMotorDebtLabel(contract))}</td>
     <td>${money(capital, true)}</td>
-    <td>${Number.isFinite(aprPct) ? `${aprPct.toFixed(1)}%` : "—"}</td>
+    <td>${Number.isFinite(aprPct) ? `${aprPct.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : "—"}</td>
     <td>${cuota > 0 ? money(cuota, true) : '<span title="Sin cuota declarada">—</span>'}</td>
     <td><div class="deuda-ruta-attack-weight"><div class="deuda-ruta-attack-weight-bar"><span style="width:${weightPct}%"></span></div><small>${escapeHtml(finLabel)}</small></div></td>
   </tr>`;
@@ -797,7 +797,7 @@ function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
   const avgApr = knownAprCapital > 0
     ? knownApr.reduce((sum, contract) => sum + Number(contract.apr) * (Number(contract.currentPrincipal) || 0), 0) / knownAprCapital
     : null;
-  const avgAprLabel = avgApr === null ? "sin TIN declarado" : `media ${avgApr.toFixed(1)}%`;
+  const avgAprLabel = avgApr === null ? "sin TIN declarado" : `media ${avgApr.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
   // `summary.libreDeDeuda` es una clave de mes real solo cuando la ruta de verdad termina de pagar
   // dentro del horizonte; si no, ya es una frase descriptiva («sin fecha estimable...») — el título
   // de la pantalla la muestra completa, así que aquí basta con la estrategia para no repetirla.
@@ -847,7 +847,7 @@ function renderDeudaRuta() {
   const subtitleEl = qs("deudaRutaSubtitle");
   if (subtitleEl) {
     const costeLabel = (def?.costeLabel || DEBT_STRATEGY_COSTE_LABEL).toLowerCase();
-    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} decisión(es), ${money(summary.costeTotal, true)} de ${costeLabel}, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
+    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} ${summary.total === 1 ? "decisión" : "decisiones"}, ${money(summary.costeTotal, true)} de ${costeLabel}, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
   }
 
   const deudaViva = buildDeudaVivaSeries(baseInput.months, contracts, summary.decisions, resultadosById);
@@ -884,7 +884,7 @@ function renderDeudaRuta() {
         ? deudaRutaEmptyTimelineText(summary)
         : summary.viable
         ? "Todas las decisiones tienen mes viable"
-        : `${summary.total - summary.aplicadas} decisión(es) sin mes viable en este horizonte`,
+        : `${summary.total - summary.aplicadas} ${(summary.total - summary.aplicadas) === 1 ? "decisión" : "decisiones"} sin mes viable en este horizonte`,
     },
   ];
   if (checklist) {
@@ -1203,8 +1203,8 @@ function deudaContratosStatusBadge(paymentStatus) {
 function deudaContratosQualityBadge(quality) {
   const missing = quality?.missing?.length || 0;
   if (!missing) return { label: "Dato completo", tone: "e19-badge-success" };
-  if (quality?.confidence === "medium") return { label: `Falta ${missing} dato(s)`, tone: "e19-badge-warning" };
-  return { label: `Faltan ${missing} dato(s)`, tone: "e19-badge-danger" };
+  if (quality?.confidence === "medium") return { label: `Falta ${missing} ${missing === 1 ? "dato" : "datos"}`, tone: "e19-badge-warning" };
+  return { label: `${missing === 1 ? "Falta" : "Faltan"} ${missing} ${missing === 1 ? "dato" : "datos"}`, tone: "e19-badge-danger" };
 }
 
 function deudaContratosStatusOptionsHtml(current) {
@@ -1278,8 +1278,8 @@ function renderDeudaContratos() {
   const note = qs("deudaContratosNote");
   if (note) {
     note.textContent = overriddenCount
-      ? `${overriddenCount} de ${contracts.length} contrato(s) con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
-      : `Valores declarados de ejemplo (${contracts.length} contrato(s)). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
+      ? `${overriddenCount} de ${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"} con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
+      : `Valores declarados de ejemplo (${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
   }
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
@@ -1475,7 +1475,7 @@ function d5DebtAssetCrossingHtml(rows) {
       if (!row.fundable) {
         return `<li class="commit-barrier-item"><strong>${escapeHtml(row.entity)}</strong> (${money(row.currentPrincipal, true)} pendiente): ninguna posición individual de tu cartera cubre ese importe neto del impuesto de venderla.</li>`;
       }
-      const altNote = row.alternativeCount > 0 ? ` (+${row.alternativeCount} alternativa(s) más)` : "";
+      const altNote = row.alternativeCount > 0 ? ` (+${row.alternativeCount} ${row.alternativeCount === 1 ? "alternativa" : "alternativas"} más)` : "";
       const matchNote = `${escapeHtml(row.bestMatch.label)} (${money(row.bestMatch.currentValue, true)}${row.bestMatch.taxCost > 0 ? `, coste fiscal real ${money(row.bestMatch.taxCost, true)} de venderla` : ""})${altNote}`;
       if (!row.calculable) {
         return `<li class="commit-barrier-item"><strong>${escapeHtml(row.entity)}</strong> (${money(row.currentPrincipal, true)} pendiente): se cancelaría vendiendo ${matchNote}, pero falta el plazo real del contrato o el TAE declarado para comparar frente a invertir.</li>`;
@@ -1555,7 +1555,7 @@ function gob16ClauseRowHtml(contract, isOpen) {
   const reviewNote = !review
     ? "Sin intervalo de revisión declarado."
     : review.reviewed
-    ? `Última revisión hace ${review.monthsSinceReview} mes(es)${review.due ? " — toca revisarlo." : "."}`
+    ? `Última revisión hace ${review.monthsSinceReview} ${review.monthsSinceReview === 1 ? "mes" : "meses"}${review.due ? " — toca revisarlo." : "."}`
     : "Nunca declarada — toca revisarlo.";
   const summary = !clause.linkedProductsCompliant || (review && review.due)
     ? `${entityLabel} — revisar`

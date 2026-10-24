@@ -84,7 +84,7 @@ test("GOB10: renderAjustes refresca la lista de decisiones en cada render de la 
 });
 
 test("GOB10: se integra en el marco genérico de alertas con las 3 adiciones habituales (métrica, snapshot, regla)", () => {
-  assert.match(appSource, /overdueDecisionReviewsCount: \{ label: "Revisiones de decisiones vencidas", format: \(value\) => `\$\{Number\(value \|\| 0\)\} pendiente\(s\)` \},/);
+  assert.match(appSource, /overdueDecisionReviewsCount: \{ label: "Revisiones de decisiones vencidas", format: \(value\) => `\$\{Number\(value \|\| 0\)\} \$\{\(Number\(value \|\| 0\)\) === 1 \? "pendiente" : "pendientes"\}` \},/);
   assert.match(appSource, /overdueDecisionReviewsCount: gob10OverdueReviewsCount\(\),/);
   assert.match(appSource, /id: "alert-decision-review-overdue",/);
   const alertBlock = appSource.slice(appSource.indexOf('id: "alert-decision-review-overdue",'), appSource.indexOf('id: "alert-decision-review-overdue",') + 400);

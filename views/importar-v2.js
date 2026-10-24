@@ -163,7 +163,7 @@ function impV2CuadreHtml(cuadre) {
   if (cuadre.status === "no-cuadra") {
     const where = cuadre.gaps.slice(0, 3).map((gap) => (gap.from === gap.to ? `el ${impV2ShortDate(gap.from)}` : `entre el ${impV2ShortDate(gap.from)} y el ${impV2ShortDate(gap.to)}`)).join("; ");
     return `<div class="mov-v2-card imp-v2-cuadre is-error" role="alert"><div class="mov-v2-section-head"><h3>Cuadre</h3><span>no cuadra</span></div>
-      <p class="mov-v2-meta"><strong>No se importa:</strong> faltan movimientos ${escapeHtml(where)}${cuadre.gaps.length > 3 ? ` y en ${cuadre.gaps.length - 3} tramo(s) más` : ""} (el saldo no es el anterior más el movimiento). Descarga de nuevo ese tramo del banco.</p></div>`;
+      <p class="mov-v2-meta"><strong>No se importa:</strong> faltan movimientos ${escapeHtml(where)}${cuadre.gaps.length > 3 ? ` y en ${cuadre.gaps.length - 3} ${(cuadre.gaps.length - 3) === 1 ? "tramo" : "tramos"} más` : ""} (el saldo no es el anterior más el movimiento). Descarga de nuevo ese tramo del banco.</p></div>`;
   }
   return `<div class="mov-v2-card imp-v2-cuadre"><div class="mov-v2-section-head"><h3>Cuadre</h3><span class="imp-v2-ok">cuadra al céntimo</span></div>
     <dl class="imp-v2-cuentas">
@@ -203,7 +203,7 @@ function impV2Review(session) {
   ].filter(Boolean).join(" · ");
   const warnings = [
     session.fileMeta.repeated ? `Ya importaste un fichero con el mismo contenido (${session.fileMeta.repeated.fileName}).` : "",
-    summary.closedMonths.length ? `Toca ${summary.closedMonths.length} mes(es) ya cerrado(s): sus reales no cambian.` : "",
+    summary.closedMonths.length ? `Toca ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya cerrado" : "meses ya cerrados"}: sus reales no cambian.` : "",
   ].filter(Boolean).map((text) => `<p class="mov-v2-meta is-warn">${escapeHtml(text)}</p>`).join("");
   return `<div class="imp-v2-grid">
       <section class="mov-v2-card imp-v2-lineas" aria-label="Líneas del extracto">
@@ -230,7 +230,7 @@ function impV2Success(result) {
   return `<div class="mov-v2-card mov-v2-vacio" role="status">
     <span class="mov-v2-av is-pos" aria-hidden="true">${impV2Icon('<path d="m5 12.5 4.5 4.5L19 7.5"></path>')}</span>
     <h3>${result.imported} ${result.imported === 1 ? "movimiento importado" : "movimientos importados"}</h3>
-    <p class="mov-v2-meta">De «${escapeHtml(result.fileName || "")}».${result.duplicadosDescartados ? ` ${result.duplicadosDescartados} duplicado(s) descartado(s).` : ""}${result.capturasSustituidas ? ` ${result.capturasSustituidas} anotado(s) a mano sustituido(s) por su fila del banco.` : ""}${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${escapeHtml(money(result.balance.value, true))}.` : ""} Lo que no tiene partida te espera en la bandeja de Movimientos.</p>
+    <p class="mov-v2-meta">De «${escapeHtml(result.fileName || "")}».${result.duplicadosDescartados ? ` ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}.` : ""}${result.capturasSustituidas ? ` ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "anotado a mano sustituido" : "anotados a mano sustituidos"} por su fila del banco.` : ""}${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${escapeHtml(money(result.balance.value, true))}.` : ""} Lo que no tiene partida te espera en la bandeja de Movimientos.</p>
     <div class="imp-v2-acciones">
       <button type="button" class="e19-btn e19-btn-primary" data-imp-v2-nav="movements">Ver en Movimientos</button>
       <button type="button" class="e19-btn e19-btn-secondary" data-imp-v2-deshacer>Deshacer</button>

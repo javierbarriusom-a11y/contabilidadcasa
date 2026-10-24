@@ -93,14 +93,14 @@ test("deudaRutaAttackRowHtml distingue TIN desconocido (null) de un TIN real del
     escenarioMotorMonthLabel: (v) => v,
   });
   const sinTin = context.deudaRutaAttackRowHtml(0, { id: "a", entity: "Entidad A", currentPrincipal: 1000, currentPayment: 50, apr: null }, new Map(), new Map(), 1000);
-  assert.match(sinTin, /<td>—<\/td>/, "sin TIN declarado se ve como guion, no como 0.0%");
-  assert.doesNotMatch(sinTin, /0\.0%/);
+  assert.match(sinTin, /<td>—<\/td>/, "sin TIN declarado se ve como guion, no como 0,0%");
+  assert.doesNotMatch(sinTin, /0,0%/);
 
   const conTinCero = context.deudaRutaAttackRowHtml(0, { id: "b", entity: "Entidad B", currentPrincipal: 1000, currentPayment: 50, apr: 0 }, new Map(), new Map(), 1000);
-  assert.match(conTinCero, /0\.0%/, "un TIN real del 0 % (crédito familiar) sí se distingue y se muestra");
+  assert.match(conTinCero, /0,0%/, "un TIN real del 0 % (crédito familiar) sí se distingue y se muestra");
 
   const conTin = context.deudaRutaAttackRowHtml(0, { id: "c", entity: "Entidad C", currentPrincipal: 1000, currentPayment: 50, apr: 18.9 }, new Map(), new Map(), 1000);
-  assert.match(conTin, /18\.9%/);
+  assert.match(conTin, /18,9%/);
 });
 
 test("renderDeudaRutaAttackTable promedia el TIN solo entre los contratos con TIN conocido", () => {
@@ -120,7 +120,7 @@ test("renderDeudaRutaAttackTable promedia el TIN solo entre los contratos con TI
     { id: "b", entity: "B", currentPrincipal: 1000, currentPayment: 50, apr: 10 },
   ];
   context.renderDeudaRutaAttackTable(contracts, { decisions: [], libreDeDeuda: "" }, new Map(), { label: "Avalancha" });
-  assert.match(foot.innerHTML, /media 10\.0%/, "la media ignora el contrato sin TIN, no lo cuenta como 0%");
+  assert.match(foot.innerHTML, /media 10,0%/, "la media ignora el contrato sin TIN, no lo cuenta como 0%");
 });
 
 // --- updateE14bOffer: edita in situ, misma validación que el alta ---------------------------------

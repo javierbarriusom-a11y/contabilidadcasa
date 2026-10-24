@@ -258,7 +258,7 @@ test.describe("QA-1 · editor de series en Planificación de partidas", () => {
     await page.click("#applySeriesChange");
 
     await expect(page.locator("#seriesEditorLog")).toContainText("Serie actualizada");
-    await expect(page.locator("#seriesEditorLog")).toContainText("3 mes(es) modificados");
+    await expect(page.locator("#seriesEditorLog")).toContainText("3 meses modificados");
     const planned = await page.evaluate(() => Object.values(seriesOverrides).filter((value) => value.planned === 123.45).length);
     expect(planned).toBe(3);
     expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
@@ -378,7 +378,7 @@ test.describe("QA-1 · deshacer un lote importado desde Registrar", () => {
     await page.fill("#registrarBatchInput", `tipo;mes;bloque;concepto;previsto;real\ngasto;1999-01;${target.section};QA1 fuera de rango;77;0`);
     await page.click("#registrarBatchImportBtn");
     await page.click("#confirmRegistrarBatchImport");
-    await expect(page.locator("#registrarBatchLog")).toContainText("0 registro(s) importado(s)");
+    await expect(page.locator("#registrarBatchLog")).toContainText("0 registros importados");
     await expect(page.locator("#registrarBatchLog")).toContainText("Mes no reconocido: 1999-01");
     await expect(page.locator("#dataInboxSummary")).toContainText("Descartada");
     expect(await page.evaluate(() => importBatches.length)).toBe(0);
@@ -1534,7 +1534,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       const card = page.locator("#recordatoriosCard");
-      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+      await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
       await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(6);
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
@@ -1575,7 +1575,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const card = page.locator("#recordatoriosCard");
-    await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorio\(s\) hasta el/, { timeout: 15000 });
+    await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
     await expect(card.locator("#recordatoriosResumen"), "sin informe tecleado no se inventa un aviso").not.toContainText("aviso de la CIRBE");
     await page.evaluate(() => {
       const d = new Date(); d.setDate(d.getDate() - 340);
@@ -3886,8 +3886,8 @@ test.describe("WP-51 · perfiles de extracto", () => {
       await subir(page, "extracto-titulado.csv", TITULADO);
       const panel = page.locator("#registrarImportPanel .epf");
       await expect(panel).toBeVisible({ timeout: 15000 });
-      await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
-      await expect(panel).toContainText("3 movimiento(s) leídos");
+      await expect(page.locator("#registrarImportPanel")).toContainText("3 movimientos");
+      await expect(panel).toContainText("3 movimientos leídos");
       await expect(panel).toContainText("Ninguna fecha decide entre día/mes y mes/día");
       await expect(panel.locator(".epf-previa tbody tr")).toHaveCount(3);
       await expect(page.locator("#registrarImportPanel")).toContainText("del 03/04/2026 al 07/06/2026");
@@ -3943,9 +3943,9 @@ test.describe("WP-51 · perfiles de extracto", () => {
       await panel.locator(`[data-epf-ajuste="col-${index}"]`).selectOption(role);
       if (index < 3) await expect(page.locator(`#registrarImportPanel [data-epf-ajuste="col-${index + 1}"]`)).toBeVisible();
     }
-    await expect(page.locator("#registrarImportPanel")).toContainText("3 movimiento(s)");
+    await expect(page.locator("#registrarImportPanel")).toContainText("3 movimientos");
     await expect(page.locator("#registrarImportPanel .epf")).toContainText("Fila 3: importe no reconocido");
-    await expect(page.locator("#registrarImportPanel .epf")).toContainText("1 fila(s) sin leer");
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("1 fila sin leer");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, "sin desbordar a 390 px").toBeLessThanOrEqual(1);
     expect(pageErrors).toEqual([]);
@@ -4005,7 +4005,7 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
       await fila.locator('[data-datos-importar-duplicate="misma"]').click();
       await expect(page.locator("#registrarImportPanel")).toContainText("No hay candidatos a duplicado sin resolver"); // decidida, sale de la lista
     });
-    await expect(page.locator("#registrarImportPanel")).toContainText("1 captura(s) a mano sustituida(s) por su fila del banco");
+    await expect(page.locator("#registrarImportPanel")).toContainText("1 captura a mano sustituida por su fila del banco");
     expect(await captured(), "la captura se fue").toBe(0);
     const rows = await page.evaluate(() => (baseData.transactions || []).map((item) => `${item.date}|${item.amount}|${item.movement}`));
     expect(rows.filter((row) => row.includes("MERCADONA"))).toHaveLength(1); // sólo la del banco
@@ -4141,7 +4141,7 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
     await abrirAsistenteDeSiempre(page);
     await expect(page.locator("#registrarImportFileInput")).toBeAttached({ timeout: 15000 });
     await page.setInputFiles("#registrarImportFileInput", { name: "extracto-demo.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
-    await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimiento(s) leídos", { timeout: 15000 });
+    await expect(page.locator("#registrarImportPanel .epf")).toContainText("12 movimientos leídos", { timeout: 15000 });
     await page.selectOption("#registrarImportAccount", "CaixaBank");
     await page.$eval("#registrarImportNext", (button) => button.click());
     for (let index = 0; index < 20; index += 1) {
@@ -4333,11 +4333,11 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     const planned = (month) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), month);
     expect(await planned("2027-02")).toBe(750);
     await adjust.click();
-    await expect(body).toContainText(/36 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText(/36 cambios preparados en el plan/);
     await expect(body).toContainText("ajuste preparado, sin guardar");
     expect(await planned("2027-02"), "preparar no cambia el plan guardado").toBe(750);
     await body.locator('[data-bc="guardar"]').click();
-    await expect(body).not.toContainText("cambio(s) preparado(s)");
+    await expect(body).not.toContainText(/cambios? preparados? en el plan/);
     expect(await planned("2027-02")).toBe(868);
     expect(await planned("2029-12")).toBe(868);
     expect(await planned("2026-12"), "un mes ya pasado no se toca").toBe(750);
@@ -4354,7 +4354,7 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     await expect(body.locator("#bcTitulo")).toHaveText("Servicios");
     const exists = () => page.evaluate(() => planningSectionsForMonth("expense", cuadroMandosAllMonths().find((month) => month.key === "2027-02")).some((section) => section.rows.some((row) => displayLabelForRow(row) === "Servicios")));
     await body.locator('[data-bc="quitar"]').click();
-    await expect(body).toContainText(/1 cambio\(s\) preparado\(s\) en el plan/);
+    await expect(body).toContainText(/1 cambio preparado en el plan/);
     await expect(body).toContainText("borrado preparado, sin guardar");
     expect(await exists(), "preparar no borra").toBe(true);
     await body.locator('[data-bc="descartar"]').click();
@@ -5615,7 +5615,7 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
 
       await page.locator("#cierreSteps li").last().click();
       const firma = page.locator("#cierreStepBody");
-      await expect(firma).toContainText("Extracto incorporado · 5 movimiento(s)");
+      await expect(firma).toContainText("Extracto incorporado · 5 movimientos");
       await expect(firma).toContainText("Ninguna diferencia abierta");
       await expect(firma).toContainText("Ninguna cuenta descuadra · 1 sin conciliar");
       // Lo único que falta es la sesión: sin ella el RPC del cierre no se puede llamar.
@@ -5624,6 +5624,53 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(firmar).toBeDisabled();
       await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
       await expect(firma).toContainText("Saldos del 28/10/2026");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// Barrido móvil del 24/10/2026: en el kit de gráficos (WP-28), abrir «Ver como tabla» dejaba que la tabla ensanchara la rejilla de la
+// figura a ~1.120 px en un móvil de 390 (la regla genérica `table { min-width: 1120px }` de styles.css), y el dibujo, la lectura y la
+// tabla se cortaban por la derecha. Ahora la figura no pasa de su caja, la tabla se desplaza dentro y la columna del día queda fija.
+test.describe("Kit de gráficos · «Ver como tabla» en el móvil", () => {
+  for (const [hash, selector] of [["prevision", "#previsionBanda"], ["inversion-cartera", "#patrimonioProyeccion"]]) {
+    test(`${hash}: el gráfico y su tabla caben a 390 px`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.clock.install({ time: new Date(2026, 9, 24, 10, 0, 0) });
+      await page.goto(`/index.html#${hash}`);
+      const figure = page.locator(`${selector} .ck-figure`);
+      await page.evaluate((sel) => { const outer = document.querySelector(sel)?.closest("details"); if (outer) outer.open = true; }, selector);
+      await expect(figure).toBeVisible({ timeout: 20000 });
+      await figure.locator(".ck-tabla > summary").click();
+      const scroll = figure.locator(".ck-tabla-scroll");
+      await expect(scroll).toBeVisible();
+      const medidas = await page.evaluate((sel) => {
+        const root = document.querySelector(sel);
+        const box = (el) => el.getBoundingClientRect();
+        const caja = box(root.querySelector(".ck-figure"));
+        const scroller = root.querySelector(".ck-tabla-scroll");
+        return {
+          figura: Math.round(caja.width),
+          dibujo: Math.round(box(root.querySelector(".ck-plot")).width),
+          derechaTabla: Math.round(box(scroller).right),
+          derechaFigura: Math.round(caja.right),
+          tablaMin: getComputedStyle(scroller.querySelector("table")).minWidth,
+        };
+      }, selector);
+      expect(medidas.dibujo, "el dibujo no se ensancha al abrir la tabla").toBeLessThanOrEqual(medidas.figura);
+      expect(medidas.derechaTabla, "la caja de la tabla no se sale de la figura").toBeLessThanOrEqual(medidas.derechaFigura);
+      expect(medidas.tablaMin).toBe("0px");
+      // Si la tabla es más ancha que la pantalla, se desplaza dentro de su caja y la primera columna se queda en su sitio.
+      const fija = await scroll.evaluate((el) => {
+        const first = el.querySelector("tbody th");
+        const before = first.getBoundingClientRect().left;
+        el.scrollLeft = el.scrollWidth;
+        return { desplazable: el.scrollWidth > el.clientWidth, movida: Math.round(first.getBoundingClientRect().left - before) };
+      });
+      if (fija.desplazable) expect(fija.movida, "la columna del día queda fija al desplazar").toBe(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });

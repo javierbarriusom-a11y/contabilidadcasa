@@ -192,7 +192,7 @@ function escenarioMotorValidationChecks(result, scenarioSummary, guardrailValue)
       detail: !resultados.length
         ? "Todavía no hay ninguna decisión que comprobar."
         : otherRejected.length
-          ? `${otherRejected.length} decisión(es) no cumplen sus condiciones.`
+          ? `${otherRejected.length} ${otherRejected.length === 1 ? "decisión no cumple" : "decisiones no cumplen"} sus condiciones.`
           : "Todas las decisiones cumplen las condiciones del contrato.",
     },
   ];
@@ -255,8 +255,8 @@ function escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary) {
       "Meses de colchón",
       baseSummary.mesesColchon,
       scenarioSummary.mesesColchon,
-      (value) => value.toFixed(1),
-      (delta) => `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`,
+      (value) => value.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      (delta) => `${delta >= 0 ? "+" : ""}${delta.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
     ),
     `<tr>
       <td>Fecha libre de deuda</td>
@@ -450,7 +450,7 @@ function escenarioMotorAccountBandNote(band) {
 function escenarioMotorFamilyCardHtml(scenarioSummary) {
   const rows = [
     ["¿Cuánto nos queda?", scenarioSummary.liquidezFinal !== null ? money(scenarioSummary.liquidezFinal, true) : "—"],
-    ["¿Cuántos meses aguantaríamos sin ingresos?", scenarioSummary.mesesColchon !== null ? `${scenarioSummary.mesesColchon.toFixed(1)} meses` : "—"],
+    ["¿Cuántos meses aguantaríamos sin ingresos?", scenarioSummary.mesesColchon !== null ? `${scenarioSummary.mesesColchon.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses` : "—"],
     ["¿Cuándo dejamos de deber?", escenarioMotorMonthLabel(scenarioSummary.libreDeDeuda)],
     ["¿Cuánto ahorramos al año?", scenarioSummary.ahorroAnual !== null ? money(scenarioSummary.ahorroAnual, true) : "—"],
   ];
@@ -623,7 +623,7 @@ function renderEscenarioSimular() {
     const info = escenarioMotorRejectionInfo(rejected[0]) || escenarioMotorResultInfo(rejected[0].resultado);
     if (warningText) {
       warningText.textContent = rejected.length > 1
-        ? `${info.text} (y ${rejected.length - 1} decisión(es) más sin aplicar).`
+        ? `${info.text} (y ${rejected.length - 1} ${(rejected.length - 1) === 1 ? "decisión" : "decisiones"} más sin aplicar).`
         : `${info.text}.`;
     }
     if (autoAdjustButton) autoAdjustButton.hidden = !rejected.some((item) => item.resultado === "guardarril-incumplido");
@@ -859,8 +859,8 @@ function renderEscenarioMotorLivePreview() {
   container.innerHTML = `<strong>Vista previa en vivo · sin añadir todavía</strong>
     <p>Reserva protegida: ${money(beforeSummary.liquidezFinal ?? 0, true)} → ${money(afterSummary.liquidezFinal ?? 0, true)}
       (${reserveDelta === null ? "—" : `${reserveDelta >= 0 ? "+" : ""}${money(reserveDelta, true)}`})</p>
-    <p>Meses de colchón: ${(beforeSummary.mesesColchon ?? 0).toFixed(1)} → ${(afterSummary.mesesColchon ?? 0).toFixed(1)}
-      (${cushionDelta === null ? "—" : `${cushionDelta >= 0 ? "+" : ""}${cushionDelta.toFixed(1)}`})</p>`;
+    <p>Meses de colchón: ${(beforeSummary.mesesColchon ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} → ${(afterSummary.mesesColchon ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+      (${cushionDelta === null ? "—" : `${cushionDelta >= 0 ? "+" : ""}${cushionDelta.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`})</p>`;
 }
 
 // E-2 (Escenarios.pdf): "el resultado se recalcula al editar, con 120 ms de debounce sobre el
@@ -917,7 +917,7 @@ function renderEscenarioAplicar() {
   const titleEl = qs("escenarioAplicarTitle");
   if (titleEl) titleEl.textContent = escenarioMotorDraftName();
   const changesTitle = qs("escenarioAplicarChangesTitle");
-  if (changesTitle) changesTitle.textContent = `${escenarioMotorDecisions.length} cambio(s) en el plan`;
+  if (changesTitle) changesTitle.textContent = `${escenarioMotorDecisions.length} ${escenarioMotorDecisions.length === 1 ? "cambio" : "cambios"} en el plan`;
 
   const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
@@ -939,7 +939,7 @@ function renderEscenarioAplicar() {
     } else if (!tensionRejected) {
       tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, el plan seguiría aplicándose entero. Caja mínima bajo tensión: ${minimoLiquidezText}.`;
     } else {
-      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, ${tensionRejected} de ${tensionResultados.length} decisión(es) dejarían de aplicarse. Caja mínima bajo tensión: ${minimoLiquidezText}. Revísalo antes de confirmar: esto no bloquea la confirmación, solo la informa.`;
+      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, ${tensionRejected} de ${tensionResultados.length} ${tensionResultados.length === 1 ? "decisión dejaría" : "decisiones dejarían"} de aplicarse. Caja mínima bajo tensión: ${minimoLiquidezText}. Revísalo antes de confirmar: esto no bloquea la confirmación, solo la informa.`;
     }
   }
   const validationList = qs("escenarioAplicarValidationList");
@@ -1179,7 +1179,7 @@ function handleEscenarioGuardadosNew() {
 function escenarioMotorCompareTableHtml(baseSummary, entries) {
   const rows = [
     ["Reserva protegida", (s) => (s.liquidezFinal !== null ? money(s.liquidezFinal, true) : "—")],
-    ["Meses de colchón", (s) => (s.mesesColchon !== null ? s.mesesColchon.toFixed(1) : "—")],
+    ["Meses de colchón", (s) => (s.mesesColchon !== null ? s.mesesColchon.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—")],
     ["Fecha libre de deuda", (s) => escenarioMotorMonthLabel(s.libreDeDeuda)],
     ["Ahorro anual", (s) => (s.ahorroAnual !== null ? money(s.ahorroAnual, true) : "—")],
     ["Peor mes", (s) => (s.peorMesClave ? `${escenarioMotorMonthLabel(s.peorMesClave)} · ${money(s.peorMesValor ?? 0, true)}` : "—")],

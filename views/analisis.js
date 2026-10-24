@@ -409,7 +409,7 @@ function analisisAccuracyRowsHtml(rows) {
         <td>${money(row.plannedTotal, true)}</td>
         <td>${money(row.realTotal, true)}</td>
         <td class="${row.diff < 0 ? "negative" : row.diff > 0 ? "positive" : ""}">${registrarMesSignedMoney(row.diff)}</td>
-        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toFixed(1)}%`}</td>
+        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}</td>
         <td>${row.partidasOver === null ? "—" : `${row.partidasOver} de ${row.partidasCount}`}</td>
         <td>${badge}</td>
       </tr>`;
@@ -422,7 +422,7 @@ function analisisAccuracyHtml(rows, summary) {
     return `<p class="e19-kpi-note">Ningún mes cerrado con reales en esta ventana todavía.</p>`;
   }
   const summaryHtml = summary.threshold
-    ? `<p class="e19-kpi-note">${summary.hits} de ${summary.total} mes(es) cerrados dentro del margen del ${summary.threshold}% configurado en <a href="#ajustes" data-home-nav="ajustes">Ajustes</a>.</p>`
+    ? `<p class="e19-kpi-note">${summary.hits} de ${summary.total} ${summary.total === 1 ? "mes cerrado" : "meses cerrados"} dentro del margen del ${summary.threshold}% configurado en <a href="#ajustes" data-home-nav="ajustes">Ajustes</a>.</p>`
     : `<p class="e19-kpi-note">Sin umbral de desviación configurado en <a href="#ajustes" data-home-nav="ajustes">Ajustes</a>: se muestran las cifras, sin veredicto (Registrar usa el mismo umbral).</p>`;
   return `${summaryHtml}<div class="table-wrap"><table class="e19-table analisis-accuracy-table">
     <thead><tr><th>Mes</th><th>Previsto</th><th>Real</th><th>Diferencia</th><th>Desviación</th><th>Partidas fuera</th><th>Veredicto</th></tr></thead>
@@ -448,7 +448,7 @@ function analisisWorstMonthHtml(worst) {
   if (!worst) return `<p class="e19-kpi-note">Sin datos suficientes para marcar un peor mes en esta ventana.</p>`;
   const culprit = analisisWorstMonthCulprit(worst.key);
   if (!culprit) {
-    return `<p class="e19-kpi-note"><strong>${escapeHtml(worst.label)}</strong> es el peor mes de la ventana, con ${worst.monthsValue.toFixed(1)} meses de colchón. Ninguna decisión cargada concentra su gasto ahí — viene del gasto habitual, no de una decisión concreta.</p>`;
+    return `<p class="e19-kpi-note"><strong>${escapeHtml(worst.label)}</strong> es el peor mes de la ventana, con ${worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses de colchón. Ninguna decisión cargada concentra su gasto ahí — viene del gasto habitual, no de una decisión concreta.</p>`;
   }
   return `<strong>${escapeHtml(culprit.name || "Una decisión cargada")} concentra el golpe de ${escapeHtml(worst.label)}</strong>
     <p>${money(culprit.monthlyAmount, true)} ese mes, con ${worst.monthsValue.toFixed(1)} meses de colchón resultantes. Ábrela en <a href="#simulator" data-home-nav="simulator">Simulador</a> para mover su importe o su mes.</p>`;
@@ -491,8 +491,8 @@ function analisisConfianzaDatoHtml(context) {
   </table></div>`;
   const coverageText = context.totalMovements
     ? context.unclassifiedCount
-      ? `${context.unclassifiedCount} de ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} sin clasificar todavía.`
-      : `Los ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} están clasificados.`
+      ? `${context.unclassifiedCount} de ${context.totalMovements} ${context.totalMovements === 1 ? "movimiento" : "movimientos"} de ${escapeHtml(context.monthLabel)} sin clasificar todavía.`
+      : `Los ${context.totalMovements} ${context.totalMovements === 1 ? "movimiento" : "movimientos"} de ${escapeHtml(context.monthLabel)} están clasificados.`
     : `Sin movimientos registrados en ${escapeHtml(context.monthLabel)} todavía.`;
   // A-13: con pendientes reales, el CTA deja ya puesto el chip "sin clasificar" (M-3) acotado a este
   // mismo mes y sus filas preseleccionadas, en vez de un enlace genérico a Movimientos que obligaba
@@ -607,7 +607,7 @@ function analisisExportPrintHtml(context) {
   return `<h1>Análisis</h1>
     <p>Ventana: ${escapeHtml(context.windowLabel)} · Periodo de la cascada: ${escapeHtml(context.periodLabel)} · Fecha de cálculo: ${escapeHtml(context.calculatedAt)}</p>
     <h2>Colchón (meses)</h2>
-    <table><thead><tr><th>Mes</th><th>Meses de colchón</th></tr></thead><tbody>${context.cushion.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.monthsValue === null ? "—" : item.monthsValue.toFixed(1)}</td></tr>`).join("")}</tbody></table>
+    <table><thead><tr><th>Mes</th><th>Meses de colchón</th></tr></thead><tbody>${context.cushion.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.monthsValue === null ? "—" : item.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td></tr>`).join("")}</tbody></table>
     <h2>Patrimonio neto</h2>
     <table><thead><tr><th>Mes</th><th>Patrimonio neto</th></tr></thead><tbody>${context.netWorth.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.netWorth === null ? "—" : money(item.netWorth, true)}</td></tr>`).join("")}</tbody></table>
     <h2>¿Acierta el plan? ${context.accuracySummary.threshold ? `(${context.accuracySummary.hits} de ${context.accuracySummary.total} dentro del ${context.accuracySummary.threshold}%)` : "(sin umbral configurado en Ajustes)"}</h2>
@@ -723,13 +723,13 @@ function renderAnalisis() {
 
   const legend = qs("analisisCushionLegend");
   if (legend) {
-    legend.textContent = `Meses de gasto que cubre la liquidez, mes a mes · objetivo ${targetMonths} mes(es). Se calcula sobre lo simulado, con la fecha de cálculo de hoy.`;
+    legend.textContent = `Meses de gasto que cubre la liquidez, mes a mes · objetivo ${targetMonths} ${targetMonths === 1 ? "mes" : "meses"}. Se calcula sobre lo simulado, con la fecha de cálculo de hoy.`;
   }
 
   const worstNote = qs("analisisCushionWorst");
   if (worstNote) {
     worstNote.innerHTML = worst
-      ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(worst.label)}</span> ${worst.monthsValue.toFixed(1)} meses de colchón.`
+      ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(worst.label)}</span> ${worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses de colchón.`
       : `<span class="e19-kpi-note">Sin datos suficientes para calcular el peor mes en esta ventana.</span>`;
   }
 
@@ -793,7 +793,7 @@ function renderAnalisis() {
   if (cascadaEl) cascadaEl.innerHTML = analisisCascadaHtml(cascada);
   const cascadaNote = qs("analisisCascadaNote");
   if (cascadaNote) {
-    cascadaNote.textContent = `${analisisPeriodLabel()} · ${cascada.blocksWithReal} de ${cascada.blocksPresent} bloque(s) con dato real, el resto usa el previsto.`;
+    cascadaNote.textContent = `${analisisPeriodLabel()} · ${cascada.blocksWithReal} de ${cascada.blocksPresent} ${cascada.blocksPresent === 1 ? "bloque" : "bloques"} con dato real, el resto usa el previsto.`;
   }
 
   // A-8: reparto del ingreso del mes en curso — no depende del selector de periodo de A-4.

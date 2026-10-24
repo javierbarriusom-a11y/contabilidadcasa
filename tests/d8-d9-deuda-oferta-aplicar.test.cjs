@@ -332,6 +332,7 @@ test("D-8 · homeDebtReviewReminders lee reviewDate de las decisiones aplicadas 
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtLiquidations: [
       { name: "Reunificar tarjeta", e14Application: { reviewDate: "2026-09-01" } },
       { name: "Refinanciar coche", e14Application: { reviewDate: "2026-08-01" } },
@@ -356,6 +357,7 @@ test("D-8 · homeDecisionCandidates incluye los recordatorios de revisión entre
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtTargetDisplayName: () => "",
     money: () => "",
   });

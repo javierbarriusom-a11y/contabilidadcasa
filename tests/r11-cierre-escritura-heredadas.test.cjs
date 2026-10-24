@@ -140,7 +140,7 @@ test("R-11 · el pie de cada tarjeta remite a Registrar en vez de ofrecer altas 
 
 test("R-11 · el subtítulo deja de invitar a escribir y remite a Registrar", () => {
   const source = extractFunction("renderRegistrarMes");
-  assert.match(source, /REGISTRAR_MES_LEGACY_READONLY[\s\S]{0,200}Registrar › Reales del mes/);
+  assert.match(source, /REGISTRAR_MES_LEGACY_READONLY[\s\S]{0,320}Registrar › Reales del mes/);
 });
 
 function sandboxHandler(name, extra = {}) {

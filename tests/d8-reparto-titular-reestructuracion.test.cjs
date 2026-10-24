@@ -137,8 +137,8 @@ test("di5OwnerBreakdownHtml · con Javi y Tere asignados, suma cuota actual, nue
     household: [],
   });
   assert.match(html, /Reparto por titular/);
-  assert.match(html, /Javi.*1 contrato\(s\), cuota 200\.00 € → 150\.00 €\/mes \(alivio de 50\.00 €\/mes\)/);
-  assert.match(html, /Tere.*2 contrato\(s\), cuota 180\.00 € → 160\.00 €\/mes \(alivio de 20\.00 €\/mes\)/);
+  assert.match(html, /Javi.*1 contrato, cuota 200\.00 € → 150\.00 €\/mes \(alivio de 50\.00 €\/mes\)/);
+  assert.match(html, /Tere.*2 contratos, cuota 180\.00 € → 160\.00 €\/mes \(alivio de 20\.00 €\/mes\)/);
 });
 
 test("di5OwnerBreakdownHtml · sin alivio para un titular, no muestra la coletilla de alivio", () => {
@@ -160,7 +160,7 @@ test("di5OwnerBreakdownHtml · Javi/Tere asignados y además deuda de hogar sin 
     household: [{ id: "c2" }, { id: "c3" }],
   });
   assert.match(html, /Javi/);
-  assert.match(html, /2 contrato\(s\) sin asignar a Javi o Tere quedan fuera de este reparto/);
+  assert.match(html, /2 contratos sin asignar a Javi o Tere quedan fuera de este reparto/);
 });
 
 // --- wiring: handleDi5CompareJointRestructuring ---------------------------------------------------

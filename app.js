@@ -1165,7 +1165,7 @@ function safeCoverageMonths(amount, monthlyOutflow) {
 }
 
 function coverageMonthsText(value, fallback = "N/D") {
-  return Number.isFinite(Number(value)) ? Number(value).toFixed(1) : fallback;
+  return Number.isFinite(Number(value)) ? Number(value).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : fallback;
 }
 
 // Memorizada por año-mes: toLocaleDateString (Intl) cuesta ~80 µs por llamada, y forecastMonths()
@@ -1644,13 +1644,13 @@ function stateBackupSummaryMarkup(summary = {}) {
     ? `Libro incluido (${summary.workbookMonths || 0} meses)`
     : "Usará el libro empaquetado de la app";
   return `<div class="state-backup-summary">
-    <span><b>${summary.projects || 0}</b> proyecto(s)</span>
-    <span><b>${summary.debtDecisions || 0}</b> decisión(es) de deuda</span>
-    <span><b>${summary.incomeActuals || 0}</b> ingreso(s) real(es)</span>
-    <span><b>${summary.expenseActuals || 0}</b> gasto(s) real(es)</span>
-    <span><b>${summary.customRows || 0}</b> línea(s) personalizada(s)</span>
-    <span><b>${summary.debtRoadmapFields || 0}</b> campo(s) del plan de deuda</span>
-    <span><b>${summary.localStores || 0}</b> registro(s) propios (historial de cierres, escenarios…)</span>
+    <span><b>${summary.projects || 0}</b> ${(summary.projects || 0) === 1 ? "proyecto" : "proyectos"}</span>
+    <span><b>${summary.debtDecisions || 0}</b> ${(summary.debtDecisions || 0) === 1 ? "decisión" : "decisiones"} de deuda</span>
+    <span><b>${summary.incomeActuals || 0}</b> ${(summary.incomeActuals || 0) === 1 ? "ingreso real" : "ingresos reales"}</span>
+    <span><b>${summary.expenseActuals || 0}</b> ${(summary.expenseActuals || 0) === 1 ? "gasto real" : "gastos reales"}</span>
+    <span><b>${summary.customRows || 0}</b> ${(summary.customRows || 0) === 1 ? "línea personalizada" : "líneas personalizadas"}</span>
+    <span><b>${summary.debtRoadmapFields || 0}</b> ${(summary.debtRoadmapFields || 0) === 1 ? "campo" : "campos"} del plan de deuda</span>
+    <span><b>${summary.localStores || 0}</b> ${(summary.localStores || 0) === 1 ? "registro propio" : "registros propios"} (historial de cierres, escenarios…)</span>
     <span>${workbookText}</span>
   </div>`;
 }
@@ -1980,7 +1980,7 @@ async function prepareCloudSnapshotRestore() {
   qs("cloudRestoreVersionField").hidden = false;
   qs("previewCloudRestore").hidden = false;
   setStateBackupStatus(
-    `${choices.length} versión(es) recuperables`,
+    `${choices.length} ${choices.length === 1 ? "versión recuperable" : "versiones recuperables"}`,
     "Selecciona una fecha y pulsa Previsualizar. Nada cambiará hasta la confirmación final.",
   );
 }
@@ -2332,7 +2332,7 @@ function renderE14bPanel() {
   };
   const base = e13?.scenarios?.find((item) => item.id === "base")?.metrics;
   const alternatives = optimization.candidates.map((candidate) => `<li>${escapeHtml(candidate.id)}: ${money(candidate.totalCost, true)}, caja mínima ${money(candidate.minimumLiquidity, true)}, ${candidate.eligible ? (optimization.frontierIds.includes(candidate.id) ? "no dominada" : "dominada por otra alternativa segura") : escapeHtml(candidate.constraintIssues.concat(candidate.reserveSafe ? [] : ["reserve-broken"]).join(", "))}</li>`).join("");
-  qs("e14bComparison").innerHTML = `<article class="e14b-option ${simulation.minimumLiquidity >= reserve ? "good" : "warn"}"><header><strong>Oferta seleccionada · ${escapeHtml(selected.counterpart)}</strong><span>${simulation.minimumLiquidity >= reserve ? "Reserva protegida" : "Reserva insuficiente"}</span></header><p>Coste total ${money(simulation.totalCost, true)} · caja mínima ${money(simulation.minimumLiquidity, true)} · ${simulation.durationMonths} mes(es) · ${simulation.negativeMonths} mes(es) negativos.</p><p>Escenario E13 de solo lectura: caja mínima ${money(base?.minChecking || 0, true)} · recuperación ${escapeHtml(base?.recoveryMonth || "sin ruptura")} · no ha modificado el plan.</p><p>${escapeHtml(optimization.reason)} ${optimization.recommendedId ? `Recomendada: ${escapeHtml(optimization.recommendedId)}.` : ""}</p><p><strong>Alternativas y restricciones</strong></p><ul>${alternatives}</ul></article>`;
+  qs("e14bComparison").innerHTML = `<article class="e14b-option ${simulation.minimumLiquidity >= reserve ? "good" : "warn"}"><header><strong>Oferta seleccionada · ${escapeHtml(selected.counterpart)}</strong><span>${simulation.minimumLiquidity >= reserve ? "Reserva protegida" : "Reserva insuficiente"}</span></header><p>Coste total ${money(simulation.totalCost, true)} · caja mínima ${money(simulation.minimumLiquidity, true)} · ${simulation.durationMonths} ${simulation.durationMonths === 1 ? "mes" : "meses"} · ${simulation.negativeMonths} ${simulation.negativeMonths === 1 ? "mes negativo" : "meses negativos"}.</p><p>Escenario E13 de solo lectura: caja mínima ${money(base?.minChecking || 0, true)} · recuperación ${escapeHtml(base?.recoveryMonth || "sin ruptura")} · no ha modificado el plan.</p><p>${escapeHtml(optimization.reason)} ${optimization.recommendedId ? `Recomendada: ${escapeHtml(optimization.recommendedId)}.` : ""}</p><p><strong>Alternativas y restricciones</strong></p><ul>${alternatives}</ul></article>`;
 }
 
 function saveE14bOffer() {
@@ -2585,6 +2585,15 @@ function downloadCanonicalInventory() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+// Fecha corta para leer en pantalla: «15 oct» si es de este año y «15 oct 2027» si no. `shortDate` («15 oct 26», que se lee
+// como un día 26) se queda para las etiquetas del motor de fechas, fijadas en el oro de WP-07.
+function displayShortDate(value) {
+  const date = value instanceof Date ? value : localDateFromIso(value) || new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("es-ES", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" }).replace(/\./g, "");
 }
 
 function ledgerMonthLabel(monthKeyValue) {
@@ -4523,7 +4532,7 @@ function topbarStatusFigures() {
     { label: "Libre de deuda", value: libreDeDeudaValue, sub: libreDeDeudaSub },
     {
       label: "Peor mes",
-      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${worst.monthsValue.toFixed(1)}m` : "—",
+      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}m` : "—",
       sub: worst ? ANALISIS_CUSHION_LEVEL_LABELS[worst.level] : "Sin datos",
     },
   ];
@@ -5070,7 +5079,7 @@ async function persistRemotePayload(payload) {
       ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
       : "";
     const validation = barrier?.summary?.warningCount
-      ? ` Validación canónica con ${barrier.summary.warningCount} aviso(s).`
+      ? ` Validación canónica con ${barrier.summary.warningCount} ${barrier.summary.warningCount === 1 ? "aviso" : "avisos"}.`
       : " Validación canónica correcta.";
     return { detail, validation, mode: normalizedResult.mode };
 }
@@ -6968,7 +6977,7 @@ function gob20IncomeAdjustmentsHtml(adjustments) {
     return `<p class="e19-kpi-note">Sin caídas de ingreso declaradas — la previsión en vivo usa tu ingreso real tal cual.</p>`;
   }
   const items = adjustments
-    .map((adjustment) => `<li class="commit-barrier-item"><strong>${escapeHtml(adjustment.label)}</strong>: ${money(adjustment.monthlyAmount, true)}/mes desde ${escapeHtml(adjustment.startMonthKey)}, durante ${adjustment.duration} mes(es) <button type="button" class="e19-btn e19-btn-secondary" data-gob20-remove="${escapeHtml(adjustment.id)}">Quitar</button></li>`)
+    .map((adjustment) => `<li class="commit-barrier-item"><strong>${escapeHtml(adjustment.label)}</strong>: ${money(adjustment.monthlyAmount, true)}/mes desde ${escapeHtml(adjustment.startMonthKey)}, durante ${adjustment.duration} ${adjustment.duration === 1 ? "mes" : "meses"} <button type="button" class="e19-btn e19-btn-secondary" data-gob20-remove="${escapeHtml(adjustment.id)}">Quitar</button></li>`)
     .join("");
   return `<ul class="commit-barrier-list">${items}</ul>`;
 }
@@ -7103,7 +7112,7 @@ function gob12ApplyPackageToReal() {
   recomputeModelIfNeeded(true);
   if (viewChunkLoaded("new-life-simulation")) renderNewLifeSimulation({ forceHeavy: true });
   const parts = [];
-  if (appliedExpense) parts.push(`la partida de presupuesto (${money(values.expenseAmount, true)}/mes, ${values.expenseDuration} mes(es))`);
+  if (appliedExpense) parts.push(`la partida de presupuesto (${money(values.expenseAmount, true)}/mes, ${values.expenseDuration} ${values.expenseDuration === 1 ? "mes" : "meses"})`);
   if (appliedIncome) parts.push("la caída de ingreso declarada");
   if (appliedGoal) parts.push("el objetivo nuevo");
   if (note) note.textContent = parts.length ? `Aplicado a real: ${parts.join(", ")}.` : "No había nada que aplicar a real — revisa los campos.";
@@ -7331,7 +7340,7 @@ function updateKpis(rows, baseRows = rows) {
     ? `${endingDelta >= 0 ? "+" : ""}${money(endingDelta, true)} vs. sin decisiones`
     : "Sin decisiones cargadas";
   qs("kpiEndingDelta").className = endingDelta < 0 ? "negative" : "positive";
-  qs("miniSavingsRate").textContent = `${(savingsRate * 100).toFixed(0)}%`;
+  qs("miniSavingsRate").textContent = `${(savingsRate * 100).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%`;
   qs("miniRunway").textContent = coverageMonthsText(bufferMonths);
   qs("miniDebtShift").textContent = money(oldCreditAverage);
 
@@ -7562,7 +7571,7 @@ function renderAdvice(rows, baseRows = rows) {
     list.push({
       type: projectImpact < 0 ? "warning" : "good",
       title: "Decisiones coordinadas",
-      body: `Hay ${projectCount} proyecto(s) y ${debtCount} decisión(es) de deuda por ${money(totalProjects, true)}. La liquidez final cambia ${projectImpact >= 0 ? "+" : ""}${money(projectImpact, true)} frente al escenario base.`,
+      body: `Hay ${projectCount} ${projectCount === 1 ? "proyecto" : "proyectos"} y ${debtCount} ${debtCount === 1 ? "decisión" : "decisiones"} de deuda por ${money(totalProjects, true)}. La liquidez final cambia ${projectImpact >= 0 ? "+" : ""}${money(projectImpact, true)} frente al escenario base.`,
     });
     list.push({
       type: minChecking < 0 ? "danger" : minChecking < monthlyOutflow * 0.4 ? "warning" : "good",
@@ -7575,7 +7584,7 @@ function renderAdvice(rows, baseRows = rows) {
     list.push({
       type: "warning",
       title: "Ahorro ambicioso",
-      body: `La tasa de ahorro ronda el ${(savingsRate * 100).toFixed(0)}%. Es potente, pero revisa tarjeta y gastos variables cada mes para no compensarlo con crédito.`,
+      body: `La tasa de ahorro ronda el ${(savingsRate * 100).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%. Es potente, pero revisa tarjeta y gastos variables cada mes para no compensarlo con crédito.`,
     });
   } else {
     list.push({
@@ -8919,7 +8928,7 @@ function renderDebtAgreementPreview() {
       <span>Quita / mejora</span><strong class="${discount ? "positive" : ""}">${money(discount, true)} · ${(discountPct * 100).toFixed(1)}%</strong>
     </div>
     <div>
-      <span>Ratio deuda</span><strong>${(ratioBefore * 100).toFixed(1)}% → ${(ratioAfter * 100).toFixed(1)}%</strong>
+      <span>Ratio deuda</span><strong>${(ratioBefore * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% → ${(ratioAfter * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</strong>
     </div>`;
 }
 
@@ -9019,7 +9028,7 @@ function renderProjectSimulator(baseRows, rows) {
       const creditCapital = decisionCreditCapital(project);
       const netCost = decisionNetCashCost(project);
       const recurrenceText = Number(project.recurringAmount || 0)
-        ? ` Cuota recurrente: ${money(project.recurringAmount, true)} durante ${project.recurringDuration} mes(es).`
+        ? ` Cuota recurrente: ${money(project.recurringAmount, true)} durante ${project.recurringDuration} ${project.recurringDuration === 1 ? "mes" : "meses"}.`
         : "";
       const creditText = creditCapital
         ? ` Capital prestado: ${money(creditCapital, true)}${project.creditOwner ? ` (${escapeHtml(project.creditOwner)})` : ""}; impacto neto ${netCost >= 0 ? "" : "+"}${money(netCost, true)}.`
@@ -9103,8 +9112,8 @@ function renderProjectDecisionLedger(baseRows, rows) {
   target.innerHTML = `<article class="decision-ledger-card">
       <div>
         <p class="panel-kicker">Centro de decisiones</p>
-        <h4>${decisions.length} decisión(es) consideradas</h4>
-        <p>${pending} pendiente(s), ${locked} fija(s). Impacto final ${final - baseFinal >= 0 ? "+" : ""}${money(final - baseFinal, true)}.</p>
+        <h4>${decisions.length} ${decisions.length === 1 ? "decisión considerada" : "decisiones consideradas"}</h4>
+        <p>${pending} ${pending === 1 ? "pendiente" : "pendientes"}, ${locked} ${locked === 1 ? "fija" : "fijas"}. Impacto final ${final - baseFinal >= 0 ? "+" : ""}${money(final - baseFinal, true)}.</p>
       </div>
       <div class="decision-ledger-metrics">
         <span><b>${money(creditCapital, true)}</b><small>Capital externo</small></span>
@@ -9114,7 +9123,7 @@ function renderProjectDecisionLedger(baseRows, rows) {
       </div>
       <div class="decision-owner-strip">
         ${ownerSummary
-          .map((item) => `<span><b>${escapeHtml(item.owner)}</b>${item.count} decisión(es) · ${money(item.creditCapital, true)} crédito</span>`)
+          .map((item) => `<span><b>${escapeHtml(item.owner)}</b>${item.count} ${item.count === 1 ? "decisión" : "decisiones"} · ${money(item.creditCapital, true)} crédito</span>`)
           .join("")}
       </div>
     </article>
@@ -9323,7 +9332,7 @@ function renderExecutiveDecisionAlerts(rows) {
     },
     {
       tone: debtRatio > 32 ? "danger" : "good",
-      text: `No aceptar financiación si el ratio deuda supera 32%. Ratio actual estimado: ${debtRatio.toFixed(1)}%.`,
+      text: `No aceptar financiación si el ratio deuda supera 32%. Ratio actual estimado: ${debtRatio.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%.`,
     },
     {
       tone: bestAgreement?.agreementSavings > 0 ? "warn" : "good",
@@ -9580,7 +9589,7 @@ function renderProjectImpactChart(baseRows, rows) {
 
   const decisionCount = projectPlan.placements.length;
   qs("impactChartTitle").textContent = decisionCount
-    ? `${loadedMonths} mes(es) con impacto · ${totalImpact >= 0 ? "+" : ""}${money(totalImpact)} al final`
+    ? `${loadedMonths} ${loadedMonths === 1 ? "mes" : "meses"} con impacto · ${totalImpact >= 0 ? "+" : ""}${money(totalImpact)} al final`
     : "Sin impactos cargados";
 
   svg.insertAdjacentHTML(
@@ -9647,8 +9656,8 @@ function renderProjectPlanPreview() {
       <span>Coste total: ${money(total, true)}</span>
       <span>Capital prestado: ${creditCapital ? money(creditCapital, true) : "sin financiación externa"}</span>
       <span>Impacto neto total: ${net >= 0 ? "" : "+"}${money(net, true)}</span>
-      <span>Inicial: ${money(amount, true)} en ${duration} mes(es)</span>
-      <span>Recurrente: ${recurringAmount ? `${money(recurringAmount, true)} durante ${recurringDuration} mes(es), ${recurringDelay === "same" ? "desde el mismo mes" : "tras el impacto inicial"}` : "sin cuota recurrente"}</span>
+      <span>Inicial: ${money(amount, true)} en ${duration} ${duration === 1 ? "mes" : "meses"}</span>
+      <span>Recurrente: ${recurringAmount ? `${money(recurringAmount, true)} durante ${recurringDuration} ${recurringDuration === 1 ? "mes" : "meses"}, ${recurringDelay === "same" ? "desde el mismo mes" : "tras el impacto inicial"}` : "sin cuota recurrente"}</span>
     </div>`;
   qs("addProject").textContent = editingProjectId ? "Guardar plan" : "Comparar plan";
   qs("cancelProjectEdit").hidden = !editingProjectId;
@@ -9778,7 +9787,7 @@ function cashflowYearConclusion(group) {
   } else if (hasDebtPressure) {
     tone = "warn";
     title = "Deuda todavía pesa";
-    body = `Deuda y coche absorben el ${(debtRate * 100).toFixed(0)}% de los ingresos del año.`;
+    body = `Deuda y coche absorben el ${(debtRate * 100).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}% de los ingresos del año.`;
   } else if (isStrongSaving) {
     title = "Buen ritmo de ahorro";
     body = `Ahorro anual de ${money(summary.saving, true)} (${(savingRate * 100).toFixed(0)}% de ingresos).`;
@@ -9892,7 +9901,7 @@ function renderProjectMonthDetails(projectsInMonth) {
       (project) => `<div class="month-detail-line">
         <div>
           <strong>${escapeHtml(project.name)}</strong>
-          <span>${project.source === "debt" ? "Decisión de deuda" : project.status === "fixed" ? "Mes manual" : "Mes optimizado"} · ${project.duration} mes(es)</span>
+          <span>${project.source === "debt" ? "Decisión de deuda" : project.status === "fixed" ? "Mes manual" : "Mes optimizado"} · ${project.duration} ${project.duration === 1 ? "mes" : "meses"}</span>
         </div>
         <strong class="${project.monthlyAmount < 0 ? "positive" : "negative"}">${money(project.monthlyAmount, true)}</strong>
       </div>`,
@@ -10652,12 +10661,12 @@ function renderVisualSavePanel() {
   if (!qs("visualSavePanel")) return;
   const counts = visualPendingCounts();
   const pending = counts.cells + counts.labels + counts.deletes;
-  qs("visualSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Planificación guardada";
+  qs("visualSaveTitle").textContent = pending ? `${pending} ${pending === 1 ? "cambio pendiente" : "cambios pendientes"}` : "Planificación guardada";
   const parts = [];
-  if (counts.cells) parts.push(`${counts.cells} importe(s)`);
-  if (counts.labels) parts.push(`${counts.labels} nombre(s)`);
-  if (counts.deletes) parts.push(`${counts.deletes} partida(s) para borrar`);
-  if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
+  if (counts.cells) parts.push(`${counts.cells} ${counts.cells === 1 ? "importe" : "importes"}`);
+  if (counts.labels) parts.push(`${counts.labels} ${counts.labels === 1 ? "nombre" : "nombres"}`);
+  if (counts.deletes) parts.push(`${counts.deletes} ${counts.deletes === 1 ? "partida" : "partidas"} para borrar`);
+  if (counts.selected) parts.push(`${counts.selected} ${counts.selected === 1 ? "seleccionada" : "seleccionadas"}`);
   qs("visualSaveSummary").textContent = parts.length
     ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Cuadro de mandos, Previsión, flujo de caja, simulador y detalle mensual.`
     : "Los importes reales se guardan automáticamente. Aquí solo se confirman previsiones, cambios masivos, nombres y borrados.";
@@ -10822,9 +10831,9 @@ function saveVisualChanges() {
   saveDebtLiquidations();
 
   const summary = [];
-  if (savedCells) summary.push(`${savedCells} importe(s)`);
-  if (savedLabels) summary.push(`${savedLabels} nombre(s)`);
-  if (savedDeletes) summary.push(`${savedDeletes} borrado(s)`);
+  if (savedCells) summary.push(`${savedCells} ${savedCells === 1 ? "importe" : "importes"}`);
+  if (savedLabels) summary.push(`${savedLabels} ${savedLabels === 1 ? "nombre" : "nombres"}`);
+  if (savedDeletes) summary.push(`${savedDeletes} ${savedDeletes === 1 ? "borrado" : "borrados"}`);
   visualDraftCells = {};
   visualDraftLabels = {};
   visualDraftDeletes = {};
@@ -11338,7 +11347,7 @@ function handleVisualAddRow() {
     qs("visualAddFeedback").textContent = `${label} añadida ${scopeText}. Puedes editar sus importes directamente en la tabla.`;
     qs("visualAddFeedback").className = "inline-feedback success";
   }
-  showImportLog("Línea añadida", `${label} se ha incorporado a ${targetMonths.length} mes(es) y ya recalcula todo el dashboard.`);
+  showImportLog("Línea añadida", `${label} se ha incorporado a ${targetMonths.length} ${targetMonths.length === 1 ? "mes" : "meses"} y ya recalcula todo el dashboard.`);
 }
 
 function previsionMetric(row) {
@@ -12492,7 +12501,7 @@ function renderProjectSavingsProgress(project, compact = false, progressOverride
       </div>
       <div class="project-savings-progress-foot">
         <span>${project.creditOwner ? `Titular: ${escapeHtml(project.creditOwner)}` : "Titular no indicado"}</span>
-        <span>Cuota prevista ${money(project.recurringAmount || 0, true)} durante ${project.recurringDuration || 0} mes(es)</span>
+        <span>Cuota prevista ${money(project.recurringAmount || 0, true)} durante ${project.recurringDuration || 0} ${(project.recurringDuration || 0) === 1 ? "mes" : "meses"}</span>
       </div>
     </div>`;
   }
@@ -12808,7 +12817,7 @@ function renderRemuneratedAccounts() {
     : `<p class="e19-kpi-note">Sin cuentas remuneradas registradas todavía.</p>`;
   if (note) {
     note.textContent = compared.accounts.length
-      ? `${money(compared.totalBalance, true)} en ${compared.accounts.length} cuenta(s) · TAE media ponderada por saldo: ${compared.weightedRate.toFixed(2)}%.`
+      ? `${money(compared.totalBalance, true)} en ${compared.accounts.length} ${compared.accounts.length === 1 ? "cuenta" : "cuentas"} · TAE media ponderada por saldo: ${compared.weightedRate.toFixed(2)}%.`
       : "";
   }
 }
@@ -12885,7 +12894,7 @@ function renderMaintenanceFeeAccounts() {
     : `<p class="e19-kpi-note">Sin cuentas con comisión de mantenimiento registradas todavía.</p>`;
   if (note) {
     note.textContent = alerts.atRisk.length
-      ? `${alerts.atRisk.length} cuenta(s) sin vinculación cumplida: ${money(alerts.totalFee, true)}/mes en riesgo.`
+      ? `${alerts.atRisk.length} ${alerts.atRisk.length === 1 ? "cuenta" : "cuentas"} sin vinculación cumplida: ${money(alerts.totalFee, true)}/mes en riesgo.`
       : alerts.accounts.length
         ? "Todas las cuentas registradas cumplen su vinculación este mes."
         : "";
@@ -13521,7 +13530,7 @@ function inv18PlanHtml(result, goalContext, cushionImpact) {
       : `<p class="e19-kpi-note">Objetivo "${escapeHtml(goalContext.name)}" (${goalContext.targetDate}): vence en un ejercicio fiscal futuro, hay margen para planear el momento.</p>`;
   }
   if (result.excludedCount > 0) {
-    html += `<p class="e19-kpi-note">${result.excludedCount} posición(es) excluida(s) del plan: sin tipo con motor fiscal aplicable (declara fondo, acción, ETF, cripto o plan de pensiones).</p>`;
+    html += `<p class="e19-kpi-note">${result.excludedCount} ${result.excludedCount === 1 ? "posición excluida" : "posiciones excluidas"} del plan: sin tipo con motor fiscal aplicable (declara fondo, acción, ETF, cripto o plan de pensiones).</p>`;
   }
   if (cushionImpact) {
     const cushionEngine = window.FinanceCanonicalCushion;
@@ -13789,7 +13798,7 @@ function lev14ResultHtml(result) {
     ? "El importe entero no compensa con tu escenario base — escalonarlo no lo arregla: el resultado esperado es el mismo tomado de una vez o a tramos."
     : null;
   const verdictHtml = verdictLine ? `<p><strong>${escapeHtml(verdictLine)}</strong></p>` : "";
-  return `<p>${result.numTranches} tramos de ${money(result.trancheAmount, true)} cada uno, cada ${result.trancheIntervalMonths} mes(es) — desplegado por completo en el mes ${result.fullyDeployedAtMonth}.</p><ul class="commit-barrier-list">${rows}</ul>${verdictHtml}<p class="e19-kpi-note">${escapeHtml(result.note)}</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  return `<p>${result.numTranches} tramos de ${money(result.trancheAmount, true)} cada uno, cada ${result.trancheIntervalMonths} ${result.trancheIntervalMonths === 1 ? "mes" : "meses"} — desplegado por completo en el mes ${result.fullyDeployedAtMonth}.</p><ul class="commit-barrier-list">${rows}</ul>${verdictHtml}<p class="e19-kpi-note">${escapeHtml(result.note)}</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 function handleLev14Simulate() {
@@ -13992,7 +14001,7 @@ function lev9ResultHtml(result) {
   const policyLine = result.policyWithinLimit === null ? "" : result.policyWithinLimit
     ? `<p class="e19-kpi-note positive">Dentro de tu política de apalancamiento declarada (LEV1).</p>`
     : `<p class="e19-kpi-note negative">Por encima de tu política de apalancamiento declarada (LEV1) si tomaras este importe con este instrumento.</p>`;
-  return `<p>Necesidad de capital: ${money(result.amount, true)} a ${result.months} mes(es).</p>${verdictLine}<ul class="commit-barrier-list">${rows}</ul>${barrierLine}${policyLine}<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  return `<p>Necesidad de capital: ${money(result.amount, true)} a ${result.months} ${result.months === 1 ? "mes" : "meses"}.</p>${verdictLine}<ul class="commit-barrier-list">${rows}</ul>${barrierLine}${policyLine}<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
 }
 
 function handleLev9Compare() {
@@ -14736,8 +14745,8 @@ function ap6ResultHtml(result) {
   if (AP6_STATUS_LABEL[result.status]) return `<p>${AP6_STATUS_LABEL[result.status]}</p>`;
   const cssClass = result.status === "insostenible" ? "negative" : result.status === "ajustado" ? "warning" : "positive";
   const headline = {
-    sostenible: `Colchón sostenible: ${money(result.cushionValue, true)} por encima del suelo (${money(result.cushionFloor, true)}), con ${result.takenCount} deuda(s) tomada(s) por ${money(result.monthlyDebtService, true)}/mes.`,
-    ajustado: `Aviso temprano: el colchón (${money(result.cushionValue, true)}) sigue por encima del suelo (${money(result.cushionFloor, true)}) pero con poco margen, con ${result.takenCount} deuda(s) tomada(s) por ${money(result.monthlyDebtService, true)}/mes.`,
+    sostenible: `Colchón sostenible: ${money(result.cushionValue, true)} por encima del suelo (${money(result.cushionFloor, true)}), con ${result.takenCount} ${result.takenCount === 1 ? "deuda tomada" : "deudas tomadas"} por ${money(result.monthlyDebtService, true)}/mes.`,
+    ajustado: `Aviso temprano: el colchón (${money(result.cushionValue, true)}) sigue por encima del suelo (${money(result.cushionFloor, true)}) pero con poco margen, con ${result.takenCount} ${result.takenCount === 1 ? "deuda tomada" : "deudas tomadas"} por ${money(result.monthlyDebtService, true)}/mes.`,
     insostenible: `Alerta: el colchón (${money(result.cushionValue, true)}) ya no llega al suelo (${money(result.cushionFloor, true)}) — no sostiene la deuda tomada. Diferencia: ${money(result.shortfall, true)}.`,
   }[result.status];
   const rows = (result.takenScenarios || [])
@@ -14824,7 +14833,7 @@ function deb1VerdictChangeHtml() {
   if (!currentAssessment || currentAssessment === tracked.assessment) return "";
   const wasLabel = AP1_ASSESSMENT_LABEL[tracked.assessment] || tracked.assessment;
   const nowLabel = AP1_ASSESSMENT_LABEL[currentAssessment] || currentAssessment;
-  return `<p class="negative"><strong>El veredicto de tu comparación guardada ha cambiado</strong> (${money(tracked.amount, true)}, ${tracked.months} mes(es)): antes convenía ${escapeHtml(wasLabel)}, ahora conviene ${escapeHtml(nowLabel)} — vuelve a comparar para confirmarlo.</p>`;
+  return `<p class="negative"><strong>El veredicto de tu comparación guardada ha cambiado</strong> (${money(tracked.amount, true)}, ${tracked.months} ${tracked.months === 1 ? "mes" : "meses"}): antes convenía ${escapeHtml(wasLabel)}, ahora conviene ${escapeHtml(nowLabel)} — vuelve a comparar para confirmarlo.</p>`;
 }
 
 function renderDeb1VerdictChangeAlert() {
@@ -14846,7 +14855,7 @@ function ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) {
     ? "Lectura no disponible: falta la rentabilidad real de tu cartera."
     : `Lectura: te compensa más ${AP1_ASSESSMENT_LABEL[result.assessment]} — no una orden, revisa los números antes de aceptarla.`;
   const breakEvenLine = ap2BreakEvenLine(breakEven, investmentAnnualReturnPct);
-  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}${apx1NetDebtCostHtml(breakEven)}`;
+  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} ${result.months === 1 ? "mes" : "meses"}: te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}${apx1NetDebtCostHtml(breakEven)}`;
 }
 
 // APX1: el punto de equilibrio (AP2) asume implícitamente una rentabilidad de inversión libre de
@@ -14924,7 +14933,7 @@ function apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) {
   if (!result.calculable) return "";
   return `<div class="e19-kpi-note"><p><strong>Reducir cuota vs. reducir plazo</strong> (plazo real restante del contrato: ${result.months} meses):</p><ul class="commit-barrier-list">
     <li>Reducir cuota: pasa de ${money(result.currentPayment, true)}/mes a ${money(result.reduceQuota.newPayment, true)}/mes (−${money(result.reduceQuota.paymentReduction, true)}), mismo plazo — ahorra ${money(result.reduceQuota.interestSaved, true)} en intereses.</li>
-    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} mes(es) antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.</li>
+    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} ${result.reduceTerm.monthsReduced === 1 ? "mes" : "meses"} antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.</li>
   </ul></div>`;
 }
 
@@ -15050,7 +15059,7 @@ function deb11ReduceQuotaVsTermHtml(allocation) {
     : `<p class="e19-kpi-note warning">Todavía no has declarado si prefieres reducir cuota o reducir plazo para este importe — elige arriba.</p>`;
   return `<div class="e19-kpi-note"><p><strong>Reducir cuota vs. reducir plazo, sobre el importe ya dimensionado (DEB11/DEB2: ${money(dimension.amount, true)})</strong> — plazo real restante: ${result.months} meses:</p><ul class="commit-barrier-list">
     <li>Reducir cuota: pasa de ${money(result.currentPayment, true)}/mes a ${money(result.reduceQuota.newPayment, true)}/mes (−${money(result.reduceQuota.paymentReduction, true)}), mismo plazo — ahorra ${money(result.reduceQuota.interestSaved, true)} en intereses.${quotaTag}</li>
-    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} mes(es) antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.${termTag}</li>
+    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} ${result.reduceTerm.monthsReduced === 1 ? "mes" : "meses"} antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.${termTag}</li>
   </ul>${preferenceNote}</div>`;
 }
 
@@ -15074,7 +15083,7 @@ function renderDeb8PrepaymentWindow() {
     box.innerHTML = "";
     return;
   }
-  box.innerHTML = `<p>La comisión de amortización anticipada baja de <strong>${result.currentPct}%</strong> a <strong>${result.nextPct}%</strong> dentro de ${result.monthsUntil} mes(es) — evita amortizar antes de esa fecha si puedes esperar.</p>`;
+  box.innerHTML = `<p>La comisión de amortización anticipada baja de <strong>${result.currentPct}%</strong> a <strong>${result.nextPct}%</strong> dentro de ${result.monthsUntil} ${result.monthsUntil === 1 ? "mes" : "meses"} — evita amortizar antes de esa fecha si puedes esperar.</p>`;
 }
 
 // DEB7 (Oleada 3, Bloque 5): preferencia declarada entre coste financiero mínimo (lo que AP1 ya
@@ -15128,8 +15137,8 @@ function deb3OptionValueHtml(result) {
   if (!result.calculable) return "";
   const runwayNote = result.liquidityRunwayMonths === null
     ? ""
-    : ` Mientras tanto, esos ${money(result.amount, true)} en caja cubrirían por sí solos ${result.liquidityRunwayMonths} mes(es) de tu gasto total (GOB9) si hiciera falta usarlos para otra cosa.`;
-  return `<p class="e19-kpi-note"><strong>Valor de la opcionalidad de esperar:</strong> esperar ${result.waitMonths} mes(es) antes de amortizar cuesta con seguridad ${money(result.waitingCost, true)} en interés no evitado.${runwayNote}</p>`;
+    : ` Mientras tanto, esos ${money(result.amount, true)} en caja cubrirían por sí solos ${result.liquidityRunwayMonths} ${result.liquidityRunwayMonths === 1 ? "mes" : "meses"} de tu gasto total (GOB9) si hiciera falta usarlos para otra cosa.`;
+  return `<p class="e19-kpi-note"><strong>Valor de la opcionalidad de esperar:</strong> esperar ${result.waitMonths} ${result.waitMonths === 1 ? "mes" : "meses"} antes de amortizar cuesta con seguridad ${money(result.waitingCost, true)} en interés no evitado.${runwayNote}</p>`;
 }
 
 function renderDeb3OptionValue(amount, debtAnnualRatePct) {
@@ -15195,9 +15204,9 @@ function deb12WaitingCostSoFarHtml(tracked, nowDate = new Date()) {
   });
   if (!soFar.calculable) return "";
   const finishedNote = elapsedMonths >= tracked.waitMonths
-    ? ` Ya se cumplieron los ${tracked.waitMonths} mes(es) que declaraste esperar — si sigues sin decidir, vuelve a pulsar «Comparar» para trackear un nuevo periodo de espera.`
+    ? ` Ya se cumplieron los ${tracked.waitMonths} ${tracked.waitMonths === 1 ? "mes" : "meses"} que declaraste esperar — si sigues sin decidir, vuelve a pulsar «Comparar» para trackear un nuevo periodo de espera.`
     : "";
-  return `<p class="e19-kpi-note"><strong>Lo que ya llevas pagado por esperar (DEB12):</strong> han pasado ${cappedElapsed} de los ${tracked.waitMonths} mes(es) que declaraste esperar — hasta hoy, esa espera ya te ha costado ${money(soFar.waitingCost, true)} en interés no evitado.${finishedNote}</p>`;
+  return `<p class="e19-kpi-note"><strong>Lo que ya llevas pagado por esperar (DEB12):</strong> han pasado ${cappedElapsed} de los ${tracked.waitMonths} ${tracked.waitMonths === 1 ? "mes" : "meses"} que declaraste esperar — hasta hoy, esa espera ya te ha costado ${money(soFar.waitingCost, true)} en interés no evitado.${finishedNote}</p>`;
 }
 
 function renderDeb12WaitingCostSoFar() {
@@ -15453,7 +15462,7 @@ function handleAjustesCompareTariffs() {
     ? "Ambas tarifas cuestan lo mismo con estos precios."
     : `La tarifa ${result.cheaper === "fixed" ? "fija" : "variable"} sale más barata este mes, por ${money(result.difference, true)}.`;
   const breakEvenText = result.breakEvenVariablePrice !== null
-    ? ` Con este consumo, la fija y la variable costarían lo mismo si la variable rondara ${result.breakEvenVariablePrice.toFixed(4)} €/unidad de media.`
+    ? ` Con este consumo, la fija y la variable costarían lo mismo si la variable rondara ${result.breakEvenVariablePrice.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} €/unidad de media.`
     : "";
   note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
 }
@@ -15533,7 +15542,7 @@ function syncDeb4RadarControls() {
 function deb4RenegotiationScriptText(saved, scenarios, breakEven) {
   const base = scenarios.scenarios.find((scenario) => scenario.id === "base");
   if (!base) return "";
-  return `Tengo un préstamo con capital pendiente de ${money(saved.principal, true)} a ${saved.months} meses, actualmente a un tipo variable del ${saved.variableRate}%. He comparado con una oferta de tipo fijo del ${saved.fixedRate}%: la cuota bajaría de ${money(base.variableMonthlyPayment, true)} a ${money(base.fixedMonthlyPayment, true)} al mes. Descontando el coste de cambiar (${money(breakEven.cost, true)}), recupero esa diferencia en ${breakEven.months} mes(es) — dentro de mi límite de ${saved.maxBreakEvenMonths}. Pido que igualéis estas condiciones sin coste adicional, o que me deis por escrito una oferta de paso a fijo con estas condiciones o mejores.`;
+  return `Tengo un préstamo con capital pendiente de ${money(saved.principal, true)} a ${saved.months} meses, actualmente a un tipo variable del ${saved.variableRate}%. He comparado con una oferta de tipo fijo del ${saved.fixedRate}%: la cuota bajaría de ${money(base.variableMonthlyPayment, true)} a ${money(base.fixedMonthlyPayment, true)} al mes. Descontando el coste de cambiar (${money(breakEven.cost, true)}), recupero esa diferencia en ${breakEven.months} ${breakEven.months === 1 ? "mes" : "meses"} — dentro de mi límite de ${saved.maxBreakEvenMonths}. Pido que igualéis estas condiciones sin coste adicional, o que me deis por escrito una oferta de paso a fijo con estas condiciones o mejores.`;
 }
 
 // D6: aviso de "cuánto hace que se actualizó" sobre el propio tipo fijo de referencia del radar —
@@ -15546,7 +15555,7 @@ function deb4BenchmarkFreshnessText(saved) {
   const sourceLabel = saved.benchmarkMode === "euribor" ? "Euribor + diferencial" : "oferta manual";
   const tone = months >= 3 ? "warning" : "";
   const warning = months >= 3 ? " — revísalo antes de fiarte del radar." : ".";
-  return `<p class="e19-kpi-note ${tone}">Tipo fijo de referencia (${sourceLabel}): actualizado hace ${months} mes(es)${warning}</p>`;
+  return `<p class="e19-kpi-note ${tone}">Tipo fijo de referencia (${sourceLabel}): actualizado hace ${months} ${months === 1 ? "mes" : "meses"}${warning}</p>`;
 }
 
 function renderDeb4RefinancingRadar() {
@@ -15568,7 +15577,7 @@ function renderDeb4RefinancingRadar() {
   }
   const script = deb4RenegotiationScriptText(saved, scenarios, breakEven);
   const freshness = deb4BenchmarkFreshnessText(saved);
-  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación:</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
+  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación:</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} ${breakEven.months === 1 ? "mes" : "meses"} — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>
     ${freshness}
     <details>
       <summary>Guion para llamar al banco (D4)</summary>
@@ -15618,12 +15627,12 @@ function deb14MarketCheckAlertHtml(result) {
   if (!result.calculable) return "";
   const overdue = result.rows.filter((row) => row.overdue);
   if (!overdue.length) {
-    return `<p class="e19-kpi-note positive">Todas tus deudas declaradas como hipoteca tienen una oferta de mercado registrada dentro de tu umbral de ${result.maxMonths} mes(es).</p>`;
+    return `<p class="e19-kpi-note positive">Todas tus deudas declaradas como hipoteca tienen una oferta de mercado registrada dentro de tu umbral de ${result.maxMonths} ${result.maxMonths === 1 ? "mes" : "meses"}.</p>`;
   }
   const items = overdue
     .map((row) => row.neverCompared
       ? `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: nunca has registrado una oferta de mercado para compararla (Deuda › Ruta).</li>`
-      : `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: llevas ${row.monthsSince} mes(es) sin registrar una oferta de mercado nueva — la última es de ${escapeHtml(row.latest)}, tu umbral declarado es de ${result.maxMonths} mes(es).</li>`)
+      : `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: llevas ${row.monthsSince} ${row.monthsSince === 1 ? "mes" : "meses"} sin registrar una oferta de mercado nueva — la última es de ${escapeHtml(row.latest)}, tu umbral declarado es de ${result.maxMonths} ${result.maxMonths === 1 ? "mes" : "meses"}.</li>`)
     .join("");
   return `<p class="e19-kpi-note warning"><strong>Llevas tiempo sin mirar el mercado:</strong> distinto del radar de arriba, que solo avisa si TU cálculo de tipos cambia de sentido — esto es que no has comparado contra ninguna oferta real registrada.</p><ul class="commit-barrier-list">${items}</ul>`;
 }
@@ -15688,7 +15697,7 @@ function apx5RefinancingBreakEvenHtml(scenarios) {
   if (!result.calculable) {
     return `<p class="e19-kpi-note">Con estos datos, la fija no ahorra cuota al mes en el escenario base — no hay ningún coste de refinanciar que compense.</p>`;
   }
-  return `<p class="e19-kpi-note">Refinanciar cuesta ${money(result.cost, true)} y ahorra ${money(result.monthlySavings, true)}/mes en el escenario base: se recupera el coste en ${result.months} mes(es).</p>`;
+  return `<p class="e19-kpi-note">Refinanciar cuesta ${money(result.cost, true)} y ahorra ${money(result.monthlySavings, true)}/mes en el escenario base: se recupera el coste en ${result.months} ${result.months === 1 ? "mes" : "meses"}.</p>`;
 }
 
 // DI5: reestructuración conjunta ante una caída de ingresos. Reutiliza los contratos reales de
@@ -15775,10 +15784,10 @@ function di5OwnerBreakdownHtml(grouped) {
     const relief = round2(proposals.reduce((sum, proposal) => sum + (proposal.relief || 0), 0));
     const label = GOB19_OWNER_LABELS[owner];
     const reliefText = relief > 0 ? ` (alivio de ${money(relief, true)}/mes)` : "";
-    return `<li><strong>${escapeHtml(label)}</strong>: ${proposals.length} contrato(s), cuota ${money(currentTotal, true)} → ${money(newTotal, true)}/mes${reliefText}.</li>`;
+    return `<li><strong>${escapeHtml(label)}</strong>: ${proposals.length} ${proposals.length === 1 ? "contrato" : "contratos"}, cuota ${money(currentTotal, true)} → ${money(newTotal, true)}/mes${reliefText}.</li>`;
   }).join("");
   const unassignedNote = grouped.household.length
-    ? `<p class="e19-kpi-note">${grouped.household.length} contrato(s) sin asignar a Javi o Tere quedan fuera de este reparto.</p>`
+    ? `<p class="e19-kpi-note">${grouped.household.length} ${grouped.household.length === 1 ? "contrato sin asignar a Javi o Tere queda" : "contratos sin asignar a Javi o Tere quedan"} fuera de este reparto.</p>`
     : "";
   return `<p><strong>Reparto por titular:</strong></p><ul class="commit-barrier-list">${rows}</ul>${unassignedNote}`;
 }
@@ -16080,7 +16089,7 @@ function renderA18SettlementCard() {
       const confirmation = a18SettlementConfirmationState(proposal);
       const javiDone = Boolean(confirmation?.javiConfirmedAt);
       const tereDone = Boolean(confirmation?.tereConfirmedAt);
-      box.innerHTML = `<p><strong>${escapeHtml(A18_OWNER_LABELS[proposal.from])} debe a ${escapeHtml(A18_OWNER_LABELS[proposal.to])}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} gasto(s) compartido(s) pendiente(s). Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${javiDone ? "✓ Javi ha confirmado." : "Javi no ha confirmado todavía."} ${tereDone ? "✓ Tere ha confirmado." : "Tere no ha confirmado todavía."}</p>`;
+      box.innerHTML = `<p><strong>${escapeHtml(A18_OWNER_LABELS[proposal.from])} debe a ${escapeHtml(A18_OWNER_LABELS[proposal.to])}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${javiDone ? "✓ Javi ha confirmado." : "Javi no ha confirmado todavía."} ${tereDone ? "✓ Tere ha confirmado." : "Tere no ha confirmado todavía."}</p>`;
     }
   }
   if (history) {
@@ -16122,7 +16131,7 @@ function gob19RestructuringSectionHtml(person, income, contracts, safeRatio) {
     return `<p><strong>${escapeHtml(label)}</strong>: sin deuda propia asignada — nada que reestructurar.</p>`;
   }
   if (!income || income <= 0) {
-    return `<p><strong>${escapeHtml(label)}</strong>: indica su ingreso mensual tras la separación para comparar su deuda asignada (${contracts.length} contrato(s)).</p>`;
+    return `<p><strong>${escapeHtml(label)}</strong>: indica su ingreso mensual tras la separación para comparar su deuda asignada (${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}).</p>`;
   }
   const engine = window.FinanceCanonicalJointRestructuring;
   const result = engine?.jointRestructuringPlan({ contracts, monthlyIncome: income, safeRatio });
@@ -16153,7 +16162,7 @@ function handleGob19SeparationTemplate() {
     ? `<p>Antes de separar cuentas, liquida el saldo pendiente de gastos compartidos: <strong>${escapeHtml(A18_OWNER_LABELS[settlement.from])} debe a ${escapeHtml(A18_OWNER_LABELS[settlement.to])} ${money(settlement.amount, true)}</strong> (ver «Liquidación con doble confirmación» arriba).</p>`
     : `<p>Sin saldo pendiente de gastos compartidos que liquidar.</p>`;
   const unassignedHtml = grouped.household.length
-    ? `<p class="negative">${grouped.household.length} deuda(s) activa(s) siguen a nombre de «Hogar» (sin asignar a Javi o Tere) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
+    ? `<p class="negative">${grouped.household.length} ${grouped.household.length === 1 ? "deuda activa sigue" : "deudas activas siguen"} a nombre de «Hogar» (sin asignar a Javi o Tere) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
     : "";
   const javiHtml = gob19RestructuringSectionHtml("javi", incomeJavi, grouped.javi, safeRatio);
   const tereHtml = gob19RestructuringSectionHtml("tere", incomeTere, grouped.tere, safeRatio);
@@ -16382,15 +16391,15 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     detail: assetRows.length === 0
       ? "Sin activos registrados todavía."
       : unknownCount > 0
-        ? `${unknownCount} activo(s) sin procedencia declarada.`
-        : `${assetRows.length} activo(s), todos con procedencia declarada.`,
+        ? `${unknownCount} ${unknownCount === 1 ? "activo" : "activos"} sin procedencia declarada.`
+        : `${assetRows.length} ${assetRows.length === 1 ? "activo" : "activos"}, todos con procedencia declarada.`,
   };
   const policyCount = (policies || []).length;
   const policiesCheck = {
     id: "policies",
     label: "Pólizas de seguro registradas",
     ok: policyCount > 0,
-    detail: policyCount > 0 ? `${policyCount} póliza(s) registrada(s).` : "Sin ninguna póliza registrada todavía.",
+    detail: policyCount > 0 ? `${policyCount} ${policyCount === 1 ? "póliza registrada" : "pólizas registradas"}.` : "Sin ninguna póliza registrada todavía.",
   };
   const lifePolicies = (policies || []).filter((policy) => policy && policy.isLife);
   const lifeWithBeneficiary = lifePolicies.filter((policy) => String(policy.beneficiary || "").trim());
@@ -16401,8 +16410,8 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     detail: lifePolicies.length === 0
       ? "Sin pólizas de vida registradas todavía."
       : lifeWithBeneficiary.length > 0
-        ? `${lifeWithBeneficiary.length} de ${lifePolicies.length} póliza(s) de vida con beneficiario declarado.`
-        : `${lifePolicies.length} póliza(s) de vida sin beneficiario declarado.`,
+        ? `${lifeWithBeneficiary.length} de ${lifePolicies.length} ${lifePolicies.length === 1 ? "póliza" : "pólizas"} de vida con beneficiario declarado.`
+        : `${lifePolicies.length} ${lifePolicies.length === 1 ? "póliza" : "pólizas"} de vida sin beneficiario declarado.`,
   };
   // LPX5: ya no es una casilla manual — comprueba el campo real de destino por activo.
   const assetsWithDestination = assetRows.filter((asset) => String(asset?.destination || "").trim());
@@ -16413,8 +16422,8 @@ function lpx3ContinuityChecklist(assets, policies, manualChecks) {
     detail: assetRows.length === 0
       ? "Sin activos registrados todavía."
       : assetsWithDestination.length > 0
-        ? `${assetsWithDestination.length} de ${assetRows.length} activo(s) con destino declarado.`
-        : `${assetRows.length} activo(s) sin destino declarado.`,
+        ? `${assetsWithDestination.length} de ${assetRows.length} ${assetRows.length === 1 ? "activo" : "activos"} con destino declarado.`
+        : `${assetRows.length} ${assetRows.length === 1 ? "activo" : "activos"} sin destino declarado.`,
   };
   const manual = LPX3_MANUAL_ITEMS.map((item) => ({
     id: item.id,
@@ -16722,7 +16731,7 @@ function renderLpx2NetWorthRunway() {
   const illiquidNote = result.illiquidPct > 0
     ? ` <span class="e19-kpi-note">${result.illiquidPct}% de ese patrimonio es inmueble, vehículo o pensión — no se puede gastar sin vender o pedir prestado sobre ello, así que el runway realmente disponible es menor.</span>`
     : "";
-  note.innerHTML = `<p>Con un gasto medio de ${money(result.monthlyBurn, true)}/mes y patrimonio neto de ${money(result.netWorth, true)}: <strong>${result.months} mes(es) de runway</strong> si el ingreso se cortara por completo.${illiquidNote}</p>`;
+  note.innerHTML = `<p>Con un gasto medio de ${money(result.monthlyBurn, true)}/mes y patrimonio neto de ${money(result.netWorth, true)}: <strong>${result.months} ${result.months === 1 ? "mes" : "meses"} de runway</strong> si el ingreso se cortara por completo.${illiquidNote}</p>`;
 }
 
 // GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cruza la cartera real
@@ -16928,7 +16937,7 @@ function renderGob11Panel() {
   const verdict = result.reached
     ? `<strong class="positive">A este ritmo, llegas a tu fecha de jubilación con superávit de ${money(Math.abs(result.gap), true)}.</strong>`
     : `<strong class="warning">A este ritmo, llegas a tu fecha de jubilación con un déficit de ${money(result.gap, true)}.</strong>`;
-  note.innerHTML = `<p>En ${result.yearsToRetirement} año(s): cartera proyectada ${money(result.portfolioAtRetirement, true)}, pensión privada proyectada ${money(result.pensionAtRetirement, true)} — total <strong>${money(result.totalCorpusAtRetirement, true)}</strong>.</p>
+  note.innerHTML = `<p>En ${result.yearsToRetirement} ${result.yearsToRetirement === 1 ? "año" : "años"}: cartera proyectada ${money(result.portfolioAtRetirement, true)}, pensión privada proyectada ${money(result.pensionAtRetirement, true)} — total <strong>${money(result.totalCorpusAtRetirement, true)}</strong>.</p>
     <p>Objetivo a esa fecha: ${money(result.targetCorpus, true)} (gasto anual estimado ${money(result.annualExpensesAtRetirement, true)} con inflación declarada, al ${scenarioSettings.gob11WithdrawalRatePct}% de retirada). ${statePensionNote}</p>
     <p>${verdict}</p>
     ${pastDateNote}
@@ -17153,8 +17162,8 @@ function t6RefinanciarMemoContext() {
   if (!breakEven.calculable) return null;
   const withinThreshold = breakEven.months <= saved.maxBreakEvenMonths;
   const recommendation = withinThreshold
-    ? `Refinanciar a tipo fijo recupera su coste de cambio en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}.`
-    : `Refinanciar a tipo fijo recuperaría su coste en ${breakEven.months} mes(es) — por encima de tu umbral de ${saved.maxBreakEvenMonths}: hoy no compensa.`;
+    ? `Refinanciar a tipo fijo recupera su coste de cambio en ${breakEven.months} ${breakEven.months === 1 ? "mes" : "meses"} — dentro de tu umbral de ${saved.maxBreakEvenMonths}.`
+    : `Refinanciar a tipo fijo recuperaría su coste en ${breakEven.months} ${breakEven.months === 1 ? "mes" : "meses"} — por encima de tu umbral de ${saved.maxBreakEvenMonths}: hoy no compensa.`;
   const risks = [`Coste de cambiar (comisión y gastos de novación/subrogación): ${money(breakEven.cost, true)}.`];
   risks.push(withinThreshold
     ? "Si los tipos bajan más de lo previsto, pasarte a fijo ahora te deja pagando más que quedándote en variable — mira el escenario «Favorable» abajo."
@@ -17196,7 +17205,7 @@ function t6ApalancarMemoContext() {
   });
   if (!result.calculable) return null;
   const recommendation = result.cheapestLabel
-    ? `Usa ${result.cheapestLabel}: es el instrumento más barato de los disponibles para ${money(result.amount, true)} a ${result.months} mes(es).`
+    ? `Usa ${result.cheapestLabel}: es el instrumento más barato de los disponibles para ${money(result.amount, true)} a ${result.months} ${result.months === 1 ? "mes" : "meses"}.`
     : "Ninguno de los instrumentos declarados cubre el importe necesitado con los datos de hoy.";
   const risks = [];
   if (result.barrierValid === false) risks.push("Guardarraíl de condiciones mínimas (AP4) NO superado — revisa sus bloqueos antes de considerar hipoteca o línea de crédito (no aplica a Lombard).");
@@ -17336,7 +17345,7 @@ function renderGob9ResiliencePanel() {
     note.innerHTML = `<p>Sin gasto mensual medio calculable todavía.</p>`;
     return;
   }
-  note.innerHTML = `<p><strong>${result.months} mes(es) de aguante</strong> con ${money(result.liquidity, true)} de liquidez real, frente a ${money(result.stressedBurn, true)}/mes de gasto bajo tensión${result.monthlyDebtService > 0 ? ` + ${money(result.monthlyDebtService, true)}/mes de cuotas de deuda` : ""} = ${money(result.totalMonthlyOutflow, true)}/mes en total.</p>`;
+  note.innerHTML = `<p><strong>${result.months} ${result.months === 1 ? "mes" : "meses"} de aguante</strong> con ${money(result.liquidity, true)} de liquidez real, frente a ${money(result.stressedBurn, true)}/mes de gasto bajo tensión${result.monthlyDebtService > 0 ? ` + ${money(result.monthlyDebtService, true)}/mes de cuotas de deuda` : ""} = ${money(result.totalMonthlyOutflow, true)}/mes en total.</p>`;
 }
 
 // RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
@@ -17456,7 +17465,7 @@ function gob14ReportBodyHtml(context) {
     ? `<ol>${context.decisions.map((item) => `<li><strong>${escapeHtml(item.title || item.label || "")}</strong>${item.text ? ` — ${escapeHtml(item.text)}` : ""}</li>`).join("")}</ol>`
     : "<p>Sin decisiones prioritarias pendientes.</p>";
   const qualityText = context.quality.lowConfidence.length
-    ? `${context.quality.lowConfidence.length} cifra(s) de este informe tienen confianza baja: revísalas antes de decidir con ellas.`
+    ? `${context.quality.lowConfidence.length} ${context.quality.lowConfidence.length === 1 ? "cifra de este informe tiene confianza baja: revísala antes de decidir con ella." : "cifras de este informe tienen confianza baja: revísalas antes de decidir con ellas."}`
     : "Todas las cifras de este informe tienen confianza media o alta.";
   return `<h2>Cifras clave, con su procedencia</h2>
     <table><thead><tr><th>Indicador</th><th>Valor</th><th>Fecha</th><th>Confianza</th></tr></thead><tbody>${metricsHtml}</tbody></table>
@@ -17755,7 +17764,7 @@ function renderA14AssetBreakdown() {
     });
   const unknownCount = result.assets.filter((asset) => asset.provenance === "unknown").length;
   const unknownLine = unknownCount
-    ? `<p class="negative">${unknownCount} activo(s) sin procedencia declarada — su valor no se estima, se marca desconocido.</p>`
+    ? `<p class="negative">${unknownCount} ${unknownCount === 1 ? "activo" : "activos"} sin procedencia declarada — su valor no se estima, se marca desconocido.</p>`
     : "";
   note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
   renderIvx8HousingExposure();
@@ -17847,7 +17856,7 @@ function renderA14NetWorthWaterfall(today) {
 
   const oldest = steps[0];
   const oldestBandPct = oldest.startNetWorth !== 0 ? Math.round((oldest.band / Math.abs(oldest.startNetWorth)) * 100) : 0;
-  legend.innerHTML = `<p>Reconstrucción hacia atrás a partir del flujo de caja real conciliado con el banco (${steps.length} mes(es)). No incluye revalorización de mercado ni de vivienda, ni el reparto de cada cuota de deuda entre interés y capital — ninguna de las dos con histórico guardado todavía. Por eso la banda gris crece cuanto más atrás: en ${escapeHtml(oldest.monthKey)} representa ±${oldestBandPct}% del patrimonio reconstruido ese mes; hoy es la cifra exacta, sin banda.</p>`;
+  legend.innerHTML = `<p>Reconstrucción hacia atrás a partir del flujo de caja real conciliado con el banco (${steps.length} ${steps.length === 1 ? "mes" : "meses"}). No incluye revalorización de mercado ni de vivienda, ni el reparto de cada cuota de deuda entre interés y capital — ninguna de las dos con histórico guardado todavía. Por eso la banda gris crece cuanto más atrás: en ${escapeHtml(oldest.monthKey)} representa ±${oldestBandPct}% del patrimonio reconstruido ese mes; hoy es la cifra exacta, sin banda.</p>`;
 }
 
 // IVX8: sobreexposición cruzada vivienda-inversión — el valor de la vivienda (A14, tipo "inmueble")
@@ -18277,9 +18286,9 @@ function i12ConvictionReviewHtml(position) {
     return `<p class="e19-kpi-note warning">Convicción ${position.convictionScore}/5, nunca confirmada. ${button}</p>`;
   }
   if (status.due) {
-    return `<p class="e19-kpi-note warning">Convicción ${position.convictionScore}/5, sin revisar desde hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}). ${button}</p>`;
+    return `<p class="e19-kpi-note warning">Convicción ${position.convictionScore}/5, sin revisar desde hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} (${status.lastReviewedAt}). ${button}</p>`;
   }
-  return `<p class="e19-kpi-note positive">Convicción ${position.convictionScore}/5, revisada hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}). ${button}</p>`;
+  return `<p class="e19-kpi-note positive">Convicción ${position.convictionScore}/5, revisada hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} (${status.lastReviewedAt}). ${button}</p>`;
 }
 
 function markIv1PositionConvictionReviewed(positionId) {
@@ -18381,7 +18390,7 @@ function renderIv1PositionList() {
     const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
     const age = globalThis.FinanceCanonicalPortfolioValuation?.freshness(position, isoLocalDate(new Date())); // WP-15: valorada hace N días
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
-    const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
+    const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} ${position.contributions.length === 1 ? "aportación adicional" : "aportaciones adicionales"}` : "";
     const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
     const averageCostNote = ivx7AverageCostLabel(position);
     const feeCostNote = ivx4FeeCostLabel(position);
@@ -18414,7 +18423,7 @@ function ivx4FeeCostLabel(position) {
   if (!(years > 0)) return "";
   const result = engine.compoundedFeeCost({ currentValue: position.currentValue, feePct: position.feePct, years });
   if (!result.calculable) return "";
-  return `comisión ${position.feePct}%/año: coste compuesto a ${years} año(s) ${money(result.totalFeeCost, true)}`;
+  return `comisión ${position.feePct}%/año: coste compuesto a ${years} ${years === 1 ? "año" : "años"} ${money(result.totalFeeCost, true)}`;
 }
 
 // INV15 (Oleada 4, Bloque 4): coste total de propiedad real — IVX4 (arriba) solo aísla el TER/
@@ -18428,7 +18437,7 @@ function inv15TotalCostOfOwnershipLabel(position) {
   if (!(years > 0)) return "";
   const result = engine.totalCostOfOwnership({ currentValue: position.currentValue, feePct: position.feePct, custodyFeeAnnual: position.custodyFeeAnnual, years });
   if (!result.calculable) return "";
-  return `coste total de propiedad a ${years} año(s): gestión ${money(result.managementFeeCost, true)} + custodia/corretaje ${money(result.custodyFeeCost, true)} = ${money(result.totalCost, true)}`;
+  return `coste total de propiedad a ${years} ${years === 1 ? "año" : "años"}: gestión ${money(result.managementFeeCost, true)} + custodia/corretaje ${money(result.custodyFeeCost, true)} = ${money(result.totalCost, true)}`;
 }
 
 // FC2: opciones del selector de traspaso — cualquier posición registrada puede figurar como
@@ -18664,7 +18673,7 @@ function inv19FeeCostTrajectoryHtml(trajectory) {
   </svg>`;
   const markYears = [10, 20].filter((year) => year <= trajectory.years);
   const labelsRow = `<div class="pv4-cone-labels"><span>Hoy</span>${markYears.map((year) => `<span>${year} años</span>`).join("")}${markYears[markYears.length - 1] !== trajectory.years ? `<span>${trajectory.years} años</span>` : ""}</div>`;
-  return `<div class="pv4-cone-wrap">${svg}</div>${labelsRow}<p class="e19-kpi-note">Partiendo de ${money(max, true)} en ${trajectory.positionsCount} posición(es) con comisión declarada: a ${trajectory.years} años, sin ninguna aportación ni rentabilidad de mercado supuesta, la comisión sola se llevaría ${money(trajectory.totalFeeCost, true)}.</p>`;
+  return `<div class="pv4-cone-wrap">${svg}</div>${labelsRow}<p class="e19-kpi-note">Partiendo de ${money(max, true)} en ${trajectory.positionsCount} ${trajectory.positionsCount === 1 ? "posición" : "posiciones"} con comisión declarada: a ${trajectory.years} años, sin ninguna aportación ni rentabilidad de mercado supuesta, la comisión sola se llevaría ${money(trajectory.totalFeeCost, true)}.</p>`;
 }
 
 function renderInv19FeeCostTrajectory() {
@@ -18747,7 +18756,7 @@ function renderIv1DisposalOptions() {
 function fc1RealizedGainLabel(realizedGain, disposalCount) {
   if (!disposalCount) return "";
   if (realizedGain === null) return "plusvalía realizada no calculable (alguna venta sin lotes suficientes a su fecha o sin importe cobrado)";
-  return `plusvalía realizada ${money(realizedGain, true)} (FIFO, ${disposalCount} venta(s))`;
+  return `plusvalía realizada ${money(realizedGain, true)} (FIFO, ${disposalCount} ${disposalCount === 1 ? "venta" : "ventas"})`;
 }
 
 function renderIv1PositionSummary() {
@@ -18923,7 +18932,7 @@ function renderInv8DcaTracking() {
   const items = tracked
     .map(({ position, status }) => {
       const note = status.behindSchedule
-        ? `<span class="negative">retraso de ${money(status.delay, true)} (~${status.delayMonths} mes(es) al ritmo previsto)</span>`
+        ? `<span class="negative">retraso de ${money(status.delay, true)} (~${status.delayMonths} ${status.delayMonths === 1 ? "mes" : "meses"} al ritmo previsto)</span>`
         : `<span class="positive">al día o por delante del plan</span>`;
       return `<li class="commit-barrier-item"><span>${escapeHtml(position.label)}</span><span>${money(status.actualCumulative, true)} de ${money(status.plannedCumulative, true)} previstos — ${note}</span></li>`;
     })
@@ -19236,10 +19245,10 @@ function renderInv17RebalanceCalendarReview() {
     return;
   }
   if (status.due) {
-    note.innerHTML = `<p class="e19-kpi-note warning">Han pasado ${status.monthsSinceReview} mes(es) desde tu última revisión (${status.lastReviewedAt}) — toca revisar el reparto aunque ningún tipo haya cruzado el umbral de desviación.</p>`;
+    note.innerHTML = `<p class="e19-kpi-note warning">Han pasado ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} desde tu última revisión (${status.lastReviewedAt}) — toca revisar el reparto aunque ningún tipo haya cruzado el umbral de desviación.</p>`;
     return;
   }
-  note.innerHTML = `<p class="e19-kpi-note positive">Última revisión hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}), dentro de tu intervalo de ${status.intervalMonths} meses.</p>`;
+  note.innerHTML = `<p class="e19-kpi-note positive">Última revisión hace ${status.monthsSinceReview} ${status.monthsSinceReview === 1 ? "mes" : "meses"} (${status.lastReviewedAt}), dentro de tu intervalo de ${status.intervalMonths} meses.</p>`;
 }
 
 // LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — orden de venta al reducir
@@ -19391,7 +19400,7 @@ function executivePrimaryDecision(ctx) {
     return {
       tone: "warn",
       title: "Validar ruta de deuda ya simulada",
-      text: `${routeSummary.count} decisión(es) impactan el cuadro de mandos. Revisa el flujo y fija solo las que vayas a ejecutar.`,
+      text: `${routeSummary.count} ${routeSummary.count === 1 ? "decisión impacta" : "decisiones impactan"} el cuadro de mandos. Revisa el flujo y fija solo las que vayas a ejecutar.`,
       action: "Ver cuadro",
       target: "visual-detail",
     };
@@ -19400,7 +19409,7 @@ function executivePrimaryDecision(ctx) {
     return {
       tone: "warn",
       title: "Simular toda la ruta de deuda",
-      text: `${debtOptimization.steps.length} paso(s), ${money(debtOptimization.totalPrincipal, true)} pactados hasta ${debtOptimization.lastMonth}. Es la mejor forma de ver impacto global antes de fijar nada.`,
+      text: `${debtOptimization.steps.length} ${debtOptimization.steps.length === 1 ? "paso" : "pasos"}, ${money(debtOptimization.totalPrincipal, true)} pactados hasta ${debtOptimization.lastMonth}. Es la mejor forma de ver impacto global antes de fijar nada.`,
       action: "simulate-route",
       label: "Simular ruta",
     };
@@ -19437,7 +19446,7 @@ function executiveActions(ctx) {
     actions.push({
       tone: "warn",
       title: "Ruta de deuda cargada temporalmente",
-      text: `${ctx.routeSummary.count} paso(s) de deuda ya afectan a saldos y flujo. Si era solo prueba, retírala antes de decidir coche.`,
+      text: `${ctx.routeSummary.count} ${ctx.routeSummary.count === 1 ? "paso de deuda ya afecta" : "pasos de deuda ya afectan"} a saldos y flujo. Si era solo prueba, retírala antes de decidir coche.`,
       action: "clear-route",
       label: "Retirar simulación",
       rank: 2,
@@ -19650,8 +19659,8 @@ function renderHomeCoverageCard(coverage) {
   const sentence = coverage.days === null
     ? "No se ha podido determinar el siguiente ingreso."
     : coverage.required === null
-    ? `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
-    : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
+    ? `${coverage.days} ${coverage.days === 1 ? "día" : "días"} hasta ${displayShortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
+    : `${coverage.days} ${coverage.days === 1 ? "día" : "días"} hasta ${displayShortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
   qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong class="${marginClass}">${coverage.margin === null ? HOME_MISSING_VALUE : money(coverage.margin, true)}</strong>
     <p>${sentence}</p>${coberturaAjusteAvisoHtml(e6CoverageSettings())}`;
 }
@@ -19957,7 +19966,7 @@ function deviationThermometerHtml(deviations) {
       return `<li class="pv2-thermometer-item">
         <div class="pv2-thermometer-head"><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${severityPillClass[item.severity] || ""}">${severityLabel[item.severity] || item.severity}</span></div>
         <div class="pv2-thermometer-track"><div class="pv2-thermometer-fill ${escapeHtml(item.severity)}" style="width:${Math.round(ratio * 100)}%"></div></div>
-        <span class="e19-kpi-note">${money(item.averageDelta, true)} de media sobre ${money(item.averagePlanned, true)} previsto · ${item.sampleMonths} mes(es) · confianza ${escapeHtml(item.confidence)}</span>
+        <span class="e19-kpi-note">${money(item.averageDelta, true)} de media sobre ${money(item.averagePlanned, true)} previsto · ${item.sampleMonths} ${item.sampleMonths === 1 ? "mes" : "meses"} · confianza ${escapeHtml(item.confidence)}</span>
       </li>`;
     })
     .join("")}</ul>`;
@@ -20002,7 +20011,7 @@ function pv4ConfidenceBandHtml(bands, dominant = null) {
   const readings = bands.map((band) => `${band.label}: P10 ${money(band.low, true)} · P50 ${money(band.center, true)} · P90 ${money(band.high, true)}.`);
   const labelsRow = `<div class="pv4-cone-labels">${bands.map((band) => `<span>${escapeHtml(band.label)}</span>`).join("")}</div>`;
   const note = first.sampleConcepts
-    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. ${growthNote || "Se ensancha cuanto más lejos está el mes."}`
+    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} ${first.sampleConcepts === 1 ? "partida" : "partidas"} con historial suficiente. ${growthNote || "Se ensancha cuanto más lejos está el mes."}`
     : "Sin historial conciliado suficiente todavía: la banda es de ancho cero, no un margen inventado.";
   // PVC13: el margen puede venir del error medio real medido (predictionQuality, E16) en vez del
   // sesgo medio por partida, cuando el primero es mayor — se dice explícitamente, nunca en silencio.
@@ -20011,7 +20020,7 @@ function pv4ConfidenceBandHtml(bands, dominant = null) {
     : "";
   // P2: la partida que más pesa en el margen es la misma en los doce meses (el margen es una cifra agregada): se dice una vez, no en cada mes.
   const dominantNote = dominant
-    ? ` Partida que más pesa en el margen: "${escapeHtml(dominant.label)}" (${money(dominant.averageDelta, true)} de media sobre ${dominant.sampleMonths} mes(es)).`
+    ? ` Partida que más pesa en el margen: "${escapeHtml(dominant.label)}" (${money(dominant.averageDelta, true)} de media sobre ${dominant.sampleMonths} ${dominant.sampleMonths === 1 ? "mes" : "meses"}).`
     : "";
   return kit.figureHtml({
     id: "pv4-cone", plotHtml: plot.svg, plotClass: "pv4-cone-wrap", belowPlotHtml: labelsRow, readings, xs: plot.xs,
@@ -20216,8 +20225,8 @@ function renderPvc5RecalibrationNote() {
   const p10Label = (percentiles) => percentiles
     ? `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`
     : "no calculable (sin histórico suficiente ni manual declarado)";
-  const comparisonLine = `<p>Con todo el histórico (${proposal.currentSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.currentPercentiles)}.</p>
-    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated && proposal.proposedCalculable ? " — muestra corta, cae al manual declarado (o se mezcla con él)" : ""}.</p>`;
+  const comparisonLine = `<p>Con todo el histórico (${proposal.currentSampleSize} ${proposal.currentSampleSize === 1 ? "mes conciliado" : "meses conciliados"}): ${p10Label(proposal.currentPercentiles)}.</p>
+    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} ${proposal.proposedSampleSize === 1 ? "mes conciliado" : "meses conciliados"}): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated && proposal.proposedCalculable ? " — muestra corta, cae al manual declarado (o se mezcla con él)" : ""}.</p>`;
   const changeNote = proposal.changed
     ? `<p class="e19-kpi-note is-warn">La ventana de 8 trimestres ${currentlyApplied ? "(ya aplicada)" : "propuesta"} cambia el triángulo frente a usar todo el histórico.</p>`
     : `<p class="e19-kpi-note">La ventana no cambia el triángulo frente a usar todo el histórico — misma calibración.</p>`;
@@ -20259,7 +20268,7 @@ function renderE13ScenarioLab() {
   // (aquí) Y en su propio detalle (pvc10WeightedDetail, más abajo).
   const weighted = E13.weightedForecastWithUncertainEvents(forecast, e13ScenarioEvents);
   qs("e13EventList").innerHTML = lab.events.length
-    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}${Number.isFinite(event.probabilityPct) ? ` · 🎲 ${event.probabilityPct}%` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} ${event.duration === 1 ? "mes" : "meses"}${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}${Number.isFinite(event.probabilityPct) ? ` · 🎲 ${event.probabilityPct}%` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
     : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
   const weightedRowHtml = weighted.uncertainEvents.length
     ? `<div class="e13-comparison-row e13-weighted-uncertain" role="row">
@@ -20318,7 +20327,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>Autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands, confidenceBandsDominant)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calculable && prudent.calibrated ? "good" : "warn"}">${escapeHtml(PVC14_SOURCE_LABELS[prudent.source] || prudent.source)}</span></header>${pvc14PrudentSimulationHtml(prudent)}</article>
-    <article class="e6-quality-card"><header><strong>Banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
+    <article class="e6-quality-card"><header><strong>Banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} ${pvc2Shares.length === 1 ? "categoría" : "categorías"}</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
     <article class="e6-quality-card"><header><strong>Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
@@ -20352,7 +20361,7 @@ function renderE13ScenarioLab() {
     } catch { /* escenario no compatible con este esquema, sin badge */ }
     return `<article class="e13-event-chip"><b>${escapeHtml(item.name)}</b> · ${escapeHtml(item.savedAt.slice(0, 10))} · huella ${escapeHtml(item.sourceForecastFingerprint)}${staleBadge}<button type="button" data-e13-rerun="${escapeHtml(item.id)}">Recalcular copia</button></article>`;
   }).join("") : '<span class="e13-empty-events">Todavía no hay escenarios guardados.</span>';
-  qs("e13ScenarioStatus").textContent = `${lab.events.length} evento(s) temporal(es). Huella del forecast: ${lab.sourceForecastFingerprint}. Simular no modifica el plan.`;
+  qs("e13ScenarioStatus").textContent = `${lab.events.length} ${lab.events.length === 1 ? "evento temporal" : "eventos temporales"}. Huella del forecast: ${lab.sourceForecastFingerprint}. Simular no modifica el plan.`;
 }
 
 function saveE13ReproducibleScenario() {
@@ -20737,7 +20746,7 @@ function renderPrevisionReliabilityBadge() {
   const index = pvc17PredictiveHealthIndex();
   if (!index || !index.samples) { box.innerHTML = ""; return; }
   const tone = index.confidence === "media" ? "e19-badge-neutral" : "e19-badge-warning";
-  box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} mes(es) conciliado(s) con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
+  box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} ${index.samples === 1 ? "mes conciliado" : "meses conciliados"} con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
 }
 
 // WP-10 (NPV-08): calidad de los datos de la previsión (canonical-forecast-quality.js). Fechas: los
@@ -21125,7 +21134,7 @@ function savingsPlanFieldSource(key) {
     : `No aislada en el detalle; queda como referencia revisable.`;
   if (key === "bmwPayment") {
     return detected.bmwMonthsRemaining
-      ? `Detectado ${money(detected.bmwPositiveAverage, true)} durante ${detected.bmwMonthsRemaining} mes(es); último mes ${detected.bmwEndLabel}.`
+      ? `Detectado ${money(detected.bmwPositiveAverage, true)} durante ${detected.bmwMonthsRemaining} ${detected.bmwMonthsRemaining === 1 ? "mes" : "meses"}; último mes ${detected.bmwEndLabel}.`
       : "Sin pagos BMW futuros detectados en el flujo.";
   }
   if (key === "unifiedCreditPayment") {
@@ -21264,7 +21273,7 @@ function debtCapacityStatus() {
 
 function debtCapacityHtml(capacity) {
   const badge = { good: "e19-badge-success", warn: "e19-badge-warning", danger: "e19-badge-danger" }[capacity.status];
-  const ratioText = `${(capacity.ratio * 100).toFixed(1)}%`;
+  const ratioText = `${(capacity.ratio * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
   const thresholdText = `${Math.round(capacity.dangerAt * 100)}%`;
   const marginNote = capacity.marginEuros > 0
     ? `Margen restante antes del umbral: ${money(capacity.marginEuros, true)}/mes.`
@@ -21432,23 +21441,23 @@ function renderSavingsPlan() {
     renderSavingsKpiComparison({
       title: "Tasa de ahorro",
       actual: `${((first?.saving || 0) / Math.max(1, first?.income || 1) * 100).toFixed(1)}%`,
-      current: `${(savingsRate * 100).toFixed(1)}%`,
+      current: `${(savingsRate * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
       advised: ">= 20%",
       note: "Calculada con ingresos y gastos de los próximos 12 meses; las extras entran en abril/diciembre, no prorrateadas.",
       status: savingsRate >= 0.2 ? "good" : savingsRate >= 0.12 ? "warn" : "danger",
     }),
     renderSavingsKpiComparison({
       title: "Cobertura de colchón",
-      actual: `${calc.currentCoverage.toFixed(1)} meses`,
-      current: `${calc.projectedCoverage12.toFixed(1)} meses`,
-      advised: `${Number(calc.values.emergencyBufferMonths || 6).toFixed(0)} meses`,
+      actual: `${calc.currentCoverage.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses`,
+      current: `${calc.projectedCoverage12.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses`,
+      advised: `${Number(calc.values.emergencyBufferMonths || 6).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} meses`,
       note: "Mide el ahorro separado frente a gasto operativo + deuda media. Si sube el flujo, el objetivo se alcanza antes.",
       status: calc.projectedCoverage12 >= Number(calc.values.emergencyBufferMonths || 6) ? "good" : calc.projectedCoverage12 >= 3 ? "warn" : "danger",
     }),
     renderSavingsKpiComparison({
       title: "Deuda / ingresos",
-      actual: `${(calc.detected.firstIncome ? (calc.detected.firstDebt / calc.detected.firstIncome) * 100 : 0).toFixed(1)}%`,
-      current: `${(debtRatio * 100).toFixed(1)}%`,
+      actual: `${(calc.detected.firstIncome ? (calc.detected.firstDebt / calc.detected.firstIncome) * 100 : 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+      current: `${(debtRatio * 100).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
       advised: "<= 32%",
       note: "Incluye coche y financiaciones detectadas mes a mes. El BMW desaparece automáticamente al terminar.",
       status: debtRatio <= 0.32 ? "good" : debtRatio <= 0.4 ? "warn" : "danger",
@@ -21486,7 +21495,7 @@ function renderSavingsPlan() {
       <td>${money(advice.advised, true)}</td>
       <td class="${deviation < 0 ? "negative" : "positive"}">${money(deviation, true)}</td>
       <td>${money(row.savings, true)}</td>
-      <td>${coverage.toFixed(1)}</td>
+      <td>${coverage.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
       <td>${statusDot(status)}</td>
       <td>${money(advice.amortization, true)}</td>
       <td>${escapeHtml(advice.note)}</td>
@@ -21507,8 +21516,8 @@ function renderSavingsPlan() {
     ],
     ["Deuda reunificada actual", "Líneas de refinanciación/reunificación detectadas", `Modelo 12m: ${money(calc.detected.reunifiedAverage, true)}; cartera actual: ${money(currentDebtPaymentBreakdown().unified, true)}/mes`, money(calc.values.unifiedCreditPayment, true), calc.values.unifiedCreditPayment ? "OK: incluida en la deuda mensual del flujo." : "Revisar: no se detecta reunificación futura."],
     ["Deuda + coche próximo 12m", "Coche + financiaciones del modelo / 12", calc.detected.bmwMonthsRemaining ? `BMW detectado hasta ${calc.detected.bmwEndLabel}; cuota media positiva ${money(calc.values.bmwPayment, true)}.` : "Sin BMW futuro detectado.", money(calc.debtServiceMonthlyTotal, true), calc.debtToIncomeRatio <= 0.32 ? "OK frente al umbral <=32%." : "Revisar deuda: supera el umbral aconsejable."],
-    ["Proyectos cargados", "Impactos de proyectos / 12", `${calc.detected.decisionImpact12.projectCount} proyecto(s): ${money(calc.detected.decisionImpact12.projectCost, true)}`, money(calc.detected.decisionImpact12.projectCost / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.projectCost ? "OK: proyecto incluido en caja y ahorro." : "Sin proyectos en el periodo."],
-    ["Amortizaciones/liquidaciones cargadas", "Coste de liquidación menos alivio posterior", `${calc.detected.decisionImpact12.debtDecisionCount} decisión(es): coste ${money(calc.detected.decisionImpact12.debtAmortization, true)}; alivio ${money(calc.detected.decisionImpact12.debtRelief, true)}`, money(calc.detected.decisionImpact12.netDecisionImpact / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.debtDecisionCount ? "OK: amortizaciones y alivios incluidos." : "Sin amortizaciones simuladas en el periodo."],
+    ["Proyectos cargados", "Impactos de proyectos / 12", `${calc.detected.decisionImpact12.projectCount} ${calc.detected.decisionImpact12.projectCount === 1 ? "proyecto" : "proyectos"}: ${money(calc.detected.decisionImpact12.projectCost, true)}`, money(calc.detected.decisionImpact12.projectCost / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.projectCost ? "OK: proyecto incluido en caja y ahorro." : "Sin proyectos en el periodo."],
+    ["Amortizaciones/liquidaciones cargadas", "Coste de liquidación menos alivio posterior", `${calc.detected.decisionImpact12.debtDecisionCount} ${calc.detected.decisionImpact12.debtDecisionCount === 1 ? "decisión" : "decisiones"}: coste ${money(calc.detected.decisionImpact12.debtAmortization, true)}; alivio ${money(calc.detected.decisionImpact12.debtRelief, true)}`, money(calc.detected.decisionImpact12.netDecisionImpact / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.debtDecisionCount ? "OK: amortizaciones y alivios incluidos." : "Sin amortizaciones simuladas en el periodo."],
     ["Margen medio antes de ahorrar", "Ingresos - gasto operativo - deuda - proyectos", `${money(calc.monthlyIncomeTotal, true)} - ${money(calc.totalSpendTarget, true)}`, money(calc.monthlySavingPotential, true), calc.monthlySavingPotential > 0 ? "OK: hay margen positivo." : "Revisar: no hay margen para ahorrar."],
     ["Colchón objetivo", "Gasto esencial medio * meses objetivo", `${money(calc.operationalMonthlyTotal + calc.debtServiceMonthlyTotal, true)} * ${calc.values.emergencyBufferMonths}`, money(calc.emergencyFundTarget, true), "Ajustable según tolerancia de riesgo."],
     ["Gap de colchón", "Colchón objetivo - colchón actual", `${money(calc.emergencyFundTarget, true)} - ${money(calc.values.initialEmergencyFund, true)}`, money(calc.emergencyFundGap, true), calc.emergencyFundGap > 0 ? "Priorizar colchón antes de amortizar agresivamente." : "Colchón cubierto; se puede priorizar amortización/inversión."],
@@ -22312,7 +22321,7 @@ function datosImportarStep1Markup() {
     ? `<p class="e19-kpi-note is-warn">Ya se importó un fichero con el mismo contenido (${escapeHtml(session.fileMeta.repeated.fileName)}) el ${escapeHtml(formatIsoDate(session.fileMeta.repeated.appliedAt))}. Puedes continuar si es intencionado.</p>`
     : "";
   const closedNote = summary.closedMonths.length
-    ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} mes(es) ya cerrado(s): ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes cerrado.</p>`
+    ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya cerrado" : "meses ya cerrados"}: ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes cerrado.</p>`
     : "";
   const accountOptions = ['<option value="">Sin especificar</option>']
     .concat(
@@ -22324,7 +22333,7 @@ function datosImportarStep1Markup() {
     .join("");
   return `<div class="e19-card datos-importar-file-summary">
     <strong>${escapeHtml(session.fileMeta.fileName)}</strong>
-    <p class="e19-kpi-note">Formato reconocido · ${session.rows.length} movimiento(s) · del ${escapeHtml(formatIsoDate(summary.from))} al ${escapeHtml(formatIsoDate(summary.to))}.</p>
+    <p class="e19-kpi-note">Formato reconocido · ${session.rows.length} ${session.rows.length === 1 ? "movimiento" : "movimientos"} · del ${escapeHtml(formatIsoDate(summary.from))} al ${escapeHtml(formatIsoDate(summary.to))}.</p>
     ${repeatedNote}${closedNote}
     <label class="datos-importar-account-select">
       <span>¿De qué cuenta es este extracto?</span>
@@ -22394,7 +22403,7 @@ function renderDatosImportarStep2() {
         <thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Sugerencia</th><th>Decisión</th></tr></thead>
         <tbody>${pending.map((row) => datosImportarClassifyRowMarkup(row)).join("")}</tbody>
       </table></div>`
-    : `<p class="e19-kpi-note">No queda ningún movimiento sin regla previa: los ${session.rows.length} movimiento(s) ya tienen partida o quedaron marcados como ignorados en una importación anterior.</p>`;
+    : `<p class="e19-kpi-note">No queda ningún movimiento sin regla previa: los ${session.rows.length} ${session.rows.length === 1 ? "movimiento ya tiene" : "movimientos ya tienen"} partida o quedaron marcados como ignorados en una importación anterior.</p>`;
   panel.querySelectorAll("[data-datos-importar-classify]").forEach((button) => {
     button.addEventListener("click", () =>
       handleDatosImportarClasificar(button.dataset.datosImportarClassify, button.dataset.datosImportarRowId, ""),
@@ -22414,7 +22423,7 @@ function datosImportarDuplicateRowMarkup(row) {
   const existing = row.duplicates[0];
   return `<tr class="${decided ? "is-decided" : ""}">
     <td>${escapeHtml(formatIsoDate(row.transaction.date))} · ${escapeHtml(movementDisplayName(row.transaction))} · ${money(row.transaction.amount, true)}</td>
-    <td>${existing ? `${escapeHtml(formatIsoDate(existing.date))} · ${escapeHtml(movementDisplayName(existing))} · ${money(existing.amount, true)}` : "—"}${row.duplicates.length > 1 ? `<small> y ${row.duplicates.length - 1} candidato(s) más</small>` : ""}</td>
+    <td>${existing ? `${escapeHtml(formatIsoDate(existing.date))} · ${escapeHtml(movementDisplayName(existing))} · ${money(existing.amount, true)}` : "—"}${row.duplicates.length > 1 ? `<small> y ${row.duplicates.length - 1} ${(row.duplicates.length - 1) === 1 ? "candidato" : "candidatos"} más</small>` : ""}</td>
     <td class="datos-importar-row-actions">
       <button type="button" class="e19-btn e19-btn-secondary${decided === "duplicado" ? " is-active" : ""}" data-datos-importar-duplicate="duplicado" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Es duplicado</button>
       <button type="button" class="e19-btn e19-btn-secondary${decided === "distinto" ? " is-active" : ""}" data-datos-importar-duplicate="distinto" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Son distintos</button>
@@ -22450,7 +22459,7 @@ function renderDatosImportarStep3() {
 function datosImportarSuccessMarkup(result) {
   return `<div class="e19-insight">
       <strong>Importación confirmada</strong>
-      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}${result.capturasSustituidas ? `, ${result.capturasSustituidas} captura(s) a mano sustituida(s) por su fila del banco` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
+      <p>${result.imported} ${result.imported === 1 ? "movimiento incorporado" : "movimientos incorporados"} de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} ${result.nuevasReglas === 1 ? "regla nueva aprendida" : "reglas nuevas aprendidas"}${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} ${result.nuevosIgnorados === 1 ? "movimiento marcado" : "movimientos marcados"} para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}` : ""}${result.capturasSustituidas ? `, ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "captura a mano sustituida" : "capturas a mano sustituidas"} por su fila del banco` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }
@@ -22469,7 +22478,7 @@ async function handleDatosImportarConfirmar() {
   datosImportarSession = null;
   datosImportarLastResult = { ...result, fileName: session.fileMeta.fileName };
   renderDatosImportar();
-  announceStatus(`Importación confirmada: ${result.imported} movimiento(s) incorporados.`);
+  announceStatus(`Importación confirmada: ${result.imported} ${result.imported === 1 ? "movimiento incorporado" : "movimientos incorporados"}.`);
 }
 
 function renderDatosImportarStep4() {
@@ -22480,7 +22489,7 @@ function renderDatosImportarStep4() {
   const impact = datosImportarImpactRows(session.rows);
   const included = datosImportarIncludedTransactions(session.rows).length;
   const duplicados = session.rows.filter((row) => row.duplicateDecision === "duplicado").length;
-  panel.innerHTML = `<p class="e19-kpi-note">${included} movimiento(s) entrarían en el plan; ${duplicados} queda(n) fuera por marcarse como duplicado.${capturaDuplicadosResumen(session.rows)}</p>
+  panel.innerHTML = `<p class="e19-kpi-note">${included} ${included === 1 ? "movimiento entraría" : "movimientos entrarían"} en el plan; ${duplicados} queda(n) fuera por marcarse como duplicado.${capturaDuplicadosResumen(session.rows)}</p>
     ${impact.length
       ? `<div class="table-wrap"><table class="datos-importar-table">
           <thead><tr><th>Partida</th><th>Mes</th><th>Actual</th><th>Tras importar</th><th>Desviación</th></tr></thead>
@@ -22531,11 +22540,11 @@ function datosImportarUpdateBar() {
   } else if (session.step === 2) {
     const pending = datosImportarRowsPendingClassification(session.rows).length;
     nextButton.disabled = pending > 0;
-    blockNote.textContent = pending > 0 ? `${pending} movimiento(s) sin decidir.` : "";
+    blockNote.textContent = pending > 0 ? `${pending} ${pending === 1 ? "movimiento" : "movimientos"} sin decidir.` : "";
   } else if (session.step === 3) {
     const pending = datosImportarRowsPendingDuplicate(session.rows).length;
     nextButton.disabled = pending > 0;
-    blockNote.textContent = pending > 0 ? `${pending} posible(s) duplicado(s) sin decidir.` : "";
+    blockNote.textContent = pending > 0 ? `${pending} ${pending === 1 ? "posible duplicado" : "posibles duplicados"} sin decidir.` : "";
   }
 }
 
@@ -22890,8 +22899,8 @@ function handleMovementReclassify() {
   refreshAllSectionsAfterDataChange();
   announceStatus(
     remember
-      ? `Regla guardada para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros. ${applied} importe(s) reales recalculados desde movimientos.`
-      : `Partida guardada solo para este movimiento. ${applied} importe(s) reales recalculados desde movimientos.`,
+      ? `Regla guardada para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`
+      : `Partida guardada solo para este movimiento. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`,
   );
   renderMovementDetailDialog();
   renderDetailedMovements();
@@ -23139,7 +23148,7 @@ async function undoLastImportBatch() {
   if (!batch) { showImportLog("Nada que deshacer", "No hay lotes aplicados pendientes de deshacer.", "warning"); return; }
   const { reason } = await requestOperationConfirmation({
     title: `Deshacer ${batch.sourceLabel}`,
-    message: `Se restaurará el estado anterior al lote de ${batch.recordCount} registro(s) y se conservará una revisión auditable.`,
+    message: `Se restaurará el estado anterior al lote de ${batch.recordCount} ${batch.recordCount === 1 ? "registro" : "registros"} y se conservará una revisión auditable.`,
     defaultReason: "Importación incorrecta",
     confirmLabel: "Deshacer lote",
   });
@@ -23273,7 +23282,7 @@ function stageE7Import(records, sourceLabel, target = "data") {
   if (!log) return;
   log.classList.toggle("danger", !comparison.valid);
   log.innerHTML = `<strong>Vista previa · todavía no se ha importado nada</strong>
-    <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s). Impacto agregado del lote: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Invariantes: ${comparison.valid ? "correctas" : "requieren revisión"}.</p>
+    <p>${comparison.additions.length} ${comparison.additions.length === 1 ? "alta" : "altas"}, ${comparison.changes.length} ${comparison.changes.length === 1 ? "cambio" : "cambios"}, ${comparison.duplicates.length} ${comparison.duplicates.length === 1 ? "duplicado" : "duplicados"} y ${comparison.removals.length} ${comparison.removals.length === 1 ? "baja" : "bajas"}. Impacto agregado del lote: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Invariantes: ${comparison.valid ? "correctas" : "requieren revisión"}.</p>
     <div class="data-actions"><button id="${cfg.confirmId}" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar e importar</button><button id="${cfg.cancelId}" class="secondary" type="button">Cancelar</button></div>`;
   qs(cfg.confirmId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
@@ -23312,7 +23321,7 @@ function stageE7Workbook(nextData, fileName, target = "data") {
   if (!log) return;
   log.classList.toggle("danger", !comparison.valid);
   log.innerHTML = `<strong>Vista previa del libro · todavía no se ha sustituido el modelo</strong>
-    <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s) en movimientos. Impacto agregado: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Planificación e importes: ${comparison.valid ? "válidos" : "requieren revisión"}.</p>
+    <p>${comparison.additions.length} ${comparison.additions.length === 1 ? "alta" : "altas"}, ${comparison.changes.length} ${comparison.changes.length === 1 ? "cambio" : "cambios"}, ${comparison.duplicates.length} ${comparison.duplicates.length === 1 ? "duplicado" : "duplicados"} y ${comparison.removals.length} ${comparison.removals.length === 1 ? "baja" : "bajas"} en movimientos. Impacto agregado: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Planificación e importes: ${comparison.valid ? "válidos" : "requieren revisión"}.</p>
     <div class="data-actions"><button id="${cfg.confirmWorkbookId}" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar y sustituir modelo</button><button id="${cfg.cancelWorkbookId}" class="secondary" type="button">Cancelar</button></div>`;
   qs(cfg.confirmWorkbookId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
@@ -23657,7 +23666,7 @@ function handleRegistrarMesCopyConfirm(kind) {
     registrarMesLastSaveAt = new Date();
   }
   registrarMesCopyPending[kind] = false;
-  announceStatus(`${candidates.length} real(es) copiados del mes anterior. Revisa cada importe antes de darlo por bueno.`);
+  announceStatus(`${candidates.length} ${candidates.length === 1 ? "real copiado" : "reales copiados"} del mes anterior. Revisa cada importe antes de darlo por bueno.`);
   render();
 }
 
@@ -23883,7 +23892,7 @@ function handleSp4CompareInsurance() {
       ? `<p>Coste esperado al año: ${money(result.expectedAnnualLoss, true)} frente a una prima de ${money(result.annualPremium, true)} (${result.premiumMarkupPercent}% por encima) — sale más barato autoasegurarse.</p>`
       : `<p>Coste esperado al año: ${money(result.expectedAnnualLoss, true)} frente a una prima de ${money(result.annualPremium, true)} — la prima compensa a este precio.</p>`);
   } else {
-    parts.push(`<p>Sin probabilidad estimada, no se puede comparar el coste esperado. ${result.breakEvenYears !== null ? `La prima actual equivaldría al golpe potencial en ${result.breakEvenYears} año(s).` : "Indica una prima anual para ver ese dato."}</p>`);
+    parts.push(`<p>Sin probabilidad estimada, no se puede comparar el coste esperado. ${result.breakEvenYears !== null ? `La prima actual equivaldría al golpe potencial en ${result.breakEvenYears} ${result.breakEvenYears === 1 ? "año" : "años"}.` : "Indica una prima anual para ver ese dato."}</p>`);
   }
   note.innerHTML = parts.join("");
 }
@@ -24574,7 +24583,7 @@ function renderAjustes() {
   const alertsSummary = qs("ajustesAlertsSummary");
   if (alertsSummary) {
     const active = evaluatedUxAlerts().filter((alert) => !alert.paused);
-    alertsSummary.textContent = active.length ? `${active.length} regla(s) activa(s)` : "Sin reglas activas todavía";
+    alertsSummary.textContent = active.length ? `${active.length} ${active.length === 1 ? "regla activa" : "reglas activas"}` : "Sin reglas activas todavía";
   }
 }
 
@@ -24644,7 +24653,7 @@ function handleDuplicateWindowChange(event) {
   saveScenarioSettings();
   announceStatus(
     next > 0
-      ? `Ventana de duplicados guardada en ${next} día(s).`
+      ? `Ventana de duplicados guardada en ${next} ${next === 1 ? "día" : "días"}.`
       : `Ventana de duplicados sin configurar: se usan ${DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS} días por defecto.`,
   );
 }
@@ -24719,7 +24728,7 @@ function renderAjustesPartidaNote() {
   const over = ajustesPartidasOverThreshold();
   const monthName = registrarMesMonthName(month.key);
   note.textContent = over.length
-    ? `${over.length} partida(s) de ${monthName} superan el ${threshold}% de desviación.`
+    ? `${over.length} ${over.length === 1 ? "partida" : "partidas"} de ${monthName} superan el ${threshold}% de desviación.`
     : `Ninguna partida de ${monthName} supera el ${threshold}% de desviación.`;
 }
 
@@ -24874,7 +24883,7 @@ function handleAjustesExportIcs() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, 0);
-  announceStatus(`Calendario financiero exportado: ${calendar.rows.length} mes(es).`);
+  announceStatus(`Calendario financiero exportado: ${calendar.rows.length} ${calendar.rows.length === 1 ? "mes" : "meses"}.`);
 }
 
 // P9: vista de solo lectura del calendario financiero (E15) dentro de la propia app — hasta ahora
@@ -25038,7 +25047,7 @@ function renderCuadroMandosImpactBar() {
     <div class="cuadro-mandos-impact-head">
       <p class="e19-eyebrow">Impacto del cambio</p>
       <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
-      <small>${drafts.length} cambio(s) sin guardar</small>
+      <small>${drafts.length} ${drafts.length === 1 ? "cambio" : "cambios"} sin guardar</small>
     </div>
     <dl><dt>Mínimo del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
     <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
@@ -25083,7 +25092,7 @@ function renderCuadroMandos() {
   if (subtitle) {
     const pending = cuadroMandosPlannedDrafts().length;
     subtitle.textContent = pending
-      ? `Editas el previsto y el pie de abajo dice qué le pasa al plan. ${pending} cambio(s) sin guardar.`
+      ? `Editas el previsto y el pie de abajo dice qué le pasa al plan. ${pending} ${pending === 1 ? "cambio" : "cambios"} sin guardar.`
       : "Editas el previsto de una celda y el pie de abajo dice qué le pasa al plan antes de guardar nada.";
   }
 
@@ -25104,7 +25113,7 @@ function renderCuadroMandos() {
         return total;
       });
       const head = `<tr class="cuadro-mandos-section ${section.kind === "income" ? "is-income" : "is-expense"}">
-        <td><button type="button" class="cuadro-mandos-toggle" data-cuadro-section="${escapeHtml(section.key)}" aria-expanded="${expanded ? "true" : "false"}"><span>${expanded ? "−" : "+"}</span>${escapeHtml(section.name)}</button><small>${section.rows.length} línea(s)</small></td>
+        <td><button type="button" class="cuadro-mandos-toggle" data-cuadro-section="${escapeHtml(section.key)}" aria-expanded="${expanded ? "true" : "false"}"><span>${expanded ? "−" : "+"}</span>${escapeHtml(section.name)}</button><small>${section.rows.length} ${section.rows.length === 1 ? "línea" : "líneas"}</small></td>
         ${sectionTotals.map((value, index) => `<td class="${isClosedMonthKey(months[index].key) ? "cuadro-mandos-closed" : ""}"><strong>${money(value, true)}</strong></td>`).join("")}
       </tr>`;
       if (!expanded) return head;
@@ -25214,7 +25223,7 @@ function handleCuadroMandosApply(scope) {
   );
   targets.forEach((month) => cuadroMandosStageCell(rowKey, month.key, draft.value));
   cuadroMandosApply = null;
-  announceStatus(`Importe aplicado a ${targets.length} mes(es) más. Nada se ha guardado todavía.`);
+  announceStatus(`Importe aplicado a ${targets.length} ${targets.length === 1 ? "mes" : "meses"} más. Nada se ha guardado todavía.`);
   renderCuadroMandos();
 }
 
@@ -25290,7 +25299,7 @@ function cambiosPendientesChartHtml(impact) {
       <span><i class="cambios-chart-key-after"></i>Con tus cambios</span>
       ${reserve > 0 ? `<span><i class="cambios-chart-key-reserve"></i>Reserva ${money(reserve, true)}</span>` : ""}
     </div>
-    <p class="e19-kpi-meta">${before.length} mes(es) desde ${escapeHtml(escenarioMotorMonthLabel(before[0]?.detailMonthKey || ""))}.</p>`;
+    <p class="e19-kpi-meta">${before.length} ${before.length === 1 ? "mes" : "meses"} desde ${escapeHtml(escenarioMotorMonthLabel(before[0]?.detailMonthKey || ""))}.</p>`;
 }
 
 function renderCambiosPendientes() {
@@ -25316,7 +25325,7 @@ function renderCambiosPendientes() {
   if (discardButton) discardButton.disabled = !impact.drafts.length && !otros;
 
   if (!impact.drafts.length) {
-    if (title) title.textContent = otros ? `Quedan ${otros} cambio(s) de nombre o borrado sin guardar` : "No hay ningún cambio sin guardar";
+    if (title) title.textContent = otros ? `${otros === 1 ? "Queda" : "Quedan"} ${otros} ${otros === 1 ? "cambio" : "cambios"} de nombre o borrado sin guardar` : "No hay ningún cambio sin guardar";
     if (subtitle) {
       subtitle.textContent = otros
         ? "Los importes están al día; lo pendiente son nombres o partidas marcadas para borrar, que se confirman desde Actualizar previsiones."
@@ -25347,7 +25356,7 @@ function renderCambiosPendientes() {
         : `Lo que has tocado ${deltaMinimo < 0 ? "te cuesta" : "te da"} ${money(Math.abs(deltaMinimo), true)} de colchón`;
   }
   if (impact.ok && subtitle) {
-    subtitle.textContent = `Nada está guardado. Puedes revertir cualquier línea por separado.${otros ? ` Hay además ${otros} cambio(s) de nombre o borrado pendientes.` : ""}`;
+    subtitle.textContent = `Nada está guardado. Puedes revertir cualquier línea por separado.${otros ? ` Hay además ${otros} ${otros === 1 ? "cambio" : "cambios"} de nombre o borrado pendientes.` : ""}`;
   }
 
   if (impact.ok && kpis) {
@@ -25393,9 +25402,9 @@ function renderCambiosPendientes() {
       note.innerHTML = `<h3 class="escenario-motor-panel-title">${escapeHtml(worst)} se queda en ${money(after.minimo, true)}</h3>
         <p class="e19-kpi-note">${escapeHtml(
           cruza > 0
-            ? `Si guardas estos cambios, ${cruza} mes(es) más quedan ${cuadroMandosReserveLabel(after)}.`
+            ? `Si guardas estos cambios, ${cruza} ${cruza === 1 ? "mes más queda" : "meses más quedan"} ${cuadroMandosReserveLabel(after)}.`
             : cruza < 0
-              ? `Si guardas estos cambios, ${Math.abs(cruza)} mes(es) dejan de estar ${cuadroMandosReserveLabel(after)}.`
+              ? `Si guardas estos cambios, ${Math.abs(cruza)} ${(Math.abs(cruza)) === 1 ? "mes deja" : "meses dejan"} de estar ${cuadroMandosReserveLabel(after)}.`
               : `El número de meses ${cuadroMandosReserveLabel(after)} no cambia.`,
         )} Revertir el cambio de arriba devuelve el mínimo a ${ranked.items[0]?.revierteA !== null && ranked.items[0]?.revierteA !== undefined ? money(ranked.items[0].revierteA, true) : "su valor anterior"}.</p>`;
     }
@@ -25626,7 +25635,7 @@ function renderUpdateHub() {
     ? `${movementRows.length} movimientos; el más reciente es del ${formatIsoDate(latestMovementDate)}.`
     : "Todavía no hay movimientos importados.";
   qs("updatePlanningFreshness").textContent = pendingPlanning
-    ? `${pendingPlanning} cambio(s) de planificación pendientes de guardar.`
+    ? `${pendingPlanning} ${pendingPlanning === 1 ? "cambio" : "cambios"} de planificación pendientes de guardar.`
     : "No hay cambios de planificación pendientes.";
   qs("updateReconciliationFreshness").textContent = reconciliationMonths.length
     ? `${differences} de ${reconciliationMonths.length} meses necesitan revisión.`
@@ -25645,7 +25654,7 @@ function renderUpdateHub() {
     target = "movements";
   } else if (differences) {
     nextTitle = "Siguiente paso recomendado: revisar diferencias";
-    nextBody = `${differences} mes(es) todavía no cuadran entre movimientos y datos reales.`;
+    nextBody = `${differences} ${differences === 1 ? "mes todavía no cuadra" : "meses todavía no cuadran"} entre movimientos y datos reales.`;
     target = "reconciliation";
   }
   qs("updateNextStep").innerHTML = `<div><p class="panel-kicker e19-eyebrow">Siguiente paso sugerido</p><h3>${escapeHtml(nextTitle)}</h3><p>${escapeHtml(nextBody)}</p></div><button type="button" class="e19-btn e19-btn-primary" data-home-nav="${escapeHtml(target)}">Continuar</button>`;
@@ -25830,17 +25839,17 @@ const UX_ALERT_METRICS = {
   minimumCash12m: { label: "Caja mínima 12 meses", format: (value) => money(value, true) },
   // V6-2 · colchón mínimo en meses, la primera de las tres umbrales que pedía Ajustes. Reutiliza
   // el mismo camino que safeCoverageMonths/coverageMonthsText ya usan en el pie de impacto.
-  minimumCashMonths: { label: "Colchón mínimo (meses)", format: (value) => `${Number(value || 0).toFixed(1)} meses` },
-  debtRatio: { label: "Ratio deuda / ingresos", format: (value) => `${Number(value || 0).toFixed(1)}%` },
+  minimumCashMonths: { label: "Colchón mínimo (meses)", format: (value) => `${Number(value || 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} meses` },
+  debtRatio: { label: "Ratio deuda / ingresos", format: (value) => `${Number(value || 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` },
   freeCapacity: { label: "Capacidad libre mensual", format: (value) => money(value, true) },
   // INV2 (Oleada 3, Bloque 5): mayor desviación (en puntos) entre el % real y el % objetivo
   // declarado por tipo de activo (IV6/rebalanceSuggestions) — 0 sin objetivos declarados.
-  rebalanceDeviationPct: { label: "Desviación de rebalanceo de cartera", format: (value) => `${Number(value || 0).toFixed(1)} puntos` },
+  rebalanceDeviationPct: { label: "Desviación de rebalanceo de cartera", format: (value) => `${Number(value || 0).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} puntos` },
   // INV4 (Oleada 3, Bloque 5): % de la cartera que concentra la posición mayor — 0 sin posiciones.
-  topPositionConcentrationPct: { label: "Concentración en la mayor posición", format: (value) => `${Number(value || 0).toFixed(0)}%` },
+  topPositionConcentrationPct: { label: "Concentración en la mayor posición", format: (value) => `${Number(value || 0).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%` },
   // GOB10 (Oleada 3, Bloque 5): decisiones registradas con revisión programada (6/12 meses) cuya
   // fecha ya pasó sin marcarse como revisada — 0 sin ninguna vencida.
-  overdueDecisionReviewsCount: { label: "Revisiones de decisiones vencidas", format: (value) => `${Number(value || 0)} pendiente(s)` },
+  overdueDecisionReviewsCount: { label: "Revisiones de decisiones vencidas", format: (value) => `${Number(value || 0)} ${(Number(value || 0)) === 1 ? "pendiente" : "pendientes"}` },
 };
 
 function uxDateAfterDays(days = 30) {
@@ -26468,7 +26477,7 @@ function renderAlertsCenter() {
     .sort((a, b) => a.reviewDate.localeCompare(b.reviewDate))[0];
   const kpis = qs("alertKpis");
   if (kpis) {
-    kpis.innerHTML = `<article><span>Reglas activas</span><strong>${active.length}</strong><small>${alerts.length - active.length} pausada(s)</small></article>
+    kpis.innerHTML = `<article><span>Reglas activas</span><strong>${active.length}</strong><small>${alerts.length - active.length} ${(alerts.length - active.length) === 1 ? "pausada" : "pausadas"}</small></article>
       <article class="${attention.length ? "warn" : "good"}"><span>Requieren atención</span><strong>${attention.length}</strong><small>Umbral o revisión</small></article>
       <article><span>Próxima revisión</span><strong>${nextReview ? escapeHtml(nextReview.reviewDate) : "Sin fecha"}</strong><small>${nextReview ? escapeHtml(nextReview.name) : "Añade una fecha a una regla"}</small></article>`;
   }
@@ -26583,7 +26592,7 @@ function homeImportSessionCandidate() {
   const counters = datosImportarCounters(datosImportarSession.rows);
   return {
     title: "Movimientos por incorporar",
-    text: `«${datosImportarSession.fileMeta.fileName}»: ${counters.total} movimiento(s) cargados, ${counters.pidenDecision} piden decisión antes de incorporarse.`,
+    text: `«${datosImportarSession.fileMeta.fileName}»: ${counters.total} ${counters.total === 1 ? "movimiento cargado" : "movimientos cargados"}, ${counters.pidenDecision} piden decisión antes de incorporarse.`,
     status: counters.pidenDecision > 0 ? "warn" : "neutral",
     target: "datos-importar",
     cta: "Continuar importación",
@@ -26608,7 +26617,7 @@ function homeDebtReviewReminders() {
         target: "debt-roadmap",
         cta: "Revisar",
         expiresAt: reviewDate,
-        expiryLabel: shortDate(reviewDate),
+        expiryLabel: displayShortDate(reviewDate),
       };
     });
 }
@@ -26630,7 +26639,7 @@ function homeEscenarioReviewReminders() {
       target: "escenario-guardados",
       cta: "Revisar",
       expiresAt: entry.reviewDate,
-      expiryLabel: shortDate(entry.reviewDate),
+      expiryLabel: displayShortDate(entry.reviewDate),
     }));
 }
 
@@ -26689,7 +26698,7 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
         target: "alerts-center",
         cta: "Revisar alerta",
         expiresAt: alert.reviewDate || "",
-        expiryLabel: alert.reviewDate ? shortDate(alert.reviewDate) : "",
+        expiryLabel: alert.reviewDate ? displayShortDate(alert.reviewDate) : "",
       };
       (item.expiresAt ? dated : undated).push(item);
     });
@@ -26706,7 +26715,7 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
   if (loadedDecisions.length > 0) {
     undated.push({
       title: "Proyectos ya influyen en el plan",
-      text: `${loadedDecisions.length} decisión(es) están incorporadas o en evaluación. Revisa su estado antes de asumir nuevos compromisos.`,
+      text: `${loadedDecisions.length} ${loadedDecisions.length === 1 ? "decisión está incorporada" : "decisiones están incorporadas"} o en evaluación. Revisa su estado antes de asumir nuevos compromisos.`,
       status: "warn",
       target: "prevision",
       cta: "Comparar",
@@ -27031,7 +27040,7 @@ function decisionInboxItems() {
         source: "Refinanciación",
         tone: "good",
         title: "Refinanciar la hipoteca recupera su coste",
-        text: `Recuperarías el coste de cambiar a tipo fijo en ${breakEven.months} mes(es) — dentro de tu umbral de ${deb4Settings.maxBreakEvenMonths}.`,
+        text: `Recuperarías el coste de cambiar a tipo fijo en ${breakEven.months} ${breakEven.months === 1 ? "mes" : "meses"} — dentro de tu umbral de ${deb4Settings.maxBreakEvenMonths}.`,
         target: "inversion-apalancamiento",
       });
     }
@@ -27068,7 +27077,7 @@ function decisionInboxItems() {
         id: "decision-inbox-assumptions",
         source: "Supuestos",
         tone: "warn",
-        title: `${expiry.expired.length} supuesto(s) sin confirmar hace tiempo`,
+        title: `${expiry.expired.length} ${expiry.expired.length === 1 ? "supuesto" : "supuestos"} sin confirmar hace tiempo`,
         text: expiry.expired.map((entry) => entry.label).join(", "),
         target: "ajustes",
       });
@@ -27477,7 +27486,7 @@ function renderHomeDashboard() {
       label: "Acierto histórico de la previsión",
       value: accuracyScore.calculable ? `${accuracyScore.score}%` : "Sin datos",
       note: accuracyScore.calculable
-        ? `Desviación media de ${money(accuracyLearning.deviations[0].averageDelta, true)} sobre ${accuracyScore.sampleMonths} mes(es) conciliado(s), confianza ${accuracyScore.confidence}.`
+        ? `Desviación media de ${money(accuracyLearning.deviations[0].averageDelta, true)} sobre ${accuracyScore.sampleMonths} ${accuracyScore.sampleMonths === 1 ? "mes conciliado" : "meses conciliados"}, confianza ${accuracyScore.confidence}.`
         : "Se calcula en cuanto haya al menos un mes cerrado y conciliado con el banco.",
       status: !accuracyScore.calculable ? "neutral" : accuracyScore.severity === "high" ? "danger" : accuracyScore.severity === "medium" ? "warn" : "good",
       cta: "Ver backtesting",
@@ -27502,7 +27511,7 @@ function renderHomeDashboard() {
   } else if (savings.currentCoverage < savings.values.emergencyBufferMonths) {
     todayRead = {
       title: "Construir colchón antes de acelerar",
-      text: `Cobertura actual ${savings.currentCoverage.toFixed(1)} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
+      text: `Cobertura actual ${Number(savings.currentCoverage).toLocaleString("es-ES", { maximumFractionDigits: 1 })} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
       status: coverageStatus,
       target: "savings-plan",
       cta: "Plan ahorro",
@@ -28364,7 +28373,7 @@ function homeDebtOutlook() {
     pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),
     contracts: contracts.length,
     libreDeDeuda: summary.libreDeDeuda,
-    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda),
+    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda).replace(/ (\d{2})(?=$| · )/, " 20$1"), // «sept 2029», no «sept 29» (se leía como un día)
     estimable: /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || "")),
     settled: String(summary.libreDeDeuda || "") === "sin deuda pendiente",
   };
@@ -28762,7 +28771,7 @@ function pvc6DiffResultHtml(result, causes = []) {
     const format = (value) => (item.unit === "boolean" ? (value ? "sí" : "no") : item.unit === "EUR" ? money(value, true) : item.unit === "percent" ? `${value}%` : value);
     return `<li><strong>${escapeHtml(item.label)}</strong>: ${format(item.previousValue)} → ${format(item.currentValue)}.</li>`;
   }).join("");
-  return `${causesHtml}<div class="e19-kpi-note"><p>${result.changed.length} supuesto(s) cambiado(s) desde entonces (${result.unchangedCount} sin cambios):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
+  return `${causesHtml}<div class="e19-kpi-note"><p>${result.changed.length} ${result.changed.length === 1 ? "supuesto cambiado" : "supuestos cambiados"} desde entonces (${result.unchangedCount} sin cambios):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
 }
 
 function handlePvc6SnapshotCompare() {
@@ -28956,7 +28965,7 @@ function pv1AutoAdjustTransitionNote(entry) {
 function pv5DiaryReason(entry) {
   const transition = pv1AutoAdjustTransitionNote(entry);
   if (entry.previousDelta === null) {
-    return `Primera vez con historial suficiente (${entry.sampleMonths} mes(es)): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.${transition}`;
+    return `Primera vez con historial suficiente (${entry.sampleMonths} ${entry.sampleMonths === 1 ? "mes" : "meses"}): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.${transition}`;
   }
   return `Pasó de ${money(entry.previousDelta, true)} a ${money(entry.newDelta, true)} de desviación media (confianza ${entry.newConfidence}).${transition}`;
 }
@@ -29085,7 +29094,7 @@ function pvx1BacktestHtml(history, learning) {
     .join("");
   const summary = learning?.deviations?.[0];
   const summaryLine = summary
-    ? `<p class="e19-kpi-note">Desviación media histórica: ${money(summary.averageDelta, true)} sobre ${summary.sampleMonths} mes(es) conciliado(s), confianza ${escapeHtml(summary.confidence)}.</p>`
+    ? `<p class="e19-kpi-note">Desviación media histórica: ${money(summary.averageDelta, true)} sobre ${summary.sampleMonths} ${summary.sampleMonths === 1 ? "mes conciliado" : "meses conciliados"}, confianza ${escapeHtml(summary.confidence)}.</p>`
     : "";
   const warningLine = learning?.warning ? `<p class="e19-kpi-note">${escapeHtml(learning.warning)}</p>` : "";
   return `<ul class="commit-barrier-list">${rows}</ul>${summaryLine}${warningLine}`;
@@ -29176,10 +29185,10 @@ function renderPvc17PredictiveHealth() {
     : index.trend === "estable"
       ? ` Se mantiene estable frente al último cierre de mes (${money(index.previousMeanAbsoluteError, true)}).`
       : ` Ha pasado de ${money(index.previousMeanAbsoluteError, true)} a ${money(index.meanAbsoluteError, true)} desde el último cierre de mes: ${index.trend}.`;
-  note.textContent = `Error medio absoluto de la previsión: ${money(index.meanAbsoluteError, true)} sobre ${index.samples} muestra(s), confianza ${index.confidence}.${trendLine}`;
+  note.textContent = `Error medio absoluto de la previsión: ${money(index.meanAbsoluteError, true)} sobre ${index.samples} ${index.samples === 1 ? "muestra" : "muestras"}, confianza ${index.confidence}.${trendLine}`;
   if (list) {
     list.innerHTML = index.categories.length
-      ? index.categories.map((cat) => `<li class="commit-barrier-item"><span>${escapeHtml(cat.category)}</span><span>${money(cat.meanAbsoluteError, true)} sobre ${cat.samples} muestra(s)</span></li>`).join("")
+      ? index.categories.map((cat) => `<li class="commit-barrier-item"><span>${escapeHtml(cat.category)}</span><span>${money(cat.meanAbsoluteError, true)} sobre ${cat.samples} ${cat.samples === 1 ? "muestra" : "muestras"}</span></li>`).join("")
       : `<li class="e19-kpi-note">Sin categorías con muestras suficientes todavía.</li>`;
   }
 }
@@ -29273,7 +29282,7 @@ function dlx3RetrospectiveHtml(result) {
     .map((month) => `<li class="commit-barrier-item"><span>${escapeHtml(month.monthKey)}</span><span>flujo neto real ${money(month.netFlow, true)} · liquidez reconstruida <span class="${DLX3_STATUS_CLASS[month.status]}">${money(month.estimatedBalance, true)}</span></span></li>`)
     .join("");
   const breachLine = result.breachCount > 0
-    ? `<p class="e19-kpi-note">En ${result.breachCount} de ${result.months.length} mes(es), la liquidez reconstruida habría quedado por debajo del suelo actual (${money(result.floor, true)}). El peor: ${escapeHtml(result.worstMonth.monthKey)}, ${money(result.worstMonth.estimatedBalance, true)}.</p>`
+    ? `<p class="e19-kpi-note">En ${result.breachCount} de ${result.months.length} ${result.months.length === 1 ? "mes" : "meses"}, la liquidez reconstruida habría quedado por debajo del suelo actual (${money(result.floor, true)}). El peor: ${escapeHtml(result.worstMonth.monthKey)}, ${money(result.worstMonth.estimatedBalance, true)}.</p>`
     : `<p class="e19-kpi-note">En ningún mes conciliado la liquidez reconstruida habría bajado del suelo actual (${money(result.floor, true)}).</p>`;
   return `<ul class="commit-barrier-list">${rows}</ul>${breachLine}<p class="e19-kpi-note">Reconstrucción aproximada: solo con el flujo neto real conciliado, anclada en tu liquidez de hoy y con el suelo vigente — no reconstruye traspasos puntuales entre cuentas (aportaciones a inversión, amortizaciones extra) que también habrían movido la liquidez real de esos meses.</p>`;
 }
@@ -29611,7 +29620,7 @@ function registrarRecalcFigures() {
     { label: "Margen sobre la reserva protegida", value: money(reserveMargin, true) },
     {
       label: "Días hasta el siguiente ingreso",
-      value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} día(s)`,
+      value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} ${coverage.days === 1 ? "día" : "días"}`,
     },
     { label: "Fecha libre de deuda", value: debtOutlook.libreDeDeudaLabel || HOME_MISSING_VALUE },
     {
@@ -30010,7 +30019,7 @@ function planMesCopyHtml(month) {
     return `<button type="button" class="registrar-mes-link" data-plan-mes-copy>Copiar previsto de ${escapeHtml(previous.label)}</button>`;
   }
   const candidates = planMesCopyCandidates(month);
-  return `<p class="e19-kpi-note">Se copiarán ${candidates.length} previsto(s) de ${escapeHtml(previous.label)} a este mes.</p>
+  return `<p class="e19-kpi-note">Se copiarán ${candidates.length} ${candidates.length === 1 ? "previsto" : "previstos"} de ${escapeHtml(previous.label)} a este mes.</p>
     <button type="button" class="e19-btn e19-btn-primary" data-plan-mes-copy-confirm>Confirmar copia</button>
     <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-copy-cancel>Cancelar</button>`;
 }
@@ -30153,7 +30162,7 @@ function handlePlanMesCopyConfirm() {
   candidates.forEach((candidate) => cuadroMandosStageCell(candidate.rowKey, candidate.monthKey, candidate.value));
   planMesCopyPending = false;
   const previous = planMesPreviousMonth(month);
-  announceStatus(`${candidates.length} previsto(s) copiados de ${previous?.label || "el mes anterior"}. Revisa el pie de impacto antes de guardar.`);
+  announceStatus(`${candidates.length} ${candidates.length === 1 ? "previsto copiado" : "previstos copiados"} de ${previous?.label || "el mes anterior"}. Revisa el pie de impacto antes de guardar.`);
   renderPlanMes();
 }
 
@@ -30206,7 +30215,7 @@ function renderPlanMesImpactBar() {
     <div class="e19-registrar-impact-head">
       <p class="e19-eyebrow">Impacto del cambio</p>
       <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
-      <small>${drafts.length} cambio(s) sin guardar</small>
+      <small>${drafts.length} ${drafts.length === 1 ? "cambio" : "cambios"} sin guardar</small>
     </div>
     <dl><dt>Mínimo de liquidez del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
     <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
@@ -31232,7 +31241,7 @@ function analisisCushionBandHtml(band, worstKey) {
       const heightPct = item.monthsValue === null ? 4 : Math.max(6, Math.round((Math.max(0, item.monthsValue) / maxValue) * 100));
       const isWorst = Boolean(worstKey) && item.key === worstKey;
       return `<div class="analisis-cushion-col${isWorst ? " is-worst" : ""}">
-        <span class="analisis-cushion-value">${item.monthsValue === null ? "—" : item.monthsValue.toFixed(1)}</span>
+        <span class="analisis-cushion-value">${item.monthsValue === null ? "—" : item.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
         <span class="analisis-cushion-bar is-${item.level}" style="height:${heightPct}%" title="${escapeHtml(ANALISIS_CUSHION_LEVEL_LABELS[item.level])}"></span>
         <small>${escapeHtml(item.label)}</small>
       </div>`;
@@ -31267,7 +31276,7 @@ function renderT12HistoricalComparison() {
   const average = round2(months.reduce((sum, month) => sum + month.actual, 0) / months.length);
   const current = months[months.length - 1];
   const currentVsAverageClass = current.actual >= average ? "positive" : "negative";
-  summary.innerHTML = `<p>Mejor mes: <strong class="positive">${money(best.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(best.monthKey))}). Peor mes: <strong class="negative">${money(worst.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(worst.monthKey))}). Media de los últimos ${months.length} mes(es): <strong>${money(average, true)}</strong>.</p>
+  summary.innerHTML = `<p>Mejor mes: <strong class="positive">${money(best.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(best.monthKey))}). Peor mes: <strong class="negative">${money(worst.actual, true)}</strong> (${escapeHtml(registrarMesMonthName(worst.monthKey))}). Media de los últimos ${months.length} ${months.length === 1 ? "mes" : "meses"}: <strong>${money(average, true)}</strong>.</p>
     <p>Este mes (${escapeHtml(registrarMesMonthName(current.monthKey))}): <strong class="${currentVsAverageClass}">${money(current.actual, true)}</strong>, ${currentVsAverageClass === "positive" ? "por encima" : "por debajo"} de tu propia media.</p>`;
   const maxAbs = Math.max(1, ...months.map((month) => Math.abs(month.actual)));
   band.innerHTML = months.map((month) => {
