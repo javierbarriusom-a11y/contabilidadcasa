@@ -5740,6 +5740,60 @@ test.describe("Hoy, cambio 1 · cobros y cargos esperados en la bandeja de Movim
   });
 });
 
+// Hoy, cambio 2 (semana del 1/11/2026): la entrada al Repaso semanal en Hoy, solo mientras el repaso de esa semana está por
+// hacer. Se abre desde la propia línea y, terminado el repaso, Hoy se repinta sin ella.
+test.describe("Hoy, cambio 2 · entrada al Repaso semanal (v2)", () => {
+  test("antes del 1/11 no sale (cada cambio de Hoy tiene su semana)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toHaveCount(0);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`por hacer sale en Hoy, abre el repaso y, hecho, desaparece, a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 3, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      // Un repaso de la semana anterior: la línea dice lo que costó.
+      await page.evaluate(() => localStorage.setItem(storageKey("repaso-semanal"), JSON.stringify({ runs: [{ date: "2026-10-27", seconds: 280, saldos: true, importado: false }] })));
+      await page.reload();
+      const linea = page.locator("#hoyV2 [data-hoy-v2-repaso]");
+      await expect(linea).toContainText("Repaso de esta semana · unos 5 min", { timeout: 15000 });
+      await expect(linea).toContainText("El último, hace 7 días, en 5 min.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Cerrar a medias: la línea sigue (el de esta semana sigue por hacer) y el foco vuelve a ella.
+      await linea.click();
+      const repaso = page.locator("#repasoV2");
+      await expect(repaso).toBeVisible();
+      await repaso.locator("[data-rep-v2-cerrar]").first().click();
+      await expect(repaso).toBeHidden();
+      await expect(linea).toBeFocused();
+
+      // Terminarlo de principio a fin: Hoy se repinta sin la línea.
+      await linea.click();
+      await expect(repaso).toBeVisible();
+      for (const coincide of await repaso.locator("[data-rep-v2-coincide]").all()) await coincide.click();
+      await repaso.locator("[data-rep-v2-guardar]").click();
+      const terminar = repaso.locator("[data-rep-v2-terminar]");
+      for (let paso = 0; paso < 6 && !(await terminar.count()); paso += 1) {
+        await repaso.locator("[data-rep-v2-seguir]").click();
+      }
+      await terminar.click();
+      await expect(repaso).toBeHidden();
+      expect(await page.evaluate(() => FinanceRepaso.resumen().ultimo.date)).toBe("2026-11-03");
+      await expect(linea).toHaveCount(0);
+      await expect(page.locator("#hoyV2 button").first()).toBeFocused();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // Rediseño B5 · Repaso semanal (views/repaso-v2.js): los cinco pasos de verdad, con los saldos guardados por el mismo camino que
 // el pulso de Registrar, una pregunta de cobro esperado contestada dentro del repaso, Clasificar encima y el registro que
 // alimenta M-COSTE. Movimientos INVENTADOS.

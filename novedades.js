@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-24-hoy-repaso",
+      fecha: "2026-10-24",
+      texto: "Desde el 1/11, Hoy te recuerda el repaso semanal mientras el de esa semana esté por hacer; hecho, desaparece.",
+      href: "#home",
+    },
+    {
       id: "2026-10-24-hoy-esperados-movimientos",
       fecha: "2026-10-24",
       texto: "Desde el 25/10, «¿ha llegado la nómina?» y las demás preguntas de cobros y cargos se contestan en Movimientos; Hoy lleva a ellas.",

@@ -219,6 +219,22 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// Hoy, cambio 2 (semana del 1/11/2026): la entrada al Repaso semanal en Hoy, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Hoy, cambio 2 · contraste de la entrada al repaso en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#hoyV2: sin fallos de contraste ni de accesibilidad en la línea del repaso", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 3, 10, 0, 0) }); // el cambio se activa el 1/11
+      await page.goto("/index.html#home");
+      const linea = page.locator("#hoyV2 [data-hoy-v2-repaso]");
+      await expect(linea).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#hoyV2 [data-hoy-v2-repaso]").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // Rediseño B5 · Repaso semanal: el paso de saldos (con una cuenta corrigiéndose) y el de extracto, en claro y en oscuro, móvil y escritorio.
 for (const scheme of ["light", "dark"]) {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

@@ -758,15 +758,18 @@
   color: var(--e19-muted);
 }
 
-/* Preguntas de cobros y cargos (se contestan en Movimientos): no es un dato que falta, es algo que responder, así que
-   borde continuo en vez de discontinuo (decisión 4 de docs/rediseno/ESTADO.md) y el punto en el color de aviso. */
-:root[data-tema="v2"] .hoy-v2-esperados {
+/* Preguntas de cobros y cargos (se contestan en Movimientos) y el repaso de la semana por hacer (Hoy, cambio 2): no son
+   un dato que falta, son algo que hacer, así que borde continuo en vez de discontinuo (decisión 4 de
+   docs/rediseno/ESTADO.md) y el punto en el color de aviso. */
+:root[data-tema="v2"] .hoy-v2-esperados,
+:root[data-tema="v2"] .hoy-v2-repaso {
   border-style: solid;
   border-color: var(--e19-border);
   background: var(--e19-surface);
 }
 
-:root[data-tema="v2"] .hoy-v2-esperados .hoy-v2-dot {
+:root[data-tema="v2"] .hoy-v2-esperados .hoy-v2-dot,
+:root[data-tema="v2"] .hoy-v2-repaso .hoy-v2-dot {
   color: var(--e19-warning);
 }
 

@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 24 de octubre de 2026 (347): Hoy, cambio 2 · la entrada al Repaso semanal (activo desde el 1/11)
+
+- **Qué cambia:** con el tema v2, Hoy enseña una línea «Repaso de esta semana · unos 5 min» debajo de «Decidir esta semana».
+  - Dice lo que costó el último repaso («El último, hace 7 días, en 5 min») o, si no hay ninguno, qué pasos tiene.
+  - **Solo sale mientras el repaso de esa semana (lunes a domingo) está por hacer.** Hecho, desaparece; el repaso sigue a mano en Movimientos.
+  - Se abre desde la propia línea. Al cerrar el repaso, Hoy se repinta y el foco vuelve a la línea o, si ya no está, al primer botón de Hoy.
+- **Cuándo:** publicado el 24/10 con puerta de fecha (`HOY_V2_REPASO_DESDE = "2026-11-01"`), una semana después del cambio 1, para respetar «un cambio de Hoy por semana». El tema clásico no cambia.
+- **Desviación de la referencia** (anotada en `docs/rediseno/ESTADO.md` §4): `HoyDesktop.png` pone un botón «Repaso semanal» fijo en la cabecera, y `Hoy.png` una franja ámbar «Saldos estimados» que lleva al repaso.
+  - Un botón fijo no dice si toca; la línea sí, y cuando no toca no ocupa pantalla (decisión 4).
+  - La píldora «Saldos estimados» sigue llevando al pulso de saldos de Registrar: si llevara al repaso, quien solo quiere confirmar saldos lo cerraría tras el paso 1, y cada cierre a medias cuenta como descarte en el criterio de retirada del repaso.
+- **Ficheros:** `views/hoy-v2.js`, `views/repaso-v2.js` (`FinanceRepaso.mismaSemana` y el repintado de Hoy al cerrar), `tema-v2.css`, `novedades.js`; `app.js` sin cambios.
+- **Error encontrado en la e2e y corregido antes de publicar:** al cerrar a medias, el foco iba al primer botón de Hoy y no a la línea, porque `querySelector` con una lista de selectores devuelve el primero en el orden del documento.
+- **Pruebas:**
+  - `tests/redis-hoy2-repaso.test.cjs` (7): puerta de fecha, semana ISO, textos, sin script no hay entrada, sitio en Hoy, estilos y Novedades.
+  - E2E: la puerta (28/10) y el cambio (3/11) a 390 y 1440 px, con cierre a medias y repaso completo.
+  - Axe de la línea en claro y en oscuro.
+- **Validación:** `npm run verify` en verde: 6135 de 6135 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): en curso; la cifra se anota al terminar.
+
 ## Cierre de sesión — 24 de octubre de 2026 (346): regla de parada levantada · Repaso semanal y primer cambio de Hoy
 
 - **Qué decidió el hogar:** «levanto la regla de parada para funciones nuevas».

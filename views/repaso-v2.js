@@ -104,6 +104,9 @@ globalThis.FinanceRepaso = {
     const hoy = repasoV2Hoy();
     return { veces: runs.length, ultimo: runs.at(-1) || null, racha: repasoV2Racha(runs, hoy), minutosSemana: repasoV2MinutosSemana(runs, hoy) };
   },
+  mismaSemana(a, b) {
+    return repasoV2Lunes(a) === repasoV2Lunes(b);
+  },
 };
 
 // ---------- lo que cada paso necesita saber ----------
@@ -512,7 +515,12 @@ function repasoV2BindOnce(dialog) {
     dialog.innerHTML = "";
     qs("repasoV2Volver")?.remove();
     globalThis.movimientosV2Render?.();
-    (opener?.isConnected ? opener : null)?.focus?.();
+    // Abierto desde Hoy (cambio 2): Hoy se repinta para quitar la entrada si el repaso ya está hecho, y el foco vuelve a
+    // la entrada nueva o, si ya no está, al primer botón de Hoy.
+    const desdeHoy = Boolean(opener?.hasAttribute?.("data-hoy-v2-repaso")); // por el atributo: un repintado lo desconecta
+    if (desdeHoy && typeof renderHomeDashboard === "function") renderHomeDashboard();
+    const vuelta = opener?.isConnected ? opener : desdeHoy ? qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || qs("hoyV2")?.querySelector("button") : null;
+    vuelta?.focus?.();
   });
 }
 
