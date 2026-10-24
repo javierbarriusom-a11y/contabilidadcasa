@@ -163,7 +163,7 @@ for (const scheme of ["light", "dark"]) {
   test.describe(`WP-14/27 · contraste de las preguntas de la bandeja en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
     test("#home: sin fallos de contraste ni de accesibilidad dentro de la bandeja", async ({ page }) => {
-      await page.goto("/index.html#home");
+      await page.goto("/index.html?tema=clasico#home"); // con el tema clásico las preguntas siguen en Hoy; con el v2, en Movimientos (abajo)
       await page.reload();
       await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
       await page.evaluate(() => {
@@ -186,6 +186,66 @@ for (const scheme of ["light", "dark"]) {
       expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
     });
   });
+}
+
+// Hoy, cambio 1 (25/10/2026): con el tema v2 las mismas preguntas viven en la bandeja de Movimientos, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Hoy, cambio 1 · contraste de las preguntas en la bandeja de Movimientos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#movements: sin fallos de contraste ni de accesibilidad dentro de la bandeja", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) }); // el cambio se activa el 25/10
+      await page.goto("/index.html#movements");
+      await page.reload();
+      await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)) && typeof movimientosV2Render === "function");
+      await page.evaluate(() => {
+        const today = isoLocalDate(new Date());
+        const key = today.slice(0, 7);
+        const month = monthByKey(key);
+        const incomeRow = planningSectionsForMonth("income", month)[0].rows[0];
+        const expRow = planningSectionsForMonth("expense", month).find((section) => section.name !== VARIABLE_OPERATIONAL_SECTION).rows[0];
+        const back = (days) => { const date = new Date(); date.setDate(date.getDate() - days); return isoLocalDate(date); };
+        expectedMovementExpectations = () => [
+          { id: "i", kind: "income", seriesKey: seriesKeyForRow(incomeRow), label: displayLabelForRow(incomeRow), month: key, expectedDate: back(5), certain: true, plannedAmount: 3000, history: [] },
+          { id: "e", kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: 80, history: [{ date: back(40), amount: 80 }] },
+        ];
+        expectedLedgerCoveredUntil = () => today;
+        renderDecisionInboxCard();
+      });
+      await expect(page.locator("#movimientosV2 .mov-v2-esperado [data-expected-response]").first()).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#movimientosV2 .mov-v2-bandeja").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// Rediseño B5 · Repaso semanal: el paso de saldos (con una cuenta corrigiéndose) y el de extracto, en claro y en oscuro, móvil y escritorio.
+for (const scheme of ["light", "dark"]) {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test.describe(`Repaso semanal · accesibilidad en modo ${scheme} a ${viewport.width} px`, () => {
+      test.use({ colorScheme: scheme, viewport });
+      test("#repasoV2: sin fallos de contraste ni de accesibilidad en saldos y extracto", async ({ page }) => {
+        await page.goto("/index.html#movements");
+        await page.reload();
+        await page.waitForFunction(() => typeof repasoV2Open === "function" && document.querySelector("[data-mov-v2-repaso]"), null, { timeout: 20000 });
+        await page.click("[data-mov-v2-repaso]");
+        const repaso = page.locator("#repasoV2");
+        await repaso.locator('[data-rep-v2-coincide="caixa"]').click();
+        await repaso.locator('[data-rep-v2-corregir="mediolanum"]').click();
+        await repaso.locator('[data-rep-v2-saldo="mediolanum"]').fill("2.614,20");
+        const check = async () => {
+          const results = await new AxeBuilder({ page }).include("#repasoV2").analyze();
+          return results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        };
+        let nodes = await check();
+        expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+        await repaso.locator("[data-rep-v2-guardar]").click();
+        await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Importamos el extracto?");
+        nodes = await check();
+        expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      });
+    });
+  }
 }
 
 // El selector de la prueba cronometrada de Hoy (Ajustes) era un fieldset blanco en oscuro: 1,14:1. Es el control que el hogar usa el 9/10 (WP-02).

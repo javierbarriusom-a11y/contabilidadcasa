@@ -1594,7 +1594,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
   });
 });
 
-// WP-14 + WP-27: «¿ha llegado…?» en la bandeja de Hoy. La demo no tiene fechas de regla (el detector calla, que es lo correcto), así que se inyectan
+// WP-14 + WP-27: «¿ha llegado…?» en la bandeja de Hoy (tema clásico; con el v2 viven en la bandeja de Movimientos, prueba más abajo). La demo no tiene fechas de regla (el detector calla, que es lo correcto), así que se inyectan
 // dos esperados vencidos sobre filas REALES de la demo y se comprueban de verdad los efectos en la previsión.
 async function injectExpected(page) {
   return page.evaluate(() => {
@@ -1619,7 +1619,7 @@ test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () =
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 900 });
-    await page.goto("/index.html#home");
+    await page.goto("/index.html?tema=clasico#home"); // con el tema clásico las preguntas siguen en la bandeja de Hoy
     await page.reload();
     await page.evaluate(() => { try { localStorage.removeItem(`expected-answers:${baseData?.metadata?.sourceWorkbook || "finance"}`); } catch { /* sin almacenamiento */ } });
     await expect(page.locator("#homeDecisionInboxCard")).toBeAttached({ timeout: 15000 });
@@ -1686,7 +1686,7 @@ test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () =
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.clock.install({ time: new Date(2026, 9, 20, 9, 0, 0) });
     await page.setViewportSize({ width: 390, height: 900 });
-    await page.goto("/index.html#home");
+    await page.goto("/index.html?tema=clasico#home"); // con el tema clásico las preguntas siguen en la bandeja de Hoy
     await page.reload();
     await expect(page.locator("#homeDecisionInboxCard")).toBeAttached({ timeout: 15000 });
     await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey("2026-10"));
@@ -5675,4 +5675,200 @@ test.describe("Kit de gráficos · «Ver como tabla» en el móvil", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// Hoy, cambio 1 tras levantar su congelación (25/10/2026): con el tema v2, los cobros y cargos esperados (WP-14 + WP-27) se contestan en la
+// bandeja de Movimientos y salen de la de Hoy, que deja una línea que lleva a ellos. Mismos botones y mismos efectos que en el tema clásico.
+test.describe("Hoy, cambio 1 · cobros y cargos esperados en la bandeja de Movimientos (v2)", () => {
+  test("antes del 25/10 (Hoy congelado) las preguntas siguen en la bandeja de Hoy", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 9, 24, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => typeof expectedMovementExpectations === "function" && typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+    await injectExpected(page);
+    await expect(page.locator("#homeDecisionInboxList")).toContainText("¿Ha llegado", { timeout: 15000 });
+    expect(await page.evaluate(() => movV2EsperadosAqui())).toBe(false);
+    await expect(page.locator("#hoyV2 .hoy-v2-esperados")).toHaveCount(0);
+  });
+
+  test("se contestan en Movimientos, no salen en la bandeja de Hoy, y Hoy lleva a ellos con una línea", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#movements");
+    await page.reload();
+    await page.evaluate(() => { try { localStorage.removeItem(`expected-answers:${baseData?.metadata?.sourceWorkbook || "finance"}`); } catch { /* sin almacenamiento */ } });
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.waitForFunction(() => typeof expectedMovementExpectations === "function" && typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+    await injectExpected(page);
+    const bandeja = page.locator("#movimientosV2 .mov-v2-bandeja");
+    // La demo no tiene movimientos: la bandeja sale igual, solo con las preguntas, encima del bloque «Importar extracto».
+    await expect(bandeja).toContainText("2 cosas");
+    const preguntas = bandeja.locator(".mov-v2-esperado");
+    await expect(preguntas).toHaveCount(2);
+    await expect(preguntas.first()).toContainText("¿Ha llegado");
+    await expect(preguntas.nth(1)).toContainText("no ha llegado");
+    await expect(page.locator("#movimientosV2 .mov-v2-vacio")).toContainText("Todavía no hay movimientos");
+    // La bandeja de Hoy ya no las lleva (con el v2).
+    expect(await page.evaluate(() => document.querySelector("#homeDecisionInboxList")?.textContent || "")).not.toContain("¿Ha llegado");
+
+    const realized = () => page.evaluate(() => { const month = monthByKey(window.__esperados.key); const info = actualAwareInfo(rowForSeriesKey(window.__esperados.incomeKey), month); return { has: info.hasActual, actual: info.actual }; });
+    // «Sí, otro importe» abre su campo aquí mismo, con el foco, y registra el real; deshacer lo devuelve.
+    await preguntas.first().locator('[data-expected-response="yesOther"]').click();
+    const input = bandeja.locator("[data-expected-amount]");
+    await expect(input).toBeFocused();
+    await input.fill("2.950,50");
+    await input.press("Enter");
+    await expect.poll(async () => (await realized()).actual).toBe(2950.5);
+    await expect(preguntas).toHaveCount(1);
+    await expect(bandeja).toContainText("1 cosa");
+    await page.getByRole("button", { name: "Deshacer" }).click();
+    await expect.poll(async () => (await realized()).has).toBe(false);
+
+    // Hoy deja una sola línea que lleva a Movimientos.
+    await page.goto("/index.html#home");
+    await page.waitForFunction(() => typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+    await injectExpected(page);
+    await page.evaluate(() => render());
+    const linea = page.locator("#hoyV2 .hoy-v2-esperados");
+    await expect(linea).toContainText("2 preguntas sobre cobros y cargos", { timeout: 15000 });
+    await linea.click();
+    await expect(page.locator("#movimientosV2 .mov-v2-esperado")).toHaveCount(2, { timeout: 15000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// Rediseño B5 · Repaso semanal (views/repaso-v2.js): los cinco pasos de verdad, con los saldos guardados por el mismo camino que
+// el pulso de Registrar, una pregunta de cobro esperado contestada dentro del repaso, Clasificar encima y el registro que
+// alimenta M-COSTE. Movimientos INVENTADOS.
+async function repasoPreparar(page) {
+  await page.waitForFunction(() => typeof repasoV2Open === "function" && typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)) && document.querySelector("[data-mov-v2-repaso]"), null, { timeout: 20000 });
+  await page.evaluate(() => {
+    const today = isoLocalDate(new Date());
+    const key = today.slice(0, 7);
+    const month = monthByKey(key);
+    const incomeRow = planningSectionsForMonth("income", month)[0].rows[0];
+    const back = (days) => { const date = new Date(); date.setDate(date.getDate() - days); return isoLocalDate(date); };
+    window.__repaso = { incomeKey: seriesKeyForRow(incomeRow), key };
+    expectedMovementExpectations = () => [{ id: `${seriesKeyForRow(incomeRow)}|${key}`, kind: "income", seriesKey: seriesKeyForRow(incomeRow), label: displayLabelForRow(incomeRow), month: key, expectedDate: back(5), certain: true, plannedAmount: actualAwareInfo(incomeRow, month).planned, arrived: Boolean(actualAwareInfo(incomeRow, month).hasActual), cancelled: false, history: [] }];
+    expectedLedgerCoveredUntil = () => today;
+    baseData.transactions = mergeTransactions(baseData.transactions || [], [
+      { date: back(3), month: back(3).slice(0, 7), movement: "SUPER FICTICIO", details: "", amount: -40, balance: null, account: "CaixaBank", source: "Extracto" },
+      { date: back(2), month: back(2).slice(0, 7), movement: "GASOLINERA FICTICIA", details: "", amount: -50, balance: null, account: "CaixaBank", source: "Extracto" },
+    ]);
+    refreshMovementRollups();
+    render();
+  });
+}
+
+test.describe("Rediseño B5 · Repaso semanal", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`los cinco pasos, de saldos a «listo», a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await repasoPreparar(page);
+      await page.click("[data-mov-v2-repaso]");
+      const repaso = page.locator("#repasoV2");
+      await expect(repaso).toBeVisible();
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Coincide lo que dice tu banco?");
+      const box = await repaso.boundingBox();
+      if (viewport.width < 1024) expect([Math.round(box.width), Math.round(box.height)], "pantalla completa en el móvil").toEqual([viewport.width, viewport.height]);
+      else expect([Math.round(box.width), Math.round(box.height)], "diálogo de 880 × 600 en escritorio").toEqual([880, 600]);
+
+      // 1 · Saldos: CaixaBank coincide; Mediolanum se corrige (el botón espera a que el importe sea válido).
+      await repaso.locator('[data-rep-v2-coincide="caixa"]').click();
+      await repaso.locator('[data-rep-v2-corregir="mediolanum"]').click();
+      const campo = repaso.locator('[data-rep-v2-saldo="mediolanum"]');
+      await expect(campo).toBeFocused();
+      const guardar = repaso.locator("[data-rep-v2-guardar]");
+      await expect(guardar).toBeDisabled();
+      await campo.fill("1.234,5,6");
+      await expect(repaso).toContainText("Eso no es un importe");
+      await expect(guardar).toBeDisabled();
+      await campo.fill("2.614,20");
+      await expect(repaso).toContainText("Diferencia");
+      await expect(guardar).toBeEnabled();
+      await expect(repaso.locator(".rep-v2-falta")).toBeHidden();
+      const caixaAntes = await page.evaluate(() => accountBalancesFromState().caixa);
+      await guardar.click();
+      await expect.poll(() => page.evaluate(() => ({ modo: state.balanceMode, fecha: state.balanceDate, mediolanum: accountBalancesFromState().mediolanum, caixa: accountBalancesFromState().caixa }))).toEqual({ modo: "manual", fecha: "2026-10-26", mediolanum: 2614.2, caixa: caixaAntes });
+      await expect(page.locator("#undoToast")).toContainText("Saldos al día.");
+
+      // 2 · Extracto: Mediolanum no tiene ninguno → «Ahora no».
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Importamos el extracto?");
+      await expect(repaso.locator(".rep-v2-fila.is-toca")).toContainText("Mediolanum");
+      await repaso.locator("[data-rep-v2-seguir]").click();
+
+      // 3 · Lo que vino: la pregunta del cobro se contesta aquí y registra el real.
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Ha llegado lo que esperabais?");
+      await repaso.locator('[data-expected-response="yes"]').click();
+      await expect.poll(() => page.evaluate(() => actualAwareInfo(rowForSeriesKey(window.__repaso.incomeKey), monthByKey(window.__repaso.key)).hasActual)).toBe(true);
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("Nada pendiente de llegar");
+      await repaso.locator("[data-rep-v2-seguir]").click();
+
+      // 4 · Bandeja: Clasificar se abre encima y, al cerrarlo, se vuelve al repaso.
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Les damos partida?");
+      await expect(repaso).toContainText("2 conceptos sin partida (2 movimientos)");
+      await repaso.locator("[data-rep-v2-clasificar]").click();
+      const clas = page.locator("#clasificarV2");
+      await expect(clas).toBeVisible();
+      await clas.locator("[data-clas-v2-saltar]").click();
+      await clas.locator("[data-clas-v2-saltar]").click();
+      await clas.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+      await expect(clas).toBeHidden();
+      await expect(repaso).toBeVisible();
+      await repaso.locator("[data-rep-v2-seguir]").click();
+
+      // 5 · Listo: el reloj se para, se guarda la duración y queda lo pendiente para otro día.
+      await expect(repaso.locator("#repasoV2Titulo")).toContainText("casi todo");
+      await expect(repaso).toContainText("Saldos confirmados hoy.");
+      await expect(repaso).toContainText("Queda para otro día: extracto, conceptos sin partida.");
+      await expect(repaso).toContainText("min de mantenimiento (objetivo, 10 o menos)");
+      const resumen = await page.evaluate(() => FinanceRepaso.resumen());
+      expect(resumen.veces).toBe(1);
+      expect(resumen.ultimo).toMatchObject({ date: "2026-10-26", saldos: true, importado: false });
+      expect(resumen.racha).toBe(1);
+      expect(await page.evaluate(() => localStorage.getItem(storageKey("repaso-semanal"))), "el registro del repaso no guarda importes ni conceptos").not.toMatch(/2614|SUPER FICTICIO|Mediolanum|CaixaBank/);
+      await repaso.locator("[data-rep-v2-terminar]").click();
+      await expect(repaso).toBeHidden();
+      await expect(page.locator("[data-mov-v2-repaso]")).toContainText("El último, hoy");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("ir a importar y volver con la píldora, con el reloj corriendo; cerrar a medias cuenta como descarte", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await repasoPreparar(page);
+    await page.click("[data-mov-v2-repaso]");
+    const repaso = page.locator("#repasoV2");
+    await repaso.locator('[data-rep-v2-coincide="caixa"]').click();
+    await repaso.locator('[data-rep-v2-coincide="mediolanum"]').click();
+    await repaso.locator("[data-rep-v2-guardar]").click();
+    await repaso.locator("[data-rep-v2-importar]").click();
+    await expect(repaso).toBeHidden();
+    await expect(page).toHaveURL(/#datos-importar$/);
+    const pildora = page.locator("#repasoV2Volver");
+    await expect(pildora).toContainText("Seguir con el repaso");
+    await pildora.click();
+    await expect(repaso).toBeVisible();
+    await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Ha llegado lo que esperabais?");
+    await expect(pildora).toHaveCount(0);
+    // Cerrar sin terminar: no se guarda repaso y el medidor lo cuenta como «a medias».
+    await repaso.locator("[data-rep-v2-cerrar]").click();
+    await expect(repaso).toBeHidden();
+    expect(await page.evaluate(() => FinanceRepaso.resumen().veces)).toBe(0);
+    expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "repaso-v2").descartes)).toBe(1);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });

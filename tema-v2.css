@@ -758,6 +758,18 @@
   color: var(--e19-muted);
 }
 
+/* Preguntas de cobros y cargos (se contestan en Movimientos): no es un dato que falta, es algo que responder, así que
+   borde continuo en vez de discontinuo (decisión 4 de docs/rediseno/ESTADO.md) y el punto en el color de aviso. */
+:root[data-tema="v2"] .hoy-v2-esperados {
+  border-style: solid;
+  border-color: var(--e19-border);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .hoy-v2-esperados .hoy-v2-dot {
+  color: var(--e19-warning);
+}
+
 :root[data-tema="v2"] .hoy-v2-waiting {
   margin-top: 0;
   color: var(--e19-muted);
@@ -1012,6 +1024,36 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+:root[data-tema="v2"] .mov-v2-esperados {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .mov-v2-esperado {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+:root[data-tema="v2"] .mov-v2-esperado-acciones {
+  margin-top: 8px;
+}
+
+:root[data-tema="v2"] .mov-v2-esperado-acciones .cuadro-mandos-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .mov-v2-esperado-acciones .e19-btn {
+  min-height: 40px;
 }
 
 :root[data-tema="v2"] .mov-v2-fila-bandeja > span:last-child {
@@ -1878,5 +1920,509 @@
   :root[data-tema="v2"] .clas-v2-in > p.clas-v2-atajos {
     display: block;
     text-align: center;
+  }
+}
+
+/* ---------- B5 · Repaso semanal (views/repaso-v2.js) ----------
+   referencias/png/Ritual.png y RitualDesktop.png: pantalla completa en móvil, un paso cada vez con el botón grande abajo
+   y el cronómetro arriba a la derecha; en escritorio, diálogo de 880 × 600 con los pasos en una columna a la izquierda. */
+:root[data-tema="v2"] dialog.rep-v2 {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--e19-canvas);
+  color: var(--e19-ink);
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] dialog.rep-v2::backdrop {
+  background: rgba(17, 24, 20, 0.42);
+}
+
+:root[data-tema="v2"] .rep-v2-in {
+  display: flex;
+  height: 100%;
+}
+
+:root[data-tema="v2"] .rep-v2-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  padding: max(16px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+:root[data-tema="v2"] .rep-v2-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:root[data-tema="v2"] .rep-v2-cerrar {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+:root[data-tema="v2"] .rep-v2-ico {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+:root[data-tema="v2"] .rep-v2-reloj {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .rep-v2-progreso {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin-top: 18px;
+}
+
+:root[data-tema="v2"] .rep-v2-progreso > span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--e19-border);
+}
+
+:root[data-tema="v2"] .rep-v2-progreso > span.is-hecho {
+  background: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .rep-v2-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 14px;
+}
+
+:root[data-tema="v2"] .rep-v2-lab {
+  margin: 0;
+  font: 500 11px/1.35 var(--e19-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .rep-v2-h {
+  margin: 8px 0 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .rep-v2-h:focus {
+  outline: none;
+}
+
+:root[data-tema="v2"] .rep-v2-ayuda {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .rep-v2-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .rep-v2-cuentas,
+:root[data-tema="v2"] .rep-v2-filas,
+:root[data-tema="v2"] .rep-v2-esperados,
+:root[data-tema="v2"] .rep-v2-resumen {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .rep-v2-cuenta,
+:root[data-tema="v2"] .rep-v2-fila,
+:root[data-tema="v2"] .rep-v2-esperado {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .rep-v2-cuenta.is-corrigiendo {
+  border-color: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .rep-v2-cuenta-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+:root[data-tema="v2"] .rep-v2-cuenta-head strong,
+:root[data-tema="v2"] .rep-v2-fila strong,
+:root[data-tema="v2"] .rep-v2-esperado strong {
+  font-size: 16px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .rep-v2-cifra {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .rep-v2-botones-cuenta,
+:root[data-tema="v2"] .rep-v2-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+:root[data-tema="v2"] .rep-v2-botones-cuenta .e19-btn,
+:root[data-tema="v2"] .rep-v2-dos .e19-btn {
+  min-height: 48px;
+}
+
+:root[data-tema="v2"] .rep-v2-campo {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .rep-v2-campo input {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--e19-accent);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: 700 22px/1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .rep-v2-fila {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+:root[data-tema="v2"] .rep-v2-fila .rep-v2-meta {
+  grid-column: 1;
+}
+
+:root[data-tema="v2"] .rep-v2-estado {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--e19-success-soft);
+  color: var(--e19-success);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .rep-v2-fila.is-toca .rep-v2-estado {
+  background: var(--e19-warning-soft);
+  color: var(--e19-warning-badge-ink);
+}
+
+:root[data-tema="v2"] .rep-v2-esperado-acciones .cuadro-mandos-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .rep-v2-esperado-acciones .e19-btn {
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .rep-v2-vacio {
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  border: 1.5px dashed var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .rep-v2-resumen li {
+  padding: 14px 16px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-accent-soft);
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .rep-v2-pie {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+:root[data-tema="v2"] .rep-v2-despues {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .rep-v2-sigue {
+  min-height: 56px;
+  width: 100%;
+  font-size: 17px;
+}
+
+:root[data-tema="v2"] .rep-v2-dos .rep-v2-sigue {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+:root[data-tema="v2"] .rep-v2-sigue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+:root[data-tema="v2"] .rep-v2-falta {
+  justify-content: center;
+}
+
+:root[data-tema="v2"] .rep-v2-solo-ancho,
+:root[data-tema="v2"] .rep-v2-atajos {
+  display: none;
+}
+
+/* La píldora que lleva de vuelta al repaso mientras se importa el extracto. */
+:root[data-tema="v2"] .rep-v2-pildora {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--e19-accent);
+  color: #fff;
+  font: 600 14px/1.2 var(--e19-font-sans);
+  box-shadow: 0 8px 24px rgba(17, 24, 20, 0.25);
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+/* Puerta del repaso en Movimientos: tarjeta aparte de la bandeja. */
+:root[data-tema="v2"] .mov-v2-repaso {
+  margin-bottom: 14px;
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] dialog.rep-v2 {
+    inset: 0;
+    width: 880px;
+    height: 600px;
+    margin: auto;
+    border-radius: 24px;
+    background: var(--e19-surface);
+    box-shadow: 0 24px 60px rgba(17, 24, 20, 0.28);
+  }
+
+  :root[data-tema="v2"] .rep-v2-solo-movil {
+    display: none;
+  }
+
+  :root[data-tema="v2"] .rep-v2-solo-ancho {
+    display: flex;
+  }
+
+  :root[data-tema="v2"] .rep-v2-lateral {
+    flex-direction: column;
+    width: 240px;
+    flex: none;
+    padding: 28px 16px 24px 28px;
+    background: var(--e19-canvas);
+    box-sizing: border-box;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos {
+    display: grid;
+    gap: 6px;
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--e19-radius-md);
+    color: var(--e19-muted);
+    font-size: 14px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos li.is-actual {
+    background: var(--e19-surface);
+    color: var(--e19-ink);
+    font-weight: 600;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos li.is-hecho {
+    color: var(--e19-ink);
+  }
+
+  :root[data-tema="v2"] .rep-v2-num {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--e19-border-strong);
+    border-radius: 50%;
+    font-size: 12px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos li.is-actual .rep-v2-num {
+    border-color: var(--e19-heading);
+    background: var(--e19-heading);
+    color: #fff;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pasos li.is-hecho .rep-v2-num {
+    border-color: var(--e19-success);
+    background: var(--e19-success);
+    color: #fff;
+  }
+
+  :root[data-tema="v2"] .rep-v2-lateral > .rep-v2-meta {
+    margin-top: auto;
+  }
+
+  :root[data-tema="v2"] .rep-v2-main {
+    padding: 28px 32px 28px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-top {
+    position: absolute;
+    top: 28px;
+    right: 32px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-top .rep-v2-reloj {
+    display: none;
+  }
+
+  :root[data-tema="v2"] .rep-v2-cuerpo {
+    padding-top: 0;
+    padding-right: 56px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-h {
+    font-size: 24px;
+  }
+
+  /* Cuentas en filas: nombre, cifra y botones en línea. */
+  :root[data-tema="v2"] .rep-v2-cuenta {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 14px 0;
+    border: 0;
+    border-bottom: 1px solid var(--e19-border);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  :root[data-tema="v2"] .rep-v2-cuenta-head {
+    display: grid;
+  }
+
+  :root[data-tema="v2"] .rep-v2-cifra {
+    font-size: 22px;
+  }
+
+  :root[data-tema="v2"] .rep-v2-botones-cuenta {
+    grid-template-columns: auto auto;
+  }
+
+  :root[data-tema="v2"] .rep-v2-cuenta.is-corrigiendo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
+    border-color: var(--e19-border);
+  }
+
+  :root[data-tema="v2"] .rep-v2-cuenta.is-corrigiendo > .rep-v2-meta {
+    grid-column: 1 / -1;
+  }
+
+  :root[data-tema="v2"] .rep-v2-pie {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  :root[data-tema="v2"] .rep-v2-atajos {
+    display: block;
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--e19-muted);
+  }
+
+  :root[data-tema="v2"] .rep-v2-sigue {
+    width: auto;
+    min-width: 200px;
+    min-height: 48px;
+    padding: 0 24px;
+    font-size: 15px;
+    grid-column: 2;
+  }
+
+  :root[data-tema="v2"] .rep-v2-dos {
+    grid-column: 2;
+    grid-template-columns: auto auto;
+  }
+
+  :root[data-tema="v2"] .rep-v2-dos .rep-v2-sigue {
+    min-width: 0;
+  }
+
+  :root[data-tema="v2"] .rep-v2-falta {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }

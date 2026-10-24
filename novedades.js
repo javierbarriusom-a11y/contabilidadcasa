@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-24-hoy-esperados-movimientos",
+      fecha: "2026-10-24",
+      texto: "Desde el 25/10, «¿ha llegado la nómina?» y las demás preguntas de cobros y cargos se contestan en Movimientos; Hoy lleva a ellas.",
+      href: "#movements",
+    },
+    {
+      id: "2026-10-24-repaso-semanal",
+      fecha: "2026-10-24",
+      texto: "Repaso semanal, en Movimientos: saldos, extracto, lo que vino y la bandeja en unos 5 minutos, con cronómetro.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-24-plurales-decimales",
       fecha: "2026-10-24",
       texto: "Toda la app escribe «1 movimiento» y «3 movimientos», no «movimiento(s)», y los decimales con coma: «2,9 meses», «18,9%».",

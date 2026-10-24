@@ -190,6 +190,13 @@ function answerExpectedMovement(itemId, response, typedAmount = null) {
   announceStatus(message);
 }
 
+// La misma pregunta puede estar pintada en más de un sitio (bandeja de Movimientos, Repaso semanal): el campo que vale
+// es el que se ve.
+function expectedVisibleAmountInput(id) {
+  const inputs = [...document.querySelectorAll(`[data-expected-amount="${CSS.escape(id)}"]`)];
+  return inputs.find((input) => input.offsetParent !== null || input.closest("dialog[open]")) || inputs[0] || null;
+}
+
 // Una sola vez, por delegación: los botones de la bandeja.
 function attachEsperados(doc) {
   if (!doc || doc.__esperadosAttached) return false;
@@ -199,9 +206,9 @@ function attachEsperados(doc) {
     if (!button) return;
     const id = button.dataset.homeExpected;
     const response = button.dataset.expectedResponse;
-    if (response === "yesOther") { expectedAmountEditing = id; renderDecisionInboxCard(); document.querySelector(`[data-expected-amount="${CSS.escape(id)}"]`)?.focus(); return; }
+    if (response === "yesOther") { expectedAmountEditing = id; renderDecisionInboxCard(); expectedVisibleAmountInput(id)?.focus(); return; }
     if (response === "yesOtherCancel") { expectedAmountEditing = ""; renderDecisionInboxCard(); return; }
-    if (response === "yesOtherSave") { answerExpectedMovement(id, "yesOther", document.querySelector(`[data-expected-amount="${CSS.escape(id)}"]`)?.value ?? ""); return; }
+    if (response === "yesOtherSave") { answerExpectedMovement(id, "yesOther", (button.closest(".cuadro-mandos-controls")?.querySelector("[data-expected-amount]") || expectedVisibleAmountInput(id))?.value ?? ""); return; }
     answerExpectedMovement(id, response);
   });
   doc.addEventListener("keydown", (event) => {

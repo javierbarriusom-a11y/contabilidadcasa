@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**24/10/2026 · el hogar levanta la regla de parada para funciones nuevas.** La primera es el **Repaso semanal** (B5 · XUX-03, §5.0): cinco pasos con cronómetro que convierten las tareas H-22 y H-23 en un hábito guiado y miden M-COSTE solos. Sigue el límite de 3 en curso: rediseño, WP-23 y el Repaso. Ese mismo día salieron el barrido móvil, las fechas legibles y los plurales y decimales unificados (#540), y el primer cambio de Hoy, que se activa el 25/10.
+
 **23/10/2026 · revisión de salida de la Ola 1: parar y revisar** (detalle en [`docs/REVISION_SALIDA_OLA1_2026-10-23.md`](docs/REVISION_SALIDA_OLA1_2026-10-23.md)). Construido 63,2 %, comprobado 0 %, ninguna lectura de M-HOY ni M-ADOP. El cuello de botella ya no es construir, sino que la app reciba datos. **Decisiones del hogar del día:**
 - **M-HOY se mide sola** con el medidor de utilidad (sustituye a H-02), y la congelación de Hoy se levanta el 25/10 con un cambio por semana.
 - **Comunidad autónoma dada por el chat**, fuera del repositorio.
@@ -97,6 +99,8 @@ Las respuestas «Más tarde» del triaje (3/10/2026) van a P3 salvo que el plan 
 
 **Regla de parada de la Ola 1, aplicada el 21/10/2026 (decisión del hogar):** la Ola 1 termina el 23/10 sin una sola lectura de sus métricas (M-HOY y M-ADOP), así que se para: no se abre ningún paquete nuevo hasta que haya lecturas reales. Sigue el camino del rediseño (desalojo de `app.js`, Laboratorio, Movimientos e Importar) y lo que tiene fecha (WP-23).
 
+**Regla de parada levantada para funciones nuevas (24/10/2026, decisión del hogar):** «levanto la regla de parada para funciones nuevas». Lo que sigue en pie: el límite de 3 paquetes en curso, un cambio de Hoy por semana y la revisión de cada función nueva a los 14 días en «Funciones en prueba». Recomendación de Claude, que el hogar puede cambiar: priorizar las funciones que reducen el trabajo de meter datos (Repaso semanal, después XDA-02 y XDA-04), porque el 0 % comprobado no se debe a que falten funciones.
+
 **Revisión de salida de la Ola 1 (23/10/2026): parar y revisar.** Se confirma lo aplicado el 21/10. No se abre ningún paquete nuevo hasta tener lecturas de M-HOY y M-ADOP. Tampoco se abre ninguna pantalla nueva del rediseño antes de las revisiones de «Funciones en prueba» del 2/11 y el 4/11, que dirán con el medidor si Hoy, Movimientos, Importar y Clasificar se usan.
 
 **M-HOY se mide sola desde el 23/10/2026 (decisión del hogar):** la línea base es la mediana de los segundos hasta la primera acción en Hoy que registra el medidor de utilidad (XGO-02, desde el 22/10), y la prueba cronometrada H-02 deja de esperarse.
@@ -136,6 +140,8 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 9 | RD-A5 | Clasificar por lotes (B4, XDA-05) | 7ª | — | **Hecho 21/10** (adelantado por el hogar): hoja inferior en móvil y panel derecho en escritorio desde la bandeja de Movimientos, 5 grupos por tanda, regla con «Deshacer»; la confianza por grupo queda en tarea aparte |
 | 10 | RD-WK | Pruebas de las pantallas v2 en WebKit (390×844) | 7ª | P14 | Pendiente |
 | 11 | RD-COB2 | Estimar el siguiente cobro con el mismo mes del año anterior (cambia el motor de cobertura) | nota de P1 | por decidir | Propuesta |
+| 12 | RD-B5 | Repaso semanal (B5 · XUX-03): saldos, extracto, lo que vino, bandeja y listo, con cronómetro; M-COSTE medido solo | 7ª | 24/10 (regla de parada levantada) | **Hecho 24/10**; revisión en «Funciones en prueba» el 7/11. Se retira si se abandona a medias más de la mitad de las veces |
+| 13 | RD-HOY1 | Hoy, cambio 1: las preguntas de cobros y cargos esperados, a la bandeja de Movimientos (v2) | 7ª, §4 | 23/10 | **Hecho 24/10, activo desde el 25/10** (puerta de fecha). Siguiente cambio de Hoy (semana del 1/11): la puerta del Repaso semanal |
 
 ### 5.1 P0 — con fecha o habilitadora inmediata (Ola 1, 5/10 - 23/10/2026; la campaña fiscal se cierra antes del 15/11)
 
@@ -353,7 +359,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 |---|---|---|
 | Tiempo hasta la primera acción en Hoy | Mediana ≤ 15 s | Medidor de utilidad (XGO-02), desde el 23/10; antes, WP-02 con saldos del día |
 | Adopción | ≥ 4 días activos por semana | WP-03 |
-| Coste de mantener la app | ≤ 10 min/semana | WP-03 (autodeclarado) |
+| Coste de mantener la app | ≤ 10 min/semana | Repaso semanal (B5), medido solo desde el 24/10; antes, WP-03 autodeclarado |
 | Frescura | Saldos de ≤ 3 días en ≥ 90 % de los días | WP-03 |
 | Resolución de la previsión | ≥ 70 % del gasto con fecha declarada u observada | WP-10 |
 | Calibración | Error de caja a fin de mes decreciente; cobertura P10-P90 ≈ 80 % tras 6 meses | WP-12 |
@@ -410,7 +416,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | Pieza | Qué guarda | Quién la cambia |
 |---|---|---|
 | Este documento | Qué se hace y por qué en ese orden (prioridades, niveles, decisiones) | Claude, cuando cambia el plan |
-| `docs/plan/plan-definitivo.json` | El mismo plan en datos: 3 olas, 53 paquetes con sesiones estimadas, dependencias y «hecho cuando», las 104 propuestas, 19 hitos, 33 tareas del hogar y 10 métricas | Se regenera cuando cambia este documento; `tests/plan-seguimiento-sincronizado.test.cjs` falla si los dos se separan |
+| `docs/plan/plan-definitivo.json` | El mismo plan en datos: 3 olas, 53 paquetes con sesiones estimadas, dependencias y «hecho cuando», las 104 propuestas, 20 hitos, 33 tareas del hogar y 10 métricas | Se regenera cuando cambia este documento; `tests/plan-seguimiento-sincronizado.test.cjs` falla si los dos se separan |
 | **Panel de seguimiento** (https://claude.ai/artifact/7k86qmrcqn8hdhAzx9xcrg, privado) | El **estado**: paquete a paquete (estado, PR, fechas, sesiones reales, resultado de su métrica), tareas del hogar hechas, lecturas de métricas, revisión de salida de cada ola y registro de cambios | Claude al cerrar cada sesión; el hogar marca sus tareas y añade lecturas |
 
 **Cómo mide el avance** (para que «vamos bien» signifique algo):

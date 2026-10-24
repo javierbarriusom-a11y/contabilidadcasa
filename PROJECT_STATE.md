@@ -109,6 +109,36 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 24 de octubre de 2026 (346): regla de parada levantada · Repaso semanal y primer cambio de Hoy
+
+- **Qué decidió el hogar:** «levanto la regla de parada para funciones nuevas».
+  - Recogido en `BACKLOG_DEFINITIVO.md` §0 y §4.
+  - Sigue el límite de 3 en curso, un cambio de Hoy por semana y la revisión a los 14 días en «Funciones en prueba».
+  - Recomendación de Claude: priorizar las funciones que reducen el trabajo de meter datos, porque el 0 % comprobado no viene de que falten funciones.
+- **Repaso semanal** (B5 · XUX-03, `views/repaso-v2.js`, de `Ritual.png` y `RitualDesktop.png`).
+  - **Formato:** pantalla completa en móvil; diálogo de 880 × 600 en escritorio, con los pasos a la izquierda y atajos C, E y ↵.
+  - **Pasos:** cinco, en el orden del handoff, con cronómetro que se mide solo.
+    - **Saldos.** «Coincide» o «Corregir» por cuenta, con el modelo y la escritura del pulso de WP-26 y su «Deshacer» de 8 s. El tiempo del paso también cuenta para WP-26.
+    - **Extracto.** Qué cuenta tiene su último movimiento de hace más de 7 días. Lleva a Importar y una píldora devuelve al repaso.
+    - **Lo que vino.** Las preguntas de WP-14/27, contestadas ahí mismo.
+    - **Bandeja.** Clasificar se abre encima y se vuelve al repaso al cerrarlo.
+    - **Listo.** Duración, lo que queda, racha de semanas y los minutos de la semana.
+  - **Medición:** la duración alimenta M-COSTE, que deja de ser autodeclarado. En el medidor, terminar cuenta como acción y abandonar como descarte (criterio de retirada de XUX-03).
+  - **Dónde está:** se abre desde Movimientos y entra en «Funciones en prueba» con revisión el 7/11.
+  - **Copia de seguridad:** el registro (`repaso-semanal`: fecha, segundos y qué se hizo, sin importes) viaja en la copia y la sincronización. Así la racha y M-COSTE sobreviven a una restauración y suman los repasos hechos en cualquier móvil. Lo detectó `arq6-copia-completa` en la validación.
+  - **Error encontrado en el ensayo y corregido antes de publicar:** guardar los saldos desde fuera de Registrar no los fijaba, porque `readStateFromControls` volvía a leer el selector de modo, aún en «auto». El repaso pasa los selectores a «manual» antes de guardar, y su «Deshacer» los devuelve.
+- **Hoy, cambio 1** (acordado el 23/10), publicado con puerta de fecha y activo desde el 25/10.
+  - **Qué cambia:** con el tema v2, las preguntas de cobros y cargos esperados salen de la bandeja de Hoy y se contestan en la bandeja de Movimientos, también con 0 movimientos. Hoy deja una línea que lleva a ellas.
+  - **Qué no cambia:** los demás avisos siguen en Hoy, porque en la referencia la bandeja de Movimientos es solo para lo que tiene que ver con movimientos. El tema clásico no cambia.
+  - **Arreglo de paso:** `esperados-ui.js` lee el campo «otro importe» del mismo bloque que el botón, porque la pregunta puede estar pintada en dos sitios.
+- **Plan** (`docs/plan/plan-definitivo.json`): M-COSTE se mide con el repaso; nuevo hito el 7/11 (revisión del Repaso); 20 hitos.
+- **Pruebas:**
+  - `tests/redis-b5-repaso.test.cjs` (9).
+  - E2E: el recorrido completo a 390 y 1440 px, la ida y vuelta a Importar con descarte al cerrar a medias, y la puerta del cambio de Hoy (24/10 frente a 26/10).
+  - Axe del repaso en claro y en oscuro × 390 y 1440, y de la bandeja de Movimientos.
+  - Las pruebas de WP-14/27 en Hoy pasan al tema clásico.
+- **Validación:** `npm run verify` en verde: 6128 de 6128 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 225 de 225 en verde (14,2 min).
+
 ## Cierre de sesión — 24 de octubre de 2026 (345): plurales y decimales unificados en toda la app
 
 - **Qué pidió el hogar:** «Haz esta tarea aquí: Unificar decimales y plurales en el resto de pantallas», la tarea propuesta al cerrar la 344.
@@ -121,7 +151,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Pruebas:**
   - 37 ficheros actualizados al texto nuevo, sin relajar ninguna aserción.
   - Siete pruebas de cableado recortaban un trozo fijo de caracteres del código y se quedaron cortas al alargarse las líneas: se amplía la ventana (o se lee la función entera) sin cambiar lo que comprueban.
-- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6119/6119, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo: en ejecución en local al hacer el commit; lo corre también el CI del PR.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6119/6119, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo: **214/214** en local (+2) y CI del PR en verde (#540, fusionado el 24/10).
 
 ## Cierre de sesión — 24 de octubre de 2026 (344): fechas y plurales que se leen a la primera
 

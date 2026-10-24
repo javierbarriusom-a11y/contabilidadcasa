@@ -91,14 +91,54 @@ function movV2Header(hasRows) {
   </div>`;
 }
 
-// Bandeja: lo que pide algo. Hoy solo hay una cosa que lo haga sola, los movimientos sin partida (agrupados por
-// concepto, que es la unidad de las reglas: dar partida a uno se la da a los demás con el mismo concepto). Las
+// Cobros y cargos esperados (WP-14 + WP-27, esperados-ui.js): «¿ha llegado la nómina?», «el recibo no ha llegado».
+// Desde el 25/10/2026, primer cambio de Hoy tras levantar su congelación, con el tema v2 viven aquí y no en la bandeja
+// de decisiones de Hoy: se contestan mirando el extracto, que es lo que enseña esta pantalla (referencia: «cobros
+// confirmados» en la bandeja de Movimientos.png). Las respuestas son los mismos botones de siempre: esperados-ui.js
+// los atiende por delegación en todo el documento y, al contestar, repinta esta pantalla (renderDecisionInboxCard).
+// Hoy estuvo congelado hasta el 25/10/2026 (BACKLOG_DEFINITIVO.md §4): el cambio se publica antes, pero solo se activa
+// ese día. Antes, las preguntas siguen en la bandeja de Hoy como siempre. Pasado el 25/10 esta puerta ya no hace nada.
+const MOV_V2_ESPERADOS_DESDE = "2026-10-25";
+
+function movV2EsperadosAqui() {
+  return movV2Active() && isoLocalDate(new Date()) >= MOV_V2_ESPERADOS_DESDE;
+}
+
+function movV2Esperados() {
+  return movV2EsperadosAqui() && typeof expectedMovementInboxItems === "function" ? expectedMovementInboxItems() : [];
+}
+
+globalThis.movV2EsperadosAqui = movV2EsperadosAqui;
+
+function movV2EsperadoHtml(item) {
+  const income = item.source === "Cobro esperado";
+  const icon = income ? '<path d="M12 19V5M6 11l6-6 6 6"></path>' : '<path d="M12 5v14M6 13l6 6 6-6"></path>';
+  const actions = item.html || `<button type="button" class="e19-btn e19-btn-secondary" data-mov-v2-nav="${escapeHtml(item.target || "registrar")}">Revisar</button>`;
+  return `<li class="mov-v2-card mov-v2-esperado">
+    <span class="mov-v2-av ${income ? "is-pos" : "is-warn"}" aria-hidden="true">${movV2Icon(icon)}</span>
+    <div class="mov-v2-main"><strong>${escapeHtml(item.title)}</strong><span class="mov-v2-meta">${escapeHtml(item.text)}</span>
+      <div class="mov-v2-esperado-acciones">${actions}</div></div>
+  </li>`;
+}
+
+function movV2EsperadosList(esperados) {
+  return esperados.length
+    ? `<ul class="mov-v2-esperados" aria-label="Cobros y cargos por confirmar">${esperados.map(movV2EsperadoHtml).join("")}</ul>`
+    : "";
+}
+
+function movV2BandejaHead(count) {
+  return `<div class="mov-v2-section-head"><h3>Bandeja</h3><span>${count ? `${count} ${count === 1 ? "cosa" : "cosas"}` : "nada pendiente"}</span></div>`;
+}
+
+// Bandeja: lo que pide algo. Los movimientos sin partida (agrupados por concepto, que es la unidad de las reglas: dar
+// partida a uno se la da a los demás con el mismo concepto) y los cobros y cargos esperados por confirmar. Las
 // anomalías del extracto (WP-36) son su propia tarjeta, justo debajo. La tarjeta abre Clasificar por lotes (A5,
 // views/clasificar-v2.js); el filtro «Sin partida» sigue en la lista.
-function movV2Bandeja(all) {
+function movV2Bandeja(all, esperados = []) {
   const sinPartida = all.filter((item) => Number(item.row.amount) && !item.partida);
   const grupos = new Set(sinPartida.map((item) => movementMappingKey(item.row))).size;
-  const head = `<div class="mov-v2-section-head"><h3>Bandeja</h3><span>${grupos ? "1 cosa" : "nada pendiente"}</span></div>`;
+  const head = movV2BandejaHead((grupos ? 1 : 0) + esperados.length);
   const body = grupos
     ? `<button type="button" class="mov-v2-card mov-v2-fila-bandeja" data-mov-v2-clasificar>
         <span class="mov-v2-av is-warn" aria-hidden="true">${grupos}</span>
@@ -107,7 +147,29 @@ function movV2Bandeja(all) {
         <span aria-hidden="true">›</span>
       </button>`
     : `<p class="mov-v2-card mov-v2-vacio-linea">Todos los movimientos tienen partida.</p>`;
-  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}</section>`;
+  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2EsperadosList(esperados)}</section>`;
+}
+
+// Rediseño B5: la puerta del Repaso semanal (views/repaso-v2.js). No es algo pendiente, así que va aparte de la bandeja,
+// con lo que costó el último.
+function movV2Repaso() {
+  if (typeof globalThis.repasoV2Open !== "function") return "";
+  const resumen = globalThis.FinanceRepaso?.resumen?.();
+  const ultimo = resumen?.ultimo;
+  const dias = ultimo ? Math.round((new Date(`${isoLocalDate(new Date())}T12:00:00`) - new Date(`${ultimo.date}T12:00:00`)) / 86400000) : null;
+  const meta = ultimo
+    ? `El último, ${dias <= 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`}, en ${Math.max(1, Math.round(ultimo.seconds / 60))} min`
+    : "Saldos, extracto, lo que vino y la bandeja, en orden";
+  return `<button type="button" class="mov-v2-card mov-v2-fila-bandeja mov-v2-repaso" data-mov-v2-repaso>
+    <span class="mov-v2-av" aria-hidden="true">${movV2Icon('<circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path>')}</span>
+    <span class="mov-v2-main"><strong>Repaso semanal · unos 5 min</strong><span class="mov-v2-meta">${escapeHtml(meta)}</span></span>
+    <span aria-hidden="true">›</span>
+  </button>`;
+}
+
+// Sin movimientos también se puede contestar si ha llegado un cobro (registra el real): la bandeja sale solo con eso.
+function movV2BandejaSoloEsperados(esperados) {
+  return esperados.length ? `<section class="mov-v2-bandeja" aria-label="Bandeja">${movV2BandejaHead(esperados.length)}${movV2EsperadosList(esperados)}</section>` : "";
 }
 
 function movV2Chips(all) {
@@ -209,10 +271,12 @@ function movV2BindOnce(root) {
   root.dataset.bound = "1";
   root.addEventListener("click", (event) => {
     // XGO-02: abrir, filtrar, clasificar o ir a otra pantalla es usarla; «Ver todo el detalle» es apartarse de ella.
-    if (event.target.closest("[data-mov-v2-nav], [data-mov-v2-clasificar], [data-mov-v2-filtro], [data-mov-v2-index]")) globalThis.FinanceMedidor?.anotar("movimientos-v2", "accion");
+    if (event.target.closest("[data-mov-v2-nav], [data-mov-v2-clasificar], [data-mov-v2-repaso], [data-mov-v2-filtro], [data-mov-v2-index], [data-home-expected]")) globalThis.FinanceMedidor?.anotar("movimientos-v2", "accion");
     else if (event.target.closest("[data-mov-v2-detail]") && !qs("movements")?.classList.contains(MOV_V2_DETAIL_CLASS)) globalThis.FinanceMedidor?.anotar("movimientos-v2", "descarte");
     const nav = event.target.closest("[data-mov-v2-nav]");
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
+    const repaso = event.target.closest("[data-mov-v2-repaso]");
+    if (repaso) return globalThis.repasoV2Open?.(repaso); // rediseño B5, views/repaso-v2.js
     const clasificar = event.target.closest("[data-mov-v2-clasificar]");
     if (clasificar) return globalThis.clasificarV2Open?.(clasificar); // rediseño A5, views/clasificar-v2.js
     const filtro = event.target.closest("[data-mov-v2-filtro]");
@@ -262,6 +326,7 @@ function movimientosV2Render() {
     return;
   }
   const all = movV2AllRows();
+  const esperados = movV2Esperados();
   // Sin movimientos, un solo bloque que lleva a Importar: la tarjeta de anomalías (que solo diría «importa el
   // extracto» otra vez) queda tras «Ver todo el detalle».
   qs("movements")?.classList.toggle("mov-v2-vacia", !all.length);
@@ -269,11 +334,11 @@ function movimientosV2Render() {
   movV2BindOnce(bottom);
   if (!all.length) {
     movV2Shown = [];
-    top.innerHTML = `${movV2Header(false)}${movV2Empty()}`;
+    top.innerHTML = `${movV2Header(false)}${movV2Repaso()}${movV2BandejaSoloEsperados(esperados)}${movV2Empty()}`;
     bottom.innerHTML = movV2DetailButton();
   } else {
     if (movV2Filter !== "todas" && movV2Filter !== "sin-partida" && !all.some((item) => item.account === movV2Filter)) movV2Filter = "todas";
-    top.innerHTML = `${movV2Header(true)}${movV2Bandeja(all)}`;
+    top.innerHTML = `${movV2Header(true)}${movV2Repaso()}${movV2Bandeja(all, esperados)}`;
     bottom.innerHTML = `${movV2Pending()}
       <div class="mov-v2-filtros">
         <input type="search" id="movV2Buscar" class="mov-v2-buscar${movV2SearchOpen || movV2Search ? " is-open" : ""}" placeholder="Buscar concepto, importe o partida" aria-label="Buscar concepto, importe o partida" value="${escapeHtml(movV2Search)}" />
