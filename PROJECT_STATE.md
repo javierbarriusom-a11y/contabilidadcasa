@@ -109,6 +109,20 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 24 de octubre de 2026 (343): barrido móvil de todas las pantallas; los gráficos ya no se cortan al ver su tabla
+
+- **Qué pidió el hogar:** «adelanta con todo lo que puedas que no dependa de mí o del hogar, priorizando impacto en experiencia de usuario y funcionalidades». Las funcionalidades nuevas chocan con la regla de parada (confirmada el 23/10): esta sesión hace experiencia de usuario sin abrir paquetes nuevos (errores, pulido y el cambio de Hoy ya acordado) y propone al hogar qué abriría si levanta la regla.
+- **Barrido a 390 px**, con el tema v2, en claro y en oscuro, de 41 pantallas: celdas cuyo contenido no cabe, elementos fuera de la pantalla y textos recortados, con los detalles plegables abiertos. Se repitió con 70 movimientos de conceptos largos en las 18 pantallas que los enseñan.
+- **Error encontrado y corregido** en el kit de gráficos (WP-28), usado en Plan › Previsión (banda de caja) e Inversión › Cartera (proyección del patrimonio).
+  - **Qué pasaba:** al abrir «Ver como tabla», la tabla ensanchaba la figura a ~1.120 px en un móvil de 390, por la regla genérica `table { min-width: 1120px }` de `styles.css`. El dibujo, su lectura y la tabla se cortaban por la derecha, y solo se veía la columna del día.
+  - **Arreglo:** la rejilla de la figura es `minmax(0, 1fr)` y la tabla anula el mínimo, como las demás tablas e19. En el móvil, la tabla se desplaza dentro de su caja, con la columna del día fija (también la esquina, por encima de la cabecera fija) y menos relleno.
+- **Sin cambios:** lo demás que marcó el barrido son cabeceras ocultas a propósito en tablas apiladas y textos solo para lectores de pantalla. El «Saltar al contenido» de las capturas largas no es un error: sin foco está fuera de la pantalla.
+- **Pendiente:** queda anotado para una tarea aparte el plural antiguo «día(s)», «movimiento(s)»… (≈ 300 textos).
+- **Pruebas:**
+  - Dos e2e nuevas («Kit de gráficos · Ver como tabla en el móvil»), en Previsión y Patrimonio.
+  - Mutación comprobada: con el CSS anterior, las dos fallan.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6115/6115, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo, en el CI del PR.
+
 ## Cierre de sesión — 23 de octubre de 2026 (342): revisión de salida de la Ola 1, contraste fiscal de WP-23 y ensayo del cierre de octubre
 
 - **Qué pidió el hogar:** arrancar la sesión analizando el backlog y el panel de seguimiento, y proponer un plan. Plan aprobado («adelante con mis respuestas»), con tres respuestas:

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-24-graficos-tabla-movil",
+      fecha: "2026-10-24",
+      texto: "Gráficos en el móvil: «Ver como tabla» ya no corta el gráfico. La tabla se desplaza y el día se queda fijo a la izquierda.",
+      href: "#prevision",
+    },
+    {
       id: "2026-10-23-cierre-movil",
       fecha: "2026-10-23",
       texto: "Cierre en el móvil: en «Conciliar cuentas» cada cuenta se lee en su bloque. Antes las cifras se montaban unas sobre otras.",

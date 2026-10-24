@@ -9,7 +9,15 @@
 
 .ck-figure {
   display: grid;
+  /* Una sola columna que nunca crece más que su contenedor: sin `minmax(0, 1fr)` ni `min-width: 0`, abrir «Ver como tabla» dejaba que la
+     tabla (30 filas de fechas e importes) ensanchara la rejilla a ~1.120 px en un móvil de 390, y el dibujo, la lectura y la tabla se
+     cortaban por la derecha. Así la tabla se desplaza dentro de .ck-tabla-scroll, que es lo que se pretendía. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+}
+
+.ck-figure > * {
+  min-width: 0;
 }
 
 .ck-plot {
@@ -156,6 +164,39 @@
 
 .ck-tabla-scroll {
   overflow-x: auto;
+}
+
+/* `min-width: 0` anula el `table { min-width: 1120px }` genérico de styles.css, igual que en las demás tablas e19: sin él, la tabla de un
+   gráfico medía 1.120 px en un móvil de 390 y solo se veía la columna del día. */
+.ck-tabla table {
+  min-width: 0;
+}
+
+/* En el móvil la tabla aún puede ser más ancha que la pantalla (fecha y cuatro importes): se desplaza dentro de su caja y la columna del
+   día se queda fija a la izquierda para saber siempre de qué fila es cada cifra. */
+@media (max-width: 640px) {
+  .ck-tabla th,
+  .ck-tabla td {
+    padding: 8px 10px;
+  }
+
+  .ck-tabla thead th:first-child,
+  .ck-tabla tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--e19-surface);
+  }
+
+  /* Las cabeceras de las tablas e19 ya van fijas arriba con z-index 3: la esquina («Día») tiene que quedar por encima de las dos. */
+  .ck-tabla thead th:first-child {
+    z-index: 4;
+    background: var(--e19-surface-soft);
+  }
+
+  .ck-tabla tbody tr:nth-child(even) th {
+    background: var(--e19-surface-soft);
+  }
 }
 
 /* styles.css pinta TODA fila par de TODA tabla con #fafbfc (y el hover con #f0f7f6), sin tema: en oscuro dejaba texto claro sobre casi blanco

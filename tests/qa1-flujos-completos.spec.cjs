@@ -5629,3 +5629,50 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
     });
   }
 });
+
+// Barrido móvil del 24/10/2026: en el kit de gráficos (WP-28), abrir «Ver como tabla» dejaba que la tabla ensanchara la rejilla de la
+// figura a ~1.120 px en un móvil de 390 (la regla genérica `table { min-width: 1120px }` de styles.css), y el dibujo, la lectura y la
+// tabla se cortaban por la derecha. Ahora la figura no pasa de su caja, la tabla se desplaza dentro y la columna del día queda fija.
+test.describe("Kit de gráficos · «Ver como tabla» en el móvil", () => {
+  for (const [hash, selector] of [["prevision", "#previsionBanda"], ["inversion-cartera", "#patrimonioProyeccion"]]) {
+    test(`${hash}: el gráfico y su tabla caben a 390 px`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.clock.install({ time: new Date(2026, 9, 24, 10, 0, 0) });
+      await page.goto(`/index.html#${hash}`);
+      const figure = page.locator(`${selector} .ck-figure`);
+      await page.evaluate((sel) => { const outer = document.querySelector(sel)?.closest("details"); if (outer) outer.open = true; }, selector);
+      await expect(figure).toBeVisible({ timeout: 20000 });
+      await figure.locator(".ck-tabla > summary").click();
+      const scroll = figure.locator(".ck-tabla-scroll");
+      await expect(scroll).toBeVisible();
+      const medidas = await page.evaluate((sel) => {
+        const root = document.querySelector(sel);
+        const box = (el) => el.getBoundingClientRect();
+        const caja = box(root.querySelector(".ck-figure"));
+        const scroller = root.querySelector(".ck-tabla-scroll");
+        return {
+          figura: Math.round(caja.width),
+          dibujo: Math.round(box(root.querySelector(".ck-plot")).width),
+          derechaTabla: Math.round(box(scroller).right),
+          derechaFigura: Math.round(caja.right),
+          tablaMin: getComputedStyle(scroller.querySelector("table")).minWidth,
+        };
+      }, selector);
+      expect(medidas.dibujo, "el dibujo no se ensancha al abrir la tabla").toBeLessThanOrEqual(medidas.figura);
+      expect(medidas.derechaTabla, "la caja de la tabla no se sale de la figura").toBeLessThanOrEqual(medidas.derechaFigura);
+      expect(medidas.tablaMin).toBe("0px");
+      // Si la tabla es más ancha que la pantalla, se desplaza dentro de su caja y la primera columna se queda en su sitio.
+      const fija = await scroll.evaluate((el) => {
+        const first = el.querySelector("tbody th");
+        const before = first.getBoundingClientRect().left;
+        el.scrollLeft = el.scrollWidth;
+        return { desplazable: el.scrollWidth > el.clientWidth, movida: Math.round(first.getBoundingClientRect().left - before) };
+      });
+      if (fija.desplazable) expect(fija.movida, "la columna del día queda fija al desplazar").toBe(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
