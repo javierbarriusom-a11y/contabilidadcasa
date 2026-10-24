@@ -147,6 +147,7 @@ test("O-2 · homeDecisionCandidates deja entrar la candidata de reales pendiente
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtTargetDisplayName: () => "",
     money: () => "",
   });

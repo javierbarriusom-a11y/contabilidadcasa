@@ -2587,6 +2587,15 @@ function downloadCanonicalInventory() {
   URL.revokeObjectURL(url);
 }
 
+// Fecha corta para leer en pantalla: «15 oct» si es de este año y «15 oct 2027» si no. `shortDate` («15 oct 26», que se lee
+// como un día 26) se queda para las etiquetas del motor de fechas, fijadas en el oro de WP-07.
+function displayShortDate(value) {
+  const date = value instanceof Date ? value : localDateFromIso(value) || new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("es-ES", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" }).replace(/\./g, "");
+}
+
 function ledgerMonthLabel(monthKeyValue) {
   if (!/^\d{4}-\d{2}$/.test(String(monthKeyValue || ""))) return String(monthKeyValue || "Sin mes");
   const date = new Date(`${monthKeyValue}-01T12:00:00`);
@@ -19650,8 +19659,8 @@ function renderHomeCoverageCard(coverage) {
   const sentence = coverage.days === null
     ? "No se ha podido determinar el siguiente ingreso."
     : coverage.required === null
-    ? `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
-    : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
+    ? `${coverage.days} ${coverage.days === 1 ? "día" : "días"} hasta ${displayShortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
+    : `${coverage.days} ${coverage.days === 1 ? "día" : "días"} hasta ${displayShortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
   qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong class="${marginClass}">${coverage.margin === null ? HOME_MISSING_VALUE : money(coverage.margin, true)}</strong>
     <p>${sentence}</p>${coberturaAjusteAvisoHtml(e6CoverageSettings())}`;
 }
@@ -26608,7 +26617,7 @@ function homeDebtReviewReminders() {
         target: "debt-roadmap",
         cta: "Revisar",
         expiresAt: reviewDate,
-        expiryLabel: shortDate(reviewDate),
+        expiryLabel: displayShortDate(reviewDate),
       };
     });
 }
@@ -26630,7 +26639,7 @@ function homeEscenarioReviewReminders() {
       target: "escenario-guardados",
       cta: "Revisar",
       expiresAt: entry.reviewDate,
-      expiryLabel: shortDate(entry.reviewDate),
+      expiryLabel: displayShortDate(entry.reviewDate),
     }));
 }
 
@@ -26689,7 +26698,7 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
         target: "alerts-center",
         cta: "Revisar alerta",
         expiresAt: alert.reviewDate || "",
-        expiryLabel: alert.reviewDate ? shortDate(alert.reviewDate) : "",
+        expiryLabel: alert.reviewDate ? displayShortDate(alert.reviewDate) : "",
       };
       (item.expiresAt ? dated : undated).push(item);
     });
@@ -27502,7 +27511,7 @@ function renderHomeDashboard() {
   } else if (savings.currentCoverage < savings.values.emergencyBufferMonths) {
     todayRead = {
       title: "Construir colchón antes de acelerar",
-      text: `Cobertura actual ${savings.currentCoverage.toFixed(1)} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
+      text: `Cobertura actual ${Number(savings.currentCoverage).toLocaleString("es-ES", { maximumFractionDigits: 1 })} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
       status: coverageStatus,
       target: "savings-plan",
       cta: "Plan ahorro",
@@ -28364,7 +28373,7 @@ function homeDebtOutlook() {
     pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),
     contracts: contracts.length,
     libreDeDeuda: summary.libreDeDeuda,
-    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda),
+    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda).replace(/ (\d{2})(?=$| · )/, " 20$1"), // «sept 2029», no «sept 29» (se leía como un día)
     estimable: /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || "")),
     settled: String(summary.libreDeDeuda || "") === "sin deuda pendiente",
   };
@@ -29611,7 +29620,7 @@ function registrarRecalcFigures() {
     { label: "Margen sobre la reserva protegida", value: money(reserveMargin, true) },
     {
       label: "Días hasta el siguiente ingreso",
-      value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} día(s)`,
+      value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} ${coverage.days === 1 ? "día" : "días"}`,
     },
     { label: "Fecha libre de deuda", value: debtOutlook.libreDeDeudaLabel || HOME_MISSING_VALUE },
     {

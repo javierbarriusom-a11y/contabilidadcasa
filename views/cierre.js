@@ -109,9 +109,9 @@ function cierreRecalcCheck() {
   }
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
   const ago = minutes < 1 ? "hace un momento"
-    : minutes < 60 ? `hace ${minutes} minuto(s)`
-    : minutes < 1440 ? `hace ${Math.floor(minutes / 60)} hora(s)`
-    : `hace ${Math.floor(minutes / 1440)} día(s)`;
+    : minutes < 60 ? `hace ${minutes} ${minutes === 1 ? "minuto" : "minutos"}`
+    : minutes < 1440 ? `hace ${Math.floor(minutes / 60)} ${Math.floor(minutes / 60) === 1 ? "hora" : "horas"}`
+    : `hace ${Math.floor(minutes / 1440)} ${Math.floor(minutes / 1440) === 1 ? "día" : "días"}`;
   return { id: "recalculo", label: `Colchón, deuda, metas y apalancamiento recalculados (${ago})`, met: true };
 }
 
@@ -127,7 +127,7 @@ function cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows = [
     { id: "diferencias", label: "Ninguna diferencia abierta", met: tasks.length === 0 },
   ];
   if (sobresEnabled()) checks.push({ id: "sobres", label: "Ningún sobre sin destino", met: cierreSobresAllResolved(sobresRows) });
-  checks.push({ id: "extracto", label: `Extracto incorporado · ${monthMovementCount} movimiento(s)`, met: monthMovementCount > 0 });
+  checks.push({ id: "extracto", label: `Extracto incorporado · ${monthMovementCount} ${monthMovementCount === 1 ? "movimiento" : "movimientos"}`, met: monthMovementCount > 0 });
   checks.push(cierreRecalcCheck());
   return checks;
 }
@@ -406,7 +406,7 @@ function cierreStep1Html(accountRows) {
   return `<article class="e19-card cierre-step-card">
     <div class="section-title with-action">
       <div><h3 class="escenario-motor-panel-title">Conciliar cuentas</h3><p class="e19-kpi-note">Saldo declarado frente a saldo calculado.</p></div>
-      ${descuadres ? `<span class="e19-badge e19-badge-danger">${descuadres} cuenta(s) descuadran</span>` : ""}
+      ${descuadres ? `<span class="e19-badge e19-badge-danger">${descuadres === 1 ? "1 cuenta descuadra" : `${descuadres} cuentas descuadran`}</span>` : ""}
     </div>
     <div class="table-wrap"><table class="e19-table cierre-accounts-table" role="table">
       <thead role="rowgroup"><tr role="row"><th role="columnheader">Cuenta</th><th role="columnheader">Declarado</th><th role="columnheader">Calculado</th><th role="columnheader">Diferencia</th><th role="columnheader">Estado</th></tr></thead>
@@ -440,7 +440,7 @@ function cierreStep2Html(tasks) {
 // con Sobres activo — el mockup lo cuenta como el efecto 02, con origen y destino de cada asiento.
 function cierreEffectsHtml(monthLabel, sobresRows = []) {
   const sobresItem = sobresEnabled()
-    ? `<li>Se ejecutan los ${sobresRows.length} asiento(s) de liquidación de sobres, cada uno con su origen y destino.</li>`
+    ? `<li>Se ${sobresRows.length === 1 ? "ejecuta 1 asiento" : `ejecutan los ${sobresRows.length} asientos`} de liquidación de sobres, cada uno con su origen y destino.</li>`
     : "";
   return `<ol class="cierre-effects-list">
     <li>Los reales de ${escapeHtml(monthLabel)} quedan congelados: dejan de aceptar cambios sin reabrir el mes.</li>
@@ -1325,7 +1325,7 @@ function renderConciliar() {
     titleEl.textContent = isClosed
       ? `${ledgerMonthLabel(currentMonthKey)} cerrado`
       : tasks.length
-      ? `Faltan ${tasks.length} cosa(s) para cerrar ${ledgerMonthLabel(currentMonthKey)}`
+      ? `${tasks.length === 1 ? "Falta 1 cosa" : `Faltan ${tasks.length} cosas`} para cerrar ${ledgerMonthLabel(currentMonthKey)}`
       : `Nada pendiente para cerrar ${ledgerMonthLabel(currentMonthKey)}`;
   }
   const subtitleEl = qs("conciliarSubtitle");
@@ -1338,7 +1338,7 @@ function renderConciliar() {
       ["Movimientos del banco", String(Number(quality.transactionCount || 0)), ""],
       ["Clasificados", String(Number(quality.classifiedCount || 0)), ""],
       ["Diferencia banco vs. real", money(differenceTotal, true), differenceTotal > 0.02 ? " is-warn" : ""],
-      ["Continuidad de saldos", gapCount ? `${gapCount} salto(s)` : "Correcta", gapCount ? " is-warn" : ""],
+      ["Continuidad de saldos", gapCount ? `${gapCount} ${gapCount === 1 ? "salto" : "saltos"}` : "Correcta", gapCount ? " is-warn" : ""],
     ]
       .map(([label, value, tone]) => `<div class="e19-kpi${tone}"><span class="e19-kpi-label">${escapeHtml(label)}</span><span class="e19-kpi-value">${escapeHtml(value)}</span></div>`)
       .join("") + `<div class="e19-kpi${isClosed ? "" : " is-warn"}"><span class="e19-kpi-label">Estado</span><span class="e19-kpi-value">${isClosed ? "Cerrado" : "Abierto"}</span></div>`;
@@ -1366,8 +1366,8 @@ function renderConciliar() {
   const checklist = qs("conciliarChecklist");
   if (checklist) {
     const checkItems = [
-      { ok: unclassified.length === 0, label: unclassified.length === 0 ? "Todos los movimientos están clasificados" : `${unclassified.length} movimiento(s) sin clasificar` },
-      { ok: Number(quality.balanceGapCount || 0) === 0, label: Number(quality.balanceGapCount || 0) === 0 ? "Continuidad de saldos correcta" : `${quality.balanceGapCount} salto(s) de saldo` },
+      { ok: unclassified.length === 0, label: unclassified.length === 0 ? "Todos los movimientos están clasificados" : `${unclassified.length} ${unclassified.length === 1 ? "movimiento" : "movimientos"} sin clasificar` },
+      { ok: Number(quality.balanceGapCount || 0) === 0, label: Number(quality.balanceGapCount || 0) === 0 ? "Continuidad de saldos correcta" : `${Number(quality.balanceGapCount)} ${Number(quality.balanceGapCount) === 1 ? "salto" : "saltos"} de saldo` },
       { ok: !isClosed, label: isClosed ? `Ya cerrado el ${escenarioMotorMonthLabel(currentMonthKey)}` : "Los reales quedarán congelados en una versión recuperable" },
     ];
     checklist.innerHTML = checkItems.map((check) => `<li class="deuda-ruta-check${check.ok ? " is-ok" : " is-danger"}">${escapeHtml(check.label)}</li>`).join("");

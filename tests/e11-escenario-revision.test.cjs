@@ -58,6 +58,7 @@ test("E-11 · homeEscenarioReviewReminders ignora los escenarios sin fecha de re
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
   });
   assert.deepEqual(context.homeEscenarioReviewReminders(), []);
 });
@@ -68,6 +69,7 @@ test("E-11 · homeEscenarioReviewReminders ignora los escenarios guardados que n
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
   });
   assert.deepEqual(context.homeEscenarioReviewReminders(), []);
 });
@@ -78,6 +80,7 @@ test("E-11 · homeEscenarioReviewReminders marca en rojo (danger) una revisión 
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
   });
   const [reminder] = context.homeEscenarioReviewReminders();
   assert.equal(reminder.status, "danger");
@@ -92,6 +95,7 @@ test("E-11 · homeEscenarioReviewReminders marca en ámbar (warn) una revisión 
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
   });
   const [reminder] = context.homeEscenarioReviewReminders();
   assert.equal(reminder.status, "warn");
@@ -103,6 +107,7 @@ test("E-11b · homeEscenarioReviewReminders también lee «vigente», el nuevo e
     isoLocalDate: () => "2026-08-16",
     formatIsoDate: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
   });
   const [reminder] = context.homeEscenarioReviewReminders();
   assert.ok(reminder, "un plan vigente con fecha de revisión debe generar recordatorio");
@@ -123,6 +128,7 @@ test("E-11 · homeDecisionCandidates incluye el recordatorio de escenario entre 
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtTargetDisplayName: () => "",
     money: () => "",
   });

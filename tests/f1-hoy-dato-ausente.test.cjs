@@ -90,6 +90,7 @@ test("H-10 · H-3 cobertura: con fecha pero sin gasto diario, la necesidad no se
   const context = sandboxWith(["renderHomeCoverageCard", "homeCoverageBadge"], {
     qs: stubQs,
     shortDate: (v) => `fecha:${v}`,
+    displayShortDate: (v) => `fecha:${v}`,
     HOME_MISSING_VALUE: "—",
     // Cobro caducado (views/cobertura-ajuste.js): sin ajuste manual, la tarjeta no añade aviso.
     e6CoverageSettings: () => ({ nextIncomeDate: "", dailyOutflow: null, expiredDate: "", zeroOutflow: false }),

@@ -1610,8 +1610,8 @@ function registrarImpactRows(baseline, current) {
     },
     {
       label: "Cobertura hasta el siguiente ingreso",
-      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} día(s)`,
-      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} día(s) en la sesión`,
+      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} ${current.coverageDays === 1 ? "día" : "días"}`,
+      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} ${Math.abs(coverageDelta) === 1 ? "día" : "días"} en la sesión`,
     },
     {
       label: "Fecha libre de deuda",

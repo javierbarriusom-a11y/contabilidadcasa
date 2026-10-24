@@ -5615,7 +5615,7 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
 
       await page.locator("#cierreSteps li").last().click();
       const firma = page.locator("#cierreStepBody");
-      await expect(firma).toContainText("Extracto incorporado · 5 movimiento(s)");
+      await expect(firma).toContainText("Extracto incorporado · 5 movimientos");
       await expect(firma).toContainText("Ninguna diferencia abierta");
       await expect(firma).toContainText("Ninguna cuenta descuadra · 1 sin conciliar");
       // Lo único que falta es la sesión: sin ella el RPC del cierre no se puede llamar.

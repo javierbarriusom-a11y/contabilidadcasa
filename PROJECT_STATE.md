@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 24 de octubre de 2026 (344): fechas y plurales que se leen a la primera
+
+- **Mismo encargo que la 343** (experiencia de usuario sin abrir paquetes). Sale de las capturas del barrido a 390 px.
+- **Fechas ambiguas.**
+  - «Vence el 23 nov 26», «Se esperaba el 19 oct 26»: el año de dos cifras se leía como un día. Nace `displayShortDate`: «19 oct» si es de este año y «8 ene 2027» si no.
+  - Se usa en lo que el usuario lee: cobertura de Hoy, vencimientos de las decisiones de Hoy y preguntas de cobros y cargos esperados.
+  - `shortDate` no cambia, porque sus etiquetas están fijadas en el oro del motor de fechas (WP-07, 493 casos).
+  - «Libre de deuda: sept 29» se leía como «29 de septiembre»: ahora «sept 2029». La etiqueta de mes «oct 26» se queda, porque es la convención de toda la app (156 líneas de pruebas).
+- **Plurales con paréntesis en el recorrido del cierre** («movimiento(s)», «día(s)», «cuenta(s) descuadran», «cosa(s)», «salto(s)», «hace N minuto(s)»):
+  - corregidos en Cierre, en la tarjeta de recálculo de Registrar y en la cobertura de Hoy;
+  - «Cobertura actual 0.9 meses» pasa a «0,9 meses».
+- **Queda para una tarea aparte:** ~60 decimales más con punto inglés y ~250 plurales con paréntesis en pantallas menos usadas.
+- **Pruebas:**
+  - Nueva: `tests/fechas-y-plurales-legibles.test.cjs` (4).
+  - Dos pruebas adaptadas a los textos nuevos (`r1-r4-registrar` y la e2e del ensayo del cierre).
+  - Cinco contextos de prueba reciben el doble de `displayShortDate` junto al de `shortDate`, sin tocar ninguna aserción.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6119/6119 (+4), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright, en el CI del PR.
+
 ## Cierre de sesión — 24 de octubre de 2026 (343): barrido móvil de todas las pantallas; los gráficos ya no se cortan al ver su tabla
 
 - **Qué pidió el hogar:** «adelanta con todo lo que puedas que no dependa de mí o del hogar, priorizando impacto en experiencia de usuario y funcionalidades». Las funcionalidades nuevas chocan con la regla de parada (confirmada el 23/10): esta sesión hace experiencia de usuario sin abrir paquetes nuevos (errores, pulido y el cambio de Hoy ya acordado) y propone al hogar qué abriría si levanta la regla.

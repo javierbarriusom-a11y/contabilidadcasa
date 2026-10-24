@@ -120,6 +120,7 @@ test("H-5 · homeDecisionCandidates incluye la candidata de importación cuando 
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtTargetDisplayName: () => "",
     money: () => "",
   });
@@ -139,6 +140,7 @@ test("H-5 · sin sesión de importación, homeDecisionCandidates no inventa ning
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,
+    displayShortDate: (v) => v,
     debtTargetDisplayName: () => "",
     money: () => "",
   });

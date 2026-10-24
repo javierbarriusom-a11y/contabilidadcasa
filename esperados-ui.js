@@ -88,12 +88,12 @@ function expectedItemHtml(item) {
 }
 
 function expectedItemText(item) {
-  const dateText = shortDate(item.expectedDate);
+  const dateText = displayShortDate(item.expectedDate);
   const late = `${item.daysLate} día${item.daysLate === 1 ? "" : "s"} de retraso`;
   if (item.kind === "income") {
     return `Se esperaba el ${dateText} (${late}) · previsto ${money(item.plannedAmount, true)}.${item.snoozeCount ? ` Llevas ${item.snoozeCount} aplazamiento(s).` : ""}`;
   }
-  const history = item.history.length ? ` Últimos cargos: ${item.history.map((point) => shortDate(point.date)).join(", ")}.` : "";
+  const history = item.history.length ? ` Últimos cargos: ${item.history.map((point) => displayShortDate(point.date)).join(", ")}.` : "";
   return `Solía cargarse hacia el ${dateText} (${late}) · ${money(item.plannedAmount, true)}.${history}${item.snoozeCount ? ` Llevas ${item.snoozeCount} aplazamiento(s).` : ""} Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.`;
 }
 
@@ -175,7 +175,7 @@ function answerExpectedMovement(itemId, response, typedAmount = null) {
   } else if (resolved.patch?.type === "moved") {
     message = `«${item.label}»: no se volverá a preguntar por ese recibo. La previsión sigue contando la salida.`;
   } else {
-    message = `Vale: te lo vuelvo a preguntar el ${shortDate(resolved.patch.until)}. Hasta entonces la previsión lo cuenta ese día.`;
+    message = `Vale: te lo vuelvo a preguntar el ${displayShortDate(resolved.patch.until)}. Hasta entonces la previsión lo cuenta ese día.`;
   }
   if (resolved.patch) saveExpectedAnswers(engine.prune(engine.applyPatch(previousAnswers, resolved.patch), today));
   expectedAmountEditing = "";

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-24-fechas-legibles",
+      fecha: "2026-10-24",
+      texto: "Fechas que se leen a la primera: «19 oct» o «8 ene 2027», no «19 oct 26». La fecha libre de deuda dice el año entero.",
+      href: "#home",
+    },
+    {
       id: "2026-10-24-graficos-tabla-movil",
       fecha: "2026-10-24",
       texto: "Gráficos en el móvil: «Ver como tabla» ya no corta el gráfico. La tabla se desplaza y el día se queda fijo a la izquierda.",

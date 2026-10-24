@@ -310,7 +310,7 @@ test("R-4 · con datos completos, la tarjeta muestra las cuatro cifras reales", 
   });
   const figures = registrarRecalcFigures();
   assert.equal(figures.find((item) => item.label === "Margen sobre la reserva protegida").value, "€1911.00");
-  assert.equal(figures.find((item) => item.label === "Días hasta el siguiente ingreso").value, "25 día(s)");
+  assert.equal(figures.find((item) => item.label === "Días hasta el siguiente ingreso").value, "25 días");
   assert.equal(figures.find((item) => item.label === "Fecha libre de deuda").value, "jul 29");
   assert.equal(figures.find((item) => item.label === "Peor mes del horizonte").value, "mes-2026-08 · €6080.55");
 });
