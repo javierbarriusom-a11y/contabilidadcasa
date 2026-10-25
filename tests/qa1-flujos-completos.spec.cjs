@@ -5387,6 +5387,49 @@ test.describe("Rediseño A4 · Importar v2", () => {
   }
 });
 
+// XDA-02 · PR-1: «Importar en un toque». Desde Movimientos (y desde el paso «Extracto» del repaso) el botón abre ya el selector
+// de archivos; al elegir, la revisión de Importar v2, y el medidor guarda los segundos del toque al extracto importado.
+test.describe("XDA-02 · Importar en un toque", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`de «Importar» en Movimientos al extracto importado, con el selector abierto a la primera, a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      const csv = ["Fecha;Concepto;Importe;Saldo", "01/10/2026;NOMINA FICTICIA;3000,00;4000,00", "02/10/2026;LUZ FICTICIA;-94,12;3905,88"].join("\n");
+      const boton = page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first();
+      const [selector] = await Promise.all([page.waitForEvent("filechooser"), boton.click()]);
+      await expect(page).toHaveURL(/#datos-importar$/);
+      await selector.setFiles({ name: "extracto.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-lineas")).toContainText("2 líneas reconocidas", { timeout: 15000 });
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      await v2.locator("[data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("2 movimientos importados", { timeout: 15000 });
+      const tiempos = await page.evaluate(() => FinanceMedidor.leer().tiempos["importar-v2"] || []);
+      expect(tiempos.length, "un tiempo del toque al importado").toBe(1);
+      expect(tiempos[0]).toBeGreaterThan(0);
+
+      // Con una revisión a medias, «Importar» la enseña y no abre el selector encima.
+      await v2.locator("[data-imp-v2-otro]").click();
+      const [segundo] = await Promise.all([page.waitForEvent("filechooser"), page.goto("/index.html#movements").then(() => page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first().click())]);
+      await segundo.setFiles({ name: "extracto2.csv", mimeType: "text/csv", buffer: Buffer.from(csv.replace("LUZ", "AGUA")) });
+      await expect(v2.locator(".imp-v2-lineas")).toBeVisible({ timeout: 15000 });
+      await page.goto("/index.html#movements");
+      let abierto = false;
+      page.once("filechooser", () => { abierto = true; });
+      await page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first().click();
+      await expect(v2.locator(".imp-v2-lineas")).toBeVisible({ timeout: 15000 });
+      await page.waitForTimeout(300);
+      expect(abierto, "no abre el selector sobre una revisión a medias").toBe(false);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // Rediseño A5: Clasificar por lotes desde la bandeja de Movimientos v2. Movimientos INVENTADOS.
 test.describe("Rediseño A5 · Clasificar por lotes", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

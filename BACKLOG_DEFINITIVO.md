@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**25/10/2026 · XDA-02 (buzón de extractos), decisión del hogar:** «adelante con el paso 0 y el PR-1, pero no aparcamos el buzón». Orden: **paso 0** (el hogar exporta octubre desde las apps del banco en el iPhone, lo importa y dice qué formatos da cada una; va dentro de H-22), **PR-1** «Importar en un toque» (hecho el 25/10, sin servidor: el botón abre ya el selector de archivos y el medidor guarda los segundos del toque al importado) y **PR-2**, el buzón en Supabase con Atajo, que se construye ya y cuyo **despliegue lo hace el hogar** (la función de servidor no se puede desplegar desde aquí). Aviso de Claude que el hogar conoce: con XDA-02 son **4 paquetes en curso** sobre un límite de 3 (rediseño, WP-23, Repaso y XDA-02); el hogar decide seguir.
+
 **24/10/2026 · el hogar levanta la regla de parada para funciones nuevas.** La primera es el **Repaso semanal** (B5 · XUX-03, §5.0): cinco pasos con cronómetro que convierten las tareas H-22 y H-23 en un hábito guiado y miden M-COSTE solos. Sigue el límite de 3 en curso: rediseño, WP-23 y el Repaso. Ese mismo día salieron el barrido móvil, las fechas legibles y los plurales y decimales unificados (#540), y el primer cambio de Hoy, que se activa el 25/10. El segundo (la entrada al Repaso en Hoy, solo con el de la semana por hacer) se publicó también el 24/10 y se activa el 1/11.
 
 **23/10/2026 · revisión de salida de la Ola 1: parar y revisar** (detalle en [`docs/REVISION_SALIDA_OLA1_2026-10-23.md`](docs/REVISION_SALIDA_OLA1_2026-10-23.md)). Construido 63,2 %, comprobado 0 %, ninguna lectura de M-HOY ni M-ADOP. El cuello de botella ya no es construir, sino que la app reciba datos. **Decisiones del hogar del día:**
@@ -143,6 +145,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 12 | RD-B5 | Repaso semanal (B5 · XUX-03): saldos, extracto, lo que vino, bandeja y listo, con cronómetro; M-COSTE medido solo | 7ª | 24/10 (regla de parada levantada) | **Hecho 24/10**; revisión en «Funciones en prueba» el 7/11. Se retira si se abandona a medias más de la mitad de las veces |
 | 13 | RD-HOY1 | Hoy, cambio 1: las preguntas de cobros y cargos esperados, a la bandeja de Movimientos (v2) | 7ª, §4 | 23/10 | **Hecho 24/10, activo desde el 25/10** (puerta de fecha) |
 | 14 | RD-HOY2 | Hoy, cambio 2: la entrada al Repaso semanal, solo mientras el de esa semana está por hacer (v2) | 7ª, §4 | 24/10 | **Hecho 24/10, activo desde el 1/11** (puerta de fecha). El cambio de la semana del 8/11, por decidir con lo medido |
+| 15 | XDA-02 | Buzón de extractos: paso 0 (formatos reales, H-22), PR-1 importar en un toque, PR-2 buzón en Supabase con Atajo | 7ª | 25/10 | **PR-1 hecho 25/10**; PR-2 en construcción (despliegue del hogar); paso 0 pendiente del hogar antes del 31/10 |
 
 ### 5.1 P0 — con fecha o habilitadora inmediata (Ola 1, 5/10 - 23/10/2026; la campaña fiscal se cierra antes del 15/11)
 

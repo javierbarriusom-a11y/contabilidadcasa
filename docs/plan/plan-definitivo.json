@@ -2051,7 +2051,7 @@
   },
   {
    "id": "H-22",
-   "que": "Importar el extracto de octubre de cada cuenta (Registrar › Importar extracto) y clasificar sus conceptos; si la lectura avisa de algo, copiar el diagnóstico",
+   "que": "Importar el extracto de octubre de cada cuenta, descargado desde la app del banco en el iPhone (Movimientos › Importar), y clasificar sus conceptos; anotar qué formatos ofrece cada app (Excel, CSV o PDF) y, si la lectura avisa de algo, copiar el diagnóstico (paso 0 de XDA-02)",
    "fecha": "2026-10-31",
    "para": [
     "WP-09",
