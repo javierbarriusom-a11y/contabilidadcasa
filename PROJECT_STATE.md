@@ -143,7 +143,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `tests/xda02-buzon-servidor.test.cjs` (8) y `tests/xda02-buzon-app.test.cjs` (8).
   - E2E con un Supabase falso en memoria: importar y salir del buzón a 390 y 1440 px, la importación a medias y preparar el Atajo (a la nube solo va el hash; la clave se ve una vez).
   - Axe del buzón y de la tarjeta del Atajo en claro y en oscuro.
-- **Validación:** __VAL349__.
+- **Validación:** `npm run verify` en verde: 6154 de 6154 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 238 de 238 en verde (14,1 min).
 
 ## Cierre de sesión — 25 de octubre de 2026 (348): XDA-02 · PR-1, importar en un toque
 
