@@ -2433,6 +2433,12 @@
 /* ---------- XDA-02 · Buzón de extractos (buzon-extractos.js) ----------
    Lo que espera en el buzón (Movimientos e Importar) y la tarjeta del Atajo (Importar). Reutiliza las tarjetas de
    Movimientos v2; aquí solo la lista, las acciones y los campos de la clave. */
+:root[data-tema="v2"] .buzon-pendientes,
+:root[data-tema="v2"] .buzon-atajo.is-nuevo {
+  box-sizing: border-box;
+  padding: 14px 16px;
+}
+
 :root[data-tema="v2"] .buzon-pendientes {
   display: grid;
   gap: 10px;
@@ -2469,6 +2475,21 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+:root[data-tema="v2"] .buzon-atajo.mov-v2-fila-bandeja {
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  cursor: default;
+}
+
+:root[data-tema="v2"] .buzon-atajo .mov-v2-main {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .buzon-atajo .buzon-acciones {
+  margin-left: auto;
 }
 
 :root[data-tema="v2"] .buzon-atajo.is-nuevo {

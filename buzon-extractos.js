@@ -255,7 +255,7 @@
     const mas = estado.pendientes.length > 3 ? `<p class="mov-v2-meta">Y ${estado.pendientes.length - 3} más: aparecen al importar estos.</p>` : "";
     const n = estado.pendientes.length;
     return `<section class="mov-v2-card buzon-pendientes" aria-label="Buzón de extractos">
-      <div class="mov-v2-section-head"><h3>${icono('<path d="M4 13h4l2 3h4l2-3h4M4 13l2-8h12l2 8v6H4z"></path>')} En el buzón</h3><span>${n} ${n === 1 ? "extracto" : "extractos"}</span></div>
+      <div class="mov-v2-section-head"><h3>En el buzón</h3><span>${n} ${n === 1 ? "extracto" : "extractos"}</span></div>
       <ul class="buzon-lista">${filas}</ul>${mas}
       ${estado.error ? `<p class="buzon-error" role="alert">${esc(estado.error)}</p>` : ""}
     </section>`;

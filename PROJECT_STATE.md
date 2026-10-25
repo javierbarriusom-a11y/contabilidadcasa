@@ -109,6 +109,42 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 25 de octubre de 2026 (349): XDA-02 · PR-2, buzón de extractos (construido, sin desplegar)
+
+- **Qué es:** un Atajo de iOS en la hoja Compartir de la app del banco («Enviar a Finanzas Casa») manda el extracto a una Edge Function de Supabase con una clave personal. El fichero espera en un bucket privado hasta que la app lo importa o, como tarde, 7 días.
+  - **Por qué hace falta Atajo y nube:** en el iPhone no se puede compartir un fichero a una web instalada, y un Atajo abre Safari, no la app.
+  - Diseño, seguridad y despliegue: `docs/XDA02_DISENO.md`.
+- **En la app** (tema v2, como el Repaso):
+  - **Movimientos e Importar** enseñan arriba «En el buzón · N extractos».
+  - **Importar** lo pasa al asistente de siempre (revisión, cuadre, duplicados, cuenta y confirmación). Una vez importado, sale del buzón.
+  - **Borrar** lo descarta. Un PDF solo se puede borrar hasta XDA-03.
+  - **Importación a medias:** no se pisa; avisa y el extracto sigue esperando.
+  - **En Importar:** «Preparar el Atajo» enseña una vez la dirección, la clave y los pasos para crearlo; también hay «Desactivar» y «Nuevo».
+  - **Sin sesión, o sin el esquema desplegado**, no se ve nada: la app lo detecta por el error de tabla inexistente y vuelve a mirar cada hora. Importar sigue con su «Aún no».
+- **Servidor** (`statement-inbox.js`, lógica en CommonJS probada con `npm test`; `supabase/functions/statement-inbox/index.ts`, solo cableado):
+  - **Clave:** solo como hash SHA-256; caduca a los 89 días como máximo. Un 401 igual para clave inexistente, revocada o caducada.
+  - **Petición:** solo POST, como mucho 2 MB (también por `content-length`). El tipo se decide por los primeros bytes: CSV o texto, Excel o PDF.
+  - **Límites:** 20 envíos al día por clave y 20 extractos esperando por usuario.
+  - **Registro:** sin token, sin nombre de fichero y sin contenido.
+  - **Interruptor:** `FINANCE_STATEMENT_INBOX_ENABLED`.
+  - **Limpieza:** cada envío borra lo caducado de ese usuario.
+- **Esquema** (final de `supabase_schema.sql`):
+  - Tablas `finance_statement_inbox_tokens` y `finance_statement_inbox` con RLS.
+  - El dueño no puede dar de alta en el buzón; solo marcar, borrar y revocar su clave (permisos por columna).
+  - Bucket privado `finance-statement-inbox` de 2 MB; al bucket solo sube la función.
+- **NTC-06:** RQ-01 a RQ-11 repasados uno a uno en `docs/XDA02_DISENO.md` §4. La fila del servidor de Supabase en §2 se amplía (no hay servidor nuevo) y el procedimiento de móvil perdido (§5) incluye desactivar el Atajo.
+  - **Quedan del hogar:** RQ-03, la prueba con dos cuentas, y RQ-11, las altas cerradas.
+- **Lo que falta, y es del hogar:** desplegar el esquema y la función y crear el Atajo (≈ 20 min). Es la nueva tarea H-34 del plan, del 8/11. Hasta entonces el buzón no se ve en la app.
+- **Avisos honestos:**
+  - La función no se ha podido ejecutar en un Deno real aquí, igual que `assistant-query`. Por eso el despliegue incluye pruebas con curl (201, 401, 413 y 415).
+  - El fichero llega en claro a la nube del hogar, porque el Atajo no puede cifrar. Puede llevar IBAN y titular, y por eso se borra al importarlo.
+  - Si se deshace el lote importado, el fichero ya no está en el buzón: hay que volver a compartirlo.
+- **Pruebas:**
+  - `tests/xda02-buzon-servidor.test.cjs` (8) y `tests/xda02-buzon-app.test.cjs` (8).
+  - E2E con un Supabase falso en memoria: importar y salir del buzón a 390 y 1440 px, la importación a medias y preparar el Atajo (a la nube solo va el hash; la clave se ve una vez).
+  - Axe del buzón y de la tarjeta del Atajo en claro y en oscuro.
+- **Validación:** __VAL349__.
+
 ## Cierre de sesión — 25 de octubre de 2026 (348): XDA-02 · PR-1, importar en un toque
 
 - **Qué decidió el hogar sobre XDA-02** (buzón de extractos desde la hoja Compartir): «adelante con el paso 0 y el PR-1, pero no aparcamos el buzón».
