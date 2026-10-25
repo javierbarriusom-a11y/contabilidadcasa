@@ -46,7 +46,7 @@ se sirven desde el mismo origen.
 
 | Servidor | Tipo | Para qué | Cuándo |
 |---|---|---|---|
-| `txlpeozcnpfzscotxhzu.supabase.co` | conexión | Sincronización opcional y función `assistant-query` (no desplegada) | Solo si el hogar inicia sesión |
+| `txlpeozcnpfzscotxhzu.supabase.co` | conexión | Sincronización opcional, función `assistant-query` (no desplegada) y buzón de extractos (XDA-02: la app lee y borra lo suyo del bucket `finance-statement-inbox`; la función `statement-inbox` la llama el Atajo, no la app; `docs/XDA02_DISENO.md`) | Solo si el hogar inicia sesión |
 | `cdn.jsdelivr.net` | conexión | Motor de lectura de tickets (Tesseract.js 5.1.1) | Solo al abrir la captura por cámara |
 | `www.openstreetmap.org` | enlace | Ver en el mapa dónde se hizo un gasto | Solo si se pulsa |
 | `www.boe.es` | enlace | Fuente de una norma fiscal | Solo si se pulsa |
@@ -127,7 +127,8 @@ El nivel 1 (abrir el enlace de WP-25 sin servidor) no necesita nada de esto.
    contraseña.
 3. Si hay conexión bancaria: **revocar el consentimiento** en la app del banco o en el portal de Enable Banking y
    **rotar la clave** de la aplicación. El servidor deja de poder leer al instante.
-4. Si hay Atajo de nivel 2: revocar su token.
+4. Si hay Atajo de nivel 2: revocar su token. Si está el buzón de extractos (XDA-02): «Desactivar» en Importar desde
+   otro dispositivo, o borrar la fila de `finance_statement_inbox_tokens` en el panel de Supabase.
 5. Restaurar en el móvil nuevo desde la última copia.
 
 **Qué se lleva el atacante hoy:**

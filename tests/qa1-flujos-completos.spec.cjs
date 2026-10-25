@@ -5430,6 +5430,121 @@ test.describe("XDA-02 · Importar en un toque", () => {
   }
 });
 
+// XDA-02 · PR-2: el buzón de extractos con un Supabase FALSO en memoria (tablas y bucket mínimos; el servidor real se
+// prueba aparte). Un extracto que ha llegado por el Atajo sale en Movimientos, se importa con la revisión de siempre y sale
+// del buzón; en Importar se prepara el Atajo (a la nube solo va el hash) y se ve una vez la clave.
+async function buzonFalso(page, { items = [], tokens = [] } = {}) {
+  await page.evaluate(({ items, tokens }) => {
+    const db = { finance_statement_inbox: items, finance_statement_inbox_tokens: tokens };
+    const files = { "u-test/e1.csv": "Fecha;Concepto;Importe;Saldo\n01/10/2026;NOMINA FICTICIA;3000,00;4000,00\n02/10/2026;LUZ FICTICIA;-94,12;3905,88\n" };
+    const log = (window.__buzonLog = []);
+    const query = (table) => {
+      const q = { op: "select", filters: [], values: null };
+      const rows = () => (db[table] || []).filter((row) => q.filters.every(([k, op, v]) => (op === "eq" ? row[k] === v : op === "is" ? (row[k] ?? null) === v : op === "gt" ? String(row[k]) > String(v) : true)));
+      const api = {
+        select() { return api; }, order() { return api; }, limit() { return api; },
+        eq(k, v) { q.filters.push([k, "eq", v]); return api; }, is(k, v) { q.filters.push([k, "is", v]); return api; }, gt(k, v) { q.filters.push([k, "gt", v]); return api; },
+        update(values) { q.op = "update"; q.values = values; return api; }, delete() { q.op = "delete"; return api; },
+        insert(values) { q.op = "insert"; q.values = values; return api; },
+        then(resolve) {
+          log.push({ table, op: q.op, values: q.values, filters: q.filters });
+          if (q.op === "select") return resolve({ data: rows(), error: null });
+          if (q.op === "update") { rows().forEach((row) => Object.assign(row, q.values)); return resolve({ data: null, error: null }); }
+          if (q.op === "delete") { const out = new Set(rows()); db[table] = db[table].filter((row) => !out.has(row)); return resolve({ data: null, error: null }); }
+          db[table].push({ id: `tok-${db[table].length + 1}`, created_at: new Date().toISOString(), revoked_at: null, last_used_at: null, ...q.values });
+          return resolve({ data: null, error: null });
+        },
+      };
+      return api;
+    };
+    const fake = {
+      from: query,
+      storage: { from: () => ({
+        download: async (p) => (files[p] ? { data: new Blob([files[p]], { type: "text/csv" }), error: null } : { data: null, error: new Error("no") }),
+        remove: async (paths) => { log.push({ storage: "remove", paths }); paths.forEach((p) => delete files[p]); return { data: null, error: null }; },
+      }) },
+      rpc: async () => ({ data: null, error: null }),
+      auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+    };
+    supabaseClient = fake;
+    remoteUser = { id: "u-test", email: "prueba@ejemplo.invalid" };
+    window.SUPABASE_CONFIG = { url: "https://ejemplo.supabase.co", anonKey: "x" };
+  }, { items, tokens });
+  await page.evaluate(() => FinanceBuzon.refrescar({ forzar: true }));
+}
+
+test.describe("XDA-02 · Buzón de extractos (Supabase falso)", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`un extracto del buzón se importa con la revisión de siempre y sale del buzón, a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      const ahora = new Date();
+      await buzonFalso(page, { items: [{ id: "e1", user_id: "u-test", object_path: "u-test/e1.csv", file_name: "octubre.csv", kind: "csv", size_bytes: 120, received_at: new Date(ahora - 3600000).toISOString(), expires_at: new Date(+ahora + 6 * 86400000).toISOString(), imported_at: null }] });
+      const buzon = page.locator("#movimientosV2 .buzon-pendientes");
+      await expect(buzon).toContainText("1 extracto");
+      await expect(buzon).toContainText("octubre.csv");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await buzon.locator("[data-buzon-importar='e1']").click();
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-lineas")).toContainText("2 líneas reconocidas", { timeout: 15000 });
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      await v2.locator("[data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("2 movimientos importados", { timeout: 15000 });
+      await expect.poll(() => page.evaluate(() => window.__buzonLog.some((e) => e.storage === "remove" && e.paths.includes("u-test/e1.csv")))).toBe(true);
+      await expect.poll(() => page.evaluate(() => FinanceBuzon._estado.pendientes.length)).toBe(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con una importación a medias, traer del buzón no la pisa: avisa y el extracto sigue esperando", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#datos-importar");
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await page.setInputFiles("#registrarImportFileInput", { name: "a-medias.csv", mimeType: "text/csv", buffer: Buffer.from("Fecha;Concepto;Importe;Saldo\n03/10/2026;AGUA FICTICIA;-20,00;100,00\n") });
+    await expect(v2.locator(".imp-v2-lineas")).toContainText("1 línea reconocida", { timeout: 15000 });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    const ahora = new Date();
+    await buzonFalso(page, { items: [{ id: "e1", user_id: "u-test", object_path: "u-test/e1.csv", file_name: "octubre.csv", kind: "csv", size_bytes: 120, received_at: ahora.toISOString(), expires_at: new Date(+ahora + 86400000).toISOString(), imported_at: null }] });
+    await page.locator("#movimientosV2 [data-buzon-importar='e1']").click();
+    await expect(v2.locator(".buzon-aviso")).toContainText("Hay una importación a medias");
+    await expect(v2.locator(".imp-v2-lineas")).toContainText("1 línea reconocida");
+    expect(await page.evaluate(() => datosImportarSession?.fileMeta?.fileName)).toBe("a-medias.csv");
+    expect(await page.evaluate(() => FinanceBuzon._estado.pendientes.map((p) => p.id))).toEqual(["e1"]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("preparar el Atajo: a la nube solo va el hash, la clave se ve una vez y luego queda «Atajo activo»", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#datos-importar");
+    await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await buzonFalso(page);
+    const v2 = page.locator("#importarV2");
+    await v2.locator("[data-buzon-crear]").click();
+    const clave = v2.locator(".buzon-atajo.is-nuevo input").nth(1);
+    await expect(clave).toHaveValue(/^[A-Za-z0-9_-]{43}$/, { timeout: 15000 });
+    const token = await clave.inputValue();
+    const alta = await page.evaluate(() => window.__buzonLog.find((e) => e.op === "insert"));
+    expect(alta.values.token_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(await page.evaluate(() => window.__buzonLog))).not.toContain(token);
+    await expect(v2.locator(".buzon-atajo.is-nuevo input").first()).toHaveValue("https://ejemplo.supabase.co/functions/v1/statement-inbox");
+    await v2.locator("[data-buzon-copiado]").click();
+    await expect(v2.locator(".buzon-atajo")).toContainText("Atajo activo");
+    await expect(v2).not.toContainText(token);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // Rediseño A5: Clasificar por lotes desde la bandeja de Movimientos v2. Movimientos INVENTADOS.
 test.describe("Rediseño A5 · Clasificar por lotes", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

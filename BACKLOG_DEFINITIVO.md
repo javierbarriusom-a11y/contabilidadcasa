@@ -145,7 +145,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 12 | RD-B5 | Repaso semanal (B5 · XUX-03): saldos, extracto, lo que vino, bandeja y listo, con cronómetro; M-COSTE medido solo | 7ª | 24/10 (regla de parada levantada) | **Hecho 24/10**; revisión en «Funciones en prueba» el 7/11. Se retira si se abandona a medias más de la mitad de las veces |
 | 13 | RD-HOY1 | Hoy, cambio 1: las preguntas de cobros y cargos esperados, a la bandeja de Movimientos (v2) | 7ª, §4 | 23/10 | **Hecho 24/10, activo desde el 25/10** (puerta de fecha) |
 | 14 | RD-HOY2 | Hoy, cambio 2: la entrada al Repaso semanal, solo mientras el de esa semana está por hacer (v2) | 7ª, §4 | 24/10 | **Hecho 24/10, activo desde el 1/11** (puerta de fecha). El cambio de la semana del 8/11, por decidir con lo medido |
-| 15 | XDA-02 | Buzón de extractos: paso 0 (formatos reales, H-22), PR-1 importar en un toque, PR-2 buzón en Supabase con Atajo | 7ª | 25/10 | **PR-1 hecho 25/10**; PR-2 en construcción (despliegue del hogar); paso 0 pendiente del hogar antes del 31/10 |
+| 15 | XDA-02 | Buzón de extractos: paso 0 (formatos reales, H-22), PR-1 importar en un toque, PR-2 buzón en Supabase con Atajo | 7ª | 25/10 | **PR-1 hecho 25/10**; **PR-2 construido y probado el 25/10, sin desplegar**: lo despliega el hogar (H-34, `docs/XDA02_DISENO.md` §6); paso 0 pendiente del hogar antes del 31/10 |
 
 ### 5.1 P0 — con fecha o habilitadora inmediata (Ola 1, 5/10 - 23/10/2026; la campaña fiscal se cierra antes del 15/11)
 
