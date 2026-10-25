@@ -235,6 +235,37 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// XDA-02 · PR-2: el buzón de extractos (lo que espera y los datos del Atajo) en Importar, en claro y en oscuro. Sin red: el
+// estado del buzón se pone a mano con una sesión falsa.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-02 · contraste del buzón de extractos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#importarV2: sin fallos de contraste ni de accesibilidad en el buzón y en la tarjeta del Atajo", async ({ page }) => {
+      await page.goto("/index.html#datos-importar");
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        supabaseClient = { from: () => ({}), storage: { from: () => ({}) } };
+        remoteUser = { id: "u-test" };
+        window.SUPABASE_CONFIG = { url: "https://ejemplo.supabase.co", anonKey: "x" };
+        const e = FinanceBuzon._estado;
+        e.disponible = true;
+        e.cargadoEn = Date.now() + 3600000;
+        const ahora = new Date().toISOString();
+        e.pendientes = [{ id: "a", object_path: "u-test/a.csv", file_name: "octubre.csv", kind: "csv", received_at: ahora }, { id: "b", object_path: "u-test/b.pdf", file_name: "extracto.pdf", kind: "pdf", received_at: ahora }];
+        e.nuevoToken = "T".repeat(43);
+        e.aviso = "Extracto borrado del buzón.";
+        importarV2Render();
+      });
+      await expect(page.locator("#importarV2 .buzon-pendientes")).toBeVisible();
+      await expect(page.locator("#importarV2 .buzon-atajo.is-nuevo")).toBeVisible();
+      await page.locator("#importarV2 .buzon-pasos summary").click();
+      const results = await new AxeBuilder({ page }).include("#importarV2").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // Rediseño B5 · Repaso semanal: el paso de saldos (con una cuenta corrigiéndose) y el de extracto, en claro y en oscuro, móvil y escritorio.
 for (const scheme of ["light", "dark"]) {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

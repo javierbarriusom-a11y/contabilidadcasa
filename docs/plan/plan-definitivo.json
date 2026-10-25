@@ -2120,6 +2120,15 @@
    "minutos": 10
   },
   {
+   "id": "H-34",
+   "que": "Desplegar el buzón de extractos con tu cuenta de Supabase y crear el Atajo «Enviar a Finanzas Casa» (pasos en docs/XDA02_DISENO.md §6, con la prueba de dos cuentas)",
+   "fecha": "2026-11-08",
+   "para": [
+    "XDA-02"
+   ],
+   "minutos": 20
+  },
+  {
    "id": "H-07",
    "que": "Datos del contrato de la hipoteca en Deuda › Contratos",
    "fecha": "2026-11-13",
