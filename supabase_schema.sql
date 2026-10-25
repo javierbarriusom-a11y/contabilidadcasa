@@ -645,3 +645,83 @@ with check (bucket_id = 'finance-private-attachments' and (storage.foldername(na
 drop policy if exists finance_private_attachments_delete_own on storage.objects;
 create policy finance_private_attachments_delete_own on storage.objects for delete to authenticated
 using (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- XDA-02 · PR-2 (25/10/2026): buzón de extractos (docs/XDA02_DISENO.md). Un Atajo de iOS manda el extracto a la Edge
+-- Function `statement-inbox` con un token personal; la función (clave de servicio) lo guarda en un bucket privado y lo
+-- apunta aquí. La app lo lee, lo importa por el asistente de siempre y lo borra.
+-- RQ-01: el token solo se guarda como hash SHA-256 (el valor lo ve el hogar una vez, al crearlo).
+-- RQ-03: el dueño lee lo suyo; las altas del buzón solo las hace la función. Los tokens los crea y revoca el dueño.
+create table if not exists public.finance_statement_inbox_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  token_hash text not null unique check (token_hash ~ '^[0-9a-f]{64}$'),
+  label text not null default 'Atajo del iPhone' check (length(label) between 1 and 60),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  last_used_at timestamptz,
+  check (expires_at > created_at and expires_at <= created_at + interval '90 days')
+);
+
+create table if not exists public.finance_statement_inbox (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token_id uuid references public.finance_statement_inbox_tokens(id) on delete set null,
+  object_path text not null unique,
+  file_name text not null check (length(file_name) between 1 and 80),
+  kind text not null check (kind in ('csv','xls','xlsx','pdf')),
+  size_bytes integer not null check (size_bytes > 0 and size_bytes <= 2097152),
+  received_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  imported_at timestamptz,
+  check (expires_at <= received_at + interval '7 days'),
+  check (split_part(object_path, '/', 1) = user_id::text)
+);
+
+create index if not exists finance_statement_inbox_pending_idx
+  on public.finance_statement_inbox (user_id, received_at desc) where imported_at is null;
+create index if not exists finance_statement_inbox_token_idx
+  on public.finance_statement_inbox (token_id, received_at desc);
+
+alter table public.finance_statement_inbox_tokens enable row level security;
+alter table public.finance_statement_inbox enable row level security;
+
+drop policy if exists finance_statement_inbox_tokens_select_own on public.finance_statement_inbox_tokens;
+create policy finance_statement_inbox_tokens_select_own on public.finance_statement_inbox_tokens for select to authenticated
+using ((select auth.uid()) = user_id);
+drop policy if exists finance_statement_inbox_tokens_insert_own on public.finance_statement_inbox_tokens;
+create policy finance_statement_inbox_tokens_insert_own on public.finance_statement_inbox_tokens for insert to authenticated
+with check ((select auth.uid()) = user_id and revoked_at is null and last_used_at is null);
+drop policy if exists finance_statement_inbox_tokens_update_own on public.finance_statement_inbox_tokens;
+create policy finance_statement_inbox_tokens_update_own on public.finance_statement_inbox_tokens for update to authenticated
+using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+drop policy if exists finance_statement_inbox_select_own on public.finance_statement_inbox;
+create policy finance_statement_inbox_select_own on public.finance_statement_inbox for select to authenticated
+using ((select auth.uid()) = user_id);
+drop policy if exists finance_statement_inbox_update_own on public.finance_statement_inbox;
+create policy finance_statement_inbox_update_own on public.finance_statement_inbox for update to authenticated
+using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists finance_statement_inbox_delete_own on public.finance_statement_inbox;
+create policy finance_statement_inbox_delete_own on public.finance_statement_inbox for delete to authenticated
+using ((select auth.uid()) = user_id);
+
+-- Revocar es la única actualización que puede hacer el dueño en un token (no puede alargarlo ni cambiar su hash).
+grant select, insert on public.finance_statement_inbox_tokens to authenticated;
+grant update (revoked_at) on public.finance_statement_inbox_tokens to authenticated;
+-- El dueño marca lo importado y lo borra; no puede dar de alta (sin insert).
+grant select, delete on public.finance_statement_inbox to authenticated;
+grant update (imported_at) on public.finance_statement_inbox to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('finance-statement-inbox', 'finance-statement-inbox', false, 2097152, array['text/csv','application/pdf','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+on conflict (id) do update set public = false, file_size_limit = 2097152,
+  allowed_mime_types = array['text/csv','application/pdf','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+
+-- Solo leer y borrar lo propio: las subidas las hace la función con la clave de servicio (sin política de insert).
+drop policy if exists finance_statement_inbox_objects_select_own on storage.objects;
+create policy finance_statement_inbox_objects_select_own on storage.objects for select to authenticated
+using (bucket_id = 'finance-statement-inbox' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists finance_statement_inbox_objects_delete_own on storage.objects;
+create policy finance_statement_inbox_objects_delete_own on storage.objects for delete to authenticated
+using (bucket_id = 'finance-statement-inbox' and (storage.foldername(name))[1] = (select auth.uid())::text);

@@ -2429,3 +2429,93 @@
     justify-content: flex-end;
   }
 }
+
+/* ---------- XDA-02 · Buzón de extractos (buzon-extractos.js) ----------
+   Lo que espera en el buzón (Movimientos e Importar) y la tarjeta del Atajo (Importar). Reutiliza las tarjetas de
+   Movimientos v2; aquí solo la lista, las acciones y los campos de la clave. */
+:root[data-tema="v2"] .buzon-pendientes {
+  display: grid;
+  gap: 10px;
+}
+
+:root[data-tema="v2"] .buzon-lista {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .buzon-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .buzon-item:first-child {
+  border-top: 0;
+}
+
+:root[data-tema="v2"] .buzon-item .mov-v2-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .buzon-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .buzon-atajo.is-nuevo {
+  display: grid;
+  gap: 10px;
+}
+
+:root[data-tema="v2"] .buzon-campo {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .buzon-campo input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: 10px;
+  background: var(--e19-canvas);
+  color: var(--e19-ink);
+  font-family: var(--e19-font-mono);
+  font-size: 13px;
+}
+
+:root[data-tema="v2"] .buzon-pasos ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .buzon-aviso {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--e19-accent-soft);
+  color: var(--e19-ink);
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .buzon-error {
+  margin: 0;
+  color: var(--e19-danger);
+  font-size: 13px;
+}

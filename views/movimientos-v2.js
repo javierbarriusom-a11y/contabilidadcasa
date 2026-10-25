@@ -252,7 +252,15 @@ function movV2Empty() {
 }
 
 function movV2Pending() {
-  return `<p class="mov-v2-pending"><span class="mov-v2-dot" aria-hidden="true"></span>Aún no llegan solos: el extracto por Compartir, los cobros que el extracto confirma y la cobertura de 90 días por cuenta.</p>`;
+  const compartir = globalThis.FinanceBuzon?.disponible?.() ? "" : "el extracto por Compartir, ";
+  return `<p class="mov-v2-pending"><span class="mov-v2-dot" aria-hidden="true"></span>Aún no llegan solos: ${compartir}los cobros que el extracto confirma y la cobertura de 90 días por cuenta.</p>`;
+}
+
+// XDA-02 · PR-2: los extractos que han llegado por el Atajo y esperan a importarse (buzon-extractos.js). Arriba del todo,
+// porque es lo más fresco que tiene la pantalla; sin nada en el buzón, no ocupa sitio.
+function movV2Buzon() {
+  const buzon = globalThis.FinanceBuzon;
+  return `${buzon?.htmlAviso?.() || ""}${buzon?.htmlPendientes?.() || ""}`;
 }
 
 function movV2OpenDetail(index) {
@@ -336,11 +344,11 @@ function movimientosV2Render() {
   movV2BindOnce(bottom);
   if (!all.length) {
     movV2Shown = [];
-    top.innerHTML = `${movV2Header(false)}${movV2Repaso()}${movV2BandejaSoloEsperados(esperados)}${movV2Empty()}`;
+    top.innerHTML = `${movV2Header(false)}${movV2Buzon()}${movV2Repaso()}${movV2BandejaSoloEsperados(esperados)}${movV2Empty()}`;
     bottom.innerHTML = movV2DetailButton();
   } else {
     if (movV2Filter !== "todas" && movV2Filter !== "sin-partida" && !all.some((item) => item.account === movV2Filter)) movV2Filter = "todas";
-    top.innerHTML = `${movV2Header(true)}${movV2Repaso()}${movV2Bandeja(all, esperados)}`;
+    top.innerHTML = `${movV2Header(true)}${movV2Buzon()}${movV2Repaso()}${movV2Bandeja(all, esperados)}`;
     bottom.innerHTML = `${movV2Pending()}
       <div class="mov-v2-filtros">
         <input type="search" id="movV2Buscar" class="mov-v2-buscar${movV2SearchOpen || movV2Search ? " is-open" : ""}" placeholder="Buscar concepto, importe o partida" aria-label="Buscar concepto, importe o partida" value="${escapeHtml(movV2Search)}" />

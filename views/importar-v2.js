@@ -148,12 +148,16 @@ function impV2ClassicButton() {
 
 function impV2Sources() {
   const input = datosImportarTarget().fileInputId;
-  return `<label class="mov-v2-card mov-v2-fila-bandeja imp-v2-fuente" for="${input}">
+  // XDA-02 · PR-2: lo que espera en el buzón, arriba; el Atajo, debajo del CSV o Excel (buzon-extractos.js).
+  const buzon = globalThis.FinanceBuzon;
+  const atajo = buzon?.htmlAtajo?.() || ""; // vacío sin sesión o sin el buzón desplegado
+  return `${buzon?.htmlPendientes?.() || ""}<label class="mov-v2-card mov-v2-fila-bandeja imp-v2-fuente" for="${input}">
       <span class="mov-v2-av" aria-hidden="true">${impV2Icon('<path d="M4 5h16v14H4zM4 10h16M10 5v14"></path>')}</span>
       <span class="mov-v2-main"><strong>CSV o Excel</strong><span class="mov-v2-meta">El extracto que descargas del banco. El formato se detecta solo.</span></span>
       <span aria-hidden="true">›</span>
     </label>
-    ${impV2Pending("Aún no: desde la app del banco con Compartir y pegar el texto del PDF.")}`;
+    ${atajo}
+    ${impV2Pending(atajo ? "Aún no: pegar el texto del PDF." : "Aún no: desde la app del banco con Compartir y pegar el texto del PDF.")}`;
 }
 
 function impV2CuadreHtml(cuadre) {
@@ -322,6 +326,7 @@ function importarV2Render() {
     const segundos = impV2ToqueEn !== null ? (performance.now() - impV2ToqueEn) / 1000 : null;
     impV2ToqueEn = null;
     globalThis.FinanceMedidor?.anotar("importar-v2", "accion", { clave: datosImportarLastResult.batchId || `${datosImportarLastResult.fileName}-${datosImportarLastResult.imported}`, segundos });
+    globalThis.FinanceBuzon?.alImportar?.(datosImportarLastResult); // XDA-02 · PR-2: si venía del buzón, sale de él
     body = impV2Success(datosImportarLastResult);
   } else if (datosImportarSession) {
     globalThis.FinanceMedidor?.anotar("importar-v2", "vista");
@@ -332,7 +337,7 @@ function importarV2Render() {
     impV2ShowAll = false;
     body = impV2Sources();
   }
-  root.innerHTML = `${impV2Header()}${body}${impV2ClassicButton()}`;
+  root.innerHTML = `${impV2Header()}${globalThis.FinanceBuzon?.htmlAviso?.() || ""}${body}${impV2ClassicButton()}`;
   root.hidden = false;
   article?.classList.add("imp-v2-pintado");
 }
