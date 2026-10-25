@@ -274,6 +274,8 @@ function movV2BindOnce(root) {
     if (event.target.closest("[data-mov-v2-nav], [data-mov-v2-clasificar], [data-mov-v2-repaso], [data-mov-v2-filtro], [data-mov-v2-index], [data-home-expected]")) globalThis.FinanceMedidor?.anotar("movimientos-v2", "accion");
     else if (event.target.closest("[data-mov-v2-detail]") && !qs("movements")?.classList.contains(MOV_V2_DETAIL_CLASS)) globalThis.FinanceMedidor?.anotar("movimientos-v2", "descarte");
     const nav = event.target.closest("[data-mov-v2-nav]");
+    // XDA-02 · PR-1: «Importar» abre ya el selector de archivos (views/importar-v2.js).
+    if (nav?.dataset.movV2Nav === "datos-importar" && typeof globalThis.importarV2Elegir === "function") return globalThis.importarV2Elegir();
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
     const repaso = event.target.closest("[data-mov-v2-repaso]");
     if (repaso) return globalThis.repasoV2Open?.(repaso); // rediseño B5, views/repaso-v2.js

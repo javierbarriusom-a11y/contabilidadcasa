@@ -22,6 +22,7 @@ const IMP_V2_CLASSIC_CLASS = "imp-v2-clasico";
 const IMP_V2_PREVIEW = 8;
 
 let impV2ShowAll = false;
+let impV2ToqueEn = null; // XDA-02 · PR-1: cuándo se pulsó «Importar» fuera de esta pantalla (performance.now())
 
 function impV2Active() {
   return document.documentElement.dataset.tema === "v2";
@@ -317,7 +318,10 @@ function importarV2Render() {
   let body;
   // XGO-02: un extracto importado es la acción (una vez por lote, aunque se repinte); con un fichero cargado, la vista.
   if (datosImportarLastResult) {
-    globalThis.FinanceMedidor?.anotar("importar-v2", "accion", { clave: datosImportarLastResult.batchId || `${datosImportarLastResult.fileName}-${datosImportarLastResult.imported}` });
+    // XDA-02 · PR-1: si se llegó con un toque desde Movimientos o el repaso, también los segundos hasta aquí.
+    const segundos = impV2ToqueEn !== null ? (performance.now() - impV2ToqueEn) / 1000 : null;
+    impV2ToqueEn = null;
+    globalThis.FinanceMedidor?.anotar("importar-v2", "accion", { clave: datosImportarLastResult.batchId || `${datosImportarLastResult.fileName}-${datosImportarLastResult.imported}`, segundos });
     body = impV2Success(datosImportarLastResult);
   } else if (datosImportarSession) {
     globalThis.FinanceMedidor?.anotar("importar-v2", "vista");
@@ -333,4 +337,23 @@ function importarV2Render() {
   article?.classList.add("imp-v2-pintado");
 }
 
+// XDA-02 · PR-1 (25/10/2026): «Importar en un toque». Desde Movimientos y desde el paso «Extracto» del repaso, el botón
+// lleva a Importar y abre ya el selector de archivos (en el iPhone, lo recién descargado sale arriba); al elegir, se ve la
+// revisión. Una revisión a medias no se pisa: se enseña tal cual. Mide los segundos del toque al extracto importado, la
+// línea base contra la que se juzgará el buzón (PR-2). El clic sobre el input va dentro del mismo toque del usuario,
+// que es lo que exige Safari para abrir el selector.
+function importarV2Elegir() {
+  if (!(activeViewId === "registrar" && registrarActiveTab === "import")) impV2Navigate("datos-importar"); // lleva a Registrar › Importar
+  if (!impV2Active() || datosImportarSession) return;
+  if (datosImportarLastResult) {
+    datosImportarLastResult = null;
+    renderDatosImportar();
+  }
+  const input = qs(datosImportarTarget().fileInputId);
+  if (!input || input.disabled) return;
+  impV2ToqueEn = performance.now();
+  input.click();
+}
+
 globalThis.importarV2Render = importarV2Render;
+globalThis.importarV2Elegir = importarV2Elegir;

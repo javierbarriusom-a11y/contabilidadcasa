@@ -457,7 +457,10 @@ function repasoV2BindOnce(dialog) {
     }
     if (event.target.closest("[data-rep-v2-guardar]")) return repasoV2GuardarSaldos();
     if (event.target.closest("[data-rep-v2-seguir]")) return repasoV2Avanzar();
-    if (event.target.closest("[data-rep-v2-importar]")) return repasoV2IrA("datos-importar");
+    if (event.target.closest("[data-rep-v2-importar]")) {
+      repasoV2IrA("datos-importar");
+      return globalThis.importarV2Elegir?.(); // XDA-02 · PR-1: el selector de archivos se abre ya
+    }
     const clasificar = event.target.closest("[data-rep-v2-clasificar]");
     if (clasificar) return repasoV2Clasificar(clasificar);
     if (event.target.closest("[data-rep-v2-terminar]")) return repasoV2Cerrar();

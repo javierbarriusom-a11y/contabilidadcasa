@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-25-importar-un-toque",
+      fecha: "2026-10-25",
+      texto: "Importar en un toque: desde Movimientos o el repaso semanal, «Importar» abre ya el selector con lo último que descargaste.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-24-hoy-repaso",
       fecha: "2026-10-24",
       texto: "Desde el 1/11, Hoy te recuerda el repaso semanal mientras el de esa semana esté por hacer; hecho, desaparece.",

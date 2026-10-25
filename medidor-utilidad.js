@@ -149,6 +149,7 @@
     const partes = [`vista ${r.vistas} ${r.vistas === 1 ? "día" : "días"}`];
     if (f.accion) partes.push(`${cuenta(r.acciones, f.accion)}${r.tasa === null ? "" : ` (actuasteis el ${r.tasa} % de los días)`}`);
     if (id === "hoy-v2" && r.medianaSegundos !== null) partes.push(`${String(r.medianaSegundos).replace(".", ",")} s hasta la primera acción (mediana de ${r.veces})`);
+    if (id === "importar-v2" && r.medianaSegundos !== null) partes.push(`${String(Math.round(r.medianaSegundos)).replace(".", ",")} s del toque en «Importar» al extracto importado (mediana de ${r.veces})`);
     if (id === "repaso-v2" && r.medianaSegundos !== null) partes.push(`${String(Math.round((r.medianaSegundos / 60) * 10) / 10).replace(".", ",")} min por repaso (mediana de ${r.veces})`);
     if (f.descarte) partes.push(cuenta(r.descartes, f.descarte));
     if (f.deshecho) partes.push(cuenta(r.deshechos, f.deshecho));

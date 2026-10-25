@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 25 de octubre de 2026 (348): XDA-02 · PR-1, importar en un toque
+
+- **Qué decidió el hogar sobre XDA-02** (buzón de extractos desde la hoja Compartir): «adelante con el paso 0 y el PR-1, pero no aparcamos el buzón».
+  - **Propuesta de Claude, en la que se basa:** la mitad cara de importar (≈ 6 toques en la app del banco) no la toca ninguna opción. El buzón ahorra ≈ 3 de ≈ 13 toques, depende de un servidor que tiene que desplegar el hogar y de que la app lea el formato real del banco, y la app aún no ha leído ningún extracto real por el camino nuevo. En el iPhone no se puede compartir un fichero a una web instalada sin un Atajo.
+  - **Orden:** paso 0 (del hogar, dentro de H-22) → PR-1 (este) → PR-2, el buzón en Supabase.
+  - **Límite de paquetes:** con XDA-02 hay 4 en curso sobre un límite de 3. Claude lo avisó y el hogar decide seguir (`BACKLOG_DEFINITIVO.md` §0).
+- **Paso 0** (tarea H-22 ampliada en el plan): exportar octubre desde la app de cada banco en el iPhone, importarlo, anotar qué formatos ofrece cada app (Excel, CSV o PDF) y, si falla, copiar el diagnóstico. Decide si lo siguiente es adaptar el lector o XDA-03 (PDF).
+- **PR-1 · Importar en un toque** (`importarV2Elegir` en `views/importar-v2.js`):
+  - **Desde dónde:** «Importar» de Movimientos (cabecera y bloque sin movimientos) y el paso «Extracto» del repaso.
+  - **Qué hace:** lleva a Registrar › Importar y **abre ya el selector de archivos**, donde en el iPhone lo recién descargado sale arriba. Al elegir el fichero se pasa a la revisión.
+  - **Revisión a medias:** no se pisa; se enseña tal cual.
+  - **Medición:** el medidor guarda los segundos del toque al extracto importado («N s del toque en «Importar» al extracto importado», en Ajustes › Uso de la app). Es la línea base contra la que se juzgará el buzón.
+  - **Sin servidor y sin cambios en `app.js`.**
+- **Pruebas:**
+  - `tests/xda02-importar-un-toque.test.cjs` (3).
+  - E2E a 390 y 1440 px: el selector se abre a la primera (evento `filechooser`), se importa y se mide; con una revisión a medias no se abre encima.
+- **Validación:** `npm run verify` en verde: 6138 de 6138 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 232 de 232 en verde (14,1 min), sobre el commit del PR en una copia aparte.
+
 ## Cierre de sesión — 24 de octubre de 2026 (347): Hoy, cambio 2 · la entrada al Repaso semanal (activo desde el 1/11)
 
 - **Qué cambia:** con el tema v2, Hoy enseña una línea «Repaso de esta semana · unos 5 min» debajo de «Decidir esta semana».
