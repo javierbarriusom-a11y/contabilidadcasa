@@ -125,7 +125,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Pruebas:**
   - `tests/xda02-importar-un-toque.test.cjs` (3).
   - E2E a 390 y 1440 px: el selector se abre a la primera (evento `filechooser`), se importa y se mide; con una revisión a medias no se abre encima.
-- **Validación:** `npm run verify` en verde: 6138 de 6138 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): en curso; la cifra se anota al terminar.
+- **Validación:** `npm run verify` en verde: 6138 de 6138 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 232 de 232 en verde (14,1 min), sobre el commit del PR en una copia aparte.
 
 ## Cierre de sesión — 24 de octubre de 2026 (347): Hoy, cambio 2 · la entrada al Repaso semanal (activo desde el 1/11)
 
