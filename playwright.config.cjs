@@ -31,5 +31,8 @@ module.exports = defineConfig({
     { name: "a11y", testMatch: "opt4-axe-accessibility.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
     // P4: presupuesto de rendimiento por pantalla (tiempo de apertura + llamadas al desglose de planificación).
     { name: "perf-screens", testMatch: "p4-presupuesto-pantallas.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
+    // RD-WK (P14 del rediseño, 19/10/2026): las pruebas de las pantallas v2 a 390 px (etiqueta @safari en qa1) repetidas en
+    // WebKit, el motor del Safari del iPhone del hogar. Se instala aparte en el CI (`npx playwright install --with-deps webkit`).
+    { name: "safari", testMatch: "qa1-flujos-completos.spec.cjs", grep: /@safari/, use: { ...devices["iPhone 13"], browserName: "webkit", viewport: { width: 390, height: 844 } } },
   ],
 });
