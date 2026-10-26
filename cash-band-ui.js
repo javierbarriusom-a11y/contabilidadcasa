@@ -170,15 +170,29 @@ function cashBandGoToChargeDay(label) {
   globalThis.FinanceMedidor?.anotar("banda-dia", "accion"); // XGO-02: la métrica de la ficha (fechas corregidas desde aquí)
   qs("bandaDiaDialog")?.close?.();
   location.hash = "#planificacion-partidas";
-  setTimeout(() => {
+  // Al cambiar de pantalla, la app lleva el foco al título de la vista (focusActiveViewHeading, en el fotograma siguiente a pintarla) y Días
+  // de cargo rehace su lista al pintarse: un foco puesto antes se pierde. Se espera a que la ruta haya hecho lo suyo y se da por bueno
+  // cuando sigue en el selector dos comprobaciones seguidas (como mucho 3 s). En WebKit, más lento, un retardo fijo no bastaba (CI en Safari).
+  let tries = 0;
+  let stable = 0;
+  const focusChargeDay = () => {
+    tries += 1;
+    const routing = typeof pendingViewFocusId === "string" && pendingViewFocusId !== "";
     const card = qs("cargoDiaCard");
-    if (!card) return;
-    card.open = true;
-    const item = [...card.querySelectorAll(".cargo-dia-item")].find((li) => li.querySelector("strong")?.textContent.trim() === String(label).trim());
+    const item = card && [...card.querySelectorAll(".cargo-dia-item")].find((li) => li.querySelector("strong")?.textContent.trim() === String(label).trim());
     const target = item?.querySelector("[data-cargo-dia]") || qs("cargoDiaResumen");
-    target?.scrollIntoView({ block: "center" });
-    target?.focus();
-  }, 150);
+    if (!routing && card && target) {
+      card.open = true;
+      if (document.activeElement === target) stable += 1;
+      else {
+        stable = 0;
+        target.scrollIntoView({ block: "center" });
+        target.focus();
+      }
+    }
+    if (stable < 2 && tries < 30) setTimeout(focusChargeDay, 100);
+  };
+  setTimeout(focusChargeDay, 100);
 }
 
 function cashBandDayBindOnce() {
