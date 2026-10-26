@@ -133,7 +133,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Pruebas:**
   - `tests/xpr06-que-mueve-cada-dia.test.cjs` (5).
   - E2E «XPR-06 · Qué mueve cada día» a 390 y 1280 px. La de 390 también en Safari (`@safari`, RD-WK).
-- **Validación:** `npm run verify` en verde: 6201 de 6201 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): PW_RESULT. Proyecto `safari` con Chromium emulando el iPhone: 16 de 16 (+1, la e2e de XPR-06 a 390 px).
+- **Validación:** `npm run verify` en verde: 6201 de 6201 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 253 de 253 en verde (16,8 min; +2, la e2e de XPR-06 a 390 y 1280 px). **Antes de esa pasada hubo tres con un fallo cada una**, siempre en pruebas que XPR-06 no toca y nunca el mismo: dos veces el navegador se cerró entre pruebas y una vez la prueba de tiempos de WP-37 no vio el esqueleto de «cargando». Por separado pasan (WP-37, 12 de 12 repetida). La misma batería sobre `main` sin XPR-06 dio 251 de 251, y la cuarta con XPR-06, con la máquina sin nada más en marcha, 253 de 253. Las tres con fallo coincidieron con trabajo en paralelo en el contenedor (fusiones, descargas, capturas, registro de depuración del navegador): se atribuye a carga, no al cambio, pero queda anotado por si reaparece. Proyecto `safari` con Chromium emulando el iPhone: 16 de 16 (+1, la e2e de XPR-06 a 390 px).
 
 ## Cierre de sesión — 26 de octubre de 2026 (355): RD-WK, las pantallas v2 también en Safari
 
