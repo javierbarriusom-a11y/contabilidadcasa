@@ -79,7 +79,7 @@ test("sin fichero: la tarjeta CSV abre el input de siempre y lo que no existe va
   context.importarV2Render();
   const html = element("importarV2").innerHTML;
   assert.match(html, /<label class="[^"]*imp-v2-fuente" for="registrarImportFileInput">/);
-  assert.match(html, /Aún no: desde la app del banco con Compartir y pegar el texto del PDF/);
+  assert.match(html, /Aún no: desde la app del banco con Compartir\./); // el texto del PDF ya existe (XDA-03, extracto-pdf-ui.js)
   assert.match(html, /data-imp-v2-clasico/);
   assert.ok(element("importarV2").article.classList.contains("imp-v2-pintado"));
 });
