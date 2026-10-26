@@ -6,6 +6,7 @@
 // No hay llamadas al DOM ni escuchas al cargarse: app.js llama a `renderCashBand` al pintar Previsión.
 
 let cashBandRenderedKey = ""; // lo último pintado: repintar igual borraría la lectura y el foco del gráfico que se está recorriendo
+let cashBandLastInput = null; // XPR-06: las entradas de la banda pintada, para desglosar el día elegido con las mismas
 
 // Los movimientos fechados del plan (los que ya reparte el motor diario) y los saldos declarados. Devuelve null si no hay nada que simular.
 function cashBandInput(today) {
@@ -62,8 +63,12 @@ function cashBandHtml(engine, result, input) {
     input.floor === null ? "" : `El suelo de liquidez es ${money(input.floor, true)} (Ajustes).`,
   ].filter(Boolean).map((text) => `<p class="e19-kpi-note">${text}</p>`).join("");
   const legend = `<ul class="ck-leyenda"><li>Mediana (P50)</li><li class="ck-leyenda-banda">Banda P10-P90</li>${input.floor === null ? "" : `<li class="ck-leyenda-umbral">Suelo (${escapeHtml(money(input.floor, true))})</li>`}</ul>`;
+  // XPR-06, con su interruptor encendido: «Qué mueve el …» abre el desglose del día elegido en el recorrido (de entrada, hoy).
+  const dayButton = cashBandDayOn()
+    ? `<p class="banda-dia-abrir" data-banda-dia-fechas="${escapeHtml(JSON.stringify(shown.map((day) => day.date)))}"><button type="button" class="e19-btn e19-btn-secondary" data-banda-dia="${escapeHtml(shown[0].date)}">${escapeHtml(cashBandDayButtonText(engine, shown[0].date))}</button></p>`
+    : "";
   return `<p class="ck-frase">${escapeHtml(result.sentence)}</p>${kit.figureHtml({
-    id: "cash-band", plotHtml: plot.svg, plotClass: "ck-plot-media", belowPlotHtml: cashBandTicks(shown) + legend, readings, xs: plot.xs,
+    id: "cash-band", plotHtml: plot.svg, plotClass: "ck-plot-media", belowPlotHtml: cashBandTicks(shown) + legend + dayButton, readings, xs: plot.xs,
     sliderLabel: "Recorrer la banda de caja día a día", noteHtml: notes,
     table: { caption: "Liquidez de los próximos 30 días: banda P10-P90 y trayectoria del plan", columns: ["Día", "P10", "P50", "P90", "Según el plan"], rows: shown.map((day) => [engine.dateLabel(day.date), money(day.p10, true), money(day.p50, true), money(day.p90, true), money(day.central, true)]) },
   })}`;
@@ -87,9 +92,11 @@ function renderCashBand(engine) {
       if (cashBandRenderedKey !== "empty") { box.innerHTML = empty; cashBandRenderedKey = "empty"; }
       return;
     }
-    const key = [input.asOf, input.today, input.openingTotal, input.floor, input.declared, input.events.map((event) => `${event.date}${event.kind}${event.amount}${event.confidence}${event.spread ? "s" : ""}`).join(",")].join("|");
+    const key = [input.asOf, input.today, input.openingTotal, input.floor, input.declared, cashBandDayOn(), input.events.map((event) => `${event.date}${event.kind}${event.amount}${event.confidence}${event.spread ? "s" : ""}`).join(",")].join("|");
     if (key === cashBandRenderedKey && box.firstElementChild) return;
     const result = engine.simulate(input);
+    cashBandLastInput = input;
+    cashBandDayBindOnce();
     if (qs("previsionBandaResumen")) qs("previsionBandaResumen").textContent = cashBandSummary(engine, result);
     box.innerHTML = result.status === "ok"
       ? cashBandHtml(engine, result, input)
@@ -98,4 +105,115 @@ function renderCashBand(engine) {
   } catch (error) {
     console.error(`renderCashBand: ${error.message}`);
   }
+}
+
+// ---- XPR-06 · «Toca un día y mira qué lo mueve» (ficha XPR-06 de docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md) ----
+// Nace apagada en Funciones en prueba (XGO-03): sin encenderla, la banda se pinta como siempre. Encendida, debajo del gráfico va
+// «Qué mueve el …», que sigue al día elegido en el recorrido y abre una hoja con el saldo al empezar el día según el plan, lo que entra
+// y sale ese día con su certeza, lo que toca del gasto repartido por el mes y el saldo al acabar. El cálculo es `dayBreakdown` de
+// canonical-cash-band.js (la columna «Según el plan» de la tabla, desglosada). Los de fecha estimada dicen entre qué días los mueve la
+// banda y llevan «¿Sabes el día?» a su partida en Días de cargo (WP-08). Corregir el importe desde aquí queda fuera de esta entrega.
+
+const CASH_BAND_CERTEZA = { observed: "fecha cierta", rule: "fecha por regla", declared: "día indicado por ti", estimated: "fecha estimada" };
+let cashBandDayBound = false;
+
+function cashBandDayOn() {
+  return globalThis.FinanceFuncionesEnPrueba?.encendida?.("banda-dia") === true;
+}
+
+function cashBandDayButtonText(engine, date) {
+  return `Qué mueve el ${engine.dateLabel(date)}`;
+}
+
+function cashBandSigned(value) {
+  return value > 0 ? `+${money(value, true)}` : money(value, true);
+}
+
+function cashBandDayHtml(engine, day) {
+  const items = day.items.map((item) => {
+    const certeza = CASH_BAND_CERTEZA[item.confidence] || CASH_BAND_CERTEZA.estimated;
+    const atrasado = item.overdue ? ` (se suponía el ${engine.dateLabel(item.planned)}; el plan lo sigue dando por pendiente)` : "";
+    const tramo = item.window && (item.window.from !== item.window.to) ? ` · puede caer ${engine.whenLabel(item.window.from, item.window.to)}` : "";
+    const cargo = item.confidence === "estimated" && item.kind === "outflow"
+      ? ` <button type="button" class="banda-dia-cargo" data-banda-dia-cargo="${escapeHtml(item.label)}">¿Sabes el día?</button>`
+      : "";
+    return `<li class="banda-dia-item"><span class="banda-dia-importe${item.signed > 0 ? " is-pos" : ""}">${escapeHtml(cashBandSigned(item.signed))}</span><span class="banda-dia-texto"><strong>${escapeHtml(item.label || "Sin nombre")}</strong><span class="banda-dia-certeza">${escapeHtml(certeza + atrasado + tramo)}</span>${cargo}</span></li>`;
+  });
+  if (day.spread.amount > 0) {
+    const de = day.spread.labels.length ? ` (${day.spread.labels.join(", ")})` : "";
+    items.push(`<li class="banda-dia-item"><span class="banda-dia-importe">${escapeHtml(cashBandSigned(-day.spread.amount))}</span><span class="banda-dia-texto"><strong>Lo de este día del gasto que llega repartido por el mes${escapeHtml(de)}</strong><span class="banda-dia-certeza">repartido por igual entre los días que quedan del mes</span></span></li>`);
+  }
+  const lista = items.length
+    ? `<ul class="banda-dia-lista" aria-label="Lo que entra y sale ese día">${items.join("")}</ul>`
+    : `<p class="banda-dia-nada">Ese día el plan no mueve nada: el saldo sigue igual.</p>`;
+  return `<h2 id="bandaDiaTitulo">Qué mueve el ${escapeHtml(engine.dateLabel(day.date))}</h2>
+    <p class="banda-dia-saldo">Al empezar el día, según el plan: <strong>${escapeHtml(money(day.opening, true))}</strong></p>
+    ${lista}
+    <p class="banda-dia-saldo">Al acabar el día, según el plan: <strong>${escapeHtml(money(day.closing, true))}</strong></p>
+    <p class="e19-kpi-note">Es la columna «Según el plan» de la tabla, desglosada: cada cosa en el día que supone el plan. La banda P10-P90 además mueve las de fecha estimada de un día a otro entre trayectorias.</p>`;
+}
+
+function cashBandOpenDay(date) {
+  const engine = globalThis.FinanceCanonicalCashBand;
+  const dialog = qs("bandaDiaDialog");
+  if (!engine || !dialog || !cashBandLastInput) return;
+  const day = engine.dayBreakdown(cashBandLastInput, date);
+  if (!day) return;
+  qs("bandaDiaContenido").innerHTML = cashBandDayHtml(engine, day);
+  globalThis.FinanceMedidor?.anotar("banda-dia", "vista"); // XGO-02
+  if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+  qs("bandaDiaCerrar")?.focus();
+}
+
+// «¿Sabes el día?»: a Días de cargo (Plan › Partidas), abierta y con el foco en el selector de esa partida si se encuentra por su nombre.
+function cashBandGoToChargeDay(label) {
+  globalThis.FinanceMedidor?.anotar("banda-dia", "accion"); // XGO-02: la métrica de la ficha (fechas corregidas desde aquí)
+  qs("bandaDiaDialog")?.close?.();
+  location.hash = "#planificacion-partidas";
+  // Al cambiar de pantalla, la app lleva el foco al título de la vista (focusActiveViewHeading, en el fotograma siguiente a pintarla) y Días
+  // de cargo rehace su lista al pintarse: un foco puesto antes se pierde. Se espera a que la ruta haya hecho lo suyo y se da por bueno
+  // cuando sigue en el selector dos comprobaciones seguidas (como mucho 3 s). En WebKit, más lento, un retardo fijo no bastaba (CI en Safari).
+  let tries = 0;
+  let stable = 0;
+  const focusChargeDay = () => {
+    tries += 1;
+    const routing = typeof pendingViewFocusId === "string" && pendingViewFocusId !== "";
+    const card = qs("cargoDiaCard");
+    const item = card && [...card.querySelectorAll(".cargo-dia-item")].find((li) => li.querySelector("strong")?.textContent.trim() === String(label).trim());
+    const target = item?.querySelector("[data-cargo-dia]") || qs("cargoDiaResumen");
+    if (!routing && card && target) {
+      card.open = true;
+      if (document.activeElement === target) stable += 1;
+      else {
+        stable = 0;
+        target.scrollIntoView({ block: "center" });
+        target.focus();
+      }
+    }
+    if (stable < 2 && tries < 30) setTimeout(focusChargeDay, 100);
+  };
+  setTimeout(focusChargeDay, 100);
+}
+
+function cashBandDayBindOnce() {
+  if (cashBandDayBound) return;
+  cashBandDayBound = true;
+  document.addEventListener("ck-select", (event) => {
+    const figure = event.target.closest?.("#previsionBanda");
+    const holder = figure?.querySelector("[data-banda-dia-fechas]");
+    const button = holder?.querySelector("[data-banda-dia]");
+    const engine = globalThis.FinanceCanonicalCashBand;
+    if (!button || !engine) return;
+    const date = JSON.parse(holder.dataset.bandaDiaFechas || "[]")[event.detail?.index];
+    if (!date) return;
+    button.dataset.bandaDia = date;
+    button.textContent = cashBandDayButtonText(engine, date);
+  });
+  document.addEventListener("click", (event) => {
+    const open = event.target.closest?.("[data-banda-dia]");
+    if (open) return cashBandOpenDay(open.dataset.bandaDia);
+    const cargo = event.target.closest?.("[data-banda-dia-cargo]");
+    if (cargo) return cashBandGoToChargeDay(cargo.dataset.bandaDiaCargo);
+    if (event.target.closest?.("#bandaDiaCerrar")) qs("bandaDiaDialog")?.close?.();
+  });
 }

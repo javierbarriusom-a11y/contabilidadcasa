@@ -148,30 +148,39 @@
    *   window?: {from: number, to: number}, trajectories?: number, seed?: number
    * }} input
    */
-  function simulate(input = {}) {
+  // Lo común a la simulación y al desglose de un día: entradas validadas, eventos normalizados y el día (desde el saldo) en que el plan
+  // pone cada uno. `missing` no vacío = no se puede calcular.
+  function prepare(input) {
     const asOf = utc(input.asOf) ? isoOf(utc(input.asOf)) : "";
     const missing = [];
     if (!asOf) missing.push("la fecha de los saldos");
     if (!isFiniteNumber(input.openingTotal)) missing.push("el saldo de partida");
-    if (missing.length) return { schemaId: SCHEMA_ID, status: "missing", missing, asOf: asOf || null, days: [], crossing: null, minimum: null, dateCertainty: null, quality: "none", sentence: "" };
-
+    if (missing.length) return { asOf, missing };
     const horizonDays = Math.max(1, Math.min(120, Math.round(Number(input.horizonDays) || DEFAULT_HORIZON_DAYS)));
-    const trajectories = Math.max(50, Math.min(MAX_TRAJECTORIES, Math.round(Number(input.trajectories) || DEFAULT_TRAJECTORIES)));
-    const openingTotal = round2(Number(input.openingTotal));
-    const floor = isFiniteNumber(input.floor) ? round2(Number(input.floor)) : null;
     const endIso = addDays(asOf, horizonDays);
     const window = input.window && Number.isFinite(input.window.from) && Number.isFinite(input.window.to) && input.window.from <= input.window.to ? input.window : DEFAULT_WINDOW;
     const events = normalizeEvents(input.events, asOf, endIso);
-    const random = createRandom(input.seed ?? 1);
     const dayCount = horizonDays + 1; // asOf incluido
-
-    // Trayectoria «central»: cada evento en su fecha tal como la supone el plan (los estimados, en la que ya traían, no antes del saldo).
+    // El día de la trayectoria «central»: cada evento en su fecha tal como la supone el plan (los estimados, en la que ya traían, no antes del saldo).
+    const planDay = (event) => Math.max(0, dayDiff(asOf, event.date < asOf ? asOf : event.date));
     const centralDelta = new Array(dayCount).fill(0);
     events.forEach((event) => {
       if (event.spread) { spreadShares(event, asOf, dayCount).forEach((share) => { centralDelta[share.index] -= share.amount; }); return; }
-      const at = Math.max(0, dayDiff(asOf, event.date < asOf ? asOf : event.date));
+      const at = planDay(event);
       if (at < dayCount) centralDelta[at] += event.signed;
     });
+    return { asOf, missing, horizonDays, endIso, window, events, dayCount, planDay, centralDelta, openingTotal: round2(Number(input.openingTotal)) };
+  }
+
+  function simulate(input = {}) {
+    const prepared = prepare(input);
+    const { asOf, missing } = prepared;
+    if (missing.length) return { schemaId: SCHEMA_ID, status: "missing", missing, asOf: asOf || null, days: [], crossing: null, minimum: null, dateCertainty: null, quality: "none", sentence: "" };
+
+    const { horizonDays, endIso, window, events, dayCount, centralDelta, openingTotal } = prepared;
+    const trajectories = Math.max(50, Math.min(MAX_TRAJECTORIES, Math.round(Number(input.trajectories) || DEFAULT_TRAJECTORIES)));
+    const floor = isFiniteNumber(input.floor) ? round2(Number(input.floor)) : null;
+    const random = createRandom(input.seed ?? 1);
 
     const estimated = events.map((event) => event.confidence === "estimated" && !event.spread ? estimatedWindow(event.date, asOf, endIso, window) : null);
     const endOfDay = Array.from({ length: dayCount }, () => new Float64Array(trajectories));
@@ -273,6 +282,41 @@
     return result;
   }
 
+  /**
+   * XPR-06 («Toca un día y mira qué lo mueve»): lo que compone un día de la trayectoria «según el plan» (la columna `central` de
+   * `simulate`, con las mismas entradas): el saldo al empezarlo, cada entrada y salida que el plan pone ese día con su certeza, lo que toca
+   * ese día del gasto repartido por el mes y el saldo al acabarlo. Para los de fecha estimada, también el tramo en que la banda los mueve.
+   * Solo lee; `null` si no se puede calcular o el día queda fuera del horizonte.
+   * @returns {null|{date: string, opening: number, closing: number, items: Array<{id: string, label: string, kind: string, amount: number,
+   *   signed: number, confidence: string, window: {from: string, to: string}|null, planned: string, overdue: boolean}>, spread: {amount: number, labels: string[]}}}
+   */
+  function dayBreakdown(input = {}, date) {
+    const prepared = prepare(input);
+    if (prepared.missing.length || !utc(date)) return null;
+    const { asOf, endIso, window, events, dayCount, planDay, centralDelta, openingTotal } = prepared;
+    const at = dayDiff(asOf, isoOf(utc(date)));
+    if (at < 0 || at >= dayCount) return null;
+    const opening = round2(centralDelta.slice(0, at).reduce((sum, delta) => sum + delta, openingTotal));
+    const items = events
+      .filter((event) => !event.spread && planDay(event) === at)
+      .map((event) => ({
+        id: event.id, label: event.label, kind: event.kind, amount: round2(event.amount), signed: round2(event.signed), confidence: event.confidence,
+        window: event.confidence === "estimated" ? estimatedWindow(event.date, asOf, endIso, window) : null,
+        planned: event.date, // el día que supone el plan (en un estimado atrasado, anterior al de hoy)
+        overdue: event.date < asOf, // estimado de antes del saldo que el plan aún da por pendiente: lo pone hoy
+      }))
+      .sort((left, right) => left.signed - right.signed); // primero lo que sale, como dentro de un día en la simulación
+    let spreadAmount = 0;
+    const spreadLabels = [];
+    events.filter((event) => event.spread).forEach((event) => {
+      const share = spreadShares(event, asOf, dayCount).find((item) => item.index === at);
+      if (!share) return;
+      spreadAmount += share.amount;
+      if (event.label && !spreadLabels.includes(event.label)) spreadLabels.push(event.label);
+    });
+    return { date: addDays(asOf, at), opening, closing: round2(opening + centralDelta[at]), items, spread: { amount: round2(spreadAmount), labels: spreadLabels } };
+  }
+
   /** «3 de cada 10 trayectorias» es más legible que «31 %»; con pocas, el porcentaje. */
   function outOfTen(probability) {
     const tenths = Math.round(probability * 10);
@@ -301,5 +345,5 @@
     return parts.join(" ");
   }
 
-  return Object.freeze({ SCHEMA_ID, DEFAULT_HORIZON_DAYS, DEFAULT_TRAJECTORIES, DEFAULT_WINDOW, WIDE_ESTIMATED_SHARE, createRandom, percentile, simulate, sentenceFor, dateLabel, whenLabel });
+  return Object.freeze({ SCHEMA_ID, DEFAULT_HORIZON_DAYS, DEFAULT_TRAJECTORIES, DEFAULT_WINDOW, WIDE_ESTIMATED_SHARE, createRandom, percentile, simulate, dayBreakdown, sentenceFor, dateLabel, whenLabel });
 });

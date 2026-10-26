@@ -24,6 +24,8 @@
   const STORAGE_KEY = "funciones-en-prueba";
   const REVISION_DIAS = 14;
   const VOLVER_KEY = "funciones-en-prueba-volver";
+  // Interruptores propios (`interruptor: "propio"`): encendida o no y desde cuándo, en este navegador. Nacen apagados.
+  const BANDERAS_KEY = "funciones-en-prueba-banderas";
 
   // Todo lo nuevo entra aquí. `interruptor: "tema"` es el diseño nuevo; `parteDe` dice con qué interruptor va una
   // función que aún no tiene bandera propia. Una función nueva con bandera propia nace apagada (ficha XGO-03).
@@ -34,6 +36,8 @@
     { id: "importar-v2", nombre: "Importar en tres pasos", queHace: "Elegir, revisar con cuadre e importar con deshacer.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "gasto importado con partida (95 % o más), propuestas aceptadas tal cual y segundos por grupo (4 o menos)", parteDe: "tema-v2" },
     { id: "repaso-v2", nombre: "Repaso semanal", queHace: "Saldos, extracto, lo que vino y la bandeja, en orden y con cronómetro.", desde: "2026-10-24", metrica: "minutos de mantenimiento a la semana (10 o menos)", parteDe: "tema-v2" },
+    // XPR-06 (26/10/2026): la primera con interruptor propio; su revisión cuenta desde el día en que se enciende.
+    { id: "banda-dia", nombre: "Qué mueve cada día", queHace: "En Plan › Previsión, la banda de caja a 30 días dice qué entra y sale el día que elijas, con qué certeza y, si la fecha es estimada, dónde indicarla.", desde: "2026-10-26", metrica: "días de cargo indicados desde aquí; se retira si nadie lo usa en dos meses", interruptor: "propio" },
   ];
 
   function isoDate(date) {
@@ -69,18 +73,39 @@
     }
   }
 
-  // Estado de una función hoy: graduada (con fecha) o en prueba, con su fecha de revisión y si ya toca. Una función
-  // que va con un interruptor apagado no pide revisión: no se está probando.
-  function estadoDe(item, decisions = {}, hoy = isoDate(new Date()), encendidas = {}) {
-    const decision = decisions[item.id] || {};
-    if (decision.estado === "graduada") return { estado: "graduada", fecha: decision.fecha || "" };
-    const revision = addDays(decision.revisarDesde || item.desde, REVISION_DIAS);
-    const activa = item.parteDe ? Boolean(encendidas[item.parteDe]) : item.interruptor ? Boolean(encendidas[item.id]) : true;
-    return { estado: "en-prueba", desde: item.desde, revision, activa, tocaRevisar: activa && hoy >= revision };
+  function readBanderas(storage) {
+    try {
+      const parsed = JSON.parse(storage?.getItem(BANDERAS_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
   }
 
-  function porRevisar(decisions, hoy, encendidas, catalogo = CATALOGO) {
-    return catalogo.filter((item) => estadoDe(item, decisions, hoy, encendidas).tocaRevisar);
+  // Enciende o apaga un interruptor propio. Encender anota el día: la prueba (y su revisión) empieza entonces, no al publicarse.
+  function cambiarBandera(banderas, id, encender, hoy) {
+    return { ...banderas, [id]: encender ? { on: true, desde: hoy } : { on: false } };
+  }
+
+  /** Si una función con interruptor propio está encendida en este navegador (las demás no se preguntan aquí). */
+  function encendida(id, storage = safeStorage()) {
+    return readBanderas(storage)[id]?.on === true;
+  }
+
+  // Estado de una función hoy: graduada (con fecha) o en prueba, con su fecha de revisión y si ya toca. Una función
+  // que va con un interruptor apagado no pide revisión: no se está probando. Con interruptor propio, la prueba empieza
+  // el día en que se encendió (`banderas`).
+  function estadoDe(item, decisions = {}, hoy = isoDate(new Date()), encendidas = {}, banderas = {}) {
+    const decision = decisions[item.id] || {};
+    if (decision.estado === "graduada") return { estado: "graduada", fecha: decision.fecha || "" };
+    const desde = item.interruptor === "propio" ? banderas[item.id]?.desde || item.desde : item.desde;
+    const revision = addDays(decision.revisarDesde || desde, REVISION_DIAS);
+    const activa = item.parteDe ? Boolean(encendidas[item.parteDe]) : item.interruptor ? Boolean(encendidas[item.id]) : true;
+    return { estado: "en-prueba", desde, revision, activa, tocaRevisar: activa && hoy >= revision };
+  }
+
+  function porRevisar(decisions, hoy, encendidas, catalogo = CATALOGO, banderas = {}) {
+    return catalogo.filter((item) => estadoDe(item, decisions, hoy, encendidas, banderas).tocaRevisar);
   }
 
   function graduar(decisions, id, hoy) {
@@ -109,7 +134,7 @@
     const head = `<span class="fep-texto"><b>${escapeHtml(item.nombre)}</b><span class="fep-meta">${escapeHtml(item.queHace)}</span>`;
     let linea;
     if (estado.estado === "graduada") linea = `graduada el ${shortDate(estado.fecha)}${item.interruptor ? " · la versión de siempre sigue disponible" : ""}`;
-    else if (!estado.activa) linea = item.parteDe ? "va con el diseño nuevo, que está apagado" : "apagado: estáis viendo el diseño de siempre";
+    else if (!estado.activa) linea = item.parteDe ? "va con el diseño nuevo, que está apagado" : item.interruptor === "propio" ? "apagada: enciéndela para probarla; la revisión cuenta desde ese día" : "apagado: estáis viendo el diseño de siempre";
     else linea = `en prueba desde el ${shortDate(estado.desde)} · revisión el ${shortDate(estado.revision)} · mide: ${escapeHtml(item.metrica)}`;
     // XGO-02: lo medido hasta hoy, en este navegador.
     const medidor = globalThis.FinanceMedidor;
@@ -137,25 +162,27 @@
       </li>`;
   }
 
-  function encendidasAhora(doc) {
-    return { "tema-v2": doc.documentElement.dataset.tema === "v2" };
+  function encendidasAhora(doc, banderas = {}) {
+    const propias = Object.fromEntries(CATALOGO.filter((item) => item.interruptor === "propio").map((item) => [item.id, banderas[item.id]?.on === true]));
+    return { "tema-v2": doc.documentElement.dataset.tema === "v2", ...propias };
   }
 
   function render(doc = globalThis.document, storage = safeStorage(), hoy = isoDate(new Date())) {
     const lista = doc?.getElementById("funcionesEnPruebaLista");
     if (!lista) return;
     const decisions = readDecisions(storage);
-    const encendidas = encendidasAhora(doc);
+    const banderas = readBanderas(storage);
+    const encendidas = encendidasAhora(doc, banderas);
     // Las que van con otro interruptor se agrupan bajo él, con un subtítulo, en vez de repetir la etiqueta en cada fila.
     const padres = CATALOGO.filter((item) => !item.parteDe);
     lista.innerHTML = padres
       .map((padre) => {
         const hijas = CATALOGO.filter((item) => item.parteDe === padre.id);
         const sub = hijas.length ? `<li class="fep-subtitulo fep-meta">Pantallas que van con «${escapeHtml(padre.nombre)}»</li>` : "";
-        return [filaHtml(padre, estadoDe(padre, decisions, hoy, encendidas), encendidas), sub, ...hijas.map((item) => filaHtml(item, estadoDe(item, decisions, hoy, encendidas), encendidas))].join("");
+        return [filaHtml(padre, estadoDe(padre, decisions, hoy, encendidas, banderas), encendidas), sub, ...hijas.map((item) => filaHtml(item, estadoDe(item, decisions, hoy, encendidas, banderas), encendidas))].join("");
       })
       .join("");
-    const pendientes = porRevisar(decisions, hoy, encendidas).length;
+    const pendientes = porRevisar(decisions, hoy, encendidas, CATALOGO, banderas).length;
     const resumen = doc.getElementById("funcionesEnPruebaResumen");
     if (resumen) resumen.textContent = pendientes ? `${pendientes === 1 ? "Una función pide" : `${pendientes} funciones piden`} vuestra revisión.` : "";
     // P9: el aviso se ve desde cualquier pantalla, en la entrada «Ajustes» del menú y en su ancla de sección.
@@ -190,6 +217,19 @@
       const sw = event.target.closest("[data-fep-interruptor]");
       if (sw) {
         const encender = sw.getAttribute("aria-checked") !== "true";
+        const item = CATALOGO.find((entry) => entry.id === sw.dataset.fepInterruptor);
+        if (item?.interruptor === "propio") {
+          // Sin recargar: se guarda, se repinta la tarjeta y la pantalla que la usa lo lee al pintarse.
+          try {
+            storage?.setItem(BANDERAS_KEY, JSON.stringify(cambiarBandera(readBanderas(storage), item.id, encender, hoy)));
+          } catch {
+            // Sin almacenamiento no se puede recordar: el interruptor se queda como estaba.
+          }
+          if (!encender) globalThis.FinanceMedidor?.anotar(item.id, "descarte");
+          render(doc, storage, hoy);
+          doc.querySelector(`[data-fep-interruptor="${item.id}"]`)?.focus();
+          return;
+        }
         if (!encender) globalThis.FinanceMedidor?.anotar("tema-v2", "descarte"); // XGO-02: volver al de siempre
         try {
           globalThis.sessionStorage?.setItem(VOLVER_KEY, "1");
@@ -231,5 +271,5 @@
     else init(document);
   }
 
-  return { STORAGE_KEY, REVISION_DIAS, CATALOGO, addDays, estadoDe, porRevisar, graduar, aplazar, urlTema, readDecisions, writeDecisions, render, init };
+  return { STORAGE_KEY, BANDERAS_KEY, REVISION_DIAS, CATALOGO, addDays, estadoDe, porRevisar, graduar, aplazar, urlTema, readDecisions, writeDecisions, readBanderas, cambiarBandera, encendida, render, init };
 });

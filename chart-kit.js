@@ -172,6 +172,8 @@
     }
     const readout = slider.closest(".ck-figure")?.querySelector("[data-ck-readout]");
     if (readout) readout.textContent = state.readings[at];
+    // XPR-06: quien pinta el gráfico puede seguir el punto elegido (la banda de caja rotula con él «Qué mueve el …»).
+    if (typeof CustomEvent === "function" && typeof slider.dispatchEvent === "function") slider.dispatchEvent(new CustomEvent("ck-select", { bubbles: true, detail: { index: at } }));
   }
 
   function moveToPointer(slider, event) {
