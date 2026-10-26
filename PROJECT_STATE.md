@@ -109,6 +109,28 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (352): XDA-05 · PR-1, medir la calibración de Clasificar
+
+- **Qué decidió el hogar** («1. sí 2. sí 3. sí» a la propuesta de XDA-05):
+  - **PR-1, medir, ahora.**
+  - **PR-2, aceptar en bloque los grupos de confianza alta, solo con la puerta cumplida:** 20 grupos de alta o más, con el 95 % o más aceptados tal cual (y sin deshacer).
+  - **Se descartan las tarjetas que se deslizan** de la ficha: la hoja inferior de A5 ya cumple.
+- **Qué se mide** (en el medidor de XGO-02, `medidor-utilidad.js`, solo en este navegador):
+  - por cada grupo aceptado en Clasificar: su confianza (alta, media, baja o sin propuesta), si se aceptó la propuesta **tal cual** o se eligió otra partida, y los segundos desde que se enseñó el grupo (tope de 10 min);
+  - deshacer la regla marca ese registro como corregido;
+  - sin conceptos, importes ni partidas; como mucho los 300 últimos.
+- **Dónde se ve:**
+  - **Ajustes › Uso de la app** y **«Funciones en prueba»**: % tal cual en total y por confianza (por lo bajo: un 94,6 % no se enseña como 95), segundos por grupo (objetivo 4 s), grupos sin propuesta y el estado de la puerta del PR-2 («faltan N grupos de alta para decidir», «aún no» o «se cumple»). La métrica de Clasificar en «Funciones en prueba» pasa a ser esta.
+  - El **gasto importado con partida en los últimos 90 días** (objetivo 95 %; sin capturas a mano ni compras provisionales con tarjeta) lo calcula Clasificar con los movimientos y lo enseñan los dos sitios y el final de cada tanda.
+  - La cabecera de Clasificar: «1 de 5 · faltan 12 grupos · unos 2 min», a la mediana medida con 3 grupos o más y, mientras no, a 10 s por grupo con «(aún sin medir)».
+- **Arreglo de paso:** el commit de XDA-03 (#546) había versionado un enlace `node_modules` que apuntaba a una ruta de este contenedor (de la validación en un worktree): `.gitignore` decía `node_modules/`, que no ignora enlaces. Se quita del repositorio y `.gitignore` pasa a `node_modules`. Al clonar, ya no aparece un `node_modules` roto.
+- **Pruebas:**
+  - `tests/xda05-calibracion-clasificar.test.cjs` (7): registro, datos mal formados, tal cual por confianza, deshacer, redondeo por lo bajo, mediana, la puerta (19 de 20 sí, 18 de 20 no, siempre con todo lo guardado) y la frase.
+  - `tests/redis-a5-clasificar.test.cjs` (+3): lo que anota Clasificar al aceptar y deshacer, el contador con y sin medida, y el gasto con partida en 90 días. La línea «3 más en otra tanda» pasa a «faltan 8 grupos · un minuto (aún sin medir)».
+  - `tests/xgo02-medidor-utilidad.test.cjs`: la línea «Medido» de «Funciones en prueba» lleva el dato de Clasificar.
+  - E2E «XDA-05 · Calibración de Clasificar» a 390 px: una tanda con propuesta tal cual, sin propuesta y saltada, deshacer, y lo que dicen el informe y «Funciones en prueba»; nada de conceptos ni importes guardado.
+- **Validación:** `npm run verify` en verde: 6181 de 6181 pruebas unitarias (+10), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright: PW_RESULT.
+
 ## Cierre de sesión — 26 de octubre de 2026 (351): XDA-03 · nivel 1, texto de un extracto en PDF
 
 - **Qué decidió el hogar:**

@@ -11,10 +11,18 @@
 // confianza (alta, media o baja, con el porqué) salen solo de lo que ya existe: las reglas del hogar para el mismo
 // comercio y la coincidencia de nombre de siempre (clasV2Proposal). Las alternativas son las partidas que más reglas
 // tienen ya del mismo tipo, sin inventar ninguna.
+//
+// XDA-05 · PR-1 (26/10/2026): medir antes de automatizar. Cada grupo aceptado anota en el medidor (XGO-02) su confianza,
+// si se aceptó la propuesta tal cual y los segundos que costó; deshacer lo marca como corregido. El contador dice
+// cuántos grupos faltan y cuánto llevará, y el final de la tanda, cuánto gasto importado tiene ya partida.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const CLAS_V2_MAX = 5;
 const CLAS_V2_ALTS = 3;
+const CLAS_V2_SEGUNDOS = 10; // por grupo, hasta tener 3 medidos
+const CLAS_V2_DIAS = 90;
+// Lo que no viene de un extracto: la captura rápida ya lleva partida y la compra provisional con tarjeta no es gasto real.
+const CLAS_V2_NO_IMPORTADO = new Set(["manual-quick-capture", "captura-hoja"]);
 
 let clasV2Groups = [];
 let clasV2Index = 0;
@@ -23,6 +31,11 @@ let clasV2OtherOpen = false;
 let clasV2Created = [];
 let clasV2Skipped = new Set();
 let clasV2Opener = null;
+let clasV2ShownAt = 0;
+
+function clasV2Now() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
 
 // Los grupos sin partida, del que más suma al que menos. Mismo criterio que la bandeja de Movimientos v2 (un
 // movimiento con importe y sin partida) y que buildPendingMovementMappings, pero con todas las filas de cada grupo:
@@ -161,6 +174,43 @@ function clasV2Remaining() {
   return clasV2PendingGroups().filter((group) => !inBatch.has(group.key) && !clasV2Skipped.has(group.key)).length;
 }
 
+// «faltan 12 grupos · unos 2 min»: los de esta tanda desde el actual y los de las siguientes, a la mediana medida (con
+// 3 grupos medidos o más) o a 10 s por grupo mientras no la hay.
+function clasV2Countdown() {
+  const left = clasV2Groups.length - clasV2Index + clasV2Remaining();
+  const k = globalThis.FinanceMedidor?.calibracion?.(globalThis.FinanceMedidor.leer());
+  const measured = k && k.veces >= 3 ? k.medianaSegundos : null;
+  const seconds = left * (measured ?? CLAS_V2_SEGUNDOS);
+  const minutes = Math.round(seconds / 60);
+  const time = seconds < 60 ? "menos de un minuto" : minutes === 1 ? "un minuto" : `unos ${minutes} min`;
+  return `faltan ${left} ${left === 1 ? "grupo" : "grupos"} · ${time}${measured === null ? " (aún sin medir)" : ""}`;
+}
+
+function clasV2IsoDate(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+// La métrica de XDA-05: qué parte del gasto importado de los últimos 90 días tiene partida (objetivo, 95 % o más). Por lo
+// bajo, como el medidor. null si no hay gasto importado en ese plazo.
+function clasV2Coverage(today = new Date()) {
+  const from = clasV2IsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - CLAS_V2_DIAS));
+  let total = 0;
+  let mapped = 0;
+  (baseData?.transactions || []).forEach((row) => {
+    const amount = Number(row?.amount);
+    if (!(amount < 0) || String(row.date || "") < from || CLAS_V2_NO_IMPORTADO.has(row.source)) return;
+    total += -amount;
+    if (mappingForMovement(row)) mapped += -amount;
+  });
+  return total > 0 ? Math.floor((mapped / total) * 100) : null;
+}
+
+function clasificarV2CoberturaFrase() {
+  const pct = typeof baseData === "undefined" ? null : clasV2Coverage();
+  return pct === null ? "" : `Gasto importado con partida (últimos ${CLAS_V2_DIAS} días): ${pct} % · objetivo 95 %`;
+}
+
 function clasV2Head(meta) {
   return `<div class="clas-v2-asa" aria-hidden="true"></div>
     <div class="clas-v2-head">
@@ -194,8 +244,7 @@ function clasV2GroupHtml() {
   const target = clasV2Target(group);
   const info = clasV2Choice ? null : proposalInfo;
   const alternatives = clasV2Alternatives(group, suggestion);
-  const rest = clasV2Remaining();
-  const meta = `${clasV2Index + 1} de ${clasV2Groups.length}${rest ? ` · ${rest} más en otra tanda` : ""}`;
+  const meta = `${clasV2Index + 1} de ${clasV2Groups.length} · ${clasV2Countdown()}`;
   const proposal = target
     ? `<div class="clas-v2-propuesta"${info ? ` data-confianza="${info.confidence}"` : ""}>
         <span><span class="clas-v2-meta">${clasV2Choice ? "Elegida" : "Propuesta"}${target.sectionName ? ` · ${escapeHtml(target.sectionName)}` : ""}</span><b>${escapeHtml(displayLabelForRow(target))}</b></span>
@@ -241,6 +290,7 @@ function clasV2SummaryHtml() {
           <button type="button" class="e19-btn e19-btn-secondary" data-clas-v2-deshacer="${index}">Deshacer</button></li>`)
         .join("")}</ul>`
     : `<p class="clas-v2-meta">No se ha creado ninguna regla en esta tanda.</p>`;
+  const coverage = clasificarV2CoberturaFrase();
   const lines = [
     skipped ? `${skipped === 1 ? "Un grupo saltado sigue" : `${skipped} grupos saltados siguen`} en la bandeja.` : "",
     rest ? `${rest === 1 ? "Queda un grupo" : `Quedan ${rest} grupos`} para otra tanda.` : "",
@@ -249,6 +299,7 @@ function clasV2SummaryHtml() {
   return `${clasV2Head(title)}
     <div class="clas-v2-card">${created}</div>
     ${lines.length ? `<p class="clas-v2-meta">${lines.join(" ")}</p>` : ""}
+    ${coverage ? `<p class="clas-v2-meta clas-v2-cobertura">${escapeHtml(coverage)}.</p>` : ""}
     <div class="clas-v2-botones">
       ${rest ? `<button type="button" class="e19-btn e19-btn-secondary" data-clas-v2-otra-tanda>Otros ${Math.min(rest, CLAS_V2_MAX)}</button>` : ""}
       <button type="button" class="e19-btn e19-btn-primary" data-clas-v2-cerrar>Listo</button>
@@ -276,6 +327,7 @@ function clasV2StartBatch() {
   clasV2Index = 0;
   clasV2Choice = "";
   clasV2OtherOpen = false;
+  clasV2ShownAt = clasV2Now();
 }
 
 function clasificarV2Open(opener = null) {
@@ -324,11 +376,15 @@ function clasV2Accept() {
   const target = clasV2Target(group);
   if (!group || !target) return;
   const partida = displayLabelForRow(target);
+  // XDA-05: la propuesta se mira antes de escribir la regla (después ya no sería la misma pregunta).
+  const proposal = clasV2Proposal(group);
+  const measure = { confianza: proposal?.confidence || "sin", talCual: Boolean(proposal) && seriesKeyForRow(proposal.row) === seriesKeyForRow(target), segundos: (clasV2Now() - clasV2ShownAt) / 1000 };
   const rule = { key: group.key, kind: group.kind, name: group.name, partida, count: group.rows.length, prev: movementMappings[group.key], touched: clasV2TouchedActuals(group, target) };
   movementMappings[group.key] = { kind: group.kind, rowKey: seriesKeyForRow(target), label: `${target.sectionName} · ${partida}`, updatedAt: new Date().toISOString() };
   const applied = clasV2Persist(new Set([group.key]));
   clasV2Created.push(rule);
   globalThis.FinanceMedidor?.anotar("clasificar-v2", "accion"); // XGO-02
+  rule.measured = globalThis.FinanceMedidor?.anotarClasificacion?.(measure) || 0; // XDA-05
   showUndoToast(`Regla «${group.name} → ${partida}» creada.`, () => clasV2Undo(rule));
   announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`);
   clasV2Next();
@@ -348,6 +404,7 @@ function clasV2Undo(rule) {
   clasV2Created = clasV2Created.filter((item) => item !== rule);
   clasV2Persist(new Set([rule.key]));
   globalThis.FinanceMedidor?.anotar("clasificar-v2", "deshecho"); // XGO-02
+  globalThis.FinanceMedidor?.deshacerClasificacion?.(rule.measured); // XDA-05: la propuesta queda como corregida
   announceStatus(`Regla «${rule.name} → ${rule.partida}» deshecha: sus movimientos vuelven a la bandeja.`);
   if (qs("clasificarV2")?.open) clasV2Render();
 }
@@ -364,6 +421,7 @@ function clasV2Next() {
   clasV2Index += 1;
   clasV2Choice = "";
   clasV2OtherOpen = false;
+  clasV2ShownAt = clasV2Now();
   clasV2Render();
 }
 
@@ -424,3 +482,4 @@ function clasV2BindOnce(dialog) {
 }
 
 globalThis.clasificarV2Open = clasificarV2Open;
+globalThis.clasificarV2CoberturaFrase = clasificarV2CoberturaFrase;

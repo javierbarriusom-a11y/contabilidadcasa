@@ -32,7 +32,7 @@
     { id: "hoy-v2", nombre: "Hoy nuevo", queHace: "Una cifra, hasta tres decisiones y el mes en una barra.", desde: "2026-10-19", metrica: "tiempo hasta la primera acción", parteDe: "tema-v2" },
     { id: "movimientos-v2", nombre: "Movimientos nuevo", queHace: "Bandeja arriba y la lista por día con su partida.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "importar-v2", nombre: "Importar en tres pasos", queHace: "Elegir, revisar con cuadre e importar con deshacer.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
-    { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "conceptos sin partida tras importar", parteDe: "tema-v2" },
+    { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "gasto importado con partida (95 % o más), propuestas aceptadas tal cual y segundos por grupo (4 o menos)", parteDe: "tema-v2" },
     { id: "repaso-v2", nombre: "Repaso semanal", queHace: "Saldos, extracto, lo que vino y la bandeja, en orden y con cronómetro.", desde: "2026-10-24", metrica: "minutos de mantenimiento a la semana (10 o menos)", parteDe: "tema-v2" },
   ];
 
@@ -113,7 +113,8 @@
     else linea = `en prueba desde el ${shortDate(estado.desde)} · revisión el ${shortDate(estado.revision)} · mide: ${escapeHtml(item.metrica)}`;
     // XGO-02: lo medido hasta hoy, en este navegador.
     const medidor = globalThis.FinanceMedidor;
-    const medido = medidor && estado.estado !== "graduada" ? `<span class="fep-meta fep-medido">Medido: ${escapeHtml(medidor.frase(item.id, medidor.resumen(medidor.leer(), item.id)))}</span>` : "";
+    const dato = item.id === "clasificar-v2" ? globalThis.clasificarV2CoberturaFrase?.() || "" : ""; // XDA-05
+    const medido = medidor && estado.estado !== "graduada" ? `<span class="fep-meta fep-medido">Medido: ${escapeHtml(medidor.frase(item.id, medidor.resumen(medidor.leer(), item.id)))}${dato ? ` · ${escapeHtml(dato)}` : ""}</span>` : "";
     let lado = "";
     if (item.interruptor) {
       const on = Boolean(encendidas[item.id]);

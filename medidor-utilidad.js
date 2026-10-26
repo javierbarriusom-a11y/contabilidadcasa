@@ -12,6 +12,11 @@
 // Lo leen dos sitios: Ajustes › Uso de la app (informe mensual por función, junto al panel de uso de WP-03) y
 // «Funciones en prueba» (XGO-03), que enseña el dato junto a la métrica de cada función para que la revisión de las
 // dos semanas se conteste con datos y no por impresión.
+//
+// XDA-05 · PR-1 (26/10/2026): además, la calibración de Clasificar. Por cada grupo aceptado, su confianza (alta, media,
+// baja o sin propuesta), si se aceptó la propuesta tal cual o se eligió otra partida, los segundos que costó y si luego
+// se deshizo. Tampoco aquí hay conceptos ni importes. De ahí sale la puerta del PR-2 (aceptar en bloque los grupos de
+// confianza alta): 20 grupos de alta o más, con el 95 % o más aceptados tal cual y sin deshacer.
 (function exposeFinanceMedidor(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -24,6 +29,10 @@
   const KEEP_CLAVES = 50;
   const KEEP_TIEMPOS = 30;
   const EVENTOS = ["vista", "accion", "descarte", "deshecho"];
+  const KEEP_CALIBRACION = 300;
+  const CONFIANZAS = ["alta", "media", "baja", "sin"];
+  const PUERTA_GRUPOS = 20;
+  const PUERTA_PCT = 95;
 
   // Lo que se mide de cada función y cómo se dice ([singular, plural]; vacío = no aplica). El orden es el del informe.
   const FUNCIONES = [
@@ -45,7 +54,7 @@
   }
 
   function emptyStore() {
-    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, desde: "" };
+    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, calibracion: [], desde: "" };
   }
 
   function normalize(raw) {
@@ -69,6 +78,12 @@
     for (const [id, lista] of Object.entries(raw.claves || {})) if (Array.isArray(lista)) store.claves[id] = lista.map(String).slice(-KEEP_CLAVES);
     for (const [id, lista] of Object.entries(raw.tiempos || {})) {
       if (Array.isArray(lista)) store.tiempos[id] = lista.map(Number).filter((n) => Number.isFinite(n) && n >= 0).slice(-KEEP_TIEMPOS);
+    }
+    if (Array.isArray(raw.calibracion)) {
+      store.calibracion = raw.calibracion
+        .filter((e) => e && Number.isInteger(e.i) && /^\d{4}-\d{2}$/.test(String(e.m)) && CONFIANZAS.includes(e.c))
+        .map((e) => ({ i: e.i, m: e.m, c: e.c, t: e.c !== "sin" && e.t === true, x: e.x === true, s: typeof e.s === "number" && Number.isFinite(e.s) && e.s >= 0 ? e.s : null }))
+        .slice(-KEEP_CALIBRACION);
     }
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw.desde || ""))) store.desde = raw.desde;
     return store;
@@ -116,6 +131,25 @@
     return prune(store, hoy);
   }
 
+  // XDA-05: un grupo aceptado en Clasificar. `talCual` = se aceptó la partida propuesta (sin propuesta, nunca lo es);
+  // `segundos` = desde que se enseñó el grupo hasta aceptarlo (como mucho 10 min: un rato con la app abierta no es
+  // tardar). Cada registro lleva un número para poder marcarlo después como deshecho (corregirClasificacion).
+  function registrarClasificacion(raw, { confianza = "sin", talCual = false, segundos = null, hoy = isoDate() } = {}) {
+    const store = normalize(raw);
+    const c = CONFIANZAS.includes(confianza) ? confianza : "sin";
+    const s = Number(segundos);
+    const i = (store.calibracion.at(-1)?.i || 0) + 1;
+    store.calibracion = [...store.calibracion, { i, m: hoy.slice(0, 7), c, t: c !== "sin" && talCual === true, x: false, s: segundos !== null && Number.isFinite(s) && s >= 0 ? Math.round(Math.min(s, 600) * 10) / 10 : null }].slice(-KEEP_CALIBRACION);
+    return prune(store, hoy);
+  }
+
+  // Deshacer la regla es corregir la propuesta: ese grupo ya no cuenta como aceptado tal cual.
+  function corregirClasificacion(raw, i) {
+    const store = normalize(raw);
+    store.calibracion = store.calibracion.map((e) => (e.i === i ? { ...e, x: true } : e));
+    return store;
+  }
+
   function mediana(valores) {
     if (!valores.length) return null;
     const orden = [...valores].sort((a, b) => a - b);
@@ -135,7 +169,56 @@
       });
     const tasa = total.vistas ? Math.min(100, Math.round((total.diasAccion / total.vistas) * 100)) : null;
     const tiempos = store.tiempos[id] || [];
-    return { ...total, tasa, medianaSegundos: mediana(tiempos), veces: tiempos.length };
+    const r = { ...total, tasa, medianaSegundos: mediana(tiempos), veces: tiempos.length };
+    if (id === "clasificar-v2") r.calibracion = calibracion(store, mes);
+    return r;
+  }
+
+  // La calibración de un mes (o de todo lo guardado): la parte de las propuestas aceptadas tal cual, en total y por
+  // confianza (por lo bajo: un 94,6 % no se enseña como 95), los segundos por grupo y la puerta del PR-2, que se mira
+  // siempre con todo lo guardado.
+  function calibracion(raw, mes = "") {
+    const todos = normalize(raw).calibracion;
+    const lista = todos.filter((e) => !mes || e.m === mes);
+    const tasa = (es) => {
+      const con = es.filter((e) => e.c !== "sin");
+      const bien = con.filter((e) => e.t && !e.x).length;
+      return { grupos: con.length, talCual: bien, pct: con.length ? Math.floor((bien / con.length) * 100) : null };
+    };
+    const porConfianza = Object.fromEntries(["alta", "media", "baja"].map((c) => [c, tasa(lista.filter((e) => e.c === c))]));
+    const alta = tasa(todos.filter((e) => e.c === "alta"));
+    const segundos = lista.map((e) => e.s).filter((s) => s !== null);
+    return {
+      registros: lista.length,
+      ...tasa(lista),
+      porConfianza,
+      sinPropuesta: lista.filter((e) => e.c === "sin").length,
+      deshechos: lista.filter((e) => e.x).length,
+      medianaSegundos: mediana(segundos),
+      veces: segundos.length,
+      puerta: { grupos: alta.grupos, pct: alta.pct, faltan: Math.max(0, PUERTA_GRUPOS - alta.grupos), cumple: alta.grupos >= PUERTA_GRUPOS && alta.talCual * 100 >= PUERTA_PCT * alta.grupos },
+    };
+  }
+
+  function decimal(n) {
+    return String(n).replace(".", ",");
+  }
+
+  // La calibración en palabras, para la línea de Clasificar del informe y de «Funciones en prueba».
+  function fraseCalibracion(k) {
+    if (!k?.registros) return "";
+    const partes = [];
+    if (k.grupos) {
+      const porConfianza = ["alta", "media", "baja"].filter((c) => k.porConfianza[c].grupos).map((c) => `${c} ${k.porConfianza[c].pct} % de ${k.porConfianza[c].grupos}`);
+      partes.push(`${k.pct} % de las propuestas aceptadas tal cual (${k.talCual} de ${k.grupos}${porConfianza.length > 1 ? `; ${porConfianza.join(", ")}` : ""})`);
+    }
+    if (k.sinPropuesta) partes.push(cuenta(k.sinPropuesta, ["grupo sin propuesta", "grupos sin propuesta"]));
+    if (k.medianaSegundos !== null) partes.push(`${decimal(k.medianaSegundos)} s por grupo (mediana de ${k.veces}; objetivo 4 s)`);
+    const p = k.puerta;
+    if (p.cumple) partes.push(`aceptar en bloque los de confianza alta: se cumple la puerta (${p.grupos} grupos, ${p.pct} % tal cual)`);
+    else if (p.faltan) partes.push(`aceptar en bloque los de confianza alta: faltan ${cuenta(p.faltan, ["grupo", "grupos"])} de alta para decidir`);
+    else partes.push(`aceptar en bloque los de confianza alta: aún no (${p.pct} % tal cual; hace falta el ${PUERTA_PCT} %)`);
+    return partes.join(" · ");
   }
 
   function mesesGuardados(raw) {
@@ -153,6 +236,8 @@
     if (id === "repaso-v2" && r.medianaSegundos !== null) partes.push(`${String(Math.round((r.medianaSegundos / 60) * 10) / 10).replace(".", ",")} min por repaso (mediana de ${r.veces})`);
     if (f.descarte) partes.push(cuenta(r.descartes, f.descarte));
     if (f.deshecho) partes.push(cuenta(r.deshechos, f.deshecho));
+    const k = fraseCalibracion(r.calibracion);
+    if (k) partes.push(k);
     return partes.join(" · ");
   }
 
@@ -188,6 +273,20 @@
     if (globalThis.document?.getElementById("medidorUtilidadLista")) pintarInforme();
   }
 
+  // XDA-05: lo llama Clasificar al aceptar un grupo; devuelve el número del registro, para marcarlo si se deshace.
+  function anotarClasificacion(opciones = {}) {
+    const store = registrarClasificacion(leer(), opciones);
+    guardar(store);
+    if (globalThis.document?.getElementById("medidorUtilidadLista")) pintarInforme();
+    return store.calibracion.at(-1)?.i || 0;
+  }
+
+  function corregir(i) {
+    if (!i) return;
+    guardar(corregirClasificacion(leer(), i));
+    if (globalThis.document?.getElementById("medidorUtilidadLista")) pintarInforme();
+  }
+
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   }
@@ -214,7 +313,8 @@
     lista.innerHTML = FUNCIONES.map((f) => {
       const r = resumen(store, f.id, mesElegido);
       const tasa = r.tasa === null ? "—" : `${r.tasa} %`;
-      return `<li><div class="panel-uso-cabecera"><strong>${escapeHtml(f.nombre)}</strong><span class="panel-uso-valor" title="Tasa de acción">${escapeHtml(f.accion ? tasa : "—")}</span></div><p class="e19-kpi-note">${escapeHtml(frase(f.id, r))}</p></li>`;
+      const dato = f.id === "clasificar-v2" ? globalThis.clasificarV2CoberturaFrase?.() || "" : ""; // XDA-05
+      return `<li><div class="panel-uso-cabecera"><strong>${escapeHtml(f.nombre)}</strong><span class="panel-uso-valor" title="Tasa de acción">${escapeHtml(f.accion ? tasa : "—")}</span></div><p class="e19-kpi-note">${escapeHtml(frase(f.id, r))}</p>${dato ? `<p class="e19-kpi-note">${escapeHtml(dato)}</p>` : ""}</li>`;
     }).join("");
     const desde = doc.getElementById("medidorUtilidadDesde");
     if (desde) desde.textContent = store.desde ? `Datos desde el ${store.desde.split("-").reverse().join("/")}, solo en este navegador.` : "Aún no hay datos: empieza a contar hoy.";
@@ -236,5 +336,5 @@
     else init(document);
   }
 
-  return { STORAGE_KEY, FUNCIONES, normalize, registrar, resumen, mesesGuardados, frase, leer, anotar, pintarInforme };
+  return { STORAGE_KEY, FUNCIONES, PUERTA_GRUPOS, PUERTA_PCT, normalize, registrar, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
 });
