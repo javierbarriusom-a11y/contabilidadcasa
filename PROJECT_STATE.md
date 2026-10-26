@@ -138,7 +138,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `tests/xin02-vigia-recompra.test.cjs` (7).
   - `tests/wp48-libro-operaciones.test.cjs`: la compra anterior que sigue en cartera ahora sí avisa, porque es lo que dice la norma (antes se excluía por diseño, y la prueba lo explica). El texto «La app no lo aplica» pasa a «La compensación de la app no lo descuenta».
   - E2E «XIN-02 · Vigía de la recompra» a 1280 y 390 px.
-- **Validación:** VERIFY_RESULT. Playwright: PW_RESULT.
+- **Validación:** `npm run verify` en verde: 6193 de 6193 pruebas unitarias (+7), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 250 de 250 en verde (16,6 min; +1, la e2e de XIN-02).
 
 ## Cierre de sesión — 26 de octubre de 2026 (353): XGO-01, «uno entra, uno sale» comprobado por el CI
 
