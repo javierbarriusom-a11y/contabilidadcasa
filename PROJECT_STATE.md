@@ -129,7 +129,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `tests/redis-a5-clasificar.test.cjs` (+3): lo que anota Clasificar al aceptar y deshacer, el contador con y sin medida, y el gasto con partida en 90 días. La línea «3 más en otra tanda» pasa a «faltan 8 grupos · un minuto (aún sin medir)».
   - `tests/xgo02-medidor-utilidad.test.cjs`: la línea «Medido» de «Funciones en prueba» lleva el dato de Clasificar.
   - E2E «XDA-05 · Calibración de Clasificar» a 390 px: una tanda con propuesta tal cual, sin propuesta y saltada, deshacer, y lo que dicen el informe y «Funciones en prueba»; nada de conceptos ni importes guardado.
-- **Validación:** `npm run verify` en verde: 6181 de 6181 pruebas unitarias (+10), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright: PW_RESULT.
+- **Validación:** `npm run verify` en verde: 6181 de 6181 pruebas unitarias (+10), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 248 de 248 en verde (15,1 min; +1, la e2e de XDA-05).
 
 ## Cierre de sesión — 26 de octubre de 2026 (351): XDA-03 · nivel 1, texto de un extracto en PDF
 
