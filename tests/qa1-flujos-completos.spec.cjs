@@ -5862,6 +5862,66 @@ test.describe("XDA-04 · periodo que cubre el extracto", () => {
   });
 });
 
+// XDA-03 · nivel 1: el texto pegado de un extracto en PDF entra por la revisión de siempre. Importes sin signo (el signo sale del
+// saldo), una línea partida al pegar y la cabecera del PDF, que no se guarda en ningún sitio. Texto INVENTADO.
+test.describe("XDA-03 · texto de un PDF", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`pegar, leer con el signo por el saldo, revisar con cuadre e importar, a ${viewport.width} px`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await v2.locator(".imp-v2-pdf > summary").click();
+      const texto = [
+        "EXTRACTO DE CUENTA FICTICIA 0000",
+        "Fecha Concepto Importe Saldo",
+        "Saldo anterior 5.080,00",
+        "01/10/2026 NOMINA FICTICIA 3.000,00 8.080,00",
+        "02/10/2026 SUPER FICTICIO",
+        "86,40 7.993,60",
+        "05/10/2026 LUZ FICTICIA 94,12 7.899,48",
+      ].join("\n");
+      await v2.locator("#importarV2PdfTexto").fill(texto);
+      await v2.locator("[data-imp-v2-pdf-leer]").click();
+      await expect(v2.locator(".imp-v2-lineas")).toContainText("3 líneas reconocidas", { timeout: 15000 });
+      await expect(v2.locator(".imp-v2-pdf-aviso")).toContainText("3 movimientos leídos del texto pegado");
+      await expect(v2.locator(".imp-v2-pdf-aviso")).toContainText("su signo sale del saldo");
+      await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo");
+      await v2.locator("#importarV2Cuenta").selectOption("Mediolanum");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await v2.locator("[data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("3 movimientos importados", { timeout: 15000 });
+      const importados = await page.evaluate(() => baseData.transactions.filter((t) => t.account === "Mediolanum").map((t) => [t.date, t.movement, t.amount, t.balance]));
+      expect(importados).toEqual([["2026-10-01", "NOMINA FICTICIA", 3000, 8080], ["2026-10-02", "SUPER FICTICIO", -86.4, 7993.6], ["2026-10-05", "LUZ FICTICIA", -94.12, 7899.48]]);
+      // Lo pegado no se guarda: ni la cabecera del PDF ni el texto en ningún almacén.
+      expect(await page.evaluate(() => Object.values(localStorage).some((v) => String(v).includes("EXTRACTO DE CUENTA FICTICIA")))).toBe(false);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("sin saldos ni signos no se adivina: avisa, no abre la revisión y da un diagnóstico sin datos", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#datos-importar");
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await v2.locator(".imp-v2-pdf > summary").click();
+    await v2.locator("#importarV2PdfTexto").fill("01/10/2026 NOMINA FICTICIA 3.000,00\n02/10/2026 SUPER FICTICIO 86,40");
+    await v2.locator("[data-imp-v2-pdf-leer]").click();
+    const aviso = v2.locator(".imp-v2-pdf-aviso");
+    await expect(aviso).toContainText("ninguna con su importe y su signo claros");
+    await expect(v2.locator(".imp-v2-lineas")).toHaveCount(0);
+    await aviso.locator("summary").click();
+    await expect(aviso.locator("pre")).toContainText("no se sabe si es cargo o abono");
+    await expect(aviso.locator("pre")).not.toContainText("NOMINA");
+    await expect(aviso.locator("pre")).not.toContainText("3.000");
+  });
+});
+
 // Barrido móvil del 24/10/2026: en el kit de gráficos (WP-28), abrir «Ver como tabla» dejaba que la tabla ensanchara la rejilla de la
 // figura a ~1.120 px en un móvil de 390 (la regla genérica `table { min-width: 1120px }` de styles.css), y el dibujo, la lectura y la
 // tabla se cortaban por la derecha. Ahora la figura no pasa de su caja, la tabla se desplaza dentro y la columna del día queda fija.

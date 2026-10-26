@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-texto-pdf",
+      fecha: "2026-10-26",
+      texto: "Extractos en PDF: en Importar, pega su texto y la app lee fechas, conceptos e importes; el signo que no trae lo saca del saldo.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-10-26-cobertura-extractos",
       fecha: "2026-10-26",
       texto: "Al importar, dices qué periodo cubre el extracto; el cierre avisa de los días sin extracto y no se pregunta por recibos en un hueco.",

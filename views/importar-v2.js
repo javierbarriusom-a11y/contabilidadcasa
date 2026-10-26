@@ -157,7 +157,8 @@ function impV2Sources() {
       <span aria-hidden="true">›</span>
     </label>
     ${atajo}
-    ${impV2Pending(atajo ? "Aún no: pegar el texto del PDF." : "Aún no: desde la app del banco con Compartir y pegar el texto del PDF.")}`;
+    ${globalThis.FinanceExtractoPdf?.fuenteHtml?.() || ""}
+    ${atajo ? "" : impV2Pending("Aún no: desde la app del banco con Compartir.")}`;
 }
 
 function impV2CuadreHtml(cuadre) {
@@ -281,9 +282,22 @@ function impV2BindOnce(root) {
       return importarV2Render();
     }
     if (event.target.closest("[data-imp-v2-importar]")) return handleDatosImportarConfirmar();
+    // XDA-03 · nivel 1: el texto pegado de un PDF, al motor de líneas (canonical-statement-lines.js) y a la revisión de siempre.
+    if (event.target.closest("[data-imp-v2-pdf-leer]")) {
+      const campo = qs("importarV2PdfTexto");
+      const texto = campo?.value || "";
+      if (campo) campo.value = ""; // lo pegado no se queda en la pantalla
+      if (!texto.trim()) return;
+      return Promise.resolve(globalThis.FinanceExtractoPdf?.leer(texto, window.FinanceCanonicalStatementLines)).then(() => importarV2Render());
+    }
+    if (event.target.closest("[data-imp-v2-pdf-copiar]")) {
+      const diag = globalThis.FinanceExtractoPdf?.diagnosticoTexto?.() || "";
+      return diag && navigator.clipboard?.writeText(diag).catch(() => {});
+    }
     if (event.target.closest("[data-imp-v2-deshacer]")) return impV2Undo();
     if (event.target.closest("[data-imp-v2-otro]")) {
       extractoPerfilesOlvidar();
+      globalThis.FinanceExtractoPdf?.olvidar?.();
       datosImportarSession = null;
       datosImportarLastResult = null;
       datosImportarClearDraft();
@@ -344,7 +358,9 @@ function importarV2Render() {
     impV2ShowAll = false;
     body = impV2Sources();
   }
-  root.innerHTML = `${impV2Header()}${globalThis.FinanceBuzon?.htmlAviso?.() || ""}${body}${impV2ClassicButton()}`;
+  // XDA-03: lo leído del texto pegado de un PDF (o por qué no se pudo leer), encima de su revisión o de las fuentes.
+  const avisoPdf = globalThis.FinanceExtractoPdf?.avisoHtml?.(datosImportarLastResult ? { fileMeta: {} } : datosImportarSession) || "";
+  root.innerHTML = `${impV2Header()}${globalThis.FinanceBuzon?.htmlAviso?.() || ""}${avisoPdf}${body}${impV2ClassicButton()}`;
   root.hidden = false;
   article?.classList.add("imp-v2-pintado");
 }

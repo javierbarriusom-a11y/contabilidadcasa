@@ -50,7 +50,7 @@ test("sin sesión, o con sesión pero sin el buzón desplegado, no se enseña na
   ctx.FinanceBuzon._estado.disponible = false;
   assert.equal(ctx.FinanceBuzon.htmlAtajo(), "");
   assert.match(source, /PGRST205\|42P01\|does not exist\|schema cache/, "una tabla que no existe apaga el buzón");
-  assert.match(read("views/importar-v2.js"), /impV2Pending\(atajo \? "Aún no: pegar el texto del PDF\." : "Aún no: desde la app del banco con Compartir y pegar el texto del PDF\."\)/);
+  assert.match(read("views/importar-v2.js"), /\$\{atajo \? "" : impV2Pending\("Aún no: desde la app del banco con Compartir\."\)\}/);
 });
 
 test("con sesión: los pendientes se ven con Importar y Borrar; un PDF solo con Borrar", () => {

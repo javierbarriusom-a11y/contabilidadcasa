@@ -131,6 +131,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 97 → 98 (WP-43): canonical-forecast-bridge.js, con consumidor real (renderPlanPrevision de app.js se lo pasa a la tarjeta de puente-ui.js)
 // 96 → 97 (WP-42): canonical-next-euro.js, con consumidor real (el case «deuda-comparar» de renderActiveSection en app.js se lo pasa a la tarjeta de escalera-ui.js)
 // 95 → 96 (WP-41): canonical-shadow-debt.js, con consumidor real (el case «deuda-contratos» de renderActiveSection en app.js se lo pasa a la tarjeta de sombra-ui.js)
+// 111 → 112 (XDA-03 · nivel 1): canonical-statement-lines.js, con consumidor real (views/importar-v2.js se lo pasa a extracto-pdf-ui.js al leer el texto pegado de un PDF)
 // 110 → 111 (XDA-04 · PR-1): canonical-ledger-coverage.js, con consumidor real (el paso de firma de views/cierre.js se lo pasa al aviso de huecos de cobertura-ui.js; también lo usan la revisión de Importar y las preguntas de «¿ha llegado…?» a través de cobertura-ui.js)
 // 94 → 95 (WP-40): canonical-cirbe.js, con consumidor real (el case «deuda-contratos» de renderActiveSection en app.js se lo pasa a la tarjeta de cirbe-ui.js)
 // 93 → 94 (WP-39): canonical-investment-policy.js, con consumidor real (renderInversionRebalanceo en views/inversion.js se lo pasa a la tarjeta de politica-ui.js)
@@ -144,6 +145,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 111 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 111);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 112 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 112);
 });
