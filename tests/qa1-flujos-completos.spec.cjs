@@ -20,6 +20,10 @@ const { test, expect } = require("@playwright/test");
 // así el flujo se prueba tal como lo usa el hogar en cualquiera de los dos temas.
 // Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
 // queda tras «Ver el asistente de siempre». Las pruebas que recorren ese asistente lo abren antes, como haría el hogar.
+// RD-WK (P14 del rediseño): las pruebas de las pantallas v2 a 390 px llevan la etiqueta @safari y el proyecto «safari» de
+// playwright.config.cjs las repite en WebKit (iPhone 13, 390×844). Las que recorren dos anchos la llevan solo en el de 390.
+const enSafari = (viewport) => ({ tag: viewport.width === 390 ? ["@safari"] : [] });
+
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
   await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
@@ -5275,7 +5279,7 @@ test.describe("Cobro caducado · fecha manual pasada", () => {
 // Rediseño A4 (PR-1): Movimientos v2. Movimientos INVENTADOS, sembrados con la misma ruta que el importador real.
 test.describe("Rediseño A4 · Movimientos v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`vacío lleva a Importar; con movimientos, lista por día, filtros, detalle y vista de siempre a ${viewport.width} px`, async ({ page }) => {
+    test(`vacío lleva a Importar; con movimientos, lista por día, filtros, detalle y vista de siempre a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5336,7 +5340,7 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
 // Rediseño A4 (PR-2): Importar v2 en Registrar › Importar extracto. Extracto y movimientos INVENTADOS.
 test.describe("Rediseño A4 · Importar v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`elegir, revisar con cuadre y duplicados, importar y deshacer a ${viewport.width} px`, async ({ page }) => {
+    test(`elegir, revisar con cuadre y duplicados, importar y deshacer a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(90000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5393,7 +5397,7 @@ test.describe("Rediseño A4 · Importar v2", () => {
 // de archivos; al elegir, la revisión de Importar v2, y el medidor guarda los segundos del toque al extracto importado.
 test.describe("XDA-02 · Importar en un toque", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`de «Importar» en Movimientos al extracto importado, con el selector abierto a la primera, a ${viewport.width} px`, async ({ page }) => {
+    test(`de «Importar» en Movimientos al extracto importado, con el selector abierto a la primera, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5550,7 +5554,7 @@ test.describe("XDA-02 · Buzón de extractos (Supabase falso)", () => {
 // Rediseño A5: Clasificar por lotes desde la bandeja de Movimientos v2. Movimientos INVENTADOS.
 test.describe("Rediseño A5 · Clasificar por lotes", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`aceptar, saltar y deshacer una regla a ${viewport.width} px`, async ({ page }) => {
+    test(`aceptar, saltar y deshacer una regla a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5628,7 +5632,7 @@ test.describe("Rediseño A5 · Clasificar por lotes", () => {
 // La tarjeta «Previsto, real y usado» de Registrar no puede quedar en tres columnas estrechas en el móvil.
 test.describe("Registrar · tarjeta de la regla en el móvil", () => {
   for (const tema of ["", "?tema=clasico"]) {
-    test(`a 390 px cada concepto ocupa todo el ancho${tema ? " (tema clásico)" : ""}`, async ({ page }) => {
+    test(`a 390 px cada concepto ocupa todo el ancho${tema ? " (tema clásico)" : ""}`, { tag: tema ? [] : ["@safari"] }, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`/index.html${tema}#registrar`);
       const items = page.locator(".e19-registrar-rule-grid > div");
@@ -5641,7 +5645,7 @@ test.describe("Registrar · tarjeta de la regla en el móvil", () => {
 
 // XGO-03: «Funciones en prueba» en Ajustes. El interruptor del diseño nuevo va y vuelve; a las dos semanas pide revisión.
 test.describe("XGO-03 · Funciones en prueba", () => {
-  test("el interruptor del diseño nuevo apaga y enciende el tema, en los dos sentidos", async ({ page }) => {
+  test("el interruptor del diseño nuevo apaga y enciende el tema, en los dos sentidos", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
@@ -5681,7 +5685,7 @@ test.describe("XGO-03 · Funciones en prueba", () => {
 
 // XGO-02: el medidor de utilidad cuenta lo que se hace en Clasificar y lo enseña en Ajustes (informe y Funciones en prueba).
 test.describe("XGO-02 · Medidor de utilidad", () => {
-  test("una tanda de Clasificar queda medida en Uso de la app y junto a su métrica en Funciones en prueba", async ({ page }) => {
+  test("una tanda de Clasificar queda medida en Uso de la app y junto a su métrica en Funciones en prueba", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
@@ -5719,7 +5723,7 @@ test.describe("XGO-02 · Medidor de utilidad", () => {
 // XDA-05 · PR-1: Clasificar mide su calibración (confianza, tal cual, segundos; deshacer la corrige), cuenta lo que falta
 // con su tiempo y dice cuánto gasto importado tiene partida. Movimientos INVENTADOS.
 test.describe("XDA-05 · Calibración de Clasificar", () => {
-  test("una tanda queda medida por confianza, deshacer la corrige y el informe enseña la puerta del PR-2", async ({ page }) => {
+  test("una tanda queda medida por confianza, deshacer la corrige y el informe enseña la puerta del PR-2", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
@@ -5774,7 +5778,7 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
 // ahí: todas las comprobaciones cumplidas y el botón esperando solo la sesión. Movimientos INVENTADOS.
 test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a firmar", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`de cero movimientos a «Firmar cierre» a ${viewport.width} px`, async ({ page }) => {
+    test(`de cero movimientos a «Firmar cierre» a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(120000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5918,7 +5922,7 @@ test.describe("XDA-04 · periodo que cubre el extracto", () => {
 // saldo), una línea partida al pegar y la cabecera del PDF, que no se guarda en ningún sitio. Texto INVENTADO.
 test.describe("XDA-03 · texto de un PDF", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`pegar, leer con el signo por el saldo, revisar con cuadre e importar, a ${viewport.width} px`, async ({ page }) => {
+    test(`pegar, leer con el signo por el saldo, revisar con cuadre e importar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -6035,7 +6039,7 @@ test.describe("Hoy, cambio 1 · cobros y cargos esperados en la bandeja de Movim
     await expect(page.locator("#hoyV2 .hoy-v2-esperados")).toHaveCount(0);
   });
 
-  test("se contestan en Movimientos, no salen en la bandeja de Hoy, y Hoy lleva a ellos con una línea", async ({ page }) => {
+  test("se contestan en Movimientos, no salen en la bandeja de Hoy, y Hoy lleva a ellos con una línea", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
@@ -6096,7 +6100,7 @@ test.describe("Hoy, cambio 2 · entrada al Repaso semanal (v2)", () => {
   });
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`por hacer sale en Hoy, abre el repaso y, hecho, desaparece, a ${viewport.width} px`, async ({ page }) => {
+    test(`por hacer sale en Hoy, abre el repaso y, hecho, desaparece, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(90000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -6164,7 +6168,7 @@ async function repasoPreparar(page) {
 
 test.describe("Rediseño B5 · Repaso semanal", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`los cinco pasos, de saldos a «listo», a ${viewport.width} px`, async ({ page }) => {
+    test(`los cinco pasos, de saldos a «listo», a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(90000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -6242,7 +6246,7 @@ test.describe("Rediseño B5 · Repaso semanal", () => {
     });
   }
 
-  test("ir a importar y volver con la píldora, con el reloj corriendo; cerrar a medias cuenta como descarte", async ({ page }) => {
+  test("ir a importar y volver con la píldora, con el reloj corriendo; cerrar a medias cuenta como descarte", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
@@ -6337,6 +6341,36 @@ test.describe("XIN-02 · Vigía de la recompra", () => {
 
       await page.goto("/index.html#herramientas-fiscal");
       await expect(page.locator("#campanaFiscalCard .fc-accion", { hasText: "Compensar plusvalías con minusvalías" })).toContainText("Si vendes hoy, no recompres lo mismo antes del 27/12/2026 (acciones y ETF de mercados de la UE) ni del 27/10/2027");
+    }
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// RD-WK (P14 del rediseño): cada destino del menú principal abre en el móvil sin errores y sin salirse por la derecha. En el
+// proyecto «safari» corre en WebKit (lo que usa el iPhone del hogar); en «e2e», en Chromium, como cualquier otra prueba.
+test.describe("RD-WK · el menú principal en el móvil", () => {
+  test("cada destino abre con su título, sin errores y sin desbordar a 390 px", { tag: "@safari" }, async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2")).toBeVisible({ timeout: 15000 });
+    const rutas = await page.locator("a.nav-primary-link").evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute("href")))]);
+    expect(rutas.length, "el menú principal tiene destinos").toBeGreaterThan(5);
+    for (const ruta of rutas) {
+      await page.evaluate((hash) => { location.hash = hash; }, ruta);
+      await expect(page.locator("main h1:visible, main h2:visible").first(), `${ruta} enseña un título`).toBeVisible({ timeout: 15000 });
+      const fuera = await page.evaluate(() => {
+        const ancho = document.documentElement.clientWidth;
+        const recoge = (el) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(p).overflowX)) return true; return false; };
+        return [...document.querySelectorAll("main *")].filter((el) => {
+          const caja = el.getBoundingClientRect();
+          const estilo = getComputedStyle(el);
+          return caja.width > 1 && caja.right > ancho + 1 && estilo.visibility !== "hidden" && estilo.opacity !== "0" && !(estilo.position === "absolute" && estilo.clip !== "auto") && !recoge(el);
+        }).slice(0, 3).map((el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}.${[...el.classList].join(".")}`);
+      });
+      expect(fuera, `${ruta}: nada se sale por la derecha`).toEqual([]);
     }
     expect(pageErrors).toEqual([]);
   });

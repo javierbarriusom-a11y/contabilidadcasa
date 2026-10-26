@@ -109,6 +109,17 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (355): RD-WK, las pantallas v2 también en Safari
+
+- **Por qué ahora:** el hogar pidió seguir con lo que no dependa de él. RD-WK (§5.0, fila 10) estaba decidido desde el 19/10 (P14: «Sí: proyecto WebKit 390×844 para las pantallas v2») y no pide pantalla nueva. El hogar usa la app en el iPhone, y hasta hoy ninguna prueba bloqueante corría en el motor de Safari: solo la medición informativa de carga de WP-52.
+- **Qué hace:**
+  - Proyecto `safari` en `playwright.config.cjs`: WebKit con el iPhone 13 (táctil, móvil) a 390×844, sobre las pruebas de `qa1` con la etiqueta `@safari`. Script `npm run test:safari`.
+  - Las pruebas de las pantallas v2 a 390 px llevan la etiqueta, sin duplicar ninguna: Hoy (cambios 1 y 2), Movimientos, Importar, Importar en un toque, texto de un PDF, Clasificar (con su medición y su calibración), la tarjeta de la regla, Repaso semanal (sus dos pruebas), Funciones en prueba y el ensayo del cierre de octubre. Las que recorren dos anchos la llevan solo en el de 390.
+  - Una prueba nueva, «RD-WK · el menú principal en el móvil»: cada destino del menú abre con su título, sin errores y sin que nada se salga por la derecha. Corre también en `e2e` (Chromium).
+  - CI: paso bloqueante «Instalar WebKit y probar las pantallas v2 en Safari», antes de guardar las trazas para que un fallo en Safari también las deje. La medición informativa de WP-52 reutiliza ese WebKit.
+- **Límite de la validación local:** este contenedor no puede descargar WebKit (el proxy bloquea el CDN de Playwright). Aquí se validó el proyecto con Chromium y la misma emulación de iPhone (configuración temporal fuera del repositorio): 15 de 15 en verde (1,1 min). En WebKit lo valida el CI del PR.
+- **Validación:** `npm run verify` en verde: 6196 de 6196 pruebas unitarias (+3, `tests/rdwk-safari.test.cjs`), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 251 de 251 en verde (15,7 min; +1, el barrido del menú en `e2e`). Proyecto `safari` con Chromium emulando el iPhone: 15 de 15.
+
 ## Cierre de sesión — 26 de octubre de 2026 (354): XIN-02, vigía de la recompra
 
 - **Por qué ahora:** función «Ahora» sin puerta, con euros en juego antes del 31/12 (campaña fiscal) y sin pantalla nueva: el inventario de XGO-01 no cambia.
