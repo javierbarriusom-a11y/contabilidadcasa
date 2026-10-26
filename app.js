@@ -24532,6 +24532,7 @@ function renderAjustes() {
   // widget.
   renderAjustesFinancialCalendar();
   globalThis.renderRecordatorios?.(globalThis.FinanceCanonicalReminders); // WP-32 (recordatorios-ui.js)
+  globalThis.renderLoQuePide?.(globalThis.FinanceCanonicalDataContracts); // XDA-01 (lo-que-pide-ui.js), solo con su interruptor encendido
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();

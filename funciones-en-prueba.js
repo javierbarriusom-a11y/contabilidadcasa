@@ -38,6 +38,8 @@
     { id: "repaso-v2", nombre: "Repaso semanal", queHace: "Saldos, extracto, lo que vino y la bandeja, en orden y con cronómetro.", desde: "2026-10-24", metrica: "minutos de mantenimiento a la semana (10 o menos)", parteDe: "tema-v2" },
     // XPR-06 (26/10/2026): la primera con interruptor propio; su revisión cuenta desde el día en que se enciende.
     { id: "banda-dia", nombre: "Qué mueve cada día", queHace: "En Plan › Previsión, la banda de caja a 30 días dice qué entra y sale el día que elijas, con qué certeza y, si la fecha es estimada, dónde indicarla.", desde: "2026-10-26", metrica: "días de cargo indicados desde aquí; se retira si nadie lo usa en dos meses", interruptor: "propio" },
+    // XDA-01 · PR-1 (26/10/2026): lo que cuesta mantener cada función, en Ajustes › Uso de la app.
+    { id: "lo-que-pide", nombre: "Lo que la app te pide", queHace: "En Ajustes › Uso de la app, qué datos pide cada función, cada cuánto, cuántos minutos a la semana y cuáles tienen hambre.", desde: "2026-10-26", metrica: "datos que faltaban y se dan desde aquí; se retira si nadie la abre en dos meses", interruptor: "propio" },
   ];
 
   function isoDate(date) {
@@ -226,6 +228,7 @@
             // Sin almacenamiento no se puede recordar: el interruptor se queda como estaba.
           }
           if (!encender) globalThis.FinanceMedidor?.anotar(item.id, "descarte");
+          globalThis.render?.(); // la pantalla en curso se repinta ya con el interruptor nuevo (la tarjeta de XDA-01 vive en Ajustes)
           render(doc, storage, hoy);
           doc.querySelector(`[data-fep-interruptor="${item.id}"]`)?.focus();
           return;
