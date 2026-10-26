@@ -163,7 +163,9 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    `partidas-ui.js` y las 41 del motor de escenarios al nuevo `escenarios-ui.js` (añadido a `FICHEROS_APP`); `app.js` 34.977 → 33.129 y
    techo 33.259. Entre los dos PR salen 4.319 líneas, más que las ~3.000 que proponía la auditoría; el margen bajo el techo sigue
    siendo de ~130 por el trinquete que eligió el hogar (P7). En los dos PR, solo declaraciones de función, a scripts clásicos con `defer`
-   antes de `app.js`; el cargador del OCR de tickets se queda en `app.js` junto a su huella SRI (RQ-13).
+   antes de `app.js`; el cargador del OCR de tickets se queda en `app.js` junto a su huella SRI (RQ-13). **La otra mitad de XGO-01, el
+   26/10:** «uno entra, uno sale» comprobado por el CI con el inventario de titulares visibles por defecto (`docs/gobierno/superficie.json`,
+   226 en 31 rutas). Cada pantalla que el rediseño rehaga entra con su inventario: si enseña más que la de siempre, se nota en el PR.
 4. **Funciones en prueba** (Laboratorio, XGO-03; nombre según P8) con el tema como primer interruptor, y el aviso de
    graduación a las dos semanas con confirmación manual (P9). **Hecho el 22/10.** Las primeras revisiones saltan el 2/11
    (Diseño nuevo y Hoy) y el 4/11 (Movimientos, Importar y Clasificar). **El medidor XGO-02 (P10), en PR aparte, también
