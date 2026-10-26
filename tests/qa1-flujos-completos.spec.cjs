@@ -6404,6 +6404,9 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
       await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("en prueba desde el 26 oct · revisión el 9 nov");
 
       await abrirBanda();
+      // El ratón, fuera del gráfico: WebKit manda un movimiento de ratón «fantasma» al desplazarse la página, y el kit lee con solo pasar
+      // el ratón (WP-28), así que un ratón olvidado encima del dibujo cambiaría el día elegido con el teclado (lo destapó el CI en Safari).
+      await page.mouse.move(1, 1);
       const boton = page.locator("#previsionBanda [data-banda-dia]");
       await expect(boton).toHaveText("Qué mueve el 26 de octubre");
       const slider = page.locator("#previsionBanda .ck-scrub");
@@ -6421,7 +6424,9 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
       await page.keyboard.press("Home");
       for (let step = 0; step < elegido.index; step += 1) await page.keyboard.press("ArrowRight");
       await expect(slider).toHaveAttribute("aria-valuenow", String(elegido.index));
-      await boton.click();
+      // Se abre con el teclado, como lo haría quien acaba de recorrer el gráfico con las flechas.
+      await boton.focus();
+      await page.keyboard.press("Enter");
       const hoja = page.locator("#bandaDiaDialog");
       await expect(hoja).toBeVisible();
       await expect(hoja.locator("#bandaDiaTitulo")).toHaveText(await boton.textContent());

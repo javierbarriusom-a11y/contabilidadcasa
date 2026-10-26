@@ -129,6 +129,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - Las estimadas de cargo llevan «¿Sabes el día?», que lleva a Plan › Partidas › Días de cargo (WP-08), abierta y con el foco en el selector de esa partida.
 - **Medidor (XGO-02):** vista al abrir la hoja; acción al usar «¿Sabes el día?», que es la métrica de la ficha (fechas corregidas desde aquí). Se retira si nadie lo usa en dos meses.
 - **Lo que no hace:** corregir la fecha o el importe dentro de la propia hoja, como pedía la ficha. La fecha se corrige donde ya se corregía (Días de cargo) y el importe, en su partida. Si el medidor dice que se usa, eso va en otro PR.
+- **Lo que destapó el CI en Safari (primer PR con WebKit de verdad):** la e2e a 390 px abrió la hoja de otro día. WebKit manda un movimiento de ratón «fantasma» al desplazarse la página, y el kit de gráficos lee con solo pasar el ratón (WP-28), así que un ratón quieto encima del dibujo cambia el día elegido con el teclado. La prueba aparca el ratón fuera y abre la hoja con el teclado. En el iPhone no hay ratón; en un Mac con Safari, pasar el ratón por el gráfico camino del botón puede cambiar el día, y el botón siempre dice qué día abre.
 - **Lectura con el plan de ejemplo:** el día de hoy acumula todos los cargos de octubre con fecha estimada (el plan los suponía el día 8 y los sigue dando por pendientes). Es el comportamiento de la banda desde WP-16, no algo nuevo; la hoja ahora lo deja a la vista.
 - **Pruebas:**
   - `tests/xpr06-que-mueve-cada-dia.test.cjs` (5).
