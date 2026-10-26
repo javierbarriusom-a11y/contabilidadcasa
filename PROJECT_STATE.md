@@ -136,7 +136,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - Axe del periodo en claro y en oscuro.
   - Las 5 pruebas que fijaban la cobertura con una fecha la fijan también como periodo (misma cobertura).
   - ARQ-3: recuento de motores de 110 a 111, con su consumidor en `views/cierre.js`.
-- **Validación:** `npm run verify` en verde: 6161 de 6161 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): en curso; la cifra se anota al terminar.
+- **Validación:** `npm run verify` en verde: 6161 de 6161 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 242 de 242 en verde (14,2 min), tras el arreglo de arriba. En la primera pasada fallaron 2: la de WP-45 (por el error de arriba) y una de contraste de WP-23 en oscuro que no toca este PR y pasa al repetirla.
 
 ## Cierre de sesión — 25 de octubre de 2026 (349): XDA-02 · PR-2, buzón de extractos (construido, sin desplegar)
 
