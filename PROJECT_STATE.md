@@ -109,6 +109,26 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (357): XDA-01 · PR-1, lo que la app te pide (en prueba, apagada)
+
+- **Por qué esta:** después de XPR-06, era la otra propuesta «Ahora» sin puerta. Va al cuello de botella que señaló la revisión de la Ola 1: la app no recibe datos, y nadie sumaba lo que cuesta dárselos. XUX-02 (ver cada pantalla con datos de ejemplo) necesita este registro.
+- **Qué hace** (diseño en `docs/XDA01_DISENO.md`):
+  - **Motor** `canonical-data-contracts.js` (puro): cada función declara qué fuentes de WP-45 necesita y cada cuánto.
+  - **Coste semanal:** por función, y en total. El total cuenta **cada fuente una vez**, con la cadencia más exigente, y se compara con los 10 min de GOV-01.
+  - **Hambre:** una función tiene hambre si algún dato suyo está antiguo o no llegó nunca.
+  - **Lo que no aplica no cuenta:** sin cartera, nada de valoración; sin índices, nada de revisión de la hipoteca.
+  - **Tarjeta** en Ajustes › Uso de la app: frase, barra, minutos medidos por el Repaso semanal si hay alguno terminado, y cada función con su coste, su hambre y el enlace a dar el dato.
+  - **Sin duplicar WP-45:** frescura y minutos (medidos o supuestos, y dichos) salen de `datos-ui.js` tal cual.
+- **Nace apagada** en Funciones en prueba, con interruptor propio. Mover un interruptor propio ahora repinta la pantalla en curso, así que la tarjeta aparece al momento. Medidor: vista, y como acción ir a dar un dato desde la tarjeta. Una línea en Novedades.
+- **Lo que no hace (PR-2, si se usa):**
+  - **«Pausar»:** silenciar avisos toca muchas pantallas, y pausar sin silenciar engañaría.
+  - **Plegar las funciones con hambre en su pantalla.**
+  - **Ordenar por valor por minuto:** aún no hay medida de valor; el medidor de XGO-02 empieza a darla.
+- **Lectura con el sitio público, sin datos:** unos 4 min a la semana, y 6 de 6 funciones con hambre. Es lo esperable sin extracto, sin saldos declarados y sin cierres. Con los datos del hogar, la tarjeta dirá cuáles sobran.
+- **Pruebas:** `tests/xda01-lo-que-pide.test.cjs` (6), recuento de motores 112 → 113 (`arq3`), y la e2e «XDA-01 · Lo que la app te pide» a 390 y 1280 px. La de 390 px también corre en Safari.
+- **Un fallo de la validación, corregido:** la comprobación de privacidad del sitio publicado paró `verify`: el minificador convierte los «20 / 60» minutos supuestos en `.3333333333333333`, que tiene forma de número de tarjeta. Los supuestos van ahora en segundos (20, 120, 30…), con el mismo valor.
+- **Validación:** `npm run verify` en verde: 6207 de 6207 pruebas unitarias (+6), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 255 de 255 en verde (16,9 min; +2, la e2e de XDA-01), con la máquina sin nada más en marcha. Esa pasada fue antes del cambio a segundos; después, la e2e de XDA-01 otra vez: 2 de 2. Proyecto `safari` con Chromium emulando el iPhone: 17 de 17.
+
 ## Cierre de sesión — 26 de octubre de 2026 (356): XPR-06, qué mueve cada día de la banda de caja (en prueba, apagada)
 
 - **Por qué esta:** el hogar pidió seguir con lo que no dependa de él. Del grupo «Ahora» de la séptima auditoría, tres propuestas no tienen puerta: XDA-01, XPR-06 y XUX-02.

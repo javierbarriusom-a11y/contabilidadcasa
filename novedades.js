@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-lo-que-pide",
+      fecha: "2026-10-26",
+      texto: "En prueba y apagada: «Lo que la app te pide» suma los minutos que cuesta mantener cada función. Se enciende en Funciones en prueba.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-26-que-mueve-cada-dia",
       fecha: "2026-10-26",
       texto: "En prueba y apagada: «Qué mueve cada día» desglosa un día de la banda de caja. Se enciende en Ajustes › Funciones en prueba.",

@@ -6454,3 +6454,37 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
     });
   }
 });
+
+// XDA-01 · PR-1: «Lo que la app te pide» (Ajustes › Uso de la app). Nace apagada en Funciones en prueba; encendida, dice lo que cuesta a la
+// semana mantener cada función frente a los 10 min de GOV-01, qué funciones tienen hambre y lleva a dar el dato que falta.
+test.describe("XDA-01 · Lo que la app te pide", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no se ve; encendida, minutos frente al presupuesto, hambre y el camino al dato, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      const card = page.locator("#loQuePideCard");
+      await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "false", { timeout: 15000 });
+      await expect(card, "apagada, no se ve").toBeHidden();
+
+      await page.locator('[data-fep-interruptor="lo-que-pide"]').click();
+      await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "true");
+      await expect(card, "se ve al momento, sin cambiar de pantalla").toBeVisible({ timeout: 15000 });
+      await expect(card.locator(".lqp-frase")).toContainText(/^Lo que piden las funciones que usáis: unos [\d,]+ min a la semana .*frente a un presupuesto de 10 min\./);
+      await expect(card.locator("meter.lqp-barra")).toHaveAttribute("max", "10");
+      // Sin extracto importado (sitio público, sin datos), Movimientos tiene hambre y lleva a importarlo.
+      const movimientos = card.locator('[data-lqp-funcion="movimientos"]');
+      await expect(movimientos).toContainText("Tiene hambre. Sin dato al día: extracto del banco.");
+      await expect(movimientos).toContainText("(supuesto)");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await movimientos.locator(".lqp-dato a", { hasText: "Importar el extracto" }).click();
+      await expect(page).toHaveURL(/#movements$/);
+      const medido = await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "lo-que-pide", "2026-10"));
+      expect([medido.vistas, medido.acciones]).toEqual([1, 1]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

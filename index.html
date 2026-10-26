@@ -5750,6 +5750,12 @@
                   <p class="e19-kpi-note" id="panelUsoMinutosEstado" role="status" aria-live="polite"></p>
                 </form>
               </article>
+              <!-- XDA-01 · PR-1 (lo-que-pide-ui.js): qué datos pide cada función, cada cuánto y cuántos minutos cuesta darlos.
+                   Oculta mientras «Lo que la app te pide» esté apagada en Funciones en prueba. -->
+              <article class="e19-card lqp-card" id="loQuePideCard" aria-labelledby="loQuePideTitulo" hidden>
+                <h3 class="escenario-motor-panel-title" id="loQuePideTitulo">Lo que la app te pide</h3>
+                <div id="loQuePideCuerpo"></div>
+              </article>
               <!-- XGO-02 (medidor-utilidad.js): por función, si se vio, si se actuó, si se descartó y si se deshizo.
                    Solo cuentas de este navegador, ningún importe. Lo mismo, resumido, va en «Funciones en prueba». -->
               <article class="e19-card" id="medidorUtilidadCard" aria-labelledby="medidorUtilidadTitulo">
@@ -8124,6 +8130,7 @@
     <script defer src="canonical-expected-movements.js?v=20261007wp14a1"></script>
     <script defer src="canonical-ledger-coverage.js?v=20261026xda04"></script>
     <script defer src="canonical-statement-lines.js?v=20261026xda03"></script>
+    <script defer src="canonical-data-contracts.js?v=20261026xda01"></script>
     <script defer src="esperados-ui.js?v=20261007wp14a1"></script>
     <script defer src="canonical-rate-indices.js?v=20261007wp13a1"></script>
     <script defer src="indices-ui.js?v=20261007wp13a1"></script>
@@ -8191,6 +8198,7 @@
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261026xda04"></script>
     <script defer src="extracto-pdf-ui.js?v=20261026xda03"></script>
+    <script defer src="lo-que-pide-ui.js?v=20261026xda01"></script>
     <script defer src="app.js?v=20261002s5a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
