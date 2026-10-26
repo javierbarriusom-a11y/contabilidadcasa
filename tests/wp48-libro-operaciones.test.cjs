@@ -169,7 +169,7 @@ test("WP-48 · una aportación sin unidades y una venta sin importe se avisan", 
   assert.ok(codes.includes("sale-without-proceeds"));
 });
 
-test("WP-48 · una venta con pérdida y una recompra en los dos meses siguientes se avisa (no se aplica la norma, solo se advierte); ni con plusvalía ni fuera de plazo", () => {
+test("WP-48 · una venta con pérdida y una recompra en los dos meses anteriores o siguientes se avisa (no se aplica la norma, solo se advierte); ni con plusvalía ni fuera de plazo", () => {
   const raw = {
     id: "R", type: "accion", label: "R", provenance: "manual", asOf: "2026-09-01", acquisitionDate: "2020-01-01", quantity: 100, costBasis: 10000, currentValue: 0,
     contributions: [], disposals: [{ id: "s1", date: "2026-03-31", quantitySold: 50, saleProceeds: 3000 }],
@@ -181,13 +181,15 @@ test("WP-48 · una venta con pérdida y una recompra en los dos meses siguientes
   assert.ok(codes(dentro).includes("repurchase-risk"), "el 31/05 está dentro de los dos meses posteriores al 31/03");
   const fuera = change(raw, "add", buy("c1", "2026-06-01", 1000, 10));
   assert.ok(!codes(fuera).includes("repurchase-risk"), "el 01/06 ya queda fuera");
+  // Hasta XIN-02 (26/10/2026) las compras anteriores no se evaluaban. Ahora sí, como dice la norma: las 10 u del 01/03 siguen en
+  // cartera tras la venta (el FIFO vende primero las del lote inicial), así que difieren parte de la pérdida.
   const antes = change(raw, "add", buy("c1", "2026-03-01", 1000, 10));
-  assert.ok(!codes(antes).includes("repurchase-risk"), "las compras anteriores no se evalúan (se dice en el diseño)");
+  assert.ok(codes(antes).includes("repurchase-risk"), "la compra del 01/03, dentro de los dos meses anteriores y aún en cartera, también cuenta");
   const ganancia = change(dentro, "edit", sell("s1", "2026-03-31", 50, 9000));
   assert.ok(!codes(ganancia).includes("repurchase-risk"), "con plusvalía no hay nada que diferir");
   const d = L.diff(raw, dentro);
   assert.ok(d.newWarnings.some((w) => w.code === "repurchase-risk"), "el «antes / después» lo enseña como aviso nuevo");
-  assert.match(d.newWarnings.find((w) => w.code === "repurchase-risk").text, /La app no lo aplica/);
+  assert.match(d.newWarnings.find((w) => w.code === "repurchase-risk").text, /La compensación de la app no lo descuenta/);
 });
 
 test("WP-48 · validación: fecha que no existe, importes negativos, venta sin unidades, aportación sin importe; y nunca se modifica la posición de entrada", () => {

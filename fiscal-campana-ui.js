@@ -27,6 +27,16 @@ function fiscalCampaignCountdown(campaign) {
   return `${left}.`;
 }
 
+// XIN-02: realizar minusvalías solo ahorra si no se recompra lo mismo dentro de la ventana de la norma de recompra (art. 33.5
+// de la Ley del IRPF). La fecha sale del vigía del libro de operaciones (canonical-portfolio-ledger.js), contada desde hoy.
+function fiscalCampaignRepurchase() {
+  const ledger = globalThis.FinanceCanonicalPortfolioLedger;
+  if (!ledger?.repurchaseFreeFrom) return "";
+  const today = isoLocalDate(new Date());
+  const date = (iso) => iso.split("-").reverse().map(Number).join("/");
+  return ` Si vendes hoy, no recompres lo mismo antes del ${date(ledger.repurchaseFreeFrom("accion", today))} (acciones y ETF de mercados de la UE) ni del ${date(ledger.repurchaseFreeFrom("fondo", today))} (fondos que no cotizan y valores de fuera de la UE): si no, la pérdida se difiere.`;
+}
+
 // Qué dice cada acción para cada declarante, en una frase que se entiende sin abrir nada.
 function fiscalCampaignHolderLine(action, row, example) {
   const result = row.result;
@@ -43,7 +53,7 @@ function fiscalCampaignHolderLine(action, row, example) {
         ? `Límite de ${amount(result.limit)} ya cubierto.`
         : `Aportado ${amount(result.contributedYear)} de ${amount(result.limit)}: caben ${amount(result.room)} más. Con tipo marginal del ${result.ratePct} % ahorra ${amount(result.savingEur)} y el coste real es ${amount(result.netCostEur)}.`;
     case "compensacion":
-      return `Plusvalía neta de ${amount(result.realizedNet)} y minusvalías latentes de ${amount(result.latentLosses)}: realizar ${amount(result.amount)} ahorra ${amount(result.savingEur)} (a ${result.ratePct} %).`;
+      return `Plusvalía neta de ${amount(result.realizedNet)} y minusvalías latentes de ${amount(result.latentLosses)}: realizar ${amount(result.amount)} ahorra ${amount(result.savingEur)} (a ${result.ratePct} %).${fiscalCampaignRepurchase()}`;
     case "donativos":
       return `${amount(result.amount)} donados: los primeros ${amount(result.firstTierAmount)} deducen al ${result.firstTierRatePct} % y el resto al ${result.restRatePct} %. Ahorra ${amount(result.savingEur)}; el coste real es ${amount(result.netCostEur)}.`;
     case "retencion":

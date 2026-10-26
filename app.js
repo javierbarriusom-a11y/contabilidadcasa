@@ -18871,9 +18871,9 @@ function renderInv6LatentLossCandidates() {
     return;
   }
   const items = candidates
-    .map((item, index) => `<li class="commit-barrier-item"><span>${index === 0 ? "Vende esta primero — " : ""}${escapeHtml(item.label)}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
+    .map((item, index) => `<li class="commit-barrier-item"><span>${index === 0 ? "Vende esta primero — " : ""}${escapeHtml(item.label)}${globalThis.inv6RepurchaseNote?.(item) || ""}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
     .join("");
-  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se realizaran todas: ${money(totalLatentLoss, true)}. Respeta la norma de no recompra (2 meses en cotizados, 1 año en no cotizados) para que la pérdida sea deducible.</p>`;
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se realizaran todas: ${money(totalLatentLoss, true)}. Para que la pérdida cuente, no recompres lo mismo dentro de la ventana de la norma de recompra (dos meses en acciones y ETF de mercados de la UE; un año en fondos que no cotizan y valores de fuera de la UE) ni lo hayas comprado en esa ventana antes de vender.</p>`;
 }
 
 // INV7 (Oleada 3, Bloque 5): escalera de liquidez — reutiliza normalizePositions() (IV1) y

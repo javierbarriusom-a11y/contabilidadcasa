@@ -109,6 +109,37 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (354): XIN-02, vigía de la recompra
+
+- **Por qué ahora:** función «Ahora» sin puerta, con euros en juego antes del 31/12 (campaña fiscal) y sin pantalla nueva: el inventario de XGO-01 no cambia.
+- **Qué faltaba:**
+  - El libro de operaciones (WP-48) solo miraba las compras de los dos meses **posteriores** a una venta con pérdida.
+  - Aplicaba dos meses a todo y daba la pérdida entera por dudosa.
+  - Ni las candidatas a aflorar pérdidas ni la campaña fiscal decían hasta cuándo no recomprar.
+- **La norma, contrastada:**
+  - **Fuentes:** art. 33.5 f y g de la Ley del IRPF y el Manual práctico de Renta 2025 de la AEAT, «Pérdidas patrimoniales que no se computan fiscalmente como tales». La sede de la AEAT y el BOE están bloqueados por el proxy de este entorno, así que se contrastó a través del buscador, que devuelve las páginas oficiales.
+  - **Plazos:** dos meses antes o después en valores admitidos en mercados regulados de la UE; un año en los no admitidos (fondos que no cotizan) y en los de fuera de esos mercados.
+  - **Homogéneos:** misma entidad y clase. Se aplica el FIFO (art. 37.2).
+  - **Compras anteriores:** cuentan las que siguen en cartera. No hay limitación si en la ventana anterior hubo una sola compra y al empezarla no se tenía nada.
+  - **Cuándo aflora:** la pérdida diferida se integra al transmitir lo recomprado.
+  - **Sin confirmar en fuente oficial:** el reparto en proporción a las unidades recompradas. Lo aplican asesores y la app lo dice como estimación.
+- **Motor** (`canonical-portfolio-ledger.js`, puro):
+  - `repurchaseWindow(tipo)`: acciones y ETF, dos meses (con la salvedad de fuera de la UE); fondos, un año; cripto, planes y «otro» no se evalúan.
+  - `repurchaseFreeFrom(tipo, fecha)`.
+  - `repurchaseAnalysis`: compras anteriores que siguen y posteriores, unidades recompradas, parte diferida estimada, desde cuándo se podía recomprar y si ya no queda nada.
+  - El FIFO no se reimplementa: lo que sigue en cartera sale de `fifoLedger` de `canonical-portfolio.js`, porque el FIFO siempre deja las unidades más recientes.
+  - El aviso `repurchase-risk` pasa a decir todo eso. La compensación sigue sin descontarlo, y el aviso lo dice.
+- **En pantalla:**
+  - La fila de la venta en el libro de operaciones: «unos N € diferidos por recompra», con la explicación debajo. También sale en el «antes / después» al añadir o cambiar operaciones.
+  - Las candidatas a aflorar pérdidas (Inversión › Fiscalidad): «si vendes hoy, no recompres antes del …», por tipo.
+  - La acción «Compensar plusvalías con minusvalías» de la campaña fiscal: las dos fechas, contadas desde hoy.
+  - Una línea en Novedades.
+- **Pruebas:**
+  - `tests/xin02-vigia-recompra.test.cjs` (7).
+  - `tests/wp48-libro-operaciones.test.cjs`: la compra anterior que sigue en cartera ahora sí avisa, porque es lo que dice la norma (antes se excluía por diseño, y la prueba lo explica). El texto «La app no lo aplica» pasa a «La compensación de la app no lo descuenta».
+  - E2E «XIN-02 · Vigía de la recompra» a 1280 y 390 px.
+- **Validación:** `npm run verify` en verde: 6193 de 6193 pruebas unitarias (+7), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 250 de 250 en verde (16,6 min; +1, la e2e de XIN-02).
+
 ## Cierre de sesión — 26 de octubre de 2026 (353): XGO-01, «uno entra, uno sale» comprobado por el CI
 
 - **Por qué ahora:** el hogar pidió seguir con lo que no dependa de él. De las funciones «Ahora» sin puerta, esta era la única sin pantalla nueva: las pantallas nuevas del rediseño esperan a las revisiones del 2/11 y el 4/11. Era además la mitad pendiente de XGO-01 (§5.0, fila 5). GOV-02 es una regla de trabajo de Claude, con veto posible del hogar.
