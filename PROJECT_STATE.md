@@ -109,6 +109,32 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (356): XPR-06, qué mueve cada día de la banda de caja (en prueba, apagada)
+
+- **Por qué esta:** el hogar pidió seguir con lo que no dependa de él. Del grupo «Ahora» de la séptima auditoría, tres propuestas no tienen puerta: XDA-01, XPR-06 y XUX-02.
+  - XDA-01 añade una sección a Ajustes, que ya es la pantalla más cargada (57 titulares, XGO-01).
+  - XUX-02 necesita el registro de XDA-01.
+  - XPR-06 no añade pantalla: amplía la banda de caja de Plan › Previsión. WP-28 (el kit de gráficos) se aparcó el 21/10 solo por el límite de 3 paquetes, que el hogar levantó el 26/10.
+- **Cómo entra:** por la regla de XGO-03, toda función nueva nace en Funciones en prueba y apagada.
+  - Es la primera con **interruptor propio**. Sin encenderla, la banda se ve como siempre, y XGO-01 no cuenta nada nuevo.
+  - Encenderla no recarga la página. La revisión de las dos semanas cuenta **desde el día en que se enciende**, no desde que se publicó.
+  - Lo dice una línea de Novedades.
+- **Motor** (`canonical-cash-band.js`, puro):
+  - `dayBreakdown(entradas, día)` desglosa la columna «Según el plan» de un día: saldo al empezar, cada entrada y salida con su certeza, lo que toca ese día del gasto repartido por el mes y saldo al acabar.
+  - En los de fecha estimada, también el tramo en que la banda los mueve y el día que suponía el plan.
+  - La simulación y el desglose comparten la preparación (`prepare`), así que no pueden contar distinto. Una prueba lo comprueba día a día: cada desglose cuadra al céntimo con el «Según el plan» de la tabla.
+- **En pantalla** (`cash-band-ui.js`, con el kit de WP-28):
+  - Bajo el gráfico, «Qué mueve el …» sigue al día elegido en el recorrido (el kit avisa ahora del punto elegido con un evento `ck-select`).
+  - Abre una hoja (el `<dialog>` de siempre). Cada cosa sale con su certeza: fecha cierta, por regla, día indicado por ti o estimada.
+  - Las estimadas de cargo llevan «¿Sabes el día?», que lleva a Plan › Partidas › Días de cargo (WP-08), abierta y con el foco en el selector de esa partida.
+- **Medidor (XGO-02):** vista al abrir la hoja; acción al usar «¿Sabes el día?», que es la métrica de la ficha (fechas corregidas desde aquí). Se retira si nadie lo usa en dos meses.
+- **Lo que no hace:** corregir la fecha o el importe dentro de la propia hoja, como pedía la ficha. La fecha se corrige donde ya se corregía (Días de cargo) y el importe, en su partida. Si el medidor dice que se usa, eso va en otro PR.
+- **Lectura con el plan de ejemplo:** el día de hoy acumula todos los cargos de octubre con fecha estimada (el plan los suponía el día 8 y los sigue dando por pendientes). Es el comportamiento de la banda desde WP-16, no algo nuevo; la hoja ahora lo deja a la vista.
+- **Pruebas:**
+  - `tests/xpr06-que-mueve-cada-dia.test.cjs` (5).
+  - E2E «XPR-06 · Qué mueve cada día» a 390 y 1280 px. La de 390 también en Safari (`@safari`, RD-WK).
+- **Validación:** `npm run verify` en verde: 6201 de 6201 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): PW_RESULT. Proyecto `safari` con Chromium emulando el iPhone: 16 de 16 (+1, la e2e de XPR-06 a 390 px).
+
 ## Cierre de sesión — 26 de octubre de 2026 (355): RD-WK, las pantallas v2 también en Safari
 
 - **Por qué ahora:** el hogar pidió seguir con lo que no dependa de él. RD-WK (§5.0, fila 10) estaba decidido desde el 19/10 (P14: «Sí: proyecto WebKit 390×844 para las pantallas v2») y no pide pantalla nueva. El hogar usa la app en el iPhone, y hasta hoy ninguna prueba bloqueante corría en el motor de Safari: solo la medición informativa de carga de WP-52.

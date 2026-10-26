@@ -6375,3 +6375,77 @@ test.describe("RD-WK · el menú principal en el móvil", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// XPR-06: «Toca un día y mira qué lo mueve» en la banda de caja (Plan › Previsión). Nace apagada en Funciones en prueba (XGO-03);
+// encendida, el día elegido en el recorrido se desglosa y cuadra con la columna «Según el plan»; «¿Sabes el día?» lleva a su partida.
+test.describe("XPR-06 · Qué mueve cada día", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no cambia nada; encendida, el día elegido se desglosa y cuadra con la tabla, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      const abrirBanda = async () => {
+        await page.goto("/index.html#prevision");
+        await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
+        if (!(await page.locator("#previsionBandaCard").evaluate((card) => card.open))) await page.locator("#previsionBandaResumen").click();
+        await expect(page.locator("#previsionBanda .ck-figure")).toBeVisible();
+      };
+      await abrirBanda();
+      await expect(page.locator("[data-banda-dia]"), "apagada, la banda es la de siempre").toHaveCount(0);
+
+      await page.goto("/index.html#ajustes");
+      const sw = page.locator('[data-fep-interruptor="banda-dia"]');
+      await expect(sw).toHaveAttribute("aria-checked", "false");
+      await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("apagada: enciéndela para probarla");
+      await sw.click();
+      await expect(sw).toHaveAttribute("aria-checked", "true");
+      await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("en prueba desde el 26 oct · revisión el 9 nov");
+
+      await abrirBanda();
+      const boton = page.locator("#previsionBanda [data-banda-dia]");
+      await expect(boton).toHaveText("Qué mueve el 26 de octubre");
+      const slider = page.locator("#previsionBanda .ck-scrub");
+      await slider.focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(boton).toHaveText("Qué mueve el 27 de octubre", { timeout: 5000 });
+
+      // El primer día con algo de fecha estimada que sale: el caso que más enseña (certeza, tramo y «¿Sabes el día?»).
+      const elegido = await page.evaluate(() => {
+        const fechas = JSON.parse(document.querySelector("[data-banda-dia-fechas]").dataset.bandaDiaFechas);
+        const index = fechas.findIndex((date) => FinanceCanonicalCashBand.dayBreakdown(cashBandLastInput, date)?.items.some((item) => item.confidence === "estimated" && item.kind === "outflow"));
+        return { index, fecha: fechas[index] };
+      });
+      expect(elegido.index, "el plan de ejemplo tiene algún cargo con fecha estimada en 30 días").toBeGreaterThanOrEqual(0);
+      await page.keyboard.press("Home");
+      for (let step = 0; step < elegido.index; step += 1) await page.keyboard.press("ArrowRight");
+      await expect(slider).toHaveAttribute("aria-valuenow", String(elegido.index));
+      await boton.click();
+      const hoja = page.locator("#bandaDiaDialog");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("#bandaDiaTitulo")).toHaveText(await boton.textContent());
+      await expect(hoja).toContainText("Al empezar el día, según el plan");
+      await expect(hoja.locator(".banda-dia-certeza").first()).toBeVisible();
+      await expect(hoja).toContainText("fecha estimada");
+      await expect(hoja).toContainText("puede caer");
+      // Cuadra con la tabla: el saldo al acabar el día es su «Según el plan».
+      await page.locator("#previsionBanda .ck-tabla summary").evaluate((summary) => { summary.parentElement.open = true; });
+      const segunPlan = (await page.locator("#previsionBanda .ck-tabla tbody tr").nth(elegido.index).locator("td").last().textContent()).trim();
+      await expect(hoja.locator(".banda-dia-saldo").last()).toContainText(segunPlan);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      const cajaHoja = await hoja.boundingBox();
+      expect(cajaHoja.x >= 0 && cajaHoja.x + cajaHoja.width <= viewport.width + 1, "la hoja cabe en la pantalla").toBe(true);
+
+      // «¿Sabes el día?» lleva a Días de cargo, abierta y con el foco dentro.
+      await hoja.locator("[data-banda-dia-cargo]").first().click();
+      await expect(hoja).toBeHidden();
+      await expect(page).toHaveURL(/#planificacion-partidas$/);
+      await expect(page.locator("#cargoDiaCard")).toHaveJSProperty("open", true);
+      await expect.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest("#cargoDiaCard")))).toBe(true);
+      const medido = await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "banda-dia", "2026-10"));
+      expect([medido.vistas, medido.acciones]).toEqual([1, 1]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

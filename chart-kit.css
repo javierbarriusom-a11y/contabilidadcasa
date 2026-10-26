@@ -243,3 +243,54 @@
     stroke: CanvasText;
   }
 }
+
+/* XPR-06 · «Qué mueve el …» de la banda de caja (cash-band-ui.js) y su hoja. El diálogo es el de siempre (.action-review-dialog). */
+.banda-dia-abrir {
+  margin: 4px 0 0;
+}
+
+.banda-dia-lista {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.banda-dia-item {
+  display: grid;
+  grid-template-columns: minmax(5.5em, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.banda-dia-importe {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+.banda-dia-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.banda-dia-certeza {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.banda-dia-cargo {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--e19-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

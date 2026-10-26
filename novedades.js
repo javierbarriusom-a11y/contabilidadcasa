@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-que-mueve-cada-dia",
+      fecha: "2026-10-26",
+      texto: "En prueba y apagada: «Qué mueve cada día» desglosa un día de la banda de caja. Se enciende en Ajustes › Funciones en prueba.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-26-vigia-recompra",
       fecha: "2026-10-26",
       texto: "Vender con pérdida y recomprar lo mismo difiere la pérdida: el libro de operaciones lo avisa y la campaña fiscal dice hasta cuándo esperar.",
