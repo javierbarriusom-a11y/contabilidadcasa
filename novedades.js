@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-vigia-recompra",
+      fecha: "2026-10-26",
+      texto: "Vender con pérdida y recomprar lo mismo difiere la pérdida: el libro de operaciones lo avisa y la campaña fiscal dice hasta cuándo esperar.",
+      href: "#inversion-fiscal",
+    },
+    {
       id: "2026-10-26-clasificar-mide",
       fecha: "2026-10-26",
       texto: "Clasificar dice cuántos grupos faltan y cuánto llevará, y mide si sus propuestas aciertan; lo ves en Ajustes › Uso de la app.",

@@ -6296,3 +6296,48 @@ test.describe("XGO-01 · Uno entra, uno sale", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// XIN-02 · Vigía de la recompra (art. 33.5 f y g de la Ley del IRPF): la venta con pérdida que difiere una recompra se marca en el
+// libro de operaciones con la parte estimada y la explicación; las candidatas a aflorar pérdidas y la campaña fiscal dicen desde qué
+// día se puede recomprar si se vende hoy. Posiciones INVENTADAS, cifras calculadas a mano: 100 u compradas por 2.000 € en 2025,
+// 30 u más el 01/09/2026 y venta de 100 u por 1.500 € el 01/10 → pérdida de 500 €; las 30 u siguen en cartera → unos 150 € diferidos.
+test.describe("XIN-02 · Vigía de la recompra", () => {
+  test("la venta afectada se marca y se explica; candidatas y campaña dan la fecha de recompra", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await expect(page.locator("#opsCard")).toBeAttached({ timeout: 15000 });
+      await page.evaluate(() => {
+        saveIv1PositionsList([
+          { id: "R", type: "accion", label: "Acción R", provenance: "manual", asOf: "2026-10-26", acquisitionDate: "2025-01-10", quantity: 100, costBasis: 2000, currentValue: 500, contributions: [{ id: "c1", date: "2026-09-01", amount: 450, quantity: 30 }], disposals: [{ id: "s1", date: "2026-10-01", quantitySold: 100, saleProceeds: 1500 }] },
+          { id: "F", type: "fondo", label: "Fondo F", provenance: "manual", asOf: "2026-10-26", acquisitionDate: "2024-03-01", quantity: 50, costBasis: 5000, currentValue: 4000, contributions: [], disposals: [] },
+        ]);
+        renderIv1PositionList();
+      });
+      const body = page.locator("#opsCuerpo");
+      await body.locator("#opsPosicion").selectOption("R");
+      await expect(body.locator('[data-ops-row="s1"]')).toContainText("plusvalía FIFO -500 €");
+      await expect(body.locator('[data-ops-row="s1"]')).toContainText("unos 150 € diferidos por recompra");
+      const aviso = body.locator('ul[aria-label="Norma de recompra"]');
+      await expect(aviso).toContainText("La venta del 01/10/2026 tiene pérdida, pero en los dos meses anteriores o posteriores");
+      await expect(aviso).toContainText("30 unidades antes de la venta que siguen en cartera");
+      await expect(aviso).toContainText("hasta el 02/12/2026");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar").toBe(true);
+
+      await page.goto("/index.html#inversion-fiscal");
+      const candidatas = page.locator("#inv6LatentLossCandidates");
+      await expect(candidatas.locator("li", { hasText: "Fondo F" })).toContainText("si vendes hoy, no recompres antes del 27/10/2027");
+      await expect(candidatas).toContainText("un año en fondos que no cotizan y valores de fuera de la UE");
+
+      await page.goto("/index.html#herramientas-fiscal");
+      await expect(page.locator("#campanaFiscalCard .fc-accion", { hasText: "Compensar plusvalías con minusvalías" })).toContainText("Si vendes hoy, no recompres lo mismo antes del 27/12/2026 (acciones y ETF de mercados de la UE) ni del 27/10/2027");
+    }
+    expect(pageErrors).toEqual([]);
+  });
+});
