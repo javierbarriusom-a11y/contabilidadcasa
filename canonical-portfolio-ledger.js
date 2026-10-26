@@ -29,8 +29,97 @@
   const text = (value) => String(value ?? "").trim();
   const dmy = (iso) => text(iso).split("-").reverse().join("/");
   const addMonthsIso = (iso, months) => { const [y, m, d] = text(iso).split("-").map(Number); const moved = new Date(Date.UTC(y, m - 1 + months, 1)); const last = new Date(Date.UTC(moved.getUTCFullYear(), moved.getUTCMonth() + 1, 0)).getUTCDate(); return new Date(Date.UTC(moved.getUTCFullYear(), moved.getUTCMonth(), Math.min(d, last))).toISOString().slice(0, 10); };
-  // Compras de la misma posición en los dos meses POSTERIORES a la venta (las anteriores que siguen en cartera también cuentan para la norma, pero no se sabe cuáles siguen: no se evalúan).
-  const repurchasedAfter = (saleDate, dates) => isIsoDate(saleDate) && dates.some((date) => date >= saleDate && date <= addMonthsIso(saleDate, 2));
+  const addDaysIso = (iso, days) => { const [y, m, d] = text(iso).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10); };
+  const round2 = (value) => Math.round(value * 100) / 100;
+
+  // XIN-02 · Vigía de la recompra (art. 33.5 f y g de la Ley del IRPF; Manual práctico de Renta 2025 de la AEAT, «Pérdidas
+  // patrimoniales que no se computan fiscalmente como tales»). Una venta con pérdida no la integra si se adquieren valores
+  // homogéneos (misma entidad y clase) dentro de los dos meses anteriores o posteriores, en valores admitidos a negociación
+  // en los mercados regulados de la UE (Directiva MiFID), o del año anterior o posterior, en los no admitidos (como los
+  // fondos que no cotizan) y en los que cotizan fuera de esos mercados (EE. UU., por ejemplo). La pérdida se integra cuando
+  // se transmiten los valores recomprados; las compras anteriores solo cuentan si siguen en cartera tras la venta (FIFO,
+  // art. 37.2), y no hay limitación si en la ventana anterior hubo una sola compra y al empezarla no se tenía ninguno.
+  // La app no sabe en qué mercado cotiza una acción o un ETF: aplica dos meses y dice que es un año fuera de la UE. Cripto,
+  // planes de pensiones y «otro» no se evalúan (no son valores o no hay venta con pérdida que integrar).
+  // La parte diferida se estima en proporción a las unidades recompradas: lo dice como estimación.
+  const REPURCHASE_WINDOWS = {
+    accion: { months: 2, label: "dos meses", span: "los dos meses anteriores o posteriores", caveat: "un año si cotiza fuera de los mercados regulados de la UE, como EE. UU." },
+    etf: { months: 2, label: "dos meses", span: "los dos meses anteriores o posteriores", caveat: "un año si cotiza fuera de los mercados regulados de la UE, como EE. UU." },
+    fondo: { months: 12, label: "un año", span: "el año anterior o posterior", caveat: "" },
+  };
+
+  /** La ventana de la norma de recompra para un tipo de posición, o null si no se evalúa. */
+  function repurchaseWindow(type) {
+    return REPURCHASE_WINDOWS[text(type)] || null;
+  }
+
+  /** Desde qué día se puede recomprar sin diferir la pérdida de una venta hecha el `saleDate` (el día siguiente al fin de la ventana). */
+  function repurchaseFreeFrom(type, saleDate) {
+    const rule = repurchaseWindow(type);
+    return rule && isIsoDate(saleDate) ? addDaysIso(addMonthsIso(saleDate, rule.months), 1) : null;
+  }
+
+  /**
+   * Las ventas con pérdida de una posición y cuánto de cada una difiere la norma de recompra.
+   * @param {any} raw posición cruda (con `type`)
+   * @param {any} normalized la misma, normalizada (sus `disposals` traen la plusvalía FIFO)
+   * @param {any} [portfolio] el motor de cartera (por defecto, canonical-portfolio.js)
+   * @returns {Array<{id: string, date: string, quantitySold: number, loss: number, period: string, span: string, caveat: string, freeFrom: string, priorUnits: number, laterUnits: number, repurchasedUnits: number, deferredLoss: number, heldAtEnd: number, lastSaleDate: string}>}
+   */
+  function repurchaseAnalysis(raw, normalized, portfolio = null) {
+    const rule = repurchaseWindow(raw && raw.type);
+    if (!rule) return [];
+    const ops = operations(raw).filter((item) => item.date && item.quantity > 0);
+    const losses = (normalized && Array.isArray(normalized.disposals) ? normalized.disposals : []).filter((sale) => sale.realizedGain !== null && sale.realizedGain < 0 && !(sale.shortfall > 0));
+    if (!losses.length) return [];
+    // Lo que queda en cartera tras las operaciones que cumplen `keep`, con el reparto FIFO de siempre (canonical-portfolio.js).
+    const engine = resolvePortfolio(portfolio);
+    const held = (keep) => {
+      const kept = ops.filter(keep);
+      const initial = kept.find((item) => item.source === "initial");
+      return engine.fifoLedger({
+        acquisitionDate: initial ? initial.date : "", initialCost: initial ? initial.amount : 0, initialQuantity: initial ? initial.quantity : 0,
+        contributions: kept.filter((item) => item.source === "contribution").map((item) => ({ date: item.date, amount: item.amount, quantity: item.quantity })),
+        disposals: kept.filter((item) => item.kind === "sell").map((item) => ({ date: item.date, quantitySold: item.quantity, saleProceeds: item.amount })),
+      }).remainingQuantity;
+    };
+    const heldAtEnd = round2(held(() => true));
+    const lastSaleDate = ops.filter((item) => item.kind === "sell").map((item) => item.date).sort().at(-1) || "";
+    const found = [];
+    losses.forEach((sale) => {
+      const op = ops.find((item) => item.id === sale.id && item.kind === "sell");
+      if (!op) return;
+      const from = addMonthsIso(op.date, -rule.months);
+      const to = addMonthsIso(op.date, rule.months);
+      const priorBuys = ops.filter((item) => item.kind === "buy" && item.date >= from && item.date <= op.date);
+      // El FIFO deja en cartera las unidades más recientes: de las compradas en la ventana anterior, siguen tras la venta
+      // tantas como quedan en cartera en ese momento (como mucho, las compradas).
+      const single = priorBuys.length === 1 && held((item) => item.date < from) <= 1e-9;
+      const remaining = held((item) => item.date < op.date || (item.date === op.date && (item.kind === "buy" || ops.indexOf(item) <= ops.indexOf(op))));
+      const priorUnits = single ? 0 : Math.min(remaining, priorBuys.reduce((sum, item) => sum + item.quantity, 0));
+      const laterUnits = ops.filter((item) => item.kind === "buy" && item.date > op.date && item.date <= to).reduce((sum, item) => sum + item.quantity, 0);
+      const repurchasedUnits = Math.min(op.quantity, priorUnits + laterUnits);
+      if (repurchasedUnits <= 1e-9) return;
+      found.push({
+        id: sale.id, date: op.date, quantitySold: op.quantity, loss: round2(sale.realizedGain), period: rule.label, span: rule.span, caveat: rule.caveat,
+        freeFrom: addDaysIso(to, 1), priorUnits: round2(priorUnits), laterUnits: round2(laterUnits), repurchasedUnits: round2(repurchasedUnits),
+        deferredLoss: round2(sale.realizedGain * (repurchasedUnits / op.quantity)), heldAtEnd, lastSaleDate,
+      });
+    });
+    return found;
+  }
+
+  const euros = (value) => { const n = Math.abs(value); return `${new Intl.NumberFormat("es-ES", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).format(n)} €`; };
+
+  /** El aviso de una venta afectada, en palabras. */
+  function repurchaseText(item) {
+    const when = item.heldAtEnd <= 1e-9
+      ? `Como ya no te queda ninguna, se integra en el año de la última venta (${dmy(item.lastSaleDate)}).`
+      : "Se integrará cuando vendas lo recomprado.";
+    const units = (n) => `${new Intl.NumberFormat("es-ES", { maximumFractionDigits: 4 }).format(n)} ${n === 1 ? "unidad" : "unidades"}`;
+    const where = [item.priorUnits ? `${units(item.priorUnits)} antes de la venta que siguen en cartera` : "", item.laterUnits ? `${units(item.laterUnits)} después` : ""].filter(Boolean).join(" y ");
+    return `La venta del ${dmy(item.date)} tiene pérdida, pero en ${item.span}${item.caveat ? ` (${item.caveat})` : ""} compraste valores homogéneos: ${where}. Unos ${euros(item.deferredLoss)} de esa pérdida no se integran ese año (norma de recompra, art. 33.5 de la Ley del IRPF; estimado en proporción a lo recomprado). ${when} Para no diferirla, había que esperar a recomprar hasta el ${dmy(item.freeFrom)}. La compensación de la app no lo descuenta: compruébalo.`;
+  }
 
   function isIsoDate(value) {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text(value));
@@ -140,13 +229,8 @@
     (Array.isArray(position.contributions) ? position.contributions : []).forEach((item) => {
       if (!(known(item && item.quantity) && number(item.quantity) > 0)) found.push({ code: "buy-without-units", id: text(item && item.id), text: "Una aportación sin unidades suma al coste pero no entra en el reparto FIFO de las ventas." });
     });
-    // Norma de no recompra (en valores cotizados, dos meses antes o después): NO se aplica —el motor de compensación no la modela—, solo se avisa de que una pérdida podría diferirse.
-    const buyDates = operations(position).filter((item) => item.kind === "buy" && item.date).map((item) => item.date);
-    sales.forEach((sale) => {
-      if (sale.realizedGain !== null && sale.realizedGain < 0 && repurchasedAfter(sale.date, buyDates)) {
-        found.push({ code: "repurchase-risk", id: sale.id, text: `La venta del ${dmy(sale.date)} tiene pérdida y hay una compra de la misma posición en los dos meses siguientes: en valores cotizados la minusvalía podría diferirse (norma de no recompra). La app no lo aplica: compruébalo.` });
-      }
-    });
+    // XIN-02: norma de recompra. Se avisa (con la parte estimada y la fecha); la compensación no la descuenta.
+    repurchaseAnalysis(position, normalized).forEach((item) => found.push({ code: "repurchase-risk", id: item.id, text: repurchaseText(item), deferredLoss: item.deferredLoss, freeFrom: item.freeFrom }));
     sales.forEach((sale) => {
       if (sale.shortfall > 0) found.push({ code: "shortfall", id: sale.id, text: `La venta del ${dmy(sale.date)} no tiene lotes suficientes a su fecha (faltan ${sale.shortfall} unidades): su plusvalía no se calcula.` });
       else if (!(sale.saleProceeds > 0)) found.push({ code: "sale-without-proceeds", id: sale.id, text: `La venta del ${dmy(sale.date)} no tiene importe recibido: no se puede calcular la rentabilidad.` });
@@ -207,5 +291,5 @@
     };
   }
 
-  return { SCHEMA_ID, INITIAL_ID, isIsoDate, operations, validate, applyChange, snapshot, warnings, diff };
+  return { SCHEMA_ID, INITIAL_ID, isIsoDate, operations, validate, applyChange, snapshot, warnings, diff, repurchaseWindow, repurchaseFreeFrom, repurchaseAnalysis, repurchaseText };
 });

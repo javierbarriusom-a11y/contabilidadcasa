@@ -46,10 +46,11 @@ function opsSalesById(raw) {
 
 const OPS_KIND_LABEL = { initial: "Compra inicial", contribution: "Aportación", disposal: "Venta" };
 
-function opsRowHtml(operation, sales) {
+function opsRowHtml(operation, sales, deferred = new Map()) {
   const sale = operation.source === "disposal" ? sales.get(operation.id) : null;
+  const held = deferred.get(operation.id);
   const detail = sale
-    ? (sale.shortfall > 0 ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin lotes suficientes (faltan ${opsUnits(sale.shortfall)} u): plusvalía no calculable</span>` : sale.realizedGain === null ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin importe recibido: plusvalía no calculable</span>` : `plusvalía FIFO ${opsEuros(sale.realizedGain)}`)
+    ? (sale.shortfall > 0 ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin lotes suficientes (faltan ${opsUnits(sale.shortfall)} u): plusvalía no calculable</span>` : sale.realizedGain === null ? `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin importe recibido: plusvalía no calculable</span>` : `plusvalía FIFO ${opsEuros(sale.realizedGain)}${held ? ` · <span class="ops-aviso"><span aria-hidden="true">⚠</span> unos ${opsEuros(-held.deferredLoss)} diferidos por recompra</span>` : ""}`)
     : (operation.quantity > 0 ? "" : `<span class="ops-aviso"><span aria-hidden="true">⚠</span> sin unidades: no entra en el FIFO</span>`);
   const undated = operation.date ? opsDate(operation.date) : "<em>sin fecha</em>";
   const label = escapeHtml(OPS_KIND_LABEL[operation.source] || "Operación");
@@ -171,15 +172,25 @@ function opsBodyHtml() {
   const sales = opsSalesById(position);
   const operations = engine.operations(position);
   const warnings = engine.warnings(position, globalThis.FinanceCanonicalPortfolio.normalizePositions([position]).positions[0]);
-  const list = operations.length ? `<ul class="ops-lista">${operations.map((operation) => opsRowHtml(operation, sales)).join("")}</ul>` : `<p class="e19-kpi-note">Esta posición no tiene operaciones registradas.</p>`;
+  // XIN-02: las ventas con pérdida que difiere la norma de recompra, marcadas en su fila y explicadas debajo.
+  const deferred = new Map((engine.repurchaseAnalysis?.(position, globalThis.FinanceCanonicalPortfolio.normalizePositions([position]).positions[0]) || []).map((item) => [item.id, item]));
+  const list = operations.length ? `<ul class="ops-lista">${operations.map((operation) => opsRowHtml(operation, sales, deferred)).join("")}</ul>` : `<p class="e19-kpi-note">Esta posición no tiene operaciones registradas.</p>`;
+  const repurchase = warnings.filter((item) => item.code === "repurchase-risk");
+  const repurchaseNote = repurchase.length ? `<ul class="ops-avisos" aria-label="Norma de recompra">${repurchase.map((item) => `<li><span aria-hidden="true">⚠</span> ${escapeHtml(item.text)}</li>`).join("")}</ul>` : "";
   const initialNote = warnings.some((item) => item.code === "initial-without-date") ? `<p class="ops-aviso-fuerte" role="note"><span aria-hidden="true">⚠</span> ${escapeHtml(warnings.find((item) => item.code === "initial-without-date").text)} Edita la compra inicial y ponle su fecha.</p>` : "";
   let panel = "";
   if (opsPreview) panel = opsDiffHtml(opsPreview);
   else if (opsMode && opsMode.action !== "remove") panel = opsEditorHtml(opsMode);
   const adders = opsMode || opsPreview ? "" : `<p class="ops-botones"><button type="button" class="e19-btn ops-boton" data-ops-action="add-buy" data-ops-focus="add-buy">Añadir una aportación</button> <button type="button" class="e19-btn ops-boton" data-ops-action="add-sell" data-ops-focus="add-sell">Añadir una venta</button></p>`;
   return `<label class="month-picker"><span>Posición</span><select id="opsPosicion" data-ops-focus="posicion">${options}</select></label>
-    ${initialNote}${list}${adders}${panel}
+    ${initialNote}${list}${repurchaseNote}${adders}${panel}
     <p class="e19-kpi-note">El reparto FIFO es el de siempre (el lote más antiguo se vende primero) y se recalcula con cada cambio. Las ventas, las pérdidas arrastradas y la compensación de Renta se leen de aquí: un cambio en el libro los mueve.</p>`;
+}
+
+// XIN-02: en las candidatas a aflorar pérdidas (INV6, app.js), desde qué día se puede recomprar si se vende hoy.
+function inv6RepurchaseNote(item) {
+  const from = globalThis.FinanceCanonicalPortfolioLedger?.repurchaseFreeFrom?.(item.type, isoLocalDate(new Date()));
+  return from ? ` <small>· si vendes hoy, no recompres antes del ${opsDate(from)}</small>` : "";
 }
 
 function renderLibroOperaciones(engine) {
