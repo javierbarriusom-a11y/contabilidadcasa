@@ -109,6 +109,25 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (353): XGO-01, «uno entra, uno sale» comprobado por el CI
+
+- **Por qué ahora:** el hogar pidió seguir con lo que no dependa de él. De las funciones «Ahora» sin puerta, esta era la única sin pantalla nueva: las pantallas nuevas del rediseño esperan a las revisiones del 2/11 y el 4/11. Era además la mitad pendiente de XGO-01 (§5.0, fila 5). GOV-02 es una regla de trabajo de Claude, con veto posible del hogar.
+- **Qué se cuenta:** los titulares (h2 y h3) que se ven por defecto en cada destino del menú principal y en sus pestañas.
+  - Condiciones: tema v2, 1280 px, sin datos del hogar y el reloj fijo el 26/10/2026 a las 10:00.
+  - No cuenta lo plegado, los diálogos, el menú «Más» ni lo que solo sale con datos.
+  - Un titular es la medida más estable de «cosas que leer» en las dos generaciones de pantallas, que no comparten clases.
+  - Hoy: **226 titulares en 31 rutas**. Dos pasadas seguidas dan el mismo inventario.
+- **Cómo se hace cumplir:**
+  - `docs/gobierno/superficie.json` guarda el inventario ruta a ruta, la `base` (226) y las `excepciones`.
+  - La e2e «XGO-01 · Uno entra, uno sale» (`tests/qa1-flujos-completos.spec.cjs`, con `tests/helpers/superficie.cjs`) exige que el inventario real coincida con el manifiesto. Si no, dice qué rutas han cambiado y cuánto.
+  - `tests/xgo01-uno-entra-uno-sale.test.cjs` exige que el total no pase de base + excepciones (cada excepción con fecha, cuánto, qué y por qué) y que la base baje cuando algo sale (trinquete).
+  - El inventario se regenera con `ACTUALIZAR_SUPERFICIE=1` (BACKLOG §10, trampa 12).
+- **Lectura para el hogar:** Ajustes enseña 57 titulares y Inversión › Apalancamiento 29, un tercio de todo lo visible. Son las primeras candidatas a plegar. No se toca nada sin su visto bueno: retirar o plegar pantallas en uso se consulta.
+- **Pruebas:**
+  - `tests/xgo01-uno-entra-uno-sale.test.cjs` (5).
+  - La e2e nueva, comprobada en los dos sentidos: pasa con el manifiesto al día y falla con el diff exacto si no cuadra.
+- **Validación:** `npm run verify` en verde: 6186 de 6186 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 249 de 249 en verde (15,6 min; +1, la e2e de XGO-01).
+
 ## Cierre de sesión — 26 de octubre de 2026 (352): XDA-05 · PR-1, medir la calibración de Clasificar
 
 - **Qué decidió el hogar** («1. sí 2. sí 3. sí» a la propuesta de XDA-05):

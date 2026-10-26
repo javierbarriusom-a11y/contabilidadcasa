@@ -6271,3 +6271,28 @@ test.describe("Rediseño B5 · Repaso semanal", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// XGO-01 · «uno entra, uno sale» (GOV-02) comprobado por el CI: los titulares que se ven por defecto en cada destino del
+// menú y sus pestañas tienen que coincidir con docs/gobierno/superficie.json. Si una entrega añade algo a la vista, esta
+// prueba dice qué ha entrado; el manifiesto se actualiza en el mismo PR y tests/xgo01-uno-entra-uno-sale.test.cjs exige
+// que el total no pase del techo (o una excepción escrita con su porqué). Con ACTUALIZAR_SUPERFICIE=1 la prueba escribe
+// el inventario en el manifiesto en vez de compararlo (solo «rutas»: el techo y las excepciones se cambian a mano).
+test.describe("XGO-01 · Uno entra, uno sale", () => {
+  test("los titulares visibles por defecto, ruta a ruta, son los del manifiesto", async ({ page }) => {
+    test.setTimeout(180000);
+    const superficie = require("./helpers/superficie.cjs");
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const rutas = await superficie.inventario(page);
+    const manifiesto = superficie.leerManifiesto();
+    if (process.env.ACTUALIZAR_SUPERFICIE === "1") {
+      require("node:fs").writeFileSync(superficie.MANIFIESTO, `${JSON.stringify({ ...manifiesto, rutas }, null, 2)}\n`);
+      return;
+    }
+    const cambios = superficie.diferencias(manifiesto.rutas, rutas);
+    expect(cambios, `Ha cambiado lo que se ve por defecto (total ${superficie.total(rutas)}, manifiesto ${superficie.total(manifiesto.rutas)}). Actualiza docs/gobierno/superficie.json con ACTUALIZAR_SUPERFICIE=1 y, si el total sube, pliega otra cosa o escribe la excepción:\n${cambios.join("\n")}`).toEqual([]);
+    expect(Object.keys(rutas).length, "se recorren el menú principal y sus pestañas").toBeGreaterThan(15);
+    expect(pageErrors).toEqual([]);
+  });
+});
