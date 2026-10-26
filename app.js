@@ -22243,6 +22243,7 @@ function datosImportarShowStep1Note(message, isWarning) {
 async function handleDatosImportarFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  globalThis.FinanceCobertura?.asegurar(); // XDA-04: el registro de periodos existe antes del lote, para que «Deshacer» lo devuelva
   const isExcel = /\.(xlsx|xls)$/i.test(file.name);
   if (isExcel) extractoPerfilesOlvidar();
   let transactions = [];

@@ -80,6 +80,8 @@ test("cableado: se guarda dentro del lote, viaja en la copia, se pregunta en la 
   assert.match(ui, /new Set\(\["manual-quick-capture"\]\)/, "una anotación a mano no cubre un día");
   assert.match(ui, /no puede empezar después/);
   assert.match(ui, /function coberturaAsegurar\(\) \{\n\s+if \(typeof storageGet !== "function" \|\| storageGet\(storageKey\(COBERTURA_STORE\), ""\) !== ""\) return;/, "el almacén existe antes del lote: «Deshacer» lo devuelve vacío");
+  assert.match(app, /if \(!file\) return;\n\s+globalThis\.FinanceCobertura\?\.asegurar\(\);/, "se crea al cargar el fichero, no al mirar");
+  assert.equal((ui.match(/coberturaAsegurar\(\)/g) || []).length, 1, "solo se define: leer no escribe");
   assert.match(ui, /no puede acabar antes/);
   assert.match(read("views/importar-v2.js"), /globalThis\.FinanceCobertura\?\.revisionHtml\?\.\(session\)/);
   assert.match(read("views/importar-v2.js"), /event\.target\.id === "importarV2CubreDesde" \|\| event\.target\.id === "importarV2CubreHasta"/);

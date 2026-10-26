@@ -61,14 +61,14 @@ function coberturaGuardar(store) {
 
 // El almacén tiene que existir ANTES de importar: «Deshacer» restaura la foto de antes del lote, y esa restauración nunca
 // borra un almacén que la foto no traía (restoreBackupLocalStores). Sin esto, deshacer la primera importación dejaría
-// su periodo registrado sin sus movimientos.
+// su periodo registrado sin sus movimientos. Se crea al cargar un fichero para importar (handleDatosImportarFile, app.js),
+// nunca al mirar una pantalla: leer no escribe nada.
 function coberturaAsegurar() {
   if (typeof storageGet !== "function" || storageGet(storageKey(COBERTURA_STORE), "") !== "") return;
   coberturaGuardar({ version: 1, ranges: [] });
 }
 
 function coberturaRangos(cuenta) {
-  coberturaAsegurar();
   const rangos = coberturaEfectivos();
   return rangos ? coberturaMotor().merged(rangos, cuenta) : null;
 }
@@ -124,7 +124,6 @@ function coberturaRevisionHtml(session) {
   const aviso = coberturaAviso;
   coberturaAviso = "";
   session.fileMeta.coberturaVista = true; // el hogar tiene delante el periodo antes de confirmar
-  coberturaAsegurar();
   return `<fieldset class="imp-v2-cubre">
     <legend class="mov-v2-meta">¿Qué periodo exportaste?</legend>
     <p class="mov-v2-meta">Por sus movimientos, cubre del ${escapeHtml(displayShortDate(c.deducida.from))} al ${escapeHtml(displayShortDate(c.deducida.to))}. Si en el banco elegiste más días, cámbialo: un día sin movimientos no es un día sin mirar.</p>
@@ -182,6 +181,7 @@ function coberturaAvisoCierreHtml(monthKey, motor = coberturaMotor()) {
 
 globalThis.FinanceCobertura = {
   STORE: COBERTURA_STORE,
+  asegurar: coberturaAsegurar,
   leer: coberturaLeer,
   efectivos: coberturaEfectivos,
   rangos: coberturaRangos,

@@ -124,7 +124,8 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - **Importar v2:** pregunta «¿Qué periodo exportaste?» con las dos fechas deducidas de los movimientos, antes de confirmar.
     - No puede empezar después del primer movimiento, ni acabar antes del último, ni pasar de hoy; si lo intentas, avisa y deja la fecha anterior.
     - Se guarda por cuenta (almacén `ledger-coverage`, en la copia y la nube, sin importes) dentro del lote, así que «Deshacer» lo quita.
-    - El almacén se crea vacío antes de la primera importación. Si no, «Deshacer» no lo borraría, porque la restauración nunca elimina un almacén que la foto no traía.
+    - El almacén se crea vacío al cargar el fichero, antes del lote. Si no, «Deshacer» no lo borraría, porque la restauración nunca elimina un almacén que la foto no traía.
+    - **Error encontrado en la validación y corregido:** la primera versión creaba ese almacén al leer la cobertura (al pintar Movimientos o Hoy). La prueba de WP-45, «sin hacer nada ni guardar», lo cazó: mirar una pantalla no puede escribir. Ahora solo se crea al cargar un fichero para importar.
   - **«¿Ha llegado…?» (WP-27):** un cargo solo se da por no llegado si se ha visto entero su periodo en la cuenta de los recibos (CaixaBank). Un hueco lo calla; sin rangos, funciona como antes.
   - **Cierre:** en el paso de firma, «Los extractos (no) cubren el mes entero» por cuenta. Avisa y no bloquea; se ve en los dos temas.
   - **Lo importado antes:** cuenta como «estimado» (por cuenta, del primer al último movimiento de extracto), calculado al leer y sin guardar. Las anotaciones a mano no cuentan.
