@@ -222,6 +222,7 @@ function impV2Review(session) {
       </section>
       <div class="imp-v2-lado">
         ${impV2AccountSelect(session)}
+        ${globalThis.FinanceCobertura?.revisionHtml?.(session) || ""}
         ${impV2CuadreHtml(cuadre)}
         ${impV2BalanceOffer(session)}
         <button type="button" class="e19-btn e19-btn-primary imp-v2-importar" data-imp-v2-importar${blocked ? ` disabled aria-describedby="importarV2Bloqueo"` : ""}>Importar ${counts.included} ${counts.included === 1 ? "movimiento" : "movimientos"}</button>
@@ -301,6 +302,12 @@ function impV2BindOnce(root) {
       datosImportarSession.fileMeta.bankAccount = event.target.value || "";
       datosImportarPersistDraft();
       importarV2Render();
+    } else if (event.target.id === "importarV2CubreDesde" || event.target.id === "importarV2CubreHasta") {
+      // XDA-04: el periodo que cubre el extracto (cobertura-ui.js valida que contenga todos sus movimientos).
+      globalThis.FinanceCobertura?.cambioCampo?.(datosImportarSession, event.target.id, event.target.value);
+      datosImportarPersistDraft();
+      importarV2Render();
+      qs(event.target.id)?.focus();
     } else if (event.target.id === "importarV2Saldo") {
       datosImportarSession.balanceOffer = event.target.checked;
       datosImportarPersistDraft();

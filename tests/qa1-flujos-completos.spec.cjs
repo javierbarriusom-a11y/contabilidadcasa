@@ -1610,6 +1610,7 @@ async function injectExpected(page) {
       { id: `${seriesKeyForRow(expRow)}|${key}`, kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: actualAwareInfo(expRow, month).planned, arrived: Boolean(actualAwareInfo(expRow, month).hasActual), cancelled: actualAwareInfo(expRow, month).status === "cancelled", history: [{ date: back(40), amount: 1 }] },
     ];
     expectedLedgerCoveredUntil = () => today;
+    expectedLedgerCoveredRanges = () => [{ from: "2000-01-01", to: today }]; // XDA-04: la misma cobertura, como periodo
     renderDecisionInboxCard();
   });
 }
@@ -1696,6 +1697,7 @@ test.describe("WP-14 + WP-27 · cobros esperados y cargos que no llegaron", () =
       localStorage.removeItem(storageKey("expected-answers"));
       saveChargeDays([[seriesKeyForRow(row), "3", "declarado"]], "e2e"); // el día 3: cierto y vencido el 20/10 (ventana 1 + margen 3)
       expectedLedgerCoveredUntil = () => "2026-10-20"; // la demo no importa extractos
+      expectedLedgerCoveredRanges = () => [{ from: "2000-01-01", to: "2026-10-20" }]; // XDA-04: la misma cobertura, como periodo
       renderDecisionInboxCard();
       return displayLabelForRow(row);
     });
@@ -5736,6 +5738,10 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
       await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo", { timeout: 15000 });
       await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      // XDA-04: el último movimiento es del 28, pero el hogar exportó el mes entero; lo dice antes de confirmar.
+      await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-28");
+      await v2.locator("#importarV2CubreHasta").fill("2026-10-31");
+      await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-31");
       await v2.locator("[data-imp-v2-importar]").click();
       await page.click("#operationConfirmSubmit");
       await expect(v2).toContainText("5 movimientos importados", { timeout: 15000 });
@@ -5776,6 +5782,11 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(firma).toContainText("Extracto incorporado · 5 movimientos");
       await expect(firma).toContainText("Ninguna diferencia abierta");
       await expect(firma).toContainText("Ninguna cuenta descuadra · 1 sin conciliar");
+      // XDA-04: el mes está entero en CaixaBank (declarado al importar) y Mediolanum no tiene extracto; avisa, no bloquea.
+      const cobertura = firma.locator(".cierre-cobertura");
+      await expect(cobertura).toContainText("Los extractos no cubren el mes entero.");
+      await expect(cobertura).toContainText("CaixaBank: mes entero");
+      await expect(cobertura).toContainText("Mediolanum: ningún extracto de este mes");
       // Lo único que falta es la sesión: sin ella el RPC del cierre no se puede llamar.
       const firmar = page.locator("#cierreSignButton");
       await expect(firmar).toHaveText("Firmar cierre");
@@ -5786,6 +5797,69 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// XDA-04 · PR-1: el periodo que cubre el extracto, deducido y preguntado antes de confirmar; tiene que contener todos sus
+// movimientos y no pasar de hoy; se guarda dentro del lote (Deshacer lo quita) y las preguntas de «¿ha llegado…?» ya no
+// toman un hueco entre dos extractos por visto. Movimientos INVENTADOS.
+test.describe("XDA-04 · periodo que cubre el extracto", () => {
+  test("se deduce, se pregunta, se valida, se guarda en el lote y Deshacer lo quita", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+    await page.goto("/index.html#datos-importar");
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    const csv = ["Fecha;Concepto;Importe;Saldo", "03/10/2026;NOMINA FICTICIA;3000,00;4000,00", "20/10/2026;LUZ FICTICIA;-94,12;3905,88"].join("\n");
+    await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+    const cubre = v2.locator(".imp-v2-cubre");
+    await expect(cubre).toContainText("cubre del 3 oct al 20 oct", { timeout: 15000 });
+    await expect(v2.locator("#importarV2CubreDesde")).toHaveValue("2026-10-03");
+    await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-20");
+    // No puede empezar después del primer movimiento ni acabar después de hoy.
+    await v2.locator("#importarV2CubreDesde").fill("2026-10-05");
+    await expect(cubre).toContainText("no puede empezar después");
+    await expect(v2.locator("#importarV2CubreDesde")).toHaveValue("2026-10-03");
+    await v2.locator("#importarV2CubreHasta").fill("2026-10-30");
+    await expect(cubre).toContainText("No puede acabar después de hoy.");
+    await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-20");
+    await v2.locator("#importarV2CubreDesde").fill("2026-10-01");
+    await v2.locator("#importarV2CubreHasta").fill("2026-10-24");
+    await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    await v2.locator("[data-imp-v2-importar]").click();
+    await page.click("#operationConfirmSubmit");
+    await expect(v2).toContainText("2 movimientos importados", { timeout: 15000 });
+    const guardado = () => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("ledger-coverage")) || "null"));
+    expect((await guardado()).ranges).toEqual([expect.objectContaining({ account: "CaixaBank", from: "2026-10-01", to: "2026-10-24", source: "declarado", fileName: "octubre.csv" })]);
+    expect(JSON.stringify(await guardado())).not.toMatch(/NOMINA|3000|94/);
+    // Lo que ven las preguntas de «¿ha llegado…?»: el periodo declarado (unido a lo que ya había en el libro).
+    expect(await page.evaluate(() => expectedLedgerCoveredRanges().some((r) => r.from <= "2026-10-01" && r.to === "2026-10-24"))).toBe(true);
+    // Deshacer el lote devuelve también el registro.
+    await v2.locator("[data-imp-v2-deshacer]").click();
+    await page.click("#operationConfirmSubmit");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    expect((await guardado()).ranges).toEqual([]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("un hueco entre dos extractos calla la pregunta de un cargo que caería en él", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await page.waitForFunction(() => typeof expectedMovementsResult === "function" && typeof FinanceCobertura === "object" && typeof monthByKey === "function" && monthByKey("2026-10"));
+    const preguntas = (rangos) => page.evaluate((rangos) => {
+      localStorage.setItem(storageKey("ledger-coverage"), JSON.stringify({ version: 1, ranges: rangos }));
+      const month = monthByKey("2026-10");
+      const row = planningSectionsForMonth("expense", month).find((section) => section.name !== VARIABLE_OPERATIONAL_SECTION).rows[0];
+      expectedMovementExpectations = () => [{ id: "e|2026-10", kind: "expense", seriesKey: seriesKeyForRow(row), label: "Recibo", month: "2026-10", expectedDate: "2026-10-12", certain: true, plannedAmount: 80, history: [] }];
+      return expectedMovementsResult().items.length;
+    }, rangos);
+    expect(await preguntas([{ account: "CaixaBank", from: "2026-10-01", to: "2026-10-25", source: "declarado" }]), "visto entero: se pregunta").toBe(1);
+    expect(await preguntas([{ account: "CaixaBank", from: "2026-10-01", to: "2026-10-10", source: "declarado" }, { account: "CaixaBank", from: "2026-10-20", to: "2026-10-25", source: "declarado" }]), "en el hueco: se calla").toBe(0);
+    expect(await preguntas([{ account: "Mediolanum", from: "2026-10-01", to: "2026-10-25", source: "declarado" }]), "otra cuenta al día no cuenta").toBe(0);
+  });
 });
 
 // Barrido móvil del 24/10/2026: en el kit de gráficos (WP-28), abrir «Ver como tabla» dejaba que la tabla ensanchara la rejilla de la
@@ -5966,6 +6040,7 @@ async function repasoPreparar(page) {
     window.__repaso = { incomeKey: seriesKeyForRow(incomeRow), key };
     expectedMovementExpectations = () => [{ id: `${seriesKeyForRow(incomeRow)}|${key}`, kind: "income", seriesKey: seriesKeyForRow(incomeRow), label: displayLabelForRow(incomeRow), month: key, expectedDate: back(5), certain: true, plannedAmount: actualAwareInfo(incomeRow, month).planned, arrived: Boolean(actualAwareInfo(incomeRow, month).hasActual), cancelled: false, history: [] }];
     expectedLedgerCoveredUntil = () => today;
+    expectedLedgerCoveredRanges = () => [{ from: "2000-01-01", to: today }]; // XDA-04: la misma cobertura, como periodo
     baseData.transactions = mergeTransactions(baseData.transactions || [], [
       { date: back(3), month: back(3).slice(0, 7), movement: "SUPER FICTICIO", details: "", amount: -40, balance: null, account: "CaixaBank", source: "Extracto" },
       { date: back(2), month: back(2).slice(0, 7), movement: "GASOLINERA FICTICIA", details: "", amount: -50, balance: null, account: "CaixaBank", source: "Extracto" },

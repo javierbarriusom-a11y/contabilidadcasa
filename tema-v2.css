@@ -2540,3 +2540,46 @@
   color: var(--e19-danger);
   font-size: 13px;
 }
+
+/* ---------- XDA-04 · periodo que cubre el extracto (cobertura-ui.js, en la revisión de Importar v2) ---------- */
+:root[data-tema="v2"] .imp-v2-cubre {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-cubre legend {
+  padding: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-cubre p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-cubre-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .imp-v2-cubre-campos label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-cubre-campos input {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: inherit;
+}

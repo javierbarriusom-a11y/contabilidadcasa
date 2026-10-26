@@ -6968,3 +6968,30 @@
   margin: 4px 0 8px;
 }
 
+
+/* XDA-04 · huecos del mes en los extractos, en el paso de firma del cierre (cobertura-ui.js). En los dos temas: el cierre
+   todavía no tiene versión v2. Avisa, no bloquea. */
+.cierre-cobertura {
+  margin: 12px 0;
+}
+
+.cierre-cobertura .e19-kpi-note {
+  margin: 0 0 6px;
+}
+
+.cierre-cobertura-lista {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--e19-ink);
+}
+
+.cierre-cobertura-lista .is-aviso::marker {
+  color: var(--e19-warning);
+}
+
+.cierre-cobertura-lista .is-ok::marker {
+  color: var(--e19-success);
+}
