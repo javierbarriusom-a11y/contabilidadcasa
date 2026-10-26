@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-clasificar-mide",
+      fecha: "2026-10-26",
+      texto: "Clasificar dice cuántos grupos faltan y cuánto llevará, y mide si sus propuestas aciertan; lo ves en Ajustes › Uso de la app.",
+      href: "#movements",
+    },
+    {
       id: "2026-10-26-texto-pdf",
       fecha: "2026-10-26",
       texto: "Extractos en PDF: en Importar, pega su texto y la app lee fechas, conceptos e importes; el signo que no trae lo saca del saldo.",

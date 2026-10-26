@@ -104,5 +104,7 @@ test("cada pantalla anota sus eventos, sin importes, y nada se rompe si el medid
 
 test("«Funciones en prueba» enseña lo medido junto a la métrica de cada función", () => {
   const fep = read("funciones-en-prueba.js");
-  assert.match(fep, /<span class="fep-meta fep-medido">Medido: \$\{escapeHtml\(medidor\.frase\(item\.id, medidor\.resumen\(medidor\.leer\(\), item\.id\)\)\)\}<\/span>/);
+  assert.match(fep, /<span class="fep-meta fep-medido">Medido: \$\{escapeHtml\(medidor\.frase\(item\.id, medidor\.resumen\(medidor\.leer\(\), item\.id\)\)\)\}\$\{dato \? ` · \$\{escapeHtml\(dato\)\}` : ""\}<\/span>/);
+  // XDA-05: en Clasificar, además, el gasto importado con partida (lo calcula la pantalla con los movimientos).
+  assert.match(fep, /const dato = item\.id === "clasificar-v2" \? globalThis\.clasificarV2CoberturaFrase\?\.\(\) \|\| "" : "";/);
 });

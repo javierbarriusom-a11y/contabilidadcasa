@@ -5716,6 +5716,58 @@ test.describe("XGO-02 · Medidor de utilidad", () => {
 });
 
 
+// XDA-05 · PR-1: Clasificar mide su calibración (confianza, tal cual, segundos; deshacer la corrige), cuenta lo que falta
+// con su tiempo y dice cuánto gasto importado tiene partida. Movimientos INVENTADOS.
+test.describe("XDA-05 · Calibración de Clasificar", () => {
+  test("una tanda queda medida por confianza, deshacer la corrige y el informe enseña la puerta del PR-2", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [[-100, "SUPER FICTICIO"], [-58, "GASOLINERA FICTICIA"], [-25, "BIZUM FICTICIO"]].map(([amount, movement]) => ({ date: hoy, month: hoy.slice(0, 7), movement, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      const partida = availableSeriesRows("expense")[0];
+      movementMappings["expense|super ficticio antiguo|"] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("1 de 3 · faltan 3 grupos · menos de un minuto (aún sin medir)");
+    // 1 · La propuesta (confianza media), tal cual.
+    await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"]')).toBeVisible();
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("2 de 3 · faltan 2 grupos · menos de un minuto (aún sin medir)");
+    // 2 · Sin propuesta: se elige partida. 3 · Se salta.
+    if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+    await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await expect(panel.locator(".clas-v2-cobertura")).toHaveText(/^Gasto importado con partida \(últimos 90 días\): \d+ % · objetivo 95 %\.$/);
+    // Deshacer la primera: la propuesta queda como corregida.
+    await panel.locator("[data-clas-v2-deshacer]").first().click();
+    const calibracion = await page.evaluate(() => FinanceMedidor.leer().calibracion.map(({ c, t, x, s }) => ({ c, t, x, medido: typeof s === "number" })));
+    expect(calibracion).toEqual([{ c: "media", t: true, x: true, medido: true }, { c: "sin", t: false, x: false, medido: true }]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+
+    await page.goto("/index.html#ajustes");
+    const informe = page.locator("#medidorUtilidadLista li", { hasText: "Clasificar por lotes" });
+    await expect(informe).toContainText("0 % de las propuestas aceptadas tal cual (0 de 1) · 1 grupo sin propuesta");
+    await expect(informe).toContainText("aceptar en bloque los de confianza alta: faltan 20 grupos de alta para decidir");
+    await expect(informe).toContainText("Gasto importado con partida (últimos 90 días)");
+    const fep = page.locator('#funcionesEnPruebaCard [data-fep-id="clasificar-v2"]');
+    await expect(fep).toContainText("propuestas aceptadas tal cual y segundos por grupo (4 o menos)");
+    await expect(fep.locator(".fep-medido")).toContainText("0 % de las propuestas aceptadas tal cual");
+    await expect(fep.locator(".fep-medido")).toContainText("Gasto importado con partida (últimos 90 días)");
+    expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toMatch(/FICTICIO|amount|importe|CaixaBank/i);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // Ensayo del cierre de octubre (23/10/2026, docs/REVISION_SALIDA_OLA1_2026-10-23.md): el recorrido real del hogar el 2/11, de
 // principio a fin y con el diseño nuevo. Se parte de cero movimientos, como los datos reales, y se sigue: importar el extracto,
 // clasificar la bandeja y llegar a Firmar. Firmar exige sesión iniciada (RPC transaccional), así que la prueba llega hasta

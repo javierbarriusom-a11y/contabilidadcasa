@@ -124,7 +124,7 @@ test("agrupa por concepto los movimientos sin partida, del que más suma al que 
   context.clasificarV2Open();
   assert.equal(dialog.open, true);
   assert.equal(vm.runInContext("clasV2Groups.length", context), 5);
-  assert.match(dialog.innerHTML, /1 de 5 · 3 más en otra tanda/);
+  assert.match(dialog.innerHTML, /1 de 5 · faltan 8 grupos · un minuto \(aún sin medir\)/, "XDA-05: los 5 de la tanda y 3 más, a 10 s mientras no hay medida");
   assert.equal((dialog.innerHTML.match(/<span( class="is-hecho")?><\/span>/g) || []).length, 5, "una marca de progreso por grupo");
 });
 
@@ -278,3 +278,76 @@ test("confianza: una regla del comercio que contradice el nombre baja a media, y
   assert.equal(context.clasV2Proposal(grupo("BIZUM 6123")), null, "sin reglas ni nombre, sin propuesta");
 });
 
+
+// ---------- XDA-05 · PR-1: medir la calibración (el medidor se prueba en xda05-calibracion-clasificar.test.cjs) ----------
+
+function conMedidor(sb, { medidos = null } = {}) {
+  const anotadas = [];
+  const deshechas = [];
+  sb.context.globalThis.FinanceMedidor = {
+    anotar() {},
+    anotarClasificacion: (m) => (anotadas.push({ ...m }), anotadas.length),
+    deshacerClasificacion: (i) => deshechas.push(i),
+    leer: () => ({}),
+    calibracion: () => (medidos ? { veces: medidos.veces, medianaSegundos: medidos.mediana } : { veces: 0, medianaSegundos: null }),
+  };
+  return { anotadas, deshechas };
+}
+
+test("XDA-05: al aceptar se anota la confianza de la propuesta, si fue tal cual y los segundos; deshacer la marca como corregida", () => {
+  const transactions = [tx("2026-10-02", "MERCADONA SUPERMERCADO", -86.4), tx("2026-10-03", "COCHE TALLER", -200), tx("2026-10-04", "BIZUM 6123", -25)];
+  const sb = sandbox({ transactions });
+  const { anotadas, deshechas } = conMedidor(sb);
+  sb.context.clasificarV2Open();
+  vm.runInContext("clasV2ShownAt -= 3200;", sb.context);
+  sb.context.clasV2Accept(); // la propuesta (Supermercado, media), tal cual
+  vm.runInContext('clasV2Choice = "expense|ocio";', sb.context);
+  sb.context.clasV2Accept(); // propuesta Coche, pero se elige otra
+  vm.runInContext('clasV2Choice = "expense|hogar";', sb.context);
+  sb.context.clasV2Accept(); // sin propuesta
+  assert.deepEqual(anotadas.map(({ confianza, talCual }) => [confianza, talCual]), [["media", true], ["media", false], ["sin", false]]);
+  assert.ok(anotadas[0].segundos >= 3.2 && anotadas[0].segundos < 10, `segundos desde que se enseñó el grupo: ${anotadas[0].segundos}`);
+  assert.ok(anotadas[1].segundos < 1, "el reloj vuelve a cero con cada grupo");
+  const reglas = vm.runInContext("clasV2Created", sb.context);
+  sb.context.clasV2Undo(reglas[1]);
+  assert.deepEqual(deshechas, [2], "se corrige el registro de esa regla, no otro");
+  assert.ok(!JSON.stringify(anotadas).match(/MERCADONA|86|Supermercado/i), "al medidor no van conceptos, importes ni partidas");
+});
+
+test("XDA-05: el contador dice cuántos grupos faltan y cuánto llevará, con la mediana medida cuando hay 3 o más", () => {
+  const transactions = Array.from({ length: 12 }, (_, i) => tx("2026-10-05", `COMERCIO ${i}`, -10 - i));
+  const sb = sandbox({ transactions });
+  conMedidor(sb, { medidos: { veces: 3, mediana: 4 } });
+  sb.context.clasificarV2Open();
+  assert.match(sb.dialog.innerHTML, /1 de 5 · faltan 12 grupos · menos de un minuto</, "12 × 4 s");
+  sb.context.clasV2Skip();
+  assert.match(sb.dialog.innerHTML, /2 de 5 · faltan 11 grupos/, "los saltados ya no faltan en esta sesión");
+  const lento = sandbox({ transactions });
+  conMedidor(lento, { medidos: { veces: 5, mediana: 25 } });
+  lento.context.clasificarV2Open();
+  assert.match(lento.dialog.innerHTML, /faltan 12 grupos · unos 5 min</);
+  const pocos = sandbox({ transactions: transactions.slice(0, 1) });
+  conMedidor(pocos, { medidos: { veces: 2, mediana: 90 } });
+  pocos.context.clasificarV2Open();
+  assert.match(pocos.dialog.innerHTML, /1 de 1 · faltan 1 grupo · menos de un minuto \(aún sin medir\)/, "con 2 medidos aún vale la estimación de 10 s");
+});
+
+test("XDA-05: gasto importado con partida en los últimos 90 días, por lo bajo; sin capturas a mano ni compras provisionales", () => {
+  const hoy = new Date(2026, 9, 26);
+  const transactions = [
+    tx("2026-10-02", "MERCADONA", -90),
+    tx("2026-10-03", "SIN PARTIDA", -9.5),
+    tx("2026-10-01", "NOMINA", 3000),
+    tx("2026-07-27", "VIEJO SIN PARTIDA", -500),
+    tx("2026-10-04", "CAPTURA", -400, { source: "manual-quick-capture" }),
+    tx("2026-10-04", "TARJETA", -400, { source: "captura-hoja" }),
+  ];
+  const { context, dialog } = sandbox({ transactions, mappings: { "expense|mercadona|": regla("super") } });
+  assert.equal(context.clasV2Coverage(hoy), 90, "90 de 99,5 € = 90,45 %");
+  assert.equal(sandbox({ transactions: [tx("2026-01-02", "VIEJO", -10)] }).context.clasV2Coverage(hoy), null, "sin gasto importado en 90 días no hay cifra");
+  assert.match(clas, /return pct === null \? "" : `Gasto importado con partida \(últimos \$\{CLAS_V2_DIAS\} días\): \$\{pct\} % · objetivo 95 %`;/);
+  context.clasificarV2Open();
+  vm.runInContext("while (clasV2Index < clasV2Groups.length) clasV2Skip();", context);
+  assert.match(dialog.innerHTML, /<p class="clas-v2-meta clas-v2-cobertura">Gasto importado con partida \(últimos 90 días\): \d+ % · objetivo 95 %\.<\/p>/, "lo dice al acabar la tanda");
+  assert.equal(context.globalThis.clasificarV2CoberturaFrase, context.clasificarV2CoberturaFrase, "lo leen el informe y «Funciones en prueba»");
+});
