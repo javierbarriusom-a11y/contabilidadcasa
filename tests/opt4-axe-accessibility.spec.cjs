@@ -287,6 +287,26 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// XDA-03 · nivel 1: la fuente «Texto de un PDF» abierta y su aviso con el diagnóstico, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-03 · contraste del texto de un PDF en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#importarV2: sin fallos de contraste ni de accesibilidad con la fuente abierta y su aviso", async ({ page }) => {
+      await page.goto("/index.html#datos-importar");
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await page.locator("#importarV2 .imp-v2-pdf > summary").click();
+      await page.locator("#importarV2PdfTexto").fill("01/10/2026 NOMINA FICTICIA 3.000,00");
+      await page.locator("#importarV2 [data-imp-v2-pdf-leer]").click();
+      await expect(page.locator("#importarV2 .imp-v2-pdf-aviso")).toBeVisible();
+      await page.locator("#importarV2 .imp-v2-pdf > summary").click();
+      await page.locator("#importarV2 .imp-v2-pdf-aviso summary").click();
+      const results = await new AxeBuilder({ page }).include("#importarV2").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // Rediseño B5 · Repaso semanal: el paso de saldos (con una cuenta corrigiéndose) y el de extracto, en claro y en oscuro, móvil y escritorio.
 for (const scheme of ["light", "dark"]) {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

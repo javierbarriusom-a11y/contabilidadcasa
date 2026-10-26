@@ -109,6 +109,33 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (351): XDA-03 · nivel 1, texto de un extracto en PDF
+
+- **Qué decidió el hogar:**
+  - Hace hoy el paso 0 adelantado: qué formatos da cada app del banco.
+  - **Acepta pdf.js alojado en el propio sitio** (≈ 1,7 MB, con revisión de seguridad; es la decisión que quedó aplazada en WP-31) si alguna cuenta solo da PDF.
+  - **No se descarta el nivel 1** (pegar el texto), aunque Claude proponía descartarlo porque en el iPhone copiar el texto de un PDF de varias páginas puede ser torpe.
+- **Nivel 1:** «Texto de un PDF» en las fuentes de Importar v2. Diseño: `docs/XDA03_DISENO.md`.
+  - **Motor genérico** `canonical-statement-lines.js`, sin formato por banco:
+    - reconoce la fecha (y la fecha valor) al principio, los importes con formato español al final (el último, el saldo) y el concepto en medio;
+    - también las columnas que llegan partidas al pegar y el concepto en dos líneas;
+    - fija con el saldo el signo que el PDF no marca;
+    - sin saldo con que comprobarlo, no adivina: esa línea no entra y se dice.
+  - **Cuadre:** si no cuadra, se dice desde qué línea se rompe.
+  - **Diagnóstico:** sin conceptos, importes ni fechas.
+  - **Entrada:** lo leído entra como un CSV en memoria por el asistente de siempre (huella, bandeja, lote, «Deshacer» y el periodo de XDA-04). `app.js` no cambia.
+  - **Privacidad:** el texto se borra del campo al leerlo y no se guarda.
+  - El mismo motor servirá al nivel 2 (`linesFromItems` ya rehace filas a partir de las posiciones de pdf.js).
+- **Nivel 2, pendiente del paso 0:** pdf.js fijado y corregido (CVE-2024-4367), sin eval y sin nada de fuera, cargado solo al elegir un PDF. Importar acepta `.pdf` y el buzón deja de decir «todavía no se puede leer».
+- **Pruebas:**
+  - `tests/xda03-lineas-extracto.test.cjs` (10).
+  - E2E a 390 y 1440 px: signo por saldo, línea partida, cuadre, importación y nada guardado del texto.
+  - E2E de «no se adivina», con un diagnóstico sin datos.
+  - Axe en claro y en oscuro.
+  - Dos pruebas que decían «Aún no: … pegar el texto del PDF» pasan a lo nuevo.
+  - ARQ-3: recuento de motores de 111 a 112, con consumidor en `views/importar-v2.js`.
+- **Validación:** __VAL351__.
+
 ## Cierre de sesión — 26 de octubre de 2026 (350): XDA-04 · PR-1, cobertura del libro
 
 - **Qué decidió el hogar:**

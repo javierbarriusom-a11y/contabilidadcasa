@@ -163,7 +163,7 @@
     const transactions = read.map((r) => ({ date: r.date, valueDate: r.valueDate, movement: r.movement, details: r.details, amount: round2(r.amount), balance: r.balance === null ? null : round2(r.balance) }));
     const unsure = rows.filter((r) => r.amount === null).map((r) => ({ line: r.line, reason: "no se sabe si es cargo o abono (sin saldo con que comprobarlo)" }));
     const warnings = [];
-    if (signs.inferred) warnings.push({ code: "signos-por-saldo", text: `${signs.inferred} importe(s) sin signo en el PDF: su signo sale del saldo de cada fila.` });
+    if (signs.inferred) warnings.push({ code: "signos-por-saldo", text: `${signs.inferred === 1 ? "1 importe sin signo" : `${signs.inferred} importes sin signo`} en el PDF: su signo sale del saldo de su fila.` });
     if (check.status === "no-cuadra") warnings.push({ code: "saldo-no-cuadra", text: `Los saldos no encajan con los importes desde la línea ${check.breakAt}: puede que falte una fila o que una línea se haya leído mal.` });
     if (closing !== null && transactions.length && transactions.some((t) => t.balance !== null)) {
       const last = check.direction === "descendente" ? transactions[0] : transactions[transactions.length - 1];
