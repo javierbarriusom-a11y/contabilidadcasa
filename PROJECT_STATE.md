@@ -126,7 +126,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Pruebas:**
   - `tests/xgo01-uno-entra-uno-sale.test.cjs` (5).
   - La e2e nueva, comprobada en los dos sentidos: pasa con el manifiesto al día y falla con el diff exacto si no cuadra.
-- **Validación:** `npm run verify` en verde: 6186 de 6186 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright: PW_RESULT.
+- **Validación:** `npm run verify` en verde: 6186 de 6186 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 249 de 249 en verde (15,6 min; +1, la e2e de XGO-01).
 
 ## Cierre de sesión — 26 de octubre de 2026 (352): XDA-05 · PR-1, medir la calibración de Clasificar
 
