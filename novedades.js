@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-26-cobertura-extractos",
+      fecha: "2026-10-26",
+      texto: "Al importar, dices qué periodo cubre el extracto; el cierre avisa de los días sin extracto y no se pregunta por recibos en un hueco.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-10-25-importar-un-toque",
       fecha: "2026-10-25",
       texto: "Importar en un toque: desde Movimientos o el repaso semanal, «Importar» abre ya el selector con lo último que descargaste.",

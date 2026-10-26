@@ -461,6 +461,7 @@ function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey
     <article class="e19-card">
       <h3 class="escenario-motor-panel-title">Antes de firmar</h3>
       <ul class="deuda-ruta-checklist">${cierreFirmChecksHtml(checks)}</ul>
+      ${globalThis.FinanceCobertura?.avisoCierreHtml?.(currentMonthKey, window.FinanceCanonicalLedgerCoverage) || "" /* XDA-04: huecos del mes por cuenta; avisa, no bloquea */}
       ${syncReady ? "" : `<p class="e19-kpi-note is-warn">Inicia sesión y sincroniza una versión antes de firmar.</p>`}
       <button type="button" class="e19-btn e19-btn-primary" id="cierreSignButton" ${canSign ? "" : "disabled"}>${unmet ? `Firmar · ${unmet} sin cumplir` : "Firmar cierre"}</button>
     </article>

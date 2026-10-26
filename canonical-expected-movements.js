@@ -75,7 +75,7 @@
 
   /**
    * @param {{
-   *   today?: string, ledgerCoveredUntil?: string|null, answers?: any, options?: Record<string, any>,
+   *   today?: string, ledgerCoveredUntil?: string|null, coveredRanges?: Array<{from: string, to: string}>|null, answers?: any, options?: Record<string, any>,
    *   expectations?: Array<{id: string, kind: string, seriesKey?: string, label?: string, month?: string, expectedDate: string, certain?: boolean,
    *     plannedAmount?: number, arrived?: boolean, cancelled?: boolean, history?: Array<{date: string, amount: number}>}>
    * }} input
@@ -86,6 +86,12 @@
     const options = normalizeOptions(input.options);
     const answers = normalizeAnswers(input.answers);
     const covered = utc(input.ledgerCoveredUntil) ? isoOf(utc(input.ledgerCoveredUntil)) : "";
+    // XDA-04: con los periodos que cubren los extractos (de la cuenta de los recibos), el cargo solo se da por no llegado si se
+    // ha visto entero el periodo en que podía llegar; un hueco entre dos extractos ya no cuenta como visto. Sin rangos, como antes.
+    const ranges = Array.isArray(input.coveredRanges)
+      ? input.coveredRanges.filter((r) => utc(r?.from) && utc(r?.to)).map((r) => ({ from: isoOf(utc(r.from)), to: isoOf(utc(r.to)) }))
+      : null;
+    const seen = (from, to) => (ranges ? ranges.some((r) => r.from <= from && r.to >= to) : Boolean(covered) && covered >= to);
     const items = [];
     const waiting = [];
     const silent = { uncertain: 0, arrived: 0, unverifiable: 0, notYetDue: 0, moved: 0 };
@@ -103,7 +109,7 @@
       const askFrom = addDays(expected, window + grace + 1); // el primer día en que ya toca preguntar
       if (today < askFrom) { silent.notYetDue += 1; return; }
       // Sin extracto que llegue hasta ese día, no se puede decir que un cargo «no ha llegado».
-      if (kind === "expense" && (!covered || covered < askFrom)) { silent.unverifiable += 1; return; }
+      if (kind === "expense" && !seen(expected, askFrom)) { silent.unverifiable += 1; return; }
 
       const snooze = answers.snoozes[expectation.id];
       if (snooze && today < snooze.until) { waiting.push({ id: expectation.id, kind, label: expectation.label || "", until: snooze.until, count: snooze.count }); return; }

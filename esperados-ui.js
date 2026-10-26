@@ -22,6 +22,12 @@ function expectedLedgerCoveredUntil() {
   return dates.length ? dates.reduce((latest, date) => (date > latest ? date : latest)) : null;
 }
 
+// XDA-04: los periodos que cubren los extractos de la cuenta de los recibos (cobertura-ui.js). Con ellos, un hueco entre dos
+// extractos ya no cuenta como visto; sin el módulo, null y se usa la fecha de arriba.
+function expectedLedgerCoveredRanges() {
+  return globalThis.FinanceCobertura?.rangosRecibos?.() ?? null;
+}
+
 function expectedPreviousMonthKey(monthKeyValue, back) {
   const [year, month] = String(monthKeyValue).split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1 - back, 1));
@@ -74,7 +80,7 @@ function expectedMovementsResult() {
   const engine = globalThis.FinanceCanonicalExpectedMovements;
   if (!engine || typeof baseData === "undefined" || !baseData) return null;
   const today = isoLocalDate(new Date());
-  return engine.detect({ today, ledgerCoveredUntil: expectedLedgerCoveredUntil(), answers: loadExpectedAnswers(), expectations: expectedMovementExpectations(today) });
+  return engine.detect({ today, ledgerCoveredUntil: expectedLedgerCoveredUntil(), coveredRanges: expectedLedgerCoveredRanges(), answers: loadExpectedAnswers(), expectations: expectedMovementExpectations(today) });
 }
 
 function expectedItemHtml(item) {

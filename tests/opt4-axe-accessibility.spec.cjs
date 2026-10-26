@@ -178,6 +178,7 @@ for (const scheme of ["light", "dark"]) {
           { id: "e", kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: 80, history: [{ date: back(40), amount: 80 }] },
         ];
         expectedLedgerCoveredUntil = () => today;
+        expectedLedgerCoveredRanges = () => [{ from: "2000-01-01", to: today }]; // XDA-04: la misma cobertura, como periodo
         renderDecisionInboxCard();
       });
       await expect(page.locator("#homeDecisionInboxList [data-expected-response]").first()).toBeVisible({ timeout: 15000 });
@@ -209,6 +210,7 @@ for (const scheme of ["light", "dark"]) {
           { id: "e", kind: "expense", seriesKey: seriesKeyForRow(expRow), label: displayLabelForRow(expRow), month: key, expectedDate: back(9), certain: true, plannedAmount: 80, history: [{ date: back(40), amount: 80 }] },
         ];
         expectedLedgerCoveredUntil = () => today;
+        expectedLedgerCoveredRanges = () => [{ from: "2000-01-01", to: today }]; // XDA-04: la misma cobertura, como periodo
         renderDecisionInboxCard();
       });
       await expect(page.locator("#movimientosV2 .mov-v2-esperado [data-expected-response]").first()).toBeVisible({ timeout: 15000 });
@@ -259,6 +261,25 @@ for (const scheme of ["light", "dark"]) {
       await expect(page.locator("#importarV2 .buzon-pendientes")).toBeVisible();
       await expect(page.locator("#importarV2 .buzon-atajo.is-nuevo")).toBeVisible();
       await page.locator("#importarV2 .buzon-pasos summary").click();
+      const results = await new AxeBuilder({ page }).include("#importarV2").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// XDA-04 · PR-1: la revisión de Importar con la pregunta del periodo (con su aviso de fecha no válida), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-04 · contraste del periodo del extracto en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#importarV2: sin fallos de contraste ni de accesibilidad en la revisión con el periodo", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from("Fecha;Concepto;Importe;Saldo\n03/10/2026;NOMINA FICTICIA;3000,00;4000,00\n20/10/2026;LUZ FICTICIA;-94,12;3905,88\n") });
+      await expect(page.locator("#importarV2 .imp-v2-cubre")).toBeVisible({ timeout: 15000 });
+      await page.locator("#importarV2CubreDesde").fill("2026-10-05");
+      await expect(page.locator("#importarV2 .imp-v2-cubre")).toContainText("no puede empezar después");
       const results = await new AxeBuilder({ page }).include("#importarV2").analyze();
       const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);

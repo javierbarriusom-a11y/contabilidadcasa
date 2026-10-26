@@ -79,5 +79,6 @@ ya publicado, las decisiones vigentes, en qué se apartó la implementación de
 - Las referencias visuales están en `docs/rediseno/referencias/` (`png/` y `html/`), las
   mismas del PDF «Finanzas Casa · Rediseño» de Claude Design. Son la base de toda
   pantalla que se modifique o se cree: se copia el diseño, nunca las cifras de ejemplo.
-- El rediseño cuenta como 1 de los 3 paquetes en curso de la séptima auditoría
-  (`docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md`), no como un frente paralelo.
+- El rediseño es un paquete más de la séptima auditoría
+  (`docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md`), no un frente paralelo. El límite de 3 paquetes
+  en curso lo levantó el hogar el 26/10/2026 («no hay límites», `BACKLOG_DEFINITIVO.md` §0).

@@ -1384,6 +1384,7 @@ const BACKUP_LOCAL_STORES = [
   "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
   "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
   "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
+  "ledger-coverage", // XDA-04: periodo que cubre cada extracto importado (cuenta y fechas, sin importes); de ahí salen los huecos
   "repaso-semanal", // B5 (XUX-03): cada Repaso semanal terminado (fecha, segundos, qué se hizo), sin importes; de ahí salen la racha y M-COSTE
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
@@ -22101,6 +22102,7 @@ function datosImportarApply(session, { motivo }) {
   refreshMovementRollups();
   const appliedActuals = applyMovementMappingsToActuals();
   const balance = applyDatosImportarBalanceOffer(session); // WP-26 · ND-02: dentro del lote, para que «Deshacer» lo devuelva
+  globalThis.FinanceCobertura?.registrar(session, incoming); // XDA-04: el periodo que cubre el extracto, también dentro del lote
 
   saveMovementMappings();
   datosImportarSaveIgnored(ignored);
@@ -22241,6 +22243,7 @@ function datosImportarShowStep1Note(message, isWarning) {
 async function handleDatosImportarFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  globalThis.FinanceCobertura?.asegurar(); // XDA-04: el registro de periodos existe antes del lote, para que «Deshacer» lo devuelva
   const isExcel = /\.(xlsx|xls)$/i.test(file.name);
   if (isExcel) extractoPerfilesOlvidar();
   let transactions = [];

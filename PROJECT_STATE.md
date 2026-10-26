@@ -109,6 +109,35 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 26 de octubre de 2026 (350): XDA-04 · PR-1, cobertura del libro
+
+- **Qué decidió el hogar:**
+  - Orden: PR-1 ahora (registro, motor, WP-27 y aviso en el cierre) y PR-2, la tira, cuando haya dos importaciones reales.
+  - «Al importar, deduces y preguntas antes de confirmar».
+  - **«Límite de paquetes: no hay límites»**: queda sin efecto el límite de 3 en curso del 19/10. Recogido en `BACKLOG_DEFINITIVO.md` §0 y §4, `ESTADO.md` y `CLAUDE.md`.
+- **Qué fallaba antes:** la «cobertura» era una sola fecha global, la del último movimiento de cualquier cuenta.
+  - Un hueco entre dos extractos contaba como visto, y Mediolanum parecía al día si CaixaBank lo estaba.
+  - El cierre firmaba sin saber si el mes estaba entero.
+  - Ningún extracto real había entrado aún, así que no había causado nada.
+- **PR-1** (`docs/XDA04_DISENO.md`):
+  - **Motor** `canonical-ledger-coverage.js` (puro): rangos por cuenta unidos, días cubiertos, huecos, el mes por cuenta, lo deducido y lo estimado.
+  - **Importar v2:** pregunta «¿Qué periodo exportaste?» con las dos fechas deducidas de los movimientos, antes de confirmar.
+    - No puede empezar después del primer movimiento, ni acabar antes del último, ni pasar de hoy; si lo intentas, avisa y deja la fecha anterior.
+    - Se guarda por cuenta (almacén `ledger-coverage`, en la copia y la nube, sin importes) dentro del lote, así que «Deshacer» lo quita.
+    - El almacén se crea vacío al cargar el fichero, antes del lote. Si no, «Deshacer» no lo borraría, porque la restauración nunca elimina un almacén que la foto no traía.
+    - **Error encontrado en la validación y corregido:** la primera versión creaba ese almacén al leer la cobertura (al pintar Movimientos o Hoy). La prueba de WP-45, «sin hacer nada ni guardar», lo cazó: mirar una pantalla no puede escribir. Ahora solo se crea al cargar un fichero para importar.
+  - **«¿Ha llegado…?» (WP-27):** un cargo solo se da por no llegado si se ha visto entero su periodo en la cuenta de los recibos (CaixaBank). Un hueco lo calla; sin rangos, funciona como antes.
+  - **Cierre:** en el paso de firma, «Los extractos (no) cubren el mes entero» por cuenta. Avisa y no bloquea; se ve en los dos temas.
+  - **Lo importado antes:** cuenta como «estimado» (por cuenta, del primer al último movimiento de extracto), calculado al leer y sin guardar. Las anotaciones a mano no cuentan.
+  - `app.js` +2 líneas (33.150 de 33.259).
+- **Pruebas:**
+  - `tests/xda04-cobertura.test.cjs` (7).
+  - E2E: el periodo (deducción, validación, guardado en el lote y Deshacer); un hueco que calla la pregunta de un cargo y otra cuenta al día que no cuenta; el ensayo del cierre de octubre, que ahora declara el mes entero y ve el aviso «Mediolanum: ningún extracto de este mes».
+  - Axe del periodo en claro y en oscuro.
+  - Las 5 pruebas que fijaban la cobertura con una fecha la fijan también como periodo (misma cobertura).
+  - ARQ-3: recuento de motores de 110 a 111, con su consumidor en `views/cierre.js`.
+- **Validación:** `npm run verify` en verde: 6161 de 6161 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens) 242 de 242 en verde (14,2 min), tras el arreglo de arriba. En la primera pasada fallaron 2: la de WP-45 (por el error de arriba) y una de contraste de WP-23 en oscuro que no toca este PR y pasa al repetirla.
+
 ## Cierre de sesión — 25 de octubre de 2026 (349): XDA-02 · PR-2, buzón de extractos (construido, sin desplegar)
 
 - **Qué es:** un Atajo de iOS en la hoja Compartir de la app del banco («Enviar a Finanzas Casa») manda el extracto a una Edge Function de Supabase con una clave personal. El fichero espera en un bucket privado hasta que la app lo importa o, como tarde, 7 días.
