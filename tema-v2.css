@@ -2583,3 +2583,70 @@
   color: var(--e19-ink);
   font: inherit;
 }
+
+/* ---------- XDA-03 · texto de un PDF (extracto-pdf-ui.js, en las fuentes de Importar v2) ---------- */
+:root[data-tema="v2"] .imp-v2-pdf {
+  padding: 12px 16px;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf > summary::-webkit-details-marker {
+  display: none;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf[open] {
+  display: grid;
+  gap: 10px;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-campo {
+  display: grid;
+  gap: 6px;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-campo textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font-family: var(--e19-font-mono);
+  font-size: 13px;
+  resize: vertical;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-aviso {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--e19-accent-soft);
+  color: var(--e19-ink);
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-aviso.is-aviso {
+  background: var(--e19-warning-soft);
+  color: var(--e19-warning-badge-ink);
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-aviso p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .imp-v2-pdf-diag pre {
+  margin: 6px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
