@@ -134,7 +134,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - Axe en claro y en oscuro.
   - Dos pruebas que decían «Aún no: … pegar el texto del PDF» pasan a lo nuevo.
   - ARQ-3: recuento de motores de 111 a 112, con consumidor en `views/importar-v2.js`.
-- **Validación:** __VAL351__.
+- **Validación:** `npm run verify` en verde: 6171 de 6171 pruebas unitarias, lint, comprobaciones y smoke. Playwright (e2e + a11y + perf-screens): 246 de 247 en verde (14,3 min); la otra no llegó a empezar (el navegador se cerró al crear su contexto) y pasa al repetirla (su grupo, 5 de 5).
 
 ## Cierre de sesión — 26 de octubre de 2026 (350): XDA-04 · PR-1, cobertura del libro
 
