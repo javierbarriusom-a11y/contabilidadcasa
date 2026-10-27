@@ -14894,7 +14894,8 @@ function dlx1GuardrailHtml(result) {
     ajustado: `Aviso: tras amortizar quedarían ${money(result.remaining, true)}, por encima del suelo (${money(result.floor, true)}) pero con poco margen.`,
     insostenible: `Alerta: amortizar ${money(result.amount, true)} dejaría el colchón en ${money(result.remaining, true)}, por debajo del suelo (${money(result.floor, true)}). Diferencia: ${money(result.shortfall, true)}.`,
   }[result.status];
-  return `<p class="${DLX1_STATUS_CLASS[result.status]}"><strong>Guardarraíl de colchón</strong> — ${headline}</p>`;
+  // XDA-10 (antes-de-decidir-ui.js): con su interruptor encendido y los saldos antiguos, qué dato podría darle la vuelta al veredicto.
+  return `<p class="${DLX1_STATUS_CLASS[result.status]}"><strong>Guardarraíl de colchón</strong> — ${headline}</p>${globalThis.antesDeDecidirHtml?.(result, globalThis.FinanceCanonicalDecisionFreshness) || ""}`;
 }
 
 // AP2: punto de equilibrio entre el TIN de la deuda y la rentabilidad de inversión esperada.

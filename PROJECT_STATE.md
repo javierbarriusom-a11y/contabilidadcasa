@@ -109,6 +109,25 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (360): XDA-10 · PR-1, antes de decidir (en prueba, apagada)
+
+- **Por qué esta:** el hogar volvió a pedir lo siguiente que no dependa de él. De las cinco propuestas sin puerta del grupo «Siguiente», XPR-07 ya estaba hecha y XDN-03 no vale nada hasta que el hogar rellene y firme su política. XDA-10 es de esfuerzo S, sin puerta, y se apoya en motores que ya existen (WP-45).
+- **Motor** `canonical-decision-freshness.js` (puro): `check({margin, inputs})` mira la edad de cada dato que entra en un veredicto y, con lo que puede haberse movido, dice si le da la vuelta (`yes`), si no (`no`) o si no se sabe (`unknown`). Como mucho tres datos, primero los que le dan la vuelta.
+- **Reglas de honestidad:**
+  - Un dato sin fecha (saldos calculados por calendario) no se da por fresco: «no sé cuánto han podido moverse».
+  - «Hasta» es la estimación de WP-45 (gasto diario × días, con tope), no un dato propio, y la línea lo dice.
+  - Esa estimación mide lo que ha podido **salir**. Sirve para un veredicto a salvo, que se volvería alerta si sale dinero. Una **alerta** solo cambia si ha **entrado** dinero, y eso no se estima: su margen queda «sin saber» y la línea dice «conviene actualizar… y eso no lo estimo». La primera versión trataba la alerta igual que el veredicto a salvo; se vio al probarla en pantalla con un importe que dejaba el colchón por debajo del suelo y se corrigió.
+  - El veredicto se enseña igual: la línea va debajo y no lo cambia.
+- **En pantalla:** una línea «Antes de decidir…» bajo el veredicto del guardarraíl de colchón (DLX1), en los dos simuladores que lo usan: amortizar una deuda (AP1) y la llamada de garantía del Lombard (APX3). El guardarraíl de cancelar una deuda (DEB-15) es otro y queda para el PR-2. Con enlace «Actualizar saldos» cuando el dato puede darle la vuelta o no se sabe. Con los saldos al día (menos de 4 días, el umbral de WP-45) no sale nada. **Nace apagada** en Funciones en prueba («Antes de decidir»). Una línea en Novedades.
+- **Lo que no hace este PR-1, frente a la ficha:**
+  - **El Euribor** de los simuladores de deuda, el guardarraíl de cancelar una deuda (DEB-15) y los simuladores de inversión y escenarios: PR-2.
+  - **Por cuenta** («el saldo de CaixaBank»): la app guarda una sola fecha para todos los saldos, así que dice «los saldos».
+  - **La sensibilidad de PV6:** aquí no hace falta; el margen del guardarraíl (lo que queda por encima del suelo) ya es la sensibilidad exacta de ese veredicto a los saldos.
+  - **Medir la métrica** (decisiones tomadas con datos frescos): el medidor solo cuenta las vistas.
+- **Conexión:** `dlx1GuardrailHtml`, en `app.js`, pide la línea al pintar el veredicto (+1 línea: 33.154 de 33.259). El recuento de motores de `arq3` pasa de 114 a 115.
+- **Pruebas:** `tests/xda10-antes-de-decidir.test.cjs` (5) y la e2e «XDA-10 · Antes de decidir» a 390 y 1280 px en el simulador de amortizar: le da la vuelta, alerta sin saber, no la cambia y saldos de ayer. La de 390 px también corre en Safari.
+- **Validación:** `npm run verify` en verde, 6221/6221. Playwright (e2e + a11y + perf-screens): 261/261 en verde (17,2 min). Proyecto `safari` con Chromium emulando el iPhone: 20/20.
+
 ## Cierre de sesión — 27 de octubre de 2026 (359): XPR-07 · PR-1, el arreglo más barato para un descubierto (en prueba, apagada)
 
 - **Por qué esta:** el hogar volvió a pedir lo siguiente que no dependa de él. En el grupo «Ahora» no queda nada sin puerta. En «Siguiente» (ene-mar 2027 en la auditoría) hay cinco propuestas sin puerta: XDN-03, XPR-07, XDA-10, XUX-04 y XUX-05. Las dos de valor alto son XDN-03 y XPR-07. XDN-03 (política de deuda) no vale nada hasta que el hogar la rellene y la firme; XPR-07 da valor sola con los datos que ya hay.

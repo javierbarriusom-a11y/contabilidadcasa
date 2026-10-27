@@ -6599,3 +6599,61 @@ test.describe("XPR-07 · El arreglo más barato", () => {
     });
   }
 });
+
+test.describe("XDA-10 · Antes de decidir", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no dice nada; encendida y con saldos antiguos, si pueden darle la vuelta al veredicto, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      const comparar = async (cuanto, edad) => {
+        await page.evaluate(([cuanto, edad]) => {
+          const liquidez = accountBalancesFromState().total;
+          const suelo = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+          const fecha = new Date(2026, 9, 27 - edad, 12);
+          state.balanceMode = "manual";
+          state.balanceDate = isoLocalDate(fecha);
+          // Lo que se amortiza, medido desde el margen entre la liquidez y el suelo: así no depende de las cifras del hogar de demostración.
+          qs("ap1Amount").value = String(Math.round({ justo: liquidez - suelo - 50, alerta: liquidez - suelo + 500, poco: 100 }[cuanto]));
+          qs("ap1DebtRate").value = "3";
+          qs("ap1Months").value = "12";
+        }, [cuanto, edad]);
+        await page.locator("#ap1CompareRun").click();
+      };
+      const nota = page.locator("#ap1CompareNote");
+      const linea = nota.locator(".antes-decidir");
+
+      await page.goto("/index.html#inversion-apalancamiento");
+      await comparar("justo", 12);
+      await expect(nota).toContainText("Guardarraíl de colchón");
+      await expect(linea, "apagada: el veredicto de siempre").toHaveCount(0);
+
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="antes-de-decidir"]').click();
+      await expect(page.locator('[data-fep-interruptor="antes-de-decidir"]')).toHaveAttribute("aria-checked", "true");
+      await page.goto("/index.html#inversion-apalancamiento");
+
+      await comparar("justo", 12);
+      await expect(linea).toHaveAttribute("data-antes-decidir", "yes");
+      await expect(linea).toContainText(/^Antes de decidir, actualiza los saldos \(de hace 12 días\): pueden haberse movido hasta [\d.]+\s€ y el resultado cambia con 50\s€\./);
+      await expect(linea.locator("a[data-antes-decidir-ir]")).toHaveText("Actualizar saldos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await comparar("alerta", 12);
+      await expect(linea, "por debajo del suelo solo cambiaría si ha entrado dinero, y eso no se estima").toHaveAttribute("data-antes-decidir", "unknown");
+      await expect(linea).toContainText("y eso no lo estimo");
+
+      await comparar("poco", 12);
+      await expect(linea).toHaveAttribute("data-antes-decidir", "no");
+      await expect(linea).toContainText("no cambia el resultado");
+      await expect(linea.locator("a")).toHaveCount(0);
+
+      await comparar("justo", 1);
+      await expect(nota).toContainText("Guardarraíl de colchón");
+      await expect(linea, "con los saldos de ayer no hay nada que decir").toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

@@ -131,6 +131,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 97 → 98 (WP-43): canonical-forecast-bridge.js, con consumidor real (renderPlanPrevision de app.js se lo pasa a la tarjeta de puente-ui.js)
 // 96 → 97 (WP-42): canonical-next-euro.js, con consumidor real (el case «deuda-comparar» de renderActiveSection en app.js se lo pasa a la tarjeta de escalera-ui.js)
 // 95 → 96 (WP-41): canonical-shadow-debt.js, con consumidor real (el case «deuda-contratos» de renderActiveSection en app.js se lo pasa a la tarjeta de sombra-ui.js)
+// 114 → 115 (XDA-10 · PR-1): canonical-decision-freshness.js, con consumidor real (dlx1GuardrailHtml en app.js se lo pasa a la línea de antes-de-decidir-ui.js)
 // 113 → 114 (XPR-07 · PR-1): canonical-overdraft-fix.js, con consumidor real (renderPlanPrevision… en app.js se lo pasa a la tarjeta de descubierto-ui.js, junto a la banda de caja)
 // 112 → 113 (XDA-01 · PR-1): canonical-data-contracts.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de lo-que-pide-ui.js)
 // 111 → 112 (XDA-03 · nivel 1): canonical-statement-lines.js, con consumidor real (views/importar-v2.js se lo pasa a extracto-pdf-ui.js al leer el texto pegado de un PDF)
@@ -147,6 +148,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 114 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 114);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 115 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 115);
 });
