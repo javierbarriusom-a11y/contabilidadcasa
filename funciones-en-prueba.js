@@ -40,6 +40,8 @@
     { id: "banda-dia", nombre: "Qué mueve cada día", queHace: "En Plan › Previsión, la banda de caja a 30 días dice qué entra y sale el día que elijas, con qué certeza y, si la fecha es estimada, dónde indicarla.", desde: "2026-10-26", metrica: "días de cargo indicados desde aquí; se retira si nadie lo usa en dos meses", interruptor: "propio" },
     // XDA-01 · PR-1 (26/10/2026): lo que cuesta mantener cada función, en Ajustes › Uso de la app.
     { id: "lo-que-pide", nombre: "Lo que la app te pide", queHace: "En Ajustes › Uso de la app, qué datos pide cada función, cada cuánto, cuántos minutos a la semana y cuáles tienen hambre.", desde: "2026-10-26", metrica: "datos que faltaban y se dan desde aquí; se retira si nadie la abre en dos meses", interruptor: "propio" },
+    // XUX-02 · PR-1 (27/10/2026): «Ver cómo quedaría» en las tarjetas vacías que piden un alta (de momento, el plan B y la política de inversión).
+    { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", queHace: "En las tarjetas vacías que piden un alta (plan B, política de inversión), «Ver cómo quedaría» con un hogar inventado y lo que hace falta para verlo con lo vuestro.", desde: "2026-10-27", metrica: "altas empezadas después de ver el ejemplo; se retira si no suben", interruptor: "propio" },
   ];
 
   function isoDate(date) {

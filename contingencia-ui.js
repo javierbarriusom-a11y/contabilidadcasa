@@ -66,11 +66,12 @@ function planBActionRowHtml(row, resolvedAtStep) {
   return `<li class="pb-paso"><strong>${row.index}. ${escapeHtml(row.label)}</strong>${effect ? ` — ${escapeHtml(effect)}` : ""}<span class="pb-nota">${escapeHtml(row.note)}${escapeHtml(cost)}</span></li>`;
 }
 
+// XUX-02: el ejemplo trae su liquidez y sus salidas inventadas en `ctx`; sin ellas, las del hogar.
 function planBLeverHtml(ctx) {
   const lever = planBEngine().cutLeverage({
-    liquidity: accountBalancesFromState().total,
+    liquidity: ctx.liquidity ?? accountBalancesFromState().total,
     floor: ctx.floor,
-    monthlyOutflow: lpAverageMonthlyOutflow(),
+    monthlyOutflow: ctx.monthlyOutflow ?? lpAverageMonthlyOutflow(),
     discretionaryMonthly: Object.keys(ctx.discretionary).length ? Object.values(ctx.discretionary).reduce((sum, value) => sum + value, 0) / Object.keys(ctx.discretionary).length : null,
   });
   if (!lever.calculable) return `<p class="e19-kpi-note">${escapeHtml(lever.reason)}</p>`;
@@ -213,7 +214,7 @@ function planBBodyHtml() {
   const plan = planBLoad();
   const result = engine.evaluate({ plan, ...ctx });
   if (result.status === "none") {
-    return estadoHtml({ kind: "vacio", titulo: "Todavía no habéis acordado un plan B", texto: "Decidir qué recortar cuando el mes va mal, estando tranquilos, sale mejor que decidirlo en el mes malo. Son tres pasos: cuándo salta, qué hacer y firmarlo las dos personas.", accion: { label: "Acordar el plan B", id: "planb-empezar" } }) + planBLeverHtml(ctx);
+    return estadoHtml({ kind: "vacio", titulo: "Todavía no habéis acordado un plan B", texto: "Decidir qué recortar cuando el mes va mal, estando tranquilos, sale mejor que decidirlo en el mes malo. Son tres pasos: cuándo salta, qué hacer y firmarlo las dos personas.", accion: { label: "Acordar el plan B", id: "planb-empezar" }, ejemplo: "plan-b" }) + planBLeverHtml(ctx);
   }
   return planBViewHtml(plan, result, ctx);
 }

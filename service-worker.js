@@ -235,6 +235,7 @@ const SHELL_URLS = [
   "./cobertura-ui.js",
   "./extracto-pdf-ui.js",
   "./lo-que-pide-ui.js",
+  "./ejemplos-ui.js",
   "./funciones-en-prueba.js",
   "./medidor-utilidad.js",
   "./views/cobertura-ajuste.js",
