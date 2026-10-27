@@ -70,3 +70,24 @@ test("Partidas y el motor de escenarios viven fuera de app.js, en scripts que se
   });
   assert.doesNotMatch(read("views/escenarios.js"), /^(async )?function (runEscenarioMotor|escenarioMotorSummaryFor)\(/m, "el motor no va en la vista que se carga bajo demanda");
 });
+
+// XGO-01 · PR-3 (sesión 362, 27/10/2026): el asistente «Importar extracto» en cuatro pasos (V4-4, R-8) al nuevo
+// importar-extracto-ui.js, tal cual. Declara `let` y `const` de nivel superior: si app.js los declarara también, el
+// navegador rechazaría app.js entero al cargarlo (mismo ámbito global), así que se comprueba que no queda ninguno.
+test("el asistente de importar extracto vive fuera de app.js, en un script que se carga antes que él", () => {
+  const app = read("app.js");
+  const importar = read("importar-extracto-ui.js");
+  ["datosImportarApply", "handleDatosImportarFile", "renderDatosImportar", "datosImportarRestoreSession", "datosImportarDuplicateCandidates", "movementsFromStatementRows", "daysBetweenIsoDates"].forEach((name) => {
+    assert.match(importar, new RegExp(`^(async )?function ${name}\\(`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(async )?function ${name}\\(`, "m"), `${name} ya no está en app.js`);
+  });
+  ["datosImportarSession", "datosImportarLastResult", "DATOS_IMPORTAR_TARGETS", "DATOS_IMPORTAR_ACCOUNTS", "DATOS_IMPORTAR_DRAFT_KEY"].forEach((name) => {
+    assert.match(importar, new RegExp(`^(let|const) ${name}\\b`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(let|const|var) ${name}\\b`, "m"), `${name} no se declara dos veces`);
+  });
+  assert.doesNotMatch(importar, /^(?!function |async function |const |let |\/\/|\s|\}|\]|$)/m, "solo declaraciones y comentarios: nada se ejecuta al cargarse");
+  const html = read("index.html");
+  const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
+  assert.ok(pos("importar-extracto-ui.js") !== -1 && pos("importar-extracto-ui.js") < pos("app.js"), "se carga con defer antes que app.js");
+  assert.match(html, /<script defer src="app\.js\?v=20261027xgo01c1">/, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
+});
