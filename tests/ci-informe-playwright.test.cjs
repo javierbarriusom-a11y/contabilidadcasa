@@ -33,3 +33,14 @@ test("Playwright conserva las trazas y capturas de lo que falla, que es lo que s
   assert.match(config, /trace: "retain-on-failure"/);
   assert.match(config, /screenshot: "only-on-failure"/);
 });
+
+test("lo que vio Playwright al fallar también queda en el registro, por si el artefacto no se puede descargar", () => {
+  const at = workflow.indexOf("Escribir en el registro lo que vio Playwright al fallar");
+  assert.ok(at > workflow.indexOf("Guardar trazas y capturas de Playwright"), "va después de guardar el artefacto");
+  assert.ok(at < workflow.indexOf("WebKit frente a Chromium"), "antes de la medición informativa, que no bloquea");
+  const step = workflow.slice(at, workflow.indexOf("- name:", at + 1));
+  assert.match(step, /if: failure\(\)/);
+  assert.match(step, /find test-results -name error-context\.md/);
+  assert.match(step, /head -c \d+/, "con tope por fichero");
+  assert.match(step, /::group::/);
+});
