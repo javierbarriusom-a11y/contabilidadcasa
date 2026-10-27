@@ -1,6 +1,6 @@
 {
- "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog.",
- "version": "2026-10-03",
+ "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md (§5 y §5.0) y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog. «plataforma» es el §5.0 (rediseño y séptima auditoría): va fuera de la línea base del 3/10 y su estado vive en la base del panel (colección plataforma).",
+ "version": "2026-10-27",
  "lineaBase": {
   "inicio": "2026-10-05",
   "fin": "2027-01-22",
@@ -2426,6 +2426,191 @@
    "sentido": "mayor",
    "detalle": "Valoraciones al día cada mes",
    "wp": "WP-15"
+  }
+ ],
+ "plataforma": [
+  {
+   "id": "RD-A1…A3",
+   "n": 1,
+   "que": "Tema visual v2, formato de cifras, acciones frente a conclusiones y Hoy v2",
+   "origen": "7ª",
+   "decision": "—",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-02"
+  },
+  {
+   "id": "RD-V2",
+   "n": 2,
+   "que": "Diseño nuevo por defecto en la URL base, con las mismas funciones que el clásico",
+   "origen": "7ª",
+   "decision": "19/10",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-02"
+  },
+  {
+   "id": "RD-CI",
+   "n": 3,
+   "que": "El CI guarda trazas y capturas de Playwright y escribe en su registro lo que vio al fallar",
+   "origen": "7ª §3",
+   "decision": "P5"
+  },
+  {
+   "id": "RD-COB",
+   "n": 4,
+   "que": "Cobro manual caducado y gasto diario de cero euros sin silencio",
+   "origen": "datos reales 19/10",
+   "decision": "P3, P4"
+  },
+  {
+   "id": "XGO-01",
+   "n": 5,
+   "que": "Desalojo de app.js y «uno entra, uno sale» comprobado por el CI",
+   "origen": "7ª",
+   "decision": "P6, P7"
+  },
+  {
+   "id": "XGO-03",
+   "n": 6,
+   "que": "Funciones en prueba, con aviso de graduación a las dos semanas",
+   "origen": "7ª",
+   "decision": "P8, P9"
+  },
+  {
+   "id": "XGO-02",
+   "n": 7,
+   "que": "Medidor de utilidad por función",
+   "origen": "7ª",
+   "decision": "P10"
+  },
+  {
+   "id": "RD-A4",
+   "n": 8,
+   "que": "Movimientos e Importar v2",
+   "origen": "7ª",
+   "decision": "P11, P12",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-04"
+  },
+  {
+   "id": "RD-A5",
+   "n": 9,
+   "que": "Clasificar por lotes",
+   "origen": "7ª",
+   "decision": "—",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-04"
+  },
+  {
+   "id": "RD-WK",
+   "n": 10,
+   "que": "Pruebas de las pantallas v2 en WebKit (iPhone, 390×844)",
+   "origen": "7ª",
+   "decision": "P14"
+  },
+  {
+   "id": "RD-COB2",
+   "n": 11,
+   "que": "Estimar el siguiente cobro con el mismo mes del año anterior",
+   "origen": "nota de P1",
+   "decision": "por decidir"
+  },
+  {
+   "id": "RD-B5",
+   "n": 12,
+   "que": "Repaso semanal con cronómetro (M-COSTE medido solo)",
+   "origen": "7ª",
+   "decision": "24/10",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-07"
+  },
+  {
+   "id": "RD-HOY1",
+   "n": 13,
+   "que": "Hoy, cambio 1: cobros y cargos esperados, a la bandeja de Movimientos",
+   "origen": "7ª, §4",
+   "decision": "23/10"
+  },
+  {
+   "id": "RD-HOY2",
+   "n": 14,
+   "que": "Hoy, cambio 2: la entrada al Repaso semanal",
+   "origen": "7ª, §4",
+   "decision": "24/10"
+  },
+  {
+   "id": "XDA-02",
+   "n": 15,
+   "que": "Buzón de extractos: importar en un toque y buzón con Atajo",
+   "origen": "7ª",
+   "decision": "25/10"
+  },
+  {
+   "id": "XDA-04",
+   "n": 16,
+   "que": "Cobertura del libro por cuenta",
+   "origen": "7ª",
+   "decision": "26/10"
+  },
+  {
+   "id": "XDA-03",
+   "n": 17,
+   "que": "Extractos en PDF: texto pegado y, si hace falta, pdf.js",
+   "origen": "7ª",
+   "decision": "26/10"
+  },
+  {
+   "id": "XDA-05",
+   "n": 18,
+   "que": "Clasificar por lotes: medir la calibración y aceptar en bloque",
+   "origen": "7ª",
+   "decision": "26/10"
+  },
+  {
+   "id": "XIN-02",
+   "n": 19,
+   "que": "Vigía de la recompra (art. 33.5 f y g LIRPF)",
+   "origen": "7ª",
+   "decision": "26/10"
+  },
+  {
+   "id": "XPR-06",
+   "n": 20,
+   "que": "Qué mueve cada día de la banda de caja",
+   "origen": "7ª",
+   "decision": "sin puerta",
+   "enPrueba": "propio"
+  },
+  {
+   "id": "XDA-01",
+   "n": 21,
+   "que": "Lo que la app te pide: datos por función y coste semanal",
+   "origen": "7ª",
+   "decision": "sin puerta",
+   "enPrueba": "propio"
+  },
+  {
+   "id": "XUX-02",
+   "n": 22,
+   "que": "Ver cómo quedaría, con datos de ejemplo",
+   "origen": "7ª",
+   "decision": "sin puerta",
+   "enPrueba": "propio"
+  },
+  {
+   "id": "XPR-07",
+   "n": 23,
+   "que": "El arreglo más barato para un descubierto",
+   "origen": "7ª (Siguiente)",
+   "decision": "sin puerta",
+   "enPrueba": "propio"
+  },
+  {
+   "id": "XDA-10",
+   "n": 24,
+   "que": "Antes de decidir: qué dato antiguo podría darle la vuelta al veredicto",
+   "origen": "7ª (Siguiente)",
+   "decision": "sin puerta",
+   "enPrueba": "propio"
   }
  ]
 }

@@ -144,12 +144,17 @@ tr.done td.what { text-decoration: line-through; }
 .log > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 14px; }
 .log > div:first-child { border-top: 0; }
 .empty { padding: 18px; color: var(--muted); font-size: 14px; }
+/* Segunda fila: lo que no entra en la línea base del 3/10 (§5.0, funciones en prueba, tareas vencidas). */
+.kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi.alert .v { color: var(--bad); }
+.kpi .d .mono { font-size: 12px; }
 .panel { display: grid; gap: 14px; }
 .note { font-size: 13px; color: var(--muted); max-width: 72ch; }
 
 @media (max-width: 760px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpis > .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .kpis.k3 { grid-template-columns: minmax(0, 1fr); }
   .next { grid-template-columns: minmax(0, 1fr); }
   .wp > summary { grid-template-columns: auto minmax(0, 1fr); }
   .wp > summary .wp-id { order: -1; }
@@ -181,6 +186,8 @@ tr.done td.what { text-decoration: line-through; }
   <section aria-labelledby="t-resumen" class="panel">
     <h2 id="t-resumen" class="eyebrow" style="font-family: var(--font-data); font-size: 12px; font-weight: 400;">Resumen a hoy</h2>
     <div class="kpis" id="kpis"></div>
+    <span class="eyebrow">Fuera de la línea base</span>
+    <div class="kpis k3" id="kpis2"></div>
     <div class="next" id="next"></div>
   </section>
 
@@ -200,6 +207,7 @@ tr.done td.what { text-decoration: line-through; }
   <section class="panel">
     <div class="tabs" role="tablist" aria-label="Secciones">
       <button class="tab" role="tab" id="tab-paquetes" aria-controls="p-paquetes" aria-selected="true">Paquetes<span class="count" id="c-paquetes"></span></button>
+      <button class="tab" role="tab" id="tab-plataforma" aria-controls="p-plataforma" aria-selected="false">Rediseño y plataforma<span class="count" id="c-plataforma"></span></button>
       <button class="tab" role="tab" id="tab-hogar" aria-controls="p-hogar" aria-selected="false">Tareas del hogar<span class="count" id="c-hogar"></span></button>
       <button class="tab" role="tab" id="tab-metricas" aria-controls="p-metricas" aria-selected="false">Métricas<span class="count" id="c-metricas"></span></button>
       <button class="tab" role="tab" id="tab-propuestas" aria-controls="p-propuestas" aria-selected="false">Propuestas<span class="count" id="c-propuestas"></span></button>
@@ -210,6 +218,11 @@ tr.done td.what { text-decoration: line-through; }
     <div id="p-paquetes" role="tabpanel" aria-labelledby="tab-paquetes" class="panel">
       <div class="filters" id="wp-filters"></div>
       <div id="olas" class="panel"></div>
+    </div>
+
+    <div id="p-plataforma" role="tabpanel" aria-labelledby="tab-plataforma" class="panel" hidden>
+      <p class="note">El §5.0 del backlog: el rediseño y lo que entró por la séptima auditoría desde el 19/10/2026. No suma a la curva ni al avance construido, porque no estaba en la línea base del 3/10. Una función en prueba apagada no empieza su revisión de dos semanas hasta que la enciendes en Ajustes › Funciones en prueba.</p>
+      <div class="list" id="plataforma"></div>
     </div>
 
     <div id="p-hogar" role="tabpanel" aria-labelledby="tab-hogar" class="panel" hidden>
@@ -251,8 +264,11 @@ tr.done td.what { text-decoration: line-through; }
 (() => {
   const PLAN = JSON.parse(document.getElementById("plan-data").textContent);
   const ESTADOS = ["pendiente", "en curso", "en revisión", "esperando al hogar", "aparcado", "hecho", "bloqueado", "descartado"];
-  // Límite de trabajo en curso (BACKLOG_DEFINITIVO.md §4, 19/10/2026): el rediseño ocupa uno de los tres y no es un paquete del panel.
-  const LIMITE_EN_CURSO = 3, REDISENO_EN_CURSO = 1;
+  // El límite de 3 en curso (19/10/2026) lo levantó el hogar el 26/10 («no hay límites», BACKLOG_DEFINITIVO.md §4).
+  // §5.0 (rediseño y séptima auditoría): fuera de la línea base; su estado vive en la colección «plataforma».
+  const PLAT = PLAN.plataforma || [];
+  const platKey = (id) => id.replace(/[^A-Za-z0-9_-]/g, "-"); // «RD-A1…A3» → «RD-A1-A3» (id de documento válido)
+  const PRUEBA = ["apagada", "encendida", "graduada", "retirada"];
   const ALIAS = { curso: "en curso" }; // estados mal escritos en la base: se leen como el bueno en vez de pesar 0
   const RESULTADOS = ["sin medir", "cumple", "no cumple"];
   const PESO = PLAN.pesos;
@@ -263,7 +279,7 @@ tr.done td.what { text-decoration: line-through; }
   const TOTAL = BASE.reduce((s, w) => s + w.sesiones, 0);
   const DAY = 86400000;
 
-  const state = { wp: {}, hogar: {}, metricas: {}, catalogo: {}, olas: {}, registro: [], meta: {} };
+  const state = { wp: {}, plataforma: {}, hogar: {}, metricas: {}, catalogo: {}, olas: {}, registro: [], meta: {} };
   let db = null; let canWrite = false; let whoAmI = "usuario";
   let filter = "todas";
 
@@ -282,6 +298,16 @@ tr.done td.what { text-decoration: line-through; }
   function wpState(id) {
     const st = state.wp[id] || { estado: "pendiente" };
     return ALIAS[st.estado] ? { ...st, estado: ALIAS[st.estado] } : st;
+  }
+  function platState(p) {
+    const st = state.plataforma[platKey(p.id)] || { estado: "pendiente" };
+    // Sin dato guardado: lo de interruptor propio nace apagado (XGO-03) y las pantallas v2 van encendidas por defecto.
+    const prueba = st.prueba || (p.enPrueba === "propio" ? "apagada" : p.enPrueba === "pantalla" ? "encendida" : "");
+    return { ...st, estado: ALIAS[st.estado] || st.estado || "pendiente", prueba };
+  }
+  const prNums = (pr) => String(pr || "").match(/\d+/g) || [];
+  function overdueTasks() {
+    return PLAN.tareasHogar.filter((t) => !(state.hogar[t.id] || {}).hecho && d(t.fecha) < TODAY);
   }
   function depsPending(w) { return w.depende.filter((dep) => wpState(dep).estado !== "hecho"); }
   function effectiveEstado(w) {
@@ -364,16 +390,30 @@ tr.done td.what { text-decoration: line-through; }
       <div class="kpi"><span class="eyebrow">Desvío</span><span class="v">${desvio}</span><span class="d">${desvioD}</span></div>
       <div class="kpi"><span class="eyebrow">Paquetes hechos</span><span class="v">${hechos.length}<small> / ${BASE.length}</small></span><span class="d">${esperando} esperando al hogar · ${aparcados} aparcados${est ? ` · real/estimado ${n1(real / est)}×` : ""}</span></div>`;
 
+    // Segunda fila: §5.0, funciones en prueba y tareas del hogar vencidas (lo que la curva no ve).
+    const platHechas = PLAT.filter((p) => platState(p).estado === "hecho").length;
+    const platHogar = PLAT.filter((p) => platState(p).estado === "esperando al hogar").length;
+    const prs = new Set(PLAT.flatMap((p) => prNums(platState(p).pr))).size;
+    const apagadas = PLAT.filter((p) => p.enPrueba && platState(p).prueba === "apagada");
+    const revisiones = PLAT.filter((p) => p.revision && platState(p).prueba === "encendida" && d(p.revision) >= TODAY)
+      .map((p) => p.revision).sort();
+    const vencidas = overdueTasks();
+    document.getElementById("kpis2").innerHTML = `
+      <div class="kpi"><span class="eyebrow">Rediseño y plataforma (§5.0)</span><span class="v">${platHechas}<small> / ${PLAT.length}</small></span><span class="d">entregas hechas · ${platHogar} esperando al hogar · ${prs} PR fusionados</span></div>
+      <div class="kpi ${apagadas.length ? "alert" : ""}"><span class="eyebrow">Funciones en prueba apagadas</span><span class="v">${apagadas.length}</span><span class="d">${apagadas.length ? `<span class="mono">${apagadas.map((p) => esc(p.id)).join(" · ")}</span> · su revisión empieza al encenderlas` : "Ninguna"}${revisiones.length ? ` · próxima revisión ${fmtShort(revisiones[0])}` : ""}</span></div>
+      <div class="kpi ${vencidas.length ? "alert" : ""}"><span class="eyebrow">Tareas del hogar vencidas</span><span class="v">${vencidas.length}</span><span class="d">${vencidas.length ? `La más antigua: <span class="mono">${vencidas[0].id}</span> ${esc(vencidas[0].que.split(" (")[0])}, desde el ${fmtShort(vencidas[0].fecha)}` : "Al día"}</span></div>`;
+
     const next = BASE.find((w) => effectiveEstado(w) === "pendiente");
     const enCurso = BASE.filter((w) => ["en curso", "en revisión"].includes(wpState(w.id).estado));
+    const platEnCurso = PLAT.filter((p) => ["en curso", "en revisión"].includes(platState(p).estado));
     const hito = PLAN.hitos.find((h) => d(h.fecha) >= TODAY);
     const tarea = PLAN.tareasHogar.find((t) => !(state.hogar[t.id] || {}).hecho);
     const tareaLate = tarea && d(tarea.fecha) < TODAY;
     document.getElementById("next").innerHTML = `
-      <div><span class="eyebrow">En marcha · ${enCurso.length + REDISENO_EN_CURSO} de ${LIMITE_EN_CURSO}</span>
-        <span>Rediseño y plataforma <span class="muted small">(§5.0)</span></span>
+      <div><span class="eyebrow">En marcha · ${enCurso.length + platEnCurso.length}</span>
         ${enCurso.map((w) => `<span><span class="mono">${w.id}</span> ${esc(w.nombre)}</span>`).join("")}
-        ${enCurso.length + REDISENO_EN_CURSO > LIMITE_EN_CURSO ? `<span class="small" style="color: var(--bad)">Límite superado: cierra o aparca uno antes de abrir otro.</span>` : !enCurso.length && next ? `<span class="muted small">Siguiente desbloqueado: <span class="mono">${next.id}</span> ${esc(next.nombre)}</span>` : ""}</div>
+        ${platEnCurso.map((p) => `<span><span class="mono">${esc(p.id)}</span> ${esc(p.que)} <span class="muted small">(§5.0)</span></span>`).join("")}
+        ${!enCurso.length && !platEnCurso.length && next ? `<span class="muted small">Siguiente desbloqueado: <span class="mono">${next.id}</span> ${esc(next.nombre)}</span>` : ""}</div>
       <div><span class="eyebrow">Próximo hito</span>${hito ? `<span>${esc(hito.que)}</span><span class="muted small">${fmt(hito.fecha)} · ${daysBetween(TODAY, d(hito.fecha)) === 0 ? "hoy" : "en " + daysBetween(TODAY, d(hito.fecha)) + " días"}</span>` : "<span>Ninguno</span>"}</div>
       <div><span class="eyebrow">Te toca</span>${tarea ? `<span>${esc(tarea.que)}</span><span class="small ${tareaLate ? "" : "muted"}" style="${tareaLate ? "color: var(--bad)" : ""}">${tareaLate ? "Vencida el " : "Antes del "}${fmt(tarea.fecha)}${tarea.minutos ? ` · ≈ ${tarea.minutos} min` : ""}</span>` : "<span>Nada pendiente</span>"}</div>`;
   }
@@ -570,6 +610,58 @@ tr.done td.what { text-decoration: line-through; }
     document.getElementById("c-paquetes").textContent = `${done}/${BASE.length}`;
   }
 
+  // ---------- render: rediseño y plataforma (§5.0) ----------
+  function pruebaTag(p, st) {
+    if (!p.enPrueba || !st.prueba) return "";
+    const c = st.prueba === "apagada" ? "due" : st.prueba === "graduada" ? "okv" : "";
+    const rev = st.prueba === "encendida" && p.revision ? ` · revisión ${fmtShort(p.revision)}` : "";
+    return `<span class="tag ${c}">${st.prueba === "retirada" ? "retirada" : "en prueba: " + st.prueba}${rev}</span>`;
+  }
+  function platRow(p) {
+    const st = platState(p), key = platKey(p.id);
+    const hist = (st.historial || []).slice().reverse();
+    const disabled = canWrite ? "" : "disabled";
+    const nums = prNums(st.pr);
+    const label = st.estado.charAt(0).toUpperCase() + st.estado.slice(1);
+    return `<details class="wp" data-wp="plat-${key}">
+      <summary>
+        <span class="wp-state"><span class="pill ${cls(st.estado)}">${label}</span></span>
+        <span class="wp-id mono">${esc(p.id)}</span>
+        <span class="wp-name"><b>${esc(p.que)}</b>
+          <span class="wp-sub"><span>Fila ${p.n} · origen ${esc(p.origen)}</span><span>decisión del hogar: ${esc(p.decision)}</span></span></span>
+        <span class="wp-right">${pruebaTag(p, st)}${nums.length ? `<span class="tag">${nums.length === 1 ? "PR #" + nums[0] : nums.length + " PR"}</span>` : ""}${st.fin ? `<span class="tag">${fmtShort(st.fin)}</span>` : ""}</span>
+      </summary>
+      <div class="wp-body">
+        <dl class="facts">
+          ${nums.length ? `<div><dt>PR</dt><dd class="mono">${nums.map((n) => "#" + n).join(" · ")}</dd></div>` : ""}
+          ${p.enPrueba ? `<div><dt>Funciones en prueba</dt><dd>${p.enPrueba === "propio" ? "Interruptor propio: nace apagada y su revisión cuenta desde el día en que se enciende." : `Pantalla del diseño nuevo, encendida por defecto${p.revision ? `; revisión con el medidor el ${fmt(p.revision)}` : ""}.`}</dd></div>` : ""}
+          ${st.nota ? `<div><dt>Nota</dt><dd>${esc(st.nota)}</dd></div>` : ""}
+          ${hist.length ? `<div><dt>Historial</dt><dd class="history">${hist.map((h) => `<span>${fmt(h.fecha)} · ${esc(h.texto)}${h.por ? ` · ${esc(h.por)}` : ""}</span>`).join("")}</dd></div>` : ""}
+        </dl>
+        <form class="edit" data-plat="${key}" data-label="${esc(p.id)}">
+          <label for="pe-${key}">Estado<select id="pe-${key}" name="estado" ${disabled}>${ESTADOS.map((e) => `<option ${st.estado === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>
+          <label for="pp-${key}">En prueba<select id="pp-${key}" name="prueba" ${disabled || (p.enPrueba ? "" : "disabled")}>${["", ...PRUEBA].map((o) => `<option value="${o}" ${st.prueba === o ? "selected" : ""}>${o || "—"}</option>`).join("")}</select></label>
+          <label for="pr-${key}">PR<input id="pr-${key}" name="pr" value="${esc(st.pr || "")}" placeholder="números, separados por comas" ${disabled}></label>
+          <label for="pf-${key}">Fin (fusionado)<input id="pf-${key}" type="date" name="fin" value="${esc(st.fin || "")}" ${disabled}></label>
+          <label class="full" for="pn-${key}">Nota<textarea id="pn-${key}" name="nota" ${disabled}>${esc(st.nota || "")}</textarea></label>
+          <div class="full form-actions">
+            <button class="btn" type="submit" ${disabled}>Guardar</button>
+            <span class="saved" aria-live="polite"></span>
+            ${canWrite ? "" : `<span class="muted small">Solo lectura en esta vista.</span>`}
+          </div>
+        </form>
+      </div>
+    </details>`;
+  }
+  function renderPlataforma() {
+    const open = new Set([...document.querySelectorAll("#plataforma details.wp[open]")].map((x) => x.dataset.wp));
+    const el = document.getElementById("plataforma");
+    el.innerHTML = PLAT.length ? PLAT.map(platRow).join("") : `<p class="empty">El plan no trae entradas del §5.0.</p>`;
+    open.forEach((id) => { const x = el.querySelector(`details.wp[data-wp="${id}"]`); if (x) x.open = true; });
+    const hechas = PLAT.filter((p) => platState(p).estado === "hecho").length;
+    document.getElementById("c-plataforma").textContent = `${hechas}/${PLAT.length}`;
+  }
+
   // ---------- render: hogar ----------
   function renderHogar() {
     const rows = PLAN.tareasHogar.map((t) => {
@@ -586,7 +678,8 @@ tr.done td.what { text-decoration: line-through; }
     }).join("");
     document.getElementById("hogar-table").innerHTML = `<thead><tr><th><span class="eyebrow" style="font-size:11px">Hecha</span></th><th class="num">Cuándo</th><th>Qué</th><th class="num">Tiempo</th><th>Para</th></tr></thead><tbody>${rows}</tbody>`;
     const pend = PLAN.tareasHogar.filter((t) => !(state.hogar[t.id] || {}).hecho).length;
-    document.getElementById("c-hogar").textContent = String(pend);
+    const late = overdueTasks().length;
+    document.getElementById("c-hogar").textContent = late ? `${pend} · ${late} vencidas` : String(pend);
   }
 
   // ---------- render: métricas ----------
@@ -671,7 +764,7 @@ tr.done td.what { text-decoration: line-through; }
   }
 
   function renderAll() {
-    renderHeader(); renderKpis(); renderChart(); renderFilters(); renderPaquetes(); renderHogar(); renderMetricas(); renderPropuestas(); renderHitos(); renderRegistro();
+    renderHeader(); renderKpis(); renderChart(); renderFilters(); renderPaquetes(); renderPlataforma(); renderHogar(); renderMetricas(); renderPropuestas(); renderHitos(); renderRegistro();
   }
 
   // ---------- escritura ----------
@@ -680,21 +773,22 @@ tr.done td.what { text-decoration: line-through; }
     if (!db) return;
     try { await db.collection("registro").add({ fecha: todayIso(), ts: stamp(), texto, por: whoAmI }); } catch (e) { /* el registro es secundario */ }
   }
-  async function saveWp(id, patch, statusEl) {
-    const cur = state.wp[id] || {};
+  // col «wp» (paquetes de la línea base) o «plataforma» (§5.0, con su id de documento y su etiqueta).
+  async function saveWp(id, patch, statusEl, col = "wp", label = id) {
+    const cur = state[col][id] || {};
     const changes = [];
     for (const k of Object.keys(patch)) if ((cur[k] ?? "") !== (patch[k] ?? "")) changes.push(k);
     if (!changes.length) { if (statusEl) statusEl.textContent = "Sin cambios"; return; }
-    const texto = changes.includes("estado") ? `${id}: ${cur.estado || "pendiente"} → ${patch.estado}` : `${id}: ${changes.join(", ")} actualizado`;
+    const texto = changes.includes("estado") ? `${label}: ${cur.estado || "pendiente"} → ${patch.estado}` : `${label}: ${changes.join(", ")} actualizado`;
     const historial = (cur.historial || []).concat([{ fecha: todayIso(), texto, por: whoAmI }]).slice(-20);
     const next = { ...cur, ...patch, historial, actualizado: stamp() };
     if (patch.estado === "hecho" && !next.fin) next.fin = todayIso();
     if (["en curso", "en revisión"].includes(patch.estado) && !next.inicio) next.inicio = todayIso();
     try {
-      await db.doc("wp/" + id).set(next);
+      await db.doc(col + "/" + id).set(next);
       if (statusEl) statusEl.textContent = "Guardado";
       await log(texto);
-      if (!state.meta.arranque && ["en curso", "en revisión", "hecho"].includes(next.estado)) {
+      if (col === "wp" && !state.meta.arranque && ["en curso", "en revisión", "hecho"].includes(next.estado)) {
         await db.doc("meta/plan").set({ ...state.meta, arranque: next.inicio || todayIso() });
       }
     } catch (e) {
@@ -714,7 +808,8 @@ tr.done td.what { text-decoration: line-through; }
       if (patch.pr) patch.pr = patch.pr.replace(/^#/, "");
       f.querySelector(".saved").style.color = "";
       f.querySelector(".saved").textContent = "Guardando…";
-      await saveWp(f.dataset.wp, patch, f.querySelector(".saved"));
+      if (f.dataset.plat) await saveWp(f.dataset.plat, patch, f.querySelector(".saved"), "plataforma", f.dataset.label);
+      else await saveWp(f.dataset.wp, patch, f.querySelector(".saved"));
     } else if (f.matches("form.inline-form")) {
       ev.preventDefault();
       if (!canWrite) return;
@@ -821,7 +916,7 @@ tr.done td.what { text-decoration: line-through; }
       snap.docs.forEach((doc) => { if (doc.exists) obj[doc.id] = doc.data(); });
       state[target] = obj; scheduleRender();
     }, onErr);
-    sub("wp", "wp"); sub("hogar", "hogar"); sub("metricas", "metricas"); sub("catalogo", "catalogo"); sub("olas", "olas");
+    sub("wp", "wp"); sub("plataforma", "plataforma"); sub("hogar", "hogar"); sub("metricas", "metricas"); sub("catalogo", "catalogo"); sub("olas", "olas");
     db.collection("registro").onSnapshot((snap) => { state.registro = snap.docs.filter((x) => x.exists).map((x) => x.data()); scheduleRender(); }, onErr);
     db.doc("meta/plan").onSnapshot((snap) => { state.meta = snap.exists ? snap.data() : {}; scheduleRender(); }, onErr);
     scheduleRender();

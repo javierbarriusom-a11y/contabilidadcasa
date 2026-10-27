@@ -87,6 +87,23 @@ test("los paquetes, sus dependencias y las olas son coherentes", () => {
   for (const wp of plan.paquetes) if (wp.metrica) assert.ok(metricIds.has(wp.metrica), `${wp.id}: métrica ${wp.metrica} sin definir.`);
 });
 
+// §5.0 (rediseño y séptima auditoría, 19/10/2026) va en el panel fuera de la línea base: si una fila
+// entra en el backlog y no en el JSON, el panel no la enseña y su trabajo no se ve.
+test("el §5.0 del backlog y la pista «plataforma» del JSON tienen las mismas entradas", () => {
+  const rows = sectionRows("### 5.0").map((cells) => ({ n: Number(clean(cells[0])), id: clean(cells[1]) }));
+  assert.ok(rows.length >= 24, "El §5.0 debe tener al menos sus 24 filas.");
+  const json = new Map(plan.plataforma.map((p) => [p.id, p]));
+  assert.equal(json.size, plan.plataforma.length, "Ninguna entrada de «plataforma» repetida.");
+  assert.equal(json.size, rows.length, "El JSON y el §5.0 deben tener las mismas filas.");
+  for (const row of rows) {
+    const p = json.get(row.id);
+    assert.ok(p, `${row.id} está en el §5.0 pero no en «plataforma».`);
+    assert.equal(p.n, row.n, `${row.id}: número de fila distinto en el JSON y en el backlog.`);
+    if (p.enPrueba) assert.ok(["pantalla", "propio"].includes(p.enPrueba), `${row.id}: «enPrueba» desconocido.`);
+    if (p.revision) assert.match(p.revision, /^\d{4}-\d{2}-\d{2}$/, `${row.id}: fecha de revisión mal escrita.`);
+  }
+});
+
 test("el JSON del plan no lleva importes en euros (repositorio público)", () => {
   const raw = fs.readFileSync(path.join(root, "docs/plan/plan-definitivo.json"), "utf8");
   assert.doesNotMatch(raw, /\d[\d.,]*\s?€/, "Sin cifras en euros en el plan público.");
