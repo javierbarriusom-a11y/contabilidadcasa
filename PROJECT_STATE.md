@@ -125,7 +125,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Nace apagada** en Funciones en prueba (interruptor propio «Ver con datos de ejemplo»). El medidor cuenta la vista y, como acción, «Empezar»: la métrica de la ficha son las altas empezadas tras ver el ejemplo. Se retira si no suben. Una línea en Novedades.
 - **Lo que no hace:** ejemplos para el resto de tarjetas vacías. Las de la CIRBE, el patrimonio, el puente o las nóminas dependen de datos que llegan solos (cierres, nóminas importadas), no de un alta. Si el medidor dice que se usa, se añaden.
 - **Pruebas:** `tests/xux02-ver-ejemplo.test.cjs` (5) y la e2e «XUX-02 · Ver cómo quedaría» a 390 y 1280 px. La de 390 px también corre en Safari.
-- **Validación:** VERIFY_RESULT. Playwright (e2e + a11y + perf-screens): PW_RESULT. Proyecto `safari` con Chromium emulando el iPhone: SAFARI_RESULT.
+- **Validación:** `npm run verify` en verde: 6212 de 6212 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 256 de 257 (17,1 min; +2, la e2e de XUX-02). El que falló es la prueba de contraste de «Tus datos fiscales» en oscuro: no vio el aviso de error tras «Guardar» en 5 s. XUX-02 no toca ese formulario, que no usa el estado vacío común, y la pasada coincidió con pruebas unitarias y lint en paralelo. Sola, 6 de 6. Proyecto `safari` con Chromium emulando el iPhone: 18 de 18.
 
 ## Cierre de sesión — 26 de octubre de 2026 (357): XDA-01 · PR-1, lo que la app te pide (en prueba, apagada)
 
