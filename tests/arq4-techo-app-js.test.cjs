@@ -45,7 +45,10 @@ const path = require("node:path");
 // → 33.259 (XGO-01 PR-2, 21 de octubre de 2026, sesión 334): 113 funciones de Plan › Partidas y del motor de escenarios
 // (1.848 líneas con sus comentarios) pasan tal cual a partidas-ui.js y al nuevo escenarios-ui.js; app.js queda en
 // 33.129 y el techo baja por el mismo trinquete.
-const CEILING_LINES = 33259;
+// → 32.426 (XGO-01 PR-3, 27 de octubre de 2026, sesión 362): el asistente «Importar extracto» en cuatro pasos (46 funciones, sus
+// constantes y las dos variables de la sesión; 845 líneas con sus comentarios) pasa tal cual al nuevo importar-extracto-ui.js;
+// app.js queda en 32.296 y el techo baja por el mismo trinquete.
+const CEILING_LINES = 32426;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;
