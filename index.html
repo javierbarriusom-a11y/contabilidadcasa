@@ -6855,6 +6855,12 @@
             </div>
             <div class="account-balance-strip" id="previsionBalanceSummary"></div>
             <!-- WP-16 (NPV-01): banda de caja a 30 días (P10-P90, probabilidad de cruzar el suelo). La pinta cash-band-ui.js con el kit de gráficos (WP-28). -->
+            <!-- XPR-07 · PR-1 (descubierto-ui.js): el arreglo más barato si la trayectoria «según el plan» baja del suelo en 30 días. Oculta si no hay
+                 descubierto o si «El arreglo más barato» está apagada en Funciones en prueba. -->
+            <article class="e19-card desc-card" id="descubiertoCard" aria-labelledby="descubiertoTitulo" hidden>
+              <h3 class="escenario-motor-panel-title" id="descubiertoTitulo">Para no bajar del suelo</h3>
+              <div id="descubiertoCuerpo"></div>
+            </article>
             <details class="e19-card prevision-calidad-card" id="previsionBandaCard">
               <summary id="previsionBandaResumen">Banda de caja a 30 días</summary>
               <div id="previsionBanda"></div>
@@ -8136,6 +8142,7 @@
     <script defer src="canonical-ledger-coverage.js?v=20261026xda04"></script>
     <script defer src="canonical-statement-lines.js?v=20261026xda03"></script>
     <script defer src="canonical-data-contracts.js?v=20261026xda01"></script>
+    <script defer src="canonical-overdraft-fix.js?v=20261027xpr07"></script>
     <script defer src="esperados-ui.js?v=20261007wp14a1"></script>
     <script defer src="canonical-rate-indices.js?v=20261007wp13a1"></script>
     <script defer src="indices-ui.js?v=20261007wp13a1"></script>
@@ -8205,6 +8212,7 @@
     <script defer src="extracto-pdf-ui.js?v=20261026xda03"></script>
     <script defer src="lo-que-pide-ui.js?v=20261026xda01"></script>
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
+    <script defer src="descubierto-ui.js?v=20261027xpr07"></script>
     <script defer src="app.js?v=20261002s5a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
