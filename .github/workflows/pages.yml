@@ -52,6 +52,19 @@ jobs:
           path: test-results/
           retention-days: 14
           if-no-files-found: ignore
+      # El artefacto de arriba no siempre se puede descargar (un proxy puede bloquear el almacenamiento donde vive). Lo que
+      # Playwright vio al fallar (error-context.md: la página como árbol accesible, con los datos inventados de las pruebas)
+      # queda también en el registro del CI, plegado por prueba y con tope por fichero. Solo en fallo; no cambia nada más.
+      - name: Escribir en el registro lo que vio Playwright al fallar
+        if: failure()
+        run: |
+          [ -d test-results ] || exit 0
+          find test-results -name error-context.md -print0 2>/dev/null | while IFS= read -r -d '' file; do
+            echo "::group::${file}"
+            head -c 60000 "${file}"
+            echo
+            echo "::endgroup::"
+          done
       - name: WebKit frente a Chromium, sin estrangular (WP-52 · NTC-04) — informativo, no bloquea
         continue-on-error: true
         run: npm run measure:load-webkit

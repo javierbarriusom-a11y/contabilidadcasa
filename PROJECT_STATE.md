@@ -109,6 +109,16 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (361): lo que vio Playwright al fallar, en el registro del CI, y el primer fallo que deja ver
+
+- **Por qué:** hoy han fallado en el CI dos pruebas ajenas al PR en curso: WP-40 (la CIRBE, «element is not stable» durante 120 s) en #553 y XDA-02 (Importar en un toque, en WebKit) en #555. Las dos pasaron al relanzar el job y en local no se reproducen (WP-40: 8 de 8 con 4 en paralelo). Sin ver qué había en pantalla, la causa no se puede saber. Y el artefacto con trazas y capturas (P5) no siempre se puede descargar: desde la sesión de desarrollo, el proxy bloquea el almacenamiento donde GitHub lo guarda.
+- **Cambio:** un paso nuevo en `.github/workflows/pages.yml`. Solo corre si algo ha fallado y va después de subir el artefacto. Escribe en el registro del CI el `error-context.md` de cada prueba que falla: la página como árbol accesible, con los datos inventados de las pruebas. Va plegado por prueba (`::group::`), con un tope de 60.000 caracteres por fichero, y sin `test-results/` no hace nada.
+- **Lo que no hace:** no reintenta pruebas, no cambia umbrales ni toca pruebas. La próxima vez que falle una de estas dos, la causa quedará en el registro y se podrá arreglar en lugar de relanzar.
+- **Primer uso, en el propio CI de este cambio:** XDA-02 volvió a fallar en WebKit (segunda vez, ahora en #556), y esta vez el registro trajo la página. La prueba agotó sus 60 s sin error propio y con la página aún en Importar: se quedó parada en `page.goto("/index.html#movements")`, un cambio de solo ancla sobre una entrada de historial creada con `pushState`. El fallo de #555 (la revisión oculta tras volver a Movimientos) pasa por el mismo paso. Se probó la otra explicación, que la app atendiera tarde el cambio de ancla: retrasando el `hashchange` 400 ms en Chromium la prueba pasa igual, así que esa queda descartada. **Arreglo en la prueba, no en la app:** se vuelve a Movimientos cambiando el ancla desde la página (`location.hash`), como hace un enlace de la app, y se espera a que la vista esté activa (`activeViewId`) y visible antes de pulsar. El WebKit real solo lo confirmará este CI: en esta máquina no se puede descargar.
+- **WP-40 (la CIRBE)** no se ha vuelto a ver. Si vuelve, el registro dirá qué se movía.
+- **Pruebas:** `tests/ci-informe-playwright.test.cjs` gana una (el paso existe, solo en fallo, entre la subida y la medición informativa, con tope y plegado). El paso se probó en local con y sin resultados.
+- **Validación:** `npm run verify` en verde, 6222/6222. XDA-02 en local: 6/6 en e2e, 10/10 repetida, y el proyecto `safari` con Chromium imitando el iPhone, 20/20.
+
 ## Cierre de sesión — 27 de octubre de 2026 (360): XDA-10 · PR-1, antes de decidir (en prueba, apagada)
 
 - **Por qué esta:** el hogar volvió a pedir lo siguiente que no dependa de él. De las cinco propuestas sin puerta del grupo «Siguiente», XPR-07 ya estaba hecha y XDN-03 no vale nada hasta que el hogar rellene y firme su política. XDA-10 es de esfuerzo S, sin puerta, y se apoya en motores que ya existen (WP-45).
