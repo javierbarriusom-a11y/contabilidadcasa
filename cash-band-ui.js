@@ -7,6 +7,7 @@
 
 let cashBandRenderedKey = ""; // lo último pintado: repintar igual borraría la lectura y el foco del gráfico que se está recorriendo
 let cashBandLastInput = null; // XPR-06: las entradas de la banda pintada, para desglosar el día elegido con las mismas
+let cashBandLastResult = null; // XPR-07: su resultado, del que sale la trayectoria «según el plan» que mira el arreglo de un descubierto
 
 // Los movimientos fechados del plan (los que ya reparte el motor diario) y los saldos declarados. Devuelve null si no hay nada que simular.
 function cashBandInput(today) {
@@ -96,6 +97,7 @@ function renderCashBand(engine) {
     if (key === cashBandRenderedKey && box.firstElementChild) return;
     const result = engine.simulate(input);
     cashBandLastInput = input;
+    cashBandLastResult = result;
     cashBandDayBindOnce();
     if (qs("previsionBandaResumen")) qs("previsionBandaResumen").textContent = cashBandSummary(engine, result);
     box.innerHTML = result.status === "ok"

@@ -109,6 +109,32 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (359): XPR-07 · PR-1, el arreglo más barato para un descubierto (en prueba, apagada)
+
+- **Por qué esta:** el hogar volvió a pedir lo siguiente que no dependa de él. En el grupo «Ahora» no queda nada sin puerta. En «Siguiente» (ene-mar 2027 en la auditoría) hay cinco propuestas sin puerta: XDN-03, XPR-07, XDA-10, XUX-04 y XUX-05. Las dos de valor alto son XDN-03 y XPR-07. XDN-03 (política de deuda) no vale nada hasta que el hogar la rellene y la firme; XPR-07 da valor sola con los datos que ya hay.
+- **Motor** `canonical-overdraft-fix.js` (puro):
+  - `findDeficit`: con la trayectoria «según el plan» de la banda de caja y el suelo, el primer día por debajo, el punto más bajo desde ahí y cuánto falta.
+  - `levers`: solo las palancas con dato, y dice cuáles faltan.
+  - `solve`: hasta tres arreglos, del más barato al más caro. A igual coste, el que menos colchón gasta.
+- **Palancas de esta entrega:**
+  - **Gasto que el hogar marcó como discrecional** en «Previsión en capas» (WP-35), con coste 0 €. Solo cuenta la parte que caería entre hoy y el punto más bajo, mes a mes y en proporción a los días.
+    - La primera versión cogía todo el discrecional del mes del cruce. A 27 de octubre eso proponía aplazar un gasto de octubre que ya había pasado. Se vio al revisar la tarjeta en pantalla y se corrigió.
+  - **Aceptar bajar del suelo:** 0 € de coste, pero dice en cuánto queda el colchón.
+  - **Línea de crédito de emergencia (Ajustes):** con sus intereses a 3 meses, el mismo cálculo de siempre.
+- **Lo que no hace, dicho en la tarjeta:**
+  - **Mover dinero entre cuentas:** la previsión es de la liquidez total; hará falta la previsión por cuenta (XPR-05).
+  - **Aplazar un cargo de tarjeta:** hará falta su TAE real (WP-41).
+  - **Hacer nada:** solo enseña.
+  - **Medir la métrica de la ficha** (descubiertos resueltos antes de su fecha): el medidor solo cuenta las vistas.
+- **En pantalla:** tarjeta «Para no bajar del suelo el …» en Plan › Previsión, junto a la banda de caja. Lee la trayectoria y el suelo de la banda ya pintada, sin volver a simular. **Nace apagada** en Funciones en prueba («El arreglo más barato») y, encendida, solo se ve si hay descubierto en 30 días. Una línea en Novedades.
+- **Conexión:** `app.js` llama a la tarjeta después de pintar la banda (+1 línea: 33.153 de 33.259). El recuento de motores de `arq3` pasa de 113 a 114.
+- **Lectura con el hogar de demostración:** con el suelo de 1.500 € no hay descubierto (la tarjeta no sale). Subiendo el suelo a 10.500 €, faltan unos 830 € a primeros de noviembre.
+- **Pruebas:** `tests/xpr07-arreglo-descubierto.test.cjs` (4) y la e2e «XPR-07 · El arreglo más barato» a 390 y 1280 px. La de 390 px también corre en Safari.
+- **Validación:**
+  - `npm run verify` en verde: 6216 de 6216 pruebas unitarias (+4), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. La primera pasada paró en typecheck por un tipo JSDoc de `solve` (campos con valor por defecto marcados como obligatorios); se corrigió y se repitió.
+  - Playwright (e2e + a11y + perf-screens): 259 de 259 en verde (17,3 min; +2, la e2e de XPR-07).
+  - Proyecto `safari` con Chromium emulando el iPhone: 19 de 19.
+
 ## Cierre de sesión — 27 de octubre de 2026 (358): XUX-02 · PR-1, ver cómo quedaría (en prueba, apagada)
 
 - **Por qué esta:** el hogar pidió seguir con lo que no dependa de él, después de que yo propusiera parar hasta las revisiones del 2/11 y el 4/11. Era la última propuesta «Ahora» sin puerta y se apoya en el registro de XDA-01. Lo que queda del grupo «Ahora» tiene puerta del hogar: XDA-07, XDA-08, XDO-01, XDO-03 y XUX-06.

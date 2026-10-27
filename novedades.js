@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-27-descubierto",
+      fecha: "2026-10-27",
+      texto: "En prueba y apagada: si la liquidez prevista baja del suelo, «El arreglo más barato» dice cuánto falta y cómo cubrirlo al menor coste.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-27-ver-ejemplo",
       fecha: "2026-10-27",
       texto: "En prueba y apagada: «Ver cómo quedaría» enseña el plan B y la política de inversión con un hogar inventado antes de darlos de alta.",

@@ -6551,3 +6551,51 @@ test.describe("XUX-02 · Ver cómo quedaría", () => {
     });
   }
 });
+
+// XPR-07 · PR-1: «El arreglo más barato para un descubierto» (Plan › Previsión). Nace apagada en Funciones en prueba; encendida, solo sale si la
+// trayectoria «según el plan» baja del suelo en 30 días. Se sube el suelo del hogar de demostración para provocar el descubierto.
+test.describe("XPR-07 · El arreglo más barato", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`sin descubierto o apagada no sale; con descubierto, cuánto falta y las opciones por coste, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="descubierto"]').click();
+      await expect(page.locator('[data-fep-interruptor="descubierto"]')).toHaveAttribute("aria-checked", "true");
+      await page.goto("/index.html#prevision");
+      await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
+      const card = page.locator("#descubiertoCard");
+      await expect(card, "encendida pero sin descubierto: no sale").toBeHidden();
+
+      // El suelo, por encima del mínimo de la trayectoria; y una línea de crédito declarada para que entre en la comparación.
+      await page.evaluate(() => {
+        const minimo = Math.min(...cashBandLastResult.days.filter((day) => day.date >= cashBandLastInput.today).map((day) => day.central));
+        state.liquidityFloor = Math.ceil((minimo + 500) / 100) * 100;
+        state.emergencyCreditLimit = 3000;
+        state.emergencyCreditRate = 9;
+        render();
+      });
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator("#descubiertoTitulo")).toContainText(/^Para no bajar del suelo el \d+ de [a-z]+$/);
+      await expect(card.locator(".desc-frase")).toContainText(/baja del suelo .* faltan [\d.,]+\s€/);
+      const opciones = card.locator(".desc-opcion");
+      expect(await opciones.count()).toBeGreaterThanOrEqual(2);
+      await expect(opciones.first()).toContainText("La más barata · 0 €");
+      await expect(opciones.first()).toContainText("por debajo del suelo");
+      await expect(card.locator(".desc-opcion", { hasText: "línea de crédito de emergencia (9 %)" })).toHaveCount(1);
+      await expect(card).toContainText("está marcado como discrecional", { useInnerText: true });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Apagada, desaparece aunque haya descubierto.
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="descubierto"]').click();
+      await page.goto("/index.html#prevision");
+      await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
+      await expect(card).toBeHidden();
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

@@ -42,6 +42,8 @@
     { id: "lo-que-pide", nombre: "Lo que la app te pide", queHace: "En Ajustes › Uso de la app, qué datos pide cada función, cada cuánto, cuántos minutos a la semana y cuáles tienen hambre.", desde: "2026-10-26", metrica: "datos que faltaban y se dan desde aquí; se retira si nadie la abre en dos meses", interruptor: "propio" },
     // XUX-02 · PR-1 (27/10/2026): «Ver cómo quedaría» en las tarjetas vacías que piden un alta (de momento, el plan B y la política de inversión).
     { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", queHace: "En las tarjetas vacías que piden un alta (plan B, política de inversión), «Ver cómo quedaría» con un hogar inventado y lo que hace falta para verlo con lo vuestro.", desde: "2026-10-27", metrica: "altas empezadas después de ver el ejemplo; se retira si no suben", interruptor: "propio" },
+    // XPR-07 · PR-1 (27/10/2026): solo se ve si la trayectoria «según el plan» baja del suelo en los próximos 30 días.
+    { id: "descubierto", nombre: "El arreglo más barato", queHace: "En Plan › Previsión, si la liquidez prevista baja del suelo en los próximos 30 días: cuánto falta y la combinación más barata para no bajar (gasto discrecional, colchón, línea de crédito).", desde: "2026-10-27", metrica: "descubiertos previstos que dejan de estarlo antes de su fecha; se queda dormida si no hay ninguno en seis meses", interruptor: "propio" },
   ];
 
   function isoDate(date) {

@@ -20772,6 +20772,7 @@ function renderPrevisionQuality(items) {
   box.innerHTML = engine.renderHtml(quality);
   if (qs("previsionCalidadResumen")) qs("previsionCalidadResumen").textContent = engine.summaryText(quality);
   globalThis.renderCashBand?.(globalThis.FinanceCanonicalCashBand); // WP-16 (cash-band-ui.js)
+  globalThis.renderDescubierto?.(globalThis.FinanceCanonicalOverdraftFix); // XPR-07 (descubierto-ui.js), solo con su interruptor encendido
   globalThis.renderCapasPrevision?.(globalThis.FinanceCanonicalForecastLayers); // WP-35 (capas-ui.js)
   renderLiquidityBacktest(window.FinanceCanonicalLiquidityBacktest?.evaluate({ store: readLiquidityBacktestStore(), closes: loadMonthCloseBalances(), today: isoLocalDate(new Date()) })); // WP-12 (liquidity-backtest-ui.js)
 }
