@@ -5420,11 +5420,21 @@ test.describe("XDA-02 · Importar en un toque", () => {
       expect(tiempos[0]).toBeGreaterThan(0);
 
       // Con una revisión a medias, «Importar» la enseña y no abre el selector encima.
+      // Volver a Movimientos cambiando el ancla desde la página, como un enlace de la app, y esperar a que la vista esté activa antes de tocar
+      // nada. Con `page.goto` de solo ancla sobre una entrada creada con pushState, WebKit falló dos veces en el CI (#555: la revisión quedó
+      // oculta; #556: la prueba agotó sus 60 s parada en Importar, sin error propio). Retrasar el hashchange en Chromium no lo reproduce: el
+      // sospechoso es el propio goto, no la app.
+      const aMovimientos = async () => {
+        await page.evaluate(() => { location.hash = "#movements"; });
+        await expect.poll(() => page.evaluate(() => activeViewId), { timeout: 15000 }).toBe("movements");
+        await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      };
       await v2.locator("[data-imp-v2-otro]").click();
-      const [segundo] = await Promise.all([page.waitForEvent("filechooser"), page.goto("/index.html#movements").then(() => page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first().click())]);
+      await aMovimientos();
+      const [segundo] = await Promise.all([page.waitForEvent("filechooser"), page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first().click()]);
       await segundo.setFiles({ name: "extracto2.csv", mimeType: "text/csv", buffer: Buffer.from(csv.replace("LUZ", "AGUA")) });
       await expect(v2.locator(".imp-v2-lineas")).toBeVisible({ timeout: 15000 });
-      await page.goto("/index.html#movements");
+      await aMovimientos();
       let abierto = false;
       page.once("filechooser", () => { abierto = true; });
       await page.locator("#movimientosV2 [data-mov-v2-nav='datos-importar']").first().click();
