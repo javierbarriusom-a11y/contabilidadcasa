@@ -30,12 +30,13 @@ function estadoAccionHtml(accion, principal) {
 /**
  * Marcado de un estado. `accion` y `secundaria`: { label, id } (botón) o { label, href } (enlace). `detalle`: la causa técnica, en pequeño.
  * Todo lo que llega como texto se escapa aquí.
- * @param {{kind: string, titulo?: string, texto?: string, detalle?: string, accion?: {label: string, id?: string, href?: string}|null, secundaria?: {label: string, id?: string, href?: string}|null}} options
+ * `ejemplo` (XUX-02): el id de un ejemplo de ejemplos-ui.js; con «Ver con datos de ejemplo» encendida, añade «Ver cómo quedaría».
+ * @param {{kind: string, titulo?: string, texto?: string, detalle?: string, accion?: {label: string, id?: string, href?: string}|null, secundaria?: {label: string, id?: string, href?: string}|null, ejemplo?: string}} options
  */
-function estadoHtml({ kind, titulo = "", texto = "", detalle = "", accion = null, secundaria = null } = { kind: "vacio" }) {
+function estadoHtml({ kind, titulo = "", texto = "", detalle = "", accion = null, secundaria = null, ejemplo = "" } = { kind: "vacio" }) {
   const def = ESTADO_KINDS[kind] || ESTADO_KINDS.vacio;
   const esqueleto = kind === "cargando" ? '<div class="est-esqueleto" aria-hidden="true"><span></span><span></span><span></span></div>' : "";
-  const acciones = estadoAccionHtml(accion, true) + estadoAccionHtml(secundaria, false);
+  const acciones = estadoAccionHtml(accion, true) + estadoAccionHtml(secundaria, false) + (ejemplo ? globalThis.ejemploBotonHtml?.(ejemplo) || "" : "");
   return `<div class="est ${def.clase}" role="${def.role}"${kind === "cargando" ? ' aria-busy="true"' : ""} data-estado="${escapeHtml(kind)}">
       <p class="est-titulo">${escapeHtml(titulo || def.titulo)}</p>
       ${texto ? `<p class="est-texto">${escapeHtml(texto)}</p>` : ""}

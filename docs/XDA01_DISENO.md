@@ -48,6 +48,12 @@ cierre 3 min (los mismos supuestos que la cola de WP-45).
 - **Plegar a una línea** las funciones con hambre en su propia pantalla, con el dato que falta y el enlace exacto.
 - Ordenar por **valor por minuto**, como pide la ficha: hoy no hay una medida de valor por función (el medidor de XGO-02 empieza a darla).
 
+## Registro de altas (XUX-02, 27/10)
+
+Además de lo que se da cada semana, el registro guarda las **altas**: lo que se da una vez para que una tarjeta deje de estar vacía (`ALTAS`,
+`alta(id)`). De momento, el plan B (10 min) y la política de inversión (15 min), supuestos. Las usa «Ver cómo quedaría» (XUX-02) al pie de
+cada ejemplo.
+
 ## Métrica y retirada
 
 Métrica de la ficha: M-COSTE medido, no declarado; funciones con hambre, 0 o pausadas. Se retira si nadie la abre en dos meses (queda el

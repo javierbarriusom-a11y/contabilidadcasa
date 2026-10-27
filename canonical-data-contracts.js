@@ -42,6 +42,27 @@
     { id: "hipoteca", label: "Revisión de la hipoteca", href: "#deuda-contratos", aplica: "indices", needs: [{ source: "indices", everyDays: 30 }] },
   ]);
 
+  // XUX-02: las ALTAS, lo que se da una vez (no cada semana) para que una tarjeta deje de estar vacía. Las enseña «Ver cómo quedaría» al
+  // cerrar el ejemplo: qué hace falta y cuánto se tarda, supuesto (aún no se mide). En segundos, por lo mismo que las fuentes.
+  const ALTAS = Object.freeze({
+    "plan-b": {
+      label: "Plan B del hogar",
+      datos: ["Cuándo salta: un importe o el colchón, y cuántos meses seguidos", "Qué haríais, en orden: pausar el ahorro, recortar el gasto variable, tirar de una línea de crédito…", "La firma de las dos personas"],
+      assumedSeconds: 600,
+    },
+    politica: {
+      label: "Política de inversión",
+      datos: ["Para qué invertís y a cuántos años", "El reparto objetivo por tipo de activo y cuánto se puede desviar", "Cuánto aportáis y cada cuánto", "Qué no haréis (cripto, apalancamiento…)", "Qué haréis si la cartera cae un 20 % o un 35 %", "Cada cuánto la revisáis, y la firma"],
+      assumedSeconds: 900,
+    },
+  });
+
+  /** Lo que pide el alta de una tarjeta, o null si no está registrada. */
+  function alta(id) {
+    const entry = ALTAS[id];
+    return entry ? { id, label: entry.label, datos: [...entry.datos], minutes: Math.round(entry.assumedSeconds / 60), measured: false } : null;
+  }
+
   const round1 = (value) => Math.round((Number(value) + Number.EPSILON) * 10) / 10;
   const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
@@ -110,5 +131,5 @@
     return base + (result.overBudget ? " Se pasa del presupuesto." : "") + hambre;
   }
 
-  return Object.freeze({ SCHEMA_ID, BUDGET_MINUTES, SOURCES, FUNCTIONS, evaluate, everyText, minutesText, sentence });
+  return Object.freeze({ SCHEMA_ID, BUDGET_MINUTES, SOURCES, FUNCTIONS, ALTAS, alta, evaluate, everyText, minutesText, sentence });
 });

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-27-ver-ejemplo",
+      fecha: "2026-10-27",
+      texto: "En prueba y apagada: «Ver cómo quedaría» enseña el plan B y la política de inversión con un hogar inventado antes de darlos de alta.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-26-lo-que-pide",
       fecha: "2026-10-26",
       texto: "En prueba y apagada: «Lo que la app te pide» suma los minutos que cuesta mantener cada función. Se enciende en Funciones en prueba.",

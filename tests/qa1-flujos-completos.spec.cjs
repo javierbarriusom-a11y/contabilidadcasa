@@ -6488,3 +6488,66 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
     });
   }
 });
+
+// XUX-02 · PR-1: «Ver cómo quedaría» en las tarjetas vacías que piden un alta (plan B y política de inversión). Nace apagada en Funciones en
+// prueba; encendida, la hoja enseña la tarjeta con un hogar inventado, la banda EJEMPLO y lo que hace falta. Ninguna cifra del hogar se cuela.
+test.describe("XUX-02 · Ver cómo quedaría", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no sale; encendida, plan B y política de ejemplo sin cifras del hogar, y «Empezar» abre el alta, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      const abrirPlanB = async () => {
+        await page.goto("/index.html#plan");
+        await page.locator('[data-plan-tab="prevision"]').click();
+        await expect(page.locator("#planBCuerpo [data-estado='vacio']")).toBeVisible({ timeout: 15000 });
+      };
+      await abrirPlanB();
+      await expect(page.locator("[data-ejemplo-abrir]"), "apagada, el estado vacío de siempre").toHaveCount(0);
+
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="ver-ejemplo"]').click();
+      await expect(page.locator('[data-fep-interruptor="ver-ejemplo"]')).toHaveAttribute("aria-checked", "true");
+
+      await abrirPlanB();
+      // Lo que la app sabe del hogar de demostración: ninguna de estas cifras puede salir en el ejemplo.
+      const reales = await page.evaluate(() => [accountBalancesFromState().total, lpAverageMonthlyOutflow()].filter((n) => Number.isFinite(n) && n > 0).map((n) => Math.round(n).toLocaleString("es-ES")));
+      expect(reales.length, "hay cifras reales con las que comparar").toBeGreaterThan(0);
+      await page.mouse.move(1, 1);
+      const boton = page.locator('[data-ejemplo-abrir="plan-b"]');
+      await boton.focus();
+      await page.keyboard.press("Enter");
+      const hoja = page.locator("#ejemploDialog");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("#ejemploTitulo")).toHaveText("Cómo quedaría: Plan B del hogar");
+      await expect(hoja.locator(".ej-banda")).toContainText("EJEMPLO · cifras y nombres inventados");
+      await expect(hoja).toContainText("Firmado el 27/10/2026 por Persona A y Persona B.");
+      await expect(hoja).toContainText("Para verlo con lo vuestro hace falta:");
+      await expect(hoja.locator(".ej-cuerpo button, .ej-cuerpo a, .ej-cuerpo input")).toHaveCount(0);
+      await hoja.locator("details").evaluateAll((list) => list.forEach((d) => { d.open = true; }));
+      const texto = await hoja.innerText();
+      for (const cifra of reales) expect(texto.includes(cifra), `la cifra del hogar ${cifra} no sale en el ejemplo`).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // «Empezar con lo vuestro» cierra el ejemplo y abre el asistente de verdad.
+      await hoja.locator("[data-ejemplo-empezar]").click();
+      await expect(hoja).toBeHidden();
+      await expect(page.locator("#planBCuerpo .pb-pasos-nav")).toBeVisible();
+
+      await page.goto("/index.html#inversion-rebalanceo");
+      const pol = page.locator('[data-ejemplo-abrir="politica"]');
+      await expect(pol).toBeVisible({ timeout: 15000 });
+      await pol.focus();
+      await page.keyboard.press("Enter");
+      await expect(hoja.locator("#ejemploTitulo")).toHaveText("Cómo quedaría: Política de inversión");
+      await expect(hoja).toContainText("2 cosas se salen de la política");
+      await expect(hoja.locator(".ej-alta li")).toHaveCount(6);
+      await page.keyboard.press("Escape");
+      await expect(hoja).toBeHidden();
+      const medido = await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "ver-ejemplo", "2026-10"));
+      expect([medido.vistas, medido.acciones]).toEqual([1, 1]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

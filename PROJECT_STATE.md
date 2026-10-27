@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (358): XUX-02 · PR-1, ver cómo quedaría (en prueba, apagada)
+
+- **Por qué esta:** el hogar pidió seguir con lo que no dependa de él, después de que yo propusiera parar hasta las revisiones del 2/11 y el 4/11. Era la última propuesta «Ahora» sin puerta y se apoya en el registro de XDA-01. Lo que queda del grupo «Ahora» tiene puerta del hogar: XDA-07, XDA-08, XDO-01, XDO-03 y XUX-06.
+- **Qué hace:** una tarjeta vacía que pide un alta ofrece «Ver cómo quedaría», además de su acción de siempre. En esta entrega, el **plan B** (Plan › Previsión) y la **política de inversión** (Inversión › Rebalanceo).
+  - La hoja pinta la tarjeta **con su propio código** y un hogar **inventado** de principio a fin. Lleva una banda «EJEMPLO» fija arriba y, al pie, qué hace falta para verlo con lo vuestro y cuánto se tarda.
+  - «Empezar con lo vuestro» cierra el ejemplo y abre el alta de verdad.
+- **Nunca se mezcla con cifras reales:**
+  - Las dos vistas leían datos del hogar por dentro: liquidez y salidas medias en «¿Cuánto aguanta el colchón?» del plan B; cartera y operaciones registradas en la política.
+  - Ahora aceptan esos datos desde fuera, con los del hogar por defecto: `planBLeverHtml(ctx)` y `politicaViewHtml(policy, { portfolio, today, reasonsHtml })`. El ejemplo los pasa todos.
+  - La e2e lo comprueba buscando en la hoja la liquidez y las salidas del hogar de demostración.
+- **Nada que pulsar dentro del ejemplo:** las escuchas de las tarjetas viven en el documento, y un botón del ejemplo editaría o borraría el plan de verdad. Por eso se quitan botones, enlaces y campos, y los clics no salen de la hoja.
+- **Registro de altas:** `ALTAS` y `alta(id)` en `canonical-data-contracts.js` (XDA-01) dicen qué datos pide cada alta y cuántos minutos lleva, supuestos y dichos: plan B 10 min, política 15 min.
+- **Enganche genérico:** `estadoHtml` (WP-37) acepta `ejemplo: "<id>"`. Una tarjeta nueva entra con su ejemplo en `ejemplos-ui.js` y su alta en el registro.
+- **Nace apagada** en Funciones en prueba (interruptor propio «Ver con datos de ejemplo»). El medidor cuenta la vista y, como acción, «Empezar»: la métrica de la ficha son las altas empezadas tras ver el ejemplo. Se retira si no suben. Una línea en Novedades.
+- **Lo que no hace:** ejemplos para el resto de tarjetas vacías. Las de la CIRBE, el patrimonio, el puente o las nóminas dependen de datos que llegan solos (cierres, nóminas importadas), no de un alta. Si el medidor dice que se usa, se añaden.
+- **Pruebas:** `tests/xux02-ver-ejemplo.test.cjs` (5) y la e2e «XUX-02 · Ver cómo quedaría» a 390 y 1280 px. La de 390 px también corre en Safari.
+- **Validación:** `npm run verify` en verde: 6212 de 6212 pruebas unitarias (+5), lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright (e2e + a11y + perf-screens): 256 de 257 (17,1 min; +2, la e2e de XUX-02). El que falló es la prueba de contraste de «Tus datos fiscales» en oscuro: no vio el aviso de error tras «Guardar» en 5 s. XUX-02 no toca ese formulario, que no usa el estado vacío común, y la pasada coincidió con pruebas unitarias y lint en paralelo. Sola, 6 de 6. Proyecto `safari` con Chromium emulando el iPhone: 18 de 18.
+
 ## Cierre de sesión — 26 de octubre de 2026 (357): XDA-01 · PR-1, lo que la app te pide (en prueba, apagada)
 
 - **Por qué esta:** después de XPR-06, era la otra propuesta «Ahora» sin puerta. Va al cuello de botella que señaló la revisión de la Ola 1: la app no recibe datos, y nadie sumaba lo que cuesta dárselos. XUX-02 (ver cada pantalla con datos de ejemplo) necesita este registro.

@@ -110,10 +110,9 @@ function politicaReasonsHtml() {
     <details class="pol-constancia-lista"><summary>Ver las últimas ${summary.latest.length}</summary><ul class="pol-lista">${items}</ul></details>`;
 }
 
-function politicaViewHtml(policy) {
+// XUX-02: el ejemplo pasa su cartera inventada y su fecha, sin operaciones registradas; sin ellas, las del hogar.
+function politicaViewHtml(policy, { portfolio = politicaPortfolio(), today = politicaToday(), reasonsHtml = null } = {}) {
   const engine = politicaEngine();
-  const today = politicaToday();
-  const portfolio = politicaPortfolio();
   const signature = engine.signatureState(policy);
   const missing = engine.problems(policy);
   const review = engine.reviewStatus(policy, { today });
@@ -132,7 +131,7 @@ function politicaViewHtml(policy) {
       <button type="button" class="e19-btn e19-btn-secondary" data-politica-imprimir>Imprimir una página</button>
       <button type="button" class="e19-btn e19-btn-secondary" data-politica-borrar>Borrar la política</button>
     </div>
-    ${politicaReasonsHtml()}
+    ${reasonsHtml ?? politicaReasonsHtml()}
     ${politicaChecker(portfolio)}`;
 }
 
@@ -199,7 +198,7 @@ function politicaBodyHtml() {
   if (engine.signatureState(policy) === "none") {
     const prefill = politicaPrefill();
     const known = [prefill.hasTargets ? "tu reparto objetivo" : "", prefill.goals.length ? "tus objetivos" : ""].filter(Boolean);
-    return estadoHtml({ kind: "vacio", titulo: "Todavía no habéis escrito vuestra política de inversión", texto: `Son seis preguntas en lenguaje llano${known.length ? `, ya rellenas con ${known.join(" y ")}` : ""}. Se firma con fecha y sirve para no decidir en el peor momento.`, accion: { label: "Escribir la política", id: "politica-empezar" } });
+    return estadoHtml({ kind: "vacio", titulo: "Todavía no habéis escrito vuestra política de inversión", texto: `Son seis preguntas en lenguaje llano${known.length ? `, ya rellenas con ${known.join(" y ")}` : ""}. Se firma con fecha y sirve para no decidir en el peor momento.`, accion: { label: "Escribir la política", id: "politica-empezar" }, ejemplo: "politica" });
   }
   return politicaViewHtml(policy);
 }
