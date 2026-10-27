@@ -109,6 +109,23 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (362): el panel de seguimiento ve el §5.0 y lo que la curva no veía
+
+- **Por qué:** en la revisión de estado de esta sesión (modo Inicio), el panel solo contaba los 53 paquetes WP de la línea base del 3/10. Las 24 filas del §5.0 (rediseño y séptima auditoría, 32 PR desde el 18/10) no aparecían en ninguna parte, y el avance construido llevaba quieto desde el 21/10. Para decidir con él, el panel se quedaba corto en lo construido y no decía nada de lo que frena: funciones apagadas y tareas del hogar vencidas. El hogar aprobó el plan («ok al plan, empieza por el punto 1»).
+- **Cambio, sin tocar la app:**
+  - `docs/plan/plan-definitivo.json` gana `plataforma`: las 24 filas del §5.0 con su número, qué, origen, decisión del hogar y, si están en Funciones en prueba, si son pantalla del diseño nuevo (con fecha de revisión) o interruptor propio.
+  - El panel (`docs/plan/panel-seguimiento.html`) las enseña en una pestaña nueva, «Rediseño y plataforma», con estado, PR, fin, estado en prueba (apagada, encendida, graduada, retirada), nota e historial, editables como los paquetes. Su estado vive en la base del panel (colección `plataforma`).
+  - **Fuera de la línea base:** no suman a la curva ni al avance construido. Meterlas movería la línea base, y eso lo decide el hogar.
+  - **Segunda fila de indicadores:** entregas del §5.0 hechas y PR fusionados, funciones en prueba apagadas (su revisión no empieza hasta encenderlas) y tareas del hogar vencidas (también en la pestaña «Tareas del hogar»).
+  - El bloque «En marcha» deja de contar contra el límite de 3, que el hogar levantó el 26/10.
+- **Estado inicial del §5.0**, tomado del backlog y de `git log`: 15 de 24 hechas, 8 esperando al hogar (XDA-02, XDA-04, XDA-03 y XDA-05 por su segundo PR; XDA-01, XUX-02, XPR-07 y XDA-10 por encenderlas) y 1 propuesta (RD-COB2). 5 funciones apagadas: XPR-06, XDA-01, XUX-02, XPR-07 y XDA-10.
+- **Revisión de estado, con números del panel:** construido 64 % (87 de 136,75 sesiones) frente al 17 % de la línea base a hoy; comprobado 0 %; ninguna lectura de métricas. H-04 (revisión de salida de la Ola 1) marcada como hecha el 23/10, con las decisiones de ese día como prueba. H-03 (datos fiscales) vencida desde el 20/10: es la que más euros mueve antes del 31/12 (WP-23, lista el 14/11).
+- **Recomendación de Claude, anotada en el backlog §1:** ninguna función nueva hasta el cierre de octubre (H-22 el 31/10, H-06 del 1 al 3/11) y las revisiones de Funciones en prueba del 2/11, el 4/11 y el 7/11.
+- **Backlog:** §0 con esta entrada; §1.3 ya no dice que siga la regla de parada ni el límite de 3; §12 explica la pista fuera de la línea base y el id de documento de las filas del §5.0 (`RD-A1…A3` → `RD-A1-A3`).
+- **Pruebas:** `tests/plan-seguimiento-sincronizado.test.cjs` gana una: el §5.0 del backlog y `plataforma` tienen las mismas filas con el mismo número. El panel se comprobó en Chromium con una base simulada a partir del estado real: 1280 px en claro y 390 px en oscuro, sin errores y sin desplazamiento horizontal.
+- **Validación:** `npm run verify` en verde, 6223/6223. La primera pasada falló en 8 pruebas de build y de Playwright porque el contenedor no tenía instaladas las dependencias (`esbuild`); tras `npm ci`, todo en verde.
+- La revisión mensual de Nielsen no vence hasta el 14/11.
+
 ## Cierre de sesión — 27 de octubre de 2026 (361): lo que vio Playwright al fallar, en el registro del CI, y el primer fallo que deja ver
 
 - **Por qué:** hoy han fallado en el CI dos pruebas ajenas al PR en curso: WP-40 (la CIRBE, «element is not stable» durante 120 s) en #553 y XDA-02 (Importar en un toque, en WebKit) en #555. Las dos pasaron al relanzar el job y en local no se reproducen (WP-40: 8 de 8 con 4 en paralelo). Sin ver qué había en pantalla, la causa no se puede saber. Y el artefacto con trazas y capturas (P5) no siempre se puede descargar: desde la sesión de desarrollo, el proxy bloquea el almacenamiento donde GitHub lo guarda.
