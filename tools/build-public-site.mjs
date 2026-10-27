@@ -204,6 +204,7 @@ const files = [
   "calma-ui.js",
   "canonical-data-queue.js",
   "datos-ui.js",
+  "importar-extracto-ui.js",
   "canonical-net-worth.js",
   "patrimonio-ui.js",
   "estados-ui.js",

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const cov = require("../canonical-ledger-coverage.js");
 const expected = require("../canonical-expected-movements.js");
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 
 // XDA-04 · PR-1: cobertura del libro por cuenta (canonical-ledger-coverage.js), su registro al importar (cobertura-ui.js),
 // las preguntas de «¿ha llegado…?» (WP-27) y el aviso del cierre.
@@ -71,7 +72,7 @@ test("WP-27: un cargo solo se da por no llegado si se ha visto entero su periodo
 });
 
 test("cableado: se guarda dentro del lote, viaja en la copia, se pregunta en la revisión y avisa en el cierre", () => {
-  const app = read("app.js");
+  const app = codigoApp(); // el asistente de importar vive en importar-extracto-ui.js desde XGO-01 · PR-3
   const apply = app.slice(app.indexOf("const balance = applyDatosImportarBalanceOffer(session);"), app.indexOf("const afterState = appStatePayload({ includeCanonical: false });", app.indexOf("const balance = applyDatosImportarBalanceOffer(session);")));
   assert.match(apply, /globalThis\.FinanceCobertura\?\.registrar\(session, incoming\);/, "antes de la foto del lote: «Deshacer» lo devuelve");
   assert.match(app, /^ {2}"ledger-coverage", \/\/ XDA-04/m);

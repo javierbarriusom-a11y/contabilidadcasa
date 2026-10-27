@@ -109,9 +109,9 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
-## Cierre de sesión — 27 de octubre de 2026 (362): el panel de seguimiento ve el §5.0 y lo que la curva no veía
+## Cierre de sesión — 27 de octubre de 2026 (363): el panel de seguimiento ve el §5.0 y lo que la curva no veía
 
-- **Por qué:** en la revisión de estado de esta sesión (modo Inicio), el panel solo contaba los 53 paquetes WP de la línea base del 3/10. Las 24 filas del §5.0 (rediseño y séptima auditoría, 32 PR desde el 18/10) no aparecían en ninguna parte, y el avance construido llevaba quieto desde el 21/10. Para decidir con él, el panel se quedaba corto en lo construido y no decía nada de lo que frena: funciones apagadas y tareas del hogar vencidas. El hogar aprobó el plan («ok al plan, empieza por el punto 1»).
+- **Por qué:** en la revisión de estado de esta sesión (modo Inicio), el panel solo contaba los 53 paquetes WP de la línea base del 3/10. Las 24 filas del §5.0 (rediseño y séptima auditoría, 33 PR desde el 18/10) no aparecían en ninguna parte, y el avance construido llevaba quieto desde el 21/10. Para decidir con él, el panel se quedaba corto en lo construido y no decía nada de lo que frena: funciones apagadas y tareas del hogar vencidas. El hogar aprobó el plan («ok al plan, empieza por el punto 1»).
 - **Cambio, sin tocar la app:**
   - `docs/plan/plan-definitivo.json` gana `plataforma`: las 24 filas del §5.0 con su número, qué, origen, decisión del hogar y, si están en Funciones en prueba, si son pantalla del diseño nuevo (con fecha de revisión) o interruptor propio.
   - El panel (`docs/plan/panel-seguimiento.html`) las enseña en una pestaña nueva, «Rediseño y plataforma», con estado, PR, fin, estado en prueba (apagada, encendida, graduada, retirada), nota e historial, editables como los paquetes. Su estado vive en la base del panel (colección `plataforma`).
@@ -123,8 +123,20 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 - **Recomendación de Claude, anotada en el backlog §1:** ninguna función nueva hasta el cierre de octubre (H-22 el 31/10, H-06 del 1 al 3/11) y las revisiones de Funciones en prueba del 2/11, el 4/11 y el 7/11.
 - **Backlog:** §0 con esta entrada; §1.3 ya no dice que siga la regla de parada ni el límite de 3; §12 explica la pista fuera de la línea base y el id de documento de las filas del §5.0 (`RD-A1…A3` → `RD-A1-A3`).
 - **Pruebas:** `tests/plan-seguimiento-sincronizado.test.cjs` gana una: el §5.0 del backlog y `plataforma` tienen las mismas filas con el mismo número. El panel se comprobó en Chromium con una base simulada a partir del estado real: 1280 px en claro y 390 px en oscuro, sin errores y sin desplazamiento horizontal.
-- **Validación:** `npm run verify` en verde, 6223/6223. La primera pasada falló en 8 pruebas de build y de Playwright porque el contenedor no tenía instaladas las dependencias (`esbuild`); tras `npm ci`, todo en verde.
+- **Validación:** `npm run verify` en verde, 6223/6223. La primera pasada falló en 8 pruebas de build y de Playwright porque el contenedor no tenía instaladas las dependencias (`esbuild`); tras `npm ci`, todo en verde. Tras integrar `main` (#557, XGO-01 · PR-3, de otra sesión, que también numeró su entrada como 362: esta pasa a 363), otra vez en verde: 6224/6224.
 - La revisión mensual de Nielsen no vence hasta el 14/11.
+
+## Cierre de sesión — 27 de octubre de 2026 (362): XGO-01 · PR-3, el asistente «Importar extracto» sale de `app.js`
+
+- **Por qué ahora:** `app.js` estaba en 33.154 líneas con el techo en 33.259 (ARQ-4). Quedaban 105 líneas de margen, y cada entrega de hoy gastó una o dos. La siguiente función que necesitara tocar `app.js` habría chocado con el techo, como pasó antes del desalojo del 20/10. El hogar volvió a pedir lo siguiente que no dependa de él, y esto no depende de nadie ni cambia nada que se vea.
+- **Qué se mueve, tal cual y sin cambiar una coma:** el asistente de importar extracto en cuatro pasos (V4-4, R-8), con 845 líneas contiguas: 46 funciones, sus 6 constantes y las dos variables de la sesión (`datosImportarSession`, `datosImportarLastResult`). Va al nuevo `importar-extracto-ui.js`, que se carga con `defer` antes que `app.js` y comparte su ámbito global, como `partidas-ui.js`. Solo declara cosas: nada se ejecuta al cargarse. Lo usan Registrar › Importar extracto, la vista v2, el buzón y el texto de un PDF, y ninguno cambia.
+- **El riesgo propio de este PR, y su freno:** el bloque declara `let` y `const` de nivel superior. Un `app.js` viejo en la caché HTTP (10 minutos en GitHub Pages) junto al script nuevo declararía dos veces lo mismo, y el navegador rechazaría `app.js` entero: la app no arrancaría. El service worker no corre ese riesgo, porque precarga todo el shell junto y con `cache: "reload"`. Para el resto, `app.js` cambia de `?v=` (estaba fijo desde el 2/10): 26 pruebas anclaban la versión vieja y se actualizan a la nueva sin ningún otro cambio.
+- **Techo:** `app.js` 33.154 → 32.296 líneas; el techo baja por el trinquete del hogar (P7: lo que quede + ~130), de 33.259 a **32.426**.
+- **Pruebas:**
+  - `tests/xgo01-sin-funciones-duplicadas.test.cjs` gana una: las funciones y variables están en el fichero nuevo y no en `app.js` (ni declaradas dos veces), el fichero solo declara, se carga antes que `app.js` y `app.js` lleva la versión nueva.
+  - `tests/helpers/codigo-app.cjs` suma el fichero a `FICHEROS_APP`.
+  - `tests/xda04-cobertura.test.cjs` leía `app.js` sin el ayudante y pasa a usarlo, sin cambiar ninguna comprobación.
+- **Validación:** `npm run verify` en verde, 6223/6223 sobre `main` con #556 ya fusionado. Playwright (e2e + a11y + perf-screens): 261/261 en verde (17,6 min) antes de #556; tras juntarlo, las 15 e2e de importar (XDA-02, Importar v2, XDA-03, XDA-04, ensayo del cierre) en verde. Proyecto `safari` con Chromium emulando el iPhone: 20/20.
 
 ## Cierre de sesión — 27 de octubre de 2026 (361): lo que vio Playwright al fallar, en el registro del CI, y el primer fallo que deja ver
 
