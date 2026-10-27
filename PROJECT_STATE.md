@@ -109,6 +109,28 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (364): WP-23, el tramo autonómico de vivienda contrastado
+
+- **Por qué:** era el punto 2 del plan aprobado («ok al plan»). El parámetro de vivienda de la campaña fiscal era el único de los cinco sin contrastar: faltaba el tramo autonómico de la comunidad del hogar. El hogar la dio por el chat; como el 23/10, **no se escribe en el repositorio**, que es público.
+- **Contraste (27/10/2026)**, con el mismo método y el mismo límite que el 23/10: a través del buscador, porque el entorno no abre la sede de la AEAT ni el BOE.
+  - **La regla**, en el manual de ayuda de Renta 2025 (anexo de la deducción por inversión en vivienda habitual): tramo estatal del 7,5 % y, en el autonómico, el porcentaje aprobado por la comunidad (art. 46 de la Ley 22/2009) o, si no aprobó ninguno, el 7,5 % (art. 78 LIRPF en su redacción a 31/12/2012).
+  - **La comunidad del hogar no tiene porcentaje propio** para el régimen transitorio entre sus deducciones autonómicas del Manual práctico de Renta 2025 (parte 2). Una guía secundaria da el mismo 7,5 % + 7,5 %.
+  - **Resultado:** 15 %, el valor que ya usaba el motor. **Ninguna cifra cambia.**
+  - **Lo que no se pudo hacer:** leer entero el texto refundido autonómico.
+- **Cambio:**
+  - `canonical-year-end-tax.js`: vivienda pasa a `verified: true`, contrastado el 27/10, con la regla como fuente y sin `pending`. Los cinco parámetros de la campaña quedan contrastados.
+  - La pantalla deja de decir «Pendiente de contrastar» en vivienda.
+  - `docs/WP23_DISENO.md` §10 al día.
+  - Una línea en Novedades.
+- **Pruebas:** `tests/fis1-campana-fiscal.test.cjs` ahora exige:
+  - los cinco parámetros contrastados, con su fecha;
+  - que la fuente de vivienda explique el 15 % (7,5 % + Ley 22/2009);
+  - **que no nombre ninguna comunidad autónoma**;
+  - que la tarjeta de ejemplo no diga «Pendiente de contrastar» y sí «Contrastado el 27 de octubre de 2026».
+- **Validación:** `npm run verify` en verde, 6224/6224 (las pruebas fiscales cambian sus aserciones, no su número), más lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke.
+- **WP-23 sigue en curso:** falta H-03, los datos fiscales del hogar en la app, vencida desde el 20/10. Sin ellos la campaña solo enseña el ejemplo. Lista con euros antes del 15/11 (fecha del hito, 14/11).
+- **Hallazgo para la Renta, confirmado en la fuente:** la deducción autonómica del 25 % sobre el exceso de intereses de la hipoteca variable respecto al Euribor de diciembre de 2022 existe en la comunidad del hogar (ficha de la AEAT, manual 2025, parte 2). Sigue fuera de esta campaña porque se pide en la Renta. Es candidata a WP-21, a decidir por el hogar.
+
 ## Cierre de sesión — 27 de octubre de 2026 (363): el panel de seguimiento ve el §5.0 y lo que la curva no veía
 
 - **Por qué:** en la revisión de estado de esta sesión (modo Inicio), el panel solo contaba los 53 paquetes WP de la línea base del 3/10. Las 24 filas del §5.0 (rediseño y séptima auditoría, 33 PR desde el 18/10) no aparecían en ninguna parte, y el avance construido llevaba quieto desde el 21/10. Para decidir con él, el panel se quedaba corto en lo construido y no decía nada de lo que frena: funciones apagadas y tareas del hogar vencidas. El hogar aprobó el plan («ok al plan, empieza por el punto 1»).
