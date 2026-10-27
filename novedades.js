@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-27-fiscal-vivienda",
+      fecha: "2026-10-27",
+      texto: "Campaña fiscal: la deducción por vivienda ya está comprobada con la fuente oficial, tramo autonómico incluido. El cálculo no cambia.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-10-27-antes-de-decidir",
       fecha: "2026-10-27",
       texto: "En prueba y apagada: en los simuladores que miran el colchón, «Antes de decidir» avisa si unos saldos antiguos podrían cambiar el veredicto.",

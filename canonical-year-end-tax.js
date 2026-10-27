@@ -50,10 +50,9 @@
         ratePct: 15,
         annualCap: 9040,
         reference: "Deducción por vivienda habitual del régimen transitorio (compra anterior a 2013 con deducción aplicada): 15 % sobre un máximo de 9.040 € de cantidades pagadas al año por declarante, repartido entre el tramo estatal y el autonómico.",
-        source: "Disposición transitoria decimoctava de la Ley del IRPF; Agencia Tributaria, Manual práctico de Renta 2025, capítulo 16.",
-        pending: "Falta confirmar en la fuente oficial el porcentaje del tramo autonómico de vuestra comunidad (en Cataluña, por ejemplo, el manual de la Agencia Tributaria da un 7,5 % general y un 9 % en algunos casos). Hasta entonces el cálculo usa el 15 % total.",
-        checked: "2026-10-23",
-        verified: false,
+        source: "Disposición transitoria decimoctava de la Ley del IRPF; Agencia Tributaria, Manual práctico de Renta 2025, capítulo 16, y Manual de ayuda de Renta 2025, anexo de la deducción por inversión en vivienda habitual: 7,5 % en el tramo estatal y, en el autonómico, el porcentaje que haya aprobado la comunidad (artículo 46 de la Ley 22/2009) o, si no aprobó ninguno, el 7,5 % (artículo 78 de la Ley del IRPF en su redacción a 31 de diciembre de 2012). Vuestra comunidad no tiene porcentaje propio entre sus deducciones autonómicas del Manual práctico de Renta 2025, parte 2: le corresponde el 7,5 %, y el total es el 15 %.",
+        checked: "2026-10-27",
+        verified: true,
       },
       donations: {
         firstTierAmount: 250,

@@ -185,17 +185,19 @@ test("cada acción trae su fecha límite del 31/12 (salvo la retención) y su fu
   const result = campaign([holder()]);
   ["vivienda", "pensiones", "compensacion", "donativos"].forEach((id) => assert.equal(action(result, id).deadline, "2026-12-31"));
   assert.ok(result.actions.every((item) => item.reference.length > 20));
-  // Contraste del 23/10/2026: cuatro parámetros con su fuente; vivienda sigue pendiente del tramo autonómico y dice qué le falta.
-  ["pensiones", "compensacion", "donativos", "retencion"].forEach((id) => {
+  // Contraste del 23/10/2026 (cuatro parámetros) y del 27/10/2026 (vivienda: tramo autonómico de la comunidad del hogar).
+  const checkedOn = { pensiones: "2026-10-23", compensacion: "2026-10-23", donativos: "2026-10-23", retencion: "2026-10-23", vivienda: "2026-10-27" };
+  Object.entries(checkedOn).forEach(([id, checked]) => {
     const item = action(result, id);
     assert.equal(item.verified, true, `${id}: contrastado`);
     assert.match(item.source, /Agencia Tributaria|Reglamento del IRPF|Ley 49\/2002/, `${id}: lleva su fuente`);
-    assert.equal(item.checked, "2026-10-23");
+    assert.equal(item.checked, checked);
     assert.equal(item.pending, "");
   });
+  // Vivienda: la fuente dice de dónde sale el 15 % (7,5 % estatal + 7,5 % autonómico supletorio) sin nombrar la comunidad (repositorio público).
   const vivienda = action(result, "vivienda");
-  assert.equal(vivienda.verified, false, "el tramo autonómico de vivienda no se ha podido confirmar en la fuente oficial");
-  assert.match(vivienda.pending, /tramo autonómico/);
+  assert.match(vivienda.source, /7,5 %.*Ley 22\/2009.*15 %/s);
+  assert.doesNotMatch(vivienda.source, /Madrid|Cataluña|Andalucía|Valencia|Galicia|Castilla|Arag|Asturias|Murcia|Canarias|Balear|Extremadura|Cantabria|Rioja|Navarra|Vasco/);
   // Una tabla «verificada» tiene que decir de dónde sale: nunca verified sin source.
   Object.entries(tax.parametersFor(2026)).filter(([, row]) => row && typeof row === "object").forEach(([key, row]) => {
     if (row.verified) assert.ok(row.source && row.checked, `${key}: verificado sin fuente o sin fecha`);
@@ -282,7 +284,9 @@ test("tarjeta con el ejemplo: muestra la tarjeta, la marca y el aviso, y todas l
   assert.match(body.innerHTML, /de ahorro estimado en la Renta de 2027 si se hacen las 4 acciones con ahorro/);
   assert.equal((body.innerHTML.match(/<li class="fc-accion /g) || []).length, 5);
   assert.match(body.innerHTML, /Antes del 31 de diciembre/);
-  assert.match(body.innerHTML, /Pendiente de contrastar con la fuente oficial/);
+  // Desde el 27/10/2026 los cinco parámetros están contrastados: ninguno sale como pendiente.
+  assert.doesNotMatch(body.innerHTML, /Pendiente de contrastar con la fuente oficial/);
+  assert.match(body.innerHTML, /Contrastado el 27 de octubre de 2026 con: Disposición transitoria decimoctava/);
   assert.match(body.innerHTML, /La app nunca ejecuta nada por sí sola/);
 });
 
