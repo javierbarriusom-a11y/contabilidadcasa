@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-27-antes-de-decidir",
+      fecha: "2026-10-27",
+      texto: "En prueba y apagada: en los simuladores que miran el colchón, «Antes de decidir» avisa si unos saldos antiguos podrían cambiar el veredicto.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-10-27-descubierto",
       fecha: "2026-10-27",
       texto: "En prueba y apagada: si la liquidez prevista baja del suelo, «El arreglo más barato» dice cuánto falta y cómo cubrirlo al menor coste.",

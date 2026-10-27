@@ -44,6 +44,8 @@
     { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", queHace: "En las tarjetas vacías que piden un alta (plan B, política de inversión), «Ver cómo quedaría» con un hogar inventado y lo que hace falta para verlo con lo vuestro.", desde: "2026-10-27", metrica: "altas empezadas después de ver el ejemplo; se retira si no suben", interruptor: "propio" },
     // XPR-07 · PR-1 (27/10/2026): solo se ve si la trayectoria «según el plan» baja del suelo en los próximos 30 días.
     { id: "descubierto", nombre: "El arreglo más barato", queHace: "En Plan › Previsión, si la liquidez prevista baja del suelo en los próximos 30 días: cuánto falta y la combinación más barata para no bajar (gasto discrecional, colchón, línea de crédito).", desde: "2026-10-27", metrica: "descubiertos previstos que dejan de estarlo antes de su fecha; se queda dormida si no hay ninguno en seis meses", interruptor: "propio" },
+    // XDA-10 · PR-1 (27/10/2026): bajo el veredicto del guardarraíl de colchón (amortizar una deuda, garantía del Lombard).
+    { id: "antes-de-decidir", nombre: "Antes de decidir", queHace: "En los simuladores que miran el colchón (amortizar una deuda, garantía del Lombard), si los saldos son antiguos, dice si lo que han podido moverse cambiaría el veredicto.", desde: "2026-10-27", metrica: "decisiones tomadas con datos frescos; si nunca salta porque los datos siempre están al día, queda como etiqueta", interruptor: "propio" },
   ];
 
   function isoDate(date) {
