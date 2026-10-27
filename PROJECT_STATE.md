@@ -109,6 +109,18 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 27 de octubre de 2026 (362): XGO-01 · PR-3, el asistente «Importar extracto» sale de `app.js`
+
+- **Por qué ahora:** `app.js` estaba en 33.154 líneas con el techo en 33.259 (ARQ-4). Quedaban 105 líneas de margen, y cada entrega de hoy gastó una o dos. La siguiente función que necesitara tocar `app.js` habría chocado con el techo, como pasó antes del desalojo del 20/10. El hogar volvió a pedir lo siguiente que no dependa de él, y esto no depende de nadie ni cambia nada que se vea.
+- **Qué se mueve, tal cual y sin cambiar una coma:** el asistente de importar extracto en cuatro pasos (V4-4, R-8), con 845 líneas contiguas: 46 funciones, sus 6 constantes y las dos variables de la sesión (`datosImportarSession`, `datosImportarLastResult`). Va al nuevo `importar-extracto-ui.js`, que se carga con `defer` antes que `app.js` y comparte su ámbito global, como `partidas-ui.js`. Solo declara cosas: nada se ejecuta al cargarse. Lo usan Registrar › Importar extracto, la vista v2, el buzón y el texto de un PDF, y ninguno cambia.
+- **El riesgo propio de este PR, y su freno:** el bloque declara `let` y `const` de nivel superior. Un `app.js` viejo en la caché HTTP (10 minutos en GitHub Pages) junto al script nuevo declararía dos veces lo mismo, y el navegador rechazaría `app.js` entero: la app no arrancaría. El service worker no corre ese riesgo, porque precarga todo el shell junto y con `cache: "reload"`. Para el resto, `app.js` cambia de `?v=` (estaba fijo desde el 2/10): 26 pruebas anclaban la versión vieja y se actualizan a la nueva sin ningún otro cambio.
+- **Techo:** `app.js` 33.154 → 32.296 líneas; el techo baja por el trinquete del hogar (P7: lo que quede + ~130), de 33.259 a **32.426**.
+- **Pruebas:**
+  - `tests/xgo01-sin-funciones-duplicadas.test.cjs` gana una: las funciones y variables están en el fichero nuevo y no en `app.js` (ni declaradas dos veces), el fichero solo declara, se carga antes que `app.js` y `app.js` lleva la versión nueva.
+  - `tests/helpers/codigo-app.cjs` suma el fichero a `FICHEROS_APP`.
+  - `tests/xda04-cobertura.test.cjs` leía `app.js` sin el ayudante y pasa a usarlo, sin cambiar ninguna comprobación.
+- **Validación:** `npm run verify` en verde, 6223/6223 sobre `main` con #556 ya fusionado. Playwright (e2e + a11y + perf-screens): 261/261 en verde (17,6 min) antes de #556; tras juntarlo, las 15 e2e de importar (XDA-02, Importar v2, XDA-03, XDA-04, ensayo del cierre) en verde. Proyecto `safari` con Chromium emulando el iPhone: 20/20.
+
 ## Cierre de sesión — 27 de octubre de 2026 (361): lo que vio Playwright al fallar, en el registro del CI, y el primer fallo que deja ver
 
 - **Por qué:** hoy han fallado en el CI dos pruebas ajenas al PR en curso: WP-40 (la CIRBE, «element is not stable» durante 120 s) en #553 y XDA-02 (Importar en un toque, en WebKit) en #555. Las dos pasaron al relanzar el job y en local no se reproducen (WP-40: 8 de 8 con 4 en paralelo). Sin ver qué había en pantalla, la causa no se puede saber. Y el artefacto con trazas y capturas (P5) no siempre se puede descargar: desde la sesión de desarrollo, el proxy bloquea el almacenamiento donde GitHub lo guarda.
