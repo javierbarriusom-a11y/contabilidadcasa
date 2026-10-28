@@ -36,11 +36,21 @@ jobs:
       - run: npm run test:perf-screens
       - run: npm run test:load-budget
       # RD-WK (P14 del rediseño): las pantallas v2 a 390×844 también en WebKit, el motor del Safari del iPhone. Bloquea como
-      # el resto de pruebas en navegador; va antes de guardar las trazas para que un fallo en Safari también las deje.
+      # el resto de pruebas en navegador (con un reintento desde el 28/10/2026); va antes de guardar las trazas para que un fallo
+      # en Safari también las deje.
       - name: Instalar WebKit y probar las pantallas v2 en Safari (RD-WK · P14)
         run: |
           npx playwright install --with-deps webkit
           npm run test:safari
+          # Con el reintento de Safari (28/10/2026), una prueba que falla y pasa al repetirla no bloquea, pero no se esconde:
+          # lo que vio en el intento fallido queda en el registro y como aviso del PR, para buscar su causa.
+          find test-results -name error-context.md -print0 2>/dev/null | while IFS= read -r -d '' file; do
+            echo "::warning title=Safari intermitente::${file}"
+            echo "::group::${file}"
+            head -c 60000 "${file}"
+            echo
+            echo "::endgroup::"
+          done
       # P5 del cuestionario del rediseño (19/10/2026): cuando una prueba en navegador falla, guardar sus
       # trazas y capturas (test-results/, retain-on-failure en playwright.config.cjs) para ver la causa
       # sin repetir los ~30 minutos de CI. Solo en fallo; no cambia ningún umbral ni bloquea nada más.

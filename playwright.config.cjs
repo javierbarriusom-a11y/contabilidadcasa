@@ -33,6 +33,9 @@ module.exports = defineConfig({
     { name: "perf-screens", testMatch: "p4-presupuesto-pantallas.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
     // RD-WK (P14 del rediseño, 19/10/2026): las pruebas de las pantallas v2 a 390 px (etiqueta @safari en qa1) repetidas en
     // WebKit, el motor del Safari del iPhone del hogar. Se instala aparte en el CI (`npx playwright install --with-deps webkit`).
-    { name: "safari", testMatch: "qa1-flujos-completos.spec.cjs", grep: /@safari/, use: { ...devices["iPhone 13"], browserName: "webkit", viewport: { width: 390, height: 844 } } },
+    // Un reintento, solo aquí y solo en el CI (decisión del hogar del 28/10/2026): en un día fallaron de vez en cuando tres
+    // pruebas distintas que solo corren en WebKit. Lo que pasa al reintentarlo queda como «flaky» y su primer intento, en el
+    // registro (paso de Safari en pages.yml); dos fallos seguidos siguen bloqueando. Chromium no reintenta.
+    { name: "safari", testMatch: "qa1-flujos-completos.spec.cjs", grep: /@safari/, retries: process.env.CI ? 1 : 0, use: { ...devices["iPhone 13"], browserName: "webkit", viewport: { width: 390, height: 844 } } },
   ],
 });

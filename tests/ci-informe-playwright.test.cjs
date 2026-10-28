@@ -59,3 +59,17 @@ test("WP-40 y el ensayo del cierre pulsan con diagnóstico, sin reintentar ni es
   const ensayo = spec.slice(spec.indexOf('test.describe("Ensayo del cierre de octubre'), spec.indexOf('test.describe("XDA-04 · periodo'));
   assert.match(ensayo, /await registrarEventos\(page\);\n\s+await v2\.locator\("\[data-imp-v2-importar\]"\)\.click\(\);\n\s+await pulsar\(page, "#operationConfirmSubmit"\);/);
 });
+
+// Decisión del hogar del 28/10/2026: un reintento solo para Safari y solo en el CI. Lo que pasa al reintentarlo no se esconde.
+test("Safari reintenta una vez en el CI, Chromium no, y el intento fallido queda en el registro", () => {
+  const config = read("playwright.config.cjs");
+  assert.match(config, /retries: 0,/, "por defecto, ninguna prueba reintenta");
+  const safari = config.slice(config.indexOf('{ name: "safari"'));
+  assert.match(safari.slice(0, safari.indexOf("\n")), /retries: process\.env\.CI \? 1 : 0/);
+  assert.equal((config.match(/retries:/g) || []).length, 2, "solo el proyecto safari cambia los reintentos");
+  const at = workflow.indexOf("Instalar WebKit y probar las pantallas v2 en Safari");
+  const step = workflow.slice(at, workflow.indexOf("- name:", at + 1));
+  assert.match(step, /npm run test:safari\n/);
+  assert.match(step, /::warning title=Safari intermitente::/);
+  assert.match(step, /error-context\.md/);
+});

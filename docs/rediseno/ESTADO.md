@@ -183,6 +183,6 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 8. Después, si las anteriores se usan: Plan (C1-C2), Cierre (C3), Patrimonio e Inversión (D1-D2), navegación de 5
    destinos, Deuda (tras NTC-05), Taller y E2. Cada una desde su referencia de `docs/rediseno/referencias/`.
 
-Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (P14) está hecho desde el 26/10:** `safari` en `playwright.config.cjs` (iPhone 13, 390×844) repite las pruebas v2 a 390 px con la etiqueta `@safari`, bloqueante en el CI. Cada pantalla nueva o rehecha del rediseño etiqueta así su prueba a 390 px.
+Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (P14) está hecho desde el 26/10** (con un reintento en el CI desde el 28/10, decisión del hogar; su primer intento queda en el registro, `BACKLOG_DEFINITIVO.md` §10, trampa 15): `safari` en `playwright.config.cjs` (iPhone 13, 390×844) repite las pruebas v2 a 390 px con la etiqueta `@safari`, bloqueante en el CI. Cada pantalla nueva o rehecha del rediseño etiqueta así su prueba a 390 px.
 
 **Criterio para graduar una pantalla** (retirar la vista antigua y su código): a las dos semanas de uso la app avisa y el hogar lo confirma a mano (P9); la métrica de referencia sigue siendo la del handoff (Hoy: tiempo hasta la primera acción; Movimientos: extractos importados por semana).
