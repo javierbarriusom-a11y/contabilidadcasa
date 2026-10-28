@@ -593,7 +593,8 @@
     "WP-15",
     "WP-39"
    ],
-   "hechoCuando": "Reglas deterministas con prioridad y motivo, tomadas de la política de inversión."
+   "hechoCuando": "Reglas deterministas con prioridad y motivo, tomadas de la política de inversión.",
+   "enPrueba": "propio"
   },
   {
    "id": "WP-51",

@@ -48,6 +48,8 @@
     { id: "antes-de-decidir", nombre: "Antes de decidir", queHace: "En los simuladores que miran el colchón (amortizar una deuda, garantía del Lombard), si los saldos son antiguos, dice si lo que han podido moverse cambiaría el veredicto.", desde: "2026-10-27", metrica: "decisiones tomadas con datos frescos; si nunca salta porque los datos siempre están al día, queda como etiqueta", interruptor: "propio" },
     // WP-18 · PR-1 (28/10/2026): en Inversión › Cartera, de cada 100 € cuántos pusisteis y cuántos el mercado, y la TWR junto a la XIRR.
     { id: "aportado", nombre: "Aportado frente a valor", queHace: "En Inversión › Cartera, de cada 100 € de la cartera cuántos pusisteis y cuántos el mercado, y lo que hizo el mercado (TWR) junto a lo que ganó vuestro dinero (XIRR).", desde: "2026-10-28", metrica: "que la miréis tras cada valoración; se retira si en dos meses con valoraciones nadie la abre", interruptor: "propio" },
+    // WP-17 (28/10/2026): la siguiente acción de la cartera por reglas fijas. Nace apagada; su revisión cuenta desde que se enciende.
+    { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", queHace: "Arriba de Inversión › Cartera, la cartera en una línea y una sola acción con su motivo: valorar, lo que choca con vuestra política, el reparto, la fiscalidad antes del 31/12, la política o la convicción.", desde: "2026-10-28", metrica: "acciones seguidas desde aquí; se retira si en dos meses nadie sigue ninguna", interruptor: "propio" },
   ];
 
   function isoDate(date) {

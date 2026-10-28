@@ -68,7 +68,7 @@
     <link rel="stylesheet" href="base-cero.css?v=20261012wp34a1" />
     <link rel="stylesheet" href="carta-mes.css?v=20261012wp29a1" />
     <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
-    <link rel="stylesheet" href="calma.css?v=20261028wp18" />
+    <link rel="stylesheet" href="calma.css?v=20261028wp17" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
@@ -2504,6 +2504,12 @@
               </div>
             </div>
 
+            <!-- WP-17 · PR-1 (siguiente-paso-ui.js): la cartera en una línea y la siguiente acción por reglas fijas, con su motivo. Oculta sin
+                 posiciones o si «Siguiente paso de la cartera» está apagada en Funciones en prueba. -->
+            <article class="e19-card sp-card" id="siguientePasoCard" aria-labelledby="siguientePasoTitulo" hidden>
+              <h3 class="escenario-motor-panel-title" id="siguientePasoTitulo">Siguiente paso de la cartera</h3>
+              <div id="siguientePasoCuerpo"></div>
+            </article>
             <!-- WP-15: actualizar el valor de las posiciones (hasta ahora solo se podían crear o quitar). La hoja es un diálogo (#valoracionDialog). -->
             <article class="e19-card" id="valoracionCard">
               <h3 class="escenario-motor-panel-title">Valoración de la cartera</h3>
@@ -8222,6 +8228,8 @@
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
     <script defer src="descubierto-ui.js?v=20261027xpr07"></script>
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
+    <script defer src="canonical-next-best-action.js?v=20261028wp17"></script>
+    <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
     <script defer src="app.js?v=20261028pct1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>

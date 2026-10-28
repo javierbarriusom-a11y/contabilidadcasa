@@ -6730,3 +6730,60 @@ test.describe("WP-18 · Aportado frente a valor", () => {
     });
   }
 });
+
+// WP-17 · PR-1 (NIN-01): la siguiente acción de la cartera por reglas fijas, arriba de Inversión › Cartera. Nace apagada (XGO-03).
+// Cartera INVENTADA: Fondo A 7.000 € y ETF B 3.000 €, con un reparto objetivo de 50/50 y sin política firmada: fondos 20 puntos por
+// encima → «Vended unos 2.000 € de fondos», con la política como siguiente cosa pendiente. Con Fondo A sin valorar desde agosto,
+// manda «Actualizad la valoración».
+test.describe("WP-17 · Siguiente paso de la cartera", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no sale; encendida, la cartera en una línea y una acción con su motivo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "sp-a", type: "fondo", label: "Fondo A", quantity: 0, costBasis: 6000, currentValue: 7000, asOf: "2026-10-20", acquisitionDate: "2026-01-01", provenance: "declared" },
+          { id: "sp-b", type: "etf", label: "ETF B", quantity: 0, costBasis: 3200, currentValue: 3000, asOf: "2026-10-20", acquisitionDate: "2026-03-01", provenance: "declared" },
+        ];
+        scenarioSettings.portfolioTargets = { fondo: 50, etf: 50 };
+        saveScenarioSettings();
+      });
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      const card = page.locator("#siguientePasoCard");
+      await expect(card, "apagada: no sale").toBeHidden();
+
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="siguiente-paso"]').click();
+      await expect(page.locator('[data-fep-interruptor="siguiente-paso"]')).toHaveAttribute("aria-checked", "true");
+      await page.goto("/index.html#inversion-cartera");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator(".sp-resumen")).toContainText("de valor");
+      await expect(card.locator(".sp-resumen")).toContainText("aportados");
+      const accion = card.locator(".sp-accion");
+      await expect(accion.locator(".sp-titulo")).toHaveText("Vended unos 2.000 € de fondos");
+      await expect(accion).toContainText("Fondo: 70 % frente a un objetivo del 50 %, 20 puntos por encima");
+      await expect(accion).toContainText("Reparto objetivo de Rebalanceo (sin política firmada)");
+      await expect(accion.locator('a[href="#inversion-rebalanceo"]')).toBeVisible();
+      await card.locator(".sp-otras summary").click();
+      await expect(card.locator(".sp-otras")).toContainText("Escribid y firmad vuestra política de inversión");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Una posición sin valorar desde agosto: manda valorar, y el botón abre la hoja.
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = scenarioSettings.portfolioPositions.map((position) => (position.id === "sp-a" ? { ...position, asOf: "2026-08-01" } : position));
+        saveScenarioSettings();
+        renderSiguientePaso();
+      });
+      await expect(accion.locator(".sp-titulo")).toHaveText("Actualizad la valoración de Fondo A");
+      await accion.locator('[data-siguiente-paso-accion="valorar"]').click();
+      await expect(page.locator("#valoracionDialog")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
