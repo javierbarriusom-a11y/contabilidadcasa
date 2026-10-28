@@ -44,3 +44,18 @@ test("lo que vio Playwright al fallar también queda en el registro, por si el a
   assert.match(step, /head -c \d+/, "con tope por fichero");
   assert.match(step, /::group::/);
 });
+
+// 28/10/2026: las dos pruebas que fallan de vez en cuando en el CI y nunca en local (WP-40 en Chromium y el ensayo
+// del cierre en WebKit) pulsan con tests/helpers/pulsar-o-explicar.cjs, que, si no puede, dice qué pasaba en la
+// página (lo que se movía, lo que se repintaba, el foco, los diálogos y los últimos clics) en lugar de solo «timeout».
+test("WP-40 y el ensayo del cierre pulsan con diagnóstico, sin reintentar ni esperar más", () => {
+  const helper = read("tests/helpers/pulsar-o-explicar.cjs");
+  assert.match(helper, /module\.exports = \{ pulsar, registrarEventos, diagnostico \}/);
+  assert.doesNotMatch(helper, /retries|repeat|for \(let intento/, "el ayudante no reintenta: un fallo de verdad sigue fallando");
+  const spec = read("tests/qa1-flujos-completos.spec.cjs");
+  const wp40 = spec.slice(spec.indexOf('test.describe("WP-40 · conciliación con la CIRBE"'), spec.indexOf('test.describe("WP-41'));
+  assert.equal((wp40.match(/await pulsar\(page, '#cirbeForm button\[type="submit"\]'\)/g) || []).length, 3);
+  assert.doesNotMatch(wp40, /#cirbeForm button\[type="submit"\]'\)\.click\(\)/);
+  const ensayo = spec.slice(spec.indexOf('test.describe("Ensayo del cierre de octubre'), spec.indexOf('test.describe("XDA-04 · periodo'));
+  assert.match(ensayo, /await registrarEventos\(page\);\n\s+await v2\.locator\("\[data-imp-v2-importar\]"\)\.click\(\);\n\s+await pulsar\(page, "#operationConfirmSubmit"\);/);
+});

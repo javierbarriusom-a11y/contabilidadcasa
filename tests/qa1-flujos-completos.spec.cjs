@@ -23,6 +23,8 @@ const { test, expect } = require("@playwright/test");
 // RD-WK (P14 del rediseño): las pruebas de las pantallas v2 a 390 px llevan la etiqueta @safari y el proyecto «safari» de
 // playwright.config.cjs las repite en WebKit (iPhone 13, 390×844). Las que recorren dos anchos la llevan solo en el de 390.
 const enSafari = (viewport) => ({ tag: viewport.width === 390 ? ["@safari"] : [] });
+// Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
+const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
@@ -2620,7 +2622,7 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
     await page.locator("#cirbeTitularidad").selectOption(titularidad);
     await page.locator("#cirbeImporte").fill(String(importe));
     await page.locator("#cirbeVencido").fill(String(vencido));
-    await page.locator('#cirbeForm button[type="submit"]').click();
+    await pulsar(page, '#cirbeForm button[type="submit"]');
   };
 
   test("vacío accionable, filas con validación, cuadra / difiere / falta, aval, vencido, añadir a Contratos sin crearlo, quitar y borrar con deshacer, sin confirm() ni desbordar", async ({ page }) => {
@@ -2644,10 +2646,10 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
 
       // Validación: una fila sin entidad o sin importe no entra.
       await page.locator("#cirbeTipo").selectOption("prestamo");
-      await page.locator('#cirbeForm button[type="submit"]').click();
+      await pulsar(page, '#cirbeForm button[type="submit"]');
       await expect(page.locator("#cirbeError")).toContainText("Falta la entidad");
       await page.locator("#cirbeEntidad").fill("Cetelem");
-      await page.locator('#cirbeForm button[type="submit"]').click();
+      await pulsar(page, '#cirbeForm button[type="submit"]');
       await expect(page.locator("#cirbeError")).toContainText("Falta el importe");
 
       await addRow(page, { entidad: "Cetelem", tipo: "prestamo", importe: 6100 });
@@ -5808,8 +5810,9 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-28");
       await v2.locator("#importarV2CubreHasta").fill("2026-10-31");
       await expect(v2.locator("#importarV2CubreHasta")).toHaveValue("2026-10-31");
+      await registrarEventos(page);
       await v2.locator("[data-imp-v2-importar]").click();
-      await page.click("#operationConfirmSubmit");
+      await pulsar(page, "#operationConfirmSubmit");
       await expect(v2).toContainText("5 movimientos importados", { timeout: 15000 });
 
       // La bandeja: todos los conceptos en una tanda, eligiendo partida donde no hay propuesta.
