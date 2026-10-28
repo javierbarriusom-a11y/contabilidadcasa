@@ -68,7 +68,7 @@
     <link rel="stylesheet" href="base-cero.css?v=20261012wp34a1" />
     <link rel="stylesheet" href="carta-mes.css?v=20261012wp29a1" />
     <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
-    <link rel="stylesheet" href="calma.css?v=20261014wp44b2" />
+    <link rel="stylesheet" href="calma.css?v=20261028wp18" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
@@ -2510,6 +2510,12 @@
               <p class="e19-kpi-note">Actualiza el valor de tus posiciones, con la fecha de la valoración. Cada valoración queda en una serie con fecha y se puede deshacer durante 8 segundos.</p>
               <p class="e19-kpi-note" id="valoracionResumen"></p>
               <div class="data-actions"><button type="button" class="e19-btn e19-btn-primary" id="valoracionAbrir">Actualizar valoración</button></div>
+            </article>
+            <!-- WP-18 · PR-1 (aportado-ui.js): aportado frente a valor y la rentabilidad del mercado (TWR) sobre la serie de valoraciones. Oculta sin
+                 posiciones o si «Aportado frente a valor» está apagada en Funciones en prueba. -->
+            <article class="e19-card apv-card" id="aportadoCard" aria-labelledby="aportadoTitulo" hidden>
+              <h3 class="escenario-motor-panel-title" id="aportadoTitulo">Aportado frente a valor</h3>
+              <div id="aportadoCuerpo"></div>
             </article>
 
             <!-- WP-50 (CAR-04, docs/WP50_DISENO.md): la vivienda y el local revalorizados por un índice que teclea el hogar. Lo pinta indice-vivienda-ui.js con canonical-index-valuation.js. No se conecta a ninguna fuente y no cambia lo declarado: la estimación solo sustituye al valor declarado si se activa por inmueble. -->
@@ -8130,7 +8136,7 @@
     <script defer src="canonical-card-purchases.js?v=20261005wp30c1"></script>
     <script defer src="partidas-ui.js?v=20261021xgo01b1"></script>
     <script defer src="captura-ui.js?v=20261005wp30c1"></script>
-    <script defer src="canonical-portfolio-valuation.js?v=20261006wp15a1"></script>
+    <script defer src="canonical-portfolio-valuation.js?v=20261028wp18"></script>
     <script defer src="canonical-portfolio-ledger.js?v=20261010wp48a1"></script>
     <script defer src="operaciones-ui.js?v=20261013wp39a2"></script>
     <script defer src="chart-kit.js?v=20261006wp28a1"></script>
@@ -8215,6 +8221,7 @@
     <script defer src="lo-que-pide-ui.js?v=20261026xda01"></script>
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
     <script defer src="descubierto-ui.js?v=20261027xpr07"></script>
+    <script defer src="aportado-ui.js?v=20261028wp18"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
     <script defer src="app.js?v=20261027xgo01c1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>

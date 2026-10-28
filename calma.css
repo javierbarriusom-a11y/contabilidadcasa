@@ -79,3 +79,70 @@
   min-height: 44px;
   padding: 0 6px;
 }
+
+/* WP-18 · «Aportado frente a valor» (aportado-ui.js), también en Inversión › Cartera: en esta hoja para no añadir otra petición. La tabla
+   anula el min-width genérico de styles.css y se desplaza dentro de su caja. */
+.apv-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.apv-frase {
+  margin: 8px 0;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid var(--e19-ink);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.apv-rent {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.apv-rent div {
+  min-width: 0;
+}
+
+.apv-rent dt {
+  color: var(--e19-muted);
+  font-size: 0.875rem;
+}
+
+.apv-rent dd {
+  margin: 2px 0 0;
+  color: var(--e19-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.apv-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.apv-tabla {
+  min-width: 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.apv-tabla th,
+.apv-tabla td {
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.apv-tabla .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.apv-tabla .apv-texto {
+  min-width: 8rem;
+  white-space: normal;
+}

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-28-aportado",
+      fecha: "2026-10-28",
+      texto: "En prueba y apagada: en Inversión › Cartera, cuánto pusisteis y cuánto el mercado, y la rentabilidad del mercado (TWR) junto a la XIRR.",
+      href: "#inversion",
+    },
+    {
       id: "2026-10-27-fiscal-vivienda",
       fecha: "2026-10-27",
       texto: "Campaña fiscal: la deducción por vivienda ya está comprobada con la fuente oficial, tramo autonómico incluido. El cálculo no cambia.",

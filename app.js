@@ -18765,12 +18765,9 @@ function renderIv1PositionSummary() {
   const result = engine.normalizePositions(rows);
   const { totalCost, totalValue, gainLoss, gainLossPct, xirr, totalRealizedGain } = result.summary;
   const gainClass = gainLoss > 0 ? "positive" : gainLoss < 0 ? "negative" : "";
-  // IV2: con un único movimiento por posición, la rentabilidad ponderada por tiempo (TWR)
-  // coincide exactamente con la ponderada por dinero (XIRR) — no hay una segunda cifra distinta
-  // que inventar. Divergirán en cuanto una posición tenga más de una aportación; aun así, un TWR
-  // propiamente dicho seguiría necesitando valoraciones intermedias que esta app no registra
-  // (no hay cotización de mercado, solo el valor que tú declaras). Se dice así en vez de fingir
-  // dos cifras donde hoy solo hay una honesta.
+  // IV2: la XIRR pondera por dinero. La rentabilidad ponderada por tiempo (TWR) necesita valores con fecha
+  // entre medias: desde WP-15 los guarda la hoja de valoración, y WP-18 (aportado-ui.js, en Funciones en
+  // prueba) la calcula sobre esa serie. Aquí solo se dice dónde está, sin repetir la cifra.
   // FC1: la plusvalía realizada (ya vendida, FIFO) es una cifra aparte de la plusvalía de arriba
   // (no realizada, sobre lo que queda) — sumarlas sería mezclar ganancia ya cobrada con ganancia
   // todavía sobre el papel.
@@ -18779,7 +18776,7 @@ function renderIv1PositionSummary() {
     : totalRealizedGain !== 0
       ? `Plusvalía realizada (ya vendida, FIFO): <strong class="${totalRealizedGain > 0 ? "positive" : "negative"}">${money(totalRealizedGain, true)}</strong>.`
       : "";
-  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}${ivx2BenchmarkComparisonHtml(engine, xirr)}`;
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La XIRR pondera por dinero: cuenta cuándo pusisteis cada euro. La rentabilidad del mercado (TWR) sale de las valoraciones con fecha de «Actualizar valoración»: con dos o más, «Aportado frente a valor» (en Funciones en prueba) la enseña junto a esta XIRR.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}${ivx2BenchmarkComparisonHtml(engine, xirr)}`;
 }
 
 // IVX2: comparación contra un índice de referencia declarado por el hogar (no se trae ningún precio

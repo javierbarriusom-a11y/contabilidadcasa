@@ -109,6 +109,30 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (366): WP-18 · PR-1, aportado frente a valor y TWR (en prueba, apagada)
+
+- **Por qué:** el hogar pidió seguir con todo lo que no dependa de él. WP-18 (NIN-03, Ola 3) tenía cumplida su dependencia (WP-15, la hoja de valoración) y se puede construir sin datos del hogar. Nace apagada, así que no carga la semana del cierre de octubre ni arranca ninguna revisión.
+- **Qué responde** (Inversión › Cartera, tarjeta «Aportado frente a valor», debajo de «Valoración de la cartera»):
+  - «De cada 100 € de vuestra cartera, X los pusisteis vosotros e Y los ganó el mercado». En pérdidas, cuánto se ha llevado el mercado y qué % de lo puesto.
+  - **La rentabilidad ponderada por tiempo (TWR)**, lo que hizo el mercado, junto a la XIRR de siempre, lo que ganó vuestro dinero. Cada una con su explicación.
+  - Plegado, el detalle por posición: lo que costó, el valor, la TWR y la XIRR.
+- **El cálculo** (`canonical-portfolio-valuation.js`, puro; `docs/WP18_DISENO.md`):
+  - Encadena los tramos entre dos fechas con valor: el alta de cada posición, su valor declarado y las valoraciones de la hoja (a igual fecha manda la hoja).
+  - Dentro de un tramo, cada aportación o venta cuenta por los días que estuvo invertida (Modified Dietz), porque la app no tiene el valor el día de cada flujo. La pantalla lo dice.
+  - **Con menos de dos fechas con valor, «datos insuficientes»:** ninguna cifra, y un botón a «Actualizar valoración».
+  - **Solo se anualiza con un año o más.** Antes, la TWR es la del periodo, y la tarjeta avisa de que entonces no se compara directamente con la XIRR.
+  - En la cartera, una posición no valorada un día cuenta con su último valor, y la tarjeta dice cuántas veces pasa.
+- **De paso:** la nota de la XIRR de Cartera (`app.js`) decía que la TWR «exige valoraciones intermedias que esta app no registra». Desde WP-15 sí las registra; ahora dice dónde está la TWR.
+- **Gobierno:** apagada en Funciones en prueba (XGO-03, «Aportado frente a valor»), con medidor (XGO-02: vista y la acción de ir a valorar) y una línea en Novedades. No cambia la superficie por defecto (GOV-02): la tarjeta está oculta mientras la función esté apagada.
+- **Lo que no hace este PR-1:** el gráfico de aportaciones acumuladas frente al valor (PR-2, con el kit de gráficos, solo si la tarjeta se usa); una TWR exacta (pediría el valor de cada posición el día de cada aportación); cambiar el formato viejo de la XIRR («+43.13%») en el resto de Cartera, deuda conocida de `docs/rediseno/ESTADO.md` §5.
+- **Pruebas:**
+  - `tests/wp18-aportado-twr.test.cjs` (6, con cifras calculadas a mano): un flujo al final del tramo no cuenta como mercado; la TWR no depende de cuándo se aportó; no se anualiza antes de un año; sin dos puntos no hay cifra; la cartera arrastra y lo cuenta; el reparto en ganancias y en pérdidas.
+  - `tests/iv2-app-integracion.test.cjs`: la frase antigua ya no está.
+  - E2E «WP-18 · Aportado frente a valor» a 390 px (también en Safari) y 1280 px: apagada no sale; encendida, 82 y 18 de cada 100, «+29,6 % del 1 ene al 1 oct», la XIRR «al año», el aviso de que no se comparan directamente, el detalle por posición con su TWR y su XIRR, sin desbordar; sin dos fechas con valor lleva a la hoja de valoración.
+- **Validación:** `npm run verify` en verde, 6231/6231 (+6), más lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke. Playwright completo en local (Chromium): 262 de 263; el que falló era el arranque del navegador en la prueba de contraste de WP-32 y pasa relanzado solo (2 de 2).
+- **Falta del hogar:** encenderla en Funciones en prueba cuando quiera, y valorar la cartera en el cierre del 1-3/11. **Si la posición tiene fecha de alta, con esa valoración ya sale la primera TWR.** El «≥ 3 valoraciones» del plan era para que la cifra signifique algo, no para que exista.
+- **Tensión con la recomendación del 27/10** («ninguna función nueva hasta el cierre de octubre»): esta nace apagada y no pide nada al hogar hasta que la encienda, así que no compite con el cierre. Encenderla puede esperar a después del 3/11.
+
 ## Cierre de sesión — 28 de octubre de 2026 (365): las dos pruebas intermitentes del CI dicen por qué fallan
 
 - **Por qué:** el hogar pidió seguir con todo lo que no dependa de él. Lo primero era el CI: dos pruebas en navegador fallan de vez en cuando, cada vez cuestan un relanzamiento de casi una hora y, en `main`, bloquean el despliegue.

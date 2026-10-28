@@ -6670,3 +6670,63 @@ test.describe("XDA-10 · Antes de decidir", () => {
     });
   }
 });
+
+// WP-18 · PR-1 (NIN-03): aportado frente a valor y la rentabilidad del mercado (TWR) sobre la serie de valoraciones, en Inversión › Cartera.
+// Nace apagada (XGO-03). Cartera INVENTADA: Fondo A, 6.000 € el 1/1, +1.800 € el 1/4 (vale 8.100 € ese día) y 10.000 € el 1/10: TWR
+// 1,05 × 1,2346 − 1 = +29,6 %. Acciones B, 2.000 € el 1/10 sin otra valoración. En total, 9.800 € puestos frente a 12.000 €: 82 y 18 de cada 100.
+test.describe("WP-18 · Aportado frente a valor", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`apagada no sale; encendida, de cada 100 € cuánto pusisteis, la TWR junto a la XIRR y, sin dos fechas con valor, lleva a valorar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "apv-a", type: "fondo", label: "Fondo A", quantity: 0, costBasis: 6000, currentValue: 10000, asOf: "2026-10-01", acquisitionDate: "2026-01-01", provenance: "declared", contributions: [{ id: "a1", date: "2026-04-01", amount: 1800, quantity: 0 }] },
+          { id: "apv-b", type: "accion", label: "Acciones B", quantity: 0, costBasis: 2000, currentValue: 2000, asOf: "2026-10-01", acquisitionDate: "2026-10-01", provenance: "declared" },
+        ];
+        saveScenarioSettings();
+        savePortfolioValuations({ valuations: [
+          { date: "2026-04-01", savedAt: "2026-04-01T10:00:00.000Z", points: [{ id: "apv-a", value: 8100, cost: 7800 }] },
+          { date: "2026-10-01", savedAt: "2026-10-01T10:00:00.000Z", points: [{ id: "apv-a", value: 10000, cost: 7800 }] },
+        ], timings: [] });
+      });
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      const card = page.locator("#aportadoCard");
+      await expect(card, "apagada: no sale").toBeHidden();
+
+      await page.goto("/index.html#ajustes");
+      await page.locator('[data-fep-interruptor="aportado"]').click();
+      await expect(page.locator('[data-fep-interruptor="aportado"]')).toHaveAttribute("aria-checked", "true");
+      await page.goto("/index.html#inversion-cartera");
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card.locator(".apv-frase")).toHaveText("De cada 100 € de vuestra cartera, 82 los pusisteis vosotros y 18 los ganó el mercado.");
+      await expect(card.locator(".apv-rent")).toContainText("+29,6 % del 1 ene al 1 oct");
+      await expect(card.locator(".apv-rent")).toContainText(/\+\d+,\d % al año/); // la XIRR, con coma y «al año»
+      await expect(card, "con menos de un año no se comparan directamente").toContainText("no se comparan directamente");
+      await card.locator(".apv-detalle summary").click();
+      const filas = card.locator(".apv-tabla tbody tr");
+      await expect(filas).toHaveCount(2);
+      await expect(filas.filter({ hasText: "Fondo A" })).toContainText("+29,6 %");
+      await expect(filas.filter({ hasText: "Acciones B" })).toContainText("falta otra valoración con fecha");
+      await expect(filas.filter({ hasText: "Fondo A" }), "la XIRR de cada posición, con coma y «al año»").toContainText(/\+\d+,\d % al año/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Sin dos fechas con valor no hay TWR que dar: lo dice y lleva a la hoja de valoración.
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = scenarioSettings.portfolioPositions.filter((position) => position.id === "apv-b");
+        saveScenarioSettings();
+        renderAportado(FinanceCanonicalPortfolioValuation);
+      });
+      await expect(card.locator(".apv-rent")).toContainText("Falta otra valoración con fecha");
+      await card.locator("[data-aportado-valorar]").click();
+      await expect(page.locator("#valoracionDialog")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
