@@ -89,5 +89,5 @@ test("el asistente de importar extracto vive fuera de app.js, en un script que s
   const html = read("index.html");
   const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
   assert.ok(pos("importar-extracto-ui.js") !== -1 && pos("importar-extracto-ui.js") < pos("app.js"), "se carga con defer antes que app.js");
-  assert.match(html, /<script defer src="app\.js\?v=20261027xgo01c1">/, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
+  assert.match(html, /<script defer src="app\.js\?v=20261028pct1">/, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
 });

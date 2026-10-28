@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-28-cartera-porcentajes",
+      fecha: "2026-10-28",
+      texto: "Inversión › Cartera: la XIRR, la plusvalía y el índice de referencia se escriben como el resto de la app («+43,1 % al año»).",
+      href: "#inversion",
+    },
+    {
       id: "2026-10-28-aportado",
       fecha: "2026-10-28",
       texto: "En prueba y apagada: en Inversión › Cartera, cuánto pusisteis y cuánto el mercado, y la rentabilidad del mercado (TWR) junto a la XIRR.",

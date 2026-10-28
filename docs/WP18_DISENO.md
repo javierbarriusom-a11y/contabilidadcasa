@@ -36,7 +36,7 @@ Hasta WP-15 la app decía, con razón, que la TWR «exige valoraciones intermedi
 
 - **El gráfico de aportaciones acumuladas (escalón) frente al valor** que pedía la ficha. Se hará en el PR-2 con el kit de gráficos (WP-28), solo si la tarjeta se usa.
 - **Una TWR exacta**, que exigiría el valor de cada posición el día de cada aportación. La hoja no lo pide, y pedirlo costaría minutos al hogar.
-- **Cambiar `iv2XirrLabel`**, que sigue con el formato viejo («+43.13%») en el resto de Cartera. La tarjeta formatea su propia XIRR («+43,1 % al año»). El resto es una deuda conocida (`docs/rediseno/ESTADO.md` §5).
+- ~~Cambiar `iv2XirrLabel`~~ **Hecho el mismo 28/10, en PR aparte:** en Cartera, la XIRR, la plusvalía por posición y de la cartera y el índice de referencia se escriben ya con coma y un decimal («XIRR +43,1 % al año»), con `iv2Pct`/`iv2Num` en `app.js`, que también usa la tarjeta. **Siguen con el formato viejo, fuera de Cartera:** la XIRR citada en el simulador de liquidez ociosa (`app.js`) y en el coste de oportunidad de Partidas (`partidas-ui.js`). Es deuda conocida de `docs/rediseno/ESTADO.md` §5: se arregla en origen, pantalla a pantalla.
 
 ## 6. Pruebas
 
