@@ -109,6 +109,38 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (371): WP-17 · PR-1, siguiente paso de la cartera (en prueba, apagada)
+
+- **Por qué:** el hogar eligió «siguiente paquete del plan» frente a la recomendación de Claude («preparar el cierre de octubre»). Solo quedaban dos paquetes del plan sin empezar, y los dos esperan algo del hogar: WP-21 (paquete Renta, que espera a WP-31) y WP-17 (que espera la política firmada). WP-17 es el más corto, y sus reglas se pueden construir sin datos del hogar.
+- **Qué hace** (arriba de Inversión › Cartera, tarjeta «Siguiente paso de la cartera»): la cartera en una línea (valor, aportado, plusvalía y XIRR) y **una sola acción**, con su motivo y la regla que la origina; el resto, plegado. Orden fijo:
+  1. valorar lo que lleva más de 35 días sin valor;
+  2. lo que choca con la política firmada (cripto, apalancamiento);
+  3. el reparto fuera de la banda: el de la política firmada o, sin ella, el de Rebalanceo con el umbral de 10;
+  4. compensar plusvalías antes del 31/12, del 1/10 al 31/12, con plusvalías del año sin compensar y una posición en pérdidas;
+  5. la política: sin firmar, cambiada o por revisar;
+  6. la convicción sin confirmar en 12 meses.
+- **Honestidad:**
+  - **Nunca opera ni escribe** (una prueba lo comprueba).
+  - Con «rebalancear primero con aportaciones», nunca propone vender. Una venta por reparto pide mirar antes el coste fiscal.
+  - La acción fiscal cita la norma de recompra y dice que no es una recomendación de vender.
+  - «Nada pendiente» dice qué ha mirado, no que la cartera esté bien.
+- **Motor y pantalla:** `canonical-next-best-action.js` (puro) y `siguiente-paso-ui.js`. Reúne los hechos con los motores de siempre: frescura de WP-15, política de WP-39, reparto de IV6, compensación de FC3, candidatas de INV6 y convicción de I12.
+- **Gobierno:**
+  - Apagada en Funciones en prueba: la séptima. El plan la marca `"enPrueba": "propio"` y el panel la cuenta.
+  - Medidor de vista y de acción seguida, y una línea en Novedades. Superficie por defecto sin cambios.
+- **Fuera de este PR-1** (`docs/WP17_DISENO.md` §4):
+  - «aportación pendiente», que necesita NIN-04;
+  - la barra objetivo frente a actual y las tarjetas en el móvil;
+  - que la banda de la política gobierne IV6.
+
+  **Sin la política firmada (H-12), sus reglas no mandan.**
+- **Pruebas:**
+  - `tests/wp17-siguiente-paso.test.cjs` (8).
+  - E2E «WP-17 · Siguiente paso de la cartera» a 390 px (también en Safari) y 1280 px: apagada no sale; encendida, «Vended unos 2.000 € de fondos» con su motivo; sin valorar, manda valorar y abre la hoja.
+  - `tests/arq3-canonical-sin-consumidor-ui.test.cjs`: 115 → 116 motores, con su consumidor en `views/inversion.js`.
+  - Captura a 390 px revisada.
+- **Validación:** `npm run verify` en verde, 6242/6242 (+8). E2E de WP-17, WP-18, XGO-01 y XGO-03 en Chromium: 7 de 7.
+
 ## Cierre de sesión — 28 de octubre de 2026 (370): decisiones del hogar sobre sus tareas (sin cambios en la app)
 
 - **H-03 no se hace** («dejamos los datos de ejemplo»): **WP-23 pasa a aparcado.**

@@ -146,3 +146,66 @@
   min-width: 8rem;
   white-space: normal;
 }
+
+/* WP-17 · PR-1: «Siguiente paso de la cartera» (siguiente-paso-ui.js). Una acción destacada; el resto, plegado. */
+.sp-card {
+  margin: 16px 0;
+  min-width: 0;
+}
+
+.sp-resumen {
+  margin: 4px 0 12px;
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.sp-accion {
+  margin: 8px 0;
+  padding: 8px 0 8px 14px;
+  border-left: 4px solid var(--e19-ink);
+  min-width: 0;
+}
+
+.sp-nada {
+  border-left-color: var(--e19-muted);
+}
+
+.sp-eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--e19-muted);
+}
+
+.sp-titulo {
+  margin: 2px 0 6px;
+  font-weight: 600;
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.sp-regla {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: var(--e19-muted);
+}
+
+.sp-otras ol {
+  margin: 8px 0;
+  padding-left: 1.25rem;
+}
+
+.sp-otras li {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.sp-otras li > strong,
+.sp-otras li > .e19-kpi-note {
+  display: block;
+}
+
+.sp-otras li > .e19-btn {
+  margin-top: 6px;
+}

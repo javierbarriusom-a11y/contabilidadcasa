@@ -43,6 +43,7 @@
     { id: "clasificar-v2", nombre: "Clasificar por lotes", accion: ["regla aceptada", "reglas aceptadas"], descarte: ["grupo saltado", "grupos saltados"], deshecho: ["regla deshecha", "reglas deshechas"] },
     { id: "repaso-v2", nombre: "Repaso semanal", accion: ["repaso terminado", "repasos terminados"], descarte: ["repaso a medias", "repasos a medias"], deshecho: null },
     { id: "aportado", nombre: "Aportado frente a valor", accion: ["valoración buscada desde aquí", "valoraciones buscadas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
+    { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", accion: ["acción seguida desde aquí", "acciones seguidas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "antes-de-decidir", nombre: "Antes de decidir", accion: null, descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "descubierto", nombre: "El arreglo más barato", accion: null, descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", accion: ["alta empezada tras el ejemplo", "altas empezadas tras el ejemplo"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
