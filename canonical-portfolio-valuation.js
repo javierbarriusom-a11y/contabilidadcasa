@@ -336,8 +336,124 @@
     return `Cartera: ${stale.length} de ${list.length} ${list.length === 1 ? "posición" : "posiciones"} sin valorar hace más de ${STALE_DAYS} días (${names}${more}). Actualiza la valoración en Inversión › Cartera; no impide cerrar el mes.`;
   }
 
+  // ---- WP-18 (NIN-03): aportado frente a valor y rentabilidad ponderada por tiempo ------------------------------------------
+  // La XIRR (canonical-portfolio.js) pondera por dinero: premia o castiga CUÁNDO se aportó. La TWR mide solo lo que hizo el mercado
+  // con cada euro: encadena los tramos entre dos valoraciones con fecha (la hoja de WP-15, más el alta de cada posición). Dentro de
+  // un tramo, cada aportación o venta cuenta por los días que estuvo invertida (Modified Dietz), porque la app no tiene el valor
+  // justo el día de cada flujo; con valoraciones mensuales el error es pequeño y se dice. Con menos de dos puntos no hay tramo:
+  // «datos insuficientes», nunca una cifra.
+
+  const TWR_ANNUALIZE_DAYS = 365;
+
+  function round1(value) {
+    return Math.round((Number(value) + Number.EPSILON) * 10) / 10;
+  }
+
+  /** Rentabilidad de un tramo (Modified Dietz). `flows`: aportaciones positivas y ventas negativas, fechadas en (from, to]. */
+  function dietzReturn({ from, to, startValue, endValue, flows }) {
+    const span = daysBetween(from, to);
+    if (span <= 0) return null;
+    const net = flows.reduce((sum, flow) => sum + flow.amount, 0);
+    const weighted = flows.reduce((sum, flow) => sum + flow.amount * (daysBetween(flow.date, to) / span), 0);
+    const base = startValue + weighted;
+    if (!(base > 0)) return null;
+    return (endValue - startValue - net) / base;
+  }
+
+  /** Encadena los tramos entre puntos {date, value} ordenados. Anualiza solo con un año o más: antes, la cifra es del periodo. */
+  function chainTwr(points, flows) {
+    if (points.length < 2) return { calculable: false, reason: points.length ? "un-punto" : "sin-puntos", points: points.length };
+    let growth = 1;
+    for (let index = 1; index < points.length; index += 1) {
+      const from = points[index - 1].date;
+      const to = points[index].date;
+      const inside = flows.filter((flow) => flow.date > from && flow.date <= to);
+      const value = dietzReturn({ from, to, startValue: points[index - 1].value, endValue: points[index].value, flows: inside });
+      if (value === null) return { calculable: false, reason: "tramo-sin-base", at: from, points: points.length };
+      growth *= 1 + value;
+    }
+    const from = points[0].date;
+    const to = points[points.length - 1].date;
+    const days = daysBetween(from, to);
+    const annualized = days >= TWR_ANNUALIZE_DAYS ? growth ** (TWR_ANNUALIZE_DAYS / days) - 1 : null;
+    return { calculable: true, reason: "", from, to, days, periods: points.length - 1, points: points.length, cumulativePct: round1((growth - 1) * 100), annualizedPct: annualized === null ? null : round1(annualized * 100) };
+  }
+
+  /** Aportaciones (+) y dinero cobrado en ventas (−) de una posición, con su fecha. */
+  function positionFlows(position) {
+    const flows = [];
+    (Array.isArray(position?.contributions) ? position.contributions : []).forEach((item) => {
+      const amount = Number(item?.amount);
+      if (validIsoDate(text(item?.date)) && amount > 0) flows.push({ date: text(item.date), amount });
+    });
+    (Array.isArray(position?.disposals) ? position.disposals : []).forEach((item) => {
+      const amount = Number(item?.saleProceeds);
+      if (validIsoDate(text(item?.date)) && amount > 0) flows.push({ date: text(item.date), amount: -amount });
+    });
+    return flows.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  /** Los puntos de valor de una posición: el alta (su coste), las valoraciones de la hoja y el valor declarado con su fecha. A igual fecha manda la valoración. */
+  function positionPoints(position, store) {
+    const byDate = new Map();
+    const acquisition = text(position?.acquisitionDate);
+    const initialCost = Number(position?.initialCost);
+    if (validIsoDate(acquisition) && initialCost > 0) byDate.set(acquisition, initialCost);
+    const asOf = text(position?.asOf);
+    const current = Number(position?.currentValue);
+    if (validIsoDate(asOf) && current > 0) byDate.set(asOf, current);
+    series(store, text(position?.id)).forEach((point) => byDate.set(point.date, point.value));
+    return [...byDate].map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function positionTwr(position, store) {
+    return chainTwr(positionPoints(position, store), positionFlows(position));
+  }
+
+  /**
+   * TWR de la cartera: en cada fecha con algún punto, el valor de cada posición es su último punto hasta ese día (si no se valoró
+   * ese día, cuenta con el último valor conocido: `carried` dice cuántas veces). El alta de una posición es una aportación más.
+   */
+  function portfolioTwr(positions, store) {
+    const list = (Array.isArray(positions) ? positions : []).map((position) => ({ position, points: positionPoints(position, store) })).filter((item) => item.points.length);
+    const dates = [...new Set(list.flatMap((item) => item.points.map((point) => point.date)))].sort();
+    let carried = 0;
+    const points = dates.map((date) => {
+      let value = 0;
+      list.forEach(({ points: own }) => {
+        const known = own.filter((point) => point.date <= date);
+        if (!known.length) return;
+        const last = known[known.length - 1];
+        if (last.date !== date) carried += 1;
+        value += last.value;
+      });
+      return { date, value: round2(value) };
+    });
+    const flows = list.flatMap(({ position }) => {
+      const own = positionFlows(position);
+      const acquisition = text(position?.acquisitionDate);
+      const initialCost = Number(position?.initialCost);
+      return validIsoDate(acquisition) && initialCost > 0 ? [{ date: acquisition, amount: initialCost }, ...own] : own;
+    });
+    return { ...chainTwr(points, flows), carried };
+  }
+
+  /** «De cada 100 € de vuestra cartera, X los pusisteis vosotros». Sobre lo que queda: coste de lo que sigue en cartera frente a su valor. */
+  function contributedVsValue({ totalCost, totalValue }) {
+    const cost = Number(totalCost);
+    const value = Number(totalValue);
+    if (!(cost > 0) || !(value > 0)) return { calculable: false, reason: !(cost > 0) ? "sin-coste" : "sin-valor" };
+    const gain = round2(value - cost);
+    if (gain >= 0) {
+      const yours = Math.round((cost / value) * 100);
+      return { calculable: true, gain, cost: round2(cost), value: round2(value), direction: "gana", yoursPer100: yours, marketPer100: 100 - yours };
+    }
+    return { calculable: true, gain, cost: round2(cost), value: round2(value), direction: "pierde", lostPct: round1((-gain / cost) * 100) };
+  }
+
   return {
     STORE_NAME, STALE_DAYS, MAX_POINTS, BIG_MOVE_PCT, BIG_MOVE_PCT_CRYPTO, SCALE_FACTOR,
+    dietzReturn, chainTwr, positionFlows, positionPoints, positionTwr, portfolioTwr, contributedVsValue,
     normalizeStore, addValuation, series, thin, recordTiming, timingSummary,
     ageDays, freshness, freshnessSummary, orderRows,
     netFlows, marketVariation, checkRow, warningText, buildSave, undoPositions, closeNote, formatDate,

@@ -60,10 +60,11 @@ test("IV2: renderIv1PositionList muestra la XIRR de cada posición junto al rest
   assert.match(block, /iv2XirrLabel\(position\.xirr\)/);
 });
 
-test("IV2: renderIv1PositionSummary muestra la XIRR de la cartera y explica por qué TWR coincide con ella hoy", () => {
+test("IV2: renderIv1PositionSummary muestra la XIRR de la cartera y dice dónde está la TWR (WP-18), sin la frase antigua de que no hay valoraciones", () => {
   const block = appSource.slice(appSource.indexOf("function renderIv1PositionSummary"), appSource.indexOf("function renderIv1PositionSummary") + 2200);
   assert.match(block, /iv2XirrLabel\(xirr\)/);
-  assert.match(block, /valoraciones intermedias que esta app no registra/);
+  assert.match(block, /La rentabilidad del mercado \(TWR\) sale de las valoraciones con fecha/);
+  assert.doesNotMatch(block, /que esta app no registra/, "desde WP-15 la app guarda valoraciones con fecha");
 });
 
 test("IV2: iv2XirrLabel nunca inventa una tasa cuando no es calculable — dice el motivo", () => {

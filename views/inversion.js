@@ -66,6 +66,7 @@ function renderInversionCartera() {
   globalThis.renderIndiceVivienda?.(globalThis.FinanceCanonicalIndexValuation); // WP-50 (indice-vivienda-ui.js)
   globalThis.renderPatrimonio?.(globalThis.FinanceCanonicalNetWorth); // WP-46 (patrimonio-ui.js)
   globalThis.renderCalmaCobertura?.(globalThis.FinanceCanonicalCalmCoverage); // WP-44 (calma-ui.js)
+  globalThis.renderAportado?.(globalThis.FinanceCanonicalPortfolioValuation); // WP-18 (aportado-ui.js), solo con su interruptor encendido
 }
 
 // I1 · Rebalanceo: objetivo de reparto por tipo de activo (IV6), revisión por calendario (INV17) y
