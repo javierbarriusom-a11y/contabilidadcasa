@@ -394,7 +394,9 @@ tr.done td.what { text-decoration: line-through; }
     const platHechas = PLAT.filter((p) => platState(p).estado === "hecho").length;
     const platHogar = PLAT.filter((p) => platState(p).estado === "esperando al hogar").length;
     const prs = new Set(PLAT.flatMap((p) => prNums(platState(p).pr))).size;
-    const apagadas = PLAT.filter((p) => p.enPrueba && platState(p).prueba === "apagada");
+    // Los paquetes del plan con interruptor propio (WP-18) cuentan igual: nacen apagados hasta que su estado diga «encendida».
+    const apagadas = [...PLAT.filter((p) => p.enPrueba && platState(p).prueba === "apagada"),
+      ...BASE.filter((w) => w.enPrueba === "propio" && (wpState(w.id).prueba || "apagada") === "apagada")];
     const revisiones = PLAT.filter((p) => p.revision && platState(p).prueba === "encendida" && d(p.revision) >= TODAY)
       .map((p) => p.revision).sort();
     const vencidas = overdueTasks();
