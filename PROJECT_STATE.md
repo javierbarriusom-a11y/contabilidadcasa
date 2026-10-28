@@ -109,6 +109,25 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (365): las dos pruebas intermitentes del CI dicen por qué fallan
+
+- **Por qué:** el hogar pidió seguir con todo lo que no dependa de él. Lo primero era el CI: dos pruebas en navegador fallan de vez en cuando, cada vez cuestan un relanzamiento de casi una hora y, en `main`, bloquean el despliegue.
+  - **WP-40 (la CIRBE), en Chromium:** «element is not stable» durante 120 s al pulsar «Añadir fila». Ha fallado en #511 el 16/10, en #553 el 27/10 y en `main` tras #558 (run 1211).
+  - **El ensayo del cierre de octubre, en WebKit:** tras «Importar 5 movimientos», el diálogo de confirmar no se abre. Falló en #559 y pasó al relanzar.
+- **Lo que se probó, sin reproducirlo:**
+  - WP-40 en local, 16 de 16 en verde. Un primer «12 de 12 en rojo» era el navegador: el Playwright del proyecto esperaba otra versión de Chromium (trampa 14, §10 del backlog).
+  - Con la CPU ×6, con y sin desplazamiento suave (`scroll-behavior: smooth` en `styles.css`): el clic llega en 1-2 s.
+  - Midiendo durante 5 s tras rellenar el formulario: ninguna mutación del DOM y ningún movimiento del botón. Tampoco hay bucle de repintado con la tarjeta de revisión del tipo, que observa la tabla de contratos.
+  - WebKit no se puede instalar aquí.
+- **Decisión:** sin la causa, no se toca la app ni la configuración global (emular `reduced-motion` habría sido una conjetura). En su lugar, **diagnóstico**:
+  - `tests/helpers/pulsar-o-explicar.cjs`: `pulsar(page, selector)` hace el mismo clic. Si no puede en 20 s, mide durante 1,5 s y escribe en el error si el botón se movía (cuántas cajas distintas), qué zonas de la página se repintaban, si la página se desplazaba, dónde estaba el foco, qué diálogos había abiertos y los últimos clics y cambios del documento (`registrarEventos`, en fase de captura).
+  - No reintenta ni alarga ningún tiempo: un fallo de verdad sigue fallando.
+  - Lo usan los tres clics de «Añadir fila» de WP-40 y la confirmación del ensayo, que registra los eventos antes de pulsar «Importar».
+  - Comprobado forzando el fallo: con un botón que se mueve en cada fotograma, «cajasDistintas: 50» y la zona que se repinta; con uno que no existe, «no existe».
+- **Pruebas:** `tests/ci-informe-playwright.test.cjs` gana una (los cuatro clics pasan por el ayudante y este no reintenta). WP-40 y el ensayo del cierre, a 1280 y 390 px en Chromium: 12 de 12.
+- **Validación:** `npm run verify` en verde, 6225/6225.
+- **Siguiente:** con el próximo fallo de cualquiera de las dos, el registro del CI dirá la causa y se arregla de verdad.
+
 ## Cierre de sesión — 27 de octubre de 2026 (364): WP-23, el tramo autonómico de vivienda contrastado
 
 - **Por qué:** era el punto 2 del plan aprobado («ok al plan»). El parámetro de vivienda de la campaña fiscal era el único de los cinco sin contrastar: faltaba el tramo autonómico de la comunidad del hogar. El hogar la dio por el chat; como el 23/10, **no se escribe en el repositorio**, que es público.
