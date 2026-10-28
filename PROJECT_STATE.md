@@ -109,6 +109,16 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (367): el panel cuenta también las funciones en prueba de los paquetes
+
+- **Por qué:** al anotar WP-18 en el panel de seguimiento salió un hueco. El indicador «Funciones en prueba apagadas» solo miraba las filas del §5.0, así que seguía diciendo 5 cuando, con «Aportado frente a valor», ya son 6.
+- **Cambio (sin cambios en la app):**
+  - `docs/plan/plan-definitivo.json`: WP-18 lleva `"enPrueba": "propio"`.
+  - `docs/plan/panel-seguimiento.html`: suma los paquetes marcados así. Están apagados mientras su estado no diga `prueba: "encendida"`.
+  - `BACKLOG_DEFINITIVO.md` §12 explica la regla.
+- **Prueba:** `tests/plan-seguimiento-sincronizado.test.cjs` gana una. Cada interruptor propio del catálogo de `funciones-en-prueba.js` (hoy 6) tiene que estar marcado en una fila del §5.0 o en un paquete, o el panel diría de menos. Comprobado en el panel generado: «6 · XPR-06 · XDA-01 · XUX-02 · XPR-07 · XDA-10 · WP-18», sin errores.
+- **Validación:** `npm run verify` en verde, 6232/6232 (+1).
+
 ## Cierre de sesión — 28 de octubre de 2026 (366): WP-18 · PR-1, aportado frente a valor y TWR (en prueba, apagada)
 
 - **Por qué:** el hogar pidió seguir con todo lo que no dependa de él. WP-18 (NIN-03, Ola 3) tenía cumplida su dependencia (WP-15, la hoja de valoración) y se puede construir sin datos del hogar. Nace apagada, así que no carga la semana del cierre de octubre ni arranca ninguna revisión.

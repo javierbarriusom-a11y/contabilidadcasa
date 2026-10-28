@@ -683,7 +683,8 @@
    "depende": [
     "WP-15"
    ],
-   "hechoCuando": "Aportado, valor, XIRR y TWR por posición, con explicación."
+   "hechoCuando": "Aportado, valor, XIRR y TWR por posición, con explicación.",
+   "enPrueba": "propio"
   },
   {
    "id": "WP-44",
