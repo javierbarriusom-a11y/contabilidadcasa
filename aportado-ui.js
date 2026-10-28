@@ -5,7 +5,7 @@
 // Nace apagada en Funciones en prueba (XGO-03). No cambia ningún dato y no recomienda comprar ni vender: enseña dos cifras y qué significan.
 //
 // Script de pantalla: se carga antes de app.js y comparte su ámbito global (qs, escapeHtml, money, displayShortDate, iv1PositionsList,
-// iv2XirrLabel, loadPortfolioValuations, openValoracionHoja…). Sin llamadas al DOM al cargarse: views/inversion.js llama a `renderAportado`
+// iv2XirrLabel, iv2Pct, loadPortfolioValuations, openValoracionHoja…). Sin llamadas al DOM al cargarse: views/inversion.js llama a `renderAportado`
 // al pintar Inversión › Cartera, que engancha la escucha la primera vez.
 
 function aportadoOn() {
@@ -22,10 +22,10 @@ function aportadoTwrTexto(twr) {
   return twr.annualizedPct === null ? `${aportadoPct(twr.cumulativePct)} ${periodo}` : `${aportadoPct(twr.annualizedPct)} al año (${aportadoPct(twr.cumulativePct)} ${periodo})`;
 }
 
-// La XIRR del motor de cartera, con el formato de cifras de la app («+43,1 % al año»); si no se puede calcular, el motivo de siempre.
+// La XIRR del motor de cartera sin la etiqueta «XIRR» (la tarjeta ya la nombra); si no se puede calcular, el motivo de siempre.
 function aportadoXirrTexto(xirr) {
   if (!xirr || xirr.ratePct === null || xirr.ratePct === undefined) return iv2XirrLabel(xirr);
-  return `${aportadoPct(Math.round(xirr.ratePct * 10) / 10)} al año`;
+  return `${iv2Pct(xirr.ratePct, true)} al año`;
 }
 
 function aportadoFraseHtml(cv) {

@@ -73,6 +73,19 @@ test("IV2: iv2XirrLabel nunca inventa una tasa cuando no es calculable — dice 
   assert.match(block, /IV2_XIRR_REASON_LABELS/);
 });
 
+test("IV2: las rentabilidades de Cartera van con coma, un decimal y «al año» (28/10/2026, igual que «Aportado frente a valor»)", () => {
+  const start = appSource.indexOf("const IV2_XIRR_REASON_LABELS");
+  const end = appSource.indexOf("\n}\n", appSource.indexOf("function iv2Pct")) + 3;
+  const { iv2XirrLabel, iv2Pct, iv2Num } = new Function(`${appSource.slice(start, end)}; return { iv2XirrLabel, iv2Pct, iv2Num };`)();
+  assert.equal(iv2XirrLabel({ ratePct: 43.13 }), "XIRR +43,1 % al año");
+  assert.equal(iv2XirrLabel({ ratePct: -22.51 }), "XIRR -22,5 % al año");
+  assert.equal(iv2XirrLabel({ ratePct: null, reason: "not-converged" }), "XIRR no calculable (el cálculo no convergió)");
+  assert.equal(iv2Pct(13.75), "13,8 %");
+  assert.equal(iv2Pct(-0.04, true), "0 %", "sin «-0» ni «+0»");
+  assert.equal(iv2Num(2.25), "2,3");
+  for (const viejo of ["(${position.gainLossPct}%)", "(${gainLossPct}%)", "(${result.benchmarkPct}% anual)"]) assert.ok(!appSource.includes(viejo), `queda el formato viejo ${viejo}`);
+});
+
 test("el motor canónico de cartera (con xirr) está versionado en index.html", () => {
   assert.match(indexSource, /canonical-portfolio\.js\?v=/);
 });

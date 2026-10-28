@@ -18256,7 +18256,15 @@ function iv2XirrLabel(result) {
   if (!result || result.ratePct === null) {
     return `XIRR no calculable (${IV2_XIRR_REASON_LABELS[result?.reason] || "datos insuficientes"})`;
   }
-  return `XIRR ${result.ratePct >= 0 ? "+" : ""}${result.ratePct}% anual`;
+  return `XIRR ${iv2Pct(result.ratePct, true)} al año`;
+}
+
+// Cifras de rentabilidad de Cartera con el formato de la app: coma decimal, un decimal y espacio antes de «%» («+43,1 %»).
+function iv2Num(value) {
+  return (Math.round(Number(value) * 10) / 10 || 0).toLocaleString("es-ES", { maximumFractionDigits: 1 });
+}
+function iv2Pct(value, signo = false) {
+  return `${signo && Math.round(Number(value) * 10) > 0 ? "+" : ""}${iv2Num(value)} %`;
 }
 
 // I12 (Contabilidadcasa 2.0): aviso de posición sin revisar en más de 12 meses, sobre la convicción
@@ -18339,7 +18347,7 @@ function iv1PositionChartRowsHtml(positions, trackWidth) {
     const valuePct = Math.max(0, Math.min(100, round2((position.currentValue / maxValue) * 100)));
     const costPct = Math.max(0, Math.min(99.4, round2((position.costBasis / maxValue) * 100)));
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
-    const title = `${position.label} · ${typeLabel} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · ${money(position.gainLoss, true)} (${position.gainLossPct}%)`;
+    const title = `${position.label} · ${typeLabel} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · ${money(position.gainLoss, true)} (${iv2Pct(position.gainLossPct)})`;
     return `<div class="iv1-chart-row" title="${escapeHtml(title)}">
       <span class="iv1-chart-row-label">${escapeHtml(position.label)}</span>
       <span class="iv1-chart-row-track">
@@ -18389,7 +18397,7 @@ function renderIv1PositionList() {
     const averageCostNote = ivx7AverageCostLabel(position);
     const feeCostNote = ivx4FeeCostLabel(position);
     const totalCostNote = inv15TotalCostOfOwnershipLabel(position);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)}${age ? ` (${escapeHtml(age.label)})` : ""} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span>${i12ConvictionReviewHtml(position)}<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)}${age ? ` (${escapeHtml(age.label)})` : ""} · <span class="${gainClass}">${money(position.gainLoss, true)} (${iv2Pct(position.gainLossPct)})</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span>${i12ConvictionReviewHtml(position)}<button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -18776,7 +18784,7 @@ function renderIv1PositionSummary() {
     : totalRealizedGain !== 0
       ? `Plusvalía realizada (ya vendida, FIFO): <strong class="${totalRealizedGain > 0 ? "positive" : "negative"}">${money(totalRealizedGain, true)}</strong>.`
       : "";
-  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La XIRR pondera por dinero: cuenta cuándo pusisteis cada euro. La rentabilidad del mercado (TWR) sale de las valoraciones con fecha de «Actualizar valoración»: con dos o más, «Aportado frente a valor» (en Funciones en prueba) la enseña junto a esta XIRR.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}${ivx2BenchmarkComparisonHtml(engine, xirr)}`;
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${iv2Pct(gainLossPct)})</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La XIRR pondera por dinero: cuenta cuándo pusisteis cada euro. La rentabilidad del mercado (TWR) sale de las valoraciones con fecha de «Actualizar valoración»: con dos o más, «Aportado frente a valor» (en Funciones en prueba) la enseña junto a esta XIRR.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}${ivx2BenchmarkComparisonHtml(engine, xirr)}`;
 }
 
 // IVX2: comparación contra un índice de referencia declarado por el hogar (no se trae ningún precio
@@ -18789,11 +18797,11 @@ function ivx2BenchmarkComparisonHtml(engine, xirr) {
   const result = engine.compareAgainstBenchmark(xirr, benchmarkPct);
   if (!result.calculable) return "";
   const verdict = result.beatsBenchmark
-    ? `tu cartera supera al índice declarado por ${result.deltaPct >= 0 ? "+" : ""}${result.deltaPct} puntos`
+    ? `tu cartera supera al índice declarado por ${result.deltaPct >= 0 ? "+" : ""}${iv2Num(result.deltaPct)} puntos`
     : result.deltaPct === 0
       ? "tu cartera empata con el índice declarado"
-      : `tu cartera queda por debajo del índice declarado por ${result.deltaPct} puntos`;
-  return `<p class="e19-kpi-note">Frente al índice de referencia declarado (${result.benchmarkPct}% anual): ${verdict}. Comparación aproximada — la XIRR es ponderada por dinero (tus fechas reales de entrada/salida), el índice no vive esos mismos flujos de caja.</p>`;
+      : `tu cartera queda por debajo del índice declarado por ${iv2Num(Math.abs(result.deltaPct))} puntos`;
+  return `<p class="e19-kpi-note">Frente al índice de referencia declarado (${iv2Pct(result.benchmarkPct)} al año): ${verdict}. Comparación aproximada — la XIRR es ponderada por dinero (tus fechas reales de entrada/salida), el índice no vive esos mismos flujos de caja.</p>`;
 }
 
 // FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de IV1/IV2 y
@@ -18860,7 +18868,7 @@ function renderInv6LatentLossCandidates() {
     return;
   }
   const items = candidates
-    .map((item, index) => `<li class="commit-barrier-item"><span>${index === 0 ? "Vende esta primero — " : ""}${escapeHtml(item.label)}${globalThis.inv6RepurchaseNote?.(item) || ""}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
+    .map((item, index) => `<li class="commit-barrier-item"><span>${index === 0 ? "Vende esta primero — " : ""}${escapeHtml(item.label)}${globalThis.inv6RepurchaseNote?.(item) || ""}</span><span class="negative">${money(item.gainLoss, true)} (${iv2Pct(item.gainLossPct)})</span></li>`)
     .join("");
   container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se realizaran todas: ${money(totalLatentLoss, true)}. Para que la pérdida cuente, no recompres lo mismo dentro de la ventana de la norma de recompra (dos meses en acciones y ETF de mercados de la UE; un año en fondos que no cotizan y valores de fuera de la UE) ni lo hayas comprado en esa ventana antes de vender.</p>`;
 }

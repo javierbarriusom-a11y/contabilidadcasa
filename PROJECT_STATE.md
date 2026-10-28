@@ -109,6 +109,23 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (369): las rentabilidades de Cartera, con el formato de la app
+
+- **Por qué:** con WP-18, Inversión › Cartera enseñaba dos formatos a la vez: la tarjeta nueva decía «+43,1 % al año» y la lista de al lado, «XIRR +43.13% anual». Es la deuda de `docs/rediseno/ESTADO.md` §5 («se arreglan en origen»), aquí solo para Cartera.
+- **Cambio:**
+  - `app.js`: `iv2Num` y `iv2Pct` (coma decimal, un decimal, espacio antes de «%», sin «-0»).
+  - `iv2XirrLabel` dice «XIRR +43,1 % al año». La plusvalía de cada posición, la de la cartera y la de «Vende esta primero» pasan a «(13,8 %)».
+  - El índice de referencia, a «(7 % al año)».
+  - **De paso, una frase mal construida:** «queda por debajo del índice declarado por -2.3 puntos» pasa a «por 2,3 puntos».
+  - `aportado-ui.js` usa el mismo `iv2Pct`.
+  - Versiones de `app.js` y `aportado-ui.js` en `index.html`, y una línea en Novedades.
+- **Siguen con el formato viejo, fuera de Cartera:** la XIRR citada en el simulador de liquidez ociosa (`app.js`) y en el coste de oportunidad de Partidas (`partidas-ui.js`). Anotado en `docs/WP18_DISENO.md` §5.
+- **Pruebas:** `tests/iv2-app-integracion.test.cjs` gana una: el formato con cifras, el motivo cuando no es calculable, sin «-0», y que los patrones viejos de Cartera ya no están. Las E2E de Cartera (WP-15, WP-18, WP-46 y el kit de gráficos) salen en verde: 12 de 12.
+- **Validación:** `npm run verify` en verde, 6234/6234 (+1). **Tropiezo, corregido antes del push:** la primera validación completa dio 34 fallos.
+  - **Causa 1, la versión de `app.js`:** se fija literal en 27 ficheros de pruebas, que se actualizan juntos como en cada cambio de versión.
+  - **Causa 2, el gráfico de Cartera:** `tests/i9-grafico-cartera.test.cjs` carga `iv1PositionChartRowsHtml` suelta y ahora también necesita `iv2Num`/`iv2Pct`.
+  - **La lección:** antes de dar por bueno un cambio en `app.js` se pasa la batería entera, no solo las pruebas de la pantalla.
+
 ## Cierre de sesión — 28 de octubre de 2026 (368): Safari reintenta una vez en el CI, y lo que falló queda escrito
 
 - **Por qué:** en un día fallaron de vez en cuando tres pruebas distintas que solo corren en WebKit, el motor del Safari del iPhone:

@@ -47,7 +47,8 @@ function sandboxWith(names) {
     IV1_POSITION_TYPE_LABELS: { fondo: "Fondo", accion: "Acción", etf: "ETF", cripto: "Cripto", "plan-pension": "Plan de pensiones", otro: "Otro" },
   };
   vm.createContext(context);
-  names.forEach((name) => vm.runInContext(extractFunction(name), context));
+  // Las cifras de rentabilidad de Cartera van con el formato de la app (iv2Num/iv2Pct, 28/10/2026).
+  ["iv2Num", "iv2Pct", ...names].forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
 }
 
@@ -112,7 +113,7 @@ test("iv1PositionChartRowsHtml · marca el coste con un tick independiente del c
 test("iv1PositionChartRowsHtml · el tooltip nativo (title) lleva coste, valor y plusvalía/minusvalía, mismo patrón que P2", () => {
   const ctx = sandboxWith(["iv1PositionChartRowsHtml"]);
   const output = ctx.iv1PositionChartRowsHtml([position({ label: "Fondo X", costBasis: 1000, currentValue: 1200, gainLoss: 200, gainLossPct: 20 })], "120px");
-  assert.match(output, /title="Fondo X · Fondo · coste 1000\.00 € · valor 1200\.00 € · 200\.00 € \(20%\)"/);
+  assert.match(output, /title="Fondo X · Fondo · coste 1000\.00 € · valor 1200\.00 € · 200\.00 € \(20 %\)"/);
 });
 
 test("iv1PositionChartRowsHtml · el ancho de columna del zoom viaja en la variable CSS, no en el viewBox", () => {
