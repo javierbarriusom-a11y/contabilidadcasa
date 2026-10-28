@@ -109,6 +109,24 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (368): Safari reintenta una vez en el CI, y lo que falló queda escrito
+
+- **Por qué:** en un día fallaron de vez en cuando tres pruebas distintas que solo corren en WebKit, el motor del Safari del iPhone:
+  - el ensayo del cierre de octubre, en #559;
+  - el interruptor del diseño nuevo, en `main` tras #560 (run 1215);
+  - el foco al terminar el Repaso semanal, en el primer relanzamiento de #562.
+
+  Las tres pasaron en otras ejecuciones del mismo código. Aquí no se pueden reproducir, porque no se instala WebKit, y cada fallo costaba unos 45 min de CI. #562, que solo tocaba el panel, necesitó tres intentos; el segundo cayó además por un cierre de Chromium (SIGSEGV).
+- **Decisión del hogar (28/10):** «1 reintento solo en Safari», sobre la opción recomendada. Deja sin efecto, solo en eso, el «bloquea a la primera» de P14 (19/10).
+- **Cambio (sin cambios en la app):**
+  - `playwright.config.cjs`: el proyecto `safari` lleva `retries: process.env.CI ? 1 : 0`. En local no reintenta, y el resto de proyectos tampoco.
+  - `.github/workflows/pages.yml`: si Safari pasa tras reintentar, lo que vio Playwright en el intento fallido (`error-context.md`) se escribe en el registro, con un aviso «Safari intermitente» en el PR.
+  - Dos fallos seguidos siguen bloqueando.
+  - Trampa 15 en `BACKLOG_DEFINITIVO.md` §10 y nota en `docs/rediseno/ESTADO.md`. **Ese aviso es trabajo:** se busca su causa, no se ignora.
+- **Prueba:** `tests/ci-informe-playwright.test.cjs` gana una. Exige que solo `safari` reintente y solo en el CI, y que el paso escriba el intento fallido.
+- **Validación:** `npm run verify` en verde, 6233/6233 (+1).
+- **Pista sin resolver:** el fallo del Repaso puede ser real en el iPhone. Al terminar el repaso desde Hoy, el foco del teclado debería volver al primer botón de Hoy, y en WebKit a veces se queda en ningún sitio. No afecta al uso con el dedo. Queda para cuando el registro del reintento diga más.
+
 ## Cierre de sesión — 28 de octubre de 2026 (367): el panel cuenta también las funciones en prueba de los paquetes
 
 - **Por qué:** al anotar WP-18 en el panel de seguimiento salió un hueco. El indicador «Funciones en prueba apagadas» solo miraba las filas del §5.0, así que seguía diciendo 5 cuando, con «Aportado frente a valor», ya son 6.
