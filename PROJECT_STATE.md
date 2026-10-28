@@ -109,6 +109,20 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 28 de octubre de 2026 (370): decisiones del hogar sobre sus tareas (sin cambios en la app)
+
+- **H-03 no se hace** («dejamos los datos de ejemplo»): **WP-23 pasa a aparcado.**
+  - Está todo construido y contrastado, pero sin datos reales no habrá lista con euros antes del 15/11, que era su «hecho cuando».
+  - Se reactiva si el hogar teclea sus datos fiscales (unos 20 min); tiene sentido hasta mediados de diciembre.
+- **H-22, hecha** por declaración del hogar. Su parte de anotar qué formatos da cada app del banco (paso 0 de XDA-02) no ha llegado por el chat.
+- **H-05**, sigue para el 1/11.
+- **WP-18 se enciende ya.** El interruptor está en Ajustes › Funciones en prueba del navegador del hogar; desde aquí no se puede. Su revisión de dos semanas cuenta desde ese día.
+- **Simular el cierre de octubre con datos estimados y reabrirlo**:
+  - **Es posible, pero solo desde la app y con la sesión del hogar.** Fuera de los días 1-3, «Cerrar mes» propone el mes en curso, y «Reabrir» existe. Las dos cosas exigen sesión iniciada y sincronizada, y quedan firmadas en el historial de la nube.
+  - **No desbloquea métricas:** WP-09, WP-12, WP-46 y WP-18 esperan datos reales a propósito. Lo que sí da es un ensayo del recorrido con los datos del hogar antes del 1/11.
+- Panel de seguimiento al día (H-03, H-22, WP-23 y el registro). `docs/ESTADO_TAREAS_Y_FASES.md` y `BACKLOG_DEFINITIVO.md` §0, al día.
+- **Validación:** `npm run verify` en verde, 6234/6234 (solo cambia documentación).
+
 ## Cierre de sesión — 28 de octubre de 2026 (369): las rentabilidades de Cartera, con el formato de la app
 
 - **Por qué:** con WP-18, Inversión › Cartera enseñaba dos formatos a la vez: la tarjeta nueva decía «+43,1 % al año» y la lista de al lado, «XIRR +43.13% anual». Es la deuda de `docs/rediseno/ESTADO.md` §5 («se arreglan en origen»), aquí solo para Cartera.
