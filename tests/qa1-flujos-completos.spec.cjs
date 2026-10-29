@@ -6787,3 +6787,44 @@ test.describe("WP-17 · Siguiente paso de la cartera", () => {
     });
   }
 });
+
+// Guía del cierre de mes (29/10/2026): en Cierre, plegada el resto del mes y abierta del 1 al 3 si el mes que acaba no está firmado.
+// Las casillas se guardan por mes: marcar un paso de octubre sobrevive a recargar y no pasa a noviembre.
+test.describe("Guía del cierre de mes", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`plegada a mitad de mes; del 1 al 3, abierta con el mes que acaba, y lo marcado se guarda, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 20, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#cierre");
+      const guia = page.locator("#cierreGuia");
+      await expect(guia).toBeVisible({ timeout: 15000 });
+      await expect(guia, "a mitad de mes, plegada").not.toHaveAttribute("open", "");
+      await expect(guia.locator(":scope > summary")).toContainText("Guía del cierre de octubre");
+
+      await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0, 0));
+      await page.reload();
+      await expect(guia).toBeVisible({ timeout: 15000 });
+      await expect(guia, "del 1 al 3, abierta").toHaveAttribute("open", "");
+      await expect(guia.locator(":scope > summary")).toContainText("Guía del cierre de octubre");
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("0 de 9 pasos hechos");
+      await expect(guia).toContainText("Importad el extracto hasta el último día de octubre");
+      await guia.locator('label[for="cierreGuia-sesion"]').click();
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("1 de 9 pasos hechos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("1 de 9 pasos hechos", { timeout: 15000 });
+      await expect(guia.locator("#cierreGuia-sesion")).toBeChecked();
+      await guia.locator(":scope > summary").click(); // plegar no borra nada
+      await guia.locator(":scope > summary").click();
+      await guia.locator(".cierre-guia-atascos summary").click();
+      await expect(guia.locator(".cierre-guia-atascos")).toContainText("Reabrir mes");
+      await guia.locator('a[href="#movements"]').first().click();
+      await expect(page).toHaveURL(/#movements$/);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

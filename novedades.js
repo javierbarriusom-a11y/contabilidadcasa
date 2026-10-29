@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-29-cierre-guia",
+      fecha: "2026-10-29",
+      texto: "Cierre: una guía con los pasos del cierre de mes, dónde se hace cada uno y qué hacer si algo no cuadra. Del 1 al 3 sale abierta.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-28-siguiente-paso",
       fecha: "2026-10-28",
       texto: "En prueba y apagada: arriba de Inversión › Cartera, la cartera en una línea y el siguiente paso que toca, con su motivo.",

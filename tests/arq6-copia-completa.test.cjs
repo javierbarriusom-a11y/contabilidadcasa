@@ -39,6 +39,7 @@ const EXCLUDED = {
   "balance-pulse-times": "tiempos del Pulso de saldos en este dispositivo (WP-26): segundos y recuentos de «Coincide»/«Corregir», sin importes; mide este móvil, no es un dato del hogar",
   "reminders-settings": "qué recordatorios quiere este móvil, el umbral de «cargo grande» y cuándo se generó su último .ics (WP-32): describe el calendario de este dispositivo, sin importes del hogar",
   "novedades-ultima-vista": "hasta qué línea de «Novedades» se ha leído en este dispositivo (WP-01), no un dato del hogar",
+  "cierre-guia": "casillas de la guía del cierre en este dispositivo (29/10/2026): qué pasos se han marcado cada mes, sin importes; una ayuda para no perderse, no un dato del hogar",
   "finance-e18-local-health": "métricas técnicas locales (E18)",
   // Trabajo a medias y ayudas de este dispositivo.
   "datos-importar-borrador": "bandeja de importación a medio revisar; se rehace subiendo el fichero",

@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**29/10/2026 · guía del cierre de mes en Cierre (pedida por el hogar):** una tarjeta plegable con los nueve pasos del cierre, el mes que toca, enlaces a cada pantalla, qué bloquea la firma y qué hacer si algo no cuadra. Las casillas son por mes y por dispositivo. Del 1 al 3, con el mes sin firmar, sale abierta. No nace apagada porque la pidió el hogar para usarla; tiene revisión a las dos semanas en Funciones en prueba y no cambia la superficie por defecto.
+
 **28/10/2026 · WP-17 · PR-1, siguiente paso de la cartera (en prueba y apagada; lo pidió el hogar como «siguiente paquete del plan»):** arriba de Inversión › Cartera, la cartera en una línea y una sola acción con su motivo y la regla que la origina. El orden es fijo: valorar lo que lleva más de 35 días sin valor, lo que choca con la política firmada, el reparto fuera de la banda (de la política o, sin ella, de Rebalanceo), compensar plusvalías antes del 31/12, la política (sin firmar, cambiada o por revisar) y la convicción sin confirmar. **Nunca opera.** Con «rebalancear primero con aportaciones» nunca propone vender. La fiscal dice la norma de recompra y que no es una recomendación. **Apagada en Funciones en prueba** (la séptima). Sin la política firmada (H-12), sus reglas no mandan todavía (`docs/WP17_DISENO.md`).
 
 **28/10/2026 · decisiones del hogar sobre sus tareas:**
