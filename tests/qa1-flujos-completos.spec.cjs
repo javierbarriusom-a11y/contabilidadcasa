@@ -26,6 +26,19 @@ const enSafari = (viewport) => ({ tag: viewport.width === 390 ? ["@safari"] : []
 // Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 
+// Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
+// empiezan con ella apagada, como haría el hogar al apagarla; después la encienden con su interruptor. Solo si aún no hay elección,
+// para que encenderla durante la prueba no se deshaga en la siguiente navegación.
+async function empezarApagada(page, id) {
+  await page.addInitScript((funcion) => {
+    try {
+      if (localStorage.getItem("funciones-en-prueba-banderas") === null) localStorage.setItem("funciones-en-prueba-banderas", JSON.stringify({ [funcion]: { on: false } }));
+    } catch {
+      // sin almacenamiento: la prueba fallará al buscar el estado apagado, que es lo correcto
+    }
+  }, id);
+}
+
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
   await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
@@ -6398,6 +6411,7 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await empezarApagada(page, "banda-dia"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       const abrirBanda = async () => {
         await page.goto("/index.html#prevision");
@@ -6477,6 +6491,7 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await empezarApagada(page, "lo-que-pide"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#ajustes");
       const card = page.locator("#loQuePideCard");
@@ -6511,6 +6526,7 @@ test.describe("XUX-02 · Ver cómo quedaría", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await empezarApagada(page, "ver-ejemplo"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       const abrirPlanB = async () => {
         await page.goto("/index.html#plan");
@@ -6574,6 +6590,7 @@ test.describe("XPR-07 · El arreglo más barato", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await empezarApagada(page, "descubierto"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#ajustes");
       await page.locator('[data-fep-interruptor="descubierto"]').click();
@@ -6620,6 +6637,7 @@ test.describe("XDA-10 · Antes de decidir", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 27, 10, 0, 0) });
+      await empezarApagada(page, "antes-de-decidir"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       const comparar = async (cuanto, edad) => {
         await page.evaluate(([cuanto, edad]) => {
@@ -6681,6 +6699,7 @@ test.describe("WP-18 · Aportado frente a valor", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
+      await empezarApagada(page, "aportado"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#inversion-cartera");
       await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
@@ -6742,6 +6761,7 @@ test.describe("WP-17 · Siguiente paso de la cartera", () => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
+      await empezarApagada(page, "siguiente-paso"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#inversion-cartera");
       await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
@@ -6783,6 +6803,47 @@ test.describe("WP-17 · Siguiente paso de la cartera", () => {
       await expect(accion.locator(".sp-titulo")).toHaveText("Actualizad la valoración de Fondo A");
       await accion.locator('[data-siguiente-paso-accion="valorar"]').click();
       await expect(page.locator("#valoracionDialog")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// Guía del cierre de mes (29/10/2026): en Cierre, plegada el resto del mes y abierta del 1 al 3 si el mes que acaba no está firmado.
+// Las casillas se guardan por mes: marcar un paso de octubre sobrevive a recargar y no pasa a noviembre.
+test.describe("Guía del cierre de mes", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`plegada a mitad de mes; del 1 al 3, abierta con el mes que acaba, y lo marcado se guarda, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 20, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#cierre");
+      const guia = page.locator("#cierreGuia");
+      await expect(guia).toBeVisible({ timeout: 15000 });
+      await expect(guia, "a mitad de mes, plegada").not.toHaveAttribute("open", "");
+      await expect(guia.locator(":scope > summary")).toContainText("Guía del cierre de octubre");
+
+      await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0, 0));
+      await page.reload();
+      await expect(guia).toBeVisible({ timeout: 15000 });
+      await expect(guia, "del 1 al 3, abierta").toHaveAttribute("open", "");
+      await expect(guia.locator(":scope > summary")).toContainText("Guía del cierre de octubre");
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("0 de 9 pasos hechos");
+      await expect(guia).toContainText("Importad el extracto hasta el último día de octubre");
+      await guia.locator('label[for="cierreGuia-sesion"]').click();
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("1 de 9 pasos hechos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("1 de 9 pasos hechos", { timeout: 15000 });
+      await expect(guia.locator("#cierreGuia-sesion")).toBeChecked();
+      await guia.locator(":scope > summary").click(); // plegar no borra nada
+      await guia.locator(":scope > summary").click();
+      await guia.locator(".cierre-guia-atascos summary").click();
+      await expect(guia.locator(".cierre-guia-atascos")).toContainText("Reabrir mes");
+      await guia.locator('a[href="#movements"]').first().click();
+      await expect(page).toHaveURL(/#movements$/);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

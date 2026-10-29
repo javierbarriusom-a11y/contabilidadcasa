@@ -50,7 +50,7 @@ test("del más barato al más caro; a igual coste, el que menos colchón gasta; 
   assert.equal(F.solve({ shortfall: 900, levers: F.levers({ cushion: false, creditLine: { limit: 500, ratePct: 9 } }).list }).status, "uncovered", "si nada llega, se dice");
 });
 
-test("nace apagada en Funciones en prueba, solo se ve con descubierto y lee la banda de caja, sin recalcular la previsión", () => {
+test("en Funciones en prueba con su interruptor, solo se ve con descubierto y lee la banda de caja, sin recalcular la previsión", () => {
   const item = fep.CATALOGO.find((entry) => entry.id === "descubierto");
   assert.equal(item.interruptor, "propio");
   assert.match(item.metrica, /se queda dormida si no hay ninguno en seis meses/);

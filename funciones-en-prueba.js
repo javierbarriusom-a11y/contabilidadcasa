@@ -24,11 +24,14 @@
   const STORAGE_KEY = "funciones-en-prueba";
   const REVISION_DIAS = 14;
   const VOLVER_KEY = "funciones-en-prueba-volver";
-  // Interruptores propios (`interruptor: "propio"`): encendida o no y desde cuándo, en este navegador. Nacen apagados.
+  // Interruptores propios (`interruptor: "propio"`): encendida o no y desde cuándo, en este navegador. Desde el 29/10/2026 nacen
+  // ENCENDIDOS (decisión del hogar: «vamos a cambiar esta regla de "todo lo nuevo nace apagado"»): `encendidaDesde` es el día en que
+  // empezó a verse sin tocar nada, y su revisión cuenta desde entonces. Apagarla queda guardado aquí y manda sobre ese valor.
   const BANDERAS_KEY = "funciones-en-prueba-banderas";
 
   // Todo lo nuevo entra aquí. `interruptor: "tema"` es el diseño nuevo; `parteDe` dice con qué interruptor va una
-  // función que aún no tiene bandera propia. Una función nueva con bandera propia nace apagada (ficha XGO-03).
+  // función que aún no tiene bandera propia. Una función nueva con bandera propia nace encendida desde el 29/10/2026, con
+  // `encendidaDesde` (antes nacía apagada, ficha XGO-03); se apaga con su interruptor.
   const CATALOGO = [
     { id: "tema-v2", nombre: "Diseño nuevo", queHace: "El aspecto nuevo de toda la app. Apagado, vuelve el de siempre.", desde: "2026-10-19", metrica: "que lo uséis sin volver al de siempre", interruptor: "tema" },
     { id: "hoy-v2", nombre: "Hoy nuevo", queHace: "Una cifra, hasta tres decisiones y el mes en una barra.", desde: "2026-10-19", metrica: "tiempo hasta la primera acción", parteDe: "tema-v2" },
@@ -37,19 +40,21 @@
     { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "gasto importado con partida (95 % o más), propuestas aceptadas tal cual y segundos por grupo (4 o menos)", parteDe: "tema-v2" },
     { id: "repaso-v2", nombre: "Repaso semanal", queHace: "Saldos, extracto, lo que vino y la bandeja, en orden y con cronómetro.", desde: "2026-10-24", metrica: "minutos de mantenimiento a la semana (10 o menos)", parteDe: "tema-v2" },
     // XPR-06 (26/10/2026): la primera con interruptor propio; su revisión cuenta desde el día en que se enciende.
-    { id: "banda-dia", nombre: "Qué mueve cada día", queHace: "En Plan › Previsión, la banda de caja a 30 días dice qué entra y sale el día que elijas, con qué certeza y, si la fecha es estimada, dónde indicarla.", desde: "2026-10-26", metrica: "días de cargo indicados desde aquí; se retira si nadie lo usa en dos meses", interruptor: "propio" },
+    { id: "banda-dia", nombre: "Qué mueve cada día", queHace: "En Plan › Previsión, la banda de caja a 30 días dice qué entra y sale el día que elijas, con qué certeza y, si la fecha es estimada, dónde indicarla.", desde: "2026-10-26", metrica: "días de cargo indicados desde aquí; se retira si nadie lo usa en dos meses", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // XDA-01 · PR-1 (26/10/2026): lo que cuesta mantener cada función, en Ajustes › Uso de la app.
-    { id: "lo-que-pide", nombre: "Lo que la app te pide", queHace: "En Ajustes › Uso de la app, qué datos pide cada función, cada cuánto, cuántos minutos a la semana y cuáles tienen hambre.", desde: "2026-10-26", metrica: "datos que faltaban y se dan desde aquí; se retira si nadie la abre en dos meses", interruptor: "propio" },
+    { id: "lo-que-pide", nombre: "Lo que la app te pide", queHace: "En Ajustes › Uso de la app, qué datos pide cada función, cada cuánto, cuántos minutos a la semana y cuáles tienen hambre.", desde: "2026-10-26", metrica: "datos que faltaban y se dan desde aquí; se retira si nadie la abre en dos meses", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // XUX-02 · PR-1 (27/10/2026): «Ver cómo quedaría» en las tarjetas vacías que piden un alta (de momento, el plan B y la política de inversión).
-    { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", queHace: "En las tarjetas vacías que piden un alta (plan B, política de inversión), «Ver cómo quedaría» con un hogar inventado y lo que hace falta para verlo con lo vuestro.", desde: "2026-10-27", metrica: "altas empezadas después de ver el ejemplo; se retira si no suben", interruptor: "propio" },
+    { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", queHace: "En las tarjetas vacías que piden un alta (plan B, política de inversión), «Ver cómo quedaría» con un hogar inventado y lo que hace falta para verlo con lo vuestro.", desde: "2026-10-27", metrica: "altas empezadas después de ver el ejemplo; se retira si no suben", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // XPR-07 · PR-1 (27/10/2026): solo se ve si la trayectoria «según el plan» baja del suelo en los próximos 30 días.
-    { id: "descubierto", nombre: "El arreglo más barato", queHace: "En Plan › Previsión, si la liquidez prevista baja del suelo en los próximos 30 días: cuánto falta y la combinación más barata para no bajar (gasto discrecional, colchón, línea de crédito).", desde: "2026-10-27", metrica: "descubiertos previstos que dejan de estarlo antes de su fecha; se queda dormida si no hay ninguno en seis meses", interruptor: "propio" },
+    { id: "descubierto", nombre: "El arreglo más barato", queHace: "En Plan › Previsión, si la liquidez prevista baja del suelo en los próximos 30 días: cuánto falta y la combinación más barata para no bajar (gasto discrecional, colchón, línea de crédito).", desde: "2026-10-27", metrica: "descubiertos previstos que dejan de estarlo antes de su fecha; se queda dormida si no hay ninguno en seis meses", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // XDA-10 · PR-1 (27/10/2026): bajo el veredicto del guardarraíl de colchón (amortizar una deuda, garantía del Lombard).
-    { id: "antes-de-decidir", nombre: "Antes de decidir", queHace: "En los simuladores que miran el colchón (amortizar una deuda, garantía del Lombard), si los saldos son antiguos, dice si lo que han podido moverse cambiaría el veredicto.", desde: "2026-10-27", metrica: "decisiones tomadas con datos frescos; si nunca salta porque los datos siempre están al día, queda como etiqueta", interruptor: "propio" },
+    { id: "antes-de-decidir", nombre: "Antes de decidir", queHace: "En los simuladores que miran el colchón (amortizar una deuda, garantía del Lombard), si los saldos son antiguos, dice si lo que han podido moverse cambiaría el veredicto.", desde: "2026-10-27", metrica: "decisiones tomadas con datos frescos; si nunca salta porque los datos siempre están al día, queda como etiqueta", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // WP-18 · PR-1 (28/10/2026): en Inversión › Cartera, de cada 100 € cuántos pusisteis y cuántos el mercado, y la TWR junto a la XIRR.
-    { id: "aportado", nombre: "Aportado frente a valor", queHace: "En Inversión › Cartera, de cada 100 € de la cartera cuántos pusisteis y cuántos el mercado, y lo que hizo el mercado (TWR) junto a lo que ganó vuestro dinero (XIRR).", desde: "2026-10-28", metrica: "que la miréis tras cada valoración; se retira si en dos meses con valoraciones nadie la abre", interruptor: "propio" },
+    { id: "aportado", nombre: "Aportado frente a valor", queHace: "En Inversión › Cartera, de cada 100 € de la cartera cuántos pusisteis y cuántos el mercado, y lo que hizo el mercado (TWR) junto a lo que ganó vuestro dinero (XIRR).", desde: "2026-10-28", metrica: "que la miréis tras cada valoración; se retira si en dos meses con valoraciones nadie la abre", interruptor: "propio", encendidaDesde: "2026-10-29" },
     // WP-17 (28/10/2026): la siguiente acción de la cartera por reglas fijas. Nace apagada; su revisión cuenta desde que se enciende.
-    { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", queHace: "Arriba de Inversión › Cartera, la cartera en una línea y una sola acción con su motivo: valorar, lo que choca con vuestra política, el reparto, la fiscalidad antes del 31/12, la política o la convicción.", desde: "2026-10-28", metrica: "acciones seguidas desde aquí; se retira si en dos meses nadie sigue ninguna", interruptor: "propio" },
+    { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", queHace: "Arriba de Inversión › Cartera, la cartera en una línea y una sola acción con su motivo: valorar, lo que choca con vuestra política, el reparto, la fiscalidad antes del 31/12, la política o la convicción.", desde: "2026-10-28", metrica: "acciones seguidas desde aquí; se retira si en dos meses nadie sigue ninguna", interruptor: "propio", encendidaDesde: "2026-10-29" },
+    // Guía del cierre (29/10/2026): la pidió el hogar para seguirla cada mes, así que no nace apagada; su revisión, a las dos semanas.
+    { id: "cierre-guia", nombre: "Guía del cierre", queHace: "En Cierre, los pasos del cierre de mes con dónde se hace cada uno, si bloquea la firma y qué hacer si algo no cuadra. Del 1 al 3 sale abierta.", desde: "2026-10-29", metrica: "cierres firmados con la guía abierta; se pliega si nadie la abre en dos cierres" },
   ];
 
   function isoDate(date) {
@@ -99,9 +104,15 @@
     return { ...banderas, [id]: encender ? { on: true, desde: hoy } : { on: false } };
   }
 
+  // Lo que se haya elegido en este navegador manda; sin elección, lo que diga el catálogo (`encendidaDesde`: encendida de serie).
+  function estaEncendida(item, banderas = {}) {
+    const bandera = banderas[item?.id];
+    return bandera && typeof bandera.on === "boolean" ? bandera.on : Boolean(item?.encendidaDesde);
+  }
+
   /** Si una función con interruptor propio está encendida en este navegador (las demás no se preguntan aquí). */
   function encendida(id, storage = safeStorage()) {
-    return readBanderas(storage)[id]?.on === true;
+    return estaEncendida(CATALOGO.find((item) => item.id === id) || { id }, readBanderas(storage));
   }
 
   // Estado de una función hoy: graduada (con fecha) o en prueba, con su fecha de revisión y si ya toca. Una función
@@ -110,7 +121,7 @@
   function estadoDe(item, decisions = {}, hoy = isoDate(new Date()), encendidas = {}, banderas = {}) {
     const decision = decisions[item.id] || {};
     if (decision.estado === "graduada") return { estado: "graduada", fecha: decision.fecha || "" };
-    const desde = item.interruptor === "propio" ? banderas[item.id]?.desde || item.desde : item.desde;
+    const desde = item.interruptor === "propio" ? (banderas[item.id]?.on === true && banderas[item.id].desde) || item.encendidaDesde || item.desde : item.desde;
     const revision = addDays(decision.revisarDesde || desde, REVISION_DIAS);
     const activa = item.parteDe ? Boolean(encendidas[item.parteDe]) : item.interruptor ? Boolean(encendidas[item.id]) : true;
     return { estado: "en-prueba", desde, revision, activa, tocaRevisar: activa && hoy >= revision };
@@ -175,7 +186,7 @@
   }
 
   function encendidasAhora(doc, banderas = {}) {
-    const propias = Object.fromEntries(CATALOGO.filter((item) => item.interruptor === "propio").map((item) => [item.id, banderas[item.id]?.on === true]));
+    const propias = Object.fromEntries(CATALOGO.filter((item) => item.interruptor === "propio").map((item) => [item.id, estaEncendida(item, banderas)]));
     return { "tema-v2": doc.documentElement.dataset.tema === "v2", ...propias };
   }
 

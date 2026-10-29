@@ -11,6 +11,10 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**29/10/2026 · lo nuevo nace encendido (decisión del hogar):** las siete funciones en prueba que estaban apagadas pasan a encendidas, con su revisión el 12/11 y su interruptor para apagarlas. Las siguientes nacerán encendidas (§4). La guía del cierre, encendida desde el principio, fue la primera.
+
+**29/10/2026 · guía del cierre de mes en Cierre (pedida por el hogar):** una tarjeta plegable con los nueve pasos del cierre, el mes que toca, enlaces a cada pantalla, qué bloquea la firma y qué hacer si algo no cuadra. Las casillas son por mes y por dispositivo. Del 1 al 3, con el mes sin firmar, sale abierta. No nace apagada porque la pidió el hogar para usarla; tiene revisión a las dos semanas en Funciones en prueba y no cambia la superficie por defecto.
+
 **28/10/2026 · WP-17 · PR-1, siguiente paso de la cartera (en prueba y apagada; lo pidió el hogar como «siguiente paquete del plan»):** arriba de Inversión › Cartera, la cartera en una línea y una sola acción con su motivo y la regla que la origina. El orden es fijo: valorar lo que lleva más de 35 días sin valor, lo que choca con la política firmada, el reparto fuera de la banda (de la política o, sin ella, de Rebalanceo), compensar plusvalías antes del 31/12, la política (sin firmar, cambiada o por revisar) y la convicción sin confirmar. **Nunca opera.** Con «rebalancear primero con aportaciones» nunca propone vender. La fiscal dice la norma de recompra y que no es una recomendación. **Apagada en Funciones en prueba** (la séptima). Sin la política firmada (H-12), sus reglas no mandan todavía (`docs/WP17_DISENO.md`).
 
 **28/10/2026 · decisiones del hogar sobre sus tareas:**
@@ -139,6 +143,12 @@ Las respuestas «Más tarde» del triaje (3/10/2026) van a P3 salvo que el plan 
 **Aplicación del límite (21/10/2026, decisión del hogar):** dos estados nuevos en el panel para cumplirlo. **«Esperando al hogar»**: construido, y lo siguiente necesita un dato o una decisión del hogar (la tarea concreta va en la nota del paquete). **«Aparcado»**: le falta desarrollo, pero no cabe en el límite. Los dos cuentan como construido al 50 %, igual que «en curso», y **nunca como comprobado**. Ese día quedaron: en curso WP-23 y el rediseño; 21 esperando al hogar; aparcados WP-28 (los gráficos de cartera y deuda se migran con el rediseño de esas pantallas), WP-37 (los estados se aplican pantalla a pantalla dentro del rediseño) y WP-42.
 
 **Regla de parada de la Ola 1, aplicada el 21/10/2026 (decisión del hogar):** la Ola 1 termina el 23/10 sin una sola lectura de sus métricas (M-HOY y M-ADOP), así que se para: no se abre ningún paquete nuevo hasta que haya lecturas reales. Sigue el camino del rediseño (desalojo de `app.js`, Laboratorio, Movimientos e Importar) y lo que tiene fecha (WP-23).
+
+**Lo nuevo nace encendido (29/10/2026, decisión del hogar, deja sin efecto «nace apagado» de XGO-03):** «vamos a cambiar esta regla de "todo lo nuevo nace apagado", y reactiva lo que esté pendiente». Desde entonces:
+- Toda función nueva con interruptor propio sale **encendida**, con el día en que empezó a verse (`encendidaDesde` en `funciones-en-prueba.js`).
+- **Su revisión de dos semanas cuenta desde ese día**, y se apaga desde Ajustes › Funciones en prueba. Lo que el hogar apague queda apagado en ese navegador.
+- **Las siete que estaban apagadas pasan a encendidas el 29/10:** XPR-06, XDA-01, XUX-02, XPR-07, XDA-10, WP-18 y WP-17. Sus revisiones caen el 12/11.
+- **Sigue en pie «uno entra, uno sale»** (GOV-02): de las siete, solo «Lo que la app te pide» añade un titular a lo que se ve sin datos, y entra con una excepción escrita en `docs/gobierno/superficie.json`.
 
 **Regla de parada levantada para funciones nuevas (24/10/2026, decisión del hogar):** «levanto la regla de parada para funciones nuevas». Lo que sigue en pie: el límite de 3 paquetes en curso, un cambio de Hoy por semana y la revisión de cada función nueva a los 14 días en «Funciones en prueba». Recomendación de Claude, que el hogar puede cambiar: priorizar las funciones que reducen el trabajo de meter datos (Repaso semanal, después XDA-02 y XDA-04), porque el 0 % comprobado no se debe a que falten funciones.
 

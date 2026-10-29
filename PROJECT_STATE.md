@@ -109,6 +109,44 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (373): lo nuevo nace encendido, y las siete funciones apagadas se encienden
+
+- **Decisión del hogar (29/10):** «vamos a cambiar esta regla de "todo lo nuevo nace apagado", y reactiva lo que esté pendiente». Deja sin efecto el «nace apagada» de XGO-03 (`BACKLOG_DEFINITIVO.md` §4).
+- **Cambio:**
+  - `funciones-en-prueba.js`: cada función con interruptor propio lleva `encendidaDesde`. Sin elección guardada, está encendida, y su revisión cuenta desde ese día. Apagarla en Ajustes › Funciones en prueba queda guardado y manda.
+  - Las siete que estaban apagadas (XPR-06, XDA-01, XUX-02, XPR-07, XDA-10, WP-18 y WP-17) llevan `encendidaDesde: "2026-10-29"`: **sus revisiones caen el 12/11**.
+  - Panel de seguimiento: las de interruptor propio cuentan como encendidas salvo que su estado diga «apagada».
+- **Superficie (GOV-02):** solo «Lo que la app te pide» añade un titular a lo que se ve sin datos (Ajustes, de 57 a 58). Entra con una excepción escrita en `docs/gobierno/superficie.json`, con fecha, qué y por qué; el techo base no se toca.
+- **Pruebas:**
+  - Las unitarias de las siete funciones dicen ahora «encendida de serie».
+  - `tests/xgo03-funciones-en-prueba.test.cjs` gana una: toda función con interruptor propio tiene `encendidaDesde`, está encendida de serie y apagarla queda guardado.
+  - `tests/xpr06-que-mueve-cada-dia.test.cjs` comprueba que la revisión cuenta desde `encendidaDesde`, que apagarla manda y que apagada no pide revisión.
+  - Las siete E2E que recorren «apagada» y «encendida» empiezan con la función apagada (`empezarApagada`), como lo haría el hogar.
+  - `tests/plan-seguimiento-sincronizado.test.cjs` cuenta los interruptores desde el catálogo.
+- **Validación:** `npm test` en verde, 6247/6247 (+1). El Playwright completo en local (e2e y accesibilidad) se anota con su resultado en el siguiente commit.
+
+## Cierre de sesión — 29 de octubre de 2026 (372): la guía del cierre de mes, dentro de Cierre
+
+- **Por qué:** el hogar eligió «preparar el cierre». Claude publicó una página con los pasos del cierre de octubre, y el hogar pidió tenerla en la app «como tutorial, para seguir así estos pasos en el cierre de cada mes».
+- **Qué hace** (`cierre-guia-ui.js`; tarjeta plegable `#cierreGuia` arriba de Cierre):
+  - «Guía del cierre de {mes}», con el mes que toca cerrar: del 1 al 3, el que acaba.
+  - Nueve pasos, cada uno con su pantalla, un enlace y si bloquea la firma o solo avisa: sesión, extracto, clasificar, saldos en «Real manual», reales, valorar, conciliar, diferencias y firmar.
+  - Plegado, «Si algo no cuadra»: seis atascos con lo que suele ser y qué hacer.
+  - Las casillas se guardan por mes en ese dispositivo, así que cada mes empieza en blanco; se guardan seis meses como mucho.
+  - **Del 1 al 3, con el mes sin firmar, sale abierta**; el resto del mes, plegada.
+  - No comprueba nada por su cuenta: lo que bloquea ya lo comprueba «Antes de firmar», y la guía lo dice.
+- **Gobierno:**
+  - **No nace apagada.** La pidió el hogar para usarla, así que está en Funciones en prueba sin interruptor, con revisión a las dos semanas. Es una desviación consciente de la regla de XGO-03.
+  - Medidor: abrirla cuenta como vista y marcar un paso, como acción.
+  - **Superficie por defecto sin cambios:** plegada y sin h2/h3 dentro; la prueba XGO-01 sigue en verde.
+  - Una línea en Novedades. Su almacén (`cierre-guia`) se excluye de la copia con motivo: es una ayuda de ese dispositivo.
+- **Pruebas:**
+  - `tests/cierre-guia.test.cjs` (4): los nueve pasos y cuáles bloquean, el mes por su nombre, las casillas por mes, el tope de seis meses, un almacén roto y que no tiene titulares.
+  - E2E «Guía del cierre de mes» a 390 px (también en Safari) y 1280 px: plegada a mitad de mes; del 1 al 3, abierta con «octubre»; lo marcado sobrevive a recargar; el enlace lleva a Movimientos.
+  - Accesibilidad de Cierre (axe), claro y oscuro: 7 de 7.
+- **Validación:** `npm run verify` en verde, 6246/6246 (+4). E2E de Cierre, XGO-01 y el ensayo del cierre en Chromium: 20 de 20.
+- La página suelta del cierre de octubre (artefacto privado) queda como copia; la guía de la app es la que vale cada mes.
+
 ## Cierre de sesión — 28 de octubre de 2026 (371): WP-17 · PR-1, siguiente paso de la cartera (en prueba, apagada)
 
 - **Por qué:** el hogar eligió «siguiente paquete del plan» frente a la recomendación de Claude («preparar el cierre de octubre»). Solo quedaban dos paquetes del plan sin empezar, y los dos esperan algo del hogar: WP-21 (paquete Renta, que espera a WP-31) y WP-17 (que espera la política firmada). WP-17 es el más corto, y sus reglas se pueden construir sin datos del hogar.

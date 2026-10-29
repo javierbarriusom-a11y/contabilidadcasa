@@ -2,7 +2,14 @@
   "_que": "XGO-01 · «uno entra, uno sale» (GOV-02). Titulares (h2/h3) que se ven por defecto en cada destino del menú principal y sus pestañas: tema v2, 1280 px, sin datos del hogar, reloj el 26/10/2026. Lo cuenta la e2e «XGO-01 · Uno entra, uno sale» de tests/qa1-flujos-completos.spec.cjs; tests/xgo01-uno-entra-uno-sale.test.cjs exige que el total no pase de base + excepciones y que la base baje cuando algo sale (trinquete). Para añadir sin quitar: una excepción con fecha, cuánto suma, qué y por qué.",
   "fecha": "2026-10-26",
   "base": 226,
-  "excepciones": [],
+  "excepciones": [
+    {
+      "fecha": "2026-10-29",
+      "mas": 1,
+      "que": "Ajustes › «Lo que la app te pide» (XDA-01), que sale encendida de serie",
+      "porque": "Decisión del hogar del 29/10/2026: «vamos a cambiar esta regla de \"todo lo nuevo nace apagado\", y reactiva lo que esté pendiente». Las siete funciones con interruptor propio pasan a encendidas; de ellas, solo esta añade un titular a lo que se ve sin datos. Se apaga desde Funciones en prueba."
+    }
+  ],
   "rutas": {
     "#home": 4,
     "#registrar": 5,
@@ -26,7 +33,7 @@
     "#escenario-simular › escenario-guardados": 1,
     "#escenario-simular › asesor-decision": 2,
     "#escenario-simular › segunda-opinion": 1,
-    "#ajustes": 57,
+    "#ajustes": 58,
     "#faqs-ayuda": 3,
     "#deuda-comparar": 8,
     "#deuda-contratos": 12,

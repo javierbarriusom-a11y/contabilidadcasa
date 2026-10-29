@@ -243,6 +243,7 @@ const SHELL_URLS = [
   "./aportado-ui.js",
   "./canonical-next-best-action.js",
   "./siguiente-paso-ui.js",
+  "./cierre-guia-ui.js",
   "./antes-de-decidir-ui.js",
   "./funciones-en-prueba.js",
   "./medidor-utilidad.js",

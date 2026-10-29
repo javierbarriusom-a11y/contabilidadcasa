@@ -1184,6 +1184,7 @@ function renderCierre() {
     valuationNote.hidden = !note;
   }
 
+  globalThis.renderCierreGuia?.(currentMonthKey, { signed: Boolean(currentClosure), today: isoLocalDate(new Date()) }); // guía del cierre (cierre-guia-ui.js)
   globalThis.renderCartaMes?.(window.FinanceCanonicalMonthLetter, currentMonthKey, Boolean(currentClosure)); // WP-29 (carta-mes-ui.js)
   globalThis.renderPlanBAviso?.(window.FinanceCanonicalContingencyPlan); // WP-38 PR-2 (contingencia-ui.js)
   globalThis.renderSombraAviso?.(window.FinanceCanonicalShadowDebt); // WP-41 PR-2 (sombra-ui.js)

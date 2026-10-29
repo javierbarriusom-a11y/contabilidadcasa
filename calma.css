@@ -209,3 +209,89 @@
 .sp-otras li > .e19-btn {
   margin-top: 6px;
 }
+
+/* Guía del cierre (cierre-guia-ui.js), en Cierre. Vive aquí para no añadir otra hoja: es la de las tarjetas nuevas. */
+.cierre-guia {
+  margin: 12px 0;
+  min-width: 0;
+}
+
+.cierre-guia > summary {
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+
+.cierre-guia-resumen {
+  color: var(--e19-muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cierre-guia-pasos {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: cierre-guia;
+}
+
+.cierre-guia-paso {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.cierre-guia-paso input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+}
+
+.cierre-guia-paso label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 400;
+}
+
+.cierre-guia-paso label strong::before {
+  counter-increment: cierre-guia;
+  content: counter(cierre-guia) ". ";
+  color: var(--e19-muted);
+}
+
+.cierre-guia-paso.is-hecho label strong {
+  text-decoration: line-through;
+  color: var(--e19-muted);
+}
+
+.cierre-guia-enlace {
+  grid-column: 2;
+  justify-self: start;
+  font-size: 0.9rem;
+  color: inherit;
+  font-weight: 600;
+}
+
+.cierre-guia-nivel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+}
+
+.cierre-guia-nivel.is-bloquea {
+  color: var(--e19-danger);
+}
+
+.cierre-guia-atascos .table-wrap {
+  overflow-x: auto;
+}

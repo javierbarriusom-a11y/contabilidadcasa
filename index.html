@@ -68,7 +68,7 @@
     <link rel="stylesheet" href="base-cero.css?v=20261012wp34a1" />
     <link rel="stylesheet" href="carta-mes.css?v=20261012wp29a1" />
     <link rel="stylesheet" href="mapa-pagos.css?v=20261011wp49a1" />
-    <link rel="stylesheet" href="calma.css?v=20261028wp17" />
+    <link rel="stylesheet" href="calma.css?v=20261029guia1" />
     <link rel="stylesheet" href="datos.css?v=20261010wp45a1" />
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
@@ -4178,6 +4178,12 @@
               </div>
             </div>
 
+            <!-- Guía del cierre de mes (cierre-guia-ui.js, 29/10/2026): plegable; del 1 al 3, sin firmar, sale abierta. Sin h2/h3 dentro. -->
+            <details class="e19-card cierre-guia" id="cierreGuia" hidden>
+              <summary><strong id="cierreGuiaMes">Guía del cierre</strong> <span class="cierre-guia-resumen" id="cierreGuiaResumen"></span></summary>
+              <div id="cierreGuiaCuerpo"></div>
+            </details>
+
             <div class="home-kpi-grid" id="cierreCounters"></div>
             <p class="e19-kpi-note" id="cierreSobresNote"></p>
 
@@ -8230,6 +8236,7 @@
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
     <script defer src="canonical-next-best-action.js?v=20261028wp17"></script>
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
+    <script defer src="cierre-guia-ui.js?v=20261029guia1"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
     <script defer src="app.js?v=20261028pct1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
