@@ -301,8 +301,8 @@ tr.done td.what { text-decoration: line-through; }
   }
   function platState(p) {
     const st = state.plataforma[platKey(p.id)] || { estado: "pendiente" };
-    // Sin dato guardado: lo de interruptor propio nace apagado (XGO-03) y las pantallas v2 van encendidas por defecto.
-    const prueba = st.prueba || (p.enPrueba === "propio" ? "apagada" : p.enPrueba === "pantalla" ? "encendida" : "");
+    // Sin dato guardado: desde el 29/10/2026 lo de interruptor propio nace encendido (decisión del hogar), como las pantallas v2.
+    const prueba = st.prueba || (p.enPrueba === "propio" || p.enPrueba === "pantalla" ? "encendida" : "");
     return { ...st, estado: ALIAS[st.estado] || st.estado || "pendiente", prueba };
   }
   const prNums = (pr) => String(pr || "").match(/\d+/g) || [];
@@ -394,9 +394,9 @@ tr.done td.what { text-decoration: line-through; }
     const platHechas = PLAT.filter((p) => platState(p).estado === "hecho").length;
     const platHogar = PLAT.filter((p) => platState(p).estado === "esperando al hogar").length;
     const prs = new Set(PLAT.flatMap((p) => prNums(platState(p).pr))).size;
-    // Los paquetes del plan con interruptor propio (WP-18) cuentan igual: nacen apagados hasta que su estado diga «encendida».
+    // Los paquetes del plan con interruptor propio (WP-18, WP-17) cuentan igual: encendidos de serie, apagados si su estado lo dice.
     const apagadas = [...PLAT.filter((p) => p.enPrueba && platState(p).prueba === "apagada"),
-      ...BASE.filter((w) => w.enPrueba === "propio" && (wpState(w.id).prueba || "apagada") === "apagada")];
+      ...BASE.filter((w) => w.enPrueba === "propio" && (wpState(w.id).prueba || "encendida") === "apagada")];
     const revisiones = PLAT.filter((p) => p.revision && platState(p).prueba === "encendida" && d(p.revision) >= TODAY)
       .map((p) => p.revision).sort();
     const vencidas = overdueTasks();
@@ -636,7 +636,7 @@ tr.done td.what { text-decoration: line-through; }
       <div class="wp-body">
         <dl class="facts">
           ${nums.length ? `<div><dt>PR</dt><dd class="mono">${nums.map((n) => "#" + n).join(" · ")}</dd></div>` : ""}
-          ${p.enPrueba ? `<div><dt>Funciones en prueba</dt><dd>${p.enPrueba === "propio" ? "Interruptor propio: nace apagada y su revisión cuenta desde el día en que se enciende." : `Pantalla del diseño nuevo, encendida por defecto${p.revision ? `; revisión con el medidor el ${fmt(p.revision)}` : ""}.`}</dd></div>` : ""}
+          ${p.enPrueba ? `<div><dt>Funciones en prueba</dt><dd>${p.enPrueba === "propio" ? "Interruptor propio: encendida de serie desde el 29/10/2026 (antes nacía apagada); su revisión cuenta desde que se enciende, y se puede apagar." : `Pantalla del diseño nuevo, encendida por defecto${p.revision ? `; revisión con el medidor el ${fmt(p.revision)}` : ""}.`}</dd></div>` : ""}
           ${st.nota ? `<div><dt>Nota</dt><dd>${esc(st.nota)}</dd></div>` : ""}
           ${hist.length ? `<div><dt>Historial</dt><dd class="history">${hist.map((h) => `<span>${fmt(h.fecha)} · ${esc(h.texto)}${h.por ? ` · ${esc(h.por)}` : ""}</span>`).join("")}</dd></div>` : ""}
         </dl>

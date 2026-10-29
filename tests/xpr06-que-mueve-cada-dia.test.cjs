@@ -62,15 +62,20 @@ test("fuera del horizonte, sin saldos o sin fecha válida no hay desglose (no se
   assert.ok(Band.dayBreakdown({ ...base, events }, "2026-12-02"), "el último día del horizonte sí");
 });
 
-test("Funciones en prueba: interruptor propio que nace apagado; la revisión cuenta desde el día en que se enciende", () => {
+test("Funciones en prueba: interruptor propio que nace encendido desde el 29/10/2026 (decisión del hogar); apagarlo manda, y al volver a encenderlo la revisión cuenta desde ese día", () => {
   const item = fep.CATALOGO.find((entry) => entry.id === "banda-dia");
   assert.equal(item.interruptor, "propio");
   assert.match(item.metrica, /días de cargo indicados desde aquí/);
   assert.match(item.metrica, /dos meses/, "con su criterio de retirada escrito");
   const mem = new Map();
   const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
-  assert.equal(fep.encendida("banda-dia", storage), false, "apagada de entrada");
-  assert.equal(fep.encendida("banda-dia", null), false, "sin almacenamiento, apagada");
+  assert.equal(item.encendidaDesde, "2026-10-29");
+  assert.equal(fep.encendida("banda-dia", storage), true, "encendida de entrada");
+  assert.equal(fep.encendida("banda-dia", null), true, "sin almacenamiento, la de serie: encendida");
+  const deSerie = fep.estadoDe(item, {}, "2026-11-11", { "banda-dia": true }, {});
+  assert.deepEqual([deSerie.desde, deSerie.revision, deSerie.tocaRevisar], ["2026-10-29", "2026-11-12", false], "la revisión cuenta desde que se enciende de serie");
+  mem.set(fep.BANDERAS_KEY, JSON.stringify(fep.cambiarBandera({}, "banda-dia", false, "2026-11-01")));
+  assert.equal(fep.encendida("banda-dia", storage), false, "apagarla manda sobre la de serie");
   const off = fep.estadoDe(item, {}, "2026-12-31", { "banda-dia": false }, {});
   assert.equal(off.activa, false);
   assert.equal(off.tocaRevisar, false, "apagada no se está probando");
@@ -82,8 +87,8 @@ test("Funciones en prueba: interruptor propio que nace apagado; la revisión cue
   assert.equal(fep.estadoDe(item, {}, "2026-11-19", { "banda-dia": true }, banderas).tocaRevisar, true);
   assert.deepEqual(fep.cambiarBandera(banderas, "banda-dia", false, "2026-11-20"), { "banda-dia": { on: false } });
   mem.set(fep.BANDERAS_KEY, "{roto");
-  assert.equal(fep.encendida("banda-dia", storage), false, "un almacén roto la deja apagada");
-  assert.ok(!fep.porRevisar({}, "2027-01-01", { "tema-v2": true }).some((entry) => entry.id === "banda-dia"));
+  assert.equal(fep.encendida("banda-dia", storage), true, "un almacén roto deja la de serie");
+  assert.ok(!fep.porRevisar({}, "2027-01-01", { "tema-v2": true, "banda-dia": false }).some((entry) => entry.id === "banda-dia"), "apagada no pide revisión");
 });
 
 test("el medidor la cuenta, y la pantalla solo la enseña encendida, con la hoja en un <dialog> y el kit avisando del día elegido", () => {

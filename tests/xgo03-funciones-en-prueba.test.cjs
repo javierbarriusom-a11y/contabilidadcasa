@@ -84,3 +84,18 @@ test("el interruptor apagado tiene borde suficiente (WCAG 1.4.11) y la tarjeta u
   assert.match(css, /\.fep-switch\[aria-checked="true"\] \{\s*background: var\(--e19-accent\);/);
   assert.ok(!/fep-/.test(read("tema-v2.css")), "sin estilos solo-v2: el clásico necesita la tarjeta para volver");
 });
+
+// Decisión del hogar del 29/10/2026: «vamos a cambiar esta regla de "todo lo nuevo nace apagado"». Desde entonces, toda función con
+// interruptor propio nace encendida, con el día en que empezó a verse (`encendidaDesde`), y se apaga con su interruptor.
+test("toda función con interruptor propio nace encendida, con su fecha, y apagarla queda guardado", () => {
+  const fep = require("../funciones-en-prueba.js");
+  const propias = fep.CATALOGO.filter((item) => item.interruptor === "propio");
+  assert.ok(propias.length >= 7);
+  for (const item of propias) {
+    assert.match(String(item.encendidaDesde || ""), /^\d{4}-\d{2}-\d{2}$/, `${item.id}: le falta encendidaDesde`);
+    assert.ok(item.encendidaDesde >= item.desde, `${item.id}: no puede encenderse antes de existir`);
+    assert.equal(fep.encendida(item.id, { getItem: () => null }), true, `${item.id}: encendida de serie`);
+  }
+  const apagada = JSON.stringify(fep.cambiarBandera({}, propias[0].id, false, "2026-11-01"));
+  assert.equal(fep.encendida(propias[0].id, { getItem: (key) => (key === fep.BANDERAS_KEY ? apagada : null) }), false);
+});

@@ -57,7 +57,7 @@ test("primero lo que da la vuelta, después lo que no se sabe y después lo dem�
   assert.equal(r.oldestDays, 40);
 });
 
-test("nace apagada en Funciones en prueba y cuelga del guardarraíl de colchón sin recalcular nada", () => {
+test("en Funciones en prueba con su interruptor y cuelga del guardarraíl de colchón sin recalcular nada", () => {
   const item = fep.CATALOGO.find((entry) => entry.id === "antes-de-decidir");
   assert.equal(item.interruptor, "propio");
   assert.ok(medidor.FUNCIONES.some((f) => f.id === "antes-de-decidir"));

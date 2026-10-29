@@ -107,8 +107,7 @@ test("el §5.0 del backlog y la pista «plataforma» del JSON tienen las mismas 
 // El panel cuenta las funciones en prueba apagadas desde el JSON: cada interruptor propio del catálogo de
 // Funciones en prueba tiene que estar marcado en una fila del §5.0 o en un paquete, o el panel diría de menos.
 test("cada función con interruptor propio está marcada en el plan, en el §5.0 o en su paquete", () => {
-  const catalogo = fs.readFileSync(path.join(root, "funciones-en-prueba.js"), "utf8");
-  const propias = (catalogo.match(/interruptor: "propio" \}/g) || []).length;
+  const propias = require("../funciones-en-prueba.js").CATALOGO.filter((item) => item.interruptor === "propio").length;
   for (const wp of plan.paquetes) if (wp.enPrueba) assert.equal(wp.enPrueba, "propio", `${wp.id}: en un paquete, «enPrueba» solo puede ser «propio».`);
   const marcadas = plan.plataforma.filter((p) => p.enPrueba === "propio").length + plan.paquetes.filter((wp) => wp.enPrueba === "propio").length;
   assert.ok(propias >= 6, "El catálogo debe tener al menos sus 6 interruptores propios.");

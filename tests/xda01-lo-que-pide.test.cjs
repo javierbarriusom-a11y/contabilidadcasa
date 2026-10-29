@@ -79,11 +79,11 @@ test("el presupuesto se dice, y pasarse también", () => {
   assert.equal(C.minutesText(0.04), "menos de 0,1 min");
 });
 
-test("nace apagada en Funciones en prueba, el medidor la cuenta y la tarjeta solo se enciende con su interruptor", () => {
+test("en Funciones en prueba con su interruptor, encendida de serie desde el 29/10/2026; el medidor la cuenta", () => {
   const item = fep.CATALOGO.find((entry) => entry.id === "lo-que-pide");
   assert.equal(item.interruptor, "propio");
   assert.match(item.metrica, /dos meses/, "con su criterio de retirada");
-  assert.equal(fep.encendida("lo-que-pide", { getItem: () => null }), false);
+  assert.equal(fep.encendida("lo-que-pide", { getItem: () => null }), true);
   assert.deepEqual(medidor.FUNCIONES.find((f) => f.id === "lo-que-pide").accion, ["dato buscado desde aquí", "datos buscados desde aquí"]);
   const html = read("index.html");
   assert.match(html, /<article class="e19-card lqp-card" id="loQuePideCard" aria-labelledby="loQuePideTitulo" hidden>/, "oculta por defecto: XGO-01 no cuenta nada nuevo");

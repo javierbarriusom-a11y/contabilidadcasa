@@ -86,7 +86,7 @@ test("la convicción, la última; y sin nada pendiente dice qué ha mirado, no q
   assert.ok(nothing.checked.some((item) => /no hay reparto objetivo declarado/.test(item)));
 });
 
-test("la tarjeta nace apagada, solo lee y está declarada donde toca", () => {
+test("la tarjeta tiene su interruptor (encendida de serie desde el 29/10/2026), solo lee y está declarada donde toca", () => {
   const root = path.resolve(__dirname, "..");
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
   assert.match(read("funciones-en-prueba.js"), /id: "siguiente-paso"[^\n]*interruptor: "propio"/);

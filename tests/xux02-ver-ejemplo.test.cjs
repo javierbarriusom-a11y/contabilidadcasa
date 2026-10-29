@@ -74,11 +74,11 @@ test("dentro del ejemplo no se pulsa nada, los clics no salen de la hoja y la ba
   for (const file of ["service-worker.js", "tools/build-public-site.mjs"]) assert.ok(read(file).includes("ejemplos-ui.js"), file);
 });
 
-test("nace apagada en Funciones en prueba y el medidor cuenta las altas empezadas tras ver el ejemplo", () => {
+test("en Funciones en prueba con su interruptor, encendida de serie desde el 29/10/2026; el medidor cuenta las altas empezadas tras ver el ejemplo", () => {
   const item = fep.CATALOGO.find((entry) => entry.id === "ver-ejemplo");
   assert.equal(item.interruptor, "propio");
   assert.match(item.metrica, /altas empezadas después de ver el ejemplo; se retira si no suben/);
-  assert.equal(fep.encendida("ver-ejemplo", { getItem: () => null }), false);
+  assert.equal(fep.encendida("ver-ejemplo", { getItem: () => null }), true);
   assert.deepEqual(medidor.FUNCIONES.find((f) => f.id === "ver-ejemplo").accion, ["alta empezada tras el ejemplo", "altas empezadas tras el ejemplo"]);
   assert.match(read("ejemplos-ui.js"), /anotar\("ver-ejemplo", "vista"\)/);
   assert.match(read("ejemplos-ui.js"), /anotar\("ver-ejemplo", "accion"\)/);
