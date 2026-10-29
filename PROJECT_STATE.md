@@ -109,6 +109,27 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (374): firmar un mes solo depende de ese mes
+
+- **Hallazgo (Claude, en una captura del hogar):** con los datos reales, Cierre contaba como pendiente **todo el historial**. `renderCierre` pasaba a `reconciliationTasks` todos los movimientos sin clasificar, todas las diferencias entre banco y real, y todos los huecos de continuidad del libro. «Ninguna diferencia abierta» exige cero tareas, así que firmar octubre pedía clasificar antes cientos de movimientos de meses anteriores. Era inviable para el primer cierre real (1-3/11). El ensayo del 23/10 partía de cero movimientos y no lo podía ver.
+- **Decisión del hogar (29/10):** «Solo el mes que cierras».
+- **Cambio (`views/cierre.js`):**
+  - `cierreTaskSourcesByMonth` reparte las fuentes entre el mes que se cierra y el resto: los movimientos por su mes, las diferencias por el de su línea y los huecos de saldo por el del movimiento donde aparecen.
+  - Contadores, paso «Resolver diferencias», comprobaciones de la firma y evidencia (PDF/CSV) usan solo las del mes.
+  - El descuadre del capital de deuda (D-2b) no tiene mes: va siempre con las del mes y sigue bloqueando.
+  - `#cierreOtrosMeses`, bajo los contadores, dice cuántas tareas hay de otros meses y cuántos movimientos sin clasificar, que no impiden firmar, y enlaza a Movimientos.
+  - Anteriores y posteriores cuentan igual: del 1 al 3 se cierra octubre y los movimientos de noviembre no bloquean.
+  - El inventario completo de `#conciliar` no cambia.
+- **Textos:** la guía del cierre (paso «Clasificad lo que falte») dice que solo bloquean los del mes. Novedades.
+- **Pruebas:**
+  - Dos unitarias en `tests/c1-c9-cierre-wizard.test.cjs`: el reparto por mes, con la deuda siempre en el mes, y el texto con miles agrupados.
+  - La de forma de D-2b sigue el reparto nuevo.
+  - E2E «Cierre · solo bloquea el mes que se cierra» con el reloj el 2/11: movimientos viejos sin partida no bloquean y se dicen aparte; uno de octubre sin partida sí bloquea.
+- **Validación:**
+  - `npm test` en verde, 6249/6249 (+2), con `lint` y `typecheck` limpios.
+  - En local, Playwright de Cierre (la nueva E2E, el ensayo del cierre a 390 y 1440 px, la carta del mes y el aviso de deuda en la sombra): 9 de 9.
+  - El resto, en el CI.
+
 ## Cierre de sesión — 29 de octubre de 2026 (373): lo nuevo nace encendido, y las siete funciones apagadas se encienden
 
 - **Decisión del hogar (29/10):** «vamos a cambiar esta regla de "todo lo nuevo nace apagado", y reactiva lo que esté pendiente». Deja sin efecto el «nace apagada» de XGO-03 (`BACKLOG_DEFINITIVO.md` §4).

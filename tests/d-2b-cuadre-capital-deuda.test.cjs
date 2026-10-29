@@ -172,7 +172,11 @@ test("D-2b · renderCierre construye la tarea de descuadre solo cuando de verdad
   assert.match(fn, /const debtCuadre = debtCapitalCuadre\(\);/);
   assert.match(fn, /debtCuadre\.status === "descuadra"/);
   assert.match(fn, /debtCapitalMismatches/);
-  assert.match(fn, /E11bInbox\.reconciliationTasks\(\{ unclassified, differences, balanceGaps, debtCapitalMismatches \}\)/);
+  // Desde el 29/10/2026 las tareas se reparten por mes (cierreTaskSourcesByMonth); el descuadre de capital no tiene mes y va siempre
+  // con las del mes que se cierra, así que sigue bloqueando la firma.
+  assert.match(fn, /cierreTaskSourcesByMonth\(\{ unclassified, differences, balanceGaps, debtCapitalMismatches \}, entries, currentMonthKey\)/);
+  assert.match(fn, /E11bInbox\.reconciliationTasks\(porMes\.mes\)/);
+  assert.match(extractFunction("cierreTaskSourcesByMonth"), /mes: \{[^}]*debtCapitalMismatches: sources\.debtCapitalMismatches \|\| \[\]/);
 });
 
 // --- El pie vive en el DOM, dentro de Deuda · Contratos -----------------------------------------

@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**29/10/2026 · firmar un mes solo depende de ese mes (decisión del hogar):** con los datos reales, Cierre pedía clasificar todo el historial antes de firmar octubre, cientos de movimientos de meses anteriores incluidos. Ahora los contadores, el paso «Resolver diferencias» y la firma son del mes que se cierra. Lo de otros meses se dice aparte, con su enlace a Movimientos, y no bloquea. El descuadre del capital de deuda no tiene mes y sigue bloqueando. Lo encontró Claude en una captura del hogar, a tres días del primer cierre real; el ensayo del 23/10 partía de cero movimientos y no lo podía ver.
+
 **29/10/2026 · lo nuevo nace encendido (decisión del hogar):** las siete funciones en prueba que estaban apagadas pasan a encendidas, con su revisión el 12/11 y su interruptor para apagarlas. Las siguientes nacerán encendidas (§4). La guía del cierre, encendida desde el principio, fue la primera.
 
 **29/10/2026 · guía del cierre de mes en Cierre (pedida por el hogar):** una tarjeta plegable con los nueve pasos del cierre, el mes que toca, enlaces a cada pantalla, qué bloquea la firma y qué hacer si algo no cuadra. Las casillas son por mes y por dispositivo. Del 1 al 3, con el mes sin firmar, sale abierta. No nace apagada porque la pidió el hogar para usarla; tiene revisión a las dos semanas en Funciones en prueba y no cambia la superficie por defecto.

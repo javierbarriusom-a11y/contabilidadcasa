@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-29-cierre-mes",
+      fecha: "2026-10-29",
+      texto: "Cierre: para firmar un mes solo cuentan las tareas de ese mes. Lo pendiente de otros meses se ve aparte y no impide firmar.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-29-cierre-guia",
       fecha: "2026-10-29",
       texto: "Cierre: una guía con los pasos del cierre de mes, dónde se hace cada uno y qué hacer si algo no cuadra. Del 1 al 3 sale abierta.",

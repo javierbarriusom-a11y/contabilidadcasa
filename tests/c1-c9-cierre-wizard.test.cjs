@@ -249,3 +249,44 @@ test("cierreFirmChecksHtml colorea cada comprobación por su propio estado", () 
   assert.match(html, /is-danger">Ninguna diferencia abierta/);
   assert.match(html, /is-ok">Extracto incorporado/);
 });
+
+// --- Firmar un mes solo depende de ese mes (decisión del hogar del 29/10/2026) ----------------------
+
+test("solo bloquean las tareas del mes que se cierra; las de otros meses se cuentan aparte", () => {
+  const context = baseContext(["cierreTaskSourcesByMonth"]);
+  const entries = [
+    { id: "oct-1", monthKey: "2026-10" },
+    { id: "oct-2", monthKey: "2026-10" },
+    { id: "may-1", monthKey: "2026-05" },
+    { id: "nov-1", monthKey: "2026-11" },
+  ];
+  const split = context.cierreTaskSourcesByMonth(
+    {
+      unclassified: [entries[0], entries[2], entries[3]],
+      differences: [{ monthKey: "2026-10", delta: 5 }, { monthKey: "2026-04", delta: 9 }],
+      balanceGaps: [{ currentId: "oct-2" }, { currentId: "may-1" }],
+      debtCapitalMismatches: [{ id: "debt-capital" }],
+    },
+    entries,
+    "2026-10"
+  );
+  assert.deepEqual(split.mes.unclassified.map((entry) => entry.id), ["oct-1"]);
+  assert.deepEqual(split.mes.differences.map((line) => line.monthKey), ["2026-10"]);
+  assert.deepEqual(split.mes.balanceGaps.map((gap) => gap.currentId), ["oct-2"]);
+  // El descuadre del capital de deuda no tiene mes: sigue bloqueando y no se cuenta dos veces.
+  assert.equal(split.mes.debtCapitalMismatches.length, 1);
+  assert.equal(split.otros.debtCapitalMismatches.length, 0);
+  // Anteriores y posteriores (noviembre, si se cierra octubre del 1 al 3) van a «otros meses».
+  assert.deepEqual(split.otros.unclassified.map((entry) => entry.id), ["may-1", "nov-1"]);
+  assert.equal(split.otros.differences.length, 1);
+  assert.deepEqual(split.otros.balanceGaps.map((gap) => gap.currentId), ["may-1"]);
+});
+
+test("las tareas de otros meses se dicen sin bloquear, con miles agrupados y enlace a Movimientos", () => {
+  const context = baseContext(["cierreOtrosMesesHtml"]);
+  assert.equal(context.cierreOtrosMesesHtml(0, 0, "oct 26"), "");
+  const html = context.cierreOtrosMesesHtml(2141, 1830, "oct 26");
+  assert.match(html, /Además hay 2\.141 tareas de otros meses \(1\.830 movimientos sin clasificar\): no impiden firmar oct 26\./);
+  assert.match(html, /<a href="#movements">Movimientos<\/a>/);
+  assert.match(context.cierreOtrosMesesHtml(1, 0, "oct 26"), /Además hay 1 tarea de otros meses: no impiden/);
+});

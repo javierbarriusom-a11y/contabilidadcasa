@@ -6848,3 +6848,56 @@ test.describe("Guía del cierre de mes", () => {
     });
   }
 });
+
+// Decisión del hogar del 29/10/2026: firmar un mes solo depende de ese mes. Con los datos reales (historial importado y casi
+// todo sin clasificar), el cierre de octubre exigía clasificar cientos de movimientos de meses anteriores. Ahora los contadores
+// y la firma son de octubre y lo de otros meses se dice aparte, sin bloquear. Reloj el 2/11: Cierre enseña octubre. INVENTADOS.
+test.describe("Cierre · solo bloquea el mes que se cierra", () => {
+  test("lo de otros meses no bloquea la firma y se dice aparte; lo de octubre sí", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+    await page.goto("/index.html#cierre");
+    await page.waitForFunction(() => typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+    await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
+    const sembrar = (octubreConPartida) => page.evaluate((conPartida) => {
+      // Una partida de gasto que ya existe: un movimiento con su mismo nombre queda clasificado («exact»).
+      const partida = displayLabelForRow(availableSeriesRows("expense")[0]);
+      let balance = 5000;
+      const add = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += amount), accountId: "caixabank" });
+      const rows = [
+        add("2026-05-03", -40, "VIEJO FICTICIO UNO"),
+        add("2026-05-09", -55, "VIEJO FICTICIO DOS"),
+        add("2026-06-14", -70, "VIEJO FICTICIO TRES"),
+        add("2026-10-04", -80, conPartida ? partida : "OCTUBRE FICTICIO"),
+      ];
+      baseData.transactions = mergeTransactions([], rows);
+      refreshMovementRollups();
+      renderCierre();
+    }, octubreConPartida);
+    const contador = (label) => page.locator("#cierreCounters .e19-kpi", { hasText: label }).locator(".e19-kpi-value");
+    const otros = page.locator("#cierreOtrosMeses");
+
+    // Octubre sin partida: bloquea (1 movimiento del mes); los tres de mayo y junio se cuentan aparte.
+    await sembrar(false);
+    await expect(contador("Movimientos sin clasificar")).toHaveText("1");
+    await expect(otros).toBeVisible();
+    await expect(otros).toContainText("Además hay 3 tareas de otros meses (3 movimientos sin clasificar): no impiden firmar oct 26.");
+    await expect(otros.locator('a[href="#movements"]')).toHaveText("Movimientos");
+    await expect(contador("Tareas pendientes")).toHaveText("1");
+
+    // Octubre con partida: ninguna tarea de clasificación del mes; los meses viejos siguen sin clasificar y siguen sin bloquear.
+    await sembrar(true);
+    await expect(contador("Movimientos sin clasificar")).toHaveText("0");
+    await expect(otros).toContainText("3 movimientos sin clasificar");
+    // Lo que queda en octubre (la diferencia entre el banco y el real del mes, si la hay) es de octubre: ninguna tarea de clasificar,
+    // y ninguna de mayo o junio, aunque sigan sin partida.
+    const causas = await page.evaluate(() => cierreEvidenceContext.tasks.map((task) => task.cause));
+    expect(causas, "con octubre clasificado no queda ninguna tarea de clasificar").not.toContain("unclassified");
+    // Al clasificarlo, octubre puede abrir su diferencia entre banco y real: es del mes y bloquea, como debe.
+    expect(causas.every((cause) => cause === "bank-actual-difference"), `causas que quedan: ${causas.join(", ")}`).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
