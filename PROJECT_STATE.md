@@ -123,7 +123,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
   - `tests/xpr06-que-mueve-cada-dia.test.cjs` comprueba que la revisión cuenta desde `encendidaDesde`, que apagarla manda y que apagada no pide revisión.
   - Las siete E2E que recorren «apagada» y «encendida» empiezan con la función apagada (`empezarApagada`), como lo haría el hogar.
   - `tests/plan-seguimiento-sincronizado.test.cjs` cuenta los interruptores desde el catálogo.
-- **Validación:** `npm test` en verde, 6247/6247 (+1). El Playwright completo en local (e2e y accesibilidad) se anota con su resultado en el siguiente commit.
+- **Validación:** `npm test` en verde, 6247/6247 (+1). El Playwright completo en local (e2e y accesibilidad): 260 de 264; las 4 que fallan lo hacen al abrir el navegador («Target page, context or browser has been closed»), con el mismo cierre de Chromium que tumbó el primer intento del CI de #567 («SEGV_MAPERR 0x1b0» tras «InitializeSandbox() called with multiple threads in process gpu-process»), ajeno al cambio. El reintento del CI salió en verde. Con `--disable-gpu` el cierre se repite (probado en local el mismo día), así que no es esa la salida.
 
 ## Cierre de sesión — 29 de octubre de 2026 (372): la guía del cierre de mes, dentro de Cierre
 
