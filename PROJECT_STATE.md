@@ -109,6 +109,23 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (376): el cierre solo de Chromium ya no tumba el CI
+
+- **Problema:** Chromium se cae solo entre pruebas («SEGV_MAPERR 0x1b0» tras «InitializeSandbox() called with multiple threads in process gpu-process»), en el CI y en local; `--disable-gpu` no lo evita (entrada 373). La prueba siguiente fallaba al crear su contexto, antes de ejecutar nada. El 29/10 tumbó el primer intento de #567 y el de #568 (una prueba de Hoy, ajena al cambio).
+- **Arreglo:**
+  - Nuevo `tests/helpers/navegador-resiliente.cjs`, que cargan las cuatro *specs* de Playwright (`qa1`, `opt4`, `p4` y `e18`). Sobrescribe el `browser` del *worker* con un intermediario.
+  - Al crear el contexto de una prueba, si el navegador ya está desconectado y el error es el de navegador cerrado, lo relanza **una vez** con las mismas opciones y deja un `::warning` con el título de la prueba.
+  - **No reintenta pruebas:** un fallo dentro de una prueba sigue fallando, y un segundo fallo al relanzar sale tal cual.
+  - Safari conserva su reintento (trampa 15). Los guiones que lanzan Chromium por su cuenta (`test:mobile-overflow`, Lighthouse) no cambian.
+- **Prueba:**
+  - E2E «Navegador que se cae entre pruebas», en serie: la primera cierra el navegador a propósito y la segunda abre la app.
+  - Comprobado que sin el arreglo la segunda falla con el mismo error que en el CI («browser.newContext: Target page, context or browser has been closed»), y con él pasa.
+- **Validación:**
+  - `npm test`: 6253/6253, con `lint` y `typecheck` limpios.
+  - En local: la E2E nueva y la de «solo bloquea el mes», 3 de 3.
+  - El resto, en el CI.
+- BACKLOG §0 y trampa 16 en §10.
+
 ## Cierre de sesión — 29 de octubre de 2026 (375): ensayo del cierre con historial, dos bloqueos más arreglados, y la guía se ve
 
 - **Ensayo (pedido por el hogar):** recorrido exploratorio del 2/11 con Playwright y datos INVENTADOS como los reales. Está en el scratchpad de la sesión, no en el repositorio.

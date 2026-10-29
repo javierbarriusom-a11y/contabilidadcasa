@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 
 // E18 (A13-5): capturas de referencia hechas en macOS con Chrome real (`*-darwin.png`, canal "chrome"
 // en playwright.config.cjs). No corre en el CI a propósito: en Linux no hay referencia con la que
