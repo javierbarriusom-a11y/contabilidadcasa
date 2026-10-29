@@ -6831,8 +6831,11 @@ test.describe("Guía del cierre de mes", () => {
       await expect(guia.locator(":scope > summary")).toContainText("Guía del cierre de octubre");
       await expect(guia.locator("#cierreGuiaResumen")).toHaveText("0 de 9 pasos hechos");
       await expect(guia).toContainText("Importad el extracto hasta el último día de octubre");
+      await expect(guia.locator("#cierreGuiaBarra")).toHaveAttribute("style", "width: 0%;");
+      await expect(guia.locator(".cierre-guia-accion-cerrar"), "abierta, el botón dice Plegar").toBeVisible();
       await guia.locator('label[for="cierreGuia-sesion"]').click();
       await expect(guia.locator("#cierreGuiaResumen")).toHaveText("1 de 9 pasos hechos");
+      await expect(guia.locator("#cierreGuiaBarra"), "la barra de la tarjeta avanza con lo marcado").toHaveAttribute("style", "width: 11%;");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
 
       await page.reload();

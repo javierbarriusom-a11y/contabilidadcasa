@@ -109,6 +109,34 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (375): ensayo del cierre con historial, dos bloqueos más arreglados, y la guía se ve
+
+- **Ensayo (pedido por el hogar):** recorrido exploratorio del 2/11 con Playwright y datos INVENTADOS como los reales. Está en el scratchpad de la sesión, no en el repositorio.
+  - Historial de CaixaBank de marzo al 24/10 sin clasificar, y un real de octubre tecleado a mano en una partida sin banco.
+  - El 2/11: importar el extracto de octubre entero (se solapa con lo ya importado), clasificar en la bandeja e ir a Cierre.
+- **Lo que funcionó:**
+  - Los duplicados se descartan: de 26 líneas entran 4.
+  - El saldo final del extracto pasa a ser el declarado en «Real manual», y CaixaBank cuadra.
+  - La bandeja clasifica por concepto todo el historial de una vez.
+- **Bloqueo 1, huecos de saldo falsos (`canonical-ledger.js`):**
+  - La continuidad ordenaba por `sourceRow`, que es la fila dentro de cada fichero. Con varios extractos de una cuenta (uno por mes, o el mes entero importado otra vez) mezclaba meses y se inventaba huecos. Dentro de un día, el CSV entra con la misma fila y en orden alfabético, y también los daba.
+  - Ahora `chainByDate` ordena por fecha y, dentro de un día, por el orden que encadena los saldos; la orientación del fichero queda solo como desempate y como etiqueta en Conciliación.
+  - En el ensayo pasó de 2 huecos (uno en octubre, que bloqueaba) a 0.
+  - Tres unitarias nuevas en `tests/canonical-ledger.test.cjs`: varios ficheros, orden del día y un salto de verdad que se sigue viendo.
+- **Bloqueo 2, un real a mano sin banco detrás (`views/cierre.js`):**
+  - Daba «Diferencias banco/real» y bloqueaba la firma; solo se quitaba borrando el real, en contra de lo que dice la guía («avisa, no bloquea»).
+  - Decisión del hogar: «Solo comparar si hay banco». `cierreBankActualDifferences` solo compara las partidas con movimientos clasificados del extracto ese mes.
+  - `#conciliar` (el inventario) no cambia. Una unitaria nueva.
+- **Pendiente visto en el ensayo (no bloquea, sin tocar):** «Importar 26 movimientos · 26 sin partida irán a la bandeja» cuando 22 ya estaban en la app. El resultado es correcto (entran 4), pero la revisión no dice cuántos son nuevos.
+- **La guía se ve (pedido del hogar: «apenas se ve»):**
+  - Plegada es una tarjeta con fondo y borde del color principal, icono, «Paso a paso», el título, una barra con lo marcado (`#cierreGuiaBarra`) y el botón «Abrir la guía» / «Plegar».
+  - En el móvil, el botón ocupa todo el ancho. Revisada en capturas a 1440 px (claro y oscuro) y a 390 px.
+  - Estilos en `calma.css`. La E2E de la guía comprueba que la barra avanza y el botón.
+- **Validación:**
+  - `npm test` en verde, 6253/6253 (+4), y `lint` limpio.
+  - En local, las E2E de Cierre (guía, solo el mes, ensayo del 23/10, carta, sombra y plan B): 12 de 12, y la guía otra vez tras la prueba de la barra.
+  - Accesibilidad (axe): 99 de 99.
+
 ## Cierre de sesión — 29 de octubre de 2026 (374): firmar un mes solo depende de ese mes
 
 - **Hallazgo (Claude, en una captura del hogar):** con los datos reales, Cierre contaba como pendiente **todo el historial**. `renderCierre` pasaba a `reconciliationTasks` todos los movimientos sin clasificar, todas las diferencias entre banco y real, y todos los huecos de continuidad del libro. «Ninguna diferencia abierta» exige cero tareas, así que firmar octubre pedía clasificar antes cientos de movimientos de meses anteriores. Era inviable para el primer cierre real (1-3/11). El ensayo del 23/10 partía de cero movimientos y no lo podía ver.

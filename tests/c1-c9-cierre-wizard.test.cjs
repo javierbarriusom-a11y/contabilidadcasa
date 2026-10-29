@@ -290,3 +290,19 @@ test("las tareas de otros meses se dicen sin bloquear, con miles agrupados y enl
   assert.match(html, /<a href="#movements">Movimientos<\/a>/);
   assert.match(context.cierreOtrosMesesHtml(1, 0, "oct 26"), /Además hay 1 tarea de otros meses: no impiden/);
 });
+
+test("la diferencia banco/real solo cuenta en partidas con movimientos del extracto ese mes", () => {
+  const context = baseContext(["cierreBankActualDifferences"]);
+  const entries = [
+    { monthKey: "2026-10", kind: "expense", mapping: { status: "classified", rowKey: "expense|super" } },
+    { monthKey: "2026-10", kind: "expense", mapping: { status: "classified", rowKey: "expense|super" }, duplicateOf: "x" },
+    { monthKey: "2026-10", kind: "expense", mapping: { status: "unclassified" } },
+  ];
+  const lines = [
+    { monthKey: "2026-10", kind: "expense", rowKey: "expense|super", delta: 12 }, // banco y real no cuadran: bloquea
+    { monthKey: "2026-10", kind: "expense", rowKey: "expense|services", delta: -50 }, // real a mano sin banco: no se compara
+    { monthKey: "2026-09", kind: "expense", rowKey: "expense|super", delta: 8 }, // otro mes sin banco de esa partida
+    { monthKey: "2026-10", kind: "expense", rowKey: "expense|super", delta: 0.01 }, // dentro de la tolerancia
+  ];
+  assert.deepEqual(context.cierreBankActualDifferences(lines, entries).map((line) => `${line.monthKey}|${line.rowKey}`), ["2026-10|expense|super"]);
+});

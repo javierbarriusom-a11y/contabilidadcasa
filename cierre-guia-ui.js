@@ -56,6 +56,13 @@ function cierreGuiaHechos(store, monthKey) {
   return CIERRE_GUIA_PASOS.filter((paso) => marcados[paso.id] === true).length;
 }
 
+// La barra de la tarjeta plegada: cuánto del cierre lleva marcado este mes.
+function cierreGuiaPintarAvance(hechos) {
+  const barra = qs("cierreGuiaBarra");
+  if (barra) barra.style.width = `${Math.round((hechos / CIERRE_GUIA_PASOS.length) * 100)}%`;
+  qs("cierreGuiaResumen").textContent = cierreGuiaResumen(hechos);
+}
+
 function cierreGuiaResumen(hechos) {
   return hechos === CIERRE_GUIA_PASOS.length ? "Todos los pasos hechos" : `${hechos} de ${CIERRE_GUIA_PASOS.length} pasos hechos`;
 }
@@ -89,7 +96,7 @@ function renderCierreGuia(monthKey, { signed = false, today = "" } = {}) {
   attachCierreGuia(card);
   const store = cierreGuiaLoad();
   card.dataset.monthKey = monthKey;
-  qs("cierreGuiaResumen").textContent = cierreGuiaResumen(cierreGuiaHechos(store, monthKey));
+  cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
   qs("cierreGuiaMes").textContent = `Guía del cierre de ${cierreGuiaNombreMes(monthKey)}`;
   qs("cierreGuiaCuerpo").innerHTML = cierreGuiaHtml(monthKey, store);
   // Del 1 al 3 con el mes sin firmar, abierta: es cuando se usa. El resto del mes, plegada (no pesa en la pantalla).
@@ -115,7 +122,7 @@ function attachCierreGuia(card) {
     store.meses[monthKey] = { ...(store.meses[monthKey] || {}), [box.dataset.cierreGuiaPaso]: box.checked };
     cierreGuiaSave(store);
     box.closest(".cierre-guia-paso")?.classList.toggle("is-hecho", box.checked);
-    qs("cierreGuiaResumen").textContent = cierreGuiaResumen(cierreGuiaHechos(store, monthKey));
+    cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
     if (box.checked) globalThis.FinanceMedidor?.anotar("cierre-guia", "accion"); // XGO-02: un paso marcado
   });
 }

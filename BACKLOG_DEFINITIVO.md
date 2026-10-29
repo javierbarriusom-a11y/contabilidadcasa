@@ -11,6 +11,12 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**29/10/2026 · ensayo del cierre con historial (pedido por el hogar):** recorrido entero del 2/11 con datos inventados como los reales: historial de marzo a octubre sin clasificar, octubre importado hasta el 24, el mes entero importado otra vez, la bandeja y Cierre. Además del bloqueo por el historial (arreglado justo antes), salieron dos más, y los dos están arreglados:
+- **Huecos de saldo falsos.** La continuidad ordenaba por la fila de cada fichero, así que con varios extractos de una cuenta mezclaba meses. Ahora ordena por fecha y, dentro de un día, por el orden que encadena los saldos.
+- **Un real a mano sin banco detrás** (efectivo u otra cuenta) bloqueaba la firma, y solo se quitaba borrando el real. Decisión del hogar: la diferencia banco/real solo se compara en partidas con movimientos del extracto ese mes.
+
+La tarjeta de la guía se ve ahora (lo pidió el hogar): fondo y borde del color principal, barra de avance y botón «Abrir la guía».
+
 **29/10/2026 · firmar un mes solo depende de ese mes (decisión del hogar):** con los datos reales, Cierre pedía clasificar todo el historial antes de firmar octubre, cientos de movimientos de meses anteriores incluidos. Ahora los contadores, el paso «Resolver diferencias» y la firma son del mes que se cierra. Lo de otros meses se dice aparte, con su enlace a Movimientos, y no bloquea. El descuadre del capital de deuda no tiene mes y sigue bloqueando. Lo encontró Claude en una captura del hogar, a tres días del primer cierre real; el ensayo del 23/10 partía de cero movimientos y no lo podía ver.
 
 **29/10/2026 · lo nuevo nace encendido (decisión del hogar):** las siete funciones en prueba que estaban apagadas pasan a encendidas, con su revisión el 12/11 y su interruptor para apagarlas. Las siguientes nacerán encendidas (§4). La guía del cierre, encendida desde el principio, fue la primera.

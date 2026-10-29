@@ -986,6 +986,16 @@ function cierreTaskSourcesByMonth(sources, entries, monthKey) {
   };
 }
 
+// Decisión del hogar del 29/10/2026 (ensayo del cierre): la diferencia entre banco y real solo se compara en las partidas que
+// tienen movimientos del extracto ese mes. Un real anotado a mano sin banco detrás (efectivo, otra cuenta, una tarjeta sin
+// extracto) no tiene con qué cuadrar: antes bloqueaba la firma y solo se quitaba borrando el real.
+function cierreBankActualDifferences(lines, entries) {
+  const conBanco = new Set((entries || [])
+    .filter((entry) => !entry.duplicateOf && entry.mapping?.status === "classified")
+    .map((entry) => `${entry.monthKey}|${entry.kind}|${entry.mapping.rowKey}`));
+  return (lines || []).filter((line) => Math.abs(Number(line.delta || 0)) > 0.02 && conBanco.has(`${line.monthKey}|${line.kind}|${line.rowKey}`));
+}
+
 function cierreOtrosMesesHtml(taskCount, unclassifiedCount, monthLabel) {
   if (!taskCount) return "";
   const formatCount = (value) => Number(value).toLocaleString("es-ES", { useGrouping: "always" }); // 1.831, no 1831 (es-ES no agrupa 4 cifras)
@@ -1227,7 +1237,7 @@ function renderCierre() {
   }
 
   const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
-  const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
+  const differences = cierreBankActualDifferences(lines, entries);
   const balanceGaps = checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId })));
   // D-2b: un descuadre de capital de deuda contra el último cierre firmado se registra como una
   // tarea de cierre más — nunca en silencio. Como mucho una entrada, derivada en vivo (C-4).

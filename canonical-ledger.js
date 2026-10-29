@@ -99,6 +99,44 @@
     return { orientation, gaps, totalError: round(totalError), checkedPairs: Math.max(0, chronological.length - 1) };
   }
 
+  // Ensayo del cierre del 29/10/2026: `sourceRow` es la fila dentro de SU fichero, así que con varios extractos de la misma
+  // cuenta (un mes por fichero, o el mes entero importado otra vez) ordenar solo por él mezcla meses y se inventa huecos que
+  // bloquean el cierre. Aquí el orden es por fecha; dentro de un día, el que encadena los saldos (el CSV no siempre trae el
+  // orden del día), con la orientación del fichero como desempate. Un hueco es, así, un salto de saldo de verdad.
+  function chainByDate(rows, orientation) {
+    const byDay = new Map();
+    rows.forEach((row) => {
+      const day = text(row.date).slice(0, 10);
+      if (!byDay.has(day)) byDay.set(day, []);
+      byDay.get(day).push(row);
+    });
+    const days = [...byDay.keys()].sort();
+    const gaps = [];
+    let totalError = 0;
+    let previous = null;
+    let checkedPairs = 0;
+    days.forEach((day) => {
+      const pending = byDay.get(day).slice().sort((a, b) => (orientation === "oldest-first" ? a.sourceRow - b.sourceRow : b.sourceRow - a.sourceRow));
+      while (pending.length) {
+        let pick = 0;
+        if (previous) {
+          const fits = pending.findIndex((row) => Math.abs(round(row.balanceAfter - (previous.balanceAfter + row.signedAmount))) <= TOLERANCE);
+          if (fits >= 0) pick = fits;
+        }
+        const current = pending.splice(pick, 1)[0];
+        if (previous) {
+          checkedPairs += 1;
+          const expected = round(previous.balanceAfter + current.signedAmount);
+          const error = Math.abs(round(current.balanceAfter - expected));
+          totalError += error;
+          if (error > TOLERANCE) gaps.push({ previousId: previous.id, currentId: current.id, expected, actual: current.balanceAfter, error: round(error) });
+        }
+        previous = current;
+      }
+    });
+    return { orientation, gaps, totalError: round(totalError), checkedPairs };
+  }
+
   function buildBalanceChecks(entries) {
     const grouped = new Map();
     entries.forEach((entry) => {
@@ -107,11 +145,12 @@
       grouped.get(entry.accountId).push(entry);
     });
     return [...grouped.entries()].map(([accountId, rows]) => {
+      // La orientación (cómo viene ordenado el fichero) se sigue leyendo por la fila; los huecos, por fecha (chainByDate).
       const oldest = evaluateContinuity(rows, "oldest-first");
       const newest = evaluateContinuity(rows, "newest-first");
-      const selected = oldest.gaps.length < newest.gaps.length ||
-        (oldest.gaps.length === newest.gaps.length && oldest.totalError <= newest.totalError) ? oldest : newest;
-      return { accountId, transactionCount: rows.length, ...selected };
+      const orientation = oldest.gaps.length < newest.gaps.length ||
+        (oldest.gaps.length === newest.gaps.length && oldest.totalError <= newest.totalError) ? "oldest-first" : "newest-first";
+      return { accountId, transactionCount: rows.length, ...chainByDate(rows, orientation) };
     });
   }
 

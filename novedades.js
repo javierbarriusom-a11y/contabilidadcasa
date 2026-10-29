@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-29-cierre-reales",
+      fecha: "2026-10-29",
+      texto: "Cierre: un real anotado a mano sin movimiento del banco (efectivo, otra cuenta) ya no impide firmar, y la guía se ve mejor, con su avance.",
+      href: "#cierre",
+    },
+    {
       id: "2026-10-29-cierre-mes",
       fecha: "2026-10-29",
       texto: "Cierre: para firmar un mes solo cuentan las tareas de ese mes. Lo pendiente de otros meses se ve aparte y no impide firmar.",
