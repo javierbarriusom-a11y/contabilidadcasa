@@ -13,7 +13,7 @@
     {
       id: "2026-10-29-reales-aparte",
       fecha: "2026-10-29",
-      texto: "Reales: lo pagado fuera del banco (efectivo) ya no se pierde al importar o clasificar. El real es lo del banco más lo anotado aparte, y Registrar dice qué parte es de cada sitio.",
+      texto: "Reales: lo pagado fuera del banco (efectivo) ya no se pierde al importar. El real es banco más lo anotado aparte.",
       href: "#registrar",
     },
     {
