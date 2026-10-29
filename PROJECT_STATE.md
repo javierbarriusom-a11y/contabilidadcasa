@@ -109,6 +109,53 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (378): reales, banco + lo anotado aparte
+
+- **Hallazgo (Claude, revisando el cierre):**
+  - `applyMovementMappingsToActuals` (tras clasificar o importar) escribía el real de cada partida y mes abierto con la suma del banco, sin más.
+  - Un real tecleado a mano que incluía algo fuera del banco (el súper: 80 € con tarjeta y 40 € en efectivo) quedaba en 80 €.
+  - Y una partida que se quedaba sin movimientos al reclasificar conservaba el real viejo.
+- **Decisión del hogar (29/10):** «Sumar banco + lo anotado aparte».
+- **Cambio (`app.js`):**
+  - `bankActualTotals` (la suma de siempre) y `mergeBankActuals` (pura).
+  - Almacén `bank-actuals-applied` en `BACKUP_LOCAL_STORES` (copia y nube): la suma del banco aplicada por última vez a cada partida y mes.
+  - Al aplicar el banco, lo anotado aparte = real actual − suma aplicada la última vez, y el real nuevo = banco nuevo + lo anotado aparte. Sea cual sea la pantalla en que el hogar cambió el real, se respeta.
+  - La primera vez que el banco llega a un real tecleado antes, lo que pase de la suma del banco queda aparte (el tecleado era el total); si es menor, manda el banco.
+  - Una partida que se queda sin movimientos conserva solo lo anotado aparte, o se queda sin real.
+  - Los meses cerrados no se tocan.
+  - Al abrir sin almacén, el punto de partida es el banco de hoy, en memoria: abrir o mirar la app no escribe nada (la E2E de WP-45 lo vigila y lo detectó en la primera versión).
+  - `canonicalLedgerActuals` compara el extracto con la parte del banco del real.
+- **A la vista:**
+  - Registrar › Reales enseña «Banco X € + Y € anotado aparte» cuando hay algo aparte (`registrar-ui.js`, estilo en `calma.css`).
+  - La guía del cierre (paso 5) lo explica.
+  - Novedades y BACKLOG §0.
+- **Pruebas:**
+  - `tests/reales-banco-aparte.test.cjs`, 8 casos: real tecleado antes del banco, real menor que el banco, lo aparte se conserva al llegar más banco, reclasificar, partida sin movimientos, mes cerrado y real sin banco, punto de partida sin escribir, y el libro.
+  - `tests/wp30-ciclos-tarjeta.test.cjs` corta el bloque nuevo.
+  - E2E «Reales: banco + lo anotado aparte» (120 → 120; corregido a 95 y +30 de banco → 125; Registrar lo dice).
+- **Validación:**
+  - `npm test` 6261/6261, con `lint` y `typecheck` limpios.
+  - En local, E2E de reales, clasificar, importar, cierre, movimientos, Registrar, duplicados, tarjetas y WP-45: 74 de 74, más la nueva.
+
+## Cierre de sesión — 29 de octubre de 2026 (377): importar otra vez un extracto que se solapa cuenta solo lo nuevo
+
+- **Hallazgo del ensayo (375):**
+  - Al volver a importar el mes entero, la revisión decía «Importar 26 movimientos · 26 sin partida irán a la bandeja» cuando entraban 4.
+  - `datosImportarDuplicateCandidates` excluye a propósito las filas idénticas a otras guardadas (misma identidad), y `mergeTransactions` las funde sin repetirlas. El resultado era correcto, pero los números no.
+- **Cambio:**
+  - `views/importar-v2.js` › `impV2Counts` cuenta `yaEstaban` (incluidas cuya `transactionIdentity` ya está guardada) y `nuevos`.
+  - El botón dice «Importar N movimientos nuevos»; si no hay nuevos, «Importar (no hay movimientos nuevos)», que sigue sirviendo para tomar el saldo final.
+  - La nota añade «N ya estaban en la app y no se repiten», y «sin partida irán a la bandeja» deja de contarlos.
+  - `importar-extracto-ui.js` devuelve también `nuevos` y `yaEstaban`. El resultado dice «N movimientos nuevos importados · M ya estaban en la app y no se han repetido».
+  - Sin filas repetidas, todo se lee como antes.
+  - Versiones de los dos *scripts*. Novedades y BACKLOG §0.
+- **Pruebas:**
+  - E2E nueva «Importar otra vez un extracto que se solapa»: 3 movimientos y luego 5, con 2 nuevos, y la app queda con 5.
+  - `tests/redis-a4-importar.test.cjs` gana los dos *stubs* que ahora usa la revisión.
+- **Validación:**
+  - `npm test` 6253/6253 y `lint` limpio.
+  - En local, E2E de importar, extracto, A4, duplicados y captura: 34 de 34.
+
 ## Cierre de sesión — 29 de octubre de 2026 (376): el cierre solo de Chromium ya no tumba el CI
 
 - **Problema:** Chromium se cae solo entre pruebas («SEGV_MAPERR 0x1b0» tras «InitializeSandbox() called with multiple threads in process gpu-process»), en el CI y en local; `--disable-gpu` no lo evita (entrada 373). La prueba siguiente fallaba al crear su contexto, antes de ejecutar nada. El 29/10 tumbó el primer intento de #567 y el de #568 (una prueba de Hoy, ajena al cambio).

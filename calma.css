@@ -433,3 +433,12 @@
 .cierre-guia-atascos .table-wrap {
   overflow-x: auto;
 }
+
+/* Registrar › Reales (29/10/2026): qué parte del real viene del banco y cuál se anotó aparte (efectivo, otra cuenta). */
+.registrar-actuals-aparte {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--e19-text-xs, 0.78rem);
+  color: var(--e19-muted);
+  font-variant-numeric: tabular-nums;
+}

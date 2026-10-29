@@ -337,6 +337,10 @@ function datosImportarApply(session, { motivo }) {
 
   const capturasSustituidas = capturaDuplicadosAplicar(rows); // WP-53: dentro del lote, para que «Deshacer» devuelva la captura
   const incoming = datosImportarIncludedTransactions(rows, session.fileMeta.bankAccount);
+  // Ensayo del cierre (29/10/2026): al volver a importar un mes entero, las filas idénticas a otras ya guardadas se funden
+  // sin duplicarse (mergeTransactions); se cuentan aparte para no decir «26 importados» cuando entran 4.
+  const yaGuardados = new Set((baseData.transactions || []).map(transactionIdentity));
+  const yaEstaban = incoming.filter((transaction) => yaGuardados.has(transactionIdentity(transaction))).length;
   baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
   refreshMovementRollups();
   const appliedActuals = applyMovementMappingsToActuals();
@@ -369,7 +373,7 @@ function datosImportarApply(session, { motivo }) {
   queueRemoteSave();
   refreshAllSectionsAfterDataChange();
 
-  return { imported: incoming.length, duplicadosDescartados, capturasSustituidas, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
+  return { imported: incoming.length, nuevos: incoming.length - yaEstaban, yaEstaban, duplicadosDescartados, capturasSustituidas, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
 }
 
 // ---------------------------------------------------------------------------------------------

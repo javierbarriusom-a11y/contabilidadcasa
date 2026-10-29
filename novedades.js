@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-29-reales-aparte",
+      fecha: "2026-10-29",
+      texto: "Reales: lo pagado fuera del banco (efectivo) ya no se pierde al importar. El real es banco más lo anotado aparte.",
+      href: "#registrar",
+    },
+    {
+      id: "2026-10-29-importar-ya-estaban",
+      fecha: "2026-10-29",
+      texto: "Importar: al volver a importar un extracto que se solapa, dice cuántos movimientos son nuevos y cuántos ya estaban (ninguno se repite).",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-29-cierre-reales",
       fecha: "2026-10-29",
       texto: "Cierre: un real anotado a mano sin movimiento del banco (efectivo, otra cuenta) ya no impide firmar, y la guía se ve mejor, con su avance.",

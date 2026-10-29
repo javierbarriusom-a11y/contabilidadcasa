@@ -11,6 +11,10 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**29/10/2026 · reales: banco + lo anotado aparte (decisión del hogar).** Clasificar o importar pisaba el real de cada partida y mes con la suma del banco, sin avisar: lo pagado en efectivo se perdía. Ahora el real es lo del banco más lo anotado aparte. El almacén `bank-actuals-applied` guarda la suma del banco aplicada la última vez, y lo que el real se aparte de ella es del hogar y se conserva. Registrar lo enseña («Banco 110 € + 15 € anotado aparte»), y el libro compara el extracto solo con la parte del banco.
+
+**29/10/2026 · importar otra vez un extracto que se solapa:** la revisión decía «Importar 26 movimientos» cuando solo 4 eran nuevos. Las filas idénticas ya se fundían sin repetirse, pero se contaban como nuevas. Ahora el botón y el resultado cuentan solo los nuevos y dicen cuántos ya estaban, y estos no vuelven a la bandeja. Salió del ensayo del cierre.
+
 **29/10/2026 · el cierre solo de Chromium ya no tumba el CI:** si el navegador se cae entre dos pruebas, la siguiente lo relanza una vez en vez de fallar sin haber empezado (trampa 16, §10). No se reintenta ninguna prueba.
 
 **29/10/2026 · ensayo del cierre con historial (pedido por el hogar):** recorrido entero del 2/11 con datos inventados como los reales: historial de marzo a octubre sin clasificar, octubre importado hasta el 24, el mes entero importado otra vez, la bandeja y Cierre. Además del bloqueo por el historial (arreglado justo antes), salieron dos más, y los dos están arreglados:
