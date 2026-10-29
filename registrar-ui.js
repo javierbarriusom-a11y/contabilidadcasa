@@ -1465,6 +1465,16 @@ function lastActualForEntry(entry, month) {
   return null;
 }
 
+// 29/10/2026 («Sumar banco + lo anotado aparte»): si la partida tiene movimientos del extracto y el real lleva algo anotado
+// aparte (efectivo, otra cuenta), se dice qué parte es de cada sitio. Lo que se teclee aquí es el total del mes.
+function registrarActualsAparteHtml(entry) {
+  if (!entry.hasActual || typeof bankActualAparte !== "function") return "";
+  const aparte = bankActualAparte(entry.kind, entry.key);
+  if (!aparte) return "";
+  const banco = Number(entry.actual) - aparte;
+  return `<small class="registrar-actuals-aparte">Banco ${escapeHtml(money(banco, true))} ${aparte > 0 ? "+" : "−"} ${escapeHtml(money(Math.abs(aparte), true))} anotado aparte</small>`;
+}
+
 // R-6b: el previsto de esta fila no se edita aquí (celda de solo lectura, ninguna escritura de
 // `planned` en toda la pestaña) — el enlace lleva a Plan, la única pantalla donde se edita.
 function registrarActualsRowHtml(entry, monthClosed, month) {
@@ -1476,7 +1486,7 @@ function registrarActualsRowHtml(entry, monthClosed, month) {
     <td>${!entry.hasActual && !monthClosed ? `<input type="checkbox" class="registrar-actuals-select" data-registrar-actuals-select="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Seleccionar ${escapeHtml(entry.label)}"${registrarActualsSelectedKeys.has(entry.key) ? " checked" : ""} />` : ""}${escapeHtml(entry.sectionName)}</td>
     <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
     <td data-label="Previsto">${money(entry.planned, true)}</td>
-    <td><input type="text" inputmode="decimal" autocomplete="off" data-amount-input data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? formatAmountField(entry.actual) : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
+    <td><input type="text" inputmode="decimal" autocomplete="off" data-amount-input data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? formatAmountField(entry.actual) : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} />${registrarActualsAparteHtml(entry)}${!entry.hasActual && !monthClosed ? `<button type="button" class="e19-btn e19-btn-secondary registrar-actuals-confirm-btn" data-registrar-actuals-confirm="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" data-registrar-actuals-planned="${entry.planned}">Confirmar previsto (${escapeHtml(money(entry.planned, true))})</button>` : ""}</td>
     <td data-label="Usado"><strong>${money(entry.used, true)}</strong></td>
     <td data-label="Desviación" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
     <td><span class="status-pill ${status.tone}">${escapeHtml(status.label)}</span></td>

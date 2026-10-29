@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-10-29-reales-aparte",
+      fecha: "2026-10-29",
+      texto: "Reales: lo pagado fuera del banco (efectivo) ya no se pierde al importar o clasificar. El real es lo del banco más lo anotado aparte, y Registrar dice qué parte es de cada sitio.",
+      href: "#registrar",
+    },
+    {
       id: "2026-10-29-importar-ya-estaban",
       fecha: "2026-10-29",
       texto: "Importar: al volver a importar un extracto que se solapa, dice cuántos movimientos son nuevos y cuántos ya estaban (ninguno se repite).",

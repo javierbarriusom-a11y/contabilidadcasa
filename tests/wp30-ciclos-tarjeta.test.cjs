@@ -297,7 +297,9 @@ test("sin el motor cargado (copia antigua, fallo de carga) la partida se comport
 });
 
 test("los movimientos de la hoja no se suman como real por reglas de asignación (cuentan por su ciclo)", () => {
-  const body = sliceBetween(app, "function applyMovementMappingsToActuals() {", "function transactionIdentity(");
+  // Desde el 29/10/2026 el real suma banco + lo anotado aparte: la suma del banco sale de bankActualTotals y se mezcla con
+  // mergeBankActuals (con su almacén), así que se cortan juntas.
+  const body = sliceBetween(app, "function bankActualTotals() {", "function transactionIdentity(");
   const expenseActuals = {};
   const incomeActuals = {};
   const row = { id: "fila-tarjeta-1", kind: "expense" };
@@ -310,7 +312,12 @@ test("los movimientos de la hoja no se suman como real por reglas de asignación
     round2: (value) => Math.round(value * 100) / 100,
     expenseActuals,
     incomeActuals,
+    storageKey: (name) => name,
+    storageGet: (key, fallback) => (key in store ? store[key] : fallback),
+    storageSet: (key, value) => { store[key] = value; },
+    actualsForKind: (kind) => (kind === "income" ? incomeActuals : expenseActuals),
   };
+  const store = {};
   vm.createContext(sandbox);
   vm.runInContext(`${body}\nthis.applied = applyMovementMappingsToActuals();`, sandbox);
   assert.deepEqual(plain(expenseActuals), { "fila-tarjeta-1|2026-11": 520 }, "solo el cargo del banco: la compra provisional no suma");

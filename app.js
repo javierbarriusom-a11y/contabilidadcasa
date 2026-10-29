@@ -1385,6 +1385,7 @@ const BACKUP_LOCAL_STORES = [
   "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
   "portfolio-valuations", // WP-15: serie de valoraciones de la cartera con fecha (valor y coste por posición) y los tiempos de la hoja
   "ledger-coverage", // XDA-04: periodo que cubre cada extracto importado (cuenta y fechas, sin importes); de ahí salen los huecos
+  "bank-actuals-applied", // 29/10/2026: suma del banco aplicada como real en cada partida y mes; lo que el real se aparte de ella es lo anotado aparte (efectivo, otra cuenta)
   "repaso-semanal", // B5 (XUX-03): cada Repaso semanal terminado (fecha, segundos, qué se hizo), sin importes; de ahí salen la racha y M-COSTE
 ];
 // Sufijo de la copia que se guarda del valor local antes de que la nube lo sustituya por primera vez.
@@ -2448,6 +2449,7 @@ function canonicalLedgerTransactions() {
 }
 
 function canonicalLedgerActuals() {
+  const bankActualsApplied = loadBankActualsApplied();
   const rowsById = new Map(
     ["income", "expense"].flatMap((kind) =>
       availableSeriesRows(kind).map((row) => [`${kind}|${row.id}`, row]),
@@ -2463,6 +2465,8 @@ function canonicalLedgerActuals() {
     const monthKeyValue = key.slice(separator + 1);
     const row = rowsById.get(`${kind}|${rowId}`);
     if (!row || !/^\d{4}-\d{2}$/.test(monthKeyValue) || !Number.isFinite(Number(amount))) return [];
+    // Lo anotado aparte del banco (efectivo, otra cuenta) no es una diferencia con el extracto: se compara su parte de banco.
+    const bankPart = bankActualsApplied?.[kind]?.[key];
     return [{
       id: `${kind}|${key}`,
       kind,
@@ -2470,7 +2474,7 @@ function canonicalLedgerActuals() {
       rowKey: seriesKeyForRow(row),
       label: displayLabelForRow(row),
       monthKey: monthKeyValue,
-      amount: Number(amount),
+      amount: bankPart === undefined ? Number(amount) : Number(bankPart),
       source: "detalle mensual previsto vs real",
     }];
   });
@@ -21674,7 +21678,8 @@ function buildPendingMovementMappings(transactions) {
   return [...groups.values()].sort((a, b) => b.total - a.total);
 }
 
-function applyMovementMappingsToActuals() {
+// Suma del banco por partida y mes (abiertos), la que el extracto clasificado pone como real.
+function bankActualTotals() {
   const monthlyTotals = {
     income: new Map(),
     expense: new Map(),
@@ -21690,16 +21695,82 @@ function applyMovementMappingsToActuals() {
     const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
     monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
   });
-  let applied = 0;
-  monthlyTotals.income.forEach((value, key) => {
-    incomeActuals[key] = value;
-    applied += 1;
+  return monthlyTotals;
+}
+
+// Decisión del hogar del 29/10/2026, «Sumar banco + lo anotado aparte»: el real de una partida con movimientos del
+// extracto es lo del banco MÁS lo anotado aparte (el súper pagado en efectivo). Antes, clasificar o importar pisaba el real
+// con la suma del banco y lo anotado a mano se perdía sin avisar. `bank-actuals-applied` guarda la suma del banco que se
+// aplicó la última vez a cada partida y mes; lo que el real se aparte de ella lo ha anotado el hogar (venga de Registrar,
+// de Plan o de donde sea) y se conserva cuando el banco cambia. Una partida que se queda sin movimientos conserva solo lo
+// anotado aparte. La primera vez que el banco llega a un real tecleado antes, lo que pase de la suma del banco se
+// queda como anotado aparte (el real tecleado era el total del mes).
+const BANK_ACTUALS_STORE = "bank-actuals-applied";
+let bankActualsBaseline = null; // punto de partida al abrir sin almacén: en memoria (abrir la app no escribe nada)
+
+function loadBankActualsApplied() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(BANK_ACTUALS_STORE), "null"));
+    if (parsed && typeof parsed === "object") return { income: { ...(parsed.income || {}) }, expense: { ...(parsed.expense || {}) } };
+  } catch {
+    // almacén ilegible: se trata como si no existiera
+  }
+  return bankActualsBaseline ? { income: { ...bankActualsBaseline.income }, expense: { ...bankActualsBaseline.expense } } : null;
+}
+
+function mergeBankActuals(actuals, applied, totals, isOpenKey) {
+  const keys = new Set([...totals.keys(), ...Object.keys(applied)]);
+  let changed = 0;
+  keys.forEach((key) => {
+    if (!isOpenKey(key)) return;
+    const bank = totals.get(key) || 0;
+    const previous = applied[key];
+    const current = actuals[key] === undefined || actuals[key] === null || actuals[key] === "" ? undefined : Number(actuals[key]);
+    const aparte = previous === undefined
+      ? (current === undefined ? 0 : Math.max(0, round2(current - bank)))
+      : (current === undefined ? 0 : round2(current - Number(previous)));
+    if (!totals.has(key)) {
+      if (aparte) actuals[key] = aparte;
+      else delete actuals[key];
+      delete applied[key];
+      changed += 1;
+      return;
+    }
+    actuals[key] = round2(bank + aparte);
+    applied[key] = bank;
+    changed += 1;
   });
-  monthlyTotals.expense.forEach((value, key) => {
-    expenseActuals[key] = value;
-    applied += 1;
-  });
-  return applied;
+  return changed;
+}
+
+function bankActualsKeyIsOpen(key) {
+  return !isClosedMonthKey(String(key).slice(String(key).lastIndexOf("|") + 1));
+}
+
+// Al abrir la app sin el almacén (la primera vez tras el 29/10/2026): la suma del banco de hoy es el punto de partida, sin
+// tocar ningún real. Así un real que ya difería del banco cuenta como anotado aparte desde ahora. Se queda en memoria y se
+// guarda la primera vez que el banco se aplica (abrir o mirar la app no escribe nada).
+function ensureBankActualsBaseline() {
+  if (!baseData || loadBankActualsApplied()) return;
+  const totals = bankActualTotals();
+  bankActualsBaseline = { income: Object.fromEntries(totals.income), expense: Object.fromEntries(totals.expense) };
+}
+
+// Para Registrar: lo anotado aparte del banco en una partida y mes (0 si no hay banco o nada aparte).
+function bankActualAparte(kind, key) {
+  const applied = loadBankActualsApplied()?.[kind] || {};
+  const actual = actualsForKind(kind)[key];
+  if (applied[key] === undefined || actual === undefined || actual === null || actual === "") return 0;
+  return round2(Number(actual) - Number(applied[key]));
+}
+
+function applyMovementMappingsToActuals() {
+  const totals = bankActualTotals();
+  const applied = loadBankActualsApplied() || { income: {}, expense: {} };
+  const changed = mergeBankActuals(incomeActuals, applied.income, totals.income, bankActualsKeyIsOpen)
+    + mergeBankActuals(expenseActuals, applied.expense, totals.expense, bankActualsKeyIsOpen);
+  storageSet(storageKey(BANK_ACTUALS_STORE), JSON.stringify(applied));
+  return changed;
 }
 
 function transactionIdentity(row) {
@@ -30930,6 +31001,7 @@ async function init() {
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
   applyVariableOperationalMayZeroDefault();
+  ensureBankActualsBaseline(); // reales: banco + lo anotado aparte (29/10/2026)
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
   writeControls({ ...baseData.assumptions, autoCapSavings: true });

@@ -6962,3 +6962,39 @@ test.describe("Importar otra vez un extracto que se solapa", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// Decisión del hogar del 29/10/2026, «Sumar banco + lo anotado aparte»: el súper de octubre anotado a mano (120 €: 80 con
+// tarjeta y 40 en efectivo) ya no se queda en 80 al llegar el extracto, y Registrar dice qué parte es de cada sitio.
+// Movimientos INVENTADOS, sembrados en memoria.
+test.describe("Reales: banco + lo anotado aparte", () => {
+  test("el extracto no pisa lo pagado en efectivo, y Registrar dice qué parte es del banco", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 9, 29, 12, 0, 0) });
+    await page.goto("/index.html#registrar");
+    await page.waitForFunction(() => typeof applyMovementMappingsToActuals === "function" && typeof renderRegistrarActuals === "function", null, { timeout: 20000 });
+    const resultado = await page.evaluate(() => {
+      const row = availableSeriesRows("expense").find((item) => displayLabelForRow(item) === "Gastos del hogar");
+      const key = actualKeyForRow(row, { key: "2026-10" });
+      expenseActuals[key] = 120; // anotado a mano antes del extracto
+      // Un movimiento del banco con el nombre exacto de la partida: queda clasificado en ella.
+      baseData.transactions = mergeTransactions([], [{ date: "2026-10-05", month: "2026-10", movement: "Gastos del hogar", details: "", amount: -80, balance: 1000, accountId: "caixabank" }]);
+      refreshMovementRollups();
+      applyMovementMappingsToActuals();
+      const tras = expenseActuals[key];
+      expenseActuals[key] = 95; // el hogar corrige a mano: ahora solo 15 € fueron aparte
+      baseData.transactions = mergeTransactions(baseData.transactions, [{ date: "2026-10-20", month: "2026-10", movement: "Gastos del hogar", details: "", amount: -30, balance: 970, accountId: "caixabank" }]);
+      refreshMovementRollups();
+      applyMovementMappingsToActuals();
+      return { key, tras, final: expenseActuals[key] };
+    });
+    expect(resultado.tras, "80 del banco + 40 en efectivo: el extracto no pisa lo anotado").toBe(120);
+    expect(resultado.final, "110 del banco + 15 aparte").toBe(125);
+    await page.click('[data-registrar-tab="actuals"]');
+    await page.evaluate(() => { const select = document.querySelector("#registrarActualsMonth"); if (select) { renderRegistrarActuals(); select.value = "2026-10"; select.dispatchEvent(new Event("change", { bubbles: true })); } });
+    const fila = page.locator(`tr[data-registrar-actuals-key="${resultado.key}"]`);
+    await expect(fila.locator(".registrar-actuals-aparte")).toHaveText("Banco 110 € + 15 € anotado aparte", { timeout: 15000 });
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
