@@ -19,7 +19,7 @@ function cierreGuiaNombreMes(monthKey) {
 const CIERRE_GUIA_PASOS = Object.freeze([
   { id: "sesion", que: "Entrad y sincronizad", como: "En el menú, Sincronización › Entrar y después Sincronizar.", nivel: "bloquea", nota: "Sin sesión no se puede firmar" },
   { id: "extracto", que: "Importad el extracto hasta el último día de {mes}", como: "De cada cuenta, en Movimientos › Importar. El cierre necesita al menos un movimiento del mes.", nivel: "bloquea", nota: "Bloquea si no hay ninguno", href: "#movements", enlace: "Ir a Movimientos" },
-  { id: "clasificar", que: "Clasificad lo que falte", como: "En Movimientos › Clasificar. No puede quedar ningún movimiento sin partida.", nivel: "bloquea", nota: "Bloquea", href: "#movements", enlace: "Ir a Movimientos" },
+  { id: "clasificar", que: "Clasificad lo que falte", como: "En Movimientos › Clasificar. No puede quedar ningún movimiento del mes sin partida; los de otros meses no bloquean.", nivel: "bloquea", nota: "Bloquea", href: "#movements", enlace: "Ir a Movimientos" },
   { id: "saldos", que: "Declarad el saldo de cada cuenta", como: "En Registrar › «Declara cuánto hay en cada cuenta», con la fecha del último movimiento importado y el modo «Real manual». Con «Auto por fecha» el saldo no cuenta para el acierto de la caja.", nivel: "bloquea", nota: "Si no cuadra, bloquea", href: "#registrar", enlace: "Ir a Registrar" },
   { id: "reales", que: "Anotad los reales que falten", como: "En Registrar › Reales del mes. Al firmar, la app dice qué partidas quedan sin real.", nivel: "avisa", nota: "Avisa, no bloquea", href: "#registrar", enlace: "Ir a Registrar" },
   { id: "valorar", que: "Valorad la cartera", como: "En Inversión › Cartera › Actualizar valoración. Unos 5 minutos; «Sin cambios» vale para lo que no se ha movido.", nivel: "avisa", nota: "Avisa, no bloquea", href: "#inversion-cartera", enlace: "Ir a Cartera" },
@@ -56,6 +56,13 @@ function cierreGuiaHechos(store, monthKey) {
   return CIERRE_GUIA_PASOS.filter((paso) => marcados[paso.id] === true).length;
 }
 
+// La barra de la tarjeta plegada: cuánto del cierre lleva marcado este mes.
+function cierreGuiaPintarAvance(hechos) {
+  const barra = qs("cierreGuiaBarra");
+  if (barra) barra.style.width = `${Math.round((hechos / CIERRE_GUIA_PASOS.length) * 100)}%`;
+  qs("cierreGuiaResumen").textContent = cierreGuiaResumen(hechos);
+}
+
 function cierreGuiaResumen(hechos) {
   return hechos === CIERRE_GUIA_PASOS.length ? "Todos los pasos hechos" : `${hechos} de ${CIERRE_GUIA_PASOS.length} pasos hechos`;
 }
@@ -89,7 +96,7 @@ function renderCierreGuia(monthKey, { signed = false, today = "" } = {}) {
   attachCierreGuia(card);
   const store = cierreGuiaLoad();
   card.dataset.monthKey = monthKey;
-  qs("cierreGuiaResumen").textContent = cierreGuiaResumen(cierreGuiaHechos(store, monthKey));
+  cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
   qs("cierreGuiaMes").textContent = `Guía del cierre de ${cierreGuiaNombreMes(monthKey)}`;
   qs("cierreGuiaCuerpo").innerHTML = cierreGuiaHtml(monthKey, store);
   // Del 1 al 3 con el mes sin firmar, abierta: es cuando se usa. El resto del mes, plegada (no pesa en la pantalla).
@@ -115,7 +122,7 @@ function attachCierreGuia(card) {
     store.meses[monthKey] = { ...(store.meses[monthKey] || {}), [box.dataset.cierreGuiaPaso]: box.checked };
     cierreGuiaSave(store);
     box.closest(".cierre-guia-paso")?.classList.toggle("is-hecho", box.checked);
-    qs("cierreGuiaResumen").textContent = cierreGuiaResumen(cierreGuiaHechos(store, monthKey));
+    cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
     if (box.checked) globalThis.FinanceMedidor?.anotar("cierre-guia", "accion"); // XGO-02: un paso marcado
   });
 }

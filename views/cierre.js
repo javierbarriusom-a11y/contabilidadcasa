@@ -419,7 +419,7 @@ function cierreStep1Html(accountRows) {
 function cierreStep2Html(tasks) {
   const groups = cierreGroupTasksByCause(tasks);
   if (!groups.length) {
-    return `<article class="e19-card cierre-step-card"><h3 class="escenario-motor-panel-title">Resolver diferencias</h3><p class="e19-kpi-note">Sin diferencias abiertas: clasificación, saldos e importes reales están conciliados.</p></article>`;
+    return `<article class="e19-card cierre-step-card"><h3 class="escenario-motor-panel-title">Resolver diferencias</h3><p class="e19-kpi-note">Sin diferencias abiertas en este mes: clasificación, saldos e importes reales están conciliados.</p></article>`;
   }
   const groupsHtml = groups
     .map(
@@ -968,6 +968,42 @@ function handleCierreSobresDestinoChange(rowKey, value) {
 
 // detallada por movimiento). Los IDs de las tareas ya son estables — `E11bInbox.reconciliationTasks`
 // los construye a partir del propio dato (`classify-${id}`, no de su posición en la lista).
+// Decisión del hogar del 29/10/2026: firmar un mes solo depende de ese mes. Con el historial entero, el primer cierre
+// real pedía clasificar cientos de movimientos antiguos. Lo de otros meses se cuenta aparte y no bloquea; el descuadre
+// del capital de deuda no tiene mes (se deriva en vivo) y sigue bloqueando.
+function cierreTaskSourcesByMonth(sources, entries, monthKey) {
+  const entryMonth = new Map((entries || []).map((entry) => [entry.id, entry.monthKey]));
+  const split = (list, monthOf) => {
+    const items = list || [];
+    return [items.filter((item) => monthOf(item) === monthKey), items.filter((item) => monthOf(item) !== monthKey)];
+  };
+  const [unclassifiedMes, unclassifiedOtros] = split(sources.unclassified, (entry) => entry.monthKey);
+  const [differencesMes, differencesOtros] = split(sources.differences, (line) => line.monthKey);
+  const [gapsMes, gapsOtros] = split(sources.balanceGaps, (gap) => entryMonth.get(gap.currentId));
+  return {
+    mes: { unclassified: unclassifiedMes, differences: differencesMes, balanceGaps: gapsMes, debtCapitalMismatches: sources.debtCapitalMismatches || [] },
+    otros: { unclassified: unclassifiedOtros, differences: differencesOtros, balanceGaps: gapsOtros, debtCapitalMismatches: [] },
+  };
+}
+
+// Decisión del hogar del 29/10/2026 (ensayo del cierre): la diferencia entre banco y real solo se compara en las partidas que
+// tienen movimientos del extracto ese mes. Un real anotado a mano sin banco detrás (efectivo, otra cuenta, una tarjeta sin
+// extracto) no tiene con qué cuadrar: antes bloqueaba la firma y solo se quitaba borrando el real.
+function cierreBankActualDifferences(lines, entries) {
+  const conBanco = new Set((entries || [])
+    .filter((entry) => !entry.duplicateOf && entry.mapping?.status === "classified")
+    .map((entry) => `${entry.monthKey}|${entry.kind}|${entry.mapping.rowKey}`));
+  return (lines || []).filter((line) => Math.abs(Number(line.delta || 0)) > 0.02 && conBanco.has(`${line.monthKey}|${line.kind}|${line.rowKey}`));
+}
+
+function cierreOtrosMesesHtml(taskCount, unclassifiedCount, monthLabel) {
+  if (!taskCount) return "";
+  const formatCount = (value) => Number(value).toLocaleString("es-ES", { useGrouping: "always" }); // 1.831, no 1831 (es-ES no agrupa 4 cifras)
+  const tareas = `${formatCount(taskCount)} ${taskCount === 1 ? "tarea" : "tareas"} de otros meses`;
+  const movimientos = unclassifiedCount ? ` (${formatCount(unclassifiedCount)} ${unclassifiedCount === 1 ? "movimiento sin clasificar" : "movimientos sin clasificar"})` : "";
+  return `Además hay ${escapeHtml(tareas)}${escapeHtml(movimientos)}: no impiden firmar ${escapeHtml(monthLabel)}. Se pueden ir resolviendo cuando queráis en <a href="#movements">Movimientos</a>, donde clasificar un concepto crea una regla para todos sus movimientos.`;
+}
+
 function cierreCountersHtml(accountRows, tasks, unclassifiedCount) {
   const closedCount = monthClosures.filter((op) => op.status === "closed").length;
   return [
@@ -1201,7 +1237,7 @@ function renderCierre() {
   }
 
   const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
-  const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
+  const differences = cierreBankActualDifferences(lines, entries);
   const balanceGaps = checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId })));
   // D-2b: un descuadre de capital de deuda contra el último cierre firmado se registra como una
   // tarea de cierre más — nunca en silencio. Como mucho una entrada, derivada en vivo (C-4).
@@ -1210,10 +1246,17 @@ function renderCierre() {
     debtCuadre.status === "descuadra"
       ? [{ id: "debt-capital", label: `El capital de deuda no cuadra con el cierre de ${ledgerMonthLabel(debtCuadre.monthKey)}: diferencia de ${money(Math.abs(debtCuadre.diff), true)}` }]
       : [];
-  const tasks = E11bInbox ? E11bInbox.reconciliationTasks({ unclassified, differences, balanceGaps, debtCapitalMismatches }) : [];
+  const porMes = cierreTaskSourcesByMonth({ unclassified, differences, balanceGaps, debtCapitalMismatches }, entries, currentMonthKey);
+  const tasks = E11bInbox ? E11bInbox.reconciliationTasks(porMes.mes) : [];
+  const otherTasks = E11bInbox ? E11bInbox.reconciliationTasks(porMes.otros) : [];
   const accountRows = cierreAccountReconciliation(entries);
   const countersEl = qs("cierreCounters");
-  if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, unclassified.length);
+  if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, porMes.mes.unclassified.length);
+  const otrosEl = qs("cierreOtrosMeses");
+  if (otrosEl) {
+    otrosEl.innerHTML = cierreOtrosMesesHtml(otherTasks.length, porMes.otros.unclassified.length, ledgerMonthLabel(currentMonthKey));
+    otrosEl.hidden = !otherTasks.length;
+  }
 
   // C-10: el historial vive fuera del wizard/estado-cerrado — se ve igual en los dos, es la lista
   // completa de versiones, no solo la del mes en curso.

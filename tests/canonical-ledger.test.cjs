@@ -87,3 +87,44 @@ test("comprueba la continuidad de cada cuenta de forma independiente", () => {
   assert.deepEqual(snapshot.balanceChecks.map((check) => check.accountId).sort(), ["caixabank", "mediolanum"]);
   assert.equal(snapshot.balanceChecks.every((check) => check.gaps.length === 0), true);
 });
+
+// Ensayo del cierre del 29/10/2026: la fila (`sourceRow`) es la de cada fichero. Con un extracto por mes, o el mes entero
+// importado otra vez, ordenar solo por ella mezclaba meses y daba huecos falsos que bloqueaban el cierre.
+test("la continuidad va por fecha: varios ficheros con las mismas filas no dan huecos falsos", () => {
+  const snapshot = ledger.buildLedgerSnapshot({
+    transactions: [
+      { date: "2026-03-01", movement: "A", amount: 100, balance: 1100, sourceRow: 0 },
+      { date: "2026-03-05", movement: "B", amount: -50, balance: 1050, sourceRow: 1 },
+      { date: "2026-10-01", movement: "C", amount: 200, balance: 1250, sourceRow: 0 },
+      { date: "2026-10-03", movement: "D", amount: -25, balance: 1225, sourceRow: 1 },
+    ],
+  });
+  assert.equal(snapshot.balanceChecks[0].gaps.length, 0);
+  assert.equal(snapshot.balanceChecks[0].checkedPairs, 3);
+});
+
+test("dentro de un día vale cualquier orden que encadene los saldos (el CSV no trae el orden del día)", () => {
+  const snapshot = ledger.buildLedgerSnapshot({
+    transactions: [
+      { date: "2026-10-01", movement: "NOMINA", amount: 1000, balance: 2000, sourceRow: 0 },
+      // Mismo día y misma fila: el orden alfabético (LUZ antes que SUPER) no es el del banco (SUPER y luego LUZ).
+      { date: "2026-10-02", movement: "LUZ", amount: -80, balance: 1860, sourceRow: 0 },
+      { date: "2026-10-02", movement: "SUPER", amount: -60, balance: 1940, sourceRow: 0 },
+    ],
+  });
+  assert.equal(snapshot.balanceChecks[0].gaps.length, 0);
+});
+
+test("un salto de saldo de verdad (falta un movimiento) se sigue viendo, en el mes donde aparece", () => {
+  const snapshot = ledger.buildLedgerSnapshot({
+    transactions: [
+      { date: "2026-09-29", movement: "A", amount: 100, balance: 1100, sourceRow: 0 },
+      { date: "2026-10-02", movement: "B", amount: -50, balance: 1000, sourceRow: 0 },
+    ],
+  });
+  const [gap] = snapshot.balanceChecks[0].gaps;
+  assert.equal(snapshot.balanceChecks[0].gaps.length, 1);
+  assert.equal(gap.expected, 1050);
+  assert.equal(gap.actual, 1000);
+  assert.equal(snapshot.entries.find((entry) => entry.id === gap.currentId).monthKey, "2026-10");
+});
