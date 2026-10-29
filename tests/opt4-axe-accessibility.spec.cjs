@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 const { AxeBuilder } = require("@axe-core/playwright");
 
 // Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos

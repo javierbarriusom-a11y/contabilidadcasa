@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 
 // QA-1 (FASE 6): suite de aceptación E2E — navegador real, no el patrón `vm`/extracción de texto que
 // usan los 1628 tests de `node --test` (esos verifican funciones aisladas; nunca arrancan la app de
@@ -6902,5 +6902,22 @@ test.describe("Cierre · solo bloquea el mes que se cierra", () => {
     expect(causas.every((cause) => cause === "bank-actual-difference"), `causas que quedan: ${causas.join(", ")}`).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// tests/helpers/navegador-resiliente.cjs: si el navegador se ha caído solo entre dos pruebas (el cierre de Chromium del
+// 29/10/2026, «SEGV_MAPERR 0x1b0»), la siguiente lo relanza una vez al crear su contexto en vez de fallar sin haber
+// empezado. Aquí se cierra a propósito y la prueba de detrás tiene que poder abrir la app. En serie: mismo navegador.
+test.describe("Navegador que se cae entre pruebas", () => {
+  test.describe.configure({ mode: "serial" });
+  test("se cierra el navegador sin que ninguna prueba lo esté usando", async ({ browser }) => {
+    require("./helpers/navegador-resiliente.cjs").marcarCierreEsperado();
+    await browser.close();
+    expect(browser.isConnected()).toBe(false);
+  });
+  test("la prueba siguiente relanza el navegador y abre la app", async ({ page, browser }) => {
+    expect(browser.isConnected()).toBe(true);
+    await page.goto("/index.html#hoy");
+    await expect(page.locator("#mainContent")).toBeAttached({ timeout: 20000 });
   });
 });

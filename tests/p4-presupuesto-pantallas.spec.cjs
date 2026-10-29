@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 
 // Ola 1 · P4: presupuesto de rendimiento POR PANTALLA. Lighthouse (OPT-5) solo mide index.html (Hoy),
 // así que pantallas que bloqueaban la página ~1,5 s (Asesor virtual, Control de deuda, Comparar deuda)
