@@ -33,6 +33,9 @@ function sandbox({ session = null, lastResult = null, tema = "v2" } = {}) {
     round2: (value) => Math.round(Number(value) * 100) / 100,
     movementMappingKey: (row) => String(row.movement).toLowerCase(),
     movementDisplayName: (row) => row.movement,
+    // Ensayo del cierre (29/10/2026): la revisión cuenta aparte lo que ya estaba guardado (filas idénticas).
+    transactionIdentity: (row) => [row.date, row.movement, row.amount, row.balance].join("|"),
+    baseData: { transactions: [] },
     displayLabelForRow: (row) => row.label,
     datosImportarIncludedTransactions: (rows) => rows.filter((row) => row.duplicateDecision !== "duplicado").map((row) => row.transaction),
     datosImportarFileSummary: (txs) => ({ from: txs.map((t) => t.date).sort()[0], to: txs.map((t) => t.date).sort().at(-1), closedMonths: [] }),

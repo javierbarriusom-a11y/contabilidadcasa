@@ -109,6 +109,25 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 29 de octubre de 2026 (377): importar otra vez un extracto que se solapa cuenta solo lo nuevo
+
+- **Hallazgo del ensayo (375):**
+  - Al volver a importar el mes entero, la revisión decía «Importar 26 movimientos · 26 sin partida irán a la bandeja» cuando entraban 4.
+  - `datosImportarDuplicateCandidates` excluye a propósito las filas idénticas a otras guardadas (misma identidad), y `mergeTransactions` las funde sin repetirlas. El resultado era correcto, pero los números no.
+- **Cambio:**
+  - `views/importar-v2.js` › `impV2Counts` cuenta `yaEstaban` (incluidas cuya `transactionIdentity` ya está guardada) y `nuevos`.
+  - El botón dice «Importar N movimientos nuevos»; si no hay nuevos, «Importar (no hay movimientos nuevos)», que sigue sirviendo para tomar el saldo final.
+  - La nota añade «N ya estaban en la app y no se repiten», y «sin partida irán a la bandeja» deja de contarlos.
+  - `importar-extracto-ui.js` devuelve también `nuevos` y `yaEstaban`. El resultado dice «N movimientos nuevos importados · M ya estaban en la app y no se han repetido».
+  - Sin filas repetidas, todo se lee como antes.
+  - Versiones de los dos *scripts*. Novedades y BACKLOG §0.
+- **Pruebas:**
+  - E2E nueva «Importar otra vez un extracto que se solapa»: 3 movimientos y luego 5, con 2 nuevos, y la app queda con 5.
+  - `tests/redis-a4-importar.test.cjs` gana los dos *stubs* que ahora usa la revisión.
+- **Validación:**
+  - `npm test` 6253/6253 y `lint` limpio.
+  - En local, E2E de importar, extracto, A4, duplicados y captura: 34 de 34.
+
 ## Cierre de sesión — 29 de octubre de 2026 (376): el cierre solo de Chromium ya no tumba el CI
 
 - **Problema:** Chromium se cae solo entre pruebas («SEGV_MAPERR 0x1b0» tras «InitializeSandbox() called with multiple threads in process gpu-process»), en el CI y en local; `--disable-gpu` no lo evita (entrada 373). La prueba siguiente fallaba al crear su contexto, antes de ejecutar nada. El 29/10 tumbó el primer intento de #567 y el de #568 (una prueba de Hoy, ajena al cambio).

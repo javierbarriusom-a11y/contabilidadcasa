@@ -77,8 +77,17 @@ function impV2Counts(session) {
   const included = datosImportarIncludedTransactions(rows);
   const discarded = rows.filter((row) => row.duplicateDecision === "duplicado").length;
   const pending = rows.filter(impV2NeedsDecision).length;
-  const withoutPartida = rows.filter((row) => row.duplicateDecision !== "duplicado" && row.duplicateDecision !== "misma" && row.prior?.status !== "regla-previa").length;
-  return { included: included.length, discarded, pending, withoutPartida };
+  // Las filas idénticas a otras ya guardadas (el mes entero importado otra vez) no son duplicados por decidir: se funden
+  // sin repetirse. Se cuentan aparte y no van a la bandeja otra vez (ensayo del cierre, 29/10/2026).
+  const yaGuardados = new Set((baseData?.transactions || []).map(transactionIdentity));
+  const yaEstaban = included.filter((transaction) => yaGuardados.has(transactionIdentity(transaction))).length;
+  const withoutPartida = rows.filter((row) => row.duplicateDecision !== "duplicado" && row.duplicateDecision !== "misma" && row.prior?.status !== "regla-previa" && !yaGuardados.has(transactionIdentity(row.transaction))).length;
+  return { included: included.length, nuevos: included.length - yaEstaban, yaEstaban, discarded, pending, withoutPartida };
+}
+
+function impV2ImportarLabel(counts) {
+  if (!counts.yaEstaban) return `Importar ${counts.included} ${counts.included === 1 ? "movimiento" : "movimientos"}`;
+  return counts.nuevos ? `Importar ${counts.nuevos} ${counts.nuevos === 1 ? "movimiento nuevo" : "movimientos nuevos"}` : "Importar (no hay movimientos nuevos)";
 }
 
 // Cuadre: saldo inicial + movimientos = saldo final. Las rupturas las da el motor de saldos (statementContinuity, que
@@ -203,6 +212,7 @@ function impV2Review(session) {
   const more = !impV2ShowAll && ordered.length > IMP_V2_PREVIEW ? `<button type="button" class="imp-v2-link imp-v2-todas" data-imp-v2-todas>Ver las ${ordered.length}</button>` : "";
   const blocked = cuadre.status === "no-cuadra" ? "el extracto no cuadra" : counts.pending ? `${counts.pending} ${counts.pending === 1 ? "posible duplicado" : "posibles duplicados"} por decidir` : !counts.included ? "no queda nada que importar" : "";
   const notes = [
+    counts.yaEstaban ? `${counts.yaEstaban} ${counts.yaEstaban === 1 ? "ya estaba" : "ya estaban"} en la app y no se repiten` : "",
     counts.discarded ? `${counts.discarded} ${counts.discarded === 1 ? "duplicado descartado" : "duplicados descartados"}` : "",
     counts.withoutPartida ? `${counts.withoutPartida} sin partida ${counts.withoutPartida === 1 ? "irá" : "irán"} a la bandeja` : "",
     "se puede deshacer",
@@ -226,7 +236,7 @@ function impV2Review(session) {
         ${globalThis.FinanceCobertura?.revisionHtml?.(session) || ""}
         ${impV2CuadreHtml(cuadre)}
         ${impV2BalanceOffer(session)}
-        <button type="button" class="e19-btn e19-btn-primary imp-v2-importar" data-imp-v2-importar${blocked ? ` disabled aria-describedby="importarV2Bloqueo"` : ""}>Importar ${counts.included} ${counts.included === 1 ? "movimiento" : "movimientos"}</button>
+        <button type="button" class="e19-btn e19-btn-primary imp-v2-importar" data-imp-v2-importar${blocked ? ` disabled aria-describedby="importarV2Bloqueo"` : ""}>${escapeHtml(impV2ImportarLabel(counts))}</button>
         <p class="mov-v2-meta imp-v2-nota" id="importarV2Bloqueo">${escapeHtml(blocked ? `No se puede importar todavía: ${blocked}.` : notes)}</p>
         <button type="button" class="imp-v2-link" data-imp-v2-otro>Elegir otro fichero</button>
       </div>
@@ -236,8 +246,8 @@ function impV2Review(session) {
 function impV2Success(result) {
   return `<div class="mov-v2-card mov-v2-vacio" role="status">
     <span class="mov-v2-av is-pos" aria-hidden="true">${impV2Icon('<path d="m5 12.5 4.5 4.5L19 7.5"></path>')}</span>
-    <h3>${result.imported} ${result.imported === 1 ? "movimiento importado" : "movimientos importados"}</h3>
-    <p class="mov-v2-meta">De «${escapeHtml(result.fileName || "")}».${result.duplicadosDescartados ? ` ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}.` : ""}${result.capturasSustituidas ? ` ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "anotado a mano sustituido" : "anotados a mano sustituidos"} por su fila del banco.` : ""}${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${escapeHtml(money(result.balance.value, true))}.` : ""} Lo que no tiene partida te espera en la bandeja de Movimientos.</p>
+    <h3>${result.yaEstaban ? `${result.nuevos} ${result.nuevos === 1 ? "movimiento nuevo importado" : "movimientos nuevos importados"}` : `${result.imported} ${result.imported === 1 ? "movimiento importado" : "movimientos importados"}`}</h3>
+    <p class="mov-v2-meta">De «${escapeHtml(result.fileName || "")}».${result.yaEstaban ? ` ${result.yaEstaban} ${result.yaEstaban === 1 ? "ya estaba" : "ya estaban"} en la app y no se han repetido.` : ""}${result.duplicadosDescartados ? ` ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}.` : ""}${result.capturasSustituidas ? ` ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "anotado a mano sustituido" : "anotados a mano sustituidos"} por su fila del banco.` : ""}${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${escapeHtml(money(result.balance.value, true))}.` : ""} Lo que no tiene partida te espera en la bandeja de Movimientos.</p>
     <div class="imp-v2-acciones">
       <button type="button" class="e19-btn e19-btn-primary" data-imp-v2-nav="movements">Ver en Movimientos</button>
       <button type="button" class="e19-btn e19-btn-secondary" data-imp-v2-deshacer>Deshacer</button>

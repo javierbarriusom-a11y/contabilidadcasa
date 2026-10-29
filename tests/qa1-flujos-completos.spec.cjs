@@ -6921,3 +6921,44 @@ test.describe("Navegador que se cae entre pruebas", () => {
     await expect(page.locator("#mainContent")).toBeAttached({ timeout: 20000 });
   });
 });
+
+// Ensayo del cierre con historial (29/10/2026): el hogar vuelve a importar el mes entero y la revisión decía «Importar 26
+// movimientos» cuando solo 4 eran nuevos (los idénticos se funden sin repetirse). Ahora cuenta los nuevos y dice cuántos ya
+// estaban; ninguno se repite. Movimientos INVENTADOS.
+test.describe("Importar otra vez un extracto que se solapa", () => {
+  test("cuenta solo los movimientos nuevos y dice cuántos ya estaban", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+    await page.goto("/index.html#registrar");
+    await page.click('[data-registrar-tab="import"]');
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    const lineas = ["01/10/2026;NOMINA FICTICIA;3000,00;8080,00", "02/10/2026;SUPER FICTICIO;-86,40;7993,60", "05/10/2026;LUZ FICTICIA;-94,12;7899,48", "09/10/2026;FARMACIA FICTICIA;-61,10;7838,38", "28/10/2026;COMUNIDAD FICTICIA;-120,00;7718,38"];
+    const importar = async (nombre, filas) => {
+      await page.setInputFiles("#registrarImportFileInput", { name: nombre, mimeType: "text/csv", buffer: Buffer.from(["Fecha;Concepto;Importe;Saldo", ...filas].join("\n")) });
+      await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo", { timeout: 15000 });
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+    };
+    await importar("hasta-el-5.csv", lineas.slice(0, 3));
+    await expect(v2.locator("[data-imp-v2-importar]")).toHaveText("Importar 3 movimientos");
+    await registrarEventos(page);
+    await v2.locator("[data-imp-v2-importar]").click();
+    await pulsar(page, "#operationConfirmSubmit");
+    await expect(v2).toContainText("3 movimientos importados", { timeout: 15000 });
+
+    await v2.locator("[data-imp-v2-otro]").first().click();
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await importar("octubre-entero.csv", lineas);
+    await expect(v2.locator("[data-imp-v2-importar]")).toHaveText("Importar 2 movimientos nuevos");
+    await expect(v2.locator("#importarV2Bloqueo")).toContainText("3 ya estaban en la app y no se repiten");
+    await expect(v2.locator("#importarV2Bloqueo")).toContainText("2 sin partida irán a la bandeja");
+    await v2.locator("[data-imp-v2-importar]").click();
+    await pulsar(page, "#operationConfirmSubmit");
+    await expect(v2).toContainText("2 movimientos nuevos importados", { timeout: 15000 });
+    await expect(v2).toContainText("3 ya estaban en la app y no se han repetido.");
+    expect(await page.evaluate(() => (baseData.transactions || []).length), "ningún movimiento repetido").toBe(5);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
