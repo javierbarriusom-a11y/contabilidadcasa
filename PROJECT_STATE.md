@@ -136,7 +136,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Validación:**
   - `npm test` 6276/6276 (+9 de `tests/redis-c1-plan-v2.test.cjs`, más los dos *stubs* de `p1-p7-plan-mes` al lector español).
   - E2E de C1 a 390 (`@safari`) y 1440 px: 2 de 2.
-  - La batería completa de E2E y axe corre en el CI de #571.
+  - Batería completa en local, E2E y axe: 272/272 en 26 min. Incluye XGO-01, así que la superficie por defecto no cambia: el titular de folleto pasa a «Plan» y la tarjeta de presupuesto a «Partidas de …».
 - **Publicación:** va en #571, que no se fusiona hasta que octubre esté firmado.
 
 ## Cierre de sesión — 30 de octubre de 2026 (379): ensayo final del cierre, y NIN-08 (dinero parado) listo para el 4/11
