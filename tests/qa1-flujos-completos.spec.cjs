@@ -5352,6 +5352,64 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
   }
 });
 
+// Rediseño C1: Plan › Mes v2 (views/plan-v2.js). Mismo campo, mismo borrador y mismo pie de impacto que la tabla de
+// siempre; importes en español; las financiaciones plegadas; y la tabla de siempre a un toque.
+test.describe("Rediseño C1 · Plan › Mes v2", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin asignar, ritmo, editar en español con su impacto, cambiar de mes y la tabla de siempre a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const lado = page.locator("#planV2Lado");
+      await expect(lado).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#plan .e19-heading")).toHaveText("Plan");
+      await expect(page.locator("#topbarStatusStrip")).toBeHidden();
+      await expect(page.locator("#planMesKpis")).toBeHidden();
+      await expect(lado.locator(".plan-v2-cifra")).toHaveText(/€$/);
+      await expect(lado).toContainText("Ritmo del mes");
+      await expect(lado).toContainText("día 26 de 31");
+      const partidas = page.locator("#planMesTables .plan-v2-partidas");
+      await expect(partidas.locator("h3")).toHaveText("Partidas de octubre 2026");
+      await expect(partidas.locator(".plan-v2-financiaciones")).toContainText("se editan en Deuda");
+      await expect(partidas.locator('.plan-v2-financiaciones input')).toHaveCount(0);
+
+      // Editar con formato español: «1.234,50» son mil doscientos treinta y cuatro con cincuenta, y sale el pie de impacto.
+      const servicios = partidas.locator('input[aria-label="Previsto de Servicios"]');
+      await servicios.fill("1.234,50");
+      await servicios.dispatchEvent("change");
+      await expect(partidas.locator('input[aria-label="Previsto de Servicios"]')).toHaveValue("1.234,50");
+      await expect(partidas.locator(".e19-badge-warning")).toHaveText("1 sin guardar");
+      const impacto = page.locator("#planMesImpactBar");
+      await expect(impacto).toBeVisible();
+      await expect(impacto).toContainText("Servicios");
+      await impacto.locator("[data-plan-mes-impact-discard]").click();
+      await expect(partidas.locator('input[aria-label="Previsto de Servicios"]')).toHaveValue("400");
+
+      // El mes con flechas: el siguiente cambia el título; Previsión esconde el mes y enseña el horizonte.
+      await page.locator("#planV2MesNav [data-plan-v2-mes-paso]").last().click();
+      await expect(page.locator("#planMesTables .plan-v2-partidas h3")).toHaveText("Partidas de noviembre 2026");
+      await expect(lado).toContainText("empieza el 1");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(page.locator("#planV2MesNav")).toBeHidden();
+      await expect(page.locator("#planHeaderHorizon")).toBeVisible();
+      await page.locator('[data-plan-tab="mes"]').click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Ver la tabla de siempre» devuelve la tabla y las tarjetas de siempre, y queda como descarte en el medidor.
+      await page.locator("[data-plan-v2-clasica]").click();
+      await expect(page.locator("#planMesTables .plan-mes-budget-table")).toBeVisible();
+      await expect(page.locator("#planMesKpis")).toBeVisible();
+      await expect(lado).toBeHidden();
+      const medido = await page.evaluate(() => JSON.stringify(localStorage));
+      expect(medido).toContain("plan-v2");
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // Rediseño A4 (PR-2): Importar v2 en Registrar › Importar extracto. Extracto y movimientos INVENTADOS.
 test.describe("Rediseño A4 · Importar v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

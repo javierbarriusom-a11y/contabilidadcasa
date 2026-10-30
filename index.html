@@ -73,7 +73,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261018redisA1b" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261030planC1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1087,6 +1087,8 @@
                 </div>
                 <div class="plan-mes-kpi-grid" id="planMesKpis"></div>
                 <div class="registrar-mes-tables" id="planMesTables"></div>
+                <!-- Rediseño C1 (views/plan-v2.js), solo con el tema v2: sin asignar, ritmo del mes y ahorro, a la derecha en escritorio y arriba en el móvil. -->
+                <aside class="plan-v2-lado" id="planV2Lado" aria-label="Resumen del mes" hidden></aside>
                 <div class="plan-mes-summary-grid" id="planMesSobresSummary" hidden></div>
               </div>
             </div>
@@ -7873,8 +7875,8 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261022xgo02"></script>
-    <script defer src="funciones-en-prueba.js?v=20261022xgo03"></script>
+    <script defer src="medidor-utilidad.js?v=20261030planC1"></script>
+    <script defer src="funciones-en-prueba.js?v=20261030planC1"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8147,7 +8149,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261004wp26b1"></script>
+    <script defer src="novedades.js?v=20261030planC1"></script>
     <script defer src="ux-shell.js?v=20261004wp25a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8242,6 +8244,7 @@
     <script defer src="views/importar-v2.js?v=20261029yaestaban1"></script>
     <script defer src="views/clasificar-v2.js?v=20261021redisA5"></script>
     <script defer src="views/repaso-v2.js?v=20261024redisB5"></script>
+    <script defer src="views/plan-v2.js?v=20261030planC1"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261026xda04"></script>
     <script defer src="extracto-pdf-ui.js?v=20261026xda03"></script>
@@ -8253,7 +8256,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261029aparte1"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
-    <script defer src="app.js?v=20261028pct1"></script>
+    <script defer src="app.js?v=20261030planC1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

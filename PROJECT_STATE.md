@@ -113,6 +113,32 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 30 de octubre de 2026 (380): Plan › Mes con el diseño nuevo (RD-C1), listo para salir tras firmar octubre
+
+- **Petición del hogar:** «mejorar las pantallas en su aspecto visual y UX; las diferencias entre Hoy y el resto son evidentes». Diagnóstico con capturas a 1440 y 390 px:
+  - Solo cinco pantallas están rehechas (Hoy, Movimientos, Importar, Clasificar y Repaso); el resto solo cambió de tokens.
+  - Conservan la tira de cinco cifras, el recuadro «Estado» y titulares de folleto.
+  - En el móvil, Inversión mide 9.072 px de alto y Ajustes 31.705.
+  - En Plan, la tabla medía 720 px dentro de 322 y escondía las cifras.
+- **RD-C1 · Plan › Mes** (`views/plan-v2.js`, `docs/rediseno/ESTADO.md` §2), de `PlanMes.png`/`PlanMesDesktop.png`:
+  - Cabecera «Plan», las seis pestañas de siempre segmentadas y el mes con flechas; sin la tira de cifras ni «Estado».
+  - Sin asignar con la barra de destino, el ritmo del mes con la marca azul y lo que irá a ahorro.
+  - Partidas con previsto · real · queda · ritmo, que en el móvil pasan a lista; las financiaciones, plegadas a una fila que lleva a Deuda.
+  - Misma edición, mismo borrador y mismo pie de impacto. El importe se lee en español (`parseAmountField` en `handlePlanMesPlannedChange`), así que «3.000» son tres mil.
+  - Sin un «Asignar» inventado: lo que sobra lleva a la escalera del próximo euro.
+  - Con sobres, o con «Ver la tabla de siempre», vuelve la tabla de siempre.
+  - En prueba como «Plan nuevo» (parte del diseño nuevo), con medidor y Novedades.
+- **Arreglos de paso:**
+  - La regla genérica `table { min-width: 1120px }` desbordaba la tarjeta.
+  - El pie «Impacto del cambio» quedaba por debajo de las filas en el móvil (`z-index`).
+  - Repintar con un campo enfocado lanzaba un segundo «change» a mitad del repintado (guardia de reentrada); el foco vuelve al mismo campo.
+- **Versiones:** `app.js`, `tema-v2.css`, `funciones-en-prueba.js`, `medidor-utilidad.js` y `novedades.js` pasan a `?v=20261030planC1`, con los pines de las pruebas actualizados.
+- **Validación:**
+  - `npm test` 6276/6276 (+9 de `tests/redis-c1-plan-v2.test.cjs`, más los dos *stubs* de `p1-p7-plan-mes` al lector español).
+  - E2E de C1 a 390 (`@safari`) y 1440 px: 2 de 2.
+  - La batería completa de E2E y axe corre en el CI de #571.
+- **Publicación:** va en #571, que no se fusiona hasta que octubre esté firmado.
+
 ## Cierre de sesión — 30 de octubre de 2026 (379): ensayo final del cierre, y NIN-08 (dinero parado) listo para el 4/11
 
 - **Ensayo final del cierre** (exploratorio, fuera del repositorio), con `main` tras #568, #569 y #570:

@@ -29282,6 +29282,7 @@ function renderPlanMes() {
   );
   const asignado = totals.expensePlanned;
   const sinAsignar = round2(totals.incomePlanned - asignado);
+  if (typeof planV2Render === "function" && planV2Render({ month, months, entries, totals, asignado, sinAsignar, editLocked, footHtml: planMesClosedFootHtml(month, monthClosed, overrideActive) })) return renderPlanMesImpactBar(); // rediseño C1 (views/plan-v2.js)
   const pctOfIncome = (value) => (totals.incomePlanned > 0 ? Math.max(0, Math.min(100, round2((value / totals.incomePlanned) * 100))) : 0);
   const confirmedIncome = entries.income.filter((entry) => entry.hasActual).length;
   const incomeNote = entries.income.length
@@ -29366,7 +29367,7 @@ function handlePlanMesPlannedChange(input) {
   const monthKey = input.dataset.planMesMonth;
   if (!rowKey || !monthKey) return;
   if (planMesIsFinancingRowKey(rowKey)) return;
-  const parsed = parseAmount(input.value);
+  const parsed = parseAmountField(input.value); // es-ES: «3.000» son tres mil (el campo v2 es de texto)
   const allowClosedMonth = planMesClosedOverrideMonthKey === monthKey;
   cuadroMandosStageCell(rowKey, monthKey, input.value === "" || parsed === null ? 0 : parsed, { allowClosedMonth });
   renderPlanMes();
