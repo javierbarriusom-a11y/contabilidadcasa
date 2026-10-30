@@ -134,7 +134,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Repintar con un campo enfocado lanzaba un segundo «change» a mitad del repintado (guardia de reentrada); el foco vuelve al mismo campo.
 - **Versiones:** `app.js`, `tema-v2.css`, `funciones-en-prueba.js`, `medidor-utilidad.js` y `novedades.js` pasan a `?v=20261030planC1`, con los pines de las pruebas actualizados.
 - **Validación:**
-  - `npm test` 6276/6276 (+9 de `tests/redis-c1-plan-v2.test.cjs`, más los dos *stubs* de `p1-p7-plan-mes` al lector español).
+  - `npm test` 6277/6277 (+10 de `tests/redis-c1-plan-v2.test.cjs`, más los dos *stubs* de `p1-p7-plan-mes` al lector español).
   - E2E de C1 a 390 (`@safari`) y 1440 px: 2 de 2.
   - Batería completa en local, E2E y axe: 272/272 en 26 min. Incluye XGO-01, así que la superficie por defecto no cambia: el titular de folleto pasa a «Plan» y la tarjeta de presupuesto a «Partidas de …».
 - **Publicación:** va en #571, que no se fusiona hasta que octubre esté firmado.
