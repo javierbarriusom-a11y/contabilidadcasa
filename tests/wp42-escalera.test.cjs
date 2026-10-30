@@ -260,5 +260,5 @@ test("WP-42 PR-2 · la tarjeta recoge lo que dicen los otros motores y solo lo p
   assert.match(fn, /engine\.checkOperation\(\{ policy: saved, operation: \{ kind: "buy", type: row\.type, amount: row\.amount \}/);
   assert.match(fn, /engine\.evaluate\(\{ plan, \.\.\.planBContext\(\) \}\)\.status/);
   assert.match(ui, /\$\{proxEuroCrossHtml\(ladder\)\}\$\{benefits/);
-  assert.match(read("index.html"), /escalera-ui\.js\?v=20261013wp42b2/);
+  assert.match(read("index.html"), /escalera-ui\.js\?v=20261030nin08a/); // NIN-08 (30/10/2026): el dinero parado sube la versión
 });

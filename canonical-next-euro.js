@@ -308,5 +308,46 @@
     return { show: Boolean(policyBlock || planBBlock), policy: policyBlock, planB: planBBlock };
   }
 
-  return { SCHEMA_ID, DEFAULT_RISK_PREMIUM_PCT, DEFAULT_HIGH_COST_APR_PCT, DEFAULT_MIN_MARGINAL_PCT, PENSION_LIMITS, pensionLimitForYear, contributionRebalance, buildLadder, crossChecks };
+  // NIN-08 (docs/WP42_DISENO.md §7): el dinero parado. Con la previsión mes a mes (el mínimo de liquidez de cada mes, del motor diario «según el plan»), cuánto
+  // hay por encima del suelo que la previsión no toca en los próximos N meses, y cuánto rendiría neto en cada producto que el hogar compara (tipo y plazo los teclea
+  // él: la app no consulta tipos ni recomienda). Reglas de honestidad:
+  //   · sin suelo o sin previsión no hay cifra (dato ausente no es cero), y con menos meses de previsión que el plazo, ese plazo no se calcula.
+  //   · el mínimo es el de la previsión según el plan: si un gasto llega antes o más caro, baja. El suelo queda entero en cualquier caso.
+  //   · el neto descuenta el tipo del ahorro que da la app; sin él, solo el bruto, y se dice.
+  function idleWindow(monthlyMins, fromMonthKey, months) {
+    const rows = (monthlyMins || [])
+      .filter((row) => row && typeof row.monthKey === "string" && row.monthKey >= fromMonthKey && Number.isFinite(Number(row.minTotal)))
+      .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+      .slice(0, months);
+    if (rows.length < months) return null;
+    return rows.reduce((low, row) => (Number(row.minTotal) < Number(low.minTotal) ? row : low));
+  }
+
+  function idleCash({ floor = null, monthlyMins = [], fromMonthKey = "", horizons = [3, 6, 12], options = [], savingsTaxPct = null } = {}) {
+    if (!Number.isFinite(Number(floor)) || floor === null) return { status: "no-data", reason: "no hay un suelo de colchón con el que comparar" };
+    if (!/^\d{4}-\d{2}$/.test(String(fromMonthKey)) || !idleWindow(monthlyMins, fromMonthKey, 1)) return { status: "no-data", reason: "no hay previsión de liquidez mes a mes" };
+    const windowFor = (months) => {
+      const low = idleWindow(monthlyMins, fromMonthKey, months);
+      if (!low) return { months, calculable: false };
+      return { months, calculable: true, minimum: round2(Number(low.minTotal)), date: String(low.minTotalDate || ""), event: String(low.minTotalEvent || ""), idle: round2(Math.max(0, Number(low.minTotal) - Number(floor))) };
+    };
+    const tax = Number.isFinite(Number(savingsTaxPct)) && savingsTaxPct !== null && Number(savingsTaxPct) >= 0 ? Number(savingsTaxPct) : null;
+    const rows = (options || []).map((option) => {
+      const ratePct = Number.isFinite(Number(option?.ratePct)) && option.ratePct !== null && option.ratePct !== "" ? Number(option.ratePct) : null;
+      const months = Number.isInteger(Number(option?.months)) && Number(option.months) >= 1 && Number(option.months) <= 60 ? Number(option.months) : null;
+      const base = { id: String(option?.id || ""), label: String(option?.label || ""), ratePct, months };
+      if (ratePct === null || months === null) return { ...base, calculable: false, reason: "falta el tipo o el plazo" };
+      const span = windowFor(months);
+      if (!span.calculable) return { ...base, calculable: false, reason: `la previsión no llega a ${months} meses` };
+      const gross = round2(span.idle * ratePct / 100 * months / 12);
+      const taxAmount = tax === null ? null : round2(gross * tax / 100);
+      // El neto al año es lo comparable entre plazos distintos: los euros de un plazo largo siempre suman más que los de uno corto.
+      const netAnnualPct = tax === null ? null : Math.round(ratePct * (1 - tax / 100) * 100) / 100;
+      return { ...base, calculable: true, amount: span.idle, gross, tax: taxAmount, net: taxAmount === null ? null : round2(gross - taxAmount), netAnnualPct };
+    });
+    // Sin «el mejor»: el plazo y la liquidez de cada producto pesan distinto para cada hogar, y la app no lo sabe.
+    return { status: "ok", floor: round2(Number(floor)), windows: horizons.map(windowFor), options: rows, savingsTaxPct: tax };
+  }
+
+  return { SCHEMA_ID, DEFAULT_RISK_PREMIUM_PCT, DEFAULT_HIGH_COST_APR_PCT, DEFAULT_MIN_MARGINAL_PCT, PENSION_LIMITS, pensionLimitForYear, contributionRebalance, buildLadder, crossChecks, idleCash };
 });

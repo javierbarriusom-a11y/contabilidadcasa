@@ -637,7 +637,8 @@
     "WP-17",
     "WP-13"
    ],
-   "hechoCuando": "Orden integrado (colchón, deuda cara, pensiones, fondos, amortizar o invertir) con euro de beneficio y coste de liquidez por peldaño."
+   "hechoCuando": "Orden integrado (colchón, deuda cara, pensiones, fondos, amortizar o invertir) con euro de beneficio y coste de liquidez por peldaño.",
+   "enPrueba": "propio"
   },
   {
    "id": "WP-16",

@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**30/10/2026 · NIN-08, el dinero parado (WP-42), construido y SIN fusionar hasta el 4/11.** Lo pidió el hogar como «siguiente paquete del plan», con la condición de publicarlo tras firmar octubre. Arriba de la escalera del próximo euro dice cuánto hay sobre el colchón que la previsión no toca a 3, 6 y 12 meses. Con un botón lo lleva a la escalera, y un comparador da el neto y el neto al año en la cuenta, el depósito o las letras con los tipos que escribe el hogar. No elige el mejor ni consulta tipos. Está en prueba y se enciende el 4/11 (`docs/WP42_DISENO.md` §7). El mismo día, el ensayo final del cierre con todo lo publicado el 29/10 salió limpio.
+
 **29/10/2026 · reales: banco + lo anotado aparte (decisión del hogar).** Clasificar o importar pisaba el real de cada partida y mes con la suma del banco, sin avisar: lo pagado en efectivo se perdía. Ahora el real es lo del banco más lo anotado aparte. El almacén `bank-actuals-applied` guarda la suma del banco aplicada la última vez, y lo que el real se aparte de ella es del hogar y se conserva. Registrar lo enseña («Banco 110 € + 15 € anotado aparte»), y el libro compara el extracto solo con la parte del banco.
 
 **29/10/2026 · importar otra vez un extracto que se solapa:** la revisión decía «Importar 26 movimientos» cuando solo 4 eran nuevos. Las filas idénticas ya se fundían sin repetirse, pero se contaban como nuevas. Ahora el botón y el resultado cuentan solo los nuevos y dicen cuántos ya estaban, y estos no vuelven a la bandeja. Salió del ensayo del cierre.

@@ -109,6 +109,29 @@ al que había aquí antes de moverlo. Solo hace falta abrir el archivo cuando un
 el detalle de una sesión anterior a la 166; el índice de decisiones vigentes de arriba sigue
 cubriendo lo que aplica hoy sin necesidad de leerlo.
 
+## Cierre de sesión — 30 de octubre de 2026 (379): ensayo final del cierre, y NIN-08 (dinero parado) listo para el 4/11
+
+- **Ensayo final del cierre** (exploratorio, fuera del repositorio), con `main` tras #568, #569 y #570:
+  - Reimportar el mes da «4 nuevos · 22 ya estaban».
+  - 40 € de efectivo tecleados en Registrar se conservan al reimportar (real = banco 420,52 € + 40 €), y el real sin banco (50 €) también.
+  - Octubre queda con 0 tareas, 0 descuadres y 0 huecos. «Firmar cierre» solo espera la sesión.
+- **Panel de seguimiento** regenerado (versión 12) y registro con las entradas del 29 y el 30/10.
+- **NIN-08 · dinero parado (WP-42)**, pedido por el hogar como «siguiente paquete del plan». **Construido y sin fusionar hasta el 4/11**, tras firmar octubre (condición aceptada por el hogar).
+  - Motor `idleCash` en `canonical-next-euro.js`: el mínimo mensual de la previsión menos el suelo del colchón, a 3, 6 y 12 meses, y un comparador bruto, neto y neto al año sin elegir «el mejor».
+  - Interfaz en `escalera-ui.js` (`#proxEuroParado`) con el botón «Repartir X € en la escalera».
+  - En prueba, «dinero-parado», con interruptor propio y `encendidaDesde` el 4/11. WP-42 queda marcado `enPrueba: propio` en el plan.
+  - Medidor de uso, Novedades (fechada el 4/11) y `docs/WP42_DISENO.md` §7.
+  - Arreglado durante la revisión:
+    - Los campos pasan a texto con coma, porque «2,5» no se podía escribir en un campo numérico.
+    - La tabla pasa a lista: a 390 px solo enseñaba el producto, y en escritorio escondía el neto al año.
+    - El foco vuelve a «Comparar» tras calcular.
+    - Una variable llamada `window` hacía saltar la prueba de pureza del motor.
+- **Validación:**
+  - `npm test` 6267/6267 (+6), con `lint` y `typecheck` limpios.
+  - En local, las E2E de NIN-08, WP-42, WP-47, XGO-01 y XGO-03: 8 de 8.
+  - Accesibilidad (axe) de Deuda: 16 de 16.
+  - Capturas a 1280 px (claro) y 390 px (oscuro).
+
 ## Cierre de sesión — 29 de octubre de 2026 (378): reales, banco + lo anotado aparte
 
 - **Hallazgo (Claude, revisando el cierre):**

@@ -57,7 +57,7 @@
     <link rel="stylesheet" href="politica.css?v=20261013wp39a2" />
     <link rel="stylesheet" href="cirbe.css?v=20261009wp40a1" />
     <link rel="stylesheet" href="sombra.css?v=20261016wp41d1" />
-    <link rel="stylesheet" href="escalera.css?v=20261013wp42b2" />
+    <link rel="stylesheet" href="escalera.css?v=20261030nin08a" />
     <link rel="stylesheet" href="nomina.css?v=20261010wp47a1" />
     <link rel="stylesheet" href="operaciones.css?v=20261013wp39a2" />
     <link rel="stylesheet" href="puente.css?v=20261013wp43b2" />
@@ -2115,6 +2115,8 @@
             <article class="e19-card peu-card" id="proxEuroCard" aria-labelledby="proxEuroTitulo">
               <h3 class="escenario-motor-panel-title" id="proxEuroTitulo">¿Dónde va el próximo euro?</h3>
               <p class="e19-kpi-note">Escribe un importe y la app lo reparte en este orden: <strong>colchón</strong>, <strong>deuda con coste alto</strong>, <strong>plan de pensiones</strong> (si el ahorro fiscal lo justifica) y, con lo que sobra, <strong>amortizar o invertir</strong>. Cada peldaño dice cuánto, por qué y qué liquidez pierdes. Es un orden para decidir, no una orden: no mueve dinero.</p>
+              <!-- NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, en prueba con interruptor propio («dinero-parado»). Lo pinta escalera-ui.js; vacío y oculto si está apagado. -->
+              <div class="peu-parado" id="proxEuroParado" aria-live="polite" hidden></div>
               <form id="proxEuroForm" novalidate>
                 <div class="peu-campos">
                   <label class="month-picker"><span>Importe a colocar (€)</span><input type="number" id="proxEuroImporte" min="0" step="0.01" inputmode="decimal" aria-describedby="proxEuroError" /></label>
@@ -8195,8 +8197,8 @@
     <script defer src="cirbe-ui.js?v=20261013wp40b2"></script>
     <script defer src="canonical-shadow-debt.js?v=20261016wp41d1"></script>
     <script defer src="sombra-ui.js?v=20261016wp41d1"></script>
-    <script defer src="canonical-next-euro.js?v=20261013wp42b2"></script>
-    <script defer src="escalera-ui.js?v=20261013wp42b2"></script>
+    <script defer src="canonical-next-euro.js?v=20261030nin08a"></script>
+    <script defer src="escalera-ui.js?v=20261030nin08a"></script>
     <script defer src="canonical-payroll-split.js?v=20261014wp47b2"></script>
     <script defer src="nomina-ui.js?v=20261014wp47b2"></script>
     <script defer src="canonical-forecast-bridge.js?v=20261013wp43b2"></script>

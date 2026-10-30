@@ -44,6 +44,7 @@
     { id: "repaso-v2", nombre: "Repaso semanal", accion: ["repaso terminado", "repasos terminados"], descarte: ["repaso a medias", "repasos a medias"], deshecho: null },
     { id: "aportado", nombre: "Aportado frente a valor", accion: ["valoración buscada desde aquí", "valoraciones buscadas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", accion: ["acción seguida desde aquí", "acciones seguidas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
+    { id: "dinero-parado", nombre: "Dinero parado", accion: ["vez llevado a la escalera o comparado", "veces llevado a la escalera o comparado"], descarte: ["vez apagado", "veces apagado"], deshecho: null },
     { id: "cierre-guia", nombre: "Guía del cierre", accion: ["paso marcado", "pasos marcados"], descarte: ["vez plegada", "veces plegada"], deshecho: null },
     { id: "antes-de-decidir", nombre: "Antes de decidir", accion: null, descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "descubierto", nombre: "El arreglo más barato", accion: null, descarte: ["vez apagada", "veces apagada"], deshecho: null },

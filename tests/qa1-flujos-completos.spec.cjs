@@ -6998,3 +6998,72 @@ test.describe("Reales: banco + lo anotado aparte", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, arriba de la escalera del próximo euro. Con la previsión mes a mes fijada (mínimo de cada mes) y el colchón en 5.000 €,
+// dice lo que la previsión no toca en 3, 6 y 12 meses; «Repartir» lo lleva a la escalera y el comparador calcula el neto con los tipos que se escriben. Apagado, no sale.
+// Cifras INVENTADAS.
+test.describe("NIN-08 · dinero parado", () => {
+  test("cuánto hay parado, llevarlo a la escalera, comparar con tipos escritos, apagado no sale, sin desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 10, 10, 0, 0) });
+    const sembrar = (page) => page.evaluate(() => {
+      globalThis.cuadroMandosReserve = () => 5000;
+      globalThis.accountBalancesFromState = () => ({ total: 12000 });
+      state.dividendSpanishSavingsRatePct = 19;
+      canonicalDailyEngineRuns.active = { ...(canonicalDailyEngineRuns.active || {}), monthly: [
+        { monthKey: "2026-11", minTotal: 9000, minTotalDate: "2026-11-28" },
+        { monthKey: "2026-12", minTotal: 7000, minTotalDate: "2026-12-20", minTotalEvent: "Seguro del coche" },
+        { monthKey: "2027-01", minTotal: 8000 }, { monthKey: "2027-02", minTotal: 9500 }, { monthKey: "2027-03", minTotal: 9900 },
+        { monthKey: "2027-04", minTotal: 6500, minTotalDate: "2027-04-02" },
+      ] };
+      renderProximoEuro(FinanceCanonicalNextEuro);
+    });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-comparar");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await expect(page.locator("#proxEuroCard")).toBeVisible({ timeout: 15000 });
+      await sembrar(page);
+      const parado = page.locator("#proxEuroParado");
+      await expect(parado).toBeVisible();
+      await expect(parado).toContainText("En los próximos 6 meses, según la previsión, vuestra liquidez no baja de 6.500 € el 02/04");
+      await expect(parado).toContainText("hay 1.500 € que el plan no necesita");
+      await expect(parado.locator(".peu-parado-ventanas")).toContainText("3 meses: 2.000 €");
+      await expect(parado.locator(".peu-parado-ventanas")).toContainText("12 meses: la previsión no llega");
+
+      // Llevarlo a la escalera: rellena el importe, lo marca como dinero que ya está en las cuentas y calcula.
+      await parado.locator("[data-peu-colocar]").click();
+      await expect(page.locator("#proxEuroImporte")).toHaveValue("1500");
+      await expect(page.locator("#proxEuroEnCuentas")).toBeChecked();
+      await expect(page.locator("#proxEuroResultado")).toContainText("De 1.500 €");
+
+      // Comparar: el tipo lo escribe el hogar; cada producto rinde sobre lo parado durante su plazo.
+      await parado.locator("summary", { hasText: "Comparar dónde dejarlo" }).click();
+      await parado.locator('[data-peu-parado-tipo="cuenta"]').fill("2");
+      await parado.locator('[data-peu-parado-tipo="deposito"]').fill("2,5");
+      await parado.locator('[data-peu-parado-tipo="letras"]').fill("2,4");
+      await parado.locator("#proxEuroParadoForm button[type=submit]").click();
+      const fila = (id) => page.locator(`#proxEuroParado [data-peu-parado-fila="${id}"]`);
+      await expect(fila("cuenta")).toContainText("3 meses");
+      await expect(fila("cuenta")).toContainText("2.000 €");
+      await expect(fila("cuenta")).toContainText("8,10 €");
+      await expect(fila("cuenta")).toContainText("1,62 %");
+      await expect(fila("deposito")).toContainText("1.500 €");
+      await expect(fila("letras")).toContainText("la previsión no llega a 12 meses");
+      await expect(page.locator("#proxEuroParado")).toContainText("La app no consulta tipos ni recomienda un producto");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+
+    // Apagado en Funciones en prueba: no sale nada.
+    await page.evaluate(() => {
+      localStorage.setItem("funciones-en-prueba-banderas", JSON.stringify({ "dinero-parado": { on: false } }));
+    });
+    const apagado = await page.evaluate(() => { renderProximoEuro(FinanceCanonicalNextEuro); return { encendida: FinanceFuncionesEnPrueba.encendida("dinero-parado"), oculto: document.querySelector("#proxEuroParado").hidden }; });
+    expect(apagado.encendida, "la bandera se lee de donde la guarda Funciones en prueba").toBe(false);
+    expect(apagado.oculto).toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
