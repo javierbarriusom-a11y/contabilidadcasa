@@ -126,6 +126,7 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
     - La tabla pasa a lista: a 390 px solo enseñaba el producto, y en escritorio escondía el neto al año.
     - El foco vuelve a «Comparar» tras calcular.
     - Una variable llamada `window` hacía saltar la prueba de pureza del motor.
+- **Hoja de la revisión posterior al cierre** (`docs/REVISION_POST_CIERRE_2026-11.md`): qué funciones en prueba se revisan el 2, 4, 7 y 12/11, su métrica y con qué criterio se decide, escrito antes de ver los datos. Con un hogar y un cierre, se apaga lo que molesta, se gradúa lo usado en el cierre y el resto se aplaza. Hoy nuevo no tiene línea base (WP-02), así que su cifra no se puede juzgar.
 - **Validación:**
   - `npm test` 6267/6267 (+6), con `lint` y `typecheck` limpios.
   - En local, las E2E de NIN-08, WP-42, WP-47, XGO-01 y XGO-03: 8 de 8.
