@@ -113,6 +113,17 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 31 de octubre de 2026 (381): importar lo copiado de la web del banco (Mediolanum no da CSV, Excel ni PDF)
+
+- **Hallazgo del hogar, la víspera del cierre:** Banco Mediolanum no exporta CSV ni genera PDF. El único camino es copiar la lista de movimientos de su web.
+- **El campo «Texto de un PDF» pasa a «Texto de un PDF o de la web del banco».** El lector (`canonical-statement-lines.js`) entiende ahora tres formatos de web:
+  - el «€» o «EUR» suelto, que cortaba los importes;
+  - la fecha con el mes en letra, con año o sin él. Sin año se toma el de hoy (`options.today`, que pasa `extracto-pdf-ui.js`), y lo que caería en el futuro es del año anterior;
+  - cada dato en su línea, con el saldo debajo del importe.
+- Probado con muestras inventadas. **Falta una muestra con la forma real de la web de Mediolanum**: si su disposición es otra, se añade.
+- `docs/XDA03_DISENO.md` §2b. Versiones `?v=20261031web1`.
+- **Validación:** `npm test` 6280/6280 (+3); E2E y axe de Importar y XDA-03: 7 de 7.
+
 ## Cierre de sesión — 30 de octubre de 2026 (380): Plan › Mes con el diseño nuevo (RD-C1), listo para salir tras firmar octubre
 
 - **Petición del hogar:** «mejorar las pantallas en su aspecto visual y UX; las diferencias entre Hoy y el resto son evidentes». Diagnóstico con capturas a 1440 y 390 px:

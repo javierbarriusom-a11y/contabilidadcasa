@@ -115,3 +115,32 @@ test("el diagnóstico lleva estructura, nunca conceptos, importes ni fechas", ()
   assert.doesNotMatch(d, /NOMINA|SUPER|3\.000|8\.080|2026-10|01\/10/);
   assert.match(d, /movimiento sin importe/);
 });
+
+// 31/10/2026: una cuenta (Banco Mediolanum) no da CSV, Excel ni PDF; lo que queda es copiar la lista de movimientos de su web.
+// Al pegarla llegan formatos de web que el lector no entendía: el «€» separado del importe, la fecha con el mes en letra
+// (con o sin año) y cada dato en su línea. Textos INVENTADOS.
+test("copiado de la web: tabla con tabuladores y «€» suelto, que no corta los importes", () => {
+  const r = read("Fecha\tConcepto\tImporte\tSaldo\n31/10/2026\tCOMPRA SUPER FICTICIO\t-86,40 €\t1.913,60 €\n30/10/2026\tNOMINA FICTICIA\t+2.000,00 €\t2.000,00 €");
+  assert.deepEqual(simple(r), [["2026-10-31", "COMPRA SUPER FICTICIO", -86.4, 1913.6], ["2026-10-30", "NOMINA FICTICIA", 2000, 2000]]);
+  assert.equal(r.balanceCheck.status, "cuadra");
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(simple(read("15/10/2026 RECIBO EUR FICTICIO -38,00 EUR 1.000,00 EUR")), [["2026-10-15", "RECIBO FICTICIO", -38, 1000]]);
+});
+
+test("copiado de la web: fecha con el mes en letra, con año o con el del contexto", () => {
+  const r = read("31 oct. 2026\tCOMPRA SUPER FICTICIO\t-86,40 €\t1.913,60 €\n30 de octubre de 2026\tNOMINA FICTICIA\t2.000,00 €\t2.000,00 €");
+  assert.deepEqual(simple(r).map((t) => t[0]), ["2026-10-31", "2026-10-30"]);
+  assert.equal(r.balanceCheck.status, "cuadra");
+  // «12 MESES» en el concepto no es una fecha: el número va detrás de la fecha, no delante de un mes.
+  assert.deepEqual(simple(read("15/10/2026 RECIBO 12 MESES SEGURO FICTICIO -38,00 1.000,00")), [["2026-10-15", "RECIBO 12 MESES SEGURO FICTICIO", -38, 1000]]);
+  // Sin ningún año en el texto: el de hoy, y lo que caería en el futuro es del año anterior («31 dic» pegado en enero).
+  assert.deepEqual(simple(read("31 oct\tCOMPRA SUPER FICTICIO\t-86,40 €", { today: "2026-10-31" })), [["2026-10-31", "COMPRA SUPER FICTICIO", -86.4, null]]);
+  assert.deepEqual(simple(read("31 dic\tCOMPRA SUPER FICTICIO\t-86,40 €", { today: "2027-01-02" })), [["2026-12-31", "COMPRA SUPER FICTICIO", -86.4, null]]);
+  assert.equal(read("31 oct\tCOMPRA SUPER FICTICIO\t-86,40 €").transactions.length, 0, "sin año ni hoy no se inventa");
+});
+
+test("copiado de la web: cada dato en su línea (fecha, concepto, importe y saldo), con el signo sacado del saldo", () => {
+  const r = read("31/10/2026\nCOMPRA SUPER FICTICIO\n86,40 €\n1.913,60 €\n30/10/2026\nNOMINA FICTICIA\n2.000,00 €\n2.000,00 €\nSaldo anterior 0,00 €");
+  assert.deepEqual(simple(r), [["2026-10-31", "COMPRA SUPER FICTICIO", -86.4, 1913.6], ["2026-10-30", "NOMINA FICTICIA", 2000, 2000]]);
+  assert.equal(r.balanceCheck.status, "cuadra");
+});

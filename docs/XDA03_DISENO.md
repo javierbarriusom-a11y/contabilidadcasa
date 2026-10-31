@@ -45,6 +45,20 @@ rompe, y la revisión de Importar bloquea lo que trae saldos y no cuadra (P11).
 - **Límite conocido:** en el iPhone, seleccionar todo el texto de un PDF de varias páginas puede ser torpe. Si lo es, el
   camino es el nivel 2.
 
+### 2b. El mismo campo, con lo copiado de la web del banco (31/10/2026)
+
+El hogar confirmó que Banco Mediolanum no da CSV, Excel ni PDF. Lo que queda es copiar la lista de movimientos de su web
+y pegarla en el mismo campo, que pasa a llamarse «Texto de un PDF o de la web del banco». El lector entiende ya tres
+formatos de web que antes no leía:
+
+- el «€» o «EUR» separado del importe por un espacio;
+- la fecha con el mes en letra («31 oct. 2026», «30 de octubre de 2026», «31 oct» con el año de hoy; lo que caería en el
+  futuro es del año anterior);
+- cada dato en su línea: fecha, concepto, importe y, debajo, el saldo, con el que se fija el signo.
+
+Lo demás no cambia: el cuadre, la revisión, la huella de duplicados y que el texto no se guarda. Si la web de
+Mediolanum resulta tener otra disposición, se añade con una muestra inventada que la imite.
+
 ## 3. Nivel 2 (si el paso 0 confirma una cuenta que solo da PDF)
 
 - **pdf.js en `vendor/`:** versión fijada y corregida (≥ 4.2.67, por CVE-2024-4367), `isEvalSupported: false`, sin
