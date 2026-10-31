@@ -5352,6 +5352,64 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
   }
 });
 
+// Rediseño C1: Plan › Mes v2 (views/plan-v2.js). Mismo campo, mismo borrador y mismo pie de impacto que la tabla de
+// siempre; importes en español; las financiaciones plegadas; y la tabla de siempre a un toque.
+test.describe("Rediseño C1 · Plan › Mes v2", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin asignar, ritmo, editar en español con su impacto, cambiar de mes y la tabla de siempre a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const lado = page.locator("#planV2Lado");
+      await expect(lado).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#plan .e19-heading")).toHaveText("Plan");
+      await expect(page.locator("#topbarStatusStrip")).toBeHidden();
+      await expect(page.locator("#planMesKpis")).toBeHidden();
+      await expect(lado.locator(".plan-v2-cifra")).toHaveText(/€$/);
+      await expect(lado).toContainText("Ritmo del mes");
+      await expect(lado).toContainText("día 26 de 31");
+      const partidas = page.locator("#planMesTables .plan-v2-partidas");
+      await expect(partidas.locator("h3")).toHaveText("Partidas de octubre 2026");
+      await expect(partidas.locator(".plan-v2-financiaciones")).toContainText("se editan en Deuda");
+      await expect(partidas.locator('.plan-v2-financiaciones input')).toHaveCount(0);
+
+      // Editar con formato español: «1.234,50» son mil doscientos treinta y cuatro con cincuenta, y sale el pie de impacto.
+      const servicios = partidas.locator('input[aria-label="Previsto de Servicios"]');
+      await servicios.fill("1.234,50");
+      await servicios.dispatchEvent("change");
+      await expect(partidas.locator('input[aria-label="Previsto de Servicios"]')).toHaveValue("1.234,50");
+      await expect(partidas.locator(".e19-badge-warning")).toHaveText("1 sin guardar");
+      const impacto = page.locator("#planMesImpactBar");
+      await expect(impacto).toBeVisible();
+      await expect(impacto).toContainText("Servicios");
+      await impacto.locator("[data-plan-mes-impact-discard]").click();
+      await expect(partidas.locator('input[aria-label="Previsto de Servicios"]')).toHaveValue("400");
+
+      // El mes con flechas: el siguiente cambia el título; Previsión esconde el mes y enseña el horizonte.
+      await page.locator("#planV2MesNav [data-plan-v2-mes-paso]").last().click();
+      await expect(page.locator("#planMesTables .plan-v2-partidas h3")).toHaveText("Partidas de noviembre 2026");
+      await expect(lado).toContainText("empieza el 1");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(page.locator("#planV2MesNav")).toBeHidden();
+      await expect(page.locator("#planHeaderHorizon")).toBeVisible();
+      await page.locator('[data-plan-tab="mes"]').click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Ver la tabla de siempre» devuelve la tabla y las tarjetas de siempre, y queda como descarte en el medidor.
+      await page.locator("[data-plan-v2-clasica]").click();
+      await expect(page.locator("#planMesTables .plan-mes-budget-table")).toBeVisible();
+      await expect(page.locator("#planMesKpis")).toBeVisible();
+      await expect(lado).toBeHidden();
+      const medido = await page.evaluate(() => JSON.stringify(localStorage));
+      expect(medido).toContain("plan-v2");
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // Rediseño A4 (PR-2): Importar v2 en Registrar › Importar extracto. Extracto y movimientos INVENTADOS.
 test.describe("Rediseño A4 · Importar v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
@@ -5985,6 +6043,39 @@ test.describe("XDA-03 · texto de un PDF", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+
+  // 31/10/2026: Banco Mediolanum no da CSV, Excel ni PDF. Copiada de su web, la lista llega con la cabecera en una línea con
+  // tabuladores y cada movimiento en cinco: la fecha (con un tabulador detrás), el concepto, un «-» por la columna vacía,
+  // el importe con «€» y el saldo con «€». Lo más nuevo arriba. Movimientos INVENTADOS con esa misma forma.
+  test("copiado de la web del banco, un dato por línea, con «€» y columnas vacías: entra limpio y cuadra", { tag: "@safari" }, async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 9, 31, 10, 0, 0) });
+    await page.goto("/index.html#datos-importar");
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await expect(v2.locator(".imp-v2-pdf > summary")).toContainText("Texto de un PDF o de la web del banco");
+    await v2.locator(".imp-v2-pdf > summary").click();
+    const texto = [
+      "Fecha\tConcepto\tEstado\tDocumento\tImporte (EUR)\tAcciones",
+      "28/10/2026\t", "Transf. FICTICIA A", "-", "-50,00 €", "250,00 €",
+      "15/10/2026\t", "Liquidación ficticia", "-", "1,25 €", "300,00 €",
+      "02/10/2026\t", "SEGUROS FICTICIOS DE PRUEBA", "-", "-1.200,75 €", "298,75 €",
+    ].join("\n");
+    await v2.locator("#importarV2PdfTexto").fill(texto);
+    await v2.locator("[data-imp-v2-pdf-leer]").click();
+    await expect(v2.locator(".imp-v2-lineas")).toContainText("3 líneas reconocidas", { timeout: 15000 });
+    await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo");
+    await v2.locator("#importarV2Cuenta").selectOption("Mediolanum");
+    await v2.locator("[data-imp-v2-importar]").click();
+    await page.click("#operationConfirmSubmit");
+    await expect(v2).toContainText("3 movimientos", { timeout: 15000 });
+    const importados = await page.evaluate(() => baseData.transactions.filter((t) => t.account === "Mediolanum").map((t) => [t.date, t.movement, t.amount, t.balance]).sort());
+    expect(importados).toEqual([["2026-10-02", "SEGUROS FICTICIOS DE PRUEBA", -1200.75, 298.75], ["2026-10-15", "Liquidación ficticia", 1.25, 300], ["2026-10-28", "Transf. FICTICIA A", -50, 250]]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 
   test("sin saldos ni signos no se adivina: avisa, no abre la revisión y da un diagnóstico sin datos", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -6995,6 +7086,75 @@ test.describe("Reales: banco + lo anotado aparte", () => {
     await page.evaluate(() => { const select = document.querySelector("#registrarActualsMonth"); if (select) { renderRegistrarActuals(); select.value = "2026-10"; select.dispatchEvent(new Event("change", { bubbles: true })); } });
     const fila = page.locator(`tr[data-registrar-actuals-key="${resultado.key}"]`);
     await expect(fila.locator(".registrar-actuals-aparte")).toHaveText("Banco 110 € + 15 € anotado aparte", { timeout: 15000 });
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, arriba de la escalera del próximo euro. Con la previsión mes a mes fijada (mínimo de cada mes) y el colchón en 5.000 €,
+// dice lo que la previsión no toca en 3, 6 y 12 meses; «Repartir» lo lleva a la escalera y el comparador calcula el neto con los tipos que se escriben. Apagado, no sale.
+// Cifras INVENTADAS.
+test.describe("NIN-08 · dinero parado", () => {
+  test("cuánto hay parado, llevarlo a la escalera, comparar con tipos escritos, apagado no sale, sin desbordar", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 10, 10, 0, 0) });
+    const sembrar = (page) => page.evaluate(() => {
+      globalThis.cuadroMandosReserve = () => 5000;
+      globalThis.accountBalancesFromState = () => ({ total: 12000 });
+      state.dividendSpanishSavingsRatePct = 19;
+      canonicalDailyEngineRuns.active = { ...(canonicalDailyEngineRuns.active || {}), monthly: [
+        { monthKey: "2026-11", minTotal: 9000, minTotalDate: "2026-11-28" },
+        { monthKey: "2026-12", minTotal: 7000, minTotalDate: "2026-12-20", minTotalEvent: "Seguro del coche" },
+        { monthKey: "2027-01", minTotal: 8000 }, { monthKey: "2027-02", minTotal: 9500 }, { monthKey: "2027-03", minTotal: 9900 },
+        { monthKey: "2027-04", minTotal: 6500, minTotalDate: "2027-04-02" },
+      ] };
+      renderProximoEuro(FinanceCanonicalNextEuro);
+    });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-comparar");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await expect(page.locator("#proxEuroCard")).toBeVisible({ timeout: 15000 });
+      await sembrar(page);
+      const parado = page.locator("#proxEuroParado");
+      await expect(parado).toBeVisible();
+      await expect(parado).toContainText("En los próximos 6 meses, según la previsión, vuestra liquidez no baja de 6.500 € el 02/04");
+      await expect(parado).toContainText("hay 1.500 € que el plan no necesita");
+      await expect(parado.locator(".peu-parado-ventanas")).toContainText("3 meses: 2.000 €");
+      await expect(parado.locator(".peu-parado-ventanas")).toContainText("12 meses: la previsión no llega");
+
+      // Llevarlo a la escalera: rellena el importe, lo marca como dinero que ya está en las cuentas y calcula.
+      await parado.locator("[data-peu-colocar]").click();
+      await expect(page.locator("#proxEuroImporte")).toHaveValue("1500");
+      await expect(page.locator("#proxEuroEnCuentas")).toBeChecked();
+      await expect(page.locator("#proxEuroResultado")).toContainText("De 1.500 €");
+
+      // Comparar: el tipo lo escribe el hogar; cada producto rinde sobre lo parado durante su plazo.
+      await parado.locator("summary", { hasText: "Comparar dónde dejarlo" }).click();
+      await parado.locator('[data-peu-parado-tipo="cuenta"]').fill("2");
+      await parado.locator('[data-peu-parado-tipo="deposito"]').fill("2,5");
+      await parado.locator('[data-peu-parado-tipo="letras"]').fill("2,4");
+      await parado.locator("#proxEuroParadoForm button[type=submit]").click();
+      const fila = (id) => page.locator(`#proxEuroParado [data-peu-parado-fila="${id}"]`);
+      await expect(fila("cuenta")).toContainText("3 meses");
+      await expect(fila("cuenta")).toContainText("2.000 €");
+      await expect(fila("cuenta")).toContainText("8,10 €");
+      await expect(fila("cuenta")).toContainText("1,62 %");
+      await expect(fila("deposito")).toContainText("1.500 €");
+      await expect(fila("letras")).toContainText("la previsión no llega a 12 meses");
+      await expect(page.locator("#proxEuroParado")).toContainText("La app no consulta tipos ni recomienda un producto");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
+    }
+
+    // Apagado en Funciones en prueba: no sale nada.
+    await page.evaluate(() => {
+      localStorage.setItem("funciones-en-prueba-banderas", JSON.stringify({ "dinero-parado": { on: false } }));
+    });
+    const apagado = await page.evaluate(() => { renderProximoEuro(FinanceCanonicalNextEuro); return { encendida: FinanceFuncionesEnPrueba.encendida("dinero-parado"), oculto: document.querySelector("#proxEuroParado").hidden }; });
+    expect(apagado.encendida, "la bandera se lee de donde la guarda Funciones en prueba").toBe(false);
+    expect(apagado.oculto).toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });

@@ -61,3 +61,26 @@ Los riesgos 4.7 y la fila «cruzar con WP-39 y WP-38» del §5 eran el siguiente
 - **Honestidad:** sin política ni plan B guardados, **no sale nada**; sin dinero a invertir, no se comprueba la política; una política o un plan **sin firmar o cambiado tras firmar** se marca como borrador; **«no se puede comprobar» no se presenta como «cumple»** (sin objetivos por tipo en Rebalanceo, la tarjeta dice que no sabe en qué tipos iría); un plan B incompleto o sin previsión se dice, no se presenta como «va bien». «No choca con ninguna regla que la app pueda comprobar» es todo lo que se afirma cuando todo cumple.
 - **Lo que se comprobó:** pruebas unitarias del cruce (cinco casos y sus límites, y que la tarjeta solo pinta y no escribe) y una prueba de navegador con datos INVENTADOS (cartera 100 % fondos, objetivos 50/50 con cripto, política firmada que no compra cripto, plan B firmado con un umbral que salta): sin nada guardado no sale nada, con política avisa de la cripto, con plan B avisa del dinero que se inmoviliza, el reparto es el mismo con o sin el cruce. **Comprobado que la prueba de navegador detecta el fallo**: quitando el bloque de la tarjeta en el sitio construido, cae justo en él.
 - **Lo que sigue sin cerrar el paquete:** los **tres umbrales de la escalera siguen siendo míos y sin calibrar** (2 puntos, 6 %, 30 %): cruzarla con la política no los mejora. **Fondos traspasables y liquidez ociosa siguen sin estar** (necesitan el régimen de traspaso de cada fondo y los tipos de WP-13). **Nada se ha visto con una política o un plan B reales**: nadie ha firmado ninguno (H-12, 18/12). Las alertas del cruce solo se ven al abrir Deuda › Comparar; no hay aviso en Cierre ni en Hoy.
+
+## 7. NIN-08 · el dinero parado (30/10/2026, se publica tras el cierre de octubre)
+
+El hogar pidió el 30/10 «el siguiente paquete del plan», con una condición propuesta por Claude y aceptada: se construye ya, pero **se fusiona el 4/11**, con octubre firmado. Lo que faltaba de NIN-08 era la mitad «dónde poner la liquidez ociosa». Se resuelve sin los tipos de WP-13: los tipos los escribe el hogar.
+
+- **Qué es dinero parado.** El mínimo de liquidez que da la previsión mes a mes (motor diario, `canonicalDailyEngineRuns.active.monthly[].minTotal`, «según el plan»), desde el mes en curso, menos el suelo del colchón (el mismo que usa la escalera). Se calcula a 3, 6 y 12 meses.
+  - Con menos meses de previsión que el plazo, ese plazo no se calcula.
+  - Si la previsión baja del suelo, el resultado es cero, nunca negativo.
+  - Sin suelo o sin previsión, no hay cifra.
+- **«Repartir X € en la escalera»** lleva lo parado a 6 meses al importe de la escalera, como dinero que ya está en las cuentas, y la calcula.
+- **El comparador.** Tres productos (cuenta remunerada, depósito y letras del Tesoro), con la TAE y el plazo que escribe el hogar.
+  - Cada uno rinde sobre lo parado durante **su** plazo y da bruto, neto (con el tipo del ahorro de la app) y **neto al año**, que es lo comparable entre plazos distintos.
+  - **No elige «el mejor»**: la liquidez de cada producto pesa distinto para cada hogar y la app no lo sabe.
+  - Sin tipo del ahorro, solo el bruto, y se dice.
+- **Motor:** `idleCash` en `canonical-next-euro.js`, puro. **Interfaz:** `escalera-ui.js` (`#proxEuroParado`, arriba del formulario de la escalera, sin titulares h2/h3).
+- **Funciones en prueba:** «dinero-parado», interruptor propio, `encendidaDesde` el 4/11 (revisión a los 14 días). Medidor de uso: «llevado a la escalera o comparado».
+- **Campos:** de texto con teclado decimal y coma española, como los importes de WP-11. La E2E lo detectó: en un campo numérico «2,5» no se puede escribir.
+- **Riesgos a cuestionar:**
+  - El mínimo es el de la previsión según el plan, no el peor caso. La banda P10 (WP-16) solo mira 30 días y la incertidumbre de las fechas.
+  - El mes en curso cuenta entero, también los días ya pasados, lo que da una cifra prudente.
+  - El impuesto aplica el tipo del ahorro de la app a todo el rendimiento, sin tramos.
+- **Pruebas:** `tests/nin08-dinero-parado.test.cjs` (6) y la E2E «NIN-08 · dinero parado» a 1280 y 390 px.
+

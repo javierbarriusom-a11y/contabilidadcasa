@@ -20,7 +20,8 @@ function proxEuroLoad() {
   let saved = {};
   try { saved = JSON.parse(storageGet(storageKey(PROX_EURO_STORE), "{}")) || {}; } catch { saved = {}; }
   const num = (value) => (value === "" || value === null || value === undefined || !Number.isFinite(Number(value)) ? null : Number(value));
-  return { amount: num(saved.amount), inAccounts: saved.inAccounts === true, expectedReturnPct: num(saved.expectedReturnPct), alreadyContributed: num(saved.alreadyContributed) };
+  const idleOptions = Array.isArray(saved.idleOptions) ? saved.idleOptions.map((row) => ({ id: String(row?.id || ""), ratePct: num(row?.ratePct), months: num(row?.months) })) : [];
+  return { amount: num(saved.amount), inAccounts: saved.inAccounts === true, expectedReturnPct: num(saved.expectedReturnPct), alreadyContributed: num(saved.alreadyContributed), idleOptions };
 }
 
 function proxEuroSave(inputs) {
@@ -183,12 +184,140 @@ function proxEuroHint() {
     : "No uso ninguna rentabilidad por vosotros: sin ella, lo que sobre de la deuda y la pensión queda sin reparto.";
 }
 
+// NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, arriba de la escalera. Cuánto hay por encima del suelo del colchón que la previsión (mes a mes, según el plan) no
+// toca en 3, 6 y 12 meses; con un botón lo lleva a la escalera, y un comparador dice cuánto rendiría neto en los productos que el hogar compara (tipo y plazo los teclea
+// él: la app no consulta tipos ni recomienda). En prueba, con interruptor propio («dinero-parado»).
+const PROX_EURO_IDLE_PRODUCTS = Object.freeze([
+  { id: "cuenta", label: "Cuenta remunerada", months: 3 },
+  { id: "deposito", label: "Depósito", months: 6 },
+  { id: "letras", label: "Letras del Tesoro", months: 12 },
+]);
+
+function proxEuroIdleOn() {
+  return globalThis.FinanceFuncionesEnPrueba?.encendida?.("dinero-parado") === true;
+}
+
+function proxEuroIdleProducts(inputs) {
+  return PROX_EURO_IDLE_PRODUCTS.map((product) => {
+    const saved = (inputs.idleOptions || []).find((row) => row.id === product.id) || {};
+    return { id: product.id, label: product.label, ratePct: saved.ratePct ?? null, months: saved.months ?? product.months };
+  });
+}
+
+function proxEuroIdleModel(engine, inputs) {
+  const guard = (fn, fallback = null) => { try { const value = fn(); return value === undefined ? fallback : value; } catch { return fallback; } };
+  const cushion = guard(() => FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()));
+  const monthly = guard(() => canonicalDailyEngineRuns.active?.monthly, []) || [];
+  const savingsTax = guard(() => dividendSpanishSavingsRatePct(), 0);
+  return engine.idleCash({
+    floor: cushion && Number.isFinite(Number(cushion.value)) ? Number(cushion.value) : null,
+    monthlyMins: monthly,
+    fromMonthKey: isoLocalDate(new Date()).slice(0, 7),
+    options: proxEuroIdleProducts(inputs),
+    savingsTaxPct: savingsTax > 0 ? savingsTax : null,
+  });
+}
+
+function proxEuroIdleDate(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "";
+}
+
+function proxEuroIdleCompareHtml(model, inputs) {
+  const products = proxEuroIdleProducts(inputs);
+  // Texto con teclado decimal y coma española (como los importes de WP-11): en un campo numérico «2,5» no se puede escribir.
+  const field = (product, name, label, value, mode) => `<label class="peu-parado-campo"><span>${escapeHtml(label)}</span><input type="text" inputmode="${mode}" autocomplete="off" data-peu-parado-${name}="${escapeHtml(product.id)}" value="${value === null || value === undefined ? "" : escapeHtml(String(value).replace(".", ","))}" aria-label="${escapeHtml(`${label} de ${product.label}`)}" /></label>`;
+  const rows = products.map((product) => `<div class="peu-parado-producto"><strong>${escapeHtml(product.label)}</strong>${field(product, "tipo", "TAE (%)", product.ratePct, "decimal")}${field(product, "plazo", "Plazo (meses)", product.months, "numeric")}</div>`).join("");
+  const tax = model.savingsTaxPct === null ? "sin el tipo del ahorro (Ajustes): solo bruto" : `impuesto del ahorro al ${proxEuroPct(model.savingsTaxPct)}`;
+  const results = model.options.filter((row) => row.ratePct !== null);
+  // Una lista y no una tabla: seis columnas no caben a 390 px, y la tabla escondía el neto al año en escritorio.
+  const table = results.length
+    ? `<ul class="peu-parado-resultados">${results.map((row) => row.calculable
+      ? `<li data-peu-parado-fila="${escapeHtml(row.id)}"><strong>${escapeHtml(row.label)}</strong> · ${row.months} ${row.months === 1 ? "mes" : "meses"}: sobre ${proxEuroEuros(row.amount)}, ${proxEuroEuros(row.gross)} brutos${row.net === null ? "" : `, <strong>${proxEuroEuros(row.net)} netos</strong> (${proxEuroPct(row.netAnnualPct)} neto al año)`}</li>`
+      : `<li data-peu-parado-fila="${escapeHtml(row.id)}"><strong>${escapeHtml(row.label)}</strong>: ${escapeHtml(row.reason)}</li>`).join("")}</ul>`
+    : "";
+  return `<details class="peu-parado-comparar"${results.length ? " open" : ""}><summary>Comparar dónde dejarlo</summary>
+      <form id="proxEuroParadoForm" novalidate><div class="peu-parado-productos">${rows}</div><div><button type="submit" class="e19-btn e19-btn-secondary">Comparar</button></div></form>
+      ${table}
+      <p class="e19-kpi-note">Escribe el tipo que os ofrezcan y el plazo. «Disponible» es lo que la previsión no toca durante ese plazo; ${escapeHtml(tax)}. El neto al año es lo comparable entre plazos distintos. La app no consulta tipos ni recomienda un producto: la liquidez de cada uno pesa distinto para cada hogar.</p>
+    </details>`;
+}
+
+function proxEuroIdleHtml(model, inputs) {
+  if (model.status !== "ok") {
+    return `<p class="peu-parado-titulo"><strong>Dinero parado</strong></p><p class="e19-kpi-note">Para saber si hay dinero parado hace falta ${escapeHtml(model.reason)}.</p>`;
+  }
+  const six = model.windows.find((row) => row.months === 6 && row.calculable) || model.windows.find((row) => row.calculable);
+  const windows = model.windows.map((row) => `<li>${row.months} meses: ${row.calculable ? `<strong>${proxEuroEuros(row.idle)}</strong>` : "la previsión no llega"}</li>`).join("");
+  const where = six ? `${six.date ? ` el ${escapeHtml(proxEuroIdleDate(six.date))}` : ""}${six.event ? `, con «${escapeHtml(six.event)}»` : ""}` : "";
+  const lead = !six
+    ? "<p>La previsión no llega a tres meses: no se puede decir qué dinero está parado.</p>"
+    : six.idle > 0
+      ? `<p>En los próximos ${six.months} meses, según la previsión, vuestra liquidez no baja de <strong>${proxEuroEuros(six.minimum)}</strong>${where}. Con el colchón en ${proxEuroEuros(model.floor)}, hay <strong>${proxEuroEuros(six.idle)} que el plan no necesita</strong> en ese tiempo.</p>`
+      : `<p>No hay dinero parado: en los próximos ${six.months} meses la liquidez baja hasta ${proxEuroEuros(six.minimum)}${where}, ${six.minimum < model.floor ? "por debajo" : "al nivel"} del colchón (${proxEuroEuros(model.floor)}).</p>`;
+  const button = six && six.idle > 0 ? `<button type="button" class="e19-btn e19-btn-secondary" data-peu-colocar="${six.idle}">Repartir ${proxEuroEuros(six.idle)} en la escalera</button>` : "";
+  return `<p class="peu-parado-titulo"><strong>Dinero parado</strong> · según la previsión</p>${lead}<ul class="peu-parado-ventanas">${windows}</ul>${button}
+    ${proxEuroIdleCompareHtml(model, inputs)}
+    <p class="e19-kpi-note">Es la previsión según el plan: si un gasto llega antes o más caro, ese mínimo baja. El colchón queda entero en cualquier caso.</p>`;
+}
+
+function renderProximoEuroParado(engine, inputs) {
+  const box = qs("proxEuroParado");
+  if (!box) return;
+  if (!proxEuroIdleOn() || typeof engine?.idleCash !== "function") { box.hidden = true; box.innerHTML = ""; box.__proxEuroHtml = ""; return; }
+  let html;
+  try {
+    const model = proxEuroIdleModel(engine, inputs);
+    html = proxEuroIdleHtml(model, inputs);
+    if (model.status === "ok" && model.windows.some((row) => row.calculable && row.idle > 0)) globalThis.FinanceMedidor?.anotar("dinero-parado", "vista"); // XGO-02: un día visto cuenta una vez
+  } catch {
+    html = '<p class="e19-kpi-note">No se pudo calcular el dinero parado con los datos actuales.</p>';
+  }
+  // No se repinta mientras se escribe en él (se perdería lo tecleado), salvo al pulsar «Comparar».
+  if (box.__proxEuroHtml !== html && (box.__proxEuroForzar || !box.contains(document.activeElement))) {
+    box.innerHTML = html;
+    box.__proxEuroHtml = html;
+  }
+  box.__proxEuroForzar = false;
+  box.hidden = false;
+}
+
+function proxEuroIdleSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const read = (input) => {
+    const raw = String(input?.value ?? "").trim().replace(/\s|%/g, "").replace(",", ".");
+    return raw !== "" && Number.isFinite(Number(raw)) ? Number(raw) : null;
+  };
+  const idleOptions = PROX_EURO_IDLE_PRODUCTS.map((product) => ({
+    id: product.id,
+    ratePct: read(form.querySelector(`[data-peu-parado-tipo="${product.id}"]`)),
+    months: read(form.querySelector(`[data-peu-parado-plazo="${product.id}"]`)),
+  }));
+  proxEuroSave({ ...proxEuroLoad(), idleOptions });
+  const box = qs("proxEuroParado");
+  if (box) box.__proxEuroForzar = true;
+  renderProximoEuro(proxEuroEngine());
+  qs("proxEuroParadoForm")?.querySelector("button[type=submit]")?.focus(); // el foco sigue donde estaba, no se va al principio de la página
+  globalThis.FinanceMedidor?.anotar("dinero-parado", "accion"); // XGO-02: comparar
+  announceStatus("Comparación hecha.");
+}
+
+function proxEuroIdlePlace(amount) {
+  if (!(amount > 0)) return;
+  proxEuroSave({ ...proxEuroLoad(), amount, inAccounts: true });
+  renderProximoEuro(proxEuroEngine());
+  globalThis.FinanceMedidor?.anotar("dinero-parado", "accion"); // XGO-02: llevarlo a la escalera
+  qs("proxEuroResultado")?.scrollIntoView?.({ block: "nearest" });
+  announceStatus(`Escalera calculada para ${proxEuroEuros(amount)} de dinero parado.`);
+}
+
 function renderProximoEuro(engine) {
   const box = qs("proxEuroResultado");
   if (!box || !engine) return;
   attachProximoEuro(document); // idempotente: un clic temprano no puede perderse
   try {
     const inputs = proxEuroLoad();
+    renderProximoEuroParado(engine, inputs);
     proxEuroFillInputs(inputs);
     proxEuroHint();
     const html = inputs.amount > 0
@@ -214,7 +343,7 @@ function proxEuroSubmit(event) {
     return;
   }
   if (error) error.hidden = true;
-  proxEuroSave({ amount, inAccounts: Boolean(qs("proxEuroEnCuentas")?.checked), expectedReturnPct: read("proxEuroRentabilidad"), alreadyContributed: read("proxEuroPension") });
+  proxEuroSave({ ...proxEuroLoad(), amount, inAccounts: Boolean(qs("proxEuroEnCuentas")?.checked), expectedReturnPct: read("proxEuroRentabilidad"), alreadyContributed: read("proxEuroPension") });
   renderProximoEuro(proxEuroEngine());
   announceStatus("Escalera calculada.");
 }
@@ -223,6 +352,13 @@ function proxEuroSubmit(event) {
 function attachProximoEuro(doc) {
   if (!doc || doc.__proxEuroAttached) return false;
   doc.__proxEuroAttached = true;
-  doc.addEventListener("submit", (event) => { if (event.target?.id === "proxEuroForm") proxEuroSubmit(event); });
+  doc.addEventListener("submit", (event) => {
+    if (event.target?.id === "proxEuroForm") proxEuroSubmit(event);
+    else if (event.target?.id === "proxEuroParadoForm") proxEuroIdleSubmit(event);
+  });
+  doc.addEventListener("click", (event) => {
+    const place = event.target?.closest?.("[data-peu-colocar]");
+    if (place) proxEuroIdlePlace(Number(place.dataset.peuColocar));
+  });
   return true;
 }

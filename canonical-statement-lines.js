@@ -57,13 +57,36 @@
     return Number.isFinite(value) ? { value: negative ? -value : value, signed } : null;
   }
 
+  // Fecha con el mes en letra, como la escriben las webs de los bancos: «31 oct 2026», «31 oct. 2026», «31 de octubre de
+  // 2026» o «31 oct» (con el año del contexto). Lee desde el principio de `tokens`; devuelve { date, used } o null.
+  const MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+  function parseWordDate(tokens, year) {
+    const day = /^(\d{1,2})$/.exec(tokens[0] || "");
+    if (!day) return null;
+    let i = 1;
+    if (/^de$/i.test(tokens[i] || "")) i += 1;
+    const month = MESES[String(tokens[i] || "").toLowerCase().replace(/\.$/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3)];
+    if (!month || !/^[a-záéíóú]{3,10}\.?$/i.test(tokens[i])) return null;
+    i += 1;
+    let y = year;
+    let j = i;
+    if (/^de$/i.test(tokens[j] || "")) j += 1;
+    if (/^\d{4}$/.test(tokens[j] || "")) { y = Number(tokens[j]); i = j + 1; }
+    if (!y) return null;
+    const date = iso(y, month, Number(day[1]));
+    return date ? { date, used: i } : null;
+  }
+
   // El año de las fechas cortas («12/10»): el de la primera fecha completa del texto, o el que se pase.
   function contextYear(lines, fallback) {
     for (const line of lines) {
-      for (const token of String(line.text || "").split(/\s+/)) {
+      const tokens = String(line.text || "").split(/\s+/);
+      for (const token of tokens) {
         const date = parseDate(token);
         if (date) return Number(date.slice(0, 4));
       }
+      const word = parseWordDate(tokens, null);
+      if (word) return Number(word.date.slice(0, 4));
     }
     return fallback || null;
   }
@@ -92,14 +115,25 @@
   // ---------- de líneas a movimientos ----------
 
   // Una línea partida en: fechas del principio, importes del final y concepto en medio.
+  // El «€» o «EUR» suelto (la web lo separa del importe con un espacio) no es parte del concepto ni corta los importes.
+  // Un guion suelto es una columna vacía («Estado», «Documento»), salvo justo delante de un importe sin signo: ahí puede ser
+  // el signo menos separado por un espacio («- 86,40»), y se le pega al importe.
   function split(text, year) {
-    const tokens = String(text).split(/\s+/).filter(Boolean);
+    const raw = String(text).split(/\s+/).filter((t) => t && !/^(€|eur)$/i.test(t));
+    const tokens = [];
+    raw.forEach((t, i) => {
+      if (!/^[-–—]$/.test(t)) { tokens.push(t); return; }
+      const next = parseAmount(raw[i + 1]);
+      if (next && !next.signed) raw[i + 1] = `-${raw[i + 1]}`;
+    });
     const dates = [];
     while (tokens.length && dates.length < 2) {
       const d = parseDate(tokens[0], year);
-      if (!d) break;
-      dates.push(d);
-      tokens.shift();
+      if (d) { dates.push(d); tokens.shift(); continue; }
+      const word = parseWordDate(tokens, year);
+      if (!word) break;
+      dates.push(word.date);
+      tokens.splice(0, word.used);
     }
     const amounts = [];
     while (tokens.length && amounts.length < 3) {
@@ -113,7 +147,7 @@
 
   function parse(lines, options = {}) {
     const list = Array.isArray(lines) ? lines : [];
-    const year = contextYear(list, options.year);
+    const year = contextYear(list, options.year || (options.today ? Number(String(options.today).slice(0, 4)) : null));
     const rows = [];
     const errors = [];
     let opening = null;
@@ -124,7 +158,7 @@
       if (!amounts.length) { errors.push({ line, reason: "movimiento sin importe" }); return; }
       const amount = amounts.length >= 2 ? amounts[amounts.length - 2] : amounts[0];
       const balance = amounts.length >= 2 ? amounts[amounts.length - 1] : null;
-      rows.push({ line: row.line, date: row.date, valueDate: row.valueDate || row.date, movement: row.concept || "(sin concepto)", details: "", amount: amount.value, signed: amount.signed, balance: balance ? balance.value : null });
+      rows.push({ line: row.line, lastLine: line, date: row.date, valueDate: row.valueDate || row.date, movement: row.concept || "(sin concepto)", details: "", amount: amount.value, signed: amount.signed, balance: balance ? balance.value : null });
     };
 
     list.forEach(({ line, text }) => {
@@ -147,9 +181,15 @@
         return;
       }
       if (pending && parts.amounts.length && !parts.concept) { finish(pending, parts.amounts, line); pending = null; return; }
-      if (pending && !parts.amounts.length) { pending.concept = `${pending.concept} ${text}`.trim().slice(0, 140); return; }
-      // Una línea sin fecha ni importes justo después de un movimiento: el concepto sigue (en el PDF ocupa dos líneas).
+      if (pending && !parts.amounts.length) { pending.concept = `${pending.concept} ${parts.concept}`.trim().slice(0, 140); return; }
       const prev = rows[rows.length - 1];
+      // Copiado de una web, cada dato en su línea: el importe y, en la línea de debajo, el saldo.
+      if (prev && parts.amounts.length === 1 && !parts.concept && prev.balance === null && prev.lastLine === line - 1) {
+        prev.balance = parts.amounts[0].value;
+        prev.lastLine = line;
+        return;
+      }
+      // Una línea sin fecha ni importes justo después de un movimiento: el concepto sigue (en el PDF ocupa dos líneas).
       if (prev && !parts.amounts.length && prev.line >= line - 1 && text.length <= 80 && !/^(fecha|concepto|saldo|importe|movimientos|p[aá]gina)\b/i.test(text)) {
         prev.details = `${prev.details} ${text}`.trim().slice(0, 140);
         prev.line = line; // para encadenar una tercera línea
@@ -157,6 +197,16 @@
     });
     if (pending) errors.push({ line: pending.line, reason: "movimiento sin importe" });
 
+    if (!contextYear(list, null) && options.today) {
+      rows.forEach((r) => {
+        [r.date, r.valueDate].forEach((d, k) => {
+          if (d && d > options.today) {
+            const back = `${Number(d.slice(0, 4)) - 1}${d.slice(4)}`;
+            if (k === 0) r.date = back; else r.valueDate = back;
+          }
+        });
+      });
+    }
     const signs = fixSigns(rows, opening);
     const read = rows.filter((r) => r.amount !== null);
     const check = checkBalances(read, opening);

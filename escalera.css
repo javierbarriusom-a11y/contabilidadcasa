@@ -155,3 +155,97 @@
 .peu-cruce-titulo {
   margin: 0 0 4px;
 }
+
+/* NIN-08 (30/10/2026): el dinero parado, arriba de la escalera. */
+.peu-parado {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--e19-accent-soft-border);
+  border-radius: var(--e19-radius-md, 10px);
+  background: var(--e19-accent-soft);
+  min-width: 0;
+}
+
+.peu-parado > p {
+  margin: 0 0 8px;
+}
+
+.peu-parado-titulo {
+  color: var(--e19-heading, var(--e19-ink));
+}
+
+.peu-parado-ventanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.peu-parado-comparar {
+  margin-top: 10px;
+}
+
+.peu-parado-comparar > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.peu-parado-productos {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.peu-parado-producto {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 7rem) minmax(0, 7rem);
+  justify-content: start;
+  gap: 6px 10px;
+  align-items: end;
+}
+
+.peu-parado-producto > strong {
+  align-self: center;
+}
+
+.peu-parado-resultados {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.peu-parado-resultados > li {
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm, 6px);
+  background: var(--e19-surface);
+  overflow-wrap: anywhere;
+}
+
+.peu-parado-campo {
+  display: grid;
+  gap: 2px;
+  font-size: var(--e19-text-xs, 0.78rem);
+  color: var(--e19-muted);
+  min-width: 0;
+}
+
+.peu-parado-campo input {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .peu-parado-producto {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .peu-parado-producto > strong {
+    grid-column: 1 / -1;
+  }
+}

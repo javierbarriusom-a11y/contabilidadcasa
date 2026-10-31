@@ -481,7 +481,7 @@ test("P-3 · handlePlanMesPlannedChange escribe con cuadroMandosStageCell, el mi
     isClosedMonthKey: () => false,
     planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: () => false,
-    parseAmount: (v) => Number(v),
+    parseAmountField: (v) => Number(v), // es-ES desde el rediseño C1: «3.000» son tres mil
     cuadroMandosStageCell: (...args) => calls.push(["cuadroMandosStageCell", ...args]),
     renderPlanMes: () => calls.push("renderPlanMes"),
   });
@@ -502,7 +502,7 @@ test("P-3 · vaciar la casilla la deja en 0, no en NaN ni sin tocar", () => {
     isClosedMonthKey: () => false,
     planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: () => false,
-    parseAmount: () => null,
+    parseAmountField: () => null,
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => {},
   });
@@ -537,7 +537,7 @@ test("P-3 · handlePlanMesPlannedChange bloquea las cuotas de deuda incluso llam
     isClosedMonthKey: () => false,
     planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: (rowKey) => rowKey === "coche",
-    parseAmount: (v) => Number(v),
+    parseAmountField: (v) => Number(v),
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => calls.push("renderPlanMes"),
   });

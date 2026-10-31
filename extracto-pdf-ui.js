@@ -34,7 +34,7 @@ function extractoPdfPlural(n, uno, varios) {
 // Lee el texto y, si hay movimientos, abre la revisión de siempre. `motor` = FinanceCanonicalStatementLines.
 async function extractoPdfLeer(texto, motor) {
   if (!motor) return;
-  const resultado = motor.parse(motor.linesFromText(texto));
+  const resultado = motor.parse(motor.linesFromText(texto), { today: isoLocalDate(new Date()) }); // fechas sin año («31 oct»): las de este año
   const diagnostico = motor.diagnostic(resultado);
   if (!resultado.transactions.length) {
     extractoPdfAviso = { tipo: "error", texto: resultado.structure.movements ? `He reconocido ${extractoPdfPlural(resultado.structure.movements, "línea de movimiento", "líneas de movimiento")}, pero ninguna con su importe y su signo claros. Si el PDF trae saldos, copia también la línea del saldo anterior.` : "No he reconocido ninguna línea de movimiento (una fecha al principio y un importe al final).", diagnostico };
@@ -66,8 +66,8 @@ function extractoPdfAvisoHtml(session) {
 // La fuente en Importar: plegada, para no quitar sitio al CSV o Excel.
 function extractoPdfFuenteHtml() {
   return `<details class="mov-v2-card imp-v2-pdf">
-    <summary><span class="mov-v2-main"><strong>Texto de un PDF</strong><span class="mov-v2-meta">Si el banco solo te da el extracto en PDF: copia su texto y pégalo aquí.</span></span></summary>
-    <label class="imp-v2-pdf-campo"><span class="mov-v2-meta">En el iPhone: abre el PDF, mantén pulsado el texto, «Seleccionar todo» y «Copiar». Mejor si incluye la línea del saldo anterior.</span>
+    <summary><span class="mov-v2-main"><strong>Texto de un PDF o de la web del banco</strong><span class="mov-v2-meta">Si el banco no da CSV ni Excel: copia los movimientos del PDF o de su propia web y pégalos aquí.</span></span></summary>
+    <label class="imp-v2-pdf-campo"><span class="mov-v2-meta">Desde la web, en el ordenador: selecciona la lista de movimientos del mes, de la primera fecha al último importe, y cópiala. Desde un PDF en el iPhone: mantén pulsado el texto, «Seleccionar todo» y «Copiar». Mejor si se ve el saldo de cada fila o el saldo anterior.</span>
       <textarea id="importarV2PdfTexto" rows="6" autocomplete="off" spellcheck="false" placeholder="01/10/2026  NÓMINA …  3.000,00  8.080,00"></textarea></label>
     <button type="button" class="e19-btn e19-btn-primary" data-imp-v2-pdf-leer>Leer el texto</button>
   </details>`;

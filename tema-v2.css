@@ -2650,3 +2650,618 @@
   white-space: pre-wrap;
   font-size: 12px;
 }
+
+/* ==========================================================================================
+   Rediseño C1 · Plan › Mes (views/plan-v2.js; referencias/png/PlanMes.png y PlanMesDesktop.png).
+   La cabecera de Plan pasa a «Plan» + pestañas segmentadas + mes con flechas; sin la tira de cifras ni el
+   recuadro «Estado», como Hoy y Movimientos. El cuerpo de Mes: partidas a la izquierda y el resumen a la derecha
+   (arriba en el móvil). Todo cuelga de las clases que pone plan-v2.js: si el script no carga, Plan es el de siempre.
+   ========================================================================================== */
+:root[data-tema="v2"]:has(#plan.plan-v2-on:not([hidden])) #topbarStatusStrip,
+:root[data-tema="v2"]:has(#plan.plan-v2-on:not([hidden])) #e17ViewGuide {
+  display: none !important;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on > .section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  margin-bottom: 22px;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on > .section-title > div:first-child .panel-kicker,
+:root[data-tema="v2"] #plan.plan-v2-on > .section-title > div:first-child .e19-subtitle,
+:root[data-tema="v2"] #plan.plan-v2-on > .section-title > div:first-child [data-e17-open="guide"],
+:root[data-tema="v2"] #plan.plan-v2-on #planCrumb,
+:root[data-tema="v2"] #plan.plan-v2-on .plan-sobres-control {
+  display: none;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on > .section-title .e19-heading {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on #planTabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px;
+  overflow-x: auto;
+  border: 0;
+  border-radius: 12px;
+  background: var(--e19-surface-sunken);
+  scrollbar-width: none;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on #planTabs .e19-registrar-tab {
+  flex: 0 0 auto;
+  min-height: 36px;
+  margin: 0;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on #planTabs .e19-registrar-tab[aria-selected="true"] {
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font-weight: 600;
+  box-shadow: var(--e19-shadow-card);
+}
+
+/* Presupuesto, Esta semana y Partidas son otras pantallas: van detrás, más discretas, tras una raya. */
+:root[data-tema="v2"] #plan.plan-v2-on #planTabs [data-e17-target] {
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on #planTabs [data-e17-target="presupuesto-mes"] {
+  margin-left: 8px;
+  border-left: 1px solid var(--e19-border-strong);
+  border-radius: 0 9px 9px 0;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on .plan-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-on:not(:has([data-plan-panel="prevision"]:not([hidden]))) #planHeaderHorizon,
+:root[data-tema="v2"] #plan.plan-v2-on:not(:has([data-plan-panel="mes"]:not([hidden]))) #planV2MesNav {
+  display: none;
+}
+
+:root[data-tema="v2"] .plan-v2-mes-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:root[data-tema="v2"] .plan-v2-mes-flecha,
+:root[data-tema="v2"] .plan-v2-mes-pildora select {
+  min-height: 44px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: 12px;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: inherit;
+}
+
+:root[data-tema="v2"] .plan-v2-mes-flecha {
+  width: 44px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .plan-v2-mes-flecha:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+:root[data-tema="v2"] .plan-v2-mes-pildora select {
+  padding: 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* Cuerpo de Mes */
+:root[data-tema="v2"] #plan.plan-v2-mes-on .e19-plan-mes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-mes-on .e19-plan-mes > .registrar-mes-controls,
+:root[data-tema="v2"] #plan.plan-v2-mes-on #planMesKpis {
+  display: none;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-mes-on #planMesTables {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] #plan.plan-v2-mes-on #planV2Lado {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .plan-v2-cifra {
+  margin: 0;
+  font-size: clamp(44px, 11vw, 56px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .plan-v2-sin-asignar.is-negative .plan-v2-cifra {
+  color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .plan-v2-frase {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .plan-v2-destino {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  margin: 16px 0 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--e19-surface-sunken);
+}
+
+:root[data-tema="v2"] .plan-v2-destino > span {
+  min-width: 4px;
+}
+
+:root[data-tema="v2"] .is-fijos { background: var(--e19-ink); }
+:root[data-tema="v2"] .is-variables { background: var(--e19-muted); }
+:root[data-tema="v2"] .is-financiaciones { background: var(--e19-faint); }
+:root[data-tema="v2"] .is-otros { background: var(--e19-border-strong); }
+:root[data-tema="v2"] .is-libre { background: var(--e19-success); }
+
+:root[data-tema="v2"] .plan-v2-leyenda {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-muestra {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+:root[data-tema="v2"] .plan-v2-accion {
+  width: 100%;
+  margin-top: 16px;
+}
+
+:root[data-tema="v2"] .plan-v2-titulo {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .plan-v2-esperado {
+  background: var(--blue);
+}
+
+:root[data-tema="v2"] .plan-v2-nota {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-ahorro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+}
+
+:root[data-tema="v2"] .plan-v2-ahorro span {
+  font-size: 14px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-ahorro strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .plan-v2-mas {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-mas .link-button,
+:root[data-tema="v2"] .plan-v2-clasica .link-button {
+  min-height: 32px;
+  font-size: 13px;
+}
+
+/* Partidas */
+:root[data-tema="v2"] .plan-v2-partidas {
+  padding: 0;
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] .plan-v2-partidas > .hoy-v2-card-head {
+  margin: 0;
+  padding: 18px 22px;
+}
+
+:root[data-tema="v2"] .plan-v2-leyenda-cols {
+  font-size: 13px;
+}
+
+:root[data-tema="v2"] .plan-v2-tabla {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .plan-v2-tabla th {
+  padding: 10px 12px;
+  border-top: 1px solid var(--e19-border);
+  border-bottom: 1px solid var(--e19-border);
+  background: var(--e19-surface-soft);
+  font-family: var(--e19-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-tabla th:first-child { text-align: left; }
+:root[data-tema="v2"] .plan-v2-tabla th:last-child { text-align: left; }
+
+:root[data-tema="v2"] .plan-v2-tabla td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--e19-border);
+  vertical-align: middle;
+  font-size: 15px;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .plan-v2-tabla tr > :first-child { padding-left: 22px; }
+:root[data-tema="v2"] .plan-v2-tabla tr > :last-child { padding-right: 22px; }
+
+:root[data-tema="v2"] .plan-v2-bloque td {
+  background: var(--e19-surface-soft);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .plan-v2-bloque-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--e19-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-bloque-nombre {
+  min-height: 0;
+  cursor: default;
+}
+
+:root[data-tema="v2"] .plan-v2-tabla td.plan-v2-nombre,
+:root[data-tema="v2"] .plan-v2-financiaciones td:first-child {
+  white-space: normal;
+}
+
+:root[data-tema="v2"] .plan-v2-nombre small,
+:root[data-tema="v2"] .plan-v2-financiaciones small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .plan-v2-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .plan-v2-num.is-over {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .plan-v2-previsto {
+  width: 1%;
+  text-align: right;
+}
+
+:root[data-tema="v2"] .plan-v2-importe {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: 10px;
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .plan-v2-importe:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+:root[data-tema="v2"] .plan-v2-importe input {
+  width: 8ch;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .plan-v2-importe:has(input:disabled) {
+  background: var(--e19-surface-soft);
+  opacity: 0.7;
+}
+
+:root[data-tema="v2"] .plan-v2-fila.plan-mes-row-draft td {
+  background: var(--e19-warning-soft);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo-celda {
+  width: 22%;
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--e19-surface-sunken);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo.is-over > span {
+  background: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo.is-vacio {
+  background: repeating-linear-gradient(135deg, var(--e19-surface-sunken) 0 6px, var(--e19-border) 6px 9px);
+}
+
+:root[data-tema="v2"] .plan-v2-ir {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 22px;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .plan-v2-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .plan-v2-pie-mes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+:root[data-tema="v2"] .plan-v2-pie-mes .e19-kpi-note {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .plan-v2-partida {
+  font-weight: 600;
+  color: var(--e19-success);
+}
+
+:root[data-tema="v2"] .plan-v2-clasica {
+  margin: 0;
+  padding: 0 22px 14px;
+}
+
+@media (max-width: 1023px) {
+  :root[data-tema="v2"] #plan.plan-v2-mes-on .e19-plan-mes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] #plan.plan-v2-mes-on #planV2Lado {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  :root[data-tema="v2"] #plan.plan-v2-mes-on #planMesTables {
+    grid-row: 2;
+  }
+}
+
+/* En el móvil la tabla pasa a lista: nombre y previsto en una línea, la barra debajo y, si hay real, real y queda. */
+@media (max-width: 640px) {
+  :root[data-tema="v2"] #plan.plan-v2-on > .section-title .e19-heading {
+    font-size: 30px;
+  }
+
+  :root[data-tema="v2"] #plan.plan-v2-on .plan-header-controls {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  :root[data-tema="v2"] .plan-v2-mes-nav {
+    width: 100%;
+  }
+
+  :root[data-tema="v2"] .plan-v2-mes-pildora {
+    flex: 1;
+  }
+
+  :root[data-tema="v2"] .plan-v2-mes-pildora select {
+    width: 100%;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla,
+  :root[data-tema="v2"] .plan-v2-tabla tbody {
+    display: block;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--e19-border);
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla tr[hidden] {
+    display: none;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-bloque {
+    background: var(--e19-surface-soft);
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla td,
+  :root[data-tema="v2"] .plan-v2-tabla tr > :first-child,
+  :root[data-tema="v2"] .plan-v2-tabla tr > :last-child {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla td:empty,
+  :root[data-tema="v2"] .plan-v2-bloque [data-plan-v2-etiqueta],
+  :root[data-tema="v2"] .plan-v2-fila:not(.tiene-real) [data-plan-v2-etiqueta] {
+    display: none;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila .plan-v2-ritmo-celda {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+
+  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda {
+    grid-column: auto;
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila [data-plan-v2-etiqueta] {
+    font-size: 13px;
+    color: var(--e19-muted);
+    text-align: left;
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila [data-plan-v2-etiqueta="queda"] {
+    text-align: right;
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila [data-plan-v2-etiqueta]::before {
+    content: "Real ";
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila [data-plan-v2-etiqueta="queda"]::before {
+    content: "Queda ";
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila.plan-mes-row-draft {
+    background: var(--e19-warning-soft);
+  }
+
+  :root[data-tema="v2"] .plan-v2-fila.plan-mes-row-draft td {
+    background: none;
+  }
+}
+
+/* El pie «Impacto del cambio» de Plan, por encima de las filas que pasan por debajo al desplazarse. */
+:root[data-tema="v2"] #planMesImpactBar {
+  z-index: 5;
+}

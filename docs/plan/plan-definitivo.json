@@ -637,7 +637,8 @@
     "WP-17",
     "WP-13"
    ],
-   "hechoCuando": "Orden integrado (colchón, deuda cara, pensiones, fondos, amortizar o invertir) con euro de beneficio y coste de liquidez por peldaño."
+   "hechoCuando": "Orden integrado (colchón, deuda cara, pensiones, fondos, amortizar o invertir) con euro de beneficio y coste de liquidez por peldaño.",
+   "enPrueba": "propio"
   },
   {
    "id": "WP-16",
@@ -2613,6 +2614,15 @@
    "origen": "7ª (Siguiente)",
    "decision": "sin puerta",
    "enPrueba": "propio"
+  },
+  {
+   "id": "RD-C1",
+   "n": 25,
+   "que": "Plan › Mes con el diseño nuevo: sin asignar, ritmo y partidas que caben en el móvil",
+   "origen": "7ª, §8 de ESTADO.md",
+   "decision": "30/10",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-14"
   }
  ]
 }

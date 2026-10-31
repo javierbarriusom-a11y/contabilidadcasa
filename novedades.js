@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-04-dinero-parado",
+      fecha: "2026-11-04",
+      texto: "En prueba: arriba de la escalera del próximo euro, el dinero parado que la previsión no toca y cuánto rendiría neto.",
+      href: "#deuda-comparar",
+    },
+    {
+      id: "2026-10-31-plan-nuevo",
+      fecha: "2026-10-31",
+      texto: "Plan › Mes, nuevo: arriba lo que queda sin asignar y el ritmo del mes; las partidas con su real, y en el móvil ya caben las cifras.",
+      href: "#plan",
+    },
+    {
       id: "2026-10-29-reales-aparte",
       fecha: "2026-10-29",
       texto: "Reales: lo pagado fuera del banco (efectivo) ya no se pierde al importar. El real es banco más lo anotado aparte.",
