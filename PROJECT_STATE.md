@@ -113,6 +113,32 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 31 de octubre de 2026 (382): #571 publicado antes del cierre; estado de backlog, plan y panel al día
+
+- **Publicado #571** con el CI en verde (`verify` 13:31-14:08 UTC), fusionado en `main` (61dc980). Por decisión del hogar del 31/10 (opción A), sale antes de firmar octubre para poder importar Mediolanum en el cierre. Lleva tres cosas:
+  - Importar lo copiado de la web del banco (381).
+  - Plan › Mes con el diseño nuevo (380).
+  - El dinero parado (379), que se enciende el 4/11 por fecha.
+- **Despliegue:** el workflow de Pages de `main` arrancó a las 14:09 UTC (run 41208790644). Su resultado va en la entrada siguiente o en el registro del panel.
+- **Avisos programados retirados:** el de fusionar #571 y el del 4/11 («publicar NIN-08 tras el cierre»); ya no hacen falta. Desuscrito de #571.
+- **Estado al día:**
+  - `BACKLOG_DEFINITIVO.md`:
+    - §0, con la línea del 31/10.
+    - §5.0: RD-C1 publicado, revisión el 14/11; XDA-03, «también lo copiado de la web».
+    - §7: el cierre recomendado el lunes 2/11, con Mediolanum pegando la lista de su web.
+  - `docs/rediseno/ESTADO.md` §2 y §8, `docs/ESTADO_TAREAS_Y_FASES.md` (WP-42), `docs/WP42_DISENO.md` §7 y el comentario de `funciones-en-prueba.js`.
+  - `BACKLOG_STATUS.md` sin cambios: ninguna entrega E1-E26 cambia de estado.
+- **Panel de seguimiento** (versión 13, regenerado porque el plan suma la fila RD-C1):
+  - `wp/WP-42`: NIN-08 publicado; sigue aparcado, sin fondos traspasables ni aviso en Cierre/Hoy.
+  - `plataforma/XDA-03`: hecho.
+  - `plataforma/RD-C1`: alta, hecho.
+  - Una entrada en `registro`.
+- **Revisión mensual de Nielsen:** la última, el 15/10. Vence el 14/11.
+- **Pendiente del hogar:**
+  - Cerrar octubre, recomendado el lunes 2/11, con Mediolanum pegando su lista en «Texto de un PDF o de la web del banco».
+  - Antes del cierre, el colchón en Ajustes y los tres intentos de Hoy (WP-02).
+- **Validación de este cierre** (solo documentación y el comentario de `funciones-en-prueba.js`): `npm test` 6281/6281, con `lint` limpio.
+
 ## Cierre de sesión — 31 de octubre de 2026 (381): importar lo copiado de la web del banco (Mediolanum no da CSV, Excel ni PDF)
 
 - **Hallazgo del hogar, la víspera del cierre:** Banco Mediolanum no exporta CSV ni genera PDF. El único camino es copiar la lista de movimientos de su web.
