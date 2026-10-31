@@ -120,9 +120,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - el «€» o «EUR» suelto, que cortaba los importes;
   - la fecha con el mes en letra, con año o sin él. Sin año se toma el de hoy (`options.today`, que pasa `extracto-pdf-ui.js`), y lo que caería en el futuro es del año anterior;
   - cada dato en su línea, con el saldo debajo del importe.
-- Probado con muestras inventadas. **Falta una muestra con la forma real de la web de Mediolanum**: si su disposición es otra, se añade.
+- **Con la forma real de la web de Mediolanum**, que pasó el hogar:
+  - Cabecera con tabuladores y cada movimiento en cinco líneas: fecha, concepto, «-» de columna vacía, importe con «€» y saldo con «€». Lo más nuevo, arriba.
+  - Se leen sus 8 filas, con el saldo cuadrando fila a fila. Solo hizo falta que el guion suelto de la columna «Estado» no se pegara al concepto.
+  - Un guion delante de un importe sin signo se sigue tomando como signo menos.
+  - Las pruebas usan cifras inventadas con esa forma: las del hogar no entran en el repositorio.
 - `docs/XDA03_DISENO.md` §2b. Versiones `?v=20261031web1`.
-- **Validación:** `npm test` 6280/6280 (+3); E2E y axe de Importar y XDA-03: 7 de 7.
+- **Validación:** `npm test` 6281/6281 (+4); E2E de XDA-03 4 de 4, con la nueva de la web de Mediolanum (`@safari`).
+- **Publicación (decisión del hogar del 31/10, opción A):** #571 se fusiona antes del cierre para que Mediolanum pueda importarse en él. Con él salen Plan › Mes nuevo (no se usa para cerrar) y «Dinero parado» (dormido hasta el 4/11).
 
 ## Cierre de sesión — 30 de octubre de 2026 (380): Plan › Mes con el diseño nuevo (RD-C1), listo para salir tras firmar octubre
 

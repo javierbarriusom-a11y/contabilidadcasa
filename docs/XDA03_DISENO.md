@@ -56,8 +56,11 @@ formatos de web que antes no leía:
   futuro es del año anterior);
 - cada dato en su línea: fecha, concepto, importe y, debajo, el saldo, con el que se fija el signo.
 
-Lo demás no cambia: el cuadre, la revisión, la huella de duplicados y que el texto no se guarda. Si la web de
-Mediolanum resulta tener otra disposición, se añade con una muestra inventada que la imite.
+La forma real de la web de Mediolanum (vista el 31/10): cabecera con tabuladores y cada movimiento en cinco líneas
+(fecha, concepto, «-» de la columna vacía, importe con «€» y saldo con «€»), lo más nuevo arriba. Se lee entera y cuadra; el
+guion suelto de una columna vacía no se pega al concepto, y delante de un importe sin signo se toma como signo menos.
+
+Lo demás no cambia: el cuadre, la revisión, la huella de duplicados y que el texto no se guarda.
 
 ## 3. Nivel 2 (si el paso 0 confirma una cuenta que solo da PDF)
 

@@ -6044,6 +6044,39 @@ test.describe("XDA-03 · texto de un PDF", () => {
     });
   }
 
+  // 31/10/2026: Banco Mediolanum no da CSV, Excel ni PDF. Copiada de su web, la lista llega con la cabecera en una línea con
+  // tabuladores y cada movimiento en cinco: la fecha (con un tabulador detrás), el concepto, un «-» por la columna vacía,
+  // el importe con «€» y el saldo con «€». Lo más nuevo arriba. Movimientos INVENTADOS con esa misma forma.
+  test("copiado de la web del banco, un dato por línea, con «€» y columnas vacías: entra limpio y cuadra", { tag: "@safari" }, async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 9, 31, 10, 0, 0) });
+    await page.goto("/index.html#datos-importar");
+    const v2 = page.locator("#importarV2");
+    await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    await expect(v2.locator(".imp-v2-pdf > summary")).toContainText("Texto de un PDF o de la web del banco");
+    await v2.locator(".imp-v2-pdf > summary").click();
+    const texto = [
+      "Fecha\tConcepto\tEstado\tDocumento\tImporte (EUR)\tAcciones",
+      "28/10/2026\t", "Transf. FICTICIA A", "-", "-50,00 €", "250,00 €",
+      "15/10/2026\t", "Liquidación ficticia", "-", "1,25 €", "300,00 €",
+      "02/10/2026\t", "SEGUROS FICTICIOS DE PRUEBA", "-", "-1.200,75 €", "298,75 €",
+    ].join("\n");
+    await v2.locator("#importarV2PdfTexto").fill(texto);
+    await v2.locator("[data-imp-v2-pdf-leer]").click();
+    await expect(v2.locator(".imp-v2-lineas")).toContainText("3 líneas reconocidas", { timeout: 15000 });
+    await expect(v2.locator(".imp-v2-cuadre")).toContainText("cuadra al céntimo");
+    await v2.locator("#importarV2Cuenta").selectOption("Mediolanum");
+    await v2.locator("[data-imp-v2-importar]").click();
+    await page.click("#operationConfirmSubmit");
+    await expect(v2).toContainText("3 movimientos", { timeout: 15000 });
+    const importados = await page.evaluate(() => baseData.transactions.filter((t) => t.account === "Mediolanum").map((t) => [t.date, t.movement, t.amount, t.balance]).sort());
+    expect(importados).toEqual([["2026-10-02", "SEGUROS FICTICIOS DE PRUEBA", -1200.75, 298.75], ["2026-10-15", "Liquidación ficticia", 1.25, 300], ["2026-10-28", "Transf. FICTICIA A", -50, 250]]);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
   test("sin saldos ni signos no se adivina: avisa, no abre la revisión y da un diagnóstico sin datos", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/index.html#datos-importar");

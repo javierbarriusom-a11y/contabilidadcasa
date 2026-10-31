@@ -144,3 +144,14 @@ test("copiado de la web: cada dato en su línea (fecha, concepto, importe y sald
   assert.deepEqual(simple(r), [["2026-10-31", "COMPRA SUPER FICTICIO", -86.4, 1913.6], ["2026-10-30", "NOMINA FICTICIA", 2000, 2000]]);
   assert.equal(r.balanceCheck.status, "cuadra");
 });
+
+test("la web de Banco Mediolanum: un dato por línea, «-» por columna vacía, «€» y lo más nuevo arriba (forma real, cifras inventadas)", () => {
+  const texto = ["Fecha\tConcepto\tEstado\tDocumento\tImporte (EUR)\tAcciones", "28/10/2026\t", "Transf. FICTICIA A", "-", "-50,00 €", "250,00 €", "15/10/2026\t", "Liquidación ficticia", "-", "1,25 €", "300,00 €", "02/10/2026\t", "SEGUROS FICTICIOS DE PRUEBA", "-", "-1.200,75 €", "298,75 €"].join("\n");
+  const r = read(texto);
+  assert.deepEqual(simple(r), [["2026-10-28", "Transf. FICTICIA A", -50, 250], ["2026-10-15", "Liquidación ficticia", 1.25, 300], ["2026-10-02", "SEGUROS FICTICIOS DE PRUEBA", -1200.75, 298.75]]);
+  assert.equal(r.balanceCheck.status, "cuadra");
+  assert.equal(r.balanceCheck.direction, "descendente");
+  assert.deepEqual(r.errors, []);
+  // El guion suelto delante de un importe sin signo sí es el signo; delante de uno con signo, una columna vacía.
+  assert.deepEqual(simple(read("15/10/2026 COMPRA FICTICIA - 86,40 1.000,00\n14/10/2026 OTRA FICTICIA\t-\t-20,00 €\t1.086,40 €")).map((t) => [t[1], t[2]]), [["COMPRA FICTICIA", -86.4], ["OTRA FICTICIA", -20]]);
+});

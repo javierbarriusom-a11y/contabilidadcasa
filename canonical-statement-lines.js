@@ -116,8 +116,16 @@
 
   // Una línea partida en: fechas del principio, importes del final y concepto en medio.
   // El «€» o «EUR» suelto (la web lo separa del importe con un espacio) no es parte del concepto ni corta los importes.
+  // Un guion suelto es una columna vacía («Estado», «Documento»), salvo justo delante de un importe sin signo: ahí puede ser
+  // el signo menos separado por un espacio («- 86,40»), y se le pega al importe.
   function split(text, year) {
-    const tokens = String(text).split(/\s+/).filter((t) => t && !/^(€|eur)$/i.test(t));
+    const raw = String(text).split(/\s+/).filter((t) => t && !/^(€|eur)$/i.test(t));
+    const tokens = [];
+    raw.forEach((t, i) => {
+      if (!/^[-–—]$/.test(t)) { tokens.push(t); return; }
+      const next = parseAmount(raw[i + 1]);
+      if (next && !next.signed) raw[i + 1] = `-${raw[i + 1]}`;
+    });
     const dates = [];
     while (tokens.length && dates.length < 2) {
       const d = parseDate(tokens[0], year);
@@ -173,7 +181,7 @@
         return;
       }
       if (pending && parts.amounts.length && !parts.concept) { finish(pending, parts.amounts, line); pending = null; return; }
-      if (pending && !parts.amounts.length) { pending.concept = `${pending.concept} ${text}`.trim().slice(0, 140); return; }
+      if (pending && !parts.amounts.length) { pending.concept = `${pending.concept} ${parts.concept}`.trim().slice(0, 140); return; }
       const prev = rows[rows.length - 1];
       // Copiado de una web, cada dato en su línea: el importe y, en la línea de debajo, el saldo.
       if (prev && parts.amounts.length === 1 && !parts.concept && prev.balance === null && prev.lastLine === line - 1) {
