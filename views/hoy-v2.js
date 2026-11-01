@@ -34,6 +34,10 @@ function hoyV2ShortDay(iso) {
   return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(date).replace(".", "");
 }
 
+function hoyV2DaysBetween(from, to) {
+  return Math.round((new Date(`${to}T12:00:00`) - new Date(`${from}T12:00:00`)) / 86400000);
+}
+
 function hoyV2AddDays(iso, days) {
   const date = new Date(`${iso}T12:00:00`);
   date.setDate(date.getDate() + days);
@@ -102,15 +106,20 @@ function hoyV2ChartSvg(points, floor, nextIncomeDate) {
   </figure>`;
 }
 
-function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, dataAge, coverage }) {
+function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoLocalDate(new Date()), dataAge, coverage }) {
   const margin = window.FinanceCanonicalHomeMargin?.build({
     balances, liquidityFloor: state?.liquidityFloor, caixaMinimum: agentCaixaFloor(),
     rows: openSimulationRows(lastSimulation), today: isoLocalDate(new Date()),
   });
   // Solo un cobro futuro cuenta como «hasta cobrar»: con datos reales el motor puede devolver una fecha
   // ya pasada (p. ej. el último ingreso del plan, «0 días hasta 31 ago»), y eso no se pinta como cobro.
-  const payday = coverage?.nextIncomeDate && coverage.nextIncomeDate > asOf && Number(coverage.days) > 0 ? coverage : null;
-  const kicker = payday ? "Disponible hasta cobrar" : "Disponible para gastar";
+  // 1/11/2026: la cuenta parte de la fecha de los saldos (asOf), pero «hoy» es hoy. Un cobro posterior a los saldos que ya
+  // ha pasado no es «Cobráis en 4 días»: se dice que la cifra no lo cuenta y se ofrece poner los saldos al día.
+  const nextIncome = coverage?.nextIncomeDate || "";
+  const payday = nextIncome && nextIncome > asOf && nextIncome >= hoy && Number(coverage.days) > 0 ? { nextIncomeDate: nextIncome, days: hoyV2DaysBetween(hoy, nextIncome) } : null;
+  const cobroPasado = nextIncome && nextIncome > asOf && nextIncome < hoy ? nextIncome : "";
+  const saldosViejos = asOf < hoy;
+  const kicker = payday ? "Disponible hasta cobrar" : cobroPasado ? `Disponible con los saldos del ${hoyV2ShortDay(asOf)}` : "Disponible para gastar";
   if (margin?.status !== "ok") {
     const reason = margin?.missing?.length ? `Falta el ${margin.missing.join(" y el ")}.` : "No se puede calcular todavía.";
     return `<article class="hoy-v2-card hoy-v2-hero">
@@ -123,9 +132,13 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, dataAge, c
   }
   const { today, endOfMonth: eom, spendable } = margin;
   const sentence = [
+    saldosViejos && !cobroPasado ? `Con los saldos del ${escapeHtml(hoyV2DayMonth(asOf))}.` : "",
     `Sin bajar del suelo de ${escapeHtml(money(today.floor))}.`,
-    payday ? `Cobráis en <strong>${payday.days} ${payday.days === 1 ? "día" : "días"}</strong>, el ${escapeHtml(hoyV2DayMonth(payday.nextIncomeDate))}.` : "",
-  ].join(" ");
+    payday ? (payday.days ? `Cobráis en <strong>${payday.days} ${payday.days === 1 ? "día" : "días"}</strong>, el ${escapeHtml(hoyV2DayMonth(payday.nextIncomeDate))}.` : "Cobráis <strong>hoy</strong>.") : "",
+  ].filter(Boolean).join(" ");
+  const cobroAviso = cobroPasado
+    ? `<p class="hoy-v2-warning">El cobro del ${escapeHtml(hoyV2DayMonth(cobroPasado))} ya ha pasado desde esos saldos y esta cifra no lo cuenta. <button type="button" class="hoy-v2-link" data-home-nav="update-hub">Poner los saldos de hoy</button></p>`
+    : "";
   const caixa = margin.caixaShortfall > 0
     ? `<p class="hoy-v2-warning">CaixaBank está ${escapeHtml(money(margin.caixaShortfall))} por debajo de su mínimo operativo${margin.moveFromMediolanum > 0 ? `: mueve ${escapeHtml(money(margin.moveFromMediolanum))} desde Mediolanum` : ""}.</p>`
     : "";
@@ -150,6 +163,7 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, dataAge, c
         <p class="hoy-v2-kicker">${kicker}</p>
         <p class="hoy-v2-figure">${escapeHtml(money(spendable.value))}</p>
         <p class="hoy-v2-sentence">${sentence}</p>
+        ${cobroAviso}
         ${caixa}
         ${coberturaAjusteAvisoHtml(e6CoverageSettings(), "hoy-v2-warning")}
       </div>
@@ -313,13 +327,13 @@ function hoyV2ExpenseButton() {
   return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Apuntar gasto</button>`;
 }
 
-function hoyV2Header(asOf, dataAge) {
+function hoyV2Header(hoy, dataAge) {
   const pill = dataAge?.stale || state?.balanceMode !== "manual"
     ? `<button type="button" class="hoy-v2-age${dataAge?.stale ? " is-stale" : ""}" data-home-nav="update-hub"><span class="hoy-v2-dot" aria-hidden="true"></span>${escapeHtml(dataAge?.stale ? dataAge.warning || dataAge.label : "Saldos estimados · confírmalos con tu banco")}</button>`
     : "";
   return `<header class="hoy-v2-header">
     <div>
-      <p class="hoy-v2-date">${escapeHtml(hoyV2LongDate(asOf || isoLocalDate(new Date())))}</p>
+      <p class="hoy-v2-date">${escapeHtml(hoyV2LongDate(hoy))}</p>
       <h2 class="hoy-v2-title">Hoy</h2>
     </div>
     <div class="hoy-v2-header-actions">
@@ -378,18 +392,19 @@ function hoyV2Render(model) {
     return;
   }
   const coverage = executiveCoverageSnapshot();
-  const asOf = model.asOf || state?.balanceDate || isoLocalDate(new Date());
+  const hoy = isoLocalDate(new Date());
+  const asOf = model.asOf || state?.balanceDate || hoy; // fecha de los saldos: de ahí parte la cuenta, pero la cabecera y el mes son los de hoy
   const detailOpen = qs("home")?.classList.contains(HOY_V2_DETAIL_CLASS);
-  root.innerHTML = `${hoyV2Header(asOf, model.dataAge)}
+  root.innerHTML = `${hoyV2Header(hoy, model.dataAge)}
     <div class="hoy-v2-grid">
       <div class="hoy-v2-main">
-        ${hoyV2Hero({ ...model, asOf, coverage })}
+        ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
         ${hoyV2Decisions(model.todayRead, model.decisions)}
         ${hoyV2Repaso()}
         ${hoyV2Esperados()}
       </div>
       <div class="hoy-v2-side">
-        ${hoyV2Month(asOf, model.plannedSaving)}
+        ${hoyV2Month(hoy, model.plannedSaving)}
         ${hoyV2Patrimonio(model.debtOutlook)}
         ${hoyV2Waiting()}
       </div>

@@ -96,5 +96,20 @@ test("todas las reglas nuevas siguen colgando de la bandera", () => {
 });
 
 test("un cobro ya pasado no se pinta como «Cobráis en 0 días»", () => {
-  assert.match(hoy, /coverage\.nextIncomeDate > asOf && Number\(coverage\.days\) > 0/);
+  assert.match(hoy, /nextIncome && nextIncome > asOf && nextIncome >= hoy && Number\(coverage\.days\) > 0/);
+});
+
+// 1/11/2026 (captura del hogar): con saldos del 26/10, Hoy decía «Lunes, 26 de octubre» encima de «Hoy» y «Cobráis en 4 días,
+// el 30 de octubre» el 1 de noviembre. La cuenta parte de los saldos, pero la cabecera, el mes y los días al cobro son de hoy.
+test("la cabecera y el mes son los de hoy; la cuenta dice de qué saldos parte y si un cobro ya pasó", () => {
+  assert.match(hoy, /\$\{hoyV2Header\(hoy, model\.dataAge\)\}/);
+  assert.match(hoy, /\$\{hoyV2Month\(hoy, model\.plannedSaving\)\}/);
+  assert.match(hoy, /<p class="hoy-v2-date">\$\{escapeHtml\(hoyV2LongDate\(hoy\)\)\}<\/p>/);
+  const ctx = sandbox();
+  assert.equal(ctx.hoyV2DaysBetween("2026-11-01", "2026-11-30"), 29);
+  assert.equal(ctx.hoyV2DaysBetween("2026-10-26", "2026-10-30"), 4);
+  assert.match(hoy, /const cobroPasado = nextIncome && nextIncome > asOf && nextIncome < hoy \? nextIncome : "";/);
+  assert.match(hoy, /ya ha pasado desde esos saldos y esta cifra no lo cuenta\./);
+  assert.match(hoy, /saldosViejos && !cobroPasado \? `Con los saldos del /);
+  assert.match(hoy, /days: hoyV2DaysBetween\(hoy, nextIncome\)/);
 });
