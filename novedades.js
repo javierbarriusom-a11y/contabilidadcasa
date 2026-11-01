@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-01-mes-a-mes",
+      fecha: "2026-11-01",
+      texto: "Importar dice mes a mes qué confirma o completa el extracto, y los meses pasados sin firmar se ponen al día con el banco.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-10-31-plan-nuevo",
       fecha: "2026-10-31",
       texto: "Plan › Mes, nuevo: arriba lo que queda sin asignar y el ritmo del mes; las partidas con su real, y en el móvil ya caben las cifras.",

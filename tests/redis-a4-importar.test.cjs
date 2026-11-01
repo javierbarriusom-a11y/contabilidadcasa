@@ -42,6 +42,8 @@ function sandbox({ session = null, lastResult = null, tema = "v2" } = {}) {
     datosImportarPersistDraft: () => persisted.push(true),
     datosImportarTarget: () => ({ fileInputId: "registrarImportFileInput" }),
     datosImportarBalanceOffer: () => null,
+    isSignedClosedMonthKey: () => false, // mes a mes (1/11/2026)
+    Intl,
     DATOS_IMPORTAR_ACCOUNTS: ["CaixaBank", "Mediolanum", "Efectivo"],
     datosImportarSession: session,
     datosImportarLastResult: lastResult,
@@ -158,4 +160,54 @@ test("importa y deshace con las piezas de siempre: la misma confirmación, el mi
   assert.match(html, /46 movimientos importados/);
   assert.match(html, /data-imp-v2-deshacer/);
   assert.match(html, /data-imp-v2-nav="movements"/);
+});
+
+// 1/11/2026 · mes a mes: qué confirma o completa el extracto en cada mes que trae, antes de importar. Lo firmado nunca se
+// actualiza solo; «solo en la app» se cuenta únicamente si el periodo exportado cubre el mes entero.
+test("mes a mes: confirmado, se completa, nuevo, firmado con diferencias y mes incompleto", () => {
+  const sesionCon = (rows, extra = {}) => ({ rows, fileMeta: { fileName: "caixa.csv", bankAccount: "CaixaBank", ...extra } });
+  const filas = [
+    fila("a", tx("2026-07-05", "LUZ FICTICIA", -80, 920)),
+    fila("b", tx("2026-08-05", "LUZ FICTICIA", -80, 840)),
+    fila("c", tx("2026-08-20", "SUPER FICTICIO", -40, 800)),
+    fila("d", tx("2026-09-05", "LUZ FICTICIA", -80, 720)),
+    fila("e", tx("2026-10-05", "LUZ FICTICIA", -80, 640)),
+  ];
+  const { context } = sandbox({ session: sesionCon(filas) });
+  context.globalThis.FinanceCobertura = { sesion: () => ({ from: "2026-07-01", to: "2026-09-30" }) };
+  context.isSignedClosedMonthKey = (mes) => mes === "2026-07";
+  const guardada = (t, extra = {}) => ({ ...t, account: "CaixaBank", ...extra });
+  context.baseData.transactions = [
+    guardada(filas[1].transaction), // agosto: una de dos → se completa
+    guardada(filas[3].transaction), // septiembre: todo → confirmado…
+    guardada(tx("2026-09-15", "CENA A MANO", -45)), // …pero hay algo en la app que el extracto no trae
+  ];
+  const meses = context.impV2Meses(sesionCon(filas));
+  const por = Object.fromEntries(meses.map((m) => [m.mes, m]));
+  assert.equal(JSON.stringify(meses.map((m) => m.mes)), JSON.stringify(["2026-10", "2026-09", "2026-08", "2026-07"]), "lo más nuevo arriba");
+  assert.equal(por["2026-07"].veredicto, "Firmado con diferencias: no cambia solo; para corregirlo, reábrelo en Cierre");
+  assert.equal(por["2026-08"].veredicto, "Se completa: 1 nuevo");
+  assert.equal(por["2026-08"].saldoFin, 800);
+  assert.equal(por["2026-09"].veredicto, "Confirmado: ya estaba todo");
+  assert.equal(por["2026-09"].soloApp, 1);
+  assert.equal(por["2026-09"].tono, "aviso");
+  assert.equal(por["2026-10"].veredicto, "El extracto no cubre el mes entero; entran 1");
+  assert.equal(por["2026-10"].soloApp, null, "un mes a medias no se compara al revés");
+  const html = context.impV2MesesHtml(sesionCon(filas));
+  assert.match(html, /<details class="mov-v2-card imp-v2-meses" open>/);
+  assert.match(html, /4 meses: 1 confirmado · 1 se completa · 1 incompleto · 1 firmado con diferencias/);
+  assert.match(html, /data-imp-v2-nav="cierre">Ir a Cierre/);
+  assert.match(html, /1 en la app que el extracto no trae/);
+  assert.doesNotMatch(html, /<h[23]/, "sin titulares nuevos (XGO-01)");
+  // Sin plan para esos meses (en el sandbox no hay ninguno): entran como historial, sin reales de partida.
+  assert.match(html, /Historial: antes de que empiece el plan\./);
+  assert.match(html, /Los meses de historial, antes de que empiece el plan, no tienen partidas/);
+  context.baseData.monthlyPlanning = { months: [{ key: "2026-08" }] };
+  assert.equal(context.impV2Meses(sesionCon(filas)).find((m) => m.mes === "2026-08").enPlan, true);
+  // Sin cuenta elegida no se compara al revés, y lo dice.
+  const sinCuenta = context.impV2MesesHtml(sesionCon(filas, { bankAccount: "" }));
+  assert.match(sinCuenta, /Elige la cuenta para comparar también al revés/);
+  // Si el extracto pone lo más nuevo arriba, el saldo a fin de mes sigue siendo el del último movimiento del mes.
+  const alReves = context.impV2Meses(sesionCon(filas.slice().reverse().map((f, i) => ({ ...f, transaction: { ...f.transaction, statementOrder: i } }))));
+  assert.equal(alReves.find((m) => m.mes === "2026-08").saldoFin, 800);
 });

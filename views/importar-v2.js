@@ -90,6 +90,116 @@ function impV2ImportarLabel(counts) {
   return counts.nuevos ? `Importar ${counts.nuevos} ${counts.nuevos === 1 ? "movimiento nuevo" : "movimientos nuevos"}` : "Importar (no hay movimientos nuevos)";
 }
 
+// Las filas con saldo en orden cronológico: el del fichero si encadena, o al revés (muchos bancos ponen lo último arriba).
+function impV2Cronologico(rows) {
+  const withBalance = rows.filter((row) => impV2HasBalance(row) && Number.isFinite(Number(row.amount)));
+  const ordered = new Set(withBalance.map((row) => Number(row.statementOrder || 0))).size > 1
+    ? withBalance.slice().sort((a, b) => Number(a.statementOrder || 0) - Number(b.statementOrder || 0))
+    : withBalance.slice();
+  const chains = (list) => list.every((row, index) => !index || Math.abs(round2(Number(list[index - 1].balance) + Number(row.amount)) - Number(row.balance)) <= 0.02);
+  if (chains(ordered)) return ordered;
+  const reversed = ordered.slice().reverse();
+  return chains(reversed) ? reversed : ordered.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+
+// Mes a mes (petición del hogar del 1/11/2026, antes del primer cierre): qué confirma o completa el extracto en cada mes
+// que trae. «Ya estaban» son las filas idénticas a otras guardadas; «solo en la app», lo de esa cuenta y ese mes que el
+// extracto no trae, y solo se cuenta si el periodo exportado cubre el mes entero. Un mes firmado NUNCA se actualiza
+// solo: si el extracto lo contradice se dice y se lleva a Cierre para reabrirlo (la firma tiene que seguir valiendo).
+function impV2Meses(session) {
+  const mesDe = (tx) => tx.month || String(tx.date || "").slice(0, 7);
+  const rows = session.rows.map((row) => row.transaction);
+  const incluidas = new Set(datosImportarIncludedTransactions(session.rows).map(transactionIdentity));
+  const guardadas = new Set((baseData?.transactions || []).map(transactionIdentity));
+  const delFichero = new Set(rows.map(transactionIdentity));
+  const cuenta = session.fileMeta.bankAccount || "";
+  const periodo = globalThis.FinanceCobertura?.sesion?.(session) || null;
+  const cronologico = impV2Cronologico(rows);
+  const meses = [...new Set(rows.map(mesDe).filter(Boolean))].sort().reverse();
+  return meses.map((mes) => {
+    const delMes = session.rows.filter((row) => mesDe(row.transaction) === mes);
+    const entran = delMes.filter((row) => incluidas.has(transactionIdentity(row.transaction)));
+    const yaEstaban = entran.filter((row) => guardadas.has(transactionIdentity(row.transaction))).length;
+    const nuevos = entran.length - yaEstaban;
+    const descartados = delMes.length - entran.length;
+    const ultimo = cronologico.filter((tx) => mesDe(tx) === mes).at(-1);
+    const [y, m] = mes.split("-").map(Number);
+    const finMes = `${mes}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+    const completo = Boolean(periodo && periodo.from <= `${mes}-01` && periodo.to >= finMes);
+    const soloApp = cuenta && completo
+      ? (baseData?.transactions || []).filter((tx) => tx.account === cuenta && mesDe(tx) === mes && !delFichero.has(transactionIdentity(tx))).length
+      : null;
+    const firmado = isSignedClosedMonthKey(mes);
+    // Antes de que empiece el plan no hay partidas: los movimientos entran como historial (días de cargo, presupuesto por
+    // categorías, análisis), pero ese mes no tiene reales que poner al día.
+    const enPlan = (baseData?.monthlyPlanning?.months || []).some((month) => month.key === mes);
+    let tono = "ok";
+    let veredicto;
+    if (firmado) {
+      const difiere = nuevos > 0 || soloApp > 0;
+      tono = difiere ? "aviso" : "ok";
+      veredicto = difiere ? "Firmado con diferencias: no cambia solo; para corregirlo, reábrelo en Cierre" : "Firmado y confirmado";
+    } else if (!completo) {
+      tono = "neutro";
+      veredicto = nuevos ? `El extracto no cubre el mes entero; entran ${nuevos}` : "El extracto no cubre el mes entero";
+    } else if (!nuevos) {
+      veredicto = "Confirmado: ya estaba todo";
+    } else if (!yaEstaban) {
+      veredicto = "Nuevo: entra entero";
+    } else {
+      veredicto = `Se completa: ${nuevos} ${nuevos === 1 ? "nuevo" : "nuevos"}`;
+    }
+    if (!firmado && soloApp > 0) tono = "aviso";
+    return { mes, enExtracto: delMes.length, yaEstaban, nuevos, descartados, saldoFin: ultimo ? Number(ultimo.balance) : null, completo, soloApp, firmado, enPlan, tono, veredicto };
+  });
+}
+
+function impV2MesNombre(mes) {
+  const [y, m] = String(mes).split("-").map(Number);
+  return `${new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(y, m - 1, 1))} ${y}`;
+}
+
+function impV2MesesHtml(session) {
+  const meses = impV2Meses(session);
+  if (!meses.length) return "";
+  const cuenta = session.fileMeta.bankAccount || "";
+  const resumen = [
+    ["Confirmado", "confirmado", "confirmados"], ["Nuevo", "nuevo", "nuevos"], ["Se completa", "se completa", "se completan"],
+    ["El extracto no cubre", "incompleto", "incompletos"], ["Firmado y", "firmado y confirmado", "firmados y confirmados"], ["Firmado con", "firmado con diferencias", "firmados con diferencias"],
+  ].map(([inicio, uno, varios]) => {
+    const n = meses.filter((item) => item.veredicto.startsWith(inicio)).length;
+    return n ? `${n} ${n === 1 ? uno : varios}` : "";
+  }).filter(Boolean).join(" · ");
+  const filas = meses.map((item) => {
+    const soloApp = item.soloApp > 0 ? `<small>${item.soloApp} en la app que el extracto no trae: ¿anotados a mano o de otra cuenta? Míralos en Movimientos.</small>` : "";
+    const fueraPlan = item.enPlan ? "" : "<small>Historial: antes de que empiece el plan.</small>";
+    const incompleto = !item.completo && !item.firmado ? "<small>Si exportaste el mes entero, ajústalo en «¿Qué periodo exportaste?».</small>" : "";
+    const cierre = item.firmado && item.tono === "aviso" ? ` <button type="button" class="imp-v2-link" data-imp-v2-nav="cierre">Ir a Cierre</button>` : "";
+    return `<tr class="is-${item.tono}">
+      <th scope="row">${escapeHtml(impV2MesNombre(item.mes))}</th>
+      <td data-imp-v2-col="Del extracto">${item.enExtracto}</td>
+      <td data-imp-v2-col="Ya estaban">${item.yaEstaban}</td>
+      <td data-imp-v2-col="Nuevos">${item.nuevos}${item.descartados ? ` <small>(${item.descartados} descartado${item.descartados === 1 ? "" : "s"})</small>` : ""}</td>
+      <td data-imp-v2-col="Saldo a fin de mes">${item.saldoFin === null ? "—" : escapeHtml(money(item.saldoFin, true))}</td>
+      <td class="imp-v2-veredicto">${escapeHtml(item.veredicto)}${cierre}${soloApp}${incompleto}${fueraPlan}</td>
+    </tr>`;
+  }).join("");
+  const historial = meses.some((item) => !item.enPlan)
+    ? " Los meses de historial, antes de que empiece el plan, no tienen partidas: sus movimientos entran y sirven para los días de cargo, el presupuesto por categorías y el análisis, pero no ponen reales."
+    : "";
+  const nota = (cuenta
+    ? "«Ya estaban»: idénticos a lo que tenías. Los meses sin firmar se ponen al día al importar; los firmados no cambian."
+    : "Elige la cuenta para comparar también al revés: lo que la app tiene de ese mes y el extracto no trae.") + historial;
+  return `<details class="mov-v2-card imp-v2-meses" open>
+    <summary><strong>Mes a mes</strong> <span class="mov-v2-meta">${meses.length} ${meses.length === 1 ? "mes" : "meses"}: ${escapeHtml(resumen)}</span></summary>
+    <div class="imp-v2-meses-scroll"><table class="imp-v2-meses-tabla">
+      <thead><tr><th scope="col">Mes</th><th scope="col">Del extracto</th><th scope="col">Ya estaban</th><th scope="col">Nuevos</th><th scope="col">Saldo a fin de mes</th><th scope="col">Veredicto</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table></div>
+    <p class="mov-v2-meta">${escapeHtml(nota)}</p>
+  </details>`;
+}
+
 // Cuadre: saldo inicial + movimientos = saldo final. Las rupturas las da el motor de saldos (statementContinuity, que
 // prueba los dos órdenes); las cifras, el orden que encadena sin rupturas.
 function impV2Cuadre(session) {
@@ -99,11 +209,7 @@ function impV2Cuadre(session) {
   const engine = globalThis.FinanceCanonicalBalancePulse;
   const continuity = engine?.statementContinuity ? engine.statementContinuity(rows) : { checked: 0, gaps: [] };
   if (continuity.gaps.length) return { status: "no-cuadra", gaps: continuity.gaps };
-  const ordered = new Set(withBalance.map((row) => Number(row.statementOrder || 0))).size > 1
-    ? withBalance.slice().sort((a, b) => Number(a.statementOrder || 0) - Number(b.statementOrder || 0))
-    : withBalance.slice();
-  const chains = (list) => list.every((row, index) => !index || Math.abs(round2(Number(list[index - 1].balance) + Number(row.amount)) - Number(row.balance)) <= 0.02);
-  const chrono = chains(ordered) ? ordered : ordered.slice().reverse();
+  const chrono = impV2Cronologico(rows);
   const first = chrono[0];
   const last = chrono.at(-1);
   const initial = round2(Number(first.balance) - Number(first.amount));
@@ -219,7 +325,7 @@ function impV2Review(session) {
   ].filter(Boolean).join(" · ");
   const warnings = [
     session.fileMeta.repeated ? `Ya importaste un fichero con el mismo contenido (${session.fileMeta.repeated.fileName}).` : "",
-    summary.closedMonths.length ? `Toca ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya cerrado" : "meses ya cerrados"}: sus reales no cambian.` : "",
+    summary.closedMonths.length ? `Toca ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya firmado" : "meses ya firmados"}: sus reales no cambian.` : "",
   ].filter(Boolean).map((text) => `<p class="mov-v2-meta is-warn">${escapeHtml(text)}</p>`).join("");
   return `<div class="imp-v2-grid">
       <section class="mov-v2-card imp-v2-lineas" aria-label="Líneas del extracto">
@@ -231,6 +337,7 @@ function impV2Review(session) {
         <ul class="imp-v2-lista">${shown.map(impV2Line).join("")}</ul>
         ${more}
       </section>
+      ${impV2MesesHtml(session)}
       <div class="imp-v2-lado">
         ${impV2AccountSelect(session)}
         ${globalThis.FinanceCobertura?.revisionHtml?.(session) || ""}
