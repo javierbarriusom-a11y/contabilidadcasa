@@ -19,7 +19,7 @@
     {
       id: "2026-11-01-excel-repetidos",
       fecha: "2026-11-01",
-      texto: "Importar un Excel ya no junta dos movimientos iguales del mismo día (dos Bizum de 75 €): son dos cargos y el cuadre sale.",
+      texto: "Importar un Excel ya no junta dos movimientos iguales del mismo día (dos Bizum del mismo importe): son dos cargos y el cuadre sale.",
       href: "#datos-importar",
     },
     {
