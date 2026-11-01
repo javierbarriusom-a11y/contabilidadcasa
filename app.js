@@ -21690,7 +21690,7 @@ function bankActualTotals() {
     if (!mapping) return;
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
     if (!month) return;
-    if (isClosedMonthKey(month.key)) return;
+    if (isSignedClosedMonthKey(month.key)) return; // 1/11/2026: solo lo firmado queda fuera; un mes pasado sin firmar se pone al día con el banco
     const key = actualKeyForRow(mapping.row, month);
     const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
     monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
@@ -21744,7 +21744,7 @@ function mergeBankActuals(actuals, applied, totals, isOpenKey) {
 }
 
 function bankActualsKeyIsOpen(key) {
-  return !isClosedMonthKey(String(key).slice(String(key).lastIndexOf("|") + 1));
+  return !isSignedClosedMonthKey(String(key).slice(String(key).lastIndexOf("|") + 1));
 }
 
 // Al abrir la app sin el almacén (la primera vez tras el 29/10/2026): la suma del banco de hoy es el punto de partida, sin

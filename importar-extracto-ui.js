@@ -18,7 +18,7 @@
 //   - las reglas previas son el mismo diccionario `movementMappings` que ya usa #data-entry
 //     (mappingForMovement/movementMappingKey/exactMovementPlanningMatch): una regla aprendida
 //     aquí sirve también allí, y viceversa;
-//   - el aviso de mes cerrado reutiliza isClosedMonthKey.
+//   - el aviso de mes cerrado reutiliza isClosedMonthKey (desde el 1/11/2026, isSignedClosedMonthKey: solo lo firmado).
 // Lo que sí es nuevo, porque no existía nada parecido:
 //   - el detector de duplicados por importe en una ventana de días (datosImportarDuplicateCandidates)
 //     — el único «duplicado» que existía antes era una colisión de identidad exacta, que
@@ -236,7 +236,7 @@ function datosImportarComputeActuals(transactions, mappings) {
     const row = storedRow || exactMovementPlanningMatch(transaction);
     if (!row) return;
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
-    if (!month || isClosedMonthKey(month.key)) return;
+    if (!month || isSignedClosedMonthKey(month.key)) return;
     const key = actualKeyForRow(row, month);
     const amount = kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
     const previous = totals[kind].get(key);
@@ -287,7 +287,7 @@ function movementsFromStatementRows(rows) {
 function datosImportarFileSummary(transactions, sourceLabel) {
   const dates = transactions.map((t) => t.date).filter(Boolean).sort();
   const months = [...new Set(transactions.map((t) => t.month).filter(Boolean))].sort();
-  const closedMonths = months.filter((month) => isClosedMonthKey(month));
+  const closedMonths = months.filter((month) => isSignedClosedMonthKey(month)); // firmados: sus reales no cambian (los pasados sin firmar, sí)
   return {
     account: sourceLabel,
     from: dates[0] || "",
@@ -568,7 +568,7 @@ function datosImportarStep1Markup() {
     ? `<p class="e19-kpi-note is-warn">Ya se importó un fichero con el mismo contenido (${escapeHtml(session.fileMeta.repeated.fileName)}) el ${escapeHtml(formatIsoDate(session.fileMeta.repeated.appliedAt))}. Puedes continuar si es intencionado.</p>`
     : "";
   const closedNote = summary.closedMonths.length
-    ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya cerrado" : "meses ya cerrados"}: ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes cerrado.</p>`
+    ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} ${summary.closedMonths.length === 1 ? "mes ya firmado" : "meses ya firmados"}: ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes firmado.</p>`
     : "";
   const accountOptions = ['<option value="">Sin especificar</option>']
     .concat(

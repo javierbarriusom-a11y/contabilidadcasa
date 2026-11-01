@@ -308,6 +308,7 @@ test("los movimientos de la hoja no se suman como real por reglas de asignación
     mappingForMovement: () => ({ kind: "expense", row }),
     monthByKey: (key, months) => months.find((month) => month.key === key) || null,
     isClosedMonthKey: () => false,
+    isSignedClosedMonthKey: () => false,
     actualKeyForRow: (item, month) => `${item.id}|${month.key}`,
     round2: (value) => Math.round(value * 100) / 100,
     expenseActuals,

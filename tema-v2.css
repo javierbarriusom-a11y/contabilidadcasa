@@ -3265,3 +3265,154 @@
 :root[data-tema="v2"] #planMesImpactBar {
   z-index: 5;
 }
+
+/* Importar v2 · mes a mes (1/11/2026): qué confirma o completa el extracto en cada mes, antes de importar. */
+:root[data-tema="v2"] .imp-v2-meses {
+  grid-column: 1;
+  min-width: 0;
+  padding: 0 0 12px;
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] .imp-v2-meses > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 14px 16px 10px;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .imp-v2-meses > summary strong {
+  font-size: 15px;
+}
+
+:root[data-tema="v2"] .imp-v2-meses > .mov-v2-meta {
+  margin: 10px 16px 0;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla th,
+:root[data-tema="v2"] .imp-v2-meses-tabla td {
+  padding: 8px 10px;
+  border-top: 1px solid var(--e19-border);
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla thead th {
+  font-family: var(--e19-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+  background: var(--e19-surface-soft);
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla tr > :first-child {
+  padding-left: 16px;
+  text-align: left;
+  text-transform: capitalize;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla tr > :last-child {
+  padding-right: 16px;
+  text-align: left;
+  white-space: normal;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla tbody th {
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--e19-muted);
+  white-space: normal;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla td small {
+  display: inline;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla .imp-v2-veredicto small {
+  display: block;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla tr.is-aviso .imp-v2-veredicto {
+  color: var(--e19-warning);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla tr.is-neutro .imp-v2-veredicto {
+  color: var(--e19-muted);
+}
+
+/* En el móvil, cada mes es un bloque: nombre y veredicto arriba, las cuatro cifras debajo con su etiqueta. */
+@media (max-width: 640px) {
+  :root[data-tema="v2"] .imp-v2-meses-tabla,
+  :root[data-tema="v2"] .imp-v2-meses-tabla tbody {
+    display: block;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--e19-border);
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla th,
+  :root[data-tema="v2"] .imp-v2-meses-tabla td,
+  :root[data-tema="v2"] .imp-v2-meses-tabla tr > :first-child,
+  :root[data-tema="v2"] .imp-v2-meses-tabla tr > :last-child {
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla tbody th,
+  :root[data-tema="v2"] .imp-v2-meses-tabla .imp-v2-veredicto {
+    grid-column: 1 / -1;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla .imp-v2-veredicto {
+    order: 1;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla td[data-imp-v2-col] {
+    order: 2;
+    font-size: 13px;
+  }
+
+  :root[data-tema="v2"] .imp-v2-meses-tabla td[data-imp-v2-col]::before {
+    content: attr(data-imp-v2-col) " ";
+    color: var(--e19-muted);
+  }
+}
+
+:root[data-tema="v2"] .imp-v2-meses-tabla .imp-v2-veredicto {
+  width: 40%;
+}

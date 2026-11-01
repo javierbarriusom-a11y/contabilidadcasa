@@ -81,6 +81,7 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
     expenseActuals,
     actualsForKind: (kind) => (kind === "income" ? incomeActuals : expenseActuals),
     isClosedMonthKey: (key) => closedMonths.includes(key),
+    isSignedClosedMonthKey: (key) => closedMonths.includes(key),
     availableSeriesRows: (kind) => [SUELDO, LUZ].filter((row) => row.kind === kind),
     displayLabelForRow: (row) => row.label,
     seriesKeyForRow: (row) => `${row.kind}|${row.id}`,

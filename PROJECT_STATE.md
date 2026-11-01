@@ -113,6 +113,28 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 1 de noviembre de 2026 (383): importar mes a mes, y los meses pasados sin firmar se ponen al día
+
+- **Petición del hogar, antes del primer cierre:** «quiero poder subir un extracto y que actualice también o valide meses pasados». Subirá un Excel con los movimientos desde octubre de 2025.
+- **Hallazgo al prepararlo:**
+  - Para la app, todo mes anterior al actual contaba como cerrado por fecha (`isClosedMonthKey`), salvo el que acaba entre los días 1 y 3.
+  - Así, importar 13 meses metía los movimientos, pero no ponía al día los reales de noviembre de 2025 a septiembre de 2026.
+  - Contradecía lo propuesto al hogar y aprobado por él (los meses sin firmar se ponen al día; los firmados no cambian solos).
+  - **Arreglo:** `bankActualTotals` y `bankActualsKeyIsOpen` (`app.js`, 2 líneas) y la vista previa y el aviso del asistente (`importar-extracto-ui.js`) usan ya `isSignedClosedMonthKey`. Solo la firma protege los reales del banco. El resto de la app no cambia: Plan sigue bloqueando el previsto de los meses pasados.
+- **«Mes a mes» en la revisión de Importar v2** (`views/importar-v2.js`, `tema-v2.css`), por cada mes del fichero:
+  - Cifras: líneas del extracto, las que ya estaban, las nuevas y el saldo a fin de mes (el último del mes en orden cronológico, también si el banco pone lo nuevo arriba).
+  - Veredicto: confirmado, nuevo, se completa, el extracto no cubre el mes entero (con la pista de ajustar el periodo), firmado y confirmado, o firmado con diferencias con «Ir a Cierre».
+  - Con la cuenta elegida y el periodo cubriendo el mes entero, cuenta además lo que la app tiene de esa cuenta y ese mes y el extracto no trae (anotados a mano u otra cuenta).
+  - Los meses anteriores al plan salen como «Historial»: sus movimientos entran (días de cargo, presupuesto por categorías), pero no hay partidas con reales.
+  - Sin titulares nuevos.
+- Novedades, `docs/rediseno/ESTADO.md` §2 y `BACKLOG_DEFINITIVO.md` (§0 y XDA-04 en §5.0).
+- **Validación:**
+  - `npm test` 6283/6283 (+2: veredictos por mes y mes pasado sin firmar frente a firmado), con `lint` y `typecheck` limpios.
+  - E2E nueva de 13 meses inventados a 390 (`@safari`) y 1440 px: 2 de 2.
+  - Batería completa de E2E y axe en local: 274 de 275.
+    - La que falló, WP-43 (puente de previsión), **falla igual en `main`**. No fijaba el reloj y desde el 1/11 la previsión empieza en noviembre, no en octubre.
+    - Se le fija la fecha (26/10/2026), como al resto, y pasa.
+
 ## Cierre de sesión — 31 de octubre de 2026 (382): #571 publicado antes del cierre; estado de backlog, plan y panel al día
 
 - **Publicado #571** con el CI en verde (`verify` 13:31-14:08 UTC), fusionado en `main` (61dc980). Por decisión del hogar del 31/10 (opción A), sale antes de firmar octubre para poder importar Mediolanum en el cierre. Lleva tres cosas:

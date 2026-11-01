@@ -2971,6 +2971,9 @@ test.describe("WP-43 · puente de previsión", () => {
     const dialogs = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    // Fecha fija: la prueba congela el cierre de septiembre y espera que la previsión empiece en octubre. Con el reloj real,
+    // desde el 1/11/2026 la previsión empieza en noviembre y la prueba fallaba en main sin ningún cambio.
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
     for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
       const card = await openPrevision(page);
@@ -5348,6 +5351,76 @@ test.describe("Rediseño A4 · Movimientos v2", () => {
       await expect(page.locator("#movementRows tr")).toHaveCount(4);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// 1/11/2026 · mes a mes: un extracto de 13 meses (octubre de 2025 a octubre de 2026, INVENTADO) con agosto y septiembre ya
+// en la app y un anotado a mano en septiembre que el banco no tiene. La revisión dice qué confirma y qué completa cada mes, y
+// al importar, los meses pasados SIN firmar se ponen al día con el banco (antes, cualquier mes pasado contaba como cerrado).
+test.describe("Importar v2 · mes a mes", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`trece meses: veredicto por mes y los meses pasados sin firmar se ponen al día, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 1, 10, 0, 0) });
+      await page.goto("/index.html#registrar");
+      await page.waitForFunction(() => typeof mergeTransactions === "function", null, { timeout: 20000 });
+      const todo = [];
+      let saldo = 2000;
+      for (let i = 0; i < 13; i += 1) {
+        const y = 2025 + Math.floor((9 + i) / 12);
+        const mm = String(((9 + i) % 12) + 1).padStart(2, "0");
+        for (const [d, c, imp] of [["03", "NOMINA FICTICIA", 1500], ["10", "SUPER FICTICIO", -320.5], ["20", "LUZ FICTICIA", -80]]) {
+          saldo = Math.round((saldo + imp) * 100) / 100;
+          todo.push({ fecha: `${y}-${mm}-${d}`, c, imp, saldo });
+        }
+      }
+      await page.evaluate((rows) => {
+        const tx = (r) => ({ date: r.fecha, valueDate: r.fecha, month: r.fecha.slice(0, 7), movement: r.c, details: "", amount: r.imp, balance: r.saldo, account: "CaixaBank", source: "extracto bancario" });
+        const antes = rows.filter((r) => r.fecha >= "2026-08-01" && r.fecha <= "2026-09-30").map(tx);
+        antes.push({ date: "2026-09-15", valueDate: "2026-09-15", month: "2026-09", movement: "CENA A MANO FICTICIA", details: "", amount: -45, balance: null, account: "CaixaBank", source: "manual" });
+        baseData.transactions = mergeTransactions([], antes);
+        refreshMovementRollups();
+        // Una regla para la luz: así sus reales salen del banco al importar.
+        const fila = availableSeriesRows("expense").find((r) => displayLabelForRow(r) === "Servicios");
+        movementMappings[movementMappingKey({ movement: "LUZ FICTICIA", details: "", amount: -80 })] = { kind: "expense", rowKey: seriesKeyForRow(fila) };
+        saveWorkbookOverride();
+        saveLocalSnapshot();
+      }, todo);
+      await page.reload();
+      await page.waitForFunction(() => typeof mergeTransactions === "function", null, { timeout: 20000 });
+      await page.goto("/index.html#registrar");
+      await page.click('[data-registrar-tab="import"]');
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      const csv = ["Fecha;Concepto;Importe;Saldo", ...todo.slice().reverse().map((r) => `${r.fecha.slice(8, 10)}/${r.fecha.slice(5, 7)}/${r.fecha.slice(0, 4)};${r.c};${r.imp.toFixed(2).replace(".", ",")};${r.saldo.toFixed(2).replace(".", ",")}`)].join("\n");
+      await page.setInputFiles("#registrarImportFileInput", { name: "caixa-13-meses.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      const meses = v2.locator(".imp-v2-meses");
+      await expect(meses).toBeVisible({ timeout: 15000 });
+      await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      await expect(meses.locator("summary")).toContainText("13 meses");
+      const fila = (nombre) => meses.locator("tbody tr", { hasText: nombre });
+      await expect(fila("Agosto 2026")).toContainText("Confirmado: ya estaba todo");
+      await expect(fila("Septiembre 2026")).toContainText("Confirmado: ya estaba todo");
+      await expect(fila("Septiembre 2026")).toContainText("1 en la app que el extracto no trae");
+      await expect(fila("Julio 2026")).toContainText("Nuevo: entra entero");
+      await expect(fila("Julio 2026")).not.toContainText("Firmado");
+      // Antes de que empiece el plan (julio de 2026 en los datos de ejemplo) entra como historial, sin reales de partida.
+      await expect(fila("Marzo 2026")).toContainText("Historial: antes de que empiece el plan");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await v2.locator("[data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(v2).toContainText("movimientos nuevos importados", { timeout: 15000 });
+      // Julio de 2026 es pasado y no está firmado: su real de Servicios sale ya del banco (80 €).
+      const real = await page.evaluate(() => {
+        const fila = availableSeriesRows("expense").find((r) => displayLabelForRow(r) === "Servicios");
+        return expenseActuals[actualKeyForRow(fila, { key: "2026-07" })];
+      });
+      expect(real).toBe(80);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
 });

@@ -9,13 +9,14 @@ const { codigoApp } = require("./helpers/codigo-app.cjs");
 const app = codigoApp();
 const body = app.slice(app.indexOf("function bankActualTotals() {"), app.indexOf("function transactionIdentity("));
 
-function sandbox({ expense = {}, store = {}, transactions = [], closed = [] } = {}) {
+function sandbox({ expense = {}, store = {}, transactions = [], closed = [], signed = closed } = {}) {
   const rows = { super: { id: "super", kind: "expense" }, gasolina: { id: "gasolina", kind: "expense" } };
   const context = {
     baseData: { transactions, monthlyPlanning: { months: [{ key: "2026-09" }, { key: "2026-10" }] } },
     mappingForMovement: (tx) => (rows[tx.partida] ? { kind: "expense", row: rows[tx.partida] } : null),
     monthByKey: (key, months) => months.find((month) => month.key === key) || null,
     isClosedMonthKey: (key) => closed.includes(key),
+    isSignedClosedMonthKey: (key) => signed.includes(key), // desde el 1/11/2026 solo lo firmado protege los reales del banco
     actualKeyForRow: (row, month) => `${row.id}|${month.key}`,
     round2: (value) => Math.round(value * 100) / 100,
     incomeActuals: {},
@@ -107,4 +108,24 @@ test("el libro compara el banco con su parte del real: lo anotado aparte no es u
   const [actual] = context.canonicalLedgerActuals();
   assert.equal(actual.amount, 80);
   assert.ok(store["bank-actuals-applied"]);
+});
+
+// 1/11/2026 (petición del hogar, antes del primer cierre): subir un extracto de muchos meses pone al día los meses pasados
+// que no están firmados. Para el resto de la app un mes pasado cuenta como cerrado por fecha, pero eso no protege sus
+// reales del banco: solo la firma. Un mes firmado sigue sin cambiar.
+test("un mes pasado sin firmar se pone al día con el banco; uno firmado, no", () => {
+  const { context } = sandbox({
+    expense: { "super|2026-09": 50, "gasolina|2026-09": 70 },
+    transactions: [mov("super", 80, "2026-09"), mov("gasolina", 90, "2026-09")],
+    closed: ["2026-09"], // pasado: cerrado por fecha
+    signed: [], // pero sin firmar
+  });
+  context.applyMovementMappingsToActuals();
+  assert.equal(context.expenseActuals["super|2026-09"], 80, "manda el banco");
+  assert.equal(context.expenseActuals["gasolina|2026-09"], 90);
+  const firmado = sandbox({ expense: { "super|2026-09": 50 }, transactions: [mov("super", 80, "2026-09")], closed: ["2026-09"], signed: ["2026-09"] });
+  firmado.context.applyMovementMappingsToActuals();
+  assert.equal(firmado.context.expenseActuals["super|2026-09"], 50, "lo firmado no se toca");
+  assert.match(app, /if \(isSignedClosedMonthKey\(month\.key\)\) return; \/\/ 1\/11\/2026/);
+  assert.match(app, /function bankActualsKeyIsOpen\(key\) \{\n {2}return !isSignedClosedMonthKey\(/);
 });
