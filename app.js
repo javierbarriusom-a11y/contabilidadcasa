@@ -5859,8 +5859,10 @@ function loadTransactionsFromWorkbook(workbook) {
   );
   const deduped = new Map();
   movementSheets.forEach((sheetName, sourceRank) => {
+    const repeticiones = new Map(); // 1/11/2026: dos movimientos iguales el mismo día en una hoja son dos cargos (dos Bizum de 75 €); el saldo y el orden los distinguen
     rowsFromMovementSheet(workbook, sheetName, sourceRank).forEach((row) => {
-      const key = `${row.date}|${row.movement}|${row.details}|${row.amount}`;
+      const base = `${row.date}|${row.movement}|${row.details}|${row.amount}|${row.balance ?? ""}`;
+      const key = `${base}#${repeticiones.set(base, (repeticiones.get(base) || 0) + 1).get(base)}`;
       const previous = deduped.get(key);
       if (!previous || row.sourceRank >= previous.sourceRank) deduped.set(key, row);
     });
