@@ -5390,10 +5390,10 @@ test.describe("Importar v2 · mes a mes", () => {
         saveWorkbookOverride();
         saveLocalSnapshot();
       }, todo);
+      // Se entra directamente en Importar con una carga completa: en WebKit, pulsar la pestaña justo después de recargar
+      // podía llegar antes de que la app enlazara sus botones y la pantalla se quedaba en «Saldo de cuentas» (CI de #575).
+      await page.goto("/index.html#datos-importar");
       await page.reload();
-      await page.waitForFunction(() => typeof mergeTransactions === "function", null, { timeout: 20000 });
-      await page.goto("/index.html#registrar");
-      await page.click('[data-registrar-tab="import"]');
       const v2 = page.locator("#importarV2");
       await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
       const csv = ["Fecha;Concepto;Importe;Saldo", ...todo.slice().reverse().map((r) => `${r.fecha.slice(8, 10)}/${r.fecha.slice(5, 7)}/${r.fecha.slice(0, 4)};${r.c};${r.imp.toFixed(2).replace(".", ",")};${r.saldo.toFixed(2).replace(".", ",")}`)].join("\n");

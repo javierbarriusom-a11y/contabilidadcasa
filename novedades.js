@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-01-hoy-fecha",
+      fecha: "2026-11-01",
+      texto: "Hoy enseña la fecha de hoy, dice de qué saldos parte la cifra y avisa si un cobro ya pasó desde ellos.",
+      href: "#home",
+    },
+    {
       id: "2026-11-01-excel-repetidos",
       fecha: "2026-11-01",
       texto: "Importar un Excel ya no junta dos movimientos iguales del mismo día (dos Bizum del mismo importe): son dos cargos y el cuadre sale.",

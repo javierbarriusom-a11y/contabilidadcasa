@@ -113,6 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 1 de noviembre de 2026 (385): Hoy enseña la fecha de hoy y dice de qué saldos parte
+
+- **Captura del hogar del 1/11:** Hoy decía «Lunes, 26 de octubre» encima de «Hoy» y «Cobráis en 4 días, el 30 de octubre».
+  - Hoy v2 usaba la fecha de los últimos saldos (`asOf`) para la cabecera, los días al cobro y la tarjeta del mes.
+  - Con saldos de hace 6 días, presentaba una cuenta vieja como si fuera de hoy, y el cobro que daba como próximo ya había pasado.
+- **Arreglo** (`views/hoy-v2.js`):
+  - La cabecera y la tarjeta del mes son las de hoy. La cuenta sigue partiendo de los saldos.
+  - Si los saldos no son de hoy, la frase empieza por «Con los saldos del …».
+  - Los días al cobro se cuentan desde hoy.
+  - Un cobro posterior a los saldos que ya ha pasado no se pinta como próximo: «El cobro del … ya ha pasado desde esos saldos y esta cifra no lo cuenta», con «Poner los saldos de hoy». La etiqueta pasa a «Disponible con los saldos del …».
+- `views/hoy-v2.js` y `tema-v2.css` pasan a `?v=20261101hoy1`. Novedades.
+- **CI de #575 en Safari:** falló la E2E «Importar v2 · mes a mes» (383), ajena a Hoy.
+  - Tras recargar, pulsaba la pestaña «Importar extracto» antes de que WebKit tuviera enlazados los botones, y la pantalla se quedaba en «Saldo de cuentas».
+  - Ahora entra en `#datos-importar` con una carga completa, como las demás pruebas de Importar que pasan en Safari.
+- **Validación:** `npm test` 6287/6287, `lint` limpio; E2E y axe de Hoy, Repaso, cobros y XGO-01: 28 de 28; `tests/redis-a3-hoy-v2.test.cjs` (+1). Comprobado en el navegador con saldos del 26/10 y hoy 1/11, con el cobro futuro y con uno ya pasado.
+
 ## Cierre de sesión — 1 de noviembre de 2026 (384): un Excel ya no junta los movimientos iguales del mismo día (bloqueaba el cierre)
 
 - **El hogar pasó un extracto real en Excel** para preparar el cierre (unos 15 meses, con saldo y lo nuevo arriba). Se probó en local, sin guardarlo en el repositorio.

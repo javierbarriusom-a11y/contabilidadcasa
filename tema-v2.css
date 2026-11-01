@@ -3416,3 +3416,16 @@
 :root[data-tema="v2"] .imp-v2-meses-tabla .imp-v2-veredicto {
   width: 40%;
 }
+
+/* Hoy (1/11/2026): el enlace «Poner los saldos de hoy» dentro del aviso de un cobro que ya ha pasado desde los saldos. */
+:root[data-tema="v2"] .hoy-v2-link {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
