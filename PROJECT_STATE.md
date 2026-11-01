@@ -131,7 +131,9 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Validación:**
   - `npm test` 6283/6283 (+2: veredictos por mes y mes pasado sin firmar frente a firmado), con `lint` y `typecheck` limpios.
   - E2E nueva de 13 meses inventados a 390 (`@safari`) y 1440 px: 2 de 2.
-  - Batería completa de E2E y axe: en curso en local y en el CI del PR.
+  - Batería completa de E2E y axe en local: 274 de 275.
+    - La que falló, WP-43 (puente de previsión), **falla igual en `main`**. No fijaba el reloj y desde el 1/11 la previsión empieza en noviembre, no en octubre.
+    - Se le fija la fecha (26/10/2026), como al resto, y pasa.
 
 ## Cierre de sesión — 31 de octubre de 2026 (382): #571 publicado antes del cierre; estado de backlog, plan y panel al día
 

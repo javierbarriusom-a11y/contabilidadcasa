@@ -2971,6 +2971,9 @@ test.describe("WP-43 · puente de previsión", () => {
     const dialogs = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+    // Fecha fija: la prueba congela el cierre de septiembre y espera que la previsión empiece en octubre. Con el reloj real,
+    // desde el 1/11/2026 la previsión empieza en noviembre y la prueba fallaba en main sin ningún cambio.
+    await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
     for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
       const card = await openPrevision(page);
