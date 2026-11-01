@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-01-excel-repetidos",
+      fecha: "2026-11-01",
+      texto: "Importar un Excel ya no junta dos movimientos iguales del mismo día (dos Bizum del mismo importe): son dos cargos y el cuadre sale.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-11-01-mes-a-mes",
       fecha: "2026-11-01",
       texto: "Importar dice mes a mes qué confirma o completa el extracto, y los meses pasados sin firmar se ponen al día con el banco.",

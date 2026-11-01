@@ -113,6 +113,19 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 1 de noviembre de 2026 (384): un Excel ya no junta los movimientos iguales del mismo día (bloqueaba el cierre)
+
+- **El hogar pasó un extracto real en Excel** para preparar el cierre (unos 15 meses, con saldo y lo nuevo arriba). Se probó en local, sin guardarlo en el repositorio.
+- **Hallazgo, que habría bloqueado el cierre:**
+  - La app no reconocía una parte de los movimientos (18 filas), el cuadre no salía y la importación quedaba bloqueada.
+  - **Causa:** `loadTransactionsFromWorkbook` (`app.js`) quitaba repetidos por fecha, concepto, detalle e importe, sin el saldo. Esa limpieza era para un libro con varias hojas que se solapan, pero dentro de una sola hoja juntaba cargos legítimos: dos Bizum, dos retiradas o dos recibos del mismo importe el mismo día.
+  - **Arreglo:** la clave lleva el saldo y el número de repetición dentro de la hoja. Entre hojas, la misma fila sigue contando una vez. La vía de CSV no tenía el problema.
+  - **Con el fichero real:** todas las filas reconocidas, cuadre al céntimo y el saldo a fin de octubre igual al del extracto.
+- **La lista copiada de la web de Mediolanum** que pasó el hogar se lee entera y cuadra (8 de 8; ya probado el 31/10).
+- **Cierre:** el hogar preguntó si Claude podía cerrar octubre. No puede: los datos viven en el navegador y la cuenta del hogar, y la firma es suya. Lo que sí hizo Claude fue probar sus dos ficheros reales en el importador y quitar el bloqueo antes de que lo encontrara.
+- `app.js` pasa a `?v=20261101xls1`, con sus pines.
+- **Validación:** `npm test` 6286/6286 (+3), `lint` limpio; E2E de importar 34 de 34; prueba nueva `tests/importar-excel-repetidos.test.cjs` (3).
+
 ## Cierre de sesión — 1 de noviembre de 2026 (383): importar mes a mes, y los meses pasados sin firmar se ponen al día
 
 - **Petición del hogar, antes del primer cierre:** «quiero poder subir un extracto y que actualice también o valide meses pasados». Subirá un Excel con los movimientos desde octubre de 2025.
