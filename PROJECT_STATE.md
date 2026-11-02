@@ -113,6 +113,21 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 2 de noviembre de 2026 (388): las partidas de un solo mes ya no dejan reales sueltos
+
+- **El hallazgo de la sesión 387,** que el hogar pidió resolver aquí. Una partida personalizada solo existe en los meses que tienen su fila (`customRowsForSection`). Las reglas de Movimientos valen «para siempre».
+  - «Crear partida» de Cierre, «Solo un mes» en Planificación de partidas y «+ Añadir partida» de Registrar la creaban para un solo mes.
+  - Si una regla la apuntaba, el real de los demás meses se escribía en una clave que ningún mes suma: no contaba en ninguna parte, sin avisar.
+- **Arreglo central** (`app.js`, `ensureCustomRowsForBankActuals`):
+  - Al aplicar las reglas (`applyMovementMappingsToActuals`, que pasa por ahí al clasificar, importar o asignar), la fila que falta se crea con **previsto 0 €** en cada mes sin firmar con movimientos para esa partida.
+  - Se respeta la supresión expresa de la partida en ese mes. Las partidas del plan base no se tocan.
+  - Los reales que ya estaban sueltos se reparan solos la próxima vez que se clasifique o importe. Abrir la app sigue sin escribir nada.
+- **Cierre · «Crear partida»** (`views/cierre.js`): crea la partida del mes del movimiento al final del plan, sin los firmados. El mes del movimiento arranca con lo que ya costó, como antes; los demás con 0 €.
+  - El rango es `customSeriesMonthsFrom` (`app.js`), el mismo que usa Clasificar · «+ Nueva partida».
+- **Planificación de partidas** sigue con «Solo un mes» por defecto, porque sirve para prever un gasto puntual. Ya no hace falta cambiarlo: si una regla apunta a esa partida, la reparación central crea las filas de los meses con movimientos.
+- `app.js` pasa a `?v=20261102serie1` y `views/cierre.js` a `?v=20261102serie1`; se actualizan las 29 pruebas que fijan esas versiones. Novedades.
+- **Validación:** `npm run verify` en verde: `npm test` 6303/6303, lint, typecheck, accesibilidad (1663 IDs únicos), rendimiento, build, privacidad y smoke. E2E de Cierre y Clasificar 25 de 25, incluido el ensayo del cierre de octubre y la prueba nueva «una partida de un solo mes con regla». Prueba nueva `tests/partidas-serie-completa.test.cjs` (6).
+
 ## Cierre de sesión — 2 de noviembre de 2026 (387): crear una partida desde Clasificar (sale tras firmar octubre)
 
 - **Petición del hogar,** reclasificando su extracto real: «no hay manera de crear uno nuevo desde aquí si no es ninguno de los ya creados». Clasificar solo dejaba elegir partidas que ya existían («Otra…») o saltar.

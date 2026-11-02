@@ -285,7 +285,7 @@ function clasV2NewMonths(group) {
   const firstOpen = months.find((month) => !isClosedMonthKey(month.key))?.key || "";
   const firstMove = group.rows.map((row) => String(row.month || row.date || "").slice(0, 7)).filter(Boolean).sort()[0] || "";
   const from = [firstOpen, firstMove].filter(Boolean).sort()[0] || "";
-  return months.filter((month) => month.key >= from && !isSignedClosedMonthKey(month.key));
+  return customSeriesMonthsFrom(from);
 }
 
 function clasV2CreatePartida() {

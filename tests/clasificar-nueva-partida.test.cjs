@@ -11,7 +11,11 @@ const vm = require("node:vm");
 // crea la regla hacia ella, (4) que un nombre repetido elige la que ya hay y (5) que sin nombre no crea nada.
 // Cifras inventadas.
 
+const { codigoApp } = require("./helpers/codigo-app.cjs");
 const root = path.resolve(__dirname, "..");
+const appCode = codigoApp();
+// El rango de meses es el mismo que usa Cierre (customSeriesMonthsFrom, app.js): se prueba el de verdad.
+const mesesDesde = appCode.slice(appCode.indexOf("function customSeriesMonthsFrom("), appCode.indexOf("function bankActualTotals() {"));
 const clas = fs.readFileSync(path.join(root, "views/clasificar-v2.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "tema-v2.css"), "utf8");
 
@@ -80,6 +84,7 @@ function sandbox({ transactions = [], signed = [], closed = [] } = {}) {
     return stored ? { row: context.planningRowBySeriesKey(stored.kind, stored.rowKey) } : null;
   };
   vm.createContext(context);
+  vm.runInContext(mesesDesde, context);
   vm.runInContext(clas, context);
   return { context, dialog, calls };
 }

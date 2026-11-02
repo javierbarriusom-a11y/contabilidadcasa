@@ -377,7 +377,13 @@ function handleCierreTaskCreatePartidaConfirm() {
   }
   const sectionName = qs("cierreClassifyNewSection")?.value || "";
   const sharedId = `custom-${entry.kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  customPlanningRows.push({ id: sharedId, custom: true, kind: entry.kind, sectionName, label, monthKey: entry.monthKey, plannedValue: entry.amount });
+  // 2/11/2026: la regla que se crea abajo vale para siempre, así que la partida va del mes del movimiento al final del plan
+  // (sin los firmados): con una sola fila, los movimientos de los meses siguientes no contaban en ninguna parte. El mes del
+  // movimiento arranca con lo que ya costó; los demás, con previsto 0 € (no cambian el plan).
+  const later = typeof customSeriesMonthsFrom === "function" ? customSeriesMonthsFrom(entry.monthKey).map((month) => month.key) : [];
+  [...new Set([entry.monthKey, ...later])].sort().forEach((monthKey) => {
+    customPlanningRows.push({ id: sharedId, custom: true, kind: entry.kind, sectionName, label, monthKey, plannedValue: monthKey === entry.monthKey ? entry.amount : 0 });
+  });
   saveCustomPlanningRows();
   cierreClassifyApply(entry, `${entry.kind}|${sharedId}`, label);
   qs("cierreClassifyDialog")?.close();

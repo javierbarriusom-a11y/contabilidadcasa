@@ -5860,6 +5860,34 @@ test.describe("Clasificar · nueva partida desde el panel", () => {
   }
 });
 
+// 2/11/2026: una partida creada para un solo mes (Cierre, «Solo un mes» en Planificación de partidas) con una regla «para
+// siempre»: el movimiento del mes siguiente tiene que contar en ese mes. Antes su real quedaba en una clave que nadie sumaba.
+test("una partida de un solo mes con regla: el movimiento del mes siguiente cuenta en su mes", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.goto("/index.html#movements");
+  await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+  const result = await page.evaluate(() => {
+    const months = baseData.monthlyPlanning.months.filter((m) => !isClosedMonthKey(m.key));
+    const [first, next] = months;
+    const section = baseData.monthlyPlanning.sections.find((s) => s.kind === "expense").name;
+    const id = "custom-expense-prueba-serie";
+    customPlanningRows.push({ id, custom: true, kind: "expense", sectionName: section, label: "Partida de un mes ficticia", monthKey: first.key, plannedValue: 10 });
+    const row = { date: `${next.key}-03`, month: next.key, movement: "COMERCIO SERIE FICTICIO", details: "", amount: -33.25, balance: null, account: "CaixaBank", source: "Extracto" };
+    baseData.transactions = mergeTransactions(baseData.transactions || [], [row]);
+    movementMappings[movementMappingKey(row)] = { kind: "expense", rowKey: `expense|${id}`, label: "Partida de un mes ficticia", updatedAt: new Date().toISOString() };
+    saveMovementMappings();
+    applyMovementMappingsToActuals();
+    const inNext = planningSectionsForMonth("expense", next).flatMap((s) => s.rows).find((r) => r.id === id);
+    return { inNext: Boolean(inNext), planned: inNext?.plannedValue, actual: inNext ? expenseActuals[actualKeyForRow(inNext, next)] : null, firstPlanned: customPlanningRows.find((r) => r.id === id && r.monthKey === first.key)?.plannedValue };
+  });
+  expect(result.inNext, "la partida aparece en el mes del movimiento").toBe(true);
+  expect(result.planned).toBe(0);
+  expect(result.actual).toBe(33.25);
+  expect(result.firstPlanned, "el previsto del mes original no cambia").toBe(10);
+  expect(pageErrors).toEqual([]);
+});
+
 // La tarjeta «Previsto, real y usado» de Registrar no puede quedar en tres columnas estrechas en el móvil.
 test.describe("Registrar · tarjeta de la regla en el móvil", () => {
   for (const tema of ["", "?tema=clasico"]) {
