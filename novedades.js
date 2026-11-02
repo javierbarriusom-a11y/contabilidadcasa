@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-02-duplicados",
+      fecha: "2026-11-02",
+      texto: "Importar ya no pregunta «¿duplicado?» por lo que ya estaba ni por lo que el banco lista dos veces: son dos movimientos.",
+      href: "#datos-importar",
+    },
+    {
       id: "2026-11-01-hoy-fecha",
       fecha: "2026-11-01",
       texto: "Hoy enseña la fecha de hoy, dice de qué saldos parte la cifra y avisa si un cobro ya pasó desde ellos.",

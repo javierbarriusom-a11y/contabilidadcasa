@@ -184,7 +184,7 @@ test("V6-2 · los dos campos viven en Ajustes, con ayuda y sin romper el import 
   // solo se declara: si alguno volviera a depender del valor por defecto implícito, esta prueba
   // rompería en vez de pasar por casualidad.
   assert.equal(
-    (app.match(/datosImportarDuplicateCandidates\([^)]*duplicateWindowDays\(\)\)/g) || []).length,
+    (app.match(/datosImportarDuplicateCandidates\([^)]*duplicateWindowDays\(\)(, context)?\)/g) || []).length,
     2,
     "los dos import (borrador y sesión) deben pedir la ventana configurada",
   );

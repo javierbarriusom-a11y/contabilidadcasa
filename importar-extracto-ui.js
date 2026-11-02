@@ -113,11 +113,17 @@ function daysBetweenIsoDates(a, b) {
 // solo importe + fecha próxima, sin comparar el concepto: dos cargos legítimos del mismo comercio
 // el mismo día por el mismo importe son indistinguibles de un duplicado sin mirar el extracto
 // original en mano, así que se pregunta en vez de asumir en cualquiera de los dos sentidos.
-function datosImportarDuplicateCandidates(transaction, existingTransactions, windowDays = DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS) {
+// 2/11/2026 (extracto real del hogar: 77 preguntas, casi todas sobre filas que ya estaban): no se pregunta por una fila
+// idéntica a otra ya guardada (se funde sola) ni por un parecido que también viene en este mismo extracto (si el banco
+// lista los dos, son dos movimientos). `context` = { existingIdentities, fileIdentities } (Sets de transactionIdentity).
+function datosImportarDuplicateCandidates(transaction, existingTransactions, windowDays = DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS, context = {}) {
   const amount = round2(transaction.amount);
   const ownIdentity = transactionIdentity(transaction);
+  if (context.existingIdentities?.has(ownIdentity)) return [];
   return (existingTransactions || []).filter((existing) => {
-    if (transactionIdentity(existing) === ownIdentity) return false;
+    const identity = transactionIdentity(existing);
+    if (identity === ownIdentity) return false;
+    if (context.fileIdentities?.has(identity)) return false;
     if (round2(existing.amount) !== amount) return false;
     return daysBetweenIsoDates(existing.date, transaction.date) <= windowDays;
   });
@@ -158,6 +164,7 @@ function datosImportarSuggestionFor(transaction) {
 function datosImportarBuildRows(transactions) {
   const ignored = datosImportarLoadIgnored();
   const existing = baseData.transactions || [];
+  const context = { existingIdentities: new Set(existing.map(transactionIdentity)), fileIdentities: new Set(transactions.map(transactionIdentity)) };
   return capturaDuplicadosAnotar(transactions.map((transaction, index) => {
     const prior = datosImportarPriorClassification(transaction, ignored);
     return {
@@ -165,7 +172,7 @@ function datosImportarBuildRows(transactions) {
       transaction,
       prior,
       suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(transaction) : null,
-      duplicates: datosImportarDuplicateCandidates(transaction, existing, duplicateWindowDays()),
+      duplicates: datosImportarDuplicateCandidates(transaction, existing, duplicateWindowDays(), context),
       // decision: { tipo: "aceptar-sugerencia" | "otra-partida" (+ rowKey) | "ignorar" }, o null
       // mientras el paso 2 no la haya resuelto.
       decision: null,
@@ -457,20 +464,24 @@ function datosImportarRestoreSession() {
   if (!draft || !Array.isArray(draft.rows) || !draft.rows.length) return null;
   const ignored = datosImportarLoadIgnored();
   const inboxItem = draft.inboxItemId ? dataInbox.find((item) => item.id === draft.inboxItemId) || null : null;
+  const existing = baseData.transactions || [];
+  const context = { existingIdentities: new Set(existing.map(transactionIdentity)), fileIdentities: new Set(draft.rows.map((saved) => transactionIdentity(saved.transaction))) };
   return {
     step: Math.min(4, Math.max(1, Number(draft.step) || 1)),
     fileMeta: draft.fileMeta || { fileName: "", sourceLabel: "", hash: "" },
     inboxItem,
     rows: capturaDuplicadosAnotar(draft.rows.map((saved) => {
       const prior = datosImportarPriorClassification(saved.transaction, ignored);
+      const duplicates = datosImportarDuplicateCandidates(saved.transaction, existing, duplicateWindowDays(), context);
       return {
         rowId: saved.rowId,
         transaction: saved.transaction,
         prior,
         suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(saved.transaction) : null,
-        duplicates: datosImportarDuplicateCandidates(saved.transaction, baseData.transactions || [], duplicateWindowDays()),
+        duplicates,
         decision: saved.decision || null,
-        duplicateDecision: saved.duplicateDecision || null,
+        // Un «duplicado» decidido solo con la regla de antes ya no lo es si no queda candidato (2/11/2026): se libera.
+        duplicateDecision: saved.duplicateDecision === "duplicado" && !duplicates.length ? null : saved.duplicateDecision || null,
       };
     }), globalThis.FinanceCanonicalCaptureDedupe),
   };
