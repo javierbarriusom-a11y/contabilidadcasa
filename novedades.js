@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-02-nueva-partida",
+      fecha: "2026-11-02",
+      texto: "En Clasificar, si la partida que buscas no existe, «+ Nueva partida» la crea ahí mismo, con previsto 0 €, sin salir del panel.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-02-duplicados",
       fecha: "2026-11-02",
       texto: "Importar ya no pregunta «¿duplicado?» por lo que ya estaba ni por lo que el banco lista dos veces: son dos movimientos.",

@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 2 de noviembre de 2026 (387): crear una partida desde Clasificar (sale tras firmar octubre)
+
+- **Petición del hogar,** reclasificando su extracto real: «no hay manera de crear uno nuevo desde aquí si no es ninguno de los ya creados». Clasificar solo dejaba elegir partidas que ya existían («Otra…») o saltar.
+- **Hecho:** bajo «Elige una partida…» aparece «¿No está? + Nueva partida». Abre un formulario corto: nombre y bloque del mismo tipo; ↵ crea; Esc vuelve al selector sin cerrar el panel. La partida queda elegida y «Aceptar» crea la regla como siempre.
+  - **Previsto 0 €:** no cambia el plan; el importe se pone luego en Plan.
+  - **En todos los meses del plan** desde el primer movimiento del grupo (o el primer mes sin cerrar), sin los firmados.
+  - **Por qué todos los meses:** una partida personalizada solo existe en los meses que tienen fila (`customRowsForSection`). Con una sola fila, una regla «para siempre» mandaría los reales de los demás meses a una clave que nadie suma. La e2e lo comprueba: el real del mes cuenta en la partida nueva.
+  - **Nombre repetido** en ese tipo: elige la partida que ya existe en vez de duplicarla.
+  - **Freno a la proliferación:** el formulario dice cuántas partidas tiene ya el bloque («mira antes si alguna sirve»).
+- **Hallazgo, fuera de alcance** (queda como tarea sugerida): «Crear partida» de Cierre crea la fila solo en el mes del movimiento, con previsto igual al real, y además una regla permanente. El formulario de Planificación de partidas trae «Solo un mes» por defecto. En los dos casos, los reales de otros meses que la regla mande ahí no cuentan. Se le ha avisado al hogar de que, si crea la partida a mano, elija «Rango de meses».
+- **Publicación:** a petición del hogar, se fusiona **después de firmar octubre**, aunque el CI esté en verde antes.
+- `views/clasificar-v2.js` pasa a `?v=20261102nuevaP1` y `tema-v2.css` a `?v=20261102nuevaP1`. Novedades. `docs/rediseno/ESTADO.md` §2 (fila «A5 · + Nueva partida»).
+- **Validación:** `npm run verify` en verde: `npm test` 6297/6297, lint, typecheck, accesibilidad (1663 IDs únicos), rendimiento, build, privacidad y smoke. E2E de Clasificar 4 de 4 (A5 y la nueva, a 390 y 1440). Prueba nueva `tests/clasificar-nueva-partida.test.cjs` (6).
+
 ## Cierre de sesión — 2 de noviembre de 2026 (386): Importar deja de preguntar por duplicados que no lo son, y recupera lo que perdió el lector viejo
 
 - **Capturas del hogar al importar su extracto real** (ya con #574):
