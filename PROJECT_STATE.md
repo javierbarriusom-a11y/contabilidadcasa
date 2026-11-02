@@ -113,6 +113,24 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 2 de noviembre de 2026 (386): Importar deja de preguntar por duplicados que no lo son, y recupera lo que perdió el lector viejo
+
+- **Capturas del hogar al importar su extracto real** (ya con #574):
+  - 1.080 líneas, cuadra al céntimo y «Importar 410 movimientos nuevos».
+  - Pero había «77 posibles duplicados por decidir», que bloqueaban la importación, y en «Mes a mes» salían descartados (10 en febrero y 1 en otros siete meses).
+- **Causa** (`datosImportarDuplicateCandidates`, `importar-extracto-ui.js`): cada fila del extracto se comparaba con todo lo guardado, solo por importe y a menos de N días, y preguntaba en dos casos en que no debía:
+  1. Por filas idénticas a otras ya guardadas, que se funden solas.
+  2. Por un «parecido» que también venía en el mismo extracto; si el banco lista los dos, son dos movimientos.
+  - Además, los iguales del mismo día que la importación anterior había perdido (el lector de Excel viejo, arreglado en #574) se daban por «duplicado seguro» de su gemela ya guardada y se volvían a perder.
+- **Arreglo:** no se pregunta por una fila que ya está, ni por un parecido que también viene en el extracto. Se sigue preguntando por lo que está en la app y no en el extracto, como un gasto anotado a mano (P17).
+- **Comprobado con el fichero real,** simulando el estado del hogar (lo de hasta el 20/04 importado con el lector viejo):
+  - Antes: 62 dudas y 17 descartados, igual que en las capturas (17 = 10 + 7 × 1).
+  - Después: 0 dudas, 0 descartados, «Importar 427 movimientos nuevos» (los 410 más los 17 recuperados) y cuadra al céntimo.
+- Otro hallazgo de las capturas, que queda para decidir con el hogar: **julio de 2026 figura como firmado** (de una prueba). Sus movimientos entran, pero sus reales no cambian.
+- `importar-extracto-ui.js` pasa a `?v=20261102dup1`. Novedades.
+- **El borrador guardado** con la regla vieja (17 gemelas marcadas como «duplicado») se restaura al recargar con 0 duplicadas y 0 dudas. `datosImportarRestoreSession` usa la misma regla y libera el «duplicado» que ya no tiene candidato.
+- **Validación:** `npm test` 6291/6291, `lint` limpio; E2E de importar, duplicados y capturas 39 de 39; prueba nueva `tests/importar-duplicados-extracto.test.cjs` (4).
+
 ## Cierre de sesión — 1 de noviembre de 2026 (385): Hoy enseña la fecha de hoy y dice de qué saldos parte
 
 - **Captura del hogar del 1/11:** Hoy decía «Lunes, 26 de octubre» encima de «Hoy» y «Cobráis en 4 días, el 30 de octubre».
