@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-02-octubre-primero",
+      fecha: "2026-11-02",
+      texto: "Clasificar enseña primero lo del mes que cierras, y una regla vale para el concepto de cualquier mes (FINANCIE-OCTUBRE…).",
+      href: "#movements",
+    },
+    {
       id: "2026-11-02-partida-serie",
       fecha: "2026-11-02",
       texto: "Una partida creada para un solo mes ya cuenta los movimientos de los meses siguientes que su regla le manda.",

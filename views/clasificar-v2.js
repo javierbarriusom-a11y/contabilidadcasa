@@ -47,20 +47,37 @@ function clasV2Now() {
   return globalThis.performance?.now?.() ?? Date.now();
 }
 
-// Los grupos sin partida, del que más suma al que menos. Mismo criterio que la bandeja de Movimientos v2 (un
-// movimiento con importe y sin partida) y que buildPendingMovementMappings, pero con todas las filas de cada grupo:
-// hacen falta para el importe típico, el último mes y los reales que tocaría la regla (para poder deshacerla).
+// El mes que se está cerrando (el de Cierre), si aún no está firmado y tiene movimientos: sus grupos van primero
+// (2/11/2026, «Octubre primero»). Sin movimientos de ese mes no hay nada que adelantar, y «Octubre ya está» mentiría.
+function clasV2CloseMonth() {
+  const key = typeof closeTargetMonthKey === "function" ? closeTargetMonthKey() : "";
+  if (!key || (typeof isSignedClosedMonthKey === "function" && isSignedClosedMonthKey(key))) return "";
+  return (baseData?.transactions || []).some((row) => String(row?.month || row?.date || "").slice(0, 7) === key) ? key : "";
+}
+
+// Los grupos sin partida: primero los que tienen movimientos del mes que se cierra y, dentro de cada parte, del que más
+// suma al que menos. Mismo criterio que la bandeja de Movimientos v2 (un movimiento con importe y sin partida) y que
+// buildPendingMovementMappings, pero con todas las filas de cada grupo: hacen falta para el importe típico, el último mes
+// y los reales que tocaría la regla (para poder deshacerla). Desde el 2/11/2026 el concepto se agrupa sin el mes
+// («FINANCIE-SEPTIEMB» y «FINANCIE-OCTUBRE», un grupo) y la regla vale para cualquier mes.
 function clasV2PendingGroups() {
   const groups = new Map();
+  const closeMonth = clasV2CloseMonth();
+  const keyOf = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey : movementMappingKey;
   (baseData?.transactions || []).forEach((row) => {
     if (!row || !Number(row.amount) || mappingForMovement(row)) return;
-    const key = movementMappingKey(row);
-    const group = groups.get(key) || { key, kind: movementKindFromAmount(row.amount), name: movementDisplayName(row), rows: [], total: 0 };
+    const key = keyOf(row);
+    const group = groups.get(key) || { key, kind: movementKindFromAmount(row.amount), name: movementDisplayName(row), rows: [], total: 0, anyMonth: key !== movementMappingKey(row), inClose: false, latest: "" };
     group.rows.push(row);
     group.total = round2(group.total + Math.abs(Number(row.amount)));
+    if (closeMonth && String(row.month || row.date || "").slice(0, 7) === closeMonth) group.inClose = true;
+    if (String(row.date || "") >= group.latest) {
+      group.latest = String(row.date || "");
+      group.name = movementDisplayName(row); // el concepto del movimiento más reciente («FINANCIE-OCTUBRE»)
+    }
     groups.set(key, group);
   });
-  return [...groups.values()].sort((a, b) => b.total - a.total || b.rows.length - a.rows.length);
+  return [...groups.values()].sort((a, b) => Number(b.inClose) - Number(a.inClose) || b.total - a.total || b.rows.length - a.rows.length);
 }
 
 function clasV2MonthName(monthKey) {
@@ -71,7 +88,8 @@ function clasV2MonthName(monthKey) {
 // Las tres cifras del grupo, todas de sus movimientos: cuántos, cuánto en el mes del último y el rango de importes.
 function clasV2Stats(group) {
   const amounts = group.rows.map((row) => Math.abs(Number(row.amount))).sort((a, b) => a - b);
-  const lastMonth = group.rows.map((row) => String(row.date || "")).sort().at(-1).slice(0, 7);
+  const closeMonth = group.inClose ? clasV2CloseMonth() : "";
+  const lastMonth = closeMonth || group.rows.map((row) => String(row.date || "")).sort().at(-1).slice(0, 7);
   const inMonth = round2(group.rows.filter((row) => String(row.date || "").startsWith(lastMonth)).reduce((sum, row) => sum + Math.abs(Number(row.amount)), 0));
   const low = amounts[0];
   const high = amounts.at(-1);
@@ -179,21 +197,34 @@ function clasV2Target(group) {
   return clasV2Suggestion(group);
 }
 
-function clasV2Remaining() {
+function clasV2RemainingGroups() {
   const inBatch = new Set(clasV2Groups.map((group) => group.key));
-  return clasV2PendingGroups().filter((group) => !inBatch.has(group.key) && !clasV2Skipped.has(group.key)).length;
+  return clasV2PendingGroups().filter((group) => !inBatch.has(group.key) && !clasV2Skipped.has(group.key));
+}
+
+function clasV2Remaining() {
+  return clasV2RemainingGroups().length;
 }
 
 // «faltan 12 grupos · unos 2 min»: los de esta tanda desde el actual y los de las siguientes, a la mediana medida (con
 // 3 grupos medidos o más) o a 10 s por grupo mientras no la hay.
+// Con un mes por cerrar, cuenta primero lo de ese mes (lo que bloquea la firma) y el tiempo es el de esos grupos:
+// «faltan 29 de octubre (112 en total)»; hecho eso, «octubre ya está · faltan 83 de otros meses».
 function clasV2Countdown() {
-  const left = clasV2Groups.length - clasV2Index + clasV2Remaining();
+  const pending = [...clasV2Groups.slice(clasV2Index), ...clasV2RemainingGroups()];
+  const left = pending.length;
+  const closeMonth = clasV2CloseMonth();
+  const closeLeft = closeMonth ? pending.filter((group) => group.inClose).length : 0;
   const k = globalThis.FinanceMedidor?.calibracion?.(globalThis.FinanceMedidor.leer());
   const measured = k && k.veces >= 3 ? k.medianaSegundos : null;
-  const seconds = left * (measured ?? CLAS_V2_SEGUNDOS);
+  const seconds = (closeLeft || left) * (measured ?? CLAS_V2_SEGUNDOS);
   const minutes = Math.round(seconds / 60);
   const time = seconds < 60 ? "menos de un minuto" : minutes === 1 ? "un minuto" : `unos ${minutes} min`;
-  return `faltan ${left} ${left === 1 ? "grupo" : "grupos"} · ${time}${measured === null ? " (aún sin medir)" : ""}`;
+  const pending_ = measured === null ? " (aún sin medir)" : "";
+  if (!closeMonth) return `faltan ${left} ${left === 1 ? "grupo" : "grupos"} · ${time}${pending_}`;
+  const month = clasV2MonthName(closeMonth);
+  if (closeLeft) return `${closeLeft === 1 ? "falta" : "faltan"} ${closeLeft} de ${month}${left > closeLeft ? ` (${left} en total)` : ""} · ${time}${pending_}`;
+  return `${month.charAt(0).toUpperCase()}${month.slice(1)} ya está · faltan ${left} de otros meses · ${time}${pending_}`;
 }
 
 function clasV2IsoDate(date) {
@@ -347,11 +378,12 @@ function clasV2GroupHtml() {
   });
   const showSelect = clasV2OtherOpen || (!suggestion && !alternatives.length);
   if (!showSelect) chips.push(`<button type="button" class="clas-v2-opt" data-clas-v2-otra>Otra…</button>`);
-  const rule = target ? `Al aceptar creo la regla «${escapeHtml(group.name)} → ${escapeHtml(displayLabelForRow(target))}» para siempre (${stats.count === 1 ? "este movimiento" : `estos ${stats.count} movimientos`} y los futuros). Se deshace con el aviso o al acabar la tanda.` : "";
+  const rule = target ? `Al aceptar creo la regla «${escapeHtml(group.name)} → ${escapeHtml(displayLabelForRow(target))}» para siempre${group.anyMonth ? ", con el concepto de cualquier mes" : ""} (${stats.count === 1 ? "este movimiento" : `estos ${stats.count} movimientos`} y los futuros). Se deshace con el aviso o al acabar la tanda.` : "";
+  const closeMonth = group.inClose ? clasV2CloseMonth() : "";
   return `${clasV2Head(escapeHtml(meta))}
     ${clasV2Progress()}
     <div class="clas-v2-card">
-      <span class="clas-v2-lab">Grupo · mismo concepto · ${group.kind === "income" ? "ingreso" : "gasto"}</span>
+      <span class="clas-v2-lab">Grupo · mismo concepto${group.anyMonth ? ", cualquier mes" : ""} · ${group.kind === "income" ? "ingreso" : "gasto"}${closeMonth ? ` · cierre de ${clasV2MonthName(closeMonth)}` : ""}</span>
       <b class="clas-v2-nombre${group.name.length > 24 ? " is-largo" : ""}">${escapeHtml(group.name)}</b>
       <div class="clas-v2-cifras">
         <div><span class="clas-v2-meta">Movimientos</span><span class="clas-v2-num">${stats.count}</span></div>

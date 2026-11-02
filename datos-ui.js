@@ -1024,3 +1024,41 @@ function handleMovementsBulkApply() {
   movementsSelectedIndexes.clear();
   renderDetailedMovements();
 }
+
+// Desde app.js (techo de líneas, ARQ-4). 2/11/2026: conceptos que llevan el mes dentro («FINANCIE-OCTUBRE», «NOMINA MAYO 2026»). La regla se guarda por concepto
+// exacto, así que la de septiembre no servía para octubre y cada mes había que volver a clasificarlos. La clave «sin mes»
+// cambia el nombre del mes (entero o como lo corta el banco) por «mes», y el año que lo acompaña, también. Solo meses
+// enteros: abreviaturas de tres letras como «mar» o «may» son palabras corrientes. Los números de contrato (CRD…, PRS…) se
+// conservan: distinguen préstamos distintos.
+function movementMappingMonthlessKey(key) {
+  const text = String(key || "");
+  const cache = (movementMappingMonthlessKey.cache ||= new Map()); // se llama por cada movimiento en cada pintado
+  if (cache.has(text)) return cache.get(text);
+  const monthless = text
+    .replace(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|septiemb|octubre|noviembre|noviembr|diciembre|diciembr)\b/g, "mes")
+    .replace(/\bmes (?:19|20)\d{2}\b/g, "mes");
+  if (cache.size > 5000) cache.clear();
+  cache.set(text, monthless);
+  return monthless;
+}
+
+// La clave con la que se agrupan los conceptos para clasificarlos (Clasificar, bandeja de Movimientos): la de siempre, sin
+// el mes. Una regla guardada con ella vale para el concepto de cualquier mes (mappingForMovement).
+function movementMappingGroupKey(transaction) {
+  return movementMappingMonthlessKey(movementMappingKey(transaction));
+}
+
+// La regla de concepto que encaja sin mirar el mes: la guardada con la clave sin mes, o la de otro mes del mismo concepto
+// («FINANCIE-SEPTIEMB» sirve para «FINANCIE-OCTUBRE»). Si hay varias, la más reciente. Solo para conceptos con mes.
+function movementMappingForAnyMonth(transaction, kind) {
+  const exact = movementMappingKey(transaction);
+  const loose = movementMappingMonthlessKey(exact);
+  if (loose === exact) return null;
+  let best = null;
+  Object.entries(movementMappings || {}).forEach(([key, mapping]) => {
+    if (key === exact || mapping?.kind !== kind || !key.startsWith(`${kind}|`)) return;
+    if (movementMappingMonthlessKey(key) !== loose) return;
+    if (!best || String(mapping.updatedAt || "") > String(best.updatedAt || "")) best = mapping;
+  });
+  return best ? planningRowBySeriesKey(kind, best.rowKey) : null;
+}

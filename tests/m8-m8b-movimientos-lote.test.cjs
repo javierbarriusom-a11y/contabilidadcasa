@@ -95,6 +95,7 @@ test("M-8 · un índice fuera de rango (selección obsoleta) se descarta en vez 
 test("M-8 · movementsSelectedConceptKeys agrupa por concepto, no por movimiento: dos filas de Mercadona son un solo concepto", () => {
   const context = sandboxWith(["movementsSelectedConceptKeys"], {
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
   });
   const concepts = context.movementsSelectedConceptKeys([ROWS[0], ROWS[1], ROWS[2]]);
   assert.equal(concepts.size, 2);
@@ -131,6 +132,7 @@ test("M-8 · sin selección, la barra queda oculta", () => {
     movementsFilteredList: () => [],
     movementsSelectedIndexes: new Set(),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     mappingForMovement: () => null,
     movementMappingOptions: () => "",
@@ -146,6 +148,7 @@ function sandboxBulkBar({ selected = [0, 1], mapped = () => null } = {}) {
     movementsFilteredList: () => ROWS,
     movementsSelectedIndexes: new Set(selected),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     mappingForMovement: mapped,
     movementMappingOptions: (kind, selectedValue) => `<option value="x-${kind}">x</option>`,
@@ -281,6 +284,7 @@ test("M-8b · refresca prior/suggestion solo en las filas del concepto recién c
   const context = sandboxWith(["datosImportarRefreshRowsForMappings"], {
     datosImportarSession: session,
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     datosImportarLoadIgnored: () => ({}),
     datosImportarPriorClassification: (transaction) => ({ status: "regla-previa", mapping: { row: { id: "x" } } }),
     datosImportarSuggestionFor: () => null,
@@ -297,6 +301,7 @@ test("M-8b · si el nuevo prior sigue pendiente, también se recalcula la sugere
   const context = sandboxWith(["datosImportarRefreshRowsForMappings"], {
     datosImportarSession: session,
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     datosImportarLoadIgnored: () => ({}),
     datosImportarPriorClassification: () => ({ status: "pendiente", mapping: null }),
     datosImportarSuggestionFor: () => { suggestionCalls += 1; return { id: "sugerida" }; },
@@ -317,6 +322,7 @@ function sandboxBulkApply({ selected = [0, 1], mapped = () => null } = {}) {
     movementsSelectedIndexes: new Set(selected),
     qs: (id) => (id === "movementsBulkPartida" ? partidaSelect : null),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     movementMappings,
     mappingForMovement: mapped,
@@ -386,6 +392,7 @@ test("M-8 · sin partida elegida en el selector, aplicar no hace nada", () => {
     movementsSelectedIndexes: new Set([0]),
     qs: (id) => (id === "movementsBulkPartida" ? partidaSelect : null),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     movementMappings,
     mappingForMovement: () => null,
@@ -446,6 +453,7 @@ function sandboxBulkBarWithActionType({ selected = [0, 1] } = {}) {
     movementsFilteredList: () => ROWS,
     movementsSelectedIndexes: new Set(selected),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     mappingForMovement: () => null,
     movementMappingOptions: (kind) => `<option value="x-${kind}">x</option>`,
@@ -482,6 +490,7 @@ function sandboxBulkApplyWithActionType({ selected = [0, 1], partidaValue = "", 
     movementsSelectedIndexes: new Set(selected),
     qs: (id) => ({ movementsBulkPartida: partidaSelect, movementsBulkActionType: actionTypeSelect }[id] || null),
     movementMappingKey: keyFor,
+    movementMappingMonthlessKey: (key) => key, // 2/11/2026: también se refresca lo del mismo concepto de otro mes
     movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
     movementMappings,
     movementActionTypes,

@@ -5999,7 +5999,8 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     });
     await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
     const panel = page.locator("#clasificarV2");
-    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("1 de 3 · faltan 3 grupos · menos de un minuto (aún sin medir)");
+    // Con un mes por cerrar que tenga movimientos (2/11/2026, «Octubre primero»), el contador lo dice; estos tres son del mes en curso.
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText(/^1 de 3 · (faltan 3 grupos|\S+ ya está · faltan 3 de otros meses) · menos de un minuto \(aún sin medir\)$/);
     // 1 · La propuesta (confianza media), tal cual.
     await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"]')).toBeVisible();
     await panel.locator("[data-clas-v2-aceptar]").click();

@@ -21585,6 +21585,8 @@ function mappingForMovement(transaction) {
   const stored = movementMappings[movementMappingKey(transaction)];
   const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
   if (storedRow) return { kind, row: storedRow, source: "dictionary" };
+  const anyMonthRow = movementMappingForAnyMonth(transaction, kind); // 2/11/2026: la regla vale para el concepto de cualquier mes
+  if (anyMonthRow) return { kind, row: anyMonthRow, source: "dictionary" };
   const exact = exactMovementPlanningMatch(transaction);
   return exact ? { kind, row: exact, source: "exact" } : null;
 }
@@ -21960,7 +21962,7 @@ function datosImportarRefreshRowsForMappings(keys) {
   datosImportarSession.rows.forEach((row) => {
     if (row.decision) return;
     const key = movementMappingKey(row.transaction);
-    if (!keys.has(key)) return;
+    if (!keys.has(key) && !keys.has(movementMappingMonthlessKey(key))) return;
     row.prior = datosImportarPriorClassification(row.transaction, ignored);
     row.suggestion = row.prior.status === "pendiente" ? datosImportarSuggestionFor(row.transaction) : null;
   });

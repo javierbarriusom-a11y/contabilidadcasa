@@ -110,6 +110,8 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
     extractFunction("movementMappingKey"),
     extractFunction("planningRowBySeriesKey"),
     extractFunction("exactMovementPlanningMatch"),
+    extractFunction("movementMappingMonthlessKey"),
+    extractFunction("movementMappingForAnyMonth"),
     extractFunction("mappingForMovement"),
     extractFunction("transactionIdentity"),
     extractFunction("mergeTransactions"),

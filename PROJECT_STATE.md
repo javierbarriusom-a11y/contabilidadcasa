@@ -113,6 +113,25 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 2 de noviembre de 2026 (389): Clasificar, «Octubre primero» y reglas que no dependen del mes
+
+- **Petición del hogar** a mitad de su primer cierre. Con su extracto real había 112 grupos sin partida de 13 meses, y los de octubre salían mezclados con el resto, ordenados por lo que suman en todo el periodo.
+- **Primero el mes que se cierra:**
+  - Los grupos con movimientos del mes de Cierre (`closeTargetMonthKey`, si no está firmado) van delante.
+  - La tarjeta dice «cierre de octubre» y su cifra es la de ese mes.
+  - El contador cuenta esos: «faltan 29 de octubre (101 en total) · unos 5 min». Cuando se acaban, dice «Octubre ya está · faltan N de otros meses».
+  - Sin mes por cerrar, todo sigue como antes.
+- **Reglas sin mes.** CaixaBank pone el mes en el concepto (FINANCIE-AGOSTO, FINANCIE-SEPTIEMB, FINANCIE-OCTUBRE…), y una regla de septiembre no servía para octubre.
+  - `movementMappingMonthlessKey` cambia el mes por «mes»: el mes entero o como lo corta el banco, y su año.
+  - No toca abreviaturas de tres letras («mar», «may») ni números de contrato, que distinguen préstamos.
+  - Clasificar agrupa con esa clave y guarda la regla sin el mes.
+  - `mappingForMovement` busca, después de la exacta, la regla del mismo concepto de otro mes (la más reciente). Así también sirven las reglas que el hogar ya ha creado hoy.
+  - La bandeja de Movimientos cuenta los conceptos igual que Clasificar.
+- **Con el fichero real** (solo en local, sin subir nada): 101 grupos en vez de 112; 29 de octubre, que salen primero; los FINANCIE-* forman un grupo de 29 movimientos. Sin coste de rendimiento apreciable al pintar.
+- Las tres funciones nuevas viven en `datos-ui.js` (cargado antes de `app.js`, mismo ámbito), no en `app.js`: este superaba su techo de líneas (ARQ-4).
+- `views/movimientos-v2.js` pasa a `?v=20261102mes1`. Novedades. `docs/rediseno/ESTADO.md` §2.
+- **Validación:** `npm run verify` en verde (`npm test` 6310/6310, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke); tras el último ajuste (sin «Octubre ya está» si el mes no tiene movimientos), `npm test` 6310/6310, lint y typecheck otra vez. E2E de Movimientos, Importar, Clasificar y Cierre 42 de 42. Prueba nueva `tests/clasificar-mes-cierre.test.cjs` (7); la e2e de XDA-05 acepta el contador nuevo.
+
 ## Cierre de sesión — 2 de noviembre de 2026 (388): las partidas de un solo mes ya no dejan reales sueltos
 
 - **El hallazgo de la sesión 387,** que el hogar pidió resolver aquí. Una partida personalizada solo existe en los meses que tienen su fila (`customRowsForSection`). Las reglas de Movimientos valen «para siempre».
