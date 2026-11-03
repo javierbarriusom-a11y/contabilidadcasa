@@ -117,10 +117,12 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 
 - **Qué pasó.** El despliegue de #577 a `main` se paró en el e2e (Chromium): «WP-41 · deuda en la sombra y TAE real» no encontraba `#sombraRecurrentes`. El cambio de #577 no tenía nada que ver; en el CI del PR, un día antes, había pasado.
 - **Causa.** La prueba sembraba los tres cargos de Netflix «hace 63, 33 y 3 días». El detector (`canonical-shadow-debt.js`, `unflaggedMonthly`) pide tres meses distintos. Del 1 al 3 de un mes que sigue a uno de 31 días, dos cargos caen en el mismo mes: el 3/11/2026 eran 1/9, 1/10 y 31/10.
-- **Arreglo, solo en la prueba:** los tres cargos van el mismo día (tope 28) del mes actual y de los dos anteriores. Así quedan siempre en tres meses distintos y a 28–31 días entre sí. La regla del detector no cambia.
+- **Arreglo, solo en las pruebas:** los tres cargos van el mismo día (tope 28) del mes actual y de los dos anteriores. Así quedan siempre en tres meses distintos y a 28–31 días entre sí. La regla del detector no cambia.
+- La misma siembra estaba copiada en `tests/opt4-axe-accessibility.spec.cjs` (contraste de WP-41). La CI del PR la tumbó en el paso de axe, ya con el e2e en verde; arreglada igual. No hay más copias (las demás pruebas con Netflix usan fechas fijas).
 - **Validación:**
   - Barrido con el motor real, todos los días de 2026 y 2027: la siembra vieja fallaba 28 días, la nueva ninguno.
-  - Las dos e2e de WP-41: 2 de 2.
+  - Las dos e2e de WP-41: 2 de 2, y el e2e entero en local con la fecha de hoy: 179 de 179.
+  - Las dos de axe de WP-41 (claro y oscuro): 2 de 2. El mismo barrido sobre la siembra de axe: 28 días fallaban antes, ninguno ahora.
   - `npm run verify` en verde (`npm test` 6310/6310, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
 
 ## Cierre de sesión — 2 de noviembre de 2026 (389): Clasificar, «Octubre primero» y reglas que no dependen del mes
