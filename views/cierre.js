@@ -422,10 +422,165 @@ function cierreStep1Html(accountRows) {
   </article>`;
 }
 
-function cierreStep2Html(tasks) {
+// 3/11/2026 · «Firmar dejando lo pendiente en Por clasificar». Decisión del hogar en su primer cierre real: quería firmar octubre
+// sin haber asignado todos sus movimientos. Firmar con movimientos sin partida dejaría el mes sin ese dinero para siempre (un
+// movimiento sin partida no cuenta en ningún real, y firmar congela los reales). Así que no se salta la regla: lo pendiente va a
+// una partida explícita, «Por clasificar» (una de gasto y, si hace falta, otra de ingreso, con previsto 0 €), y el mes suma lo
+// que de verdad pasó.
+// - Solo se ofrece cuando lo único abierto del mes son movimientos sin partida: un descuadre de saldos o una diferencia entre
+//   banco y real no se tapan así.
+// - Cada movimiento se asigna por su identidad, sin crear reglas: esos conceptos siguen esperando en la bandeja los meses
+//   siguientes. La asignación lleva `porClasificar: true`, para contarla después.
+// - Antes de pulsar dice cuántos son y cuánto suman. Se deshace en el propio Cierre (también la partida, si la creó).
+// - El mes firmado lo recuerda («se firmó con N en Por clasificar»), y el siguiente cierre también.
+const CIERRE_POR_CLASIFICAR = "Por clasificar";
+let cierrePorClasificarHecho = null; // { monthKey, foto, creadas, texto }: lo último que se dejó en «Por clasificar», con su «Deshacer»
+
+function cierrePorClasificarFilas(monthKey) {
+  const vistos = new Set();
+  return (baseData?.transactions || []).filter((row) => {
+    if (!row || !Number(row.amount) || String(row.month || row.date || "").slice(0, 7) !== monthKey || mappingForMovement(row)) return false;
+    const id = transactionIdentity(row);
+    if (vistos.has(id)) return false; // un duplicado del extracto es el mismo movimiento
+    vistos.add(id);
+    return true;
+  });
+}
+
+function cierrePorClasificarResumen(filas) {
+  const suma = (list) => Math.round(list.reduce((total, row) => total + Math.abs(Number(row.amount)), 0) * 100) / 100;
+  const gasto = filas.filter((row) => Number(row.amount) < 0);
+  const ingreso = filas.filter((row) => Number(row.amount) > 0);
+  const partes = [gasto.length ? `${money(suma(gasto), true)} de gasto` : "", ingreso.length ? `${money(suma(ingreso), true)} de ingreso` : ""].filter(Boolean);
+  return { total: filas.length, importes: partes.join(" y ") };
+}
+
+function cierreMesAnterior(monthKey) {
+  const [year, month] = String(monthKey || "").split("-").map(Number);
+  if (!year || !month) return "";
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
+}
+
+function cierreMovimientos(n) {
+  return n === 1 ? "1 movimiento" : `${n} movimientos`;
+}
+
+// Cuántos movimientos de un mes se dejaron en «Por clasificar» desde Cierre (derivado de las asignaciones, no guardado aparte).
+function cierrePorClasificarContados(monthKey) {
+  const vistos = new Set();
+  (baseData?.transactions || []).forEach((row) => {
+    if (String(row?.month || row?.date || "").slice(0, 7) !== monthKey) return;
+    const id = transactionIdentity(row);
+    if (movementMappings[id]?.porClasificar) vistos.add(id);
+  });
+  return vistos.size;
+}
+
+function cierrePorClasificarHtml(tasks, monthKey) {
+  const hecho = cierrePorClasificarHecho?.monthKey === monthKey
+    ? `<p class="cierre-por-clasificar-aviso" role="status"><span>✓ ${escapeHtml(cierrePorClasificarHecho.texto)}</span><button type="button" class="link-button" data-cierre-por-clasificar-deshacer>Deshacer</button></p>`
+    : "";
+  if (!tasks.length || tasks.some((task) => task.cause !== "unclassified")) return hecho;
+  const filas = cierrePorClasificarFilas(monthKey);
+  if (!filas.length) return hecho;
+  const { total, importes } = cierrePorClasificarResumen(filas);
+  const mes = ledgerMonthLabel(monthKey);
+  return `${hecho}<article class="e19-card cierre-por-clasificar">
+    <h3 class="escenario-motor-panel-title">¿Firmar ya, sin clasificar lo que queda?</h3>
+    <p>Quedan <strong>${cierreMovimientos(total)} de ${escapeHtml(mes)} sin partida</strong> (${escapeHtml(importes)}). Sin partida no cuentan en ningún real: si firmaras así, ${escapeHtml(mes)} se quedaría sin ese dinero.</p>
+    <p>Puedes dejarlos en la partida <strong>«${CIERRE_POR_CLASIFICAR}»</strong>, con previsto 0 €: el mes suma todo lo que pasó y se puede firmar.</p>
+    <ul class="cierre-por-clasificar-notas">
+      <li>Van uno a uno, sin crear reglas: esos conceptos te seguirán esperando en la bandeja los meses que vienen.</li>
+      <li>Una vez firmado, clasificarlos después no cambia los reales de ${escapeHtml(mes)}, salvo que reabras el mes.</li>
+    </ul>
+    <button type="button" class="e19-btn e19-btn-secondary" data-cierre-por-clasificar="${escapeHtml(monthKey)}">Dejar ${cierreMovimientos(total)} en «${CIERRE_POR_CLASIFICAR}»</button>
+  </article>`;
+}
+
+// El recordatorio: el mes firmado dice con cuántos se firmó, y el cierre siguiente también.
+function cierrePorClasificarRecuerdoHtml(monthKey) {
+  const n = cierrePorClasificarContados(monthKey);
+  if (!n) return "";
+  return `<p class="e19-kpi-note cierre-por-clasificar-recuerdo">${escapeHtml(ledgerMonthLabel(monthKey))} se firmó con ${cierreMovimientos(n)} en «${CIERRE_POR_CLASIFICAR}». Se pueden clasificar cuando queráis en Movimientos; para que cambien sus reales hay que reabrir el mes.</p>`;
+}
+
+function cierrePorClasificarPartida(kind, monthKey, creadas) {
+  const existente = customPlanningRows.find((row) => row.custom && row.kind === kind && String(row.label || "").trim().toLowerCase() === CIERRE_POR_CLASIFICAR.toLowerCase());
+  if (existente) {
+    // La del hogar (si la creó en Clasificar) o una de otro mes: se reutiliza, con su fila en este mes.
+    if (!customPlanningRows.some((row) => row.id === existente.id && row.monthKey === monthKey)) {
+      const fila = { ...existente, monthKey, plannedValue: 0 };
+      customPlanningRows.push(fila);
+      creadas.push(fila);
+    }
+    return existente.id;
+  }
+  const secciones = (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === kind);
+  const seccion = secciones.find((section) => /variable/i.test(section.name)) || secciones[0];
+  const fila = { id: `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`, custom: true, kind, sectionName: seccion?.name || "", label: CIERRE_POR_CLASIFICAR, monthKey, plannedValue: 0 };
+  customPlanningRows.push(fila);
+  creadas.push(fila);
+  return fila.id;
+}
+
+function cierrePorClasificarRefresca() {
+  saveMovementMappings();
+  applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  saveIncomeActuals();
+  saveExpenseActuals();
+  refreshAllSectionsAfterDataChange();
+}
+
+function handleCierrePorClasificar(monthKey) {
+  if (!monthKey || isSignedClosedMonthKey(monthKey)) return;
+  const filas = cierrePorClasificarFilas(monthKey);
+  if (!filas.length) return;
+  const creadas = [];
+  const ids = {};
+  const foto = {};
+  const updatedAt = new Date().toISOString();
+  filas.forEach((row) => {
+    const kind = movementKindFromAmount(row.amount);
+    ids[kind] ||= cierrePorClasificarPartida(kind, monthKey, creadas);
+    const key = transactionIdentity(row);
+    foto[key] = movementMappings[key] ? { ...movementMappings[key] } : null;
+    movementMappings[key] = { kind, rowKey: `${kind}|${ids[kind]}`, label: CIERRE_POR_CLASIFICAR, updatedAt, porClasificar: true };
+  });
+  if (creadas.length) saveCustomPlanningRows();
+  cierrePorClasificarRefresca();
+  const { total, importes } = cierrePorClasificarResumen(filas);
+  const texto = `${cierreMovimientos(total)} (${importes}) ${total === 1 ? "va" : "van"} a «${CIERRE_POR_CLASIFICAR}». Ya puedes firmar.`;
+  cierrePorClasificarHecho = { monthKey, foto, creadas, texto };
+  announceStatus(texto);
+  renderCierre();
+}
+
+function handleCierrePorClasificarDeshacer() {
+  const hecho = cierrePorClasificarHecho;
+  if (!hecho || isSignedClosedMonthKey(hecho.monthKey)) return;
+  cierrePorClasificarHecho = null;
+  Object.entries(hecho.foto).forEach(([key, value]) => {
+    if (value) movementMappings[key] = value;
+    else delete movementMappings[key];
+  });
+  if (hecho.creadas.length) {
+    hecho.creadas.forEach((fila) => {
+      const index = customPlanningRows.indexOf(fila);
+      if (index >= 0) customPlanningRows.splice(index, 1);
+    });
+    saveCustomPlanningRows();
+  }
+  cierrePorClasificarRefresca();
+  announceStatus("Deshecho: esos movimientos vuelven a estar sin partida.");
+  renderCierre();
+}
+
+function cierreStep2Html(tasks, monthKey = "") {
   const groups = cierreGroupTasksByCause(tasks);
+  const porClasificar = monthKey ? cierrePorClasificarHtml(tasks, monthKey) : "";
   if (!groups.length) {
-    return `<article class="e19-card cierre-step-card"><h3 class="escenario-motor-panel-title">Resolver diferencias</h3><p class="e19-kpi-note">Sin diferencias abiertas en este mes: clasificación, saldos e importes reales están conciliados.</p></article>`;
+    return `${porClasificar}<article class="e19-card cierre-step-card"><h3 class="escenario-motor-panel-title">Resolver diferencias</h3><p class="e19-kpi-note">Sin diferencias abiertas en este mes: clasificación, saldos e importes reales están conciliados.</p></article>`;
   }
   const groupsHtml = groups
     .map(
@@ -435,7 +590,7 @@ function cierreStep2Html(tasks) {
       </div>`
     )
     .join("");
-  return `<article class="e19-card cierre-step-card">
+  return `${porClasificar}<article class="e19-card cierre-step-card">
     <h3 class="escenario-motor-panel-title">Resolver diferencias</h3>
     <p class="e19-kpi-note">Cada tarea nombra la pantalla y el dato que la generó. Abrir una tarea no corrige nada por sí sola: se cierra cuando el dato cuadra, no cuando se pulsa.</p>
     ${groupsHtml}
@@ -471,6 +626,7 @@ function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey
       ${syncReady ? "" : `<p class="e19-kpi-note is-warn">Inicia sesión y sincroniza una versión antes de firmar.</p>`}
       <button type="button" class="e19-btn e19-btn-primary" id="cierreSignButton" ${canSign ? "" : "disabled"}>${unmet ? `Firmar · ${unmet} sin cumplir` : "Firmar cierre"}</button>
     </article>
+    ${cierrePorClasificarHtml(tasks, currentMonthKey)}
     <article class="e19-card">
       <h3 class="escenario-motor-panel-title">Al firmar el cierre</h3>
       ${cierreEffectsHtml(monthLabel, sobresRows)}
@@ -1286,7 +1442,7 @@ function renderCierre() {
     const closedInfo = qs("cierreClosedInfo");
     if (closedInfo) {
       const savedBalances = loadMonthCloseBalances().months[currentMonthKey];
-      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>${savedBalances ? cierreBalancesHtml(savedBalances, entries, currentMonthKey) : `<p class="e19-kpi-note">Este cierre no tiene saldos guardados (los cierres anteriores a octubre de 2026 no los guardaban).</p>`}`;
+      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>${cierrePorClasificarRecuerdoHtml(currentMonthKey)}${savedBalances ? cierreBalancesHtml(savedBalances, entries, currentMonthKey) : `<p class="e19-kpi-note">Este cierre no tiene saldos guardados (los cierres anteriores a octubre de 2026 no los guardaban).</p>`}`;
     }
     const reopenButton = qs("cierreReopen");
     if (reopenButton) reopenButton.disabled = !remoteUser || !supabaseClient;
@@ -1319,7 +1475,7 @@ function renderCierre() {
   const body = qs("cierreStepBody");
   if (body) {
     if (cierreActiveStep === 1) body.innerHTML = cierreStep1Html(accountRows);
-    else if (cierreActiveStep === 2) body.innerHTML = cierreStep2Html(tasks);
+    else if (cierreActiveStep === 2) body.innerHTML = cierrePorClasificarRecuerdoHtml(cierreMesAnterior(currentMonthKey)) + cierreStep2Html(tasks, currentMonthKey);
     else if (sobresStepEntry && cierreActiveStep === sobresStepEntry.step) body.innerHTML = cierreStep3SobresHtml(sobresRows, currentMonthKey);
     else if (propuestoStepEntry && cierreActiveStep === propuestoStepEntry.step) body.innerHTML = cierreStepPropuestoHtml(propuestos);
     else if (cierreActiveStep === firmStep) body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows) + `<article class="e19-card cierre-balances-card"><h3 class="escenario-motor-panel-title">Saldos que se guardarán</h3>${cierreBalancesHtml(pendingMonthCloseBalances(currentMonthKey), entries, currentMonthKey)}</article>`;

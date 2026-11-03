@@ -2857,6 +2857,40 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(44, 107, 224, 0.12);
 }
 
+/* 3/11/2026 (petición del hogar): la regla de arriba da a todo input 100 % de ancho y 40 px de alto, también a casillas y opciones.
+   Salían cajas de hasta 360 × 40 px, centradas y encima de su texto (30 de las 33 visibles en la app). Aquí vuelven a su tamaño
+   (18 px), van delante de su texto y en la misma línea. `:where()` deja estas reglas con la misma prioridad que `input` y `label`:
+   cualquier componente que ya dé su propio tamaño o su propia maquetación con una clase sigue mandando. */
+input:where([type="checkbox"], [type="radio"]) {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--e19-accent, var(--teal));
+  cursor: pointer;
+}
+
+label:where(:has(> input[type="checkbox"], > input[type="radio"])) {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 10px;
+  cursor: pointer;
+}
+
+/* La casilla, siempre en la primera columna (aunque en el HTML vaya detrás del texto); todo lo demás, en la segunda. */
+label:where(:has(> input[type="checkbox"], > input[type="radio"])) > input:where([type="checkbox"], [type="radio"]) {
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: 1px;
+}
+
+label:where(:has(> input[type="checkbox"], > input[type="radio"])) > :where(:not(input)) {
+  grid-column: 2;
+}
+
 .project-panel {
   margin-bottom: 18px;
 }
@@ -9496,6 +9530,53 @@ body {
 .ficha-mov-bloque button[disabled] {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* 3/11/2026 · Cierre: «Dejar N en Por clasificar» (views/cierre.js). Tarjeta de conclusión teñida, como pide la decisión 1 del
+   rediseño (verde sólido solo para lo que se pulsa), y la confirmación con «Deshacer» en el color del texto. */
+.cierre-por-clasificar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  border: 1px solid var(--e19-accent-soft-border, var(--line));
+  background: var(--e19-accent-soft, var(--surface-soft));
+}
+
+.cierre-por-clasificar p,
+.cierre-por-clasificar ul {
+  margin: 0;
+}
+
+.cierre-por-clasificar-notas {
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.cierre-por-clasificar .e19-btn {
+  justify-self: start;
+}
+
+.cierre-por-clasificar-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-accent-soft-border, var(--line));
+  border-radius: 10px;
+  background: var(--e19-accent-soft, var(--surface-soft));
+  font-weight: 600;
+}
+
+.cierre-por-clasificar-aviso .link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* C-3b: el modal de clasificación de Cierre reutiliza el mismo patrón de campos/gap que

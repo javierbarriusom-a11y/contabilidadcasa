@@ -17,6 +17,17 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-03-por-clasificar",
+      fecha: "2026-11-03",
+      texto: "Cierre: si solo faltan movimientos sin partida, puedes dejarlos en «Por clasificar» y firmar sin que el mes pierda ese dinero.",
+      href: "#cierre",
+    },
+    {
+      id: "2026-11-03-casillas",
+      fecha: "2026-11-03",
+      texto: "Las casillas de toda la app vuelven a su tamaño y van delante de su texto, no encima.",
+    },
+    {
       id: "2026-11-03-ficha-movimiento",
       fecha: "2026-11-03",
       texto: "La ficha de un movimiento: partida y tipo de acción por separado, a cuáles se aplica y cuántos son, y «Deshacer» al guardar.",
