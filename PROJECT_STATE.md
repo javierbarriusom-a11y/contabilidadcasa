@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (395): Cierre tomaba un saldo intermedio como el último de CaixaBank
+
+- **Lo que vio el hogar** al ir a firmar octubre: «Conciliar cuentas» marcaba CaixaBank como «Descuadra». Declarado 6.021,36 €, calculado 7.377,30 €, diferencia −1.355,94 €. «No se me actualiza el saldo de la cuenta para firmar.»
+- **Causa:**
+  - El 30/10 hay dos cargos FINANCIE-OCTUBRE. El extracto de CaixaBank va del más nuevo al más antiguo: el cargo de 348,69 € está en la posición 4 (saldo 7.377,30) y el de 1.355,94 €, en la 3 (saldo final 6.021,36).
+  - `cierreAccountReconciliation` ordenaba por fecha y, a igual fecha, por posición en el fichero de menor a mayor, como si el extracto fuera del más antiguo al más nuevo. Tomaba como «último» el saldo intermedio.
+  - El declarado del hogar era el correcto.
+- **Arreglo:** el último movimiento del último día es el que cierra la cadena de saldos (su saldo no es el «saldo anterior» de otro de ese día), como ya hacía `statementFinalBalance` del pulso de saldos. Si la cadena no se puede seguir, se usa la posición como antes. `app.js` +3 líneas.
+- **Validación:**
+  - Con el extracto real del hogar, solo en local y sin subir nada: CaixaBank calculado 6.021,36 €, «cuadra».
+  - Prueba nueva `tests/cierre-saldo-ultimo.test.cjs` (3), con los dos órdenes del fichero y la cadena ambigua.
+  - Las de Cierre de siempre, en verde.
+  - `npm run verify` en verde (`npm test` 6336/6336, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+
 ## Cierre de sesión — 3 de noviembre de 2026 (394): «cada N meses» llega a la previsión
 
 - **Petición del hogar:** conectar la periodicidad que se marca en la ficha de un movimiento con la previsión.

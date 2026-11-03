@@ -27616,10 +27616,12 @@ function cierreAccountReconciliation(entries) {
     const accountEntries = (entries || []).filter(
       (entry) => entry.accountId === accountId && !entry.duplicateOf && entry.balanceAfter !== null && entry.balanceAfter !== undefined
     );
-    const latest = accountEntries
-      .slice()
-      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || (a.sourceRow ?? 0) - (b.sourceRow ?? 0))
-      .at(-1);
+    // 3/11/2026: con varios movimientos el último día, el último es el que cierra la cadena de saldos (su saldo no es el «saldo anterior» de otro de ese día), como en
+    // statementFinalBalance. Ordenar por posición en el fichero suponía «del más antiguo al más nuevo», y CaixaBank lista al revés: el primer cierre real descuadraba.
+    const lastDay = accountEntries.reduce((max, entry) => (String(entry.date || "") > max ? String(entry.date || "") : max), "");
+    const sameDay = accountEntries.filter((entry) => String(entry.date || "") === lastDay);
+    const ends = sameDay.filter((entry) => !sameDay.some((other) => other !== entry && Math.abs(round2(Number(other.balanceAfter) - Number(other.signedAmount || 0)) - Number(entry.balanceAfter)) < 0.005));
+    const latest = ends.length === 1 ? ends[0] : sameDay.slice().sort((a, b) => (a.sourceRow ?? 0) - (b.sourceRow ?? 0)).at(-1);
     const calculated = latest ? round2(latest.balanceAfter) : null;
     const diff = calculated === null ? null : round2(declaredValue - calculated);
     const status = calculated === null ? "sin-conciliar" : Math.abs(diff) <= 0.02 ? "cuadra" : "descuadra";
