@@ -2752,9 +2752,12 @@ async function seedSombra(page) {
     add(back(72), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
     add(back(42), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
     add(back(12), -25, "COMPRA FINANCIADA TIENDA FICTICIA");
-    add(back(63), -12.99, "NETFLIX FICTICIO");
-    add(back(33), -12.99, "NETFLIX FICTICIO");
-    add(back(3), -12.99, "NETFLIX FICTICIO");
+    // El mismo día en tres meses seguidos (tope 28): con «hace 63, 33 y 3 días», del 1 al 3 de un mes que sigue a uno de 31 dos cargos caían en el mismo mes
+    // y el detector, que pide tres meses distintos, dejaba de verlo (falló el 3/11/2026).
+    const sameDay = (monthsBack) => iso(new Date(today.getFullYear(), today.getMonth() - monthsBack, Math.min(today.getDate(), 28)));
+    add(sameDay(2), -12.99, "NETFLIX FICTICIO");
+    add(sameDay(1), -12.99, "NETFLIX FICTICIO");
+    add(sameDay(0), -12.99, "NETFLIX FICTICIO");
     add(back(32), -80, "CUOTA COMUNIDAD 2/12");
     add(back(2), -80, "CUOTA COMUNIDAD 3/12");
     baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
