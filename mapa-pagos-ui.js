@@ -47,6 +47,39 @@ function mapaPagosPlanRows(monthKeys) {
   return [...series.values()];
 }
 
+// 3/11/2026: los conceptos que el hogar ha marcado «cada N meses» (N ≥ 2) en la ficha de un movimiento: un cargo por concepto (de cualquier mes), con su último cargo real, su
+// importe, su partida y lo que el plan tiene para esa partida en cada mes de la ventana. Solo gastos: es un mapa de pagos.
+function mapaPagosPeriodicos(monthKeys) {
+  const grupos = new Map();
+  (baseData?.transactions || []).forEach((row) => {
+    if (!row || !(Number(row.amount) < 0) || !row.date) return;
+    const tipo = actionTypeForMovement(row);
+    if (!tipo?.confirmed || tipo.recurring !== true || !(Number(tipo.everyMonths) >= 2)) return;
+    const clave = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey(row) : movementMappingKey(row);
+    const actual = grupos.get(clave);
+    if (!actual || String(row.date) > String(actual.row.date)) grupos.set(clave, { row, every: Number(tipo.everyMonths) });
+  });
+  if (!grupos.size) return [];
+  const all = cuadroMandosAllMonths();
+  const filasDelMes = new Map(monthKeys.map((key) => {
+    const month = all.find((item) => item.key === key);
+    return [key, month ? { month, rows: planningSectionsForMonth("expense", month).flatMap((section) => section.rows) } : null];
+  }));
+  const previsto = (row, month) => Number((typeof plannedValueForRow === "function" ? plannedValueForRow : plannedValueForRowRaw)(row, month)) || 0;
+  return [...grupos.entries()].map(([clave, { row, every }]) => {
+    const partida = mappingForMovement(row)?.row || null;
+    const partidaKey = partida ? seriesKeyForRow(partida) : "";
+    const planValues = partidaKey
+      ? Object.fromEntries(monthKeys.map((key) => {
+        const mes = filasDelMes.get(key);
+        const fila = mes?.rows.find((item) => seriesKeyForRow(item) === partidaKey);
+        return [key, mes ? (fila ? previsto(fila, mes.month) : 0) : null];
+      }))
+      : null;
+    return { id: clave, label: movementDisplayName(row), everyMonths: every, lastDate: String(row.date).slice(0, 10), amount: Number(row.amount), partidaLabel: partida ? displayLabelForRow(partida) : "", planValues };
+  });
+}
+
 function mapaPagosGoals() {
   const e15 = globalThis.FinanceCanonicalE15;
   const goals = mapaPagosGuard(() => p2State().goals, []) || [];
@@ -63,6 +96,7 @@ function mapaPagosBuild(engine) {
     policies: mapaPagosGuard(() => insurancePolicies(), []),
     goals: mapaPagosGoals(),
     calendar: mapaPagosGuard(() => ajustesFinancialCalendarInput()?.calendar, null),
+    charges: mapaPagosGuard(() => mapaPagosPeriodicos(monthKeys), []),
     startMonth, months: engine.DEFAULT_MONTHS, minAmount: mapaPagosMin, today,
   });
 }
@@ -70,6 +104,7 @@ function mapaPagosBuild(engine) {
 // El estado de financiación en palabras (nunca solo color): icono + texto, y un patrón distinto en la barra.
 function mapaPagosState(item) {
   const f = item.funding;
+  if (item.kind === "periodic" && item.planShort > 0.005) return { icon: "!", cls: "sin-reserva", text: "Falta en el plan" };
   if (f.status === "sin-importe") return { icon: "?", cls: "desconocido", text: "Importe sin determinar" };
   if (f.status === "financiado") return { icon: "✓", cls: "financiado", text: "Financiado" };
   if (f.status === "parcial") return f.pct === 0
@@ -103,7 +138,15 @@ function mapaPagosItemHtml(item, maxAmount) {
   const reservedLine = item.funding.status === "financiado" || item.funding.status === "parcial"
     ? `<p>Reservado: ${mapaPagosEuros(item.reserved)} de ${mapaPagosEuros(item.amount)} (lo ahorrado en el objetivo).</p>`
     : (item.funding.status === "sin-reserva" ? `<p>Nadie ha declarado dinero para este pago: la app no tiene fondos por pago, solo los objetivos.</p>` : "");
-  const dayLine = item.day ? `<p>Día ${item.day} del mes${item.estimated ? " (estimado a partir de la última renovación declarada; se repite cada año)" : ""}.</p>` : "";
+  const dayLine = item.day
+    ? `<p>Día ${item.day} del mes${item.kind === "periodic" ? ` (estimado: se repite cada ${item.everyMonths} meses desde el último cargo)` : item.estimated ? " (estimado a partir de la última renovación declarada; se repite cada año)" : ""}.</p>`
+    : "";
+  // Un cargo que se repite cada varios meses y que el plan de su mes no recoge entero: la previsión de caja no lo cuenta. Se dice cuánto falta y se lleva a ese mes del plan; no se toca nada solo.
+  const planLine = item.kind === "periodic" && !item.alsoInPlan && item.planShort > 0.005
+    ? `<p><strong>No está del todo en el plan de ${escapeHtml(mapaPagosMonthName(item.monthKey))}</strong>: ${item.partidaLabel ? `la partida «${escapeHtml(item.partidaLabel)}» tiene ${escapeHtml(mapaPagosEuros(item.planned ?? 0))} ese mes` : "el movimiento no tiene partida"} y faltan ${escapeHtml(mapaPagosEuros(item.planShort))}. La previsión de caja de ese mes no los cuenta.</p><button type="button" class="e19-btn e19-btn-secondary" data-mapa-pagos-plan="${escapeHtml(item.monthKey)}">Ajustar en Plan › Mes</button>`
+    : item.kind === "periodic" && !item.alsoInPlan && item.partidaLabel
+      ? `<p>En el plan: la partida «${escapeHtml(item.partidaLabel)}» tiene ${escapeHtml(mapaPagosEuros(item.planned ?? 0))} ese mes, suficiente para este cargo.</p>`
+      : "";
   const unknownLine = hasAmount ? "" : `<p>No suma en ningún total: no se sabe cuánto es, y desconocido no es cero.</p>`;
   const alsoLine = item.alsoInPlan ? `<p>También está en el plan de gastos como «${escapeHtml(item.alsoInPlan)}»: se cuenta una sola vez.</p>` : "";
   return `<li class="mpg-item mpg-st-${state.cls}"><details>
@@ -112,7 +155,7 @@ function mapaPagosItemHtml(item, maxAmount) {
         ${bar}
         <span class="mpg-estado mpg-estado-${state.cls}"><span aria-hidden="true">${state.icon}</span> ${escapeHtml(state.text)}</span>
       </summary>
-      <div class="mpg-detalle"><p class="mpg-etiquetas">${escapeHtml(tags.join(" · "))}</p>${dayLine}${reservedLine}${how ? `<p>${escapeHtml(how)}</p>` : ""}${unknownLine}${alsoLine}<p class="mpg-origen">Origen: ${escapeHtml(item.source)}.</p></div>
+      <div class="mpg-detalle"><p class="mpg-etiquetas">${escapeHtml(tags.join(" · "))}</p>${dayLine}${reservedLine}${how ? `<p>${escapeHtml(how)}</p>` : ""}${unknownLine}${alsoLine}${planLine}<p class="mpg-origen">Origen: ${escapeHtml(item.source)}.</p></div>
     </details></li>`;
 }
 
@@ -155,6 +198,7 @@ function mapaPagosNotesHtml(map) {
   notes.push("Una partida del plan cuenta como pago grande si llega al mínimo y pesa al menos 2,5 veces lo habitual de esa misma partida: una cuota igual cada mes no lo es.");
   notes.push("Lo «reservado» sale solo de los objetivos con ahorro declarado. Los sobres de gastos variables arrastran el sobrante del mes, no guardan dinero para un pago concreto: por eso el resto sale «sin reserva asignada», no «0 %».");
   notes.push("El plan se repite cada año con lo previsto para el mismo mes: si un pago cambia de mes o de importe, hay que ajustarlo en el plan.");
+  notes.push("Los cargos que marcáis «cada N meses» en la ficha de un movimiento salen siempre, aunque no lleguen al mínimo, proyectados desde su último cargo. Si el plan de ese mes no los recoge, la previsión de caja no los cuenta: el mapa dice cuánto falta.");
   return `<ul class="mpg-notas">${notes.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`;
 }
 
@@ -165,7 +209,7 @@ function mapaPagosBodyHtml(engine) {
   if (!map.summary.count) {
     return `${select}${estadoHtml({
       kind: "vacio", titulo: "No hay pagos grandes en los próximos 12 meses",
-      texto: `La app no ve ningún pago de ${mapaPagosEuros(mapaPagosMin)} o más. Aparecerán los seguros con fecha de renovación y prima, los objetivos con fecha e importe, y las partidas del plan que un mes pesen de golpe.`,
+      texto: `La app no ve ningún pago de ${mapaPagosEuros(mapaPagosMin)} o más. Aparecerán los seguros con fecha de renovación y prima, los objetivos con fecha e importe, las partidas del plan que un mes pesen de golpe y los cargos que marquéis «cada N meses» en la ficha de un movimiento.`,
     })}${mapaPagosNotesHtml(map)}`;
   }
   const sentence = engine.describe(map, { labelOf: mapaPagosMonthName, euros: mapaPagosEuros });
@@ -196,6 +240,16 @@ function renderMapaPagos(engine) {
 function attachMapaPagos(doc) {
   if (!doc || doc.__mapaPagosAttached) return false;
   doc.__mapaPagosAttached = true;
+  // «Ajustar en Plan › Mes»: lleva al mes del plan donde falta el cargo. No escribe nada: el previsto se cambia allí, con su «Impacto del cambio».
+  doc.addEventListener("click", (event) => {
+    const boton = event.target?.closest?.("[data-mapa-pagos-plan]");
+    if (!boton) return;
+    const key = boton.dataset.mapaPagosPlan;
+    if (typeof setPlanTab === "function") setPlanTab("mes");
+    if (typeof planV2GoToMonth === "function") planV2GoToMonth(key);
+    else if (qs("planMesMonth")) { qs("planMesMonth").value = key; renderPlanMes(); }
+    qs("planMesMonth")?.closest(".e19-plan-mes")?.scrollIntoView?.({ block: "start" });
+  });
   doc.addEventListener("change", (event) => {
     if (event.target?.id !== "mapaPagosMinimo") return;
     const value = Number(event.target.value);

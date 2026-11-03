@@ -113,6 +113,68 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (395): Cierre tomaba un saldo intermedio como el último de CaixaBank
+
+- **Lo que vio el hogar** al ir a firmar octubre: «Conciliar cuentas» marcaba CaixaBank como «Descuadra». Declarado 6.021,36 €, calculado 7.377,30 €, diferencia −1.355,94 €. «No se me actualiza el saldo de la cuenta para firmar.»
+- **Causa:**
+  - El 30/10 hay dos cargos FINANCIE-OCTUBRE. El extracto de CaixaBank va del más nuevo al más antiguo: el cargo de 348,69 € está en la posición 4 (saldo 7.377,30) y el de 1.355,94 €, en la 3 (saldo final 6.021,36).
+  - `cierreAccountReconciliation` ordenaba por fecha y, a igual fecha, por posición en el fichero de menor a mayor, como si el extracto fuera del más antiguo al más nuevo. Tomaba como «último» el saldo intermedio.
+  - El declarado del hogar era el correcto.
+- **Arreglo:** el último movimiento del último día es el que cierra la cadena de saldos (su saldo no es el «saldo anterior» de otro de ese día), como ya hacía `statementFinalBalance` del pulso de saldos. Si la cadena no se puede seguir, se usa la posición como antes. `app.js` +3 líneas.
+- **Validación:**
+  - Con el extracto real del hogar, solo en local y sin subir nada: CaixaBank calculado 6.021,36 €, «cuadra».
+  - Prueba nueva `tests/cierre-saldo-ultimo.test.cjs` (3), con los dos órdenes del fichero y la cadena ambigua.
+  - Las de Cierre de siempre, en verde.
+  - `npm run verify` en verde (`npm test` 6336/6336, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+
+## Cierre de sesión — 3 de noviembre de 2026 (394): «cada N meses» llega a la previsión
+
+- **Petición del hogar:** conectar la periodicidad que se marca en la ficha de un movimiento con la previsión.
+- **Dónde va y por qué.** La previsión de caja (Previsión, la banda de 30 días) sale del **plan**: lo previsto de cada partida en cada mes. No sale de los movimientos. Así que lo útil es comparar:
+  - Si algo es «cada 6 meses», ¿cuándo toca el próximo cargo?
+  - ¿Lo tiene el plan ese mes?
+
+  Eso ya era el trabajo del **Mapa anual de pagos grandes** (WP-49, Plan › Previsión), que junta lo que cuesta «de golpe» en 12 meses sin contarlo dos veces. Le entra una quinta fuente; no se crea una tarjeta paralela.
+- **Motor (`canonical-large-payments.js`), `periodicItems`:**
+  - **Qué entra:** los conceptos marcados cada N meses (N ≥ 2), proyectados desde su último cargo real (último + N, + 2N…). El día se recorta a fin de mes. Van «estimados».
+  - **Umbral:** salen aunque no lleguen al mínimo de «pago grande», porque los ha marcado el hogar.
+  - **Lo que falta (`planShort`):** cada cargo dice cuánto falta en el plan de su mes. Para eso usa lo previsto en su partida ese mes, de modo que una partida repartida a 30 €/mes no cubre un cargo de 90 € de golpe.
+  - **Sin contar dos veces:** si el plan tiene ese pago en su partida, se cuenta una vez («también en el plan») aunque el nombre del banco no se parezca.
+  - **Resumen y frase:** dicen cuántos cargos faltan en el plan y cuánto.
+- **Pantalla (`mapa-pagos-ui.js`):**
+  - Lee lo marcado en la ficha: un cargo por concepto, de cualquier mes, con su partida y su previsto mes a mes.
+  - El cargo que falta en el plan dice «Falta en el plan», la partida, lo que tiene ese mes y lo que falta, y que la previsión de caja no lo cuenta.
+  - El botón **«Ajustar en Plan › Mes»** lleva a ese mes. **No escribe en el plan**: el previsto se cambia allí, con su «Impacto del cambio» (decisión 6 del rediseño).
+- **Lo que no hace:** no inyecta cargos en la previsión por su cuenta, porque contaría dos veces lo que el plan ya tenga.
+- **Versiones:** `canonical-large-payments.js` y `mapa-pagos-ui.js` a `?v=20261103periodo1`. Novedades.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6333/6333, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp49-mapa-pagos.test.cjs`: 14, tres nuevas con cifras a mano.
+  - e2e nueva a 390 px (`@safari`) y 1440 px, por el camino real: se marca en Movimientos y se va a Plan; los dos cargos semestrales, lo que falta, el botón al mes y nada escrito en el plan.
+  - axe del mapa con el cargo abierto, en claro y en oscuro.
+  - Las e2e y axe de WP-49 de siempre, en verde.
+
+## Cierre de sesión — 3 de noviembre de 2026 (393): «¿Cada cuánto?» en el tipo de acción
+
+- **Petición del hogar** (con captura de la ficha nueva): un gasto puede ser mensual, puntual o de cada X meses, y «¿Es recurrente?» solo admitía «cada mes» o «puntual».
+- **Ahora:**
+  - El campo se llama «¿Cada cuánto?» y ofrece: sin marcar, cada mes, cada 2, 3 (trimestral), 4 o 6 meses (semestral), cada año o puntual.
+  - Un periodo guardado que no está en la lista (p. ej., 5) se enseña y no se pierde.
+  - «Ahora:», la confirmación y la etiqueta de cada movimiento en la lista dicen el periodo: «cada mes», «cada 3 meses», «cada año» o «puntual».
+- **Datos.**
+  - Se guarda como siempre (`recurring`: true, false o null) más `everyMonths`. Lo guardado antes como «se repite», sin periodo, vale como «cada mes»; no hace falta migrar nada.
+  - El lote de Movimientos sigue dejándolo sin marcar.
+  - Análisis solo agrupa por tipo y no cambia.
+- **Código.**
+  - `ficha-movimiento-ui.js`.
+  - `app.js`: `actionTypeForMovement` pasa `everyMonths`, en la misma línea.
+  - `datos-ui.js`: etiqueta y lote.
+  - Versiones de `app.js`, `datos-ui.js`, la ficha y `novedades.js` a `?v=20261103periodo1`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6330/6330, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/ficha-movimiento.test.cjs`: 20, dos nuevas.
+  - e2e y axe de la ficha: 4 de 4.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (392): firmar dejando lo pendiente en «Por clasificar», y las casillas de toda la app
 
 - **Petición del hogar.** Quería firmar octubre ya, sin asignar todos los movimientos. Hoy no se puede: cada movimiento del mes sin partida es una diferencia abierta y apaga «Firmar»; los de otros meses no bloquean desde el 29/10.

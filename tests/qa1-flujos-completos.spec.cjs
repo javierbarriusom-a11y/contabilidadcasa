@@ -7402,14 +7402,14 @@ test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
       // Tipo de acción: aparte, con su error junto al campo.
       const guardarTipo = ficha.locator("#movementDetailActionTypeSave");
       await expect(guardarTipo).toBeDisabled();
-      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await ficha.locator("#movementDetailRecurring").selectOption("3");
       await guardarTipo.click();
       await expect(ficha.locator("#movementDetailActionTypeError")).toHaveText("Elige un tipo de acción antes de guardar.");
       await expect(ficha.locator("#movementDetailActionType")).toBeFocused();
       await ficha.locator("#movementDetailActionType").selectOption("pago_deuda");
       await expect(ficha.locator("#movementDetailActionTypeError")).toBeHidden();
       await guardarTipo.click();
-      await expect(ficha.locator(".ficha-mov-bloque").nth(1).locator(".ficha-mov-aviso")).toContainText("Este movimiento es ahora «Pago de deuda».");
+      await expect(ficha.locator(".ficha-mov-bloque").nth(1).locator(".ficha-mov-aviso")).toContainText("Este movimiento es ahora «Pago de deuda, se repite cada 3 meses».");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(dialogs, "ningún confirm(): se deshace").toEqual([]);
       expect(pageErrors).toEqual([]);
@@ -7475,6 +7475,47 @@ test.describe("Cierre · dejar lo pendiente en «Por clasificar»", () => {
       expect(await page.evaluate(() => availableSeriesRows("expense").some((row) => row.label === "Por clasificar")), "la partida que creó se quita").toBe(false);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(dialogs, "ningún confirm(): se deshace").toEqual([]);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// 3/11/2026 · «¿Cada cuánto?» llega a la previsión: un concepto marcado «cada 6 meses» sale en el mapa de pagos de Plan › Previsión en su próximo mes, dice cuánto falta en el plan de ese mes
+// y lleva a Plan › Mes sin tocar nada. Reloj el 3/11/2026; movimientos INVENTADOS.
+test.describe("Cargos cada N meses en la previsión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`un cargo semestral sale en el mapa de pagos con lo que falta en el plan y lleva a Plan › Mes, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 3, 10, 0, 0) });
+      // El camino real: se marca en Movimientos y después se va a Plan (al entrar, Plan se repinta entero).
+      await page.goto("/index.html#movements");
+      await page.waitForFunction(() => typeof mergeTransactions === "function" && typeof mapaPagosPeriodicos === "function", null, { timeout: 20000 });
+      const antes = await page.evaluate(() => JSON.stringify(baseData.monthlyPlanning));
+      await page.evaluate(() => {
+        const rows = [["2026-03-14", "SEGURO SEMESTRAL FICTICIO"], ["2026-09-14", "SEGURO SEMESTRAL FICTICIO"]].map(([date, movement]) => ({ date, month: date.slice(0, 7), movement, details: "", amount: -480, balance: 3000, accountId: "caixabank" }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        movementActionTypes[movementMappingKey(rows[1])] = { actionType: "gasto_fijo", recurring: true, everyMonths: 6, updatedAt: new Date().toISOString() };
+        refreshMovementRollups();
+        history.pushState(null, "", "#plan");
+        setActiveView("plan");
+      });
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const mapa = page.locator("#mapaPagosCuerpo");
+      const item = mapa.locator(".mpg-item", { hasText: "SEGURO SEMESTRAL FICTICIO" });
+      await expect(item).toHaveCount(2); // 14/03/2027 y 14/09/2027, los dos dentro de la ventana nov-2026 … oct-2027
+      await expect(item.first()).toContainText("Falta en el plan");
+      await item.first().locator("summary").click();
+      await expect(item.first()).toContainText("No está del todo en el plan de");
+      await expect(item.first()).toContainText("se repite cada 6 meses desde el último cargo");
+      await expect(mapa.locator(".mpg-frase")).toContainText("no están del todo en el plan de su mes");
+      await item.first().locator("[data-mapa-pagos-plan]").click();
+      await expect(page.locator('[data-plan-tab="mes"]')).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator("#planMesMonth")).toHaveValue("2027-03");
+      expect(await page.evaluate(() => JSON.stringify(baseData.monthlyPlanning)), "no se escribe nada en el plan").toBe(antes);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

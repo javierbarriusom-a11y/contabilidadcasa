@@ -200,7 +200,12 @@ test("P-1 · una entrada confirmada y recurrente se pinta en tono neutral con el
       escapeHtml: (v) => String(v),
     },
   );
-  assert.equal(context.movementActionTypeBadge({}), `<span class="e19-badge e19-badge-neutral">Gasto fijo · recurrente</span>`);
+  // 3/11/2026: «se repite» sin periodo (lo guardado antes) es «cada mes»; con periodo, «cada X meses» o «cada año».
+  assert.equal(context.movementActionTypeBadge({}), `<span class="e19-badge e19-badge-neutral">Gasto fijo · cada mes</span>`);
+  context.movementActionTypes.y.everyMonths = 3;
+  assert.equal(context.movementActionTypeBadge({}), `<span class="e19-badge e19-badge-neutral">Gasto fijo · cada 3 meses</span>`);
+  context.movementActionTypes.y.everyMonths = 12;
+  assert.equal(context.movementActionTypeBadge({}), `<span class="e19-badge e19-badge-neutral">Gasto fijo · cada año</span>`);
 });
 
 // --- movementActionTypeOptions -------------------------------------------------------------------

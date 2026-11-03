@@ -100,7 +100,7 @@ function fichaMovAhoraPartida(mapping) {
 function fichaMovAhoraTipo(action) {
   if (!action) return "Ahora: <strong>sin tipo</strong>.";
   const nombre = (typeof ACTION_TYPE_LABELS !== "undefined" && ACTION_TYPE_LABELS[action.actionType]) || action.actionType;
-  const repite = action.recurring === true ? ", se repite cada mes" : action.recurring === false ? ", puntual" : "";
+  const repite = fichaMovPeriodoTexto(action);
   const por = action.source === "single" ? "solo este movimiento" : action.source === "dictionary" ? "por la regla de este concepto" : "propuesto por la partida, sin confirmar";
   return `Ahora: <strong>${escapeHtml(nombre)}${repite}</strong> · ${por}.`;
 }
@@ -110,8 +110,36 @@ function fichaMovAvisoHtml(row, bloque) {
   return `<p class="ficha-mov-aviso" role="status"><span>✓ ${escapeHtml(fichaMovAviso.texto)}</span><button type="button" class="link-button" id="fichaMovDeshacer">Deshacer</button></p>`;
 }
 
-function fichaMovRecurrenteValor(recurring) {
-  return recurring === true ? "true" : recurring === false ? "false" : "";
+// 3/11/2026 (petición del hogar): no todo lo que se repite es mensual. «¿Cada cuánto?» admite cada mes, cada 2, 3, 4 o 6 meses, cada
+// año o puntual. Se guarda como siempre (`recurring`: true, false o null) más `everyMonths`; lo guardado antes como «se repite» sin
+// periodo vale como «cada mes».
+const FICHA_MOV_PERIODOS = [[1, "Cada mes"], [2, "Cada 2 meses"], [3, "Cada 3 meses (trimestral)"], [4, "Cada 4 meses"], [6, "Cada 6 meses (semestral)"], [12, "Cada año"]];
+
+function fichaMovCadaMeses(entry) {
+  const n = Math.round(Number(entry?.everyMonths));
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
+
+function fichaMovRecurrenteValor(entry) {
+  return entry?.recurring === true ? String(fichaMovCadaMeses(entry)) : entry?.recurring === false ? "false" : "";
+}
+
+// «, se repite cada mes», «, se repite cada 3 meses», «, se repite cada año» o «, puntual».
+function fichaMovPeriodoTexto(entry) {
+  if (entry?.recurring === false) return ", puntual";
+  if (entry?.recurring !== true) return "";
+  const n = fichaMovCadaMeses(entry);
+  return n === 1 ? ", se repite cada mes" : n === 12 ? ", se repite cada año" : `, se repite cada ${n} meses`;
+}
+
+function fichaMovPeriodoOpciones(entry) {
+  const actual = fichaMovRecurrenteValor(entry);
+  const periodos = FICHA_MOV_PERIODOS.some(([n]) => String(n) === actual) || !/^\d+$/.test(actual) ? FICHA_MOV_PERIODOS : [...FICHA_MOV_PERIODOS, [Number(actual), `Cada ${actual} meses`]];
+  return [
+    `<option value=""${actual === "" ? " selected" : ""}>Sin marcar</option>`,
+    ...periodos.map(([n, texto]) => `<option value="${n}"${String(n) === actual ? " selected" : ""}>${texto}</option>`),
+    `<option value="false"${actual === "false" ? " selected" : ""}>Puntual, no se repite</option>`,
+  ].join("");
 }
 
 function renderMovementDetailDialog() {
@@ -129,7 +157,7 @@ function renderMovementDetailDialog() {
   const reglaTipo = action?.source === "dictionary";
   // Los dos campos del bloque, juntos como los lee fichaMovSincroniza. Una propuesta sin confirmar no es un valor guardado: el
   // botón queda encendido para confirmarla. Sin tipo ni propuesta, nada que guardar hasta que se elija uno.
-  const tipoInicial = action?.confirmed ? `${action.actionType}|${fichaMovRecurrenteValor(action.recurring)}` : action ? "" : "|";
+  const tipoInicial = action?.confirmed ? `${action.actionType}|${fichaMovRecurrenteValor(action)}` : action ? "" : "|";
   content.innerHTML = `
     <h3 id="movementDetailTitle">${escapeHtml(nombre)}</h3>
     <dl class="movement-detail-fields">
@@ -167,12 +195,8 @@ function renderMovementDetailDialog() {
           <select id="movementDetailActionType">${movementActionTypeOptions(action?.actionType || "")}</select>
         </label>
         <label class="ficha-mov-campo">
-          <span>¿Es recurrente?</span>
-          <select id="movementDetailRecurring">
-            <option value="">Sin marcar</option>
-            <option value="true" ${action?.recurring === true ? "selected" : ""}>Sí, se repite cada mes</option>
-            <option value="false" ${action?.recurring === false ? "selected" : ""}>No, es puntual</option>
-          </select>
+          <span>¿Cada cuánto?</span>
+          <select id="movementDetailRecurring">${fichaMovPeriodoOpciones(action)}</select>
         </label>
       </div>
       ${fichaMovAlcanceHtml({ prefijo: "movementDetailActionType", idTodos: "movementDetailActionTypeRemember", todos: reglaTipo, grupo: grupoTipo, nombre, conFirmados: false })}
@@ -318,7 +342,9 @@ function handleMovementActionTypeSave() {
     return;
   }
   const recurringRaw = qs("movementDetailRecurring")?.value ?? "";
-  const recurring = recurringRaw === "true" ? true : recurringRaw === "false" ? false : null;
+  const cada = /^\d+$/.test(recurringRaw) ? Number(recurringRaw) : recurringRaw === "true" ? 1 : null;
+  const recurring = cada ? true : recurringRaw === "false" ? false : null;
+  const everyMonths = cada || null;
   const remember = Boolean(qs("movementDetailActionTypeRemember")?.checked);
   const kind = movementKindFromAmount(row.amount);
   const nombre = movementDisplayName(row);
@@ -327,15 +353,16 @@ function handleMovementActionTypeSave() {
   const foto = fichaMovFoto(movementActionTypes, [...keys, single]);
   const updatedAt = new Date().toISOString();
   keys.forEach((key) => {
-    movementActionTypes[key] = { actionType, recurring, updatedAt };
+    movementActionTypes[key] = { actionType, recurring, everyMonths, updatedAt };
   });
   if (remember) delete movementActionTypes[single];
   saveMovementActionTypes();
   const etiqueta = (typeof ACTION_TYPE_LABELS !== "undefined" && ACTION_TYPE_LABELS[actionType]) || actionType;
   const grupo = fichaMovGrupo(row, kind, movementActionTypes);
+  const periodo = fichaMovPeriodoTexto({ recurring, everyMonths });
   const texto = remember
-    ? `${fichaMovCuantos(Math.max(1, grupo.total - grupo.propias))} de «${nombre}» son ahora «${etiqueta}», también los que vengan.`
-    : `Este movimiento es ahora «${etiqueta}».`;
+    ? `${fichaMovCuantos(Math.max(1, grupo.total - grupo.propias))} de «${nombre}» son ahora «${etiqueta}${periodo}», también los que vengan.`
+    : `Este movimiento es ahora «${etiqueta}${periodo}».`;
   fichaMovAviso = {
     id: single,
     bloque: "tipo",

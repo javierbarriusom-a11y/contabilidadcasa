@@ -237,3 +237,59 @@ test("WP-49 · lo cableado: tarjeta en Plan › Previsión, hoja y script en las
   assert.match(ui, /FinanceCanonicalLargePayments/);
   assert.equal(/storageSet|localStorage/.test(ui), false, "no tiene almacén propio: solo lee");
 });
+
+// 3/11/2026 · los cargos que el hogar marca «cada N meses» en la ficha de un movimiento entran en el mapa, proyectados desde su último cargo, y dicen cuánto falta en el plan de su mes
+// (el plan es lo que mueve la previsión de caja). Cifras a mano; conceptos INVENTADOS.
+test("cargos cada N meses: se proyectan desde el último cargo (con el día recortado a fin de mes), solo N ≥ 2, y sin fecha o sin importe no se colocan", () => {
+  const { items, ignored } = L.periodicItems({
+    startMonth: "2026-11",
+    charges: [
+      { id: "seg", label: "SEGURO FICTICIO", everyMonths: 6, lastDate: "2026-08-31", amount: -420 },
+      { id: "com", label: "COMUNIDAD FICTICIA", everyMonths: 3, lastDate: "2026-09-30", amount: -90 },
+      { id: "mes", label: "CADA MES", everyMonths: 1, lastDate: "2026-10-01", amount: -10 },
+      { id: "rota", label: "SIN FECHA", everyMonths: 3, lastDate: "", amount: -50 },
+    ],
+  });
+  assert.deepEqual(items.filter((item) => item.label === "SEGURO FICTICIO").map((item) => [item.monthKey, item.day]), [["2027-02", 28], ["2027-08", 31]]);
+  assert.deepEqual(items.filter((item) => item.label === "COMUNIDAD FICTICIA").map((item) => item.monthKey), ["2026-12", "2027-03", "2027-06", "2027-09"]);
+  assert.ok(!items.some((item) => item.label === "CADA MES"), "lo de cada mes no es un pago de golpe");
+  assert.deepEqual(ignored.map((item) => item.label), ["CADA MES", "SIN FECHA"]);
+  assert.ok(items.every((item) => item.kind === "periodic" && item.estimated && item.amount > 0));
+  assert.match(items[0].source, /se repite cada 6 meses desde el cargo del 31\/08\/2026/);
+});
+
+test("cargos cada N meses: cubierto si el plan de su mes lo recoge (fusionado con su partida o con previsto suficiente); si no, cuánto falta, y la frase lo dice", () => {
+  const map = L.assemble({
+    startMonth: "2026-11", today: "2026-11-03",
+    rows: [{ id: "seg", label: "Seguros", values: { "2027-03": 420 } }],
+    charges: [
+      { id: "a", label: "MAPFRE FICTICIO", everyMonths: 6, lastDate: "2026-09-15", amount: -420, partidaLabel: "Seguros", planValues: { "2027-03": 420, "2027-09": 0 } },
+      { id: "b", label: "COMUNIDAD FICTICIA", everyMonths: 3, lastDate: "2026-08-31", amount: -90, partidaLabel: "Comunidad", planValues: { "2026-11": 30, "2027-02": 90, "2027-05": 30, "2027-08": 30 } },
+      { id: "c", label: "SIN PARTIDA FICTICIA", everyMonths: 12, lastDate: "2026-01-10", amount: -150, partidaLabel: "", planValues: null },
+    ],
+  });
+  const items = map.months.flatMap((row) => row.items);
+  const de = (label, mes) => items.find((item) => item.label === label && item.monthKey === mes);
+  assert.equal(de("MAPFRE FICTICIO", "2027-03").alsoInPlan, "Seguros", "el plan lo tiene en su partida: se cuenta una vez");
+  assert.equal(de("MAPFRE FICTICIO", "2027-03").planShort, 0);
+  assert.ok(!items.some((item) => item.kind === "plan" && item.monthKey === "2027-03"), "la partida del plan no se suma otra vez");
+  assert.equal(de("MAPFRE FICTICIO", "2027-09").planShort, 420);
+  assert.equal(de("COMUNIDAD FICTICIA", "2026-11").planShort, 60, "repartido a 30 €/mes: el cargo de golpe no está entero");
+  assert.equal(de("COMUNIDAD FICTICIA", "2027-02").planShort, 0, "con 90 € ese mes, cubierto");
+  assert.equal(de("SIN PARTIDA FICTICIA", "2027-01").planShort, 150);
+  assert.equal(de("COMUNIDAD FICTICIA", "2026-11").amount, 90, "por debajo del mínimo de 300 € también sale: lo ha marcado el hogar");
+  // Faltan: 420 (sep) + 60 × 3 (nov, may, ago) + 150 (ene) = 750, en 5 cargos.
+  assert.equal(map.summary.planShortCount, 5);
+  assert.equal(map.summary.planShortTotal, 750);
+  assert.match(L.describe(map), /5 cargos que se repiten cada varios meses no están del todo en el plan de su mes \(faltan 750 €\): la previsión de caja no los cuenta\./);
+});
+
+test("cargos cada N meses, en la pantalla: se leen de lo marcado en la ficha, dicen lo que falta y llevan a Plan › Mes sin tocar nada", () => {
+  const ui = read("mapa-pagos-ui.js");
+  assert.match(ui, /charges: mapaPagosGuard\(\(\) => mapaPagosPeriodicos\(monthKeys\), \[\]\)/);
+  assert.match(ui, /if \(!tipo\?\.confirmed \|\| tipo\.recurring !== true \|\| !\(Number\(tipo\.everyMonths\) >= 2\)\) return;/);
+  assert.match(ui, /if \(item\.kind === "periodic" && item\.planShort > 0\.005\) return \{ icon: "!", cls: "sin-reserva", text: "Falta en el plan" \};/);
+  assert.match(ui, /data-mapa-pagos-plan="\$\{escapeHtml\(item\.monthKey\)\}">Ajustar en Plan › Mes<\/button>/);
+  assert.match(ui, /if \(typeof setPlanTab === "function"\) setPlanTab\("mes"\);/);
+  assert.doesNotMatch(ui, /seriesOverrides\[|plannedValue =|savePlanning/, "no escribe en el plan: lleva a él");
+});

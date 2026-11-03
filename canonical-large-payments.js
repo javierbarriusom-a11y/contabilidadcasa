@@ -10,6 +10,8 @@
   //   · policyItems: los seguros del inventario, cada aniversario (si la renovación declarada ya pasó, se proyecta al año siguiente y se marca «estimado»).
   //   · goalItems: los objetivos con fecha (huchas); aquí SÍ hay financiación real: lo ahorrado frente a lo que cuesta.
   //   · taxItems: la campaña de la Renta del calendario financiero (E15): sin importe mientras nadie lo estime.
+  //   · periodicItems (3/11/2026): los cargos que el hogar marca «cada N meses» en la ficha de un movimiento, proyectados desde su último cargo real. Se enseñan aunque no lleguen al mínimo
+  //     (los ha marcado el hogar) y dicen cuánto falta en el plan de su mes: el plan es lo que mueve la previsión de caja, y un cargo que no está en él no lo cuenta.
   //   · dedupe, funding, build, describe: unir sin contar dos veces, medir la financiación, agrupar por mes y escribir la frase.
   // Motor puro: ni DOM, ni red, ni almacenamiento, ni reloj (el «hoy» entra por parámetro). NUNCA mueve dinero ni reserva nada (A11-4): solo enseña.
   //
@@ -24,8 +26,8 @@
   const DEFAULT_LUMP_FACTOR = 2.5;
   const DEFAULT_MONTHS = 12;
   const MERGE_TOLERANCE = 0.02;
-  const KIND_LABEL = Object.freeze({ plan: "Plan de gastos", policy: "Seguro", goal: "Objetivo", tax: "Hacienda" });
-  const KIND_RANK = Object.freeze({ goal: 0, policy: 1, tax: 2, plan: 3 });
+  const KIND_LABEL = Object.freeze({ plan: "Plan de gastos", policy: "Seguro", goal: "Objetivo", tax: "Hacienda", periodic: "Se repite cada varios meses" });
+  const KIND_RANK = Object.freeze({ goal: 0, policy: 1, periodic: 2, tax: 3, plan: 4 });
 
   const number = (value, fallback = 0) => (Number.isFinite(Number(value)) && value !== "" && value !== null && value !== undefined ? Number(value) : fallback);
   const known = (value) => value !== "" && value !== null && value !== undefined && Number.isFinite(Number(value));
@@ -163,6 +165,43 @@
     return items;
   }
 
+  /** «AAAA-MM-DD» + `count` meses, con el día recortado al último del mes (31/01 + 1 → 28/02). */
+  function addMonthsDate(date, count) {
+    const key = addMonthsKey(date.slice(0, 7), count);
+    return `${key}-${String(Math.min(Number(date.slice(8, 10)), daysInMonth(key))).padStart(2, "0")}`;
+  }
+  /**
+   * Los cargos que se repiten cada N meses (N ≥ 2: lo de cada mes no es un pago de golpe), proyectados desde su último cargo real: último + N, + 2N… dentro de la ventana, desde el mes en curso
+   * (un cargo de este mes cuyo día ya pasó sigue saliendo: puede no haberse importado aún). Van «estimados». `planValues` es lo previsto en el plan para su partida, mes a mes: con eso se dice
+   * cuánto falta en el plan de ese mes (`planShort`). Sin fecha válida, sin importe o sin periodo, no se colocan.
+   * @param {{charges?: Array<{id?: string, label?: string, everyMonths?: number, lastDate?: string, amount?: number, partidaLabel?: string, planValues?: Record<string, number>|null}>, startMonth?: string, months?: number}} [params]
+   */
+  function periodicItems({ charges = [], startMonth = "", months = DEFAULT_MONTHS } = {}) {
+    const keys = monthsFrom(startMonth, months);
+    const items = [];
+    const ignored = [];
+    (Array.isArray(charges) ? charges : []).forEach((charge, index) => {
+      const label = text(charge?.label) || "Cargo que se repite";
+      const id = text(charge?.id) || `periodico-${index}`;
+      const every = Math.round(number(charge?.everyMonths));
+      const last = text(charge?.lastDate);
+      const amount = round2(Math.abs(number(charge?.amount)));
+      if (!(every >= 2) || !validDate(last) || !(amount > 0)) { ignored.push({ id, label, reason: !validDate(last) ? "sin fecha del último cargo" : "sin periodo o sin importe" }); return; }
+      for (let k = 1; k <= Math.ceil((DEFAULT_MONTHS * 4) / every); k += 1) {
+        const date = addMonthsDate(last, k * every);
+        const key = date.slice(0, 7);
+        if (keys.length && key > keys[keys.length - 1]) break;
+        if (!keys.includes(key)) continue;
+        const planned = charge?.planValues && known(charge.planValues[key]) ? round2(Math.max(0, number(charge.planValues[key]))) : null;
+        items.push({
+          id: `periodic:${id}:${key}`, kind: "periodic", label, monthKey: key, day: Number(date.slice(8, 10)), amount, reserved: null, estimated: true, overdue: false,
+          source: `tus movimientos: se repite cada ${every} meses desde el cargo del ${last.slice(8, 10)}/${last.slice(5, 7)}/${last.slice(0, 4)}`,
+          everyMonths: every, lastDate: last, partidaLabel: text(charge?.partidaLabel), planned, planShort: round2(Math.max(0, amount - (planned ?? 0))),
+        });
+      }
+    });
+    return { items, ignored };
+  }
   function sameThing(a, b) {
     const la = plain(a.label);
     const lb = plain(b.label);
@@ -184,10 +223,12 @@
     const annotated = new Map();
     list.forEach((item) => {
       if (item.kind !== "plan") { kept.push(item); return; }
-      const twin = rich.find((other) => other.kind !== "tax" && other.monthKey === item.monthKey && sameThing(item, other));
+      // Un cargo periódico es el mismo pago que la partida del plan en la que cae (su partida), aunque el nombre del banco no se parezca.
+      const twin = rich.find((other) => other.kind !== "tax" && other.monthKey === item.monthKey && (sameThing(item, other) || (other.kind === "periodic" && other.partidaLabel && plain(other.partidaLabel) === plain(item.label))));
       if (twin) { merged.push({ plan: item.label, with: twin.label, monthKey: item.monthKey }); annotated.set(twin.id, item.label); } else kept.push(item);
     });
-    return { items: kept.map((item) => (annotated.has(item.id) ? { ...item, alsoInPlan: annotated.get(item.id) } : item)), merged };
+    // El plan cubre el cargo periódico con el que se fusiona: ya no falta nada en el plan de ese mes.
+    return { items: kept.map((item) => (annotated.has(item.id) ? { ...item, alsoInPlan: annotated.get(item.id), ...(item.kind === "periodic" ? { planShort: 0 } : {}) } : item)), merged };
   }
 
   /**
@@ -225,7 +266,7 @@
     const placed = [];
     (Array.isArray(items) ? items : []).forEach((item) => {
       if (!keys.includes(item?.monthKey)) return;
-      if (known(item.amount) && item.amount < min) { belowThreshold += 1; return; }
+      if (known(item.amount) && item.amount < min && item.kind !== "periodic") { belowThreshold += 1; return; } // lo que el hogar marca «cada N meses» se enseña siempre
       placed.push({ ...item, funding: funding(item, keys[0]) });
     });
     const order = (a, b) => (a.day ?? 99) - (b.day ?? 99) || (known(b.amount) ? b.amount : -1) - (known(a.amount) ? a.amount : -1) || KIND_RANK[a.kind] - KIND_RANK[b.kind] || a.label.localeCompare(b.label, "es");
@@ -242,6 +283,7 @@
     const heaviest = [...monthRows].filter((row) => row.total > 0).sort((a, b) => b.total - a.total || a.monthKey.localeCompare(b.monthKey));
     const spread = placed.filter((item) => item.funding.monthlyNeeded !== null && item.funding.monthlyNeeded > 0);
     const dueNow = placed.filter((item) => item.funding.dueNow && item.funding.missing !== null && item.funding.missing > 0);
+    const shortInPlan = placed.filter((item) => item.kind === "periodic" && item.planShort > 0.005);
     return {
       schemaId: SCHEMA_ID, startMonth: keys[0] || "", minAmount: min, months: monthRows, ignored: Array.isArray(ignored) ? ignored : [], merged: Array.isArray(merged) ? merged : [],
       summary: {
@@ -251,6 +293,8 @@
         top3Share: total > 0 ? Math.round((heaviest.slice(0, 3).reduce((sum, row) => sum + row.total, 0) / total) * 100) : null,
         reserveMonthly: round2(spread.reduce((sum, item) => sum + item.funding.monthlyNeeded, 0)), reserveCount: spread.length,
         dueNowTotal: round2(dueNow.reduce((sum, item) => sum + item.funding.missing, 0)), dueNowCount: dueNow.length,
+        periodicCount: placed.filter((item) => item.kind === "periodic").length,
+        planShortCount: shortInPlan.length, planShortTotal: round2(shortInPlan.reduce((sum, item) => sum + item.planShort, 0)),
       },
     };
   }
@@ -269,24 +313,28 @@
       : `Hay ${s.count} pago${s.count === 1 ? "" : "s"} grande${s.count === 1 ? "" : "s"} en los próximos 12 meses, ninguno con importe conocido.`;
     const peak = s.peak ? ` El más cargado es ${labelOf(s.peak.monthKey)} (${euros(s.peak.total)})${s.top3Share !== null && s.top3Share < 100 ? `; los tres más cargados concentran el ${s.top3Share} %` : ""}.` : "";
     const funded = s.total > 0 ? (s.fundedTotal > 0 ? ` Hay ${euros(s.fundedTotal)} reservado${s.fundedPct !== null ? ` (${s.fundedPct} %)` : ""}.` : " No hay nada reservado de forma declarada para ninguno.") : "";
-    return `${head}${peak}${funded}`;
+    const short = s.planShortCount
+      ? ` ${s.planShortCount === 1 ? "Un cargo que se repite cada varios meses no está" : `${s.planShortCount} cargos que se repiten cada varios meses no están`} del todo en el plan de su mes (faltan ${euros(s.planShortTotal)}): la previsión de caja no los cuenta.`
+      : "";
+    return `${head}${peak}${funded}${short}`;
   }
 
   /**
    * Todo junto: las fuentes ya leídas → el mapa. `rows` son las partidas del plan; `policies`, `goals` y `calendar` tal como los guarda la app.
-   * @param {{rows?: any[], policies?: any[], goals?: any[], calendar?: any, startMonth?: string, months?: number, minAmount?: number, lumpFactor?: number, today?: string}} [params]
+   * @param {{rows?: any[], policies?: any[], goals?: any[], calendar?: any, charges?: any[], startMonth?: string, months?: number, minAmount?: number, lumpFactor?: number, today?: string}} [params]
    */
-  function assemble({ rows = [], policies = [], goals = [], calendar = null, startMonth = "", months = DEFAULT_MONTHS, minAmount = DEFAULT_MIN_AMOUNT, lumpFactor = DEFAULT_LUMP_FACTOR, today = "" } = {}) {
+  function assemble({ rows = [], policies = [], goals = [], calendar = null, charges = [], startMonth = "", months = DEFAULT_MONTHS, minAmount = DEFAULT_MIN_AMOUNT, lumpFactor = DEFAULT_LUMP_FACTOR, today = "" } = {}) {
     const keys = monthsFrom(startMonth, months);
     const fromPolicies = policyItems({ policies, startMonth, months, today });
     const fromGoals = goalItems({ goals, startMonth, months });
-    const all = [...lumpyItems({ rows, months: keys, minAmount, lumpFactor }), ...fromPolicies.items, ...fromGoals.items, ...taxItems({ calendar, startMonth, months })];
+    const fromCharges = periodicItems({ charges, startMonth, months });
+    const all = [...lumpyItems({ rows, months: keys, minAmount, lumpFactor }), ...fromPolicies.items, ...fromGoals.items, ...fromCharges.items, ...taxItems({ calendar, startMonth, months })];
     const merged = dedupe(all);
-    return build({ items: merged.items, startMonth, months, minAmount, ignored: [...fromPolicies.ignored, ...fromGoals.ignored], merged: merged.merged });
+    return build({ items: merged.items, startMonth, months, minAmount, ignored: [...fromPolicies.ignored, ...fromGoals.ignored, ...fromCharges.ignored], merged: merged.merged });
   }
 
   return {
     SCHEMA_ID, DEFAULT_MIN_AMOUNT, DEFAULT_LUMP_FACTOR, DEFAULT_MONTHS, KIND_LABEL,
-    monthsFrom, monthsBetween, validDate, lumpyItems, policyItems, goalItems, taxItems, dedupe, funding, build, describe, assemble,
+    monthsFrom, monthsBetween, validDate, lumpyItems, policyItems, goalItems, periodicItems, taxItems, dedupe, funding, build, describe, assemble,
   };
 });

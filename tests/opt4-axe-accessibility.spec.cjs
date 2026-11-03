@@ -1601,7 +1601,7 @@ for (const scheme of ["light", "dark"]) {
         expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
       };
       await revisar("recién abierta");
-      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await ficha.locator("#movementDetailRecurring").selectOption("3");
       await ficha.locator("#movementDetailActionTypeSave").click();
       await expect(ficha.locator("#movementDetailActionTypeError")).toBeVisible();
       await revisar("con el error del tipo de acción");
@@ -1611,6 +1611,34 @@ for (const scheme of ["light", "dark"]) {
       await ficha.locator("#movementDetailSave").click();
       await expect(ficha.locator(".ficha-mov-aviso")).toBeVisible();
       await revisar("con lo guardado y «Deshacer»");
+    });
+  });
+}
+
+// 3/11/2026 · el mapa de pagos con un cargo «cada 6 meses» que falta en el plan (línea «No está del todo en el plan…» y botón «Ajustar en Plan › Mes»), en claro y en oscuro. INVENTADO.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Cargos cada N meses · contraste del mapa de pagos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión: el cargo que falta en el plan, abierto, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 3, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await page.waitForFunction(() => typeof mergeTransactions === "function" && typeof mapaPagosPeriodicos === "function", null, { timeout: 20000 });
+      await page.evaluate(() => {
+        const rows = [["2026-03-14", "SEGURO SEMESTRAL FICTICIO"], ["2026-09-14", "SEGURO SEMESTRAL FICTICIO"]].map(([date, movement]) => ({ date, month: date.slice(0, 7), movement, details: "", amount: -480, balance: 3000, accountId: "caixabank" }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        movementActionTypes[movementMappingKey(rows[1])] = { actionType: "gasto_fijo", recurring: true, everyMonths: 6, updatedAt: new Date().toISOString() };
+        refreshMovementRollups();
+        history.pushState(null, "", "#plan");
+        setActiveView("plan");
+      });
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const item = page.locator("#mapaPagosCuerpo .mpg-item", { hasText: "SEGURO SEMESTRAL FICTICIO" }).first();
+      await item.locator("summary").click();
+      await expect(item.locator("[data-mapa-pagos-plan]")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#mapaPagosCard").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }
