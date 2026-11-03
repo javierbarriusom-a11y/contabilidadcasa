@@ -21639,7 +21639,7 @@ function actionTypeEntryForMovement(transaction) {
 // nadie tomó — el badge y el desglose distinguen sugerido de confirmado.
 function actionTypeForMovement(transaction) {
   const entry = actionTypeEntryForMovement(transaction);
-  if (entry) return { actionType: entry.actionType, recurring: entry.recurring ?? null, confirmed: true, source: entry.source };
+  if (entry) return { actionType: entry.actionType, recurring: entry.recurring ?? null, everyMonths: entry.everyMonths ?? null, confirmed: true, source: entry.source };
   const suggested = suggestedActionTypeForMovement(transaction);
   return suggested ? { actionType: suggested, recurring: null, confirmed: false, source: "suggested" } : null;
 }

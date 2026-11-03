@@ -7402,14 +7402,14 @@ test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
       // Tipo de acción: aparte, con su error junto al campo.
       const guardarTipo = ficha.locator("#movementDetailActionTypeSave");
       await expect(guardarTipo).toBeDisabled();
-      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await ficha.locator("#movementDetailRecurring").selectOption("3");
       await guardarTipo.click();
       await expect(ficha.locator("#movementDetailActionTypeError")).toHaveText("Elige un tipo de acción antes de guardar.");
       await expect(ficha.locator("#movementDetailActionType")).toBeFocused();
       await ficha.locator("#movementDetailActionType").selectOption("pago_deuda");
       await expect(ficha.locator("#movementDetailActionTypeError")).toBeHidden();
       await guardarTipo.click();
-      await expect(ficha.locator(".ficha-mov-bloque").nth(1).locator(".ficha-mov-aviso")).toContainText("Este movimiento es ahora «Pago de deuda».");
+      await expect(ficha.locator(".ficha-mov-bloque").nth(1).locator(".ficha-mov-aviso")).toContainText("Este movimiento es ahora «Pago de deuda, se repite cada 3 meses».");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(dialogs, "ningún confirm(): se deshace").toEqual([]);
       expect(pageErrors).toEqual([]);

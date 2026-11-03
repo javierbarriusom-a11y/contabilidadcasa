@@ -291,12 +291,13 @@ test("tipo de acción «solo a este»: se guarda por su identidad, con «¿es re
 test("tipo de acción «todos»: regla del concepto en todos sus meses, sin la excepción, y se deshace", () => {
   const movementActionTypes = { "expense|financie-agosto|recibo entidad ficticia": { actionType: "ajuste", recurring: null, updatedAt: "2026-09-01T00:00:00.000Z" } };
   const antes = JSON.parse(JSON.stringify(movementActionTypes));
-  const { api } = cargar({ movementActionTypes, elementos: elementosTipo("pago_deuda", "true", true) });
+  const { api } = cargar({ movementActionTypes, elementos: elementosTipo("pago_deuda", "3", true) });
   api.handleMovementActionTypeSave();
   assert.equal(movementActionTypes["expense|financie-octubre|recibo entidad ficticia"].actionType, "pago_deuda");
   assert.equal(movementActionTypes["expense|financie-octubre|recibo entidad ficticia"].recurring, true);
+  assert.equal(movementActionTypes["expense|financie-octubre|recibo entidad ficticia"].everyMonths, 3);
   assert.equal(movementActionTypes["expense|financie-agosto|recibo entidad ficticia"].actionType, "pago_deuda");
-  assert.equal(api.aviso().texto, "3 movimientos de «FINANCIE-OCTUBRE · Recibo entidad ficticia» son ahora «Pago de deuda», también los que vengan.");
+  assert.equal(api.aviso().texto, "3 movimientos de «FINANCIE-OCTUBRE · Recibo entidad ficticia» son ahora «Pago de deuda, se repite cada 3 meses», también los que vengan.");
   api.fichaMovDeshacer();
   assert.deepEqual(JSON.parse(JSON.stringify(movementActionTypes)), antes);
 });
@@ -320,6 +321,42 @@ test("la regla de tipo de acción vale para el concepto de cualquier mes (la má
   const { api } = cargar({ movementActionTypes });
   assert.equal(api.fichaMovTipoDeOtroMes(OCT).actionType, "pago_deuda");
   assert.equal(api.fichaMovTipoDeOtroMes(MERCA), null, "un concepto sin mes no busca en otros");
+});
+
+test("«¿Cada cuánto?»: cada mes, cada 2, 3, 4 o 6 meses, cada año o puntual; lo guardado como «se repite» sin periodo es «cada mes»", () => {
+  const conPeriodo = (action) => {
+    const { api, content } = cargar({ action });
+    api.renderMovementDetailDialog();
+    const select = content.innerHTML.match(/<select id="movementDetailRecurring">([\s\S]*?)<\/select>/)[1];
+    return { select, html: content.innerHTML };
+  };
+  const vacio = conPeriodo(null);
+  assert.deepEqual([...vacio.select.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]), ["", "1", "2", "3", "4", "6", "12", "false"]);
+  assert.match(vacio.html, /<span>¿Cada cuánto\?<\/span>/);
+  const viejo = conPeriodo({ actionType: "ajuste", recurring: true, confirmed: true, source: "single" });
+  assert.match(viejo.select, /<option value="1" selected>Cada mes<\/option>/);
+  assert.match(viejo.html, /Ahora: <strong>Ajuste, se repite cada mes<\/strong>/);
+  const trimestral = conPeriodo({ actionType: "ajuste", recurring: true, everyMonths: 3, confirmed: true, source: "single" });
+  assert.match(trimestral.select, /<option value="3" selected>Cada 3 meses \(trimestral\)<\/option>/);
+  assert.match(trimestral.html, /Ahora: <strong>Ajuste, se repite cada 3 meses<\/strong>/);
+  const anual = conPeriodo({ actionType: "ajuste", recurring: true, everyMonths: 12, confirmed: true, source: "single" });
+  assert.match(anual.html, /Ahora: <strong>Ajuste, se repite cada año<\/strong>/);
+  const raro = conPeriodo({ actionType: "ajuste", recurring: true, everyMonths: 5, confirmed: true, source: "single" });
+  assert.match(raro.select, /<option value="5" selected>Cada 5 meses<\/option>/, "un periodo guardado que no está en la lista no se pierde");
+  const puntual = conPeriodo({ actionType: "ajuste", recurring: false, confirmed: true, source: "single" });
+  assert.match(puntual.select, /<option value="false" selected>Puntual, no se repite<\/option>/);
+});
+
+test("guardar «puntual» deja recurring en false y sin periodo; «cada año», en true y 12", () => {
+  const movementActionTypes = {};
+  const uno = cargar({ movementActionTypes, elementos: elementosTipo("ajuste", "false", false) });
+  uno.api.handleMovementActionTypeSave();
+  assert.deepEqual([movementActionTypes["2026-10-30|FINANCIE-OCTUBRE|-100"].recurring, movementActionTypes["2026-10-30|FINANCIE-OCTUBRE|-100"].everyMonths], [false, null]);
+  assert.equal(uno.api.aviso().texto, "Este movimiento es ahora «Ajuste, puntual».");
+  const dos = cargar({ movementActionTypes, elementos: elementosTipo("ajuste", "12", false) });
+  dos.api.handleMovementActionTypeSave();
+  assert.deepEqual([movementActionTypes["2026-10-30|FINANCIE-OCTUBRE|-100"].recurring, movementActionTypes["2026-10-30|FINANCIE-OCTUBRE|-100"].everyMonths], [true, 12]);
+  assert.equal(dos.api.aviso().texto, "Este movimiento es ahora «Ajuste, se repite cada año».");
 });
 
 // --- Cableado ------------------------------------------------------------------------------------

@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-03-cada-cuanto",
+      fecha: "2026-11-03",
+      texto: "En la ficha de un movimiento, «¿Cada cuánto?» admite cada mes, cada 2, 3, 4 o 6 meses, cada año o puntual.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-03-por-clasificar",
       fecha: "2026-11-03",
       texto: "Cierre: si solo faltan movimientos sin partida, puedes dejarlos en «Por clasificar» y firmar sin que el mes pierda ese dinero.",

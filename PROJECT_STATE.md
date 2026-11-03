@@ -113,6 +113,27 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (393): «¿Cada cuánto?» en el tipo de acción
+
+- **Petición del hogar** (con captura de la ficha nueva): un gasto puede ser mensual, puntual o de cada X meses, y «¿Es recurrente?» solo admitía «cada mes» o «puntual».
+- **Ahora:**
+  - El campo se llama «¿Cada cuánto?» y ofrece: sin marcar, cada mes, cada 2, 3 (trimestral), 4 o 6 meses (semestral), cada año o puntual.
+  - Un periodo guardado que no está en la lista (p. ej., 5) se enseña y no se pierde.
+  - «Ahora:», la confirmación y la etiqueta de cada movimiento en la lista dicen el periodo: «cada mes», «cada 3 meses», «cada año» o «puntual».
+- **Datos.**
+  - Se guarda como siempre (`recurring`: true, false o null) más `everyMonths`. Lo guardado antes como «se repite», sin periodo, vale como «cada mes»; no hace falta migrar nada.
+  - El lote de Movimientos sigue dejándolo sin marcar.
+  - Análisis solo agrupa por tipo y no cambia.
+- **Código.**
+  - `ficha-movimiento-ui.js`.
+  - `app.js`: `actionTypeForMovement` pasa `everyMonths`, en la misma línea.
+  - `datos-ui.js`: etiqueta y lote.
+  - Versiones de `app.js`, `datos-ui.js`, la ficha y `novedades.js` a `?v=20261103periodo1`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6330/6330, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/ficha-movimiento.test.cjs`: 20, dos nuevas.
+  - e2e y axe de la ficha: 4 de 4.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (392): firmar dejando lo pendiente en «Por clasificar», y las casillas de toda la app
 
 - **Petición del hogar.** Quería firmar octubre ya, sin asignar todos los movimientos. Hoy no se puede: cada movimiento del mes sin partida es una diferencia abierta y apaga «Firmar»; los de otros meses no bloquean desde el 29/10.

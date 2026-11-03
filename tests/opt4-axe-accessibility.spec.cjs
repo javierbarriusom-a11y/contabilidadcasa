@@ -1601,7 +1601,7 @@ for (const scheme of ["light", "dark"]) {
         expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
       };
       await revisar("recién abierta");
-      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await ficha.locator("#movementDetailRecurring").selectOption("3");
       await ficha.locator("#movementDetailActionTypeSave").click();
       await expect(ficha.locator("#movementDetailActionTypeError")).toBeVisible();
       await revisar("con el error del tipo de acción");

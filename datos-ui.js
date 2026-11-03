@@ -768,7 +768,8 @@ function movementActionTypeBadge(row) {
   const entry = actionTypeForMovement(row);
   if (!entry) return `<span class="e19-badge e19-badge-warning">Sin tipo</span>`;
   const label = ACTION_TYPE_LABELS[entry.actionType] || entry.actionType;
-  const recurringSuffix = entry.recurring === true ? " · recurrente" : entry.recurring === false ? " · puntual" : "";
+  const cada = Math.round(Number(entry.everyMonths)) || 1; // 3/11/2026: «cada X meses», no solo mensual
+  const recurringSuffix = entry.recurring === true ? (cada === 1 ? " · cada mes" : cada === 12 ? " · cada año" : ` · cada ${cada} meses`) : entry.recurring === false ? " · puntual" : "";
   return entry.confirmed
     ? `<span class="e19-badge e19-badge-neutral">${escapeHtml(label)}${escapeHtml(recurringSuffix)}</span>`
     : `<span class="e19-badge e19-badge-accent">${escapeHtml(label)} (sugerido)</span>`;
@@ -1014,7 +1015,7 @@ function handleMovementsBulkApply() {
   if (actionTypeSelect?.value) {
     const actionLabel = actionTypeSelect.options[actionTypeSelect.selectedIndex]?.textContent || "";
     concepts.forEach((_row, key) => {
-      movementActionTypes[key] = { actionType: actionTypeSelect.value, recurring: null, updatedAt: new Date().toISOString() };
+      movementActionTypes[key] = { actionType: actionTypeSelect.value, recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
     });
     saveMovementActionTypes();
     messages.push(`tipo de acción asignado como «${actionLabel}».`);
