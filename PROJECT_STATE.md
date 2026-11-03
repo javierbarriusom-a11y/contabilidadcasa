@@ -113,6 +113,27 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (392): firmar dejando lo pendiente en «Por clasificar», y las casillas de toda la app
+
+- **Petición del hogar.** Quería firmar octubre ya, sin asignar todos los movimientos. Hoy no se puede: cada movimiento del mes sin partida es una diferencia abierta y apaga «Firmar»; los de otros meses no bloquean desde el 29/10.
+- **Por qué no se salta la regla.** Firmar con movimientos sin partida dejaría el mes sin ese dinero para siempre: sin partida no cuentan en ningún real, y la firma los congela.
+- **Lo que se acordó:**
+  - **A, para hoy:** con lo ya publicado, el hogar crea una partida «Por clasificar» desde Clasificar. Su inconveniente: Clasificar crea una regla del concepto.
+  - **B, construido aquí:**
+    - **Cuándo se ofrece:** en Cierre (paso 2 y junto a la firma), solo cuando lo único abierto del mes son movimientos sin partida. Un descuadre de saldos o una diferencia entre banco y real no se tapan así.
+    - **Qué dice antes de pulsar:** cuántos son, cuánto suman, y que sin partida el mes se quedaría sin ese dinero.
+    - **Cómo se asignan:** **uno a uno, sin reglas**, así que los conceptos siguen esperando en la bandeja los meses siguientes. Van a «Por clasificar»: una partida de gasto (en Gastos variables) y otra de ingreso, con previsto 0 €; reutiliza la que el hogar ya haya creado. Cada asignación lleva `porClasificar: true`.
+    - **Deshacer:** en el propio Cierre; también quita la partida si la creó. Un mes firmado no se toca.
+    - **Recordatorio:** el mes firmado y el cierre siguiente dicen con cuántos se firmó, contado a partir de las asignaciones.
+- **Casillas de toda la app.**
+  - Antes: la regla global de `input` (100 % de ancho, 40 px de alto) también se aplicaba a casillas y opciones. Barrido de las 50 vistas a 390 y 1440 px: 30 de las 33 visibles medían hasta 360 × 40 px y salían encima de su texto.
+  - Ahora: 18 px, en la primera columna de su etiqueta y con el texto al lado, aunque el HTML las ponga detrás. Las reglas van con `:where()` para que mande cualquier componente que ya diera su tamaño. Mismo barrido: ninguna pasa de 22 px.
+- **Código.** `views/cierre.js` (`?v=20261103porclas1`), `app.js` (+3, los dos botones) y `styles.css`. Versiones de `app.js` y `styles.css` a `?v=20261103porclas1`, con sus fijaciones en las pruebas. Novedades y `docs/rediseno/ESTADO.md` §2 al día.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6325/6325, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - Pruebas nuevas: `tests/cierre-por-clasificar.test.cjs` (7) y `tests/casillas-tamano.test.cjs` (3).
+  - e2e nueva de Cierre a 390 (`@safari`) y 1440 px, 2 de 2: lo pendiente cuenta en el real de octubre de «Por clasificar», no se crea ninguna regla, el mismo concepto de noviembre sigue sin partida, «Ninguna diferencia abierta» se cumple y «Deshacer» lo devuelve todo.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (391): la ficha de un movimiento, rehecha
 
 - **Petición del hogar** (con captura, a mitad del cierre de octubre):
