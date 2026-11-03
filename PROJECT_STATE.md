@@ -113,6 +113,33 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (394): «cada N meses» llega a la previsión
+
+- **Petición del hogar:** conectar la periodicidad que se marca en la ficha de un movimiento con la previsión.
+- **Dónde va y por qué.** La previsión de caja (Previsión, la banda de 30 días) sale del **plan**: lo previsto de cada partida en cada mes. No sale de los movimientos. Así que lo útil es comparar:
+  - Si algo es «cada 6 meses», ¿cuándo toca el próximo cargo?
+  - ¿Lo tiene el plan ese mes?
+
+  Eso ya era el trabajo del **Mapa anual de pagos grandes** (WP-49, Plan › Previsión), que junta lo que cuesta «de golpe» en 12 meses sin contarlo dos veces. Le entra una quinta fuente; no se crea una tarjeta paralela.
+- **Motor (`canonical-large-payments.js`), `periodicItems`:**
+  - **Qué entra:** los conceptos marcados cada N meses (N ≥ 2), proyectados desde su último cargo real (último + N, + 2N…). El día se recorta a fin de mes. Van «estimados».
+  - **Umbral:** salen aunque no lleguen al mínimo de «pago grande», porque los ha marcado el hogar.
+  - **Lo que falta (`planShort`):** cada cargo dice cuánto falta en el plan de su mes. Para eso usa lo previsto en su partida ese mes, de modo que una partida repartida a 30 €/mes no cubre un cargo de 90 € de golpe.
+  - **Sin contar dos veces:** si el plan tiene ese pago en su partida, se cuenta una vez («también en el plan») aunque el nombre del banco no se parezca.
+  - **Resumen y frase:** dicen cuántos cargos faltan en el plan y cuánto.
+- **Pantalla (`mapa-pagos-ui.js`):**
+  - Lee lo marcado en la ficha: un cargo por concepto, de cualquier mes, con su partida y su previsto mes a mes.
+  - El cargo que falta en el plan dice «Falta en el plan», la partida, lo que tiene ese mes y lo que falta, y que la previsión de caja no lo cuenta.
+  - El botón **«Ajustar en Plan › Mes»** lleva a ese mes. **No escribe en el plan**: el previsto se cambia allí, con su «Impacto del cambio» (decisión 6 del rediseño).
+- **Lo que no hace:** no inyecta cargos en la previsión por su cuenta, porque contaría dos veces lo que el plan ya tenga.
+- **Versiones:** `canonical-large-payments.js` y `mapa-pagos-ui.js` a `?v=20261103periodo1`. Novedades.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6333/6333, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp49-mapa-pagos.test.cjs`: 14, tres nuevas con cifras a mano.
+  - e2e nueva a 390 px (`@safari`) y 1440 px, por el camino real: se marca en Movimientos y se va a Plan; los dos cargos semestrales, lo que falta, el botón al mes y nada escrito en el plan.
+  - axe del mapa con el cargo abierto, en claro y en oscuro.
+  - Las e2e y axe de WP-49 de siempre, en verde.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (393): «¿Cada cuánto?» en el tipo de acción
 
 - **Petición del hogar** (con captura de la ficha nueva): un gasto puede ser mensual, puntual o de cada X meses, y «¿Es recurrente?» solo admitía «cada mes» o «puntual».
