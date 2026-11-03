@@ -131,48 +131,6 @@ test("M-2 · renderDetailedMovements pinta la cuenta del movimiento, o un hueco 
   assert.match(fn, /<td>\$\{escapeHtml\(row\.account \|\| "—"\)\}<\/td>/);
 });
 
-test("M-6 · el panel de detalle trae el campo Cuenta, con el mismo hueco cuando no hay dato", () => {
-  const content = { innerHTML: "" };
-  const context = sandboxWith(["renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
-    movementDetailTransaction: { date: "2026-08-01", movement: "MERCADONA", amount: -45.2, account: "CaixaBank" },
-    qs: (id) => (id === "movementDetailContent" ? content : null),
-    mappingForMovement: () => null,
-    movementKindFromAmount: () => "expense",
-    escapeHtml: (v) => String(v),
-    formatIsoDate: (v) => v,
-    money: (v) => String(v),
-    movementDisplayName: (row) => row.movement,
-    movementMappingOptions: () => "<option></option>",
-    actionTypeForMovement: () => null,
-    movementActionTypeOptions: () => "<option></option>",
-    receiptAttachments: {},
-    transactionIdentity: () => "unused",
-  });
-  context.renderMovementDetailDialog();
-  assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>CaixaBank<\/dd>/);
-});
-
-test("M-6 · el campo Cuenta muestra un hueco («—») en vez de fabricar un valor cuando el movimiento no la tiene", () => {
-  const content = { innerHTML: "" };
-  const context = sandboxWith(["renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
-    movementDetailTransaction: { date: "2026-08-01", movement: "AMAZON", amount: -60 },
-    qs: (id) => (id === "movementDetailContent" ? content : null),
-    mappingForMovement: () => null,
-    movementKindFromAmount: () => "expense",
-    escapeHtml: (v) => String(v),
-    formatIsoDate: (v) => v,
-    money: (v) => String(v),
-    movementDisplayName: (row) => row.movement,
-    movementMappingOptions: () => "<option></option>",
-    actionTypeForMovement: () => null,
-    movementActionTypeOptions: () => "<option></option>",
-    receiptAttachments: {},
-    transactionIdentity: () => "unused",
-  });
-  context.renderMovementDetailDialog();
-  assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>—<\/dd>/);
-});
-
 test("M-11 · ninguna fila de la tabla trae un input editable de importe: los importes no se editan en Movimientos", () => {
   const fn = extractFunction("renderDetailedMovements");
   // M-8 añade una casilla de selección por fila (para la acción en lote) — no es un editor de
@@ -398,20 +356,10 @@ test("M-5 · el aviso de cola sin clasificar cuenta sobre la vista filtrada, no 
 test("M-6 · abrir el detalle identifica la fila por su posición en la lista filtrada y abre el diálogo", () => {
   const dialog = { open: false, showModal() { this.open = true; } };
   const content = { innerHTML: "" };
-  const context = sandboxWith(["handleMovementDetailOpen", "openMovementDetailRow", "renderMovementDetailDialog", "movementDetailAttachmentHtml"], {
+  const context = sandboxWith(["handleMovementDetailOpen", "openMovementDetailRow"], {
     movementsFilteredList: () => [{ date: "2026-08-01", movement: "MERCADONA" }],
     qs: (id) => (id === "movementDetailDialog" ? dialog : id === "movementDetailContent" ? content : null),
-    mappingForMovement: () => null,
-    movementKindFromAmount: () => "expense",
-    escapeHtml: (v) => String(v),
-    formatIsoDate: (v) => v,
-    money: (v) => String(v),
-    movementDisplayName: (row) => row.movement,
-    movementMappingOptions: () => "<option></option>",
-    actionTypeForMovement: () => null,
-    movementActionTypeOptions: () => "<option></option>",
-    receiptAttachments: {},
-    transactionIdentity: () => "unused",
+    renderMovementDetailDialog: () => { content.innerHTML = context.movementDetailTransaction.movement; }, // el pintado, en tests/ficha-movimiento.test.cjs
   });
   context.handleMovementDetailOpen(0);
   assert.equal(context.movementDetailTransaction.movement, "MERCADONA");
@@ -443,100 +391,8 @@ test("M-6 · cerrar el detalle limpia el estado y cierra el diálogo", () => {
 
 // --- M-7 · cambio de partida con regla -------------------------------------------------------------
 
-function sandboxReclassify(remember, extra = {}) {
-  const calls = [];
-  const movementMappings = {};
-  const select = { value: "gasto-seguro-coche", options: [{}, { textContent: "Gastos fijos · Seguro coche" }], selectedIndex: 1 };
-  const remembered = { checked: remember };
-  const context = sandboxWith(["handleMovementReclassify"], {
-    movementDetailTransaction: { date: "2026-08-01", movement: "MERCADONA", details: "COMPRA", amount: -45.2 },
-    qs: (id) => (id === "movementDetailPartida" ? select : id === "movementDetailRemember" ? remembered : null),
-    movementKindFromAmount: () => "expense",
-    movementMappingKey: () => "expense|mercadona|compra",
-    transactionIdentity: () => "2026-08-01|||mercadona compra|-45.2|",
-    movementDisplayName: () => "MERCADONA · COMPRA",
-    movementMappings,
-    saveMovementMappings: () => calls.push("saveMovementMappings"),
-    applyMovementMappingsToActuals: () => {
-      calls.push("applyMovementMappingsToActuals");
-      return 3;
-    },
-    buildPendingMovementMappings: () => [],
-    datosImportarRefreshRowsForMappings: (keys) => calls.push(["datosImportarRefreshRowsForMappings", [...keys]]),
-    saveIncomeActuals: () => calls.push("saveIncomeActuals"),
-    saveExpenseActuals: () => calls.push("saveExpenseActuals"),
-    refreshAllSectionsAfterDataChange: () => calls.push("refreshAllSectionsAfterDataChange"),
-    announceStatus: (message) => calls.push(["announceStatus", message]),
-    renderMovementDetailDialog: () => calls.push("renderMovementDetailDialog"),
-    renderDetailedMovements: () => calls.push("renderDetailedMovements"),
-    baseData: { transactions: [] },
-    pendingMovementMappings: [],
-    ...extra,
-  });
-  context.handleMovementReclassify();
-  return { movementMappings, calls };
-}
-
-test("M-7 · sin marcar «recordar» (por defecto), la reclasificación se guarda solo para este movimiento, no como regla de concepto", () => {
-  const { movementMappings, calls } = sandboxReclassify(false);
-  assert.equal(movementMappings["expense|mercadona|compra"], undefined);
-  const saved = movementMappings["2026-08-01|||mercadona compra|-45.2|"];
-  assert.equal(saved.kind, "expense");
-  assert.equal(saved.rowKey, "gasto-seguro-coche");
-  assert.deepEqual(calls, [
-    "saveMovementMappings",
-    "applyMovementMappingsToActuals",
-    "saveIncomeActuals",
-    "saveExpenseActuals",
-    "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "Partida guardada solo para este movimiento. 3 importes reales recalculados desde movimientos."],
-    "renderMovementDetailDialog",
-    "renderDetailedMovements",
-  ]);
-});
-
-test("M-7 · marcando «recordar», la reclasificación escribe en el diccionario de concepto y recalcula por el mismo camino que el importador", () => {
-  const { movementMappings, calls } = sandboxReclassify(true);
-  const saved = movementMappings["expense|mercadona|compra"];
-  assert.equal(saved.kind, "expense");
-  assert.equal(saved.rowKey, "gasto-seguro-coche");
-  assert.equal(saved.label, "Gastos fijos · Seguro coche");
-  assert.deepEqual(calls, [
-    "saveMovementMappings",
-    "applyMovementMappingsToActuals",
-    ["datosImportarRefreshRowsForMappings", ["expense|mercadona|compra"]],
-    "saveIncomeActuals",
-    "saveExpenseActuals",
-    "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "Regla guardada para «MERCADONA · COMPRA»: se aplicará también a movimientos futuros. 3 importes reales recalculados desde movimientos."],
-    "renderMovementDetailDialog",
-    "renderDetailedMovements",
-  ]);
-});
-
-test("M-7 · sin elegir partida, avisa y no escribe nada en el diccionario", () => {
-  const calls = [];
-  const movementMappings = {};
-  const select = { value: "", options: [], selectedIndex: -1 };
-  const context = sandboxWith(["handleMovementReclassify"], {
-    movementDetailTransaction: { amount: -10 },
-    qs: (id) => (id === "movementDetailPartida" ? select : null),
-    movementMappings,
-    saveMovementMappings: () => {
-      throw new Error("no debería llamarse sin partida elegida");
-    },
-    announceStatus: (message) => calls.push(message),
-  });
-  context.handleMovementReclassify();
-  assert.deepEqual(movementMappings, {});
-  assert.deepEqual(calls, ["Elige una partida antes de guardar."]);
-});
-
-test("M-7 · la casilla «recordar» existe, desmarcada por defecto, y el aviso explica ambos casos", () => {
-  assert.match(app, /<input type="checkbox" id="movementDetailRemember" \/>/);
-  assert.match(app, /<span>Recordar para los que empiecen igual<\/span>/);
-  assert.match(app, /Sin marcar, solo reclasifica este movimiento\. Marcada, se aplicará a todos los movimientos con el mismo concepto/);
-});
+// M-6/M-7: el pintado de la ficha y el cambio de partida (solo este / todos, error, confirmación, «Deshacer») se prueban
+// cargando ficha-movimiento-ui.js entero en tests/ficha-movimiento.test.cjs desde el 3/11/2026.
 
 test("M-7 · mappingForMovement mira primero la clave de un solo movimiento, y solo si no hay usa la regla de concepto", () => {
   const context = sandboxWith(["mappingForMovement"], {

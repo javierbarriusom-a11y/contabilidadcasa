@@ -1575,3 +1575,42 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// 3/11/2026 · la ficha de un movimiento rehecha (dos bloques, «¿A cuáles?» en opciones, error y confirmación), en claro y en
+// oscuro: recién abierta, con el error del tipo de acción y con lo guardado. Movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Ficha de un movimiento · contraste en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Movimientos: la ficha sin fallos de contraste ni de accesibilidad en sus estados", async ({ page }) => {
+      await page.goto("/index.html#movements");
+      await page.waitForFunction(() => typeof mergeTransactions === "function" && typeof fichaMovSincroniza === "function", null, { timeout: 20000 });
+      await page.evaluate(() => {
+        const rows = [["2026-09-29", "FINANCIE-SEPTIEMB"], ["2026-10-30", "FINANCIE-OCTUBRE"]].map(([date, movement]) => ({
+          date, valueDate: date, month: date.slice(0, 7), movement, details: "Recibo entidad ficticia", amount: -120, balance: 2000, accountId: "caixabank", account: "CaixaBank",
+        }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        openMovementDetailRow(baseData.transactions.find((row) => row.movement === "FINANCIE-OCTUBRE"));
+      });
+      const ficha = page.locator("#movementDetailDialog");
+      await expect(ficha).toBeVisible();
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const revisar = async (etiqueta) => {
+        await page.mouse.move(0, 0);
+        const results = await new AxeBuilder({ page }).include("#movementDetailDialog").analyze();
+        expect(fmt(results), `${etiqueta}: ${fmt(results).slice(0, 5).join("\n")}`).toEqual([]);
+      };
+      await revisar("recién abierta");
+      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await ficha.locator("#movementDetailActionTypeSave").click();
+      await expect(ficha.locator("#movementDetailActionTypeError")).toBeVisible();
+      await revisar("con el error del tipo de acción");
+      const opcion = await ficha.locator("#movementDetailPartida option").evaluateAll((list) => list.map((o) => o.value).filter(Boolean)[0]);
+      await ficha.locator("#movementDetailPartida").selectOption(opcion);
+      await ficha.locator("label:has(#movementDetailRemember)").click();
+      await ficha.locator("#movementDetailSave").click();
+      await expect(ficha.locator(".ficha-mov-aviso")).toBeVisible();
+      await revisar("con lo guardado y «Deshacer»");
+    });
+  });
+}

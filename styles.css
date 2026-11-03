@@ -9267,7 +9267,8 @@ body {
 
 .movement-detail-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* 140 px (era 180): dos columnas también en el móvil, para que la partida no quede tres pantallas más abajo. */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px 20px;
   margin: 0 0 16px;
 }
@@ -9287,6 +9288,12 @@ body {
 .movement-detail-fields dd {
   margin: 0;
   font-weight: 700;
+}
+
+/* 3/11/2026: el rojo del importe se quedaba en 4,45:1 en oscuro (axe pide 4,5). Un 12 % del color del texto lo aclara en oscuro y lo
+   oscurece en claro: más contraste en los dos, sin tocar el rojo del resto de la app. */
+.movement-detail-fields dd.negative {
+  color: color-mix(in srgb, var(--red) 88%, var(--ink));
 }
 
 /* T11: hasta ahora un único botón condicional (ver foto). Con la foto/geolocalización adjuntas a
@@ -9344,6 +9351,151 @@ body {
   flex-direction: column;
   gap: 4px;
   font-weight: 700;
+}
+
+/* Ficha de un movimiento (ficha-movimiento-ui.js, 3/11/2026): dos bloques separados (partida; tipo de acción, opcional),
+   cada uno con cómo está ahora, «¿A cuáles?» en dos opciones, su error, su confirmación con «Deshacer» y su botón. Las
+   opciones anulan el `width: 100 %` y los 40 px de alto que `input` da a todo, que hacían enormes las casillas. */
+.ficha-mov-bloque {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.ficha-mov-bloque h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.ficha-mov-opcional {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.ficha-mov-bloque .e19-kpi-note,
+.ficha-mov-ahora {
+  margin: 0;
+}
+
+.ficha-mov-ahora {
+  color: var(--muted);
+}
+
+.ficha-mov-ahora strong {
+  color: var(--ink);
+}
+
+.ficha-mov-campo {
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ficha-mov-pareja {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.ficha-mov-alcance {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.ficha-mov-alcance legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ficha-mov-alcance label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ficha-mov-alcance label:has(input:checked) {
+  border-color: var(--e19-accent, var(--teal));
+  background: var(--e19-accent-soft, var(--surface-soft));
+}
+
+.ficha-mov-alcance input[type="radio"] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--e19-accent, var(--teal));
+}
+
+.ficha-mov-alcance small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ficha-mov-error {
+  margin: 0;
+  color: var(--e19-danger, var(--red));
+  font-weight: 700;
+}
+
+.ficha-mov-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-accent-soft-border, var(--line));
+  border-radius: 10px;
+  background: var(--e19-accent-soft, var(--surface-soft));
+  font-weight: 600;
+}
+
+.ficha-mov-aviso .link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ficha-mov-bloque button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* C-3b: el modal de clasificación de Cierre reutiliza el mismo patrón de campos/gap que

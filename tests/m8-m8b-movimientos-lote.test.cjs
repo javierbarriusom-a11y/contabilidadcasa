@@ -421,10 +421,11 @@ test("M-8 · los manejadores del lote quedan enlazados en el arranque", () => {
   });
 });
 
-test("M-8b · handleMovementReclassify (M-7) también refresca una sesión de importación a medias, solo cuando se marcó «recordar»", () => {
-  const fn = extractFunction("handleMovementReclassify");
-  assert.match(fn, /const key = remember \? movementMappingKey\(row\) : transactionIdentity\(row\);/);
-  assert.match(fn, /if \(remember\) datosImportarRefreshRowsForMappings\(new Set\(\[key\]\)\);/);
+test("M-8b · el cambio de partida de la ficha (M-7) refresca una importación a medias solo cuando es para todos", () => {
+  // Desde el 3/11/2026 vive en ficha-movimiento-ui.js; el comportamiento, con datos, en tests/ficha-movimiento.test.cjs.
+  const fn = extractFunction("fichaMovRefrescaPartidas");
+  assert.match(fn, /if \(clavesRegla\) datosImportarRefreshRowsForMappings\(new Set\(clavesRegla\)\);/);
+  assert.match(extractFunction("handleMovementReclassify"), /fichaMovRefrescaPartidas\(remember \? keys : null\);/);
 });
 
 // ---------------------------------------------------------------------------------------------

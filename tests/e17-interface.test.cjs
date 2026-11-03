@@ -50,8 +50,8 @@ test("E17 ofrece estado, ayuda contextual, lanzador y preferencias locales", () 
 
 test("E17 queda disponible con el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261102serie1/);
-  assert.match(html, /styles.css\?v=20261007audit3/);
+  assert.match(html, /app.js\?v=20261103ficha1/);
+  assert.match(html, /styles.css\?v=20261103ficha1/);
 });
 
 test("E18 enlaza una guía offline específica desde cada flujo crítico", () => {

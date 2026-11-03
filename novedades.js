@@ -17,6 +17,12 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-03-ficha-movimiento",
+      fecha: "2026-11-03",
+      texto: "La ficha de un movimiento: partida y tipo de acción por separado, a cuáles se aplica y cuántos son, y «Deshacer» al guardar.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-02-octubre-primero",
       fecha: "2026-11-02",
       texto: "Clasificar enseña primero lo del mes que cierras, y una regla vale para el concepto de cualquier mes (FINANCIE-OCTUBRE…).",
