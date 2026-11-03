@@ -5785,6 +5785,109 @@ test.describe("Rediseño A5 · Clasificar por lotes", () => {
   }
 });
 
+// Clasificar · «+ Nueva partida» (2/11/2026): crearla sin salir del panel, con previsto 0 € en todos los meses abiertos,
+// y que el real del mes cuente en ella. Movimientos y nombres INVENTADOS.
+test.describe("Clasificar · nueva partida desde el panel", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`crear una partida y clasificar el grupo hacia ella a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const today = new Date();
+        const day = isoLocalDate(new Date(today.getFullYear(), today.getMonth(), Math.max(1, today.getDate() - 1)));
+        const row = { date: day, month: day.slice(0, 7), movement: "RECIBO FINANCIERA FICTICIA", details: "", amount: -77.5, balance: null, account: "CaixaBank", source: "Extracto" };
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [row]);
+        refreshMovementRollups();
+        render();
+      });
+      await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+      const panel = page.locator("#clasificarV2");
+      await expect(panel).toBeVisible();
+      // Lleva a este grupo (los datos de ejemplo pueden traer otros sin partida delante).
+      for (let i = 0; i < 40 && (await panel.locator(".clas-v2-nombre").textContent()) !== "RECIBO FINANCIERA FICTICIA"; i += 1) {
+        if (await panel.locator("[data-clas-v2-otra-tanda]").isVisible()) await panel.locator("[data-clas-v2-otra-tanda]").click();
+        else await panel.locator("[data-clas-v2-saltar]").click();
+      }
+      await expect(panel.locator(".clas-v2-nombre")).toHaveText("RECIBO FINANCIERA FICTICIA");
+      if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+      await panel.locator("[data-clas-v2-nueva]").click();
+      const nombre = panel.locator("#clasificarV2NuevaNombre");
+      await expect(nombre).toBeFocused();
+      await expect(panel).toContainText("Sale con previsto 0 €");
+
+      // Esc vuelve al selector sin cerrar el panel.
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeVisible();
+      await expect(panel.locator("#clasificarV2Otra")).toBeVisible();
+      await panel.locator("[data-clas-v2-nueva]").click();
+
+      await nombre.fill("Financiaciones ficticias");
+      await page.keyboard.press("Enter");
+      await expect(panel.locator(".clas-v2-propuesta")).toContainText("Elegida");
+      await expect(panel.locator(".clas-v2-propuesta")).toContainText("Financiaciones ficticias");
+      await panel.locator("[data-clas-v2-aceptar]").click();
+      await expect(page.locator("#undoToast")).toContainText("Regla «RECIBO FINANCIERA FICTICIA → Financiaciones ficticias» creada.");
+
+      const result = await page.evaluate(() => {
+        const series = customPlanningRows.filter((row) => row.label === "Financiaciones ficticias");
+        const today = new Date();
+        const day = isoLocalDate(new Date(today.getFullYear(), today.getMonth(), Math.max(1, today.getDate() - 1)));
+        const month = baseData.monthlyPlanning.months.find((m) => m.key === day.slice(0, 7));
+        const inMonth = planningSectionsForMonth("expense", month).flatMap((section) => section.rows).find((row) => row.label === "Financiaciones ficticias");
+        const lastKey = baseData.monthlyPlanning.months.at(-1).key;
+        return {
+          ids: new Set(series.map((row) => row.id)).size,
+          planned: [...new Set(series.map((row) => row.plannedValue))],
+          hasLast: series.some((row) => row.monthKey === lastKey),
+          inMonth: Boolean(inMonth),
+          actual: inMonth ? expenseActuals[actualKeyForRow(inMonth, month)] : null,
+          stored: JSON.parse(localStorage.getItem(storageKey("customPlanningRows")) || "[]").filter((row) => row.label === "Financiaciones ficticias").length,
+        };
+      });
+      expect(result.ids).toBe(1);
+      expect(result.planned).toEqual([0]);
+      expect(result.hasLast, "llega al último mes del plan").toBe(true);
+      expect(result.inMonth, "la partida existe en el mes del movimiento").toBe(true);
+      expect(result.actual, "y el real del mes cuenta en ella").toBe(77.5);
+      expect(result.stored).toBeGreaterThan(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// 2/11/2026: una partida creada para un solo mes (Cierre, «Solo un mes» en Planificación de partidas) con una regla «para
+// siempre»: el movimiento del mes siguiente tiene que contar en ese mes. Antes su real quedaba en una clave que nadie sumaba.
+test("una partida de un solo mes con regla: el movimiento del mes siguiente cuenta en su mes", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.goto("/index.html#movements");
+  await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+  const result = await page.evaluate(() => {
+    const months = baseData.monthlyPlanning.months.filter((m) => !isClosedMonthKey(m.key));
+    const [first, next] = months;
+    const section = baseData.monthlyPlanning.sections.find((s) => s.kind === "expense").name;
+    const id = "custom-expense-prueba-serie";
+    customPlanningRows.push({ id, custom: true, kind: "expense", sectionName: section, label: "Partida de un mes ficticia", monthKey: first.key, plannedValue: 10 });
+    const row = { date: `${next.key}-03`, month: next.key, movement: "COMERCIO SERIE FICTICIO", details: "", amount: -33.25, balance: null, account: "CaixaBank", source: "Extracto" };
+    baseData.transactions = mergeTransactions(baseData.transactions || [], [row]);
+    movementMappings[movementMappingKey(row)] = { kind: "expense", rowKey: `expense|${id}`, label: "Partida de un mes ficticia", updatedAt: new Date().toISOString() };
+    saveMovementMappings();
+    applyMovementMappingsToActuals();
+    const inNext = planningSectionsForMonth("expense", next).flatMap((s) => s.rows).find((r) => r.id === id);
+    return { inNext: Boolean(inNext), planned: inNext?.plannedValue, actual: inNext ? expenseActuals[actualKeyForRow(inNext, next)] : null, firstPlanned: customPlanningRows.find((r) => r.id === id && r.monthKey === first.key)?.plannedValue };
+  });
+  expect(result.inNext, "la partida aparece en el mes del movimiento").toBe(true);
+  expect(result.planned).toBe(0);
+  expect(result.actual).toBe(33.25);
+  expect(result.firstPlanned, "el previsto del mes original no cambia").toBe(10);
+  expect(pageErrors).toEqual([]);
+});
+
 // La tarjeta «Previsto, real y usado» de Registrar no puede quedar en tres columnas estrechas en el móvil.
 test.describe("Registrar · tarjeta de la regla en el móvil", () => {
   for (const tema of ["", "?tema=clasico"]) {
@@ -5896,7 +5999,8 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     });
     await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
     const panel = page.locator("#clasificarV2");
-    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("1 de 3 · faltan 3 grupos · menos de un minuto (aún sin medir)");
+    // Con un mes por cerrar que tenga movimientos (2/11/2026, «Octubre primero»), el contador lo dice; estos tres son del mes en curso.
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText(/^1 de 3 · (faltan 3 grupos|\S+ ya está · faltan 3 de otros meses) · menos de un minuto \(aún sin medir\)$/);
     // 1 · La propuesta (confianza media), tal cual.
     await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"]')).toBeVisible();
     await panel.locator("[data-clas-v2-aceptar]").click();

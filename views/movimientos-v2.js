@@ -137,7 +137,8 @@ function movV2BandejaHead(count) {
 // views/clasificar-v2.js); el filtro «Sin partida» sigue en la lista.
 function movV2Bandeja(all, esperados = []) {
   const sinPartida = all.filter((item) => Number(item.row.amount) && !item.partida);
-  const grupos = new Set(sinPartida.map((item) => movementMappingKey(item.row))).size;
+  const groupKey = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey : movementMappingKey; // sin el mes, como Clasificar
+  const grupos = new Set(sinPartida.map((item) => groupKey(item.row))).size;
   const head = movV2BandejaHead((grupos ? 1 : 0) + esperados.length);
   const body = grupos
     ? `<button type="button" class="mov-v2-card mov-v2-fila-bandeja" data-mov-v2-clasificar>

@@ -17,6 +17,24 @@
       href: "#deuda-comparar",
     },
     {
+      id: "2026-11-02-octubre-primero",
+      fecha: "2026-11-02",
+      texto: "Clasificar enseña primero lo del mes que cierras, y una regla vale para el concepto de cualquier mes (FINANCIE-OCTUBRE…).",
+      href: "#movements",
+    },
+    {
+      id: "2026-11-02-partida-serie",
+      fecha: "2026-11-02",
+      texto: "Una partida creada para un solo mes ya cuenta los movimientos de los meses siguientes que su regla le manda.",
+      href: "#movements",
+    },
+    {
+      id: "2026-11-02-nueva-partida",
+      fecha: "2026-11-02",
+      texto: "En Clasificar, si la partida que buscas no existe, «+ Nueva partida» la crea ahí mismo, con previsto 0 €, sin salir del panel.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-02-duplicados",
       fecha: "2026-11-02",
       texto: "Importar ya no pregunta «¿duplicado?» por lo que ya estaba ni por lo que el banco lista dos veces: son dos movimientos.",

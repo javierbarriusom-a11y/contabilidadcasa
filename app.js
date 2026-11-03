@@ -238,8 +238,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261004wp09a1", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261004wp09a1", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261102serie1", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261102serie1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
@@ -21585,6 +21585,8 @@ function mappingForMovement(transaction) {
   const stored = movementMappings[movementMappingKey(transaction)];
   const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
   if (storedRow) return { kind, row: storedRow, source: "dictionary" };
+  const anyMonthRow = movementMappingForAnyMonth(transaction, kind); // 2/11/2026: la regla vale para el concepto de cualquier mes
+  if (anyMonthRow) return { kind, row: anyMonthRow, source: "dictionary" };
   const exact = exactMovementPlanningMatch(transaction);
   return exact ? { kind, row: exact, source: "exact" } : null;
 }
@@ -21681,6 +21683,41 @@ function buildPendingMovementMappings(transactions) {
 }
 
 // Suma del banco por partida y mes (abiertos), la que el extracto clasificado pone como real.
+// 2/11/2026: una partida personalizada solo existe en los meses que tienen su fila (customRowsForSection), pero las reglas
+// de Movimientos valen «para siempre». Si una regla manda un movimiento a una partida creada para un solo mes (Cierre,
+// Planificación de partidas con «Solo un mes», Registrar), el real de los demás meses se escribía en una clave que ningún
+// mes suma: no contaba en ninguna parte, sin avisar. Ahora, al aplicar las reglas, la fila que falta se crea con previsto
+// 0 € (no cambia el plan) en cada mes sin firmar con movimientos para ella; una supresión expresa de la partida en ese mes
+// se respeta. Así también se reparan solos los reales que ya se habían quedado sueltos, la próxima vez que se clasifique o
+// importe.
+function ensureCustomRowsForBankActuals(totals) {
+  const months = baseData?.monthlyPlanning?.months || [];
+  let added = 0;
+  ["income", "expense"].forEach((kind) => {
+    (totals?.[kind] || new Map()).forEach((_amount, key) => {
+      const cut = String(key).lastIndexOf("|");
+      const id = String(key).slice(0, cut);
+      const monthKey = String(key).slice(cut + 1);
+      const series = customPlanningRows.filter((row) => row.kind === kind && row.id === id);
+      if (!series.length || series.some((row) => row.monthKey === monthKey)) return;
+      const month = months.find((item) => item.key === monthKey);
+      const template = series.reduce((last, row) => (String(row.monthKey) > String(last.monthKey) ? row : last), series[0]);
+      if (!month || isPlanningRowDeleted(template, month, template.sectionName)) return;
+      customPlanningRows.push({ id, custom: true, kind, sectionName: template.sectionName, label: template.label, monthKey, plannedValue: 0 });
+      added += 1;
+    });
+  });
+  if (added) saveCustomPlanningRows();
+  return added;
+}
+
+// Los meses del plan desde `fromKey` hasta el final del horizonte, sin los firmados: donde va la fila de una partida
+// personalizada nueva para que la regla que la apunta cuente en todos (Clasificar · «+ Nueva partida», Cierre · «Crear
+// partida»).
+function customSeriesMonthsFrom(fromKey) {
+  return (baseData?.monthlyPlanning?.months || []).filter((month) => month.key >= String(fromKey || "") && !isSignedClosedMonthKey(month.key));
+}
+
 function bankActualTotals() {
   const monthlyTotals = {
     income: new Map(),
@@ -21768,6 +21805,7 @@ function bankActualAparte(kind, key) {
 
 function applyMovementMappingsToActuals() {
   const totals = bankActualTotals();
+  if (typeof ensureCustomRowsForBankActuals === "function") ensureCustomRowsForBankActuals(totals); // 2/11/2026: sin reales sueltos
   const applied = loadBankActualsApplied() || { income: {}, expense: {} };
   const changed = mergeBankActuals(incomeActuals, applied.income, totals.income, bankActualsKeyIsOpen)
     + mergeBankActuals(expenseActuals, applied.expense, totals.expense, bankActualsKeyIsOpen);
@@ -21924,7 +21962,7 @@ function datosImportarRefreshRowsForMappings(keys) {
   datosImportarSession.rows.forEach((row) => {
     if (row.decision) return;
     const key = movementMappingKey(row.transaction);
-    if (!keys.has(key)) return;
+    if (!keys.has(key) && !keys.has(movementMappingMonthlessKey(key))) return;
     row.prior = datosImportarPriorClassification(row.transaction, ignored);
     row.suggestion = row.prior.status === "pendiente" ? datosImportarSuggestionFor(row.transaction) : null;
   });
