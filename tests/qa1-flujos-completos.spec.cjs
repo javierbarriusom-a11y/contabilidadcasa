@@ -7416,3 +7416,66 @@ test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
     });
   }
 });
+
+// 3/11/2026 · Cierre: «Dejar N en Por clasificar». Decisión del hogar en su primer cierre real: firmar sin haber asignado todo,
+// sin que el mes pierda ese dinero. Reloj el 2/11: Cierre enseña octubre. Movimientos INVENTADOS.
+test.describe("Cierre · dejar lo pendiente en «Por clasificar»", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`lo de octubre sin partida va a «Por clasificar» uno a uno, sin reglas; deja firmar y se deshace, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      const dialogs = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && typeof handleCierrePorClasificar === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        let balance = 5000;
+        const add = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += amount), accountId: "caixabank" });
+        baseData.transactions = mergeTransactions([], [
+          add("2026-05-03", -40, "VIEJO FICTICIO"),
+          add("2026-10-04", -80, "TIENDA RARA FICTICIA"),
+          add("2026-10-12", 25, "DEVOLUCION FICTICIA"),
+          add("2026-11-01", -80, "TIENDA RARA FICTICIA"),
+        ]);
+        refreshMovementRollups();
+        // El paso 2 se abre con las cuentas conciliadas (paso 1); aquí se prueba lo que viene después.
+        globalThis.cierreAccountsSettled = () => true;
+        cierreActiveStep = 2;
+        renderCierre();
+      });
+      const contador = (label) => page.locator("#cierreCounters .e19-kpi", { hasText: label }).locator(".e19-kpi-value");
+      await expect(contador("Movimientos sin clasificar")).toHaveText("2");
+      const tarjeta = page.locator(".cierre-por-clasificar").first();
+      await expect(tarjeta).toContainText("Quedan 2 movimientos de oct 26 sin partida (80 € de gasto y 25 € de ingreso)");
+      await tarjeta.locator("[data-cierre-por-clasificar]").click();
+      const aviso = page.locator(".cierre-por-clasificar-aviso").first();
+      await expect(aviso).toContainText("2 movimientos (80 € de gasto y 25 € de ingreso) van a «Por clasificar». Ya puedes firmar.");
+      await expect(contador("Movimientos sin clasificar")).toHaveText("0");
+      const estado = () => page.evaluate(() => ({
+        causas: cierreEvidenceContext.tasks.map((task) => task.cause),
+        noviembre: Boolean(mappingForMovement(baseData.transactions.find((row) => row.month === "2026-11"))),
+        mayo: Boolean(mappingForMovement(baseData.transactions.find((row) => row.month === "2026-05"))),
+        reglas: Object.keys(movementMappings).filter((key) => !/^\d{4}-/.test(key)).length,
+        realOctubre: availableSeriesRows("expense").filter((row) => row.label === "Por clasificar").map((row) => expenseActuals[`${row.id}|2026-10`]),
+      }));
+      const tras = await estado();
+      expect(tras.causas, "octubre ya no tiene nada abierto").toEqual([]);
+      expect(tras.noviembre, "sin regla: el mismo concepto de noviembre sigue esperando en la bandeja").toBe(false);
+      expect(tras.mayo, "lo de otros meses no se toca").toBe(false);
+      expect(tras.reglas, "no se crea ninguna regla de concepto").toBe(0);
+      expect(tras.realOctubre.filter((value) => value !== undefined), "el gasto de octubre cuenta en «Por clasificar»").toEqual([80]);
+      await page.evaluate(() => { cierreActiveStep = 99; renderCierre(); });
+      await expect(page.locator(".deuda-ruta-check", { hasText: "Ninguna diferencia abierta" })).toHaveClass(/is-ok/);
+
+      await aviso.getByRole("button", { name: "Deshacer" }).click();
+      await expect(contador("Movimientos sin clasificar")).toHaveText("2");
+      expect(await page.evaluate(() => availableSeriesRows("expense").some((row) => row.label === "Por clasificar")), "la partida que creó se quita").toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(dialogs, "ningún confirm(): se deshace").toEqual([]);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
