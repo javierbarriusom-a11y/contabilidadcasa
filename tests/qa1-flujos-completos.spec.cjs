@@ -7338,3 +7338,81 @@ test.describe("NIN-08 · dinero parado", () => {
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// 3/11/2026 · la ficha de un movimiento, rehecha a petición del hogar: casillas enormes y fuera de sitio, sin saber qué guardaba
+// cada botón, si la partida y el tipo de acción dependían uno del otro, ni qué pasaba al pulsar. Movimientos INVENTADOS: un
+// concepto con el mes dentro, de tres meses.
+async function sembrarFicha(page) {
+  await page.waitForFunction(() => typeof mergeTransactions === "function" && typeof fichaMovSincroniza === "function", null, { timeout: 20000 });
+  await page.evaluate(() => {
+    const rows = [["2026-08-28", "FINANCIE-AGOSTO"], ["2026-09-29", "FINANCIE-SEPTIEMB"], ["2026-10-30", "FINANCIE-OCTUBRE"]].map(([date, movement]) => ({
+      date, valueDate: date, month: date.slice(0, 7), movement, details: "Recibo entidad ficticia", amount: -120, balance: 2000, accountId: "caixabank", account: "CaixaBank", category: "Créditos",
+    }));
+    baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+    refreshMovementRollups();
+    openMovementDetailRow(baseData.transactions.find((row) => row.movement === "FINANCIE-OCTUBRE"));
+  });
+  const dialog = page.locator("#movementDetailDialog");
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`dos bloques, «¿A cuáles?» en dos opciones, botón que dice a cuántos, confirmación con deshacer y error junto al campo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      const dialogs = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      const ficha = await sembrarFicha(page);
+      await expect(ficha.locator('input[type="checkbox"]')).toHaveCount(0);
+      const todos = ficha.locator("#movementDetailRemember");
+      const caja = await todos.boundingBox();
+      expect(caja.width, "la opción no hereda el 100 % de ancho").toBeLessThanOrEqual(24);
+      expect(caja.height, "ni los 40 px de alto").toBeLessThanOrEqual(24);
+      const etiqueta = await ficha.locator("label:has(#movementDetailRemember) span").boundingBox();
+      expect(Math.abs(etiqueta.y - caja.y), "el texto va al lado de la opción, no debajo").toBeLessThan(12);
+      await expect(ficha.locator(".ficha-mov-bloque").first()).toContainText("Ahora: sin partida");
+      await expect(ficha.locator(".ficha-mov-bloque").nth(1)).toContainText("opcional");
+
+      const guardar = ficha.locator("#movementDetailSave");
+      await expect(guardar).toBeDisabled();
+      await expect(ficha.locator("#movementDetailPista")).toBeVisible();
+      const opcion = await ficha.locator("#movementDetailPartida option").evaluateAll((list) => list.map((o) => o.value).filter(Boolean)[0]);
+      await ficha.locator("#movementDetailPartida").selectOption(opcion);
+      await expect(guardar).toHaveText("Guardar partida · 1 movimiento");
+      await ficha.locator("label:has(#movementDetailRemember)").click();
+      await expect(ficha.locator("label:has(#movementDetailRemember)")).toContainText("de cualquier mes (3 movimientos de 3 meses)");
+      await expect(guardar).toHaveText("Guardar partida · 3 movimientos");
+      await guardar.click();
+      const aviso = ficha.locator(".ficha-mov-aviso");
+      await expect(aviso).toContainText("3 movimientos de «FINANCIE-OCTUBRE · Recibo entidad ficticia» van ahora a");
+      await expect(ficha.locator(".ficha-mov-bloque").first()).toContainText("por la regla de este concepto");
+      await expect(guardar).toBeDisabled();
+      const conPartida = () => page.evaluate(() => baseData.transactions.filter((row) => /^FINANCIE-/.test(row.movement) && mappingForMovement(row)).length);
+      expect(await conPartida()).toBe(3);
+      await aviso.getByRole("button", { name: "Deshacer" }).click();
+      await expect(aviso).toHaveCount(0);
+      await expect(ficha.locator(".ficha-mov-bloque").first()).toContainText("Ahora: sin partida");
+      expect(await conPartida()).toBe(0);
+
+      // Tipo de acción: aparte, con su error junto al campo.
+      const guardarTipo = ficha.locator("#movementDetailActionTypeSave");
+      await expect(guardarTipo).toBeDisabled();
+      await ficha.locator("#movementDetailRecurring").selectOption("true");
+      await guardarTipo.click();
+      await expect(ficha.locator("#movementDetailActionTypeError")).toHaveText("Elige un tipo de acción antes de guardar.");
+      await expect(ficha.locator("#movementDetailActionType")).toBeFocused();
+      await ficha.locator("#movementDetailActionType").selectOption("pago_deuda");
+      await expect(ficha.locator("#movementDetailActionTypeError")).toBeHidden();
+      await guardarTipo.click();
+      await expect(ficha.locator(".ficha-mov-bloque").nth(1).locator(".ficha-mov-aviso")).toContainText("Este movimiento es ahora «Pago de deuda».");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(dialogs, "ningún confirm(): se deshace").toEqual([]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});

@@ -21630,7 +21630,8 @@ function actionTypeEntryForMovement(transaction) {
   if (single?.actionType) return { ...single, source: "single" };
   const stored = movementActionTypes[movementMappingKey(transaction)];
   if (stored?.actionType) return { ...stored, source: "dictionary" };
-  return null;
+  const otroMes = typeof fichaMovTipoDeOtroMes === "function" ? fichaMovTipoDeOtroMes(transaction) : null; // 3/11/2026: como la partida, vale para el concepto de cualquier mes
+  return otroMes ? { ...otroMes, source: "dictionary" } : null;
 }
 
 // Sin confirmación del usuario, se ofrece la sugerencia derivada de la partida (`confirmed: false`)
@@ -22017,8 +22018,8 @@ function movementDetailAttachmentHtml(row) {
   const buttons = [];
   buttons.push(
     attachment?.inboxItemId
-      ? '<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailViewReceipt">Ver foto del ticket (A17-3)</button>'
-      : '<label class="e19-btn e19-btn-secondary"><input type="file" accept="image/*" capture="environment" id="movementDetailAttachPhoto" hidden />Adjuntar foto (T11)</label>',
+      ? '<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailViewReceipt">Ver foto del ticket</button>'
+      : '<label class="e19-btn e19-btn-secondary"><input type="file" accept="image/*" capture="environment" id="movementDetailAttachPhoto" hidden />Adjuntar foto</label>',
   );
   if (attachment?.geo) {
     buttons.push(
@@ -22026,7 +22027,7 @@ function movementDetailAttachmentHtml(row) {
     );
   }
   buttons.push(
-    `<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailSaveGeo">${attachment?.geo ? "Actualizar mi ubicación (T11)" : "Guardar mi ubicación (T11)"}</button>`,
+    `<button type="button" class="e19-btn e19-btn-secondary" id="movementDetailSaveGeo">${attachment?.geo ? "Actualizar mi ubicación" : "Guardar mi ubicación"}</button>`,
   );
   return `<div class="movement-detail-attachment">${buttons.join("")}</div>`;
 }
@@ -22076,130 +22077,7 @@ function handleMovementDetailSaveGeo(row) {
   );
 }
 
-function renderMovementDetailDialog() {
-  const content = qs("movementDetailContent");
-  const row = movementDetailTransaction;
-  if (!content || !row) return;
-  const mapping = mappingForMovement(row);
-  const kind = movementKindFromAmount(row.amount);
-  content.innerHTML = `
-    <h3 id="movementDetailTitle">${escapeHtml(movementDisplayName(row))}</h3>
-    <dl class="movement-detail-fields">
-      <div><dt>Fecha</dt><dd>${escapeHtml(formatIsoDate(row.date))}</dd></div>
-      <div><dt>Fecha valor</dt><dd>${escapeHtml(formatIsoDate(row.valueDate))}</dd></div>
-      <div><dt>Movimiento</dt><dd>${escapeHtml(row.movement)}</dd></div>
-      <div><dt>Más datos</dt><dd>${escapeHtml(row.details || "—")}</dd></div>
-      <div><dt>Categoría del banco</dt><dd>${escapeHtml(row.category || "—")}</dd></div>
-      <div><dt>Importe</dt><dd class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</dd></div>
-      <div><dt>Saldo</dt><dd>${row.balance === null || row.balance === undefined ? "—" : money(row.balance, true)}</dd></div>
-      <div><dt>Origen</dt><dd>${escapeHtml(row.source || "—")}</dd></div>
-      <div><dt>Cuenta</dt><dd>${escapeHtml(row.account || "—")}</dd></div>
-    </dl>
-    ${movementDetailAttachmentHtml(row)}
-    <div class="movement-detail-reclassify">
-      <label>
-        <span>Partida</span>
-        <select id="movementDetailPartida">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
-      </label>
-      <label class="movement-detail-remember">
-        <input type="checkbox" id="movementDetailRemember" />
-        <span>Recordar para los que empiecen igual</span>
-      </label>
-      <p class="e19-kpi-note" id="movementDetailRememberHint">Sin marcar, solo reclasifica este movimiento. Marcada, se aplicará a todos los movimientos con el mismo concepto (${escapeHtml(movementDisplayName(row))}), incluidos los futuros — es la misma regla que ya usan Registrar y el importador.</p>
-      <button type="button" class="e19-btn e19-btn-primary" id="movementDetailSave">Guardar partida</button>
-    </div>
-    <div class="movement-detail-action-type">
-      <label>
-        <span>Tipo de acción</span>
-        <select id="movementDetailActionType">${movementActionTypeOptions(actionTypeForMovement(row)?.actionType || "")}</select>
-      </label>
-      <label>
-        <span>¿Es recurrente?</span>
-        <select id="movementDetailRecurring">
-          <option value="">Sin marcar</option>
-          <option value="true" ${actionTypeForMovement(row)?.recurring === true ? "selected" : ""}>Sí, se repite cada mes</option>
-          <option value="false" ${actionTypeForMovement(row)?.recurring === false ? "selected" : ""}>No, es puntual</option>
-        </select>
-      </label>
-      <label class="movement-detail-remember">
-        <input type="checkbox" id="movementDetailActionTypeRemember" />
-        <span>Recordar para los que empiecen igual</span>
-      </label>
-      <p class="e19-kpi-note" id="movementDetailActionTypeHint">P-1: eje aditivo sobre la partida — "¿cuánto de lo gastado es deuda, discrecional o recurrente?". Sin marcar «recordar», solo se aplica a este movimiento; marcada, se aplicará también a los movimientos futuros del mismo concepto.</p>
-      <button type="button" class="e19-btn e19-btn-primary" id="movementDetailActionTypeSave">Guardar tipo de acción</button>
-    </div>`;
-  qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
-  qs("movementDetailAttachPhoto")?.addEventListener("change", (event) => handleMovementDetailAttachPhoto(event, row));
-  qs("movementDetailSaveGeo")?.addEventListener("click", () => handleMovementDetailSaveGeo(row));
-}
-
-// M-7: cambio de partida con regla — reutiliza tal cual el mismo diccionario y el mismo camino de
-// escritura que ya usaba `applyPendingMovementMappings` en #data-entry (regla transversal 01): sin
-// esta selección no hay una segunda forma de reclasificar un movimiento. La casilla «recordar»,
-// desmarcada por defecto, decide la clave: aprender una regla de concepto (futuros movimientos
-// incluidos) es un acto deliberado, no el resultado automático de guardar.
-function handleMovementReclassify() {
-  const row = movementDetailTransaction;
-  const select = qs("movementDetailPartida");
-  if (!row || !select) return;
-  const rowKeyValue = select.value;
-  if (!rowKeyValue) {
-    announceStatus("Elige una partida antes de guardar.");
-    return;
-  }
-  const remember = Boolean(qs("movementDetailRemember")?.checked);
-  const kind = movementKindFromAmount(row.amount);
-  const key = remember ? movementMappingKey(row) : transactionIdentity(row);
-  movementMappings[key] = {
-    kind,
-    rowKey: rowKeyValue,
-    label: select.options[select.selectedIndex]?.textContent || "",
-    updatedAt: new Date().toISOString(),
-  };
-  saveMovementMappings();
-  const applied = applyMovementMappingsToActuals();
-  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
-  if (remember) datosImportarRefreshRowsForMappings(new Set([key]));
-  saveIncomeActuals();
-  saveExpenseActuals();
-  refreshAllSectionsAfterDataChange();
-  announceStatus(
-    remember
-      ? `Regla guardada para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`
-      : `Partida guardada solo para este movimiento. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`,
-  );
-  renderMovementDetailDialog();
-  renderDetailedMovements();
-}
-
-// P-1: guarda `actionType`/`recurring` en su propio diccionario (`movementActionTypes`), con la
-// misma dualidad single/concepto que M-7 usa para la partida — pero es su propio botón y su propia
-// función: no reescribe `handleMovementReclassify` para no arriesgar el camino ya verificado de
-// partida (mismo criterio que llevó a no fabricar una segunda taxonomía: cada concepto, su propia
-// puerta de guardado, sin mezclar sus efectos).
-function handleMovementActionTypeSave() {
-  const row = movementDetailTransaction;
-  const select = qs("movementDetailActionType");
-  if (!row || !select) return;
-  const actionType = select.value;
-  if (!actionType) {
-    announceStatus("Elige un tipo de acción antes de guardar.");
-    return;
-  }
-  const recurringRaw = qs("movementDetailRecurring")?.value ?? "";
-  const recurring = recurringRaw === "true" ? true : recurringRaw === "false" ? false : null;
-  const remember = Boolean(qs("movementDetailActionTypeRemember")?.checked);
-  const key = remember ? movementMappingKey(row) : transactionIdentity(row);
-  movementActionTypes[key] = { actionType, recurring, updatedAt: new Date().toISOString() };
-  saveMovementActionTypes();
-  announceStatus(
-    remember
-      ? `Tipo de acción guardado como regla para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros.`
-      : "Tipo de acción guardado solo para este movimiento.",
-  );
-  renderMovementDetailDialog();
-  renderDetailedMovements();
-}
+// La ficha (renderMovementDetailDialog, handleMovementReclassify, handleMovementActionTypeSave) vive en ficha-movimiento-ui.js desde el 3/11/2026.
 
 // M-10: exporta exactamente la vista filtrada visible, no el extracto completo.
 function handleMovementsExport() {
@@ -31932,6 +31810,7 @@ async function init() {
   });
   qs("movementDetailDialog")?.addEventListener("close", () => {
     movementDetailTransaction = null;
+    fichaMovAviso = null; // el «Deshacer» de la ficha es de esa visita
   });
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
   // Repaso pixel-perfect del 20 de agosto: los enlaces «Registrar › Importar extracto» (tarjeta

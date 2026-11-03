@@ -113,6 +113,38 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 3 de noviembre de 2026 (391): la ficha de un movimiento, rehecha
+
+- **Petición del hogar** (con captura, a mitad del cierre de octubre):
+  - las casillas «Recordar para los que empiecen igual» salían enormes y fuera de sitio;
+  - no se entendía qué acción había que hacer ni si la partida y el tipo de acción dependían una de otra;
+  - faltaba confirmación y control de errores al guardar.
+- **Por qué las casillas.** `styles.css` da a todo `input` `width: 100%` y `min-height: 40px`. Además, cada casilla iba en una etiqueta en columna, así que salía como un cuadrado de 40 px, centrado y encima de su texto. Hay 60 casillas en la app y solo cuatro componentes lo corrigen por su cuenta; el resto queda para otra tarea.
+- **Lo que se ve ahora** (en los dos temas):
+  - **Dos bloques, cada uno con su botón:** «Partida» y «Tipo de acción». El segundo va marcado como opcional y dice que no cambia importes.
+  - **Cómo está ahora cada uno:** sin partida, solo este movimiento, por la regla del concepto o propuesto sin confirmar.
+  - **«¿A cuáles?» son dos opciones**, no una casilla. «Todos» dice cuántos movimientos y meses son, y qué no cambia: los que tienen excepción propia y los reales de los meses firmados.
+  - **El botón está apagado mientras no cambie nada**, con una pista de qué cambiar, y dice «· N movimientos».
+  - **Errores y confirmación en el propio bloque:** el error sale junto al campo y le da el foco; lo guardado se confirma con «Deshacer», que deja el diccionario exactamente como estaba (sin `confirm()`).
+  - Los datos del banco van en dos columnas en el móvil, y los botones ya no llevan «(T11)».
+- **Lo que se guarda distinto** (probable causa del «no se está guardando» del 2/11):
+  - Si el movimiento ya va por la regla, «todos» viene marcado. Antes la casilla venía desmarcada y guardar creaba en silencio una excepción para ese movimiento, con la regla intacta para los demás.
+  - «Todos» reescribe también las reglas del mismo concepto de otros meses (FINANCIE-SEPTIEMB…), que si no seguirían mandando en su mes, y quita la excepción del propio movimiento.
+  - La regla de tipo de acción vale para el concepto de cualquier mes, como la de partida (`fichaMovTipoDeOtroMes`, desde `actionTypeEntryForMovement`).
+- **Código.**
+  - La ficha (pintado y los dos guardados) sale de `app.js` a `ficha-movimiento-ui.js`, con `defer` antes de `app.js` y en `FICHEROS_APP`, la web pública y el service worker. `app.js` pasa de 32.414 a 32.293 líneas.
+  - Versiones: `app.js`, `styles.css` y `novedades.js` a `?v=20261103ficha1`, con sus 31 fijaciones en las pruebas.
+  - axe encontró dos contrastes por debajo del mínimo, y se arreglan dentro de la ficha. El importe en rojo daba 4,45:1 en oscuro y ya estaba así antes: ahora es el rojo con un 12 % del color del texto. «Deshacer» daba 3,72:1: ahora va en el color del texto, subrayado.
+- **Pruebas.**
+  - Nueva `tests/ficha-movimiento.test.cjs` (18): carga el fichero entero con las funciones «sin mes» reales.
+  - Las de M-6, M-7, M-8b y P-1 que fijaban la casilla vieja pasan a esa prueba o se adaptan.
+  - e2e nueva en `qa1` (390 `@safari` y 1440) y axe de la ficha en claro y en oscuro.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6318/6318, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - e2e de la ficha y de Movimientos v2: 4 de 4. axe de la ficha: 2 de 2.
+  - Capturas a 390 y 1440 px, en claro y en oscuro, sin desbordar.
+  - Novedades y `docs/rediseno/ESTADO.md` §2 al día.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (390): una prueba de deuda en la sombra fallaba según el día del mes
 
 - **Qué pasó.** El despliegue de #577 a `main` se paró en el e2e (Chromium): «WP-41 · deuda en la sombra y TAE real» no encontraba `#sombraRecurrentes`. El cambio de #577 no tenía nada que ver; en el CI del PR, un día antes, había pasado.
