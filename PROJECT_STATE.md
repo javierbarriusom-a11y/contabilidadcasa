@@ -124,6 +124,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - «Cerrar mes» sale con el motivo escrito y seleccionado: **Intro cancelaba la firma del cierre sin avisar**. En «Registrar gasto», Intro en el concepto cerraba la ventana y perdía lo escrito.
   - Arreglo, `ux-shell.js` (`mountDialogEnter`, delegado en el documento): Intro en un campo de texto de un diálogo cuyo primer botón es «Cancelar» pulsa el que confirma con `requestSubmit`, así que se mantienen la validación y el `submit` de cada diálogo. Esc y «Cancelar» siguen cancelando. Sin tocar `app.js` ni el orden de los botones.
   - Comprobado en el navegador: sin importe, «Registrar gasto» sigue abierto y conserva el concepto; con importe, registra; «Cerrar mes» confirma con el motivo; Esc cancela.
+  - **Destapado por la e2e en Safari (CI de #586):** WebKit no limpia `returnValue` al cerrar con Esc y conserva el del cierre anterior. Tras confirmar una operación protegida, cancelar la siguiente con Esc contaba como confirmada. Era un fallo previo solo de Safari. `ux-shell.js` deja `returnValue = "cancel"` en el evento `cancel` de esos diálogos.
 - **Corregido en la sesión (2):** Registrar › «Frescura de tus datos» ya no dice «Todo al día» sin datos (`datos-ui.js`).
 - **Abiertos.** Se consultan al hogar:
   - **T25:** «Reserva protegida» dice «2.150 € por debajo» en Hoy (solo CaixaBank) y «2.850 € de margen» en la tira de cifras (toda la liquidez).
@@ -135,7 +136,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - T23, resuelto por Hoy v2.
   - T24, a medias.
   - Hoy pasa de 7,4 a 1,7 pantallas en escritorio.
-- **Versiones:** `ux-shell.js` a `?v=20261104intro1`, `datos-ui.js` a `?v=20261104nielsen1`, `novedades.js` a `?v=20261104nielsen1`. Novedades al día.
+- **Versiones:** `ux-shell.js` a `?v=20261104intro2`, `datos-ui.js` a `?v=20261104nielsen1`, `novedades.js` a `?v=20261104nielsen1`. Novedades al día.
 - **Validación:**
   - `npm run verify` en verde (`npm test` 6359/6359, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
   - Prueba nueva `tests/nielsen-2026-11.test.cjs` (4).

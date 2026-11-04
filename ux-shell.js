@@ -378,7 +378,8 @@
   // primer botón de enviar es «Cancelar», y el navegador usa el primero para Intro. Escribir el motivo de «Cerrar
   // noviembre» (que sale ya escrito y seleccionado) o el concepto de «Registrar gasto» y pulsar Intro cancelaba en
   // silencio: el cierre no se firmaba y lo escrito se perdía. Ahora Intro en un campo de texto de esos diálogos pulsa
-  // el botón que confirma, con sus validaciones (`requestSubmit`); «Cancelar» sigue siendo un clic o Esc.
+  // el botón que confirma, con sus validaciones (`requestSubmit`); «Cancelar» sigue siendo un clic o Esc, y Esc deja
+  // siempre `returnValue = "cancel"`.
   const DIALOG_ENTER_TYPES = new Set(["text", "search", "email", "url", "tel", "number", "password", "date", "month", "week", "time", "datetime-local", ""]);
 
   function dialogEnterTarget(field) {
@@ -401,6 +402,16 @@
         if (!confirmar) return;
         event.preventDefault();
         event.target.form.requestSubmit(confirmar);
+      },
+      true,
+    );
+    // Esc cierra con `returnValue` sin tocar, y WebKit conserva el del cierre anterior: tras confirmar una operación,
+    // cancelar la siguiente con Esc contaba como confirmada (lo destapó la e2e en Safari). Esc deja siempre «cancel».
+    doc.addEventListener(
+      "cancel",
+      (event) => {
+        const dialog = event.target;
+        if (String(dialog?.tagName || "").toUpperCase() === "DIALOG" && dialog.querySelector?.('form[method="dialog"]')) dialog.returnValue = "cancel";
       },
       true,
     );
