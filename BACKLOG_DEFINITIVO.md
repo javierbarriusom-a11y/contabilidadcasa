@@ -11,6 +11,14 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**4/11/2026 · cierre de sesión: el cierre nuevo publicado; quedan dos preguntas para el hogar.**
+- #582 y #583 están fusionadas; #584 (documentación) se fusiona cuando su CI esté en verde.
+- La línea base del cierre es de unos 45 minutos (octubre).
+- Agosto se queda sin firmar (H11).
+- Pendientes del hogar:
+  - **H9**: ¿el cierre de julio es suyo? Se mira en Cierre › Historial de versiones.
+  - **H10**: la excepción XGO-01 de Cierre, que se decide el 18/11.
+
 **4/11/2026 · octubre firmado, primer cierre real; Cierre con el diseño nuevo (RD-C3).** Del repaso del hogar (30–60 min; lo difícil, clasificar; lo pendiente, a «Por clasificar»; se cierra en el ordenador) sale Cierre de `CierreDesktop.png`: las tres comprobaciones a la vez, cada una con lo que falta y su acción, y a la derecha la confianza del cierre, lo que guarda la firma y «Firmar», que dice qué falta. El asistente de siempre queda a un clic.
 
 **1/11/2026 · importar un extracto de muchos meses pone al día los meses pasados sin firmar, y dice mes a mes qué confirma (petición del hogar, antes del primer cierre).** La revisión de Importar trae «Mes a mes»: por cada mes del fichero, cuántas líneas ya estaban, cuántas son nuevas, el saldo a fin de mes y un veredicto (confirmado, nuevo, se completa, el extracto no cubre el mes entero, firmado y confirmado, o firmado con diferencias con el camino a Cierre); y lo que la app tiene de esa cuenta y ese mes que el extracto no trae, si el periodo cubre el mes entero. **Hallazgo:** para la app todo mes pasado contaba como cerrado por fecha y sus reales no se ponían al día con el banco; ahora solo protege la firma (`isSignedClosedMonthKey`). Los meses anteriores al plan entran como historial, sin partidas con reales.
@@ -383,6 +391,9 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | H6 | Retiradas y Cola B | 23/10: no se retira nada; se decide con el panel de uso (WP-03) en la revisión de enero |
 | H7 | ¿Hipoteca variable, mixta o fija? | **Resuelta el 3/10: variable** → `NDB-02` en P1 (WP-20, Ola 2) |
 | H8 | `A5-1`/`A5-4`: activar o archivar antes del 30/11/2026 | Abierta; si se archivan, `UXS-02` es la alternativa a `P4`/`GOB5` |
+| H9 | ¿El cierre de **julio de 2026** es del hogar? Sale firmado, pero el primer cierre real fue octubre. Mirarlo en Cierre › Historial de versiones (fecha y motivo) | Abierta (4/11). Si no es suyo, lo más probable es que viniera de una prueba temprana: se decide entonces si se reabre (con motivo, queda en el historial). Sin tocar nada hasta su respuesta |
+| H10 | Excepción XGO-01 de Cierre (+2 titulares: las tres comprobaciones del cierre nuevo a la vez) | **Se decide el 18/11** en la revisión del «Cierre nuevo» (decisión del hogar del 4/11): mantenerla, o plegar a cambio el «Ritual anual de revisión guiada» en los dos temas |
+| H11 | Agosto (y septiembre si tampoco lo está) sin firmar | **Cerrada el 4/11: se quedan sin firmar** (decisión del hogar). Firmarlos ahora guardaría saldos de noviembre con fecha de agosto. No se construye un cierre retroactivo; la disciplina de cierre empieza en octubre |
 | `RGX3`, `DEX6`, `GOB5`, `P4`, `P10`, UI del Copiloto | Condicionadas a `A5-1`/`A5-4` | Se archivan el 30/11 si no se activan (H8) |
 | `O-6` | PSD2 (conexión con CaixaBank y Banco Mediolanum) | **Cerrado el 20/10/2026 · 🔁 MARCADO PARA RECUPERAR.** Se cerró sin la verificación práctica (WP-05 hecho; WP-13 PR-2 archivado). **Se recupera si** (a) el hogar lo pide, o (b) la frescura de los saldos del panel de uso (Ajustes › Uso de la app: días con saldos de ≤ 3 días) queda **por debajo del 90 % dos semanas seguidas** con ≥ 7 días de uso, es decir, si el «Pulso de saldos» (WP-26) no basta. **Se mira** en la revisión de enero de 2027 (§7) y en cada revisión mensual. **Primer paso al recuperarlo:** la verificación práctica en Enable Banking (≈ 20 min, pasos en `docs/ND13_SPIKE_CONEXION.md`) y su tabla de decisión. Ninguna conexión sin la revisión de `docs/NTC06_AMENAZAS.md` |
 | `OPT-10`–`OPT-13`, entrega 5 de la Ola 1 | Retirar pantallas sin uso | Revisión en enero con 3 meses de panel de uso; mecanismo: redirigir sin borrar código (GOV-02) |
@@ -413,6 +424,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | 1/11/2026 | Arranque de la asignación personal (WP-24) |
 | 1-3/11/2026 | **Primer cierre de mes con saldo** (octubre, WP-09): saldos del día y firma. **Recomendado el lunes 2/11**: el 31/10 es sábado y el 1/11 festivo, y lo pagado el sábado llega al banco el lunes con fecha de octubre. Mediolanum, pegando la lista de su web en Importar |
 | **14/11/2026** | **Campaña fiscal lista** (WP-23) |
+| 18/11/2026 | Revisión del «Cierre nuevo» (RD-C3) en Funciones en prueba y **decisión de la excepción XGO-01 de Cierre** (H10) |
 | 20/11/2026 | Fin de la Ola 2 |
 | 30/11/2026 | Plazo de `A5-1`/`A5-4` (H8) |
 | 1-3/12/2026 | Segundo cierre con saldo (noviembre) → **primera carta del mes** (WP-29, si ya está construida) |

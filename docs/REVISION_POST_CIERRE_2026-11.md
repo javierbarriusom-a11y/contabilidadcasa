@@ -56,3 +56,14 @@ día 12 solo se decide apagar, nunca graduar.
 - **Acierto de la caja a fin de mes (WP-12):** con el primer cierre dirá «datos insuficientes (1 de 3)». Es lo esperado: no da cifra hasta el tercer cierre comparable, en enero.
 - **El cierre en sí:** cuántos minutos llevó y qué bloqueó. Si algo bloqueó, conviene apuntarlo, porque es la entrada más valiosa para la siguiente sesión. El primer arreglo del 29/10 salió de una sola captura del hogar, y el ensayo que vino detrás encontró tres más.
 - **Reales con efectivo (29/10):** que las partidas con algo pagado fuera del banco marquen «Banco X € + Y € anotado aparte» con lo esperado.
+
+## Resultado del cierre de octubre (anotado el 4/11)
+
+- **Duración:** unos **45 minutos** (dato del hogar). Es la línea base del cierre: el de noviembre, con el cierre nuevo (RD-C3), se compara con ella.
+- **Lo que más costó:** clasificar movimientos. Lo pendiente se dejó en «Por clasificar» desde Cierre.
+- **Lo que bloqueó y se arregló ese mismo día:**
+  - el saldo calculado de CaixaBank tomaba un saldo intermedio (#581);
+  - Cierre pasó solo a noviembre con octubre sin firmar, y «Firmar» no decía qué faltaba (#582).
+- **Dónde se cierra:** en el ordenador.
+- **XGO-01:** la excepción de +2 titulares en Cierre (las tres comprobaciones a la vez) se mantiene hasta la revisión del cierre nuevo el **18/11**. Ese día se decide con lo medido si se queda o si a cambio se pliega el ritual anual.
+
