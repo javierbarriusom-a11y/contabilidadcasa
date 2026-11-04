@@ -5989,6 +5989,8 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
+    // Reloj fijo a mitad de mes (4/11/2026): con la fecha real, el contador cambiaba según el día (del 1 al 3 se cierra el mes anterior) y la prueba fallaba desde el 4.
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
     await page.goto("/index.html#movements");
     await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => {
@@ -6003,11 +6005,12 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
     const panel = page.locator("#clasificarV2");
     // Con un mes por cerrar que tenga movimientos (2/11/2026, «Octubre primero»), el contador lo dice; estos tres son del mes en curso.
-    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText(/^1 de 3 · (faltan 3 grupos|\S+ ya está · faltan 3 de otros meses) · menos de un minuto \(aún sin medir\)$/);
+    // Los movimientos son del 15/11 y noviembre es el mes que se cierra: el contador cuenta los de noviembre.
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("1 de 3 · faltan 3 de noviembre · menos de un minuto (aún sin medir)");
     // 1 · La propuesta (confianza media), tal cual.
     await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"]')).toBeVisible();
     await panel.locator("[data-clas-v2-aceptar]").click();
-    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("2 de 3 · faltan 2 grupos · menos de un minuto (aún sin medir)");
+    await expect(panel.locator(".clas-v2-head .clas-v2-meta")).toHaveText("2 de 3 · faltan 2 de noviembre · menos de un minuto (aún sin medir)");
     // 2 · Sin propuesta: se elige partida. 3 · Se salta.
     if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
     await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
