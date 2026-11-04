@@ -168,7 +168,12 @@ function datosBodyHtml(engine) {
     const names = queue.plan.ids.map((id) => queue.ranked.find((task) => task.id === id).label.toLowerCase());
     plan = `<p class="dat-plan"><strong>Con ${engine.DEFAULT_BUDGET_MINUTES} minutos hoy:</strong> ${names.join(" y ")} (≈ ${String(queue.plan.minutes).replace(".", ",")} min) quitan hasta <strong>${datosEuros(queue.plan.resolved)}</strong> de los ${datosEuros(queue.plan.total)} de incertidumbre estimada.${queue.plan.anyUnmeasured ? " Parte del tiempo es un supuesto, no una medida." : ""}</p>`;
   } else if (queue.allClear && !anyStale) {
-    plan = `<p class="dat-plan"><strong>Todo al día.</strong> No hay ninguna tarea de datos con efecto estimable.</p>`;
+    // Revisión de Nielsen del 4/11/2026: «Todo al día» salía también sin ningún dato (fichas «sin dato» y tareas «Sin
+    // estimar» justo debajo). Sin cifra no se puede decir que todo está al día: se dice que falta el dato.
+    const sinEstimar = queue.unestimated.some((task) => task.id !== "pending");
+    plan = sinEstimar
+      ? `<p class="dat-plan"><strong>Aún no se puede ordenar por euros.</strong> Faltan datos para estimar cuánto mueve cada tarea: abajo, las que todavía no sé estimar.</p>`
+      : `<p class="dat-plan"><strong>Todo al día.</strong> No hay ninguna tarea de datos con efecto estimable.</p>`;
   } else plan = "";
   const deadlines = queue.deadlines.length ? `<ul class="dat-lista">${queue.deadlines.map(datosTaskHtml).join("")}</ul>` : "";
   const ranked = queue.ranked.length ? `<ol class="dat-lista" aria-label="Tareas de datos, de más a menos incertidumbre por minuto">${queue.ranked.map(datosTaskHtml).join("")}</ol>` : "";

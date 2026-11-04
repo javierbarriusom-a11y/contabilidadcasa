@@ -59,7 +59,7 @@ día 12 solo se decide apagar, nunca graduar.
 
 ## Resultado del cierre de octubre (anotado el 4/11)
 
-- **Duración:** unos **45 minutos** (dato del hogar). Es la línea base del cierre: el de noviembre, con el cierre nuevo (RD-C3), se compara con ella.
+- **Duración:** unos **45 minutos** (dato del hogar). Es la línea base del cierre: el de noviembre, con el cierre nuevo (RD-C3), se compara con ella. **Desde el 4/11 el cierre se mide solo** (medidor de utilidad: tiempo activo en Cierre, Movimientos y Registrar, sin las pausas de más de 3 min; grupos sin partida al empezar y lo que queda en «Por clasificar» al firmar). Se ve en «Lo que guarda la firma» y en Ajustes › Uso de la app.
 - **Lo que más costó:** clasificar movimientos. Lo pendiente se dejó en «Por clasificar» desde Cierre.
 - **Lo que bloqueó y se arregló ese mismo día:**
   - el saldo calculado de CaixaBank tomaba un saldo intermedio (#581);

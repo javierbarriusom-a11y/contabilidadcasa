@@ -35,6 +35,36 @@ impresión genérica. Sin hallazgo, la casilla queda en blanco; no hace falta re
 Cada revisión se añade aquí, con fecha, y sus hallazgos reales se llevan como tareas nuevas al
 backlog vigente (`BACKLOG_ULTIMATE_SEPTIEMBRE.md` u otro), citando esta tabla en su Nota.
 
+### 4 de noviembre de 2026 — tercera revisión real (`T25`-`T30`, sesión 401)
+
+Revisión de **Hoy**, **Registrar** y **Plan** (Plan › Mes, más Plan › Presupuesto) sobre el **sitio construido**, con el diseño nuevo por defecto. Instalación limpia con el conjunto de demostración anonimizado, a 1280 y 390 px, con capturas y un guion de solo lectura. Adelantada diez días: vencía el 14/11. Se hizo justo después del primer cierre real (octubre, firmado el 4/11), como pedía la revisión anterior. **Mismo límite que entonces:** son datos de demostración; lo que depende del estado del hogar se marca como no concluyente. Esta vez **sí se probaron entradas inválidas y el teclado** (heurísticos 5 y 9), y de ahí sale el hallazgo más grave.
+
+| # Heurístico | Hallazgo | Estado |
+|---|---|---|
+| 3. Control y libertad / 5. Prevención de errores | **Intro cancelaba en los diálogos.** En `<form method="dialog">` el navegador usa el primer botón de enviar para Intro, y en `index.html` ese es «Cancelar». Afectaba a **«Cerrar mes»** (la confirmación de la firma, que sale con el motivo «Mes conciliado y revisado» escrito y seleccionado): Intro cancelaba el cierre en silencio. También a **«Registrar gasto»** (Hoy › «+ Apuntar gasto»), donde se perdía lo escrito, y a las demás operaciones protegidas (`requestOperationConfirmation`, siete llamadas). | ✅ Corregido en esta sesión. `ux-shell.js` (`mountDialogEnter`): Intro en un campo de texto de esos diálogos pulsa el botón que confirma, con sus validaciones; Esc y «Cancelar» siguen cancelando; en Safari, Esc conservaba además el «confirm» del cierre anterior y contaba como confirmar, también corregido. Pruebas: `tests/nielsen-2026-11.test.cjs` y la e2e «Intro en los diálogos confirma, nunca cancela» (390 `@safari` y 1280) |
+| 1. Visibilidad del estado / 2. Mundo real | Registrar › «Frescura de tus datos» decía **«Todo al día. No hay ninguna tarea de datos con efecto estimable»** justo debajo de cuatro fichas «sin dato» y encima de tres tareas «Sin estimar» (`datos-ui.js`). | ✅ Corregido en esta sesión: si queda alguna tarea sin estimar, dice «Aún no se puede ordenar por euros. Faltan datos…» |
+| 4. Consistencia | **«Reserva protegida» dice lo contrario en dos pantallas.** Hoy: «7.230 € · CaixaBank, 2.150 € por debajo», en rojo, que compara solo CaixaBank con la reserva (`views/hoy-v2.js:148`). La tira de cifras de Registrar y Plan › Presupuesto: «7.230 € · 2.850 € de margen», que compara toda la liquidez (`app.js:4531`). Mismo nombre, dos medidas y lecturas opuestas, en la cifra con la que se decide si se puede gastar. | ⏳ `T25`, **se consulta**: qué medida manda (¿la reserva protege CaixaBank o toda la liquidez?) o, si las dos valen, dos nombres |
+| 2. Mundo real / 4. Consistencia | **«Peor mes» con dos unidades.** En la tira, «nov 26 · 2,4m» (meses de colchón; la «m» no se explica, `app.js:4540`). En «Qué se recalcula al guardar», «Peor mes del horizonte · nov 26 · 10.350 €» (euros). | ⏳ `T26`, baja: decir «2,4 meses de colchón» o cambiar el nombre de uno |
+| 2. Mundo real / 4. Consistencia | **Plan › Mes: «Sin asignar 270 €» junto a «Irá a ahorro este mes 800 €».** Con 270 € sin destino no se entiende de dónde salen los 800 €. Es la meta del plan de ahorro (`savingsPlanCalculations`, `views/plan-v2.js:170`), no un reparto del mes, y la pantalla no lo dice. Hoy repite «800 € irán a ahorro». | ⏳ `T27`, **se consulta**: ¿el ahorro debería ser una partida del reparto (y salir de lo asignado) o basta con decir de dónde sale? |
+| 2. Mundo real | Hoy, la tarjeta **«Patrimonio»** enseña como cifra principal **la deuda viva** («Deuda viva · libre oct 2029* · 12.000 €», `views/hoy-v2.js:262`). El patrimonio neto solo sale si hay activos declarados. | ⏳ `T28`, media: titular la tarjeta por lo que enseña o poner primero el patrimonio neto |
+| 6. Reconocer / 7. Eficiencia | Plan en el móvil (390 px): la barra de pestañas corta «Ahorro y objetivos» y **esconde Presupuesto, Esta semana y Partidas** sin señal de que haya más (se desplaza en horizontal, sin sombra ni flecha). | ⏳ `T29`, baja: sombra o «Más ›» al borde |
+| 4. Consistencia | **Nombres distintos para lo mismo:** «+ Apuntar gasto» (Hoy) abre «Registrar gasto nuevo»; «Ir a Conciliar y cerrar» (Registrar › Frescura) lleva a lo que el menú llama «Cierre». En Plan › Presupuesto (pantalla clásica) hay **un campo «0» sin etiqueta** entre «Sugerir presupuestos» y «Repetir mes anterior ± %». | ⏳ `T30`, baja (redacción y etiqueta) |
+
+**Lo que sigue de la revisión del 15/10:**
+- **`T22` («Dato real»): sigue.** Ahora se nota más: en Hoy la insignia «Dato real» está a la vez que «Saldos estimados · confírmalos con tu banco». Sigue **consultada**.
+- **`T23` (dos puntuaciones de salud en Hoy): resuelto por Hoy v2.** Ya no sale ninguna de las dos.
+- **`T24`:** «día(s)» ya no aparece en Hoy, Registrar ni Plan. Siguen el título de Registrar («La única puerta de escritura de datos reales», con «Fuente del libro: libro canónico calculado» debajo) y las tres formas de la guía: botón «Guía de este flujo» en Plan › Presupuesto, enlace en Registrar, «Guía de Plan» en Plan › Mes. Se resuelven cuando Registrar pase al diseño nuevo.
+- **Heurístico 8 (minimalista), antes no concluyente: mejora clara.** Hoy mide 1,7 pantallas a 1280 px y 3 a 390 (antes 7,4 y 13,2) y Plan › Mes, 1,5 y 2,5. **Registrar sigue en 2,8 y 4,8**: es la pantalla de uso diario que queda sin rediseñar, con la tira de cinco cifras, la regla «Previsto, real y usado» y la frescura de los datos en la misma página.
+
+**Sin hallazgo en lo observado:**
+- **9. Recuperarse de errores:** un importe inválido en Registrar › Reales («mil euros») dice «No es un importe: escríbelo como 1.234,56. No se ha guardado.», junto al campo.
+- **1. Visibilidad del estado:** «Guardado a las…» en la cabecera, «5 por revisar» en Ajustes y «3 funciones esperan datos» en Hoy.
+- **10. Ayuda:** sin hallazgo nuevo aparte de `T24`.
+
+**No concluyente:**
+- la tarjeta «Primeros pasos» y el enlace «Saltar al contenido» visible arriba (sale con el foco que deja el guion al cambiar de pantalla; habría que verlo abriendo la app de cero);
+- el selector de fecha y «Choose File», que salen en inglés porque el navegador del guion está en inglés.
+
 ### 15 de octubre de 2026 — segunda revisión real (`T21`-`T24`, sesión 310)
 
 Revisión de **Hoy**, **Registrar** y **Plan** sobre el **sitio construido** (instalación limpia con el conjunto de demostración anonimizado, a 1280 y 390 px; capturas y medidas con un guion de solo lectura), adelantada un día (tocaba el 16/10). **Límite que condiciona todo lo que sigue:** es una instalación limpia con datos de demostración, no el estado real del hogar; lo que depende del estado (la tarjeta de «primeros pasos», cuántas tarjetas salen) se anota como **no concluyente**. **Hoy sigue congelado hasta leer H-02:** los hallazgos de Hoy se registran, no se corrigen.

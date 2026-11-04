@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-04-intro-dialogos",
+      fecha: "2026-11-04",
+      texto: "Intro en «Cerrar mes» y «Registrar gasto» confirma; antes cancelaba sin avisar. Para cancelar, «Cancelar» o Esc.",
+      href: "#cierre",
+    },
+    {
+      id: "2026-11-04-coste-cierre",
+      fecha: "2026-11-04",
+      texto: "El cierre mide solo lo que os lleva: minutos activos, grupos sin partida al empezar y lo que queda en «Por clasificar» al firmar.",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-04-cierre-nuevo",
       fecha: "2026-11-04",
       texto: "Cierre nuevo: las tres comprobaciones a la vez, cada una con lo que falta y su botón, y la confianza del cierre junto a «Firmar».",

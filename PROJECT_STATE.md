@@ -113,6 +113,65 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (401): revisión de Nielsen; Intro cancelaba la firma del cierre
+
+- **Revisión mensual de Nielsen (`OPT-21`/`PROC-2`), adelantada** (vencía el 14/11; el hogar: «sigue con la revisión de Nielsen mientras tanto»).
+  - Qué se revisó: Hoy, Registrar y Plan sobre el sitio construido, a 1280 y 390 px, con la demo.
+  - Esta vez se probaron el teclado y las entradas inválidas.
+  - Registro completo en `docs/OPT21_CHECKLIST_NIELSEN.md`; hallazgos abiertos T25-T30 en `BACKLOG_DEFINITIVO.md` §6.
+- **Corregido en la sesión (1): Intro cancelaba en los diálogos.**
+  - En `<form method="dialog">` el navegador usa para Intro el primer botón de enviar, y en `index.html` es «Cancelar».
+  - «Cerrar mes» sale con el motivo escrito y seleccionado: **Intro cancelaba la firma del cierre sin avisar**. En «Registrar gasto», Intro en el concepto cerraba la ventana y perdía lo escrito.
+  - Arreglo, `ux-shell.js` (`mountDialogEnter`, delegado en el documento): Intro en un campo de texto de un diálogo cuyo primer botón es «Cancelar» pulsa el que confirma con `requestSubmit`, así que se mantienen la validación y el `submit` de cada diálogo. Esc y «Cancelar» siguen cancelando. Sin tocar `app.js` ni el orden de los botones.
+  - Comprobado en el navegador: sin importe, «Registrar gasto» sigue abierto y conserva el concepto; con importe, registra; «Cerrar mes» confirma con el motivo; Esc cancela.
+  - **Destapado por la e2e en Safari (CI de #586):** WebKit no limpia `returnValue` al cerrar con Esc y conserva el del cierre anterior. Tras confirmar una operación protegida, cancelar la siguiente con Esc contaba como confirmada. Era un fallo previo solo de Safari. `ux-shell.js` deja `returnValue = "cancel"` en el evento `cancel` de esos diálogos.
+- **Corregido en la sesión (2):** Registrar › «Frescura de tus datos» ya no dice «Todo al día» sin datos (`datos-ui.js`).
+- **Abiertos.** Se consultan al hogar:
+  - **T25:** «Reserva protegida» dice «2.150 € por debajo» en Hoy (solo CaixaBank) y «2.850 € de margen» en la tira de cifras (toda la liquidez).
+  - **T27:** «Irá a ahorro 800 €» junto a «Sin asignar 270 €».
+
+  De pulido: T26 («Peor mes» en meses y en euros), T28 (la tarjeta «Patrimonio» de Hoy enseña la deuda), T29 (pestañas de Plan escondidas en el móvil) y T30 (nombres y un campo sin etiqueta).
+- **De la revisión del 15/10:**
+  - T22 («Dato real») sigue, consultada.
+  - T23, resuelto por Hoy v2.
+  - T24, a medias.
+  - Hoy pasa de 7,4 a 1,7 pantallas en escritorio.
+- **Versiones:** `ux-shell.js` a `?v=20261104intro2`, `datos-ui.js` a `?v=20261104nielsen1`, `novedades.js` a `?v=20261104nielsen1`. Novedades al día.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6359/6359, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - Prueba nueva `tests/nielsen-2026-11.test.cjs` (4).
+  - e2e nueva «Intro en los diálogos confirma, nunca cancela» (390 `@safari` y 1280).
+  - En local, con el Chromium instalado: las de Cierre, Registrar gasto e Intro, 35 de 35; las de la frescura de datos (WP-45) e Intro, 3 de 3.
+
+## Cierre de sesión — 4 de noviembre de 2026 (400): el cierre de mes se mide solo
+
+- **Por qué.** Punto 3 del plan de la sesión 399, aprobado por el hogar («adelante con el plan»; después, «sigue con cosas que no dependan de los datos fiscales»). El cierre de octubre llevó unos 45 minutos, dato dicho por el hogar: equivale a los 10 min/semana de GOV-01 enteros. Sin medirlo no se sabe si las reglas sin mes (#577) y el historial ya clasificado lo bajan en noviembre.
+- **Qué mide** (`medidor-utilidad.js`, en el mismo almacén `medidor-utilidad`; sin almacén nuevo ni cambios en `app.js`):
+  - **Cuándo:** solo mientras el mes que enseña Cierre (`closeTargetMonthKey`) ya terminó y no está firmado. Un mes en curso no cuenta, porque usar Movimientos a mitad de mes no es cerrar.
+  - **Dónde:** Cierre, Movimientos (con Clasificar) y Registrar (saldos e Importar).
+  - **Cómo:** el tiempo entre dos toques, teclas o desplazamientos seguidos; una pausa de más de 3 min no cuenta. Se vuelca cada 15 s de trabajo y al ocultar la pestaña, salir o cambiar de pantalla.
+  - **Además:**
+    - los días con trabajo;
+    - los grupos sin partida de ese mes al empezar a medir (`clasV2PendingGroups`);
+    - al firmar, cuántos quedaron en «Por clasificar» (`cierrePorClasificarContados`). La firma se detecta tras un toque en Cierre y al arrancar.
+  - **Firmado, deja de contar.** Se guardan 12 cierres como mucho. Sin importes ni conceptos (la prueba lo comprueba).
+- **Dónde se ve:**
+  - en el cierre nuevo, en «Lo que guarda la firma», la fila «Tiempo de este cierre» («18 min activos (octubre: unos 45, dicho por vosotros) · 12 grupos sin partida al empezar»);
+  - en Ajustes › Uso de la app, junto a «Cierre nuevo».
+
+  Sin titulares nuevos, así que XGO-01 no se mueve. Novedades, al día.
+- **Límites, dichos al hogar:**
+  - Solo en el navegador donde se cierra, que es el ordenador.
+  - Un rato leyendo sin tocar nada más de 3 min no cuenta.
+  - En diciembre, con noviembre sin firmar, usar Movimientos o Registrar cuenta como cierre.
+  - Octubre no se midió: es la línea base dicha, fijada en el código (`CIERRE_LINEA_BASE`).
+- **Documentación:** `BACKLOG_DEFINITIVO.md` §0 y §9 (métrica «Coste del cierre de mes»); `docs/REVISION_POST_CIERRE_2026-11.md`.
+- **Versiones:** `medidor-utilidad.js`, `views/cierre-v2.js` y `novedades.js` a `?v=20261104coste1`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6355/6355, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - Prueba nueva `tests/cierre-coste.test.cjs` (9): la parte pura; el medidor entero en un vm, con toques, pausas, mes en curso, otra pantalla y firma; y el cierre nuevo pintado con y sin tiempo medido.
+  - e2e de Cierre, Clasificar y medidor en local: 30 de 30, con el Chromium instalado (trampa 14).
+
 ## Cierre de sesión — 4 de noviembre de 2026 (399): estado del plan, hoja de decisiones del hogar y panel al día
 
 - **Sesión de inicio y revisión de estado (sin código de la app).**
