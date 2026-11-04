@@ -133,7 +133,8 @@ function cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows = [
 }
 
 function cierreFirmChecksHtml(checks) {
-  return checks.map((check) => `<li class="deuda-ruta-check${check.met ? " is-ok" : " is-danger"}">${escapeHtml(check.label)}</li>`).join("");
+  // tabindex -1: «Firmar» lleva el foco a la primera que falta (4/11/2026).
+  return checks.map((check) => `<li class="deuda-ruta-check${check.met ? " is-ok" : " is-danger"}"${check.met ? "" : ' tabindex="-1"'}>${escapeHtml(check.label)}</li>`).join("");
 }
 
 // GOB13 (Oleada 4, Bloque 7): ritual anual de revisión guiada. Complementa, no repite, GOB6 (arriba
@@ -624,7 +625,8 @@ function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey
       <ul class="deuda-ruta-checklist">${cierreFirmChecksHtml(checks)}</ul>
       ${globalThis.FinanceCobertura?.avisoCierreHtml?.(currentMonthKey, window.FinanceCanonicalLedgerCoverage) || "" /* XDA-04: huecos del mes por cuenta; avisa, no bloquea */}
       ${syncReady ? "" : `<p class="e19-kpi-note is-warn">Inicia sesión y sincroniza una versión antes de firmar.</p>`}
-      <button type="button" class="e19-btn e19-btn-primary" id="cierreSignButton" ${canSign ? "" : "disabled"}>${unmet ? `Firmar · ${unmet} sin cumplir` : "Firmar cierre"}</button>
+      <button type="button" class="e19-btn e19-btn-primary${canSign ? "" : " is-bloqueado"}" id="cierreSignButton"${canSign ? "" : ' aria-disabled="true" aria-describedby="cierreFirmaFalta"'}>${unmet ? `Firmar · ${unmet} sin cumplir` : "Firmar cierre"}</button>
+      <p class="cierre-firma-falta" id="cierreFirmaFalta" role="alert" hidden></p>
     </article>
     ${cierrePorClasificarHtml(tasks, currentMonthKey)}
     <article class="e19-card">
@@ -1493,7 +1495,31 @@ function handleCierreDownload(kind) {
   handleCierreDownloadEvidence(kind, accountRows, tasks, closure, currentMonthKey);
 }
 
+// 4/11/2026: el hogar pulsaba «Firmar · 1 sin cumplir» y no pasaba nada (un botón desactivado que parecía activo). Ahora se ve apagado
+// y, al tocarlo, dice qué falta y lleva el foco a la primera comprobación sin cumplir; no firma.
+function cierreFirmaFaltaTexto() {
+  const faltan = [...document.querySelectorAll("#cierreStepBody .deuda-ruta-check.is-danger")].map((item) => item.textContent.trim()).filter(Boolean);
+  const partes = [];
+  if (faltan.length) partes.push(`Para firmar falta: ${faltan.join("; ")}.`);
+  if (!remoteUser || !supabaseClient) partes.push("Inicia sesión y sincroniza una versión antes de firmar.");
+  return partes.join(" ") || "Todavía no se puede firmar este mes.";
+}
+
 async function handleCierreSign() {
+  const boton = qs("cierreSignButton");
+  if (boton?.getAttribute("aria-disabled") === "true") {
+    const aviso = qs("cierreFirmaFalta");
+    const texto = cierreFirmaFaltaTexto();
+    if (aviso) {
+      aviso.textContent = texto;
+      aviso.hidden = false;
+    }
+    const primera = document.querySelector("#cierreStepBody .deuda-ruta-check.is-danger");
+    primera?.scrollIntoView?.({ block: "center" });
+    primera?.focus?.();
+    announceStatus(texto);
+    return;
+  }
   await closeCurrentMonthTransaction();
   const statusEl = qs("cierreStatus");
   if (statusEl) statusEl.textContent = qs("monthCloseStatus")?.textContent || "";

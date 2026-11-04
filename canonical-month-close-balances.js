@@ -68,17 +68,20 @@
 
   /**
    * Qué mes se cierra. Del día 1 al 3, el mes que acaba (firmado o no: si ya se firmó, la pantalla lo
-   * enseña cerrado y se puede reabrir); el resto del mes, el mes en curso, como hasta ahora. La otra
+   * enseña cerrado y se puede reabrir). Después, el mes que acaba MIENTRAS SIGA SIN FIRMAR y tenga
+   * movimientos (`hasActivity`): el primer cierre real del hogar (4/11/2026) se alargó más de tres días y
+   * Cierre pasó solo a noviembre, sin extracto, con octubre aún abierto. Si no, el mes en curso. La otra
    * opción se ofrece si aún no está firmada, para no perder la posibilidad de cerrar el mes de hoy ni
    * la de cerrar tarde el anterior.
-   * @param {{ today: string, isSigned?: (monthKey: string) => boolean, choice?: string }} input
+   * @param {{ today: string, isSigned?: (monthKey: string) => boolean, hasActivity?: (monthKey: string) => boolean, choice?: string }} input
    */
-  function closeTarget({ today, isSigned = () => false, choice = "" }) {
+  function closeTarget({ today, isSigned = () => false, hasActivity = () => true, choice = "" }) {
     if (!validIsoDate(today)) throw new Error("La fecha de hoy no es válida.");
     const current = today.slice(0, 7);
     const previous = previousMonthKey(current);
     const inGrace = Number(today.slice(8, 10)) <= GRACE_DAYS;
-    const byDefault = inGrace ? previous : current;
+    const previousPending = !inGrace && !isSigned(previous) && Boolean(hasActivity(previous));
+    const byDefault = inGrace || previousPending ? previous : current;
     const monthKey = (choice === current || choice === previous) ? choice : byDefault;
     const other = monthKey === current ? previous : current;
     return {
@@ -87,8 +90,8 @@
       // Volver al mes por defecto siempre es posible; el otro, solo si aún no está firmado.
       alternative: other === byDefault || !isSigned(other) ? other : null,
       reason: monthKey === previous
-        ? (inGrace ? `del 1 al ${GRACE_DAYS} se cierra el mes que acaba` : "elegido: cerrar tarde el mes anterior")
-        : (inGrace ? "elegido: cerrar el mes en curso" : "mes en curso"),
+        ? (inGrace ? `del 1 al ${GRACE_DAYS} se cierra el mes que acaba` : previousPending ? "sigue sin firmar: se cierra antes que el mes en curso" : "elegido: cerrar tarde el mes anterior")
+        : (inGrace || previousPending ? "elegido: cerrar el mes en curso" : "mes en curso"),
     };
   }
 
