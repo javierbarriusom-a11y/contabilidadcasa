@@ -238,8 +238,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261103porclas1", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261103porclas1", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261104firma1", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261104firma1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
@@ -4936,7 +4936,8 @@ function isSignedClosedMonthKey(key) { return window.FinanceCanonicalE5?.latestM
 function closeTargetInfo() {
   const today = isoLocalDate(new Date());
   if (!closeBalancesEngine()) return { monthKey: openMonthCutoffKey(), alternative: null, isDefault: true, reason: "mes en curso" };
-  return closeBalancesEngine().closeTarget({ today, isSigned: isSignedClosedMonthKey, choice: closeTargetChoice.day === today ? closeTargetChoice.monthKey : "" });
+  const hasActivity = (key) => ((typeof baseData === "undefined" ? null : baseData)?.transactions || []).some((row) => String(row?.month || row?.date || "").slice(0, 7) === key); // 4/11/2026: el mes anterior sin firmar va primero
+  return closeBalancesEngine().closeTarget({ today, isSigned: isSignedClosedMonthKey, hasActivity, choice: closeTargetChoice.day === today ? closeTargetChoice.monthKey : "" });
 }
 function closeTargetMonthKey() { return closeTargetInfo().monthKey; }
 function loadMonthCloseBalances() { try { return closeBalancesEngine().normalizeStore(JSON.parse(storageGet(storageKey("month-close-balances"), "null"))); } catch { return { months: {} }; } }

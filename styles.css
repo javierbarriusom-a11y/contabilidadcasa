@@ -9579,6 +9579,25 @@ body {
   cursor: pointer;
 }
 
+/* 4/11/2026 · «Firmar» con algo sin cumplir: se ve apagado (antes parecía activo y no hacía nada) y, al tocarlo, dice qué falta. */
+.e19-btn.is-bloqueado,
+.e19-btn.is-bloqueado:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.3);
+}
+
+.cierre-firma-falta {
+  margin: 10px 0 0;
+  color: var(--e19-danger, var(--red));
+  font-weight: 700;
+}
+
+.deuda-ruta-check:focus-visible {
+  outline: 2px solid var(--e19-accent, var(--teal));
+  outline-offset: 2px;
+}
+
 /* C-3b: el modal de clasificación de Cierre reutiliza el mismo patrón de campos/gap que
    .movement-detail-reclassify, con dos secciones (partida existente / partida nueva) que se
    alternan sin cerrar el diálogo. */

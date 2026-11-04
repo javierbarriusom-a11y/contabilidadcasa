@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-04-cierre-mes-anterior",
+      fecha: "2026-11-04",
+      texto: "Cierre sigue en el mes anterior mientras no lo firméis, y «Firmar» dice qué falta en vez de no hacer nada.",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-04-dinero-parado",
       fecha: "2026-11-04",
       texto: "En prueba: arriba de la escalera del próximo euro, el dinero parado que la previsión no toca y cuánto rendiría neto.",

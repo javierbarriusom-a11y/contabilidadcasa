@@ -246,7 +246,7 @@ test("cierreFirmChecksHtml colorea cada comprobación por su propio estado", () 
   const checks = context.cierreFirmChecks([{ status: "cuadra" }], [{ cause: "unclassified" }], 10);
   const html = context.cierreFirmChecksHtml(checks);
   assert.match(html, /is-ok">Las cuentas cuadran/);
-  assert.match(html, /is-danger">Ninguna diferencia abierta/);
+  assert.match(html, /is-danger" tabindex="-1">Ninguna diferencia abierta/, "la que falta recibe el foco desde «Firmar» (4/11/2026)");
   assert.match(html, /is-ok">Extracto incorporado/);
 });
 

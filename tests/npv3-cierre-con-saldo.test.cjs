@@ -17,12 +17,24 @@ const engine = require("../canonical-month-close-balances.js");
 
 // --- Motor puro --------------------------------------------------------------------------------
 
-test("del 1 al 3 se cierra el mes que acaba; desde el 4, el mes en curso", () => {
+test("del 1 al 3 se cierra el mes que acaba; desde el 4, el mes en curso si el anterior está firmado o no tiene movimientos", () => {
   assert.equal(engine.closeTarget({ today: "2026-11-01" }).monthKey, "2026-10");
   assert.equal(engine.closeTarget({ today: "2026-11-03" }).monthKey, "2026-10");
-  assert.equal(engine.closeTarget({ today: "2026-11-04" }).monthKey, "2026-11");
+  assert.equal(engine.closeTarget({ today: "2026-11-04", isSigned: (key) => key === "2026-10" }).monthKey, "2026-11");
+  assert.equal(engine.closeTarget({ today: "2026-11-04", hasActivity: () => false }).monthKey, "2026-11", "un mes anterior sin movimientos no se queda esperando");
   assert.equal(engine.closeTarget({ today: "2027-01-02" }).monthKey, "2026-12", "enero cierra el diciembre del año anterior");
   assert.throws(() => engine.closeTarget({ today: "2026-11-31" }), /no es válida/);
+});
+
+// 4/11/2026: el primer cierre real se alargó más de tres días y Cierre pasó solo a noviembre (sin extracto) con octubre sin firmar.
+test("desde el 4, el mes anterior sin firmar y con movimientos sigue siendo el que se cierra, y se puede elegir el mes en curso", () => {
+  const pendiente = engine.closeTarget({ today: "2026-11-04" });
+  assert.deepEqual([pendiente.monthKey, pendiente.alternative, pendiente.isDefault], ["2026-10", "2026-11", true]);
+  assert.match(pendiente.reason, /sigue sin firmar/);
+  assert.equal(engine.closeTarget({ today: "2026-11-25", hasActivity: (key) => key === "2026-10" }).monthKey, "2026-10", "también a final de mes");
+  const actual = engine.closeTarget({ today: "2026-11-04", choice: "2026-11" });
+  assert.deepEqual([actual.monthKey, actual.alternative, actual.isDefault], ["2026-11", "2026-10", false]);
+  assert.match(actual.reason, /elegido: cerrar el mes en curso/);
 });
 
 test("la otra opción se ofrece solo si no está firmada, y se puede elegir", () => {
@@ -30,7 +42,7 @@ test("la otra opción se ofrece solo si no está firmada, y se puede elegir", ()
   assert.deepEqual([nothingSigned.monthKey, nothingSigned.alternative, nothingSigned.isDefault], ["2026-10", "2026-11", true]);
   const currentChosen = engine.closeTarget({ today: "2026-11-02", choice: "2026-11" });
   assert.deepEqual([currentChosen.monthKey, currentChosen.alternative, currentChosen.isDefault], ["2026-11", "2026-10", false], "el mes de hoy sigue siendo posible");
-  const late = engine.closeTarget({ today: "2026-11-15", choice: "2026-10" });
+  const late = engine.closeTarget({ today: "2026-11-15", choice: "2026-10", hasActivity: () => false });
   assert.equal(late.monthKey, "2026-10", "cerrar tarde el mes anterior");
   assert.match(late.reason, /cerrar tarde/);
   const previousSigned = engine.closeTarget({ today: "2026-11-15", isSigned: (key) => key === "2026-10" });
@@ -275,7 +287,7 @@ test("registro: copia y nube, carga antes que app.js, caché offline y pantalla 
   const cierre = read("views/cierre.js");
   assert.match(cierre, /const target = closeTargetInfo\(\);\n\s+const currentMonthKey = target\.monthKey;/);
   assert.match(cierre, /Saldos que se guardarán/);
-  assert.match(app, /cierre: \{ src: "views\/cierre\.js\?v=20261103porclas1"/);
+  assert.match(app, /cierre: \{ src: "views\/cierre\.js\?v=20261104firma1"/);
   assert.match(app, /if \(event\.target\.id === "cierreTargetSwitch"\) handleCierreTargetSwitch\(event\.target\.dataset\.month\);/);
   assert.match(cierre, /await reopenLatestMonthTransaction\(\{ monthKey: closeTargetMonthKey\(\) \}\);/, "Cierre reabre el mes que enseña");
   assert.match(cierre, /closeTargetChoice = \{ monthKey: monthKey \|\| "", day: isoLocalDate\(new Date\(\)\) \};\n\s+\/\/[^\n]*\n\s+cierreSobresChoices = \{\};/, "cambiar de mes no arrastra las elecciones de sobres");

@@ -6110,8 +6110,13 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       // Lo único que falta es la sesión: sin ella el RPC del cierre no se puede llamar.
       const firmar = page.locator("#cierreSignButton");
       await expect(firmar).toHaveText("Firmar cierre");
-      await expect(firmar).toBeDisabled();
+      // 4/11/2026: ya no es un botón desactivado que parece activo: se ve apagado y, al tocarlo, dice qué falta (y no firma).
+      await expect(firmar).toHaveAttribute("aria-disabled", "true");
+      await expect(firmar).toHaveClass(/is-bloqueado/);
       await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
+      await firmar.click({ force: true }); // aria-disabled: Playwright no lo pulsa solo; un dedo sí
+      await expect(page.locator("#cierreFirmaFalta")).toBeVisible();
+      await expect(page.locator("#cierreFirmaFalta")).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
       await expect(firma).toContainText("Saldos del 28/10/2026");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
@@ -7515,6 +7520,53 @@ test.describe("Cargos cada N meses en la previsión", () => {
       await expect(page.locator('[data-plan-tab="mes"]')).toHaveAttribute("aria-selected", "true");
       await expect(page.locator("#planMesMonth")).toHaveValue("2027-03");
       expect(await page.evaluate(() => JSON.stringify(baseData.monthlyPlanning)), "no se escribe nada en el plan").toBe(antes);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+
+// 4/11/2026 · el primer cierre real se alargó más de tres días: el 4, Cierre pasó solo a noviembre (sin extracto) con octubre sin firmar, y «Firmar · 1 sin cumplir»
+// parecía activo y no hacía nada. Ahora el mes anterior sin firmar y con movimientos sigue siendo el que se cierra, y «Firmar» dice qué falta. INVENTADO.
+test.describe("Cierre · el mes anterior sin firmar va primero, y «Firmar» dice qué falta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el 4/11 con octubre sin firmar, Cierre enseña octubre; noviembre se puede elegir; «Firmar» bloqueado lleva a lo que falta, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      const dialogs = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 4, 10, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && typeof mergeTransactions === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        let balance = 3000;
+        const add = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += amount), accountId: "caixabank" });
+        baseData.transactions = mergeTransactions([], [add("2026-10-10", -60, "TIENDA FICTICIA"), add("2026-10-20", -40, "OTRA FICTICIA")]);
+        refreshMovementRollups();
+        renderCierre();
+      });
+      await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
+      await expect(page.locator("#cierreTarget")).toContainText("sigue sin firmar");
+      await page.locator("#cierreTargetSwitch").click();
+      await expect(page.locator("#cierreTitle")).toHaveText("Cierre de nov 26");
+      await page.locator("#cierreTargetSwitch").click();
+      await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
+
+      // Lo que vio el hogar: el paso de firma de noviembre, sin un solo movimiento. Los pasos anteriores, dados por hechos.
+      await page.locator("#cierreTargetSwitch").click();
+      await page.evaluate(() => { globalThis.cierreAccountsSettled = () => true; cierreActiveStep = 99; renderCierre(); });
+      const firmar = page.locator("#cierreSignButton");
+      await expect(firmar).toHaveAttribute("aria-disabled", "true");
+      await expect(firmar).toHaveClass(/is-bloqueado/);
+      await firmar.click({ force: true }); // aria-disabled: Playwright no lo pulsa solo; un dedo sí
+      const falta = page.locator("#cierreFirmaFalta");
+      await expect(falta).toBeVisible();
+      await expect(falta).toContainText("Para firmar falta: Extracto incorporado · 0 movimientos.");
+      await expect(page.locator("#cierreStepBody .deuda-ruta-check.is-danger").first()).toBeFocused();
+      expect(dialogs, "no abre la confirmación de firma").toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });

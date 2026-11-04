@@ -113,6 +113,26 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (396): Cierre sigue en el mes sin firmar, y «Firmar» dice qué falta
+
+- **Lo que vio el hogar** (día 4, octubre sin firmar): «Firmar · 1 sin cumplir» no hacía nada. Fallaba «Extracto incorporado · 0 movimientos» y las dos cuentas decían «ningún extracto de este mes».
+  - Del 1 al 3, Cierre enseña el mes que acaba; desde el 4, el mes en curso, aunque el anterior siguiera sin firmar. Cierre estaba en **noviembre**.
+  - El botón desactivado parecía activo.
+- **Cambio 1 (`canonical-month-close-balances.js`, `closeTarget`).**
+  - Desde el día 4, el mes anterior **sin firmar y con movimientos** (`hasActivity`, que `app.js` deriva de los movimientos) sigue siendo el que se cierra, con el motivo «sigue sin firmar: se cierra antes que el mes en curso». El mes en curso se puede elegir, como antes.
+  - Un mes anterior firmado o sin movimientos no se queda esperando.
+  - **Solo cambia qué mes enseña Cierre.** Qué meses están «cerrados» para editar reales (`isClosedMonthKey`, días de gracia) no se toca: cambiaría muchas pantallas, y firmar un mes pasado ya funcionaba.
+- **Cambio 2 (`views/cierre.js`, `styles.css`).** «Firmar» con algo sin cumplir ya no está `disabled`: lleva `aria-disabled` y se ve apagado. Al tocarlo:
+  - dice qué falta («Para firmar falta: …», con la sesión si es eso), en `role="alert"`;
+  - lleva el foco a la primera comprobación sin cumplir;
+  - no firma.
+- **Versiones:** `app.js`, `styles.css`, el motor y la vista de Cierre a `?v=20261104firma1`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6337/6337, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/npv3-cierre-con-saldo.test.cjs`: 17, una nueva para el mes pendiente.
+  - e2e de Cierre: 24 de 24. Incluye la nueva a 390 (`@safari`) y 1440 px: el 4/11 enseña octubre, se cambia a noviembre y vuelve; en noviembre, «Firmar» dice «Extracto incorporado · 0 movimientos» y lleva el foco, sin abrir la firma.
+  - axe de Cierre: 7 de 7.
+
 ## Cierre de sesión — 3 de noviembre de 2026 (395): Cierre tomaba un saldo intermedio como el último de CaixaBank
 
 - **Lo que vio el hogar** al ir a firmar octubre: «Conciliar cuentas» marcaba CaixaBank como «Descuadra». Declarado 6.021,36 €, calculado 7.377,30 €, diferencia −1.355,94 €. «No se me actualiza el saldo de la cuenta para firmar.»
