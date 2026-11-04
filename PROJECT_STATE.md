@@ -113,6 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (398): línea base del cierre (45 min), y por qué agosto no se firma ahora
+
+- **Datos del hogar.**
+  - El cierre de octubre llevó unos 45 minutos: es la línea base del cierre (`docs/REVISION_POST_CIERRE_2026-11.md`, sección nueva).
+  - La excepción XGO-01 de Cierre (+2 titulares) se mantiene hasta la revisión del 18/11 (anotado en `docs/gobierno/superficie.json`).
+- **Pregunta del hogar: «¿cómo cierro agosto, que está abierto?»**
+  - Cierre solo ofrece el mes en curso y el anterior (`closeTarget`).
+  - Además, firmar guarda como saldos de fin de mes los saldos declarados hoy (`pendingMonthCloseBalances`).
+  - La comprobación de cuentas compara el saldo declarado con el último movimiento importado, no con el de fin de mes (`cierreAccountReconciliation`).
+  - Firmar agosto ahora guardaría saldos de noviembre con fecha de agosto. También rompería el cuadre «saldo anterior + movimientos» de los cierres siguientes y sumaría al acierto de la previsión un mes que no se previó antes de vivirlo.
+  - Recomendación al hogar: dejarlo sin firmar.
+    - No bloquea nada.
+    - Para editar reales ya cuenta como cerrado por fecha (`isClosedMonthKey`).
+    - Importar lo pone al día con el banco.
+  - Si se quiere congelar, haría falta un «cierre retroactivo» con los saldos del extracto a fin de mes, marcado y fuera del acierto. Queda propuesto, sin construir.
+- **Validación:** solo documentación. `npm test` en verde.
+
 ## Cierre de sesión — 4 de noviembre de 2026 (397): Cierre con el diseño nuevo (RD-C3), y la guía en una línea
 
 - **Contexto.** Octubre, primer cierre real, firmado el 4/11. El hogar desbloqueó lo que esperaba a ese cierre: «empieza por el repaso y Cierre». Su repaso:
