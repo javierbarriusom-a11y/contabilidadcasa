@@ -2623,6 +2623,15 @@
    "decision": "30/10",
    "enPrueba": "pantalla",
    "revision": "2026-11-14"
+  },
+  {
+   "id": "RD-C3",
+   "n": 26,
+   "que": "Cierre con el diseño nuevo: las tres comprobaciones a la vez, la confianza del cierre y «Firmar» que dice qué falta",
+   "origen": "7ª, §8 de ESTADO.md",
+   "decision": "4/11",
+   "enPrueba": "pantalla",
+   "revision": "2026-11-18"
   }
  ]
 }

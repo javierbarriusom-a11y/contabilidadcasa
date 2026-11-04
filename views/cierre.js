@@ -477,10 +477,15 @@ function cierrePorClasificarContados(monthKey) {
   return vistos.size;
 }
 
-function cierrePorClasificarHtml(tasks, monthKey) {
-  const hecho = cierrePorClasificarHecho?.monthKey === monthKey
+// La confirmación de lo dejado en «Por clasificar», con su «Deshacer» (también la usa el cierre nuevo, views/cierre-v2.js).
+function cierrePorClasificarAvisoHtml(monthKey) {
+  return cierrePorClasificarHecho?.monthKey === monthKey
     ? `<p class="cierre-por-clasificar-aviso" role="status"><span>✓ ${escapeHtml(cierrePorClasificarHecho.texto)}</span><button type="button" class="link-button" data-cierre-por-clasificar-deshacer>Deshacer</button></p>`
     : "";
+}
+
+function cierrePorClasificarHtml(tasks, monthKey) {
+  const hecho = cierrePorClasificarAvisoHtml(monthKey);
   if (!tasks.length || tasks.some((task) => task.cause !== "unclassified")) return hecho;
   const filas = cierrePorClasificarFilas(monthKey);
   if (!filas.length) return hecho;
@@ -1384,7 +1389,8 @@ function renderCierre() {
     valuationNote.hidden = !note;
   }
 
-  globalThis.renderCierreGuia?.(currentMonthKey, { signed: Boolean(currentClosure), today: isoLocalDate(new Date()) }); // guía del cierre (cierre-guia-ui.js)
+  // Guía del cierre (cierre-guia-ui.js); con el cierre nuevo (C3), plegada en una línea.
+  globalThis.renderCierreGuia?.(currentMonthKey, { signed: Boolean(currentClosure), today: isoLocalDate(new Date()), compacta: !currentClosure && Boolean(globalThis.cierreV2Activo?.()) });
   globalThis.renderCartaMes?.(window.FinanceCanonicalMonthLetter, currentMonthKey, Boolean(currentClosure)); // WP-29 (carta-mes-ui.js)
   globalThis.renderPlanBAviso?.(window.FinanceCanonicalContingencyPlan); // WP-38 PR-2 (contingencia-ui.js)
   globalThis.renderSombraAviso?.(window.FinanceCanonicalShadowDebt); // WP-41 PR-2 (sombra-ui.js)
@@ -1437,6 +1443,7 @@ function renderCierre() {
   renderGob13AnnualReview();
 
   if (currentClosure) {
+    globalThis.renderCierreV2?.(null); // rediseño C3: con el mes firmado, la vista de siempre
     if (titleEl) titleEl.textContent = `${ledgerMonthLabel(currentMonthKey)} cerrado`;
     if (subtitleEl) subtitleEl.textContent = "Los reales de este mes están congelados. Reábrelo si necesitas corregir algo.";
     qs("cierreWizard")?.setAttribute("hidden", "");
@@ -1469,12 +1476,24 @@ function renderCierre() {
   if (cierreActiveStep > highestUnlocked) cierreActiveStep = highestUnlocked;
 
   const stepsEl = qs("cierreSteps");
+  const body = qs("cierreStepBody");
+  // Rediseño C3 (views/cierre-v2.js): las tres comprobaciones a la vez y la firma al lado. Si lo pinta, el asistente de siempre no se
+  // pinta (un solo #cierreSignButton); con sobres o un plan propuesto por revisar, sigue el de siempre.
+  const v2 = globalThis.renderCierreV2?.({
+    monthKey: currentMonthKey, accountRows, tasks, unclassified: porMes.mes.unclassified.length, monthMovementCount,
+    checks: cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows), syncReady: Boolean(remoteUser) && Boolean(supabaseClient),
+    extraSteps: sobresEnabled() || propuestos.length > 0,
+  });
+  if (v2) {
+    if (stepsEl) stepsEl.innerHTML = "";
+    if (body) body.innerHTML = "";
+    return;
+  }
   if (stepsEl) stepsEl.innerHTML = cierreStepsHtml(steps, cierreActiveStep);
 
   const sobresStepEntry = steps.find((item) => item.label === "Liquidar sobres");
   const propuestoStepEntry = steps.find((item) => item.label === "Revisar plan propuesto");
   const firmStep = steps[steps.length - 1].step;
-  const body = qs("cierreStepBody");
   if (body) {
     if (cierreActiveStep === 1) body.innerHTML = cierreStep1Html(accountRows);
     else if (cierreActiveStep === 2) body.innerHTML = cierrePorClasificarRecuerdoHtml(cierreMesAnterior(currentMonthKey)) + cierreStep2Html(tasks, currentMonthKey);
@@ -1498,6 +1517,8 @@ function handleCierreDownload(kind) {
 // 4/11/2026: el hogar pulsaba «Firmar · 1 sin cumplir» y no pasaba nada (un botón desactivado que parecía activo). Ahora se ve apagado
 // y, al tocarlo, dice qué falta y lleva el foco a la primera comprobación sin cumplir; no firma.
 function cierreFirmaFaltaTexto() {
+  const preparado = qs("cierreSignButton")?.dataset.falta; // el cierre nuevo (views/cierre-v2.js) ya lo trae escrito
+  if (preparado) return preparado;
   const faltan = [...document.querySelectorAll("#cierreStepBody .deuda-ruta-check.is-danger")].map((item) => item.textContent.trim()).filter(Boolean);
   const partes = [];
   if (faltan.length) partes.push(`Para firmar falta: ${faltan.join("; ")}.`);
@@ -1514,7 +1535,7 @@ async function handleCierreSign() {
       aviso.textContent = texto;
       aviso.hidden = false;
     }
-    const primera = document.querySelector("#cierreStepBody .deuda-ruta-check.is-danger");
+    const primera = document.querySelector("#cierreStepBody .deuda-ruta-check.is-danger, #cierreV2 [data-cierre-v2-falta]");
     primera?.scrollIntoView?.({ block: "center" });
     primera?.focus?.();
     announceStatus(texto);

@@ -158,12 +158,13 @@ function coberturaFechaLarga(iso) {
   return new Date(`${iso}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-function coberturaAvisoCierreHtml(monthKey, motor = coberturaMotor()) {
+// Cuenta a cuenta, si el extracto cubre el mes: { ok, texto }. La usan el aviso de abajo y el cierre nuevo (views/cierre-v2.js).
+function coberturaLineasCierre(monthKey, motor = coberturaMotor()) {
   const rangos = coberturaEfectivos();
-  if (!motor || !rangos) return "";
+  if (!motor || !rangos) return [];
   const hoy = isoLocalDate(new Date());
   const cuentas = (globalThis.FinanceCanonicalBalancePulse?.ACCOUNTS || []).map((a) => a.importLabel);
-  const lineas = cuentas.map((cuenta) => {
+  return cuentas.map((cuenta) => {
     const m = motor.month(rangos, cuenta, monthKey, hoy);
     if (!m) return null;
     if (m.nothing) return { ok: false, texto: `${cuenta}: ningún extracto de este mes` };
@@ -171,6 +172,10 @@ function coberturaAvisoCierreHtml(monthKey, motor = coberturaMotor()) {
     const huecos = m.gaps.map((g) => (g.from === g.to ? `el ${coberturaFechaLarga(g.from)}` : `del ${coberturaFechaLarga(g.from)} al ${coberturaFechaLarga(g.to)}`));
     return { ok: false, texto: `${cuenta}: falta ${huecos.join(" y ")}` };
   }).filter(Boolean);
+}
+
+function coberturaAvisoCierreHtml(monthKey, motor = coberturaMotor()) {
+  const lineas = coberturaLineasCierre(monthKey, motor);
   if (!lineas.length) return "";
   const todo = lineas.every((l) => l.ok);
   return `<div class="cierre-cobertura${todo ? " is-ok" : " is-aviso"}" role="note">
@@ -191,4 +196,5 @@ globalThis.FinanceCobertura = {
   cambioCampo: coberturaCambioCampo,
   registrar: coberturaRegistrar,
   avisoCierreHtml: coberturaAvisoCierreHtml,
+  lineasCierre: coberturaLineasCierre,
 };

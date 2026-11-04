@@ -5,6 +5,10 @@
 //
 // Script de pantalla: se carga antes de app.js y comparte su ámbito global (qs, escapeHtml, storageGet, storageSet, storageKey). Sin
 // llamadas al DOM al cargarse: views/cierre.js llama a `renderCierreGuia` al pintar Cierre.
+//
+// Con el cierre nuevo (rediseño C3, views/cierre-v2.js, 4/11/2026) la guía va plegada en una línea («compacta»): las tres
+// comprobaciones ya se ven a la vez con su avance, y una segunda barra de progreso competía con la de la confianza del cierre.
+// No se abre sola del 1 al 3, y los tres pasos de la pantalla de Cierre se nombran como en el cierre nuevo (`queV2`, `comoV2`).
 
 const CIERRE_GUIA_STORE = "cierre-guia";
 const CIERRE_GUIA_MESES = 6; // se guardan las casillas de los últimos seis meses, no más
@@ -23,9 +27,12 @@ const CIERRE_GUIA_PASOS = Object.freeze([
   { id: "saldos", que: "Declarad el saldo de cada cuenta", como: "En Registrar › «Declara cuánto hay en cada cuenta», con la fecha del último movimiento importado y el modo «Real manual». Con «Auto por fecha» el saldo no cuenta para el acierto de la caja.", nivel: "bloquea", nota: "Si no cuadra, bloquea", href: "#registrar", enlace: "Ir a Registrar" },
   { id: "reales", que: "Anotad los reales que falten", como: "En Registrar › Reales del mes. Lo pagado fuera del banco (efectivo, otra cuenta) se escribe dentro del total de la partida: la app guarda aparte lo que no viene del extracto y no lo pierde al importar. Al firmar, la app dice qué partidas quedan sin real.", nivel: "avisa", nota: "Avisa, no bloquea", href: "#registrar", enlace: "Ir a Registrar" },
   { id: "valorar", que: "Valorad la cartera", como: "En Inversión › Cartera › Actualizar valoración. Unos 5 minutos; «Sin cambios» vale para lo que no se ha movido.", nivel: "avisa", nota: "Avisa, no bloquea", href: "#inversion-cartera", enlace: "Ir a Cartera" },
-  { id: "conciliar", que: "Cierre, paso 1: Conciliar cuentas", como: "Saldo declarado frente a saldo calculado. Ninguna cuenta puede quedar en «Descuadra».", nivel: "bloquea", nota: "Bloquea" },
-  { id: "diferencias", que: "Cierre, paso 2: Resolver diferencias", como: "Tareas agrupadas por causa. Cada una se cierra cuando el dato cuadra, no al pulsarla.", nivel: "bloquea", nota: "Bloquea" },
-  { id: "firmar", que: "Cierre, último paso: Firmar y archivar", como: "Con «Antes de firmar» en verde, Firmar cierre. El motivo propuesto, «Mes conciliado y revisado», sirve.", nivel: "avisa", nota: "El final" },
+  { id: "conciliar", que: "Cierre, paso 1: Conciliar cuentas", como: "Saldo declarado frente a saldo calculado. Ninguna cuenta puede quedar en «Descuadra».", nivel: "bloquea", nota: "Bloquea",
+    queV2: "Cierre, 1: Saldos a fin de mes", comoV2: "Saldo declarado frente al del extracto, cuenta a cuenta. Ninguna puede quedar sin cuadrar; «Corregir el saldo» lleva a declararlo." },
+  { id: "diferencias", que: "Cierre, paso 2: Resolver diferencias", como: "Tareas agrupadas por causa. Cada una se cierra cuando el dato cuadra, no al pulsarla.", nivel: "bloquea", nota: "Bloquea",
+    queV2: "Cierre, 2: Movimientos completos", comoV2: "El extracto del mes entero, sin movimientos sin partida ni otras diferencias: «Importar extracto», «Clasificar», «Dejar en Por clasificar» o «Ver la diferencia», según lo que falte." },
+  { id: "firmar", que: "Cierre, último paso: Firmar y archivar", como: "Con «Antes de firmar» en verde, Firmar cierre. El motivo propuesto, «Mes conciliado y revisado», sirve.", nivel: "avisa", nota: "El final",
+    queV2: "Cierre: Firmar el cierre de {mes}", comoV2: "A la derecha de las comprobaciones. Si falta algo, el botón dice qué y lleva a ello. El motivo propuesto, «Mes conciliado y revisado», sirve." },
 ]);
 
 const CIERRE_GUIA_ATASCOS = Object.freeze([
@@ -57,25 +64,33 @@ function cierreGuiaHechos(store, monthKey) {
 }
 
 // La barra de la tarjeta plegada: cuánto del cierre lleva marcado este mes.
-function cierreGuiaPintarAvance(hechos) {
+function cierreGuiaPintarAvance(hechos, compacta = false) {
   const barra = qs("cierreGuiaBarra");
   if (barra) barra.style.width = `${Math.round((hechos / CIERRE_GUIA_PASOS.length) * 100)}%`;
-  qs("cierreGuiaResumen").textContent = cierreGuiaResumen(hechos);
+  qs("cierreGuiaResumen").textContent = compacta ? cierreGuiaResumenCompacto(hechos) : cierreGuiaResumen(hechos);
 }
 
 function cierreGuiaResumen(hechos) {
   return hechos === CIERRE_GUIA_PASOS.length ? "Todos los pasos hechos" : `${hechos} de ${CIERRE_GUIA_PASOS.length} pasos hechos`;
 }
 
-function cierreGuiaHtml(monthKey, store) {
+// En una línea, junto al cierre nuevo: qué hay dentro, y lo marcado solo si se ha marcado algo (sin otra barra de avance).
+function cierreGuiaResumenCompacto(hechos) {
+  const base = `${CIERRE_GUIA_PASOS.length} pasos, dónde se hace cada uno y qué hacer si algo no cuadra`;
+  return hechos ? `${base} · ${hechos} ${hechos === 1 ? "marcado" : "marcados"}` : base;
+}
+
+function cierreGuiaHtml(monthKey, store, compacta = false) {
   const marcados = store.meses[monthKey] || {};
   const mes = cierreGuiaNombreMes(monthKey);
   const pasos = CIERRE_GUIA_PASOS.map((paso) => {
     const id = `cierreGuia-${paso.id}`;
+    const que = compacta && paso.queV2 ? paso.queV2 : paso.que;
+    const como = compacta && paso.comoV2 ? paso.comoV2 : paso.como;
     const enlace = paso.href ? ` <a class="cierre-guia-enlace" href="${paso.href}" data-cierre-guia-ir>${escapeHtml(paso.enlace)}</a>` : "";
     return `<li class="cierre-guia-paso${marcados[paso.id] ? " is-hecho" : ""}">
       <input type="checkbox" id="${id}" data-cierre-guia-paso="${paso.id}"${marcados[paso.id] ? " checked" : ""}>
-      <label for="${id}"><strong>${escapeHtml(paso.que.replace("{mes}", mes))}</strong><span class="e19-kpi-note">${escapeHtml(paso.como)}</span><span class="cierre-guia-nivel is-${paso.nivel}">${escapeHtml(paso.nota)}</span></label>${enlace}
+      <label for="${id}"><strong>${escapeHtml(que.replace("{mes}", mes))}</strong><span class="e19-kpi-note">${escapeHtml(como)}</span><span class="cierre-guia-nivel is-${paso.nivel}">${escapeHtml(paso.nota)}</span></label>${enlace}
     </li>`;
   }).join("");
   const atascos = CIERRE_GUIA_ATASCOS.map(([veis, suele, hacer]) => `<tr><td>${escapeHtml(veis)}</td><td>${escapeHtml(suele)}</td><td>${escapeHtml(hacer)}</td></tr>`).join("");
@@ -88,20 +103,24 @@ function cierreGuiaHtml(monthKey, store) {
 
 /**
  * @param {string} monthKey El mes que se cierra (closeTargetInfo).
- * @param {{signed?: boolean, today?: string}} [options] Firmado o no; del 1 al 3 sin firmar, la guía sale abierta.
+ * @param {{signed?: boolean, today?: string, compacta?: boolean}} [options] Firmado o no; del 1 al 3 sin firmar, la guía sale
+ *   abierta, salvo `compacta` (con el cierre nuevo): entonces va plegada en una línea y no se abre sola.
  */
-function renderCierreGuia(monthKey, { signed = false, today = "" } = {}) {
+function renderCierreGuia(monthKey, { signed = false, today = "", compacta = false } = {}) {
   const card = qs("cierreGuia");
   if (!card || !/^\d{4}-\d{2}$/.test(String(monthKey || ""))) return;
   attachCierreGuia(card);
   const store = cierreGuiaLoad();
   card.dataset.monthKey = monthKey;
-  cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
-  qs("cierreGuiaMes").textContent = `Guía del cierre de ${cierreGuiaNombreMes(monthKey)}`;
-  qs("cierreGuiaCuerpo").innerHTML = cierreGuiaHtml(monthKey, store);
+  if (compacta) card.dataset.compacta = "1";
+  else delete card.dataset.compacta;
+  cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey), compacta);
+  // Compacta, sin el mes: lo dice el título de la pantalla («Cerrar octubre») y así cabe en una línea a 390 px.
+  qs("cierreGuiaMes").textContent = compacta ? "Guía completa del cierre" : `Guía del cierre de ${cierreGuiaNombreMes(monthKey)}`;
+  qs("cierreGuiaCuerpo").innerHTML = cierreGuiaHtml(monthKey, store, compacta);
   // Del 1 al 3 con el mes sin firmar, abierta: es cuando se usa. El resto del mes, plegada (no pesa en la pantalla).
   const dia = Number(String(today).slice(8, 10));
-  if (!card.dataset.abiertaPorFecha && !signed && dia >= 1 && dia <= 3) {
+  if (!compacta && !card.dataset.abiertaPorFecha && !signed && dia >= 1 && dia <= 3) {
     card.open = true;
     card.dataset.abiertaPorFecha = "1";
   }
@@ -122,7 +141,7 @@ function attachCierreGuia(card) {
     store.meses[monthKey] = { ...(store.meses[monthKey] || {}), [box.dataset.cierreGuiaPaso]: box.checked };
     cierreGuiaSave(store);
     box.closest(".cierre-guia-paso")?.classList.toggle("is-hecho", box.checked);
-    cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey));
+    cierreGuiaPintarAvance(cierreGuiaHechos(store, monthKey), card.dataset.compacta === "1");
     if (box.checked) globalThis.FinanceMedidor?.anotar("cierre-guia", "accion"); // XGO-02: un paso marcado
   });
 }

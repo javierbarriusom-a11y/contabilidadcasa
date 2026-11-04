@@ -113,6 +113,52 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (397): Cierre con el diseño nuevo (RD-C3), y la guía en una línea
+
+- **Contexto.** Octubre, primer cierre real, firmado el 4/11. El hogar desbloqueó lo que esperaba a ese cierre: «empieza por el repaso y Cierre». Su repaso:
+  - entre 30 y 60 minutos;
+  - lo difícil fue clasificar movimientos;
+  - lo pendiente se fue a «Por clasificar» desde Cierre;
+  - cierra en el ordenador.
+- **Qué cambia (`views/cierre-v2.js`, nuevo; de `Cierre.png` y `CierreDesktop.png`).**
+  - **Las tres comprobaciones a la vez**, en vez de un asistente que se desbloquea paso a paso. Cada una dice qué falta, con su acción al lado:
+    - **saldos a fin de mes**: declarado frente a extracto, con la diferencia; «Corregir el saldo»;
+    - **movimientos completos**: huecos del extracto por cuenta, sin partida y otras diferencias; «Importar extracto», «Clasificar», «Dejar N en Por clasificar» o «Ver la diferencia»;
+    - **lo previsto frente a lo real**: las tres partidas de gasto que más se desviaron; solo informa.
+  - **A la derecha** (debajo en el móvil):
+    - la **confianza del cierre** (baja, media o alta) y por qué;
+    - **lo que guarda la firma**;
+    - **«Firmar el cierre de octubre»**, que dice qué falta (#582).
+  - **Mismas reglas y manejadores que el de siempre** (`cierreFirmChecks`, `handleCierreSign`, «Por clasificar»): solo cambia cómo se enseña.
+    - «Ver el cierre paso a paso» devuelve el asistente de siempre, y una línea devuelve al nuevo.
+    - Con sobres, con un plan propuesto o con el mes firmado, se ve el de siempre entero.
+    - El de siempre se oculta con `:has()` solo cuando el nuevo se ha pintado.
+- **La guía del cierre, en una línea** (decisión del hogar del 4/11).
+  - Su barra «N de 9 pasos» competía con la confianza del cierre. Encima del cierre nuevo queda «Guía completa del cierre · 9 pasos, dónde se hace cada uno y qué hacer si algo no cuadra» (en el móvil, solo el título y «Abrir la guía»).
+  - No se abre sola del 1 al 3.
+  - Nombra los pasos de Cierre como el cierre nuevo.
+  - Abierta, es la de siempre, con las mismas casillas. `cierre-guia-ui.js` lleva un modo `compacta`.
+- **En prueba** como «Cierre nuevo» (`cierre-v2`, parte del diseño nuevo, revisión el 18/11), con su medidor y su línea en Novedades.
+  - `app.js` solo cambia la versión del fragmento de Cierre (32.299 líneas).
+  - Versiones a `?v=20261104cierreC3`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6346/6346, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/redis-c3-cierre-v2.test.cjs` (8) y `tests/cierre-guia.test.cjs` (5, una nueva).
+  - e2e nuevas a 390 (`@safari`) y 1440 px: el cierre nuevo, la guía en una línea y el tema clásico.
+  - Las e2e del asistente de siempre entran con `cierre-v2-modo = clasico`.
+  - axe del cierre nuevo en claro y oscuro.
+  - E2E y axe enteras en local: 296 de 297 a la primera.
+    - La que faltaba era XGO-01 («uno entra, uno sale»): Cierre pasa de 6 a 8 titulares visibles por defecto, porque el cierre nuevo enseña a la vez las tres comprobaciones que el asistente escondía tras el paso 1.
+    - Se escribe como excepción con fecha en `docs/gobierno/superficie.json` (+2; total 229 = base 226 + 3).
+    - Plegar el historial, el aprendizaje o el ritual anual habría cambiado también el tema clásico.
+    - Tras la excepción, XGO-01 en verde.
+    - El navegador se cerró solo una vez entre pruebas; `tests/helpers/navegador-resiliente.cjs` lo relanzó, como está previsto.
+- **Para el hogar.**
+  - Si algo del cierre de siempre se echa de menos en el nuevo, «Ver el cierre paso a paso» lo devuelve y el medidor lo cuenta como descarte.
+  - Siguen pendientes de su decisión:
+    - las revisiones de Funciones en prueba;
+    - el cambio de Hoy de la semana del 8/11.
+
 ## Cierre de sesión — 4 de noviembre de 2026 (396): Cierre sigue en el mes sin firmar, y «Firmar» dice qué falta
 
 - **Lo que vio el hogar** (día 4, octubre sin firmar): «Firmar · 1 sin cumplir» no hacía nada. Fallaba «Extracto incorporado · 0 movimientos» y las dos cuentas decían «ningún extracto de este mes».

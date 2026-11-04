@@ -252,6 +252,7 @@ const files = [
   "views/hoy-v2.js",
   "views/movimientos-v2.js",
   "views/plan-v2.js",
+  "views/cierre-v2.js",
   "views/importar-v2.js",
   "views/clasificar-v2.js",
   "views/repaso-v2.js",

@@ -23,6 +23,8 @@ const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relan
 // RD-WK (P14 del rediseño): las pruebas de las pantallas v2 a 390 px llevan la etiqueta @safari y el proyecto «safari» de
 // playwright.config.cjs las repite en WebKit (iPhone 13, 390×844). Las que recorren dos anchos la llevan solo en el de 390.
 const enSafari = (viewport) => ({ tag: viewport.width === 390 ? ["@safari"] : [] });
+// Rediseño C3 (4/11/2026): con el tema v2, Cierre enseña el cierre nuevo (views/cierre-v2.js). Las pruebas del asistente de siempre lo piden explícitamente.
+const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.setItem("cierre-v2-modo", "clasico"); } catch { /* sin almacenamiento */ } });
 // Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 
@@ -6045,6 +6047,7 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
 test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a firmar", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`de cero movimientos a «Firmar cierre» a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      await cierreDeSiempre(page);
       test.setTimeout(120000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -7095,6 +7098,7 @@ test.describe("Guía del cierre de mes", () => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await cierreDeSiempre(page); // la tarjeta entera es la del cierre de siempre; con el nuevo va en una línea (prueba de abajo)
       await page.clock.install({ time: new Date(2026, 9, 20, 10, 0, 0) });
       await page.setViewportSize(viewport);
       await page.goto("/index.html#cierre");
@@ -7131,11 +7135,52 @@ test.describe("Guía del cierre de mes", () => {
   }
 });
 
+// Decisión del hogar del 4/11/2026: con el cierre nuevo (C3), la guía va plegada en una línea, sin su barra de «N de 9», no se
+// abre sola del 1 al 3 y nombra los pasos de Cierre como el cierre nuevo. Abierta, es la de siempre. Movimientos INVENTADOS.
+test.describe("Guía del cierre · en una línea con el cierre nuevo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 1000 }]) {
+    test(`una línea, abre la guía con los pasos del cierre nuevo y lo marcado se dice en la línea, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 2, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#cierre");
+      await expect(page.locator("#cierreV2")).toHaveAttribute("data-modo", "v2", { timeout: 15000 });
+      const guia = page.locator("#cierreGuia");
+      await expect(guia).toBeVisible();
+      await expect(guia, "del 1 al 3 ya no se abre sola: el cierre nuevo enseña todo").not.toHaveAttribute("open", "");
+      const linea = guia.locator(":scope > summary");
+      await expect(guia.locator("#cierreGuiaMes")).toHaveText("Guía completa del cierre");
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("9 pasos, dónde se hace cada uno y qué hacer si algo no cuadra");
+      if (viewport.width < 500) await expect(guia.locator("#cierreGuiaResumen"), "en el móvil, solo título y «Abrir la guía»").toBeHidden();
+      await expect(guia.locator(".cierre-guia-barra"), "sin segunda barra de avance").toBeHidden();
+      await expect(guia.locator(".cierre-guia-icono")).toBeHidden();
+      const alto = await guia.evaluate((el) => el.getBoundingClientRect().height);
+      expect(alto, "una línea").toBeLessThan(44);
+
+      await linea.click();
+      await expect(guia).toHaveAttribute("open", "");
+      await expect(guia).toContainText("Cierre, 1: Saldos a fin de mes");
+      await expect(guia).toContainText("Cierre, 2: Movimientos completos");
+      await expect(guia).toContainText("Cierre: Firmar el cierre de octubre");
+      await expect(guia).not.toContainText("Resolver diferencias");
+      await guia.locator('label[for="cierreGuia-sesion"]').click();
+      await expect(guia.locator("#cierreGuiaResumen")).toHaveText("9 pasos, dónde se hace cada uno y qué hacer si algo no cuadra · 1 marcado");
+      await linea.click();
+      await expect(guia).not.toHaveAttribute("open", "");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // Decisión del hogar del 29/10/2026: firmar un mes solo depende de ese mes. Con los datos reales (historial importado y casi
 // todo sin clasificar), el cierre de octubre exigía clasificar cientos de movimientos de meses anteriores. Ahora los contadores
 // y la firma son de octubre y lo de otros meses se dice aparte, sin bloquear. Reloj el 2/11: Cierre enseña octubre. INVENTADOS.
 test.describe("Cierre · solo bloquea el mes que se cierra", () => {
   test("lo de otros meses no bloquea la firma y se dice aparte; lo de octubre sí", async ({ page }) => {
+    await cierreDeSiempre(page);
     test.setTimeout(120000);
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -7430,6 +7475,7 @@ test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
 test.describe("Cierre · dejar lo pendiente en «Por clasificar»", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`lo de octubre sin partida va a «Por clasificar» uno a uno, sin reglas; deja firmar y se deshace, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      await cierreDeSiempre(page);
       test.setTimeout(120000);
       const pageErrors = [];
       const dialogs = [];
@@ -7535,6 +7581,7 @@ test.describe("Cargos cada N meses en la previsión", () => {
 test.describe("Cierre · el mes anterior sin firmar va primero, y «Firmar» dice qué falta", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`el 4/11 con octubre sin firmar, Cierre enseña octubre; noviembre se puede elegir; «Firmar» bloqueado lleva a lo que falta, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      await cierreDeSiempre(page);
       test.setTimeout(90000);
       const pageErrors = [];
       const dialogs = [];
@@ -7574,4 +7621,82 @@ test.describe("Cierre · el mes anterior sin firmar va primero, y «Firmar» dic
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// Rediseño C3 (4/11/2026) · Cierre nuevo, de Cierre.png / CierreDesktop.png: las tres comprobaciones a la vez con su acción, la confianza,
+// lo que guarda la firma y «Firmar» al lado; el de siempre, tras «Ver el cierre paso a paso». Reloj el 4/11/2026; movimientos INVENTADOS.
+test.describe("Rediseño C3 · Cierre nuevo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`tres comprobaciones a la vez, «Por clasificar» desde aquí, «Firmar» dice qué falta y el de siempre sigue a un toque, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      const dialogs = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 4, 10, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && typeof renderCierreV2 === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        let balance = 5000;
+        const partida = displayLabelForRow(availableSeriesRows("expense")[0]);
+        const add = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += amount), accountId: "caixabank" });
+        // Solo movimientos sin partida: con uno que casa con una partida se abre además una diferencia banco/real, y entonces
+        // «Dejar en Por clasificar» no se ofrece (solo se ofrece cuando lo único abierto son movimientos sin partida).
+        void partida;
+        baseData.transactions = mergeTransactions([], [add("2026-10-12", -45, "TIENDA RARA FICTICIA"), add("2026-10-20", -30, "OTRA FICTICIA")]);
+        refreshMovementRollups();
+        renderCierre();
+      });
+      const v2 = page.locator("#cierreV2");
+      await expect(v2).toHaveAttribute("data-modo", "v2");
+      await expect(page.locator("#cierreTitle")).toHaveText("Cerrar octubre");
+      await expect(page.locator("#cierreWizard")).toBeHidden();
+      const pasos = v2.locator(".cierre-v2-paso");
+      await expect(pasos).toHaveCount(3);
+      await expect(pasos.nth(0)).toContainText("Saldos a 31 oct");
+      await expect(pasos.nth(1)).toContainText("Movimientos completos");
+      await expect(pasos.nth(1)).toContainText("2 movimientos sin partida.");
+      await expect(pasos.nth(2)).toContainText("Lo previsto frente a lo real");
+      await expect(v2.locator(".cierre-v2-confianza")).toContainText("Confianza del cierre");
+      await expect(v2.locator(".cierre-v2-guarda")).toContainText("Reales de octubre");
+
+      // «Por clasificar» desde el propio paso 2, con su «Deshacer».
+      await pasos.nth(1).locator("[data-cierre-por-clasificar]").click();
+      await expect(v2.locator(".cierre-por-clasificar-aviso")).toContainText("2 movimientos");
+      await expect(v2.locator(".cierre-v2-paso").nth(1)).not.toContainText("sin partida.");
+      await v2.locator(".cierre-por-clasificar-aviso").getByRole("button", { name: "Deshacer" }).click();
+      await expect(v2.locator(".cierre-v2-paso").nth(1)).toContainText("2 movimientos sin partida.");
+
+      // «Firmar» con algo pendiente: apagado; al tocarlo dice qué falta, lleva al primer paso pendiente y no abre la firma.
+      const firmar = page.locator("#cierreSignButton");
+      await expect(firmar).toHaveCount(1);
+      await expect(firmar).toHaveText("Firmar el cierre de octubre");
+      await expect(firmar).toHaveAttribute("aria-disabled", "true");
+      await firmar.click({ force: true }); // aria-disabled: Playwright no lo pulsa solo; un dedo sí
+      await expect(page.locator("#cierreFirmaFalta")).toContainText("Para firmar falta");
+      await expect(v2.locator("[data-cierre-v2-falta]").first()).toBeFocused();
+
+      // El de siempre, a un toque, y vuelta.
+      await v2.getByRole("button", { name: "Ver el cierre paso a paso" }).click();
+      await expect(v2).toHaveAttribute("data-modo", "linea");
+      await expect(page.locator("#cierreSteps")).toBeVisible();
+      await expect(page.locator("#cierreSignButton")).toHaveCount(0);
+      await v2.getByRole("button", { name: "Volver al cierre nuevo" }).click();
+      await expect(v2).toHaveAttribute("data-modo", "v2");
+      await expect(page.locator("#cierreSignButton")).toHaveCount(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(dialogs, "no abre la firma").toEqual([]);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el tema clásico, el cierre de siempre (mismas funciones en los dos temas)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 10, 4, 10, 0, 0) });
+    await page.goto("/index.html?tema=clasico#cierre");
+    await page.waitForFunction(() => typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+    await expect(page.locator("#cierreV2")).toBeHidden();
+    await expect(page.locator("#cierreSteps")).toBeVisible();
+    await page.goto("/index.html?tema=v2#cierre"); // deja el tema como estaba para las demás pruebas
+  });
 });

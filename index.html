@@ -73,7 +73,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261102nuevaP1" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261104cierreC3" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -4203,6 +4203,8 @@
             <!-- Decisión del hogar del 29/10/2026: los contadores y la firma son del mes que se cierra; lo de otros meses, aquí, sin bloquear (views/cierre.js). -->
             <p class="e19-kpi-note" id="cierreOtrosMeses" hidden></p>
             <p class="e19-kpi-note" id="cierreSobresNote"></p>
+            <!-- Rediseño C3 (views/cierre-v2.js), solo con el tema v2 y el mes abierto: las tres comprobaciones a la vez y la firma al lado. Si se pinta, el asistente de siempre se oculta (tema-v2.css). -->
+            <div id="cierreV2" hidden></div>
 
             <div id="cierreWizard">
               <ol class="cierre-steps" id="cierreSteps"></ol>
@@ -7875,8 +7877,8 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261030planC1"></script>
-    <script defer src="funciones-en-prueba.js?v=20261030planC1"></script>
+    <script defer src="medidor-utilidad.js?v=20261104cierreC3"></script>
+    <script defer src="funciones-en-prueba.js?v=20261104cierreC3"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8149,7 +8151,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261104firma1"></script>
+    <script defer src="novedades.js?v=20261104cierreC3"></script>
     <script defer src="ux-shell.js?v=20261004wp25a1"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8247,8 +8249,9 @@
     <script defer src="views/clasificar-v2.js?v=20261102nuevaP1"></script>
     <script defer src="views/repaso-v2.js?v=20261024redisB5"></script>
     <script defer src="views/plan-v2.js?v=20261030planC1"></script>
+    <script defer src="views/cierre-v2.js?v=20261104cierreC3"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
-    <script defer src="cobertura-ui.js?v=20261026xda04"></script>
+    <script defer src="cobertura-ui.js?v=20261104cierreC3"></script>
     <script defer src="extracto-pdf-ui.js?v=20261031web1"></script>
     <script defer src="lo-que-pide-ui.js?v=20261026xda01"></script>
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
@@ -8256,9 +8259,9 @@
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
     <script defer src="canonical-next-best-action.js?v=20261028wp17"></script>
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
-    <script defer src="cierre-guia-ui.js?v=20261029aparte1"></script>
+    <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
-    <script defer src="app.js?v=20261104firma1"></script>
+    <script defer src="app.js?v=20261104cierreC3"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
