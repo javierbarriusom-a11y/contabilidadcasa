@@ -67,3 +67,16 @@ día 12 solo se decide apagar, nunca graduar.
 - **Dónde se cierra:** en el ordenador.
 - **XGO-01:** la excepción de +2 titulares en Cierre (las tres comprobaciones a la vez) se mantiene hasta la revisión del cierre nuevo el **18/11**. Ese día se decide con lo medido si se queda o si a cambio se pliega el ritual anual.
 
+## Decisiones del hogar sobre las revisiones del 2/11 y el 4/11 (anotadas el 4/11)
+
+Tomadas con la hoja de decisiones de la sesión 399. Los botones de «Graduar» y «Dos semanas más» los pulsa el hogar en
+Ajustes › Funciones en prueba: el estado de cada función vive en su navegador, no en el repositorio.
+
+| Función | Decisión | Por qué |
+| --- | --- | --- |
+| Diseño nuevo | **Graduar** | Octubre se cerró entero con él, sin volver a `?tema=clasico`. Retirar el tema clásico es un PR aparte y se consulta antes. |
+| Hoy nuevo | **Dos semanas más** (16/11) | Sin línea base fiable: los tres días del medidor anteriores al primer cambio (22-24/10) son ruido con un solo usuario. Ningún cambio de Hoy la semana del 8/11, para medir el del 1/11 en una semana normal. |
+| Movimientos nuevo | **Graduar** | El cierre se hizo desde aquí. |
+| Importar en tres pasos | **Graduar** | El extracto real de octubre entró completo y cuadró al céntimo (tras #574 y #576), sin el asistente de siempre. |
+| Clasificar por lotes | **Dos semanas más** (18/11) | Octubre se firmó con movimientos en «Por clasificar»: el gasto con partida queda por debajo del 95 %, por el atasco de 13 meses de historial. Se juzga con el cierre de noviembre, ya con las reglas que no dependen del mes. Ese día se decide también la puerta de «aceptar en bloque» (H12). |
+
