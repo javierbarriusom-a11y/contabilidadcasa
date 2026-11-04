@@ -1,6 +1,6 @@
 {
  "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md (§5 y §5.0) y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog. «plataforma» es el §5.0 (rediseño y séptima auditoría): va fuera de la línea base del 3/10 y su estado vive en la base del panel (colección plataforma).",
- "version": "2026-10-27",
+ "version": "2026-11-04",
  "lineaBase": {
   "inicio": "2026-10-05",
   "fin": "2027-01-22",
@@ -1959,10 +1959,21 @@
    "tipo": "gobierno"
   },
   {
+   "fecha": "2026-11-12",
+   "que": "Datos fiscales en la app (H-03) y revisión de las ocho funciones encendidas el 29/10",
+   "tipo": "hogar",
+   "wp": "WP-23"
+  },
+  {
    "fecha": "2026-11-14",
    "que": "Campaña fiscal lista",
    "tipo": "fecha límite",
    "wp": "WP-23"
+  },
+  {
+   "fecha": "2026-11-18",
+   "que": "Revisión del Cierre nuevo y de Clasificar; decisiones H10 (excepción XGO-01) y H12 (aceptar en bloque)",
+   "tipo": "gobierno"
   },
   {
    "fecha": "2026-11-20",
@@ -2034,15 +2045,6 @@
     "WP-02"
    ],
    "minutos": 5
-  },
-  {
-   "id": "H-03",
-   "que": "Datos fiscales que faltan, tecleados en la app (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías)",
-   "fecha": "2026-10-20",
-   "para": [
-    "WP-23"
-   ],
-   "minutos": 20
   },
   {
    "id": "H-04",
@@ -2128,6 +2130,15 @@
    "fecha": "2026-11-08",
    "para": [
     "XDA-02"
+   ],
+   "minutos": 20
+  },
+  {
+   "id": "H-03",
+   "que": "Datos fiscales que faltan, tecleados en la app (pagado por vivienda por titular, deducción, tipo marginal, plusvalías y minusvalías) · reactivada el 4/11 (WP-23)",
+   "fecha": "2026-11-12",
+   "para": [
+    "WP-23"
    ],
    "minutos": 20
   },
@@ -2439,7 +2450,7 @@
    "origen": "7ª",
    "decision": "—",
    "enPrueba": "pantalla",
-   "revision": "2026-11-02"
+   "revision": "2026-11-16"
   },
   {
    "id": "RD-V2",
@@ -2501,7 +2512,7 @@
    "origen": "7ª",
    "decision": "—",
    "enPrueba": "pantalla",
-   "revision": "2026-11-04"
+   "revision": "2026-11-18"
   },
   {
    "id": "RD-WK",

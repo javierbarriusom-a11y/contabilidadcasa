@@ -1,5 +1,9 @@
 # Rediseño · estado, decisiones y siguiente paso (léelo antes de tocar cualquier pantalla)
 
+> **Última actualización, 4 de noviembre de 2026:** octubre firmado (primer cierre real), Plan › Mes (C1) y Cierre (C3)
+> con el diseño nuevo, y las revisiones del 2/11 y el 4/11 decididas por el hogar: se gradúan el diseño nuevo,
+> Movimientos e Importar; Hoy y Clasificar, dos semanas más (§8, paso 8). El párrafo siguiente es la cabecera original.
+>
 > Actualizado el 19 de octubre de 2026 (tarde): el tema v2 pasa a ser el de por defecto y se recogen las respuestas del
 > hogar al cuestionario (§3b). **Este documento manda sobre `HANDOFF.md` y
 > `PROMPTS_CLAUDE_CODE.md` donde discrepen**: recoge lo que ya está hecho, las decisiones que se tomaron al hacerlo
@@ -190,6 +194,11 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 7. **El 25/10 (decisión del hogar del 23/10):** primer cambio de Hoy tras la congelación, las preguntas de cobros y cargos a la bandeja de Movimientos (publicado el 24/10 con puerta de fecha, §2). Después, un cambio de Hoy por semana, para que el medidor compare el antes y el después; el siguiente (semana del 1/11), la puerta del Repaso semanal en Hoy (**publicado el 24/10 con puerta de fecha, activo desde el 1/11**, §2); el de la semana del 8/11 queda por decidir con lo que mida el medidor. **El 24/10 el hogar levantó la regla de parada para funciones nuevas**: el primero fue el Repaso semanal (B5, §2), que ataca el cuello de botella real (que la app no recibe datos). El límite de 3 paquetes en curso sigue: rediseño, WP-23 y, hasta su revisión, el Repaso.
 8. Después, si las anteriores se usan: Plan (C1-C2; **C1, Plan › Mes, hecho el 30/10 y publicado el 31/10**), Cierre (C3, **después del primer cierre real**: rehacerla la víspera sería cambiar la pantalla que se estrena; **octubre firmado el 4/11 y C3 hecho ese mismo día**, con el repaso del hogar), Patrimonio e Inversión (D1-D2), navegación de 5
    destinos, Deuda (tras NTC-05), Taller y E2. Cada una desde su referencia de `docs/rediseno/referencias/`.
+   **4/11, revisiones decididas por el hogar** (hoja de decisiones; criterio en `docs/REVISION_POST_CIERRE_2026-11.md`):
+   se gradúan el **diseño nuevo**, **Movimientos** e **Importar**; **Hoy** (sin línea base fiable) y **Clasificar** (se juzga con
+   el cierre de noviembre) pasan dos semanas más, hasta el 16/11 y el 18/11. Graduar no retira nada: quitar el tema clásico
+   o el asistente de siempre es un PR aparte y se consulta antes. **Las siguientes pantallas (Previsión C2, Patrimonio e
+   Inversión D1-D2, navegación) esperan a las revisiones del 12 al 18/11** (Funciones en prueba, Plan nuevo y Cierre nuevo).
 
 Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (P14) está hecho desde el 26/10** (con un reintento en el CI desde el 28/10, decisión del hogar; su primer intento queda en el registro, `BACKLOG_DEFINITIVO.md` §10, trampa 15): `safari` en `playwright.config.cjs` (iPhone 13, 390×844) repite las pruebas v2 a 390 px con la etiqueta `@safari`, bloqueante en el CI. Cada pantalla nueva o rehecha del rediseño etiqueta así su prueba a 390 px.
 

@@ -113,6 +113,29 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (399): estado del plan, hoja de decisiones del hogar y panel al día
+
+- **Sesión de inicio y revisión de estado (sin código de la app).**
+  - Panel de seguimiento al día (base del artefacto, 33 escrituras): registro de #577 a #584, octubre firmado (H-06 hecha; WP-09 «cumple», con un día de retraso), siete funciones en prueba que seguían como «apagadas» pasan a «encendida» (lo están desde el 29/10), RD-C3 dado de alta y WP-29, WP-43, WP-46 y WP-12 con «1 de 3 cierres».
+  - **La página del panel llevaba sin publicarse desde el 27/10**: RD-C3 entró en `plan-definitivo.json` con #583 pero no salía en el panel. Se regenera y se publica en la misma URL. La skill `finanzas-casa-workflow` (Modo Cierre, paso 2) recuerda ahora volver a publicarla cuando cambia el JSON.
+  - Cifras del panel a hoy: **construido 65,3 %** (90 de 137,75 sesiones) frente al **23,6 %** de la línea base; **comprobado 0 %**. 24 paquetes hechos, 23 esperando al hogar, 4 aparcados, 1 continuo y 1 sin empezar (WP-21).
+- **Hoja de decisiones (respuestas del hogar: «1A 2B 3A 4A 5B 6C 7A 8A 9A 10B 11C 12C»).**
+  - Funciones en prueba: se **gradúan** el diseño nuevo, Movimientos e Importar; **dos semanas más** para Hoy nuevo (sin línea base fiable; revisión el 16/11) y Clasificar (se juzga con el cierre de noviembre; 18/11). Los botones los pulsa el hogar en Ajustes › Funciones en prueba.
+  - **H9 cerrada:** julio se queda firmado aunque no fuera un cierre del hogar.
+  - **H-05 hecha.** **H-26** (tiempos de carga en el iPhone) la hará el hogar.
+  - **Ningún cambio de Hoy la semana del 8/11**; candidato para el 15/11, los avisos de WP-36 (por confirmar).
+  - **WP-23 reactivado:** H-03 vuelve con fecha 12/11 (datos fiscales tecleados en la app) y la lista con euros reales se comprueba antes del 15/11.
+  - **Se deciden en su fecha:** la puerta de «aceptar en bloque» de Clasificar el 18/11 (nueva H12 en §6) y A5-1/A5-4 el 30/11 (H8).
+- **Documentación.**
+  - `BACKLOG_DEFINITIVO.md`: §0 con las decisiones; el párrafo del arranque (3-7/10, unas 2.600 palabras) se mueve tal cual a `docs/historial/BACKLOG_DEFINITIVO_estado_2026-10-03_a_2026-10-07.md`; §1 con la recomendación del 4/11 (ninguna pantalla ni función nueva hasta las revisiones del 12 al 18/11); §5.0 con las graduaciones; §6 con H9 cerrada, H8 y H12; §7 con el 12, 15, 16 y 18/11; §12 con 22 hitos y 34 tareas del hogar. `BACKLOG_INDICE.md`: fila del archivo nuevo.
+  - `docs/plan/plan-definitivo.json`: H-03 al 12/11, revisiones nuevas de Hoy (16/11) y Clasificar (18/11), dos hitos y versión 2026-11-04.
+  - `docs/rediseno/ESTADO.md`: cabecera al día y §8 con las revisiones decididas; las siguientes pantallas esperan a las revisiones del 12 al 18/11.
+  - `docs/REVISION_POST_CIERRE_2026-11.md`: tabla con las decisiones y su porqué.
+- La revisión mensual de Nielsen no está vencida (la última, el 15/10; vence el 14/11).
+- **Validación:** solo documentación. `npm run verify` en verde (`npm test` 6346/6346, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - El primer intento falló en 10 pruebas porque el contenedor nuevo no tenía las dependencias (`esbuild`): se instalaron con `npm ci`.
+  - El segundo falló en 2, con razón: el archivo nuevo de `docs/historial/` es un `BACKLOG*.md` y tiene que estar en `BACKLOG_INDICE.md` y enlazar de vuelta a él (trampa 8 del §10). Se da de alta en el índice en vez de renombrarlo.
+
 ## Cierre de sesión — 4 de noviembre de 2026 (398): línea base del cierre (45 min), y agosto se queda sin firmar
 
 - **Datos del hogar.**

@@ -103,6 +103,11 @@ autoriza de principio a fin, hasta la fusión a `main`. Si esta skill y `CLAUDE.
    - Si la sesión avanzó un paquete del plan (WP-xx), actualiza también el **panel de seguimiento**
      con `ArtifactData` (estado, PR, fechas, sesiones reales, resultado de la métrica y una línea de
      registro), siguiendo el protocolo de `BACKLOG_DEFINITIVO.md` §12.
+   - Si la sesión cambió `docs/plan/plan-definitivo.json` (una fila nueva del §5.0, un hito, una tarea
+     del hogar), **vuelve a publicar la página del panel en la misma URL** con
+     `node tools/build-plan-panel.mjs <scratchpad>/plan-contabilidadcasa.html` y `Artifact` con su `url`
+     (§12, paso 4). La base del panel no lo ve sola: el 4/11/2026 RD-C3 llevaba fusionado horas sin
+     salir en el panel por saltarse este paso.
    - No inventes cifras ni resultados: usa exactamente los que arrojó la validación del
      paso 1.
 3. **Commit y push**: mensaje coherente con el estilo del historial (prefijos como `feat:`,
