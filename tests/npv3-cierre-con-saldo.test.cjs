@@ -287,7 +287,7 @@ test("registro: copia y nube, carga antes que app.js, caché offline y pantalla 
   const cierre = read("views/cierre.js");
   assert.match(cierre, /const target = closeTargetInfo\(\);\n\s+const currentMonthKey = target\.monthKey;/);
   assert.match(cierre, /Saldos que se guardarán/);
-  assert.match(app, /cierre: \{ src: "views\/cierre\.js\?v=20261104firma1"/);
+  assert.match(app, /cierre: \{ src: "views\/cierre\.js\?v=20261104cierreC3"/);
   assert.match(app, /if \(event\.target\.id === "cierreTargetSwitch"\) handleCierreTargetSwitch\(event\.target\.dataset\.month\);/);
   assert.match(cierre, /await reopenLatestMonthTransaction\(\{ monthKey: closeTargetMonthKey\(\) \}\);/, "Cierre reabre el mes que enseña");
   assert.match(cierre, /closeTargetChoice = \{ monthKey: monthKey \|\| "", day: isoLocalDate\(new Date\(\)\) \};\n\s+\/\/[^\n]*\n\s+cierreSobresChoices = \{\};/, "cambiar de mes no arrastra las elecciones de sobres");

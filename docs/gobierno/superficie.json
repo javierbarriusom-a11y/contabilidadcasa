@@ -8,6 +8,12 @@
       "mas": 1,
       "que": "Ajustes › «Lo que la app te pide» (XDA-01), que sale encendida de serie",
       "porque": "Decisión del hogar del 29/10/2026: «vamos a cambiar esta regla de \"todo lo nuevo nace apagado\", y reactiva lo que esté pendiente». Las siete funciones con interruptor propio pasan a encendidas; de ellas, solo esta añade un titular a lo que se ve sin datos. Se apaga desde Funciones en prueba."
+    },
+    {
+      "fecha": "2026-11-04",
+      "mas": 2,
+      "que": "Cierre › las tres comprobaciones del cierre nuevo (RD-C3) a la vez: «Movimientos completos» y «Lo previsto frente a lo real» se ven junto a los saldos",
+      "porque": "Es lo que cambia el rediseño: el asistente de siempre enseñaba solo el paso 1 y escondía los otros dos hasta completarlo, y en el primer cierre real (repaso del hogar del 4/11/2026) no se sabía qué faltaba. De CierreDesktop.png. Lo de debajo (historial, aprendizaje, ritual anual) no se pliega para no cambiar el tema clásico; la guía del cierre ya va en una línea. «Ver el cierre paso a paso» vuelve a 6."
     }
   ],
   "rutas": {
@@ -25,7 +31,7 @@
     "#plan › presupuesto-mes": 2,
     "#plan › estado-semana": 5,
     "#plan › planificacion-partidas": 9,
-    "#cierre": 6,
+    "#cierre": 8,
     "#deuda-ruta": 7,
     "#inversion-cartera": 11,
     "#escenario-simular": 4,

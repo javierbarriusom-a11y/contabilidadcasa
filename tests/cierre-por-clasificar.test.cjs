@@ -26,7 +26,7 @@ function extractFunction(name) {
 }
 
 const NOMBRES = [
-  "cierrePorClasificarFilas", "cierrePorClasificarResumen", "cierreMesAnterior", "cierreMovimientos", "cierrePorClasificarContados",
+  "cierrePorClasificarFilas", "cierrePorClasificarResumen", "cierrePorClasificarAvisoHtml", "cierreMesAnterior", "cierreMovimientos", "cierrePorClasificarContados",
   "cierrePorClasificarHtml", "cierrePorClasificarRecuerdoHtml", "cierrePorClasificarPartida", "cierrePorClasificarRefresca",
   "handleCierrePorClasificar", "handleCierrePorClasificarDeshacer",
 ];

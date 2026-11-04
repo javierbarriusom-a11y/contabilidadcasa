@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-04-cierre-nuevo",
+      fecha: "2026-11-04",
+      texto: "Cierre nuevo: las tres comprobaciones a la vez, cada una con lo que falta y su botón, y la confianza del cierre junto a «Firmar».",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-04-cierre-mes-anterior",
       fecha: "2026-11-04",
       texto: "Cierre sigue en el mes anterior mientras no lo firméis, y «Firmar» dice qué falta en vez de no hacer nada.",

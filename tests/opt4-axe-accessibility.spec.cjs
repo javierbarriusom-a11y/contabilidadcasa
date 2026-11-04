@@ -1642,3 +1642,31 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// Rediseño C3 (4/11/2026) · el cierre nuevo en claro y en oscuro: las tres comprobaciones, la confianza, lo que guarda la firma y
+// «Firmar» bloqueado con lo que falta. Movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Rediseño C3 · contraste del cierre nuevo en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Cierre: sin fallos de contraste ni de accesibilidad, con «Firmar» bloqueado y su motivo", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 4, 10, 0, 0) });
+      await page.goto("/index.html#cierre");
+      await page.waitForFunction(() => typeof renderCierre === "function" && typeof renderCierreV2 === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        let balance = 5000;
+        const partida = displayLabelForRow(availableSeriesRows("expense")[0]);
+        const add = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: (balance += amount), accountId: "caixabank" });
+        baseData.transactions = mergeTransactions([], [add("2026-10-03", -80, partida), add("2026-10-12", -45, "TIENDA RARA FICTICIA")]);
+        refreshMovementRollups();
+        renderCierre();
+      });
+      await expect(page.locator("#cierreV2")).toHaveAttribute("data-modo", "v2");
+      await page.locator("#cierreSignButton").click({ force: true });
+      await expect(page.locator("#cierreFirmaFalta")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#cierreV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

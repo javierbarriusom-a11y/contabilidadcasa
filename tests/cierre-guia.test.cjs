@@ -44,6 +44,23 @@ test("el mes va por su nombre y cada mes tiene sus propias casillas", () => {
   assert.ok(store.has("hogar:cierre-guia"));
 });
 
+test("compacta (con el cierre nuevo): resumen sin barra y los pasos de Cierre con su nombre nuevo; la de siempre no cambia", () => {
+  const { context } = sandbox();
+  assert.equal(vm.runInContext("cierreGuiaResumenCompacto(0)", context), "9 pasos, dónde se hace cada uno y qué hacer si algo no cuadra");
+  assert.equal(vm.runInContext("cierreGuiaResumenCompacto(1)", context), "9 pasos, dónde se hace cada uno y qué hacer si algo no cuadra · 1 marcado");
+  assert.match(vm.runInContext("cierreGuiaResumenCompacto(3)", context), / · 3 marcados$/);
+  const nueva = vm.runInContext('cierreGuiaHtml("2026-10", { meses: {} }, true)', context);
+  assert.match(nueva, /Cierre, 1: Saldos a fin de mes/);
+  assert.match(nueva, /Cierre, 2: Movimientos completos/);
+  assert.match(nueva, /Cierre: Firmar el cierre de octubre/);
+  assert.doesNotMatch(nueva, /Conciliar cuentas|Resolver diferencias|Firmar y archivar/);
+  const siempre = vm.runInContext('cierreGuiaHtml("2026-10", { meses: {} })', context);
+  assert.match(siempre, /Cierre, paso 1: Conciliar cuentas/);
+  assert.doesNotMatch(siempre, /Saldos a fin de mes/);
+  assert.match(read("views/cierre.js"), /compacta: !currentClosure && Boolean\(globalThis\.cierreV2Activo\?\.\(\)\)/);
+  assert.match(read("tema-v2.css"), /#cierre:has\(> #cierreV2\[data-modo="v2"\]\) > #cierreGuia:not\(\[open\]\) \{/);
+});
+
 test("guarda como mucho seis meses y un almacén roto no rompe nada", () => {
   const { context, store } = sandbox();
   const meses = Object.fromEntries(["2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"].map((key) => [key, { sesion: true }]));
