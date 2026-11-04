@@ -129,7 +129,13 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
     - Importar lo pone al día con el banco.
   - Si se quiere congelar, haría falta un «cierre retroactivo» con los saldos del extracto a fin de mes, marcado y fuera del acierto. Queda propuesto, sin construir.
   - **Decisión del hogar (4/11): «deja agosto sin firmar».** El cierre retroactivo no se construye. La disciplina de cierre empieza en octubre.
-- **Validación:** solo documentación. `npm test` en verde.
+- **Backlog (cierre de sesión).** `BACKLOG_DEFINITIVO.md` §6 suma tres filas y §7 un hito:
+  - **H9**: ¿el cierre de julio es del hogar? Sale firmado y el primer cierre real fue octubre. Abierta; se mira en Cierre › Historial de versiones.
+  - **H10**: la excepción XGO-01 de Cierre, que se decide el 18/11.
+  - **H11**: agosto sin firmar, cerrada.
+  - §7: el hito del 18/11. §0, al día.
+- La revisión mensual de Nielsen no está vencida (la última fue el 15/10; vence el 14/11).
+- **Validación:** solo documentación. `npm run verify` en verde (`npm test` 6346/6346, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
 
 ## Cierre de sesión — 4 de noviembre de 2026 (397): Cierre con el diseño nuevo (RD-C3), y la guía en una línea
 
