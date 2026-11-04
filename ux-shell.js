@@ -6,6 +6,7 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => api.mountReleaseInfo());
     else api.mountReleaseInfo();
     api.mountAmountInputs(document);
+    api.mountDialogEnter(document);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function buildFinanceUxShell() {
   "use strict";
@@ -373,6 +374,38 @@
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  // Revisión de Nielsen del 4/11/2026 (heurísticos 3 y 5): en los diálogos `<form method="dialog">` de index.html el
+  // primer botón de enviar es «Cancelar», y el navegador usa el primero para Intro. Escribir el motivo de «Cerrar
+  // noviembre» (que sale ya escrito y seleccionado) o el concepto de «Registrar gasto» y pulsar Intro cancelaba en
+  // silencio: el cierre no se firmaba y lo escrito se perdía. Ahora Intro en un campo de texto de esos diálogos pulsa
+  // el botón que confirma, con sus validaciones (`requestSubmit`); «Cancelar» sigue siendo un clic o Esc.
+  const DIALOG_ENTER_TYPES = new Set(["text", "search", "email", "url", "tel", "number", "password", "date", "month", "week", "time", "datetime-local", ""]);
+
+  function dialogEnterTarget(field) {
+    const form = field?.form;
+    if (!form || String(form.getAttribute?.("method") || "").toLowerCase() !== "dialog") return null;
+    if (String(field.tagName || "").toUpperCase() !== "INPUT" || !DIALOG_ENTER_TYPES.has(String(field.getAttribute?.("type") || "").toLowerCase())) return null;
+    const submits = [...form.querySelectorAll("button, input[type=submit]")].filter((b) => String(b.getAttribute?.("type") || "submit").toLowerCase() === "submit");
+    if (!submits.length || submits[0].value !== "cancel") return null;
+    return submits.find((b) => b.value !== "cancel" && !b.disabled && !b.hidden) || null;
+  }
+
+  function mountDialogEnter(doc) {
+    if (!doc?.addEventListener || doc.dialogEnterMounted) return;
+    doc.dialogEnterMounted = true;
+    doc.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key !== "Enter" || event.isComposing || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+        const confirmar = dialogEnterTarget(event.target);
+        if (!confirmar) return;
+        event.preventDefault();
+        event.target.form.requestSubmit(confirmar);
+      },
+      true,
+    );
+  }
+
   // Delegado en el documento: vale para los campos de index.html y para los que app.js pinta después.
   function mountAmountInputs(doc) {
     if (!doc?.addEventListener || doc.amountInputsMounted) return;
@@ -413,6 +446,8 @@
     normalizeAmountField,
     toggleAmountSign,
     mountAmountInputs,
+    dialogEnterTarget,
+    mountDialogEnter,
     AMOUNT_ERROR_TEXT,
   };
 });

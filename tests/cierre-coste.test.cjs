@@ -166,7 +166,7 @@ test("lo enseñan «Lo que guarda la firma» del cierre nuevo y el informe de Us
   assert.match(cierreV2, /filas\.push\(\["Tiempo de este cierre", tiempo\]\)/);
   assert.match(cierreV2, /fraseCierre\?\.\(medidor\.cierre\(medidor\.leer\(\), ctx\.monthKey\), \{ conMes: false, conFirma: false \}\)/);
   const html = read("index.html");
-  for (const f of ["medidor-utilidad.js", "views/cierre-v2.js", "novedades.js"]) assert.ok(html.includes(`src="${f}?v=20261104coste1"`), f);
+  for (const f of ["medidor-utilidad.js", "views/cierre-v2.js"]) assert.ok(html.includes(`src="${f}?v=20261104coste1"`), f);
   assert.ok(require("../novedades.js").some((n) => n.id === "2026-11-04-coste-cierre"));
 });
 

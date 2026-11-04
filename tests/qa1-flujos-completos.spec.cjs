@@ -7700,3 +7700,37 @@ test.describe("Rediseño C3 · Cierre nuevo", () => {
     await page.goto("/index.html?tema=v2#cierre"); // deja el tema como estaba para las demás pruebas
   });
 });
+
+// Revisión de Nielsen del 4/11/2026 (heurísticos 3 y 5): Intro en un diálogo `<form method="dialog">` pulsaba el
+// primer botón de enviar, «Cancelar». «Cerrar mes» sale con el motivo escrito: Intro cancelaba la firma en silencio.
+test.describe("Intro en los diálogos confirma, nunca cancela", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+    test(`Registrar gasto e «Intro» en la confirmación de una operación, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 10, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => typeof requestOperationConfirmation === "function" && !!window.FinanceUxShell?.mountDialogEnter, null, { timeout: 20000 });
+      // Sin tarjetas de crédito, «+ Apuntar gasto» abre la ventana de siempre.
+      await page.evaluate(() => openHomeQuickExpenseDialog());
+      const dialogo = page.locator("#homeQuickExpenseDialog");
+      await expect(dialogo).toBeVisible();
+      await page.locator("#homeQuickExpenseLabel").fill("Intro sin importe");
+      await page.keyboard.press("Enter");
+      await expect(dialogo, "sin importe, Intro no cierra ni pierde lo escrito").toBeVisible();
+      await expect(page.locator("#homeQuickExpenseLabel")).toHaveValue("Intro sin importe");
+      await page.locator("#homeQuickExpenseAmount").fill("12,50");
+      await page.keyboard.press("Enter");
+      await expect(dialogo).toBeHidden();
+      expect(await dialogo.evaluate((d) => d.returnValue)).toBe("confirm");
+      // La confirmación de una operación protegida (la de «Cerrar mes»): sale con el motivo escrito; Intro confirma y Esc cancela.
+      const confirmada = page.evaluate(() => requestOperationConfirmation({ title: "Cerrar 2026-10", message: "Prueba", defaultReason: "Mes conciliado y revisado", confirmLabel: "Cerrar mes" }));
+      await expect(page.locator("#operationConfirmDialog")).toBeVisible();
+      await page.keyboard.press("Enter");
+      expect(await confirmada).toEqual({ reason: "Mes conciliado y revisado", reviewDate: "" });
+      const cancelada = page.evaluate(() => requestOperationConfirmation({ title: "Otra", message: "Prueba", defaultReason: "algo" }));
+      await expect(page.locator("#operationConfirmDialog")).toBeVisible();
+      await page.keyboard.press("Escape");
+      expect(await cancelada).toEqual({ reason: "", reviewDate: "" });
+    });
+  }
+});
