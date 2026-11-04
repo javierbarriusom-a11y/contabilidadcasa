@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**4/11/2026 · el cierre se mide solo (punto 3 del plan de la sesión 399, aprobado por el hogar):** el medidor de utilidad cuenta, mientras el mes que enseña Cierre ya terminó y no está firmado, el tiempo activo en Cierre, Movimientos (con Clasificar) y Registrar (saldos e Importar), sin contar las pausas de más de 3 min. Guarda también los días, los grupos sin partida de ese mes al empezar y lo que queda en «Por clasificar» al firmar. Lo enseñan «Lo que guarda la firma» («Tiempo de este cierre») y Ajustes › Uso de la app, junto a «Cierre nuevo», comparado con la línea base de octubre (unos 45 min, dicha por el hogar). **El de noviembre es el primero medido:** dirá si las reglas sin mes y el historial ya pagado bajan de verdad el coste del cierre, que hoy equivale a todo el presupuesto de GOV-01 (10 min/semana). Solo en el navegador donde se cierra (el ordenador) y sin importes.
+
 **4/11/2026 · decisiones del hogar sobre las revisiones vencidas y lo pendiente (hoja de decisiones, sesión 399).**
 - **Funciones en prueba:**
   - Se **gradúan** el diseño nuevo, Movimientos e Importar: el cierre de octubre se hizo con ellos sin volver a lo de siempre.
@@ -474,6 +476,7 @@ Origen: `docs/PROPUESTA_SEPTIMA_AUDITORIA_2026-10-17.md` (IDs `XGO`, `XDA`, `XUX
 | Tiempo hasta la primera acción en Hoy | Mediana ≤ 15 s | Medidor de utilidad (XGO-02), desde el 23/10; antes, WP-02 con saldos del día |
 | Adopción | ≥ 4 días activos por semana | WP-03 |
 | Coste de mantener la app | ≤ 10 min/semana | Repaso semanal (B5), medido solo desde el 24/10; antes, WP-03 autodeclarado |
+| Coste del cierre de mes | Por debajo de la línea base de octubre (unos 45 min, dicha por el hogar) | Medidor de utilidad, coste del cierre (desde el 4/11; el de noviembre es el primero medido) |
 | Frescura | Saldos de ≤ 3 días en ≥ 90 % de los días | WP-03 |
 | Resolución de la previsión | ≥ 70 % del gasto con fecha declarada u observada | WP-10 |
 | Calibración | Error de caja a fin de mes decreciente; cobertura P10-P90 ≈ 80 % tras 6 meses | WP-12 |

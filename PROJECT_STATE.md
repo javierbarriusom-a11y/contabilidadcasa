@@ -113,6 +113,35 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 4 de noviembre de 2026 (400): el cierre de mes se mide solo
+
+- **Por qué.** Punto 3 del plan de la sesión 399, aprobado por el hogar («adelante con el plan»; después, «sigue con cosas que no dependan de los datos fiscales»). El cierre de octubre llevó unos 45 minutos, dato dicho por el hogar: equivale a los 10 min/semana de GOV-01 enteros. Sin medirlo no se sabe si las reglas sin mes (#577) y el historial ya clasificado lo bajan en noviembre.
+- **Qué mide** (`medidor-utilidad.js`, en el mismo almacén `medidor-utilidad`; sin almacén nuevo ni cambios en `app.js`):
+  - **Cuándo:** solo mientras el mes que enseña Cierre (`closeTargetMonthKey`) ya terminó y no está firmado. Un mes en curso no cuenta, porque usar Movimientos a mitad de mes no es cerrar.
+  - **Dónde:** Cierre, Movimientos (con Clasificar) y Registrar (saldos e Importar).
+  - **Cómo:** el tiempo entre dos toques, teclas o desplazamientos seguidos; una pausa de más de 3 min no cuenta. Se vuelca cada 15 s de trabajo y al ocultar la pestaña, salir o cambiar de pantalla.
+  - **Además:**
+    - los días con trabajo;
+    - los grupos sin partida de ese mes al empezar a medir (`clasV2PendingGroups`);
+    - al firmar, cuántos quedaron en «Por clasificar» (`cierrePorClasificarContados`). La firma se detecta tras un toque en Cierre y al arrancar.
+  - **Firmado, deja de contar.** Se guardan 12 cierres como mucho. Sin importes ni conceptos (la prueba lo comprueba).
+- **Dónde se ve:**
+  - en el cierre nuevo, en «Lo que guarda la firma», la fila «Tiempo de este cierre» («18 min activos (octubre: unos 45, dicho por vosotros) · 12 grupos sin partida al empezar»);
+  - en Ajustes › Uso de la app, junto a «Cierre nuevo».
+
+  Sin titulares nuevos, así que XGO-01 no se mueve. Novedades, al día.
+- **Límites, dichos al hogar:**
+  - Solo en el navegador donde se cierra, que es el ordenador.
+  - Un rato leyendo sin tocar nada más de 3 min no cuenta.
+  - En diciembre, con noviembre sin firmar, usar Movimientos o Registrar cuenta como cierre.
+  - Octubre no se midió: es la línea base dicha, fijada en el código (`CIERRE_LINEA_BASE`).
+- **Documentación:** `BACKLOG_DEFINITIVO.md` §0 y §9 (métrica «Coste del cierre de mes»); `docs/REVISION_POST_CIERRE_2026-11.md`.
+- **Versiones:** `medidor-utilidad.js`, `views/cierre-v2.js` y `novedades.js` a `?v=20261104coste1`.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6355/6355, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - Prueba nueva `tests/cierre-coste.test.cjs` (9): la parte pura; el medidor entero en un vm, con toques, pausas, mes en curso, otra pantalla y firma; y el cierre nuevo pintado con y sin tiempo medido.
+  - e2e de Cierre, Clasificar y medidor en local: 30 de 30, con el Chromium instalado (trampa 14).
+
 ## Cierre de sesión — 4 de noviembre de 2026 (399): estado del plan, hoja de decisiones del hogar y panel al día
 
 - **Sesión de inicio y revisión de estado (sin código de la app).**

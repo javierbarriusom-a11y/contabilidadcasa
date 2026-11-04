@@ -156,6 +156,9 @@ function cierreV2GuardaHtml(ctx) {
   ctx.accountRows.forEach((row) => filas.push([`${row.label} a ${dia}`, money(row.declared, true)]));
   const acierto = cierreV2AciertoTexto();
   if (acierto) filas.push(["Acierto de la previsión", acierto]);
+  const medidor = globalThis.FinanceMedidor;
+  const tiempo = medidor?.fraseCierre?.(medidor.cierre(medidor.leer(), ctx.monthKey), { conMes: false, conFirma: false }); // coste del cierre
+  if (tiempo) filas.push(["Tiempo de este cierre", tiempo]);
   return `<article class="e19-card cierre-v2-guarda">
       <div class="cierre-v2-eyebrow"><span>Lo que guarda la firma</span></div>
       <dl>${filas.map(([etiqueta, valor]) => `<div><dt>${escapeHtml(etiqueta)}</dt><dd>${escapeHtml(valor)}</dd></div>`).join("")}</dl>
