@@ -113,7 +113,7 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 4 de noviembre de 2026 (398): línea base del cierre (45 min), y por qué agosto no se firma ahora
+## Cierre de sesión — 4 de noviembre de 2026 (398): línea base del cierre (45 min), y agosto se queda sin firmar
 
 - **Datos del hogar.**
   - El cierre de octubre llevó unos 45 minutos: es la línea base del cierre (`docs/REVISION_POST_CIERRE_2026-11.md`, sección nueva).
@@ -128,6 +128,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
     - Para editar reales ya cuenta como cerrado por fecha (`isClosedMonthKey`).
     - Importar lo pone al día con el banco.
   - Si se quiere congelar, haría falta un «cierre retroactivo» con los saldos del extracto a fin de mes, marcado y fuera del acierto. Queda propuesto, sin construir.
+  - **Decisión del hogar (4/11): «deja agosto sin firmar».** El cierre retroactivo no se construye. La disciplina de cierre empieza en octubre.
 - **Validación:** solo documentación. `npm test` en verde.
 
 ## Cierre de sesión — 4 de noviembre de 2026 (397): Cierre con el diseño nuevo (RD-C3), y la guía en una línea
