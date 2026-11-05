@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-05-pulido-nielsen",
+      fecha: "2026-11-05",
+      texto: "Más claro: «Colchón más justo» en meses, «Deuda» en Hoy sin activos, un solo «Registrar gasto» y todas las pestañas de Plan en el móvil.",
+      href: "#home",
+    },
+    {
       id: "2026-11-05-ahorro-partida",
       fecha: "2026-11-05",
       texto: "Plan › Mes: el ahorro del mes es una partida más del reparto, así que «Sin asignar» ya lo descuenta.",

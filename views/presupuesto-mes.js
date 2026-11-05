@@ -1750,7 +1750,7 @@ function renderPresupuestoMes() {
       </div>
       <div class="cuadro-mandos-controls">
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
-        <input type="number" step="1" value="0" size="3" data-presupuesto-mes-repeat-pct aria-label="Ajuste porcentual (± %) para repetir el mes anterior o aplicar a todas las categorías de este mes" />
+        <label class="presupuesto-mes-pct"><span>Ajuste ± %</span><input type="number" step="1" value="0" size="3" data-presupuesto-mes-repeat-pct aria-label="Ajuste porcentual (± %) para repetir el mes anterior o aplicar a todas las categorías de este mes" /></label>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-repeat>Repetir mes anterior ± %</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-bulk-adjust>Aplicar ± % a todas</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-csv>Exportar CSV</button>

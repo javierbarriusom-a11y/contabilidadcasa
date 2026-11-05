@@ -2725,6 +2725,20 @@
   font-size: 14px;
 }
 
+/* T29 (Nielsen 4/11): a 390 px la barra cortaba «Ahorro y objetivos» y escondía Presupuesto, Esta semana y Partidas,
+   sin señal de que hubiera más. En el móvil pasan a una segunda línea: las seis a la vista, sin desplazar. */
+@media (max-width: 640px) {
+  :root[data-tema="v2"] #plan.plan-v2-on #planTabs {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  :root[data-tema="v2"] #plan.plan-v2-on #planTabs [data-e17-target="presupuesto-mes"] {
+    margin-left: 0;
+    border-left: 0;
+    border-radius: 9px;
+  }
+}
+
 :root[data-tema="v2"] #plan.plan-v2-on #planTabs [data-e17-target="presupuesto-mes"] {
   margin-left: 8px;
   border-left: 1px solid var(--e19-border-strong);

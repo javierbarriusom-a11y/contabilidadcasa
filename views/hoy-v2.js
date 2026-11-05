@@ -259,12 +259,14 @@ function hoyV2Patrimonio(debtOutlook) {
   const note = partial
     ? `<p class="hoy-v2-footnote">* Solo deudas con cuota: ${escapeHtml(debtOutlook.libreDeDeudaLabel.split(" · ").slice(1).join(" · "))}.</p>`
     : "";
+  // T28 (Nielsen 4/11): el titular dice lo que enseña. Con activos declarados, primero el patrimonio neto; sin ellos, la
+  // tarjeta es de la deuda y se titula así (antes «Patrimonio» con la deuda viva como única cifra).
   return `<article class="hoy-v2-card hoy-v2-patrimonio">
-    <div class="hoy-v2-card-head"><h3>Patrimonio</h3></div>
+    <div class="hoy-v2-card-head"><h3>${net ? "Patrimonio" : "Deuda"}</h3></div>
+    ${net}
     <button type="button" class="hoy-v2-row hoy-v2-row-link" data-home-nav="deuda-ruta">
       <span>Deuda viva · ${escapeHtml(free)}</span><strong>${escapeHtml(money(debtOutlook.pendingPrincipal))}</strong>
     </button>
-    ${net}
     ${note}
   </article>`;
 }
@@ -327,7 +329,7 @@ function hoyV2ExpenseButton() {
   const classic = qs("homeQuickExpenseOpen");
   const disabled = Boolean(classic?.disabled);
   const title = disabled ? classic?.title || "" : "";
-  return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Apuntar gasto</button>`;
+  return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Registrar gasto</button>`; // T30: mismo nombre que la ventana que abre
 }
 
 function hoyV2Header(hoy, dataAge) {

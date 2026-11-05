@@ -12777,3 +12777,16 @@ input[data-amount-input][aria-invalid="true"] {
   font-weight: 700;
   white-space: normal;
 }
+
+/* T30 (revisión de Nielsen del 4/11/2026): el «± %» de Plan › Presupuesto, con su etiqueta a la vista. */
+.presupuesto-mes-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.presupuesto-mes-pct input {
+  width: 5.5em;
+}

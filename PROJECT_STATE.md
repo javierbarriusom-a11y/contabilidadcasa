@@ -113,6 +113,24 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (404): pulido de la revisión de Nielsen (T26, T28, T29 y T30)
+
+- **Petición del hogar:** «sigue con más funcionalidades que puedas hacer o desbloquear sin mi intervención».
+  - **Recomendación de Claude, que sigue en pie:** ninguna pantalla ni función grande antes de las revisiones del 12 al 18/11. Dentro de eso, lo primero es el pulido pendiente de la revisión del 4/11, que no necesita ninguna decisión.
+- **T26** (`app.js`, tira de cifras): «Peor mes · nov 26 · 2,4m» pasa a «Colchón más justo · nov 26 · 2,4 meses». Ni la «m» sin explicar ni el mismo nombre que el «Peor mes del horizonte» en euros.
+- **T28** (`views/hoy-v2.js`): la tarjeta se titula por lo que enseña. Con activos declarados, «Patrimonio» con el patrimonio neto primero; sin ellos, «Deuda». Antes, «Patrimonio» con la deuda viva como única cifra.
+- **T29** (`tema-v2.css`): a 640 px o menos, las seis pestañas de Plan pasan a dos líneas. Antes se desplazaban en horizontal sin señal y escondían Presupuesto, Esta semana y Partidas.
+- **T30:**
+  - «+ Apuntar gasto» pasa a «+ Registrar gasto», el nombre de la ventana que abre (`views/hoy-v2.js`).
+  - «Ir a Conciliar y cerrar» pasa a «Ir a Cierre» (`datos-ui.js`).
+  - El «0» de Plan › Presupuesto lleva la etiqueta visible «Ajuste ± %» (`views/presupuesto-mes.js`, `styles.css`).
+- **Con esto, T25-T30 quedan cerradas.** De la revisión del 15/10 siguen T22 («Dato real», consultada) y parte de T24, que se resuelve con Registrar en el diseño nuevo.
+- **Versiones** a `?v=20261105pulido1`: `app.js`, `styles.css`, `tema-v2.css`, `views/hoy-v2.js`, `views/presupuesto-mes.js`, `datos-ui.js` y `novedades.js`, con las pruebas que las fijan. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6367/6367, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke). Hizo falta una segunda pasada: una prueba fijaba el sello de `styles.css` escrito de otra forma.
+  - `tests/nielsen-2026-11.test.cjs`: 9, cuatro nuevas.
+  - e2e en local con Chromium: Hoy, Plan, Presupuesto, XGO-01, RD-WK e Intro, 41 de 42 a la primera. La que faltó acabó en «browserContext.close: Test ended», el cierre solo de Chromium de la trampa 16. Sola pasa, y «Hoy, cambio 1 y 2» repetidas tres veces pasan 15 de 15, con un «Navegador relanzado» del ayudante.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (403): el fallo intermitente de WP-18 en Safari, cronometrado
 
 - **Petición del hogar:** «sigue con el fallo intermitente de WP-18 en Safari».
