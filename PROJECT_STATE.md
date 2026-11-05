@@ -113,6 +113,15 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (409): WP-21, la hoja de impresión del informe sin `:has()` (el paso de Safari del CI se colgaba)
+
+- **Síntoma:** en el CI de #588 (commit `0f78996`) el paso «Instalar WebKit y probar las pantallas v2 en Safari» llevaba más de 35 minutos sin terminar, cuando en `main` tarda unos 4. Las e2e de WP-21 a 390 px llevan `@safari`, así que corren también en WebKit, y la del PR-2 emula la impresión.
+- **Causa probable, no confirmada:** la hoja de impresión usaba `*:not(:has(#informeRenta))` y `*:has(#informeRenta)`. Con la impresión emulada, eso obliga a recorrer el árbol entero por cada elemento, y el DOM de `index.html` es muy grande. En Chromium no se notaba. No se pudo reproducir en WebKit porque la red de la sesión no deja descargarlo (`cdn.playwright.dev` bloqueado). Si el CI vuelve a colgarse, la causa es otra y hay que seguir buscando.
+- **Arreglo:** `informe-renta-ui.js` marca los antepasados del informe con `data-informe-renta-ancestro` al imprimir y quita las marcas en `afterprint`. `styles.css` oculta los hermanos de esos antepasados con selectores de hijo, sin `:has()` y sin `!important`. Captura en modo impresión en Chromium: idéntica a la anterior, informe arriba y a todo el ancho, y ningún elemento visible fuera del informe.
+- **Prueba:** `tests/wp21-informe-renta.test.cjs` comprueba la regla nueva, que la hoja de impresión del informe no usa `:has()` y que las marcas se quitan. No se ha rebajado ni saltado ninguna prueba.
+- **Validación:** `npm run verify` en verde (npm test 6398/6398). Las e2e de WP-21 en Chromium pasan 6/6.
+- **Rama y PR:** `claude/inspiring-feynman-rtoajq`, PR #588.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (408): WP-21 · PR-1 y PR-2, el motor y la pantalla del informe para la Renta
 
 - **Petición del hogar:** «seguimos con tareas que no dependan de mí». Siguiente pieza de WP-21 tras el PR-0b.

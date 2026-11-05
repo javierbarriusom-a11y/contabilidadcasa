@@ -176,9 +176,17 @@ function informeRentaImprimir() {
   if (!caja) return;
   caja.open = true;
   informeRentaPintar();
+  // Los antepasados se marcan aquí, y no con `:has()` en la hoja de impresión, que en WebKit cuesta un recorrido del árbol
+  // por elemento (styles.css lo explica).
+  const antepasados = [];
+  for (let nodo = caja.parentElement; nodo && nodo !== document.body; nodo = nodo.parentElement) antepasados.push(nodo);
+  antepasados.forEach((nodo) => nodo.setAttribute("data-informe-renta-ancestro", ""));
+  document.documentElement.classList.add("imprimiendo-informe-renta");
   document.body.classList.add("imprimiendo-informe-renta");
   const quitar = () => {
+    document.documentElement.classList.remove("imprimiendo-informe-renta");
     document.body.classList.remove("imprimiendo-informe-renta");
+    antepasados.forEach((nodo) => nodo.removeAttribute("data-informe-renta-ancestro"));
     window.removeEventListener("afterprint", quitar);
   };
   window.addEventListener("afterprint", quitar);

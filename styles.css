@@ -12909,14 +12909,17 @@ input[data-amount-input][aria-invalid="true"] {
   white-space: nowrap;
 }
 
-/* Imprimir solo el informe (informe-renta-ui.js añade la clase al body mientras imprime). Fuera todo lo que ni contiene el
-   informe ni está dentro de él, así empieza arriba de la hoja; sus antepasados se quedan, sin márgenes ni fondo. */
+/* Imprimir solo el informe. Mientras imprime, informe-renta-ui.js pone la clase en <html> y <body> y marca los antepasados
+   del informe con data-informe-renta-ancestro: fuera todo lo que no es antepasado ni el informe, así empieza arriba de la
+   hoja, y los antepasados se quedan sin márgenes ni fondo. Sin :has(): en WebKit, `*:has(#id)` con la hoja de impresión
+   activa recorre el árbol entero por cada elemento y dejó colgado el paso de Safari del CI (5/11/2026). */
 @media print {
-  body.imprimiendo-informe-renta *:not(:has(#informeRenta)):not(#informeRenta):not(#informeRenta *) {
+  body.imprimiendo-informe-renta > :not([data-informe-renta-ancestro]):not(#informeRenta),
+  body.imprimiendo-informe-renta [data-informe-renta-ancestro] > :not([data-informe-renta-ancestro]):not(#informeRenta) {
     display: none;
   }
 
-  body.imprimiendo-informe-renta *:has(#informeRenta) {
+  body.imprimiendo-informe-renta [data-informe-renta-ancestro]:not(#informeRenta) {
     display: block;
     position: static;
     width: auto;
@@ -12929,7 +12932,7 @@ input[data-amount-input][aria-invalid="true"] {
     background: none;
   }
 
-  html:has(body.imprimiendo-informe-renta),
+  html.imprimiendo-informe-renta,
   body.imprimiendo-informe-renta {
     background: #fff;
   }

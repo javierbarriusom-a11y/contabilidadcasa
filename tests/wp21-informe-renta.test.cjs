@@ -199,7 +199,11 @@ test("el borrador de apoyo (GOB8) suma una línea por declarante con lo que dice
 test("imprimir: un botón, y la hoja de impresión deja solo el informe, sin los controles", () => {
   assert.match(read("index.html"), /<button type="button" class="e19-btn e19-btn-secondary" id="informeRentaImprimir">Imprimir<\/button>/);
   const css = read("styles.css");
-  assert.match(css, /body\.imprimiendo-informe-renta \*:not\(:has\(#informeRenta\)\):not\(#informeRenta\):not\(#informeRenta \*\) \{\s*display: none;/);
+  assert.match(css, /body\.imprimiendo-informe-renta \[data-informe-renta-ancestro\] > :not\(\[data-informe-renta-ancestro\]\):not\(#informeRenta\) \{\s*display: none;/);
+  // Sin :has() en la hoja de impresión del informe: en WebKit dejó colgado el paso de Safari del CI (5/11/2026).
+  const bloque = css.slice(css.indexOf("/* Imprimir solo el informe."), css.indexOf("/* WP-21 · PR-0b: dividendos e intereses cobrados. */"));
+  assert.ok(bloque.length > 0 && !bloque.replace(/\/\*[\s\S]*?\*\//g, "").includes(":has("), "la hoja de impresión del informe no usa :has()");
+  assert.match(read("informe-renta-ui.js"), /removeAttribute\("data-informe-renta-ancestro"\)/, "las marcas de los antepasados se quitan al terminar");
   assert.match(css, /body\.imprimiendo-informe-renta #informeRenta \.informe-renta-controles \{\s*display: none;/);
   assert.match(read("informe-renta-ui.js"), /addEventListener\("afterprint", quitar\)/, "la clase se quita al terminar de imprimir");
 });
