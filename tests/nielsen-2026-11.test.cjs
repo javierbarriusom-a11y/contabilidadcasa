@@ -62,3 +62,18 @@ test("«Todo al día» solo cuando no queda ninguna tarea sin estimar; si falta 
   assert.ok(rama.indexOf("Aún no se puede ordenar") < rama.lastIndexOf("<strong>Todo al día.</strong>"), "con tareas sin estimar, nunca «Todo al día»");
   assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261104nielsen1"'));
 });
+
+// T25 (decisión del hogar del 5/11/2026): la reserva protegida se mide con toda la liquidez en todas partes. Hoy la medía
+// con CaixaBank («2.150 € por debajo») y la tira de cifras con toda la liquidez («2.850 € de margen»).
+test("T25 · Hoy, la cabecera de siempre y la tira de cifras miden la reserva protegida con toda la liquidez", () => {
+  const hoy = fs.readFileSync(path.join(root, "views/hoy-v2.js"), "utf8");
+  assert.match(hoy, /const reserveGap = round2\(Number\(balances\?\.total \|\| 0\) - Number\(protectedReserve \|\| 0\)\);/);
+  assert.doesNotMatch(hoy, /`CaixaBank, \$\{money\(Math\.abs\(reserveGap\)\)\} por debajo`/);
+  // El mínimo operativo de CaixaBank (para los recibos) sigue con su propio aviso.
+  assert.match(hoy, /CaixaBank está \$\{escapeHtml\(money\(margin\.caixaShortfall\)\)\} por debajo de su mínimo operativo/);
+  const { codigoApp } = require("./helpers/codigo-app.cjs");
+  const app = codigoApp();
+  assert.match(app, /const reserveMargin = round2\(Number\(balances\.total \|\| 0\) - protectedReserve\); \/\/ T25/);
+  assert.doesNotMatch(app, /const reserveMargin = round2\(Number\(balances\.caixa \|\| 0\) - protectedReserve\);/);
+  assert.match(app, /La liquidez total queda \$\{money\(reserveMargin, true\)\} por encima de la reserva\./);
+});

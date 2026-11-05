@@ -126,12 +126,13 @@ test("pinta sin asignar, ritmo y ahorro, y las partidas con el mismo campo edita
   assert.equal(elements.plan.classList.contains("plan-v2-mes-on"), true);
   const lado = elements.planV2Lado.innerHTML;
   assert.equal(elements.planV2Lado.hidden, false);
-  assert.match(lado, /<p class="plan-v2-cifra">1\.800 €<\/p>/);
-  assert.match(lado, /De 5\.000 € de ingreso previsto ya tienen destino 3\.200 €\./);
-  assert.match(lado, /aria-label="Fijos 1\.150 €, Variables 1\.750 €, Financiaciones 300 €, Sin asignar 1\.800 €"/);
+  // T27 (5/11/2026): el ahorro del mes (800 €) es una partida del reparto: 1.800 − 800 = 1.000 sin asignar.
+  assert.match(lado, /<p class="plan-v2-cifra">1\.000 €<\/p>/);
+  assert.match(lado, /De 5\.000 € de ingreso previsto ya tienen destino 4\.000 €, 800 € de ellos a ahorro\./);
+  assert.match(lado, /aria-label="Fijos 1\.150 €, Variables 1\.750 €, Financiaciones 300 €, Ahorro 800 €, Sin asignar 1\.000 €"/);
   assert.match(lado, /día 30 de 31/);
-  assert.match(lado, /Gastado <strong>448 €<\/strong> de 3\.200 €/);
-  assert.match(lado, /Irá a ahorro este mes<\/span><strong>800 €<\/strong>/);
+  assert.match(lado, /Gastado <strong>448 €<\/strong> de 3\.200 €/, "el ritmo es del gasto: el ahorro no cuenta como gastado");
+  assert.doesNotMatch(lado, /Irá a ahorro este mes/, "ya no hay una tarjeta suelta de ahorro");
   // No hay un «Asignar» inventado: lo que sobra lleva a la escalera del próximo euro, que ya existe.
   assert.match(lado, /data-plan-v2-nav="deuda-comparar">Ver adónde va el próximo euro</);
   const tabla = elements.planMesTables.innerHTML;
@@ -161,7 +162,9 @@ test("un mes cerrado deja los campos bloqueados; el exceso de lo asignado sale e
   assert.match(elements.planMesTables.innerHTML, /value="3\.000" disabled/);
   const lado = elements.planV2Lado.innerHTML;
   assert.match(lado, /plan-v2-sin-asignar is-negative/);
-  assert.match(lado, /supera en 400 € el ingreso previsto/);
+  // Con el ahorro (T27): 5.400 de gasto + 800 de ahorro frente a 5.000 de ingreso.
+  assert.match(lado, /Lo asignado \(6\.200 €, con 800 € de ahorro\) supera en 1\.200 € el ingreso previsto de 5\.000 €\./);
+  assert.doesNotMatch(lado, /El gasto cabe/, "aquí tampoco cabe el gasto");
   assert.doesNotMatch(lado, /deuda-comparar/);
 });
 
@@ -189,4 +192,23 @@ test("estilos: todo bajo el tema v2, sin la tira de cifras en Plan y la tabla ca
   // La regla genérica `table { min-width: 1120px }` de styles.css desbordaba la tarjeta.
   assert.match(bloque, /\.plan-v2-tabla \{\n {2}width: 100%;\n {2}min-width: 0;/);
   assert.match(bloque, /@media \(max-width: 640px\)[\s\S]*\.plan-v2-tabla tr \{\n {4}display: grid;/);
+});
+
+// T27 (decisión del hogar del 5/11/2026): el ahorro es una partida más del reparto.
+test("el ahorro: fila propia que lleva a Ahorro y objetivos, aviso si lo que no cabe es solo el ahorro, y nada en meses pasados", () => {
+  const { context, elements } = sandbox();
+  context.planV2Render(model());
+  const tabla = elements.planMesTables.innerHTML;
+  assert.match(tabla, /<span class="plan-v2-bloque-nombre">Ahorro<\/span><small>meta del plan de ahorro · se cambia en Ahorro y objetivos<\/small><\/td>\s*<td class="plan-v2-num">800 €<\/td>/);
+  assert.match(tabla, /data-plan-v2-ahorro aria-label="Cambiar la meta de ahorro en Ahorro y objetivos"/);
+  assert.doesNotMatch(tabla, /data-plan-mes-planned="ahorro/, "no es un previsto editable aquí: es la meta del plan de ahorro");
+  // El gasto cabe (4.700 de 5.000) pero con el ahorro no: lo dice.
+  context.planV2Render({ ...model(), asignado: 4700, sinAsignar: 300 });
+  assert.match(elements.planV2Lado.innerHTML, /supera en 500 € el ingreso previsto de 5\.000 €\. El gasto cabe; lo que no cabe entero es el ahorro\./);
+  // Un mes pasado no tiene ahorro en el reparto (la meta es de ahora en adelante).
+  const pasado = model();
+  context.planV2Render({ ...pasado, month: pasado.months[0] });
+  assert.match(elements.planV2Lado.innerHTML, /<p class="plan-v2-cifra">1\.800 €<\/p>/);
+  assert.doesNotMatch(elements.planMesTables.innerHTML, /plan-v2-ahorro-fila/);
+  assert.match(css, /\.is-ahorro \{ background: repeating-linear-gradient/);
 });

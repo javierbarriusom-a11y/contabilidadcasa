@@ -2848,6 +2848,8 @@
 :root[data-tema="v2"] .is-financiaciones { background: var(--e19-faint); }
 :root[data-tema="v2"] .is-otros { background: var(--e19-border-strong); }
 :root[data-tema="v2"] .is-libre { background: var(--e19-success); }
+/* T27 (5/11/2026): el ahorro, partida del reparto. Rayado para que no dependa solo del color (leyenda al lado). */
+:root[data-tema="v2"] .is-ahorro { background: repeating-linear-gradient(135deg, var(--e19-accent) 0 4px, var(--e19-accent-soft) 4px 7px); }
 
 :root[data-tema="v2"] .plan-v2-leyenda {
   display: grid;
@@ -2890,24 +2892,6 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--e19-muted);
-}
-
-:root[data-tema="v2"] .plan-v2-ahorro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 22px;
-}
-
-:root[data-tema="v2"] .plan-v2-ahorro span {
-  font-size: 14px;
-  color: var(--e19-muted);
-}
-
-:root[data-tema="v2"] .plan-v2-ahorro strong {
-  font-size: 22px;
-  font-variant-numeric: tabular-nums;
 }
 
 :root[data-tema="v2"] .plan-v2-mas {

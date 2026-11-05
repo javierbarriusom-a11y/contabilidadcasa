@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-05-ahorro-partida",
+      fecha: "2026-11-05",
+      texto: "Plan › Mes: el ahorro del mes es una partida más del reparto, así que «Sin asignar» ya lo descuenta.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-05-reserva-liquidez",
+      fecha: "2026-11-05",
+      texto: "Hoy: la reserva protegida se mide con toda la liquidez, como en el resto de la app. CaixaBank sigue con su aviso propio.",
+      href: "#home",
+    },
+    {
       id: "2026-11-04-intro-dialogos",
       fecha: "2026-11-04",
       texto: "Intro en «Cerrar mes» y «Registrar gasto» confirma; antes cancelaba sin avisar. Para cancelar, «Cancelar» o Esc.",

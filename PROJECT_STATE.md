@@ -113,6 +113,30 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (402): reserva con toda la liquidez (T25) y ahorro como partida (T27)
+
+- **Decisiones del hogar sobre la revisión de Nielsen:** «T25 toda la liquidez; T27 el ahorro como partida».
+- **T25 · reserva protegida** (`views/hoy-v2.js`, `app.js`):
+  - Hoy mide la reserva con toda la liquidez (`balances.total`), igual que la tira de cifras de Registrar y Plan. Antes usaba solo CaixaBank: con la demo, «CaixaBank, 2.150 € por debajo» frente a «2.850 € de margen». Ahora dice «cubierta: 2.850 € de margen».
+  - La cabecera de siempre (`reserveMargin`, que alimenta su estado y la tarjeta KPI) también pasa a toda la liquidez. Su nota dice «La liquidez total queda … por encima de la reserva».
+  - **Se mantiene aparte** el aviso del mínimo operativo de CaixaBank («CaixaBank está … por debajo de su mínimo operativo: mueve … desde Mediolanum»), que es otra cosa: lo que hace falta para los recibos.
+- **T27 · el ahorro como partida** (`views/plan-v2.js`, `tema-v2.css`):
+  - En Plan › Mes, la meta del plan de ahorro (`savingsPlanCalculations().currentSavingTarget`, la misma que aplica la previsión) entra en el reparto.
+  - Lo asignado la suma, «Sin asignar» la descuenta, la barra y la leyenda tienen un tramo «Ahorro» (rayado, para no depender solo del color) y la tabla tiene una fila «Ahorro» que lleva a Ahorro y objetivos. No es editable en Plan.
+  - Solo en el mes en curso y los siguientes.
+  - **No es un gasto:** el ritmo del mes sigue midiendo solo el gasto, y en la previsión no cambia nada.
+  - Si lo único que no cabe es el ahorro, lo dice: «El gasto cabe; lo que no cabe entero es el ahorro».
+  - Se quita la tarjeta suelta «Irá a ahorro este mes». Hoy dice «4.730 € de gasto» en vez de «asignado», para no contradecir a Plan.
+  - Con la demo, «Sin asignar» pasa de 270 € a **−530 €**.
+- **Versiones:** `app.js`, `tema-v2.css`, `views/hoy-v2.js`, `views/plan-v2.js` y `novedades.js` a `?v=20261105t25t27`, con las 26 pruebas que fijan la de `app.js`. Novedades, dos líneas.
+- **Documentación:** `BACKLOG_DEFINITIVO.md` §0 y §6, `docs/OPT21_CHECKLIST_NIELSEN.md` (T25 y T27 hechos) y `docs/rediseno/ESTADO.md` §8.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6361/6361, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/redis-c1-plan-v2.test.cjs`: 11, una nueva para el ahorro; las del reparto, con el ahorro dentro.
+  - `tests/nielsen-2026-11.test.cjs`: 5, una nueva para T25.
+  - e2e de Hoy, Plan y XGO-01 en local con Chromium: 32 de 32.
+- **Pendiente de la sesión anterior:** la e2e de WP-18 que falló una vez en Safari (en el CI de #586) sigue sin causa encontrada.
+
 ## Cierre de sesión — 4 de noviembre de 2026 (401): revisión de Nielsen; Intro cancelaba la firma del cierre
 
 - **Revisión mensual de Nielsen (`OPT-21`/`PROC-2`), adelantada** (vencía el 14/11; el hogar: «sigue con la revisión de Nielsen mientras tanto»).

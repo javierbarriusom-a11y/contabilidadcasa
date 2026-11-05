@@ -26530,7 +26530,7 @@ function renderHomeDashboard() {
     : "Sin rango suficiente para calcular mínimos.";
   const balanceDateText = actionCenter.asOf;
   const dataAge = homeDataAge();
-  const reserveMargin = round2(Number(balances.caixa || 0) - protectedReserve);
+  const reserveMargin = round2(Number(balances.total || 0) - protectedReserve); // T25: toda la liquidez, como la tira de cifras
   const riskStatus = nextRiskRow ? "warn" : "good";
   const reserveStatus = reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good";
   const freeCapacityStatus = freeCapacity < 0 ? "danger" : freeCapacity < freeCapacityWarnAt ? "warn" : "good";
@@ -26602,7 +26602,7 @@ function renderHomeDashboard() {
     renderHomeKpi({
       label: "Reserva protegida",
       value: money(protectedReserve, true),
-      note: `CaixaBank conserva hoy ${money(Math.max(0, reserveMargin), true)} por encima del mínimo operativo.`,
+      note: reserveMargin < 0 ? `La liquidez total queda ${money(-reserveMargin, true)} por debajo de la reserva.` : `La liquidez total queda ${money(reserveMargin, true)} por encima de la reserva.`,
       status: reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good",
       cta: "Ajustar reserva",
       target: "executive-advisor",
