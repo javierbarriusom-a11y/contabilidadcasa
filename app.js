@@ -13321,6 +13321,9 @@ function gob8DraftText() {
     "",
     "3) Rescate de pensiones como capital único (si se ha simulado uno)",
     gob8Fcx1Line(),
+    "",
+    "4) Inversión: base del ahorro de cada declarante (WP-21, informe de inversión para la Renta)",
+    typeof informeRentaResumenTexto === "function" ? informeRentaResumenTexto() : "Sin datos: el informe de inversión no está disponible.",
   ].join("\n");
 }
 
@@ -14872,7 +14875,7 @@ function apx1NetDebtCostHtml(breakEven) {
   if (!result.calculable) {
     return savingsRate > 0 ? "" : `<p class="e19-kpi-note">Declara tu tipo del ahorro en Ajustes › Fiscalidad (mismo campo que la retención de dividendos, FC4) para ver el coste de esta deuda neto de fiscalidad real.</p>`;
   }
-  const pendingLosses = fc3PriorLossesList().reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const pendingLosses = fc3PriorLossesList().filter((entry) => entry.bloque !== "rendimientos").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
   const lossNote = pendingLosses > 0
     ? ` Tienes ${money(pendingLosses, true)} de pérdidas de años anteriores pendientes de compensar (FC3) — mientras existan, la próxima plusvalía real que realices tributará por debajo del ${result.savingsTaxRatePct}% declarado.`
     : "";
@@ -18833,7 +18836,8 @@ function saveFc3PriorLoss() {
     announceStatus("Indica un importe mayor que cero y un año de 4 dígitos para la pérdida arrastrada.");
     return;
   }
-  const next = [...fc3PriorLossesList(), { id: `fc3loss-${Date.now()}`, year, amount }];
+  const bloque = qs("fc3PriorLossBloque")?.value === "rendimientos" ? "rendimientos" : "ganancias"; // WP-21 · PR-0b
+  const next = [...fc3PriorLossesList(), { id: `fc3loss-${Date.now()}`, year, amount, bloque, titular: qs("fc3PriorLossTitular")?.value || "" }];
   saveFc3PriorLossesList(next);
   qs("fc3PriorLossAmount").value = "";
   qs("fc3PriorLossYear").value = "";
@@ -18851,7 +18855,7 @@ function renderFc3PriorLossList() {
   if (!list) return;
   const rows = fc3PriorLossesList();
   list.innerHTML = rows.length
-    ? rows.map((entry) => `<li class="commit-barrier-item"><span>${escapeHtml(entry.year)}: ${money(entry.amount, true)}</span><button type="button" class="e19-btn e19-btn-secondary" data-fc3-loss-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
+    ? rows.map((entry) => `<li class="commit-barrier-item"><span>${escapeHtml(entry.year)}: ${money(entry.amount, true)}${typeof rentaPerdidaEtiqueta === "function" ? escapeHtml(rentaPerdidaEtiqueta(entry)) : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-fc3-loss-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
     : `<li class="e19-kpi-note">Sin pérdidas arrastradas registradas.</li>`;
 }
 
@@ -30731,6 +30735,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       renderAjustes();
       globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
       globalThis.renderNominas?.(globalThis.FinanceCanonicalPayroll); // WP-31 (nominas-ui.js)
+      globalThis.renderInformeRenta?.(globalThis.FinanceCanonicalTaxReport); // WP-21 (informe-renta-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":
