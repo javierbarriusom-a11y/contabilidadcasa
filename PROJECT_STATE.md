@@ -113,6 +113,26 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (405): WP-21 (paquete Renta), diseño
+
+- **Petición del hogar:** «sigue con cosas que no dependan de mí». WP-21 era el único paquete del plan sin empezar, tiene fecha externa (31/3/2027) y se puede construir con datos de ejemplo.
+- **`docs/WP21_DISENO.md`:**
+  - qué es y qué no es (no es el modelo 100 ni una recomendación);
+  - qué reutiliza: FC1 (FIFO), FC3 (compensación y arrastre), FC4 (doble imposición), XIN-02 (recompra) y la escala versionada;
+  - qué falta: la compensación cruzada del 25 %, que FC3 dejó fuera a propósito, y el bloque de rendimientos;
+  - los huecos de datos (titular por posición, dividendos, depositario y pérdidas pendientes por bloque);
+  - cuatro PR (datos, motor, pantalla y exportación, y el local en un diseño aparte), las pruebas con cifras a mano y los riesgos.
+- **Reglas contrastadas con fuentes el 5/11:**
+  - escala del ahorro de 19 a 30 %;
+  - compensación del art. 49 con el 25 % y el cupo compartido;
+  - arrastre de 4 años;
+  - umbral de 50.000 € por bloque del 720.
+
+  Dos quedan marcadas para reconfirmar en la AEAT o el BOE en el PR-1: si el tramo del 30 % rige desde 2025 o desde 2026, y el cupo compartido del 25 %.
+- **Hallazgo:** las posiciones de la cartera no guardan titular. Con tributación individual, el informe no puede repartir nada sin ese dato. Es el primer campo del PR-0.
+- **Panel:** WP-21 pasa a «en curso».
+- **Validación:** solo documentación. `npm run verify` en verde (`npm test` 6367/6367, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+
 ## Cierre de sesión — 5 de noviembre de 2026 (404): pulido de la revisión de Nielsen (T26, T28, T29 y T30)
 
 - **Petición del hogar:** «sigue con más funcionalidades que puedas hacer o desbloquear sin mi intervención».
