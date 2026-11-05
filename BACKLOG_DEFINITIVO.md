@@ -1,7 +1,9 @@
 # Backlog definitivo — Contabilidadcasa
 
 **Creado el 3 de octubre de 2026 (sesión 296), a petición del hogar:** «genérame el backlog definitivo y el plan de desarrollo resultante de tu análisis y las nuevas propuestas, incluyéndolas todas, pero priorizadas. No quiero empezar el desarrollo aún».
-**Es la única fuente viva de lo que falta por hacer.** Sustituye como backlog vigente a `BACKLOG_INICIO_OLEADA_OCTUBRE.md`, que queda como detalle histórico (sus §0-§15 siguen siendo válidos como razonamiento). Mapa de todos los backlogs: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26: `BACKLOG_STATUS.md` §0.
+> **Desde el 5/11/2026 el backlog vivo es [`BACKLOG_NOVIEMBRE_OLEADA_1.md`](BACKLOG_NOVIEMBRE_OLEADA_1.md)**, que incorpora todo lo abierto aquí con su prioridad nueva (su §6). Este documento sigue siendo la referencia de las reglas (§4), las recetas y trampas (§10) y el protocolo del panel (§12). Lo de abajo se conserva tal cual.
+
+**Fue la única fuente viva de lo que falta por hacer (3/10 - 5/11/2026).** Sustituye como backlog vigente a `BACKLOG_INICIO_OLEADA_OCTUBRE.md`, que queda como detalle histórico (sus §0-§15 siguen siendo válidos como razonamiento). Mapa de todos los backlogs: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md). Estado maestro de las entregas E1-E26: `BACKLOG_STATUS.md` §0.
 **Plan de desarrollo** (paquetes, enfoque técnico, pruebas, calendario y riesgos): [`docs/PLAN_DESARROLLO_DEFINITIVO.md`](docs/PLAN_DESARROLLO_DEFINITIVO.md). **Porqué de cada propuesta:** `docs/PROPUESTA_QUINTA_AUDITORIA_2026-10-02.md` (IDs `ND`, `NPV`, `NIN`, `NDB`, `NXP`, `NHG`, `NTC`) y `docs/PROPUESTA_SEXTA_AUDITORIA_2026-10-03.md` (IDs `CAP`, `PRV`, `CAR`, `DAC`, `DNU`, `FIS`, `UXS`, `HOG`, `GOV`).
 **El repositorio es público: ninguna cifra real del hogar aquí.** Los importes van en el chat o en artefactos privados.
 
@@ -11,7 +13,9 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
-**5/11/2026 · WP-21 · PR-1 y PR-2 hechos:** el informe de inversión para la Renta, por declarante, está en Herramientas avanzadas › Fiscal, plegado dentro del «Borrador de apoyo para la Renta». Da la base del ahorro, la compensación con el 25 %, la cuota estimada, la doble imposición, el aviso del 720 y lo que le falta. Exporta a CSV. Falta que el hogar teclee sus datos; imprimir y el local (PR-3) quedan para después.
+**5/11/2026 · este backlog queda absorbido por [`BACKLOG_NOVIEMBRE_OLEADA_1.md`](BACKLOG_NOVIEMBRE_OLEADA_1.md)** (petición del hogar: propuesta de mejoras para la visibilidad de las previsiones y su impacto según escenarios, conservando este backlog con su prioridad). El análisis está en `docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md`. Desde hoy, las entradas nuevas de estado van al §0 de aquel documento.
+
+**5/11/2026 · WP-21 · PR-1 y PR-2 hechos:** el informe de inversión para la Renta, por declarante, está en Herramientas avanzadas › Fiscal, plegado dentro del «Borrador de apoyo para la Renta». Da la base del ahorro, la compensación con el 25 %, la cuota estimada, la doble imposición, el aviso del 720 y lo que le falta. Exporta a CSV y se imprime solo. Falta que el hogar teclee sus datos; el local (PR-3) queda para después.
 
 **5/11/2026 · WP-21 · PR-0b hecho:** «Datos para la Renta» registra también los dividendos e intereses cobrados (íntegro y retenciones; en blanco es «sin declarar», no 0), y cada pérdida arrastrada dice su bloque y su titular. Con eso, el PR-0 está completo. Siguiente: PR-1, el motor del informe.
 

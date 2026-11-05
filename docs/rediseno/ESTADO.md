@@ -199,6 +199,13 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    el cierre de noviembre) pasan dos semanas más, hasta el 16/11 y el 18/11. Graduar no retira nada: quitar el tema clásico
    o el asistente de siempre es un PR aparte y se consulta antes. **Las siguientes pantallas (Previsión C2, Patrimonio e
    Inversión D1-D2, navegación) esperan a las revisiones del 12 al 18/11** (Funciones en prueba, Plan nuevo y Cierre nuevo).
+   **5/11 · backlog de noviembre · Oleada 1** (`BACKLOG_NOVIEMBRE_OLEADA_1.md`, desde hoy el backlog vivo; porqué en
+   `docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md`): **Previsión (C2) es la pantalla de la semana del 19/11**, ampliada
+   (FX-10) con el gráfico único del kit de gráficos (FX-11, WP-28 desaparcado), la insignia de confianza (FX-31), lo que
+   viene (FX-12) y XPR-06/07/08 integradas; la semana del 26/11, los escenarios superpuestos y las pruebas de estrés
+   (FX-20, FX-21). Antes, del 6 al 11/11, solo correcciones de coherencia de cifras (FX-01…FX-04, FX-16, FX-30); del 12
+   al 18/11, piezas sin cambio visible. Patrimonio e Inversión (D1-D2) y la navegación de 5 destinos pasan a la Oleada 2
+   (diciembre-enero). Horizontes de C2 por decidir (D-N2: los de la referencia, 3 m · 12 m · 24 m · Hasta 2036).
    **5/11 (T25 y T27, decididos por el hogar):**
    - En Plan › Mes (C1) el ahorro es una partida del reparto: ya no hay tarjeta suelta «Irá a ahorro»; la fila «Ahorro» lleva a Ahorro y objetivos.
    - En Hoy (A3), la reserva protegida se mide con toda la liquidez.
