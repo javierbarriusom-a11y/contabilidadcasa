@@ -12821,8 +12821,71 @@ input[data-amount-input][aria-invalid="true"] {
   color: var(--muted);
 }
 
+/* `hidden` no gana a un `display: grid` del autor: sin esto, el país (y en PR-0b los campos «sin posición») se veía siempre. */
+.renta-datos label[hidden] {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .renta-datos-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* WP-21 · PR-0b: dividendos e intereses cobrados. */
+.renta-datos-titulo {
+  margin: 18px 0 4px;
+  font-size: 1rem;
+}
+
+.renta-rend-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 8px 12px;
+  align-items: end;
+  margin-top: 8px;
+}
+
+.renta-rend-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.renta-rend-form input,
+.renta-rend-form select {
+  min-width: 0;
+}
+
+.renta-rend-acciones {
+  margin: 0;
+}
+
+.renta-rend-total {
+  margin: 14px 0 2px;
+}
+
+.renta-rend-lista {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renta-rend-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .renta-rend-fila {
     grid-template-columns: minmax(0, 1fr);
   }
 }

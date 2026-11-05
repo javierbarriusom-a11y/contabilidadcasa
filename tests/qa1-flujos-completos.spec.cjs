@@ -7786,6 +7786,56 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await expect(page.getByLabel("Dónde está depositada Fondo A")).toHaveValue("extranjero");
       await expect(page.getByLabel("País donde está depositada Fondo A")).toHaveValue("Irlanda");
       await expect(page.getByLabel("Titular de ETF B")).toHaveValue("household");
+      await expect(page.getByLabel("País donde está depositada ETF B"), "en España el país no se ve (hidden gana al display: grid)").toBeHidden();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`PR-0b: un dividendo y un interés se registran, siguen al recargar y se quitan con deshacer, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared", titular: "javi" },
+        ];
+        scenarioSettings.wp21Rendimientos = [];
+        saveScenarioSettings();
+      });
+      const caja = page.locator("#rentaDatos");
+      await caja.locator("summary").click();
+      const form = caja.locator("[data-renta-rend-form]");
+      await expect(form.getByLabel("De dónde viene")).toBeHidden();
+      await form.getByLabel("Fecha").fill("2026-03-12");
+      await form.getByLabel("Íntegro (€)").fill("120,50");
+      await form.getByLabel("Retención en España (€)").fill("22,90");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator("[data-renta-rend-estado]")).toHaveText("Registrado: dividendo de 120,50 € del 12/03/2026.");
+
+      await form.getByLabel("Tipo").selectOption("interes");
+      await form.getByLabel("De qué posición").selectOption("");
+      await expect(form.getByLabel("De dónde viene")).toBeVisible();
+      await form.getByLabel("Íntegro (€)").fill("40");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator("[data-renta-rend-estado]")).toHaveText("Elige la posición o di de dónde viene (por ejemplo, la cuenta remunerada).");
+      await form.getByLabel("De dónde viene").fill("Cuenta remunerada");
+      await form.getByLabel("De quién es").selectOption("tere");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator(".renta-rend-fila")).toHaveCount(2);
+      await expect(caja.locator(".renta-rend-total")).toContainText("2 cobros");
+      await expect(caja.locator(".renta-rend-falta")).toHaveText("Falta: 1 sin la retención española declarada.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaDatos summary").click();
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(2);
+      await page.getByRole("button", { name: "Quitar interés del 12/03/2026 de Cuenta remunerada" }).click();
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(1);
+      await page.click("#undoToastButton");
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(2);
+      expect(await page.evaluate(() => scenarioSettings.wp21Rendimientos.length)).toBe(2);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

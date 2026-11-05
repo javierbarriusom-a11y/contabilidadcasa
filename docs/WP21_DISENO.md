@@ -125,3 +125,21 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
 - **Por qué una lista y no el formulario de alta:** las posiciones del hogar ya existen; marcarlas una vez cuesta menos que editarlas una a una.
 - **Pruebas:** `tests/wp21-renta-datos.test.cjs` (4) y la e2e «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px: elegir, guardar y recargar.
 - **Siguiente, PR-0b:** el registro de dividendos e intereses, y las pérdidas pendientes por bloque.
+
+## 9. PR-0b hecho (5/11/2026, sesión 407): dividendos e intereses, y el bloque de cada pérdida arrastrada
+
+- **Dividendos e intereses** (`renta-datos-ui.js`, dentro del mismo «Datos para la Renta», plegado):
+  - Cada cobro guarda la fecha, el tipo (dividendo o interés), la posición o, si no la hay, de dónde viene (la cuenta remunerada) y su titular, el íntegro, la retención en España, la retención en origen y el país.
+  - **Una retención en blanco es `null`, «sin declarar», nunca 0.** El informe la pedirá en «lo que falta»; no la inventa.
+  - **El titular de un cobro es el de su posición**, leído al calcular: si el hogar cambia el titular de la posición, sus cobros lo siguen. Sin posición, el titular se declara con el cobro.
+  - Por año: lo cobrado, lo retenido declarado y lo que falta (sin retención española, sin titular, retención en origen sin país).
+  - Se quita con «Deshacer» (DEX4).
+  - Vive en `scenarioSettings.wp21Rendimientos`, junto a `fc3PriorLosses`: misma copia y misma nube, sin almacén nuevo ni migración.
+- **Por qué aquí y no en el libro de operaciones de WP-48, como decía el §4:** un interés de una cuenta no es una operación de ninguna posición, y el libro es por posición. Así, todo lo que el hogar teclea para la Renta queda en un solo sitio.
+- **Pérdidas arrastradas por bloque** (Inversión › Fiscal, el formulario de siempre):
+  - Dos campos nuevos: **bloque** (transmisiones o rendimientos) y **de quién es** (Javi o Tere). No hay «conjunta»: cada pérdida es de un declarante, que la arrastra en su Renta.
+  - Las ya guardadas, sin bloque, se leen como **transmisiones**. No es un supuesto nuevo: el formulario solo admitía pérdidas patrimoniales.
+  - FC3 (`yearEndCompensation`) **deja fuera las de rendimientos**: no pueden compensar plusvalías sin pasar por el cupo del 25 %, y eso es del motor del PR-1. Lo mismo en FC5 (otra venta este año) y en el aviso del coste de la deuda.
+- **Arreglo de paso (PR-0a):** el campo «País» se veía también en las posiciones depositadas en España, porque el `display: grid` de la hoja ganaba al atributo `hidden`. Corregido con `.renta-datos label[hidden]`; la e2e lo comprueba ahora.
+- **Pruebas:** `tests/wp21-renta-datos.test.cjs` pasa de 4 a 11, y una e2e nueva a 390 (`@safari`) y 1280 px: un dividendo y un interés, la recarga y «Quitar» con «Deshacer».
+- **Siguiente, PR-1:** el motor `canonical-tax-report.js`. Antes, reconfirmar en la AEAT o el BOE desde cuándo rige el tramo del 30 % y el cupo compartido del 25 %.

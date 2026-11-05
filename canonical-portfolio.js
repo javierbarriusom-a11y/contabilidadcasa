@@ -626,7 +626,7 @@
   // (fifoLedger, dentro de normalizePositions) — sin motor de cálculo nuevo, solo la agregación por
   // año natural y el arrastre. Una sola venta con `realizedGain: null` (shortfall de FIFO) invalida
   // la compensación de ese año entero — nunca neta un resultado a medias que parezca completo.
-  /** @param {{positions?: Array<{disposals?: Array<{date?: string, realizedGain?: number|null}>}>, year?: string|number, priorLosses?: Array<{year?: string|number, amount?: number}>}} [params] */
+  /** @param {{positions?: Array<{disposals?: Array<{date?: string, realizedGain?: number|null}>}>, year?: string|number, priorLosses?: Array<{year?: string|number, amount?: number, bloque?: string}>}} [params] */
   function yearEndCompensation({ positions = [], year, priorLosses = [] } = {}) {
     const targetYear = String(year || "");
     if (!/^\d{4}$/.test(targetYear)) {
@@ -645,7 +645,11 @@
     // Las pérdidas de años anteriores dentro de la ventana de 4 ejercicios se aplican de la más
     // antigua a la más nueva primero — así son las que antes caducan las que primero se consumen.
     const targetYearNum = Number(targetYear);
+    // WP-21 · PR-0b: una pérdida arrastrada del bloque de rendimientos (saldo negativo de dividendos e intereses) no
+    // compensa ganancias de transmisiones aquí: su cruce (hasta el 25 %, art. 49 LIRPF) es del informe de la Renta. Sin
+    // bloque declarado es de transmisiones, que es lo único que este registro aceptaba antes de existir el campo.
     const eligiblePriorLosses = (Array.isArray(priorLosses) ? priorLosses : [])
+      .filter((entry) => entry?.bloque !== "rendimientos")
       .map((entry) => ({ year: String(entry?.year || ""), amount: round2(Math.max(0, number(entry?.amount))) }))
       .filter((entry) => /^\d{4}$/.test(entry.year) && Number(entry.year) < targetYearNum && Number(entry.year) >= targetYearNum - LOSS_CARRYFORWARD_YEARS)
       .sort((a, b) => Number(a.year) - Number(b.year));

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-05-renta-rendimientos",
+      fecha: "2026-11-05",
+      texto: "«Datos para la Renta» suma los dividendos e intereses cobrados, y cada pérdida arrastrada dice ya su bloque y su titular.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-11-05-renta-datos",
       fecha: "2026-11-05",
       texto: "Inversión › Cartera: «Datos para la Renta», de quién es cada posición y dónde está depositada, para el informe de la Renta.",

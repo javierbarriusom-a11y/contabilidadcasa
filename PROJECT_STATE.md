@@ -113,6 +113,27 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (407): WP-21 · PR-0b, dividendos e intereses y pérdidas arrastradas por bloque
+
+- **Petición del hogar:** «seguimos con tareas que no dependan de mí». Es el resto del PR-0 de WP-21.
+- **Dividendos e intereses** (`renta-datos-ui.js`): un registro nuevo dentro de «Datos para la Renta», plegado, en Inversión › Cartera.
+  - Cada cobro: fecha, tipo, posición (o de dónde viene y su titular), íntegro, retención en España, retención en origen y país.
+  - Una retención en blanco queda «sin declarar» (`null`), nunca 0.
+  - El titular de un cobro es el de su posición.
+  - Por año: el total y lo que falta.
+  - «Quitar» con «Deshacer».
+  - Guardado en `scenarioSettings.wp21Rendimientos`: sin almacén nuevo, va en la copia y en la nube.
+- **Pérdidas arrastradas** (Inversión › Fiscal): bloque (transmisiones o rendimientos) y titular.
+  - Las antiguas, sin bloque, cuentan como transmisiones.
+  - FC3, FC5 y el aviso del coste de la deuda dejan fuera las de rendimientos (`canonical-portfolio.js`, `yearEndCompensation`). El cruce del 25 % es del PR-1.
+  - `app.js`: una línea nueva y tres cambiadas.
+- **Arreglo de paso:** el «País» del PR-0a se veía siempre (`display: grid` ganaba a `hidden`). Corregido y cubierto por la e2e.
+- **Versiones:** `app.js`, `styles.css`, `novedades.js` y `renta-datos-ui.js` a `?v=20261105wp21b`, con sus pruebas; `canonical-portfolio.js` también. Novedades, una línea. `docs/WP21_DISENO.md` §9.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6378/6378, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-renta-datos.test.cjs`, de 4 a 11.
+  - e2e «WP-21 · Datos para la Renta», 4 de 4 en local con Chromium (390 `@safari` y 1280 px).
+
 ## Cierre de sesión — 5 de noviembre de 2026 (406): WP-21 · PR-0a, titular y depositario de cada posición
 
 - **Petición del hogar:** «sigue con el PR-0 de WP-21». El PR-0 se parte en dos: **PR-0a** (titular y depositario, aquí) y **PR-0b** (dividendos y pérdidas pendientes, siguiente).
