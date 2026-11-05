@@ -247,6 +247,6 @@ test("#8 · presupuestoMesAntSpendingHtml está enganchada en renderPresupuestoM
 
 test("#8 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
-  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260922per4a1/);
-  assert.match(html, /app.js\?v=20261104cierreC3/);
+  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20261105pulido1/);
+  assert.match(html, /app.js\?v=20261105pulido1/);
 });

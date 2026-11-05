@@ -199,6 +199,9 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    el cierre de noviembre) pasan dos semanas más, hasta el 16/11 y el 18/11. Graduar no retira nada: quitar el tema clásico
    o el asistente de siempre es un PR aparte y se consulta antes. **Las siguientes pantallas (Previsión C2, Patrimonio e
    Inversión D1-D2, navegación) esperan a las revisiones del 12 al 18/11** (Funciones en prueba, Plan nuevo y Cierre nuevo).
+   **5/11 (T25 y T27, decididos por el hogar):**
+   - En Plan › Mes (C1) el ahorro es una partida del reparto: ya no hay tarjeta suelta «Irá a ahorro»; la fila «Ahorro» lleva a Ahorro y objetivos.
+   - En Hoy (A3), la reserva protegida se mide con toda la liquidez.
 
 Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (P14) está hecho desde el 26/10** (con un reintento en el CI desde el 28/10, decisión del hogar; su primer intento queda en el registro, `BACKLOG_DEFINITIVO.md` §10, trampa 15): `safari` en `playwright.config.cjs` (iPhone 13, 390×844) repite las pruebas v2 a 390 px con la etiqueta `@safari`, bloqueante en el CI. Cada pantalla nueva o rehecha del rediseño etiqueta así su prueba a 390 px.
 

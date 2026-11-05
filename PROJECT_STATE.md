@@ -113,6 +113,71 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (404): pulido de la revisión de Nielsen (T26, T28, T29 y T30)
+
+- **Petición del hogar:** «sigue con más funcionalidades que puedas hacer o desbloquear sin mi intervención».
+  - **Recomendación de Claude, que sigue en pie:** ninguna pantalla ni función grande antes de las revisiones del 12 al 18/11. Dentro de eso, lo primero es el pulido pendiente de la revisión del 4/11, que no necesita ninguna decisión.
+- **T26** (`app.js`, tira de cifras): «Peor mes · nov 26 · 2,4m» pasa a «Colchón más justo · nov 26 · 2,4 meses». Ni la «m» sin explicar ni el mismo nombre que el «Peor mes del horizonte» en euros.
+- **T28** (`views/hoy-v2.js`): la tarjeta se titula por lo que enseña. Con activos declarados, «Patrimonio» con el patrimonio neto primero; sin ellos, «Deuda». Antes, «Patrimonio» con la deuda viva como única cifra.
+- **T29** (`tema-v2.css`): a 640 px o menos, las seis pestañas de Plan pasan a dos líneas. Antes se desplazaban en horizontal sin señal y escondían Presupuesto, Esta semana y Partidas.
+- **T30:**
+  - «+ Apuntar gasto» pasa a «+ Registrar gasto», el nombre de la ventana que abre (`views/hoy-v2.js`).
+  - «Ir a Conciliar y cerrar» pasa a «Ir a Cierre» (`datos-ui.js`).
+  - El «0» de Plan › Presupuesto lleva la etiqueta visible «Ajuste ± %» (`views/presupuesto-mes.js`, `styles.css`).
+- **Con esto, T25-T30 quedan cerradas.** De la revisión del 15/10 siguen T22 («Dato real», consultada) y parte de T24, que se resuelve con Registrar en el diseño nuevo.
+- **Versiones** a `?v=20261105pulido1`: `app.js`, `styles.css`, `tema-v2.css`, `views/hoy-v2.js`, `views/presupuesto-mes.js`, `datos-ui.js` y `novedades.js`, con las pruebas que las fijan. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6367/6367, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke). Hizo falta una segunda pasada: una prueba fijaba el sello de `styles.css` escrito de otra forma.
+  - `tests/nielsen-2026-11.test.cjs`: 9, cuatro nuevas.
+  - e2e en local con Chromium: Hoy, Plan, Presupuesto, XGO-01, RD-WK e Intro, 41 de 42 a la primera. La que faltó acabó en «browserContext.close: Test ended», el cierre solo de Chromium de la trampa 16. Sola pasa, y «Hoy, cambio 1 y 2» repetidas tres veces pasan 15 de 15, con un «Navegador relanzado» del ayudante.
+
+## Cierre de sesión — 5 de noviembre de 2026 (403): el fallo intermitente de WP-18 en Safari, cronometrado
+
+- **Petición del hogar:** «sigue con el fallo intermitente de WP-18 en Safari».
+- **Lo que dice el registro completo del CI de #586** (paso de Safari):
+  - el primer intento acabó en **«Test timeout of 60000ms exceeded»** mientras esperaba `#valoracionDialog`;
+  - la captura del momento del fallo enseña **la ventana ya abierta**, con su fila y el foco dentro;
+  - el reintento pasó, así que quedó como «1 flaky».
+
+  No falló la app: la prueba se quedó sin tiempo.
+- **Lo que se descartó:**
+  - **Cuatro recargas:** no hay cuatro. Ir de `#inversion-cartera` a `#ajustes` solo cambia el ancla, sin recargar. Hay dos cargas.
+  - **Algo de #586:** no. En la primera ejecución del CI de #586, con el mismo código salvo el arreglo de Esc, WP-18 pasó a la primera en Safari.
+  - **Una animación de la ventana:** no hay ninguna (`.action-review-dialog` no la tiene).
+  - **La traza:** no existe. El CI solo la sube si el paso falla del todo; la ejecución no tiene artefactos.
+- **Lo que se hizo** (mismo criterio que `pulsar-o-explicar.cjs` del 28/10: sin traza, cualquier arreglo sería a ciegas):
+  - `tests/helpers/cronometro-pasos.cjs` apunta los tramos de la prueba (carga y siembra, recarga, encenderla y volver, tarjeta y detalle, repintar, pulsar «valorar»).
+  - Un `afterEach` los escribe en el registro y como adjunto «tramos» si la prueba falla, también por tiempo.
+  - Comprobado forzando un fallo en local (y deshecho): en Chromium la prueba tarda unos 8 s en total.
+  - **No se sube ningún límite ni se añade ningún reintento.**
+  - Trampa 17 nueva en `BACKLOG_DEFINITIVO.md` §10.
+- **Siguiente paso:** cuando vuelva a fallar en Safari, el registro dirá qué tramo se comió los 60 s y se arregla ese.
+- **Validación:** `npm run verify` en verde (`npm test` 6363/6363, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke). Prueba nueva `tests/cronometro-pasos.test.cjs` (2). La e2e de WP-18 en local, 2 de 2, sin escribir tramos al pasar.
+
+## Cierre de sesión — 5 de noviembre de 2026 (402): reserva con toda la liquidez (T25) y ahorro como partida (T27)
+
+- **Decisiones del hogar sobre la revisión de Nielsen:** «T25 toda la liquidez; T27 el ahorro como partida».
+- **T25 · reserva protegida** (`views/hoy-v2.js`, `app.js`):
+  - Hoy mide la reserva con toda la liquidez (`balances.total`), igual que la tira de cifras de Registrar y Plan. Antes usaba solo CaixaBank: con la demo, «CaixaBank, 2.150 € por debajo» frente a «2.850 € de margen». Ahora dice «cubierta: 2.850 € de margen».
+  - La cabecera de siempre (`reserveMargin`, que alimenta su estado y la tarjeta KPI) también pasa a toda la liquidez. Su nota dice «La liquidez total queda … por encima de la reserva».
+  - **Se mantiene aparte** el aviso del mínimo operativo de CaixaBank («CaixaBank está … por debajo de su mínimo operativo: mueve … desde Mediolanum»), que es otra cosa: lo que hace falta para los recibos.
+- **T27 · el ahorro como partida** (`views/plan-v2.js`, `tema-v2.css`):
+  - En Plan › Mes, la meta del plan de ahorro (`savingsPlanCalculations().currentSavingTarget`, la misma que aplica la previsión) entra en el reparto.
+  - Lo asignado la suma, «Sin asignar» la descuenta, la barra y la leyenda tienen un tramo «Ahorro» (rayado, para no depender solo del color) y la tabla tiene una fila «Ahorro» que lleva a Ahorro y objetivos. No es editable en Plan.
+  - Solo en el mes en curso y los siguientes.
+  - **No es un gasto:** el ritmo del mes sigue midiendo solo el gasto, y en la previsión no cambia nada.
+  - Si lo único que no cabe es el ahorro, lo dice: «El gasto cabe; lo que no cabe entero es el ahorro».
+  - Se quita la tarjeta suelta «Irá a ahorro este mes». Hoy dice «4.730 € de gasto» en vez de «asignado», para no contradecir a Plan.
+  - Con la demo, «Sin asignar» pasa de 270 € a **−530 €**.
+- **Versiones:** `app.js`, `tema-v2.css`, `views/hoy-v2.js`, `views/plan-v2.js` y `novedades.js` a `?v=20261105t25t27`, con las 26 pruebas que fijan la de `app.js`. Novedades, dos líneas.
+- **Documentación:** `BACKLOG_DEFINITIVO.md` §0 y §6, `docs/OPT21_CHECKLIST_NIELSEN.md` (T25 y T27 hechos) y `docs/rediseno/ESTADO.md` §8.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6361/6361, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/redis-c1-plan-v2.test.cjs`: 11, una nueva para el ahorro; las del reparto, con el ahorro dentro.
+  - `tests/nielsen-2026-11.test.cjs`: 5, una nueva para T25.
+  - e2e de Hoy, Plan y XGO-01 en local con Chromium: 32 de 32.
+- **Pendiente de la sesión anterior:** la e2e de WP-18 que falló una vez en Safari (en el CI de #586) sigue sin causa encontrada.
+
 ## Cierre de sesión — 4 de noviembre de 2026 (401): revisión de Nielsen; Intro cancelaba la firma del cierre
 
 - **Revisión mensual de Nielsen (`OPT-21`/`PROC-2`), adelantada** (vencía el 14/11; el hogar: «sigue con la revisión de Nielsen mientras tanto»).

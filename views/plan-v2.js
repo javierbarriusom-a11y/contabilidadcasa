@@ -96,24 +96,43 @@ const PLAN_V2_DESTINOS = [
   { section: "Financiaciones", label: "Financiaciones", tone: "financiaciones" },
 ];
 
-function planV2Destinos(entries, incomePlanned, sinAsignar) {
+// T27 (decisión del hogar del 5/11/2026, revisión de Nielsen del 4/11): el ahorro del mes es una partida más del reparto.
+// Antes, «Sin asignar 270 €» salía junto a «Irá a ahorro 800 €» sin que se supiera de dónde salían los 800. Ahora lo
+// asignado suma el ahorro y lo sin asignar lo descuenta. Es la meta del plan de ahorro (`state.recommendedSavings`, la
+// misma que ya aplica la previsión), solo en el mes en curso y los siguientes, y se cambia en Ahorro y objetivos: no es
+// un gasto (el dinero sigue en vuestras cuentas), así que no entra en el ritmo de gasto ni en la tabla de gastos.
+function planV2AhorroMes(month, today) {
+  if (!month || month.key < String(today).slice(0, 7) || typeof savingsPlanCalculations !== "function") return 0;
+  try {
+    const target = Number(savingsPlanCalculations()?.currentSavingTarget);
+    return Number.isFinite(target) && target > 0 ? round2(target) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function planV2Destinos(entries, incomePlanned, sinAsignar, ahorro = 0) {
   const bySection = new Map();
   entries.expense.forEach((entry) => bySection.set(entry.sectionName, round2((bySection.get(entry.sectionName) || 0) + Number(entry.planned || 0))));
   const known = PLAN_V2_DESTINOS.map((item) => ({ ...item, amount: bySection.get(item.section) || 0 }));
   const otros = round2([...bySection.entries()].filter(([section]) => !PLAN_V2_DESTINOS.some((item) => item.section === section)).reduce((sum, [, amount]) => sum + amount, 0));
-  const parts = [...known, { label: "Otros", tone: "otros", amount: otros }, { label: "Sin asignar", tone: "libre", amount: Math.max(0, sinAsignar) }].filter((item) => item.amount > 0);
+  const parts = [...known, { label: "Otros", tone: "otros", amount: otros }, { label: "Ahorro", tone: "ahorro", amount: ahorro }, { label: "Sin asignar", tone: "libre", amount: Math.max(0, sinAsignar) }].filter((item) => item.amount > 0);
   const base = Math.max(incomePlanned, parts.reduce((sum, item) => sum + item.amount, 0)) || 1;
   return parts.map((item) => ({ ...item, pct: round2((item.amount / base) * 100) }));
 }
 
-function planV2SinAsignarHtml({ month, entries, totals, asignado, sinAsignar, today }) {
+function planV2SinAsignarHtml({ month, entries, totals, asignado: asignadoGasto, sinAsignar: sinAsignarGasto, today }) {
+  const ahorro = planV2AhorroMes(month, today);
+  const asignado = round2(asignadoGasto + ahorro);
+  const sinAsignar = round2(sinAsignarGasto - ahorro);
   const over = sinAsignar < 0;
-  const destinos = planV2Destinos(entries, totals.incomePlanned, sinAsignar);
+  const destinos = planV2Destinos(entries, totals.incomePlanned, sinAsignar, ahorro);
+  const conAhorro = ahorro ? `, ${money(ahorro)} de ellos a ahorro` : "";
   const sentence = totals.incomePlanned <= 0
     ? "Este mes no tiene ingreso previsto: lo asignado sale de lo que ya tenéis."
     : over
-      ? `Lo asignado (${money(asignado)}) supera en ${money(-sinAsignar)} el ingreso previsto de ${money(totals.incomePlanned)}.`
-      : `De ${money(totals.incomePlanned)} de ingreso previsto ya tienen destino ${money(asignado)}.`;
+      ? `Lo asignado (${money(asignado)}${ahorro ? `, con ${money(ahorro)} de ahorro` : ""}) supera en ${money(-sinAsignar)} el ingreso previsto de ${money(totals.incomePlanned)}.${ahorro && sinAsignarGasto >= 0 ? " El gasto cabe; lo que no cabe entero es el ahorro." : ""}`
+      : `De ${money(totals.incomePlanned)} de ingreso previsto ya tienen destino ${money(asignado)}${conAhorro}.`;
   const bar = destinos.length
     ? `<div class="plan-v2-destino" role="img" aria-label="${escapeHtml(destinos.map((item) => `${item.label} ${money(item.amount)}`).join(", "))}">${destinos.map((item) => `<span class="is-${item.tone}" style="width:${item.pct}%"></span>`).join("")}</div>
       <ul class="plan-v2-leyenda">${destinos.map((item) => `<li><span class="plan-v2-muestra is-${item.tone}" aria-hidden="true"></span>${escapeHtml(item.label)} ${escapeHtml(money(item.amount))}</li>`).join("")}</ul>`
@@ -167,17 +186,6 @@ function planV2RitmoHtml({ month, entries, asignado, today }) {
   </article>`;
 }
 
-function planV2AhorroHtml({ month, today }) {
-  if (month.key !== String(today).slice(0, 7) || typeof savingsPlanCalculations !== "function") return "";
-  let target = null;
-  try {
-    target = Number(savingsPlanCalculations()?.currentSavingTarget);
-  } catch {
-    return "";
-  }
-  if (!Number.isFinite(target)) return "";
-  return `<article class="hoy-v2-card plan-v2-ahorro"><span>Irá a ahorro este mes</span><strong>${escapeHtml(money(target))}</strong></article>`;
-}
 
 function planV2MasHtml() {
   const sobres = sobresEnabled();
@@ -219,7 +227,19 @@ function planV2FinanciacionesHtml(block) {
   </tr>`;
 }
 
-function planV2PartidasHtml({ entries, month, editLocked, footHtml }) {
+// La fila del ahorro (T27): como Financiaciones, se ve aquí y se cambia en otra pantalla (Ahorro y objetivos).
+function planV2AhorroFilaHtml(ahorro) {
+  if (!ahorro) return "";
+  return `<tr class="plan-v2-bloque plan-v2-ahorro-fila">
+    <td><span class="plan-v2-bloque-nombre">Ahorro</span><small>meta del plan de ahorro · se cambia en Ahorro y objetivos</small></td>
+    <td class="plan-v2-num">${escapeHtml(money(ahorro))}</td>
+    <td class="plan-v2-num" data-plan-v2-etiqueta="real">—</td>
+    <td></td>
+    <td class="plan-v2-ritmo-celda"><button type="button" class="plan-v2-ir" data-plan-v2-ahorro aria-label="Cambiar la meta de ahorro en Ahorro y objetivos">›</button></td>
+  </tr>`;
+}
+
+function planV2PartidasHtml({ entries, month, editLocked, footHtml, today }) {
   const list = [...entries.income, ...entries.expense];
   const blocks = planMesGroupBySection(list);
   const body = blocks.length
@@ -239,6 +259,7 @@ function planV2PartidasHtml({ entries, month, editLocked, footHtml }) {
         })
         .join("")
     : `<tr><td colspan="5" class="registrar-mes-empty">Este mes no tiene partidas.</td></tr>`;
+  const ahorroFila = blocks.length ? planV2AhorroFilaHtml(planV2AhorroMes(month, today)) : "";
   const pending = list.filter((entry) => entry.plannedDraft).length;
   const status = pending
     ? `<span class="e19-badge e19-badge-warning">${pending} sin guardar</span>`
@@ -247,7 +268,7 @@ function planV2PartidasHtml({ entries, month, editLocked, footHtml }) {
     <div class="hoy-v2-card-head"><h3>Partidas de ${escapeHtml(planV2MonthName(month.key))}</h3>${status}</div>
     <table class="plan-v2-tabla">
       <thead><tr><th scope="col">Partida</th><th scope="col">Previsto</th><th scope="col">Real</th><th scope="col">Queda</th><th scope="col">Ritmo</th></tr></thead>
-      <tbody>${body}</tbody>
+      <tbody>${body}${ahorroFila}</tbody>
     </table>
     <div class="plan-v2-pie">
       <div class="plan-v2-pie-mes">${footHtml || ""}</div>
@@ -283,7 +304,7 @@ function planV2Render(model) {
   try {
     plan.classList.add("plan-v2-mes-on");
     lado.hidden = false;
-    lado.innerHTML = `${planV2SinAsignarHtml(ctx)}${planV2RitmoHtml(ctx)}${planV2AhorroHtml(ctx)}${planV2MasHtml()}`;
+    lado.innerHTML = `${planV2SinAsignarHtml(ctx)}${planV2RitmoHtml(ctx)}${planV2MasHtml()}`;
     tables.innerHTML = planV2PartidasHtml(ctx);
   } finally {
     planV2Pintando = false;
@@ -304,6 +325,11 @@ function planV2Init() {
     if (event.target.closest("[data-plan-v2-sobres]")) qs("planSobresToggle")?.click();
   });
   qs("planMesTables")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-plan-v2-ahorro]")) {
+      globalThis.FinanceMedidor?.anotar("plan-v2", "accion");
+      document.querySelector('[data-plan-tab="ahorro"]')?.click();
+      return;
+    }
     if (!event.target.closest("[data-plan-v2-clasica]")) return;
     planV2Clasica = true;
     globalThis.FinanceMedidor?.anotar("plan-v2", "descarte");

@@ -142,10 +142,13 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoL
   const caixa = margin.caixaShortfall > 0
     ? `<p class="hoy-v2-warning">CaixaBank está ${escapeHtml(money(margin.caixaShortfall))} por debajo de su mínimo operativo${margin.moveFromMediolanum > 0 ? `: mueve ${escapeHtml(money(margin.moveFromMediolanum))} desde Mediolanum` : ""}.</p>`
     : "";
-  // Mismo criterio que la tarjeta «Reserva protegida» de siempre: CaixaBank frente al mínimo protegido.
-  const reserveGap = round2(Number(balances?.caixa || 0) - Number(protectedReserve || 0));
+  // T25 (decisión del hogar del 5/11/2026): la reserva protegida se mide con TODA la liquidez, como la tira de cifras
+  // de Registrar y Plan. Antes aquí era solo CaixaBank («2.150 € por debajo») y allí toda («2.850 € de margen»): la misma
+  // etiqueta con lecturas opuestas. Lo que CaixaBank necesita para los recibos es otra cosa, su mínimo operativo, y tiene
+  // su propio aviso justo arriba («CaixaBank está … por debajo de su mínimo operativo: mueve … desde Mediolanum»).
+  const reserveGap = round2(Number(balances?.total || 0) - Number(protectedReserve || 0));
   const reserveWord = reserveGap < 0
-    ? `CaixaBank, ${money(Math.abs(reserveGap))} por debajo`
+    ? `${money(Math.abs(reserveGap))} por debajo`
     : reserveStatus === "warn" ? `justa: ${money(reserveGap)} de margen` : `cubierta: ${money(reserveGap)} de margen`;
   const stats = [
     eom.available ? `<div class="hoy-v2-stat"><span>Fin de ${escapeHtml(eom.monthLabel)}</span><strong>${escapeHtml(money(eom.margin))}</strong></div>` : "",
@@ -232,8 +235,8 @@ function hoyV2Month(asOf, plannedSaving) {
     ? `<p class="hoy-v2-month-real${over ? " is-over" : ""}">Gastado <strong>${escapeHtml(money(glance.expenseTotal))}</strong>${planned !== null ? ` de ${escapeHtml(money(planned))}` : ""} · ${glance.unclassifiedCount ? `${glance.unclassifiedCount} sin clasificar` : "todo clasificado"}</p>`
     : `<button type="button" class="hoy-v2-pending" data-home-nav="datos-importar"><span class="hoy-v2-dot is-empty" aria-hidden="true"></span><span>Sin gasto real todavía. <strong>Importa el extracto</strong> · 2 min</span><span aria-hidden="true">›</span></button>`;
   return `<article class="hoy-v2-card hoy-v2-month">
-    <div class="hoy-v2-card-head"><h3>${escapeHtml(glance.monthLabel)}</h3><strong>${planned === null ? "—" : `${escapeHtml(money(planned))} asignado`}</strong></div>
-    <div class="hoy-v2-pace" role="img" aria-label="Día ${day} de ${daysInMonth}; gastado el ${spentPct} % de lo asignado.">
+    <div class="hoy-v2-card-head"><h3>${escapeHtml(glance.monthLabel)}</h3><strong>${planned === null ? "—" : `${escapeHtml(money(planned))} de gasto`}</strong></div>
+    <div class="hoy-v2-pace" role="img" aria-label="Día ${day} de ${daysInMonth}; gastado el ${spentPct} % del gasto previsto.">
       <span class="hoy-v2-pace-fill${over ? " is-over" : ""}" style="width:${spentPct}%"></span>
       <span class="hoy-v2-pace-today" style="left:${dayPct}%"></span>
     </div>
@@ -256,12 +259,14 @@ function hoyV2Patrimonio(debtOutlook) {
   const note = partial
     ? `<p class="hoy-v2-footnote">* Solo deudas con cuota: ${escapeHtml(debtOutlook.libreDeDeudaLabel.split(" · ").slice(1).join(" · "))}.</p>`
     : "";
+  // T28 (Nielsen 4/11): el titular dice lo que enseña. Con activos declarados, primero el patrimonio neto; sin ellos, la
+  // tarjeta es de la deuda y se titula así (antes «Patrimonio» con la deuda viva como única cifra).
   return `<article class="hoy-v2-card hoy-v2-patrimonio">
-    <div class="hoy-v2-card-head"><h3>Patrimonio</h3></div>
+    <div class="hoy-v2-card-head"><h3>${net ? "Patrimonio" : "Deuda"}</h3></div>
+    ${net}
     <button type="button" class="hoy-v2-row hoy-v2-row-link" data-home-nav="deuda-ruta">
       <span>Deuda viva · ${escapeHtml(free)}</span><strong>${escapeHtml(money(debtOutlook.pendingPrincipal))}</strong>
     </button>
-    ${net}
     ${note}
   </article>`;
 }
@@ -324,7 +329,7 @@ function hoyV2ExpenseButton() {
   const classic = qs("homeQuickExpenseOpen");
   const disabled = Boolean(classic?.disabled);
   const title = disabled ? classic?.title || "" : "";
-  return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Apuntar gasto</button>`;
+  return `<button type="button" class="e19-btn e19-btn-primary" data-hoy-v2-expense${disabled ? " disabled" : ""}${title ? ` title="${escapeHtml(title)}"` : ""}>+ Registrar gasto</button>`; // T30: mismo nombre que la ventana que abre
 }
 
 function hoyV2Header(hoy, dataAge) {

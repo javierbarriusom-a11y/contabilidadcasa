@@ -85,7 +85,7 @@ function datosCards(engine, source, today) {
   cards.push({
     id: "close", label: "Último cierre de mes", tone: !closed ? "unknown" : upToDate ? "current" : "stale", icon: !closed ? "?" : upToDate ? "✓" : "⚠", ageDays: null,
     ageText: closed ? `último: ${monthName(source.lastClose)}` : "sin cierres", status: !closed ? "Ningún mes cerrado con saldos" : upToDate ? "Al día" : `Falta cerrar ${monthName(prevKey)}`,
-    action: { label: "Ir a Conciliar y cerrar", href: "#reconciliation" },
+    action: { label: "Ir a Cierre", href: "#reconciliation" }, // T30 (Nielsen 4/11): el menú lo llama «Cierre»
   });
   cards.push({ id: "pending", label: "Cobros y cargos esperados sin responder", tone: source.pendingCount ? "stale" : "current", icon: source.pendingCount ? "⚠" : "✓", ageDays: null, ageText: source.pendingCount ? `${source.pendingCount} por responder` : "ninguno", status: source.pendingCount ? "Pendiente" : "Al día", action: source.pendingCount ? { label: "Responderlos", href: "#registrar" } : null });
   return cards;

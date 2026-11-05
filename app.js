@@ -227,7 +227,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260922per4a1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-ruta" },
@@ -4537,8 +4537,8 @@ function topbarStatusFigures() {
     },
     { label: "Libre de deuda", value: libreDeDeudaValue, sub: libreDeDeudaSub },
     {
-      label: "Peor mes",
-      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}m` : "—",
+      label: "Colchón más justo", // T26 (Nielsen 4/11): en meses de colchón, no «2,4m», y otro nombre que el «Peor mes» en euros
+      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${worst.monthsValue.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${Math.abs(worst.monthsValue) === 1 ? "mes" : "meses"}` : "—",
       sub: worst ? ANALISIS_CUSHION_LEVEL_LABELS[worst.level] : "Sin datos",
     },
   ];
@@ -26530,7 +26530,7 @@ function renderHomeDashboard() {
     : "Sin rango suficiente para calcular mínimos.";
   const balanceDateText = actionCenter.asOf;
   const dataAge = homeDataAge();
-  const reserveMargin = round2(Number(balances.caixa || 0) - protectedReserve);
+  const reserveMargin = round2(Number(balances.total || 0) - protectedReserve); // T25: toda la liquidez, como la tira de cifras
   const riskStatus = nextRiskRow ? "warn" : "good";
   const reserveStatus = reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good";
   const freeCapacityStatus = freeCapacity < 0 ? "danger" : freeCapacity < freeCapacityWarnAt ? "warn" : "good";
@@ -26602,7 +26602,7 @@ function renderHomeDashboard() {
     renderHomeKpi({
       label: "Reserva protegida",
       value: money(protectedReserve, true),
-      note: `CaixaBank conserva hoy ${money(Math.max(0, reserveMargin), true)} por encima del mínimo operativo.`,
+      note: reserveMargin < 0 ? `La liquidez total queda ${money(-reserveMargin, true)} por debajo de la reserva.` : `La liquidez total queda ${money(reserveMargin, true)} por encima de la reserva.`,
       status: reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good",
       cta: "Ajustar reserva",
       target: "executive-advisor",

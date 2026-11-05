@@ -60,5 +60,50 @@ test("«Todo al día» solo cuando no queda ninguna tarea sin estimar; si falta 
   assert.match(rama, /const sinEstimar = queue\.unestimated\.some\(\(task\) => task\.id !== "pending"\);/);
   assert.match(rama, /sinEstimar\s*\?\s*`<p class="dat-plan"><strong>Aún no se puede ordenar por euros\.<\/strong>/);
   assert.ok(rama.indexOf("Aún no se puede ordenar") < rama.lastIndexOf("<strong>Todo al día.</strong>"), "con tareas sin estimar, nunca «Todo al día»");
-  assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261104nielsen1"'));
+  assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261105pulido1"'));
+});
+
+// T25 (decisión del hogar del 5/11/2026): la reserva protegida se mide con toda la liquidez en todas partes. Hoy la medía
+// con CaixaBank («2.150 € por debajo») y la tira de cifras con toda la liquidez («2.850 € de margen»).
+test("T25 · Hoy, la cabecera de siempre y la tira de cifras miden la reserva protegida con toda la liquidez", () => {
+  const hoy = fs.readFileSync(path.join(root, "views/hoy-v2.js"), "utf8");
+  assert.match(hoy, /const reserveGap = round2\(Number\(balances\?\.total \|\| 0\) - Number\(protectedReserve \|\| 0\)\);/);
+  assert.doesNotMatch(hoy, /`CaixaBank, \$\{money\(Math\.abs\(reserveGap\)\)\} por debajo`/);
+  // El mínimo operativo de CaixaBank (para los recibos) sigue con su propio aviso.
+  assert.match(hoy, /CaixaBank está \$\{escapeHtml\(money\(margin\.caixaShortfall\)\)\} por debajo de su mínimo operativo/);
+  const { codigoApp } = require("./helpers/codigo-app.cjs");
+  const app = codigoApp();
+  assert.match(app, /const reserveMargin = round2\(Number\(balances\.total \|\| 0\) - protectedReserve\); \/\/ T25/);
+  assert.doesNotMatch(app, /const reserveMargin = round2\(Number\(balances\.caixa \|\| 0\) - protectedReserve\);/);
+  assert.match(app, /La liquidez total queda \$\{money\(reserveMargin, true\)\} por encima de la reserva\./);
+});
+
+// Pulido de la misma revisión (T26, T28, T29 y T30), sin decisión del hogar pendiente.
+test("T26 · la tira dice «Colchón más justo» en meses, no «Peor mes … 2,4m»", () => {
+  const { codigoApp } = require("./helpers/codigo-app.cjs");
+  const app = codigoApp();
+  const tira = app.slice(app.indexOf("function topbarStatusFigures()"), app.indexOf("function topbarStatusFigures()") + 4000);
+  assert.match(tira, /label: "Colchón más justo",/);
+  assert.match(tira, /\$\{Math\.abs\(worst\.monthsValue\) === 1 \? "mes" : "meses"\}`/);
+  assert.doesNotMatch(tira, /\}m` : "—"/);
+});
+
+test("T28 · la tarjeta de Hoy se titula por lo que enseña: «Patrimonio» con el neto primero, o «Deuda» sin activos", () => {
+  const hoy = fs.readFileSync(path.join(root, "views/hoy-v2.js"), "utf8");
+  const tarjeta = hoy.slice(hoy.indexOf("function hoyV2Patrimonio("), hoy.indexOf("function hoyV2Patrimonio(") + 2000);
+  assert.match(tarjeta, /<h3>\$\{net \? "Patrimonio" : "Deuda"\}<\/h3>/);
+  assert.ok(tarjeta.indexOf("${net}") < tarjeta.indexOf("Deuda viva ·"), "el patrimonio neto va antes que la deuda");
+});
+
+test("T29 · en el móvil las seis pestañas de Plan pasan a dos líneas, sin desplazamiento escondido", () => {
+  const css = fs.readFileSync(path.join(root, "tema-v2.css"), "utf8");
+  assert.match(css, /@media \(max-width: 640px\) \{\s*:root\[data-tema="v2"\] #plan\.plan-v2-on #planTabs \{\s*flex-wrap: wrap;/);
+});
+
+test("T30 · un solo nombre para registrar un gasto, «Ir a Cierre» y el ± % con su etiqueta", () => {
+  const hoy = fs.readFileSync(path.join(root, "views/hoy-v2.js"), "utf8");
+  assert.match(hoy, />\+ Registrar gasto<\/button>`; \/\/ T30/);
+  assert.doesNotMatch(hoy, /\+ Apuntar gasto<\/button>/);
+  assert.match(fs.readFileSync(path.join(root, "datos-ui.js"), "utf8"), /action: \{ label: "Ir a Cierre", href: "#reconciliation" \}/);
+  assert.match(fs.readFileSync(path.join(root, "views/presupuesto-mes.js"), "utf8"), /<label class="presupuesto-mes-pct"><span>Ajuste ± %<\/span><input type="number"/);
 });

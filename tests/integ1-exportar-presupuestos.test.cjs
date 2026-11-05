@@ -167,6 +167,6 @@ test("INTEG-1 · los botones de exportar viven en Presupuesto del mes y se piden
 });
 
 test("INTEG-1 · el chunk de presupuesto-mes viaja versionado", () => {
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260922per4a1/);
-  assert.match(html, /app.js\?v=20261104cierreC3/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20261105pulido1/);
+  assert.match(html, /app.js\?v=20261105pulido1/);
 });
