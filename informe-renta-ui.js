@@ -149,6 +149,42 @@ function informeRentaDatos(engine, year, holder) {
   });
 }
 
+// Una línea por declarante para el texto del «Borrador de apoyo para la Renta» (GOB8, app.js). Pura: recibe los informes ya hechos.
+function informeRentaResumenLineas(reports) {
+  return (Array.isArray(reports) ? reports : []).map((r) => {
+    const quien = INFORME_RENTA_DECLARANTES.find((d) => d.value === r?.holder)?.label || r?.holder || "";
+    if (!r || r.reason) return `${quien}: sin informe (falta el ejercicio o el declarante).`;
+    if (!r.calculable) {
+      const n = r.missing.filter((m) => m.blocking).length;
+      return `${quien}, ${r.year}: todavía sin cuota; ${n === 1 ? "falta 1 dato" : `faltan ${n} datos`} (detalle en el informe de inversión, más abajo).`;
+    }
+    return `${quien}, ${r.year}: base liquidable del ahorro estimada ${informeRentaEuros(r.compensation.base)}; cuota estimada ${informeRentaEuros(r.quota.net)} (${r.quota.scaleOrigin === "hogar" ? "escala del hogar" : "escala de la ley"}).`;
+  });
+}
+
+// Lo que pide app.js al componer el borrador: los dos declarantes del ejercicio elegido en el informe (o el año en curso).
+function informeRentaResumenTexto() {
+  const engine = informeRentaEngine || globalThis.FinanceCanonicalTaxReport;
+  if (!engine) return "Sin datos: el informe de inversión no está disponible.";
+  const year = document.getElementById("informeRentaAno")?.value || String(new Date().getFullYear());
+  return informeRentaResumenLineas(INFORME_RENTA_DECLARANTES.map((d) => informeRentaDatos(engine, year, d.value))).join("\n");
+}
+
+// Imprimir solo el informe: la hoja de impresión (styles.css, `body.imprimiendo-informe-renta`) oculta todo lo demás.
+function informeRentaImprimir() {
+  const caja = document.getElementById("informeRenta");
+  if (!caja) return;
+  caja.open = true;
+  informeRentaPintar();
+  document.body.classList.add("imprimiendo-informe-renta");
+  const quitar = () => {
+    document.body.classList.remove("imprimiendo-informe-renta");
+    window.removeEventListener("afterprint", quitar);
+  };
+  window.addEventListener("afterprint", quitar);
+  window.print();
+}
+
 let informeRentaEngine = null;
 let informeRentaUltimo = null;
 
@@ -192,10 +228,11 @@ function renderInformeRenta(engine) {
     caja.addEventListener("toggle", informeRentaPintar);
     caja.addEventListener("change", (event) => { if (event.target?.closest?.("[data-informe-renta-control]")) informeRentaPintar(); });
     document.getElementById("informeRentaCsv")?.addEventListener("click", informeRentaDescargar);
+    document.getElementById("informeRentaImprimir")?.addEventListener("click", informeRentaImprimir);
   }
   informeRentaPintar();
 }
 
 if (typeof module === "object" && module.exports) {
-  module.exports = { informeRentaHtml, informeRentaCsv };
+  module.exports = { informeRentaHtml, informeRentaCsv, informeRentaResumenLineas };
 }

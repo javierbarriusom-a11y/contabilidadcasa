@@ -12909,6 +12909,46 @@ input[data-amount-input][aria-invalid="true"] {
   white-space: nowrap;
 }
 
+/* Imprimir solo el informe (informe-renta-ui.js añade la clase al body mientras imprime). Fuera todo lo que ni contiene el
+   informe ni está dentro de él, así empieza arriba de la hoja; sus antepasados se quedan, sin márgenes ni fondo. */
+@media print {
+  body.imprimiendo-informe-renta *:not(:has(#informeRenta)):not(#informeRenta):not(#informeRenta *) {
+    display: none;
+  }
+
+  body.imprimiendo-informe-renta *:has(#informeRenta) {
+    display: block;
+    position: static;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+  }
+
+  html:has(body.imprimiendo-informe-renta),
+  body.imprimiendo-informe-renta {
+    background: #fff;
+  }
+
+  body.imprimiendo-informe-renta #informeRenta {
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+
+  body.imprimiendo-informe-renta #informeRenta .informe-renta-controles {
+    display: none;
+  }
+
+  body.imprimiendo-informe-renta .informe-renta-tabla {
+    overflow: visible;
+  }
+}
+
 /* WP-21 · PR-0b: dividendos e intereses cobrados. */
 .renta-datos-titulo {
   margin: 18px 0 4px;

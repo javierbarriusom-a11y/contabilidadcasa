@@ -184,3 +184,22 @@ test("registro: plegado dentro del borrador de apoyo para la Renta, los dos mód
   assert.match(read("app.js"), /globalThis\.renderInformeRenta\?\.\(globalThis\.FinanceCanonicalTaxReport\); \/\/ WP-21/);
   assert.doesNotMatch(read("informe-renta-ui.js"), /localStorage/);
 });
+
+test("el borrador de apoyo (GOB8) suma una línea por declarante con lo que dice el informe", () => {
+  const ok = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000)] });
+  const falta = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)])] });
+  const [a, b] = ui.informeRentaResumenLineas([ok, falta]);
+  assert.match(a, /^Javi, 2026: base liquidable del ahorro estimada 1000,00 €; cuota estimada 190,00 € \(escala de la ley\)\.$/);
+  assert.equal(b, "Tere, 2026: todavía sin cuota; falta 1 dato (detalle en el informe de inversión, más abajo).");
+  const app = read("app.js");
+  assert.match(app, /"4\) Inversión: base del ahorro de cada declarante/);
+  assert.match(app, /typeof informeRentaResumenTexto === "function" \? informeRentaResumenTexto\(\)/);
+});
+
+test("imprimir: un botón, y la hoja de impresión deja solo el informe, sin los controles", () => {
+  assert.match(read("index.html"), /<button type="button" class="e19-btn e19-btn-secondary" id="informeRentaImprimir">Imprimir<\/button>/);
+  const css = read("styles.css");
+  assert.match(css, /body\.imprimiendo-informe-renta \*:not\(:has\(#informeRenta\)\):not\(#informeRenta\):not\(#informeRenta \*\) \{\s*display: none;/);
+  assert.match(css, /body\.imprimiendo-informe-renta #informeRenta \.informe-renta-controles \{\s*display: none;/);
+  assert.match(read("informe-renta-ui.js"), /addEventListener\("afterprint", quitar\)/, "la clase se quita al terminar de imprimir");
+});

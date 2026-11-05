@@ -13321,6 +13321,9 @@ function gob8DraftText() {
     "",
     "3) Rescate de pensiones como capital único (si se ha simulado uno)",
     gob8Fcx1Line(),
+    "",
+    "4) Inversión: base del ahorro de cada declarante (WP-21, informe de inversión para la Renta)",
+    typeof informeRentaResumenTexto === "function" ? informeRentaResumenTexto() : "Sin datos: el informe de inversión no está disponible.",
   ].join("\n");
 }
 

@@ -7877,6 +7877,21 @@ test.describe("WP-21 · Datos para la Renta", () => {
       const csv = await (await descarga.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString("utf8"));
       expect(csv).toContain("Base liquidable del ahorro;;;300;");
       expect(csv).toContain("Cuota estimada;;escala de la ley;57;");
+
+      // El borrador de apoyo (GOB8) recoge el informe, y «Imprimir» deja en la hoja solo el informe.
+      await page.locator("#gob8GenerateDraft").click();
+      await expect(page.locator("#gob8DraftPreview")).toContainText("4) Inversión: base del ahorro de cada declarante");
+      await expect(page.locator("#gob8DraftPreview")).toContainText(`Tere, ${year}: base liquidable del ahorro estimada`);
+      await page.evaluate(() => { window.print = () => { window.__impreso = true; }; });
+      await caja.getByRole("button", { name: "Imprimir" }).click();
+      expect(await page.evaluate(() => window.__impreso && document.body.classList.contains("imprimiendo-informe-renta"))).toBe(true);
+      await page.emulateMedia({ media: "print" });
+      await expect(caja.locator("[data-informe-renta-estado]")).toBeVisible();
+      await expect(page.locator("#gob8GenerateDraft")).toBeHidden();
+      await expect(caja.getByRole("button", { name: "Exportar CSV" })).toBeHidden();
+      await page.emulateMedia({ media: "screen" });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      expect(await page.evaluate(() => document.body.classList.contains("imprimiendo-informe-renta"))).toBe(false);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

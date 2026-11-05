@@ -165,6 +165,7 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
   - Tablas desplazables con el teclado (transmisiones, dividendos e intereses), la compensación paso a paso, la cuota y el aviso del 720.
   - **Exportar CSV** (punto y coma, coma decimal, con BOM para que la hoja de cálculo lea las tildes).
   - Notas fijas: no es el modelo 100; las ventas de fondos llevan retención que la app no guarda; la custodia de valores es deducible y no se resta.
-  - **Imprimir**, que el §4 incluía, se queda fuera de esta entrega: el CSV cubre llevarlo al asesor.
+  - **Imprimir** (añadido el mismo día): solo el informe, a todo el ancho de la hoja. Mientras imprime, el `<body>` lleva una clase y la hoja de impresión quita con `:has()` todo lo que ni contiene el informe ni está dentro de él; sus antepasados quedan como bloques sin márgenes. La clase se quita en `afterprint`.
+  - **El texto del «Borrador de apoyo» (GOB8)** suma un punto 4 con una línea por declarante: base y cuota, o «todavía sin cuota» y cuántos datos faltan.
 - **Pruebas:** `tests/wp21-informe-renta.test.cjs` (18, con las cifras del §5 hechas a mano), e2e «PR-2» a 390 (`@safari`) y 1280 px (lo que falta, la cuota al completarlo y el CSV descargado y releído), y axe en claro y oscuro con el informe abierto.
-- **Lo que queda de WP-21:** que el hogar teclee sus datos (titulares, cobros, pérdidas con bloque); imprimir; el listado de traspasos cuando haya historial; y el PR-3 (el local), que se diseña aparte.
+- **Lo que queda de WP-21:** que el hogar teclee sus datos (titulares, cobros, pérdidas con bloque); el listado de traspasos cuando haya historial; y el PR-3 (el local), que se diseña aparte.

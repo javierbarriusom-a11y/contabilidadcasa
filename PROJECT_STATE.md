@@ -118,11 +118,12 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Petición del hogar:** «seguimos con tareas que no dependan de mí». Siguiente pieza de WP-21 tras el PR-0b.
 - **Reglas reconfirmadas antes de escribir el motor** (`docs/WP21_DISENO.md` §9): el 30 % rige desde el 1/1/2025 (AEAT, novedades de la Ley 7/2024) y el cupo del 25 % es compartido (manual de la Renta 2025, 8.1.4). Se leyeron por los extractos del buscador: la red de la sesión no deja abrir la sede de la AEAT.
 - **Motor** (`canonical-tax-report.js`, nuevo, puro): transmisiones y rendimientos por declarante (la conjunta al 50 %), compensación del art. 49 con el cupo compartido y el arrastre por bloque (incluida la caducidad), cuota con la escala del hogar o la de la ley, doble imposición con su tope, aviso del 720 y «lo que falta» (bloqueante o no).
-- **Pantalla** (`informe-renta-ui.js`, nuevo): «Informe de inversión para la Renta», plegado dentro de «Borrador de apoyo para la Renta» (GOB8). Sin titular nuevo ni pantalla retirada. Ejercicio y declarante, lo que falta con dónde se arregla, tablas, compensación paso a paso, cuota, 720 y CSV. Imprimir queda fuera.
+- **Pantalla** (`informe-renta-ui.js`, nuevo): «Informe de inversión para la Renta», plegado dentro de «Borrador de apoyo para la Renta» (GOB8). Sin titular nuevo ni pantalla retirada. Ejercicio y declarante, lo que falta con dónde se arregla, tablas, compensación paso a paso, cuota, 720, CSV e **Imprimir** (solo el informe, a todo el ancho: comprobado con una captura en modo impresión).
+- **El texto del borrador GOB8** suma un punto 4 con la línea de cada declarante (`app.js`, tres líneas).
 - **Registro:** los dos módulos en `index.html` (antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`; `app.js` lo llama en el case «herramientas-fiscal» (una línea). ARQ-3: de 116 a 117 motores, con consumidor real. Novedades, una línea.
 - **Validación:**
-  - `npm run verify` en verde (`npm test` 6396/6396, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
-  - `tests/wp21-informe-renta.test.cjs` (18).
+  - `npm run verify` en verde (`npm test` 6398/6398, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-informe-renta.test.cjs` (20).
   - e2e «PR-2» a 390 (`@safari`) y 1280 px, XGO-01 (la superficie no cambia) y axe en claro y oscuro con el informe abierto: todo en verde en local con Chromium.
 
 ## Cierre de sesión — 5 de noviembre de 2026 (407): WP-21 · PR-0b, dividendos e intereses y pérdidas arrastradas por bloque
