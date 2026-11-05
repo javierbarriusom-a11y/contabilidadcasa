@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 19 de octubre de 2026 (sesión 320). **Único backlog vivo: `BACKLOG_DEFINITIVO.md` (§0 y §1); plan en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
+Fecha de revisión: 19 de octubre de 2026 (sesión 320). **Único backlog vivo desde el 5/11/2026: `BACKLOG_NOVIEMBRE_OLEADA_1.md` (§0, §1 y §4); reglas, recetas y panel en `BACKLOG_DEFINITIVO.md` (§4, §10 y §12); plan de los WP en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. Desarrollo iniciado el 3/10/2026: Ola 1 en curso.**
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -112,6 +112,23 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) se movieron igual, sin
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
+
+## Cierre de sesión — 5 de noviembre de 2026 (405): octava auditoría y backlog de noviembre · Oleada 1
+
+- **Petición del hogar:** análisis crítico de la app y propuesta de mejoras y nuevas funciones, con las mejores prácticas de UX y UI, para la **visibilidad de las previsiones, su estado y su impacto según escenarios**; conservar el backlog actual con su prioridad dentro del plan nuevo, que será «el backlog de noviembre oleada 1».
+- **Método:** app construida en local y recorrida con la demo (reloj 5/11/2026) a 1440 × 900 y 390 × 844 (Hoy, Plan › Previsión con todo desplegado, Proyección, Escenarios › Simular, Guardados y Comparar), más lectura de los motores de previsión y escenarios y de `docs/rediseno/`.
+- **Hallazgos principales (demo):**
+  - Para «¿cuánto tendremos?» hay cuatro cifras de tres motores: Hoy 8.850 € (margen sobre el suelo, rotulado «Fin de noviembre»), Previsión 5.350 € «el 01 nov» (el motor mensual fija el mínimo siempre en el día 1, `minDateLabel: dateWithMonthLabel(monthDate, 1)` en `app.js`, así que el 5/11 anuncia una fecha pasada), la banda de caja 10.350 € el 30/11 y la cabecera 2,4 meses.
+  - Lo mejor de la previsión (banda, tres capas, calidad, acierto) está plegado; el puente, el plan B y el mapa de pagos viven en otra pantalla. Lo primero que se ve son barras sin eje y la sensibilidad «aguanta caer un 207 %».
+  - Siete motores o pantallas de escenarios y ninguno superpuesto a la previsión; comparar exige dos escenarios guardados.
+  - En el móvil, cifras cortadas, columnas de la tabla ocultas y etiquetas del eje que se pisan en Previsión.
+- **Hecho:**
+  - `docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md`: análisis crítico con evidencia (H1-H8), 10 principios de diseño y 38 propuestas `FX-nn` en 7 bloques (una sola verdad, Previsión C2 ampliada, escenarios superpuestos y pruebas de estrés, incertidumbre y confianza, qué ha cambiado y avisos, horizonte largo, navegación y medición), con esquema de escritorio y móvil, criterios de aceptación, riesgos y métricas.
+  - `BACKLOG_NOVIEMBRE_OLEADA_1.md`, **nuevo backlog vivo**: calendario por semanas (S0 6-11/11 coherencia; S1 12-18/11 revisiones y cimientos sin cambio visible, respetando la recomendación del 4/11; S2 19-25/11 Previsión C2; S3 26/11-2/12 escenarios superpuestos; S4 1-4/12 cierre de noviembre y revisión de salida), núcleo P0 de 25 filas (≈ 33 sesiones), Oleada 2, P2 con disparador, P3/P4/archivo heredados, la tarea del hogar **H-35** (día de cargo de las 10 partidas más grandes, ≈ 15 min) y la tabla de dónde queda cada cosa abierta de `BACKLOG_DEFINITIVO.md`. **Nada del backlog anterior se pierde.** Adopta XPR-01…05 y 08…11, XUX-01/05/07, XNF-03, XIN-04/07 y XDO-02 (en parte) de la séptima auditoría; sube NIN-09 a P0 y NPV-06 y NDB-03 a P1; desaparca WP-28.
+  - `BACKLOG_INDICE.md` (fila vigente nueva; `BACKLOG_DEFINITIVO.md` pasa a absorbido y referencia de reglas, recetas y panel), la skill `finanzas-casa-workflow` (Modo Inicio, paso 2), la cabecera y el §0 de `BACKLOG_DEFINITIVO.md` y `docs/rediseno/ESTADO.md` §8.
+- **Pendiente del hogar:** D-N1…D-N7 (`BACKLOG_NOVIEMBRE_OLEADA_1.md` §7), H-35 antes del 11/11.
+- **Pendiente de Claude:** añadir las filas `FX-nn` al panel de seguimiento como pestaña fuera de la línea base (§9 del backlog nuevo); no se hizo en esta sesión.
+- **Sin cambios en la app.** Validación: `npm run verify` en verde (6.367 de 6.367 pruebas unitarias, lint, typecheck, a11y, rendimiento, sitio, privacidad y humo). Solo documentación: sin e2e de Playwright.
 
 ## Cierre de sesión — 5 de noviembre de 2026 (404): pulido de la revisión de Nielsen (T26, T28, T29 y T30)
 

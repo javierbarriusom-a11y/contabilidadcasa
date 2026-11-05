@@ -37,11 +37,14 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
 2. **Backlog**: el repositorio acumula varios documentos `BACKLOG*.md` de distintas
    generaciones — `BACKLOG_INDICE.md` (OPT-20) es el mapa que dice cuál es la fuente viva de
    cada uno. El backlog vigente es el que `BACKLOG_INDICE.md` marca como «🟢 Vigente» — hoy
-   `BACKLOG_DEFINITIVO.md` (desde el 3/10/2026 es el **único** backlog vivo): lee su §0
-   («Estado en una línea») y su §1 («Cómo empezar»); la prioridad de cada propuesta está en su §5,
-   las reglas de ritmo en su §4, el calendario en su §7 y las decisiones abiertas en su §8. El
-   cómo y el cuándo de cada paquete, en `docs/PLAN_DESARROLLO_DEFINITIVO.md`. El desarrollo está **en marcha desde el 3/10/2026** (el hogar dijo «empecemos»): el
-   siguiente paquete es el primero de la Ola 1 sin hacer según su §0. Los demás `BACKLOG*.md`
+   `BACKLOG_NOVIEMBRE_OLEADA_1.md` (desde el 5/11/2026 es el **único** backlog vivo): lee su §0
+   («Estado en una línea») y su §1 («Cómo empezar»); el calendario por semanas está en su §4, la
+   prioridad de cada fila en su §5, dónde quedó cada cosa del backlog anterior en su §6 y las
+   decisiones abiertas en su §7. El porqué de cada propuesta `FX-nn`, en
+   `docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md`. `BACKLOG_DEFINITIVO.md` (vigente del 3/10 al
+   5/11/2026) sigue siendo la referencia de las reglas de ritmo (§4), las recetas y trampas (§10) y
+   el protocolo del panel (§12); el cómo de cada paquete WP, en `docs/PLAN_DESARROLLO_DEFINITIVO.md`.
+   El siguiente paso es la primera fila de su §5.1 sin hacer de la semana en curso. Los demás `BACKLOG*.md`
    (`BACKLOG_CONTABILIDADCASA_3_0.md`, `BACKLOG_CONTABILIDADCASA_2_0.md`, `BACKLOG_UX_OLAS.md`…)
    quedan como detalle histórico de por qué se hizo cada cosa; su §12 lista lo que en ellos está
    desfasado. Si el índice ya marca como vigente otro documento, manda el índice y esta línea está
