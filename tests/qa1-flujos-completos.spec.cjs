@@ -7838,5 +7838,46 @@ test.describe("WP-21 · Datos para la Renta", () => {
       expect(await page.evaluate(() => scenarioSettings.wp21Rendimientos.length)).toBe(2);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
+
+    test(`PR-2: el informe de la Renta dice lo que falta, da la cuota cuando está todo y exporta el CSV, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      const year = await page.evaluate(() => {
+        const y = String(new Date().getFullYear());
+        scenarioSettings.portfolioPositions = [
+          { id: "ir-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, acquisitionDate: `${Number(y) - 2}-01-10`, asOf: `${y}-10-01`, provenance: "declared", depositario: "espana",
+            disposals: [{ id: "ir-v1", date: `${y}-03-01`, quantitySold: 5, saleProceeds: 900 }] },
+        ];
+        scenarioSettings.wp21Rendimientos = [{ id: "ir-d1", fecha: `${y}-06-01`, tipo: "dividendo", posicionId: "ir-a", concepto: "", titular: "", integro: 200, retencionEspana: 38, retencionOrigen: null, paisOrigen: "" }];
+        scenarioSettings.fc3PriorLosses = [];
+        saveScenarioSettings();
+        return y;
+      });
+      const caja = page.locator("#informeRenta");
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").click();
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText(`Javi, ${year}:`);
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("todavía no se puede dar la cuota");
+      await expect(caja.locator(".informe-renta-falta")).toContainText("«Fondo A» tiene ventas este año y no se sabe de quién es");
+
+      await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "household"; saveScenarioSettings(); });
+      await caja.getByLabel("Declarante").selectOption("tere");
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText(`Tere, ${year}: base liquidable del ahorro estimada de`);
+      // La mitad de la venta (900 − 500 = 400 → 200) y la mitad del dividendo (100): base 300; cuota 19 % = 57.
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("300");
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("57");
+      await expect(caja.getByRole("region", { name: `Transmisiones de ${year}` })).toContainText("Fondo A (50 %)");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      const [descarga] = await Promise.all([page.waitForEvent("download"), caja.getByRole("button", { name: "Exportar CSV" }).click()]);
+      expect(descarga.suggestedFilename()).toBe(`informe-renta-${year}-tere.csv`);
+      const csv = await (await descarga.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString("utf8"));
+      expect(csv).toContain("Base liquidable del ahorro;;;300;");
+      expect(csv).toContain("Cuota estimada;;escala de la ley;57;");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
   }
 });

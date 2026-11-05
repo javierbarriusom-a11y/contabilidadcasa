@@ -147,3 +147,24 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
   - **El cupo del 25 % es compartido.** El manual de la Renta 2025 de la AEAT (apartado 8.1.4) dice que la compensación de los saldos negativos de años anteriores, «junto con la de los saldos negativos de rendimientos de capital mobiliario de 2025, no podrá superar conjuntamente el límite del 25 %» del saldo positivo del otro bloque. Lo mismo en sentido inverso.
   - **Cómo se leyó:** a través de los extractos que el buscador da de esas dos páginas oficiales. La red de esta sesión no deja abrir `sede.agenciatributaria.gob.es` directamente. Antes del informe definitivo (marzo de 2027) hay que leer el manual de la campaña 2026 en la propia sede.
 - **Siguiente, PR-1:** el motor `canonical-tax-report.js`, con estas dos reglas ya como «confirmadas».
+
+## 10. PR-1 y PR-2 hechos (5/11/2026, sesión 407): el motor y la pantalla del informe
+
+- **Motor** (`canonical-tax-report.js`, puro): `taxReport({ year, holder, positions, deferredBySale, rendimientos, priorLosses, savingsScale })`, por ejercicio y declarante (`javi` o `tere`).
+  - **Transmisiones** del año con su parte (1, o 0,5 si es conjunta): valor de transmisión, de adquisición (FIFO) y resultado; la pérdida diferida por recompra (XIN-02) se resta y no se arrastra.
+  - **Rendimientos** del año (PR-0b), con las dos retenciones.
+  - **Compensación** (`compensate`): primero cada bloque dentro de sí; luego el cruce del año hasta el 25 %; luego las pendientes, de la más antigua a la más nueva, primero en su bloque y lo que quede en el otro con **el cupo que reste** del 25 %. Lo que no cabe se arrastra; lo de hace 4 años que no cabe, **caduca** y se dice.
+  - **Cuota** con la escala del ahorro del hogar (Ajustes › Fiscal, tipo «ahorro», si es válida y del mismo año) o, si no, con la de la ley desde 2025 (siempre dice cuál). Antes de 2025 sin escala del hogar: sin cuota.
+  - **Doble imposición:** lo retenido fuera, como mucho tipo medio × renta extranjera. Lo que excede se dice como «no se recupera aquí». El tope de cada convenio no se comprueba, y se avisa.
+  - **720:** «pasa», «no pasa» o «sin saber» (alguna posición sin depositario). La conjunta cuenta **entera** para el umbral (criterio prudente: un cotitular declara el bien).
+  - **Lo que falta:** cada motivo con su código. Los que **bloquean** la cuota (venta sin lotes o sin importe, posición o cobro sin titular, pérdida pendiente aún aplicable sin titular, sin escala) y los que **no** (sin retención española, retención en origen sin país).
+- **Traspasos:** la app no guarda un historial de traspasos (`applyFundTransfer` cambia la posición sin dejar evento), así que no salen como ventas. Es lo correcto fiscalmente; el listado aparte del §1 queda para cuando exista ese historial.
+- **Pantalla** (`informe-renta-ui.js`): «Informe de inversión para la Renta», **plegado dentro de la tarjeta «Borrador de apoyo para la Renta» (GOB8)** de Herramientas avanzadas › Fiscal. Es la parte de inversión que a ese borrador le faltaba; así no hay titular nuevo (XGO-01) ni se retira nada.
+  - Ejercicio (el actual, «provisional», y los dos anteriores) y declarante.
+  - Arriba, la frase con la base y la cuota, o «todavía no se puede dar la cuota» y lo que falta, cada cosa con **dónde se arregla**.
+  - Tablas desplazables con el teclado (transmisiones, dividendos e intereses), la compensación paso a paso, la cuota y el aviso del 720.
+  - **Exportar CSV** (punto y coma, coma decimal, con BOM para que la hoja de cálculo lea las tildes).
+  - Notas fijas: no es el modelo 100; las ventas de fondos llevan retención que la app no guarda; la custodia de valores es deducible y no se resta.
+  - **Imprimir**, que el §4 incluía, se queda fuera de esta entrega: el CSV cubre llevarlo al asesor.
+- **Pruebas:** `tests/wp21-informe-renta.test.cjs` (18, con las cifras del §5 hechas a mano), e2e «PR-2» a 390 (`@safari`) y 1280 px (lo que falta, la cuota al completarlo y el CSV descargado y releído), y axe en claro y oscuro con el informe abierto.
+- **Lo que queda de WP-21:** que el hogar teclee sus datos (titulares, cobros, pérdidas con bloque); imprimir; el listado de traspasos cuando haya historial; y el PR-3 (el local), que se diseña aparte.

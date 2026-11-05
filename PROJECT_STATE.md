@@ -113,6 +113,18 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (408): WP-21 · PR-1 y PR-2, el motor y la pantalla del informe para la Renta
+
+- **Petición del hogar:** «seguimos con tareas que no dependan de mí». Siguiente pieza de WP-21 tras el PR-0b.
+- **Reglas reconfirmadas antes de escribir el motor** (`docs/WP21_DISENO.md` §9): el 30 % rige desde el 1/1/2025 (AEAT, novedades de la Ley 7/2024) y el cupo del 25 % es compartido (manual de la Renta 2025, 8.1.4). Se leyeron por los extractos del buscador: la red de la sesión no deja abrir la sede de la AEAT.
+- **Motor** (`canonical-tax-report.js`, nuevo, puro): transmisiones y rendimientos por declarante (la conjunta al 50 %), compensación del art. 49 con el cupo compartido y el arrastre por bloque (incluida la caducidad), cuota con la escala del hogar o la de la ley, doble imposición con su tope, aviso del 720 y «lo que falta» (bloqueante o no).
+- **Pantalla** (`informe-renta-ui.js`, nuevo): «Informe de inversión para la Renta», plegado dentro de «Borrador de apoyo para la Renta» (GOB8). Sin titular nuevo ni pantalla retirada. Ejercicio y declarante, lo que falta con dónde se arregla, tablas, compensación paso a paso, cuota, 720 y CSV. Imprimir queda fuera.
+- **Registro:** los dos módulos en `index.html` (antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`; `app.js` lo llama en el case «herramientas-fiscal» (una línea). ARQ-3: de 116 a 117 motores, con consumidor real. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6396/6396, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-informe-renta.test.cjs` (18).
+  - e2e «PR-2» a 390 (`@safari`) y 1280 px, XGO-01 (la superficie no cambia) y axe en claro y oscuro con el informe abierto: todo en verde en local con Chromium.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (407): WP-21 · PR-0b, dividendos e intereses y pérdidas arrastradas por bloque
 
 - **Petición del hogar:** «seguimos con tareas que no dependan de mí». Es el resto del PR-0 de WP-21.

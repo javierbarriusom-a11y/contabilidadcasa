@@ -30732,6 +30732,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       renderAjustes();
       globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
       globalThis.renderNominas?.(globalThis.FinanceCanonicalPayroll); // WP-31 (nominas-ui.js)
+      globalThis.renderInformeRenta?.(globalThis.FinanceCanonicalTaxReport); // WP-21 (informe-renta-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":

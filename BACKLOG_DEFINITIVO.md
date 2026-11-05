@@ -11,6 +11,8 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 ## 0. Estado en una línea
 
+**5/11/2026 · WP-21 · PR-1 y PR-2 hechos:** el informe de inversión para la Renta, por declarante, está en Herramientas avanzadas › Fiscal, plegado dentro del «Borrador de apoyo para la Renta». Da la base del ahorro, la compensación con el 25 %, la cuota estimada, la doble imposición, el aviso del 720 y lo que le falta. Exporta a CSV. Falta que el hogar teclee sus datos; imprimir y el local (PR-3) quedan para después.
+
 **5/11/2026 · WP-21 · PR-0b hecho:** «Datos para la Renta» registra también los dividendos e intereses cobrados (íntegro y retenciones; en blanco es «sin declarar», no 0), y cada pérdida arrastrada dice su bloque y su titular. Con eso, el PR-0 está completo. Siguiente: PR-1, el motor del informe.
 
 **5/11/2026 · WP-21 · PR-0a hecho:** «Datos para la Renta» en Inversión › Cartera, plegado: de quién es cada posición (Javi, Tere o conjunta) y si está depositada fuera de España. Se rellena una vez y se guarda con la cartera. Siguiente: PR-0b (dividendos y pérdidas pendientes) y PR-1 (el motor del informe).

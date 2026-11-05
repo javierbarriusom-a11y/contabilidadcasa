@@ -12832,6 +12832,83 @@ input[data-amount-input][aria-invalid="true"] {
   }
 }
 
+/* WP-21 · PR-2: «Informe de inversión para la Renta», dentro del borrador de apoyo (informe-renta-ui.js). */
+.informe-renta {
+  margin-top: 16px;
+}
+
+.informe-renta > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.informe-renta-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+  margin: 10px 0;
+}
+
+.informe-renta-controles label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.informe-renta h4 {
+  margin: 16px 0 4px;
+  font-size: 0.95rem;
+}
+
+.informe-renta-falta {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--warning, #b26a00);
+}
+
+.informe-renta-falta p,
+.informe-renta-falta ul {
+  margin: 0;
+}
+
+.informe-renta-lineas {
+  margin: 4px 0;
+  padding-left: 1.2em;
+}
+
+.informe-renta-tabla {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.informe-renta-tabla table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.85rem;
+}
+
+.informe-renta-tabla caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.informe-renta-tabla th,
+.informe-renta-tabla td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  text-align: left;
+  vertical-align: top;
+}
+
+.informe-renta-tabla .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
 /* WP-21 · PR-0b: dividendos e intereses cobrados. */
 .renta-datos-titulo {
   margin: 18px 0 4px;

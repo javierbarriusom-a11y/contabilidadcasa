@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-05-informe-renta",
+      fecha: "2026-11-05",
+      texto: "Herramientas avanzadas › Fiscal: el informe de inversión para la Renta de cada declarante, con lo que le falta y en CSV.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-11-05-renta-rendimientos",
       fecha: "2026-11-05",
       texto: "«Datos para la Renta» suma los dividendos e intereses cobrados, y cada pérdida arrastrada dice ya su bloque y su titular.",
