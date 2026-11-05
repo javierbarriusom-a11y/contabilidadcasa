@@ -244,6 +244,7 @@ const SHELL_URLS = [
   "./ejemplos-ui.js",
   "./descubierto-ui.js",
   "./aportado-ui.js",
+  "./renta-datos-ui.js",
   "./canonical-next-best-action.js",
   "./siguiente-paso-ui.js",
   "./cierre-guia-ui.js",

@@ -110,3 +110,18 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
 [guiafiscal.es · compensar pérdidas y ganancias](https://guiafiscal.es/inversiones/compensar-perdidas-y-ganancias-irpf/) ·
 [taxdown.es · modelo 720](https://taxdown.es/inversion-acciones-bolsa/modelo-720) ·
 [legalfournier.com · umbral por bloques del 720](https://legalfournier.com/?p=2847).
+
+## 8. PR-0a hecho (5/11/2026, sesión 406): titular y depositario de cada posición
+
+- **Motor** (`canonical-portfolio.js`, `normalizePosition`): tres campos nuevos.
+  - `titular`: `javi`, `tere` o `household`, que es conjunta y por defecto al 50 % (decisión 1 del §7, aún sin confirmar).
+  - `depositario`: `espana` o `extranjero`.
+  - `depositarioPais`: solo si está fuera de España.
+  - Lo desconocido se queda vacío: nunca se asume un titular ni «España». Viajan en la posición, así que van en la copia y en la nube con el resto de la cartera, sin almacén nuevo.
+- **Pantalla** (`renta-datos-ui.js`): «Datos para la Renta» en Inversión › Cartera, **plegado**: un `<details>` cerrado no suma titulares (XGO-01).
+  - Se pinta al abrirlo, con una fila por posición: titular, dónde está depositada y el país (solo fuera de España).
+  - Se guarda al elegir, con `saveIv1PositionsList`, la lista de siempre. Sin líneas en `app.js`.
+  - Arriba dice cuántas posiciones tienen titular y a cuántas les falta el depositario.
+- **Por qué una lista y no el formulario de alta:** las posiciones del hogar ya existen; marcarlas una vez cuesta menos que editarlas una a una.
+- **Pruebas:** `tests/wp21-renta-datos.test.cjs` (4) y la e2e «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px: elegir, guardar y recargar.
+- **Siguiente, PR-0b:** el registro de dividendos e intereses, y las pérdidas pendientes por bloque.

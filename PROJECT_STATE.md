@@ -113,6 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (406): WP-21 · PR-0a, titular y depositario de cada posición
+
+- **Petición del hogar:** «sigue con el PR-0 de WP-21». El PR-0 se parte en dos: **PR-0a** (titular y depositario, aquí) y **PR-0b** (dividendos y pérdidas pendientes, siguiente).
+- **Motor** (`canonical-portfolio.js`): `titular` (`javi`, `tere` o `household`), `depositario` (`espana` o `extranjero`) y `depositarioPais`, normalizados. Lo desconocido se queda vacío y nada se asume por defecto.
+- **Pantalla** (`renta-datos-ui.js`, nuevo):
+  - «Datos para la Renta» en Inversión › Cartera, plegado (XGO-01 no cambia).
+  - Una fila por posición, que se guarda al elegir con la lista de posiciones de siempre.
+  - Un resumen de lo que falta.
+  - Sin líneas en `app.js` y sin almacén nuevo: los campos viajan en la posición, así que van en la copia y en la nube.
+- **Por qué una lista y no el formulario de alta:** las posiciones del hogar ya existen.
+- **Registro del módulo:** `index.html` (con `defer` antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`. Estilos en `styles.css`.
+- **Versiones:** `styles.css` y `novedades.js` a `?v=20261105wp21a`, con sus pruebas. Novedades, una línea. `docs/WP21_DISENO.md` §8.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6371/6371, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-renta-datos.test.cjs` (4).
+  - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (405): WP-21 (paquete Renta), diseño
 
 - **Petición del hogar:** «sigue con cosas que no dependan de mí». WP-21 era el único paquete del plan sin empezar, tiene fecha externa (31/3/2027) y se puede construir con datos de ejemplo.

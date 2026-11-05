@@ -12790,3 +12790,39 @@ input[data-amount-input][aria-invalid="true"] {
 .presupuesto-mes-pct input {
   width: 5.5em;
 }
+
+/* WP-21 · PR-0a: «Datos para la Renta» en Inversión › Cartera (renta-datos-ui.js). */
+.renta-datos > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.renta-datos-lista {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renta-datos-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+  align-items: end;
+  padding: 10px 0;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+}
+
+.renta-datos-fila label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .renta-datos-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

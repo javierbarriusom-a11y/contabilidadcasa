@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261105pulido1" />
+    <link rel="stylesheet" href="styles.css?v=20261105wp21a" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261009hover1" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -2514,6 +2514,12 @@
               <h3 class="escenario-motor-panel-title" id="siguientePasoTitulo">Siguiente paso de la cartera</h3>
               <div id="siguientePasoCuerpo"></div>
             </article>
+            <!-- WP-21 · PR-0a (renta-datos-ui.js; docs/WP21_DISENO.md §3): de quién es cada posición y dónde está depositada, para el informe de
+                 la Renta. Plegado: un <details> cerrado no suma titulares a la vista (XGO-01). Se pinta al abrirlo. -->
+            <details class="e19-card renta-datos" id="rentaDatos">
+              <summary>Datos para la Renta: de quién es cada posición y dónde está depositada</summary>
+              <div id="rentaDatosCuerpo"></div>
+            </details>
             <!-- WP-15: actualizar el valor de las posiciones (hasta ahora solo se podían crear o quitar). La hoja es un diálogo (#valoracionDialog). -->
             <article class="e19-card" id="valoracionCard">
               <h3 class="escenario-motor-panel-title">Valoración de la cartera</h3>
@@ -8151,7 +8157,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261105pulido1"></script>
+    <script defer src="novedades.js?v=20261105wp21a"></script>
     <script defer src="ux-shell.js?v=20261104intro2"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8257,6 +8263,7 @@
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
     <script defer src="descubierto-ui.js?v=20261027xpr07"></script>
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
+    <script defer src="renta-datos-ui.js?v=20261105wp21a"></script>
     <script defer src="canonical-next-best-action.js?v=20261028wp17"></script>
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>

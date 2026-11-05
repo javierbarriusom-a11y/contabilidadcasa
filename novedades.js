@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-05-renta-datos",
+      fecha: "2026-11-05",
+      texto: "Inversión › Cartera: «Datos para la Renta», de quién es cada posición y dónde está depositada, para el informe de la Renta.",
+      href: "#inversion-cartera",
+    },
+    {
       id: "2026-11-05-pulido-nielsen",
       fecha: "2026-11-05",
       texto: "Más claro: «Colchón más justo» en meses, «Deuda» en Hoy sin activos, un solo «Registrar gasto» y todas las pestañas de Plan en el móvil.",

@@ -253,6 +253,9 @@
     };
   }
 
+  const PORTFOLIO_HOLDERS = ["javi", "tere", "household"];
+  const DEPOSITARY_PLACES = ["espana", "extranjero"];
+
   function normalizePosition(raw = {}, index = 0) {
     const provenance = provenanceOf(raw);
     const initialQuantity = knownNumber(raw.quantity) ? number(raw.quantity) : 0;
@@ -339,6 +342,12 @@
       // más abajo) infiere por tipo de instrumento — null si no se declara, nunca inferido de otro
       // dato. Solo para cuando el tipo no refleja la liquidez real de esta posición concreta.
       liquidityTierOverride: LIQUIDITY_TIERS.some((tier) => tier.tier === raw.liquidityTierOverride) ? raw.liquidityTierOverride : null,
+      // WP-21 · PR-0a (docs/WP21_DISENO.md §3): con tributación individual, el informe para la Renta necesita saber de quién
+      // es cada posición («household» = conjunta, al 50 % por defecto) y si está depositada fuera de España (aviso del 720).
+      // "" = sin declarar: nunca se asume un titular ni «España» por defecto.
+      titular: PORTFOLIO_HOLDERS.includes(raw.titular) ? raw.titular : "",
+      depositario: DEPOSITARY_PLACES.includes(raw.depositario) ? raw.depositario : "",
+      depositarioPais: raw.depositario === "extranjero" && known(raw.depositarioPais) ? String(raw.depositarioPais).trim().slice(0, 60) : "",
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: unknownProceeds ? { ...DISPOSAL_PROCEEDS_UNKNOWN } : xirr(cashFlows) };
   }
@@ -1232,5 +1241,7 @@
     qualitativeConcentrationWarnings,
     GEOGRAPHY_REGIONS,
     currencyGeographyExposure,
+    PORTFOLIO_HOLDERS,
+    DEPOSITARY_PLACES,
   };
 });

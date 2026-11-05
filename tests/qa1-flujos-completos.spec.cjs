@@ -7746,3 +7746,47 @@ test.describe("Intro en los diálogos confirma, nunca cancela", () => {
     });
   }
 });
+
+// WP-21 · PR-0a (docs/WP21_DISENO.md §3): de quién es cada posición y dónde está depositada, para el informe de la Renta.
+// Plegado en Inversión › Cartera; se guarda al elegir, con la lista de posiciones de siempre. Cartera INVENTADA.
+test.describe("WP-21 · Datos para la Renta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`titular y depositario de cada posición se eligen, se guardan y siguen al recargar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared" },
+          { id: "rd-b", type: "etf", label: "ETF B", quantity: 5, costBasis: 500, currentValue: 520, asOf: "2026-10-01", provenance: "declared" },
+        ];
+        saveScenarioSettings();
+      });
+      const caja = page.locator("#rentaDatos");
+      await expect(caja).toBeVisible();
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").click();
+      await expect(caja.locator(".renta-datos-fila")).toHaveCount(2);
+      await expect(caja.locator("[data-renta-datos-resumen]")).toHaveText("0 de 2 posiciones tienen titular. Falta saber dónde están depositadas 2.");
+      await caja.getByLabel("Titular de Fondo A").selectOption("tere");
+      await caja.getByLabel("Dónde está depositada Fondo A").selectOption("extranjero");
+      await caja.getByLabel("País donde está depositada Fondo A").fill("Irlanda");
+      await caja.getByLabel("País donde está depositada Fondo A").press("Tab");
+      await caja.getByLabel("Titular de ETF B").selectOption("household");
+      await expect(caja.locator("[data-renta-datos-estado]")).toHaveText("Guardado: ETF B.");
+      await expect(caja.locator("[data-renta-datos-resumen]")).toHaveText("Las 2 posiciones tienen titular. Falta saber dónde está depositada una.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaDatos summary").click();
+      await expect(page.getByLabel("Titular de Fondo A")).toHaveValue("tere");
+      await expect(page.getByLabel("Dónde está depositada Fondo A")).toHaveValue("extranjero");
+      await expect(page.getByLabel("País donde está depositada Fondo A")).toHaveValue("Irlanda");
+      await expect(page.getByLabel("Titular de ETF B")).toHaveValue("household");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
