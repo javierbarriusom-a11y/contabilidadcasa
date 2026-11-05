@@ -113,6 +113,29 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 5 de noviembre de 2026 (403): el fallo intermitente de WP-18 en Safari, cronometrado
+
+- **Petición del hogar:** «sigue con el fallo intermitente de WP-18 en Safari».
+- **Lo que dice el registro completo del CI de #586** (paso de Safari):
+  - el primer intento acabó en **«Test timeout of 60000ms exceeded»** mientras esperaba `#valoracionDialog`;
+  - la captura del momento del fallo enseña **la ventana ya abierta**, con su fila y el foco dentro;
+  - el reintento pasó, así que quedó como «1 flaky».
+
+  No falló la app: la prueba se quedó sin tiempo.
+- **Lo que se descartó:**
+  - **Cuatro recargas:** no hay cuatro. Ir de `#inversion-cartera` a `#ajustes` solo cambia el ancla, sin recargar. Hay dos cargas.
+  - **Algo de #586:** no. En la primera ejecución del CI de #586, con el mismo código salvo el arreglo de Esc, WP-18 pasó a la primera en Safari.
+  - **Una animación de la ventana:** no hay ninguna (`.action-review-dialog` no la tiene).
+  - **La traza:** no existe. El CI solo la sube si el paso falla del todo; la ejecución no tiene artefactos.
+- **Lo que se hizo** (mismo criterio que `pulsar-o-explicar.cjs` del 28/10: sin traza, cualquier arreglo sería a ciegas):
+  - `tests/helpers/cronometro-pasos.cjs` apunta los tramos de la prueba (carga y siembra, recarga, encenderla y volver, tarjeta y detalle, repintar, pulsar «valorar»).
+  - Un `afterEach` los escribe en el registro y como adjunto «tramos» si la prueba falla, también por tiempo.
+  - Comprobado forzando un fallo en local (y deshecho): en Chromium la prueba tarda unos 8 s en total.
+  - **No se sube ningún límite ni se añade ningún reintento.**
+  - Trampa 17 nueva en `BACKLOG_DEFINITIVO.md` §10.
+- **Siguiente paso:** cuando vuelva a fallar en Safari, el registro dirá qué tramo se comió los 60 s y se arregla ese.
+- **Validación:** `npm run verify` en verde (`npm test` 6363/6363, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke). Prueba nueva `tests/cronometro-pasos.test.cjs` (2). La e2e de WP-18 en local, 2 de 2, sin escribir tramos al pasar.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (402): reserva con toda la liquidez (T25) y ahorro como partida (T27)
 
 - **Decisiones del hogar sobre la revisión de Nielsen:** «T25 toda la liquidez; T27 el ahorro como partida».

@@ -27,6 +27,7 @@ const enSafari = (viewport) => ({ tag: viewport.width === 390 ? ["@safari"] : []
 const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.setItem("cierre-v2-modo", "clasico"); } catch { /* sin almacenamiento */ } });
 // Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
+const { cronometro, informarSiFalla } = require("./helpers/cronometro-pasos.cjs");
 
 // Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
 // empiezan con ella apagada, como haría el hogar al apagarla; después la encienden con su interruptor. Solo si aún no hay elección,
@@ -6975,9 +6976,14 @@ test.describe("XDA-10 · Antes de decidir", () => {
 // Nace apagada (XGO-03). Cartera INVENTADA: Fondo A, 6.000 € el 1/1, +1.800 € el 1/4 (vale 8.100 € ese día) y 10.000 € el 1/10: TWR
 // 1,05 × 1,2346 − 1 = +29,6 %. Acciones B, 2.000 € el 1/10 sin otra valoración. En total, 9.800 € puestos frente a 12.000 €: 82 y 18 de cada 100.
 test.describe("WP-18 · Aportado frente a valor", () => {
+  // Se quedó sin tiempo una vez en Safari (CI de #586) con la ventana ya abierta: si vuelve a pasar, el registro dice
+  // qué tramo se comió los 60 s (tests/helpers/cronometro-pasos.cjs).
+  let reloj = null;
+  test.afterEach(async ({}, testInfo) => informarSiFalla(reloj, testInfo));
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
     test(`apagada no sale; encendida, de cada 100 € cuánto pusisteis, la TWR junto a la XIRR y, sin dos fechas con valor, lleva a valorar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
+      reloj = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.clock.install({ time: new Date(2026, 9, 28, 10, 0, 0) });
@@ -6996,8 +7002,10 @@ test.describe("WP-18 · Aportado frente a valor", () => {
           { date: "2026-10-01", savedAt: "2026-10-01T10:00:00.000Z", points: [{ id: "apv-a", value: 10000, cost: 7800 }] },
         ], timings: [] });
       });
+      reloj.marca("primera carga y siembra");
       await page.reload();
       await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      reloj.marca("recarga");
       const card = page.locator("#aportadoCard");
       await expect(card, "apagada: no sale").toBeHidden();
 
@@ -7006,6 +7014,7 @@ test.describe("WP-18 · Aportado frente a valor", () => {
       await expect(page.locator('[data-fep-interruptor="aportado"]')).toHaveAttribute("aria-checked", "true");
       await page.goto("/index.html#inversion-cartera");
       await expect(card).toBeVisible({ timeout: 15000 });
+      reloj.marca("encenderla en Ajustes y volver a Cartera");
       await expect(card.locator(".apv-frase")).toHaveText("De cada 100 € de vuestra cartera, 82 los pusisteis vosotros y 18 los ganó el mercado.");
       await expect(card.locator(".apv-rent")).toContainText("+29,6 % del 1 ene al 1 oct");
       await expect(card.locator(".apv-rent")).toContainText(/\+\d+,\d % al año/); // la XIRR, con coma y «al año»
@@ -7017,6 +7026,7 @@ test.describe("WP-18 · Aportado frente a valor", () => {
       await expect(filas.filter({ hasText: "Acciones B" })).toContainText("falta otra valoración con fecha");
       await expect(filas.filter({ hasText: "Fondo A" }), "la XIRR de cada posición, con coma y «al año»").toContainText(/\+\d+,\d % al año/);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      reloj.marca("tarjeta y detalle");
 
       // Sin dos fechas con valor no hay TWR que dar: lo dice y lleva a la hoja de valoración.
       await page.evaluate(() => {
@@ -7025,7 +7035,9 @@ test.describe("WP-18 · Aportado frente a valor", () => {
         renderAportado(FinanceCanonicalPortfolioValuation);
       });
       await expect(card.locator(".apv-rent")).toContainText("Falta otra valoración con fecha");
+      reloj.marca("quitar una posición y repintar");
       await card.locator("[data-aportado-valorar]").click();
+      reloj.marca("pulsar «valorar»");
       await expect(page.locator("#valoracionDialog")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
