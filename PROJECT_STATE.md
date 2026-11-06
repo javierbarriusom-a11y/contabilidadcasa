@@ -173,6 +173,25 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (407): panel con la oleada de noviembre, FX-03 y FX-51 revisadas, y el impacto de cada supuesto
+
+- **Petición del hogar:** «Continúa».
+- **Panel de seguimiento:**
+  - Pestaña nueva «Noviembre · Oleada 1»: las 41 filas de §5.1 y §5.2, en la pista `noviembre` de `docs/plan/plan-definitivo.json`. Va fuera de la línea base y tiene una KPI propia.
+  - Plantilla `docs/plan/panel-seguimiento.html`; prueba de sincronía en `tests/plan-seguimiento-sincronizado.test.cjs`.
+  - Republicado en la misma URL. En su base: FX-02, FX-04, FX-16, FX-30 y FX-62 hechas; FX-01 en curso; H-35 y WP-23 esperando al hogar; una línea en el registro.
+- **Al mirar el código se revisan dos filas:**
+  - **FX-03:** el cierre de cada mes ya cuadra entre el motor diario y el mensual (invariante `monthly-parity`, que hace fallar la app si no se cumple). Lo que difiere es la forma dentro del mes: con la demo, el 8/11 el diario da 10.350 € y la banda 11.830 €, porque el diario carga el gasto variable estimado entero en su día. Pasa de 3 a 2 sesiones y, como cambia Hoy, va tras la revisión de Hoy del 16/11.
+  - **FX-51:** el registro de supuestos ya existía (A7-2, PVC15). Pasa de 2 a 1,5 sesiones.
+- **FX-51, primera entrega:**
+  - `canonical-forecast-contract.js` gana `ASSUMPTION_SHOCKS`, `assumptionImpacts` (recalcula con el motor puro, ~1 ms por vez) y `roundDifference` (dos cifras significativas).
+  - Ajustes › Supuestos dice, para la inflación, la subida de ingresos y los dos factores, cuánta liquidez quitan en su sentido desfavorable a fin del año que viene y al final del plan. Con la demo, un punto más de inflación: 320 € menos a fin de 2027 y 27.000 € menos a fin de 2036.
+  - Corregido el «×0» de los factores en el registro (`assumptionRegistryInput`, `?? 1` como `canonicalEngineInput`).
+- **Novedades,** una línea. **Versiones:** `app.js`, `novedades.js` y el contrato a `?v=20261106fx51a`.
+- **`app.js`:** 32.340 → 32.366 líneas (techo 32.426).
+- **Validación:** `npm run verify` en verde (6.413 de 6.413). e2e de Ajustes en Chromium: 10 de 10. Safari, en el CI.
+- **Pendiente:** D-N4 y H-35 (hogar).
+
 ## Cierre de sesión — 6 de noviembre de 2026 (406): semana S0 del backlog de noviembre · Previsión con una sola cifra
 
 - **Petición del hogar:** «D-N1 sí, empieza con la semana S0» (`BACKLOG_NOVIEMBRE_OLEADA_1.md` §4).

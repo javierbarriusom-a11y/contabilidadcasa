@@ -207,6 +207,7 @@ tr.done td.what { text-decoration: line-through; }
   <section class="panel">
     <div class="tabs" role="tablist" aria-label="Secciones">
       <button class="tab" role="tab" id="tab-paquetes" aria-controls="p-paquetes" aria-selected="true">Paquetes<span class="count" id="c-paquetes"></span></button>
+      <button class="tab" role="tab" id="tab-noviembre" aria-controls="p-noviembre" aria-selected="false">Noviembre · Oleada 1<span class="count" id="c-noviembre"></span></button>
       <button class="tab" role="tab" id="tab-plataforma" aria-controls="p-plataforma" aria-selected="false">Rediseño y plataforma<span class="count" id="c-plataforma"></span></button>
       <button class="tab" role="tab" id="tab-hogar" aria-controls="p-hogar" aria-selected="false">Tareas del hogar<span class="count" id="c-hogar"></span></button>
       <button class="tab" role="tab" id="tab-metricas" aria-controls="p-metricas" aria-selected="false">Métricas<span class="count" id="c-metricas"></span></button>
@@ -218,6 +219,11 @@ tr.done td.what { text-decoration: line-through; }
     <div id="p-paquetes" role="tabpanel" aria-labelledby="tab-paquetes" class="panel">
       <div class="filters" id="wp-filters"></div>
       <div id="olas" class="panel"></div>
+    </div>
+
+    <div id="p-noviembre" role="tabpanel" aria-labelledby="tab-noviembre" class="panel" hidden>
+      <p class="note">El backlog vivo desde el 5/11/2026 (BACKLOG_NOVIEMBRE_OLEADA_1.md): previsiones y escenarios visibles. El núcleo (P0) va por semanas del 6/11 al 4/12; la Oleada 2 (P1), de diciembre a enero. Como el §5.0, no suma a la curva ni al avance construido de la línea base del 3/10.</p>
+      <div id="noviembre"></div>
     </div>
 
     <div id="p-plataforma" role="tabpanel" aria-labelledby="tab-plataforma" class="panel" hidden>
@@ -267,6 +273,8 @@ tr.done td.what { text-decoration: line-through; }
   // El límite de 3 en curso (19/10/2026) lo levantó el hogar el 26/10 («no hay límites», BACKLOG_DEFINITIVO.md §4).
   // §5.0 (rediseño y séptima auditoría): fuera de la línea base; su estado vive en la colección «plataforma».
   const PLAT = PLAN.plataforma || [];
+  // Backlog de noviembre · Oleada 1 (5/11/2026): núcleo P0 y Oleada 2 P1; su estado vive en la colección «noviembre».
+  const NOV = PLAN.noviembre || [];
   const platKey = (id) => id.replace(/[^A-Za-z0-9_-]/g, "-"); // «RD-A1…A3» → «RD-A1-A3» (id de documento válido)
   const PRUEBA = ["apagada", "encendida", "graduada", "retirada"];
   const ALIAS = { curso: "en curso" }; // estados mal escritos en la base: se leen como el bueno en vez de pesar 0
@@ -279,7 +287,7 @@ tr.done td.what { text-decoration: line-through; }
   const TOTAL = BASE.reduce((s, w) => s + w.sesiones, 0);
   const DAY = 86400000;
 
-  const state = { wp: {}, plataforma: {}, hogar: {}, metricas: {}, catalogo: {}, olas: {}, registro: [], meta: {} };
+  const state = { wp: {}, plataforma: {}, noviembre: {}, hogar: {}, metricas: {}, catalogo: {}, olas: {}, registro: [], meta: {} };
   let db = null; let canWrite = false; let whoAmI = "usuario";
   let filter = "todas";
 
@@ -298,6 +306,10 @@ tr.done td.what { text-decoration: line-through; }
   function wpState(id) {
     const st = state.wp[id] || { estado: "pendiente" };
     return ALIAS[st.estado] ? { ...st, estado: ALIAS[st.estado] } : st;
+  }
+  function novState(p) {
+    const st = state.noviembre[platKey(p.id)] || { estado: "pendiente" };
+    return { ...st, estado: ALIAS[st.estado] || st.estado || "pendiente" };
   }
   function platState(p) {
     const st = state.plataforma[platKey(p.id)] || { estado: "pendiente" };
@@ -401,6 +413,7 @@ tr.done td.what { text-decoration: line-through; }
       .map((p) => p.revision).sort();
     const vencidas = overdueTasks();
     document.getElementById("kpis2").innerHTML = `
+      <div class="kpi"><span class="eyebrow">Noviembre · Oleada 1 (núcleo)</span><span class="v">${NOV.filter((p) => p.nivel === "P0" && novState(p).estado === "hecho").length}<small> / ${NOV.filter((p) => p.nivel === "P0").length}</small></span><span class="d">filas del núcleo hechas · ${NOV.filter((p) => p.nivel === "P0" && ["en curso", "en revisión"].includes(novState(p).estado)).length} en curso · ${NOV.filter((p) => p.nivel === "P0" && novState(p).estado === "esperando al hogar").length} esperando al hogar</span></div>
       <div class="kpi"><span class="eyebrow">Rediseño y plataforma (§5.0)</span><span class="v">${platHechas}<small> / ${PLAT.length}</small></span><span class="d">entregas hechas · ${platHogar} esperando al hogar · ${prs} PR fusionados</span></div>
       <div class="kpi ${apagadas.length ? "alert" : ""}"><span class="eyebrow">Funciones en prueba apagadas</span><span class="v">${apagadas.length}</span><span class="d">${apagadas.length ? `<span class="mono">${apagadas.map((p) => esc(p.id)).join(" · ")}</span> · su revisión empieza al encenderlas` : "Ninguna"}${revisiones.length ? ` · próxima revisión ${fmtShort(revisiones[0])}` : ""}</span></div>
       <div class="kpi ${vencidas.length ? "alert" : ""}"><span class="eyebrow">Tareas del hogar vencidas</span><span class="v">${vencidas.length}</span><span class="d">${vencidas.length ? `La más antigua: <span class="mono">${vencidas[0].id}</span> ${esc(vencidas[0].que.split(" (")[0])}, desde el ${fmtShort(vencidas[0].fecha)}` : "Al día"}</span></div>`;
@@ -664,6 +677,58 @@ tr.done td.what { text-decoration: line-through; }
     document.getElementById("c-plataforma").textContent = `${hechas}/${PLAT.length}`;
   }
 
+  // ---------- render: backlog de noviembre ----------
+  function novRow(p) {
+    const st = novState(p), key = platKey(p.id);
+    const hist = (st.historial || []).slice().reverse();
+    const disabled = canWrite ? "" : "disabled";
+    const nums = prNums(st.pr);
+    const label = st.estado.charAt(0).toUpperCase() + st.estado.slice(1);
+    return `<details class="wp" data-wp="nov-${key}">
+      <summary>
+        <span class="wp-state"><span class="pill ${cls(st.estado)}">${label}</span></span>
+        <span class="wp-id mono">${esc(p.id)}</span>
+        <span class="wp-name"><b>${esc(p.que)}</b>
+          <span class="wp-sub"><span>${p.nivel} · fila ${p.n}${p.semana ? ` · semana ${esc(p.semana)}` : ""}</span><span>esfuerzo ${esc(p.esfuerzo || "—")} · origen ${esc(p.origen)}</span></span></span>
+        <span class="wp-right">${nums.length ? `<span class="tag">${nums.length === 1 ? "PR #" + nums[0] : nums.length + " PR"}</span>` : ""}${st.fin ? `<span class="tag">${fmtShort(st.fin)}</span>` : ""}</span>
+      </summary>
+      <div class="wp-body">
+        <dl class="facts">
+          ${nums.length ? `<div><dt>PR</dt><dd class="mono">${nums.map((n) => "#" + n).join(" · ")}</dd></div>` : ""}
+          ${st.nota ? `<div><dt>Nota</dt><dd>${esc(st.nota)}</dd></div>` : ""}
+          ${hist.length ? `<div><dt>Historial</dt><dd class="history">${hist.map((h) => `<span>${fmt(h.fecha)} · ${esc(h.texto)}${h.por ? ` · ${esc(h.por)}` : ""}</span>`).join("")}</dd></div>` : ""}
+        </dl>
+        <form class="edit" data-plat="${key}" data-col="noviembre" data-label="${esc(p.id)}">
+          <label for="ne-${key}">Estado<select id="ne-${key}" name="estado" ${disabled}>${ESTADOS.map((e) => `<option ${st.estado === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>
+          <label for="nr-${key}">PR<input id="nr-${key}" name="pr" value="${esc(st.pr || "")}" placeholder="números, separados por comas" ${disabled}></label>
+          <label for="nf-${key}">Fin (fusionado)<input id="nf-${key}" type="date" name="fin" value="${esc(st.fin || "")}" ${disabled}></label>
+          <label class="full" for="nn-${key}">Nota<textarea id="nn-${key}" name="nota" ${disabled}>${esc(st.nota || "")}</textarea></label>
+          <div class="full form-actions">
+            <button class="btn" type="submit" ${disabled}>Guardar</button>
+            <span class="saved" aria-live="polite"></span>
+            ${canWrite ? "" : `<span class="muted small">Solo lectura en esta vista.</span>`}
+          </div>
+        </form>
+      </div>
+    </details>`;
+  }
+  function renderNoviembre() {
+    const open = new Set([...document.querySelectorAll("#noviembre details.wp[open]")].map((x) => x.dataset.wp));
+    const el = document.getElementById("noviembre");
+    const block = (nivel, titulo, sub) => {
+      const list = NOV.filter((p) => p.nivel === nivel);
+      if (!list.length) return "";
+      const hechas = list.filter((p) => novState(p).estado === "hecho").length;
+      return `<section class="ola"><div class="ola-head"><div style="display:grid; gap:4px;"><span class="eyebrow">${sub}</span><h3>${titulo} · ${hechas} de ${list.length} hechas</h3></div></div><div class="list">${list.map(novRow).join("")}</div></section>`;
+    };
+    el.innerHTML = NOV.length
+      ? block("P0", "Núcleo (P0)", "6/11 - 4/12/2026 · por semanas") + block("P1", "Oleada 2 (P1)", "7/12/2026 - 22/1/2027")
+      : `<p class="empty">El plan no trae filas del backlog de noviembre.</p>`;
+    open.forEach((id) => { const x = el.querySelector(`details.wp[data-wp="${id}"]`); if (x) x.open = true; });
+    const nucleo = NOV.filter((p) => p.nivel === "P0");
+    document.getElementById("c-noviembre").textContent = `${nucleo.filter((p) => novState(p).estado === "hecho").length}/${nucleo.length}`;
+  }
+
   // ---------- render: hogar ----------
   function renderHogar() {
     const rows = PLAN.tareasHogar.map((t) => {
@@ -766,7 +831,7 @@ tr.done td.what { text-decoration: line-through; }
   }
 
   function renderAll() {
-    renderHeader(); renderKpis(); renderChart(); renderFilters(); renderPaquetes(); renderPlataforma(); renderHogar(); renderMetricas(); renderPropuestas(); renderHitos(); renderRegistro();
+    renderHeader(); renderKpis(); renderChart(); renderFilters(); renderPaquetes(); renderNoviembre(); renderPlataforma(); renderHogar(); renderMetricas(); renderPropuestas(); renderHitos(); renderRegistro();
   }
 
   // ---------- escritura ----------
@@ -775,7 +840,7 @@ tr.done td.what { text-decoration: line-through; }
     if (!db) return;
     try { await db.collection("registro").add({ fecha: todayIso(), ts: stamp(), texto, por: whoAmI }); } catch (e) { /* el registro es secundario */ }
   }
-  // col «wp» (paquetes de la línea base) o «plataforma» (§5.0, con su id de documento y su etiqueta).
+  // col «wp» (paquetes de la línea base), «plataforma» (§5.0) o «noviembre» (backlog de noviembre), con su id de documento y su etiqueta.
   async function saveWp(id, patch, statusEl, col = "wp", label = id) {
     const cur = state[col][id] || {};
     const changes = [];
@@ -810,7 +875,7 @@ tr.done td.what { text-decoration: line-through; }
       if (patch.pr) patch.pr = patch.pr.replace(/^#/, "");
       f.querySelector(".saved").style.color = "";
       f.querySelector(".saved").textContent = "Guardando…";
-      if (f.dataset.plat) await saveWp(f.dataset.plat, patch, f.querySelector(".saved"), "plataforma", f.dataset.label);
+      if (f.dataset.plat) await saveWp(f.dataset.plat, patch, f.querySelector(".saved"), f.dataset.col || "plataforma", f.dataset.label);
       else await saveWp(f.dataset.wp, patch, f.querySelector(".saved"));
     } else if (f.matches("form.inline-form")) {
       ev.preventDefault();
@@ -918,7 +983,7 @@ tr.done td.what { text-decoration: line-through; }
       snap.docs.forEach((doc) => { if (doc.exists) obj[doc.id] = doc.data(); });
       state[target] = obj; scheduleRender();
     }, onErr);
-    sub("wp", "wp"); sub("plataforma", "plataforma"); sub("hogar", "hogar"); sub("metricas", "metricas"); sub("catalogo", "catalogo"); sub("olas", "olas");
+    sub("wp", "wp"); sub("noviembre", "noviembre"); sub("plataforma", "plataforma"); sub("hogar", "hogar"); sub("metricas", "metricas"); sub("catalogo", "catalogo"); sub("olas", "olas");
     db.collection("registro").onSnapshot((snap) => { state.registro = snap.docs.filter((x) => x.exists).map((x) => x.data()); scheduleRender(); }, onErr);
     db.doc("meta/plan").onSnapshot((snap) => { state.meta = snap.exists ? snap.data() : {}; scheduleRender(); }, onErr);
     scheduleRender();

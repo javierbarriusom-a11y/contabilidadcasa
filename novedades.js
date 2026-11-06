@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-supuestos-impacto",
+      fecha: "2026-11-06",
+      texto: "Ajustes › Supuestos: cada supuesto de la previsión dice cuánta liquidez os quita si sale peor, a fin del año que viene y del plan.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-06-prevision-una-cifra",
       fecha: "2026-11-06",
       texto: "Previsión: el punto más bajo, desde hoy y con su día (el mismo cálculo que Hoy), sin céntimos ni jerga, y cabe en el móvil.",

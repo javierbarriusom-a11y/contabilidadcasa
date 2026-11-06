@@ -118,3 +118,33 @@ test("el JSON del plan no lleva importes en euros (repositorio público)", () =>
   const raw = fs.readFileSync(path.join(root, "docs/plan/plan-definitivo.json"), "utf8");
   assert.doesNotMatch(raw, /\d[\d.,]*\s?€/, "Sin cifras en euros en el plan público.");
 });
+
+// Backlog de noviembre · Oleada 1 (5/11/2026, el backlog vivo): sus filas de §5.1 (núcleo, P0) y §5.2 (Oleada 2, P1) van en
+// la pista «noviembre» del JSON, fuera de la línea base como el §5.0. Si una fila entra en el backlog y no en el panel, su
+// trabajo no se ve.
+test("§5.1 y §5.2 del backlog de noviembre y la pista «noviembre» del JSON tienen las mismas filas, en el mismo nivel", () => {
+  const nov = fs.readFileSync(path.join(root, "BACKLOG_NOVIEMBRE_OLEADA_1.md"), "utf8");
+  const rowsOf = (heading) => {
+    const start = nov.indexOf(heading);
+    assert.notEqual(start, -1, `BACKLOG_NOVIEMBRE_OLEADA_1.md debe tener la sección «${heading}».`);
+    const rest = nov.slice(start + heading.length);
+    const end = rest.search(/\n##+ /);
+    return (end === -1 ? rest : rest.slice(0, end)).split("\n")
+      .filter((line) => line.startsWith("|") && !line.startsWith("|---") && !/^\| (#|ID) \|/.test(line))
+      .map((line) => line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim()));
+  };
+  const rows = [
+    ...rowsOf("### 5.1").map((cells) => ({ n: Number(clean(cells[0])), id: clean(cells[1]), nivel: "P0" })),
+    ...rowsOf("### 5.2").map((cells) => ({ n: Number(clean(cells[0])), id: clean(cells[1]), nivel: "P1" })),
+  ];
+  assert.ok(rows.length >= 40, "El núcleo y la Oleada 2 deben tener al menos sus 41 filas.");
+  const json = new Map((plan.noviembre || []).map((p) => [p.id, p]));
+  assert.equal(json.size, plan.noviembre.length, "Ninguna entrada de «noviembre» repetida.");
+  assert.equal(json.size, rows.length, "El JSON y el backlog de noviembre deben tener las mismas filas.");
+  for (const row of rows) {
+    const p = json.get(row.id);
+    assert.ok(p, `${row.id} está en el backlog de noviembre pero no en «noviembre».`);
+    assert.equal(p.n, row.n, `${row.id}: número de fila distinto.`);
+    assert.equal(p.nivel, row.nivel, `${row.id}: nivel distinto.`);
+  }
+});

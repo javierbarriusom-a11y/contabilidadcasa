@@ -1,6 +1,6 @@
 {
- "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md (§5 y §5.0) y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog. «plataforma» es el §5.0 (rediseño y séptima auditoría): va fuera de la línea base del 3/10 y su estado vive en la base del panel (colección plataforma).",
- "version": "2026-11-04",
+ "_aviso": "Generado a partir de BACKLOG_DEFINITIVO.md (§5 y §5.0) y docs/PLAN_DESARROLLO_DEFINITIVO.md. Sin cifras del hogar (repositorio público). La prueba tests/plan-seguimiento-sincronizado.test.cjs comprueba que coincide con el backlog. «plataforma» es el §5.0 (rediseño y séptima auditoría): va fuera de la línea base del 3/10 y su estado vive en la base del panel (colección plataforma). «noviembre» son las filas §5.1 (núcleo, P0) y §5.2 (Oleada 2, P1) de BACKLOG_NOVIEMBRE_OLEADA_1.md, el backlog vivo desde el 5/11/2026: también fuera de la línea base, con su estado en la colección noviembre.",
+ "version": "2026-11-06",
  "lineaBase": {
   "inicio": "2026-10-05",
   "fin": "2027-01-22",
@@ -2643,6 +2643,361 @@
    "decision": "4/11",
    "enPrueba": "pantalla",
    "revision": "2026-11-18"
+  }
+ ],
+ "noviembre": [
+  {
+   "id": "FX-02",
+   "n": 1,
+   "nivel": "P0",
+   "que": "El «punto delicado» nunca en una fecha pasada ni en el día 1 inventado; sensibilidad sin «207 %» ni importes negativos",
+   "origen": "8ª",
+   "esfuerzo": "S · 0,5",
+   "semana": "S0"
+  },
+  {
+   "id": "FX-04",
+   "n": 2,
+   "nivel": "P0",
+   "que": "Precisión según el horizonte; nunca céntimos en una previsión",
+   "origen": "8ª",
+   "esfuerzo": "S · 0,5",
+   "semana": "S0"
+  },
+  {
+   "id": "FX-30",
+   "n": 3,
+   "nivel": "P0",
+   "que": "Lenguaje de incertidumbre para personas (rango probable, peor caso razonable)",
+   "origen": "8ª",
+   "esfuerzo": "S · 1",
+   "semana": "S0"
+  },
+  {
+   "id": "FX-16",
+   "n": 4,
+   "nivel": "P0",
+   "que": "Remates del móvil en Previsión (cifras cortadas, columnas ocultas, eje que se pisa)",
+   "origen": "8ª",
+   "esfuerzo": "S · 0,5",
+   "semana": "S0"
+  },
+  {
+   "id": "FX-62",
+   "n": 5,
+   "nivel": "P0",
+   "que": "Medir Previsión y Escenarios en el medidor de utilidad",
+   "origen": "8ª",
+   "esfuerzo": "S · 0,5",
+   "semana": "S0"
+  },
+  {
+   "id": "FX-01",
+   "n": 6,
+   "nivel": "P0",
+   "que": "Contrato de cifras de previsión + glosario con vuestras cifras (absorbe XUX-05); Hoy «Fin de noviembre» con su unidad",
+   "origen": "8ª, 7ª",
+   "esfuerzo": "M · 2",
+   "semana": "S0"
+  },
+  {
+   "id": "H-35",
+   "n": 7,
+   "nivel": "P0",
+   "que": "(Hogar) Día de cargo de las 10 partidas más grandes",
+   "origen": "8ª",
+   "esfuerzo": "≈ 15 min",
+   "semana": "S0"
+  },
+  {
+   "id": "WP-23",
+   "n": 8,
+   "nivel": "P0",
+   "que": "Campaña fiscal de fin de año con los datos del hogar (FIS-01, DAC-02, FIS-02)",
+   "origen": "Def P0",
+   "esfuerzo": "—",
+   "semana": "S1"
+  },
+  {
+   "id": "FX-61",
+   "n": 9,
+   "nivel": "P0",
+   "que": "WP-28 desaparcado: kit de gráficos táctil y accesible",
+   "origen": "Def P1 (WP-28)",
+   "esfuerzo": "M · 3,5",
+   "semana": "S1"
+  },
+  {
+   "id": "FX-11",
+   "n": 10,
+   "nivel": "P0",
+   "que": "Gráfico de previsión único (real, plan, rango, suelo, hitos, escenarios, costura)",
+   "origen": "8ª",
+   "esfuerzo": "M · incl. en FX-61",
+   "semana": "S1"
+  },
+  {
+   "id": "FX-03",
+   "n": 11,
+   "nivel": "P0",
+   "que": "Trayectoria cosida: diario 0-90 días, mensual después, mismo cierre de mes (absorbe la parte de previsión de RD-COB2)",
+   "origen": "8ª, Def §5.0",
+   "esfuerzo": "M-L · 3",
+   "semana": "S1"
+  },
+  {
+   "id": "FX-51",
+   "n": 12,
+   "nivel": "P0",
+   "que": "Supuestos del plan en un solo sitio, con caducidad e impacto ±1 punto (motor en S1; hoja visible con C2)",
+   "origen": "8ª",
+   "esfuerzo": "M · 2",
+   "semana": "S1-S2"
+  },
+  {
+   "id": "FX-10",
+   "n": 13,
+   "nivel": "P0",
+   "que": "Plan › Previsión con el diseño nuevo (C2), ampliada",
+   "origen": "8ª, Def §5.0 (C2)",
+   "esfuerzo": "L · 4",
+   "semana": "S2"
+  },
+  {
+   "id": "XPR-06",
+   "n": 14,
+   "nivel": "P0",
+   "que": "Qué mueve cada día, dentro de C2 (sale de su interruptor)",
+   "origen": "Def §5.0",
+   "esfuerzo": "—",
+   "semana": "S2"
+  },
+  {
+   "id": "XPR-07",
+   "n": 15,
+   "nivel": "P0",
+   "que": "El arreglo más barato, dentro de C2",
+   "origen": "Def §5.0",
+   "esfuerzo": "—",
+   "semana": "S2"
+  },
+  {
+   "id": "XPR-08",
+   "n": 16,
+   "nivel": "P0",
+   "que": "«De verdad libre»: disponible tras apartar lo que viene",
+   "origen": "7ª",
+   "esfuerzo": "S-M · 1,5",
+   "semana": "S2"
+  },
+  {
+   "id": "FX-31",
+   "n": 17,
+   "nivel": "P0",
+   "que": "Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45)",
+   "origen": "8ª, 7ª",
+   "esfuerzo": "S-M · 1,5",
+   "semana": "S2"
+  },
+  {
+   "id": "FX-12",
+   "n": 18,
+   "nivel": "P0",
+   "que": "Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49)",
+   "origen": "8ª, Def P2",
+   "esfuerzo": "M · 2",
+   "semana": "S2 (plegado) / S3"
+  },
+  {
+   "id": "WP-37",
+   "n": 19,
+   "nivel": "P0",
+   "que": "Estados completos y «deshacer», aplicados a C2",
+   "origen": "Def P1",
+   "esfuerzo": "—",
+   "semana": "S2"
+  },
+  {
+   "id": "FX-20",
+   "n": 20,
+   "nivel": "P0",
+   "que": "Escenarios superpuestos en la previsión (solo lectura) y tabla de impacto plan frente a escenario",
+   "origen": "8ª",
+   "esfuerzo": "L · 3,5",
+   "semana": "S3"
+  },
+  {
+   "id": "FX-21",
+   "n": 21,
+   "nivel": "P0",
+   "que": "Pruebas de estrés del hogar, 3 primeras: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto grande (absorbe NIN-09 y XNF-03)",
+   "origen": "8ª, Def P3, 7ª",
+   "esfuerzo": "M · 2",
+   "semana": "S3"
+  },
+  {
+   "id": "FX-23",
+   "n": 22,
+   "nivel": "P0",
+   "que": "Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar",
+   "origen": "8ª",
+   "esfuerzo": "S-M · 1,5",
+   "semana": "S3"
+  },
+  {
+   "id": "FX-40",
+   "n": 23,
+   "nivel": "P0",
+   "que": "Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión)",
+   "origen": "8ª, 7ª, Def P2",
+   "esfuerzo": "M · 2,5",
+   "semana": "S3"
+  },
+  {
+   "id": "FX-42",
+   "n": 24,
+   "nivel": "P0",
+   "que": "La previsión en el «Listo» del Repaso semanal (no es un paso nuevo)",
+   "origen": "8ª",
+   "esfuerzo": "S · 0,5",
+   "semana": "S3"
+  },
+  {
+   "id": "FX-43",
+   "n": 25,
+   "nivel": "P0",
+   "que": "La carta del mes cuenta la previsión (WP-29)",
+   "origen": "8ª, Def P1",
+   "esfuerzo": "S · 0,5",
+   "semana": "S4"
+  },
+  {
+   "id": "FX-21 (resto)",
+   "n": 1,
+   "nivel": "P1",
+   "que": "Las otras 4 pruebas de estrés",
+   "origen": "8ª",
+   "esfuerzo": "M · 1"
+  },
+  {
+   "id": "FX-14 / XPR-04",
+   "n": 2,
+   "nivel": "P1",
+   "que": "El mes en curso al ritmo real",
+   "origen": "7ª",
+   "esfuerzo": "M · 2"
+  },
+  {
+   "id": "FX-13 / XPR-05",
+   "n": 3,
+   "nivel": "P1",
+   "que": "Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos)",
+   "origen": "7ª, Def §5.0",
+   "esfuerzo": "M · 2,5"
+  },
+  {
+   "id": "FX-22",
+   "n": 4,
+   "nivel": "P1",
+   "que": "«¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas)",
+   "origen": "8ª, Def P3",
+   "esfuerzo": "M · 2"
+  },
+  {
+   "id": "FX-41",
+   "n": 5,
+   "nivel": "P1",
+   "que": "Avisos de previsión con umbral en Hoy y en el calendario (WP-32)",
+   "origen": "8ª",
+   "esfuerzo": "S-M · 1,5"
+  },
+  {
+   "id": "FX-60 / XUX-01",
+   "n": 6,
+   "nivel": "P1",
+   "que": "Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir",
+   "origen": "7ª, Def §5.0",
+   "esfuerzo": "L · 4"
+  },
+  {
+   "id": "RD-D1/D2",
+   "n": 7,
+   "nivel": "P1",
+   "que": "Patrimonio e Inversión con el diseño nuevo",
+   "origen": "Def §5.0",
+   "esfuerzo": "L"
+  },
+  {
+   "id": "FX-50",
+   "n": 8,
+   "nivel": "P1",
+   "que": "Hasta 2036 legible: vista anual con hitos y supuestos (absorbe #forecast; sobre WP-46)",
+   "origen": "8ª",
+   "esfuerzo": "M-L · 3"
+  },
+  {
+   "id": "FX-15",
+   "n": 9,
+   "nivel": "P1",
+   "que": "Resumen por periodo en cascada; tabla que cabe en el móvil",
+   "origen": "8ª",
+   "esfuerzo": "S · 1"
+  },
+  {
+   "id": "FX-27 / XDO-02",
+   "n": 10,
+   "nivel": "P1",
+   "que": "La revisión de la hipoteca como escenario con fecha",
+   "origen": "8ª, 7ª",
+   "esfuerzo": "M · 2"
+  },
+  {
+   "id": "XDA-10 PR-2",
+   "n": 11,
+   "nivel": "P1",
+   "que": "Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e escenarios",
+   "origen": "Def §5.0",
+   "esfuerzo": "S-M"
+  },
+  {
+   "id": "WP-34 / PRV-08",
+   "n": 12,
+   "nivel": "P1",
+   "que": "Revisión base cero del plan (enero)",
+   "origen": "Def P1",
+   "esfuerzo": "—"
+  },
+  {
+   "id": "WP-21",
+   "n": 13,
+   "nivel": "P1",
+   "que": "Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3)",
+   "origen": "Def P2",
+   "esfuerzo": "M · 2"
+  },
+  {
+   "id": "XPR-11",
+   "n": 14,
+   "nivel": "P1",
+   "que": "Mover los días de cargo a donde menos duelen (palanca del remedio)",
+   "origen": "7ª",
+   "esfuerzo": "S · 1"
+  },
+  {
+   "id": "XDA-04 PR-2",
+   "n": 15,
+   "nivel": "P1",
+   "que": "Tira de cobertura de 90 días por cuenta",
+   "origen": "Def §5.0",
+   "esfuerzo": "S"
+  },
+  {
+   "id": "WP-54",
+   "n": 16,
+   "nivel": "P1",
+   "que": "Primera ronda de la prueba con 5 personas ajenas, con C2 y los presets como tareas",
+   "origen": "Def (continuo)",
+   "esfuerzo": "—"
   }
  ]
 }

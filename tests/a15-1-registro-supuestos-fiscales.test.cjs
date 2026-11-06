@@ -119,7 +119,7 @@ test("assumptionRegistryInput · combina saldos, política del forecast y los ci
 test("renderAjustesAssumptionRegistry · pinta las 13 filas con etiqueta, valor formateado por unidad y fecha", () => {
   const list = { innerHTML: "" };
   const ctx = sandboxWith(
-    ["fiscalWithholdingRate", "fiscalDeductibleContributions", "fiscalDeductibleRent", "assumptionRegistryInput", "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar"],
+    ["fiscalWithholdingRate", "fiscalDeductibleContributions", "fiscalDeductibleRent", "assumptionRegistryInput", "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "assumptionImpactNotes"],
     {
       state: { fiscalWithholdingRate: 15 },
       scenarioSettings: {},
@@ -138,7 +138,7 @@ test("handleFiscalWithholdingRateChange · no guarda si el valor no cambia", () 
   let saved = 0;
   const ctx = sandboxWith(
     ["fiscalWithholdingRate", "fiscalDeductibleContributions", "fiscalDeductibleRent", "assumptionRegistryInput",
-      "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "persistAssumptionRegistry", "fiscalNumericFieldFromValue", "handleFiscalWithholdingRateChange"],
+      "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "assumptionImpactNotes", "persistAssumptionRegistry", "fiscalNumericFieldFromValue", "handleFiscalWithholdingRateChange"],
     {
       state: { fiscalWithholdingRate: 19 },
       scenarioSettings: {},
@@ -155,7 +155,7 @@ test("handleFiscalWithholdingRateChange · al cambiar, guarda y deja la nueva fo
   const settings = {};
   const ctx = sandboxWith(
     ["fiscalWithholdingRate", "fiscalDeductibleContributions", "fiscalDeductibleRent", "assumptionRegistryInput",
-      "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "persistAssumptionRegistry", "fiscalNumericFieldFromValue", "handleFiscalWithholdingRateChange"],
+      "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "assumptionImpactNotes", "persistAssumptionRegistry", "fiscalNumericFieldFromValue", "handleFiscalWithholdingRateChange"],
     {
       state: { fiscalWithholdingRate: 0 },
       scenarioSettings: settings,
