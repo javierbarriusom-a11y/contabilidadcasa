@@ -93,3 +93,35 @@ test("FX-62 · Previsión y Escenarios se miden en el medidor de utilidad (vista
   assert.match(escenarios, /FinanceMedidor\?\.anotar\("escenarios", "vista"\)/);
   assert.equal((escenarios.match(/FinanceMedidor\?\.anotar\("escenarios", "accion"\)/g) || []).length, 3, "decisión añadida, aviso guardado y escenario guardado");
 });
+
+test("FX-51 · lo que mueve cada supuesto: se recalcula con el mismo motor en su sentido desfavorable y se ordena por efecto", () => {
+  const calls = [];
+  const run = (input) => {
+    calls.push(input.policy);
+    const p = input.policy;
+    const end = 5000 - 1000 * p.annualInflation + 800 * p.annualIncomeGrowth - 4000 * (p.expenseFactor - 1) + 6000 * (p.incomeFactor - 1);
+    return { rows: [{ detailMonthKey: "2027-12", totalLiquidity: 1000 - 100 * p.annualInflation }, { detailMonthKey: "2036-12", totalLiquidity: end }] };
+  };
+  const input = { policy: { annualInflation: 2, annualIncomeGrowth: 1, expenseFactor: 1, incomeFactor: 1, plannedMonthlySaving: 800 } };
+  const impacts = Contract.assumptionImpacts(run, input, { targets: ["2027-12", "2036-12"] });
+  assert.equal(calls.length, 5, "el plan y uno por supuesto");
+  assert.deepEqual(input.policy, { annualInflation: 2, annualIncomeGrowth: 1, expenseFactor: 1, incomeFactor: 1, plannedMonthlySaving: 800 }, "no toca la entrada");
+  assert.deepEqual(impacts.map((i) => i.id), ["annualInflation", "annualIncomeGrowth", "incomeFactor", "expenseFactor"]);
+  const inflation = impacts[0];
+  assert.equal(calls[1].annualInflation, 3, "un punto más sobre el valor de hoy");
+  assert.deepEqual(inflation.effects.map((e) => Math.round(e.diff)), [-100, -1000]);
+  assert.equal(Contract.assumptionImpacts(null, input).length, 0);
+  assert.equal(Contract.assumptionImpacts(run, {}).length, 0);
+});
+
+test("FX-04 para diferencias: dos cifras significativas, nunca menos de la decena", () => {
+  assert.deepEqual([322, 26907, 4012, -31234, 7, 0, 95].map(Contract.roundDifference), [320, 27000, 4000, -31000, 10, 0, 100]);
+});
+
+test("FX-51 · el registro de supuestos lee los factores sin tocar como ×1 (antes «×0») y Ajustes dice lo que mueve cada uno", () => {
+  const app = read("app.js");
+  assert.match(app, /incomeFactor: state\?\.incomeFactor \?\? 1/);
+  assert.match(app, /expenseFactor: state\?\.expenseFactor \?\? 1/);
+  assert.match(app, /const impacts = assumptionImpactNotes\(\);/);
+  assert.match(app, /contract\.assumptionImpacts\(\(input\) => engine\.buildScenario\(input, null, \{ reason: "fx51-supuestos" \}\), canonicalEngineInput\(\[\], \{\}\), \{ targets \}\)/);
+});

@@ -23452,8 +23452,9 @@ function assumptionRegistryInput() {
   return {
     openingBalances: { checking: balances.caixa, savings: balances.mediolanum },
     policy: {
-      incomeFactor: state?.incomeFactor, annualIncomeGrowth: state?.annualIncomeGrowth,
-      expenseFactor: state?.expenseFactor, annualInflation: state?.annualInflation,
+      // FX-51: sin tocar, los factores valen 1, como en canonicalEngineInput(); antes el registro decía «×0».
+      incomeFactor: state?.incomeFactor ?? 1, annualIncomeGrowth: state?.annualIncomeGrowth,
+      expenseFactor: state?.expenseFactor ?? 1, annualInflation: state?.annualInflation,
       // Mismo valor por defecto que ya usa el propio checkbox (V6-3): buildAssumptionRegistry()
       // trata un booleano sin dato como "no" (A15-1), así que aquí hay que dar el true real cuando
       // autoCapSavings todavía no se ha tocado, o el registro mostraría "No" para el comportamiento
@@ -23545,14 +23546,40 @@ function renderAjustesAssumptionRegistry() {
   const expiry = engine.assumptionExpiryAlerts ? engine.assumptionExpiryAlerts(registry) : { expired: [] };
   renderAjustesAssumptionExpiryRadar(expiry);
   const expiredById = new Map(expiry.expired.map((entry) => [entry.id, entry]));
+  const impacts = assumptionImpactNotes();
   list.innerHTML = registry.items.map((item) => {
     const format = ASSUMPTION_REGISTRY_UNIT_FORMAT[item.unit] || ((value) => String(value));
     const expiredEntry = expiredById.get(item.id);
     const expiryNote = expiredEntry
       ? ` · <strong>supuesto caducado</strong> (sin confirmar hace ${expiredEntry.ageMonths} meses, más de ${expiredEntry.thresholdMonths})`
       : "";
-    return `<li class="commit-barrier-item${expiredEntry ? " warning" : ""}"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}${expiryNote}</small></li>`;
+    const impact = impacts.get(item.id) ? `<small>${escapeHtml(impacts.get(item.id))}</small>` : "";
+    return `<li class="commit-barrier-item${expiredEntry ? " warning" : ""}"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}${expiryNote}</small>${impact}</li>`;
   }).join("");
+}
+
+// FX-51 (BACKLOG_NOVIEMBRE_OLEADA_1.md): lo que mueve cada supuesto general la liquidez a fin del año que viene y al final del
+// plan, recalculando con el mismo motor (canonical-forecast-contract.js). Una diferencia se redondea a dos cifras significativas.
+function assumptionImpactNotes() {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const engine = globalThis.FinanceCanonicalEngine;
+  const notes = new Map();
+  if (!contract?.assumptionImpacts || !engine?.buildScenario || !state || !lastSimulation.length) return notes;
+  const today = isoLocalDate(new Date());
+  const targets = [`${Number(today.slice(0, 4)) + 1}-12`, lastSimulation.at(-1).detailMonthKey].filter((key, index, all) => key && all.indexOf(key) === index);
+  const say = (effect) => {
+    const amount = contract.roundDifference(Math.abs(effect.diff));
+    const when = `a fin de ${effect.monthKey.slice(0, 4)}`;
+    return amount === 0 ? `${when}, casi nada` : `${when}, ${money(amount)} ${effect.diff < 0 ? "menos" : "más"}`;
+  };
+  try {
+    contract.assumptionImpacts((input) => engine.buildScenario(input, null, { reason: "fx51-supuestos" }), canonicalEngineInput([], {}), { targets })
+      .forEach((impact) => {
+        const effects = impact.effects.filter((effect) => effect.diff !== null);
+        if (effects.length) notes.set(impact.id, `Con ${impact.phrase}: ${effects.map(say).join("; ")} de liquidez.`);
+      });
+  } catch { /* sin impacto si el motor no puede recalcular: el registro se enseña igual */ }
+  return notes;
 }
 
 function persistAssumptionRegistry() {

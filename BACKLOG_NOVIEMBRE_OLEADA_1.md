@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 (tarde) · FX-51, primera entrega: lo que mueve cada supuesto, en Ajustes › Supuestos.** Para la inflación, la subida de los ingresos y los factores de gasto e ingreso, la app recalcula el plan con el mismo motor, moviendo cada supuesto en su sentido desfavorable, y dice cuánta liquidez quita a fin del año que viene y al final del plan. Con la demo: «Con un punto más de inflación: a fin de 2027, 320 € menos; a fin de 2036, 27.000 € menos». Cada recálculo tarda ~1 ms. Las diferencias se redondean a dos cifras significativas: la regla de los niveles borraba 320 €. **Error que ya existía, corregido:** el registro decía «Factor general de ingresos ×0» y «de gastos ×0» con los factores sin tocar, que el motor usa como ×1. Pantalla nueva, ninguna.
+
 **6/11/2026 · D-N1 aprobada por el hogar («sí, empieza con la semana S0») y S0 construida en un PR.** Con la demo (reloj 5/11):
 - **FX-02:** Previsión decía «El punto delicado es nov 26 · cae a 5.350 € el 01 nov», una fecha ya pasada. El motor mensual pone el mínimo siempre en el día 1. Ahora toma el punto más bajo del motor diario, el mismo de Hoy, solo desde hoy: «El punto delicado es dic 26 · Lo más bajo llega el 8 dic: unos 5.600 €». Hasta 90 días lleva el día; más allá, el mes. El «Mínimo del periodo» del resumen dice lo mismo, con el mismo redondeo. Las barras siguen siendo el mensual, rotulado como «el peor orden del mes».
 - **FX-04:** sin céntimos en la banda de caja ni en la sensibilidad. El titular va a la decena hasta 30 días, a la centena hasta un año y al millar después.
@@ -28,7 +30,11 @@ minutos.
 - **FX-16:** Previsión cabe a 390 px: cifras en dos columnas, la tabla mensual con todas sus columnas a la vista desplazando y las etiquetas del gráfico sin pisarse.
 - **FX-62:** Previsión y Escenarios, en el medidor de utilidad.
 - **FX-01, primera parte:** `canonical-forecast-contract.js`, el contrato de las cifras de previsión, con su prueba.
-- **Pendiente:** la prueba de coherencia entre todas las pantallas y la etiqueta de Hoy «Fin de noviembre», que espera **D-N4**. **H-35** sigue siendo del hogar (antes del 11/11). Añadir las filas `FX` al panel de seguimiento (§9) no se ha hecho todavía.
+- **Pendiente:** la prueba de coherencia entre todas las pantallas y la etiqueta de Hoy «Fin de noviembre», que espera **D-N4**. **H-35** sigue siendo del hogar (antes del 11/11).
+- **Panel de seguimiento al día (6/11):** pestaña «Noviembre · Oleada 1» con las 41 filas (§9). FX-02, FX-04, FX-16, FX-30 y FX-62 hechas, y FX-01 en curso.
+- **Dos filas revisadas al mirar el código (6/11):**
+  - **FX-03:** el cierre de cada mes ya cuadra entre el motor diario y el mensual; es una invariante que hace fallar la app si no se cumple. Lo que difiere es la forma dentro del mes: el motor diario carga el gasto variable estimado entero el día 8, y la banda lo reparte por días. Arreglarlo cambia la cifra de Hoy, así que va tras la revisión de Hoy del 16/11, como el cambio de Hoy de esa semana.
+  - **FX-51:** el registro de supuestos ya existe en Ajustes, con su fecha y su caducidad. Falta el impacto de cada supuesto.
 
 **5/11/2026 · WP-21, la parte de inversión hecha antes de su turno** (#588, en otra sesión en paralelo con la que creó este backlog): «Datos para la Renta» en Inversión › Cartera (titular, depositario, dividendos e intereses, pérdidas por bloque) y el «Informe de inversión para la Renta» en Herramientas avanzadas › Fiscal, con CSV, impresión y su línea en el borrador GOB8. Sin cambios en la previsión ni en Hoy. Queda en la Oleada 2 solo el local alquilado (PR-3); lo que falta para que dé cuota son los datos del hogar.
 
@@ -105,7 +111,7 @@ Lo que **no** cambia: el resto de prioridades y estados de `BACKLOG_DEFINITIVO.m
 | **S3 · 26/11-2/12** | Escenarios sobre la previsión | FX-20, FX-21 (3 primeras pruebas de estrés), FX-23, FX-40, FX-42 | **30/11 H8** (A5-1/A5-4, activar o archivar) |
 | **S4 · 1-4/12** | Prueba de fuego: cierre de noviembre | FX-43 (la carta cuenta la previsión) y arreglos de lo que salga | **1-3/12 cierre de noviembre** (primer coste del cierre medido; primera carta del mes) · **4/12 revisión de salida de la oleada** (§8) |
 
-**Capacidad:** el núcleo (§5.1) suma ≈ 33 sesiones. Al ritmo de octubre no es el cuello de botella; lo son las
+**Capacidad:** el núcleo (§5.1) suma ≈ 31,5 sesiones (33 antes de revisar FX-03 y FX-51 el 6/11). Al ritmo de octubre no es el cuello de botella; lo son las
 revisiones y los datos del hogar. Si algo se retrasa, se cae primero lo marcado «si da tiempo» y nunca S0.
 
 ---
@@ -129,8 +135,8 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 8 | **WP-23** | Campaña fiscal de fin de año con los datos del hogar (FIS-01, DAC-02, FIS-02) | Def P0 | — | H-03 | S1 | Lista con euros reales el 14/11; acciones antes del 31/12 | Esperando H-03 (12/11) |
 | 9 | **FX-61** | WP-28 desaparcado: kit de gráficos táctil y accesible | Def P1 (WP-28) | M · 3,5 | — | S1 | Recorrido táctil y teclado, frase automática y «ver como tabla» en el componente | Aparcado → P0 |
 | 10 | **FX-11** | Gráfico de previsión único (real, plan, rango, suelo, hitos, escenarios, costura) | 8ª | M · incl. en FX-61 | FX-61 | S1 | Lo usan Previsión y Escenarios; axe; frase automática correcta con la demo | Propuesta |
-| 11 | **FX-03** | Trayectoria cosida: diario 0-90 días, mensual después, mismo cierre de mes (absorbe la parte de previsión de RD-COB2) | 8ª, Def §5.0 | M-L · 3 | FX-01 | S1 | Invariante ≤ 1 € en el solape (demo + sintéticos); titular y banda con la misma fecha de mínimo | Propuesta |
-| 12 | **FX-51** | Supuestos del plan en un solo sitio, con caducidad e impacto ±1 punto (motor en S1; hoja visible con C2) | 8ª | M · 2 | FX-03 | S1-S2 | Cada supuesto con valor, fuente, fecha e impacto; editar enseña antes/después | Propuesta |
+| 11 | **FX-03** | Una sola forma de la trayectoria en los primeros 90 días: el motor diario reparte el gasto variable por los días del mes, como la banda, en vez de cargarlo entero el día estimado. **El cierre de cada mes ya cuadra** entre motores (invariante `monthly-parity` de `canonical-daily-engine.js`). Absorbe la parte de previsión de RD-COB2 | 8ª, Def §5.0 | M · 2 | FX-01 | S2 (tras la revisión de Hoy del 16/11) | La banda «según el plan» y el motor diario dan el mismo saldo cada día (demo + sintéticos); el titular y la banda, la misma fecha de mínimo | **Revisado 6/11:** cambia la cifra de Hoy, así que entra como el cambio de Hoy de una semana |
+| 12 | **FX-51** | Supuestos del plan: **el registro ya existe** (Ajustes, con fecha y caducidad, A7-2/PVC15). Falta el impacto de cada supuesto (±1 punto) en el fin de año y a 24 meses, verlo desde Previsión y sumar Euribor, rentabilidad de la cartera y renta del local | 8ª | M · 1,5 | — | S1-S2 | Cada supuesto con su impacto ±1 en el fin de año; editar enseña antes/después | **PR-1 hecho 6/11**: el impacto de los cuatro supuestos generales, en Ajustes; el «×0» de los factores, corregido. Falta verlo desde Previsión (con C2) y sumar Euribor, rentabilidad y renta del local |
 | 13 | **FX-10** | **Plan › Previsión con el diseño nuevo (C2), ampliada** | 8ª, Def §5.0 (C2) | L · 4 | FX-01, FX-11 | S2 | Cifra + gráfico + panel del día sin desplazar a 1440 × 900; cifra + gráfico a 390 × 844; menos titulares que hoy (XGO-01); e2e 390 `@safari` y 1440; axe claro/oscuro | Propuesta |
 | 14 | **XPR-06** | Qué mueve cada día, dentro de C2 (sale de su interruptor) | Def §5.0 | — | FX-10 | S2 | Panel/hoja del día de C2 | Hecho, en prueba (revisión 12/11) |
 | 15 | **XPR-07** | El arreglo más barato, dentro de C2 | Def §5.0 | — | FX-10 | S2 | Tarjeta de remedio de C2 | Hecho PR-1, en prueba (revisión 12/11) |
@@ -302,10 +308,7 @@ ninguna de M-PREV-USO, M-ESC o M-CONF, no se abre la Oleada 2 sin revisarla con 
 
 ## 9. Seguimiento
 
-- **El panel de seguimiento** (artefacto privado, `BACKLOG_DEFINITIVO.md` §12) sigue midiendo el plan de la línea base
-  del 3/10. **Pendiente, no hecho el 5/11:** añadir las filas `FX-nn` de esta oleada como pestaña propia, **fuera de la
-  línea base**, igual que se hizo con el §5.0 (`plataforma`), con su prueba de sincronía. Se hace en la primera sesión
-  de S0, antes de construir.
+- **El panel de seguimiento** (artefacto privado, `BACKLOG_DEFINITIVO.md` §12) mide el plan de la línea base del 3/10 y, **desde el 6/11, tiene la pestaña «Noviembre · Oleada 1»** con las 41 filas de §5.1 y §5.2: pista `noviembre` de `docs/plan/plan-definitivo.json`, fuera de la línea base como el §5.0. Su estado vive en la colección `noviembre` de la base del panel, y `tests/plan-seguimiento-sincronizado.test.cjs` exige que coincida con este backlog.
 - Cada fila cerrada actualiza la columna «Estado» de §5 y una línea en §0.
 - Cada pantalla cerrada actualiza `docs/rediseno/ESTADO.md` §2 (y §8 si cambia el orden).
 

@@ -68,6 +68,18 @@
     return Object.is(rounded, -0) ? 0 : rounded;
   }
 
+  /**
+   * FX-04 para diferencias: dos cifras significativas (322 → 320, 26.907 → 27.000), nunca por debajo de la decena. La regla de
+   * los niveles (millar más allá de un año) borraría una diferencia de unos cientos de euros, que sí importa.
+   */
+  function roundDifference(value) {
+    const amount = number(value);
+    if (amount === 0) return 0;
+    const step = Math.max(10, 10 ** (Math.floor(Math.log10(Math.abs(amount))) - 1));
+    const rounded = Math.round(amount / step) * step;
+    return Object.is(rounded, -0) ? 0 : rounded;
+  }
+
   /** «Unos» delante cuando el redondeo ha quitado algo: así no parece exacta una cifra que no lo es. */
   function isApproximate(value, daysAhead) {
     return roundForHorizon(value, daysAhead) !== Math.round(number(value));
@@ -146,8 +158,53 @@
     };
   }
 
+  /**
+   * FX-51: lo que mueve cada supuesto general de la previsión. Cada uno se mueve en su sentido desfavorable (un punto más de
+   * inflación, un punto menos de subida de ingresos, un 5 % más de gasto, un 5 % menos de ingresos), se recalcula el plan con el
+   * mismo motor y se mide la liquidez en cada fecha pedida. El motor es puro y tarda ~1 ms por recálculo (demo).
+   */
+  const ASSUMPTION_SHOCKS = Object.freeze([
+    Object.freeze({ id: "annualInflation", label: "Inflación del gasto", delta: 1, phrase: "un punto más de inflación" }),
+    Object.freeze({ id: "annualIncomeGrowth", label: "Subida anual de los ingresos", delta: -1, phrase: "un punto menos de subida de los ingresos" }),
+    Object.freeze({ id: "expenseFactor", label: "Gasto previsto", delta: 0.05, phrase: "un 5 % más de gasto" }),
+    Object.freeze({ id: "incomeFactor", label: "Ingresos previstos", delta: -0.05, phrase: "un 5 % menos de ingresos" }),
+  ]);
+
+  /**
+   * @param {(input: any) => {rows: Array<{detailMonthKey: string, totalLiquidity: number}>}} runScenario el motor (buildScenario)
+   * @param {{policy?: Record<string, any>}} input la entrada del motor, sin tocar
+   * @param {{targets?: string[]}} [options] las claves de mes (AAAA-MM) en que se mide; sin ellas, el último mes
+   */
+  function assumptionImpacts(runScenario, input, { targets } = {}) {
+    if (typeof runScenario !== "function" || !input?.policy) return [];
+    const liquidityAt = (rows, keys) => keys.map((key) => {
+      const row = (rows || []).find((item) => item.detailMonthKey === key);
+      return row && Number.isFinite(Number(row.totalLiquidity)) ? Number(row.totalLiquidity) : null;
+    });
+    const baseRows = runScenario(input)?.rows || [];
+    const keys = Array.isArray(targets) && targets.length ? targets : [baseRows.at(-1)?.detailMonthKey].filter(Boolean);
+    const base = liquidityAt(baseRows, keys);
+    return ASSUMPTION_SHOCKS.map((shock) => {
+      const current = number(input.policy[shock.id], shock.id.endsWith("Factor") ? 1 : 0);
+      const shocked = runScenario({ ...input, policy: { ...input.policy, [shock.id]: current + shock.delta } })?.rows || [];
+      const after = liquidityAt(shocked, keys);
+      return {
+        ...shock,
+        value: current,
+        effects: keys.map((monthKey, index) => ({
+          monthKey,
+          base: base[index],
+          shocked: after[index],
+          diff: base[index] === null || after[index] === null ? null : after[index] - base[index],
+        })),
+      };
+    }).sort((a, b) => Math.abs(b.effects.at(-1)?.diff || 0) - Math.abs(a.effects.at(-1)?.diff || 0));
+  }
+
   return Object.freeze({
     SCHEMA_ID,
+    ASSUMPTION_SHOCKS,
+    assumptionImpacts,
     DAY_PRECISION_DAYS,
     METRICS,
     TERMS,
@@ -155,6 +212,7 @@
     shortDateLabel,
     roundingStep,
     roundForHorizon,
+    roundDifference,
     isApproximate,
     lowPoint,
     monthLows,

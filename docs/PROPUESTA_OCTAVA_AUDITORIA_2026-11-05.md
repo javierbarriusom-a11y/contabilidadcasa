@@ -234,6 +234,11 @@ texto.
 
 ### FX-03 · Una trayectoria cosida para todo el horizonte — P0 · M-L (3)
 
+> **Revisado el 6/11/2026 al mirar el código:** el cierre de cada mes ya cuadra entre el motor diario y el mensual, porque la
+> invariante `monthly-parity` de `canonical-daily-engine.js` lo exige al céntimo y la app falla si no se cumple. Lo que
+> difiere es la forma dentro del mes: el motor diario carga el gasto variable estimado entero en su día (el 8 con la demo) y
+> la banda lo reparte por días. FX-03 queda en eso (M · 2) y cambia la cifra de Hoy: va como el cambio de Hoy de una semana.
+
 **Qué:** el motor diario manda en los primeros 90 días y el mensual a partir de ahí, arrancando del saldo diario del
 día 90 (no de su propio cálculo). Invariante: **el cierre de cada mes del motor mensual = el saldo diario de ese último
 día**, mientras los dos solapen. El gráfico enseña la costura («a partir de febrero, por meses») con un cambio de
@@ -522,6 +527,10 @@ serie de patrimonio de WP-46. Rango en abanico que se abre con los años, con el
 dirección, no una cifra».
 
 ### FX-51 · Supuestos del plan, en un solo sitio — P0 · M (2)
+
+> **Revisado el 6/11/2026:** el registro de supuestos ya existe (Ajustes, con valor, fecha, origen y caducidad: A7-2, A15-1
+> y PVC15, `buildAssumptionRegistry` y `assumptionExpiryAlerts` de `canonical-forecast.js`). Lo nuevo de FX-51 es el impacto
+> de cada supuesto, llegar desde Previsión y sumar Euribor, rentabilidad y renta del local (M · 1,5).
 
 **Qué:** hoja «Con estos supuestos» desde Previsión (y en Ajustes): cada supuesto con valor, fuente, fecha y caducidad
 (como los índices de WP-13), y **su impacto** en el fin de año y en 2036 si se mueve ±1 punto. Editar un supuesto
