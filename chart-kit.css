@@ -294,3 +294,109 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* FX-11 (BACKLOG_NOVIEMBRE_OLEADA_1.md): el gráfico de previsión único (forecastPlotHtml). Azul = lo previsto (continuo el plan,
+   discontinuo un escenario), tinta = lo real, rojo discontinuo = el suelo. Se distinguen por la forma, no solo por el color. Las
+   etiquetas van en HTML encima del SVG estirado, colocadas en porcentajes. */
+.ck-prevision .ck-plan {
+  stroke: var(--e19-forecast);
+  stroke-width: 2;
+}
+
+.ck-prevision .ck-banda {
+  fill: color-mix(in srgb, var(--e19-forecast) 16%, transparent);
+}
+
+.ck-real {
+  fill: none;
+  stroke: var(--e19-ink);
+  stroke-width: 2;
+}
+
+.ck-escenario {
+  fill: none;
+  stroke: var(--e19-forecast);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.ck-escenario-2 {
+  stroke-dasharray: 2 3;
+}
+
+.ck-hoy {
+  stroke: var(--e19-muted);
+  stroke-width: 1;
+}
+
+.ck-costura {
+  stroke: var(--e19-muted);
+  stroke-width: 1;
+  stroke-dasharray: 1 3;
+}
+
+.ck-eje-y {
+  position: absolute;
+  inset: 0 auto 0 0;
+  pointer-events: none;
+}
+
+.ck-eje-y span,
+.ck-umbral-etiqueta,
+.ck-hoy-etiqueta,
+.ck-escenario-etiqueta {
+  position: absolute;
+  transform: translateY(-50%);
+  font: 400 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ck-eje-y span {
+  left: 2px;
+  padding: 0 2px;
+  background: color-mix(in srgb, var(--e19-surface) 80%, transparent);
+}
+
+.ck-umbral-etiqueta {
+  right: 2px;
+  transform: translateY(-110%);
+  color: var(--e19-danger);
+}
+
+.ck-hoy-etiqueta {
+  top: auto;
+  bottom: 2px;
+  transform: translateX(4px);
+}
+
+.ck-escenario-etiqueta {
+  transform: translate(-100%, -130%);
+  color: var(--e19-forecast);
+  font-weight: 600;
+}
+
+.ck-hito {
+  position: absolute;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--e19-surface);
+  border: 2px solid var(--e19-forecast);
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .ck-plan,
+  .ck-escenario {
+    stroke: Highlight;
+  }
+
+  .ck-real {
+    stroke: CanvasText;
+  }
+}

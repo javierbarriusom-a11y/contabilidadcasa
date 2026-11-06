@@ -17,6 +17,9 @@
   --e19-surface: #ffffff;
   --e19-surface-soft: #fbfcf7;
   --e19-surface-sunken: #f6f4ee;
+  /* FX-11: el color de lo previsto en los gráficos (plan y escenarios). En el tema clásico, el acento de siempre; el tema v2 lo
+     cambia por su azul («azul = previsto», tema-v2.css). */
+  --e19-forecast: var(--e19-accent);
 
   /* Bordes */
   --e19-border: #e8ecf1;

@@ -173,6 +173,20 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (409): FX-11, el gráfico de previsión único (sin cambio visible)
+
+- **Petición del hogar:** «¿seguimos?». Recomendación de Claude: hasta las revisiones del 12 al 18/11, solo piezas sin cambio visible. FX-03 cambia la cifra de Hoy y espera a la revisión de Hoy del 16/11.
+- **FX-61:** al mirar el código, el kit de gráficos de WP-28 ya existía (`chart-kit.js`). Queda absorbida.
+- **FX-11:** `ChartKit.forecastPlotHtml`:
+  - Pinta lo real hasta hoy, el plan desde hoy, el rango, el suelo, la marca de hoy, la costura diario/mensual, los hitos y hasta dos escenarios discontinuos con su nombre.
+  - El eje Y va con cifras limpias. Todas las etiquetas van en HTML superpuesto, nunca dentro del SVG.
+  - Estilos en `chart-kit.css`, también con colores forzados.
+  - Token nuevo `--e19-forecast` (`design-tokens.css`: el acento; `tema-v2.css`: `var(--blue)`).
+  - Revisado en una página de prueba con los estilos reales, a 390 y 1440 px, en claro y oscuro. Se corrigió que la etiqueta «hoy» se montaba sobre el eje.
+  - Ninguna pantalla lo usa todavía: lo estrena C2.
+- **Versiones:** `chart-kit.js` y `chart-kit.css` a `?v=20261106fx11a`; `design-tokens.css` y `tema-v2.css`, también (con las pruebas que los fijan).
+- **Validación:** `npm run verify` en verde (6.419 de 6.419; 6 pruebas nuevas en `tests/fx11-grafico-prevision.test.cjs`). e2e y Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (408): D-N4, Hoy con el saldo arriba y el margen debajo; FX-01 cerrada
 
 - **Decisión del hogar:** «D-N4 sí, saldo arriba y margen debajo». Se trata como corrección, según la recomendación de D-N4, así que no gasta el cambio de Hoy de la semana.
