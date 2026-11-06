@@ -5539,6 +5539,10 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       expect(cuadra, "31/12: prueba − plan = diferencia").toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta").toBe(true);
+      // Y con la tipografía más ancha de Linux (DejaVu Sans, la del CI), que aquí no es la de serie: así falla también en local.
+      const dejavu = await page.addStyleTag({ content: '#planPrevisionV2, #planPrevisionV2 * { font-family: "DejaVu Sans", sans-serif !important; }' });
+      expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta también con DejaVu Sans").toBe(true);
+      await dejavu.evaluate((el) => el.remove());
       await v2.locator('[data-prevision-v2-param="concept"][data-valor="Ingreso Persona B"]').click();
       await v2.locator('[data-prevision-v2-param="months"][data-valor="6"]').click();
       await expect(v2.locator('[data-prevision-v2-param="months"][data-valor="6"]')).toHaveAttribute("aria-pressed", "true");

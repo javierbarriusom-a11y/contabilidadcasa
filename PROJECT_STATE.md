@@ -193,6 +193,11 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Validación:**
   - `npm run verify` en verde: 6.442 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 179,6 ms; build, privacidad y humo.
   - En Chromium local: e2e de C2 y FX-23, 8 de 8. Safari, en el CI.
+- **CI en rojo y corregido:** la e2e de C2 a 390 px falló en el CI («la tabla cabe en la tarjeta»: 328 px en 320).
+  - **Causa:** no era D-N8. Los encabezados de la tabla de impacto iban en mayúsculas, y en Linux el sistema usa DejaVu Sans, más ancha que Inter (la de esta máquina): «DIFERENCIA» no cabía. Reproducido en local forzando DejaVu.
+  - **Arreglo:** encabezados sin mayúsculas y, como red, una palabra que no quepa parte antes que sacar la tabla de la tarjeta (`tema-v2.css` a `20261106dn8a`).
+  - **La e2e** comprueba ahora también con DejaVu Sans forzada, así que el fallo se ve también en local.
+  - `npm run verify` otra vez en verde (6.442); e2e C2 y FX-23 más axe de C2, 7 de 7 en Chromium.
 
 ## Cierre de sesión — 6 de noviembre de 2026 (413): el suelo, también en la cuenta corriente; D-N8 propuesta
 

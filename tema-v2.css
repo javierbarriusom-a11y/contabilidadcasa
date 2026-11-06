@@ -4047,8 +4047,11 @@
   font-size: var(--e19-text-sm);
 }
 
+/* Sin mayúsculas: con la tipografía más ancha de Linux (DejaVu Sans, la del CI) «DIFERENCIA» no cabía a 390 px.
+   Y si con alguna otra aún no cupiera, la palabra parte antes que sacar la tabla de la tarjeta. */
 :root[data-tema="v2"] .prev-v2-impacto-tabla thead th {
-  overflow-wrap: normal;
+  text-transform: none;
+  overflow-wrap: anywhere;
 }
 
 :root[data-tema="v2"] .prev-v2-impacto-tabla thead th:first-child {
