@@ -182,7 +182,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - el titular de Previsión sin una fecha pasada;
   - el mismo punto más bajo en el titular y en el resumen del periodo.
 - **Novedades,** una línea. **Versiones:** `views/hoy-v2.js` y `novedades.js` a `?v=20261106dn4a`.
-- **Validación:** `npm run verify` en verde (ver el PR). e2e de FX-01: 2 de 2. e2e de Hoy en Chromium: ver el PR.
+- **Validación:** `npm run verify` en verde (6.413 de 6.413). e2e de FX-01: 2 de 2. e2e de Hoy en Chromium: 15 de 15. Safari, en el CI.
 
 ## Cierre de sesión — 6 de noviembre de 2026 (407): panel con la oleada de noviembre, FX-03 y FX-51 revisadas, y el impacto de cada supuesto
 
