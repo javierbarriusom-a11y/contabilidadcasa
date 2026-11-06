@@ -1,7 +1,7 @@
 {
   "_que": "XGO-01 · «uno entra, uno sale» (GOV-02). Titulares (h2/h3) que se ven por defecto en cada destino del menú principal y sus pestañas: tema v2, 1280 px, sin datos del hogar, reloj el 26/10/2026. Lo cuenta la e2e «XGO-01 · Uno entra, uno sale» de tests/qa1-flujos-completos.spec.cjs; tests/xgo01-uno-entra-uno-sale.test.cjs exige que el total no pase de base + excepciones y que la base baje cuando algo sale (trinquete). Para añadir sin quitar: una excepción con fecha, cuánto suma, qué y por qué.",
   "fecha": "2026-10-26",
-  "base": 226,
+  "base": 225,
   "excepciones": [
     {
       "fecha": "2026-10-29",
@@ -26,7 +26,7 @@
     "#movements": 2,
     "#plan": 2,
     "#plan › mes": 2,
-    "#plan › prevision": 5,
+    "#plan › prevision": 4,
     "#plan › ahorro": 2,
     "#plan › presupuesto-mes": 2,
     "#plan › estado-semana": 5,

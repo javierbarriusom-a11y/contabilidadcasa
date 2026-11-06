@@ -59,6 +59,8 @@
     ["annualInflation", "Inflación anual de gastos", "percent", "policy.annualInflation"],
     ["plannedMonthlySaving", "Ahorro mensual objetivo", "EUR", "policy.plannedMonthlySaving"],
     ["autoCapSavings", "Ajuste automático del ahorro", "boolean", "policy.autoCapSavings"],
+    // D-N8: la reserva operativa entra en el cálculo del traspaso al ahorro, así que es un supuesto más.
+    ["operatingReserve", "Reserva operativa en la cuenta corriente", "EUR", "policy.operatingReserve"],
     // A15-1: los cinco supuestos fiscales del hogar entran en el mismo registro central que ya
     // versionaba los ocho anteriores (A7-2, hasta ahora sin ningún sitio que lo llamara) — un único
     // sitio editable, no uno nuevo en paralelo.

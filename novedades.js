@@ -11,6 +11,36 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-reserva-en-cuenta",
+      fecha: "2026-11-06",
+      texto: "El traspaso al ahorro deja ahora en la cuenta corriente la reserva operativa de Ajustes, no solo un mes de gastos.",
+      href: "#ajustes",
+    },
+    {
+      id: "2026-11-06-suelo-cuenta-corriente",
+      fecha: "2026-11-06",
+      texto: "Previsión: el suelo también en la cuenta corriente. Avisa si quedaría bajo su reserva o en descubierto, y cuánto pasar y cuándo.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-06-comparar-un-escenario",
+      fecha: "2026-11-06",
+      texto: "Escenarios: «Comparar con el plan» funciona con un solo escenario guardado, y Simular se explica sin jerga.",
+      href: "#escenario-guardados",
+    },
+    {
+      id: "2026-11-06-pruebas-estres",
+      fecha: "2026-11-06",
+      texto: "Plan › Previsión: «Comparar con» el sueldo de cada uno, el Euribor en la revisión o un imprevisto, y si bajaríais del suelo y cuándo.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-06-prevision-v2",
+      fecha: "2026-11-06",
+      texto: "Plan › Previsión nueva: el punto más bajo con su fecha, un gráfico con el suelo y los cobros, y lo que viene en 90 días.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-06-hoy-fin-de-mes",
       fecha: "2026-11-06",
       texto: "Hoy: «Fin de noviembre» enseña el saldo previsto, el mismo de Previsión, y debajo cuánto queda sobre el suelo.",

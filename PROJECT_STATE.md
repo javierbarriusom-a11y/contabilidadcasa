@@ -173,6 +173,122 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (414): D-N8 decidida y hecha, el traspaso al ahorro deja la reserva en la cuenta corriente
+
+- **Decisión del hogar:** «D-N8 sí, y sigue».
+- **Motor (`canonical-engine.js`):** `policy.operatingReserve` (0 si no hay dato o es negativa). Con el ajuste automático encendido, el traspaso de fin de mes deja en la cuenta corriente `outflowsBeforeSaving + operatingReserve`. Con el ajuste apagado, el traspaso lo fija el hogar y la reserva no lo toca.
+- **Los otros cálculos del mismo traspaso, a la vez:**
+  - en `app.js`: `simulateHistoricalReference()` (la referencia de paridad), `projectedAccountBalancesForStartIndex()` (saldos proyectados hasta hoy), `canonicalEngineInput()` (pasa la reserva al motor) y `assumptionRegistryInput()`;
+  - `canonical-e13-scenarios.js` (`simulate` y `weightedForecastWithUncertainEvents`), que lee la reserva del registro de supuestos.
+- **Registro central de supuestos:** nuevo «Reserva operativa en la cuenta corriente» (EUR). Pasa de 13 a 14; `a15-1` y `canonical-forecast` se actualizan a 14, sin relajar nada.
+- **Lo que no cambia:** la liquidez total, mes a mes, y el plan de quien no tiene reserva puesta. Las 6.436 pruebas anteriores pasan sin tocarse, salvo los dos recuentos del registro y los sellos de versión.
+- **Con la demo:**
+  - reserva de 1.000 €: lo más bajo de la cuenta es justo 1.000 € (antes 0 € el 8 dic) y el traspaso de noviembre baja de 620 a 270 €;
+  - reserva de 4.000 €: no cabe ni sin traspasar, y Previsión avisa: «habría que pasar unos 180 € del ahorro».
+- **Ajustes:** la nota de la reserva dice que el plan la deja en la cuenta corriente al traspasar al ahorro.
+- **Pruebas:**
+  - nueva `tests/dn8-reserva-en-cuenta.test.cjs` (6): sin reserva igual que antes; con reserva; reserva que no cabe; ajuste apagado; registro; E13; cableado de `app.js` y firma de la caché;
+  - la e2e de C2 comprueba, con 1.000 €, que no hay aviso, que lo más bajo es ≥ 1.000 € y que hay paridad entre el motor y la referencia histórica (`compareRows`); con 4.000 €, el aviso.
+- **Novedades:** una línea. **Versiones** a `20261106dn8a`: `app.js`, `canonical-engine.js`, `canonical-forecast.js`, `canonical-e13-scenarios.js` y `novedades.js`, con las pruebas que fijan la de `app.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.442 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 179,6 ms; build, privacidad y humo.
+  - En Chromium local: e2e de C2 y FX-23, 8 de 8. Safari, en el CI.
+- **CI en rojo y corregido:** la e2e de C2 a 390 px falló en el CI («la tabla cabe en la tarjeta»: 328 px en 320).
+  - **Causa:** no era D-N8. Los encabezados de la tabla de impacto iban en mayúsculas, y en Linux el sistema usa DejaVu Sans, más ancha que Inter (la de esta máquina): «DIFERENCIA» no cabía. Reproducido en local forzando DejaVu.
+  - **Arreglo:** encabezados sin mayúsculas y, como red, una palabra que no quepa parte antes que sacar la tabla de la tarjeta (`tema-v2.css` a `20261106dn8a`).
+  - **La e2e** comprueba ahora también con DejaVu Sans forzada, así que el fallo se ve también en local.
+  - `npm run verify` otra vez en verde (6.442); e2e C2 y FX-23 más axe de C2, 7 de 7 en Chromium.
+
+## Cierre de sesión — 6 de noviembre de 2026 (413): el suelo, también en la cuenta corriente; D-N8 propuesta
+
+- **Decisión del hogar:** «sí, suelo también en la cuenta corriente, y sigue».
+- **Definición:** el suelo de la cuenta corriente es la reserva operativa de Ajustes (`state.operatingReserve`), o 0 € si no está puesta (no quedar en descubierto).
+  - Descartado el colchón heredado `agentCaixaFloor()` (2.500 € por defecto): el motor no lo usa, y en la demo pondría 77 días en rojo con un plan sano.
+- **Motor:** `checkingShortfall()` en `canonical-stress-scenarios.js` da, sobre la trayectoria diaria (que ya separa cuenta y ahorro):
+  - el primer día bajo el suelo y el punto más bajo;
+  - lo que falta y si el ahorro de ese día alcanza;
+  - si lo hay y basta, el traspaso al ahorro de antes que habría que hacer más pequeño.
+  - `compare()` lo devuelve para el plan y para la prueba.
+- **C2:**
+  - aviso en el titular si el propio plan deja la cuenta bajo su suelo;
+  - en cada prueba, la fila «Cuenta corriente, lo más bajo» y una frase cuando la prueba la deja por debajo y el plan no (o la hunde más);
+  - importes a pasar redondeados hacia arriba; negativos con «−».
+  - Con la demo, sin el sueldo de A: «Pero la cuenta corriente se queda en descubierto el 8 dic (hasta −2.500 € el 8 ene 2027): habría que pasar unos 2.600 € del ahorro antes de ese día».
+- **Hallazgo y D-N8:** `canonical-engine.js` traspasa al ahorro todo lo que pasa de un mes de gastos (`oneMonthFloor`) y no usa la reserva operativa. Con una reserva de 1.000 € y el plan recalculado, la cuenta sigue tocando 0 € el 8 dic. No se cambia el motor sin el hogar: cambia las cifras de traspaso.
+- **Hoy, sin cambios esta semana** (ya hubo D-N4).
+- **Pruebas:** `fx21-pruebas-estres` de 10 a 11. La e2e «Comparar con» añade la fila y la frase de la cuenta y el aviso del titular con una reserva de 1.000 €.
+- **Novedades:** una línea. **Versiones** a `20261106cc1a`: motor, vista, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.436 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 162,3 ms; build, privacidad y humo.
+  - En Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 9 de 9; axe de C2, 2 de 2. Safari, en el CI.
+
+## Cierre de sesión — 6 de noviembre de 2026 (412): D-N3 decidida y construida; Euribor y sueldo por titular
+
+- **Decisión del hogar:** «D-N3 sí, sueldo por titular y sigue».
+- **La fila «Comparar con» queda en Solo el plan · Un sueldo menos · Euribor · Imprevisto 3.000 €.** «Gasto +10 %» sale de la fila y queda en la biblioteca del motor (`applyGastoMas`). Se pidieron tres pruebas, y yo mismo había dicho que esta era floja.
+- **Un sueldo menos, por titular:**
+  - `titulares()` toma los ingresos que llegan 3 de cada 4 de los próximos 12 meses, del mayor al menor. La app no guarda de quién es cada ingreso, así que cada partida hace de titular.
+  - Opciones «De quién» y «Durante» 3 o 6 meses; empieza en el primer mes sin cobrar de ese titular.
+  - Con la demo, sin A 3 meses se pierden 3.000 + 4.800 (diciembre) + 3.000 = 10.800 €, lo mismo que baja la caja a 5 feb.
+- **Euribor +1 o +2 puntos en la próxima revisión:** WP-20 ya estaba construido (`canonical-rate-review.js`), así que no hacía falta esperar.
+  - `euriborShocks()` calcula la cuota nueva con el Euribor tecleado + diferencial + los puntos, sobre el capital y el plazo proyectados a la revisión.
+  - `applyEuribor()` suma la diferencia frente a la cuota que lleva el plan desde la revisión hasta el último plazo.
+  - Sin hipoteca o sin datos dice qué falta y lleva a Deuda › Contratos. Si la revisión cae fuera del horizonte, lo dice en vez de enseñar «igual».
+- **Tabla de impacto:**
+  - nueva fila con el último día del horizonte (`compare().end`);
+  - las diferencias son la resta de las cifras que se ven: antes 15.700 frente a 14.200 decía −1.600;
+  - «igual» en vez de «+0 €»;
+  - una nota con lo que se ha cambiado exactamente.
+- **Hallazgo, no corregido:** sin el sueldo de A, la cuenta corriente prevista queda en −2.510 € en enero aunque la liquidez total siga sobre el suelo. Queda anotado en el backlog §0.
+- **Pruebas:**
+  - `tests/fx21-pruebas-estres.test.cjs`: de 8 a 10 pruebas, con el motor de revisión real para el Euribor.
+  - e2e «Comparar con» rehecha a 390 (`@safari`) y 1440 px: titular B y 6 meses, el Euribor sin datos y con datos (almacenes reales de WP-20 y WP-13 y una hipoteca INVENTADA), y fuera de horizonte. Comprueba que en la fila del 31/12 la diferencia es la resta de lo que se ve.
+- **Versiones** a `20261106dn3a`: `canonical-stress-scenarios.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.435 pruebas unitarias; lint; typecheck; accesibilidad estructural con 1.675 IDs; rendimiento, con previsión y escenarios en 181,5 ms; build, privacidad y humo.
+  - En Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 8 de 8; axe de C2, 2 de 2. Safari, en el CI.
+
+## Cierre de sesión — 6 de noviembre de 2026 (411): pruebas de estrés sobre la Previsión nueva (FX-20, FX-21 y FX-23, PR-1)
+
+- **Petición del hogar:** «sigue con los escenarios y las pruebas de estrés».
+- **Motor nuevo `canonical-stress-scenarios.js`:** puro, sin DOM ni estado. Cambia la entrada del plan, recalcula con el motor mensual, la entrada diaria y el diario de siempre, y compara. Pruebas:
+  - **un sueldo menos:** quita el cobro más grande del primer mes sin cobrar durante 3 meses;
+  - **imprevisto de 3.000 €:** cae el peor día del plan;
+  - **gasto variable +10 %.**
+  - La comparación da el punto más bajo de los dos, si el plan y la prueba bajan del suelo y cuándo, cuánto falta, el recorte mensual que lo evitaría y los dos saldos a 31/12.
+  - El Euribor +1/+2 espera a los datos de Deuda › Contratos (WP-20). D-N3 sigue abierta para el hogar.
+- **FX-20 en C2:** fila «Comparar con» bajo el gráfico, la línea discontinua de la prueba con su nombre, una frase determinista y una tabla de 3 indicadores. Es solo lectura: «no cambia el plan ni mueve dinero».
+  - Con la demo, «un sueldo menos» no baja del suelo: 2.500 € el 8 ene 2027, 3.100 € por debajo del plan, y −7.800 € a 31/12.
+  - Las tres pruebas tardan unos 200 ms. Sin cambios, la línea de la prueba es la del plan día a día (comprobado en la e2e).
+- **Errores encontrados y corregidos antes de publicar:**
+  - A 390 px la tabla medía 1.120 px por la regla genérica `table { min-width: 1120px }`, anulada en su ámbito como en las demás tablas de tarjeta.
+  - La columna «Plan» de «¿Bajáis del suelo?» estaba fijada a «No»: ahora se calcula.
+  - La frase redondeaba el nivel distinto que la tabla.
+  - La cabecera vacía de la primera columna fallaba axe.
+- **FX-23:** Escenarios › Comparar acepta un solo escenario guardado («Comparar con el plan»). El vacío remite a «Comparar con» de Previsión, y la entrada de Simular se explica sin jerga.
+- **Pruebas nuevas:**
+  - `tests/fx21-pruebas-estres.test.cjs` (8) y una más en `o3-o4` (FX-23, con un candidato), que sustituye a la que exigía dos;
+  - e2e «Comparar con» a 390 (`@safari`) y 1440 px, y e2e FX-23;
+  - axe claro/oscuro de C2 con una prueba elegida.
+- **Novedades:** dos líneas.
+- **Versiones:** `app.js` (solo el sello de `views/escenarios.js`) a `?v=20261106fx23a`; `tema-v2.css` y `novedades.js` a `fx20a`; `views/prevision-v2.js` a `fx20a`; motor nuevo a `fx21a`. Superficie canónica sin consumidor: 119.
+- **Validación:** `npm run verify` en verde (6.433 pruebas unitarias; lint; typecheck; accesibilidad estructural con 1.675 IDs únicos; rendimiento, con previsión y escenarios en 175,4 ms; build, privacidad y humo). Además, en Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 9 de 9, y axe de C2, 2 de 2. Safari solo en el CI.
+
+## Cierre de sesión — 6 de noviembre de 2026 (410): R-N5 levantada; Plan › Previsión nueva (C2, FX-10 PR-1)
+
+- **Petición del hogar:** «puedes saltarte esta restricción […] y sigue además con el resto de funcionalidades que puedas». R-N5 queda levantada; «un cambio de Hoy por semana» sigue en pie.
+- **#593 (FX-11) fusionado.**
+- **C2:** `views/prevision-v2.js` (nuevo) pinta Plan › Previsión con el tema nuevo, solo con datos ya calculados:
+  - el punto más bajo del horizonte, del motor diario, con fecha, margen sobre el suelo de Hoy y saldo a 31/12, redondeado por el contrato;
+  - el gráfico de FX-11 con el suelo, «hoy» y los cobros, recorrido por día (3 m), semana (12 m), quincena (24 m) o fin de mes (hasta 2036); el día más bajo siempre entra;
+  - horizontes 3 · 12 · 24 m · Hasta 2036, la recomendación de D-N2, recordados en `localStorage`;
+  - «Lo que viene en 90 días», con los cobros y pagos desde 300 € y su certeza, y el camino a Días de cargo;
+  - la tabla de meses y su horizonte, plegados tras «Ver todo el detalle». El plan B, el puente y el mapa de pagos siguen a la vista: un primer intento los escondía y se corrigió, porque sería casi retirar funciones en uso.
+- **XGO-01:** Plan › Previsión pasa de 5 a 4 titulares; base de 226 a 225.
+- **Medidor y Funciones en prueba:** «prevision-v2». **Novedades,** una línea.
+- **Versiones** a `?v=20261106c2a`: `app.js`, `tema-v2.css`, `novedades.js`, medidor y Funciones en prueba.
+- **Validación:** ver abajo.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (409): FX-11, el gráfico de previsión único (sin cambio visible)
 
 - **Petición del hogar:** «¿seguimos?». Recomendación de Claude: hasta las revisiones del 12 al 18/11, solo piezas sin cambio visible. FX-03 cambia la cifra de Hoy y espera a la revisión de Hoy del 16/11.

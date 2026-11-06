@@ -73,7 +73,7 @@ test("buildAssumptionRegistry · las cinco definiciones fiscales entran en el mi
   const registry = Forecast.buildAssumptionRegistry({
     fiscal: { jointTaxation: true, withholdingRate: 15, deductibleContributions: 1500, deductibleRent: 900, largeFamily: true },
   }, {}, { generatedAt: "2026-08-29T10:00:00.000Z" });
-  assert.equal(registry.items.length, 13);
+  assert.equal(registry.items.length, 14); // 8 generales + reserva operativa (D-N8) + 5 fiscales
   const byId = Object.fromEntries(registry.items.map((item) => [item.id, item]));
   assert.equal(byId.fiscalJointTaxation.value, true);
   assert.equal(byId.fiscalJointTaxation.unit, "boolean");
@@ -116,7 +116,7 @@ test("assumptionRegistryInput · combina saldos, política del forecast y los ci
 
 // --- Parte C: renderAjustesAssumptionRegistry() (app.js) ------------------------------------
 
-test("renderAjustesAssumptionRegistry · pinta las 13 filas con etiqueta, valor formateado por unidad y fecha", () => {
+test("renderAjustesAssumptionRegistry · pinta las 14 filas con etiqueta, valor formateado por unidad y fecha", () => {
   const list = { innerHTML: "" };
   const ctx = sandboxWith(
     ["fiscalWithholdingRate", "fiscalDeductibleContributions", "fiscalDeductibleRent", "assumptionRegistryInput", "renderAjustesAssumptionRegistry", "renderAjustesAssumptionExpiryRadar", "assumptionImpactNotes"],
@@ -129,7 +129,7 @@ test("renderAjustesAssumptionRegistry · pinta las 13 filas con etiqueta, valor 
   ctx.renderAjustesAssumptionRegistry();
   assert.match(list.innerHTML, /Retenciones aplicadas/);
   assert.match(list.innerHTML, /15%/);
-  assert.equal((list.innerHTML.match(/commit-barrier-item/g) || []).length, 13);
+  assert.equal((list.innerHTML.match(/commit-barrier-item/g) || []).length, 14);
 });
 
 // --- Parte D: handlers — guardan solo si cambia, y actualizan el registro persistido --------

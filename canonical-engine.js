@@ -75,6 +75,9 @@
         annualInflation: number(policy.annualInflation),
         plannedMonthlySaving: number(policy.plannedMonthlySaving),
         autoCapSavings: policy.autoCapSavings !== false,
+        // D-N8 · la reserva operativa de Ajustes (0 = sin configurar). El traspaso automático al
+        // ahorro la deja en la cuenta corriente además del mes de gastos.
+        operatingReserve: Math.max(0, number(policy.operatingReserve)),
       },
       months: (Array.isArray(input.months) ? input.months : []).map(normalizeMonth),
     };
@@ -97,7 +100,9 @@
       const startChecking = checking;
       const startLiquidity = checking + savings;
       const availableBeforeSaving = checking + income - outflowsBeforeSaving;
-      const oneMonthFloor = outflowsBeforeSaving;
+      // D-N8: antes el suelo era solo un mes de gastos, así que la cuenta corriente llegaba a 0 €
+      // cada mes justo antes de cobrar aunque el hogar hubiera fijado una reserva operativa.
+      const oneMonthFloor = outflowsBeforeSaving + input.policy.operatingReserve;
       const saving = input.policy.autoCapSavings
         ? Math.max(0, Math.min(input.policy.plannedMonthlySaving, availableBeforeSaving - oneMonthFloor))
         : input.policy.plannedMonthlySaving;

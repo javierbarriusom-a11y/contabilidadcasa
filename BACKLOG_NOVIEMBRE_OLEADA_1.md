@@ -21,6 +21,57 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 (noche) · D-N8 decidida: el traspaso al ahorro deja la reserva en la cuenta corriente («D-N8 sí, y sigue»).**
+- **Qué cambia:** a fin de mes el plan deja en la cuenta corriente un mes de gastos **más la reserva operativa** de Ajustes antes de traspasar al ahorro. Sin reserva puesta (0 €), el plan es exactamente el de antes.
+- **Dónde:** en el motor y en todos los cálculos que repiten ese traspaso, a la vez: la referencia histórica que vigila la paridad con el motor, la proyección de saldos hasta hoy y los escenarios E13. La reserva entra además como supuesto en el registro central de Ajustes, que pasa de 13 a 14.
+- **Lo que no cambia:** la liquidez total, mes a mes. Solo cambia cuánto hay en cada cuenta. El primer traspaso baja una vez lo que valga la reserva y el resto llega igual.
+- **Con la demo y una reserva de 1.000 €:** la cuenta ya no toca 0 € el 8 dic. Lo más bajo es justo 1.000 €, y el aviso de Previsión no salta.
+- **Si la reserva no cabe:** el plan no traspasa nada y el aviso dice cuánto pasar del ahorro. Con 4.000 €: «habría que pasar unos 180 € del ahorro».
+- **Con el ajuste automático del ahorro apagado**, el traspaso lo decide el hogar y la reserva no lo toca.
+
+**6/11/2026 (noche) · El suelo, también en la cuenta corriente: decisión del hogar («sí, suelo también en la cuenta corriente, y sigue»).**
+- **El suelo de la cuenta corriente** es la reserva operativa de Ajustes, o 0 € si no está puesta (no quedar en descubierto). No es el colchón heredado de 2.500 € (`agentCaixaFloor()`), que el motor no usa y que en la demo pondría 77 días en rojo con un plan sano.
+- **En Plan › Previsión:**
+  - si el propio plan deja la cuenta por debajo, el titular avisa con lo que hay que hacer: «traspasar X € menos al ahorro el día D» si basta con el traspaso anterior, o «pasar X € del ahorro antes de ese día»;
+  - cada prueba de estrés tiene la fila «Cuenta corriente, lo más bajo» y la frase lo dice aunque el total aguante. Con la demo, sin el sueldo de A la cuenta queda en descubierto el 8 dic (hasta −2.500 € el 8 ene 2027) y habría que pasar unos 2.600 € del ahorro; el imprevisto la deja en −3.000 € el 8 dic;
+  - lo que hay que pasar se redondea hacia arriba (quedarse corto no sirve).
+- **Hallazgo que pasa a decisión (D-N8):** el motor mensual no usa la reserva operativa al traspasar al ahorro. Por eso, con reserva o sin ella, la cuenta llega a 0 € el día antes de la nómina. No lo he cambiado: mueve las cifras de traspaso del plan. *(Decidida y hecha la misma noche: ver arriba.)*
+- **Hoy no cambia esta semana** (ya hubo un cambio, D-N4). El mismo aviso en Hoy queda para su próximo hueco semanal.
+
+**6/11/2026 (noche) · D-N3 decidida por el hogar («D-N3 sí, sueldo por titular y sigue») y las tres pruebas de estrés construidas sobre la Previsión nueva (FX-20 y FX-21).**
+- **Dónde:** en Plan › Previsión (C2), bajo el gráfico, la fila «Comparar con»: Solo el plan · Un sueldo menos · Euribor · Imprevisto 3.000 €.
+- **Qué hace:** la prueba elegida se pinta como línea discontinua con su nombre. Debajo van una frase y una tabla, plan frente a prueba: punto más bajo, «¿bajáis del suelo?», 31 de diciembre y el último día del horizonte. Si se baja del suelo, la frase dice cuándo, cuánto falta y el recorte mensual que lo evitaría, o el plan B. Una nota dice qué se ha cambiado exactamente.
+- **Un sueldo menos, por titular:** «De quién» (cada ingreso que llega 3 de cada 4 meses; la app no guarda de quién es cada ingreso, así que cada partida hace de titular) y «Durante» 3 o 6 meses. Con la demo:
+  - sin el de A 3 meses, el punto más bajo pasa a 2.500 € el 8 ene 2027 y el 31/12 queda 7.800 € más abajo;
+  - sin el de B 6 meses, el punto más bajo queda en 3.600 € el 8 dic.
+- **Euribor +1 o +2 puntos en la próxima revisión:** usa la revisión de WP-20 (Deuda › Contratos) y el Euribor tecleado (WP-13). Sube la cuota desde la revisión hasta el último plazo, frente a la que lleva el plan, que no cambia la cuota.
+  - Sin hipoteca o sin datos (la demo no tiene), dice qué falta y lleva a Deuda › Contratos.
+  - Si la revisión cae después del horizonte, lo dice («elige 12 m o más») en vez de enseñar «igual».
+  - Con una hipoteca inventada de 120.000 € (cuota 640 €, Euribor 2,35 %, diferencial 0,99 %, revisión el 1 mar 2027), +2 puntos llevan la cuota a 813 € y quitan unos 1.500 € a un año vista.
+- **Imprevisto de 3.000 €** el día más bajo del plan.
+- **«Gasto variable +10 %»** sale de la fila (D-N3 son tres) y queda en la biblioteca del motor para el resto de FX-21.
+- **Garantías:** no cambia el plan ni mueve dinero (A11-4, R-N3). Recalcula con los motores de siempre y, sin cambios, su línea es la del plan día a día; una e2e lo comprueba. Las diferencias de la tabla son la resta de las cifras que se ven (15.700 frente a 14.200 es −1.500, no −1.600).
+- **Motor nuevo:** `canonical-stress-scenarios.js` (v2), puro y probado en Node con motores falsos y con el motor de revisión real.
+- **Hallazgo para el hogar (no corregido; no es de esta tarea):** sin el sueldo de A 3 meses, la cuenta corriente prevista queda en −2.510 € en enero, aunque la liquidez total (2.490 €) siga sobre el suelo. El plan cuenta el ahorro como disponible, pero haría falta pasarlo a la cuenta a tiempo.
+- **Pendiente de la especificación:**
+  - la tabla trae 4 de los 6 indicadores (faltan el colchón en meses y la deuda y el patrimonio a 24 meses);
+  - dos pruebas a la vez;
+  - «Guardar como escenario»;
+  - importes editables (los 3.000 € del imprevisto).
+- **FX-23, PR-1:**
+  - Decidir › Escenarios › Comparar ya funciona con un solo escenario guardado, frente al plan. Antes pedía dos, y con uno solo no había nada que ver. El botón pasa a «Comparar con el plan».
+  - Si no hay ninguno guardado, la pantalla remite a «Comparar con» de Previsión.
+  - La entrada de Simular dice «Prueba una decisión sin tocar el plan…», en vez de «Motor unificado (E20) conectado a la interfaz…».
+  - Faltan los presets sin guardar y el mini-gráfico por columna.
+
+**6/11/2026 · R-N5 levantada por el hogar y Plan › Previsión nueva (C2, FX-10 PR-1) construida.**
+- Con el tema nuevo, Plan › Previsión abre con el punto más bajo del horizonte, su fecha y lo que queda sobre el suelo. Con la demo: «unos 5.600 € el 8 dic · 4.100 € por encima del suelo de 1.500 €. A 31 de diciembre, 13.000 €».
+- Debajo va el gráfico único de FX-11 con el suelo y los cobros como hitos, los horizontes 3 m · 12 m · 24 m · Hasta 2036 (la recomendación de D-N2, que se recuerda por dispositivo) y «Lo que viene en 90 días», con la certeza de cada día.
+- Todo sale del mismo motor, el mismo suelo y el mismo redondeo que Hoy.
+- La tabla de meses sigue tras «Ver todo el detalle». El plan B, el puente y el mapa de pagos siguen a la vista debajo: esconderlos sería casi retirar funciones en uso.
+- Plan › Previsión pasa de 5 a 4 titulares visibles: la base de XGO-01 baja de 226 a 225.
+- Medido en el medidor (`prevision-v2`) y en Funciones en prueba como parte del diseño nuevo.
+
 **6/11/2026 · FX-11, el gráfico de previsión único, construido sin cambiar ninguna pantalla (S1 adelantada; el hogar dijo «¿seguimos?»).**
 - **FX-61:** `ChartKit.forecastPlotHtml` (`chart-kit.js`) se suma al kit de WP-28, que ya existía con recorrido, frase y tabla. Por eso FX-61 queda absorbida, sin sesiones propias.
 - **Qué pinta:** lo real hasta hoy en tinta continua, el plan desde hoy en azul continuo, el rango probable y el suelo en rojo discontinuo, más la marca de hoy, la costura diario/mensual, los hitos y hasta dos escenarios en azul discontinuo con su nombre al final de la línea.
@@ -105,8 +156,10 @@ Lo que **no** cambia: el resto de prioridades y estados de `BACKLOG_DEFINITIVO.m
   revisión.
 - **R-N4 · Tope blando de 3 funciones nuevas en prueba a la vez durante la oleada** (D-N7). No limita construir: limita
   lo que se enciende a la vez para que cada revisión de 14 días mida una sola cosa.
-- **R-N5 · La recomendación del 4/11 se respeta:** ninguna pantalla nueva antes de las revisiones del 12 al 18/11. Esa
-  semana solo se construyen motores y piezas sin cambio visible (S1).
+- ~~**R-N5 · La recomendación del 4/11 se respeta:** ninguna pantalla nueva antes de las revisiones del 12 al 18/11.~~
+  **Levantada por el hogar el 6/11/2026:** «puedes saltarte esta restricción […] y sigue además con el resto de
+  funcionalidades». Coste conocido: las revisiones del 12 al 18/11 medirán pantallas recién cambiadas. Sigue en pie «un cambio
+  de Hoy por semana».
 
 ---
 
@@ -146,16 +199,16 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 10 | **FX-11** | Gráfico de previsión único (real, plan, rango, suelo, hitos, escenarios, costura) | 8ª | M · incl. en FX-61 | FX-61 | S1 | Lo usan Previsión y Escenarios; axe; frase automática correcta con la demo | **Hecho 6/11** (`ChartKit.forecastPlotHtml` y su token `--e19-forecast`); todavía no lo pinta ninguna pantalla: lo estrena C2 |
 | 11 | **FX-03** | Una sola forma de la trayectoria en los primeros 90 días: el motor diario reparte el gasto variable por los días del mes, como la banda, en vez de cargarlo entero el día estimado. **El cierre de cada mes ya cuadra** entre motores (invariante `monthly-parity` de `canonical-daily-engine.js`). Absorbe la parte de previsión de RD-COB2 | 8ª, Def §5.0 | M · 2 | FX-01 | S2 (tras la revisión de Hoy del 16/11) | La banda «según el plan» y el motor diario dan el mismo saldo cada día (demo + sintéticos); el titular y la banda, la misma fecha de mínimo | **Revisado 6/11:** cambia la cifra de Hoy, así que entra como el cambio de Hoy de una semana |
 | 12 | **FX-51** | Supuestos del plan: **el registro ya existe** (Ajustes, con fecha y caducidad, A7-2/PVC15). Falta el impacto de cada supuesto (±1 punto) en el fin de año y a 24 meses, verlo desde Previsión y sumar Euribor, rentabilidad de la cartera y renta del local | 8ª | M · 1,5 | — | S1-S2 | Cada supuesto con su impacto ±1 en el fin de año; editar enseña antes/después | **PR-1 hecho 6/11**: el impacto de los cuatro supuestos generales, en Ajustes; el «×0» de los factores, corregido. Falta verlo desde Previsión (con C2) y sumar Euribor, rentabilidad y renta del local |
-| 13 | **FX-10** | **Plan › Previsión con el diseño nuevo (C2), ampliada** | 8ª, Def §5.0 (C2) | L · 4 | FX-01, FX-11 | S2 | Cifra + gráfico + panel del día sin desplazar a 1440 × 900; cifra + gráfico a 390 × 844; menos titulares que hoy (XGO-01); e2e 390 `@safari` y 1440; axe claro/oscuro | Propuesta |
+| 13 | **FX-10** | **Plan › Previsión con el diseño nuevo (C2), ampliada** | 8ª, Def §5.0 (C2) | L · 4 | FX-01, FX-11 | S2 | Cifra + gráfico + panel del día sin desplazar a 1440 × 900; cifra + gráfico a 390 × 844; menos titulares que hoy (XGO-01); e2e 390 `@safari` y 1440; axe claro/oscuro | **PR-1 hecho 6/11**: punto más bajo con su fecha, gráfico único con el suelo y los cobros, horizontes 3/12/24 m y hasta 2036, «Lo que viene» y lo de siempre tras «Ver todo el detalle». Faltan el panel del día en escritorio, el rango (tras FX-03), la insignia de confianza (FX-31) y XPR-07/08 dentro |
 | 14 | **XPR-06** | Qué mueve cada día, dentro de C2 (sale de su interruptor) | Def §5.0 | — | FX-10 | S2 | Panel/hoja del día de C2 | Hecho, en prueba (revisión 12/11) |
 | 15 | **XPR-07** | El arreglo más barato, dentro de C2 | Def §5.0 | — | FX-10 | S2 | Tarjeta de remedio de C2 | Hecho PR-1, en prueba (revisión 12/11) |
 | 16 | **XPR-08** | «De verdad libre»: disponible tras apartar lo que viene | 7ª | S-M · 1,5 | FX-10 | S2 | Tarjeta de C2 con «Apartar» que lleva al sobre | Propuesta 7ª → adoptada |
 | 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | Propuesta |
 | 18 | **FX-12** | Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49) | 8ª, Def P2 | M · 2 | FX-10 | S2 (plegado) / S3 | Lista por semana con certeza y «¿sabes el día?»; mismos hitos en el gráfico | Propuesta |
 | 19 | **WP-37** | Estados completos y «deshacer», aplicados a C2 | Def P1 | — | FX-10 | S2 | Vacío, sin saldos, sin suelo y error en C2 | Aparcado → se aplica en C2 |
-| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | Propuesta |
-| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | Propuesta · **D-N3** |
-| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | Propuesta |
+| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. Faltan los escenarios guardados en la fila (con FX-23), dos a la vez, el colchón en meses y deuda/patrimonio a 24 m |
+| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | **Las 3 de D-N3 hechas 6/11** (`canonical-stress-scenarios.js` v2): un sueldo menos por titular 3 o 6 meses, Euribor +1/+2 en la próxima revisión (con WP-20) e imprevisto de 3.000 € el peor día. Faltan «Guardar como escenario» y el importe del imprevisto editable. Gasto +10 % queda en la biblioteca |
+| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. Faltan los presets sin guardar y el mini-gráfico por columna |
 | 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | Propuesta |
 | 24 | **FX-42** | La previsión en el «Listo» del Repaso semanal (no es un paso nuevo) | 8ª | S · 0,5 | FX-40 | S3 | Tarjeta de 3 líneas en «Listo» | Propuesta · solo si el Repaso sigue tras su revisión del 7/11 |
 | 25 | **FX-43** | La carta del mes cuenta la previsión (WP-29) | 8ª, Def P1 | S · 0,5 | WP-12 | S4 | Primera carta con el cierre de noviembre | Propuesta (WP-29 esperando al hogar) |
@@ -288,12 +341,13 @@ panel de seguimiento.
 | # | Pregunta | Recomendación de Claude | Para cuándo |
 |---|---|---|---|
 | **D-N1** | ¿Se adopta este backlog como vigente, con el orden por semanas y las reglas R-N1 a R-N5? | Sí | Para empezar S0 (las correcciones de S0 no esperan: son errores) |
-| **D-N2** | Horizontes de Previsión: los de la referencia (3 m · 12 m · 24 m · Hasta 2036) en lugar de los de hoy (12 · 24 · 48 · 2036) | Los de la referencia: el riesgo de caja está en los 3 primeros meses | 18/11 |
-| **D-N3** | Las 3 primeras pruebas de estrés | Euribor +1/+2 (hipoteca variable), un sueldo menos 3-6 meses, imprevisto de 3.000 € | 18/11 |
+| **D-N2** | Horizontes de Previsión: los de la referencia (3 m · 12 m · 24 m · Hasta 2036) en lugar de los de hoy (12 · 24 · 48 · 2036) | Los de la referencia: el riesgo de caja está en los 3 primeros meses | 18/11 · **aplicada la recomendación en C2 el 6/11, reversible** (la tabla de siempre conserva los suyos) |
+| **D-N3** | Las 3 primeras pruebas de estrés | Euribor +1/+2 (hipoteca variable), un sueldo menos 3-6 meses, imprevisto de 3.000 € | **Decidida el 6/11: sí, con el sueldo por titular** (construida el mismo día: Euribor con los datos de WP-20, sueldo por titular 3 o 6 meses, imprevisto) |
 | **D-N4** | Hoy «Fin de noviembre 8.850 €» es margen sobre el suelo. ¿Se rotula «Margen a fin de noviembre» o se enseña el saldo con el margen debajo? ¿Cuenta como corrección (fuera de «un cambio de Hoy por semana»)? | Saldo arriba y margen debajo; sí, es corrección | **Decidida el 6/11: saldo arriba y margen debajo** (hecha el mismo día; tratada como corrección) |
 | **D-N5** | Los escenarios sobre la previsión, solo de lectura; aplicar, en Decidir › Escenarios | Sí (R-N3) | 18/11 |
 | **D-N6** | Tras la paridad (FX-25), ¿redirigir el laboratorio E13 y el simulador de decisiones a Escenarios? | Sí, con dos meses de redirección; se pregunta de nuevo antes de hacerlo | Febrero 2027 |
 | **D-N7** | Tope blando de 3 funciones nuevas en prueba a la vez durante la oleada | Sí (R-N4) | 18/11 |
+| **D-N8** | El motor mensual traspasa al ahorro todo lo que pasa de un mes de gastos y **no deja la reserva operativa en la cuenta corriente**. Con los gastos estimados el día 8 y la nómina el 15, la cuenta toca 0 € cada mes antes de cobrar. ¿Se cambia el motor para que el traspaso deje la reserva en la cuenta? | Sí: la liquidez total no cambia, solo cuánto va a cada cuenta; el traspaso del primer mes baja una vez lo que valga la reserva. Cambia las cifras de traspaso que el hogar ve en el plan, así que se consulta | **Decidida el 6/11: sí** (hecha esa noche) |
 
 ---
 

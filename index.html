@@ -73,7 +73,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261106fx11a" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261106dn8a" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1094,6 +1094,8 @@
             </div>
             <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
               <div class="e19-plan-prevision">
+                <!-- Rediseño C2 (views/prevision-v2.js, FX-10), solo con el tema v2: el punto más bajo, el gráfico único de previsión y lo que viene. Lo de siempre sigue tras «Ver todo el detalle». -->
+                <div class="prev-v2" id="planPrevisionV2" hidden></div>
                 <div class="section-title with-action compact">
                   <p class="e19-kpi-note" id="planPrevisionLegend"></p>
                 </div>
@@ -1881,7 +1883,7 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · escenario</p>
                 <h2 class="e19-heading">Prueba una vida distinta sin tocar el plan</h2>
-                <p class="e19-subtitle">Motor unificado (E20) conectado a la interfaz, con trece tipos de decisión que resuelve de verdad —ocho sobre deuda y cinco sobre ingresos, gastos, compras, proyectos e imprevistos— más los tipos propios que crees. Cada decisión se valida contra el contrato y se resuelve de verdad: aplicada o rechazada con motivo, nunca un número inventado.</p>
+                <p class="e19-subtitle">Prueba una decisión sin tocar el plan: elige qué cambia (la deuda, un ingreso, un gasto, una compra, un proyecto o un imprevisto) y mira cómo queda frente a lo de ahora. Si algo no se puede aplicar, te dice por qué; nunca se inventa un número.</p>
               </div>
               <div class="visual-controls">
                 <span class="e19-badge e19-badge-neutral">Modo simulación · nada se guarda</span>
@@ -2058,7 +2060,7 @@
                 <p class="e19-subtitle">Cada escenario conserva sus decisiones y la fecha en la que se guardó. Aplicar crea un plan propuesto que convive con el vigente hasta que Cierre lo confirma o lo descarta.</p>
               </div>
               <div class="visual-controls">
-                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioGuardadosCompare">Comparar dos escenarios</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioGuardadosCompare">Comparar con el plan</button>
                 <button type="button" class="e19-btn e19-btn-primary" id="escenarioGuardadosNew">Nuevo escenario</button>
               </div>
             </div>
@@ -2078,15 +2080,15 @@
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · comparar escenarios</p>
-                <h2 class="e19-heading">Varios escenarios, uno al lado del otro</h2>
-                <p class="e19-subtitle">Los mismos seis indicadores de la comparativa, con el plan vigente como referencia y una columna por cada escenario marcado abajo. Los avisos (E-6b) no se pueden comparar: no son escenarios viables.</p>
+                <h2 class="e19-heading">Tus escenarios frente al plan</h2>
+                <p class="e19-subtitle">Seis indicadores con el plan de ahora como referencia y una columna por cada escenario que marques abajo; basta con uno. Los avisos no se comparan: no son escenarios viables.</p>
               </div>
               <div class="visual-controls">
                 <button type="button" class="e19-btn e19-btn-secondary" id="escenarioCompararBack">Volver a guardados</button>
               </div>
             </div>
 
-            <p class="e19-subtitle" id="escenarioCompararEmpty">Hacen falta al menos dos escenarios guardados (no avisos) para comparar.</p>
+            <p class="e19-subtitle" id="escenarioCompararEmpty">Guarda un escenario en «Simular» para verlo aquí frente al plan. Para un sueldo menos, un imprevisto o más gasto, sin guardar nada, usa «Comparar con» en Plan › Previsión.</p>
 
             <div id="escenarioCompararLayout" hidden>
               <fieldset class="escenario-motor-compare-picker" id="escenarioCompararPicker" aria-label="Escenarios a comparar"></fieldset>
@@ -5431,7 +5433,7 @@
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reserva operativa</h3>
-              <p class="e19-kpi-note">El colchón que no quieres tocar. Lo usan el pie de impacto de Plan, el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda.</p>
+              <p class="e19-kpi-note">El colchón que no quieres tocar en la cuenta corriente: el plan lo deja ahí cuando traspasa al ahorro. Lo usan también el pie de impacto de Plan, el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda.</p>
               <label class="month-picker">
                 <span>Reserva operativa</span>
                 <input id="ajustesReserve" type="number" min="0" step="50" inputmode="decimal" placeholder="Sin configurar" />
@@ -7910,8 +7912,8 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261106fx62a"></script>
-    <script defer src="funciones-en-prueba.js?v=20261104cierreC3"></script>
+    <script defer src="medidor-utilidad.js?v=20261106c2a"></script>
+    <script defer src="funciones-en-prueba.js?v=20261106c2aC3"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8109,12 +8111,12 @@
     <script defer src="recovery-guide.js?v=20260731e3"></script>
     <script defer src="canonical-state.js?v=20260717p0"></script>
     <script defer src="canonical-ledger.js?v=20261029cont1"></script>
-    <script defer src="canonical-engine.js?v=20260713e"></script>
-    <script defer src="canonical-forecast.js?v=20260902pv1a1"></script>
+    <script defer src="canonical-engine.js?v=20261106dn8a"></script>
+    <script defer src="canonical-forecast.js?v=20261106dn8a"></script>
     <script defer src="canonical-renewal-advisor.js?v=20260831a164b1"></script>
     <script defer src="canonical-ghost-expense-detector.js?v=20260919p8a1"></script>
     <script defer src="canonical-cushion.js?v=20260903tt2a1"></script>
-    <script defer src="canonical-e13-scenarios.js?v=20260902a145a1"></script>
+    <script defer src="canonical-e13-scenarios.js?v=20261106dn8a"></script>
     <script defer src="canonical-daily-engine.js?v=20260714a"></script>
     <script defer src="canonical-daily-input.js?v=20261001s1a1"></script>
     <script defer src="canonical-data-age.js?v=20261002s4a1"></script>
@@ -8156,6 +8158,7 @@
     <script defer src="canonical-share-link.js?v=20260902a191a1"></script>
     <script defer src="canonical-forecast-sensitivity.js?v=20260830pv6a1"></script>
     <script defer src="canonical-forecast-contract.js?v=20261106fx51a"></script>
+    <script defer src="canonical-stress-scenarios.js?v=20261106cc1a"></script>
     <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
@@ -8185,7 +8188,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261106dn4a"></script>
+    <script defer src="novedades.js?v=20261106dn8a"></script>
     <script defer src="ux-shell.js?v=20261104intro2"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8283,6 +8286,7 @@
     <script defer src="views/clasificar-v2.js?v=20261102nuevaP1"></script>
     <script defer src="views/repaso-v2.js?v=20261024redisB5"></script>
     <script defer src="views/plan-v2.js?v=20261105t25t27"></script>
+    <script defer src="views/prevision-v2.js?v=20261106cc1a"></script>
     <script defer src="views/cierre-v2.js?v=20261104coste1"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261104cierreC3"></script>
@@ -8298,7 +8302,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
-    <script defer src="app.js?v=20261106fx51a"></script>
+    <script defer src="app.js?v=20261106dn8a"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
