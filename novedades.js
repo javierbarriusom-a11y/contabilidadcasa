@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-prevision-v2",
+      fecha: "2026-11-06",
+      texto: "Plan › Previsión nueva: el punto más bajo con su fecha, un gráfico con el suelo y los cobros, y lo que viene en 90 días.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-06-hoy-fin-de-mes",
       fecha: "2026-11-06",
       texto: "Hoy: «Fin de noviembre» enseña el saldo previsto, el mismo de Previsión, y debajo cuánto queda sobre el suelo.",

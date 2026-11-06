@@ -159,6 +159,6 @@ test("V3-4 · el CSS de la tarjeta se reutiliza de asesor-decision, sin declarar
 
 test("Deuda · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261106fx51a/);
+  assert.match(html, /app.js\?v=20261106c2a/);
   assert.match(html, /design-tokens\.css\?v=20261106fx11a/);
 });

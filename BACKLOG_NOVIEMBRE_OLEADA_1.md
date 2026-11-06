@@ -21,6 +21,14 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 · R-N5 levantada por el hogar y Plan › Previsión nueva (C2, FX-10 PR-1) construida.**
+- Con el tema nuevo, Plan › Previsión abre con el punto más bajo del horizonte, su fecha y lo que queda sobre el suelo. Con la demo: «unos 5.600 € el 8 dic · 4.100 € por encima del suelo de 1.500 €. A 31 de diciembre, 13.000 €».
+- Debajo va el gráfico único de FX-11 con el suelo y los cobros como hitos, los horizontes 3 m · 12 m · 24 m · Hasta 2036 (la recomendación de D-N2, que se recuerda por dispositivo) y «Lo que viene en 90 días», con la certeza de cada día.
+- Todo sale del mismo motor, el mismo suelo y el mismo redondeo que Hoy.
+- La tabla de meses, el plan B, el puente y el mapa de pagos siguen tras «Ver todo el detalle».
+- Plan › Previsión pasa de 5 a 1 titular visible: la base de XGO-01 baja de 226 a 222.
+- Medido en el medidor (`prevision-v2`) y en Funciones en prueba como parte del diseño nuevo.
+
 **6/11/2026 · FX-11, el gráfico de previsión único, construido sin cambiar ninguna pantalla (S1 adelantada; el hogar dijo «¿seguimos?»).**
 - **FX-61:** `ChartKit.forecastPlotHtml` (`chart-kit.js`) se suma al kit de WP-28, que ya existía con recorrido, frase y tabla. Por eso FX-61 queda absorbida, sin sesiones propias.
 - **Qué pinta:** lo real hasta hoy en tinta continua, el plan desde hoy en azul continuo, el rango probable y el suelo en rojo discontinuo, más la marca de hoy, la costura diario/mensual, los hitos y hasta dos escenarios en azul discontinuo con su nombre al final de la línea.
@@ -105,8 +113,10 @@ Lo que **no** cambia: el resto de prioridades y estados de `BACKLOG_DEFINITIVO.m
   revisión.
 - **R-N4 · Tope blando de 3 funciones nuevas en prueba a la vez durante la oleada** (D-N7). No limita construir: limita
   lo que se enciende a la vez para que cada revisión de 14 días mida una sola cosa.
-- **R-N5 · La recomendación del 4/11 se respeta:** ninguna pantalla nueva antes de las revisiones del 12 al 18/11. Esa
-  semana solo se construyen motores y piezas sin cambio visible (S1).
+- ~~**R-N5 · La recomendación del 4/11 se respeta:** ninguna pantalla nueva antes de las revisiones del 12 al 18/11.~~
+  **Levantada por el hogar el 6/11/2026:** «puedes saltarte esta restricción […] y sigue además con el resto de
+  funcionalidades». Coste conocido: las revisiones del 12 al 18/11 medirán pantallas recién cambiadas. Sigue en pie «un cambio
+  de Hoy por semana».
 
 ---
 
@@ -146,7 +156,7 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 10 | **FX-11** | Gráfico de previsión único (real, plan, rango, suelo, hitos, escenarios, costura) | 8ª | M · incl. en FX-61 | FX-61 | S1 | Lo usan Previsión y Escenarios; axe; frase automática correcta con la demo | **Hecho 6/11** (`ChartKit.forecastPlotHtml` y su token `--e19-forecast`); todavía no lo pinta ninguna pantalla: lo estrena C2 |
 | 11 | **FX-03** | Una sola forma de la trayectoria en los primeros 90 días: el motor diario reparte el gasto variable por los días del mes, como la banda, en vez de cargarlo entero el día estimado. **El cierre de cada mes ya cuadra** entre motores (invariante `monthly-parity` de `canonical-daily-engine.js`). Absorbe la parte de previsión de RD-COB2 | 8ª, Def §5.0 | M · 2 | FX-01 | S2 (tras la revisión de Hoy del 16/11) | La banda «según el plan» y el motor diario dan el mismo saldo cada día (demo + sintéticos); el titular y la banda, la misma fecha de mínimo | **Revisado 6/11:** cambia la cifra de Hoy, así que entra como el cambio de Hoy de una semana |
 | 12 | **FX-51** | Supuestos del plan: **el registro ya existe** (Ajustes, con fecha y caducidad, A7-2/PVC15). Falta el impacto de cada supuesto (±1 punto) en el fin de año y a 24 meses, verlo desde Previsión y sumar Euribor, rentabilidad de la cartera y renta del local | 8ª | M · 1,5 | — | S1-S2 | Cada supuesto con su impacto ±1 en el fin de año; editar enseña antes/después | **PR-1 hecho 6/11**: el impacto de los cuatro supuestos generales, en Ajustes; el «×0» de los factores, corregido. Falta verlo desde Previsión (con C2) y sumar Euribor, rentabilidad y renta del local |
-| 13 | **FX-10** | **Plan › Previsión con el diseño nuevo (C2), ampliada** | 8ª, Def §5.0 (C2) | L · 4 | FX-01, FX-11 | S2 | Cifra + gráfico + panel del día sin desplazar a 1440 × 900; cifra + gráfico a 390 × 844; menos titulares que hoy (XGO-01); e2e 390 `@safari` y 1440; axe claro/oscuro | Propuesta |
+| 13 | **FX-10** | **Plan › Previsión con el diseño nuevo (C2), ampliada** | 8ª, Def §5.0 (C2) | L · 4 | FX-01, FX-11 | S2 | Cifra + gráfico + panel del día sin desplazar a 1440 × 900; cifra + gráfico a 390 × 844; menos titulares que hoy (XGO-01); e2e 390 `@safari` y 1440; axe claro/oscuro | **PR-1 hecho 6/11**: punto más bajo con su fecha, gráfico único con el suelo y los cobros, horizontes 3/12/24 m y hasta 2036, «Lo que viene» y lo de siempre tras «Ver todo el detalle». Faltan el panel del día en escritorio, el rango (tras FX-03), la insignia de confianza (FX-31) y XPR-07/08 dentro |
 | 14 | **XPR-06** | Qué mueve cada día, dentro de C2 (sale de su interruptor) | Def §5.0 | — | FX-10 | S2 | Panel/hoja del día de C2 | Hecho, en prueba (revisión 12/11) |
 | 15 | **XPR-07** | El arreglo más barato, dentro de C2 | Def §5.0 | — | FX-10 | S2 | Tarjeta de remedio de C2 | Hecho PR-1, en prueba (revisión 12/11) |
 | 16 | **XPR-08** | «De verdad libre»: disponible tras apartar lo que viene | 7ª | S-M · 1,5 | FX-10 | S2 | Tarjeta de C2 con «Apartar» que lleva al sobre | Propuesta 7ª → adoptada |
@@ -288,7 +298,7 @@ panel de seguimiento.
 | # | Pregunta | Recomendación de Claude | Para cuándo |
 |---|---|---|---|
 | **D-N1** | ¿Se adopta este backlog como vigente, con el orden por semanas y las reglas R-N1 a R-N5? | Sí | Para empezar S0 (las correcciones de S0 no esperan: son errores) |
-| **D-N2** | Horizontes de Previsión: los de la referencia (3 m · 12 m · 24 m · Hasta 2036) en lugar de los de hoy (12 · 24 · 48 · 2036) | Los de la referencia: el riesgo de caja está en los 3 primeros meses | 18/11 |
+| **D-N2** | Horizontes de Previsión: los de la referencia (3 m · 12 m · 24 m · Hasta 2036) en lugar de los de hoy (12 · 24 · 48 · 2036) | Los de la referencia: el riesgo de caja está en los 3 primeros meses | 18/11 · **aplicada la recomendación en C2 el 6/11, reversible** (la tabla de siempre conserva los suyos) |
 | **D-N3** | Las 3 primeras pruebas de estrés | Euribor +1/+2 (hipoteca variable), un sueldo menos 3-6 meses, imprevisto de 3.000 € | 18/11 |
 | **D-N4** | Hoy «Fin de noviembre 8.850 €» es margen sobre el suelo. ¿Se rotula «Margen a fin de noviembre» o se enseña el saldo con el margen debajo? ¿Cuenta como corrección (fuera de «un cambio de Hoy por semana»)? | Saldo arriba y margen debajo; sí, es corrección | **Decidida el 6/11: saldo arriba y margen debajo** (hecha el mismo día; tratada como corrección) |
 | **D-N5** | Los escenarios sobre la previsión, solo de lectura; aplicar, en Decidir › Escenarios | Sí (R-N3) | 18/11 |

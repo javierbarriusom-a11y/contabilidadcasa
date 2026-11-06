@@ -5436,6 +5436,54 @@ test.describe("Importar v2 · mes a mes", () => {
 
 // Rediseño C1: Plan › Mes v2 (views/plan-v2.js). Mismo campo, mismo borrador y mismo pie de impacto que la tabla de
 // siempre; importes en español; las financiaciones plegadas; y la tabla de siempre a un toque.
+// Rediseño C2 · Plan › Previsión v2 (views/prevision-v2.js, FX-10). Con la demo el 6/11: el punto más bajo de 3 meses es el
+// 8 dic (unos 5.600 €), el mismo que el titular de Previsión mensual; el horizonte cambia la frase; «Ver todo el detalle»
+// devuelve la tabla de siempre; nada se sale de la pantalla.
+test.describe("Rediseño C2 · Plan › Previsión v2", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el punto más bajo con su fecha, el gráfico con el suelo, el horizonte, lo que viene y la tabla de siempre, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(v2.locator(".prev-v2-hero")).toContainText("Punto más bajo de los próximos 3 meses");
+      await expect(v2.locator(".prev-v2-cifra")).toContainText(/unos\s+5\.600\s€\s+el 8 dic/);
+      await expect(v2.locator(".prev-v2-frase")).toContainText("por encima del suelo de 1.500 €");
+      await expect(v2.locator(".ck-figure svg.ck-prevision")).toBeVisible();
+      await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("suelo");
+      await expect(page.locator("#planHeaderHorizon"), "el horizonte de la tabla de siempre no se duplica").toBeHidden();
+      await expect(page.locator("#planPrevisionTable"), "lo de siempre, plegado").toBeHidden();
+      // El mismo punto más bajo que el contrato saca del motor diario (FX-01).
+      const contrato = await page.evaluate(() => {
+        const c = globalThis.FinanceCanonicalForecastContract;
+        const hoy = isoLocalDate(new Date());
+        const low = c.lowPoint(canonicalDailyEngineRuns.active.rows, { from: hoy, to: "2027-02-05" });
+        return money(c.describeLow(low, { today: hoy }).value);
+      });
+      await expect(v2.locator(".prev-v2-cifra")).toContainText(contrato);
+      // Lo que viene: plegado, con cuántos y cuántos con día estimado.
+      await expect(v2.locator(".prev-v2-viene > summary")).toContainText(/Lo que viene en 90 días · \d+ cobros y pagos grandes/);
+      // El horizonte cambia la frase y se recuerda.
+      await v2.locator('[data-prevision-v2-horizonte="24m"]').click();
+      await expect(v2.locator(".prev-v2-hero")).toContainText("Punto más bajo de los próximos 24 meses");
+      await expect(v2.locator('[data-prevision-v2-horizonte="24m"]')).toHaveAttribute("aria-pressed", "true");
+      expect(await page.evaluate(() => localStorage.getItem("prevision-v2-horizonte"))).toBe("24m");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // «Ver todo el detalle»: vuelve lo de siempre entero.
+      await v2.locator("[data-prevision-v2-detalle]").click();
+      await expect(v2).toBeHidden();
+      await expect(page.locator("#planPrevisionTable")).toBeVisible();
+      await expect(page.locator("#planHeaderHorizon")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("Rediseño C1 · Plan › Mes v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`sin asignar, ritmo, editar en español con su impacto, cambiar de mes y la tabla de siempre a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {

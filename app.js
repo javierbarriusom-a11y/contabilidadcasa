@@ -29591,6 +29591,7 @@ function renderPlanPrevision() {
   if (milestonesEl) {
     milestonesEl.innerHTML = planPrevisionHorizonMilestonesHtml(planPrevisionHorizonMilestones(months, liquidityByMonth, floor.value), floor.source);
   }
+  globalThis.previsionV2Render?.(); // rediseño C2 · FX-10 (views/prevision-v2.js)
   globalThis.renderPlanB?.(globalThis.FinanceCanonicalContingencyPlan); // WP-38 (contingencia-ui.js)
   globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // WP-43 (puente-ui.js)
   globalThis.renderMapaPagos?.(globalThis.FinanceCanonicalLargePayments); // WP-49 (mapa-pagos-ui.js)

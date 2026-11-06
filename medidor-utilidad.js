@@ -57,6 +57,7 @@
     { id: "clasificar-v2", nombre: "Clasificar por lotes", accion: ["regla aceptada", "reglas aceptadas"], descarte: ["grupo saltado", "grupos saltados"], deshecho: ["regla deshecha", "reglas deshechas"] },
     { id: "repaso-v2", nombre: "Repaso semanal", accion: ["repaso terminado", "repasos terminados"], descarte: ["repaso a medias", "repasos a medias"], deshecho: null },
     { id: "cierre-v2", nombre: "Cierre nuevo", accion: ["acción o firma", "acciones o firmas"], descarte: ["vez «el cierre paso a paso»", "veces «el cierre paso a paso»"], deshecho: null },
+    { id: "prevision-v2", nombre: "Previsión nueva", accion: ["horizonte cambiado o ida a otra pantalla", "horizontes cambiados o idas a otra pantalla"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "plan-v2", nombre: "Plan nuevo", accion: ["previsto guardado o ida a otra pantalla", "previstos guardados o idas a otra pantalla"], descarte: ["vez «la tabla de siempre»", "veces «la tabla de siempre»"], deshecho: null },
     { id: "aportado", nombre: "Aportado frente a valor", accion: ["valoración buscada desde aquí", "valoraciones buscadas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", accion: ["acción seguida desde aquí", "acciones seguidas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },

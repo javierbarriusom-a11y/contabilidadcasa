@@ -3828,3 +3828,128 @@
     display: none;
   }
 }
+
+/* ---------- Rediseño C2 · Plan › Previsión (views/prevision-v2.js, FX-10) ----------
+   El punto más bajo del horizonte arriba, el gráfico único de previsión (ChartKit.forecastPlotHtml) y «Lo que viene» plegado.
+   Lo de siempre (tabla de meses, plan B, puente, mapa de pagos) se oculta mientras la v2 está pintada y vuelve con
+   «Ver todo el detalle». Si el script no pinta, nada se oculta. */
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > :not(#planPrevisionV2) {
+  display: none;
+}
+
+:root[data-tema="v2"] .prev-v2 {
+  display: grid;
+  gap: 14px;
+}
+
+:root[data-tema="v2"] .prev-v2-horizontes {
+  justify-self: start;
+}
+
+:root[data-tema="v2"] .prev-v2-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px 14px;
+}
+
+:root[data-tema="v2"] .prev-v2-viene {
+  padding: 14px 20px;
+}
+
+/* El horizonte de la tabla de siempre (12 · 24 · 48 · Completo) solo vale para lo de siempre: con la v2, el suyo va encima del gráfico. */
+:root[data-tema="v2"] #plan:has(.prevision-v2-on) #planHeaderHorizon {
+  display: none;
+}
+
+:root[data-tema="v2"] .prev-v2-hero {
+  display: grid;
+  gap: 4px;
+}
+
+:root[data-tema="v2"] .prev-v2-cifra {
+  margin: 0;
+  font: 700 clamp(2rem, 6vw, 2.6rem) / 1.1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-forecast);
+}
+
+:root[data-tema="v2"] .prev-v2-hero.is-bad .prev-v2-cifra,
+:root[data-tema="v2"] .prev-v2-bajo {
+  color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .prev-v2-cifra small {
+  font-size: 0.5em;
+  font-weight: 500;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cuando {
+  font-size: 0.45em;
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .prev-v2-frase {
+  margin: 0;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-plot {
+  height: 240px;
+  margin-top: 4px;
+}
+
+:root[data-tema="v2"] .prev-v2-viene > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-lista {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-viene-dia {
+  color: var(--e19-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-que small {
+  display: block;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+:root[data-tema="v2"] .prev-v2-viene-importe {
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-importe.is-pos {
+  color: var(--e19-success);
+}
+
+:root[data-tema="v2"] .prev-v2-mas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] .prev-v2-plot {
+    height: 300px;
+  }
+}

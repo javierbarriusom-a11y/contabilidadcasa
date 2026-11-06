@@ -173,6 +173,21 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (410): R-N5 levantada; Plan › Previsión nueva (C2, FX-10 PR-1)
+
+- **Petición del hogar:** «puedes saltarte esta restricción […] y sigue además con el resto de funcionalidades que puedas». R-N5 queda levantada; «un cambio de Hoy por semana» sigue en pie.
+- **#593 (FX-11) fusionado.**
+- **C2:** `views/prevision-v2.js` (nuevo) pinta Plan › Previsión con el tema nuevo, solo con datos ya calculados:
+  - el punto más bajo del horizonte, del motor diario, con fecha, margen sobre el suelo de Hoy y saldo a 31/12, redondeado por el contrato;
+  - el gráfico de FX-11 con el suelo, «hoy» y los cobros, recorrido por día (3 m), semana (12 m), quincena (24 m) o fin de mes (hasta 2036); el día más bajo siempre entra;
+  - horizontes 3 · 12 · 24 m · Hasta 2036, la recomendación de D-N2, recordados en `localStorage`;
+  - «Lo que viene en 90 días», con los cobros y pagos desde 300 € y su certeza, y el camino a Días de cargo;
+  - lo de siempre (tabla, plan B, puente, mapa de pagos y su horizonte), plegado tras «Ver todo el detalle».
+- **XGO-01:** Plan › Previsión pasa de 5 a 1 titular; base de 226 a 222.
+- **Medidor y Funciones en prueba:** «prevision-v2». **Novedades,** una línea.
+- **Versiones** a `?v=20261106c2a`: `app.js`, `tema-v2.css`, `novedades.js`, medidor y Funciones en prueba.
+- **Validación:** ver abajo.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (409): FX-11, el gráfico de previsión único (sin cambio visible)
 
 - **Petición del hogar:** «¿seguimos?». Recomendación de Claude: hasta las revisiones del 12 al 18/11, solo piezas sin cambio visible. FX-03 cambia la cifra de Hoy y espera a la revisión de Hoy del 16/11.

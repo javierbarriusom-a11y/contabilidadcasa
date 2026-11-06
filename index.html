@@ -73,7 +73,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261106fx11a" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261106c2a" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1094,6 +1094,8 @@
             </div>
             <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
               <div class="e19-plan-prevision">
+                <!-- Rediseño C2 (views/prevision-v2.js, FX-10), solo con el tema v2: el punto más bajo, el gráfico único de previsión y lo que viene. Lo de siempre sigue tras «Ver todo el detalle». -->
+                <div class="prev-v2" id="planPrevisionV2" hidden></div>
                 <div class="section-title with-action compact">
                   <p class="e19-kpi-note" id="planPrevisionLegend"></p>
                 </div>
@@ -7910,8 +7912,8 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261106fx62a"></script>
-    <script defer src="funciones-en-prueba.js?v=20261104cierreC3"></script>
+    <script defer src="medidor-utilidad.js?v=20261106c2a"></script>
+    <script defer src="funciones-en-prueba.js?v=20261106c2aC3"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8185,7 +8187,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261106dn4a"></script>
+    <script defer src="novedades.js?v=20261106c2a"></script>
     <script defer src="ux-shell.js?v=20261104intro2"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8283,6 +8285,7 @@
     <script defer src="views/clasificar-v2.js?v=20261102nuevaP1"></script>
     <script defer src="views/repaso-v2.js?v=20261024redisB5"></script>
     <script defer src="views/plan-v2.js?v=20261105t25t27"></script>
+    <script defer src="views/prevision-v2.js?v=20261106c2a"></script>
     <script defer src="views/cierre-v2.js?v=20261104coste1"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261104cierreC3"></script>
@@ -8298,7 +8301,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261027xda10"></script>
-    <script defer src="app.js?v=20261106fx51a"></script>
+    <script defer src="app.js?v=20261106c2a"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
