@@ -15,6 +15,17 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 **5/11/2026 · este backlog queda absorbido por [`BACKLOG_NOVIEMBRE_OLEADA_1.md`](BACKLOG_NOVIEMBRE_OLEADA_1.md)** (petición del hogar: propuesta de mejoras para la visibilidad de las previsiones y su impacto según escenarios, conservando este backlog con su prioridad). El análisis está en `docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md`. Desde hoy, las entradas nuevas de estado van al §0 de aquel documento.
 
+**5/11/2026 · WP-21 · PR-1 y PR-2 hechos:** el informe de inversión para la Renta, por declarante, está en Herramientas avanzadas › Fiscal, plegado dentro del «Borrador de apoyo para la Renta». Da la base del ahorro, la compensación con el 25 %, la cuota estimada, la doble imposición, el aviso del 720 y lo que le falta. Exporta a CSV y se imprime solo. Falta que el hogar teclee sus datos; el local (PR-3) queda para después.
+
+**5/11/2026 · WP-21 · PR-0b hecho:** «Datos para la Renta» registra también los dividendos e intereses cobrados (íntegro y retenciones; en blanco es «sin declarar», no 0), y cada pérdida arrastrada dice su bloque y su titular. Con eso, el PR-0 está completo. Siguiente: PR-1, el motor del informe.
+
+**5/11/2026 · WP-21 · PR-0a hecho:** «Datos para la Renta» en Inversión › Cartera, plegado: de quién es cada posición (Javi, Tere o conjunta) y si está depositada fuera de España. Se rellena una vez y se guarda con la cartera. Siguiente: PR-0b (dividendos y pérdidas pendientes) y PR-1 (el motor del informe).
+
+**5/11/2026 · WP-21 (paquete Renta), diseño hecho: el único paquete del plan que no estaba empezado** (`docs/WP21_DISENO.md`).
+- Es el informe fiscal de inversión por ejercicio y por declarante: transmisiones (FIFO), traspasos que no tributan, dividendos e intereses, compensación con el 25 % y el arrastre de 4 años, doble imposición, cuota estimada y aviso del modelo 720. Las reglas están contrastadas con fuentes y marcadas para reconfirmar en la AEAT.
+- **Huecos de datos** que cubre su PR-0: titular por posición (la tributación es individual), registro de dividendos, país del depositario y pérdidas pendientes por bloque.
+- **Orden:** PR-0 y PR-1 con datos de ejemplo; la pantalla y la exportación antes del 31/12; el informe definitivo antes del 31/3/2027. El local alquilado (FIS-03) se diseña aparte.
+
 **5/11/2026 · T25 y T27, decididos por el hogar y hechos.**
 - **T25: la «Reserva protegida» se mide con toda la liquidez**, también en Hoy. Antes Hoy comparaba solo CaixaBank y decía «2.150 € por debajo» mientras la tira de cifras decía «2.850 € de margen». El mínimo operativo de CaixaBank, lo que hace falta para los recibos, sigue con su aviso propio.
 - **T27: el ahorro del mes es una partida del reparto** de Plan › Mes. Lo asignado lo suma, «Sin asignar» lo descuenta y tiene una fila propia que lleva a Ahorro y objetivos. No es un gasto: no entra en el ritmo de gasto. Hoy dice «4.730 € de gasto» en vez de «asignado».

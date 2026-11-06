@@ -113,7 +113,87 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 5 de noviembre de 2026 (405): octava auditoría y backlog de noviembre · Oleada 1
+## Cierre de sesión — 5 de noviembre de 2026 (409): WP-21, la hoja de impresión del informe sin `:has()` (el paso de Safari del CI se colgaba)
+
+- **Síntoma:** en el CI de #588 (commit `0f78996`) el paso «Instalar WebKit y probar las pantallas v2 en Safari» llevaba más de 35 minutos sin terminar, cuando en `main` tarda unos 4. Las e2e de WP-21 a 390 px llevan `@safari`, así que corren también en WebKit, y la del PR-2 emula la impresión.
+- **Causa probable, no confirmada:** la hoja de impresión usaba `*:not(:has(#informeRenta))` y `*:has(#informeRenta)`. Con la impresión emulada, eso obliga a recorrer el árbol entero por cada elemento, y el DOM de `index.html` es muy grande. En Chromium no se notaba. No se pudo reproducir en WebKit porque la red de la sesión no deja descargarlo (`cdn.playwright.dev` bloqueado). Si el CI vuelve a colgarse, la causa es otra y hay que seguir buscando.
+- **Arreglo:** `informe-renta-ui.js` marca los antepasados del informe con `data-informe-renta-ancestro` al imprimir y quita las marcas en `afterprint`. `styles.css` oculta los hermanos de esos antepasados con selectores de hijo, sin `:has()` y sin `!important`. Captura en modo impresión en Chromium: idéntica a la anterior, informe arriba y a todo el ancho, y ningún elemento visible fuera del informe.
+- **Prueba:** `tests/wp21-informe-renta.test.cjs` comprueba la regla nueva, que la hoja de impresión del informe no usa `:has()` y que las marcas se quitan. No se ha rebajado ni saltado ninguna prueba.
+- **Validación:** `npm run verify` en verde (npm test 6398/6398). Las e2e de WP-21 en Chromium pasan 6/6.
+- **Rama y PR:** `claude/inspiring-feynman-rtoajq`, PR #588.
+
+## Cierre de sesión — 5 de noviembre de 2026 (408): WP-21 · PR-1 y PR-2, el motor y la pantalla del informe para la Renta
+
+- **Petición del hogar:** «seguimos con tareas que no dependan de mí». Siguiente pieza de WP-21 tras el PR-0b.
+- **Reglas reconfirmadas antes de escribir el motor** (`docs/WP21_DISENO.md` §9): el 30 % rige desde el 1/1/2025 (AEAT, novedades de la Ley 7/2024) y el cupo del 25 % es compartido (manual de la Renta 2025, 8.1.4). Se leyeron por los extractos del buscador: la red de la sesión no deja abrir la sede de la AEAT.
+- **Motor** (`canonical-tax-report.js`, nuevo, puro): transmisiones y rendimientos por declarante (la conjunta al 50 %), compensación del art. 49 con el cupo compartido y el arrastre por bloque (incluida la caducidad), cuota con la escala del hogar o la de la ley, doble imposición con su tope, aviso del 720 y «lo que falta» (bloqueante o no).
+- **Pantalla** (`informe-renta-ui.js`, nuevo): «Informe de inversión para la Renta», plegado dentro de «Borrador de apoyo para la Renta» (GOB8). Sin titular nuevo ni pantalla retirada. Ejercicio y declarante, lo que falta con dónde se arregla, tablas, compensación paso a paso, cuota, 720, CSV e **Imprimir** (solo el informe, a todo el ancho: comprobado con una captura en modo impresión).
+- **El texto del borrador GOB8** suma un punto 4 con la línea de cada declarante (`app.js`, tres líneas).
+- **Registro:** los dos módulos en `index.html` (antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`; `app.js` lo llama en el case «herramientas-fiscal» (una línea). ARQ-3: de 116 a 117 motores, con consumidor real. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6398/6398, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-informe-renta.test.cjs` (20).
+  - e2e «PR-2» a 390 (`@safari`) y 1280 px, XGO-01 (la superficie no cambia) y axe en claro y oscuro con el informe abierto: todo en verde en local con Chromium.
+
+## Cierre de sesión — 5 de noviembre de 2026 (407): WP-21 · PR-0b, dividendos e intereses y pérdidas arrastradas por bloque
+
+- **Petición del hogar:** «seguimos con tareas que no dependan de mí». Es el resto del PR-0 de WP-21.
+- **Dividendos e intereses** (`renta-datos-ui.js`): un registro nuevo dentro de «Datos para la Renta», plegado, en Inversión › Cartera.
+  - Cada cobro: fecha, tipo, posición (o de dónde viene y su titular), íntegro, retención en España, retención en origen y país.
+  - Una retención en blanco queda «sin declarar» (`null`), nunca 0.
+  - El titular de un cobro es el de su posición.
+  - Por año: el total y lo que falta.
+  - «Quitar» con «Deshacer».
+  - Guardado en `scenarioSettings.wp21Rendimientos`: sin almacén nuevo, va en la copia y en la nube.
+- **Pérdidas arrastradas** (Inversión › Fiscal): bloque (transmisiones o rendimientos) y titular.
+  - Las antiguas, sin bloque, cuentan como transmisiones.
+  - FC3, FC5 y el aviso del coste de la deuda dejan fuera las de rendimientos (`canonical-portfolio.js`, `yearEndCompensation`). El cruce del 25 % es del PR-1.
+  - `app.js`: una línea nueva y tres cambiadas.
+- **Arreglo de paso:** el «País» del PR-0a se veía siempre (`display: grid` ganaba a `hidden`). Corregido y cubierto por la e2e.
+- **Versiones:** `app.js`, `styles.css`, `novedades.js` y `renta-datos-ui.js` a `?v=20261105wp21b`, con sus pruebas; `canonical-portfolio.js` también. Novedades, una línea. `docs/WP21_DISENO.md` §9.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6378/6378, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-renta-datos.test.cjs`, de 4 a 11.
+  - e2e «WP-21 · Datos para la Renta», 4 de 4 en local con Chromium (390 `@safari` y 1280 px).
+
+## Cierre de sesión — 5 de noviembre de 2026 (406): WP-21 · PR-0a, titular y depositario de cada posición
+
+- **Petición del hogar:** «sigue con el PR-0 de WP-21». El PR-0 se parte en dos: **PR-0a** (titular y depositario, aquí) y **PR-0b** (dividendos y pérdidas pendientes, siguiente).
+- **Motor** (`canonical-portfolio.js`): `titular` (`javi`, `tere` o `household`), `depositario` (`espana` o `extranjero`) y `depositarioPais`, normalizados. Lo desconocido se queda vacío y nada se asume por defecto.
+- **Pantalla** (`renta-datos-ui.js`, nuevo):
+  - «Datos para la Renta» en Inversión › Cartera, plegado (XGO-01 no cambia).
+  - Una fila por posición, que se guarda al elegir con la lista de posiciones de siempre.
+  - Un resumen de lo que falta.
+  - Sin líneas en `app.js` y sin almacén nuevo: los campos viajan en la posición, así que van en la copia y en la nube.
+- **Por qué una lista y no el formulario de alta:** las posiciones del hogar ya existen.
+- **Registro del módulo:** `index.html` (con `defer` antes de `app.js`), `service-worker.js` y `tools/build-public-site.mjs`. Estilos en `styles.css`.
+- **Versiones:** `styles.css` y `novedades.js` a `?v=20261105wp21a`, con sus pruebas. Novedades, una línea. `docs/WP21_DISENO.md` §8.
+- **Validación:**
+  - `npm run verify` en verde (`npm test` 6371/6371, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+  - `tests/wp21-renta-datos.test.cjs` (4).
+  - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
+
+## Cierre de sesión — 5 de noviembre de 2026 (405): WP-21 (paquete Renta), diseño
+
+- **Petición del hogar:** «sigue con cosas que no dependan de mí». WP-21 era el único paquete del plan sin empezar, tiene fecha externa (31/3/2027) y se puede construir con datos de ejemplo.
+- **`docs/WP21_DISENO.md`:**
+  - qué es y qué no es (no es el modelo 100 ni una recomendación);
+  - qué reutiliza: FC1 (FIFO), FC3 (compensación y arrastre), FC4 (doble imposición), XIN-02 (recompra) y la escala versionada;
+  - qué falta: la compensación cruzada del 25 %, que FC3 dejó fuera a propósito, y el bloque de rendimientos;
+  - los huecos de datos (titular por posición, dividendos, depositario y pérdidas pendientes por bloque);
+  - cuatro PR (datos, motor, pantalla y exportación, y el local en un diseño aparte), las pruebas con cifras a mano y los riesgos.
+- **Reglas contrastadas con fuentes el 5/11:**
+  - escala del ahorro de 19 a 30 %;
+  - compensación del art. 49 con el 25 % y el cupo compartido;
+  - arrastre de 4 años;
+  - umbral de 50.000 € por bloque del 720.
+
+  Dos quedan marcadas para reconfirmar en la AEAT o el BOE en el PR-1: si el tramo del 30 % rige desde 2025 o desde 2026, y el cupo compartido del 25 %.
+- **Hallazgo:** las posiciones de la cartera no guardan titular. Con tributación individual, el informe no puede repartir nada sin ese dato. Es el primer campo del PR-0.
+- **Panel:** WP-21 pasa a «en curso».
+- **Validación:** solo documentación. `npm run verify` en verde (`npm test` 6367/6367, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
+
+## Cierre de sesión — 5 de noviembre de 2026 (405b): octava auditoría y backlog de noviembre · Oleada 1
 
 - **Petición del hogar:** análisis crítico de la app y propuesta de mejoras y nuevas funciones, con las mejores prácticas de UX y UI, para la **visibilidad de las previsiones, su estado y su impacto según escenarios**; conservar el backlog actual con su prioridad dentro del plan nuevo, que será «el backlog de noviembre oleada 1».
 - **Método:** app construida en local y recorrida con la demo (reloj 5/11/2026) a 1440 × 900 y 390 × 844 (Hoy, Plan › Previsión con todo desplegado, Proyección, Escenarios › Simular, Guardados y Comparar), más lectura de los motores de previsión y escenarios y de `docs/rediseno/`.

@@ -7746,3 +7746,153 @@ test.describe("Intro en los diálogos confirma, nunca cancela", () => {
     });
   }
 });
+
+// WP-21 · PR-0a (docs/WP21_DISENO.md §3): de quién es cada posición y dónde está depositada, para el informe de la Renta.
+// Plegado en Inversión › Cartera; se guarda al elegir, con la lista de posiciones de siempre. Cartera INVENTADA.
+test.describe("WP-21 · Datos para la Renta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`titular y depositario de cada posición se eligen, se guardan y siguen al recargar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared" },
+          { id: "rd-b", type: "etf", label: "ETF B", quantity: 5, costBasis: 500, currentValue: 520, asOf: "2026-10-01", provenance: "declared" },
+        ];
+        saveScenarioSettings();
+      });
+      const caja = page.locator("#rentaDatos");
+      await expect(caja).toBeVisible();
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").click();
+      await expect(caja.locator(".renta-datos-fila")).toHaveCount(2);
+      await expect(caja.locator("[data-renta-datos-resumen]")).toHaveText("0 de 2 posiciones tienen titular. Falta saber dónde están depositadas 2.");
+      await caja.getByLabel("Titular de Fondo A").selectOption("tere");
+      await caja.getByLabel("Dónde está depositada Fondo A").selectOption("extranjero");
+      await caja.getByLabel("País donde está depositada Fondo A").fill("Irlanda");
+      await caja.getByLabel("País donde está depositada Fondo A").press("Tab");
+      await caja.getByLabel("Titular de ETF B").selectOption("household");
+      await expect(caja.locator("[data-renta-datos-estado]")).toHaveText("Guardado: ETF B.");
+      await expect(caja.locator("[data-renta-datos-resumen]")).toHaveText("Las 2 posiciones tienen titular. Falta saber dónde está depositada una.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaDatos summary").click();
+      await expect(page.getByLabel("Titular de Fondo A")).toHaveValue("tere");
+      await expect(page.getByLabel("Dónde está depositada Fondo A")).toHaveValue("extranjero");
+      await expect(page.getByLabel("País donde está depositada Fondo A")).toHaveValue("Irlanda");
+      await expect(page.getByLabel("Titular de ETF B")).toHaveValue("household");
+      await expect(page.getByLabel("País donde está depositada ETF B"), "en España el país no se ve (hidden gana al display: grid)").toBeHidden();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`PR-0b: un dividendo y un interés se registran, siguen al recargar y se quitan con deshacer, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-cartera");
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        scenarioSettings.portfolioPositions = [
+          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared", titular: "javi" },
+        ];
+        scenarioSettings.wp21Rendimientos = [];
+        saveScenarioSettings();
+      });
+      const caja = page.locator("#rentaDatos");
+      await caja.locator("summary").click();
+      const form = caja.locator("[data-renta-rend-form]");
+      await expect(form.getByLabel("De dónde viene")).toBeHidden();
+      await form.getByLabel("Fecha").fill("2026-03-12");
+      await form.getByLabel("Íntegro (€)").fill("120,50");
+      await form.getByLabel("Retención en España (€)").fill("22,90");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator("[data-renta-rend-estado]")).toHaveText("Registrado: dividendo de 120,50 € del 12/03/2026.");
+
+      await form.getByLabel("Tipo").selectOption("interes");
+      await form.getByLabel("De qué posición").selectOption("");
+      await expect(form.getByLabel("De dónde viene")).toBeVisible();
+      await form.getByLabel("Íntegro (€)").fill("40");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator("[data-renta-rend-estado]")).toHaveText("Elige la posición o di de dónde viene (por ejemplo, la cuenta remunerada).");
+      await form.getByLabel("De dónde viene").fill("Cuenta remunerada");
+      await form.getByLabel("De quién es").selectOption("tere");
+      await form.getByRole("button", { name: "Registrar cobro" }).click();
+      await expect(caja.locator(".renta-rend-fila")).toHaveCount(2);
+      await expect(caja.locator(".renta-rend-total")).toContainText("2 cobros");
+      await expect(caja.locator(".renta-rend-falta")).toHaveText("Falta: 1 sin la retención española declarada.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await page.reload();
+      await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaDatos summary").click();
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(2);
+      await page.getByRole("button", { name: "Quitar interés del 12/03/2026 de Cuenta remunerada" }).click();
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(1);
+      await page.click("#undoToastButton");
+      await expect(page.locator("#rentaDatos .renta-rend-fila")).toHaveCount(2);
+      expect(await page.evaluate(() => scenarioSettings.wp21Rendimientos.length)).toBe(2);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`PR-2: el informe de la Renta dice lo que falta, da la cuota cuando está todo y exporta el CSV, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      const year = await page.evaluate(() => {
+        const y = String(new Date().getFullYear());
+        scenarioSettings.portfolioPositions = [
+          { id: "ir-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, acquisitionDate: `${Number(y) - 2}-01-10`, asOf: `${y}-10-01`, provenance: "declared", depositario: "espana",
+            disposals: [{ id: "ir-v1", date: `${y}-03-01`, quantitySold: 5, saleProceeds: 900 }] },
+        ];
+        scenarioSettings.wp21Rendimientos = [{ id: "ir-d1", fecha: `${y}-06-01`, tipo: "dividendo", posicionId: "ir-a", concepto: "", titular: "", integro: 200, retencionEspana: 38, retencionOrigen: null, paisOrigen: "" }];
+        scenarioSettings.fc3PriorLosses = [];
+        saveScenarioSettings();
+        return y;
+      });
+      const caja = page.locator("#informeRenta");
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").click();
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText(`Javi, ${year}:`);
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("todavía no se puede dar la cuota");
+      await expect(caja.locator(".informe-renta-falta")).toContainText("«Fondo A» tiene ventas este año y no se sabe de quién es");
+
+      await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "household"; saveScenarioSettings(); });
+      await caja.getByLabel("Declarante").selectOption("tere");
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText(`Tere, ${year}: base liquidable del ahorro estimada de`);
+      // La mitad de la venta (900 − 500 = 400 → 200) y la mitad del dividendo (100): base 300; cuota 19 % = 57.
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("300");
+      await expect(caja.locator("[data-informe-renta-estado]")).toContainText("57");
+      await expect(caja.getByRole("region", { name: `Transmisiones de ${year}` })).toContainText("Fondo A (50 %)");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      const [descarga] = await Promise.all([page.waitForEvent("download"), caja.getByRole("button", { name: "Exportar CSV" }).click()]);
+      expect(descarga.suggestedFilename()).toBe(`informe-renta-${year}-tere.csv`);
+      const csv = await (await descarga.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString("utf8"));
+      expect(csv).toContain("Base liquidable del ahorro;;;300;");
+      expect(csv).toContain("Cuota estimada;;escala de la ley;57;");
+
+      // El borrador de apoyo (GOB8) recoge el informe, y «Imprimir» deja en la hoja solo el informe.
+      await page.locator("#gob8GenerateDraft").click();
+      await expect(page.locator("#gob8DraftPreview")).toContainText("4) Inversión: base del ahorro de cada declarante");
+      await expect(page.locator("#gob8DraftPreview")).toContainText(`Tere, ${year}: base liquidable del ahorro estimada`);
+      await page.evaluate(() => { window.print = () => { window.__impreso = true; }; });
+      await caja.getByRole("button", { name: "Imprimir" }).click();
+      expect(await page.evaluate(() => window.__impreso && document.body.classList.contains("imprimiendo-informe-renta"))).toBe(true);
+      await page.emulateMedia({ media: "print" });
+      await expect(caja.locator("[data-informe-renta-estado]")).toBeVisible();
+      await expect(page.locator("#gob8GenerateDraft")).toBeHidden();
+      await expect(caja.getByRole("button", { name: "Exportar CSV" })).toBeHidden();
+      await page.emulateMedia({ media: "screen" });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      expect(await page.evaluate(() => document.body.classList.contains("imprimiendo-informe-renta"))).toBe(false);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

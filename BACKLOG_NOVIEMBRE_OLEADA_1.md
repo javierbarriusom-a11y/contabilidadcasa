@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**5/11/2026 · WP-21, la parte de inversión hecha antes de su turno** (#588, en otra sesión en paralelo con la que creó este backlog): «Datos para la Renta» en Inversión › Cartera (titular, depositario, dividendos e intereses, pérdidas por bloque) y el «Informe de inversión para la Renta» en Herramientas avanzadas › Fiscal, con CSV, impresión y su línea en el borrador GOB8. Sin cambios en la previsión ni en Hoy. Queda en la Oleada 2 solo el local alquilado (PR-3); lo que falta para que dé cuota son los datos del hogar.
+
 **5/11/2026 · nace este backlog.** Tesis de la oleada: **la previsión no necesita más motores, necesita una sola
 verdad, una sola pantalla y los escenarios encima.** Con la demo, la misma pregunta («¿cuánto tendremos?») recibe
 cuatro respuestas de tres motores (8.850 € de margen en Hoy, 5.350 € «el 01 nov» en Previsión, 10.350 € en la banda,
@@ -154,7 +156,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 10 | FX-27 / XDO-02 | La revisión de la hipoteca como escenario con fecha | 8ª, 7ª | M · 2 | FX-21, WP-20 | Sube a primera fila a ≤ 120 días de la revisión |
 | 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets |
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |
-| 13 | WP-21 | Paquete Renta: inversión y local alquilado | Def P2 | L · 5 | WP-31 | Antes del 31/3/2027 |
+| 13 | WP-21 | Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3) | Def P2 | M · 2 | WP-31 | Antes del 31/3/2027 |
 | 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | — |
 | 15 | XDA-04 PR-2 | Tira de cobertura de 90 días por cuenta | Def §5.0 | S | dos importaciones reales | La condición ya puede cumplirse |
 | 16 | WP-54 | Primera ronda de la prueba con 5 personas ajenas, **con C2 y los presets como tareas** | Def (continuo) | — | FX-10, FX-21 | Desde diciembre |
@@ -247,7 +249,7 @@ panel de seguimiento.
 | P2 WP-49 (NPV-04) | Esperando al hogar | Dentro de **FX-12** |
 | P2 WP-16 (NPV-01) | Hecho | Base de FX-11 y FX-20 |
 | P2 WP-42 (CAR-03, NIN-05) | Aparcado | P2 (tras FX-60) |
-| P2 WP-21 (NIN-10, FIS-03) | Pendiente | P1 Oleada 2 (#13), antes del 31/3 |
+| P2 WP-21 (NIN-10, FIS-03) | Inversión hecha (PR-0 a PR-2, 5/11); falta el local (PR-3) y los datos del hogar | P1 Oleada 2 (#13), antes del 31/3 |
 | P2 WP-17, WP-18, WP-19, WP-39, WP-40, WP-41, WP-44, WP-47, WP-48, WP-50, WP-51, WP-53 | Hechos o esperando al hogar | **Sin cambio**: siguen con su tarea del hogar; no son de esta oleada |
 | P3 (27) | Catálogo | §5.4: tres promovidas, DAC-05 a P2, el resto igual |
 | P4 (5), Archivo (4) | — | Sin cambio |

@@ -12790,3 +12790,222 @@ input[data-amount-input][aria-invalid="true"] {
 .presupuesto-mes-pct input {
   width: 5.5em;
 }
+
+/* WP-21 · PR-0a: «Datos para la Renta» en Inversión › Cartera (renta-datos-ui.js). */
+.renta-datos > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.renta-datos-lista {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renta-datos-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+  align-items: end;
+  padding: 10px 0;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+}
+
+.renta-datos-fila label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* `hidden` no gana a un `display: grid` del autor: sin esto, el país (y en PR-0b los campos «sin posición») se veía siempre. */
+.renta-datos label[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .renta-datos-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* WP-21 · PR-2: «Informe de inversión para la Renta», dentro del borrador de apoyo (informe-renta-ui.js). */
+.informe-renta {
+  margin-top: 16px;
+}
+
+.informe-renta > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.informe-renta-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+  margin: 10px 0;
+}
+
+.informe-renta-controles label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.informe-renta h4 {
+  margin: 16px 0 4px;
+  font-size: 0.95rem;
+}
+
+.informe-renta-falta {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--warning, #b26a00);
+}
+
+.informe-renta-falta p,
+.informe-renta-falta ul {
+  margin: 0;
+}
+
+.informe-renta-lineas {
+  margin: 4px 0;
+  padding-left: 1.2em;
+}
+
+.informe-renta-tabla {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.informe-renta-tabla table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.85rem;
+}
+
+.informe-renta-tabla caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.informe-renta-tabla th,
+.informe-renta-tabla td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  text-align: left;
+  vertical-align: top;
+}
+
+.informe-renta-tabla .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Imprimir solo el informe. Mientras imprime, informe-renta-ui.js pone la clase en <html> y <body> y marca los antepasados
+   del informe con data-informe-renta-ancestro: fuera todo lo que no es antepasado ni el informe, así empieza arriba de la
+   hoja, y los antepasados se quedan sin márgenes ni fondo. Sin :has(): en WebKit, `*:has(#id)` con la hoja de impresión
+   activa recorre el árbol entero por cada elemento y dejó colgado el paso de Safari del CI (5/11/2026). */
+@media print {
+  body.imprimiendo-informe-renta > :not([data-informe-renta-ancestro]):not(#informeRenta),
+  body.imprimiendo-informe-renta [data-informe-renta-ancestro] > :not([data-informe-renta-ancestro]):not(#informeRenta) {
+    display: none;
+  }
+
+  body.imprimiendo-informe-renta [data-informe-renta-ancestro]:not(#informeRenta) {
+    display: block;
+    position: static;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+  }
+
+  html.imprimiendo-informe-renta,
+  body.imprimiendo-informe-renta {
+    background: #fff;
+  }
+
+  body.imprimiendo-informe-renta #informeRenta {
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+
+  body.imprimiendo-informe-renta #informeRenta .informe-renta-controles {
+    display: none;
+  }
+
+  body.imprimiendo-informe-renta .informe-renta-tabla {
+    overflow: visible;
+  }
+}
+
+/* WP-21 · PR-0b: dividendos e intereses cobrados. */
+.renta-datos-titulo {
+  margin: 18px 0 4px;
+  font-size: 1rem;
+}
+
+.renta-rend-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 8px 12px;
+  align-items: end;
+  margin-top: 8px;
+}
+
+.renta-rend-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.renta-rend-form input,
+.renta-rend-form select {
+  min-width: 0;
+}
+
+.renta-rend-acciones {
+  margin: 0;
+}
+
+.renta-rend-total {
+  margin: 14px 0 2px;
+}
+
+.renta-rend-lista {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renta-rend-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .renta-rend-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

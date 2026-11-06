@@ -253,6 +253,9 @@
     };
   }
 
+  const PORTFOLIO_HOLDERS = ["javi", "tere", "household"];
+  const DEPOSITARY_PLACES = ["espana", "extranjero"];
+
   function normalizePosition(raw = {}, index = 0) {
     const provenance = provenanceOf(raw);
     const initialQuantity = knownNumber(raw.quantity) ? number(raw.quantity) : 0;
@@ -339,6 +342,12 @@
       // más abajo) infiere por tipo de instrumento — null si no se declara, nunca inferido de otro
       // dato. Solo para cuando el tipo no refleja la liquidez real de esta posición concreta.
       liquidityTierOverride: LIQUIDITY_TIERS.some((tier) => tier.tier === raw.liquidityTierOverride) ? raw.liquidityTierOverride : null,
+      // WP-21 · PR-0a (docs/WP21_DISENO.md §3): con tributación individual, el informe para la Renta necesita saber de quién
+      // es cada posición («household» = conjunta, al 50 % por defecto) y si está depositada fuera de España (aviso del 720).
+      // "" = sin declarar: nunca se asume un titular ni «España» por defecto.
+      titular: PORTFOLIO_HOLDERS.includes(raw.titular) ? raw.titular : "",
+      depositario: DEPOSITARY_PLACES.includes(raw.depositario) ? raw.depositario : "",
+      depositarioPais: raw.depositario === "extranjero" && known(raw.depositarioPais) ? String(raw.depositarioPais).trim().slice(0, 60) : "",
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: unknownProceeds ? { ...DISPOSAL_PROCEEDS_UNKNOWN } : xirr(cashFlows) };
   }
@@ -617,7 +626,7 @@
   // (fifoLedger, dentro de normalizePositions) — sin motor de cálculo nuevo, solo la agregación por
   // año natural y el arrastre. Una sola venta con `realizedGain: null` (shortfall de FIFO) invalida
   // la compensación de ese año entero — nunca neta un resultado a medias que parezca completo.
-  /** @param {{positions?: Array<{disposals?: Array<{date?: string, realizedGain?: number|null}>}>, year?: string|number, priorLosses?: Array<{year?: string|number, amount?: number}>}} [params] */
+  /** @param {{positions?: Array<{disposals?: Array<{date?: string, realizedGain?: number|null}>}>, year?: string|number, priorLosses?: Array<{year?: string|number, amount?: number, bloque?: string}>}} [params] */
   function yearEndCompensation({ positions = [], year, priorLosses = [] } = {}) {
     const targetYear = String(year || "");
     if (!/^\d{4}$/.test(targetYear)) {
@@ -636,7 +645,11 @@
     // Las pérdidas de años anteriores dentro de la ventana de 4 ejercicios se aplican de la más
     // antigua a la más nueva primero — así son las que antes caducan las que primero se consumen.
     const targetYearNum = Number(targetYear);
+    // WP-21 · PR-0b: una pérdida arrastrada del bloque de rendimientos (saldo negativo de dividendos e intereses) no
+    // compensa ganancias de transmisiones aquí: su cruce (hasta el 25 %, art. 49 LIRPF) es del informe de la Renta. Sin
+    // bloque declarado es de transmisiones, que es lo único que este registro aceptaba antes de existir el campo.
     const eligiblePriorLosses = (Array.isArray(priorLosses) ? priorLosses : [])
+      .filter((entry) => entry?.bloque !== "rendimientos")
       .map((entry) => ({ year: String(entry?.year || ""), amount: round2(Math.max(0, number(entry?.amount))) }))
       .filter((entry) => /^\d{4}$/.test(entry.year) && Number(entry.year) < targetYearNum && Number(entry.year) >= targetYearNum - LOSS_CARRYFORWARD_YEARS)
       .sort((a, b) => Number(a.year) - Number(b.year));
@@ -1232,5 +1245,7 @@
     qualitativeConcentrationWarnings,
     GEOGRAPHY_REGIONS,
     currencyGeographyExposure,
+    PORTFOLIO_HOLDERS,
+    DEPOSITARY_PLACES,
   };
 });

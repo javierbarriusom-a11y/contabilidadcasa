@@ -1670,3 +1670,34 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// WP-21 · PR-2: «Informe de inversión para la Renta» abierto, en claro y en oscuro: con lo que falta y con el informe completo (tablas desplazables).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-21 · contraste del informe de la Renta en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#herramientas-fiscal: el informe abierto, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.reload();
+      const caja = page.locator("#informeRenta");
+      await expect(caja).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await page.evaluate(() => {
+        const y = String(new Date().getFullYear());
+        scenarioSettings.portfolioPositions = [{ id: "ax-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, acquisitionDate: `${Number(y) - 2}-01-10`, asOf: `${y}-10-01`, provenance: "declared",
+          disposals: [{ id: "ax-v1", date: `${y}-03-01`, quantitySold: 5, saleProceeds: 900 }] }];
+        scenarioSettings.wp21Rendimientos = [{ id: "ax-d1", fecha: `${y}-06-01`, tipo: "dividendo", posicionId: "ax-a", integro: 200, retencionEspana: null, retencionOrigen: 30, paisOrigen: "" }];
+        saveScenarioSettings();
+      });
+      await caja.locator("summary").click();
+      await expect(caja.locator(".informe-renta-falta")).toBeVisible();
+      const falta = await new AxeBuilder({ page }).include("#informeRenta").analyze();
+      expect(fmt(falta), fmt(falta).slice(0, 5).join("\n")).toEqual([]);
+      await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "javi"; saveScenarioSettings(); });
+      await caja.getByLabel("Declarante").selectOption("tere");
+      await caja.getByLabel("Declarante").selectOption("javi");
+      await expect(caja.locator(".informe-renta-tabla").first()).toBeVisible();
+      const lleno = await new AxeBuilder({ page }).include("#informeRenta").analyze();
+      expect(fmt(lleno), fmt(lleno).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
