@@ -490,6 +490,7 @@ function handleEscenarioMotorSaveAviso() {
     guardrailValue: escenarioMotorGuardrailValue,
   });
   saveEscenarioMotorSavedList(saved);
+  globalThis.FinanceMedidor?.anotar("escenarios", "accion"); // FX-62
   escenarioMotorDecisions = [];
   renderEscenarioSimular();
 }
@@ -500,6 +501,7 @@ function handleEscenarioMotorFamilyToggle() {
 }
 
 function renderEscenarioSimular() {
+  if (!qs("escenario-simular")?.hidden) globalThis.FinanceMedidor?.anotar("escenarios", "vista"); // FX-62
   renderScenarioDependencyNotice("escenario-simular");
   const baseInput = escenarioMotorBaseInput();
   renderEscenarioMotorForm(baseInput);
@@ -676,6 +678,7 @@ function handleEscenarioMotorSubmit(event) {
 
   escenarioMotorShowFormErrors([]);
   escenarioMotorDecisions.push(decision);
+  globalThis.FinanceMedidor?.anotar("escenarios", "accion"); // FX-62
   escenarioMotorResetDraft(type);
   renderEscenarioSimular();
   // P-2: la decisión ya está añadida (y su impacto, en la comparativa de siempre) — la vista previa
@@ -1027,6 +1030,7 @@ function handleEscenarioAplicarConfirm(event) {
     reviewDate,
   });
   saveEscenarioMotorSavedList(saved);
+  globalThis.FinanceMedidor?.anotar("escenarios", "accion"); // FX-62
   escenarioMotorDecisions = [];
   if (motivoInput) motivoInput.value = "";
   if (reviewDateInput) reviewDateInput.value = "";

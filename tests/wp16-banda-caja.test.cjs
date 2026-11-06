@@ -54,7 +54,7 @@ test("la banda se ensancha con las fechas estimadas, y el 70 % estimado por impo
   const r = Band.simulate({ ...base, events });
   assert.equal(r.quality, "wide");
   assert.ok(r.dateCertainty.estimatedShare >= Band.WIDE_ESTIMATED_SHARE);
-  assert.match(r.sentence, /La banda es ancha: el 75 % de lo que se mueve tiene fecha estimada/);
+  assert.match(r.sentence, /El rango es ancho porque el 75 % de lo que se mueve no tiene día confirmado/);
   const mid = r.days[14];
   assert.ok(mid.p90 > mid.p10, "hay dispersión a mitad de mes");
   const last = r.days[29];
@@ -168,14 +168,14 @@ test("percentile: interpolación y bordes", () => {
 });
 
 // ---- frase ----
-test("la frase habla de «X de cada 10 trayectorias», con tramo de días y día más probable del mínimo", () => {
+test("la frase habla de «X de cada 10 casos», con tramo de días y día más probable del mínimo (FX-30: sin «trayectorias» a la vista)", () => {
   const events = [ev("p", "outflow", 800, "2026-11-08", "estimated"), ev("n", "income", 1000, "2026-11-10", "rule")];
   const r = Band.simulate({ ...base, openingTotal: 1000, floor: 500, events, trajectories: 2000 });
-  assert.match(r.sentence, /^En 4 de cada 10 trayectorias la liquidez baja del suelo \(500 €\) entre el \d+ y el \d+ de noviembre\./);
-  assert.match(r.sentence, /En 6 de cada 10 el punto más bajo es el saldo de hoy\./); // si el pago cae después del cobro, nunca baja del saldo de partida
+  assert.match(r.sentence, /^En 4 de cada 10 casos bajáis del suelo \(500 €\) entre el \d+ y el \d+ de noviembre\./);
+  assert.match(r.sentence, /En 6 de cada 10 casos el punto más bajo es el saldo de hoy\./); // si el pago cae después del cobro, nunca baja del saldo de partida
   assert.equal(r.minimum.date === null || r.minimum.atStart > 0.5, true);
   const safe = Band.simulate({ ...base, events: [ev("p", "outflow", 100, "2026-11-10", "rule")] });
-  assert.match(safe.sentence, /En ninguna de las 500 trayectorias simuladas la liquidez baja del suelo \(1\.?500 €\)/);
+  assert.match(safe.sentence, /En ningún caso razonable bajáis del suelo \(1\.?500 €\)/);
   assert.equal(Band.whenLabel("2026-10-28", "2026-11-02"), "entre el 28 de octubre y el 2 de noviembre");
   assert.equal(Band.whenLabel("2026-11-09", "2026-11-09"), "el 9 de noviembre");
 });

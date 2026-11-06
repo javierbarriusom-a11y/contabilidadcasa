@@ -241,10 +241,10 @@ const VIEW_CHUNKS = {
   cierre: { src: "views/cierre.js?v=20261104cierreC3", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20261104cierreC3", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
-  "escenario-simular": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-simular" },
-  "escenario-aplicar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-aplicar" },
-  "escenario-guardados": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-guardados" },
-  "escenario-comparar": { src: "views/escenarios.js?v=20260918t14a1", rootId: "escenario-comparar" },
+  "escenario-simular": { src: "views/escenarios.js?v=20261106fx62a", rootId: "escenario-simular" },
+  "escenario-aplicar": { src: "views/escenarios.js?v=20261106fx62a", rootId: "escenario-aplicar" },
+  "escenario-guardados": { src: "views/escenarios.js?v=20261106fx62a", rootId: "escenario-guardados" },
+  "escenario-comparar": { src: "views/escenarios.js?v=20261106fx62a", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
@@ -20526,36 +20526,53 @@ function previsionSensitivityNote(worst) {
   const income = Number(row.prePayrollIncome || 0);
   const expense = Math.max(0, outflowsBeforeIncome - lateOutflows);
   const result = engine.verdictSensitivity({ adjustedMin: worst.metric.adjustedMin, income, expense });
+  // FX-04 y FX-30: a la centena, sin importes negativos ni «207 %», en palabras de hogar.
+  const amount = (value) => (Number(value) > 0 ? ` (a unos ${money(Math.round(Number(value) / 100) * 100)})` : "");
   const parts = [];
   if (result.incomeDropPercent !== null) {
-    parts.push(result.incomeDropPercent >= 0
-      ? `el ingreso previo a nómina aguanta caer hasta un ${Math.abs(result.incomeDropPercent)}% (hasta ${money(result.incomeThreshold, true)}) antes de que el mínimo ajustado cruce cero`
-      : `el ingreso previo a nómina necesitaría subir un ${Math.abs(result.incomeDropPercent)}% (hasta ${money(result.incomeThreshold, true)}) para que el mínimo ajustado deje de estar en negativo`);
+    const drop = Math.abs(result.incomeDropPercent);
+    parts.push(result.incomeDropPercent < 0
+      ? `para no quedaros en negativo antes de cobrar, el ingreso previo a la nómina tendría que subir un ${drop} %${amount(result.incomeThreshold)}`
+      : drop >= 100 ? "aguanta aunque no llegue el ingreso previo a la nómina" : `aguanta que el ingreso previo a la nómina baje un ${drop} %${amount(result.incomeThreshold)} sin quedaros en negativo antes de cobrar`);
   }
   if (result.expenseRisePercent !== null) {
-    parts.push(result.expenseRisePercent >= 0
-      ? `el gasto previo al cobro aguanta subir hasta un ${Math.abs(result.expenseRisePercent)}% (hasta ${money(result.expenseThreshold, true)}) antes de cruzar cero`
-      : `el gasto previo al cobro necesitaría bajar un ${Math.abs(result.expenseRisePercent)}% (hasta ${money(result.expenseThreshold, true)}) para dejar de estar en negativo`);
+    const rise = Math.abs(result.expenseRisePercent);
+    parts.push(result.expenseRisePercent < 0
+      ? `el gasto previo al cobro tendría que bajar un ${rise} %${amount(result.expenseThreshold)} para no quedaros en negativo`
+      : rise >= 100 ? "aguanta aunque el gasto previo al cobro se duplique" : `aguanta que el gasto previo al cobro suba un ${rise} %${amount(result.expenseThreshold)} sin quedaros en negativo`);
   }
-  note.textContent = parts.length ? `Sensibilidad de ${row.month}: ${parts.join("; ")}.` : "";
+  note.textContent = parts.length ? `Margen de ${row.month} antes de cobrar: ${parts.join("; ")}.` : "";
 }
 
 // Titular en prosa del mockup: "El punto delicado es {mes}". No inventa un "todo va bien" cuando
 // hay más de un mes ajustado — lo dice, en vez de esconder que el peor mes no es el único.
-function previsionHeadlineHtml(metrics, floor) {
+// FX-02 (BACKLOG_NOVIEMBRE_OLEADA_1.md): con el motor diario (`lows`, el mismo de Hoy), el punto más bajo es real y desde hoy, con día
+// hasta 90 días y el mes después; sin él, el mensual, que supone el peor orden del mes y no lleva un día inventado.
+function previsionHeadlineHtml(metrics, floor, lows = null) {
   if (!metrics.length) return { title: "Sin meses abiertos en este horizonte", subtitle: "", worstKey: "" };
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const tight = (value) => ["is-negative", "is-tight"].includes(mapaCalorTone(value, floor.value));
+  const othersText = (count, month) => (count
+    ? `Hay ${count === 1 ? "otro mes ajustado" : `otros ${count} meses ajustados`} o en negativo en este horizonte, no es solo ${month}.`
+    : `El resto del horizonte aguanta por encima de ${floor.source}.`);
+  const daily = lows?.byMonth && contract
+    ? metrics.map((entry) => ({ entry, low: lows.byMonth.get(entry.item.row.detailMonthKey) })).filter((pair) => pair.low)
+    : [];
+  if (daily.length) {
+    const worst = daily.reduce((low, pair) => (pair.low.value < low.low.value ? pair : low), daily[0]);
+    const said = contract.describeLow(worst.low, { today: lows.today, monthLabel: () => worst.entry.item.row.month });
+    const others = daily.filter((pair) => pair !== worst && tight(pair.low.value)).length;
+    return {
+      title: `El punto delicado es ${worst.entry.item.row.month}`,
+      subtitle: `Lo más bajo llega ${said.when}: ${said.approximate ? "unos " : ""}${money(said.value)}. ${othersText(others, worst.entry.item.row.month)}`,
+      worstKey: worst.entry.item.row.detailMonthKey,
+    };
+  }
   const worst = previsionWorstOf(metrics);
-  const others = metrics.filter((entry) => {
-    if (entry === worst) return false;
-    const tone = mapaCalorTone(entry.metric.min, floor.value);
-    return tone === "is-negative" || tone === "is-tight";
-  }).length;
-  const guarantee = others
-    ? `Hay otros ${others} mes${others === 1 ? "" : "es"} ajustado${others === 1 ? "" : "s"} o en negativo en este horizonte, no es solo ${worst.item.row.month}.`
-    : `El resto del horizonte aguanta por encima de ${floor.source}.`;
+  const others = metrics.filter((entry) => entry !== worst && tight(entry.metric.min)).length;
   return {
     title: `El punto delicado es ${worst.item.row.month}`,
-    subtitle: `Cae a ${money(worst.metric.min, true)} el ${worst.metric.minDateLabel || ""}, antes de los cobros del mes. ${guarantee}`,
+    subtitle: `En el peor orden del mes (todos los pagos antes de cobrar) bajaría a unos ${money(Math.round(worst.metric.min / 100) * 100)}. ${othersText(others, worst.item.row.month)}`,
     worstKey: worst.item.row.detailMonthKey,
   };
 }
@@ -20843,13 +20860,26 @@ function previsionPeriodSummary(periodKeyValue) {
     return acc;
   }, { income: 0, gastos: 0, deuda: 0, ahorro: 0 });
   const worst = previsionWorstOf(previsionMetricsFor(items));
+  // FX-02: el mismo punto más bajo que el titular (motor diario, desde hoy); sin él, el mensual de siempre.
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const lows = contract && typeof canonicalDailyEngineRuns !== "undefined"
+    ? contract.monthLows(canonicalDailyEngineRuns.active?.rows, { today: isoLocalDate(new Date()), monthKeys: items.map((item) => item.row.detailMonthKey) })
+    : null;
+  const daily = lows?.size ? [...lows.values()].reduce((low, entry) => (entry.value < low.value ? entry : low)) : null;
   return {
     ...totals,
-    min: worst.metric.min,
-    minMonthLabel: worst.item.row.month,
+    min: daily ? daily.value : worst.metric.min,
+    minDate: daily ? daily.date : "",
+    minMonthLabel: daily ? items.find((item) => item.row.detailMonthKey === daily.monthKey).row.month : worst.item.row.month,
     monthsAvailable: items.length,
     monthsInPeriod: monthKeysInRange(range.start, range.end).length,
   };
+}
+
+// FX-04: el mínimo del periodo, redondeado igual que el titular («unos 5.600 €», no «5.620 €» en un sitio y «unos 5.600 €» en otro).
+function previsionLowText(summary) {
+  const said = summary.minDate && globalThis.FinanceCanonicalForecastContract?.describeLow({ date: summary.minDate, monthKey: summary.minDate.slice(0, 7), value: summary.min }, { today: isoLocalDate(new Date()) });
+  return said ? `${said.approximate ? "unos " : ""}${money(said.value)}` : money(summary.min);
 }
 
 function renderPrevisionPeriodSummary() {
@@ -20879,12 +20909,13 @@ function renderPrevisionPeriodSummary() {
     <div><dt>Gastos</dt><dd class="negative">${money(summary.gastos, true)}</dd></div>
     <div><dt>Deuda</dt><dd class="negative">${money(summary.deuda, true)}</dd></div>
     <div><dt>Ahorro</dt><dd>${money(summary.ahorro, true)}</dd></div>
-    <div><dt>Mínimo del periodo</dt><dd class="${summary.min < 0 ? "negative" : ""}">${money(summary.min, true)} <small class="note">(${escapeHtml(summary.minMonthLabel)})</small></dd></div>
+    <div><dt>Mínimo del periodo</dt><dd class="${summary.min < 0 ? "negative" : ""}">${previsionLowText(summary)} <small class="note">(${escapeHtml(summary.minMonthLabel)})</small></dd></div>
   </dl>`;
 }
 
 function renderPrevision() {
   if (!qs("previsionMonthlyTable") || !lastSimulation.length) return;
+  if (!qs("prevision")?.hidden) globalThis.FinanceMedidor?.anotar("prevision", "vista"); // FX-62
   const items = previsionHorizonRows(previsionHorizonKey);
   renderPrevisionReliabilityBadge();
   renderPrevisionQuality(items);
@@ -20902,10 +20933,14 @@ function renderPrevision() {
 
   const floor = mapaCalorFloor(items.map((item) => item.row));
   const metrics = previsionMetricsFor(items);
-  const headline = previsionHeadlineHtml(metrics, floor);
+  const today = isoLocalDate(new Date());
+  const lows = window.FinanceCanonicalForecastContract
+    ? { today, byMonth: window.FinanceCanonicalForecastContract.monthLows(canonicalDailyEngineRuns.active?.rows, { today, monthKeys: items.map((item) => item.row.detailMonthKey) }) }
+    : null;
+  const headline = previsionHeadlineHtml(metrics, floor, lows);
   qs("previsionHeadline").textContent = headline.title;
   qs("previsionSubheadline").textContent = headline.subtitle;
-  previsionSensitivityNote(previsionWorstOf(metrics));
+  previsionSensitivityNote(metrics.find((entry) => entry.item.row.detailMonthKey === headline.worstKey) || previsionWorstOf(metrics));
 
   if (!previsionSelectedMonthKey || !items.some((item) => item.row.detailMonthKey === previsionSelectedMonthKey)) {
     previsionSelectedMonthKey = headline.worstKey;
@@ -20913,7 +20948,7 @@ function renderPrevision() {
 
   qs("previsionBand").innerHTML = previsionBandHtml(metrics, floor, previsionSelectedMonthKey);
   qs("previsionBandLegend").textContent =
-    `Cada barra va del mínimo antes de cobros al máximo tras cobros; la línea marca ${floor.source}.`;
+    `Cada barra va del peor orden del mes (todos los pagos antes de cobrar) al saldo tras cobrar; la línea marca ${floor.source}.`;
 
   qs("previsionMonthlyTable").innerHTML =
     `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th></tr></thead><tbody>${items
@@ -31293,6 +31328,7 @@ async function init() {
     registrarExcelDrop.addEventListener("drop", handleRegistrarExcelDrop);
   }
   qs("prevision")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-prevision-horizon], [data-prevision-month-key], [data-prevision-period-unit], [data-prevision-period-prev], [data-prevision-period-next]")) globalThis.FinanceMedidor?.anotar("prevision", "accion"); // FX-62
     const horizonButton = event.target.closest("[data-prevision-horizon]");
     if (horizonButton) {
       handlePrevisionHorizon(horizonButton.dataset.previsionHorizon);

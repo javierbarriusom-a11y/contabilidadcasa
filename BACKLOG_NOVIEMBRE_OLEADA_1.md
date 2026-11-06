@@ -21,6 +21,15 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 · D-N1 aprobada por el hogar («sí, empieza con la semana S0») y S0 construida en un PR.** Con la demo (reloj 5/11):
+- **FX-02:** Previsión decía «El punto delicado es nov 26 · cae a 5.350 € el 01 nov», una fecha ya pasada. El motor mensual pone el mínimo siempre en el día 1. Ahora toma el punto más bajo del motor diario, el mismo de Hoy, solo desde hoy: «El punto delicado es dic 26 · Lo más bajo llega el 8 dic: unos 5.600 €». Hasta 90 días lleva el día; más allá, el mes. El «Mínimo del periodo» del resumen dice lo mismo, con el mismo redondeo. Las barras siguen siendo el mensual, rotulado como «el peor orden del mes».
+- **FX-04:** sin céntimos en la banda de caja ni en la sensibilidad. El titular va a la decena hasta 30 días, a la centena hasta un año y al millar después.
+- **FX-30:** «rango probable (8 de cada 10 casos)», «lo más probable» y «peor caso razonable» en vez de P10/P50/P90 y «trayectorias». La sensibilidad ya no dice «207 %» ni «−5.350 €», sino «aguanta aunque no llegue el ingreso previo a la nómina».
+- **FX-16:** Previsión cabe a 390 px: cifras en dos columnas, la tabla mensual con todas sus columnas a la vista desplazando y las etiquetas del gráfico sin pisarse.
+- **FX-62:** Previsión y Escenarios, en el medidor de utilidad.
+- **FX-01, primera parte:** `canonical-forecast-contract.js`, el contrato de las cifras de previsión, con su prueba.
+- **Pendiente:** la prueba de coherencia entre todas las pantallas y la etiqueta de Hoy «Fin de noviembre», que espera **D-N4**. **H-35** sigue siendo del hogar (antes del 11/11). Añadir las filas `FX` al panel de seguimiento (§9) no se ha hecho todavía.
+
 **5/11/2026 · WP-21, la parte de inversión hecha antes de su turno** (#588, en otra sesión en paralelo con la que creó este backlog): «Datos para la Renta» en Inversión › Cartera (titular, depositario, dividendos e intereses, pérdidas por bloque) y el «Informe de inversión para la Renta» en Herramientas avanzadas › Fiscal, con CSV, impresión y su línea en el borrador GOB8. Sin cambios en la previsión ni en Hoy. Queda en la Oleada 2 solo el local alquilado (PR-3); lo que falta para que dé cuota son los datos del hogar.
 
 **5/11/2026 · nace este backlog.** Tesis de la oleada: **la previsión no necesita más motores, necesita una sola
@@ -110,12 +119,12 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 
 | # | ID | Qué | Origen | Esf. | Depende | Sem. | Hecho cuando | Estado |
 |---|---|---|---|---|---|---|---|---|
-| 1 | **FX-02** | El «punto delicado» nunca en una fecha pasada ni en el día 1 inventado; sensibilidad sin «207 %» ni importes negativos | 8ª | S · 0,5 | — | S0 | Reloj 5/11: ningún titular con fecha < hoy; pruebas de mínimo al principio, al final y en el mes siguiente | Propuesta |
-| 2 | **FX-04** | Precisión según el horizonte; nunca céntimos en una previsión | 8ª | S · 0,5 | — | S0 | Barrido de vistas con la demo sin céntimos en previsiones | Propuesta |
-| 3 | **FX-30** | Lenguaje de incertidumbre para personas (rango probable, peor caso razonable) | 8ª | S · 1 | — | S0 | Las 6 frases de la tabla de la propuesta §8 cambiadas; «¿cómo se calcula?» plegado | Propuesta |
-| 4 | **FX-16** | Remates del móvil en Previsión (cifras cortadas, columnas ocultas, eje que se pisa) | 8ª | S · 0,5 | — | S0 | `check-mobile-overflow` vigila Previsión; nada cortado a 320 y 390 px | Propuesta |
-| 5 | **FX-62** | Medir Previsión y Escenarios en el medidor de utilidad | 8ª | S · 0,5 | — | S0 | Eventos de vista, horizonte, día fijado, escenario y preset en Uso de la app | Propuesta |
-| 6 | **FX-01** | Contrato de cifras de previsión + glosario con vuestras cifras (absorbe XUX-05); Hoy «Fin de noviembre» con su unidad | 8ª, 7ª | M · 2 | FX-04 | S0 | Prueba de coherencia: cada etiqueta, mismo valor en todas las pantallas (demo + 5 hogares sintéticos × 5 fechas) | Propuesta · **D-N4** |
+| 1 | **FX-02** | El «punto delicado» nunca en una fecha pasada ni en el día 1 inventado; sensibilidad sin «207 %» ni importes negativos | 8ª | S · 0,5 | — | S0 | Reloj 5/11: ningún titular con fecha < hoy; pruebas de mínimo al principio, al final y en el mes siguiente | **Hecho 6/11** |
+| 2 | **FX-04** | Precisión según el horizonte; nunca céntimos en una previsión | 8ª | S · 0,5 | — | S0 | Barrido de vistas con la demo sin céntimos en previsiones | **Hecho 6/11** (banda de caja, titular y sensibilidad; el resto de pantallas, con FX-01) |
+| 3 | **FX-30** | Lenguaje de incertidumbre para personas (rango probable, peor caso razonable) | 8ª | S · 1 | — | S0 | Las 6 frases de la tabla de la propuesta §8 cambiadas; «¿cómo se calcula?» plegado | **Hecho 6/11** (banda de caja y sensibilidad de Previsión) |
+| 4 | **FX-16** | Remates del móvil en Previsión (cifras cortadas, columnas ocultas, eje que se pisa) | 8ª | S · 0,5 | — | S0 | `check-mobile-overflow` vigila Previsión; nada cortado a 320 y 390 px | **Hecho 6/11** |
+| 5 | **FX-62** | Medir Previsión y Escenarios en el medidor de utilidad | 8ª | S · 0,5 | — | S0 | Eventos de vista, horizonte, día fijado, escenario y preset en Uso de la app | **Hecho 6/11** |
+| 6 | **FX-01** | Contrato de cifras de previsión + glosario con vuestras cifras (absorbe XUX-05); Hoy «Fin de noviembre» con su unidad | 8ª, 7ª | M · 2 | FX-04 | S0 | Prueba de coherencia: cada etiqueta, mismo valor en todas las pantallas (demo + 5 hogares sintéticos × 5 fechas) | **PR-1 hecho 6/11** (contrato y Previsión); falta la prueba de coherencia entre pantallas y Hoy · **D-N4** |
 | 7 | **H-35** | (Hogar) Día de cargo de las 10 partidas más grandes | 8ª | ≈ 15 min | — | S0 | Calidad de la previsión ≥ 40 % del gasto con día conocido | Tarea del hogar |
 | 8 | **WP-23** | Campaña fiscal de fin de año con los datos del hogar (FIS-01, DAC-02, FIS-02) | Def P0 | — | H-03 | S1 | Lista con euros reales el 14/11; acciones antes del 31/12 | Esperando H-03 (12/11) |
 | 9 | **FX-61** | WP-28 desaparcado: kit de gráficos táctil y accesible | Def P1 (WP-28) | M · 3,5 | — | S1 | Recorrido táctil y teclado, frase automática y «ver como tabla» en el componente | Aparcado → P0 |
