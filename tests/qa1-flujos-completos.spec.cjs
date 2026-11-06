@@ -5517,17 +5517,21 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
-      await expect(impacto.locator("tbody tr")).toHaveCount(4);
+      await expect(impacto.locator("tbody tr")).toHaveCount(5);
       await expect(impacto.locator("tbody tr").nth(1)).toContainText("¿Bajáis del suelo?");
-      await expect(impacto.locator("tbody tr").nth(2)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
-      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      // El suelo también en la cuenta corriente (6/11): el total aguanta, pero la cuenta se queda en descubierto.
+      await expect(impacto.locator("tbody tr").nth(2)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Pero la cuenta corriente se queda en descubierto el 8 dic \(hasta −2\.500\s€ el 8 ene 2027\): habría que pasar unos 2\.600\s€ del ahorro antes de ese día\./);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveClass(/is-bad/);
+      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
       await expect(impacto).toContainText("Se quita «Ingreso Persona A» de nov 26 a ene 27.");
       await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
       await expect(v2.locator(".ck-escenario")).toHaveCount(1);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos");
       await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
       // Las cifras de una fila cuadran: la diferencia es la resta de lo que se ve.
-      const cuadra = await impacto.locator("tbody tr").nth(2).evaluate((tr) => {
+      const cuadra = await impacto.locator("tbody tr").nth(3).evaluate((tr) => {
         const n = (td) => Number(td.textContent.replace(/[^\d,−-]/g, "").replace("−", "-").replace(",", "."));
         const [plan, prueba, diferencia] = [...tr.querySelectorAll("td")].map(n);
         return prueba - plan === diferencia;
@@ -5568,6 +5572,10 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
       await expect(v2.locator(".prev-v2-opciones")).toHaveCount(0);
+      // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa. Con una reserva de 1.000 €, sí.
+      await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
+      await page.evaluate(() => { state.operatingReserve = 1000; render(); });
+      await expect(v2.locator(".prev-v2-cuenta")).toContainText(/Ojo: en el plan, la cuenta corriente baja de su reserva de 1\.000\s€ el 8 dic \(hasta 0\s€ el 8 dic\): habría que pasar unos 1\.000\s€ del ahorro antes de ese día\./);
 
       await v2.locator('[data-prevision-v2-prueba=""]').click();
       await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);

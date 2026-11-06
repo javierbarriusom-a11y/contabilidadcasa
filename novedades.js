@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-suelo-cuenta-corriente",
+      fecha: "2026-11-06",
+      texto: "Previsión: el suelo también en la cuenta corriente. Avisa si quedaría bajo su reserva o en descubierto, y cuánto pasar y cuándo.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-06-comparar-un-escenario",
       fecha: "2026-11-06",
       texto: "Escenarios: «Comparar con el plan» funciona con un solo escenario guardado, y Simular se explica sin jerga.",

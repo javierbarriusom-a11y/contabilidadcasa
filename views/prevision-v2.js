@@ -36,6 +36,44 @@ function previsionV2Deps() {
 }
 
 /**
+ * El suelo de la cuenta corriente (decisión del hogar del 6/11/2026): la reserva operativa de Ajustes, la misma que el motor deja en
+ * la cuenta al traspasar el excedente al ahorro; sin reserva, 0 € (no quedar en descubierto). No es el colchón heredado de 2.500 €,
+ * que el motor no usa.
+ */
+function previsionV2SueloCuenta() {
+  const reserva = Number(state?.operatingReserve || 0);
+  return Number.isFinite(reserva) && reserva > 0 ? reserva : 0;
+}
+
+/** Lo que hay que pasar del ahorro, redondeado hacia arriba (a la decena hasta 1.000 €, a la centena después): quedarse corto no sirve. */
+function previsionV2HaciaArriba(value) {
+  const paso = value < 1000 ? 10 : 100;
+  return Math.ceil(Number(value) / paso) * paso;
+}
+
+/** «se queda en descubierto el 8 ene» o «baja de su reserva de 1.000 € el 8 ene». */
+function previsionV2CuentaVerbo(cuenta, today) {
+  return cuenta.floor > 0 ? `baja de su reserva de ${money(cuenta.floor)} el ${previsionV2Fecha(cuenta.crossDate, today)}` : `se queda en descubierto el ${previsionV2Fecha(cuenta.crossDate, today)}`;
+}
+
+/** Un saldo que puede ser negativo, redondeado según su horizonte (FX-04) y con el signo menos de verdad. */
+function previsionV2Saldo(value, date, today) {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const redondeado = contract ? contract.roundForHorizon(value, contract.daysBetween(today, date)) : Math.round(value);
+  return redondeado < 0 ? `−${money(-redondeado)}` : money(redondeado);
+}
+
+/** La frase de la cuenta corriente: cuándo cruza, hasta dónde baja y cuánto pasar del ahorro antes (o que el ahorro no alcanza). */
+function previsionV2CuentaFrase(cuenta, today) {
+  const hasta = `hasta ${previsionV2Saldo(cuenta.low.value, cuenta.low.date, today)} el ${previsionV2Fecha(cuenta.low.date, today)}`;
+  const importe = money(previsionV2HaciaArriba(cuenta.gap));
+  if (cuenta.sweep) return `la cuenta corriente ${previsionV2CuentaVerbo(cuenta, today)} (${hasta}): bastaría con traspasar unos ${importe} menos al ahorro el ${previsionV2Fecha(cuenta.sweep.date, today)}${cuenta.sweep.label ? ` («${cuenta.sweep.label}»)` : ""}`;
+  return cuenta.coveredBySavings
+    ? `la cuenta corriente ${previsionV2CuentaVerbo(cuenta, today)} (${hasta}): habría que pasar unos ${importe} del ahorro antes de ese día`
+    : `la cuenta corriente ${previsionV2CuentaVerbo(cuenta, today)} (${hasta}) y el ahorro de ese día no alcanza para cubrirlo`;
+}
+
+/**
  * FX-21 · Euribor: la revisión de cada hipoteca con los datos de Deuda › Contratos (WP-20, revision-tipo-ui.js) y el Euribor
  * tecleado. Devuelve las revisiones calculables o lo que falta para calcularlas.
  */
@@ -76,10 +114,11 @@ function previsionV2Prueba(id, rows, today, to, floor) {
   try {
     const input = canonicalEngineInput([], {});
     const params = previsionV2ParamsFor(id, input, today);
-    const key = `${id}|${to}|${floor}|${JSON.stringify(params)}`;
+    const checkingFloor = previsionV2SueloCuenta();
+    const key = `${id}|${to}|${floor}|${checkingFloor}|${JSON.stringify(params)}`;
     const cached = previsionV2Cache.get(key);
     if (cached && cached.rows === rows) return cached.result;
-    result = S.evaluate(id, input, rows, previsionV2Deps(), { today, to, floor, params });
+    result = S.evaluate(id, input, rows, previsionV2Deps(), { today, to, floor, checkingFloor, params });
     if (result) result.params = params;
     previsionV2Cache.set(key, { rows, result });
   } catch {
@@ -144,10 +183,14 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today }) {
       : `${escapeHtml(money(margenSaid))} por encima del suelo de ${escapeHtml(money(floor))}.`,
     finAno && finAno.date !== low.date ? `A 31 de diciembre, ${escapeHtml(money(contract.roundForHorizon(finAno.total, contract.daysBetween(today, finAno.date))))}.` : "",
   ].filter(Boolean).join(" ");
+  // El suelo también en la cuenta corriente: si el propio plan la deja por debajo, se avisa aquí, con lo que hay que traspasar.
+  const cuenta = globalThis.FinanceCanonicalStressScenarios?.checkingShortfall(tramo, { today, to: tramo.at(-1).date, checkingFloor: previsionV2SueloCuenta() });
+  const avisoCuenta = cuenta?.crossDate ? `<p class="prev-v2-frase prev-v2-cuenta">Ojo: en el plan, ${escapeHtml(previsionV2CuentaFrase(cuenta, today))}.</p>` : "";
   return `<div class="prev-v2-hero${margen < 0 ? " is-bad" : ""}">
     <p class="e19-eyebrow">Punto más bajo ${escapeHtml(horizonte.titulo)}</p>
     <p class="prev-v2-cifra">${said.approximate ? "<small>unos</small> " : ""}${escapeHtml(money(said.value))} <span class="prev-v2-cuando">${escapeHtml(said.when)}</span></p>
     <p class="prev-v2-frase">${frase}</p>
+    ${avisoCuenta}
   </div>`;
 }
 
@@ -239,11 +282,11 @@ function previsionV2CompararHtml(prueba, today) {
   const contract = globalThis.FinanceCanonicalForecastContract;
   // Cada nivel se redondea según su horizonte (FX-04) y la diferencia es la resta de lo que se ve: 15.700 frente a 14.200 es −1.500.
   const redondea = (value, date) => contract.roundForHorizon(value, contract.daysBetween(today, date));
-  const nivel = (low) => money(redondea(low.value, low.date));
+  const nivel = (low) => previsionV2Saldo(low.value, low.date, today);
   const resta = (base, prueba, date) => redondea(prueba, date) - redondea(base, date);
   // Una celda con cifra y día pone el día debajo, para que a 390 px quepan las cuatro columnas sin pisarse.
   const celda = (value) => (Array.isArray(value) ? `<td>${escapeHtml(value[0])}<small class="prev-v2-impacto-dia">${escapeHtml(value[1])}</small></td>` : `<td>${escapeHtml(value)}</td>`);
-  const fin = (value) => money(redondea(value, c.yearEnd.date));
+  const fin = (value) => previsionV2Saldo(value, c.yearEnd.date, today);
   const dif = (value) => (value === null ? "—" : value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "igual"); // ya redondeada
   const bajadaVista = redondea(c.low.value, c.low.date) - redondea(c.baseLow.value, c.baseLow.date);
   const filas = [
@@ -251,9 +294,14 @@ function previsionV2CompararHtml(prueba, today) {
     ["¿Bajáis del suelo?", c.baseCrossesFloor ? `Sí, el ${previsionV2Fecha(c.baseCrossDate, today)}` : "No", c.crossesFloor ? `Sí, el ${previsionV2Fecha(c.crossDate, today)}` : "No", c.shortfall ? `faltan ${money(contract.roundDifference(c.shortfall))}` : "—"],
     [`A 31 de diciembre`, c.yearEnd ? fin(c.yearEnd.base) : "—", c.yearEnd ? fin(c.yearEnd.shocked) : "—", c.yearEnd ? dif(resta(c.yearEnd.base, c.yearEnd.shocked, c.yearEnd.date)) : "—"],
   ];
+  const cuentaPlan = c.checking?.base;
+  const cuentaPrueba = c.checking?.shocked;
+  if (cuentaPlan && cuentaPrueba) {
+    filas.splice(2, 0, ["Cuenta corriente, lo más bajo", [previsionV2Saldo(cuentaPlan.low.value, cuentaPlan.low.date, today), previsionV2Fecha(cuentaPlan.low.date, today)], [previsionV2Saldo(cuentaPrueba.low.value, cuentaPrueba.low.date, today), previsionV2Fecha(cuentaPrueba.low.date, today)], dif(redondea(cuentaPrueba.low.value, cuentaPrueba.low.date) - redondea(cuentaPlan.low.value, cuentaPlan.low.date))]);
+  }
   // El final del horizonte elegido, si no es el 31/12: ahí se ve lo que la prueba acumula (la cuota más alta, mes a mes).
   if (c.end && c.end.date !== c.yearEnd?.date) {
-    filas.push([`A ${previsionV2Fecha(c.end.date, today)}`, money(redondea(c.end.base, c.end.date)), money(redondea(c.end.shocked, c.end.date)), dif(resta(c.end.base, c.end.shocked, c.end.date))]);
+    filas.push([`A ${previsionV2Fecha(c.end.date, today)}`, previsionV2Saldo(c.end.base, c.end.date, today), previsionV2Saldo(c.end.shocked, c.end.date, today), dif(resta(c.end.base, c.end.shocked, c.end.date))]);
   }
   const cuando = previsionV2Cuando(prueba, today);
   const bajada = Math.abs(bajadaVista);
@@ -267,11 +315,21 @@ function previsionV2CompararHtml(prueba, today) {
     : c.crossesFloor
     ? `${cuando}, bajáis del suelo el ${previsionV2Fecha(c.crossDate, today)}. Para evitarlo haría falta recortar unos ${money(contract.roundDifference(c.monthlyCut))} al mes de gasto hasta entonces, o tirar del plan B.`
     : `${cuando}, no bajáis del suelo: el punto más bajo queda ${nivel(c.low)} el ${previsionV2Fecha(c.low.date, today)}, ${bajada ? `${money(bajada)} por debajo del plan` : "igual que en el plan"}.`;
+  // El suelo también en la cuenta corriente: si la prueba la deja por debajo y el plan no, se dice a continuación.
+  // Si el plan ya la deja por debajo, solo se dice cuando la prueba la hunde más, con lo que habría que pasar entonces.
+  const cuentaPeor = Boolean(cuentaPrueba?.crossDate && cuentaPlan?.crossDate && cuentaPrueba.gap > cuentaPlan.gap + 0.5);
+  const cuentaNueva = Boolean(cuentaPrueba?.crossDate && !cuentaPlan?.crossDate) && !fuera;
+  const conector = c.crossesFloor ? "Además," : "Pero";
+  const fraseCompleta = cuentaNueva
+    ? `${frase} ${conector} ${previsionV2CuentaFrase(cuentaPrueba, today)}.`
+    : cuentaPeor && !fuera
+    ? `${frase} ${conector} la cuenta corriente, que en el plan ya baja de su suelo, bajaría hasta ${previsionV2Saldo(cuentaPrueba.low.value, cuentaPrueba.low.date, today)} el ${previsionV2Fecha(cuentaPrueba.low.date, today)}: habría que pasar unos ${money(previsionV2HaciaArriba(cuentaPrueba.gap))} del ahorro${cuentaPrueba.coveredBySavings ? "" : ", y el ahorro de ese día no alcanza"}.`
+    : frase;
   const nota = previsionV2Nota(prueba, today);
   return `${fila}
     ${previsionV2OpcionesHtml(prueba)}
     <div class="prev-v2-impacto" role="status">
-      <p class="prev-v2-impacto-frase${c.crossesFloor ? " is-bad" : ""}">${escapeHtml(frase)}</p>
+      <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor ? " is-bad" : ""}">${escapeHtml(fraseCompleta)}</p>
       <table class="e19-table prev-v2-impacto-tabla">
         <caption class="sr-only">El plan frente a la prueba: ${escapeHtml(cuando)}</caption>
         <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>

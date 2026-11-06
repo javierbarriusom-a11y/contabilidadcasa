@@ -173,6 +173,29 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (413): el suelo, también en la cuenta corriente; D-N8 propuesta
+
+- **Decisión del hogar:** «sí, suelo también en la cuenta corriente, y sigue».
+- **Definición:** el suelo de la cuenta corriente es la reserva operativa de Ajustes (`state.operatingReserve`), o 0 € si no está puesta (no quedar en descubierto).
+  - Descartado el colchón heredado `agentCaixaFloor()` (2.500 € por defecto): el motor no lo usa, y en la demo pondría 77 días en rojo con un plan sano.
+- **Motor:** `checkingShortfall()` en `canonical-stress-scenarios.js` da, sobre la trayectoria diaria (que ya separa cuenta y ahorro):
+  - el primer día bajo el suelo y el punto más bajo;
+  - lo que falta y si el ahorro de ese día alcanza;
+  - si lo hay y basta, el traspaso al ahorro de antes que habría que hacer más pequeño.
+  - `compare()` lo devuelve para el plan y para la prueba.
+- **C2:**
+  - aviso en el titular si el propio plan deja la cuenta bajo su suelo;
+  - en cada prueba, la fila «Cuenta corriente, lo más bajo» y una frase cuando la prueba la deja por debajo y el plan no (o la hunde más);
+  - importes a pasar redondeados hacia arriba; negativos con «−».
+  - Con la demo, sin el sueldo de A: «Pero la cuenta corriente se queda en descubierto el 8 dic (hasta −2.500 € el 8 ene 2027): habría que pasar unos 2.600 € del ahorro antes de ese día».
+- **Hallazgo y D-N8:** `canonical-engine.js` traspasa al ahorro todo lo que pasa de un mes de gastos (`oneMonthFloor`) y no usa la reserva operativa. Con una reserva de 1.000 € y el plan recalculado, la cuenta sigue tocando 0 € el 8 dic. No se cambia el motor sin el hogar: cambia las cifras de traspaso.
+- **Hoy, sin cambios esta semana** (ya hubo D-N4).
+- **Pruebas:** `fx21-pruebas-estres` de 10 a 11. La e2e «Comparar con» añade la fila y la frase de la cuenta y el aviso del titular con una reserva de 1.000 €.
+- **Novedades:** una línea. **Versiones** a `20261106cc1a`: motor, vista, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.436 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 162,3 ms; build, privacidad y humo.
+  - En Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 9 de 9; axe de C2, 2 de 2. Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (412): D-N3 decidida y construida; Euribor y sueldo por titular
 
 - **Decisión del hogar:** «D-N3 sí, sueldo por titular y sigue».

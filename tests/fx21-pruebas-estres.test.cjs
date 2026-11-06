@@ -172,6 +172,26 @@ test("FX-20 · la comparación: punto más bajo de los dos, cruce del suelo del 
   assert.equal(Stress.compare([], shock, { today: TODAY, to: "2027-12-31" }), null);
 });
 
+test("Suelo en la cuenta corriente (6/11): cuándo baja de su reserva o queda en descubierto, cuánto pasar y si basta con traspasar menos", () => {
+  const r = (date, checking, savings, events = []) => ({ date, checking, savings, total: checking + savings, events });
+  const traspaso = { kind: "transfer", label: "Traspaso a Mediolanum", beforeChecking: 4730 + 620, checking: 4730 };
+  const rows = [r("2026-11-06", 5080, 5000), r("2026-11-30", 4730, 5620, [traspaso]), r("2026-12-08", 0, 5620), r("2026-12-15", 4800, 5620)];
+  const opts = { today: TODAY, to: "2027-02-05" };
+  const cero = Stress.checkingShortfall(rows, opts);
+  assert.deepEqual([cero.floor, cero.crossDate, cero.gap, cero.low.value], [0, null, 0, 0], "tocar 0 € no es quedar en descubierto");
+  const quinientos = Stress.checkingShortfall(rows, { ...opts, checkingFloor: 500 });
+  assert.deepEqual([quinientos.crossDate, quinientos.gap, quinientos.coveredBySavings], ["2026-12-08", 500, true]);
+  assert.deepEqual(quinientos.sweep, { date: "2026-11-30", label: "Traspaso a Mediolanum", amount: 620 }, "bastaría con traspasar menos el 30 nov");
+  const mil = Stress.checkingShortfall(rows, { ...opts, checkingFloor: 1000 });
+  assert.equal(mil.sweep, null, "620 € no bastan para 1.000 €: hay que pasar del ahorro");
+  const seco = Stress.checkingShortfall([r("2026-11-06", 100, 50), r("2026-11-20", -400, 50)], opts);
+  assert.deepEqual([seco.crossDate, seco.gap, seco.coveredBySavings], ["2026-11-20", 400, false], "el ahorro no alcanza");
+  assert.equal(Stress.checkingShortfall([{ date: TODAY, total: 10 }], opts), null, "sin cuenta corriente separada no se inventa");
+  const c = Stress.compare(rows, [r("2026-11-06", 5080, 5000), r("2026-12-08", -2510, 5000)], { ...opts, floor: 1500 });
+  assert.equal(c.checking.base.crossDate, null);
+  assert.deepEqual([c.checking.shocked.crossDate, c.checking.shocked.gap], ["2026-12-08", 2510]);
+});
+
 test("FX-21 · evaluate: aplica, recalcula con los motores de siempre y compara; el imprevisto cae el día más bajo del plan", () => {
   const deps = fakeDeps();
   const baseInput = input();

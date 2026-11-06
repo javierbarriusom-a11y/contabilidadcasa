@@ -197,13 +197,46 @@
   }
 
   /**
+   * El suelo también en la cuenta corriente (decisión del hogar del 6/11/2026): el primer día del tramo en que la cuenta corriente
+   * baja de su suelo (la reserva operativa de Ajustes, o 0 € si no hay: no quedar en descubierto), su punto más bajo, lo que habría
+   * que pasar del ahorro antes de ese día, si el ahorro de ese día alcanza y, si lo hay y basta, el traspaso al ahorro de antes que
+   * habría que hacer más pequeño. Null si las filas no separan la cuenta del ahorro.
+   * @param {any[]} rows
+   * @param {{ today?: string, to?: string, checkingFloor?: number }} [options]
+   */
+  function checkingShortfall(rows, { today, to, checkingFloor = 0 } = {}) {
+    const tramo = (rows || []).filter((row) => row.date >= today && row.date <= to && finite(row.checking));
+    if (!tramo.length) return null;
+    const floor = Math.max(0, Number(checkingFloor) || 0);
+    const lowest = tramo.reduce((low, row) => (Number(row.checking) < Number(low.checking) ? row : low));
+    const first = tramo.find((row) => Number(row.checking) < floor - 0.5) || null;
+    const gap = first ? round2(floor - Number(lowest.checking)) : 0;
+    // El último traspaso de la cuenta al ahorro antes de cruzar: si basta, el remedio es traspasar menos ese día, no deshacerlo después.
+    let sweep = null;
+    if (first) {
+      tramo.filter((row) => row.date <= first.date).forEach((row) => (row.events || []).forEach((event) => {
+        const out = round2(Number(event.beforeChecking) - Number(event.checking));
+        if (event.kind === "transfer" && out > 0) sweep = { date: row.date, label: event.label || "", amount: out };
+      }));
+    }
+    return {
+      floor,
+      low: { date: lowest.date, value: round2(lowest.checking) },
+      crossDate: first?.date || null,
+      gap,
+      coveredBySavings: first ? Number(lowest.savings || 0) >= gap : true,
+      sweep: sweep && sweep.amount >= gap ? sweep : null,
+    };
+  }
+
+  /**
    * La comparación que enseña la pantalla: el punto más bajo del plan y del escenario, si se baja del suelo y cuándo, cuánto falta,
    * cuánto cambia el 31/12 y al final del horizonte (`to`), y el recorte mensual de gasto que lo arreglaría (repartido entre hoy y el día más bajo).
    * @param {any[]} baseRows
    * @param {any[]} shockedRows
-   * @param {{ today?: string, to?: string, floor?: number }} [options]
+   * @param {{ today?: string, to?: string, floor?: number, checkingFloor?: number }} [options]
    */
-  function compare(baseRows, shockedRows, { today, to, floor = 0 } = {}) {
+  function compare(baseRows, shockedRows, { today, to, floor = 0, checkingFloor = 0 } = {}) {
     const baseLow = lowIn(baseRows, today, to);
     const low = lowIn(shockedRows, today, to);
     if (!baseLow || !low) return null;
@@ -230,6 +263,7 @@
       monthlyCut: shortfall ? round2(shortfall / monthsBetween(today, low.date)) : 0,
       yearEnd: baseEnd && shockEnd ? { date: yearEnd, base: round2(baseEnd.total), shocked: round2(shockEnd.total) } : null,
       yearEndDiff: baseEnd && shockEnd ? round2(Number(shockEnd.total) - Number(baseEnd.total)) : null,
+      checking: { base: checkingShortfall(baseRows, { today, to, checkingFloor }), shocked: checkingShortfall(shockedRows, { today, to, checkingFloor }) },
       end: baseLast && shockLast ? { date: baseLast.date, base: round2(baseLast.total), shocked: round2(shockLast.total), diff: round2(Number(shockLast.total) - Number(baseLast.total)) } : null,
     };
   }
@@ -242,9 +276,9 @@
    * @param {any} baseInput
    * @param {any[]} baseRows
    * @param {any} deps
-   * @param {{ today?: string, to?: string, floor?: number, params?: any }} [options]
+   * @param {{ today?: string, to?: string, floor?: number, checkingFloor?: number, params?: any }} [options]
    */
-  function evaluate(presetId, baseInput, baseRows, deps, { today, to, floor = 0, params = {} } = {}) {
+  function evaluate(presetId, baseInput, baseRows, deps, { today, to, floor = 0, checkingFloor = 0, params = {} } = {}) {
     const preset = PRESETS.find((item) => item.id === presetId);
     if (!preset || !baseInput?.months?.length || !baseRows?.length) return null;
     const baseLow = lowIn(baseRows, today, to);
@@ -256,8 +290,8 @@
     } else changed = applyImprevisto(baseInput, { date: baseLow?.date, amount: preset.amount });
     if (!changed.applied) return { preset, applied: false, missing: [] };
     const result = run(changed.input, deps, `prueba de estrés: ${preset.id}`);
-    return { preset, applied: true, valid: result.valid, info: changed.info, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor }) };
+    return { preset, applied: true, valid: result.valid, info: changed.info, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, compare, evaluate });
+  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate });
 });

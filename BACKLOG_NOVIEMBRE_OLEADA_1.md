@@ -21,6 +21,15 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 (noche) · El suelo, también en la cuenta corriente: decisión del hogar («sí, suelo también en la cuenta corriente, y sigue»).**
+- **El suelo de la cuenta corriente** es la reserva operativa de Ajustes, o 0 € si no está puesta (no quedar en descubierto). No es el colchón heredado de 2.500 € (`agentCaixaFloor()`), que el motor no usa y que en la demo pondría 77 días en rojo con un plan sano.
+- **En Plan › Previsión:**
+  - si el propio plan deja la cuenta por debajo, el titular avisa con lo que hay que hacer: «traspasar X € menos al ahorro el día D» si basta con el traspaso anterior, o «pasar X € del ahorro antes de ese día»;
+  - cada prueba de estrés tiene la fila «Cuenta corriente, lo más bajo» y la frase lo dice aunque el total aguante. Con la demo, sin el sueldo de A la cuenta queda en descubierto el 8 dic (hasta −2.500 € el 8 ene 2027) y habría que pasar unos 2.600 € del ahorro; el imprevisto la deja en −3.000 € el 8 dic;
+  - lo que hay que pasar se redondea hacia arriba (quedarse corto no sirve).
+- **Hallazgo que pasa a decisión (D-N8):** el motor mensual no usa la reserva operativa al traspasar al ahorro. Por eso, con reserva o sin ella, la cuenta llega a 0 € el día antes de la nómina. No lo he cambiado: mueve las cifras de traspaso del plan.
+- **Hoy no cambia esta semana** (ya hubo un cambio, D-N4). El mismo aviso en Hoy queda para su próximo hueco semanal.
+
 **6/11/2026 (noche) · D-N3 decidida por el hogar («D-N3 sí, sueldo por titular y sigue») y las tres pruebas de estrés construidas sobre la Previsión nueva (FX-20 y FX-21).**
 - **Dónde:** en Plan › Previsión (C2), bajo el gráfico, la fila «Comparar con»: Solo el plan · Un sueldo menos · Euribor · Imprevisto 3.000 €.
 - **Qué hace:** la prueba elegida se pinta como línea discontinua con su nombre. Debajo van una frase y una tabla, plan frente a prueba: punto más bajo, «¿bajáis del suelo?», 31 de diciembre y el último día del horizonte. Si se baja del suelo, la frase dice cuándo, cuánto falta y el recorte mensual que lo evitaría, o el plan B. Una nota dice qué se ha cambiado exactamente.
@@ -330,6 +339,7 @@ panel de seguimiento.
 | **D-N5** | Los escenarios sobre la previsión, solo de lectura; aplicar, en Decidir › Escenarios | Sí (R-N3) | 18/11 |
 | **D-N6** | Tras la paridad (FX-25), ¿redirigir el laboratorio E13 y el simulador de decisiones a Escenarios? | Sí, con dos meses de redirección; se pregunta de nuevo antes de hacerlo | Febrero 2027 |
 | **D-N7** | Tope blando de 3 funciones nuevas en prueba a la vez durante la oleada | Sí (R-N4) | 18/11 |
+| **D-N8** | El motor mensual traspasa al ahorro todo lo que pasa de un mes de gastos y **no deja la reserva operativa en la cuenta corriente**. Con los gastos estimados el día 8 y la nómina el 15, la cuenta toca 0 € cada mes antes de cobrar. ¿Se cambia el motor para que el traspaso deje la reserva en la cuenta? | Sí: la liquidez total no cambia, solo cuánto va a cada cuenta; el traspaso del primer mes baja una vez lo que valga la reserva. Cambia las cifras de traspaso que el hogar ve en el plan, así que se consulta | Cuando el hogar quiera |
 
 ---
 

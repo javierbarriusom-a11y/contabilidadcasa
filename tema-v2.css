@@ -3993,6 +3993,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El suelo también en la cuenta corriente (6/11/2026): el aviso del plan, en rojo pero sin teñir la cifra del total. */
+:root[data-tema="v2"] .prev-v2-cuenta {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
 /* FX-21 (D-N3): las opciones de la prueba elegida (de quién y cuántos meses; cuántos puntos), debajo de «Comparar con». */
 :root[data-tema="v2"] .prev-v2-opciones {
   display: flex;
