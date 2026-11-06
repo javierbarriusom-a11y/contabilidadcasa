@@ -6694,8 +6694,15 @@ test.describe("RD-WK · el menú principal en el móvil", () => {
 // todas las pantallas. Con la demo el 5/11, el saldo previsto a fin de noviembre es el mismo en Hoy, en la banda de caja
 // («Según el plan») y en el motor diario; y el punto más bajo es el mismo en el titular de Previsión y en su resumen.
 test.describe("FX-01 · una sola cifra de previsión", () => {
+  // Dos pantallas y la banda de caja (500 simulaciones): en Safari del CI de #592 pasó de los 30 s de serie una vez (y pasó
+  // al repetirla). Mismo presupuesto que las pruebas parecidas (WP-18, 60 s) y el cronómetro por tramos: si vuelve a
+  // quedarse sin tiempo, el registro dice qué tramo se lo comió (tests/helpers/cronometro-pasos.cjs).
+  let reloj = null;
+  test.afterEach(async ({}, testInfo) => informarSiFalla(reloj, testInfo));
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`Hoy, la banda y el motor diario dan el mismo saldo a fin de mes; el titular y el resumen, el mismo punto más bajo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      reloj = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.setViewportSize(viewport);
@@ -6703,17 +6710,21 @@ test.describe("FX-01 · una sola cifra de previsión", () => {
       await page.goto("/index.html#home");
       const stat = page.locator("#hoyV2 .hoy-v2-stat").filter({ hasText: "Fin de noviembre" });
       await expect(stat).toBeVisible({ timeout: 15000 });
+      reloj.marca("Hoy pintado");
       const hoySaldo = (await stat.locator("strong").textContent()).trim();
       await expect(stat.locator("small"), "D-N4: el margen va debajo, dicho como margen").toContainText(/sobre el suelo|por debajo del suelo/);
       const motor = await page.evaluate(() => money(canonicalDailyEngineRuns.active.rows.find((row) => row.date === "2026-11-30").total));
       expect(hoySaldo, "Hoy enseña el saldo previsto del motor diario, no el margen").toBe(motor);
+      reloj.marca("Hoy comparado con el motor");
 
       await page.evaluate(() => { location.hash = "#prevision"; });
       await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
+      reloj.marca("Previsión con la banda calculada");
       await page.locator("#previsionBandaResumen").click();
       await page.locator("#previsionBanda .ck-tabla summary").evaluate((summary) => { summary.parentElement.open = true; });
       const fila = page.locator("#previsionBanda .ck-tabla tbody tr").filter({ hasText: "30 de noviembre" });
       expect((await fila.locator("td").last().textContent()).trim(), "la banda «según el plan» y Hoy, la misma cifra").toBe(hoySaldo);
+      reloj.marca("banda comparada");
 
       const subtitulo = await page.locator("#previsionSubheadline").textContent();
       expect(subtitulo, "el punto más bajo nunca en una fecha pasada (FX-02)").not.toMatch(/el 0?[1-4] nov/);
