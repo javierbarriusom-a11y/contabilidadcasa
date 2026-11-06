@@ -151,7 +151,10 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoL
     ? `${money(Math.abs(reserveGap))} por debajo`
     : reserveStatus === "warn" ? `justa: ${money(reserveGap)} de margen` : `cubierta: ${money(reserveGap)} de margen`;
   const stats = [
-    eom.available ? `<div class="hoy-v2-stat"><span>Fin de ${escapeHtml(eom.monthLabel)}</span><strong>${escapeHtml(money(eom.margin))}</strong></div>` : "",
+    // D-N4 (decisión del hogar del 6/11/2026, FX-01): arriba el saldo previsto a fin de mes, el mismo que la banda de caja
+    // «según el plan» y el motor diario; debajo, el margen sobre el suelo. Antes decía solo el margen con la etiqueta
+    // «Fin de noviembre», que se leía como saldo.
+    eom.available ? `<div class="hoy-v2-stat${eom.margin < 0 ? " is-danger" : ""}"><span>Fin de ${escapeHtml(eom.monthLabel)}</span><strong>${escapeHtml(money(eom.projected))}</strong><small>${escapeHtml(eom.margin < 0 ? `${money(Math.abs(eom.margin))} por debajo del suelo` : `${money(eom.margin)} sobre el suelo`)}</small></div>` : "",
     `<div class="hoy-v2-stat is-${escapeHtml(reserveStatus)}"><span>Reserva protegida</span><strong>${escapeHtml(money(protectedReserve))}</strong><small>${escapeHtml(reserveWord)}</small></div>`,
   ].join("");
   const chart = hoyV2ChartSvg(hoyV2Trajectory(asOf, balances?.total, payday?.nextIncomeDate), today.floor, payday?.nextIncomeDate);

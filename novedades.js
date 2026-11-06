@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-hoy-fin-de-mes",
+      fecha: "2026-11-06",
+      texto: "Hoy: «Fin de noviembre» enseña el saldo previsto, el mismo de Previsión, y debajo cuánto queda sobre el suelo.",
+      href: "#home",
+    },
+    {
       id: "2026-11-06-supuestos-impacto",
       fecha: "2026-11-06",
       texto: "Ajustes › Supuestos: cada supuesto de la previsión dice cuánta liquidez os quita si sale peor, a fin del año que viene y del plan.",

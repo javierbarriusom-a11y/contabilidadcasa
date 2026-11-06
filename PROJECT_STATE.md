@@ -173,6 +173,17 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (408): D-N4, Hoy con el saldo arriba y el margen debajo; FX-01 cerrada
+
+- **Decisión del hogar:** «D-N4 sí, saldo arriba y margen debajo». Se trata como corrección, según la recomendación de D-N4, así que no gasta el cambio de Hoy de la semana.
+- **Hoy** (`views/hoy-v2.js`): «Fin de noviembre» enseña `endOfMonth.projected`, el saldo previsto (demo: 10.350 €), y debajo «8.850 € sobre el suelo» o «… por debajo del suelo», en rojo (`is-danger`). Antes enseñaba solo `endOfMonth.margin` con esa etiqueta.
+- **FX-01 cerrada:** e2e «FX-01 · una sola cifra de previsión», a 390 px (`@safari`) y 1440 px. Comprueba:
+  - el mismo saldo a fin de mes en Hoy, en la banda «según el plan» y en el motor diario;
+  - el titular de Previsión sin una fecha pasada;
+  - el mismo punto más bajo en el titular y en el resumen del periodo.
+- **Novedades,** una línea. **Versiones:** `views/hoy-v2.js` y `novedades.js` a `?v=20261106dn4a`.
+- **Validación:** `npm run verify` en verde (6.413 de 6.413). e2e de FX-01: 2 de 2. e2e de Hoy en Chromium: 15 de 15. Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (407): panel con la oleada de noviembre, FX-03 y FX-51 revisadas, y el impacto de cada supuesto
 
 - **Petición del hogar:** «Continúa».
