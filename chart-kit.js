@@ -126,6 +126,90 @@
   }
 
   /**
+   * FX-11 (BACKLOG_NOVIEMBRE_OLEADA_1.md; docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md §6): el gráfico de previsión único. Lo que ya
+   * hace bandPlotHtml más lo que pide una previsión: lo real hasta hoy (tinta continua), el plan (azul continuo), el rango probable
+   * (área azul clara), el suelo (rojo discontinuo), la marca de hoy, la costura donde el diario pasa a mensual, los hitos (cobros, pagos
+   * grandes) y hasta dos escenarios superpuestos (azul discontinuo, con su nombre al final de la línea). Real, plan y escenario se
+   * distinguen por la forma, no solo por el color (principio 3).
+   *
+   * Las etiquetas (eje Y, nombres de escenario, hitos) van en HTML superpuesto, en porcentajes: dentro de un SVG con
+   * preserveAspectRatio="none" se deformarían. Puro: devuelve HTML y números, sin tocar el DOM.
+   * @param {{
+   *   points: Array<{label: string, plan: number, real?: number|null, low?: number|null, high?: number|null}>,
+   *   ariaLabel: string,
+   *   threshold?: {value: number, label?: string}|null,
+   *   todayIndex?: number|null,
+   *   seamIndex?: number|null,
+   *   markers?: Array<{index: number, label: string}>,
+   *   scenarios?: Array<{name: string, values: Array<number|null>}>,
+   *   format?: (n: number) => string,
+   *   ticks?: number,
+   * }} spec
+   */
+  function forecastPlotHtml({ points, ariaLabel, threshold = null, todayIndex = null, seamIndex = null, markers = [], scenarios = [], format = (n) => String(Math.round(n)), ticks = 3 }) {
+    const list = Array.isArray(points) ? points : [];
+    const finite = (value) => value !== null && value !== undefined && Number.isFinite(Number(value));
+    const shown = (Array.isArray(scenarios) ? scenarios : []).slice(0, 2);
+    const thresholdValue = threshold && finite(threshold.value) ? Number(threshold.value) : null;
+    const values = [
+      ...list.flatMap((point) => [point.plan, point.real, point.low, point.high]),
+      ...shown.flatMap((scenario) => scenario.values || []),
+      thresholdValue,
+    ].filter(finite).map(Number);
+    if (!list.length || !values.length) return { svg: "", overlayHtml: "", xs: [], ticks: [] };
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    const pad = Math.max(1, (max - min) * 0.08);
+    min -= pad;
+    max += pad;
+    const span = Math.max(1, max - min);
+    const stepX = list.length > 1 ? 100 / (list.length - 1) : 0;
+    const xAt = (index) => round2(list.length > 1 ? index * stepX : 50);
+    const yAt = (value) => round2(100 - ((Number(value) - min) / span) * 100);
+    const line = (key, from = 0, to = list.length - 1) => list
+      .map((point, index) => (index >= from && index <= to && finite(point[key]) ? `${xAt(index)},${yAt(point[key])}` : null))
+      .filter(Boolean)
+      .join(" ");
+    const bandIdx = list.map((point, index) => (finite(point.low) && finite(point.high) ? index : null)).filter((index) => index !== null);
+    const band = bandIdx.length > 1
+      ? `<polygon class="ck-banda" points="${[...bandIdx.map((i) => `${xAt(i)},${yAt(list[i].high)}`), ...bandIdx.slice().reverse().map((i) => `${xAt(i)},${yAt(list[i].low)}`)].join(" ")}"></polygon>`
+      : "";
+    const today = finite(todayIndex) ? Math.max(0, Math.min(list.length - 1, Number(todayIndex))) : null;
+    const realLine = line("real", 0, today === null ? list.length - 1 : today);
+    const planLine = line("plan", today === null ? 0 : today);
+    const scenarioLines = shown.map((scenario, at) => {
+      const pts = (scenario.values || []).map((value, index) => (finite(value) && index < list.length ? `${xAt(index)},${yAt(value)}` : null)).filter(Boolean);
+      return pts.length > 1 ? `<polyline class="ck-escenario ck-escenario-${at + 1}" points="${pts.join(" ")}" vector-effect="non-scaling-stroke"></polyline>` : "";
+    }).join("");
+    const vline = (cls, index) => `<line class="${cls}" x1="${xAt(index)}" x2="${xAt(index)}" y1="0" y2="100" vector-effect="non-scaling-stroke"></line>`;
+    const svg = `<svg class="ck-svg ck-prevision" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${esc(ariaLabel)}">
+    ${band}${finite(seamIndex) && seamIndex > 0 && seamIndex < list.length - 1 ? vline("ck-costura", Number(seamIndex)) : ""}${
+      thresholdValue === null ? "" : `<line class="ck-umbral" x1="0" x2="100" y1="${yAt(thresholdValue)}" y2="${yAt(thresholdValue)}" vector-effect="non-scaling-stroke"></line>`
+    }${planLine ? `<polyline class="ck-centro ck-plan" points="${planLine}" vector-effect="non-scaling-stroke"></polyline>` : ""}${
+      realLine.includes(" ") ? `<polyline class="ck-real" points="${realLine}" vector-effect="non-scaling-stroke"></polyline>` : ""
+    }${scenarioLines}${today === null ? "" : vline("ck-hoy", today)}
+  </svg>`;
+    const count = Math.max(2, Math.min(5, Math.round(Number(ticks) || 3)));
+    // Marcas del eje redondeadas a una cifra limpia (803 → 800), dentro del dibujo.
+    const rawStep = (max - min - 2 * pad) / (count - 1) || 1;
+    const unit = 10 ** Math.floor(Math.log10(Math.abs(rawStep)));
+    const tickValues = Array.from({ length: count }, (_, at) => Math.round((min + pad + rawStep * at) / unit) * unit)
+      .filter((value, at, all) => all.indexOf(value) === at && value >= min && value <= max);
+    const overlay = [
+      `<div class="ck-eje-y" aria-hidden="true">${tickValues.map((value) => `<span style="top:${yAt(value)}%">${esc(format(value))}</span>`).join("")}</div>`,
+      thresholdValue === null ? "" : `<span class="ck-umbral-etiqueta" aria-hidden="true" style="top:${yAt(thresholdValue)}%">${esc(threshold.label || "suelo")} ${esc(format(thresholdValue))}</span>`,
+      today === null ? "" : `<span class="ck-hoy-etiqueta" aria-hidden="true" style="left:${xAt(today)}%">hoy</span>`,
+      ...shown.map((scenario, at) => {
+        const lastIndex = (scenario.values || []).map((value, index) => (finite(value) && index < list.length ? index : -1)).reduce((a, b) => Math.max(a, b), -1);
+        return lastIndex < 0 ? "" : `<span class="ck-escenario-etiqueta ck-escenario-${at + 1}" style="left:${xAt(lastIndex)}%;top:${yAt(scenario.values[lastIndex])}%">${esc(scenario.name)}</span>`;
+      }),
+      (Array.isArray(markers) ? markers : []).filter((marker) => finite(marker.index) && marker.index >= 0 && marker.index < list.length)
+        .map((marker) => `<span class="ck-hito" style="left:${xAt(marker.index)}%" title="${esc(marker.label)}"><span class="sr-only">${esc(marker.label)}</span></span>`).join(""),
+    ].join("");
+    return { svg, overlayHtml: overlay, xs: list.map((_, index) => xAt(index)), ticks: tickValues.map((value) => ({ value, y: yAt(value) })) };
+  }
+
+  /**
    * «Ver como tabla»: los mismos datos que el gráfico, en una tabla de verdad (cabeceras, leyenda), plegada. Es la salida para quien no
    * puede o no quiere interpretar el dibujo, y el contraste de los números exactos para quien sí.
    * @param {{caption: string, columns: string[], rows: Array<Array<string|number>>}} spec
@@ -224,5 +308,5 @@
     return true;
   }
 
-  return Object.freeze({ HINT, trendSentence, nearestIndex, stepIndex, bandPlotHtml, tableHtml, figureHtml, select, attach });
+  return Object.freeze({ HINT, trendSentence, nearestIndex, stepIndex, bandPlotHtml, forecastPlotHtml, tableHtml, figureHtml, select, attach });
 });

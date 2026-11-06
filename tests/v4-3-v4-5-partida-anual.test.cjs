@@ -261,5 +261,5 @@ test("La elección persiste: saveScenarioSettings incluye registrarMesAnnualAck 
 test("Datos · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
   assert.match(html, /app.js\?v=20261106fx51a/);
-  assert.match(html, /design-tokens\.css\?v=20261009hover1/);
+  assert.match(html, /design-tokens\.css\?v=20261106fx11a/);
 });

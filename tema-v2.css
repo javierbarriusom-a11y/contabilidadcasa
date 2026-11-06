@@ -28,6 +28,7 @@
   --line: #e1e5e1;
   --sidebar: #0e3b32;
   --blue: #2b59c3;
+  --e19-forecast: var(--blue); /* FX-11: «azul = previsto» también en el kit de gráficos */
   --teal: #0e6b4f;
   --green: #1b7a4b;
   --red: #b3361f;
