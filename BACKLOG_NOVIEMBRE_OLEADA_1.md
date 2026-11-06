@@ -21,13 +21,21 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 (noche) · D-N8 decidida: el traspaso al ahorro deja la reserva en la cuenta corriente («D-N8 sí, y sigue»).**
+- **Qué cambia:** a fin de mes el plan deja en la cuenta corriente un mes de gastos **más la reserva operativa** de Ajustes antes de traspasar al ahorro. Sin reserva puesta (0 €), el plan es exactamente el de antes.
+- **Dónde:** en el motor y en todos los cálculos que repiten ese traspaso, a la vez: la referencia histórica que vigila la paridad con el motor, la proyección de saldos hasta hoy y los escenarios E13. La reserva entra además como supuesto en el registro central de Ajustes, que pasa de 13 a 14.
+- **Lo que no cambia:** la liquidez total, mes a mes. Solo cambia cuánto hay en cada cuenta. El primer traspaso baja una vez lo que valga la reserva y el resto llega igual.
+- **Con la demo y una reserva de 1.000 €:** la cuenta ya no toca 0 € el 8 dic. Lo más bajo es justo 1.000 €, y el aviso de Previsión no salta.
+- **Si la reserva no cabe:** el plan no traspasa nada y el aviso dice cuánto pasar del ahorro. Con 4.000 €: «habría que pasar unos 180 € del ahorro».
+- **Con el ajuste automático del ahorro apagado**, el traspaso lo decide el hogar y la reserva no lo toca.
+
 **6/11/2026 (noche) · El suelo, también en la cuenta corriente: decisión del hogar («sí, suelo también en la cuenta corriente, y sigue»).**
 - **El suelo de la cuenta corriente** es la reserva operativa de Ajustes, o 0 € si no está puesta (no quedar en descubierto). No es el colchón heredado de 2.500 € (`agentCaixaFloor()`), que el motor no usa y que en la demo pondría 77 días en rojo con un plan sano.
 - **En Plan › Previsión:**
   - si el propio plan deja la cuenta por debajo, el titular avisa con lo que hay que hacer: «traspasar X € menos al ahorro el día D» si basta con el traspaso anterior, o «pasar X € del ahorro antes de ese día»;
   - cada prueba de estrés tiene la fila «Cuenta corriente, lo más bajo» y la frase lo dice aunque el total aguante. Con la demo, sin el sueldo de A la cuenta queda en descubierto el 8 dic (hasta −2.500 € el 8 ene 2027) y habría que pasar unos 2.600 € del ahorro; el imprevisto la deja en −3.000 € el 8 dic;
   - lo que hay que pasar se redondea hacia arriba (quedarse corto no sirve).
-- **Hallazgo que pasa a decisión (D-N8):** el motor mensual no usa la reserva operativa al traspasar al ahorro. Por eso, con reserva o sin ella, la cuenta llega a 0 € el día antes de la nómina. No lo he cambiado: mueve las cifras de traspaso del plan.
+- **Hallazgo que pasa a decisión (D-N8):** el motor mensual no usa la reserva operativa al traspasar al ahorro. Por eso, con reserva o sin ella, la cuenta llega a 0 € el día antes de la nómina. No lo he cambiado: mueve las cifras de traspaso del plan. *(Decidida y hecha la misma noche: ver arriba.)*
 - **Hoy no cambia esta semana** (ya hubo un cambio, D-N4). El mismo aviso en Hoy queda para su próximo hueco semanal.
 
 **6/11/2026 (noche) · D-N3 decidida por el hogar («D-N3 sí, sueldo por titular y sigue») y las tres pruebas de estrés construidas sobre la Previsión nueva (FX-20 y FX-21).**
@@ -339,7 +347,7 @@ panel de seguimiento.
 | **D-N5** | Los escenarios sobre la previsión, solo de lectura; aplicar, en Decidir › Escenarios | Sí (R-N3) | 18/11 |
 | **D-N6** | Tras la paridad (FX-25), ¿redirigir el laboratorio E13 y el simulador de decisiones a Escenarios? | Sí, con dos meses de redirección; se pregunta de nuevo antes de hacerlo | Febrero 2027 |
 | **D-N7** | Tope blando de 3 funciones nuevas en prueba a la vez durante la oleada | Sí (R-N4) | 18/11 |
-| **D-N8** | El motor mensual traspasa al ahorro todo lo que pasa de un mes de gastos y **no deja la reserva operativa en la cuenta corriente**. Con los gastos estimados el día 8 y la nómina el 15, la cuenta toca 0 € cada mes antes de cobrar. ¿Se cambia el motor para que el traspaso deje la reserva en la cuenta? | Sí: la liquidez total no cambia, solo cuánto va a cada cuenta; el traspaso del primer mes baja una vez lo que valga la reserva. Cambia las cifras de traspaso que el hogar ve en el plan, así que se consulta | Cuando el hogar quiera |
+| **D-N8** | El motor mensual traspasa al ahorro todo lo que pasa de un mes de gastos y **no deja la reserva operativa en la cuenta corriente**. Con los gastos estimados el día 8 y la nómina el 15, la cuenta toca 0 € cada mes antes de cobrar. ¿Se cambia el motor para que el traspaso deje la reserva en la cuenta? | Sí: la liquidez total no cambia, solo cuánto va a cada cuenta; el traspaso del primer mes baja una vez lo que valga la reserva. Cambia las cifras de traspaso que el hogar ve en el plan, así que se consulta | **Decidida el 6/11: sí** (hecha esa noche) |
 
 ---
 

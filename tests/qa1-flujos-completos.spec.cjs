@@ -5572,10 +5572,24 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
       await expect(v2.locator(".prev-v2-opciones")).toHaveCount(0);
-      // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa. Con una reserva de 1.000 €, sí.
+      // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa.
       await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
+      // D-N8: con una reserva de 1.000 €, el traspaso al ahorro la deja en la cuenta (antes la cuenta tocaba 0 € el 8 dic),
+      // la liquidez total no cambia y la referencia histórica sigue cuadrando con el motor.
       await page.evaluate(() => { state.operatingReserve = 1000; render(); });
-      await expect(v2.locator(".prev-v2-cuenta")).toContainText(/Ojo: en el plan, la cuenta corriente baja de su reserva de 1\.000\s€ el 8 dic \(hasta 0\s€ el 8 dic\): habría que pasar unos 1\.000\s€ del ahorro antes de ese día\./);
+      await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-cifra")).toHaveText(cifraPlan);
+      const conReserva = await page.evaluate(() => {
+        const hoy = isoLocalDate(new Date());
+        const filas = canonicalDailyEngineRuns.active.rows.filter((row) => row.date >= hoy && row.date <= "2027-11-06");
+        const paridad = FinanceCanonicalEngine.compareRows(canonicalEngineRuns.active.rows, simulateHistoricalReference([], {}));
+        return { minimo: Math.min(...filas.map((row) => row.checking)), paridad: paridad.matched };
+      });
+      expect(conReserva.minimo).toBeGreaterThanOrEqual(999.5);
+      expect(conReserva.paridad).toBe(true);
+      // Si ni sin traspasar nada llega a la reserva (4.000 €), el titular avisa y dice cuánto pasar del ahorro.
+      await page.evaluate(() => { state.operatingReserve = 4000; render(); });
+      await expect(v2.locator(".prev-v2-cuenta")).toContainText(/Ojo: en el plan, la cuenta corriente baja de su reserva de 4\.000\s€ el 8 dic \(hasta 3\.800\s€ el 8 dic\): habría que pasar unos 180\s€ del ahorro antes de ese día\./);
 
       await v2.locator('[data-prevision-v2-prueba=""]').click();
       await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);

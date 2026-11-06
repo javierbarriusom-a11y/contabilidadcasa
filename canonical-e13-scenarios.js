@@ -108,6 +108,7 @@
     let checking = number(assumptionValue(forecast, "openingChecking"));
     let savings = number(assumptionValue(forecast, "openingSavings"));
     const autoCapSavings = assumptionValue(forecast, "autoCapSavings", true) !== false;
+    const reserve = Math.max(0, number(assumptionValue(forecast, "operatingReserve", 0))); // D-N8, igual que el motor
     let debtImpact = 0;
     const rows = source.map((month, index) => {
       const impacts = events.reduce((total, event) => {
@@ -124,7 +125,7 @@
       const outflows = round(number(month.totals?.outflowsBeforeSaving) * (Number.isFinite(profile.expenseFactor) ? profile.expenseFactor : 1) + impacts.outflow);
       const targetSaving = number(month.totals?.saving);
       const available = checking + income - outflows;
-      const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows))) : round(targetSaving);
+      const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows - reserve))) : round(targetSaving);
       checking = round(available - saving);
       savings = round(savings + saving);
       debtImpact = round(debtImpact + impacts.debt);
@@ -172,6 +173,7 @@
     let checking = number(assumptionValue(forecast, "openingChecking"));
     let savings = number(assumptionValue(forecast, "openingSavings"));
     const autoCapSavings = assumptionValue(forecast, "autoCapSavings", true) !== false;
+    const reserve = Math.max(0, number(assumptionValue(forecast, "operatingReserve", 0))); // D-N8, igual que el motor
     let debtImpact = 0;
     const rows = source.map((month, index) => {
       const impacts = events.reduce((total, event) => {
@@ -187,7 +189,7 @@
       const outflows = round(number(month.totals?.outflowsBeforeSaving) + impacts.outflow);
       const targetSaving = number(month.totals?.saving);
       const available = checking + income - outflows;
-      const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows))) : round(targetSaving);
+      const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows - reserve))) : round(targetSaving);
       checking = round(available - saving);
       savings = round(savings + saving);
       debtImpact = round(debtImpact + impacts.debt);

@@ -173,6 +173,27 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (414): D-N8 decidida y hecha, el traspaso al ahorro deja la reserva en la cuenta corriente
+
+- **Decisión del hogar:** «D-N8 sí, y sigue».
+- **Motor (`canonical-engine.js`):** `policy.operatingReserve` (0 si no hay dato o es negativa). Con el ajuste automático encendido, el traspaso de fin de mes deja en la cuenta corriente `outflowsBeforeSaving + operatingReserve`. Con el ajuste apagado, el traspaso lo fija el hogar y la reserva no lo toca.
+- **Los otros cálculos del mismo traspaso, a la vez:**
+  - en `app.js`: `simulateHistoricalReference()` (la referencia de paridad), `projectedAccountBalancesForStartIndex()` (saldos proyectados hasta hoy), `canonicalEngineInput()` (pasa la reserva al motor) y `assumptionRegistryInput()`;
+  - `canonical-e13-scenarios.js` (`simulate` y `weightedForecastWithUncertainEvents`), que lee la reserva del registro de supuestos.
+- **Registro central de supuestos:** nuevo «Reserva operativa en la cuenta corriente» (EUR). Pasa de 13 a 14; `a15-1` y `canonical-forecast` se actualizan a 14, sin relajar nada.
+- **Lo que no cambia:** la liquidez total, mes a mes, y el plan de quien no tiene reserva puesta. Las 6.436 pruebas anteriores pasan sin tocarse, salvo los dos recuentos del registro y los sellos de versión.
+- **Con la demo:**
+  - reserva de 1.000 €: lo más bajo de la cuenta es justo 1.000 € (antes 0 € el 8 dic) y el traspaso de noviembre baja de 620 a 270 €;
+  - reserva de 4.000 €: no cabe ni sin traspasar, y Previsión avisa: «habría que pasar unos 180 € del ahorro».
+- **Ajustes:** la nota de la reserva dice que el plan la deja en la cuenta corriente al traspasar al ahorro.
+- **Pruebas:**
+  - nueva `tests/dn8-reserva-en-cuenta.test.cjs` (6): sin reserva igual que antes; con reserva; reserva que no cabe; ajuste apagado; registro; E13; cableado de `app.js` y firma de la caché;
+  - la e2e de C2 comprueba, con 1.000 €, que no hay aviso, que lo más bajo es ≥ 1.000 € y que hay paridad entre el motor y la referencia histórica (`compareRows`); con 4.000 €, el aviso.
+- **Novedades:** una línea. **Versiones** a `20261106dn8a`: `app.js`, `canonical-engine.js`, `canonical-forecast.js`, `canonical-e13-scenarios.js` y `novedades.js`, con las pruebas que fijan la de `app.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.442 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 179,6 ms; build, privacidad y humo.
+  - En Chromium local: e2e de C2 y FX-23, 8 de 8. Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (413): el suelo, también en la cuenta corriente; D-N8 propuesta
 
 - **Decisión del hogar:** «sí, suelo también en la cuenta corriente, y sigue».

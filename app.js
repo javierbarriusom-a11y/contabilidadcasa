@@ -6277,7 +6277,7 @@ function projectedAccountBalancesForStartIndex(startIndex) {
     const outflowsBeforeSaving = coreSpend + detail.car + detail.refi;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
     const appliedSaving = state.autoCapSavings
-      ? Math.max(0, Math.min(state.recommendedSavings, availableBeforeSaving - outflowsBeforeSaving))
+      ? Math.max(0, Math.min(state.recommendedSavings, availableBeforeSaving - outflowsBeforeSaving - Math.max(0, Number(state?.operatingReserve) || 0)))
       : state.recommendedSavings;
     checking = availableBeforeSaving - appliedSaving;
     savings += appliedSaving;
@@ -6820,7 +6820,7 @@ function simulateHistoricalReference(projectOutflows = [], options = {}) {
     const startChecking = checking;
     const startLiquidity = checking + savings;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
-    const oneMonthFloor = outflowsBeforeSaving;
+    const oneMonthFloor = outflowsBeforeSaving + Math.max(0, Number(state?.operatingReserve) || 0); // D-N8, igual que el motor
     const plannedSaving = state.recommendedSavings;
     const appliedSaving = state.autoCapSavings
       ? Math.max(0, Math.min(plannedSaving, availableBeforeSaving - oneMonthFloor))
@@ -7188,6 +7188,7 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
       annualInflation: state.annualInflation,
       plannedMonthlySaving: state.recommendedSavings,
       autoCapSavings: state.autoCapSavings,
+      operatingReserve: Math.max(0, Number(state?.operatingReserve) || 0), // D-N8
     },
     months,
   };
@@ -7265,9 +7266,9 @@ function modelComputationSignature() {
       annualInflation: round2(state.annualInflation),
       annualIncomeGrowth: round2(state.annualIncomeGrowth),
       emergencyBufferMonths: round2(state.emergencyBufferMonths),
-      // La reserva operativa no mueve ni un euro de la proyección, pero sí es la política con la
-      // que se evalúa la corrida diaria (`policy.operatingReserve`): si no entra en la firma, el
-      // mínimo diario seguiría juzgándose con la reserva anterior hasta el siguiente recálculo.
+      // D-N8: la reserva operativa mueve la proyección (el traspaso al ahorro la deja en la cuenta
+      // corriente) y es la política de la corrida diaria: si no entrara en la firma, el plan
+      // seguiría calculado con la reserva anterior hasta el siguiente recálculo.
       operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
       autoCapSavings: Boolean(state.autoCapSavings),
       // PV1: gobierna si el forecast "base" incorpora la desviación aprendida de alta confianza
@@ -23460,6 +23461,7 @@ function assumptionRegistryInput() {
       // autoCapSavings todavía no se ha tocado, o el registro mostraría "No" para el comportamiento
       // que en realidad está activo.
       plannedMonthlySaving: state?.recommendedSavings, autoCapSavings: state?.autoCapSavings ?? true,
+      operatingReserve: Math.max(0, Number(state?.operatingReserve) || 0), // D-N8
     },
     fiscal: {
       jointTaxation: state?.fiscalJointTaxation, withholdingRate: fiscalWithholdingRate(),

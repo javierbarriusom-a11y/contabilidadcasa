@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-reserva-en-cuenta",
+      fecha: "2026-11-06",
+      texto: "El traspaso al ahorro deja ahora en la cuenta corriente la reserva operativa de Ajustes, no solo un mes de gastos.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-06-suelo-cuenta-corriente",
       fecha: "2026-11-06",
       texto: "Previsión: el suelo también en la cuenta corriente. Avisa si quedaría bajo su reserva o en descubierto, y cuánto pasar y cuándo.",
