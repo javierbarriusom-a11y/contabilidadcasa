@@ -182,8 +182,8 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - el gráfico de FX-11 con el suelo, «hoy» y los cobros, recorrido por día (3 m), semana (12 m), quincena (24 m) o fin de mes (hasta 2036); el día más bajo siempre entra;
   - horizontes 3 · 12 · 24 m · Hasta 2036, la recomendación de D-N2, recordados en `localStorage`;
   - «Lo que viene en 90 días», con los cobros y pagos desde 300 € y su certeza, y el camino a Días de cargo;
-  - lo de siempre (tabla, plan B, puente, mapa de pagos y su horizonte), plegado tras «Ver todo el detalle».
-- **XGO-01:** Plan › Previsión pasa de 5 a 1 titular; base de 226 a 222.
+  - la tabla de meses y su horizonte, plegados tras «Ver todo el detalle». El plan B, el puente y el mapa de pagos siguen a la vista: un primer intento los escondía y se corrigió, porque sería casi retirar funciones en uso.
+- **XGO-01:** Plan › Previsión pasa de 5 a 4 titulares; base de 226 a 225.
 - **Medidor y Funciones en prueba:** «prevision-v2». **Novedades,** una línea.
 - **Versiones** a `?v=20261106c2a`: `app.js`, `tema-v2.css`, `novedades.js`, medidor y Funciones en prueba.
 - **Validación:** ver abajo.

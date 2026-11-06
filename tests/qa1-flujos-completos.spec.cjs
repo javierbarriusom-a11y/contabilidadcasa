@@ -5524,7 +5524,9 @@ test.describe("Rediseño C1 · Plan › Mes v2", () => {
       await expect(lado).toContainText("empieza el 1");
       await page.locator('[data-plan-tab="prevision"]').click();
       await expect(page.locator("#planV2MesNav")).toBeHidden();
-      await expect(page.locator("#planHeaderHorizon")).toBeVisible();
+      // C2 (6/11/2026): la Previsión nueva trae su horizonte encima del gráfico; el de la cabecera solo vuelve con la tabla de siempre.
+      await expect(page.locator('#planPrevisionV2 [data-prevision-v2-horizonte="3m"]')).toBeVisible();
+      await expect(page.locator("#planHeaderHorizon")).toBeHidden();
       await page.locator('[data-plan-tab="mes"]').click();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
 

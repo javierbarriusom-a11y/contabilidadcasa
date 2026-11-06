@@ -25,8 +25,8 @@ minutos.
 - Con el tema nuevo, Plan › Previsión abre con el punto más bajo del horizonte, su fecha y lo que queda sobre el suelo. Con la demo: «unos 5.600 € el 8 dic · 4.100 € por encima del suelo de 1.500 €. A 31 de diciembre, 13.000 €».
 - Debajo va el gráfico único de FX-11 con el suelo y los cobros como hitos, los horizontes 3 m · 12 m · 24 m · Hasta 2036 (la recomendación de D-N2, que se recuerda por dispositivo) y «Lo que viene en 90 días», con la certeza de cada día.
 - Todo sale del mismo motor, el mismo suelo y el mismo redondeo que Hoy.
-- La tabla de meses, el plan B, el puente y el mapa de pagos siguen tras «Ver todo el detalle».
-- Plan › Previsión pasa de 5 a 1 titular visible: la base de XGO-01 baja de 226 a 222.
+- La tabla de meses sigue tras «Ver todo el detalle». El plan B, el puente y el mapa de pagos siguen a la vista debajo: esconderlos sería casi retirar funciones en uso.
+- Plan › Previsión pasa de 5 a 4 titulares visibles: la base de XGO-01 baja de 226 a 225.
 - Medido en el medidor (`prevision-v2`) y en Funciones en prueba como parte del diseño nuevo.
 
 **6/11/2026 · FX-11, el gráfico de previsión único, construido sin cambiar ninguna pantalla (S1 adelantada; el hogar dijo «¿seguimos?»).**
