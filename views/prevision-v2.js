@@ -8,8 +8,8 @@
 //
 // No calcula nada nuevo: lee la trayectoria del motor diario (canonicalDailyEngineRuns.active), la misma que usan Hoy y el
 // titular de Previsión mensual (FX-01, FX-02), el suelo de Hoy y de la banda de caja, y el contrato de cifras para redondear
-// y decir las fechas (canonical-forecast-contract.js). Lo de siempre (la tabla de meses, el plan B, el puente y el mapa de
-// pagos) sigue entero tras «Ver todo el detalle»: no se retira nada.
+// y decir las fechas (canonical-forecast-contract.js). La tabla de meses de siempre sigue entera tras «Ver todo el detalle»;
+// el plan B, el puente y el mapa de pagos siguen a la vista debajo. No se retira nada.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const PREVISION_V2_HORIZONTES = Object.freeze([

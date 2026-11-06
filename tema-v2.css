@@ -3833,7 +3833,12 @@
    El punto más bajo del horizonte arriba, el gráfico único de previsión (ChartKit.forecastPlotHtml) y «Lo que viene» plegado.
    Lo de siempre (tabla de meses, plan B, puente, mapa de pagos) se oculta mientras la v2 está pintada y vuelve con
    «Ver todo el detalle». Si el script no pinta, nada se oculta. */
-:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > :not(#planPrevisionV2) {
+/* Solo se pliega lo que C2 sustituye: la tabla de meses con su leyenda, sus hitos y el desglose del peor mes. El plan B, el
+   puente y el mapa de pagos siguen a la vista debajo: son funciones en uso y esconderlas sería casi retirarlas. */
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .section-title,
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .plan-prevision-table-wrap,
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionMilestones,
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionWorstBreakdown {
   display: none;
 }
 

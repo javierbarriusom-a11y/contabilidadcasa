@@ -37,7 +37,8 @@ test("C2 · horizontes de la referencia (D-N2): 3 m, 12 m, 24 m y hasta 2036; el
 
 test("C2 · lo de siempre sigue entero tras «Ver todo el detalle» y solo se oculta si la v2 se ha pintado", () => {
   assert.match(vista, /data-prevision-v2-detalle/);
-  assert.match(css, /:root\[data-tema="v2"\] \.e19-plan-prevision\.prevision-v2-on > :not\(#planPrevisionV2\) \{\s*display: none;/);
+  assert.match(css, /\.e19-plan-prevision\.prevision-v2-on > \.plan-prevision-table-wrap,/, "solo la tabla de meses y sus anexos");
+  assert.doesNotMatch(css, /prevision-v2-on > :not\(#planPrevisionV2\)/, "el plan B, el puente y el mapa de pagos no se esconden");
   assert.match(css, /:root\[data-tema="v2"\] #plan:has\(\.prevision-v2-on\) #planHeaderHorizon/);
   assert.match(vista, /panel\.classList\.remove\("prevision-v2-on"\)/);
 });
