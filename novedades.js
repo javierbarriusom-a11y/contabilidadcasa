@@ -11,6 +11,18 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-comparar-un-escenario",
+      fecha: "2026-11-06",
+      texto: "Escenarios: «Comparar con el plan» funciona con un solo escenario guardado, y Simular se explica sin jerga.",
+      href: "#escenario-guardados",
+    },
+    {
+      id: "2026-11-06-pruebas-estres",
+      fecha: "2026-11-06",
+      texto: "Plan › Previsión: «Comparar con» un sueldo menos, un imprevisto o más gasto, y si así bajaríais del suelo, cuándo y cuánto.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-06-prevision-v2",
       fecha: "2026-11-06",
       texto: "Plan › Previsión nueva: el punto más bajo con su fecha, un gráfico con el suelo y los cobros, y lo que viene en 90 días.",

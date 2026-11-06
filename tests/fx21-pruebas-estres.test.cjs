@@ -1,0 +1,161 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const Stress = require("../canonical-stress-scenarios.js");
+
+// FX-20 / FX-21 (BACKLOG_NOVIEMBRE_OLEADA_1.md §5.1; porqué en docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md §7): las pruebas de
+// estrés del hogar. El motor no pide datos nuevos ni ejecuta nada: cambia la entrada del plan, recalcula con los motores de siempre
+// (aquí falsos, para probarlo en Node) y compara con el plan. La pantalla («Comparar con…» en Plan › Previsión) solo lo pinta.
+
+const root = path.resolve(__dirname, "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+
+const TODAY = "2026-11-06";
+const month = (monthKey, { nomina = 3000, extra = 0, nominaDay = "25", core = 2500, variable = 1000 } = {}) => ({
+  monthKey,
+  month: monthKey,
+  income: nomina + extra,
+  prePayrollIncome: nomina + extra,
+  coreSpend: core,
+  variableOperationalSpend: variable,
+  incomeEvents: [
+    { concept: "Nómina A", amount: nomina, date: `${monthKey}-${nominaDay}` },
+    ...(extra ? [{ concept: "Nómina B", amount: extra, date: `${monthKey}-28` }] : []),
+  ],
+  expenseEvents: [{ concept: "Hipoteca", amount: core - variable, date: `${monthKey}-05`, field: "fixedCoreSpend" }],
+});
+const input = () => ({
+  openingBalances: { cash: 4000 },
+  months: ["2026-11", "2026-12", "2027-01", "2027-02", "2027-03"].map((key) => month(key, { extra: 1200 })),
+});
+
+/** Motores falsos: un saldo que suma cobros y resta pagos el día de cada evento y el gasto variable el día 20. */
+function fakeDeps(calls = []) {
+  return {
+    monthly: { buildScenario: (inp, _x, opts) => (calls.push(opts.reason), { rows: inp.months.map((m) => ({ monthKey: m.monthKey })) }) },
+    dailyInput: { build: (inp) => inp },
+    daily: {
+      buildSnapshot: (inp) => {
+        const moves = [];
+        inp.months.forEach((m) => {
+          (m.incomeEvents || []).forEach((e) => moves.push([e.date, Number(e.amount)]));
+          (m.expenseEvents || []).forEach((e) => moves.push([e.date, -Number(e.amount)]));
+          moves.push([`${m.monthKey}-20`, -Number(m.variableOperationalSpend || 0)]);
+        });
+        moves.sort((a, b) => a[0].localeCompare(b[0]));
+        let total = Number(inp.openingBalances.cash);
+        const rows = [{ date: TODAY, monthKey: "2026-11", total }];
+        moves.forEach(([date, amount]) => {
+          total += amount;
+          const last = rows[rows.length - 1];
+          if (last.date === date) last.total = total;
+          else rows.push({ date, monthKey: date.slice(0, 7), total });
+        });
+        rows.push({ date: "2026-12-31", monthKey: "2026-12", total: rows.filter((r) => r.date <= "2026-12-31").pop().total });
+        rows.sort((a, b) => a.date.localeCompare(b.date));
+        return { rows, invariants: { valid: true } };
+      },
+    },
+  };
+}
+
+test("FX-21 · tres pruebas en la primera entrega, con nombre del hogar; el Euribor espera a Deuda › Contratos (WP-20)", () => {
+  assert.equal(Stress.SCHEMA_ID, "finance-canonical-stress-scenarios/v1");
+  assert.deepEqual(Stress.PRESETS.map((p) => p.id), ["sueldo-menos", "imprevisto", "gasto-mas"]);
+  assert.ok(Object.isFrozen(Stress.PRESETS) && Stress.PRESETS.every(Object.isFrozen));
+  Stress.PRESETS.forEach((p) => assert.ok(p.label && p.short && p.short.length <= 20, `${p.id}: etiqueta corta para la píldora`));
+  assert.ok(!Stress.PRESETS.some((p) => /euribor/i.test(p.id)));
+});
+
+test("FX-21 · el sueldo que falta empieza en el primer mes sin cobrar", () => {
+  const months = input().months;
+  assert.equal(Stress.firstUnpaidMonthIndex(months, TODAY), 0, "la nómina del 25 de noviembre aún no ha llegado");
+  assert.equal(Stress.firstUnpaidMonthIndex(months, "2026-11-29"), 1, "cobradas las dos de noviembre, empieza en diciembre");
+});
+
+test("FX-21 · un sueldo menos: quita el cobro más grande 3 meses por su concepto y deja el resto, sin tocar la entrada", () => {
+  const base = input();
+  const before = JSON.stringify(base);
+  const out = Stress.applySueldoMenos(base, { today: TODAY });
+  assert.equal(JSON.stringify(base), before, "no muta el plan");
+  assert.equal(out.applied, true);
+  assert.match(out.detail, /^Nómina A, 3 meses desde 2026-11$/);
+  out.input.months.slice(0, 3).forEach((m) => {
+    assert.equal(m.income, 1200);
+    assert.equal(m.prePayrollIncome, 1200);
+    assert.deepEqual(m.incomeEvents.map((e) => e.concept), ["Nómina B"]);
+  });
+  assert.equal(out.input.months[3].income, 4200, "el cuarto mes vuelve a cobrar");
+  assert.equal(Stress.applySueldoMenos({ months: [] }, { today: TODAY }).applied, false);
+});
+
+test("FX-21 · un imprevisto: un pago fijo ese día y en su mes; sin mes, no se aplica", () => {
+  const out = Stress.applyImprevisto(input(), { date: "2026-12-08", amount: 3000 });
+  const dic = out.input.months[1];
+  assert.equal(dic.coreSpend, 5500);
+  const ev = dic.expenseEvents.at(-1);
+  assert.deepEqual([ev.amount, ev.date, ev.day, ev.field], [3000, "2026-12-08", 8, "fixedCoreSpend"]);
+  assert.equal(Stress.applyImprevisto(input(), { date: "2030-01-01" }).applied, false);
+  assert.equal(Stress.applyImprevisto(input(), {}).applied, false);
+});
+
+test("FX-21 · gasto variable un 10 % más alto en todos los meses, y el gasto total sube lo mismo", () => {
+  const out = Stress.applyGastoMas(input(), { factor: 1.1 });
+  out.input.months.forEach((m) => {
+    assert.equal(m.variableOperationalSpend, 1100);
+    assert.equal(m.coreSpend, 2600);
+  });
+});
+
+test("FX-20 · la comparación: punto más bajo de los dos, cruce del suelo del plan y de la prueba, lo que falta y el 31/12", () => {
+  const r = (date, total) => ({ date, total });
+  const base = [r("2026-11-06", 5000), r("2026-12-08", 3000), r("2026-12-31", 6000), r("2027-01-10", 4000)];
+  const shock = [r("2026-11-06", 5000), r("2026-12-08", 1000), r("2026-12-31", 2000), r("2027-01-10", 500)];
+  const c = Stress.compare(base, shock, { today: TODAY, to: "2027-12-31", floor: 1500 });
+  assert.deepEqual(c.baseLow, { date: "2026-12-08", value: 3000 });
+  assert.deepEqual(c.low, { date: "2027-01-10", value: 500 });
+  assert.equal(c.lowDiff, -2500);
+  assert.equal(c.baseCrossesFloor, false);
+  assert.equal(c.crossesFloor, true);
+  assert.equal(c.crossDate, "2026-12-08", "el primer día por debajo, no el más bajo");
+  assert.equal(c.shortfall, 1000);
+  assert.equal(c.monthlyCut, 333.33, "repartido de noviembre a enero: 3 meses");
+  assert.deepEqual(c.yearEnd, { date: "2026-12-31", base: 6000, shocked: 2000 });
+  assert.equal(c.yearEndDiff, -4000);
+  const both = Stress.compare(shock, shock, { today: TODAY, to: "2027-12-31", floor: 1500 });
+  assert.equal(both.baseCrossesFloor, true, "si el plan ya baja del suelo, la tabla no puede decir «No»");
+  assert.equal(Stress.compare([], shock, { today: TODAY, to: "2027-12-31" }), null);
+});
+
+test("FX-21 · evaluate: aplica, recalcula con los motores de siempre y compara; el imprevisto cae el día más bajo del plan", () => {
+  const deps = fakeDeps();
+  const baseInput = input();
+  const baseRows = Stress.run(baseInput, deps).rows;
+  const opts = { today: TODAY, to: "2027-03-31", floor: 1500 };
+  const calls = [];
+  const res = Stress.evaluate("imprevisto", baseInput, baseRows, fakeDeps(calls), opts);
+  assert.equal(res.applied, true);
+  assert.equal(res.valid, true);
+  assert.deepEqual(calls, ["prueba de estrés: imprevisto"]);
+  assert.equal(res.detail, `3000 € el ${res.comparison.baseLow.date}`);
+  assert.equal(res.comparison.lowDiff, -3000);
+  const sueldo = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, opts);
+  assert.ok(sueldo.comparison.lowDiff < 0 && sueldo.comparison.yearEndDiff === -6000, "dos nóminas de 3.000 antes del 31/12");
+  assert.equal(Stress.evaluate("euribor", baseInput, baseRows, deps, opts), null);
+  assert.equal(Stress.evaluate("imprevisto", { months: [] }, baseRows, deps, opts), null);
+});
+
+test("FX-21 · motor puro y cableado: sin DOM ni estado; antes de app.js, en el service worker, en el sitio y con consumidor real", () => {
+  const src = read("canonical-stress-scenarios.js");
+  assert.doesNotMatch(src, /document\.|localStorage|\bstate\./);
+  const html = read("index.html");
+  const at = html.indexOf('<script defer src="canonical-stress-scenarios.js?v=');
+  assert.ok(at > 0 && at < html.indexOf('<script defer src="views/prevision-v2.js?v=') && at < html.indexOf('<script defer src="app.js'));
+  assert.match(read("service-worker.js"), /"\.\/canonical-stress-scenarios\.js"/);
+  assert.match(read("tools/build-public-site.mjs"), /"canonical-stress-scenarios\.js",/);
+  const vista = read("views/prevision-v2.js");
+  assert.match(vista, /S\.evaluate\(/);
+  assert.match(vista, /no cambia el plan ni mueve dinero/, "A11-4: una prueba no ejecuta nada");
+  assert.match(vista, /anotar\("prevision-v2", "accion"\)/);
+});

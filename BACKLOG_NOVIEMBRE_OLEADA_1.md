@@ -21,6 +21,22 @@ minutos.
 
 ## 0. Estado en una línea
 
+**6/11/2026 (noche) · Pruebas de estrés sobre la Previsión nueva (FX-20 y FX-21, PR-1). El hogar pidió «sigue con los escenarios y las pruebas de estrés».**
+- **Dónde:** en Plan › Previsión (C2), bajo el gráfico, la fila «Comparar con»: Solo el plan · Un sueldo menos · Imprevisto 3.000 € · Gasto +10 %.
+- **Qué hace:** la prueba elegida se pinta como línea discontinua con su nombre. Debajo van una frase y una tabla: punto más bajo, «¿bajáis del suelo?» y 31 de diciembre, plan frente a prueba. Si se baja del suelo, la frase dice cuándo, cuánto falta y el recorte mensual que lo evitaría, o el plan B.
+- **Con la demo:** «un sueldo menos 3 meses» no baja del suelo; el punto más bajo pasa a 2.500 € el 8 ene 2027, 3.100 € por debajo del plan, y el 31/12 queda 7.800 € más abajo. El imprevisto resta 3.000 € el peor día y el gasto +10 %, unos 350 € a fin de año.
+- **Garantías:** no cambia el plan ni mueve dinero (A11-4, R-N3). Recalcula con los motores de siempre y, sin cambios, su línea es la del plan día a día; una e2e lo comprueba. Las tres pruebas tardan unos 200 ms en total.
+- **Motor nuevo:** `canonical-stress-scenarios.js`, puro y probado en Node con motores falsos.
+- **Tres desviaciones de la especificación (la decisión del hogar es **D-N3**):**
+  - El Euribor +1/+2 espera a los datos de Deuda › Contratos (WP-20). Su hueco lo ocupa «gasto +10 %», que la propuesta ya tenía en la biblioteca.
+  - «Un sueldo menos» quita el cobro más grande durante 3 meses, no el de cada titular ni durante 6.
+  - La tabla trae 3 de los 6 indicadores: faltan el colchón en meses y la deuda y el patrimonio a 24 meses.
+- **FX-23, PR-1:**
+  - Decidir › Escenarios › Comparar ya funciona con un solo escenario guardado, frente al plan. Antes pedía dos, y con uno solo no había nada que ver. El botón pasa a «Comparar con el plan».
+  - Si no hay ninguno guardado, la pantalla remite a «Comparar con» de Previsión.
+  - La entrada de Simular dice «Prueba una decisión sin tocar el plan…», en vez de «Motor unificado (E20) conectado a la interfaz…».
+  - Faltan los presets sin guardar y el mini-gráfico por columna.
+
 **6/11/2026 · R-N5 levantada por el hogar y Plan › Previsión nueva (C2, FX-10 PR-1) construida.**
 - Con el tema nuevo, Plan › Previsión abre con el punto más bajo del horizonte, su fecha y lo que queda sobre el suelo. Con la demo: «unos 5.600 € el 8 dic · 4.100 € por encima del suelo de 1.500 €. A 31 de diciembre, 13.000 €».
 - Debajo va el gráfico único de FX-11 con el suelo y los cobros como hitos, los horizontes 3 m · 12 m · 24 m · Hasta 2036 (la recomendación de D-N2, que se recuerda por dispositivo) y «Lo que viene en 90 días», con la certeza de cada día.
@@ -163,9 +179,9 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | Propuesta |
 | 18 | **FX-12** | Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49) | 8ª, Def P2 | M · 2 | FX-10 | S2 (plegado) / S3 | Lista por semana con certeza y «¿sabes el día?»; mismos hitos en el gráfico | Propuesta |
 | 19 | **WP-37** | Estados completos y «deshacer», aplicados a C2 | Def P1 | — | FX-10 | S2 | Vacío, sin saldos, sin suelo y error en C2 | Aparcado → se aplica en C2 |
-| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | Propuesta |
-| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | Propuesta · **D-N3** |
-| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | Propuesta |
+| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 3 de los 6 indicadores (punto más bajo, suelo, 31/12); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. Faltan los escenarios guardados en la fila (con FX-23), dos a la vez, el colchón en meses y deuda/patrimonio a 24 m |
+| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | **PR-1 hecho 6/11** (`canonical-stress-scenarios.js`): un sueldo menos (el cobro mayor, 3 meses), imprevisto de 3.000 € el peor día y gasto variable +10 %. El Euribor espera a WP-20. Faltan 6 meses y por titular, tocar los parámetros y «Guardar como escenario» · **D-N3** |
+| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. Faltan los presets sin guardar y el mini-gráfico por columna |
 | 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | Propuesta |
 | 24 | **FX-42** | La previsión en el «Listo» del Repaso semanal (no es un paso nuevo) | 8ª | S · 0,5 | FX-40 | S3 | Tarjeta de 3 líneas en «Listo» | Propuesta · solo si el Repaso sigue tras su revisión del 7/11 |
 | 25 | **FX-43** | La carta del mes cuenta la previsión (WP-29) | 8ª, Def P1 | S · 0,5 | WP-12 | S4 | Primera carta con el cierre de noviembre | Propuesta (WP-29 esperando al hogar) |
@@ -299,7 +315,7 @@ panel de seguimiento.
 |---|---|---|---|
 | **D-N1** | ¿Se adopta este backlog como vigente, con el orden por semanas y las reglas R-N1 a R-N5? | Sí | Para empezar S0 (las correcciones de S0 no esperan: son errores) |
 | **D-N2** | Horizontes de Previsión: los de la referencia (3 m · 12 m · 24 m · Hasta 2036) en lugar de los de hoy (12 · 24 · 48 · 2036) | Los de la referencia: el riesgo de caja está en los 3 primeros meses | 18/11 · **aplicada la recomendación en C2 el 6/11, reversible** (la tabla de siempre conserva los suyos) |
-| **D-N3** | Las 3 primeras pruebas de estrés | Euribor +1/+2 (hipoteca variable), un sueldo menos 3-6 meses, imprevisto de 3.000 € | 18/11 |
+| **D-N3** | Las 3 primeras pruebas de estrés | Euribor +1/+2 (hipoteca variable), un sueldo menos 3-6 meses, imprevisto de 3.000 € | 18/11 · **construidas el 6/11 un sueldo menos, el imprevisto y gasto +10 %** mientras el Euribor espera a WP-20; reversible |
 | **D-N4** | Hoy «Fin de noviembre 8.850 €» es margen sobre el suelo. ¿Se rotula «Margen a fin de noviembre» o se enseña el saldo con el margen debajo? ¿Cuenta como corrección (fuera de «un cambio de Hoy por semana»)? | Saldo arriba y margen debajo; sí, es corrección | **Decidida el 6/11: saldo arriba y margen debajo** (hecha el mismo día; tratada como corrección) |
 | **D-N5** | Los escenarios sobre la previsión, solo de lectura; aplicar, en Decidir › Escenarios | Sí (R-N3) | 18/11 |
 | **D-N6** | Tras la paridad (FX-25), ¿redirigir el laboratorio E13 y el simulador de decisiones a Escenarios? | Sí, con dos meses de redirección; se pregunta de nuevo antes de hacerlo | Febrero 2027 |

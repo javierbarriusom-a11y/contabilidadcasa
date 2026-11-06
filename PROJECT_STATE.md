@@ -173,6 +173,32 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (411): pruebas de estrés sobre la Previsión nueva (FX-20, FX-21 y FX-23, PR-1)
+
+- **Petición del hogar:** «sigue con los escenarios y las pruebas de estrés».
+- **Motor nuevo `canonical-stress-scenarios.js`:** puro, sin DOM ni estado. Cambia la entrada del plan, recalcula con el motor mensual, la entrada diaria y el diario de siempre, y compara. Pruebas:
+  - **un sueldo menos:** quita el cobro más grande del primer mes sin cobrar durante 3 meses;
+  - **imprevisto de 3.000 €:** cae el peor día del plan;
+  - **gasto variable +10 %.**
+  - La comparación da el punto más bajo de los dos, si el plan y la prueba bajan del suelo y cuándo, cuánto falta, el recorte mensual que lo evitaría y los dos saldos a 31/12.
+  - El Euribor +1/+2 espera a los datos de Deuda › Contratos (WP-20). D-N3 sigue abierta para el hogar.
+- **FX-20 en C2:** fila «Comparar con» bajo el gráfico, la línea discontinua de la prueba con su nombre, una frase determinista y una tabla de 3 indicadores. Es solo lectura: «no cambia el plan ni mueve dinero».
+  - Con la demo, «un sueldo menos» no baja del suelo: 2.500 € el 8 ene 2027, 3.100 € por debajo del plan, y −7.800 € a 31/12.
+  - Las tres pruebas tardan unos 200 ms. Sin cambios, la línea de la prueba es la del plan día a día (comprobado en la e2e).
+- **Errores encontrados y corregidos antes de publicar:**
+  - A 390 px la tabla medía 1.120 px por la regla genérica `table { min-width: 1120px }`, anulada en su ámbito como en las demás tablas de tarjeta.
+  - La columna «Plan» de «¿Bajáis del suelo?» estaba fijada a «No»: ahora se calcula.
+  - La frase redondeaba el nivel distinto que la tabla.
+  - La cabecera vacía de la primera columna fallaba axe.
+- **FX-23:** Escenarios › Comparar acepta un solo escenario guardado («Comparar con el plan»). El vacío remite a «Comparar con» de Previsión, y la entrada de Simular se explica sin jerga.
+- **Pruebas nuevas:**
+  - `tests/fx21-pruebas-estres.test.cjs` (8) y una más en `o3-o4` (FX-23, con un candidato), que sustituye a la que exigía dos;
+  - e2e «Comparar con» a 390 (`@safari`) y 1440 px, y e2e FX-23;
+  - axe claro/oscuro de C2 con una prueba elegida.
+- **Novedades:** dos líneas.
+- **Versiones:** `app.js` (solo el sello de `views/escenarios.js`) a `?v=20261106fx23a`; `tema-v2.css` y `novedades.js` a `fx20a`; `views/prevision-v2.js` a `fx20a`; motor nuevo a `fx21a`. Superficie canónica sin consumidor: 119.
+- **Validación:** `npm run verify` en verde (6.433 pruebas unitarias; lint; typecheck; accesibilidad estructural con 1.675 IDs únicos; rendimiento, con previsión y escenarios en 175,4 ms; build, privacidad y humo). Además, en Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 9 de 9, y axe de C2, 2 de 2. Safari solo en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (410): R-N5 levantada; Plan › Previsión nueva (C2, FX-10 PR-1)
 
 - **Petición del hogar:** «puedes saltarte esta restricción […] y sigue además con el resto de funcionalidades que puedas». R-N5 queda levantada; «un cambio de Hoy por semana» sigue en pie.

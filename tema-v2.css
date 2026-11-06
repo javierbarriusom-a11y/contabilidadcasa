@@ -3958,3 +3958,78 @@
     height: 300px;
   }
 }
+
+/* FX-20: «Comparar con…» y el impacto de la prueba de estrés frente al plan, dentro de la tarjeta de la Previsión nueva. */
+:root[data-tema="v2"] .prev-v2-comparar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-comparar-titulo {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .prev-v2-impacto {
+  display: grid;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-frase {
+  margin: 0;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-frase.is-bad {
+  color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-tabla td,
+:root[data-tema="v2"] .prev-v2-impacto-tabla th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A 390 px las cuatro pruebas no caben en una píldora: bajan de línea, y la tarjeta y la tabla se ciñen al ancho. */
+:root[data-tema="v2"] .prev-v2,
+:root[data-tema="v2"] .prev-v2-card,
+:root[data-tema="v2"] .prev-v2-impacto {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-tema="v2"] .prev-v2-comparar .registrar-mes-filters {
+  flex-wrap: wrap;
+  border-radius: var(--e19-radius-lg);
+}
+
+/* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css (E20-1), como en las demás tablas de tarjeta. */
+:root[data-tema="v2"] .prev-v2-impacto-tabla {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-tabla th,
+:root[data-tema="v2"] .prev-v2-impacto-tabla td {
+  padding: 6px 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-tabla thead th {
+  overflow-wrap: normal;
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-tabla thead th:first-child {
+  width: 25%;
+}
+
+:root[data-tema="v2"] .prev-v2-impacto-dia {
+  display: block;
+  color: var(--e19-muted);
+}

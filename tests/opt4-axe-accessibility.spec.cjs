@@ -1643,6 +1643,27 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// Rediseño C2 + FX-20/FX-21 (6/11/2026) · la Previsión nueva con una prueba de estrés elegida, en claro y en oscuro: la cifra,
+// el gráfico con la línea de la prueba, las píldoras «Comparar con» y la tabla de impacto. Datos de la demo.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Rediseño C2 · contraste de la Previsión nueva con una prueba de estrés en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión: «Comparar con» un sueldo menos, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 6, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+      await expect(v2.locator(".prev-v2-impacto-tabla")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // Rediseño C3 (4/11/2026) · el cierre nuevo en claro y en oscuro: las tres comprobaciones, la confianza, lo que guarda la firma y
 // «Firmar» bloqueado con lo que falta. Movimientos INVENTADOS.
 for (const scheme of ["light", "dark"]) {
