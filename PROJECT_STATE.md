@@ -173,6 +173,32 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (406): semana S0 del backlog de noviembre · Previsión con una sola cifra
+
+- **Petición del hogar:** «D-N1 sí, empieza con la semana S0» (`BACKLOG_NOVIEMBRE_OLEADA_1.md` §4).
+- **FX-02:** con la demo (reloj 5/11), Previsión decía «El punto delicado es nov 26 · Cae a 5.350 € el 01 nov». Era una fecha ya pasada: `previsionMetric` fija el mínimo en el día 1 (`minDateLabel: dateWithMonthLabel(monthDate, 1)`). Ahora el titular y el «Mínimo del periodo» toman el punto más bajo del motor diario, el mismo de Hoy, solo desde hoy: «El punto delicado es dic 26 · Lo más bajo llega el 8 dic: unos 5.600 €». Hasta 90 días lleva el día; después, el mes. Sin motor diario, el mensual dice «el peor orden del mes», sin día. «Hay otros 1 mes ajustado» pasa a «Hay otro mes ajustado».
+- **FX-04:**
+  - Redondeo según el horizonte (decena, centena, millar) en el titular y el mínimo del periodo.
+  - Sensibilidad a la centena.
+  - Banda de caja sin céntimos: la tabla, las lecturas, la leyenda y la hoja del día. La hoja sigue cuadrando con la tabla.
+- **FX-30:**
+  - P10/P50/P90 pasan a «peor caso razonable», «lo más probable» y «mejor caso razonable»; la banda, a «rango probable (8 de cada 10 casos)».
+  - Las «trayectorias» pasan a «casos», y cómo se calcula va en la nota.
+  - La sensibilidad no dice «207 %» ni «−5.350 €»: «aguanta aunque no llegue el ingreso previo a la nómina» y «aguanta aunque el gasto previo al cobro se duplique».
+- **FX-16:** Previsión a 390 px (`styles.css`, los dos temas):
+  - Las cifras de arriba y las del resumen, en dos columnas.
+  - La tabla mensual, de 1.180 a 572 px, con primera columna de 84 px; antes solo se veía «Mes».
+  - Las etiquetas del gráfico, una de cada tres, sin pisarse.
+- **FX-62:** «Previsión» (vista al pintar; acción al elegir horizonte, mes o periodo) y «Escenarios» (vista; acción al añadir una decisión o guardar), en el medidor de utilidad.
+- **FX-01, primera parte:** `canonical-forecast-contract.js` (nuevo; motor puro): las cifras de previsión declaradas una vez, el vocabulario, el redondeo y el punto más bajo. Registrado en `index.html`, el service worker y el sitio público; ARQ-3 de 117 a 118. Falta la prueba de coherencia entre todas las pantallas y la etiqueta de Hoy, que espera D-N4.
+- **Novedades,** una línea. **Versiones:** `app.js` y `novedades.js` a `?v=20261106fx02a`, `styles.css` a `fx16a`, banda de caja a `fx30a`, medidor y `views/escenarios.js` a `fx62a`.
+- **`app.js`:** 32.304 → 32.340 líneas (techo 32.426).
+- **Validación:**
+  - `npm run verify` en verde: 6.409 de 6.409 pruebas unitarias, lint, typecheck, a11y, rendimiento, sitio, privacidad y humo. Pruebas nuevas en `tests/fx01-contrato-prevision.test.cjs` (8), `p8-prevision` (+2) y `pv6-sensibilidad-prevision` (+1).
+  - e2e de Previsión, banda, capas, XPR-06/07, medidor, WP-34/35/43/49 y «Ver como tabla» en Chromium: 41 de 41.
+  - Safari, en el CI.
+- **Pendiente:** D-N4 (hogar), H-35 (hogar, antes del 11/11), las filas `FX` en el panel de seguimiento.
+
 ## Cierre de sesión — 5 de noviembre de 2026 (405): WP-21 (paquete Renta), diseño
 
 - **Petición del hogar:** «sigue con cosas que no dependan de mí». WP-21 era el único paquete del plan sin empezar, tiene fecha externa (31/3/2027) y se puede construir con datos de ejemplo.
