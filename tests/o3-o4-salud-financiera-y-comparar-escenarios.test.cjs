@@ -163,14 +163,23 @@ function comparadorSandbox({ candidates = [], selected = null, signature = "" } 
   return { context, picker, body, empty, layout, compareCalls };
 }
 
-test("#4 · con menos de dos candidatos, muestra el aviso de vacío y limpia todo", () => {
-  const { context, picker, body, empty, layout } = comparadorSandbox({ candidates: [{ id: "a", nombre: "A" }] });
+test("#4 · sin ningún candidato, muestra el aviso de vacío y limpia todo", () => {
+  const { context, picker, body, empty, layout } = comparadorSandbox({ candidates: [] });
   context.renderEscenarioComparar();
   assert.equal(empty.hidden, false);
   assert.equal(layout.hidden, true);
   assert.equal(picker.innerHTML, "");
   assert.equal(body.innerHTML, "");
   assert.deepEqual([...context.escenarioCompararSelected], []);
+});
+
+test("FX-23 · con un solo escenario guardado, el plan frente a él (antes pedía dos)", () => {
+  const { context, picker, empty, layout, compareCalls } = comparadorSandbox({ candidates: [{ id: "a", nombre: "Escenario A" }] });
+  context.renderEscenarioComparar();
+  assert.equal(empty.hidden, true);
+  assert.equal(layout.hidden, false);
+  assert.match(picker.innerHTML, /data-escenario-comparar-pick="a"[^>]*checked/);
+  assert.deepEqual(compareCalls, [["Escenario A"]]);
 });
 
 test("#4 · con dos o más candidatos por primera vez, selecciona todos por defecto", () => {

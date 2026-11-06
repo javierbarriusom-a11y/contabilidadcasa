@@ -5481,7 +5481,79 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(page.locator("#planHeaderHorizon")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
+
+    // FX-20 / FX-21: «Comparar con…» pinta la prueba de estrés encima del plan y dice si se baja del suelo, cuándo y cuánto,
+    // sin tocar el plan. Con la demo el 6/11, «un sueldo menos» deja el punto más bajo el 8 ene 2027 y el imprevisto resta 3.000 €.
+    test(`Comparar con una prueba de estrés: la línea, la frase y la tabla, y el plan sin tocar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const pruebas = v2.locator("[data-prevision-v2-prueba]");
+      await expect(pruebas).toHaveText(["Solo el plan", "Un sueldo menos", "Imprevisto 3.000 €", "Gasto +10 %"]);
+      await expect(pruebas.first()).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator(".ck-escenario")).toHaveCount(0);
+      const cifraPlan = await v2.locator(".prev-v2-cifra").innerText();
+      // Aceptación de FX-20: sin cambios, el recálculo de la prueba da la misma trayectoria que el plan, día a día.
+      const paridad = await page.evaluate(() => {
+        const run = globalThis.FinanceCanonicalStressScenarios.run(canonicalEngineInput([], {}), previsionV2Deps());
+        const plan = new Map(canonicalDailyEngineRuns.active.rows.map((row) => [row.date, row.total]));
+        return { valid: run.valid, dias: run.rows.length, distintos: run.rows.filter((row) => Math.abs(plan.get(row.date) - row.total) > 0.005).length };
+      });
+      expect(paridad.valid).toBe(true);
+      expect(paridad.dias).toBeGreaterThan(300);
+      expect(paridad.distintos, "la línea de la prueba sin cambios es la del plan").toBe(0);
+
+      await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+      await expect(v2.locator('[data-prevision-v2-prueba="sueldo-menos"]')).toHaveAttribute("aria-pressed", "true");
+      const impacto = v2.locator(".prev-v2-impacto");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Con «un sueldo menos 3 meses» no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
+      await expect(impacto.locator("tbody tr")).toHaveCount(3);
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText("¿Bajáis del suelo?");
+      await expect(impacto.locator("tbody tr").nth(2)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
+      await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
+      await expect(v2.locator(".ck-escenario")).toHaveCount(1);
+      await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos");
+      await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta").toBe(true);
+
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con «imprevisto de 3.000 € el peor día»");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
+
+      await v2.locator('[data-prevision-v2-prueba=""]').click();
+      await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);
+      await expect(v2.locator(".ck-escenario")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-cifra")).toHaveText(cifraPlan);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
   }
+});
+
+// FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
+test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.goto("/index.html#escenario-guardados");
+  await page.waitForFunction(() => typeof saveEscenarioMotorSavedList === "function" && typeof renderEscenarioComparar === "function", null, { timeout: 20000 });
+  await expect(page.locator("#escenarioGuardadosCompare")).toHaveText("Comparar con el plan");
+  await page.evaluate(() => {
+    saveEscenarioMotorSavedList([{ id: "fx23-uno", nombre: "Escenario FICTICIO sin cambios", estado: "guardado", decisiones: [], savedAt: "2026-11-06T10:00:00.000Z" }]);
+    escenarioMotorNavigate("escenario-comparar");
+  });
+  await expect(page.locator("#escenarioCompararEmpty")).toBeHidden();
+  const tabla = page.locator("#escenarioCompararBody table");
+  await expect(tabla).toBeVisible();
+  await expect(tabla.locator("thead")).toContainText("Plan");
+  await expect(tabla.locator("thead")).toContainText("Escenario FICTICIO sin cambios");
+  await expect(page.locator('[data-escenario-comparar-pick="fx23-uno"]')).toBeChecked();
+  expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
 test.describe("Rediseño C1 · Plan › Mes v2", () => {

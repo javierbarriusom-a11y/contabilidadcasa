@@ -1214,8 +1214,9 @@ function renderEscenarioComparar() {
   const layout = qs("escenarioCompararLayout");
   if (!picker || !body) return;
 
+  // FX-23 (BACKLOG_NOVIEMBRE_OLEADA_1.md): basta un escenario; la tabla ya lleva el plan vigente como referencia.
   const list = escenarioMotorCompareCandidates();
-  if (list.length < 2) {
+  if (!list.length) {
     if (empty) empty.hidden = false;
     if (layout) layout.hidden = true;
     picker.innerHTML = "";
