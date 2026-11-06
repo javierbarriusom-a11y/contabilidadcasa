@@ -33,8 +33,8 @@ function cashBandInput(today) {
 function cashBandAriaLabel(engine, result, shown, input) {
   const kit = globalThis.ChartKit;
   const trend = kit.trendSentence({
-    subject: "La liquidez central (P50)", points: shown.map((day) => ({ label: engine.dateLabel(day.date), value: day.p50 })),
-    format: (value) => money(value, true), threshold: input.floor === null ? null : { value: input.floor, label: "el suelo" },
+    subject: "La liquidez más probable", points: shown.map((day) => ({ label: engine.dateLabel(day.date), value: day.p50 })),
+    format: (value) => money(value), threshold: input.floor === null ? null : { value: input.floor, label: "el suelo" },
   });
   return `Banda de caja de los próximos 30 días, del ${engine.dateLabel(shown[0].date)} al ${engine.dateLabel(shown[shown.length - 1].date)}. ${trend} ${result.sentence}`;
 }
@@ -55,15 +55,16 @@ function cashBandHtml(engine, result, input) {
     points: shown.map((day) => ({ low: day.p10, center: day.p50, high: day.p90 })),
     ariaLabel: cashBandAriaLabel(engine, result, shown, input), threshold: input.floor === null ? null : { value: input.floor },
   });
-  const readings = shown.map((day) => `${engine.dateLabel(day.date)}: P10 ${money(day.p10, true)} · P50 ${money(day.p50, true)} · P90 ${money(day.p90, true)} · según el plan ${money(day.central, true)}.`);
+  // FX-04 y FX-30 (backlog de noviembre): sin céntimos en una previsión y sin percentiles a la vista.
+  const readings = shown.map((day) => `${engine.dateLabel(day.date)}: rango probable de ${money(day.p10)} a ${money(day.p90)} · lo más probable ${money(day.p50)} · según el plan ${money(day.central)}.`);
   const notes = [
-    `Solo recoge la incertidumbre de las <strong>fechas</strong> (${result.trajectories} trayectorias), no la de los importes: la banda no cubre un gasto que salga más caro de lo previsto.`,
-    result.dateCertainty.estimatedShare === null ? "" : `${Math.round(result.dateCertainty.estimatedShare * 100)} % de lo que se mueve (por importe) tiene fecha estimada; el resto, fecha cierta${result.dateCertainty.spreadAmount > 0 ? ` y ${money(result.dateCertainty.spreadAmount, true)} de gasto variable repartido por los días del mes` : ""}.`,
+    `El rango probable es lo que pasa en 8 de cada 10 casos. Solo recoge <strong>cuándo</strong> llega cada pago, no cuánto: no cubre un gasto que salga más caro de lo previsto. Cómo se calcula: ${result.trajectories} simulaciones de las fechas de lo que tiene día estimado.`,
+    result.dateCertainty.estimatedShare === null ? "" : `${Math.round(result.dateCertainty.estimatedShare * 100)} % de lo que se mueve (por importe) tiene fecha estimada; el resto, fecha cierta${result.dateCertainty.spreadAmount > 0 ? ` y ${money(result.dateCertainty.spreadAmount)} de gasto variable repartido por los días del mes` : ""}.`,
     input.staleDays > 0 ? `Los saldos son del ${escapeHtml(engine.dateLabel(input.asOf))} (hace ${input.staleDays} día${input.staleDays === 1 ? "" : "s"}): la banda parte de ahí y se ensancha por los días sin declarar.` : "",
     input.declared ? "" : "Los saldos son <strong>calculados</strong>, no declarados: declara tus saldos reales (Registrar) para que la banda parta de la realidad.",
-    input.floor === null ? "" : `El suelo de liquidez es ${money(input.floor, true)} (Ajustes).`,
+    input.floor === null ? "" : `El suelo de liquidez es ${money(input.floor)} (Ajustes).`,
   ].filter(Boolean).map((text) => `<p class="e19-kpi-note">${text}</p>`).join("");
-  const legend = `<ul class="ck-leyenda"><li>Mediana (P50)</li><li class="ck-leyenda-banda">Banda P10-P90</li>${input.floor === null ? "" : `<li class="ck-leyenda-umbral">Suelo (${escapeHtml(money(input.floor, true))})</li>`}</ul>`;
+  const legend = `<ul class="ck-leyenda"><li>Lo más probable</li><li class="ck-leyenda-banda">Rango probable (8 de cada 10 casos)</li>${input.floor === null ? "" : `<li class="ck-leyenda-umbral">Suelo (${escapeHtml(money(input.floor))})</li>`}</ul>`;
   // XPR-06, con su interruptor encendido: «Qué mueve el …» abre el desglose del día elegido en el recorrido (de entrada, hoy).
   const dayButton = cashBandDayOn()
     ? `<p class="banda-dia-abrir" data-banda-dia-fechas="${escapeHtml(JSON.stringify(shown.map((day) => day.date)))}"><button type="button" class="e19-btn e19-btn-secondary" data-banda-dia="${escapeHtml(shown[0].date)}">${escapeHtml(cashBandDayButtonText(engine, shown[0].date))}</button></p>`
@@ -71,7 +72,7 @@ function cashBandHtml(engine, result, input) {
   return `<p class="ck-frase">${escapeHtml(result.sentence)}</p>${kit.figureHtml({
     id: "cash-band", plotHtml: plot.svg, plotClass: "ck-plot-media", belowPlotHtml: cashBandTicks(shown) + legend + dayButton, readings, xs: plot.xs,
     sliderLabel: "Recorrer la banda de caja día a día", noteHtml: notes,
-    table: { caption: "Liquidez de los próximos 30 días: banda P10-P90 y trayectoria del plan", columns: ["Día", "P10", "P50", "P90", "Según el plan"], rows: shown.map((day) => [engine.dateLabel(day.date), money(day.p10, true), money(day.p50, true), money(day.p90, true), money(day.central, true)]) },
+    table: { caption: "Liquidez de los próximos 30 días: rango probable y trayectoria del plan", columns: ["Día", "Peor caso razonable", "Lo más probable", "Mejor caso razonable", "Según el plan"], rows: shown.map((day) => [engine.dateLabel(day.date), money(day.p10), money(day.p50), money(day.p90), money(day.central)]) },
   })}`;
 }
 
@@ -79,7 +80,7 @@ function cashBandSummary(engine, result) {
   if (result.status !== "ok") return "Banda de caja a 30 días";
   if (result.crossing.probability === null) return "Banda de caja a 30 días · sin suelo declarado";
   if (result.crossing.probability === 0) return "Banda de caja a 30 días · no baja del suelo";
-  return `Banda de caja a 30 días · baja del suelo en ${Math.round(result.crossing.probability * 100)} % de las trayectorias`;
+  return `Banda de caja a 30 días · baja del suelo en ${Math.round(result.crossing.probability * 100)} % de los casos`;
 }
 
 function renderCashBand(engine) {
@@ -128,7 +129,7 @@ function cashBandDayButtonText(engine, date) {
 }
 
 function cashBandSigned(value) {
-  return value > 0 ? `+${money(value, true)}` : money(value, true);
+  return value > 0 ? `+${money(value)}` : money(value);
 }
 
 function cashBandDayHtml(engine, day) {
@@ -149,10 +150,10 @@ function cashBandDayHtml(engine, day) {
     ? `<ul class="banda-dia-lista" aria-label="Lo que entra y sale ese día">${items.join("")}</ul>`
     : `<p class="banda-dia-nada">Ese día el plan no mueve nada: el saldo sigue igual.</p>`;
   return `<h2 id="bandaDiaTitulo">Qué mueve el ${escapeHtml(engine.dateLabel(day.date))}</h2>
-    <p class="banda-dia-saldo">Al empezar el día, según el plan: <strong>${escapeHtml(money(day.opening, true))}</strong></p>
+    <p class="banda-dia-saldo">Al empezar el día, según el plan: <strong>${escapeHtml(money(day.opening))}</strong></p>
     ${lista}
-    <p class="banda-dia-saldo">Al acabar el día, según el plan: <strong>${escapeHtml(money(day.closing, true))}</strong></p>
-    <p class="e19-kpi-note">Es la columna «Según el plan» de la tabla, desglosada: cada cosa en el día que supone el plan. La banda P10-P90 además mueve las de fecha estimada de un día a otro entre trayectorias.</p>`;
+    <p class="banda-dia-saldo">Al acabar el día, según el plan: <strong>${escapeHtml(money(day.closing))}</strong></p>
+    <p class="e19-kpi-note">Es la columna «Según el plan» de la tabla, desglosada: cada cosa en el día que supone el plan. El rango probable además mueve las de fecha estimada de un día a otro entre simulaciones. Importes redondeados al euro.</p>`;
 }
 
 function cashBandOpenDay(date) {

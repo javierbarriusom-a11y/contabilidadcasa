@@ -66,6 +66,10 @@
     { id: "descubierto", nombre: "El arreglo más barato", accion: null, descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "ver-ejemplo", nombre: "Ver con datos de ejemplo", accion: ["alta empezada tras el ejemplo", "altas empezadas tras el ejemplo"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "lo-que-pide", nombre: "Lo que la app te pide", accion: ["dato buscado desde aquí", "datos buscados desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
+    // FX-62 (BACKLOG_NOVIEMBRE_OLEADA_1.md, S0): Previsión y Escenarios, medidos antes de rehacerlos (C2, FX-20), para que su
+    // revisión de 14 días tenga un antes con que compararse.
+    { id: "prevision", nombre: "Previsión", accion: ["horizonte, mes o periodo elegido", "horizontes, meses o periodos elegidos"], descarte: null, deshecho: null },
+    { id: "escenarios", nombre: "Escenarios", accion: ["decisión simulada o escenario guardado", "decisiones simuladas o escenarios guardados"], descarte: null, deshecho: null },
     { id: "banda-dia", nombre: "Qué mueve cada día", accion: ["día de cargo buscado desde aquí", "días de cargo buscados desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
   ];
 

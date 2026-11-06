@@ -98,6 +98,9 @@ test("P-8 · previsionHeadlineHtml dice que el resto aguanta cuando no hay más 
   assert.equal(headline.title, "El punto delicado es sep 26");
   assert.match(headline.subtitle, /aguanta por encima de la reserva operativa/);
   assert.equal(headline.worstKey, "2026-09");
+  // FX-02: sin el motor diario, el mensual dice el peor orden del mes, sin un día inventado.
+  assert.match(headline.subtitle, /^En el peor orden del mes \(todos los pagos antes de cobrar\) bajaría a unos €300\./);
+  assert.doesNotMatch(headline.subtitle, /\bel 1 /);
 });
 
 test("P-8 · previsionHeadlineHtml avisa de otros meses ajustados en vez de fingir que solo hay uno", () => {
@@ -107,7 +110,42 @@ test("P-8 · previsionHeadlineHtml avisa de otros meses ajustados en vez de fing
   });
   const metrics = [fakeMetric("ago 26", "2026-08", 200), fakeMetric("sep 26", "2026-09", 50), fakeMetric("oct 26", "2026-10", 6000)];
   const headline = context.previsionHeadlineHtml(metrics, { value: 1000, source: "la reserva operativa" });
-  assert.match(headline.subtitle, /Hay otros 1 mes ajustado/);
+  assert.match(headline.subtitle, /Hay otro mes ajustado o en negativo/);
+});
+
+// --- FX-02 (backlog de noviembre): el punto más bajo, del motor diario y desde hoy -------------
+const Contract = require("../canonical-forecast-contract.js");
+const dailyRow = (date, total) => ({ date, monthKey: date.slice(0, 7), total });
+
+test("FX-02 · con el motor diario, el titular dice el punto más bajo desde hoy, con su fecha y redondeado, nunca una fecha pasada", () => {
+  const context = sandboxWith(["previsionHeadlineHtml", "previsionWorstOf"], {
+    mapaCalorTone: (value) => (value < 0 ? "is-negative" : value < 1000 ? "is-tight" : "is-good"),
+    money: stubMoney,
+    FinanceCanonicalForecastContract: Contract,
+  });
+  // Como la demo del 5/11: el mensual decía 5.350 € «el 01 nov» (peor orden posible desde el día 1).
+  const metrics = [fakeMetric("nov 26", "2026-11", 5350, "01 nov 26"), fakeMetric("dic 26", "2026-12", 5620, "01 dic 26")];
+  const rows = [dailyRow("2026-11-01", 4000), dailyRow("2026-11-05", 10084), dailyRow("2026-11-08", 10352), dailyRow("2026-12-03", 9876), dailyRow("2026-12-20", 13020)];
+  const today = "2026-11-05";
+  const lows = { today, byMonth: Contract.monthLows(rows, { today, monthKeys: ["2026-11", "2026-12"] }) };
+  const headline = context.previsionHeadlineHtml(metrics, { value: 1500, source: "el suelo" }, lows);
+  assert.equal(headline.title, "El punto delicado es dic 26");
+  assert.equal(headline.worstKey, "2026-12");
+  assert.match(headline.subtitle, /^Lo más bajo llega el 3 dic: unos €9880\./, "a 28 días, a la decena");
+  assert.doesNotMatch(headline.subtitle, /01 nov|4000|€4/, "lo de antes de hoy no cuenta");
+});
+
+test("FX-02 · si lo más bajo es hoy, lo dice; más allá de 90 días, el mes y sin día", () => {
+  const context = sandboxWith(["previsionHeadlineHtml", "previsionWorstOf"], {
+    mapaCalorTone: () => "is-good", money: stubMoney, FinanceCanonicalForecastContract: Contract,
+  });
+  const today = "2026-11-05";
+  const hoy = context.previsionHeadlineHtml([fakeMetric("nov 26", "2026-11", 5350)], { value: 1500, source: "el suelo" },
+    { today, byMonth: Contract.monthLows([dailyRow("2026-11-05", 10080), dailyRow("2026-11-20", 10350)], { today }) });
+  assert.match(hoy.subtitle, /^Lo más bajo llega hoy: €10080\./);
+  const lejos = context.previsionHeadlineHtml([fakeMetric("mar 27", "2027-03", 0)], { value: 1500, source: "el suelo" },
+    { today, byMonth: Contract.monthLows([dailyRow("2027-03-14", 13560)], { today }) });
+  assert.match(lejos.subtitle, /^Lo más bajo llega en mar 27: unos €13600\./);
 });
 
 test("P-8 · previsionHeadlineHtml sin meses en el horizonte no rompe", () => {

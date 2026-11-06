@@ -9060,6 +9060,43 @@ body {
   box-shadow: 10px 0 14px -12px rgba(20, 34, 42, 0.42);
 }
 
+/* FX-16 (BACKLOG_NOVIEMBRE_OLEADA_1.md): Previsión cabe en el móvil, en los dos temas. Antes, a 390 px, las cuatro cifras de
+   arriba y las cinco del resumen por periodo salían cortadas («05/11/202»), la tabla mensual medía 1.180 px con una primera
+   columna de 260 (solo se veía «Mes») y las etiquetas de los meses del gráfico se pisaban. */
+@media (max-width: 640px) {
+  .e19-prevision .account-balance-strip,
+  .e19-prevision .prevision-period-summary-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .e19-prevision .prevision-table {
+    min-width: 572px;
+  }
+
+  .e19-prevision .prevision-table th:first-child,
+  .e19-prevision .prevision-table td:first-child {
+    min-width: 84px;
+    width: 84px;
+    max-width: 84px;
+  }
+
+  .e19-prevision .prevision-band-track .prevision-band-col {
+    min-width: 22px;
+  }
+
+  .e19-prevision .prevision-band-track .prevision-band-col small {
+    display: flex;
+    justify-content: center;
+    width: 0;
+    overflow: visible;
+    visibility: hidden;
+  }
+
+  .e19-prevision .prevision-band-track .prevision-band-col:nth-of-type(3n + 1) small {
+    visibility: visible;
+  }
+}
+
 .visual-prevision-table .prevision-group-row td:first-child {
   z-index: 7;
   box-shadow: 10px 0 14px -12px rgba(20, 34, 42, 0.42);

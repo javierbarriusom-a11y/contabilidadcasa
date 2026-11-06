@@ -1521,8 +1521,9 @@ test.describe("WP-16 · banda de caja a 30 días", () => {
       await page.locator("#previsionBandaResumen").click();
       const figure = card.locator(".ck-figure");
       await expect(figure).toBeVisible();
-      await expect(card.locator(".ck-frase")).toContainText(/trayectorias/);
-      await expect(figure.locator("svg[role='img']")).toHaveAttribute("aria-label", /Banda de caja de los próximos 30 días[\s\S]*La liquidez central \(P50\)/);
+      await expect(card.locator(".ck-frase")).toContainText(/caso/); // FX-30: «casos», no «trayectorias»
+      await expect(card.locator(".ck-frase")).not.toContainText(/trayectorias/);
+      await expect(figure.locator("svg[role='img']")).toHaveAttribute("aria-label", /Banda de caja de los próximos 30 días[\s\S]*La liquidez más probable/);
       await expect(figure.locator(".ck-umbral")).toHaveCount(1); // el suelo se ve
       await expect(card.locator(".ck-leyenda")).toContainText("Suelo");
       const slider = figure.locator(".ck-scrub");
@@ -1531,13 +1532,15 @@ test.describe("WP-16 · banda de caja a 30 días", () => {
       await slider.focus();
       await page.keyboard.press("End");
       await expect(slider).toHaveAttribute("aria-valuenow", String(last));
-      await expect(figure.locator("[data-ck-readout]")).toContainText(/P10 .*P50 .*P90 .*según el plan/);
+      await expect(figure.locator("[data-ck-readout]")).toContainText(/rango probable de .* a .* · lo más probable .* · según el plan/);
       // Se repinta cuando cambian los datos, no por pintar: tras esperar, la lectura sigue donde estaba.
       await page.waitForTimeout(1500);
       await expect(slider).toHaveAttribute("aria-valuenow", String(last));
       await figure.locator(".ck-tabla summary").click();
       await expect(figure.locator(".ck-tabla tbody tr")).toHaveCount(last + 1);
-      await expect(figure.locator(".ck-tabla thead th")).toHaveText(["Día", "P10", "P50", "P90", "Según el plan"]);
+      await expect(figure.locator(".ck-tabla thead th")).toHaveText(["Día", "Peor caso razonable", "Lo más probable", "Mejor caso razonable", "Según el plan"]);
+      // FX-04: nunca céntimos en una previsión.
+      expect(await figure.locator(".ck-tabla tbody").textContent(), "sin céntimos").not.toMatch(/\d,\d{2} €/);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
     }
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);

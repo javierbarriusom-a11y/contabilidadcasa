@@ -317,7 +317,7 @@
     return { date: addDays(asOf, at), opening, closing: round2(opening + centralDelta[at]), items, spread: { amount: round2(spreadAmount), labels: spreadLabels } };
   }
 
-  /** «3 de cada 10 trayectorias» es más legible que «31 %»; con pocas, el porcentaje. */
+  /** «3 de cada 10 casos» es más legible que «31 %»; con pocas, el porcentaje. */
   function outOfTen(probability) {
     const tenths = Math.round(probability * 10);
     if (probability > 0 && tenths === 0) return "menos de 1 de cada 10";
@@ -331,16 +331,17 @@
     const parts = [];
     const lowest = minimum.date && minimum.atStart < 0.5
       ? ` El día más probable del mínimo es el ${dateLabel(minimum.date)}.`
-      : minimum.atStart >= 0.5 ? ` En ${outOfTen(minimum.atStart)} el punto más bajo es el saldo de hoy.` : "";
+      : minimum.atStart >= 0.5 ? ` En ${outOfTen(minimum.atStart)} casos el punto más bajo es el saldo de hoy.` : "";
     if (crossing.floor === null) {
       parts.push(`Sin suelo de liquidez declarado no se puede decir si cruzas algún suelo.${lowest}`);
     } else if (crossing.probability === 0) {
-      parts.push(`En ninguna de las ${result.trajectories} trayectorias simuladas la liquidez baja del suelo (${Math.round(crossing.floor).toLocaleString("es-ES")} €) en los próximos ${result.horizonDays} días.${lowest}`);
+      // FX-30 (backlog de noviembre): en palabras de hogar; las «trayectorias» se explican en la nota de cómo se calcula.
+      parts.push(`En ningún caso razonable bajáis del suelo (${Math.round(crossing.floor).toLocaleString("es-ES")} €) en los próximos ${result.horizonDays} días.${lowest}`);
     } else {
       const where = crossing.from && crossing.to ? ` ${whenLabel(crossing.from, crossing.to)}` : "";
-      parts.push(`En ${outOfTen(crossing.probability)} trayectorias la liquidez baja del suelo (${Math.round(crossing.floor).toLocaleString("es-ES")} €)${where}.${lowest}`);
+      parts.push(`En ${outOfTen(crossing.probability)} casos bajáis del suelo (${Math.round(crossing.floor).toLocaleString("es-ES")} €)${where}.${lowest}`);
     }
-    if (quality === "wide") parts.push(`La banda es ancha: el ${Math.round(result.dateCertainty.estimatedShare * 100)} % de lo que se mueve tiene fecha estimada, así que dice cuánto puede variar la caja, pero poco en qué día.`);
+    if (quality === "wide") parts.push(`El rango es ancho porque el ${Math.round(result.dateCertainty.estimatedShare * 100)} % de lo que se mueve no tiene día confirmado: confirmar el día de los pagos más grandes lo estrecha.`);
     else if (quality === "no-events") parts.push("No hay movimientos previstos en este periodo: la banda es una línea.");
     return parts.join(" ");
   }

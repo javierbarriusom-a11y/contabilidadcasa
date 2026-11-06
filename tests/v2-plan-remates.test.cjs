@@ -178,6 +178,6 @@ test("V2-7 · el contenedor vive en #cuadro-mandos, entre la tabla y el pie de i
 
 test("Plan · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261105wp21b/);
+  assert.match(html, /app.js\?v=20261106fx02a/);
   assert.match(html, /design-tokens\.css\?v=20261009hover1/);
 });

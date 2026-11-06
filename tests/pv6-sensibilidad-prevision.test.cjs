@@ -61,9 +61,23 @@ test("previsionSensitivityNote · en positivo, describe el margen antes de cruza
   const ctx = sandboxWith(["previsionSensitivityNote"], { qs: () => note });
   const row = { month: "sep 26", coreSpend: 1200, car: 0, refi: 0, projectOutflow: 0, endOfMonthOutflows: 0, prePayrollIncome: 500 };
   ctx.previsionSensitivityNote(worstWith(row, 300)); // base=1000, income=500, expense=1200
-  assert.match(note.textContent, /sep 26/);
-  assert.match(note.textContent, /aguanta caer hasta un 60%/);
-  assert.match(note.textContent, /aguanta subir hasta un 25%/);
+  assert.match(note.textContent, /^Margen de sep 26 antes de cobrar:/);
+  assert.match(note.textContent, /aguanta que el ingreso previo a la nómina baje un 60 %/);
+  assert.match(note.textContent, /aguanta que el gasto previo al cobro suba un 25 %/);
+  assert.doesNotMatch(note.textContent, /mínimo ajustado|cruce cero/, "FX-30: sin jerga");
+});
+
+test("previsionSensitivityNote · FX-02/FX-30: por encima del 100 % no dice «207 %» ni un importe negativo", () => {
+  const note = { textContent: "" };
+  const ctx = sandboxWith(["previsionSensitivityNote"], { qs: () => note });
+  // Como la demo del 5/11: el mínimo ajustado es mayor que el ingreso previo a la nómina, así que aguanta aunque no llegue.
+  const row = { month: "nov 26", coreSpend: 4730, car: 0, refi: 0, projectOutflow: 0, endOfMonthOutflows: 0, prePayrollIncome: 5000 };
+  ctx.previsionSensitivityNote(worstWith(row, 10350));
+  assert.match(note.textContent, /aguanta aunque no llegue el ingreso previo a la nómina/);
+  assert.match(note.textContent, /aguanta aunque el gasto previo al cobro se duplique/);
+  assert.doesNotMatch(note.textContent, /\d{3} %/);
+  assert.doesNotMatch(note.textContent, /-\d/);
+  assert.doesNotMatch(note.textContent, /,\d{2}/, "FX-04: sin céntimos");
 });
 
 test("previsionSensitivityNote · en negativo, describe qué haría falta para recuperarse", () => {
@@ -71,8 +85,8 @@ test("previsionSensitivityNote · en negativo, describe qué haría falta para r
   const ctx = sandboxWith(["previsionSensitivityNote"], { qs: () => note });
   const row = { month: "oct 26", coreSpend: 2000, car: 0, refi: 0, projectOutflow: 0, endOfMonthOutflows: 0, prePayrollIncome: 500 };
   ctx.previsionSensitivityNote(worstWith(row, -500)); // base=1000, income=500, expense=2000
-  assert.match(note.textContent, /necesitaría subir un 100%/);
-  assert.match(note.textContent, /necesitaría bajar un 25%/);
+  assert.match(note.textContent, /el ingreso previo a la nómina tendría que subir un 100 %/);
+  assert.match(note.textContent, /el gasto previo al cobro tendría que bajar un 25 %/);
 });
 
 test("previsionSensitivityNote · sin mes peor conocido, no rompe y deja la nota vacía", () => {
@@ -82,9 +96,9 @@ test("previsionSensitivityNote · sin mes peor conocido, no rompe y deja la nota
   assert.equal(note.textContent, "");
 });
 
-test("renderPrevision llama a previsionSensitivityNote con el peor mes", () => {
+test("renderPrevision llama a previsionSensitivityNote con el mes del titular (y, si no lo hay, con el peor)", () => {
   const body = extractFunction("renderPrevision");
-  assert.match(body, /previsionSensitivityNote\(previsionWorstOf\(metrics\)\)/);
+  assert.match(body, /previsionSensitivityNote\(metrics\.find\(\(entry\) => entry\.item\.row\.detailMonthKey === headline\.worstKey\) \|\| previsionWorstOf\(metrics\)\)/);
 });
 
 test("la nota vive junto a la banda de liquidez de Previsión", () => {

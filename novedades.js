@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-06-prevision-una-cifra",
+      fecha: "2026-11-06",
+      texto: "Previsión: el punto más bajo, desde hoy y con su día (el mismo cálculo que Hoy), sin céntimos ni jerga, y cabe en el móvil.",
+      href: "#prevision",
+    },
+    {
       id: "2026-11-05-informe-renta",
       fecha: "2026-11-05",
       texto: "Herramientas avanzadas › Fiscal: el informe de inversión para la Renta de cada declarante, con lo que le falta y en CSV.",

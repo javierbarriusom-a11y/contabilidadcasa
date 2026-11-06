@@ -131,6 +131,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 97 → 98 (WP-43): canonical-forecast-bridge.js, con consumidor real (renderPlanPrevision de app.js se lo pasa a la tarjeta de puente-ui.js)
 // 96 → 97 (WP-42): canonical-next-euro.js, con consumidor real (el case «deuda-comparar» de renderActiveSection en app.js se lo pasa a la tarjeta de escalera-ui.js)
 // 95 → 96 (WP-41): canonical-shadow-debt.js, con consumidor real (el case «deuda-contratos» de renderActiveSection en app.js se lo pasa a la tarjeta de sombra-ui.js)
+// 117 → 118 (FX-01/FX-02, backlog de noviembre · S0): canonical-forecast-contract.js, con consumidor real (renderPrevision y previsionHeadlineHtml en app.js: el punto más bajo de Previsión)
 // 116 → 117 (WP-21 · PR-1): canonical-tax-report.js, con consumidor real (el case «herramientas-fiscal» de renderActiveSection en app.js se lo pasa al informe de informe-renta-ui.js)
 // 115 → 116 (WP-17 · PR-1): canonical-next-best-action.js, con consumidor real (renderInversionCartera de views/inversion.js se lo pasa a la tarjeta de siguiente-paso-ui.js)
 // 114 → 115 (XDA-10 · PR-1): canonical-decision-freshness.js, con consumidor real (dlx1GuardrailHtml en app.js se lo pasa a la línea de antes-de-decidir-ui.js)
@@ -150,6 +151,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 117 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 117);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 118 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 118);
 });
