@@ -173,6 +173,32 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 6 de noviembre de 2026 (412): D-N3 decidida y construida; Euribor y sueldo por titular
+
+- **Decisión del hogar:** «D-N3 sí, sueldo por titular y sigue».
+- **La fila «Comparar con» queda en Solo el plan · Un sueldo menos · Euribor · Imprevisto 3.000 €.** «Gasto +10 %» sale de la fila y queda en la biblioteca del motor (`applyGastoMas`). Se pidieron tres pruebas, y yo mismo había dicho que esta era floja.
+- **Un sueldo menos, por titular:**
+  - `titulares()` toma los ingresos que llegan 3 de cada 4 de los próximos 12 meses, del mayor al menor. La app no guarda de quién es cada ingreso, así que cada partida hace de titular.
+  - Opciones «De quién» y «Durante» 3 o 6 meses; empieza en el primer mes sin cobrar de ese titular.
+  - Con la demo, sin A 3 meses se pierden 3.000 + 4.800 (diciembre) + 3.000 = 10.800 €, lo mismo que baja la caja a 5 feb.
+- **Euribor +1 o +2 puntos en la próxima revisión:** WP-20 ya estaba construido (`canonical-rate-review.js`), así que no hacía falta esperar.
+  - `euriborShocks()` calcula la cuota nueva con el Euribor tecleado + diferencial + los puntos, sobre el capital y el plazo proyectados a la revisión.
+  - `applyEuribor()` suma la diferencia frente a la cuota que lleva el plan desde la revisión hasta el último plazo.
+  - Sin hipoteca o sin datos dice qué falta y lleva a Deuda › Contratos. Si la revisión cae fuera del horizonte, lo dice en vez de enseñar «igual».
+- **Tabla de impacto:**
+  - nueva fila con el último día del horizonte (`compare().end`);
+  - las diferencias son la resta de las cifras que se ven: antes 15.700 frente a 14.200 decía −1.600;
+  - «igual» en vez de «+0 €»;
+  - una nota con lo que se ha cambiado exactamente.
+- **Hallazgo, no corregido:** sin el sueldo de A, la cuenta corriente prevista queda en −2.510 € en enero aunque la liquidez total siga sobre el suelo. Queda anotado en el backlog §0.
+- **Pruebas:**
+  - `tests/fx21-pruebas-estres.test.cjs`: de 8 a 10 pruebas, con el motor de revisión real para el Euribor.
+  - e2e «Comparar con» rehecha a 390 (`@safari`) y 1440 px: titular B y 6 meses, el Euribor sin datos y con datos (almacenes reales de WP-20 y WP-13 y una hipoteca INVENTADA), y fuera de horizonte. Comprueba que en la fila del 31/12 la diferencia es la resta de lo que se ve.
+- **Versiones** a `20261106dn3a`: `canonical-stress-scenarios.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.435 pruebas unitarias; lint; typecheck; accesibilidad estructural con 1.675 IDs; rendimiento, con previsión y escenarios en 181,5 ms; build, privacidad y humo.
+  - En Chromium local: e2e C2, FX-23, FX-01 y XGO-01, 8 de 8; axe de C2, 2 de 2. Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (411): pruebas de estrés sobre la Previsión nueva (FX-20, FX-21 y FX-23, PR-1)
 
 - **Petición del hogar:** «sigue con los escenarios y las pruebas de estrés».

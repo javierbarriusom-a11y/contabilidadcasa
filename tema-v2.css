@@ -3993,6 +3993,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* FX-21 (D-N3): las opciones de la prueba elegida (de quién y cuántos meses; cuántos puntos), debajo de «Comparar con». */
+:root[data-tema="v2"] .prev-v2-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+:root[data-tema="v2"] .prev-v2-opcion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-opcion .registrar-mes-filters {
+  flex-wrap: wrap;
+  border-radius: var(--e19-radius-lg);
+}
+
 /* A 390 px las cuatro pruebas no caben en una píldora: bajan de línea, y la tarjeta y la tabla se ciñen al ancho. */
 :root[data-tema="v2"] .prev-v2,
 :root[data-tema="v2"] .prev-v2-card,

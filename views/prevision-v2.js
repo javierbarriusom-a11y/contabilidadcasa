@@ -22,9 +22,9 @@ const PREVISION_V2_GRANDE = 300; // «Lo que viene»: pagos y cobros desde este 
 
 let previsionV2Detalle = false; // «Ver todo el detalle», hasta recargar
 let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, hasta recargar
-const previsionV2Cache = new Map(); // FX-21: cada prueba se calcula una vez por trayectoria del plan
+const previsionV2Params = { concept: "", months: 3, points: 1 }; // FX-21 (D-N3): de quién, cuántos meses y cuántos puntos
+const previsionV2Cache = new Map(); // FX-21: cada prueba se calcula una vez por trayectoria del plan y parámetros
 
-/** FX-21: la prueba de estrés con los motores de siempre (canonical-stress-scenarios.js), calculada solo al elegirla. */
 /** Los motores de siempre (mensual, entrada diaria y diario), los mismos que pintan la trayectoria del plan. */
 function previsionV2Deps() {
   return {
@@ -35,19 +35,56 @@ function previsionV2Deps() {
   };
 }
 
+/**
+ * FX-21 · Euribor: la revisión de cada hipoteca con los datos de Deuda › Contratos (WP-20, revision-tipo-ui.js) y el Euribor
+ * tecleado. Devuelve las revisiones calculables o lo que falta para calcularlas.
+ */
+function previsionV2Revisiones(today) {
+  const engine = globalThis.FinanceCanonicalRateReview;
+  if (!engine || typeof revisionMortgages !== "function" || typeof revisionEvaluate !== "function") return { reviews: [], missing: ["la revisión del tipo (Deuda › Contratos)"] };
+  const hipotecas = revisionMortgages(today);
+  if (!hipotecas.length) return { reviews: [], missing: ["una hipoteca activa en Deuda › Contratos, con capital pendiente y plazos"] };
+  const store = revisionLoad();
+  const results = hipotecas.map((hipoteca) => revisionEvaluate(engine, hipoteca, store.byContract[hipoteca.id] || {}, today));
+  const reviews = results.filter((result) => result.status === "ok" && Number(result.currentPayment) > 0);
+  if (reviews.length) return { reviews, missing: [] };
+  const missing = results.flatMap((result) => (result.status === "ok" ? ["la cuota actual del contrato"] : result.missing || []));
+  return { reviews: [], missing: [...new Set(missing)] };
+}
+
+/** Los parámetros de la prueba elegida, ya resueltos: el titular por defecto es el de mayor sueldo; el Euribor, con sus cuotas. */
+function previsionV2ParamsFor(id, input, today) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  if (id === "sueldo-menos") {
+    const lista = S.titulares(input, today);
+    const concept = lista.some((item) => item.concept === previsionV2Params.concept) ? previsionV2Params.concept : lista[0]?.concept || "";
+    return { concept, months: previsionV2Params.months, titulares: lista };
+  }
+  if (id === "euribor") {
+    const { reviews, missing } = previsionV2Revisiones(today);
+    const shocks = reviews.length ? S.euriborShocks(reviews, previsionV2Params.points, globalThis.FinanceCanonicalRateReview.payment) : [];
+    return { points: previsionV2Params.points, shocks, missing };
+  }
+  return {};
+}
+
+/** FX-21: la prueba de estrés con los motores de siempre (canonical-stress-scenarios.js), calculada solo al elegirla. */
 function previsionV2Prueba(id, rows, today, to, floor) {
   const S = globalThis.FinanceCanonicalStressScenarios;
   if (!S || !id || typeof canonicalEngineInput !== "function") return null;
-  const key = `${id}|${to}|${floor}`;
-  const cached = previsionV2Cache.get(key);
-  if (cached && cached.rows === rows) return cached.result;
   let result = null;
   try {
-    result = S.evaluate(id, canonicalEngineInput([], {}), rows, previsionV2Deps(), { today, to, floor });
+    const input = canonicalEngineInput([], {});
+    const params = previsionV2ParamsFor(id, input, today);
+    const key = `${id}|${to}|${floor}|${JSON.stringify(params)}`;
+    const cached = previsionV2Cache.get(key);
+    if (cached && cached.rows === rows) return cached.result;
+    result = S.evaluate(id, input, rows, previsionV2Deps(), { today, to, floor, params });
+    if (result) result.params = params;
+    previsionV2Cache.set(key, { rows, result });
   } catch {
     result = null; // sin prueba si el motor no puede recalcular: la previsión del plan se enseña igual
   }
-  previsionV2Cache.set(key, { rows, result });
   return result;
 }
 
@@ -128,7 +165,7 @@ function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null
     todayIndex: 0,
     markers,
     scenarios: prueba?.rows?.length
-      ? [{ name: prueba.preset.short, values: puntos.map((row) => { const hit = prueba.rows.find((item) => item.date === row.date); return hit ? Number(hit.total) : null; }) }]
+      ? [{ name: previsionV2Corto(prueba), values: puntos.map((row) => { const hit = prueba.rows.find((item) => item.date === row.date); return hit ? Number(hit.total) : null; }) }]
       : [],
     format: (value) => money(value),
   });
@@ -140,6 +177,51 @@ function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null
   });
 }
 
+/** El nombre corto de la prueba, para la línea del gráfico y la cabecera de la tabla. */
+function previsionV2Corto(prueba) {
+  return prueba.preset.id === "euribor" ? `Euribor +${prueba.params?.points || 1}` : prueba.preset.short;
+}
+
+/** Cómo empieza la frase de cada prueba: «Sin «X» durante 3 meses», «Si el Euribor sube 1 punto…», «Con un imprevisto…». */
+function previsionV2Cuando(prueba, today) {
+  const info = prueba.info || {};
+  if (prueba.preset.id === "sueldo-menos") return `Sin «${info.concept}» durante ${info.months} meses`;
+  if (prueba.preset.id === "euribor") {
+    const puntos = prueba.params?.points || 1;
+    return `Si el Euribor sube ${puntos} ${puntos === 1 ? "punto" : "puntos"} en la revisión del ${previsionV2Fecha(info.shocks?.[0]?.date, today)}`;
+  }
+  return `Con un imprevisto de ${money(info.amount)} el ${previsionV2Fecha(info.date, today)}`;
+}
+
+/** La nota de debajo: qué se ha cambiado exactamente, para que se pueda comprobar. */
+function previsionV2Nota(prueba, today) {
+  const info = prueba.info || {};
+  const mes = (key) => (typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(key) : key);
+  if (prueba.preset.id === "sueldo-menos") return info.from === info.to ? `Se quita «${info.concept}» en ${mes(info.from)}.` : `Se quita «${info.concept}» de ${mes(info.from)} a ${mes(info.to)}.`;
+  if (prueba.preset.id === "euribor") {
+    return (info.shocks || []).map((shock) => shock.extra > 0
+      ? `Cuota de la hipoteca de ${money(shock.from)} a ${money(shock.to)} al mes desde el ${previsionV2Fecha(shock.date, today)} (tipo ${String(shock.rate).replace(".", ",")} %).`
+      : `Con un tipo del ${String(shock.rate).replace(".", ",")} % la cuota no sube (${money(shock.to)} frente a ${money(shock.from)} de ahora).`).join(" ");
+  }
+  return "";
+}
+
+/** Las opciones de la prueba elegida: de quién y cuántos meses para el sueldo; cuántos puntos para el Euribor. */
+function previsionV2OpcionesHtml(prueba) {
+  const grupo = (titulo, param, opciones, actual) => `<div class="prev-v2-opcion"><span class="prev-v2-comparar-titulo" id="prevV2Op-${param}">${escapeHtml(titulo)}</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2Op-${param}">${opciones
+    .map(([valor, texto]) => `<button type="button" class="registrar-mes-filter${String(valor) === String(actual) ? " is-active" : ""}" data-prevision-v2-param="${param}" data-valor="${escapeHtml(String(valor))}" aria-pressed="${String(valor) === String(actual)}">${escapeHtml(texto)}</button>`)
+    .join("")}</div></div>`;
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const params = prueba?.params || {};
+  if (previsionV2Escenario === "sueldo-menos" && params.titulares?.length) {
+    return `<div class="prev-v2-opciones">${params.titulares.length > 1 ? grupo("De quién", "concept", params.titulares.map((item) => [item.concept, item.concept]), params.concept) : ""}${grupo("Durante", "months", S.SUELDO_MESES.map((n) => [n, `${n} meses`]), params.months)}</div>`;
+  }
+  if (previsionV2Escenario === "euribor" && params.shocks?.length) {
+    return `<div class="prev-v2-opciones">${grupo("Cuánto sube", "points", S.EURIBOR_PUNTOS.map((n) => [n, `+${n} ${n === 1 ? "punto" : "puntos"}`]), params.points)}</div>`;
+  }
+  return "";
+}
+
 /** FX-20: la fila «Comparar con…» y, con una prueba elegida, su impacto frente al plan, siempre en el mismo orden. */
 function previsionV2CompararHtml(prueba, today) {
   const S = globalThis.FinanceCanonicalStressScenarios;
@@ -148,34 +230,54 @@ function previsionV2CompararHtml(prueba, today) {
   const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>`;
   if (!previsionV2Escenario) return fila;
   const c = prueba?.comparison;
-  if (!prueba?.applied || !c) return `${fila}<p class="prev-v2-impacto-nota" role="status">Esta prueba no se puede aplicar con los datos de ahora.</p>`;
+  if (!prueba?.applied || !c) {
+    const motivo = prueba?.missing?.length
+      ? `Para esta prueba falta ${prueba.missing.join(", ")}. <button type="button" class="hoy-v2-link" data-prevision-v2-nav="deuda-contratos">Ir a Deuda › Contratos</button>`
+      : previsionV2Escenario === "sueldo-menos" ? "No hay ningún ingreso que llegue casi todos los meses para quitarlo." : "Esta prueba no se puede aplicar con los datos de ahora.";
+    return `${fila}<p class="prev-v2-impacto-nota e19-kpi-note" role="status">${motivo}</p>`;
+  }
   const contract = globalThis.FinanceCanonicalForecastContract;
-  const nivel = (low) => money(contract.roundForHorizon(low.value, contract.daysBetween(today, low.date)));
+  // Cada nivel se redondea según su horizonte (FX-04) y la diferencia es la resta de lo que se ve: 15.700 frente a 14.200 es −1.500.
+  const redondea = (value, date) => contract.roundForHorizon(value, contract.daysBetween(today, date));
+  const nivel = (low) => money(redondea(low.value, low.date));
+  const resta = (base, prueba, date) => redondea(prueba, date) - redondea(base, date);
   // Una celda con cifra y día pone el día debajo, para que a 390 px quepan las cuatro columnas sin pisarse.
   const celda = (value) => (Array.isArray(value) ? `<td>${escapeHtml(value[0])}<small class="prev-v2-impacto-dia">${escapeHtml(value[1])}</small></td>` : `<td>${escapeHtml(value)}</td>`);
-  const fin = (value) => money(contract.roundForHorizon(value, contract.daysBetween(today, c.yearEnd.date)));
-  const dif = (value) => (value === null ? "—" : `${value < 0 ? "−" : "+"}${money(contract.roundDifference(Math.abs(value)))}`);
+  const fin = (value) => money(redondea(value, c.yearEnd.date));
+  const dif = (value) => (value === null ? "—" : value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "igual"); // ya redondeada
+  const bajadaVista = redondea(c.low.value, c.low.date) - redondea(c.baseLow.value, c.baseLow.date);
   const filas = [
-    ["Punto más bajo", [nivel(c.baseLow), previsionV2Fecha(c.baseLow.date, today)], [nivel(c.low), previsionV2Fecha(c.low.date, today)], dif(c.lowDiff)],
+    ["Punto más bajo", [nivel(c.baseLow), previsionV2Fecha(c.baseLow.date, today)], [nivel(c.low), previsionV2Fecha(c.low.date, today)], dif(bajadaVista)],
     ["¿Bajáis del suelo?", c.baseCrossesFloor ? `Sí, el ${previsionV2Fecha(c.baseCrossDate, today)}` : "No", c.crossesFloor ? `Sí, el ${previsionV2Fecha(c.crossDate, today)}` : "No", c.shortfall ? `faltan ${money(contract.roundDifference(c.shortfall))}` : "—"],
-    [`A 31 de diciembre`, c.yearEnd ? fin(c.yearEnd.base) : "—", c.yearEnd ? fin(c.yearEnd.shocked) : "—", dif(c.yearEndDiff)],
+    [`A 31 de diciembre`, c.yearEnd ? fin(c.yearEnd.base) : "—", c.yearEnd ? fin(c.yearEnd.shocked) : "—", c.yearEnd ? dif(resta(c.yearEnd.base, c.yearEnd.shocked, c.yearEnd.date)) : "—"],
   ];
-  const nombre = prueba.preset.label.toLowerCase();
-  const bajada = contract.roundDifference(Math.abs(c.lowDiff));
-  const frase = c.baseCrossesFloor
-    ? `El plan ya baja del suelo el ${previsionV2Fecha(c.baseCrossDate, today)}; con «${nombre}» el punto más bajo queda ${money(bajada)} más abajo y faltarían ${money(contract.roundDifference(c.shortfall))}.`
+  // El final del horizonte elegido, si no es el 31/12: ahí se ve lo que la prueba acumula (la cuota más alta, mes a mes).
+  if (c.end && c.end.date !== c.yearEnd?.date) {
+    filas.push([`A ${previsionV2Fecha(c.end.date, today)}`, money(redondea(c.end.base, c.end.date)), money(redondea(c.end.shocked, c.end.date)), dif(resta(c.end.base, c.end.shocked, c.end.date))]);
+  }
+  const cuando = previsionV2Cuando(prueba, today);
+  const bajada = Math.abs(bajadaVista);
+  // Si la prueba empieza después del horizonte (la revisión de la hipoteca cae más allá), se dice en vez de enseñar «igual».
+  const empieza = prueba.preset.id === "euribor" ? prueba.info?.shocks?.[0]?.date : null;
+  const fuera = Boolean(empieza && c.end && empieza > c.end.date);
+  const frase = fuera
+    ? `${cuando}, la cuota sube, pero eso cae después de este horizonte: elige 12 m o más para ver cuánto os quita.`
+    : c.baseCrossesFloor
+    ? `El plan ya baja del suelo el ${previsionV2Fecha(c.baseCrossDate, today)}. ${cuando}, el punto más bajo queda ${money(bajada)} más abajo y faltarían ${money(contract.roundDifference(c.shortfall))}.`
     : c.crossesFloor
-    ? `Con «${nombre}» bajáis del suelo el ${previsionV2Fecha(c.crossDate, today)}. Para evitarlo haría falta recortar unos ${money(contract.roundDifference(c.monthlyCut))} al mes de gasto hasta entonces, o tirar del plan B.`
-    : `Con «${nombre}» no bajáis del suelo: el punto más bajo queda ${nivel(c.low)} el ${previsionV2Fecha(c.low.date, today)}, ${bajada ? `${money(bajada)} por debajo del plan` : "igual que en el plan"}.`;
+    ? `${cuando}, bajáis del suelo el ${previsionV2Fecha(c.crossDate, today)}. Para evitarlo haría falta recortar unos ${money(contract.roundDifference(c.monthlyCut))} al mes de gasto hasta entonces, o tirar del plan B.`
+    : `${cuando}, no bajáis del suelo: el punto más bajo queda ${nivel(c.low)} el ${previsionV2Fecha(c.low.date, today)}, ${bajada ? `${money(bajada)} por debajo del plan` : "igual que en el plan"}.`;
+  const nota = previsionV2Nota(prueba, today);
   return `${fila}
+    ${previsionV2OpcionesHtml(prueba)}
     <div class="prev-v2-impacto" role="status">
       <p class="prev-v2-impacto-frase${c.crossesFloor ? " is-bad" : ""}">${escapeHtml(frase)}</p>
       <table class="e19-table prev-v2-impacto-tabla">
-        <caption class="sr-only">El plan frente a «${escapeHtml(prueba.preset.label)}»</caption>
-        <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(prueba.preset.short)}</th><th scope="col">Diferencia</th></tr></thead>
+        <caption class="sr-only">El plan frente a la prueba: ${escapeHtml(cuando)}</caption>
+        <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
-      <p class="e19-kpi-note">Es una prueba: no cambia el plan ni mueve dinero.${prueba.detail ? ` (${escapeHtml(prueba.detail)})` : ""}</p>
+      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}Es una prueba: no cambia el plan ni mueve dinero.</p>
     </div>`;
 }
 
@@ -258,6 +360,15 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       previsionV2Render();
       qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-prueba="${previsionV2Escenario}"]`)?.focus();
+      return;
+    }
+    const param = event.target.closest("[data-prevision-v2-param]");
+    if (param) {
+      const nombre = param.dataset.previsionV2Param;
+      previsionV2Params[nombre] = nombre === "concept" ? param.dataset.valor : Number(param.dataset.valor);
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-param="${nombre}"][aria-pressed="true"]`)?.focus();
       return;
     }
     const nav = event.target.closest("[data-prevision-v2-nav]");

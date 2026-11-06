@@ -5482,8 +5482,9 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
 
-    // FX-20 / FX-21: «Comparar con…» pinta la prueba de estrés encima del plan y dice si se baja del suelo, cuándo y cuánto,
-    // sin tocar el plan. Con la demo el 6/11, «un sueldo menos» deja el punto más bajo el 8 ene 2027 y el imprevisto resta 3.000 €.
+    // FX-20 / FX-21 (D-N3): «Comparar con…» pinta la prueba de estrés encima del plan y dice si se baja del suelo, cuándo y cuánto,
+    // sin tocar el plan. Con la demo el 6/11: sin el sueldo de A 3 meses, el punto más bajo cae al 8 ene 2027; el Euribor dice qué
+    // falta hasta que hay hipoteca y, con una INVENTADA, sube la cuota desde la revisión; el imprevisto resta 3.000 € el peor día.
     test(`Comparar con una prueba de estrés: la línea, la frase y la tabla, y el plan sin tocar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
@@ -5495,7 +5496,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
       const pruebas = v2.locator("[data-prevision-v2-prueba]");
-      await expect(pruebas).toHaveText(["Solo el plan", "Un sueldo menos", "Imprevisto 3.000 €", "Gasto +10 %"]);
+      await expect(pruebas).toHaveText(["Solo el plan", "Un sueldo menos", "Euribor", "Imprevisto 3.000 €"]);
       await expect(pruebas.first()).toHaveAttribute("aria-pressed", "true");
       await expect(v2.locator(".ck-escenario")).toHaveCount(0);
       const cifraPlan = await v2.locator(".prev-v2-cifra").innerText();
@@ -5512,20 +5513,61 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
       await expect(v2.locator('[data-prevision-v2-prueba="sueldo-menos"]')).toHaveAttribute("aria-pressed", "true");
       const impacto = v2.locator(".prev-v2-impacto");
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Con «un sueldo menos 3 meses» no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
-      await expect(impacto.locator("tbody tr")).toHaveCount(3);
+      // D-N3: por titular. Por defecto, el sueldo mayor y 3 meses; se elige de quién y cuánto tiempo.
+      await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
+      await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
+      await expect(impacto.locator("tbody tr")).toHaveCount(4);
       await expect(impacto.locator("tbody tr").nth(1)).toContainText("¿Bajáis del suelo?");
       await expect(impacto.locator("tbody tr").nth(2)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      await expect(impacto).toContainText("Se quita «Ingreso Persona A» de nov 26 a ene 27.");
       await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
       await expect(v2.locator(".ck-escenario")).toHaveCount(1);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos");
       await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
+      // Las cifras de una fila cuadran: la diferencia es la resta de lo que se ve.
+      const cuadra = await impacto.locator("tbody tr").nth(2).evaluate((tr) => {
+        const n = (td) => Number(td.textContent.replace(/[^\d,−-]/g, "").replace("−", "-").replace(",", "."));
+        const [plan, prueba, diferencia] = [...tr.querySelectorAll("td")].map(n);
+        return prueba - plan === diferencia;
+      });
+      expect(cuadra, "31/12: prueba − plan = diferencia").toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta").toBe(true);
+      await v2.locator('[data-prevision-v2-param="concept"][data-valor="Ingreso Persona B"]').click();
+      await v2.locator('[data-prevision-v2-param="months"][data-valor="6"]').click();
+      await expect(v2.locator('[data-prevision-v2-param="months"][data-valor="6"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona B» durante 6 meses");
+      await expect(impacto).toContainText("Se quita «Ingreso Persona B» de nov 26 a abr 27.");
+
+      // Euribor sin hipoteca declarada (la demo no tiene): dice qué falta y dónde se rellena.
+      await v2.locator('[data-prevision-v2-prueba="euribor"]').click();
+      await expect(v2.locator(".prev-v2-impacto-nota")).toContainText("Para esta prueba falta una hipoteca activa en Deuda › Contratos");
+      await expect(v2.locator('.prev-v2-impacto-nota [data-prevision-v2-nav="deuda-contratos"]')).toBeVisible();
+      await expect(v2.locator(".ck-escenario")).toHaveCount(0);
+      // Con los datos de la revisión y el Euribor en sus almacenes de siempre (WP-20, WP-13) y una hipoteca INVENTADA.
+      await page.evaluate(() => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-11-02", value: 2.35 }] }));
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { "hipoteca-ficticia": { spread: 0.99, nextReview: "2027-03-01", periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 } } }));
+        globalThis.revisionMortgages = () => [{ id: "hipoteca-ficticia", label: "Hipoteca FICTICIA", principal: 120000, payment: 640, remainingMonths: 240 }];
+        previsionV2Render();
+      });
+      await expect(v2.locator('[data-prevision-v2-param="points"]')).toHaveText(["+1 punto", "+2 puntos"]);
+      // La revisión cae el 1 mar 2027, fuera de los 3 meses: lo dice en vez de enseñar «igual».
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 1 punto en la revisión del 1 mar 2027, la cuota sube, pero eso cae después de este horizonte");
+      await expect(impacto).toContainText(/Cuota de la hipoteca de 640\s€ a [\d.]+\s€ al mes desde el 1 mar 2027 \(tipo 4,34 %\)/);
+      await v2.locator('[data-prevision-v2-param="points"][data-valor="2"]').click();
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 2 puntos en la revisión del 1 mar 2027, no bajáis del suelo");
+      await expect(impacto.locator("tbody tr").last()).toContainText(/A 6 nov 2027.*−[\d.]+\s€/s);
+      await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Euribor +2");
+      await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
 
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con «imprevisto de 3.000 € el peor día»");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
+      await expect(v2.locator(".prev-v2-opciones")).toHaveCount(0);
 
       await v2.locator('[data-prevision-v2-prueba=""]').click();
       await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);

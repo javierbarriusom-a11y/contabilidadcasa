@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Stress = require("../canonical-stress-scenarios.js");
 
-// FX-20 / FX-21 (BACKLOG_NOVIEMBRE_OLEADA_1.md §5.1; porqué en docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md §7): las pruebas de
+// FX-20 / FX-21 y D-N3 (BACKLOG_NOVIEMBRE_OLEADA_1.md §5.1; porqué en docs/PROPUESTA_OCTAVA_AUDITORIA_2026-11-05.md §7): las pruebas de
 // estrés del hogar. El motor no pide datos nuevos ni ejecuta nada: cambia la entrada del plan, recalcula con los motores de siempre
 // (aquí falsos, para probarlo en Node) y compara con el plan. La pantalla («Comparar con…» en Plan › Previsión) solo lo pinta.
 
@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 
 const TODAY = "2026-11-06";
+const round = (value) => Math.round(value * 100) / 100;
 const month = (monthKey, { nomina = 3000, extra = 0, nominaDay = "25", core = 2500, variable = 1000 } = {}) => ({
   monthKey,
   month: monthKey,
@@ -60,34 +61,76 @@ function fakeDeps(calls = []) {
   };
 }
 
-test("FX-21 · tres pruebas en la primera entrega, con nombre del hogar; el Euribor espera a Deuda › Contratos (WP-20)", () => {
-  assert.equal(Stress.SCHEMA_ID, "finance-canonical-stress-scenarios/v1");
-  assert.deepEqual(Stress.PRESETS.map((p) => p.id), ["sueldo-menos", "imprevisto", "gasto-mas"]);
+test("FX-21 · las tres pruebas de D-N3 (decidida el 6/11): un sueldo menos, el Euribor y un imprevisto; gasto +10 % queda en la biblioteca", () => {
+  assert.equal(Stress.SCHEMA_ID, "finance-canonical-stress-scenarios/v2");
+  assert.deepEqual(Stress.PRESETS.map((p) => p.id), ["sueldo-menos", "euribor", "imprevisto"]);
   assert.ok(Object.isFrozen(Stress.PRESETS) && Stress.PRESETS.every(Object.isFrozen));
   Stress.PRESETS.forEach((p) => assert.ok(p.label && p.short && p.short.length <= 20, `${p.id}: etiqueta corta para la píldora`));
-  assert.ok(!Stress.PRESETS.some((p) => /euribor/i.test(p.id)));
+  assert.deepEqual([...Stress.SUELDO_MESES], [3, 6]);
+  assert.deepEqual([...Stress.EURIBOR_PUNTOS], [1, 2]);
+  assert.equal(typeof Stress.applyGastoMas, "function");
 });
 
-test("FX-21 · el sueldo que falta empieza en el primer mes sin cobrar", () => {
+test("FX-21 · titulares: los ingresos que llegan casi todos los meses, del mayor al menor; un cobro suelto no es un sueldo", () => {
+  const base = input();
+  base.months[1].incomeEvents.push({ concept: "Venta suelta", amount: 9000, date: "2026-12-10" });
+  assert.deepEqual(Stress.titulares(base, TODAY), [{ concept: "Nómina A", average: 3000 }, { concept: "Nómina B", average: 1200 }]);
+  assert.deepEqual(Stress.titulares({ months: [] }, TODAY), []);
+});
+
+test("FX-21 · el sueldo que falta empieza en el primer mes sin cobrar, de ese titular", () => {
   const months = input().months;
   assert.equal(Stress.firstUnpaidMonthIndex(months, TODAY), 0, "la nómina del 25 de noviembre aún no ha llegado");
   assert.equal(Stress.firstUnpaidMonthIndex(months, "2026-11-29"), 1, "cobradas las dos de noviembre, empieza en diciembre");
+  assert.equal(Stress.firstUnpaidMonthIndex(months, "2026-11-26", "Nómina A"), 1, "la A ya llegó el 25");
+  assert.equal(Stress.firstUnpaidMonthIndex(months, "2026-11-26", "Nómina B"), 0, "la B llega el 28");
 });
 
-test("FX-21 · un sueldo menos: quita el cobro más grande 3 meses por su concepto y deja el resto, sin tocar la entrada", () => {
+test("FX-21 · un sueldo menos por titular: quita ese cobro 3 o 6 meses y deja el resto, sin tocar la entrada", () => {
   const base = input();
   const before = JSON.stringify(base);
   const out = Stress.applySueldoMenos(base, { today: TODAY });
   assert.equal(JSON.stringify(base), before, "no muta el plan");
   assert.equal(out.applied, true);
-  assert.match(out.detail, /^Nómina A, 3 meses desde 2026-11$/);
+  assert.deepEqual(out.info, { concept: "Nómina A", months: 3, from: "2026-11", to: "2027-01" }, "sin titular, el mayor");
   out.input.months.slice(0, 3).forEach((m) => {
     assert.equal(m.income, 1200);
     assert.equal(m.prePayrollIncome, 1200);
     assert.deepEqual(m.incomeEvents.map((e) => e.concept), ["Nómina B"]);
   });
   assert.equal(out.input.months[3].income, 4200, "el cuarto mes vuelve a cobrar");
+  const b6 = Stress.applySueldoMenos(base, { today: TODAY, months: 6, concept: "Nómina B" });
+  assert.deepEqual(b6.info, { concept: "Nómina B", months: 6, from: "2026-11", to: "2027-03" }, "solo hay 5 meses en la entrada");
+  b6.input.months.forEach((m) => assert.deepEqual(m.incomeEvents.map((e) => e.concept), ["Nómina A"]));
+  assert.equal(Stress.applySueldoMenos(base, { today: TODAY, concept: "No existe" }).applied, false);
   assert.equal(Stress.applySueldoMenos({ months: [] }, { today: TODAY }).applied, false);
+});
+
+test("FX-21 · Euribor: la cuota con +1 o +2 puntos desde la revisión, frente a la que lleva el plan, hasta el último plazo", () => {
+  const Review = require("../canonical-rate-review.js");
+  const review = Review.evaluate({
+    today: TODAY,
+    contract: { principal: 120000, remainingMonths: 240, payment: 640 },
+    settings: { spread: 0.99, nextReview: "2027-01-15", periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 },
+    index: { value: 2.35, date: "2026-11-02", state: "fresh", ageDays: 4 },
+  });
+  assert.equal(review.status, "ok");
+  const [uno] = Stress.euriborShocks([review], 1, Review.payment);
+  const [dos] = Stress.euriborShocks([review], 2, Review.payment);
+  assert.equal(uno.date, "2027-01-15");
+  assert.equal(uno.rate, 4.34, "Euribor 2,35 + diferencial 0,99 + 1 punto");
+  assert.equal(uno.from, 640);
+  assert.ok(uno.extra > 0 && dos.extra > uno.extra, "dos puntos cuestan más que uno");
+  assert.equal(uno.extra, Math.round((uno.to - 640) * 100) / 100);
+  assert.deepEqual(Stress.euriborShocks([{ status: "incomplete" }], 1, Review.payment), [], "sin datos no hay prueba");
+  const out = Stress.applyEuribor(input(), { shocks: [{ ...uno, date: "2027-01-31" }] });
+  assert.deepEqual(out.input.months.map((m) => m.coreSpend), [2500, 2500, round(2500 + uno.extra), round(2500 + uno.extra), round(2500 + uno.extra)]);
+  const feb = out.input.months[3].expenseEvents.at(-1);
+  assert.deepEqual([feb.date, feb.day, feb.field], ["2027-02-28", 28, "fixedCoreSpend"], "el 31 cae el último día de febrero");
+  const corto = Stress.applyEuribor(input(), { shocks: [{ ...uno, months: 1 }] });
+  assert.equal(corto.input.months.filter((m) => m.coreSpend > 2500).length, 1, "no pasa del último plazo");
+  const baja = Stress.applyEuribor(input(), { shocks: [{ ...uno, extra: -20 }] });
+  assert.ok(baja.input.months.every((m) => m.coreSpend === 2500), "si la cuota no sube, no se añade nada");
 });
 
 test("FX-21 · un imprevisto: un pago fijo ese día y en su mes; sin mes, no se aplica", () => {
@@ -100,7 +143,7 @@ test("FX-21 · un imprevisto: un pago fijo ese día y en su mes; sin mes, no se 
   assert.equal(Stress.applyImprevisto(input(), {}).applied, false);
 });
 
-test("FX-21 · gasto variable un 10 % más alto en todos los meses, y el gasto total sube lo mismo", () => {
+test("FX-21 · biblioteca: gasto variable un 10 % más alto en todos los meses, y el gasto total sube lo mismo", () => {
   const out = Stress.applyGastoMas(input(), { factor: 1.1 });
   out.input.months.forEach((m) => {
     assert.equal(m.variableOperationalSpend, 1100);
@@ -122,6 +165,7 @@ test("FX-20 · la comparación: punto más bajo de los dos, cruce del suelo del 
   assert.equal(c.shortfall, 1000);
   assert.equal(c.monthlyCut, 333.33, "repartido de noviembre a enero: 3 meses");
   assert.deepEqual(c.yearEnd, { date: "2026-12-31", base: 6000, shocked: 2000 });
+  assert.deepEqual(c.end, { date: "2027-01-10", base: 4000, shocked: 500, diff: -3500 }, "el último día del horizonte");
   assert.equal(c.yearEndDiff, -4000);
   const both = Stress.compare(shock, shock, { today: TODAY, to: "2027-12-31", floor: 1500 });
   assert.equal(both.baseCrossesFloor, true, "si el plan ya baja del suelo, la tabla no puede decir «No»");
@@ -138,11 +182,18 @@ test("FX-21 · evaluate: aplica, recalcula con los motores de siempre y compara;
   assert.equal(res.applied, true);
   assert.equal(res.valid, true);
   assert.deepEqual(calls, ["prueba de estrés: imprevisto"]);
-  assert.equal(res.detail, `3000 € el ${res.comparison.baseLow.date}`);
+  assert.deepEqual(res.info, { date: res.comparison.baseLow.date, amount: 3000 });
   assert.equal(res.comparison.lowDiff, -3000);
   const sueldo = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, opts);
   assert.ok(sueldo.comparison.lowDiff < 0 && sueldo.comparison.yearEndDiff === -6000, "dos nóminas de 3.000 antes del 31/12");
-  assert.equal(Stress.evaluate("euribor", baseInput, baseRows, deps, opts), null);
+  const b6 = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, { ...opts, params: { concept: "Nómina B", months: 6 } });
+  assert.equal(b6.info.concept, "Nómina B");
+  assert.equal(b6.comparison.end.diff, -6000, "cinco nóminas de 1.200 hasta el 31 de marzo");
+  const sinDatos = Stress.evaluate("euribor", baseInput, baseRows, deps, { ...opts, params: { missing: ["el diferencial"] } });
+  assert.deepEqual([sinDatos.applied, sinDatos.missing], [false, ["el diferencial"]], "sin hipoteca calculable, dice qué falta");
+  const euribor = Stress.evaluate("euribor", baseInput, baseRows, deps, { ...opts, params: { shocks: [{ date: "2027-02-05", from: 640, to: 750, extra: 110, rate: 4.34, months: 240 }] } });
+  assert.equal(euribor.comparison.end.diff, -220, "febrero y marzo con 110 € más de cuota");
+  assert.equal(Stress.evaluate("gasto-mas", baseInput, baseRows, deps, opts), null, "fuera de la fila desde D-N3");
   assert.equal(Stress.evaluate("imprevisto", { months: [] }, baseRows, deps, opts), null);
 });
 

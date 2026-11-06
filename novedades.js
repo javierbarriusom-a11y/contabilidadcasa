@@ -19,7 +19,7 @@
     {
       id: "2026-11-06-pruebas-estres",
       fecha: "2026-11-06",
-      texto: "Plan › Previsión: «Comparar con» un sueldo menos, un imprevisto o más gasto, y si así bajaríais del suelo, cuándo y cuánto.",
+      texto: "Plan › Previsión: «Comparar con» el sueldo de cada uno, el Euribor en la revisión o un imprevisto, y si bajaríais del suelo y cuándo.",
       href: "#plan",
     },
     {
