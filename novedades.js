@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-07-de-verdad-libre",
+      fecha: "2026-11-07",
+      texto: "Previsión: «De verdad libre» resta de lo libre lo que el plan aún no descuenta (lo devengado de los pagos grandes).",
+      href: "#plan",
+    },
+    {
       id: "2026-11-07-arreglo-en-prevision",
       fecha: "2026-11-07",
       texto: "Previsión: si la liquidez va a bajar del suelo en 30 días, el arreglo más barato sale debajo del gráfico.",

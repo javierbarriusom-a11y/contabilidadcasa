@@ -196,6 +196,7 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null 
     <p class="prev-v2-cifra">${said.approximate ? "<small>unos</small> " : ""}${escapeHtml(money(said.value))} <span class="prev-v2-cuando">${escapeHtml(said.when)}</span></p>
     <p class="prev-v2-frase">${frase}</p>
     ${avisoCuenta}
+    ${previsionV2LibreHtml({ tramo, floor, margen, margenSaid, today })}
     ${previsionV2ConfianzaHojaHtml(confianza)}
   </div>`;
 }
@@ -598,6 +599,46 @@ function previsionV2ArregloHtml({ tramo, floor, today }) {
   }
 }
 
+// ---- XPR-08 con D-N9 (b) · De verdad libre ------------------------------------------------------------------------
+// Decisión del hogar del 7/11/2026: una sola cifra. Lo que queda sobre el suelo en el punto más bajo ya descuenta lo que el plan pone
+// dentro del horizonte; de verdad libre es eso menos lo que el plan aún no descuenta: lo que no está en el plan y cae dentro (entero) y
+// la parte ya devengada de lo que cae después (`provisions` de canonical-large-payments.js, sobre el mismo mapa de pagos grandes de
+// WP-49). Solo sale cuando hay algo que restar: si no, lo libre es la cifra de arriba y repetirla sería ruido. No aparta nada (A11-4):
+// dice cuánto apartar al mes y lleva al mapa.
+function previsionV2LibreHtml({ tramo, floor, margen, margenSaid, today }) {
+  const engine = globalThis.FinanceCanonicalLargePayments;
+  if (!engine?.provisions || typeof mapaPagosBuild !== "function" || !(margen >= 0) || !tramo?.length) return "";
+  try {
+    const map = mapaPagosBuild(engine);
+    const prov = engine.provisions({ items: map.months.flatMap((month) => month.items), today, horizonEnd: tramo.at(-1).date });
+    // Lo que no está en el plan resta desde su día: se aplica a la trayectoria y se vuelve a buscar el punto más bajo. Si cae cuando el
+    // saldo ya ha subido, no come nada de lo libre.
+    const fuera = prov.items.filter((item) => item.reason === "no-esta-en-el-plan");
+    const minimo = Math.min(...tramo.map((row) => Number(row.total) - floor - fuera.filter((item) => item.date <= row.date).reduce((sum, item) => sum + item.part, 0)));
+    const porFuera = Math.max(0, margen - minimo);
+    const devengados = prov.items.filter((item) => item.reason === "devengado");
+    const devengado = devengados.reduce((sum, item) => sum + item.part, 0);
+    if (!(porFuera + devengado > 0.5)) return "";
+    const ya = previsionV2HaciaArriba(porFuera + devengado);
+    const libre = margenSaid - ya;
+    const contract = globalThis.FinanceCanonicalForecastContract;
+    const cuando = (date) => previsionV2Fecha(date, today);
+    const partes = devengados.slice(0, 3).map((item) => `${item.label} (${money(item.amount)} el ${cuando(item.date)}; van ${item.elapsed} de ${item.cycle} meses: ${money(contract.roundDifference(item.part))})`);
+    if (devengados.length > 3) partes.push(`${devengados.length - 3} más`);
+    if (porFuera > 0.5) partes.push(`${money(contract.roundDifference(porFuera))} por lo que no está en el plan: ${fuera.map((item) => `${item.label} (${money(item.part)} el ${cuando(item.date)})`).join(", ")}`);
+    const cifra = libre >= 0
+      ? `<strong>De verdad libre: ${escapeHtml(money(libre))}.</strong>`
+      : `<strong>De verdad libre: nada.</strong> Lo que viene se come lo libre y faltarían ${escapeHtml(money(-libre))}.`;
+    const apartar = prov.monthly > 0.5 ? `Apartando unos ${escapeHtml(money(previsionV2HaciaArriba(prov.monthly)))} al mes, esos pagos no tocarán el colchón. ` : "";
+    return `<div class="prev-v2-libre${libre < 0 ? " is-bad" : ""}">
+      <p>${cifra} De los ${escapeHtml(money(margenSaid))} sobre el suelo, ${escapeHtml(money(ya))} ya son de lo que viene y el plan aún no descuenta: ${escapeHtml(partes.join("; "))}.</p>
+      <p class="e19-kpi-note">${apartar}<button type="button" class="hoy-v2-link" data-prevision-v2-mapa>Ver el mapa de pagos grandes</button></p>
+    </div>`;
+  } catch {
+    return "";
+  }
+}
+
 /** FX-12: los cobros y pagos grandes de los próximos 90 días, con su certeza y, si el día es estimado, el camino a Días de cargo. */
 function previsionV2LoQueVieneHtml({ tramo, today }) {
   const fin = previsionV2AddDays(today, 90);
@@ -761,6 +802,16 @@ function previsionV2Init() {
     const insignia = event.target.closest("[data-prevision-v2-confianza]");
     if (insignia) {
       previsionV2ConfianzaAbierta = previsionV2AbreHoja(insignia);
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      return;
+    }
+    if (event.target.closest("[data-prevision-v2-mapa]")) {
+      const mapa = qs("mapaPagosCard");
+      if (mapa) {
+        mapa.scrollIntoView({ block: "start" });
+        mapa.querySelector("h3")?.setAttribute("tabindex", "-1");
+        mapa.querySelector("h3")?.focus({ preventScroll: true });
+      }
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       return;
     }

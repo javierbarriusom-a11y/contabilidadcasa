@@ -4285,3 +4285,22 @@
   margin: 0;
   padding-left: 1.2em;
 }
+
+/* XPR-08 con D-N9 (b), 7/11/2026: «De verdad libre», bajo la frase del titular, solo si el plan aún no descuenta algo de lo que viene. */
+:root[data-tema="v2"] .prev-v2-libre {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--e19-forecast);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-muted, var(--e19-surface));
+}
+
+:root[data-tema="v2"] .prev-v2-libre.is-bad {
+  border-left-color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .prev-v2-libre p {
+  margin: 0;
+}

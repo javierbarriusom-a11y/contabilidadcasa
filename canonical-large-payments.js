@@ -333,8 +333,46 @@
     return build({ items: merged.items, startMonth, months, minAmount, ignored: [...fromPolicies.ignored, ...fromGoals.ignored, ...fromCharges.ignored], merged: merged.merged });
   }
 
+  /**
+   * XPR-08 con D-N9 (b), decisión del hogar del 7/11/2026: lo que de lo «libre» de la Previsión ya es de los pagos grandes que el plan
+   * TODAVÍA NO descuenta. El punto más bajo de la previsión ya resta lo que el plan pone dentro del horizonte; aquí solo entra:
+   *   · «no-esta-en-el-plan»: lo que cae dentro del horizonte y la previsión no sabe (un seguro del inventario que no está en el plan, la
+   *     parte de un cargo «cada N meses» que falta en el plan de su mes): entero, porque llegará;
+   *   · «devengado»: lo que cae después del horizonte, solo la parte ya devengada (importe × meses transcurridos ÷ meses del ciclo; anual
+   *     si no se sabe otro ciclo).
+   * Fuera: los objetivos (tienen su propio ahorro declarado) y lo que no tiene importe (no se inventa). Puro, sin reloj.
+   * @param {{items?: Array<any>, today?: string, horizonEnd?: string}} [params] `items`: los del mapa (`build().months[].items`).
+   */
+  function provisions({ items = [], today = "", horizonEnd = "" } = {}) {
+    const start = monthOf(today);
+    const list = [];
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      if (!item || !known(item.amount) || !(number(item.amount) > 0) || item.kind === "goal" || item.kind === "tax") return;
+      const day = String(Math.max(1, Math.min(Number(item.day) || 1, daysInMonth(item.monthKey)))).padStart(2, "0");
+      const date = `${item.monthKey}-${day}`;
+      if (validDate(today) && date < today) return;
+      const amount = round2(item.amount);
+      if (!validDate(horizonEnd) || date <= horizonEnd) {
+        const fuera = item.kind === "policy" ? (item.alsoInPlan ? 0 : amount) : item.kind === "periodic" ? round2(Math.max(0, number(item.planShort))) : 0;
+        if (fuera > 0.005) list.push({ id: item.id, label: item.label, kind: item.kind, date, amount, part: fuera, reason: "no-esta-en-el-plan", cycle: null, elapsed: null });
+        return;
+      }
+      const cycle = item.kind === "periodic" && number(item.everyMonths) >= 2 ? Math.round(number(item.everyMonths)) : 12;
+      const until = Math.max(0, monthsBetween(start, item.monthKey));
+      const elapsed = Math.max(0, Math.min(cycle, cycle - until));
+      const part = round2((amount * elapsed) / cycle);
+      if (part > 0.005) list.push({ id: item.id, label: item.label, kind: item.kind, date, amount, part, reason: "devengado", cycle, elapsed, monthly: round2(amount / cycle) });
+    });
+    list.sort((a, b) => b.part - a.part || a.date.localeCompare(b.date));
+    return {
+      total: round2(list.reduce((sum, entry) => sum + entry.part, 0)),
+      monthly: round2(list.filter((entry) => entry.reason === "devengado").reduce((sum, entry) => sum + entry.monthly, 0)),
+      items: list,
+    };
+  }
+
   return {
     SCHEMA_ID, DEFAULT_MIN_AMOUNT, DEFAULT_LUMP_FACTOR, DEFAULT_MONTHS, KIND_LABEL,
-    monthsFrom, monthsBetween, validDate, lumpyItems, policyItems, goalItems, periodicItems, taxItems, dedupe, funding, build, describe, assemble,
+    monthsFrom, monthsBetween, validDate, lumpyItems, policyItems, goalItems, periodicItems, taxItems, dedupe, funding, build, describe, assemble, provisions,
   };
 });
