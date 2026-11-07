@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-07-panel-dia-confianza",
+      fecha: "2026-11-07",
+      texto: "Previsión: el panel del día dice qué mueve cada día (un clic lo fija) y la insignia de confianza, por qué y qué la sube.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-06-reserva-en-cuenta",
       fecha: "2026-11-06",
       texto: "El traspaso al ahorro deja ahora en la cuenta corriente la reserva operativa de Ajustes, no solo un mes de gastos.",

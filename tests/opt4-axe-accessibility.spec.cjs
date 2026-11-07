@@ -1644,7 +1644,8 @@ for (const scheme of ["light", "dark"]) {
 }
 
 // Rediseño C2 + FX-20/FX-21 (6/11/2026) · la Previsión nueva con una prueba de estrés elegida, en claro y en oscuro: la cifra,
-// el gráfico con la línea de la prueba, las píldoras «Comparar con» y la tabla de impacto. Datos de la demo.
+// el gráfico con la línea de la prueba, las píldoras «Comparar con» y la tabla de impacto. Desde el 7/11 (FX-10 PR-2, FX-31), también
+// el panel del día y la hoja de la insignia de confianza abierta. Datos de la demo.
 for (const scheme of ["light", "dark"]) {
   test.describe(`Rediseño C2 · contraste de la Previsión nueva con una prueba de estrés en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
@@ -1656,6 +1657,10 @@ for (const scheme of ["light", "dark"]) {
       await expect(v2).toBeVisible({ timeout: 15000 });
       await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
       await expect(v2.locator(".prev-v2-impacto-tabla")).toBeVisible();
+      // FX-10 PR-2 y FX-31: el panel del día y la hoja de la insignia de confianza, abierta.
+      await expect(v2.locator(".prev-v2-dia")).toBeVisible();
+      await v2.locator("[data-prevision-v2-confianza]").click();
+      await expect(v2.locator("#prevV2Confianza")).toBeVisible();
       await page.mouse.move(0, 0);
       const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
