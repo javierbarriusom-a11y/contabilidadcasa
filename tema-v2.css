@@ -4264,3 +4264,24 @@
   padding-top: 8px;
   border-top: 1px solid var(--e19-border);
 }
+
+/* XPR-07 dentro de C2 (7/11/2026): «Para no bajar del suelo el …», debajo de la tarjeta de la previsión, como en PrevisionDesktop.png. */
+:root[data-tema="v2"] .prev-v2-arreglo {
+  display: grid;
+  gap: 8px;
+  padding: 16px 20px;
+  border-color: var(--e19-warning-soft-border);
+  background: var(--e19-warning-soft);
+}
+
+:root[data-tema="v2"] .prev-v2-arreglo h3,
+:root[data-tema="v2"] .prev-v2-arreglo p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-arreglo .desc-opciones {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.2em;
+}

@@ -56,16 +56,18 @@ function descubiertoParteHtml(part, deficit) {
   return `usar ${escapeHtml(money(part.amount, true))} de la línea de crédito de emergencia (${String(part.ratePct).replace(".", ",")} %): unos ${escapeHtml(money(part.cost, true))} de intereses si se devuelve en ${part.months} meses`;
 }
 
-function descubiertoHtml(engine, deficit, solution, missing) {
+// XPR-07 dentro de C2 (7/11/2026): la Previsión nueva pinta la misma tarjeta con la trayectoria del motor diario; `capasDonde` y `origen`
+// dicen dónde se marca lo discrecional y de qué trayectoria sale, según la pantalla.
+function descubiertoHtml(engine, deficit, solution, missing, { capasDonde = "más abajo", origen = "la trayectoria «según el plan» de la banda de caja" } = {}) {
   const opciones = solution.options.map((option, at) => `<li class="desc-opcion"><strong>${at === 0 ? "La más barata" : `Opción ${at + 1}`} · ${escapeHtml(money(option.cost, true))}</strong>: ${option.parts.map((part) => descubiertoParteHtml(part, deficit)).join("; además, ")}.</li>`).join("");
   const faltan = [
-    missing.includes("discrecional") ? `Ningún gasto de aquí al ${escapeHtml(descubiertoFecha(deficit.lowestDate))} está marcado como discrecional: márcalo en «Previsión en capas» (más abajo) y saldrá como palanca sin coste.` : "",
+    missing.includes("discrecional") ? `Ningún gasto de aquí al ${escapeHtml(descubiertoFecha(deficit.lowestDate))} está marcado como discrecional: márcalo en «Previsión en capas» (${escapeHtml(capasDonde)}) y saldrá como palanca sin coste.` : "",
     missing.includes("credito") ? "Sin línea de crédito de emergencia declarada (Ajustes › Reserva): si la tenéis, su coste entraría en la comparación." : "",
   ].filter(Boolean).map((text) => `<p class="e19-kpi-note">${text}</p>`).join("");
   return `<p class="desc-frase">Según el plan, la liquidez baja del suelo (${escapeHtml(money(deficit.floor, true))}) el ${escapeHtml(descubiertoFecha(deficit.date))} y llega a ${escapeHtml(money(deficit.lowest, true))} el ${escapeHtml(descubiertoFecha(deficit.lowestDate))}: <strong>faltan ${escapeHtml(money(deficit.shortfall, true))}</strong>.</p>
     <ol class="desc-opciones">${opciones}</ol>
     ${faltan}
-    <p class="e19-kpi-note">Es la trayectoria «según el plan» de la banda de caja: cada cosa en el día que supone el plan. No incluye mover dinero entre vuestras cuentas (la previsión es de la liquidez total) ni aplazar un cargo de tarjeta. La app no hace nada: enseña.</p>`;
+    <p class="e19-kpi-note">Es ${escapeHtml(origen)}: cada cosa en el día que supone el plan. No incluye mover dinero entre vuestras cuentas (la previsión es de la liquidez total) ni aplazar un cargo de tarjeta. La app no hace nada: enseña.</p>`;
 }
 
 function renderDescubierto(engine) {

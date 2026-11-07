@@ -570,6 +570,34 @@ function previsionV2CursorAlDia(box) {
   if (slider && index >= 0) globalThis.ChartKit?.select?.(slider, index);
 }
 
+// ---- XPR-07 dentro de C2 · El arreglo más barato -------------------------------------------------------------------
+// La tarjeta de descubierto-ui.js (motor canonical-overdraft-fix.js), con la trayectoria que pinta esta pantalla (el motor diario) y el
+// mismo suelo. Solo si la liquidez baja del suelo en los próximos 30 días, y sigue con su interruptor de Funciones en prueba hasta su
+// revisión del 12/11 (no se gradúa sin el hogar).
+function previsionV2ArregloHtml({ tramo, floor, today }) {
+  const engine = globalThis.FinanceCanonicalOverdraftFix;
+  if (!engine || typeof descubiertoOn !== "function" || !descubiertoOn() || typeof descubiertoHtml !== "function") return "";
+  try {
+    const fin = previsionV2AddDays(today, 30);
+    const days = tramo.filter((row) => row.date <= fin).map((row) => ({ date: row.date, central: Number(row.total) }));
+    const deficit = engine.findDeficit({ days, floor });
+    if (!deficit) return "";
+    const levers = engine.levers({
+      discretionary: descubiertoDiscrecional(today, deficit.lowestDate),
+      cushion: true,
+      creditLine: { limit: emergencyCreditLimit(), ratePct: emergencyCreditRate(), months: 3 },
+    });
+    const solution = engine.solve({ shortfall: deficit.shortfall, levers: levers.list });
+    globalThis.FinanceMedidor?.anotar("descubierto", "vista"); // XGO-02: la misma métrica que la tarjeta de siempre
+    return `<section class="e19-card prev-v2-arreglo" aria-labelledby="prevV2ArregloTitulo">
+      <h3 id="prevV2ArregloTitulo">Para no bajar del suelo el ${escapeHtml(descubiertoFecha(deficit.date))}</h3>
+      ${descubiertoHtml(engine, deficit, solution, levers.missing, { capasDonde: "Herramientas › Previsión", origen: "la trayectoria del gráfico de arriba" })}
+    </section>`;
+  } catch {
+    return "";
+  }
+}
+
 /** FX-12: los cobros y pagos grandes de los próximos 90 días, con su certeza y, si el día es estimado, el camino a Días de cargo. */
 function previsionV2LoQueVieneHtml({ tramo, today }) {
   const fin = previsionV2AddDays(today, 90);
@@ -607,6 +635,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2CompararHtml(prueba, today)}</div>
     </article>
+    ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2LoQueVieneHtml({ tramo, today })}
     <p class="prev-v2-mas">
       <button type="button" class="hoy-v2-link" data-prevision-v2-nav="prevision">Rango probable, calidad del dato y acierto</button>

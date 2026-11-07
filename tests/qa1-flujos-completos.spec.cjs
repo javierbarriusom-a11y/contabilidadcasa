@@ -5744,6 +5744,47 @@ test.describe("FX-31 · una sola insignia de confianza", () => {
   }
 });
 
+// XPR-07 dentro de C2 (7/11/2026): «Para no bajar del suelo el …» en la Previsión nueva, con la trayectoria del gráfico. Solo con un
+// descubierto en 30 días y con su interruptor encendido (sigue en prueba hasta su revisión). Reloj el 10/11 para que el 8 dic caiga
+// dentro de los 30 días; suelo INVENTADO de 7.000 € sobre los datos de ejemplo.
+test.describe("XPR-07 · el arreglo más barato dentro de la Previsión nueva", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`con descubierto en 30 días sale la tarjeta con la misma cifra que el titular; sin él, no, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 10, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(v2.locator(".prev-v2-arreglo")).toHaveCount(0);
+      await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+      const tarjeta = v2.locator(".prev-v2-arreglo");
+      await expect(tarjeta.locator("h3")).toHaveText("Para no bajar del suelo el 8 de diciembre");
+      await expect(tarjeta).toContainText(/llega a 5\.620\s€ el 8 de diciembre: faltan 1\.380\s€/);
+      await expect(v2.locator(".prev-v2-frase").first()).toContainText(/1\.380\s€ por debajo del suelo/);
+      await expect(tarjeta).toContainText("La más barata · 0 €");
+      await expect(tarjeta).toContainText("«Previsión en capas» (Herramientas › Previsión)");
+      await expect(tarjeta).toContainText("Es la trayectoria del gráfico de arriba");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con su interruptor apagado no sale (sigue en prueba hasta su revisión)", async ({ page }) => {
+    await empezarApagada(page, "descubierto");
+    await page.clock.install({ time: new Date(2026, 10, 10, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const v2 = page.locator("#planPrevisionV2");
+    await expect(v2).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+    await expect(v2.locator(".prev-v2-frase").first()).toContainText(/por debajo del suelo/);
+    await expect(v2.locator(".prev-v2-arreglo")).toHaveCount(0);
+  });
+});
+
 // FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
 test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
   const pageErrors = [];
