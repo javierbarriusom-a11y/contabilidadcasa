@@ -22,7 +22,7 @@ const PREVISION_V2_GRANDE = 300; // «Lo que viene»: pagos y cobros desde este 
 
 let previsionV2Detalle = false; // «Ver todo el detalle», hasta recargar
 let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, hasta recargar
-const previsionV2Params = { concept: "", months: 3, points: 1 }; // FX-21 (D-N3): de quién, cuántos meses y cuántos puntos
+const previsionV2Params = { concept: "", months: 3, points: 1, amount: 3000 }; // FX-21 (D-N3): de quién, cuántos meses y cuántos puntos
 const previsionV2Cache = new Map(); // FX-21: cada prueba se calcula una vez por trayectoria del plan y parámetros
 let previsionV2Dia = { date: "", fijado: false }; // FX-10 PR-2: el día del panel; sin fijar, sigue al ratón
 let previsionV2Pulsado = false; // un clic, un toque o una tecla sobre el gráfico fija el día
@@ -107,6 +107,7 @@ function previsionV2ParamsFor(id, input, today) {
     const shocks = reviews.length ? S.euriborShocks(reviews, previsionV2Params.points, globalThis.FinanceCanonicalRateReview.payment) : [];
     return { points: previsionV2Params.points, shocks, missing };
   }
+  if (id === "imprevisto") return { amount: previsionV2Params.amount };
   return {};
 }
 
@@ -228,8 +229,16 @@ function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null
 }
 
 /** El nombre corto de la prueba, para la línea del gráfico y la cabecera de la tabla. */
+/** La etiqueta del imprevisto con el importe elegido (la de siempre con 3.000 €). */
+function previsionV2ImprevistoCorto(preset, amount) {
+  const importe = Number(amount) > 0 ? Number(amount) : preset.amount;
+  return importe === preset.amount ? preset.short : `Imprevisto ${money(importe)}`.replace(/\u00a0/g, " ");
+}
+
 function previsionV2Corto(prueba) {
-  return prueba.preset.id === "euribor" ? `Euribor +${prueba.params?.points || 1}` : prueba.preset.short;
+  if (prueba.preset.id === "euribor") return `Euribor +${prueba.params?.points || 1}`;
+  if (prueba.preset.id === "imprevisto") return previsionV2ImprevistoCorto(prueba.preset, prueba.params?.amount);
+  return prueba.preset.short;
 }
 
 /** Cómo empieza la frase de cada prueba: «Sin «X» durante 3 meses», «Si el Euribor sube 1 punto…», «Con un imprevisto…». */
@@ -269,6 +278,9 @@ function previsionV2OpcionesHtml(prueba) {
   if (previsionV2Escenario === "euribor" && params.shocks?.length) {
     return `<div class="prev-v2-opciones">${grupo("Cuánto sube", "points", S.EURIBOR_PUNTOS.map((n) => [n, `+${n} ${n === 1 ? "punto" : "puntos"}`]), params.points)}</div>`;
   }
+  if (previsionV2Escenario === "imprevisto" && S.IMPREVISTO_IMPORTES) {
+    return `<div class="prev-v2-opciones">${grupo("Cuánto", "amount", S.IMPREVISTO_IMPORTES.map((n) => [n, money(n)]), params.amount)}</div>`;
+  }
   return "";
 }
 
@@ -276,7 +288,8 @@ function previsionV2OpcionesHtml(prueba) {
 function previsionV2CompararHtml(prueba, today) {
   const S = globalThis.FinanceCanonicalStressScenarios;
   if (!S) return "";
-  const chips = [{ id: "", short: "Solo el plan" }, ...S.PRESETS].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(preset.short)}</button>`).join("");
+  const corto = (preset) => (preset.id === "imprevisto" ? previsionV2ImprevistoCorto(preset, previsionV2Params.amount) : preset.short);
+  const chips = [{ id: "", short: "Solo el plan" }, ...S.PRESETS].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
   const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>`;
   if (!previsionV2Escenario) return fila;
   const c = prueba?.comparison;

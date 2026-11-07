@@ -5575,7 +5575,15 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
-      await expect(v2.locator(".prev-v2-opciones")).toHaveCount(0);
+      // FX-21 (7/11): el importe se elige; la píldora, la frase y la tabla dicen el elegido.
+      await expect(v2.locator('[data-prevision-v2-param="amount"]')).toHaveCount(3);
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]').click();
+      await expect(v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 6.000 € el 8 dic");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/−6\.000\s€/);
+      await expect(v2.locator('[data-prevision-v2-prueba="imprevisto"]')).toHaveText("Imprevisto 6.000 €");
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="3000"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa.
       await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
       // D-N8: con una reserva de 1.000 €, el traspaso al ahorro la deja en la cuenta (antes la cuenta tocaba 0 € el 8 dic),

@@ -173,6 +173,20 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (420): el importe del imprevisto se elige (FX-21)
+
+- **Qué:** en «Comparar con» › Imprevisto, el importe se elige con el mismo patrón de opciones que «Durante» y «Cuánto sube»: 1.000, 3.000 o 6.000 €. Por defecto, los 3.000 € de D-N3.
+  - **Motor:** `IMPREVISTO_IMPORTES` y `params.amount` en `evaluate()` de `canonical-stress-scenarios.js`.
+  - **Etiquetas:** la píldora, la línea del gráfico y la cabecera de la tabla dicen el importe elegido. Con 3.000 € es la etiqueta de siempre.
+- **Pruebas:**
+  - `fx21-pruebas-estres` con 6.000 €: la diferencia en el punto más bajo es −6.000 €;
+  - la e2e «Comparar con» elige 6.000 €, comprueba la frase, la tabla y la píldora, y vuelve a 3.000 €.
+- **Se publica el 9/11, con el punto de Hoy:** van en la misma rama y no se puede publicar uno sin el otro.
+- **Versiones:** `canonical-stress-scenarios.js` a `20261109fx21b`; las de `views/prevision-v2.js` y `novedades.js` van con las del punto de Hoy (`20261109fx31h`).
+- **Validación:**
+  - `npm run verify` en verde: 6.454 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 171,7 ms; build, privacidad y humo.
+  - En Chromium local: e2e y axe de C2, XPR-07/08 y el punto de Hoy, 21 de 21.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (419): el punto de confianza en Hoy (FX-31), para publicar el lunes 9/11
 
 - **Decisión del hogar:** «primero el punto de confianza en Hoy y sigue». Es el cambio de Hoy de la semana del 9/11; el de la semana del 2/11 fue D-N4. **Se fusiona el lunes 9/11, no antes.**

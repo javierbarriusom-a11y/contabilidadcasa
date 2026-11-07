@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-imprevisto-importe",
+      fecha: "2026-11-09",
+      texto: "Previsión: en la prueba del imprevisto eliges el importe (1.000, 3.000 o 6.000 €) y la tabla dice cuánto te quita.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-punto-confianza-hoy",
       fecha: "2026-11-09",
       texto: "Hoy: junto a «Fin de mes», un punto dice cuánto fiarse de la previsión (○ baja, ◐ media, ● alta); tócalo para ver por qué.",

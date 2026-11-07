@@ -32,6 +32,7 @@
   ]);
   const SUELDO_MESES = Object.freeze([3, 6]);
   const EURIBOR_PUNTOS = Object.freeze([1, 2]);
+  const IMPREVISTO_IMPORTES = Object.freeze([1000, 3000, 6000]); // FX-21 (7/11/2026): el importe se elige; 3.000 € sigue siendo el de D-N3
 
   function monthLength(monthKey) {
     const [year, month] = String(monthKey).split("-").map(Number);
@@ -287,11 +288,11 @@
     else if (preset.id === "euribor") {
       if (!params.shocks?.length) return { preset, applied: false, missing: params.missing || [] };
       changed = applyEuribor(baseInput, { shocks: params.shocks });
-    } else changed = applyImprevisto(baseInput, { date: baseLow?.date, amount: preset.amount });
+    } else changed = applyImprevisto(baseInput, { date: baseLow?.date, amount: Number(params?.amount) > 0 ? Number(params.amount) : preset.amount });
     if (!changed.applied) return { preset, applied: false, missing: [] };
     const result = run(changed.input, deps, `prueba de estrés: ${preset.id}`);
     return { preset, applied: true, valid: result.valid, info: changed.info, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate });
+  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate });
 });
