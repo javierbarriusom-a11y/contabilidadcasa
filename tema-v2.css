@@ -4062,3 +4062,205 @@
   display: block;
   color: var(--e19-muted);
 }
+
+/* ---------- FX-10 PR-2 · El panel del día (views/prevision-v2.js, de PrevisionDesktop.png) ----------
+   Dentro de la tarjeta: en móvil, debajo del gráfico y antes de «Comparar con»; desde 1180 px, a la derecha del titular y el
+   gráfico, para que cifra, gráfico y panel se vean sin desplazar a 1440 × 900. «Comparar con» ocupa entonces todo el ancho. */
+:root[data-tema="v2"] .prev-v2-comparar-bloque {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-hueco {
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-dia {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .prev-v2-dia p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-fecha {
+  font-size: var(--e19-text-lg, 1.15rem);
+  font-weight: 700;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-saldo {
+  font-size: var(--e19-text-lg, 1.15rem);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-sub,
+:root[data-tema="v2"] .prev-v2-dia-prueba {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .prev-v2-dia-mueve {
+  margin-top: 6px;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-dia-que {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-que small {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-dia-importe {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .prev-v2-dia-importe.is-pos {
+  color: var(--e19-success);
+}
+
+@media (min-width: 1180px) {
+  :root[data-tema="v2"] .prev-v2-card.con-dia {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    column-gap: 20px;
+  }
+
+  :root[data-tema="v2"] .prev-v2-card.con-dia > * {
+    grid-column: 1;
+  }
+
+  :root[data-tema="v2"] .prev-v2-card.con-dia > .prev-v2-dia-hueco {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
+  :root[data-tema="v2"] .prev-v2-card.con-dia > .prev-v2-comparar-bloque {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- FX-31 · La insignia de confianza ----------
+   Punto de color, texto y flecha: el nivel nunca va solo por el color. La hoja se abre debajo del titular. */
+:root[data-tema="v2"] .prev-v2-hero-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+:root[data-tema="v2"] .prev-v2-hero-cabecera .e19-eyebrow {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-confianza {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: 999px;
+  background: var(--e19-surface);
+  color: var(--e19-text, inherit);
+  font: inherit;
+  font-size: var(--e19-text-sm);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .prev-v2-confianza-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--e19-warning);
+}
+
+:root[data-tema="v2"] .prev-v2-confianza[data-nivel="media"] .prev-v2-confianza-punto {
+  background: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-confianza[data-nivel="alta"] .prev-v2-confianza-punto {
+  background: var(--e19-success);
+}
+
+:root[data-tema="v2"] .prev-v2-confianza-hoja {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+:root[data-tema="v2"] .prev-v2-confianza-hoja[hidden] {
+  display: none;
+}
+
+:root[data-tema="v2"] .prev-v2-confianza-hoja h3,
+:root[data-tema="v2"] .prev-v2-confianza-hoja p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-senales {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-senal {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  gap: 6px;
+}
+
+:root[data-tema="v2"] .prev-v2-senal[data-estado="mal"] .prev-v2-senal-icono {
+  color: var(--e19-warning);
+}
+
+:root[data-tema="v2"] .prev-v2-senal[data-estado="ok"] .prev-v2-senal-icono {
+  color: var(--e19-success);
+}
+
+:root[data-tema="v2"] .prev-v2-sube {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding-top: 8px;
+  border-top: 1px solid var(--e19-border);
+}

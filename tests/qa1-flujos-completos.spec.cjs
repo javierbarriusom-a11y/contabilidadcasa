@@ -5604,6 +5604,146 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
   }
 });
 
+// FX-10 PR-2 y FX-31: el panel del día de Plan › Previsión (a la derecha del gráfico en escritorio, debajo en móvil) y la insignia
+// de confianza con su porqué y la tarea que más la sube. Datos de ejemplo (sin cifras del hogar), reloj fijo el 6/11/2026.
+test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el día más bajo de entrada, se recorre y se fija; la insignia dice por qué y qué la sube, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const dia = v2.locator(".prev-v2-dia");
+      const titulo = dia.locator("#prevV2DiaTitulo");
+
+      // De entrada, el punto más bajo: el mismo día y la misma cifra que el titular.
+      await expect(dia).toHaveAttribute("aria-labelledby", "prevV2DiaTitulo");
+      await expect(dia.locator(".e19-eyebrow").first()).toHaveText(/Día seleccionado · el más bajo/i);
+      await expect(titulo).toHaveText("Martes 8 dic");
+      await expect(dia.locator(".prev-v2-dia-saldo")).toHaveText(/5\.600\s€/);
+      await expect(dia).toContainText(/4\.100\s€ sobre el suelo\. Cuenta corriente 0\s€ · ahorro 5\.600\s€\./);
+      await expect(v2.locator(".ck-lectura")).toHaveText(/8 dic: 5\.600\s€ previstos · 4\.100\s€ sobre el suelo\./);
+      // Qué lo mueve: los pagos del día con su certeza; el gasto variable no tiene día de cargo.
+      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" })).toContainText("gasto variable, sin día fijo");
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
+
+      const figura = v2.locator('[data-ck-id="prevision-v2"]');
+      const scrub = figura.locator(".ck-scrub");
+      const caja = await scrub.boundingBox();
+      const cajaDia = await dia.boundingBox();
+      const cajaFigura = await figura.boundingBox();
+      if (viewport.width === 1440) {
+        // Escritorio: a la derecha del gráfico, y cifra, gráfico y panel sin desplazar.
+        expect(cajaDia.x, "el panel, a la derecha del gráfico").toBeGreaterThan(cajaFigura.x + cajaFigura.width);
+        expect(cajaDia.y + cajaDia.height, "el panel cabe en 900 px sin desplazar").toBeLessThanOrEqual(900);
+        expect(cajaFigura.y + cajaFigura.height, "el gráfico cabe en 900 px sin desplazar").toBeLessThanOrEqual(900);
+        // Pasar el ratón cambia el día; un clic lo fija y el ratón ya no lo mueve.
+        await page.mouse.move(caja.x + caja.width * 0.1, caja.y + caja.height / 2);
+        await expect(titulo).not.toHaveText("Martes 8 dic");
+        await page.mouse.click(caja.x + caja.width * 0.8, caja.y + caja.height / 2);
+        const fijado = await titulo.textContent();
+        await expect(dia.locator(".prev-v2-dia-pista")).toContainText("Día fijado.");
+        await page.mouse.move(caja.x + caja.width * 0.3, caja.y + caja.height / 2);
+        await expect(titulo).toHaveText(fijado);
+        // Con el teclado: la flecha mueve el día (y lo deja fijado).
+        await scrub.focus();
+        await page.keyboard.press("ArrowLeft");
+        await expect(titulo).not.toHaveText(fijado);
+      } else {
+        // Móvil: debajo del gráfico, antes de «Comparar con», sin desbordar.
+        expect(cajaDia.y, "el panel, debajo del gráfico").toBeGreaterThan(cajaFigura.y + cajaFigura.height - 1);
+        const comparar = await v2.locator(".prev-v2-comparar").boundingBox();
+        expect(comparar.y, "y antes de «Comparar con»").toBeGreaterThan(cajaDia.y + cajaDia.height - 1);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+        // Tocar el gráfico fija el día.
+        await page.mouse.click(caja.x + caja.width * 0.8, caja.y + caja.height / 2);
+        await expect(titulo).not.toHaveText("Martes 8 dic");
+        await expect(dia.locator(".prev-v2-dia-pista")).toContainText("Día fijado.");
+      }
+      // «Volver al punto más bajo» suelta el día.
+      await dia.locator("[data-prevision-v2-dia-soltar]").click();
+      await expect(titulo).toHaveText("Martes 8 dic");
+      await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
+
+      // FX-31: la insignia, honesta con la demo (0 % del gasto con día, saldos por calendario, ningún cierre comparable).
+      const insignia = v2.locator("[data-prevision-v2-confianza]");
+      await expect(insignia).toHaveText(/Confianza baja/);
+      await expect(insignia).toHaveAttribute("data-nivel", "baja");
+      await expect(insignia).toHaveAttribute("aria-expanded", "false");
+      const hoja = v2.locator("#prevV2Confianza");
+      await expect(hoja).toBeHidden();
+      await insignia.click();
+      await expect(insignia).toHaveAttribute("aria-expanded", "true");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("h3")).toHaveText("Por qué la confianza es baja");
+      await expect(hoja.locator(".prev-v2-senal")).toHaveCount(3);
+      await expect(hoja.locator('.prev-v2-senal[data-estado="mal"]')).toHaveCount(3);
+      await expect(hoja).toContainText("Ningún pago de los próximos 90 días tiene su día confirmado");
+      await expect(hoja).toContainText("Los saldos se calculan por calendario");
+      await expect(hoja).toContainText("Todavía ningún cierre comparable");
+      // Lo que más la sube: decir el día de cargo de las partidas grandes (sin el gasto variable), con su tiempo.
+      const sube = hoja.locator(".prev-v2-sube");
+      await expect(sube).toContainText("Decir el día de cargo de las 5 partidas más grandes");
+      await expect(sube).not.toContainText("Gasto variable");
+      await expect(sube).toContainText(/Quita hasta 2\.980\s€ de incertidumbre/);
+      await expect(sube).toContainText("supuesto, sin medir");
+      await expect(sube.locator('[data-prevision-v2-nav="planificacion-partidas"]')).toBeVisible();
+      await expect(hoja).toContainText("La confianza no cambia ninguna cifra");
+
+      // Con una prueba de estrés, el panel dice cuánto quedaría ese día; la hoja sigue abierta.
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(dia.locator(".prev-v2-dia-prueba")).toHaveText(/Con «Imprevisto 3\.000 €»: 2\.600\s€ \(−3\.000\s€\)/);
+      await expect(hoja).toBeVisible();
+      await insignia.click();
+      await expect(hoja).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// FX-31 unificada (7/11/2026): Herramientas › Previsión ya no enseña «Fiabilidad de la previsión»; enseña la misma insignia de
+// confianza que Plan › Previsión, con su hoja, con los dos temas (las dos versiones conservan las mismas funciones).
+test.describe("FX-31 · una sola insignia de confianza", () => {
+  for (const tema of ["", "?tema=clasico"]) {
+    test(`Herramientas › Previsión enseña la misma insignia y su hoja${tema ? ", con el tema clásico" : ""}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto(`/index.html${tema}#prevision`);
+      const box = page.locator("#previsionReliabilityBadge");
+      const insignia = box.locator("[data-prevision-v2-confianza]");
+      await expect(insignia).toHaveText(/Confianza baja/, { timeout: 20000 });
+      await expect(page.locator("#prevision")).not.toContainText("Fiabilidad de la previsión");
+      const hoja = box.locator("#previsionConfianzaHoja");
+      await expect(hoja).toBeHidden();
+      await insignia.click();
+      await expect(insignia).toHaveAttribute("aria-expanded", "true");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("h3")).toHaveText("Por qué la confianza es baja");
+      await expect(hoja).toContainText("Decir el día de cargo de las 5 partidas más grandes");
+      // La misma que la de Plan › Previsión: el mismo nivel y la misma tarea.
+      if (!tema) {
+        const nivel = await insignia.getAttribute("data-nivel");
+        expect(nivel).toBe("baja");
+        await page.goto("/index.html#plan");
+        await page.locator('[data-plan-tab="prevision"]').click();
+        await expect(page.locator("#planPrevisionV2 [data-prevision-v2-confianza]")).toHaveAttribute("data-nivel", nivel);
+      }
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
 test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
   const pageErrors = [];

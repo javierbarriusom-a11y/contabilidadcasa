@@ -173,6 +173,65 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (416): una sola insignia de confianza (P3 unificada con FX-31)
+
+- **Petición del hogar:** «unifica la etiqueta de fiabilidad con la insignia y sigue».
+- **Antes:** Herramientas › Previsión enseñaba «Fiabilidad de la previsión: media/baja» (P3). Medía solo el error del neto mensual en los meses conciliados (`pvc17PredictiveHealthIndex`) y podía decir «media» con la insignia de Plan › Previsión en «baja».
+- **Ahora:**
+  - `renderPrevisionReliabilityBadge()` (`app.js`) pinta la misma insignia con su hoja, mediante `previsionV2InsigniaHerramientas()` de `views/prevision-v2.js`, con los dos temas. Su contenedor pasa de `<p>` a `<div>`, porque la hoja lleva un h3 y una lista.
+  - **La insignia y la hoja reciben el id de la hoja,** así que caben las dos en la misma página sin repetir ids. El botón abre y cierra la que controla (`aria-controls`).
+  - **Lo que medía P3 entra en la señal «Acierto»** (`canonical-forecast-confidence.js`, `monthly`):
+    - con 6 meses conciliados o más, mientras la caja a fin de mes no tenga 3 cierres comparables, la señal queda «a medias» y dice su error medio;
+    - con menos, se cuenta y no sube;
+    - con 3 cierres o más manda la caja a fin de mes.
+- **Pruebas:**
+  - `fx31-insignia-confianza` de 6 a 7;
+  - nueva e2e «FX-31 · una sola insignia de confianza», con los dos temas, que comprueba el mismo nivel en las dos pantallas.
+- **Versiones** a `20261107fx31b`: `app.js` (con las pruebas que la fijan), `views/prevision-v2.js` y `canonical-forecast-confidence.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.449 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 180,4 ms; build, privacidad y humo.
+  - En Chromium local: e2e de Previsión, panel, insignia y calidad, 24 de 24; axe de revisión y Previsión, 20 de 20.
+
+## Cierre de sesión — 7 de noviembre de 2026 (415): panel del día (FX-10 PR-2) e insignia de confianza (FX-31) en Plan › Previsión
+
+- **Petición del hogar:** «sigue con el panel del día y la insignia de confianza».
+- **Panel del día** (`views/prevision-v2.js`, de `PrevisionDesktop.png`):
+  - **Dónde:** dentro de la tarjeta de Previsión. Desde 1180 px va a la derecha del titular y el gráfico; en móvil, debajo del gráfico y antes de «Comparar con».
+  - **Qué dice:** de entrada, el punto más bajo, con:
+    - el saldo y el margen sobre el suelo;
+    - la cuenta corriente y el ahorro, marcando si la cuenta queda bajo su reserva o en descubierto;
+    - lo que mueve el día, con su certeza y «¿sabes el día?» en lo estimado;
+    - con una prueba de estrés, el saldo de ese día con la prueba.
+
+    En 12 m y más, lo que entra y sale desde el punto anterior.
+  - **Interacción:** sigue el evento `ck-select` del kit de gráficos. El ratón solo lo mueve si el día no está fijado; un clic, un toque o ← → lo fijan, y «Volver al punto más bajo» lo suelta.
+  - **El gasto variable** («Gasto variable estimado») dice «sin día fijo» y no pide día de cargo.
+  - **Sin titulares nuevos (XGO-01):** la fecha del panel no es un encabezado. Plan › Previsión sigue en 4.
+- **Lectura bajo el gráfico:** solo día, saldo y margen, redondeados como el resto. Antes decía 5.620 € al lado de los 5.600 € del titular, y repetía lo que ahora dice el panel.
+- **Insignia de confianza** (nuevo `canonical-forecast-confidence.js`, puro):
+  - **Tres señales que ya existían:**
+    - % del gasto de 90 días con día confirmado (WP-10; 70 % bien, 30 % a medias);
+    - saldos (WP-26: por calendario o sin fecha, flojo; por edad, el resto);
+    - acierto (WP-12: 0 cierres comparables flojo, menos de 3 a medias, 3 o más bien salvo un error de más del 10 %).
+  - **Nivel:** «alta» solo con las tres bien; «baja» con dos o más flojas.
+  - **La hoja** dice por qué y propone la tarea que más la sube: la primera de la cola de WP-45 (euros por minuto) que mejora una señal floja. Se añaden dos tareas de Previsión: decir el día de cargo de las 5 partidas grandes sin día, y firmar los cierres.
+  - **Con la demo:** confianza baja (las tres señales flojas). La tarea es decir el día de cargo de 5 partidas, unos 2,5 min (supuesto, sin medir) para 2.980 €.
+- **Registro del motor:** `index.html` (antes de la vista), `service-worker.js`, `tools/build-public-site.mjs`; ARQ-3 de 119 a 120.
+- **Pruebas:**
+  - nueva `tests/fx31-insignia-confianza.test.cjs` (6);
+  - nueva e2e «Rediseño C2 · panel del día e insignia de confianza» a 390 (`@safari`) y 1440 px;
+  - el axe de C2, en claro y oscuro, revisa también el panel y la hoja abierta.
+- **Novedades:** una línea. **Versiones:** `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261107fx31a`.
+- **Lo que queda:** el punto de confianza en Hoy (su hueco semanal); el rango probable en el panel (tras FX-03); XPR-07/08 dentro de C2.
+  - **Por unificar:** la etiqueta P3 «Fiabilidad de la previsión» de Herramientas › Previsión mide otra cosa (error mensual histórico) y puede decir «media» con la insignia en «baja».
+- **Validación:**
+  - `npm run verify` en verde: 6.448 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 182,2 ms; build, privacidad y humo.
+  - En Chromium local:
+    - e2e de Previsión, FX-01, FX-23, C2, banda y XPR-06: 26 de 26;
+    - XGO-01: 1 de 1;
+    - axe de C2: 2 de 2.
+  - Sin desbordes a 390 px, también con DejaVu Sans, la tipografía del CI. Safari, en el CI.
+
 ## Cierre de sesión — 6 de noviembre de 2026 (414): D-N8 decidida y hecha, el traspaso al ahorro deja la reserva en la cuenta corriente
 
 - **Decisión del hogar:** «D-N8 sí, y sigue».
