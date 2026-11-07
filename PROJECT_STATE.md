@@ -173,6 +173,24 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (417): XPR-07 dentro de la Previsión nueva; XPR-08 pasa a decisión (D-N9)
+
+- **Petición del hogar:** «… y sigue», tras unificar la insignia. Lo siguiente de C2 era integrar XPR-07 y XPR-08.
+- **XPR-07 en Plan › Previsión** (`views/prevision-v2.js`, `previsionV2ArregloHtml`): la tarjeta «Para no bajar del suelo el …» de `descubierto-ui.js`, debajo de la tarjeta de la previsión.
+  - **Datos:** usa la trayectoria del motor diario, la que pinta el gráfico, y el mismo suelo.
+  - **Cuándo sale:** solo con un descubierto previsto en 30 días y con su interruptor de Funciones en prueba encendido. Sigue en prueba hasta su revisión del 12/11, porque graduarla es decisión del hogar.
+  - **Texto según la pantalla:** `descubiertoHtml` acepta `capasDonde` y `origen`, para decir «Herramientas › Previsión» y «la trayectoria del gráfico de arriba». Por defecto, el texto de siempre.
+  - **Cifras:** a menos de 30 días el contrato redondea a la decena, así que la tarjeta y el titular dicen lo mismo («faltan 1.380 €» y «1.380 € por debajo del suelo»).
+- **XPR-08 no se construye:** pasa a la decisión **D-N9**, con la opción (b) recomendada. La Previsión nueva ya descuenta, en su punto más bajo, lo que el plan pone dentro del horizonte; otra cifra de «libre» contaría dos veces el IBI o confundiría.
+- **Pruebas:**
+  - nueva e2e «XPR-07 · el arreglo más barato dentro de la Previsión nueva», a 390 (`@safari`) y 1440 px y con el interruptor apagado;
+  - nuevo axe de la tarjeta en claro y oscuro;
+  - las de XPR-07 en Herramientas › Previsión, sin cambios.
+- **Novedades:** una línea. **Versiones** a `20261107xpr07c2`: `views/prevision-v2.js`, `descubierto-ui.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.449 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 187,0 ms; build, privacidad y humo.
+  - En Chromium local: e2e y axe de XPR-07, 7 de 7.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (416): una sola insignia de confianza (P3 unificada con FX-31)
 
 - **Petición del hogar:** «unifica la etiqueta de fiabilidad con la insignia y sigue».

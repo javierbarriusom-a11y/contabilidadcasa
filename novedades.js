@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-07-arreglo-en-prevision",
+      fecha: "2026-11-07",
+      texto: "Previsión: si la liquidez va a bajar del suelo en 30 días, el arreglo más barato sale debajo del gráfico.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-07-panel-dia-confianza",
       fecha: "2026-11-07",
       texto: "Previsión: el panel del día dice qué mueve cada día (un clic lo fija) y una sola insignia de confianza, con su porqué y qué la sube.",
