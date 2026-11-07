@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-limite-diez-deuda",
+      fecha: "2026-11-09",
+      texto: "Deuda › Comparar: con diez escenarios guardados ya no guarda otro; te lleva a archivar uno, como en Escenarios.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-11-09-prueba-a-escenario",
       fecha: "2026-11-09",
       texto: "Previsión: «Guardar como escenario» lleva la prueba de estrés a Escenarios › Guardados, sin aplicar nada, para seguir con ella.",

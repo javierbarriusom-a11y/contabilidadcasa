@@ -5921,6 +5921,34 @@ test.describe("FX-21 · guardar la prueba de estrés como escenario", () => {
   });
 });
 
+// E-11b (7/11/2026): «Guardar como escenario» de Deuda › Comparar respeta los diez escenarios vivos, con el mismo diálogo que
+// Escenarios; antes guardaba el undécimo. Escenarios FICTICIOS.
+test("E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.goto("/index.html#deuda-comparar");
+  const guardar = page.locator("[data-deuda-comparar-guardar]").first();
+  await expect(guardar).toBeVisible({ timeout: 20000 });
+  await page.evaluate(() => saveEscenarioMotorSavedList(Array.from({ length: 10 }, (_, index) => ({ id: `e11b-${index}`, nombre: `Escenario FICTICIO ${index + 1}`, estado: "guardado", decisiones: [] }))));
+  await guardar.click();
+  const dialogo = page.locator("#escenarioMotorLimitDialog");
+  await expect(dialogo).toBeVisible();
+  expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(10);
+  // «Ir a archivar» lleva a Guardados.
+  await dialogo.locator('button[value="archive"]').click();
+  await expect(page).toHaveURL(/#escenario-guardados$/);
+  // Con uno archivado, ya cabe.
+  await page.evaluate(() => saveEscenarioMotorSavedList(loadEscenarioMotorSaved().map((entry, index) => (index === 0 ? { ...entry, archived: true } : entry))));
+  await page.goto("/index.html#deuda-comparar");
+  await expect(page.locator("[data-deuda-comparar-guardar]").first()).toBeVisible({ timeout: 20000 });
+  await page.locator("[data-deuda-comparar-guardar]").first().click();
+  await expect(page.locator("#escenarioMotorLimitDialog")).toBeHidden();
+  const lista = await page.evaluate(() => loadEscenarioMotorSaved());
+  expect(lista).toHaveLength(11);
+  expect(lista[0].nombre).toMatch(/^Comparar · /);
+  expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
 // FX-31 en Hoy (decisión del hogar del 7/11/2026, cambio de Hoy de la semana del 9/11): junto a «Fin de mes», un punto con la confianza
 // de la previsión, sin texto extra; el nivel va también por forma (○ baja) y lleva a Plan › Previsión con la hoja del porqué abierta.
 test.describe("FX-31 · el punto de confianza en Hoy", () => {

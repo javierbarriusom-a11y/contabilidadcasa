@@ -173,6 +173,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (422): el límite de diez escenarios vivos, también en Deuda › Comparar y en el aviso del simulador
+
+- **Qué:** «Guardar como escenario» de Deuda › Comparar guardaba un undécimo escenario vivo, saltándose E-11b. Ahora abre el mismo diálogo que Escenarios («Ir a archivar» lleva a Guardados), lo anuncia y no guarda nada. La comprobación va antes de sobrescribir el borrador del simulador.
+- **Lo mismo en «guardar con aviso»** del simulador (`handleEscenarioMotorSaveAviso`), que tampoco lo comprobaba. Es la misma regla y dos líneas; no cambia nada más.
+- **Pruebas:** `tests/e11b-limite-diez-escenarios.test.cjs` (3), una de ellas recorre cada `saved.unshift(` de las pantallas y exige su comprobación; e2e «E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar».
+- **Versiones:** `views/deuda.js` y `views/escenarios.js` a `20261109lim10` (en el mapa de carga diferida de `app.js`). Novedades, una línea.
+- **Se publica el 9/11** con el resto de la rama.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (421): «Guardar como escenario» desde la prueba de estrés (FX-21)
 
 - **Qué:** bajo la tabla de impacto de cada prueba de Plan › Previsión, «Guardar como escenario» la deja en Escenarios › Guardados como «guardado», sin aplicar nada. Desde allí, «Cargar en simulador».
@@ -188,7 +196,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - axe claro y oscuro de C2 con el botón, el aviso y el estado «guardada».
 - **Se publica el 9/11 con el punto de Hoy:** misma rama, mismo PR.
 - **Versiones:** `views/prevision-v2.js`, `tema-v2.css`, `canonical-stress-scenarios.js` y `novedades.js` a `20261109fx21c`. Novedades, una línea.
-- **Hallazgo (no corregido):** «Guardar como escenario» de Deuda › Comparar no respeta el límite de diez escenarios vivos.
+- **Hallazgo:** «Guardar como escenario» de Deuda › Comparar no respetaba el límite de diez escenarios vivos; corregido en la 422.
 - **Validación:**
   - `npm run verify` en verde: 6.458 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento, build, privacidad y humo.
   - En Chromium local: las 3 e2e nuevas y los 2 axe de C2, en verde.

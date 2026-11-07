@@ -30,7 +30,7 @@ minutos.
 - **Garantía:** recalculada en Escenarios da los mismos meses que la prueba (prueba unitaria de paridad con los motores reales para las tres; en la app, el imprevisto quita exactamente sus 3.000 €).
 - **Lo que se pierde al pasar:** el día. Escenarios cuenta por meses; la nota del escenario lo dice.
 - **Frenos:** respeta los diez escenarios vivos de E-11b (si no cabe, lo dice y no guarda nada), se valida con el esquema de Escenarios y la misma prueba no se guarda dos veces.
-- **Hallazgo (no corregido; no es de esta tarea):** «Guardar como escenario» de Deuda › Comparar no respeta el límite de diez.
+- **Hallazgo corregido el mismo 7/11:** «Guardar como escenario» de Deuda › Comparar (y «guardar con aviso» del simulador) ya respetan el límite de diez, con el diálogo de Escenarios.
 
 **7/11/2026 · El punto de confianza en Hoy, hecho y listo para el lunes 9/11 («primero el punto de confianza en Hoy y sigue»).**
 - **Qué es:** junto a «Fin de mes», la cifra de Hoy que sale de la previsión, un punto con la confianza de la previsión, sin texto extra.
