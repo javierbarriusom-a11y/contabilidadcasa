@@ -5517,21 +5517,31 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
-      await expect(impacto.locator("tbody tr")).toHaveCount(5);
-      await expect(impacto.locator("tbody tr").nth(1)).toContainText("¿Bajáis del suelo?");
+      await expect(impacto.locator("tbody tr")).toHaveCount(6);
+      // FX-20 (7/11): el colchón en meses en el punto más bajo, con el gasto corriente medio del plan (4.250 € en la demo):
+      // 5.600 € son 1,3 meses; 2.500 €, 0,6; la diferencia es la resta de lo que se ve.
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*0,6\s*−0,7/);
+      await expect(impacto).toContainText("Colchón: cuántos meses de gasto corriente (4.250 € al mes de media en los próximos 12) cubre la liquidez.");
+      // Con el objetivo de colchón de la demo (4 meses) el plan ya está por debajo: la frase no lo repite.
+      await expect(impacto.locator(".prev-v2-impacto-frase")).not.toContainText("objetivo");
+      await expect(impacto.locator("tbody tr").nth(2)).toContainText("¿Bajáis del suelo?");
       // El suelo también en la cuenta corriente (6/11): el total aguanta, pero la cuenta se queda en descubierto.
-      await expect(impacto.locator("tbody tr").nth(2)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
+      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Pero la cuenta corriente se queda en descubierto el 8 dic \(hasta −2\.500\s€ el 8 ene 2027\): habría que pasar unos 2\.600\s€ del ahorro antes de ese día\./);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveClass(/is-bad/);
-      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
-      await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(5)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      // Con un objetivo de 1 mes, la prueba lo rompe y el plan no: la frase lo dice.
+      const objetivoDemo = await page.evaluate(() => { const antes = state.emergencyBufferMonths; state.emergencyBufferMonths = 1; previsionV2Render(); return antes; });
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("El colchón en el punto más bajo baja de 1,3 meses a 0,6 meses de gasto: por debajo de vuestro objetivo de 1 mes.");
+      await page.evaluate((antes) => { state.emergencyBufferMonths = antes; previsionV2Render(); }, objetivoDemo);
       await expect(impacto).toContainText("Se quita «Ingreso Persona A» de nov 26 a ene 27.");
       await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
       await expect(v2.locator(".ck-escenario")).toHaveCount(1);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos");
       await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
       // Las cifras de una fila cuadran: la diferencia es la resta de lo que se ve.
-      const cuadra = await impacto.locator("tbody tr").nth(3).evaluate((tr) => {
+      const cuadra = await impacto.locator("tbody tr").nth(4).evaluate((tr) => {
         const n = (td) => Number(td.textContent.replace(/[^\d,−-]/g, "").replace("−", "-").replace(",", "."));
         const [plan, prueba, diferencia] = [...tr.querySelectorAll("td")].map(n);
         return prueba - plan === diferencia;
@@ -5575,7 +5585,15 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
-      await expect(v2.locator(".prev-v2-opciones")).toHaveCount(0);
+      // FX-21 (7/11): el importe se elige; la píldora, la frase y la tabla dicen el elegido.
+      await expect(v2.locator('[data-prevision-v2-param="amount"]')).toHaveCount(3);
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]').click();
+      await expect(v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 6.000 € el 8 dic");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/−6\.000\s€/);
+      await expect(v2.locator('[data-prevision-v2-prueba="imprevisto"]')).toHaveText("Imprevisto 6.000 €");
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="3000"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
       // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa.
       await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
       // D-N8: con una reserva de 1.000 €, el traspaso al ahorro la deja en la cuenta (antes la cuenta tocaba 0 € el 8 dic),
@@ -5819,6 +5837,157 @@ test.describe("XPR-08 · de verdad libre en la Previsión nueva", () => {
       await libre.locator("[data-prevision-v2-mapa]").click();
       await expect(page.locator("#mapaPagosTitulo")).toBeFocused();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// FX-21 (7/11/2026): «Guardar como escenario» lleva la prueba de estrés a Escenarios › Guardados con los tipos de fábrica, sin
+// aplicar nada; allí se carga en el simulador. Respeta los diez escenarios vivos (E-11b) y no guarda dos veces la misma prueba.
+test.describe("FX-21 · guardar la prueba de estrés como escenario", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el imprevisto pasa a Escenarios, sin tocar el plan, y se carga en el simulador, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const cifraPlan = await v2.locator(".prev-v2-cifra").textContent();
+      // Sin prueba no hay nada que guardar.
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      const guardar = v2.locator("[data-prevision-v2-guardar]");
+      await expect(guardar).toHaveText("Guardar como escenario");
+      await guardar.click();
+      const caja = v2.locator(".prev-v2-guardar");
+      await expect(caja).toContainText("Guardada en Escenarios › Guardados, sin aplicar.");
+      await expect(caja.locator('[data-prevision-v2-nav="escenario-guardados"]')).toBeFocused();
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toHaveCount(0);
+      // No toca el plan: la cifra de arriba es la misma.
+      await expect(v2.locator(".prev-v2-cifra")).toHaveText(cifraPlan);
+      const guardado = await page.evaluate(() => {
+        const lista = loadEscenarioMotorSaved();
+        const base = escenarioMotorBaseInput();
+        const sin = runEscenarioMotor(base, [], null).series.at(-1).totalLiquidity;
+        const con = runEscenarioMotor(base, lista[0].decisiones, null);
+        return { n: lista.length, entry: lista[0], diferencia: Math.round(sin - con.series.at(-1).totalLiquidity), resultados: con.resultados.map((item) => item.resultado) };
+      });
+      expect(guardado.n).toBe(1);
+      expect(guardado.entry.estado).toBe("guardado");
+      expect(guardado.entry.nombre).toMatch(/^Prueba · imprevisto de 3\.000\s€ en /);
+      expect(guardado.entry.decisiones.map((decision) => [decision.tipo, decision.params.importe, decision.params.mes])).toEqual([["imprevisto", 3000, "2026-12"]]);
+      // Recalculado en Escenarios: se aplica y quita exactamente los 3.000 € de la prueba.
+      expect(guardado.resultados).toEqual(["aplicada"]);
+      expect(guardado.diferencia).toBe(3000);
+      // Al volver a pintar, sigue diciendo que ya está guardada: no se guarda dos veces.
+      await v2.locator('[data-prevision-v2-prueba=""]').click();
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      // Otro importe es otra prueba: se puede guardar.
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]').click();
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // «Ver en Escenarios» lleva a Guardados, con la tarjeta de la prueba; «Cargar en simulador» la abre allí.
+      await v2.locator('[data-prevision-v2-param="amount"][data-valor="3000"]').click();
+      await v2.locator('.prev-v2-guardar [data-prevision-v2-nav="escenario-guardados"]').click();
+      await expect(page).toHaveURL(/#escenario-guardados$/);
+      const tarjeta = page.locator("#escenarioGuardadosList .escenario-motor-saved-card").filter({ hasText: "Prueba · imprevisto de 3.000" });
+      await expect(tarjeta).toBeVisible({ timeout: 15000 });
+      await expect(tarjeta).toContainText("Guardado");
+      await expect(tarjeta).toContainText("Guardada desde Plan › Previsión, sin aplicar.");
+      await tarjeta.locator("[data-escenario-guardado-load]").click();
+      await expect(page).toHaveURL(/#escenario-simular$/);
+      await expect(page.locator("#escenarioMotorDecisionsList")).toContainText("Imprevisto de 3.000");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con diez escenarios vivos no guarda y dice cómo hacer sitio; un sueldo menos pasa como cambio de ingreso", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const v2 = page.locator("#planPrevisionV2");
+    await expect(v2).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => saveEscenarioMotorSavedList(Array.from({ length: 10 }, (_, index) => ({ id: `fx21-${index}`, nombre: `Escenario FICTICIO ${index + 1}`, estado: "guardado", decisiones: [] }))));
+    await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+    await v2.locator("[data-prevision-v2-guardar]").click();
+    await expect(v2.locator(".prev-v2-guardar-aviso")).toHaveText("Ya hay 10 escenarios en Escenarios › Guardados: archiva uno para hacer sitio. No se ha guardado nada.");
+    await expect(v2.locator("[data-prevision-v2-guardar]")).toBeFocused();
+    expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(10);
+    // Archivado uno, ya cabe.
+    await page.evaluate(() => saveEscenarioMotorSavedList(loadEscenarioMotorSaved().map((entry, index) => (index === 0 ? { ...entry, archived: true } : entry))));
+    await v2.locator("[data-prevision-v2-guardar]").click();
+    await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+    const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
+    expect(entry.nombre).toMatch(/^Prueba · sin «.+» 3 meses$/);
+    expect(entry.decisiones.every((decision) => decision.tipo === "cambio_ingreso" && decision.params.deltaMensual < 0 && decision.planificacion.modo === "manual")).toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// E-11b (7/11/2026): «Guardar como escenario» de Deuda › Comparar respeta los diez escenarios vivos, con el mismo diálogo que
+// Escenarios; antes guardaba el undécimo. Escenarios FICTICIOS.
+test("E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.goto("/index.html#deuda-comparar");
+  const guardar = page.locator("[data-deuda-comparar-guardar]").first();
+  await expect(guardar).toBeVisible({ timeout: 20000 });
+  await page.evaluate(() => saveEscenarioMotorSavedList(Array.from({ length: 10 }, (_, index) => ({ id: `e11b-${index}`, nombre: `Escenario FICTICIO ${index + 1}`, estado: "guardado", decisiones: [] }))));
+  await guardar.click();
+  const dialogo = page.locator("#escenarioMotorLimitDialog");
+  await expect(dialogo).toBeVisible();
+  expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(10);
+  // «Ir a archivar» lleva a Guardados.
+  await dialogo.locator('button[value="archive"]').click();
+  await expect(page).toHaveURL(/#escenario-guardados$/);
+  // Con uno archivado, ya cabe.
+  await page.evaluate(() => saveEscenarioMotorSavedList(loadEscenarioMotorSaved().map((entry, index) => (index === 0 ? { ...entry, archived: true } : entry))));
+  await page.goto("/index.html#deuda-comparar");
+  await expect(page.locator("[data-deuda-comparar-guardar]").first()).toBeVisible({ timeout: 20000 });
+  await page.locator("[data-deuda-comparar-guardar]").first().click();
+  await expect(page.locator("#escenarioMotorLimitDialog")).toBeHidden();
+  const lista = await page.evaluate(() => loadEscenarioMotorSaved());
+  expect(lista).toHaveLength(11);
+  expect(lista[0].nombre).toMatch(/^Comparar · /);
+  expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
+// FX-31 en Hoy (decisión del hogar del 7/11/2026, cambio de Hoy de la semana del 9/11): junto a «Fin de mes», un punto con la confianza
+// de la previsión, sin texto extra; el nivel va también por forma (○ baja) y lleva a Plan › Previsión con la hoja del porqué abierta.
+test.describe("FX-31 · el punto de confianza en Hoy", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`junto a «Fin de mes», con su nombre, y lleva a la hoja de la insignia, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#home");
+      const stat = page.locator("#hoyV2 .hoy-v2-stat").filter({ hasText: "Fin de noviembre" });
+      await expect(stat).toBeVisible({ timeout: 15000 });
+      const punto = stat.locator("[data-hoy-v2-confianza]");
+      await expect(punto).toHaveAttribute("data-nivel", "baja");
+      await expect(punto).toHaveAttribute("aria-label", "Confianza de la previsión: baja. Ver por qué");
+      await expect(punto).toHaveText("○");
+      // Sin texto extra: la etiqueta, la cifra y el margen siguen siendo los de D-N4.
+      await expect(stat.locator("span").first()).toHaveText("Fin de noviembre");
+      await expect(stat.locator("small")).toContainText(/sobre el suelo|por debajo del suelo/);
+      const caja = await punto.boundingBox();
+      expect(caja.width, "zona de toque de al menos 24 px").toBeGreaterThanOrEqual(24);
+      await punto.click();
+      await expect(page).toHaveURL(/#plan$/);
+      const insignia = page.locator("#planPrevisionV2 [data-prevision-v2-confianza]");
+      await expect(insignia).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#prevV2Confianza")).toBeVisible();
+      await expect(insignia).toBeFocused();
+      // El mismo nivel que la insignia de Previsión: es el mismo cálculo.
+      await expect(insignia).toHaveAttribute("data-nivel", "baja");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

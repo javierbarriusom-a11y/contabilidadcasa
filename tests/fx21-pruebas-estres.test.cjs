@@ -204,6 +204,11 @@ test("FX-21 · evaluate: aplica, recalcula con los motores de siempre y compara;
   assert.deepEqual(calls, ["prueba de estrés: imprevisto"]);
   assert.deepEqual(res.info, { date: res.comparison.baseLow.date, amount: 3000 });
   assert.equal(res.comparison.lowDiff, -3000);
+  // FX-21 (7/11): el importe del imprevisto se elige entre los de IMPREVISTO_IMPORTES; sin elegir, el de D-N3.
+  assert.deepEqual([...Stress.IMPREVISTO_IMPORTES], [1000, 3000, 6000]);
+  const seis = Stress.evaluate("imprevisto", baseInput, baseRows, deps, { ...opts, params: { amount: 6000 } });
+  assert.equal(seis.info.amount, 6000);
+  assert.equal(seis.comparison.lowDiff, -6000);
   const sueldo = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, opts);
   assert.ok(sueldo.comparison.lowDiff < 0 && sueldo.comparison.yearEndDiff === -6000, "dos nóminas de 3.000 antes del 31/12");
   const b6 = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, { ...opts, params: { concept: "Nómina B", months: 6 } });

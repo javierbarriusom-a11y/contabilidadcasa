@@ -11,6 +11,36 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-colchon-meses",
+      fecha: "2026-11-09",
+      texto: "Previsión: cada prueba de estrés dice cuántos meses de gasto os quedan en el punto más bajo, y si baja de vuestro objetivo.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-limite-diez-deuda",
+      fecha: "2026-11-09",
+      texto: "Deuda › Comparar: con diez escenarios guardados ya no guarda otro; te lleva a archivar uno, como en Escenarios.",
+      href: "#deuda-comparar",
+    },
+    {
+      id: "2026-11-09-prueba-a-escenario",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Guardar como escenario» lleva la prueba de estrés a Escenarios › Guardados, sin aplicar nada, para seguir con ella.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-imprevisto-importe",
+      fecha: "2026-11-09",
+      texto: "Previsión: en la prueba del imprevisto eliges el importe (1.000, 3.000 o 6.000 €) y la tabla dice cuánto te quita.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-punto-confianza-hoy",
+      fecha: "2026-11-09",
+      texto: "Hoy: junto a «Fin de mes», un punto dice cuánto fiarse de la previsión (○ baja, ◐ media, ● alta); tócalo para ver por qué.",
+      href: "#home",
+    },
+    {
       id: "2026-11-07-de-verdad-libre",
       fecha: "2026-11-07",
       texto: "Previsión: «De verdad libre» resta de lo libre lo que el plan aún no descuenta (lo devengado de los pagos grandes).",

@@ -435,6 +435,13 @@ function handleDeudaCompararAplicar(strategyId) {
 function handleDeudaCompararGuardarComoEscenario(strategyId) {
   const def = DEBT_STRATEGY_DEFINITIONS.find((item) => item.id === strategyId);
   if (!def) return;
+  // E-11b: diez escenarios vivos como máximo, como al guardar desde Escenarios y desde Plan › Previsión (7/11/2026).
+  // El mismo diálogo que Escenarios («Ir a archivar» lo cablea app.js), y antes de tocar el borrador del simulador.
+  if (loadEscenarioMotorSaved().filter((entry) => !entry.archived).length >= 10) {
+    qs("escenarioMotorLimitDialog")?.showModal?.();
+    announceStatus(`«${def.label}» no se ha guardado: ya hay 10 escenarios en Escenarios › Guardados. Archiva uno para hacer sitio.`);
+    return;
+  }
   debtStrategyDecisionsToEscenario(strategyId);
   if (!escenarioMotorDecisions.length) return;
   const offerExpiresAt = strategyId === "consolidar" ? debtConsolidationOffer().expiresAt || "" : "";

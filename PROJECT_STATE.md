@@ -173,6 +173,79 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (423): el colchón en meses en la tabla de impacto (FX-20)
+
+- **Qué:** cada prueba de estrés de Plan › Previsión trae la fila «Colchón en el punto más bajo (meses)»: plan, prueba y diferencia, con una décima. La nota de la tabla dice con qué gasto se mide.
+- **Fórmula, una sola:** liquidez ÷ gasto corriente medio de los 12 primeros meses del plan (`escenarioMotorAverageCoreSpend`), la de «Colchón más justo» (Análisis y la tira de cabecera) y la de Escenarios. Va al contrato de cifras: `cushionMonths(liquidity, monthlySpend)` en `canonical-forecast-contract.js`. La definición de `colchon-meses` se corrige: decía «las salidas de un mes» y la app siempre ha usado el gasto corriente medio.
+- **El mismo gasto en los dos lados:** así la diferencia son meses de gasto normal que se pierden, y un imprevisto no infla el gasto de un mes.
+- **El objetivo de Ajustes** («Colchón objetivo (meses)»): la frase lo dice solo si la prueba lo rompe y el plan no.
+- **Desviación de la propuesta (§7, FX-20):** el colchón se mide en el punto más bajo, no a fin de año. Es el momento que decide si se aguanta; a fin de año sería la fila «A 31 de diciembre» dividida por una constante. «Colchón más justo» de la cabecera mide fines de mes, así que puede dar más.
+- **Unidad en la etiqueta:** «−0,7 meses» no cabía en la columna a 390 px.
+- **Pruebas:** `tests/fx20-colchon-meses.test.cjs` (3); la e2e «Comparar con» comprueba la fila (1,3 · 0,6 · −0,7 con la demo), la nota y la frase con un objetivo de 1 mes, y sus índices de fila suben uno.
+- **Versiones:** `canonical-forecast-contract.js`, `views/prevision-v2.js` y `novedades.js` a `20261109fx20c`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.464 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 186,0 ms), build, privacidad y humo.
+  - En Chromium local: e2e y axe de C2, FX-21, XPR-06/07/08, FX-31 y E-11b, 27 de 27.
+
+## Cierre de sesión — 7 de noviembre de 2026 (422): el límite de diez escenarios vivos, también en Deuda › Comparar y en el aviso del simulador
+
+- **Qué:** «Guardar como escenario» de Deuda › Comparar guardaba un undécimo escenario vivo, saltándose E-11b. Ahora abre el mismo diálogo que Escenarios («Ir a archivar» lleva a Guardados), lo anuncia y no guarda nada. La comprobación va antes de sobrescribir el borrador del simulador.
+- **Lo mismo en «guardar con aviso»** del simulador (`handleEscenarioMotorSaveAviso`), que tampoco lo comprobaba. Es la misma regla y dos líneas; no cambia nada más.
+- **Pruebas:** `tests/e11b-limite-diez-escenarios.test.cjs` (3), una de ellas recorre cada `saved.unshift(` de las pantallas y exige su comprobación; e2e «E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar».
+- **Versiones:** `views/deuda.js` y `views/escenarios.js` a `20261109lim10` (en el mapa de carga diferida de `app.js`). Novedades, una línea.
+- **Se publica el 9/11** con el resto de la rama.
+
+## Cierre de sesión — 7 de noviembre de 2026 (421): «Guardar como escenario» desde la prueba de estrés (FX-21)
+
+- **Qué:** bajo la tabla de impacto de cada prueba de Plan › Previsión, «Guardar como escenario» la deja en Escenarios › Guardados como «guardado», sin aplicar nada. Desde allí, «Cargar en simulador».
+  - **Motor:** `toDecisions(result, baseInput)` en `canonical-stress-scenarios.js`, puro. Traduce la prueba a los tipos de fábrica con el mes fijado (planificación «manual»):
+    - un sueldo menos → `cambio_ingreso`, un tramo por importe (la paga extra va aparte);
+    - el Euribor → `cambio_gasto` del bloque «Cuota de la hipoteca»;
+    - el imprevisto → `imprevisto`.
+  - **Vista:** `previsionV2GuardarHtml` y `previsionV2GuardarEscenario` en `views/prevision-v2.js`. Mismo almacén que Deuda › Comparar (`escenario-motor-saved`), con `origen: "prevision-prueba"` y una `firma` para no guardar dos veces la misma prueba. Valida con `FinanceCanonicalScenarioSchema` y respeta los diez vivos de E-11b.
+  - **Lo que no pasa:** el día; Escenarios es mensual y la nota lo dice. Con inflación anual distinta de 0, el imprevisto de la prueba se infla un poco con el gasto (va en `coreSpend`) y en Escenarios no (va en `projectOutflow`); con los datos de la demo, el escenario quita exactamente los 3.000 €.
+- **Pruebas:**
+  - `tests/fx21-guardar-como-escenario.test.cjs` (4): las tres traducciones, el esquema y la paridad mes a mes con `canonical-engine.js` y `canonical-scenario-engine.js` reales; el cableado.
+  - e2e «FX-21 · guardar la prueba de estrés como escenario» a 390 (`@safari`) y 1440 px (guardar, no repetir, otro importe sí, la tarjeta en Guardados y el simulador) y el límite de diez con un sueldo menos.
+  - axe claro y oscuro de C2 con el botón, el aviso y el estado «guardada».
+- **Se publica el 9/11 con el punto de Hoy:** misma rama, mismo PR.
+- **Versiones:** `views/prevision-v2.js`, `tema-v2.css`, `canonical-stress-scenarios.js` y `novedades.js` a `20261109fx21c`. Novedades, una línea.
+- **Hallazgo:** «Guardar como escenario» de Deuda › Comparar no respetaba el límite de diez escenarios vivos; corregido en la 422.
+- **Validación:**
+  - `npm run verify` en verde: 6.458 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento, build, privacidad y humo.
+  - En Chromium local: las 3 e2e nuevas y los 2 axe de C2, en verde.
+
+## Cierre de sesión — 7 de noviembre de 2026 (420): el importe del imprevisto se elige (FX-21)
+
+- **Qué:** en «Comparar con» › Imprevisto, el importe se elige con el mismo patrón de opciones que «Durante» y «Cuánto sube»: 1.000, 3.000 o 6.000 €. Por defecto, los 3.000 € de D-N3.
+  - **Motor:** `IMPREVISTO_IMPORTES` y `params.amount` en `evaluate()` de `canonical-stress-scenarios.js`.
+  - **Etiquetas:** la píldora, la línea del gráfico y la cabecera de la tabla dicen el importe elegido. Con 3.000 € es la etiqueta de siempre.
+- **Pruebas:**
+  - `fx21-pruebas-estres` con 6.000 €: la diferencia en el punto más bajo es −6.000 €;
+  - la e2e «Comparar con» elige 6.000 €, comprueba la frase, la tabla y la píldora, y vuelve a 3.000 €.
+- **Se publica el 9/11, con el punto de Hoy:** van en la misma rama y no se puede publicar uno sin el otro.
+- **Versiones:** `canonical-stress-scenarios.js` a `20261109fx21b`; las de `views/prevision-v2.js` y `novedades.js` van con las del punto de Hoy (`20261109fx31h`).
+- **Validación:**
+  - `npm run verify` en verde: 6.454 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 171,7 ms; build, privacidad y humo.
+  - En Chromium local: e2e y axe de C2, XPR-07/08 y el punto de Hoy, 21 de 21.
+
+## Cierre de sesión — 7 de noviembre de 2026 (419): el punto de confianza en Hoy (FX-31), para publicar el lunes 9/11
+
+- **Decisión del hogar:** «primero el punto de confianza en Hoy y sigue». Es el cambio de Hoy de la semana del 9/11; el de la semana del 2/11 fue D-N4. **Se fusiona el lunes 9/11, no antes.**
+- **Hoy** (`views/hoy-v2.js`, `hoyV2ConfianzaHtml`):
+  - **Qué:** junto a «Fin de mes», un botón con la confianza de la previsión, sin texto extra.
+  - **Cómo se lee:** forma y color (○ baja, ◐ media, ● alta), `aria-label` «Confianza de la previsión: baja. Ver por qué» y el mismo texto al pasar el ratón; zona de toque de 28 px.
+  - **El cálculo** es `previsionV2Confianza()` de la Previsión: la misma insignia, sin otro cálculo.
+- **Ir a Previsión:** `previsionV2AbrirConfianza()` (`views/prevision-v2.js`) abre Plan › Previsión con la hoja abierta y el foco en la insignia.
+- **Sin cambios en lo de D-N4:** la etiqueta, la cifra y el margen siguen igual. La etiqueta y el punto van en una cabecera flexible, para que el punto no flote entre las dos cifras en móvil.
+- **Pruebas:**
+  - nueva e2e «FX-31 · el punto de confianza en Hoy», a 390 (`@safari`) y 1440 px;
+  - las de Hoy de siempre (D-N4, FX-01) y su axe siguen en verde.
+- **Novedades:** una línea con fecha del 9/11. **Versiones** a `20261109fx31h`: `views/hoy-v2.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.454 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 192,3 ms; build, privacidad y humo.
+  - En Chromium local: e2e y axe de Hoy, D-N4, FX-01 y el punto, 22 de 22.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (418): XPR-08 «De verdad libre» con D-N9 (b)
 
 - **Decisión del hogar:** «D-N9 opción b y sigue».

@@ -478,6 +478,11 @@ function handleEscenarioMotorSaveAviso() {
   const result = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
   const rejected = (result?.resultados || []).filter((item) => item.resultado !== "aplicada" && item.resultado !== "inactiva");
   if (!rejected.length) return;
+  // E-11b: también el aviso cuenta entre los diez vivos (antes se guardaba aunque ya hubiera diez).
+  if (escenarioMotorLimitReached()) {
+    showEscenarioMotorLimitDialog();
+    return;
+  }
   const saved = loadEscenarioMotorSaved();
   escenarioMotorSavedSeq += 1;
   saved.unshift({
