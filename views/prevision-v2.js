@@ -313,6 +313,15 @@ function previsionV2CompararHtml(prueba, today) {
   const fin = (value) => previsionV2Saldo(value, c.yearEnd.date, today);
   const dif = (value) => (value === null ? "—" : value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "igual"); // ya redondeada
   const bajadaVista = redondea(c.low.value, c.low.date) - redondea(c.baseLow.value, c.baseLow.date);
+  // FX-20: el colchón en meses en el punto más bajo, con el gasto corriente medio del plan en los dos lados (así la diferencia
+  // son meses de gasto normal que se pierden, y un imprevisto no infla el gasto de un mes).
+  const gasto = typeof escenarioMotorAverageCoreSpend === "function" && typeof canonicalEngineRuns !== "undefined" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
+  const colchonPlan = contract.cushionMonths?.(c.baseLow.value, gasto) ?? null;
+  const colchonPrueba = contract.cushionMonths?.(c.low.value, gasto) ?? null;
+  const meses = (value) => `${value.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${Math.abs(value) === 1 ? "mes" : "meses"}`;
+  // En la tabla, la unidad va en la etiqueta: «−0,7 meses» no cabe en la columna a 390 px.
+  const decima = (value) => value.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const difMeses = (value) => (value ? `${value < 0 ? "−" : "+"}${decima(Math.abs(value))}` : "igual");
   const filas = [
     ["Punto más bajo", [nivel(c.baseLow), previsionV2Fecha(c.baseLow.date, today)], [nivel(c.low), previsionV2Fecha(c.low.date, today)], dif(bajadaVista)],
     ["¿Bajáis del suelo?", c.baseCrossesFloor ? `Sí, el ${previsionV2Fecha(c.baseCrossDate, today)}` : "No", c.crossesFloor ? `Sí, el ${previsionV2Fecha(c.crossDate, today)}` : "No", c.shortfall ? `faltan ${money(contract.roundDifference(c.shortfall))}` : "—"],
@@ -322,6 +331,9 @@ function previsionV2CompararHtml(prueba, today) {
   const cuentaPrueba = c.checking?.shocked;
   if (cuentaPlan && cuentaPrueba) {
     filas.splice(2, 0, ["Cuenta corriente, lo más bajo", [previsionV2Saldo(cuentaPlan.low.value, cuentaPlan.low.date, today), previsionV2Fecha(cuentaPlan.low.date, today)], [previsionV2Saldo(cuentaPrueba.low.value, cuentaPrueba.low.date, today), previsionV2Fecha(cuentaPrueba.low.date, today)], dif(redondea(cuentaPrueba.low.value, cuentaPrueba.low.date) - redondea(cuentaPlan.low.value, cuentaPlan.low.date))]);
+  }
+  if (colchonPlan !== null && colchonPrueba !== null) {
+    filas.splice(1, 0, ["Colchón en el punto más bajo (meses)", decima(colchonPlan), decima(colchonPrueba), difMeses(Math.round((colchonPrueba - colchonPlan) * 10) / 10)]);
   }
   // El final del horizonte elegido, si no es el 31/12: ahí se ve lo que la prueba acumula (la cuota más alta, mes a mes).
   if (c.end && c.end.date !== c.yearEnd?.date) {
@@ -349,17 +361,24 @@ function previsionV2CompararHtml(prueba, today) {
     : cuentaPeor && !fuera
     ? `${frase} ${conector} la cuenta corriente, que en el plan ya baja de su suelo, bajaría hasta ${previsionV2Saldo(cuentaPrueba.low.value, cuentaPrueba.low.date, today)} el ${previsionV2Fecha(cuentaPrueba.low.date, today)}: habría que pasar unos ${money(previsionV2HaciaArriba(cuentaPrueba.gap))} del ahorro${cuentaPrueba.coveredBySavings ? "" : ", y el ahorro de ese día no alcanza"}.`
     : frase;
+  // El objetivo de colchón de Ajustes: se dice solo si la prueba lo rompe y el plan no.
+  const objetivo = Math.max(0, Number(state?.emergencyBufferMonths) || 0);
+  const rompeObjetivo = !fuera && objetivo > 0 && colchonPlan !== null && colchonPrueba !== null && colchonPlan >= objetivo && colchonPrueba < objetivo;
+  const fraseFinal = rompeObjetivo
+    ? `${fraseCompleta} El colchón en el punto más bajo baja de ${meses(colchonPlan)} a ${meses(colchonPrueba)} de gasto: por debajo de vuestro objetivo de ${objetivo} ${objetivo === 1 ? "mes" : "meses"}.`
+    : fraseCompleta;
   const nota = previsionV2Nota(prueba, today);
+  const notaColchon = colchonPlan !== null ? ` Colchón: cuántos meses de gasto corriente (${money(contract.roundForHorizon(gasto, 0))} al mes de media en los próximos 12) cubre la liquidez.` : "";
   return `${fila}
     ${previsionV2OpcionesHtml(prueba)}
     <div class="prev-v2-impacto" role="status">
-      <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor ? " is-bad" : ""}">${escapeHtml(fraseCompleta)}</p>
+      <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor || rompeObjetivo ? " is-bad" : ""}">${escapeHtml(fraseFinal)}</p>
       <table class="e19-table prev-v2-impacto-tabla">
         <caption class="sr-only">El plan frente a la prueba: ${escapeHtml(cuando)}</caption>
         <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
-      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}Es una prueba: no cambia el plan ni mueve dinero.</p>
+      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}Es una prueba: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}</p>
       ${previsionV2GuardarHtml(prueba)}
     </div>`;
 }

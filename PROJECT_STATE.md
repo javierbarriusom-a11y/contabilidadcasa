@@ -173,6 +173,20 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (423): el colchón en meses en la tabla de impacto (FX-20)
+
+- **Qué:** cada prueba de estrés de Plan › Previsión trae la fila «Colchón en el punto más bajo (meses)»: plan, prueba y diferencia, con una décima. La nota de la tabla dice con qué gasto se mide.
+- **Fórmula, una sola:** liquidez ÷ gasto corriente medio de los 12 primeros meses del plan (`escenarioMotorAverageCoreSpend`), la de «Colchón más justo» (Análisis y la tira de cabecera) y la de Escenarios. Va al contrato de cifras: `cushionMonths(liquidity, monthlySpend)` en `canonical-forecast-contract.js`. La definición de `colchon-meses` se corrige: decía «las salidas de un mes» y la app siempre ha usado el gasto corriente medio.
+- **El mismo gasto en los dos lados:** así la diferencia son meses de gasto normal que se pierden, y un imprevisto no infla el gasto de un mes.
+- **El objetivo de Ajustes** («Colchón objetivo (meses)»): la frase lo dice solo si la prueba lo rompe y el plan no.
+- **Desviación de la propuesta (§7, FX-20):** el colchón se mide en el punto más bajo, no a fin de año. Es el momento que decide si se aguanta; a fin de año sería la fila «A 31 de diciembre» dividida por una constante. «Colchón más justo» de la cabecera mide fines de mes, así que puede dar más.
+- **Unidad en la etiqueta:** «−0,7 meses» no cabía en la columna a 390 px.
+- **Pruebas:** `tests/fx20-colchon-meses.test.cjs` (3); la e2e «Comparar con» comprueba la fila (1,3 · 0,6 · −0,7 con la demo), la nota y la frase con un objetivo de 1 mes, y sus índices de fila suben uno.
+- **Versiones:** `canonical-forecast-contract.js`, `views/prevision-v2.js` y `novedades.js` a `20261109fx20c`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.464 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 186,0 ms), build, privacidad y humo.
+  - En Chromium local: e2e y axe de C2, FX-21, XPR-06/07/08, FX-31 y E-11b, 27 de 27.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (422): el límite de diez escenarios vivos, también en Deuda › Comparar y en el aviso del simulador
 
 - **Qué:** «Guardar como escenario» de Deuda › Comparar guardaba un undécimo escenario vivo, saltándose E-11b. Ahora abre el mismo diálogo que Escenarios («Ir a archivar» lleva a Guardados), lo anuncia y no guarda nada. La comprobación va antes de sobrescribir el borrador del simulador.

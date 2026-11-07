@@ -5517,21 +5517,31 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
-      await expect(impacto.locator("tbody tr")).toHaveCount(5);
-      await expect(impacto.locator("tbody tr").nth(1)).toContainText("¿Bajáis del suelo?");
+      await expect(impacto.locator("tbody tr")).toHaveCount(6);
+      // FX-20 (7/11): el colchón en meses en el punto más bajo, con el gasto corriente medio del plan (4.250 € en la demo):
+      // 5.600 € son 1,3 meses; 2.500 €, 0,6; la diferencia es la resta de lo que se ve.
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*0,6\s*−0,7/);
+      await expect(impacto).toContainText("Colchón: cuántos meses de gasto corriente (4.250 € al mes de media en los próximos 12) cubre la liquidez.");
+      // Con el objetivo de colchón de la demo (4 meses) el plan ya está por debajo: la frase no lo repite.
+      await expect(impacto.locator(".prev-v2-impacto-frase")).not.toContainText("objetivo");
+      await expect(impacto.locator("tbody tr").nth(2)).toContainText("¿Bajáis del suelo?");
       // El suelo también en la cuenta corriente (6/11): el total aguanta, pero la cuenta se queda en descubierto.
-      await expect(impacto.locator("tbody tr").nth(2)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
+      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Pero la cuenta corriente se queda en descubierto el 8 dic \(hasta −2\.500\s€ el 8 ene 2027\): habría que pasar unos 2\.600\s€ del ahorro antes de ese día\./);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveClass(/is-bad/);
-      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
-      await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").nth(5)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
+      // Con un objetivo de 1 mes, la prueba lo rompe y el plan no: la frase lo dice.
+      const objetivoDemo = await page.evaluate(() => { const antes = state.emergencyBufferMonths; state.emergencyBufferMonths = 1; previsionV2Render(); return antes; });
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("El colchón en el punto más bajo baja de 1,3 meses a 0,6 meses de gasto: por debajo de vuestro objetivo de 1 mes.");
+      await page.evaluate((antes) => { state.emergencyBufferMonths = antes; previsionV2Render(); }, objetivoDemo);
       await expect(impacto).toContainText("Se quita «Ingreso Persona A» de nov 26 a ene 27.");
       await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
       await expect(v2.locator(".ck-escenario")).toHaveCount(1);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos");
       await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
       // Las cifras de una fila cuadran: la diferencia es la resta de lo que se ve.
-      const cuadra = await impacto.locator("tbody tr").nth(3).evaluate((tr) => {
+      const cuadra = await impacto.locator("tbody tr").nth(4).evaluate((tr) => {
         const n = (td) => Number(td.textContent.replace(/[^\d,−-]/g, "").replace("−", "-").replace(",", "."));
         const [plan, prueba, diferencia] = [...tr.querySelectorAll("td")].map(n);
         return prueba - plan === diferencia;

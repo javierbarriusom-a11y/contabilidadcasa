@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-colchon-meses",
+      fecha: "2026-11-09",
+      texto: "Previsión: cada prueba de estrés dice cuántos meses de gasto os quedan en el punto más bajo, y si baja de vuestro objetivo.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-limite-diez-deuda",
       fecha: "2026-11-09",
       texto: "Deuda › Comparar: con diez escenarios guardados ya no guarda otro; te lleva a archivar uno, como en Escenarios.",
