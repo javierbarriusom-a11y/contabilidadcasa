@@ -5710,6 +5710,40 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
   }
 });
 
+// FX-31 unificada (7/11/2026): Herramientas › Previsión ya no enseña «Fiabilidad de la previsión»; enseña la misma insignia de
+// confianza que Plan › Previsión, con su hoja, con los dos temas (las dos versiones conservan las mismas funciones).
+test.describe("FX-31 · una sola insignia de confianza", () => {
+  for (const tema of ["", "?tema=clasico"]) {
+    test(`Herramientas › Previsión enseña la misma insignia y su hoja${tema ? ", con el tema clásico" : ""}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto(`/index.html${tema}#prevision`);
+      const box = page.locator("#previsionReliabilityBadge");
+      const insignia = box.locator("[data-prevision-v2-confianza]");
+      await expect(insignia).toHaveText(/Confianza baja/, { timeout: 20000 });
+      await expect(page.locator("#prevision")).not.toContainText("Fiabilidad de la previsión");
+      const hoja = box.locator("#previsionConfianzaHoja");
+      await expect(hoja).toBeHidden();
+      await insignia.click();
+      await expect(insignia).toHaveAttribute("aria-expanded", "true");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("h3")).toHaveText("Por qué la confianza es baja");
+      await expect(hoja).toContainText("Decir el día de cargo de las 5 partidas más grandes");
+      // La misma que la de Plan › Previsión: el mismo nivel y la misma tarea.
+      if (!tema) {
+        const nivel = await insignia.getAttribute("data-nivel");
+        expect(nivel).toBe("baja");
+        await page.goto("/index.html#plan");
+        await page.locator('[data-plan-tab="prevision"]').click();
+        await expect(page.locator("#planPrevisionV2 [data-prevision-v2-confianza]")).toHaveAttribute("data-nivel", nivel);
+      }
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
 test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
   const pageErrors = [];

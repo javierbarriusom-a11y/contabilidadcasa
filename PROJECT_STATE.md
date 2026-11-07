@@ -173,6 +173,25 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (416): una sola insignia de confianza (P3 unificada con FX-31)
+
+- **Petición del hogar:** «unifica la etiqueta de fiabilidad con la insignia y sigue».
+- **Antes:** Herramientas › Previsión enseñaba «Fiabilidad de la previsión: media/baja» (P3). Medía solo el error del neto mensual en los meses conciliados (`pvc17PredictiveHealthIndex`) y podía decir «media» con la insignia de Plan › Previsión en «baja».
+- **Ahora:**
+  - `renderPrevisionReliabilityBadge()` (`app.js`) pinta la misma insignia con su hoja, mediante `previsionV2InsigniaHerramientas()` de `views/prevision-v2.js`, con los dos temas. Su contenedor pasa de `<p>` a `<div>`, porque la hoja lleva un h3 y una lista.
+  - **La insignia y la hoja reciben el id de la hoja,** así que caben las dos en la misma página sin repetir ids. El botón abre y cierra la que controla (`aria-controls`).
+  - **Lo que medía P3 entra en la señal «Acierto»** (`canonical-forecast-confidence.js`, `monthly`):
+    - con 6 meses conciliados o más, mientras la caja a fin de mes no tenga 3 cierres comparables, la señal queda «a medias» y dice su error medio;
+    - con menos, se cuenta y no sube;
+    - con 3 cierres o más manda la caja a fin de mes.
+- **Pruebas:**
+  - `fx31-insignia-confianza` de 6 a 7;
+  - nueva e2e «FX-31 · una sola insignia de confianza», con los dos temas, que comprueba el mismo nivel en las dos pantallas.
+- **Versiones** a `20261107fx31b`: `app.js` (con las pruebas que la fijan), `views/prevision-v2.js` y `canonical-forecast-confidence.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.449 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 180,4 ms; build, privacidad y humo.
+  - En Chromium local: e2e de Previsión, panel, insignia y calidad, 24 de 24; axe de revisión y Previsión, 20 de 20.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (415): panel del día (FX-10 PR-2) e insignia de confianza (FX-31) en Plan › Previsión
 
 - **Petición del hogar:** «sigue con el panel del día y la insignia de confianza».

@@ -35,6 +35,12 @@ minutos.
 - **Lectura del gráfico:** queda en día, saldo y margen, redondeados como el panel. Antes decía 5.620 € junto a los 5.600 € del titular.
 - **Sin titulares nuevos (XGO-01):** Plan › Previsión sigue en 4.
 - **Hoy no cambia:** el punto de confianza en Hoy espera a su hueco semanal.
+- **Una sola insignia (petición del hogar: «unifica la etiqueta de fiabilidad con la insignia»):**
+  - **Qué cambia:** Herramientas › Previsión ya no enseña «Fiabilidad de la previsión: media/baja» (P3). Enseña la misma insignia de Plan › Previsión, con su hoja, también con el tema clásico.
+  - **Lo que medía P3** (el error del neto mensual en los meses conciliados, PVC17) entra en la señal «Acierto»:
+    - con 6 meses o más y la caja a fin de mes aún sin 3 cierres, la señal queda «a medias» y lo dice con su error medio;
+    - con menos, lo cuenta sin subirla.
+  - **Así** no hay dos respuestas distintas a «¿cuánto me fío?», y no se pierde nada.
 
 **6/11/2026 (noche) · D-N8 decidida: el traspaso al ahorro deja la reserva en la cuenta corriente («D-N8 sí, y sigue»).**
 - **Qué cambia:** a fin de mes el plan deja en la cuenta corriente un mes de gastos **más la reserva operativa** de Ajustes antes de traspasar al ahorro. Sin reserva puesta (0 €), el plan es exactamente el de antes.

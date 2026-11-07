@@ -52,6 +52,28 @@ test("FX-31 · acierto: 0 cierres flojo, menos de 3 a medias, con 3 o más bien 
   assert.equal(C.closeSignal({ comparable: 5, min: 3, errorPct: 12 }).state, "regular");
 });
 
+test("FX-31 · unificada con la antigua «Fiabilidad de la previsión»: el error del neto mensual entra en el acierto", () => {
+  // Con 6 meses conciliados o más (lo que la etiqueta antigua llamaba «media»), y la caja a fin de mes aún sin medir: a medias.
+  const conMeses = C.closeSignal({ comparable: 0, min: 3, monthly: { samples: 7, meanAbsoluteError: 212.4 } });
+  assert.equal(conMeses.state, "regular");
+  assert.match(conMeses.text, /La caja a fin de mes aún no se puede medir \(0 de 3 cierres comparables\)/);
+  assert.match(conMeses.text, /en 7 meses: se equivoca de media unos 212\s€/);
+  // Con menos de 6, se cuenta pero no sube la señal.
+  const pocos = C.closeSignal({ comparable: 0, min: 3, monthly: { samples: 2, meanAbsoluteError: 90 } });
+  assert.equal(pocos.state, "mal");
+  assert.match(pocos.text, /en 2 meses: se equivoca de media unos 90\s€, aún pocos para fiarse \(hacen falta 6\)/);
+  // Con 3 cierres comparables manda la caja a fin de mes; el neto mensual no la empeora.
+  assert.equal(C.closeSignal({ comparable: 3, min: 3, errorPct: 4, monthly: { samples: 8, meanAbsoluteError: 500 } }).state, "ok");
+  // Una sola insignia: app.js ya no pinta «Fiabilidad de la previsión»; Herramientas › Previsión pinta la de Plan › Previsión.
+  const app = leer("app.js");
+  assert.doesNotMatch(app, /Fiabilidad de la previsión: /);
+  assert.match(app, /function renderPrevisionReliabilityBadge\(\) \{\n\s+globalThis\.previsionV2InsigniaHerramientas\?\.\(qs\("previsionReliabilityBadge"\)\);/);
+  const vista = leer("views/prevision-v2.js");
+  assert.match(vista, /pvc17PredictiveHealthIndex/);
+  assert.match(vista, /hojaId: "previsionConfianzaHoja"/);
+  assert.match(leer("index.html"), /<div class="prevision-confianza" id="previsionReliabilityBadge"><\/div>/);
+});
+
 test("FX-31 · la tarea que más la sube es la primera de la cola que sube una señal floja; las de señales bien no cuentan", () => {
   const tareas = [
     { id: "statement", signal: "saldos", label: "Importar el extracto" },

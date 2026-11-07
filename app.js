@@ -20762,18 +20762,11 @@ function handlePrevisionHorizon(horizonKey) {
   renderPrevision();
 }
 
-// P3 (Contabilidadcasa 2.0, Horizonte 3): badge de fiabilidad junto a la cifra proyectada de
-// Previsión. Ningún cálculo nuevo — reutiliza tal cual pvc17PredictiveHealthIndex() (PVC17), la
-// misma agregación de error histórico que ya muestra Ajustes › Previsión viva. Solo dos niveles de
-// confianza son reales (predictionQuality: "media" a partir de 6 muestras, "baja" por debajo) —
-// nunca se inventa una tercera etiqueta "alta" que el motor no calcula.
+// P3 → FX-31 (7/11/2026, «unifica la etiqueta de fiabilidad con la insignia»): la misma insignia de confianza que Plan › Previsión,
+// con su hoja (views/prevision-v2.js). El error del neto mensual que enseñaba P3 (pvc17PredictiveHealthIndex) va dentro de su
+// señal «Acierto»: una sola respuesta a «¿cuánto me fío de la previsión?» en toda la app.
 function renderPrevisionReliabilityBadge() {
-  const box = qs("previsionReliabilityBadge");
-  if (!box) return;
-  const index = pvc17PredictiveHealthIndex();
-  if (!index || !index.samples) { box.innerHTML = ""; return; }
-  const tone = index.confidence === "media" ? "e19-badge-neutral" : "e19-badge-warning";
-  box.innerHTML = `<span class="e19-badge ${tone}" title="Basado en ${index.samples} ${index.samples === 1 ? "mes conciliado" : "meses conciliados"} con previsto y real; error medio histórico ${money(index.meanAbsoluteError, true)}.">Fiabilidad de la previsión: ${escapeHtml(index.confidence)}</span>`;
+  globalThis.previsionV2InsigniaHerramientas?.(qs("previsionReliabilityBadge"));
 }
 
 // WP-10 (NPV-08): calidad de los datos de la previsión (canonical-forecast-quality.js). Fechas: los

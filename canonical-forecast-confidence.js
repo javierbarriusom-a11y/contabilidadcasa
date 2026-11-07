@@ -10,7 +10,9 @@
   // existen y las dice en palabras de hogar.
   //   · Días de cargo (WP-10): del gasto de los próximos 90 días, cuánto cae en un día confirmado (ponderado por importe).
   //   · Saldos (WP-26): si la previsión parte de una foto del banco y de cuándo es.
-  //   · Acierto (WP-12): cuántos cierres comparables hay y cuánto se equivoca la previsión de fin de mes.
+  //   · Acierto (WP-12): cuántos cierres comparables hay y cuánto se equivoca la previsión de fin de mes. Desde el 7/11 absorbe la
+  //     antigua etiqueta «Fiabilidad de la previsión» (P3/PVC17, el error del neto mensual en los meses conciliados): una sola
+  //     insignia en Plan › Previsión y en Herramientas › Previsión, y nada de lo que aquella sabía se pierde.
   // La tarea la elige la cola de WP-45 (euros de incertidumbre por minuto): aquí solo se queda con la primera que sube una señal
   // que no está bien. Motor puro: ni DOM, ni almacenamiento, ni reloj.
   //
@@ -24,6 +26,7 @@
   const DATE_OK_PCT = 70; // el objetivo de WP-10 (M-RESOL)
   const DATE_REGULAR_PCT = 30;
   const CLOSE_OK_ERROR_PCT = 10; // error medio de la caja a fin de mes que todavía se da por bueno
+  const MONTHLY_ENOUGH = 6; // meses conciliados del neto mensual con los que la antigua etiqueta (PVC17) ya decía «media»
   const LEVEL_LABEL = Object.freeze({ alta: "Confianza alta", media: "Confianza media", baja: "Confianza baja" });
   const STATE_ICON = Object.freeze({ ok: "✓", regular: "◐", mal: "⚠" });
   const SIGNAL_IDS = Object.freeze(["dias", "saldos", "acierto"]);
@@ -59,13 +62,29 @@
     return { ...base, state: days < stale * 4 ? "regular" : "mal", text: `La previsión parte de los saldos del banco ${ageText(days)}: desde entonces el dinero se ha movido.` };
   }
 
-  /** WP-12: `comparable` cierres con foto y saldos del banco; `errorPct` el error medio de la caja a fin de mes, si hay bastantes. */
-  function closeSignal({ comparable = 0, min = 3, errorPct = null } = {}) {
+  function euros(value) {
+    return `${Math.round(Number(value)).toLocaleString("es-ES")} €`;
+  }
+
+  /**
+   * WP-12: `comparable` cierres con foto y saldos del banco; `errorPct` el error medio de la caja a fin de mes, si hay bastantes.
+   * `monthly` (unificación con la antigua etiqueta «Fiabilidad de la previsión», PVC17): los meses conciliados con previsto y real
+   * del neto mensual y su error medio. Mientras la caja a fin de mes no se pueda medir, es lo que se sabe del acierto: con
+   * MONTHLY_ENOUGH meses o más sube la señal a «a medias» (la etiqueta antigua decía «media»); con menos, solo se cuenta.
+   */
+  function closeSignal({ comparable = 0, min = 3, errorPct = null, monthly = null } = {}) {
     const base = { id: "acierto", title: "Acierto" };
     const n = Math.max(0, Math.round(Number(comparable) || 0));
     const needed = Math.max(1, Math.round(Number(min) || 3));
-    if (n === 0) return { ...base, state: "mal", text: `Todavía ningún cierre comparable: no se sabe cuánto acierta (hacen falta ${needed}).` };
-    if (n < needed) return { ...base, state: "regular", text: `${n} de ${needed} cierres comparables: aún no se puede medir cuánto acierta.` };
+    const meses = Math.max(0, Math.round(Number(monthly?.samples) || 0));
+    const mensual = meses && finite(monthly?.meanAbsoluteError)
+      ? ` El neto de cada mes sí se ha comparado con lo real en ${meses} ${meses === 1 ? "mes" : "meses"}: se equivoca de media unos ${euros(monthly.meanAbsoluteError)}${meses < MONTHLY_ENOUGH ? `, aún pocos para fiarse (hacen falta ${MONTHLY_ENOUGH})` : ""}.`
+      : "";
+    if (n < needed && meses >= MONTHLY_ENOUGH && mensual) {
+      return { ...base, state: "regular", text: `La caja a fin de mes aún no se puede medir (${n} de ${needed} cierres comparables).${mensual}` };
+    }
+    if (n === 0) return { ...base, state: "mal", text: `Todavía ningún cierre comparable: no se sabe cuánto acierta la caja a fin de mes (hacen falta ${needed}).${mensual}` };
+    if (n < needed) return { ...base, state: "regular", text: `${n} de ${needed} cierres comparables: aún no se puede medir cuánto acierta la caja a fin de mes.${mensual}` };
     if (finite(errorPct) && Number(errorPct) > CLOSE_OK_ERROR_PCT) {
       return { ...base, state: "regular", text: `Con ${n} cierres comparables, la previsión de fin de mes se equivoca de media un ${String(Math.round(Number(errorPct) * 10) / 10).replace(".", ",")} %: más de lo que debería.` };
     }
@@ -105,5 +124,5 @@
     };
   }
 
-  return Object.freeze({ SCHEMA_ID, DATE_OK_PCT, DATE_REGULAR_PCT, CLOSE_OK_ERROR_PCT, LEVEL_LABEL, STATE_ICON, SIGNAL_IDS, dateSignal, balanceSignal, closeSignal, levelOf, evaluate });
+  return Object.freeze({ SCHEMA_ID, DATE_OK_PCT, DATE_REGULAR_PCT, CLOSE_OK_ERROR_PCT, MONTHLY_ENOUGH, LEVEL_LABEL, STATE_ICON, SIGNAL_IDS, dateSignal, balanceSignal, closeSignal, levelOf, evaluate });
 });

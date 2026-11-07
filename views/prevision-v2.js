@@ -377,7 +377,10 @@ function previsionV2Confianza(tramo, today) {
       ? ["d15", "d01"].map((id) => result.slots.find((slot) => slot.slot === id)).find((slot) => slot?.enough)
         || result.slots.slice().sort((a, b) => b.n - a.n)[0]
       : null;
-    const closes = { comparable: ventana?.n || 0, min: result?.minCloses || 3, errorPct: ventana?.enough ? ventana.pct : null };
+    // La antigua etiqueta «Fiabilidad de la previsión» (P3/PVC17): el error del neto mensual en los meses conciliados, dentro del acierto.
+    const pvc17 = typeof pvc17PredictiveHealthIndex === "function" ? (() => { try { return pvc17PredictiveHealthIndex(); } catch { return null; } })() : null;
+    const monthly = pvc17?.samples ? { samples: pvc17.samples, meanAbsoluteError: pvc17.meanAbsoluteError } : null;
+    const closes = { comparable: ventana?.n || 0, min: result?.minCloses || 3, errorPct: ventana?.enough ? ventana.pct : null, monthly };
     return engine.evaluate({ dates, balances, closes, tasks: queue ? previsionV2Tareas(queue, pagos, today) : [] });
   } catch {
     return null; // sin insignia antes que una insignia equivocada
@@ -427,9 +430,10 @@ function previsionV2Minutos(minutes) {
   return `unos ${cuanto} (${minutes.measured ? `medido en ${minutes.samples} usos` : "supuesto, sin medir"})`;
 }
 
-function previsionV2InsigniaHtml(confianza) {
+/** La insignia: un botón que despliega su hoja. `hojaId` permite pintarla también en Herramientas › Previsión (la misma, unificada). */
+function previsionV2InsigniaHtml(confianza, { hojaId = "prevV2Confianza", abierta = previsionV2ConfianzaAbierta } = {}) {
   if (!confianza) return "";
-  return `<button type="button" class="prev-v2-confianza" data-nivel="${escapeHtml(confianza.level)}" data-prevision-v2-confianza aria-expanded="${previsionV2ConfianzaAbierta}" aria-controls="prevV2Confianza"><span class="prev-v2-confianza-punto" aria-hidden="true"></span>${escapeHtml(confianza.label)}<span class="prev-v2-confianza-flecha" aria-hidden="true">${previsionV2ConfianzaAbierta ? "▾" : "▸"}</span></button>`;
+  return `<button type="button" class="prev-v2-confianza" data-nivel="${escapeHtml(confianza.level)}" data-prevision-v2-confianza aria-expanded="${abierta}" aria-controls="${escapeHtml(hojaId)}"><span class="prev-v2-confianza-punto" aria-hidden="true"></span>${escapeHtml(confianza.label)}<span class="prev-v2-confianza-flecha" aria-hidden="true">${abierta ? "▾" : "▸"}</span></button>`;
 }
 
 function previsionV2TareaAccion(task) {
@@ -439,7 +443,7 @@ function previsionV2TareaAccion(task) {
   return `<a class="e19-btn e19-btn-secondary" href="${escapeHtml(action.href)}">${escapeHtml(action.label)}</a>`;
 }
 
-function previsionV2ConfianzaHojaHtml(confianza) {
+function previsionV2ConfianzaHojaHtml(confianza, { hojaId = "prevV2Confianza", abierta = previsionV2ConfianzaAbierta } = {}) {
   if (!confianza) return "";
   const estado = { ok: "bien", regular: "a medias", mal: "flojo" };
   const senales = confianza.signals.map((signal) => `<li class="prev-v2-senal" data-estado="${escapeHtml(signal.state)}">
@@ -461,8 +465,8 @@ function previsionV2ConfianzaHojaHtml(confianza) {
       </div>`
     : `<p>Las tres señales están bien: no hay nada que la suba.</p>`;
   const despues = confianza.more.length ? `<p class="e19-kpi-note">Después: ${escapeHtml(confianza.more.map((task) => task.label).join(" · "))}.</p>` : "";
-  return `<section class="prev-v2-confianza-hoja" id="prevV2Confianza" aria-labelledby="prevV2ConfianzaTitulo"${previsionV2ConfianzaAbierta ? "" : " hidden"}>
-    <h3 id="prevV2ConfianzaTitulo">Por qué la confianza es ${escapeHtml(confianza.level)}</h3>
+  return `<section class="prev-v2-confianza-hoja" id="${escapeHtml(hojaId)}" aria-labelledby="${escapeHtml(hojaId)}Titulo"${abierta ? "" : " hidden"}>
+    <h3 id="${escapeHtml(hojaId)}Titulo">Por qué la confianza es ${escapeHtml(confianza.level)}</h3>
     <ul class="prev-v2-senales">${senales}</ul>
     ${sube}
     ${despues}
@@ -632,6 +636,47 @@ function previsionV2Render() {
   return true;
 }
 
+/** Abre o cierra la hoja de una insignia (la de Plan › Previsión o la de Herramientas › Previsión). Devuelve si queda abierta. */
+function previsionV2AbreHoja(insignia) {
+  const abierta = insignia.getAttribute("aria-expanded") !== "true";
+  insignia.setAttribute("aria-expanded", String(abierta));
+  const flecha = insignia.querySelector(".prev-v2-confianza-flecha");
+  if (flecha) flecha.textContent = abierta ? "▾" : "▸";
+  const hoja = document.getElementById(insignia.getAttribute("aria-controls") || "");
+  if (hoja) hoja.hidden = !abierta;
+  return abierta;
+}
+
+/**
+ * Unificación del 7/11 («unifica la etiqueta de fiabilidad con la insignia»): Herramientas › Previsión enseñaba «Fiabilidad de la
+ * previsión: media/baja» (P3, solo el error del neto mensual) y podía contradecir a la insignia. Ahora pinta la misma insignia,
+ * con su hoja, con los dos temas. La llama renderPrevisionReliabilityBadge() (app.js).
+ */
+function previsionV2InsigniaHerramientas(box) {
+  if (!box) return;
+  const today = isoLocalDate(new Date());
+  const rows = typeof canonicalDailyEngineRuns !== "undefined" ? canonicalDailyEngineRuns.active?.rows || [] : [];
+  const tramo = rows.filter((row) => row.date >= today && Number.isFinite(Number(row.total)));
+  const confianza = tramo.length ? previsionV2Confianza(tramo, today) : null;
+  const abierta = box.querySelector("[data-prevision-v2-confianza]")?.getAttribute("aria-expanded") === "true";
+  box.innerHTML = confianza
+    ? `${previsionV2InsigniaHtml(confianza, { hojaId: "previsionConfianzaHoja", abierta })}${previsionV2ConfianzaHojaHtml(confianza, { hojaId: "previsionConfianzaHoja", abierta })}`
+    : "";
+  if (!box.__confianzaEscucha) {
+    box.__confianzaEscucha = true;
+    box.addEventListener("click", (event) => {
+      const insignia = event.target.closest("[data-prevision-v2-confianza]");
+      if (insignia) { previsionV2AbreHoja(insignia); return; }
+      const nav = event.target.closest("[data-prevision-v2-nav]");
+      const target = nav?.dataset.previsionV2Nav;
+      if (target && document.getElementById(target)?.classList.contains("view-section")) {
+        history.pushState(null, "", `#${target}`);
+        setActiveView(target);
+      }
+    });
+  }
+}
+
 function previsionV2Init() {
   const box = qs("planPrevisionV2");
   // FX-10 PR-2: el panel del día sigue al punto elegido en el gráfico (ChartKit avisa con «ck-select»). Pasar el ratón solo
@@ -686,11 +731,7 @@ function previsionV2Init() {
     }
     const insignia = event.target.closest("[data-prevision-v2-confianza]");
     if (insignia) {
-      previsionV2ConfianzaAbierta = !previsionV2ConfianzaAbierta;
-      insignia.setAttribute("aria-expanded", String(previsionV2ConfianzaAbierta));
-      insignia.querySelector(".prev-v2-confianza-flecha").textContent = previsionV2ConfianzaAbierta ? "▾" : "▸";
-      const hoja = qs("prevV2Confianza");
-      if (hoja) hoja.hidden = !previsionV2ConfianzaAbierta;
+      previsionV2ConfianzaAbierta = previsionV2AbreHoja(insignia);
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       return;
     }

@@ -13,7 +13,7 @@
     {
       id: "2026-11-07-panel-dia-confianza",
       fecha: "2026-11-07",
-      texto: "Previsión: el panel del día dice qué mueve cada día (un clic lo fija) y la insignia de confianza, por qué y qué la sube.",
+      texto: "Previsión: el panel del día dice qué mueve cada día (un clic lo fija) y una sola insignia de confianza, con su porqué y qué la sube.",
       href: "#plan",
     },
     {
