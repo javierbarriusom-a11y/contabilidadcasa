@@ -173,6 +173,29 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (418): XPR-08 «De verdad libre» con D-N9 (b)
+
+- **Decisión del hogar:** «D-N9 opción b y sigue».
+- **Motor:** `provisions({ items, today, horizonEnd })` en `canonical-large-payments.js` (puro), sobre los pagos del mapa de WP-49.
+  - **Dentro del horizonte:** solo lo que no está en el plan. Un seguro sin `alsoInPlan` cuenta entero; de un cargo periódico, su `planShort`. Lo del plan ya lo descuenta la trayectoria.
+  - **Después del horizonte:** la parte devengada, importe × (ciclo − meses que faltan) ÷ ciclo; el ciclo es `everyMonths` en los periódicos y 12 en los demás. Devuelve también el apartado mensual, importe ÷ ciclo.
+  - **Fuera del cálculo:** los objetivos (tienen su ahorro declarado), Hacienda sin importe y lo ya pasado.
+- **Vista** (`previsionV2LibreHtml`):
+  - lo que no está en el plan se aplica a la trayectoria desde su día y se busca de nuevo el mínimo;
+  - lo devengado se resta entero;
+  - lo que se quita se redondea hacia arriba (`previsionV2HaciaArriba`), y lo libre es el margen dicho menos eso;
+  - solo sale si hay algo que restar;
+  - «Ver el mapa de pagos grandes» lleva a `#mapaPagosCard` con el foco en su título.
+- **Sin botón «Apartar»:** la app no aparta dinero (A11-4). Una prueba exige que no lo haya.
+- **Pruebas:**
+  - nueva `tests/xpr08-de-verdad-libre.test.cjs` (5);
+  - nueva e2e «XPR-08 · de verdad libre en la Previsión nueva» a 390 (`@safari`) y 1440 px, con dos seguros FICTICIOS: «De verdad libre: 3.400 €», 700 € ya son de lo que viene, unos 50 € al mes;
+  - el axe de C2 también con la línea.
+- **Novedades:** una línea. **Versiones** a `20261107xpr08a`: `canonical-large-payments.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.454 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 251,0 ms (dentro del presupuesto; en la ejecución anterior, 187 ms, sin cambios en esos motores); build, privacidad y humo.
+  - En Chromium local: e2e de XPR-08 y C2 y axe de C2, 10 de 10.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (417): XPR-07 dentro de la Previsión nueva; XPR-08 pasa a decisión (D-N9)
 
 - **Petición del hogar:** «… y sigue», tras unificar la insignia. Lo siguiente de C2 era integrar XPR-07 y XPR-08.

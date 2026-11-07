@@ -1657,7 +1657,12 @@ for (const scheme of ["light", "dark"]) {
       await expect(v2).toBeVisible({ timeout: 15000 });
       await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
       await expect(v2.locator(".prev-v2-impacto-tabla")).toBeVisible();
-      // FX-10 PR-2 y FX-31: el panel del día y la hoja de la insignia de confianza, abierta.
+      // FX-10 PR-2 y FX-31: el panel del día y la hoja de la insignia de confianza, abierta. XPR-08: «De verdad libre» con un seguro FICTICIO.
+      await page.evaluate(() => {
+        globalThis.insurancePolicies = () => [{ id: "f1", name: "Seguro FICTICIO de la casa", renewalDate: "2027-03-15", premium: 600 }];
+        previsionV2Render();
+      });
+      await expect(v2.locator(".prev-v2-libre")).toBeVisible();
       await expect(v2.locator(".prev-v2-dia")).toBeVisible();
       await v2.locator("[data-prevision-v2-confianza]").click();
       await expect(v2.locator("#prevV2Confianza")).toBeVisible();

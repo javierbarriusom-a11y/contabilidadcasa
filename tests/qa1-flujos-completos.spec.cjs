@@ -5785,6 +5785,45 @@ test.describe("XPR-07 · el arreglo más barato dentro de la Previsión nueva", 
   });
 });
 
+// XPR-08 con D-N9 (b), decisión del hogar del 7/11/2026: «De verdad libre» bajo el titular de la Previsión nueva. Una sola cifra: lo que
+// queda sobre el suelo en el punto más bajo menos lo que el plan aún no descuenta. Seguros FICTICIOS: el de la casa (600 € el 15 mar,
+// fuera de los 3 meses: van 8 de 12, 400 €) y el del coche (300 € el 5 dic, antes del punto más bajo y fuera del plan: resta entero).
+test.describe("XPR-08 · de verdad libre en la Previsión nueva", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`una sola cifra, con lo devengado y lo que no está en el plan, y el camino al mapa, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      // Con los datos de ejemplo el plan ya descuenta todo: no se repite la cifra de arriba.
+      await expect(v2.locator(".prev-v2-libre")).toHaveCount(0);
+      await page.evaluate(() => {
+        globalThis.insurancePolicies = () => [
+          { id: "f1", name: "Seguro FICTICIO de la casa", renewalDate: "2027-03-15", premium: 600 },
+          { id: "f2", name: "Seguro FICTICIO del coche", renewalDate: "2026-12-05", premium: 300 },
+        ];
+        previsionV2Render();
+      });
+      const libre = v2.locator(".prev-v2-libre");
+      await expect(libre).toContainText(/De verdad libre: 3\.400\s€\./);
+      await expect(libre).toContainText(/De los 4\.100\s€ sobre el suelo, 700\s€ ya son de lo que viene y el plan aún no descuenta/);
+      await expect(libre).toContainText(/Seguro FICTICIO de la casa \(600\s€ el 15 mar 2027; van 8 de 12 meses: 400\s€\)/);
+      await expect(libre).toContainText(/300\s€ por lo que no está en el plan: Seguro FICTICIO del coche \(300\s€ el 5 dic\)/);
+      await expect(libre).toContainText(/Apartando unos 50\s€ al mes, esos pagos no tocarán el colchón/);
+      await expect(libre.locator("button")).toHaveText("Ver el mapa de pagos grandes");
+      // «Ver el mapa de pagos grandes» lleva a la tarjeta del mapa, en esta misma pantalla, con el foco en su título.
+      await libre.locator("[data-prevision-v2-mapa]").click();
+      await expect(page.locator("#mapaPagosTitulo")).toBeFocused();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
 test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
   const pageErrors = [];
