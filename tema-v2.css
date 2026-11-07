@@ -4304,3 +4304,35 @@
 :root[data-tema="v2"] .prev-v2-libre p {
   margin: 0;
 }
+
+/* FX-31 en Hoy (7/11/2026): el punto de confianza de la previsión, pegado a «Fin de mes». Forma y color: ○ baja, ◐ media, ● alta. */
+:root[data-tema="v2"] .hoy-v2-stat-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--e19-warning);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza[data-nivel="media"] {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza[data-nivel="alta"] {
+  color: var(--e19-success);
+}

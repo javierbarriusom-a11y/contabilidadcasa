@@ -747,6 +747,17 @@ function previsionV2InsigniaHerramientas(box) {
   }
 }
 
+/** FX-31 desde Hoy: a Plan › Previsión con la hoja de la insignia abierta y el foco en ella. */
+function previsionV2AbrirConfianza() {
+  previsionV2ConfianzaAbierta = true;
+  if (document.getElementById("plan")?.classList.contains("view-section")) {
+    history.pushState(null, "", "#plan");
+    setActiveView("plan");
+  }
+  document.querySelector('[data-plan-tab="prevision"]')?.click();
+  qs("planPrevisionV2")?.querySelector("[data-prevision-v2-confianza]")?.focus();
+}
+
 function previsionV2Init() {
   const box = qs("planPrevisionV2");
   // FX-10 PR-2: el panel del día sigue al punto elegido en el gráfico (ChartKit avisa con «ck-select»). Pasar el ratón solo

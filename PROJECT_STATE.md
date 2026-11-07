@@ -173,6 +173,23 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (419): el punto de confianza en Hoy (FX-31), para publicar el lunes 9/11
+
+- **Decisión del hogar:** «primero el punto de confianza en Hoy y sigue». Es el cambio de Hoy de la semana del 9/11; el de la semana del 2/11 fue D-N4. **Se fusiona el lunes 9/11, no antes.**
+- **Hoy** (`views/hoy-v2.js`, `hoyV2ConfianzaHtml`):
+  - **Qué:** junto a «Fin de mes», un botón con la confianza de la previsión, sin texto extra.
+  - **Cómo se lee:** forma y color (○ baja, ◐ media, ● alta), `aria-label` «Confianza de la previsión: baja. Ver por qué» y el mismo texto al pasar el ratón; zona de toque de 28 px.
+  - **El cálculo** es `previsionV2Confianza()` de la Previsión: la misma insignia, sin otro cálculo.
+- **Ir a Previsión:** `previsionV2AbrirConfianza()` (`views/prevision-v2.js`) abre Plan › Previsión con la hoja abierta y el foco en la insignia.
+- **Sin cambios en lo de D-N4:** la etiqueta, la cifra y el margen siguen igual. La etiqueta y el punto van en una cabecera flexible, para que el punto no flote entre las dos cifras en móvil.
+- **Pruebas:**
+  - nueva e2e «FX-31 · el punto de confianza en Hoy», a 390 (`@safari`) y 1440 px;
+  - las de Hoy de siempre (D-N4, FX-01) y su axe siguen en verde.
+- **Novedades:** una línea con fecha del 9/11. **Versiones** a `20261109fx31h`: `views/hoy-v2.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js`.
+- **Validación:**
+  - `npm run verify` en verde: 6.454 pruebas unitarias; lint; typecheck; accesibilidad estructural; rendimiento, con previsión y escenarios en 192,3 ms; build, privacidad y humo.
+  - En Chromium local: e2e y axe de Hoy, D-N4, FX-01 y el punto, 22 de 22.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (418): XPR-08 «De verdad libre» con D-N9 (b)
 
 - **Decisión del hogar:** «D-N9 opción b y sigue».

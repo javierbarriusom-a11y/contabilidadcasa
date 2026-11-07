@@ -21,6 +21,14 @@ minutos.
 
 ## 0. Estado en una línea
 
+**7/11/2026 · El punto de confianza en Hoy, hecho y listo para el lunes 9/11 («primero el punto de confianza en Hoy y sigue»).**
+- **Qué es:** junto a «Fin de mes», la cifra de Hoy que sale de la previsión, un punto con la confianza de la previsión, sin texto extra.
+  - El nivel va por forma además de por color (○ baja, ◐ media, ● alta), con su nombre para lectores de pantalla y al pasar el ratón.
+  - Al tocarlo, lleva a Plan › Previsión con la hoja del porqué abierta y el foco en la insignia.
+  - Es la misma insignia: no hay otro cálculo.
+- **Cuándo se publica:** es el cambio de Hoy de la semana del 9/11 («un cambio de Hoy por semana»; el de esta semana fue D-N4). Se fusiona el lunes 9/11, no antes.
+- **Después, en la semana del 16/11:** «De verdad libre» en Hoy, si el hogar lo quiere.
+
 **7/11/2026 · D-N9 decidida («D-N9 opción b y sigue») y XPR-08 hecha: «De verdad libre», una sola cifra bajo el titular de Previsión.**
 - **Qué es:** lo que queda sobre el suelo en el punto más bajo, menos lo que el plan aún no descuenta. Eso son dos cosas:
   - lo que no está en el plan y cae dentro del horizonte (un seguro del inventario, lo que falta de un cargo «cada N meses»). Se aplica a la trayectoria desde su día y se busca otra vez el mínimo: si cae cuando el saldo ya ha subido, no come nada;
@@ -240,7 +248,7 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 14 | **XPR-06** | Qué mueve cada día, dentro de C2 (sale de su interruptor) | Def §5.0 | — | FX-10 | S2 | Panel/hoja del día de C2 | Hecho, en prueba (revisión 12/11). **7/11: lo mismo, ya sin interruptor, en el panel del día de C2**; la hoja de la banda de caja sigue tras el suyo hasta su revisión |
 | 15 | **XPR-07** | El arreglo más barato, dentro de C2 | Def §5.0 | — | FX-10 | S2 | Tarjeta de remedio de C2 | Hecho PR-1, en prueba (revisión 12/11). **7/11: también dentro de C2**, debajo del gráfico, con su interruptor |
 | 16 | **XPR-08** | «De verdad libre»: disponible tras apartar lo que viene | 7ª | S-M · 1,5 | FX-10 | S2 | Tarjeta de C2 con «Apartar» que lleva al sobre | **Hecha el 7/11 con D-N9 (b)**: una sola cifra bajo el titular de C2 (`provisions` de `canonical-large-payments.js`); dice cuánto apartar al mes y lleva al mapa. En Hoy, cuando se levante su congelación |
-| 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | **Hecha en Previsión el 7/11** (`canonical-forecast-confidence.js`): baja · media · alta con tres señales, el porqué y la tarea que más la sube por € por minuto (cola de WP-45). Falta el punto en Hoy (su hueco semanal) |
+| 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | **Hecha en Previsión el 7/11** (`canonical-forecast-confidence.js`): baja · media · alta con tres señales, el porqué y la tarea que más la sube por € por minuto (cola de WP-45). El punto en Hoy, hecho el 7/11 y publicado el 9/11 (cambio de Hoy de esa semana) |
 | 18 | **FX-12** | Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49) | 8ª, Def P2 | M · 2 | FX-10 | S2 (plegado) / S3 | Lista por semana con certeza y «¿sabes el día?»; mismos hitos en el gráfico | Propuesta |
 | 19 | **WP-37** | Estados completos y «deshacer», aplicados a C2 | Def P1 | — | FX-10 | S2 | Vacío, sin saldos, sin suelo y error en C2 | Aparcado → se aplica en C2 |
 | 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. Faltan los escenarios guardados en la fila (con FX-23), dos a la vez, el colchón en meses y deuda/patrimonio a 24 m |

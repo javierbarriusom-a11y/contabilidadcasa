@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-punto-confianza-hoy",
+      fecha: "2026-11-09",
+      texto: "Hoy: junto a «Fin de mes», un punto dice cuánto fiarse de la previsión (○ baja, ◐ media, ● alta); tócalo para ver por qué.",
+      href: "#home",
+    },
+    {
       id: "2026-11-07-de-verdad-libre",
       fecha: "2026-11-07",
       texto: "Previsión: «De verdad libre» resta de lo libre lo que el plan aún no descuenta (lo devengado de los pagos grandes).",

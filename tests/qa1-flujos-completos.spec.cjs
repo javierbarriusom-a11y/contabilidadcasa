@@ -5824,6 +5824,40 @@ test.describe("XPR-08 · de verdad libre en la Previsión nueva", () => {
   }
 });
 
+// FX-31 en Hoy (decisión del hogar del 7/11/2026, cambio de Hoy de la semana del 9/11): junto a «Fin de mes», un punto con la confianza
+// de la previsión, sin texto extra; el nivel va también por forma (○ baja) y lleva a Plan › Previsión con la hoja del porqué abierta.
+test.describe("FX-31 · el punto de confianza en Hoy", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`junto a «Fin de mes», con su nombre, y lleva a la hoja de la insignia, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#home");
+      const stat = page.locator("#hoyV2 .hoy-v2-stat").filter({ hasText: "Fin de noviembre" });
+      await expect(stat).toBeVisible({ timeout: 15000 });
+      const punto = stat.locator("[data-hoy-v2-confianza]");
+      await expect(punto).toHaveAttribute("data-nivel", "baja");
+      await expect(punto).toHaveAttribute("aria-label", "Confianza de la previsión: baja. Ver por qué");
+      await expect(punto).toHaveText("○");
+      // Sin texto extra: la etiqueta, la cifra y el margen siguen siendo los de D-N4.
+      await expect(stat.locator("span").first()).toHaveText("Fin de noviembre");
+      await expect(stat.locator("small")).toContainText(/sobre el suelo|por debajo del suelo/);
+      const caja = await punto.boundingBox();
+      expect(caja.width, "zona de toque de al menos 24 px").toBeGreaterThanOrEqual(24);
+      await punto.click();
+      await expect(page).toHaveURL(/#plan$/);
+      const insignia = page.locator("#planPrevisionV2 [data-prevision-v2-confianza]");
+      await expect(insignia).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#prevV2Confianza")).toBeVisible();
+      await expect(insignia).toBeFocused();
+      // El mismo nivel que la insignia de Previsión: es el mismo cálculo.
+      await expect(insignia).toHaveAttribute("data-nivel", "baja");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // FX-23: Escenarios › Comparar acepta un solo escenario guardado (antes pedía dos) y lo pone frente al plan. Escenario INVENTADO.
 test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, sin el aviso de «hacen falta dos»", async ({ page }) => {
   const pageErrors = [];

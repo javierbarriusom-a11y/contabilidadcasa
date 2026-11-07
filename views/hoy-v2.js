@@ -154,7 +154,7 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoL
     // D-N4 (decisión del hogar del 6/11/2026, FX-01): arriba el saldo previsto a fin de mes, el mismo que la banda de caja
     // «según el plan» y el motor diario; debajo, el margen sobre el suelo. Antes decía solo el margen con la etiqueta
     // «Fin de noviembre», que se leía como saldo.
-    eom.available ? `<div class="hoy-v2-stat${eom.margin < 0 ? " is-danger" : ""}"><span>Fin de ${escapeHtml(eom.monthLabel)}</span><strong>${escapeHtml(money(eom.projected))}</strong><small>${escapeHtml(eom.margin < 0 ? `${money(Math.abs(eom.margin))} por debajo del suelo` : `${money(eom.margin)} sobre el suelo`)}</small></div>` : "",
+    eom.available ? `<div class="hoy-v2-stat hoy-v2-stat-prevision${eom.margin < 0 ? " is-danger" : ""}"><div class="hoy-v2-stat-cabecera"><span>Fin de ${escapeHtml(eom.monthLabel)}</span>${hoyV2ConfianzaHtml()}</div><strong>${escapeHtml(money(eom.projected))}</strong><small>${escapeHtml(eom.margin < 0 ? `${money(Math.abs(eom.margin))} por debajo del suelo` : `${money(eom.margin)} sobre el suelo`)}</small></div>` : "",
     `<div class="hoy-v2-stat is-${escapeHtml(reserveStatus)}"><span>Reserva protegida</span><strong>${escapeHtml(money(protectedReserve))}</strong><small>${escapeHtml(reserveWord)}</small></div>`,
   ].join("");
   const chart = hoyV2ChartSvg(hoyV2Trajectory(asOf, balances?.total, payday?.nextIncomeDate), today.floor, payday?.nextIncomeDate);
@@ -178,6 +178,21 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoL
     ${chart}
     <p class="hoy-v2-provenance"><span class="hoy-v2-dot" aria-hidden="true"></span>${escapeHtml(provenance)}</p>
   </article>`;
+}
+
+// FX-31 en Hoy (7/11/2026, «primero el punto de confianza en Hoy»): junto a «Fin de mes», la cifra de Hoy que sale de la previsión, un
+// punto con la confianza de la previsión, sin texto extra (la ficha lo pide así). El nivel va por forma además de por color (○ baja,
+// ◐ media, ● alta), con su nombre para lectores de pantalla y al pasar el ratón. Lleva a Plan › Previsión con la hoja del porqué
+// abierta. Es la misma insignia (previsionV2Confianza, views/prevision-v2.js): no hay otro cálculo.
+const HOY_V2_CONFIANZA_FORMA = Object.freeze({ baja: "○", media: "◐", alta: "●" });
+
+function hoyV2ConfianzaHtml() {
+  if (typeof previsionV2Confianza !== "function" || typeof canonicalDailyEngineRuns === "undefined") return "";
+  const hoy = isoLocalDate(new Date());
+  const tramo = (canonicalDailyEngineRuns.active?.rows || []).filter((row) => row.date >= hoy && Number.isFinite(Number(row.total)));
+  const confianza = tramo.length ? previsionV2Confianza(tramo, hoy) : null;
+  if (!confianza) return "";
+  return `<button type="button" class="hoy-v2-confianza" data-hoy-v2-confianza data-nivel="${escapeHtml(confianza.level)}" aria-label="Confianza de la previsión: ${escapeHtml(confianza.level)}. Ver por qué" title="${escapeHtml(confianza.label)} · ver por qué">${HOY_V2_CONFIANZA_FORMA[confianza.level] || "○"}</button>`;
 }
 
 // Nivel visible de cada decisión: el mismo status que ya usa la Hoy de siempre (danger/warn/…).
@@ -368,6 +383,10 @@ function hoyV2BindOnce(root) {
       const segundos = hoyV2PaintedAt !== null ? (performance.now() - hoyV2PaintedAt) / 1000 : null;
       hoyV2PaintedAt = null;
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
+    }
+    if (event.target.closest("[data-hoy-v2-confianza]")) {
+      globalThis.previsionV2AbrirConfianza?.();
+      return;
     }
     const repaso = event.target.closest("[data-hoy-v2-repaso]");
     if (repaso) {
