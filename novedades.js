@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-prueba-a-escenario",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Guardar como escenario» lleva la prueba de estrés a Escenarios › Guardados, sin aplicar nada, para seguir con ella.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-imprevisto-importe",
       fecha: "2026-11-09",
       texto: "Previsión: en la prueba del imprevisto eliges el importe (1.000, 3.000 o 6.000 €) y la tabla dice cuánto te quita.",

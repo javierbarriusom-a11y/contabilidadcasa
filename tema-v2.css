@@ -4336,3 +4336,17 @@
 :root[data-tema="v2"] .hoy-v2-confianza[data-nivel="alta"] {
   color: var(--e19-success);
 }
+
+/* FX-21 (7/11/2026): «Guardar como escenario» bajo el impacto de la prueba; se ajusta a 320 px y deja el enlace al lado. */
+:root[data-tema="v2"] .prev-v2-guardar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 4px 0 0;
+}
+
+:root[data-tema="v2"] .prev-v2-guardar-aviso {
+  color: var(--e19-text);
+  flex-basis: 100%;
+}

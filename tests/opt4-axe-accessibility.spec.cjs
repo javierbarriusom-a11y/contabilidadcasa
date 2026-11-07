@@ -1666,10 +1666,26 @@ for (const scheme of ["light", "dark"]) {
       await expect(v2.locator(".prev-v2-dia")).toBeVisible();
       await v2.locator("[data-prevision-v2-confianza]").click();
       await expect(v2.locator("#prevV2Confianza")).toBeVisible();
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toBeVisible(); // FX-21: «Guardar como escenario»
       await page.mouse.move(0, 0);
       const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+      // FX-21: el aviso de los diez escenarios vivos y, hecho sitio, la prueba ya guardada.
+      await page.evaluate(() => saveEscenarioMotorSavedList(Array.from({ length: 10 }, (_, index) => ({ id: `axe-${index}`, nombre: `Escenario FICTICIO ${index + 1}`, estado: "guardado", decisiones: [] }))));
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar-aviso")).toBeVisible();
+      await page.evaluate(() => saveEscenarioMotorSavedList([]));
+      await page.mouse.move(0, 0);
+      const conAviso = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosAviso = conAviso.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosAviso, fallosAviso.slice(0, 5).join("\n")).toEqual([]);
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      await page.mouse.move(0, 0);
+      const guardada = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosGuardada = guardada.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosGuardada, fallosGuardada.slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }

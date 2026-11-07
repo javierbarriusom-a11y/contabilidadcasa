@@ -173,6 +173,26 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 7 de noviembre de 2026 (421): «Guardar como escenario» desde la prueba de estrés (FX-21)
+
+- **Qué:** bajo la tabla de impacto de cada prueba de Plan › Previsión, «Guardar como escenario» la deja en Escenarios › Guardados como «guardado», sin aplicar nada. Desde allí, «Cargar en simulador».
+  - **Motor:** `toDecisions(result, baseInput)` en `canonical-stress-scenarios.js`, puro. Traduce la prueba a los tipos de fábrica con el mes fijado (planificación «manual»):
+    - un sueldo menos → `cambio_ingreso`, un tramo por importe (la paga extra va aparte);
+    - el Euribor → `cambio_gasto` del bloque «Cuota de la hipoteca»;
+    - el imprevisto → `imprevisto`.
+  - **Vista:** `previsionV2GuardarHtml` y `previsionV2GuardarEscenario` en `views/prevision-v2.js`. Mismo almacén que Deuda › Comparar (`escenario-motor-saved`), con `origen: "prevision-prueba"` y una `firma` para no guardar dos veces la misma prueba. Valida con `FinanceCanonicalScenarioSchema` y respeta los diez vivos de E-11b.
+  - **Lo que no pasa:** el día; Escenarios es mensual y la nota lo dice. Con inflación anual distinta de 0, el imprevisto de la prueba se infla un poco con el gasto (va en `coreSpend`) y en Escenarios no (va en `projectOutflow`); con los datos de la demo, el escenario quita exactamente los 3.000 €.
+- **Pruebas:**
+  - `tests/fx21-guardar-como-escenario.test.cjs` (4): las tres traducciones, el esquema y la paridad mes a mes con `canonical-engine.js` y `canonical-scenario-engine.js` reales; el cableado.
+  - e2e «FX-21 · guardar la prueba de estrés como escenario» a 390 (`@safari`) y 1440 px (guardar, no repetir, otro importe sí, la tarjeta en Guardados y el simulador) y el límite de diez con un sueldo menos.
+  - axe claro y oscuro de C2 con el botón, el aviso y el estado «guardada».
+- **Se publica el 9/11 con el punto de Hoy:** misma rama, mismo PR.
+- **Versiones:** `views/prevision-v2.js`, `tema-v2.css`, `canonical-stress-scenarios.js` y `novedades.js` a `20261109fx21c`. Novedades, una línea.
+- **Hallazgo (no corregido):** «Guardar como escenario» de Deuda › Comparar no respeta el límite de diez escenarios vivos.
+- **Validación:**
+  - `npm run verify` en verde: 6.458 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento, build, privacidad y humo.
+  - En Chromium local: las 3 e2e nuevas y los 2 axe de C2, en verde.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (420): el importe del imprevisto se elige (FX-21)
 
 - **Qué:** en «Comparar con» › Imprevisto, el importe se elige con el mismo patrón de opciones que «Durante» y «Cuánto sube»: 1.000, 3.000 o 6.000 €. Por defecto, los 3.000 € de D-N3.

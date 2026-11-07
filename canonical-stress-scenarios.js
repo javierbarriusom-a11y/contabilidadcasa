@@ -294,5 +294,60 @@
     return { preset, applied: true, valid: result.valid, info: changed.info, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate });
+  function euros(value) {
+    const n = Math.round(Math.abs(Number(value) || 0));
+    return `${Number(value) < 0 ? "−" : ""}${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} €`;
+  }
+
+  function nextMonthKey(monthKey) {
+    const [year, month] = String(monthKey).split("-").map(Number);
+    return month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, "0")}`;
+  }
+
+  /**
+   * «Guardar como escenario» (FX-21, 7/11/2026): la prueba ya aplicada, dicha con los tipos de fábrica de Escenarios
+   * (canonical-scenario-engine.js), para seguir con ella allí. Cada decisión cambia la entrada del plan igual que la prueba:
+   *   · un sueldo menos → «Cambio de ingreso» negativo, un tramo por cada importe distinto (una paga extra no se promedia);
+   *   · el Euribor → «Cambio de gasto» con lo que sube la cuota, del mes de la revisión a su último plazo dentro del plan;
+   *   · el imprevisto → «Imprevisto» del mismo importe en su mes.
+   * Todas con el mes fijado (planificación «manual»): el modo «óptimo» de Escenarios movería la prueba a otro mes.
+   * Lo único que no pasa es el día: Escenarios cuenta por meses. Sin `id` ni `orden`: los pone quien guarda.
+   * @param {any} result la salida de evaluate()
+   * @param {any} baseInput la entrada del plan con la que se evaluó
+   */
+  function toDecisions(result, baseInput) {
+    if (!result?.applied || !result.info) return [];
+    const months = baseInput?.months || [];
+    const decision = (tipo, titulo, mes, params) => ({ tipo, titulo: String(titulo).slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes }, params });
+    const id = result.preset?.id;
+    if (id === "imprevisto") {
+      const mes = String(result.info.date || "").slice(0, 7);
+      const importe = round2(result.info.amount);
+      if (!months.some((month) => month.monthKey === mes) || !(importe > 0)) return [];
+      return [decision("imprevisto", `Imprevisto de ${euros(importe)}`, mes, { importe, mes })];
+    }
+    if (id === "sueldo-menos") {
+      const { concept, from, to } = result.info;
+      const tramos = [];
+      months.filter((month) => month.monthKey >= from && month.monthKey <= to).forEach((month) => {
+        const lost = round2((month.incomeEvents || []).filter((event) => event.concept === concept).reduce((sum, event) => sum + Number(event.amount || 0), 0));
+        if (!(lost > 0)) return;
+        const last = tramos.at(-1);
+        if (last && last.lost === lost && nextMonthKey(last.to) === month.monthKey) last.to = month.monthKey;
+        else tramos.push({ from: month.monthKey, to: month.monthKey, lost });
+      });
+      return tramos.map((tramo) => decision("cambio_ingreso", `Sin «${concept}»`, tramo.from, { titular: "hogar", deltaMensual: -tramo.lost, mesInicio: tramo.from, mesFin: tramo.to }));
+    }
+    if (id === "euribor") {
+      return (result.info.shocks || []).filter((shock) => shock.extra > 0).map((shock) => {
+        const startKey = String(shock.date).slice(0, 7);
+        const tocados = months.filter((month) => month.monthKey >= startKey).slice(0, shock.months);
+        if (!tocados.length) return null;
+        return decision("cambio_gasto", `Hipoteca: cuota de ${euros(shock.from)} a ${euros(shock.to)}`, tocados[0].monthKey, { bloque: "Cuota de la hipoteca", deltaMensual: round2(shock.extra), mesInicio: tocados[0].monthKey, mesFin: tocados.at(-1).monthKey });
+      }).filter(Boolean);
+    }
+    return [];
+  }
+
+  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, toDecisions });
 });

@@ -28,6 +28,7 @@ let previsionV2Dia = { date: "", fijado: false }; // FX-10 PR-2: el día del pan
 let previsionV2Pulsado = false; // un clic, un toque o una tecla sobre el gráfico fija el día
 let previsionV2Ultimo = null; // lo último pintado, para repintar solo el panel al recorrer el gráfico
 let previsionV2ConfianzaAbierta = false; // FX-31: la hoja de la insignia, hasta recargar
+let previsionV2GuardarAviso = null; // FX-21: por qué no se ha podido guardar la prueba ({ firma, text }), hasta la siguiente
 
 /** Los motores de siempre (mensual, entrada diaria y diario), los mismos que pintan la trayectoria del plan. */
 function previsionV2Deps() {
@@ -124,7 +125,10 @@ function previsionV2Prueba(id, rows, today, to, floor) {
     const cached = previsionV2Cache.get(key);
     if (cached && cached.rows === rows) return cached.result;
     result = S.evaluate(id, input, rows, previsionV2Deps(), { today, to, floor, checkingFloor, params });
-    if (result) result.params = params;
+    if (result) {
+      result.params = params;
+      result.decisions = S.toDecisions(result, input); // FX-21: lo que «Guardar como escenario» llevaría a Escenarios
+    }
     previsionV2Cache.set(key, { rows, result });
   } catch {
     result = null; // sin prueba si el motor no puede recalcular: la previsión del plan se enseña igual
@@ -356,7 +360,78 @@ function previsionV2CompararHtml(prueba, today) {
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
       <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}Es una prueba: no cambia el plan ni mueve dinero.</p>
+      ${previsionV2GuardarHtml(prueba)}
     </div>`;
+}
+
+// ---- FX-21 · «Guardar como escenario» -----------------------------------------------------------------------------------
+// La prueba pasa a Escenarios › Guardados con los tipos de fábrica (canonical-stress-scenarios.js toDecisions), en el mismo
+// almacén que Deuda › Comparar y la pantalla de Escenarios, como «guardado»: no se aplica nada. Allí se carga en el simulador
+// para seguir con ella (combinarla con otras decisiones, cambiar importes). Lo único que no pasa es el día: Escenarios cuenta
+// por meses. Respeta los diez escenarios vivos de E-11b y no guarda dos veces la misma prueba.
+
+function previsionV2Firma(decisions) {
+  return JSON.stringify((decisions || []).map((decision) => ({ tipo: decision.tipo, params: decision.params })));
+}
+
+function previsionV2NombreEscenario(prueba) {
+  const info = prueba.info || {};
+  const mes = (key) => (typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(key) : key);
+  if (prueba.preset.id === "sueldo-menos") return `Prueba · sin «${info.concept}» ${info.months} meses`;
+  if (prueba.preset.id === "euribor") return `Prueba · Euribor +${prueba.params?.points || 1}`;
+  return `Prueba · imprevisto de ${money(info.amount)} en ${mes(String(info.date || "").slice(0, 7))}`;
+}
+
+function previsionV2GuardarHtml(prueba) {
+  const decisions = prueba?.decisions || [];
+  if (!decisions.length || typeof loadEscenarioMotorSaved !== "function") return "";
+  const firma = previsionV2Firma(decisions);
+  const ver = `<button type="button" class="hoy-v2-link" data-prevision-v2-nav="escenario-guardados">Ver en Escenarios</button>`;
+  if (loadEscenarioMotorSaved().some((entry) => !entry.archived && entry.firma === firma)) {
+    return `<p class="prev-v2-guardar e19-kpi-note"><span>Guardada en Escenarios › Guardados, sin aplicar.</span> ${ver}</p>`;
+  }
+  const aviso = previsionV2GuardarAviso?.firma === firma ? `<span class="prev-v2-guardar-aviso">${escapeHtml(previsionV2GuardarAviso.text)}</span> ${ver}` : "";
+  return `<p class="prev-v2-guardar e19-kpi-note"><button type="button" class="e19-btn e19-btn-secondary" data-prevision-v2-guardar>Guardar como escenario</button>${aviso}</p>`;
+}
+
+/** Guarda la prueba que se está viendo. Devuelve true si la ha guardado. */
+function previsionV2GuardarEscenario() {
+  const prueba = previsionV2Ultimo?.prueba;
+  const decisions = prueba?.applied ? prueba.decisions || [] : [];
+  if (!decisions.length || typeof loadEscenarioMotorSaved !== "function" || typeof saveEscenarioMotorSavedList !== "function" || typeof escenarioMotorNewDecisionId !== "function") return false;
+  const firma = previsionV2Firma(decisions);
+  const aviso = (text) => {
+    previsionV2GuardarAviso = { firma, text };
+    if (typeof announceStatus === "function") announceStatus(text);
+    return false;
+  };
+  const saved = loadEscenarioMotorSaved();
+  if (saved.some((entry) => !entry.archived && entry.firma === firma)) return false;
+  if (saved.filter((entry) => !entry.archived).length >= 10) return aviso("Ya hay 10 escenarios en Escenarios › Guardados: archiva uno para hacer sitio. No se ha guardado nada.");
+  const schema = globalThis.FinanceCanonicalScenarioSchema;
+  if (!schema) return aviso("No se puede comprobar la prueba (falta el esquema de Escenarios). No se ha guardado nada.");
+  const decisiones = decisions.map((item, orden) => ({ ...JSON.parse(JSON.stringify(item)), id: escenarioMotorNewDecisionId(), orden }));
+  const issues = [];
+  decisiones.forEach((decision) => schema.validateDecision(decision, "$", issues));
+  if (issues.some((issue) => issue.severity === "error")) return aviso("Escenarios no admite esta prueba tal cual. No se ha guardado nada.");
+  const nombre = previsionV2NombreEscenario(prueba);
+  const nota = previsionV2Nota(prueba, ""); // con el año: el escenario se lee meses después
+  if (typeof escenarioMotorSavedSeq === "number") escenarioMotorSavedSeq += 1;
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${typeof escenarioMotorSavedSeq === "number" ? escenarioMotorSavedSeq : 0}`,
+    nombre,
+    motivo: `Guardada desde Plan › Previsión, sin aplicar.${nota ? ` ${nota}` : ""}${prueba.preset.id === "imprevisto" ? " En Escenarios cuenta en su mes, no en su día." : ""}`,
+    estado: "guardado",
+    fecha: new Date().toISOString(),
+    decisiones,
+    guardrailValue: null,
+    origen: "prevision-prueba",
+    firma,
+  });
+  saveEscenarioMotorSavedList(saved);
+  previsionV2GuardarAviso = null;
+  if (typeof announceStatus === "function") announceStatus(`«${nombre}» guardada en Escenarios › Guardados. No se ha aplicado nada.`);
+  return true;
 }
 
 // ---- FX-31 · La insignia de confianza ------------------------------------------------------------------------------
@@ -827,6 +902,14 @@ function previsionV2Init() {
     if (insignia) {
       previsionV2ConfianzaAbierta = previsionV2AbreHoja(insignia);
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      return;
+    }
+    if (event.target.closest("[data-prevision-v2-guardar]")) {
+      const guardada = previsionV2GuardarEscenario();
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      const caja = qs("planPrevisionV2")?.querySelector(".prev-v2-guardar");
+      (caja?.querySelector(guardada ? "[data-prevision-v2-nav]" : "[data-prevision-v2-guardar]") || caja?.querySelector("button"))?.focus();
       return;
     }
     if (event.target.closest("[data-prevision-v2-mapa]")) {
