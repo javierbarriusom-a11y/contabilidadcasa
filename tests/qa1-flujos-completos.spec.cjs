@@ -5931,6 +5931,31 @@ test.describe("FX-21 · guardar la prueba de estrés como escenario", () => {
   });
 });
 
+// 8/11/2026: con una inflación anual distinta de 0 el recálculo se cortaba (la paridad diaria-mensual se pasaba de su tolerancia por
+// céntimos acumulados y lanzaba un error dentro de render). Escribirla en su campo tiene que recalcular la Previsión sin errores.
+test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+  await page.goto("/index.html#plan");
+  await page.locator('[data-plan-tab="prevision"]').click();
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(v2).toBeVisible({ timeout: 15000 });
+  const finAntes = await page.evaluate(() => canonicalEngineRuns.active.rows.at(-1).totalLiquidity);
+  for (const valor of ["1", "3.5"]) {
+    await page.evaluate((v) => { const campo = document.getElementById("annualInflation"); campo.value = v; campo.dispatchEvent(new Event("input", { bubbles: true })); }, valor);
+    // El pintado va en el siguiente fotograma: con el reloj de la prueba hay que avanzarlo (antes, aquí saltaba el error).
+    await page.clock.runFor(200);
+  }
+  const estado = await page.evaluate(() => ({ inflacion: state.annualInflation, valida: canonicalDailyEngineRuns.active.invariants.valid, fin: canonicalEngineRuns.active.rows.at(-1).totalLiquidity }));
+  expect(estado.inflacion).toBe(3.5);
+  expect(estado.valida, "la auditoría diaria cuadra con la mensual").toBe(true);
+  expect(estado.fin, "con inflación, el plan acaba con menos liquidez").toBeLessThan(finAntes);
+  await page.evaluate(() => previsionV2Render());
+  await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
+  expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
 // FX-20 (7/11/2026): dos pruebas a la vez, sobre la misma trayectoria y en un solo recálculo. Datos de la demo.
 test.describe("FX-20 · dos pruebas a la vez", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {

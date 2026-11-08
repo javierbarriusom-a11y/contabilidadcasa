@@ -173,6 +173,23 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (425): la inflación anual distinta de 0 ya no corta el recálculo
+
+- **El fallo (ya estaba en `main`):** con cualquier inflación anual distinta de 0 en Ajustes (o subida anual de ingresos), `render()` lanzaba `La auditoría diaria no supera sus invariantes en active: monthly-parity…` y la app dejaba de recalcular. Lo destapó FX-40 al probar un cambio de supuestos.
+- **Causa:** el motor mensual da importes con fracciones de céntimo. `canonical-daily-input.js` redondeaba cada concepto al céntimo por su lado, y el desfase de los cierres se acumulaba mes a mes. A los dos o tres años pasaba de la tolerancia de 0,02 € de la paridad diaria-mensual: −0,03 € en 2028-11 con la demo y un 1 %, y 98 meses con incidencia.
+- **Arreglo (`build`):** el resto del redondeo se lleva mes a mes.
+  - El gasto de los conceptos suma justo el `outflowsBeforeSaving` redondeado (la diferencia va al concepto mayor).
+  - El traspaso al ahorro deja el ahorro en su cierre redondeado.
+  - Lo que aún separe la cuenta corriente de su cierre va al ingreso (hasta 1 céntimo) y el resto al gasto mayor.
+  - **Solo absorbe céntimos** (como mucho 0,05 €): una fila que no cuadra de verdad no se toca y la auditoría la sigue marcando.
+  - **La tolerancia no se toca:** la regla es no relajar pruebas ni umbrales.
+- **Pruebas:**
+  - `tests/inflacion-paridad-diaria.test.cjs` (6): un plan inventado a 10 años con inflación 0, 1 y 3,5 %, con subida de ingresos y con reserva operativa, más la fila que no cuadra de verdad. Antes de arreglarlo fallaban 4.
+  - e2e «la inflación anual de Ajustes recalcula la Previsión sin cortar la app»: escribe 1 y 3,5 en el campo y comprueba que la auditoría cuadra y que el plan acaba con menos liquidez.
+- **Pendiente, aparte:** que una incidencia de la auditoría no deje la app sin pintar (hoy `assertCanonicalDailySnapshot` lanza dentro de `render`). Con el arreglo no salta, pero el mecanismo sigue siendo frágil.
+- **Versiones:** `canonical-daily-input.js` a `20261109infl1`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde con solo este arreglo (sin FX-40, que sigue en curso): 6.475 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 142,7 ms), build, privacidad y humo. En Chromium local, la e2e nueva y las de C2, dos pruebas, FX-31 y Hoy con su axe, 16 de 16.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (424): dos pruebas de estrés a la vez (FX-20)
 
 - **Qué:** bajo las opciones de la prueba elegida, «Sumar otra prueba» (Ninguna y las otras dos) junta dos pruebas sobre la misma trayectoria: una línea, una frase, una tabla y un «Guardar como escenario» con las decisiones de las dos.

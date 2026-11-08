@@ -89,20 +89,57 @@
     });
   }
 
+  // 8/11/2026 · el resto del redondeo al céntimo, mes a mes. Con inflación o subida de ingresos el motor mensual da importes con
+  // fracciones de céntimo; redondear cada concepto por su lado acumulaba un desfase que a los dos o tres años superaba la tolerancia
+  // de la paridad diaria-mensual (0,02 €) y cortaba el recálculo de la app. Ahora cada mes:
+  //   · el gasto de los conceptos suma justo el «outflowsBeforeSaving» redondeado de la fila (la diferencia, al concepto mayor);
+  //   · el traspaso al ahorro deja el ahorro en el cierre redondeado de la fila;
+  //   · lo que aún separe la cuenta corriente de su cierre va primero al ingreso (hasta 1 céntimo) y el resto al gasto mayor.
+  // Solo absorbe céntimos: si la diferencia pasa de MAX_CENTS, la fila no cuadra de verdad y no se toca (la auditoría lo marca).
+  const MAX_CENTS = 0.05;
+  const OUTFLOW_FIELDS = ["fixedCoreSpend", "variableOperationalSpend", "car", "refi", "projectOutflow"];
+
   function build(monthlyInput, rows, options = {}) {
     const events = [];
+    let simChecking = Number(monthlyInput.openingBalances?.checking) || 0;
+    let simSavings = Number(monthlyInput.openingBalances?.savings) || 0;
     const months = (monthlyInput.months || []).map((month, index) => {
       const row = rows[index] || {};
       const payrollDate = month.mainPayrollDate || dailyAuditFallbackDate(month.monthKey, monthEndDate(dateFromMonthKey(month.monthKey)).getDate());
-      const fixedCoreSpend = round2(Number(row.fixedCoreSpend ?? Math.max(0, Number(row.coreSpend || 0) - Number(row.variableOperationalSpend || 0))));
-      const variableOperationalSpend = round2(Number(row.variableOperationalSpend || 0));
-      const car = round2(Number(row.car || 0));
-      const refi = round2(Number(row.refi || 0));
-      const projectOutflow = round2(Number(row.projectOutflow || 0));
+      const outflow = {
+        fixedCoreSpend: round2(Number(row.fixedCoreSpend ?? Math.max(0, Number(row.coreSpend || 0) - Number(row.variableOperationalSpend || 0)))),
+        variableOperationalSpend: round2(Number(row.variableOperationalSpend || 0)),
+        car: round2(Number(row.car || 0)),
+        refi: round2(Number(row.refi || 0)),
+        projectOutflow: round2(Number(row.projectOutflow || 0)),
+      };
+      const mayor = OUTFLOW_FIELDS.reduce((best, field) => (Math.abs(outflow[field]) > Math.abs(outflow[best]) ? field : best), OUTFLOW_FIELDS[0]);
+      const sumOutflow = () => round2(OUTFLOW_FIELDS.reduce((sum, field) => sum + outflow[field], 0));
+      if (Number.isFinite(Number(row.outflowsBeforeSaving))) {
+        const gap = round2(round2(Number(row.outflowsBeforeSaving)) - sumOutflow());
+        if (gap && Math.abs(gap) <= MAX_CENTS) outflow[mayor] = round2(outflow[mayor] + gap);
+      }
+      let income = round2(Number(row.income || 0));
+      let saving = round2(Number(row.saving || 0));
+      if (Number.isFinite(Number(row.savings))) {
+        const needed = round2(round2(Number(row.savings)) - simSavings);
+        if (Math.abs(needed - saving) <= MAX_CENTS) saving = needed;
+      }
+      if (Number.isFinite(Number(row.checking))) {
+        const gap = round2(round2(Number(row.checking)) - (simChecking + income - sumOutflow() - saving));
+        if (gap && Math.abs(gap) <= MAX_CENTS) {
+          const toIncome = Math.max(-0.01, Math.min(0.01, gap));
+          income = round2(income + toIncome);
+          outflow[mayor] = round2(outflow[mayor] - round2(gap - toIncome));
+        }
+      }
+      simChecking = simChecking + income - sumOutflow() - saving;
+      simSavings = simSavings + saving;
+      const { fixedCoreSpend, variableOperationalSpend, car, refi, projectOutflow } = outflow;
       const incomeEvents = month.incomeEvents || [];
       const expenseEvents = month.expenseEvents || [];
 
-      distributeDailyAuditEvents(events, month, incomeEvents, row.income, {
+      distributeDailyAuditEvents(events, month, incomeEvents, income, {
         kind: "income",
         field: "income",
         accountId: "checking",
@@ -169,7 +206,7 @@
         fromAccountId: "checking",
         toAccountId: "savings",
         label: "Traspaso a Mediolanum",
-        amount: Number(row.saving || 0),
+        amount: saving,
         date: payrollDate,
         source: "política de ahorro",
         confidence: "rule",

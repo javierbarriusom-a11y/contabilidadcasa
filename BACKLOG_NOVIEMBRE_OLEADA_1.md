@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**8/11/2026 · Arreglado: una inflación anual distinta de 0 cortaba el recálculo de la app («Haz esta tarea aquí»).** Ya estaba en `main`. El redondeo al céntimo de la entrada diaria acumulaba un desfase que rompía la paridad diaria-mensual; ahora el resto del redondeo se lleva mes a mes, sin tocar la tolerancia (PROJECT_STATE 425).
+
 **8/11/2026 · Dos pruebas de estrés a la vez (FX-20, «sigue con las dos pruebas a la vez»); sale el lunes 9/11.**
 - **Qué es:** «Sumar otra prueba» junta dos pruebas sobre la misma trayectoria, con un solo recálculo: una línea, una frase, la tabla y «Guardar como escenario» con las dos.
 - **El imprevisto** va el último y cae el peor día de la combinación.

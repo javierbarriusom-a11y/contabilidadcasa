@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-inflacion",
+      fecha: "2026-11-09",
+      texto: "Ajustes: con una inflación anual distinta de 0 la app dejaba de recalcular; ya recalcula bien con cualquier valor.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-dos-pruebas",
       fecha: "2026-11-09",
       texto: "Previsión: «Sumar otra prueba» junta dos pruebas de estrés (p. ej. un sueldo menos y un imprevisto) y dice cuánto quita cada una.",
