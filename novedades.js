@@ -11,6 +11,72 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-escenario-guardado-en-prevision",
+      fecha: "2026-11-09",
+      texto: "Previsión: en «Comparar con», también tus escenarios guardados (los que no están ya en el plan), sobre la línea del plan y con su tabla.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-pruebas-con-proyectos",
+      fecha: "2026-11-09",
+      texto: "Previsión: las pruebas de estrés y «qué ha cambiado» cuentan ya los proyectos y pagos de deuda programados, como la línea del plan.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-puente-en-por-que",
+      fecha: "2026-11-09",
+      texto: "Previsión: el puente del 31/12 (por qué cambia el fin de año de cierre a cierre) pasa a «Por qué», bajo la cifra; ya no va aparte.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-que-ha-cambiado",
+      fecha: "2026-11-09",
+      texto: "Previsión: bajo la cifra, cuánto ha cambiado desde tu última visita y, en «Por qué», si fue el tiempo, el saldo, los supuestos o el plan.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-inflacion",
+      fecha: "2026-11-09",
+      texto: "Ajustes: con una inflación anual distinta de 0 la app dejaba de recalcular; ya recalcula bien con cualquier valor.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-dos-pruebas",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Sumar otra prueba» junta dos pruebas de estrés (p. ej. un sueldo menos y un imprevisto) y dice cuánto quita cada una.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-colchon-meses",
+      fecha: "2026-11-09",
+      texto: "Previsión: cada prueba de estrés dice cuántos meses de gasto os quedan en el punto más bajo, y si baja de vuestro objetivo.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-limite-diez-deuda",
+      fecha: "2026-11-09",
+      texto: "Deuda › Comparar: con diez escenarios guardados ya no guarda otro; te lleva a archivar uno, como en Escenarios.",
+      href: "#deuda-comparar",
+    },
+    {
+      id: "2026-11-09-prueba-a-escenario",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Guardar como escenario» lleva la prueba de estrés a Escenarios › Guardados, sin aplicar nada, para seguir con ella.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-imprevisto-importe",
+      fecha: "2026-11-09",
+      texto: "Previsión: en la prueba del imprevisto eliges el importe (1.000, 3.000 o 6.000 €) y la tabla dice cuánto te quita.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-punto-confianza-hoy",
+      fecha: "2026-11-09",
+      texto: "Hoy: junto a «Fin de mes», un punto dice cuánto fiarse de la previsión (○ baja, ◐ media, ● alta); tócalo para ver por qué.",
+      href: "#home",
+    },
+    {
       id: "2026-11-07-de-verdad-libre",
       fecha: "2026-11-07",
       texto: "Previsión: «De verdad libre» resta de lo libre lo que el plan aún no descuenta (lo devengado de los pagos grandes).",

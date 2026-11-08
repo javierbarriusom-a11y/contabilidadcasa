@@ -3833,12 +3833,14 @@
    El punto más bajo del horizonte arriba, el gráfico único de previsión (ChartKit.forecastPlotHtml) y «Lo que viene» plegado.
    Lo de siempre (tabla de meses, plan B, puente, mapa de pagos) se oculta mientras la v2 está pintada y vuelve con
    «Ver todo el detalle». Si el script no pinta, nada se oculta. */
-/* Solo se pliega lo que C2 sustituye: la tabla de meses con su leyenda, sus hitos y el desglose del peor mes. El plan B, el
-   puente y el mapa de pagos siguen a la vista debajo: son funciones en uso y esconderlas sería casi retirarlas. */
+/* Solo se pliega lo que C2 sustituye: la tabla de meses con su leyenda, sus hitos y el desglose del peor mes. El plan B y el
+   mapa de pagos siguen a la vista debajo: son funciones en uso y esconderlas sería casi retirarlas. El puente de WP-43 (8/11/2026,
+   decisión del hogar: «sí, mueve el puente del 31/12 a «Por qué»») no se esconde: se pinta dentro de la hoja «Por qué» de C2. */
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .section-title,
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .plan-prevision-table-wrap,
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionMilestones,
-:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionWorstBreakdown {
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionWorstBreakdown,
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #puenteCard {
   display: none;
 }
 
@@ -4303,4 +4305,154 @@
 
 :root[data-tema="v2"] .prev-v2-libre p {
   margin: 0;
+}
+
+/* FX-31 en Hoy (7/11/2026): el punto de confianza de la previsión, pegado a «Fin de mes». Forma y color: ○ baja, ◐ media, ● alta. */
+:root[data-tema="v2"] .hoy-v2-stat-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--e19-warning);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza[data-nivel="media"] {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .hoy-v2-confianza[data-nivel="alta"] {
+  color: var(--e19-success);
+}
+
+/* FX-21 (7/11/2026): «Guardar como escenario» bajo el impacto de la prueba; se ajusta a 320 px y deja el enlace al lado. */
+:root[data-tema="v2"] .prev-v2-guardar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 4px 0 0;
+}
+
+:root[data-tema="v2"] .prev-v2-guardar-aviso {
+  color: var(--e19-text);
+  flex-basis: 100%;
+}
+
+/* FX-40 (8/11/2026): «qué ha cambiado desde tu última visita», bajo la cifra principal, y su hoja con el puente de cuatro causas. */
+:root[data-tema="v2"] .prev-v2-cambio {
+  margin: 0;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cambio strong {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .prev-v2-cambio-boton {
+  margin-left: 4px;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios {
+  display: grid;
+  gap: 8px;
+  min-width: 0; /* elemento de la rejilla del titular: que nada de dentro lo ensanche más allá de la tarjeta */
+  margin-top: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+:root[data-tema="v2"] .prev-v2-cambios[hidden] {
+  display: none;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios p {
+  margin: 0;
+}
+
+/* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css, como en la tabla de impacto. */
+:root[data-tema="v2"] .prev-v2-cambios-tabla {
+  width: 100%;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-tabla td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-total th,
+:root[data-tema="v2"] .prev-v2-cambios-total td {
+  font-weight: 700;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-notas {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.875rem;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-aviso {
+  padding: 8px 10px;
+  border-left: 3px solid var(--e19-warning);
+  background: var(--e19-warning-soft);
+}
+
+/* El puente de WP-43 dentro de «Por qué» (8/11/2026): segunda parte de la hoja, separada de lo de la última visita. */
+:root[data-tema="v2"] .prev-v2-puente {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-visita + .prev-v2-puente {
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-puente-titulo {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-visita {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-puente .pte-notas,
+:root[data-tema="v2"] .prev-v2-puente .pte-tabla summary {
+  font-size: 0.875rem;
+}
+
+:root[data-tema="v2"] .prev-v2-puente .pte-notas {
+  color: var(--e19-muted);
+}
+
+/* FX-20 (8/11/2026) · «O un escenario guardado» bajo «Comparar con»: el selector ocupa lo que queda de la fila y a 390 px baja
+   entero, sin salirse con nombres largos. */
+:root[data-tema="v2"] .prev-v2-guardados select {
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
 }

@@ -31,7 +31,7 @@
     Object.freeze({ id: "margen-suelo", label: "Margen sobre el suelo", unit: "€", engine: "diario", definition: "Saldo previsto menos el suelo de liquidez." }),
     Object.freeze({ id: "disponible-hasta-cobrar", label: "Disponible hasta cobrar", unit: "€", engine: "diario", definition: "El menor margen sobre el suelo entre hoy y el próximo cobro." }),
     Object.freeze({ id: "punto-mas-bajo", label: "Punto más bajo", unit: "€ y fecha", engine: "diario", definition: "El menor saldo previsto desde hoy hasta el final del horizonte, con su fecha (con día hasta 90 días; después, el mes)." }),
-    Object.freeze({ id: "colchon-meses", label: "Colchón", unit: "meses", engine: "mensual", definition: "Liquidez prevista a fin de mes dividida entre las salidas de un mes." }),
+    Object.freeze({ id: "colchon-meses", label: "Colchón", unit: "meses", engine: "diario y mensual", definition: "Liquidez prevista dividida entre el gasto corriente medio de un mes (el de los 12 primeros meses del plan), con una décima." }),
   ]);
 
   /** FX-30: las palabras de la incertidumbre. Lo técnico (percentiles, trayectorias) va en «¿Cómo se calcula?». */
@@ -66,6 +66,18 @@
     const step = roundingStep(daysAhead);
     const rounded = Math.round(number(value) / step) * step;
     return Object.is(rounded, -0) ? 0 : rounded;
+  }
+
+  /**
+   * «Colchón» en meses (FX-01 `colchon-meses`; FX-20, 7/11/2026): la liquidez entre el gasto corriente medio de un mes, con una
+   * décima. El gasto es el de los 12 primeros meses del plan (`escenarioMotorAverageCoreSpend`), el mismo de «Colchón más justo» y
+   * de Escenarios: una sola fórmula. Sin gasto no hay nada que medir (null); en negativo, el colchón es negativo.
+   */
+  function cushionMonths(liquidity, monthlySpend) {
+    const spend = number(monthlySpend);
+    if (!(spend > 0) || !Number.isFinite(Number(liquidity)) || liquidity === null || liquidity === "") return null;
+    const value = Math.round((number(liquidity) / spend) * 10) / 10;
+    return Object.is(value, -0) ? 0 : value;
   }
 
   /**
@@ -213,6 +225,7 @@
     roundingStep,
     roundForHorizon,
     roundDifference,
+    cushionMonths,
     isApproximate,
     lowPoint,
     monthLows,

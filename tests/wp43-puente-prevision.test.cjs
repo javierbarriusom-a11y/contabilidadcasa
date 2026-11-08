@@ -239,7 +239,8 @@ test("WP-43 PR-2 · el aviso de Cierre solo lee y su botón lleva a Plan › Pre
   const ui = read("puente-ui.js");
   const fn = ui.slice(ui.indexOf("function renderPuenteAviso"), ui.indexOf("// Una sola vez, por delegación."));
   assert.doesNotMatch(fn, /puenteSave|storageSet|queueRemoteSave|upsert|freezeYearEnd/, "el aviso no escribe ni congela nada");
-  assert.match(ui, /event\.target\?\.closest\?\.\("\[data-puente-aviso-ver\]"\)\) \{ setActiveView\("plan", \{ focus: true \}\); setPlanTab\("prevision"\); \}/);
+  // Lleva a Plan › Previsión y, en el tema nuevo, abre la hoja «Por qué» con el foco en el puente (8/11/2026).
+  assert.match(ui, /event\.target\?\.closest\?\.\("\[data-puente-aviso-ver\]"\)\) \{\s+setActiveView\("plan", \{ focus: true \}\);\s+setPlanTab\("prevision"\);\s+globalThis\.previsionV2AbrirPuente\?\.\(\);/);
   assert.match(read("views/cierre.js"), /globalThis\.renderPuenteAviso\?\.\(window\.FinanceCanonicalForecastBridge\)/);
   assert.match(read("index.html"), /id="puenteAviso" aria-live="off" hidden/);
 });

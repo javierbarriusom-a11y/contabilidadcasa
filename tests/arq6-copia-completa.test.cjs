@@ -41,6 +41,7 @@ const EXCLUDED = {
   "novedades-ultima-vista": "hasta qué línea de «Novedades» se ha leído en este dispositivo (WP-01), no un dato del hogar",
   "cierre-guia": "casillas de la guía del cierre en este dispositivo (29/10/2026): qué pasos se han marcado cada mes, sin importes; una ayuda para no perderse, no un dato del hogar",
   "finance-e18-local-health": "métricas técnicas locales (E18)",
+  "prevision-v2-fotos": "fotos ligeras de la previsión en cada visita a Plan › Previsión en este dispositivo (FX-40), para «frente a tu visita de ayer»; se rehacen solas en la siguiente visita y subirlas haría que cada visita escribiera en la nube",
   // Trabajo a medias y ayudas de este dispositivo.
   "datos-importar-borrador": "bandeja de importación a medio revisar; se rehace subiendo el fichero",
   "datos-importar-historial-huellas": "aviso de «ya subiste este fichero» durante 7 días en este dispositivo",

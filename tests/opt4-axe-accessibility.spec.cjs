@@ -830,7 +830,8 @@ for (const scheme of ["light", "dark"]) {
   test.describe(`WP-43 · contraste del puente de previsión en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
     test("Plan › Previsión: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
-      await page.goto("/index.html#plan");
+      // La tarjeta es del tema clásico desde el 8/11/2026; en el tema nuevo, el puente dentro de «Por qué» (prueba «FX-40 · contraste…»).
+      await page.goto("/index.html?tema=clasico#plan");
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
@@ -1666,6 +1667,84 @@ for (const scheme of ["light", "dark"]) {
       await expect(v2.locator(".prev-v2-dia")).toBeVisible();
       await v2.locator("[data-prevision-v2-confianza]").click();
       await expect(v2.locator("#prevV2Confianza")).toBeVisible();
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toBeVisible(); // FX-21: «Guardar como escenario»
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+      // FX-21: el aviso de los diez escenarios vivos y, hecho sitio, la prueba ya guardada.
+      await page.evaluate(() => saveEscenarioMotorSavedList(Array.from({ length: 10 }, (_, index) => ({ id: `axe-${index}`, nombre: `Escenario FICTICIO ${index + 1}`, estado: "guardado", decisiones: [] }))));
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar-aviso")).toBeVisible();
+      await page.evaluate(() => saveEscenarioMotorSavedList([]));
+      await page.mouse.move(0, 0);
+      const conAviso = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosAviso = conAviso.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosAviso, fallosAviso.slice(0, 5).join("\n")).toEqual([]);
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      await page.mouse.move(0, 0);
+      const guardada = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosGuardada = guardada.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosGuardada, fallosGuardada.slice(0, 5).join("\n")).toEqual([]);
+      // FX-20: dos pruebas a la vez (un sueldo menos y un imprevisto), con «Sumar otra prueba» y la nota «por separado».
+      await v2.locator('[data-prevision-v2-segunda="imprevisto"]').click();
+      await expect(v2.locator(".prev-v2-separado")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const doble = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosDoble = doble.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosDoble, fallosDoble.slice(0, 5).join("\n")).toEqual([]);
+      // FX-20 (8/11): uno de los escenarios guardados en «Comparar con», con su selector etiquetado.
+      const guardadoId = await page.evaluate(() => loadEscenarioMotorSaved()[0].id);
+      await v2.locator("[data-prevision-v2-guardado]").selectOption(guardadoId);
+      await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("Con «Prueba ·");
+      await page.mouse.move(0, 0);
+      const conGuardado = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosGuardado = conGuardado.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosGuardado, fallosGuardado.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// FX-40 (8/11/2026) · «qué ha cambiado desde tu última visita» con su hoja abierta, en claro y en oscuro. Datos de la demo.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-40 · contraste de «qué ha cambiado» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con la línea y la hoja del puente abiertas: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 6, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.clock.setSystemTime(new Date(2026, 10, 9, 10, 0, 0));
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
+      await page.clock.runFor(200);
+      await page.evaluate(() => previsionV2Render());
+      // Con el puente del 31/12 dentro de la hoja (8/11/2026): dos cierres, el segundo con un extraordinario de 1.000 €.
+      await page.evaluate(() => {
+        const engine = FinanceCanonicalForecastBridge;
+        const base = canonicalScenarioResults.base.forecast.series;
+        const year = Number(base[0].monthKey.slice(0, 4));
+        const freeze = (month, extra) => {
+          const series = JSON.parse(JSON.stringify(base));
+          let shift = 0;
+          series.forEach((row) => {
+            if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += extra; row.components.outflow.project = extra; shift -= extra; }
+            if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+          });
+          const first = { ...series[0], monthKey: `${year}-${month}` };
+          puenteSave(engine.upsert(puenteLoad(), engine.freezeYearEnd({ monthKey: `${year}-${month}`, closedAt: `${year}-${month}-28T10:00:00Z`, series: [first, ...series.filter((row) => row.monthKey !== first.monthKey)], actuals: { income: 5000, recurring: 4250, debt: 480 } }).snapshot));
+        };
+        freeze("09", 0); freeze("10", 1000);
+        previsionV2Render();
+      });
+      await v2.locator("[data-prevision-v2-cambios]").click();
+      await expect(page.locator("#prevV2Cambios")).toBeVisible();
+      await expect(page.locator("#prevV2Puente .pte-cascada")).toBeVisible();
+      await page.locator("#prevV2Puente .pte-tabla summary").click();
       await page.mouse.move(0, 0);
       const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));

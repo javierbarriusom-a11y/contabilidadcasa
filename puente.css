@@ -59,7 +59,8 @@
 
 /* Las cifras de la cascada van en tinta: el signo (+/−) y la palabra de la frase ya dicen la dirección. El verde de `.is-positivo` (heredado de A-4, Análisis) da 3,49:1
    sobre la tarjeta en claro (axe color-contrast, mínimo 4,5:1). */
-.pte-card .pte-cascada .analisis-cascada-row .analisis-cascada-value {
+.pte-card .pte-cascada .analisis-cascada-row .analisis-cascada-value,
+.prev-v2-puente .pte-cascada .analisis-cascada-row .analisis-cascada-value /* 8/11/2026: el puente dentro de «Por qué» (C2) */ {
   color: var(--e19-ink);
   font-weight: 600;
 }

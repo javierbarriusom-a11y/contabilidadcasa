@@ -229,10 +229,10 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-ruta" },
-  "deuda-contratos": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20260918t14b1", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-ruta" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -241,10 +241,10 @@ const VIEW_CHUNKS = {
   cierre: { src: "views/cierre.js?v=20261104cierreC3", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20261104cierreC3", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
-  "escenario-simular": { src: "views/escenarios.js?v=20261106fx23a", rootId: "escenario-simular" },
-  "escenario-aplicar": { src: "views/escenarios.js?v=20261106fx23a", rootId: "escenario-aplicar" },
-  "escenario-guardados": { src: "views/escenarios.js?v=20261106fx23a", rootId: "escenario-guardados" },
-  "escenario-comparar": { src: "views/escenarios.js?v=20261106fx23a", rootId: "escenario-comparar" },
+  "escenario-simular": { src: "views/escenarios.js?v=20261109lim10", rootId: "escenario-simular" },
+  "escenario-aplicar": { src: "views/escenarios.js?v=20261109lim10", rootId: "escenario-aplicar" },
+  "escenario-guardados": { src: "views/escenarios.js?v=20261109lim10", rootId: "escenario-guardados" },
+  "escenario-comparar": { src: "views/escenarios.js?v=20261109lim10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
@@ -23568,7 +23568,7 @@ function assumptionImpactNotes() {
     return amount === 0 ? `${when}, casi nada` : `${when}, ${money(amount)} ${effect.diff < 0 ? "menos" : "más"}`;
   };
   try {
-    contract.assumptionImpacts((input) => engine.buildScenario(input, null, { reason: "fx51-supuestos" }), canonicalEngineInput([], {}), { targets })
+    contract.assumptionImpacts((input) => engine.buildScenario(input, null, { reason: "fx51-supuestos" }), canonicalEngineInput(projectPlan.outflows || [], {}), { targets }) // la entrada del plan que se ve, con sus proyectos
       .forEach((impact) => {
         const effects = impact.effects.filter((effect) => effect.diff !== null);
         if (effects.length) notes.set(impact.id, `Con ${impact.phrase}: ${effects.map(say).join("; ")} de liquidez.`);

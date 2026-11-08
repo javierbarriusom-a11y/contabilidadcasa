@@ -21,6 +21,57 @@ minutos.
 
 ## 0. Estado en una línea
 
+**8/11/2026 · Los escenarios guardados en «Comparar con» de la Previsión (FX-20 con FX-23, «sigue»); sale el lunes 9/11.**
+- **Qué es:** «O un escenario guardado» bajo la fila: los de Escenarios › Guardados que no están ya en el plan, con su línea, su frase y la misma tabla. Se cambian o se aplican en Escenarios.
+- **Cálculo:** el motor de Escenarios por meses (el cierre de cada mes es el suyo) y el diario de siempre; lo que se paga de golpe cae el día más bajo de su mes, como la prueba del imprevisto (PROJECT_STATE 429).
+- **Queda:** deuda y patrimonio a 24 m (FX-20) y el mini-gráfico por columna de FX-23. Los presets sin guardar en Escenarios › Comparar se proponen como no necesarios: Previsión ya los compara con el plan.
+
+**8/11/2026 · Arreglado: las pruebas de estrés y «qué ha cambiado» calculaban sin los proyectos ni los pagos de deuda programados.** Con un proyecto, la prueba se comparaba con otro plan (un imprevisto podía dejar el 31/12 por encima del plan). Ahora parten de la misma entrada que la línea del plan; también FX-51 (PROJECT_STATE 428).
+
+**8/11/2026 · FX-40, PR-2: el puente del 31/12 (WP-43) dentro de «Por qué» («sí, mueve el puente del 31/12 a «Por qué»»); sale el lunes 9/11.**
+- **En el tema nuevo:** la tarjeta deja Plan › Previsión (un titular menos) y su contenido va como segunda parte de la hoja «Por qué». «Ver el puente completo» de Cierre abre la hoja.
+- **En el tema clásico y con «Ver todo el detalle»:** la tarjeta sigue igual.
+- **Mismo código y mismo motor:** no se borra nada.
+
+**8/11/2026 · FX-40, PR-1: qué ha cambiado desde tu última visita («sigue con FX-40»); sale el lunes 9/11.**
+- **Qué es:** bajo la cifra de Previsión, «−90 € frente a tu visita del 6 nov. Por qué ▸», con un puente de cuatro causas: el paso del tiempo, datos nuevos (o «saldo de hoy (calculado)» con saldos por calendario), supuestos, y cambios del plan u otros. Siempre cuadra.
+- **Fotos:** ligeras, una por visita y día, en este dispositivo.
+- **Pendiente (PR-2):** mover aquí el puente del 31/12 de WP-43 (se consulta: es una tarjeta en uso) y medir los cambios del plan por separado.
+
+**8/11/2026 · Arreglado: una inflación anual distinta de 0 cortaba el recálculo de la app («Haz esta tarea aquí»).** Ya estaba en `main`. El redondeo al céntimo de la entrada diaria acumulaba un desfase que rompía la paridad diaria-mensual; ahora el resto del redondeo se lleva mes a mes, sin tocar la tolerancia (PROJECT_STATE 425).
+
+**8/11/2026 · Dos pruebas de estrés a la vez (FX-20, «sigue con las dos pruebas a la vez»); sale el lunes 9/11.**
+- **Qué es:** «Sumar otra prueba» junta dos pruebas sobre la misma trayectoria, con un solo recálculo: una línea, una frase, la tabla y «Guardar como escenario» con las dos.
+- **El imprevisto** va el último y cae el peor día de la combinación.
+- **Por separado y juntas:** una nota dice cuánto baja el punto más bajo cada una y las dos juntas.
+- **Desviación:** la propuesta decía dos líneas a la vez; se ha hecho la combinación, que es lo que preocupa (PROJECT_STATE 424).
+
+**7/11/2026 · El colchón en meses en la tabla de impacto (FX-20, «sigue con el colchón en meses»); sale el lunes 9/11.**
+- **Qué es:** la fila «Colchón en el punto más bajo (meses)» en cada prueba de estrés: cuántos meses de gasto corriente cubre la liquidez en el peor momento, en el plan y en la prueba.
+- **Fórmula:** la de «Colchón más justo» y Escenarios (gasto corriente medio de los 12 primeros meses del plan), ahora en el contrato de cifras (`cushionMonths`).
+- **Objetivo:** si la prueba deja el colchón por debajo del objetivo de Ajustes y el plan no, la frase lo dice.
+- **Desviación:** en el punto más bajo, no a fin de año como decía la propuesta (ver PROJECT_STATE 423).
+- **También el 7/11:** el límite de diez escenarios vivos, en Deuda › Comparar y en «guardar con aviso» del simulador (PROJECT_STATE 422).
+
+**7/11/2026 · «Guardar como escenario» hecho (FX-21, «sigue con Guardar como escenario»); sale el lunes 9/11 con el punto de Hoy.**
+- **Qué es:** bajo la tabla de impacto de cada prueba de estrés, un botón lleva la prueba a Escenarios › Guardados como «guardado», sin aplicar nada (A11-4). Allí se carga en el simulador para combinarla o cambiar importes.
+- **Cómo pasa cada prueba:** con los tipos de fábrica de Escenarios y el mes fijado (el modo «óptimo» la movería de mes).
+  - Un sueldo menos → «Cambio de ingreso» negativo, un tramo por cada importe distinto: una paga extra no se promedia.
+  - El Euribor → «Cambio de gasto» con lo que sube la cuota, de la revisión a su último plazo dentro del plan.
+  - El imprevisto → «Imprevisto» del mismo importe en su mes.
+- **Garantía:** recalculada en Escenarios da los mismos meses que la prueba (prueba unitaria de paridad con los motores reales para las tres; en la app, el imprevisto quita exactamente sus 3.000 €).
+- **Lo que se pierde al pasar:** el día. Escenarios cuenta por meses; la nota del escenario lo dice.
+- **Frenos:** respeta los diez escenarios vivos de E-11b (si no cabe, lo dice y no guarda nada), se valida con el esquema de Escenarios y la misma prueba no se guarda dos veces.
+- **Hallazgo corregido el mismo 7/11:** «Guardar como escenario» de Deuda › Comparar (y «guardar con aviso» del simulador) ya respetan el límite de diez, con el diálogo de Escenarios.
+
+**7/11/2026 · El punto de confianza en Hoy, hecho y listo para el lunes 9/11 («primero el punto de confianza en Hoy y sigue»).**
+- **Qué es:** junto a «Fin de mes», la cifra de Hoy que sale de la previsión, un punto con la confianza de la previsión, sin texto extra.
+  - El nivel va por forma además de por color (○ baja, ◐ media, ● alta), con su nombre para lectores de pantalla y al pasar el ratón.
+  - Al tocarlo, lleva a Plan › Previsión con la hoja del porqué abierta y el foco en la insignia.
+  - Es la misma insignia: no hay otro cálculo.
+- **Cuándo se publica:** es el cambio de Hoy de la semana del 9/11 («un cambio de Hoy por semana»; el de esta semana fue D-N4). Se fusiona el lunes 9/11, no antes.
+- **Después, en la semana del 16/11:** «De verdad libre» en Hoy, si el hogar lo quiere.
+
 **7/11/2026 · D-N9 decidida («D-N9 opción b y sigue») y XPR-08 hecha: «De verdad libre», una sola cifra bajo el titular de Previsión.**
 - **Qué es:** lo que queda sobre el suelo en el punto más bajo, menos lo que el plan aún no descuenta. Eso son dos cosas:
   - lo que no está en el plan y cae dentro del horizonte (un seguro del inventario, lo que falta de un cargo «cada N meses»). Se aplica a la trayectoria desde su día y se busca otra vez el mínimo: si cae cuando el saldo ya ha subido, no come nada;
@@ -91,10 +142,10 @@ minutos.
 - **Motor nuevo:** `canonical-stress-scenarios.js` (v2), puro y probado en Node con motores falsos y con el motor de revisión real.
 - **Hallazgo para el hogar (no corregido; no es de esta tarea):** sin el sueldo de A 3 meses, la cuenta corriente prevista queda en −2.510 € en enero, aunque la liquidez total (2.490 €) siga sobre el suelo. El plan cuenta el ahorro como disponible, pero haría falta pasarlo a la cuenta a tiempo.
 - **Pendiente de la especificación:**
-  - la tabla trae 4 de los 6 indicadores (faltan el colchón en meses y la deuda y el patrimonio a 24 meses);
-  - dos pruebas a la vez;
-  - «Guardar como escenario»;
-  - importes editables (los 3.000 € del imprevisto).
+  - la tabla trae 5 de los 6 indicadores (el colchón en meses, hecho el 7/11; faltan la deuda y el patrimonio a 24 meses);
+  - ~~dos pruebas a la vez~~ (hecho el 8/11, como combinación);
+  - ~~«Guardar como escenario»~~ (hecho el 7/11);
+  - ~~importes editables (los 3.000 € del imprevisto)~~ (hecho el 7/11).
 - **FX-23, PR-1:**
   - Decidir › Escenarios › Comparar ya funciona con un solo escenario guardado, frente al plan. Antes pedía dos, y con uno solo no había nada que ver. El botón pasa a «Comparar con el plan».
   - Si no hay ninguno guardado, la pantalla remite a «Comparar con» de Previsión.
@@ -240,13 +291,13 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 14 | **XPR-06** | Qué mueve cada día, dentro de C2 (sale de su interruptor) | Def §5.0 | — | FX-10 | S2 | Panel/hoja del día de C2 | Hecho, en prueba (revisión 12/11). **7/11: lo mismo, ya sin interruptor, en el panel del día de C2**; la hoja de la banda de caja sigue tras el suyo hasta su revisión |
 | 15 | **XPR-07** | El arreglo más barato, dentro de C2 | Def §5.0 | — | FX-10 | S2 | Tarjeta de remedio de C2 | Hecho PR-1, en prueba (revisión 12/11). **7/11: también dentro de C2**, debajo del gráfico, con su interruptor |
 | 16 | **XPR-08** | «De verdad libre»: disponible tras apartar lo que viene | 7ª | S-M · 1,5 | FX-10 | S2 | Tarjeta de C2 con «Apartar» que lleva al sobre | **Hecha el 7/11 con D-N9 (b)**: una sola cifra bajo el titular de C2 (`provisions` de `canonical-large-payments.js`); dice cuánto apartar al mes y lleva al mapa. En Hoy, cuando se levante su congelación |
-| 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | **Hecha en Previsión el 7/11** (`canonical-forecast-confidence.js`): baja · media · alta con tres señales, el porqué y la tarea que más la sube por € por minuto (cola de WP-45). Falta el punto en Hoy (su hueco semanal) |
+| 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | **Hecha en Previsión el 7/11** (`canonical-forecast-confidence.js`): baja · media · alta con tres señales, el porqué y la tarea que más la sube por € por minuto (cola de WP-45). El punto en Hoy, hecho el 7/11 y publicado el 9/11 (cambio de Hoy de esa semana) |
 | 18 | **FX-12** | Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49) | 8ª, Def P2 | M · 2 | FX-10 | S2 (plegado) / S3 | Lista por semana con certeza y «¿sabes el día?»; mismos hitos en el gráfico | Propuesta |
 | 19 | **WP-37** | Estados completos y «deshacer», aplicados a C2 | Def P1 | — | FX-10 | S2 | Vacío, sin saldos, sin suelo y error en C2 | Aparcado → se aplica en C2 |
-| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. Faltan los escenarios guardados en la fila (con FX-23), dos a la vez, el colchón en meses y deuda/patrimonio a 24 m |
-| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | **Las 3 de D-N3 hechas 6/11** (`canonical-stress-scenarios.js` v2): un sueldo menos por titular 3 o 6 meses, Euribor +1/+2 en la próxima revisión (con WP-20) e imprevisto de 3.000 € el peor día. Faltan «Guardar como escenario» y el importe del imprevisto editable. Gasto +10 % queda en la biblioteca |
-| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. Faltan los presets sin guardar y el mini-gráfico por columna |
-| 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | Propuesta |
+| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. **7/11:** el colchón en meses en el punto más bajo (con el objetivo de Ajustes en la frase). **8/11:** dos pruebas a la vez, combinadas sobre la misma trayectoria. **8/11:** los escenarios guardados en la fila («O un escenario guardado», con paridad de cierre de mes con Escenarios). Falta deuda/patrimonio a 24 m |
+| 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | **Las 3 de D-N3 hechas 6/11** (`canonical-stress-scenarios.js` v2): un sueldo menos por titular 3 o 6 meses, Euribor +1/+2 en la próxima revisión (con WP-20) e imprevisto de 3.000 € el peor día. El importe del imprevisto se elige desde el 7/11 (1.000, 3.000 o 6.000 €; se publica el 9/11 con el punto de Hoy). «Guardar como escenario» hecho el 7/11 (a Escenarios › Guardados con los tipos de fábrica y paridad de motor; sale el 9/11). Gasto +10 % queda en la biblioteca |
+| 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. **8/11:** el plan frente a un escenario guardado, también en Previsión (con FX-20). Falta el mini-gráfico por columna; los presets sin guardar se proponen como no necesarios (Previsión ya los compara con el plan) |
+| 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | **PR-1 hecho 8/11** (sale el 9/11): la línea bajo la cifra y el puente de 4 causas, que cuadra; fotos por visita en este dispositivo. **PR-2 hecho 8/11:** el puente de WP-43 dentro de «Por qué» (decidido por el hogar). Falta medir el plan por separado |
 | 24 | **FX-42** | La previsión en el «Listo» del Repaso semanal (no es un paso nuevo) | 8ª | S · 0,5 | FX-40 | S3 | Tarjeta de 3 líneas en «Listo» | Propuesta · solo si el Repaso sigue tras su revisión del 7/11 |
 | 25 | **FX-43** | La carta del mes cuenta la previsión (WP-29) | 8ª, Def P1 | S · 0,5 | WP-12 | S4 | Primera carta con el cierre de noviembre | Propuesta (WP-29 esperando al hogar) |
 

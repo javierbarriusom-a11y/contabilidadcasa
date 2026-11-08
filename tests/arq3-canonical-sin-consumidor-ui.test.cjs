@@ -133,6 +133,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 95 → 96 (WP-41): canonical-shadow-debt.js, con consumidor real (el case «deuda-contratos» de renderActiveSection en app.js se lo pasa a la tarjeta de sombra-ui.js)
 // 118 → 119 (FX-21, backlog de noviembre): canonical-stress-scenarios.js, con consumidor real (views/prevision-v2.js: «Comparar con…» de la Previsión nueva)
 // 119 → 120 (FX-31, backlog de noviembre): canonical-forecast-confidence.js, con consumidor real (views/prevision-v2.js: la insignia de confianza)
+// 120 → 121 (FX-40, backlog de noviembre): canonical-forecast-changes.js, con consumidor real (views/prevision-v2.js: qué ha cambiado desde tu última visita)
 // 117 → 118 (FX-01/FX-02, backlog de noviembre · S0): canonical-forecast-contract.js, con consumidor real (renderPrevision y previsionHeadlineHtml en app.js: el punto más bajo de Previsión)
 // 116 → 117 (WP-21 · PR-1): canonical-tax-report.js, con consumidor real (el case «herramientas-fiscal» de renderActiveSection en app.js se lo pasa al informe de informe-renta-ui.js)
 // 115 → 116 (WP-17 · PR-1): canonical-next-best-action.js, con consumidor real (renderInversionCartera de views/inversion.js se lo pasa a la tarjeta de siguiente-paso-ui.js)
@@ -153,6 +154,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 120 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 120);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 121 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 121);
 });

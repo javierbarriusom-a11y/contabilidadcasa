@@ -113,6 +113,19 @@ function renderPuentePrevision(engine) {
   const box = qs("puenteCuerpo");
   if (!box || !engine) return;
   attachPuente(document); // idempotente: un cambio temprano no puede perderse
+  // 8/11/2026 (FX-40): con la Previsión nueva pintada, el puente va dentro de su hoja «Por qué» (#prevV2Puente) y la tarjeta se
+  // oculta (tema-v2.css); se vacía para no repetir el selector `#puenteComparar`. En el tema clásico o con «Ver todo el detalle», como siempre.
+  const enHoja = qs("prevV2Puente");
+  if (enHoja && document.querySelector(".e19-plan-prevision")?.classList.contains("prevision-v2-on")) {
+    box.innerHTML = "";
+    box.__puenteHtml = "";
+    try {
+      enHoja.innerHTML = puenteBodyHtml(engine);
+    } catch {
+      enHoja.textContent = "No se pudo pintar el puente con los datos actuales.";
+    }
+    return;
+  }
   try {
     const html = puenteBodyHtml(engine);
     if (box.__puenteHtml !== html) {
@@ -159,7 +172,11 @@ function attachPuente(doc) {
   if (!doc || doc.__puenteAttached) return false;
   doc.__puenteAttached = true;
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("[data-puente-aviso-ver]")) { setActiveView("plan", { focus: true }); setPlanTab("prevision"); }
+    if (event.target?.closest?.("[data-puente-aviso-ver]")) {
+      setActiveView("plan", { focus: true });
+      setPlanTab("prevision");
+      globalThis.previsionV2AbrirPuente?.(); // tema nuevo: el puente está en la hoja «Por qué» de la Previsión
+    }
   });
   doc.addEventListener("change", (event) => {
     if (event.target?.id !== "puenteComparar") return;

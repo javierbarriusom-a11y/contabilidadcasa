@@ -204,6 +204,11 @@ test("FX-21 · evaluate: aplica, recalcula con los motores de siempre y compara;
   assert.deepEqual(calls, ["prueba de estrés: imprevisto"]);
   assert.deepEqual(res.info, { date: res.comparison.baseLow.date, amount: 3000 });
   assert.equal(res.comparison.lowDiff, -3000);
+  // FX-21 (7/11): el importe del imprevisto se elige entre los de IMPREVISTO_IMPORTES; sin elegir, el de D-N3.
+  assert.deepEqual([...Stress.IMPREVISTO_IMPORTES], [1000, 3000, 6000]);
+  const seis = Stress.evaluate("imprevisto", baseInput, baseRows, deps, { ...opts, params: { amount: 6000 } });
+  assert.equal(seis.info.amount, 6000);
+  assert.equal(seis.comparison.lowDiff, -6000);
   const sueldo = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, opts);
   assert.ok(sueldo.comparison.lowDiff < 0 && sueldo.comparison.yearEndDiff === -6000, "dos nóminas de 3.000 antes del 31/12");
   const b6 = Stress.evaluate("sueldo-menos", baseInput, baseRows, deps, { ...opts, params: { concept: "Nómina B", months: 6 } });
@@ -229,4 +234,11 @@ test("FX-21 · motor puro y cableado: sin DOM ni estado; antes de app.js, en el 
   assert.match(vista, /S\.evaluate\(/);
   assert.match(vista, /no cambia el plan ni mueve dinero/, "A11-4: una prueba no ejecuta nada");
   assert.match(vista, /anotar\("prevision-v2", "accion"\)/);
+});
+
+test("las pruebas de la Previsión parten de la entrada del plan que se pinta, con sus proyectos (8/11/2026)", () => {
+  const view = fs.readFileSync(path.join(__dirname, "..", "views", "prevision-v2.js"), "utf8");
+  assert.doesNotMatch(view, /canonicalEngineInput\(\[\]/, "sin proyectos, la prueba se compara con otro plan");
+  assert.match(view, /function previsionV2Entrada\(\) \{\n  return canonicalEngineInput\(typeof projectPlan !== "undefined" \? projectPlan\?\.outflows \|\| \[\] : \[\], \{\}\);/);
+  assert.equal((view.match(/const input = previsionV2Entrada\(\);/g) || []).length, 4, "la prueba, las dos a la vez, el escenario guardado y qué ha cambiado");
 });
