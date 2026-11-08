@@ -173,6 +173,29 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (427): el puente del 31/12 (WP-43), dentro de «Por qué» (FX-40, PR-2)
+
+- **Decisión del hogar (8/11):** «sí, mueve el puente del 31/12 a «Por qué»».
+- **Qué cambia en el tema nuevo:**
+  - La tarjeta «Puente de previsión: por qué cambió el fin de año» deja Plan › Previsión (un titular menos). Su contenido entero va como segunda parte de la hoja «Por qué», bajo la cifra: «El fin de año, de cierre a cierre», con la frase, el aviso de relevancia, la cascada, la tabla, las notas y el selector «Comparar con el cierre de».
+  - En la primera visita, o si no ha cambiado nada, la línea ofrece «Por qué cambia el fin de año ▸» para llegar al puente.
+  - «Ver el puente completo» del aviso de Cierre abre la hoja con el foco en el puente.
+- **Qué no cambia:**
+  - Es el mismo código (`puenteBodyHtml`) y el mismo motor (`canonical-forecast-bridge.js`), que siguen congelando en cada cierre.
+  - En el tema clásico y con «Ver todo el detalle» la tarjeta sigue como siempre (redirigir sin borrar código).
+  - Un solo selector de cierre en la página: la tarjeta oculta se vacía.
+- **Arreglos de paso:** el arreglo de contraste de la cascada (cifras en tinta, porque el verde daba 3,49:1) estaba limitado a `.pte-card`; se extiende a la hoja. Además, «Ver todo el detalle» repinta la tarjeta (antes volvía vacía).
+- **Pruebas:**
+  - e2e nueva «WP-43 dentro de «Por qué»» a 390 (`@safari`) y 1440 px: sin tarjeta, el puente en la hoja, un solo selector que funciona, cabe, y la tarjeta con «Ver todo el detalle».
+  - La e2e y el axe de la tarjeta pasan al tema clásico.
+  - El aviso de Cierre abre la hoja con el foco en el puente.
+  - El axe de FX-40 incluye el puente con la cascada y la tabla abierta.
+  - XGO-01: Plan › Previsión de 4 a 3 titulares y la base de 225 a 224 (trinquete).
+- **Versiones:** `puente.css`, `puente-ui.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261109fx40b`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.484 pruebas unitarias (la de WP-43 sobre el botón del aviso, ampliada con la apertura de la hoja), lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 144,8 ms), build, privacidad y humo.
+  - En Chromium local: e2e y axe de WP-43, WP-38, FX-40, XGO-01, C2, FX-20/21, XPR, FX-31 e inflación, 48 de 48.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (426): qué ha cambiado desde tu última visita (FX-40, PR-1)
 
 - **Qué:** bajo la cifra principal de Plan › Previsión, «−90 € frente a tu visita del 6 nov. Por qué ▸». Si no ha cambiado: «Igual que en tu visita del 6 nov.». En la primera visita no sale nada. La hoja «Por qué» es un puente con cuatro causas que siempre cuadra con la línea, una frase con la causa principal, notas que dicen qué mide cada barra y un aviso si lo que no se sabe separar pesa el 40 % o más.

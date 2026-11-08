@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-puente-en-por-que",
+      fecha: "2026-11-09",
+      texto: "Previsión: el puente del 31/12 (por qué cambia el fin de año de cierre a cierre) pasa a «Por qué», bajo la cifra; ya no va aparte.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-que-ha-cambiado",
       fecha: "2026-11-09",
       texto: "Previsión: bajo la cifra, cuánto ha cambiado desde tu última visita y, en «Por qué», si fue el tiempo, el saldo, los supuestos o el plan.",

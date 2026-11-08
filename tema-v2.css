@@ -3833,12 +3833,14 @@
    El punto más bajo del horizonte arriba, el gráfico único de previsión (ChartKit.forecastPlotHtml) y «Lo que viene» plegado.
    Lo de siempre (tabla de meses, plan B, puente, mapa de pagos) se oculta mientras la v2 está pintada y vuelve con
    «Ver todo el detalle». Si el script no pinta, nada se oculta. */
-/* Solo se pliega lo que C2 sustituye: la tabla de meses con su leyenda, sus hitos y el desglose del peor mes. El plan B, el
-   puente y el mapa de pagos siguen a la vista debajo: son funciones en uso y esconderlas sería casi retirarlas. */
+/* Solo se pliega lo que C2 sustituye: la tabla de meses con su leyenda, sus hitos y el desglose del peor mes. El plan B y el
+   mapa de pagos siguen a la vista debajo: son funciones en uso y esconderlas sería casi retirarlas. El puente de WP-43 (8/11/2026,
+   decisión del hogar: «sí, mueve el puente del 31/12 a «Por qué»») no se esconde: se pinta dentro de la hoja «Por qué» de C2. */
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .section-title,
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > .plan-prevision-table-wrap,
 :root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionMilestones,
-:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionWorstBreakdown {
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #planPrevisionWorstBreakdown,
+:root[data-tema="v2"] .e19-plan-prevision.prevision-v2-on > #puenteCard {
   display: none;
 }
 
@@ -4413,4 +4415,35 @@
   padding: 8px 10px;
   border-left: 3px solid var(--e19-warning);
   background: var(--e19-warning-soft);
+}
+
+/* El puente de WP-43 dentro de «Por qué» (8/11/2026): segunda parte de la hoja, separada de lo de la última visita. */
+:root[data-tema="v2"] .prev-v2-puente {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-visita + .prev-v2-puente {
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-puente-titulo {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-visita {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-puente .pte-notas,
+:root[data-tema="v2"] .prev-v2-puente .pte-tabla summary {
+  font-size: 0.875rem;
+}
+
+:root[data-tema="v2"] .prev-v2-puente .pte-notas {
+  color: var(--e19-muted);
 }

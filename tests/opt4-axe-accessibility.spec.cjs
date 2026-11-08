@@ -830,7 +830,8 @@ for (const scheme of ["light", "dark"]) {
   test.describe(`WP-43 · contraste del puente de previsión en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
     test("Plan › Previsión: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
-      await page.goto("/index.html#plan");
+      // La tarjeta es del tema clásico desde el 8/11/2026; en el tema nuevo, el puente dentro de «Por qué» (prueba «FX-40 · contraste…»).
+      await page.goto("/index.html?tema=clasico#plan");
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
@@ -1714,8 +1715,28 @@ for (const scheme of ["light", "dark"]) {
       await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
       await page.clock.runFor(200);
       await page.evaluate(() => previsionV2Render());
+      // Con el puente del 31/12 dentro de la hoja (8/11/2026): dos cierres, el segundo con un extraordinario de 1.000 €.
+      await page.evaluate(() => {
+        const engine = FinanceCanonicalForecastBridge;
+        const base = canonicalScenarioResults.base.forecast.series;
+        const year = Number(base[0].monthKey.slice(0, 4));
+        const freeze = (month, extra) => {
+          const series = JSON.parse(JSON.stringify(base));
+          let shift = 0;
+          series.forEach((row) => {
+            if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += extra; row.components.outflow.project = extra; shift -= extra; }
+            if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+          });
+          const first = { ...series[0], monthKey: `${year}-${month}` };
+          puenteSave(engine.upsert(puenteLoad(), engine.freezeYearEnd({ monthKey: `${year}-${month}`, closedAt: `${year}-${month}-28T10:00:00Z`, series: [first, ...series.filter((row) => row.monthKey !== first.monthKey)], actuals: { income: 5000, recurring: 4250, debt: 480 } }).snapshot));
+        };
+        freeze("09", 0); freeze("10", 1000);
+        previsionV2Render();
+      });
       await v2.locator("[data-prevision-v2-cambios]").click();
       await expect(page.locator("#prevV2Cambios")).toBeVisible();
+      await expect(page.locator("#prevV2Puente .pte-cascada")).toBeVisible();
+      await page.locator("#prevV2Puente .pte-tabla summary").click();
       await page.mouse.move(0, 0);
       const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));

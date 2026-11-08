@@ -2963,8 +2963,10 @@ test.describe("WP-42 · escalera del próximo euro", () => {
 // WP-43 (PRV-01): puente de previsión, en Plan › Previsión. En cada cierre se congela la previsión a 31/12; con dos cierres de un mismo año, la diferencia se reparte en una cascada que
 // siempre cuadra. No modifica la previsión.
 test.describe("WP-43 · puente de previsión", () => {
+  // Desde el 8/11/2026 la tarjeta es del tema clásico (y de «Ver todo el detalle»); en el tema nuevo el puente va dentro de la hoja
+  // «Por qué» de la Previsión (lo comprueba «WP-43 dentro de «Por qué»», más abajo). Mismo código y mismo motor.
   const openPrevision = async (page) => {
-    await page.goto("/index.html#plan");
+    await page.goto("/index.html?tema=clasico#plan");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
@@ -5023,8 +5025,12 @@ test.describe("WP-43 · aviso del puente en Cierre", () => {
       // El aviso solo lee: el almacén sigue con las dos fotos.
       expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("forecast-bridge-snapshots"), "[]")).length)).toBe(2);
 
+      // Tema nuevo: «Ver el puente completo» abre la hoja «Por qué» de la Previsión con el foco en el puente (8/11/2026).
       await aviso(page).locator("[data-puente-aviso-ver]").click();
-      await expect(page.locator("#puenteCard")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#prevV2Cambios")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#prevV2PuenteTitulo")).toBeFocused();
+      await expect(page.locator("#prevV2Puente .pte-frase")).toContainText("Desde septiembre");
+      await expect(page.locator("#puenteCard")).toBeHidden();
     }
     expect(dialogs, "ningún diálogo nativo").toEqual([]);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
@@ -5970,8 +5976,8 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await page.locator('[data-plan-tab="prevision"]').click();
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
-      // Primera visita: no hay con qué comparar; queda la foto de hoy, ligera y en este dispositivo.
-      await expect(v2.locator(".prev-v2-cambio")).toHaveCount(0);
+      // Primera visita: no hay con qué comparar; queda la foto de hoy, ligera y en este dispositivo. Solo el camino al puente del 31/12.
+      await expect(v2.locator(".prev-v2-cambio")).toHaveText("Por qué cambia el fin de año ▸");
       const fotos = await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => ({ date: foto.date, bytes: JSON.stringify(foto).length })));
       expect(fotos.map((foto) => foto.date)).toEqual(["2026-11-06"]);
       expect(fotos[0].bytes).toBeLessThan(20000);
@@ -5980,8 +5986,7 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await page.reload();
       await page.locator('[data-plan-tab="prevision"]').click();
       await expect(v2).toBeVisible({ timeout: 15000 });
-      await expect(v2.locator(".prev-v2-cambio")).toHaveText("Igual que en tu visita del 6 nov.");
-      await expect(v2.locator("[data-prevision-v2-cambios]")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-cambio")).toHaveText("Igual que en tu visita del 6 nov. Por qué cambia el fin de año ▸");
       // Cambia un supuesto (la inflación anual): la línea dice cuánto baja y la hoja, por qué.
       await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
       await page.clock.runFor(200);
@@ -5995,14 +6000,14 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await expect(boton).toHaveAttribute("aria-expanded", "true");
       const hoja = page.locator("#prevV2Cambios");
       await expect(hoja).toBeVisible();
-      await expect(hoja.locator("tbody th")).toHaveText(["El paso del tiempo", "Saldo de hoy (calculado)", "Supuestos", "Otros", "Total"]);
+      await expect(hoja.locator(".prev-v2-cambios-tabla tbody th")).toHaveText(["El paso del tiempo", "Saldo de hoy (calculado)", "Supuestos", "Otros", "Total"]);
       await expect(hoja).toContainText("Supuestos: han cambiado la inflación anual.");
       // La demo calcula los saldos por calendario: la barra del saldo de hoy no se presenta como «datos nuevos».
       await expect(hoja).toContainText("los saldos se calculan por calendario a partir del plan");
       // El puente cuadra con la línea.
       const cuadra = await hoja.evaluate((el) => {
         const n = (text) => Number(text.replace(/[^\d−-]/g, "").replace("−", "-"));
-        const celdas = [...el.querySelectorAll("tbody td")].map((td) => n(td.textContent));
+        const celdas = [...el.querySelectorAll(".prev-v2-cambios-tabla tbody td")].map((td) => n(td.textContent));
         return celdas.slice(0, -1).reduce((sum, value) => sum + value, 0) === celdas.at(-1);
       });
       expect(cuadra, "las causas suman el total").toBe(true);
@@ -6015,6 +6020,62 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await dejavu.evaluate((el) => el.remove());
       // Solo una foto por día: la de hoy se rehace, la del 6 sigue para la comparación.
       expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => foto.date))).toEqual(["2026-11-09", "2026-11-06"]);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// 8/11/2026 · decisión del hogar: «sí, mueve el puente del 31/12 a «Por qué»». En el tema nuevo la tarjeta de WP-43 deja Plan › Previsión
+// (un titular menos) y su contenido va en la hoja «Por qué», con el selector de cierre; con «Ver todo el detalle» vuelve la tarjeta.
+test.describe("WP-43 dentro de «Por qué»", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el puente del 31/12 en la hoja, sin tarjeta propia, con su selector, y la tarjeta con todo el detalle, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#puenteCard")).toBeHidden();
+      // Tres cierres congelados con la previsión real (el último, con un extraordinario de 1.000 € en diciembre).
+      await page.evaluate(() => {
+        const engine = FinanceCanonicalForecastBridge;
+        const base = canonicalScenarioResults.base.forecast.series;
+        const year = Number(base[0].monthKey.slice(0, 4));
+        const freeze = (month, extra) => {
+          const series = JSON.parse(JSON.stringify(base));
+          let shift = 0;
+          series.forEach((row) => {
+            if (row.monthKey === `${year}-12`) { row.totals.outflowsBeforeSaving += extra; row.components.outflow.project = extra; shift -= extra; }
+            if (row.monthKey >= `${year}-12`) row.totals.closingLiquidity += shift;
+          });
+          const first = { ...series[0], monthKey: `${year}-${month}` };
+          puenteSave(engine.upsert(puenteLoad(), engine.freezeYearEnd({ monthKey: `${year}-${month}`, closedAt: `${year}-${month}-28T10:00:00Z`, series: [first, ...series.filter((row) => row.monthKey !== first.monthKey)], actuals: { income: 5000, recurring: 4250, debt: 480 } }).snapshot));
+        };
+        freeze("08", 0); freeze("09", 0); freeze("10", 1000);
+        previsionV2Render();
+      });
+      const boton = v2.locator("[data-prevision-v2-cambios]");
+      await expect(boton).toHaveText("Por qué cambia el fin de año ▸");
+      await boton.click();
+      const puente = page.locator("#prevV2Puente");
+      await expect(page.locator("#prevV2PuenteTitulo")).toHaveText("El fin de año, de cierre a cierre");
+      await expect(puente.locator(".pte-frase")).toContainText("Desde septiembre, el fin de 2026 empeora en 1.000");
+      await expect(puente.locator(".pte-cascada")).toContainText("Extraordinarios");
+      // Un solo selector de cierre en la página (la tarjeta oculta se vacía), y funciona dentro de la hoja.
+      await expect(page.locator("#puenteComparar")).toHaveCount(1);
+      await puente.locator("#puenteComparar").selectOption({ index: 1 });
+      await expect(puente.locator(".pte-frase")).toContainText("Desde agosto");
+      await expect(page.locator("#prevV2Cambios")).toBeVisible();
+      expect(await page.locator("#prevV2Cambios").evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la hoja cabe en la tarjeta").toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // «Ver todo el detalle»: vuelve lo de siempre, también la tarjeta del puente.
+      await v2.locator("[data-prevision-v2-detalle]").click();
+      await expect(page.locator("#puenteCard")).toBeVisible();
+      await expect(page.locator("#puenteCuerpo .pte-frase")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

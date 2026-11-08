@@ -614,7 +614,24 @@ const PREVISION_V2_CAUSA = Object.freeze({ tiempo: "el paso del tiempo", datos: 
  * va a la última («Otros» o «Cambios del plan», cuya nota ya lo dice), para que sumen lo que dice la línea sin inventar una causa.
  */
 function previsionV2CambioHtml(cambios, { today, horizonte }) {
-  if (!cambios?.calculable) return "";
+  // Desde el 8/11 («sí, mueve el puente del 31/12 a «Por qué»»), la hoja trae también el puente de WP-43 (el fin de año, de cierre a
+  // cierre), que en el tema nuevo deja de ser una tarjeta propia en Plan › Previsión. Lo pinta puente-ui.js en #prevV2Puente, con el
+  // mismo motor; en el tema clásico y en «Ver todo el detalle» la tarjeta sigue como siempre.
+  const puente = typeof puenteBodyHtml === "function" && Boolean(globalThis.FinanceCanonicalForecastBridge);
+  const hayCambios = Boolean(cambios?.calculable);
+  if (!hayCambios && !puente) return "";
+  const abierta = previsionV2CambiosAbierta;
+  const flecha = `<span class="prev-v2-confianza-flecha" aria-hidden="true">${abierta ? "▾" : "▸"}</span>`;
+  const boton = (texto) => `<button type="button" class="hoy-v2-link prev-v2-cambio-boton" data-prevision-v2-cambios aria-expanded="${abierta}" aria-controls="prevV2Cambios">${escapeHtml(texto)} ${flecha}</button>`;
+  const seccionPuente = puente
+    ? `<div class="prev-v2-puente" role="group" aria-labelledby="prevV2PuenteTitulo">
+        <p class="prev-v2-puente-titulo" id="prevV2PuenteTitulo" tabindex="-1"><strong>El fin de año, de cierre a cierre</strong></p>
+        <p class="e19-kpi-note">En cada cierre la app congela cuánto preveía para el 31/12; al cerrar el mes siguiente, reparte la diferencia entre ingresos, gasto recurrente, extraordinarios, deuda y «otros».</p>
+        <div id="prevV2Puente"></div>
+      </div>`
+    : "";
+  const hoja = (contenido) => `<div class="prev-v2-cambios" id="prevV2Cambios"${abierta ? "" : " hidden"}>${contenido}${seccionPuente}</div>`;
+  if (!hayCambios) return `<p class="prev-v2-cambio">${boton("Por qué cambia el fin de año")}</p>${hoja("")}`;
   const contract = globalThis.FinanceCanonicalForecastContract;
   const visto = contract.roundDifference(cambios.after.value - cambios.before.value);
   const cuando = previsionV2Visita(cambios.previousDate, today);
@@ -624,9 +641,8 @@ function previsionV2CambioHtml(cambios, { today, horizonte }) {
   const algo = filas.some((row) => row.shown);
   const signo = (value) => (value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "0 €");
   const linea = visto ? `<strong>${escapeHtml(signo(visto))}</strong> frente a tu visita ${escapeHtml(cuando)}` : `Igual que en tu visita ${escapeHtml(cuando)}`;
-  if (!algo) return `<p class="prev-v2-cambio">${linea}.</p>`;
-  const abierta = previsionV2CambiosAbierta;
-  const boton = `<button type="button" class="hoy-v2-link prev-v2-cambio-boton" data-prevision-v2-cambios aria-expanded="${abierta}" aria-controls="prevV2Cambios">Por qué <span class="prev-v2-confianza-flecha" aria-hidden="true">${abierta ? "▾" : "▸"}</span></button>`;
+  if (!algo && !puente) return `<p class="prev-v2-cambio">${linea}.</p>`;
+  if (!algo) return `<p class="prev-v2-cambio">${linea}. ${boton("Por qué cambia el fin de año")}</p>${hoja("")}`;
   const principal = previsionV2CausaPrincipal(cambios);
   const frase = visto
     ? `Desde tu visita ${cuando}, el punto más bajo ${horizonte.titulo} ${visto < 0 ? "baja" : "sube"} ${money(Math.abs(visto))}${principal ? `, sobre todo por ${principal.id === "datos" && principal.label !== "Datos nuevos" ? "el saldo de hoy (calculado)" : PREVISION_V2_CAUSA[principal.id]} (${signo(filas.find((row) => row.id === principal.id).shown)})` : ""}.`
@@ -636,14 +652,26 @@ function previsionV2CambioHtml(cambios, { today, horizonte }) {
     <tbody>${filas.map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${escapeHtml(signo(row.shown))}</td></tr>`).join("")}
     <tr class="prev-v2-cambios-total"><th scope="row">Total</th><td>${escapeHtml(signo(visto))}</td></tr></tbody></table>`;
   const flojo = cambios.weak ? `<p class="prev-v2-cambios-aviso" role="note">Buena parte del cambio la app no sabe separarla: mirad la tabla antes de fiaros de las causas.</p>` : "";
-  return `<p class="prev-v2-cambio">${linea}. ${boton}</p>
-    <div class="prev-v2-cambios" id="prevV2Cambios"${abierta ? "" : " hidden"}>
+  return `<p class="prev-v2-cambio">${linea}. ${boton("Por qué")}</p>
+    ${hoja(`<div class="prev-v2-visita">
       <p>${escapeHtml(frase)}</p>
       ${tabla}
       ${flojo}
       <ul class="prev-v2-cambios-notas">${cambios.notes.map((nota) => `<li>${escapeHtml(nota)}</li>`).join("")}</ul>
       <p class="e19-kpi-note">Compara con la foto que esta pantalla guardó en este dispositivo en tu visita ${escapeHtml(cuando)}. No cambia nada: solo lo explica.</p>
-    </div>`;
+    </div>`)}`;
+}
+
+/** «Ver el puente completo» (aviso de Cierre, puente-ui.js) en el tema nuevo: la hoja abierta y el foco en el puente. */
+function previsionV2AbrirPuente() {
+  if (!qs("planPrevisionV2") || qs("planPrevisionV2").hidden) return false;
+  previsionV2CambiosAbierta = true;
+  previsionV2Render();
+  const titulo = qs("prevV2PuenteTitulo");
+  if (!titulo) return false;
+  titulo.scrollIntoView({ block: "start" });
+  titulo.focus({ preventScroll: true });
+  return true;
 }
 
 function previsionV2CausaPrincipal(cambios) {
@@ -1001,6 +1029,7 @@ function previsionV2Render() {
     panel.classList.remove("prevision-v2-on");
     box.hidden = true;
     box.innerHTML = "";
+    globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // vuelve la tarjeta del puente, con su contenido
     return false;
   }
   const horizonte = PREVISION_V2_HORIZONTES.find((h) => h.id === previsionV2HorizonteId());
@@ -1009,6 +1038,7 @@ function previsionV2Render() {
   box.hidden = false;
   previsionV2CursorAlDia(box);
   panel.classList.add("prevision-v2-on");
+  globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // el puente de WP-43, dentro de «Por qué»
   if (!qs("plan")?.hidden && !panel.closest("[data-plan-panel]")?.hidden) globalThis.FinanceMedidor?.anotar("prevision-v2", "vista"); // XGO-02
   return true;
 }
