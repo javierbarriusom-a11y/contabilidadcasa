@@ -5459,7 +5459,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(v2).toBeVisible({ timeout: 15000 });
       await expect(v2.locator(".prev-v2-hero")).toContainText("Punto más bajo de los próximos 3 meses");
       await expect(v2.locator(".prev-v2-cifra")).toContainText(/unos\s+5\.600\s€\s+el 8 dic/);
-      await expect(v2.locator(".prev-v2-frase")).toContainText("por encima del suelo de 1.500 €");
+      await expect(v2.locator(".prev-v2-frase").first()).toContainText("por encima del suelo inicial de 1.500 €"); // la demo no fija suelo (WP-37)
       await expect(v2.locator(".ck-figure svg.ck-prevision")).toBeVisible();
       await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("suelo");
       await expect(page.locator("#planHeaderHorizon"), "el horizonte de la tabla de siempre no se duplica").toBeHidden();
@@ -5960,6 +5960,36 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   await page.evaluate(() => previsionV2Render());
   await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
+// WP-37 (8/11/2026) · sin suelo fijado en Ajustes, la Previsión dice que el de 1.500 € es el inicial de la app y lleva a fijarlo. Con
+// uno fijado (2.000 €, INVENTADO), la frase usa ese y la nota desaparece.
+test("WP-37 · sin suelo fijado, la Previsión lo dice y lleva al campo de Ajustes; con suelo, lo usa", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+  await page.goto("/index.html#plan");
+  await page.locator('[data-plan-tab="prevision"]').click();
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(v2).toBeVisible({ timeout: 15000 });
+  await expect(v2.locator(".prev-v2-frase").first()).toContainText(/por encima del suelo inicial de 1\.500\s€/);
+  const nota = v2.locator(".prev-v2-suelo-inicial");
+  await expect(nota).toContainText(/No habéis fijado vuestro suelo: la app usa 1\.500\s€ de inicio\./);
+  await nota.locator("[data-prevision-v2-suelo]").click();
+  const campo = page.locator("#ajustesLiquidityFloor");
+  await expect(campo).toBeVisible();
+  await expect(campo).toBeFocused();
+  expect(await page.evaluate(() => location.hash)).toBe("#ajustes");
+  await expect(page.locator("#ajustes")).toContainText("Lo usan el «Disponible» de Hoy, el punto más bajo de Plan › Previsión y sus pruebas de estrés");
+  await campo.fill("2000");
+  await campo.dispatchEvent("change");
+  await page.clock.runFor(200);
+  await page.evaluate(() => { history.pushState(null, "", "#plan"); setActiveView("plan"); });
+  await page.locator('[data-plan-tab="prevision"]').click();
+  await expect(v2.locator(".prev-v2-frase").first()).toContainText(/por encima del suelo de 2\.000\s€/);
+  await expect(v2.locator(".prev-v2-suelo-inicial")).toHaveCount(0);
+  expect(pageErrors).toEqual([]);
 });
 
 // WP-37 (8/11/2026): si el recálculo falla, la app no se corta en silencio. Se provoca un fallo del motor diario al cambiar la

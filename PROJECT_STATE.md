@@ -173,6 +173,27 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (431): WP-37 en C2 · sin suelo fijado, la Previsión lo dice y lleva a fijarlo
+
+- **Contexto:** #599 (recálculo fallido) fusionado y publicado. Siguen los estados de C2 que pedía WP-37: vacío, sin saldos y sin suelo.
+- **Revisión de los tres:**
+  - **Vacío:** ya existía («Sin previsión desde hoy: pon los saldos…»; sin filas, la vista vuelve a la de siempre).
+  - **Sin saldos:** no se da tal cual. `accountBalancesFromState()` cae en los saldos del arranque si no hay tecleados. Que estén viejos ya lo dicen la insignia de confianza (señal «saldos», FX-31) y el «saldo de hoy (calculado)» de FX-40.
+  - **Sin suelo:** sí faltaba. Sin `liquidityFloor` en Ajustes, `normalizeFloor` usa 1.500 € y C2 decía «por encima del suelo de 1.500 €» como si fuera del hogar.
+- **Arreglo** (`views/prevision-v2.js`):
+  - sin suelo fijado, la frase dice «suelo inicial» y debajo va «No habéis fijado vuestro suelo: la app usa 1.500 € de inicio. Fijar el suelo»;
+  - el botón lleva a Ajustes con el foco en el campo `#ajustesLiquidityFloor`;
+  - con suelo fijado, nada cambia.
+- **De paso:** la nota de Ajustes decía que el suelo «solo lo usa el Disponible de Hoy». Ya lo usan también el punto más bajo de Previsión y sus pruebas de estrés; ahora lo dice, y el comentario HTML también.
+- **Pruebas:**
+  - `tests/wp37-recalculo-fallido.test.cjs` (3).
+  - e2e nueva «WP-37 · sin suelo fijado…» a 390 px: frase y nota con la demo, el botón lleva a Ajustes con el foco, se fija 2.000 € (INVENTADO) y Previsión lo usa sin nota.
+  - La e2e de C2 espera ahora «suelo inicial»: la demo no fija suelo.
+  - axe de C2 y FX-40 en claro y oscuro, con la nota a la vista.
+  - Sellos: `views/prevision-v2.js` y `novedades.js` a `20261109wp37b`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.493/6.493; «forecast y escenarios en 208,6 ms», presupuesto 1.000 ms; medida a 198 y 233 ms en dos repeticiones: varía con la carga de la máquina). e2e de C2 y suelo 5/5; axe 4/4.
+- **WP-37 en C2 queda completo.** Sigue en curso como paquete: el «Deshacer» en el resto de pantallas del rediseño.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (430): un recálculo que falla ya no deja la app a medias (WP-37 aplicado al recálculo del plan)
 
 - **Contexto:** «Fusiónalo ya todo sin esperar»: #598 se fusionó el domingo 8/11 a petición del hogar (no el lunes 9/11) y se publicó a las 18:12. Después, «continua»: lo siguiente de la oleada que no depende del hogar es WP-37 en C2, empezando por el estado de error, el más grave (la inflación ≠ 0 cortaba el recálculo).

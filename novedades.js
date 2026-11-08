@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-08-suelo-inicial",
+      fecha: "2026-11-08",
+      texto: "Previsión: si no habéis fijado el suelo, dice que el de 1.500 € es el inicial de la app y lleva directo a fijarlo en Ajustes.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-08-recalculo-fallido",
       fecha: "2026-11-08",
       texto: "Si un cambio no se puede recalcular, la app lo dice en todas las pantallas y sigue con las cifras de antes, en vez de quedarse a medias.",
