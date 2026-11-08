@@ -13046,3 +13046,32 @@ input[data-amount-input][aria-invalid="true"] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* WP-37 (8/11/2026) · el recálculo del plan ha fallado: aviso en todas las pantallas, con los tokens de peligro del sistema
+   (claro y oscuro), hasta que un recálculo salga bien. */
+.recalculo-error {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--e19-danger-soft-border);
+  border-left: 4px solid var(--e19-danger);
+  border-radius: 8px;
+  background: var(--e19-danger-soft);
+  color: var(--e19-ink);
+}
+
+.recalculo-error[hidden] {
+  display: none;
+}
+
+.recalculo-error p {
+  margin: 0;
+}
+
+.recalculo-error details {
+  margin-top: 6px;
+  font-size: var(--e19-text-sm);
+}
+
+.recalculo-error [data-recalculo-detalle] {
+  overflow-wrap: anywhere;
+}

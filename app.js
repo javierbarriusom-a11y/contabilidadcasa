@@ -158,6 +158,7 @@ let simulationSignature = "";
 // última vez (nunca en cada llamada — solo cuando la firma cambió), para que E15/E16 puedan mostrar
 // "recalculado hace X" sin que el hogar tenga que abrir cada pantalla para confiar en que está al día.
 let lastModelRecomputeAt = null;
+let modelRecomputeError = null; // WP-37: el último recálculo fallido ({ message, at }), hasta que uno salga bien
 // PVC8: última alerta de materialidad del recálculo (null hasta el primer recálculo con un
 // "antes" real que comparar — el primer cómputo tras cargar nunca genera alerta).
 let pvc8MaterialityAlert = null;
@@ -30947,13 +30948,40 @@ function render() {
   readStateFromControls();
   ensureVariableOperationalSection();
   populateSelectors();
-  recomputeModelIfNeeded();
+  recomputeModelSafely();
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderAccountBalancePanels();
   renderFamilyContextSwitch();
   scheduleActiveSectionRender();
   sendDebtRoadmapState();
+}
+
+// WP-37 (8/11/2026): un recálculo que falla (p. ej. una invariante del motor diario) cortaba render() sin avisar y dejaba
+// la firma como calculada, así que el siguiente pintado no lo reintentaba. Ahora se sigue con las últimas cifras buenas, se
+// dice en #recalculoError y se reintenta en cada pintado. Sin cifras buenas previas (el primer cálculo), falla como antes.
+// Es atómico: el plan mensual se guarda antes de la auditoría diaria, así que al fallar se devuelve todo a como estaba (si no,
+// se mezclarían cifras de antes y de después y el aviso «son las de antes» sería falso).
+function recomputeModelSafely() {
+  const antes = { runs: { ...canonicalEngineRuns }, results: { ...canonicalScenarioResults }, daily: { ...canonicalDailyEngineRuns }, lastSimulation, lastBaseSimulation, lastPlannedSimulation, projectPlan, assumptions: scenarioSettings.forecastAssumptions, alert: pvc8MaterialityAlert };
+  try {
+    recomputeModelIfNeeded();
+    modelRecomputeError = null;
+  } catch (error) {
+    ({ lastSimulation, lastBaseSimulation, lastPlannedSimulation, projectPlan } = antes);
+    canonicalEngineRuns = antes.runs;
+    canonicalScenarioResults = antes.results;
+    canonicalDailyEngineRuns = antes.daily;
+    scenarioSettings.forecastAssumptions = antes.assumptions;
+    pvc8MaterialityAlert = antes.alert;
+    simulationSignature = "";
+    modelRecomputeError = { message: String(error?.message || error), at: new Date().toISOString() };
+    console.error(error);
+  }
+  const box = qs("recalculoError");
+  if (box) box.hidden = !modelRecomputeError;
+  if (box && modelRecomputeError) box.querySelector("[data-recalculo-detalle]").textContent = modelRecomputeError.message;
+  if (modelRecomputeError && !(Array.isArray(lastSimulation) && lastSimulation.length)) throw new Error(modelRecomputeError.message);
 }
 
 function scheduleRender() {

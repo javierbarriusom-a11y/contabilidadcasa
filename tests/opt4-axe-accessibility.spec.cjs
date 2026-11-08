@@ -1706,6 +1706,34 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// WP-37 (8/11/2026) · el aviso de recálculo fallido, abierto con su detalle técnico, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-37 · contraste del aviso de recálculo fallido en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Hoy con el aviso «No se ha podido recalcular» y su detalle abierto: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const motor = globalThis.FinanceCanonicalDailyEngine;
+        const original = motor.buildSnapshot;
+        motor.buildSnapshot = (...args) => ({ ...original(...args), invariants: { valid: false, issues: [{ type: "fallo-de-prueba" }] } });
+        const campo = document.getElementById("annualInflation");
+        campo.value = "3";
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.clock.runFor(200);
+      const aviso = page.locator("#recalculoError");
+      await expect(aviso).toBeVisible();
+      await aviso.locator("summary").click();
+      await expect(aviso.locator("[data-recalculo-detalle]")).toBeVisible();
+      const results = await new AxeBuilder({ page }).include("#recalculoError").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-40 (8/11/2026) · «qué ha cambiado desde tu última visita» con su hoja abierta, en claro y en oscuro. Datos de la demo.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-40 · contraste de «qué ha cambiado» en modo ${scheme}`, () => {

@@ -173,6 +173,30 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (430): un recálculo que falla ya no deja la app a medias (WP-37 aplicado al recálculo del plan)
+
+- **Contexto:** «Fusiónalo ya todo sin esperar»: #598 se fusionó el domingo 8/11 a petición del hogar (no el lunes 9/11) y se publicó a las 18:12. Después, «continua»: lo siguiente de la oleada que no depende del hogar es WP-37 en C2, empezando por el estado de error, el más grave (la inflación ≠ 0 cortaba el recálculo).
+- **Reproducido en el navegador** con un fallo inventado del motor diario al cambiar la inflación:
+  1. `render()` se cortaba sin ningún aviso y las cifras seguían las de antes del cambio.
+  2. La firma del cálculo ya se había guardado, así que el siguiente pintado **no lo reintentaba**: cifras viejas en silencio hasta tocar otra cosa.
+  3. Peor: el plan mensual se guarda antes de la auditoría diaria, así que la app quedaba **mezclada** (mensual nuevo, diario viejo).
+- **Arreglo** (`app.js`, `recomputeModelSafely`, 28 líneas; techo de ARQ-4 respetado: 32.391 de 32.426):
+  - render() recalcula dentro de un `try`. Si falla, devuelve todo lo que el recálculo pudo cambiar (corridas mensual, diaria y de escenarios; `lastSimulation` y compañía; `projectPlan`; supuestos del forecast; alerta PVC8) y reabre la firma para reintentar en el siguiente pintado.
+  - Aviso `#recalculoError` en `index.html` (dentro de `<main>`, en todas las pantallas, `role="alert"`): «No se ha podido recalcular el plan con el último cambio. Las cifras que ves son las de antes. Deshaz el último cambio o prueba con otro valor: la app lo vuelve a intentar sola», con el detalle técnico plegado. Estilos en `styles.css` con los tokens de peligro (claro y oscuro).
+  - Sin cifras buenas previas (el primer cálculo al abrir), falla como antes, pero con el aviso a la vista.
+- **Pruebas:**
+  - `tests/wp37-recalculo-fallido.test.cjs` (2).
+  - e2e «WP-37 · un recálculo que falla avisa, deja las cifras de antes y se reintenta en el siguiente pintado»: aviso visible también en Hoy, el plan activo igual que antes, la cifra de Previsión igual, sin error de página; sin el fallo, el siguiente pintado recalcula con la inflación nueva y el aviso se va.
+  - axe claro/oscuro del aviso con el detalle abierto.
+  - Sellos: `app.js`, `styles.css` y `novedades.js` a `20261109wp37` (y las pruebas que los fijan).
+- **De paso:**
+  - las líneas de Novedades de #598 pasan a fecha 2026-11-08 (el día real de publicación; los id no cambian, así que no vuelven a salir como nuevas);
+  - el backlog deja de decir «sale el lunes 9/11».
+- **Validación:**
+  - `npm run verify` en verde (6.492/6.492; «forecast y escenarios en 204,7 ms», dentro de su presupuesto: la medida varía entre corridas).
+  - En local, 44/44 e2e de C2, FX, Hoy, XGO-01, inflación y WP-37, y el axe nuevo 2/2.
+- **Queda de WP-37 en C2:** los estados vacío, sin saldos y sin suelo de la Previsión nueva.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (429): los escenarios guardados en «Comparar con» de la Previsión (FX-20, con FX-23)
 
 - **Petición del hogar:** «sigue». Lo siguiente de S3 que no depende del hogar: lo que le faltaba a FX-20, los escenarios guardados en la fila (FX-42 espera a la revisión del Repaso del 7/11, que es del hogar).
