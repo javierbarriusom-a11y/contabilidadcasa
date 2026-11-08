@@ -5962,6 +5962,48 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// WP-37 (8/11/2026): si el recálculo falla, la app no se corta en silencio. Se provoca un fallo del motor diario al cambiar la
+// inflación: sale el aviso en todas las pantallas, las cifras de antes siguen a la vista y no hay error de página. Al quitar el fallo,
+// el siguiente pintado lo reintenta (antes la firma quedaba como calculada), recalcula con la inflación nueva y el aviso se va.
+test("WP-37 · un recálculo que falla avisa, deja las cifras de antes y se reintenta en el siguiente pintado", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+  await page.goto("/index.html#plan");
+  await page.locator('[data-plan-tab="prevision"]').click();
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(v2).toBeVisible({ timeout: 15000 });
+  const aviso = page.locator("#recalculoError");
+  await expect(aviso).toBeHidden();
+  const antes = await page.evaluate(() => ({ fin: canonicalEngineRuns.active.rows.at(-1).totalLiquidity, cifra: document.querySelector("#planPrevisionV2 .prev-v2-cifra")?.textContent }));
+  await page.evaluate(() => {
+    const motor = globalThis.FinanceCanonicalDailyEngine;
+    globalThis.__wp37Original = motor.buildSnapshot;
+    motor.buildSnapshot = (...args) => ({ ...globalThis.__wp37Original(...args), invariants: { valid: false, issues: [{ type: "fallo-de-prueba" }] } });
+    const campo = document.getElementById("annualInflation");
+    campo.value = "3";
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.clock.runFor(200);
+  await expect(aviso).toBeVisible();
+  await expect(aviso).toHaveAttribute("role", "alert");
+  await expect(aviso).toContainText("No se ha podido recalcular el plan con el último cambio. Las cifras que ves son las de antes.");
+  await expect(aviso.locator("[data-recalculo-detalle]")).toHaveText(/fallo-de-prueba/);
+  expect(await page.evaluate(() => canonicalEngineRuns.active.rows.at(-1).totalLiquidity), "el plan activo sigue siendo el de antes").toBe(antes.fin);
+  await expect(v2.locator(".prev-v2-cifra")).toHaveText(antes.cifra);
+  // El aviso se ve también en otra pantalla.
+  await page.evaluate(() => { history.pushState(null, "", "#home"); setActiveView("home"); });
+  await expect(aviso).toBeVisible();
+  // Sin el fallo, el siguiente pintado reintenta sin tocar nada más y recalcula con la inflación nueva.
+  await page.evaluate(() => { globalThis.FinanceCanonicalDailyEngine.buildSnapshot = globalThis.__wp37Original; render(); });
+  await expect(aviso).toBeHidden();
+  const despues = await page.evaluate(() => ({ inflacion: state.annualInflation, valida: canonicalDailyEngineRuns.active.invariants.valid, fin: canonicalEngineRuns.active.rows.at(-1).totalLiquidity }));
+  expect(despues.inflacion).toBe(3);
+  expect(despues.valida).toBe(true);
+  expect(despues.fin, "ya con la inflación nueva").toBeLessThan(antes.fin);
+  expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
 // FX-40 (8/11/2026): «qué ha cambiado desde tu última visita». Cada visita deja una foto ligera de la previsión en este dispositivo;
 // la siguiente dice cuánto se ha movido el punto más bajo y, en su hoja, por qué (tiempo, saldo de hoy, supuestos, plan u otros).
 test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
