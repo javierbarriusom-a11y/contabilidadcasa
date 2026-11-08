@@ -1694,6 +1694,14 @@ for (const scheme of ["light", "dark"]) {
       const doble = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallosDoble = doble.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallosDoble, fallosDoble.slice(0, 5).join("\n")).toEqual([]);
+      // FX-20 (8/11): uno de los escenarios guardados en «Comparar con», con su selector etiquetado.
+      const guardadoId = await page.evaluate(() => loadEscenarioMotorSaved()[0].id);
+      await v2.locator("[data-prevision-v2-guardado]").selectOption(guardadoId);
+      await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("Con «Prueba ·");
+      await page.mouse.move(0, 0);
+      const conGuardado = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosGuardado = conGuardado.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosGuardado, fallosGuardado.slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }

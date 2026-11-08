@@ -6162,6 +6162,81 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
   });
 });
 
+// FX-20 (8/11/2026) · un escenario guardado en «Comparar con»: los de Escenarios › Guardados que no están en el plan, recalculados por
+// días. Se guarda la prueba del imprevisto desde la propia Previsión y se elige como escenario: mismo punto más bajo (lo de golpe cae el
+// día más bajo de su mes) y, al cierre de cada mes, la liquidez de Escenarios. Los aplicados no salen: ya están en el plan.
+test.describe("FX-20 · un escenario guardado en «Comparar con»", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`elegirlo, su línea, su tabla, la paridad con Escenarios y los aplicados fuera, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(v2.locator("[data-prevision-v2-guardado]"), "sin escenarios guardados no hay selector").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      const filaPrueba = await v2.locator(".prev-v2-impacto tbody tr").first().textContent();
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      const selector = v2.locator("[data-prevision-v2-guardado]");
+      await expect(selector.locator("option")).toHaveText(["Ninguno", /^Prueba · imprevisto de 3\.000\s€ en /]);
+      await expect(page.locator('label[for="prevV2Guardado"]')).toHaveText("O un escenario guardado");
+      const id = await page.evaluate(() => loadEscenarioMotorSaved()[0].id);
+      await selector.selectOption(id);
+      await expect(selector).toBeFocused();
+      await expect(v2.locator('[data-prevision-v2-prueba="imprevisto"]'), "la prueba deja de estar elegida").toHaveAttribute("aria-pressed", "false");
+      const impacto = v2.locator(".prev-v2-impacto");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/^Con «Prueba · imprevisto de 3\.000\s€ en dic 26», no bajáis del suelo: el punto más bajo queda 2\.600\s€ el 8 dic, 3\.000\s€ por debajo del plan\./);
+      expect(await impacto.locator("tbody tr").first().textContent(), "el mismo punto más bajo que la prueba").toBe(filaPrueba);
+      await expect(impacto.locator("thead th").nth(2)).toHaveText("imprevisto de 3.000 €…");
+      await expect(v2.locator(".ck-escenario-etiqueta")).toHaveText("imprevisto de 3.000 €…");
+      await expect(v2.locator("[data-prevision-v2-segunda]"), "un escenario guardado se combina en Escenarios").toHaveCount(0);
+      await expect(v2.locator("[data-prevision-v2-guardar]")).toHaveCount(0);
+      await expect(impacto).toContainText("Verlo aquí no lo aplica: no cambia el plan ni mueve dinero.");
+      await expect(impacto.locator(".prev-v2-guardar [data-prevision-v2-nav=\"escenario-guardados\"]")).toHaveText("Ver en Escenarios");
+      // Al cierre de cada mes, la liquidez que da Escenarios con esas decisiones.
+      const paridad = await page.evaluate(() => {
+        const entry = loadEscenarioMotorSaved()[0];
+        const series = runEscenarioMotor(previsionV2Entrada(), entry.decisiones, null).series;
+        const rows = previsionV2Ultimo.prueba.rows;
+        const hasta = previsionV2Ultimo.tramo.at(-1).date;
+        return series.map((row) => {
+          const key = row.detailMonthKey || row.monthKey;
+          const [y, m] = key.split("-").map(Number);
+          const fin = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+          const dia = rows.filter((item) => item.date <= fin).at(-1);
+          return fin > hasta || !dia ? 0 : Math.abs(Number(dia.total) - Number(row.totalLiquidity));
+        });
+      });
+      expect(Math.max(...paridad), "cada cierre de mes, el de Escenarios").toBeLessThan(0.02);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      const dejavu = await page.addStyleTag({ content: '#planPrevisionV2, #planPrevisionV2 * { font-family: "DejaVu Sans", sans-serif !important; }' });
+      expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe con DejaVu Sans").toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar con DejaVu Sans").toBe(true);
+      await dejavu.evaluate((el) => el.remove());
+      // Una prueba de la fila sustituye al escenario.
+      await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+      await expect(selector).toHaveValue("");
+      // Aplicado, ya está en el plan: sale de la lista y deja de compararse.
+      await selector.selectOption(id);
+      await page.evaluate(() => {
+        const lista = loadEscenarioMotorSaved();
+        lista[0].estado = "aplicado";
+        saveEscenarioMotorSavedList(lista);
+        previsionV2Render();
+      });
+      await expect(v2.locator("[data-prevision-v2-guardado]")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);
+      await expect(v2.locator('[data-prevision-v2-prueba=""]')).toHaveAttribute("aria-pressed", "true");
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // 8/11/2026 · las pruebas de estrés parten del plan que se pinta, con sus proyectos y liquidaciones de deuda programadas
 // (projectPlan.outflows). Partían de la entrada sin ellas: con una obra inventada de 4.000 € en diciembre, «Imprevisto 3.000 €»
 // dejaba el 31/12 en +1.000 € frente al plan. La demo no tiene proyectos, por eso no se veía.

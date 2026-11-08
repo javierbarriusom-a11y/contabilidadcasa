@@ -173,6 +173,23 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (429): los escenarios guardados en «Comparar con» de la Previsión (FX-20, con FX-23)
+
+- **Petición del hogar:** «sigue». Lo siguiente de S3 que no depende del hogar: lo que le faltaba a FX-20, los escenarios guardados en la fila (FX-42 espera a la revisión del Repaso del 7/11, que es del hogar).
+- **Qué es:** bajo los botones de «Comparar con», «O un escenario guardado», un selector con los de Escenarios › Guardados que **no están en el plan**. Los aplicados o vigentes no salen: sus pagos de deuda ya van en la línea del plan (`projectPlan`) y se contarían dos veces. Al elegir uno se pinta su línea discontinua con su nombre (recortado a 22 letras), la frase, la misma tabla de impacto y el colchón. Sin «Sumar otra prueba» (se combina en Escenarios) y sin «Guardar» (ya está guardado): «Para cambiarlo o aplicarlo, en Escenarios» y el enlace. Un botón de la fila lo sustituye, y si se archiva o se aplica deja de compararse.
+- **Cómo se calcula:** el escenario se resuelve con el motor de Escenarios (`runEscenarioMotor`, con sus guardarraíles y sus deudas) sobre la misma entrada que la línea del plan, y sus meses entran en el recálculo diario de las pruebas (`canonical-stress-scenarios.js` `evaluateResolved`). **El cierre de cada mes es el de Escenarios** (prueba en Node con los motores reales y e2e en la app).
+- **El día, y una trampa evitada:** Escenarios cuenta por meses y el motor diario cargaba lo que se paga de golpe el día de la nómina, tras el sueldo. Así, la prueba del imprevisto guardada y vuelta a ver salía «igual» en el punto más bajo (la prueba original, −3.000 € el 8 dic). Ahora lo que el escenario paga de golpe en un mes cae **el día más bajo del plan en ese mes**: es lo prudente y coincide con la prueba. Para ello, `canonical-daily-input.js` admite `projectOutflowSplit` (opcional; sin él, nada cambia, con prueba). Los cambios de ingreso y gasto siguen cayendo en los días de cobros y pagos de su tipo en su mes; la nota lo dice.
+- **Con la demo:** guardar «Imprevisto 3.000 €» y elegirlo da la misma primera fila que la prueba (5.600 € → 2.600 € el 8 dic, −3.000 €). Un sueldo menos de 6 meses guardado da 2.500 € el 8 ene 2027 y −7.800 € a 31/12, como la prueba.
+- **Pruebas:**
+  - `tests/fx20-escenario-guardado.test.cjs` (5): cierres de mes iguales a Escenarios, sin cambios es el plan, rechazadas y sin resolver, el pago de golpe el día más bajo y `projectOutflowSplit` sin efecto si no se pasa.
+  - e2e «FX-20 · un escenario guardado en «Comparar con»» a 390 (`@safari`) y 1440 px: selector etiquetado y con foco, la misma fila que la prueba, la línea y la cabecera, paridad de cierre de mes con Escenarios, cabe con DejaVu Sans, un botón de la fila lo sustituye y aplicado sale de la lista.
+  - axe claro/oscuro de C2 con el escenario elegido.
+  - Lint: la complejidad de `previsionV2CompararHtml` se mantiene bajo 90 sacando el selector y el aviso a funciones propias (el umbral no se toca).
+  - Sellos a `20261109fx20g`: `tema-v2.css`, `canonical-daily-input.js`, `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.490/6.490; «forecast y escenarios en 135,9 ms»). En local, e2e y axe de C2, FX-20, FX-21, FX-31, FX-40, FX-51, WP-38, WP-43, XGO-01, XPR, inflación y E-11b: 52/52 y, tras el ajuste de lint, 29/29.
+- **Queda de FX-20:** deuda y patrimonio a 24 meses en la tabla. **De FX-23:** los presets sin guardar en Escenarios › Comparar (redundante ahora que Previsión los compara con el plan; se propone cerrarlo así) y el mini-gráfico por columna.
+- **Rama y PR:** `claude/practical-gauss-yb62ii`, PR #598 (sale el lunes 9/11).
+
 ## Cierre de sesión — 8 de noviembre de 2026 (428): las pruebas de estrés y «qué ha cambiado» parten del plan que se pinta, con sus proyectos
 
 - **Hallazgo (no lo pidió nadie; salió al preparar los escenarios guardados en «Comparar con»):** las pruebas de estrés de Previsión (FX-20/FX-21), las dos a la vez, la foto de FX-40 y la sensibilidad de supuestos de Ajustes (FX-51) calculaban con `canonicalEngineInput([], {})`, es decir, sin `projectPlan.outflows`: sin los proyectos aprobados ni las liquidaciones de deuda aplicadas desde Deuda. La línea del plan (`canonicalDailyEngineRuns.active`) sí los lleva, igual que Escenarios (`escenarioMotorBaseInput`).

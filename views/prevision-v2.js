@@ -21,7 +21,7 @@ const PREVISION_V2_HORIZONTES = Object.freeze([
 const PREVISION_V2_GRANDE = 300; // «Lo que viene»: pagos y cobros desde este importe
 
 let previsionV2Detalle = false; // «Ver todo el detalle», hasta recargar
-let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, hasta recargar
+let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, o «guardado:<id>» para un escenario guardado; hasta recargar
 let previsionV2Segunda = ""; // FX-20 (7/11): una segunda prueba a la vez, sobre la misma trayectoria; hasta recargar
 const previsionV2Params = { concept: "", months: 3, points: 1, amount: 3000 }; // FX-21 (D-N3): de quién, cuántos meses y cuántos puntos
 const previsionV2Cache = new Map(); // FX-21: cada prueba se calcula una vez por trayectoria del plan y parámetros
@@ -180,6 +180,65 @@ function previsionV2Partes(prueba) {
   return Array.isArray(prueba?.parts) ? prueba.parts : prueba ? [prueba] : [];
 }
 
+// ---- FX-20 · un escenario guardado en «Comparar con» (8/11/2026) -----------------------------------------------------------
+// Los de Escenarios › Guardados que no están en el plan: los aplicados ya cuentan en la línea del plan (sus pagos de deuda van en
+// projectPlan) y superponerlos los contaría dos veces. Se resuelven con el motor de Escenarios, con sus guardarraíles, sobre la
+// misma entrada que la línea del plan, y se recalculan por días como las pruebas (canonical-stress-scenarios.js evaluateResolved).
+
+const PREVISION_V2_GUARDADO = "guardado:";
+
+function previsionV2Guardados() {
+  if (typeof loadEscenarioMotorSaved !== "function" || typeof runEscenarioMotor !== "function") return [];
+  return loadEscenarioMotorSaved().filter((entry) => entry?.id && !entry.archived && !["aplicado", "vigente"].includes(entry.estado) && Array.isArray(entry.decisiones) && entry.decisiones.length);
+}
+
+/** El nombre del escenario, recortado para la línea del gráfico y la cabecera de la tabla (a 390 px caben unas 22 letras). */
+function previsionV2NombreCorto(nombre) {
+  const limpio = String(nombre || "Escenario").replace(/^Prueba · /, "").trim();
+  return limpio.length > 22 ? `${limpio.slice(0, 21).trimEnd()}…` : limpio;
+}
+
+/** El id del escenario guardado elegido en «Comparar con», o "". */
+function previsionV2GuardadoElegido() {
+  return previsionV2Escenario.startsWith(PREVISION_V2_GUARDADO) ? previsionV2Escenario.slice(PREVISION_V2_GUARDADO.length) : "";
+}
+
+/** «O un escenario guardado»: el selector con los que no están en el plan; sin ninguno, nada. */
+function previsionV2GuardadoSelectorHtml(elegido) {
+  const guardados = previsionV2Guardados();
+  if (!guardados.length) return "";
+  const opciones = guardados.map((entry) => `<option value="${escapeHtml(entry.id)}"${entry.id === elegido ? " selected" : ""}>${escapeHtml(entry.nombre || "Escenario guardado")}</option>`).join("");
+  return `<div class="prev-v2-opcion prev-v2-guardados"><label class="prev-v2-comparar-titulo" for="prevV2Guardado">O un escenario guardado</label><select id="prevV2Guardado" data-prevision-v2-guardado><option value="">Ninguno</option>${opciones}</select></div>`;
+}
+
+/** Por qué no se puede enseñar el escenario guardado elegido, con el camino a Escenarios. */
+function previsionV2GuardadoFalloHtml(prueba) {
+  const motivo = prueba?.reason === "ninguna-aplicada" ? "Ninguna decisión de este escenario se aplica con los datos de ahora." : "Este escenario no se puede calcular con los datos de ahora.";
+  return `<p class="prev-v2-impacto-nota e19-kpi-note" role="status">${motivo} <button type="button" class="hoy-v2-link" data-prevision-v2-nav="escenario-guardados">Ver en Escenarios</button></p>`;
+}
+
+function previsionV2PruebaGuardada(id, rows, today, to, floor) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const entry = previsionV2Guardados().find((item) => item.id === id);
+  if (!S?.evaluateResolved || !entry) return null;
+  let result = null;
+  try {
+    const checkingFloor = previsionV2SueloCuenta();
+    const key = `guardado|${id}|${JSON.stringify(entry.decisiones)}|${entry.guardrailValue ?? ""}|${to}|${floor}|${checkingFloor}`;
+    const cached = previsionV2Cache.get(key);
+    if (cached && cached.rows === rows) return cached.result;
+    const input = previsionV2Entrada();
+    const guardrail = Number(entry.guardrailValue);
+    const resolved = runEscenarioMotor(input, entry.decisiones, Number.isFinite(guardrail) && guardrail > 0 ? guardrail : null);
+    result = S.evaluateResolved(resolved, input, rows, previsionV2Deps(), { today, to, floor, checkingFloor, label: entry.nombre || "Escenario guardado", short: previsionV2NombreCorto(entry.nombre) });
+    if (result) result.entry = { id: entry.id, nombre: entry.nombre || "Escenario guardado", decisiones: entry.decisiones.length };
+    previsionV2Cache.set(key, { rows, result });
+  } catch {
+    result = null;
+  }
+  return result;
+}
+
 function previsionV2Active() {
   return document.documentElement.dataset.tema === "v2";
 }
@@ -298,6 +357,7 @@ function previsionV2Corto(prueba) {
 /** Cómo empieza la frase de cada prueba: «Sin «X» durante 3 meses», «Si el Euribor sube 1 punto…», «Con un imprevisto…». */
 function previsionV2CuandoParte(parte, today) {
   const info = parte.info || {};
+  if (parte.preset.id === "guardado") return `Con «${parte.preset.label}»`;
   if (parte.preset.id === "sueldo-menos") return `Sin «${info.concept}» durante ${info.months} meses`;
   if (parte.preset.id === "euribor") {
     const puntos = parte.params?.points || 1;
@@ -321,6 +381,11 @@ function previsionV2Nota(prueba, today) {
 
 function previsionV2NotaParte(prueba, today) {
   const info = prueba.info || {};
+  if (prueba.preset.id === "guardado") {
+    const total = info.aplicadas + info.rechazadas;
+    const rechazo = info.rechazadas ? ` ${info.rechazadas} de sus ${total} decisiones no se aplican con los datos de ahora (Escenarios dice por qué).` : "";
+    return `Es el escenario de Escenarios › Guardados, recalculado con el plan de hoy.${rechazo} Escenarios cuenta por meses: el cierre de cada mes es el suyo; lo que paga de golpe cae aquí el día más bajo de su mes, y el resto, en los días de cobros y pagos de su mes.`;
+  }
   const mes = (key) => (typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(key) : key);
   if (prueba.preset.id === "sueldo-menos") return info.from === info.to ? `Se quita «${info.concept}» en ${mes(info.from)}.` : `Se quita «${info.concept}» de ${mes(info.from)} a ${mes(info.to)}.`;
   if (prueba.preset.id === "euribor") {
@@ -361,7 +426,8 @@ function previsionV2CompararHtml(prueba, today) {
   if (!S) return "";
   const corto = (preset) => (preset.id === "imprevisto" ? previsionV2ImprevistoCorto(preset, previsionV2Params.amount) : preset.short);
   const chips = [{ id: "", short: "Solo el plan" }, ...S.PRESETS].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
-  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>`;
+  const elegido = previsionV2GuardadoElegido();
+  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>${previsionV2GuardadoSelectorHtml(elegido)}`;
   if (!previsionV2Escenario) return fila;
   // FX-20: una segunda prueba a la vez, de las otras dos; «Ninguna» la quita.
   const otras = S.PRESETS.filter((preset) => preset.id !== previsionV2Escenario);
@@ -369,6 +435,8 @@ function previsionV2CompararHtml(prueba, today) {
     .map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Segunda ? " is-active" : ""}" data-prevision-v2-segunda="${preset.id}" aria-pressed="${preset.id === previsionV2Segunda}">${escapeHtml(corto(preset))}</button>`)
     .join("")}</div></div>`;
   const c = prueba?.comparison;
+  // Un escenario guardado se combina en Escenarios, no aquí: sin «Sumar otra prueba».
+  if (elegido && (!prueba?.applied || !c)) return `${fila}${previsionV2GuardadoFalloHtml(prueba)}`;
   if (!prueba?.applied || !c) {
     const fallo = prueba?.failed?.id || previsionV2Escenario;
     const cual = prueba?.combined ? ` («${prueba.failed?.short || ""}»)` : "";
@@ -449,7 +517,7 @@ function previsionV2CompararHtml(prueba, today) {
   const separado = prueba.combined ? previsionV2PorSeparado(prueba, today, redondea) : "";
   return `${fila}
     ${previsionV2OpcionesHtml(prueba)}
-    ${sumar}
+    ${elegido ? "" : sumar}
     <div class="prev-v2-impacto" role="status">
       <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor || rompeObjetivo ? " is-bad" : ""}">${escapeHtml(fraseFinal)}</p>
       <table class="e19-table prev-v2-impacto-tabla">
@@ -458,7 +526,7 @@ function previsionV2CompararHtml(prueba, today) {
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
       ${separado ? `<p class="e19-kpi-note prev-v2-separado">${escapeHtml(separado)}</p>` : ""}
-      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}Es una prueba: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}</p>
+      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}</p>
       ${previsionV2GuardarHtml(prueba)}
     </div>`;
 }
@@ -508,6 +576,8 @@ function previsionV2NombreParte(prueba) {
 }
 
 function previsionV2GuardarHtml(prueba) {
+  // Un escenario guardado ya está en Escenarios: allí se edita, se combina o se aplica.
+  if (prueba?.saved) return `<p class="prev-v2-guardar e19-kpi-note"><span>Para cambiarlo o aplicarlo, en Escenarios.</span> <button type="button" class="hoy-v2-link" data-prevision-v2-nav="escenario-guardados">Ver en Escenarios</button></p>`;
   const decisions = prueba?.decisions || [];
   if (!decisions.length || typeof loadEscenarioMotorSaved !== "function") return "";
   const firma = previsionV2Firma(decisions);
@@ -1008,7 +1078,10 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
   const segmentado = `<div class="registrar-mes-filters prev-v2-horizontes" role="group" aria-label="Horizonte de la previsión">${PREVISION_V2_HORIZONTES
     .map((h) => `<button type="button" class="registrar-mes-filter${h.id === horizonte.id ? " is-active" : ""}" data-prevision-v2-horizonte="${h.id}" aria-pressed="${h.id === horizonte.id}">${escapeHtml(h.label)}</button>`)
     .join("")}</div>`;
+  // Un escenario guardado que ya no está (archivado, aplicado o borrado en Escenarios) deja de compararse.
+  if (previsionV2Escenario.startsWith(PREVISION_V2_GUARDADO) && !previsionV2Guardados().some((entry) => `${PREVISION_V2_GUARDADO}${entry.id}` === previsionV2Escenario)) previsionV2Escenario = "";
   const prueba = !previsionV2Escenario ? null
+    : previsionV2Escenario.startsWith(PREVISION_V2_GUARDADO) ? previsionV2PruebaGuardada(previsionV2Escenario.slice(PREVISION_V2_GUARDADO.length), rows, today, tramo.at(-1).date, floor)
     : previsionV2Segunda ? previsionV2PruebaDoble([previsionV2Escenario, previsionV2Segunda], rows, today, tramo.at(-1).date, floor)
     : previsionV2Prueba(previsionV2Escenario, rows, today, tramo.at(-1).date, floor);
   previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows };
@@ -1129,6 +1202,16 @@ function previsionV2Init() {
     const cambia = punto.date !== previsionV2Dia.date || (previsionV2Pulsado && !previsionV2Dia.fijado);
     previsionV2Dia = { date: punto.date, fijado: previsionV2Dia.fijado || previsionV2Pulsado };
     if (cambia) previsionV2PintaDia();
+  });
+  // FX-20: un escenario guardado en «Comparar con»; sustituye a la prueba elegida (y a la segunda).
+  box?.addEventListener("change", (event) => {
+    const select = event.target.closest?.("[data-prevision-v2-guardado]");
+    if (!select) return;
+    previsionV2Escenario = select.value ? `${PREVISION_V2_GUARDADO}${select.value}` : "";
+    previsionV2Segunda = "";
+    globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+    previsionV2Render();
+    qs("prevV2Guardado")?.focus();
   });
   box?.addEventListener("click", (event) => {
     const horizonte = event.target.closest("[data-prevision-v2-horizonte]");

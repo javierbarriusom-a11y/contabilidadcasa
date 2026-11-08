@@ -335,6 +335,43 @@
     return { preset: combinada, combined: true, parts: hechas, applied: true, valid: result.valid, info: null, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
   }
 
+  /**
+   * FX-20 · un escenario guardado en la previsión (8/11/2026). Escenarios lo resuelve por meses (canonical-scenario-engine.js
+   * resolveEscenario, con sus guardarraíles y sus deudas); aquí sus meses entran en el mismo recálculo diario que las pruebas, y se
+   * compara igual con el plan. Los meses del motor mensual son los mismos que ve Escenarios (mismo buildScenario sobre la misma
+   * entrada); el día es aproximado: los cambios de ingreso y gasto caen en los días de cobros y pagos de su tipo en ese mes, y lo que
+   * se paga de golpe, el día más bajo del plan en ese mes. Sin ninguna decisión aplicada, no hay nada que comparar.
+   * @param {any} resolved la salida de resolveEscenario()
+   * @param {any} baseInput la entrada del plan con la que se resolvió
+   * @param {any[]} baseRows
+   * @param {any} deps
+   * @param {{ today?: string, to?: string, floor?: number, checkingFloor?: number, label?: string, short?: string }} [options]
+   */
+  function evaluateResolved(resolved, baseInput, baseRows, deps, { today, to, floor = 0, checkingFloor = 0, label = "Escenario guardado", short = "Escenario" } = {}) {
+    const preset = { id: "guardado", label, short };
+    if (!baseInput?.months?.length || !baseRows?.length) return null;
+    const resultados = Array.isArray(resolved?.resultados) ? resolved.resultados : [];
+    const aplicadas = resultados.filter((item) => item.resultado === "aplicada");
+    const rechazadas = resultados.filter((item) => item.resultado !== "aplicada" && item.resultado !== "inactiva");
+    if (!resolved?.valid || !Array.isArray(resolved.months) || resolved.months.length !== baseInput.months.length) {
+      return { preset, saved: true, applied: false, missing: [], reason: resolved?.reason || "sin-resolver" };
+    }
+    if (!aplicadas.length) return { preset, saved: true, applied: false, missing: [], reason: "ninguna-aplicada", info: { aplicadas: 0, rechazadas: rechazadas.length } };
+    // Lo que el escenario paga de golpe en un mes (una compra, un imprevisto, una cuota) cae el día más bajo del plan en ese mes, no
+    // el de la nómina: tras la nómina no se vería en el punto más bajo, que es lo que la Previsión enseña. Es lo prudente, y lo que
+    // hace la prueba del imprevisto. Lo que entra (un préstamo nuevo) sigue el día de la nómina.
+    const projectOutflowSplit = {};
+    resolved.months.forEach((month, index) => {
+      const extra = round2(Number(month.projectOutflow || 0) - Number(baseInput.months[index]?.projectOutflow || 0));
+      if (!(extra > 0)) return;
+      const low = lowIn(baseRows, today && today > `${month.monthKey}-01` ? today : `${month.monthKey}-01`, `${month.monthKey}-31`);
+      if (low) projectOutflowSplit[month.monthKey] = { amount: extra, date: low.date, label: "Pago del escenario" };
+    });
+    const dailyDeps = { ...deps, dailyOptions: { ...(deps.dailyOptions || {}), projectOutflowSplit } };
+    const result = run({ ...baseInput, months: resolved.months }, dailyDeps, "escenario guardado");
+    return { preset, saved: true, applied: true, valid: result.valid, info: { aplicadas: aplicadas.length, rechazadas: rechazadas.length }, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
+  }
+
   function euros(value) {
     const n = Math.round(Math.abs(Number(value) || 0));
     return `${Number(value) < 0 ? "−" : ""}${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} €`;
@@ -392,5 +429,5 @@
     return [];
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, toDecisions });
+  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
 });

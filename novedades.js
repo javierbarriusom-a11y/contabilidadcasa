@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-escenario-guardado-en-prevision",
+      fecha: "2026-11-09",
+      texto: "Previsión: en «Comparar con», también tus escenarios guardados (los que no están ya en el plan), sobre la línea del plan y con su tabla.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-pruebas-con-proyectos",
       fecha: "2026-11-09",
       texto: "Previsión: las pruebas de estrés y «qué ha cambiado» cuentan ya los proyectos y pagos de deuda programados, como la línea del plan.",

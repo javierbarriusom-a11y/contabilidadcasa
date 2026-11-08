@@ -189,12 +189,29 @@
         confidence: "estimated",
         priority: 55,
       });
+      // FX-20 (8/11/2026): `projectOutflowSplit[mes] = { amount, date, label }` saca parte del pago de golpe del mes a otro día (un
+      // escenario guardado lo pone el día más bajo del mes, para no esconder el golpe tras la nómina). Sin la opción, nada cambia.
+      const split = options.projectOutflowSplit?.[month.monthKey];
+      const aparte = split?.date && Number(split.amount) > 0 && projectOutflow > 0 ? Math.min(round2(Number(split.amount)), projectOutflow) : 0;
+      if (aparte) {
+        pushDailyAuditEvent(events, month, {
+          kind: "outflow",
+          field: "projectOutflow",
+          accountId: "checking",
+          label: split.label || "Decisión del escenario",
+          amount: aparte,
+          date: split.date,
+          source: "escenario guardado",
+          confidence: "estimated",
+          priority: 60,
+        });
+      }
       pushDailyAuditEvent(events, month, {
         kind: "outflow",
         field: "projectOutflow",
         accountId: "checking",
         label: "Proyecto o decisión",
-        amount: projectOutflow,
+        amount: round2(projectOutflow - aparte),
         date: payrollDate,
         source: "calendario de decisiones",
         confidence: "rule",

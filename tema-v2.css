@@ -4447,3 +4447,12 @@
 :root[data-tema="v2"] .prev-v2-puente .pte-notas {
   color: var(--e19-muted);
 }
+
+/* FX-20 (8/11/2026) · «O un escenario guardado» bajo «Comparar con»: el selector ocupa lo que queda de la fila y a 390 px baja
+   entero, sin salirse con nombres largos. */
+:root[data-tema="v2"] .prev-v2-guardados select {
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+}
