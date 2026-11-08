@@ -29,6 +29,8 @@ let previsionV2Dia = { date: "", fijado: false }; // FX-10 PR-2: el día del pan
 let previsionV2Pulsado = false; // un clic, un toque o una tecla sobre el gráfico fija el día
 let previsionV2Ultimo = null; // lo último pintado, para repintar solo el panel al recorrer el gráfico
 let previsionV2ConfianzaAbierta = false; // FX-31: la hoja de la insignia, hasta recargar
+let previsionV2CambiosAbierta = false; // FX-40: la hoja «por qué» de lo que ha cambiado, hasta recargar
+const PREVISION_V2_FOTOS = "prevision-v2-fotos"; // FX-40: fotos ligeras de la previsión en cada visita, en este dispositivo
 let previsionV2GuardarAviso = null; // FX-21: por qué no se ha podido guardar la prueba ({ firma, text }), hasta la siguiente
 
 /** Los motores de siempre (mensual, entrada diaria y diario), los mismos que pintan la trayectoria del plan. */
@@ -212,7 +214,7 @@ function previsionV2Lectura(row, floor, today) {
   return `${previsionV2Fecha(row.date, today)}: ${previsionV2Saldo(Number(row.total), row.date, today)} previstos · ${margen < 0 ? `${margenDicho} por debajo del suelo` : `${margenDicho} sobre el suelo`}.`;
 }
 
-function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null }) {
+function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null, cambios = null }) {
   const contract = globalThis.FinanceCanonicalForecastContract;
   const low = contract.lowPoint(tramo, {});
   if (!low) return "";
@@ -232,6 +234,7 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null 
   return `<div class="prev-v2-hero${margen < 0 ? " is-bad" : ""}">
     <div class="prev-v2-hero-cabecera"><p class="e19-eyebrow">Punto más bajo ${escapeHtml(horizonte.titulo)}</p>${previsionV2InsigniaHtml(confianza)}</div>
     <p class="prev-v2-cifra">${said.approximate ? "<small>unos</small> " : ""}${escapeHtml(money(said.value))} <span class="prev-v2-cuando">${escapeHtml(said.when)}</span></p>
+    ${previsionV2CambioHtml(cambios, { today, horizonte })}
     <p class="prev-v2-frase">${frase}</p>
     ${avisoCuenta}
     ${previsionV2LibreHtml({ tramo, floor, margen, margenSaid, today })}
@@ -545,6 +548,106 @@ function previsionV2GuardarEscenario() {
   previsionV2GuardarAviso = null;
   if (typeof announceStatus === "function") announceStatus(`«${nombre}» guardada en Escenarios › Guardados. No se ha aplicado nada.`);
   return true;
+}
+
+// ---- FX-40 · Qué ha cambiado desde tu última visita ------------------------------------------------------------------------
+// En cada visita la Previsión deja una foto ligera de su trayectoria (canonical-forecast-changes.js), una por día y en este
+// dispositivo; la de hoy se rehace en cada pintado, así la de un día es lo último que se vio ese día. Bajo la cifra principal:
+// cuánto se ha movido el punto más bajo frente a la visita anterior y, en su hoja, el puente con las cuatro causas.
+
+function previsionV2FotosCargar() {
+  try {
+    return JSON.parse(storageGet(storageKey(PREVISION_V2_FOTOS), "[]"));
+  } catch {
+    return [];
+  }
+}
+
+/** El puente con la visita anterior, o null; de paso deja (o rehace) la foto de hoy. Nunca rompe la Previsión. */
+function previsionV2Cambios({ rows, tramo, today, horizonte }) {
+  const E = globalThis.FinanceCanonicalForecastChanges;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  if (!E || !contract || typeof canonicalEngineInput !== "function" || !tramo.length) return null;
+  try {
+    const input = canonicalEngineInput([], {});
+    const hoy = E.snapshot({ today, rows, policy: input.policy, planMonths: input.months });
+    if (!hoy) return null;
+    const store = previsionV2FotosCargar();
+    const anterior = E.previousVisit(store, today);
+    const guardadaHoy = (Array.isArray(store) ? store : []).find((snap) => snap?.date === today);
+    if (JSON.stringify(guardadaHoy) !== JSON.stringify(hoy)) storageSet(storageKey(PREVISION_V2_FOTOS), JSON.stringify(E.upsert(store, hoy)));
+    if (!anterior) return null;
+    const low = contract.lowPoint(tramo, {});
+    if (!low) return null;
+    let oldPolicyLow = null;
+    let oldPolicyStart = null;
+    const S = globalThis.FinanceCanonicalStressScenarios;
+    if (E.policyChanges(anterior.policy, hoy.policy).length && S?.run) {
+      const key = `fotos|${anterior.date}|${JSON.stringify(anterior.policy)}|${tramo.at(-1).date}`;
+      const cached = previsionV2Cache.get(key);
+      if (cached && cached.rows === rows) ({ oldPolicyLow, oldPolicyStart } = cached.result);
+      else {
+        const replay = S.run({ ...input, policy: { ...input.policy, ...anterior.policy } }, previsionV2Deps(), "qué ha cambiado: los supuestos de la visita anterior");
+        oldPolicyLow = contract.lowPoint(replay.rows || [], { from: today, to: tramo.at(-1).date });
+        oldPolicyStart = Number((replay.rows || []).find((row) => row.date === today)?.total);
+        previsionV2Cache.set(key, { rows, result: { oldPolicyLow, oldPolicyStart } });
+      }
+    }
+    return E.bridge({ previous: anterior, today, windowDays: horizonte.dias, current: { low, start: Number(tramo[0].total), end: rows.at(-1).date, policy: hoy.policy, plan: hoy.plan }, oldPolicyLow, oldPolicyStart: Number.isFinite(oldPolicyStart) ? oldPolicyStart : null, startEstimated: state?.balanceMode === "auto" });
+  } catch {
+    return null;
+  }
+}
+
+/** «de ayer» o «del 2 nov». */
+function previsionV2Visita(date, today) {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  return contract.daysBetween(date, today) === 1 ? "de ayer" : `del ${previsionV2Fecha(date, today)}`;
+}
+
+const PREVISION_V2_CAUSA = Object.freeze({ tiempo: "el paso del tiempo", datos: "los datos nuevos", supuestos: "los supuestos", plan: "los cambios del plan", otros: "otros motivos" });
+
+/**
+ * La línea bajo la cifra y su hoja. La cifra de la visita anterior ya no está a la vista, así que no se restan dos cifras redondeadas
+ * (un mínimo que se acerca pasa de redondearse a la centena a la decena y parecería que cambia): se redondea la diferencia real, con
+ * dos cifras significativas como las diferencias de la tabla de impacto (FX-04). Las barras van a la decena y lo que el redondeo deja
+ * va a la última («Otros» o «Cambios del plan», cuya nota ya lo dice), para que sumen lo que dice la línea sin inventar una causa.
+ */
+function previsionV2CambioHtml(cambios, { today, horizonte }) {
+  if (!cambios?.calculable) return "";
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const visto = contract.roundDifference(cambios.after.value - cambios.before.value);
+  const cuando = previsionV2Visita(cambios.previousDate, today);
+  const filas = cambios.rows.map((row) => ({ ...row, shown: Math.round(row.value / 10) * 10 }));
+  const hueco = visto - filas.reduce((sum, row) => sum + row.shown, 0);
+  if (hueco) filas[filas.length - 1].shown += hueco;
+  const algo = filas.some((row) => row.shown);
+  const signo = (value) => (value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "0 €");
+  const linea = visto ? `<strong>${escapeHtml(signo(visto))}</strong> frente a tu visita ${escapeHtml(cuando)}` : `Igual que en tu visita ${escapeHtml(cuando)}`;
+  if (!algo) return `<p class="prev-v2-cambio">${linea}.</p>`;
+  const abierta = previsionV2CambiosAbierta;
+  const boton = `<button type="button" class="hoy-v2-link prev-v2-cambio-boton" data-prevision-v2-cambios aria-expanded="${abierta}" aria-controls="prevV2Cambios">Por qué <span class="prev-v2-confianza-flecha" aria-hidden="true">${abierta ? "▾" : "▸"}</span></button>`;
+  const principal = previsionV2CausaPrincipal(cambios);
+  const frase = visto
+    ? `Desde tu visita ${cuando}, el punto más bajo ${horizonte.titulo} ${visto < 0 ? "baja" : "sube"} ${money(Math.abs(visto))}${principal ? `, sobre todo por ${principal.id === "datos" && principal.label !== "Datos nuevos" ? "el saldo de hoy (calculado)" : PREVISION_V2_CAUSA[principal.id]} (${signo(filas.find((row) => row.id === principal.id).shown)})` : ""}.`
+    : `El punto más bajo ${horizonte.titulo} está igual que en tu visita ${cuando}, pero por dentro hay cambios que se compensan.`;
+  const tabla = `<table class="e19-table prev-v2-cambios-tabla"><caption class="sr-only">Por qué ha cambiado el punto más bajo desde tu visita ${escapeHtml(cuando)}</caption>
+    <thead><tr><th scope="col">Causa</th><th scope="col">Efecto</th></tr></thead>
+    <tbody>${filas.map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${escapeHtml(signo(row.shown))}</td></tr>`).join("")}
+    <tr class="prev-v2-cambios-total"><th scope="row">Total</th><td>${escapeHtml(signo(visto))}</td></tr></tbody></table>`;
+  const flojo = cambios.weak ? `<p class="prev-v2-cambios-aviso" role="note">Buena parte del cambio la app no sabe separarla: mirad la tabla antes de fiaros de las causas.</p>` : "";
+  return `<p class="prev-v2-cambio">${linea}. ${boton}</p>
+    <div class="prev-v2-cambios" id="prevV2Cambios"${abierta ? "" : " hidden"}>
+      <p>${escapeHtml(frase)}</p>
+      ${tabla}
+      ${flojo}
+      <ul class="prev-v2-cambios-notas">${cambios.notes.map((nota) => `<li>${escapeHtml(nota)}</li>`).join("")}</ul>
+      <p class="e19-kpi-note">Compara con la foto que esta pantalla guardó en este dispositivo en tu visita ${escapeHtml(cuando)}. No cambia nada: solo lo explica.</p>
+    </div>`;
+}
+
+function previsionV2CausaPrincipal(cambios) {
+  return globalThis.FinanceCanonicalForecastChanges?.mainCause(cambios) || null;
 }
 
 // ---- FX-31 · La insignia de confianza ------------------------------------------------------------------------------
@@ -872,9 +975,10 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     : previsionV2Segunda ? previsionV2PruebaDoble([previsionV2Escenario, previsionV2Segunda], rows, today, tramo.at(-1).date, floor)
     : previsionV2Prueba(previsionV2Escenario, rows, today, tramo.at(-1).date, floor);
   previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows };
+  const cambios = previsionV2Cambios({ rows, tramo, today, horizonte });
   return `${segmentado}
     <article class="e19-card prev-v2-card con-dia">
-      ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today) })}
+      ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
       ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2CompararHtml(prueba, today)}</div>
@@ -1021,6 +1125,12 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       previsionV2Render();
       qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-param="${nombre}"][aria-pressed="true"]`)?.focus();
+      return;
+    }
+    const cambiosBoton = event.target.closest("[data-prevision-v2-cambios]");
+    if (cambiosBoton) {
+      previsionV2CambiosAbierta = previsionV2AbreHoja(cambiosBoton);
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       return;
     }
     const insignia = event.target.closest("[data-prevision-v2-confianza]");

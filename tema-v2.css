@@ -4350,3 +4350,67 @@
   color: var(--e19-text);
   flex-basis: 100%;
 }
+
+/* FX-40 (8/11/2026): «qué ha cambiado desde tu última visita», bajo la cifra principal, y su hoja con el puente de cuatro causas. */
+:root[data-tema="v2"] .prev-v2-cambio {
+  margin: 0;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cambio strong {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .prev-v2-cambio-boton {
+  margin-left: 4px;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios {
+  display: grid;
+  gap: 8px;
+  min-width: 0; /* elemento de la rejilla del titular: que nada de dentro lo ensanche más allá de la tarjeta */
+  margin-top: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+:root[data-tema="v2"] .prev-v2-cambios[hidden] {
+  display: none;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios p {
+  margin: 0;
+}
+
+/* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css, como en la tabla de impacto. */
+:root[data-tema="v2"] .prev-v2-cambios-tabla {
+  width: 100%;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-tabla td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-total th,
+:root[data-tema="v2"] .prev-v2-cambios-total td {
+  font-weight: 700;
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-notas {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.875rem;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cambios-aviso {
+  padding: 8px 10px;
+  border-left: 3px solid var(--e19-warning);
+  background: var(--e19-warning-soft);
+}

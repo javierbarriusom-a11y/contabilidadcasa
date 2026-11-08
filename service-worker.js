@@ -115,6 +115,7 @@ const SHELL_URLS = [
   "./canonical-forecast-contract.js",
   "./canonical-stress-scenarios.js",
   "./canonical-forecast-confidence.js",
+  "./canonical-forecast-changes.js",
   "./canonical-self-insurance.js",
   "./canonical-mortgage-rate-scenarios.js",
   "./canonical-joint-restructuring.js",

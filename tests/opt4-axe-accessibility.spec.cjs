@@ -1697,6 +1697,33 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-40 (8/11/2026) · «qué ha cambiado desde tu última visita» con su hoja abierta, en claro y en oscuro. Datos de la demo.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-40 · contraste de «qué ha cambiado» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con la línea y la hoja del puente abiertas: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 6, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.clock.setSystemTime(new Date(2026, 10, 9, 10, 0, 0));
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
+      await page.clock.runFor(200);
+      await page.evaluate(() => previsionV2Render());
+      await v2.locator("[data-prevision-v2-cambios]").click();
+      await expect(page.locator("#prevV2Cambios")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // XPR-07 dentro de C2 (7/11/2026) · la tarjeta «Para no bajar del suelo el …» de la Previsión nueva, en claro y en oscuro. Suelo INVENTADO.
 for (const scheme of ["light", "dark"]) {
   test.describe(`XPR-07 en C2 · contraste de «el arreglo más barato» en modo ${scheme}`, () => {

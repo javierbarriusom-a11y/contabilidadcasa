@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-que-ha-cambiado",
+      fecha: "2026-11-09",
+      texto: "Previsión: bajo la cifra, cuánto ha cambiado desde tu última visita y, en «Por qué», si fue el tiempo, el saldo, los supuestos o el plan.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-inflacion",
       fecha: "2026-11-09",
       texto: "Ajustes: con una inflación anual distinta de 0 la app dejaba de recalcular; ya recalcula bien con cualquier valor.",

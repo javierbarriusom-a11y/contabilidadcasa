@@ -173,6 +173,37 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (426): qué ha cambiado desde tu última visita (FX-40, PR-1)
+
+- **Qué:** bajo la cifra principal de Plan › Previsión, «−90 € frente a tu visita del 6 nov. Por qué ▸». Si no ha cambiado: «Igual que en tu visita del 6 nov.». En la primera visita no sale nada. La hoja «Por qué» es un puente con cuatro causas que siempre cuadra con la línea, una frase con la causa principal, notas que dicen qué mide cada barra y un aviso si lo que no se sabe separar pesa el 40 % o más.
+- **Motor:** `canonical-forecast-changes.js`, nuevo y puro.
+  - **Foto ligera por visita:** la trayectoria en euros enteros, día a día hasta 800 días y después el mínimo y el cierre de cada mes; los supuestos; y del plan, las cifras de los meses que vienen. Unos 13 KB, una por día y como mucho 8. La de hoy se rehace en cada pintado, así la de un día es lo último que se vio ese día.
+  - **El puente** (para el punto más bajo de la ventana elegida):
+    - **El paso del tiempo:** la trayectoria de entonces con la ventana de hoy.
+    - **Datos nuevos:** el saldo de hoy frente al que la foto esperaba para hoy, medido con los supuestos de entonces.
+    - **Supuestos:** recálculo con los supuestos de la foto, con el mismo `run` de las pruebas de estrés.
+    - **Cambios del plan:** el resto, solo si el plan de los meses que vienen ha cambiado. Si no, va a «Otros», a la vista.
+  - **Saldos calculados por calendario** (`balanceMode` «auto», como la demo): la barra se llama «Saldo de hoy (calculado)», porque ese saldo cambia con el plan y los supuestos y no es un dato nuevo.
+- **Redondeo:** se redondea la diferencia real (dos cifras significativas), no la resta de dos cifras redondeadas. Si no, un mínimo que se acerca y pasa de la centena a la decena (5.600 → 5.620) parecía un cambio de +20 €; lo vio la primera prueba en navegador. Lo que deja el redondeo va a la última barra, cuya nota ya lo dice.
+- **Dónde se guarda:** `prevision-v2-fotos`, en este dispositivo («tu última visita»), fuera de la copia y con su motivo en `tests/arq6-copia-completa.test.cjs`. Subirlas haría que cada visita escribiera en la nube.
+- **Hallazgos de la prueba en navegador, corregidos:**
+  - el +20 € falso por redondeo;
+  - los supuestos que se colaban en «datos nuevos»;
+  - la hoja de 1.120 px dentro de una tarjeta de 320, por la regla general `table { min-width: 1120px }`; la página no se desbordaba porque la tarjeta la recortaba, y ahora una e2e lo comprueba también con DejaVu;
+  - y, aparte (PROJECT_STATE 425), el fallo de la inflación.
+- **Desviaciones de la propuesta (§9):**
+  - **las fotos se toman en cada visita**, no «cada semana, al importar y al firmar un cierre»: es lo que pide «desde tu última visita»;
+  - **la causa «Cambios del plan» se mide como resto**, no por separado: medirla exigiría guardar la entrada entera del plan en cada foto;
+  - **el puente del 31/12 de WP-43 no se ha movido** todavía (PR-2). Mover o retirar una tarjeta en uso se consulta antes.
+- **Pruebas:**
+  - `tests/fx40-que-ha-cambiado.test.cjs` (9): la foto; una por día; sin cambios todo es 0; datos nuevos; el paso del tiempo; supuestos y plan; supuestos que mueven el saldo de hoy y saldos calculados; lo que no se puede comparar; motor puro y cableado.
+  - e2e «FX-40 · qué ha cambiado desde tu última visita» a 390 (`@safari`) y 1440 px: primera visita sin línea, otra igual, otra con la inflación cambiada y su hoja; cuadra; cabe con DejaVu; una foto por día.
+  - axe claro y oscuro con la hoja abierta.
+- **Versiones:** `canonical-forecast-changes.js` (nuevo; ARQ-3, 121), `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261109fx40a`; service worker y sitio publicado. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.484 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 143,2 ms), build, privacidad y humo.
+  - En Chromium local: e2e y axe de FX-40, C2, FX-20/21, XPR, FX-31 e inflación, 34 de 34.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (425): la inflación anual distinta de 0 ya no corta el recálculo
 
 - **El fallo (ya estaba en `main`):** con cualquier inflación anual distinta de 0 en Ajustes (o subida anual de ingresos), `render()` lanzaba `La auditoría diaria no supera sus invariantes en active: monthly-parity…` y la app dejaba de recalcular. Lo destapó FX-40 al probar un cambio de supuestos.

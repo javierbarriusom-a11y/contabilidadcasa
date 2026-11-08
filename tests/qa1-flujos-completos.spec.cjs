@@ -5956,6 +5956,70 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// FX-40 (8/11/2026): «qué ha cambiado desde tu última visita». Cada visita deja una foto ligera de la previsión en este dispositivo;
+// la siguiente dice cuánto se ha movido el punto más bajo y, en su hoja, por qué (tiempo, saldo de hoy, supuestos, plan u otros).
+test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`primera visita sin línea, otra igual y otra con un supuesto cambiado y su hoja, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      // Primera visita: no hay con qué comparar; queda la foto de hoy, ligera y en este dispositivo.
+      await expect(v2.locator(".prev-v2-cambio")).toHaveCount(0);
+      const fotos = await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => ({ date: foto.date, bytes: JSON.stringify(foto).length })));
+      expect(fotos.map((foto) => foto.date)).toEqual(["2026-11-06"]);
+      expect(fotos[0].bytes).toBeLessThan(20000);
+      // Tres días después, con los mismos datos: el punto más bajo no ha cambiado (el redondeo más fino de ahora no cuenta como cambio).
+      await page.clock.setSystemTime(new Date(2026, 10, 9, 9, 0, 0));
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(v2.locator(".prev-v2-cambio")).toHaveText("Igual que en tu visita del 6 nov.");
+      await expect(v2.locator("[data-prevision-v2-cambios]")).toHaveCount(0);
+      // Cambia un supuesto (la inflación anual): la línea dice cuánto baja y la hoja, por qué.
+      await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
+      await page.clock.runFor(200);
+      await page.evaluate(() => previsionV2Render());
+      const linea = v2.locator(".prev-v2-cambio");
+      await expect(linea).toContainText(/^−\d+\s€ frente a tu visita del 6 nov\./);
+      const boton = linea.locator("[data-prevision-v2-cambios]");
+      await expect(boton).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator("#prevV2Cambios")).toBeHidden();
+      await boton.click();
+      await expect(boton).toHaveAttribute("aria-expanded", "true");
+      const hoja = page.locator("#prevV2Cambios");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("tbody th")).toHaveText(["El paso del tiempo", "Saldo de hoy (calculado)", "Supuestos", "Otros", "Total"]);
+      await expect(hoja).toContainText("Supuestos: han cambiado la inflación anual.");
+      // La demo calcula los saldos por calendario: la barra del saldo de hoy no se presenta como «datos nuevos».
+      await expect(hoja).toContainText("los saldos se calculan por calendario a partir del plan");
+      // El puente cuadra con la línea.
+      const cuadra = await hoja.evaluate((el) => {
+        const n = (text) => Number(text.replace(/[^\d−-]/g, "").replace("−", "-"));
+        const celdas = [...el.querySelectorAll("tbody td")].map((td) => n(td.textContent));
+        return celdas.slice(0, -1).reduce((sum, value) => sum + value, 0) === celdas.at(-1);
+      });
+      expect(cuadra, "las causas suman el total").toBe(true);
+      await expect(hoja).toContainText("No cambia nada: solo lo explica.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // La hoja cabe en la tarjeta (la regla general `table { min-width: 1120px }` la ensanchaba sin desbordar la página), también con DejaVu Sans.
+      expect(await hoja.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la hoja cabe en la tarjeta").toBe(true);
+      const dejavu = await page.addStyleTag({ content: '#planPrevisionV2, #planPrevisionV2 * { font-family: "DejaVu Sans", sans-serif !important; }' });
+      expect(await hoja.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la hoja cabe con DejaVu Sans").toBe(true);
+      await dejavu.evaluate((el) => el.remove());
+      // Solo una foto por día: la de hoy se rehace, la del 6 sigue para la comparación.
+      expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => foto.date))).toEqual(["2026-11-09", "2026-11-06"]);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // FX-20 (7/11/2026): dos pruebas a la vez, sobre la misma trayectoria y en un solo recálculo. Datos de la demo.
 test.describe("FX-20 · dos pruebas a la vez", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
