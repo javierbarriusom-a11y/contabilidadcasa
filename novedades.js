@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-pruebas-con-proyectos",
+      fecha: "2026-11-09",
+      texto: "Previsión: las pruebas de estrés y «qué ha cambiado» cuentan ya los proyectos y pagos de deuda programados, como la línea del plan.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-puente-en-por-que",
       fecha: "2026-11-09",
       texto: "Previsión: el puente del 31/12 (por qué cambia el fin de año de cierre a cierre) pasa a «Por qué», bajo la cifra; ya no va aparte.",

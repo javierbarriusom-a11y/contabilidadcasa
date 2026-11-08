@@ -6162,6 +6162,39 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
   });
 });
 
+// 8/11/2026 · las pruebas de estrés parten del plan que se pinta, con sus proyectos y liquidaciones de deuda programadas
+// (projectPlan.outflows). Partían de la entrada sin ellas: con una obra inventada de 4.000 € en diciembre, «Imprevisto 3.000 €»
+// dejaba el 31/12 en +1.000 € frente al plan. La demo no tiene proyectos, por eso no se veía.
+test("FX-20 · con un proyecto programado, la prueba se compara con el mismo plan que se ve", async ({ page }) => {
+  test.setTimeout(60000);
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+  await page.goto("/index.html#plan");
+  await page.locator('[data-plan-tab="prevision"]').click();
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(v2).toBeVisible({ timeout: 15000 });
+  await page.evaluate(() => {
+    projects.push({ id: "fx20-obra-inventada", name: "Obra inventada", amount: 4000, mode: "fixed", monthKey: "2026-12" });
+    render();
+  });
+  expect(await page.evaluate(() => projectPlan.outflows.filter(Boolean)), "el proyecto entra en el plan").toEqual([4000]);
+  await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+  const filas = v2.locator(".prev-v2-impacto tbody tr");
+  const fin = filas.filter({ hasText: "A 31 de diciembre" });
+  await expect(fin).toContainText(/9\.000\s€\s*6\.000\s€\s*−3\.000\s€/);
+  // Sin cambios, la línea de la prueba es la del plan día a día, también con el proyecto.
+  const identica = await page.evaluate(() => {
+    const S = globalThis.FinanceCanonicalStressScenarios;
+    const plan = canonicalDailyEngineRuns.active.rows;
+    const prueba = S.run(previsionV2Entrada(), previsionV2Deps()).rows;
+    return plan.length === prueba.length && plan.every((row, i) => row.date === prueba[i].date && Math.abs(row.total - prueba[i].total) < 0.005);
+  });
+  expect(identica, "la entrada de las pruebas reproduce la línea del plan").toBe(true);
+  expect(pageErrors).toEqual([]);
+});
+
 // E-11b (7/11/2026): «Guardar como escenario» de Deuda › Comparar respeta los diez escenarios vivos, con el mismo diálogo que
 // Escenarios; antes guardaba el undécimo. Escenarios FICTICIOS.
 test("E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar", async ({ page }) => {

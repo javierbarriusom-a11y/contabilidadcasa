@@ -44,6 +44,15 @@ function previsionV2Deps() {
 }
 
 /**
+ * La entrada del plan de la línea que se pinta (canonicalDailyEngineRuns.active): con los proyectos aprobados y las liquidaciones de
+ * deuda programadas (projectPlan.outflows), como Escenarios. Sin ellas, una prueba se comparaba con otro plan: con una obra de
+ * 4.000 € en diciembre, un imprevisto de 3.000 € dejaba el 31/12 1.000 € por encima del plan (8/11/2026).
+ */
+function previsionV2Entrada() {
+  return canonicalEngineInput(typeof projectPlan !== "undefined" ? projectPlan?.outflows || [] : [], {});
+}
+
+/**
  * El suelo de la cuenta corriente (decisión del hogar del 6/11/2026): la reserva operativa de Ajustes, la misma que el motor deja en
  * la cuenta al traspasar el excedente al ahorro; sin reserva, 0 € (no quedar en descubierto). No es el colchón heredado de 2.500 €,
  * que el motor no usa.
@@ -121,7 +130,7 @@ function previsionV2Prueba(id, rows, today, to, floor) {
   if (!S || !id || typeof canonicalEngineInput !== "function") return null;
   let result = null;
   try {
-    const input = canonicalEngineInput([], {});
+    const input = previsionV2Entrada();
     const params = previsionV2ParamsFor(id, input, today);
     const checkingFloor = previsionV2SueloCuenta();
     const key = `${id}|${to}|${floor}|${checkingFloor}|${JSON.stringify(params)}`;
@@ -148,7 +157,7 @@ function previsionV2PruebaDoble(ids, rows, today, to, floor) {
   if (!S?.evaluateCombined || ids.length !== 2 || typeof canonicalEngineInput !== "function") return null;
   let result = null;
   try {
-    const input = canonicalEngineInput([], {});
+    const input = previsionV2Entrada();
     const paramsById = Object.fromEntries(ids.map((id) => [id, previsionV2ParamsFor(id, input, today)]));
     const checkingFloor = previsionV2SueloCuenta();
     const key = `doble|${ids.join("+")}|${to}|${floor}|${checkingFloor}|${JSON.stringify(paramsById)}`;
@@ -569,7 +578,7 @@ function previsionV2Cambios({ rows, tramo, today, horizonte }) {
   const contract = globalThis.FinanceCanonicalForecastContract;
   if (!E || !contract || typeof canonicalEngineInput !== "function" || !tramo.length) return null;
   try {
-    const input = canonicalEngineInput([], {});
+    const input = previsionV2Entrada();
     const hoy = E.snapshot({ today, rows, policy: input.policy, planMonths: input.months });
     if (!hoy) return null;
     const store = previsionV2FotosCargar();

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**8/11/2026 · Arreglado: las pruebas de estrés y «qué ha cambiado» calculaban sin los proyectos ni los pagos de deuda programados.** Con un proyecto, la prueba se comparaba con otro plan (un imprevisto podía dejar el 31/12 por encima del plan). Ahora parten de la misma entrada que la línea del plan; también FX-51 (PROJECT_STATE 428).
+
 **8/11/2026 · FX-40, PR-2: el puente del 31/12 (WP-43) dentro de «Por qué» («sí, mueve el puente del 31/12 a «Por qué»»); sale el lunes 9/11.**
 - **En el tema nuevo:** la tarjeta deja Plan › Previsión (un titular menos) y su contenido va como segunda parte de la hoja «Por qué». «Ver el puente completo» de Cierre abre la hoja.
 - **En el tema clásico y con «Ver todo el detalle»:** la tarjeta sigue igual.

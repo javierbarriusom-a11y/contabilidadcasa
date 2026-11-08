@@ -23568,7 +23568,7 @@ function assumptionImpactNotes() {
     return amount === 0 ? `${when}, casi nada` : `${when}, ${money(amount)} ${effect.diff < 0 ? "menos" : "más"}`;
   };
   try {
-    contract.assumptionImpacts((input) => engine.buildScenario(input, null, { reason: "fx51-supuestos" }), canonicalEngineInput([], {}), { targets })
+    contract.assumptionImpacts((input) => engine.buildScenario(input, null, { reason: "fx51-supuestos" }), canonicalEngineInput(projectPlan.outflows || [], {}), { targets }) // la entrada del plan que se ve, con sus proyectos
       .forEach((impact) => {
         const effects = impact.effects.filter((effect) => effect.diff !== null);
         if (effects.length) notes.set(impact.id, `Con ${impact.phrase}: ${effects.map(say).join("; ")} de liquidez.`);

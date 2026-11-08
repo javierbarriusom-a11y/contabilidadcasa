@@ -123,5 +123,5 @@ test("FX-51 · el registro de supuestos lee los factores sin tocar como ×1 (ant
   assert.match(app, /incomeFactor: state\?\.incomeFactor \?\? 1/);
   assert.match(app, /expenseFactor: state\?\.expenseFactor \?\? 1/);
   assert.match(app, /const impacts = assumptionImpactNotes\(\);/);
-  assert.match(app, /contract\.assumptionImpacts\(\(input\) => engine\.buildScenario\(input, null, \{ reason: "fx51-supuestos" \}\), canonicalEngineInput\(\[\], \{\}\), \{ targets \}\)/);
+  assert.match(app, /contract\.assumptionImpacts\(\(input\) => engine\.buildScenario\(input, null, \{ reason: "fx51-supuestos" \}\), canonicalEngineInput\(projectPlan\.outflows \|\| \[\], \{\}\), \{ targets \}\)/);
 });

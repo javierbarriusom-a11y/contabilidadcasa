@@ -173,6 +173,18 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (428): las pruebas de estrés y «qué ha cambiado» parten del plan que se pinta, con sus proyectos
+
+- **Hallazgo (no lo pidió nadie; salió al preparar los escenarios guardados en «Comparar con»):** las pruebas de estrés de Previsión (FX-20/FX-21), las dos a la vez, la foto de FX-40 y la sensibilidad de supuestos de Ajustes (FX-51) calculaban con `canonicalEngineInput([], {})`, es decir, sin `projectPlan.outflows`: sin los proyectos aprobados ni las liquidaciones de deuda aplicadas desde Deuda. La línea del plan (`canonicalDailyEngineRuns.active`) sí los lleva, igual que Escenarios (`escenarioMotorBaseInput`).
+- **Efecto, reproducido en el navegador con una obra INVENTADA de 4.000 € en diciembre:** «Imprevisto 3.000 €» decía «A 31 de diciembre: plan 9.000 €, prueba 10.000 €, +1.000 €» (la prueba quitaba la obra). En FX-40, el coste de un proyecto nuevo con la política cambiada habría ido a «supuestos», y un proyecto nuevo no contaba como cambio del plan. La demo no tiene proyectos, por eso ninguna prueba lo veía.
+- **Arreglo:** `previsionV2Entrada()` en `views/prevision-v2.js` (la entrada con `projectPlan.outflows`) en los tres sitios de la vista, y la misma entrada en FX-51 (`app.js`, una línea cambiada). Ahora sale −3.000 €. Las fotos de FX-40 guardadas antes en el dispositivo tenían el proyecto a 0: en la primera visita con un proyecto, el plan puede salir como cambiado sin que cambie la cifra (la fila sale a 0).
+- **Pruebas:**
+  - e2e nueva «FX-20 · con un proyecto programado, la prueba se compara con el mismo plan que se ve»: con la obra, el 31/12 baja 3.000 € y, sin cambios, la entrada de las pruebas reproduce la línea del plan día a día.
+  - `tests/fx21-pruebas-estres.test.cjs`: la vista no usa la entrada sin proyectos (12 pruebas). `tests/fx01-contrato-prevision.test.cjs`: FX-51 con la entrada nueva.
+  - Sellos: `app.js`, `views/prevision-v2.js` y `novedades.js` a `20261109proy1` (y las pruebas que fijan el de `app.js`).
+- **Validación:** `npm run verify` en verde (6.485/6.485; «forecast y escenarios en 133,9 ms»). En local, las e2e de C2, FX-20, FX-21, FX-40, FX-51, WP-43 e inflación: 20/20.
+- **Rama y PR:** `claude/practical-gauss-yb62ii`, PR #598 (sale el lunes 9/11 con lo demás).
+
 ## Cierre de sesión — 8 de noviembre de 2026 (427): el puente del 31/12 (WP-43), dentro de «Por qué» (FX-40, PR-2)
 
 - **Decisión del hogar (8/11):** «sí, mueve el puente del 31/12 a «Por qué»».

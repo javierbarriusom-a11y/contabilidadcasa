@@ -235,3 +235,10 @@ test("FX-21 · motor puro y cableado: sin DOM ni estado; antes de app.js, en el 
   assert.match(vista, /no cambia el plan ni mueve dinero/, "A11-4: una prueba no ejecuta nada");
   assert.match(vista, /anotar\("prevision-v2", "accion"\)/);
 });
+
+test("las pruebas de la Previsión parten de la entrada del plan que se pinta, con sus proyectos (8/11/2026)", () => {
+  const view = fs.readFileSync(path.join(__dirname, "..", "views", "prevision-v2.js"), "utf8");
+  assert.doesNotMatch(view, /canonicalEngineInput\(\[\]/, "sin proyectos, la prueba se compara con otro plan");
+  assert.match(view, /function previsionV2Entrada\(\) \{\n  return canonicalEngineInput\(typeof projectPlan !== "undefined" \? projectPlan\?\.outflows \|\| \[\] : \[\], \{\}\);/);
+  assert.equal((view.match(/const input = previsionV2Entrada\(\);/g) || []).length, 3, "la prueba, las dos a la vez y qué ha cambiado");
+});
