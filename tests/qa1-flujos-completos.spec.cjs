@@ -5931,6 +5931,87 @@ test.describe("FX-21 · guardar la prueba de estrés como escenario", () => {
   });
 });
 
+// FX-20 (7/11/2026): dos pruebas a la vez, sobre la misma trayectoria y en un solo recálculo. Datos de la demo.
+test.describe("FX-20 · dos pruebas a la vez", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`un sueldo menos y un imprevisto juntos: la línea, la frase, la tabla, por separado y guardar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const cifraPlan = await v2.locator(".prev-v2-cifra").textContent();
+      // Sin prueba no hay segunda.
+      await expect(v2.locator("[data-prevision-v2-segunda]")).toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+      await expect(v2.locator("[data-prevision-v2-segunda]")).toHaveText(["Ninguna", "Euribor", "Imprevisto 3.000 €"]);
+      await expect(v2.locator('[data-prevision-v2-segunda=""]')).toHaveAttribute("aria-pressed", "true");
+      await v2.locator('[data-prevision-v2-segunda="imprevisto"]').click();
+      await expect(v2.locator('[data-prevision-v2-segunda="imprevisto"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator('[data-prevision-v2-segunda="imprevisto"]')).toBeFocused();
+      const impacto = v2.locator(".prev-v2-impacto");
+      // El imprevisto cae el peor día de la combinación (8 ene 2027, sin el sueldo), no el del plan (8 dic).
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona A» durante 3 meses y con un imprevisto de 3.000 € el 8 ene 2027, bajáis del suelo el 8 ene 2027.");
+      await expect(impacto.locator("thead")).toContainText("Un sueldo menos + Imprevisto 3.000 €");
+      await expect(v2.locator(".ck-escenario")).toHaveCount(1);
+      await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos + Imprevisto 3.000 €");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/−500\s€.*−6\.100\s€/s);
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*−0,1\s*−1,4/);
+      // Cada una sola y las dos juntas, con las cifras de la tabla.
+      await expect(impacto.locator(".prev-v2-separado")).toHaveText("Por separado, el punto más bajo baja 3.100 € con «Un sueldo menos» y 3.000 € con «Imprevisto 3.000 €»; juntas, 6.100 €.");
+      // Las opciones de las dos siguen a mano.
+      await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveCount(2);
+      await expect(v2.locator('[data-prevision-v2-param="amount"]')).toHaveCount(3);
+      await expect(v2.locator(".prev-v2-cifra"), "el titular sigue siendo el plan").toHaveText(cifraPlan);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // La cabecera de la combinación es más larga: la tabla tiene que caber también con DejaVu Sans (la del CI).
+      const dejavu = await page.addStyleTag({ content: '#planPrevisionV2, #planPrevisionV2 * { font-family: "DejaVu Sans", sans-serif !important; }' });
+      expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe con DejaVu Sans").toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar con DejaVu Sans").toBe(true);
+      await dejavu.evaluate((el) => el.remove());
+      // «Guardar como escenario» lleva las dos.
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
+      expect(entry.nombre).toMatch(/^Prueba · sin «Ingreso Persona A» 3 meses \+ imprevisto de 3\.000\s€ en /);
+      // Primero los tramos del sueldo (cambio de ingreso) y, el último, el imprevisto en su mes.
+      expect(entry.decisiones.slice(0, -1).every((decision) => decision.tipo === "cambio_ingreso" && decision.params.deltaMensual < 0)).toBe(true);
+      expect(entry.decisiones.at(-1)).toMatchObject({ tipo: "imprevisto", params: { importe: 3000, mes: "2027-01" } });
+      // Elegir como primera la que era segunda quita la segunda; «Solo el plan» quita las dos.
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(v2.locator('[data-prevision-v2-segunda=""]')).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator("[data-prevision-v2-segunda]")).toHaveText(["Ninguna", "Un sueldo menos", "Euribor"]);
+      await expect(impacto.locator(".prev-v2-separado")).toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba=""]').click();
+      await expect(v2.locator("[data-prevision-v2-segunda]")).toHaveCount(0);
+      await expect(v2.locator(".ck-escenario")).toHaveCount(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("si una de las dos no se puede aplicar, dice cuál y qué falta", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const v2 = page.locator("#planPrevisionV2");
+    await expect(v2).toBeVisible({ timeout: 15000 });
+    await v2.locator('[data-prevision-v2-prueba="sueldo-menos"]').click();
+    await v2.locator('[data-prevision-v2-segunda="euribor"]').click();
+    // La demo no tiene la revisión de la hipoteca: la combinación no se inventa y la segunda se puede quitar.
+    await expect(v2.locator(".prev-v2-impacto-nota")).toContainText("Para esta prueba («Euribor») falta");
+    await expect(v2.locator(".ck-escenario")).toHaveCount(0);
+    await v2.locator('[data-prevision-v2-segunda=""]').click();
+    await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // E-11b (7/11/2026): «Guardar como escenario» de Deuda › Comparar respeta los diez escenarios vivos, con el mismo diálogo que
 // Escenarios; antes guardaba el undécimo. Escenarios FICTICIOS.
 test("E-11b · Deuda › Comparar no guarda un undécimo escenario y lleva a archivar", async ({ page }) => {

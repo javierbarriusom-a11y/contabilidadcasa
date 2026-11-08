@@ -1686,6 +1686,13 @@ for (const scheme of ["light", "dark"]) {
       const guardada = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
       const fallosGuardada = guardada.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallosGuardada, fallosGuardada.slice(0, 5).join("\n")).toEqual([]);
+      // FX-20: dos pruebas a la vez (un sueldo menos y un imprevisto), con «Sumar otra prueba» y la nota «por separado».
+      await v2.locator('[data-prevision-v2-segunda="imprevisto"]').click();
+      await expect(v2.locator(".prev-v2-separado")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const doble = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallosDoble = doble.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallosDoble, fallosDoble.slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }

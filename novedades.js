@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-dos-pruebas",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Sumar otra prueba» junta dos pruebas de estrés (p. ej. un sueldo menos y un imprevisto) y dice cuánto quita cada una.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-colchon-meses",
       fecha: "2026-11-09",
       texto: "Previsión: cada prueba de estrés dice cuántos meses de gasto os quedan en el punto más bajo, y si baja de vuestro objetivo.",

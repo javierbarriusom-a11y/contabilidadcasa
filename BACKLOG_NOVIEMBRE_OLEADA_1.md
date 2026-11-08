@@ -21,6 +21,12 @@ minutos.
 
 ## 0. Estado en una línea
 
+**8/11/2026 · Dos pruebas de estrés a la vez (FX-20, «sigue con las dos pruebas a la vez»); sale el lunes 9/11.**
+- **Qué es:** «Sumar otra prueba» junta dos pruebas sobre la misma trayectoria, con un solo recálculo: una línea, una frase, la tabla y «Guardar como escenario» con las dos.
+- **El imprevisto** va el último y cae el peor día de la combinación.
+- **Por separado y juntas:** una nota dice cuánto baja el punto más bajo cada una y las dos juntas.
+- **Desviación:** la propuesta decía dos líneas a la vez; se ha hecho la combinación, que es lo que preocupa (PROJECT_STATE 424).
+
 **7/11/2026 · El colchón en meses en la tabla de impacto (FX-20, «sigue con el colchón en meses»); sale el lunes 9/11.**
 - **Qué es:** la fila «Colchón en el punto más bajo (meses)» en cada prueba de estrés: cuántos meses de gasto corriente cubre la liquidez en el peor momento, en el plan y en la prueba.
 - **Fórmula:** la de «Colchón más justo» y Escenarios (gasto corriente medio de los 12 primeros meses del plan), ahora en el contrato de cifras (`cushionMonths`).
@@ -118,7 +124,7 @@ minutos.
 - **Hallazgo para el hogar (no corregido; no es de esta tarea):** sin el sueldo de A 3 meses, la cuenta corriente prevista queda en −2.510 € en enero, aunque la liquidez total (2.490 €) siga sobre el suelo. El plan cuenta el ahorro como disponible, pero haría falta pasarlo a la cuenta a tiempo.
 - **Pendiente de la especificación:**
   - la tabla trae 5 de los 6 indicadores (el colchón en meses, hecho el 7/11; faltan la deuda y el patrimonio a 24 meses);
-  - dos pruebas a la vez;
+  - ~~dos pruebas a la vez~~ (hecho el 8/11, como combinación);
   - ~~«Guardar como escenario»~~ (hecho el 7/11);
   - ~~importes editables (los 3.000 € del imprevisto)~~ (hecho el 7/11).
 - **FX-23, PR-1:**
@@ -269,7 +275,7 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 17 | **FX-31** | Una insignia de confianza de la previsión, con la tarea que más la sube (XPR-03 en parte; WP-10, WP-12, WP-45) | 8ª, 7ª | S-M · 1,5 | FX-10 | S2 | Insignia en Previsión y punto en Hoy; hoja con por qué y tarea por € de incertidumbre/minuto | **Hecha en Previsión el 7/11** (`canonical-forecast-confidence.js`): baja · media · alta con tres señales, el porqué y la tarea que más la sube por € por minuto (cola de WP-45). El punto en Hoy, hecho el 7/11 y publicado el 9/11 (cambio de Hoy de esa semana) |
 | 18 | **FX-12** | Lo que viene en 90 días: hitos del horizonte (absorbe la franja de WP-49) | 8ª, Def P2 | M · 2 | FX-10 | S2 (plegado) / S3 | Lista por semana con certeza y «¿sabes el día?»; mismos hitos en el gráfico | Propuesta |
 | 19 | **WP-37** | Estados completos y «deshacer», aplicados a C2 | Def P1 | — | FX-10 | S2 | Vacío, sin saldos, sin suelo y error en C2 | Aparcado → se aplica en C2 |
-| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. **7/11:** el colchón en meses en el punto más bajo (con el objetivo de Ajustes en la frase). Faltan los escenarios guardados en la fila (con FX-23), dos a la vez y deuda/patrimonio a 24 m |
+| 20 | **FX-20** | **Escenarios superpuestos en la previsión** (solo lectura) y tabla de impacto plan frente a escenario | 8ª | L · 3,5 | FX-10, FX-03 | S3 | Línea discontinua con su nombre; tabla de 6 indicadores; frase determinista; e2e y axe | **PR-1 hecho 6/11**: «Comparar con» en C2 con las pruebas de FX-21, la línea discontinua con su nombre, frase determinista y tabla con 4 de los 6 indicadores (punto más bajo, suelo, 31/12 y final del horizonte); e2e 390 `@safari`/1440 con paridad de motor y axe claro/oscuro. **7/11:** el colchón en meses en el punto más bajo (con el objetivo de Ajustes en la frase). **8/11:** dos pruebas a la vez, combinadas sobre la misma trayectoria. Faltan los escenarios guardados en la fila (con FX-23) y deuda/patrimonio a 24 m |
 | 21 | **FX-21** | Pruebas de estrés del hogar, **3 primeras**: Euribor +1/+2, un sueldo menos 3-6 meses, imprevisto de 3.000 € (absorbe NIN-09 y XNF-03) | 8ª, Def P3, 7ª | M · 2 | FX-20 | S3 | Cada una dice: ¿bajamos del suelo?, ¿cuándo?, ¿cuánto falta?, qué palanca lo arregla | **Las 3 de D-N3 hechas 6/11** (`canonical-stress-scenarios.js` v2): un sueldo menos por titular 3 o 6 meses, Euribor +1/+2 en la próxima revisión (con WP-20) e imprevisto de 3.000 € el peor día. El importe del imprevisto se elige desde el 7/11 (1.000, 3.000 o 6.000 €; se publica el 9/11 con el punto de Hoy). «Guardar como escenario» hecho el 7/11 (a Escenarios › Guardados con los tipos de fábrica y paridad de motor; sale el 9/11). Gasto +10 % queda en la biblioteca |
 | 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. Faltan los presets sin guardar y el mini-gráfico por columna |
 | 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | Propuesta |

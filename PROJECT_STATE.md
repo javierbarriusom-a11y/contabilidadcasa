@@ -173,6 +173,23 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 8 de noviembre de 2026 (424): dos pruebas de estrés a la vez (FX-20)
+
+- **Qué:** bajo las opciones de la prueba elegida, «Sumar otra prueba» (Ninguna y las otras dos) junta dos pruebas sobre la misma trayectoria: una línea, una frase, una tabla y un «Guardar como escenario» con las decisiones de las dos.
+  - **Motor:** `evaluateCombined(parts, …)` en `canonical-stress-scenarios.js`, puro. Aplica las dos sobre la misma entrada, una detrás de otra, y recalcula una sola vez. El imprevisto va siempre el último y cae el peor día de la trayectoria que ya lleva la otra prueba (el peor día de la combinación, no el del plan). Si una no se puede aplicar, no hay combinación y se dice cuál (`failed`, `missing`). `evaluate` y la combinación comparten `applyPart`. `toDecisions` de una combinación concatena las de cada parte.
+  - **Vista:** `previsionV2Segunda`, `previsionV2PruebaDoble` (con su caché) y `previsionV2Partes`. Frase, cabecera, línea, nota y nombre del escenario se componen de las partes («Un sueldo menos + Imprevisto 3.000 €»; «Sin «X» durante 3 meses y con un imprevisto…»). Elegir como primera la que era segunda la quita; «Solo el plan» quita las dos.
+  - **Por separado y juntas:** una nota dice cuánto baja el punto más bajo cada una sola y las dos juntas, con las cifras de la tabla, y si juntas quitan más que la suma.
+- **Desviación de la propuesta (§7, FX-20):** decía «hasta 2 a la vez + el plan», dos líneas en el gráfico. Se ha hecho la combinación (las dos a la vez sobre la misma trayectoria). Responde a lo que preocupa —que coincidan—, y dos líneas sueltas ya se comparan eligiendo una y otra.
+- **De paso:** el colchón negativo se escribía con guion («-0,1») en vez de «−».
+- **Pruebas:**
+  - `tests/fx20-dos-pruebas.test.cjs` (5): sueldo y Euribor juntos son aplicar uno y luego el otro con un solo recálculo; el imprevisto el último y en el peor día de la combinación; el orden de elección no cambia nada; una que falla o dos iguales; las decisiones de las dos; el cableado.
+  - e2e «FX-20 · dos pruebas a la vez» a 390 (`@safari`) y 1440 px, con la tabla en DejaVu Sans, y la combinación que no se puede aplicar.
+  - axe claro y oscuro de C2 con la segunda prueba.
+- **Versiones:** `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261109fx20d`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.469 pruebas unitarias, lint, typecheck, accesibilidad, rendimiento (previsión y escenarios en 174,7 ms), build, privacidad y humo.
+  - En Chromium local: e2e y axe de C2, FX-20/21, XPR-06/07/08 y E-11b, 26 de 26; las 3 de «dos pruebas» con DejaVu, en verde.
+
 ## Cierre de sesión — 7 de noviembre de 2026 (423): el colchón en meses en la tabla de impacto (FX-20)
 
 - **Qué:** cada prueba de estrés de Plan › Previsión trae la fila «Colchón en el punto más bajo (meses)»: plan, prueba y diferencia, con una décima. La nota de la tabla dice con qué gasto se mide.

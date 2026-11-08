@@ -270,6 +270,22 @@
   }
 
   /**
+   * Una prueba sobre una entrada. El imprevisto cae el día `lowDate` (el peor de la trayectoria de la que parte).
+   * @param {any} preset
+   * @param {any} input
+   * @param {{ today?: string, params?: any, lowDate?: string }} [options]
+   * @returns {any}
+   */
+  function applyPart(preset, input, { today, params = {}, lowDate } = {}) {
+    if (preset.id === "sueldo-menos") return applySueldoMenos(input, { today, months: params.months || 3, concept: params.concept || "" });
+    if (preset.id === "euribor") {
+      if (!params.shocks?.length) return { input, applied: false, missing: params.missing || [] };
+      return applyEuribor(input, { shocks: params.shocks });
+    }
+    return applyImprevisto(input, { date: lowDate, amount: Number(params?.amount) > 0 ? Number(params.amount) : preset.amount });
+  }
+
+  /**
    * Corre una prueba entera: aplica el cambio, recalcula y compara. Devuelve también la trayectoria, para pintarla, y en `info` lo
    * que ha cambiado (de quién y cuántos meses, la cuota de antes y la de después, el día del imprevisto) para decirlo en la pantalla.
    * `params`: { concept, months } para el sueldo; { shocks, missing } para el Euribor (ya calculados con euriborShocks).
@@ -282,16 +298,41 @@
   function evaluate(presetId, baseInput, baseRows, deps, { today, to, floor = 0, checkingFloor = 0, params = {} } = {}) {
     const preset = PRESETS.find((item) => item.id === presetId);
     if (!preset || !baseInput?.months?.length || !baseRows?.length) return null;
-    const baseLow = lowIn(baseRows, today, to);
-    let changed;
-    if (preset.id === "sueldo-menos") changed = applySueldoMenos(baseInput, { today, months: params.months || 3, concept: params.concept || "" });
-    else if (preset.id === "euribor") {
-      if (!params.shocks?.length) return { preset, applied: false, missing: params.missing || [] };
-      changed = applyEuribor(baseInput, { shocks: params.shocks });
-    } else changed = applyImprevisto(baseInput, { date: baseLow?.date, amount: Number(params?.amount) > 0 ? Number(params.amount) : preset.amount });
-    if (!changed.applied) return { preset, applied: false, missing: [] };
+    const changed = applyPart(preset, baseInput, { today, params, lowDate: lowIn(baseRows, today, to)?.date });
+    if (!changed.applied) return { preset, applied: false, missing: changed.missing || [] };
     const result = run(changed.input, deps, `prueba de estrés: ${preset.id}`);
     return { preset, applied: true, valid: result.valid, info: changed.info, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
+  }
+
+  /**
+   * FX-20 · dos pruebas a la vez (7/11/2026): las dos sobre la misma entrada del plan, una detrás de otra, y un solo recálculo. Lo que
+   * de verdad preocupa no es cada golpe por separado sino que coincidan (un sueldo menos el año en que la hipoteca sube).
+   * El imprevisto va siempre el último y cae el peor día de la trayectoria que ya lleva la otra prueba: «el peor día» es el de la
+   * combinación, no el del plan. Si una de las dos no se puede aplicar, no hay combinación (se dice cuál y por qué falta).
+   * @param {Array<{ id: string, params?: any }>} parts dos pruebas distintas
+   * @param {any} baseInput
+   * @param {any[]} baseRows
+   * @param {any} deps
+   * @param {{ today?: string, to?: string, floor?: number, checkingFloor?: number }} [options]
+   */
+  function evaluateCombined(parts, baseInput, baseRows, deps, { today, to, floor = 0, checkingFloor = 0 } = {}) {
+    const elegidas = (Array.isArray(parts) ? parts : []).map((part) => ({ preset: PRESETS.find((item) => item.id === part?.id), params: part?.params || {} }));
+    if (elegidas.length !== 2 || elegidas.some((part) => !part.preset) || elegidas[0].preset.id === elegidas[1].preset.id) return null;
+    if (!baseInput?.months?.length || !baseRows?.length) return null;
+    const ordenadas = elegidas.slice().sort((a, b) => Number(a.preset.id === "imprevisto") - Number(b.preset.id === "imprevisto"));
+    const combinada = { id: "combinada", label: ordenadas.map((part) => part.preset.label).join(" y "), short: ordenadas.map((part) => part.preset.short).join(" + ") };
+    let input = baseInput;
+    let rows = baseRows;
+    const hechas = [];
+    for (const [index, part] of ordenadas.entries()) {
+      if (part.preset.id === "imprevisto" && index > 0) rows = run(input, deps, "prueba de estrés: combinada (antes del imprevisto)").rows;
+      const changed = applyPart(part.preset, input, { today, params: part.params, lowDate: lowIn(rows, today, to)?.date });
+      if (!changed.applied) return { preset: combinada, combined: true, applied: false, failed: part.preset, missing: changed.missing || [] };
+      input = changed.input;
+      hechas.push({ preset: part.preset, params: part.params, info: changed.info });
+    }
+    const result = run(input, deps, "prueba de estrés: combinada");
+    return { preset: combinada, combined: true, parts: hechas, applied: true, valid: result.valid, info: null, rows: result.rows, comparison: compare(baseRows, result.rows, { today, to, floor, checkingFloor }) };
   }
 
   function euros(value) {
@@ -316,6 +357,8 @@
    * @param {any} baseInput la entrada del plan con la que se evaluó
    */
   function toDecisions(result, baseInput) {
+    // Dos pruebas a la vez: las decisiones de cada una, en el orden en que se aplicaron.
+    if (result?.applied && Array.isArray(result.parts)) return result.parts.flatMap((part) => toDecisions({ preset: part.preset, applied: true, info: part.info }, baseInput));
     if (!result?.applied || !result.info) return [];
     const months = baseInput?.months || [];
     const decision = (tipo, titulo, mes, params) => ({ tipo, titulo: String(titulo).slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes }, params });
@@ -349,5 +392,5 @@
     return [];
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, toDecisions });
+  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, toDecisions });
 });
