@@ -34,3 +34,13 @@ test("el aviso está en index.html, oculto de entrada, como alerta y con su deta
   assert.match(css, /\.recalculo-error \{[^}]*var\(--e19-danger-soft\)/);
   assert.match(css, /\.recalculo-error\[hidden\] \{\n  display: none;/);
 });
+
+test("sin suelo fijado, la Previsión nueva lo dice y lleva a Ajustes; Ajustes dice quién usa el suelo", () => {
+  const view = leer("views/prevision-v2.js");
+  assert.match(view, /function previsionV2SueloInicial\(\) \{\n  const raw = state\?\.liquidityFloor;\n  return raw === null \|\| raw === undefined \|\| raw === "";/);
+  assert.match(view, /No habéis fijado vuestro suelo: la app usa \$\{escapeHtml\(money\(floor\)\)\} de inicio\./);
+  assert.match(view, /data-prevision-v2-suelo\]"\)\) \{[\s\S]{0,300}setActiveView\("ajustes"\);[\s\S]{0,200}qs\("ajustesLiquidityFloor"\)/);
+  const html = leer("index.html");
+  assert.match(html, /Lo usan el «Disponible» de Hoy, el punto más bajo de Plan › Previsión y sus pruebas de estrés/);
+  assert.doesNotMatch(html, /Solo lo usa el «Disponible» de Hoy/);
+});

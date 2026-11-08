@@ -63,6 +63,12 @@ function previsionV2SueloCuenta() {
 }
 
 /** Lo que hay que pasar del ahorro, redondeado hacia arriba (a la decena hasta 1.000 €, a la centena después): quedarse corto no sirve. */
+/** WP-37 (8/11/2026): sin suelo fijado en Ajustes, la app usa el inicial (1.500 €); se dice, en vez de presentarlo como vuestro. */
+function previsionV2SueloInicial() {
+  const raw = state?.liquidityFloor;
+  return raw === null || raw === undefined || raw === "";
+}
+
 function previsionV2HaciaArriba(value) {
   const paso = value < 1000 ? 10 : 100;
   return Math.ceil(Number(value) / paso) * paso;
@@ -290,10 +296,12 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null,
   const margen = low.value - floor;
   const margenSaid = contract.roundForHorizon(Math.abs(margen), said.daysAhead);
   const finAno = tramo.find((row) => row.date === `${today.slice(0, 4)}-12-31`);
+  const inicial = previsionV2SueloInicial();
+  const suelo = `${inicial ? "suelo inicial" : "suelo"}`;
   const frase = [
     margen < 0
-      ? `<strong class="prev-v2-bajo">${escapeHtml(money(margenSaid))} por debajo del suelo</strong> de ${escapeHtml(money(floor))}.`
-      : `${escapeHtml(money(margenSaid))} por encima del suelo de ${escapeHtml(money(floor))}.`,
+      ? `<strong class="prev-v2-bajo">${escapeHtml(money(margenSaid))} por debajo del ${suelo}</strong> de ${escapeHtml(money(floor))}.`
+      : `${escapeHtml(money(margenSaid))} por encima del ${suelo} de ${escapeHtml(money(floor))}.`,
     finAno && finAno.date !== low.date ? `A 31 de diciembre, ${escapeHtml(money(contract.roundForHorizon(finAno.total, contract.daysBetween(today, finAno.date))))}.` : "",
   ].filter(Boolean).join(" ");
   // El suelo también en la cuenta corriente: si el propio plan la deja por debajo, se avisa aquí, con lo que hay que traspasar.
@@ -304,6 +312,7 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null,
     <p class="prev-v2-cifra">${said.approximate ? "<small>unos</small> " : ""}${escapeHtml(money(said.value))} <span class="prev-v2-cuando">${escapeHtml(said.when)}</span></p>
     ${previsionV2CambioHtml(cambios, { today, horizonte })}
     <p class="prev-v2-frase">${frase}</p>
+    ${inicial ? `<p class="e19-kpi-note prev-v2-suelo-inicial">No habéis fijado vuestro suelo: la app usa ${escapeHtml(money(floor))} de inicio. <button type="button" class="hoy-v2-link" data-prevision-v2-suelo>Fijar el suelo</button></p>` : ""}
     ${avisoCuenta}
     ${previsionV2LibreHtml({ tramo, floor, margen, margenSaid, today })}
     ${previsionV2ConfianzaHojaHtml(confianza)}
@@ -1267,6 +1276,15 @@ function previsionV2Init() {
       previsionV2Render();
       const caja = qs("planPrevisionV2")?.querySelector(".prev-v2-guardar");
       (caja?.querySelector(guardada ? "[data-prevision-v2-nav]" : "[data-prevision-v2-guardar]") || caja?.querySelector("button"))?.focus();
+      return;
+    }
+    if (event.target.closest("[data-prevision-v2-suelo]")) {
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      history.pushState(null, "", "#ajustes");
+      setActiveView("ajustes");
+      const campo = qs("ajustesLiquidityFloor");
+      campo?.scrollIntoView({ block: "center" });
+      campo?.focus({ preventScroll: true });
       return;
     }
     if (event.target.closest("[data-prevision-v2-mapa]")) {
