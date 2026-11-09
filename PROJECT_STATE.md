@@ -173,6 +173,26 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 9 de noviembre de 2026 (433): FX-51 PR-2 · los supuestos del plan, vistos desde la Previsión
+
+- **Petición del hogar:** «continua», tras publicar FX-12 (#601). Lo siguiente sin decisiones pendientes: la segunda parte de FX-51, ver los supuestos desde la Previsión.
+- **Qué hay ahora** (`views/prevision-v2.js`): bajo «Lo que viene», plegado, **«Con estos supuestos · el que más pesa: …»**.
+  - Están los cuatro supuestos generales (ingresos previstos, subida anual de los ingresos, inflación del gasto y gasto previsto), con su valor, ordenados del que más pesa al que menos.
+  - Cada uno dice cuánta liquidez quitaría si sale peor, a fin del año que viene y al final del plan. Es el mismo cálculo que Ajustes › Supuestos (`assumptionImpacts`) sobre la entrada de la línea del plan, con las mismas frases: una e2e lo compara texto a texto.
+  - «Comparar con el Euribor» elige su prueba en «Comparar con» y le pasa el foco. «Cambiarlos en Ajustes» lleva a la lista de Supuestos con el foco.
+  - Se calcula una vez por trayectoria (caché por filas).
+- **Con la demo:** el que más pesa es «ingresos previstos» (un 5 % menos: 3.700 € menos a fin de 2027 y 32.000 € a fin de 2036). Un punto más de inflación: 320 € y 27.000 €.
+- **No hecho, a propósito:**
+  - la rentabilidad de la cartera y la renta del local: el motor no las modela, y meterlas cambia el plan, no solo lo enseña;
+  - «editar enseña el antes y el después»: es de Ajustes.
+- **Fallo propio corregido antes de subir:** el botón del Euribor usaba el mismo atributo que los botones de «Comparar con», y la e2e de C2, que los cuenta, encontraba cinco. Tiene ahora su propio atributo (`data-prevision-v2-ir-prueba`) y su propio manejador; la e2e de C2 no se toca.
+- **Pruebas:**
+  - `tests/fx51-supuestos-en-prevision.test.cjs` (2): la vista real en un `vm` con el motor real; el mismo orden y cifras que `assumptionImpacts`; la caché; sin motor o con error, no sale.
+  - e2e «FX-51 · los supuestos desde la Previsión» a 390 (`@safari`) y 1440 px; axe claro/oscuro con la sección abierta.
+  - La guarda del 8/11 cuenta ahora 5 usos de `previsionV2Entrada()`.
+  - Sellos a `20261109fx51b`: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.499/6.499; «forecast y escenarios en 163,3 ms»). En local, 65/65 e2e y axe de C2, FX, WP-37, WP-43, XGO-01 y XPR.
+
 ## Cierre de sesión — 9 de noviembre de 2026 (432): FX-12 · «Lo que viene en 90 días» por semanas, con umbral y sus marcas en el gráfico
 
 - **Petición del hogar:** «sigue con FX-12».

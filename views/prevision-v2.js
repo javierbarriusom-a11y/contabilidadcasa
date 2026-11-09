@@ -34,6 +34,7 @@ let previsionV2Ultimo = null; // lo último pintado, para repintar solo el panel
 let previsionV2ConfianzaAbierta = false; // FX-31: la hoja de la insignia, hasta recargar
 let previsionV2CambiosAbierta = false; // FX-40: la hoja «por qué» de lo que ha cambiado, hasta recargar
 let previsionV2VieneAbierto = false; // FX-12: «Lo que viene» sigue abierto al cambiar el umbral o repintar, hasta recargar
+let previsionV2SupuestosAbierto = false; // FX-51: «Con estos supuestos» sigue abierto al repintar, hasta recargar
 const PREVISION_V2_FOTOS = "prevision-v2-fotos"; // FX-40: fotos ligeras de la previsión en cada visita, en este dispositivo
 let previsionV2GuardarAviso = null; // FX-21: por qué no se ha podido guardar la prueba ({ firma, text }), hasta la siguiente
 
@@ -1180,6 +1181,65 @@ function previsionV2LoQueVieneHtml({ hitos: datos, today }) {
   </details>`;
 }
 
+// ---- FX-51 · Con estos supuestos (PR-2, 9/11/2026) ----------------------------------------------------------------------
+// Los supuestos generales del plan, vistos desde la Previsión: su valor y cuánto quitaría cada uno si sale peor (el mismo cálculo
+// que Ajustes › Supuestos: canonical-forecast-contract.js assumptionImpacts, con la entrada de la línea del plan). El Euribor se
+// prueba en «Comparar con»; se cambian en Ajustes. La rentabilidad de la cartera y la renta del local no están en el motor.
+
+function previsionV2SupuestoValor(id, value) {
+  const n = Number(value) || 0;
+  const dec = (x, digits) => x.toLocaleString("es-ES", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  if (id.endsWith("Factor")) return `×${dec(n, 2)}`;
+  return `${dec(n, Number.isInteger(n) ? 0 : 1)} % al año`;
+}
+
+function previsionV2Supuestos(rows, today) {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const engine = globalThis.FinanceCanonicalEngine;
+  if (!contract?.assumptionImpacts || !engine?.buildScenario || typeof canonicalEngineInput !== "function") return null;
+  const key = `supuestos|${today.slice(0, 4)}`;
+  const cached = previsionV2Cache.get(key);
+  if (cached && cached.rows === rows) return cached.result;
+  let result = null;
+  try {
+    const input = previsionV2Entrada();
+    const fin = input.months?.at(-1)?.monthKey;
+    const targets = [`${Number(today.slice(0, 4)) + 1}-12`, fin].filter((item, index, all) => item && all.indexOf(item) === index);
+    result = contract.assumptionImpacts((entrada) => engine.buildScenario(entrada, null, { reason: "fx51-prevision" }), input, { targets });
+  } catch {
+    result = null;
+  }
+  previsionV2Cache.set(key, { rows, result });
+  return result;
+}
+
+function previsionV2SupuestosHtml({ rows, today }) {
+  const impactos = previsionV2Supuestos(rows, today);
+  if (!impactos?.length) return "";
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const efecto = (effect) => {
+    const amount = contract.roundDifference(Math.abs(effect.diff));
+    const cuando = `a fin de ${effect.monthKey.slice(0, 4)}`;
+    return amount === 0 ? `${cuando}, casi nada` : `${cuando}, ${money(amount)} ${effect.diff < 0 ? "menos" : "más"}`;
+  };
+  const items = impactos.map((impacto) => {
+    const efectos = impacto.effects.filter((effect) => effect.diff !== null);
+    const frase = efectos.length ? `Con ${impacto.phrase}: ${efectos.map(efecto).join("; ")} de liquidez.` : "";
+    return `<li class="prev-v2-supuesto"><span>${escapeHtml(impacto.label)}</span><strong>${escapeHtml(previsionV2SupuestoValor(impacto.id, impacto.value))}</strong>${frase ? `<small>${escapeHtml(frase)}</small>` : ""}</li>`;
+  }).join("");
+  const mayor = impactos[0].effects.at(-1);
+  const pesa = mayor && mayor.diff !== null && contract.roundDifference(Math.abs(mayor.diff)) > 0
+    ? ` · el que más pesa: ${impactos[0].label.toLowerCase()} (${money(contract.roundDifference(Math.abs(mayor.diff)))} a fin de ${mayor.monthKey.slice(0, 4)})`
+    : "";
+  return `<details class="e19-card prev-v2-supuestos"${previsionV2SupuestosAbierto ? " open" : ""}>
+    <summary>Con estos supuestos${escapeHtml(pesa)}</summary>
+    <p class="e19-kpi-note">Cuánta liquidez quitaría cada supuesto si sale peor, recalculando el plan con el mismo motor. No cambia nada.</p>
+    <ul class="prev-v2-supuestos-lista">${items}</ul>
+    <p class="e19-kpi-note">El Euribor de la hipoteca se prueba en su revisión: <button type="button" class="hoy-v2-link" data-prevision-v2-ir-prueba="euribor">Comparar con el Euribor</button></p>
+    <p class="e19-kpi-note"><button type="button" class="hoy-v2-link" data-prevision-v2-supuestos-ajustes>Cambiarlos en Ajustes</button></p>
+  </details>`;
+}
+
 function previsionV2Html({ rows, today, floor, horizonte }) {
   const { tramo, puntos } = previsionV2Serie(rows, today, horizonte);
   if (!tramo.length) return `<p class="hoy-v2-pending">Sin previsión desde hoy: pon los saldos para que la app pueda prever.</p>`;
@@ -1204,6 +1264,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2LoQueVieneHtml({ hitos, today })}
+    ${previsionV2SupuestosHtml({ rows, today })}
     <p class="prev-v2-mas">
       <button type="button" class="hoy-v2-link" data-prevision-v2-nav="prevision">Rango probable, calidad del dato y acierto</button>
       <button type="button" class="hoy-v2-link" data-prevision-v2-detalle>Ver todo el detalle</button>
@@ -1316,6 +1377,7 @@ function previsionV2Init() {
   // FX-12: recordar si «Lo que viene» está abierto, para que un repintado no lo cierre.
   box?.addEventListener("toggle", (event) => {
     if (event.target.classList?.contains("prev-v2-viene")) previsionV2VieneAbierto = event.target.open;
+    if (event.target.classList?.contains("prev-v2-supuestos")) previsionV2SupuestosAbierto = event.target.open;
   }, true);
   box?.addEventListener("change", (event) => {
     const select = event.target.closest?.("[data-prevision-v2-guardado]");
@@ -1389,6 +1451,28 @@ function previsionV2Init() {
       previsionV2Render();
       const caja = qs("planPrevisionV2")?.querySelector(".prev-v2-guardar");
       (caja?.querySelector(guardada ? "[data-prevision-v2-nav]" : "[data-prevision-v2-guardar]") || caja?.querySelector("button"))?.focus();
+      return;
+    }
+    // FX-51: desde «Con estos supuestos», el Euribor se prueba en «Comparar con» (se elige allí y el foco va a su botón).
+    const irPrueba = event.target.closest("[data-prevision-v2-ir-prueba]");
+    if (irPrueba) {
+      previsionV2Escenario = irPrueba.dataset.previsionV2IrPrueba;
+      previsionV2Segunda = "";
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-prueba="${previsionV2Escenario}"]`)?.focus();
+      return;
+    }
+    if (event.target.closest("[data-prevision-v2-supuestos-ajustes]")) {
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      history.pushState(null, "", "#ajustes");
+      setActiveView("ajustes");
+      const lista = qs("ajustesAssumptionRegistry");
+      if (lista) {
+        lista.setAttribute("tabindex", "-1");
+        lista.scrollIntoView({ block: "center" });
+        lista.focus({ preventScroll: true });
+      }
       return;
     }
     if (event.target.closest("[data-prevision-v2-suelo]")) {

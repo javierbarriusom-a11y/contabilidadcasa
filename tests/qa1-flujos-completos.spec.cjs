@@ -5962,6 +5962,43 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// FX-51 PR-2 (9/11/2026) · «Con estos supuestos» en la Previsión: los cuatro supuestos generales con su valor y lo que quitaría cada
+// uno si sale peor, con las mismas frases que Ajustes › Supuestos; el Euribor lleva a su prueba y «Cambiarlos en Ajustes», a la lista.
+test.describe("FX-51 · los supuestos desde la Previsión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`con su impacto, igual que en Ajustes, el Euribor y el camino a Ajustes, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const sup = v2.locator(".prev-v2-supuestos");
+      await expect(sup.locator("summary")).toHaveText(/^Con estos supuestos · el que más pesa: ingresos previstos \(32\.000\s€ a fin de 2036\)$/);
+      await sup.locator("summary").click();
+      await expect(sup.locator(".prev-v2-supuesto > span")).toHaveText(["Ingresos previstos", "Subida anual de los ingresos", "Inflación del gasto", "Gasto previsto"]);
+      await expect(sup.locator(".prev-v2-supuesto").nth(2)).toContainText(/0 % al año\s*Con un punto más de inflación: a fin de 2027, 320\s€ menos; a fin de 2036, 27\.000\s€ menos de liquidez\./);
+      const enPrevision = await sup.locator(".prev-v2-supuesto small").allTextContents();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // El Euribor lleva a su prueba de estrés, con la sección todavía abierta.
+      await sup.getByRole("button", { name: "Comparar con el Euribor" }).click();
+      await expect(v2.locator('.prev-v2-comparar [data-prevision-v2-prueba="euribor"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator('.prev-v2-comparar [data-prevision-v2-prueba="euribor"]')).toBeFocused();
+      await expect(v2.locator(".prev-v2-supuestos")).toHaveAttribute("open", "");
+      // «Cambiarlos en Ajustes» lleva a la lista, que dice lo mismo.
+      await v2.locator("[data-prevision-v2-supuestos-ajustes]").click();
+      await expect(page.locator("#ajustesAssumptionRegistry")).toBeFocused();
+      expect(await page.evaluate(() => location.hash)).toBe("#ajustes");
+      const enAjustes = await page.locator("#ajustesAssumptionRegistry li small").allTextContents();
+      enPrevision.forEach((frase) => expect(enAjustes, `Ajustes dice lo mismo: ${frase}`).toContain(frase));
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // FX-12 (9/11/2026) · «Lo que viene en 90 días» por semanas, con el umbral que se elige (150 € de serie, recordado en el dispositivo),
 // «¿sabes el día?» en cada pago de día estimado, sin el gasto variable (que se dice aparte) y con los mismos hitos como marcas del
 // gráfico (rojas si sale más de lo que entra). Con la demo el 9/11: 4 cobros y 10 pagos desde 150 €; desde 1.000 €, 4 y 2.

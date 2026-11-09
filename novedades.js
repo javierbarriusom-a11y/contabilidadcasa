@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-supuestos-en-prevision",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Con estos supuestos» dice cuánto os quitaría cada supuesto del plan si sale peor, y lleva a cambiarlos en Ajustes.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-lo-que-viene",
       fecha: "2026-11-09",
       texto: "Previsión: «Lo que viene en 90 días» va por semanas, desde el importe que elijas, con «¿sabes el día?» y sus marcas en el gráfico.",

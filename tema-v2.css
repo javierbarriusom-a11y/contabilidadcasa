@@ -4477,3 +4477,38 @@
   margin: 0;
   font-weight: 600;
 }
+
+/* FX-51 PR-2 (9/11/2026) · «Con estos supuestos» en la Previsión: cada supuesto con su valor y, debajo, lo que quitaría. */
+:root[data-tema="v2"] .prev-v2-supuestos {
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-supuestos > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-supuestos-lista {
+  display: grid;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto strong {
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto small {
+  grid-column: 1 / -1;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
