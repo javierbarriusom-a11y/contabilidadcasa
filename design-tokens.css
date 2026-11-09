@@ -2037,7 +2037,8 @@
   font-size: var(--e19-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--e19-faint);
+  /* FX-23 (9/11/2026): era --e19-faint (2,89:1 en claro, 4,19:1 en oscuro, por debajo de 4,5:1); el axe nuevo de Comparar lo vio. */
+  color: var(--e19-muted);
   font-weight: 700;
 }
 
@@ -2501,6 +2502,29 @@
   gap: 6px;
   font-size: var(--e19-text-sm);
   color: var(--e19-ink);
+}
+
+/* FX-23 (9/11/2026): las pruebas de estrés sin guardar, en su propio renglón; la que no se puede aplicar, atenuada con su motivo. */
+.e19-escenario-motor .escenario-motor-compare-grupo {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+.e19-escenario-motor .escenario-motor-compare-picker label.is-off {
+  color: var(--e19-muted);
+}
+
+/* FX-23: la liquidez mes a mes de cada columna, en la misma escala. */
+.e19-escenario-motor .escenario-motor-spark {
+  display: block;
+  width: 96px;
+  max-width: 100%;
+  height: 28px;
+  min-height: 0; /* la regla genérica `svg { min-height: 350px }` de los gráficos de siempre la estiraba */
+  color: var(--e19-forecast, var(--e19-accent));
 }
 
 /* La tabla de tres columnas fijas (34%/22%/22%/22%) asumía siempre Plan+A+B. Con más de dos

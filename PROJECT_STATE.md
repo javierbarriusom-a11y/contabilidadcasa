@@ -173,6 +173,95 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 9 de noviembre de 2026 (436): FX-22 · «¿Y si…?» desde la Previsión; FX-20 (deuda y patrimonio a 24 m) se consulta
+
+- **Petición del hogar:** «continua».
+- **FX-20, deuda y patrimonio a 24 meses: analizado y NO hecho; se consulta.**
+  - Ninguna de las tres pruebas cambia la deuda: un sueldo menos o un imprevisto no crean préstamos en el plan, y el Euribor sube la cuota sin mover casi el capital. La fila diría «igual» siempre.
+  - El motor no proyecta la cartera ni otros activos. La diferencia de patrimonio sería la de liquidez, que la tabla ya da al final del horizonte (24 m), y el nivel exigiría inventar la evolución de la cartera.
+  - Se propone cerrar FX-20 con cinco indicadores.
+- **FX-22 PR-1** (`canonical-stress-scenarios.js` `applyYSi` + `YSI`; `views/prevision-v2.js`): «¿Y si…?» en la fila «Comparar con», con tres palancas que se suman.
+  - **Las palancas:** un gasto único (importe y día), un cambio de ingreso al mes y otro de gasto al mes (con signo, desde un mes, durante 1, 3, 6 o 12 meses o hasta el final).
+  - **El cálculo:** al salir de cada campo, sin perder el foco. Misma línea, tabla, colchón y «Guardar como escenario».
+  - **La respuesta, lo primero:**
+    - «Sí, os lo podéis permitir.»;
+    - «Sí, pero pasando dinero del ahorro a tiempo.» (el total aguanta, la cuenta corriente no);
+    - «No sin tocar nada.» (se baja del suelo).
+  - **Paridad:** las palancas cambian los mismos campos que «Imprevisto», «Cambio de ingreso» y «Cambio de gasto» de Escenarios. Guardada, da los mismos meses (prueba de motor). No se suma a otra prueba.
+  - **Queda para un PR-2:** «aplazar un pago» y el clic largo en un día del gráfico.
+- **Con la demo, cifras INVENTADAS:**
+  - un gasto de 4.000 € el 9 dic da «Sí, pero pasando dinero del ahorro a tiempo» (el punto más bajo, 1.600 €; la cuenta corriente, −4.000 €);
+  - con 900 € más de gasto al mes de dic a feb, «No sin tocar nada»: bajáis del suelo el 9 dic.
+- **Pruebas:**
+  - `tests/fx22-y-si.test.cjs` (2): las tres palancas, la paridad con Escenarios y el esquema, sin importe nada, el día en la trayectoria y que no se combina.
+  - e2e «FX-22 · ¿Y si…? desde la Previsión» a 390 (`@safari`) y 1440 px; axe claro/oscuro.
+  - La e2e de C2 cuenta ahora cinco botones en «Comparar con».
+  - Lint: la complejidad de `previsionV2CompararHtml` se mantiene bajo 90 sacando el motivo del fallo y el veredicto a funciones propias.
+  - Sellos: `canonical-stress-scenarios.js`, `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261109fx22a`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.504/6.504; «forecast y escenarios en 158,2 ms»). En local, 64/64 e2e y axe de C2, FX, WP-37 y XPR.
+
+## Cierre de sesión — 9 de noviembre de 2026 (435): FX-23 PR-2 · Comparar con las pruebas de estrés sin guardar y el minigráfico por columna
+
+- **Decisión del hogar (D-N10):** «no cierres sin hacer la parte de FX-23».
+- **Pruebas sin guardar** (`views/escenarios.js` `escenarioMotorComparePresets`). En Escenarios › Comparar, un grupo «Pruebas de estrés, sin guardar» con las de D-N3:
+  - el titular de mayor sueldo 3 meses;
+  - el Euribor +1 punto en la revisión;
+  - un imprevisto de 3.000 € el peor día de 90.
+  - Se evalúan con `canonical-stress-scenarios.js` y pasan a decisiones de Escenarios con `toDecisions`, como «Guardar como escenario»: recalculadas aquí dan los mismos meses que la prueba (paridad probada en `fx21-guardar-como-escenario`).
+  - La que no se puede aplicar (el Euribor sin hipoteca en la demo) sale desactivada con su motivo.
+  - Sin escenarios guardados, Comparar ya no queda vacío si hay pruebas. Se calcula una vez por trayectoria y suelo.
+- **Minigráfico por columna:** la fila «Liquidez a fin de mes», con una línea por columna en la MISMA escala, con su lectura («de 10.350 € a 66.420 €; el cierre más bajo, …»). Se dice «a fin de mes» porque son cierres; el día más bajo de dentro del mes está en Previsión. Una regla genérica `svg { min-height: 350px }` lo estiraba: se anula para él.
+- **Con la demo:** reserva final del plan 69.420 €; sin el sueldo de A 3 meses, 58.620 €; con el imprevisto, 66.420 € (3.000 € menos).
+- **Fallo que ya existía, destapado por el axe nuevo de Comparar:** las cabeceras de la tabla usaban `--e19-faint` (2,89:1 en claro, 4,19:1 en oscuro). Pasan a `--e19-muted` (unos 6:1), en los dos temas.
+- **Pruebas:**
+  - `tests/fx23-comparar-pruebas.test.cjs` (3): la escala del minigráfico, la fila con escala común, el grupo de pruebas, la desactivada y que no entra aunque esté marcada.
+  - Las de Comparar que ya había, sin tocar (24/24 con las nuevas).
+  - e2e «FX-23 · Comparar con las pruebas de estrés sin guardar» a 390 (`@safari`) y 1440 px; axe claro/oscuro.
+  - Sellos: `app.js`, `views/escenarios.js` (mapa de carga diferida), `design-tokens.css` y `novedades.js` a `20261109fx23b`, y las pruebas que los fijan. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.502/6.502; «forecast y escenarios en 159,0 ms»). En local, 41/41 e2e de Escenarios, FX, C2, Repaso, E-11b y XGO-01, y 12/12 de Escenarios y FX-23 con axe.
+- **FX-23 queda completo.**
+
+## Cierre de sesión — 9 de noviembre de 2026 (434): D-N10 decidida y FX-42 · la previsión en el «Listo» del Repaso
+
+- **Decisiones del hogar (9/11, D-N10):**
+  - «no movemos aquí la franja anual»;
+  - «mantenemos el Repaso semanal»;
+  - «no cierres sin hacer la parte de FX-23»;
+  - «fijar vuestro suelo real en Ajustes» (tarea del hogar);
+  - y «continua así».
+- **FX-42** (`views/prevision-v2.js` `previsionV2ResumenRepaso`, `views/repaso-v2.js`). En «Listo», sin paso nuevo, la tarjeta «La previsión», con tres líneas como mucho:
+  - lo más bajo en 30 días con su margen («Lo más bajo en 30 días: 5.620 € el 8 dic, 4.120 € por encima del suelo inicial»);
+  - qué ha cambiado en esos 30 días desde la visita anterior a la Previsión, sin dejar foto (`previsionV2Cambios` admite `guardar: false`: una visita es entrar en la Previsión, no terminar el Repaso);
+  - si lo hay, el aviso: el día en que se baja del suelo o, si no, el descubierto de la cuenta corriente.
+  - Con aviso, el borde en rojo. «Ver la previsión» cierra el repaso (ya guardado al llegar a «Listo») y abre Plan › Previsión.
+  - Mismo motor, suelo y redondeo que la Previsión: a 29 días, la decena (5.620 €), igual que el titular ese día.
+- **Pruebas:**
+  - e2e «FX-42 · la previsión en el Listo del Repaso» a 390 (`@safari`) y 1440 px: las líneas, la misma cifra que el contrato, sin foto nueva, el aviso con un suelo INVENTADO de 8.000 € y el camino a la Previsión. Las e2e del Repaso siguen en verde (8/8 con las nuevas).
+  - axe claro/oscuro de la tarjeta con aviso.
+  - Sellos: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261109fx42a`; `views/repaso-v2.js` a `20261109redisB5` (la prueba de B5 exige el sufijo). Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.499/6.499; «forecast y escenarios en 167,5 ms»).
+- **Siguiente:** FX-23, lo que falta (presets sin guardar en Escenarios › Comparar y mini-gráfico por columna).
+
+## Cierre de sesión — 9 de noviembre de 2026 (433): FX-51 PR-2 · los supuestos del plan, vistos desde la Previsión
+
+- **Petición del hogar:** «continua», tras publicar FX-12 (#601). Lo siguiente sin decisiones pendientes: la segunda parte de FX-51, ver los supuestos desde la Previsión.
+- **Qué hay ahora** (`views/prevision-v2.js`): bajo «Lo que viene», plegado, **«Con estos supuestos · el que más pesa: …»**.
+  - Están los cuatro supuestos generales (ingresos previstos, subida anual de los ingresos, inflación del gasto y gasto previsto), con su valor, ordenados del que más pesa al que menos.
+  - Cada uno dice cuánta liquidez quitaría si sale peor, a fin del año que viene y al final del plan. Es el mismo cálculo que Ajustes › Supuestos (`assumptionImpacts`) sobre la entrada de la línea del plan, con las mismas frases: una e2e lo compara texto a texto.
+  - «Comparar con el Euribor» elige su prueba en «Comparar con» y le pasa el foco. «Cambiarlos en Ajustes» lleva a la lista de Supuestos con el foco.
+  - Se calcula una vez por trayectoria (caché por filas).
+- **Con la demo:** el que más pesa es «ingresos previstos» (un 5 % menos: 3.700 € menos a fin de 2027 y 32.000 € a fin de 2036). Un punto más de inflación: 320 € y 27.000 €.
+- **No hecho, a propósito:**
+  - la rentabilidad de la cartera y la renta del local: el motor no las modela, y meterlas cambia el plan, no solo lo enseña;
+  - «editar enseña el antes y el después»: es de Ajustes.
+- **Fallo propio corregido antes de subir:** el botón del Euribor usaba el mismo atributo que los botones de «Comparar con», y la e2e de C2, que los cuenta, encontraba cinco. Tiene ahora su propio atributo (`data-prevision-v2-ir-prueba`) y su propio manejador; la e2e de C2 no se toca.
+- **Pruebas:**
+  - `tests/fx51-supuestos-en-prevision.test.cjs` (2): la vista real en un `vm` con el motor real; el mismo orden y cifras que `assumptionImpacts`; la caché; sin motor o con error, no sale.
+  - e2e «FX-51 · los supuestos desde la Previsión» a 390 (`@safari`) y 1440 px; axe claro/oscuro con la sección abierta.
+  - La guarda del 8/11 cuenta ahora 5 usos de `previsionV2Entrada()`.
+  - Sellos a `20261109fx51b`: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.499/6.499; «forecast y escenarios en 163,3 ms»). En local, 65/65 e2e y axe de C2, FX, WP-37, WP-43, XGO-01 y XPR.
+
 ## Cierre de sesión — 9 de noviembre de 2026 (432): FX-12 · «Lo que viene en 90 días» por semanas, con umbral y sus marcas en el gráfico
 
 - **Petición del hogar:** «sigue con FX-12».

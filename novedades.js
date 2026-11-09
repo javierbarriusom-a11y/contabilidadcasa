@@ -11,6 +11,29 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-y-si",
+      fecha: "2026-11-09",
+      texto: "Previsión: «¿Y si…?» en «Comparar con» responde si os lo podéis permitir: un gasto único o un cambio de ingreso o gasto al mes.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-09-comparar-pruebas",
+      fecha: "2026-11-09",
+      texto: "Escenarios › Comparar: las pruebas de estrés también sin guardarlas, y una línea por columna con la liquidez a fin de mes.",
+      href: "#escenario-comparar",
+    },
+    {
+      id: "2026-11-09-repaso-prevision",
+      fecha: "2026-11-09",
+      texto: "Repaso semanal: el paso «Listo» cuenta la previsión en tres líneas: lo más bajo en 30 días, qué ha cambiado y, si lo hay, el aviso.",
+    },
+    {
+      id: "2026-11-09-supuestos-en-prevision",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Con estos supuestos» dice cuánto os quitaría cada supuesto del plan si sale peor, y lleva a cambiarlos en Ajustes.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-lo-que-viene",
       fecha: "2026-11-09",
       texto: "Previsión: «Lo que viene en 90 días» va por semanas, desde el importe que elijas, con «¿sabes el día?» y sus marcas en el gráfico.",

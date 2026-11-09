@@ -4477,3 +4477,105 @@
   margin: 0;
   font-weight: 600;
 }
+
+/* FX-51 PR-2 (9/11/2026) · «Con estos supuestos» en la Previsión: cada supuesto con su valor y, debajo, lo que quitaría. */
+:root[data-tema="v2"] .prev-v2-supuestos {
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-supuestos > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-supuestos-lista {
+  display: grid;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto strong {
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .prev-v2-supuesto small {
+  grid-column: 1 / -1;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+/* FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso: una tarjeta clara de tres líneas como mucho; con aviso, el borde en rojo. */
+:root[data-tema="v2"] .rep-v2-prevision {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .rep-v2-prevision.is-bad {
+  border-color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .rep-v2-prevision-titulo {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .rep-v2-prevision ul {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+/* FX-22 (9/11/2026) · «¿Y si…?»: tres palancas en columnas que bajan a una sola en el móvil. */
+:root[data-tema="v2"] .prev-v2-ysi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+:root[data-tema="v2"] .prev-v2-ysi-palanca {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+:root[data-tema="v2"] .prev-v2-ysi-palanca legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-ysi-palanca label {
+  display: grid;
+  gap: 2px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-ysi-palanca input,
+:root[data-tema="v2"] .prev-v2-ysi-palanca select {
+  min-height: 40px;
+  width: 100%;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-ysi > .e19-kpi-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}

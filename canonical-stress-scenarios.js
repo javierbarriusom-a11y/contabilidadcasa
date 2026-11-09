@@ -33,6 +33,9 @@
   const SUELDO_MESES = Object.freeze([3, 6]);
   const EURIBOR_PUNTOS = Object.freeze([1, 2]);
   const IMPREVISTO_IMPORTES = Object.freeze([1000, 3000, 6000]); // FX-21 (7/11/2026): el importe se elige; 3.000 € sigue siendo el de D-N3
+  // FX-22 (9/11/2026): «¿Y si…?», la prueba que escribe el hogar (gasto único, cambio de ingreso o de gasto al mes). No está en la
+  // fila de las de D-N3 ni se combina con ellas: responde «¿nos lo podemos permitir?».
+  const YSI = Object.freeze({ id: "ysi", label: "¿Y si…?", short: "¿Y si…?" });
 
   function monthLength(monthKey) {
     const [year, month] = String(monthKey).split("-").map(Number);
@@ -147,14 +150,14 @@
   /**
    * Un imprevisto en un día: un gasto fijo más ese día, en su mes (así el diario lo pone justo ahí).
    * @param {any} input
-   * @param {{ date?: string, amount?: number }} [options]
+   * @param {{ date?: string, amount?: number, concept?: string }} [options]
    */
-  function applyImprevisto(input, { date, amount = 3000 } = {}) {
+  function applyImprevisto(input, { date, amount = 3000, concept = "Imprevisto (prueba de estrés)" } = {}) {
     const next = clone(input);
     const month = (next.months || []).find((item) => item.monthKey === String(date || "").slice(0, 7));
     if (!month) return { input: next, applied: false };
     month.coreSpend = round2(Number(month.coreSpend || 0) + amount);
-    month.expenseEvents = [...(month.expenseEvents || []), { concept: "Imprevisto (prueba de estrés)", amount, field: "fixedCoreSpend", day: Number(date.slice(8, 10)), date, source: "prueba de estrés", confidence: "rule", role: "" }];
+    month.expenseEvents = [...(month.expenseEvents || []), { concept, amount, field: "fixedCoreSpend", day: Number(date.slice(8, 10)), date, source: "prueba de estrés", confidence: "rule", role: "" }];
     return { input: next, applied: true, info: { date, amount } };
   }
 
@@ -172,6 +175,41 @@
       month.coreSpend = round2(Number(month.coreSpend || 0) + extra);
     });
     return { input: next, applied: true, info: { factor } };
+  }
+
+  /**
+   * FX-22 · «¿Y si…?»: hasta tres palancas a la vez sobre la entrada del plan. Un gasto único (importe y día, como el imprevisto), un
+   * cambio de ingreso al mes y un cambio de gasto al mes (importe con signo, desde un mes, durante N meses o hasta el final). Cambian
+   * los mismos campos que los tipos de Escenarios («Imprevisto», «Cambio de ingreso», «Cambio de gasto»), así que al guardarla los meses
+   * cuadran. Sin ningún importe, no se aplica nada.
+   * @param {any} input
+   * @param {{ unico?: {amount?: number, date?: string}|null, ingreso?: {delta?: number, from?: string, months?: number}|null, gasto?: {delta?: number, from?: string, months?: number}|null }} [params]
+   */
+  function applyYSi(input, { unico = null, ingreso = null, gasto = null } = {}) {
+    let next = clone(input);
+    const info = {};
+    if (unico && Number(unico.amount) > 0 && unico.date) {
+      const changed = applyImprevisto(next, { date: unico.date, amount: round2(unico.amount), concept: "Gasto único (¿y si…?)" });
+      if (changed.applied) {
+        next = changed.input;
+        info.unico = { date: unico.date, amount: round2(unico.amount) };
+      }
+    }
+    const tramo = (lever) => {
+      const all = (next.months || []).filter((month) => month.monthKey >= String(lever.from || ""));
+      return Number(lever.months) > 0 ? all.slice(0, Math.floor(Number(lever.months))) : all;
+    };
+    [["ingreso", "income"], ["gasto", "coreSpend"]].forEach(([key, field]) => {
+      const lever = key === "ingreso" ? ingreso : gasto;
+      const delta = round2(Number(lever?.delta) || 0);
+      if (!lever || !delta || !lever.from) return;
+      const months = tramo(lever);
+      if (!months.length) return;
+      months.forEach((month) => { month[field] = round2(Number(month[field] || 0) + delta); });
+      info[key] = { delta, from: months[0].monthKey, to: months.at(-1).monthKey, months: months.length };
+    });
+    const applied = Boolean(info.unico || info.ingreso || info.gasto);
+    return { input: next, applied, info, missing: applied ? [] : ["un importe en alguna de las tres palancas"] };
   }
 
   /** El plan y su trayectoria diaria con los motores de siempre. */
@@ -277,6 +315,7 @@
    * @returns {any}
    */
   function applyPart(preset, input, { today, params = {}, lowDate } = {}) {
+    if (preset.id === "ysi") return applyYSi(input, params);
     if (preset.id === "sueldo-menos") return applySueldoMenos(input, { today, months: params.months || 3, concept: params.concept || "" });
     if (preset.id === "euribor") {
       if (!params.shocks?.length) return { input, applied: false, missing: params.missing || [] };
@@ -296,7 +335,7 @@
    * @param {{ today?: string, to?: string, floor?: number, checkingFloor?: number, params?: any }} [options]
    */
   function evaluate(presetId, baseInput, baseRows, deps, { today, to, floor = 0, checkingFloor = 0, params = {} } = {}) {
-    const preset = PRESETS.find((item) => item.id === presetId);
+    const preset = PRESETS.find((item) => item.id === presetId) || (presetId === YSI.id ? YSI : null);
     if (!preset || !baseInput?.months?.length || !baseRows?.length) return null;
     const changed = applyPart(preset, baseInput, { today, params, lowDate: lowIn(baseRows, today, to)?.date });
     if (!changed.applied) return { preset, applied: false, missing: changed.missing || [] };
@@ -400,6 +439,17 @@
     const months = baseInput?.months || [];
     const decision = (tipo, titulo, mes, params) => ({ tipo, titulo: String(titulo).slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes }, params });
     const id = result.preset?.id;
+    if (id === "ysi") {
+      const info = result.info;
+      const lista = [];
+      if (info.unico) {
+        const mes = String(info.unico.date).slice(0, 7);
+        if (months.some((month) => month.monthKey === mes)) lista.push(decision("imprevisto", `Gasto único de ${euros(info.unico.amount)}`, mes, { importe: info.unico.amount, mes }));
+      }
+      if (info.ingreso) lista.push(decision("cambio_ingreso", `Ingreso ${info.ingreso.delta < 0 ? "−" : "+"}${euros(Math.abs(info.ingreso.delta))} al mes`, info.ingreso.from, { titular: "hogar", deltaMensual: info.ingreso.delta, mesInicio: info.ingreso.from, mesFin: info.ingreso.to }));
+      if (info.gasto) lista.push(decision("cambio_gasto", `Gasto ${info.gasto.delta < 0 ? "−" : "+"}${euros(Math.abs(info.gasto.delta))} al mes`, info.gasto.from, { bloque: "Gasto del mes", deltaMensual: info.gasto.delta, mesInicio: info.gasto.from, mesFin: info.gasto.to }));
+      return lista;
+    }
     if (id === "imprevisto") {
       const mes = String(result.info.date || "").slice(0, 7);
       const importe = round2(result.info.amount);
@@ -429,5 +479,5 @@
     return [];
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
+  return Object.freeze({ SCHEMA_ID, PRESETS, YSI, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyYSi, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
 });

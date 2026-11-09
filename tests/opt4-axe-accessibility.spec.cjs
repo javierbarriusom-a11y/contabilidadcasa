@@ -1706,6 +1706,84 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-22 (9/11/2026) · «¿Y si…?» con un gasto único escrito y su resultado, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-22 · contraste de «¿Y si…?» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con «¿Y si…?», sus palancas y el resultado: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-prueba="ysi"]').click();
+      await v2.locator("#prevV2YSi-unico-amount").fill("4.000");
+      await v2.locator("#prevV2YSi-unico-amount").press("Tab");
+      await expect(v2.locator(".prev-v2-impacto-frase")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// FX-23 PR-2 (9/11/2026) · Escenarios › Comparar con dos pruebas sin guardar y sus minigráficos, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-23 · contraste de Comparar con las pruebas sin guardar en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Escenarios › Comparar con dos pruebas marcadas: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#escenario-guardados");
+      await page.waitForFunction(() => typeof renderEscenarioComparar === "function", null, { timeout: 20000 });
+      await page.evaluate(() => escenarioMotorNavigate("escenario-comparar"));
+      await page.locator('[data-escenario-comparar-pick="preset:sueldo-menos"]').check();
+      await page.locator('[data-escenario-comparar-pick="preset:imprevisto"]').check();
+      await expect(page.locator("#escenarioCompararBody svg.escenario-motor-spark")).toHaveCount(3);
+      const results = await new AxeBuilder({ page }).include("#escenario-comparar").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso, con aviso (suelo INVENTADO de 8.000 €), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-42 · contraste de la previsión en el Listo del Repaso en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Repaso › Listo con la tarjeta de la previsión y su aviso: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { state.liquidityFloor = 8000; repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+      await expect(page.locator("#repasoV2 .rep-v2-prevision.is-bad")).toBeVisible();
+      const results = await new AxeBuilder({ page }).include("#repasoV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// FX-51 PR-2 (9/11/2026) · «Con estos supuestos» abierto en la Previsión, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-51 · contraste de «Con estos supuestos» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con «Con estos supuestos» abierto: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator(".prev-v2-supuestos > summary").click();
+      await expect(v2.locator(".prev-v2-supuesto").first()).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-12 (9/11/2026) · «Lo que viene en 90 días» abierto, por semanas, con el umbral y «¿sabes el día?», en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-12 · contraste de «Lo que viene» en modo ${scheme}`, () => {

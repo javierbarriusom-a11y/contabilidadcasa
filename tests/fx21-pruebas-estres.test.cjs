@@ -240,5 +240,5 @@ test("las pruebas de la Previsión parten de la entrada del plan que se pinta, c
   const view = fs.readFileSync(path.join(__dirname, "..", "views", "prevision-v2.js"), "utf8");
   assert.doesNotMatch(view, /canonicalEngineInput\(\[\]/, "sin proyectos, la prueba se compara con otro plan");
   assert.match(view, /function previsionV2Entrada\(\) \{\n  return canonicalEngineInput\(typeof projectPlan !== "undefined" \? projectPlan\?\.outflows \|\| \[\] : \[\], \{\}\);/);
-  assert.equal((view.match(/const input = previsionV2Entrada\(\);/g) || []).length, 4, "la prueba, las dos a la vez, el escenario guardado y qué ha cambiado");
+  assert.equal((view.match(/const input = previsionV2Entrada\(\);/g) || []).length, 5, "la prueba, las dos a la vez, el escenario guardado, qué ha cambiado y los supuestos (FX-51)");
 });
