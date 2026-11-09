@@ -6558,6 +6558,40 @@ test("FX-23 · Comparar con un solo escenario guardado: el plan frente a él, si
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// FX-23 PR-2 (9/11/2026, D-N10) · Comparar con las pruebas de estrés sin guardarlas (las de D-N3) y la liquidez a fin de mes de cada
+// columna en un minigráfico con la misma escala. Con la demo y sin escenarios guardados: el Euribor, sin hipoteca, desactivado con su
+// motivo; el imprevisto de 3.000 € deja la reserva final 3.000 € por debajo del plan (69.420 → 66.420).
+test.describe("FX-23 · Comparar con las pruebas de estrés sin guardar", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`las pruebas en su grupo, la tabla con el plan y el minigráfico, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#escenario-guardados");
+      await page.waitForFunction(() => typeof renderEscenarioComparar === "function", null, { timeout: 20000 });
+      await page.evaluate(() => escenarioMotorNavigate("escenario-comparar"));
+      await expect(page.locator("#escenarioCompararEmpty"), "sin escenarios guardados, las pruebas bastan").toBeHidden();
+      const picker = page.locator("#escenarioCompararPicker");
+      await expect(picker.locator(".escenario-motor-compare-grupo")).toHaveText("Pruebas de estrés, sin guardar");
+      await expect(picker.locator('[data-escenario-comparar-pick="preset:euribor"]')).toBeDisabled();
+      await expect(picker).toContainText("Prueba · Euribor +1 punto (falta una hipoteca activa en Deuda › Contratos");
+      await picker.locator('[data-escenario-comparar-pick="preset:sueldo-menos"]').check();
+      await picker.locator('[data-escenario-comparar-pick="preset:imprevisto"]').check();
+      const tabla = page.locator("#escenarioCompararBody table");
+      await expect(tabla.locator("thead th")).toHaveText(["Indicador", "Plan", "Prueba · sin «Ingreso Persona A» 3 meses", "Prueba · imprevisto de 3.000 €"]);
+      await expect(tabla.locator("tbody tr").filter({ hasText: "Reserva protegida" })).toContainText(/69\.420\s€\s*58\.620\s€\s*66\.420\s€/);
+      const sparks = tabla.locator("svg.escenario-motor-spark");
+      await expect(sparks).toHaveCount(3);
+      await expect(sparks.nth(2)).toHaveAttribute("aria-label", /^Liquidez a fin de cada mes: de 10\.350\s€ a 66\.420\s€; el cierre más bajo, /);
+      expect(await sparks.first().evaluate((el) => el.getBoundingClientRect().height), "el minigráfico no se estira").toBeLessThan(40);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 test.describe("Rediseño C1 · Plan › Mes v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`sin asignar, ritmo, editar en español con su impacto, cambiar de mes y la tabla de siempre a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {

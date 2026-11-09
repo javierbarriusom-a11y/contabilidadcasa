@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-comparar-pruebas",
+      fecha: "2026-11-09",
+      texto: "Escenarios › Comparar: las pruebas de estrés también sin guardarlas, y una línea por columna con la liquidez a fin de mes.",
+      href: "#escenario-comparar",
+    },
+    {
       id: "2026-11-09-repaso-prevision",
       fecha: "2026-11-09",
       texto: "Repaso semanal: el paso «Listo» cuenta la previsión en tres líneas: lo más bajo en 30 días, qué ha cambiado y, si lo hay, el aviso.",

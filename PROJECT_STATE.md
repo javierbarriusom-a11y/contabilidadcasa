@@ -173,6 +173,27 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 9 de noviembre de 2026 (435): FX-23 PR-2 · Comparar con las pruebas de estrés sin guardar y el minigráfico por columna
+
+- **Decisión del hogar (D-N10):** «no cierres sin hacer la parte de FX-23».
+- **Pruebas sin guardar** (`views/escenarios.js` `escenarioMotorComparePresets`). En Escenarios › Comparar, un grupo «Pruebas de estrés, sin guardar» con las de D-N3:
+  - el titular de mayor sueldo 3 meses;
+  - el Euribor +1 punto en la revisión;
+  - un imprevisto de 3.000 € el peor día de 90.
+  - Se evalúan con `canonical-stress-scenarios.js` y pasan a decisiones de Escenarios con `toDecisions`, como «Guardar como escenario»: recalculadas aquí dan los mismos meses que la prueba (paridad probada en `fx21-guardar-como-escenario`).
+  - La que no se puede aplicar (el Euribor sin hipoteca en la demo) sale desactivada con su motivo.
+  - Sin escenarios guardados, Comparar ya no queda vacío si hay pruebas. Se calcula una vez por trayectoria y suelo.
+- **Minigráfico por columna:** la fila «Liquidez a fin de mes», con una línea por columna en la MISMA escala, con su lectura («de 10.350 € a 66.420 €; el cierre más bajo, …»). Se dice «a fin de mes» porque son cierres; el día más bajo de dentro del mes está en Previsión. Una regla genérica `svg { min-height: 350px }` lo estiraba: se anula para él.
+- **Con la demo:** reserva final del plan 69.420 €; sin el sueldo de A 3 meses, 58.620 €; con el imprevisto, 66.420 € (3.000 € menos).
+- **Fallo que ya existía, destapado por el axe nuevo de Comparar:** las cabeceras de la tabla usaban `--e19-faint` (2,89:1 en claro, 4,19:1 en oscuro). Pasan a `--e19-muted` (unos 6:1), en los dos temas.
+- **Pruebas:**
+  - `tests/fx23-comparar-pruebas.test.cjs` (3): la escala del minigráfico, la fila con escala común, el grupo de pruebas, la desactivada y que no entra aunque esté marcada.
+  - Las de Comparar que ya había, sin tocar (24/24 con las nuevas).
+  - e2e «FX-23 · Comparar con las pruebas de estrés sin guardar» a 390 (`@safari`) y 1440 px; axe claro/oscuro.
+  - Sellos: `app.js`, `views/escenarios.js` (mapa de carga diferida), `design-tokens.css` y `novedades.js` a `20261109fx23b`, y las pruebas que los fijan. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.502/6.502; «forecast y escenarios en 159,0 ms»). En local, 41/41 e2e de Escenarios, FX, C2, Repaso, E-11b y XGO-01, y 12/12 de Escenarios y FX-23 con axe.
+- **FX-23 queda completo.**
+
 ## Cierre de sesión — 9 de noviembre de 2026 (434): D-N10 decidida y FX-42 · la previsión en el «Listo» del Repaso
 
 - **Decisiones del hogar (9/11, D-N10):**

@@ -1185,7 +1185,23 @@ function handleEscenarioGuardadosNew() {
 // `escenarioMotorSummaryFor` ya eran genéricos por escenario. Se sustituyen los selects por una
 // lista de checkboxes («qué escenarios comparar») y la tabla acepta cualquier número de columnas.
 // ---------------------------------------------------------------------------------------------
-function escenarioMotorCompareTableHtml(baseSummary, entries) {
+// FX-23 (9/11/2026): la liquidez mes a mes de cada columna, en una línea pequeña con la MISMA escala para todas (si no, una línea
+// plana y otra que cae parecerían iguales). Lleva su lectura: de cuánto a cuánto y lo más bajo, que la tabla no dice.
+function escenarioMotorSparkHtml(series, escala) {
+  const valores = (series || []).map((row) => Number(row.totalLiquidity)).filter(Number.isFinite);
+  if (valores.length < 2 || !escala) return "—";
+  const ancho = 96;
+  const alto = 28;
+  const rango = escala.max - escala.min || 1;
+  const puntos = valores.map((value, index) => `${((index / (valores.length - 1)) * ancho).toFixed(1)},${(alto - ((value - escala.min) / rango) * alto).toFixed(1)}`).join(" ");
+  const minimo = (series || []).reduce((low, row) => (Number(row.totalLiquidity) < Number(low.totalLiquidity) ? row : low));
+  const mes = escenarioMotorMonthLabel(minimo.detailMonthKey || minimo.monthKey || "");
+  // Son cierres de mes (el motor de Escenarios cuenta por meses): el día más bajo de dentro del mes está en Plan › Previsión.
+  const lectura = `Liquidez a fin de cada mes: de ${money(valores[0])} a ${money(valores.at(-1))}; el cierre más bajo, ${money(minimo.totalLiquidity)} en ${mes}`;
+  return `<svg class="escenario-motor-spark" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(lectura)}"><title>${escapeHtml(lectura)}</title><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>`;
+}
+
+function escenarioMotorCompareTableHtml(baseSummary, entries, baseSeries = null) {
   const rows = [
     ["Reserva protegida", (s) => (s.liquidezFinal !== null ? money(s.liquidezFinal, true) : "—")],
     ["Meses de colchón", (s) => (s.mesesColchon !== null ? s.mesesColchon.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—")],
@@ -1196,15 +1212,59 @@ function escenarioMotorCompareTableHtml(baseSummary, entries) {
   ];
   const multiClass = entries.length > 2 ? " is-multi" : "";
   const headerCells = entries.map(({ nombre }) => `<th>${escapeHtml(nombre)}</th>`).join("");
+  const todas = [baseSeries, ...entries.map((entry) => entry.series)].filter((series) => Array.isArray(series) && series.length > 1);
+  const valores = todas.flatMap((series) => series.map((row) => Number(row.totalLiquidity)).filter(Number.isFinite));
+  const escala = valores.length ? { min: Math.min(...valores), max: Math.max(...valores) } : null;
+  const filaSpark = baseSeries && escala
+    ? `<tr class="escenario-motor-spark-fila"><td>Liquidez a fin de mes</td><td>${escenarioMotorSparkHtml(baseSeries, escala)}</td>${entries.map((entry) => `<td>${escenarioMotorSparkHtml(entry.series, escala)}</td>`).join("")}</tr>`
+    : "";
   return `<table class="e19-table escenario-motor-compare-table${multiClass}">
     <thead><tr><th>Indicador</th><th>Plan</th>${headerCells}</tr></thead>
-    <tbody>${rows
+    <tbody>${filaSpark}${rows
       .map(([label, format]) => {
         const cells = entries.map(({ summary }) => `<td><strong>${escapeHtml(format(summary))}</strong></td>`).join("");
         return `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(format(baseSummary))}</td>${cells}</tr>`;
       })
       .join("")}</tbody>
   </table>`;
+}
+
+// FX-23 (9/11/2026, D-N10): las pruebas de estrés de la Previsión, sin guardarlas, también en Comparar. Con los valores de D-N3
+// (el titular de mayor sueldo 3 meses, el Euribor +1 punto en la revisión, un imprevisto de 3.000 € el peor día de 90) y llevadas a
+// decisiones de Escenarios con toDecisions, como «Guardar como escenario»: recalculadas aquí dan los mismos meses que la prueba.
+// Una que no se puede aplicar (sin hipoteca para el Euribor) sale desactivada con lo que le falta.
+let escenarioCompararPresetsCache = { key: null, value: [] };
+
+function escenarioMotorComparePresets() {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const rows = typeof canonicalDailyEngineRuns !== "undefined" ? canonicalDailyEngineRuns.active?.rows || [] : [];
+  if (!S?.evaluate || !S.toDecisions || !rows.length || typeof previsionV2Deps !== "function" || typeof previsionV2AddDays !== "function") return [];
+  const today = isoLocalDate(new Date());
+  const floor = globalThis.FinanceCanonicalHomeMargin?.normalizeFloor(state?.liquidityFloor) ?? 0;
+  if (escenarioCompararPresetsCache.key === rows && escenarioCompararPresetsCache.today === today && escenarioCompararPresetsCache.floor === floor) return escenarioCompararPresetsCache.value;
+  const input = escenarioMotorBaseInput();
+  const to = previsionV2AddDays(today, 90);
+  const titular = S.titulares(input, today)[0];
+  const euribor = typeof previsionV2Revisiones === "function" ? previsionV2Revisiones(today) : { reviews: [], missing: ["la revisión del tipo (Deuda › Contratos)"] };
+  const shocks = euribor.reviews.length && globalThis.FinanceCanonicalRateReview ? S.euriborShocks(euribor.reviews, 1, globalThis.FinanceCanonicalRateReview.payment) : [];
+  const specs = [
+    { id: "sueldo-menos", nombre: titular ? `Prueba · sin «${titular.concept}» 3 meses` : "Prueba · un sueldo menos", params: { concept: titular?.concept || "", months: 3 } },
+    { id: "euribor", nombre: "Prueba · Euribor +1 punto", params: { points: 1, shocks, missing: euribor.missing } },
+    { id: "imprevisto", nombre: "Prueba · imprevisto de 3.000 €", params: { amount: 3000 } },
+  ];
+  const value = specs.map((spec) => {
+    let result = null;
+    try {
+      result = S.evaluate(spec.id, input, rows, previsionV2Deps(), { today, to, floor, params: spec.params });
+    } catch {
+      result = null;
+    }
+    const decisiones = result?.applied ? S.toDecisions(result, input).map((decision, orden) => ({ ...decision, id: `preset-${spec.id}-${orden}`, orden })) : [];
+    const motivo = decisiones.length ? "" : result?.missing?.length ? `falta ${result.missing.join(", ")}` : "no se puede aplicar con los datos de ahora";
+    return { id: `preset:${spec.id}`, nombre: spec.nombre, decisiones, motivo };
+  });
+  escenarioCompararPresetsCache = { key: rows, today, floor, value };
+  return value;
 }
 
 function escenarioMotorCompareCandidates() {
@@ -1221,7 +1281,8 @@ function renderEscenarioComparar() {
 
   // FX-23 (BACKLOG_NOVIEMBRE_OLEADA_1.md): basta un escenario; la tabla ya lleva el plan vigente como referencia.
   const list = escenarioMotorCompareCandidates();
-  if (!list.length) {
+  const presets = typeof escenarioMotorComparePresets === "function" ? escenarioMotorComparePresets() : [];
+  if (!list.length && !presets.length) {
     if (empty) empty.hidden = false;
     if (layout) layout.hidden = true;
     picker.innerHTML = "";
@@ -1241,25 +1302,31 @@ function renderEscenarioComparar() {
     escenarioCompararSignature = signature;
   }
 
+  const pruebas = presets.length
+    ? `<p class="escenario-motor-compare-grupo">Pruebas de estrés, sin guardar</p>${presets
+      .map((preset) => `<label${preset.decisiones.length ? "" : ' class="is-off"'}><input type="checkbox" data-escenario-comparar-pick="${escapeHtml(preset.id)}" ${escenarioCompararSelected.includes(preset.id) && preset.decisiones.length ? "checked" : ""}${preset.decisiones.length ? "" : " disabled"} /><span>${escapeHtml(preset.nombre)}${preset.motivo ? ` <small>(${escapeHtml(preset.motivo)})</small>` : ""}</span></label>`)
+      .join("")}`
+    : "";
   picker.innerHTML = list
     .map(
       (entry) =>
         `<label><input type="checkbox" data-escenario-comparar-pick="${escapeHtml(entry.id)}" ${escenarioCompararSelected.includes(entry.id) ? "checked" : ""} /><span>${escapeHtml(entry.nombre || "Escenario")}</span></label>`,
     )
-    .join("");
+    .join("") + pruebas;
 
-  const selected = list.filter((entry) => escenarioCompararSelected.includes(entry.id));
+  const selected = list.concat(presets.filter((preset) => preset.decisiones.length)).filter((entry) => escenarioCompararSelected.includes(entry.id));
   if (!selected.length) {
-    body.innerHTML = `<p class="e19-subtitle">Marca al menos un escenario de la lista de arriba para verlo comparado con el plan.</p>`;
+    body.innerHTML = `<p class="e19-subtitle">Marca al menos un escenario o una prueba de la lista de arriba para verlo comparado con el plan.</p>`;
     return;
   }
   const baseInput = escenarioMotorBaseInput();
-  const baseSummary = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, [], null), baseInput.months);
-  const entries = selected.map((entry) => ({
-    nombre: entry.nombre || "Escenario",
-    summary: escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null), baseInput.months),
-  }));
-  body.innerHTML = escenarioMotorCompareTableHtml(baseSummary, entries);
+  const baseResult = runEscenarioMotor(baseInput, [], null);
+  const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
+  const entries = selected.map((entry) => {
+    const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
+    return { nombre: entry.nombre || "Escenario", summary: escenarioMotorSummaryFor(result, baseInput.months), series: result?.series };
+  });
+  body.innerHTML = escenarioMotorCompareTableHtml(baseSummary, entries, baseResult?.series || null);
 }
 
 function handleEscenarioCompararPick(checkbox) {

@@ -1706,6 +1706,25 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-23 PR-2 (9/11/2026) · Escenarios › Comparar con dos pruebas sin guardar y sus minigráficos, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-23 · contraste de Comparar con las pruebas sin guardar en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Escenarios › Comparar con dos pruebas marcadas: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#escenario-guardados");
+      await page.waitForFunction(() => typeof renderEscenarioComparar === "function", null, { timeout: 20000 });
+      await page.evaluate(() => escenarioMotorNavigate("escenario-comparar"));
+      await page.locator('[data-escenario-comparar-pick="preset:sueldo-menos"]').check();
+      await page.locator('[data-escenario-comparar-pick="preset:imprevisto"]').check();
+      await expect(page.locator("#escenarioCompararBody svg.escenario-motor-spark")).toHaveCount(3);
+      const results = await new AxeBuilder({ page }).include("#escenario-comparar").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso, con aviso (suelo INVENTADO de 8.000 €), en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-42 · contraste de la previsión en el Listo del Repaso en modo ${scheme}`, () => {
