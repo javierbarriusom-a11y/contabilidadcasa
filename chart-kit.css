@@ -390,6 +390,11 @@
   pointer-events: none;
 }
 
+/* FX-12 (9/11/2026): lo que sale, en rojo; lo que entra, en el azul de lo previsto. */
+.ck-hito-sale {
+  border-color: var(--e19-danger);
+}
+
 @media (forced-colors: active) {
   .ck-plan,
   .ck-escenario {

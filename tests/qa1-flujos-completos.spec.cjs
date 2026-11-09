@@ -5473,7 +5473,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       });
       await expect(v2.locator(".prev-v2-cifra")).toContainText(contrato);
       // Lo que viene: plegado, con cuántos y cuántos con día estimado.
-      await expect(v2.locator(".prev-v2-viene > summary")).toContainText(/Lo que viene en 90 días · \d+ cobros y pagos grandes/);
+      await expect(v2.locator(".prev-v2-viene > summary")).toContainText(/Lo que viene en 90 días · \d+ cobros? y \d+ pagos? desde 150\s€/); // FX-12
       // El horizonte cambia la frase y se recuerda.
       await v2.locator('[data-prevision-v2-horizonte="24m"]').click();
       await expect(v2.locator(".prev-v2-hero")).toContainText("Punto más bajo de los próximos 24 meses");
@@ -5960,6 +5960,52 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   await page.evaluate(() => previsionV2Render());
   await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
+// FX-12 (9/11/2026) · «Lo que viene en 90 días» por semanas, con el umbral que se elige (150 € de serie, recordado en el dispositivo),
+// «¿sabes el día?» en cada pago de día estimado, sin el gasto variable (que se dice aparte) y con los mismos hitos como marcas del
+// gráfico (rojas si sale más de lo que entra). Con la demo el 9/11: 4 cobros y 10 pagos desde 150 €; desde 1.000 €, 4 y 2.
+test.describe("FX-12 · lo que viene en 90 días", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`por semanas, con el umbral, «¿sabes el día?» y las marcas del gráfico, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const viene = v2.locator(".prev-v2-viene");
+      await expect(viene.locator("summary")).toHaveText(/^Lo que viene en 90 días · 4 cobros y 10 pagos desde 150\s€ · 12 con el día estimado$/);
+      await viene.locator("summary").click();
+      await expect(viene.locator(".prev-v2-viene-semana-titulo span")).toHaveText(["Semana del 7 dic", "Semana del 14 dic", "Semana del 4 ene 2027"]);
+      await expect(viene.locator(".prev-v2-viene-semana-titulo strong")).toHaveText([/−2\.980\s€/, /\+7\.400\s€/, /\+2\.020\s€/]);
+      await expect(viene.locator(".prev-v2-viene-item")).toHaveCount(14);
+      await expect(viene.getByRole("button", { name: "¿Sabes el día de Vivienda?" })).toHaveCount(2);
+      await expect(viene).not.toContainText("Gasto variable estimado");
+      await expect(viene).toContainText(/No incluye el gasto variable \(unos 3\.500\s€ en estos 90 días\), que no tiene día fijo\./);
+      // Las marcas del gráfico: una por día con hitos; el 8 dic sale más de lo que entra.
+      await expect(v2.locator(".ck-hito")).toHaveCount(3);
+      await expect(v2.locator(".ck-hito-sale")).toHaveCount(1);
+      await expect(v2.locator(".ck-hito-sale")).toHaveAttribute("title", /^8 dic: Vivienda −750\s€/);
+      // El umbral: desde 1.000 €, se recuerda y la lista sigue abierta con el foco en el botón.
+      await viene.locator('[data-prevision-v2-umbral="1000"]').click();
+      await expect(viene.locator("summary")).toHaveText(/4 cobros y 2 pagos desde 1\.000\s€/);
+      await expect(viene).toHaveAttribute("open", "");
+      await expect(viene.locator('[data-prevision-v2-umbral="1000"]')).toBeFocused();
+      await expect(viene.locator('[data-prevision-v2-umbral="1000"]')).toHaveAttribute("aria-pressed", "true");
+      expect(await page.evaluate(() => localStorage.getItem("prevision-v2-umbral"))).toBe("1000");
+      await expect(v2.locator(".ck-hito")).toHaveCount(3, { timeout: 5000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // «¿sabes el día?» lleva a decir el día de cargo.
+      await viene.locator('[data-prevision-v2-umbral="150"]').click();
+      await viene.getByRole("button", { name: "¿Sabes el día de Vivienda?" }).first().click();
+      await expect(page.locator("#planificacion-partidas")).toBeVisible();
+      expect(pageErrors).toEqual([]);
+    });
+  }
 });
 
 // WP-37 (8/11/2026) · sin suelo fijado en Ajustes, la Previsión dice que el de 1.500 € es el inicial de la app y lleva a fijarlo. Con

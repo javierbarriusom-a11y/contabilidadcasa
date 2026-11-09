@@ -173,6 +173,28 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 9 de noviembre de 2026 (432): FX-12 · «Lo que viene en 90 días» por semanas, con umbral y sus marcas en el gráfico
+
+- **Petición del hogar:** «sigue con FX-12».
+- **Qué había:** en Plan › Previsión (C2), «Lo que viene en 90 días», plegado. Era una lista plana de hasta 12 movimientos desde 300 €. Tenía tres fallos:
+  - incluía el «Gasto variable estimado» (1.750 € en la demo) como si fuera un pago con día;
+  - ofrecía un solo «Decir el día de cargo» al final;
+  - el gráfico solo marcaba los cobros, y además los de los puntos pintados (en 12 y 24 meses, al azar de la muestra).
+- **Qué hay ahora** (`views/prevision-v2.js`):
+  - **Por semanas**, de lunes a domingo («Esta semana», «La semana que viene», «Semana del 14 dic»), cada una con su neto. En cada fila, la fecha solo la primera vez y sin año (va en la semana).
+  - **Umbral** «Desde 150 € · 300 € · 1.000 €», 150 € de serie como decía la propuesta. Se recuerda en el dispositivo (`prevision-v2-umbral`, en EXCLUDED de ARQ-6 con su motivo) y la lista sigue abierta con el foco en el botón.
+  - **«¿sabes el día?»** en cada pago de día estimado, que lleva a Planificación › Partidas. Los cobros de día estimado lo dicen, sin enlace.
+  - **Sin traspasos ni gasto variable.** El gasto variable se dice aparte («No incluye el gasto variable (unos 3.500 € en estos 90 días), que no tiene día fijo»).
+  - **Las mismas marcas en el gráfico:** una por punto (en 12 y 24 meses, el primer punto desde su día), roja si ese día sale más de lo que entra (`ChartKit` admite `kind` en las marcas → `.ck-hito-sale`). El título dice qué hay ese día.
+- **Con la demo el 9/11:** 4 cobros y 10 pagos desde 150 € (12 con día estimado); semanas del 7 dic (−2.980 €), 14 dic (+7.400 €) y 4 ene 2027 (+2.020 €); tres marcas, la del 8 dic en rojo. Desde 1.000 €: 4 cobros y 2 pagos.
+- **No hecho, a propósito:** trasladar aquí la franja anual del mapa de pagos grandes (WP-49) en 12 m, como decía la propuesta. Sería retirar una tarjeta en uso: se consulta antes.
+- **Pruebas:**
+  - `tests/fx12-lo-que-viene.test.cjs` (4): la vista real cargada en un `vm`, con hitos, umbral, semanas, neto, «¿sabes el día?», marcas diarias y semanales, y la clase de ChartKit, que admite solo letras.
+  - e2e «FX-12 · lo que viene en 90 días» a 390 (`@safari`) y 1440 px. La e2e de C2 lleva el resumen nuevo.
+  - axe claro/oscuro con la lista abierta.
+  - Sellos a `20261109fx12a`: `chart-kit.js`, `chart-kit.css`, `tema-v2.css`, `views/prevision-v2.js` y `novedades.js`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.497/6.497; «forecast y escenarios en 254,5 ms», presupuesto 1.000 ms). En local, 52/52 e2e de C2, FX, WP-37, WP-43, XGO-01, XPR y Hoy; FX-12 y C2 con axe, 8/8.
+
 ## Cierre de sesión — 8 de noviembre de 2026 (431): WP-37 en C2 · sin suelo fijado, la Previsión lo dice y lleva a fijarlo
 
 - **Contexto:** #599 (recálculo fallido) fusionado y publicado. Siguen los estados de C2 que pedía WP-37: vacío, sin saldos y sin suelo.

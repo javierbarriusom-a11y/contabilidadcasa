@@ -1706,6 +1706,26 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-12 (9/11/2026) · «Lo que viene en 90 días» abierto, por semanas, con el umbral y «¿sabes el día?», en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-12 · contraste de «Lo que viene» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con «Lo que viene en 90 días» abierto: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator(".prev-v2-viene > summary").click();
+      await expect(v2.locator(".prev-v2-viene-semana").first()).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // WP-37 (8/11/2026) · el aviso de recálculo fallido, abierto con su detalle técnico, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`WP-37 · contraste del aviso de recálculo fallido en modo ${scheme}`, () => {
