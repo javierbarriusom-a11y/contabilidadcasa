@@ -654,7 +654,7 @@ function previsionV2FotosCargar() {
 }
 
 /** El puente con la visita anterior, o null; de paso deja (o rehace) la foto de hoy. Nunca rompe la Previsión. */
-function previsionV2Cambios({ rows, tramo, today, horizonte }) {
+function previsionV2Cambios({ rows, tramo, today, horizonte, guardar = true }) {
   const E = globalThis.FinanceCanonicalForecastChanges;
   const contract = globalThis.FinanceCanonicalForecastContract;
   if (!E || !contract || typeof canonicalEngineInput !== "function" || !tramo.length) return null;
@@ -665,7 +665,8 @@ function previsionV2Cambios({ rows, tramo, today, horizonte }) {
     const store = previsionV2FotosCargar();
     const anterior = E.previousVisit(store, today);
     const guardadaHoy = (Array.isArray(store) ? store : []).find((snap) => snap?.date === today);
-    if (JSON.stringify(guardadaHoy) !== JSON.stringify(hoy)) storageSet(storageKey(PREVISION_V2_FOTOS), JSON.stringify(E.upsert(store, hoy)));
+    // FX-42: el Repaso lee la comparación sin dejar foto (una visita es entrar en la Previsión, no terminar el Repaso).
+    if (guardar && JSON.stringify(guardadaHoy) !== JSON.stringify(hoy)) storageSet(storageKey(PREVISION_V2_FOTOS), JSON.stringify(E.upsert(store, hoy)));
     if (!anterior) return null;
     const low = contract.lowPoint(tramo, {});
     if (!low) return null;
@@ -750,6 +751,43 @@ function previsionV2CambioHtml(cambios, { today, horizonte }) {
       <ul class="prev-v2-cambios-notas">${cambios.notes.map((nota) => `<li>${escapeHtml(nota)}</li>`).join("")}</ul>
       <p class="e19-kpi-note">Compara con la foto que esta pantalla guardó en este dispositivo en tu visita ${escapeHtml(cuando)}. No cambia nada: solo lo explica.</p>
     </div>`)}`;
+}
+
+// ---- FX-42 · La previsión en el «Listo» del Repaso semanal (9/11/2026) ----------------------------------------------------
+// No es un paso nuevo (el Repaso se retira si se abandona a medias): tres líneas como mucho en «Listo». El punto más bajo de los
+// próximos 30 días con su margen, qué ha cambiado en esos 30 días desde la visita anterior a la Previsión (FX-40, sin dejar foto) y,
+// si lo hay, el aviso: el día que se baja del suelo o, si no, el descubierto de la cuenta corriente. Mismo motor, suelo y redondeo.
+
+function previsionV2ResumenRepaso() {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const rows = typeof canonicalDailyEngineRuns !== "undefined" ? canonicalDailyEngineRuns.active?.rows || [] : [];
+  if (!contract || !rows.length) return null;
+  try {
+    const today = isoLocalDate(new Date());
+    const tramo = rows.filter((row) => row.date >= today && row.date <= previsionV2AddDays(today, 30));
+    const low = contract.lowPoint(tramo, {});
+    if (!low) return null;
+    const said = contract.describeLow(low, { today, monthLabel: (key) => (typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(key) : key) });
+    const floor = globalThis.FinanceCanonicalHomeMargin?.normalizeFloor(state?.liquidityFloor) ?? 0;
+    const margen = low.value - floor;
+    const margenSaid = contract.roundForHorizon(Math.abs(margen), said.daysAhead);
+    const lineas = [`Lo más bajo en 30 días: ${said.approximate ? "unos " : ""}${money(said.value)} ${said.when}, ${money(margenSaid)} ${margen < 0 ? "por debajo" : "por encima"} del ${previsionV2SueloInicial() ? "suelo inicial" : "suelo"}.`];
+    const cambios = previsionV2Cambios({ rows, tramo, today, horizonte: { dias: 30 }, guardar: false });
+    if (cambios?.calculable) {
+      const visto = contract.roundDifference(cambios.after.value - cambios.before.value);
+      const cuando = previsionV2Visita(cambios.previousDate, today);
+      const principal = visto ? previsionV2CausaPrincipal(cambios) : null;
+      const causa = principal ? `, sobre todo por ${principal.id === "datos" && principal.label !== "Datos nuevos" ? "el saldo de hoy (calculado)" : PREVISION_V2_CAUSA[principal.id]}` : "";
+      lineas.push(visto ? `${visto < 0 ? "−" : "+"}${money(Math.abs(visto))} frente a tu visita ${cuando}${causa}.` : `Igual que en tu visita ${cuando}.`);
+    }
+    const cruce = tramo.find((row) => Number(row.total) < floor);
+    const cuenta = cruce ? null : globalThis.FinanceCanonicalStressScenarios?.checkingShortfall(tramo, { today, to: tramo.at(-1).date, checkingFloor: previsionV2SueloCuenta() });
+    if (cruce) lineas.push(`Ojo: el ${previsionV2Fecha(cruce.date, today)} bajáis del suelo. En la Previsión está el arreglo más barato.`);
+    else if (cuenta?.crossDate) lineas.push(`Ojo: ${previsionV2CuentaFrase(cuenta, today)}.`);
+    return { lineas, aviso: Boolean(cruce || cuenta?.crossDate) };
+  } catch {
+    return null;
+  }
 }
 
 /** «Ver el puente completo» (aviso de Cierre, puente-ui.js) en el tema nuevo: la hoja abierta y el foco en el puente. */

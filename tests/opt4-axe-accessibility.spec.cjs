@@ -1706,6 +1706,23 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso, con aviso (suelo INVENTADO de 8.000 €), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-42 · contraste de la previsión en el Listo del Repaso en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Repaso › Listo con la tarjeta de la previsión y su aviso: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { state.liquidityFloor = 8000; repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+      await expect(page.locator("#repasoV2 .rep-v2-prevision.is-bad")).toBeVisible();
+      const results = await new AxeBuilder({ page }).include("#repasoV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-51 PR-2 (9/11/2026) · «Con estos supuestos» abierto en la Previsión, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-51 · contraste de «Con estos supuestos» en modo ${scheme}`, () => {

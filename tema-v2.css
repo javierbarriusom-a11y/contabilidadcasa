@@ -4512,3 +4512,28 @@
   color: var(--e19-muted);
   font-size: var(--e19-text-xs);
 }
+
+/* FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso: una tarjeta clara de tres líneas como mucho; con aviso, el borde en rojo. */
+:root[data-tema="v2"] .rep-v2-prevision {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .rep-v2-prevision.is-bad {
+  border-color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .rep-v2-prevision-titulo {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .rep-v2-prevision ul {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding-left: 18px;
+}

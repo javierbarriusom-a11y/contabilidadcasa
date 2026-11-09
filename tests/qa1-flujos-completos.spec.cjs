@@ -5962,6 +5962,57 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso semanal, sin paso nuevo: lo más bajo en 30 días con su margen, qué ha
+// cambiado desde la visita anterior a la Previsión (sin dejar foto) y, con un suelo INVENTADO de 8.000 €, el aviso del día en que
+// se baja. «Ver la previsión» cierra el repaso (ya guardado) y abre Plan › Previsión.
+test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      // Una visita a la Previsión el 6/11 deja su foto; el repaso es el 9/11.
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(page.locator("#planPrevisionV2")).toBeVisible({ timeout: 15000 });
+      await page.clock.setSystemTime(new Date(2026, 10, 9, 9, 0, 0));
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      const fotos = () => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("prevision-v2-fotos")) || "[]").map((foto) => foto.date));
+      const antes = await fotos();
+      expect(antes).toEqual(["2026-11-06"]);
+      await page.evaluate(() => { repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+      const repaso = page.locator("#repasoV2");
+      const tarjeta = repaso.locator(".rep-v2-prevision");
+      await expect(tarjeta).toBeVisible();
+      await expect(tarjeta.locator(".rep-v2-prevision-titulo")).toHaveText("La previsión");
+      const lineas = tarjeta.locator("li");
+      // A 29 días, el contrato de cifras redondea a la decena (FX-04), como el titular de la Previsión ese día.
+      await expect(lineas.first()).toHaveText(/^Lo más bajo en 30 días: 5\.620\s€ el 8 dic, 4\.120\s€ por encima del suelo inicial\.$/);
+      const titular = await page.evaluate(() => { const c = FinanceCanonicalForecastContract; const hoy = isoLocalDate(new Date()); return money(c.describeLow(c.lowPoint(canonicalDailyEngineRuns.active.rows.filter((r) => r.date >= hoy && r.date <= "2026-12-09"), {}), { today: hoy }).value); });
+      await expect(lineas.first()).toContainText(titular);
+      await expect(lineas.nth(1)).toHaveText(/frente a tu visita del 6 nov|^Igual que en tu visita del 6 nov\.$/);
+      await expect(lineas).toHaveCount(2);
+      await expect(tarjeta).not.toHaveClass(/is-bad/);
+      expect(await fotos(), "el repaso no deja foto de la previsión").toEqual(antes);
+      // Con un suelo de 8.000 € (INVENTADO), el aviso del día en que se baja.
+      await page.evaluate(() => { state.liquidityFloor = 8000; repasoV2Render(); });
+      await expect(lineas).toHaveCount(3);
+      await expect(lineas.first()).toContainText("por debajo del suelo.");
+      await expect(lineas.nth(2)).toHaveText(/^Ojo: el \d+ (nov|dic) bajáis del suelo\. En la Previsión está el arreglo más barato\.$/);
+      await expect(tarjeta).toHaveClass(/is-bad/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await tarjeta.locator("[data-rep-v2-prevision]").click();
+      await expect(repaso).toBeHidden();
+      await expect(page.locator("#planPrevisionV2")).toBeVisible();
+      expect(await page.evaluate(() => location.hash)).toBe("#plan");
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // FX-51 PR-2 (9/11/2026) · «Con estos supuestos» en la Previsión: los cuatro supuestos generales con su valor y lo que quitaría cada
 // uno si sale peor, con las mismas frases que Ajustes › Supuestos; el Euribor lleva a su prueba y «Cambiarlos en Ajustes», a la lista.
 test.describe("FX-51 · los supuestos desde la Previsión", () => {

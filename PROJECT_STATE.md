@@ -173,6 +173,27 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 9 de noviembre de 2026 (434): D-N10 decidida y FX-42 · la previsión en el «Listo» del Repaso
+
+- **Decisiones del hogar (9/11, D-N10):**
+  - «no movemos aquí la franja anual»;
+  - «mantenemos el Repaso semanal»;
+  - «no cierres sin hacer la parte de FX-23»;
+  - «fijar vuestro suelo real en Ajustes» (tarea del hogar);
+  - y «continua así».
+- **FX-42** (`views/prevision-v2.js` `previsionV2ResumenRepaso`, `views/repaso-v2.js`). En «Listo», sin paso nuevo, la tarjeta «La previsión», con tres líneas como mucho:
+  - lo más bajo en 30 días con su margen («Lo más bajo en 30 días: 5.620 € el 8 dic, 4.120 € por encima del suelo inicial»);
+  - qué ha cambiado en esos 30 días desde la visita anterior a la Previsión, sin dejar foto (`previsionV2Cambios` admite `guardar: false`: una visita es entrar en la Previsión, no terminar el Repaso);
+  - si lo hay, el aviso: el día en que se baja del suelo o, si no, el descubierto de la cuenta corriente.
+  - Con aviso, el borde en rojo. «Ver la previsión» cierra el repaso (ya guardado al llegar a «Listo») y abre Plan › Previsión.
+  - Mismo motor, suelo y redondeo que la Previsión: a 29 días, la decena (5.620 €), igual que el titular ese día.
+- **Pruebas:**
+  - e2e «FX-42 · la previsión en el Listo del Repaso» a 390 (`@safari`) y 1440 px: las líneas, la misma cifra que el contrato, sin foto nueva, el aviso con un suelo INVENTADO de 8.000 € y el camino a la Previsión. Las e2e del Repaso siguen en verde (8/8 con las nuevas).
+  - axe claro/oscuro de la tarjeta con aviso.
+  - Sellos: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261109fx42a`; `views/repaso-v2.js` a `20261109redisB5` (la prueba de B5 exige el sufijo). Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.499/6.499; «forecast y escenarios en 167,5 ms»).
+- **Siguiente:** FX-23, lo que falta (presets sin guardar en Escenarios › Comparar y mini-gráfico por columna).
+
 ## Cierre de sesión — 9 de noviembre de 2026 (433): FX-51 PR-2 · los supuestos del plan, vistos desde la Previsión
 
 - **Petición del hogar:** «continua», tras publicar FX-12 (#601). Lo siguiente sin decisiones pendientes: la segunda parte de FX-51, ver los supuestos desde la Previsión.

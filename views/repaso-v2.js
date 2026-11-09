@@ -301,9 +301,19 @@ function repasoV2PasoListo() {
     resumen.racha > 1 ? `${resumen.racha} semanas seguidas con repaso.` : "",
     `Esta semana: ${String(resumen.minutosSemana).replace(".", ",")} min de mantenimiento (objetivo, 10 o menos).`,
   ].filter(Boolean);
+  // FX-42 (9/11/2026): la previsión en tres líneas, sin paso nuevo (views/prevision-v2.js previsionV2ResumenRepaso).
+  const prevision = globalThis.previsionV2ResumenRepaso?.();
+  const tarjeta = prevision?.lineas?.length
+    ? `<div class="rep-v2-prevision${prevision.aviso ? " is-bad" : ""}" role="group" aria-labelledby="repasoV2Prevision">
+        <p class="rep-v2-prevision-titulo" id="repasoV2Prevision">La previsión</p>
+        <ul>${prevision.lineas.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+        <button type="button" class="hoy-v2-link" data-rep-v2-prevision>Ver la previsión</button>
+      </div>`
+    : "";
   return {
     cuerpo: `${repasoV2Titulo(4, `${repasoV2Duracion(segundos)} · ${pendientes.length ? "casi todo" : "todo al día"}`, "")}
-      <ul class="rep-v2-resumen">${lineas.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`,
+      <ul class="rep-v2-resumen">${lineas.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+      ${tarjeta}`,
     pie: `<button type="button" class="e19-btn e19-btn-primary rep-v2-sigue" data-rep-v2-terminar>Terminar</button>`,
   };
 }
@@ -464,6 +474,14 @@ function repasoV2BindOnce(dialog) {
     const clasificar = event.target.closest("[data-rep-v2-clasificar]");
     if (clasificar) return repasoV2Clasificar(clasificar);
     if (event.target.closest("[data-rep-v2-terminar]")) return repasoV2Cerrar();
+    // FX-42: «Ver la previsión» cierra el repaso (ya está guardado al llegar a «Listo») y abre Plan › Previsión.
+    if (event.target.closest("[data-rep-v2-prevision]")) {
+      repasoV2Cerrar();
+      history.pushState(null, "", "#plan");
+      setActiveView("plan");
+      if (typeof setPlanTab === "function") setPlanTab("prevision");
+      return undefined;
+    }
     // Las respuestas a cobros y cargos las aplica esperados-ui.js (delegación en el documento, que va después de
     // este oyente): se repinta en cuanto terminan.
     if (event.target.closest("[data-home-expected]")) {

@@ -11,6 +11,11 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-repaso-prevision",
+      fecha: "2026-11-09",
+      texto: "Repaso semanal: el paso «Listo» cuenta la previsión en tres líneas: lo más bajo en 30 días, qué ha cambiado y, si lo hay, el aviso.",
+    },
+    {
       id: "2026-11-09-supuestos-en-prevision",
       fecha: "2026-11-09",
       texto: "Previsión: «Con estos supuestos» dice cuánto os quitaría cada supuesto del plan si sale peor, y lleva a cambiarlos en Ajustes.",
