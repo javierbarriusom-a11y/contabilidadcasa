@@ -1706,6 +1706,28 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-22 (9/11/2026) · «¿Y si…?» con un gasto único escrito y su resultado, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-22 · contraste de «¿Y si…?» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con «¿Y si…?», sus palancas y el resultado: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-prueba="ysi"]').click();
+      await v2.locator("#prevV2YSi-unico-amount").fill("4.000");
+      await v2.locator("#prevV2YSi-unico-amount").press("Tab");
+      await expect(v2.locator(".prev-v2-impacto-frase")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-23 PR-2 (9/11/2026) · Escenarios › Comparar con dos pruebas sin guardar y sus minigráficos, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-23 · contraste de Comparar con las pruebas sin guardar en modo ${scheme}`, () => {

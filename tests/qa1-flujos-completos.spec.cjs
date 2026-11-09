@@ -5502,7 +5502,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
       const pruebas = v2.locator("[data-prevision-v2-prueba]");
-      await expect(pruebas).toHaveText(["Solo el plan", "Un sueldo menos", "Euribor", "Imprevisto 3.000 €"]);
+      await expect(pruebas).toHaveText(["Solo el plan", "Un sueldo menos", "Euribor", "Imprevisto 3.000 €", "¿Y si…?"]); // FX-22: «¿Y si…?»
       await expect(pruebas.first()).toHaveAttribute("aria-pressed", "true");
       await expect(v2.locator(".ck-escenario")).toHaveCount(0);
       const cifraPlan = await v2.locator(".prev-v2-cifra").innerText();
@@ -5960,6 +5960,48 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   await page.evaluate(() => previsionV2Render());
   await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+});
+
+// FX-22 (9/11/2026) · «¿Y si…?» desde la Previsión: un gasto único de 4.000 € (INVENTADO) el 9 dic deja el total sobre el suelo pero la
+// cuenta corriente en descubierto («Sí, pero pasando dinero del ahorro a tiempo»); con 900 € más de gasto al mes (INVENTADO) se baja
+// del suelo («No sin tocar nada»). Se calcula al salir del campo, el foco se queda en él y «Guardar como escenario» lleva las dos.
+test.describe("FX-22 · ¿Y si…? desde la Previsión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`las palancas, la respuesta, la tabla y guardar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 9, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-prueba="ysi"]').click();
+      await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator(".prev-v2-ysi legend")).toHaveText(["Un gasto único", "Ingreso al mes", "Gasto al mes"]);
+      await expect(v2.locator(".prev-v2-impacto-nota")).toHaveText("Escribe un importe en alguna de las tres palancas para ver si os lo podéis permitir.");
+      await expect(v2.locator("[data-prevision-v2-segunda]"), "no se suma a otra prueba").toHaveCount(0);
+      const importe = v2.locator("#prevV2YSi-unico-amount");
+      await importe.fill("4.000");
+      await importe.press("Tab");
+      await expect(v2.locator(".prev-v2-impacto-frase")).toHaveText(/^Sí, pero pasando dinero del ahorro a tiempo\. Con un gasto de 4\.000\s€ el 9 dic, no bajáis del suelo/);
+      await expect(v2.locator(".prev-v2-impacto tbody tr").filter({ hasText: "A 31 de diciembre" })).toContainText(/−4\.000\s€/);
+      await expect(v2.locator(".ck-escenario-etiqueta")).toHaveText("¿Y si…?");
+      await expect(importe).toHaveValue("4.000");
+      const gasto = v2.locator("#prevV2YSi-gasto-delta");
+      await gasto.fill("900");
+      await gasto.press("Tab");
+      await expect(v2.locator(".prev-v2-impacto-frase")).toHaveText(/^No sin tocar nada\. Con un gasto de 4\.000\s€ el 9 dic y 900\s€ más de gasto al mes de dic 26 a feb 27, bajáis del suelo el 9 dic\./);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
+      expect(entry.nombre).toMatch(/^Prueba · ¿y si…\? un gasto de 4\.000\s€ el 9 dic 2026 \+ 900\s€ más de gasto al mes de dic 26 a feb 27$/);
+      expect(entry.decisiones.map((d) => d.tipo)).toEqual(["imprevisto", "cambio_gasto"]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
 });
 
 // FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso semanal, sin paso nuevo: lo más bajo en 30 días con su margen, qué ha

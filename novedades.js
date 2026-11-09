@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-y-si",
+      fecha: "2026-11-09",
+      texto: "Previsión: «¿Y si…?» en «Comparar con» responde si os lo podéis permitir: un gasto único o un cambio de ingreso o gasto al mes.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-comparar-pruebas",
       fecha: "2026-11-09",
       texto: "Escenarios › Comparar: las pruebas de estrés también sin guardarlas, y una línea por columna con la liquidez a fin de mes.",
