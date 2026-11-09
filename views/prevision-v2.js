@@ -18,7 +18,10 @@ const PREVISION_V2_HORIZONTES = Object.freeze([
   Object.freeze({ id: "24m", label: "24 m", dias: 730, paso: 14, titulo: "de los próximos 24 meses" }),
   Object.freeze({ id: "full", label: "Hasta 2036", dias: Infinity, paso: "mes", titulo: "de aquí al final del plan" }),
 ]);
-const PREVISION_V2_GRANDE = 300; // «Lo que viene»: pagos y cobros desde este importe
+// FX-12 (9/11/2026): «Lo que viene» y los hitos del gráfico, desde un umbral que se elige (150 € por defecto, como la propuesta)
+// y se recuerda en este dispositivo.
+const PREVISION_V2_UMBRALES = Object.freeze([150, 300, 1000]);
+const PREVISION_V2_UMBRAL_KEY = "prevision-v2-umbral";
 
 let previsionV2Detalle = false; // «Ver todo el detalle», hasta recargar
 let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, o «guardado:<id>» para un escenario guardado; hasta recargar
@@ -30,6 +33,7 @@ let previsionV2Pulsado = false; // un clic, un toque o una tecla sobre el gráfi
 let previsionV2Ultimo = null; // lo último pintado, para repintar solo el panel al recorrer el gráfico
 let previsionV2ConfianzaAbierta = false; // FX-31: la hoja de la insignia, hasta recargar
 let previsionV2CambiosAbierta = false; // FX-40: la hoja «por qué» de lo que ha cambiado, hasta recargar
+let previsionV2VieneAbierto = false; // FX-12: «Lo que viene» sigue abierto al cambiar el umbral o repintar, hasta recargar
 const PREVISION_V2_FOTOS = "prevision-v2-fotos"; // FX-40: fotos ligeras de la previsión en cada visita, en este dispositivo
 let previsionV2GuardarAviso = null; // FX-21: por qué no se ha podido guardar la prueba ({ firma, text }), hasta la siguiente
 
@@ -319,13 +323,10 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null,
   </div>`;
 }
 
-function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null }) {
+function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [] }) {
   const kit = globalThis.ChartKit;
   if (!kit?.forecastPlotHtml || puntos.length < 2) return "";
-  const markers = horizonte.paso === "mes" ? [] : puntos
-    .map((row, index) => ({ index, ingreso: (row.events || []).filter((event) => event.kind === "income").reduce((sum, event) => sum + Number(event.amount || 0), 0) }))
-    .filter((item) => item.ingreso >= PREVISION_V2_GRANDE)
-    .map((item) => ({ index: item.index, label: `Cobro del ${previsionV2Fecha(puntos[item.index].date, today)}: ${money(item.ingreso)}` }));
+  const markers = horizonte.paso === "mes" ? [] : previsionV2Marcadores(puntos, hitos, today);
   const plot = kit.forecastPlotHtml({
     points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null })),
     ariaLabel: `Saldo previsto ${horizonte.titulo}, con el suelo de ${money(floor)}`,
@@ -1060,24 +1061,122 @@ function previsionV2LibreHtml({ tramo, floor, margen, margenSaid, today }) {
 }
 
 /** FX-12: los cobros y pagos grandes de los próximos 90 días, con su certeza y, si el día es estimado, el camino a Días de cargo. */
-function previsionV2LoQueVieneHtml({ tramo, today }) {
+// ---- FX-12 · Lo que viene: los hitos de los próximos 90 días ---------------------------------------------------------------
+// Cobros y pagos desde el umbral elegido, por semanas, con su certeza y «¿sabes el día?» en los pagos de día estimado. Sin traspasos
+// (no cambian el total) ni el gasto variable (no tiene día: se dice aparte cuánto suma). Son también los hitos del gráfico.
+
+function previsionV2Umbral() {
+  try {
+    const guardado = Number(localStorage.getItem(PREVISION_V2_UMBRAL_KEY));
+    return PREVISION_V2_UMBRALES.includes(guardado) ? guardado : PREVISION_V2_UMBRALES[0];
+  } catch {
+    return PREVISION_V2_UMBRALES[0];
+  }
+}
+
+/** Los movimientos de los próximos 90 días que cuentan como hito, y lo que suma el gasto variable en ese tiempo. */
+function previsionV2Hitos(tramo, today) {
   const fin = previsionV2AddDays(today, 90);
-  const grandes = tramo
-    .filter((row) => row.date <= fin)
-    .flatMap((row) => (row.events || []).filter((event) => event.kind !== "transfer" && Number(event.amount) >= PREVISION_V2_GRANDE).map((event) => ({ ...event, date: row.date })));
-  if (!grandes.length) return "";
-  const estimados = grandes.filter((event) => event.confidence === "estimated").length;
-  const certeza = { estimated: "día estimado", rule: "por regla", observed: "día cierto", declared: "día indicado por ti" };
-  const items = grandes.slice(0, 12).map((event) => `<li class="prev-v2-viene-item">
-      <span class="prev-v2-viene-dia">${escapeHtml(previsionV2Fecha(event.date, today))}</span>
-      <span class="prev-v2-viene-que">${escapeHtml(event.label || "Sin nombre")}<small>${escapeHtml(certeza[event.confidence] || "previsto")}</small></span>
-      <strong class="prev-v2-viene-importe${event.kind === "income" ? " is-pos" : ""}">${event.kind === "income" ? "+" : "−"}${escapeHtml(money(event.amount))}</strong>
-    </li>`).join("");
-  return `<details class="e19-card prev-v2-viene">
-    <summary>Lo que viene en 90 días · ${grandes.length} ${grandes.length === 1 ? "cobro o pago grande" : "cobros y pagos grandes"}${estimados ? ` · ${estimados} con el día estimado` : ""}</summary>
-    <ul class="prev-v2-viene-lista">${items}</ul>
-    ${grandes.length > 12 ? `<p class="e19-kpi-note">Y ${grandes.length - 12} más. Todos, día a día, en la tabla del gráfico.</p>` : ""}
-    ${estimados ? `<p class="e19-kpi-note">Los de día estimado mueven el punto más bajo. <button type="button" class="hoy-v2-link" data-prevision-v2-nav="planificacion-partidas">Decir el día de cargo</button></p>` : ""}
+  const umbral = previsionV2Umbral();
+  const dias = tramo.filter((row) => row.date >= today && row.date <= fin);
+  const eventos = dias.flatMap((row) => (row.events || []).map((event) => ({ ...event, date: row.date })));
+  const variable = eventos.filter((event) => event.field === "variableOperationalSpend").reduce((sum, event) => sum + Number(event.amount || 0), 0);
+  const hitos = eventos.filter((event) => event.kind !== "transfer" && event.field !== "variableOperationalSpend" && Number(event.amount) >= umbral);
+  return { hitos, umbral, variable, fin };
+}
+
+/** El lunes de la semana de un día (AAAA-MM-DD). */
+function previsionV2Lunes(iso) {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
+function previsionV2Semana(lunes, today) {
+  const esta = previsionV2Lunes(today);
+  if (lunes === esta) return "Esta semana";
+  if (lunes === previsionV2AddDays(esta, 7)) return "La semana que viene";
+  return `Semana del ${previsionV2Fecha(lunes, today)}`;
+}
+
+function previsionV2Neto(eventos) {
+  return eventos.reduce((sum, event) => sum + (event.kind === "income" ? 1 : -1) * Number(event.amount || 0), 0);
+}
+
+function previsionV2ConSigno(value) {
+  return `${value < 0 ? "−" : "+"}${money(Math.abs(value))}`;
+}
+
+/** Los hitos como marcas del gráfico: una por punto pintado (en 12 y 24 meses, el primer punto desde su día), con lo que entra o sale. */
+function previsionV2Marcadores(puntos, hitos, today) {
+  const porPunto = new Map();
+  hitos.forEach((hito) => {
+    const index = puntos.findIndex((row) => row.date >= hito.date);
+    if (index < 0) return;
+    porPunto.set(index, [...(porPunto.get(index) || []), hito]);
+  });
+  return [...porPunto.entries()].map(([index, lista]) => {
+    const neto = previsionV2Neto(lista);
+    const detalle = lista.slice(0, 4).map((hito) => `${hito.label || "Sin nombre"} ${hito.kind === "income" ? "+" : "−"}${money(hito.amount)}`).join("; ");
+    const mas = lista.length > 4 ? `; y ${lista.length - 4} más` : "";
+    return { index, kind: neto < 0 ? "sale" : "entra", label: `${previsionV2Fecha(lista[0].date, today)}: ${detalle}${mas}` };
+  });
+}
+
+function previsionV2HitoHtml(event, today, mismoDia = false) {
+  const label = event.label || "Sin nombre";
+  const ingreso = event.kind === "income";
+  const estimado = !ingreso && (event.confidence === "estimated" || !PREVISION_V2_CERTEZA[event.confidence]);
+  const certeza = estimado
+    ? `día estimado · <button type="button" class="hoy-v2-link" data-prevision-v2-nav="planificacion-partidas" aria-label="¿Sabes el día de ${escapeHtml(label)}?">¿sabes el día?</button>`
+    : escapeHtml(PREVISION_V2_CERTEZA[event.confidence] || "previsto");
+  return `<li class="prev-v2-viene-item">
+      <span class="prev-v2-viene-dia">${mismoDia ? "" : escapeHtml(previsionV2Fecha(event.date, today).replace(/ \d{4}$/, ""))}</span>
+      <span class="prev-v2-viene-que">${escapeHtml(label)}<small>${certeza}</small></span>
+      <strong class="prev-v2-viene-importe${ingreso ? " is-pos" : ""}">${ingreso ? "+" : "−"}${escapeHtml(money(event.amount))}</strong>
+    </li>`;
+}
+
+function previsionV2LoQueVieneHtml({ hitos: datos, today }) {
+  const { hitos, umbral, variable } = datos;
+  const cobros = hitos.filter((event) => event.kind === "income").length;
+  const pagos = hitos.length - cobros;
+  const estimados = hitos.filter((event) => event.confidence === "estimated").length;
+  const cuenta = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  const resumen = hitos.length
+    ? `${cuenta(cobros, "cobro", "cobros")} y ${cuenta(pagos, "pago", "pagos")} desde ${money(umbral)}${estimados ? ` · ${estimados} con el día estimado` : ""}`
+    : `nada desde ${money(umbral)}`;
+  const umbrales = `<div class="prev-v2-opcion prev-v2-viene-umbral"><span class="prev-v2-comparar-titulo" id="prevV2UmbralTitulo">Desde</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2UmbralTitulo">${PREVISION_V2_UMBRALES
+    .map((valor) => `<button type="button" class="registrar-mes-filter${valor === umbral ? " is-active" : ""}" data-prevision-v2-umbral="${valor}" aria-pressed="${valor === umbral}">${escapeHtml(money(valor))}</button>`)
+    .join("")}</div></div>`;
+  const semanas = new Map();
+  hitos.forEach((event) => {
+    const lunes = previsionV2Lunes(event.date);
+    semanas.set(lunes, [...(semanas.get(lunes) || []), event]);
+  });
+  const MAX = 40;
+  let pintados = 0;
+  const bloques = [...semanas.entries()].map(([lunes, lista]) => {
+    const visibles = lista.slice(0, Math.max(0, MAX - pintados));
+    pintados += visibles.length;
+    if (!visibles.length) return "";
+    const titulo = previsionV2Semana(lunes, today);
+    const neto = previsionV2Neto(lista);
+    return `<div class="prev-v2-viene-semana">
+      <p class="prev-v2-viene-semana-titulo"><span>${escapeHtml(titulo)}</span><strong class="prev-v2-viene-importe${neto >= 0 ? " is-pos" : ""}">${escapeHtml(previsionV2ConSigno(neto))}</strong></p>
+      <ul class="prev-v2-viene-lista" aria-label="${escapeHtml(titulo)}">${visibles.map((event, at) => previsionV2HitoHtml(event, today, at > 0 && visibles[at - 1].date === event.date)).join("")}</ul>
+    </div>`;
+  }).join("");
+  const resto = hitos.length - pintados;
+  const notaVariable = variable >= 1 ? `<p class="e19-kpi-note">No incluye el gasto variable (unos ${escapeHtml(money(globalThis.FinanceCanonicalForecastContract?.roundDifference?.(variable) ?? variable))} en estos 90 días), que no tiene día fijo.</p>` : "";
+  return `<details class="e19-card prev-v2-viene"${previsionV2VieneAbierto ? " open" : ""}>
+    <summary>Lo que viene en 90 días · ${escapeHtml(resumen)}</summary>
+    ${umbrales}
+    ${bloques || `<p class="e19-kpi-note">Ningún cobro ni pago desde ${escapeHtml(money(umbral))} en los próximos 90 días.</p>`}
+    ${resto > 0 ? `<p class="e19-kpi-note">Y ${resto} más. Todos, día a día, en la tabla del gráfico.</p>` : ""}
+    ${notaVariable}
+    ${estimados ? `<p class="e19-kpi-note">Los de día estimado mueven el punto más bajo: decir el día lo afina.</p>` : ""}
+    <p class="e19-kpi-note">Son también las marcas bajo el gráfico, en azul lo que entra y en rojo lo que sale.</p>
   </details>`;
 }
 
@@ -1093,17 +1192,18 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     : previsionV2Escenario.startsWith(PREVISION_V2_GUARDADO) ? previsionV2PruebaGuardada(previsionV2Escenario.slice(PREVISION_V2_GUARDADO.length), rows, today, tramo.at(-1).date, floor)
     : previsionV2Segunda ? previsionV2PruebaDoble([previsionV2Escenario, previsionV2Segunda], rows, today, tramo.at(-1).date, floor)
     : previsionV2Prueba(previsionV2Escenario, rows, today, tramo.at(-1).date, floor);
+  const hitos = previsionV2Hitos(tramo, today);
   previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows };
   const cambios = previsionV2Cambios({ rows, tramo, today, horizonte });
   return `${segmentado}
     <article class="e19-card prev-v2-card con-dia">
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
-      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba })}
+      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2CompararHtml(prueba, today)}</div>
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
-    ${previsionV2LoQueVieneHtml({ tramo, today })}
+    ${previsionV2LoQueVieneHtml({ hitos, today })}
     <p class="prev-v2-mas">
       <button type="button" class="hoy-v2-link" data-prevision-v2-nav="prevision">Rango probable, calidad del dato y acierto</button>
       <button type="button" class="hoy-v2-link" data-prevision-v2-detalle>Ver todo el detalle</button>
@@ -1213,6 +1313,10 @@ function previsionV2Init() {
     if (cambia) previsionV2PintaDia();
   });
   // FX-20: un escenario guardado en «Comparar con»; sustituye a la prueba elegida (y a la segunda).
+  // FX-12: recordar si «Lo que viene» está abierto, para que un repintado no lo cierre.
+  box?.addEventListener("toggle", (event) => {
+    if (event.target.classList?.contains("prev-v2-viene")) previsionV2VieneAbierto = event.target.open;
+  }, true);
   box?.addEventListener("change", (event) => {
     const select = event.target.closest?.("[data-prevision-v2-guardado]");
     if (!select) return;
@@ -1229,6 +1333,15 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       previsionV2Render();
       qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-horizonte="${horizonte.dataset.previsionV2Horizonte}"]`)?.focus();
+      return;
+    }
+    const umbral = event.target.closest("[data-prevision-v2-umbral]");
+    if (umbral) {
+      try { localStorage.setItem(PREVISION_V2_UMBRAL_KEY, umbral.dataset.previsionV2Umbral); } catch { /* sin guardar: vale para esta visita */ }
+      previsionV2VieneAbierto = true;
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-umbral="${umbral.dataset.previsionV2Umbral}"]`)?.focus();
       return;
     }
     const segunda = event.target.closest("[data-prevision-v2-segunda]");

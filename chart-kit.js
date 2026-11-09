@@ -140,7 +140,7 @@
    *   threshold?: {value: number, label?: string}|null,
    *   todayIndex?: number|null,
    *   seamIndex?: number|null,
-   *   markers?: Array<{index: number, label: string}>,
+   *   markers?: Array<{index: number, label: string, kind?: string}>,
    *   scenarios?: Array<{name: string, values: Array<number|null>}>,
    *   format?: (n: number) => string,
    *   ticks?: number,
@@ -204,7 +204,7 @@
         return lastIndex < 0 ? "" : `<span class="ck-escenario-etiqueta ck-escenario-${at + 1}" style="left:${xAt(lastIndex)}%;top:${yAt(scenario.values[lastIndex])}%">${esc(scenario.name)}</span>`;
       }),
       (Array.isArray(markers) ? markers : []).filter((marker) => finite(marker.index) && marker.index >= 0 && marker.index < list.length)
-        .map((marker) => `<span class="ck-hito" style="left:${xAt(marker.index)}%" title="${esc(marker.label)}"><span class="sr-only">${esc(marker.label)}</span></span>`).join(""),
+        .map((marker) => `<span class="ck-hito${/^[a-z]+$/.test(String(marker.kind || "")) ? ` ck-hito-${marker.kind}` : ""}" style="left:${xAt(marker.index)}%" title="${esc(marker.label)}"><span class="sr-only">${esc(marker.label)}</span></span>`).join(""),
     ].join("");
     return { svg, overlayHtml: overlay, xs: list.map((_, index) => xAt(index)), ticks: tickValues.map((value) => ({ value, y: yAt(value) })) };
   }

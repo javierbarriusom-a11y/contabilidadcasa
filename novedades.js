@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-09-lo-que-viene",
+      fecha: "2026-11-09",
+      texto: "Previsión: «Lo que viene en 90 días» va por semanas, desde el importe que elijas, con «¿sabes el día?» y sus marcas en el gráfico.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-08-suelo-inicial",
       fecha: "2026-11-08",
       texto: "Previsión: si no habéis fijado el suelo, dice que el de 1.500 € es el inicial de la app y lleva directo a fijarlo en Ajustes.",

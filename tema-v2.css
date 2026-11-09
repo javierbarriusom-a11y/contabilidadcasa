@@ -4456,3 +4456,24 @@
   max-width: 100%;
   min-height: 44px;
 }
+
+/* FX-12 (9/11/2026) · «Lo que viene» por semanas: cada semana con su neto, y el umbral arriba. */
+:root[data-tema="v2"] .prev-v2-viene-umbral {
+  margin-top: 10px;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-semana {
+  margin-top: 12px;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-semana .prev-v2-viene-lista {
+  margin-top: 4px;
+}
+
+:root[data-tema="v2"] .prev-v2-viene-semana-titulo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+}
