@@ -6079,13 +6079,19 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       const dia = v2.locator(".prev-v2-dia");
       await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
       // Una línea de atajos: el pago mayor del día que se puede aplazar (el gasto variable de 1.750 € no es un pago).
-      // Justo debajo del panel, fuera de su caja (a 1440 px el panel ya llega casi a los 900 px que tiene que respetar).
+      // Fuera de la columna del panel (a 1440 px panel y gráfico ya llegan casi a los 900 px): bajo el gráfico en escritorio y bajo
+      // el panel en el móvil. Dicen el día, porque en escritorio no están dentro del panel.
       const atajos = v2.locator(".prev-v2-dia-atajos");
-      await expect(atajos).toHaveText("¿Y si…? un gasto este día · aplazar un pago");
-      const [cajaDia, cajaAtajos] = [await dia.boundingBox(), await atajos.boundingBox()];
-      expect(cajaAtajos.y, "debajo del panel").toBeGreaterThanOrEqual(cajaDia.y + cajaDia.height - 1);
-      expect(Math.abs(cajaAtajos.x - cajaDia.x), "en su misma columna").toBeLessThan(2);
-      await atajos.getByRole("button", { name: "Aplazar un pago de este día: Gastos del hogar" }).click();
+      await expect(atajos).toHaveText("¿Y si…? El 8 dic: un gasto ese día · aplazar un pago");
+      const figura = v2.locator('[data-ck-id="prevision-v2"]');
+      const [cajaDia, cajaAtajos, cajaFigura] = [await dia.boundingBox(), await atajos.boundingBox(), await figura.boundingBox()];
+      if (viewport.width === 1440) {
+        expect(cajaAtajos.y, "bajo el gráfico").toBeGreaterThanOrEqual(cajaFigura.y + cajaFigura.height - 1);
+        expect(cajaDia.y + cajaDia.height, "el panel sigue cabiendo en 900 px").toBeLessThanOrEqual(900);
+      } else {
+        expect(cajaAtajos.y, "bajo el panel").toBeGreaterThanOrEqual(cajaDia.y + cajaDia.height - 1);
+      }
+      await atajos.getByRole("button", { name: "Aplazar un pago del 8 dic: Gastos del hogar" }).click();
       await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
       const pago = v2.locator("#prevV2YSi-aplazar-key");
       await expect(pago).toBeFocused();

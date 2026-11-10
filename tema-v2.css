@@ -3990,9 +3990,14 @@
   color: var(--e19-danger);
 }
 
-/* FX-22 PR-2 (10/11/2026): los atajos a «¿Y si…?» del día, justo debajo del panel del día (fuera de su caja, que ya llega a 900 px). */
+/* FX-22 PR-2 (10/11/2026): los atajos a «¿Y si…?» del día elegido, fuera de la columna del panel (que ya llega a 900 px a 1440):
+   en escritorio, bajo el gráfico; en el móvil, bajo el panel. Sin atajos, el hueco no ocupa nada. */
 :root[data-tema="v2"] .prev-v2-dia-atajos {
-  margin: 8px 0 0;
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-atajos-hueco:empty {
+  display: none;
 }
 
 /* FX-20 completa (10/11/2026): la caja y la deuda a 24 meses juntas, bajo la tabla. Texto normal: es una lectura, no un aviso. */

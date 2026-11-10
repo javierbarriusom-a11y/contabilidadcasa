@@ -112,14 +112,15 @@ test("FX-22 · la vista: la frase del pago aplazado, sin veredicto si solo se ap
   const solo = { preset: S.YSI, info };
   assert.equal(sandbox.previsionV2Veredicto(solo, { crossesFloor: false }, false), "", "aplazar no es un gasto que permitirse");
   assert.equal(sandbox.previsionV2Veredicto({ preset: S.YSI, info: { ...info, unico: { amount: 1, date: "2026-12-01" } } }, { crossesFloor: false }, false), "Sí, os lo podéis permitir. ");
-  // Los atajos del panel del día, en una línea: un gasto ese día (desde mañana) y aplazar el pago mayor que se pueda aplazar.
+  // Los atajos del día elegido, en una línea que dice el día: un gasto ese día (desde mañana) y aplazar el pago mayor que se pueda.
   vm.runInContext(`previsionV2Aplazables = () => [{ key: "2026-12-31|fixedCoreSpend|Seguro INVENTADO" }];`, sandbox);
-  const eventos = [
+  const events = [
     { kind: "outflow", field: "variableOperationalSpend", label: "Gasto variable estimado", amount: 1200 },
     { kind: "outflow", field: "fixedCoreSpend", label: "Seguro INVENTADO", amount: 900 },
   ];
-  assert.equal(sandbox.previsionV2AtajosDiaHtml(eventos, "2026-12-31", "2026-11-10"), '<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? <button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="2026-12-31" aria-label="¿Y si…? un gasto este día, el 31 dic">un gasto este día</button> · <button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="2026-12-31|fixedCoreSpend|Seguro INVENTADO" aria-label="Aplazar un pago de este día: Seguro INVENTADO">aplazar un pago</button></p>');
-  assert.doesNotMatch(sandbox.previsionV2AtajosDiaHtml(eventos, "2026-11-10", "2026-11-10"), /un gasto este día/, "hoy no: el gasto único es desde mañana");
-  assert.equal(sandbox.previsionV2AtajosDiaHtml(eventos.slice(0, 1), "2026-11-10", "2026-11-10"), "", "sin pago que aplazar ni día futuro, nada");
+  const ctx = (today, lista = events) => ({ today, tramo: [{ date: "2026-12-31", total: 1000, events: lista }] });
+  assert.equal(sandbox.previsionV2AtajosHtml(ctx("2026-11-10"), "2026-12-31"), '<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? El 31 dic: <button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="2026-12-31" aria-label="Un gasto ese día, el 31 dic">un gasto ese día</button> · <button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="2026-12-31|fixedCoreSpend|Seguro INVENTADO" aria-label="Aplazar un pago del 31 dic: Seguro INVENTADO">aplazar un pago</button></p>');
+  assert.doesNotMatch(sandbox.previsionV2AtajosHtml(ctx("2026-12-31"), "2026-12-31"), /un gasto ese día/, "hoy no: el gasto único es desde mañana");
+  assert.equal(sandbox.previsionV2AtajosHtml(ctx("2026-12-31", events.slice(0, 1)), "2026-12-31"), "", "sin pago que aplazar ni día futuro, nada");
   assert.equal(sandbox.previsionV2ClaveDia({ field: "projectOutflow", label: "Proyecto o decisión", date: "2027-01-25" }, "x"), "2027-01-25|projectOutflow|");
 });

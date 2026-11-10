@@ -181,14 +181,15 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - **Cómo se mueve:** 1, 2 o 3 meses, al mismo día del mes. Sale de su mes por su partida y entra en el de destino como gasto fijo de ese día, igual que el imprevisto.
   - **Guardado:** dos «Cambio de gasto» de un mes (−importe y +importe), con paridad de meses con Escenarios.
   - **La lista de la palanca:** los pagos de los próximos 90 días desde el umbral de «Lo que viene», del mayor al menor.
-- **Los atajos del día, en lugar del clic largo de la propuesta:** una línea «¿Y si…? un gasto este día · aplazar un pago», justo debajo del panel del día.
+- **Los atajos del día, en lugar del clic largo de la propuesta:** una línea «¿Y si…? El 8 dic: un gasto ese día · aplazar un pago», fuera de la columna del panel del día. En escritorio va bajo el gráfico; en el móvil, bajo el panel.
   - El primero abre la palanca del gasto único con el día puesto. El segundo abre la de aplazar con el pago mayor de ese día ya elegido.
   - **Por qué no el clic largo:** no se descubre, choca con recorrer el gráfico con el dedo y no tiene equivalente de teclado.
-  - **Por qué fuera del recuadro del panel:** a 1440 px el panel tiene que caber en 900 px.
-    - Un primer intento puso un «aplazar» junto a cada pago y lo alargaba a 962 px en local.
-    - El segundo puso la línea de atajos dentro y el CI de #605 lo midió en 948,8 px: con las fuentes del runner, el panel ya rondaba los 895 sin ella.
-    - Fuera de la caja, el panel queda idéntico al de `main`.
-    - **Deuda de diseño a vigilar:** el panel no admite ni una línea más.
+  - **Por qué fuera de esa columna:** a 1440 px, el panel y el gráfico tienen que caber en 900 px. El CI de #605 lo midió tres veces:
+    - un primer intento puso un «aplazar» junto a cada pago, y en local alargaba el panel a 962 px;
+    - con la línea dentro del panel, el CI lo midió en 948,8 px;
+    - justo debajo, fuera de su caja pero en su columna, la línea estiraba la rejilla y el gráfico llegó a 918,8 px.
+  - Medido en local con DejaVu Sans (la fuente del CI) frente a `main`: el panel y el gráfico quedan exactamente igual.
+  - **Deuda de diseño a vigilar:** esa columna no admite ni una línea más.
 - **La frase:**
   - Con solo un pago aplazado no lleva el «Sí, os lo podéis permitir»: aplazar no es un gasto que permitirse.
   - **Error previo corregido:** cuando la prueba mejora el punto más bajo, la frase decía «X € por debajo del plan». Ahora dice «por encima». Con el plan ya bajo el suelo, si la prueba lo saca de ahí, dice «ya no bajaríais del suelo» en vez de «faltarían 0 €».
@@ -207,7 +208,8 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Sellos: `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261110fx22b`. Novedades, una línea.
 - **Validación:**
   - `npm run verify` en verde: 6.522/6.522, «forecast y escenarios en 202,1 ms».
-  - El primer CI de #605 falló en esa medida de 900 px (948,8 px, 1 de 251); corregido sacando los atajos de la caja.
+  - Los dos primeros CI de #605 fallaron en esas medidas de 900 px, 1 de 251 cada vez: el panel a 948,8 px y luego el gráfico a 918,8 px. Se corrigió sacando los atajos de la columna.
+  - En local, tras la corrección, 47/47 e2e y axe en Chromium de C2, FX-1x, FX-2x, FX-5x y XGO-01.
   - La primera pasada falló en `typecheck` porque las opciones de `pagosAplazables` y `applyAplazar` tenían `= {}` por defecto. Pasaron a ser obligatorias y las fases siguientes del verify salieron en verde.
   - En local, 46/46 en Chromium: e2e y axe de C2, FX-1x, FX-2x, FX-5x y XGO-01.
   - La de axe de FX-12 se pasó del tiempo de espera una vez bajo carga en paralelo y pasa sola.

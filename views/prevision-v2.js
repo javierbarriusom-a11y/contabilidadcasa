@@ -1252,18 +1252,23 @@ function previsionV2AplazarClave(event, date, today) {
 }
 
 /**
- * FX-22 PR-2: los atajos del panel del día a «¿Y si…?», en una sola línea justo debajo del panel, fuera de su caja: un gasto ese día
- * (desde mañana) y aplazar un pago, con el mayor de ese día ya elegido (en la palanca se cambia por otro). Fuera porque a 1440 px el
- * panel ya llega casi a los 900 px que tiene que respetar (con las fuentes del CI, ~895): no cabe ni una línea más dentro.
+ * FX-22 PR-2: los atajos del día elegido a «¿Y si…?», en una línea que dice el día: un gasto ese día (desde mañana) y aplazar un pago,
+ * con el mayor de ese día ya elegido (en la palanca se cambia por otro). Van fuera del panel del día y de su columna: a 1440 px el
+ * panel y el gráfico ya llegan casi a los 900 px que tienen que respetar, y cualquier línea en esa columna estira la rejilla (el CI de
+ * #605 lo midió dos veces). En escritorio quedan bajo el gráfico; en el móvil, justo bajo el panel.
  */
-function previsionV2AtajosDiaHtml(eventos, date, today) {
-  if (!globalThis.FinanceCanonicalStressScenarios?.YSI) return "";
-  const pago = eventos.map((event) => ({ event, clave: previsionV2AplazarClave(event, date, today) })).find((item) => item.clave);
+function previsionV2AtajosHtml(ctx, date) {
+  const row = ctx?.tramo?.find((item) => item.date === date);
+  if (!row || !globalThis.FinanceCanonicalStressScenarios?.YSI) return "";
+  const { today } = ctx;
+  const fecha = previsionV2Fecha(date, today);
+  const pagos = (row.events || []).filter((event) => event.kind === "outflow" && Number(event.amount) > 0).sort((a, b) => Number(b.amount) - Number(a.amount));
+  const pago = pagos.map((event) => ({ event, clave: previsionV2AplazarClave(event, date, today) })).find((item) => item.clave);
   const atajos = [
-    date > today ? `<button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="${escapeHtml(date)}" aria-label="¿Y si…? un gasto este día, el ${escapeHtml(previsionV2Fecha(date, today))}">un gasto este día</button>` : "",
-    pago ? `<button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="${escapeHtml(pago.clave)}" aria-label="Aplazar un pago de este día: ${escapeHtml(pago.event.label || "Pago")}">aplazar un pago</button>` : "",
+    date > today ? `<button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="${escapeHtml(date)}" aria-label="Un gasto ese día, el ${escapeHtml(fecha)}">un gasto ese día</button>` : "",
+    pago ? `<button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="${escapeHtml(pago.clave)}" aria-label="Aplazar un pago del ${escapeHtml(fecha)}: ${escapeHtml(pago.event.label || "Pago")}">aplazar un pago</button>` : "",
   ].filter(Boolean);
-  return atajos.length ? `<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? ${atajos.join(" · ")}</p>` : "";
+  return atajos.length ? `<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? El ${escapeHtml(fecha)}: ${atajos.join(" · ")}</p>` : "";
 }
 
 function previsionV2DiaHtml(ctx, date) {
@@ -1312,12 +1317,14 @@ function previsionV2DiaHtml(ctx, date) {
     ${lista}
     ${tramoResumen}
     <p class="e19-kpi-note prev-v2-dia-pista">${previsionV2Dia.fijado ? "Día fijado." : "Recorre el gráfico con el ratón, el dedo o ← →; al hacer clic o tocar, el día se queda fijo."} ${volver}</p>
-  </aside>${previsionV2AtajosDiaHtml(eventos, date, today)}`;
+  </aside>`;
 }
 
 function previsionV2PintaDia() {
   const hueco = qs("planPrevisionV2")?.querySelector(".prev-v2-dia-hueco");
   if (hueco && previsionV2Ultimo) hueco.innerHTML = previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo));
+  const atajos = qs("planPrevisionV2")?.querySelector(".prev-v2-atajos-hueco");
+  if (atajos && previsionV2Ultimo) atajos.innerHTML = previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo));
 }
 
 /** Tras pintar, el cursor del gráfico en el día del panel (de entrada, el punto más bajo). */
@@ -1630,6 +1637,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
       ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
+      <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
