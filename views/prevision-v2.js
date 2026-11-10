@@ -22,6 +22,8 @@ const PREVISION_V2_HORIZONTES = Object.freeze([
 // y se recuerda en este dispositivo.
 const PREVISION_V2_UMBRALES = Object.freeze([150, 300, 1000]);
 const PREVISION_V2_UMBRAL_KEY = "prevision-v2-umbral";
+// FX-13 (10/11/2026): «Total · Por cuenta» en el gráfico, recordado en este dispositivo.
+const PREVISION_V2_VISTA_KEY = "prevision-v2-vista";
 
 let previsionV2Detalle = false; // «Ver todo el detalle», hasta recargar
 let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, o «guardado:<id>» para un escenario guardado; hasta recargar
@@ -373,9 +375,44 @@ function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null,
   </div>`;
 }
 
+function previsionV2Vista() {
+  try {
+    return localStorage.getItem(PREVISION_V2_VISTA_KEY) === "cuentas" ? "cuentas" : "total";
+  } catch {
+    return "total";
+  }
+}
+
+/**
+ * FX-13 · Por cuenta: la cuenta corriente (línea del plan) con su mínimo (la reserva operativa, o 0 €: no quedar en descubierto) y el
+ * ahorro en discontinua. Mismas filas del motor diario, que ya separan las dos cuentas; sin la prueba (se ve en «Total»).
+ */
+function previsionV2GraficoCuentasHtml({ puntos, today, horizonte }) {
+  const kit = globalThis.ChartKit;
+  const minimo = previsionV2SueloCuenta();
+  const etiqueta = minimo > 0 ? "reserva" : "descubierto";
+  const plot = kit.forecastPlotHtml({
+    points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.checking), real: index === 0 ? Number(row.checking) : null })),
+    ariaLabel: `Cuenta corriente prevista ${horizonte.titulo}, con su mínimo de ${money(minimo)}; el ahorro, en discontinua`,
+    threshold: { value: minimo, label: etiqueta },
+    todayIndex: 0,
+    scenarios: [{ name: "Ahorro", values: puntos.map((row) => Number(row.savings)) }],
+    format: (value) => money(value),
+  });
+  const readings = puntos.map((row) => `${previsionV2Fecha(row.date, today)}: cuenta corriente ${previsionV2Saldo(row.checking, row.date, today)}, ahorro ${previsionV2Saldo(row.savings, row.date, today)}`);
+  // La leyenda va dentro de la figura (noteHtml): fuera sería otro elemento de la rejilla de la tarjeta y la descolocaría.
+  const leyenda = `<p class="e19-kpi-note prev-v2-leyenda">Línea continua: la cuenta corriente. Discontinua: el ahorro. En rojo, el mínimo de la cuenta corriente (${escapeHtml(money(minimo))}).</p>`;
+  return kit.figureHtml({
+    id: "prevision-v2", plotHtml: plot.svg + plot.overlayHtml, plotClass: "prev-v2-plot", readings, xs: plot.xs, noteHtml: leyenda,
+    sliderLabel: `Recorrer la previsión por cuenta ${horizonte.titulo}`,
+    table: { caption: `Cuenta corriente y ahorro previstos ${horizonte.titulo}`, columns: ["Día", "Cuenta corriente", "Ahorro"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), previsionV2Saldo(row.checking, row.date, today), previsionV2Saldo(row.savings, row.date, today)]) },
+  });
+}
+
 function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [] }) {
   const kit = globalThis.ChartKit;
   if (!kit?.forecastPlotHtml || puntos.length < 2) return "";
+  if (previsionV2Vista() === "cuentas" && puntos.every((row) => Number.isFinite(Number(row.checking)) && Number.isFinite(Number(row.savings)))) return previsionV2GraficoCuentasHtml({ puntos, today, horizonte });
   const markers = horizonte.paso === "mes" ? [] : previsionV2Marcadores(puntos, hitos, today);
   const plot = kit.forecastPlotHtml({
     points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null })),
@@ -1354,6 +1391,42 @@ function previsionV2SupuestosHtml({ rows, today }) {
   </details>`;
 }
 
+/**
+ * FX-13: el conmutador del gráfico, «Total · Por cuenta», bajo el gráfico (al principio del bloque de «Comparar con»): encima, la fila de
+ * controles bajaba el gráfico en el móvil, y dentro de la rejilla de la tarjeta descolocaba el panel del día.
+ */
+function previsionV2VistaHtml() {
+  const vista = previsionV2Vista();
+  return `<div class="registrar-mes-filters prev-v2-vista" role="group" aria-label="Qué pinta el gráfico">${[["total", "Total"], ["cuentas", "Por cuenta"]]
+    .map(([id, texto]) => `<button type="button" class="registrar-mes-filter${id === vista ? " is-active" : ""}" data-prevision-v2-vista="${id}" aria-pressed="${id === vista}">${texto}</button>`)
+    .join("")}</div>`;
+}
+
+/**
+ * FX-13 · el traspaso sugerido (XPR-05; el PR-2 de XPR-07, traspasos). Solo cuando la cuenta corriente baja de su mínimo y el total
+ * no baja del suelo (es cuestión de qué cuenta tiene el dinero) y el ahorro de ese día alcanza. Primero, si basta, traspasar menos al
+ * ahorro el día de antes; si no, pasar del ahorro antes del día. Coste 0 €. Nunca mueve dinero (A11-4): lo hacéis en el banco.
+ */
+function previsionV2TraspasoHtml({ tramo, floor, today }) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  if (!S?.checkingShortfall || !tramo?.length) return "";
+  const cuenta = S.checkingShortfall(tramo, { today, to: tramo.at(-1).date, checkingFloor: previsionV2SueloCuenta() });
+  const totalBaja = tramo.some((row) => Number(row.total) < floor);
+  if (!cuenta?.crossDate || totalBaja || !cuenta.coveredBySavings) return "";
+  const importe = money(previsionV2HaciaArriba(cuenta.gap));
+  const dia = previsionV2Fecha(cuenta.crossDate, today);
+  const opciones = [
+    cuenta.sweep ? `<li><span>Traspasar unos ${escapeHtml(importe)} menos al ahorro el ${escapeHtml(previsionV2Fecha(cuenta.sweep.date, today))}${cuenta.sweep.label ? ` («${escapeHtml(cuenta.sweep.label)}»)` : ""}</span><strong>0 €</strong></li>` : "",
+    `<li><span>Pasar unos ${escapeHtml(importe)} del ahorro a la cuenta corriente antes del ${escapeHtml(dia)}</span><strong>0 €</strong></li>`,
+  ].join("");
+  return `<section class="e19-card prev-v2-traspaso" aria-labelledby="prevV2TraspasoTitulo">
+    <p class="prev-v2-traspaso-titulo" id="prevV2TraspasoTitulo"><strong>Para que la cuenta corriente no se quede corta el ${escapeHtml(dia)}</strong></p>
+    <p class="e19-kpi-note">El total no baja del suelo: es cuestión de qué cuenta tiene el dinero. ${cuenta.sweep ? "Cualquiera de las dos vale" : "Basta con esto"}; ninguna cuesta nada.</p>
+    <ul class="prev-v2-traspaso-opciones">${opciones}</ul>
+    <p class="e19-kpi-note">La app no mueve dinero: el traspaso lo hacéis en el banco. <button type="button" class="hoy-v2-link" data-prevision-v2-vista="cuentas">Ver por cuenta</button></p>
+  </section>`;
+}
+
 function previsionV2Html({ rows, today, floor, horizonte }) {
   const { tramo, puntos } = previsionV2Serie(rows, today, horizonte);
   if (!tramo.length) return `<p class="hoy-v2-pending">Sin previsión desde hoy: pon los saldos para que la app pueda prever.</p>`;
@@ -1374,9 +1447,10 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
       ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
-      <div class="prev-v2-comparar-bloque">${previsionV2CompararHtml(prueba, today)}</div>
+      <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
+    ${previsionV2TraspasoHtml({ tramo, floor, today })}
     ${previsionV2LoQueVieneHtml({ hitos, today })}
     ${previsionV2SupuestosHtml({ rows, today })}
     <p class="prev-v2-mas">
@@ -1518,6 +1592,14 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       previsionV2Render();
       qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-horizonte="${horizonte.dataset.previsionV2Horizonte}"]`)?.focus();
+      return;
+    }
+    const vista = event.target.closest("[data-prevision-v2-vista]");
+    if (vista) {
+      try { localStorage.setItem(PREVISION_V2_VISTA_KEY, vista.dataset.previsionV2Vista); } catch { /* sin guardar: vale para esta visita */ }
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      qs("planPrevisionV2")?.querySelector(`.prev-v2-vista [data-prevision-v2-vista="${vista.dataset.previsionV2Vista}"]`)?.focus();
       return;
     }
     const umbral = event.target.closest("[data-prevision-v2-umbral]");

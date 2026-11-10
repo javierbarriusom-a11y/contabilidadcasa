@@ -1706,6 +1706,27 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-13 (10/11/2026) · el gráfico por cuenta, con su leyenda y su tabla abierta, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-13 · contraste de la previsión por cuenta en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión por cuenta, con la tabla abierta: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 10, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('.prev-v2-vista [data-prevision-v2-vista="cuentas"]').click();
+      await v2.locator(".ck-tabla > summary").click();
+      await expect(v2.locator(".prev-v2-leyenda")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-22 (9/11/2026) · «¿Y si…?» con un gasto único escrito y su resultado, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-22 · contraste de «¿Y si…?» en modo ${scheme}`, () => {
