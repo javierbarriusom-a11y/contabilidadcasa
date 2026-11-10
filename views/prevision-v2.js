@@ -294,6 +294,8 @@ function previsionV2PruebaGuardada(id, rows, today, to, floor) {
     const resolved = runEscenarioMotor(input, entry.decisiones, Number.isFinite(guardrail) && guardrail > 0 ? guardrail : null);
     result = S.evaluateResolved(resolved, input, rows, previsionV2Deps(), { today, to, floor, checkingFloor, label: entry.nombre || "Escenario guardado", short: previsionV2NombreCorto(entry.nombre) });
     if (result) result.entry = { id: entry.id, nombre: entry.nombre || "Escenario guardado", decisiones: entry.decisiones.length };
+    // FX-20 completa: con qué deudas acaba el escenario, para la deuda y el patrimonio a 24 meses.
+    if (result?.applied) result.deuda = { finalState: resolved?.debtStateFinal || [], decisiones: entry.decisiones };
     previsionV2Cache.set(key, { rows, result });
   } catch {
     result = null;
@@ -587,6 +589,9 @@ function previsionV2CompararHtml(prueba, today) {
   if (c.end && c.end.date !== c.yearEnd?.date) {
     filas.push([`A ${previsionV2Fecha(c.end.date, today)}`, previsionV2Saldo(c.end.base, c.end.date, today), previsionV2Saldo(c.end.shocked, c.end.date, today), dif(resta(c.end.base, c.end.shocked, c.end.date))]);
   }
+  // FX-20 completa: la deuda y el patrimonio a 24 meses, al final de la tabla.
+  const patrimonio = previsionV2Patrimonio(prueba, c, today);
+  filas.push(...patrimonio.filas);
   const cuando = previsionV2Cuando(prueba, today);
   const bajada = Math.abs(bajadaVista);
   // Si la prueba empieza después del horizonte (la revisión de la hipoteca cae más allá), se dice en vez de enseñar «igual».
@@ -630,7 +635,8 @@ function previsionV2CompararHtml(prueba, today) {
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
       ${separado ? `<p class="e19-kpi-note prev-v2-separado">${escapeHtml(separado)}</p>` : ""}
-      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}</p>
+      ${patrimonio.frase ? `<p class="prev-v2-patrimonio">${escapeHtml(patrimonio.frase)}</p>` : ""}
+      <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}${patrimonio.nota ? ` ${escapeHtml(patrimonio.nota)}` : ""}</p>
       ${previsionV2GuardarHtml(prueba)}
     </div>`;
 }
@@ -652,6 +658,112 @@ function previsionV2Veredicto(prueba, c, cuentaCorta) {
   if (prueba?.preset?.id !== "ysi") return "";
   if (c.crossesFloor) return "No sin tocar nada. ";
   return cuentaCorta ? "Sí, pero pasando dinero del ahorro a tiempo. " : "Sí, os lo podéis permitir. ";
+}
+
+// ---- FX-20 completa · la deuda y el patrimonio a 24 meses (10/11/2026) -----------------------------------------------------
+// La tabla medía solo liquidez. Con el Euribor eso se queda corto (la cuota sube y además se amortiza menos: se debe más) y con
+// un escenario de deuda engaña (amortizar baja la caja, pero baja la deuda lo mismo). A 24 meses se ve la deuda viva y el
+// patrimonio (liquidez − deudas + lo que os deban) en los dos lados, con el motor canonical-debt-horizon.js.
+const PREVISION_V2_PATRIMONIO_DIAS = 730;
+
+/** Las amortizaciones que el plan ya lleva (sus decisiones de deuda, en su mes), para que la deuda del plan baje como su caja. */
+function previsionV2DeudaPlaneada() {
+  if (typeof forecastMonths !== "function" || typeof debtPortfolioTargetForDecision !== "function" || typeof debtDecisionCoveredPrincipal !== "function") return { start: null, planned: [] };
+  const months = forecastMonths();
+  const planned = [];
+  (projectPlan?.placements || []).forEach((item) => {
+    const target = debtPortfolioTargetForDecision(item);
+    const amount = target ? debtDecisionCoveredPrincipal(item, target) : 0;
+    const month = months[item.startIndex];
+    if (amount > 0 && month) planned.push({ id: String(target.id), monthKey: month.key, amount, months: item.mode === "spread" ? Number(item.duration) || 1 : 1 });
+  });
+  return { start: months[0]?.key || null, planned };
+}
+
+/** La deuda de la prueba a la fecha: el Euribor la sube; un escenario guardado la mueve con sus decisiones; el resto no la toca. */
+function previsionV2DeudaPrueba(prueba, H, contracts, opts, plan) {
+  if (prueba.deuda) return H.scenarioDebt(contracts, prueba.deuda.finalState, prueba.deuda.decisiones, opts);
+  const shocks = previsionV2Partes(prueba).filter((parte) => parte.preset?.id === "euribor").flatMap((parte) => parte.info?.shocks || []);
+  return { ...plan, total: Math.round((plan.total + H.euriborDelta(shocks, opts)) * 100) / 100 };
+}
+
+/** El saldo del último día ≤ `date` (las filas van por días y en orden). */
+function previsionV2SaldoEn(rows, date) {
+  let found = null;
+  (rows || []).forEach((row) => { if (row.date <= date && Number.isFinite(Number(row.total))) found = row; });
+  return found ? Number(found.total) : null;
+}
+
+/**
+ * Las filas «Liquidez / Deuda / Patrimonio a …» de la tabla de impacto, la frase que las cuadra y su nota. Sin ninguna deuda ni nada
+ * que os deban, nada (el patrimonio sería la liquidez, que ya está). Cada cifra se redondea como su horizonte (FX-04) y el
+ * patrimonio se calcula con las cifras ya redondeadas: liquidez − deuda + lo que os deban cuadra a la vista.
+ * @returns {{ filas: any[], frase: string, nota: string }}
+ */
+function previsionV2Patrimonio(prueba, c, today) {
+  const vacio = { filas: [], frase: "", nota: "" };
+  const H = globalThis.FinanceCanonicalDebtHorizon;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const baseRows = previsionV2Ultimo?.rows;
+  if (!H || !contract || !baseRows?.length || !prueba?.rows?.length || typeof canonicalDebtContractRows !== "function") return vacio;
+  const date = previsionV2AddDays(today, PREVISION_V2_PATRIMONIO_DIAS);
+  if (baseRows.at(-1).date < date) return vacio;
+  const { start, planned } = previsionV2DeudaPlaneada();
+  const contracts = canonicalDebtContractRows();
+  const opts = { startMonthKey: start || today.slice(0, 7), targetMonthKey: date.slice(0, 7), planned };
+  const plan = H.planDebt(contracts, opts);
+  const deudaPrueba = plan ? previsionV2DeudaPrueba(prueba, H, contracts, opts, plan) : null;
+  const liquidezPlan = previsionV2SaldoEn(baseRows, date);
+  const liquidezPrueba = previsionV2SaldoEn(prueba.rows, date);
+  if (!deudaPrueba || liquidezPlan === null || liquidezPrueba === null) return vacio;
+  if (!(plan.total > 0 || deudaPrueba.total > 0 || deudaPrueba.receivables > 0)) return vacio;
+  const dias = contract.daysBetween(today, date);
+  const r = (value) => contract.roundForHorizon(value, dias);
+  const lado = (liquidez, deuda) => ({ liquidez: r(liquidez), deuda: r(deuda.total), deben: r(deuda.receivables || 0) });
+  const p = lado(liquidezPlan, plan);
+  const t = lado(liquidezPrueba, deudaPrueba);
+  p.patrimonio = p.liquidez - p.deuda + p.deben;
+  t.patrimonio = t.liquidez - t.deuda + t.deben;
+  const firmado = (value) => (value < 0 ? `−${money(-value)}` : money(value));
+  const dif = (value) => (value ? `${value < 0 ? "−" : "+"}${money(Math.abs(value))}` : "igual");
+  const fecha = previsionV2Fecha(date, today);
+  const filas = [];
+  // Con el horizonte de 24 m, la liquidez de esa fecha ya es la última fila de la tabla: no se repite.
+  if (c.end?.date !== date) filas.push([`Liquidez a ${fecha}`, firmado(p.liquidez), firmado(t.liquidez), dif(t.liquidez - p.liquidez)]);
+  filas.push([`Deuda viva a ${fecha}`, money(p.deuda), money(t.deuda), dif(t.deuda - p.deuda)]);
+  if (p.deben || t.deben) filas.push([`Os deben a ${fecha}`, money(p.deben), money(t.deben), dif(t.deben - p.deben)]);
+  filas.push([`Patrimonio sin vivienda ni cartera a ${fecha}`, firmado(p.patrimonio), firmado(t.patrimonio), dif(t.patrimonio - p.patrimonio)]);
+  return { filas, frase: previsionV2PatrimonioFrase(p, t, fecha), nota: previsionV2PatrimonioNota(plan, deudaPrueba, fecha) };
+}
+
+/** Solo cuando la prueba mueve la deuda (o lo que os deben): la caja y la deuda juntas, y en qué queda el patrimonio. Con cifras de la tabla. */
+function previsionV2PatrimonioFrase(p, t, fecha) {
+  const deuda = t.deuda - p.deuda;
+  const deben = t.deben - p.deben;
+  if (!deuda && !deben) return "";
+  const caja = t.liquidez - p.liquidez;
+  const patrimonio = t.patrimonio - p.patrimonio;
+  const cuanto = (value, mas, menos) => `${money(Math.abs(value))} ${value > 0 ? mas : menos}`;
+  const partes = [caja ? cuanto(caja, "más de caja", "menos de caja") : "la misma caja"];
+  if (deuda) partes.push(cuanto(deuda, "más de deuda", "menos de deuda"));
+  if (deben) partes.push(cuanto(deben, "más que os deben", "menos que os deben"));
+  const final = patrimonio ? `el patrimonio queda ${money(Math.abs(patrimonio))} ${patrimonio < 0 ? "por debajo" : "por encima"} del plan` : "el patrimonio queda igual que en el plan";
+  return `A ${fecha}, ${partes.slice(0, -1).join(", ")} y ${partes.at(-1)}; ${final}${previsionV2PatrimonioLectura(caja, patrimonio)}.`;
+}
+
+/** La lectura de la frase: si lo que sale de la caja no se pierde (va a deber menos) o si la prueba cuesta más de lo que enseña la caja. */
+function previsionV2PatrimonioLectura(caja, patrimonio) {
+  if (caja < 0 && patrimonio === 0) return ": lo que sale de la caja va a deber menos, no se pierde";
+  if (caja < 0 && patrimonio > caja) return ": buena parte de lo que sale de la caja va a deber menos, no se pierde";
+  if (patrimonio < 0 && patrimonio < caja) return caja > 0 ? ": la caja sube porque se debe más" : ": la prueba cuesta más de lo que se ve en la caja";
+  return "";
+}
+
+/** Cómo se calcula, para que se pueda comprobar, y qué deudas no entran (sin TAE ni plazo no se inventa). */
+function previsionV2PatrimonioNota(plan, prueba, fecha) {
+  const fuera = [...new Map([...(plan.excluded || []), ...(prueba.excluded || [])].map((item) => [item.id, item])).values()];
+  const sinCalcular = fuera.length ? ` No entran ${fuera.map((item) => `«${item.label}» (${money(item.principal)})`).join(", ")}: sin TAE ni plazo no se puede calcular cómo baja; complétalo en Deuda › Contratos.` : "";
+  return `Patrimonio a ${fecha}: liquidez menos deudas, más lo que os deban. La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman: el nivel sale más bajo que vuestro patrimonio real (con hipoteca, incluso negativo), pero la diferencia es la misma. La deuda sigue el calendario de cada contrato de Deuda › Contratos, con lo que el plan ya amortiza.${sinCalcular}`;
 }
 
 /**

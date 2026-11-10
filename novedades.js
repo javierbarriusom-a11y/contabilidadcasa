@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-10-patrimonio-24m",
+      fecha: "2026-11-10",
+      texto: "Previsión: al comparar con una prueba, la tabla añade la deuda y el patrimonio a 24 meses; con el Euribor se ve que también se debe más.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-10-por-cuenta",
       fecha: "2026-11-10",
       texto: "Previsión: «Por cuenta» pinta la cuenta corriente y el ahorro, y si la cuenta se queda corta con el total sano, propone el traspaso.",

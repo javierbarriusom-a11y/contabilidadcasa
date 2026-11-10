@@ -3990,6 +3990,12 @@
   color: var(--e19-danger);
 }
 
+/* FX-20 completa (10/11/2026): la caja y la deuda a 24 meses juntas, bajo la tabla. Texto normal: es una lectura, no un aviso. */
+:root[data-tema="v2"] .prev-v2-patrimonio {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+}
+
 :root[data-tema="v2"] .prev-v2-impacto-tabla td,
 :root[data-tema="v2"] .prev-v2-impacto-tabla th {
   font-variant-numeric: tabular-nums;

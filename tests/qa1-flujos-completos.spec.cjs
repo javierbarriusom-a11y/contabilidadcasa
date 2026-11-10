@@ -5523,7 +5523,13 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
-      await expect(impacto.locator("tbody tr")).toHaveCount(6);
+      // FX-20 completa (10/11): tres filas más al final, la liquidez, la deuda y el patrimonio a 24 meses. Sin sueldo no cambia la
+      // deuda (las cuotas se pagan igual): el patrimonio baja lo mismo que la liquidez y no hay frase de deuda.
+      await expect(impacto.locator("tbody tr")).toHaveCount(9);
+      await expect(impacto.locator("tbody tr").nth(7)).toContainText(/Deuda viva a 5 nov 2028\s*8\.000\s€\s*8\.000\s€\s*igual/);
+      await expect(impacto.locator("tbody tr").nth(6)).toContainText(/Liquidez a 5 nov 2028.*−10\.000\s€/s);
+      await expect(impacto.locator("tbody tr").nth(8)).toContainText(/Patrimonio sin vivienda ni cartera a 5 nov 2028.*−10\.000\s€/s);
+      await expect(impacto.locator(".prev-v2-patrimonio")).toHaveCount(0);
       // FX-20 (7/11): el colchón en meses en el punto más bajo, con el gasto corriente medio del plan (4.250 € en la demo):
       // 5.600 € son 1,3 meses; 2.500 €, 0,6; la diferencia es la resta de lo que se ve.
       await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*0,6\s*−0,7/);
@@ -5584,7 +5590,10 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await v2.locator('[data-prevision-v2-param="points"][data-valor="2"]').click();
       await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 2 puntos en la revisión del 1 mar 2027, no bajáis del suelo");
-      await expect(impacto.locator("tbody tr").last()).toContainText(/A 6 nov 2027.*−[\d.]+\s€/s);
+      await expect(impacto.locator("tbody tr").filter({ hasText: "A 6 nov 2027" })).toContainText(/−[\d.]+\s€/);
+      // FX-20 completa: con la cuota más alta se amortiza menos, así que a 24 meses también se debe más.
+      await expect(impacto.locator("tbody tr").filter({ hasText: "Deuda viva a 5 nov 2028" })).toContainText(/\+[\d.]+\s€/);
+      await expect(impacto.locator(".prev-v2-patrimonio")).toContainText(/más de deuda; el patrimonio queda [\d.]+\s€ por debajo del plan: la prueba cuesta más de lo que se ve en la caja\./);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Euribor +2");
       await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
 
@@ -6456,6 +6465,46 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
     await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo");
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+});
+
+// FX-20 completa (10/11/2026) · la deuda y el patrimonio a 24 meses: un escenario guardado que amortiza 2.000 € (FICTICIO) de la deuda
+// reunificada de la demo baja la caja 2.000 €, pero baja la deuda lo mismo: el patrimonio queda igual y la frase lo dice.
+test.describe("FX-20 completa · la deuda y el patrimonio a 24 meses", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`amortizar no se pierde: caja, deuda y patrimonio, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        saveEscenarioMotorSavedList([{ id: "fx20-amortiza", nombre: "Amortizar FICTICIO", estado: "guardado", savedAt: "2026-11-06T10:00:00.000Z",
+          decisiones: [{ id: "dec_fx20amortizaficticia00", tipo: "amortizacion", orden: 0, activa: true, planificacion: { modo: "manual", mesManual: "2027-01" }, params: { deudaId: "debt-reunified-cetelem", importe: 2000, parcial: true } }] }]);
+        previsionV2Render();
+      });
+      await v2.locator("[data-prevision-v2-guardado]").selectOption("fx20-amortiza");
+      const impacto = v2.locator(".prev-v2-impacto");
+      const filas = impacto.locator("tbody tr");
+      await expect(filas.filter({ hasText: "Liquidez a 5 nov 2028" })).toContainText(/21\.000\s€\s*19\.000\s€\s*−2\.000\s€/);
+      await expect(filas.filter({ hasText: "Deuda viva a 5 nov 2028" })).toContainText(/8\.000\s€\s*6\.000\s€\s*−2\.000\s€/);
+      await expect(filas.filter({ hasText: "Patrimonio sin vivienda ni cartera a 5 nov 2028" })).toContainText(/13\.000\s€\s*13\.000\s€\s*igual/);
+      await expect(impacto.locator(".prev-v2-patrimonio")).toHaveText("A 5 nov 2028, 2.000 € menos de caja y 2.000 € menos de deuda; el patrimonio queda igual que en el plan: lo que sale de la caja va a deber menos, no se pierde.");
+      await expect(impacto).toContainText("La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman");
+      // La deuda del plan es la de Deuda › Contratos con su calendario: la misma que da el motor con los contratos de la app.
+      const deudaPlan = await page.evaluate(() => {
+        const H = globalThis.FinanceCanonicalDebtHorizon;
+        return H.planDebt(canonicalDebtContractRows(), { startMonthKey: forecastMonths()[0].key, targetMonthKey: "2028-11", planned: previsionV2DeudaPlaneada().planned }).total;
+      });
+      expect(Math.round(deudaPlan / 1000) * 1000, "la fila redondea la deuda del motor").toBe(8000);
+      // La tabla cabe en la tarjeta (sin desbordar) también con las filas nuevas.
+      expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
 });
 
 // FX-20 (8/11/2026) · un escenario guardado en «Comparar con»: los de Escenarios › Guardados que no están en el plan, recalculados por
