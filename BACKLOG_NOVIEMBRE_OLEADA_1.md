@@ -21,7 +21,7 @@ minutos.
 
 ## 0. Estado en una línea
 
-**10/11/2026 · FX-22 hecho: aplazar un pago («continuamos?»).** «¿Y si…?» suma una cuarta palanca: un pago del plan, 1, 2 o 3 meses después, al mismo día. Guardada en Escenarios, son dos «Cambio de gasto» con los mismos meses. El panel del día lleva sus atajos («¿Y si…? un gasto este día · aplazar un pago») en lugar del clic largo, que no se descubre ni tiene teclado. Se corrige la frase cuando la prueba mejora el punto más bajo (PROJECT_STATE 439).
+**10/11/2026 · FX-22 hecho: aplazar un pago («continuamos?»).** «¿Y si…?» suma una cuarta palanca: un pago del plan, 1, 2 o 3 meses después, al mismo día. Guardada en Escenarios, son dos «Cambio de gasto» con los mismos meses. Debajo del panel del día van sus atajos («¿Y si…? un gasto este día · aplazar un pago») en lugar del clic largo, que no se descubre ni tiene teclado. Se corrige la frase cuando la prueba mejora el punto más bajo (PROJECT_STATE 439).
 
 **10/11/2026 · FX-20 hecho, versión completa: la deuda y el patrimonio a 24 meses («haz la mejor versión y más completa»).** La tabla de impacto añade la liquidez, la deuda viva y el patrimonio (sin vivienda ni cartera) a 24 meses. Los da un motor nuevo, `canonical-debt-horizon.js`, con:
 - el calendario francés de cada contrato;

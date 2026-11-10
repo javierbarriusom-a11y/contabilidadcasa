@@ -181,10 +181,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - **Cómo se mueve:** 1, 2 o 3 meses, al mismo día del mes. Sale de su mes por su partida y entra en el de destino como gasto fijo de ese día, igual que el imprevisto.
   - **Guardado:** dos «Cambio de gasto» de un mes (−importe y +importe), con paridad de meses con Escenarios.
   - **La lista de la palanca:** los pagos de los próximos 90 días desde el umbral de «Lo que viene», del mayor al menor.
-- **Los atajos del panel del día, en lugar del clic largo de la propuesta:** una línea «¿Y si…? un gasto este día · aplazar un pago».
+- **Los atajos del día, en lugar del clic largo de la propuesta:** una línea «¿Y si…? un gasto este día · aplazar un pago», justo debajo del panel del día.
   - El primero abre la palanca del gasto único con el día puesto. El segundo abre la de aplazar con el pago mayor de ese día ya elegido.
   - **Por qué no el clic largo:** no se descubre, choca con recorrer el gráfico con el dedo y no tiene equivalente de teclado.
-  - **Un intento anterior** puso un «aplazar» junto a cada pago, pero alargaba el panel a 962 px a 1440 (la e2e exige que quepa en 900). Se quitó.
+  - **Por qué fuera del recuadro del panel:** a 1440 px el panel tiene que caber en 900 px.
+    - Un primer intento puso un «aplazar» junto a cada pago y lo alargaba a 962 px en local.
+    - El segundo puso la línea de atajos dentro y el CI de #605 lo midió en 948,8 px: con las fuentes del runner, el panel ya rondaba los 895 sin ella.
+    - Fuera de la caja, el panel queda idéntico al de `main`.
+    - **Deuda de diseño a vigilar:** el panel no admite ni una línea más.
 - **La frase:**
   - Con solo un pago aplazado no lleva el «Sí, os lo podéis permitir»: aplazar no es un gasto que permitirse.
   - **Error previo corregido:** cuando la prueba mejora el punto más bajo, la frase decía «X € por debajo del plan». Ahora dice «por encima». Con el plan ya bajo el suelo, si la prueba lo saca de ahí, dice «ya no bajaríais del suelo» en vez de «faltarían 0 €».
@@ -203,6 +207,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Sellos: `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261110fx22b`. Novedades, una línea.
 - **Validación:**
   - `npm run verify` en verde: 6.522/6.522, «forecast y escenarios en 202,1 ms».
+  - El primer CI de #605 falló en esa medida de 900 px (948,8 px, 1 de 251); corregido sacando los atajos de la caja.
   - La primera pasada falló en `typecheck` porque las opciones de `pagosAplazables` y `applyAplazar` tenían `= {}` por defecto. Pasaron a ser obligatorias y las fases siguientes del verify salieron en verde.
   - En local, 46/46 en Chromium: e2e y axe de C2, FX-1x, FX-2x, FX-5x y XGO-01.
   - La de axe de FX-12 se pasó del tiempo de espera una vez bajo carga en paralelo y pasa sola.

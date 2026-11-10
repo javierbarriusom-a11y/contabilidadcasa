@@ -1252,14 +1252,15 @@ function previsionV2AplazarClave(event, date, today) {
 }
 
 /**
- * FX-22 PR-2: los atajos del panel del día a «¿Y si…?», en una sola línea (el panel tiene que caber en 900 px): un gasto ese día (desde
- * mañana) y aplazar un pago, con el mayor de ese día ya elegido (en la palanca se cambia por otro).
+ * FX-22 PR-2: los atajos del panel del día a «¿Y si…?», en una sola línea justo debajo del panel, fuera de su caja: un gasto ese día
+ * (desde mañana) y aplazar un pago, con el mayor de ese día ya elegido (en la palanca se cambia por otro). Fuera porque a 1440 px el
+ * panel ya llega casi a los 900 px que tiene que respetar (con las fuentes del CI, ~895): no cabe ni una línea más dentro.
  */
 function previsionV2AtajosDiaHtml(eventos, date, today) {
   if (!globalThis.FinanceCanonicalStressScenarios?.YSI) return "";
   const pago = eventos.map((event) => ({ event, clave: previsionV2AplazarClave(event, date, today) })).find((item) => item.clave);
   const atajos = [
-    date > today ? `<button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="${escapeHtml(date)}">un gasto este día</button>` : "",
+    date > today ? `<button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="${escapeHtml(date)}" aria-label="¿Y si…? un gasto este día, el ${escapeHtml(previsionV2Fecha(date, today))}">un gasto este día</button>` : "",
     pago ? `<button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="${escapeHtml(pago.clave)}" aria-label="Aplazar un pago de este día: ${escapeHtml(pago.event.label || "Pago")}">aplazar un pago</button>` : "",
   ].filter(Boolean);
   return atajos.length ? `<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? ${atajos.join(" · ")}</p>` : "";
@@ -1310,9 +1311,8 @@ function previsionV2DiaHtml(ctx, date) {
     <p class="e19-eyebrow prev-v2-dia-mueve">Qué lo mueve</p>
     ${lista}
     ${tramoResumen}
-    ${previsionV2AtajosDiaHtml(eventos, date, today)}
     <p class="e19-kpi-note prev-v2-dia-pista">${previsionV2Dia.fijado ? "Día fijado." : "Recorre el gráfico con el ratón, el dedo o ← →; al hacer clic o tocar, el día se queda fijo."} ${volver}</p>
-  </aside>`;
+  </aside>${previsionV2AtajosDiaHtml(eventos, date, today)}`;
 }
 
 function previsionV2PintaDia() {
