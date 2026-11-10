@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**10/11/2026 · FX-13 hecho: la previsión por cuenta y el traspaso sugerido («continuar»).** Bajo el gráfico, «Total · Por cuenta»: la cuenta corriente con su mínimo y el ahorro. Si la cuenta corriente se queda corta con el total sano, una tarjeta propone el traspaso concreto a 0 € sin moverlo (PROJECT_STATE 437). FX-20 (deuda y patrimonio a 24 m) sigue esperando la respuesta del hogar.
+
 **9/11/2026 · FX-22 PR-1: «¿Y si…?» desde la Previsión («continua»).** En «Comparar con», un gasto único y un cambio de ingreso o de gasto al mes, sumados; la respuesta primero («Sí, os lo podéis permitir», «Sí, pero pasando dinero del ahorro a tiempo» o «No sin tocar nada») y «Guardar como escenario» con paridad de meses. **Se consulta:** cerrar FX-20 sin la deuda ni el patrimonio a 24 m (dirían «igual» o repetirían la liquidez) (PROJECT_STATE 436).
 
 **9/11/2026 · FX-23 completo: Comparar con las pruebas de estrés sin guardar y el minigráfico por columna (D-N10).** En Escenarios › Comparar, las tres pruebas de D-N3 sin guardarlas (la que falta, desactivada con su motivo) y una línea por columna con la liquidez a fin de mes en la misma escala. De paso, las cabeceras de esa tabla pasan el contraste (PROJECT_STATE 435).
@@ -327,7 +329,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 |---|---|---|---|---|---|---|
 | 1 | FX-21 (resto) | Las otras 4 pruebas de estrés | 8ª | M · 1 | FX-20 | Las que tengan sus datos (local, cartera, ingresos inciertos) |
 | 2 | FX-14 / XPR-04 | El mes en curso al ritmo real | 7ª | M · 2 | FX-03 | Previsión y Plan › Mes |
-| 3 | FX-13 / XPR-05 | Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos) | 7ª, Def §5.0 | M · 2,5 | FX-10 | Nunca ejecuta el traspaso |
+| 3 | FX-13 / XPR-05 | Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos) | 7ª, Def §5.0 | M · 2,5 | FX-10 | Nunca ejecuta el traspaso · **Hecho 10/11**: «Total · Por cuenta» en el gráfico (cuenta corriente con su mínimo y ahorro) y la tarjeta del traspaso sugerido (traspasar menos al ahorro o pasar del ahorro antes del día, a 0 €) |
 | 4 | FX-22 | «¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas) | 8ª, Def P3 | M · 2 | FX-20 | Responde «¿me lo puedo permitir?» · **PR-1 hecho 9/11**: gasto único, cambio de ingreso y de gasto al mes, con veredicto y «Guardar como escenario»; faltan «aplazar un pago» y el clic largo en el gráfico |
 | 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana |
 | 6 | FX-60 / XUX-01 | Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir | 7ª, Def §5.0 | L · 4 | FX-10 | Redirige `#forecast`, Previsión mensual, Análisis, Mapa de calor |

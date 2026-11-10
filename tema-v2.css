@@ -4579,3 +4579,35 @@
   grid-column: 1 / -1;
   margin: 0;
 }
+
+/* FX-13 (10/11/2026) · «Total · Por cuenta» sobre el gráfico y el traspaso sugerido. */
+:root[data-tema="v2"] .prev-v2-vista {
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 12px;
+}
+
+:root[data-tema="v2"] .prev-v2-traspaso {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-traspaso-titulo {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-traspaso-opciones {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-traspaso-opciones li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}

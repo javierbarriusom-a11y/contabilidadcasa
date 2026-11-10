@@ -5962,6 +5962,54 @@ test("la inflación anual de Ajustes recalcula la Previsión sin cortar la app",
   expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
 });
 
+// FX-13 (10/11/2026) · «Total · Por cuenta» en el gráfico de la Previsión: por cuenta, la cuenta corriente con su mínimo (0 € sin
+// reserva: «descubierto») y el ahorro en discontinua, con leyenda, lectura y tabla por cuenta; se recuerda en el dispositivo.
+test.describe("FX-13 · la previsión por cuenta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el conmutador, las dos líneas con su mínimo y la tabla por cuenta, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 10, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const vista = v2.locator(".prev-v2-vista [data-prevision-v2-vista]");
+      await expect(vista).toHaveText(["Total", "Por cuenta"]);
+      await expect(vista.first()).toHaveAttribute("aria-pressed", "true");
+      await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("suelo");
+      await vista.nth(1).click();
+      await expect(v2.locator('.prev-v2-vista [data-prevision-v2-vista="cuentas"]')).toBeFocused();
+      await expect(v2.locator('.prev-v2-vista [data-prevision-v2-vista="cuentas"]')).toHaveAttribute("aria-pressed", "true");
+      expect(await page.evaluate(() => localStorage.getItem("prevision-v2-vista"))).toBe("cuentas");
+      await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("descubierto 0");
+      await expect(v2.locator(".ck-escenario-etiqueta")).toHaveText("Ahorro");
+      await expect(v2.locator(".prev-v2-leyenda")).toContainText("Línea continua: la cuenta corriente. Discontinua: el ahorro.");
+      await expect(v2.locator('[data-ck-id="prevision-v2"] svg').first()).toHaveAttribute("aria-label", /^Cuenta corriente prevista de los próximos 3 meses, con su mínimo de 0\s€; el ahorro, en discontinua$/);
+      await v2.locator(".ck-tabla > summary").click();
+      await expect(v2.locator(".ck-tabla thead th")).toHaveText(["Día", "Cuenta corriente", "Ahorro"]);
+      if (viewport.width === 1440) {
+        // La leyenda va dentro de la figura: el gráfico por cuenta también cabe en 900 px, con el panel del día a la derecha.
+        const figura = await v2.locator('[data-ck-id="prevision-v2"] .ck-plot').boundingBox();
+        expect(figura.y + figura.height, "el gráfico por cuenta cabe en 900 px sin desplazar").toBeLessThanOrEqual(900);
+      }
+      // La cuenta corriente toca su mínimo el día de los cargos (8 dic) sin bajar de él: el plan deja la reserva (D-N8).
+      await expect(v2.locator(".ck-tabla tbody tr").filter({ hasText: "8 dic" }).first()).toContainText(/0\s€/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // Se recuerda al volver y «Total» devuelve el gráfico de siempre.
+      await page.reload();
+      await page.locator('[data-plan-tab="prevision"]').click();
+      await expect(v2.locator('.prev-v2-vista [data-prevision-v2-vista="cuentas"]')).toHaveAttribute("aria-pressed", "true");
+      await v2.locator('.prev-v2-vista [data-prevision-v2-vista="total"]').click();
+      await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("suelo");
+      await expect(v2.locator(".prev-v2-leyenda")).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // FX-22 (9/11/2026) · «¿Y si…?» desde la Previsión: un gasto único de 4.000 € (INVENTADO) el 9 dic deja el total sobre el suelo pero la
 // cuenta corriente en descubierto («Sí, pero pasando dinero del ahorro a tiempo»); con 900 € más de gasto al mes (INVENTADO) se baja
 // del suelo («No sin tocar nada»). Se calcula al salir del campo, el foco se queda en él y «Guardar como escenario» lleva las dos.

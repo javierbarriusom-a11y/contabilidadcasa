@@ -173,6 +173,25 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 10 de noviembre de 2026 (437): FX-13 · la previsión por cuenta y el traspaso sugerido
+
+- **Petición del hogar:** «continuar». FX-20 (deuda y patrimonio a 24 m) sigue esperando su respuesta. Lo siguiente con más valor: FX-13 (XPR-05), por el riesgo de descubierto de la cuenta corriente con el total sano, que salió en las pruebas de estrés.
+- **«Total · Por cuenta»** (`views/prevision-v2.js`). El conmutador va bajo el gráfico, al principio del bloque de «Comparar con», y se recuerda en el dispositivo (`prevision-v2-vista`, en EXCLUDED de ARQ-6).
+  - Por cuenta: la cuenta corriente con su mínimo (la reserva operativa, o 0 €: «descubierto») y el ahorro en discontinua, con leyenda dentro de la figura, lectura y tabla por cuenta.
+  - Salen de las mismas filas del motor diario, sin cálculo nuevo, y sin la prueba de estrés, que se ve en «Total».
+  - Con la demo se ve lo que la cifra total no dice: la cuenta corriente toca 0 € cada día 8, con el ahorro sobrado.
+- **Traspaso sugerido** (el PR-2 de XPR-07, traspasos): la tarjeta «Para que la cuenta corriente no se quede corta el …».
+  - Sale solo si la cuenta corriente baja de su mínimo, el total no baja del suelo y el ahorro de ese día alcanza.
+  - Propone primero «Traspasar unos X € menos al ahorro el …», si basta, y luego «Pasar unos X € del ahorro a la cuenta corriente antes del …». Las dos, a 0 €.
+  - «La app no mueve dinero: el traspaso lo hacéis en el banco» (A11-4), y un enlace a «Ver por cuenta».
+  - En la demo no sale: el plan deja justo la reserva (D-N8). Saldrá con cargos grandes a destiempo.
+- **Errores propios corregidos antes de subir:** el conmutador, primero dentro de la tarjeta (descolocaba la rejilla: el gráfico dejaba de caber en 900 px) y luego encima (bajaba el gráfico en el móvil), va al final debajo del gráfico. La leyenda va dentro de la figura (`noteHtml`) por la misma razón.
+- **Pruebas:**
+  - `tests/fx13-por-cuenta.test.cjs` (4): la vista real en un `vm`; cuándo sale el traspaso y cuándo no; el orden de las opciones; la reserva como mínimo; el conmutador, sin titulares nuevos.
+  - e2e «FX-13 · la previsión por cuenta» a 390 (`@safari`) y 1440 px: el conmutador recordado, el mínimo y el ahorro etiquetados, la tabla por cuenta y que el gráfico por cuenta cabe en 900 px. axe claro/oscuro.
+  - Sellos: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261110fx13a`. Novedades, una línea.
+- **Validación:** `npm run verify` en verde (6.508/6.508; «forecast y escenarios en 135,8 ms»). En local, 75/75 e2e y axe de C2, FX, WP-37, XPR y XGO-01.
+
 ## Cierre de sesión — 9 de noviembre de 2026 (436): FX-22 · «¿Y si…?» desde la Previsión; FX-20 (deuda y patrimonio a 24 m) se consulta
 
 - **Petición del hogar:** «continua».

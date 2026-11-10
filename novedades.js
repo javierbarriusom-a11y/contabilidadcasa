@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-10-por-cuenta",
+      fecha: "2026-11-10",
+      texto: "Previsión: «Por cuenta» pinta la cuenta corriente y el ahorro, y si la cuenta se queda corta con el total sano, propone el traspaso.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-09-y-si",
       fecha: "2026-11-09",
       texto: "Previsión: «¿Y si…?» en «Comparar con» responde si os lo podéis permitir: un gasto único o un cambio de ingreso o gasto al mes.",
