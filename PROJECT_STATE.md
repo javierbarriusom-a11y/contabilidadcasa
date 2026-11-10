@@ -173,6 +173,41 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 10 de noviembre de 2026 (439): FX-22 PR-2 · aplazar un pago, y los atajos del panel del día
+
+- **Petición del hogar:** «continuamos?». Sin respuesta todavía al redondeo de las diferencias a 24 m (438), que no se toca. FX-22 PR-2 era lo siguiente que no dependía de una decisión pendiente ni del turno semanal de Hoy.
+- **La cuarta palanca de «¿Y si…?», «Aplazar un pago»** (`canonical-stress-scenarios.js` `pagosAplazables`, `applyAplazar`, `APLAZAR_MESES`):
+  - **Qué se puede aplazar:** un cargo fechado del plan (gasto fijo, coche, financiación) o lo que paga de golpe un proyecto el día de la nómina. No el gasto variable estimado, que no es un pago.
+  - **Cómo se mueve:** 1, 2 o 3 meses, al mismo día del mes. Sale de su mes por su partida y entra en el de destino como gasto fijo de ese día, igual que el imprevisto.
+  - **Guardado:** dos «Cambio de gasto» de un mes (−importe y +importe), con paridad de meses con Escenarios.
+  - **La lista de la palanca:** los pagos de los próximos 90 días desde el umbral de «Lo que viene», del mayor al menor.
+- **Los atajos del panel del día, en lugar del clic largo de la propuesta:** una línea «¿Y si…? un gasto este día · aplazar un pago».
+  - El primero abre la palanca del gasto único con el día puesto. El segundo abre la de aplazar con el pago mayor de ese día ya elegido.
+  - **Por qué no el clic largo:** no se descubre, choca con recorrer el gráfico con el dedo y no tiene equivalente de teclado.
+  - **Un intento anterior** puso un «aplazar» junto a cada pago, pero alargaba el panel a 962 px a 1440 (la e2e exige que quepa en 900). Se quitó.
+- **La frase:**
+  - Con solo un pago aplazado no lleva el «Sí, os lo podéis permitir»: aplazar no es un gasto que permitirse.
+  - **Error previo corregido:** cuando la prueba mejora el punto más bajo, la frase decía «X € por debajo del plan». Ahora dice «por encima». Con el plan ya bajo el suelo, si la prueba lo saca de ahí, dice «ya no bajaríais del suelo» en vez de «faltarían 0 €».
+- **Con la demo (cifras INVENTADAS):** aplazar «Gastos del hogar» (1.350 €) del 8 dic al 8 ene sube el punto más bajo de 5.600 € a 7.000 €, y el 31/12, +1.400 €. El 5 feb queda igual.
+- **Pruebas:**
+  - `tests/fx22-aplazar-pago.test.cjs` (4):
+    - qué pagos se pueden aplazar;
+    - el movimiento por partida y el día capado (31 dic → 28 feb);
+    - la paridad con Escenarios por meses y el esquema;
+    - la financiación y el proyecto;
+    - junto a otra palanca;
+    - fuera del plan, nada;
+    - la vista en un `vm`: la frase, el veredicto y los atajos.
+  - **Actualizadas:** `tests/fx22-y-si.test.cjs` (el texto de lo que falta) y la e2e de FX-22 (cuatro palancas).
+  - e2e «FX-22 PR-2» a 390 (`@safari`) y 1440 px, y axe claro/oscuro.
+  - Sellos: `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261110fx22b`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde: 6.522/6.522, «forecast y escenarios en 202,1 ms».
+  - La primera pasada falló en `typecheck` porque las opciones de `pagosAplazables` y `applyAplazar` tenían `= {}` por defecto. Pasaron a ser obligatorias y las fases siguientes del verify salieron en verde.
+  - En local, 46/46 en Chromium: e2e y axe de C2, FX-1x, FX-2x, FX-5x y XGO-01.
+  - La de axe de FX-12 se pasó del tiempo de espera una vez bajo carga en paralelo y pasa sola.
+  - Las 13 `@safari` no corren aquí (falta WebKit); las corre el CI.
+
 ## Cierre de sesión — 10 de noviembre de 2026 (438): FX-20 completa · la deuda y el patrimonio a 24 meses en la tabla de impacto
 
 - **Petición del hogar:** a la consulta de la 436 («¿lo cierro sin la deuda ni el patrimonio a 24 meses?»), «haz la mejor versión y más completa».

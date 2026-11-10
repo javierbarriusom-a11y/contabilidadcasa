@@ -6036,8 +6036,8 @@ test.describe("FX-22 · ¿Y si…? desde la Previsión", () => {
       await expect(v2).toBeVisible({ timeout: 15000 });
       await v2.locator('[data-prevision-v2-prueba="ysi"]').click();
       await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
-      await expect(v2.locator(".prev-v2-ysi legend")).toHaveText(["Un gasto único", "Ingreso al mes", "Gasto al mes"]);
-      await expect(v2.locator(".prev-v2-impacto-nota")).toHaveText("Escribe un importe en alguna de las tres palancas para ver si os lo podéis permitir.");
+      await expect(v2.locator(".prev-v2-ysi legend")).toHaveText(["Un gasto único", "Ingreso al mes", "Gasto al mes", "Aplazar un pago"]); // FX-22 PR-2
+      await expect(v2.locator(".prev-v2-impacto-nota")).toHaveText("Escribe un importe o elige un pago que aplazar para ver si os lo podéis permitir.");
       await expect(v2.locator("[data-prevision-v2-segunda]"), "no se suma a otra prueba").toHaveCount(0);
       const importe = v2.locator("#prevV2YSi-unico-amount");
       await importe.fill("4.000");
@@ -6056,6 +6056,51 @@ test.describe("FX-22 · ¿Y si…? desde la Previsión", () => {
       const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
       expect(entry.nombre).toMatch(/^Prueba · ¿y si…\? un gasto de 4\.000\s€ el 9 dic 2026 \+ 900\s€ más de gasto al mes de dic 26 a feb 27$/);
       expect(entry.decisiones.map((d) => d.tipo)).toEqual(["imprevisto", "cambio_gasto"]);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// FX-22 PR-2 (10/11/2026) · aplazar un pago desde el panel del día: el 8 dic (el día más bajo de la demo) «aplazar un pago» abre
+// «¿Y si…?» con el mayor de ese día elegido («Gastos del hogar»); un mes después, el punto más bajo sube; guardado, son dos «Cambio de gasto». «¿Y si…? un
+// gasto este día» abre la palanca del gasto único con el día puesto. Datos de la demo.
+test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el atajo, la frase sin veredicto, la tabla y guardar; y el gasto de ese día, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const dia = v2.locator(".prev-v2-dia");
+      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
+      // Una línea de atajos: el pago mayor del día que se puede aplazar (el gasto variable de 1.750 € no es un pago).
+      await expect(dia.locator(".prev-v2-dia-atajos")).toHaveText("¿Y si…? un gasto este día · aplazar un pago");
+      await dia.getByRole("button", { name: "Aplazar un pago de este día: Gastos del hogar" }).click();
+      await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
+      const pago = v2.locator("#prevV2YSi-aplazar-key");
+      await expect(pago).toBeFocused();
+      await expect(pago.locator("option:checked")).toHaveText("Gastos del hogar · 1.350 € · 8 dic");
+      const impacto = v2.locator(".prev-v2-impacto");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveText("Con «Gastos del hogar» (1.350 €) aplazado del 8 dic al 8 ene 2027, no bajáis del suelo: el punto más bajo queda 7.000 € el 8 dic, 1.400 € por encima del plan.");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/5\.600\s€.*7\.000\s€.*\+1\.400\s€/s);
+      await expect(impacto.locator("tbody tr").filter({ hasText: "A 31 de diciembre" })).toContainText(/\+1\.400\s€/);
+      await v2.locator("#prevV2YSi-aplazar-months").selectOption("2");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("aplazado del 8 dic al 8 feb 2027");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await v2.locator("[data-prevision-v2-guardar]").click();
+      await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
+      const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
+      expect(entry.decisiones.map((d) => [d.tipo, d.params.mesInicio, d.params.deltaMensual])).toEqual([["cambio_gasto", "2026-12", -1350], ["cambio_gasto", "2027-02", 1350]]);
+      // «¿Y si…? un gasto este día»: la palanca del gasto único con el día del panel.
+      await v2.locator("#prevV2YSi-aplazar-key").selectOption("");
+      await v2.locator("[data-prevision-v2-ysi-dia]").click();
+      await expect(v2.locator("#prevV2YSi-unico-amount")).toBeFocused();
+      await expect(v2.locator("#prevV2YSi-unico-date")).toHaveValue("2026-12-08");
       expect(pageErrors).toEqual([]);
     });
   }

@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-10-aplazar-pago",
+      fecha: "2026-11-10",
+      texto: "Previsión: «¿Y si…?» ya aplaza un pago uno, dos o tres meses; desde el panel del día, «aplazar» junto a cada pago.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-10-patrimonio-24m",
       fecha: "2026-11-10",
       texto: "Previsión: al comparar con una prueba, la tabla añade la deuda y el patrimonio a 24 meses; con el Euribor se ve que también se debe más.",
