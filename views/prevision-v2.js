@@ -30,7 +30,7 @@ let previsionV2Escenario = ""; // FX-20: la prueba de estrés superpuesta, o «g
 let previsionV2Segunda = ""; // FX-20 (7/11): una segunda prueba a la vez, sobre la misma trayectoria; hasta recargar
 const previsionV2Params = { concept: "", months: 3, points: 1, amount: 3000 }; // FX-21 (D-N3): de quién, cuántos meses y cuántos puntos
 // FX-22: lo que se escribe en «¿Y si…?», tal cual (texto de los campos), hasta recargar. «months» 0 = hasta el final del plan.
-const previsionV2YSi = { unico: { amount: "", date: "" }, ingreso: { delta: "", from: "", months: "3" }, gasto: { delta: "", from: "", months: "3" } };
+const previsionV2YSi = { unico: { amount: "", date: "" }, ingreso: { delta: "", from: "", months: "3" }, gasto: { delta: "", from: "", months: "3" }, aplazar: { key: "", months: "1" } };
 const previsionV2Cache = new Map(); // FX-21: cada prueba se calcula una vez por trayectoria del plan y parámetros
 let previsionV2Dia = { date: "", fijado: false }; // FX-10 PR-2: el día del panel; sin fijar, sigue al ratón
 let previsionV2Pulsado = false; // un clic, un toque o una tecla sobre el gráfico fija el día
@@ -159,7 +159,51 @@ function previsionV2YSiParams(today) {
     unico: unicoImporte > 0 ? { amount: unicoImporte, date: previsionV2YSi.unico.date || previsionV2AddDays(today, 30) } : null,
     ingreso: { delta: previsionV2Importe(previsionV2YSi.ingreso.delta), from: previsionV2YSi.ingreso.from || siguiente, months: Number(previsionV2YSi.ingreso.months) || 0 },
     gasto: { delta: previsionV2Importe(previsionV2YSi.gasto.delta), from: previsionV2YSi.gasto.from || siguiente, months: Number(previsionV2YSi.gasto.months) || 0 },
+    aplazar: previsionV2YSi.aplazar.key ? { key: previsionV2YSi.aplazar.key, months: Number(previsionV2YSi.aplazar.months) || 1 } : null,
   };
+}
+
+// ---- FX-22 PR-2 · aplazar un pago (10/11/2026) -----------------------------------------------------------------------------
+// La cuarta palanca: un pago del plan de los próximos 90 días (desde el umbral de «Lo que viene»), 1, 2 o 3 meses después, al mismo día.
+// Se llega desde la palanca o desde el panel del día («Aplazar» junto a cada pago). En vez del clic largo en el gráfico que pedía la
+// propuesta, el panel del día lleva los dos atajos a la vista: un gesto escondido no se descubre, choca con recorrer el gráfico con el
+// dedo y no tiene equivalente de teclado.
+const PREVISION_V2_APLAZAR_DIAS = 90;
+const previsionV2AplazablesCache = new WeakMap();
+
+/** Los pagos que se pueden aplazar desde hoy hasta el final del plan (para los botones del panel del día), una vez por trayectoria. */
+function previsionV2Aplazables(today) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const rows = previsionV2Ultimo?.rows;
+  if (!S?.pagosAplazables || typeof canonicalEngineInput !== "function") return [];
+  const cached = rows ? previsionV2AplazablesCache.get(rows) : null;
+  if (cached?.today === today) return cached.pagos;
+  const pagos = S.pagosAplazables(previsionV2Entrada(), { from: today, to: "9999-12-31" });
+  if (rows) previsionV2AplazablesCache.set(rows, { today, pagos });
+  return pagos;
+}
+
+/** La clave de un movimiento del día, la misma que da pagosAplazables (fecha|partida|concepto; el proyecto, sin concepto). */
+function previsionV2ClaveDia(event, date) {
+  return `${event.date || date}|${event.field}|${event.field === "projectOutflow" ? "" : event.label || ""}`;
+}
+
+/** La palanca «Aplazar un pago»: los pagos de los próximos 90 días desde el umbral, y el elegido aunque quede fuera. */
+function previsionV2AplazarHtml(today) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  if (!S?.pagosAplazables) return "";
+  const fin = previsionV2AddDays(today, PREVISION_V2_APLAZAR_DIAS);
+  const todos = previsionV2Aplazables(today);
+  const elegido = previsionV2YSi.aplazar.key;
+  const lista = todos.filter((pago) => (pago.date <= fin && pago.amount >= previsionV2Umbral()) || pago.key === elegido);
+  const texto = (pago) => `${pago.concept} · ${money(pago.amount)} · ${previsionV2Fecha(pago.date, today)}`;
+  const opciones = [`<option value="">Ninguno</option>`, ...lista.map((pago) => `<option value="${escapeHtml(pago.key)}"${pago.key === elegido ? " selected" : ""}>${escapeHtml(texto(pago))}</option>`)].join("");
+  const meses = S.APLAZAR_MESES.map((n) => `<option value="${n}"${String(n) === String(previsionV2YSi.aplazar.months) ? " selected" : ""}>${n} ${n === 1 ? "mes" : "meses"} después</option>`).join("");
+  return `<fieldset class="prev-v2-ysi-palanca">
+      <legend>Aplazar un pago</legend>
+      <label><span>Qué pago</span><select id="prevV2YSi-aplazar-key" data-prevision-v2-ysi="aplazar.key">${opciones}</select></label>
+      <label><span>Cuándo</span><select id="prevV2YSi-aplazar-months" data-prevision-v2-ysi="aplazar.months">${meses}</select></label>
+    </fieldset>`;
 }
 
 function previsionV2YSiHtml(params, today) {
@@ -182,7 +226,8 @@ function previsionV2YSiHtml(params, today) {
     </fieldset>
     ${palanca("ingreso", "Ingreso al mes", "Cambio (€, con − si baja)")}
     ${palanca("gasto", "Gasto al mes", "Cambio (€, con − si baja)")}
-    <p class="e19-kpi-note">Se suman las tres. Se calcula al salir de cada campo; no cambia el plan.</p>
+    ${previsionV2AplazarHtml(today)}
+    <p class="e19-kpi-note">Se suman todas. Se calcula al salir de cada campo; no cambia el plan.</p>
   </div>`;
 }
 
@@ -456,6 +501,7 @@ function previsionV2YSiTexto(info, today) {
   if (info?.unico) partes.push(`un gasto de ${money(info.unico.amount)} el ${previsionV2Fecha(info.unico.date, today)}`);
   if (info?.ingreso) partes.push(`${money(Math.abs(info.ingreso.delta))} ${info.ingreso.delta < 0 ? "menos" : "más"} de ingreso al mes ${tramo(info.ingreso)}`);
   if (info?.gasto) partes.push(`${money(Math.abs(info.gasto.delta))} ${info.gasto.delta < 0 ? "menos" : "más"} de gasto al mes ${tramo(info.gasto)}`);
+  if (info?.aplazar) partes.unshift(`«${info.aplazar.concept}» (${money(info.aplazar.amount)}) aplazado del ${previsionV2Fecha(info.aplazar.from, today)} al ${previsionV2Fecha(info.aplazar.to, today)}`);
   return partes;
 }
 
@@ -600,10 +646,10 @@ function previsionV2CompararHtml(prueba, today) {
   const frase = fuera
     ? `${cuando}, la cuota sube, pero eso cae después de este horizonte: elige 12 m o más para ver cuánto os quita.`
     : c.baseCrossesFloor
-    ? `El plan ya baja del suelo el ${previsionV2Fecha(c.baseCrossDate, today)}. ${cuando}, el punto más bajo queda ${money(bajada)} más abajo y faltarían ${money(contract.roundDifference(c.shortfall))}.`
+    ? `El plan ya baja del suelo el ${previsionV2Fecha(c.baseCrossDate, today)}. ${cuando}, el punto más bajo queda ${bajada ? `${money(bajada)} más ${bajadaVista < 0 ? "abajo" : "arriba"}` : "igual"}${c.crossesFloor ? ` y faltarían ${money(contract.roundDifference(c.shortfall))}` : ": ya no bajaríais del suelo"}.`
     : c.crossesFloor
     ? `${cuando}, bajáis del suelo el ${previsionV2Fecha(c.crossDate, today)}. Para evitarlo haría falta recortar unos ${money(contract.roundDifference(c.monthlyCut))} al mes de gasto hasta entonces, o tirar del plan B.`
-    : `${cuando}, no bajáis del suelo: el punto más bajo queda ${nivel(c.low)} el ${previsionV2Fecha(c.low.date, today)}, ${bajada ? `${money(bajada)} por debajo del plan` : "igual que en el plan"}.`;
+    : `${cuando}, no bajáis del suelo: el punto más bajo queda ${nivel(c.low)} el ${previsionV2Fecha(c.low.date, today)}, ${bajada ? `${money(bajada)} ${bajadaVista < 0 ? "por debajo" : "por encima"} del plan` : "igual que en el plan"}.`;
   // El suelo también en la cuenta corriente: si la prueba la deja por debajo y el plan no, se dice a continuación.
   // Si el plan ya la deja por debajo, solo se dice cuando la prueba la hunde más, con lo que habría que pasar entonces.
   const cuentaPeor = Boolean(cuentaPrueba?.crossDate && cuentaPlan?.crossDate && cuentaPrueba.gap > cuentaPlan.gap + 0.5);
@@ -643,7 +689,7 @@ function previsionV2CompararHtml(prueba, today) {
 
 /** Por qué no hay tabla: falta un importe («¿Y si…?»), falta un dato (con el camino a Deuda › Contratos) o no se puede aplicar. */
 function previsionV2MotivoFallo(prueba) {
-  if (previsionV2Escenario === "ysi") return "Escribe un importe en alguna de las tres palancas para ver si os lo podéis permitir.";
+  if (previsionV2Escenario === "ysi") return "Escribe un importe o elige un pago que aplazar para ver si os lo podéis permitir.";
   const fallo = prueba?.failed?.id || previsionV2Escenario;
   const cual = prueba?.combined ? ` («${prueba.failed?.short || ""}»)` : "";
   if (prueba?.missing?.length) return `Para esta prueba${cual} falta ${prueba.missing.join(", ")}. <button type="button" class="hoy-v2-link" data-prevision-v2-nav="deuda-contratos">Ir a Deuda › Contratos</button>`;
@@ -656,6 +702,9 @@ function previsionV2MotivoFallo(prueba) {
  */
 function previsionV2Veredicto(prueba, c, cuentaCorta) {
   if (prueba?.preset?.id !== "ysi") return "";
+  // Solo aplazar un pago no es un gasto que permitirse: la frase ya dice si sube o baja el punto más bajo.
+  const info = prueba.info || {};
+  if (info.aplazar && !info.unico && !info.ingreso && !info.gasto) return "";
   if (c.crossesFloor) return "No sin tocar nada. ";
   return cuentaCorta ? "Sí, pero pasando dinero del ahorro a tiempo. " : "Sí, os lo podéis permitir. ";
 }
@@ -1195,6 +1244,33 @@ function previsionV2DiaItemHtml(event) {
   return `<li class="prev-v2-dia-item"><span class="prev-v2-dia-que">${escapeHtml(label)}${certeza}</span><strong class="prev-v2-dia-importe${ingreso ? " is-pos" : ""}">${ingreso ? "+" : "−"}${escapeHtml(money(event.amount))}</strong></li>`;
 }
 
+/** La clave del pago si se puede aplazar (sale en la lista de pagosAplazables), o "". */
+function previsionV2AplazarClave(event, date, today) {
+  if (event.kind !== "outflow" || event.field === "variableOperationalSpend") return "";
+  const clave = previsionV2ClaveDia(event, date);
+  return previsionV2Aplazables(today).some((pago) => pago.key === clave) ? clave : "";
+}
+
+/**
+ * FX-22 PR-2: los atajos del día elegido a «¿Y si…?», en una línea que dice el día: un gasto ese día (desde mañana) y aplazar un pago,
+ * con el mayor de ese día ya elegido (en la palanca se cambia por otro). Van fuera del panel del día y de su columna: a 1440 px el
+ * panel y el gráfico ya llegan casi a los 900 px que tienen que respetar, y cualquier línea en esa columna estira la rejilla (el CI de
+ * #605 lo midió dos veces). En escritorio quedan bajo el gráfico; en el móvil, justo bajo el panel.
+ */
+function previsionV2AtajosHtml(ctx, date) {
+  const row = ctx?.tramo?.find((item) => item.date === date);
+  if (!row || !globalThis.FinanceCanonicalStressScenarios?.YSI) return "";
+  const { today } = ctx;
+  const fecha = previsionV2Fecha(date, today);
+  const pagos = (row.events || []).filter((event) => event.kind === "outflow" && Number(event.amount) > 0).sort((a, b) => Number(b.amount) - Number(a.amount));
+  const pago = pagos.map((event) => ({ event, clave: previsionV2AplazarClave(event, date, today) })).find((item) => item.clave);
+  const atajos = [
+    date > today ? `<button type="button" class="hoy-v2-link" data-prevision-v2-ysi-dia="${escapeHtml(date)}" aria-label="Un gasto ese día, el ${escapeHtml(fecha)}">un gasto ese día</button>` : "",
+    pago ? `<button type="button" class="hoy-v2-link" data-prevision-v2-aplazar="${escapeHtml(pago.clave)}" aria-label="Aplazar un pago del ${escapeHtml(fecha)}: ${escapeHtml(pago.event.label || "Pago")}">aplazar un pago</button>` : "",
+  ].filter(Boolean);
+  return atajos.length ? `<p class="e19-kpi-note prev-v2-dia-atajos">¿Y si…? El ${escapeHtml(fecha)}: ${atajos.join(" · ")}</p>` : "";
+}
+
 function previsionV2DiaHtml(ctx, date) {
   const row = ctx?.tramo?.find((item) => item.date === date);
   if (!row) return "";
@@ -1247,6 +1323,8 @@ function previsionV2DiaHtml(ctx, date) {
 function previsionV2PintaDia() {
   const hueco = qs("planPrevisionV2")?.querySelector(".prev-v2-dia-hueco");
   if (hueco && previsionV2Ultimo) hueco.innerHTML = previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo));
+  const atajos = qs("planPrevisionV2")?.querySelector(".prev-v2-atajos-hueco");
+  if (atajos && previsionV2Ultimo) atajos.innerHTML = previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo));
 }
 
 /** Tras pintar, el cursor del gráfico en el día del panel (de entrada, el punto más bajo). */
@@ -1559,6 +1637,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
       ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
+      <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
@@ -1729,6 +1808,19 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       previsionV2Render();
       qs("planPrevisionV2")?.querySelector(`[data-prevision-v2-segunda="${previsionV2Segunda}"]`)?.focus();
+      return;
+    }
+    // FX-22 PR-2: los atajos del panel del día abren «¿Y si…?» con el pago o el día ya puestos.
+    const aplazar = event.target.closest("[data-prevision-v2-aplazar]");
+    const ysiDia = event.target.closest("[data-prevision-v2-ysi-dia]");
+    if (aplazar || ysiDia) {
+      previsionV2Escenario = "ysi";
+      previsionV2Segunda = "";
+      if (aplazar) previsionV2YSi.aplazar.key = aplazar.dataset.previsionV2Aplazar;
+      else previsionV2YSi.unico.date = ysiDia.dataset.previsionV2YsiDia;
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      previsionV2Render();
+      qs(aplazar ? "prevV2YSi-aplazar-key" : "prevV2YSi-unico-amount")?.focus();
       return;
     }
     const prueba = event.target.closest("[data-prevision-v2-prueba]");

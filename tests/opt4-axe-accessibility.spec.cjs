@@ -1732,6 +1732,27 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-22 PR-2 (10/11/2026) · los atajos del panel del día y la palanca «Aplazar un pago» con un pago elegido, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-22 PR-2 · contraste de aplazar un pago en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con un pago aplazado desde el panel del día: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 6, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await expect(v2.locator("[data-prevision-v2-aplazar]").first()).toBeVisible();
+      await v2.locator("[data-prevision-v2-aplazar]").first().click();
+      await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("aplazado del");
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-13 (10/11/2026) · el gráfico por cuenta, con su leyenda y su tabla abierta, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-13 · contraste de la previsión por cuenta en modo ${scheme}`, () => {

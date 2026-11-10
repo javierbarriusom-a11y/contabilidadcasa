@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**10/11/2026 · FX-22 hecho: aplazar un pago («continuamos?»).** «¿Y si…?» suma una cuarta palanca: un pago del plan, 1, 2 o 3 meses después, al mismo día. Guardada en Escenarios, son dos «Cambio de gasto» con los mismos meses. Los atajos del día elegido («¿Y si…? El 8 dic: un gasto ese día · aplazar un pago») sustituyen al clic largo, que no se descubre ni tiene teclado. Se corrige la frase cuando la prueba mejora el punto más bajo (PROJECT_STATE 439).
+
 **10/11/2026 · FX-20 hecho, versión completa: la deuda y el patrimonio a 24 meses («haz la mejor versión y más completa»).** La tabla de impacto añade la liquidez, la deuda viva y el patrimonio (sin vivienda ni cartera) a 24 meses. Los da un motor nuevo, `canonical-debt-horizon.js`, con:
 - el calendario francés de cada contrato;
 - lo que el plan ya amortiza;
@@ -338,7 +340,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 1 | FX-21 (resto) | Las otras 4 pruebas de estrés | 8ª | M · 1 | FX-20 | Las que tengan sus datos (local, cartera, ingresos inciertos) |
 | 2 | FX-14 / XPR-04 | El mes en curso al ritmo real | 7ª | M · 2 | FX-03 | Previsión y Plan › Mes |
 | 3 | FX-13 / XPR-05 | Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos) | 7ª, Def §5.0 | M · 2,5 | FX-10 | Nunca ejecuta el traspaso · **Hecho 10/11**: «Total · Por cuenta» en el gráfico (cuenta corriente con su mínimo y ahorro) y la tarjeta del traspaso sugerido (traspasar menos al ahorro o pasar del ahorro antes del día, a 0 €) |
-| 4 | FX-22 | «¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas) | 8ª, Def P3 | M · 2 | FX-20 | Responde «¿me lo puedo permitir?» · **PR-1 hecho 9/11**: gasto único, cambio de ingreso y de gasto al mes, con veredicto y «Guardar como escenario»; faltan «aplazar un pago» y el clic largo en el gráfico |
+| 4 | FX-22 | «¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas) | 8ª, Def P3 | M · 2 | FX-20 | Responde «¿me lo puedo permitir?» · **PR-1 hecho 9/11**: gasto único, cambio de ingreso y de gasto al mes, con veredicto y «Guardar como escenario»; **10/11, hecho:** «aplazar un pago» (1-3 meses, paridad con Escenarios) y los atajos del panel del día en lugar del clic largo |
 | 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana |
 | 6 | FX-60 / XUX-01 | Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir | 7ª, Def §5.0 | L · 4 | FX-10 | Redirige `#forecast`, Previsión mensual, Análisis, Mapa de calor |
 | 7 | RD-D1/D2 | Patrimonio e Inversión con el diseño nuevo | Def §5.0 | L | FX-11 | Usan el gráfico único |

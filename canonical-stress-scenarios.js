@@ -178,17 +178,94 @@
     return { input: next, applied: true, info: { factor } };
   }
 
+  // ---- FX-22 PR-2 · aplazar un pago (10/11/2026) --------------------------------------------------------------------------
+  // Un cargo del plan (un gasto fijo, el coche, una financiación o un proyecto) se mueve 1, 2 o 3 meses, al mismo día del mes. Sale de
+  // su mes por su partida y entra en el de destino como gasto fijo de ese día, igual que el imprevisto: así el total de cada mes es el
+  // de Escenarios con dos «Cambio de gasto» (−importe en su mes, +importe en el de destino) y el diario lo pone justo ese día.
+  const APLAZAR_MESES = Object.freeze([1, 2, 3]);
+  const APLAZABLES = Object.freeze(["fixedCoreSpend", "car", "refi"]);
+
+  function addMonthsToDate(iso, months) {
+    const [year, month, day] = String(iso).split("-").map(Number);
+    const index = year * 12 + (month - 1) + months;
+    const targetYear = Math.floor(index / 12);
+    const targetMonth = (index % 12) + 1;
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+    return `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+  }
+
+  /**
+   * Los pagos que se pueden aplazar entre `from` y `to` (AAAA-MM-DD), del mayor al menor: los cargos fechados de su partida (no el gasto
+   * variable estimado, que no es un pago) y lo que paga de golpe un proyecto o decisión el día de la nómina. `key` los identifica.
+   * @param {any} input la entrada del plan
+   * @param {{ from: string, to: string, minAmount?: number }} options
+   */
+  function pagosAplazables(input, { from, to, minAmount = 0 }) {
+    const pagos = [];
+    (input?.months || []).forEach((month) => {
+      (month.expenseEvents || []).forEach((event) => {
+        if (!APLAZABLES.includes(event.field) || !event.date || event.date < from || event.date > to) return;
+        if (!(Number(event.amount) > 0) || Number(event.amount) < minAmount) return;
+        const key = `${event.date}|${event.field}|${event.concept || ""}`;
+        if (!pagos.some((pago) => pago.key === key)) pagos.push({ key, monthKey: month.monthKey, field: event.field, concept: event.concept || "Pago", date: event.date, amount: round2(event.amount) });
+      });
+      const proyecto = round2(Number(month.projectOutflow) || 0);
+      const date = month.mainPayrollDate;
+      if (proyecto > 0 && proyecto >= minAmount && date && date >= from && date <= to) pagos.push({ key: `${date}|projectOutflow|`, monthKey: month.monthKey, field: "projectOutflow", concept: "Proyecto o decisión", date, amount: proyecto });
+    });
+    return pagos.sort((a, b) => b.amount - a.amount || a.date.localeCompare(b.date));
+  }
+
+  /**
+   * Aplaza un pago `months` meses (APLAZAR_MESES). Sin el pago, o si el destino cae fuera del plan, no se aplica nada.
+   * @param {any} input
+   * @param {{ key: string, months?: number }} options
+   */
+  function applyAplazar(input, { key, months = 1 }) {
+    const next = clone(input);
+    const [date, field, concept = ""] = String(key || "").split("|");
+    const n = APLAZAR_MESES.includes(Number(months)) ? Number(months) : 1;
+    const origen = (next.months || []).find((month) => month.monthKey === String(date).slice(0, 7));
+    if (!origen || !field) return { input: next, applied: false };
+    const index = (origen.expenseEvents || []).findIndex((event) => event.date === date && event.field === field && (event.concept || "") === concept);
+    const amount = round2(field === "projectOutflow" ? Number(origen.projectOutflow) || 0 : index >= 0 ? origen.expenseEvents[index].amount : 0);
+    const valido = field === "projectOutflow" ? origen.mainPayrollDate === date : APLAZABLES.includes(field) && index >= 0;
+    if (!valido || !(amount > 0)) return { input: next, applied: false };
+    const toDate = addMonthsToDate(date, n);
+    const destino = (next.months || []).find((month) => month.monthKey === toDate.slice(0, 7));
+    if (!destino) return { input: next, applied: false };
+    if (field === "projectOutflow") origen.projectOutflow = round2(Number(origen.projectOutflow) - amount);
+    else {
+      origen.expenseEvents = origen.expenseEvents.filter((event, i) => i !== index);
+      if (field === "fixedCoreSpend") origen.coreSpend = round2(Number(origen.coreSpend || 0) - amount);
+      else origen[field] = round2(Number(origen[field] || 0) - amount);
+    }
+    const nombre = field === "projectOutflow" ? "Proyecto o decisión" : concept || "Pago";
+    destino.coreSpend = round2(Number(destino.coreSpend || 0) + amount);
+    destino.expenseEvents = [...(destino.expenseEvents || []), { concept: `${nombre} (aplazado)`, amount, field: "fixedCoreSpend", day: Number(toDate.slice(8, 10)), date: toDate, source: "¿y si…? · aplazado", confidence: "rule", role: "" }];
+    return { input: next, applied: true, info: { concept: nombre, amount, from: date, to: toDate, months: n, field } };
+  }
+
   /**
    * FX-22 · «¿Y si…?»: hasta tres palancas a la vez sobre la entrada del plan. Un gasto único (importe y día, como el imprevisto), un
    * cambio de ingreso al mes y un cambio de gasto al mes (importe con signo, desde un mes, durante N meses o hasta el final). Cambian
    * los mismos campos que los tipos de Escenarios («Imprevisto», «Cambio de ingreso», «Cambio de gasto»), así que al guardarla los meses
    * cuadran. Sin ningún importe, no se aplica nada.
    * @param {any} input
-   * @param {{ unico?: {amount?: number, date?: string}|null, ingreso?: {delta?: number, from?: string, months?: number}|null, gasto?: {delta?: number, from?: string, months?: number}|null }} [params]
+   * Desde el 10/11/2026 (FX-22 PR-2), una cuarta: aplazar un pago 1, 2 o 3 meses (applyAplazar).
+   * @param {{ unico?: {amount?: number, date?: string}|null, ingreso?: {delta?: number, from?: string, months?: number}|null, gasto?: {delta?: number, from?: string, months?: number}|null, aplazar?: {key: string, months?: number}|null }} [params]
    */
-  function applyYSi(input, { unico = null, ingreso = null, gasto = null } = {}) {
+  function applyYSi(input, { unico = null, ingreso = null, gasto = null, aplazar = null } = {}) {
     let next = clone(input);
     const info = {};
+    // FX-22 PR-2: el pago aplazado va primero, sobre el plan tal cual (sus meses no dependen de las otras palancas).
+    if (aplazar?.key) {
+      const changed = applyAplazar(next, aplazar);
+      if (changed.applied) {
+        next = changed.input;
+        info.aplazar = changed.info;
+      }
+    }
     if (unico && Number(unico.amount) > 0 && unico.date) {
       const changed = applyImprevisto(next, { date: unico.date, amount: round2(unico.amount), concept: "Gasto único (¿y si…?)" });
       if (changed.applied) {
@@ -209,8 +286,8 @@
       months.forEach((month) => { month[field] = round2(Number(month[field] || 0) + delta); });
       info[key] = { delta, from: months[0].monthKey, to: months.at(-1).monthKey, months: months.length };
     });
-    const applied = Boolean(info.unico || info.ingreso || info.gasto);
-    return { input: next, applied, info, missing: applied ? [] : ["un importe en alguna de las tres palancas"] };
+    const applied = Boolean(info.unico || info.ingreso || info.gasto || info.aplazar);
+    return { input: next, applied, info, missing: applied ? [] : ["un importe o un pago que aplazar en alguna de las palancas"] };
   }
 
   /** El plan y su trayectoria diaria con los motores de siempre. */
@@ -449,6 +526,18 @@
       }
       if (info.ingreso) lista.push(decision("cambio_ingreso", `Ingreso ${info.ingreso.delta < 0 ? "−" : "+"}${euros(Math.abs(info.ingreso.delta))} al mes`, info.ingreso.from, { titular: "hogar", deltaMensual: info.ingreso.delta, mesInicio: info.ingreso.from, mesFin: info.ingreso.to }));
       if (info.gasto) lista.push(decision("cambio_gasto", `Gasto ${info.gasto.delta < 0 ? "−" : "+"}${euros(Math.abs(info.gasto.delta))} al mes`, info.gasto.from, { bloque: "Gasto del mes", deltaMensual: info.gasto.delta, mesInicio: info.gasto.from, mesFin: info.gasto.to }));
+      // FX-22 PR-2: aplazar es quitarlo de su mes y ponerlo en el de destino; en Escenarios, dos «Cambio de gasto» de un mes.
+      if (info.aplazar) {
+        const { concept, amount, from, to } = info.aplazar;
+        const desde = String(from).slice(0, 7);
+        const hasta = String(to).slice(0, 7);
+        if (months.some((month) => month.monthKey === desde) && months.some((month) => month.monthKey === hasta)) {
+          lista.unshift(
+            decision("cambio_gasto", `Aplazar «${concept}»: sale de su mes`, desde, { bloque: `Aplazar «${concept}»`, deltaMensual: -amount, mesInicio: desde, mesFin: desde }),
+            decision("cambio_gasto", `Aplazar «${concept}»: entra ${euros(amount)}`, hasta, { bloque: `Aplazar «${concept}»`, deltaMensual: amount, mesInicio: hasta, mesFin: hasta }),
+          );
+        }
+      }
       return lista;
     }
     if (id === "imprevisto") {
@@ -480,5 +569,5 @@
     return [];
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, YSI, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyYSi, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
+  return Object.freeze({ SCHEMA_ID, PRESETS, YSI, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, APLAZAR_MESES, pagosAplazables, applyAplazar, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyYSi, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
 });

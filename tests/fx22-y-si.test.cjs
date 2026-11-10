@@ -68,7 +68,7 @@ test("FX-22 · sin ningún importe, o con un día fuera del plan, no se aplica n
   const base = input();
   const vacio = S.applyYSi(base, { unico: { amount: 0, date: "2026-12-10" }, ingreso: { delta: 0, from: "2027-01" }, gasto: null });
   assert.equal(vacio.applied, false);
-  assert.deepEqual(vacio.missing, ["un importe en alguna de las tres palancas"]);
+  assert.deepEqual(vacio.missing, ["un importe o un pago que aplazar en alguna de las palancas"]); // FX-22 PR-2: cuatro palancas
   assert.equal(S.applyYSi(base, { unico: { amount: 900, date: "2031-01-01" } }).applied, false, "un día que el plan no tiene");
   // evaluate lo acepta con su id; evaluateCombined no lo combina con las de D-N3.
   const deps = { monthly: engine, dailyInput: require("../canonical-daily-input.js"), daily: require("../canonical-daily-engine.js"), dailyOptions: {} };
