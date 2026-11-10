@@ -173,6 +173,40 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 10 de noviembre de 2026 (438): FX-20 completa · la deuda y el patrimonio a 24 meses en la tabla de impacto
+
+- **Petición del hogar:** a la consulta de la 436 («¿lo cierro sin la deuda ni el patrimonio a 24 meses?»), «haz la mejor versión y más completa».
+- **Corrección de la 436:** decía que el Euribor «sube la cuota sin mover casi el capital». Es falso. Con la cuota más alta, el capital baja a un tipo más alto: se debe más.
+  - Con una hipoteca INVENTADA de 118.000 € en la revisión, +2 puntos y 24 meses, son unos 1.300 € más de deuda frente a unos 2.600 € menos de caja.
+  - La prueba cuesta así cerca de un 50 % más de lo que enseña la caja.
+- **Motor nuevo, `canonical-debt-horizon.js`** (`FinanceCanonicalDebtHorizon`, `finance-debt-horizon/v1`, puro; ARQ-3 de 121 a 122 con su consumidor real). Calcula la deuda viva a una fecha mes a mes, con el calendario francés de siempre.
+  - **TAE de cada contrato:** la declarada o, si falta, la que explican su cuota y sus plazos. Sin ninguna de las dos no se inventa: se lista aparte. Una deuda suspendida no baja.
+  - **Lo que el plan ya amortiza:** las decisiones de deuda aprobadas de `projectPlan.placements`, de golpe o repartidas, en el plan y en la prueba.
+  - **Un escenario guardado:** el estado final de `resolveEscenario`, con amortización, fraccionada, refinanciación, retomar, quita y reunificación. Cuenta también lo que el escenario crea: un préstamo nuevo, una compra financiada y un préstamo familiar («nos prestan» como deuda, «prestamos» como lo que os deben).
+  - **El Euribor:** desde la revisión, el capital con la cuota nueva al tipo nuevo, frente a la cuota de siempre (`euriborShocks` da ahora `principal`).
+- **La tabla** (`views/prevision-v2.js` `previsionV2Patrimonio`) añade al final, a hoy + 730 días:
+  - «Liquidez a …», que no se repite con el horizonte de 24 m;
+  - «Deuda viva a …»;
+  - «Os deben a …», solo si hay algo;
+  - «Patrimonio sin vivienda ni cartera a …».
+  - **Redondeo:** cada cifra se redondea como su horizonte (FX-04, al millar). El patrimonio sale de las cifras ya redondeadas, así que cuadra a la vista.
+  - **Sin ninguna deuda**, las filas no salen.
+- **La frase** (solo si la prueba mueve la deuda o lo que os deben) cuadra caja, deuda y patrimonio. Hay dos lecturas: que lo que sale de la caja «va a deber menos, no se pierde», o que «la prueba cuesta más de lo que se ve en la caja».
+- **La nota** dice cómo se calcula, lo que no entra («sin TAE ni plazo») y que el nivel no incluye la vivienda ni la cartera: con hipoteca puede salir negativo, pero la diferencia es la misma.
+- **Con la demo, cifras INVENTADAS:**
+  - un escenario guardado que amortiza 2.000 € de la deuda reunificada en enero de 2027 da 2.000 € menos de caja y 2.000 € menos de deuda: el patrimonio queda igual;
+  - un sueldo menos deja la deuda igual (8.000 €).
+- **Lo que queda fuera, y se dice:** la cartera y la vivienda (el motor no las proyecta) y la renta del local.
+- **Pruebas:**
+  - `tests/fx20-deuda-patrimonio.test.cjs` (6), el motor, con fórmula cerrada: el francés, la suspendida, la excluida, amortizar con el motor real de Escenarios, lo que crea un escenario, el Euribor con su anualidad, lo que el plan ya amortiza y el patrimonio.
+  - `tests/fx20-patrimonio-en-prevision.test.cjs` (4), la vista real en un `vm`: las filas exactas, la frase, la nota, la fila de liquidez que no se repite, lo que os deben y que sin deudas no hay filas.
+  - e2e «FX-20 completa» a 390 (`@safari`) y 1440 px. La e2e de C2 cuenta 9 filas y la del Euribor comprueba la deuda que sube y su frase. axe claro/oscuro.
+  - Sellos: `canonical-debt-horizon.js`, `canonical-stress-scenarios.js`, `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261110fx20h`. Novedades, una línea.
+- **Validación:**
+  - `npm run verify` en verde (6.518/6.518).
+  - En local, 34/34 e2e y axe en Chromium de C2, FX-13, FX-20, FX-21, FX-22, FX-23 y FX-51. Las 9 variantes `@safari` no corren aquí porque falta WebKit; el CI sí las corre.
+- **Además:** FX-13 (#603) fusionado con el CI en verde.
+
 ## Cierre de sesión — 10 de noviembre de 2026 (437): FX-13 · la previsión por cuenta y el traspaso sugerido
 
 - **Petición del hogar:** «continuar». FX-20 (deuda y patrimonio a 24 m) sigue esperando su respuesta. Lo siguiente con más valor: FX-13 (XPR-05), por el riesgo de descubierto de la cuenta corriente con el total sano, que salió en las pruebas de estrés.

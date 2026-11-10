@@ -1706,6 +1706,32 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-20 completa (10/11/2026) · la deuda y el patrimonio a 24 meses con un escenario guardado que amortiza (FICTICIO): las filas nuevas
+// de la tabla y la frase que cuadra caja y deuda, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-20 completa · contraste de la deuda y el patrimonio a 24 meses en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Plan › Previsión con un escenario que amortiza: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 6, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        saveEscenarioMotorSavedList([{ id: "axe-amortiza", nombre: "Amortizar FICTICIO", estado: "guardado", savedAt: "2026-11-06T10:00:00.000Z",
+          decisiones: [{ id: "dec_axeamortizaficticia000", tipo: "amortizacion", orden: 0, activa: true, planificacion: { modo: "manual", mesManual: "2027-01" }, params: { deudaId: "debt-reunified-cetelem", importe: 2000, parcial: true } }] }]);
+        previsionV2Render();
+      });
+      await v2.locator("[data-prevision-v2-guardado]").selectOption("axe-amortiza");
+      await expect(v2.locator(".prev-v2-patrimonio")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-13 (10/11/2026) · el gráfico por cuenta, con su leyenda y su tabla abierta, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-13 · contraste de la previsión por cuenta en modo ${scheme}`, () => {

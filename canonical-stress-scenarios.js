@@ -121,7 +121,8 @@
       .map((review) => {
         const rate = round2(Number(review.centralRate) + points);
         const to = round2(payment(review.principalAtReview, rate, review.remainingAtReview));
-        return { date: review.nextReview, from: round2(review.currentPayment), to, extra: round2(to - Number(review.currentPayment)), rate, months: Math.max(1, Number(review.remainingAtReview) || 1) };
+        // FX-20 (10/11/2026): con el capital en la revisión, para saber cuánto se debe de más a 24 meses (canonical-debt-horizon.js).
+        return { date: review.nextReview, from: round2(review.currentPayment), to, extra: round2(to - Number(review.currentPayment)), rate, months: Math.max(1, Number(review.remainingAtReview) || 1), principal: round2(Number(review.principalAtReview) || 0) };
       });
   }
 
