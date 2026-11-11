@@ -4202,6 +4202,44 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
 // WP-29 (NHG-05): la carta del mes en Cierre. Con la demo y el reloj el 2 de noviembre, Cierre enseña octubre: abierto, un borrador con las cifras del mes (previsto 5.000 € de ingresos y 4.730 € de
 // gastos = 270 € de margen; con 180 € de más en la primera partida de gasto, 90 € y 180 € peor de lo previsto); firmado, la carta guardada con los datos de ese momento, que no se reescribe si los datos cambian
 // después. La firma real pasa por Supabase (RPC), que la demo no tiene: se simula con el mismo motor de cierre y la misma función que llama app.js al firmar.
+// FX-43 (backlog de noviembre; primera carta con el cierre de noviembre, 1-3/12) · la carta cuenta la previsión. Con dos fotos de WP-12
+// INVENTADAS de octubre (día 1: 9.200 € al cierre; día 15: 8.650 €) y los saldos del banco del cierre (8.700 €), la carta dice cómo acabó la
+// caja frente a lo previsto; y, del mes siguiente, lo más bajo frente al suelo. Sin fotos, no lo inventa.
+test("FX-43 · la carta del mes cuenta la previsión de caja y el mes siguiente", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+  await page.goto("/index.html#cierre");
+  await page.waitForFunction(() => typeof recordCartaMes === "function" && typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+  const anotar = () => page.evaluate(() => {
+    const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
+    const rows = planMesCollect(month);
+    const set = (entry, value) => { (entry.kind === "income" ? incomeActuals : expenseActuals)[actualKeyForRow(entry.row, month)] = value; };
+    rows.income.forEach((entry) => { if (entry.planned) set(entry, entry.planned); });
+    rows.expense.filter((entry) => entry.planned).forEach((entry) => set(entry, entry.planned));
+    renderCierre();
+  });
+  await anotar();
+  const carta = page.locator("#cartaMes [data-carta-mes-texto]");
+  await expect(carta).toBeVisible();
+  // Sin fotos de WP-12, nada de la caja; el mes siguiente, sí (la previsión de noviembre desde hoy, frente al suelo).
+  await expect(carta).not.toContainText("En caja hubo");
+  await expect(carta).toContainText(/Para noviembre, la previsión espera lo más bajo el día \d+ \([\d.]+\s€, [\d.]+\s€ (sobre el|por debajo del) suelo\) y cerrar con [\d.]+\s€\./);
+  await page.evaluate(() => {
+    const serie = (valor) => Array.from({ length: 40 }, () => valor);
+    storageSet(storageKey("liquidity-backtest"), JSON.stringify({ freezes: {
+      "2026-10:d01": { monthKey: "2026-10", slot: "d01", date: "2026-10-02", totals: serie(9200), closing: 9200, balanceMode: "manual", balanceDate: "2026-10-02", frozenAt: "" },
+      "2026-10:d15": { monthKey: "2026-10", slot: "d15", date: "2026-10-16", totals: serie(8650), closing: 8650, balanceMode: "manual", balanceDate: "2026-10-16", frozenAt: "" },
+    } }));
+    storageSet(storageKey("month-close-balances"), JSON.stringify({ months: { "2026-10": { monthKey: "2026-10", accounts: { caixabank: 5000, mediolanum: 3700 }, date: "2026-10-31", mode: "manual", offsetDays: 0, closedAt: "" } } }));
+    renderCierre();
+  });
+  await expect(carta).toContainText(/En caja hubo 8\.700\s€ al cierre\. La previsión del día 1 esperaba 9\.200\s€ y la del día 15, 8\.650\s€ \(50\s€ de menos\)\./);
+  const palabras = await carta.evaluate((el) => el.textContent.trim().split(/\s+/).length);
+  expect(palabras, "la carta sigue en 120 palabras como mucho").toBeLessThanOrEqual(120);
+  expect(pageErrors).toEqual([]);
+});
+
 test.describe("WP-29 · la carta del mes en Cierre", () => {
   const openCierre = async (page, viewport = { width: 1280, height: 720 }) => {
     await page.setViewportSize(viewport);

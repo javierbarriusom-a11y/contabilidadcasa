@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-carta-prevision",
+      fecha: "2026-11-16",
+      texto: "Cierre: la carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente.",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-16-trayectoria-cosida",
       fecha: "2026-11-16",
       texto: "Previsión y Hoy: el gasto variable se reparte por los días del mes; el punto más bajo cae la víspera del cobro, ya no cada día 8.",

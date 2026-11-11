@@ -173,6 +173,26 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (443): FX-43 · la carta del mes cuenta la previsión
+
+- **Petición del hogar:** «continuamos». FX-43 era lo siguiente con fecha: la primera carta que lo usa es la del cierre de noviembre (1-3/12). No toca Hoy. Viaja en #607, que se fusiona el 16/11: la rama está ocupada por ese PR, y subirlo es más seguro que guardarlo en local.
+- **Dos huecos más en la carta** (`canonical-month-letter.js`), recortables antes que el resultado y la calidad del dato, y con su versión corta.
+  - **«Frente a la previsión de caja»**, tras el resultado: «En caja hubo X al cierre. La previsión del día 1 esperaba A y la del día 15, B (C de menos/de más/acertó)».
+    - Sale de las fotos de WP-12 y de los saldos del banco del cierre (`canonical-liquidity-backtest.js` `compare`), solo cuando la comparación vale.
+    - Antes de firmar, con los saldos que se guardarían.
+  - **«El mes que viene»**, antes de la calidad: «Para diciembre, la previsión espera lo más bajo el día D (X, Y sobre el suelo) y cerrar con Z».
+    - Solo con días de hoy en adelante (una carta reconstruida de hace meses no habla de días pasados).
+    - Redondeado como la previsión (FX-04): la carta no redondea, dice lo que recibe.
+  - **Orden de recorte:** el hito, la acción, acortar la desviación, la caja y el mes siguiente, acortar la calidad, y después quitar el mes siguiente y la caja.
+  - **Sin datos, el hueco no sale:** no se inventa.
+- **Pruebas:**
+  - `tests/fx43-carta-prevision.test.cjs` (3): los dos huecos y su orden; los veredictos (de menos, de más, acertó) y el suelo; sin datos, nada; el recorte a 60 y 30 palabras.
+  - Las 26 de WP-29 siguen igual.
+  - e2e «FX-43»: sin fotos, sin caja y con el mes siguiente; con dos fotos y un cierre INVENTADOS, la frase exacta y ≤ 120 palabras.
+  - Sellos: `canonical-month-letter.js` y `carta-mes-ui.js` a `20261116fx43a`. Novedades, una línea con fecha del 16/11.
+- **Error propio corregido antes de subir:** la lectura del mes siguiente usaba `isoLocalDate` sin comprobar que existiera. En el entorno aislado de las pruebas de pantalla de WP-29 tumbaba la carta entera (5 rojas). Ahora los dos huecos son opcionales: si algo falla al leerlos, la carta sale sin ellos, como antes.
+- **Validación:** `npm run verify` en verde (6.538/6.538; «forecast y escenarios en 208,8 ms»). En local, e2e y axe de WP-29 y FX-43.
+
 ## Cierre de sesión — 11 de noviembre de 2026 (442): FX-41 · avisos de previsión con umbral en Hoy y en el calendario (activos el 23/11)
 
 - **Petición del hogar:** «continua con FX-41».

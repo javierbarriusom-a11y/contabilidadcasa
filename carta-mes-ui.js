@@ -65,6 +65,58 @@ function cartaMesNetWorth(monthKey, closeBalances) {
   return { previousMonthKey: earlier[0].monthKey, net: current.net, delta: move.delta, debtDelta: debtRow ? debtRow.value : null, isMax: current.net >= Math.max(...earlier.map((item) => item.net)), seriesCount: earlier.length + 1 };
 }
 
+// FX-43: la caja del cierre frente a lo que se preveía el día 1 y el 15 (las fotos de WP-12, canonical-liquidity-backtest.js), solo cuando la
+// comparación vale (saldos del banco en las dos puntas). Antes de firmar, con los saldos que se guardarían, igual que el patrimonio.
+function cartaMesPrevisionCaja(monthKey, closeBalances) {
+  const B = globalThis.FinanceCanonicalLiquidityBacktest;
+  if (!B || typeof loadMonthCloseBalances !== "function") return null;
+  let store;
+  try {
+    store = B.normalizeStore(JSON.parse(storageGet(storageKey("liquidity-backtest"), "null")));
+  } catch {
+    return null;
+  }
+  const months = { ...(loadMonthCloseBalances().months || {}) };
+  if (closeBalances && !months[monthKey]) months[monthKey] = closeBalances;
+  const rows = B.compare({ store, closes: { months } }).rows.filter((row) => row.monthKey === monthKey && row.status === "comparable");
+  if (!rows.length) return null;
+  const etiqueta = Object.fromEntries(B.SLOTS.map((slot) => [slot.id, slot.label]));
+  return { actual: rows[0].actual, slots: rows.sort((a, b) => a.slot.localeCompare(b.slot)).map((row) => ({ label: etiqueta[row.slot] || row.slot, predicted: row.predicted })) };
+}
+
+// FX-43: qué espera la previsión del mes siguiente, de hoy en adelante (una carta reconstruida de hace meses no habla de días ya pasados).
+// Redondeado como el resto de la previsión (FX-04): la carta no redondea, dice lo que recibe.
+function cartaMesSiguiente(engine, monthKey) {
+  const rows = typeof canonicalDailyEngineRuns !== "undefined" ? canonicalDailyEngineRuns.active?.rows || [] : [];
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  // Sin la trayectoria o el contrato de cifras, el hueco no sale; nunca tumba la carta entera.
+  if (!rows.length || !contract || typeof isoLocalDate !== "function") return null;
+  const today = isoLocalDate(new Date());
+  const next = engine.addMonths(monthKey, 1);
+  const mes = rows.filter((row) => row.date.startsWith(next) && row.date >= today && Number.isFinite(Number(row.total)));
+  if (!mes.length) return null;
+  const low = mes.reduce((best, row) => (Number(row.total) < Number(best.total) ? row : best), mes[0]);
+  const end = mes.at(-1);
+  const redondea = (row) => contract.roundForHorizon(Number(row.total), contract.daysBetween(today, row.date));
+  const monthEnd = `${next}-${String(new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate()).padStart(2, "0")}`;
+  return {
+    monthKey: next,
+    lowValue: redondea(low),
+    lowDay: Number(low.date.slice(8, 10)),
+    endValue: end.date === monthEnd ? redondea(end) : undefined,
+    floor: globalThis.FinanceCanonicalHomeMargin?.normalizeFloor(state?.liquidityFloor) ?? undefined,
+  };
+}
+
+// FX-43: los dos huecos de la previsión son opcionales: si algo falla al leerlos, la carta sale sin ellos (como antes), nunca rota.
+function cartaMesSeguro(leer) {
+  try {
+    return leer();
+  } catch {
+    return null;
+  }
+}
+
 function cartaMesCompose(monthKey, closeBalances = null) {
   const engine = cartaMesEngine();
   if (!engine) return null;
@@ -78,6 +130,8 @@ function cartaMesCompose(monthKey, closeBalances = null) {
     netWorth: cartaMesNetWorth(monthKey, closeBalances),
     previousLetters: cartaMesSignedLetters(),
     previousAdverse: previousMonth ? engine.adverseIds(cartaMesItems(previousMonth)) : {},
+    forecastCheck: cartaMesSeguro(() => cartaMesPrevisionCaja(monthKey, closeBalances)),
+    nextMonth: cartaMesSeguro(() => cartaMesSiguiente(engine, monthKey)),
   });
 }
 

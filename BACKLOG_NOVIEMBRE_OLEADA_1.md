@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**11/11/2026 · FX-43 hecho («continuamos»).** La carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente. Lista para la primera carta, la del cierre de noviembre. Sale con #607 el 16/11 (PROJECT_STATE 443).
+
 **11/11/2026 · FX-41 hecho, con puerta de fecha («continua con FX-41»).** Los avisos de previsión con umbral salen en «Decidir esta semana» de Hoy y en el calendario del móvil, solo cuando la previsión cruza el suelo, el mínimo de la cuenta, el colchón o pierde más de un 10 % de fin de año. Se activan el 23/11 (el cambio de Hoy de esa semana) y viajan en #607 con FX-03 (PROJECT_STATE 442).
 
 **11/11/2026 · Las tres decisiones del hogar («ok a las tres cosas»).**
@@ -334,7 +336,7 @@ Columnas: **ID** · **Qué** · **Origen** (8ª = propuesta octava; 7ª = sépti
 | 22 | **FX-23** | Comparar el plan con un solo escenario o un preset; texto de Escenarios en lenguaje de hogar | 8ª | S-M · 1,5 | FX-20 | S3 | Comparar con 1 escenario sin el aviso de «hacen falta dos» | **PR-1 hecho 6/11**: Comparar acepta un escenario («Comparar con el plan»), el vacío remite a «Comparar con» de Previsión y Simular se explica sin jerga. **8/11:** el plan frente a un escenario guardado, también en Previsión (con FX-20). **9/11 (D-N10), hecho:** las pruebas de estrés sin guardar en Comparar (las de D-N3, con paridad de meses) y el minigráfico por columna (liquidez a fin de mes, misma escala) |
 | 23 | **FX-40** | Qué ha cambiado desde tu última visita: puente con 4 causas (absorbe XUX-07; WP-43 se mueve a Previsión) | 8ª, 7ª, Def P2 | M · 2,5 | FX-01 | S3 | «−300 € frente al lunes [por qué]» con datos nuevos / plan / supuestos / tiempo; WP-43 sale de `#plan` | **PR-1 hecho 8/11** (publicado el 8/11): la línea bajo la cifra y el puente de 4 causas, que cuadra; fotos por visita en este dispositivo. **PR-2 hecho 8/11:** el puente de WP-43 dentro de «Por qué» (decidido por el hogar). Falta medir el plan por separado |
 | 24 | **FX-42** | La previsión en el «Listo» del Repaso semanal (no es un paso nuevo) | 8ª | S · 0,5 | FX-40 | S3 | Tarjeta de 3 líneas en «Listo» | **Hecho 9/11** (el Repaso sigue, D-N10): en «Listo», lo más bajo en 30 días con su margen, qué ha cambiado desde la visita anterior (sin dejar foto) y el aviso si se baja del suelo o la cuenta queda en descubierto; «Ver la previsión» |
-| 25 | **FX-43** | La carta del mes cuenta la previsión (WP-29) | 8ª, Def P1 | S · 0,5 | WP-12 | S4 | Primera carta con el cierre de noviembre | Propuesta (WP-29 esperando al hogar) |
+| 25 | **FX-43** | La carta del mes cuenta la previsión (WP-29) | 8ª, Def P1 | S · 0,5 | WP-12 | S4 | Primera carta con el cierre de noviembre | **11/11, hecho (en #607, sale el 16/11)**: la caja del cierre frente a lo previsto el día 1 y el 15 (WP-12) y lo más bajo del mes siguiente frente al suelo; sin datos, el hueco no sale |
 
 **Si da tiempo dentro de la oleada** (si no, abren la Oleada 2): FX-21 resto de presets (gasto +10 %, la paga variable
 no llega, el inquilino no paga, caída de mercado −20 %), FX-41 (avisos de previsión con umbral, como cambio de Hoy de
