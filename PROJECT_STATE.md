@@ -200,7 +200,8 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Sellos: `canonical-daily-input.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx03a`. Novedades, una línea con fecha del 16/11.
 - **Validación:**
   - `npm test` en verde (6.528/6.528), lint y typecheck.
-  - La tanda completa de e2e y axe en Chromium: ver el PR.
+  - La tanda completa de e2e y axe en Chromium: 380 de 382.
+  - Las 2 que fallaron son la axe de la carta del mes en Cierre (WP-29), en claro y en oscuro: `renderCierre is not defined` bajo carga, porque la prueba espera a `recordCartaMes` y llama a una función de una vista que se descarga aparte. Pasan solas con FX-03, y en el CI de #606 pasaron. No es de este cambio.
 
 ## Cierre de sesión — 11 de noviembre de 2026 (440): el panel del día más compacto y la deuda y el patrimonio a 24 m, a la centena
 
