@@ -4161,6 +4161,12 @@
   color: var(--e19-muted);
 }
 
+/* 11/11/2026: «¿sabes el día?» va en la línea pequeña de su pago, a 24 px (el mínimo AA de WCAG 2.5.8) y no a los 32 de .hoy-v2-link:
+   con seis pagos, la lista no dejaba caber el panel del día en 900 px a 1440. */
+:root[data-tema="v2"] .prev-v2-dia-que small .hoy-v2-link {
+  min-height: 24px;
+}
+
 :root[data-tema="v2"] .prev-v2-dia-importe {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

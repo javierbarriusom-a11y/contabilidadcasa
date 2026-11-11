@@ -714,6 +714,7 @@ function previsionV2Veredicto(prueba, c, cuentaCorta) {
 // un escenario de deuda engaña (amortizar baja la caja, pero baja la deuda lo mismo). A 24 meses se ve la deuda viva y el
 // patrimonio (liquidez − deudas + lo que os deban) en los dos lados, con el motor canonical-debt-horizon.js.
 const PREVISION_V2_PATRIMONIO_DIAS = 730;
+const PREVISION_V2_PATRIMONIO_PASO = 100;
 
 /** Las amortizaciones que el plan ya lleva (sus decisiones de deuda, en su mes), para que la deuda del plan baje como su caja. */
 function previsionV2DeudaPlaneada() {
@@ -745,7 +746,7 @@ function previsionV2SaldoEn(rows, date) {
 
 /**
  * Las filas «Liquidez / Deuda / Patrimonio a …» de la tabla de impacto, la frase que las cuadra y su nota. Sin ninguna deuda ni nada
- * que os deban, nada (el patrimonio sería la liquidez, que ya está). Cada cifra se redondea como su horizonte (FX-04) y el
+ * que os deban, nada (el patrimonio sería la liquidez, que ya está). Cada cifra va a la centena (no al millar de su horizonte) y el
  * patrimonio se calcula con las cifras ya redondeadas: liquidez − deuda + lo que os deban cuadra a la vista.
  * @returns {{ filas: any[], frase: string, nota: string }}
  */
@@ -766,8 +767,9 @@ function previsionV2Patrimonio(prueba, c, today) {
   const liquidezPrueba = previsionV2SaldoEn(prueba.rows, date);
   if (!deudaPrueba || liquidezPlan === null || liquidezPrueba === null) return vacio;
   if (!(plan.total > 0 || deudaPrueba.total > 0 || deudaPrueba.receivables > 0)) return vacio;
-  const dias = contract.daysBetween(today, date);
-  const r = (value) => contract.roundForHorizon(value, dias);
+  // A la centena, no al millar de FX-04 (decisión del hogar, 11/11/2026): una diferencia de deuda de 1.300 € no se puede leer como
+  // 1.000 o 2.000 según caiga el redondeo. Niveles y diferencias van al mismo paso, para que la resta siga cuadrando a la vista.
+  const r = (value) => Math.round(Number(value) / PREVISION_V2_PATRIMONIO_PASO) * PREVISION_V2_PATRIMONIO_PASO || 0;
   const lado = (liquidez, deuda) => ({ liquidez: r(liquidez), deuda: r(deuda.total), deben: r(deuda.receivables || 0) });
   const p = lado(liquidezPlan, plan);
   const t = lado(liquidezPrueba, deudaPrueba);
@@ -803,6 +805,8 @@ function previsionV2PatrimonioFrase(p, t, fecha) {
 /** La lectura de la frase: si lo que sale de la caja no se pierde (va a deber menos) o si la prueba cuesta más de lo que enseña la caja. */
 function previsionV2PatrimonioLectura(caja, patrimonio) {
   if (caja < 0 && patrimonio === 0) return ": lo que sale de la caja va a deber menos, no se pierde";
+  // Amortizar sale más que gratis: se deja de pagar el interés de lo amortizado (a la centena, se ve).
+  if (caja < 0 && patrimonio > 0) return ": lo que sale de la caja va a deber menos y además os ahorra intereses";
   if (caja < 0 && patrimonio > caja) return ": buena parte de lo que sale de la caja va a deber menos, no se pierde";
   if (patrimonio < 0 && patrimonio < caja) return caja > 0 ? ": la caja sube porque se debe más" : ": la prueba cuesta más de lo que se ve en la caja";
   return "";
@@ -812,7 +816,7 @@ function previsionV2PatrimonioLectura(caja, patrimonio) {
 function previsionV2PatrimonioNota(plan, prueba, fecha) {
   const fuera = [...new Map([...(plan.excluded || []), ...(prueba.excluded || [])].map((item) => [item.id, item])).values()];
   const sinCalcular = fuera.length ? ` No entran ${fuera.map((item) => `«${item.label}» (${money(item.principal)})`).join(", ")}: sin TAE ni plazo no se puede calcular cómo baja; complétalo en Deuda › Contratos.` : "";
-  return `Patrimonio a ${fecha}: liquidez menos deudas, más lo que os deban. La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman: el nivel sale más bajo que vuestro patrimonio real (con hipoteca, incluso negativo), pero la diferencia es la misma. La deuda sigue el calendario de cada contrato de Deuda › Contratos, con lo que el plan ya amortiza.${sinCalcular}`;
+  return `Patrimonio a ${fecha}: liquidez menos deudas, más lo que os deban. La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman: el nivel sale más bajo que vuestro patrimonio real (con hipoteca, incluso negativo), pero la diferencia es la misma. La deuda sigue el calendario de cada contrato de Deuda › Contratos, con lo que el plan ya amortiza. Estas filas van a la centena, y no al millar como las demás cifras a dos años, para que la diferencia no se pierda en el redondeo: el nivel no es más seguro por eso.${sinCalcular}`;
 }
 
 /**
@@ -1233,13 +1237,14 @@ function previsionV2DiaItemHtml(event) {
   if (event.kind === "transfer") {
     return `<li class="prev-v2-dia-item"><span class="prev-v2-dia-que">${escapeHtml(label)}<small>entre vuestras cuentas: no cambia el total</small></span><strong class="prev-v2-dia-importe">${escapeHtml(money(event.amount))}</strong></li>`;
   }
+  // Como la referencia (PrevisionDesktop.png), una línea por movimiento; solo el pago de día estimado lleva debajo «día estimado ·
+  // ¿sabes el día?», que es lo que se puede arreglar (11/11/2026: el panel ya no cabía en 900 px a 1440). El día cierto, por regla o
+  // indicado no se dice en cada fila: lo resume la insignia de confianza. El gasto variable no tiene día de cargo ni pregunta.
   const variable = event.field === "variableOperationalSpend";
   const estimado = event.kind === "outflow" && !variable && (event.confidence === "estimated" || !PREVISION_V2_CERTEZA[event.confidence]);
-  const certeza = variable
-    ? `<small>gasto variable, sin día fijo: se reparte por el mes</small>`
-    : estimado
+  const certeza = estimado
     ? `<small>día estimado · <button type="button" class="hoy-v2-link" data-prevision-v2-nav="planificacion-partidas" aria-label="¿Sabes el día de ${escapeHtml(label)}?">¿sabes el día?</button></small>`
-    : `<small>${escapeHtml(PREVISION_V2_CERTEZA[event.confidence] || "previsto")}</small>`;
+    : "";
   const ingreso = event.kind === "income";
   return `<li class="prev-v2-dia-item"><span class="prev-v2-dia-que">${escapeHtml(label)}${certeza}</span><strong class="prev-v2-dia-importe${ingreso ? " is-pos" : ""}">${ingreso ? "+" : "−"}${escapeHtml(money(event.amount))}</strong></li>`;
 }
