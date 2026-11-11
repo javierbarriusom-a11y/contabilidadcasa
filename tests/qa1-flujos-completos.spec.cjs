@@ -5744,6 +5744,9 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
       // Los pagos con su certeza, el 8 dic: con ← desde el gráfico (seis días antes). Después de medir la posición del panel: el foco
       // en el gráfico desplaza la página y las cajas medidas a mitad del desplazamiento no casan (CI de #607, 390 px).
+      // El puntero, fuera del gráfico (x = 0, el margen): WebKit mueve el ratón cuando la página se desplaza debajo de él, y un día
+      // sin fijar sigue al ratón (es lo que se quiere), así que un puntero quieto encima del gráfico cambiaba el día (CI de #607, Safari).
+      await page.mouse.move(0, 0);
       await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
       for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
       await expect(titulo).toHaveText("Martes 8 dic");
@@ -5753,7 +5756,8 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
-      await dia.locator("[data-prevision-v2-dia-soltar]").click();
+      // Con el teclado, como se ha llegado: sin llevar el ratón al panel (al soltar, el foco vuelve al gráfico y la página se desplaza).
+      await dia.locator("[data-prevision-v2-dia-soltar]").press("Enter");
       await expect(titulo).toHaveText("Lunes 14 dic");
       await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
 
@@ -5782,7 +5786,10 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(sube.locator('[data-prevision-v2-nav="planificacion-partidas"]')).toBeVisible();
       await expect(hoja).toContainText("La confianza no cambia ninguna cifra");
 
-      // Con una prueba de estrés, el panel dice cuánto quedaría ese día; la hoja sigue abierta.
+      // Con una prueba de estrés, el panel dice cuánto quedaría ese día; la hoja sigue abierta. El puntero, otra vez fuera del gráfico
+      // antes de que el clic desplace la página (ver arriba), y el día sigue siendo el más bajo.
+      await page.mouse.move(0, 0);
+      await expect(titulo).toHaveText("Lunes 14 dic");
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
       await expect(dia.locator(".prev-v2-dia-prueba")).toHaveText(/Con «Imprevisto 3\.000 €»: 3\.600\s€ \(−3\.000\s€\)/);
       await expect(hoja).toBeVisible();
