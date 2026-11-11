@@ -1756,6 +1756,25 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// FX-41 (23/11/2026) · Hoy con un aviso de previsión en «Decidir esta semana» (suelo INVENTADO de 7.000 €), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-41 · contraste de los avisos de previsión en Hoy en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Hoy con un aviso de previsión: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 23, 10, 0, 0) });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+      await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(1);
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#hoyV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // FX-13 (10/11/2026) · el gráfico por cuenta, con su leyenda y su tabla abierta, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`FX-13 · contraste de la previsión por cuenta en modo ${scheme}`, () => {

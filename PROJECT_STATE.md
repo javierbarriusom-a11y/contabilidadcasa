@@ -173,6 +173,41 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (442): FX-41 · avisos de previsión con umbral en Hoy y en el calendario (activos el 23/11)
+
+- **Petición del hogar:** «continua con FX-41».
+  - Es el cambio de Hoy de la semana del 23/11. Va con puerta de fecha (`HOY_V2_AVISOS_DESDE = "2026-11-23"`), como los cambios 1 y 2 de Hoy.
+  - Viaja en #607 junto a FX-03, que se fusiona el 16/11. Antes del 23/11 no se ve nada, así que se respeta un cambio de Hoy por semana.
+  - Se sube ya y no se guarda en local hasta el lunes: un contenedor reciclado lo habría perdido.
+- **Motor nuevo, `canonical-forecast-alerts.js`** (`FinanceCanonicalForecastAlerts`, `finance-forecast-alerts/v1`, puro; ARQ-3 de 122 a 123 con su consumidor real, `views/hoy-v2.js`).
+  - **Cuándo avisa:** cuando la previsión **cruza** un umbral en los próximos 90 días, es decir, hoy por encima y luego por debajo. No avisa cuando cambia (eso es FX-40) ni cuando hoy ya se está por debajo (lo dice Hoy). Un umbral que nunca se alcanza no avisa cada semana.
+  - **Los cuatro umbrales:**
+    - el suelo;
+    - el mínimo de la cuenta corriente con el total sano (no repite el del suelo si baja a la vez);
+    - el objetivo de colchón (no sale si ya hay aviso de suelo);
+    - el 31 de diciembre que cae más de un 10 % frente a la última visita a la Previsión (`yearEndFromSnapshot` lee la foto de FX-40).
+  - Cada aviso lleva sus euros en juego, y salen de más a menos.
+- **En Hoy** (`views/hoy-v2.js`): «Decidir esta semana» los pone delante de las demás decisiones, y siguen siendo 3 como mucho.
+  - Cada uno con su frase. Por ejemplo: «El 8 dic bajáis del suelo · La previsión llega a … el 14 dic: faltan unos … sobre el suelo de …».
+  - Su nivel (alto en el suelo y en la cuenta sin ahorro que alcance) y «Ver la previsión», que lleva a Plan › Previsión.
+  - Con la demo tal cual no sale ninguno: no cruza nada. Con un suelo INVENTADO de 7.000 €, el del suelo.
+- **En el calendario del móvil** (WP-32, `canonical-reminders.js`): un tipo nuevo, «avisos de la previsión», que se puede apagar en Ajustes.
+  - Llega una semana antes de cruzar el umbral, o hoy si falta menos.
+  - El título va sin importes, como todos («Previsión: bajáis del suelo el 8 dic»), porque la pantalla de bloqueo lo enseñaría. Las cifras van en la descripción.
+  - El del fin de año solo sale en Hoy: cuenta un cambio ya ocurrido, sin día en que actuar.
+- **Novedades con fecha futura** (`ux-shell.js` `novedadesVigentes`): no se enseñan hasta su día. Si no, la línea del 23/11 anunciaría desde el 16/11 algo que aún no se ve.
+- **Pruebas:**
+  - `tests/fx41-avisos-prevision.test.cjs` (5):
+    - cada umbral y cada caso en que no avisa;
+    - el orden por euros;
+    - el fin de año desde una foto.
+  - `tests/wp32-recordatorios.test.cjs`: el tipo nuevo en «cada tipo se puede apagar», más 1 prueba propia.
+  - `tests/nxp2-sello-version.test.cjs`: +1, las novedades de fecha futura.
+  - `tests/redis-hoy2-repaso.test.cjs`: el orden de Hoy, con la llamada nueva.
+  - e2e «FX-41» (antes del 23/11 nada; a 390 `@safari` y 1440 px, el aviso, el calendario sin importes en el título y el camino a la Previsión) y axe claro/oscuro.
+  - Sellos: `canonical-forecast-alerts.js`, `views/hoy-v2.js`, `canonical-reminders.js`, `recordatorios-ui.js`, `ux-shell.js` y `novedades.js` a `20261123fx41a`. Novedades, una línea con fecha del 23/11.
+- **Validación:** `npm run verify` en verde (6.535/6.535; «forecast y escenarios en 279,7 ms»). En local, 15/15 e2e y axe de FX-41, de los cambios de Hoy, del rediseño de Hoy y de XGO-01; la tanda completa, ver el PR (#607).
+
 ## Cierre de sesión — 11 de noviembre de 2026 (441): FX-03 · la trayectoria cosida, preparada para el lunes 16/11 (el cambio de Hoy de esa semana)
 
 - **Petición del hogar:** «ok a las tres cosas». La tercera era que Claude propusiera el cambio de Hoy del 16/11: **FX-03**, y no FX-41 (motivo en la 440). Se prepara ahora y se fusiona el lunes 16/11, uno por semana.

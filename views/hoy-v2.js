@@ -206,7 +206,10 @@ function hoyV2DecisionRow(item, index) {
   const level = hoyV2Level(item.status || (item.tone === "danger" ? "danger" : item.tone === "warn" ? "warn" : ""));
   const detail = [item.text, item.expiryLabel ? `Vence el ${item.expiryLabel}.` : ""].filter(Boolean).join(" ");
   // Las acciones del centro unificado conservan su paso de revisión («Qué ocurrirá») antes de ejecutar.
-  const action = item.isUnifiedAction
+  // FX-41: los avisos de previsión llevan a Plan › Previsión, donde está el arreglo más barato o el porqué.
+  const action = item.previsionAviso
+    ? `<button type="button" class="e19-btn e19-btn-secondary" data-hoy-v2-prevision>Ver la previsión</button>`
+    : item.isUnifiedAction
     ? `<details class="hoy-v2-review"><summary class="e19-btn e19-btn-secondary">Revisar</summary>
         <div><p>${escapeHtml(unifiedActionImpact(item))}</p>
         <button type="button" class="e19-btn e19-btn-primary" data-unified-confirm-id="${escapeHtml(item.id)}">${item.debtId || item.projectId || item.command ? "Continuar simulación" : "Abrir sección"}</button></div>
@@ -223,6 +226,87 @@ function hoyV2DecisionRow(item, index) {
     <span class="hoy-v2-level is-${level.tone}">${level.label}</span>
     ${action}
   </li>`;
+}
+
+// ---- FX-41 · avisos de previsión con umbral (el cambio de Hoy de la semana del 23/11/2026) ------------------------------------
+// La previsión avisa cuando cruza un umbral en los próximos 90 días (canonical-forecast-alerts.js): el suelo, el mínimo de la cuenta
+// corriente, el objetivo de colchón o un fin de año que cae más de un 10 % frente a la última visita a la Previsión. Entran en «Decidir
+// esta semana» antes que las demás decisiones, de más a menos euros en juego, y siguen siendo 3 como mucho. Puerta de fecha, como los
+// cambios 1 y 2 de Hoy: se publica antes y se activa el lunes de su semana (un cambio de Hoy por semana).
+const HOY_V2_AVISOS_DESDE = "2026-11-23";
+
+/** Las entradas de FX-41 para el motor: la trayectoria del motor diario y los umbrales del hogar. null si falta algo. */
+function hoyV2AvisosEntrada(hoy) {
+  const rows = typeof canonicalDailyEngineRuns !== "undefined" ? canonicalDailyEngineRuns.active?.rows || [] : [];
+  if (!rows.length) return null;
+  const C = globalThis.FinanceCanonicalForecastChanges;
+  const A = globalThis.FinanceCanonicalForecastAlerts;
+  const fotos = typeof previsionV2FotosCargar === "function" ? previsionV2FotosCargar() : [];
+  const visita = C?.previousVisit(fotos, hoy) || null;
+  const finVisita = visita ? A.yearEndFromSnapshot(visita, hoy.slice(0, 4)) : null;
+  return {
+    rows,
+    today: hoy,
+    floor: globalThis.FinanceCanonicalHomeMargin?.normalizeFloor(state?.liquidityFloor) ?? 0,
+    checkingFloor: typeof previsionV2SueloCuenta === "function" ? previsionV2SueloCuenta() : 0,
+    cushionTargetMonths: Math.max(0, Number(state?.emergencyBufferMonths) || 0),
+    monthlySpend: typeof escenarioMotorAverageCoreSpend === "function" && typeof canonicalEngineRuns !== "undefined" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0,
+    previousYearEnd: finVisita !== null ? { value: finVisita, visitDate: visita.date } : null,
+  };
+}
+
+/** Un aviso del motor, dicho como una decisión de Hoy (título, frase y nivel). */
+function hoyV2AvisoDecision(alert, hoy) {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const fecha = (iso) => contract?.shortDateLabel(iso, hoy) || iso;
+  const euros = money(contract?.roundDifference(alert.euros) ?? Math.round(alert.euros));
+  const d = alert.data || {};
+  if (alert.id === "suelo") {
+    return { title: `El ${fecha(alert.date)} bajáis del suelo`, text: `La previsión llega a ${money(d.lowValue)} el ${fecha(d.lowDate)}: faltan unos ${euros} sobre el suelo de ${money(d.floor)}. En la Previsión está el arreglo más barato.`, status: "danger" };
+  }
+  if (alert.id === "cuenta") {
+    const ahorro = d.coveredBySavings ? `habría que pasar unos ${euros} del ahorro antes` : `faltan unos ${euros} y el ahorro de ese día no alcanza`;
+    return { title: `La cuenta corriente se queda corta el ${fecha(alert.date)}`, text: `Baja de su mínimo de ${money(d.checkingFloor)} hasta ${money(d.lowValue)} el ${fecha(d.lowDate)}: ${ahorro}.`, status: d.coveredBySavings ? "warn" : "danger" };
+  }
+  if (alert.id === "colchon") {
+    const meses = (n) => `${String(n).replace(".", ",")} ${n === 1 ? "mes" : "meses"}`;
+    return { title: `El colchón baja de ${meses(d.targetMonths)} el ${fecha(alert.date)}`, text: `Llega a ${meses(d.lowMonths)} de gasto el ${fecha(d.lowDate)}: faltan unos ${euros} para vuestro objetivo.`, status: "warn" };
+  }
+  return { title: `El 31 de diciembre, unos ${euros} menos que en tu visita del ${fecha(d.visitDate)}`, text: `La previsión de fin de año baja un ${d.share} % (de ${money(d.before)} a ${money(d.after)}). En la Previsión está el porqué.`, status: "warn" };
+}
+
+/** Los avisos de FX-41 como decisiones de Hoy, de más a menos euros; nada antes de su puerta de fecha o si falta el motor. */
+function hoyV2AvisosPrevision(hoy = isoLocalDate(new Date())) {
+  const A = globalThis.FinanceCanonicalForecastAlerts;
+  if (hoy < HOY_V2_AVISOS_DESDE || !A) return [];
+  try {
+    const entrada = hoyV2AvisosEntrada(hoy);
+    if (!entrada) return [];
+    return A.evaluate(entrada).alerts.map((alert) => ({ ...hoyV2AvisoDecision(alert, hoy), previsionAviso: alert.id }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * FX-41 · los mismos avisos, para el calendario del móvil (WP-32, recordatorios-ui.js): los que tienen un día en que se cruza el umbral
+ * (no el del fin de año, que cuenta un cambio ya ocurrido). El título no lleva importes: la pantalla de bloqueo no los enseña.
+ */
+const HOY_V2_AVISO_TITULO = Object.freeze({ suelo: "Previsión: bajáis del suelo", cuenta: "Previsión: la cuenta corriente se queda corta", colchon: "Previsión: el colchón baja del objetivo" });
+
+function hoyV2AvisosCalendario(hoy = isoLocalDate(new Date())) {
+  const A = globalThis.FinanceCanonicalForecastAlerts;
+  if (hoy < HOY_V2_AVISOS_DESDE || !A) return [];
+  try {
+    const entrada = hoyV2AvisosEntrada(hoy);
+    if (!entrada) return [];
+    return A.evaluate(entrada).alerts.filter((alert) => HOY_V2_AVISO_TITULO[alert.id]).map((alert) => {
+      const dicho = hoyV2AvisoDecision(alert, hoy);
+      return { id: alert.id, date: alert.date, title: `${HOY_V2_AVISO_TITULO[alert.id]} el ${globalThis.FinanceCanonicalForecastContract?.shortDateLabel(alert.date, hoy) || alert.date}`, description: `${dicho.title}. ${dicho.text}` };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function hoyV2Decisions(todayRead, decisions) {
@@ -384,6 +468,12 @@ function hoyV2BindOnce(root) {
       hoyV2PaintedAt = null;
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
     }
+    if (event.target.closest("[data-hoy-v2-prevision]")) {
+      history.pushState(null, "", "#plan");
+      setActiveView("plan");
+      if (typeof setPlanTab === "function") setPlanTab("prevision");
+      return;
+    }
     if (event.target.closest("[data-hoy-v2-confianza]")) {
       globalThis.previsionV2AbrirConfianza?.();
       return;
@@ -426,7 +516,7 @@ function hoyV2Render(model) {
     <div class="hoy-v2-grid">
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
-        ${hoyV2Decisions(model.todayRead, model.decisions)}
+        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(model.decisions || [])])}
         ${hoyV2Repaso()}
         ${hoyV2Esperados()}
       </div>

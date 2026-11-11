@@ -6004,7 +6004,7 @@
             <!-- WP-32 (CAP-09 + ND-10): recordatorios calculados con la previsión, como fichero .ics para el calendario del móvil. La pinta recordatorios-ui.js. -->
             <article class="e19-card" id="recordatoriosCard" aria-labelledby="recordatoriosTitulo">
               <h3 class="escenario-motor-panel-title" id="recordatoriosTitulo">Recordatorios en el calendario del móvil</h3>
-              <p class="e19-kpi-note">Avisos en el momento en que sirven, no a horas fijas: dos días antes de cobrar, el día después de un cargo grande, el día 1 para cerrar el mes y la campaña fiscal. Es un <strong>fichero</strong> que se genera aquí, en este dispositivo, con la previsión de hoy: no es un calendario que se actualice solo (este sitio es público y estático, y una dirección con vuestras finanzas no puede existir). Cuando cambie el plan, descargadlo de nuevo: importarlo otra vez actualiza los avisos que siguen valiendo, pero no puede borrar los que ya no valen. Los títulos no llevan importes ni nombres, para que la pantalla de bloqueo no los enseñe.</p>
+              <p class="e19-kpi-note">Avisos en el momento en que sirven, no a horas fijas: dos días antes de cobrar, el día después de un cargo grande, el día 1 para cerrar el mes, la campaña fiscal y, una semana antes, cuando la previsión vaya a bajar de un umbral. Es un <strong>fichero</strong> que se genera aquí, en este dispositivo, con la previsión de hoy: no es un calendario que se actualice solo (este sitio es público y estático, y una dirección con vuestras finanzas no puede existir). Cuando cambie el plan, descargadlo de nuevo: importarlo otra vez actualiza los avisos que siguen valiendo, pero no puede borrar los que ya no valen. Los títulos no llevan importes ni nombres, para que la pantalla de bloqueo no los enseñe.</p>
               <fieldset class="rec-opciones">
                 <legend>Qué avisar</legend>
                 <label><input type="checkbox" data-recordatorios-kind="income" checked /> Dos días antes de cobrar</label>
@@ -6013,6 +6013,7 @@
                 <label><input type="checkbox" data-recordatorios-kind="fiscal" checked /> Campaña fiscal (1/12 y 20/12)</label>
                 <label><input type="checkbox" data-recordatorios-kind="rateReview" checked /> 60 y 30 días antes de revisar el tipo de la hipoteca</label>
                 <label><input type="checkbox" data-recordatorios-kind="cirbe" checked /> Pedir otra vez el informe de la CIRBE (a los 11 meses del último)</label>
+                <label><input type="checkbox" data-recordatorios-kind="forecast" checked /> Una semana antes de que la previsión baje del suelo, del mínimo de la cuenta o del colchón</label>
                 <label class="rec-importe">Cargo grande desde (€)
                   <input type="text" inputmode="decimal" id="recordatoriosMin" value="500" autocomplete="off" />
                 </label>
@@ -8168,6 +8169,7 @@
     <script defer src="canonical-forecast-confidence.js?v=20261107fx31b"></script>
     <script defer src="canonical-forecast-changes.js?v=20261109fx40a"></script>
     <script defer src="canonical-debt-horizon.js?v=20261110fx20h"></script>
+    <script defer src="canonical-forecast-alerts.js?v=20261123fx41a"></script>
     <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
@@ -8197,8 +8199,8 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261116fx03a"></script>
-    <script defer src="ux-shell.js?v=20261104intro2"></script>
+    <script defer src="novedades.js?v=20261123fx41a"></script>
+    <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
     <script defer src="usage-panel.js?v=20261004wp26a1"></script>
@@ -8219,8 +8221,8 @@
     <script defer src="chart-kit.js?v=20261109fx12a"></script>
     <script defer src="canonical-cash-band.js?v=20261106fx30a"></script>
     <script defer src="cash-band-ui.js?v=20261106fx30a"></script>
-    <script defer src="canonical-reminders.js?v=20261016wp23c1"></script>
-    <script defer src="recordatorios-ui.js?v=20261016wp23c1"></script>
+    <script defer src="canonical-reminders.js?v=20261123fx41a"></script>
+    <script defer src="recordatorios-ui.js?v=20261123fx41a"></script>
     <script defer src="canonical-expected-movements.js?v=20261007wp14a1"></script>
     <script defer src="canonical-ledger-coverage.js?v=20261026xda04"></script>
     <script defer src="canonical-statement-lines.js?v=20261031web1"></script>
@@ -8289,7 +8291,7 @@
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
-    <script defer src="views/hoy-v2.js?v=20261109fx31h"></script>
+    <script defer src="views/hoy-v2.js?v=20261123fx41a"></script>
     <script defer src="views/movimientos-v2.js?v=20261102mes1"></script>
     <script defer src="views/importar-v2.js?v=20261101meses1"></script>
     <script defer src="views/clasificar-v2.js?v=20261102nuevaP1"></script>

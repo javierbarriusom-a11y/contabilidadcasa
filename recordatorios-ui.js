@@ -6,7 +6,7 @@
 // cargarse: app.js llama a `renderRecordatorios` al pintar Ajustes y a `attachRecordatorios` una vez en init.
 
 const RECORDATORIOS_STORE = "reminders-settings";
-const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE" };
+const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE", forecast: "avisos de la previsión" };
 
 function recordatoriosSettings() {
   const engine = globalThis.FinanceCanonicalReminders;
@@ -38,6 +38,8 @@ function recordatoriosInput(settings, today) {
     cirbe: globalThis.cirbeCalendarItems?.() || [],
     // WP-23 PR-3 (fiscal-datos-ui.js): cuántas tareas fiscales hay con los datos del hogar y cuántas faltan por marcar como hechas; null si no hay datos de este año.
     fiscal: globalThis.fiscalCampaignReminder?.() || null,
+    // FX-41 (views/hoy-v2.js): los avisos de previsión con umbral, con su puerta de fecha.
+    forecast: globalThis.hoyV2AvisosCalendario?.(today) || [],
     options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin },
   };
 }

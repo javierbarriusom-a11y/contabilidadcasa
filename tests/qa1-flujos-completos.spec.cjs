@@ -7775,6 +7775,54 @@ test.describe("Hoy, cambio 1 · cobros y cargos esperados en la bandeja de Movim
   });
 });
 
+// FX-41 (el cambio de Hoy de la semana del 23/11/2026) · avisos de previsión con umbral en «Decidir esta semana» y en el calendario. Con un
+// suelo INVENTADO de 7.000 € la demo lo cruza en diciembre: el aviso dice el día, cuánto falta y lleva a la Previsión. Antes del 23/11, nada
+// (un cambio de Hoy por semana). En el calendario del móvil, el mismo aviso una semana antes, con el título sin importes.
+test.describe("FX-41 · avisos de previsión con umbral en Hoy", () => {
+  test("antes del 23/11 no salen (cada cambio de Hoy tiene su semana)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 10, 20, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+    await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(0);
+    expect(await page.evaluate(() => hoyV2AvisosCalendario())).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el aviso del suelo en «Decidir esta semana», a la Previsión, y en el calendario sin importes en el título, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 23, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+      // Con la demo tal cual la previsión no cruza ningún umbral: no hay aviso.
+      await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(0);
+      await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+      const aviso = page.locator("#hoyV2 .hoy-v2-decision").filter({ has: page.locator("[data-hoy-v2-prevision]") });
+      await expect(aviso).toHaveCount(1);
+      await expect(aviso.locator("strong")).toHaveText(/^El \d+ dic bajáis del suelo$/);
+      await expect(aviso).toContainText(/La previsión llega a [\d.]+\s€ el \d+ dic: faltan unos [\d.]+\s€ sobre el suelo de 7\.000\s€\. En la Previsión está el arreglo más barato\./);
+      await expect(aviso.locator(".hoy-v2-level")).toHaveText("Alto");
+      await expect(page.locator("#hoyV2 .hoy-v2-decision")).toHaveCount(3);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // El calendario: el mismo aviso una semana antes del cruce, con el título sin importes (la pantalla de bloqueo los enseñaría).
+      const calendario = await page.evaluate(() => recordatoriosPlan().result.events.filter((event) => event.kind === "forecast"));
+      expect(calendario).toHaveLength(1);
+      expect(calendario[0].title).toMatch(/^Previsión: bajáis del suelo el \d+ dic$/);
+      expect(calendario[0].title).not.toMatch(/€/);
+      expect(calendario[0].description).toMatch(/faltan unos [\d.]+\s€ sobre el suelo de 7\.000\s€/);
+      // «Ver la previsión» lleva a Plan › Previsión.
+      await aviso.locator("[data-hoy-v2-prevision]").click();
+      await expect(page.locator("#planPrevisionV2")).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => location.hash)).toBe("#plan");
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // Hoy, cambio 2 (semana del 1/11/2026): la entrada al Repaso semanal en Hoy, solo mientras el repaso de esa semana está por
 // hacer. Se abre desde la propia línea y, terminado el repaso, Hoy se repinta sin ella.
 test.describe("Hoy, cambio 2 · entrada al Repaso semanal (v2)", () => {

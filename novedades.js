@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-23-avisos-prevision",
+      fecha: "2026-11-23",
+      texto: "Hoy: «Decidir esta semana» avisa si la previsión va a bajar del suelo, del mínimo de la cuenta o del colchón; también en el calendario.",
+      href: "#home",
+    },
+    {
       id: "2026-11-16-trayectoria-cosida",
       fecha: "2026-11-16",
       texto: "Previsión y Hoy: el gasto variable se reparte por los días del mes; el punto más bajo cae la víspera del cobro, ya no cada día 8.",

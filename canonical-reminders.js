@@ -21,8 +21,10 @@
   // Es puro: la fecha de hoy y los movimientos fechados del plan llegan por parámetro. No ejecuta nada.
 
   const SCHEMA_ID = "finance-canonical-reminders/v1";
-  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe"]);
-  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true }) });
+  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe", "forecast"]);
+  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true, forecast: true }) });
+  // FX-41: el aviso de la previsión llega una semana antes de que cruce el umbral (o hoy, si ya falta menos), para que dé tiempo a actuar.
+  const FORECAST_LEAD_DAYS = 7;
   // Solo los días que el plan SABE: un ingreso con fecha «estimada» (el día 8 de relleno) generaría un aviso en un día cualquiera, que es
   // justo el ruido que este paquete quiere evitar.
   const CERTAIN = Object.freeze(["rule", "observed"]);
@@ -72,6 +74,7 @@
    *   reviews?: Array<{date: string, low?: number, high?: number}>,
    *   cirbe?: Array<{reportDate?: string, renewOn: string}>,
    *   fiscal?: {year: number, total: number, pending: number},
+   *   forecast?: Array<{id: string, date: string, title: string, description?: string}>,
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */
@@ -210,6 +213,16 @@
       });
     }
 
+    // 7) FX-41: los avisos de previsión con umbral (canonical-forecast-alerts.js, los mismos de «Decidir esta semana» de Hoy), una semana
+    // antes del día en que la previsión cruza el umbral. El título, sin importes (lo dice quien los da): las cifras van en la descripción.
+    if (options.kinds.forecast) {
+      (Array.isArray(input.forecast) ? input.forecast : []).forEach((item) => {
+        const crossDate = utc(item?.date) ? isoOf(utc(item.date)) : "";
+        if (!crossDate || crossDate < today || !item.title) return;
+        const date = addDays(crossDate, -FORECAST_LEAD_DAYS) < today ? today : addDays(crossDate, -FORECAST_LEAD_DAYS);
+        put({ uid: `rec-prevision-${slug(item.id)}-${crossDate}`, kind: "forecast", date, title: String(item.title), description: `${item.description ? `${item.description} ` : ""}Es la previsión del ${longDate(today)}: si al descargar otra vez el calendario ya no sale, ya no aplica.` });
+      });
+    }
     const list = [...events.values()].sort((a, b) => a.date.localeCompare(b.date) || a.uid.localeCompare(b.uid)).slice(0, MAX_EVENTS);
     const counts = Object.fromEntries(KINDS.map((kind) => [kind, list.filter((event) => event.kind === kind).length]));
     return { schemaId: SCHEMA_ID, status: "ok", missing: [], today, horizonEnd, events: list, counts, skipped, options };

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**11/11/2026 · FX-41 hecho, con puerta de fecha («continua con FX-41»).** Los avisos de previsión con umbral salen en «Decidir esta semana» de Hoy y en el calendario del móvil, solo cuando la previsión cruza el suelo, el mínimo de la cuenta, el colchón o pierde más de un 10 % de fin de año. Se activan el 23/11 (el cambio de Hoy de esa semana) y viajan en #607 con FX-03 (PROJECT_STATE 442).
+
 **11/11/2026 · Las tres decisiones del hogar («ok a las tres cosas»).**
 - La deuda y el patrimonio a 24 m, a la centena: amortizar enseña el interés ahorrado.
 - El panel del día, una línea por movimiento como la referencia: 70 px de margen bajo los 900 px a 1440.
@@ -346,7 +348,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 2 | FX-14 / XPR-04 | El mes en curso al ritmo real | 7ª | M · 2 | FX-03 | Previsión y Plan › Mes |
 | 3 | FX-13 / XPR-05 | Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos) | 7ª, Def §5.0 | M · 2,5 | FX-10 | Nunca ejecuta el traspaso · **Hecho 10/11**: «Total · Por cuenta» en el gráfico (cuenta corriente con su mínimo y ahorro) y la tarjeta del traspaso sugerido (traspasar menos al ahorro o pasar del ahorro antes del día, a 0 €) |
 | 4 | FX-22 | «¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas) | 8ª, Def P3 | M · 2 | FX-20 | Responde «¿me lo puedo permitir?» · **PR-1 hecho 9/11**: gasto único, cambio de ingreso y de gasto al mes, con veredicto y «Guardar como escenario»; **10/11, hecho:** «aplazar un pago» (1-3 meses, paridad con Escenarios) y los atajos del panel del día en lugar del clic largo |
-| 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana |
+| 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana · **11/11, hecho con puerta de fecha (activo el 23/11, en #607 con FX-03)**: suelo, cuenta, colchón y fin de año, solo al cruzar el umbral en 90 días; en «Decidir esta semana» y en el calendario (título sin importes) |
 | 6 | FX-60 / XUX-01 | Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir | 7ª, Def §5.0 | L · 4 | FX-10 | Redirige `#forecast`, Previsión mensual, Análisis, Mapa de calor |
 | 7 | RD-D1/D2 | Patrimonio e Inversión con el diseño nuevo | Def §5.0 | L | FX-11 | Usan el gráfico único |
 | 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | — |
