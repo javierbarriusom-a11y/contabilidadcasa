@@ -1560,7 +1560,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(6);
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(7); // FX-41: + «avisos de la previsión»
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
       // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.

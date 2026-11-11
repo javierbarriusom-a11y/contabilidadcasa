@@ -206,7 +206,11 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/redis-hoy2-repaso.test.cjs`: el orden de Hoy, con la llamada nueva.
   - e2e «FX-41» (antes del 23/11 nada; a 390 `@safari` y 1440 px, el aviso, el calendario sin importes en el título y el camino a la Previsión) y axe claro/oscuro.
   - Sellos: `canonical-forecast-alerts.js`, `views/hoy-v2.js`, `canonical-reminders.js`, `recordatorios-ui.js`, `ux-shell.js` y `novedades.js` a `20261123fx41a`. Novedades, una línea con fecha del 23/11.
-- **Validación:** `npm run verify` en verde (6.535/6.535; «forecast y escenarios en 279,7 ms»). En local, 15/15 e2e y axe de FX-41, de los cambios de Hoy, del rediseño de Hoy y de XGO-01; la tanda completa, ver el PR (#607).
+- **Validación:** `npm run verify` en verde (6.535/6.535; «forecast y escenarios en 279,7 ms»). En local, la tanda completa de e2e y axe en Chromium dio 385/387; las dos que fallaron se arreglaron:
+  - **La e2e de WP-32 contaba 6 tipos de aviso**; con «avisos de la previsión» son 7. Se actualiza la cuenta.
+  - **La axe de la carta del mes (WP-29) tenía una carrera desde siempre:** esperaba al título (ya en el HTML) y a `recordCartaMes` (se carga al arrancar), pero no a `renderCierre`, que llega con la vista descargada.
+    - Con FX-03 solo fallaba bajo carga. Con FX-41, un script más al arrancar, fallaba siempre.
+    - Ahora espera también a `renderCierre`: 22/22 con dos repeticiones.
 
 ## Cierre de sesión — 11 de noviembre de 2026 (441): FX-03 · la trayectoria cosida, preparada para el lunes 16/11 (el cambio de Hoy de esa semana)
 
