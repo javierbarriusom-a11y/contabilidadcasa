@@ -5666,18 +5666,6 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       // Qué lo mueve. FX-03: el día más bajo (la víspera del cobro) solo mueve lo de ese día del gasto variable repartido.
       await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(1);
       await expect(dia.locator(".prev-v2-dia-item")).toContainText(/Gasto variable estimado\s*−5[67]\s€/);
-      // Los pagos con su certeza, el 8 dic: con ← desde el gráfico (seis días antes).
-      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
-      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
-      await expect(titulo).toHaveText("Martes 8 dic");
-      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
-      // 11/11/2026: una línea por movimiento, como la referencia; el gasto variable no lleva línea pequeña (ni pregunta).
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("small")).toHaveCount(0);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
-      await dia.locator("[data-prevision-v2-dia-soltar]").click();
-      await expect(titulo).toHaveText("Lunes 14 dic");
 
       const figura = v2.locator('[data-ck-id="prevision-v2"]');
       const scrub = figura.locator(".ck-scrub");
@@ -5713,6 +5701,20 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
         await expect(dia.locator(".prev-v2-dia-pista")).toContainText("Día fijado.");
       }
       // «Volver al punto más bajo» suelta el día.
+      await dia.locator("[data-prevision-v2-dia-soltar]").click();
+      await expect(titulo).toHaveText("Lunes 14 dic");
+      await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
+      // Los pagos con su certeza, el 8 dic: con ← desde el gráfico (seis días antes). Después de medir la posición del panel: el foco
+      // en el gráfico desplaza la página y las cajas medidas a mitad del desplazamiento no casan (CI de #607, 390 px).
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
+      await expect(titulo).toHaveText("Martes 8 dic");
+      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
+      // 11/11/2026: una línea por movimiento, como la referencia; el gasto variable no lleva línea pequeña (ni pregunta).
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("small")).toHaveCount(0);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
       await dia.locator("[data-prevision-v2-dia-soltar]").click();
       await expect(titulo).toHaveText("Lunes 14 dic");
       await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
@@ -6092,15 +6094,11 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       const dia = v2.locator(".prev-v2-dia");
       // FX-03: el día más bajo (14 dic) solo mueve gasto variable, sin pagos que aplazar; el 8 dic, con ← desde el gráfico, tiene cinco.
       await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Lunes 14 dic");
-      await expect(v2.locator(".prev-v2-dia-atajos")).toHaveText("¿Y si…? El 14 dic: un gasto ese día");
-      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
-      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
-      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
-      // Una línea de atajos: el pago mayor del día que se puede aplazar (el gasto variable de 1.750 € no es un pago).
-      // Fuera de la columna del panel (a 1440 px panel y gráfico ya llegan casi a los 900 px): bajo el gráfico en escritorio y bajo
-      // el panel en el móvil. Dicen el día, porque en escritorio no están dentro del panel.
+      // Una línea de atajos, fuera de la columna del panel (a 1440 px panel y gráfico ya llegan casi a los 900 px): bajo el gráfico en
+      // escritorio y bajo el panel en el móvil. Dicen el día, porque en escritorio no están dentro del panel. Se mide antes de mover el
+      // día con el teclado: el foco en el gráfico desplaza la página (CI de #607).
       const atajos = v2.locator(".prev-v2-dia-atajos");
-      await expect(atajos).toHaveText("¿Y si…? El 8 dic: un gasto ese día · aplazar un pago");
+      await expect(atajos).toHaveText("¿Y si…? El 14 dic: un gasto ese día");
       const figura = v2.locator('[data-ck-id="prevision-v2"]');
       const [cajaDia, cajaAtajos, cajaFigura] = [await dia.boundingBox(), await atajos.boundingBox(), await figura.boundingBox()];
       if (viewport.width === 1440) {
@@ -6109,6 +6107,11 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       } else {
         expect(cajaAtajos.y, "bajo el panel").toBeGreaterThanOrEqual(cajaDia.y + cajaDia.height - 1);
       }
+      // El 8 dic, con ← desde el gráfico: el pago mayor del día que se puede aplazar (el gasto variable no es un pago).
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
+      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
+      await expect(atajos).toHaveText("¿Y si…? El 8 dic: un gasto ese día · aplazar un pago");
       await atajos.getByRole("button", { name: "Aplazar un pago del 8 dic: Gastos del hogar" }).click();
       await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
       const pago = v2.locator("#prevV2YSi-aplazar-key");

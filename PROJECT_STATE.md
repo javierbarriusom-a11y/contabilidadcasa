@@ -201,6 +201,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Validación:**
   - `npm test` en verde (6.528/6.528), lint y typecheck.
   - La tanda completa de e2e y axe en Chromium: 380 de 382.
+  - **El primer CI de #607 falló, y era de este PR:** «el panel, debajo del gráfico», a 390 px. El rodeo al 8 dic con el teclado iba antes de medir la posición del panel, y el foco en el gráfico desplaza la página. Ahora se mide antes de mover el día, también en la e2e de FX-22 PR-2. En local, 12/12 con dos repeticiones.
   - Las 2 que fallaron son la axe de la carta del mes en Cierre (WP-29), en claro y en oscuro: `renderCierre is not defined` bajo carga, porque la prueba espera a `recordCartaMes` y llama a una función de una vista que se descarga aparte. Pasan solas con FX-03, y en el CI de #606 pasaron. No es de este cambio.
 
 ## Cierre de sesión — 11 de noviembre de 2026 (440): el panel del día más compacto y la deuda y el patrimonio a 24 m, a la centena
