@@ -173,6 +173,31 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (446): la causa del fallo intermitente de WP-40 (la CIRBE), encontrada y reproducida
+
+- **Por qué:** el CI de #607 en e95a35a falló en Chromium (sin reintento) en la e2e de WP-40, ajena al PR. Esta prueba falla de vez en cuando desde octubre: #511, #553, `main` tras #558 y ahora #607.
+- **La pista:** la dio el diagnóstico de `pulsar-o-explicar.cjs` (sesión 365):
+  - «Añadir fila» alternaba entre dos cajas, 15,513 y 15,512;
+  - sin mutaciones del DOM y sin desplazamiento;
+  - Playwright esperó 20 s a que el botón estuviera quieto.
+- **La causa, reproducida en local:** `button:hover { transform: translateY(-1px) }` (`styles.css`).
+  - Con el ratón quieto en el último píxel del botón, este sube al pasar el ratón, el ratón queda fuera, el botón baja y el ratón vuelve a estar encima. El bucle no para.
+  - Playwright comprueba que el botón esté quieto **antes** de mover el ratón, así que espera para siempre.
+  - Que el ratón acabe justo ahí depende de dónde terminó el clic anterior: por eso fallaba de vez en cuando.
+  - Puesto el ratón en ese píxel a propósito, el botón oscila (403/402) y el clic no llega, igual que en el CI.
+- **Arreglo, solo en las pruebas.** `pulsar` lleva antes el ratón al centro del botón, donde la subida de 1 px no lo saca.
+  - El centro se mide tras un desplazamiento instantáneo. La página usa `scroll-behavior: smooth`, y medido a mitad del desplazamiento el «centro» caía en otro sitio: el primer intento del arreglo falló así en local.
+  - No reintenta ni espera más.
+- **Pruebas:**
+  - e2e nueva en WP-40: con el ratón en el borde de abajo de «Añadir fila», el clic llega. Sin el arreglo falla con la misma firma que el CI («cajasDistintas: 2»); con él pasa.
+  - `ci-informe-playwright` comprueba que `pulsar` centra el ratón sin animación.
+  - WP-40, 15 de 15 en local.
+- **Sin tocar la app (se consulta).** La misma oscilación de 1 px la puede ver una persona con ratón que lo deje en el borde de cualquier botón. Arreglarlo en la app cambia un efecto visible en toda la app. Las opciones:
+  - quitar la subida al pasar el ratón;
+  - cambiarla por una sombra.
+- **Visto de paso, sin tocar:** «Ensayo del cierre» a 390 px falla en local 1 de 3 también sin este cambio, al pulsar «Firmar cierre» con `force: true`. En el CI pasa. Queda anotado.
+- **Validación:** `npm run verify` en verde (6.543/6.543).
+
 ## Cierre de sesión — 11 de noviembre de 2026 (445): la e2e de WP-18 en Safari, sin carrera al pulsar un interruptor de Ajustes
 
 - **Petición del hogar:** «haz esta tarea aquí», la tarea sugerida tras el CI de #607 en a3fa5ce.

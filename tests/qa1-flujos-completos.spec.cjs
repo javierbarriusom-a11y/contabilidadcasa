@@ -2659,6 +2659,22 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
     await pulsar(page, '#cirbeForm button[type="submit"]');
   };
 
+  // 11/11/2026, la causa del fallo intermitente, reproducida: con el ratón quieto en el último píxel de «Añadir fila», el botón sube y
+  // baja sin parar (`button:hover` lo sube 1 px) y un clic de Playwright espera para siempre a que se quede quieto. `pulsar` lleva antes
+  // el ratón al centro: con el ratón justo ahí, el clic tiene que llegar (sale «Falta la entidad»).
+  test("«Añadir fila» se pulsa aunque el ratón se haya quedado en su borde de abajo", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const card = await open(page);
+    await card.locator('[data-estado-accion="cirbe-empezar"]').click();
+    const boton = page.locator('#cirbeForm button[type="submit"]');
+    await boton.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.mouse.move(1, 1);
+    const borde = await boton.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.bottom - 0.5 }; });
+    await page.mouse.move(borde.x, borde.y);
+    await pulsar(page, '#cirbeForm button[type="submit"]', { timeout: 5000 });
+    await expect(page.locator("#cirbeError")).toContainText("Falta la entidad");
+  });
+
   test("vacío accionable, filas con validación, cuadra / difiere / falta, aval, vencido, añadir a Contratos sin crearlo, quitar y borrar con deshacer, sin confirm() ni desbordar", async ({ page }) => {
     test.setTimeout(120000);
     const pageErrors = [];
