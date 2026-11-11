@@ -173,6 +173,35 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (440): el panel del día más compacto y la deuda y el patrimonio a 24 m, a la centena
+
+- **Petición del hogar:** «ok a las tres cosas», sobre las tres propuestas de la 439:
+  - redondear a la centena las filas de 24 meses;
+  - compactar «Qué lo mueve» del panel del día;
+  - que Claude proponga el cambio de Hoy de la semana del 16/11.
+  Esta entrada cubre las dos primeras; la tercera se propone abajo.
+- **A la centena** (`views/prevision-v2.js` `previsionV2Patrimonio`, `PREVISION_V2_PATRIMONIO_PASO`):
+  - **Qué filas:** «Liquidez», «Deuda viva», «Os deben» y «Patrimonio» a 24 meses, con sus niveles y sus diferencias, van a la centena y no al millar de FX-04. Niveles y diferencias usan el mismo paso, así que la resta sigue cuadrando a la vista. La nota lo dice: «el nivel no es más seguro por eso».
+  - **Lo que destapa en la demo (cifras INVENTADAS):**
+    - amortizar 2.000 € baja la deuda 2.100 €, por el interés que se deja de pagar, y el patrimonio sube 100 €;
+    - la frase tiene una lectura nueva para ese caso: «lo que sale de la caja va a deber menos y además os ahorra intereses»;
+    - con el Euribor +2 de las pruebas, la deuda de más se lee +1.300 €, no +1.000 ni +2.000.
+- **El panel del día, una línea por movimiento**, como la referencia (`PrevisionDesktop.png`):
+  - Solo el pago de día estimado lleva debajo «día estimado · ¿sabes el día?», con el enlace a 24 px (el mínimo AA de WCAG 2.5.8) y no a 32.
+  - El día cierto, por regla o indicado ya no se dice en cada fila: lo resume la insignia de confianza.
+  - El gasto variable va sin línea pequeña.
+  - **Medido a 1440 px con DejaVu Sans (la fuente del CI):** el panel y el gráfico bajan 70 px (de 961,8 a 891,8 en esa emulación, más ancha que el CI). Ya hay margen bajo los 900 px que tanto costaron en #605.
+- **Pruebas:**
+  - `tests/prevision-dia-compacto.test.cjs` (2), nuevo.
+  - `tests/fx20-patrimonio-en-prevision.test.cjs` (+1 y cifras a la centena).
+  - Las e2e de C2, FX-20 completa y el panel del día, actualizadas con las cifras a la centena y sin la línea del gasto variable.
+  - Sellos: `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261111a`. Novedades, una línea.
+- **El cambio de Hoy de la semana del 16/11, propuesto: FX-03** (la trayectoria cosida), y no FX-41.
+  - **El motivo:** el motor diario carga el gasto variable del mes entero el día 8, así que el punto más bajo de cada mes cae ese día y es artificialmente bajo. En la demo, los 5.600 € del 8 dic llevan dentro los 1.750 € de todo diciembre.
+  - FX-41 (avisos con umbral en Hoy) montado sobre esa trayectoria avisaría cada día 8 por un artefacto. Primero la forma, luego los avisos: FX-41, la semana del 23/11.
+  - FX-03 cambia la cifra de Hoy, así que se prepara antes y se fusiona el lunes 16/11.
+- **Validación:** `npm run verify` en verde (6.525/6.525; «forecast y escenarios en 213,4 ms»). En local, 62/62 e2e y axe en Chromium de C2, FX-1x, FX-2x, FX-3x, FX-5x, XGO-01 y XPR.
+
 ## Cierre de sesión — 10 de noviembre de 2026 (439): FX-22 PR-2 · aplazar un pago, y los atajos del panel del día
 
 - **Petición del hogar:** «continuamos?». Sin respuesta todavía al redondeo de las diferencias a 24 m (438), que no se toca. FX-22 PR-2 era lo siguiente que no dependía de una decisión pendiente ni del turno semanal de Hoy.

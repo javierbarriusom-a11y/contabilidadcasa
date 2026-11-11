@@ -62,11 +62,11 @@ test("FX-20 · amortizar en un escenario: la caja baja, la deuda baja lo mismo y
   const { base, prueba } = filas(20000, 20000, 18000);
   const r = patrimonio(v, { preset: { id: "guardado" }, rows: prueba, deuda: { finalState: resolved.debtStateFinal, decisiones: [decision] } }, base);
   const tabla = JSON.parse(JSON.stringify(r.filas));
-  // 6.000 − 24 × 100 = 3.600 de deuda en el plan; con 2.000 amortizados, 1.600. A 24 meses se redondea al millar (FX-04).
+  // 6.000 − 24 × 100 = 3.600 de deuda en el plan; con 2.000 amortizados, 1.600. Estas filas van a la centena (11/11/2026), no al millar.
   assert.deepEqual(tabla, [
     ["Liquidez a 9 nov 2028", "20.000 €", "18.000 €", "−2.000 €"],
-    ["Deuda viva a 9 nov 2028", "4.000 €", "2.000 €", "−2.000 €"],
-    ["Patrimonio sin vivienda ni cartera a 9 nov 2028", "16.000 €", "16.000 €", "igual"],
+    ["Deuda viva a 9 nov 2028", "3.600 €", "1.600 €", "−2.000 €"],
+    ["Patrimonio sin vivienda ni cartera a 9 nov 2028", "16.400 €", "16.400 €", "igual"],
   ]);
   assert.equal(r.frase, "A 9 nov 2028, 2.000 € menos de caja y 2.000 € menos de deuda; el patrimonio queda igual que en el plan: lo que sale de la caja va a deber menos, no se pierde.");
   assert.match(r.nota, /^Patrimonio a 9 nov 2028: liquidez menos deudas, más lo que os deban\. La vivienda y la cartera no cambian .* \(con hipoteca, incluso negativo\), pero la diferencia es la misma\./);
@@ -83,6 +83,8 @@ test("FX-20 · el Euribor: además de la caja, se debe más; la prueba cuesta m�
   const r = patrimonio(v, { preset: { id: "euribor" }, info: { shocks: [shock] }, rows: prueba }, base);
   const deuda = r.filas.find((fila) => fila[0].startsWith("Deuda viva"));
   assert.ok(deuda[3].startsWith("+"), `la deuda sube: ${deuda[3]}`);
+  // A la centena (11/11/2026): los ~1.318 € de deuda de más se leen como 1.300 €, no como 1.000 o 2.000 según el redondeo al millar.
+  assert.equal(deuda[3], "+1.300 €");
   const nw = r.filas.find((fila) => fila[0].startsWith("Patrimonio"));
   const liq = r.filas.find((fila) => fila[0].startsWith("Liquidez"));
   assert.ok(Number(nw[3].replace(/[^\d]/g, "")) > Number(liq[3].replace(/[^\d]/g, "")), "el patrimonio baja más que la caja");
@@ -94,11 +96,17 @@ test("FX-20 · lo que el plan ya amortiza baja la deuda del plan; la prueba que 
   const { base, prueba } = filas(20000, 20000, 19000);
   const r = patrimonio(v, { preset: { id: "imprevisto" }, info: { amount: 1000 }, rows: prueba }, base);
   const deuda = r.filas.find((fila) => fila[0].startsWith("Deuda viva"));
-  assert.deepEqual(JSON.parse(JSON.stringify(deuda)), ["Deuda viva a 9 nov 2028", "2.000 €", "2.000 €", "igual"], "3.600 − 2.000 = 1.600 → 2.000 €");
+  assert.deepEqual(JSON.parse(JSON.stringify(deuda)), ["Deuda viva a 9 nov 2028", "1.600 €", "1.600 €", "igual"], "3.600 − 2.000 = 1.600");
   assert.equal(r.frase, "", "sin cambio de deuda, la diferencia de patrimonio es la de la caja: ya se ve");
   // Con el horizonte de 24 m la liquidez de esa fecha ya está en la tabla: no se repite.
   const r24 = patrimonio(v, { preset: { id: "imprevisto" }, info: { amount: 1000 }, rows: prueba }, base, { end: { date: meta } });
   assert.deepEqual(JSON.parse(JSON.stringify(r24.filas.map((fila) => fila[0]))), ["Deuda viva a 9 nov 2028", "Patrimonio sin vivienda ni cartera a 9 nov 2028"]);
+});
+
+test("FX-20 · amortizar que ahorra intereses: el patrimonio sube y la frase lo dice", () => {
+  assert.equal(vista().previsionV2PatrimonioLectura(-2000, 100), ": lo que sale de la caja va a deber menos y además os ahorra intereses");
+  assert.equal(vista().previsionV2PatrimonioLectura(-2000, -300), ": buena parte de lo que sale de la caja va a deber menos, no se pierde");
+  assert.equal(vista().previsionV2PatrimonioLectura(-2600, -3900), ": la prueba cuesta más de lo que se ve en la caja");
 });
 
 test("FX-20 · sin deudas no hay filas; la que no tiene TAE ni plazo no se inventa y se dice; un préstamo a la familia suma", () => {

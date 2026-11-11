@@ -5526,9 +5526,10 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       // FX-20 completa (10/11): tres filas más al final, la liquidez, la deuda y el patrimonio a 24 meses. Sin sueldo no cambia la
       // deuda (las cuotas se pagan igual): el patrimonio baja lo mismo que la liquidez y no hay frase de deuda.
       await expect(impacto.locator("tbody tr")).toHaveCount(9);
-      await expect(impacto.locator("tbody tr").nth(7)).toContainText(/Deuda viva a 5 nov 2028\s*8\.000\s€\s*8\.000\s€\s*igual/);
-      await expect(impacto.locator("tbody tr").nth(6)).toContainText(/Liquidez a 5 nov 2028.*−10\.000\s€/s);
-      await expect(impacto.locator("tbody tr").nth(8)).toContainText(/Patrimonio sin vivienda ni cartera a 5 nov 2028.*−10\.000\s€/s);
+      // A la centena (11/11/2026), no al millar: la diferencia de 24 meses se lee igual que la del 5 feb.
+      await expect(impacto.locator("tbody tr").nth(7)).toContainText(/Deuda viva a 5 nov 2028\s*8\.100\s€\s*8\.100\s€\s*igual/);
+      await expect(impacto.locator("tbody tr").nth(6)).toContainText(/Liquidez a 5 nov 2028\s*21\.400\s€\s*10\.600\s€\s*−10\.800\s€/);
+      await expect(impacto.locator("tbody tr").nth(8)).toContainText(/Patrimonio sin vivienda ni cartera a 5 nov 2028.*−10\.800\s€/s);
       await expect(impacto.locator(".prev-v2-patrimonio")).toHaveCount(0);
       // FX-20 (7/11): el colchón en meses en el punto más bajo, con el gasto corriente medio del plan (4.250 € en la demo):
       // 5.600 € son 1,3 meses; 2.500 €, 0,6; la diferencia es la resta de lo que se ve.
@@ -5663,7 +5664,8 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(v2.locator(".ck-lectura")).toHaveText(/8 dic: 5\.600\s€ previstos · 4\.100\s€ sobre el suelo\./);
       // Qué lo mueve: los pagos del día con su certeza; el gasto variable no tiene día de cargo.
       await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" })).toContainText("gasto variable, sin día fijo");
+      // 11/11/2026: una línea por movimiento, como la referencia; el gasto variable no lleva línea pequeña (ni pregunta).
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("small")).toHaveCount(0);
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
       await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
@@ -6524,7 +6526,8 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
 });
 
 // FX-20 completa (10/11/2026) · la deuda y el patrimonio a 24 meses: un escenario guardado que amortiza 2.000 € (FICTICIO) de la deuda
-// reunificada de la demo baja la caja 2.000 €, pero baja la deuda lo mismo: el patrimonio queda igual y la frase lo dice.
+// reunificada de la demo baja la caja 2.000 €, pero la deuda baja 2.100 € (el interés que se deja de pagar): el patrimonio sube 100 €.
+// A la centena desde el 11/11/2026; al millar, la diferencia de deuda se veía igual que la de caja.
 test.describe("FX-20 completa · la deuda y el patrimonio a 24 meses", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`amortizar no se pierde: caja, deuda y patrimonio, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
@@ -6545,17 +6548,17 @@ test.describe("FX-20 completa · la deuda y el patrimonio a 24 meses", () => {
       await v2.locator("[data-prevision-v2-guardado]").selectOption("fx20-amortiza");
       const impacto = v2.locator(".prev-v2-impacto");
       const filas = impacto.locator("tbody tr");
-      await expect(filas.filter({ hasText: "Liquidez a 5 nov 2028" })).toContainText(/21\.000\s€\s*19\.000\s€\s*−2\.000\s€/);
-      await expect(filas.filter({ hasText: "Deuda viva a 5 nov 2028" })).toContainText(/8\.000\s€\s*6\.000\s€\s*−2\.000\s€/);
-      await expect(filas.filter({ hasText: "Patrimonio sin vivienda ni cartera a 5 nov 2028" })).toContainText(/13\.000\s€\s*13\.000\s€\s*igual/);
-      await expect(impacto.locator(".prev-v2-patrimonio")).toHaveText("A 5 nov 2028, 2.000 € menos de caja y 2.000 € menos de deuda; el patrimonio queda igual que en el plan: lo que sale de la caja va a deber menos, no se pierde.");
+      await expect(filas.filter({ hasText: "Liquidez a 5 nov 2028" })).toContainText(/21\.400\s€\s*19\.400\s€\s*−2\.000\s€/);
+      await expect(filas.filter({ hasText: "Deuda viva a 5 nov 2028" })).toContainText(/8\.100\s€\s*6\.000\s€\s*−2\.100\s€/);
+      await expect(filas.filter({ hasText: "Patrimonio sin vivienda ni cartera a 5 nov 2028" })).toContainText(/13\.300\s€\s*13\.400\s€\s*\+100\s€/);
+      await expect(impacto.locator(".prev-v2-patrimonio")).toHaveText("A 5 nov 2028, 2.000 € menos de caja y 2.100 € menos de deuda; el patrimonio queda 100 € por encima del plan: lo que sale de la caja va a deber menos y además os ahorra intereses.");
       await expect(impacto).toContainText("La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman");
       // La deuda del plan es la de Deuda › Contratos con su calendario: la misma que da el motor con los contratos de la app.
       const deudaPlan = await page.evaluate(() => {
         const H = globalThis.FinanceCanonicalDebtHorizon;
         return H.planDebt(canonicalDebtContractRows(), { startMonthKey: forecastMonths()[0].key, targetMonthKey: "2028-11", planned: previsionV2DeudaPlaneada().planned }).total;
       });
-      expect(Math.round(deudaPlan / 1000) * 1000, "la fila redondea la deuda del motor").toBe(8000);
+      expect(Math.round(deudaPlan / 100) * 100, "la fila redondea la deuda del motor a la centena").toBe(8100);
       // La tabla cabe en la tarjeta (sin desbordar) también con las filas nuevas.
       expect(await impacto.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);

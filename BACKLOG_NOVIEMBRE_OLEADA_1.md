@@ -21,6 +21,11 @@ minutos.
 
 ## 0. Estado en una línea
 
+**11/11/2026 · Las tres decisiones del hogar («ok a las tres cosas»).**
+- La deuda y el patrimonio a 24 m, a la centena: amortizar enseña el interés ahorrado.
+- El panel del día, una línea por movimiento como la referencia: 70 px de margen bajo los 900 px a 1440.
+- El cambio de Hoy de la semana del 16/11 será **FX-03**, la trayectoria cosida: el gasto variable, repartido y no entero el día 8. Va antes que FX-41, que avisaría por ese artefacto, y se fusiona el lunes 16/11 (PROJECT_STATE 440).
+
 **10/11/2026 · FX-22 hecho: aplazar un pago («continuamos?»).** «¿Y si…?» suma una cuarta palanca: un pago del plan, 1, 2 o 3 meses después, al mismo día. Guardada en Escenarios, son dos «Cambio de gasto» con los mismos meses. Los atajos del día elegido («¿Y si…? El 8 dic: un gasto ese día · aplazar un pago») sustituyen al clic largo, que no se descubre ni tiene teclado. Se corrige la frase cuando la prueba mejora el punto más bajo (PROJECT_STATE 439).
 
 **10/11/2026 · FX-20 hecho, versión completa: la deuda y el patrimonio a 24 meses («haz la mejor versión y más completa»).** La tabla de impacto añade la liquidez, la deuda viva y el patrimonio (sin vivienda ni cartera) a 24 meses. Los da un motor nuevo, `canonical-debt-horizon.js`, con:

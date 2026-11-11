@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-11-panel-y-centena",
+      fecha: "2026-11-11",
+      texto: "Previsión: el panel del día, una línea por pago; deuda y patrimonio a 24 meses, a la centena: amortizar ya enseña el interés ahorrado.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-10-aplazar-pago",
       fecha: "2026-11-10",
       texto: "Previsión: «¿Y si…?» ya aplaza un pago uno, dos o tres meses; desde el panel del día, «aplazar» junto a cada pago.",
