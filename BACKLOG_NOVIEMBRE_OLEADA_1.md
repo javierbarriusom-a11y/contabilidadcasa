@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**11/11/2026 · FX-14 hecho: el mes en curso al ritmo real («activa estas y luego continúa»).** Con 3 meses de extracto completos, Plan › Mes dice a qué ritmo cerrará el gasto variable (con banda y acierto) y la Previsión, cómo acabaría el mes así. La previsión no cambia: sigue con lo prudente. Viaja en #607 (PROJECT_STATE 444).
+
 **11/11/2026 · FX-43 hecho («continuamos»).** La carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente. Lista para la primera carta, la del cierre de noviembre. Sale con #607 el 16/11 (PROJECT_STATE 443).
 
 **11/11/2026 · FX-41 hecho, con puerta de fecha («continua con FX-41»).** Los avisos de previsión con umbral salen en «Decidir esta semana» de Hoy y en el calendario del móvil, solo cuando la previsión cruza el suelo, el mínimo de la cuenta, el colchón o pierde más de un 10 % de fin de año. Se activan el 23/11 (el cambio de Hoy de esa semana) y viajan en #607 con FX-03 (PROJECT_STATE 442).
@@ -347,7 +349,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | # | ID | Qué | Origen | Esf. | Depende | Nota |
 |---|---|---|---|---|---|---|
 | 1 | FX-21 (resto) | Las otras 4 pruebas de estrés | 8ª | M · 1 | FX-20 | Las que tengan sus datos (local, cartera, ingresos inciertos) |
-| 2 | FX-14 / XPR-04 | El mes en curso al ritmo real | 7ª | M · 2 | FX-03 | Previsión y Plan › Mes |
+| 2 | FX-14 / XPR-04 | El mes en curso al ritmo real | 7ª | M · 2 | FX-03 | Previsión y Plan › Mes · **11/11, hecho (en #607, sale el 16/11)**: motor `canonical-variable-pace.js` con el perfil del hogar, puerta de 3 meses, banda y acierto del día 15 por ensayos sin trampa; la cifra prudente sigue mandando |
 | 3 | FX-13 / XPR-05 | Previsión por cuenta y traspasos sugeridos; desbloquea XPR-07 PR-2 (traspasos) | 7ª, Def §5.0 | M · 2,5 | FX-10 | Nunca ejecuta el traspaso · **Hecho 10/11**: «Total · Por cuenta» en el gráfico (cuenta corriente con su mínimo y ahorro) y la tarjeta del traspaso sugerido (traspasar menos al ahorro o pasar del ahorro antes del día, a 0 €) |
 | 4 | FX-22 | «¿Y si…?» rápido desde la previsión (NPV-06 y NDB-03 promovidas) | 8ª, Def P3 | M · 2 | FX-20 | Responde «¿me lo puedo permitir?» · **PR-1 hecho 9/11**: gasto único, cambio de ingreso y de gasto al mes, con veredicto y «Guardar como escenario»; **10/11, hecho:** «aplazar un pago» (1-3 meses, paridad con Escenarios) y los atajos del panel del día en lugar del clic largo |
 | 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana · **11/11, hecho con puerta de fecha (activo el 23/11, en #607 con FX-03)**: suelo, cuenta, colchón y fin de año, solo al cruzar el umbral en 90 días; en «Decidir esta semana» y en el calendario (título sin importes) |

@@ -4619,6 +4619,29 @@
   margin: 0;
 }
 
+/* FX-14 (11/11/2026) · el mes en curso al ritmo real: la tarjeta de la Previsión y las líneas del ritmo en Plan › Mes. */
+:root[data-tema="v2"] .prev-v2-ritmo {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-ritmo p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo-variable {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo-variable p {
+  margin: 0;
+}
+
 :root[data-tema="v2"] .prev-v2-traspaso-opciones {
   display: grid;
   margin: 0;

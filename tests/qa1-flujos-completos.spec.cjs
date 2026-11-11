@@ -6186,6 +6186,67 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
 // FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso semanal, sin paso nuevo: lo más bajo en 30 días con su margen, qué ha
 // cambiado desde la visita anterior a la Previsión (sin dejar foto) y, con un suelo INVENTADO de 8.000 €, el aviso del día en que
 // se baja. «Ver la previsión» cierra el repaso (ya guardado) y abre Plan › Previsión.
+// FX-14 · el mes en curso al ritmo real (XPR-04). Extracto FICTICIO: julio-octubre completos y noviembre hasta el 11, todo en «Gasto
+// variable estimado» (18 € al día y 220 € el día 2). Con 4 meses de perfil, el ritmo dice 770 € frente a 1.750 € del plan; la previsión
+// no cambia (sigue con lo prudente) y la tarjeta dice cómo acabaría el mes a este ritmo.
+async function sembrarRitmoVariable(page) {
+  await page.evaluate(() => {
+    const rows = [];
+    const pad = (n) => String(n).padStart(2, "0");
+    const add = (date, amount) => rows.push({ date, valueDate: date, movement: "Gasto variable estimado", details: "", amount, balance: null });
+    for (const [key, days] of [["2026-07", 31], ["2026-08", 31], ["2026-09", 30], ["2026-10", 31], ["2026-11", 11]]) {
+      for (let d = 1; d <= days; d += 1) {
+        add(`${key}-${pad(d)}`, -18);
+        if (d === 2) add(`${key}-${pad(d)}`, -220);
+      }
+    }
+    baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+    refreshMovementRollups();
+    applyMovementMappingsToActuals();
+    render();
+  });
+}
+
+test.describe("FX-14 · el mes en curso al ritmo real", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin 3 meses no dice nada; con ellos, el ritmo en Plan › Mes y el mes a este ritmo en la Previsión, sin tocar la previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 11, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      // Sin extracto (la demo), ni tarjeta ni línea.
+      await expect(v2.locator(".prev-v2-ritmo")).toHaveCount(0);
+      const cifra = await v2.locator(".prev-v2-cifra").textContent();
+
+      await sembrarRitmoVariable(page);
+      const tarjeta = v2.locator(".prev-v2-ritmo");
+      await expect(tarjeta).toBeVisible();
+      await expect(tarjeta.locator("#prevV2RitmoTitulo")).toHaveText("Si noviembre sigue a este ritmo");
+      await expect(tarjeta).toContainText(/Acabaríais noviembre con unos 11\.330\s€; la previsión, que cuenta lo prudente, dice 10\.350\s€\./);
+      await expect(tarjeta).toContainText(/cerraría en unos 770\s€ \(entre 760\s€ y 780\s€\): 980\s€ por debajo del plan, que prevé 1\.750\s€\./);
+      await expect(tarjeta).toContainText("Sale de vuestros 4 últimos meses de extracto, con lo gastado hasta el día 11.");
+      await expect(tarjeta).toContainText("La previsión sigue con lo prudente");
+      // La cifra de arriba no cambia: el ritmo se enseña al lado.
+      await expect(v2.locator(".prev-v2-cifra")).toHaveText(cifra);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Ver el ritmo en Plan › Mes»: la misma frase en la tarjeta del ritmo del mes.
+      await tarjeta.locator("[data-prevision-v2-plan-mes]").click();
+      const ritmo = page.locator(".plan-v2-ritmo-mes");
+      await expect(ritmo).toBeVisible();
+      await expect(ritmo.locator(".plan-v2-ritmo-variable")).toHaveAttribute("data-plan-v2-ritmo", "por-debajo");
+      await expect(ritmo).toContainText(/A vuestro ritmo, el gasto variable de noviembre cerraría en unos 770\s€/);
+      await expect(ritmo).toContainText("El día 15 acertaba de media con un ±1 %.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {

@@ -173,6 +173,40 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (444): FX-14 · el mes en curso al ritmo real, y el CI de Safari de #607
+
+- **Petición del hogar:** «activa estas [la fusión del 16/11 y la comprobación del 23/11] y luego continúa».
+  - Programadas las dos tareas: la fusión de #607 el lunes 16/11 y la comprobación de FX-41 el lunes 23/11 a las 9:41, ya creada (antes la iba a crear la del 16/11).
+  - FX-14 era lo que quedaba de la lista «si da tiempo» de la oleada con su dependencia (FX-03) hecha. No toca Hoy. Viaja en #607.
+- **El CI de Safari de #607 (b2d2d76), en rojo y arreglado sin tocar la app.**
+  - A 390 px, tras «Volver al punto más bajo» y la prueba «Imprevisto 3.000 €», el panel enseñaba otro día: 10.400 € en vez de 3.600 €. Falló también en el reintento.
+  - Causa: en WebKit el ratón «se mueve» cuando la página se desplaza debajo de él, y un día sin fijar sigue al ratón (es lo que se quiere). El paso nuevo de FX-03 (ir al 8 dic con el teclado y volver) dejaba el puntero quieto donde, tras desplazarse, quedaba el gráfico.
+  - La e2e suelta ahora con Intro, deja el puntero en el margen y comprueba el día antes de la prueba de estrés. En 19c7dc3, Safari 58/58 a la primera, sin reintento.
+  - En un iPhone de verdad no hay puntero que pase por encima: no le pasa al hogar.
+- **Motor nuevo, `canonical-variable-pace.js`** (`FinanceCanonicalVariablePace`, `finance-variable-pace/v1`, puro). ARQ-3 sube de 123 a 124, con su consumidor real en `views/plan-v2.js`.
+  - **Perfil:** de cada mes completo con extracto, qué parte del gasto variable se lleva gastada al llegar a cada día; la media de los 6 últimos. Un mes es completo si el extracto sigue después de él.
+  - **Puerta (XPR-04):** 3 meses completos con gasto variable. Sin ella no hay cifra.
+  - **Estimación:** lo gastado hasta el último día con extracto (no hoy: el extracto puede ir atrás), entre la parte del perfil a ese día. Nunca por debajo de lo gastado. Antes del día 5, o con menos del 15 % del perfil, no se estima.
+  - **Banda y acierto, sin trampa:** cada mes pasado se estima con el perfil de los demás. La banda son el menor y el mayor cociente real/estimado; el acierto, el error medio al día 15. Es la métrica de XPR-04 (≤ 10 %).
+  - **Frente al plan:** «en línea» si la diferencia no pasa del mayor de 25 € y el 5 % del previsto.
+- **Dónde se ve.** La previsión no cambia: sigue con lo prudente (lo mayor entre lo previsto y lo gastado, `actualAwareInfo`). Esto se enseña al lado, y Hoy no se toca.
+  - **Plan › Mes, en «Ritmo del mes»:** «A vuestro ritmo, el gasto variable de noviembre cerraría en unos X (entre A y B): Y por debajo/por encima del plan, que prevé Z», con cómo se sabe.
+    - Sin los 3 meses, si ya hay alguno, dice cuántos faltan.
+    - Antes del día 5, dice que sale a partir de ese día.
+  - **Previsión nueva, debajo de la tarjeta principal (fuera de la medida de 900 px):** «Si noviembre sigue a este ritmo · Acabaríais noviembre con unos X; la previsión, que cuenta lo prudente, dice Y», con «Ver el ritmo en Plan › Mes».
+  - A menos de 30 días, a la decena (FX-04).
+  - Sin extracto (la demo), no sale nada.
+- **Pruebas:**
+  - `tests/fx14-ritmo-variable.test.cjs` (5): la puerta y el mes completo; el mismo ritmo, más rápido, frente al plan y nunca bajo lo gastado; el extracto atrasado y «pronto»; devoluciones, lo que no es variable y la banda; motor puro y app.js sin tocar.
+  - ARQ-3 a 124.
+  - e2e «FX-14» a 390 (`@safari`) y 1440 px con un extracto INVENTADO: julio-octubre y noviembre hasta el 11. Comprueba la tarjeta, la frase, la cifra de arriba sin cambiar y el camino a Plan › Mes.
+  - Sellos: `views/plan-v2.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx14a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.543/6.543).
+  - En local con Chromium, 73 e2e de Previsión, Plan › Mes y FX en verde, y la de FX-14 también con la emulación del iPhone.
+  - Safari, en el CI.
+- **Lo que no hace todavía:** los fines de semana no entran en el perfil (solo el día del mes). Medir el error del día 15 mes a mes, para retirarlo si pasa del 20 % tres meses (XPR-04), queda para cuando haya cierres con extracto.
+
 ## Cierre de sesión — 11 de noviembre de 2026 (443): FX-43 · la carta del mes cuenta la previsión
 
 - **Petición del hogar:** «continuamos». FX-43 era lo siguiente con fecha: la primera carta que lo usa es la del cierre de noviembre (1-3/12). No toca Hoy. Viaja en #607, que se fusiona el 16/11: la rama está ocupada por ese PR, y subirlo es más seguro que guardarlo en local.

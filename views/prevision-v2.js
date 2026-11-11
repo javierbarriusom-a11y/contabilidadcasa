@@ -1629,6 +1629,31 @@ function previsionV2TraspasoHtml({ tramo, floor, today }) {
   </section>`;
 }
 
+/**
+ * FX-14 · el mes en curso al ritmo real (XPR-04). Con 3 meses de extracto completos, el cierre del mes si el gasto variable sigue al ritmo
+ * de estos días (el perfil del hogar, `planV2RitmoVariable` de views/plan-v2.js) frente a lo que dice la previsión, que sigue con lo
+ * prudente. Fuera de la tarjeta principal: no mueve la cifra, el gráfico ni el panel del día. Sin estimación, no sale nada.
+ */
+function previsionV2RitmoHtml({ rows, today }) {
+  if (typeof planV2RitmoVariable !== "function" || !rows?.length) return "";
+  const ritmo = planV2RitmoVariable(today);
+  if (!ritmo?.ready) return "";
+  const monthKey = String(today).slice(0, 7);
+  const fin = rows.find((row) => row.date === `${monthKey}-${String(ritmo.days).padStart(2, "0")}`);
+  if (!fin) return "";
+  const prevision = Number(fin.total);
+  const alRitmo = prevision + Number(ritmo.prudent) - Number(ritmo.projected);
+  const mes = planV2MonthName(monthKey).replace(/ \d{4}$/, "");
+  const diferencia = Math.abs(alRitmo - prevision) >= 10
+    ? `; la previsión, que cuenta lo prudente, dice ${planV2RitmoEuros(prevision)}`
+    : ", lo mismo que la previsión";
+  return `<section class="e19-card prev-v2-ritmo" aria-labelledby="prevV2RitmoTitulo" data-prevision-v2-ritmo="${escapeHtml(ritmo.versus?.status || "")}">
+    <p class="prev-v2-ritmo-titulo" id="prevV2RitmoTitulo"><strong>Si ${escapeHtml(mes)} sigue a este ritmo</strong></p>
+    <p>Acabaríais ${escapeHtml(mes)} con unos <strong>${escapeHtml(planV2RitmoEuros(alRitmo))}</strong>${escapeHtml(diferencia)}.</p>
+    <p class="e19-kpi-note">${escapeHtml(planV2RitmoFrase(ritmo, monthKey))} ${escapeHtml(planV2RitmoNota(ritmo))} <button type="button" class="hoy-v2-link" data-prevision-v2-plan-mes>Ver el ritmo en Plan › Mes</button></p>
+  </section>`;
+}
+
 function previsionV2Html({ rows, today, floor, horizonte }) {
   const { tramo, puntos } = previsionV2Serie(rows, today, horizonte);
   if (!tramo.length) return `<p class="hoy-v2-pending">Sin previsión desde hoy: pon los saldos para que la app pueda prever.</p>`;
@@ -1654,6 +1679,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
+    ${previsionV2RitmoHtml({ rows, today })}
     ${previsionV2LoQueVieneHtml({ hitos, today })}
     ${previsionV2SupuestosHtml({ rows, today })}
     <p class="prev-v2-mas">
@@ -1921,6 +1947,11 @@ function previsionV2Init() {
       previsionV2CursorAlDia(box);
       box.querySelector('[data-ck-id="prevision-v2"] .ck-scrub')?.focus();
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      return;
+    }
+    if (event.target.closest("[data-prevision-v2-plan-mes]")) {
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      document.querySelector('[data-plan-tab="mes"]')?.click();
       return;
     }
     const nav = event.target.closest("[data-prevision-v2-nav]");

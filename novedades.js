@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-ritmo-variable",
+      fecha: "2026-11-16",
+      texto: "Plan › Mes y Previsión: con 3 meses de extracto, a qué ritmo va el gasto variable y cómo acabaría el mes así; la previsión no cambia.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-carta-prevision",
       fecha: "2026-11-16",
       texto: "Cierre: la carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente.",

@@ -151,6 +151,69 @@ function planV2SinAsignarHtml({ month, entries, totals, asignado: asignadoGasto,
   </article>`;
 }
 
+// ---------- FX-14 · el gasto variable del mes en curso, al ritmo real ----------
+
+/**
+ * FX-14 (XPR-04): a qué ritmo va el gasto variable del mes en curso, con el perfil del propio hogar (canonical-variable-pace.js), frente
+ * a lo previsto y a lo que cuenta la previsión (lo mayor entre lo previsto y lo gastado, `actualAwareInfo`). Lo usan Plan › Mes y la
+ * Previsión nueva; la cifra prudente sigue mandando: esto se enseña al lado, no cambia ninguna previsión. Sin el motor, null.
+ */
+function planV2RitmoVariable(today) {
+  const P = globalThis.FinanceCanonicalVariablePace;
+  if (!P?.estimate || typeof canonicalLedgerTransactions !== "function" || typeof monthByKey !== "function") return null;
+  try {
+    const monthKey = String(today).slice(0, 7);
+    const month = monthByKey(monthKey);
+    if (!month) return null;
+    const isVariable = (transaction) => transaction?.mapping?.status === "classified" && transaction.mapping.sectionName === VARIABLE_OPERATIONAL_SECTION;
+    const result = P.estimate(canonicalLedgerTransactions(), { monthKey, isVariable, today });
+    const rows = planningSectionsForMonth("expense", month).filter((section) => section.name === VARIABLE_OPERATIONAL_SECTION).flatMap((section) => section.rows);
+    const planned = rows.reduce((sum, row) => sum + Number(plannedValueForRow(row, month) || 0), 0);
+    const prudent = rows.reduce((sum, row) => sum + Number(actualAwareInfo(row, month).value || 0), 0);
+    return { ...result, planned, prudent, versus: P.versusPlan(result, planned) };
+  } catch {
+    return null;
+  }
+}
+
+/** FX-04: a menos de 30 días, a la decena; nunca céntimos. */
+function planV2RitmoEuros(value) {
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  return money(contract?.roundForHorizon ? contract.roundForHorizon(value, 20) : Math.round(Number(value) / 10) * 10);
+}
+
+/** La frase del ritmo (Plan › Mes y Previsión): cuánto, entre qué y frente al plan. */
+function planV2RitmoFrase(ritmo, monthKey) {
+  const mes = planV2MonthName(monthKey).replace(/ \d{4}$/, "");
+  const banda = ritmo.high - ritmo.low >= 10 ? ` (entre ${planV2RitmoEuros(ritmo.low)} y ${planV2RitmoEuros(ritmo.high)})` : "";
+  const versus = ritmo.versus?.status === "en-linea"
+    ? "en línea con el plan"
+    : `${planV2RitmoEuros(Math.abs(ritmo.versus?.diff || 0))} ${ritmo.versus?.status === "por-encima" ? "por encima" : "por debajo"} del plan`;
+  return `A vuestro ritmo, el gasto variable de ${mes} cerraría en unos ${planV2RitmoEuros(ritmo.projected)}${banda}: ${versus}, que prevé ${planV2RitmoEuros(ritmo.planned)}.`;
+}
+
+/** Cómo se sabe: los meses del perfil, hasta qué día llega el extracto y cuánto acertaba el día 15; y que la previsión no cambia. */
+function planV2RitmoNota(ritmo) {
+  const acierto = Number.isFinite(ritmo.error15) && ritmo.error15 !== null ? ` El día 15 acertaba de media con un ±${Math.max(1, Math.round(ritmo.error15 * 100))} %.` : "";
+  return `Sale de vuestros ${ritmo.monthsUsed} últimos meses de extracto, con lo gastado hasta el día ${ritmo.asOfDay}.${acierto} La previsión sigue con lo prudente: lo mayor entre lo previsto y lo gastado.`;
+}
+
+function planV2RitmoVariableHtml(today, monthKey) {
+  if (monthKey !== String(today).slice(0, 7)) return "";
+  const ritmo = planV2RitmoVariable(today);
+  if (!ritmo) return "";
+  if (ritmo.ready) {
+    return `<div class="plan-v2-ritmo-variable" data-plan-v2-ritmo="${escapeHtml(ritmo.versus?.status || "")}">
+      <p class="hoy-v2-month-real${ritmo.versus?.status === "por-encima" ? " is-over" : ""}">${escapeHtml(planV2RitmoFrase(ritmo, monthKey))}</p>
+      <p class="plan-v2-nota">${escapeHtml(planV2RitmoNota(ritmo))}</p>
+    </div>`;
+  }
+  const P = globalThis.FinanceCanonicalVariablePace;
+  if (ritmo.reason === "pronto") return `<p class="plan-v2-nota plan-v2-ritmo-variable" data-plan-v2-ritmo="pronto">A qué ritmo va el gasto variable sale a partir del día ${P.MIN_DAY}, con el extracto de estos días.</p>`;
+  if (ritmo.reason === "pocos-meses" && ritmo.monthsUsed > 0) return `<p class="plan-v2-nota plan-v2-ritmo-variable" data-plan-v2-ritmo="pocos-meses">Con ${P.MIN_MONTHS} meses de extracto completos (lleváis ${ritmo.monthsUsed}), aquí saldrá a qué ritmo cerraréis el gasto variable.</p>`;
+  return "";
+}
+
 function planV2RitmoHtml({ month, entries, asignado, today }) {
   const monthKey = month.key;
   const todayKey = String(today).slice(0, 7);
@@ -183,6 +246,7 @@ function planV2RitmoHtml({ month, entries, asignado, today }) {
       ${marker}
     </div>
     ${note}
+    ${planV2RitmoVariableHtml(today, monthKey)}
   </article>`;
 }
 
