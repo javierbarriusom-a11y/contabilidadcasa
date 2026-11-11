@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-16-trayectoria-cosida",
+      fecha: "2026-11-16",
+      texto: "Previsión y Hoy: el gasto variable se reparte por los días del mes; el punto más bajo cae la víspera del cobro, ya no cada día 8.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-11-panel-y-centena",
       fecha: "2026-11-11",
       texto: "Previsión: el panel del día, una línea por pago; deuda y patrimonio a 24 meses, a la centena: amortizar ya enseña el interés ahorrado.",

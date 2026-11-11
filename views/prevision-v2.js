@@ -1347,8 +1347,15 @@ function previsionV2ArregloHtml({ tramo, floor, today }) {
   const engine = globalThis.FinanceCanonicalOverdraftFix;
   if (!engine || typeof descubiertoOn !== "function" || !descubiertoOn() || typeof descubiertoHtml !== "function") return "";
   try {
+    // Sale con descubierto en 30 días, pero mira hasta el final de ese bajón (hasta que el saldo vuelve a subir): con el gasto variable
+    // repartido por el mes (FX-03) el mínimo cae la víspera del cobro, a menudo pasados los 30 días, y la tarjeta diría que faltan
+    // menos de lo que dice el titular.
     const fin = previsionV2AddDays(today, 30);
-    const days = tramo.filter((row) => row.date <= fin).map((row) => ({ date: row.date, central: Number(row.total) }));
+    let hasta = tramo.findIndex((row) => row.date > fin);
+    if (hasta < 0) hasta = tramo.length;
+    if (!tramo.slice(0, hasta).some((row) => Number(row.total) < floor)) return "";
+    while (hasta > 0 && hasta < tramo.length && Number(tramo[hasta].total) <= Number(tramo[hasta - 1].total)) hasta += 1;
+    const days = tramo.slice(0, hasta).map((row) => ({ date: row.date, central: Number(row.total) }));
     const deficit = engine.findDeficit({ days, floor });
     if (!deficit) return "";
     const levers = engine.levers({

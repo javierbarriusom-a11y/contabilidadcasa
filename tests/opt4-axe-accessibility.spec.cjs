@@ -1742,6 +1742,9 @@ for (const scheme of ["light", "dark"]) {
       await page.locator('[data-plan-tab="prevision"]').click();
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
+      // FX-03: el día más bajo no tiene pagos que aplazar; el 8 dic sí (seis días antes, con ←).
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
       await expect(v2.locator("[data-prevision-v2-aplazar]").first()).toBeVisible();
       await v2.locator("[data-prevision-v2-aplazar]").first().click();
       await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("aplazado del");

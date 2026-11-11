@@ -173,6 +173,35 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (441): FX-03 · la trayectoria cosida, preparada para el lunes 16/11 (el cambio de Hoy de esa semana)
+
+- **Petición del hogar:** «ok a las tres cosas». La tercera era que Claude propusiera el cambio de Hoy del 16/11: **FX-03**, y no FX-41 (motivo en la 440). Se prepara ahora y se fusiona el lunes 16/11, uno por semana.
+- **El cambio** (`canonical-daily-input.js` `spreadDailyAuditEvents`):
+  - El motor diario reparte el gasto variable del mes por todos sus días, como ya hacía la banda de caja (WP-16), en vez de cargarlo entero el día estimado (el 8).
+  - Cada día lleva un trozo en euros enteros: los primeros días llevan un euro de más hasta cuadrar, y los céntimos del total, si los hay, van al último día. Un primer intento al céntimo llenaba los saldos de céntimos («llega a 6.805,50 €»).
+  - El total de cada mes no cambia (la invariante `monthly-parity` del motor diario); cambia la forma dentro del mes.
+  - Con `spreadVariable: false`, la forma de antes.
+- **Con la demo (cifras INVENTADAS):**
+  - **El punto más bajo de 3 y 12 meses** pasa de unos 5.600 € el 8 dic a unos 6.600 € el 14 dic, la víspera del cobro. El margen sobre el suelo, de 4.100 € a 5.100 €.
+  - **El «Disponible hasta cobrar» de Hoy** no cambia (8.580 €); cambia la forma de su gráfico.
+  - **El cierre de cada mes**, igual.
+- **Lo que se ha tenido que ajustar al cambiar la forma:**
+  - **«El arreglo más barato» (XPR-07) dentro de la Previsión.** Sale si se baja del suelo en 30 días, pero ahora mira hasta el final de ese bajón (hasta que el saldo vuelve a subir). Con el mínimo en la víspera del cobro, a menudo pasados los 30 días, la tarjeta decía «faltan 200 €» y el titular, 400 €. Ahora dice 428 € (el titular redondea a la centena a más de 30 días, FX-04).
+  - **El día más bajo ya no tiene pagos**, solo el gasto variable de ese día. «Aplazar un pago» se usa desde un día con cargos (el 8 dic en la demo).
+  - **Las pruebas de estrés** caen en otros días: el imprevisto, el 14 dic; con un sueldo menos, el 5 feb 2027.
+  - **«¿Y si…?» con 4.000 € y 900 € al mes** ya no baja del suelo: la e2e usa 1.500 € para seguir cubriendo «No sin tocar nada».
+- **Pruebas:**
+  - `tests/fx03-trayectoria-cosida.test.cjs` (3), nueva:
+    - un trozo por día en euros enteros con el mismo total;
+    - la invariante y el mismo cierre de mes que antes;
+    - el mínimo en la víspera de la nómina y no el día 8;
+    - la forma de antes con `spreadVariable: false`.
+  - 28 expectativas de las e2e (C2, panel del día, XPR-07, XPR-08, FX-12, FX-20, FX-22, FX-42) y la de axe de FX-22 PR-2, con las cifras nuevas sacadas de la app y no a ojo. El panel y «aplazar» van al 8 dic con ← desde el gráfico.
+  - Sellos: `canonical-daily-input.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx03a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm test` en verde (6.528/6.528), lint y typecheck.
+  - La tanda completa de e2e y axe en Chromium: ver el PR.
+
 ## Cierre de sesión — 11 de noviembre de 2026 (440): el panel del día más compacto y la deuda y el patrimonio a 24 m, a la centena
 
 - **Petición del hogar:** «ok a las tres cosas», sobre las tres propuestas de la 439:
