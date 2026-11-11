@@ -42,6 +42,21 @@ async function empezarApagada(page, id) {
   }, id);
 }
 
+// Un interruptor propio de «Funciones en prueba» (Ajustes), con la página quieta. Tras ir a #ajustes, la vista sigue pintando un
+// momento (el interruptor está a ~13.700 px y aún se mueve los primeros 400 ms) y, en WebKit, un clic medido antes de que acabe cae en
+// otro sitio: WP-18 falló así en el CI de #607 (11/11/2026, pasó al reintentar). Se espera la vista y el interruptor, y se repite el
+// clic hasta que cambia; cada intento mira antes cómo está, así que nunca lo devuelve a su sitio. No vale para «tema-v2», que recarga.
+async function cambiarFuncionEnPrueba(page, id, encender = true) {
+  const sw = page.locator(`[data-fep-interruptor="${id}"]`);
+  const objetivo = encender ? "true" : "false";
+  await expect(page.locator("#ajustes")).toBeVisible({ timeout: 15000 });
+  await expect(sw).toBeVisible({ timeout: 15000 });
+  await expect(async () => {
+    if ((await sw.getAttribute("aria-checked")) !== objetivo) await sw.click();
+    await expect(sw).toHaveAttribute("aria-checked", objetivo, { timeout: 1000 });
+  }, `el interruptor «${id}» queda ${encender ? "encendido" : "apagado"}`).toPass({ timeout: 15000 });
+}
+
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
   await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
@@ -8287,8 +8302,7 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
       const sw = page.locator('[data-fep-interruptor="banda-dia"]');
       await expect(sw).toHaveAttribute("aria-checked", "false");
       await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("apagada: enciéndela para probarla");
-      await sw.click();
-      await expect(sw).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "banda-dia");
       await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("en prueba desde el 26 oct · revisión el 9 nov");
 
       await abrirBanda();
@@ -8359,8 +8373,7 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
       await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "false", { timeout: 15000 });
       await expect(card, "apagada, no se ve").toBeHidden();
 
-      await page.locator('[data-fep-interruptor="lo-que-pide"]').click();
-      await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "lo-que-pide");
       await expect(card, "se ve al momento, sin cambiar de pantalla").toBeVisible({ timeout: 15000 });
       await expect(card.locator(".lqp-frase")).toContainText(/^Lo que piden las funciones que usáis: unos [\d,]+ min a la semana .*frente a un presupuesto de 10 min\./);
       await expect(card.locator("meter.lqp-barra")).toHaveAttribute("max", "10");
@@ -8398,8 +8411,7 @@ test.describe("XUX-02 · Ver cómo quedaría", () => {
       await expect(page.locator("[data-ejemplo-abrir]"), "apagada, el estado vacío de siempre").toHaveCount(0);
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="ver-ejemplo"]').click();
-      await expect(page.locator('[data-fep-interruptor="ver-ejemplo"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "ver-ejemplo");
 
       await abrirPlanB();
       // Lo que la app sabe del hogar de demostración: ninguna de estas cifras puede salir en el ejemplo.
@@ -8454,8 +8466,7 @@ test.describe("XPR-07 · El arreglo más barato", () => {
       await empezarApagada(page, "descubierto"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="descubierto"]').click();
-      await expect(page.locator('[data-fep-interruptor="descubierto"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "descubierto");
       await page.goto("/index.html#prevision");
       await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
       const card = page.locator("#descubiertoCard");
@@ -8482,7 +8493,7 @@ test.describe("XPR-07 · El arreglo más barato", () => {
 
       // Apagada, desaparece aunque haya descubierto.
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="descubierto"]').click();
+      await cambiarFuncionEnPrueba(page, "descubierto", false);
       await page.goto("/index.html#prevision");
       await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
       await expect(card).toBeHidden();
@@ -8523,8 +8534,7 @@ test.describe("XDA-10 · Antes de decidir", () => {
       await expect(linea, "apagada: el veredicto de siempre").toHaveCount(0);
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="antes-de-decidir"]').click();
-      await expect(page.locator('[data-fep-interruptor="antes-de-decidir"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "antes-de-decidir");
       await page.goto("/index.html#inversion-apalancamiento");
 
       await comparar("justo", 12);
@@ -8588,8 +8598,7 @@ test.describe("WP-18 · Aportado frente a valor", () => {
       await expect(card, "apagada: no sale").toBeHidden();
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="aportado"]').click();
-      await expect(page.locator('[data-fep-interruptor="aportado"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "aportado");
       await page.goto("/index.html#inversion-cartera");
       await expect(card).toBeVisible({ timeout: 15000 });
       reloj.marca("encenderla en Ajustes y volver a Cartera");
@@ -8651,8 +8660,7 @@ test.describe("WP-17 · Siguiente paso de la cartera", () => {
       await expect(card, "apagada: no sale").toBeHidden();
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="siguiente-paso"]').click();
-      await expect(page.locator('[data-fep-interruptor="siguiente-paso"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "siguiente-paso");
       await page.goto("/index.html#inversion-cartera");
       await expect(card).toBeVisible({ timeout: 15000 });
       await expect(card.locator(".sp-resumen")).toContainText("de valor");

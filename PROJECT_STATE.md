@@ -173,6 +173,21 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 11 de noviembre de 2026 (445): la e2e de WP-18 en Safari, sin carrera al pulsar un interruptor de Ajustes
+
+- **Petición del hogar:** «haz esta tarea aquí», la tarea sugerida tras el CI de #607 en a3fa5ce.
+- **Qué pasaba.** En Safari a 390 px, la e2e de WP-18 falló a la primera y pasó al reintentar. Justo tras ir a `#ajustes`, pulsaba el interruptor «Aportado frente a valor» y este seguía en `aria-checked="false"`.
+- **Por qué.** El interruptor está a ~13.700 px y, recién llegados a Ajustes, se sigue moviendo unos 400 ms mientras la vista termina de pintarse. Lo medí en Chromium, con la emulación del iPhone. En WebKit, un clic calculado antes de que la vista acabe cae en otro sitio. Es una carrera de la prueba, no un fallo de la app: el clic de una persona llega con la pantalla ya quieta.
+- **Arreglo, solo en `tests/qa1-flujos-completos.spec.cjs`.** Un ayudante nuevo, `cambiarFuncionEnPrueba(page, id, encender)`:
+  - espera a que se vean la vista y el interruptor;
+  - repite el clic (`toPass`) hasta que el interruptor cambia;
+  - antes de cada intento mira cómo está, así que nunca lo devuelve a su sitio.
+- **Dónde se aplica.** Sustituye los 8 clics del mismo tipo: banda-dia, lo-que-pide, ver-ejemplo, descubierto (encender y apagar), antes-de-decidir, aportado y siguiente-paso. «tema-v2» queda fuera porque recarga la página. El de apagar «descubierto» antes no comprobaba que se apagara: ahora sí, así que la prueba es más estricta, no más laxa.
+- **Validación:**
+  - `npm run verify` en verde (6.543/6.543).
+  - En local, 21 e2e afectadas en Chromium de escritorio y 24 de 24 con la emulación del iPhone (8 pruebas × 3 repeticiones).
+  - WebKit, en el CI. Se mantiene el reintento de Safari (decisión del hogar del 28/10/2026).
+
 ## Cierre de sesión — 11 de noviembre de 2026 (444): FX-14 · el mes en curso al ritmo real, y el CI de Safari de #607
 
 - **Petición del hogar:** «activa estas [la fusión del 16/11 y la comprobación del 23/11] y luego continúa».
