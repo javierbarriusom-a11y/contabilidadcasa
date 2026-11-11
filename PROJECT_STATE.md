@@ -199,7 +199,9 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - 28 expectativas de las e2e (C2, panel del día, XPR-07, XPR-08, FX-12, FX-20, FX-22, FX-42) y la de axe de FX-22 PR-2, con las cifras nuevas sacadas de la app y no a ojo. El panel y «aplazar» van al 8 dic con ← desde el gráfico.
   - Sellos: `canonical-daily-input.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx03a`. Novedades, una línea con fecha del 16/11.
 - **Validación:**
-  - `npm test` en verde (6.528/6.528), lint y typecheck.
+  - `npm run verify` en verde en el cierre de sesión (6.528/6.528; «forecast y escenarios en 221,6 ms»).
+  - **#607 queda abierto a propósito** hasta el lunes 16/11, porque es el cambio de Hoy de esa semana (uno por semana). La comprobación programada lo fusiona ese día con el CI en verde.
+  - La revisión mensual de Nielsen no está vencida: la última fue el 4/11.
   - La tanda completa de e2e y axe en Chromium: 380 de 382.
   - **El primer CI de #607 falló, y era de este PR:** «el panel, debajo del gráfico», a 390 px. El rodeo al 8 dic con el teclado iba antes de medir la posición del panel, y el foco en el gráfico desplaza la página. Ahora se mide antes de mover el día, también en la e2e de FX-22 PR-2. En local, 12/12 con dos repeticiones.
   - Las 2 que fallaron son la axe de la carta del mes en Cierre (WP-29), en claro y en oscuro: `renderCierre is not defined` bajo carga, porque la prueba espera a `recordCartaMes` y llama a una función de una vista que se descarga aparte. Pasan solas con FX-03, y en el CI de #606 pasaron. No es de este cambio.
