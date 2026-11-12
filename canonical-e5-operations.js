@@ -56,6 +56,23 @@
     return { ...clone(payload), monthClosures: [...(payload.monthClosures || []), operation] };
   }
 
+  // DISK-IO (12/11/2026): la foto «antes» de un lote no guarda los lotes anteriores. Deshacer nunca la usa (undoImportBatch
+  // pone la lista de lotes vigente encima), y cada lote llevaba dentro todos los anteriores con sus propias fotos: crecía
+  // anidado con cada importación (2,4 MB de los ~6 MB de la copia del hogar el 12/11/2026).
+  function beforeStateWithoutBatches(beforeState) {
+    const state = clone(beforeState);
+    delete state.importBatches;
+    return state;
+  }
+
+  function compactImportBatches(batches) {
+    return (Array.isArray(batches) ? batches : []).map((batch) => (
+      batch && batch.beforeState && typeof batch.beforeState === "object" && "importBatches" in batch.beforeState
+        ? { ...batch, beforeState: beforeStateWithoutBatches(batch.beforeState) }
+        : batch
+    ));
+  }
+
   function createImportBatch(beforeState, afterState, metadata = {}) {
     const reason = text(metadata.reason || metadata.sourceLabel);
     if (!reason) throw new Error("La importación necesita un origen o motivo.");
@@ -68,7 +85,7 @@
       reason,
       createdAt,
       recordCount: Math.max(0, Number(metadata.recordCount || 0)),
-      beforeState: clone(beforeState),
+      beforeState: beforeStateWithoutBatches(beforeState),
       afterFingerprint: text(metadata.afterFingerprint),
       snapshotId: metadata.snapshotId || null,
     };
@@ -175,5 +192,5 @@
   }
 
   return { SCHEMA_ID, DEFAULT_RETENTION_POLICY, MILESTONE_STEPS, latestMonthOperation, isMonthClosed, reopenMonth,
-    createImportBatch, undoImportBatch, buildRetentionPlan, verifySnapshotSet, validMonthKey, auditMilestonesAndStreaks };
+    createImportBatch, compactImportBatches, undoImportBatch, buildRetentionPlan, verifySnapshotSet, validMonthKey, auditMilestonesAndStreaks };
 });

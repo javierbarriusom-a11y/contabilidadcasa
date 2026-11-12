@@ -74,6 +74,34 @@
    * solo dice qué pantalla disparó el último recálculo ("state-change", "movements-view"...): medido en una base
    * real, era lo único que cambiaba entre dos cargas sin edición y creaba una copia completa por carga.
    */
+  // DISK-IO (12/11/2026): lo que la app vuelve a calcular al cargar (applyPersistedPayload lo deja en null y el arranque y la
+  // barrera de cada guardado lo rehacen) no viaja en la copia de la nube. Las proyecciones (cuentas, libro, deudas…) se
+  // siguen sacando de ahí; solo deja de guardarse en `finance_state_snapshots`, una vez por guardado.
+  // En su lugar va `derivedFingerprint`, su huella (sin el `reason` del libro, como changeKey): así la huella de la copia
+  // sigue cambiando cuando cambia algo calculado, y la regla de omitir un guardado idéntico no cambia.
+  const DERIVED_STATE_KEYS = Object.freeze(["canonicalSnapshot", "canonicalLedgerSnapshot", "canonicalEngineRuns", "canonicalDailyEngineRuns", "canonicalDecisionRun"]);
+
+  /**
+   * @param {Record<string, any>} [payload]
+   * @returns {Record<string, any>}
+   */
+  function cloudState(payload = {}) {
+    /** @type {Record<string, any>} */
+    const state = { ...(payload || {}) };
+    /** @type {Record<string, any>} */
+    const derived = {};
+    DERIVED_STATE_KEYS.forEach((key) => {
+      if (state[key] !== undefined && state[key] !== null) derived[key] = state[key];
+      delete state[key];
+    });
+    if (derived.canonicalLedgerSnapshot && typeof derived.canonicalLedgerSnapshot === "object") {
+      derived.canonicalLedgerSnapshot = { ...derived.canonicalLedgerSnapshot };
+      delete derived.canonicalLedgerSnapshot.reason;
+    }
+    if (Object.keys(derived).length) state.derivedFingerprint = fingerprintPayload(derived);
+    return state;
+  }
+
   function changeKey(payload) {
     const ledger = payload?.canonicalLedgerSnapshot;
     if (!ledger || typeof ledger !== "object") return fingerprintPayload(payload);
@@ -227,7 +255,7 @@
       data: { occurredAt: event.at || event.date || now, eventType: event.type || event.kind || "decision-event" },
     }));
 
-    const persistedPayload = JSON.parse(JSON.stringify(payload));
+    const persistedPayload = JSON.parse(JSON.stringify(cloudState(payload)));
     const fingerprint = fingerprintPayload(persistedPayload);
     const entityCount = Object.values(projections).reduce((total, rows) => total + rows.length, 0);
 
@@ -429,6 +457,8 @@
     stableStringify,
     hashText,
     fingerprintPayload,
+    DERIVED_STATE_KEYS,
+    cloudState,
     changeKey,
     verifySnapshot,
     reconcileLedgerRows,

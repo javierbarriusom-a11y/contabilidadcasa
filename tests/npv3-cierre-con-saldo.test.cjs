@@ -157,7 +157,7 @@ function loadClose({ today, rpcError = null, closures = [], balanceDate = "2026-
     window.FinanceCanonicalMonthCloseBalances = FinanceCanonicalMonthCloseBalances;
     window.FinanceCanonicalE5 = FinanceCanonicalE5;
     window.FinanceCanonicalMonthClose = FinanceCanonicalMonthClose;
-    window.FinanceCanonicalSupabaseStore = { createUuid: (prefix) => prefix + "-id", fingerprintPayload: () => "fp" };
+    window.FinanceCanonicalSupabaseStore = { createUuid: (prefix) => prefix + "-id", fingerprintPayload: () => "fp", cloudState: (payload) => payload };
     function isoLocalDate() { return ${JSON.stringify(today)}; }
     function defaultBalanceDate() { return "2026-10-31"; }
     function storageKey(name) { return name + ":demo"; }
