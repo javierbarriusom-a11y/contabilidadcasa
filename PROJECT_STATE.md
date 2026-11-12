@@ -173,6 +173,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (449): la e2e de FX-40 en Safari, con el clic de la pestaña que no se pierde
+
+- **Por qué:** el CI de #607 en fd36ec0 salió verde, pero con una prueba que falló a la primera en Safari y pasó al reintentar: FX-40 («qué ha cambiado desde tu última visita») a 390 px.
+- **Qué falló:** tras `reload()`, el clic en la pestaña «Previsión» llegó antes de que la app escuchara y `#planPrevisionV2` no se abrió en 15 s. Es la misma familia que WP-18 (sesión 445): un clic sobre una página que aún se está montando. No es un fallo de la app.
+- **Arreglo, solo en la prueba.** Un ayudante nuevo, `abrirPlanPrevision(page)`, repite el clic en la pestaña hasta que la Previsión se ve (`toPass`, 20 s). Pulsar la pestaña ya abierta no cambia nada, así que repetirlo es inocuo. Lo usan las dos aperturas de esa prueba.
+- **Validación:** en local, FX-40 4 de 4 en escritorio y 3 de 3 con la emulación del iPhone. WebKit, en el CI.
+- **Pendiente:** hay más pruebas que abren Plan › Previsión justo tras cargar. Se pasarán al ayudante si alguna vuelve a fallar así; ninguna lo ha hecho hasta hoy.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (448): FX-15 · el resumen por periodo, legible
 
 - **Petición del hogar:** «… y continúa». FX-15 era lo siguiente del backlog que no pide una decisión del hogar. No toca Hoy. Viaja en #607.

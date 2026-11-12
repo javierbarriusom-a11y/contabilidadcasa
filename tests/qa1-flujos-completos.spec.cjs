@@ -57,6 +57,18 @@ async function cambiarFuncionEnPrueba(page, id, encender = true) {
   }, `el interruptor «${id}» queda ${encender ? "encendido" : "apagado"}`).toPass({ timeout: 15000 });
 }
 
+// Plan › Previsión, con el clic que no se pierde. Recién cargada (o recargada) la página, el clic en la pestaña puede llegar antes de que la app
+// escuche: la Previsión no se abre nunca (FX-40 en Safari, CI de #607 del 12/11/2026, pasó al reintentar). Se repite el clic hasta que se ve;
+// pulsar la pestaña ya abierta no cambia nada, así que repetirlo es inocuo.
+async function abrirPlanPrevision(page) {
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(async () => {
+    await page.locator('[data-plan-tab="prevision"]').click();
+    await expect(v2).toBeVisible({ timeout: 2000 });
+  }, "Plan › Previsión se abre").toPass({ timeout: 20000 });
+  return v2;
+}
+
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
   await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
@@ -6533,9 +6545,7 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await page.setViewportSize(viewport);
       await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
       await page.goto("/index.html#plan");
-      await page.locator('[data-plan-tab="prevision"]').click();
-      const v2 = page.locator("#planPrevisionV2");
-      await expect(v2).toBeVisible({ timeout: 15000 });
+      const v2 = await abrirPlanPrevision(page);
       // Primera visita: no hay con qué comparar; queda la foto de hoy, ligera y en este dispositivo. Solo el camino al puente del 31/12.
       await expect(v2.locator(".prev-v2-cambio")).toHaveText("Por qué cambia el fin de año ▸");
       const fotos = await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => ({ date: foto.date, bytes: JSON.stringify(foto).length })));
@@ -6544,8 +6554,7 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       // Tres días después, con los mismos datos: el punto más bajo no ha cambiado (el redondeo más fino de ahora no cuenta como cambio).
       await page.clock.setSystemTime(new Date(2026, 10, 9, 9, 0, 0));
       await page.reload();
-      await page.locator('[data-plan-tab="prevision"]').click();
-      await expect(v2).toBeVisible({ timeout: 15000 });
+      await abrirPlanPrevision(page);
       await expect(v2.locator(".prev-v2-cambio")).toHaveText("Igual que en tu visita del 6 nov. Por qué cambia el fin de año ▸");
       // Cambia un supuesto (la inflación anual): la línea dice cuánto baja y la hoja, por qué.
       await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
