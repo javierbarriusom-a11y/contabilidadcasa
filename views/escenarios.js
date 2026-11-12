@@ -613,7 +613,13 @@ function renderEscenarioSimular() {
   if (!escenarioMotorFamilyView) {
     kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
     if (validationList) validationList.innerHTML = escenarioMotorValidationChecklistHtml(checks);
-    if (verdictEl) verdictEl.textContent = escenarioMotorVerdictText(checks, escenarioMotorDecisions, result.resultados || []);
+    if (verdictEl) {
+      verdictEl.textContent = escenarioMotorVerdictText(checks, escenarioMotorDecisions, result.resultados || []);
+      // XDA-10 · PR-2: si los saldos son antiguos, si lo que han podido moverse le daría la vuelta a la reserva (antes-de-decidir-ui.js).
+      const reserva = checks.find((check) => check.id === "reserva");
+      const antes = reserva?.status === "pending" ? "" : globalThis.antesDeDecidirEscenarioHtml?.({ minimo: scenarioSummary.minimoLiquidez, reserva: escenarioMotorGuardrailValue, rota: reserva?.status === "fail" }) || "";
+      if (antes) verdictEl.insertAdjacentHTML("beforeend", antes);
+    }
   }
 
   // E-8: banda de doce meses por cuenta — se ve en ambas vistas, técnica y familiar, porque no es

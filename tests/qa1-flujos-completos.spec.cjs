@@ -8726,6 +8726,118 @@ test.describe("XDA-10 · Antes de decidir", () => {
   }
 });
 
+// XDA-10 · PR-2 (12/11/2026): «Antes de decidir» en «Comparar con» de la Previsión (los saldos y, en su prueba, el Euribor tecleado) y al
+// cancelar una deuda entera (una sola línea para los tres guardarraíles). Hipoteca y Euribor INVENTADOS, como en la e2e de FX-21.
+test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`los saldos antiguos y el Euribor caducado, bajo la frase de la prueba; al día, nada; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      const saldosDe = (edad) => page.evaluate((edad) => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(2026, 10, 12 - edad, 12));
+        previsionV2Render();
+      }, edad);
+      const impacto = v2.locator(".prev-v2-impacto");
+      const linea = impacto.locator(".antes-decidir");
+
+      await saldosDe(12);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(linea).toHaveCount(1);
+      await expect(linea).toContainText(/(Antes de decidir, (actualiza|conviene actualizar) los saldos \(de hace 12 días\)|Los saldos son de hace 12 días, pero)/);
+      await expect(linea).toContainText("El resultado de arriba es con estos datos");
+      // Va justo debajo de la frase, antes de la tabla.
+      expect(await impacto.evaluate((el) => el.querySelector(".prev-v2-impacto-frase").nextElementSibling?.classList.contains("antes-decidir"))).toBe(true);
+
+      // Con los saldos de hoy, nada.
+      await saldosDe(0);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(linea).toHaveCount(0);
+
+      // El Euribor tecleado hace 70 días (caduca a los 35) en la prueba del Euribor, a 12 meses para que la revisión entre.
+      await page.evaluate(() => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-09-03", value: 2.35 }] }));
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { "hipoteca-ficticia": { spread: 0.99, nextReview: "2027-03-01", periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 } } }));
+        globalThis.revisionMortgages = () => [{ id: "hipoteca-ficticia", label: "Hipoteca FICTICIA", principal: 120000, payment: 640, remainingMonths: 240 }];
+        previsionV2Render();
+      });
+      await v2.locator('[data-prevision-v2-prueba="euribor"]').click();
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 1 punto en la revisión del 1 mar 2027");
+      await expect(linea).toHaveCount(1);
+      // En la demo, el punto más bajo (14 dic) llega antes de la revisión (1 mar 2027): para bajar del suelo, el Euribor tendría que haber
+      // subido más de diez puntos, y en 70 días no ha podido moverse más de 2,3 (1 punto al mes, su mayor salto). No le da la vuelta.
+      await expect(linea).toHaveAttribute("data-antes-decidir", "no");
+      await expect(linea).toContainText(/^El Euribor tecleado es de hace 70 días, pero haría falta que hubiera subido [\d,]+ puntos para cambiar el resultado, y su mayor salto en un mes ha sido de 1 punto \(septiembre de 2022\)\./);
+      await expect(linea).toContainText("en el Euribor, su mayor salto en un mes");
+      await expect(linea.locator("a"), "lo que no cambia el resultado no lleva a actualizar").toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Con el Euribor al día, nada otra vez.
+      await page.evaluate(() => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-11-02", value: 2.35 }] }));
+        previsionV2Render();
+      });
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 1 punto");
+      await expect(linea).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
+  test("al cancelar una deuda entera, una sola línea tras los tres guardarraíles, con el más justo", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#inversion-apalancamiento");
+    const nota = page.locator("#ap1CompareNote");
+    await expect(page.locator("#ap1CompareRun")).toBeVisible({ timeout: 15000 });
+    // La deuda más pequeña de las que ofrece el desplegable (ya pintado: asignar un valor que aún no es una opción lo deja vacío y el
+    // importe se leería como una amortización parcial). Se cancela entera: el importe es todo su capital.
+    await expect(page.locator("#ap1DebtSelect option[value]:not([value=''])").first()).toBeAttached({ timeout: 15000 });
+    const cancelar = async (edad) => {
+      const elegida = await page.evaluate((edad) => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(2026, 10, 12 - edad, 12));
+        const select = qs("ap1DebtSelect");
+        const opciones = new Set([...select.options].map((option) => option.value).filter(Boolean));
+        const deuda = p2DebtRows().filter((row) => opciones.has(row.id) && Number(row.currentPrincipal) > 0).sort((a, b) => a.currentPrincipal - b.currentPrincipal)[0];
+        select.value = deuda.id;
+        qs("ap1Amount").value = String(Math.ceil(deuda.currentPrincipal));
+        qs("ap1DebtRate").value = "3";
+        qs("ap1Months").value = "12";
+        return select.value;
+      }, edad);
+      expect(elegida, "la deuda queda elegida en el desplegable").not.toBe("");
+      await page.locator("#ap1CompareRun").click();
+    };
+    await cancelar(12);
+    await expect(nota).toContainText("Guardarraíl de colchón");
+    await expect(nota).toContainText("Guardarraíl a");
+    await expect(nota.locator(".antes-decidir"), "una sola, no una por guardarraíl").toHaveCount(1);
+    await expect(nota.locator(".antes-decidir")).toHaveAttribute("data-antes-decidir-cual", /^el de (hoy|\d+ meses|tensión)$/);
+    await expect(nota.locator(".antes-decidir")).toContainText(/Los \d guardarraíles de arriba son con estos datos; el más justo es el de/);
+    // Va detrás del de tensión (DEB17), no debajo del de hoy.
+    expect(await nota.evaluate((el) => {
+      const ps = [...el.children];
+      const linea = ps.findIndex((p) => p.classList.contains("antes-decidir"));
+      const tension = ps.findIndex((p) => /DEB17/.test(p.textContent));
+      return tension >= 0 && linea === tension + 1;
+    })).toBe(true);
+    await cancelar(1);
+    await expect(nota).toContainText("Guardarraíl a");
+    await expect(nota.locator(".antes-decidir"), "con los saldos de ayer, nada").toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // WP-18 · PR-1 (NIN-03): aportado frente a valor y la rentabilidad del mercado (TWR) sobre la serie de valoraciones, en Inversión › Cartera.
 // Nace apagada (XGO-03). Cartera INVENTADA: Fondo A, 6.000 € el 1/1, +1.800 € el 1/4 (vale 8.100 € ese día) y 10.000 € el 1/10: TWR
 // 1,05 × 1,2346 − 1 = +29,6 %. Acciones B, 2.000 € el 1/10 sin otra valoración. En total, 9.800 € puestos frente a 12.000 €: 82 y 18 de cada 100.

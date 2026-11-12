@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-antes-de-decidir-pr2",
+      fecha: "2026-11-16",
+      texto: "«Antes de decidir» también al cancelar una deuda, en «Comparar con» y en Escenarios: si los saldos o el Euribor le darían la vuelta.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-proyeccion-en-prevision",
       fecha: "2026-11-16",
       texto: "«Proyección» ya está en Plan › Previsión con «Hasta 2036»: la línea sin proyectos, los objetivos de ahorro como hitos y vuestras pruebas.",

@@ -173,6 +173,38 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (453): XDA-10 · PR-2, «Antes de decidir» al cancelar deuda, en «Comparar con» y en Escenarios
+
+- **Petición del hogar:** «sigue con XDA-10 PR-2: que «Antes de decidir» también tenga en cuenta el Euribor, cancelar deuda y los escenarios guardados». La función ya estaba encendida desde el 29/10; el PR-2 la extiende bajo el mismo interruptor.
+- **Motor** (`canonical-decision-freshness.js`): acepta datos que no se miden en euros con su lectura ya hecha (`flips`, `because`, `plural`). Cuando hay más de un dato que importa, la frase nombra los demás detrás («También conviene actualizar…»). Las frases del PR-1 no cambian.
+- **Cancelar una deuda entera (DEB-15 y DEB-17)**, en Deuda › Comparar:
+  - Antes salían dos líneas iguales o ninguna. Ahora sale **una sola**, debajo de los tres guardarraíles (hoy, a N meses y en tensión), y nombra el más justo: el primero al que le da la vuelta y, si no, el de menos margen.
+  - El de hoy cede su línea solo en una cancelación entera. En una amortización parcial sigue igual que en el PR-1.
+- **«Comparar con» de Plan › Previsión** (las pruebas, «¿Y si…?» y un escenario guardado):
+  - Bajo la frase de la prueba, si los saldos son antiguos, dice si lo que han podido moverse cambiaría el «bajáis o no del suelo».
+  - **En la prueba del Euribor**, también el Euribor tecleado si ha caducado (más de 35 días, el criterio de WP-13).
+    - Cuántos puntos le darían la vuelta sale exacto de la trayectoria. La subida es casi lineal y se redondea hacia el lado prudente.
+    - **Cota nueva, decisión de criterio:** el Euribor ha podido moverse como mucho 1 punto por mes desde que se tecleó. Es su mayor salto mensual, de 1,25 % en agosto de 2022 a 2,23 % en septiembre, y la nota lo dice.
+    - **Por qué la cota:** sin ella, la primera versión decía «conviene actualizar el Euribor: si hoy está 13,1 puntos más alto, bajaríais del suelo». Es ruido. Se vio en la prueba de pantalla con la demo y se corrigió antes de subir.
+  - Con dos pruebas juntas, no separa lo que pone el Euribor y lo dice.
+- **Escenarios:** bajo el veredicto, si los saldos podrían darle la vuelta a «la reserva se mantiene» o «la rompe». Sin saldo mínimo indicado no sale nada, porque la capacidad libre son flujos y no depende de los saldos.
+- **Lo que no hace, frente a la ficha:**
+  - **Los simuladores de inversión** (AP1 amortizar o invertir, apalancamiento): su dato que caduca es la valoración de la cartera, no los saldos ni el Euribor. Pasan a un PR-3.
+  - **El radar de refinanciación (DEB-4)** guarda su propio Euribor, aparte del de la tarjeta de índices, y ya avisa a los 3 meses. Unificarlos es otra tarea.
+  - **El Euribor de los escenarios del laboratorio:** allí la prueba del Euribor ya son cuotas fijas.
+- **Conexión:**
+  - `app.js`, +1 línea: 32.390 de 32.426.
+  - `views/prevision-v2.js`: helper `previsionV2AntesDeDecidir`, para no pasar el límite de complejidad.
+  - `views/escenarios.js`: la línea se añade al veredicto.
+  - Sellos a `20261116xda10`: `antes-de-decidir-ui.js`, `canonical-decision-freshness.js`, `views/prevision-v2.js`, `views/escenarios.js` y `novedades.js`.
+  - Novedades, una línea con fecha del 16/11. El texto de Funciones en prueba se actualiza.
+- **Pruebas:**
+  - `tests/xda10-pr2-antes-de-decidir.test.cjs` (5): el motor con lecturas hechas, los puntos del Euribor y su cota, la línea única de la cancelación, «Comparar con» y Escenarios, y la conexión.
+  - `tests/ap1-app-integracion.test.cjs`: el orden de la composición incluye la línea nueva tras DEB17. Comprueba lo mismo que antes, con una ventana de 4.600 a 5.000 caracteres.
+  - e2e nueva «XDA-10 · PR-2» a 390 (`@safari`) y 1280 px en «Comparar con» (saldos de hace 12 días, Euribor de hace 70 días que no le da la vuelta, todo al día sin línea), y a 1280 px al cancelar una deuda entera (una sola línea, justo detrás de DEB17).
+  - **Arreglado en la prueba nueva antes de subir:** elegir la deuda antes de que el desplegable tuviera la opción la dejaba vacía, y el importe se leía como amortización parcial. Ahora se elige entre las opciones pintadas. Pasa 9 de 9 con tres repeticiones.
+- **Validación:** `npm run verify` en verde (6.563/6.563). Playwright completo en local, en marcha al subir; el CI lo corre entero igualmente.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (452): FX-50 PR-2 · una sola previsión a largo plazo
 
 - **Decisión del hogar:** «sí a la primera, sigue con la segunda parte de FX-50». Es la consulta del PR-1: que «Hasta 2036» de Plan › Previsión sustituya a la proyección de `#forecast`. Queda en `docs/rediseno/ESTADO.md` §3, decisión 11.

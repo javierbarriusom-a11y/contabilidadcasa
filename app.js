@@ -242,10 +242,10 @@ const VIEW_CHUNKS = {
   cierre: { src: "views/cierre.js?v=20261104cierreC3", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20261104cierreC3", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
-  "escenario-simular": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-simular" },
-  "escenario-aplicar": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-aplicar" },
-  "escenario-guardados": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-guardados" },
-  "escenario-comparar": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-comparar" },
+  "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
+  "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
+  "escenario-guardados": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-guardados" },
+  "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
@@ -15384,7 +15384,8 @@ function handleAp1Compare() {
     })
     : null;
   const i13SavingsGoalHtml = /* I13, views/inversion.js, ARQ-4 */ ((goal) => goal ? i13SavingsGoalImpactHtml(i13SavingsGoalImpact({ amount, targetAmount: goal.targetAmount, accumulated: Number(savingsGoalsContributions()[goal.id] || 0) }), goal.label) : "")(savingsGoalsList().find((goal) => goal.id === (qs("ap1SavingsGoalSelect")?.value || null)) || null);
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + (surplusAllocation ? deb11ReduceQuotaVsTermHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) + i13SavingsGoalHtml;
+  if (guardrail && isFullCancellation) guardrail.antesDeDecidirAparte = true; // XDA-10 PR-2: su línea va una vez, tras los tres guardarraíles
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (isFullCancellation && guardrail ? globalThis.antesDeDecidirCancelacionHtml?.([guardrail, cancellationGuardrail, cancellationStressGuardrail]) || "" : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + (surplusAllocation ? deb11ReduceQuotaVsTermHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) + i13SavingsGoalHtml;
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**12/11/2026 · XDA-10 PR-2 hecho («sigue con XDA-10 PR-2»).** «Antes de decidir» también al cancelar una deuda entera (una línea para los tres guardarraíles, con el más justo), en «Comparar con» de la Previsión (pruebas, «¿Y si…?» y escenarios guardados; en la del Euribor, también el Euribor tecleado, con una cota de 1 punto por mes) y en la reserva de Escenarios. En #607 (PROJECT_STATE 453).
+
 **12/11/2026 · FX-50 hecho («sí a la primera, sigue con la segunda parte»).** «Hasta 2036» es la única previsión a largo plazo: año a año con abanico, hitos (también los objetivos de ahorro), «Sin proyectos» y la prueba elegida. En el diseño nuevo, «Proyección» lleva ahí y conserva «Gastos recurrentes»; el clásico, igual. En #607 (PROJECT_STATE 452).
 
 **12/11/2026 · FX-50 PR-1 hecho («continúa con lo siguiente del backlog»).** Con «Hasta 2036», la Previsión enseña el año a año: la liquidez de cada 31/12 con un abanico que se abre (los supuestos de FX-51 un punto peor o mejor) y los hitos (colchón completo, deuda cero, fin de la hipoteca). Queda el PR-2: objetivos de ahorro, escenarios en el año a año y absorber `#forecast` (se consulta). En #607 (PROJECT_STATE 451).
@@ -366,7 +368,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | **12/11, hecho (en #607, sale el 16/11)**: año a año con abanico de supuestos, hitos (con los objetivos de ahorro), «Sin proyectos» y la prueba elegida; `#forecast` lleva ahí en el v2 (decisión del hogar) |
 | 9 | FX-15 | Resumen por periodo en cascada; tabla que cabe en el móvil | 8ª | S · 1 | FX-10 | Tras «Ver todo el detalle» · **12/11, hecho (en #607, sale el 16/11)**: cascada de la liquidez que cuadra, con el ahorro aparte; tabla con neto y saldo final y fila desplegada en el móvil. La banda de barras por mes sigue (retirarla se consulta) |
 | 10 | FX-27 / XDO-02 | La revisión de la hipoteca como escenario con fecha | 8ª, 7ª | M · 2 | FX-21, WP-20 | Sube a primera fila a ≤ 120 días de la revisión |
-| 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets |
+| 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets · **12/11, hecho (en #607, sale el 16/11)**: cancelar entera (DEB-15/17, una línea), «Comparar con» (saldos y Euribor) y la reserva de Escenarios. Quedan los simuladores de inversión (PR-3) |
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |
 | 13 | WP-21 | Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3) | Def P2 | M · 2 | WP-31 | Antes del 31/3/2027 |
 | 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | **12/11, hecho (en #607, sale el 16/11)**: `canonical-charge-day-moves.js`, hasta 3 recibos por el mínimo de cada mes, puerta del 70 %; «Lo he pedido» y «Ya se carga» (guarda el día de cargo). Se ve con H-35 |
@@ -436,7 +438,7 @@ panel de seguimiento.
 | §5.0 RD-COB2 (cobro con el mismo mes del año anterior) | Propuesta | Dentro de **FX-03** (P0, S1) |
 | §5.0 XPR-06 | Hecho, en prueba | Se gradúa dentro de **C2** (P0, S2) |
 | §5.0 XPR-07 PR-1 / PR-2 | PR-1 hecho, en prueba | PR-1 dentro de C2 (P0); PR-2 con **FX-13** (P1) y WP-41 |
-| §5.0 XDA-10 PR-2 | Pendiente | P1 Oleada 2 (#11) |
+| §5.0 XDA-10 PR-2 | **Hecho 12/11** (en #607); los simuladores de inversión, PR-3 | P1 Oleada 2 (#11) |
 | §5.0 XUX-02 (más tarjetas), XDA-01 PR-2 | Si se usan | P3 (sin cambio de criterio) |
 | §5.0 XDA-05 PR-2 | Puerta del medidor | **H12, 18/11** (sin cambio) |
 | §5.0 XDA-02 PR-2 | Construido sin desplegar | H-34 (hogar) |

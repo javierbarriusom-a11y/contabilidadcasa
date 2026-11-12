@@ -675,6 +675,7 @@ function previsionV2CompararHtml(prueba, today) {
     ${elegido ? "" : sumarSi}
     <div class="prev-v2-impacto" role="status">
       <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor || rompeObjetivo ? " is-bad" : ""}">${escapeHtml(fraseFinal)}</p>
+      ${previsionV2AntesDeDecidir(prueba, c, today, fuera)}
       <table class="e19-table prev-v2-impacto-tabla">
         <caption class="sr-only">El plan frente a la prueba: ${escapeHtml(cuando)}</caption>
         <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>
@@ -685,6 +686,16 @@ function previsionV2CompararHtml(prueba, today) {
       <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}${patrimonio.nota ? ` ${escapeHtml(patrimonio.nota)}` : ""}</p>
       ${previsionV2GuardarHtml(prueba)}
     </div>`;
+}
+
+/**
+ * XDA-10 · PR-2: bajo la frase de la prueba, si los saldos (o el Euribor tecleado, en su prueba) son antiguos, si lo que han podido moverse
+ * le daría la vuelta (antes-de-decidir-ui.js). Con el mismo suelo y la misma trayectoria del plan que la prueba. Si la prueba cae fuera
+ * del horizonte, no hay resultado que darle la vuelta.
+ */
+function previsionV2AntesDeDecidir(prueba, c, today, fuera) {
+  if (fuera || typeof globalThis.antesDeDecidirPruebaHtml !== "function") return "";
+  return globalThis.antesDeDecidirPruebaHtml({ prueba, c, floor: Number(previsionV2Ultimo?.floor) || 0, today, base: previsionV2Ultimo?.rows || [] });
 }
 
 /** Por qué no hay tabla: falta un importe («¿Y si…?»), falta un dato (con el camino a Deuda › Contratos) o no se puede aplicar. */
