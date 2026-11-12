@@ -1647,13 +1647,27 @@ function previsionV2DeudaMensual(liquidez) {
   }).filter(Boolean);
 }
 
-/** El año a año: puntos a 31/12 con su abanico (los supuestos de FX-51 un punto peor) y los hitos. Cacheado con las filas. */
+/** La liquidez a 31/12 del plan sin sus proyectos (la línea «Sin proyectos» que pintaba `#forecast`), por clave de mes. */
+function previsionV2SinProyectos(anos) {
+  const base = typeof lastBaseSimulation !== "undefined" && Array.isArray(lastBaseSimulation) ? lastBaseSimulation : [];
+  if (!base.length) return null;
+  const valores = anos.map((ano) => {
+    const fila = base.find((row) => row.detailMonthKey === ano.monthKey);
+    return fila && Number.isFinite(Number(fila.totalLiquidity)) ? Number(fila.totalLiquidity) : null;
+  });
+  // Sin proyectos en el plan, las dos líneas son la misma: no se pinta.
+  return valores.some((value, at) => value !== null && Math.abs(value - anos[at].total) >= 1) ? valores : null;
+}
+
+/** El año a año: puntos a 31/12 con su abanico (los supuestos de FX-51 un punto peor), los hitos y la línea sin proyectos. Cacheado. */
 function previsionV2Anual(rows, today) {
   const L = globalThis.FinanceCanonicalLongHorizon;
   const contract = globalThis.FinanceCanonicalForecastContract;
   const engine = globalThis.FinanceCanonicalEngine;
   if (!L || !contract?.assumptionImpacts || !engine?.buildScenario || typeof canonicalEngineInput !== "function") return null;
-  const key = `anual|${today}`;
+  // Los objetivos y el colchón objetivo no mueven la trayectoria (las filas son las mismas): van en la clave.
+  const goals = typeof savingsGoalsList === "function" ? savingsGoalsList() : [];
+  const key = `anual|${today}|${Number(state?.emergencyBufferMonths) || 0}|${JSON.stringify(goals.map((goal) => [goal.id, goal.name, goal.target, goal.targetDate, goal.status]))}`;
   const cached = previsionV2Cache.get(key);
   if (cached && cached.rows === rows) return cached.result;
   let result = null;
@@ -1663,7 +1677,12 @@ function previsionV2Anual(rows, today) {
     const liquidez = L.monthEnds(rows, today);
     const gasto = typeof escenarioMotorAverageCoreSpend === "function" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
     const colchon = Math.max(0, Number(state?.emergencyBufferMonths) || 0) * gasto;
-    result = { anos: L.fan(puntos, impactos), ...L.milestones({ debt: previsionV2DeudaMensual(liquidez), liquidity: liquidez, cushionTarget: colchon }), colchon };
+    result = {
+      anos: L.fan(puntos, impactos),
+      ...L.milestones({ debt: previsionV2DeudaMensual(liquidez), liquidity: liquidez, cushionTarget: colchon, goals }),
+      sinProyectos: previsionV2SinProyectos(puntos),
+      colchon,
+    };
   } catch {
     result = null;
   }
@@ -1671,37 +1690,61 @@ function previsionV2Anual(rows, today) {
   return result;
 }
 
+/** Un hito dicho: «Coche (12.000 €)» para un objetivo; el nombre a secas para los demás. */
+function previsionV2HitoTexto(hito) {
+  return hito.kind === "objetivo" ? `Objetivo «${hito.label}» (${money(hito.amount)})` : hito.label;
+}
+
 /**
- * FX-50 (PR-1): con el horizonte «Hasta 2036», debajo de la tarjeta principal, la liquidez de cada 31 de diciembre con su abanico (lo
- * que cambia con un punto más o menos en los supuestos) y los hitos que importan a esa distancia. A diez años, una dirección, no una
- * cifra: redondeada como la previsión (FX-04, al millar más allá de un año) y sin el euro de la línea diaria.
+ * FX-50: con el horizonte «Hasta 2036», debajo de la tarjeta principal, la liquidez de cada 31 de diciembre con su abanico (lo que
+ * cambia con un punto más o menos en los supuestos), los hitos marcados en el gráfico (colchón, deuda cero, fin de la hipoteca y los
+ * objetivos de ahorro con fecha) y, como escenarios, la línea «Sin proyectos» (lo que pintaba `#forecast`, que en el diseño nuevo
+ * ya no la repite) y la prueba de «Comparar con» si hay una. A diez años, una dirección, no una cifra: FX-04, al millar más allá
+ * de un año.
  */
-function previsionV2AnualHtml({ rows, today, floor, horizonte }) {
-  if (horizonte?.id !== "full" || !globalThis.ChartKit) return "";
+function previsionV2AnualHtml({ rows, today, floor, horizonte, prueba = null }) {
+  if (horizonte?.id !== "full" || !globalThis.ChartKit?.forecastPlotHtml) return "";
   const anual = previsionV2Anual(rows, today);
   if (!anual?.anos?.length) return "";
   const contract = globalThis.FinanceCanonicalForecastContract;
-  const r = (value, date) => contract.roundForHorizon(value, contract.daysBetween(today, date));
+  const r = (value, date) => (value === null ? null : contract.roundForHorizon(value, contract.daysBetween(today, date)));
   const anos = anual.anos.map((ano) => ({ ...ano, ano: ano.monthKey.slice(0, 4), low: r(ano.low, ano.date), center: r(ano.center, ano.date), high: r(ano.high, ano.date) }));
   const ultimo = anos.at(-1).ano;
-  const kit = globalThis.ChartKit;
-  const plot = kit.bandPlotHtml({ points: anos.map(({ low, center, high }) => ({ low, center, high })), ariaLabel: `Liquidez a 31 de diciembre, de ${anos[0].ano} a ${ultimo}, con su abanico`, threshold: Number.isFinite(floor) ? { value: floor } : null });
+  const escenarios = [];
+  if (anual.sinProyectos) escenarios.push({ name: "Sin proyectos", values: anual.sinProyectos.map((value, at) => r(value, anos[at].date)) });
+  if (prueba?.rows?.length) escenarios.push({ name: previsionV2Corto(prueba), values: anos.map((ano) => r(previsionV2SaldoEn(prueba.rows, ano.date), ano.date)) });
+  const marcados = anual.hitos.map((hito) => ({ index: anos.findIndex((ano) => ano.ano === hito.monthKey.slice(0, 4)), label: previsionV2HitoTexto(hito), kind: "hito" })).filter((hito) => hito.index >= 0);
+  const plot = globalThis.ChartKit.forecastPlotHtml({
+    points: anos.map((ano) => ({ label: ano.ano, plan: ano.center, low: ano.low, high: ano.high })),
+    ariaLabel: `Liquidez a 31 de diciembre, de ${anos[0].ano} a ${ultimo}, con su abanico${escenarios.length ? ` y ${escenarios.map((item) => item.name).join(" y ")}` : ""}`,
+    threshold: Number.isFinite(floor) ? { value: floor, label: "suelo" } : null,
+    markers: marcados,
+    scenarios: escenarios,
+    format: (value) => money(value),
+  });
   const entre = (ano) => (ano.high - ano.low >= 1 ? `entre ${money(ano.low)} y ${money(ano.high)}` : "sin abanico");
-  const readings = anos.map((ano) => `31 dic ${ano.ano}: unos ${money(ano.center)} (${entre(ano)}).`);
+  const conEscenarios = (ano, at) => escenarios.map((item) => (item.values[at] === null ? "" : ` · ${item.name}: ${money(item.values[at])}`)).join("");
+  const readings = anos.map((ano, at) => `31 dic ${ano.ano}: unos ${money(ano.center)} (${entre(ano)})${conEscenarios(ano, at)}.`);
   const eje = `<div class="ck-eje">${anos.map((ano, at) => (at % Math.max(1, Math.ceil(anos.length / 6)) === 0 || at === anos.length - 1 ? `<span>${escapeHtml(ano.ano)}</span>` : "")).join("")}</div>`;
-  const figura = kit.figureHtml({
-    id: "prevision-v2-anual", plotHtml: plot.svg, plotClass: "ck-plot-media", belowPlotHtml: eje, readings, xs: plot.xs,
+  const figura = globalThis.ChartKit.figureHtml({
+    id: "prevision-v2-anual", plotHtml: plot.svg + plot.overlayHtml, plotClass: "prev-v2-plot", belowPlotHtml: eje, readings, xs: plot.xs,
     sliderLabel: "Recorrer la previsión año a año",
-    table: { caption: "Liquidez a 31 de diciembre de cada año, con su abanico", columns: ["Año", "Liquidez a 31/12", "Abanico"], rows: anos.map((ano) => [ano.ano, money(ano.center), entre(ano)]) },
+    table: {
+      caption: "Liquidez a 31 de diciembre de cada año, con su abanico",
+      columns: ["Año", "Liquidez a 31/12", "Abanico", ...escenarios.map((item) => item.name)],
+      rows: anos.map((ano, at) => [ano.ano, money(ano.center), entre(ano), ...escenarios.map((item) => (item.values[at] === null ? "—" : money(item.values[at])))]),
+    },
   });
   const mes = (monthKey) => (typeof planV2MonthName === "function" ? planV2MonthName(monthKey) : monthKey);
-  const hitos = anual.hitos.map((hito) => `<li><strong>${escapeHtml(mes(hito.monthKey))}</strong> ${escapeHtml(hito.label)}</li>`).join("");
-  const pendientes = anual.pendientes.map((hito) => `<li class="is-pendiente"><strong>Después de ${escapeHtml(ultimo)}</strong> ${escapeHtml(hito.label)}: no llega con el plan de ahora</li>`).join("");
+  const hitos = anual.hitos.map((hito) => `<li><strong>${escapeHtml(mes(hito.monthKey))}</strong> ${escapeHtml(previsionV2HitoTexto(hito))}</li>`).join("");
+  const pendientes = anual.pendientes.map((hito) => `<li class="is-pendiente"><strong>Después de ${escapeHtml(ultimo)}</strong> ${escapeHtml(previsionV2HitoTexto(hito))}${hito.kind === "objetivo" ? "" : ": no llega con el plan de ahora"}</li>`).join("");
   const lista = hitos || pendientes ? `<ul class="prev-v2-anual-hitos" aria-label="Hitos">${hitos}${pendientes}</ul>` : "";
+  const sinProyectos = anual.sinProyectos ? `<p class="e19-kpi-note">«Sin proyectos» es el mismo plan sin los proyectos del simulador de decisiones: la línea que enseñaba «Proyección».</p>` : "";
   return `<section class="e19-card prev-v2-anual" aria-labelledby="prevV2AnualTitulo">
     <p class="prev-v2-anual-titulo" id="prevV2AnualTitulo"><strong>Año a año, hasta ${escapeHtml(ultimo)}</strong></p>
     <p class="e19-kpi-note">A 10 años, esto es una dirección, no una cifra. El abanico es cuánto cambia con un punto más o menos en los supuestos del plan (inflación, subida de los ingresos, gasto e ingresos).</p>
     ${figura}
+    ${sinProyectos}
     ${lista}
   </section>`;
 }
@@ -1846,7 +1889,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
-    ${previsionV2AnualHtml({ rows, today, floor, horizonte })}
+    ${previsionV2AnualHtml({ rows, today, floor, horizonte, prueba })}
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
     ${previsionV2CargosHtml({ rows, today })}
@@ -2145,7 +2188,30 @@ function previsionV2Init() {
   });
 }
 
+// FX-50 PR-2: «Ver «Hasta 2036» en Plan › Previsión», desde «Proyección» (#forecast) en el diseño nuevo: el horizonte se recuerda como
+// cualquier otro (prevision-v2-horizonte) y se abre Plan › Previsión con el año a año a la vista.
+function previsionV2AbrirLargo() {
+  try {
+    localStorage.setItem("prevision-v2-horizonte", "full");
+  } catch {
+    // Sin almacenamiento: se abre con el horizonte de siempre; «Hasta 2036» queda a un toque.
+  }
+  globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+  history.pushState(null, "", "#plan");
+  setActiveView("plan");
+  document.querySelector('[data-plan-tab="prevision"]')?.click();
+  const titulo = qs("prevV2AnualTitulo");
+  if (titulo) {
+    titulo.setAttribute("tabindex", "-1");
+    titulo.scrollIntoView({ block: "start" });
+    titulo.focus({ preventScroll: true });
+  }
+}
+
 if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    if (event.target.closest?.("[data-forecast-v2-abrir]")) previsionV2AbrirLargo();
+  });
   if (document.readyState === "complete") previsionV2Init();
   else document.addEventListener("DOMContentLoaded", previsionV2Init);
 }

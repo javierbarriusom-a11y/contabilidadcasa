@@ -4650,6 +4650,21 @@
   color: var(--e19-muted);
 }
 
+/* FX-50 PR-2 · en el diseño nuevo, «Proyección» (#forecast) lleva a «Hasta 2036» de Plan › Previsión en vez de repetirla. */
+:root[data-tema="v2"] #forecast .forecast-v2-aviso {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+:root[data-tema="v2"] #forecast .forecast-v2-aviso p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] #forecast .forecast-proyeccion {
+  display: none;
+}
+
 /* XPR-11 (12/11/2026) · mover los días de cargo: hasta tres recibos, cada uno con su ganancia y sus dos botones. */
 :root[data-tema="v2"] .prev-v2-cargos {
   display: grid;

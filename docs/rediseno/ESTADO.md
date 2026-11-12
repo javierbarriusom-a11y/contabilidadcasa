@@ -87,6 +87,7 @@ Validación de A3: `npm run verify` 6023/6023, e2e + a11y de Playwright 195/195,
 8. **Cada fase: un PR, con el diseño nuevo bajo `:root[data-tema="v2"]`, con su prueba `tests/redis-<fase>-*.test.cjs`, capturas 390×844 y 1440×900 en claro y oscuro, y su entrada en `PROJECT_STATE.md`.**
 9. **v2 por defecto, clásico como salida.** Se trabaja y se revisa en la URL base. El clásico no se retira hasta que el hogar lo confirme (§3b, P9).
 10. **Mismas funciones en los dos temas.** Una pantalla v2 nunca quita una función: lo que no cabe se pliega o queda tras «Ver todo el detalle». Lo comprueban las e2e y a11y, que ya recorren la app con el v2.
+11. **Una sola previsión a largo plazo (12/11/2026, «sí a la primera»).** En el v2, la proyección hasta 2036 de «Proyección» (`#forecast`) vive en Plan › Previsión con «Hasta 2036» (FX-50: año a año, abanico, hitos, «Sin proyectos» y la prueba elegida); `#forecast` deja un aviso con el camino y conserva «Gastos recurrentes». El clásico, igual. No se retira la pantalla ni su código: solo deja de repetirse la proyección.
 
 ## 3b. Respuestas del hogar al cuestionario (19/10)
 

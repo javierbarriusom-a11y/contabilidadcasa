@@ -54,6 +54,19 @@ test("FX-50 · los hitos: deuda cero, fin de la hipoteca y colchón completo, en
   assert.equal(JSON.stringify(r3.hitos.map((h) => h.id)), JSON.stringify(["deuda-cero"]));
 });
 
+test("FX-50 PR-2 · los objetivos de ahorro activos con fecha son hitos en su mes; los de fuera del horizonte, pendientes", () => {
+  const liquidity = [{ monthKey: "2026-11", total: 8000 }, { monthKey: "2036-12", total: 9000 }];
+  const goals = [
+    { id: "coche", name: "Coche", target: 12000, targetDate: "2028-06-30", status: "active" },
+    { id: "viaje", name: "Viaje", target: 3000, targetDate: "2027-03-01", status: "paused" },
+    { id: "casa", name: "Entrada", target: 40000, targetDate: "2040-01-01" },
+    { id: "sin", name: "Sin fecha", target: 500 },
+  ];
+  const r = L.milestones({ liquidity, goals });
+  assert.equal(JSON.stringify(r.hitos.map((h) => [h.id, h.monthKey, h.amount])), JSON.stringify([["objetivo-coche", "2028-06", 12000]]));
+  assert.equal(JSON.stringify(r.pendientes.map((h) => h.id)), JSON.stringify(["objetivo-casa"]));
+});
+
 test("FX-50 · motor puro", () => {
   const fuente = fs.readFileSync(path.resolve(__dirname, "../canonical-long-horizon.js"), "utf8");
   assert.doesNotMatch(fuente, /document\.|window\.|localStorage|fetch\(/);

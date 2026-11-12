@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-proyeccion-en-prevision",
+      fecha: "2026-11-16",
+      texto: "«Proyección» ya está en Plan › Previsión con «Hasta 2036»: la línea sin proyectos, los objetivos de ahorro como hitos y vuestras pruebas.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-hasta-2036",
       fecha: "2026-11-16",
       texto: "Previsión: con «Hasta 2036», el año a año con su abanico (cuánto cambia con los supuestos) y los hitos: colchón completo, deuda cero.",

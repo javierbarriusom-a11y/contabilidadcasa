@@ -8973,6 +8973,11 @@ body {
 
 /* PER-4: mismo patrón de rejilla dt/dd que .update-language-grid, con su propio nombre — el
    resumen por periodo de Previsión no tiene relación con esa pantalla. */
+/* FX-50 PR-2 (12/11/2026): el aviso «la proyección está ahora en Plan › Previsión» solo existe en el diseño nuevo (tema-v2.css). */
+.forecast-v2-aviso {
+  display: none;
+}
+
 /* FX-15 (12/11/2026) · el resumen por periodo como cascada de la liquidez (periodo-ui.js): con cuánto se empieza, qué suma y
    resta cada bloque y con cuánto se acaba. Sustituye a las cinco cifras sueltas de PER-4. */
 .periodo-resumen {

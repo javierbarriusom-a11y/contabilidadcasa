@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261116fx15a" />
+    <link rel="stylesheet" href="styles.css?v=20261116fx50b" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261116fx15a" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -73,7 +73,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261116fx50a" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261116fx50b" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -7311,7 +7311,15 @@
           </section>
 
           <section class="analytics-grid view-section e19-forecast" id="forecast" hidden>
-            <div class="chart-panel wide e19-card">
+            <!-- FX-50 PR-2 (12/11/2026, decisión del hogar: «sí a la primera»): en el diseño nuevo, la proyección hasta 2036 vive en
+                 Plan › Previsión con «Hasta 2036» (año a año, abanico, hitos y la línea «Sin proyectos»); aquí queda el camino. Con el
+                 tema clásico, la proyección de siempre (las dos versiones conservan las mismas funciones). «Gastos recurrentes» sigue. -->
+            <div class="chart-panel wide e19-card forecast-v2-aviso">
+              <p class="panel-kicker e19-eyebrow">Hasta 2036</p>
+              <p><strong>La proyección hasta 2036 está ahora en Plan › Previsión.</strong> Con «Hasta 2036», año a año: la liquidez de cada 31 de diciembre con su abanico, los hitos y la línea «Sin proyectos».</p>
+              <button type="button" class="e19-btn e19-btn-primary" data-forecast-v2-abrir>Ver «Hasta 2036» en Plan › Previsión</button>
+            </div>
+            <div class="chart-panel wide e19-card forecast-proyeccion">
               <div class="section-title">
                 <div>
                   <p class="panel-kicker e19-eyebrow">Hasta 2036</p>
@@ -8202,7 +8210,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261116fx50a"></script>
+    <script defer src="novedades.js?v=20261116fx50b"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8301,7 +8309,7 @@
     <script defer src="views/clasificar-v2.js?v=20261102nuevaP1"></script>
     <script defer src="views/repaso-v2.js?v=20261109redisB5"></script>
     <script defer src="views/plan-v2.js?v=20261116fx14a"></script>
-    <script defer src="views/prevision-v2.js?v=20261116fx50a"></script>
+    <script defer src="views/prevision-v2.js?v=20261116fx50b"></script>
     <script defer src="views/cierre-v2.js?v=20261104coste1"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261104cierreC3"></script>

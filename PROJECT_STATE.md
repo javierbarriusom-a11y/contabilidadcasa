@@ -173,6 +173,33 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (452): FX-50 PR-2 · una sola previsión a largo plazo
+
+- **Decisión del hogar:** «sí a la primera, sigue con la segunda parte de FX-50». Es la consulta del PR-1: que «Hasta 2036» de Plan › Previsión sustituya a la proyección de `#forecast`. Queda en `docs/rediseno/ESTADO.md` §3, decisión 11.
+- **El año a año se completa** (`views/prevision-v2.js`, con el gráfico único de FX-11, `forecastPlotHtml`, en lugar del dibujo de banda del PR-1):
+  - **Escala y suelo**, como el gráfico de arriba.
+  - **Los hitos, marcados en el gráfico** y en la lista.
+  - **Hasta dos escenarios, en línea discontinua y con su columna en «Ver como tabla»:**
+    - «Sin proyectos»: el mismo plan sin los proyectos del simulador de decisiones, `lastBaseSimulation`, la línea que pintaba `#forecast`. Solo sale si difiere.
+    - La prueba de «Comparar con» (FX-20/FX-21/FX-22), si hay una elegida.
+  - **Los objetivos de ahorro activos con fecha, como hitos** en su mes, con su importe: «Objetivo «Coche» (12.000 €)». Si caen después del final del plan, en «Después de 2036». Si se llega o no es de FX-53 (con su probabilidad).
+  - **Error propio corregido antes de subir:** la caché del año a año iba con las filas de la previsión, y un objetivo nuevo no las cambia. Ahora la clave lleva los objetivos y los meses de colchón.
+- **«Proyección» (`#forecast`) en el diseño nuevo:**
+  - El panel de la proyección se oculta.
+  - En su lugar, un aviso: «La proyección hasta 2036 está ahora en Plan › Previsión», con «Ver «Hasta 2036» en Plan › Previsión». Recuerda ese horizonte, abre Plan › Previsión y deja el foco en el año a año.
+  - «Gastos recurrentes» sigue ahí: no es previsión y no está en otro sitio.
+  - Con el tema clásico, igual que siempre: las dos versiones conservan las mismas funciones.
+  - No se borra la pantalla ni su código.
+- **Pruebas:**
+  - `tests/fx50-hasta-2036.test.cjs` (5): los objetivos dentro y fuera del horizonte; pausados o sin fecha, fuera.
+  - e2e de FX-50 a 390 (`@safari`) y 1440 px, ampliada: el objetivo como hito y la prueba «Imprevisto 3.000 €» como columna.
+  - e2e nueva de «Proyección»: el aviso, «Gastos recurrentes» a la vista, el botón que lleva a «Hasta 2036» con el foco, y el clásico con la proyección de siempre.
+  - Sellos: `styles.css`, `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261116fx50b`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.558/6.558).
+  - En local, las e2e de FX-50 (también con la emulación del iPhone) y el recorrido por todas las pantallas en verde.
+- **FX-50, hecho.** Lo que no entra: la serie de patrimonio de WP-46 en el año a año. Tendrá contenido con 3 cierres (≈ febrero 2027).
+
 ## Cierre de sesión — 12 de noviembre de 2026 (451): FX-50 · «Hasta 2036», año a año (PR-1)
 
 - **Petición del hogar:** «continúa con lo siguiente del backlog». Lo que no está hecho ni bloqueado:

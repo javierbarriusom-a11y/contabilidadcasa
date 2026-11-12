@@ -6396,10 +6396,39 @@ test.describe("FX-50 · Hasta 2036, año a año", () => {
       // El abanico se abre con los años.
       const ancho = async (fila) => { const [lo, hi] = ((await filas.nth(fila).textContent()).match(/entre ([\d.]+)\s€ y ([\d.]+)\s€/) || []).slice(1).map((t) => Number(t.replace(/\./g, ""))); return hi - lo; };
       expect(await ancho(10)).toBeGreaterThan(await ancho(1));
+
+      // PR-2: un objetivo de ahorro con fecha (INVENTADO) es un hito en su mes, y la prueba de «Comparar con», una columna más.
+      await page.evaluate(() => { scenarioSettings.savingsGoals = [...(scenarioSettings.savingsGoals || []), { id: "coche", name: "Coche", target: 12000, targetDate: "2028-06-30", status: "active" }]; render(); });
+      await expect(anual.locator(".prev-v2-anual-hitos li").filter({ hasText: "Coche" })).toHaveText(/junio 2028\s+Objetivo «Coche» \(12\.000\s€\)/);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await anual.locator(".ck-tabla summary").click();
+      await expect(anual.locator(".ck-tabla thead th")).toHaveText(["Año", "Liquidez a 31/12", "Abanico", "Imprevisto 3.000 €"]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+
+  // PR-2 (decisión del hogar, 12/11/2026): «Proyección» (#forecast) en el diseño nuevo lleva a «Hasta 2036» en vez de repetirla; «Gastos
+  // recurrentes» sigue ahí. Con el tema clásico, la proyección de siempre (las dos versiones conservan las mismas funciones).
+  test("«Proyección» lleva a «Hasta 2036» en el diseño nuevo y sigue igual en el clásico", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+    await page.goto("/index.html#forecast");
+    const aviso = page.locator("#forecast .forecast-v2-aviso");
+    await expect(aviso).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#forecast .forecast-proyeccion")).toBeHidden();
+    await expect(page.locator("#categoryChart")).toBeVisible();
+    await aviso.locator("[data-forecast-v2-abrir]").click();
+    await expect(page).toHaveURL(/#plan$/);
+    await expect(page.locator("#prevV2AnualTitulo")).toBeFocused();
+    await expect(page.locator('[data-prevision-v2-horizonte="full"]')).toHaveAttribute("aria-pressed", "true");
+    await page.goto("/index.html?tema=clasico#forecast");
+    await expect(page.locator("#forecast .forecast-proyeccion")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#forecast .forecast-v2-aviso")).toBeHidden();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {

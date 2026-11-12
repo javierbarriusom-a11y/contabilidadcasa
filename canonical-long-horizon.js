@@ -62,10 +62,12 @@
    * Los hitos del horizonte, en orden de llegada. `debt`: `[{ monthKey, total, mortgage }]` (deuda viva y la de la hipoteca a fin de
    * cada mes; `mortgage` null si no hay hipoteca); `liquidity`: `[{ monthKey, total }]`; `cushionTarget`: la liquidez del colchón
    * objetivo (meses × gasto), 0 sin objetivo. Devuelve `{ hitos, pendientes }`: lo que llega (con su mes) y lo que no llega antes del final.
-   * @param {{ debt?: Array<{monthKey: string, total: number, mortgage?: number|null}>, liquidity?: Array<{monthKey: string, total: number}>, cushionTarget?: number }} [input]
+   * `goals` (FX-50 PR-2): los objetivos de ahorro activos con fecha (`{ id, name, target, targetDate }`); cada uno es un hito en su
+   * mes si cae dentro del horizonte (con su importe, `amount`). No dice si se llega: eso es de FX-53 (con su probabilidad).
+   * @param {{ debt?: Array<{monthKey: string, total: number, mortgage?: number|null}>, liquidity?: Array<{monthKey: string, total: number}>, cushionTarget?: number, goals?: Array<{id?: string, name?: string, target?: number, targetDate?: string, status?: string}> }} [input]
    */
   function milestones(input) {
-    const { debt = [], liquidity = [], cushionTarget = 0 } = input || {};
+    const { debt = [], liquidity = [], cushionTarget = 0, goals = [] } = input || {};
     const hitos = [];
     const pendientes = [];
     const firstWhere = (series, test) => series.find(test)?.monthKey || "";
@@ -79,6 +81,15 @@
     check("deuda-cero", "Deuda cero", debt, (item) => item.total, (item) => Number(item.total) <= ZERO);
     check("fin-hipoteca", "Fin de la hipoteca", debt.filter((item) => finite(item.mortgage)), (item) => item.mortgage, (item) => Number(item.mortgage) <= ZERO);
     if (Number(cushionTarget) > 0) check("colchon", "Colchón completo", liquidity, (item) => item.total, (item) => Number(item.total) >= Number(cushionTarget));
+    const desde = liquidity[0]?.monthKey || "";
+    const hasta = liquidity.at(-1)?.monthKey || "";
+    (Array.isArray(goals) ? goals : []).forEach((goal) => {
+      const monthKey = String(goal?.targetDate || "").slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(monthKey) || (goal.status && goal.status !== "active") || !(Number(goal.target) > 0)) return;
+      if (desde && monthKey < desde) return;
+      if (hasta && monthKey > hasta) { pendientes.push({ id: `objetivo-${goal.id || goal.name}`, label: String(goal.name || "Objetivo"), amount: Number(goal.target), kind: "objetivo" }); return; }
+      hitos.push({ id: `objetivo-${goal.id || goal.name}`, label: String(goal.name || "Objetivo"), monthKey, amount: Number(goal.target), kind: "objetivo" });
+    });
     hitos.sort((a, b) => a.monthKey.localeCompare(b.monthKey));
     return { hitos, pendientes };
   }
