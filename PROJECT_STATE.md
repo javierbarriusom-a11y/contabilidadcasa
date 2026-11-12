@@ -173,6 +173,47 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (456): XDA-04 · PR-2, la tira de cobertura de 90 días por cuenta
+
+- **CI de #607 en f57b4dc, en verde** (run 43235935967, de 14:19 a 15:02Z): `verify`, Lighthouse, desbordamiento móvil, e2e, axe, perf-screens, presupuesto de carga y Safari. Nada que arreglar. XDA-04 PR-2 se subió después, para no cancelar ese run.
+- **Condición de XDA-04 PR-2, preguntada al hogar:** «hay uno inicial para el coding y el actualizado de octubre para cerrar». Con eso hay dos importaciones reales, la condición del 26/10.
+  - **Matiz:** si el extracto inicial entró antes del 26/10, cuenta como «estimado». La tira lo pinta en verde claro y lo dice en una nota.
+- **Motor** (`canonical-ledger-coverage.js`, sin motor nuevo):
+  - `strip`: la tira de N días de una cuenta en tres clases.
+    - **Cubierto:** algún extracto ve ese día.
+    - **Hueco:** sin ver, con días vistos antes y después. Falta un extracto en medio.
+    - **Sin dato:** antes del primer extracto o desde el último. Lo de después del último es lo normal entre dos extractos.
+    - Se clasifica con la historia entera de la cuenta.
+    - Lo estimado se separa día a día, porque `merged` (PR-1) pierde la marca en cuanto un rango estimado toca uno declarado.
+  - **Qué importar:** un solo extracto, del primer hueco hasta hoy. En el banco se exporta un periodo, no varios.
+  - `afterImport`: qué hueco cierra un extracto, cuál abre y hasta cuándo queda cubierta la cuenta.
+  - `unseen`: lo que no se ha visto en una ventana, por cuenta.
+- **Pantallas** (`cobertura-ui.js`, `tema-v2.css`; `app.js` sin cambios):
+  - **Movimientos:** «Cobertura · últimos 90 días» entre la bandeja y la lista, como `Movimientos.png`.
+    - Tocar una cuenta con algo por traer: «Importa un extracto de CaixaBank que cubra del 4 oct al 12 nov: cierra el hueco y trae lo que va desde el último», con «Importar extracto», que abre ya el selector (XDA-02).
+    - La línea «Aún no llegan solos» deja de prometer la cobertura.
+  - **Repaso, paso «Extracto»:** la misma tira, sin botón propio, porque el pie del paso ya importa.
+  - **Importar:** «Cobertura tras importar» bajo el cuadre, como `ImportarDesktop.png`. Dice qué hueco cierra o deja el extracto y hasta cuándo queda cubierta la cuenta, con el periodo que el hogar tiene delante; cambia al cambiar las fechas.
+  - **Anomalías (WP-36) y deuda en la sombra (WP-41):** «No he podido mirar del 4 al 9 oct en CaixaBank: no hay extracto de esos días», en su ventana de 45 días, en vez de callar. En los dos temas.
+  - **Sin ningún extracto, no se pinta** (decisión 4 de `ESTADO.md`), así que el inventario XGO-01 no cambia.
+- **Desviación del diseño, anotada en `docs/XDA04_DISENO.md` §3:**
+  - El diseño ponía la tira en Importar y en el repaso.
+  - La referencia la pone en Movimientos, y manda la referencia (CLAUDE.md).
+  - Importar lleva su tarjeta de la referencia.
+- **Errores encontrados al probarlo, corregidos antes de subir:**
+  - En el repaso, la tira añadía otros dos «Importar extracto» además del del pie. Lo destapó la e2e del repaso por la ambigüedad. Ahora, una acción, un botón.
+  - En oscuro, el gris de «sin dato» casi no se distinguía de la tarjeta. Pasa al tono del borde.
+- **Pruebas:**
+  - `tests/xda04-pr2-tira.test.cjs` (7), con las fechas a mano.
+  - e2e nueva «XDA-04 · PR-2» a 390 (`@safari`) y 1440 px: dos extractos con un hueco; «Cobertura tras importar» antes y después de mover la fecha; la tira con su pista y su botón al selector; la tira del repaso; y la línea de anomalías.
+  - axe en claro y oscuro de las dos tarjetas.
+  - **Ajustadas:**
+    - `redis-a4-movimientos`: la línea plegada ya no menciona la cobertura.
+    - `redis-b5-repaso` y `wp41-recurrentes`: aceptan el sello nuevo.
+- **Sellos:** `tema-v2.css`, `canonical-ledger-coverage.js`, `cobertura-ui.js`, `views/movimientos-v2.js`, `views/importar-v2.js`, `views/repaso-v2.js`, `anomalias-ui.js`, `sombra-ui.js` y `novedades.js` a `20261116xda04b`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.578/6.578). En local con Chromium: las e2e y el axe de XDA-04 en verde (16/16 con cuatro repeticiones) y las 56 de Movimientos, Importar, Repaso, anomalías, cierre y XGO-01 en verde. Un fallo suelto de «XDA-04 · periodo que cubre el extracto» con carga en paralelo no se repitió en 5 ejecuciones. La tanda completa de Playwright (414) seguía en curso al subir.
+- **Entorno:** el contenedor llegó sin `node_modules` (`npm ci`), y la versión de Playwright del proyecto necesita `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (455): WP-21 · PR-3, el local alquilado para la Renta (FIS-03)
 
 - **Petición del hogar:** «sigue con lo siguiente del backlog». Por orden era WP-21 PR-3 (#13 de la Oleada 2, antes del 31/3/2027). Lo que va antes no se podía empezar:
