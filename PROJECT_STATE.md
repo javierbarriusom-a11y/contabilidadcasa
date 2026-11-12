@@ -140,7 +140,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Se conservan las 30 copias más recientes, una por día de los últimos 90 días, la vigente, las de cierres, reaperturas y verificaciones (además protegidas por claves ajenas) y las de operaciones especiales.
   - Va en pasos: lectura previa, borrado en una transacción, `VACUUM FULL` y, opcionalmente, una función semanal con pg_cron. La ejecuta el hogar en el SQL Editor, después de ver la lectura previa.
   - No toca el libro ni la auditoría.
-- **Pendiente:** la fase 4 (reescribir solo las filas que cambian, con una función en la base) y qué hacer con la auditoría (113 MB).
+  - **Hecho por el hogar el 12/11, con las cifras reales:**
+    - Lectura previa: salían 170 copias (134 MB) y se quedaban 94 (80 MB).
+    - Tras el borrado quedan 94 copias.
+    - Tras `VACUUM FULL`: la base pasa de unos 381 MB a **248 MB**, y las copias de 229 MB a **83 MB**.
+  - **Limpieza semanal activada** (pg_cron, trabajo 1 `finance-prune-state-snapshots`, `17 4 * * 1`, activo). Usa `public.finance_prune_state_snapshots()`, la misma regla, sin permiso para `anon` ni `authenticated`. La primera ejecución es el lunes 16/11; se mira en `cron.job_run_details`. Se desactiva con `select cron.unschedule('finance-prune-state-snapshots');`.
+- **Pendiente:**
+  - Fase 4, si vuelve el aviso de disco con esto desplegado: reescribir solo las filas que cambian, con una función en la base.
+  - Cuánto historial guardar en la auditoría (113 MB). Ahora es la tabla más grande, y recortarla borra datos, así que lo decide el hogar.
 - **Pruebas:**
   - `tests/disk-io-supabase.test.cjs` (7).
   - `canonical-supabase-store` (la copia ya no es el estado entero) y el falso de `npv3-cierre-con-saldo` (con `cloudState`), ajustados.
