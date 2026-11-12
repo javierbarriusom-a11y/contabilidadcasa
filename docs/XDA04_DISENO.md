@@ -46,11 +46,32 @@ en qué cuenta se carga; si alguna se cargara en otra, no se preguntaría por el
 lote y esa restauración nunca borra un almacén que la foto no traía; sin el almacén vacío, deshacer la primera
 importación dejaría su periodo registrado.
 
-## 3. PR-2 (cuando haya dos importaciones reales)
+## 3. PR-2 (hecho el 12/11/2026, con dos importaciones reales)
 
-- **Tira de 90 días por cuenta** en Importar y en el paso «Extracto» del repaso. Al tocar un hueco: «Importa un extracto
-  que cubra del 11 al 19 oct», con la importación en un toque.
-- **Deuda en la sombra (WP-41) y anomalías (WP-36)** dirán qué días no han podido mirar, en vez de callar.
+Condición cumplida según el hogar el 12/11: «hay uno inicial para el coding y el actualizado de octubre para cerrar». El
+inicial, si entró antes del 26/10, cuenta como «estimado» y la tira lo pinta así.
+
+| Pieza | Qué hace |
+|---|---|
+| `canonical-ledger-coverage.js` | `strip` (la tira de N días de una cuenta: cubierto, hueco, sin dato; lo estimado aparte día a día, porque `merged` lo pierde al tocar un rango declarado), `afterImport` (qué hueco cierra un extracto, cuál abre y hasta cuándo queda cubierta) y `unseen` (lo que no se ha visto en una ventana, por cuenta) |
+| `cobertura-ui.js` | `tiraHtml`, `trasImportarHtml` y `noMiradoReciente`; sin ningún extracto en ninguna cuenta no pinta nada |
+| `views/movimientos-v2.js` | «Cobertura · últimos 90 días» entre la bandeja y la lista, como `Movimientos.png`; la línea «Aún no llegan solos» deja de prometerla |
+| `views/repaso-v2.js` | La tira bajo las filas del paso «Extracto», sin botón propio (el del pie ya importa) |
+| `views/importar-v2.js` | «Cobertura tras importar» bajo el cuadre, como `ImportarDesktop.png`, con el periodo que el hogar tiene delante |
+| `anomalias-ui.js`, `sombra-ui.js` | «No he podido mirar del 4 al 9 oct en CaixaBank: no hay extracto de esos días», en su ventana de 45 días |
+
+**Reglas de la tira:**
+
+- Un **hueco** es un tramo sin ver con días vistos antes y después: falta un extracto en medio. Lo que va desde el último
+  extracto hasta hoy es **sin dato** (es lo normal entre dos extractos). Lo de antes del primero también.
+- Se clasifica con la historia entera de la cuenta. Un hueco que empieza antes de la ventana sigue siendo hueco.
+- **Qué importar:** un solo extracto, del primer hueco hasta hoy (en el banco se exporta un periodo, no varios). Sin
+  huecos, lo que va desde el último. La pista pide confirmar ese periodo en «¿Qué periodo exportaste?».
+- **Desviación del diseño:** el diseño decía «en Importar y en el paso Extracto del repaso». La referencia
+  (`Movimientos.png`) la pone en Movimientos, y es donde va (CLAUDE.md: la referencia es la base). Importar lleva su
+  tarjeta «Cobertura tras importar», como `ImportarDesktop.png`.
+- **XGO-01:** sin datos del hogar no se pinta, así que el inventario de titulares no cambia. Con datos, Movimientos suma
+  el titular «Cobertura», que es el de la referencia.
 
 ## 4. Medida y retirada
 

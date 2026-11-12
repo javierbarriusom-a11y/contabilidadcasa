@@ -184,7 +184,148 @@ function coberturaAvisoCierreHtml(monthKey, motor = coberturaMotor()) {
   </div>`;
 }
 
+// ---------- XDA-04 · PR-2 (12/11/2026): la tira de 90 días por cuenta ----------
+//
+// De la referencia (docs/rediseno/referencias/html/Movimientos.html, «Cobertura · últimos 90 días»): por cuenta, una
+// barra con lo cubierto (verde), los huecos (rayado rojo) y lo que no tiene dato (gris: antes del primer extracto o
+// desde el último). Lo que solo cubre lo importado antes del registro va en verde claro, «estimado». Tocar una cuenta
+// con algo por traer dice qué extracto importar («Importa un extracto de CaixaBank que cubra del 4 oct al 12 nov») y lo
+// importa en un toque. Sin ningún extracto en ninguna cuenta no se pinta (decisión 4 de docs/rediseno/ESTADO.md):
+// Movimientos ya lleva a Importar en ese caso.
+
+const COBERTURA_TIRA_DIAS = 90;
+
+function coberturaFecha(iso, conMes = true) {
+  const d = new Date(`${iso}T12:00:00`);
+  return conMes ? d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "") : String(d.getDate());
+}
+
+// «el 4 oct», «del 4 al 9 oct», «del 28 sep al 3 oct».
+function coberturaPeriodo(from, to) {
+  if (from === to) return `el ${coberturaFecha(from)}`;
+  return `del ${coberturaFecha(from, from.slice(0, 7) !== to.slice(0, 7))} al ${coberturaFecha(to)}`;
+}
+
+function coberturaCuentas() {
+  return (globalThis.FinanceCanonicalBalancePulse?.ACCOUNTS || []).map((a) => a.importLabel);
+}
+
+// Las tiras de cada cuenta, o null si no hay motor o ninguna cuenta tiene un solo extracto.
+function coberturaTiras(hoy = isoLocalDate(new Date())) {
+  const motor = coberturaMotor();
+  const rangos = coberturaEfectivos();
+  if (!motor || !rangos) return null;
+  const tiras = coberturaCuentas().map((cuenta) => motor.strip(rangos, cuenta, hoy, COBERTURA_TIRA_DIAS)).filter(Boolean);
+  return tiras.some((t) => !t.sinExtractos) ? tiras : null;
+}
+
+function coberturaEtiqueta(t) {
+  if (t.sinExtractos) return "sin extractos";
+  if (t.huecos.length === 1) return `hueco ${coberturaPeriodo(t.huecos[0].from, t.huecos[0].to)}`;
+  if (t.huecos.length > 1) return `${t.huecos.length} huecos · ${t.diasHueco} días`;
+  if (t.pendiente) return `cubierto hasta el ${coberturaFecha(t.ultimo)}`;
+  return "al día";
+}
+
+function coberturaPista(t) {
+  if (t.sinExtractos) return `Importa un extracto de ${t.account}: con el primero, la tira empieza a contar.`;
+  const s = t.sugerencia;
+  if (!s) return "";
+  const que = t.huecos.length && t.pendiente
+    ? `cierra ${t.huecos.length === 1 ? "el hueco" : "los huecos"} y trae lo que va desde el último`
+    : t.huecos.length ? `cierra ${t.huecos.length === 1 ? "el hueco" : "los huecos"}` : "trae lo que va desde el último";
+  return `Importa un extracto de ${t.account} que cubra ${coberturaPeriodo(s.from, s.to)}: ${que}. Al importar, confirma ese periodo en «¿Qué periodo exportaste?».`;
+}
+
+function coberturaBarraHtml(t, clase = "cob-tira-barra") {
+  const tramos = t.segments.map((s) => `<span class="cob-seg is-${s.kind}${s.estimado ? " is-estimado" : ""}" style="flex:${s.days}"></span>`).join("");
+  return `<span class="${clase}" aria-hidden="true">${tramos}</span>`;
+}
+
+// Una cuenta. Con algo que traer, la fila se despliega (<details>, sin JS) y dentro va el botón de importar, con el
+// atributo que la pantalla ya sabe manejar (`importarAttr`: Movimientos usa data-mov-v2-nav). Con `importarAttr` vacío
+// (el repaso, que ya tiene «Importar extracto» en su pie) solo la pista: una acción, un botón.
+function coberturaCuentaHtml(t, importarAttr) {
+  const cabeza = `<span class="cob-tira-cab"><span class="cob-tira-nombre">${escapeHtml(t.account)}</span><span class="cob-tira-estado">${escapeHtml(coberturaEtiqueta(t))}</span></span>${coberturaBarraHtml(t)}`;
+  const pista = coberturaPista(t);
+  if (!pista) return `<li class="cob-tira-cuenta" data-cob-cuenta="${escapeHtml(t.account)}"><div class="cob-tira-fila">${cabeza}</div></li>`;
+  return `<li class="cob-tira-cuenta${t.huecos.length ? " is-hueco" : ""}" data-cob-cuenta="${escapeHtml(t.account)}"><details class="cob-tira-detalle">
+      <summary class="cob-tira-fila">${cabeza}</summary>
+      <div class="cob-tira-pista"><p>${escapeHtml(pista)}</p>${importarAttr ? `<button type="button" class="e19-btn e19-btn-secondary" ${importarAttr}>Importar extracto</button>` : ""}</div>
+    </details></li>`;
+}
+
+function coberturaLeyendaHtml(tiras) {
+  const items = [["cubierto", "cubierto"]];
+  if (tiras.some((t) => t.estimado)) items.push(["cubierto is-estimado", "estimado"]);
+  items.push(["hueco", "hueco"], ["sin-dato", "sin dato"]);
+  return `<p class="cob-tira-leyenda" aria-hidden="true">${items.map(([k, l]) => `<span><span class="cob-seg is-${k}"></span>${l}</span>`).join("")}</p>`;
+}
+
+// opciones: { titulo: true para el bloque con su cabecera (Movimientos), importarAttr ("" = sin botón), hoy }.
+function coberturaTiraHtml(opciones = {}) {
+  const tiras = coberturaTiras(opciones.hoy);
+  if (!tiras) return "";
+  const attr = opciones.importarAttr ?? 'data-mov-v2-nav="datos-importar"';
+  const estimado = tiras.some((t) => t.estimado)
+    ? `<p class="cob-tira-nota">«Estimado»: importado antes del 26/10, cuando aún no se preguntaba el periodo; se da por visto del primer al último movimiento.</p>`
+    : "";
+  const cuerpo = `<ul class="cob-tira-lista" aria-label="Cobertura de los últimos ${COBERTURA_TIRA_DIAS} días por cuenta">${tiras.map((t) => coberturaCuentaHtml(t, attr)).join("")}</ul>${coberturaLeyendaHtml(tiras)}${estimado}`;
+  if (!opciones.titulo) return `<div class="cob-tira cob-tira-suelta">${cuerpo}</div>`;
+  return `<section class="cob-tira" aria-labelledby="cobTiraTitulo">
+    <div class="mov-v2-section-head"><h3 id="cobTiraTitulo">Cobertura</h3><span>últimos ${COBERTURA_TIRA_DIAS} días</span></div>
+    <div class="mov-v2-card cob-tira-tarjeta">${cuerpo}</div>
+  </section>`;
+}
+
+// «Cobertura tras importar» en la revisión de Importar (referencia ImportarDesktop.html): qué cierra este extracto y
+// hasta cuándo queda cubierta la cuenta, con el periodo que el hogar tiene delante.
+function coberturaTrasImportarHtml(session, hoy = isoLocalDate(new Date())) {
+  const motor = coberturaMotor();
+  const rangos = coberturaEfectivos();
+  const c = coberturaSesion(session);
+  if (!motor || !rangos || !c) return "";
+  const cuenta = session.fileMeta?.bankAccount || coberturaCuentaRecibos();
+  const r = motor.afterImport(rangos, { account: cuenta, from: c.from, to: c.to, source: "declarado" }, hoy, COBERTURA_TIRA_DIAS);
+  if (!r) return "";
+  const frases = [];
+  if (r.primero) frases.push(`Es el primer extracto de ${cuenta} que se registra.`);
+  if (r.cierra.length) frases.push(`Este extracto cierra ${r.cierra.length === 1 ? `el hueco ${coberturaPeriodo(r.cierra[0].from, r.cierra[0].to)}` : `${r.cierra.length} huecos`}.`);
+  if (r.abre.length) frases.push(`Deja sin ver ${r.abre.map((h) => coberturaPeriodo(h.from, h.to)).join(" y ")}: importa también esos días si puedes.`);
+  if (r.hasta) frases.push(`${cuenta} queda cubierto hasta el ${coberturaFecha(r.hasta)}${r.quedan ? `, con ${r.quedan === 1 ? "un hueco" : `${r.quedan} huecos`} en los últimos ${COBERTURA_TIRA_DIAS} días` : ""}.`);
+  return `<section class="mov-v2-card cob-tras" aria-labelledby="cobTrasTitulo" data-cob-tras>
+    <span class="mov-v2-meta cob-tras-titulo" id="cobTrasTitulo">Cobertura tras importar</span>
+    ${coberturaBarraHtml(r.after, "cob-tira-barra cob-tras-barra")}
+    <p class="mov-v2-meta">${escapeHtml(frases.join(" "))}</p>
+  </section>`;
+}
+
+// WP-36 y WP-41: lo que no han podido mirar en [desde, hasta] porque falta el extracto de esos días. "" si nada.
+function coberturaNoMiradoTexto(desde, hasta) {
+  const motor = coberturaMotor();
+  const rangos = coberturaEfectivos();
+  if (!motor?.unseen || !rangos || !desde || !hasta) return "";
+  const faltan = motor.unseen(rangos, coberturaCuentas(), desde, hasta);
+  if (!faltan.length) return "";
+  const partes = faltan.map((f) => `${f.gaps.map((g) => coberturaPeriodo(g.from, g.to)).join(" y ")} en ${f.account}`);
+  return `No he podido mirar ${partes.join(" ni ")}: no hay extracto de esos días.`;
+}
+
+// Lo mismo para la ventana de «lo reciente» de WP-36 y WP-41 (los últimos `dias` hasta el último movimiento importado):
+// lo que va después de ese movimiento ya lo dicen ellas («Mirado hasta el …»).
+function coberturaNoMiradoReciente(hasta, dias, hoy = isoLocalDate(new Date())) {
+  const motor = coberturaMotor();
+  if (!motor || !hasta) return "";
+  return coberturaNoMiradoTexto(motor.addDays(hoy, -dias), hasta < hoy ? hasta : hoy);
+}
+
 globalThis.FinanceCobertura = {
+  noMiradoReciente: coberturaNoMiradoReciente,
+  tiras: coberturaTiras,
+  tiraHtml: coberturaTiraHtml,
+  trasImportarHtml: coberturaTrasImportarHtml,
+  noMiradoTexto: coberturaNoMiradoTexto,
+  periodo: coberturaPeriodo,
   STORE: COBERTURA_STORE,
   asegurar: coberturaAsegurar,
   leer: coberturaLeer,

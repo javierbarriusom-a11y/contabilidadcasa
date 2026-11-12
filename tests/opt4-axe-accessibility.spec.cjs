@@ -287,6 +287,40 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// XDA-04 · PR-2: «Cobertura tras importar» en la revisión y la tira de 90 días de Movimientos, con un hueco desplegado
+// y lo estimado en la leyenda, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-04 · PR-2 · contraste de la tira de cobertura en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#importarV2 y #movements: sin fallos de contraste ni de accesibilidad en la cobertura", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from("Fecha;Concepto;Importe;Saldo\n10/10/2026;SUPER FICTICIO;-50,00;3950,00\n02/11/2026;NOMINA FICTICIA;3000,00;6950,00\n") });
+      await expect(page.locator("#importarV2 [data-cob-tras]")).toBeVisible({ timeout: 15000 });
+      const check = async (selector) => {
+        const results = await new AxeBuilder({ page }).include(selector).analyze();
+        return results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      };
+      let nodes = await check("#importarV2 [data-cob-tras]");
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      await page.locator("#importarV2 [data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(page.locator("#importarV2")).toContainText("2 movimientos importados", { timeout: 15000 });
+      // Un hueco del 4 al 9 oct, lo de antes estimado y Mediolanum sin extractos.
+      await page.evaluate(() => localStorage.setItem(storageKey("ledger-coverage"), JSON.stringify({ version: 1, ranges: [{ account: "CaixaBank", from: "2026-08-01", to: "2026-10-03", source: "estimado" }, { account: "CaixaBank", from: "2026-10-10", to: "2026-11-02", source: "declarado" }] })));
+      await page.goto("/index.html#movements");
+      const tira = page.locator("#movimientosV2Lista .cob-tira");
+      await expect(tira).toBeVisible({ timeout: 15000 });
+      await tira.locator('[data-cob-cuenta="CaixaBank"] summary').click();
+      await expect(tira.locator(".cob-tira-pista").first()).toBeVisible();
+      await expect(tira).toContainText("estimado");
+      nodes = await check("#movimientosV2Lista .cob-tira");
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // XDA-03 · nivel 1: la fuente «Texto de un PDF» abierta y su aviso con el diagnóstico, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`XDA-03 · contraste del texto de un PDF en modo ${scheme}`, () => {

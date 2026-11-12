@@ -120,5 +120,108 @@
     return s;
   }
 
-  return { SCHEMA_ID, SOURCES, MAX_RANGES, isIso, addDays, normalizeRange, normalizeStore, deduce, merged, covers, gaps, month, estimateFromLedger, addRange };
+  // ---------- XDA-04 · PR-2 (12/11/2026): la tira de los últimos N días por cuenta ----------
+  //
+  // Tres clases de día, como la referencia (docs/rediseno/referencias/html/Movimientos.html):
+  // - «cubierto»: algún extracto lo ha visto (`estimado` si solo lo ve lo importado antes del registro);
+  // - «hueco»: sin ver, con días vistos antes y después: falta un extracto en medio;
+  // - «sin-dato»: sin ver, antes del primer extracto de la cuenta o después del último (lo de después es lo normal entre
+  //   un extracto y el siguiente; no es un hueco hasta que llega un extracto posterior).
+  // Se clasifica con la historia entera de la cuenta, no solo la ventana: un hueco que empieza antes de la ventana sigue
+  // siendo un hueco.
+  const daysIn = (from, to) => dayNumber(to) - dayNumber(from) + 1;
+  const maxIso = (a, b) => (a > b ? a : b);
+  const minIso = (a, b) => (a < b ? a : b);
+
+  function strip(ranges, account, today, days = 90) {
+    if (!isIso(today) || !(days >= 1)) return null;
+    const from = addDays(today, -(Math.round(days) - 1));
+    const all = merged(ranges, account).filter((r) => r.from <= today);
+    const firmes = merged((Array.isArray(ranges) ? ranges : []).filter((r) => r && r.source !== "estimado"), account);
+    const segments = [];
+    const push = (kind, a, b, extra = {}) => {
+      const s = maxIso(a, from);
+      const e = minIso(b, today);
+      if (s > e) return;
+      const last = segments[segments.length - 1];
+      if (last && last.kind === kind && !!last.estimado === !!extra.estimado && dayNumber(last.to) + 1 === dayNumber(s)) {
+        last.to = e;
+        last.days = daysIn(last.from, last.to);
+        return;
+      }
+      segments.push({ kind, from: s, to: e, days: daysIn(s, e), ...extra });
+    };
+    let cursor = "";
+    if (!all.length) push("sin-dato", from, today);
+    all.forEach((r, i) => {
+      if (i === 0 && r.from > from) push("sin-dato", from, addDays(r.from, -1));
+      if (i > 0) push("hueco", addDays(all[i - 1].to, 1), addDays(r.from, -1));
+      // Dentro de lo cubierto, lo que solo ve lo «estimado» se marca aparte: `merged` lo pierde en cuanto un rango
+      // estimado toca uno declarado, y la tira no debe pintar como visto en un extracto lo que solo se supone.
+      let c = r.from;
+      firmes.filter((f) => f.to >= r.from && f.from <= r.to).forEach((f) => {
+        if (f.from > c) push("cubierto", c, addDays(f.from, -1), { estimado: true });
+        push("cubierto", maxIso(f.from, c), minIso(f.to, r.to));
+        c = addDays(minIso(f.to, r.to), 1);
+      });
+      if (c <= r.to) push("cubierto", c, r.to, { estimado: true });
+      cursor = r.to;
+    });
+    if (all.length && cursor < today) push("sin-dato", addDays(cursor, 1), today);
+    const huecos = segments.filter((s) => s.kind === "hueco");
+    const ultimo = all.length ? minIso(all[all.length - 1].to, today) : "";
+    const pendiente = ultimo && ultimo < today ? { from: addDays(ultimo, 1), to: today, days: daysIn(addDays(ultimo, 1), today) } : null;
+    // Lo que conviene importar: un solo extracto del primer hueco hasta hoy (en el banco se exporta un periodo, no
+    // varios). Sin huecos, lo que va del último extracto a hoy. Sin extractos, nada que sugerir: la tira dice
+    // «sin extractos» y lleva a Importar igual.
+    const sugerencia = huecos.length ? { from: huecos[0].from, to: pendiente ? today : huecos[huecos.length - 1].to } : pendiente ? { from: pendiente.from, to: today } : null;
+    return {
+      account,
+      from,
+      to: today,
+      days: Math.round(days),
+      segments,
+      huecos,
+      diasHueco: huecos.reduce((n, s) => n + s.days, 0),
+      diasCubiertos: segments.filter((s) => s.kind === "cubierto").reduce((n, s) => n + s.days, 0),
+      estimado: segments.some((s) => s.kind === "cubierto" && s.estimado),
+      sinExtractos: all.length === 0,
+      ultimo,
+      pendiente,
+      sugerencia,
+    };
+  }
+
+  // Qué cambia en una cuenta si se añade el rango de un extracto: los huecos que cierra, los que abre (el extracto
+  // empieza después del día siguiente al último visto) y hasta cuándo queda cubierta. Para «Cobertura tras importar».
+  function afterImport(ranges, range, today, days = 90) {
+    const r = normalizeRange(range);
+    if (!r || !isIso(today)) return null;
+    const before = strip(ranges, r.account, today, days);
+    const after = strip([...(Array.isArray(ranges) ? ranges : []), r], r.account, today, days);
+    const cierra = before.huecos
+      .map((h) => ({ from: maxIso(h.from, r.from), to: minIso(h.to, r.to) }))
+      .filter((h) => h.from <= h.to)
+      .map((h) => ({ ...h, days: daysIn(h.from, h.to) }));
+    const yaEran = new Set(before.huecos.map((h) => `${h.from}|${h.to}`));
+    const abre = after.huecos.filter((h) => !yaEran.has(`${h.from}|${h.to}`) && !before.huecos.some((b) => b.from <= h.from && b.to >= h.to));
+    return { account: r.account, before, after, cierra, abre, primero: before.sinExtractos, hasta: after.ultimo, quedan: after.huecos.length };
+  }
+
+  // Los días que una función que mira el extracto (anomalías, WP-36; deuda en la sombra, WP-41) no ha podido mirar en
+  // [from, to]: por cuenta, lo que no ve ningún extracto desde el primero de esa cuenta. Las cuentas sin ningún extracto
+  // no salen (eso lo dice la tira, «sin extractos»): aquí solo se avisa de lo que falta en medio o al final.
+  function unseen(ranges, accounts, from, to) {
+    if (!isIso(from) || !isIso(to) || from > to) return [];
+    return (Array.isArray(accounts) ? accounts : []).map((account) => {
+      const all = merged(ranges, account);
+      if (!all.length) return null;
+      const start = maxIso(from, all[0].from);
+      if (start > to) return null;
+      const holes = gaps(ranges, account, start, to);
+      return holes.length ? { account, gaps: holes.map((h) => ({ ...h, days: daysIn(h.from, h.to) })) } : null;
+    }).filter(Boolean);
+  }
+
+  return { SCHEMA_ID, SOURCES, MAX_RANGES, isIso, addDays, normalizeRange, normalizeStore, deduce, merged, covers, gaps, month, estimateFromLedger, addRange, strip, afterImport, unseen };
 });

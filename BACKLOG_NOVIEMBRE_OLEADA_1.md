@@ -376,7 +376,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |
 | 13 | WP-21 | Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3) | Def P2 | M · 2 | WP-31 | Antes del 31/3/2027 · **PR-3 hecho 12/11 (en #607, sale el 16/11)**: `canonical-rental-tax.js` y «El local alquilado para la Renta» en Fiscal; con los datos del local (H-36) da la cifra |
 | 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | **12/11, hecho (en #607, sale el 16/11)**: `canonical-charge-day-moves.js`, hasta 3 recibos por el mínimo de cada mes, puerta del 70 %; «Lo he pedido» y «Ya se carga» (guarda el día de cargo). Se ve con H-35 |
-| 15 | XDA-04 PR-2 | Tira de cobertura de 90 días por cuenta | Def §5.0 | S | dos importaciones reales | La condición ya puede cumplirse |
+| 15 | XDA-04 PR-2 | Tira de cobertura de 90 días por cuenta | Def §5.0 | S | dos importaciones reales | **12/11, hecho (en #607, sale el 16/11)**: condición cumplida (extracto inicial + octubre). Tira en Movimientos (como la referencia) y en el paso «Extracto» del repaso, «Cobertura tras importar» en Importar, y WP-36/WP-41 dicen qué días no han podido mirar |
 | 16 | WP-54 | Primera ronda de la prueba con 5 personas ajenas, **con C2 y los presets como tareas** | Def (continuo) | — | FX-10, FX-21 | Desde diciembre |
 
 ### 5.3 P2 — planificada, con disparador de datos (febrero - mayo 2027)
@@ -447,7 +447,7 @@ panel de seguimiento.
 | §5.0 XUX-02 (más tarjetas), XDA-01 PR-2 | Si se usan | P3 (sin cambio de criterio) |
 | §5.0 XDA-05 PR-2 | Puerta del medidor | **H12, 18/11** (sin cambio) |
 | §5.0 XDA-02 PR-2 | Construido sin desplegar | H-34 (hogar) |
-| §5.0 XDA-04 PR-2 | Con dos importaciones reales | P1 Oleada 2 (#15) |
+| §5.0 XDA-04 PR-2 | **Hecho 12/11** (en #607) | P1 Oleada 2 (#15) |
 | §5.0 XDA-03 nivel 2 | Solo si una cuenta da solo PDF | P2 con su condición |
 | §5.0 Rediseño: C2 | Siguiente pantalla | **FX-10** (P0, S2) |
 | §5.0 Rediseño: D1-D2, navegación | Tras revisiones | P1 Oleada 2 (#6, #7) |

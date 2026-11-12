@@ -4776,3 +4776,167 @@
   padding: 8px 0;
   border-top: 1px solid var(--e19-border);
 }
+
+/* XDA-04 · PR-2 (12/11/2026): la tira de cobertura de 90 días por cuenta (cobertura-ui.js), de Movimientos.png.
+   Cubierto en verde, el hueco rayado en rojo (es lo único que rompe algo), sin dato en gris; lo «estimado» (importado
+   antes del registro del periodo), verde a medias. */
+:root[data-tema="v2"] .cob-tira {
+  margin: 18px 0 10px;
+}
+
+:root[data-tema="v2"] .cob-tira-tarjeta {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+:root[data-tema="v2"] .cob-tira-suelta {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .cob-tira-lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .cob-tira-fila {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  cursor: default;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila::-webkit-details-marker {
+  display: none;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+:root[data-tema="v2"] .cob-tira-cab {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tira-nombre {
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .cob-tira-cuenta.is-hueco .cob-tira-estado {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila .cob-tira-estado::after {
+  content: " ›";
+}
+
+:root[data-tema="v2"] .cob-tira-detalle[open] summary.cob-tira-fila .cob-tira-estado::after {
+  content: " ⌄";
+}
+
+:root[data-tema="v2"] .cob-tira-barra {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+:root[data-tema="v2"] .cob-tras-barra {
+  height: 10px;
+}
+
+:root[data-tema="v2"] .cob-seg {
+  display: inline-block;
+  min-width: 2px;
+  background: var(--e19-border); /* «sin dato»: el gris de la referencia, visible también en oscuro */
+}
+
+:root[data-tema="v2"] .cob-seg.is-cubierto {
+  background: var(--e19-success);
+}
+
+:root[data-tema="v2"] .cob-seg.is-cubierto.is-estimado {
+  background: var(--e19-success);
+  opacity: 0.45;
+}
+
+:root[data-tema="v2"] .cob-seg.is-hueco {
+  background: repeating-linear-gradient(135deg, var(--e19-danger) 0 3px, var(--e19-danger-soft-border) 3px 6px);
+}
+
+:root[data-tema="v2"] .cob-tira-pista {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+:root[data-tema="v2"] .cob-tira-pista p,
+:root[data-tema="v2"] .cob-tras p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda .cob-seg {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+:root[data-tema="v2"] .cob-tira-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tras {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+:root[data-tema="v2"] .cob-tras-titulo {
+  font-weight: 600;
+  color: var(--e19-ink);
+}

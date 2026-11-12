@@ -7859,6 +7859,88 @@ test.describe("XDA-04 · periodo que cubre el extracto", () => {
   });
 });
 
+// XDA-04 · PR-2: la tira de cobertura de 90 días por cuenta. Dos extractos de CaixaBank con un hueco del 4 al 9 oct: la
+// revisión del segundo lo dice («Cobertura tras importar»), Movimientos lo pinta y dice qué importar, el repaso lleva la
+// tira en su paso «Extracto» y las anomalías (WP-36) dicen qué días no han podido mirar. Movimientos INVENTADOS.
+test.describe("XDA-04 · PR-2 · tira de cobertura de 90 días", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`dos extractos con un hueco: tras importar, en Movimientos, en el repaso y en las anomalías, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      const importar = async (nombre, filas, cubre) => {
+        const csv = ["Fecha;Concepto;Importe;Saldo", ...filas].join("\n");
+        await page.setInputFiles("#registrarImportFileInput", { name: nombre, mimeType: "text/csv", buffer: Buffer.from(csv) });
+        await expect(v2.locator(".imp-v2-cubre")).toBeVisible({ timeout: 15000 });
+        if (cubre) {
+          await v2.locator("#importarV2CubreDesde").fill(cubre[0]);
+          await v2.locator("#importarV2CubreHasta").fill(cubre[1]);
+        }
+        await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      };
+      const confirmar = async (n) => {
+        await v2.locator("[data-imp-v2-importar]").click();
+        await page.click("#operationConfirmSubmit");
+        await expect(v2).toContainText(`${n} movimientos importados`, { timeout: 15000 });
+      };
+      await importar("agosto-septiembre.csv", ["01/08/2026;NOMINA FICTICIA;3000,00;4000,00", "03/10/2026;LUZ FICTICIA;-90,00;3910,00"]);
+      await expect(v2.locator("[data-cob-tras]")).toContainText("Es el primer extracto de CaixaBank que se registra.");
+      await confirmar(2);
+      await v2.locator("[data-imp-v2-otro]").first().click(); // el segundo extracto: Importar vuelve a su tarjeta de fuentes
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await importar("octubre.csv", ["10/10/2026;SUPER FICTICIO;-50,00;3860,00", "02/11/2026;NOMINA FICTICIA;3000,00;6860,00"]);
+      const tras = v2.locator("[data-cob-tras]");
+      await expect(tras).toContainText("Deja sin ver del 4 al 9 oct: importa también esos días si puedes.");
+      await expect(tras).toContainText("CaixaBank queda cubierto hasta el 2 nov, con un hueco en los últimos 90 días.");
+      await expect(tras.locator(".cob-seg.is-hueco")).toHaveCount(1);
+      // Cambiar el periodo para que empiece el 4 cierra el hueco, y la tarjeta lo dice antes de importar.
+      await v2.locator("#importarV2CubreDesde").fill("2026-10-04");
+      await expect(tras).toContainText("CaixaBank queda cubierto hasta el 2 nov.");
+      await expect(tras.locator(".cob-seg.is-hueco")).toHaveCount(0);
+      await v2.locator("#importarV2CubreDesde").fill("2026-10-10");
+      await expect(tras).toContainText("Deja sin ver del 4 al 9 oct");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Importar sin desbordar").toBe(true);
+      await confirmar(2);
+
+      // Movimientos: la tira, como Movimientos.png, entre la bandeja y la lista.
+      await page.goto("/index.html#movements");
+      const tira = page.locator("#movimientosV2Lista .cob-tira");
+      await expect(tira).toBeVisible({ timeout: 15000 });
+      await expect(tira.locator("#cobTiraTitulo")).toHaveText("Cobertura");
+      const caixa = tira.locator('[data-cob-cuenta="CaixaBank"]');
+      await expect(caixa.locator(".cob-tira-estado")).toHaveText("hueco del 4 al 9 oct");
+      await expect(tira.locator('[data-cob-cuenta="Mediolanum"] .cob-tira-estado')).toHaveText("sin extractos");
+      await expect(caixa.locator(".cob-seg")).toHaveCount(4); // cubierto, hueco, cubierto y, desde el 3 nov, sin dato
+      const pista = caixa.locator(".cob-tira-pista");
+      await expect(pista).toBeHidden();
+      await caixa.locator("summary").click();
+      await expect(pista).toContainText("Importa un extracto de CaixaBank que cubra del 4 oct al 12 nov: cierra el hueco y trae lo que va desde el último.");
+      const tarjeta = await tira.locator(".cob-tira-tarjeta").boundingBox();
+      expect(tarjeta.x + tarjeta.width, "la tarjeta cabe").toBeLessThanOrEqual(viewport.width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Movimientos sin desbordar").toBe(true);
+      await expect(page.locator("#movimientosV2Lista .mov-v2-pending")).not.toContainText("cobertura");
+      // WP-36: lo que no ha podido mirar, con fechas, en vez de callar.
+      await expect(page.locator("#anomaliasCuerpo")).toContainText("No he podido mirar del 4 al 9 oct en CaixaBank: no hay extracto de esos días.");
+      // El repaso lleva la tira en su paso «Extracto», sin botón propio: «Importar extracto» ya está en su pie.
+      expect(await page.evaluate(() => {
+        const cuerpo = repasoV2PasoExtracto().cuerpo;
+        return cuerpo.includes("cob-tira-suelta") && cuerpo.includes("hueco del 4 al 9 oct") && !cuerpo.includes("<button") && !cuerpo.includes("<h3");
+      })).toBe(true);
+      // «Importar extracto» de la pista lleva a Importar y abre el selector de archivos (XDA-02 · PR-1).
+      const selector = page.waitForEvent("filechooser", { timeout: 10000 });
+      await pista.getByRole("button", { name: "Importar extracto" }).click();
+      await selector;
+      await expect(page).toHaveURL(/#datos-importar$/);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // XDA-03 · nivel 1: el texto pegado de un extracto en PDF entra por la revisión de siempre. Importes sin signo (el signo sale del
 // saldo), una línea partida al pegar y la cabecera del PDF, que no se guarda en ningún sitio. Texto INVENTADO.
 test.describe("XDA-03 · texto de un PDF", () => {

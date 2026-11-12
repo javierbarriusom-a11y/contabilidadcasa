@@ -151,7 +151,8 @@ test("lo que aún no existe va plegado en una línea, sin cifras inventadas", ()
   const { context } = sandbox();
   const line = context.movV2Pending();
   assert.match(line, /Compartir/);
-  assert.match(line, /cobertura de 90 días/);
+  // XDA-04 · PR-2: la cobertura de 90 días ya existe (la tira de cobertura-ui.js), así que la línea deja de prometerla.
+  assert.doesNotMatch(line, /cobertura/);
   assert.ok(!/€/.test(line));
   assert.ok(!/cuadra al céntimo/.test(mov), "sin el cuadre de ejemplo de la referencia");
 });

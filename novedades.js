@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-cobertura-90-dias",
+      fecha: "2026-11-16",
+      texto: "Movimientos: la cobertura de los últimos 90 días por cuenta, con los huecos sin extracto y qué periodo importar para cerrarlos.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-16-local-renta",
       fecha: "2026-11-16",
       texto: "Fiscal: «El local alquilado para la Renta» calcula lo que va a la base general de cada uno, con gastos, amortización y retención.",
