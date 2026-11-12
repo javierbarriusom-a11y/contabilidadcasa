@@ -583,9 +583,10 @@ function previsionV2CompararHtml(prueba, today) {
   const S = globalThis.FinanceCanonicalStressScenarios;
   if (!S) return "";
   const corto = (preset) => (preset.id === "imprevisto" ? previsionV2ImprevistoCorto(preset, previsionV2Params.amount) : preset.short);
-  const chips = [{ id: "", short: "Solo el plan" }, ...S.PRESETS, ...(S.YSI ? [S.YSI] : [])].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
+  const chips = [{ id: "", short: "Solo el plan" }, ...previsionV2PresetsOrden(S, today), ...(S.YSI ? [S.YSI] : [])].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
   const elegido = previsionV2GuardadoElegido();
-  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>${previsionV2GuardadoSelectorHtml(elegido)}`;
+  // XDA-10 · PR-2: con los saldos sin fecha, «Antes de decidir» va una vez aquí, no en cada prueba (antes-de-decidir-ui.js).
+  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>${previsionV2GuardadoSelectorHtml(elegido)}${previsionV2AntesSaldosHtml()}`;
   if (!previsionV2Escenario) return fila;
   // FX-20: una segunda prueba a la vez, de las otras dos; «Ninguna» la quita.
   const otras = S.PRESETS.filter((preset) => preset.id !== previsionV2Escenario);
@@ -681,6 +682,7 @@ function previsionV2CompararHtml(prueba, today) {
         <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
+      ${previsionV2CaminosHtml(prueba, today)}
       ${separado ? `<p class="e19-kpi-note prev-v2-separado">${escapeHtml(separado)}</p>` : ""}
       ${patrimonio.frase ? `<p class="prev-v2-patrimonio">${escapeHtml(patrimonio.frase)}</p>` : ""}
       <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}${patrimonio.nota ? ` ${escapeHtml(patrimonio.nota)}` : ""}</p>
@@ -688,11 +690,107 @@ function previsionV2CompararHtml(prueba, today) {
     </div>`;
 }
 
+// ---- FX-27 · la revisión de la hipoteca como escenario con fecha (12/11/2026) ----------------------------------------------------
+// A 120 días o menos de una revisión del tipo (WP-20), «Euribor» pasa a ser la primera prueba de «Comparar con» y dice en cuántos días
+// cae. Elegida, la revisión se enseña en tres caminos (el Euribor tecleado sin cambio, +1 y +2) y, si hay una oferta a tipo fijo tecleada
+// (DEB-4, Ajustes), el fijo: la cuota, lo que cambia al mes y el colchón en el punto más bajo hasta un año después de la revisión. Con el
+// mismo motor de la prueba (canonical-stress-scenarios.js reviewPaths + evaluate). Sin tipos de mercado en vivo.
+
+/** Las pruebas de «Comparar con», con el Euribor delante (y «en N días») si la revisión está a 120 días o menos. */
+function previsionV2PresetsOrden(S, today) {
+  const revisiones = S.reviewSoon ? previsionV2Revisiones(today).reviews : [];
+  if (!revisiones.length || !S.reviewSoon(revisiones)) return S.PRESETS;
+  const dias = Number(S.nearestReview(revisiones).daysToReview);
+  const euribor = S.PRESETS.find((preset) => preset.id === "euribor");
+  const corto = `${euribor.short} · revisión ${dias === 0 ? "hoy" : `en ${dias} ${dias === 1 ? "día" : "días"}`}`;
+  return [{ ...euribor, short: corto }, ...S.PRESETS.filter((preset) => preset.id !== "euribor")];
+}
+
+/** La oferta a tipo fijo tecleada en Ajustes (DEB-4): el tipo y desde cuándo, o null. */
+function previsionV2OfertaFija() {
+  const radar = typeof scenarioSettings !== "undefined" ? scenarioSettings?.deb4Radar : null;
+  const tipo = Number(radar?.fixedRate);
+  return tipo > 0 ? { tipo, desde: String(radar.benchmarkUpdatedAt || "") } : null;
+}
+
+/** Cada camino recalculado una vez por trayectoria del plan, suelo, final y tipos. */
+function previsionV2Camino(S, path, ctx) {
+  const key = `camino|${path.id}|${path.rate}|${ctx.to}|${ctx.floor}|${ctx.checkingFloor}|${JSON.stringify(path.shocks)}`;
+  const cached = previsionV2Cache.get(key);
+  if (cached && cached.rows === ctx.rows) return cached.result;
+  const result = S.evaluate("euribor", ctx.input, ctx.rows, previsionV2Deps(), { today: ctx.today, to: ctx.to, floor: ctx.floor, checkingFloor: ctx.checkingFloor, params: { points: path.points || 0, shocks: path.shocks, missing: [] } });
+  previsionV2Cache.set(key, { rows: ctx.rows, result });
+  return result;
+}
+
+/**
+ * La tabla de los caminos bajo la de impacto, solo con la prueba del Euribor sola. `rows`: la trayectoria del plan; `floor`: el suelo.
+ * @param {any} prueba
+ * @param {string} today
+ */
+function previsionV2CaminosHtml(prueba, today) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const rows = previsionV2Ultimo?.rows || [];
+  if (!S?.reviewPaths || !contract || prueba?.preset?.id !== "euribor" || prueba.combined || !prueba.applied || !rows.length) return "";
+  try {
+    const revisiones = previsionV2Revisiones(today).reviews;
+    const revision = S.nearestReview(revisiones);
+    if (!revision) return "";
+    const oferta = previsionV2OfertaFija();
+    const paths = S.reviewPaths(revisiones, { payment: globalThis.FinanceCanonicalRateReview.payment, fixedRate: oferta?.tipo ?? null });
+    const unAno = previsionV2AddDays(revision.nextReview, 365);
+    const to = rows.at(-1).date < unAno ? rows.at(-1).date : unAno;
+    const ctx = { S, input: previsionV2Entrada(), rows, today, to, floor: Number(previsionV2Ultimo?.floor) || 0, checkingFloor: previsionV2SueloCuenta() };
+    const gasto = typeof escenarioMotorAverageCoreSpend === "function" && typeof canonicalEngineRuns !== "undefined" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
+    const pct = (value) => `${Number(value).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+    const elegido = `mas-${Number(prueba.params?.points) || 1}`;
+    const filas = paths.map((path) => {
+      const result = previsionV2Camino(S, path, ctx);
+      const low = result?.comparison?.low;
+      const de = path.shocks.reduce((sum, shock) => sum + Number(shock.from), 0);
+      const a = path.shocks.reduce((sum, shock) => sum + Number(shock.to), 0);
+      const cambio = Math.round(a - de);
+      const colchon = low ? contract.cushionMonths?.(low.value, gasto) ?? null : null;
+      return { path, low, de, a, cambio, colchon };
+    }).filter((fila) => fila.low);
+    if (!filas.length) return "";
+    const decima = (value) => value.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    // Cuatro columnas, como la tabla de impacto, para que quepan a 390 px: el tipo va debajo del camino.
+    const cuerpo = filas.map((fila) => `<tr${fila.path.id === elegido ? ' class="is-elegido" aria-current="true"' : ""}><th scope="row">${escapeHtml(fila.path.label)}<small class="prev-v2-impacto-dia">tipo ${escapeHtml(pct(fila.path.rate))}</small></th><td>${escapeHtml(money(Math.round(fila.a)))}</td><td>${escapeHtml(fila.cambio ? `${fila.cambio > 0 ? "+" : "−"}${money(Math.abs(fila.cambio))}` : "igual")}</td><td>${fila.colchon === null ? "—" : escapeHtml(decima(fila.colchon))}</td></tr>`).join("");
+    const dias = Number(revision.daysToReview);
+    const cuando = `${previsionV2Fecha(revision.nextReview, today)}${dias <= S.REVIEW_SOON_DAYS ? `, en ${dias} ${dias === 1 ? "día" : "días"}` : ""}`;
+    const baja = filas.some((fila) => fila.cambio < 0);
+    const fija = filas.find((fila) => fila.path.id === "fija");
+    const notas = [
+      `Hoy pagáis ${money(Math.round(filas[0].de))} al mes. Colchón: cuántos meses de gasto corriente cubre la liquidez en su punto más bajo hasta un año después de la revisión (${previsionV2Fecha(to, today)}).`,
+      baja ? "Si la cuota baja, la previsión no lo suma: se queda en el lado prudente." : "",
+      fija ? `El fijo, desde la revisión, con la oferta tecleada en Ajustes (${pct(fija.path.rate)}${oferta.desde ? `, de ${typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(oferta.desde) : oferta.desde}` : ""}); el tipo mixto no se puede teclear todavía.` : "Con una oferta a tipo fijo tecleada en Ajustes, saldría aquí como cuarto camino.",
+    ].filter(Boolean).join(" ");
+    return `<div class="prev-v2-caminos" data-fx27-caminos>
+      <h4 class="prev-v2-caminos-titulo" id="prevV2CaminosTitulo">La revisión del ${escapeHtml(cuando)}, en ${fija ? "cuatro" : "tres"} caminos</h4>
+      <table class="e19-table prev-v2-impacto-tabla prev-v2-caminos-tabla" aria-labelledby="prevV2CaminosTitulo">
+        <thead><tr><th scope="col">Camino</th><th scope="col">Cuota</th><th scope="col">Al mes</th><th scope="col">Colchón (meses)</th></tr></thead>
+        <tbody>${cuerpo}</tbody>
+      </table>
+      <p class="e19-kpi-note">${escapeHtml(notas)}</p>
+    </div>`;
+  } catch (error) {
+    console.error(`previsionV2CaminosHtml: ${error.message}`);
+    return "";
+  }
+}
+
 /**
  * XDA-10 · PR-2: bajo la frase de la prueba, si los saldos (o el Euribor tecleado, en su prueba) son antiguos, si lo que han podido moverse
  * le daría la vuelta (antes-de-decidir-ui.js). Con el mismo suelo y la misma trayectoria del plan que la prueba. Si la prueba cae fuera
  * del horizonte, no hay resultado que darle la vuelta.
  */
+/** XDA-10 · PR-2: la línea fija de los saldos sin fecha, una vez junto a «Comparar con». */
+function previsionV2AntesSaldosHtml() {
+  return typeof globalThis.antesDeDecidirPrevisionHtml === "function" ? globalThis.antesDeDecidirPrevisionHtml() : "";
+}
+
 function previsionV2AntesDeDecidir(prueba, c, today, fuera) {
   if (fuera || typeof globalThis.antesDeDecidirPruebaHtml !== "function") return "";
   return globalThis.antesDeDecidirPruebaHtml({ prueba, c, floor: Number(previsionV2Ultimo?.floor) || 0, today, base: previsionV2Ultimo?.rows || [] });

@@ -174,7 +174,10 @@ function antesDeDecidirPruebaHtml(input) {
   const { prueba, c, floor, today, base } = input || {};
   if (!engine || !prueba || !c?.low || !antesDeDecidirOn() || !globalThis.FinanceCanonicalDataQueue) return "";
   try {
-    const inputs = [antesDeDecidirSaldos(today)];
+    // Con los saldos sin fecha («Auto por fecha»), la línea de los saldos no se repite en cada prueba: sale una vez, fija, junto a
+    // «Comparar con» (antesDeDecidirPrevisionHtml; decisión del hogar del 12/11/2026). El Euribor, que sí tiene fecha, sigue aquí.
+    const saldos = antesDeDecidirSaldos(today);
+    const inputs = saldos.ageDays === null ? [] : [saldos];
     const partes = typeof previsionV2Partes === "function" ? previsionV2Partes(prueba) : [];
     const conEuribor = partes.some((parte) => parte.preset?.id === "euribor");
     if (conEuribor) {
@@ -193,6 +196,23 @@ function antesDeDecidirPruebaHtml(input) {
     return antesDeDecidirLineaHtml(result, `El resultado de arriba es con estos datos${hastas.length ? `; «hasta» es, ${hastas.join(", y ")}` : ""}.`);
   } catch (error) {
     console.error(`antesDeDecidirPruebaHtml: ${error.message}`);
+    return "";
+  }
+}
+
+/**
+ * PR-2 · una sola vez en Plan › Previsión, junto a «Comparar con»: con los saldos sin fecha (calculados por calendario, «Auto por
+ * fecha»), ninguna prueba sabe cuánto se han movido. Decisión del hogar del 12/11/2026: dicho una vez, no en cada prueba.
+ */
+function antesDeDecidirPrevisionHtml() {
+  if (!antesDeDecidirOn() || !globalThis.FinanceCanonicalDataQueue || !globalThis.FinanceCanonicalDecisionFreshness) return "";
+  try {
+    const saldos = antesDeDecidirSaldos(isoLocalDate(new Date()));
+    if (saldos.ageDays !== null) return "";
+    globalThis.FinanceMedidor?.anotar("antes-de-decidir", "vista");
+    return `<p class="e19-kpi-note antes-decidir antes-decidir-fija" role="note" data-antes-decidir="unknown">Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha, así que no sé cuánto se han movido. <a href="${escapeHtml(saldos.action.href)}" data-antes-decidir-ir>${escapeHtml(saldos.action.label)}</a></p>`;
+  } catch (error) {
+    console.error(`antesDeDecidirPrevisionHtml: ${error.message}`);
     return "";
   }
 }

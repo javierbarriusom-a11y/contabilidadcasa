@@ -8745,8 +8745,21 @@ test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar"
       }, edad);
       const impacto = v2.locator(".prev-v2-impacto");
       const linea = impacto.locator(".antes-decidir");
+      const fija = v2.locator(".antes-decidir-fija");
+
+      // La demo parte en «Auto por fecha»: los saldos no tienen fecha. Decisión del hogar (12/11): se dice una vez, junto a «Comparar
+      // con», y no en cada prueba.
+      await expect(fija).toHaveCount(1);
+      await expect(fija).toContainText("Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha");
+      await expect(fija.locator("a[data-antes-decidir-ir]")).toHaveText("Actualizar saldos");
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(fija, "una sola vez, también con una prueba elegida").toHaveCount(1);
+      await expect(linea, "la prueba no la repite").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba=""]').click();
 
       await saldosDe(12);
+      await expect(fija, "con saldos con fecha, cada prueba dice lo suyo").toHaveCount(0);
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
       await expect(linea).toHaveCount(1);
@@ -8836,6 +8849,67 @@ test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar"
     await expect(nota.locator(".antes-decidir"), "con los saldos de ayer, nada").toHaveCount(0);
     expect(pageErrors).toEqual([]);
   });
+});
+
+// FX-27 (XDO-02 en parte, 12/11/2026): la revisión de la hipoteca como escenario con fecha. Hipoteca y Euribor INVENTADOS (como en FX-21):
+// a 64 días de la revisión, «Euribor» va la primera de «Comparar con» y, elegida, la revisión sale en tres caminos (cuatro con una oferta fija).
+test.describe("FX-27 · la revisión de la hipoteca en tres caminos", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`a 120 días o menos, el Euribor delante y la revisión en tres caminos; con una oferta fija, cuatro; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      const chips = v2.locator(".prev-v2-comparar [data-prevision-v2-prueba]");
+      const sembrar = (nextReview) => page.evaluate((nextReview) => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-11-02", value: 2.35 }] }));
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { "hipoteca-ficticia": { spread: 0.99, nextReview, periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 } } }));
+        globalThis.revisionMortgages = () => [{ id: "hipoteca-ficticia", label: "Hipoteca FICTICIA", principal: 120000, payment: 640, remainingMonths: 240 }];
+        previsionV2Render();
+      }, nextReview);
+
+      // Lejos (1/6/2027, 201 días): el orden de siempre.
+      await sembrar("2027-06-01");
+      await expect(chips.nth(1)).not.toHaveAttribute("data-prevision-v2-prueba", "euribor");
+      // A 64 días (15/1/2027): delante, y dice cuándo.
+      await sembrar("2027-01-15");
+      await expect(chips.nth(1)).toHaveAttribute("data-prevision-v2-prueba", "euribor");
+      await expect(chips.nth(1)).toContainText("revisión en 64 días");
+      await chips.nth(1).click();
+      const caminos = v2.locator("[data-fx27-caminos]");
+      await expect(caminos.locator("h4")).toContainText(/^La revisión del 15 ene( 2027)?, en 64 días, en tres caminos$/);
+      const filas = caminos.locator("tbody tr");
+      await expect(filas).toHaveCount(3);
+      await expect(filas.nth(0)).toContainText(/Euribor sin cambio\s*tipo 3,34 %\s*686\s€\s*\+46\s€/);
+      await expect(filas.nth(1)).toContainText(/Euribor \+1 punto\s*tipo 4,34 %\s*749\s€\s*\+109\s€/);
+      await expect(filas.nth(2)).toContainText(/Euribor \+2 puntos\s*tipo 5,34 %\s*814\s€\s*\+174\s€/);
+      await expect(filas.nth(1), "el camino de la prueba elegida (+1), marcado").toHaveAttribute("aria-current", "true");
+      // Cada punto más, el colchón en el punto más bajo no sube.
+      const colchones = await filas.evaluateAll((trs) => trs.map((tr) => Number(tr.lastElementChild.textContent.replace(",", "."))));
+      expect(colchones.every((value, at) => at === 0 || value <= colchones[at - 1]), `colchón ${colchones}`).toBe(true);
+      await expect(caminos).toContainText("Hoy pagáis 640 € al mes.");
+      await expect(caminos).toContainText("Con una oferta a tipo fijo tecleada en Ajustes, saldría aquí como cuarto camino.");
+      // +2 en la prueba: el marcado sigue a la elegida.
+      await v2.locator('[data-prevision-v2-param="points"][data-valor="2"]').click();
+      await expect(filas.nth(2)).toHaveAttribute("aria-current", "true");
+      // Con una oferta a tipo fijo (DEB-4) del 2 %: el cuarto camino, con la cuota más baja, y la previsión no suma la bajada.
+      await page.evaluate(() => { scenarioSettings.deb4Radar = { ...(scenarioSettings.deb4Radar || {}), fixedRate: 2, benchmarkUpdatedAt: "2026-11" }; previsionV2Render(); });
+      await expect(caminos.locator("h4")).toContainText("en cuatro caminos");
+      await expect(filas).toHaveCount(4);
+      await expect(filas.nth(3)).toContainText(/Oferta a tipo fijo\s*tipo 2,00 %\s*608\s€\s*−32\s€/);
+      await expect(caminos).toContainText("Si la cuota baja, la previsión no lo suma: se queda en el lado prudente.");
+      await expect(caminos).toContainText("el tipo mixto no se puede teclear todavía");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(await caminos.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta").toBe(true);
+      // Con otra prueba sumada, no hay caminos (no se separa lo que pone cada una).
+      await v2.locator('[data-prevision-v2-segunda="imprevisto"]').click();
+      await expect(caminos).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
 });
 
 // WP-18 · PR-1 (NIN-03): aportado frente a valor y la rentabilidad del mercado (TWR) sobre la serie de valoraciones, en Inversión › Cartera.

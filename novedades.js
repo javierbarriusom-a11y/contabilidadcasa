@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-revision-tres-caminos",
+      fecha: "2026-11-16",
+      texto: "Previsión: a 120 días de la revisión de la hipoteca, «Euribor» va primero y la enseña en tres caminos (y la oferta fija) con su colchón.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-antes-de-decidir-pr2",
       fecha: "2026-11-16",
       texto: "«Antes de decidir» también al cancelar una deuda, en «Comparar con» y en Escenarios: si los saldos o el Euribor le darían la vuelta.",

@@ -116,10 +116,15 @@
    * @param {(principal: number, rate: number, months: number) => number} payment
    */
   function euriborShocks(reviews, points, payment) {
+    return rateShocks(reviews, (review) => Number(review.centralRate) + points, payment);
+  }
+
+  /** La cuota de cada hipoteca desde su revisión con el tipo que dé `rateFor(review)` (FX-27: también un tipo fijo ofrecido). */
+  function rateShocks(reviews, rateFor, payment) {
     return (reviews || [])
       .filter((review) => review?.status === "ok" && finite(review.currentPayment) && Number(review.currentPayment) > 0)
       .map((review) => {
-        const rate = round2(Number(review.centralRate) + points);
+        const rate = round2(rateFor(review));
         const to = round2(payment(review.principalAtReview, rate, review.remainingAtReview));
         // FX-20 (10/11/2026): con el capital en la revisión, para saber cuánto se debe de más a 24 meses (canonical-debt-horizon.js).
         return { date: review.nextReview, from: round2(review.currentPayment), to, extra: round2(to - Number(review.currentPayment)), rate, months: Math.max(1, Number(review.remainingAtReview) || 1), principal: round2(Number(review.principalAtReview) || 0) };
@@ -402,6 +407,42 @@
     return applyImprevisto(input, { date: lowDate, amount: Number(params?.amount) > 0 ? Number(params.amount) : preset.amount });
   }
 
+  // FX-27 (XDO-02 en parte, 12/11/2026): la revisión de la hipoteca como escenario con fecha. A 120 días o menos de una revisión, la prueba
+  // del Euribor pasa a la primera posición de «Comparar con» y la revisión se enseña en tres caminos (el Euribor tecleado sin cambio, +1 y +2
+  // puntos) y, si el hogar ha tecleado una oferta a tipo fijo (DEB-4), el fijo desde ese mismo día. Sin tipos de mercado en vivo.
+  const REVIEW_SOON_DAYS = 120;
+  const REVIEW_PATH_POINTS = Object.freeze([0, 1, 2]);
+
+  /** La revisión más cercana de las que están por venir (`daysToReview` ≥ 0), o null. */
+  function nearestReview(reviews) {
+    return (reviews || []).filter((review) => review?.status === "ok" && finite(review.daysToReview) && Number(review.daysToReview) >= 0)
+      .sort((a, b) => Number(a.daysToReview) - Number(b.daysToReview))[0] || null;
+  }
+
+  /** ¿Hay una revisión a `REVIEW_SOON_DAYS` días o menos? */
+  function reviewSoon(reviews, windowDays = REVIEW_SOON_DAYS) {
+    const next = nearestReview(reviews);
+    return Boolean(next && Number(next.daysToReview) <= windowDays);
+  }
+
+  /**
+   * Los caminos de la revisión: `{ id, label, rate, shocks }` para sin cambio, +1 y +2 y, con `fixedRate` (> 0) y una sola hipoteca, el
+   * fijo. Con varias hipotecas la oferta fija no se sabe a cuál va (DEB-4 guarda una), y no se inventa: sale sin el camino fijo.
+   * @param {any[]} reviews
+   * @param {{ payment: (principal: number, rate: number, months: number) => number, fixedRate?: number|null, points?: readonly number[] }} options
+   */
+  function reviewPaths(reviews, { payment, fixedRate = null, points = REVIEW_PATH_POINTS } = /** @type {any} */ ({})) {
+    const ok = (reviews || []).filter((review) => review?.status === "ok");
+    if (!ok.length || typeof payment !== "function") return [];
+    const paths = points.map((p) => ({ id: p ? `mas-${p}` : "sin-cambio", label: p ? `Euribor +${p} ${p === 1 ? "punto" : "puntos"}` : "Euribor sin cambio", points: p, shocks: euriborShocks(ok, p, payment) }))
+      .map((path) => ({ ...path, rate: path.shocks[0]?.rate ?? null }));
+    if (finite(fixedRate) && Number(fixedRate) > 0 && ok.length === 1) {
+      const shocks = rateShocks(ok, () => Number(fixedRate), payment);
+      paths.push({ id: "fija", label: "Oferta a tipo fijo", points: null, rate: shocks[0]?.rate ?? null, shocks });
+    }
+    return paths.filter((path) => path.shocks.length);
+  }
+
   /**
    * Corre una prueba entera: aplica el cambio, recalcula y compara. Devuelve también la trayectoria, para pintarla, y en `info` lo
    * que ha cambiado (de quién y cuántos meses, la cuota de antes y la de después, el día del imprevisto) para decirlo en la pantalla.
@@ -569,5 +610,5 @@
     return [];
   }
 
-  return Object.freeze({ SCHEMA_ID, PRESETS, YSI, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, APLAZAR_MESES, pagosAplazables, applyAplazar, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, applyEuribor, applyImprevisto, applyYSi, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
+  return Object.freeze({ SCHEMA_ID, PRESETS, YSI, SUELDO_MESES, EURIBOR_PUNTOS, IMPREVISTO_IMPORTES, APLAZAR_MESES, REVIEW_SOON_DAYS, REVIEW_PATH_POINTS, pagosAplazables, applyAplazar, titulares, firstUnpaidMonthIndex, applySueldoMenos, euriborShocks, rateShocks, nearestReview, reviewSoon, reviewPaths, applyEuribor, applyImprevisto, applyYSi, applyGastoMas, run, checkingShortfall, compare, evaluate, evaluateCombined, evaluateResolved, toDecisions });
 });

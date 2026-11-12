@@ -15,7 +15,7 @@ const saldos = (ageDays, plausibleMove) => ({ id: "balances", label: "Los saldos
 const euribor = (ageDays, lectura) => ({ id: "euribor", label: "El Euribor tecleado (2,35 %)", plural: false, ageDays, staleAfterDays: 36, plausibleMove: null, ...lectura, action: { label: "Actualizar el Euribor", href: "#deuda-contratos" } });
 
 /** antes-de-decidir-ui.js en un contexto con lo mínimo de app.js: hoy fijo, la función encendida y unos saldos de `edad` días. */
-function pantalla({ edad = 12, gastoDiario = 80, encendida = true, revisiones = [] } = {}) {
+function pantalla({ edad = 12, gastoDiario = 80, encendida = true, revisiones = [], auto = false } = {}) {
   const hoy = "2026-11-12";
   const vistas = [];
   const ctx = {
@@ -23,7 +23,7 @@ function pantalla({ edad = 12, gastoDiario = 80, encendida = true, revisiones = 
     Date: class extends Date { constructor(...args) { super(...(args.length ? args : ["2026-11-12T10:00:00"])); } },
     isoLocalDate: () => hoy,
     escapeHtml: (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"),
-    datosSources: () => ({ balanceMode: "manual", balanceDate: Q.addDays ? Q.addDays(hoy, -edad) : new Date(Date.parse(`${hoy}T00:00:00Z`) - edad * 86400000).toISOString().slice(0, 10), dailyOutflow: gastoDiario }),
+    datosSources: () => ({ balanceMode: auto ? "auto" : "manual", balanceDate: Q.addDays ? Q.addDays(hoy, -edad) : new Date(Date.parse(`${hoy}T00:00:00Z`) - edad * 86400000).toISOString().slice(0, 10), dailyOutflow: gastoDiario }),
     previsionV2Revisiones: () => ({ reviews: revisiones, missing: [] }),
     previsionV2Partes: (prueba) => (Array.isArray(prueba?.parts) ? prueba.parts : prueba ? [prueba] : []),
   };
@@ -132,6 +132,13 @@ test("XDA-10 PR-2 · «Comparar con» y Escenarios: los saldos contra el margen 
   // Otra prueba (un imprevisto) no mira el Euribor.
   const imprevisto = pantalla({ edad: 1, revisiones: [revision] }).ctx.antesDeDecidirPruebaHtml({ prueba: { preset: { id: "imprevisto" }, rows }, c, floor: 5000, today: "2026-11-12", base });
   assert.equal(imprevisto, "");
+  // Saldos sin fecha («Auto por fecha»): la prueba no repite la línea de los saldos; sale una vez, fija, junto a «Comparar con».
+  const auto = pantalla({ auto: true, revisiones: [revision] }).ctx;
+  assert.equal(auto.antesDeDecidirPruebaHtml({ prueba: { preset: { id: "imprevisto" }, rows }, c, floor: 5000, today: "2026-11-12", base }), "");
+  assert.doesNotMatch(auto.antesDeDecidirPruebaHtml({ prueba: { preset: { id: "euribor" }, params: { points: 1 }, rows }, c, floor: 5000, today: "2026-11-12", base }), /saldos/, "el Euribor sigue; los saldos, no");
+  assert.match(auto.antesDeDecidirPrevisionHtml(), /^<p class="e19-kpi-note antes-decidir antes-decidir-fija"[^>]*>Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha, así que no sé cuánto se han movido\. <a href="#visual-detail"/);
+  assert.equal(ctx.antesDeDecidirPrevisionHtml(), "", "con saldos con fecha, la línea fija no sale (cada prueba dice lo suyo)");
+  assert.equal(pantalla({ auto: true, encendida: false }).ctx.antesDeDecidirPrevisionHtml(), "");
   // Escenarios: la reserva que se mantiene con 300 € le da la vuelta; rota, «conviene»; sin reserva indicada, nada.
   assert.match(ctx.antesDeDecidirEscenarioHtml({ minimo: 6300, reserva: 6000, rota: false }), /el resultado cambia con 300 €/);
   assert.match(ctx.antesDeDecidirEscenarioHtml({ minimo: 5800, reserva: 6000, rota: true }), /data-antes-decidir="unknown"/);
@@ -144,6 +151,7 @@ test("XDA-10 PR-2 · enganchado en Deuda › Comparar, en «Comparar con» y en 
   assert.match(app, /globalThis\.antesDeDecidirCancelacionHtml\?\.\(\[guardrail, cancellationGuardrail, cancellationStressGuardrail\]\)/);
   const prevision = read("views/prevision-v2.js");
   assert.match(prevision, /\$\{previsionV2AntesDeDecidir\(prueba, c, today, fuera\)\}/);
+  assert.match(prevision, /\$\{previsionV2GuardadoSelectorHtml\(elegido\)\}\$\{previsionV2AntesSaldosHtml\(\)\}`;/, "la línea fija va con la fila de «Comparar con», que sale en todos los casos");
   assert.match(prevision, /globalThis\.antesDeDecidirPruebaHtml\(\{ prueba, c, floor: Number\(previsionV2Ultimo\?\.floor\) \|\| 0, today, base: previsionV2Ultimo\?\.rows \|\| \[\] \}\)/);
   const escenarios = read("views/escenarios.js");
   assert.match(escenarios, /globalThis\.antesDeDecidirEscenarioHtml\?\.\(\{ minimo: scenarioSummary\.minimoLiquidez, reserva: escenarioMotorGuardrailValue, rota: reserva\?\.status === "fail" \}\)/);

@@ -173,6 +173,34 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (454): FX-27, la revisión de la hipoteca en tres caminos; y los saldos sin fecha, una vez en Previsión
+
+- **Peticiones del hogar:** «una vez en Previsión, y sigue con lo siguiente del backlog».
+- **XDA-10 PR-2, ajuste** (`antes-de-decidir-ui.js`). Con los saldos sin fecha («Auto por fecha», como en la demo), las pruebas de «Comparar con» ya no repiten «conviene actualizar los saldos (sin fecha)». Sale una línea fija, junto a «Comparar con»: «Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha…», con «Actualizar saldos». El Euribor, que sí tiene fecha, sigue en su prueba. Con saldos con fecha, cada prueba dice lo suyo, como antes.
+- **Por qué FX-27 es lo siguiente:**
+  - Lo que va antes de FX-27 en la Oleada 2 no se puede empezar aún:
+    - FX-21 resto espera a que el hogar elija las pruebas.
+    - FX-60 (navegación) y RD-D1/D2 (Patrimonio e Inversión) esperan a las revisiones del 12 al 18/11 (ESTADO §8). FX-60 además retira pantallas, y eso se consulta.
+  - FX-27 depende de FX-21 y WP-20, los dos hechos.
+- **FX-27 (XDO-02 en parte):**
+  - **Motor** (`canonical-stress-scenarios.js`, sin motor nuevo): `rateShocks` (la cuota con cualquier tipo desde la revisión; `euriborShocks` pasa a usarlo), `nearestReview`, `reviewSoon` (≤ 120 días) y `reviewPaths`.
+    - Los caminos: sin cambio, +1 y +2 y, con una oferta a tipo fijo, el fijo.
+    - La oferta fija es la que ya se teclea en Ajustes (DEB-4), no un campo nuevo. Con dos hipotecas no se sabe a cuál va y no sale.
+  - **En «Comparar con»** (`views/prevision-v2.js`):
+    - A 120 días o menos de una revisión, «Euribor» pasa a ser la primera prueba y dice «revisión en N días».
+    - Elegida (sola), debajo de la tabla de impacto sale «La revisión del …, en tres caminos» (o cuatro con la oferta). Cuatro columnas, para que quepa a 390 px: camino con su tipo, cuota, cambio al mes y colchón en meses en el punto más bajo hasta un año después de la revisión.
+    - Cada camino se recalcula con el mismo motor que la prueba. El de la prueba elegida va marcado.
+  - **Honestidad:**
+    - Si la cuota baja (el fijo, o el Euribor sin cambio por debajo del tipo de hoy), la previsión no suma la bajada: se queda en el lado prudente, como la prueba de siempre, y la nota lo dice.
+    - El tipo mixto no se puede teclear: se dice.
+    - Sin tipos de mercado en vivo.
+- **Pruebas:**
+  - `tests/fx27-revision-caminos.test.cjs` (3).
+  - e2e nueva «FX-27» a 390 (`@safari`) y 1440 px: lejos no cambia el orden; a 64 días, delante. Comprueba los tres caminos con sus cuotas, el marcado que sigue a +1/+2, el cuarto con un fijo del 2 % (608 €, −32 €), que cabe en la tarjeta y que, con otra prueba sumada, no hay caminos.
+  - La e2e de XDA-10 PR-2 mira la línea fija en la demo.
+- **Sellos:** `tema-v2.css`, `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx27a`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm test` en verde (6.566/6.566), con lint y tipos. PW2_RESULT
+
 ## Cierre de sesión — 12 de noviembre de 2026 (453): XDA-10 · PR-2, «Antes de decidir» al cancelar deuda, en «Comparar con» y en Escenarios
 
 - **Petición del hogar:** «sigue con XDA-10 PR-2: que «Antes de decidir» también tenga en cuenta el Euribor, cancelar deuda y los escenarios guardados». La función ya estaba encendida desde el 29/10; el PR-2 la extiende bajo el mismo interruptor.

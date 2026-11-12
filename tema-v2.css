@@ -4081,6 +4081,30 @@
   color: var(--e19-muted);
 }
 
+/* FX-27 (12/11/2026): la revisión de la hipoteca en tres caminos, bajo la tabla de impacto, con las mismas columnas ceñidas. El camino
+   de la prueba elegida, marcado con un filete a la izquierda (no solo con color). */
+:root[data-tema="v2"] .prev-v2-caminos {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-titulo {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido th {
+  box-shadow: inset 3px 0 0 var(--e19-accent);
+  padding-left: 8px;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido th,
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido td {
+  font-weight: 600;
+}
+
 /* ---------- FX-10 PR-2 · El panel del día (views/prevision-v2.js, de PrevisionDesktop.png) ----------
    Dentro de la tarjeta: en móvil, debajo del gráfico y antes de «Comparar con»; desde 1180 px, a la derecha del titular y el
    gráfico, para que cifra, gráfico y panel se vean sin desplazar a 1440 × 900. «Comparar con» ocupa entonces todo el ancho. */
