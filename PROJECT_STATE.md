@@ -199,7 +199,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - e2e nueva «FX-27» a 390 (`@safari`) y 1440 px: lejos no cambia el orden; a 64 días, delante. Comprueba los tres caminos con sus cuotas, el marcado que sigue a +1/+2, el cuarto con un fijo del 2 % (608 €, −32 €), que cabe en la tarjeta y que, con otra prueba sumada, no hay caminos.
   - La e2e de XDA-10 PR-2 mira la línea fija en la demo.
 - **Sellos:** `tema-v2.css`, `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx27a`. Novedades, una línea con fecha del 16/11.
-- **Validación:** `npm test` en verde (6.566/6.566), con lint y tipos. PW2_RESULT
+- **Validación:** `npm test` en verde (6.566/6.566), con lint y tipos. `npm run verify` en verde. En local, sobre la versión construida: las e2e de FX-27 y de XDA-10 PR-2, 7 de 7 (también con el iPhone emulado), y las 35 de Previsión, «Comparar con» y Escenarios, en verde.
 
 ## Cierre de sesión — 12 de noviembre de 2026 (453): XDA-10 · PR-2, «Antes de decidir» al cancelar deuda, en «Comparar con» y en Escenarios
 
@@ -231,7 +231,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/ap1-app-integracion.test.cjs`: el orden de la composición incluye la línea nueva tras DEB17. Comprueba lo mismo que antes, con una ventana de 4.600 a 5.000 caracteres.
   - e2e nueva «XDA-10 · PR-2» a 390 (`@safari`) y 1280 px en «Comparar con» (saldos de hace 12 días, Euribor de hace 70 días que no le da la vuelta, todo al día sin línea), y a 1280 px al cancelar una deuda entera (una sola línea, justo detrás de DEB17).
   - **Arreglado en la prueba nueva antes de subir:** elegir la deuda antes de que el desplegable tuviera la opción la dejaba vacía, y el importe se leía como amortización parcial. Ahora se elige entre las opciones pintadas. Pasa 9 de 9 con tres repeticiones.
-- **Validación:** `npm run verify` en verde (6.563/6.563). Playwright completo en local, en marcha al subir; el CI lo corre entero igualmente.
+- **Validación:** `npm run verify` en verde (6.563/6.563). Playwright en local (e2e, a11y y perf-screens): 403 en verde. Una sola falla: «Ensayo del cierre» a 390 px, que ya fallaba en local antes de este cambio y es ajena a él (el aviso de firma del cierre). El proyecto Safari no corre en local porque no hay WebKit; sus pruebas de Previsión pasan con el iPhone emulado en Chromium.
 
 ## Cierre de sesión — 12 de noviembre de 2026 (452): FX-50 PR-2 · una sola previsión a largo plazo
 
