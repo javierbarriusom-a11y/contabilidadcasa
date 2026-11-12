@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-hasta-2036",
+      fecha: "2026-11-16",
+      texto: "Previsión: con «Hasta 2036», el año a año con su abanico (cuánto cambia con los supuestos) y los hitos: colchón completo, deuda cero.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-dias-de-cargo",
       fecha: "2026-11-16",
       texto: "Previsión: si un recibo cae justo antes de cobrar, propone a qué día pedir que lo pasen y cuánto sube vuestro mínimo del mes.",

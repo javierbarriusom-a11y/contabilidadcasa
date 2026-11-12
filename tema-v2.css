@@ -4619,6 +4619,37 @@
   margin: 0;
 }
 
+/* FX-50 (12/11/2026) · «Hasta 2036», año a año: el abanico por 31/12 y los hitos. */
+:root[data-tema="v2"] .prev-v2-anual {
+  display: grid;
+  gap: 8px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-anual p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos li.is-pendiente {
+  color: var(--e19-muted);
+}
+
 /* XPR-11 (12/11/2026) · mover los días de cargo: hasta tres recibos, cada uno con su ganancia y sus dos botones. */
 :root[data-tema="v2"] .prev-v2-cargos {
   display: grid;

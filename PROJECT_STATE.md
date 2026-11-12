@@ -173,6 +173,45 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (451): FX-50 · «Hasta 2036», año a año (PR-1)
+
+- **Petición del hogar:** «continúa con lo siguiente del backlog». Lo que no está hecho ni bloqueado:
+  - FX-21 (resto) espera a que el hogar elija las pruebas;
+  - FX-60, la navegación de cinco destinos, retira pantallas y se consulta;
+  - D1-D2 esperan a las revisiones del 12 al 18/11 (`ESTADO.md` §8);
+  - lo siguiente libre era FX-50, M-L (3). Esta es su primera parte. No toca Hoy y viaja en #607.
+- **Motor nuevo, `canonical-long-horizon.js`** (`FinanceCanonicalLongHorizon`, `finance-long-horizon/v1`, puro). ARQ-3 sube de 125 a 126, con su consumidor real en `views/prevision-v2.js`.
+  - **Puntos:** el saldo a fin de cada mes y de cada año, desde hoy.
+  - **Abanico de cada 31/12, sin inventarlo:** son los cuatro supuestos de FX-51 un punto peor (inflación, subida de los ingresos, gasto e ingresos previstos), recalculados con el mismo motor (`assumptionImpacts`, con un objetivo por diciembre).
+    - Se combinan como errores independientes (raíz de la suma de cuadrados) y se aplican a los dos lados.
+    - Se abre solo, porque cada año arrastra el efecto compuesto de los anteriores.
+  - **Hitos:**
+    - deuda cero y fin de la hipoteca, con la deuda mes a mes de `canonical-debt-horizon.js` (la misma que la tabla de impacto de FX-20, con lo que el plan ya amortiza);
+    - colchón completo, con la liquidez frente a los meses del colchón × el gasto medio.
+    - Lo que ya se cumple hoy no es un hito; lo que no llega antes del final, se dice.
+- **Previsión nueva, solo con «Hasta 2036»:** «Año a año, hasta 2036», debajo de la tarjeta principal.
+  - Lleva la frase de la propuesta: «A 10 años, esto es una dirección, no una cifra».
+  - El abanico va dibujado con el kit de gráficos: recorrido con dedo, ratón y teclado, lectura de cada año y «Ver como tabla».
+  - Debajo, los hitos.
+  - Cifras redondeadas como la previsión (FX-04: a la centena el primer diciembre y al millar más allá de un año).
+- **Con la demo (cifras INVENTADAS):**
+  - 2026: 13.000 € (entre 12.300 y 13.800); 2036: 69.000 € (entre 11.000 y 128.000).
+  - Colchón completo en diciembre de 2027.
+  - «Deuda cero: no llega con el plan de ahora», porque dos de sus deudas están suspendidas, sin cuota.
+  - Se calcula en unos 150 ms.
+- **Pruebas:**
+  - `tests/fx50-hasta-2036.test.cjs` (4): un punto por año y por mes; el abanico (√ de la suma de cuadrados, un supuesto sin cifra no cuenta, se abre con los años); los hitos en orden, lo cumplido y lo que no llega, sin hipoteca ni objetivo; motor puro.
+  - e2e «FX-50» a 390 (`@safari`) y 1440 px: solo con «Hasta 2036», el título, la frase, los hitos, la tabla de 11 años y el abanico que se abre.
+  - axe en claro y oscuro, sin violaciones.
+  - Sellos: `canonical-long-horizon.js` nuevo; `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx50a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.557/6.557).
+  - En local, las e2e de FX-50 y de los horizontes de la Previsión en verde, también con la emulación del iPhone.
+- **Lo que queda de FX-50 (PR-2):**
+  - los objetivos de ahorro como hitos;
+  - los escenarios superpuestos (FX-20) también en el año a año;
+  - absorber la proyección de `#forecast` («con proyectos · sin proyectos» como un escenario más). Retira una pantalla en uso: **se consulta**.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (450): XPR-11 · mover los días de cargo a donde menos duelen (y el día indicado deja de verse «estimado»)
 
 - **Petición del hogar:** «deja la banda y continúa con XPR-11». La banda de barras por mes de Previsión se queda como está. Es la decisión del hogar sobre lo que FX-15 dejó fuera.

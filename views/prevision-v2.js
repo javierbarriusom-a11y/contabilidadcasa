@@ -1629,6 +1629,83 @@ function previsionV2TraspasoHtml({ tramo, floor, today }) {
   </section>`;
 }
 
+// ---------- FX-50 · «Hasta 2036», año a año ----------
+
+/** La deuda viva y la de la hipoteca a fin de cada mes, con el mismo motor que la tabla de impacto (FX-20). Cacheada con las filas. */
+function previsionV2DeudaMensual(liquidez) {
+  const H = globalThis.FinanceCanonicalDebtHorizon;
+  if (!H?.planDebt || typeof canonicalDebtContractRows !== "function" || !liquidez.length) return [];
+  const contratos = canonicalDebtContractRows();
+  const hipotecas = new Set(contratos.filter((contrato) => /hipoteca/i.test(`${contrato.type || ""} ${contrato.label || ""}`)).map((contrato) => String(contrato.id || "")));
+  const { start, planned } = previsionV2DeudaPlaneada();
+  const inicio = start || liquidez[0].monthKey;
+  return liquidez.map((mes) => {
+    const plan = H.planDebt(contratos, { startMonthKey: inicio, targetMonthKey: mes.monthKey, planned });
+    if (!plan) return null;
+    const hipoteca = plan.items.filter((item) => hipotecas.has(item.id));
+    return { monthKey: mes.monthKey, total: plan.total, mortgage: hipotecas.size ? hipoteca.reduce((sum, item) => sum + item.balance, 0) : null };
+  }).filter(Boolean);
+}
+
+/** El año a año: puntos a 31/12 con su abanico (los supuestos de FX-51 un punto peor) y los hitos. Cacheado con las filas. */
+function previsionV2Anual(rows, today) {
+  const L = globalThis.FinanceCanonicalLongHorizon;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const engine = globalThis.FinanceCanonicalEngine;
+  if (!L || !contract?.assumptionImpacts || !engine?.buildScenario || typeof canonicalEngineInput !== "function") return null;
+  const key = `anual|${today}`;
+  const cached = previsionV2Cache.get(key);
+  if (cached && cached.rows === rows) return cached.result;
+  let result = null;
+  try {
+    const puntos = L.yearEnds(rows, today);
+    const impactos = contract.assumptionImpacts((entrada) => engine.buildScenario(entrada, null, { reason: "fx50-anual" }), previsionV2Entrada(), { targets: puntos.map((punto) => punto.monthKey) });
+    const liquidez = L.monthEnds(rows, today);
+    const gasto = typeof escenarioMotorAverageCoreSpend === "function" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
+    const colchon = Math.max(0, Number(state?.emergencyBufferMonths) || 0) * gasto;
+    result = { anos: L.fan(puntos, impactos), ...L.milestones({ debt: previsionV2DeudaMensual(liquidez), liquidity: liquidez, cushionTarget: colchon }), colchon };
+  } catch {
+    result = null;
+  }
+  previsionV2Cache.set(key, { rows, result });
+  return result;
+}
+
+/**
+ * FX-50 (PR-1): con el horizonte «Hasta 2036», debajo de la tarjeta principal, la liquidez de cada 31 de diciembre con su abanico (lo
+ * que cambia con un punto más o menos en los supuestos) y los hitos que importan a esa distancia. A diez años, una dirección, no una
+ * cifra: redondeada como la previsión (FX-04, al millar más allá de un año) y sin el euro de la línea diaria.
+ */
+function previsionV2AnualHtml({ rows, today, floor, horizonte }) {
+  if (horizonte?.id !== "full" || !globalThis.ChartKit) return "";
+  const anual = previsionV2Anual(rows, today);
+  if (!anual?.anos?.length) return "";
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const r = (value, date) => contract.roundForHorizon(value, contract.daysBetween(today, date));
+  const anos = anual.anos.map((ano) => ({ ...ano, ano: ano.monthKey.slice(0, 4), low: r(ano.low, ano.date), center: r(ano.center, ano.date), high: r(ano.high, ano.date) }));
+  const ultimo = anos.at(-1).ano;
+  const kit = globalThis.ChartKit;
+  const plot = kit.bandPlotHtml({ points: anos.map(({ low, center, high }) => ({ low, center, high })), ariaLabel: `Liquidez a 31 de diciembre, de ${anos[0].ano} a ${ultimo}, con su abanico`, threshold: Number.isFinite(floor) ? { value: floor } : null });
+  const entre = (ano) => (ano.high - ano.low >= 1 ? `entre ${money(ano.low)} y ${money(ano.high)}` : "sin abanico");
+  const readings = anos.map((ano) => `31 dic ${ano.ano}: unos ${money(ano.center)} (${entre(ano)}).`);
+  const eje = `<div class="ck-eje">${anos.map((ano, at) => (at % Math.max(1, Math.ceil(anos.length / 6)) === 0 || at === anos.length - 1 ? `<span>${escapeHtml(ano.ano)}</span>` : "")).join("")}</div>`;
+  const figura = kit.figureHtml({
+    id: "prevision-v2-anual", plotHtml: plot.svg, plotClass: "ck-plot-media", belowPlotHtml: eje, readings, xs: plot.xs,
+    sliderLabel: "Recorrer la previsión año a año",
+    table: { caption: "Liquidez a 31 de diciembre de cada año, con su abanico", columns: ["Año", "Liquidez a 31/12", "Abanico"], rows: anos.map((ano) => [ano.ano, money(ano.center), entre(ano)]) },
+  });
+  const mes = (monthKey) => (typeof planV2MonthName === "function" ? planV2MonthName(monthKey) : monthKey);
+  const hitos = anual.hitos.map((hito) => `<li><strong>${escapeHtml(mes(hito.monthKey))}</strong> ${escapeHtml(hito.label)}</li>`).join("");
+  const pendientes = anual.pendientes.map((hito) => `<li class="is-pendiente"><strong>Después de ${escapeHtml(ultimo)}</strong> ${escapeHtml(hito.label)}: no llega con el plan de ahora</li>`).join("");
+  const lista = hitos || pendientes ? `<ul class="prev-v2-anual-hitos" aria-label="Hitos">${hitos}${pendientes}</ul>` : "";
+  return `<section class="e19-card prev-v2-anual" aria-labelledby="prevV2AnualTitulo">
+    <p class="prev-v2-anual-titulo" id="prevV2AnualTitulo"><strong>Año a año, hasta ${escapeHtml(ultimo)}</strong></p>
+    <p class="e19-kpi-note">A 10 años, esto es una dirección, no una cifra. El abanico es cuánto cambia con un punto más o menos en los supuestos del plan (inflación, subida de los ingresos, gasto e ingresos).</p>
+    ${figura}
+    ${lista}
+  </section>`;
+}
+
 // ---------- XPR-11 · mover los días de cargo a donde menos duelen ----------
 
 const PREVISION_V2_CARGOS = "prevision-v2-cargos"; // lo pedido (en este dispositivo): { [clave de la partida]: { dia, fecha } }
@@ -1769,6 +1846,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
+    ${previsionV2AnualHtml({ rows, today, floor, horizonte })}
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
     ${previsionV2CargosHtml({ rows, today })}

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**12/11/2026 · FX-50 PR-1 hecho («continúa con lo siguiente del backlog»).** Con «Hasta 2036», la Previsión enseña el año a año: la liquidez de cada 31/12 con un abanico que se abre (los supuestos de FX-51 un punto peor o mejor) y los hitos (colchón completo, deuda cero, fin de la hipoteca). Queda el PR-2: objetivos de ahorro, escenarios en el año a año y absorber `#forecast` (se consulta). En #607 (PROJECT_STATE 451).
+
 **12/11/2026 · XPR-11 hecho («deja la banda y continúa con XPR-11»).** Con días de cargo conocidos en el 70 % del gasto fijo, la Previsión propone hasta tres recibos que pedir cambiar de día, con cuánto sube el mínimo del mes, «Lo he pedido» y «Ya se carga». Arreglado de paso: el día de cargo indicado ya no se ve «estimado». La banda de barras por mes se queda (decisión del hogar). En #607 (PROJECT_STATE 450).
 
 **12/11/2026 · FX-15 hecho y los botones quietos («quita la subida de los botones y continúa»).** El resumen por periodo es una cascada de la liquidez que cuadra (con el ahorro aparte) y la tabla mensual cabe en el móvil; ningún botón se mueve al pasar el ratón. Viajan en #607 (PROJECT_STATE 447 y 448).
@@ -359,7 +361,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 5 | FX-41 | Avisos de previsión con umbral en Hoy y en el calendario (WP-32) | 8ª | S-M · 1,5 | FX-40 | Entra como el cambio de Hoy de una semana · **11/11, hecho con puerta de fecha (activo el 23/11, en #607 con FX-03)**: suelo, cuenta, colchón y fin de año, solo al cruzar el umbral en 90 días; en «Decidir esta semana» y en el calendario (título sin importes) |
 | 6 | FX-60 / XUX-01 | Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir | 7ª, Def §5.0 | L · 4 | FX-10 | Redirige `#forecast`, Previsión mensual, Análisis, Mapa de calor |
 | 7 | RD-D1/D2 | Patrimonio e Inversión con el diseño nuevo | Def §5.0 | L | FX-11 | Usan el gráfico único |
-| 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | — |
+| 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | **PR-1 hecho 12/11 (en #607)**: año a año con abanico de supuestos e hitos (`canonical-long-horizon.js`). PR-2: objetivos de ahorro, escenarios y `#forecast` (se consulta) |
 | 9 | FX-15 | Resumen por periodo en cascada; tabla que cabe en el móvil | 8ª | S · 1 | FX-10 | Tras «Ver todo el detalle» · **12/11, hecho (en #607, sale el 16/11)**: cascada de la liquidez que cuadra, con el ahorro aparte; tabla con neto y saldo final y fila desplegada en el móvil. La banda de barras por mes sigue (retirarla se consulta) |
 | 10 | FX-27 / XDO-02 | La revisión de la hipoteca como escenario con fecha | 8ª, 7ª | M · 2 | FX-21, WP-20 | Sube a primera fila a ≤ 120 días de la revisión |
 | 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets |

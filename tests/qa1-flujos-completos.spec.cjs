@@ -6368,6 +6368,40 @@ test.describe("XPR-11 · mover los días de cargo", () => {
   }
 });
 
+// FX-50 · «Hasta 2036», legible: con ese horizonte, el año a año con su abanico (los supuestos un punto peor o mejor) y los hitos. Cifras
+// de la demo, INVENTADAS: el colchón de 4 meses se completa en diciembre de 2027 y la deuda no llega a cero (dos deudas suspendidas).
+test.describe("FX-50 · Hasta 2036, año a año", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`solo con «Hasta 2036»: el abanico que se abre, su tabla y los hitos, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
+      await expect(v2.locator(".prev-v2-anual"), "con 3 meses, no").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-horizonte="full"]').click();
+      const anual = v2.locator(".prev-v2-anual");
+      await expect(anual).toBeVisible({ timeout: 15000 });
+      await expect(anual.locator("#prevV2AnualTitulo")).toHaveText("Año a año, hasta 2036");
+      await expect(anual).toContainText("A 10 años, esto es una dirección, no una cifra.");
+      const hitos = anual.locator(".prev-v2-anual-hitos li");
+      await expect(hitos.first()).toHaveText(/diciembre 2027\s+Colchón completo/);
+      await expect(hitos.filter({ hasText: "Deuda cero" })).toContainText("no llega con el plan de ahora");
+      await anual.locator(".ck-tabla summary").click();
+      const filas = anual.locator(".ck-tabla tbody tr");
+      await expect(filas).toHaveCount(11);
+      await expect(filas.first()).toContainText(/2026\s*13\.000\s€\s*entre 12\.300\s€ y 13\.800\s€/);
+      // El abanico se abre con los años.
+      const ancho = async (fila) => { const [lo, hi] = ((await filas.nth(fila).textContent()).match(/entre ([\d.]+)\s€ y ([\d.]+)\s€/) || []).slice(1).map((t) => Number(t.replace(/\./g, ""))); return hi - lo; };
+      expect(await ancho(10)).toBeGreaterThan(await ancho(1));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
