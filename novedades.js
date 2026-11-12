@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-local-renta",
+      fecha: "2026-11-16",
+      texto: "Fiscal: «El local alquilado para la Renta» calcula lo que va a la base general de cada uno, con gastos, amortización y retención.",
+      href: "#herramientas-fiscal",
+    },
+    {
       id: "2026-11-16-revision-tres-caminos",
       fecha: "2026-11-16",
       texto: "Previsión: a 120 días de la revisión de la hipoteca, «Euribor» va primero y la enseña en tres caminos (y la oferta fija) con su colchón.",

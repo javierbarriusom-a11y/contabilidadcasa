@@ -173,6 +173,43 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (455): WP-21 · PR-3, el local alquilado para la Renta (FIS-03)
+
+- **Petición del hogar:** «sigue con lo siguiente del backlog». Por orden era WP-21 PR-3 (#13 de la Oleada 2, antes del 31/3/2027). Lo que va antes no se podía empezar:
+  - WP-34 es de enero.
+  - FX-21 resto espera al hogar.
+  - FX-60 y RD-D1/D2 esperan a las revisiones del 12-18/11.
+- **Diseño** (`docs/WP21_DISENO.md` §11):
+  - Las reglas se contrastaron con los extractos del manual de Renta 2025 y de la resolución del TEAC que devuelve el buscador. La sede de la AEAT no resuelve desde la sesión, así que se reconfirman antes del informe definitivo.
+  - **Intereses y reparación:** juntos, como mucho los ingresos; el exceso se deduce en 4 años.
+  - **Amortización:** 3 % sobre el mayor entre el coste de la construcción y su valor catastral, con el tope de lo ya amortizado (TEAC 653/2025).
+  - **Sin la reducción del 60 %:** es solo para vivienda.
+  - **Retención:** el 19 % si el inquilino es empresa o profesional.
+  - **Imputación** de los meses vacíos.
+- **Motor** `canonical-rental-tax.js` (puro):
+  - `propertyYear` hace el inmueble entero y `rentalReport` la parte de cada declarante; `nextRentUpdate` da la actualización de la renta.
+  - Lo pendiente se aplica del más antiguo al más nuevo. Lo de hace más de 4 años caduca, y lo de hace 4 que no cabe se dice «caduca».
+  - Vacío es «sin declarar»: lo que falta sale con su código, y bloquea si es la renta, los meses o el titular.
+- **Pantalla** (`local-renta-ui.js`): «El local alquilado para la Renta», plegado dentro de «Borrador de apoyo para la Renta», con su ejercicio.
+  - La actualización de la renta: con un porcentaje fijo da la renta nueva; con el IPC, cuándo y dónde teclear el dato. Si queda poco, en rojo.
+  - La cuenta de cada declarante en una tabla de dos columnas que cabe a 390 px. Lo que se arrastra o caduca, y lo que falta.
+  - El formulario: el contrato y la compra una vez, y el ejercicio. Lo pendiente de cada uno de los 4 años anteriores sale ya relleno con lo que arrastró el año anterior guardado.
+  - Los datos, en `scenarioSettings.wp21Local`: misma copia y misma nube que los cobros del PR-0b. No hay almacén nuevo.
+  - El borrador GOB8 suma un punto 5 (`app.js`, +3 líneas: 32.393 de 32.426). `app.js` le pasa el motor al entrar en Fiscal. ARQ-3: de 126 a 127 motores.
+- **Errores encontrados al probarlo en pantalla, corregidos antes de subir:**
+  - **Importes:** `parseAmount` leía «1.500» como 1,5 y la cuenta salía con 4.742,90 € en vez de −2.000 €. Ahora usa el campo de importe es-ES de WP-11.
+  - **Titular:** sin titular decía «el local no es suyo», cuando lo que falta es decir de quién es.
+  - **Nombres accesibles:** cada campo, metido en su `<label>`, llevaba en el nombre lo tecleado o la opción elegida. Ahora cada uno tiene `aria-label`.
+  - **Tabla:** heredaba el ancho mínimo genérico de las tablas y escondía la columna de importes a 390 px.
+  - **Signo:** el menos era «-»; ahora es «−», como en el resto de la app.
+- **Pruebas:**
+  - `tests/wp21-local-alquilado.test.cjs` (5), con las cifras a mano.
+  - e2e nueva a 390 (`@safari`) y 1280 px: vacío, un error de meses, guardar, las cifras de cada uno, lo que se arrastra, la actualización en 19 días, que sigue al recargar y el punto 5 del borrador.
+  - axe en claro y oscuro, vacío y con datos.
+  - Sellos: `styles.css` y `novedades.js` a `20261116wp21d`, con las tres pruebas del sello de `styles.css`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.571/6.571). En local: las 12 e2e de WP-21 (también con el iPhone emulado), axe y perf-screens de Fiscal y XGO-01, en verde.
+- **Tarea del hogar nueva, H-36:** teclear los datos del contrato y de la compra del local, en la app y nunca por el chat (≈ 15 min). Sin ellos, la tarjeta solo dice lo que falta.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (454): FX-27, la revisión de la hipoteca en tres caminos; y los saldos sin fecha, una vez en Previsión
 
 - **Peticiones del hogar:** «una vez en Previsión, y sigue con lo siguiente del backlog».

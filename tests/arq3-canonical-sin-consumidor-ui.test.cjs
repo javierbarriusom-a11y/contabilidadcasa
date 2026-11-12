@@ -139,6 +139,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 123 → 124 (FX-14, el mes en curso al ritmo real): canonical-variable-pace.js, con consumidor real (views/plan-v2.js: el ritmo del gasto variable en Plan › Mes y en la Previsión nueva)
 // 124 → 125 (XPR-11, mover los días de cargo): canonical-charge-day-moves.js, con consumidor real (views/prevision-v2.js: la tarjeta de los recibos que conviene cambiar de día)
 // 125 → 126 (FX-50, «Hasta 2036» legible): canonical-long-horizon.js, con consumidor real (views/prevision-v2.js: el año a año con su abanico y sus hitos)
+// 126 → 127 (WP-21 · PR-3, el local alquilado): canonical-rental-tax.js, con consumidor real (el case «herramientas-fiscal» de renderActiveSection en app.js se lo pasa a la tarjeta de local-renta-ui.js)
 // 117 → 118 (FX-01/FX-02, backlog de noviembre · S0): canonical-forecast-contract.js, con consumidor real (renderPrevision y previsionHeadlineHtml en app.js: el punto más bajo de Previsión)
 // 116 → 117 (WP-21 · PR-1): canonical-tax-report.js, con consumidor real (el case «herramientas-fiscal» de renderActiveSection en app.js se lo pasa al informe de informe-renta-ui.js)
 // 115 → 116 (WP-17 · PR-1): canonical-next-best-action.js, con consumidor real (renderInversionCartera de views/inversion.js se lo pasa a la tarjeta de siguiente-paso-ui.js)
@@ -159,6 +160,6 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 126 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 126);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 127 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 127);
 });

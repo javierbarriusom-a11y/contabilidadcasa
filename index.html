@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261116fx50b" />
+    <link rel="stylesheet" href="styles.css?v=20261116wp21d" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261116fx15a" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -4765,6 +4765,15 @@
                 </div>
                 <div id="informeRentaCuerpo" aria-live="polite"></div>
               </details>
+              <!-- WP-21 · PR-3 (canonical-rental-tax.js + local-renta-ui.js; docs/WP21_DISENO.md §11): el local alquilado, a la base
+                   general de cada declarante. Plegado (XGO-01) y pintado al abrirlo. -->
+              <details class="informe-renta" id="rentaLocal">
+                <summary>El local alquilado para la Renta: el rendimiento de cada declarante</summary>
+                <div class="informe-renta-controles">
+                  <label><span>Ejercicio</span><select id="rentaLocalAno"></select></label>
+                </div>
+                <div id="rentaLocalCuerpo" aria-live="polite"></div>
+              </details>
             </article>
 
 
@@ -8210,7 +8219,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261116fx27a"></script>
+    <script defer src="novedades.js?v=20261116wp21d"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8320,7 +8329,9 @@
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
     <script defer src="renta-datos-ui.js?v=20261105wp21b"></script>
     <script defer src="canonical-tax-report.js?v=20261105wp21c"></script>
+    <script defer src="canonical-rental-tax.js?v=20261116wp21d"></script>
     <script defer src="informe-renta-ui.js?v=20261105wp21c"></script>
+    <script defer src="local-renta-ui.js?v=20261116wp21d"></script>
     <script defer src="canonical-next-best-action.js?v=20261028wp17"></script>
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>

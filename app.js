@@ -13326,6 +13326,8 @@ function gob8DraftText() {
     "",
     "4) Inversión: base del ahorro de cada declarante (WP-21, informe de inversión para la Renta)",
     typeof informeRentaResumenTexto === "function" ? informeRentaResumenTexto() : "Sin datos: el informe de inversión no está disponible.",
+    "", "5) El local alquilado: a la base general de cada declarante (WP-21 · PR-3)",
+    typeof localRentaResumenTexto === "function" ? localRentaResumenTexto() : "Sin datos: el cálculo del local no está disponible.",
   ].join("\n");
 }
 
@@ -30794,6 +30796,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
       globalThis.renderNominas?.(globalThis.FinanceCanonicalPayroll); // WP-31 (nominas-ui.js)
       globalThis.renderInformeRenta?.(globalThis.FinanceCanonicalTaxReport); // WP-21 (informe-renta-ui.js)
+      globalThis.renderLocalRenta?.(globalThis.FinanceCanonicalRentalTax); // WP-21 · PR-3, el local (local-renta-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":

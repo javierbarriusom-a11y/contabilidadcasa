@@ -12928,6 +12928,69 @@ input[data-amount-input][aria-invalid="true"] {
   font-size: 0.95rem;
 }
 
+/* WP-21 · PR-3 (local-renta-ui.js): los datos del local, en dos grupos con sus campos en rejilla que baja a una columna en el móvil. */
+.local-renta-grupo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 8px 12px;
+  margin: 10px 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line, #d9d9d9);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.local-renta-grupo legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.local-renta-grupo label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.local-renta-grupo input,
+.local-renta-grupo select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Dos columnas: cabe en la tarjeta a 390 px sin desplazar (anula el `table { min-width: 1120px }` genérico, E20-1). */
+.informe-renta-tabla table.local-renta-tabla {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.local-renta-tabla th,
+.local-renta-tabla td {
+  white-space: normal;
+}
+
+.local-renta-tabla th[scope="row"] {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.local-renta-tabla thead th:last-child {
+  width: 38%;
+  text-align: right;
+}
+
+.local-renta-tabla td.num {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.local-renta-datos > summary {
+  cursor: pointer;
+  margin: 8px 0;
+}
+
 .informe-renta-falta {
   margin: 10px 0;
   padding: 8px 12px;

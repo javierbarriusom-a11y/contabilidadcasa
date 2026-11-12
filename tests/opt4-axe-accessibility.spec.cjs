@@ -2019,6 +2019,38 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// WP-21 · PR-3: «El local alquilado para la Renta» abierto, en claro y en oscuro: vacío (lo que falta y el formulario) y con datos (las
+// cuentas de los dos declarantes, lo que se arrastra y la actualización de la renta). Local FICTICIO.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-21 · PR-3 · contraste del local alquilado en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#herramientas-fiscal: el local abierto, vacío y con datos, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.reload();
+      const caja = page.locator("#rentaLocal");
+      await expect(caja).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await page.evaluate(() => { delete scenarioSettings.wp21Local; saveScenarioSettings(); });
+      await caja.locator("summary").first().click();
+      await expect(caja.locator(".informe-renta-falta")).toBeVisible();
+      const vacio = await new AxeBuilder({ page }).include("#rentaLocal").analyze();
+      expect(fmt(vacio), fmt(vacio).slice(0, 5).join("\n")).toEqual([]);
+      await page.evaluate(() => {
+        const y = String(new Date().getFullYear());
+        scenarioSettings.wp21Local = { inmueble: { titular: "household", rentaMensual: 900, inquilinoRetiene: true, actualizacion: { tipo: "fijo", mes: 3, porcentaje: 3 }, costeAdquisicion: 150000, pctConstruccion: 60, valorCatastralConstruccion: 70000, amortizacionAcumulada: 27000 },
+          ejercicios: { [y]: { mesesAlquilado: 12, ibi: 600, intereses: 1500, reparacion: 10000, pendientes: [] } } };
+        saveScenarioSettings();
+      });
+      await caja.getByLabel("Ejercicio").selectOption(String(new Date().getFullYear() - 1));
+      await caja.getByLabel("Ejercicio").selectOption(String(new Date().getFullYear()));
+      await expect(caja.locator(".local-renta-tabla").first()).toBeVisible();
+      await caja.locator(".local-renta-datos summary").click();
+      const lleno = await new AxeBuilder({ page }).include("#rentaLocal").analyze();
+      expect(fmt(lleno), fmt(lleno).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // WP-21 · PR-2: «Informe de inversión para la Renta» abierto, en claro y en oscuro: con lo que falta y con el informe completo (tablas desplazables).
 for (const scheme of ["light", "dark"]) {
   test.describe(`WP-21 · contraste del informe de la Renta en modo ${scheme}`, () => {

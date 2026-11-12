@@ -8912,6 +8912,71 @@ test.describe("FX-27 · la revisión de la hipoteca en tres caminos", () => {
   }
 });
 
+// WP-21 · PR-3 (FIS-03, 12/11/2026): el local alquilado para la Renta. Local FICTICIO, el de tests/wp21-local-alquilado.test.cjs: 900 € al
+// mes de los dos, el inquilino retiene, 150.000 € (60 % construcción), 27.000 € ya amortizados; 2026 entero con 11.500 € de intereses y
+// reparación (700 no caben) y 1.300 € de otros gastos: −4.000 € de rendimiento, −2.000 € cada uno, 1.026 € retenidos cada uno.
+test.describe("WP-21 · PR-3 · el local alquilado para la Renta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`se teclea, se guarda, sigue al recargar y cada declarante ve su parte, lo que se arrastra y la actualización, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { delete scenarioSettings.wp21Local; saveScenarioSettings(); });
+      const caja = page.locator("#rentaLocal");
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").first().click();
+      // Sin datos: la cifra no se da, se dice qué falta y el formulario sale abierto.
+      await expect(caja.locator('[data-local-renta-declarante="javi"]')).toContainText("Javi, 2026: todavía no se puede dar la cifra");
+      await expect(caja.locator(".informe-renta-falta")).toContainText("La renta mensual sin IVA del contrato.");
+      await expect(caja.locator(".local-renta-datos")).toHaveAttribute("open", "");
+      const campo = (label) => caja.getByLabel(label, { exact: true });
+      await campo("De quién es").selectOption("household");
+      await campo("Renta al mes, sin IVA (€)").fill("900");
+      await campo("¿El inquilino os retiene el 19 %?").selectOption("si");
+      await campo("La renta se actualiza").selectOption("ipc");
+      await campo("Mes de la actualización").selectOption("12");
+      await campo("Coste de compra, con gastos e impuestos (€)").fill("150.000");
+      await campo("Parte de construcción del coste (%)").fill("60");
+      await campo("Valor catastral de la construcción (€)").fill("70.000");
+      await campo("Amortización ya deducida hasta 2025 (€)").fill("27.000");
+      await campo("Meses alquilado (0 a 12)").fill("13");
+      await caja.locator("[data-local-renta-guardar]").click();
+      await expect(caja.locator("[data-local-renta-estado]")).toContainText("No se entiende los meses alquilado");
+      await expect(campo("Meses alquilado (0 a 12)")).toHaveAttribute("aria-invalid", "true");
+      await campo("Meses alquilado (0 a 12)").fill("12");
+      await campo("IBI (€)").fill("600");
+      await campo("Comunidad (€)").fill("480");
+      await campo("Seguro (€)").fill("220");
+      await campo("Intereses de la financiación (€)").fill("1.500");
+      await campo("Reparación y conservación (€)").fill("10.000");
+      await caja.locator("[data-local-renta-guardar]").click();
+      await expect(caja.locator("[data-local-renta-estado]")).toContainText("Guardado el local (2026).");
+      const javi = caja.locator('[data-local-renta-declarante="javi"]');
+      await expect(javi).toContainText(/Javi, 2026: a la base general −2\.000(,00)?\s€ \(su 50 %\); ya retenido 1\.026(,00)?\s€\./);
+      await expect(javi.getByRole("region")).toContainText(/Ingresos íntegros\s*5\.400(,00)?\s€/);
+      await expect(javi.getByRole("region")).toContainText("sin reducción: no es vivienda");
+      await expect(caja.locator('[data-local-renta-declarante="tere"]')).toContainText(/Tere, 2026: a la base general −2\.000(,00)?\s€/);
+      await expect(caja.locator(".informe-renta-lineas")).toContainText(/700(,00)?\s€ de 2026, a los 4 años siguientes/);
+      await expect(caja.locator('[data-local-renta-actualizacion="pronto"]')).toContainText("La renta se actualiza el 1 de diciembre de 2026, en 19 días");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // Sigue al recargar (scenarioSettings, la copia de siempre).
+      await page.reload();
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaLocal summary").first().click();
+      await expect(page.locator('#rentaLocal [data-local-renta-declarante="javi"]')).toContainText(/a la base general −2\.000(,00)?\s€/);
+      // El borrador de apoyo (GOB8) lo lleva en su punto 5.
+      await page.locator("#gob8GenerateDraft").click();
+      await expect(page.locator("#gob8DraftPreview")).toContainText("5) El local alquilado: a la base general de cada declarante");
+      await expect(page.locator("#gob8DraftPreview")).toContainText(/Javi, 2026: local, a la base general −2\.000(,00)?\s€; retenido 1\.026(,00)?\s€\./);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // WP-18 · PR-1 (NIN-03): aportado frente a valor y la rentabilidad del mercado (TWR) sobre la serie de valoraciones, en Inversión › Cartera.
 // Nace apagada (XGO-03). Cartera INVENTADA: Fondo A, 6.000 € el 1/1, +1.800 € el 1/4 (vale 8.100 € ese día) y 10.000 € el 1/10: TWR
 // 1,05 × 1,2346 − 1 = +29,6 %. Acciones B, 2.000 € el 1/10 sin otra valoración. En total, 9.800 € puestos frente a 12.000 €: 82 y 18 de cada 100.
