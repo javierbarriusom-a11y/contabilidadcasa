@@ -8973,31 +8973,32 @@ body {
 
 /* PER-4: mismo patrón de rejilla dt/dd que .update-language-grid, con su propio nombre — el
    resumen por periodo de Previsión no tiene relación con esa pantalla. */
-.prevision-period-summary-list {
+/* FX-15 (12/11/2026) · el resumen por periodo como cascada de la liquidez (periodo-ui.js): con cuánto se empieza, qué suma y
+   resta cada bloque y con cuánto se acaba. Sustituye a las cinco cifras sueltas de PER-4. */
+.periodo-resumen {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin: 14px 0 0;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-.prevision-period-summary-list div {
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--surface-soft);
-}
-
-.prevision-period-summary-list dt {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.prevision-period-summary-list dd {
+.periodo-resumen p {
   margin: 0;
-  font-size: 15px;
-  font-weight: 800;
+}
+
+.periodo-tramo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.periodo-tramo span {
+  color: var(--muted);
+}
+
+/* FX-15 · la tabla mensual: la fila desplegada (ingresos, gastos, deuda, ahorro y mínimo del mes elegido) solo en el móvil. */
+.prevision-monthly-table .prevision-fila-detalle {
+  display: none;
 }
 
 .prevision-table {
@@ -9063,9 +9064,33 @@ body {
    arriba y las cinco del resumen por periodo salían cortadas («05/11/202»), la tabla mensual medía 1.180 px con una primera
    columna de 260 (solo se veía «Mes») y las etiquetas de los meses del gráfico se pisaban. */
 @media (max-width: 640px) {
-  .e19-prevision .account-balance-strip,
-  .e19-prevision .prevision-period-summary-list {
+  .e19-prevision .account-balance-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* FX-15: la tabla mensual cabe sin desplazar: mes · neto · saldo final; lo demás, en la fila desplegada del mes elegido. */
+  .e19-prevision .prevision-table.prevision-monthly-table {
+    min-width: 0;
+  }
+
+  .e19-prevision .prevision-monthly-table :is(th, td):nth-child(n + 2):nth-child(-n + 6) {
+    display: none;
+  }
+
+  .e19-prevision .prevision-monthly-table .prevision-fila-detalle {
+    display: table-row;
+  }
+
+  .e19-prevision .prevision-table.prevision-monthly-table .prevision-fila-detalle td {
+    width: auto;
+    max-width: none;
+    color: var(--muted);
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .e19-prevision .analisis-cascada-row {
+    grid-template-columns: 84px 1fr auto;
   }
 
   .e19-prevision .prevision-table {

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**12/11/2026 · FX-15 hecho y los botones quietos («quita la subida de los botones y continúa»).** El resumen por periodo es una cascada de la liquidez que cuadra (con el ahorro aparte) y la tabla mensual cabe en el móvil; ningún botón se mueve al pasar el ratón. Viajan en #607 (PROJECT_STATE 447 y 448).
+
 **11/11/2026 · FX-14 hecho: el mes en curso al ritmo real («activa estas y luego continúa»).** Con 3 meses de extracto completos, Plan › Mes dice a qué ritmo cerrará el gasto variable (con banda y acierto) y la Previsión, cómo acabaría el mes así. La previsión no cambia: sigue con lo prudente. Viaja en #607 (PROJECT_STATE 444).
 
 **11/11/2026 · FX-43 hecho («continuamos»).** La carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente. Lista para la primera carta, la del cierre de noviembre. Sale con #607 el 16/11 (PROJECT_STATE 443).
@@ -356,7 +358,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 6 | FX-60 / XUX-01 | Navegación por cinco preguntas; Plan › Previsión, único sitio de la previsión; Escenarios en Decidir | 7ª, Def §5.0 | L · 4 | FX-10 | Redirige `#forecast`, Previsión mensual, Análisis, Mapa de calor |
 | 7 | RD-D1/D2 | Patrimonio e Inversión con el diseño nuevo | Def §5.0 | L | FX-11 | Usan el gráfico único |
 | 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | — |
-| 9 | FX-15 | Resumen por periodo en cascada; tabla que cabe en el móvil | 8ª | S · 1 | FX-10 | Tras «Ver todo el detalle» |
+| 9 | FX-15 | Resumen por periodo en cascada; tabla que cabe en el móvil | 8ª | S · 1 | FX-10 | Tras «Ver todo el detalle» · **12/11, hecho (en #607, sale el 16/11)**: cascada de la liquidez que cuadra, con el ahorro aparte; tabla con neto y saldo final y fila desplegada en el móvil. La banda de barras por mes sigue (retirarla se consulta) |
 | 10 | FX-27 / XDO-02 | La revisión de la hipoteca como escenario con fecha | 8ª, 7ª | M · 2 | FX-21, WP-20 | Sube a primera fila a ≤ 120 días de la revisión |
 | 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets |
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |

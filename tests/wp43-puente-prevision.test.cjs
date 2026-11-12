@@ -261,7 +261,8 @@ test("WP-43 PR-2 · el verde de los valores positivos de la cascada de Análisis
   const dark = (name) => css.match(new RegExp(`^ {4}--e19-${name}: (#[0-9a-fA-F]{6});`, "m"))[1];
   // Antes: el verde de relleno puro, en claro, no llegaba.
   assert.ok(contrast(light("success"), light("surface")) < 4.5, "el verde de relleno solo no cumple: por eso se mezcla con la tinta");
-  const rule = css.match(/\.e19-analisis \.analisis-cascada-value\.is-positivo,\s*\.e19-plan \.analisis-cascada-value\.is-positivo \{[^}]*color: ([^;]+);/)[1];
+  // FX-15 (12/11/2026): la misma regla vale también para la cascada del resumen por periodo de Previsión (`.e19-prevision`).
+  const rule = css.match(/\.e19-analisis \.analisis-cascada-value\.is-positivo,\s*\.e19-plan \.analisis-cascada-value\.is-positivo,\s*\.e19-prevision \.analisis-cascada-value\.is-positivo \{[^}]*color: ([^;]+);/)[1];
   assert.match(rule, /^color-mix\(in srgb, var\(--e19-success\) 70%, var\(--e19-ink\)\)$/);
   const lightText = mix(light("success"), light("ink"), 0.7);
   const darkText = mix(dark("success"), dark("ink"), 0.7);

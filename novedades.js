@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-resumen-periodo",
+      fecha: "2026-11-16",
+      texto: "Previsión: el resumen por periodo es una cascada (con cuánto empezáis, qué suma, qué resta y con cuánto acabáis). La tabla cabe en el móvil.",
+      href: "#prevision",
+    },
+    {
       id: "2026-11-16-botones-quietos",
       fecha: "2026-11-16",
       texto: "Los botones ya no se mueven al pasar el ratón: si el ratón se quedaba en su borde, temblaban.",

@@ -4207,7 +4207,8 @@
    P-10 (Plan · Previsión) reutiliza literalmente `analisisCascadaHtml()` sobre el peor mes, así que
    estas reglas también se aplican bajo `.e19-plan` — no una copia, el mismo marcado. */
 .e19-analisis .analisis-cascada-row,
-.e19-plan .analisis-cascada-row {
+.e19-plan .analisis-cascada-row,
+.e19-prevision .analisis-cascada-row {
   display: grid;
   grid-template-columns: 110px 1fr 90px;
   align-items: center;
@@ -4217,7 +4218,11 @@
 }
 
 .e19-analisis .analisis-cascada-row.is-resultado,
-.e19-plan .analisis-cascada-row.is-resultado {
+.e19-plan .analisis-cascada-row.is-resultado,
+.e19-prevision .analisis-cascada-row.is-resultado {
+  /* FX-15 (12/11/2026): la fila del resultado envuelve otra fila (`analisisCascadaHtml`); como rejilla, la de dentro caía en la
+     primera columna y la cifra quedaba en medio. En bloque, la de dentro ocupa todo el ancho y se alinea con las demás. */
+  display: block;
   border-top: 1px solid var(--e19-border);
   margin-top: 4px;
   padding-top: 10px;
@@ -4225,12 +4230,14 @@
 }
 
 .e19-analisis .analisis-cascada-label,
-.e19-plan .analisis-cascada-label {
+.e19-plan .analisis-cascada-label,
+.e19-prevision .analisis-cascada-label {
   color: var(--e19-muted);
 }
 
 .e19-analisis .analisis-cascada-track,
-.e19-plan .analisis-cascada-track {
+.e19-plan .analisis-cascada-track,
+.e19-prevision .analisis-cascada-track {
   height: 10px;
   border-radius: 5px;
   background: var(--e19-surface-soft);
@@ -4238,45 +4245,53 @@
 }
 
 .e19-analisis .analisis-cascada-bar,
-.e19-plan .analisis-cascada-bar {
+.e19-plan .analisis-cascada-bar,
+.e19-prevision .analisis-cascada-bar {
   height: 100%;
   border-radius: 5px;
 }
 
 .e19-analisis .analisis-cascada-bar.is-ingreso,
-.e19-plan .analisis-cascada-bar.is-ingreso {
+.e19-plan .analisis-cascada-bar.is-ingreso,
+.e19-prevision .analisis-cascada-bar.is-ingreso {
   background: var(--e19-success);
 }
 
 .e19-analisis .analisis-cascada-bar.is-gasto,
-.e19-plan .analisis-cascada-bar.is-gasto {
+.e19-plan .analisis-cascada-bar.is-gasto,
+.e19-prevision .analisis-cascada-bar.is-gasto {
   background: var(--e19-debt);
 }
 
 .e19-analisis .analisis-cascada-bar.is-ahorro,
-.e19-plan .analisis-cascada-bar.is-ahorro {
+.e19-plan .analisis-cascada-bar.is-ahorro,
+.e19-prevision .analisis-cascada-bar.is-ahorro {
   background: var(--e19-accent);
 }
 
 .e19-analisis .analisis-cascada-bar.is-resultado,
-.e19-plan .analisis-cascada-bar.is-resultado {
+.e19-plan .analisis-cascada-bar.is-resultado,
+.e19-prevision .analisis-cascada-bar.is-resultado {
   background: var(--e19-ink);
 }
 
 .e19-analisis .analisis-cascada-value,
-.e19-plan .analisis-cascada-value {
+.e19-plan .analisis-cascada-value,
+.e19-prevision .analisis-cascada-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .e19-analisis .analisis-cascada-value.is-positivo,
-.e19-plan .analisis-cascada-value.is-positivo {
+.e19-plan .analisis-cascada-value.is-positivo,
+.e19-prevision .analisis-cascada-value.is-positivo {
   /* Texto: el verde de relleno (--e19-success) da 3,49:1 sobre la tarjeta en claro (mínimo 4,5:1). Mezclado con la tinta sube a 5,7:1 en claro y se mantiene en oscuro. */
   color: color-mix(in srgb, var(--e19-success) 70%, var(--e19-ink));
 }
 
 .e19-analisis .analisis-cascada-value.is-negativo,
-.e19-plan .analisis-cascada-value.is-negativo {
+.e19-plan .analisis-cascada-value.is-negativo,
+.e19-prevision .analisis-cascada-value.is-negativo {
   color: var(--e19-danger);
 }
 

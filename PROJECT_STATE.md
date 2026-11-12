@@ -173,6 +173,39 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (448): FX-15 · el resumen por periodo, legible
+
+- **Petición del hogar:** «… y continúa». FX-15 era lo siguiente del backlog que no pide una decisión del hogar. No toca Hoy. Viaja en #607.
+- **El resumen por periodo es ahora una cascada de la liquidez** (Herramientas › Previsión, y «Ver todo el detalle» en Plan › Previsión). Antes eran cinco cifras sueltas que no decían adónde llevaban.
+  - **Qué enseña:**
+    - una frase: «La liquidez sube unos 2.900 €: de 10.100 € a 13.000 €»;
+    - la liquidez al empezar el primer mes del periodo;
+    - las barras de A-4 (`analisisCascadaHtml`, las mismas de Análisis y del puente de WP-43): ingresos, gastos y deuda, con su resultado;
+    - la liquidez al acabar;
+    - lo más bajo del periodo, la misma cifra que el titular.
+  - **Cuadra siempre:** al acabar = al empezar + ingresos − gastos − deuda. Con la demo lo hace sin resto. Si un día no cuadrara, la diferencia saldría como «Otros movimientos» en vez de esconderse.
+  - **El ahorro no es un paso.** Pasa de la cuenta corriente al ahorro y no sale de vuestro dinero; se dice aparte, con lo que queda en el ahorro al acabar. **Se aparta de la propuesta**, que lo ponía como un paso más: así, la cascada no cuadraría con la liquidez.
+  - **Redondeo (FX-04):** según lo lejos que acabe el periodo (10, 100 o 1.000 €). Los pasos redondeados suman exactamente el cambio redondeado: el resto va al paso más grande.
+  - Lo pinta un script nuevo, `periodo-ui.js`. `app.js` solo le pasa el resumen y queda 2 líneas más corto (ARQ-4).
+- **La tabla mensual cabe en el móvil.**
+  - Dos columnas nuevas, «Neto» y «Saldo final». Neto va sin verde ni rojo, porque el de esta tabla no pasa el contraste; basta el signo.
+  - A ≤ 640 px solo se ven mes, neto y saldo final, sin desplazar en horizontal. Antes eran 572 px con desplazamiento.
+  - El resto (ingresos, gastos, deuda, ahorro y mínimo) va en la fila desplegada del mes elegido, el mismo toque que ya elegía el mes del panel día a día. En escritorio no cambia.
+- **De paso:** la fila «Resultado» de la cascada compartida estaba descolocada en todas partes (Análisis, el puente y aquí). Envuelve otra fila y, como rejilla, la cifra caía en medio. Ahora está en bloque.
+- **Contraste:** el resumen y la tabla tienen menos fallos que antes, medidos con axe:
+  - claro a 390 px, de 1 a 0;
+  - oscuro, de 45 a 42 en escritorio y de 45 a 6 en el móvil.
+  - Lo que queda son los verdes y rojos de la tabla de siempre.
+- **Pruebas:**
+  - `tests/fx15-resumen-periodo.test.cjs` (4): cuadra también redondeada a 10, 100 y 1.000; «Otros movimientos» y el ahorro aparte; la frase y los saldos; el enganche y el registro.
+  - La de WP-43 lee la regla del verde con su tercer selector.
+  - e2e «FX-15» a 390 (`@safari`) y 1280 px: cuadra con el saldo final de la tabla, cabeceras, la fila desplegada solo en el móvil y sin desbordar.
+  - Sellos: `styles.css`, `design-tokens.css` y `novedades.js` a `20261116fx15a`; `periodo-ui.js` nuevo. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.549/6.549).
+  - En local, 46 e2e de Previsión y 40 de accesibilidad en verde, y la de FX-15 también con la emulación del iPhone.
+- **Fuera, a propósito:** la banda de barras flotantes por mes (PV6) sigue como estaba. La propuesta la cambiaba por la cascada, pero elige el mes del panel día a día y retirarla es retirar algo en uso: se consulta.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (447): los botones ya no se mueven al pasar el ratón
 
 - **Decisión del hogar:** «ok, quita la subida de los botones y continúa». Es la opción (a) que se propuso en la sesión 446.

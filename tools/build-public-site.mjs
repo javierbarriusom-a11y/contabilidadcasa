@@ -193,6 +193,7 @@ const files = [
   "operaciones-ui.js",
   "canonical-forecast-bridge.js",
   "puente-ui.js",
+  "periodo-ui.js",
   "canonical-index-valuation.js",
   "indice-vivienda-ui.js",
   "canonical-statement-profiles.js",

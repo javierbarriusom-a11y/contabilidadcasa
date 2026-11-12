@@ -20615,6 +20615,7 @@ function previsionMonthlyRow(item, selectedKey) {
   const key = item.row.detailMonthKey;
   const gastos = Number(item.row.coreSpend || 0) + Number(item.row.car || 0) + Number(item.row.projectOutflow || 0);
   const deuda = Number(item.row.refi || 0);
+  const neto = Number(item.row.totalLiquidity || 0) - Number(item.row.startLiquidity || 0); // FX-15: en el móvil, mes · neto · saldo final
   return `<tr class="${key === selectedKey ? "is-selected" : ""}" data-prevision-month-key="${escapeHtml(key)}">
     <td>${escapeHtml(item.row.month)}</td>
     <td class="positive">${money(item.row.income, true)}</td>
@@ -20622,7 +20623,8 @@ function previsionMonthlyRow(item, selectedKey) {
     <td class="negative">${money(deuda, true)}</td>
     <td>${money(item.row.saving, true)}</td>
     <td class="${metric.min < 0 ? "negative" : ""}">${money(metric.min, true)}</td>
-  </tr>`;
+    <td class="prevision-col-neto">${neto > 0 ? "+" : ""}${money(neto)}</td><td>${money(item.row.totalLiquidity)}</td>
+  </tr>${key === selectedKey ? `<tr class="prevision-fila-detalle"><td colspan="8">Ingresos ${money(item.row.income)} · gastos ${money(gastos)} · deuda ${money(deuda)} · ahorro ${money(item.row.saving)} · mínimo ${money(metric.min)}</td></tr>` : ""}`;
 }
 
 function previsionRealTransactionsForMonth(monthKeyValue) {
@@ -20863,6 +20865,8 @@ function previsionPeriodSummary(periodKeyValue) {
   const daily = lows?.size ? [...lows.values()].reduce((low, entry) => (entry.value < low.value ? entry : low)) : null;
   return {
     ...totals,
+    start: Number(items[0].row.startLiquidity || 0), end: Number(items.at(-1).row.totalLiquidity || 0), savingsEnd: Number(items.at(-1).row.savings || 0), // FX-15
+    firstLabel: items[0].row.month, lastLabel: items.at(-1).row.month, endDate: range.end,
     min: daily ? daily.value : worst.metric.min,
     minDate: daily ? daily.date : "",
     minMonthLabel: daily ? items.find((item) => item.row.detailMonthKey === daily.monthKey).row.month : worst.item.row.month,
@@ -20899,13 +20903,7 @@ function renderPrevisionPeriodSummary() {
   labelEl.textContent = summary.monthsAvailable < summary.monthsInPeriod
     ? `${label} · solo ${summary.monthsAvailable} de ${summary.monthsInPeriod} meses tienen previsión abierta todavía.`
     : label;
-  bodyEl.innerHTML = `<dl class="prevision-period-summary-list">
-    <div><dt>Ingresos</dt><dd class="positive">${money(summary.income, true)}</dd></div>
-    <div><dt>Gastos</dt><dd class="negative">${money(summary.gastos, true)}</dd></div>
-    <div><dt>Deuda</dt><dd class="negative">${money(summary.deuda, true)}</dd></div>
-    <div><dt>Ahorro</dt><dd>${money(summary.ahorro, true)}</dd></div>
-    <div><dt>Mínimo del periodo</dt><dd class="${summary.min < 0 ? "negative" : ""}">${previsionLowText(summary)} <small class="note">(${escapeHtml(summary.minMonthLabel)})</small></dd></div>
-  </dl>`;
+  bodyEl.innerHTML = periodoResumenHtml(summary, previsionLowText(summary)); // FX-15: la cascada, en periodo-ui.js
 }
 
 function renderPrevision() {
@@ -20946,7 +20944,7 @@ function renderPrevision() {
     `Cada barra va del peor orden del mes (todos los pagos antes de cobrar) al saldo tras cobrar; la línea marca ${floor.source}.`;
 
   qs("previsionMonthlyTable").innerHTML =
-    `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th></tr></thead><tbody>${items
+    `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th><th>Neto</th><th>Saldo final</th></tr></thead><tbody>${items
       .map((item) => previsionMonthlyRow(item, previsionSelectedMonthKey))
       .join("")}</tbody>`;
 

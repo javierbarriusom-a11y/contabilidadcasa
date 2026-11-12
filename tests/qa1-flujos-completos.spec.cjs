@@ -6278,6 +6278,47 @@ test.describe("FX-14 · el mes en curso al ritmo real", () => {
   }
 });
 
+// FX-15 · el resumen por periodo, legible: la cascada de la liquidez del periodo (cuadra con la tabla) y la tabla mensual que cabe en el
+// móvil (mes · neto · saldo final, y lo demás en la fila desplegada del mes elegido). Cifras de la demo, INVENTADAS.
+test.describe("FX-15 · el resumen por periodo, legible", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`la cascada cuadra con la tabla y la tabla mensual cabe, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#prevision");
+      const resumen = page.locator("#previsionPeriodSummaryBody .periodo-resumen");
+      await expect(resumen).toBeVisible({ timeout: 20000 });
+      await page.locator('[data-prevision-period-unit="quarter"]').click();
+      await expect(resumen.locator(".periodo-frase")).toHaveText(/La liquidez sube unos 2\.900\s€: de 10\.100\s€ a 13\.000\s€\./);
+      await expect(resumen.locator(".periodo-tramo").first()).toContainText(/Liquidez al empezar nov 26\s*10\.100\s€/);
+      await expect(resumen.locator(".periodo-tramo").last()).toContainText(/Liquidez al acabar dic 26\s*13\.000\s€/);
+      await expect(resumen.locator(".analisis-cascada-row:not(.is-resultado)").filter({ hasText: "Ingresos" }).first()).toContainText(/\+12\.400\s€/);
+      await expect(resumen).toContainText("no salen de vuestro dinero, así que no restan");
+      // Cuadra con la tabla: el saldo final del último mes del periodo es el de la cascada (redondeado a la centena, FX-04).
+      const tabla = page.locator("#previsionMonthlyTable");
+      await expect(tabla.locator("tr[data-prevision-month-key=\"2026-12\"] td").last()).toHaveText(/13\.020\s€/);
+      await expect(tabla.locator("thead th")).toHaveText(["Mes", "Ingresos", "Gastos", "Deuda", "Ahorro", "Mínimo", "Neto", "Saldo final"]);
+      const detalle = tabla.locator(".prevision-fila-detalle");
+      if (viewport.width === 390) {
+        // Móvil: mes · neto · saldo final, sin desplazar en horizontal; lo demás, en la fila desplegada del mes elegido.
+        await expect(tabla.locator('thead th:has-text("Ingresos")')).toBeHidden();
+        expect((await tabla.boundingBox()).width, "la tabla cabe en el ancho").toBeLessThanOrEqual(viewport.width);
+        await expect(detalle).toBeVisible();
+        await expect(detalle).toContainText(/Ingresos 7\.400\s€ · gastos 4\.250\s€ · deuda 480\s€ · ahorro 800\s€/);
+        await tabla.locator('tr[data-prevision-month-key="2027-01"]').click();
+        await expect(tabla.locator('tr[data-prevision-month-key="2027-01"] + tr.prevision-fila-detalle')).toBeVisible();
+      } else {
+        await expect(detalle).toBeHidden();
+        await expect(tabla.locator('thead th:has-text("Ingresos")')).toBeVisible();
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
