@@ -211,7 +211,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
     - `redis-a4-movimientos`: la línea plegada ya no menciona la cobertura.
     - `redis-b5-repaso` y `wp41-recurrentes`: aceptan el sello nuevo.
 - **Sellos:** `tema-v2.css`, `canonical-ledger-coverage.js`, `cobertura-ui.js`, `views/movimientos-v2.js`, `views/importar-v2.js`, `views/repaso-v2.js`, `anomalias-ui.js`, `sombra-ui.js` y `novedades.js` a `20261116xda04b`. Novedades, una línea con fecha del 16/11.
-- **Validación:** `npm run verify` en verde (6.578/6.578). En local con Chromium: las e2e y el axe de XDA-04 en verde (16/16 con cuatro repeticiones) y las 56 de Movimientos, Importar, Repaso, anomalías, cierre y XGO-01 en verde. Un fallo suelto de «XDA-04 · periodo que cubre el extracto» con carga en paralelo no se repitió en 5 ejecuciones. La tanda completa de Playwright (414) seguía en curso al subir.
+- **Validación:** `npm run verify` en verde (6.578/6.578). En local con Chromium: las e2e y el axe de XDA-04 en verde (16/16 con cuatro repeticiones) y las 56 de Movimientos, Importar, Repaso, anomalías, cierre y XGO-01 en verde. Un fallo suelto de «XDA-04 · periodo que cubre el extracto» con carga en paralelo no se repitió en 5 ejecuciones. Playwright completo en local (e2e, a11y y perf-screens): 414/414 en verde (25,4 min).
 - **Entorno:** el contenedor llegó sin `node_modules` (`npm ci`), y la versión de Playwright del proyecto necesita `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
 
 ## Cierre de sesión — 12 de noviembre de 2026 (455): WP-21 · PR-3, el local alquilado para la Renta (FIS-03)
