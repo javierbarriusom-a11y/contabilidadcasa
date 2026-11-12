@@ -1361,7 +1361,6 @@
 .e19-route-card:focus-visible {
   border-color: var(--e19-accent);
   box-shadow: var(--e19-shadow-pop);
-  transform: translateY(-1px);
 }
 
 .e19-route-card strong {
@@ -6640,7 +6639,6 @@
 }
 
 .e19-faqs .faqs-tab:hover {
-  transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(11, 18, 32, 0.08);
 }
 

@@ -461,13 +461,14 @@ button {
   cursor: pointer;
   transition:
     border-color 160ms ease,
-    transform 160ms ease,
     background 160ms ease;
 }
 
+/* 12/11/2026 (decisión del hogar): sin subida de 1 px al pasar el ratón. Con el ratón quieto en el último píxel, el botón
+   subía, el ratón quedaba fuera, bajaba y volvía a estar encima, sin parar: temblaba (y era el fallo intermitente de la e2e de
+   WP-40). El borde basta como señal; lo mismo en las tarjetas que son botones, que conservan su borde y su sombra. */
 button:hover {
   border-color: var(--blue);
-  transform: translateY(-1px);
 }
 
 h1,
@@ -1703,7 +1704,6 @@ main {
 .home-priority-item:hover {
   border-color: var(--teal);
   box-shadow: 0 12px 26px rgba(15, 143, 140, 0.12);
-  transform: translateY(-1px);
 }
 
 /* H-3: tarjeta oscura con la cifra de días hasta el siguiente ingreso.
@@ -3839,7 +3839,6 @@ svg {
 .update-route-card:focus-visible {
   border-color: var(--teal);
   box-shadow: 0 12px 26px rgba(15, 143, 140, 0.12);
-  transform: translateY(-1px);
 }
 
 .update-route-card strong {

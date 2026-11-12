@@ -67,7 +67,8 @@ async function diagnostico(page, selector, ms = 1500) {
 }
 
 // La causa de WP-40, reproducida el 11/11/2026 con el diagnóstico de abajo (cajas «15,513» y «15,512» en el CI de #607, sin
-// mutaciones ni desplazamiento): `button:hover { transform: translateY(-1px) }` (styles.css). Con el ratón quieto en el último
+// mutaciones ni desplazamiento): `button:hover { transform: translateY(-1px) }` (styles.css; quitado el 12/11/2026 por decisión
+// del hogar, pero se queda aquí por si otra regla vuelve a mover un botón al pasar el ratón). Con el ratón quieto en el último
 // píxel del botón, el botón sube al pasar el ratón, el ratón queda fuera, el botón baja y el ratón vuelve a estar encima, sin
 // parar. Playwright espera a que el botón esté quieto ANTES de mover el ratón, así que espera para siempre. Que el ratón se
 // quede justo ahí depende de dónde acabó el clic anterior: por eso fallaba de vez en cuando. Con el ratón en el centro, el

@@ -17,6 +17,11 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-botones-quietos",
+      fecha: "2026-11-16",
+      texto: "Los botones ya no se mueven al pasar el ratón: si el ratón se quedaba en su borde, temblaban.",
+    },
+    {
       id: "2026-11-16-ritmo-variable",
       fecha: "2026-11-16",
       texto: "Plan › Mes y Previsión: con 3 meses de extracto, a qué ritmo va el gasto variable y cómo acabaría el mes así; la previsión no cambia.",

@@ -173,6 +173,22 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (447): los botones ya no se mueven al pasar el ratón
+
+- **Decisión del hogar:** «ok, quita la subida de los botones y continúa». Es la opción (a) que se propuso en la sesión 446.
+- **Qué cambia.** Se quita `transform: translateY(-1px)` de los cinco `:hover` que movían un botón o una tarjeta-botón:
+  - en `styles.css`: `button`, las tarjetas de Hoy clásico y `.update-route-card`;
+  - en `design-tokens.css`: `.e19-route-card` y las pestañas de `.e19-faqs`.
+- **Qué se mantiene.** Siguen el borde, el fondo y la sombra de cada uno: la señal de hover no mueve la caja.
+- **Qué no se toca.** La ayuda emergente `[data-help]`, que no es un objetivo de clic.
+- **Por qué.** Con el ratón quieto en el último píxel de un botón, este subía, el ratón quedaba fuera, bajaba y volvía a estar encima: temblaba sin parar. Era también la causa del fallo intermitente de la e2e de WP-40.
+- **Pruebas:**
+  - `tests/botones-sin-subida.test.cjs` (2): ningún `:hover` de los tres CSS mueve un botón con `transform`, y la novedad lo cuenta.
+  - La e2e de WP-40 con el ratón en el borde sigue en verde.
+  - `pulsar()` sigue centrando el ratón por si otra regla vuelve a mover un botón.
+  - Sellos: `styles.css`, `design-tokens.css` y `novedades.js` a `20261116boton`, con sus 12 pruebas de sello. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.545/6.545).
+
 ## Cierre de sesión — 11 de noviembre de 2026 (446): la causa del fallo intermitente de WP-40 (la CIRBE), encontrada y reproducida
 
 - **Por qué:** el CI de #607 en e95a35a falló en Chromium (sin reintento) en la e2e de WP-40, ajena al PR. Esta prueba falla de vez en cuando desde octubre: #511, #553, `main` tras #558 y ahora #607.
