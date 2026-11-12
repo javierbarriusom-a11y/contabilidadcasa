@@ -1606,7 +1606,7 @@ function appStatePayload(options = {}) {
     incomeActuals,
     expenseActuals,
     monthClosures,
-    importBatches,
+    importBatches: window.FinanceCanonicalE5?.compactImportBatches?.(importBatches) || importBatches, // DISK-IO: sin lotes anidados
     dataInbox,
     updateReceipts,
     receiptAttachments,
@@ -2048,7 +2048,7 @@ function applyPersistedPayload(payload = {}) {
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
   monthClosures = Array.isArray(payload.monthClosures) ? payload.monthClosures : [];
-  importBatches = Array.isArray(payload.importBatches) ? payload.importBatches : [];
+  importBatches = Array.isArray(payload.importBatches) ? (window.FinanceCanonicalE5?.compactImportBatches?.(payload.importBatches) || payload.importBatches) : [];
   dataInbox = Array.isArray(payload.dataInbox) ? payload.dataInbox : [];
   updateReceipts = Array.isArray(payload.updateReceipts) ? payload.updateReceipts : [];
   receiptAttachments = payload.receiptAttachments && typeof payload.receiptAttachments === "object" ? payload.receiptAttachments : {};
@@ -2659,10 +2659,18 @@ function queueRemoteSave() {
   const revision = ensureRemoteSaveQueue().request();
   void stageDurableRemoteSave(revision);
   window.clearTimeout(remoteSaveTimer);
-  remoteSaveTimer = window.setTimeout(() => {
-    ensureRemoteSaveQueue().flush();
-  }, 650);
+  remoteSaveTimer = window.setTimeout(flushQueuedRemoteSave, 4000); // DISK-IO: una ráfaga de cambios, un guardado (antes 650 ms)
 }
+
+// DISK-IO (12/11/2026): al salir de la página o pasar a otra app, se guarda ya lo que esperaba.
+function flushQueuedRemoteSave() {
+  if (!remoteSaveTimer) return;
+  window.clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = null;
+  ensureRemoteSaveQueue().flush();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushQueuedRemoteSave(); });
+window.addEventListener("pagehide", flushQueuedRemoteSave);
 
 function loadLocalState() {
   try {
@@ -4609,7 +4617,7 @@ async function loadRemoteStateOnce() {
   if (!supabaseClient || !remoteUser) return;
   updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
   const normalizedStore = window.FinanceCanonicalSupabaseStore;
-  const [legacyResult, headResult, snapshotsResult, closuresResult] = await Promise.all([
+  const [legacyResult, headResult, closuresResult] = await Promise.all([
     supabaseClient
       .from("finance_dashboard_states")
       .select("state, updated_at")
@@ -4622,14 +4630,6 @@ async function loadRemoteStateOnce() {
         .eq("source_key", sourceStateKey())
         .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
-    normalizedStore
-      ? supabaseClient
-        .from("finance_state_snapshots")
-        .select("id, state, created_at, fingerprint")
-        .eq("source_key", sourceStateKey())
-        .order("created_at", { ascending: false })
-        .limit(20)
-      : Promise.resolve({ data: [], error: null }),
     normalizedStore
       ? supabaseClient
         .from("finance_month_closures")
@@ -4646,6 +4646,11 @@ async function loadRemoteStateOnce() {
       .eq("id", activeSnapshotId)
       .maybeSingle()
     : { data: null, error: null };
+  // DISK-IO (12/11/2026): las 20 últimas copias completas solo se leen si la vigente no vale (para recuperar una verificada).
+  const activeOk = Boolean(activeSnapshotResult.data && normalizedStore.verifySnapshot(activeSnapshotResult.data).valid && (!headResult.data?.fingerprint || headResult.data.fingerprint === activeSnapshotResult.data.fingerprint));
+  const snapshotsResult = normalizedStore && !activeOk
+    ? await supabaseClient.from("finance_state_snapshots").select("id, state, created_at, fingerprint").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(20)
+    : { data: [], error: null };
   const headMissing = normalizedStore?.isMissingSchemaError(headResult.error);
   const snapshotsMissing = normalizedStore?.isMissingSchemaError(snapshotsResult.error);
   const closuresMissing = normalizedStore?.isMissingSchemaError(closuresResult.error);
@@ -4977,7 +4982,8 @@ async function closeCurrentMonthTransaction(options = {}) {
     const monthObj = cuadroMandosAllMonths().find((item) => item.key === month);
     const envelopeSettlements = monthObj ? sobresSettlementsForSign(monthObj) : [];
     const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason, author: remoteUser?.email || "", envelopeSettlements });
-    const fingerprint = store.fingerprintPayload(nextPayload);
+    const cloudPayload = store.cloudState(nextPayload); // DISK-IO: la copia, sin lo que se recalcula
+    const fingerprint = store.fingerprintPayload(cloudPayload);
     const newSnapshotId = store.createUuid("month-close-snapshot");
     const newSyncId = store.createUuid("month-close-sync");
     if (status) status.textContent = `Cerrando ${month} de forma transaccional…`;
@@ -4989,7 +4995,7 @@ async function closeCurrentMonthTransaction(options = {}) {
       p_new_sync_id: newSyncId,
       p_closure_id: closureId,
       p_fingerprint: fingerprint,
-      p_state: nextPayload,
+      p_state: cloudPayload,
       p_reason: reason.trim(),
     });
     if (result.error) throw result.error;
@@ -5054,7 +5060,8 @@ async function reopenLatestMonthTransaction(options = {}) {
     const reopenedAt = new Date().toISOString();
     const operationId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen");
     const nextPayload = e5.reopenMonth(appStatePayload(), closed.monthKey, { id: operationId, reopenedAt, reason, author: remoteUser?.email || "" });
-    const fingerprint = window.FinanceCanonicalSupabaseStore.fingerprintPayload(nextPayload);
+    const cloudPayload = window.FinanceCanonicalSupabaseStore.cloudState(nextPayload); // DISK-IO
+    const fingerprint = window.FinanceCanonicalSupabaseStore.fingerprintPayload(cloudPayload);
     const newSnapshotId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-snapshot");
     const newSyncId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-sync");
     if (status) status.textContent = `Reabriendo ${closed.monthKey} de forma transaccional…`;
@@ -5062,7 +5069,7 @@ async function reopenLatestMonthTransaction(options = {}) {
       p_source_key: sourceStateKey(), p_month_key: closed.monthKey,
       p_expected_head_snapshot_id: remoteHeadSnapshotId, p_closed_operation_id: closed.id,
       p_new_snapshot_id: newSnapshotId, p_new_sync_id: newSyncId, p_reopening_id: operationId,
-      p_fingerprint: fingerprint, p_state: nextPayload, p_reason: reason.trim(),
+      p_fingerprint: fingerprint, p_state: cloudPayload, p_reason: reason.trim(),
     });
     if (result.error) throw result.error;
     monthClosures = nextPayload.monthClosures;

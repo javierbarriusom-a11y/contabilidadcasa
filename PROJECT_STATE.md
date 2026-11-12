@@ -113,6 +113,49 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 12 de noviembre de 2026 (458): DISK-IO, Supabase sin presupuesto de disco; copias ligeras, menos lecturas y menos guardados
+
+- **Aviso de Supabase (12/11, 18:01):** «your project is running out of Disk IO Budget». El hogar pasó las cifras de la base (consultas de solo lectura en el SQL Editor):
+  - **Unos 381 MB de los 500 del plan gratuito.** Al pasar de 500 MB el proyecto queda en solo lectura y la app deja de sincronizar. Es un riesgo más cercano que la lentitud.
+  - `finance_state_snapshots` ocupaba 229 MB: 264 copias completas, de 830 kB de media, que nunca se borraban. `finance_audit_log`, 113 MB. El libro, las cuentas y las deudas no llegan a 10 MB.
+  - 157 guardados del 31/10 al 12/11, 64 de ellos el 3/11.
+  - **Lo que pesaba la copia vigente, sin comprimir:** lotes de importación 2,4 MB, libro calculado 1,75 MB, libro 810 kB, buzón de datos 387 kB, foto canónica 309 kB y motor diario 187 kB.
+  - Las estadísticas de Postgres salían a cero: la instancia se reinició hace poco.
+- **Por qué gastaba tanto:**
+  - Cada guardado (0,65 s después de cada cambio) subía una copia completa y reescribía todas las filas del libro.
+  - Al abrir la app se leían 20 copias completas, y la línea de tiempo de Datos, otras 30.
+  - **Los lotes de importación se anidaban.** La foto «antes» de cada lote llevaba los lotes anteriores, cada uno con su propia foto, y deshacer nunca la usa (`undoImportBatch` pone encima la lista vigente).
+- **Fase 1 · copias ligeras** (`canonical-supabase-store.js`, `canonical-e5-operations.js`):
+  - `cloudState` saca de la copia de la nube lo que la app recalcula: foto canónica, libro calculado, motores y decisión calculada. En su lugar guarda `derivedFingerprint`, la huella de esa parte sin el `reason` del libro.
+    - Así la huella de la copia sigue cambiando cuando cambia algo calculado, y la regla de no subir un estado idéntico (Ola 2) funciona igual. La primera versión no llevaba esa huella y la prueba de Ola 2 lo destapó: un cambio solo en lo calculado se habría quedado sin subir.
+    - Las proyecciones (cuentas, libro, deudas…) se siguen sacando del estado entero.
+    - El cierre y la reapertura de mes guardan también la copia ligera.
+  - **Lotes:** `createImportBatch` ya no mete los lotes anteriores en la foto «antes», y `compactImportBatches` compacta al leer y al guardar los que ya existían.
+  - **Comprobado en la demo:** con la copia ligera, lo calculado se rehace en las cinco pantallas, sin errores y con la misma huella. La copia pasa de 195 kB a 21 kB. Con los datos del hogar se espera bajar de unos 6 MB sin comprimir a algo cercano a 1,5 MB, a falta de medirlo.
+- **Fase 2 · menos lecturas y menos guardados** (`app.js`, +7 líneas; `datos-ui.js`):
+  - Al abrir la app, las 20 copias completas solo se leen si la vigente no se puede verificar.
+  - La línea de tiempo de Datos lee las copias sin su contenido, que no usaba.
+  - Los guardados esperan 4 s en vez de 0,65 s, y se hacen ya al ocultar o cerrar la página (`visibilitychange` y `pagehide`).
+- **Fase 3 · retención** (`migrations/20261112_disk_io_retencion_copias.sql`), aprobada por el hogar el 12/11 («ok a la regla de retención»):
+  - Se conservan las 30 copias más recientes, una por día de los últimos 90 días, la vigente, las de cierres, reaperturas y verificaciones (además protegidas por claves ajenas) y las de operaciones especiales.
+  - Va en pasos: lectura previa, borrado en una transacción, `VACUUM FULL` y, opcionalmente, una función semanal con pg_cron. La ejecuta el hogar en el SQL Editor, después de ver la lectura previa.
+  - No toca el libro ni la auditoría.
+  - **Hecho por el hogar el 12/11, con las cifras reales:**
+    - Lectura previa: salían 170 copias (134 MB) y se quedaban 94 (80 MB).
+    - Tras el borrado quedan 94 copias.
+    - Tras `VACUUM FULL`: la base pasa de unos 381 MB a **248 MB**, y las copias de 229 MB a **83 MB**.
+  - **Limpieza semanal activada** (pg_cron, trabajo 1 `finance-prune-state-snapshots`, `17 4 * * 1`, activo). Usa `public.finance_prune_state_snapshots()`, la misma regla, sin permiso para `anon` ni `authenticated`. La primera ejecución es el lunes 16/11; se mira en `cron.job_run_details`. Se desactiva con `select cron.unschedule('finance-prune-state-snapshots');`.
+- **Pendiente:**
+  - Fase 4, si vuelve el aviso de disco con esto desplegado: reescribir solo las filas que cambian, con una función en la base.
+  - Cuánto historial guardar en la auditoría (113 MB). Ahora es la tabla más grande, y recortarla borra datos, así que lo decide el hogar.
+- **Pruebas:**
+  - `tests/disk-io-supabase.test.cjs` (7).
+  - `canonical-supabase-store` (la copia ya no es el estado entero) y el falso de `npv3-cierre-con-saldo` (con `cloudState`), ajustados.
+  - Sellos de `canonical-supabase-store.js` y `canonical-e5-operations.js` a `20261112diskio`.
+- **Validación:**
+  - `npm run verify` en verde (6.532/6.532).
+  - En local, 76 de 77 e2e de importar, deshacer, cierre, buzón y copias. La que falla, «Ensayo del cierre» a 390 px, falla igual en `main` sin este cambio (ya anotada en la 453).
+
 ## Cierre de sesión — 5 de noviembre de 2026 (409): WP-21, la hoja de impresión del informe sin `:has()` (el paso de Safari del CI se colgaba)
 
 - **Síntoma:** en el CI de #588 (commit `0f78996`) el paso «Instalar WebKit y probar las pantallas v2 en Safari» llevaba más de 35 minutos sin terminar, cuando en `main` tarda unos 4. Las e2e de WP-21 a 390 px llevan `@safari`, así que corren también en WebKit, y la del PR-2 emula la impresión.

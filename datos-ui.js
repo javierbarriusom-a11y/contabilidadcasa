@@ -334,8 +334,9 @@ async function loadE8RemoteHistory() {
   if (!supabaseClient || !remoteUser || e8RemoteHistoryLoading || e8RemoteHistory.snapshots.length) return;
   e8RemoteHistoryLoading = true;
   try {
+    // DISK-IO (12/11/2026): sin `state`; la línea de tiempo solo usa id, fecha y huella (leía 30 copias enteras).
     const [snapshots, syncEvents] = await Promise.all([
-      supabaseClient.from("finance_state_snapshots").select("id,created_at,fingerprint,state").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(30),
+      supabaseClient.from("finance_state_snapshots").select("id,created_at,fingerprint").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(30),
       supabaseClient.from("finance_sync_runs").select("id,status,started_at,completed_at,metadata").eq("source_key", sourceStateKey()).order("started_at", { ascending: false }).limit(30),
     ]);
     if (!snapshots.error && !syncEvents.error) {

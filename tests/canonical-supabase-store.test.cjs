@@ -51,7 +51,10 @@ test("normaliza el estado en proyecciones y registros append-only", () => {
   assert.equal(bundle.projections.finance_decisions.length, 1);
   assert.equal(bundle.appendOnly.finance_decision_events.length, 2);
   assert.equal(bundle.appendOnly.finance_reconciliation_runs[0].quality_score, 98);
-  assert.deepEqual(bundle.snapshotRow.state, payload());
+  // DISK-IO (12/11/2026): la copia guarda el estado sin lo que se recalcula, con su huella en su lugar.
+  assert.deepEqual(bundle.snapshotRow.state, store.cloudState(payload()));
+  assert.equal(bundle.snapshotRow.state.canonicalLedgerSnapshot, undefined);
+  assert.deepEqual(bundle.snapshotRow.state.decisionWorkflow, payload().decisionWorkflow);
 });
 
 test("la huella es estable aunque cambien identificadores de sincronización", () => {
