@@ -1629,6 +1629,68 @@ function previsionV2TraspasoHtml({ tramo, floor, today }) {
   </section>`;
 }
 
+// ---------- XPR-11 · mover los días de cargo a donde menos duelen ----------
+
+const PREVISION_V2_CARGOS = "prevision-v2-cargos"; // lo pedido (en este dispositivo): { [clave de la partida]: { dia, fecha } }
+
+function previsionV2CargosPedidos() {
+  try {
+    return JSON.parse(storageGet(storageKey(PREVISION_V2_CARGOS), "{}")) || {};
+  } catch {
+    return {};
+  }
+}
+
+function previsionV2CargosGuardar(pedidos) {
+  storageSet(storageKey(PREVISION_V2_CARGOS), JSON.stringify(pedidos));
+}
+
+/**
+ * XPR-11 (canonical-charge-day-moves.js): hasta tres recibos con día conocido que, cambiados de día, suben el mínimo de cada mes; con su
+ * ganancia, el guion de la petición y su estado (pedido o hecho). «Ya se carga el día N» guarda ese día en Plan › Partidas › Días de
+ * cargo, y la previsión lo usa desde ahí: la propuesta desaparece sola. Solo con días conocidos en el 70 % del gasto fijo (la puerta de
+ * XPR-11) y solo partidas cuyo día se puede guardar. Fuera de la tarjeta principal: no mueve la cifra, el gráfico ni el panel del día.
+ */
+function previsionV2CargosHtml({ rows, today }) {
+  const M = globalThis.FinanceCanonicalChargeDayMoves;
+  if (!M?.suggest || !rows?.length || typeof chargeDayRows !== "function") return "";
+  let partidas;
+  try {
+    partidas = chargeDayRows().filter((item) => !item.spread && !item.rule);
+  } catch {
+    return "";
+  }
+  const claveDe = (label) => partidas.find((item) => item.label === label)?.key || "";
+  const propuesta = M.suggest(rows, { today, canMove: (item) => Boolean(claveDe(item.label)) });
+  if (!propuesta.ready || !propuesta.moves.length) return "";
+  // Cada cambio, a la decena (así suman); la cabecera, como toda diferencia de la previsión (FX-04, dos cifras significativas).
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const decena = (value) => money(Math.round(value / 10) * 10);
+  const total = money(contract?.roundDifference ? contract.roundDifference(propuesta.gain) : Math.round(propuesta.gain / 10) * 10);
+  const mesDe = (key) => (typeof planV2MonthName === "function" ? planV2MonthName(key).replace(/ \d{4}$/, "") : key);
+  const enQue = (move) => move.monthKeys?.length === 1 ? `el mínimo de ${mesDe(move.monthKeys[0])}`
+    : move.monthKeys?.length ? `el mínimo de ${move.monthKeys.length} meses (de ${mesDe(move.monthKeys[0])} a ${mesDe(move.monthKeys.at(-1))})` : "el mínimo del mes";
+  const pedidos = previsionV2CargosPedidos();
+  const n = propuesta.moves.length;
+  const items = propuesta.moves.map((move) => {
+    const clave = claveDe(move.label);
+    const pedido = pedidos[clave]?.dia === move.toDay ? pedidos[clave] : null;
+    const estado = pedido
+      ? `<span class="prev-v2-cargos-estado">Pedido el ${escapeHtml(previsionV2Fecha(pedido.fecha, today).replace(/ \d{4}$/, ""))}</span>`
+      : `<button type="button" class="hoy-v2-link" data-prevision-v2-cargo-pedido="${escapeHtml(clave)}" data-dia="${move.toDay}">Lo he pedido</button>`;
+    return `<li data-prevision-v2-cargo="${escapeHtml(clave)}">
+      <span>Pide que «${escapeHtml(move.label)}» se cargue el día ${move.toDay} (ahora, el ${move.fromDay})<small>+${escapeHtml(decena(move.gain))} en ${escapeHtml(enQue(move))}</small></span>
+      <span class="prev-v2-cargos-acciones">${estado}<button type="button" class="e19-btn e19-btn-secondary" data-prevision-v2-cargo-hecho="${escapeHtml(clave)}" data-dia="${move.toDay}" data-label="${escapeHtml(move.label)}">Ya se carga el ${move.toDay}</button></span>
+    </li>`;
+  }).join("");
+  return `<section class="e19-card prev-v2-cargos" aria-labelledby="prevV2CargosTitulo">
+    <p class="prev-v2-cargos-titulo" id="prevV2CargosTitulo"><strong>Mover ${n === 1 ? "un recibo" : `${n} recibos`} de día sube el mínimo del mes unos ${escapeHtml(total)}</strong></p>
+    <p class="e19-kpi-note">El mínimo cae antes de cobrar porque ${n === 1 ? "este recibo se carga" : "estos recibos se cargan"} antes. Muchas compañías cambian el día con una llamada o desde su web; no cuesta nada.</p>
+    <ul class="prev-v2-cargos-lista">${items}</ul>
+    <p class="e19-kpi-note">«Ya se carga» guarda el día nuevo en Plan › Partidas (días de cargo) y la previsión lo usa desde ahí.</p>
+  </section>`;
+}
+
 /**
  * FX-14 · el mes en curso al ritmo real (XPR-04). Con 3 meses de extracto completos, el cierre del mes si el gasto variable sigue al ritmo
  * de estos días (el perfil del hogar, `planV2RitmoVariable` de views/plan-v2.js) frente a lo que dice la previsión, que sigue con lo
@@ -1652,6 +1714,36 @@ function previsionV2RitmoHtml({ rows, today }) {
     <p>Acabaríais ${escapeHtml(mes)} con unos <strong>${escapeHtml(planV2RitmoEuros(alRitmo))}</strong>${escapeHtml(diferencia)}.</p>
     <p class="e19-kpi-note">${escapeHtml(planV2RitmoFrase(ritmo, monthKey))} ${escapeHtml(planV2RitmoNota(ritmo))} <button type="button" class="hoy-v2-link" data-prevision-v2-plan-mes>Ver el ritmo en Plan › Mes</button></p>
   </section>`;
+}
+
+/** XPR-11: «Lo he pedido» lo recuerda en este dispositivo; «Ya se carga el día N» guarda el día de cargo (Plan › Partidas) y recalcula. */
+function previsionV2CargosClick(event) {
+  const pedido = event.target.closest("[data-prevision-v2-cargo-pedido]");
+  if (pedido) {
+    globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+    const clave = pedido.dataset.previsionV2CargoPedido;
+    previsionV2CargosGuardar({ ...previsionV2CargosPedidos(), [clave]: { dia: Number(pedido.dataset.dia), fecha: isoLocalDate(new Date()) } });
+    previsionV2Render();
+    [...(qs("planPrevisionV2")?.querySelectorAll("[data-prevision-v2-cargo-hecho]") || [])].find((boton) => boton.dataset.previsionV2CargoHecho === clave)?.focus();
+    return true;
+  }
+  const hecho = event.target.closest("[data-prevision-v2-cargo-hecho]");
+  if (hecho && typeof saveChargeDays === "function") {
+    globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+    const clave = hecho.dataset.previsionV2CargoHecho;
+    const pedidos = previsionV2CargosPedidos();
+    delete pedidos[clave];
+    previsionV2CargosGuardar(pedidos);
+    const aviso = `Guardado: «${hecho.dataset.label}» se carga el día ${hecho.dataset.dia}. La previsión ya lo usa.`;
+    saveChargeDays([[clave, hecho.dataset.dia, "declarado"]], aviso);
+    globalThis.announceStatus?.(aviso);
+    // El foco, a la tarjeta si sigue (quedan cambios) o a la cifra de arriba, que es lo que ha cambiado.
+    const destino = qs("prevV2CargosTitulo") || qs("planPrevisionV2")?.querySelector(".prev-v2-cifra");
+    destino?.setAttribute("tabindex", "-1");
+    destino?.focus();
+    return true;
+  }
+  return false;
 }
 
 function previsionV2Html({ rows, today, floor, horizonte }) {
@@ -1679,6 +1771,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     </article>
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
+    ${previsionV2CargosHtml({ rows, today })}
     ${previsionV2RitmoHtml({ rows, today })}
     ${previsionV2LoQueVieneHtml({ hitos, today })}
     ${previsionV2SupuestosHtml({ rows, today })}
@@ -1949,6 +2042,7 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       return;
     }
+    if (previsionV2CargosClick(event)) return; // XPR-11
     if (event.target.closest("[data-prevision-v2-plan-mes]")) {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       document.querySelector('[data-plan-tab="mes"]')?.click();

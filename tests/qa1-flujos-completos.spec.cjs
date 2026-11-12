@@ -6331,6 +6331,43 @@ test.describe("FX-15 · el resumen por periodo, legible", () => {
   }
 });
 
+// XPR-11 · mover los días de cargo a donde menos duelen. Sin días conocidos (la demo) no sale nada; con todos los recibos fijos el día 8
+// (INVENTADO), propone pasar tres al 15, donde ya no caen antes del punto más bajo de diciembre (el 14), con lo que sube cada uno.
+test.describe("XPR-11 · mover los días de cargo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin días conocidos no sale; con ellos, tres recibos con su ganancia, «Lo he pedido» y «Ya se carga», a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
+      await expect(v2.locator(".prev-v2-cargos"), "sin días conocidos, nada que mover").toHaveCount(0);
+
+      await page.evaluate(() => { const filas = chargeDayRows().filter((fila) => !fila.spread && !fila.rule); saveChargeDays(filas.map((fila) => [fila.key, "8", "declarado"]), ""); });
+      const tarjeta = v2.locator(".prev-v2-cargos");
+      await expect(tarjeta).toBeVisible({ timeout: 15000 });
+      await expect(tarjeta.locator("#prevV2CargosTitulo")).toHaveText(/Mover 3 recibos de día sube el mínimo del mes unos 2\.500\s€/);
+      const items = tarjeta.locator("li");
+      await expect(items).toHaveCount(3);
+      await expect(items.nth(0)).toContainText("Pide que «Gastos del hogar» se cargue el día 15 (ahora, el 8)");
+      await expect(items.nth(0)).toContainText(/\+1\.350\s€ en el mínimo de diciembre/);
+      // Ya no dice «día estimado» de un día dado: el motor diario conserva «declared» (antes lo convertía en «estimated»).
+      expect(await page.evaluate(() => canonicalDailyEngineRuns.active.rows.find((row) => row.date === "2026-12-08").events.find((event) => event.label === "Vivienda").confidence)).toBe("declared");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Lo he pedido» lo recuerda; «Ya se carga el 15» guarda el día y la propuesta de esa partida desaparece.
+      await items.nth(0).locator("[data-prevision-v2-cargo-pedido]").click();
+      await expect(tarjeta.locator("li").nth(0)).toContainText("Pedido el 12 nov");
+      await tarjeta.locator("li").nth(0).locator("[data-prevision-v2-cargo-hecho]").click();
+      await expect(v2.locator(".prev-v2-cargos li").filter({ hasText: "Gastos del hogar" })).toHaveCount(0);
+      expect(await page.evaluate(() => { const clave = chargeDayRows().find((fila) => fila.label === "Gastos del hogar").key; return loadChargeDays().series[clave].day; })).toBe(15);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {

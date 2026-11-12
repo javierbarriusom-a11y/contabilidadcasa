@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-dias-de-cargo",
+      fecha: "2026-11-16",
+      texto: "Previsión: si un recibo cae justo antes de cobrar, propone a qué día pedir que lo pasen y cuánto sube vuestro mínimo del mes.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-resumen-periodo",
       fecha: "2026-11-16",
       texto: "Previsión: el resumen por periodo es una cascada (con cuánto empezáis, qué suma, qué resta y con cuánto acabáis). La tabla cabe en el móvil.",

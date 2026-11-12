@@ -173,6 +173,36 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (450): XPR-11 · mover los días de cargo a donde menos duelen (y el día indicado deja de verse «estimado»)
+
+- **Petición del hogar:** «deja la banda y continúa con XPR-11». La banda de barras por mes de Previsión se queda como está. Es la decisión del hogar sobre lo que FX-15 dejó fuera.
+- **Motor nuevo, `canonical-charge-day-moves.js`** (`FinanceCanonicalChargeDayMoves`, `finance-charge-day-moves/v1`, puro). ARQ-3 sube de 124 a 125, con su consumidor real en `views/prevision-v2.js`.
+  - **Qué prueba:** cada recibo fijo con día conocido (indicado por el hogar o visto en el extracto), en cada día del 1 al 28, sobre la trayectoria diaria de 90 días. En todos los meses del horizonte, nunca a un día ya pasado.
+  - **Qué elige:** el cambio que más sube, sumado, el mínimo de cada mes, y nunca uno que baje el mínimo de algún mes. Luego repite, hasta tres. Con empate, el día más cercano al de siempre.
+  - **Puerta (la de XPR-11):** días conocidos en el 70 % del gasto fijo. Un cambio solo se propone si sube el mínimo de un mes típico al menos 50 €.
+  - **Corrección de enfoque sobre la marcha:** primero medía el punto más bajo de los 90 días. Así, un cambio bueno valía 0 si ese punto caía en el mes en curso, que ya no se puede mover. La métrica de XPR-11 es el mínimo de cada mes, y es la que usa.
+- **Previsión nueva, debajo de la tarjeta principal** (no mueve la cifra, el gráfico ni el panel del día).
+  - Cabecera: «Mover 3 recibos de día sube el mínimo del mes unos 2.500 €».
+  - Cada recibo: «Pide que «X» se cargue el día 15 (ahora, el 8) · +1.350 € en el mínimo de diciembre».
+  - «Lo he pedido» lo recuerda en este dispositivo (`prevision-v2-cargos`, fuera de la copia, con su motivo en ARQ-6).
+  - «Ya se carga el día N» guarda el día en Plan › Partidas › Días de cargo (`saveChargeDays`, WP-08). La previsión lo usa y la propuesta de esa partida desaparece: queda dormida hasta que cambie algo.
+  - Cada cambio va a la decena, para que sumen; la cabecera, como toda diferencia (FX-04).
+- **Con la demo (cifras INVENTADAS)** y todos los recibos fijos el día 8, solo mejora diciembre, y es correcto. En enero y febrero el cobro también llega el 8, así que el mínimo cae el 7 y moverlos no lo cambia. En diciembre, el punto más bajo es el 14. No se promete «cada mes».
+- **Fallo de antes, encontrado por el camino:** el motor diario (`canonical-daily-engine.js`) solo admitía las certezas observed, rule y estimated, y convertía en «estimated» el «declared» de un día de cargo indicado. Consecuencias:
+  - la Previsión decía «día estimado · ¿sabes el día?» de un día ya dado;
+  - nada de lo que mira la certeza en el motor diario contaba los días indicados.
+  - Ahora `declared` se conserva, con su contador.
+- **Pruebas:**
+  - `tests/xpr11-dias-de-cargo.test.cjs` (4): el seguro antes de cobrar pasa al día del cobro y sube su importe, en 3 meses; sin días conocidos, nada; nada que mover y `canMove`; nunca a un día pasado (desde el 22/12, solo enero y febrero) y motor puro.
+  - e2e «XPR-11» a 390 (`@safari`) y 1440 px: sin días, nada; con ellos, la cabecera, los tres recibos, la certeza «declared», «Lo he pedido» y «Ya se carga» (guarda el 15 y la partida sale de la propuesta).
+  - ARQ-3 a 125 y ARQ-6 con la clave nueva.
+  - El manejador de clics de la Previsión superó el límite de complejidad (93 de 90): XPR-11 va en su propia función y el límite no se toca.
+  - Sellos: `canonical-charge-day-moves.js` nuevo; `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116xpr11`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.553/6.553).
+  - En local, 91 e2e de Previsión, días de cargo, Hoy y FX en verde, y la de XPR-11 también con la emulación del iPhone.
+- **Para que se vea con vuestros datos** hacen falta los días de cargo del 70 % del gasto fijo: es la tarea del hogar H-35.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (449): la e2e de FX-40 en Safari, con el clic de la pestaña que no se pierde
 
 - **Por qué:** el CI de #607 en fd36ec0 salió verde, pero con una prueba que falló a la primera en Safari y pasó al reintentar: FX-40 («qué ha cambiado desde tu última visita») a 390 px.

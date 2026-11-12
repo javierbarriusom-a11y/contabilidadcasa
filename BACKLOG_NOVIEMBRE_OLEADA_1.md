@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**12/11/2026 · XPR-11 hecho («deja la banda y continúa con XPR-11»).** Con días de cargo conocidos en el 70 % del gasto fijo, la Previsión propone hasta tres recibos que pedir cambiar de día, con cuánto sube el mínimo del mes, «Lo he pedido» y «Ya se carga». Arreglado de paso: el día de cargo indicado ya no se ve «estimado». La banda de barras por mes se queda (decisión del hogar). En #607 (PROJECT_STATE 450).
+
 **12/11/2026 · FX-15 hecho y los botones quietos («quita la subida de los botones y continúa»).** El resumen por periodo es una cascada de la liquidez que cuadra (con el ahorro aparte) y la tabla mensual cabe en el móvil; ningún botón se mueve al pasar el ratón. Viajan en #607 (PROJECT_STATE 447 y 448).
 
 **11/11/2026 · FX-14 hecho: el mes en curso al ritmo real («activa estas y luego continúa»).** Con 3 meses de extracto completos, Plan › Mes dice a qué ritmo cerrará el gasto variable (con banda y acierto) y la Previsión, cómo acabaría el mes así. La previsión no cambia: sigue con lo prudente. Viaja en #607 (PROJECT_STATE 444).
@@ -363,7 +365,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets |
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |
 | 13 | WP-21 | Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3) | Def P2 | M · 2 | WP-31 | Antes del 31/3/2027 |
-| 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | — |
+| 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | **12/11, hecho (en #607, sale el 16/11)**: `canonical-charge-day-moves.js`, hasta 3 recibos por el mínimo de cada mes, puerta del 70 %; «Lo he pedido» y «Ya se carga» (guarda el día de cargo). Se ve con H-35 |
 | 15 | XDA-04 PR-2 | Tira de cobertura de 90 días por cuenta | Def §5.0 | S | dos importaciones reales | La condición ya puede cumplirse |
 | 16 | WP-54 | Primera ronda de la prueba con 5 personas ajenas, **con C2 y los presets como tareas** | Def (continuo) | — | FX-10, FX-21 | Desde diciembre |
 
