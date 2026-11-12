@@ -173,6 +173,41 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
 
+## Cierre de sesión — 12 de noviembre de 2026 (457): FX-10 PR-3, el rango probable en Previsión (FX-10 completa)
+
+- **Petición del hogar:** «sigue con lo siguiente del backlog».
+- **Por qué esta fila:**
+  - La P1 de la Oleada 2 está agotada en lo que se puede empezar:
+    - FX-21 resto espera a que el hogar elija las pruebas.
+    - FX-60 y RD-D1/D2 esperan a las revisiones del 12 al 18/11.
+    - WP-34 es de enero y WP-54, de diciembre.
+  - En la P0 quedaba una pieza de FX-10 («Faltan el rango (tras FX-03)»), y FX-03 ya está en #607. WP-23 sigue esperando H-03.
+- **Qué hace** (`views/prevision-v2.js`; sin motor nuevo):
+  - Solo con el horizonte de 3 m, que es lo que pide la propuesta octava §6 («3 m: diario con rango»), el gráfico único pinta el área azul del rango probable (8 de cada 10 casos).
+  - Lo dicen también:
+    - el panel del día («Rango probable 6.900 € – 9.100 €»);
+    - la lectura del recorrido;
+    - la tabla, con una columna nueva.
+  - Con 12 m, 24 m y hasta 2036 no hay rango: cada punto resume varios días, y el rango es de fechas a 90 días.
+- **De dónde sale:**
+  - De la banda de caja (WP-16, `canonical-cash-band.js`), con las mismas entradas que su tarjeta, hasta 91 días desde hoy.
+  - **Anclado a la línea del plan:** cada día, plan + (p10 − central) y plan + (p90 − central). Así no depende de que la banda y el motor diario partan del mismo saldo, y mide lo único que la banda sabe: qué día caen los pagos sin día confirmado.
+  - **No recoge importes** (FX-32, con 3 cierres), y la nota lo dice.
+  - **Coste:** una simulación por trayectoria del plan, ≈ 240 ms la primera vez en el contenedor. Recorrer el gráfico no la repite.
+- **Lo que destapa con la demo** (reloj 12/11):
+  - El titular, «unos 6.600 € el 14 dic», queda **por debajo** del rango probable de ese día (6.900 – 9.100 €).
+  - **La causa:** el plan pone el día 8 todos los pagos sin día confirmado (el 78 % de lo que se mueve), y la simulación los reparte del 1 al 28. Es el lado prudente, no un error.
+  - La nota y el panel del día lo dicen. **Qué cifra debe ser el titular se consulta al hogar:** no se ha tocado, y lo mueve también Hoy.
+- **Pruebas:**
+  - `tests/fx10-pr3-rango.test.cjs` (5): cifras a mano (seguro de 3.000 € sin día y nómina cierta); el rango no se mueve si la banda parte de otro saldo; una sola simulación; el plan fuera del rango; la nota y la conexión.
+  - e2e nueva «FX-10 PR-3» a 390 (`@safari`) y 1440 px: el área, la lectura, el panel, la nota, la tabla, 12 m sin rango y el camino a Días de cargo.
+  - **Ajustadas:**
+    - La e2e del panel del día de C2: su lectura del 14 dic ahora lleva el rango.
+    - La nota tiene su propia clase, para no confundirse con la leyenda «Por cuenta» de FX-13.
+  - En local: 76 e2e de C2, Previsión y FX, y 40 de axe y perf-screens de Plan, en verde.
+- **Sellos:** `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx10c`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.583/6.583). El CI de cf5b608 (XDA-04 PR-2, run 1379) acabó en verde antes de subir esto.
+
 ## Cierre de sesión — 12 de noviembre de 2026 (456): XDA-04 · PR-2, la tira de cobertura de 90 días por cuenta
 
 - **CI de #607 en f57b4dc, en verde** (run 43235935967, de 14:19 a 15:02Z): `verify`, Lighthouse, desbordamiento móvil, e2e, axe, perf-screens, presupuesto de carga y Safari. Nada que arreglar. XDA-04 PR-2 se subió después, para no cancelar ese run.

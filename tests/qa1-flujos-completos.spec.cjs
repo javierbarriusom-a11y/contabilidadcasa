@@ -5722,6 +5722,50 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
 
 // FX-10 PR-2 y FX-31: el panel del día de Plan › Previsión (a la derecha del gráfico en escritorio, debajo en móvil) y la insignia
 // de confianza con su porqué y la tarea que más la sube. Datos de ejemplo (sin cifras del hogar), reloj fijo el 6/11/2026.
+// FX-10 PR-3: el rango probable en el gráfico de Previsión, solo con 3 m. Demo con reloj el 12/11: el día más bajo (14 dic) el plan dice
+// 6.600 € y el rango probable va de 6.900 a 9.100 € (el plan pone el día 8 los pagos sin día confirmado, el 78 % de lo que se mueve).
+test.describe("FX-10 PR-3 · rango probable en Previsión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`3 m con el área, la nota, el panel y la tabla; 12 m sin rango; lleva a Días de cargo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
+      const figura = v2.locator('[data-ck-id="prevision-v2"]');
+      await expect(figura.locator(".ck-banda")).toHaveCount(1);
+      await expect(figura.locator(".ck-lectura")).toHaveText(/14 dic: 6\.600\s€ previstos · 5\.100\s€ sobre el suelo · rango probable 6\.900\s€ – 9\.100\s€\./);
+      await expect(v2.locator(".prev-v2-dia-rango")).toHaveText(/Rango probable 6\.900\s€ – 9\.100\s€ · el plan, por debajo: pone el día 8 los pagos sin día confirmado/);
+      const nota = figura.locator(".prev-v2-rango-nota");
+      await expect(nota).toContainText("Área azul: el rango probable (8 de cada 10 casos), según qué día caigan los pagos; no recoge cambios de importe.");
+      await expect(nota).toContainText("La línea del plan pone el día 8 los pagos sin día confirmado: es el lado prudente");
+      await expect(nota).toContainText("Es ancho porque el 78 % de lo que se mueve no tiene día confirmado");
+      await figura.getByText("Ver como tabla").click();
+      await expect(figura.locator("table th").nth(3)).toHaveText("Rango probable");
+      await expect(figura.locator("table tbody tr").first().locator("td").nth(2)).toHaveText(/€ – .*€/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // 12 m: cada punto resume varios días; el rango (de fechas, a 90 días) no se pinta ni se dice.
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(figura.locator(".ck-banda")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-rango-nota")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-dia-rango")).toHaveCount(0);
+      await expect(figura.locator(".ck-lectura")).not.toContainText("rango probable");
+
+      // De vuelta a 3 m, «confirmar el día de los pagos grandes» lleva a Días de cargo (H-35), lo que estrecha el rango.
+      await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
+      await v2.locator(".prev-v2-rango-nota").getByRole("button", { name: "confirmar el día de los pagos grandes" }).click();
+      await expect(page).toHaveURL(/#planificacion-partidas$/);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`el día más bajo de entrada, se recorre y se fija; la insignia dice por qué y qué la sube, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
@@ -5743,7 +5787,8 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(titulo).toHaveText("Lunes 14 dic");
       await expect(dia.locator(".prev-v2-dia-saldo")).toHaveText(/6\.600\s€/);
       await expect(dia).toContainText(/5\.100\s€ sobre el suelo\. Cuenta corriente 1\.000\s€ · ahorro 5\.600\s€\./);
-      await expect(v2.locator(".ck-lectura")).toHaveText(/14 dic: 6\.600\s€ previstos · 5\.100\s€ sobre el suelo\./);
+      // FX-10 PR-3: con 3 m, la lectura dice también el rango probable (el plan, 6.600 €, queda por debajo: pagos sin día, el día 8).
+      await expect(v2.locator(".ck-lectura")).toHaveText(/14 dic: 6\.600\s€ previstos · 5\.100\s€ sobre el suelo · rango probable 6\.900\s€ – 9\.100\s€\./);
       // Qué lo mueve. FX-03: el día más bajo (la víspera del cobro) solo mueve lo de ese día del gasto variable repartido.
       await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(1);
       await expect(dia.locator(".prev-v2-dia-item")).toContainText(/Gasto variable estimado\s*−5[67]\s€/);

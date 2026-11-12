@@ -4150,6 +4150,7 @@
 }
 
 :root[data-tema="v2"] .prev-v2-dia-sub,
+:root[data-tema="v2"] .prev-v2-dia-rango,
 :root[data-tema="v2"] .prev-v2-dia-prueba {
   color: var(--e19-muted);
   font-size: var(--e19-text-sm);

@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-rango-probable",
+      fecha: "2026-11-16",
+      texto: "Previsión: con 3 meses, el gráfico enseña el rango probable (8 de cada 10 casos), según qué día caigan los pagos sin día confirmado.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-16-cobertura-90-dias",
       fecha: "2026-11-16",
       texto: "Movimientos: la cobertura de los últimos 90 días por cuenta, con los huecos sin extracto y qué periodo importar para cerrarlos.",

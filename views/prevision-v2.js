@@ -382,13 +382,86 @@ function previsionV2Fecha(iso, today) {
   return globalThis.FinanceCanonicalForecastContract?.shortDateLabel(iso, today) || iso;
 }
 
+// ---- FX-10 PR-3 · El rango probable en el gráfico (3 m) -------------------------------------------------------------
+// La propuesta octava (§6) pide, en 3 m, «diario con rango»: el área azul clara del gráfico único y «rango probable» en el panel del
+// día. Sale de la banda de caja (WP-16, canonical-cash-band.js): las mismas entradas que su tarjeta, hasta 91 días desde hoy (el
+// motor llega a 120 desde la fecha de los saldos). Se ancla a la línea del plan: cada día, el rango es la línea del plan más lo que
+// la simulación se aparta de su propia trayectoria «según el plan» (p10 − central, p90 − central). Así no depende de que la banda
+// y el motor diario partan del mismo saldo, y lo que mide es lo único que la banda sabe: que los pagos sin día confirmado pueden
+// caer otro día. No recoge importes (FX-32, con 3 cierres).
+//
+// Lo que enseña con datos reales: el plan pone los pagos sin día confirmado el día 8 (antes de la nómina), y la simulación los
+// reparte del 1 al 28. Por eso, a mitad de mes, la línea del plan puede quedar POR DEBAJO del rango: es el lado prudente, y se dice.
+// Una simulación por trayectoria del plan (≈ 250 ms la primera vez): recorrer el gráfico no la repite.
+const PREVISION_V2_RANGO_DIAS = 91;
+const previsionV2RangoCache = new WeakMap();
+
+function previsionV2Rango(rows, today) {
+  const band = globalThis.FinanceCanonicalCashBand;
+  if (!band?.simulate || typeof cashBandInput !== "function" || !Array.isArray(rows)) return null;
+  const guardado = previsionV2RangoCache.get(rows);
+  if (guardado && guardado.today === today) return guardado.rango;
+  let rango = null;
+  try {
+    const input = cashBandInput(today);
+    if (input?.events?.length) {
+      const result = band.simulate({ ...input, horizonDays: Number(input.staleDays || 0) + PREVISION_V2_RANGO_DIAS });
+      if (result?.status === "ok") {
+        const plan = new Map(rows.map((row) => [row.date, Number(row.total)]));
+        const dias = new Map();
+        result.days.forEach((day) => {
+          const total = plan.get(day.date);
+          if (day.date < today || !Number.isFinite(total)) return;
+          dias.set(day.date, { low: total + day.p10 - day.central, high: total + day.p90 - day.central });
+        });
+        rango = { dias, quality: result.quality, estimatedShare: result.dateCertainty?.estimatedShare ?? null, hasta: result.days.at(-1)?.date || "" };
+      }
+    }
+  } catch {
+    rango = null;
+  }
+  previsionV2RangoCache.set(rows, { today, rango });
+  return rango;
+}
+
+/** El rango de un día, redondeado como el resto de la previsión (FX-04), o null si es una línea (sin pagos que puedan moverse). */
+function previsionV2RangoDia(rango, date, today) {
+  const dia = rango?.dias?.get(date);
+  if (!dia) return null;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const dias = contract.daysBetween(today, date);
+  const low = contract.roundForHorizon(dia.low, dias);
+  const high = contract.roundForHorizon(dia.high, dias);
+  return high > low ? { low, high, raw: dia } : null;
+}
+
+/** ¿Queda la línea del plan fuera del rango ese día? «debajo» es lo normal a mitad de mes (los pagos sin día, el día 8). */
+function previsionV2RangoLado(row, dia) {
+  if (!dia) return "";
+  const total = Number(row.total);
+  if (total < dia.raw.low - 0.5) return "debajo";
+  if (total > dia.raw.high + 0.5) return "encima";
+  return "";
+}
+
+/** La nota bajo el gráfico, dentro de la figura: qué es el área azul y, si es ancho, por qué y cómo se estrecha. */
+function previsionV2RangoNotaHtml(rango, puntos, today) {
+  if (!rango || !puntos.some((row) => previsionV2RangoDia(rango, row.date, today))) return "";
+  const debajo = puntos.some((row) => previsionV2RangoLado(row, previsionV2RangoDia(rango, row.date, today)) === "debajo");
+  const ancho = rango.quality === "wide" && rango.estimatedShare !== null
+    ? ` Es ancho porque el ${Math.round(rango.estimatedShare * 100)} % de lo que se mueve no tiene día confirmado: <button type="button" class="hoy-v2-link" data-prevision-v2-nav="planificacion-partidas">confirmar el día de los pagos grandes</button> lo estrecha.`
+    : "";
+  return `<p class="e19-kpi-note prev-v2-rango-nota">Área azul: el rango probable (8 de cada 10 casos), según qué día caigan los pagos; no recoge cambios de importe.${debajo ? " La línea del plan pone el día 8 los pagos sin día confirmado: es el lado prudente, y por eso algunos días queda por debajo del rango." : ""}${ancho}</p>`;
+}
+
 /** La lectura de un punto del gráfico (y su texto para lectores de pantalla): el saldo y el margen, redondeados como el panel. El
- *  detalle de lo que mueve el día está en el panel del día (FX-10 PR-2), no se repite aquí. */
-function previsionV2Lectura(row, floor, today) {
+ *  detalle de lo que mueve el día está en el panel del día (FX-10 PR-2), no se repite aquí. Con el rango (3 m), también el rango. */
+function previsionV2Lectura(row, floor, today, rango = null) {
   const contract = globalThis.FinanceCanonicalForecastContract;
   const margen = Number(row.total) - floor;
   const margenDicho = money(contract.roundForHorizon(Math.abs(margen), contract.daysBetween(today, row.date)));
-  return `${previsionV2Fecha(row.date, today)}: ${previsionV2Saldo(Number(row.total), row.date, today)} previstos · ${margen < 0 ? `${margenDicho} por debajo del suelo` : `${margenDicho} sobre el suelo`}.`;
+  const dia = previsionV2RangoDia(rango, row.date, today);
+  return `${previsionV2Fecha(row.date, today)}: ${previsionV2Saldo(Number(row.total), row.date, today)} previstos · ${margen < 0 ? `${margenDicho} por debajo del suelo` : `${margenDicho} sobre el suelo`}${dia ? ` · rango probable ${money(dia.low)} – ${money(dia.high)}` : ""}.`;
 }
 
 function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null, cambios = null }) {
@@ -456,14 +529,20 @@ function previsionV2GraficoCuentasHtml({ puntos, today, horizonte }) {
   });
 }
 
-function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [] }) {
+function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [], rango = null }) {
   const kit = globalThis.ChartKit;
   if (!kit?.forecastPlotHtml || puntos.length < 2) return "";
   if (previsionV2Vista() === "cuentas" && puntos.every((row) => Number.isFinite(Number(row.checking)) && Number.isFinite(Number(row.savings)))) return previsionV2GraficoCuentasHtml({ puntos, today, horizonte });
   const markers = horizonte.paso === "mes" ? [] : previsionV2Marcadores(puntos, hitos, today);
+  // FX-10 PR-3: el rango probable, solo en 3 m (cada punto es un día). Sin pagos que puedan moverse ese día, el área se cierra en la línea.
+  const banda = (row) => {
+    const dia = rango?.dias?.get(row.date);
+    return dia ? { low: dia.low, high: dia.high } : {};
+  };
+  const conRango = Boolean(rango) && puntos.some((row) => previsionV2RangoDia(rango, row.date, today));
   const plot = kit.forecastPlotHtml({
-    points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null })),
-    ariaLabel: `Saldo previsto ${horizonte.titulo}, con el suelo de ${money(floor)}`,
+    points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null, ...(conRango ? banda(row) : {}) })),
+    ariaLabel: `Saldo previsto ${horizonte.titulo}, con el suelo de ${money(floor)}${conRango ? " y el rango probable" : ""}`,
     threshold: { value: floor, label: "suelo" },
     todayIndex: 0,
     markers,
@@ -472,11 +551,18 @@ function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null
       : [],
     format: (value) => money(value),
   });
-  const readings = puntos.map((row) => previsionV2Lectura(row, floor, today));
+  const readings = puntos.map((row) => previsionV2Lectura(row, floor, today, conRango ? rango : null));
+  const rangoTexto = (row) => {
+    const dia = previsionV2RangoDia(rango, row.date, today);
+    return dia ? `${money(dia.low)} – ${money(dia.high)}` : "—";
+  };
   return kit.figureHtml({
     id: "prevision-v2", plotHtml: plot.svg + plot.overlayHtml, plotClass: "prev-v2-plot", readings, xs: plot.xs,
+    noteHtml: conRango ? previsionV2RangoNotaHtml(rango, puntos, today) : "",
     sliderLabel: `Recorrer la previsión ${horizonte.titulo}`,
-    table: { caption: `Saldo previsto ${horizonte.titulo}`, columns: ["Día", "Saldo previsto", "Sobre el suelo"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor)]) },
+    table: conRango
+      ? { caption: `Saldo previsto ${horizonte.titulo}, con el rango probable`, columns: ["Día", "Saldo previsto", "Sobre el suelo", "Rango probable"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor), rangoTexto(row)]) }
+      : { caption: `Saldo previsto ${horizonte.titulo}`, columns: ["Día", "Saldo previsto", "Sobre el suelo"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor)]) },
   });
 }
 
@@ -1399,6 +1485,12 @@ function previsionV2DiaHtml(ctx, date) {
     const bajo = Number(row.checking) < suelo - 0.5;
     lineas.push(`Cuenta corriente ${previsionV2Saldo(Number(row.checking), date, today)}${bajo ? (suelo > 0 ? " (bajo su reserva)" : " (en descubierto)") : ""} · ahorro ${previsionV2Saldo(Number(row.savings), date, today)}.`);
   }
+  // FX-10 PR-3: el rango probable del día (3 m), como en la referencia; y, si el plan queda por debajo, por qué.
+  const rangoDia = ctx.rango ? previsionV2RangoDia(ctx.rango, date, today) : null;
+  const lado = previsionV2RangoLado(row, rangoDia);
+  const rangoLinea = rangoDia
+    ? `<p class="prev-v2-dia-rango">Rango probable <strong>${escapeHtml(money(rangoDia.low))} – ${escapeHtml(money(rangoDia.high))}</strong>${lado === "debajo" ? " · el plan, por debajo: pone el día 8 los pagos sin día confirmado" : lado === "encima" ? " · el plan, por encima: cuenta un cobro sin día confirmado que puede llegar más tarde" : ""}</p>`
+    : "";
   let conPrueba = "";
   const hit = prueba?.applied && prueba.rows?.find((item) => item.date === date);
   if (hit) {
@@ -1426,6 +1518,7 @@ function previsionV2DiaHtml(ctx, date) {
     <p class="e19-eyebrow">${esBajo ? "Día seleccionado · el más bajo" : "Día seleccionado"}</p>
     <div class="prev-v2-dia-cabecera"><p class="prev-v2-dia-fecha" id="prevV2DiaTitulo">${escapeHtml(previsionV2FechaLarga(date, today))}</p><strong class="prev-v2-dia-saldo">${escapeHtml(previsionV2Saldo(Number(row.total), date, today))}</strong></div>
     <p class="prev-v2-dia-sub">${escapeHtml(lineas.join(" "))}</p>
+    ${rangoLinea}
     ${conPrueba}
     <p class="e19-eyebrow prev-v2-dia-mueve">Qué lo mueve</p>
     ${lista}
@@ -1988,12 +2081,13 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     : previsionV2Segunda ? previsionV2PruebaDoble([previsionV2Escenario, previsionV2Segunda], rows, today, tramo.at(-1).date, floor)
     : previsionV2Prueba(previsionV2Escenario, rows, today, tramo.at(-1).date, floor);
   const hitos = previsionV2Hitos(tramo, today);
-  previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows };
+  const rango = horizonte.id === "3m" ? previsionV2Rango(rows, today) : null; // FX-10 PR-3
+  previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows, rango };
   const cambios = previsionV2Cambios({ rows, tramo, today, horizonte });
   return `${segmentado}
     <article class="e19-card prev-v2-card con-dia">
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
-      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
+      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos, rango })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
