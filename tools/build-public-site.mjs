@@ -211,6 +211,7 @@ const files = [
   "datos-ui.js",
   "ficha-movimiento-ui.js",
   "importar-extracto-ui.js",
+  "laboratorio-ui.js",
   "canonical-net-worth.js",
   "patrimonio-ui.js",
   "estados-ui.js",

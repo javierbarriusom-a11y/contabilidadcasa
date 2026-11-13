@@ -113,6 +113,35 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (460): XGO-01 PR-4, Laboratorio sale de app.js; el margen bajo el techo vuelve a ~130 líneas
+
+- **Petición del hogar:** «sigue con el backlog».
+- **Por qué esto y no otra fila:**
+  - **P0 de noviembre (§5.1):** sin filas que pueda hacer Claude. Todo está hecho, va en #607 (FX-03, FX-43) o lo tiene el hogar (H-35; WP-23 espera a H-03).
+  - **P1 fuera de #607:**
+    - FX-21 resto: espera al hogar.
+    - D1-D2 y la navegación de 5 destinos: esperan a las revisiones del 14 al 18/11 (ESTADO §8).
+    - WP-34 y WP-54: son de enero y diciembre.
+  - **FX-40, «falta medir el plan por separado»:** obliga a guardar la entrada entera del plan en cada foto, algo que se descartó a propósito por el peso. Además toca Previsión, que #607 reescribe el 16/11.
+  - **Lo que sí estaba desbloqueado:** el margen de `app.js`. Con #607, 32.401 líneas frente a un techo de 32.426, es decir, 25 líneas. La primera entrega de diciembre que añadiera lógica habría chocado con él.
+- **Qué se hace:** las 33 funciones de Laboratorio («Funciones en prueba» de Ajustes, L-1…L-10, T-4, OPT-2) y del informe de uso de la app (ARQ-0) pasan tal cual al nuevo `laboratorio-ui.js`.
+  - El corte se hace con `acorn`, no a ojo: cada declaración de función de primer nivel del tramo, con los comentarios que lleva encima.
+  - **Solo funciones.** Las constantes y variables siguen en `app.js`, porque `laboratorioSelectedHash` se inicializa con `LABORATORIO_CATALOG`, que se declara allí: en un script que carga antes, aún no existiría.
+  - Las funciones de días de cargo del mismo tramo (WP-04, WP-08) se quedan en `app.js`: son de otro dominio.
+- **Resultado:** `app.js` pasa de 32.399 a 32.073 líneas. El techo baja por el trinquete (P7) a **32.203**: 130 de margen, 128 con #607 encima.
+- **Sin choque con #607 (sale el 16/11):**
+  - La etiqueta `<script>`, el service worker y la lista del sitio publicado van en huecos que #607 no toca. Fusión de prueba de #607 encima: sin conflictos y `npm test` 6.593/6.593.
+  - **El sello de `app.js` en `index.html` no cambia, a diferencia de la PR-3.** #607 cambia justo la línea anterior, y cambiarlo daría conflicto. Tampoco hace falta: un `app.js` viejo en caché junto al script nuevo declararía dos veces las mismas funciones, idénticas, y eso no es un error. Solo lo serían `let` y `const`, y no se mueve ninguno.
+- **Pruebas:** en `tests/xgo01-sin-funciones-duplicadas.test.cjs`, una nueva, que comprueba:
+  - las funciones están en `laboratorio-ui.js` y no en `app.js`;
+  - ese fichero solo tiene funciones y comentarios;
+  - las constantes y variables siguen en `app.js`;
+  - se carga antes que `app.js`;
+  - figura en la caché del service worker y en el sitio publicado.
+
+  `FICHEROS_APP` lo incluye, y `tests/arq4-techo-app-js.test.cjs` lleva el techo nuevo con su historia.
+- **Validación:** `npm run verify` en verde (6.535/6.535).
+
 ## Cierre de sesión — 13 de noviembre de 2026 (459): el «Deshacer» se cierra al cambiar de pantalla (tapaba «Firmar cierre» a 390 px); #608 desplegado y #607 comprobado sobre el main nuevo
 
 - **#608 (DISK-IO):** fusionado el 12/11 a las 21:34Z (main `329feee`). «Verify and deploy Pages» en verde y la comprobación del sitio publicado de las 23:34Z, también.

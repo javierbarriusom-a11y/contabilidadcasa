@@ -91,3 +91,27 @@ test("el asistente de importar extracto vive fuera de app.js, en un script que s
   assert.ok(pos("importar-extracto-ui.js") !== -1 && pos("importar-extracto-ui.js") < pos("app.js"), "se carga con defer antes que app.js");
   assert.match(html, /<script defer src="app\.js\?v=20261109fx23b">/, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
 });
+
+// XGO-01 · PR-4 (13/11/2026): Laboratorio (L-1…L-10, T-4, OPT-2) y el informe de uso de la app (ARQ-0) pasan a
+// laboratorio-ui.js, tal cual, para devolver a app.js su margen bajo el techo (ARQ-4). Solo funciones: las constantes y
+// variables siguen en app.js, porque `laboratorioSelectedHash` se inicializa con `LABORATORIO_CATALOG`, que se declara allí.
+// Por eso el sello de app.js en index.html no tiene que cambiar (a diferencia de la PR-3): un app.js viejo en caché junto a
+// este script declararía dos veces las mismas funciones, idénticas, lo que no es un error; solo `let`/`const` lo serían.
+test("Laboratorio y el uso de la app viven fuera de app.js, en un script que se carga antes que él", () => {
+  const app = read("app.js");
+  const laboratorio = read("laboratorio-ui.js");
+  ["renderAjustesLaboratorio", "renderAjustesUsoApp", "laboratorioWriteGuard", "handleLaboratorioOpenReadOnly", "laboratorioActaCsvContent", "laboratorioDetailHtml", "handleLaboratorioSelect"].forEach((name) => {
+    assert.match(laboratorio, new RegExp(`^(async )?function ${name}\\(`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(async )?function ${name}\\(`, "m"), `${name} ya no está en app.js`);
+  });
+  assert.doesNotMatch(laboratorio, /^(let|const|var) /m, "solo funciones: las constantes y variables siguen en app.js");
+  assert.doesNotMatch(laboratorio, /^(?!function |async function |\/\/|\s|\}|\]|$)/m, "solo declaraciones y comentarios: nada se ejecuta al cargarse");
+  ["LABORATORIO_VEREDICTOS", "LABORATORIO_PHASE_RETIRED", "laboratorioReadOnlySession", "laboratorioSelectedHash"].forEach((name) => {
+    assert.match(app, new RegExp(`^(let|const) ${name}\\b`, "m"), `${name} sigue en app.js`);
+  });
+  const html = read("index.html");
+  const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
+  assert.ok(pos("laboratorio-ui.js") !== -1 && pos("laboratorio-ui.js") < pos("app.js"), "se carga con defer antes que app.js");
+  assert.ok(read("service-worker.js").includes('"./laboratorio-ui.js"'), "en la caché del service worker");
+  assert.ok(read("tools/build-public-site.mjs").includes('"laboratorio-ui.js"'), "en el sitio publicado");
+});
