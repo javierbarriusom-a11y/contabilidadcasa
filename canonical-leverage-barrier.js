@@ -27,6 +27,23 @@
     return Math.round((number(value) + Number.EPSILON) * 100) / 100;
   }
 
+  // Cifras para el usuario en formato español, sin depender del Intl de cada navegador (es-ES no agrupa los
+  // millares de 4 cifras): euros enteros con punto de miles («12.346 €») y porcentaje con coma («35,2 %»). Mismo
+  // criterio que euros() de canonical-decision-freshness.js; el signo, con «−», por si el colchón sale negativo.
+  function groupThousands(digits) {
+    return String(digits).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function euros(value) {
+    const rounded = Math.round(Math.abs(value));
+    return `${value < 0 && rounded > 0 ? "−" : ""}${groupThousands(rounded)} €`;
+  }
+
+  function percentOneDecimal(ratio) {
+    const tenths = Math.round(Math.abs(ratio) * 1000);
+    return `${ratio < 0 && tenths > 0 ? "−" : ""}${groupThousands(Math.floor(tenths / 10))},${tenths % 10} %`;
+  }
+
   function issue(id, level, title, detail) {
     return { id, level, title, detail };
   }
@@ -51,7 +68,7 @@
         "cushion-below-floor",
         "blocker",
         "El colchón de emergencia no llega al suelo",
-        `El colchón actual (${value.toFixed(2)}) no llega al suelo configurado (${floor.toFixed(2)}). Sin ese margen, pedir deuda nueva para invertir no es prudente.`,
+        `El colchón actual (${euros(value)}) no llega al suelo configurado (${euros(floor)}). Sin ese margen, pedir deuda nueva para invertir no es prudente.`,
       ));
     }
   }
@@ -87,7 +104,7 @@
     const passed = ratio < DEBT_SERVICE_RATIO_LIMIT;
     checks.push({
       id: "debt-service-ratio",
-      label: `Cuota de deuda actual por debajo del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)}% del ingreso`,
+      label: `Cuota de deuda actual por debajo del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)} % del ingreso`,
       passed,
       value: ratio,
     });
@@ -96,7 +113,7 @@
         "debt-service-ratio-too-high",
         "blocker",
         "La deuda actual ya compromete demasiado ingreso",
-        `Las cuotas actuales representan el ${(ratio * 100).toFixed(1)}% del ingreso mensual neto, por encima del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)}% que este guardarraíl considera prudente antes de sumar deuda nueva.`,
+        `Las cuotas actuales representan el ${percentOneDecimal(ratio)} del ingreso mensual neto, por encima del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)} % que este guardarraíl considera prudente antes de sumar deuda nueva.`,
       ));
     }
   }
