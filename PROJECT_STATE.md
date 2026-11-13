@@ -113,6 +113,31 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (460): el guardarraíl de apalancamiento (AP4) da las cifras en formato español
+
+- **Qué se pintaba mal:**
+  - En Inversión › Deuda y apalancamiento › «Simulador de apalancamiento» (`#ap3BarrierStatus`), los dos bloqueos con cifras salían con formato de programador.
+  - El colchón salía con `toFixed(2)`: «El colchón actual (12345.67) no llega al suelo configurado (15000.00)».
+  - La cuota salía con punto decimal: «35.2%».
+  - Va contra `docs/rediseno/ESTADO.md` §3 (decisión 7) y §5 (los textos de los motores se arreglan en origen, motor a motor).
+- **Qué se hizo:**
+  - `canonical-leverage-barrier.js` (motor puro) formata él mismo con dos funciones nuevas: `euros()` (enteros, punto de miles, «€», «−» si es negativo) y `percentOneDecimal()` (coma decimal, espacio antes de «%»).
+  - Mismo criterio que `euros()` de `canonical-decision-freshness.js`, sin `Intl`: es-ES no agrupa los millares de 4 cifras.
+  - Ahora sale «El colchón actual (12.346 €) no llega al suelo configurado (15.000 €)» y «el 35,2 % del ingreso mensual neto, por encima del 35 % que…».
+  - Versión del script en `index.html`: `20261113ap4fmt`.
+- **Lo que no cambia:**
+  - `id`, `title`, umbrales y campos del resultado (`checks[].value` sigue siendo la proporción en bruto).
+  - Ningún consumidor lee el texto del detalle: `app.js` lo pinta tal cual y las pruebas comparan por `id`.
+  - La etiqueta interna del check («…del 35% del ingreso») no se pinta en ninguna pantalla y se queda igual.
+- **Prueba:** `tests/fmt-leverage-barrier-cifras.test.cjs` (4).
+  - Comprueba los dos textos enteros, la agrupación con 4 y 7 cifras, el signo negativo, el 35,0 % y el 123,5 %.
+  - Comprueba también que el motor no usa `toFixed`.
+- **Validación:**
+  - `npm run verify` en verde: 6.594/6.594 más lint, typecheck, a11y, rendimiento, build, privacidad y smoke.
+  - e2e de `qa1` con apalancamiento (XDA-10 y las demás de `-g "XDA-10|apalanc|AP3|AP1|LEV"`): 30/30.
+  - En la app servida desde `dist`, forzando los dos bloqueos, la caja enseña «12.346 €», «15.000 €» y «35,2 %», sin errores de página.
+  - Con los datos de demo el guardarraíl pasa y no enseña ningún bloqueo.
+
 ## Cierre de sesión — 13 de noviembre de 2026 (459): #607 fusionado hoy, tres días antes de lo previsto
 
 - **Decisión del hogar:** «fusiona hoy». Antes de fusionar, Claude avisó del coste:
