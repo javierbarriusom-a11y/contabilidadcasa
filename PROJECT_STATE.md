@@ -141,7 +141,8 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 
   `FICHEROS_APP` lo incluye, y `tests/arq4-techo-app-js.test.cjs` lleva el techo nuevo con su historia.
 - **Validación:**
-  - `npm run verify` en verde (6.535/6.535).
+  - `npm run verify` en verde (6.535/6.535 antes de integrar `main`; 6.593/6.593 después, con #607 dentro).
+  - Ya integrado con `main`: 62 de 62 e2e y a11y de Firmar cierre, Registrar gasto, carta del mes, Ajustes, Laboratorio, XGO y Deshacer.
   - **Playwright completo en local** (e2e, a11y y perf-screens): 383 de 385. Ninguno de los dos fallos es de este cambio, y los dos eran de la prueba:
     - **Contraste de la carta del mes (WP-29, a11y):** «renderCierre is not defined». En `main`, antes de #607, fallaba 3 de 12. La prueba esperaba a `recordCartaMes` y al título de Cierre, que pueden estar listos antes de que llegue la vista diferida `views/cierre.js`.
       - #607 traía el mismo arreglo (esperar también a `renderCierre`). Al integrar `main` se queda el suyo; con él, 24 de 24.

@@ -4104,6 +4104,8 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
     await page.fill("#homeQuickExpenseAmount", "37,45");
     await page.click("#homeQuickExpenseSubmit");
     await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    // El «close» que guarda llega en una tarea aparte (ver «el día 2 va a noviembre»): se espera a que esté guardado.
+    await page.waitForFunction(() => Boolean(JSON.parse(localStorage.getItem(storageKey("capture-log")) || "null")?.entries?.length));
     const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
     expect(entry).toMatchObject({ concept: "Supermercado prueba", amount: -37.45, channel: "ventana", monthKey: entry.date.slice(0, 7) });
     const rowKey = `expense|${entry.rowId}`;
@@ -4178,6 +4180,9 @@ test.describe("Registrar gasto · del 1 al 3, al mes de la fecha con un enlace a
     await page.fill("#homeQuickExpenseAmount", "12,30");
     await page.click("#homeQuickExpenseSubmit");
     await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    // 13/11/2026: con <form method="dialog">, el diálogo se cierra al enviar y el «close» que guarda llega en una tarea aparte;
+    // leer en cuanto se oculta podía adelantarse con la máquina cargada (`null.entries`). Se espera a que esté guardado.
+    await page.waitForFunction(() => Boolean(JSON.parse(localStorage.getItem(storageKey("capture-log")) || "null")?.entries?.length));
     const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
     expect(entry).toMatchObject({ concept: "Compra atrasada", amount: -12.3, monthKey: "2026-10", date: "2026-11-02" });
     expect(pageErrors).toEqual([]);
