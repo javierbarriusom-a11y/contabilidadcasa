@@ -4413,6 +4413,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
   if (viewChanged) recordViewVisit(viewId);
+  if (viewChanged) hideUndoToast(); // 13/11/2026 (hogar): el «Deshacer» es de la pantalla que se deja; en el móvil tapaba botones de la siguiente
   if (viewId === "registrar") {
     const legacyTab = explicitLegacyTab || registrarTabFromHash();
     if (legacyTab && legacyTab !== registrarActiveTab) setRegistrarTab(legacyTab);

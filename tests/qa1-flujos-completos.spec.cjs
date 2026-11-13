@@ -7450,9 +7450,12 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(panel).toContainText("Tanda terminada · 4 reglas nuevas");
       await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
       await expect(top).toContainText("Todos los movimientos tienen partida.");
+      await expect(page.locator("#undoToast"), "el «Deshacer» de la última regla sigue en su pantalla").toBeVisible();
 
       // Cierre: la cuenta importada cuadra con su extracto; la otra queda sin conciliar, que no bloquea pero se dice.
       await page.goto("/index.html#cierre");
+      // 13/11/2026 (hogar): el «Deshacer» se cierra al cambiar de pantalla; a 390 px tapaba «Firmar cierre» (ver más abajo).
+      await expect(page.locator("#undoToast"), "al cambiar de pantalla, el «Deshacer» de la anterior se va").toBeHidden({ timeout: 1000 });
       await page.waitForFunction(() => typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
       await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
       const tabla = page.locator(".cierre-accounts-table");
@@ -7480,11 +7483,11 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(firmar).toHaveAttribute("aria-disabled", "true");
       await expect(firmar).toHaveClass(/is-bloqueado/);
       await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
-      // 13/11/2026: a 390 px fallaba al azar. El aviso de «Deshacer» de la regla creada arriba dura 10 s y flota sobre la parte
-      // baja; según dónde quedara el desplazamiento, tapaba el botón y el clic forzado caía en el aviso (comprobado: 6 de 10, y
-      // las 6 con el clic en #undoToastMessage). Se espera a que se vaya, como haría quien lo lee, y se comprueba que lo que hay
-      // bajo el centro del botón es el botón: lo que tocaría un dedo. `force` sigue solo por aria-disabled.
-      await expect(page.locator("#undoToast")).toBeHidden({ timeout: 15000 });
+      // 13/11/2026: a 390 px fallaba al azar. El aviso de «Deshacer» de la regla creada arriba duraba 10 s más allá de su
+      // pantalla y flotaba sobre la parte baja; según dónde quedara el desplazamiento, tapaba el botón y el clic forzado caía en
+      // el aviso (comprobado: 6 de 10, y las 6 con el clic en #undoToastMessage). Ahora se cierra al cambiar de pantalla (arriba),
+      // y aquí se comprueba que lo que hay bajo el centro del botón es el botón: lo que tocaría un dedo. `force` sigue solo por
+      // aria-disabled.
       await firmar.scrollIntoViewIfNeeded();
       expect(await firmar.evaluate((boton) => {
         const caja = boton.getBoundingClientRect();
