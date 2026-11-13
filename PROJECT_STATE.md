@@ -113,6 +113,29 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (464): la hoja de las revisiones del 14 al 20/11; y #614 publicado, con un despliegue que no salió solo
+
+- **#614 (XDA-10 PR-3) publicado:**
+  - Fusionado a las 14:47Z (`main` **`e5e6868`**), con el CI de su cabeza `1533e39` en verde, Safari incluido.
+  - **El push de la fusión no disparó «Verify and deploy Pages».** GitHub devolvió un 502 a la llamada de fusionar, aunque la fusión entró, y no salió ninguna ejecución para `e5e6868`. El sitio se quedó en `6b5be92` (#611, desplegado a las 13:58Z) hasta que lo vio la comprobación programada de las 15:50Z.
+  - Se lanzó a mano el mismo workflow (`workflow_dispatch` sobre `main`, ejecución 1402). `verify` y `deploy` salieron en verde, y el artefacto se publicó a las 16:37:30Z. «Published availability» (ejecución 333) también salió en verde, sobre `e5e6868`.
+  - **Lección:** tras una fusión, mirar que exista la ejecución de despliegue de ese commit, no solo que el CI del PR estuviera en verde.
+- **Sesiones:** a petición del hogar, todo pasa por un solo hilo.
+  - Se archivaron las sesiones terminadas de #607, #608/#610, XDA-04 PR-2, «Mejoras app financiera» y #611.
+  - La comprobación programada de FX-41 del 23/11 se rehízo en este hilo y se borró la de la sesión archivada.
+- **Petición del hogar:** «la que tú creas mejor».
+  - Del P0 y el P1 no queda nada que Claude pueda hacer sin el hogar.
+  - Lo que más desbloquea son las revisiones del 14 al 18/11, de las que dependen D1-D2 y la navegación de 5 destinos. No tenían hoja de criterios: la de `docs/REVISION_POST_CIERRE_2026-11.md` llegaba hasta el 12/11.
+- **Qué se hace:** una sección nueva en `docs/REVISION_POST_CIERRE_2026-11.md`, «Del 14 al 20/11». Lleva el criterio escrito antes de ver los datos para seis revisiones: Plan › Mes (14/11), Hoy (16/11), Clasificar, Cierre y Dinero parado (18/11) y Previsión (20/11). Lleva también la recomendación para D-N2, D-N5 y D-N7, con fecha 18/11.
+- **Lo que la hoja corrige** (propuestas de Claude, a consultar):
+  - **Cierre nuevo y H10 no se pueden juzgar el 18/11.** Su métrica es «cierres firmados desde aquí» y desde el 4/11 no ha habido ningún cierre. Se propone el 4/12, tras el cierre de noviembre.
+  - **Clasificar y H12, tampoco.** La decisión del 4/11 dice «con el cierre de noviembre», que es del 1 al 3/12. Se propone el 4/12. Para H12, si entonces hay menos de 10 grupos de confianza alta medidos, se decide bajar la puerta o retirar la propuesta, en vez de esperar meses.
+  - **Hoy (16/11), sin un tercer aplazamiento sin medir.**
+    - La línea base de WP-02 está pendiente desde el 16/10, y Hoy cambió el 9/11 y el 13/11.
+    - Dos salidas: hacer los tres intentos ese día (unos 3 minutos) o pasar la métrica al uso.
+  - **Previsión (20/11):** si no llega a 2 días por semana, aplazar al 4/12 y no apagar, porque cambió mucho el 13/11 con #607.
+- **Validación:** solo cambia documentación. `npm test` 6.602/6.602 (no `verify` entero: no hay código que validar).
+
 ## Cierre de sesión — 13 de noviembre de 2026 (463): XDA-10 · PR-3, «Antes de decidir» en los simuladores de inversión; y #610 fusionado
 
 - **#610 fusionado** el 13/11 a las 11:24Z, por squash (`main` `9baea44` → **`c342409`**, con el mismo árbol que su cabeza `7d8566d`):
