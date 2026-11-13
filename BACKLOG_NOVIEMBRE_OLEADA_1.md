@@ -21,6 +21,11 @@ minutos.
 
 ## 0. Estado en una línea
 
+**13/11/2026 · #610 fusionado: el «Deshacer» se cierra al cambiar de pantalla y `app.js` recupera su margen («que el aviso se cierre al cambiar de pantalla» y «sigue con el backlog»).**
+- El aviso de «Deshacer» (10 s) seguía visible en la pantalla siguiente y, en el móvil, tapaba sus botones: el toque en «Firmar cierre» caía en él. Ahora se cierra al cambiar de pantalla; dentro de una pantalla dura sus 10 s, como hasta ahora.
+- **XGO-01 PR-4:** Laboratorio y el informe de uso de la app (33 funciones) pasan a `laboratorio-ui.js`. `app.js` queda en 32.075 líneas, con techo 32.203: 128 de margen, que con #607 se había quedado en 25.
+- **Del núcleo (§5.1) no queda nada que pueda hacer Claude.** Lo que falta espera al hogar: H-35, H-03 (WP-23), las revisiones del 14 al 18/11 (D1-D2 y la navegación de 5 destinos), FX-21 resto, la cota del Euribor y la retención de la auditoría de Supabase (PROJECT_STATE 460 y 461).
+
 **13/11/2026 · #607 fusionado hoy, no el lunes 16/11, a petición del hogar («fusiona hoy»).** Entra FX-03, el cambio de Hoy que estaba previsto para la semana del 16/11. Esa semana se queda sin cambio de Hoy nuevo, y la del 9/11 tiene dos: el punto de confianza (9/11) y FX-03. FX-41 sigue con su puerta: no se ve hasta el 23/11. Las líneas de Novedades del 16/11 pasan al 13/11 (PROJECT_STATE 459).
 
 **12/11/2026 · FX-10 completa: el rango probable en Previsión («sigue con lo siguiente del backlog»).** Con 3 m, el gráfico pinta el rango probable (8 de cada 10 casos) según qué día caigan los pagos, y lo dicen el panel del día, la lectura y la tabla. Con la demo destapa algo: el titular (6.600 € el 14 dic) queda **por debajo** del rango (6.900 – 9.100 €), porque el plan pone el día 8 los pagos sin día confirmado. La pantalla lo dice; qué cifra es el titular se consulta (PROJECT_STATE 457).
