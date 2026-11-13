@@ -48,7 +48,10 @@ const path = require("node:path");
 // → 32.426 (XGO-01 PR-3, 27 de octubre de 2026, sesión 362): el asistente «Importar extracto» en cuatro pasos (46 funciones, sus
 // constantes y las dos variables de la sesión; 845 líneas con sus comentarios) pasa tal cual al nuevo importar-extracto-ui.js;
 // app.js queda en 32.296 y el techo baja por el mismo trinquete.
-const CEILING_LINES = 32426;
+// → 32.203 (XGO-01 PR-4, 13 de noviembre de 2026): Laboratorio y el informe de uso de la app (33 funciones con sus comentarios,
+// 327 líneas) pasan tal cual al nuevo laboratorio-ui.js; app.js queda en 32.073 y el techo baja por el mismo trinquete. El margen
+// se había quedado en 25 líneas (32.401 con la Oleada 2, #607).
+const CEILING_LINES = 32203;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

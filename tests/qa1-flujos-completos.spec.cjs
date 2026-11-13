@@ -4104,6 +4104,8 @@ test.describe("WP-53 · sin duplicados entre captura y extracto", () => {
     await page.fill("#homeQuickExpenseAmount", "37,45");
     await page.click("#homeQuickExpenseSubmit");
     await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    // El «close» que guarda llega en una tarea aparte (ver «el día 2 va a noviembre»): se espera a que esté guardado.
+    await page.waitForFunction(() => Boolean(JSON.parse(localStorage.getItem(storageKey("capture-log")) || "null")?.entries?.length));
     const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
     expect(entry).toMatchObject({ concept: "Supermercado prueba", amount: -37.45, channel: "ventana", monthKey: entry.date.slice(0, 7) });
     const rowKey = `expense|${entry.rowId}`;
@@ -4178,6 +4180,9 @@ test.describe("Registrar gasto · del 1 al 3, al mes de la fecha con un enlace a
     await page.fill("#homeQuickExpenseAmount", "12,30");
     await page.click("#homeQuickExpenseSubmit");
     await expect(page.locator("#homeQuickExpenseDialog")).not.toBeVisible();
+    // 13/11/2026: con <form method="dialog">, el diálogo se cierra al enviar y el «close» que guarda llega en una tarea aparte;
+    // leer en cuanto se oculta podía adelantarse con la máquina cargada (`null.entries`). Se espera a que esté guardado.
+    await page.waitForFunction(() => Boolean(JSON.parse(localStorage.getItem(storageKey("capture-log")) || "null")?.entries?.length));
     const entry = await page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("capture-log"))).entries[0]);
     expect(entry).toMatchObject({ concept: "Compra atrasada", amount: -12.3, monthKey: "2026-10", date: "2026-11-02" });
     expect(pageErrors).toEqual([]);
@@ -7801,9 +7806,12 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(panel).toContainText("Tanda terminada · 4 reglas nuevas");
       await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
       await expect(top).toContainText("Todos los movimientos tienen partida.");
+      await expect(page.locator("#undoToast"), "el «Deshacer» de la última regla sigue en su pantalla").toBeVisible();
 
       // Cierre: la cuenta importada cuadra con su extracto; la otra queda sin conciliar, que no bloquea pero se dice.
       await page.goto("/index.html#cierre");
+      // 13/11/2026 (hogar): el «Deshacer» se cierra al cambiar de pantalla; a 390 px tapaba «Firmar cierre» (ver más abajo).
+      await expect(page.locator("#undoToast"), "al cambiar de pantalla, el «Deshacer» de la anterior se va").toBeHidden({ timeout: 1000 });
       await page.waitForFunction(() => typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
       await expect(page.locator("#cierreTitle")).toHaveText("Cierre de oct 26");
       const tabla = page.locator(".cierre-accounts-table");
@@ -7831,6 +7839,16 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(firmar).toHaveAttribute("aria-disabled", "true");
       await expect(firmar).toHaveClass(/is-bloqueado/);
       await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
+      // 13/11/2026: a 390 px fallaba al azar. El aviso de «Deshacer» de la regla creada arriba duraba 10 s más allá de su
+      // pantalla y flotaba sobre la parte baja; según dónde quedara el desplazamiento, tapaba el botón y el clic forzado caía en
+      // el aviso (comprobado: 6 de 10, y las 6 con el clic en #undoToastMessage). Ahora se cierra al cambiar de pantalla (arriba),
+      // y aquí se comprueba que lo que hay bajo el centro del botón es el botón: lo que tocaría un dedo. `force` sigue solo por
+      // aria-disabled.
+      await firmar.scrollIntoViewIfNeeded();
+      expect(await firmar.evaluate((boton) => {
+        const caja = boton.getBoundingClientRect();
+        return document.elementFromPoint(caja.left + caja.width / 2, caja.top + caja.height / 2) === boton;
+      }), "nada tapa «Firmar cierre»").toBe(true);
       await firmar.click({ force: true }); // aria-disabled: Playwright no lo pulsa solo; un dedo sí
       await expect(page.locator("#cierreFirmaFalta")).toBeVisible();
       await expect(page.locator("#cierreFirmaFalta")).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
