@@ -7745,7 +7745,7 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     await page.goto("/index.html#ajustes");
     const informe = page.locator("#medidorUtilidadLista li", { hasText: "Clasificar por lotes" });
     await expect(informe).toContainText("0 % de las propuestas aceptadas tal cual (0 de 1) · 1 grupo sin propuesta");
-    await expect(informe).toContainText("aceptar en bloque los de confianza alta: faltan 20 grupos de alta para decidir");
+    await expect(informe, "el hogar retiró «aceptar en bloque» el 13/11: la puerta ya no se enseña").not.toContainText("aceptar en bloque");
     await expect(informe).toContainText("Gasto importado con partida (últimos 90 días)");
     const fep = page.locator('#funcionesEnPruebaCard [data-fep-id="clasificar-v2"]');
     await expect(fep).toContainText("propuestas aceptadas tal cual y segundos por grupo (4 o menos)");
@@ -8992,6 +8992,34 @@ test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar"
     await cancelar(1);
     await expect(nota).toContainText("Guardarraíl a");
     await expect(nota.locator(".antes-decidir"), "con los saldos de ayer, nada").toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// XGO-02 · la Previsión nueva cuenta como vista al abrir su pestaña (13/11/2026): antes, abrir Plan (que se pinta con «Mes»
+// delante) y pulsar «Previsión» no se anotaba, y el medidor de noviembre decía «aún sin usar».
+test.describe("XGO-02 · Previsión vista", () => {
+  test("abrir la pestaña Previsión anota la visita; quedarse en Mes, no", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 13, 10, 0, 0) });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const vistas = () => page.evaluate(() => {
+      try {
+        const medidor = JSON.parse(localStorage.getItem("medidor-utilidad") || "{}");
+        return Number(medidor.meses?.["2026-11"]?.["prevision-v2"]?.vistas || 0);
+      } catch {
+        return -1;
+      }
+    });
+    await page.goto("/index.html#plan");
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-plan-panel="mes"]')).toBeVisible();
+    expect(await vistas(), "con Plan › Mes delante, la Previsión no se ha visto").toBe(0);
+    const v2 = await abrirPlanPrevision(page);
+    await expect(v2).toBeVisible();
+    await expect.poll(vistas, { message: "al abrir la pestaña Previsión, la visita queda anotada" }).toBe(1);
     expect(pageErrors).toEqual([]);
   });
 });

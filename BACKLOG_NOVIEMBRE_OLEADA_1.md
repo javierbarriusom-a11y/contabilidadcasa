@@ -21,6 +21,10 @@ minutos.
 
 ## 0. Estado en una línea
 
+**13/11/2026 · Decisiones del hogar sobre las revisiones del 14 al 20/11 («sí» a la hoja).** Hoy se gradúa por uso (la métrica de tiempo se retira). Se retira «aceptar en bloque» (H12; XDA-05 PR-2). Cierre nuevo con H10, Clasificar y Previsión nueva se revisan el **4/12**, tras el cierre de noviembre; Plan › Mes, con el plan de diciembre. El repaso semanal **aporta** y se queda. **Prioridad hasta el 4/12: que entren los datos** (repaso, extractos y clasificar hasta el 95 % antes del cierre); no se construye más previsión hasta la revisión de salida. La app se usa «a veces» en el iPhone: el medidor de allí cuenta aparte (PROJECT_STATE 464).
+
+**13/11/2026 · Hoja de las revisiones del 14 al 20/11 («la que tú creas mejor»).** En `docs/REVISION_POST_CIERRE_2026-11.md`: criterio escrito para Plan (14/11), Hoy (16/11), Clasificar, Cierre y Dinero parado (18/11) y Previsión (20/11), y recomendación para D-N2, D-N5 y D-N7. **Se propone mover Cierre nuevo con H10, y Clasificar con H12, al 4/12:** las dos se juzgan con el cierre de noviembre, que se hace del 1 al 3/12. Hoy, sin aplazarla otra vez sin medir. **Con las capturas del medidor:** el medidor no anotaba la Previsión nueva (arreglado); el repaso semanal no se ha usado en noviembre y Clasificar se queda en un 71 % con partida; se propone dar prioridad a que entren los datos antes de construir más previsión (PROJECT_STATE 464).
+
 **13/11/2026 · XDA-10 completa: «Antes de decidir» en los simuladores de inversión («continúa con la siguiente tarea del backlog»).** Al aportar a un plan de pensiones (lo que queda sobre la reserva) y en el guardarraíl del apalancamiento (AP3 y el escalonado, solo cuando lo decide el colchón), dice si unos saldos antiguos cambiarían el veredicto. `app.js` sin líneas nuevas (PROJECT_STATE 463).
 
 **13/11/2026 · #610 fusionado: el «Deshacer» se cierra al cambiar de pantalla y `app.js` recupera su margen («que el aviso se cierre al cambiar de pantalla» y «sigue con el backlog»).**
@@ -436,7 +440,7 @@ NXP-07, NHG-02, CAP-08 y NHG-03 (`BACKLOG_DEFINITIVO.md` §5.6).
 | **H-35** | Día de cargo de las 10 partidas más grandes (Plan › Partidas o «¿sabes el día?») | La calidad de la previsión, que hoy es la palanca de visibilidad más barata | **Antes del 11/11** |
 | H-03 | Datos fiscales en la app | WP-23 | 12/11 |
 | D-N1…D-N7 | Contestar las decisiones de §7 | Arrancar S2 y S3 | 18/11 |
-| H10, H12 | Excepción XGO-01 de Cierre; puerta de «aceptar en bloque» | Revisiones | 18/11 |
+| H10 | Excepción XGO-01 de Cierre | Revisión del Cierre nuevo | **4/12** (movida el 13/11). H12 (aceptar en bloque): **decidida el 13/11, se retira** |
 | H8 | A5-1/A5-4: activar o archivar | Gobierno | 30/11 |
 | H-06 (nov.) | Cierre de noviembre con saldos del día | Coste del cierre, carta, backtest | 1-3/12 |
 | H-34, H-26 | Desplegar el buzón; tres tiempos de carga en el iPhone | XDA-02 PR-2, WP-52 | Sin fecha |
@@ -485,7 +489,7 @@ panel de seguimiento.
 | P2 WP-17, WP-18, WP-19, WP-39, WP-40, WP-41, WP-44, WP-47, WP-48, WP-50, WP-51, WP-53 | Hechos o esperando al hogar | **Sin cambio**: siguen con su tarea del hogar; no son de esta oleada |
 | P3 (27) | Catálogo | §5.4: tres promovidas, DAC-05 a P2, el resto igual |
 | P4 (5), Archivo (4) | — | Sin cambio |
-| §6 pendientes: H8, H10, H12, `O-6`, OPT-10–13, ARQ-4, I3, I6, Cola B, UX-P1…P7 | — | Sin cambio (H8 30/11; H10 y H12 18/11; `O-6` se mira en enero; OPT-10–13 en enero) |
+| §6 pendientes: H8, H10, H12, `O-6`, OPT-10–13, ARQ-4, I3, I6, Cola B, UX-P1…P7 | — | Sin cambio (H8 30/11; H10 el 4/12 y H12 decidida el 13/11; `O-6` se mira en enero; OPT-10–13 en enero) |
 | Séptima auditoría: XPR-01…05, 08…11, XUX-01, XUX-05, XUX-07, XNF-03, XIN-04, XIN-07, XDO-02 | Propuestas | **Adoptadas** aquí con la prioridad de §5 |
 | Séptima auditoría: el resto (XDA-06…09, XIN-01/03/05/06/08, XDO-01/03…06, XDN-*, XUX-04/06, XNF-01/02/04/05/06) | Propuestas | **Sin cambio**: siguen como propuesta, fuera de esta oleada |
 

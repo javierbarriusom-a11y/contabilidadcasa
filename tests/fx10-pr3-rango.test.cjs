@@ -109,5 +109,5 @@ test("conexión: solo en 3 m, en el gráfico, la tabla, las lecturas y el panel 
   assert.match(vista, /columns: \["Día", "Saldo previsto", "Sobre el suelo", "Rango probable"\]/);
   assert.match(vista, /<p class="prev-v2-dia-rango">Rango probable <strong>/);
   assert.match(vista, /horizonDays: Number\(input\.staleDays \|\| 0\) \+ PREVISION_V2_RANGO_DIAS/);
-  assert.match(read("index.html"), /views\/prevision-v2\.js\?v=20261116fx10c/);
+  assert.match(read("index.html"), /views\/prevision-v2\.js\?v=20261113xgo02vista/); // 13/11: el medidor anota la visita al abrir la pestaña
 });

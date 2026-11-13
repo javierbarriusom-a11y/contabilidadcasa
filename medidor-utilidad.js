@@ -258,10 +258,9 @@
     }
     if (k.sinPropuesta) partes.push(cuenta(k.sinPropuesta, ["grupo sin propuesta", "grupos sin propuesta"]));
     if (k.medianaSegundos !== null) partes.push(`${decimal(k.medianaSegundos)} s por grupo (mediana de ${k.veces}; objetivo 4 s)`);
-    const p = k.puerta;
-    if (p.cumple) partes.push(`aceptar en bloque los de confianza alta: se cumple la puerta (${p.grupos} grupos, ${p.pct} % tal cual)`);
-    else if (p.faltan) partes.push(`aceptar en bloque los de confianza alta: faltan ${cuenta(p.faltan, ["grupo", "grupos"])} de alta para decidir`);
-    else partes.push(`aceptar en bloque los de confianza alta: aún no (${p.pct} % tal cual; hace falta el ${PUERTA_PCT} %)`);
+    // La puerta de «aceptar en bloque» (XDA-05 PR-2) ya no se enseña: el hogar retiró la propuesta el 13/11/2026 (con 0 grupos de
+    // confianza alta en noviembre, 5 de 7 sin propuesta y 0 de 2 tal cual, el atasco está en las propuestas, no en aceptarlas de
+    // una vez). Se sigue calculando en calibracion().puerta, por si se retoma.
     return partes.join(" · ");
   }
 

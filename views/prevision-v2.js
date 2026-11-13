@@ -2125,7 +2125,21 @@ function previsionV2Render() {
   previsionV2CursorAlDia(box);
   panel.classList.add("prevision-v2-on");
   globalThis.renderPuentePrevision?.(globalThis.FinanceCanonicalForecastBridge); // el puente de WP-43, dentro de «Por qué»
-  if (!qs("plan")?.hidden && !panel.closest("[data-plan-panel]")?.hidden) globalThis.FinanceMedidor?.anotar("prevision-v2", "vista"); // XGO-02
+  previsionV2AnotaVista();
+  return true;
+}
+
+/**
+ * XGO-02: la Previsión nueva cuenta como vista solo cuando se ve de verdad: Plan a la vista, la pestaña Previsión abierta y la
+ * versión nueva pintada. Antes solo se miraba al pintar, y la vista se pinta con Plan, casi siempre con «Mes» delante: al pulsar
+ * «Previsión», setPlanTab (app.js) solo quita el `hidden` del panel y no repinta, así que la visita no se anotaba (medidor de
+ * noviembre: «aún sin usar», 13/11/2026). El medidor cuenta días distintos, así que anotar de más el mismo día no cambia nada.
+ */
+function previsionV2AnotaVista() {
+  const box = qs("planPrevisionV2");
+  const panel = box?.closest("[data-plan-panel]");
+  if (!box || box.hidden || qs("plan")?.hidden || panel?.hidden) return false;
+  globalThis.FinanceMedidor?.anotar("prevision-v2", "vista");
   return true;
 }
 
@@ -2183,6 +2197,12 @@ function previsionV2AbrirConfianza() {
 
 function previsionV2Init() {
   const box = qs("planPrevisionV2");
+  // XGO-02: la visita se anota al abrir la pestaña, al llegar a Plan con ella abierta o al pintarse la vista nueva, venga de donde
+  // venga (la pestaña, el punto de Hoy, «Ver la previsión», «Hasta 2036»).
+  if (box && typeof MutationObserver !== "undefined") {
+    const vigila = new MutationObserver(() => previsionV2AnotaVista());
+    [qs("plan"), box.closest("[data-plan-panel]"), box].filter(Boolean).forEach((el) => vigila.observe(el, { attributes: true, attributeFilter: ["hidden"] }));
+  }
   // FX-10 PR-2: el panel del día sigue al punto elegido en el gráfico (ChartKit avisa con «ck-select»). Pasar el ratón solo
   // cambia el panel si el día no está fijado; un clic, un toque o una flecha lo fijan.
   const TECLAS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"];

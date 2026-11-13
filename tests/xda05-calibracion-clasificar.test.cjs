@@ -77,11 +77,12 @@ test("la frase de Clasificar suma la calibración al final de lo de siempre", ()
   store = anota(store, [["alta", true, 3], ["media", false, 7], ["sin", false, 20]]);
   assert.equal(
     medidor.frase("clasificar-v2", medidor.resumen(store, "clasificar-v2")),
-    "vista 1 día · 1 regla aceptada (actuasteis el 100 % de los días) · 0 grupos saltados · 0 reglas deshechas · 50 % de las propuestas aceptadas tal cual (1 de 2; alta 100 % de 1, media 0 % de 1) · 1 grupo sin propuesta · 7 s por grupo (mediana de 3; objetivo 4 s) · aceptar en bloque los de confianza alta: faltan 19 grupos de alta para decidir",
+    "vista 1 día · 1 regla aceptada (actuasteis el 100 % de los días) · 0 grupos saltados · 0 reglas deshechas · 50 % de las propuestas aceptadas tal cual (1 de 2; alta 100 % de 1, media 0 % de 1) · 1 grupo sin propuesta · 7 s por grupo (mediana de 3; objetivo 4 s)",
   );
   const lista = medidor.registrar(anota(null, altas(20, 20)), "clasificar-v2", "vista", { hoy: HOY });
-  assert.match(medidor.frase("clasificar-v2", medidor.resumen(lista, "clasificar-v2")), /100 % de las propuestas aceptadas tal cual \(20 de 20\) · 5 s por grupo .* se cumple la puerta \(20 grupos, 100 % tal cual\)$/);
+  assert.match(medidor.frase("clasificar-v2", medidor.resumen(lista, "clasificar-v2")), /100 % de las propuestas aceptadas tal cual \(20 de 20\) · 5 s por grupo \(mediana de 20; objetivo 4 s\)$/); // la puerta ya no se enseña (el hogar retiró aceptar en bloque, 13/11)
   const corta = medidor.registrar(anota(null, altas(20, 18)), "clasificar-v2", "vista", { hoy: HOY });
-  assert.match(medidor.frase("clasificar-v2", medidor.resumen(corta, "clasificar-v2")), /aún no \(90 % tal cual; hace falta el 95 %\)$/);
+  assert.doesNotMatch(medidor.frase("clasificar-v2", medidor.resumen(corta, "clasificar-v2")), /aceptar en bloque/, "la puerta se calcula, pero ya no se enseña");
+  assert.equal(medidor.calibracion(anota(null, altas(20, 18))).puerta.cumple, false, "y se sigue calculando, por si se retoma");
   assert.equal(medidor.resumen(store, "hoy-v2").calibracion, undefined, "solo Clasificar la lleva");
 });
