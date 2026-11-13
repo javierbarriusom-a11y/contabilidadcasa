@@ -113,7 +113,7 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 13 de noviembre de 2026 (464): la hoja de las revisiones del 14 al 20/11; y #614 publicado, con un despliegue que no salió solo
+## Cierre de sesión — 13 de noviembre de 2026 (464): la hoja de las revisiones del 14 al 20/11 con la lectura del medidor; el medidor no anotaba la Previsión nueva; y #614 publicado, con un despliegue que no salió solo
 
 - **#614 (XDA-10 PR-3) publicado:**
   - Fusionado a las 14:47Z (`main` **`e5e6868`**), con el CI de su cabeza `1533e39` en verde, Safari incluido.
@@ -134,7 +134,30 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
     - La línea base de WP-02 está pendiente desde el 16/10, y Hoy cambió el 9/11 y el 13/11.
     - Dos salidas: hacer los tres intentos ese día (unos 3 minutos) o pasar la métrica al uso.
   - **Previsión (20/11):** si no llega a 2 días por semana, aplazar al 4/12 y no apagar, porque cambió mucho el 13/11 con #607.
-- **Validación:** solo cambia documentación. `npm test` 6.602/6.602 (no `verify` entero: no hay código que validar).
+- **El hogar mandó las capturas del medidor de noviembre** (Ajustes › Uso de la app; del 1 al 13/11, en su dispositivo). Al leerlas aparece un fallo:
+  - **Fallo del medidor (XGO-02):** «Previsión nueva» salía «aún sin usar» aunque se abriera.
+    - **Causa:** `previsionV2Render()` solo anotaba la visita si la pestaña estaba a la vista al pintar. La vista se pinta con Plan, casi siempre con «Mes» delante.
+    - Al pulsar «Previsión», `setPlanTab()` (`app.js`) solo quita el `hidden` del panel, sin repintar.
+    - Comprobado en Chromium: abrir Plan y pulsar «Previsión» anotaba `plan-v2`, pero no `prevision-v2`.
+  - **Arreglo** (`views/prevision-v2.js`, sin tocar `app.js`):
+    - `previsionV2AnotaVista()` anota solo si Plan, el panel y la vista nueva están a la vista.
+    - La llaman el pintado y un `MutationObserver` del `hidden` de los tres. Así vale para cualquier vía: la pestaña, el punto de Hoy, «Ver la previsión» o «Hasta 2036».
+    - `?v=` del script: `20261113xgo02vista`.
+  - **Pruebas:**
+    - `tests/xgo02-prevision-vista.test.cjs` (1).
+    - e2e «XGO-02 · Previsión vista» en `qa1`: con «Mes», 0 visitas; al abrir «Previsión», 1. Falla sin el arreglo y pasa con él.
+  - **Los demás contadores con «aún sin usar», revisados:**
+    - `plan-v2` sí anota: comprobado en el navegador.
+    - `prevision` (FX-62, Herramientas) y `escenarios` se anotan al pintar su propia vista, que se pinta al abrirla. No tienen el mismo problema.
+- **Lectura del medidor**, añadida a la hoja:
+  - Hoy: 7 días, 1 acción y 473,3 s hasta la primera acción. La métrica de tiempo no sirve para una pantalla que se lee: se propone graduar por uso.
+  - Clasificar:
+    - 0 % tal cual (0 de 2), 5 de 7 grupos sin propuesta y 71 % del gasto con partida.
+    - 0 grupos de confianza alta: se propone retirar «aceptar en bloque» (H12) y mirar la cobertura de las propuestas.
+  - Repaso semanal: sin usar en noviembre, con un solo día de importación. El bucle de datos está parado.
+  - Previsión nueva: sin dato por el fallo. Su revisión pasa al 4/12.
+  - **Propuesta:** priorizar estas tres semanas que entren datos y aplicar el 4/12 la regla de parada con datos de verdad.
+- **Validación:** `npm run verify` 6.603/6.603 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de Previsión, Plan, FX-1x a FX-5x y XGO-02: 78 de 78.
 
 ## Cierre de sesión — 13 de noviembre de 2026 (463): XDA-10 · PR-3, «Antes de decidir» en los simuladores de inversión; y #610 fusionado
 

@@ -117,3 +117,34 @@ decidía apagar.
 **Cómo hacerlo en 10 minutos:** abrid Ajustes › Funciones en prueba, copiad en el chat la línea «Medido:» de cada fila de
 esta tabla y decid «sí» o lo que cambiéis. Claude anota las decisiones aquí, en el backlog y en `PROJECT_STATE.md`. Los
 botones «Graduar» y «Dos semanas más» los pulsáis vosotros: el estado vive en vuestro navegador.
+
+### Lectura del medidor de noviembre (capturas del hogar del 13/11)
+
+Medido en el dispositivo de las capturas, del 1 al 13/11. **El medidor cuenta por navegador:** si usáis también el
+iPhone, lo de allí no está aquí.
+
+| Función | Medido | Lectura de Claude |
+| --- | --- | --- |
+| Diseño nuevo | 7 días, 0 vueltas al de siempre | Graduado el 4/11; se confirma. |
+| Hoy nuevo | 7 días, 1 acción (14 %), 473,3 s hasta la primera acción (mediana de 2), 1 vez «Ver todo el detalle» | **La métrica de tiempo no sirve para Hoy:** Hoy se lee, casi nunca se actúa en él, y 473 s solo dicen cuánto tardasteis en ir a otra cosa. Se ve a diario y casi nunca hace falta el detalle. **Recomendación para el 16/11: graduar por uso (salida b) y retirar la métrica de tiempo.** |
+| Movimientos nuevo | 7 días, 21 acciones (43 %), 1 vez «Ver todo el detalle» | Es la pantalla de trabajo; graduada el 4/11. |
+| Importar en tres pasos | 1 día, 2 extractos, 0 veces al asistente | Funciona, pero en noviembre solo ha entrado un día de extractos. |
+| Clasificar por lotes | 1 día, 7 reglas, 2 saltados, **0 % tal cual (0 de 2)**, **5 grupos sin propuesta**, 15,5 s por grupo (objetivo 4 s), **gasto con partida 71 %** (objetivo 95 %), 0 grupos de confianza alta | El problema no es aceptar en bloque, sino las propuestas: 5 de 7 grupos sin propuesta y las 2 que había, corregidas. Con 0 grupos de confianza alta, la puerta de 20 (H12) no se abrirá. **Recomendación:** decidir H12 ya y **retirar XDA-05 PR-2** (aceptar en bloque); si hay que mejorar algo, que sea la cobertura de las propuestas. Con n = 7 es una señal, no una prueba. Y el 71 %: el cierre de noviembre volverá a acabar en «Por clasificar» si no se clasifica antes. |
+| Repaso semanal | Aún sin usar en noviembre | **Es el hallazgo más importante junto con el de Previsión.** El bucle de datos semanal (repaso, extracto, clasificar) no está ocurriendo: un solo día de importación y ningún repaso en 13 días. Todo lo de previsión depende de que entren datos. Pregunta para el hogar: ¿no aporta, no hay tiempo o no se ve? |
+| Cierre nuevo | Aún sin usar | Esperado: no ha habido cierre. Al 4/12. |
+| Plan nuevo | Aún sin usar (el medidor funciona: comprobado) | No habéis abierto Plan › Mes en noviembre en este dispositivo. Al plan de diciembre. |
+| **Previsión nueva** | Aún sin usar | **Fallo del medidor, arreglado el 13/11:** al abrir la pestaña Previsión no se anotaba la visita (ver PROJECT_STATE 464). La cifra no vale. Medirá desde el despliegue del arreglo: el 20/11 habrá menos de una semana de datos, así que **su revisión también pasa al 4/12**. Las acciones sí se anotaban: si hubierais tocado un horizonte o una prueba, saldría; sin ninguna, lo probable es que tampoco se haya usado mucho. |
+| Previsión (Herramientas, FX-62) | Aún sin usar | La de siempre; ahí el medidor sí funciona. |
+| Escenarios | 2 días, 0 decisiones simuladas o guardadas | Se ha mirado, sin usarlo. |
+| Lo que la app te pide | 4 días, 1 dato buscado (25 %) | Hace su trabajo, poco a poco. |
+| Dinero parado | 1 día, 0 | Aplazar a enero (métrica de dos meses). |
+| Guía del cierre | 1 día, 0 pasos | Esperado sin cierre. |
+| Antes de decidir, El arreglo más barato, Ver con datos de ejemplo, Qué mueve cada día, Aportado frente a valor, Siguiente paso de la cartera | Aún sin usar | No molestan; se quedan hasta enero, como dice la tabla del 12/11. |
+
+**Lectura de conjunto (de Claude, para cuestionar):** el uso está en Hoy y Movimientos, en consultar y registrar. La capa de
+plan y previsión, que es donde se ha puesto casi todo el esfuerzo de la oleada, no tiene uso medido (en parte por el fallo
+del medidor), y el bucle de datos que la alimenta está parado. Antes de construir más previsión conviene:
+1. medir bien (el arreglo de hoy);
+2. dar prioridad, estas tres semanas, a que entren los datos: repaso semanal, extractos y clasificar hasta el 95 % antes
+   del cierre de noviembre;
+3. aplicar el 4/12 la regla de parada de §8 del backlog con datos de verdad, y no seguir con la Oleada 2 por inercia.

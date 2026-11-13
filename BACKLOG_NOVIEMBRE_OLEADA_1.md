@@ -21,7 +21,7 @@ minutos.
 
 ## 0. Estado en una línea
 
-**13/11/2026 · Hoja de las revisiones del 14 al 20/11 («la que tú creas mejor»).** En `docs/REVISION_POST_CIERRE_2026-11.md`: criterio escrito para Plan (14/11), Hoy (16/11), Clasificar, Cierre y Dinero parado (18/11) y Previsión (20/11), y recomendación para D-N2, D-N5 y D-N7. **Se propone mover Cierre nuevo con H10, y Clasificar con H12, al 4/12:** las dos se juzgan con el cierre de noviembre, que se hace del 1 al 3/12. Hoy, sin aplazarla otra vez sin medir (PROJECT_STATE 464).
+**13/11/2026 · Hoja de las revisiones del 14 al 20/11 («la que tú creas mejor»).** En `docs/REVISION_POST_CIERRE_2026-11.md`: criterio escrito para Plan (14/11), Hoy (16/11), Clasificar, Cierre y Dinero parado (18/11) y Previsión (20/11), y recomendación para D-N2, D-N5 y D-N7. **Se propone mover Cierre nuevo con H10, y Clasificar con H12, al 4/12:** las dos se juzgan con el cierre de noviembre, que se hace del 1 al 3/12. Hoy, sin aplazarla otra vez sin medir. **Con las capturas del medidor:** el medidor no anotaba la Previsión nueva (arreglado); el repaso semanal no se ha usado en noviembre y Clasificar se queda en un 71 % con partida; se propone dar prioridad a que entren los datos antes de construir más previsión (PROJECT_STATE 464).
 
 **13/11/2026 · XDA-10 completa: «Antes de decidir» en los simuladores de inversión («continúa con la siguiente tarea del backlog»).** Al aportar a un plan de pensiones (lo que queda sobre la reserva) y en el guardarraíl del apalancamiento (AP3 y el escalonado, solo cuando lo decide el colchón), dice si unos saldos antiguos cambiarían el veredicto. `app.js` sin líneas nuevas (PROJECT_STATE 463).
 
