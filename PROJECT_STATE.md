@@ -113,6 +113,21 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (459): la e2e «Ensayo del cierre» a 390 px deja de fallar al azar; #608 desplegado y #607 comprobado sobre el main nuevo
+
+- **#608 (DISK-IO):** fusionado el 12/11 a las 21:34Z (main `329feee`). «Verify and deploy Pages» en verde y la comprobación del sitio publicado de las 23:34Z, también.
+- **#607 sobre el main nuevo** (fusión de prueba en local, sin tocar su rama):
+  - Sin conflictos: `PROJECT_STATE.md`, `app.js` e `index.html` se combinan solos.
+  - `npm test` 6.590/6.590 (las 6.583 de #607 más las 7 de DISK-IO). Lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke, en verde.
+  - `app.js` fusionado: 32.400 líneas (techo ARQ-4, 32.426) y 1,72 MB (techo, 2 MB). **Quedan 26 líneas de margen:** lo siguiente que añada lógica debe ir en módulo aparte.
+  - Con `-X ours` el árbol fusionado es idéntico al de una fusión normal, y los ficheros de DISK-IO quedan intactos. Aun así, la tarea del 16/11 decía «fusión normal con -X ours», que ante un conflicto tiraría en silencio la parte de main. El hogar cambia esa frase desde la conversación de la tarea, la única desde la que se puede editar: fusión normal y, si hay conflictos, resolverlos a mano o parar y avisar.
+- **«Ensayo del cierre» a 390 px fallaba al azar** (en local, de 2 a 6 de cada 10; en el CI pasaba):
+  - **Causa, comprobada con la prueba instrumentada:** el aviso de «Deshacer» de la regla creada en el paso de clasificar dura 10 s y flota sobre la parte baja de la pantalla. Según dónde quedara el desplazamiento, «Firmar cierre» quedaba debajo (y = 770 de 844 px), y el clic forzado (`force: true`, por `aria-disabled`) caía en `#undoToastMessage`. En las 6 fallidas de 10, el clic cayó en el aviso; en las 4 buenas, en el botón.
+  - **Arreglo, solo en la prueba** (`tests/qa1-flujos-completos.spec.cjs`): se espera a que se vaya el aviso, se lleva el botón a la vista y se comprueba que lo que hay bajo su centro es el botón («nada tapa «Firmar cierre»»), que es lo que tocaría un dedo.
+  - **La app no cambia.** Que un aviso flotante tape lo de debajo durante 10 s es como se diseñó la pila de deshacer (DEX4). Cambiarlo en toda la app se consulta antes.
+  - **Comprobado:** 20/20 (10 a 390 px y 10 a 1.440 px), frente a 4 de 10 antes. Mutación: sin la espera y sin el desplazamiento falla 8 de 8, siempre con «nada tapa», en vez del aviso oculto que no explicaba nada.
+- **Validación:** `npm run verify` en verde (6.532/6.532).
+
 ## Cierre de sesión — 12 de noviembre de 2026 (458): DISK-IO, Supabase sin presupuesto de disco; copias ligeras, menos lecturas y menos guardados
 
 - **Aviso de Supabase (12/11, 18:01):** «your project is running out of Disk IO Budget». El hogar pasó las cifras de la base (consultas de solo lectura en el SQL Editor):

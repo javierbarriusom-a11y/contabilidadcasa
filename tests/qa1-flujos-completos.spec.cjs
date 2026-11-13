@@ -7480,6 +7480,16 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await expect(firmar).toHaveAttribute("aria-disabled", "true");
       await expect(firmar).toHaveClass(/is-bloqueado/);
       await expect(firma).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
+      // 13/11/2026: a 390 px fallaba al azar. El aviso de «Deshacer» de la regla creada arriba dura 10 s y flota sobre la parte
+      // baja; según dónde quedara el desplazamiento, tapaba el botón y el clic forzado caía en el aviso (comprobado: 6 de 10, y
+      // las 6 con el clic en #undoToastMessage). Se espera a que se vaya, como haría quien lo lee, y se comprueba que lo que hay
+      // bajo el centro del botón es el botón: lo que tocaría un dedo. `force` sigue solo por aria-disabled.
+      await expect(page.locator("#undoToast")).toBeHidden({ timeout: 15000 });
+      await firmar.scrollIntoViewIfNeeded();
+      expect(await firmar.evaluate((boton) => {
+        const caja = boton.getBoundingClientRect();
+        return document.elementFromPoint(caja.left + caja.width / 2, caja.top + caja.height / 2) === boton;
+      }), "nada tapa «Firmar cierre»").toBe(true);
       await firmar.click({ force: true }); // aria-disabled: Playwright no lo pulsa solo; un dedo sí
       await expect(page.locator("#cierreFirmaFalta")).toBeVisible();
       await expect(page.locator("#cierreFirmaFalta")).toContainText("Inicia sesión y sincroniza una versión antes de firmar.");
