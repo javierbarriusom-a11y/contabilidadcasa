@@ -157,7 +157,17 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Repaso semanal: sin usar en noviembre, con un solo día de importación. El bucle de datos está parado.
   - Previsión nueva: sin dato por el fallo. Su revisión pasa al 4/12.
   - **Propuesta:** priorizar estas tres semanas que entren datos y aplicar el 4/12 la regla de parada con datos de verdad.
-- **Validación:** `npm run verify` 6.603/6.603 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de Previsión, Plan, FX-1x a FX-5x y XGO-02: 78 de 78.
+- **Decisiones del hogar sobre la hoja (13/11)** — «1- a veces, 2- aporta, 3- sí»:
+  - Usa la app «a veces» en el iPhone, donde el medidor cuenta aparte. El repaso semanal «aporta» y se queda.
+  - Hoy se gradúa por uso. En `funciones-en-prueba.js`, la métrica pasa a «días con Hoy visto sin pulsar «Ver todo el detalle»».
+  - **H12: se retira «aceptar en bloque»** (XDA-05 PR-2).
+    - `medidor-utilidad.js` deja de enseñar la puerta en la línea de Clasificar, aunque `calibracion().puerta` se sigue calculando.
+    - Pruebas al día: `tests/xda05-calibracion-clasificar.test.cjs` y la e2e de Clasificar en `qa1`.
+  - Cierre nuevo con H10, Clasificar y Previsión nueva se revisan el **4/12**. Plan › Mes, con el plan de diciembre; Dinero parado, en enero.
+  - D-N2, D-N5 y D-N7 quedan confirmadas.
+  - **Prioridad hasta el 4/12: que entren los datos.** No se construye más previsión hasta la revisión de salida.
+  - Anotadas en la hoja, en el §0 y las tareas del hogar del backlog, en `BACKLOG_DEFINITIVO.md` (H10, H12 y calendario) y en ESTADO §8, paso 6.
+- **Validación:** `npm run verify` 6.603/6.603 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de Previsión, Plan, FX-1x a FX-5x y XGO-02: 78 de 78. Con las decisiones del hogar aplicadas: `verify` 6.603/6.603 y e2e de Clasificar, XDA-05, Funciones en prueba, medidor y XGO: 16 de 16.
 
 ## Cierre de sesión — 13 de noviembre de 2026 (463): XDA-10 · PR-3, «Antes de decidir» en los simuladores de inversión; y #610 fusionado
 

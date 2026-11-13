@@ -148,3 +148,21 @@ del medidor), y el bucle de datos que la alimenta está parado. Antes de constru
 2. dar prioridad, estas tres semanas, a que entren los datos: repaso semanal, extractos y clasificar hasta el 95 % antes
    del cierre de noviembre;
 3. aplicar el 4/12 la regla de parada de §8 del backlog con datos de verdad, y no seguir con la Oleada 2 por inercia.
+
+### Decisiones del hogar sobre esta hoja (13/11)
+
+El hogar respondió el mismo 13/11: «sí» a las propuestas. Además, la app se usa «a veces» en el iPhone (allí el medidor
+cuenta aparte), y el repaso semanal «aporta».
+
+| Función o decisión | Decisión | Qué hace el hogar en la app |
+| --- | --- | --- |
+| Hoy nuevo | **Graduar por uso.** La métrica pasa a ser los días con Hoy visto sin pulsar «Ver todo el detalle»; se retira la de tiempo hasta la primera acción | El 16/11, «Graduar» |
+| Plan › Mes nuevo | **Aplazar** al plan de diciembre: en noviembre no se ha usado | El 14/11, «Dos semanas más» |
+| Clasificar por lotes | Se revisa el **4/12**, con el cierre de noviembre | El 18/11, «Dos semanas más» |
+| H12 · «aceptar en bloque» (XDA-05 PR-2) | **Se retira la propuesta.** El medidor deja de enseñar la puerta (se sigue calculando, por si se retoma) | Nada |
+| Cierre nuevo y H10 | Se revisan el **4/12**, con el cierre de noviembre; la excepción XGO-01 se mantiene hasta entonces | El 18/11, «Dos semanas más» |
+| Previsión nueva | Se revisa el **4/12**: el medidor la cuenta desde el arreglo del 13/11 | El 20/11, «Dos semanas más» |
+| Dinero parado | **Aplazar** a enero | El 18/11, «Dos semanas más» |
+| Repaso semanal | **Se queda: aporta.** Lo que falta es hacerlo cada semana | — |
+| D-N2, D-N5, D-N7 | **Confirmadas** como recomienda la hoja | — |
+| Prioridad hasta el 4/12 | **Que entren los datos:** repaso semanal, extractos y clasificar hasta el 95 % antes del cierre de noviembre. No se construye más previsión hasta la revisión de salida, donde se aplica la regla de parada del §8 del backlog | — |

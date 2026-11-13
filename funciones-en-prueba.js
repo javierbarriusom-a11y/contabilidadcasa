@@ -34,7 +34,7 @@
   // `encendidaDesde` (antes nacía apagada, ficha XGO-03); se apaga con su interruptor.
   const CATALOGO = [
     { id: "tema-v2", nombre: "Diseño nuevo", queHace: "El aspecto nuevo de toda la app. Apagado, vuelve el de siempre.", desde: "2026-10-19", metrica: "que lo uséis sin volver al de siempre", interruptor: "tema" },
-    { id: "hoy-v2", nombre: "Hoy nuevo", queHace: "Una cifra, hasta tres decisiones y el mes en una barra.", desde: "2026-10-19", metrica: "tiempo hasta la primera acción", parteDe: "tema-v2" },
+    { id: "hoy-v2", nombre: "Hoy nuevo", queHace: "Una cifra, hasta tres decisiones y el mes en una barra.", desde: "2026-10-19", metrica: "días con Hoy visto sin pulsar «Ver todo el detalle» (por uso desde el 13/11; el tiempo hasta la primera acción no sirve para una pantalla que se lee)", parteDe: "tema-v2" },
     { id: "movimientos-v2", nombre: "Movimientos nuevo", queHace: "Bandeja arriba y la lista por día con su partida.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "importar-v2", nombre: "Importar en tres pasos", queHace: "Elegir, revisar con cuadre e importar con deshacer.", desde: "2026-10-21", metrica: "extractos importados por semana", parteDe: "tema-v2" },
     { id: "clasificar-v2", nombre: "Clasificar por lotes", queHace: "Los conceptos sin partida, de cinco en cinco, con propuesta.", desde: "2026-10-21", metrica: "gasto importado con partida (95 % o más), propuestas aceptadas tal cual y segundos por grupo (4 o menos)", parteDe: "tema-v2" },

@@ -7745,7 +7745,7 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     await page.goto("/index.html#ajustes");
     const informe = page.locator("#medidorUtilidadLista li", { hasText: "Clasificar por lotes" });
     await expect(informe).toContainText("0 % de las propuestas aceptadas tal cual (0 de 1) · 1 grupo sin propuesta");
-    await expect(informe).toContainText("aceptar en bloque los de confianza alta: faltan 20 grupos de alta para decidir");
+    await expect(informe, "el hogar retiró «aceptar en bloque» el 13/11: la puerta ya no se enseña").not.toContainText("aceptar en bloque");
     await expect(informe).toContainText("Gasto importado con partida (últimos 90 días)");
     const fep = page.locator('#funcionesEnPruebaCard [data-fep-id="clasificar-v2"]');
     await expect(fep).toContainText("propuestas aceptadas tal cual y segundos por grupo (4 o menos)");
