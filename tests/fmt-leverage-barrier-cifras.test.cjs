@@ -40,6 +40,11 @@ test("cuota sobre el ingreso: porcentaje con coma decimal y espacio antes de «%
   assert.match(detail(evaluateLeverageBarrier(input({ monthlyIncome: 1000, monthlyDebtService: 1234.5 })), "debt-service-ratio-too-high"), /el 123,5 % del ingreso/);
 });
 
+test("la etiqueta del check de la cuota lleva el mismo «35 %», con espacio", () => {
+  const check = evaluateLeverageBarrier(input()).checks.find((item) => item.id === "debt-service-ratio");
+  assert.equal(check.label, "Cuota de deuda actual por debajo del 35 % del ingreso");
+});
+
 test("el motor ya no formatea cifras para el usuario con toFixed", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "canonical-leverage-barrier.js"), "utf8");
   assert.doesNotMatch(source, /toFixed\(/);

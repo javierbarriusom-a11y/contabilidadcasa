@@ -104,7 +104,7 @@
     const passed = ratio < DEBT_SERVICE_RATIO_LIMIT;
     checks.push({
       id: "debt-service-ratio",
-      label: `Cuota de deuda actual por debajo del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)}% del ingreso`,
+      label: `Cuota de deuda actual por debajo del ${Math.round(DEBT_SERVICE_RATIO_LIMIT * 100)} % del ingreso`,
       passed,
       value: ratio,
     });

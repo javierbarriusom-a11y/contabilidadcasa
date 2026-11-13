@@ -128,15 +128,16 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Lo que no cambia:**
   - `id`, `title`, umbrales y campos del resultado (`checks[].value` sigue siendo la proporción en bruto).
   - Ningún consumidor lee el texto del detalle: `app.js` lo pinta tal cual y las pruebas comparan por `id`.
-  - La etiqueta interna del check («…del 35% del ingreso») no se pinta en ninguna pantalla y se queda igual.
-- **Prueba:** `tests/fmt-leverage-barrier-cifras.test.cjs` (4).
+  - La etiqueta interna del check no se pinta en ninguna pantalla, pero también pasa a «…del 35 % del ingreso» (petición del hogar).
+- **Prueba:** `tests/fmt-leverage-barrier-cifras.test.cjs` (5).
   - Comprueba los dos textos enteros, la agrupación con 4 y 7 cifras, el signo negativo, el 35,0 % y el 123,5 %.
-  - Comprueba también que el motor no usa `toFixed`.
+  - Comprueba también la etiqueta del check y que el motor no usa `toFixed`.
 - **Validación:**
   - `npm run verify` en verde: 6.594/6.594 más lint, typecheck, a11y, rendimiento, build, privacidad y smoke.
   - e2e de `qa1` con apalancamiento (XDA-10 y las demás de `-g "XDA-10|apalanc|AP3|AP1|LEV"`): 30/30.
   - En la app servida desde `dist`, forzando los dos bloqueos, la caja enseña «12.346 €», «15.000 €» y «35,2 %», sin errores de página.
   - Con los datos de demo el guardarraíl pasa y no enseña ningún bloqueo.
+  - Tras el cambio de la etiqueta (mismo PR), `npm test` 6.595/6.595, lint y typecheck en verde; el `verify` completo, el del CI.
 
 ## Cierre de sesión — 13 de noviembre de 2026 (459): #607 fusionado hoy, tres días antes de lo previsto
 
