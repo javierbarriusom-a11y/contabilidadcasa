@@ -113,7 +113,7 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 13 de noviembre de 2026 (460): el guardarraíl de apalancamiento (AP4) da las cifras en formato español
+## Cierre de sesión — 13 de noviembre de 2026 (462): el guardarraíl de apalancamiento (AP4) da las cifras en formato español
 
 - **Qué se pintaba mal:**
   - En Inversión › Deuda y apalancamiento › «Simulador de apalancamiento» (`#ap3BarrierStatus`), los dos bloqueos con cifras salían con formato de programador.
@@ -138,7 +138,69 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - En la app servida desde `dist`, forzando los dos bloqueos, la caja enseña «12.346 €», «15.000 €» y «35,2 %», sin errores de página.
   - Con los datos de demo el guardarraíl pasa y no enseña ningún bloqueo.
   - Tras el cambio de la etiqueta (mismo PR), `npm test` 6.595/6.595, lint y typecheck en verde; el `verify` completo, el del CI.
+  - Tras fusionar `main` con #610 en la rama (conflicto solo en este documento; esta entrada pasa de 460 a 462), `npm test` 6.598/6.598, lint y typecheck en verde.
 
+## Cierre de sesión — 13 de noviembre de 2026 (461): XGO-01 PR-4, Laboratorio sale de app.js; el margen bajo el techo vuelve a ~130 líneas
+
+- **Petición del hogar:** «sigue con el backlog».
+- **Por qué esto y no otra fila:**
+  - **P0 de noviembre (§5.1):** sin filas que pueda hacer Claude. Todo está hecho, llega con #607 (FX-03, FX-43) o lo tiene el hogar (H-35; WP-23 espera a H-03).
+  - **P1 fuera de #607:**
+    - FX-21 resto: espera al hogar.
+    - D1-D2 y la navegación de 5 destinos: esperan a las revisiones del 14 al 18/11 (ESTADO §8).
+    - WP-34 y WP-54: son de enero y diciembre.
+  - **FX-40, «falta medir el plan por separado»:** obliga a guardar la entrada entera del plan en cada foto, algo que se descartó a propósito por el peso. Además toca Previsión, que #607 acababa de reescribir.
+  - **Lo que sí estaba desbloqueado:** el margen de `app.js`. Con #607 y el cambio del «Deshacer», 32.401 líneas frente a un techo de 32.426, es decir, 25 líneas. La primera entrega de diciembre que añadiera lógica habría chocado con él.
+- **Qué se hace:** las 33 funciones de Laboratorio («Funciones en prueba» de Ajustes, L-1…L-10, T-4, OPT-2) y del informe de uso de la app (ARQ-0) pasan tal cual al nuevo `laboratorio-ui.js`.
+  - El corte se hace con `acorn`, no a ojo: cada declaración de función de primer nivel del tramo, con los comentarios que lleva encima.
+  - **Solo funciones.** Las constantes y variables siguen en `app.js`, porque `laboratorioSelectedHash` se inicializa con `LABORATORIO_CATALOG`, que se declara allí: en un script que carga antes, aún no existiría.
+  - Las funciones de días de cargo del mismo tramo (WP-04, WP-08) se quedan en `app.js`: son de otro dominio.
+- **Resultado:** `app.js` pasa de 32.399 a 32.073 líneas, y a **32.075** ya integrado con `main` (con #607). El techo baja por el trinquete (P7) a **32.203**: 128 líneas de margen.
+- **Sin choque con #607** (preparado cuando aún salía el 16/11; al final se fusionó el 13/11, entrada 459, y esta rama se integró con `main` después):
+  - La etiqueta `<script>`, el service worker y la lista del sitio publicado van en huecos que #607 no toca. Fusión de prueba de #607 encima: sin conflictos y `npm test` 6.593/6.593.
+  - **El sello de `app.js` en `index.html` no cambia, a diferencia de la PR-3.** #607 cambia justo la línea anterior, y cambiarlo daría conflicto. Tampoco hace falta: un `app.js` viejo en caché junto al script nuevo declararía dos veces las mismas funciones, idénticas, y eso no es un error. Solo lo serían `let` y `const`, y no se mueve ninguno.
+- **Pruebas:** en `tests/xgo01-sin-funciones-duplicadas.test.cjs`, una nueva, que comprueba:
+  - las funciones están en `laboratorio-ui.js` y no en `app.js`;
+  - ese fichero solo tiene funciones y comentarios;
+  - las constantes y variables siguen en `app.js`;
+  - se carga antes que `app.js`;
+  - figura en la caché del service worker y en el sitio publicado.
+
+  `FICHEROS_APP` lo incluye, y `tests/arq4-techo-app-js.test.cjs` lleva el techo nuevo con su historia.
+- **Validación:**
+  - `npm run verify` en verde (6.535/6.535 antes de integrar `main`; 6.593/6.593 después, con #607 dentro).
+  - Ya integrado con `main`: 62 de 62 e2e y a11y de Firmar cierre, Registrar gasto, carta del mes, Ajustes, Laboratorio, XGO y Deshacer.
+  - **Playwright completo en local** (e2e, a11y y perf-screens): 383 de 385. Ninguno de los dos fallos es de este cambio, y los dos eran de la prueba:
+    - **Contraste de la carta del mes (WP-29, a11y):** «renderCierre is not defined». En `main`, antes de #607, fallaba 3 de 12. La prueba esperaba a `recordCartaMes` y al título de Cierre, que pueden estar listos antes de que llegue la vista diferida `views/cierre.js`.
+      - #607 traía el mismo arreglo (esperar también a `renderCierre`). Al integrar `main` se queda el suyo; con él, 24 de 24.
+    - **«Registrar gasto · el día 2 va a noviembre» (e2e):** `null.entries` al leer `capture-log` justo después de cerrar el diálogo.
+      - **Causa:** el formulario es `<form method="dialog">`. Al enviar, el diálogo se cierra al instante, pero el evento `close`, que es el que guarda (`submitHomeQuickExpense` → `recordCaptureLog`), llega en una tarea aparte. Con la máquina cargada, la lectura de la prueba podía adelantarse.
+      - Para una persona no tiene efecto: el guardado llega milisegundos después.
+      - **Arreglado en la prueba:** espera a que la entrada esté guardada antes de leerla. Igual en «Registrar gasto sin tarjetas», que tenía la misma carrera.
+      - Comprobado: 16 de 16, las dos pruebas ×8 con 4 procesos en paralelo para cargar la máquina.
+
+## Cierre de sesión — 13 de noviembre de 2026 (460): el «Deshacer» se cierra al cambiar de pantalla (tapaba «Firmar cierre» a 390 px); #608 desplegado y #607 comprobado sobre el main nuevo
+
+- **#608 (DISK-IO):** fusionado el 12/11 a las 21:34Z (main `329feee`). «Verify and deploy Pages» en verde y la comprobación del sitio publicado de las 23:34Z, también.
+- **#607 sobre el main nuevo** (fusión de prueba en local, sin tocar su rama):
+  - Sin conflictos: `PROJECT_STATE.md`, `app.js` e `index.html` se combinan solos.
+  - `npm test` 6.590/6.590 (las 6.583 de #607 más las 7 de DISK-IO). Lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke, en verde.
+  - `app.js` fusionado: 32.400 líneas (techo ARQ-4, 32.426) y 1,72 MB (techo, 2 MB). Con el cambio del «Deshacer» (abajo), 32.401: **quedan 25 líneas de margen**, y lo siguiente que añada lógica debe ir en un módulo aparte.
+  - Con `-X ours` el árbol fusionado es idéntico al de una fusión normal, y los ficheros de DISK-IO quedan intactos. Aun así, la tarea del 16/11 decía «fusión normal con -X ours», que ante un conflicto tiraría en silencio la parte de main. Quedó sin efecto: #607 se fusionó el 13/11 y la tarea se borró (entrada 459).
+- **«Ensayo del cierre» a 390 px fallaba al azar** (en local, de 2 a 6 de cada 10; en el CI pasaba):
+  - **Causa, comprobada con la prueba instrumentada:** el aviso de «Deshacer» de la regla creada en el paso de clasificar dura 10 s y flota sobre la parte baja de la pantalla. Según dónde quedara el desplazamiento, «Firmar cierre» quedaba debajo (y = 770 de 844 px), y el clic forzado (`force: true`, por `aria-disabled`) caía en `#undoToastMessage`. En las 6 fallidas de 10, el clic cayó en el aviso; en las 4 buenas, en el botón.
+  - **No era solo la prueba: a una persona en el móvil le pasaba lo mismo.** Tocaba «Firmar cierre» y no ocurría nada, porque el toque caía en el aviso.
+  - **Decisión del hogar (13/11):** «que el aviso se cierre al cambiar de pantalla».
+    - `setActiveView` (`app.js`, +1 línea) llama a `hideUndoToast()` solo cuando la pantalla cambia de verdad. Repintar la misma pantalla no se come el «Deshacer».
+    - Todas las vías de navegación pasan por ahí (menú, hash, `data-e17-target`, `navigateE17`), en los dos temas.
+    - Revisadas las 34 llamadas a `showUndoToast`: ninguna muestra el aviso y cambia de pantalla en el mismo paso, así que ningún «Deshacer» se cierra nada más aparecer.
+    - Dentro de una pantalla (pestañas, pasos del cierre, bandeja) dura sus 10 s, como hasta ahora.
+  - **Pruebas:**
+    - `tests/undo-toast-cambio-pantalla.test.cjs` (2): el cierre va en `if (viewChanged)`, y `hideUndoToast` vacía la pila y cancela sus temporizadores. Sin el cambio falla.
+    - La e2e del ensayo comprueba que el aviso de la última regla se ve en Movimientos y se va al abrir Cierre. Además mira que lo que hay bajo el centro de «Firmar cierre» es el botón, que es lo que tocaría un dedo. `force` queda solo por `aria-disabled`.
+    - Antes del cambio en la app se comprobó que esa guarda caza el fallo: sin ella, 8 de 8 con «nada tapa «Firmar cierre»».
+  - `app.js`: 32.399 líneas. Con #607 encima serían 32.401 de 32.426.
+- **Validación:** `npm run verify` en verde (6.534/6.534).
 ## Cierre de sesión — 13 de noviembre de 2026 (459): #607 fusionado hoy, tres días antes de lo previsto
 
 - **Decisión del hogar:** «fusiona hoy». Antes de fusionar, Claude avisó del coste:
