@@ -1272,7 +1272,9 @@ for (const scheme of ["light", "dark"]) {
     test("Cierre › carta del mes: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
       await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
       await page.goto("/index.html#cierre");
-      await page.waitForFunction(() => typeof recordCartaMes === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      // 13/11/2026: también `renderCierre` (views/cierre.js, carga diferida), como las demás pruebas de Cierre de este fichero.
+      // El título puede estar ya escrito antes de que llegue la vista: «renderCierre is not defined» en 3 de 12 en main.
+      await page.waitForFunction(() => typeof recordCartaMes === "function" && typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
       await page.evaluate(() => {
         const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
         const rows = planMesCollect(month);

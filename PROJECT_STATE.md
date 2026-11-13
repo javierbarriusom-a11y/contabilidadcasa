@@ -140,7 +140,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - figura en la caché del service worker y en el sitio publicado.
 
   `FICHEROS_APP` lo incluye, y `tests/arq4-techo-app-js.test.cjs` lleva el techo nuevo con su historia.
-- **Validación:** `npm run verify` en verde (6.535/6.535).
+- **Validación:**
+  - `npm run verify` en verde (6.535/6.535).
+  - **Playwright completo en local** (e2e, a11y y perf-screens): 383 de 385. Ninguno de los dos fallos es de este cambio:
+    - **Contraste de la carta del mes (WP-29, a11y):** «renderCierre is not defined». En `main`, sin estos cambios, falla 3 de 12. La prueba esperaba a `recordCartaMes` y al título de Cierre, que pueden estar listos antes de que llegue la vista diferida `views/cierre.js`.
+      - **Arreglado en la prueba:** espera también a `renderCierre`, como las otras pruebas de Cierre de `opt4-axe-accessibility.spec.cjs`. Ahora pasa 24 de 24 (12 en claro y 12 en oscuro).
+    - **«Registrar gasto · el día 2 va a noviembre» (e2e):** `capture-log` vacío justo después de cerrar el diálogo. Falló una vez, con la máquina cargada (tres proyectos de Playwright a la vez).
+      - Aislada pasa 6 de 6, y en la tanda anterior (solo e2e) pasó.
+      - No se ha encontrado la causa. Si vuelve a salir, hay que mirar si el guardado de la captura es asíncrono respecto al cierre del diálogo.
 
 ## Cierre de sesión — 13 de noviembre de 2026 (459): el «Deshacer» se cierra al cambiar de pantalla (tapaba «Firmar cierre» a 390 px); #608 desplegado y #607 comprobado sobre el main nuevo
 
