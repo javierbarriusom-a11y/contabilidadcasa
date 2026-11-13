@@ -152,7 +152,7 @@ test("PR-3 · la retención se puede marcar pero no cuenta en lo que hay que hac
 
 // ---- Calendario ----
 
-const reminder = (fiscal, today = "2026-11-20") => reminders.build({ today, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: true, rateReview: false, cirbe: false }, horizonMonths: 12 }, fiscal });
+const reminder = (fiscal, today = "2026-11-20") => reminders.build({ today, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: true, rateReview: false, cirbe: false, forecast: false, weeklyReview: false }, horizonMonths: 12 }, fiscal });
 const dec = (result, day) => result.events.find((event) => event.date === `2026-12-${day}`);
 
 test("PR-3 · calendario sin datos fiscales: los avisos del 1/12 y el 20/12 de siempre", () => {

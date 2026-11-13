@@ -6,7 +6,7 @@
 // cargarse: app.js llama a `renderRecordatorios` al pintar Ajustes y a `attachRecordatorios` una vez en init.
 
 const RECORDATORIOS_STORE = "reminders-settings";
-const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE", forecast: "avisos de la previsión" };
+const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE", forecast: "avisos de la previsión", weeklyReview: "repasos semanales" };
 
 function recordatoriosSettings() {
   const engine = globalThis.FinanceCanonicalReminders;
