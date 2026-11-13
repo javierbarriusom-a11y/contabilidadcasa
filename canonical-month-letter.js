@@ -208,6 +208,39 @@
     return null;
   }
 
+  // FX-43 (backlog de noviembre): la carta cuenta la previsión. Dos huecos más, con su versión corta y recortables antes que el resultado y la
+  // calidad: cómo acabó la caja frente a lo que se preveía el día 1 y el 15 (las fotos de WP-12), y qué espera la previsión del mes siguiente.
+  // Las cifras llegan ya redondeadas por quien llama (como todas: el motor no redondea a un valor que no sea el de la entrada).
+
+  /** @param {{actual?: number, slots?: Array<{label: string, predicted: number}>}|null|undefined} check */
+  function forecastSentences(check) {
+    const slots = (Array.isArray(check?.slots) ? check.slots : []).filter((slot) => text(slot?.label) && known(slot?.predicted));
+    if (!known(check?.actual) || !slots.length) return null;
+    const actual = num(check.actual);
+    const last = slots[slots.length - 1];
+    // Error = previsto − real (WP-12): positivo, esperaba más dinero del que hubo.
+    const miss = num(last.predicted) - actual;
+    const verdict = Math.abs(miss) < TOLERANCE_EUR ? "acertó" : `${euros(miss)} de ${miss > 0 ? "más" : "menos"}`;
+    const list = slots.map((slot, index) => (index ? `la del ${text(slot.label)}, ${euros(slot.predicted)}` : `La previsión del ${text(slot.label)} esperaba ${euros(slot.predicted)}`)).join(" y ");
+    return {
+      full: `En caja hubo ${euros(actual)} al cierre. ${list} (${verdict}).`,
+      short: `En caja hubo ${euros(actual)} al cierre; la previsión del ${text(last.label)} esperaba ${euros(last.predicted)} (${verdict}).`,
+    };
+  }
+
+  /** @param {{monthKey?: string, lowValue?: number, lowDay?: number, endValue?: number, floor?: number}|null|undefined} next */
+  function nextMonthSentences(next) {
+    if (!next || !isMonth(next.monthKey) || !known(next.lowValue) || !known(next.lowDay)) return null;
+    const name = monthName(next.monthKey);
+    const margin = known(next.floor) ? num(next.lowValue) - num(next.floor) : null;
+    const floorText = margin === null ? "" : `, ${euros(margin)} ${margin < 0 ? "por debajo del" : "sobre el"} suelo`;
+    const end = known(next.endValue) ? ` y cerrar con ${euros(next.endValue)}` : "";
+    return {
+      full: `Para ${name}, la previsión espera lo más bajo el día ${num(next.lowDay)} (${euros(next.lowValue)}${floorText})${end}.`,
+      short: `${capitalize(name)}: lo más bajo, ${euros(next.lowValue)} el día ${num(next.lowDay)}.`,
+    };
+  }
+
   function qualitySentences(summary) {
     const share = summary.realSharePct !== null ? ` (el ${summary.realSharePct} % del importe)` : "";
     const caution = summary.realSharePct !== null && summary.realSharePct < LOW_REAL_SHARE_PCT ? " Tómala con cautela." : "";
@@ -219,7 +252,7 @@
 
   /**
    * Compone la carta.
-   * @param {{monthKey?: string, items?: Array<any>, netWorth?: any, previousLetters?: Array<any>, previousAdverse?: Record<string, boolean>}} facts
+   * @param {{monthKey?: string, items?: Array<any>, netWorth?: any, previousLetters?: Array<any>, previousAdverse?: Record<string, boolean>, forecastCheck?: any, nextMonth?: any}} facts
    * @param {{maxWords?: number}} [options]
    */
   function compose(facts = {}, options = {}) {
@@ -233,13 +266,17 @@
     const milestone = pickMilestone(facts, summary, monthKey, facts.previousLetters);
     const action = pickAction(summary, deviation, facts.previousAdverse);
     const quality = qualitySentences(summary);
+    const forecast = forecastSentences(facts.forecastCheck);
+    const next = nextMonthSentences(facts.nextMonth);
 
     // Cada hueco con su texto largo y, si lo tiene, uno corto. Se recorta por prioridad hasta caber; el resultado y la calidad no desaparecen.
     const slots = [
       { id: "result", text: resultSentence(summary, monthKey) },
+      forecast ? { id: "forecast", text: forecast.full, short: forecast.short } : null,
       deviationText ? { id: "deviation", text: deviationText.full, short: deviationText.short } : null,
       milestone ? { id: "milestone", text: milestone.text, kind: milestone.id } : null,
       action ? { id: "action", text: action.text, kind: action.id } : null,
+      next ? { id: "next", text: next.full, short: next.short } : null,
       { id: "quality", text: quality.full, short: quality.short },
     ].filter(Boolean);
     const omitted = [];
@@ -248,7 +285,11 @@
       () => dropSlot("milestone"),
       () => dropSlot("action"),
       () => shortenSlot("deviation"),
+      () => shortenSlot("forecast"),
+      () => shortenSlot("next"),
       () => shortenSlot("quality"),
+      () => dropSlot("next"),
+      () => dropSlot("forecast"),
     ];
     function dropSlot(id) {
       const index = slots.findIndex((slot) => slot.id === id);
@@ -270,7 +311,7 @@
     if (!milestone) omitted.push({ id: "milestone", reason: "sin hito que contar" });
     if (!action) omitted.push({ id: "action", reason: "sin acción que sugerir" });
 
-    const ordered = ["result", "deviation", "milestone", "action", "quality"].map((id) => slots.find((slot) => slot.id === id)).filter(Boolean);
+    const ordered = ["result", "forecast", "deviation", "milestone", "action", "next", "quality"].map((id) => slots.find((slot) => slot.id === id)).filter(Boolean);
     const body = ordered.map((slot) => slot.text).join(" ");
     return {
       calculable: true,

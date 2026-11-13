@@ -242,10 +242,10 @@ const VIEW_CHUNKS = {
   cierre: { src: "views/cierre.js?v=20261104cierreC3", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20261104cierreC3", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
-  "escenario-simular": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-simular" },
-  "escenario-aplicar": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-aplicar" },
-  "escenario-guardados": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-guardados" },
-  "escenario-comparar": { src: "views/escenarios.js?v=20261109fx23b", rootId: "escenario-comparar" },
+  "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
+  "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
+  "escenario-guardados": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-guardados" },
+  "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
@@ -13333,6 +13333,8 @@ function gob8DraftText() {
     "",
     "4) Inversión: base del ahorro de cada declarante (WP-21, informe de inversión para la Renta)",
     typeof informeRentaResumenTexto === "function" ? informeRentaResumenTexto() : "Sin datos: el informe de inversión no está disponible.",
+    "", "5) El local alquilado: a la base general de cada declarante (WP-21 · PR-3)",
+    typeof localRentaResumenTexto === "function" ? localRentaResumenTexto() : "Sin datos: el cálculo del local no está disponible.",
   ].join("\n");
 }
 
@@ -15391,7 +15393,8 @@ function handleAp1Compare() {
     })
     : null;
   const i13SavingsGoalHtml = /* I13, views/inversion.js, ARQ-4 */ ((goal) => goal ? i13SavingsGoalImpactHtml(i13SavingsGoalImpact({ amount, targetAmount: goal.targetAmount, accumulated: Number(savingsGoalsContributions()[goal.id] || 0) }), goal.label) : "")(savingsGoalsList().find((goal) => goal.id === (qs("ap1SavingsGoalSelect")?.value || null)) || null);
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + (surplusAllocation ? deb11ReduceQuotaVsTermHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) + i13SavingsGoalHtml;
+  if (guardrail && isFullCancellation) guardrail.antesDeDecidirAparte = true; // XDA-10 PR-2: su línea va una vez, tras los tres guardarraíles
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (isFullCancellation && guardrail ? globalThis.antesDeDecidirCancelacionHtml?.([guardrail, cancellationGuardrail, cancellationStressGuardrail]) || "" : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + (surplusAllocation ? deb11ReduceQuotaVsTermHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) + i13SavingsGoalHtml;
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
@@ -20622,6 +20625,7 @@ function previsionMonthlyRow(item, selectedKey) {
   const key = item.row.detailMonthKey;
   const gastos = Number(item.row.coreSpend || 0) + Number(item.row.car || 0) + Number(item.row.projectOutflow || 0);
   const deuda = Number(item.row.refi || 0);
+  const neto = Number(item.row.totalLiquidity || 0) - Number(item.row.startLiquidity || 0); // FX-15: en el móvil, mes · neto · saldo final
   return `<tr class="${key === selectedKey ? "is-selected" : ""}" data-prevision-month-key="${escapeHtml(key)}">
     <td>${escapeHtml(item.row.month)}</td>
     <td class="positive">${money(item.row.income, true)}</td>
@@ -20629,7 +20633,8 @@ function previsionMonthlyRow(item, selectedKey) {
     <td class="negative">${money(deuda, true)}</td>
     <td>${money(item.row.saving, true)}</td>
     <td class="${metric.min < 0 ? "negative" : ""}">${money(metric.min, true)}</td>
-  </tr>`;
+    <td class="prevision-col-neto">${neto > 0 ? "+" : ""}${money(neto)}</td><td>${money(item.row.totalLiquidity)}</td>
+  </tr>${key === selectedKey ? `<tr class="prevision-fila-detalle"><td colspan="8">Ingresos ${money(item.row.income)} · gastos ${money(gastos)} · deuda ${money(deuda)} · ahorro ${money(item.row.saving)} · mínimo ${money(metric.min)}</td></tr>` : ""}`;
 }
 
 function previsionRealTransactionsForMonth(monthKeyValue) {
@@ -20870,6 +20875,8 @@ function previsionPeriodSummary(periodKeyValue) {
   const daily = lows?.size ? [...lows.values()].reduce((low, entry) => (entry.value < low.value ? entry : low)) : null;
   return {
     ...totals,
+    start: Number(items[0].row.startLiquidity || 0), end: Number(items.at(-1).row.totalLiquidity || 0), savingsEnd: Number(items.at(-1).row.savings || 0), // FX-15
+    firstLabel: items[0].row.month, lastLabel: items.at(-1).row.month, endDate: range.end,
     min: daily ? daily.value : worst.metric.min,
     minDate: daily ? daily.date : "",
     minMonthLabel: daily ? items.find((item) => item.row.detailMonthKey === daily.monthKey).row.month : worst.item.row.month,
@@ -20906,13 +20913,7 @@ function renderPrevisionPeriodSummary() {
   labelEl.textContent = summary.monthsAvailable < summary.monthsInPeriod
     ? `${label} · solo ${summary.monthsAvailable} de ${summary.monthsInPeriod} meses tienen previsión abierta todavía.`
     : label;
-  bodyEl.innerHTML = `<dl class="prevision-period-summary-list">
-    <div><dt>Ingresos</dt><dd class="positive">${money(summary.income, true)}</dd></div>
-    <div><dt>Gastos</dt><dd class="negative">${money(summary.gastos, true)}</dd></div>
-    <div><dt>Deuda</dt><dd class="negative">${money(summary.deuda, true)}</dd></div>
-    <div><dt>Ahorro</dt><dd>${money(summary.ahorro, true)}</dd></div>
-    <div><dt>Mínimo del periodo</dt><dd class="${summary.min < 0 ? "negative" : ""}">${previsionLowText(summary)} <small class="note">(${escapeHtml(summary.minMonthLabel)})</small></dd></div>
-  </dl>`;
+  bodyEl.innerHTML = periodoResumenHtml(summary, previsionLowText(summary)); // FX-15: la cascada, en periodo-ui.js
 }
 
 function renderPrevision() {
@@ -20953,7 +20954,7 @@ function renderPrevision() {
     `Cada barra va del peor orden del mes (todos los pagos antes de cobrar) al saldo tras cobrar; la línea marca ${floor.source}.`;
 
   qs("previsionMonthlyTable").innerHTML =
-    `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th></tr></thead><tbody>${items
+    `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th><th>Neto</th><th>Saldo final</th></tr></thead><tbody>${items
       .map((item) => previsionMonthlyRow(item, previsionSelectedMonthKey))
       .join("")}</tbody>`;
 
@@ -30802,6 +30803,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       globalThis.renderFiscalCampaign?.(globalThis.FinanceCanonicalYearEndTax); // WP-23 (fiscal-campana-ui.js)
       globalThis.renderNominas?.(globalThis.FinanceCanonicalPayroll); // WP-31 (nominas-ui.js)
       globalThis.renderInformeRenta?.(globalThis.FinanceCanonicalTaxReport); // WP-21 (informe-renta-ui.js)
+      globalThis.renderLocalRenta?.(globalThis.FinanceCanonicalRentalTax); // WP-21 · PR-3, el local (local-renta-ui.js)
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":

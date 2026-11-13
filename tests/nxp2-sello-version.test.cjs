@@ -245,3 +245,11 @@ test("sin red o sin version.json el sello sigue a la vista y no avisa", async ()
   assert.equal(elements.versionStampLabel.textContent, "Versión 9d64a55 · 3/10/2026, 12:00");
   assert.equal(elements.updateToast.hidden, true);
 });
+
+// FX-41 (23/11/2026): un cambio con puerta de fecha se publica antes de activarse; su línea de Novedades no sale hasta su día.
+test("una novedad con fecha futura no se enseña hasta su día", () => {
+  const entradas = [{ id: "c", fecha: "2026-11-23", texto: "Lo del 23" }, { id: "b", fecha: "2026-11-16", texto: "Lo del 16" }, { id: "a", fecha: "2026-11-11", texto: "Lo del 11" }];
+  assert.deepEqual(shell.novedadesVigentes(entradas, "2026-11-16").map((entry) => entry.id), ["b", "a"]);
+  assert.deepEqual(shell.novedadesVigentes(entradas, "2026-11-23").map((entry) => entry.id), ["c", "b", "a"]);
+  assert.deepEqual(shell.novedadesVigentes(entradas, "no es fecha").map((entry) => entry.id), ["c", "b", "a"], "sin fecha válida, todas");
+});

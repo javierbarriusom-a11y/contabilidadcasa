@@ -42,6 +42,33 @@ async function empezarApagada(page, id) {
   }, id);
 }
 
+// Un interruptor propio de «Funciones en prueba» (Ajustes), con la página quieta. Tras ir a #ajustes, la vista sigue pintando un
+// momento (el interruptor está a ~13.700 px y aún se mueve los primeros 400 ms) y, en WebKit, un clic medido antes de que acabe cae en
+// otro sitio: WP-18 falló así en el CI de #607 (11/11/2026, pasó al reintentar). Se espera la vista y el interruptor, y se repite el
+// clic hasta que cambia; cada intento mira antes cómo está, así que nunca lo devuelve a su sitio. No vale para «tema-v2», que recarga.
+async function cambiarFuncionEnPrueba(page, id, encender = true) {
+  const sw = page.locator(`[data-fep-interruptor="${id}"]`);
+  const objetivo = encender ? "true" : "false";
+  await expect(page.locator("#ajustes")).toBeVisible({ timeout: 15000 });
+  await expect(sw).toBeVisible({ timeout: 15000 });
+  await expect(async () => {
+    if ((await sw.getAttribute("aria-checked")) !== objetivo) await sw.click();
+    await expect(sw).toHaveAttribute("aria-checked", objetivo, { timeout: 1000 });
+  }, `el interruptor «${id}» queda ${encender ? "encendido" : "apagado"}`).toPass({ timeout: 15000 });
+}
+
+// Plan › Previsión, con el clic que no se pierde. Recién cargada (o recargada) la página, el clic en la pestaña puede llegar antes de que la app
+// escuche: la Previsión no se abre nunca (FX-40 en Safari, CI de #607 del 12/11/2026, pasó al reintentar). Se repite el clic hasta que se ve;
+// pulsar la pestaña ya abierta no cambia nada, así que repetirlo es inocuo.
+async function abrirPlanPrevision(page) {
+  const v2 = page.locator("#planPrevisionV2");
+  await expect(async () => {
+    await page.locator('[data-plan-tab="prevision"]').click();
+    await expect(v2).toBeVisible({ timeout: 2000 });
+  }, "Plan › Previsión se abre").toPass({ timeout: 20000 });
+  return v2;
+}
+
 async function abrirAsistenteDeSiempre(page) {
   const boton = page.locator("#importarV2 [data-imp-v2-clasico]");
   await boton.or(page.locator("#registrarImportSteps")).first().waitFor({ timeout: 15000 });
@@ -1560,7 +1587,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(6);
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(7); // FX-41: + «avisos de la previsión»
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
       // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
@@ -2643,6 +2670,22 @@ test.describe("WP-40 · conciliación con la CIRBE", () => {
     await page.locator("#cirbeVencido").fill(String(vencido));
     await pulsar(page, '#cirbeForm button[type="submit"]');
   };
+
+  // 11/11/2026, la causa del fallo intermitente, reproducida: con el ratón quieto en el último píxel de «Añadir fila», el botón sube y
+  // baja sin parar (`button:hover` lo sube 1 px) y un clic de Playwright espera para siempre a que se quede quieto. `pulsar` lleva antes
+  // el ratón al centro: con el ratón justo ahí, el clic tiene que llegar (sale «Falta la entidad»).
+  test("«Añadir fila» se pulsa aunque el ratón se haya quedado en su borde de abajo", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const card = await open(page);
+    await card.locator('[data-estado-accion="cirbe-empezar"]').click();
+    const boton = page.locator('#cirbeForm button[type="submit"]');
+    await boton.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.mouse.move(1, 1);
+    const borde = await boton.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.bottom - 0.5 }; });
+    await page.mouse.move(borde.x, borde.y);
+    await pulsar(page, '#cirbeForm button[type="submit"]', { timeout: 5000 });
+    await expect(page.locator("#cirbeError")).toContainText("Falta la entidad");
+  });
 
   test("vacío accionable, filas con validación, cuadra / difiere / falta, aval, vencido, añadir a Contratos sin crearlo, quitar y borrar con deshacer, sin confirm() ni desbordar", async ({ page }) => {
     test.setTimeout(120000);
@@ -4202,6 +4245,44 @@ test.describe("WP-54 · el guion de la prueba con personas se puede hacer en la 
 // WP-29 (NHG-05): la carta del mes en Cierre. Con la demo y el reloj el 2 de noviembre, Cierre enseña octubre: abierto, un borrador con las cifras del mes (previsto 5.000 € de ingresos y 4.730 € de
 // gastos = 270 € de margen; con 180 € de más en la primera partida de gasto, 90 € y 180 € peor de lo previsto); firmado, la carta guardada con los datos de ese momento, que no se reescribe si los datos cambian
 // después. La firma real pasa por Supabase (RPC), que la demo no tiene: se simula con el mismo motor de cierre y la misma función que llama app.js al firmar.
+// FX-43 (backlog de noviembre; primera carta con el cierre de noviembre, 1-3/12) · la carta cuenta la previsión. Con dos fotos de WP-12
+// INVENTADAS de octubre (día 1: 9.200 € al cierre; día 15: 8.650 €) y los saldos del banco del cierre (8.700 €), la carta dice cómo acabó la
+// caja frente a lo previsto; y, del mes siguiente, lo más bajo frente al suelo. Sin fotos, no lo inventa.
+test("FX-43 · la carta del mes cuenta la previsión de caja y el mes siguiente", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+  await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
+  await page.goto("/index.html#cierre");
+  await page.waitForFunction(() => typeof recordCartaMes === "function" && typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+  const anotar = () => page.evaluate(() => {
+    const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
+    const rows = planMesCollect(month);
+    const set = (entry, value) => { (entry.kind === "income" ? incomeActuals : expenseActuals)[actualKeyForRow(entry.row, month)] = value; };
+    rows.income.forEach((entry) => { if (entry.planned) set(entry, entry.planned); });
+    rows.expense.filter((entry) => entry.planned).forEach((entry) => set(entry, entry.planned));
+    renderCierre();
+  });
+  await anotar();
+  const carta = page.locator("#cartaMes [data-carta-mes-texto]");
+  await expect(carta).toBeVisible();
+  // Sin fotos de WP-12, nada de la caja; el mes siguiente, sí (la previsión de noviembre desde hoy, frente al suelo).
+  await expect(carta).not.toContainText("En caja hubo");
+  await expect(carta).toContainText(/Para noviembre, la previsión espera lo más bajo el día \d+ \([\d.]+\s€, [\d.]+\s€ (sobre el|por debajo del) suelo\) y cerrar con [\d.]+\s€\./);
+  await page.evaluate(() => {
+    const serie = (valor) => Array.from({ length: 40 }, () => valor);
+    storageSet(storageKey("liquidity-backtest"), JSON.stringify({ freezes: {
+      "2026-10:d01": { monthKey: "2026-10", slot: "d01", date: "2026-10-02", totals: serie(9200), closing: 9200, balanceMode: "manual", balanceDate: "2026-10-02", frozenAt: "" },
+      "2026-10:d15": { monthKey: "2026-10", slot: "d15", date: "2026-10-16", totals: serie(8650), closing: 8650, balanceMode: "manual", balanceDate: "2026-10-16", frozenAt: "" },
+    } }));
+    storageSet(storageKey("month-close-balances"), JSON.stringify({ months: { "2026-10": { monthKey: "2026-10", accounts: { caixabank: 5000, mediolanum: 3700 }, date: "2026-10-31", mode: "manual", offsetDays: 0, closedAt: "" } } }));
+    renderCierre();
+  });
+  await expect(carta).toContainText(/En caja hubo 8\.700\s€ al cierre\. La previsión del día 1 esperaba 9\.200\s€ y la del día 15, 8\.650\s€ \(50\s€ de menos\)\./);
+  const palabras = await carta.evaluate((el) => el.textContent.trim().split(/\s+/).length);
+  expect(palabras, "la carta sigue en 120 palabras como mucho").toBeLessThanOrEqual(120);
+  expect(pageErrors).toEqual([]);
+});
+
 test.describe("WP-29 · la carta del mes en Cierre", () => {
   const openCierre = async (page, viewport = { width: 1280, height: 720 }) => {
     await page.setViewportSize(viewport);
@@ -5443,7 +5524,7 @@ test.describe("Importar v2 · mes a mes", () => {
 // Rediseño C1: Plan › Mes v2 (views/plan-v2.js). Mismo campo, mismo borrador y mismo pie de impacto que la tabla de
 // siempre; importes en español; las financiaciones plegadas; y la tabla de siempre a un toque.
 // Rediseño C2 · Plan › Previsión v2 (views/prevision-v2.js, FX-10). Con la demo el 6/11: el punto más bajo de 3 meses es el
-// 8 dic (unos 5.600 €), el mismo que el titular de Previsión mensual; el horizonte cambia la frase; «Ver todo el detalle»
+// 14 dic (unos 6.600 €), la víspera del cobro desde FX-03 (antes, el 8 dic: el gasto variable entero ese día), el mismo que el titular de Previsión mensual; el horizonte cambia la frase; «Ver todo el detalle»
 // devuelve la tabla de siempre; nada se sale de la pantalla.
 test.describe("Rediseño C2 · Plan › Previsión v2", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
@@ -5458,7 +5539,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
       await expect(v2.locator(".prev-v2-hero")).toContainText("Punto más bajo de los próximos 3 meses");
-      await expect(v2.locator(".prev-v2-cifra")).toContainText(/unos\s+5\.600\s€\s+el 8 dic/);
+      await expect(v2.locator(".prev-v2-cifra")).toContainText(/unos\s+6\.600\s€\s+el 14 dic/);
       await expect(v2.locator(".prev-v2-frase").first()).toContainText("por encima del suelo inicial de 1.500 €"); // la demo no fija suelo (WP-37)
       await expect(v2.locator(".ck-figure svg.ck-prevision")).toBeVisible();
       await expect(v2.locator(".ck-umbral-etiqueta")).toContainText("suelo");
@@ -5489,7 +5570,7 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
     });
 
     // FX-20 / FX-21 (D-N3): «Comparar con…» pinta la prueba de estrés encima del plan y dice si se baja del suelo, cuándo y cuánto,
-    // sin tocar el plan. Con la demo el 6/11: sin el sueldo de A 3 meses, el punto más bajo cae al 8 ene 2027; el Euribor dice qué
+    // sin tocar el plan. Con la demo el 6/11: sin el sueldo de A 3 meses, el punto más bajo cae al 5 feb 2027; el Euribor dice qué
     // falta hasta que hay hipoteca y, con una INVENTADA, sube la cuota desde la revisión; el imprevisto resta 3.000 € el peor día.
     test(`Comparar con una prueba de estrés: la línea, la frase y la tabla, y el plan sin tocar, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
@@ -5522,31 +5603,31 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       // D-N3: por titular. Por defecto, el sueldo mayor y 3 meses; se elige de quién y cuánto tiempo.
       await expect(v2.locator('[data-prevision-v2-param="concept"]')).toHaveText(["Ingreso Persona A", "Ingreso Persona B"]);
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveText(["3 meses", "6 meses"]);
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 8 ene 2027, [\d.]+\s€ por debajo del plan\./);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Sin «Ingreso Persona A» durante 3 meses, no bajáis del suelo: el punto más bajo queda [\d.]+\s€ el 5 feb 2027, [\d.]+\s€ por debajo del plan\./);
       // FX-20 completa (10/11): tres filas más al final, la liquidez, la deuda y el patrimonio a 24 meses. Sin sueldo no cambia la
       // deuda (las cuotas se pagan igual): el patrimonio baja lo mismo que la liquidez y no hay frase de deuda.
       await expect(impacto.locator("tbody tr")).toHaveCount(9);
       // A la centena (11/11/2026), no al millar: la diferencia de 24 meses se lee igual que la del 5 feb.
       await expect(impacto.locator("tbody tr").nth(7)).toContainText(/Deuda viva a 5 nov 2028\s*8\.100\s€\s*8\.100\s€\s*igual/);
-      await expect(impacto.locator("tbody tr").nth(6)).toContainText(/Liquidez a 5 nov 2028\s*21\.400\s€\s*10\.600\s€\s*−10\.800\s€/);
+      await expect(impacto.locator("tbody tr").nth(6)).toContainText(/Liquidez a 5 nov 2028\s*21\.100\s€\s*10\.300\s€\s*−10\.800\s€/);
       await expect(impacto.locator("tbody tr").nth(8)).toContainText(/Patrimonio sin vivienda ni cartera a 5 nov 2028.*−10\.800\s€/s);
       await expect(impacto.locator(".prev-v2-patrimonio")).toHaveCount(0);
       // FX-20 (7/11): el colchón en meses en el punto más bajo, con el gasto corriente medio del plan (4.250 € en la demo):
       // 5.600 € son 1,3 meses; 2.500 €, 0,6; la diferencia es la resta de lo que se ve.
-      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*0,6\s*−0,7/);
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,5\s*0,5\s*−1,0/);
       await expect(impacto).toContainText("Colchón: cuántos meses de gasto corriente (4.250 € al mes de media en los próximos 12) cubre la liquidez.");
       // Con el objetivo de colchón de la demo (4 meses) el plan ya está por debajo: la frase no lo repite.
       await expect(impacto.locator(".prev-v2-impacto-frase")).not.toContainText("objetivo");
       await expect(impacto.locator("tbody tr").nth(2)).toContainText("¿Bajáis del suelo?");
       // El suelo también en la cuenta corriente (6/11): el total aguanta, pero la cuenta se queda en descubierto.
-      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/Cuenta corriente, lo más bajo.*0\s€.*−2\.500\s€/s);
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Pero la cuenta corriente se queda en descubierto el 8 dic \(hasta −2\.500\s€ el 8 ene 2027\): habría que pasar unos 2\.600\s€ del ahorro antes de ese día\./);
+      await expect(impacto.locator("tbody tr").nth(3)).toContainText(/Cuenta corriente, lo más bajo.*1\.000\s€.*−2\.800\s€/s);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/Pero la cuenta corriente se queda en descubierto el 8 dic \(hasta −2\.800\s€ el 5 feb 2027\): habría que pasar unos 2\.900\s€ del ahorro antes de ese día\./);
       await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveClass(/is-bad/);
       await expect(impacto.locator("tbody tr").nth(4)).toContainText(/A 31 de diciembre.*−[\d.]+\s€/s);
       await expect(impacto.locator("tbody tr").nth(5)).toContainText(/A 5 feb 2027.*−[\d.]+\s€/s);
       // Con un objetivo de 1 mes, la prueba lo rompe y el plan no: la frase lo dice.
       const objetivoDemo = await page.evaluate(() => { const antes = state.emergencyBufferMonths; state.emergencyBufferMonths = 1; previsionV2Render(); return antes; });
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("El colchón en el punto más bajo baja de 1,3 meses a 0,6 meses de gasto: por debajo de vuestro objetivo de 1 mes.");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("El colchón en el punto más bajo baja de 1,5 meses a 0,5 meses de gasto: por debajo de vuestro objetivo de 1 mes.");
       await page.evaluate((antes) => { state.emergencyBufferMonths = antes; previsionV2Render(); }, objetivoDemo);
       await expect(impacto).toContainText("Se quita «Ingreso Persona A» de nov 26 a ene 27.");
       await expect(impacto).toContainText("Es una prueba: no cambia el plan ni mueve dinero.");
@@ -5599,17 +5680,17 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
 
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 14 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−3\.000\s€/);
       // FX-21 (7/11): el importe se elige; la píldora, la frase y la tabla dicen el elegido.
       await expect(v2.locator('[data-prevision-v2-param="amount"]')).toHaveCount(3);
       await v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]').click();
       await expect(v2.locator('[data-prevision-v2-param="amount"][data-valor="6000"]')).toHaveAttribute("aria-pressed", "true");
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 6.000 € el 8 dic");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 6.000 € el 14 dic");
       await expect(impacto.locator("tbody tr").first()).toContainText(/−6\.000\s€/);
       await expect(v2.locator('[data-prevision-v2-prueba="imprevisto"]')).toHaveText("Imprevisto 6.000 €");
       await v2.locator('[data-prevision-v2-param="amount"][data-valor="3000"]').click();
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 8 dic");
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 € el 14 dic");
       // Sin reserva, el plan toca 0 € pero no queda en descubierto: el titular no avisa.
       await expect(v2.locator(".prev-v2-cuenta")).toHaveCount(0);
       // D-N8: con una reserva de 1.000 €, el traspaso al ahorro la deja en la cuenta (antes la cuenta tocaba 0 € el 8 dic),
@@ -5625,9 +5706,10 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
       });
       expect(conReserva.minimo).toBeGreaterThanOrEqual(999.5);
       expect(conReserva.paridad).toBe(true);
-      // Si ni sin traspasar nada llega a la reserva (4.000 €), el titular avisa y dice cuánto pasar del ahorro.
-      await page.evaluate(() => { state.operatingReserve = 4000; render(); });
-      await expect(v2.locator(".prev-v2-cuenta")).toContainText(/Ojo: en el plan, la cuenta corriente baja de su reserva de 4\.000\s€ el 8 dic \(hasta 3\.800\s€ el 8 dic\): habría que pasar unos 180\s€ del ahorro antes de ese día\./);
+      // Si ni sin traspasar nada llega a la reserva (5.000 €), el titular avisa y dice cuánto pasar del ahorro. FX-03: con el gasto
+      // variable repartido, la cuenta baja poco a poco hasta la víspera del cobro (antes caía de golpe el 8 y bastaban 4.000 €).
+      await page.evaluate(() => { state.operatingReserve = 5000; render(); });
+      await expect(v2.locator(".prev-v2-cuenta")).toContainText(/Ojo: en el plan, la cuenta corriente baja de su reserva de 5\.000\s€ el 11 dic \(hasta 4\.800\s€ el 14 dic\): habría que pasar unos 230\s€ del ahorro antes de ese día\./);
 
       await v2.locator('[data-prevision-v2-prueba=""]').click();
       await expect(v2.locator(".prev-v2-impacto")).toHaveCount(0);
@@ -5640,6 +5722,50 @@ test.describe("Rediseño C2 · Plan › Previsión v2", () => {
 
 // FX-10 PR-2 y FX-31: el panel del día de Plan › Previsión (a la derecha del gráfico en escritorio, debajo en móvil) y la insignia
 // de confianza con su porqué y la tarea que más la sube. Datos de ejemplo (sin cifras del hogar), reloj fijo el 6/11/2026.
+// FX-10 PR-3: el rango probable en el gráfico de Previsión, solo con 3 m. Demo con reloj el 12/11: el día más bajo (14 dic) el plan dice
+// 6.600 € y el rango probable va de 6.900 a 9.100 € (el plan pone el día 8 los pagos sin día confirmado, el 78 % de lo que se mueve).
+test.describe("FX-10 PR-3 · rango probable en Previsión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`3 m con el área, la nota, el panel y la tabla; 12 m sin rango; lleva a Días de cargo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
+      const figura = v2.locator('[data-ck-id="prevision-v2"]');
+      await expect(figura.locator(".ck-banda")).toHaveCount(1);
+      await expect(figura.locator(".ck-lectura")).toHaveText(/14 dic: 6\.600\s€ previstos · 5\.100\s€ sobre el suelo · rango probable 6\.900\s€ – 9\.100\s€\./);
+      await expect(v2.locator(".prev-v2-dia-rango")).toHaveText(/Rango probable 6\.900\s€ – 9\.100\s€ · el plan, por debajo: pone el día 8 los pagos sin día confirmado/);
+      const nota = figura.locator(".prev-v2-rango-nota");
+      await expect(nota).toContainText("Área azul: el rango probable (8 de cada 10 casos), según qué día caigan los pagos; no recoge cambios de importe.");
+      await expect(nota).toContainText("La línea del plan pone el día 8 los pagos sin día confirmado: es el lado prudente");
+      await expect(nota).toContainText("Es ancho porque el 78 % de lo que se mueve no tiene día confirmado");
+      await figura.getByText("Ver como tabla").click();
+      await expect(figura.locator("table th").nth(3)).toHaveText("Rango probable");
+      await expect(figura.locator("table tbody tr").first().locator("td").nth(2)).toHaveText(/€ – .*€/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // 12 m: cada punto resume varios días; el rango (de fechas, a 90 días) no se pinta ni se dice.
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(figura.locator(".ck-banda")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-rango-nota")).toHaveCount(0);
+      await expect(v2.locator(".prev-v2-dia-rango")).toHaveCount(0);
+      await expect(figura.locator(".ck-lectura")).not.toContainText("rango probable");
+
+      // De vuelta a 3 m, «confirmar el día de los pagos grandes» lleva a Días de cargo (H-35), lo que estrecha el rango.
+      await v2.locator('[data-prevision-v2-horizonte="3m"]').click();
+      await v2.locator(".prev-v2-rango-nota").getByRole("button", { name: "confirmar el día de los pagos grandes" }).click();
+      await expect(page).toHaveURL(/#planificacion-partidas$/);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`el día más bajo de entrada, se recorre y se fija; la insignia dice por qué y qué la sube, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
@@ -5658,17 +5784,14 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       // De entrada, el punto más bajo: el mismo día y la misma cifra que el titular.
       await expect(dia).toHaveAttribute("aria-labelledby", "prevV2DiaTitulo");
       await expect(dia.locator(".e19-eyebrow").first()).toHaveText(/Día seleccionado · el más bajo/i);
-      await expect(titulo).toHaveText("Martes 8 dic");
-      await expect(dia.locator(".prev-v2-dia-saldo")).toHaveText(/5\.600\s€/);
-      await expect(dia).toContainText(/4\.100\s€ sobre el suelo\. Cuenta corriente 0\s€ · ahorro 5\.600\s€\./);
-      await expect(v2.locator(".ck-lectura")).toHaveText(/8 dic: 5\.600\s€ previstos · 4\.100\s€ sobre el suelo\./);
-      // Qué lo mueve: los pagos del día con su certeza; el gasto variable no tiene día de cargo.
-      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
-      // 11/11/2026: una línea por movimiento, como la referencia; el gasto variable no lleva línea pequeña (ni pregunta).
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("small")).toHaveCount(0);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
-      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
+      await expect(titulo).toHaveText("Lunes 14 dic");
+      await expect(dia.locator(".prev-v2-dia-saldo")).toHaveText(/6\.600\s€/);
+      await expect(dia).toContainText(/5\.100\s€ sobre el suelo\. Cuenta corriente 1\.000\s€ · ahorro 5\.600\s€\./);
+      // FX-10 PR-3: con 3 m, la lectura dice también el rango probable (el plan, 6.600 €, queda por debajo: pagos sin día, el día 8).
+      await expect(v2.locator(".ck-lectura")).toHaveText(/14 dic: 6\.600\s€ previstos · 5\.100\s€ sobre el suelo · rango probable 6\.900\s€ – 9\.100\s€\./);
+      // Qué lo mueve. FX-03: el día más bajo (la víspera del cobro) solo mueve lo de ese día del gasto variable repartido.
+      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(1);
+      await expect(dia.locator(".prev-v2-dia-item")).toContainText(/Gasto variable estimado\s*−5[67]\s€/);
 
       const figura = v2.locator('[data-ck-id="prevision-v2"]');
       const scrub = figura.locator(".ck-scrub");
@@ -5682,7 +5805,7 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
         expect(cajaFigura.y + cajaFigura.height, "el gráfico cabe en 900 px sin desplazar").toBeLessThanOrEqual(900);
         // Pasar el ratón cambia el día; un clic lo fija y el ratón ya no lo mueve.
         await page.mouse.move(caja.x + caja.width * 0.1, caja.y + caja.height / 2);
-        await expect(titulo).not.toHaveText("Martes 8 dic");
+        await expect(titulo).not.toHaveText("Lunes 14 dic");
         await page.mouse.click(caja.x + caja.width * 0.8, caja.y + caja.height / 2);
         const fijado = await titulo.textContent();
         await expect(dia.locator(".prev-v2-dia-pista")).toContainText("Día fijado.");
@@ -5700,12 +5823,30 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
         // Tocar el gráfico fija el día.
         await page.mouse.click(caja.x + caja.width * 0.8, caja.y + caja.height / 2);
-        await expect(titulo).not.toHaveText("Martes 8 dic");
+        await expect(titulo).not.toHaveText("Lunes 14 dic");
         await expect(dia.locator(".prev-v2-dia-pista")).toContainText("Día fijado.");
       }
       // «Volver al punto más bajo» suelta el día.
       await dia.locator("[data-prevision-v2-dia-soltar]").click();
+      await expect(titulo).toHaveText("Lunes 14 dic");
+      await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
+      // Los pagos con su certeza, el 8 dic: con ← desde el gráfico (seis días antes). Después de medir la posición del panel: el foco
+      // en el gráfico desplaza la página y las cajas medidas a mitad del desplazamiento no casan (CI de #607, 390 px).
+      // El puntero, fuera del gráfico (x = 0, el margen): WebKit mueve el ratón cuando la página se desplaza debajo de él, y un día
+      // sin fijar sigue al ratón (es lo que se quiere), así que un puntero quieto encima del gráfico cambiaba el día (CI de #607, Safari).
+      await page.mouse.move(0, 0);
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
       await expect(titulo).toHaveText("Martes 8 dic");
+      await expect(dia.locator(".prev-v2-dia-item")).toHaveCount(6);
+      // 11/11/2026: una línea por movimiento, como la referencia; el gasto variable no lleva línea pequeña (ni pregunta).
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("small")).toHaveCount(0);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Gasto variable estimado" }).locator("button")).toHaveCount(0);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/día estimado · ¿sabes el día\?/);
+      await expect(dia.locator(".prev-v2-dia-item").filter({ hasText: "Vivienda" })).toContainText(/−750\s€/);
+      // Con el teclado, como se ha llegado: sin llevar el ratón al panel (al soltar, el foco vuelve al gráfico y la página se desplaza).
+      await dia.locator("[data-prevision-v2-dia-soltar]").press("Enter");
+      await expect(titulo).toHaveText("Lunes 14 dic");
       await expect(dia.locator("[data-prevision-v2-dia-soltar]")).toHaveCount(0);
 
       // FX-31: la insignia, honesta con la demo (0 % del gasto con día, saldos por calendario, ningún cierre comparable).
@@ -5733,9 +5874,12 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
       await expect(sube.locator('[data-prevision-v2-nav="planificacion-partidas"]')).toBeVisible();
       await expect(hoja).toContainText("La confianza no cambia ninguna cifra");
 
-      // Con una prueba de estrés, el panel dice cuánto quedaría ese día; la hoja sigue abierta.
+      // Con una prueba de estrés, el panel dice cuánto quedaría ese día; la hoja sigue abierta. El puntero, otra vez fuera del gráfico
+      // antes de que el clic desplace la página (ver arriba), y el día sigue siendo el más bajo.
+      await page.mouse.move(0, 0);
+      await expect(titulo).toHaveText("Lunes 14 dic");
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
-      await expect(dia.locator(".prev-v2-dia-prueba")).toHaveText(/Con «Imprevisto 3\.000 €»: 2\.600\s€ \(−3\.000\s€\)/);
+      await expect(dia.locator(".prev-v2-dia-prueba")).toHaveText(/Con «Imprevisto 3\.000 €»: 3\.600\s€ \(−3\.000\s€\)/);
       await expect(hoja).toBeVisible();
       await insignia.click();
       await expect(hoja).toBeHidden();
@@ -5780,8 +5924,8 @@ test.describe("FX-31 · una sola insignia de confianza", () => {
 });
 
 // XPR-07 dentro de C2 (7/11/2026): «Para no bajar del suelo el …» en la Previsión nueva, con la trayectoria del gráfico. Solo con un
-// descubierto en 30 días y con su interruptor encendido (sigue en prueba hasta su revisión). Reloj el 10/11 para que el 8 dic caiga
-// dentro de los 30 días; suelo INVENTADO de 7.000 € sobre los datos de ejemplo.
+// descubierto en 30 días y con su interruptor encendido (sigue en prueba hasta su revisión). Reloj el 10/11 para que el 8 dic (cuando
+// se baja del suelo) caiga dentro de los 30 días; suelo INVENTADO de 7.000 € sobre los datos de ejemplo.
 test.describe("XPR-07 · el arreglo más barato dentro de la Previsión nueva", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`con descubierto en 30 días sale la tarjeta con la misma cifra que el titular; sin él, no, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
@@ -5797,8 +5941,10 @@ test.describe("XPR-07 · el arreglo más barato dentro de la Previsión nueva", 
       await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
       const tarjeta = v2.locator(".prev-v2-arreglo");
       await expect(tarjeta.locator("h3")).toHaveText("Para no bajar del suelo el 8 de diciembre");
-      await expect(tarjeta).toContainText(/llega a 5\.620\s€ el 8 de diciembre: faltan 1\.380\s€/);
-      await expect(v2.locator(".prev-v2-frase").first()).toContainText(/1\.380\s€ por debajo del suelo/);
+      // FX-03: baja del suelo el 8 dic y sigue bajando hasta la víspera del cobro (14 dic, pasados los 30 días): la tarjeta mira hasta
+      // el final del bajón, como el titular (que a más de 30 días redondea a la centena, FX-04: 428 € son «400 €»).
+      await expect(tarjeta).toContainText(/llega a 6\.572\s€ el 14 de diciembre: faltan 428\s€/);
+      await expect(v2.locator(".prev-v2-frase").first()).toContainText(/400\s€ por debajo del suelo/);
       await expect(tarjeta).toContainText("La más barata · 0 €");
       await expect(tarjeta).toContainText("«Previsión en capas» (Herramientas › Previsión)");
       await expect(tarjeta).toContainText("Es la trayectoria del gráfico de arriba");
@@ -5844,8 +5990,8 @@ test.describe("XPR-08 · de verdad libre en la Previsión nueva", () => {
         previsionV2Render();
       });
       const libre = v2.locator(".prev-v2-libre");
-      await expect(libre).toContainText(/De verdad libre: 3\.400\s€\./);
-      await expect(libre).toContainText(/De los 4\.100\s€ sobre el suelo, 700\s€ ya son de lo que viene y el plan aún no descuenta/);
+      await expect(libre).toContainText(/De verdad libre: 4\.400\s€\./);
+      await expect(libre).toContainText(/De los 5\.100\s€ sobre el suelo, 700\s€ ya son de lo que viene y el plan aún no descuenta/);
       await expect(libre).toContainText(/Seguro FICTICIO de la casa \(600\s€ el 15 mar 2027; van 8 de 12 meses: 400\s€\)/);
       await expect(libre).toContainText(/300\s€ por lo que no está en el plan: Seguro FICTICIO del coche \(300\s€ el 5 dic\)/);
       await expect(libre).toContainText(/Apartando unos 50\s€ al mes, esos pagos no tocarán el colchón/);
@@ -6022,7 +6168,7 @@ test.describe("FX-13 · la previsión por cuenta", () => {
 });
 
 // FX-22 (9/11/2026) · «¿Y si…?» desde la Previsión: un gasto único de 4.000 € (INVENTADO) el 9 dic deja el total sobre el suelo pero la
-// cuenta corriente en descubierto («Sí, pero pasando dinero del ahorro a tiempo»); con 900 € más de gasto al mes (INVENTADO) se baja
+// cuenta corriente en descubierto («Sí, pero pasando dinero del ahorro a tiempo»); con 1.500 € más de gasto al mes (INVENTADO) se baja
 // del suelo («No sin tocar nada»). Se calcula al salir del campo, el foco se queda en él y «Guardar como escenario» lleva las dos.
 test.describe("FX-22 · ¿Y si…? desde la Previsión", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
@@ -6049,21 +6195,21 @@ test.describe("FX-22 · ¿Y si…? desde la Previsión", () => {
       await expect(v2.locator(".ck-escenario-etiqueta")).toHaveText("¿Y si…?");
       await expect(importe).toHaveValue("4.000");
       const gasto = v2.locator("#prevV2YSi-gasto-delta");
-      await gasto.fill("900");
+      await gasto.fill("1.500");
       await gasto.press("Tab");
-      await expect(v2.locator(".prev-v2-impacto-frase")).toHaveText(/^No sin tocar nada\. Con un gasto de 4\.000\s€ el 9 dic y 900\s€ más de gasto al mes de dic 26 a feb 27, bajáis del suelo el 9 dic\./);
+      await expect(v2.locator(".prev-v2-impacto-frase")).toHaveText(/^No sin tocar nada\. Con un gasto de 4\.000\s€ el 9 dic y 1\.500\s€ más de gasto al mes de dic 26 a feb 27, bajáis del suelo el 9 dic\./);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       await v2.locator("[data-prevision-v2-guardar]").click();
       await expect(v2.locator(".prev-v2-guardar")).toContainText("Guardada en Escenarios");
       const entry = await page.evaluate(() => loadEscenarioMotorSaved()[0]);
-      expect(entry.nombre).toMatch(/^Prueba · ¿y si…\? un gasto de 4\.000\s€ el 9 dic 2026 \+ 900\s€ más de gasto al mes de dic 26 a feb 27$/);
+      expect(entry.nombre).toMatch(/^Prueba · ¿y si…\? un gasto de 4\.000\s€ el 9 dic 2026 \+ 1\.500\s€ más de gasto al mes de dic 26 a feb 27$/);
       expect(entry.decisiones.map((d) => d.tipo)).toEqual(["imprevisto", "cambio_gasto"]);
       expect(pageErrors).toEqual([]);
     });
   }
 });
 
-// FX-22 PR-2 (10/11/2026) · aplazar un pago desde el panel del día: el 8 dic (el día más bajo de la demo) «aplazar un pago» abre
+// FX-22 PR-2 (10/11/2026) · aplazar un pago desde el panel del día: el 8 dic (el día de los cargos de la demo) «aplazar un pago» abre
 // «¿Y si…?» con el mayor de ese día elegido («Gastos del hogar»); un mes después, el punto más bajo sube; guardado, son dos «Cambio de gasto». «¿Y si…? un
 // gasto este día» abre la palanca del gasto único con el día puesto. Datos de la demo.
 test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
@@ -6079,12 +6225,13 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
       const dia = v2.locator(".prev-v2-dia");
-      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
-      // Una línea de atajos: el pago mayor del día que se puede aplazar (el gasto variable de 1.750 € no es un pago).
-      // Fuera de la columna del panel (a 1440 px panel y gráfico ya llegan casi a los 900 px): bajo el gráfico en escritorio y bajo
-      // el panel en el móvil. Dicen el día, porque en escritorio no están dentro del panel.
+      // FX-03: el día más bajo (14 dic) solo mueve gasto variable, sin pagos que aplazar; el 8 dic, con ← desde el gráfico, tiene cinco.
+      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Lunes 14 dic");
+      // Una línea de atajos, fuera de la columna del panel (a 1440 px panel y gráfico ya llegan casi a los 900 px): bajo el gráfico en
+      // escritorio y bajo el panel en el móvil. Dicen el día, porque en escritorio no están dentro del panel. Se mide antes de mover el
+      // día con el teclado: el foco en el gráfico desplaza la página (CI de #607).
       const atajos = v2.locator(".prev-v2-dia-atajos");
-      await expect(atajos).toHaveText("¿Y si…? El 8 dic: un gasto ese día · aplazar un pago");
+      await expect(atajos).toHaveText("¿Y si…? El 14 dic: un gasto ese día");
       const figura = v2.locator('[data-ck-id="prevision-v2"]');
       const [cajaDia, cajaAtajos, cajaFigura] = [await dia.boundingBox(), await atajos.boundingBox(), await figura.boundingBox()];
       if (viewport.width === 1440) {
@@ -6093,14 +6240,19 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       } else {
         expect(cajaAtajos.y, "bajo el panel").toBeGreaterThanOrEqual(cajaDia.y + cajaDia.height - 1);
       }
+      // El 8 dic, con ← desde el gráfico: el pago mayor del día que se puede aplazar (el gasto variable no es un pago).
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
+      await expect(dia.locator("#prevV2DiaTitulo")).toHaveText("Martes 8 dic");
+      await expect(atajos).toHaveText("¿Y si…? El 8 dic: un gasto ese día · aplazar un pago");
       await atajos.getByRole("button", { name: "Aplazar un pago del 8 dic: Gastos del hogar" }).click();
       await expect(v2.locator('[data-prevision-v2-prueba="ysi"]')).toHaveAttribute("aria-pressed", "true");
       const pago = v2.locator("#prevV2YSi-aplazar-key");
       await expect(pago).toBeFocused();
       await expect(pago.locator("option:checked")).toHaveText("Gastos del hogar · 1.350 € · 8 dic");
       const impacto = v2.locator(".prev-v2-impacto");
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveText("Con «Gastos del hogar» (1.350 €) aplazado del 8 dic al 8 ene 2027, no bajáis del suelo: el punto más bajo queda 7.000 € el 8 dic, 1.400 € por encima del plan.");
-      await expect(impacto.locator("tbody tr").first()).toContainText(/5\.600\s€.*7\.000\s€.*\+1\.400\s€/s);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toHaveText("Con «Gastos del hogar» (1.350 €) aplazado del 8 dic al 8 ene 2027, no bajáis del suelo: el punto más bajo queda 7.900 € el 14 dic, 1.300 € por encima del plan.");
+      await expect(impacto.locator("tbody tr").first()).toContainText(/6\.600\s€.*7\.900\s€.*\+1\.300\s€/s);
       await expect(impacto.locator("tbody tr").filter({ hasText: "A 31 de diciembre" })).toContainText(/\+1\.400\s€/);
       await v2.locator("#prevV2YSi-aplazar-months").selectOption("2");
       await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("aplazado del 8 dic al 8 feb 2027");
@@ -6122,6 +6274,208 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
 // FX-42 (9/11/2026) · la previsión en el «Listo» del Repaso semanal, sin paso nuevo: lo más bajo en 30 días con su margen, qué ha
 // cambiado desde la visita anterior a la Previsión (sin dejar foto) y, con un suelo INVENTADO de 8.000 €, el aviso del día en que
 // se baja. «Ver la previsión» cierra el repaso (ya guardado) y abre Plan › Previsión.
+// FX-14 · el mes en curso al ritmo real (XPR-04). Extracto FICTICIO: julio-octubre completos y noviembre hasta el 11, todo en «Gasto
+// variable estimado» (18 € al día y 220 € el día 2). Con 4 meses de perfil, el ritmo dice 770 € frente a 1.750 € del plan; la previsión
+// no cambia (sigue con lo prudente) y la tarjeta dice cómo acabaría el mes a este ritmo.
+async function sembrarRitmoVariable(page) {
+  await page.evaluate(() => {
+    const rows = [];
+    const pad = (n) => String(n).padStart(2, "0");
+    const add = (date, amount) => rows.push({ date, valueDate: date, movement: "Gasto variable estimado", details: "", amount, balance: null });
+    for (const [key, days] of [["2026-07", 31], ["2026-08", 31], ["2026-09", 30], ["2026-10", 31], ["2026-11", 11]]) {
+      for (let d = 1; d <= days; d += 1) {
+        add(`${key}-${pad(d)}`, -18);
+        if (d === 2) add(`${key}-${pad(d)}`, -220);
+      }
+    }
+    baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+    refreshMovementRollups();
+    applyMovementMappingsToActuals();
+    render();
+  });
+}
+
+test.describe("FX-14 · el mes en curso al ritmo real", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin 3 meses no dice nada; con ellos, el ritmo en Plan › Mes y el mes a este ritmo en la Previsión, sin tocar la previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 11, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      // Sin extracto (la demo), ni tarjeta ni línea.
+      await expect(v2.locator(".prev-v2-ritmo")).toHaveCount(0);
+      const cifra = await v2.locator(".prev-v2-cifra").textContent();
+
+      await sembrarRitmoVariable(page);
+      const tarjeta = v2.locator(".prev-v2-ritmo");
+      await expect(tarjeta).toBeVisible();
+      await expect(tarjeta.locator("#prevV2RitmoTitulo")).toHaveText("Si noviembre sigue a este ritmo");
+      await expect(tarjeta).toContainText(/Acabaríais noviembre con unos 11\.330\s€; la previsión, que cuenta lo prudente, dice 10\.350\s€\./);
+      await expect(tarjeta).toContainText(/cerraría en unos 770\s€ \(entre 760\s€ y 780\s€\): 980\s€ por debajo del plan, que prevé 1\.750\s€\./);
+      await expect(tarjeta).toContainText("Sale de vuestros 4 últimos meses de extracto, con lo gastado hasta el día 11.");
+      await expect(tarjeta).toContainText("La previsión sigue con lo prudente");
+      // La cifra de arriba no cambia: el ritmo se enseña al lado.
+      await expect(v2.locator(".prev-v2-cifra")).toHaveText(cifra);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Ver el ritmo en Plan › Mes»: la misma frase en la tarjeta del ritmo del mes.
+      await tarjeta.locator("[data-prevision-v2-plan-mes]").click();
+      const ritmo = page.locator(".plan-v2-ritmo-mes");
+      await expect(ritmo).toBeVisible();
+      await expect(ritmo.locator(".plan-v2-ritmo-variable")).toHaveAttribute("data-plan-v2-ritmo", "por-debajo");
+      await expect(ritmo).toContainText(/A vuestro ritmo, el gasto variable de noviembre cerraría en unos 770\s€/);
+      await expect(ritmo).toContainText("El día 15 acertaba de media con un ±1 %.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// FX-15 · el resumen por periodo, legible: la cascada de la liquidez del periodo (cuadra con la tabla) y la tabla mensual que cabe en el
+// móvil (mes · neto · saldo final, y lo demás en la fila desplegada del mes elegido). Cifras de la demo, INVENTADAS.
+test.describe("FX-15 · el resumen por periodo, legible", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`la cascada cuadra con la tabla y la tabla mensual cabe, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#prevision");
+      const resumen = page.locator("#previsionPeriodSummaryBody .periodo-resumen");
+      await expect(resumen).toBeVisible({ timeout: 20000 });
+      await page.locator('[data-prevision-period-unit="quarter"]').click();
+      await expect(resumen.locator(".periodo-frase")).toHaveText(/La liquidez sube unos 2\.900\s€: de 10\.100\s€ a 13\.000\s€\./);
+      await expect(resumen.locator(".periodo-tramo").first()).toContainText(/Liquidez al empezar nov 26\s*10\.100\s€/);
+      await expect(resumen.locator(".periodo-tramo").last()).toContainText(/Liquidez al acabar dic 26\s*13\.000\s€/);
+      await expect(resumen.locator(".analisis-cascada-row:not(.is-resultado)").filter({ hasText: "Ingresos" }).first()).toContainText(/\+12\.400\s€/);
+      await expect(resumen).toContainText("no salen de vuestro dinero, así que no restan");
+      // Cuadra con la tabla: el saldo final del último mes del periodo es el de la cascada (redondeado a la centena, FX-04).
+      const tabla = page.locator("#previsionMonthlyTable");
+      await expect(tabla.locator("tr[data-prevision-month-key=\"2026-12\"] td").last()).toHaveText(/13\.020\s€/);
+      await expect(tabla.locator("thead th")).toHaveText(["Mes", "Ingresos", "Gastos", "Deuda", "Ahorro", "Mínimo", "Neto", "Saldo final"]);
+      const detalle = tabla.locator(".prevision-fila-detalle");
+      if (viewport.width === 390) {
+        // Móvil: mes · neto · saldo final, sin desplazar en horizontal; lo demás, en la fila desplegada del mes elegido.
+        await expect(tabla.locator('thead th:has-text("Ingresos")')).toBeHidden();
+        expect((await tabla.boundingBox()).width, "la tabla cabe en el ancho").toBeLessThanOrEqual(viewport.width);
+        await expect(detalle).toBeVisible();
+        await expect(detalle).toContainText(/Ingresos 7\.400\s€ · gastos 4\.250\s€ · deuda 480\s€ · ahorro 800\s€/);
+        await tabla.locator('tr[data-prevision-month-key="2027-01"]').click();
+        await expect(tabla.locator('tr[data-prevision-month-key="2027-01"] + tr.prevision-fila-detalle')).toBeVisible();
+      } else {
+        await expect(detalle).toBeHidden();
+        await expect(tabla.locator('thead th:has-text("Ingresos")')).toBeVisible();
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// XPR-11 · mover los días de cargo a donde menos duelen. Sin días conocidos (la demo) no sale nada; con todos los recibos fijos el día 8
+// (INVENTADO), propone pasar tres al 15, donde ya no caen antes del punto más bajo de diciembre (el 14), con lo que sube cada uno.
+test.describe("XPR-11 · mover los días de cargo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`sin días conocidos no sale; con ellos, tres recibos con su ganancia, «Lo he pedido» y «Ya se carga», a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
+      await expect(v2.locator(".prev-v2-cargos"), "sin días conocidos, nada que mover").toHaveCount(0);
+
+      await page.evaluate(() => { const filas = chargeDayRows().filter((fila) => !fila.spread && !fila.rule); saveChargeDays(filas.map((fila) => [fila.key, "8", "declarado"]), ""); });
+      const tarjeta = v2.locator(".prev-v2-cargos");
+      await expect(tarjeta).toBeVisible({ timeout: 15000 });
+      await expect(tarjeta.locator("#prevV2CargosTitulo")).toHaveText(/Mover 3 recibos de día sube el mínimo del mes unos 2\.500\s€/);
+      const items = tarjeta.locator("li");
+      await expect(items).toHaveCount(3);
+      await expect(items.nth(0)).toContainText("Pide que «Gastos del hogar» se cargue el día 15 (ahora, el 8)");
+      await expect(items.nth(0)).toContainText(/\+1\.350\s€ en el mínimo de diciembre/);
+      // Ya no dice «día estimado» de un día dado: el motor diario conserva «declared» (antes lo convertía en «estimated»).
+      expect(await page.evaluate(() => canonicalDailyEngineRuns.active.rows.find((row) => row.date === "2026-12-08").events.find((event) => event.label === "Vivienda").confidence)).toBe("declared");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // «Lo he pedido» lo recuerda; «Ya se carga el 15» guarda el día y la propuesta de esa partida desaparece.
+      await items.nth(0).locator("[data-prevision-v2-cargo-pedido]").click();
+      await expect(tarjeta.locator("li").nth(0)).toContainText("Pedido el 12 nov");
+      await tarjeta.locator("li").nth(0).locator("[data-prevision-v2-cargo-hecho]").click();
+      await expect(v2.locator(".prev-v2-cargos li").filter({ hasText: "Gastos del hogar" })).toHaveCount(0);
+      expect(await page.evaluate(() => { const clave = chargeDayRows().find((fila) => fila.label === "Gastos del hogar").key; return loadChargeDays().series[clave].day; })).toBe(15);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// FX-50 · «Hasta 2036», legible: con ese horizonte, el año a año con su abanico (los supuestos un punto peor o mejor) y los hitos. Cifras
+// de la demo, INVENTADAS: el colchón de 4 meses se completa en diciembre de 2027 y la deuda no llega a cero (dos deudas suspendidas).
+test.describe("FX-50 · Hasta 2036, año a año", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`solo con «Hasta 2036»: el abanico que se abre, su tabla y los hitos, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      await expect(v2.locator(".prev-v2-cifra")).toBeVisible();
+      await expect(v2.locator(".prev-v2-anual"), "con 3 meses, no").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-horizonte="full"]').click();
+      const anual = v2.locator(".prev-v2-anual");
+      await expect(anual).toBeVisible({ timeout: 15000 });
+      await expect(anual.locator("#prevV2AnualTitulo")).toHaveText("Año a año, hasta 2036");
+      await expect(anual).toContainText("A 10 años, esto es una dirección, no una cifra.");
+      const hitos = anual.locator(".prev-v2-anual-hitos li");
+      await expect(hitos.first()).toHaveText(/diciembre 2027\s+Colchón completo/);
+      await expect(hitos.filter({ hasText: "Deuda cero" })).toContainText("no llega con el plan de ahora");
+      await anual.locator(".ck-tabla summary").click();
+      const filas = anual.locator(".ck-tabla tbody tr");
+      await expect(filas).toHaveCount(11);
+      await expect(filas.first()).toContainText(/2026\s*13\.000\s€\s*entre 12\.300\s€ y 13\.800\s€/);
+      // El abanico se abre con los años.
+      const ancho = async (fila) => { const [lo, hi] = ((await filas.nth(fila).textContent()).match(/entre ([\d.]+)\s€ y ([\d.]+)\s€/) || []).slice(1).map((t) => Number(t.replace(/\./g, ""))); return hi - lo; };
+      expect(await ancho(10)).toBeGreaterThan(await ancho(1));
+
+      // PR-2: un objetivo de ahorro con fecha (INVENTADO) es un hito en su mes, y la prueba de «Comparar con», una columna más.
+      await page.evaluate(() => { scenarioSettings.savingsGoals = [...(scenarioSettings.savingsGoals || []), { id: "coche", name: "Coche", target: 12000, targetDate: "2028-06-30", status: "active" }]; render(); });
+      await expect(anual.locator(".prev-v2-anual-hitos li").filter({ hasText: "Coche" })).toHaveText(/junio 2028\s+Objetivo «Coche» \(12\.000\s€\)/);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await anual.locator(".ck-tabla summary").click();
+      await expect(anual.locator(".ck-tabla thead th")).toHaveText(["Año", "Liquidez a 31/12", "Abanico", "Imprevisto 3.000 €"]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  // PR-2 (decisión del hogar, 12/11/2026): «Proyección» (#forecast) en el diseño nuevo lleva a «Hasta 2036» en vez de repetirla; «Gastos
+  // recurrentes» sigue ahí. Con el tema clásico, la proyección de siempre (las dos versiones conservan las mismas funciones).
+  test("«Proyección» lleva a «Hasta 2036» en el diseño nuevo y sigue igual en el clásico", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.clock.install({ time: new Date(2026, 10, 12, 9, 0, 0) });
+    await page.goto("/index.html#forecast");
+    const aviso = page.locator("#forecast .forecast-v2-aviso");
+    await expect(aviso).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#forecast .forecast-proyeccion")).toBeHidden();
+    await expect(page.locator("#categoryChart")).toBeVisible();
+    await aviso.locator("[data-forecast-v2-abrir]").click();
+    await expect(page).toHaveURL(/#plan$/);
+    await expect(page.locator("#prevV2AnualTitulo")).toBeFocused();
+    await expect(page.locator('[data-prevision-v2-horizonte="full"]')).toHaveAttribute("aria-pressed", "true");
+    await page.goto("/index.html?tema=clasico#forecast");
+    await expect(page.locator("#forecast .forecast-proyeccion")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#forecast .forecast-v2-aviso")).toBeHidden();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
@@ -6147,7 +6501,7 @@ test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
       await expect(tarjeta.locator(".rep-v2-prevision-titulo")).toHaveText("La previsión");
       const lineas = tarjeta.locator("li");
       // A 29 días, el contrato de cifras redondea a la decena (FX-04), como el titular de la Previsión ese día.
-      await expect(lineas.first()).toHaveText(/^Lo más bajo en 30 días: 5\.620\s€ el 8 dic, 4\.120\s€ por encima del suelo inicial\.$/);
+      await expect(lineas.first()).toHaveText(/^Lo más bajo en 30 días: unos 6\.900\s€ el 9 dic, 5\.400\s€ por encima del suelo inicial\.$/);
       const titular = await page.evaluate(() => { const c = FinanceCanonicalForecastContract; const hoy = isoLocalDate(new Date()); return money(c.describeLow(c.lowPoint(canonicalDailyEngineRuns.active.rows.filter((r) => r.date >= hoy && r.date <= "2026-12-09"), {}), { today: hoy }).value); });
       await expect(lineas.first()).toContainText(titular);
       await expect(lineas.nth(1)).toHaveText(/frente a tu visita del 6 nov|^Igual que en tu visita del 6 nov\.$/);
@@ -6230,7 +6584,7 @@ test.describe("FX-12 · lo que viene en 90 días", () => {
       await expect(viene.locator(".prev-v2-viene-item")).toHaveCount(14);
       await expect(viene.getByRole("button", { name: "¿Sabes el día de Vivienda?" })).toHaveCount(2);
       await expect(viene).not.toContainText("Gasto variable estimado");
-      await expect(viene).toContainText(/No incluye el gasto variable \(unos 3\.500\s€ en estos 90 días\), que no tiene día fijo\./);
+      await expect(viene).toContainText(/No incluye el gasto variable \(unos 5\.200\s€ en estos 90 días\), que no tiene día fijo\./);
       // Las marcas del gráfico: una por día con hitos; el 8 dic sale más de lo que entra.
       await expect(v2.locator(".ck-hito")).toHaveCount(3);
       await expect(v2.locator(".ck-hito-sale")).toHaveCount(1);
@@ -6336,9 +6690,7 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       await page.setViewportSize(viewport);
       await page.clock.install({ time: new Date(2026, 10, 6, 9, 0, 0) });
       await page.goto("/index.html#plan");
-      await page.locator('[data-plan-tab="prevision"]').click();
-      const v2 = page.locator("#planPrevisionV2");
-      await expect(v2).toBeVisible({ timeout: 15000 });
+      const v2 = await abrirPlanPrevision(page);
       // Primera visita: no hay con qué comparar; queda la foto de hoy, ligera y en este dispositivo. Solo el camino al puente del 31/12.
       await expect(v2.locator(".prev-v2-cambio")).toHaveText("Por qué cambia el fin de año ▸");
       const fotos = await page.evaluate(() => JSON.parse(storageGet(storageKey("prevision-v2-fotos"), "[]")).map((foto) => ({ date: foto.date, bytes: JSON.stringify(foto).length })));
@@ -6347,8 +6699,7 @@ test.describe("FX-40 · qué ha cambiado desde tu última visita", () => {
       // Tres días después, con los mismos datos: el punto más bajo no ha cambiado (el redondeo más fino de ahora no cuenta como cambio).
       await page.clock.setSystemTime(new Date(2026, 10, 9, 9, 0, 0));
       await page.reload();
-      await page.locator('[data-plan-tab="prevision"]').click();
-      await expect(v2).toBeVisible({ timeout: 15000 });
+      await abrirPlanPrevision(page);
       await expect(v2.locator(".prev-v2-cambio")).toHaveText("Igual que en tu visita del 6 nov. Por qué cambia el fin de año ▸");
       // Cambia un supuesto (la inflación anual): la línea dice cuánto baja y la hoja, por qué.
       await page.evaluate(() => { const campo = document.getElementById("annualInflation"); campo.value = "3.5"; campo.dispatchEvent(new Event("input", { bubbles: true })); });
@@ -6467,15 +6818,15 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
       await expect(v2.locator('[data-prevision-v2-segunda="imprevisto"]')).toHaveAttribute("aria-pressed", "true");
       await expect(v2.locator('[data-prevision-v2-segunda="imprevisto"]')).toBeFocused();
       const impacto = v2.locator(".prev-v2-impacto");
-      // El imprevisto cae el peor día de la combinación (8 ene 2027, sin el sueldo), no el del plan (8 dic).
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona A» durante 3 meses y con un imprevisto de 3.000 € el 8 ene 2027, bajáis del suelo el 8 ene 2027.");
+      // El imprevisto cae el peor día de la combinación (5 feb 2027, sin el sueldo), no el del plan (14 dic).
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Sin «Ingreso Persona A» durante 3 meses y con un imprevisto de 3.000 € el 5 feb 2027, bajáis del suelo el 5 feb 2027.");
       await expect(impacto.locator("thead")).toContainText("Un sueldo menos + Imprevisto 3.000 €");
       await expect(v2.locator(".ck-escenario")).toHaveCount(1);
       await expect(v2.locator(".ck-escenario-etiqueta")).toContainText("Un sueldo menos + Imprevisto 3.000 €");
-      await expect(impacto.locator("tbody tr").first()).toContainText(/−500\s€.*−6\.100\s€/s);
-      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,3\s*−0,1\s*−1,4/);
+      await expect(impacto.locator("tbody tr").first()).toContainText(/−800\s€.*−7\.400\s€/s);
+      await expect(impacto.locator("tbody tr").nth(1)).toContainText(/Colchón en el punto más bajo \(meses\)\s*1,5\s*−0,2\s*−1,7/);
       // Cada una sola y las dos juntas, con las cifras de la tabla.
-      await expect(impacto.locator(".prev-v2-separado")).toHaveText("Por separado, el punto más bajo baja 3.100 € con «Un sueldo menos» y 3.000 € con «Imprevisto 3.000 €»; juntas, 6.100 €.");
+      await expect(impacto.locator(".prev-v2-separado")).toHaveText("Por separado, el punto más bajo baja 4.400 € con «Un sueldo menos» y 3.000 € con «Imprevisto 3.000 €»; juntas, 7.400 €.");
       // Las opciones de las dos siguen a mano.
       await expect(v2.locator('[data-prevision-v2-param="months"]')).toHaveCount(2);
       await expect(v2.locator('[data-prevision-v2-param="amount"]')).toHaveCount(3);
@@ -6493,7 +6844,7 @@ test.describe("FX-20 · dos pruebas a la vez", () => {
       expect(entry.nombre).toMatch(/^Prueba · sin «Ingreso Persona A» 3 meses \+ imprevisto de 3\.000\s€ en /);
       // Primero los tramos del sueldo (cambio de ingreso) y, el último, el imprevisto en su mes.
       expect(entry.decisiones.slice(0, -1).every((decision) => decision.tipo === "cambio_ingreso" && decision.params.deltaMensual < 0)).toBe(true);
-      expect(entry.decisiones.at(-1)).toMatchObject({ tipo: "imprevisto", params: { importe: 3000, mes: "2027-01" } });
+      expect(entry.decisiones.at(-1)).toMatchObject({ tipo: "imprevisto", params: { importe: 3000, mes: "2027-02" } });
       // Elegir como primera la que era segunda quita la segunda; «Solo el plan» quita las dos.
       await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
       await expect(v2.locator('[data-prevision-v2-segunda=""]')).toHaveAttribute("aria-pressed", "true");
@@ -6548,9 +6899,9 @@ test.describe("FX-20 completa · la deuda y el patrimonio a 24 meses", () => {
       await v2.locator("[data-prevision-v2-guardado]").selectOption("fx20-amortiza");
       const impacto = v2.locator(".prev-v2-impacto");
       const filas = impacto.locator("tbody tr");
-      await expect(filas.filter({ hasText: "Liquidez a 5 nov 2028" })).toContainText(/21\.400\s€\s*19\.400\s€\s*−2\.000\s€/);
+      await expect(filas.filter({ hasText: "Liquidez a 5 nov 2028" })).toContainText(/21\.100\s€\s*19\.100\s€\s*−2\.000\s€/);
       await expect(filas.filter({ hasText: "Deuda viva a 5 nov 2028" })).toContainText(/8\.100\s€\s*6\.000\s€\s*−2\.100\s€/);
-      await expect(filas.filter({ hasText: "Patrimonio sin vivienda ni cartera a 5 nov 2028" })).toContainText(/13\.300\s€\s*13\.400\s€\s*\+100\s€/);
+      await expect(filas.filter({ hasText: "Patrimonio sin vivienda ni cartera a 5 nov 2028" })).toContainText(/13\.000\s€\s*13\.100\s€\s*\+100\s€/);
       await expect(impacto.locator(".prev-v2-patrimonio")).toHaveText("A 5 nov 2028, 2.000 € menos de caja y 2.100 € menos de deuda; el patrimonio queda 100 € por encima del plan: lo que sale de la caja va a deber menos y además os ahorra intereses.");
       await expect(impacto).toContainText("La vivienda y la cartera no cambian entre el plan y la prueba, así que no se suman");
       // La deuda del plan es la de Deuda › Contratos con su calendario: la misma que da el motor con los contratos de la app.
@@ -6594,7 +6945,7 @@ test.describe("FX-20 · un escenario guardado en «Comparar con»", () => {
       await expect(selector).toBeFocused();
       await expect(v2.locator('[data-prevision-v2-prueba="imprevisto"]'), "la prueba deja de estar elegida").toHaveAttribute("aria-pressed", "false");
       const impacto = v2.locator(".prev-v2-impacto");
-      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/^Con «Prueba · imprevisto de 3\.000\s€ en dic 26», no bajáis del suelo: el punto más bajo queda 2\.600\s€ el 8 dic, 3\.000\s€ por debajo del plan\./);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText(/^Con «Prueba · imprevisto de 3\.000\s€ en dic 26», no bajáis del suelo: el punto más bajo queda 3\.600\s€ el 14 dic, 3\.000\s€ por debajo del plan\./);
       expect(await impacto.locator("tbody tr").first().textContent(), "el mismo punto más bajo que la prueba").toBe(filaPrueba);
       await expect(impacto.locator("thead th").nth(2)).toHaveText("imprevisto de 3.000 €…");
       await expect(v2.locator(".ck-escenario-etiqueta")).toHaveText("imprevisto de 3.000 €…");
@@ -7553,6 +7904,88 @@ test.describe("XDA-04 · periodo que cubre el extracto", () => {
   });
 });
 
+// XDA-04 · PR-2: la tira de cobertura de 90 días por cuenta. Dos extractos de CaixaBank con un hueco del 4 al 9 oct: la
+// revisión del segundo lo dice («Cobertura tras importar»), Movimientos lo pinta y dice qué importar, el repaso lleva la
+// tira en su paso «Extracto» y las anomalías (WP-36) dicen qué días no han podido mirar. Movimientos INVENTADOS.
+test.describe("XDA-04 · PR-2 · tira de cobertura de 90 días", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`dos extractos con un hueco: tras importar, en Movimientos, en el repaso y en las anomalías, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      const v2 = page.locator("#importarV2");
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      const importar = async (nombre, filas, cubre) => {
+        const csv = ["Fecha;Concepto;Importe;Saldo", ...filas].join("\n");
+        await page.setInputFiles("#registrarImportFileInput", { name: nombre, mimeType: "text/csv", buffer: Buffer.from(csv) });
+        await expect(v2.locator(".imp-v2-cubre")).toBeVisible({ timeout: 15000 });
+        if (cubre) {
+          await v2.locator("#importarV2CubreDesde").fill(cubre[0]);
+          await v2.locator("#importarV2CubreHasta").fill(cubre[1]);
+        }
+        await v2.locator("#importarV2Cuenta").selectOption("CaixaBank");
+      };
+      const confirmar = async (n) => {
+        await v2.locator("[data-imp-v2-importar]").click();
+        await page.click("#operationConfirmSubmit");
+        await expect(v2).toContainText(`${n} movimientos importados`, { timeout: 15000 });
+      };
+      await importar("agosto-septiembre.csv", ["01/08/2026;NOMINA FICTICIA;3000,00;4000,00", "03/10/2026;LUZ FICTICIA;-90,00;3910,00"]);
+      await expect(v2.locator("[data-cob-tras]")).toContainText("Es el primer extracto de CaixaBank que se registra.");
+      await confirmar(2);
+      await v2.locator("[data-imp-v2-otro]").first().click(); // el segundo extracto: Importar vuelve a su tarjeta de fuentes
+      await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await importar("octubre.csv", ["10/10/2026;SUPER FICTICIO;-50,00;3860,00", "02/11/2026;NOMINA FICTICIA;3000,00;6860,00"]);
+      const tras = v2.locator("[data-cob-tras]");
+      await expect(tras).toContainText("Deja sin ver del 4 al 9 oct: importa también esos días si puedes.");
+      await expect(tras).toContainText("CaixaBank queda cubierto hasta el 2 nov, con un hueco en los últimos 90 días.");
+      await expect(tras.locator(".cob-seg.is-hueco")).toHaveCount(1);
+      // Cambiar el periodo para que empiece el 4 cierra el hueco, y la tarjeta lo dice antes de importar.
+      await v2.locator("#importarV2CubreDesde").fill("2026-10-04");
+      await expect(tras).toContainText("CaixaBank queda cubierto hasta el 2 nov.");
+      await expect(tras.locator(".cob-seg.is-hueco")).toHaveCount(0);
+      await v2.locator("#importarV2CubreDesde").fill("2026-10-10");
+      await expect(tras).toContainText("Deja sin ver del 4 al 9 oct");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Importar sin desbordar").toBe(true);
+      await confirmar(2);
+
+      // Movimientos: la tira, como Movimientos.png, entre la bandeja y la lista.
+      await page.goto("/index.html#movements");
+      const tira = page.locator("#movimientosV2Lista .cob-tira");
+      await expect(tira).toBeVisible({ timeout: 15000 });
+      await expect(tira.locator("#cobTiraTitulo")).toHaveText("Cobertura");
+      const caixa = tira.locator('[data-cob-cuenta="CaixaBank"]');
+      await expect(caixa.locator(".cob-tira-estado")).toHaveText("hueco del 4 al 9 oct");
+      await expect(tira.locator('[data-cob-cuenta="Mediolanum"] .cob-tira-estado')).toHaveText("sin extractos");
+      await expect(caixa.locator(".cob-seg")).toHaveCount(4); // cubierto, hueco, cubierto y, desde el 3 nov, sin dato
+      const pista = caixa.locator(".cob-tira-pista");
+      await expect(pista).toBeHidden();
+      await caixa.locator("summary").click();
+      await expect(pista).toContainText("Importa un extracto de CaixaBank que cubra del 4 oct al 12 nov: cierra el hueco y trae lo que va desde el último.");
+      const tarjeta = await tira.locator(".cob-tira-tarjeta").boundingBox();
+      expect(tarjeta.x + tarjeta.width, "la tarjeta cabe").toBeLessThanOrEqual(viewport.width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Movimientos sin desbordar").toBe(true);
+      await expect(page.locator("#movimientosV2Lista .mov-v2-pending")).not.toContainText("cobertura");
+      // WP-36: lo que no ha podido mirar, con fechas, en vez de callar.
+      await expect(page.locator("#anomaliasCuerpo")).toContainText("No he podido mirar del 4 al 9 oct en CaixaBank: no hay extracto de esos días.");
+      // El repaso lleva la tira en su paso «Extracto», sin botón propio: «Importar extracto» ya está en su pie.
+      expect(await page.evaluate(() => {
+        const cuerpo = repasoV2PasoExtracto().cuerpo;
+        return cuerpo.includes("cob-tira-suelta") && cuerpo.includes("hueco del 4 al 9 oct") && !cuerpo.includes("<button") && !cuerpo.includes("<h3");
+      })).toBe(true);
+      // «Importar extracto» de la pista lleva a Importar y abre el selector de archivos (XDA-02 · PR-1).
+      const selector = page.waitForEvent("filechooser", { timeout: 10000 });
+      await pista.getByRole("button", { name: "Importar extracto" }).click();
+      await selector;
+      await expect(page).toHaveURL(/#datos-importar$/);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // XDA-03 · nivel 1: el texto pegado de un extracto en PDF entra por la revisión de siempre. Importes sin signo (el signo sale del
 // saldo), una línea partida al pegar y la cabecera del PDF, que no se guarda en ningún sitio. Texto INVENTADO.
 test.describe("XDA-03 · texto de un PDF", () => {
@@ -7754,6 +8187,54 @@ test.describe("Hoy, cambio 1 · cobros y cargos esperados en la bandeja de Movim
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+});
+
+// FX-41 (el cambio de Hoy de la semana del 23/11/2026) · avisos de previsión con umbral en «Decidir esta semana» y en el calendario. Con un
+// suelo INVENTADO de 7.000 € la demo lo cruza en diciembre: el aviso dice el día, cuánto falta y lleva a la Previsión. Antes del 23/11, nada
+// (un cambio de Hoy por semana). En el calendario del móvil, el mismo aviso una semana antes, con el título sin importes.
+test.describe("FX-41 · avisos de previsión con umbral en Hoy", () => {
+  test("antes del 23/11 no salen (cada cambio de Hoy tiene su semana)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 10, 20, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+    await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(0);
+    expect(await page.evaluate(() => hoyV2AvisosCalendario())).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`el aviso del suelo en «Decidir esta semana», a la Previsión, y en el calendario sin importes en el título, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 23, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+      // Con la demo tal cual la previsión no cruza ningún umbral: no hay aviso.
+      await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(0);
+      await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+      const aviso = page.locator("#hoyV2 .hoy-v2-decision").filter({ has: page.locator("[data-hoy-v2-prevision]") });
+      await expect(aviso).toHaveCount(1);
+      await expect(aviso.locator("strong")).toHaveText(/^El \d+ dic bajáis del suelo$/);
+      await expect(aviso).toContainText(/La previsión llega a [\d.]+\s€ el \d+ dic: faltan unos [\d.]+\s€ sobre el suelo de 7\.000\s€\. En la Previsión está el arreglo más barato\./);
+      await expect(aviso.locator(".hoy-v2-level")).toHaveText("Alto");
+      await expect(page.locator("#hoyV2 .hoy-v2-decision")).toHaveCount(3);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // El calendario: el mismo aviso una semana antes del cruce, con el título sin importes (la pantalla de bloqueo los enseñaría).
+      const calendario = await page.evaluate(() => recordatoriosPlan().result.events.filter((event) => event.kind === "forecast"));
+      expect(calendario).toHaveLength(1);
+      expect(calendario[0].title).toMatch(/^Previsión: bajáis del suelo el \d+ dic$/);
+      expect(calendario[0].title).not.toMatch(/€/);
+      expect(calendario[0].description).toMatch(/faltan unos [\d.]+\s€ sobre el suelo de 7\.000\s€/);
+      // «Ver la previsión» lleva a Plan › Previsión.
+      await aviso.locator("[data-hoy-v2-prevision]").click();
+      await expect(page.locator("#planPrevisionV2")).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => location.hash)).toBe("#plan");
+      expect(pageErrors).toEqual([]);
+    });
+  }
 });
 
 // Hoy, cambio 2 (semana del 1/11/2026): la entrada al Repaso semanal en Hoy, solo mientras el repaso de esa semana está por
@@ -8114,8 +8595,7 @@ test.describe("XPR-06 · Qué mueve cada día", () => {
       const sw = page.locator('[data-fep-interruptor="banda-dia"]');
       await expect(sw).toHaveAttribute("aria-checked", "false");
       await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("apagada: enciéndela para probarla");
-      await sw.click();
-      await expect(sw).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "banda-dia");
       await expect(page.locator('[data-fep-id="banda-dia"]')).toContainText("en prueba desde el 26 oct · revisión el 9 nov");
 
       await abrirBanda();
@@ -8186,8 +8666,7 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
       await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "false", { timeout: 15000 });
       await expect(card, "apagada, no se ve").toBeHidden();
 
-      await page.locator('[data-fep-interruptor="lo-que-pide"]').click();
-      await expect(page.locator('[data-fep-interruptor="lo-que-pide"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "lo-que-pide");
       await expect(card, "se ve al momento, sin cambiar de pantalla").toBeVisible({ timeout: 15000 });
       await expect(card.locator(".lqp-frase")).toContainText(/^Lo que piden las funciones que usáis: unos [\d,]+ min a la semana .*frente a un presupuesto de 10 min\./);
       await expect(card.locator("meter.lqp-barra")).toHaveAttribute("max", "10");
@@ -8225,8 +8704,7 @@ test.describe("XUX-02 · Ver cómo quedaría", () => {
       await expect(page.locator("[data-ejemplo-abrir]"), "apagada, el estado vacío de siempre").toHaveCount(0);
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="ver-ejemplo"]').click();
-      await expect(page.locator('[data-fep-interruptor="ver-ejemplo"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "ver-ejemplo");
 
       await abrirPlanB();
       // Lo que la app sabe del hogar de demostración: ninguna de estas cifras puede salir en el ejemplo.
@@ -8281,8 +8759,7 @@ test.describe("XPR-07 · El arreglo más barato", () => {
       await empezarApagada(page, "descubierto"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="descubierto"]').click();
-      await expect(page.locator('[data-fep-interruptor="descubierto"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "descubierto");
       await page.goto("/index.html#prevision");
       await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
       const card = page.locator("#descubiertoCard");
@@ -8309,7 +8786,7 @@ test.describe("XPR-07 · El arreglo más barato", () => {
 
       // Apagada, desaparece aunque haya descubierto.
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="descubierto"]').click();
+      await cambiarFuncionEnPrueba(page, "descubierto", false);
       await page.goto("/index.html#prevision");
       await expect(page.locator("#previsionBandaResumen")).toContainText(/^Banda de caja a 30 días/, { timeout: 15000 });
       await expect(card).toBeHidden();
@@ -8350,8 +8827,7 @@ test.describe("XDA-10 · Antes de decidir", () => {
       await expect(linea, "apagada: el veredicto de siempre").toHaveCount(0);
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="antes-de-decidir"]').click();
-      await expect(page.locator('[data-fep-interruptor="antes-de-decidir"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "antes-de-decidir");
       await page.goto("/index.html#inversion-apalancamiento");
 
       await comparar("justo", 12);
@@ -8372,6 +8848,257 @@ test.describe("XDA-10 · Antes de decidir", () => {
       await comparar("justo", 1);
       await expect(nota).toContainText("Guardarraíl de colchón");
       await expect(linea, "con los saldos de ayer no hay nada que decir").toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// XDA-10 · PR-2 (12/11/2026): «Antes de decidir» en «Comparar con» de la Previsión (los saldos y, en su prueba, el Euribor tecleado) y al
+// cancelar una deuda entera (una sola línea para los tres guardarraíles). Hipoteca y Euribor INVENTADOS, como en la e2e de FX-21.
+test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`los saldos antiguos y el Euribor caducado, bajo la frase de la prueba; al día, nada; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      const saldosDe = (edad) => page.evaluate((edad) => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(2026, 10, 12 - edad, 12));
+        previsionV2Render();
+      }, edad);
+      const impacto = v2.locator(".prev-v2-impacto");
+      const linea = impacto.locator(".antes-decidir");
+      const fija = v2.locator(".antes-decidir-fija");
+
+      // La demo parte en «Auto por fecha»: los saldos no tienen fecha. Decisión del hogar (12/11): se dice una vez, junto a «Comparar
+      // con», y no en cada prueba.
+      await expect(fija).toHaveCount(1);
+      await expect(fija).toContainText("Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha");
+      await expect(fija.locator("a[data-antes-decidir-ir]")).toHaveText("Actualizar saldos");
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(fija, "una sola vez, también con una prueba elegida").toHaveCount(1);
+      await expect(linea, "la prueba no la repite").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba=""]').click();
+
+      await saldosDe(12);
+      await expect(fija, "con saldos con fecha, cada prueba dice lo suyo").toHaveCount(0);
+      await v2.locator('[data-prevision-v2-prueba="imprevisto"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(linea).toHaveCount(1);
+      await expect(linea).toContainText(/(Antes de decidir, (actualiza|conviene actualizar) los saldos \(de hace 12 días\)|Los saldos son de hace 12 días, pero)/);
+      await expect(linea).toContainText("El resultado de arriba es con estos datos");
+      // Va justo debajo de la frase, antes de la tabla.
+      expect(await impacto.evaluate((el) => el.querySelector(".prev-v2-impacto-frase").nextElementSibling?.classList.contains("antes-decidir"))).toBe(true);
+
+      // Con los saldos de hoy, nada.
+      await saldosDe(0);
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Con un imprevisto de 3.000 €");
+      await expect(linea).toHaveCount(0);
+
+      // El Euribor tecleado hace 70 días (caduca a los 35) en la prueba del Euribor, a 12 meses para que la revisión entre.
+      await page.evaluate(() => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-09-03", value: 2.35 }] }));
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { "hipoteca-ficticia": { spread: 0.99, nextReview: "2027-03-01", periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 } } }));
+        globalThis.revisionMortgages = () => [{ id: "hipoteca-ficticia", label: "Hipoteca FICTICIA", principal: 120000, payment: 640, remainingMonths: 240 }];
+        previsionV2Render();
+      });
+      await v2.locator('[data-prevision-v2-prueba="euribor"]').click();
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 1 punto en la revisión del 1 mar 2027");
+      await expect(linea).toHaveCount(1);
+      // En la demo, el punto más bajo (14 dic) llega antes de la revisión (1 mar 2027): para bajar del suelo, el Euribor tendría que haber
+      // subido más de diez puntos, y en 70 días no ha podido moverse más de 2,3 (1 punto al mes, su mayor salto). No le da la vuelta.
+      await expect(linea).toHaveAttribute("data-antes-decidir", "no");
+      await expect(linea).toContainText(/^El Euribor tecleado es de hace 70 días, pero haría falta que hubiera subido [\d,]+ puntos para cambiar el resultado, y su mayor salto en un mes ha sido de 1 punto \(septiembre de 2022\)\./);
+      await expect(linea).toContainText("en el Euribor, su mayor salto en un mes");
+      await expect(linea.locator("a"), "lo que no cambia el resultado no lleva a actualizar").toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      // Con el Euribor al día, nada otra vez.
+      await page.evaluate(() => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-11-02", value: 2.35 }] }));
+        previsionV2Render();
+      });
+      await expect(impacto.locator(".prev-v2-impacto-frase")).toContainText("Si el Euribor sube 1 punto");
+      await expect(linea).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
+  test("al cancelar una deuda entera, una sola línea tras los tres guardarraíles, con el más justo", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#inversion-apalancamiento");
+    const nota = page.locator("#ap1CompareNote");
+    await expect(page.locator("#ap1CompareRun")).toBeVisible({ timeout: 15000 });
+    // La deuda más pequeña de las que ofrece el desplegable (ya pintado: asignar un valor que aún no es una opción lo deja vacío y el
+    // importe se leería como una amortización parcial). Se cancela entera: el importe es todo su capital.
+    await expect(page.locator("#ap1DebtSelect option[value]:not([value=''])").first()).toBeAttached({ timeout: 15000 });
+    const cancelar = async (edad) => {
+      const elegida = await page.evaluate((edad) => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(2026, 10, 12 - edad, 12));
+        const select = qs("ap1DebtSelect");
+        const opciones = new Set([...select.options].map((option) => option.value).filter(Boolean));
+        const deuda = p2DebtRows().filter((row) => opciones.has(row.id) && Number(row.currentPrincipal) > 0).sort((a, b) => a.currentPrincipal - b.currentPrincipal)[0];
+        select.value = deuda.id;
+        qs("ap1Amount").value = String(Math.ceil(deuda.currentPrincipal));
+        qs("ap1DebtRate").value = "3";
+        qs("ap1Months").value = "12";
+        return select.value;
+      }, edad);
+      expect(elegida, "la deuda queda elegida en el desplegable").not.toBe("");
+      await page.locator("#ap1CompareRun").click();
+    };
+    await cancelar(12);
+    await expect(nota).toContainText("Guardarraíl de colchón");
+    await expect(nota).toContainText("Guardarraíl a");
+    await expect(nota.locator(".antes-decidir"), "una sola, no una por guardarraíl").toHaveCount(1);
+    await expect(nota.locator(".antes-decidir")).toHaveAttribute("data-antes-decidir-cual", /^el de (hoy|\d+ meses|tensión)$/);
+    await expect(nota.locator(".antes-decidir")).toContainText(/Los \d guardarraíles de arriba son con estos datos; el más justo es el de/);
+    // Va detrás del de tensión (DEB17), no debajo del de hoy.
+    expect(await nota.evaluate((el) => {
+      const ps = [...el.children];
+      const linea = ps.findIndex((p) => p.classList.contains("antes-decidir"));
+      const tension = ps.findIndex((p) => /DEB17/.test(p.textContent));
+      return tension >= 0 && linea === tension + 1;
+    })).toBe(true);
+    await cancelar(1);
+    await expect(nota).toContainText("Guardarraíl a");
+    await expect(nota.locator(".antes-decidir"), "con los saldos de ayer, nada").toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// FX-27 (XDO-02 en parte, 12/11/2026): la revisión de la hipoteca como escenario con fecha. Hipoteca y Euribor INVENTADOS (como en FX-21):
+// a 64 días de la revisión, «Euribor» va la primera de «Comparar con» y, elegida, la revisión sale en tres caminos (cuatro con una oferta fija).
+test.describe("FX-27 · la revisión de la hipoteca en tres caminos", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`a 120 días o menos, el Euribor delante y la revisión en tres caminos; con una oferta fija, cuatro; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#plan");
+      const v2 = await abrirPlanPrevision(page);
+      const chips = v2.locator(".prev-v2-comparar [data-prevision-v2-prueba]");
+      const sembrar = (nextReview) => page.evaluate((nextReview) => {
+        storageSet(storageKey("rate-indices"), JSON.stringify({ points: [{ indexId: "euribor12m", date: "2026-11-02", value: 2.35 }] }));
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { "hipoteca-ficticia": { spread: 0.99, nextReview, periodMonths: 12, rule: "monthlyAverage", ruleLag: 1, currentRate: 3.1 } } }));
+        globalThis.revisionMortgages = () => [{ id: "hipoteca-ficticia", label: "Hipoteca FICTICIA", principal: 120000, payment: 640, remainingMonths: 240 }];
+        previsionV2Render();
+      }, nextReview);
+
+      // Lejos (1/6/2027, 201 días): el orden de siempre.
+      await sembrar("2027-06-01");
+      await expect(chips.nth(1)).not.toHaveAttribute("data-prevision-v2-prueba", "euribor");
+      // A 64 días (15/1/2027): delante, y dice cuándo.
+      await sembrar("2027-01-15");
+      await expect(chips.nth(1)).toHaveAttribute("data-prevision-v2-prueba", "euribor");
+      await expect(chips.nth(1)).toContainText("revisión en 64 días");
+      await chips.nth(1).click();
+      const caminos = v2.locator("[data-fx27-caminos]");
+      await expect(caminos.locator("h4")).toContainText(/^La revisión del 15 ene( 2027)?, en 64 días, en tres caminos$/);
+      const filas = caminos.locator("tbody tr");
+      await expect(filas).toHaveCount(3);
+      await expect(filas.nth(0)).toContainText(/Euribor sin cambio\s*tipo 3,34 %\s*686\s€\s*\+46\s€/);
+      await expect(filas.nth(1)).toContainText(/Euribor \+1 punto\s*tipo 4,34 %\s*749\s€\s*\+109\s€/);
+      await expect(filas.nth(2)).toContainText(/Euribor \+2 puntos\s*tipo 5,34 %\s*814\s€\s*\+174\s€/);
+      await expect(filas.nth(1), "el camino de la prueba elegida (+1), marcado").toHaveAttribute("aria-current", "true");
+      // Cada punto más, el colchón en el punto más bajo no sube.
+      const colchones = await filas.evaluateAll((trs) => trs.map((tr) => Number(tr.lastElementChild.textContent.replace(",", "."))));
+      expect(colchones.every((value, at) => at === 0 || value <= colchones[at - 1]), `colchón ${colchones}`).toBe(true);
+      await expect(caminos).toContainText("Hoy pagáis 640 € al mes.");
+      await expect(caminos).toContainText("Con una oferta a tipo fijo tecleada en Ajustes, saldría aquí como cuarto camino.");
+      // +2 en la prueba: el marcado sigue a la elegida.
+      await v2.locator('[data-prevision-v2-param="points"][data-valor="2"]').click();
+      await expect(filas.nth(2)).toHaveAttribute("aria-current", "true");
+      // Con una oferta a tipo fijo (DEB-4) del 2 %: el cuarto camino, con la cuota más baja, y la previsión no suma la bajada.
+      await page.evaluate(() => { scenarioSettings.deb4Radar = { ...(scenarioSettings.deb4Radar || {}), fixedRate: 2, benchmarkUpdatedAt: "2026-11" }; previsionV2Render(); });
+      await expect(caminos.locator("h4")).toContainText("en cuatro caminos");
+      await expect(filas).toHaveCount(4);
+      await expect(filas.nth(3)).toContainText(/Oferta a tipo fijo\s*tipo 2,00 %\s*608\s€\s*−32\s€/);
+      await expect(caminos).toContainText("Si la cuota baja, la previsión no lo suma: se queda en el lado prudente.");
+      await expect(caminos).toContainText("el tipo mixto no se puede teclear todavía");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(await caminos.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), "la tabla cabe en la tarjeta").toBe(true);
+      // Con otra prueba sumada, no hay caminos (no se separa lo que pone cada una).
+      await v2.locator('[data-prevision-v2-segunda="imprevisto"]').click();
+      await expect(caminos).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
+// WP-21 · PR-3 (FIS-03, 12/11/2026): el local alquilado para la Renta. Local FICTICIO, el de tests/wp21-local-alquilado.test.cjs: 900 € al
+// mes de los dos, el inquilino retiene, 150.000 € (60 % construcción), 27.000 € ya amortizados; 2026 entero con 11.500 € de intereses y
+// reparación (700 no caben) y 1.300 € de otros gastos: −4.000 € de rendimiento, −2.000 € cada uno, 1.026 € retenidos cada uno.
+test.describe("WP-21 · PR-3 · el local alquilado para la Renta", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`se teclea, se guarda, sigue al recargar y cada declarante ve su parte, lo que se arrastra y la actualización, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#herramientas-fiscal");
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { delete scenarioSettings.wp21Local; saveScenarioSettings(); });
+      const caja = page.locator("#rentaLocal");
+      await expect(caja).not.toHaveAttribute("open", "");
+      await caja.locator("summary").first().click();
+      // Sin datos: la cifra no se da, se dice qué falta y el formulario sale abierto.
+      await expect(caja.locator('[data-local-renta-declarante="javi"]')).toContainText("Javi, 2026: todavía no se puede dar la cifra");
+      await expect(caja.locator(".informe-renta-falta")).toContainText("La renta mensual sin IVA del contrato.");
+      await expect(caja.locator(".local-renta-datos")).toHaveAttribute("open", "");
+      const campo = (label) => caja.getByLabel(label, { exact: true });
+      await campo("De quién es").selectOption("household");
+      await campo("Renta al mes, sin IVA (€)").fill("900");
+      await campo("¿El inquilino os retiene el 19 %?").selectOption("si");
+      await campo("La renta se actualiza").selectOption("ipc");
+      await campo("Mes de la actualización").selectOption("12");
+      await campo("Coste de compra, con gastos e impuestos (€)").fill("150.000");
+      await campo("Parte de construcción del coste (%)").fill("60");
+      await campo("Valor catastral de la construcción (€)").fill("70.000");
+      await campo("Amortización ya deducida hasta 2025 (€)").fill("27.000");
+      await campo("Meses alquilado (0 a 12)").fill("13");
+      await caja.locator("[data-local-renta-guardar]").click();
+      await expect(caja.locator("[data-local-renta-estado]")).toContainText("No se entiende los meses alquilado");
+      await expect(campo("Meses alquilado (0 a 12)")).toHaveAttribute("aria-invalid", "true");
+      await campo("Meses alquilado (0 a 12)").fill("12");
+      await campo("IBI (€)").fill("600");
+      await campo("Comunidad (€)").fill("480");
+      await campo("Seguro (€)").fill("220");
+      await campo("Intereses de la financiación (€)").fill("1.500");
+      await campo("Reparación y conservación (€)").fill("10.000");
+      await caja.locator("[data-local-renta-guardar]").click();
+      await expect(caja.locator("[data-local-renta-estado]")).toContainText("Guardado el local (2026).");
+      const javi = caja.locator('[data-local-renta-declarante="javi"]');
+      await expect(javi).toContainText(/Javi, 2026: a la base general −2\.000(,00)?\s€ \(su 50 %\); ya retenido 1\.026(,00)?\s€\./);
+      await expect(javi.getByRole("region")).toContainText(/Ingresos íntegros\s*5\.400(,00)?\s€/);
+      await expect(javi.getByRole("region")).toContainText("sin reducción: no es vivienda");
+      await expect(caja.locator('[data-local-renta-declarante="tere"]')).toContainText(/Tere, 2026: a la base general −2\.000(,00)?\s€/);
+      await expect(caja.locator(".informe-renta-lineas")).toContainText(/700(,00)?\s€ de 2026, a los 4 años siguientes/);
+      await expect(caja.locator('[data-local-renta-actualizacion="pronto"]')).toContainText("La renta se actualiza el 1 de diciembre de 2026, en 19 días");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // Sigue al recargar (scenarioSettings, la copia de siempre).
+      await page.reload();
+      await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
+      await page.locator("#rentaLocal summary").first().click();
+      await expect(page.locator('#rentaLocal [data-local-renta-declarante="javi"]')).toContainText(/a la base general −2\.000(,00)?\s€/);
+      // El borrador de apoyo (GOB8) lo lleva en su punto 5.
+      await page.locator("#gob8GenerateDraft").click();
+      await expect(page.locator("#gob8DraftPreview")).toContainText("5) El local alquilado: a la base general de cada declarante");
+      await expect(page.locator("#gob8DraftPreview")).toContainText(/Javi, 2026: local, a la base general −2\.000(,00)?\s€; retenido 1\.026(,00)?\s€\./);
       expect(pageErrors).toEqual([]);
     });
   }
@@ -8415,8 +9142,7 @@ test.describe("WP-18 · Aportado frente a valor", () => {
       await expect(card, "apagada: no sale").toBeHidden();
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="aportado"]').click();
-      await expect(page.locator('[data-fep-interruptor="aportado"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "aportado");
       await page.goto("/index.html#inversion-cartera");
       await expect(card).toBeVisible({ timeout: 15000 });
       reloj.marca("encenderla en Ajustes y volver a Cartera");
@@ -8478,8 +9204,7 @@ test.describe("WP-17 · Siguiente paso de la cartera", () => {
       await expect(card, "apagada: no sale").toBeHidden();
 
       await page.goto("/index.html#ajustes");
-      await page.locator('[data-fep-interruptor="siguiente-paso"]').click();
-      await expect(page.locator('[data-fep-interruptor="siguiente-paso"]')).toHaveAttribute("aria-checked", "true");
+      await cambiarFuncionEnPrueba(page, "siguiente-paso");
       await page.goto("/index.html#inversion-cartera");
       await expect(card).toBeVisible({ timeout: 15000 });
       await expect(card.locator(".sp-resumen")).toContainText("de valor");

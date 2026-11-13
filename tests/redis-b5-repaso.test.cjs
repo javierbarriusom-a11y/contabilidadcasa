@@ -98,7 +98,7 @@ test("medidor: abrir es vista, terminar es acción (con su duración) y cerrar a
 test("está en la app: diálogo, script con defer, lista de publicación, service worker, Funciones en prueba y Movimientos", () => {
   const html = read("index.html");
   assert.match(html, /<dialog class="rep-v2" id="repasoV2" aria-labelledby="repasoV2Titulo"><\/dialog>/);
-  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=\d+redisB5"><\/script>/);
+  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=\d+(?:redisB5|xda04b)"><\/script>/);
   assert.ok(html.indexOf("views/repaso-v2.js") < html.indexOf('src="app.js'), "antes de app.js, como el resto de views/*-v2.js");
   assert.match(read("tools/build-public-site.mjs"), /^ {2}"views\/repaso-v2\.js",$/m);
   assert.match(read("service-worker.js"), /"\.\/views\/repaso-v2\.js",/);

@@ -4081,6 +4081,30 @@
   color: var(--e19-muted);
 }
 
+/* FX-27 (12/11/2026): la revisión de la hipoteca en tres caminos, bajo la tabla de impacto, con las mismas columnas ceñidas. El camino
+   de la prueba elegida, marcado con un filete a la izquierda (no solo con color). */
+:root[data-tema="v2"] .prev-v2-caminos {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-titulo {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido th {
+  box-shadow: inset 3px 0 0 var(--e19-accent);
+  padding-left: 8px;
+}
+
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido th,
+:root[data-tema="v2"] .prev-v2-caminos-tabla tr.is-elegido td {
+  font-weight: 600;
+}
+
 /* ---------- FX-10 PR-2 · El panel del día (views/prevision-v2.js, de PrevisionDesktop.png) ----------
    Dentro de la tarjeta: en móvil, debajo del gráfico y antes de «Comparar con»; desde 1180 px, a la derecha del titular y el
    gráfico, para que cifra, gráfico y panel se vean sin desplazar a 1440 × 900. «Comparar con» ocupa entonces todo el ancho. */
@@ -4126,6 +4150,7 @@
 }
 
 :root[data-tema="v2"] .prev-v2-dia-sub,
+:root[data-tema="v2"] .prev-v2-dia-rango,
 :root[data-tema="v2"] .prev-v2-dia-prueba {
   color: var(--e19-muted);
   font-size: var(--e19-text-sm);
@@ -4619,6 +4644,125 @@
   margin: 0;
 }
 
+/* FX-50 (12/11/2026) · «Hasta 2036», año a año: el abanico por 31/12 y los hitos. */
+:root[data-tema="v2"] .prev-v2-anual {
+  display: grid;
+  gap: 8px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-anual p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-anual-hitos li.is-pendiente {
+  color: var(--e19-muted);
+}
+
+/* FX-50 PR-2 · en el diseño nuevo, «Proyección» (#forecast) lleva a «Hasta 2036» de Plan › Previsión en vez de repetirla. */
+:root[data-tema="v2"] #forecast .forecast-v2-aviso {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+:root[data-tema="v2"] #forecast .forecast-v2-aviso p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] #forecast .forecast-proyeccion {
+  display: none;
+}
+
+/* XPR-11 (12/11/2026) · mover los días de cargo: hasta tres recibos, cada uno con su ganancia y sus dos botones. */
+:root[data-tema="v2"] .prev-v2-cargos {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-cargos p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-cargos-lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .prev-v2-cargos-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-cargos-lista small {
+  display: block;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-cargos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .prev-v2-cargos-estado {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+@media (max-width: 640px) {
+  :root[data-tema="v2"] .prev-v2-cargos-lista li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* FX-14 (11/11/2026) · el mes en curso al ritmo real: la tarjeta de la Previsión y las líneas del ritmo en Plan › Mes. */
+:root[data-tema="v2"] .prev-v2-ritmo {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-ritmo p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo-variable {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .plan-v2-ritmo-variable p {
+  margin: 0;
+}
+
 :root[data-tema="v2"] .prev-v2-traspaso-opciones {
   display: grid;
   margin: 0;
@@ -4632,4 +4776,168 @@
   gap: 8px;
   padding: 8px 0;
   border-top: 1px solid var(--e19-border);
+}
+
+/* XDA-04 · PR-2 (12/11/2026): la tira de cobertura de 90 días por cuenta (cobertura-ui.js), de Movimientos.png.
+   Cubierto en verde, el hueco rayado en rojo (es lo único que rompe algo), sin dato en gris; lo «estimado» (importado
+   antes del registro del periodo), verde a medias. */
+:root[data-tema="v2"] .cob-tira {
+  margin: 18px 0 10px;
+}
+
+:root[data-tema="v2"] .cob-tira-tarjeta {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+:root[data-tema="v2"] .cob-tira-suelta {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .cob-tira-lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .cob-tira-fila {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  cursor: default;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila::-webkit-details-marker {
+  display: none;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+:root[data-tema="v2"] .cob-tira-cab {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tira-nombre {
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .cob-tira-cuenta.is-hueco .cob-tira-estado {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] summary.cob-tira-fila .cob-tira-estado::after {
+  content: " ›";
+}
+
+:root[data-tema="v2"] .cob-tira-detalle[open] summary.cob-tira-fila .cob-tira-estado::after {
+  content: " ⌄";
+}
+
+:root[data-tema="v2"] .cob-tira-barra {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+:root[data-tema="v2"] .cob-tras-barra {
+  height: 10px;
+}
+
+:root[data-tema="v2"] .cob-seg {
+  display: inline-block;
+  min-width: 2px;
+  background: var(--e19-border); /* «sin dato»: el gris de la referencia, visible también en oscuro */
+}
+
+:root[data-tema="v2"] .cob-seg.is-cubierto {
+  background: var(--e19-success);
+}
+
+:root[data-tema="v2"] .cob-seg.is-cubierto.is-estimado {
+  background: var(--e19-success);
+  opacity: 0.45;
+}
+
+:root[data-tema="v2"] .cob-seg.is-hueco {
+  background: repeating-linear-gradient(135deg, var(--e19-danger) 0 3px, var(--e19-danger-soft-border) 3px 6px);
+}
+
+:root[data-tema="v2"] .cob-tira-pista {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+:root[data-tema="v2"] .cob-tira-pista p,
+:root[data-tema="v2"] .cob-tras p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+:root[data-tema="v2"] .cob-tira-leyenda .cob-seg {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+:root[data-tema="v2"] .cob-tira-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .cob-tras {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+:root[data-tema="v2"] .cob-tras-titulo {
+  font-weight: 600;
+  color: var(--e19-ink);
 }

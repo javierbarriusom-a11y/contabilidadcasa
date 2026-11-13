@@ -287,6 +287,40 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// XDA-04 · PR-2: «Cobertura tras importar» en la revisión y la tira de 90 días de Movimientos, con un hueco desplegado
+// y lo estimado en la leyenda, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-04 · PR-2 · contraste de la tira de cobertura en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#importarV2 y #movements: sin fallos de contraste ni de accesibilidad en la cobertura", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 12, 10, 0, 0) });
+      await page.goto("/index.html#datos-importar");
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+      await page.setInputFiles("#registrarImportFileInput", { name: "octubre.csv", mimeType: "text/csv", buffer: Buffer.from("Fecha;Concepto;Importe;Saldo\n10/10/2026;SUPER FICTICIO;-50,00;3950,00\n02/11/2026;NOMINA FICTICIA;3000,00;6950,00\n") });
+      await expect(page.locator("#importarV2 [data-cob-tras]")).toBeVisible({ timeout: 15000 });
+      const check = async (selector) => {
+        const results = await new AxeBuilder({ page }).include(selector).analyze();
+        return results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      };
+      let nodes = await check("#importarV2 [data-cob-tras]");
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      await page.locator("#importarV2 [data-imp-v2-importar]").click();
+      await page.click("#operationConfirmSubmit");
+      await expect(page.locator("#importarV2")).toContainText("2 movimientos importados", { timeout: 15000 });
+      // Un hueco del 4 al 9 oct, lo de antes estimado y Mediolanum sin extractos.
+      await page.evaluate(() => localStorage.setItem(storageKey("ledger-coverage"), JSON.stringify({ version: 1, ranges: [{ account: "CaixaBank", from: "2026-08-01", to: "2026-10-03", source: "estimado" }, { account: "CaixaBank", from: "2026-10-10", to: "2026-11-02", source: "declarado" }] })));
+      await page.goto("/index.html#movements");
+      const tira = page.locator("#movimientosV2Lista .cob-tira");
+      await expect(tira).toBeVisible({ timeout: 15000 });
+      await tira.locator('[data-cob-cuenta="CaixaBank"] summary').click();
+      await expect(tira.locator(".cob-tira-pista").first()).toBeVisible();
+      await expect(tira).toContainText("estimado");
+      nodes = await check("#movimientosV2Lista .cob-tira");
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // XDA-03 · nivel 1: la fuente «Texto de un PDF» abierta y su aviso con el diagnóstico, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`XDA-03 · contraste del texto de un PDF en modo ${scheme}`, () => {
@@ -1272,7 +1306,9 @@ for (const scheme of ["light", "dark"]) {
     test("Cierre › carta del mes: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
       await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
       await page.goto("/index.html#cierre");
-      await page.waitForFunction(() => typeof recordCartaMes === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
+      // También renderCierre (views/cierre.js, que se descarga al visitar Cierre): el título ya viene en el HTML y recordCartaMes se carga
+      // al arrancar, así que sin esperarla la prueba podía llamar a renderCierre antes de que llegara (11/11/2026, al sumar un script).
+      await page.waitForFunction(() => typeof recordCartaMes === "function" && typeof renderCierre === "function" && document.querySelector("#cierreTitle")?.textContent.trim().length > 3, null, { timeout: 20000 });
       await page.evaluate(() => {
         const month = cuadroMandosAllMonths().find((item) => item.key === "2026-10");
         const rows = planMesCollect(month);
@@ -1742,11 +1778,33 @@ for (const scheme of ["light", "dark"]) {
       await page.locator('[data-plan-tab="prevision"]').click();
       const v2 = page.locator("#planPrevisionV2");
       await expect(v2).toBeVisible({ timeout: 15000 });
+      // FX-03: el día más bajo no tiene pagos que aplazar; el 8 dic sí (seis días antes, con ←).
+      await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();
+      for (let paso = 0; paso < 6; paso += 1) await page.keyboard.press("ArrowLeft");
       await expect(v2.locator("[data-prevision-v2-aplazar]").first()).toBeVisible();
       await v2.locator("[data-prevision-v2-aplazar]").first().click();
       await expect(v2.locator(".prev-v2-impacto-frase")).toContainText("aplazado del");
       await page.mouse.move(0, 0);
       const results = await new AxeBuilder({ page }).include("#planPrevisionV2").analyze();
+      const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// FX-41 (23/11/2026) · Hoy con un aviso de previsión en «Decidir esta semana» (suelo INVENTADO de 7.000 €), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`FX-41 · contraste de los avisos de previsión en Hoy en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Hoy con un aviso de previsión: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 23, 10, 0, 0) });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { state.liquidityFloor = 7000; render(); });
+      await expect(page.locator("#hoyV2 [data-hoy-v2-prevision]")).toHaveCount(1);
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#hoyV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
     });
@@ -1991,6 +2049,38 @@ for (const scheme of ["light", "dark"]) {
       const results = await new AxeBuilder({ page }).include("#cierreV2").analyze();
       const fallos = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// WP-21 · PR-3: «El local alquilado para la Renta» abierto, en claro y en oscuro: vacío (lo que falta y el formulario) y con datos (las
+// cuentas de los dos declarantes, lo que se arrastra y la actualización de la renta). Local FICTICIO.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`WP-21 · PR-3 · contraste del local alquilado en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#herramientas-fiscal: el local abierto, vacío y con datos, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#herramientas-fiscal");
+      await page.reload();
+      const caja = page.locator("#rentaLocal");
+      await expect(caja).toBeVisible({ timeout: 15000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      await page.evaluate(() => { delete scenarioSettings.wp21Local; saveScenarioSettings(); });
+      await caja.locator("summary").first().click();
+      await expect(caja.locator(".informe-renta-falta")).toBeVisible();
+      const vacio = await new AxeBuilder({ page }).include("#rentaLocal").analyze();
+      expect(fmt(vacio), fmt(vacio).slice(0, 5).join("\n")).toEqual([]);
+      await page.evaluate(() => {
+        const y = String(new Date().getFullYear());
+        scenarioSettings.wp21Local = { inmueble: { titular: "household", rentaMensual: 900, inquilinoRetiene: true, actualizacion: { tipo: "fijo", mes: 3, porcentaje: 3 }, costeAdquisicion: 150000, pctConstruccion: 60, valorCatastralConstruccion: 70000, amortizacionAcumulada: 27000 },
+          ejercicios: { [y]: { mesesAlquilado: 12, ibi: 600, intereses: 1500, reparacion: 10000, pendientes: [] } } };
+        saveScenarioSettings();
+      });
+      await caja.getByLabel("Ejercicio").selectOption(String(new Date().getFullYear() - 1));
+      await caja.getByLabel("Ejercicio").selectOption(String(new Date().getFullYear()));
+      await expect(caja.locator(".local-renta-tabla").first()).toBeVisible();
+      await caja.locator(".local-renta-datos summary").click();
+      const lleno = await new AxeBuilder({ page }).include("#rentaLocal").analyze();
+      expect(fmt(lleno), fmt(lleno).slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }

@@ -169,12 +169,23 @@
     }
   }
 
+  /**
+   * Las novedades que ya se pueden contar: sin las de fecha futura. Un cambio con puerta de fecha (los de Hoy, uno por semana) se publica
+   * antes de activarse; su línea no sale hasta su día, o anunciaría algo que aún no se ve.
+   */
+  function novedadesVigentes(entries = [], today = "") {
+    const hoy = /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : "";
+    return (Array.isArray(entries) ? entries : []).filter((entry) => !hoy || !entry?.fecha || String(entry.fecha) <= hoy);
+  }
+
   function mountReleaseInfo({
     doc = document,
     win = window,
-    entries = win.FinanceNovedades || [],
+    entries: todas = win.FinanceNovedades || [],
     buildInfo = BUILD_INFO,
+    today = (() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`; })(),
   } = {}) {
+    const entries = novedadesVigentes(todas, today);
     const storage = (() => {
       try {
         return win.localStorage;
@@ -451,6 +462,7 @@
     formatNovedadDate,
     validateNovedades,
     mountReleaseInfo,
+    novedadesVigentes,
     parseAmountInput,
     formatAmountInput,
     readAmountInput,

@@ -257,7 +257,10 @@ function repasoV2PasoExtracto() {
   const pie = toca.length
     ? `<div class="rep-v2-dos"><button type="button" class="e19-btn e19-btn-secondary" data-rep-v2-seguir>Ahora no</button><button type="button" class="e19-btn e19-btn-primary rep-v2-sigue" data-rep-v2-importar>Importar extracto</button></div>`
     : `<button type="button" class="e19-btn e19-btn-primary rep-v2-sigue" data-rep-v2-seguir>Seguir</button>`;
-  return { cuerpo: `${repasoV2Titulo(1, titulo, escapeHtml(ayuda))}<ul class="rep-v2-filas">${filas}</ul>`, pie: `${repasoV2Despues(1)}${pie}` };
+  // XDA-04 · PR-2: la tira de 90 días por cuenta (cobertura-ui.js) debajo, con los huecos que no dice el último movimiento.
+  // Sin botón propio: «Importar extracto» ya está en el pie del paso.
+  const tira = globalThis.FinanceCobertura?.tiraHtml?.({ importarAttr: "" }) || "";
+  return { cuerpo: `${repasoV2Titulo(1, titulo, escapeHtml(ayuda))}<ul class="rep-v2-filas">${filas}</ul>${tira}`, pie: `${repasoV2Despues(1)}${pie}` };
 }
 
 function repasoV2PasoVino() {

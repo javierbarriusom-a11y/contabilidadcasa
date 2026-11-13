@@ -72,9 +72,10 @@ test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la s
   // (Oleada 4, Bloque 6) añadió el mismo guardarraíl bajo tensión justo después; DEB11 (Oleada 4,
   // Bloque 6) añadió la tarjeta de reducir cuota vs. plazo sobre el importe dimensionado; I13
   // (BACKLOG_CONTABILIDADCASA_2_0.md §2) añadió el cálculo del objetivo de ahorro antes del
-  // pintado — la ventana crece de 2200 a 3100 a 3900 a 4600.
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 4600);
-  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(cancellationGuardrail \? deb15CancellationGuardrailHtml\(cancellationGuardrail\) : ""\) \+ \(cancellationStressGuardrail \? deb17CancellationStressHtml\(cancellationStressGuardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb11ReduceQuotaVsTermHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
+  // pintado — la ventana crece de 2200 a 3100 a 3900 a 4600. XDA-10 · PR-2 añadió, tras DEB17, la línea «Antes de decidir» de una
+  // cancelación entera (una sola para los tres guardarraíles): la ventana pasa a 5000.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 5000);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(cancellationGuardrail \? deb15CancellationGuardrailHtml\(cancellationGuardrail\) : ""\) \+ \(cancellationStressGuardrail \? deb17CancellationStressHtml\(cancellationStressGuardrail\) : ""\) \+ \(isFullCancellation && guardrail \? globalThis\.antesDeDecidirCancelacionHtml\?\.\(\[guardrail, cancellationGuardrail, cancellationStressGuardrail\]\) \|\| "" : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb11ReduceQuotaVsTermHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
 });
 
 test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {
