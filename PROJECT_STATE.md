@@ -113,6 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (459): #607 fusionado hoy, tres días antes de lo previsto
+
+- **Decisión del hogar:** «fusiona hoy». Antes de fusionar, Claude avisó del coste:
+  - #607 lleva FX-03, el cambio de Hoy previsto para la semana del 16/11.
+  - La semana del 9/11 ya tenía el suyo: el punto de confianza en Hoy, fusionado el 9/11.
+  - Con dos en la misma semana, la revisión a los 14 días no puede atribuir a cada cambio su efecto.
+  - Claude recomendaba esperar al lunes; el hogar decidió fusionar.
+- **Qué se hizo:**
+  - #607 fusionado (squash, `73d0606`) sobre `main` con #608. No había conflictos.
+  - Antes, en local, #607 junto con `main`: `npm test` 6.590/6.590 y `app.js` en 32.400 líneas, dentro del techo de 32.426.
+  - CI de la cabeza `9f055f6`, en verde.
+  - Borrada la tarea programada del lunes (`trig_01W2BzURRDi2DcoSXwwmRMWc`) para que no lo intente otra vez.
+- **Novedades:** las 13 líneas con fecha del 16/11 pasan al 13/11. Las de fecha futura no se enseñan hasta su día (`novedadesVigentes`, FX-41), así que no se habrían visto hasta el lunes. Los `id` no cambian. La de FX-41 sigue con fecha del 23/11, como su puerta.
+- **Consecuencia:** la semana del 16/11 se queda sin cambio de Hoy nuevo. FX-41 sigue apagado hasta el 23/11 por su puerta de fecha.
+- **Documentos:** «en #607, sale el 16/11» pasa a «en #607, fusionado el 13/11» en `BACKLOG_NOVIEMBRE_OLEADA_1.md` y `docs/rediseno/ESTADO.md`, más una línea en el §0 del backlog.
+- **Validación:** `npm run verify` en verde (6.590/6.590).
+
 ## Cierre de sesión — 12 de noviembre de 2026 (458): DISK-IO, Supabase sin presupuesto de disco; copias ligeras, menos lecturas y menos guardados
 
 - **Aviso de Supabase (12/11, 18:01):** «your project is running out of Disk IO Budget». El hogar pasó las cifras de la base (consultas de solo lectura en el SQL Editor):
