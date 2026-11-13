@@ -382,13 +382,86 @@ function previsionV2Fecha(iso, today) {
   return globalThis.FinanceCanonicalForecastContract?.shortDateLabel(iso, today) || iso;
 }
 
+// ---- FX-10 PR-3 · El rango probable en el gráfico (3 m) -------------------------------------------------------------
+// La propuesta octava (§6) pide, en 3 m, «diario con rango»: el área azul clara del gráfico único y «rango probable» en el panel del
+// día. Sale de la banda de caja (WP-16, canonical-cash-band.js): las mismas entradas que su tarjeta, hasta 91 días desde hoy (el
+// motor llega a 120 desde la fecha de los saldos). Se ancla a la línea del plan: cada día, el rango es la línea del plan más lo que
+// la simulación se aparta de su propia trayectoria «según el plan» (p10 − central, p90 − central). Así no depende de que la banda
+// y el motor diario partan del mismo saldo, y lo que mide es lo único que la banda sabe: que los pagos sin día confirmado pueden
+// caer otro día. No recoge importes (FX-32, con 3 cierres).
+//
+// Lo que enseña con datos reales: el plan pone los pagos sin día confirmado el día 8 (antes de la nómina), y la simulación los
+// reparte del 1 al 28. Por eso, a mitad de mes, la línea del plan puede quedar POR DEBAJO del rango: es el lado prudente, y se dice.
+// Una simulación por trayectoria del plan (≈ 250 ms la primera vez): recorrer el gráfico no la repite.
+const PREVISION_V2_RANGO_DIAS = 91;
+const previsionV2RangoCache = new WeakMap();
+
+function previsionV2Rango(rows, today) {
+  const band = globalThis.FinanceCanonicalCashBand;
+  if (!band?.simulate || typeof cashBandInput !== "function" || !Array.isArray(rows)) return null;
+  const guardado = previsionV2RangoCache.get(rows);
+  if (guardado && guardado.today === today) return guardado.rango;
+  let rango = null;
+  try {
+    const input = cashBandInput(today);
+    if (input?.events?.length) {
+      const result = band.simulate({ ...input, horizonDays: Number(input.staleDays || 0) + PREVISION_V2_RANGO_DIAS });
+      if (result?.status === "ok") {
+        const plan = new Map(rows.map((row) => [row.date, Number(row.total)]));
+        const dias = new Map();
+        result.days.forEach((day) => {
+          const total = plan.get(day.date);
+          if (day.date < today || !Number.isFinite(total)) return;
+          dias.set(day.date, { low: total + day.p10 - day.central, high: total + day.p90 - day.central });
+        });
+        rango = { dias, quality: result.quality, estimatedShare: result.dateCertainty?.estimatedShare ?? null, hasta: result.days.at(-1)?.date || "" };
+      }
+    }
+  } catch {
+    rango = null;
+  }
+  previsionV2RangoCache.set(rows, { today, rango });
+  return rango;
+}
+
+/** El rango de un día, redondeado como el resto de la previsión (FX-04), o null si es una línea (sin pagos que puedan moverse). */
+function previsionV2RangoDia(rango, date, today) {
+  const dia = rango?.dias?.get(date);
+  if (!dia) return null;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const dias = contract.daysBetween(today, date);
+  const low = contract.roundForHorizon(dia.low, dias);
+  const high = contract.roundForHorizon(dia.high, dias);
+  return high > low ? { low, high, raw: dia } : null;
+}
+
+/** ¿Queda la línea del plan fuera del rango ese día? «debajo» es lo normal a mitad de mes (los pagos sin día, el día 8). */
+function previsionV2RangoLado(row, dia) {
+  if (!dia) return "";
+  const total = Number(row.total);
+  if (total < dia.raw.low - 0.5) return "debajo";
+  if (total > dia.raw.high + 0.5) return "encima";
+  return "";
+}
+
+/** La nota bajo el gráfico, dentro de la figura: qué es el área azul y, si es ancho, por qué y cómo se estrecha. */
+function previsionV2RangoNotaHtml(rango, puntos, today) {
+  if (!rango || !puntos.some((row) => previsionV2RangoDia(rango, row.date, today))) return "";
+  const debajo = puntos.some((row) => previsionV2RangoLado(row, previsionV2RangoDia(rango, row.date, today)) === "debajo");
+  const ancho = rango.quality === "wide" && rango.estimatedShare !== null
+    ? ` Es ancho porque el ${Math.round(rango.estimatedShare * 100)} % de lo que se mueve no tiene día confirmado: <button type="button" class="hoy-v2-link" data-prevision-v2-nav="planificacion-partidas">confirmar el día de los pagos grandes</button> lo estrecha.`
+    : "";
+  return `<p class="e19-kpi-note prev-v2-rango-nota">Área azul: el rango probable (8 de cada 10 casos), según qué día caigan los pagos; no recoge cambios de importe.${debajo ? " La línea del plan pone el día 8 los pagos sin día confirmado: es el lado prudente, y por eso algunos días queda por debajo del rango." : ""}${ancho}</p>`;
+}
+
 /** La lectura de un punto del gráfico (y su texto para lectores de pantalla): el saldo y el margen, redondeados como el panel. El
- *  detalle de lo que mueve el día está en el panel del día (FX-10 PR-2), no se repite aquí. */
-function previsionV2Lectura(row, floor, today) {
+ *  detalle de lo que mueve el día está en el panel del día (FX-10 PR-2), no se repite aquí. Con el rango (3 m), también el rango. */
+function previsionV2Lectura(row, floor, today, rango = null) {
   const contract = globalThis.FinanceCanonicalForecastContract;
   const margen = Number(row.total) - floor;
   const margenDicho = money(contract.roundForHorizon(Math.abs(margen), contract.daysBetween(today, row.date)));
-  return `${previsionV2Fecha(row.date, today)}: ${previsionV2Saldo(Number(row.total), row.date, today)} previstos · ${margen < 0 ? `${margenDicho} por debajo del suelo` : `${margenDicho} sobre el suelo`}.`;
+  const dia = previsionV2RangoDia(rango, row.date, today);
+  return `${previsionV2Fecha(row.date, today)}: ${previsionV2Saldo(Number(row.total), row.date, today)} previstos · ${margen < 0 ? `${margenDicho} por debajo del suelo` : `${margenDicho} sobre el suelo`}${dia ? ` · rango probable ${money(dia.low)} – ${money(dia.high)}` : ""}.`;
 }
 
 function previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza = null, cambios = null }) {
@@ -456,14 +529,20 @@ function previsionV2GraficoCuentasHtml({ puntos, today, horizonte }) {
   });
 }
 
-function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [] }) {
+function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null, hitos = [], rango = null }) {
   const kit = globalThis.ChartKit;
   if (!kit?.forecastPlotHtml || puntos.length < 2) return "";
   if (previsionV2Vista() === "cuentas" && puntos.every((row) => Number.isFinite(Number(row.checking)) && Number.isFinite(Number(row.savings)))) return previsionV2GraficoCuentasHtml({ puntos, today, horizonte });
   const markers = horizonte.paso === "mes" ? [] : previsionV2Marcadores(puntos, hitos, today);
+  // FX-10 PR-3: el rango probable, solo en 3 m (cada punto es un día). Sin pagos que puedan moverse ese día, el área se cierra en la línea.
+  const banda = (row) => {
+    const dia = rango?.dias?.get(row.date);
+    return dia ? { low: dia.low, high: dia.high } : {};
+  };
+  const conRango = Boolean(rango) && puntos.some((row) => previsionV2RangoDia(rango, row.date, today));
   const plot = kit.forecastPlotHtml({
-    points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null })),
-    ariaLabel: `Saldo previsto ${horizonte.titulo}, con el suelo de ${money(floor)}`,
+    points: puntos.map((row, index) => ({ label: row.date, plan: Number(row.total), real: index === 0 ? Number(row.total) : null, ...(conRango ? banda(row) : {}) })),
+    ariaLabel: `Saldo previsto ${horizonte.titulo}, con el suelo de ${money(floor)}${conRango ? " y el rango probable" : ""}`,
     threshold: { value: floor, label: "suelo" },
     todayIndex: 0,
     markers,
@@ -472,11 +551,18 @@ function previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba = null
       : [],
     format: (value) => money(value),
   });
-  const readings = puntos.map((row) => previsionV2Lectura(row, floor, today));
+  const readings = puntos.map((row) => previsionV2Lectura(row, floor, today, conRango ? rango : null));
+  const rangoTexto = (row) => {
+    const dia = previsionV2RangoDia(rango, row.date, today);
+    return dia ? `${money(dia.low)} – ${money(dia.high)}` : "—";
+  };
   return kit.figureHtml({
     id: "prevision-v2", plotHtml: plot.svg + plot.overlayHtml, plotClass: "prev-v2-plot", readings, xs: plot.xs,
+    noteHtml: conRango ? previsionV2RangoNotaHtml(rango, puntos, today) : "",
     sliderLabel: `Recorrer la previsión ${horizonte.titulo}`,
-    table: { caption: `Saldo previsto ${horizonte.titulo}`, columns: ["Día", "Saldo previsto", "Sobre el suelo"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor)]) },
+    table: conRango
+      ? { caption: `Saldo previsto ${horizonte.titulo}, con el rango probable`, columns: ["Día", "Saldo previsto", "Sobre el suelo", "Rango probable"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor), rangoTexto(row)]) }
+      : { caption: `Saldo previsto ${horizonte.titulo}`, columns: ["Día", "Saldo previsto", "Sobre el suelo"], rows: puntos.map((row) => [previsionV2Fecha(row.date, today), money(row.total), money(Number(row.total) - floor)]) },
   });
 }
 
@@ -583,9 +669,10 @@ function previsionV2CompararHtml(prueba, today) {
   const S = globalThis.FinanceCanonicalStressScenarios;
   if (!S) return "";
   const corto = (preset) => (preset.id === "imprevisto" ? previsionV2ImprevistoCorto(preset, previsionV2Params.amount) : preset.short);
-  const chips = [{ id: "", short: "Solo el plan" }, ...S.PRESETS, ...(S.YSI ? [S.YSI] : [])].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
+  const chips = [{ id: "", short: "Solo el plan" }, ...previsionV2PresetsOrden(S, today), ...(S.YSI ? [S.YSI] : [])].map((preset) => `<button type="button" class="registrar-mes-filter${preset.id === previsionV2Escenario ? " is-active" : ""}" data-prevision-v2-prueba="${preset.id}" aria-pressed="${preset.id === previsionV2Escenario}"${preset.label ? ` title="${escapeHtml(preset.label)}"` : ""}>${escapeHtml(corto(preset))}</button>`).join("");
   const elegido = previsionV2GuardadoElegido();
-  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>${previsionV2GuardadoSelectorHtml(elegido)}`;
+  // XDA-10 · PR-2: con los saldos sin fecha, «Antes de decidir» va una vez aquí, no en cada prueba (antes-de-decidir-ui.js).
+  const fila = `<div class="prev-v2-comparar"><span class="prev-v2-comparar-titulo" id="prevV2CompararTitulo">Comparar con</span><div class="registrar-mes-filters" role="group" aria-labelledby="prevV2CompararTitulo">${chips}</div></div>${previsionV2GuardadoSelectorHtml(elegido)}${previsionV2AntesSaldosHtml()}`;
   if (!previsionV2Escenario) return fila;
   // FX-20: una segunda prueba a la vez, de las otras dos; «Ninguna» la quita.
   const otras = S.PRESETS.filter((preset) => preset.id !== previsionV2Escenario);
@@ -675,16 +762,124 @@ function previsionV2CompararHtml(prueba, today) {
     ${elegido ? "" : sumarSi}
     <div class="prev-v2-impacto" role="status">
       <p class="prev-v2-impacto-frase${c.crossesFloor || cuentaNueva || cuentaPeor || rompeObjetivo ? " is-bad" : ""}">${escapeHtml(fraseFinal)}</p>
+      ${previsionV2AntesDeDecidir(prueba, c, today, fuera)}
       <table class="e19-table prev-v2-impacto-tabla">
         <caption class="sr-only">El plan frente a la prueba: ${escapeHtml(cuando)}</caption>
         <thead><tr><th scope="col">Indicador</th><th scope="col">Plan</th><th scope="col">${escapeHtml(previsionV2Corto(prueba))}</th><th scope="col">Diferencia</th></tr></thead>
         <tbody>${filas.map((fila) => `<tr><th scope="row">${escapeHtml(fila[0])}</th>${fila.slice(1).map(celda).join("")}</tr>`).join("")}</tbody>
       </table>
+      ${previsionV2CaminosHtml(prueba, today)}
       ${separado ? `<p class="e19-kpi-note prev-v2-separado">${escapeHtml(separado)}</p>` : ""}
       ${patrimonio.frase ? `<p class="prev-v2-patrimonio">${escapeHtml(patrimonio.frase)}</p>` : ""}
       <p class="e19-kpi-note">${nota ? `${escapeHtml(nota)} ` : ""}${elegido ? "Verlo aquí no lo aplica" : "Es una prueba"}: no cambia el plan ni mueve dinero.${escapeHtml(notaColchon)}${patrimonio.nota ? ` ${escapeHtml(patrimonio.nota)}` : ""}</p>
       ${previsionV2GuardarHtml(prueba)}
     </div>`;
+}
+
+// ---- FX-27 · la revisión de la hipoteca como escenario con fecha (12/11/2026) ----------------------------------------------------
+// A 120 días o menos de una revisión del tipo (WP-20), «Euribor» pasa a ser la primera prueba de «Comparar con» y dice en cuántos días
+// cae. Elegida, la revisión se enseña en tres caminos (el Euribor tecleado sin cambio, +1 y +2) y, si hay una oferta a tipo fijo tecleada
+// (DEB-4, Ajustes), el fijo: la cuota, lo que cambia al mes y el colchón en el punto más bajo hasta un año después de la revisión. Con el
+// mismo motor de la prueba (canonical-stress-scenarios.js reviewPaths + evaluate). Sin tipos de mercado en vivo.
+
+/** Las pruebas de «Comparar con», con el Euribor delante (y «en N días») si la revisión está a 120 días o menos. */
+function previsionV2PresetsOrden(S, today) {
+  const revisiones = S.reviewSoon ? previsionV2Revisiones(today).reviews : [];
+  if (!revisiones.length || !S.reviewSoon(revisiones)) return S.PRESETS;
+  const dias = Number(S.nearestReview(revisiones).daysToReview);
+  const euribor = S.PRESETS.find((preset) => preset.id === "euribor");
+  const corto = `${euribor.short} · revisión ${dias === 0 ? "hoy" : `en ${dias} ${dias === 1 ? "día" : "días"}`}`;
+  return [{ ...euribor, short: corto }, ...S.PRESETS.filter((preset) => preset.id !== "euribor")];
+}
+
+/** La oferta a tipo fijo tecleada en Ajustes (DEB-4): el tipo y desde cuándo, o null. */
+function previsionV2OfertaFija() {
+  const radar = typeof scenarioSettings !== "undefined" ? scenarioSettings?.deb4Radar : null;
+  const tipo = Number(radar?.fixedRate);
+  return tipo > 0 ? { tipo, desde: String(radar.benchmarkUpdatedAt || "") } : null;
+}
+
+/** Cada camino recalculado una vez por trayectoria del plan, suelo, final y tipos. */
+function previsionV2Camino(S, path, ctx) {
+  const key = `camino|${path.id}|${path.rate}|${ctx.to}|${ctx.floor}|${ctx.checkingFloor}|${JSON.stringify(path.shocks)}`;
+  const cached = previsionV2Cache.get(key);
+  if (cached && cached.rows === ctx.rows) return cached.result;
+  const result = S.evaluate("euribor", ctx.input, ctx.rows, previsionV2Deps(), { today: ctx.today, to: ctx.to, floor: ctx.floor, checkingFloor: ctx.checkingFloor, params: { points: path.points || 0, shocks: path.shocks, missing: [] } });
+  previsionV2Cache.set(key, { rows: ctx.rows, result });
+  return result;
+}
+
+/**
+ * La tabla de los caminos bajo la de impacto, solo con la prueba del Euribor sola. `rows`: la trayectoria del plan; `floor`: el suelo.
+ * @param {any} prueba
+ * @param {string} today
+ */
+function previsionV2CaminosHtml(prueba, today) {
+  const S = globalThis.FinanceCanonicalStressScenarios;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const rows = previsionV2Ultimo?.rows || [];
+  if (!S?.reviewPaths || !contract || prueba?.preset?.id !== "euribor" || prueba.combined || !prueba.applied || !rows.length) return "";
+  try {
+    const revisiones = previsionV2Revisiones(today).reviews;
+    const revision = S.nearestReview(revisiones);
+    if (!revision) return "";
+    const oferta = previsionV2OfertaFija();
+    const paths = S.reviewPaths(revisiones, { payment: globalThis.FinanceCanonicalRateReview.payment, fixedRate: oferta?.tipo ?? null });
+    const unAno = previsionV2AddDays(revision.nextReview, 365);
+    const to = rows.at(-1).date < unAno ? rows.at(-1).date : unAno;
+    const ctx = { S, input: previsionV2Entrada(), rows, today, to, floor: Number(previsionV2Ultimo?.floor) || 0, checkingFloor: previsionV2SueloCuenta() };
+    const gasto = typeof escenarioMotorAverageCoreSpend === "function" && typeof canonicalEngineRuns !== "undefined" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
+    const pct = (value) => `${Number(value).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+    const elegido = `mas-${Number(prueba.params?.points) || 1}`;
+    const filas = paths.map((path) => {
+      const result = previsionV2Camino(S, path, ctx);
+      const low = result?.comparison?.low;
+      const de = path.shocks.reduce((sum, shock) => sum + Number(shock.from), 0);
+      const a = path.shocks.reduce((sum, shock) => sum + Number(shock.to), 0);
+      const cambio = Math.round(a - de);
+      const colchon = low ? contract.cushionMonths?.(low.value, gasto) ?? null : null;
+      return { path, low, de, a, cambio, colchon };
+    }).filter((fila) => fila.low);
+    if (!filas.length) return "";
+    const decima = (value) => value.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    // Cuatro columnas, como la tabla de impacto, para que quepan a 390 px: el tipo va debajo del camino.
+    const cuerpo = filas.map((fila) => `<tr${fila.path.id === elegido ? ' class="is-elegido" aria-current="true"' : ""}><th scope="row">${escapeHtml(fila.path.label)}<small class="prev-v2-impacto-dia">tipo ${escapeHtml(pct(fila.path.rate))}</small></th><td>${escapeHtml(money(Math.round(fila.a)))}</td><td>${escapeHtml(fila.cambio ? `${fila.cambio > 0 ? "+" : "−"}${money(Math.abs(fila.cambio))}` : "igual")}</td><td>${fila.colchon === null ? "—" : escapeHtml(decima(fila.colchon))}</td></tr>`).join("");
+    const dias = Number(revision.daysToReview);
+    const cuando = `${previsionV2Fecha(revision.nextReview, today)}${dias <= S.REVIEW_SOON_DAYS ? `, en ${dias} ${dias === 1 ? "día" : "días"}` : ""}`;
+    const baja = filas.some((fila) => fila.cambio < 0);
+    const fija = filas.find((fila) => fila.path.id === "fija");
+    const notas = [
+      `Hoy pagáis ${money(Math.round(filas[0].de))} al mes. Colchón: cuántos meses de gasto corriente cubre la liquidez en su punto más bajo hasta un año después de la revisión (${previsionV2Fecha(to, today)}).`,
+      baja ? "Si la cuota baja, la previsión no lo suma: se queda en el lado prudente." : "",
+      fija ? `El fijo, desde la revisión, con la oferta tecleada en Ajustes (${pct(fija.path.rate)}${oferta.desde ? `, de ${typeof escenarioMotorMonthLabel === "function" ? escenarioMotorMonthLabel(oferta.desde) : oferta.desde}` : ""}); el tipo mixto no se puede teclear todavía.` : "Con una oferta a tipo fijo tecleada en Ajustes, saldría aquí como cuarto camino.",
+    ].filter(Boolean).join(" ");
+    return `<div class="prev-v2-caminos" data-fx27-caminos>
+      <h4 class="prev-v2-caminos-titulo" id="prevV2CaminosTitulo">La revisión del ${escapeHtml(cuando)}, en ${fija ? "cuatro" : "tres"} caminos</h4>
+      <table class="e19-table prev-v2-impacto-tabla prev-v2-caminos-tabla" aria-labelledby="prevV2CaminosTitulo">
+        <thead><tr><th scope="col">Camino</th><th scope="col">Cuota</th><th scope="col">Al mes</th><th scope="col">Colchón (meses)</th></tr></thead>
+        <tbody>${cuerpo}</tbody>
+      </table>
+      <p class="e19-kpi-note">${escapeHtml(notas)}</p>
+    </div>`;
+  } catch (error) {
+    console.error(`previsionV2CaminosHtml: ${error.message}`);
+    return "";
+  }
+}
+
+/**
+ * XDA-10 · PR-2: bajo la frase de la prueba, si los saldos (o el Euribor tecleado, en su prueba) son antiguos, si lo que han podido moverse
+ * le daría la vuelta (antes-de-decidir-ui.js). Con el mismo suelo y la misma trayectoria del plan que la prueba. Si la prueba cae fuera
+ * del horizonte, no hay resultado que darle la vuelta.
+ */
+/** XDA-10 · PR-2: la línea fija de los saldos sin fecha, una vez junto a «Comparar con». */
+function previsionV2AntesSaldosHtml() {
+  return typeof globalThis.antesDeDecidirPrevisionHtml === "function" ? globalThis.antesDeDecidirPrevisionHtml() : "";
+}
+
+function previsionV2AntesDeDecidir(prueba, c, today, fuera) {
+  if (fuera || typeof globalThis.antesDeDecidirPruebaHtml !== "function") return "";
+  return globalThis.antesDeDecidirPruebaHtml({ prueba, c, floor: Number(previsionV2Ultimo?.floor) || 0, today, base: previsionV2Ultimo?.rows || [] });
 }
 
 /** Por qué no hay tabla: falta un importe («¿Y si…?»), falta un dato (con el camino a Deuda › Contratos) o no se puede aplicar. */
@@ -1290,6 +1485,12 @@ function previsionV2DiaHtml(ctx, date) {
     const bajo = Number(row.checking) < suelo - 0.5;
     lineas.push(`Cuenta corriente ${previsionV2Saldo(Number(row.checking), date, today)}${bajo ? (suelo > 0 ? " (bajo su reserva)" : " (en descubierto)") : ""} · ahorro ${previsionV2Saldo(Number(row.savings), date, today)}.`);
   }
+  // FX-10 PR-3: el rango probable del día (3 m), como en la referencia; y, si el plan queda por debajo, por qué.
+  const rangoDia = ctx.rango ? previsionV2RangoDia(ctx.rango, date, today) : null;
+  const lado = previsionV2RangoLado(row, rangoDia);
+  const rangoLinea = rangoDia
+    ? `<p class="prev-v2-dia-rango">Rango probable <strong>${escapeHtml(money(rangoDia.low))} – ${escapeHtml(money(rangoDia.high))}</strong>${lado === "debajo" ? " · el plan, por debajo: pone el día 8 los pagos sin día confirmado" : lado === "encima" ? " · el plan, por encima: cuenta un cobro sin día confirmado que puede llegar más tarde" : ""}</p>`
+    : "";
   let conPrueba = "";
   const hit = prueba?.applied && prueba.rows?.find((item) => item.date === date);
   if (hit) {
@@ -1317,6 +1518,7 @@ function previsionV2DiaHtml(ctx, date) {
     <p class="e19-eyebrow">${esBajo ? "Día seleccionado · el más bajo" : "Día seleccionado"}</p>
     <div class="prev-v2-dia-cabecera"><p class="prev-v2-dia-fecha" id="prevV2DiaTitulo">${escapeHtml(previsionV2FechaLarga(date, today))}</p><strong class="prev-v2-dia-saldo">${escapeHtml(previsionV2Saldo(Number(row.total), date, today))}</strong></div>
     <p class="prev-v2-dia-sub">${escapeHtml(lineas.join(" "))}</p>
+    ${rangoLinea}
     ${conPrueba}
     <p class="e19-eyebrow prev-v2-dia-mueve">Qué lo mueve</p>
     ${lista}
@@ -1347,8 +1549,15 @@ function previsionV2ArregloHtml({ tramo, floor, today }) {
   const engine = globalThis.FinanceCanonicalOverdraftFix;
   if (!engine || typeof descubiertoOn !== "function" || !descubiertoOn() || typeof descubiertoHtml !== "function") return "";
   try {
+    // Sale con descubierto en 30 días, pero mira hasta el final de ese bajón (hasta que el saldo vuelve a subir): con el gasto variable
+    // repartido por el mes (FX-03) el mínimo cae la víspera del cobro, a menudo pasados los 30 días, y la tarjeta diría que faltan
+    // menos de lo que dice el titular.
     const fin = previsionV2AddDays(today, 30);
-    const days = tramo.filter((row) => row.date <= fin).map((row) => ({ date: row.date, central: Number(row.total) }));
+    let hasta = tramo.findIndex((row) => row.date > fin);
+    if (hasta < 0) hasta = tramo.length;
+    if (!tramo.slice(0, hasta).some((row) => Number(row.total) < floor)) return "";
+    while (hasta > 0 && hasta < tramo.length && Number(tramo[hasta].total) <= Number(tramo[hasta - 1].total)) hasta += 1;
+    const days = tramo.slice(0, hasta).map((row) => ({ date: row.date, central: Number(row.total) }));
     const deficit = engine.findDeficit({ days, floor });
     if (!deficit) return "";
     const levers = engine.levers({
@@ -1622,6 +1831,243 @@ function previsionV2TraspasoHtml({ tramo, floor, today }) {
   </section>`;
 }
 
+// ---------- FX-50 · «Hasta 2036», año a año ----------
+
+/** La deuda viva y la de la hipoteca a fin de cada mes, con el mismo motor que la tabla de impacto (FX-20). Cacheada con las filas. */
+function previsionV2DeudaMensual(liquidez) {
+  const H = globalThis.FinanceCanonicalDebtHorizon;
+  if (!H?.planDebt || typeof canonicalDebtContractRows !== "function" || !liquidez.length) return [];
+  const contratos = canonicalDebtContractRows();
+  const hipotecas = new Set(contratos.filter((contrato) => /hipoteca/i.test(`${contrato.type || ""} ${contrato.label || ""}`)).map((contrato) => String(contrato.id || "")));
+  const { start, planned } = previsionV2DeudaPlaneada();
+  const inicio = start || liquidez[0].monthKey;
+  return liquidez.map((mes) => {
+    const plan = H.planDebt(contratos, { startMonthKey: inicio, targetMonthKey: mes.monthKey, planned });
+    if (!plan) return null;
+    const hipoteca = plan.items.filter((item) => hipotecas.has(item.id));
+    return { monthKey: mes.monthKey, total: plan.total, mortgage: hipotecas.size ? hipoteca.reduce((sum, item) => sum + item.balance, 0) : null };
+  }).filter(Boolean);
+}
+
+/** La liquidez a 31/12 del plan sin sus proyectos (la línea «Sin proyectos» que pintaba `#forecast`), por clave de mes. */
+function previsionV2SinProyectos(anos) {
+  const base = typeof lastBaseSimulation !== "undefined" && Array.isArray(lastBaseSimulation) ? lastBaseSimulation : [];
+  if (!base.length) return null;
+  const valores = anos.map((ano) => {
+    const fila = base.find((row) => row.detailMonthKey === ano.monthKey);
+    return fila && Number.isFinite(Number(fila.totalLiquidity)) ? Number(fila.totalLiquidity) : null;
+  });
+  // Sin proyectos en el plan, las dos líneas son la misma: no se pinta.
+  return valores.some((value, at) => value !== null && Math.abs(value - anos[at].total) >= 1) ? valores : null;
+}
+
+/** El año a año: puntos a 31/12 con su abanico (los supuestos de FX-51 un punto peor), los hitos y la línea sin proyectos. Cacheado. */
+function previsionV2Anual(rows, today) {
+  const L = globalThis.FinanceCanonicalLongHorizon;
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const engine = globalThis.FinanceCanonicalEngine;
+  if (!L || !contract?.assumptionImpacts || !engine?.buildScenario || typeof canonicalEngineInput !== "function") return null;
+  // Los objetivos y el colchón objetivo no mueven la trayectoria (las filas son las mismas): van en la clave.
+  const goals = typeof savingsGoalsList === "function" ? savingsGoalsList() : [];
+  const key = `anual|${today}|${Number(state?.emergencyBufferMonths) || 0}|${JSON.stringify(goals.map((goal) => [goal.id, goal.name, goal.target, goal.targetDate, goal.status]))}`;
+  const cached = previsionV2Cache.get(key);
+  if (cached && cached.rows === rows) return cached.result;
+  let result = null;
+  try {
+    const puntos = L.yearEnds(rows, today);
+    const impactos = contract.assumptionImpacts((entrada) => engine.buildScenario(entrada, null, { reason: "fx50-anual" }), previsionV2Entrada(), { targets: puntos.map((punto) => punto.monthKey) });
+    const liquidez = L.monthEnds(rows, today);
+    const gasto = typeof escenarioMotorAverageCoreSpend === "function" ? escenarioMotorAverageCoreSpend(canonicalEngineRuns.active?.rows || []) : 0;
+    const colchon = Math.max(0, Number(state?.emergencyBufferMonths) || 0) * gasto;
+    result = {
+      anos: L.fan(puntos, impactos),
+      ...L.milestones({ debt: previsionV2DeudaMensual(liquidez), liquidity: liquidez, cushionTarget: colchon, goals }),
+      sinProyectos: previsionV2SinProyectos(puntos),
+      colchon,
+    };
+  } catch {
+    result = null;
+  }
+  previsionV2Cache.set(key, { rows, result });
+  return result;
+}
+
+/** Un hito dicho: «Coche (12.000 €)» para un objetivo; el nombre a secas para los demás. */
+function previsionV2HitoTexto(hito) {
+  return hito.kind === "objetivo" ? `Objetivo «${hito.label}» (${money(hito.amount)})` : hito.label;
+}
+
+/**
+ * FX-50: con el horizonte «Hasta 2036», debajo de la tarjeta principal, la liquidez de cada 31 de diciembre con su abanico (lo que
+ * cambia con un punto más o menos en los supuestos), los hitos marcados en el gráfico (colchón, deuda cero, fin de la hipoteca y los
+ * objetivos de ahorro con fecha) y, como escenarios, la línea «Sin proyectos» (lo que pintaba `#forecast`, que en el diseño nuevo
+ * ya no la repite) y la prueba de «Comparar con» si hay una. A diez años, una dirección, no una cifra: FX-04, al millar más allá
+ * de un año.
+ */
+function previsionV2AnualHtml({ rows, today, floor, horizonte, prueba = null }) {
+  if (horizonte?.id !== "full" || !globalThis.ChartKit?.forecastPlotHtml) return "";
+  const anual = previsionV2Anual(rows, today);
+  if (!anual?.anos?.length) return "";
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const r = (value, date) => (value === null ? null : contract.roundForHorizon(value, contract.daysBetween(today, date)));
+  const anos = anual.anos.map((ano) => ({ ...ano, ano: ano.monthKey.slice(0, 4), low: r(ano.low, ano.date), center: r(ano.center, ano.date), high: r(ano.high, ano.date) }));
+  const ultimo = anos.at(-1).ano;
+  const escenarios = [];
+  if (anual.sinProyectos) escenarios.push({ name: "Sin proyectos", values: anual.sinProyectos.map((value, at) => r(value, anos[at].date)) });
+  if (prueba?.rows?.length) escenarios.push({ name: previsionV2Corto(prueba), values: anos.map((ano) => r(previsionV2SaldoEn(prueba.rows, ano.date), ano.date)) });
+  const marcados = anual.hitos.map((hito) => ({ index: anos.findIndex((ano) => ano.ano === hito.monthKey.slice(0, 4)), label: previsionV2HitoTexto(hito), kind: "hito" })).filter((hito) => hito.index >= 0);
+  const plot = globalThis.ChartKit.forecastPlotHtml({
+    points: anos.map((ano) => ({ label: ano.ano, plan: ano.center, low: ano.low, high: ano.high })),
+    ariaLabel: `Liquidez a 31 de diciembre, de ${anos[0].ano} a ${ultimo}, con su abanico${escenarios.length ? ` y ${escenarios.map((item) => item.name).join(" y ")}` : ""}`,
+    threshold: Number.isFinite(floor) ? { value: floor, label: "suelo" } : null,
+    markers: marcados,
+    scenarios: escenarios,
+    format: (value) => money(value),
+  });
+  const entre = (ano) => (ano.high - ano.low >= 1 ? `entre ${money(ano.low)} y ${money(ano.high)}` : "sin abanico");
+  const conEscenarios = (ano, at) => escenarios.map((item) => (item.values[at] === null ? "" : ` · ${item.name}: ${money(item.values[at])}`)).join("");
+  const readings = anos.map((ano, at) => `31 dic ${ano.ano}: unos ${money(ano.center)} (${entre(ano)})${conEscenarios(ano, at)}.`);
+  const eje = `<div class="ck-eje">${anos.map((ano, at) => (at % Math.max(1, Math.ceil(anos.length / 6)) === 0 || at === anos.length - 1 ? `<span>${escapeHtml(ano.ano)}</span>` : "")).join("")}</div>`;
+  const figura = globalThis.ChartKit.figureHtml({
+    id: "prevision-v2-anual", plotHtml: plot.svg + plot.overlayHtml, plotClass: "prev-v2-plot", belowPlotHtml: eje, readings, xs: plot.xs,
+    sliderLabel: "Recorrer la previsión año a año",
+    table: {
+      caption: "Liquidez a 31 de diciembre de cada año, con su abanico",
+      columns: ["Año", "Liquidez a 31/12", "Abanico", ...escenarios.map((item) => item.name)],
+      rows: anos.map((ano, at) => [ano.ano, money(ano.center), entre(ano), ...escenarios.map((item) => (item.values[at] === null ? "—" : money(item.values[at])))]),
+    },
+  });
+  const mes = (monthKey) => (typeof planV2MonthName === "function" ? planV2MonthName(monthKey) : monthKey);
+  const hitos = anual.hitos.map((hito) => `<li><strong>${escapeHtml(mes(hito.monthKey))}</strong> ${escapeHtml(previsionV2HitoTexto(hito))}</li>`).join("");
+  const pendientes = anual.pendientes.map((hito) => `<li class="is-pendiente"><strong>Después de ${escapeHtml(ultimo)}</strong> ${escapeHtml(previsionV2HitoTexto(hito))}${hito.kind === "objetivo" ? "" : ": no llega con el plan de ahora"}</li>`).join("");
+  const lista = hitos || pendientes ? `<ul class="prev-v2-anual-hitos" aria-label="Hitos">${hitos}${pendientes}</ul>` : "";
+  const sinProyectos = anual.sinProyectos ? `<p class="e19-kpi-note">«Sin proyectos» es el mismo plan sin los proyectos del simulador de decisiones: la línea que enseñaba «Proyección».</p>` : "";
+  return `<section class="e19-card prev-v2-anual" aria-labelledby="prevV2AnualTitulo">
+    <p class="prev-v2-anual-titulo" id="prevV2AnualTitulo"><strong>Año a año, hasta ${escapeHtml(ultimo)}</strong></p>
+    <p class="e19-kpi-note">A 10 años, esto es una dirección, no una cifra. El abanico es cuánto cambia con un punto más o menos en los supuestos del plan (inflación, subida de los ingresos, gasto e ingresos).</p>
+    ${figura}
+    ${sinProyectos}
+    ${lista}
+  </section>`;
+}
+
+// ---------- XPR-11 · mover los días de cargo a donde menos duelen ----------
+
+const PREVISION_V2_CARGOS = "prevision-v2-cargos"; // lo pedido (en este dispositivo): { [clave de la partida]: { dia, fecha } }
+
+function previsionV2CargosPedidos() {
+  try {
+    return JSON.parse(storageGet(storageKey(PREVISION_V2_CARGOS), "{}")) || {};
+  } catch {
+    return {};
+  }
+}
+
+function previsionV2CargosGuardar(pedidos) {
+  storageSet(storageKey(PREVISION_V2_CARGOS), JSON.stringify(pedidos));
+}
+
+/**
+ * XPR-11 (canonical-charge-day-moves.js): hasta tres recibos con día conocido que, cambiados de día, suben el mínimo de cada mes; con su
+ * ganancia, el guion de la petición y su estado (pedido o hecho). «Ya se carga el día N» guarda ese día en Plan › Partidas › Días de
+ * cargo, y la previsión lo usa desde ahí: la propuesta desaparece sola. Solo con días conocidos en el 70 % del gasto fijo (la puerta de
+ * XPR-11) y solo partidas cuyo día se puede guardar. Fuera de la tarjeta principal: no mueve la cifra, el gráfico ni el panel del día.
+ */
+function previsionV2CargosHtml({ rows, today }) {
+  const M = globalThis.FinanceCanonicalChargeDayMoves;
+  if (!M?.suggest || !rows?.length || typeof chargeDayRows !== "function") return "";
+  let partidas;
+  try {
+    partidas = chargeDayRows().filter((item) => !item.spread && !item.rule);
+  } catch {
+    return "";
+  }
+  const claveDe = (label) => partidas.find((item) => item.label === label)?.key || "";
+  const propuesta = M.suggest(rows, { today, canMove: (item) => Boolean(claveDe(item.label)) });
+  if (!propuesta.ready || !propuesta.moves.length) return "";
+  // Cada cambio, a la decena (así suman); la cabecera, como toda diferencia de la previsión (FX-04, dos cifras significativas).
+  const contract = globalThis.FinanceCanonicalForecastContract;
+  const decena = (value) => money(Math.round(value / 10) * 10);
+  const total = money(contract?.roundDifference ? contract.roundDifference(propuesta.gain) : Math.round(propuesta.gain / 10) * 10);
+  const mesDe = (key) => (typeof planV2MonthName === "function" ? planV2MonthName(key).replace(/ \d{4}$/, "") : key);
+  const enQue = (move) => move.monthKeys?.length === 1 ? `el mínimo de ${mesDe(move.monthKeys[0])}`
+    : move.monthKeys?.length ? `el mínimo de ${move.monthKeys.length} meses (de ${mesDe(move.monthKeys[0])} a ${mesDe(move.monthKeys.at(-1))})` : "el mínimo del mes";
+  const pedidos = previsionV2CargosPedidos();
+  const n = propuesta.moves.length;
+  const items = propuesta.moves.map((move) => {
+    const clave = claveDe(move.label);
+    const pedido = pedidos[clave]?.dia === move.toDay ? pedidos[clave] : null;
+    const estado = pedido
+      ? `<span class="prev-v2-cargos-estado">Pedido el ${escapeHtml(previsionV2Fecha(pedido.fecha, today).replace(/ \d{4}$/, ""))}</span>`
+      : `<button type="button" class="hoy-v2-link" data-prevision-v2-cargo-pedido="${escapeHtml(clave)}" data-dia="${move.toDay}">Lo he pedido</button>`;
+    return `<li data-prevision-v2-cargo="${escapeHtml(clave)}">
+      <span>Pide que «${escapeHtml(move.label)}» se cargue el día ${move.toDay} (ahora, el ${move.fromDay})<small>+${escapeHtml(decena(move.gain))} en ${escapeHtml(enQue(move))}</small></span>
+      <span class="prev-v2-cargos-acciones">${estado}<button type="button" class="e19-btn e19-btn-secondary" data-prevision-v2-cargo-hecho="${escapeHtml(clave)}" data-dia="${move.toDay}" data-label="${escapeHtml(move.label)}">Ya se carga el ${move.toDay}</button></span>
+    </li>`;
+  }).join("");
+  return `<section class="e19-card prev-v2-cargos" aria-labelledby="prevV2CargosTitulo">
+    <p class="prev-v2-cargos-titulo" id="prevV2CargosTitulo"><strong>Mover ${n === 1 ? "un recibo" : `${n} recibos`} de día sube el mínimo del mes unos ${escapeHtml(total)}</strong></p>
+    <p class="e19-kpi-note">El mínimo cae antes de cobrar porque ${n === 1 ? "este recibo se carga" : "estos recibos se cargan"} antes. Muchas compañías cambian el día con una llamada o desde su web; no cuesta nada.</p>
+    <ul class="prev-v2-cargos-lista">${items}</ul>
+    <p class="e19-kpi-note">«Ya se carga» guarda el día nuevo en Plan › Partidas (días de cargo) y la previsión lo usa desde ahí.</p>
+  </section>`;
+}
+
+/**
+ * FX-14 · el mes en curso al ritmo real (XPR-04). Con 3 meses de extracto completos, el cierre del mes si el gasto variable sigue al ritmo
+ * de estos días (el perfil del hogar, `planV2RitmoVariable` de views/plan-v2.js) frente a lo que dice la previsión, que sigue con lo
+ * prudente. Fuera de la tarjeta principal: no mueve la cifra, el gráfico ni el panel del día. Sin estimación, no sale nada.
+ */
+function previsionV2RitmoHtml({ rows, today }) {
+  if (typeof planV2RitmoVariable !== "function" || !rows?.length) return "";
+  const ritmo = planV2RitmoVariable(today);
+  if (!ritmo?.ready) return "";
+  const monthKey = String(today).slice(0, 7);
+  const fin = rows.find((row) => row.date === `${monthKey}-${String(ritmo.days).padStart(2, "0")}`);
+  if (!fin) return "";
+  const prevision = Number(fin.total);
+  const alRitmo = prevision + Number(ritmo.prudent) - Number(ritmo.projected);
+  const mes = planV2MonthName(monthKey).replace(/ \d{4}$/, "");
+  const diferencia = Math.abs(alRitmo - prevision) >= 10
+    ? `; la previsión, que cuenta lo prudente, dice ${planV2RitmoEuros(prevision)}`
+    : ", lo mismo que la previsión";
+  return `<section class="e19-card prev-v2-ritmo" aria-labelledby="prevV2RitmoTitulo" data-prevision-v2-ritmo="${escapeHtml(ritmo.versus?.status || "")}">
+    <p class="prev-v2-ritmo-titulo" id="prevV2RitmoTitulo"><strong>Si ${escapeHtml(mes)} sigue a este ritmo</strong></p>
+    <p>Acabaríais ${escapeHtml(mes)} con unos <strong>${escapeHtml(planV2RitmoEuros(alRitmo))}</strong>${escapeHtml(diferencia)}.</p>
+    <p class="e19-kpi-note">${escapeHtml(planV2RitmoFrase(ritmo, monthKey))} ${escapeHtml(planV2RitmoNota(ritmo))} <button type="button" class="hoy-v2-link" data-prevision-v2-plan-mes>Ver el ritmo en Plan › Mes</button></p>
+  </section>`;
+}
+
+/** XPR-11: «Lo he pedido» lo recuerda en este dispositivo; «Ya se carga el día N» guarda el día de cargo (Plan › Partidas) y recalcula. */
+function previsionV2CargosClick(event) {
+  const pedido = event.target.closest("[data-prevision-v2-cargo-pedido]");
+  if (pedido) {
+    globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+    const clave = pedido.dataset.previsionV2CargoPedido;
+    previsionV2CargosGuardar({ ...previsionV2CargosPedidos(), [clave]: { dia: Number(pedido.dataset.dia), fecha: isoLocalDate(new Date()) } });
+    previsionV2Render();
+    [...(qs("planPrevisionV2")?.querySelectorAll("[data-prevision-v2-cargo-hecho]") || [])].find((boton) => boton.dataset.previsionV2CargoHecho === clave)?.focus();
+    return true;
+  }
+  const hecho = event.target.closest("[data-prevision-v2-cargo-hecho]");
+  if (hecho && typeof saveChargeDays === "function") {
+    globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+    const clave = hecho.dataset.previsionV2CargoHecho;
+    const pedidos = previsionV2CargosPedidos();
+    delete pedidos[clave];
+    previsionV2CargosGuardar(pedidos);
+    const aviso = `Guardado: «${hecho.dataset.label}» se carga el día ${hecho.dataset.dia}. La previsión ya lo usa.`;
+    saveChargeDays([[clave, hecho.dataset.dia, "declarado"]], aviso);
+    globalThis.announceStatus?.(aviso);
+    // El foco, a la tarjeta si sigue (quedan cambios) o a la cifra de arriba, que es lo que ha cambiado.
+    const destino = qs("prevV2CargosTitulo") || qs("planPrevisionV2")?.querySelector(".prev-v2-cifra");
+    destino?.setAttribute("tabindex", "-1");
+    destino?.focus();
+    return true;
+  }
+  return false;
+}
+
 function previsionV2Html({ rows, today, floor, horizonte }) {
   const { tramo, puntos } = previsionV2Serie(rows, today, horizonte);
   if (!tramo.length) return `<p class="hoy-v2-pending">Sin previsión desde hoy: pon los saldos para que la app pueda prever.</p>`;
@@ -1635,18 +2081,22 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
     : previsionV2Segunda ? previsionV2PruebaDoble([previsionV2Escenario, previsionV2Segunda], rows, today, tramo.at(-1).date, floor)
     : previsionV2Prueba(previsionV2Escenario, rows, today, tramo.at(-1).date, floor);
   const hitos = previsionV2Hitos(tramo, today);
-  previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows };
+  const rango = horizonte.id === "3m" ? previsionV2Rango(rows, today) : null; // FX-10 PR-3
+  previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows, rango };
   const cambios = previsionV2Cambios({ rows, tramo, today, horizonte });
   return `${segmentado}
     <article class="e19-card prev-v2-card con-dia">
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
-      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos })}
+      ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos, rango })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
+    ${previsionV2AnualHtml({ rows, today, floor, horizonte, prueba })}
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
+    ${previsionV2CargosHtml({ rows, today })}
+    ${previsionV2RitmoHtml({ rows, today })}
     ${previsionV2LoQueVieneHtml({ hitos, today })}
     ${previsionV2SupuestosHtml({ rows, today })}
     <p class="prev-v2-mas">
@@ -1916,6 +2366,12 @@ function previsionV2Init() {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
       return;
     }
+    if (previsionV2CargosClick(event)) return; // XPR-11
+    if (event.target.closest("[data-prevision-v2-plan-mes]")) {
+      globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+      document.querySelector('[data-plan-tab="mes"]')?.click();
+      return;
+    }
     const nav = event.target.closest("[data-prevision-v2-nav]");
     if (nav) {
       globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
@@ -1935,7 +2391,30 @@ function previsionV2Init() {
   });
 }
 
+// FX-50 PR-2: «Ver «Hasta 2036» en Plan › Previsión», desde «Proyección» (#forecast) en el diseño nuevo: el horizonte se recuerda como
+// cualquier otro (prevision-v2-horizonte) y se abre Plan › Previsión con el año a año a la vista.
+function previsionV2AbrirLargo() {
+  try {
+    localStorage.setItem("prevision-v2-horizonte", "full");
+  } catch {
+    // Sin almacenamiento: se abre con el horizonte de siempre; «Hasta 2036» queda a un toque.
+  }
+  globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+  history.pushState(null, "", "#plan");
+  setActiveView("plan");
+  document.querySelector('[data-plan-tab="prevision"]')?.click();
+  const titulo = qs("prevV2AnualTitulo");
+  if (titulo) {
+    titulo.setAttribute("tabindex", "-1");
+    titulo.scrollIntoView({ block: "start" });
+    titulo.focus({ preventScroll: true });
+  }
+}
+
 if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    if (event.target.closest?.("[data-forecast-v2-abrir]")) previsionV2AbrirLargo();
+  });
   if (document.readyState === "complete") previsionV2Init();
   else document.addEventListener("DOMContentLoaded", previsionV2Init);
 }

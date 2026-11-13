@@ -169,3 +169,35 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
   - **El texto del «Borrador de apoyo» (GOB8)** suma un punto 4 con una línea por declarante: base y cuota, o «todavía sin cuota» y cuántos datos faltan.
 - **Pruebas:** `tests/wp21-informe-renta.test.cjs` (18, con las cifras del §5 hechas a mano), e2e «PR-2» a 390 (`@safari`) y 1280 px (lo que falta, la cuota al completarlo y el CSV descargado y releído), y axe en claro y oscuro con el informe abierto.
 - **Lo que queda de WP-21:** que el hogar teclee sus datos (titulares, cobros, pérdidas con bloque); el listado de traspasos cuando haya historial; y el PR-3 (el local), que se diseña aparte.
+
+## 11. PR-3 · el local alquilado (FIS-03), diseño del 12/11/2026
+
+**Qué es.** Los rendimientos del capital inmobiliario del local, por declarante y ejercicio: lo que va a la **base general**
+(no a la del ahorro), con la retención que ya practicó el inquilino. Más el aviso de **actualización de la renta** según la
+cláusula del contrato. Nunca sustituye a la gestoría: el texto lo dice, como el resto del informe.
+
+**Reglas que aplica** (contrastadas el 12/11/2026 con los extractos del manual práctico de Renta 2025 y del TEAC que devuelve
+el buscador; la sede de la AEAT no se puede abrir desde la sesión, así que se reconfirman antes del informe definitivo):
+
+| Regla | Qué hace el motor |
+|---|---|
+| Ingresos íntegros: la renta (sin IVA) y lo que el inquilino paga por cuenta del propietario | Renta de cada mes alquilado + «otros ingresos» tecleados |
+| **Intereses y reparación y conservación**: juntos, como mucho los ingresos íntegros del inmueble; el exceso, en los **4 años siguientes** con el mismo límite | Se aplica primero lo pendiente más antiguo (que no caduque) y luego lo del año; lo que no cabe se arrastra con su año de origen |
+| Los demás gastos (IBI, comunidad, seguro, tasas, suministros, gestión, otros) | Sin límite; pueden dar rendimiento negativo |
+| **Amortización: 3 %** del mayor entre el coste de adquisición de la construcción (sin suelo) y el valor catastral de la construcción; con la amortización acumulada como tope (TEAC 653/2025) | Proporcional a los meses alquilados; nunca pasa del tope |
+| **Reducción del 60 %** | **No se aplica: solo es para vivienda** (art. 23.2; el manual lo muestra con un local) |
+| Retención del 19 % si el inquilino es empresa o profesional (la ingresa él, modelo 115) | 19 % de la renta del año, o la que diga el certificado si se teclea |
+| Los meses sin alquilar imputan renta (2 % del valor catastral, o 1,1 % si se revisó) | Se calcula si se teclean el valor catastral y el porcentaje; si no, «lo que falta» |
+
+**Datos** (en `scenarioSettings.wp21Local`, misma copia y misma nube que los cobros del PR-0b; nada sale del dispositivo):
+el contrato (titular, renta mensual sin IVA, si el inquilino retiene, la cláusula de actualización con su mes) y la
+compra (coste de adquisición con gastos, parte de la construcción, valor catastral de la construcción y total, amortización ya
+acumulada); y por ejercicio, los meses alquilados, los gastos, lo pendiente de años anteriores y la retención del certificado.
+Vacío es «sin declarar», nunca 0. **Tarea del hogar H-36:** teclear los datos del contrato y de la compra (≈ 15 min, en la app).
+
+**Pantalla.** «El local alquilado para la Renta», plegado (XGO-01) dentro de «Borrador de apoyo para la Renta», junto al
+informe de inversión: formulario, la cuenta de cada declarante paso a paso, lo que falta y la próxima actualización de la
+renta. El borrador GOB8 suma un punto 5.
+
+**Lo que no hace:** mobiliario (10 %), mejoras con su propia amortización, el arrendamiento como actividad económica, el IVA
+del alquiler (modelo 303) y la ganancia patrimonial al vender el local. Ninguna se pide hoy.

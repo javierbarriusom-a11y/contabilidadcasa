@@ -89,6 +89,39 @@
     });
   }
 
+  // FX-03 (11/11/2026, el cambio de Hoy de la semana del 16/11): una sola forma de la trayectoria. El gasto variable (el súper, la
+  // gasolina) no es un pago con fecha: llega repartido por el mes. Antes se cargaba entero el día estimado (el 8), así que cada mes tenía
+  // un mínimo artificial ese día; la banda de caja (WP-16) ya lo repartía por igual entre los días. Ahora el motor diario hace lo mismo:
+  // un trozo igual cada día del mes, en euros enteros. El total del mes no cambia (la invariante
+  // `monthly-parity` del motor diario lo comprueba); cambia la forma dentro del mes. Con `options.spreadVariable === false`, lo de antes.
+  function spreadDailyAuditEvents(events, month, items, target, defaults = {}) {
+    const total = round2(Number(target || 0));
+    if (!(total > 0)) {
+      distributeDailyAuditEvents(events, month, items, target, defaults);
+      return;
+    }
+    const first = dateFromMonthKey(month.monthKey);
+    const days = monthEndDate(first).getDate();
+    // En euros enteros, para no llenar los saldos de cada día de céntimos que nadie ha gastado: los primeros días llevan un euro de más
+    // hasta cuadrar, y los céntimos del total (si los hay) van al último día.
+    const whole = Math.floor(total);
+    const cents = round2(total - whole);
+    const base = Math.floor(whole / days);
+    const extra = whole - base * days;
+    const label = (items || []).find((item) => item?.concept || item?.label);
+    for (let day = 1; day <= days; day += 1) {
+      const amount = round2(base + (day <= extra ? 1 : 0) + (day === days ? cents : 0));
+      if (!(amount > 0)) continue;
+      pushDailyAuditEvent(events, month, {
+        ...defaults,
+        amount,
+        date: isoLocalDate(dateInMonth(first, day)),
+        label: label?.concept || label?.label || defaults.label,
+        source: "gasto variable repartido por el mes",
+      });
+    }
+  }
+
   // 8/11/2026 · el resto del redondeo al céntimo, mes a mes. Con inflación o subida de ingresos el motor mensual da importes con
   // fracciones de céntimo; redondear cada concepto por su lado acumulaba un desfase que a los dos o tres años superaba la tolerancia
   // de la paridad diaria-mensual (0,02 €) y cortaba el recálculo de la app. Ahora cada mes:
@@ -159,7 +192,7 @@
         confidence: "estimated",
         priority: 40,
       });
-      distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "variableOperationalSpend"), variableOperationalSpend, {
+      const variableDefaults = {
         kind: "outflow",
         field: "variableOperationalSpend",
         accountId: "checking",
@@ -168,7 +201,10 @@
         source: "planificación mensual",
         confidence: "estimated",
         priority: 45,
-      });
+      };
+      const variableItems = expenseEvents.filter((event) => event.field === "variableOperationalSpend");
+      if (options.spreadVariable === false) distributeDailyAuditEvents(events, month, variableItems, variableOperationalSpend, variableDefaults);
+      else spreadDailyAuditEvents(events, month, variableItems, variableOperationalSpend, variableDefaults);
       distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "car"), car, {
         kind: "outflow",
         field: "car",

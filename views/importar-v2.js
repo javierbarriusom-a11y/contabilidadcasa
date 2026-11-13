@@ -14,8 +14,8 @@
 //   · lo que no tiene partida se importa igual y espera en la bandeja de Movimientos («¿partida?»).
 // El cuadre (P11): si el extracto trae saldos y no cuadran, no se importa; sin saldos, se importa con aviso.
 // El asistente de siempre sigue entero tras «Ver el asistente de siempre».
-// Lo que la referencia enseña y aún no existe (Compartir, XDA-02; pegar el texto del PDF, XDA-03; la cobertura tras
-// importar, XDA-04) va plegado en una línea, sin construirlo aquí.
+// Lo que la referencia enseña y aún no existe va plegado en una línea, sin construirlo aquí. La cobertura tras importar
+// (XDA-04 PR-2, cobertura-ui.js) va bajo el cuadre, como en ImportarDesktop.png.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const IMP_V2_CLASSIC_CLASS = "imp-v2-clasico";
@@ -343,6 +343,7 @@ function impV2Review(session) {
         ${globalThis.FinanceCobertura?.revisionHtml?.(session) || ""}
         ${impV2CuadreHtml(cuadre)}
         ${impV2BalanceOffer(session)}
+        ${globalThis.FinanceCobertura?.trasImportarHtml?.(session) || ""}
         <button type="button" class="e19-btn e19-btn-primary imp-v2-importar" data-imp-v2-importar${blocked ? ` disabled aria-describedby="importarV2Bloqueo"` : ""}>${escapeHtml(impV2ImportarLabel(counts))}</button>
         <p class="mov-v2-meta imp-v2-nota" id="importarV2Bloqueo">${escapeHtml(blocked ? `No se puede importar todavía: ${blocked}.` : notes)}</p>
         <button type="button" class="imp-v2-link" data-imp-v2-otro>Elegir otro fichero</button>

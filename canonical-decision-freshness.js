@@ -16,12 +16,16 @@
 
   const SCHEMA_ID = "finance-decision-freshness/v1";
   const MAX_ITEMS = 3;
+  const FLIPS = Object.freeze(["yes", "no", "unknown"]);
 
   const known = (value) => value !== "" && value !== null && value !== undefined && Number.isFinite(Number(value));
   const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
   /**
-   * @param {{margin?: number|null, inputs?: Array<{id: string, label: string, ageDays: number|null, staleAfterDays: number, plausibleMove: number|null, action?: {label: string, href: string}|null}>}} [input]
+   * PR-2: un dato que no se mide en euros (el Euribor, en puntos) trae su lectura hecha: `flips` («yes», «no» o «unknown») y `because`, la
+   * razón en palabras («si hoy está 0,4 puntos más alto, bajaríais del suelo»). `plural: false` para «El Euribor es…» (por defecto, «Los
+   * saldos son…»).
+   * @param {{margin?: number|null, inputs?: Array<{id: string, label: string, ageDays: number|null, staleAfterDays: number, plausibleMove: number|null, flips?: "yes"|"no"|"unknown", because?: string, plural?: boolean, action?: {label: string, href: string}|null}>}} [input]
    * @returns {{schemaId: string, status: "fresh"|"stale", oldestDays: number|null, margin: number|null, items: Array<any>, sentence: string}}
    */
   function check({ margin = null, inputs = [] } = {}) {
@@ -29,8 +33,9 @@
     const marginKnown = known(margin) ? Math.abs(Number(margin)) : null;
     const stale = list.filter((item) => !known(item.ageDays) || Number(item.ageDays) >= Number(item.staleAfterDays || 0)).map((item) => {
       const move = known(item.plausibleMove) ? round2(item.plausibleMove) : null;
-      const flips = move === null || marginKnown === null ? "unknown" : move >= marginKnown ? "yes" : "no";
-      return { id: item.id, label: item.label, ageDays: known(item.ageDays) ? Number(item.ageDays) : null, plausibleMove: move, flips, action: item.action || null };
+      const read = FLIPS.includes(item.flips) ? item.flips : null; // lectura hecha por quien sabe medir ese dato (PR-2)
+      const flips = read || (move === null || marginKnown === null ? "unknown" : move >= marginKnown ? "yes" : "no");
+      return { id: item.id, label: item.label, ageDays: known(item.ageDays) ? Number(item.ageDays) : null, plausibleMove: move, flips, because: read ? String(item.because || "") : "", plural: item.plural !== false, action: item.action || null };
     });
     const order = { yes: 0, unknown: 1, no: 2 };
     const items = stale.sort((a, b) => order[a.flips] - order[b.flips] || (b.ageDays ?? Infinity) - (a.ageDays ?? Infinity)).slice(0, MAX_ITEMS);
@@ -49,21 +54,32 @@
     return `de hace ${days} días`;
   }
 
+  // «Los saldos» → «los saldos»; «El Euribor» → «el Euribor» (solo la primera letra: los nombres propios se quedan).
+  const lower = (label) => `${String(label).charAt(0).toLowerCase()}${String(label).slice(1)}`;
+
   function sentenceFor(items, margin) {
     if (!items.length) return "";
     const flips = items.filter((item) => item.flips === "yes");
     const unknown = items.filter((item) => item.flips === "unknown");
+    const lead = flips[0] || unknown[0] || null;
+    // Con más de un dato que importa, los demás se nombran detrás (como mucho dos más): la primera frase es la del que más pesa.
+    const others = items.filter((item) => item !== lead && item.flips !== "no");
+    const also = others.length ? ` También conviene actualizar ${others.map((item) => `${lower(item.label)} (${age(item.ageDays)})`).join(" y ")}.` : "";
     if (flips.length) {
       const first = flips[0];
-      return `Antes de decidir, actualiza ${first.label.toLowerCase()} (${age(first.ageDays)}): pueden haberse movido hasta ${euros(first.plausibleMove)} y el resultado cambia con ${euros(margin)}.`;
+      if (first.because) return `Antes de decidir, actualiza ${lower(first.label)} (${age(first.ageDays)}): ${first.because}.${also}`;
+      return `Antes de decidir, actualiza ${lower(first.label)} (${age(first.ageDays)}): pueden haberse movido hasta ${euros(first.plausibleMove)} y el resultado cambia con ${euros(margin)}.${also}`;
     }
     if (unknown.length) {
-      const why = unknown[0].plausibleMove === null ? "no sé cuánto han podido moverse" : "lo que haya podido entrar desde entonces podría cambiar el resultado, y eso no lo estimo";
-      return `Antes de decidir, conviene actualizar ${unknown[0].label.toLowerCase()} (${age(unknown[0].ageDays)}): ${why}.`;
+      const first = unknown[0];
+      const why = first.because || (first.plausibleMove === null ? "no sé cuánto han podido moverse" : "lo que haya podido entrar desde entonces podría cambiar el resultado, y eso no lo estimo");
+      return `Antes de decidir, conviene actualizar ${lower(first.label)} (${age(first.ageDays)}): ${why}.${also}`;
     }
     const first = items[0];
-    return `${first.label} son ${age(first.ageDays)}, pero lo que hayan podido moverse (hasta ${euros(first.plausibleMove)}) no cambia el resultado.`;
+    const verb = first.plural ? "son" : "es";
+    if (first.because) return `${first.label} ${verb} ${age(first.ageDays)}, pero ${first.because}.`;
+    return `${first.label} ${verb} ${age(first.ageDays)}, pero lo que hayan podido moverse (hasta ${euros(first.plausibleMove)}) no cambia el resultado.`;
   }
 
-  return Object.freeze({ SCHEMA_ID, MAX_ITEMS, check });
+  return Object.freeze({ SCHEMA_ID, MAX_ITEMS, FLIPS, check });
 });

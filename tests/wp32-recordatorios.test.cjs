@@ -11,7 +11,7 @@ const { codigoApp } = require("./helpers/codigo-app.cjs");
 const income = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const charge = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const base = { today: "2026-10-07" };
-const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, [kind]: true } });
+const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, [kind]: true } });
 
 test("sin la fecha de hoy no hay recordatorios: dice qué falta", () => {
   const r = R.build({});
@@ -82,14 +82,14 @@ test("campaña fiscal: 1/12 y 20/12, y el año siguiente si cae en el horizonte"
 });
 
 test("cada tipo se puede apagar, y apagarlos todos no deja nada", () => {
-  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)], reviews: [{ date: "2027-03-15", low: 627.16, high: 747.12 }], cirbe: [{ reportDate: "2026-01-10", renewOn: "2026-12-11" }] };
+  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)], reviews: [{ date: "2027-03-15", low: 627.16, high: 747.12 }], cirbe: [{ reportDate: "2026-01-10", renewOn: "2026-12-11" }], forecast: [{ id: "suelo", date: "2026-12-08", title: "Previsión: bajáis del suelo el 8 dic" }] };
   const all = R.build(input);
   R.KINDS.forEach((kind) => {
     const without = R.build({ ...input, options: { kinds: { [kind]: false } } });
     assert.equal(without.counts[kind], 0);
     assert.ok(all.counts[kind] > 0, `el tipo ${kind} debe dar eventos en este escenario`);
   });
-  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false } } }).events.length, 0);
+  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false } } }).events.length, 0);
 });
 
 test("orden por fecha, sin duplicados, con identificadores estables entre generaciones", () => {
@@ -192,4 +192,21 @@ test("diseño: la hoja solo usa tokens --e19-* y las casillas tienen zona tácti
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-fA-F]{3,8}\b/);
   [...css.matchAll(/var\((--[a-z0-9-]+)/g)].forEach((match) => assert.match(match[1], /^--e19-/, `${match[1]} no es un token --e19-*`));
   assert.match(css, /min-height:\s*44px/);
+});
+
+// FX-41 (23/11/2026) · los avisos de previsión con umbral, una semana antes del día en que se cruza (o hoy, si falta menos); el título, sin
+// importes; uno con el día ya pasado no se da.
+test("FX-41 · el aviso de la previsión, una semana antes de cruzar el umbral, con su título sin importes", () => {
+  const r = R.build({ ...base, forecast: [
+    { id: "suelo", date: "2026-12-08", title: "Previsión: bajáis del suelo el 8 dic", description: "Faltan unos 430 €." },
+    { id: "cuenta", date: base.today, title: "Previsión: la cuenta corriente se queda corta el hoy" },
+    { id: "colchon", date: "2020-01-01", title: "Pasado" },
+  ], options: onlyKind("forecast") });
+  assert.deepEqual(r.events.map((event) => [event.kind, event.date, event.title]), [
+    ["forecast", base.today, "Previsión: la cuenta corriente se queda corta el hoy"],
+    ["forecast", "2026-12-01", "Previsión: bajáis del suelo el 8 dic"],
+  ].sort((a, b) => a[1].localeCompare(b[1])));
+  const suelo = r.events.find((event) => event.uid.startsWith("rec-prevision-suelo"));
+  assert.match(suelo.description, /^Faltan unos 430 €\. Es la previsión del .+: si al descargar otra vez el calendario ya no sale, ya no aplica\.$/);
+  assert.equal(r.counts.forecast, 2);
 });

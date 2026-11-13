@@ -461,13 +461,14 @@ button {
   cursor: pointer;
   transition:
     border-color 160ms ease,
-    transform 160ms ease,
     background 160ms ease;
 }
 
+/* 12/11/2026 (decisión del hogar): sin subida de 1 px al pasar el ratón. Con el ratón quieto en el último píxel, el botón
+   subía, el ratón quedaba fuera, bajaba y volvía a estar encima, sin parar: temblaba (y era el fallo intermitente de la e2e de
+   WP-40). El borde basta como señal; lo mismo en las tarjetas que son botones, que conservan su borde y su sombra. */
 button:hover {
   border-color: var(--blue);
-  transform: translateY(-1px);
 }
 
 h1,
@@ -1703,7 +1704,6 @@ main {
 .home-priority-item:hover {
   border-color: var(--teal);
   box-shadow: 0 12px 26px rgba(15, 143, 140, 0.12);
-  transform: translateY(-1px);
 }
 
 /* H-3: tarjeta oscura con la cifra de días hasta el siguiente ingreso.
@@ -3839,7 +3839,6 @@ svg {
 .update-route-card:focus-visible {
   border-color: var(--teal);
   box-shadow: 0 12px 26px rgba(15, 143, 140, 0.12);
-  transform: translateY(-1px);
 }
 
 .update-route-card strong {
@@ -8974,31 +8973,37 @@ body {
 
 /* PER-4: mismo patrón de rejilla dt/dd que .update-language-grid, con su propio nombre — el
    resumen por periodo de Previsión no tiene relación con esa pantalla. */
-.prevision-period-summary-list {
+/* FX-50 PR-2 (12/11/2026): el aviso «la proyección está ahora en Plan › Previsión» solo existe en el diseño nuevo (tema-v2.css). */
+.forecast-v2-aviso {
+  display: none;
+}
+
+/* FX-15 (12/11/2026) · el resumen por periodo como cascada de la liquidez (periodo-ui.js): con cuánto se empieza, qué suma y
+   resta cada bloque y con cuánto se acaba. Sustituye a las cinco cifras sueltas de PER-4. */
+.periodo-resumen {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin: 14px 0 0;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-.prevision-period-summary-list div {
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--surface-soft);
-}
-
-.prevision-period-summary-list dt {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.prevision-period-summary-list dd {
+.periodo-resumen p {
   margin: 0;
-  font-size: 15px;
-  font-weight: 800;
+}
+
+.periodo-tramo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.periodo-tramo span {
+  color: var(--muted);
+}
+
+/* FX-15 · la tabla mensual: la fila desplegada (ingresos, gastos, deuda, ahorro y mínimo del mes elegido) solo en el móvil. */
+.prevision-monthly-table .prevision-fila-detalle {
+  display: none;
 }
 
 .prevision-table {
@@ -9064,9 +9069,33 @@ body {
    arriba y las cinco del resumen por periodo salían cortadas («05/11/202»), la tabla mensual medía 1.180 px con una primera
    columna de 260 (solo se veía «Mes») y las etiquetas de los meses del gráfico se pisaban. */
 @media (max-width: 640px) {
-  .e19-prevision .account-balance-strip,
-  .e19-prevision .prevision-period-summary-list {
+  .e19-prevision .account-balance-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* FX-15: la tabla mensual cabe sin desplazar: mes · neto · saldo final; lo demás, en la fila desplegada del mes elegido. */
+  .e19-prevision .prevision-table.prevision-monthly-table {
+    min-width: 0;
+  }
+
+  .e19-prevision .prevision-monthly-table :is(th, td):nth-child(n + 2):nth-child(-n + 6) {
+    display: none;
+  }
+
+  .e19-prevision .prevision-monthly-table .prevision-fila-detalle {
+    display: table-row;
+  }
+
+  .e19-prevision .prevision-table.prevision-monthly-table .prevision-fila-detalle td {
+    width: auto;
+    max-width: none;
+    color: var(--muted);
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .e19-prevision .analisis-cascada-row {
+    grid-template-columns: 84px 1fr auto;
   }
 
   .e19-prevision .prevision-table {
@@ -12897,6 +12926,69 @@ input[data-amount-input][aria-invalid="true"] {
 .informe-renta h4 {
   margin: 16px 0 4px;
   font-size: 0.95rem;
+}
+
+/* WP-21 · PR-3 (local-renta-ui.js): los datos del local, en dos grupos con sus campos en rejilla que baja a una columna en el móvil. */
+.local-renta-grupo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 8px 12px;
+  margin: 10px 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line, #d9d9d9);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.local-renta-grupo legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.local-renta-grupo label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.local-renta-grupo input,
+.local-renta-grupo select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Dos columnas: cabe en la tarjeta a 390 px sin desplazar (anula el `table { min-width: 1120px }` genérico, E20-1). */
+.informe-renta-tabla table.local-renta-tabla {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.local-renta-tabla th,
+.local-renta-tabla td {
+  white-space: normal;
+}
+
+.local-renta-tabla th[scope="row"] {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.local-renta-tabla thead th:last-child {
+  width: 38%;
+  text-align: right;
+}
+
+.local-renta-tabla td.num {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.local-renta-datos > summary {
+  cursor: pointer;
+  margin: 8px 0;
 }
 
 .informe-renta-falta {

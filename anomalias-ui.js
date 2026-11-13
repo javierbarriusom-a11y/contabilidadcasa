@@ -64,7 +64,9 @@ function anomaliasStatusHtml(result) {
     // WP-37 (NXP-04): dato obsoleto = cuánto, y qué lo renueva (una acción, no solo un aviso).
     return `${estadoHtml({ kind: "obsoleto", titulo: "No puedo mirar lo reciente", texto: `${since}: sin un extracto al día, que no salga nada no significa que todo esté bien.`, accion: { label: "Importar el extracto", href: "#registrar" } })}${anomaliasStatsHtml(result.stats)}`;
   }
-  const covered = `Mirado hasta el ${escapeHtml(anomaliasDate(result.coveredUntil))} (últimos 45 días).`;
+  // XDA-04 · PR-2: si falta el extracto de algunos días de esa ventana, se dice en vez de callar (cobertura-ui.js).
+  const noMirado = globalThis.FinanceCobertura?.noMiradoReciente?.(result.coveredUntil, globalThis.FinanceCanonicalStatementAnomalies?.LOOKBACK_DAYS || 45) || "";
+  const covered = `Mirado hasta el ${escapeHtml(anomaliasDate(result.coveredUntil))} (últimos 45 días).${noMirado ? ` <span class="cob-no-mirado">${escapeHtml(noMirado)}</span>` : ""}`;
   if (!result.items.length) {
     return `<p class="e19-kpi-note"><strong>No he marcado nada.</strong> ${covered}${result.suppressed ? ` Dejo ${result.suppressed} ya respondido${result.suppressed === 1 ? "" : "s"}.` : ""}</p>${anomaliasStatsHtml(result.stats)}`;
   }

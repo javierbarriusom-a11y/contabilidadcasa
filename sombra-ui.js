@@ -82,15 +82,18 @@ function sombraBodyHtml(result, options = {}) {
     const since = result.coveredUntil ? `El último movimiento importado es del ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}` : "Todavía no hay movimientos importados";
     return estadoHtml({ kind: "obsoleto", titulo: "No puedo mirar lo reciente", texto: `${since}: sin un extracto al día, que no salga nada no significa que no haya financiaciones.`, accion: { label: "Importar el extracto", href: "#registrar" } });
   }
+  // XDA-04 · PR-2: los días de lo reciente sin extracto, dichos en vez de callados (cobertura-ui.js).
+  const noMirado = globalThis.FinanceCobertura?.noMiradoReciente?.(result.coveredUntil, globalThis.FinanceCanonicalShadowDebt?.RECENT_DAYS || 45) || "";
+  const noMiradoHtml = noMirado ? `<p class="e19-kpi-note cob-no-mirado">${escapeHtml(noMirado)}</p>` : "";
   if (!result.items.length) {
-    return `<p class="e19-kpi-note"><strong>No he encontrado compromisos que se comporten como deuda.</strong> Miré hasta el ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}${result.suppressed ? `; dejo ${result.suppressed} ya respondido${result.suppressed === 1 ? "" : "s"} o ya en la app` : ""}. Solo veo lo que el extracto delata (un «cuota 3 de 12» o la palabra «financiación»): una permanencia con penalización no sale en un extracto.</p>${sombraRecurringHtml(result, options.recurringOpen)}`;
+    return `<p class="e19-kpi-note"><strong>No he encontrado compromisos que se comporten como deuda.</strong> Miré hasta el ${escapeHtml(result.coveredUntil.split("-").reverse().map(Number).join("/"))}${result.suppressed ? `; dejo ${result.suppressed} ya respondido${result.suppressed === 1 ? "" : "s"} o ya en la app` : ""}.${noMirado ? ` ${escapeHtml(noMirado)}` : ""} Solo veo lo que el extracto delata (un «cuota 3 de 12» o la palabra «financiación»): una permanencia con penalización no sale en un extracto.</p>${sombraRecurringHtml(result, options.recurringOpen)}`;
   }
   const total = `<p class="som-resumen"><strong>${result.items.length} ${result.items.length === 1 ? "compromiso" : "compromisos"} que ${result.items.length === 1 ? "se comporta" : "se comportan"} como deuda</strong>: ${sombraEuros(result.monthlyTotal)} al mes${result.latestEnd ? `; el último con fecha acaba en ${escapeHtml(sombraMonth(result.latestEnd))}` : ""}${result.withoutEnd ? `; ${result.withoutEnd} sin fecha de fin conocida` : ""}. Ninguno cuenta hoy en vuestra fecha libre de deuda ni en el ratio de esfuerzo.</p>`;
   const more = result.overflow ? `<p class="e19-kpi-note">Hay ${result.overflow} más. Responde estos y aparecerán los siguientes.</p>` : "";
   const stats = result.stats.falsePositiveRate === null
     ? `<p class="e19-kpi-note som-medida">Cuántos avisos sobran todavía no se puede medir: hacen falta ${result.stats.minAnswered} respuestas y llevas ${result.stats.answered}.</p>`
     : `<p class="e19-kpi-note som-medida">De ${result.stats.answered} avisos respondidos, <strong>${result.stats.notDebt} no eran deuda (${Math.round(result.stats.falsePositiveRate * 100)} %)</strong>.</p>`;
-  return `${total}<ul class="som-lista">${result.items.map(sombraItemHtml).join("")}</ul>${more}${stats}${sombraRecurringHtml(result, options.recurringOpen)}`;
+  return `${total}${noMiradoHtml}<ul class="som-lista">${result.items.map(sombraItemHtml).join("")}</ul>${more}${stats}${sombraRecurringHtml(result, options.recurringOpen)}`;
 }
 
 function sombraCalcHtml() {

@@ -152,7 +152,7 @@ test("WP-41 PR-4 · cableado: sellos de versión nuevos y estilos propios en la 
   const index = read("index.html");
   assert.match(index, /sombra\.css\?v=\d+wp41d1/);
   assert.match(index, /canonical-shadow-debt\.js\?v=\d+wp41d1/);
-  assert.match(index, /sombra-ui\.js\?v=\d+wp41d1/);
+  assert.match(index, /sombra-ui\.js\?v=\d+(?:wp41d1|xda04b)/);
   const css = read("sombra.css");
   assert.match(css, /\.som-recurrentes-lista li/);
   assert.doesNotMatch(css.slice(css.indexOf("PR-4")), /#[0-9a-f]{3,6}\b/i, "solo tokens, ningún color suelto");

@@ -113,23 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 13 de noviembre de 2026 (460): XGO-01 PR-4, Laboratorio sale de app.js; el margen bajo el techo vuelve a ~130 líneas
+## Cierre de sesión — 13 de noviembre de 2026 (461): XGO-01 PR-4, Laboratorio sale de app.js; el margen bajo el techo vuelve a ~130 líneas
 
 - **Petición del hogar:** «sigue con el backlog».
 - **Por qué esto y no otra fila:**
-  - **P0 de noviembre (§5.1):** sin filas que pueda hacer Claude. Todo está hecho, va en #607 (FX-03, FX-43) o lo tiene el hogar (H-35; WP-23 espera a H-03).
+  - **P0 de noviembre (§5.1):** sin filas que pueda hacer Claude. Todo está hecho, llega con #607 (FX-03, FX-43) o lo tiene el hogar (H-35; WP-23 espera a H-03).
   - **P1 fuera de #607:**
     - FX-21 resto: espera al hogar.
     - D1-D2 y la navegación de 5 destinos: esperan a las revisiones del 14 al 18/11 (ESTADO §8).
     - WP-34 y WP-54: son de enero y diciembre.
-  - **FX-40, «falta medir el plan por separado»:** obliga a guardar la entrada entera del plan en cada foto, algo que se descartó a propósito por el peso. Además toca Previsión, que #607 reescribe el 16/11.
-  - **Lo que sí estaba desbloqueado:** el margen de `app.js`. Con #607, 32.401 líneas frente a un techo de 32.426, es decir, 25 líneas. La primera entrega de diciembre que añadiera lógica habría chocado con él.
+  - **FX-40, «falta medir el plan por separado»:** obliga a guardar la entrada entera del plan en cada foto, algo que se descartó a propósito por el peso. Además toca Previsión, que #607 acababa de reescribir.
+  - **Lo que sí estaba desbloqueado:** el margen de `app.js`. Con #607 y el cambio del «Deshacer», 32.401 líneas frente a un techo de 32.426, es decir, 25 líneas. La primera entrega de diciembre que añadiera lógica habría chocado con él.
 - **Qué se hace:** las 33 funciones de Laboratorio («Funciones en prueba» de Ajustes, L-1…L-10, T-4, OPT-2) y del informe de uso de la app (ARQ-0) pasan tal cual al nuevo `laboratorio-ui.js`.
   - El corte se hace con `acorn`, no a ojo: cada declaración de función de primer nivel del tramo, con los comentarios que lleva encima.
   - **Solo funciones.** Las constantes y variables siguen en `app.js`, porque `laboratorioSelectedHash` se inicializa con `LABORATORIO_CATALOG`, que se declara allí: en un script que carga antes, aún no existiría.
   - Las funciones de días de cargo del mismo tramo (WP-04, WP-08) se quedan en `app.js`: son de otro dominio.
-- **Resultado:** `app.js` pasa de 32.399 a 32.073 líneas. El techo baja por el trinquete (P7) a **32.203**: 130 de margen, 128 con #607 encima.
-- **Sin choque con #607 (sale el 16/11):**
+- **Resultado:** `app.js` pasa de 32.399 a 32.073 líneas, y a **32.075** ya integrado con `main` (con #607). El techo baja por el trinquete (P7) a **32.203**: 128 líneas de margen.
+- **Sin choque con #607** (preparado cuando aún salía el 16/11; al final se fusionó el 13/11, entrada 459, y esta rama se integró con `main` después):
   - La etiqueta `<script>`, el service worker y la lista del sitio publicado van en huecos que #607 no toca. Fusión de prueba de #607 encima: sin conflictos y `npm test` 6.593/6.593.
   - **El sello de `app.js` en `index.html` no cambia, a diferencia de la PR-3.** #607 cambia justo la línea anterior, y cambiarlo daría conflicto. Tampoco hace falta: un `app.js` viejo en caché junto al script nuevo declararía dos veces las mismas funciones, idénticas, y eso no es un error. Solo lo serían `let` y `const`, y no se mueve ninguno.
 - **Pruebas:** en `tests/xgo01-sin-funciones-duplicadas.test.cjs`, una nueva, que comprueba:
@@ -142,21 +142,23 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   `FICHEROS_APP` lo incluye, y `tests/arq4-techo-app-js.test.cjs` lleva el techo nuevo con su historia.
 - **Validación:**
   - `npm run verify` en verde (6.535/6.535).
-  - **Playwright completo en local** (e2e, a11y y perf-screens): 383 de 385. Ninguno de los dos fallos es de este cambio:
-    - **Contraste de la carta del mes (WP-29, a11y):** «renderCierre is not defined». En `main`, sin estos cambios, falla 3 de 12. La prueba esperaba a `recordCartaMes` y al título de Cierre, que pueden estar listos antes de que llegue la vista diferida `views/cierre.js`.
-      - **Arreglado en la prueba:** espera también a `renderCierre`, como las otras pruebas de Cierre de `opt4-axe-accessibility.spec.cjs`. Ahora pasa 24 de 24 (12 en claro y 12 en oscuro).
-    - **«Registrar gasto · el día 2 va a noviembre» (e2e):** `capture-log` vacío justo después de cerrar el diálogo. Falló una vez, con la máquina cargada (tres proyectos de Playwright a la vez).
-      - Aislada pasa 6 de 6, y en la tanda anterior (solo e2e) pasó.
-      - No se ha encontrado la causa. Si vuelve a salir, hay que mirar si el guardado de la captura es asíncrono respecto al cierre del diálogo.
+  - **Playwright completo en local** (e2e, a11y y perf-screens): 383 de 385. Ninguno de los dos fallos es de este cambio, y los dos eran de la prueba:
+    - **Contraste de la carta del mes (WP-29, a11y):** «renderCierre is not defined». En `main`, antes de #607, fallaba 3 de 12. La prueba esperaba a `recordCartaMes` y al título de Cierre, que pueden estar listos antes de que llegue la vista diferida `views/cierre.js`.
+      - #607 traía el mismo arreglo (esperar también a `renderCierre`). Al integrar `main` se queda el suyo; con él, 24 de 24.
+    - **«Registrar gasto · el día 2 va a noviembre» (e2e):** `null.entries` al leer `capture-log` justo después de cerrar el diálogo.
+      - **Causa:** el formulario es `<form method="dialog">`. Al enviar, el diálogo se cierra al instante, pero el evento `close`, que es el que guarda (`submitHomeQuickExpense` → `recordCaptureLog`), llega en una tarea aparte. Con la máquina cargada, la lectura de la prueba podía adelantarse.
+      - Para una persona no tiene efecto: el guardado llega milisegundos después.
+      - **Arreglado en la prueba:** espera a que la entrada esté guardada antes de leerla. Igual en «Registrar gasto sin tarjetas», que tenía la misma carrera.
+      - Comprobado: 16 de 16, las dos pruebas ×8 con 4 procesos en paralelo para cargar la máquina.
 
-## Cierre de sesión — 13 de noviembre de 2026 (459): el «Deshacer» se cierra al cambiar de pantalla (tapaba «Firmar cierre» a 390 px); #608 desplegado y #607 comprobado sobre el main nuevo
+## Cierre de sesión — 13 de noviembre de 2026 (460): el «Deshacer» se cierra al cambiar de pantalla (tapaba «Firmar cierre» a 390 px); #608 desplegado y #607 comprobado sobre el main nuevo
 
 - **#608 (DISK-IO):** fusionado el 12/11 a las 21:34Z (main `329feee`). «Verify and deploy Pages» en verde y la comprobación del sitio publicado de las 23:34Z, también.
 - **#607 sobre el main nuevo** (fusión de prueba en local, sin tocar su rama):
   - Sin conflictos: `PROJECT_STATE.md`, `app.js` e `index.html` se combinan solos.
   - `npm test` 6.590/6.590 (las 6.583 de #607 más las 7 de DISK-IO). Lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke, en verde.
   - `app.js` fusionado: 32.400 líneas (techo ARQ-4, 32.426) y 1,72 MB (techo, 2 MB). Con el cambio del «Deshacer» (abajo), 32.401: **quedan 25 líneas de margen**, y lo siguiente que añada lógica debe ir en un módulo aparte.
-  - Con `-X ours` el árbol fusionado es idéntico al de una fusión normal, y los ficheros de DISK-IO quedan intactos. Aun así, la tarea del 16/11 decía «fusión normal con -X ours», que ante un conflicto tiraría en silencio la parte de main. El hogar cambia esa frase desde la conversación de la tarea, la única desde la que se puede editar: fusión normal y, si hay conflictos, resolverlos a mano o parar y avisar.
+  - Con `-X ours` el árbol fusionado es idéntico al de una fusión normal, y los ficheros de DISK-IO quedan intactos. Aun así, la tarea del 16/11 decía «fusión normal con -X ours», que ante un conflicto tiraría en silencio la parte de main. Quedó sin efecto: #607 se fusionó el 13/11 y la tarea se borró (entrada 459).
 - **«Ensayo del cierre» a 390 px fallaba al azar** (en local, de 2 a 6 de cada 10; en el CI pasaba):
   - **Causa, comprobada con la prueba instrumentada:** el aviso de «Deshacer» de la regla creada en el paso de clasificar dura 10 s y flota sobre la parte baja de la pantalla. Según dónde quedara el desplazamiento, «Firmar cierre» quedaba debajo (y = 770 de 844 px), y el clic forzado (`force: true`, por `aria-disabled`) caía en `#undoToastMessage`. En las 6 fallidas de 10, el clic cayó en el aviso; en las 4 buenas, en el botón.
   - **No era solo la prueba: a una persona en el móvil le pasaba lo mismo.** Tocaba «Firmar cierre» y no ocurría nada, porque el toque caía en el aviso.
@@ -171,6 +173,22 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
     - Antes del cambio en la app se comprobó que esa guarda caza el fallo: sin ella, 8 de 8 con «nada tapa «Firmar cierre»».
   - `app.js`: 32.399 líneas. Con #607 encima serían 32.401 de 32.426.
 - **Validación:** `npm run verify` en verde (6.534/6.534).
+## Cierre de sesión — 13 de noviembre de 2026 (459): #607 fusionado hoy, tres días antes de lo previsto
+
+- **Decisión del hogar:** «fusiona hoy». Antes de fusionar, Claude avisó del coste:
+  - #607 lleva FX-03, el cambio de Hoy previsto para la semana del 16/11.
+  - La semana del 9/11 ya tenía el suyo: el punto de confianza en Hoy, fusionado el 9/11.
+  - Con dos en la misma semana, la revisión a los 14 días no puede atribuir a cada cambio su efecto.
+  - Claude recomendaba esperar al lunes; el hogar decidió fusionar.
+- **Qué se hizo:**
+  - #607 fusionado (squash, `73d0606`) sobre `main` con #608. No había conflictos.
+  - Antes, en local, #607 junto con `main`: `npm test` 6.590/6.590 y `app.js` en 32.400 líneas, dentro del techo de 32.426.
+  - CI de la cabeza `9f055f6`, en verde.
+  - Borrada la tarea programada del lunes (`trig_01W2BzURRDi2DcoSXwwmRMWc`) para que no lo intente otra vez.
+- **Novedades:** las 13 líneas con fecha del 16/11 pasan al 13/11. Las de fecha futura no se enseñan hasta su día (`novedadesVigentes`, FX-41), así que no se habrían visto hasta el lunes. Los `id` no cambian. La de FX-41 sigue con fecha del 23/11, como su puerta.
+- **Consecuencia:** la semana del 16/11 se queda sin cambio de Hoy nuevo. FX-41 sigue apagado hasta el 23/11 por su puerta de fecha.
+- **Documentos:** «en #607, sale el 16/11» pasa a «en #607, fusionado el 13/11» en `BACKLOG_NOVIEMBRE_OLEADA_1.md` y `docs/rediseno/ESTADO.md`, más una línea en el §0 del backlog.
+- **Validación:** `npm run verify` en verde (6.590/6.590).
 
 ## Cierre de sesión — 12 de noviembre de 2026 (458): DISK-IO, Supabase sin presupuesto de disco; copias ligeras, menos lecturas y menos guardados
 
@@ -274,6 +292,498 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - `npm run verify` en verde (`npm test` 6371/6371, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke).
   - `tests/wp21-renta-datos.test.cjs` (4).
   - e2e nueva «WP-21 · Datos para la Renta» a 390 (`@safari`) y 1280 px. Con XGO-01, WP-18 y WP-15, 10 de 10 en local con Chromium.
+
+## Cierre de sesión — 12 de noviembre de 2026 (457): FX-10 PR-3, el rango probable en Previsión (FX-10 completa)
+
+- **Petición del hogar:** «sigue con lo siguiente del backlog».
+- **Por qué esta fila:**
+  - La P1 de la Oleada 2 está agotada en lo que se puede empezar:
+    - FX-21 resto espera a que el hogar elija las pruebas.
+    - FX-60 y RD-D1/D2 esperan a las revisiones del 12 al 18/11.
+    - WP-34 es de enero y WP-54, de diciembre.
+  - En la P0 quedaba una pieza de FX-10 («Faltan el rango (tras FX-03)»), y FX-03 ya está en #607. WP-23 sigue esperando H-03.
+- **Qué hace** (`views/prevision-v2.js`; sin motor nuevo):
+  - Solo con el horizonte de 3 m, que es lo que pide la propuesta octava §6 («3 m: diario con rango»), el gráfico único pinta el área azul del rango probable (8 de cada 10 casos).
+  - Lo dicen también:
+    - el panel del día («Rango probable 6.900 € – 9.100 €»);
+    - la lectura del recorrido;
+    - la tabla, con una columna nueva.
+  - Con 12 m, 24 m y hasta 2036 no hay rango: cada punto resume varios días, y el rango es de fechas a 90 días.
+- **De dónde sale:**
+  - De la banda de caja (WP-16, `canonical-cash-band.js`), con las mismas entradas que su tarjeta, hasta 91 días desde hoy.
+  - **Anclado a la línea del plan:** cada día, plan + (p10 − central) y plan + (p90 − central). Así no depende de que la banda y el motor diario partan del mismo saldo, y mide lo único que la banda sabe: qué día caen los pagos sin día confirmado.
+  - **No recoge importes** (FX-32, con 3 cierres), y la nota lo dice.
+  - **Coste:** una simulación por trayectoria del plan, ≈ 240 ms la primera vez en el contenedor. Recorrer el gráfico no la repite.
+- **Lo que destapa con la demo** (reloj 12/11):
+  - El titular, «unos 6.600 € el 14 dic», queda **por debajo** del rango probable de ese día (6.900 – 9.100 €).
+  - **La causa:** el plan pone el día 8 todos los pagos sin día confirmado (el 78 % de lo que se mueve), y la simulación los reparte del 1 al 28. Es el lado prudente, no un error.
+  - La nota y el panel del día lo dicen. **Qué cifra debe ser el titular se consulta al hogar:** no se ha tocado, y lo mueve también Hoy.
+- **Pruebas:**
+  - `tests/fx10-pr3-rango.test.cjs` (5): cifras a mano (seguro de 3.000 € sin día y nómina cierta); el rango no se mueve si la banda parte de otro saldo; una sola simulación; el plan fuera del rango; la nota y la conexión.
+  - e2e nueva «FX-10 PR-3» a 390 (`@safari`) y 1440 px: el área, la lectura, el panel, la nota, la tabla, 12 m sin rango y el camino a Días de cargo.
+  - **Ajustadas:**
+    - La e2e del panel del día de C2: su lectura del 14 dic ahora lleva el rango.
+    - La nota tiene su propia clase, para no confundirse con la leyenda «Por cuenta» de FX-13.
+  - En local: 76 e2e de C2, Previsión y FX, y 40 de axe y perf-screens de Plan, en verde.
+- **Sellos:** `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx10c`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.583/6.583). El CI de cf5b608 (XDA-04 PR-2, run 1379) acabó en verde antes de subir esto.
+
+## Cierre de sesión — 12 de noviembre de 2026 (456): XDA-04 · PR-2, la tira de cobertura de 90 días por cuenta
+
+- **CI de #607 en f57b4dc, en verde** (run 43235935967, de 14:19 a 15:02Z): `verify`, Lighthouse, desbordamiento móvil, e2e, axe, perf-screens, presupuesto de carga y Safari. Nada que arreglar. XDA-04 PR-2 se subió después, para no cancelar ese run.
+- **Condición de XDA-04 PR-2, preguntada al hogar:** «hay uno inicial para el coding y el actualizado de octubre para cerrar». Con eso hay dos importaciones reales, la condición del 26/10.
+  - **Matiz:** si el extracto inicial entró antes del 26/10, cuenta como «estimado». La tira lo pinta en verde claro y lo dice en una nota.
+- **Motor** (`canonical-ledger-coverage.js`, sin motor nuevo):
+  - `strip`: la tira de N días de una cuenta en tres clases.
+    - **Cubierto:** algún extracto ve ese día.
+    - **Hueco:** sin ver, con días vistos antes y después. Falta un extracto en medio.
+    - **Sin dato:** antes del primer extracto o desde el último. Lo de después del último es lo normal entre dos extractos.
+    - Se clasifica con la historia entera de la cuenta.
+    - Lo estimado se separa día a día, porque `merged` (PR-1) pierde la marca en cuanto un rango estimado toca uno declarado.
+  - **Qué importar:** un solo extracto, del primer hueco hasta hoy. En el banco se exporta un periodo, no varios.
+  - `afterImport`: qué hueco cierra un extracto, cuál abre y hasta cuándo queda cubierta la cuenta.
+  - `unseen`: lo que no se ha visto en una ventana, por cuenta.
+- **Pantallas** (`cobertura-ui.js`, `tema-v2.css`; `app.js` sin cambios):
+  - **Movimientos:** «Cobertura · últimos 90 días» entre la bandeja y la lista, como `Movimientos.png`.
+    - Tocar una cuenta con algo por traer: «Importa un extracto de CaixaBank que cubra del 4 oct al 12 nov: cierra el hueco y trae lo que va desde el último», con «Importar extracto», que abre ya el selector (XDA-02).
+    - La línea «Aún no llegan solos» deja de prometer la cobertura.
+  - **Repaso, paso «Extracto»:** la misma tira, sin botón propio, porque el pie del paso ya importa.
+  - **Importar:** «Cobertura tras importar» bajo el cuadre, como `ImportarDesktop.png`. Dice qué hueco cierra o deja el extracto y hasta cuándo queda cubierta la cuenta, con el periodo que el hogar tiene delante; cambia al cambiar las fechas.
+  - **Anomalías (WP-36) y deuda en la sombra (WP-41):** «No he podido mirar del 4 al 9 oct en CaixaBank: no hay extracto de esos días», en su ventana de 45 días, en vez de callar. En los dos temas.
+  - **Sin ningún extracto, no se pinta** (decisión 4 de `ESTADO.md`), así que el inventario XGO-01 no cambia.
+- **Desviación del diseño, anotada en `docs/XDA04_DISENO.md` §3:**
+  - El diseño ponía la tira en Importar y en el repaso.
+  - La referencia la pone en Movimientos, y manda la referencia (CLAUDE.md).
+  - Importar lleva su tarjeta de la referencia.
+- **Errores encontrados al probarlo, corregidos antes de subir:**
+  - En el repaso, la tira añadía otros dos «Importar extracto» además del del pie. Lo destapó la e2e del repaso por la ambigüedad. Ahora, una acción, un botón.
+  - En oscuro, el gris de «sin dato» casi no se distinguía de la tarjeta. Pasa al tono del borde.
+- **Pruebas:**
+  - `tests/xda04-pr2-tira.test.cjs` (7), con las fechas a mano.
+  - e2e nueva «XDA-04 · PR-2» a 390 (`@safari`) y 1440 px: dos extractos con un hueco; «Cobertura tras importar» antes y después de mover la fecha; la tira con su pista y su botón al selector; la tira del repaso; y la línea de anomalías.
+  - axe en claro y oscuro de las dos tarjetas.
+  - **Ajustadas:**
+    - `redis-a4-movimientos`: la línea plegada ya no menciona la cobertura.
+    - `redis-b5-repaso` y `wp41-recurrentes`: aceptan el sello nuevo.
+- **Sellos:** `tema-v2.css`, `canonical-ledger-coverage.js`, `cobertura-ui.js`, `views/movimientos-v2.js`, `views/importar-v2.js`, `views/repaso-v2.js`, `anomalias-ui.js`, `sombra-ui.js` y `novedades.js` a `20261116xda04b`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.578/6.578). En local con Chromium: las e2e y el axe de XDA-04 en verde (16/16 con cuatro repeticiones) y las 56 de Movimientos, Importar, Repaso, anomalías, cierre y XGO-01 en verde. Un fallo suelto de «XDA-04 · periodo que cubre el extracto» con carga en paralelo no se repitió en 5 ejecuciones. Playwright completo en local (e2e, a11y y perf-screens): 414/414 en verde (25,4 min).
+- **Entorno:** el contenedor llegó sin `node_modules` (`npm ci`), y la versión de Playwright del proyecto necesita `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
+
+## Cierre de sesión — 12 de noviembre de 2026 (455): WP-21 · PR-3, el local alquilado para la Renta (FIS-03)
+
+- **Petición del hogar:** «sigue con lo siguiente del backlog». Por orden era WP-21 PR-3 (#13 de la Oleada 2, antes del 31/3/2027). Lo que va antes no se podía empezar:
+  - WP-34 es de enero.
+  - FX-21 resto espera al hogar.
+  - FX-60 y RD-D1/D2 esperan a las revisiones del 12-18/11.
+- **Diseño** (`docs/WP21_DISENO.md` §11):
+  - Las reglas se contrastaron con los extractos del manual de Renta 2025 y de la resolución del TEAC que devuelve el buscador. La sede de la AEAT no resuelve desde la sesión, así que se reconfirman antes del informe definitivo.
+  - **Intereses y reparación:** juntos, como mucho los ingresos; el exceso se deduce en 4 años.
+  - **Amortización:** 3 % sobre el mayor entre el coste de la construcción y su valor catastral, con el tope de lo ya amortizado (TEAC 653/2025).
+  - **Sin la reducción del 60 %:** es solo para vivienda.
+  - **Retención:** el 19 % si el inquilino es empresa o profesional.
+  - **Imputación** de los meses vacíos.
+- **Motor** `canonical-rental-tax.js` (puro):
+  - `propertyYear` hace el inmueble entero y `rentalReport` la parte de cada declarante; `nextRentUpdate` da la actualización de la renta.
+  - Lo pendiente se aplica del más antiguo al más nuevo. Lo de hace más de 4 años caduca, y lo de hace 4 que no cabe se dice «caduca».
+  - Vacío es «sin declarar»: lo que falta sale con su código, y bloquea si es la renta, los meses o el titular.
+- **Pantalla** (`local-renta-ui.js`): «El local alquilado para la Renta», plegado dentro de «Borrador de apoyo para la Renta», con su ejercicio.
+  - La actualización de la renta: con un porcentaje fijo da la renta nueva; con el IPC, cuándo y dónde teclear el dato. Si queda poco, en rojo.
+  - La cuenta de cada declarante en una tabla de dos columnas que cabe a 390 px. Lo que se arrastra o caduca, y lo que falta.
+  - El formulario: el contrato y la compra una vez, y el ejercicio. Lo pendiente de cada uno de los 4 años anteriores sale ya relleno con lo que arrastró el año anterior guardado.
+  - Los datos, en `scenarioSettings.wp21Local`: misma copia y misma nube que los cobros del PR-0b. No hay almacén nuevo.
+  - El borrador GOB8 suma un punto 5 (`app.js`, +3 líneas: 32.393 de 32.426). `app.js` le pasa el motor al entrar en Fiscal. ARQ-3: de 126 a 127 motores.
+- **Errores encontrados al probarlo en pantalla, corregidos antes de subir:**
+  - **Importes:** `parseAmount` leía «1.500» como 1,5 y la cuenta salía con 4.742,90 € en vez de −2.000 €. Ahora usa el campo de importe es-ES de WP-11.
+  - **Titular:** sin titular decía «el local no es suyo», cuando lo que falta es decir de quién es.
+  - **Nombres accesibles:** cada campo, metido en su `<label>`, llevaba en el nombre lo tecleado o la opción elegida. Ahora cada uno tiene `aria-label`.
+  - **Tabla:** heredaba el ancho mínimo genérico de las tablas y escondía la columna de importes a 390 px.
+  - **Signo:** el menos era «-»; ahora es «−», como en el resto de la app.
+- **Pruebas:**
+  - `tests/wp21-local-alquilado.test.cjs` (5), con las cifras a mano.
+  - e2e nueva a 390 (`@safari`) y 1280 px: vacío, un error de meses, guardar, las cifras de cada uno, lo que se arrastra, la actualización en 19 días, que sigue al recargar y el punto 5 del borrador.
+  - axe en claro y oscuro, vacío y con datos.
+  - Sellos: `styles.css` y `novedades.js` a `20261116wp21d`, con las tres pruebas del sello de `styles.css`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.571/6.571). En local: las 12 e2e de WP-21 (también con el iPhone emulado), axe y perf-screens de Fiscal y XGO-01, en verde.
+- **Tarea del hogar nueva, H-36:** teclear los datos del contrato y de la compra del local, en la app y nunca por el chat (≈ 15 min). Sin ellos, la tarjeta solo dice lo que falta.
+
+## Cierre de sesión — 12 de noviembre de 2026 (454): FX-27, la revisión de la hipoteca en tres caminos; y los saldos sin fecha, una vez en Previsión
+
+- **Peticiones del hogar:** «una vez en Previsión, y sigue con lo siguiente del backlog».
+- **XDA-10 PR-2, ajuste** (`antes-de-decidir-ui.js`). Con los saldos sin fecha («Auto por fecha», como en la demo), las pruebas de «Comparar con» ya no repiten «conviene actualizar los saldos (sin fecha)». Sale una línea fija, junto a «Comparar con»: «Antes de decidir con estas pruebas: los saldos se calculan por calendario y no tienen fecha…», con «Actualizar saldos». El Euribor, que sí tiene fecha, sigue en su prueba. Con saldos con fecha, cada prueba dice lo suyo, como antes.
+- **Por qué FX-27 es lo siguiente:**
+  - Lo que va antes de FX-27 en la Oleada 2 no se puede empezar aún:
+    - FX-21 resto espera a que el hogar elija las pruebas.
+    - FX-60 (navegación) y RD-D1/D2 (Patrimonio e Inversión) esperan a las revisiones del 12 al 18/11 (ESTADO §8). FX-60 además retira pantallas, y eso se consulta.
+  - FX-27 depende de FX-21 y WP-20, los dos hechos.
+- **FX-27 (XDO-02 en parte):**
+  - **Motor** (`canonical-stress-scenarios.js`, sin motor nuevo): `rateShocks` (la cuota con cualquier tipo desde la revisión; `euriborShocks` pasa a usarlo), `nearestReview`, `reviewSoon` (≤ 120 días) y `reviewPaths`.
+    - Los caminos: sin cambio, +1 y +2 y, con una oferta a tipo fijo, el fijo.
+    - La oferta fija es la que ya se teclea en Ajustes (DEB-4), no un campo nuevo. Con dos hipotecas no se sabe a cuál va y no sale.
+  - **En «Comparar con»** (`views/prevision-v2.js`):
+    - A 120 días o menos de una revisión, «Euribor» pasa a ser la primera prueba y dice «revisión en N días».
+    - Elegida (sola), debajo de la tabla de impacto sale «La revisión del …, en tres caminos» (o cuatro con la oferta). Cuatro columnas, para que quepa a 390 px: camino con su tipo, cuota, cambio al mes y colchón en meses en el punto más bajo hasta un año después de la revisión.
+    - Cada camino se recalcula con el mismo motor que la prueba. El de la prueba elegida va marcado.
+  - **Honestidad:**
+    - Si la cuota baja (el fijo, o el Euribor sin cambio por debajo del tipo de hoy), la previsión no suma la bajada: se queda en el lado prudente, como la prueba de siempre, y la nota lo dice.
+    - El tipo mixto no se puede teclear: se dice.
+    - Sin tipos de mercado en vivo.
+- **Pruebas:**
+  - `tests/fx27-revision-caminos.test.cjs` (3).
+  - e2e nueva «FX-27» a 390 (`@safari`) y 1440 px: lejos no cambia el orden; a 64 días, delante. Comprueba los tres caminos con sus cuotas, el marcado que sigue a +1/+2, el cuarto con un fijo del 2 % (608 €, −32 €), que cabe en la tarjeta y que, con otra prueba sumada, no hay caminos.
+  - La e2e de XDA-10 PR-2 mira la línea fija en la demo.
+- **Sellos:** `tema-v2.css`, `canonical-stress-scenarios.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx27a`. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm test` en verde (6.566/6.566), con lint y tipos. `npm run verify` en verde. En local, sobre la versión construida: las e2e de FX-27 y de XDA-10 PR-2, 7 de 7 (también con el iPhone emulado), y las 35 de Previsión, «Comparar con» y Escenarios, en verde.
+
+## Cierre de sesión — 12 de noviembre de 2026 (453): XDA-10 · PR-2, «Antes de decidir» al cancelar deuda, en «Comparar con» y en Escenarios
+
+- **Petición del hogar:** «sigue con XDA-10 PR-2: que «Antes de decidir» también tenga en cuenta el Euribor, cancelar deuda y los escenarios guardados». La función ya estaba encendida desde el 29/10; el PR-2 la extiende bajo el mismo interruptor.
+- **Motor** (`canonical-decision-freshness.js`): acepta datos que no se miden en euros con su lectura ya hecha (`flips`, `because`, `plural`). Cuando hay más de un dato que importa, la frase nombra los demás detrás («También conviene actualizar…»). Las frases del PR-1 no cambian.
+- **Cancelar una deuda entera (DEB-15 y DEB-17)**, en Deuda › Comparar:
+  - Antes salían dos líneas iguales o ninguna. Ahora sale **una sola**, debajo de los tres guardarraíles (hoy, a N meses y en tensión), y nombra el más justo: el primero al que le da la vuelta y, si no, el de menos margen.
+  - El de hoy cede su línea solo en una cancelación entera. En una amortización parcial sigue igual que en el PR-1.
+- **«Comparar con» de Plan › Previsión** (las pruebas, «¿Y si…?» y un escenario guardado):
+  - Bajo la frase de la prueba, si los saldos son antiguos, dice si lo que han podido moverse cambiaría el «bajáis o no del suelo».
+  - **En la prueba del Euribor**, también el Euribor tecleado si ha caducado (más de 35 días, el criterio de WP-13).
+    - Cuántos puntos le darían la vuelta sale exacto de la trayectoria. La subida es casi lineal y se redondea hacia el lado prudente.
+    - **Cota nueva, decisión de criterio:** el Euribor ha podido moverse como mucho 1 punto por mes desde que se tecleó. Es su mayor salto mensual, de 1,25 % en agosto de 2022 a 2,23 % en septiembre, y la nota lo dice.
+    - **Por qué la cota:** sin ella, la primera versión decía «conviene actualizar el Euribor: si hoy está 13,1 puntos más alto, bajaríais del suelo». Es ruido. Se vio en la prueba de pantalla con la demo y se corrigió antes de subir.
+  - Con dos pruebas juntas, no separa lo que pone el Euribor y lo dice.
+- **Escenarios:** bajo el veredicto, si los saldos podrían darle la vuelta a «la reserva se mantiene» o «la rompe». Sin saldo mínimo indicado no sale nada, porque la capacidad libre son flujos y no depende de los saldos.
+- **Lo que no hace, frente a la ficha:**
+  - **Los simuladores de inversión** (AP1 amortizar o invertir, apalancamiento): su dato que caduca es la valoración de la cartera, no los saldos ni el Euribor. Pasan a un PR-3.
+  - **El radar de refinanciación (DEB-4)** guarda su propio Euribor, aparte del de la tarjeta de índices, y ya avisa a los 3 meses. Unificarlos es otra tarea.
+  - **El Euribor de los escenarios del laboratorio:** allí la prueba del Euribor ya son cuotas fijas.
+- **Conexión:**
+  - `app.js`, +1 línea: 32.390 de 32.426.
+  - `views/prevision-v2.js`: helper `previsionV2AntesDeDecidir`, para no pasar el límite de complejidad.
+  - `views/escenarios.js`: la línea se añade al veredicto.
+  - Sellos a `20261116xda10`: `antes-de-decidir-ui.js`, `canonical-decision-freshness.js`, `views/prevision-v2.js`, `views/escenarios.js` y `novedades.js`.
+  - Novedades, una línea con fecha del 16/11. El texto de Funciones en prueba se actualiza.
+- **Pruebas:**
+  - `tests/xda10-pr2-antes-de-decidir.test.cjs` (5): el motor con lecturas hechas, los puntos del Euribor y su cota, la línea única de la cancelación, «Comparar con» y Escenarios, y la conexión.
+  - `tests/ap1-app-integracion.test.cjs`: el orden de la composición incluye la línea nueva tras DEB17. Comprueba lo mismo que antes, con una ventana de 4.600 a 5.000 caracteres.
+  - e2e nueva «XDA-10 · PR-2» a 390 (`@safari`) y 1280 px en «Comparar con» (saldos de hace 12 días, Euribor de hace 70 días que no le da la vuelta, todo al día sin línea), y a 1280 px al cancelar una deuda entera (una sola línea, justo detrás de DEB17).
+  - **Arreglado en la prueba nueva antes de subir:** elegir la deuda antes de que el desplegable tuviera la opción la dejaba vacía, y el importe se leía como amortización parcial. Ahora se elige entre las opciones pintadas. Pasa 9 de 9 con tres repeticiones.
+- **Validación:** `npm run verify` en verde (6.563/6.563). Playwright en local (e2e, a11y y perf-screens): 403 en verde. Una sola falla: «Ensayo del cierre» a 390 px, que ya fallaba en local antes de este cambio y es ajena a él (el aviso de firma del cierre). El proyecto Safari no corre en local porque no hay WebKit; sus pruebas de Previsión pasan con el iPhone emulado en Chromium.
+
+## Cierre de sesión — 12 de noviembre de 2026 (452): FX-50 PR-2 · una sola previsión a largo plazo
+
+- **Decisión del hogar:** «sí a la primera, sigue con la segunda parte de FX-50». Es la consulta del PR-1: que «Hasta 2036» de Plan › Previsión sustituya a la proyección de `#forecast`. Queda en `docs/rediseno/ESTADO.md` §3, decisión 11.
+- **El año a año se completa** (`views/prevision-v2.js`, con el gráfico único de FX-11, `forecastPlotHtml`, en lugar del dibujo de banda del PR-1):
+  - **Escala y suelo**, como el gráfico de arriba.
+  - **Los hitos, marcados en el gráfico** y en la lista.
+  - **Hasta dos escenarios, en línea discontinua y con su columna en «Ver como tabla»:**
+    - «Sin proyectos»: el mismo plan sin los proyectos del simulador de decisiones, `lastBaseSimulation`, la línea que pintaba `#forecast`. Solo sale si difiere.
+    - La prueba de «Comparar con» (FX-20/FX-21/FX-22), si hay una elegida.
+  - **Los objetivos de ahorro activos con fecha, como hitos** en su mes, con su importe: «Objetivo «Coche» (12.000 €)». Si caen después del final del plan, en «Después de 2036». Si se llega o no es de FX-53 (con su probabilidad).
+  - **Error propio corregido antes de subir:** la caché del año a año iba con las filas de la previsión, y un objetivo nuevo no las cambia. Ahora la clave lleva los objetivos y los meses de colchón.
+- **«Proyección» (`#forecast`) en el diseño nuevo:**
+  - El panel de la proyección se oculta.
+  - En su lugar, un aviso: «La proyección hasta 2036 está ahora en Plan › Previsión», con «Ver «Hasta 2036» en Plan › Previsión». Recuerda ese horizonte, abre Plan › Previsión y deja el foco en el año a año.
+  - «Gastos recurrentes» sigue ahí: no es previsión y no está en otro sitio.
+  - Con el tema clásico, igual que siempre: las dos versiones conservan las mismas funciones.
+  - No se borra la pantalla ni su código.
+- **Pruebas:**
+  - `tests/fx50-hasta-2036.test.cjs` (5): los objetivos dentro y fuera del horizonte; pausados o sin fecha, fuera.
+  - e2e de FX-50 a 390 (`@safari`) y 1440 px, ampliada: el objetivo como hito y la prueba «Imprevisto 3.000 €» como columna.
+  - e2e nueva de «Proyección»: el aviso, «Gastos recurrentes» a la vista, el botón que lleva a «Hasta 2036» con el foco, y el clásico con la proyección de siempre.
+  - Sellos: `styles.css`, `tema-v2.css`, `views/prevision-v2.js` y `novedades.js` a `20261116fx50b`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.558/6.558).
+  - En local, las e2e de FX-50 (también con la emulación del iPhone) y el recorrido por todas las pantallas en verde.
+- **FX-50, hecho.** Lo que no entra: la serie de patrimonio de WP-46 en el año a año. Tendrá contenido con 3 cierres (≈ febrero 2027).
+
+## Cierre de sesión — 12 de noviembre de 2026 (451): FX-50 · «Hasta 2036», año a año (PR-1)
+
+- **Petición del hogar:** «continúa con lo siguiente del backlog». Lo que no está hecho ni bloqueado:
+  - FX-21 (resto) espera a que el hogar elija las pruebas;
+  - FX-60, la navegación de cinco destinos, retira pantallas y se consulta;
+  - D1-D2 esperan a las revisiones del 12 al 18/11 (`ESTADO.md` §8);
+  - lo siguiente libre era FX-50, M-L (3). Esta es su primera parte. No toca Hoy y viaja en #607.
+- **Motor nuevo, `canonical-long-horizon.js`** (`FinanceCanonicalLongHorizon`, `finance-long-horizon/v1`, puro). ARQ-3 sube de 125 a 126, con su consumidor real en `views/prevision-v2.js`.
+  - **Puntos:** el saldo a fin de cada mes y de cada año, desde hoy.
+  - **Abanico de cada 31/12, sin inventarlo:** son los cuatro supuestos de FX-51 un punto peor (inflación, subida de los ingresos, gasto e ingresos previstos), recalculados con el mismo motor (`assumptionImpacts`, con un objetivo por diciembre).
+    - Se combinan como errores independientes (raíz de la suma de cuadrados) y se aplican a los dos lados.
+    - Se abre solo, porque cada año arrastra el efecto compuesto de los anteriores.
+  - **Hitos:**
+    - deuda cero y fin de la hipoteca, con la deuda mes a mes de `canonical-debt-horizon.js` (la misma que la tabla de impacto de FX-20, con lo que el plan ya amortiza);
+    - colchón completo, con la liquidez frente a los meses del colchón × el gasto medio.
+    - Lo que ya se cumple hoy no es un hito; lo que no llega antes del final, se dice.
+- **Previsión nueva, solo con «Hasta 2036»:** «Año a año, hasta 2036», debajo de la tarjeta principal.
+  - Lleva la frase de la propuesta: «A 10 años, esto es una dirección, no una cifra».
+  - El abanico va dibujado con el kit de gráficos: recorrido con dedo, ratón y teclado, lectura de cada año y «Ver como tabla».
+  - Debajo, los hitos.
+  - Cifras redondeadas como la previsión (FX-04: a la centena el primer diciembre y al millar más allá de un año).
+- **Con la demo (cifras INVENTADAS):**
+  - 2026: 13.000 € (entre 12.300 y 13.800); 2036: 69.000 € (entre 11.000 y 128.000).
+  - Colchón completo en diciembre de 2027.
+  - «Deuda cero: no llega con el plan de ahora», porque dos de sus deudas están suspendidas, sin cuota.
+  - Se calcula en unos 150 ms.
+- **Pruebas:**
+  - `tests/fx50-hasta-2036.test.cjs` (4): un punto por año y por mes; el abanico (√ de la suma de cuadrados, un supuesto sin cifra no cuenta, se abre con los años); los hitos en orden, lo cumplido y lo que no llega, sin hipoteca ni objetivo; motor puro.
+  - e2e «FX-50» a 390 (`@safari`) y 1440 px: solo con «Hasta 2036», el título, la frase, los hitos, la tabla de 11 años y el abanico que se abre.
+  - axe en claro y oscuro, sin violaciones.
+  - Sellos: `canonical-long-horizon.js` nuevo; `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx50a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.557/6.557).
+  - En local, las e2e de FX-50 y de los horizontes de la Previsión en verde, también con la emulación del iPhone.
+- **Lo que queda de FX-50 (PR-2):**
+  - los objetivos de ahorro como hitos;
+  - los escenarios superpuestos (FX-20) también en el año a año;
+  - absorber la proyección de `#forecast` («con proyectos · sin proyectos» como un escenario más). Retira una pantalla en uso: **se consulta**.
+
+## Cierre de sesión — 12 de noviembre de 2026 (450): XPR-11 · mover los días de cargo a donde menos duelen (y el día indicado deja de verse «estimado»)
+
+- **Petición del hogar:** «deja la banda y continúa con XPR-11». La banda de barras por mes de Previsión se queda como está. Es la decisión del hogar sobre lo que FX-15 dejó fuera.
+- **Motor nuevo, `canonical-charge-day-moves.js`** (`FinanceCanonicalChargeDayMoves`, `finance-charge-day-moves/v1`, puro). ARQ-3 sube de 124 a 125, con su consumidor real en `views/prevision-v2.js`.
+  - **Qué prueba:** cada recibo fijo con día conocido (indicado por el hogar o visto en el extracto), en cada día del 1 al 28, sobre la trayectoria diaria de 90 días. En todos los meses del horizonte, nunca a un día ya pasado.
+  - **Qué elige:** el cambio que más sube, sumado, el mínimo de cada mes, y nunca uno que baje el mínimo de algún mes. Luego repite, hasta tres. Con empate, el día más cercano al de siempre.
+  - **Puerta (la de XPR-11):** días conocidos en el 70 % del gasto fijo. Un cambio solo se propone si sube el mínimo de un mes típico al menos 50 €.
+  - **Corrección de enfoque sobre la marcha:** primero medía el punto más bajo de los 90 días. Así, un cambio bueno valía 0 si ese punto caía en el mes en curso, que ya no se puede mover. La métrica de XPR-11 es el mínimo de cada mes, y es la que usa.
+- **Previsión nueva, debajo de la tarjeta principal** (no mueve la cifra, el gráfico ni el panel del día).
+  - Cabecera: «Mover 3 recibos de día sube el mínimo del mes unos 2.500 €».
+  - Cada recibo: «Pide que «X» se cargue el día 15 (ahora, el 8) · +1.350 € en el mínimo de diciembre».
+  - «Lo he pedido» lo recuerda en este dispositivo (`prevision-v2-cargos`, fuera de la copia, con su motivo en ARQ-6).
+  - «Ya se carga el día N» guarda el día en Plan › Partidas › Días de cargo (`saveChargeDays`, WP-08). La previsión lo usa y la propuesta de esa partida desaparece: queda dormida hasta que cambie algo.
+  - Cada cambio va a la decena, para que sumen; la cabecera, como toda diferencia (FX-04).
+- **Con la demo (cifras INVENTADAS)** y todos los recibos fijos el día 8, solo mejora diciembre, y es correcto. En enero y febrero el cobro también llega el 8, así que el mínimo cae el 7 y moverlos no lo cambia. En diciembre, el punto más bajo es el 14. No se promete «cada mes».
+- **Fallo de antes, encontrado por el camino:** el motor diario (`canonical-daily-engine.js`) solo admitía las certezas observed, rule y estimated, y convertía en «estimated» el «declared» de un día de cargo indicado. Consecuencias:
+  - la Previsión decía «día estimado · ¿sabes el día?» de un día ya dado;
+  - nada de lo que mira la certeza en el motor diario contaba los días indicados.
+  - Ahora `declared` se conserva, con su contador.
+- **Pruebas:**
+  - `tests/xpr11-dias-de-cargo.test.cjs` (4): el seguro antes de cobrar pasa al día del cobro y sube su importe, en 3 meses; sin días conocidos, nada; nada que mover y `canMove`; nunca a un día pasado (desde el 22/12, solo enero y febrero) y motor puro.
+  - e2e «XPR-11» a 390 (`@safari`) y 1440 px: sin días, nada; con ellos, la cabecera, los tres recibos, la certeza «declared», «Lo he pedido» y «Ya se carga» (guarda el 15 y la partida sale de la propuesta).
+  - ARQ-3 a 125 y ARQ-6 con la clave nueva.
+  - El manejador de clics de la Previsión superó el límite de complejidad (93 de 90): XPR-11 va en su propia función y el límite no se toca.
+  - Sellos: `canonical-charge-day-moves.js` nuevo; `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116xpr11`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.553/6.553).
+  - En local, 91 e2e de Previsión, días de cargo, Hoy y FX en verde, y la de XPR-11 también con la emulación del iPhone.
+- **Para que se vea con vuestros datos** hacen falta los días de cargo del 70 % del gasto fijo: es la tarea del hogar H-35.
+
+## Cierre de sesión — 12 de noviembre de 2026 (449): la e2e de FX-40 en Safari, con el clic de la pestaña que no se pierde
+
+- **Por qué:** el CI de #607 en fd36ec0 salió verde, pero con una prueba que falló a la primera en Safari y pasó al reintentar: FX-40 («qué ha cambiado desde tu última visita») a 390 px.
+- **Qué falló:** tras `reload()`, el clic en la pestaña «Previsión» llegó antes de que la app escuchara y `#planPrevisionV2` no se abrió en 15 s. Es la misma familia que WP-18 (sesión 445): un clic sobre una página que aún se está montando. No es un fallo de la app.
+- **Arreglo, solo en la prueba.** Un ayudante nuevo, `abrirPlanPrevision(page)`, repite el clic en la pestaña hasta que la Previsión se ve (`toPass`, 20 s). Pulsar la pestaña ya abierta no cambia nada, así que repetirlo es inocuo. Lo usan las dos aperturas de esa prueba.
+- **Validación:** en local, FX-40 4 de 4 en escritorio y 3 de 3 con la emulación del iPhone. WebKit, en el CI.
+- **Pendiente:** hay más pruebas que abren Plan › Previsión justo tras cargar. Se pasarán al ayudante si alguna vuelve a fallar así; ninguna lo ha hecho hasta hoy.
+
+## Cierre de sesión — 12 de noviembre de 2026 (448): FX-15 · el resumen por periodo, legible
+
+- **Petición del hogar:** «… y continúa». FX-15 era lo siguiente del backlog que no pide una decisión del hogar. No toca Hoy. Viaja en #607.
+- **El resumen por periodo es ahora una cascada de la liquidez** (Herramientas › Previsión, y «Ver todo el detalle» en Plan › Previsión). Antes eran cinco cifras sueltas que no decían adónde llevaban.
+  - **Qué enseña:**
+    - una frase: «La liquidez sube unos 2.900 €: de 10.100 € a 13.000 €»;
+    - la liquidez al empezar el primer mes del periodo;
+    - las barras de A-4 (`analisisCascadaHtml`, las mismas de Análisis y del puente de WP-43): ingresos, gastos y deuda, con su resultado;
+    - la liquidez al acabar;
+    - lo más bajo del periodo, la misma cifra que el titular.
+  - **Cuadra siempre:** al acabar = al empezar + ingresos − gastos − deuda. Con la demo lo hace sin resto. Si un día no cuadrara, la diferencia saldría como «Otros movimientos» en vez de esconderse.
+  - **El ahorro no es un paso.** Pasa de la cuenta corriente al ahorro y no sale de vuestro dinero; se dice aparte, con lo que queda en el ahorro al acabar. **Se aparta de la propuesta**, que lo ponía como un paso más: así, la cascada no cuadraría con la liquidez.
+  - **Redondeo (FX-04):** según lo lejos que acabe el periodo (10, 100 o 1.000 €). Los pasos redondeados suman exactamente el cambio redondeado: el resto va al paso más grande.
+  - Lo pinta un script nuevo, `periodo-ui.js`. `app.js` solo le pasa el resumen y queda 2 líneas más corto (ARQ-4).
+- **La tabla mensual cabe en el móvil.**
+  - Dos columnas nuevas, «Neto» y «Saldo final». Neto va sin verde ni rojo, porque el de esta tabla no pasa el contraste; basta el signo.
+  - A ≤ 640 px solo se ven mes, neto y saldo final, sin desplazar en horizontal. Antes eran 572 px con desplazamiento.
+  - El resto (ingresos, gastos, deuda, ahorro y mínimo) va en la fila desplegada del mes elegido, el mismo toque que ya elegía el mes del panel día a día. En escritorio no cambia.
+- **De paso:** la fila «Resultado» de la cascada compartida estaba descolocada en todas partes (Análisis, el puente y aquí). Envuelve otra fila y, como rejilla, la cifra caía en medio. Ahora está en bloque.
+- **Contraste:** el resumen y la tabla tienen menos fallos que antes, medidos con axe:
+  - claro a 390 px, de 1 a 0;
+  - oscuro, de 45 a 42 en escritorio y de 45 a 6 en el móvil.
+  - Lo que queda son los verdes y rojos de la tabla de siempre.
+- **Pruebas:**
+  - `tests/fx15-resumen-periodo.test.cjs` (4): cuadra también redondeada a 10, 100 y 1.000; «Otros movimientos» y el ahorro aparte; la frase y los saldos; el enganche y el registro.
+  - La de WP-43 lee la regla del verde con su tercer selector.
+  - e2e «FX-15» a 390 (`@safari`) y 1280 px: cuadra con el saldo final de la tabla, cabeceras, la fila desplegada solo en el móvil y sin desbordar.
+  - Sellos: `styles.css`, `design-tokens.css` y `novedades.js` a `20261116fx15a`; `periodo-ui.js` nuevo. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.549/6.549).
+  - En local, 46 e2e de Previsión y 40 de accesibilidad en verde, y la de FX-15 también con la emulación del iPhone.
+- **Fuera, a propósito:** la banda de barras flotantes por mes (PV6) sigue como estaba. La propuesta la cambiaba por la cascada, pero elige el mes del panel día a día y retirarla es retirar algo en uso: se consulta.
+
+## Cierre de sesión — 12 de noviembre de 2026 (447): los botones ya no se mueven al pasar el ratón
+
+- **Decisión del hogar:** «ok, quita la subida de los botones y continúa». Es la opción (a) que se propuso en la sesión 446.
+- **Qué cambia.** Se quita `transform: translateY(-1px)` de los cinco `:hover` que movían un botón o una tarjeta-botón:
+  - en `styles.css`: `button`, las tarjetas de Hoy clásico y `.update-route-card`;
+  - en `design-tokens.css`: `.e19-route-card` y las pestañas de `.e19-faqs`.
+- **Qué se mantiene.** Siguen el borde, el fondo y la sombra de cada uno: la señal de hover no mueve la caja.
+- **Qué no se toca.** La ayuda emergente `[data-help]`, que no es un objetivo de clic.
+- **Por qué.** Con el ratón quieto en el último píxel de un botón, este subía, el ratón quedaba fuera, bajaba y volvía a estar encima: temblaba sin parar. Era también la causa del fallo intermitente de la e2e de WP-40.
+- **Pruebas:**
+  - `tests/botones-sin-subida.test.cjs` (2): ningún `:hover` de los tres CSS mueve un botón con `transform`, y la novedad lo cuenta.
+  - La e2e de WP-40 con el ratón en el borde sigue en verde.
+  - `pulsar()` sigue centrando el ratón por si otra regla vuelve a mover un botón.
+  - Sellos: `styles.css`, `design-tokens.css` y `novedades.js` a `20261116boton`, con sus 12 pruebas de sello. Novedades, una línea con fecha del 16/11.
+- **Validación:** `npm run verify` en verde (6.545/6.545).
+
+## Cierre de sesión — 11 de noviembre de 2026 (446): la causa del fallo intermitente de WP-40 (la CIRBE), encontrada y reproducida
+
+- **Por qué:** el CI de #607 en e95a35a falló en Chromium (sin reintento) en la e2e de WP-40, ajena al PR. Esta prueba falla de vez en cuando desde octubre: #511, #553, `main` tras #558 y ahora #607.
+- **La pista:** la dio el diagnóstico de `pulsar-o-explicar.cjs` (sesión 365):
+  - «Añadir fila» alternaba entre dos cajas, 15,513 y 15,512;
+  - sin mutaciones del DOM y sin desplazamiento;
+  - Playwright esperó 20 s a que el botón estuviera quieto.
+- **La causa, reproducida en local:** `button:hover { transform: translateY(-1px) }` (`styles.css`).
+  - Con el ratón quieto en el último píxel del botón, este sube al pasar el ratón, el ratón queda fuera, el botón baja y el ratón vuelve a estar encima. El bucle no para.
+  - Playwright comprueba que el botón esté quieto **antes** de mover el ratón, así que espera para siempre.
+  - Que el ratón acabe justo ahí depende de dónde terminó el clic anterior: por eso fallaba de vez en cuando.
+  - Puesto el ratón en ese píxel a propósito, el botón oscila (403/402) y el clic no llega, igual que en el CI.
+- **Arreglo, solo en las pruebas.** `pulsar` lleva antes el ratón al centro del botón, donde la subida de 1 px no lo saca.
+  - El centro se mide tras un desplazamiento instantáneo. La página usa `scroll-behavior: smooth`, y medido a mitad del desplazamiento el «centro» caía en otro sitio: el primer intento del arreglo falló así en local.
+  - No reintenta ni espera más.
+- **Pruebas:**
+  - e2e nueva en WP-40: con el ratón en el borde de abajo de «Añadir fila», el clic llega. Sin el arreglo falla con la misma firma que el CI («cajasDistintas: 2»); con él pasa.
+  - `ci-informe-playwright` comprueba que `pulsar` centra el ratón sin animación.
+  - WP-40, 15 de 15 en local.
+- **Sin tocar la app (se consulta).** La misma oscilación de 1 px la puede ver una persona con ratón que lo deje en el borde de cualquier botón. Arreglarlo en la app cambia un efecto visible en toda la app. Las opciones:
+  - quitar la subida al pasar el ratón;
+  - cambiarla por una sombra.
+- **Visto de paso, sin tocar:** «Ensayo del cierre» a 390 px falla en local 1 de 3 también sin este cambio, al pulsar «Firmar cierre» con `force: true`. En el CI pasa. Queda anotado.
+- **Validación:** `npm run verify` en verde (6.543/6.543).
+
+## Cierre de sesión — 11 de noviembre de 2026 (445): la e2e de WP-18 en Safari, sin carrera al pulsar un interruptor de Ajustes
+
+- **Petición del hogar:** «haz esta tarea aquí», la tarea sugerida tras el CI de #607 en a3fa5ce.
+- **Qué pasaba.** En Safari a 390 px, la e2e de WP-18 falló a la primera y pasó al reintentar. Justo tras ir a `#ajustes`, pulsaba el interruptor «Aportado frente a valor» y este seguía en `aria-checked="false"`.
+- **Por qué.** El interruptor está a ~13.700 px y, recién llegados a Ajustes, se sigue moviendo unos 400 ms mientras la vista termina de pintarse. Lo medí en Chromium, con la emulación del iPhone. En WebKit, un clic calculado antes de que la vista acabe cae en otro sitio. Es una carrera de la prueba, no un fallo de la app: el clic de una persona llega con la pantalla ya quieta.
+- **Arreglo, solo en `tests/qa1-flujos-completos.spec.cjs`.** Un ayudante nuevo, `cambiarFuncionEnPrueba(page, id, encender)`:
+  - espera a que se vean la vista y el interruptor;
+  - repite el clic (`toPass`) hasta que el interruptor cambia;
+  - antes de cada intento mira cómo está, así que nunca lo devuelve a su sitio.
+- **Dónde se aplica.** Sustituye los 8 clics del mismo tipo: banda-dia, lo-que-pide, ver-ejemplo, descubierto (encender y apagar), antes-de-decidir, aportado y siguiente-paso. «tema-v2» queda fuera porque recarga la página. El de apagar «descubierto» antes no comprobaba que se apagara: ahora sí, así que la prueba es más estricta, no más laxa.
+- **Validación:**
+  - `npm run verify` en verde (6.543/6.543).
+  - En local, 21 e2e afectadas en Chromium de escritorio y 24 de 24 con la emulación del iPhone (8 pruebas × 3 repeticiones).
+  - WebKit, en el CI. Se mantiene el reintento de Safari (decisión del hogar del 28/10/2026).
+
+## Cierre de sesión — 11 de noviembre de 2026 (444): FX-14 · el mes en curso al ritmo real, y el CI de Safari de #607
+
+- **Petición del hogar:** «activa estas [la fusión del 16/11 y la comprobación del 23/11] y luego continúa».
+  - Programadas las dos tareas: la fusión de #607 el lunes 16/11 y la comprobación de FX-41 el lunes 23/11 a las 9:41, ya creada (antes la iba a crear la del 16/11).
+  - FX-14 era lo que quedaba de la lista «si da tiempo» de la oleada con su dependencia (FX-03) hecha. No toca Hoy. Viaja en #607.
+- **El CI de Safari de #607 (b2d2d76), en rojo y arreglado sin tocar la app.**
+  - A 390 px, tras «Volver al punto más bajo» y la prueba «Imprevisto 3.000 €», el panel enseñaba otro día: 10.400 € en vez de 3.600 €. Falló también en el reintento.
+  - Causa: en WebKit el ratón «se mueve» cuando la página se desplaza debajo de él, y un día sin fijar sigue al ratón (es lo que se quiere). El paso nuevo de FX-03 (ir al 8 dic con el teclado y volver) dejaba el puntero quieto donde, tras desplazarse, quedaba el gráfico.
+  - La e2e suelta ahora con Intro, deja el puntero en el margen y comprueba el día antes de la prueba de estrés. En 19c7dc3, Safari 58/58 a la primera, sin reintento.
+  - En un iPhone de verdad no hay puntero que pase por encima: no le pasa al hogar.
+- **Motor nuevo, `canonical-variable-pace.js`** (`FinanceCanonicalVariablePace`, `finance-variable-pace/v1`, puro). ARQ-3 sube de 123 a 124, con su consumidor real en `views/plan-v2.js`.
+  - **Perfil:** de cada mes completo con extracto, qué parte del gasto variable se lleva gastada al llegar a cada día; la media de los 6 últimos. Un mes es completo si el extracto sigue después de él.
+  - **Puerta (XPR-04):** 3 meses completos con gasto variable. Sin ella no hay cifra.
+  - **Estimación:** lo gastado hasta el último día con extracto (no hoy: el extracto puede ir atrás), entre la parte del perfil a ese día. Nunca por debajo de lo gastado. Antes del día 5, o con menos del 15 % del perfil, no se estima.
+  - **Banda y acierto, sin trampa:** cada mes pasado se estima con el perfil de los demás. La banda son el menor y el mayor cociente real/estimado; el acierto, el error medio al día 15. Es la métrica de XPR-04 (≤ 10 %).
+  - **Frente al plan:** «en línea» si la diferencia no pasa del mayor de 25 € y el 5 % del previsto.
+- **Dónde se ve.** La previsión no cambia: sigue con lo prudente (lo mayor entre lo previsto y lo gastado, `actualAwareInfo`). Esto se enseña al lado, y Hoy no se toca.
+  - **Plan › Mes, en «Ritmo del mes»:** «A vuestro ritmo, el gasto variable de noviembre cerraría en unos X (entre A y B): Y por debajo/por encima del plan, que prevé Z», con cómo se sabe.
+    - Sin los 3 meses, si ya hay alguno, dice cuántos faltan.
+    - Antes del día 5, dice que sale a partir de ese día.
+  - **Previsión nueva, debajo de la tarjeta principal (fuera de la medida de 900 px):** «Si noviembre sigue a este ritmo · Acabaríais noviembre con unos X; la previsión, que cuenta lo prudente, dice Y», con «Ver el ritmo en Plan › Mes».
+  - A menos de 30 días, a la decena (FX-04).
+  - Sin extracto (la demo), no sale nada.
+- **Pruebas:**
+  - `tests/fx14-ritmo-variable.test.cjs` (5): la puerta y el mes completo; el mismo ritmo, más rápido, frente al plan y nunca bajo lo gastado; el extracto atrasado y «pronto»; devoluciones, lo que no es variable y la banda; motor puro y app.js sin tocar.
+  - ARQ-3 a 124.
+  - e2e «FX-14» a 390 (`@safari`) y 1440 px con un extracto INVENTADO: julio-octubre y noviembre hasta el 11. Comprueba la tarjeta, la frase, la cifra de arriba sin cambiar y el camino a Plan › Mes.
+  - Sellos: `views/plan-v2.js`, `views/prevision-v2.js`, `tema-v2.css` y `novedades.js` a `20261116fx14a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde (6.543/6.543).
+  - En local con Chromium, 73 e2e de Previsión, Plan › Mes y FX en verde, y la de FX-14 también con la emulación del iPhone.
+  - Safari, en el CI.
+- **Lo que no hace todavía:** los fines de semana no entran en el perfil (solo el día del mes). Medir el error del día 15 mes a mes, para retirarlo si pasa del 20 % tres meses (XPR-04), queda para cuando haya cierres con extracto.
+
+## Cierre de sesión — 11 de noviembre de 2026 (443): FX-43 · la carta del mes cuenta la previsión
+
+- **Petición del hogar:** «continuamos». FX-43 era lo siguiente con fecha: la primera carta que lo usa es la del cierre de noviembre (1-3/12). No toca Hoy. Viaja en #607, que se fusiona el 16/11: la rama está ocupada por ese PR, y subirlo es más seguro que guardarlo en local.
+- **Dos huecos más en la carta** (`canonical-month-letter.js`), recortables antes que el resultado y la calidad del dato, y con su versión corta.
+  - **«Frente a la previsión de caja»**, tras el resultado: «En caja hubo X al cierre. La previsión del día 1 esperaba A y la del día 15, B (C de menos/de más/acertó)».
+    - Sale de las fotos de WP-12 y de los saldos del banco del cierre (`canonical-liquidity-backtest.js` `compare`), solo cuando la comparación vale.
+    - Antes de firmar, con los saldos que se guardarían.
+  - **«El mes que viene»**, antes de la calidad: «Para diciembre, la previsión espera lo más bajo el día D (X, Y sobre el suelo) y cerrar con Z».
+    - Solo con días de hoy en adelante (una carta reconstruida de hace meses no habla de días pasados).
+    - Redondeado como la previsión (FX-04): la carta no redondea, dice lo que recibe.
+  - **Orden de recorte:** el hito, la acción, acortar la desviación, la caja y el mes siguiente, acortar la calidad, y después quitar el mes siguiente y la caja.
+  - **Sin datos, el hueco no sale:** no se inventa.
+- **Pruebas:**
+  - `tests/fx43-carta-prevision.test.cjs` (3): los dos huecos y su orden; los veredictos (de menos, de más, acertó) y el suelo; sin datos, nada; el recorte a 60 y 30 palabras.
+  - Las 26 de WP-29 siguen igual.
+  - e2e «FX-43»: sin fotos, sin caja y con el mes siguiente; con dos fotos y un cierre INVENTADOS, la frase exacta y ≤ 120 palabras.
+  - Sellos: `canonical-month-letter.js` y `carta-mes-ui.js` a `20261116fx43a`. Novedades, una línea con fecha del 16/11.
+- **Error propio corregido antes de subir:** la lectura del mes siguiente usaba `isoLocalDate` sin comprobar que existiera. En el entorno aislado de las pruebas de pantalla de WP-29 tumbaba la carta entera (5 rojas). Ahora los dos huecos son opcionales: si algo falla al leerlos, la carta sale sin ellos, como antes.
+- **Validación:** `npm run verify` en verde (6.538/6.538; «forecast y escenarios en 208,8 ms»). En local, e2e y axe de WP-29 y FX-43.
+
+## Cierre de sesión — 11 de noviembre de 2026 (442): FX-41 · avisos de previsión con umbral en Hoy y en el calendario (activos el 23/11)
+
+- **Petición del hogar:** «continua con FX-41».
+  - Es el cambio de Hoy de la semana del 23/11. Va con puerta de fecha (`HOY_V2_AVISOS_DESDE = "2026-11-23"`), como los cambios 1 y 2 de Hoy.
+  - Viaja en #607 junto a FX-03, que se fusiona el 16/11. Antes del 23/11 no se ve nada, así que se respeta un cambio de Hoy por semana.
+  - Se sube ya y no se guarda en local hasta el lunes: un contenedor reciclado lo habría perdido.
+- **Motor nuevo, `canonical-forecast-alerts.js`** (`FinanceCanonicalForecastAlerts`, `finance-forecast-alerts/v1`, puro; ARQ-3 de 122 a 123 con su consumidor real, `views/hoy-v2.js`).
+  - **Cuándo avisa:** cuando la previsión **cruza** un umbral en los próximos 90 días, es decir, hoy por encima y luego por debajo. No avisa cuando cambia (eso es FX-40) ni cuando hoy ya se está por debajo (lo dice Hoy). Un umbral que nunca se alcanza no avisa cada semana.
+  - **Los cuatro umbrales:**
+    - el suelo;
+    - el mínimo de la cuenta corriente con el total sano (no repite el del suelo si baja a la vez);
+    - el objetivo de colchón (no sale si ya hay aviso de suelo);
+    - el 31 de diciembre que cae más de un 10 % frente a la última visita a la Previsión (`yearEndFromSnapshot` lee la foto de FX-40).
+  - Cada aviso lleva sus euros en juego, y salen de más a menos.
+- **En Hoy** (`views/hoy-v2.js`): «Decidir esta semana» los pone delante de las demás decisiones, y siguen siendo 3 como mucho.
+  - Cada uno con su frase. Por ejemplo: «El 8 dic bajáis del suelo · La previsión llega a … el 14 dic: faltan unos … sobre el suelo de …».
+  - Su nivel (alto en el suelo y en la cuenta sin ahorro que alcance) y «Ver la previsión», que lleva a Plan › Previsión.
+  - Con la demo tal cual no sale ninguno: no cruza nada. Con un suelo INVENTADO de 7.000 €, el del suelo.
+- **En el calendario del móvil** (WP-32, `canonical-reminders.js`): un tipo nuevo, «avisos de la previsión», que se puede apagar en Ajustes.
+  - Llega una semana antes de cruzar el umbral, o hoy si falta menos.
+  - El título va sin importes, como todos («Previsión: bajáis del suelo el 8 dic»), porque la pantalla de bloqueo lo enseñaría. Las cifras van en la descripción.
+  - El del fin de año solo sale en Hoy: cuenta un cambio ya ocurrido, sin día en que actuar.
+- **Novedades con fecha futura** (`ux-shell.js` `novedadesVigentes`): no se enseñan hasta su día. Si no, la línea del 23/11 anunciaría desde el 16/11 algo que aún no se ve.
+- **Pruebas:**
+  - `tests/fx41-avisos-prevision.test.cjs` (5):
+    - cada umbral y cada caso en que no avisa;
+    - el orden por euros;
+    - el fin de año desde una foto.
+  - `tests/wp32-recordatorios.test.cjs`: el tipo nuevo en «cada tipo se puede apagar», más 1 prueba propia.
+  - `tests/nxp2-sello-version.test.cjs`: +1, las novedades de fecha futura.
+  - `tests/redis-hoy2-repaso.test.cjs`: el orden de Hoy, con la llamada nueva.
+  - e2e «FX-41» (antes del 23/11 nada; a 390 `@safari` y 1440 px, el aviso, el calendario sin importes en el título y el camino a la Previsión) y axe claro/oscuro.
+  - Sellos: `canonical-forecast-alerts.js`, `views/hoy-v2.js`, `canonical-reminders.js`, `recordatorios-ui.js`, `ux-shell.js` y `novedades.js` a `20261123fx41a`. Novedades, una línea con fecha del 23/11.
+- **Validación:** `npm run verify` en verde (6.535/6.535; «forecast y escenarios en 279,7 ms»). En local, la tanda completa de e2e y axe en Chromium dio 385/387; las dos que fallaron se arreglaron:
+  - **La e2e de WP-32 contaba 6 tipos de aviso**; con «avisos de la previsión» son 7. Se actualiza la cuenta.
+  - **La axe de la carta del mes (WP-29) tenía una carrera desde siempre:** esperaba al título (ya en el HTML) y a `recordCartaMes` (se carga al arrancar), pero no a `renderCierre`, que llega con la vista descargada.
+    - Con FX-03 solo fallaba bajo carga. Con FX-41, un script más al arrancar, fallaba siempre.
+    - Ahora espera también a `renderCierre`: 22/22 con dos repeticiones.
+
+## Cierre de sesión — 11 de noviembre de 2026 (441): FX-03 · la trayectoria cosida, preparada para el lunes 16/11 (el cambio de Hoy de esa semana)
+
+- **Petición del hogar:** «ok a las tres cosas». La tercera era que Claude propusiera el cambio de Hoy del 16/11: **FX-03**, y no FX-41 (motivo en la 440). Se prepara ahora y se fusiona el lunes 16/11, uno por semana.
+- **El cambio** (`canonical-daily-input.js` `spreadDailyAuditEvents`):
+  - El motor diario reparte el gasto variable del mes por todos sus días, como ya hacía la banda de caja (WP-16), en vez de cargarlo entero el día estimado (el 8).
+  - Cada día lleva un trozo en euros enteros: los primeros días llevan un euro de más hasta cuadrar, y los céntimos del total, si los hay, van al último día. Un primer intento al céntimo llenaba los saldos de céntimos («llega a 6.805,50 €»).
+  - El total de cada mes no cambia (la invariante `monthly-parity` del motor diario); cambia la forma dentro del mes.
+  - Con `spreadVariable: false`, la forma de antes.
+- **Con la demo (cifras INVENTADAS):**
+  - **El punto más bajo de 3 y 12 meses** pasa de unos 5.600 € el 8 dic a unos 6.600 € el 14 dic, la víspera del cobro. El margen sobre el suelo, de 4.100 € a 5.100 €.
+  - **El «Disponible hasta cobrar» de Hoy** no cambia (8.580 €); cambia la forma de su gráfico.
+  - **El cierre de cada mes**, igual.
+- **Lo que se ha tenido que ajustar al cambiar la forma:**
+  - **«El arreglo más barato» (XPR-07) dentro de la Previsión.** Sale si se baja del suelo en 30 días, pero ahora mira hasta el final de ese bajón (hasta que el saldo vuelve a subir). Con el mínimo en la víspera del cobro, a menudo pasados los 30 días, la tarjeta decía «faltan 200 €» y el titular, 400 €. Ahora dice 428 € (el titular redondea a la centena a más de 30 días, FX-04).
+  - **El día más bajo ya no tiene pagos**, solo el gasto variable de ese día. «Aplazar un pago» se usa desde un día con cargos (el 8 dic en la demo).
+  - **Las pruebas de estrés** caen en otros días: el imprevisto, el 14 dic; con un sueldo menos, el 5 feb 2027.
+  - **«¿Y si…?» con 4.000 € y 900 € al mes** ya no baja del suelo: la e2e usa 1.500 € para seguir cubriendo «No sin tocar nada».
+- **Pruebas:**
+  - `tests/fx03-trayectoria-cosida.test.cjs` (3), nueva:
+    - un trozo por día en euros enteros con el mismo total;
+    - la invariante y el mismo cierre de mes que antes;
+    - el mínimo en la víspera de la nómina y no el día 8;
+    - la forma de antes con `spreadVariable: false`.
+  - 28 expectativas de las e2e (C2, panel del día, XPR-07, XPR-08, FX-12, FX-20, FX-22, FX-42) y la de axe de FX-22 PR-2, con las cifras nuevas sacadas de la app y no a ojo. El panel y «aplazar» van al 8 dic con ← desde el gráfico.
+  - Sellos: `canonical-daily-input.js`, `views/prevision-v2.js` y `novedades.js` a `20261116fx03a`. Novedades, una línea con fecha del 16/11.
+- **Validación:**
+  - `npm run verify` en verde en el cierre de sesión (6.528/6.528; «forecast y escenarios en 221,6 ms»).
+  - **#607 queda abierto a propósito** hasta el lunes 16/11, porque es el cambio de Hoy de esa semana (uno por semana). La comprobación programada lo fusiona ese día con el CI en verde.
+  - La revisión mensual de Nielsen no está vencida: la última fue el 4/11.
+  - La tanda completa de e2e y axe en Chromium: 380 de 382.
+  - **El primer CI de #607 falló, y era de este PR:** «el panel, debajo del gráfico», a 390 px. El rodeo al 8 dic con el teclado iba antes de medir la posición del panel, y el foco en el gráfico desplaza la página. Ahora se mide antes de mover el día, también en la e2e de FX-22 PR-2. En local, 12/12 con dos repeticiones.
+  - Las 2 que fallaron son la axe de la carta del mes en Cierre (WP-29), en claro y en oscuro: `renderCierre is not defined` bajo carga, porque la prueba espera a `recordCartaMes` y llama a una función de una vista que se descarga aparte. Pasan solas con FX-03, y en el CI de #606 pasaron. No es de este cambio.
 
 ## Cierre de sesión — 11 de noviembre de 2026 (440): el panel del día más compacto y la deuda y el patrimonio a 24 m, a la centena
 

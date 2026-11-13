@@ -11,6 +11,89 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-23-avisos-prevision",
+      fecha: "2026-11-23",
+      texto: "Hoy: «Decidir esta semana» avisa si la previsión va a bajar del suelo, del mínimo de la cuenta o del colchón; también en el calendario.",
+      href: "#home",
+    },
+    {
+      id: "2026-11-16-rango-probable",
+      fecha: "2026-11-13",
+      texto: "Previsión: con 3 meses, el gráfico enseña el rango probable (8 de cada 10 casos), según qué día caigan los pagos sin día confirmado.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-cobertura-90-dias",
+      fecha: "2026-11-13",
+      texto: "Movimientos: la cobertura de los últimos 90 días por cuenta, con los huecos sin extracto y qué periodo importar para cerrarlos.",
+      href: "#movements",
+    },
+    {
+      id: "2026-11-16-local-renta",
+      fecha: "2026-11-13",
+      texto: "Fiscal: «El local alquilado para la Renta» calcula lo que va a la base general de cada uno, con gastos, amortización y retención.",
+      href: "#herramientas-fiscal",
+    },
+    {
+      id: "2026-11-16-revision-tres-caminos",
+      fecha: "2026-11-13",
+      texto: "Previsión: a 120 días de la revisión de la hipoteca, «Euribor» va primero y la enseña en tres caminos (y la oferta fija) con su colchón.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-antes-de-decidir-pr2",
+      fecha: "2026-11-13",
+      texto: "«Antes de decidir» también al cancelar una deuda, en «Comparar con» y en Escenarios: si los saldos o el Euribor le darían la vuelta.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-proyeccion-en-prevision",
+      fecha: "2026-11-13",
+      texto: "«Proyección» ya está en Plan › Previsión con «Hasta 2036»: la línea sin proyectos, los objetivos de ahorro como hitos y vuestras pruebas.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-hasta-2036",
+      fecha: "2026-11-13",
+      texto: "Previsión: con «Hasta 2036», el año a año con su abanico (cuánto cambia con los supuestos) y los hitos: colchón completo, deuda cero.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-dias-de-cargo",
+      fecha: "2026-11-13",
+      texto: "Previsión: si un recibo cae justo antes de cobrar, propone a qué día pedir que lo pasen y cuánto sube vuestro mínimo del mes.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-resumen-periodo",
+      fecha: "2026-11-13",
+      texto: "Previsión: el resumen por periodo es una cascada (con cuánto empezáis, qué suma, qué resta y con cuánto acabáis). La tabla cabe en el móvil.",
+      href: "#prevision",
+    },
+    {
+      id: "2026-11-16-botones-quietos",
+      fecha: "2026-11-13",
+      texto: "Los botones ya no se mueven al pasar el ratón: si el ratón se quedaba en su borde, temblaban.",
+    },
+    {
+      id: "2026-11-16-ritmo-variable",
+      fecha: "2026-11-13",
+      texto: "Plan › Mes y Previsión: con 3 meses de extracto, a qué ritmo va el gasto variable y cómo acabaría el mes así; la previsión no cambia.",
+      href: "#plan",
+    },
+    {
+      id: "2026-11-16-carta-prevision",
+      fecha: "2026-11-13",
+      texto: "Cierre: la carta del mes cuenta la previsión: cuánto hubo en caja frente a lo previsto el día 1 y el 15, y qué espera del mes siguiente.",
+      href: "#cierre",
+    },
+    {
+      id: "2026-11-16-trayectoria-cosida",
+      fecha: "2026-11-13",
+      texto: "Previsión y Hoy: el gasto variable se reparte por los días del mes; el punto más bajo cae la víspera del cobro, ya no cada día 8.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-11-panel-y-centena",
       fecha: "2026-11-11",
       texto: "Previsión: el panel del día, una línea por pago; deuda y patrimonio a 24 meses, a la centena: amortizar ya enseña el interés ahorrado.",

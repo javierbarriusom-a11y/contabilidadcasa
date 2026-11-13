@@ -256,5 +256,5 @@ test("S5 · en móvil el subtítulo de Hoy se oculta (41 px antes de la cifra), 
   assert.match(css, /@media \(max-width: 640px\) \{\s*#home \.e19-subtitle \{ display: none; \}\s*\}/);
   // Solo en móvil: la regla base del subtítulo no oculta nada en escritorio.
   assert.ok(!/\.e19-subtitle \{[^}]*display: none/.test(css.replace(/@media[^{]*\{[^}]*\{[^}]*\}[^}]*\}/g, "")));
-  assert.match(read("index.html"), /design-tokens\.css\?v=20261109fx23b/);
+  assert.match(read("index.html"), /design-tokens\.css\?v=20261116fx15a/);
 });

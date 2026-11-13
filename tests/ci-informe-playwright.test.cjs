@@ -52,6 +52,10 @@ test("WP-40 y el ensayo del cierre pulsan con diagnóstico, sin reintentar ni es
   const helper = read("tests/helpers/pulsar-o-explicar.cjs");
   assert.match(helper, /module\.exports = \{ pulsar, registrarEventos, diagnostico \}/);
   assert.doesNotMatch(helper, /retries|repeat|for \(let intento/, "el ayudante no reintenta: un fallo de verdad sigue fallando");
+  // 11/11/2026: la causa de WP-40 (el botón sube y baja con el ratón quieto en su borde, `button:hover`): antes de pulsar, el ratón
+  // va al centro del botón, medido sin desplazamiento suave.
+  assert.match(helper, /await ratonAlCentro\(page, selector\);\n\s+await page\.locator\(selector\)\.click\(\{ timeout \}\);/);
+  assert.match(helper, /behavior: "instant"/);
   const spec = read("tests/qa1-flujos-completos.spec.cjs");
   const wp40 = spec.slice(spec.indexOf('test.describe("WP-40 · conciliación con la CIRBE"'), spec.indexOf('test.describe("WP-41'));
   assert.equal((wp40.match(/await pulsar\(page, '#cirbeForm button\[type="submit"\]'\)/g) || []).length, 3);

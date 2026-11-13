@@ -7,7 +7,9 @@
 
   const SCHEMA_ID = "finance-canonical-daily-engine/v1";
   const TOLERANCE = 0.02;
-  const CONFIDENCE_LEVELS = ["observed", "rule", "estimated"];
+  // XPR-11 (12/11/2026): «declared», el día de cargo indicado por el hogar (WP-08, canonical-timing.js). Antes no estaba en la lista y se
+  // normalizaba a «estimated»: la Previsión decía «día estimado · ¿sabes el día?» de un día ya dado, y la confianza no lo contaba.
+  const CONFIDENCE_LEVELS = ["observed", "declared", "rule", "estimated"];
 
   function number(value, fallback = 0) {
     const parsed = Number(value);
@@ -300,7 +302,7 @@
       const first = days[0];
       const last = days.at(-1);
       const fieldTotals = {};
-      const confidence = { observed: 0, rule: 0, estimated: 0 };
+      const confidence = { observed: 0, declared: 0, rule: 0, estimated: 0 };
       days.forEach((day) => {
         Object.entries(day.fieldTotals || {}).forEach(([field, amount]) => {
           fieldTotals[field] = round(number(fieldTotals[field]) + amount);
@@ -414,7 +416,7 @@
     const confidence = normalized.events.reduce((summary, event) => {
       summary[event.confidence] += 1;
       return summary;
-    }, { observed: 0, rule: 0, estimated: 0 });
+    }, { observed: 0, declared: 0, rule: 0, estimated: 0 });
     const fingerprint = hash({ rows, monthly });
     const auditTrail = Array.isArray(previousSnapshot?.auditTrail) ? [...previousSnapshot.auditTrail] : [];
     if (!previousSnapshot || previousSnapshot.fingerprint !== fingerprint) {
