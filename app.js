@@ -13714,11 +13714,11 @@ function renderAp3BarrierStatus() {
   const box = qs("ap3BarrierStatus");
   const engine = window.FinanceCanonicalLeverageBarrier;
   if (!engine) return null;
-  const result = engine.evaluateLeverageBarrier(ap3LeverageBarrierInput());
+  const input = ap3LeverageBarrierInput(), result = engine.evaluateLeverageBarrier(input); // XDA-10 PR-3: la línea «Antes de decidir», con el colchón
   if (box) {
-    box.innerHTML = result.valid
+    box.innerHTML = (result.valid
       ? `<p>Guardarraíl superado: colchón, deuda actual e ingreso verificados. Puedes explorar la simulación de abajo.</p>`
-      : `<p>Guardarraíl no superado — antes de explorar deuda nueva, resuelve:</p><ul class="commit-barrier-list">${result.blockers.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.detail)}</li>`).join("")}</ul>`;
+      : `<p>Guardarraíl no superado — antes de explorar deuda nueva, resuelve:</p><ul class="commit-barrier-list">${result.blockers.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.detail)}</li>`).join("")}</ul>`) + (globalThis.antesDeDecidirApalancamientoHtml?.(result, input.cushion) || "");
   }
   return result;
 }
@@ -15845,7 +15845,7 @@ function handleA154SimulatePension() {
     : result.breaksReserve
     ? `<p class="negative">Esta aportación completa dejaría la reserva protegida por debajo de su suelo en ${money(Math.abs(result.marginAfter), true)} — el dinero de un plan de pensiones no se rescata libremente antes de jubilación.</p>`
     : `<p>Tras aportar, seguirían ${money(result.marginAfter, true)} por encima de la reserva protegida.</p>`;
-  note.innerHTML = `<p>${escapeHtml(limitLine)}</p><p>${escapeHtml(savingLine)}</p>${reserveLine}`;
+  note.innerHTML = `<p>${escapeHtml(limitLine)}</p><p>${escapeHtml(savingLine)}</p>${reserveLine}${globalThis.antesDeDecidirPensionHtml?.(result) || ""}`; // XDA-10 PR-3
 }
 
 // A18-1: reglas de reparto configurables por categoría (E25). scenarioSettings.householdSplit

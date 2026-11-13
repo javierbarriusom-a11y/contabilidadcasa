@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**13/11/2026 · XDA-10 completa: «Antes de decidir» en los simuladores de inversión («continúa con la siguiente tarea del backlog»).** Al aportar a un plan de pensiones (lo que queda sobre la reserva) y en el guardarraíl del apalancamiento (AP3 y el escalonado, solo cuando lo decide el colchón), dice si unos saldos antiguos cambiarían el veredicto. `app.js` sin líneas nuevas (PROJECT_STATE 463).
+
 **13/11/2026 · #610 fusionado: el «Deshacer» se cierra al cambiar de pantalla y `app.js` recupera su margen («que el aviso se cierre al cambiar de pantalla» y «sigue con el backlog»).**
 - El aviso de «Deshacer» (10 s) seguía visible en la pantalla siguiente y, en el móvil, tapaba sus botones: el toque en «Firmar cierre» caía en él. Ahora se cierra al cambiar de pantalla; dentro de una pantalla dura sus 10 s, como hasta ahora.
 - **XGO-01 PR-4:** Laboratorio y el informe de uso de la app (33 funciones) pasan a `laboratorio-ui.js`. `app.js` queda en 32.075 líneas, con techo 32.203: 128 de margen, que con #607 se había quedado en 25.
@@ -383,7 +385,7 @@ una semana) y FX-14 (el mes en curso al ritmo real).
 | 8 | FX-50 | Hasta 2036 legible: vista anual con hitos y supuestos (absorbe `#forecast`; sobre WP-46) | 8ª | M-L · 3 | FX-51, FX-03 | **12/11, hecho (en #607, fusionado el 13/11)**: año a año con abanico de supuestos, hitos (con los objetivos de ahorro), «Sin proyectos» y la prueba elegida; `#forecast` lleva ahí en el v2 (decisión del hogar) |
 | 9 | FX-15 | Resumen por periodo en cascada; tabla que cabe en el móvil | 8ª | S · 1 | FX-10 | Tras «Ver todo el detalle» · **12/11, hecho (en #607, fusionado el 13/11)**: cascada de la liquidez que cuadra, con el ahorro aparte; tabla con neto y saldo final y fila desplegada en el móvil. La banda de barras por mes sigue (retirarla se consulta) |
 | 10 | FX-27 / XDO-02 | La revisión de la hipoteca como escenario con fecha | 8ª, 7ª | M · 2 | FX-21, WP-20 | Sube a primera fila a ≤ 120 días de la revisión · **12/11, hecho (en #607, fusionado el 13/11)**: «Euribor» delante a ≤ 120 días y la revisión en tres caminos (+ el fijo de DEB-4) con cuota y colchón; el mixto no se puede teclear |
-| 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets · **12/11, hecho (en #607, fusionado el 13/11)**: cancelar entera (DEB-15/17, una línea), «Comparar con» (saldos y Euribor) y la reserva de Escenarios. Quedan los simuladores de inversión (PR-3) |
+| 11 | XDA-10 PR-2 | Antes de decidir: Euribor, cancelar deuda (DEB-15), simuladores e **escenarios** | Def §5.0 | S-M | FX-20 | Encaja con los presets · **12/11, hecho (en #607, fusionado el 13/11)**: cancelar entera (DEB-15/17, una línea), «Comparar con» (saldos y Euribor) y la reserva de Escenarios. **13/11, PR-3 hecho:** la aportación a pensiones (lo que queda sobre la reserva) y el guardarraíl del apalancamiento (AP3 y LEV14, solo cuando lo decide el colchón). XDA-10 completa |
 | 12 | WP-34 / PRV-08 | Revisión base cero del plan (enero) | Def P1 | — | — | Enero 2027, con FX-51 a la vista |
 | 13 | WP-21 | Paquete Renta: ~~inversión~~ (hecha el 5/11, #588) y local alquilado (PR-3) | Def P2 | M · 2 | WP-31 | Antes del 31/3/2027 · **PR-3 hecho 12/11 (en #607, fusionado el 13/11)**: `canonical-rental-tax.js` y «El local alquilado para la Renta» en Fiscal; con los datos del local (H-36) da la cifra |
 | 14 | XPR-11 | Mover los días de cargo a donde menos duelen (palanca del remedio) | 7ª | S · 1 | FX-12 | **12/11, hecho (en #607, fusionado el 13/11)**: `canonical-charge-day-moves.js`, hasta 3 recibos por el mínimo de cada mes, puerta del 70 %; «Lo he pedido» y «Ya se carga» (guarda el día de cargo). Se ve con H-35 |
@@ -454,7 +456,7 @@ panel de seguimiento.
 | §5.0 RD-COB2 (cobro con el mismo mes del año anterior) | Propuesta | Dentro de **FX-03** (P0, S1) |
 | §5.0 XPR-06 | Hecho, en prueba | Se gradúa dentro de **C2** (P0, S2) |
 | §5.0 XPR-07 PR-1 / PR-2 | PR-1 hecho, en prueba | PR-1 dentro de C2 (P0); PR-2 con **FX-13** (P1) y WP-41 |
-| §5.0 XDA-10 PR-2 | **Hecho 12/11** (en #607); los simuladores de inversión, PR-3 | P1 Oleada 2 (#11) |
+| §5.0 XDA-10 PR-2 | **Hecho 12/11** (en #607); los simuladores de inversión, PR-3, **hecho 13/11** | P1 Oleada 2 (#11) |
 | §5.0 XUX-02 (más tarjetas), XDA-01 PR-2 | Si se usan | P3 (sin cambio de criterio) |
 | §5.0 XDA-05 PR-2 | Puerta del medidor | **H12, 18/11** (sin cambio) |
 | §5.0 XDA-02 PR-2 | Construido sin desplegar | H-34 (hogar) |

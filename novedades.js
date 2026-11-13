@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-13-antes-de-decidir-pr3",
+      fecha: "2026-11-13",
+      texto: "«Antes de decidir» también al aportar a un plan de pensiones y en el guardarraíl del apalancamiento: si unos saldos antiguos lo cambiarían.",
+      href: "#inversion-jubilacion",
+    },
+    {
       id: "2026-11-16-rango-probable",
       fecha: "2026-11-13",
       texto: "Previsión: con 3 meses, el gráfico enseña el rango probable (8 de cada 10 casos), según qué día caigan los pagos sin día confirmado.",

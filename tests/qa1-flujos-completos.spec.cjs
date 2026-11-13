@@ -8996,6 +8996,104 @@ test.describe("XDA-10 · PR-2 · Antes de decidir en Comparar con y al cancelar"
   });
 });
 
+// XDA-10 · PR-3 (13/11/2026): «Antes de decidir» en los simuladores de inversión que miran los saldos: la aportación a un plan de pensiones
+// (la cuenta corriente frente a la reserva protegida) y el guardarraíl del simulador de apalancamiento (el colchón frente a su suelo).
+test.describe("XDA-10 · PR-3 · Antes de decidir en los simuladores de inversión", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    test(`pensiones: si unos saldos antiguos le darían la vuelta a lo que queda sobre la reserva; al día, nada; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 13, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#inversion-jubilacion");
+      await expect(page.locator("#pensionSimRun")).toBeVisible({ timeout: 15000 });
+      const nota = page.locator("#pensionSimNote");
+      const linea = nota.locator(".antes-decidir");
+      const aportar = async (cuanto, edad) => {
+        await page.evaluate(([cuanto, edad]) => {
+          state.balanceMode = "manual";
+          state.balanceDate = isoLocalDate(new Date(2026, 10, 13 - edad, 12));
+          // Lo que se aporta, medido desde el margen entre la cuenta corriente y la reserva: no depende de las cifras de la demo.
+          const margen = accountBalancesFromState().caixa - agentCaixaFloor();
+          qs("pensionSimContribution").value = String(Math.round({ justo: margen - 50, rompe: margen + 500, poco: 100 }[cuanto]));
+        }, [cuanto, edad]);
+        await page.locator("#pensionSimRun").click();
+      };
+
+      await aportar("justo", 12);
+      await expect(nota).toContainText("por encima de la reserva protegida");
+      await expect(linea).toHaveAttribute("data-antes-decidir", "yes");
+      await expect(linea).toContainText(/^Antes de decidir, actualiza los saldos \(de hace 12 días\): pueden haberse movido hasta [\d.]+\s€ y el resultado cambia con 50\s€\./);
+      await expect(linea.locator("a[data-antes-decidir-ir]")).toHaveText("Actualizar saldos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+      await aportar("rompe", 12);
+      await expect(nota).toContainText("por debajo de su suelo");
+      await expect(linea, "por debajo de la reserva solo cambiaría si ha entrado dinero, y eso no se estima").toHaveAttribute("data-antes-decidir", "unknown");
+
+      await aportar("poco", 12);
+      await expect(linea).toHaveAttribute("data-antes-decidir", "no");
+      await expect(linea.locator("a")).toHaveCount(0);
+
+      await aportar("justo", 1);
+      await expect(nota).toContainText("por encima de la reserva protegida");
+      await expect(linea, "con los saldos de ayer no hay nada que decir").toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
+  test("apalancamiento: la línea va en la caja del guardarraíl, solo si lo decide el colchón", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 13, 10, 0, 0) });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#inversion-apalancamiento");
+    await expect(page.locator("#ap3SimulateRun")).toBeVisible({ timeout: 15000 });
+    const caja = page.locator("#ap3BarrierStatus");
+    const linea = caja.locator(".antes-decidir");
+    // El colchón de la demo, a una distancia fija de su suelo, y la cuota de la deuda actual que se quiera: así lo que decide el guardarraíl
+    // no depende de las cifras de la demo. Lo demás (el suelo, el ingreso, el motor) es el de la app.
+    const simular = async ({ sobreSuelo, cuota = null, edad = 12 }) => {
+      await page.evaluate(([sobreSuelo, cuota, edad]) => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(2026, 10, 13 - edad, 12));
+        globalThis.__ap3Real = globalThis.__ap3Real || ap3LeverageBarrierInput;
+        globalThis.ap3LeverageBarrierInput = () => {
+          const real = globalThis.__ap3Real();
+          return { ...real, monthlyIncome: 4000, monthlyDebtService: cuota ?? 0, debtQualityIssues: [], cushion: { ...real.cushion, value: real.cushion.floor + sobreSuelo } };
+        };
+        qs("ap3DebtAmount").value = "10000";
+        qs("ap3DebtRate").value = "4";
+        qs("ap3ReturnPessimistic").value = "1";
+        qs("ap3ReturnBase").value = "5";
+        qs("ap3ReturnOptimistic").value = "8";
+      }, [sobreSuelo, cuota, edad]);
+      await page.locator("#ap3SimulateRun").click();
+    };
+
+    await simular({ sobreSuelo: 50 });
+    await expect(caja).toContainText("Guardarraíl superado");
+    await expect(linea).toHaveAttribute("data-antes-decidir", "yes");
+    await expect(linea).toContainText("el resultado cambia con 50 €");
+    await expect(linea).toContainText("El guardarraíl de arriba es con estos datos");
+
+    await simular({ sobreSuelo: -500 });
+    await expect(caja).toContainText("El colchón de emergencia no llega al suelo");
+    await expect(linea).toHaveAttribute("data-antes-decidir", "unknown");
+
+    await simular({ sobreSuelo: 50, cuota: 2000 });
+    await expect(caja).toContainText("La deuda actual ya compromete demasiado ingreso");
+    await expect(linea, "lo para la cuota de la deuda: unos saldos frescos no lo cambian").toHaveCount(0);
+
+    await simular({ sobreSuelo: 50, edad: 1 });
+    await expect(caja).toContainText("Guardarraíl superado");
+    await expect(linea).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // FX-27 (XDO-02 en parte, 12/11/2026): la revisión de la hipoteca como escenario con fecha. Hipoteca y Euribor INVENTADOS (como en FX-21):
 // a 64 días de la revisión, «Euribor» va la primera de «Comparar con» y, elegida, la revisión sale en tres caminos (cuatro con una oferta fija).
 test.describe("FX-27 · la revisión de la hipoteca en tres caminos", () => {

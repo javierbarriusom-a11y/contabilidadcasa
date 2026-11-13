@@ -2115,3 +2115,25 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// XDA-10 · PR-3: la línea «Antes de decidir» (con su enlace y su nota) bajo el veredicto del simulador de aportación a pensiones, en claro y en
+// oscuro. Es la misma línea de los demás simuladores y de «Comparar con»: medirla aquí cubre su contraste en todos.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`XDA-10 · contraste de «Antes de decidir» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#inversion-jubilacion: el veredicto de la aportación con la línea, sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#inversion-jubilacion");
+      await expect(page.locator("#pensionSimRun")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        state.balanceMode = "manual";
+        state.balanceDate = isoLocalDate(new Date(Date.now() - 12 * 86400000));
+        qs("pensionSimContribution").value = String(Math.round(accountBalancesFromState().caixa - agentCaixaFloor() - 50));
+      });
+      await page.locator("#pensionSimRun").click();
+      await expect(page.locator("#pensionSimNote .antes-decidir")).toHaveAttribute("data-antes-decidir", "yes");
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const res = await new AxeBuilder({ page }).include("#pensionSimNote").analyze();
+      expect(fmt(res), fmt(res).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

@@ -7,6 +7,10 @@
 // guardarraíles (hoy, a N meses y en tensión), con el más justo. (2) «Comparar con» de la Previsión (las pruebas, «¿Y si…?» y los
 // escenarios guardados): los saldos y, en la prueba del Euribor, el Euribor tecleado. (3) El veredicto de la reserva en Escenarios.
 //
+// PR-3 (13/11/2026): los simuladores de inversión que miran los saldos. (1) La aportación a un plan de pensiones (A15-4): lo que queda en
+// la cuenta corriente sobre la reserva protegida. (2) El guardarraíl del simulador de apalancamiento (AP3, y el escalonado LEV14, que usa
+// el mismo): el colchón frente a su suelo, solo cuando lo decide el colchón. La garantía del Lombard (APX3) ya estaba desde el PR-1.
+//
 // Script de pantalla: se carga antes de app.js y comparte su ámbito global (escapeHtml, isoLocalDate, datosSources…). Sin llamadas al DOM ni
 // escuchas al cargarse: dlx1GuardrailHtml, en app.js, pide la línea al pintar el veredicto.
 
@@ -232,6 +236,50 @@ function antesDeDecidirEscenarioHtml(input) {
     return antesDeDecidirLineaHtml(result, ANTES_DECIDIR_NOTA);
   } catch (error) {
     console.error(`antesDeDecidirEscenarioHtml: ${error.message}`);
+    return "";
+  }
+}
+
+/**
+ * PR-3 (13/11/2026) · el simulador de aportación a un plan de pensiones (A15-4): «tras aportar, seguirían X por encima de la reserva
+ * protegida» o «la dejaría por debajo». Es la cuenta corriente frente a la reserva, así que los saldos pueden darle la vuelta. Sin saldo con
+ * que medirlo (`marginAfter` vacío) no hay veredicto de saldos y no se dice nada.
+ * @param {{ marginAfter: number|null, breaksReserve: boolean }} result
+ */
+function antesDeDecidirPensionHtml(result) {
+  const engine = globalThis.FinanceCanonicalDecisionFreshness;
+  if (!engine || !result || result.marginAfter === null || result.marginAfter === undefined || !antesDeDecidirOn() || !globalThis.FinanceCanonicalDataQueue) return "";
+  try {
+    const today = isoLocalDate(new Date());
+    const lectura = engine.check({ margin: result.breaksReserve ? null : Number(result.marginAfter), inputs: [antesDeDecidirSaldos(today)] });
+    return antesDeDecidirLineaHtml(lectura, ANTES_DECIDIR_NOTA);
+  } catch (error) {
+    console.error(`antesDeDecidirPensionHtml: ${error.message}`);
+    return "";
+  }
+}
+
+/**
+ * PR-3 (13/11/2026) · el guardarraíl del simulador de apalancamiento (AP3, y el escalonado LEV14, que usa el mismo): el colchón frente a su
+ * suelo es lo único que mueven los saldos. Si el guardarraíl lo para otra cosa (la cuota de la deuda actual, una incidencia de deuda), unos
+ * saldos frescos no lo cambian y no se dice nada; si solo lo para el colchón, cambiaría si ha entrado dinero, que no se estima.
+ * @param {{ valid: boolean, blockers: Array<{id: string}> }} barrier
+ * @param {{ value: number, floor: number }} cushion
+ */
+function antesDeDecidirApalancamientoHtml(barrier, cushion) {
+  const engine = globalThis.FinanceCanonicalDecisionFreshness;
+  if (!engine || !barrier || !cushion || !antesDeDecidirOn() || !globalThis.FinanceCanonicalDataQueue) return "";
+  const value = Number(cushion.value);
+  const floor = Number(cushion.floor);
+  if (!Number.isFinite(value) || !Number.isFinite(floor)) return "";
+  const otros = (barrier.blockers || []).filter((item) => item.id !== "cushion-below-floor");
+  if (otros.length) return "";
+  try {
+    const today = isoLocalDate(new Date());
+    const result = engine.check({ margin: barrier.valid ? antesDeDecidirMargen(value, floor) : null, inputs: [antesDeDecidirSaldos(today)] });
+    return antesDeDecidirLineaHtml(result, "El guardarraíl de arriba es con estos datos; «hasta» es una estimación (gasto diario × días).");
+  } catch (error) {
+    console.error(`antesDeDecidirApalancamientoHtml: ${error.message}`);
     return "";
   }
 }

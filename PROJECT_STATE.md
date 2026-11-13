@@ -113,6 +113,40 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (463): XDA-10 · PR-3, «Antes de decidir» en los simuladores de inversión; y #610 fusionado
+
+- **#610 fusionado** el 13/11 a las 11:24Z, por squash (`main` `9baea44` → **`c342409`**, con el mismo árbol que su cabeza `7d8566d`):
+  - El CI de esa cabeza salió en verde en todos sus pasos, Safari incluido (ejecución 1390, de 10:20Z a 11:23Z).
+  - Lo fusionó la sesión que lo llevaba, 30 s después del verde. Su línea del §0 del backlog fue en #612, fusionado a las 12:20Z (`main` `406aa29`). Esta sesión abrió otra para lo mismo (#613) y la cerró como duplicada. Este PR integra `main` con las dos líneas: la de XDA-10 arriba y la de #610 debajo.
+  - **Despliegue a Pages** del push a `main` (ejecución 1393): en verde en todos sus pasos, Safari incluido. El job `deploy` subió el artefacto verificado a las 12:15:36Z.
+  - **Sitio publicado:** «Published availability» (`availability.yml`), lanzada a mano a las 12:19:50Z sobre `c342409` porque la programada de las 12:17Z aún no había corrido. En verde: la portada, `app.js`, `data.js` y `version.json` responden y llevan lo que deben.
+    - No mira `laboratorio-ui.js` uno por uno. Va en la lista del sitio publicado, y el smoke del CI lo valida sobre el mismo artefacto.
+    - Desde el contenedor de Claude no se llega a `github.io` (el proxy rechaza el host), así que la comprobación es esa.
+- **Petición del hogar:** «continúa con la siguiente tarea del backlog».
+- **Por qué esta fila:** en el P0 de noviembre no queda nada que pueda hacer Claude (entrada 461). En el P1, la nota de XDA-10 PR-2 (fila 11) dejaba pendiente «los simuladores de inversión (PR-3)», sin puerta ni dependencia del hogar. Lo demás del P1 sigue esperando: FX-21 resto y H-36 al hogar; D1-D2 y la navegación, a las revisiones del 14 al 18/11; WP-34 y WP-54 son de enero y diciembre.
+- **Qué simuladores de inversión miran los saldos** (revisados los seis de Inversión):
+  - **Aportación a un plan de pensiones** (A15-4, Inversión › Jubilación): «tras aportar, seguirían X por encima de la reserva protegida» o «la dejaría por debajo». Es la cuenta corriente frente a la reserva: los saldos le pueden dar la vuelta.
+  - **Guardarraíl del simulador de apalancamiento** (AP3, Inversión › Deuda y apalancamiento; el escalonado LEV14 usa el mismo): el colchón frente a su suelo.
+  - **La garantía del Lombard** (APX3) ya la tenía desde el PR-1. El rescate de pensiones, la cartera, el rebalanceo y el desapalancamiento no deciden con saldos: no llevan línea.
+- **Qué se hace** (`antes-de-decidir-ui.js`, con el mismo motor `canonical-decision-freshness.js` y las mismas reglas de honestidad):
+  - `antesDeDecidirPensionHtml`: el margen es lo que queda sobre la reserva. Si la aportación ya la rompe, solo cambiaría si ha entrado dinero, que no se estima («conviene actualizar»). Sin saldo con que medirlo, nada.
+  - `antesDeDecidirApalancamientoHtml`: el margen es el colchón menos su suelo. **Solo cuando lo decide el colchón:** si el guardarraíl lo para la cuota de la deuda actual o una incidencia de deuda, unos saldos frescos no lo cambian y no se dice nada. Si solo lo para el colchón, «conviene actualizar». La línea va en la caja del guardarraíl, así que sale una vez para los dos simuladores.
+  - `app.js`: las dos llamadas, **sin líneas nuevas** (32.075 de 32.203). Su sello `?v=` no cambia: las llamadas usan `?.`, así que un `app.js` en caché con el script nuevo, o al revés, no rompe nada. Sí cambia el de `antes-de-decidir-ui.js`.
+  - La ficha de «Antes de decidir» en Funciones en prueba nombra los dos simuladores nuevos, y Novedades lleva su línea.
+- **Pruebas:**
+  - `tests/xda10-pr3-antes-de-decidir.test.cjs` (4): pensiones (le da la vuelta, no la cambia, rompe la reserva, sin saldo, al día, por calendario, apagada), apalancamiento (superado, holgado, parado solo por el colchón, parado por la cuota con el colchón bien y mal, sin colchón, al día) y que `app.js` pide las dos líneas.
+  - e2e «XDA-10 · PR-3» en `qa1`: pensiones a 390 (`@safari`) y 1280 px con los cuatro estados; apalancamiento a 1280 px, con el colchón a una distancia fija del suelo para no depender de la demo.
+  - axe de la línea en el simulador de pensiones, en claro y en oscuro (`opt4`). Ninguna prueba de axe miraba aún la línea «Antes de decidir».
+- **Validación** (sobre la cabeza de #610, con el mismo árbol que `c342409`, el `main` de después):
+  - `npm run verify` en verde: 6.597/6.597, con lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke.
+  - e2e de XDA-10 (PR-1, PR-2 y PR-3): 8 de 8. axe de la línea: 2 de 2. Safari, en el CI.
+  - **CI de la rama ya integrada con #612** (`74c6cc3`): en verde en todos sus pasos, Safari incluido, de 12:22Z a 13:14Z.
+  - **Con #611 dentro** (`main` `6b5be92`, integrado después; las dos entradas querían ser la 462, y esta pasa a la 463):
+    - `npm run verify` en verde: 6.602/6.602.
+    - e2e de XDA-10, apalancamiento, AP1, AP3 y LEV: 33 de 33.
+    - axe de la línea: 2 de 2.
+- **Visto de paso, fuera de esta tarea:** el bloqueo «El colchón de emergencia no llega al suelo» del guardarraíl de apalancamiento enseña las cifras con `toFixed(2)` («12345.67», sin € ni miles), contra la decisión 7 de `docs/rediseno/ESTADO.md`. Se arregla en origen, en el motor, en una tarea aparte (ESTADO §5): la propuso esta sesión y otra la hizo en #611, fusionado a las 13:12Z (`main` `6b5be92`, entrada 462). No choca con este cambio: las pruebas de aquí leen el título del bloqueo y su `id`, no el detalle con las cifras. Comprobado con los dos juntos (abajo).
+- **XDA-10 queda completa** (PR-1, PR-2 y PR-3). Su revisión sigue la de Funciones en prueba: si nunca salta porque los datos siempre están al día, queda como etiqueta.
 ## Cierre de sesión — 13 de noviembre de 2026 (462): el guardarraíl de apalancamiento (AP4) da las cifras en formato español
 
 - **Qué se pintaba mal:**
