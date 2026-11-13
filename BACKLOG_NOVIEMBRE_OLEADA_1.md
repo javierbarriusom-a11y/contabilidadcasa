@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**13/11/2026 · #610 fusionado (main `c342409`): el «Deshacer» se cierra al cambiar de pantalla y Laboratorio sale de `app.js` (XGO-01 PR-4).** El aviso de «Deshacer» ya no tapa botones de la pantalla siguiente (en el móvil tapaba «Firmar cierre»; decisión del hogar del 13/11). `app.js` baja a 32.075 líneas y su techo, a 32.203: 128 de margen para lo que viene. CI de su cabeza (`7d8566d`) en verde en todo, Safari incluido (PROJECT_STATE 460 a 462).
+
 **13/11/2026 · #607 fusionado hoy, no el lunes 16/11, a petición del hogar («fusiona hoy»).** Entra FX-03, el cambio de Hoy que estaba previsto para la semana del 16/11. Esa semana se queda sin cambio de Hoy nuevo, y la del 9/11 tiene dos: el punto de confianza (9/11) y FX-03. FX-41 sigue con su puerta: no se ve hasta el 23/11. Las líneas de Novedades del 16/11 pasan al 13/11 (PROJECT_STATE 459).
 
 **12/11/2026 · FX-10 completa: el rango probable en Previsión («sigue con lo siguiente del backlog»).** Con 3 m, el gráfico pinta el rango probable (8 de cada 10 casos) según qué día caigan los pagos, y lo dicen el panel del día, la lectura y la tabla. Con la demo destapa algo: el titular (6.600 € el 14 dic) queda **por debajo** del rango (6.900 – 9.100 €), porque el plan pone el día 8 los pagos sin día confirmado. La pantalla lo dice; qué cifra es el titular se consulta (PROJECT_STATE 457).

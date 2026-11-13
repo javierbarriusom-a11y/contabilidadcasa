@@ -113,6 +113,18 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (462): #610 fusionado; el §0 del backlog, al día
+
+- **#610 fusionado** el 13/11 a las 11:24Z, por squash: `main` pasa de `9baea44` a **`c342409`**, con el mismo árbol que la cabeza de la rama (`7d8566d`).
+- **CI de la cabeza `7d8566d`** («Verify and deploy Pages», ejecución 1390) en verde en todos sus pasos: `verify`, Lighthouse, desbordes en el móvil, e2e, axe, rendimiento por pantalla, presupuesto de carga y Safari. De 10:20Z a 11:23Z. Las ejecuciones de `8327989` y `2405f66` se cancelaron al llegar el commit siguiente: no fallaron.
+- **Lo que entra:**
+  - El «Deshacer» se cierra al cambiar de pantalla (entrada 460).
+  - XGO-01 PR-4: Laboratorio sale de `app.js`, que queda en 32.075 líneas con un techo de 32.203 (entrada 461).
+  - La e2e «Registrar gasto» espera a que la captura esté guardada (entrada 461).
+- **Despliegue:** «Verify and deploy Pages» del push a `main` en marcha desde las 11:24Z. Su resultado y la comprobación del sitio publicado van en la entrada siguiente.
+- **`BACKLOG_NOVIEMBRE_OLEADA_1.md` §0:** una línea para #610, en un PR aparte (a petición del hogar), solo de documentación.
+- **Validación:** solo cambia documentación. `npm test` en verde en este árbol: 6.593/6.593 (no `verify` entero: no hay código que validar).
+
 ## Cierre de sesión — 13 de noviembre de 2026 (461): XGO-01 PR-4, Laboratorio sale de app.js; el margen bajo el techo vuelve a ~130 líneas
 
 - **Petición del hogar:** «sigue con el backlog».
