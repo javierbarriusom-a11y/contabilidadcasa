@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-13-recordatorio-repaso",
+      fecha: "2026-11-13",
+      texto: "Recordatorios del calendario: un aviso cada domingo para el repaso semanal (unos 5 min). Volved a descargar el fichero en Ajustes.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-13-antes-de-decidir-pr3",
       fecha: "2026-11-13",
       texto: "«Antes de decidir» también al aportar a un plan de pensiones y en el guardarraíl del apalancamiento: si unos saldos antiguos lo cambiarían.",

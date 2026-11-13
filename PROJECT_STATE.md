@@ -113,6 +113,30 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 13 de noviembre de 2026 (465): el repaso semanal, cada domingo en el calendario del móvil
+
+- **Petición del hogar:** «continúa», con la prioridad que decidió el mismo día: hasta el 4/12, que entren los datos y no más previsión (entrada 464).
+- **Por qué esto:**
+  - El repaso semanal «aporta» (respuesta del hogar), pero en noviembre no se hizo ninguno.
+  - Hoy, donde sale su línea, se vio 7 días de 7. No falta encontrarlo: falta el hábito.
+  - Los recordatorios del `.ics` (WP-32) tenían siete tipos y ninguno para el repaso.
+- **Qué se hace:**
+  - `canonical-reminders.js`: tipo nuevo `weeklyReview`, encendido por defecto.
+    - Un evento cada domingo del horizonte (`REVIEW_WEEKDAY = 0`, el último día de la semana del repaso, de lunes a domingo), con su alarma.
+    - Título sin importes: «Repaso semanal de las cuentas · unos 5 min». El detalle dice desde dónde se abre.
+    - Con 6 meses de horizonte son 26 eventos: caben de sobra bajo el tope de 150.
+  - `recordatorios-ui.js` y `index.html`: su casilla en «Recordatorios en el calendario del móvil» (Ajustes) y su nombre en el resumen («repasos semanales»). `?v=20261113repaso`.
+  - Novedades: una línea. **Para tenerlo, el hogar tiene que volver a descargar el fichero** (Ajustes › Recordatorios › «Descargar recordatorios (.ics)»), porque el `.ics` no se actualiza solo.
+- **Lo que no se hace, y por qué:** mejorar las propuestas de Clasificar. En noviembre, 5 de 7 grupos se quedaron sin propuesta.
+  - La propuesta usa dos señales: las reglas del mismo comercio y el nombre de una partida dentro del concepto.
+  - Qué señal falta depende de qué conceptos eran: Bizum a personas, transferencias o comercios nuevos.
+  - Con 7 grupos y sin verlos, construirlo sería otra vez trabajar a ciegas. **Se pregunta al hogar** de qué tipo eran, sin importes.
+- **Pruebas:**
+  - `tests/recordatorio-repaso-semanal.test.cjs` (3): domingos, el primero y el último, título y `.ics`, encendido por defecto y apagable, y la casilla.
+  - Las que construyen «solo un tipo» apagan también `weeklyReview` (`wp32`, `wp40`, `wp20`, `fis3`), igual que con `forecast` en FX-41.
+  - La e2e de WP-32 cuenta 8 casillas y busca el título del repaso en el fichero descargado.
+- **Validación:** `npm run verify` 6.606/6.606 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de WP-32, CIRBE y FX-41: 8 de 8; axe de Ajustes: 5 de 5.
+
 ## Cierre de sesión — 13 de noviembre de 2026 (464): la hoja de las revisiones del 14 al 20/11 con la lectura del medidor; el medidor no anotaba la Previsión nueva; y #614 publicado, con un despliegue que no salió solo
 
 - **#614 (XDA-10 PR-3) publicado:**

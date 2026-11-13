@@ -21,10 +21,12 @@
   // Es puro: la fecha de hoy y los movimientos fechados del plan llegan por parámetro. No ejecuta nada.
 
   const SCHEMA_ID = "finance-canonical-reminders/v1";
-  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe", "forecast"]);
-  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true, forecast: true }) });
+  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe", "forecast", "weeklyReview"]);
+  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true, forecast: true, weeklyReview: true }) });
   // FX-41: el aviso de la previsión llega una semana antes de que cruce el umbral (o hoy, si ya falta menos), para que dé tiempo a actuar.
   const FORECAST_LEAD_DAYS = 7;
+  // El repaso semanal va de lunes a domingo (FinanceRepaso.mismaSemana): el aviso, el domingo, el último día para hacerlo.
+  const REVIEW_WEEKDAY = 0;
   // Solo los días que el plan SABE: un ingreso con fecha «estimada» (el día 8 de relleno) generaría un aviso en un día cualquiera, que es
   // justo el ruido que este paquete quiere evitar.
   const CERTAIN = Object.freeze(["rule", "observed"]);
@@ -223,6 +225,20 @@
         put({ uid: `rec-prevision-${slug(item.id)}-${crossDate}`, kind: "forecast", date, title: String(item.title), description: `${item.description ? `${item.description} ` : ""}Es la previsión del ${longDate(today)}: si al descargar otra vez el calendario ya no sale, ya no aplica.` });
       });
     }
+    // 8) El repaso semanal (B5, XUX-03), cada domingo: el hogar dice que aporta pero en noviembre no se hizo ninguno (medidor del 13/11), y sin
+    // él no entran saldos ni extractos. Un aviso por semana del horizonte, el mismo día de la semana en que acaba la semana del repaso (de lunes
+    // a domingo). El título, sin importes, como todos. Un .ics no puede saber si ya se hizo: si ese domingo ya está, el aviso se ignora.
+    if (options.kinds.weeklyReview) {
+      let date = today;
+      while (utc(date).getUTCDay() !== REVIEW_WEEKDAY) date = addDays(date, 1);
+      for (; date <= horizonEnd; date = addDays(date, 7)) {
+        put({
+          uid: `rec-repaso-${date}`, kind: "weeklyReview", date,
+          title: "Repaso semanal de las cuentas · unos 5 min",
+          description: "Saldos, extracto, lo que vino y la bandeja de Movimientos, en cinco pasos: desde Hoy («Repaso de esta semana») o desde Movimientos. Con los datos de la semana dentro, la previsión y el cierre del mes salen solos.",
+        });
+      }
+    }
     const list = [...events.values()].sort((a, b) => a.date.localeCompare(b.date) || a.uid.localeCompare(b.uid)).slice(0, MAX_EVENTS);
     const counts = Object.fromEntries(KINDS.map((kind) => [kind, list.filter((event) => event.kind === kind).length]));
     return { schemaId: SCHEMA_ID, status: "ok", missing: [], today, horizonEnd, events: list, counts, skipped, options };
@@ -291,5 +307,5 @@
     return { stale: false, reason: "fresh", ageDays: age, label: age === 0 ? "Generado hoy." : `Generado hace ${age} día${age === 1 ? "" : "s"}.` };
   }
 
-  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, build, toIcs, fold, staleness, longDate });
+  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, REVIEW_WEEKDAY, build, toIcs, fold, staleness, longDate });
 });

@@ -11,7 +11,7 @@ const { codigoApp } = require("./helpers/codigo-app.cjs");
 const income = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const charge = (date, label, amount, confidence = "rule") => ({ date, label, amount, confidence });
 const base = { today: "2026-10-07" };
-const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, [kind]: true } });
+const onlyKind = (kind) => ({ kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, weeklyReview: false, [kind]: true } });
 
 test("sin la fecha de hoy no hay recordatorios: dice qué falta", () => {
   const r = R.build({});
@@ -89,7 +89,7 @@ test("cada tipo se puede apagar, y apagarlos todos no deja nada", () => {
     assert.equal(without.counts[kind], 0);
     assert.ok(all.counts[kind] > 0, `el tipo ${kind} debe dar eventos en este escenario`);
   });
-  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false } } }).events.length, 0);
+  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, weeklyReview: false } } }).events.length, 0);
 });
 
 test("orden por fecha, sin duplicados, con identificadores estables entre generaciones", () => {

@@ -187,7 +187,7 @@ test("WP-40 · la rejilla del formulario no se sale de la pantalla: sus etiqueta
 const Reminders = require("../canonical-reminders.js");
 const vm = require("node:vm");
 const TODAY = "2026-10-13";
-const cirbeOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: true } };
+const cirbeOnly = { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: true, forecast: false, weeklyReview: false } };
 const cirbeEvents = (cirbe, today = TODAY) => Reminders.build({ today, options: cirbeOnly, cirbe }).events;
 
 test("WP-40 · calendario: el aviso cae a los 335 días del informe, el mismo día que la tarjeta pasa a «toca pedirlo»", () => {

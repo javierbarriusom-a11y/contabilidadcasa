@@ -1587,7 +1587,8 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(7); // FX-41: + «avisos de la previsión»
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(8); // FX-41: + «avisos de la previsión»; 13/11: + «repasos semanales»
+      await expect(card.locator("#recordatoriosResumen")).toContainText("repasos semanales");
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");
       // Una opción se apaga, se recuerda tras recargar y se vuelve a encender.
@@ -1607,6 +1608,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       expect((text.match(/BEGIN:VALARM/g) || []).length, "cada evento lleva su alarma").toBe(events);
       const titles = [...text.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
       titles.forEach((title) => expect(title, `el título «${title}» enseña un importe`).not.toMatch(/€|\d{3}/));
+      expect(titles, "el repaso semanal, cada domingo").toContain("Repaso semanal de las cuentas · unos 5 min");
       await expect(card.locator("#recordatoriosNota")).toContainText("Recordatorios descargados");
       await expect(card.locator("#recordatoriosResumen")).toContainText("Generado hoy.");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
