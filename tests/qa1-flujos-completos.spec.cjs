@@ -5954,6 +5954,53 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
 
 // FX-31 unificada (7/11/2026): Herramientas › Previsión ya no enseña «Fiabilidad de la previsión»; enseña la misma insignia de
 // confianza que Plan › Previsión, con su hoja, con los dos temas (las dos versiones conservan las mismas funciones).
+// PRV-01 (novena auditoría, 14/11/2026): en la hoja «Por qué la confianza es…», el gasto variable medido frente a lo previsto. Solo
+// mide: la previsión no cambia. Movimientos INVENTADOS (13 meses de súper, compras sueltas, una tarjeta y traspasos entre cuentas).
+test.describe("PRV-01 · gasto variable previsto frente a real", () => {
+  test("la hoja del porqué mide el variable, lo compara con lo previsto y no cambia la previsión", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 14, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    const antes = await page.evaluate(() => forecastMonths().slice(0, 3).map((month) => plannedValueForRow(variableOperationalPlanningRow(), month)));
+    await page.evaluate(() => {
+      const meses = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"];
+      const tx = [];
+      meses.forEach((m, i) => {
+        // Como en un extracto de verdad, el súper son varias compras de importes distintos (si no, parecería un fijo sin partida).
+        tx.push({ date: `${m}-03`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -(500 + i * 4), month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-20`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -320, month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-12`, movement: `COMPRA TIENDA ${i}`, amount: -400, month: m, category: "Otros gastos", accountId: "c1" });
+        tx.push({ date: `${m}-02`, movement: "LIQUIDACION MASTER BASICA", amount: -420, month: m, category: "Tarjeta Mastercard", accountId: "c1" });
+        tx.push({ date: `${m}-10`, movement: "TRASPASO A AHORRO", amount: -300, month: m, category: "Traspasos/ahorro", accountId: "c1" });
+        tx.push({ date: `${m}-11`, movement: "TRASPASO DESDE CUENTA", amount: 300, month: m, category: "Otros ingresos", accountId: "c2" });
+      });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const insignia = page.locator("#planPrevisionV2 [data-prevision-v2-confianza]");
+    await insignia.click();
+    const medida = page.locator("#prevV2Confianza .prev-v2-variable");
+    // Noviembre 2025 a octubre 2026: 1.640 € + 4 € por mes; sin el más alto y el más bajo, 1.666 € de media.
+    await expect(medida).toContainText("Lo gastado de verdad en variable: 1.666 € al mes");
+    await expect(medida).toContainText("Previsto: 1.750 €");
+    await expect(medida).toContainText("Solo es una medición");
+    await medida.locator("summary").click();
+    await expect(medida.locator("tbody tr")).toHaveCount(12);
+    await expect(medida).toContainText("14 traspasos entre vuestras cuentas");
+    await expect(medida).not.toContainText("parecen fijos");
+    // Solo mide: lo previsto en la previsión sigue igual.
+    expect(await page.evaluate(() => forecastMonths().slice(0, 3).map((month) => plannedValueForRow(variableOperationalPlanningRow(), month)))).toEqual(antes);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 test.describe("FX-31 · una sola insignia de confianza", () => {
   for (const tema of ["", "?tema=clasico"]) {
     test(`Herramientas › Previsión enseña la misma insignia y su hoja${tema ? ", con el tema clásico" : ""}`, async ({ page }) => {

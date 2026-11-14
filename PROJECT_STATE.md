@@ -113,6 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (469): PRV-01, primera parte: el gasto variable medido frente a lo previsto; despliegues de #618 y #619
+
+- **Despliegues:**
+  - **#618** (`main` `ff14a48`, fusionado a las 14:22Z): «Verify and deploy Pages», ejecución **1414**, sola con el push, en verde a las 15:25Z. «Published availability» **341** (a mano), en verde.
+  - **#619** (`main` `164faa7`, fusionado a las 15:32Z, con el CI 1415 en verde): ejecución **1416**, sola con el push, en curso al escribir esta entrada; su resultado y su «Published availability» se anotan en el próximo PR.
+  - Para no cancelar un despliegue con otro (`cancel-in-progress` en `pages.yml`), #619 se fusionó después de que 1414 terminara.
+- **Petición del hogar:** «¿Seguimos?», tras la novena auditoría, sin contestar todavía D-N12.
+- **Corrección de una lectura de Claude (entrada 468 y la auditoría):** «la previsión no tiene gasto variable» era incorrecto para la app. El libro de origen no lo tenía, pero desde junio la migración `variable-operational-1750-from-2026-06-v2` fija el «Gasto variable estimado» en **1.750 €/mes en toda la previsión** (de los que salen las asignaciones personales). El modelo que lo calcularía (`variableOperationalSpendModel`) queda tapado y solo mira tres categorías, sin la Mastercard. El problema real es una cifra fija para diez años que nadie ha contrastado con lo real. Corregido en la auditoría (§0, §1.1 y §3.1).
+- **Qué se hace (el paso que no depende de D-N12 y no cambia la previsión):**
+  - `canonical-variable-recalibration.js` (nuevo, puro): el variable de cada mes completo sin depender de la clasificación (salidas − fijos − cuotas − traspasos, también los emparejados entre cuentas propias a ±2 días − liquidaciones de tarjeta − recurrentes sin partida − extraordinarios); de la tarjeta vuelve lo que no son suscripciones si se paga entera (modo «aplazado» preparado para cuando conteste el hogar); base por media recortada de 12 meses (hacen falta 6); estacionalidad contraída; prueba contra el pasado del método y de lo previsto; proyección hasta 2036 en euros de hoy (calculada, no aplicada).
+  - `views/prevision-v2.js`: `previsionV2GastoVariable` lee los movimientos con su partida y su tipo de acción, la fila de cada tarjeta (Ajustes › Tarjetas) y lo previsto (fila de variable + asignaciones personales) de todos los meses del plan; la hoja «Por qué la confianza es…» enseña la media real, lo previsto, la diferencia, la desviación de cada uno contra el pasado y, plegado, el detalle por mes. Con menos de 6 meses, una línea que lo dice. Solo con el tema v2 (la hoja es de la Previsión nueva). `?v=20261116prv01`; estilos en `tema-v2.css`.
+  - Novedades; auditoría corregida; ESTADO §8; §0 del backlog.
+- **Límites, dichos:** supone tarjetas pagadas enteras hasta que el hogar diga lo contrario; «meses completos» son los que van del segundo mes con movimientos al anterior al actual (no mira aún la cobertura por cuenta de XDA-04); las suscripciones de la tarjeta se reconocen por el nombre de la partida.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (9: el reparto de un mes, tarjeta aplazada, base y estacionalidad, prueba contra el pasado, puerta de 6 meses, proyección a 2036 sin inflación, meses completos, traspasos emparejados y cableado sin escrituras); e2e «PRV-01 · gasto variable previsto frente a real» en `qa1` (la previsión no cambia); `arq3` (129 motores) y las dos pruebas que fijan la versión de `prevision-v2.js`.
+- **Validación:** `npm run verify` 6.635/6.635 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de Previsión (C2, FX-10 PR-3, FX-31 y PRV-01): 13 de 13.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (468): Deuda › Préstamo para saldar; novena auditoría (53 funciones y plan para recalcular la previsión hasta 2036); despliegue de #617
 
 - **Despliegue de #617** (`main` `1c32f46`): «Verify and deploy Pages», ejecución **1410**, salió sola con el push y terminó en verde a las 13:46Z del 14/11 (verify 52 min, deploy 15 s). «Published availability» **339** (a mano), en verde; la programada **338** (13:32Z) también.

@@ -205,7 +205,8 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    **14/11 · Deuda › Préstamo para saldar** (petición del hogar, §2): adelanta un trozo del Taller (pasos «Ofertas» y «Prueba») como
    pestaña de Deuda, sin rehacer Deuda (D3 sigue tras NTC-05). La novena auditoría (`docs/PROPUESTA_NOVENA_AUDITORIA_2026-11-14.md`)
    propone el recálculo de la previsión con el gasto variable real (pendiente de D-N12) y 53 funciones; no cambia este orden hasta
-   que el hogar lo decida.
+   que el hogar lo decida. El mismo día, la primera parte de PRV-01 (solo medir) entra en la hoja «Por qué la confianza es…» de
+   Previsión (C2), sin cambiar ninguna cifra.
    **4/11, revisiones decididas por el hogar** (hoja de decisiones; criterio en `docs/REVISION_POST_CIERRE_2026-11.md`):
    se gradúan el **diseño nuevo**, **Movimientos** e **Importar**; **Hoy** (sin línea base fiable) y **Clasificar** (se juzga con
    el cierre de noviembre) pasan dos semanas más, hasta el 16/11 y el 18/11. Graduar no retira nada: quitar el tema clásico
