@@ -172,6 +172,24 @@ function clasV2Proposal(group) {
   return { row: byName[0], confidence: "baja", reason: `${byName.length} partidas encajan por el nombre; esta es la más concreta.` };
 }
 
+// XDA-05 (14/11/2026): de qué tipo es un grupo sin propuesta, para que el medidor diga qué señal le falta a la propuesta.
+// Primero cómo se pagó (Bizum, transferencia o recibo, en el concepto o el detalle); si no, si el concepto tiene un
+// comercio (la misma palabra que buscan las reglas, que aún no tiene ninguna) o ningún nombre reconocible
+// («TPV 4455 12»). Al medidor va solo el tipo, nunca el concepto.
+const CLAS_V2_TIPOS = [
+  ["bizum", ["bizum"]],
+  ["transferencia", ["transferencia", "transferencias", "transf", "trf", "traspaso"]],
+  ["recibo", ["recibo", "recibos", "domiciliacion", "adeudo"]],
+];
+
+function clasV2Tipo(group) {
+  const row = group?.rows?.[0] || {};
+  const words = new Set(clasV2Words(`${row.movement || ""} ${row.details || ""}`));
+  const tipo = CLAS_V2_TIPOS.find(([, palabras]) => palabras.some((word) => words.has(word)));
+  if (tipo) return tipo[0];
+  return clasV2Merchant(row) ? "comercio" : "sin-nombre";
+}
+
 function clasV2Suggestion(group) {
   return clasV2Proposal(group)?.row || null;
 }
@@ -502,7 +520,7 @@ function clasV2Accept() {
   const partida = displayLabelForRow(target);
   // XDA-05: la propuesta se mira antes de escribir la regla (después ya no sería la misma pregunta).
   const proposal = clasV2Proposal(group);
-  const measure = { confianza: proposal?.confidence || "sin", talCual: Boolean(proposal) && seriesKeyForRow(proposal.row) === seriesKeyForRow(target), segundos: (clasV2Now() - clasV2ShownAt) / 1000 };
+  const measure = { confianza: proposal?.confidence || "sin", talCual: Boolean(proposal) && seriesKeyForRow(proposal.row) === seriesKeyForRow(target), segundos: (clasV2Now() - clasV2ShownAt) / 1000, ...(proposal ? {} : { tipo: clasV2Tipo(group) }) };
   const rule = { key: group.key, kind: group.kind, name: group.name, partida, count: group.rows.length, prev: movementMappings[group.key], touched: clasV2TouchedActuals(group, target) };
   movementMappings[group.key] = { kind: group.kind, rowKey: seriesKeyForRow(target), label: `${target.sectionName} · ${partida}`, updatedAt: new Date().toISOString() };
   const applied = clasV2Persist(new Set([group.key]));

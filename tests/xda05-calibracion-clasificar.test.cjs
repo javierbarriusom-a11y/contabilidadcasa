@@ -86,3 +86,36 @@ test("la frase de Clasificar suma la calibración al final de lo de siempre", ()
   assert.equal(medidor.calibracion(anota(null, altas(20, 18))).puerta.cumple, false, "y se sigue calculando, por si se retoma");
   assert.equal(medidor.resumen(store, "hoy-v2").calibracion, undefined, "solo Clasificar la lleva");
 });
+
+// XDA-05 (14/11/2026): el tipo de cada grupo sin propuesta, para saber qué señal le falta a la propuesta. En noviembre,
+// 5 de 7 grupos se aceptaron sin propuesta y no había forma de saber si eran Bizum, transferencias o comercios nuevos.
+test("tipo de los grupos sin propuesta: solo en los «sin», solo de la lista, y nada más que el tipo", () => {
+  const conTipo = (s, confianza, tipo) => medidor.registrarClasificacion(s, { confianza, talCual: false, segundos: 5, tipo, hoy: "2026-11-14" });
+  let store = conTipo(null, "sin", "bizum");
+  store = conTipo(store, "media", "bizum"); // con propuesta, el tipo no se guarda
+  store = conTipo(store, "sin", "MERCADONA"); // fuera de la lista, tampoco: nunca un concepto
+  store = conTipo(store, "sin", "comercio");
+  const guardado = JSON.parse(JSON.stringify(store.calibracion));
+  assert.deepEqual(guardado.map((e) => e.o), ["bizum", undefined, undefined, "comercio"]);
+  assert.deepEqual(Object.keys(guardado[0]).sort(), ["c", "i", "m", "o", "s", "t", "x"]);
+  assert.deepEqual(Object.keys(guardado[1]).sort(), ["c", "i", "m", "s", "t", "x"], "los demás registros no cambian de forma");
+  assert.deepEqual(Object.keys(medidor.TIPOS_SIN), ["bizum", "transferencia", "recibo", "comercio", "sin-nombre"]);
+  const leido = medidor.normalize({ calibracion: [{ i: 1, m: "2026-11", c: "sin", o: "recibo" }, { i: 2, m: "2026-11", c: "sin", o: "otro" }, { i: 3, m: "2026-11", c: "alta", t: true, o: "bizum" }] });
+  assert.deepEqual(leido.calibracion.map((e) => e.o), ["recibo", undefined, undefined], "al leer, igual: solo en los «sin» y de la lista");
+});
+
+test("la frase de Clasificar dice de qué tipo eran los grupos sin propuesta, de más a menos; los de antes, aparte", () => {
+  const conTipo = (s, tipo, hoy = "2026-11-14") => medidor.registrarClasificacion(s, { confianza: "sin", segundos: 5, tipo, hoy });
+  let store = ["bizum", "transferencia", "bizum", "comercio", "bizum"].reduce((s, tipo) => conTipo(s, tipo), null);
+  let k = medidor.calibracion(store, "2026-11");
+  assert.deepEqual([k.sinPropuesta, JSON.parse(JSON.stringify(k.sinPorTipo))], [5, { bizum: 3, transferencia: 1, comercio: 1 }]);
+  store = medidor.registrar(store, "clasificar-v2", "vista", { hoy: "2026-11-14" });
+  const frase = () => medidor.frase("clasificar-v2", medidor.resumen(store, "clasificar-v2", "2026-11"));
+  assert.match(frase(), / · 5 grupos sin propuesta \(3 Bizum, 1 transferencia, 1 comercio sin reglas\) · 5 s por grupo/);
+  store = conTipo(conTipo(store, "sin-nombre"), "sin-nombre");
+  store = medidor.registrarClasificacion(store, { confianza: "sin", segundos: 5, hoy: "2026-11-14" }); // como antes del 14/11: sin tipo
+  assert.match(frase(), / · 8 grupos sin propuesta \(3 Bizum, 2 sin nombre reconocible, 1 transferencia, 1 comercio sin reglas, 1 sin tipo anotado\)/, "a igualdad, en el orden de la lista");
+  const antiguo = medidor.registrar(medidor.registrarClasificacion(null, { confianza: "sin", segundos: 5, hoy: "2026-11-02" }), "clasificar-v2", "vista", { hoy: "2026-11-02" });
+  assert.match(medidor.frase("clasificar-v2", medidor.resumen(antiguo, "clasificar-v2", "2026-11")), / · 1 grupo sin propuesta · 5 s/, "si ninguno lleva tipo, la frase de siempre");
+  assert.ok(!/MERCADONA|€/.test(JSON.stringify(store)), "ni conceptos ni importes");
+});

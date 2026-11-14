@@ -15,7 +15,7 @@
 //
 // XDA-05 · PR-1 (26/10/2026): además, la calibración de Clasificar. Por cada grupo aceptado, su confianza (alta, media,
 // baja o sin propuesta), si se aceptó la propuesta tal cual o se eligió otra partida, los segundos que costó y si luego
-// se deshizo. Tampoco aquí hay conceptos ni importes. De ahí sale la puerta del PR-2 (aceptar en bloque los grupos de
+// se deshizo; desde el 14/11/2026, si no había propuesta, el tipo del grupo (TIPOS_SIN). Tampoco aquí hay conceptos ni importes. De ahí sale la puerta del PR-2 (aceptar en bloque los grupos de
 // confianza alta): 20 grupos de alta o más, con el 95 % o más aceptados tal cual y sin deshacer.
 //
 // Coste del cierre (4/11/2026, sesión 399; plan de la sesión aprobado por el hogar): cuánto cuesta de verdad cerrar un
@@ -40,6 +40,16 @@
   const EVENTOS = ["vista", "accion", "descarte", "deshecho"];
   const KEEP_CALIBRACION = 300;
   const CONFIANZAS = ["alta", "media", "baja", "sin"];
+  // XDA-05 (14/11/2026): de qué tipo es cada grupo que se aceptó sin propuesta, para saber qué señal le falta a la
+  // propuesta (Bizum a una persona, transferencia, recibo, comercio que el hogar aún no tenía en ninguna regla o concepto
+  // sin ningún nombre reconocible). Solo el tipo: ni el concepto ni el importe. [singular, plural], en el orden del informe.
+  const TIPOS_SIN = {
+    bizum: ["Bizum", "Bizum"],
+    transferencia: ["transferencia", "transferencias"],
+    recibo: ["recibo", "recibos"],
+    comercio: ["comercio sin reglas", "comercios sin reglas"],
+    "sin-nombre": ["sin nombre reconocible", "sin nombre reconocible"],
+  };
   const PUERTA_GRUPOS = 20;
   const PUERTA_PCT = 95;
   const CIERRE_PAUSA_S = 180;
@@ -112,7 +122,7 @@
     if (Array.isArray(raw.calibracion)) {
       store.calibracion = raw.calibracion
         .filter((e) => e && Number.isInteger(e.i) && /^\d{4}-\d{2}$/.test(String(e.m)) && CONFIANZAS.includes(e.c))
-        .map((e) => ({ i: e.i, m: e.m, c: e.c, t: e.c !== "sin" && e.t === true, x: e.x === true, s: typeof e.s === "number" && Number.isFinite(e.s) && e.s >= 0 ? e.s : null }))
+        .map((e) => ({ i: e.i, m: e.m, c: e.c, t: e.c !== "sin" && e.t === true, x: e.x === true, s: typeof e.s === "number" && Number.isFinite(e.s) && e.s >= 0 ? e.s : null, ...(e.c === "sin" && Object.hasOwn(TIPOS_SIN, e.o) ? { o: e.o } : {}) }))
         .slice(-KEEP_CALIBRACION);
     }
     for (const [mes, c] of Object.entries(raw.cierres || {})) {
@@ -177,13 +187,15 @@
 
   // XDA-05: un grupo aceptado en Clasificar. `talCual` = se aceptó la partida propuesta (sin propuesta, nunca lo es);
   // `segundos` = desde que se enseñó el grupo hasta aceptarlo (como mucho 10 min: un rato con la app abierta no es
-  // tardar). Cada registro lleva un número para poder marcarlo después como deshecho (corregirClasificacion).
-  function registrarClasificacion(raw, { confianza = "sin", talCual = false, segundos = null, hoy = isoDate() } = {}) {
+  // tardar). Cada registro lleva un número para poder marcarlo después como deshecho (corregirClasificacion). `tipo`, solo
+  // para los grupos sin propuesta: uno de TIPOS_SIN (desde el 14/11/2026; los de antes no lo llevan).
+  function registrarClasificacion(raw, { confianza = "sin", talCual = false, segundos = null, tipo = "", hoy = isoDate() } = {}) {
     const store = normalize(raw);
     const c = CONFIANZAS.includes(confianza) ? confianza : "sin";
     const s = Number(segundos);
     const i = (store.calibracion.at(-1)?.i || 0) + 1;
-    store.calibracion = [...store.calibracion, { i, m: hoy.slice(0, 7), c, t: c !== "sin" && talCual === true, x: false, s: segundos !== null && Number.isFinite(s) && s >= 0 ? Math.round(Math.min(s, 600) * 10) / 10 : null }].slice(-KEEP_CALIBRACION);
+    const o = c === "sin" && Object.hasOwn(TIPOS_SIN, tipo) ? { o: tipo } : {};
+    store.calibracion = [...store.calibracion, { i, m: hoy.slice(0, 7), c, t: c !== "sin" && talCual === true, x: false, s: segundos !== null && Number.isFinite(s) && s >= 0 ? Math.round(Math.min(s, 600) * 10) / 10 : null, ...o }].slice(-KEEP_CALIBRACION);
     return prune(store, hoy);
   }
 
@@ -237,6 +249,7 @@
       ...tasa(lista),
       porConfianza,
       sinPropuesta: lista.filter((e) => e.c === "sin").length,
+      sinPorTipo: Object.fromEntries(Object.keys(TIPOS_SIN).map((o) => [o, lista.filter((e) => e.c === "sin" && e.o === o).length]).filter(([, n]) => n)),
       deshechos: lista.filter((e) => e.x).length,
       medianaSegundos: mediana(segundos),
       veces: segundos.length,
@@ -248,6 +261,18 @@
     return String(n).replace(".", ",");
   }
 
+  // « (3 Bizum, 1 transferencia, 1 comercio sin reglas)»: de más a menos y, a igualdad, en el orden de TIPOS_SIN. Los
+  // registrados antes del 14/11/2026 no llevan tipo y se dicen aparte; si ninguno lo lleva, no se dice nada.
+  function fraseSinPorTipo(k) {
+    const porTipo = Object.entries(k.sinPorTipo || {});
+    if (!porTipo.length) return "";
+    const orden = Object.keys(TIPOS_SIN);
+    const partes = porTipo.sort((a, b) => b[1] - a[1] || orden.indexOf(a[0]) - orden.indexOf(b[0])).map(([o, n]) => cuenta(n, TIPOS_SIN[o]));
+    const sinTipo = k.sinPropuesta - porTipo.reduce((suma, [, n]) => suma + n, 0);
+    if (sinTipo > 0) partes.push(`${sinTipo} sin tipo anotado`);
+    return ` (${partes.join(", ")})`;
+  }
+
   // La calibración en palabras, para la línea de Clasificar del informe y de «Funciones en prueba».
   function fraseCalibracion(k) {
     if (!k?.registros) return "";
@@ -256,7 +281,7 @@
       const porConfianza = ["alta", "media", "baja"].filter((c) => k.porConfianza[c].grupos).map((c) => `${c} ${k.porConfianza[c].pct} % de ${k.porConfianza[c].grupos}`);
       partes.push(`${k.pct} % de las propuestas aceptadas tal cual (${k.talCual} de ${k.grupos}${porConfianza.length > 1 ? `; ${porConfianza.join(", ")}` : ""})`);
     }
-    if (k.sinPropuesta) partes.push(cuenta(k.sinPropuesta, ["grupo sin propuesta", "grupos sin propuesta"]));
+    if (k.sinPropuesta) partes.push(cuenta(k.sinPropuesta, ["grupo sin propuesta", "grupos sin propuesta"]) + fraseSinPorTipo(k));
     if (k.medianaSegundos !== null) partes.push(`${decimal(k.medianaSegundos)} s por grupo (mediana de ${k.veces}; objetivo 4 s)`);
     // La puerta de «aceptar en bloque» (XDA-05 PR-2) ya no se enseña: el hogar retiró la propuesta el 13/11/2026 (con 0 grupos de
     // confianza alta en noviembre, 5 de 7 sin propuesta y 0 de 2 tal cual, el atasco está en las propuestas, no en aceptarlas de
@@ -542,5 +567,5 @@
     else init(document);
   }
 
-  return { STORAGE_KEY, FUNCIONES, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
+  return { STORAGE_KEY, FUNCIONES, TIPOS_SIN, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
 });

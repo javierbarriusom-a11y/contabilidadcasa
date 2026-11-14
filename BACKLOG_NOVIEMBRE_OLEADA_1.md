@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**14/11/2026 · El medidor anota de qué tipo es cada grupo sin propuesta de Clasificar («adelante con el tipo en el medidor»).** Bizum, transferencia, recibo, comercio sin reglas o sin nombre reconocible: solo el tipo, nunca el concepto ni el importe. Así la revisión del 4/12 sabrá qué señal le falta a la propuesta sin depender de la memoria del hogar. Sale en Ajustes › Uso de la app y en «Funciones en prueba» (PROJECT_STATE 466).
+
 **13/11/2026 · El repaso semanal, cada domingo en el calendario del móvil («continúa», con la prioridad de que entren los datos).** Los recordatorios del `.ics` suman un aviso semanal para el repaso, que el hogar dice que aporta pero no se hizo en noviembre. Hay que volver a descargar el fichero en Ajustes. Mejorar las propuestas de Clasificar espera a saber de qué tipo eran los grupos sin propuesta (PROJECT_STATE 465).
 
 **13/11/2026 · Decisiones del hogar sobre las revisiones del 14 al 20/11 («sí» a la hoja).** Hoy se gradúa por uso (la métrica de tiempo se retira). Se retira «aceptar en bloque» (H12; XDA-05 PR-2). Cierre nuevo con H10, Clasificar y Previsión nueva se revisan el **4/12**, tras el cierre de noviembre; Plan › Mes, con el plan de diciembre. El repaso semanal **aporta** y se queda. **Prioridad hasta el 4/12: que entren los datos** (repaso, extractos y clasificar hasta el 95 % antes del cierre); no se construye más previsión hasta la revisión de salida. La app se usa «a veces» en el iPhone: el medidor de allí cuenta aparte (PROJECT_STATE 464).
