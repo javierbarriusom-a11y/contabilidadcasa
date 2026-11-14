@@ -17,9 +17,15 @@
       href: "#home",
     },
     {
+      id: "2026-11-14-gasto-variable-a-la-vista",
+      fecha: "2026-11-14",
+      texto: "Previsión: el gasto variable de verdad frente a lo previsto, en su tarjeta y con las tarjetas Carrefour («Financie-…») dentro. Solo mide.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-14-gasto-variable-medido",
       fecha: "2026-11-14",
-      texto: "Previsión › «Por qué la confianza…»: el gasto variable de verdad frente a lo previsto, mes a mes. Solo mide: la previsión no cambia.",
+      texto: "Previsión: el gasto variable de verdad frente a lo previsto, mes a mes. Solo mide: la previsión no cambia.",
       href: "#plan",
     },
     {

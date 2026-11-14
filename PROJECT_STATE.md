@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (471): el gasto variable medido, a la vista en Previsión (el hogar no lo encontraba); despliegues de #620 y #621
+
+- **El hogar (14/11, noche):** «no encuentro estos datos», con la captura de los pasos que le di (Previsión › insignia «Confianza…» › «Gasto variable · previsto frente a real»).
+- **Por qué no lo encontraba (error de diseño de Claude, no del hogar):** la medición iba **dentro de la hoja de la insignia**, que solo se pinta si Previsión tiene punto más bajo y si el cálculo de confianza no falla; y, si la medición fallaba al leer los datos reales, **no enseñaba nada**, ni un aviso. Con cualquiera de las tres cosas, la pantalla quedaba igual que antes.
+- **Qué se hace:**
+  - `views/prevision-v2.js`: la medición pasa a una **tarjeta propia en Previsión**, a la vista, debajo de la tarjeta principal y antes del año a año (`section.e19-card.prev-v2-variable`, con título en `<p>` como las vecinas: no cambia el inventario de titulares). Sale de la hoja de la insignia.
+  - **Nunca en blanco:** sin el cálculo cargado, sin movimientos importados o si algo falla, una línea plegada que lo dice («no se ha podido medir (motivo)», «importa los extractos…», «hacen falta 6 meses y hay N»).
+  - `tema-v2.css`: la tarjeta con el relleno de sus vecinas. Novedades con la línea nueva (y la anterior ya no manda a la hoja). `?v=20261116prv01c`.
+- **Despliegues:**
+  - **#620** (`main` `61a996a`): ejecución **1418**, en verde a las 17:52Z. «Published availability» **343** (a mano), en verde.
+  - **#621** (`main` `340684a`, fusionado a las 19:00Z con su CI en verde): ejecución **1421**, en verde a las 19:54Z. «Published availability» **344** (a mano), en verde.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (la tarjeta va en la vista y no en la hoja; las líneas de fallo, sin motor y sin movimientos); e2e de PRV-01 (visible al entrar en Previsión, sin abrir nada, y fuera de la hoja); e2e de C2, FX-31 y XGO-01 en verde (los titulares no cambian).
+- **Validación:** `npm run verify` 6.636/6.636 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de PRV-01, C2, FX-31 y XGO-01 en verde.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (470): la Mastercard se paga entera (D-N12, pregunta 1); las tarjetas Carrefour son «Financie-<mes>»; despliegues de #619 y #620
 
 - **Respuesta del hogar (14/11):** «La mastercard la pagamos entera NO revolving». Es la pregunta 1 de D-N12 y la que más cambiaba el modelo del recálculo.

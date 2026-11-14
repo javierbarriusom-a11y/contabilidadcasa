@@ -5957,7 +5957,7 @@ test.describe("Rediseño C2 · panel del día e insignia de confianza", () => {
 // PRV-01 (novena auditoría, 14/11/2026): en la hoja «Por qué la confianza es…», el gasto variable medido frente a lo previsto. Solo
 // mide: la previsión no cambia. Movimientos INVENTADOS (13 meses de súper, compras sueltas, una tarjeta y traspasos entre cuentas).
 test.describe("PRV-01 · gasto variable previsto frente a real", () => {
-  test("la hoja del porqué mide el variable, lo compara con lo previsto y no cambia la previsión", async ({ page }) => {
+  test("Previsión mide el variable a la vista, lo compara con lo previsto y no cambia la previsión", async ({ page }) => {
     test.setTimeout(90000);
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -5986,9 +5986,10 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
       render();
     });
     await page.locator('[data-plan-tab="prevision"]').click();
-    const insignia = page.locator("#planPrevisionV2 [data-prevision-v2-confianza]");
-    await insignia.click();
-    const medida = page.locator("#prevV2Confianza .prev-v2-variable");
+    // A la vista al entrar en Previsión (14/11: dentro de la hoja de la insignia, el hogar no la encontraba).
+    const medida = page.locator("#planPrevisionV2 section.prev-v2-variable");
+    await expect(medida).toBeVisible();
+    await expect(page.locator("#prevV2Confianza .prev-v2-variable")).toHaveCount(0);
     // Noviembre 2025 a octubre 2026: 1.640 € + 4 € por mes; sin el más alto y el más bajo, 1.666 € de media.
     await expect(medida).toContainText("Lo gastado de verdad en variable: 1.666 € al mes");
     await expect(medida).toContainText("Previsto: 1.750 €");

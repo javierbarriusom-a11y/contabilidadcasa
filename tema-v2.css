@@ -4308,9 +4308,8 @@
 
 :root[data-tema="v2"] .prev-v2-variable {
   display: grid;
-  gap: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--e19-border);
+  gap: 6px;
+  padding: 14px 20px;
 }
 
 :root[data-tema="v2"] .prev-v2-variable p {
@@ -4318,6 +4317,7 @@
 }
 
 :root[data-tema="v2"] .prev-v2-variable-pendiente {
+  margin: 12px 0;
   padding: 8px 10px;
   border: 1px dashed var(--e19-border-strong);
   border-radius: 8px;

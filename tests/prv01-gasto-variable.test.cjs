@@ -124,9 +124,16 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.match(html, /<script defer src="canonical-variable-recalibration\.js\?v=\w+"><\/script>/);
   assert.match(build, /"canonical-variable-recalibration\.js",/);
   assert.match(sw, /"\.\/canonical-variable-recalibration\.js",/);
-  assert.match(vista, /\$\{previsionV2GastoVariableHtml\(isoLocalDate\(new Date\(\)\)\)\}/);
+  // 14/11 (el hogar no la encontraba): tarjeta propia en Previsión, no dentro de la hoja de la insignia.
+  assert.match(vista, /\$\{previsionV2GastoVariableHtml\(today\)\}\s*\n\s*\$\{previsionV2AnualHtml\(/);
+  const hoja = vista.slice(vista.indexOf("function previsionV2ConfianzaHojaHtml("), vista.indexOf("function previsionV2ConfianzaHojaHtml(") + 3000);
+  assert.doesNotMatch(hoja, /previsionV2GastoVariableHtml/);
   const bloque = vista.slice(vista.indexOf("function previsionV2GastoVariable("), vista.indexOf("function previsionV2ConfianzaHojaHtml("));
   assert.doesNotMatch(bloque, /seriesOverrides\s*\[|saveSeriesOverrides|saveScenarioSettings|storageSet/, "solo mide");
+  // Nunca en blanco: sin motor, sin movimientos o con un fallo, una línea que lo dice.
+  assert.match(bloque, /value = \{ error: String\(error\?\.message/);
+  assert.match(bloque, /no se ha podido medir/);
+  assert.match(bloque, /importa los extractos de vuestras cuentas para medirlo/);
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
   // D-N12, pregunta 1 (hogar, 14/11): «la Mastercard la pagamos entera, NO revolving». Ya no es un supuesto pendiente.

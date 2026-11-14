@@ -1400,7 +1400,8 @@ function previsionV2Bloque(sectionName) {
 function previsionV2GastoVariable(today) {
   const engine = globalThis.FinanceCanonicalVariableRecalibration;
   const transactions = baseData?.transactions || [];
-  if (!engine || !transactions.length) return null;
+  if (!engine) return { error: "falta el cálculo de la medición; recarga la app" };
+  if (!transactions.length) return { empty: true };
   const key = `${transactions.length}|${transactions[0]?.date || ""}|${transactions.at(-1)?.date || ""}|${Object.keys(movementMappings || {}).length}|${today.slice(0, 7)}`;
   if (previsionV2VariableCache.key === key) return previsionV2VariableCache.value;
   let value = null;
@@ -1448,8 +1449,9 @@ function previsionV2GastoVariable(today) {
     const comparados = value.rows.slice(-12).map((row) => row.month).filter((month) => month in plannedByMonth);
     const media = (map) => (comparados.length ? round2(comparados.reduce((sum, month) => sum + (map[month] || 0), 0) / comparados.length) : null);
     value = { ...value, plannedVariableAverage: media(plannedVariableByMonth), plannedCardAverage: media(plannedCardByMonth), cardPlanRows: cardRowsInPlan.length };
-  } catch {
-    value = null; // sin medición antes que una medición equivocada
+  } catch (error) {
+    // Sin medición antes que una medición equivocada, pero diciéndolo: en silencio no se sabe si falta o si ha fallado (14/11).
+    value = { error: String(error?.message || error || "error desconocido").slice(0, 160) };
   }
   previsionV2VariableCache = { key, value };
   return value;
@@ -1459,11 +1461,16 @@ function previsionV2Pct(value) {
   return `${Number(value).toLocaleString("es-ES", { maximumFractionDigits: 1 })} %`;
 }
 
+// 14/11/2026 (el hogar no la encontraba): tarjeta propia en Previsión, a la vista, y no dentro de la hoja de la insignia, que solo se
+// pinta con punto más bajo y confianza calculada. Si no puede medir, lo dice en una línea (decisión 4 del rediseño), nunca en blanco.
 function previsionV2GastoVariableHtml(today) {
   const m = previsionV2GastoVariable(today);
   if (!m) return "";
+  const pendiente = (texto) => `<p class="prev-v2-variable prev-v2-variable-pendiente">${texto}</p>`;
+  if (m.error) return pendiente(`Gasto variable previsto frente a real: no se ha podido medir (${escapeHtml(m.error)}).`);
+  if (m.empty) return pendiente("Gasto variable previsto frente a real: importa los extractos de vuestras cuentas para medirlo.");
   if (!m.gate.ok) {
-    return `<p class="prev-v2-variable prev-v2-variable-pendiente">Gasto variable previsto frente a real: hacen falta ${m.gate.minMonths} meses completos de extracto y hay ${m.gate.months}.</p>`;
+    return pendiente(`Gasto variable previsto frente a real: hacen falta ${m.gate.minMonths} meses completos de extracto y hay ${m.gate.months}.`);
   }
   const previsto = m.plannedAverage === null
     ? "sin dato"
@@ -1482,8 +1489,8 @@ function previsionV2GastoVariableHtml(today) {
   if (m.extraordinary.length) aparte.push(`${m.extraordinary.length} ${m.extraordinary.length === 1 ? "gasto extraordinario" : "gastos extraordinarios"} (más de ${money(m.extraordinaryThreshold)} y sin repetirse)`);
   if (m.recurring.length) aparte.push(`${m.recurring.length} ${m.recurring.length === 1 ? "cargo que se repite" : "cargos que se repiten"} sin partida (parecen fijos: ${escapeHtml(m.recurring.slice(0, 3).map((row) => row.label).join(", "))}${m.recurring.length > 3 ? "…" : ""})`);
   if (m.pairedTransfers) aparte.push(`${m.pairedTransfers} ${m.pairedTransfers === 1 ? "traspaso" : "traspasos"} entre vuestras cuentas`);
-  return `<div class="prev-v2-variable">
-      <p class="e19-eyebrow">Gasto variable · previsto frente a real</p>
+  return `<section class="e19-card prev-v2-variable" aria-labelledby="prevV2VariableTitulo">
+      <p class="e19-eyebrow" id="prevV2VariableTitulo">Gasto variable · previsto frente a real</p>
       <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
       ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
       <details class="prev-v2-variable-detalle"><summary>Cómo se ha medido</summary>
@@ -1493,7 +1500,7 @@ function previsionV2GastoVariableHtml(today) {
           <tbody>${filas}</tbody></table></div>
       </details>
       <p class="e19-kpi-note">Solo es una medición: la previsión sigue con lo previsto. Recalcularla hasta 2036 con lo real está pendiente de vuestra decisión.</p>
-    </div>`;
+    </section>`;
 }
 
 function previsionV2ConfianzaHojaHtml(confianza, { hojaId = "prevV2Confianza", abierta = previsionV2ConfianzaAbierta } = {}) {
@@ -1523,7 +1530,6 @@ function previsionV2ConfianzaHojaHtml(confianza, { hojaId = "prevV2Confianza", a
     <ul class="prev-v2-senales">${senales}</ul>
     ${sube}
     ${despues}
-    ${previsionV2GastoVariableHtml(isoLocalDate(new Date()))}
     <p class="e19-kpi-note">La confianza no cambia ninguna cifra: dice cuánto fiarse de ellas.</p>
   </section>`;
 }
@@ -2212,6 +2218,7 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
+    ${previsionV2GastoVariableHtml(today)}
     ${previsionV2AnualHtml({ rows, today, floor, horizonte, prueba })}
     ${previsionV2ArregloHtml({ tramo, floor, today })}
     ${previsionV2TraspasoHtml({ tramo, floor, today })}
