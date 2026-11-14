@@ -113,6 +113,19 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (467): #617 publicado; el extracto del hogar dice que los movimientos estaban al día y que lo atascado es clasificar
+
+- **#617 fusionado** a las 12:53:31Z por squash (`main` `99aed85` → **`1c32f46`**), con el CI de su cabeza `9668cb7` en verde (ejecución 1409, `verify` de 12:00:42Z a 12:52:58Z; `deploy` se salta en los PR).
+  - **El push de la fusión sí disparó «Verify and deploy Pages»: ejecución 1410**, en curso desde las 12:53:38Z al escribir esta entrada. Su resultado y el número de «Published availability» se anotan en la entrada siguiente; queda una comprobación programada en este hilo para las 13:44Z.
+- **Extracto del hogar (14/11)**, importado de nuevo en Importar v2 para «ver cómo se actualiza y desbloquear» (capturas en la conversación; sin importes aquí, el repositorio es público):
+  - CaixaBank, del 7/8 al 12/11: **200 movimientos, 0 nuevos**, «cuadra al céntimo». Mes a mes: agosto y noviembre «el extracto no cubre el mes entero» (por las fechas del propio extracto), septiembre «confirmado: ya estaba todo», octubre «firmado y confirmado». Botón: «Importar (no hay movimientos nuevos)».
+  - Comprobado en `importar-extracto-ui.js`: importar aun sin nuevos registra el periodo cubierto (`FinanceCobertura.registrar`) y aplica la oferta de saldo final (`applyDatosImportarBalanceOffer`), dentro del lote y con «Deshacer». Se recomendó al hogar pulsarlo y ajustar el periodo solo si en el banco eligió otras fechas.
+- **Corrección de una lectura de Claude (entrada 464):** «el bucle de datos está parado, un solo día de importación» era incorrecto en su mitad de datos. Los movimientos estaban al día hasta el 12/11; lo que sigue sin usarse es el repaso semanal. **El atasco es clasificar:** 71 % del gasto con partida frente al 95 %. Anotado en `docs/REVISION_POST_CIERRE_2026-11.md` («Corrección del 14/11»).
+- **Propuesta de Claude, pendiente del hogar (D-N11 del backlog de noviembre):** que la prioridad hasta el 4/12 pase de «que entren los datos» a «que lo que entra quede con partida». La decisión del 13/11 sigue vigente hasta que conteste.
+- **Tarea del hogar nueva, H-37:** clasificar lo pendiente de agosto a noviembre con #617 ya publicado (recargando la app antes) y mandar la línea de Clasificar del medidor. Antes de publicarse, los grupos sin propuesta quedarían «sin tipo anotado».
+- **Documentación al día:** §0, §5.7 (H-37) y §7 (D-N11) de `BACKLOG_NOVIEMBRE_OLEADA_1.md`; la hoja de revisión; esta entrada. ESTADO.md ya recogía #617 (§2 y §8, paso 6).
+- **Validación:** solo documentación; `npm test` 6.609/6.609.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (466): el medidor dice de qué tipo eran los grupos sin propuesta de Clasificar; y los despliegues de #615 y #616
 
 - **Despliegues de #615 y #616** (sin anotar hasta hoy; comprobados en GitHub Actions):
