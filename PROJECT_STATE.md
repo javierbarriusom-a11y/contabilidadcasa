@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (470): la Mastercard se paga entera (D-N12, pregunta 1); las tarjetas Carrefour son «Financie-<mes>»; despliegues de #619 y #620
+
+- **Respuesta del hogar (14/11):** «La mastercard la pagamos entera NO revolving». Es la pregunta 1 de D-N12 y la que más cambiaba el modelo del recálculo.
+- **Qué cambia:** nada en las cifras: es el supuesto con el que la medición de PRV-01 ya trabajaba (modo «total»: de la liquidación de la tarjeta vuelve al gasto variable lo que no son suscripciones). Cambia el texto de la hoja «Por qué la confianza es…» («Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11)», sin el «Supuesto, pendiente…») y la auditoría (§3.6 pregunta 1 contestada; §3.2; el umbral de extraordinario, el que de verdad mide). `views/prevision-v2.js?v=20261116prv01b`.
+- **Extracto del hogar (14/11), una captura sin más datos aquí:** las dos tarjetas Carrefour del hogar se liquidan en CaixaBank con el concepto **«Financie-<mes>»** («Financie-octubre»), una por tarjeta.
+  - **Fallo que destapa en la medición de #620:** ese concepto no se reconocía como liquidación de tarjeta (el patrón solo tenía «Master básica» y variantes de «Carrefour») y suele llevar partida de Financiaciones, así que se tomaba por una **cuota** y quedaba **fuera** del gasto variable: el real habría salido muy por debajo.
+  - **Arreglo:** `PREVISION_V2_TARJETA_LIQUIDACION` reconoce «financie-<mes>» (solo con un mes detrás: «Recibo entidad de financiación» o «Financiera … cuota 3» no). Lo previsto con que se compara suma ahora, además de la fila de variable y las asignaciones, **lo que el plan reserva en las filas de las tarjetas** (las de Ajustes › Tarjetas y las que reciben esos cargos), y la hoja dice el desglose. En el motor, una liquidación de tarjeta con partida de Financiaciones ya no cuenta como cuota en el desglose. `canonical-variable-recalibration.js?v=20261116prv01b`.
+- **Despliegues:**
+  - **#619** (`main` `164faa7`): ejecución **1416**, en verde a las 16:37Z. «Published availability» **342** (a mano), en verde.
+  - **#620** (`main` `61a996a`, fusionado a las 16:47Z con su CI en verde): ejecución **1418**, en curso al escribir esta entrada; su resultado y su availability, en el próximo PR.
+- **Sigue pendiente de D-N12:** las dos cifras de la hoja (lo real y lo previsto) y cuándo aplicar el recálculo (antes o después del 4/12). Las preguntas 2 a 5 tienen valor recomendado y no bloquean.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (+1: una liquidación con partida de Financiaciones es tarjeta; la hoja dice lo confirmado; el patrón reconoce «Financie-<mes>» y no otros recibos de financiación; lo previsto suma las filas de las tarjetas); e2e de PRV-01 con un «Financie-octubre» que cuenta en la columna de la tarjeta; las dos pruebas que fijan la versión de `prevision-v2.js`.
+- **Validación:** `npm run verify` 6.636/6.636 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de PRV-01 en verde.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (469): PRV-01, primera parte: el gasto variable medido frente a lo previsto; despliegues de #618 y #619
 
 - **Despliegues:**

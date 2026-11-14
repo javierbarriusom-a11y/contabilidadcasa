@@ -187,7 +187,7 @@ expresamente que la previsión pasa por delante.
 |---|---|---|
 | Movimientos de CaixaBank de los últimos 12-13 meses | Importados (el Excel de 13 meses y el extracto del 7/8 al 12/11) | Salidas totales por mes |
 | Movimientos de Mediolanum y otras cuentas | Por confirmar cobertura en la tira de 90 días y en «Mes a mes» | Que no falte un mes en ninguna cuenta |
-| **Extracto de la Mastercard Carrefour** con el detalle de compras | Probablemente **no** importado: en la cuenta solo se ve la liquidación | Separar suscripciones de compras dentro de la liquidación |
+| **Extracto de la Mastercard Carrefour** con el detalle de compras | Probablemente **no** importado: en la cuenta solo se ve la liquidación, una por tarjeta con el concepto «Financie-<mes>» (hogar, 14/11). Se paga entera cada mes, así que basta con restar las suscripciones del ciclo | Separar suscripciones de compras dentro de la liquidación (exacto con el extracto; estimado sin él) |
 | Lista de suscripciones (Netflix, HBO Max, Spotify, Apple, …) con importe y día | Parcial en el plan | Colocarlas en la tarjeta y en su mes de cargo |
 | Día de corte y de cargo de la tarjeta (WP-30) | Por confirmar en Ajustes › Tarjetas | Mes en que cada compra sale de la cuenta |
 | Meses firmados | Octubre firmado | No se tocan: la historia firmada es intocable |
@@ -254,12 +254,14 @@ diciembre de 2036. Ingresos, fijos y deuda no se tocan.
 
 ### 3.6 Lo que necesito que decidáis
 
-1. **La Mastercard Carrefour, ¿se paga entera cada mes o aplazado (revolving, cuota fija)?** Cambia el modelo: si es aplazada,
-   las suscripciones **no salen de la cuenta ese mes, aumentan la deuda** de la tarjeta, y la previsión tiene que verlo así.
+1. ~~La Mastercard Carrefour, ¿se paga entera cada mes o aplazado (revolving, cuota fija)?~~ **Contestada por el hogar el
+   14/11: «la pagamos entera, NO revolving».** Es el supuesto con el que ya mide la app (las suscripciones salen de la cuenta en
+   la liquidación del mes siguiente y lo demás de la liquidación es gasto variable). El modo «aplazado» del motor queda sin uso.
 2. Ventana: últimos **12 meses** (recomendado) o 6.
 3. Detalle: **una fila de variable** hasta llegar al 95 % clasificado (recomendado), o por categoría ya.
 4. Inflación: la del registro de supuestos, o una propia.
-5. Umbral de «extraordinario»: recomiendo «más de 3 veces la mediana de su tipo y no recurrente».
+5. Umbral de «extraordinario»: el que mide desde el 14/11 es «un movimiento suelto de más de 500 € que pesa más del 40 % de un
+   mes típico y no se repite»; se puede cambiar.
 6. Cuándo aplicar: tras el 4/12 (respeta D-N11) o ya.
 7. Opción A o B del §3.5.
 

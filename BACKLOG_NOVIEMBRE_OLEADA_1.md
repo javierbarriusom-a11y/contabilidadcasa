@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**14/11/2026 (noche) · D-N12, pregunta 1 contestada: «la Mastercard la pagamos entera, NO revolving».** Confirma el supuesto con el que ya mide la hoja del gasto variable; las cifras no cambian. Faltan las dos cifras de la hoja y cuándo aplicar el recálculo.
+
 **14/11/2026 (noche) · PRV-01, primera parte: el gasto variable medido frente a lo previsto («¿seguimos?»).** La hoja «Por qué la confianza es…» de Previsión enseña lo gastado de verdad en variable, mes a mes, frente a los 1.750 € fijos que la previsión usa desde junio (corrección: la app sí tenía gasto variable, una cifra fija sin contrastar). Solo mide; recalcular sigue esperando a **D-N12**.
 
 **14/11/2026 (tarde) · Deuda › Préstamo para saldar, construida a petición del hogar, y novena auditoría propuesta.** Quinta pestaña de Deuda para decidir en pareja un préstamo personal que cancele lo más caro y un plan agresivo; compara con «pagar lo mismo sin préstamo». La auditoría (`docs/PROPUESTA_NOVENA_AUDITORIA_2026-11-14.md`) propone recalcular la previsión hasta 2036 con el gasto variable real (no ejecutado: choca con D-N11 y espera a **D-N12**) y 53 funciones; decisiones nuevas del hogar **D-N12** (recálculo, con la modalidad de pago de la Mastercard Carrefour), **D-N13** (tipo de préstamo y TIN real), **D-N14** (orden de las 12 primeras) y **D-N15** (retiradas). No cambia la prioridad de D-N11 hasta que el hogar lo diga.

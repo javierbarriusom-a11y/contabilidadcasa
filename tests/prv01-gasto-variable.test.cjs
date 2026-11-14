@@ -49,6 +49,14 @@ test("el variable de un mes quita fijos, cuotas, traspasos emparejados, la liqui
   assert.equal(r.rows.find((row) => row.month === "2026-03").extraordinary, 1800);
 });
 
+test("una liquidación de tarjeta con partida de Financiaciones cuenta como tarjeta, no como cuota (las Carrefour, «Financie-<mes>»)", () => {
+  const mv = hogar().map((row) => (row.cardSettlement ? { ...row, block: "financiacion", conceptKey: "expense|financie octubre|" } : row));
+  const r = R.recalibrate(mv, { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  assert.equal(r.rows[0].debt, 300, "solo la cuota de verdad");
+  assert.equal(r.rows[0].cardPurchases, 300);
+  assert.equal(r.rows[0].variable, 1500);
+});
+
 test("tarjeta aplazada: la liquidación es una cuota y sus compras no cuentan (se dice)", () => {
   const r = R.recalibrate(hogar(), { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES, cardMode: "aplazado" });
   assert.equal(r.cardMode, "aplazado");
@@ -121,4 +129,15 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.doesNotMatch(bloque, /seriesOverrides\s*\[|saveSeriesOverrides|saveScenarioSettings|storageSet/, "solo mide");
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
+  // D-N12, pregunta 1 (hogar, 14/11): «la Mastercard la pagamos entera, NO revolving». Ya no es un supuesto pendiente.
+  assert.match(bloque, /cardMode: "total"/);
+  assert.match(bloque, /Las tarjetas se pagan enteras cada mes \(lo confirmasteis el 14\/11\)/);
+  assert.doesNotMatch(bloque, /Supuesto, pendiente/);
+  // Extracto del hogar (14/11): las tarjetas Carrefour se liquidan como «Financie-octubre»; lo previsto suma las filas de las tarjetas.
+  const patron = vista.match(/const PREVISION_V2_TARJETA_LIQUIDACION = (\/.+\/);/);
+  assert.ok(patron, "el patrón de las liquidaciones existe");
+  const re = new Function(`return ${patron[1]}`)();
+  ["financie-octubre", "financie-enero", "financie diciembre", "master basica"].forEach((texto) => assert.ok(re.test(texto), texto));
+  ["recibo entidad de financiacion", "financiera el corte ingles cuota 3"].forEach((texto) => assert.ok(!re.test(texto), texto));
+  assert.match(bloque, /plannedByMonth\[month\.key\] = round2\(plannedVariableByMonth\[month\.key\] \+ plannedCardByMonth\[month\.key\]\)/);
 });

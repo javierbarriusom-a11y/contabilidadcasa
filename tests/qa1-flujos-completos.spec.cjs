@@ -5979,6 +5979,8 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
         tx.push({ date: `${m}-10`, movement: "TRASPASO A AHORRO", amount: -300, month: m, category: "Traspasos/ahorro", accountId: "c1" });
         tx.push({ date: `${m}-11`, movement: "TRASPASO DESDE CUENTA", amount: 300, month: m, category: "Otros ingresos", accountId: "c2" });
       });
+      // Una tarjeta Carrefour se liquida como «Financie-octubre» (extracto del hogar, 14/11): cuenta como tarjeta, no como cuota.
+      tx.push({ date: "2026-10-30", movement: "Financie-octubre", amount: -200, month: "2026-10", category: "Creditos antiguos", accountId: "c1" });
       baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
       refreshMovementRollups();
       render();
@@ -5993,6 +5995,7 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     await expect(medida).toContainText("Solo es una medición");
     await medida.locator("summary").click();
     await expect(medida.locator("tbody tr")).toHaveCount(12);
+    await expect(medida.locator("tbody tr").last().locator("td").nth(1)).toHaveText("620 €"); // octubre: 420 € de una tarjeta + 200 € de «Financie-octubre»
     await expect(medida).toContainText("14 traspasos entre vuestras cuentas");
     await expect(medida).not.toContainText("parecen fijos");
     // Solo mide: lo previsto en la previsión sigue igual.

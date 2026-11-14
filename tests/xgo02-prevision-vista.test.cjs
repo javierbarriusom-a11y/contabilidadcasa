@@ -22,5 +22,5 @@ test("XGO-02 · la visita de la Previsión nueva se anota cuando se ve, no solo 
   assert.match(init, /new MutationObserver\(\(\) => previsionV2AnotaVista\(\)\)/);
   assert.match(init, /\[qs\("plan"\), box\.closest\("\[data-plan-panel\]"\), box\]/);
   assert.match(init, /attributeFilter: \["hidden"\]/);
-  assert.match(read("index.html"), /views\/prevision-v2\.js\?v=20261116prv01/); // 14/11: PRV-01, el gasto variable previsto frente a real
+  assert.match(read("index.html"), /views\/prevision-v2\.js\?v=20261116prv01b/); // 14/11: PRV-01, el gasto variable previsto frente a real
 });
