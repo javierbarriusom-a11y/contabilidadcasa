@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**14/11/2026 (noche) · La medición del gasto variable, a la vista en Previsión.** El hogar no la encontraba dentro de la hoja de la insignia de confianza: pasa a su propia tarjeta y, si no puede medir, lo dice. Siguen pendientes las dos cifras y cuándo aplicar el recálculo (D-N12).
+
 **14/11/2026 (noche) · D-N12, pregunta 1 contestada: «la Mastercard la pagamos entera, NO revolving».** Confirma el supuesto con el que ya mide la hoja del gasto variable; las cifras no cambian. Faltan las dos cifras de la hoja y cuándo aplicar el recálculo.
 
 **14/11/2026 (noche) · PRV-01, primera parte: el gasto variable medido frente a lo previsto («¿seguimos?»).** La hoja «Por qué la confianza es…» de Previsión enseña lo gastado de verdad en variable, mes a mes, frente a los 1.750 € fijos que la previsión usa desde junio (corrección: la app sí tenía gasto variable, una cifra fija sin contrastar). Solo mide; recalcular sigue esperando a **D-N12**.
