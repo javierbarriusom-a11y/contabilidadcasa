@@ -178,8 +178,9 @@ septiembre «confirmado: ya estaba todo» y octubre «firmado y confirmado».
   sí sigue en pie es que el repaso semanal no se ha usado.
 - **El atasco está en clasificar:** el 71 % del gasto con partida (objetivo 95 %) es lo que hará que el cierre de
   noviembre vuelva a acabar en «Por clasificar» y lo que decide la revisión de Clasificar del 4/12.
-- **Propuesta de Claude, pendiente del hogar:** reformular la prioridad hasta el 4/12 de «que entren los datos» a «que lo
-  que entra quede con partida» (clasificar hasta el 95 % antes del 1/12, con el repaso semanal como momento para
-  hacerlo). La decisión del 13/11 sigue vigente mientras el hogar no diga otra cosa.
+- **Decidido por el hogar el 14/11 (D-N11 del backlog):** la prioridad hasta el 4/12 pasa de «que entren los datos» a
+  «que lo que entra quede con partida»: clasificar hasta el 95 % antes del 1/12, con el repaso semanal como momento para
+  hacerlo. Sustituye a la fila «Prioridad hasta el 4/12» de la tabla de arriba; sigue sin construirse previsión nueva
+  hasta la revisión de salida.
 - Desde el 14/11 (#617) el medidor anota el tipo de cada grupo sin propuesta: lo que se clasifique a partir de ahora
   dirá qué señal le falta a la propuesta.
