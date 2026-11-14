@@ -12,10 +12,12 @@
 
 ## 0. Resumen en cinco frases
 
-1. **El problema más grave no es de funciones, es de cimientos:** la previsión hasta 2036 ha estado contando solo fijos y
-   suscripciones, sin gasto variable. Todo lo que se apoya en ella —fecha de deuda cero, colchón, «Hasta 2036», escenarios,
-   guardarraíles de amortizar o invertir— ha salido **optimista**. Antes de construir nada más sobre la previsión, hay que
-   recalcularla (§3).
+1. **El problema más grave no es de funciones, es de cimientos:** el libro de origen no tenía gasto variable y la app lo tapó
+   con una cifra fija (1.750 €/mes desde junio, por migración) que nadie ha contrastado con lo real, sin estacionalidad ni
+   gastos irregulares. Todo lo que se apoya en la previsión —fecha de deuda cero, colchón, «Hasta 2036», escenarios,
+   guardarraíles de amortizar o invertir— depende de que esa cifra sea buena. Antes de construir nada más sobre la previsión,
+   hay que **medirla** (hecho el 14/11, §1.1) y recalcularla si no cuadra (§3). *Corregido el 14/11 por la tarde: la primera
+   versión decía «sin gasto variable», y no es así en la app.*
 2. **La app tiene más superficie de la que el hogar puede usar:** unas 60 entradas de menú (11 de ellas «versiones anteriores»),
    128 motores, `app.js` con 32.000 líneas. El cuello de botella real, medido, es meter y clasificar datos (71 % con partida;
    objetivo 95 %; 5 de 7 grupos de noviembre sin propuesta). Cada función nueva que no ataque eso compite por los mismos 10
@@ -33,11 +35,20 @@
 
 ## 1. Diagnóstico crítico
 
-### 1.1 La previsión ha estado sesgada al alza (hallazgo principal)
+### 1.1 El gasto variable de la previsión es una cifra fija sin contrastar (hallazgo principal)
 
-El libro de origen planificaba ingresos, fijos, suscripciones y financiaciones mes a mes hasta 2036. El gasto variable (súper,
-gasolina, ocio, farmacia, ropa, regalos, imprevistos) o no estaba o estaba en una cifra simbólica. Consecuencias, en orden de
-gravedad:
+**Corrección del 14/11 por la tarde, al leer el código:** el libro de origen no traía gasto variable, pero la app sí lo mete.
+Desde junio de 2026 el «Gasto variable estimado» vale **1.750 € al mes, fijos**, puestos por una migración
+(`variable-operational-1750-from-2026-06-v2`), de los que salen las asignaciones personales. El modelo que lo calcularía solo
+(`variableOperationalSpendModel`) queda tapado por esa cifra y, además, solo mira tres categorías (alimentación, efectivo y
+otros gastos) y deja fuera la liquidación de la Mastercard. Así que el problema no es «sin gasto variable», es:
+
+- **una cifra fija para diez años**, igual en diciembre que en febrero, sin gastos irregulares (seguros anuales, Navidad,
+  ITV) y sin medirla nunca contra lo gastado de verdad;
+- **nadie sabe si se queda corta o larga.** Desde el 14/11, la hoja «Por qué la confianza es…» de Plan › Previsión lo mide
+  (§3, primera parte). Si se queda corta, todo lo de abajo sale optimista; si se queda larga, pesimista.
+
+Si la cifra se quedara corta, las consecuencias, en orden de gravedad:
 
 | Lo que dice la app | Por qué está mal | Efecto |
 |---|---|---|
@@ -48,8 +59,7 @@ gravedad:
 | Confianza de la previsión (FX-31) | Mide datos y supuestos, no si falta una partida entera | Ha podido decir «media» o «alta» con un agujero estructural |
 
 Lo que me parece más importante de este hallazgo no es la cifra, es **el mecanismo**: la app tiene decenas de comprobaciones de
-coherencia (FX-01…FX-04, paridades, invariantes) y ninguna detectó que el gasto real de cada mes cerrado fuera muy superior al
-previsto de forma sistemática. Hace falta una comprobación que hoy no existe: **«real frente a previsto por bloque, en los
+coherencia (FX-01…FX-04, paridades, invariantes) y ninguna compara el gasto variable real de los meses cerrados con lo previsto. Hace falta una comprobación que hoy no existe: **«real frente a previsto por bloque, en los
 meses firmados»**, que salte si un bloque se desvía en el mismo sentido 3 meses seguidos (PRV-05 la propone).
 
 ### 1.2 Más superficie de la que se puede usar
@@ -156,7 +166,13 @@ cancelar** y por **la cuota que el hogar puede mantener**. La pestaña está hec
 
 ### 3.1 Objetivo y principio
 
-Sustituir, desde el primer mes sin firmar hasta diciembre de 2036, el gasto variable del plan por uno **medido en vuestros
+**Primera parte, hecha el 14/11 por la tarde (sin cambiar la previsión):** `canonical-variable-recalibration.js` mide el gasto
+variable de cada mes completo con el método del §3.3 (pasos 1, 2, 3 y 7) y lo compara con lo previsto; la hoja «Por qué la
+confianza es…» de Plan › Previsión enseña la media real, lo previsto, la diferencia y cuánto se desvió cada uno contra el
+pasado, con el detalle por mes. Supone tarjetas pagadas enteras hasta que contestéis la pregunta 1 del §3.6. La proyección
+hasta 2036 ya la calcula el motor, pero no se aplica.
+
+Sustituir, desde el primer mes sin firmar hasta diciembre de 2036, el gasto variable del plan (hoy, 1.750 € fijos) por uno **medido en vuestros
 movimientos**, con estacionalidad, gastos irregulares y suscripciones bien colocadas (en la **tarjeta Mastercard Carrefour**),
 y enseñar **qué cambia** antes de aplicarlo, con «Deshacer».
 

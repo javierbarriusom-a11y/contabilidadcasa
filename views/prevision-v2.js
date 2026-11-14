@@ -1377,6 +1377,104 @@ function previsionV2TareaAccion(task) {
   return `<a class="e19-btn e19-btn-secondary" href="${escapeHtml(action.href)}">${escapeHtml(action.label)}</a>`;
 }
 
+// ---- PRV-01 (novena auditoría, 14/11/2026), primera parte: el gasto variable, previsto frente a real ---------------------------
+// Solo MIDE (canonical-variable-recalibration.js): no cambia ninguna cifra de la previsión (D-N11; el recálculo espera a D-N12).
+// Lee los movimientos importados con la partida y el tipo de acción que ya tienen, la fila de cada tarjeta (Ajustes › Tarjetas)
+// y lo previsto en «Gasto variable estimado» más las asignaciones personales, que salen de él.
+
+const PREVISION_V2_TARJETA_LIQUIDACION = /master basica|servicios financieros carrefour|financiera carrefour|tarjeta carrefour|pass carrefour/;
+const PREVISION_V2_SUSCRIPCION = /netflix|hbo|\bmax\b|spotify|apple|icloud|disney|prime video|amazon prime|youtube|dazn|movistar\+|filmin|skyshowtime|suscrip/;
+let previsionV2VariableCache = { key: "", value: null };
+
+function previsionV2Bloque(sectionName) {
+  const name = normalizedText(sectionName || "");
+  if (name.includes("financ")) return "financiacion";
+  if (name.includes("ingreso")) return "ingreso";
+  if (name.includes("variable")) return "variable";
+  if (name.includes("fij") || name.includes("suscrip")) return "fijo";
+  return null;
+}
+
+function previsionV2GastoVariable(today) {
+  const engine = globalThis.FinanceCanonicalVariableRecalibration;
+  const transactions = baseData?.transactions || [];
+  if (!engine || !transactions.length) return null;
+  const key = `${transactions.length}|${transactions[0]?.date || ""}|${transactions.at(-1)?.date || ""}|${Object.keys(movementMappings || {}).length}|${today.slice(0, 7)}`;
+  if (previsionV2VariableCache.key === key) return previsionV2VariableCache.value;
+  let value = null;
+  try {
+    const cardRows = new Set((typeof loadCardCycles === "function" ? loadCardCycles().cards : []).map((card) => card.rowKey).filter(Boolean));
+    const movements = transactions.map((row) => {
+      const mapping = mappingForMovement(row);
+      const text = normalizedText(`${row.movement || ""} ${row.details || ""}`);
+      return {
+        date: row.date,
+        amount: Number(row.amount || 0),
+        account: row.accountId || row.account || "",
+        conceptKey: movementMappingKey(row),
+        label: movementDisplayName(row),
+        block: mapping ? previsionV2Bloque(mapping.row.sectionName) : null,
+        actionType: actionTypeEntryForMovement(row)?.actionType || null,
+        cardSettlement: (mapping && cardRows.has(seriesKeyForRow(mapping.row))) || PREVISION_V2_TARJETA_LIQUIDACION.test(text),
+      };
+    });
+    // Lo previsto de los meses ya pasados también cuenta para compararlo con lo real: los meses del plan desde su inicio, no solo
+    // los de la previsión (que empieza en el mes actual).
+    const planMonths = (baseData?.monthlyPlanning?.months || []).map((month, index) => ({ index, key: month.key, label: month.label }));
+    const variableRow = variableOperationalPlanningRow();
+    const expenseRows = (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === "expense").flatMap((section) => section.rows || []);
+    const plannedByMonth = {};
+    const subscriptionsByMonth = {};
+    planMonths.forEach((month) => {
+      if (variableRow) plannedByMonth[month.key] = round2(plannedValueForRow(variableRow, month) + personalAllowanceTotal(month));
+      subscriptionsByMonth[month.key] = round2(expenseRows.filter((row) => PREVISION_V2_SUSCRIPCION.test(normalizedText(displayLabelForRow(row)))).reduce((sum, row) => sum + plannedValueForRow(row, month), 0));
+    });
+    const completeMonths = engine.completeMonthsFrom(movements, today);
+    value = engine.recalibrate(movements, { completeMonths, plannedByMonth, subscriptionsByMonth, cardMode: "total", startMonthKey: engine.addMonths(today.slice(0, 7), 1) });
+  } catch {
+    value = null; // sin medición antes que una medición equivocada
+  }
+  previsionV2VariableCache = { key, value };
+  return value;
+}
+
+function previsionV2Pct(value) {
+  return `${Number(value).toLocaleString("es-ES", { maximumFractionDigits: 1 })} %`;
+}
+
+function previsionV2GastoVariableHtml(today) {
+  const m = previsionV2GastoVariable(today);
+  if (!m) return "";
+  if (!m.gate.ok) {
+    return `<p class="prev-v2-variable prev-v2-variable-pendiente">Gasto variable previsto frente a real: hacen falta ${m.gate.minMonths} meses completos de extracto y hay ${m.gate.months}.</p>`;
+  }
+  const previsto = m.plannedAverage !== null ? money(m.plannedAverage) : "sin dato";
+  const diferencia = m.gap === null ? "" : m.gap > 0
+    ? ` Lo real supera lo previsto en ${money(m.gap)} al mes.`
+    : m.gap < 0 ? ` Lo real queda ${money(-m.gap)} al mes por debajo de lo previsto.` : " Coinciden.";
+  const errores = [];
+  if (m.backtest.planned.n) errores.push(`con lo previsto, la cifra de cada mes se desvió un ${previsionV2Pct(m.backtest.planned.mape)} de media (${m.backtest.planned.n} ${m.backtest.planned.n === 1 ? "mes" : "meses"})`);
+  if (m.backtest.method.n) errores.push(`midiendo con los meses anteriores, un ${previsionV2Pct(m.backtest.method.mape)} (${m.backtest.method.n})`);
+  const mes = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+  const filas = m.rows.map((row) => `<tr><th scope="row">${escapeHtml(mes(row.month))}</th><td>${money(row.variable)}</td><td>${money(row.cardPurchases)}</td><td>${money(row.recurringUnclassified)}</td><td>${money(row.extraordinary)}</td></tr>`).join("");
+  const aparte = [];
+  if (m.extraordinary.length) aparte.push(`${m.extraordinary.length} ${m.extraordinary.length === 1 ? "gasto extraordinario" : "gastos extraordinarios"} (más de ${money(m.extraordinaryThreshold)} y sin repetirse)`);
+  if (m.recurring.length) aparte.push(`${m.recurring.length} ${m.recurring.length === 1 ? "cargo que se repite" : "cargos que se repiten"} sin partida (parecen fijos: ${escapeHtml(m.recurring.slice(0, 3).map((row) => row.label).join(", "))}${m.recurring.length > 3 ? "…" : ""})`);
+  if (m.pairedTransfers) aparte.push(`${m.pairedTransfers} ${m.pairedTransfers === 1 ? "traspaso" : "traspasos"} entre vuestras cuentas`);
+  return `<div class="prev-v2-variable">
+      <p class="e19-eyebrow">Gasto variable · previsto frente a real</p>
+      <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
+      ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
+      <details class="prev-v2-variable-detalle"><summary>Cómo se ha medido</summary>
+        <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Supuesto, pendiente de vuestra respuesta: las tarjetas se pagan enteras cada mes, así que de su liquidación vuelve al variable lo que no son suscripciones. Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
+        <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Gasto variable medido por mes</caption>
+          <thead><tr><th scope="col">Mes</th><th scope="col">Variable</th><th scope="col">De la tarjeta</th><th scope="col">Repetidos sin partida</th><th scope="col">Extraordinario</th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+      </details>
+      <p class="e19-kpi-note">Solo es una medición: la previsión sigue con lo previsto. Recalcularla hasta 2036 con lo real está pendiente de vuestra decisión.</p>
+    </div>`;
+}
+
 function previsionV2ConfianzaHojaHtml(confianza, { hojaId = "prevV2Confianza", abierta = previsionV2ConfianzaAbierta } = {}) {
   if (!confianza) return "";
   const estado = { ok: "bien", regular: "a medias", mal: "flojo" };
@@ -1404,6 +1502,7 @@ function previsionV2ConfianzaHojaHtml(confianza, { hojaId = "prevV2Confianza", a
     <ul class="prev-v2-senales">${senales}</ul>
     ${sube}
     ${despues}
+    ${previsionV2GastoVariableHtml(isoLocalDate(new Date()))}
     <p class="e19-kpi-note">La confianza no cambia ninguna cifra: dice cuánto fiarse de ellas.</p>
   </section>`;
 }

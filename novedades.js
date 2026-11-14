@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-14-gasto-variable-medido",
+      fecha: "2026-11-14",
+      texto: "Previsión › «Por qué la confianza…»: el gasto variable de verdad frente a lo previsto, mes a mes. Solo mide: la previsión no cambia.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-14-prestamo-saldar",
       fecha: "2026-11-14",
       texto: "Deuda › Préstamo: simulad un préstamo para cancelar lo más caro y un plan agresivo, frente a pagar lo mismo sin pedirlo.",

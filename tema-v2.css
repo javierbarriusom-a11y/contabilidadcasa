@@ -4306,6 +4306,29 @@
   color: var(--e19-success);
 }
 
+:root[data-tema="v2"] .prev-v2-variable {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .prev-v2-variable p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-variable-pendiente {
+  padding: 8px 10px;
+  border: 1px dashed var(--e19-border-strong);
+  border-radius: 8px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .prev-v2-variable-detalle summary {
+  cursor: pointer;
+  color: var(--e19-accent);
+}
+
 :root[data-tema="v2"] .prev-v2-sube {
   display: grid;
   gap: 4px;
