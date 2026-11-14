@@ -113,6 +113,32 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (466): el medidor dice de qué tipo eran los grupos sin propuesta de Clasificar; y los despliegues de #615 y #616
+
+- **Despliegues de #615 y #616** (sin anotar hasta hoy; comprobados en GitHub Actions):
+  - **#615** (`main` `137a8a6`): «Verify and deploy Pages», ejecución **1406**, salió sola con el push y terminó en verde a las 20:08Z del 13/11. «Published availability» **335** (a mano), en verde; la programada 334 también.
+  - **#616** (`main` `99aed85`): ejecución **1408**, sola con el push, en verde a las 21:34Z del 13/11. «Published availability» **336** (a mano), en verde; la programada 337 del 14/11 a las 06:15Z también.
+  - Esta vez el push de la fusión sí disparó el despliegue (con #614 no lo hizo, entrada 464).
+- **Petición del hogar:** «adelante con el tipo en el medidor», a propuesta de Claude.
+- **Por qué:**
+  - En noviembre, 5 de 7 grupos se aceptaron sin propuesta. Qué señal le falta a la propuesta depende de qué eran: Bizum a personas, transferencias o comercios nuevos (entrada 465).
+  - El medidor solo guardaba la confianza, si fue tal cual, los segundos y si se deshizo. Esos grupos ya están clasificados y no vuelven a Clasificar: preguntar al hogar dependía de su memoria, y la revisión del 4/12 se habría encontrado igual.
+- **Qué se hace:**
+  - `views/clasificar-v2.js`: `clasV2Tipo(group)`. Primero cómo se pagó, en el concepto o el detalle: **Bizum**, **transferencia** (también «trf», «transf», «traspaso») o **recibo** («recibo», «domiciliación», «adeudo»). Si no, **comercio sin reglas** (el concepto tiene la palabra de comercio que buscan las reglas, `clasV2Merchant`) o **sin nombre reconocible** («TPV 4455 12»). Al aceptar un grupo sin propuesta, el tipo va al medidor. `?v=20261114tipo`.
+  - `medidor-utilidad.js`: `TIPOS_SIN`; el registro de calibración lleva `o` (el tipo) **solo si no había propuesta y solo con uno de los cinco**. Nunca el concepto ni el importe. `calibracion().sinPorTipo` y la frase: «5 grupos sin propuesta (3 Bizum, 1 transferencia, 1 comercio sin reglas)», de más a menos. Los registros de antes del 14/11 no llevan tipo: salen como «N sin tipo anotado» y, si ninguno lo lleva, la frase de siempre. `?v=20261114tipo`.
+  - Hoja de revisión (`docs/REVISION_POST_CIERRE_2026-11.md`, Clasificar el 4/12): qué señal mejorar según el tipo que domine, y nada que construir con menos de 5 grupos con tipo.
+  - ESTADO §2 (XDA-05 PR-1) y §8 (paso 6), y §0 del backlog de noviembre.
+- **Límites, dichos:**
+  - Solo mide los grupos **aceptados** sin propuesta, como el «5 de 7». Los saltados o los que acaban en «Por clasificar» no llevan tipo.
+  - El medidor cuenta por dispositivo: lo del iPhone y lo del ordenador salen aparte.
+  - Con muestras de 5 a 10 grupos al mes, es una señal para elegir, no una prueba.
+- **Pruebas:**
+  - `tests/xda05-calibracion-clasificar.test.cjs` (+2): el tipo solo en los «sin» y solo de la lista, al guardar y al leer; la frase, el orden, los de antes y la frase de siempre sin tipos.
+  - `tests/redis-a5-clasificar.test.cjs` (+1 y una línea): los cinco tipos con conceptos de ejemplo, que Clasificar y el medidor usan los mismos cinco, y que al aceptar solo el grupo sin propuesta lleva tipo.
+  - e2e «XDA-05 · Calibración de Clasificar» en `qa1`: el grupo sin propuesta guarda `o: "comercio"` y el informe dice «(1 comercio sin reglas)».
+  - `tests/cierre-coste.test.cjs`: la versión nueva del medidor.
+- **Validación:** `npm run verify` 6.609/6.609 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de Clasificar, XDA-05, medidor, Funciones en prueba y Cierre: 14 de 14.
+
 ## Cierre de sesión — 13 de noviembre de 2026 (465): el repaso semanal, cada domingo en el calendario del móvil
 
 - **Petición del hogar:** «continúa», con la prioridad que decidió el mismo día: hasta el 4/12, que entren los datos y no más previsión (entrada 464).

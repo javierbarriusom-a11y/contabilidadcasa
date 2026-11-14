@@ -312,6 +312,26 @@ test("XDA-05: al aceptar se anota la confianza de la propuesta, si fue tal cual 
   sb.context.clasV2Undo(reglas[1]);
   assert.deepEqual(deshechas, [2], "se corrige el registro de esa regla, no otro");
   assert.ok(!JSON.stringify(anotadas).match(/MERCADONA|86|Supermercado/i), "al medidor no van conceptos, importes ni partidas");
+  assert.deepEqual(anotadas.map((m) => m.tipo), [undefined, undefined, "bizum"], "XDA-05 (14/11): el tipo, solo del grupo sin propuesta");
+});
+
+test("XDA-05 (14/11): el tipo de un grupo sin propuesta, por cómo se pagó o por si tiene un comercio que aún no tiene reglas", () => {
+  const { context } = sandbox();
+  const tipo = (movement, details = "") => context.clasV2Tipo({ rows: [{ ...tx("2026-11-02", movement, -20), details }] });
+  assert.equal(tipo("BIZUM ENVIADO A PEPE"), "bizum", "aunque «pepe» sea un nombre");
+  assert.equal(tipo("BIZUM 6123"), "bizum");
+  assert.equal(tipo("TRANSFERENCIA A FAVOR DE LUIS"), "transferencia");
+  assert.equal(tipo("TRF. INMEDIATA"), "transferencia");
+  assert.equal(tipo("TRASPASO CUENTA AHORRO"), "transferencia");
+  assert.equal(tipo("RECIBO IBERDROLA CLIENTES"), "recibo");
+  assert.equal(tipo("ADEUDO SEPA 1234"), "recibo");
+  assert.equal(tipo("PAGO 9981", "Bizum recibido"), "bizum", "también en el detalle");
+  assert.equal(tipo("COMPRA TARJ. FERRETERIA PACO 22"), "comercio");
+  assert.equal(tipo("TPV 4455 12"), "sin-nombre");
+  assert.equal(tipo(""), "sin-nombre");
+  const tipos = Object.keys(require("../medidor-utilidad.js").TIPOS_SIN);
+  const salen = vm.runInContext("CLAS_V2_TIPOS.map(([t]) => t)", context).concat(["comercio", "sin-nombre"]);
+  assert.deepEqual([...salen].sort(), [...tipos].sort(), "Clasificar da justo los cinco tipos que guarda el medidor");
 });
 
 test("XDA-05: el contador dice cuántos grupos faltan y cuánto llevará, con la mediana medida cuando hay 3 o más", () => {

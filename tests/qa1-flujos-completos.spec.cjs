@@ -7739,14 +7739,15 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     await expect(panel.locator(".clas-v2-cobertura")).toHaveText(/^Gasto importado con partida \(últimos 90 días\): \d+ % · objetivo 95 %\.$/);
     // Deshacer la primera: la propuesta queda como corregida.
     await panel.locator("[data-clas-v2-deshacer]").first().click();
-    const calibracion = await page.evaluate(() => FinanceMedidor.leer().calibracion.map(({ c, t, x, s }) => ({ c, t, x, medido: typeof s === "number" })));
-    expect(calibracion).toEqual([{ c: "media", t: true, x: true, medido: true }, { c: "sin", t: false, x: false, medido: true }]);
+    const calibracion = await page.evaluate(() => FinanceMedidor.leer().calibracion.map(({ c, t, x, s, o }) => ({ c, t, x, medido: typeof s === "number", o })));
+    // XDA-05 (14/11): el grupo sin propuesta («GASOLINERA FICTICIA») guarda su tipo, no su concepto.
+    expect(calibracion).toEqual([{ c: "media", t: true, x: true, medido: true }, { c: "sin", t: false, x: false, medido: true, o: "comercio" }]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
     await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
 
     await page.goto("/index.html#ajustes");
     const informe = page.locator("#medidorUtilidadLista li", { hasText: "Clasificar por lotes" });
-    await expect(informe).toContainText("0 % de las propuestas aceptadas tal cual (0 de 1) · 1 grupo sin propuesta");
+    await expect(informe).toContainText("0 % de las propuestas aceptadas tal cual (0 de 1) · 1 grupo sin propuesta (1 comercio sin reglas)");
     await expect(informe, "el hogar retiró «aceptar en bloque» el 13/11: la puerta ya no se enseña").not.toContainText("aceptar en bloque");
     await expect(informe).toContainText("Gasto importado con partida (últimos 90 días)");
     const fep = page.locator('#funcionesEnPruebaCard [data-fep-id="clasificar-v2"]');
