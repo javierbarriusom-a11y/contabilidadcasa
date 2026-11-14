@@ -111,11 +111,12 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // Ola 1 (entrega 1) añade «Planificación de partidas» al frente de Analizar: sale del menú
   // principal (pasa a pestaña de Plan) y conserva aquí un enlace propio, que además resalta y abre
   // el desplegable cuando se está en esa pantalla.
-  assert.equal(byGroup.analysis.length, 25, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión, Patrimonio e Inversión suman veinticinco enlaces tras la Ola 1");
+  // 14/11/2026: Deuda › Préstamo para saldar (petición del hogar), quinta pestaña de Deuda: veintiséis y cuarenta y cuatro.
+  assert.equal(byGroup.analysis.length, 26, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión, Patrimonio e Inversión suman veintiséis enlaces con Deuda › Préstamo");
   // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros, Fiscal, Segunda
   // opinión, Patrimonio y Análisis de previsión: treinta y cinco.
   // OPT-25 fase 6 añade «Continuidad, compartir y archivo» al grupo Datos; fase 7 añade el acceso
   // rápido a Laboratorio: treinta y siete, cierre del plan de 7 fases. I1 añade las 5 de
   // Inversión: cuarenta y dos.
-  assert.equal(links.length, 43, "cuarenta y tres enlaces en el menú avanzado tras la Ola 1 (entrega 1)");
+  assert.equal(links.length, 44, "cuarenta y cuatro enlaces en el menú avanzado con Deuda › Préstamo (14/11/2026)");
 });

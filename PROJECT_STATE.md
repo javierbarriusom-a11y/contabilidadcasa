@@ -113,6 +113,33 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 14 de noviembre de 2026 (468): Deuda › Préstamo para saldar; novena auditoría (53 funciones y plan para recalcular la previsión hasta 2036); despliegue de #617
+
+- **Despliegue de #617** (`main` `1c32f46`): «Verify and deploy Pages», ejecución **1410**, salió sola con el push y terminó en verde a las 13:46Z del 14/11 (verify 52 min, deploy 15 s). «Published availability» **339** (a mano), en verde; la programada **338** (13:32Z) también.
+- **#618 fusionado** por squash a las 14:22Z del 14/11 (`main` `1c32f46` → `ff14a48`), con su CI en verde (ejecución 1412, `verify` 13:17–14:21Z). Su despliegue y su «Published availability» se anotan en el próximo PR.
+- **Peticiones del hogar (14/11):**
+  1. «Analiza la app de manera crítica… más de 40 funciones nuevas… previsiones y actualización de datos… inversiones, deuda actual y nueva».
+  2. Recalcular las previsiones hasta 2036: el libro de origen no tenía gasto variable, solo fijos y suscripciones; las suscripciones se pagan con la Mastercard Carrefour. «Me lo propones y ejecutamos».
+  3. Un plan agresivo de saldo de deuda con un préstamo que pediría un miembro del hogar (condiciones del pantallazo de un simulador bancario), en una sección ligada a Deuda, para verlo en pareja y con los parámetros editables.
+- **Qué se hace:**
+  - **Deuda › Préstamo** (`#deuda-prestamo`, quinta pestaña entre Comparar y Contratos):
+    - `canonical-loan-payoff-plan.js` (nuevo, puro): `loanTerms` (cuota francesa redondeada como el banco, intereses = cuota × plazo − capital, TAE como TIR sobre lo recibido con la comisión de apertura) y `plan` (qué cancela: por defecto solo lo más caro que la TAE, de mayor a menor, la última en parte; a mano, lo elegido; sobrante y capital que bastaría; cuatro caminos con el motor de «Camino a deuda cero»: hoy, con préstamo, plan agresivo y mismo esfuerzo sin préstamo; política de deuda; avisos). La hipoteca, fuera por defecto.
+    - `canonical-debt-payoff-path.js`: opción `redirectFreed` (bola de nieve: desde el mes siguiente a saldar una deuda, su cuota va a la siguiente) y `extraApplied` por fila. Sin la opción, el resultado es idéntico (prueba de igualdad).
+    - `prestamo-deuda-ui.js` y `prestamo-deuda.css`: controles fijos en `index.html` (no se repintan), resultado en `#prestamoResultado`; condiciones recordadas con `storageKey("deuda-prestamo-saldar")`, que viaja en la copia (`BACKUP_LOCAL_STORES`). De `Taller.png` la política con ✓/✕ y «Probar a 60 meses»; la oferta imita el simulador del banco. Sin nada que cancelar, solo la oferta, el porqué y la elección (comparar caminos sería pedir dinero para dejarlo parado).
+    - Cableado: `views/deuda.js` (pestaña, flujo y `renderDeudaPrestamo`), `app.js` (+11 líneas, 32.086 de 32.203: vista, trozo diferido, cabecera «Deuda · Préstamo», naturaleza «simulación», `case`, clave de la copia; `views/deuda.js?v=20261114pre1`), menú avanzado, lanzador (`e17-experience.js`), sitio publicado, service worker y Novedades.
+    - Gobierno: `docs/gobierno/superficie.json` con `#deuda-prestamo: 4` y una excepción fechada (+4, petición expresa del hogar).
+  - **Novena auditoría** (`docs/PROPUESTA_NOVENA_AUDITORIA_2026-11-14.md`, propuesta): diagnóstico crítico (la previsión ha estado sesgada al alza; superficie; el cuello de botella es clasificar; Deuda e Inversión sin una respuesta), lo que hay que comprobar antes de pedir el préstamo (finalista «coche ecológico», titularidad y CIRBE, seguro, comisión por amortizar antes, recaída, posible usura de una revolving), **el plan para recalcular la previsión hasta 2036** (método en 7 pasos con backtest y criterio ≤ 10 %; asistente de 4 pasos; opciones A y B; choque con D-N11) y **53 funciones** en 9 áreas, con lo que no hacer y la secuencia de 90 días. Decisiones nuevas para el hogar: **D-N12** (recálculo; sobre todo si la Mastercard Carrefour se paga entera o aplazada), **D-N13** (tipo de préstamo y TIN real), **D-N14** (orden de las 12 primeras) y **D-N15** (retiradas).
+  - ESTADO §2 (fila nueva) y §8 (nota del 14/11); §0 del backlog de noviembre.
+- **No se hace (y por qué):**
+  - El recálculo de la previsión: el hogar pidió proponerlo antes de ejecutarlo, y D-N11 dice «sin previsión nueva hasta el 4/12». Espera a D-N12.
+  - No es el rediseño de Deuda (D3, tras NTC-05): no rehace pestañas ni añade motor.
+- **Límites, dichos en la pantalla:** sin seguros ni vinculaciones en la TAE; las deudas actuales con su capital, cuota y TAE declarados, sin cambios de tipo; la comisión por amortizar antes solo si se declara; sin ingresos no se juzga el ratio.
+- **Pruebas:**
+  - `tests/pre-prestamo-saldar.test.cjs` (17): las cifras del banco, TAE con comisión, TIN 0, rangos, selección automática y a mano, cancelación parcial, sin nada que cancelar, paridad de «hoy» con Camino, plan agresivo y mismo esfuerzo, política a 60 meses, ratio solo con ingresos, comisión por amortizar antes, `redirectFreed` sin cambio por defecto, cableado y reglas del rediseño.
+  - Actualizadas: `d1-d2-deuda-tabs-contratos` (cinco pestañas), `nav1`, `navigation-structure` (26 y 44 enlaces), `arq3` (128 motores).
+  - e2e «Deuda › Préstamo para saldar» en `qa1` (1280 y 390 px, `@safari`) y axe completo con contraste en claro y oscuro en `opt4`; inventario de superficie regenerado con la e2e de XGO-01.
+- **Validación:** `npm run verify` 6.626/6.626 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e «Deuda › Préstamo para saldar» 2 de 2 y XGO-01 en verde; axe de la pestaña 2 de 2.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (467): #617 publicado; el extracto del hogar dice que los movimientos estaban al día y que lo atascado es clasificar
 
 - **#617 fusionado** a las 12:53:31Z por squash (`main` `99aed85` → **`1c32f46`**), con el CI de su cabeza `9668cb7` en verde (ejecución 1409, `verify` de 12:00:42Z a 12:52:58Z; `deploy` se salta en los PR).

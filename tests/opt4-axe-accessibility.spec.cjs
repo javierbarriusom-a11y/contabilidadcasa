@@ -76,6 +76,30 @@ test.describe("OPT-4 · axe-core contra las pantallas de QA-1", () => {
   }
 });
 
+// Deuda › Préstamo para saldar (14/11/2026): axe entero (contraste incluido) dentro de la pestaña, en claro y en oscuro, con una cartera
+// INVENTADA que cancela algo (así se ven la política con ✓/✕, los cuatro caminos, el gráfico y el calendario).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Deuda › Préstamo · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deuda-prestamo: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.goto("/index.html#deuda-prestamo");
+      await expect(page.locator("#prestamoResultado .pre-oferta")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const cartera = [
+          { id: "t", entity: "Entidad T", type: "Tarjeta revolving", paymentStatus: "active", currentPrincipal: 4200, currentPayment: 150, apr: 21.84 },
+          { id: "c", entity: "Entidad C", type: "Préstamo consumo", paymentStatus: "active", currentPrincipal: 9000, currentPayment: 260, apr: 12.5 },
+          { id: "a", entity: "Entidad A", type: "Financiación coche", paymentStatus: "active", currentPrincipal: 6000, currentPayment: 320, apr: 7.9 },
+        ];
+        window.escenarioMotorDebtOptions = () => cartera;
+        renderPrestamoDeuda(FinanceCanonicalLoanPayoffPlan, cartera);
+      });
+      await expect(page.locator("#prestamoResultado .pre-camino")).toHaveCount(4);
+      const results = await new AxeBuilder({ page }).include("#deuda-prestamo").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // WP-28 / WP-16: las tablas «Ver como tabla» del kit de gráficos. En modo oscuro, una regla global de styles.css (`tbody tr:nth-child(even)
 // { background: #fafbfc }`) dejaba texto claro sobre casi blanco (1,12:1) y nadie lo vio porque el contraste queda fuera de la suite de arriba.
 // Aquí SÍ se mide, solo en lo que es del kit, en claro y en oscuro, con el cono de Escenarios y la banda de caja de Previsión.

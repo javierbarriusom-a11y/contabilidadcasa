@@ -8,6 +8,8 @@
  * Convenciones que la tarjeta dice en voz alta:
  *  - Las cuotas que se liberan al saldar una deuda NO se redirigen: solo el extra pasa de una deuda a la siguiente. Es la lectura
  *    conservadora y la que hace que «extra 0» sea exactamente el calendario actual.
+ *  - Con `redirectFreed: true` (14/11, plan agresivo de Deuda › Préstamo) sí se redirigen: desde el mes siguiente al de saldar una
+ *    deuda, su cuota se suma al extra y va a la siguiente del orden (bola de nieve). Sin la opción, el resultado no cambia.
  *  - No incluye comisiones de amortización anticipada ni cambios de tipo en deudas variables.
  *  - Una deuda sin cuota activa, o sin TAE ni plazo del que deducirlo, NO entra en la cuenta (dato ausente no es cero) y se lista.
  *
@@ -102,7 +104,7 @@
 
   /**
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (id, entity, type, paymentStatus, currentPrincipal, currentPayment, apr, remainingInstallments)
-   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[]}} [options]
+   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean}} [options]
    */
   function project(contracts, options = {}) {
     const extra = options.extraMonthly === undefined ? 0 : (typeof options.extraMonthly === "number" ? options.extraMonthly : NaN);
@@ -110,6 +112,7 @@
     if (!monthKeyOk(options.startMonthKey)) return { ok: false, error: "Falta el mes de partida." };
     const startMonthKey = options.startMonthKey;
     const strategy = STRATEGIES.includes(options.strategy) ? options.strategy : "avalancha";
+    const redirectFreed = options.redirectFreed === true;
 
     const included = [];
     const excluded = [];
@@ -122,13 +125,14 @@
     const ordered = orderOf(included, strategy, options.order);
     const excludedPrincipal = round2(excluded.reduce((sum, row) => sum + row.principal, 0));
 
-    const state = ordered.map((row) => ({ row, balance: row.principal, interest: 0, paid: 0, payoffIndex: null, stalled: false }));
+    const state = ordered.map((row) => ({ row, balance: row.principal, interest: 0, paid: 0, extraApplied: 0, payoffIndex: null, stalled: false }));
     const series = [];
     let firstTarget = null;
     let month = 0;
     for (; month < MAX_MONTHS; month += 1) {
       if (!state.some((entry) => entry.payoffIndex === null)) break;
-      let pool = extra;
+      const freed = redirectFreed ? state.reduce((sum, entry) => sum + (entry.payoffIndex !== null && entry.payoffIndex < month ? entry.row.payment : 0), 0) : 0;
+      let pool = round2(extra + freed);
       state.forEach((entry) => {
         if (entry.payoffIndex !== null) return;
         const interest = round2(entry.balance * entry.row.monthlyRate);
@@ -144,6 +148,7 @@
         if (!firstTarget && applied > 0) firstTarget = { id: entry.row.id, label: entry.row.label, aprPct: entry.row.aprPct };
         entry.balance = round2(entry.balance - applied);
         entry.paid = round2(entry.paid + applied);
+        entry.extraApplied = round2(entry.extraApplied + applied);
         pool = round2(pool - applied);
       });
       state.forEach((entry) => {
@@ -158,7 +163,7 @@
     if (!firstTarget && ordered.length) firstTarget = { id: ordered[0].id, label: ordered[0].label, aprPct: ordered[0].aprPct };
 
     // El plazo declarado se compara siempre con el calendario SIN extra: con extra el plazo se acorta a propósito y no es un desajuste.
-    const baseline = extra > 0 ? project(contracts, { ...options, extraMonthly: 0 }) : null;
+    const baseline = extra > 0 || redirectFreed ? project(contracts, { ...options, extraMonthly: 0, redirectFreed: false }) : null;
     const baselineRows = new Map((baseline ? baseline.included : []).map((row) => [row.id, row]));
     const rows = state.map((entry) => {
       const own = baseline ? null : entry.payoffIndex;
@@ -174,6 +179,7 @@
         payoffIndex: entry.payoffIndex,
         payoffMonthKey: entry.payoffIndex === null ? null : addMonths(startMonthKey, entry.payoffIndex),
         interest: entry.interest,
+        extraApplied: entry.extraApplied,
         stalled: entry.stalled && entry.payoffIndex === null,
         declaredInstallments: entry.row.installments || null,
         declaredGapMonths,
@@ -192,6 +198,7 @@
       startMonthKey,
       extraMonthly: round2(extra),
       strategy,
+      redirectFreed,
       included: rows,
       excluded,
       excludedPrincipal,

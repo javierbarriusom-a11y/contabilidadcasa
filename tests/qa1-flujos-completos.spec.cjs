@@ -2075,6 +2075,62 @@ test.describe("WP-19 · camino a deuda cero", () => {
   });
 });
 
+// Deuda › Préstamo para saldar (14/11/2026, petición del hogar). Tarjeta INVENTADA dada de alta en Contratos; las condiciones son las
+// del simulador del banco que enseñó el hogar (16.500 €, 72 meses, 8,50 % → 293,34 €, TAE 8,84 %; a 60 meses, 338,52 €).
+test.describe("Deuda › Préstamo para saldar", () => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`cancela lo más caro, cumple la política a 60 meses, se elige a mano y se recuerda (${viewport.width} px)`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.fill("#deudaContratosAddEntity", "Tarjeta Prueba");
+      await page.selectOption("#deudaContratosAddType", "Préstamo");
+      await page.fill("#deudaContratosAddPrincipal", "4000");
+      await page.fill("#deudaContratosAddApr", "21");
+      await page.fill("#deudaContratosAddPayment", "150");
+      await page.fill("#deudaContratosAddInstallments", "36");
+      await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+      await page.evaluate(() => { location.hash = "#deuda-prestamo"; });
+      const result = page.locator("#prestamoResultado");
+      await expect(result.locator(".pre-cuota")).toHaveText("293,34 €", { timeout: 15000 });
+      await expect(result.locator(".pre-tipos")).toContainText("8,84 %");
+      await expect(result.locator(".pre-total")).toContainText("21.120,48 €");
+      await expect(page.locator("#deudaPrestamoScreenTabs .is-active")).toContainText("Préstamo");
+      const tarjeta = result.locator(".pre-deuda", { hasText: "Tarjeta Prueba" });
+      await expect(tarjeta).toContainText("se cancela entera");
+      await expect(result.locator(".pre-veredicto")).toContainText("Plan agresivo");
+      await expect(result.locator(".pre-camino")).toHaveCount(4);
+
+      // La política marca el plazo de 6 años y lo arregla en un toque.
+      await result.locator("[data-prestamo-fix-months]").click();
+      await expect(page.locator("#prestamoPlazo")).toHaveValue("60");
+      await expect(result.locator(".pre-cuota")).toHaveText("338,52 €");
+      await expect(result.locator("[data-prestamo-fix-months]")).toHaveCount(0);
+
+      // Elegir a mano: desmarcar la tarjeta deja el préstamo sin nada que cancelar, y se dice.
+      await tarjeta.locator("input[type=checkbox]").uncheck();
+      await expect(result).toContainText("Elegidas a mano");
+      await expect(result.locator(".pre-veredicto")).toContainText("no cancela ninguna deuda");
+      await result.locator("[data-prestamo-auto]").click();
+      await expect(result.locator(".pre-deuda", { hasText: "Tarjeta Prueba" })).toContainText("se cancela entera");
+
+      // Las condiciones se recuerdan en este navegador.
+      await page.fill("#prestamoTin", "7");
+      await expect(result.locator(".pre-tipos")).toContainText("7,00 %");
+      await page.reload();
+      await expect(page.locator("#prestamoPlazo")).toHaveValue("60", { timeout: 15000 });
+      await expect(page.locator("#prestamoTin")).toHaveValue("7");
+
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // WP-31 (PR-1): nóminas y retenciones acumuladas en Herramientas avanzadas › Fiscal. Nóminas INVENTADAS; las reales las apunta el hogar y no van al repositorio.
 test.describe("WP-31 · nóminas y retenciones", () => {
   test("apunta nóminas, avisa de los meses que faltan y del cambio de %, lee un texto sin guardarlo y pasa la suma al estimador", async ({ page }) => {

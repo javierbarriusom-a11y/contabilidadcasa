@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-14-prestamo-saldar",
+      fecha: "2026-11-14",
+      texto: "Deuda › Préstamo: simulad un préstamo para cancelar lo más caro y un plan agresivo, frente a pagar lo mismo sin pedirlo.",
+      href: "#deuda-prestamo",
+    },
+    {
       id: "2026-11-13-recordatorio-repaso",
       fecha: "2026-11-13",
       texto: "Recordatorios del calendario: un aviso cada domingo para el repaso semanal (unos 5 min). Volved a descargar el fichero en Ajustes.",

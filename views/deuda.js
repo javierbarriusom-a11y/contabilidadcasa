@@ -1126,12 +1126,14 @@ function handleDeudaRutaApply() {
 const DEUDA_SCREEN_TABS = [
   { id: "deuda-ruta", label: "Ruta" },
   { id: "deuda-comparar", label: "Comparar" },
+  { id: "deuda-prestamo", label: "Préstamo" },
   { id: "deuda-contratos", label: "Contratos" },
   { id: "deuda-simulador", label: "Simulador visual" },
 ];
 const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-ruta": "deudaRutaScreenTabs",
   "deuda-comparar": "deudaCompararScreenTabs",
+  "deuda-prestamo": "deudaPrestamoScreenTabs",
   "deuda-contratos": "deudaContratosScreenTabs",
   "deuda-simulador": "deudaSimuladorScreenTabs",
 };
@@ -1167,6 +1169,7 @@ function renderDeudaScreenTabs(activeId) {
 const DEUDA_FLOW_NAV_IDS = {
   "deuda-ruta": "deudaRutaFlowNav",
   "deuda-comparar": "deudaCompararFlowNav",
+  "deuda-prestamo": "deudaPrestamoFlowNav",
   "deuda-contratos": "deudaContratosFlowNav",
   "deuda-simulador": "deudaSimuladorFlowNav",
 };
@@ -1707,6 +1710,14 @@ function handleDeb6Simulate() {
 // D-15 · el simulador visual promovido desde «Herramientas avanzadas» a pestaña de Deuda: al
 // entrar en la pestaña se reenvía el estado canónico al iframe por si los contratos cambiaron
 // desde la última vez que se cargó (alta/edición en Contratos, nueva ruta en Ruta/Comparar).
+// Deuda › Préstamo para saldar (14/11/2026): la pinta prestamo-deuda-ui.js con canonical-loan-payoff-plan.js, sobre los mismos
+// contratos que «Camino a deuda cero» (escenarioMotorDebtOptions). Simulación: no escribe nada (A11-4).
+function renderDeudaPrestamo() {
+  renderDeudaScreenTabs("deuda-prestamo");
+  renderDeudaFlowNav("deuda-prestamo");
+  globalThis.renderPrestamoDeuda?.(globalThis.FinanceCanonicalLoanPayoffPlan, escenarioMotorDebtOptions());
+}
+
 function renderDeudaSimulador() {
   renderDeudaScreenTabs("deuda-simulador");
   renderDeudaFlowNav("deuda-simulador");

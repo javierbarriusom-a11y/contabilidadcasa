@@ -202,6 +202,7 @@ const HEAVY_RENDER_VIEWS = new Set([
   "presupuesto-mes",
   "deuda-comparar",
   "deuda-ruta",
+  "deuda-prestamo",
   "deuda-contratos",
   "deuda-simulador",
   "inversion-cartera",
@@ -230,10 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-ruta" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261109lim10", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -615,6 +617,10 @@ const viewTitles = {
   "deuda-ruta": {
     eyebrow: "Deuda · Ruta",
     title: "Ruta de deuda",
+  },
+  "deuda-prestamo": {
+    eyebrow: "Deuda · Préstamo",
+    title: "Saldar la deuda con un préstamo",
   },
   "deuda-contratos": {
     eyebrow: "Deuda · Contratos",
@@ -1372,6 +1378,7 @@ const BACKUP_LOCAL_STORES = [
   "escenario-motor-custom-types", // E-1b: tipos de decisión propios
   "new-life-definitive", // Nueva vida definitiva: configuración elegida
   "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
+  "deuda-prestamo-saldar", // Deuda › Préstamo para saldar: condiciones simuladas
   "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
@@ -4329,6 +4336,7 @@ const UX2_VIEW_NATURE = {
   "escenario-comparar": "simulation",
   "deuda-comparar": "simulation",
   "deuda-simulador": "simulation",
+  "deuda-prestamo": "simulation",
   forecast: "simulation",
   prevision: "simulation",
   simulator: "simulation",
@@ -30533,6 +30541,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
       globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20 (revision-tipo-ui.js)
       globalThis.renderCirbe?.(globalThis.FinanceCanonicalCirbe); // WP-40 (cirbe-ui.js)
       globalThis.renderDeudaSombra?.(globalThis.FinanceCanonicalShadowDebt); // WP-41 (sombra-ui.js)
+      break;
+    case "deuda-prestamo":
+      renderDeudaPrestamo();
       break;
     case "deuda-simulador":
       renderDeudaSimulador();

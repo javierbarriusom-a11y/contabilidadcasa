@@ -44,6 +44,7 @@
     { target: "escenario-guardados", label: "Escenario · guardados", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
     { target: "deuda-ruta", label: "Plan de deuda · ruta", group: "main", keywords: "deuda ruta plan libre nuevo e20" },
+    { target: "deuda-prestamo", label: "Préstamo para saldar la deuda", group: "analysis", keywords: "deuda prestamo personal saldar cancelar reunificar consolidar agresivo cuota tae tin plazo" },
     { target: "deuda-contratos", label: "Contratos de deuda", group: "analysis", keywords: "deuda contratos capital tae cuota editar corregir nuevo e20 d-2" },
     { target: "deuda-simulador", label: "Simulador visual de deuda", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
     // I1 (Contabilidadcasa 2.0): hub único de Inversión, mismo patrón de pestañas que Deuda —
