@@ -83,6 +83,19 @@ test("la prueba contra el pasado compara el método con lo previsto: aquí lo pr
   assert.equal(r.backtest.method.n, MESES.length - R.DEFAULTS.minMonths);
 });
 
+test("lo que más pesa: los conceptos del variable de los meses de la base, con su media al mes; la tarjeta como una línea", () => {
+  const r = R.recalibrate(hogar(), { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  assert.equal(r.topConcepts[0].label, "MERCADONA");
+  assert.equal(r.topConcepts[0].unclassified, true);
+  assert.ok(r.topConcepts[0].perMonth > 800 && r.topConcepts[0].perMonth < 830, `súper ${r.topConcepts[0].perMonth}`);
+  const tarjeta = r.topConcepts.find((row) => row.card);
+  assert.equal(tarjeta.perMonth, 300);
+  assert.equal(tarjeta.months, 12);
+  assert.ok(!r.topConcepts.some((row) => row.label === "GIMNASIO"), "lo repetido sin partida no está en el variable");
+  assert.ok(!r.topConcepts.some((row) => row.label === "TALLER"), "lo extraordinario tampoco");
+  assert.ok(r.topConcepts.length <= 10);
+});
+
 test("con menos de 6 meses completos no se mide (y se dice cuántos hay)", () => {
   const r = R.recalibrate(hogar(), { completeMonths: MESES.slice(0, 4) });
   assert.equal(r.gate.ok, false);
@@ -124,9 +137,18 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.match(html, /<script defer src="canonical-variable-recalibration\.js\?v=\w+"><\/script>/);
   assert.match(build, /"canonical-variable-recalibration\.js",/);
   assert.match(sw, /"\.\/canonical-variable-recalibration\.js",/);
-  assert.match(vista, /\$\{previsionV2GastoVariableHtml\(isoLocalDate\(new Date\(\)\)\)\}/);
+  // 14/11 (el hogar no la encontraba): tarjeta propia en Previsión, no dentro de la hoja de la insignia.
+  assert.match(vista, /\$\{previsionV2GastoVariableHtml\(today\)\}\s*\n\s*\$\{previsionV2AnualHtml\(/);
+  const hoja = vista.slice(vista.indexOf("function previsionV2ConfianzaHojaHtml("), vista.indexOf("function previsionV2ConfianzaHojaHtml(") + 3000);
+  assert.doesNotMatch(hoja, /previsionV2GastoVariableHtml/);
   const bloque = vista.slice(vista.indexOf("function previsionV2GastoVariable("), vista.indexOf("function previsionV2ConfianzaHojaHtml("));
   assert.doesNotMatch(bloque, /seriesOverrides\s*\[|saveSeriesOverrides|saveScenarioSettings|storageSet/, "solo mide");
+  // Nunca en blanco: sin motor, sin movimientos o con un fallo, una línea que lo dice.
+  assert.match(bloque, /value = \{ error: String\(error\?\.message/);
+  assert.match(bloque, /no se ha podido medir/);
+  assert.match(bloque, /importa los extractos de vuestras cuentas para medirlo/);
+  assert.match(bloque, /Lo que más pesa/);
+  assert.match(bloque, /<summary>Qué hay dentro<\/summary>/);
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
   // D-N12, pregunta 1 (hogar, 14/11): «la Mastercard la pagamos entera, NO revolving». Ya no es un supuesto pendiente.

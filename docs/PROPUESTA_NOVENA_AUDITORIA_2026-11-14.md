@@ -16,8 +16,10 @@
    con una cifra fija (1.750 €/mes desde junio, por migración) que nadie ha contrastado con lo real, sin estacionalidad ni
    gastos irregulares. Todo lo que se apoya en la previsión —fecha de deuda cero, colchón, «Hasta 2036», escenarios,
    guardarraíles de amortizar o invertir— depende de que esa cifra sea buena. Antes de construir nada más sobre la previsión,
-   hay que **medirla** (hecho el 14/11, §1.1) y recalcularla si no cuadra (§3). *Corregido el 14/11 por la tarde: la primera
-   versión decía «sin gasto variable», y no es así en la app.*
+   hay que **medirla** (hecho el 14/11, §1.1) y recalcularla si no cuadra (§3). *Corregido el 14/11 por la tarde y vuelto a
+   corregir por la noche: la migración de 1.750 € existe en el código, pero **en el plan del hogar no se aplicó**; la primera
+   medición con sus datos dice que la fila de variable del plan está prácticamente a cero. El diagnóstico del hogar («no se
+   tenía en cuenta ningún gasto variable») era el correcto.*
 2. **La app tiene más superficie de la que el hogar puede usar:** unas 60 entradas de menú (11 de ellas «versiones anteriores»),
    128 motores, `app.js` con 32.000 líneas. El cuello de botella real, medido, es meter y clasificar datos (71 % con partida;
    objetivo 95 %; 5 de 7 grupos de noviembre sin propuesta). Cada función nueva que no ataque eso compite por los mismos 10
@@ -48,7 +50,14 @@ otros gastos) y deja fuera la liquidación de la Mastercard. Así que el problem
 - **nadie sabe si se queda corta o larga.** Desde el 14/11, la hoja «Por qué la confianza es…» de Plan › Previsión lo mide
   (§3, primera parte). Si se queda corta, todo lo de abajo sale optimista; si se queda larga, pesimista.
 
-Si la cifra se quedara corta, las consecuencias, en orden de gravedad:
+**Segunda corrección, 14/11 por la noche, con la primera medición en los datos del hogar (sin importes aquí):** lo previsto en
+la fila de variable de los últimos meses es **prácticamente cero**: la migración de los 1.750 € no llegó a su plan (se salta
+cuando la fila ya tiene cifras propias). Es decir, en su previsión real el gasto variable **no está**, como dijo el hogar. Y lo
+medido como real sale **muy alto**, probablemente con cosas que no son consumo (traspasos a cuentas que no están en la app,
+préstamos o recibos sin partida, pagos anuales): la tarjeta enseña desde ahora «Lo que más pesa» para depurarlo antes de
+recalcular nada.
+
+Como la cifra se queda corta, las consecuencias, en orden de gravedad:
 
 | Lo que dice la app | Por qué está mal | Efecto |
 |---|---|---|
