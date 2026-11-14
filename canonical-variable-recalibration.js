@@ -170,8 +170,9 @@
         month: month.month,
         outflows: month.sum(month.all),
         transfers: month.sum(month.all.filter(transfer)),
-        fixed: month.sum(month.all.filter((item) => !transfer(item) && fixed(item))),
-        debt: month.sum(month.all.filter((item) => !transfer(item) && !fixed(item) && debt(item))),
+        // Una liquidación de tarjeta con partida de Financiaciones («Financie-octubre») es tarjeta, no cuota: no cuenta aquí.
+        fixed: month.sum(month.all.filter((item) => !transfer(item) && !card(item) && fixed(item))),
+        debt: month.sum(month.all.filter((item) => !transfer(item) && !card(item) && !fixed(item) && debt(item))),
         cardSettlement: month.settlement,
         cardSubscriptions: month.subscriptions,
         cardPurchases: month.cardPurchases,

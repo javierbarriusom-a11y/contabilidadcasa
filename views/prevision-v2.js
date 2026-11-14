@@ -1382,7 +1382,9 @@ function previsionV2TareaAccion(task) {
 // Lee los movimientos importados con la partida y el tipo de acción que ya tienen, la fila de cada tarjeta (Ajustes › Tarjetas)
 // y lo previsto en «Gasto variable estimado» más las asignaciones personales, que salen de él.
 
-const PREVISION_V2_TARJETA_LIQUIDACION = /master basica|servicios financieros carrefour|financiera carrefour|tarjeta carrefour|pass carrefour/;
+// 14/11/2026, extracto del hogar: las dos tarjetas Carrefour se liquidan en CaixaBank como «Financie-<mes>» («Financie-octubre»).
+// Ese concepto suele tener partida de Financiaciones: sin reconocerlo, la medición lo tomaba por una cuota y lo dejaba fuera del variable.
+const PREVISION_V2_TARJETA_LIQUIDACION = /master basica|servicios financieros carrefour|financiera carrefour|tarjeta carrefour|pass carrefour|\bfinancie[-\s]?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b/;
 const PREVISION_V2_SUSCRIPCION = /netflix|hbo|\bmax\b|spotify|apple|icloud|disney|prime video|amazon prime|youtube|dazn|movistar\+|filmin|skyshowtime|suscrip/;
 let previsionV2VariableCache = { key: "", value: null };
 
@@ -1404,9 +1406,13 @@ function previsionV2GastoVariable(today) {
   let value = null;
   try {
     const cardRows = new Set((typeof loadCardCycles === "function" ? loadCardCycles().cards : []).map((card) => card.rowKey).filter(Boolean));
+    // Las filas del plan que reciben las liquidaciones de tarjeta: las de Ajustes › Tarjetas y aquellas a las que el hogar ha llevado
+    // un cargo reconocido como liquidación. Lo que el plan prevé en ellas también es consumo previsto (se compara con lo real).
+    const cardPlanRows = new Set(cardRows);
     const movements = transactions.map((row) => {
       const mapping = mappingForMovement(row);
       const text = normalizedText(`${row.movement || ""} ${row.details || ""}`);
+      if (mapping && PREVISION_V2_TARJETA_LIQUIDACION.test(text)) cardPlanRows.add(seriesKeyForRow(mapping.row));
       return {
         date: row.date,
         amount: Number(row.amount || 0),
@@ -1424,14 +1430,24 @@ function previsionV2GastoVariable(today) {
     const variableRow = variableOperationalPlanningRow();
     const expenseRows = (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === "expense").flatMap((section) => section.rows || []);
     const plannedByMonth = {};
+    const plannedVariableByMonth = {};
+    const plannedCardByMonth = {};
     const subscriptionsByMonth = {};
+    const cardRowsInPlan = expenseRows.filter((row) => cardPlanRows.has(seriesKeyForRow(row)));
     planMonths.forEach((month) => {
-      if (variableRow) plannedByMonth[month.key] = round2(plannedValueForRow(variableRow, month) + personalAllowanceTotal(month));
+      if (!variableRow) return;
+      plannedVariableByMonth[month.key] = round2(plannedValueForRow(variableRow, month) + personalAllowanceTotal(month));
+      plannedCardByMonth[month.key] = round2(cardRowsInPlan.reduce((sum, row) => sum + plannedValueForRow(row, month), 0));
+      plannedByMonth[month.key] = round2(plannedVariableByMonth[month.key] + plannedCardByMonth[month.key]);
       subscriptionsByMonth[month.key] = round2(expenseRows.filter((row) => PREVISION_V2_SUSCRIPCION.test(normalizedText(displayLabelForRow(row)))).reduce((sum, row) => sum + plannedValueForRow(row, month), 0));
     });
     const completeMonths = engine.completeMonthsFrom(movements, today);
     // «La Mastercard la pagamos entera, NO revolving» (hogar, 14/11/2026, D-N12 pregunta 1): modo «total».
     value = engine.recalibrate(movements, { completeMonths, plannedByMonth, subscriptionsByMonth, cardMode: "total", startMonthKey: engine.addMonths(today.slice(0, 7), 1) });
+    // Para decir de dónde sale lo previsto: la fila de variable (con las asignaciones) y las filas de las tarjetas, en los mismos meses.
+    const comparados = value.rows.slice(-12).map((row) => row.month).filter((month) => month in plannedByMonth);
+    const media = (map) => (comparados.length ? round2(comparados.reduce((sum, month) => sum + (map[month] || 0), 0) / comparados.length) : null);
+    value = { ...value, plannedVariableAverage: media(plannedVariableByMonth), plannedCardAverage: media(plannedCardByMonth), cardPlanRows: cardRowsInPlan.length };
   } catch {
     value = null; // sin medición antes que una medición equivocada
   }
@@ -1449,7 +1465,11 @@ function previsionV2GastoVariableHtml(today) {
   if (!m.gate.ok) {
     return `<p class="prev-v2-variable prev-v2-variable-pendiente">Gasto variable previsto frente a real: hacen falta ${m.gate.minMonths} meses completos de extracto y hay ${m.gate.months}.</p>`;
   }
-  const previsto = m.plannedAverage !== null ? money(m.plannedAverage) : "sin dato";
+  const previsto = m.plannedAverage === null
+    ? "sin dato"
+    : m.plannedCardAverage > 0
+      ? `${money(m.plannedAverage)} (${money(m.plannedVariableAverage)} de gasto variable y ${money(m.plannedCardAverage)} en ${m.cardPlanRows === 1 ? "la fila de la tarjeta" : "las filas de las tarjetas"})`
+      : `${money(m.plannedAverage)} (las tarjetas no tienen previsto propio en el plan)`;
   const diferencia = m.gap === null ? "" : m.gap > 0
     ? ` Lo real supera lo previsto en ${money(m.gap)} al mes.`
     : m.gap < 0 ? ` Lo real queda ${money(-m.gap)} al mes por debajo de lo previsto.` : " Coinciden.";
@@ -1467,7 +1487,7 @@ function previsionV2GastoVariableHtml(today) {
       <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
       ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
       <details class="prev-v2-variable-detalle"><summary>Cómo se ha medido</summary>
-        <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11), así que de su liquidación vuelve al variable lo que no son suscripciones. Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
+        <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11), así que de su liquidación («Financie-octubre», «Master básica»…) vuelve al variable lo que no son suscripciones; por eso lo previsto suma también lo que el plan reserva en las filas de las tarjetas (si esas filas ya incluyen las suscripciones, lo previsto sale un poco alto). Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
         <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Gasto variable medido por mes</caption>
           <thead><tr><th scope="col">Mes</th><th scope="col">Variable</th><th scope="col">De la tarjeta</th><th scope="col">Repetidos sin partida</th><th scope="col">Extraordinario</th></tr></thead>
           <tbody>${filas}</tbody></table></div>

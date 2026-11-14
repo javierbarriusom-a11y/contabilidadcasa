@@ -187,7 +187,7 @@ expresamente que la previsión pasa por delante.
 |---|---|---|
 | Movimientos de CaixaBank de los últimos 12-13 meses | Importados (el Excel de 13 meses y el extracto del 7/8 al 12/11) | Salidas totales por mes |
 | Movimientos de Mediolanum y otras cuentas | Por confirmar cobertura en la tira de 90 días y en «Mes a mes» | Que no falte un mes en ninguna cuenta |
-| **Extracto de la Mastercard Carrefour** con el detalle de compras | Probablemente **no** importado: en la cuenta solo se ve la liquidación. Se paga entera cada mes (hogar, 14/11), así que basta con restar las suscripciones del ciclo | Separar suscripciones de compras dentro de la liquidación (exacto con el extracto; estimado sin él) |
+| **Extracto de la Mastercard Carrefour** con el detalle de compras | Probablemente **no** importado: en la cuenta solo se ve la liquidación, una por tarjeta con el concepto «Financie-<mes>» (hogar, 14/11). Se paga entera cada mes, así que basta con restar las suscripciones del ciclo | Separar suscripciones de compras dentro de la liquidación (exacto con el extracto; estimado sin él) |
 | Lista de suscripciones (Netflix, HBO Max, Spotify, Apple, …) con importe y día | Parcial en el plan | Colocarlas en la tarjeta y en su mes de cargo |
 | Día de corte y de cargo de la tarjeta (WP-30) | Por confirmar en Ajustes › Tarjetas | Mes en que cada compra sale de la cuenta |
 | Meses firmados | Octubre firmado | No se tocan: la historia firmada es intocable |
