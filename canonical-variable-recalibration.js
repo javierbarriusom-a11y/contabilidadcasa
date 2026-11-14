@@ -158,13 +158,25 @@
     }));
     const threshold = Math.max(opts.extraordinaryMin, typical * opts.extraordinaryShare);
     const extraordinary = [];
+    // Qué pesa en el variable (14/11/2026: la primera medición del hogar salió muy alta y hay que ver qué la infla): por concepto y
+    // mes, lo que queda en el variable; las compras con tarjeta, como una línea más.
+    const concepts = new Map();
+    const addConcept = (key, label, unclassified, month, amount) => {
+      const entry = concepts.get(key) || { conceptKey: key, label, unclassified, byMonth: {} };
+      entry.byMonth[month] = round2((entry.byMonth[month] || 0) + amount);
+      concepts.set(key, entry);
+    };
     const rows = perMonth.map((month) => {
       const normal = [];
       month.variableRows.forEach((item) => {
         const once = !item.row.conceptKey || (conceptMonths.get(item.row.conceptKey)?.size || 0) <= 1;
         if (once && -item.row.amount > threshold) extraordinary.push({ month: month.month, date: item.row.date, label: item.row.label || item.row.conceptKey || "", amount: round2(-item.row.amount) });
-        else normal.push(item);
+        else {
+          normal.push(item);
+          addConcept(item.row.conceptKey || item.row.label || "?", item.row.label || item.row.conceptKey || "", !item.row.block, month.month, -item.row.amount);
+        }
       });
+      if (month.cardPurchases > 0) addConcept("__tarjetas__", "Liquidaciones de tarjeta (sin suscripciones)", false, month.month, month.cardPurchases);
       const variable = round2(month.sum(normal) + month.cardPurchases);
       return {
         month: month.month,
@@ -185,7 +197,7 @@
       const items = rest.filter((item) => item.row.conceptKey === key).map((item) => item.row);
       return { conceptKey: key, label: items[0]?.label || key, months: new Set(items.map((row) => monthOf(row.date))).size, typical: round2(median(items.map((row) => -row.amount))) };
     }).sort((a, b) => b.typical - a.typical);
-    return { rows, extraordinary, recurring: recurringList, pairedTransfers: paired.size / 2, threshold: round2(threshold) };
+    return { rows, extraordinary, recurring: recurringList, pairedTransfers: paired.size / 2, threshold: round2(threshold), concepts: [...concepts.values()] };
   }
 
   /** Índices por mes del año (1…12), contraídos hacia 1 según cuántos años hay de ese mes, y normalizados a media 1. */
@@ -272,6 +284,12 @@
       seasonal,
       backtest,
       extraordinary: measured.extraordinary,
+      // Los 10 conceptos que más pesan en el variable de los meses de la base, con su media al mes y en cuántos aparecen.
+      topConcepts: measured.concepts.map((entry) => {
+        const months = recent.map((row) => row.month).filter((month) => entry.byMonth[month]);
+        const total = round2(months.reduce((sum, month) => sum + entry.byMonth[month], 0));
+        return { conceptKey: entry.conceptKey, label: entry.label, card: entry.conceptKey === "__tarjetas__", unclassified: entry.unclassified, total, perMonth: recent.length ? round2(total / recent.length) : 0, months: months.length };
+      }).filter((entry) => entry.total > 0).sort((a, b) => b.total - a.total).slice(0, 10),
       recurring: measured.recurring,
       pairedTransfers: measured.pairedTransfers,
       extraordinaryThreshold: measured.threshold,

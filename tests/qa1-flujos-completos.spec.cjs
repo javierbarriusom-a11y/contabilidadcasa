@@ -5995,8 +5995,13 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     await expect(medida).toContainText("Previsto: 1.750 €");
     await expect(medida).toContainText("Solo es una medición");
     await medida.locator("summary").click();
-    await expect(medida.locator("tbody tr")).toHaveCount(12);
-    await expect(medida.locator("tbody tr").last().locator("td").nth(1)).toHaveText("620 €"); // octubre: 420 € de una tarjeta + 200 € de «Financie-octubre»
+    // Lo que más pesa: primero el súper; las compras con tarjeta, como una línea más.
+    const pesa = medida.locator("table").first().locator("tbody tr");
+    await expect(pesa.first()).toContainText("COMPRA SUPERMERCADO EJEMPLO");
+    await expect(pesa.filter({ hasText: "Liquidaciones de tarjeta" })).toHaveCount(1);
+    const meses = medida.locator("table").last().locator("tbody tr");
+    await expect(meses).toHaveCount(12);
+    await expect(meses.last().locator("td").nth(1)).toHaveText("620 €"); // octubre: 420 € de una tarjeta + 200 € de «Financie-octubre»
     await expect(medida).toContainText("14 traspasos entre vuestras cuentas");
     await expect(medida).not.toContainText("parecen fijos");
     // Solo mide: lo previsto en la previsión sigue igual.

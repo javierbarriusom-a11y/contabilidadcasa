@@ -1484,6 +1484,14 @@ function previsionV2GastoVariableHtml(today) {
   if (m.backtest.planned.n) errores.push(`con lo previsto, la cifra de cada mes se desvió un ${previsionV2Pct(m.backtest.planned.mape)} de media (${m.backtest.planned.n} ${m.backtest.planned.n === 1 ? "mes" : "meses"})`);
   if (m.backtest.method.n) errores.push(`midiendo con los meses anteriores, un ${previsionV2Pct(m.backtest.method.mape)} (${m.backtest.method.n})`);
   const mes = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+  // Lo que más pesa (14/11: la primera medición del hogar salió muy alta): para ver si dentro hay traspasos, préstamos o impuestos.
+  const pesa = (m.topConcepts || []).map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${money(row.perMonth)}</td><td>${row.months}</td><td>${row.card ? "tarjeta" : row.unclassified ? "sin partida" : "variable"}</td></tr>`).join("");
+  const pesaHtml = pesa
+    ? `<p class="e19-kpi-note"><strong>Lo que más pesa</strong> (media al mes de los últimos ${m.gate.months > 12 ? 12 : m.gate.months} meses). Si algo no es gasto (un traspaso a una cuenta que no está en la app, un préstamo, un impuesto o un seguro anual), dale su partida o su tipo de acción en Movimientos y la medición lo quitará.</p>
+        <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Lo que más pesa en el gasto variable</caption>
+          <thead><tr><th scope="col">Concepto</th><th scope="col">Al mes</th><th scope="col">Meses</th><th scope="col">Partida</th></tr></thead>
+          <tbody>${pesa}</tbody></table></div>`
+    : "";
   const filas = m.rows.map((row) => `<tr><th scope="row">${escapeHtml(mes(row.month))}</th><td>${money(row.variable)}</td><td>${money(row.cardPurchases)}</td><td>${money(row.recurringUnclassified)}</td><td>${money(row.extraordinary)}</td></tr>`).join("");
   const aparte = [];
   if (m.extraordinary.length) aparte.push(`${m.extraordinary.length} ${m.extraordinary.length === 1 ? "gasto extraordinario" : "gastos extraordinarios"} (más de ${money(m.extraordinaryThreshold)} y sin repetirse)`);
@@ -1493,7 +1501,9 @@ function previsionV2GastoVariableHtml(today) {
       <p class="e19-eyebrow" id="prevV2VariableTitulo">Gasto variable · previsto frente a real</p>
       <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
       ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
-      <details class="prev-v2-variable-detalle"><summary>Cómo se ha medido</summary>
+      <p class="e19-kpi-note">Antes de fiaros de la cifra real, mirad «Qué hay dentro»: si incluye traspasos, préstamos o pagos anuales, sale más alta de lo que de verdad se gasta.</p>
+      <details class="prev-v2-variable-detalle"><summary>Qué hay dentro</summary>
+        ${pesaHtml}
         <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11), así que de su liquidación («Financie-octubre», «Master básica»…) vuelve al variable lo que no son suscripciones; por eso lo previsto suma también lo que el plan reserva en las filas de las tarjetas (si esas filas ya incluyen las suscripciones, lo previsto sale un poco alto). Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
         <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Gasto variable medido por mes</caption>
           <thead><tr><th scope="col">Mes</th><th scope="col">Variable</th><th scope="col">De la tarjeta</th><th scope="col">Repetidos sin partida</th><th scope="col">Extraordinario</th></tr></thead>
