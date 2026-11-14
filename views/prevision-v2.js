@@ -1430,6 +1430,7 @@ function previsionV2GastoVariable(today) {
       subscriptionsByMonth[month.key] = round2(expenseRows.filter((row) => PREVISION_V2_SUSCRIPCION.test(normalizedText(displayLabelForRow(row)))).reduce((sum, row) => sum + plannedValueForRow(row, month), 0));
     });
     const completeMonths = engine.completeMonthsFrom(movements, today);
+    // «La Mastercard la pagamos entera, NO revolving» (hogar, 14/11/2026, D-N12 pregunta 1): modo «total».
     value = engine.recalibrate(movements, { completeMonths, plannedByMonth, subscriptionsByMonth, cardMode: "total", startMonthKey: engine.addMonths(today.slice(0, 7), 1) });
   } catch {
     value = null; // sin medición antes que una medición equivocada
@@ -1466,7 +1467,7 @@ function previsionV2GastoVariableHtml(today) {
       <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
       ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
       <details class="prev-v2-variable-detalle"><summary>Cómo se ha medido</summary>
-        <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Supuesto, pendiente de vuestra respuesta: las tarjetas se pagan enteras cada mes, así que de su liquidación vuelve al variable lo que no son suscripciones. Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
+        <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11), así que de su liquidación vuelve al variable lo que no son suscripciones. Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
         <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Gasto variable medido por mes</caption>
           <thead><tr><th scope="col">Mes</th><th scope="col">Variable</th><th scope="col">De la tarjeta</th><th scope="col">Repetidos sin partida</th><th scope="col">Extraordinario</th></tr></thead>
           <tbody>${filas}</tbody></table></div>

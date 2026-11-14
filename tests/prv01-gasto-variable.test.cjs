@@ -121,4 +121,8 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.doesNotMatch(bloque, /seriesOverrides\s*\[|saveSeriesOverrides|saveScenarioSettings|storageSet/, "solo mide");
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
+  // D-N12, pregunta 1 (hogar, 14/11): «la Mastercard la pagamos entera, NO revolving». Ya no es un supuesto pendiente.
+  assert.match(bloque, /cardMode: "total"/);
+  assert.match(bloque, /Las tarjetas se pagan enteras cada mes \(lo confirmasteis el 14\/11\)/);
+  assert.doesNotMatch(bloque, /Supuesto, pendiente/);
 });
