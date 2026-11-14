@@ -74,10 +74,11 @@ function sandboxTabs() {
 
 // I1 (Contabilidadcasa 2.0): «Apalancamiento» (5ª pestaña, OPT-24) salió de Deuda hacia el hub
 // Inversión — Deuda vuelve a las 4 pestañas que tenía antes de OPT-24.
-test("D-1/D-15/I1 · las cuatro pestañas son Ruta, Comparar, Contratos y Simulador visual, en ese orden", () => {
+// 14/11/2026: entra «Préstamo» (préstamo para saldar la deuda, petición del hogar) entre Comparar y Contratos.
+test("D-1/D-15/I1 · las cinco pestañas son Ruta, Comparar, Préstamo, Contratos y Simulador visual, en ese orden", () => {
   const source = extractConst("DEUDA_SCREEN_TABS");
   const ids = [...source.matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"]);
+  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"]);
 });
 
 test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" solo en la pestaña activa", () => {
@@ -96,13 +97,15 @@ test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" s
 // D10 (Contabilidadcasa 2.0): las 4 pestañas pasan de sueltas a un flujo con navegación de
 // progreso — número de paso por pestaña, is-done en las anteriores a la activa, ninguna en las
 // siguientes.
-test("D10 · deudaScreenTabsHtml numera los 4 pasos y marca is-done solo en los anteriores al activo", () => {
+test("D10 · deudaScreenTabsHtml numera los 5 pasos y marca is-done solo en los anteriores al activo", () => {
   const { deudaScreenTabsHtml } = sandboxTabs();
   const result = deudaScreenTabsHtml("deuda-contratos");
   assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">1<\/span>Ruta/);
   assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">2<\/span>Comparar/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">3<\/span>Contratos/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">4<\/span>Simulador visual/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">3<\/span>Préstamo/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">4<\/span>Contratos/);
+  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">5<\/span>Simulador visual/);
+  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-prestamo"/);
   assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-ruta"/);
   assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-comparar"/);
   assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-contratos" aria-current="page"/);
@@ -136,7 +139,7 @@ test("D10 · deudaFlowNavHtml ofrece ambos enlaces en una pestaña intermedia", 
   const { deudaFlowNavHtml } = sandboxFlowNav();
   const middle = deudaFlowNavHtml("deuda-comparar");
   assert.match(middle, /href="#deuda-ruta">← Ruta/);
-  assert.match(middle, /href="#deuda-contratos">Contratos →/);
+  assert.match(middle, /href="#deuda-prestamo">Préstamo →/);
 });
 
 test("D10 · renderDeudaFlowNav escribe en el nav correcto según la pantalla activa", () => {
@@ -146,19 +149,21 @@ test("D10 · renderDeudaFlowNav escribe en el nav correcto según la pantalla ac
     DEUDA_SCREEN_TABS: [
       { id: "deuda-ruta", label: "Ruta" },
       { id: "deuda-comparar", label: "Comparar" },
+      { id: "deuda-prestamo", label: "Préstamo" },
       { id: "deuda-contratos", label: "Contratos" },
       { id: "deuda-simulador", label: "Simulador visual" },
     ],
     DEUDA_FLOW_NAV_IDS: {
       "deuda-ruta": "deudaRutaFlowNav",
       "deuda-comparar": "deudaCompararFlowNav",
+      "deuda-prestamo": "deudaPrestamoFlowNav",
       "deuda-contratos": "deudaContratosFlowNav",
       "deuda-simulador": "deudaSimuladorFlowNav",
     },
     qs: (id) => ({ set innerHTML(value) { written[id] = value; } }),
   });
   context.renderDeudaFlowNav("deuda-contratos");
-  assert.match(written.deudaContratosFlowNav, /← Comparar/);
+  assert.match(written.deudaContratosFlowNav, /← Préstamo/);
   assert.match(written.deudaContratosFlowNav, /Simulador visual →/);
 });
 
@@ -168,8 +173,8 @@ test("D10 · el CSS del indicador de progreso y de la navegación de flujo exist
   assert.match(css, /\.deuda-flow-nav/);
 });
 
-test("D10 · las 4 funciones de render de Deuda llaman a renderDeudaFlowNav junto a renderDeudaScreenTabs", () => {
-  ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"].forEach((id) => {
+test("D10 · las 5 funciones de render de Deuda llaman a renderDeudaFlowNav junto a renderDeudaScreenTabs", () => {
+  ["deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"].forEach((id) => {
     assert.match(app, new RegExp(`renderDeudaScreenTabs\\("${id}"\\);\\s*\\n\\s*renderDeudaFlowNav\\("${id}"\\);`));
   });
 });

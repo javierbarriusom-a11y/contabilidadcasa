@@ -14,6 +14,12 @@
       "mas": 2,
       "que": "Cierre › las tres comprobaciones del cierre nuevo (RD-C3) a la vez: «Movimientos completos» y «Lo previsto frente a lo real» se ven junto a los saldos",
       "porque": "Es lo que cambia el rediseño: el asistente de siempre enseñaba solo el paso 1 y escondía los otros dos hasta completarlo, y en el primer cierre real (repaso del hogar del 4/11/2026) no se sabía qué faltaba. De CierreDesktop.png. Lo de debajo (historial, aprendizaje, ritual anual) no se pliega para no cambiar el tema clásico; la guía del cierre ya va en una línea. «Ver el cierre paso a paso» vuelve a 6. El hogar la mantiene hasta la revisión del cierre nuevo (18/11/2026)."
+    },
+    {
+      "fecha": "2026-11-14",
+      "mas": 4,
+      "que": "Deuda › Préstamo para saldar, pestaña nueva: titular, «Condiciones del préstamo», «Cuota mensual» y «Qué cancela» (sin datos del hogar; con deudas que cancelar se ven también la política, los caminos, el gráfico y el calendario)",
+      "porque": "Petición expresa del hogar del 14/11/2026: «haz una sección específica ligada con las de deuda, para verlo con mi mujer, que permita cambiar los parámetros». Es una pantalla para decidir un préstamo concreto; no sustituye a Comparar (su oferta de reunificación junta todas las deudas, esta cancela solo las más caras con un capital dado)."
     }
   ],
   "rutas": {
@@ -42,6 +48,7 @@
     "#ajustes": 58,
     "#faqs-ayuda": 3,
     "#deuda-comparar": 8,
+    "#deuda-prestamo": 4,
     "#deuda-contratos": 12,
     "#deuda-simulador": 1,
     "#inversion-rebalanceo": 6,
