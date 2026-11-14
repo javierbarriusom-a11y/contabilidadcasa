@@ -166,3 +166,21 @@ cuenta aparte), y el repaso semanal «aporta».
 | Repaso semanal | **Se queda: aporta.** Lo que falta es hacerlo cada semana | — |
 | D-N2, D-N5, D-N7 | **Confirmadas** como recomienda la hoja | — |
 | Prioridad hasta el 4/12 | **Que entren los datos:** repaso semanal, extractos y clasificar hasta el 95 % antes del cierre de noviembre. No se construye más previsión hasta la revisión de salida, donde se aplica la regla de parada del §8 del backlog | — |
+
+### Corrección del 14/11: los movimientos sí estaban al día; lo que se atasca es clasificarlos
+
+El 14/11 el hogar volvió a importar un extracto de CaixaBank, del 7/8 al 12/11: **200 movimientos, 0 nuevos**, cuadre al
+céntimo. Mes a mes: agosto y noviembre «el extracto no cubre el mes entero» (por las fechas del propio extracto),
+septiembre «confirmado: ya estaba todo» y octubre «firmado y confirmado».
+
+- **La lectura de arriba («el bucle de datos está parado», «un solo día de importación») era incorrecta en su mitad de
+  datos.** Un solo día de importación no significa movimientos atrasados: la app ya tenía todo hasta el 12/11. Lo que
+  sí sigue en pie es que el repaso semanal no se ha usado.
+- **El atasco está en clasificar:** el 71 % del gasto con partida (objetivo 95 %) es lo que hará que el cierre de
+  noviembre vuelva a acabar en «Por clasificar» y lo que decide la revisión de Clasificar del 4/12.
+- **Decidido por el hogar el 14/11 (D-N11 del backlog):** la prioridad hasta el 4/12 pasa de «que entren los datos» a
+  «que lo que entra quede con partida»: clasificar hasta el 95 % antes del 1/12, con el repaso semanal como momento para
+  hacerlo. Sustituye a la fila «Prioridad hasta el 4/12» de la tabla de arriba; sigue sin construirse previsión nueva
+  hasta la revisión de salida.
+- Desde el 14/11 (#617) el medidor anota el tipo de cada grupo sin propuesta: lo que se clasifique a partir de ahora
+  dirá qué señal le falta a la propuesta.
