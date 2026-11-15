@@ -96,6 +96,21 @@ test("lo que más pesa: los conceptos del variable de los meses de la base, con 
   assert.ok(r.topConcepts.length <= 10);
 });
 
+test("apartar: lo que el hogar aparta deja de contar en el variable y se lista aparte (15/11: un servicio legal pagado una vez)", () => {
+  const mv = hogar();
+  mv.push({ date: "2026-01-14", amount: -450, account: "caixa", conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", block: null });
+  mv.push({ date: "2026-02-14", amount: -520, account: "caixa", conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", block: null });
+  const con = R.recalibrate(mv, { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  const sin = R.recalibrate(mv, { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES, setAside: ["expense|servicio legal|"] });
+  const limpio = R.recalibrate(hogar(), { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  assert.ok(con.topConcepts.some((row) => row.label === "SERVICIO LEGAL"), "sin apartar, cuenta");
+  assert.ok(!sin.topConcepts.some((row) => row.label === "SERVICIO LEGAL"), "apartado, no cuenta");
+  assert.equal(sin.base, limpio.base);
+  assert.ok(con.base > sin.base, `con ${con.base} sin ${sin.base}`);
+  assert.deepEqual(sin.setAside, [{ conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", total: 970, months: 2 }]);
+  assert.deepEqual(con.setAside, []);
+});
+
 test("con menos de 6 meses completos no se mide (y se dice cuántos hay)", () => {
   const r = R.recalibrate(hogar(), { completeMonths: MESES.slice(0, 4) });
   assert.equal(r.gate.ok, false);
@@ -148,6 +163,10 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.match(bloque, /no se ha podido medir/);
   assert.match(bloque, /importa los extractos de vuestras cuentas para medirlo/);
   assert.match(bloque, /Lo que más pesa/);
+  // 15/11: sin partida, la categoría que la app pone al importar decide: créditos, refinanciación y coche son cuota; traspasos, traspaso.
+  assert.match(vista, /const PREVISION_V2_CATEGORIA_CUOTA = new Set\(\["Creditos antiguos", "Refinanciacion", "Coche"\]\);/);
+  assert.match(bloque, /block: mapping \? previsionV2Bloque\(mapping\.row\.sectionName\) : PREVISION_V2_CATEGORIA_CUOTA\.has\(row\.category\) \? "financiacion" : null/);
+  assert.match(bloque, /cuotas de deuda/);
   assert.match(bloque, /<summary>Qué hay dentro<\/summary>/);
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
@@ -159,7 +178,7 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   const patron = vista.match(/const PREVISION_V2_TARJETA_LIQUIDACION = (\/.+\/);/);
   assert.ok(patron, "el patrón de las liquidaciones existe");
   const re = new Function(`return ${patron[1]}`)();
-  ["financie-octubre", "financie-enero", "financie diciembre", "master basica"].forEach((texto) => assert.ok(re.test(texto), texto));
+  ["financie-octubre", "financie-enero", "financie diciembre", "financie-diciembr", "financie-septiemb", "financie-noviembr", "master basica"].forEach((texto) => assert.ok(re.test(texto), texto));
   ["recibo entidad de financiacion", "financiera el corte ingles cuota 3"].forEach((texto) => assert.ok(!re.test(texto), texto));
   assert.match(bloque, /plannedByMonth\[month\.key\] = round2\(plannedVariableByMonth\[month\.key\] \+ plannedCardByMonth\[month\.key\]\)/);
 });

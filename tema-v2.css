@@ -4308,8 +4308,20 @@
 
 :root[data-tema="v2"] .prev-v2-variable {
   display: grid;
+  /* 15/11/2026: sin esto la tabla de «Qué hay dentro» ensanchaba la tarjeta y la columna «Apartar» quedaba fuera de la vista. */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 6px;
   padding: 14px 20px;
+}
+
+:root[data-tema="v2"] .prev-v2-variable-detalle {
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .prev-v2-variable .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 :root[data-tema="v2"] .prev-v2-variable p {

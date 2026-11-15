@@ -5981,6 +5981,10 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
       });
       // Una tarjeta Carrefour se liquida como «Financie-octubre» (extracto del hogar, 14/11): cuenta como tarjeta, no como cuota.
       tx.push({ date: "2026-10-30", movement: "Financie-octubre", amount: -200, month: "2026-10", category: "Creditos antiguos", accountId: "c1" });
+      // 15/11: el banco corta el mes («FINANCIE-DICIEMBR»): también es la tarjeta.
+      tx.push({ date: "2025-12-30", movement: "FINANCIE-DICIEMBR", amount: -100, month: "2025-12", category: "Creditos antiguos", accountId: "c1" });
+      // 15/11: una cuota de crédito sin partida (la app la clasifica como «Creditos antiguos» al importar) no es gasto variable.
+      meses.forEach((m) => tx.push({ date: `${m}-08`, movement: "ECITC0000000000", details: "A00000000000", amount: -150, month: m, category: "Creditos antiguos", accountId: "c1" }));
       baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
       refreshMovementRollups();
       render();
@@ -5990,8 +5994,9 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     const medida = page.locator("#planPrevisionV2 section.prev-v2-variable");
     await expect(medida).toBeVisible();
     await expect(page.locator("#prevV2Confianza .prev-v2-variable")).toHaveCount(0);
-    // Noviembre 2025 a octubre 2026: 1.640 € + 4 € por mes; sin el más alto y el más bajo, 1.666 € de media.
-    await expect(medida).toContainText("Lo gastado de verdad en variable: 1.666 € al mes");
+    // Noviembre 2025 a octubre 2026: 1.640 € + 4 € por mes, diciembre +100 € y octubre +200 € de tarjeta; sin el más alto y el más
+    // bajo, 1.676 € de media. La cuota de crédito sin partida (150 € al mes) no entra.
+    await expect(medida).toContainText("Lo gastado de verdad en variable: 1.676 € al mes");
     await expect(medida).toContainText("Previsto: 1.750 €");
     await expect(medida).toContainText("Solo es una medición");
     await medida.locator("summary").click();
@@ -5999,6 +6004,9 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     const pesa = medida.locator("table").first().locator("tbody tr");
     await expect(pesa.first()).toContainText("COMPRA SUPERMERCADO EJEMPLO");
     await expect(pesa.filter({ hasText: "Liquidaciones de tarjeta" })).toHaveCount(1);
+    await expect(pesa.filter({ hasText: "ECITC" })).toHaveCount(0);
+    await expect(pesa.filter({ hasText: "FINANCIE" })).toHaveCount(0);
+    await expect(medida).toContainText("150 € al mes de cuotas de deuda");
     const meses = medida.locator("table").last().locator("tbody tr");
     await expect(meses).toHaveCount(12);
     await expect(meses.last().locator("td").nth(1)).toHaveText("620 €"); // octubre: 420 € de una tarjeta + 200 € de «Financie-octubre»
@@ -6006,6 +6014,71 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     await expect(medida).not.toContainText("parecen fijos");
     // Solo mide: lo previsto en la previsión sigue igual.
     expect(await page.evaluate(() => forecastMonths().slice(0, 3).map((month) => plannedValueForRow(variableOperationalPlanningRow(), month)))).toEqual(antes);
+    expect(pageErrors).toEqual([]);
+  });
+
+  // 15/11/2026: el hogar aparta de la medición lo que no es gasto del día a día (un servicio legal pagado una vez) con un toque,
+  // lo ve listado aparte, sigue apartado al recargar y lo puede devolver. Movimientos INVENTADOS.
+  test("«Apartar» quita un concepto de la medición, persiste al recargar y «Devolver» lo trae de vuelta", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 14, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    const cargar = () => page.evaluate(() => {
+      const meses = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"];
+      const tx = [];
+      meses.forEach((m, i) => {
+        tx.push({ date: `${m}-03`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -(500 + i * 4), month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-20`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -320, month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-12`, movement: `COMPRA TIENDA ${i}`, amount: -400, month: m, category: "Otros gastos", accountId: "c1" });
+      });
+      tx.push({ date: "2026-01-14", movement: "TRANSFERENCIA SERVICIO EJEMPLO", amount: -450, month: "2026-01", category: "Otros gastos", accountId: "c1" });
+      tx.push({ date: "2026-02-14", movement: "TRANSFERENCIA SERVICIO EJEMPLO", amount: -520, month: "2026-02", category: "Otros gastos", accountId: "c1" });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
+      refreshMovementRollups();
+      render();
+    });
+    await cargar();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const medida = page.locator("#planPrevisionV2 section.prev-v2-variable");
+    await expect(medida).toBeVisible();
+    const cifra = async () => (await medida.textContent()).match(/Lo gastado de verdad en variable: ([\d.]+\s*€)/)?.[1];
+    const conServicio = await cifra();
+    await medida.locator("summary").click();
+    const fila = medida.locator("table").first().locator("tbody tr").filter({ hasText: "TRANSFERENCIA SERVICIO EJEMPLO" });
+    await expect(fila).toHaveCount(1);
+    await fila.getByRole("button", { name: /Apartar TRANSFERENCIA SERVICIO EJEMPLO/ }).click();
+    // Se queda abierto «Qué hay dentro», el concepto sale de la tabla y aparece en «Apartados por vosotros».
+    await expect(medida.locator("details")).toHaveAttribute("open", "");
+    await expect(fila).toHaveCount(0);
+    await expect(medida).toContainText("Apartados por vosotros");
+    await expect(medida).toContainText("TRANSFERENCIA SERVICIO EJEMPLO · 970 € en 2 meses");
+    const sinServicio = await cifra();
+    expect(conServicio).toBeTruthy();
+    expect(sinServicio).not.toBe(conServicio);
+    // En este navegador y en la copia: sigue apartado al recargar.
+    expect(await page.evaluate(() => BACKUP_LOCAL_STORES.includes("gasto-variable-apartados"))).toBe(true);
+    // Se borra todo lo demás (los movimientos de la prueba se guardan sin el cálculo diario) y solo queda la lista de apartados.
+    await page.evaluate(() => {
+      const clave = storageKey("gasto-variable-apartados");
+      const lista = localStorage.getItem(clave);
+      localStorage.clear();
+      localStorage.setItem(clave, lista);
+    });
+    await page.reload();
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    await cargar();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    await expect(medida).toBeVisible({ timeout: 15000 });
+    await expect.poll(cifra).toBe(sinServicio);
+    await medida.locator("summary").click();
+    await medida.getByRole("button", { name: /Devolver TRANSFERENCIA SERVICIO EJEMPLO/ }).click();
+    await expect(medida).not.toContainText("Apartados por vosotros");
+    expect(await cifra()).toBe(conServicio);
     expect(pageErrors).toEqual([]);
   });
 });

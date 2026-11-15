@@ -113,6 +113,29 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 15 de noviembre de 2026 (473): «Apartar» en «Lo que más pesa»; la tarjeta del gasto variable ya no se sale de su sitio; respuestas del hogar sobre los servicios financieros y el traspaso a la sociedad
+
+- **Respuestas del hogar (15/11, sin importes aquí):** el «recibo entidad de financiación» de los servicios financieros es **pago aplazado de compras con tarjeta, sin intereses**, con compras antiguas que terminan en unos meses (no revolving); la app ya lo trata como cuota por su categoría. El traspaso a la sociedad es **un servicio legal pagado a principios de año**: no es consumo del día a día.
+- **«Apartar»:** en «Qué hay dentro › Lo que más pesa», cada concepto (salvo la línea de tarjeta) lleva un botón «Apartar»: deja de contar en la medición y en la detección de lo repetido, y sale listado en «Apartados por vosotros» con lo que suma y en cuántos meses, con «Devolver». Solo cambia la medición, nunca la previsión. Se guarda por concepto en `gasto-variable-apartados` (en este navegador y en la copia: añadida a `BACKUP_LOCAL_STORES`). El motor recibe `setAside` y devuelve `setAside`.
+- **Arreglo de maquetación encontrado al probarlo:** la tabla de «Qué hay dentro» ensanchaba la tarjeta, el texto se cortaba a la derecha y la columna del botón quedaba fuera de la vista. La tarjeta pasa a una sola columna `minmax(0, 1fr)` y la tabla se desplaza dentro de su caja.
+- `canonical-variable-recalibration.js?v=20261116prv01e`, `views/prevision-v2.js?v=20261116prv01e`, `tema-v2.css?v=20261116prv01e`.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (apartar quita el concepto de la base y lo lista); e2e «Apartar quita un concepto de la medición, persiste al recargar y Devolver lo trae de vuelta».
+- **Validación:** `npm test` 6.638/6.638; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke en verde; 49 e2e de Previsión y PRV-01 en verde.
+- **Pendiente del hogar:** si el servicio legal se repite cada año (si sí, en el recálculo irá como gasto anual en su mes); dar de alta en Deuda › Contratos las financiaciones con su capital, cuota, TAE y fecha de fin; D-N12 (cuándo aplicar el recálculo).
+
+## Cierre de sesión — 15 de noviembre de 2026 (472): «lo que más pesa» del hogar: las cuotas de créditos sin partida no son gasto variable; la tarjeta Carrefour con el mes cortado; despliegue de #622
+
+- **Captura del hogar (15/11, sin importes aquí)** de «Lo que más pesa»: primero las liquidaciones de tarjeta; después, varios **recibos de créditos sin partida** (financiación de El Corte Inglés, Financiera El Corte Inglés, Bankinter Consumer, una Visa Oro, CaixaBank Payments y un «recibo entidad de financiación» de unos servicios financieros), un Bizum con partida, un traspaso a una sociedad y una liquidación «FINANCIE-DICIEMBR».
+- **Dos fallos de la medición que destapa:**
+  1. **El banco corta el mes** («FINANCIE-DICIEMBR», también «SEPTIEMB» o «NOVIEMBR»): el patrón pedía el nombre entero y esa liquidación de la tarjeta Carrefour no se reconocía. Ahora vale el principio del nombre del mes.
+  2. **Las cuotas de créditos sin partida contaban como gasto variable**, y eran una parte grande de la cifra. Ahora, sin partida ni tipo puestos a mano, decide la categoría que la app ya pone al importar (`classifyTransaction`): «Creditos antiguos», «Refinanciacion» y «Coche» cuentan como **cuota**; «Traspasos/ahorro», como **traspaso**. Lo puesto a mano manda. En «Qué hay dentro», una línea con la media de las cuotas de deuda que se han quitado.
+- **Lectura para el hogar (en la conversación, con sus cifras):** sin esas cuotas, el consumo real queda muy por encima de lo que prevé su plan (casi cero) y bastante por debajo de la primera cifra. Y las cuotas de esas financiaciones son mucho mayores que la del préstamo de la pestaña Préstamo: hay que darlas de alta en Deuda › Contratos (capital, cuota y TAE) para que la simulación del préstamo las vea.
+- **Pendiente del hogar:** confirmar qué es el «recibo entidad de financiación» de los servicios financieros (préstamo o tarjeta) y si el traspaso a la sociedad es gasto o no.
+- **Despliegue de #622** (`main` `57ecfeb`, fusionado a las 22:40Z con su CI en verde): ejecución **1424**, en verde a las 23:33Z. «Published availability» **346** (a mano).
+- `views/prevision-v2.js?v=20261116prv01d`.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (el patrón con el mes cortado; la categoría decide la cuota sin partida; la línea de cuotas); e2e de PRV-01 con una cuota de crédito sin partida que no entra y un «FINANCIE-DICIEMBR» que cuenta como tarjeta.
+- **Validación:** `npm run verify` 6.637/6.637 (lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); e2e de PRV-01 en verde.
+
 ## Cierre de sesión — 14 de noviembre de 2026 (471): el gasto variable medido, a la vista en Previsión (el hogar no lo encontraba), con «lo que más pesa»; la primera medición real; despliegues de #620 y #621
 
 - **El hogar (14/11, noche):** «no encuentro estos datos», con la captura de los pasos que le di (Previsión › insignia «Confianza…» › «Gasto variable · previsto frente a real»).
