@@ -96,6 +96,21 @@ test("lo que más pesa: los conceptos del variable de los meses de la base, con 
   assert.ok(r.topConcepts.length <= 10);
 });
 
+test("apartar: lo que el hogar aparta deja de contar en el variable y se lista aparte (15/11: un servicio legal pagado una vez)", () => {
+  const mv = hogar();
+  mv.push({ date: "2026-01-14", amount: -450, account: "caixa", conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", block: null });
+  mv.push({ date: "2026-02-14", amount: -520, account: "caixa", conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", block: null });
+  const con = R.recalibrate(mv, { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  const sin = R.recalibrate(mv, { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES, setAside: ["expense|servicio legal|"] });
+  const limpio = R.recalibrate(hogar(), { completeMonths: MESES, subscriptionsByMonth: SUSCRIPCIONES });
+  assert.ok(con.topConcepts.some((row) => row.label === "SERVICIO LEGAL"), "sin apartar, cuenta");
+  assert.ok(!sin.topConcepts.some((row) => row.label === "SERVICIO LEGAL"), "apartado, no cuenta");
+  assert.equal(sin.base, limpio.base);
+  assert.ok(con.base > sin.base, `con ${con.base} sin ${sin.base}`);
+  assert.deepEqual(sin.setAside, [{ conceptKey: "expense|servicio legal|", label: "SERVICIO LEGAL", total: 970, months: 2 }]);
+  assert.deepEqual(con.setAside, []);
+});
+
 test("con menos de 6 meses completos no se mide (y se dice cuántos hay)", () => {
   const r = R.recalibrate(hogar(), { completeMonths: MESES.slice(0, 4) });
   assert.equal(r.gate.ok, false);

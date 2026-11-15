@@ -1379,6 +1379,7 @@ const BACKUP_LOCAL_STORES = [
   "new-life-definitive", // Nueva vida definitiva: configuración elegida
   "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
   "deuda-prestamo-saldar", // Deuda › Préstamo para saldar: condiciones simuladas
+  "gasto-variable-apartados", // PRV-01: conceptos que el hogar aparta de la medición del gasto variable
   "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado

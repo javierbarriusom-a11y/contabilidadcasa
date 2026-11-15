@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 15 de noviembre de 2026 (473): «Apartar» en «Lo que más pesa»; la tarjeta del gasto variable ya no se sale de su sitio; respuestas del hogar sobre los servicios financieros y el traspaso a la sociedad
+
+- **Respuestas del hogar (15/11, sin importes aquí):** el «recibo entidad de financiación» de los servicios financieros es **pago aplazado de compras con tarjeta, sin intereses**, con compras antiguas que terminan en unos meses (no revolving); la app ya lo trata como cuota por su categoría. El traspaso a la sociedad es **un servicio legal pagado a principios de año**: no es consumo del día a día.
+- **«Apartar»:** en «Qué hay dentro › Lo que más pesa», cada concepto (salvo la línea de tarjeta) lleva un botón «Apartar»: deja de contar en la medición y en la detección de lo repetido, y sale listado en «Apartados por vosotros» con lo que suma y en cuántos meses, con «Devolver». Solo cambia la medición, nunca la previsión. Se guarda por concepto en `gasto-variable-apartados` (en este navegador y en la copia: añadida a `BACKUP_LOCAL_STORES`). El motor recibe `setAside` y devuelve `setAside`.
+- **Arreglo de maquetación encontrado al probarlo:** la tabla de «Qué hay dentro» ensanchaba la tarjeta, el texto se cortaba a la derecha y la columna del botón quedaba fuera de la vista. La tarjeta pasa a una sola columna `minmax(0, 1fr)` y la tabla se desplaza dentro de su caja.
+- `canonical-variable-recalibration.js?v=20261116prv01e`, `views/prevision-v2.js?v=20261116prv01e`, `tema-v2.css?v=20261116prv01e`.
+- **Pruebas:** `tests/prv01-gasto-variable.test.cjs` (apartar quita el concepto de la base y lo lista); e2e «Apartar quita un concepto de la medición, persiste al recargar y Devolver lo trae de vuelta».
+- **Validación:** `npm test` 6.638/6.638; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke en verde; 49 e2e de Previsión y PRV-01 en verde.
+- **Pendiente del hogar:** si el servicio legal se repite cada año (si sí, en el recálculo irá como gasto anual en su mes); dar de alta en Deuda › Contratos las financiaciones con su capital, cuota, TAE y fecha de fin; D-N12 (cuándo aplicar el recálculo).
+
 ## Cierre de sesión — 15 de noviembre de 2026 (472): «lo que más pesa» del hogar: las cuotas de créditos sin partida no son gasto variable; la tarjeta Carrefour con el mes cortado; despliegue de #622
 
 - **Captura del hogar (15/11, sin importes aquí)** de «Lo que más pesa»: primero las liquidaciones de tarjeta; después, varios **recibos de créditos sin partida** (financiación de El Corte Inglés, Financiera El Corte Inglés, Bankinter Consumer, una Visa Oro, CaixaBank Payments y un «recibo entidad de financiación» de unos servicios financieros), un Bizum con partida, un traspaso a una sociedad y una liquidación «FINANCIE-DICIEMBR».

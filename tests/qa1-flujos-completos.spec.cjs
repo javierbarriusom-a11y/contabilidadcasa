@@ -6016,6 +6016,71 @@ test.describe("PRV-01 · gasto variable previsto frente a real", () => {
     expect(await page.evaluate(() => forecastMonths().slice(0, 3).map((month) => plannedValueForRow(variableOperationalPlanningRow(), month)))).toEqual(antes);
     expect(pageErrors).toEqual([]);
   });
+
+  // 15/11/2026: el hogar aparta de la medición lo que no es gasto del día a día (un servicio legal pagado una vez) con un toque,
+  // lo ve listado aparte, sigue apartado al recargar y lo puede devolver. Movimientos INVENTADOS.
+  test("«Apartar» quita un concepto de la medición, persiste al recargar y «Devolver» lo trae de vuelta", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 14, 9, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    const cargar = () => page.evaluate(() => {
+      const meses = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"];
+      const tx = [];
+      meses.forEach((m, i) => {
+        tx.push({ date: `${m}-03`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -(500 + i * 4), month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-20`, movement: "COMPRA SUPERMERCADO EJEMPLO", amount: -320, month: m, category: "Alimentacion", accountId: "c1" });
+        tx.push({ date: `${m}-12`, movement: `COMPRA TIENDA ${i}`, amount: -400, month: m, category: "Otros gastos", accountId: "c1" });
+      });
+      tx.push({ date: "2026-01-14", movement: "TRANSFERENCIA SERVICIO EJEMPLO", amount: -450, month: "2026-01", category: "Otros gastos", accountId: "c1" });
+      tx.push({ date: "2026-02-14", movement: "TRANSFERENCIA SERVICIO EJEMPLO", amount: -520, month: "2026-02", category: "Otros gastos", accountId: "c1" });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
+      refreshMovementRollups();
+      render();
+    });
+    await cargar();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const medida = page.locator("#planPrevisionV2 section.prev-v2-variable");
+    await expect(medida).toBeVisible();
+    const cifra = async () => (await medida.textContent()).match(/Lo gastado de verdad en variable: ([\d.]+\s*€)/)?.[1];
+    const conServicio = await cifra();
+    await medida.locator("summary").click();
+    const fila = medida.locator("table").first().locator("tbody tr").filter({ hasText: "TRANSFERENCIA SERVICIO EJEMPLO" });
+    await expect(fila).toHaveCount(1);
+    await fila.getByRole("button", { name: /Apartar TRANSFERENCIA SERVICIO EJEMPLO/ }).click();
+    // Se queda abierto «Qué hay dentro», el concepto sale de la tabla y aparece en «Apartados por vosotros».
+    await expect(medida.locator("details")).toHaveAttribute("open", "");
+    await expect(fila).toHaveCount(0);
+    await expect(medida).toContainText("Apartados por vosotros");
+    await expect(medida).toContainText("TRANSFERENCIA SERVICIO EJEMPLO · 970 € en 2 meses");
+    const sinServicio = await cifra();
+    expect(conServicio).toBeTruthy();
+    expect(sinServicio).not.toBe(conServicio);
+    // En este navegador y en la copia: sigue apartado al recargar.
+    expect(await page.evaluate(() => BACKUP_LOCAL_STORES.includes("gasto-variable-apartados"))).toBe(true);
+    // Se borra todo lo demás (los movimientos de la prueba se guardan sin el cálculo diario) y solo queda la lista de apartados.
+    await page.evaluate(() => {
+      const clave = storageKey("gasto-variable-apartados");
+      const lista = localStorage.getItem(clave);
+      localStorage.clear();
+      localStorage.setItem(clave, lista);
+    });
+    await page.reload();
+    await expect(page.locator('[data-plan-tab="prevision"]')).toBeVisible({ timeout: 15000 });
+    await cargar();
+    await page.locator('[data-plan-tab="prevision"]').click();
+    await expect(medida).toBeVisible({ timeout: 15000 });
+    await expect.poll(cifra).toBe(sinServicio);
+    await medida.locator("summary").click();
+    await medida.getByRole("button", { name: /Devolver TRANSFERENCIA SERVICIO EJEMPLO/ }).click();
+    await expect(medida).not.toContainText("Apartados por vosotros");
+    expect(await cifra()).toBe(conServicio);
+    expect(pageErrors).toEqual([]);
+  });
 });
 
 test.describe("FX-31 · una sola insignia de confianza", () => {

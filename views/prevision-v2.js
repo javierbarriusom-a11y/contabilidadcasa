@@ -1393,6 +1393,39 @@ const PREVISION_V2_CATEGORIA_CUOTA = new Set(["Creditos antiguos", "Refinanciaci
 const PREVISION_V2_CATEGORIA_TRASPASO = new Set(["Traspasos/ahorro"]);
 const PREVISION_V2_SUSCRIPCION = /netflix|hbo|\bmax\b|spotify|apple|icloud|disney|prime video|amazon prime|youtube|dazn|movistar\+|filmin|skyshowtime|suscrip/;
 let previsionV2VariableCache = { key: "", value: null };
+// 15/11/2026: lo que el hogar aparta de la medición («no es gasto del día a día»), por concepto, en este navegador y en la copia.
+const PREVISION_V2_APARTADOS_KEY = "gasto-variable-apartados";
+let previsionV2VariableAbierto = false;
+
+function previsionV2Apartados() {
+  try {
+    const lista = JSON.parse(storageGet(storageKey(PREVISION_V2_APARTADOS_KEY), "[]"));
+    return Array.isArray(lista) ? lista.map(String).slice(0, 200) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 15/11/2026: apartar o devolver un concepto de la medición del gasto variable (solo cambia la medición, no la previsión). */
+function previsionV2ApartarClick(event) {
+  const apartar = event.target.closest("[data-prevision-v2-apartar]");
+  const devolver = event.target.closest("[data-prevision-v2-devolver]");
+  if (!apartar && !devolver) return false;
+  const clave = (apartar || devolver).dataset[apartar ? "previsionV2Apartar" : "previsionV2Devolver"];
+  const lista = previsionV2Apartados();
+  previsionV2GuardaApartados(apartar ? [...lista, clave] : lista.filter((item) => item !== clave));
+  previsionV2VariableAbierto = true;
+  globalThis.FinanceMedidor?.anotar("prevision-v2", "accion");
+  previsionV2Render();
+  qs("planPrevisionV2")?.querySelector(".prev-v2-variable-detalle summary")?.focus();
+  if (typeof announceStatus === "function") announceStatus(apartar ? "Apartado de la medición del gasto variable. Se puede devolver." : "Devuelto a la medición del gasto variable.");
+  return true;
+}
+
+function previsionV2GuardaApartados(lista) {
+  storageSet(storageKey(PREVISION_V2_APARTADOS_KEY), JSON.stringify([...new Set(lista.map(String))].slice(0, 200)));
+  previsionV2VariableCache = { key: "", value: null };
+}
 
 function previsionV2Bloque(sectionName) {
   const name = normalizedText(sectionName || "");
@@ -1408,7 +1441,8 @@ function previsionV2GastoVariable(today) {
   const transactions = baseData?.transactions || [];
   if (!engine) return { error: "falta el cálculo de la medición; recarga la app" };
   if (!transactions.length) return { empty: true };
-  const key = `${transactions.length}|${transactions[0]?.date || ""}|${transactions.at(-1)?.date || ""}|${Object.keys(movementMappings || {}).length}|${today.slice(0, 7)}`;
+  const apartados = previsionV2Apartados();
+  const key = `${transactions.length}|${transactions[0]?.date || ""}|${transactions.at(-1)?.date || ""}|${Object.keys(movementMappings || {}).length}|${today.slice(0, 7)}|${apartados.join("~")}`;
   if (previsionV2VariableCache.key === key) return previsionV2VariableCache.value;
   let value = null;
   try {
@@ -1450,7 +1484,7 @@ function previsionV2GastoVariable(today) {
     });
     const completeMonths = engine.completeMonthsFrom(movements, today);
     // «La Mastercard la pagamos entera, NO revolving» (hogar, 14/11/2026, D-N12 pregunta 1): modo «total».
-    value = engine.recalibrate(movements, { completeMonths, plannedByMonth, subscriptionsByMonth, cardMode: "total", startMonthKey: engine.addMonths(today.slice(0, 7), 1) });
+    value = engine.recalibrate(movements, { completeMonths, plannedByMonth, subscriptionsByMonth, cardMode: "total", setAside: apartados, startMonthKey: engine.addMonths(today.slice(0, 7), 1) });
     // Para decir de dónde sale lo previsto: la fila de variable (con las asignaciones) y las filas de las tarjetas, en los mismos meses.
     const comparados = value.rows.slice(-12).map((row) => row.month).filter((month) => month in plannedByMonth);
     const media = (map) => (comparados.length ? round2(comparados.reduce((sum, month) => sum + (map[month] || 0), 0) / comparados.length) : null);
@@ -1491,13 +1525,16 @@ function previsionV2GastoVariableHtml(today) {
   if (m.backtest.method.n) errores.push(`midiendo con los meses anteriores, un ${previsionV2Pct(m.backtest.method.mape)} (${m.backtest.method.n})`);
   const mes = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
   // Lo que más pesa (14/11: la primera medición del hogar salió muy alta): para ver si dentro hay traspasos, préstamos o impuestos.
-  const pesa = (m.topConcepts || []).map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${money(row.perMonth)}</td><td>${row.months}</td><td>${row.card ? "tarjeta" : row.unclassified ? "sin partida" : "variable"}</td></tr>`).join("");
-  const pesaHtml = pesa
-    ? `<p class="e19-kpi-note"><strong>Lo que más pesa</strong> (media al mes de los últimos ${m.gate.months > 12 ? 12 : m.gate.months} meses). Si algo no es gasto (un traspaso a una cuenta que no está en la app, un préstamo, un impuesto o un seguro anual), dale su partida o su tipo de acción en Movimientos y la medición lo quitará.</p>
-        <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Lo que más pesa en el gasto variable</caption>
-          <thead><tr><th scope="col">Concepto</th><th scope="col">Al mes</th><th scope="col">Meses</th><th scope="col">Partida</th></tr></thead>
-          <tbody>${pesa}</tbody></table></div>`
+  const pesa = (m.topConcepts || []).map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${money(row.perMonth)}</td><td>${row.months}</td><td>${row.card ? "tarjeta" : row.unclassified ? "sin partida" : "variable"}</td><td>${row.card ? "" : `<button type="button" class="hoy-v2-link" data-prevision-v2-apartar="${escapeHtml(row.conceptKey)}" aria-label="Apartar ${escapeHtml(row.label)}: no es gasto del día a día">Apartar</button>`}</td></tr>`).join("");
+  const apartadosHtml = (m.setAside || []).length
+    ? `<p class="e19-kpi-note"><strong>Apartados por vosotros</strong> (no cuentan): ${m.setAside.map((row) => `${escapeHtml(row.label)} · ${money(row.total)} en ${row.months} ${row.months === 1 ? "mes" : "meses"} <button type="button" class="hoy-v2-link" data-prevision-v2-devolver="${escapeHtml(row.conceptKey)}" aria-label="Devolver ${escapeHtml(row.label)} a la medición">Devolver</button>`).join("; ")}.</p>`
     : "";
+  const pesaHtml = pesa
+    ? `<p class="e19-kpi-note"><strong>Lo que más pesa</strong> (media al mes de los últimos ${m.gate.months > 12 ? 12 : m.gate.months} meses). Si algo no es gasto del día a día (un traspaso a una cuenta que no está en la app, un préstamo, un impuesto, un seguro o un servicio pagado una vez al año), pulsad «Apartar»: deja de contar y se puede devolver.</p>
+        <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Lo que más pesa en el gasto variable</caption>
+          <thead><tr><th scope="col">Concepto</th><th scope="col">Al mes</th><th scope="col">Meses</th><th scope="col">Partida</th><th scope="col"><span class="sr-only">Acción</span></th></tr></thead>
+          <tbody>${pesa}</tbody></table></div>${apartadosHtml}`
+    : apartadosHtml;
   const filas = m.rows.map((row) => `<tr><th scope="row">${escapeHtml(mes(row.month))}</th><td>${money(row.variable)}</td><td>${money(row.cardPurchases)}</td><td>${money(row.recurringUnclassified)}</td><td>${money(row.extraordinary)}</td></tr>`).join("");
   const aparte = [];
   if (m.extraordinary.length) aparte.push(`${m.extraordinary.length} ${m.extraordinary.length === 1 ? "gasto extraordinario" : "gastos extraordinarios"} (más de ${money(m.extraordinaryThreshold)} y sin repetirse)`);
@@ -1511,7 +1548,7 @@ function previsionV2GastoVariableHtml(today) {
       <p>Lo gastado de verdad en variable: <strong>${money(m.base)} al mes</strong> (media de ${m.gate.months > 12 ? 12 : m.gate.months} meses completos). Previsto: ${escapeHtml(previsto)}.${escapeHtml(diferencia)}</p>
       ${errores.length ? `<p class="e19-kpi-note">${escapeHtml(errores.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</p>` : ""}
       <p class="e19-kpi-note">Antes de fiaros de la cifra real, mirad «Qué hay dentro»: si incluye traspasos, préstamos o pagos anuales, sale más alta de lo que de verdad se gasta.</p>
-      <details class="prev-v2-variable-detalle"><summary>Qué hay dentro</summary>
+      <details class="prev-v2-variable-detalle"${previsionV2VariableAbierto ? " open" : ""}><summary>Qué hay dentro</summary>
         ${pesaHtml}
         <p class="e19-kpi-note">Salidas de las cuentas sin fijos, cuotas, traspasos ni liquidaciones de tarjeta. Las tarjetas se pagan enteras cada mes (lo confirmasteis el 14/11), así que de su liquidación («Financie-octubre», «Master básica»…) vuelve al variable lo que no son suscripciones; por eso lo previsto suma también lo que el plan reserva en las filas de las tarjetas (si esas filas ya incluyen las suscripciones, lo previsto sale un poco alto). Aparte: ${escapeHtml(aparte.join("; ") || "nada")}.</p>
         <div class="table-wrap"><table class="e19-table"><caption class="sr-only">Gasto variable medido por mes</caption>
@@ -2398,6 +2435,7 @@ function previsionV2Init() {
     qs("prevV2Guardado")?.focus();
   });
   box?.addEventListener("click", (event) => {
+    if (previsionV2ApartarClick(event)) return;
     const horizonte = event.target.closest("[data-prevision-v2-horizonte]");
     if (horizonte) {
       try { localStorage.setItem("prevision-v2-horizonte", horizonte.dataset.previsionV2Horizonte); } catch { /* sin guardar: vale para esta visita */ }

@@ -130,7 +130,12 @@
     const fixed = ({ row }) => row.block === "fijo" || FIXED_TYPES.has(row.actionType);
     const debt = ({ row }) => row.block === "financiacion" || DEBT_TYPES.has(row.actionType);
     const card = ({ row }) => row.cardSettlement === true;
-    const rest = outflows.filter((item) => !transfer(item) && !fixed(item) && !debt(item) && !card(item));
+    // Apartados por el hogar (15/11/2026): conceptos que dice que no son gasto del día a día (un servicio pagado una vez al año,
+    // por ejemplo). No cuentan en el variable ni en lo repetido; se listan con lo que suman.
+    const asideKeys = new Set((Array.isArray(opts.setAside) ? opts.setAside : []).map(String));
+    const candidatesAll = outflows.filter((item) => !transfer(item) && !fixed(item) && !debt(item) && !card(item));
+    const aside = candidatesAll.filter((item) => asideKeys.has(String(item.row.conceptKey)));
+    const rest = candidatesAll.filter((item) => !asideKeys.has(String(item.row.conceptKey)));
     const recurringKeys = recurringUnclassified(rest.map((item) => item.row), months, opts);
 
     const perMonth = months.map((month) => {
@@ -190,6 +195,7 @@
         cardPurchases: month.cardPurchases,
         recurringUnclassified: month.sum(month.recurring),
         extraordinary: round2(month.sum(month.variableRows) - month.sum(normal)),
+        setAside: month.sum(aside.filter((item) => monthOf(item.row.date) === month.month)),
         variable,
       };
     });
@@ -197,7 +203,11 @@
       const items = rest.filter((item) => item.row.conceptKey === key).map((item) => item.row);
       return { conceptKey: key, label: items[0]?.label || key, months: new Set(items.map((row) => monthOf(row.date))).size, typical: round2(median(items.map((row) => -row.amount))) };
     }).sort((a, b) => b.typical - a.typical);
-    return { rows, extraordinary, recurring: recurringList, pairedTransfers: paired.size / 2, threshold: round2(threshold), concepts: [...concepts.values()] };
+    const asideList = [...asideKeys].map((key) => {
+      const items = aside.filter((item) => String(item.row.conceptKey) === key).map((item) => item.row);
+      return { conceptKey: key, label: items[0]?.label || key, total: round2(items.reduce((sum, row) => sum - row.amount, 0)), months: new Set(items.map((row) => monthOf(row.date))).size };
+    });
+    return { rows, extraordinary, recurring: recurringList, pairedTransfers: paired.size / 2, threshold: round2(threshold), concepts: [...concepts.values()], setAside: asideList };
   }
 
   /** Índices por mes del año (1…12), contraídos hacia 1 según cuántos años hay de ese mes, y normalizados a media 1. */
@@ -284,6 +294,7 @@
       seasonal,
       backtest,
       extraordinary: measured.extraordinary,
+      setAside: measured.setAside,
       // Los 10 conceptos que más pesan en el variable de los meses de la base, con su media al mes y en cuántos aparecen.
       topConcepts: measured.concepts.map((entry) => {
         const months = recent.map((row) => row.month).filter((month) => entry.byMonth[month]);
