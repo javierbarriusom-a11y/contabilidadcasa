@@ -21,6 +21,12 @@
 // solo existe en los meses que tienen su fila (customRowsForSection): con una sola fila, los reales de los demás meses no
 // contarían en ninguna parte. Previsto 0 €: no cambia el plan; el importe se pone luego en Plan. Si el nombre ya existe en
 // ese tipo, elige la que hay en vez de duplicarla. Dice cuántas partidas tiene ya el bloque, para no llenarlo de pequeñas.
+//
+// CLA-01 y CLA-02 (15/11/2026): «Recordar también por palabras». La regla del concepto exacto no sirve para el Bizum a una
+// persona (cada uno lleva su texto) ni para el recibo con una referencia que cambia cada mes. Al aceptar se puede guardar,
+// además, una regla por palabras (canonical-pattern-rules.js): las propone la app (las comunes a los movimientos del grupo,
+// sin números ni «bizum», «recibo»…), las decide el hogar y, si quiere, solo con un importe parecido. Antes de aceptar dice
+// cuántos movimientos sin partida cogería ya. Va al mismo diccionario y se deshace con la regla del grupo.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const CLAS_V2_MAX = 5;
@@ -42,6 +48,10 @@ let clasV2NewOpen = false;
 let clasV2NewName = "";
 let clasV2NewSection = "";
 let clasV2NewError = "";
+let clasV2PatronOn = false;
+let clasV2PatronWords = "";
+let clasV2PatronAmount = false;
+let clasV2PatronError = "";
 
 function clasV2Now() {
   return globalThis.performance?.now?.() ?? Date.now();
@@ -188,6 +198,73 @@ function clasV2Tipo(group) {
   const tipo = CLAS_V2_TIPOS.find(([, palabras]) => palabras.some((word) => words.has(word)));
   if (tipo) return tipo[0];
   return clasV2Merchant(row) ? "comercio" : "sin-nombre";
+}
+
+// CLA-01/02 · al llegar a un grupo: sin marcar, con las palabras que propone el motor y, si no es un Bizum y sus importes
+// se parecen, con el importe pedido (un recibo se distingue por él; lo que se paga a una persona, no).
+function clasV2PatronReset() {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  const group = clasV2Groups[clasV2Index];
+  clasV2PatronOn = false;
+  clasV2PatronError = "";
+  clasV2PatronWords = motor && group ? motor.candidateWords(group.rows).join(" ") : "";
+  clasV2PatronAmount = Boolean(motor && group && motor.typeOf(group.rows[0]) !== "bizum" && motor.amountProfile(group.rows).steady);
+}
+
+// La regla por palabras tal como está escrita ahora ({ key, value, rule }), o null si no queda ninguna palabra que valga.
+function clasV2PatronDraft(group, target) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor || !group) return null;
+  const built = motor.build({
+    kind: group.kind,
+    words: clasV2PatronWords,
+    rowKey: target ? seriesKeyForRow(target) : "sin-elegir",
+    label: target ? `${target.sectionName} · ${displayLabelForRow(target)}` : "",
+    amount: clasV2PatronAmount ? motor.amountProfile(group.rows).typical : null,
+    now: new Date().toISOString(),
+  });
+  return built ? { ...built, rule: motor.rulesOf({ [built.key]: built.value })[0] } : null;
+}
+
+// Los movimientos sin partida de OTROS grupos que la regla cogería ya (los del grupo los lleva su regla de concepto).
+function clasV2PatronExtra(group, draft) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor || !draft?.rule) return [];
+  const own = new Set(group.rows);
+  return (baseData?.transactions || []).filter((row) => row && Number(row.amount) && !own.has(row) && !mappingForMovement(row) && motor.matches(draft.rule, row));
+}
+
+function clasV2PatronPreview(group) {
+  const draft = clasV2PatronDraft(group, clasV2Target(group));
+  if (!draft) return "Escribe al menos una palabra de 3 letras o más que no sea un número ni una genérica («bizum», «recibo», «transferencia»…).";
+  const extra = clasV2PatronExtra(group, draft);
+  const total = round2(extra.reduce((sum, row) => sum + Math.abs(Number(row.amount)), 0));
+  const como = `Reconocerá ${group.kind === "income" ? "los ingresos" : "los gastos"} con ${draft.rule.words.length === 1 ? "la palabra" : "las palabras"} «${draft.rule.shown}»${draft.rule.amount ? ` de entre ${money(draft.rule.amount * (1 - draft.rule.tolerance), true)} y ${money(draft.rule.amount * (1 + draft.rule.tolerance), true)}` : ", de cualquier importe"}.`;
+  if (!extra.length) return `${como} Ahora no hay más movimientos sin partida que encajen: servirá para los que vengan.`;
+  return `${como} Además de este grupo, ahora cogería ${extra.length === 1 ? "un movimiento sin partida" : `${extra.length} movimientos sin partida`} (${money(total, true)}).`;
+}
+
+// Repintar devuelve la hoja arriba y los campos de la regla quedan debajo de los botones fijos: el foco va al campo y el
+// bloque entero, al centro.
+function clasV2PatronFocus(dialog, selector) {
+  dialog?.querySelector(selector)?.focus?.({ preventScroll: true });
+  dialog?.querySelector(".clas-v2-patron")?.scrollIntoView?.({ block: "center" });
+}
+
+function clasV2PatronHtml(group, target) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor || !target) return "";
+  const profile = motor.amountProfile(group.rows);
+  const abierto = clasV2PatronOn
+    ? `<label class="clas-v2-patron-campo"><span class="clas-v2-meta">Palabras que lo identifican (tienen que estar todas)</span>
+        <input id="clasificarV2PatronPalabras" data-clas-v2-patron-palabras type="text" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(clasV2PatronWords)}" aria-describedby="clasificarV2PatronVista"${clasV2PatronError ? ' aria-invalid="true"' : ""}></label>
+      <label class="clas-v2-check"><input type="checkbox" data-clas-v2-patron-importe${clasV2PatronAmount ? " checked" : ""}><span>Solo si el importe es parecido: unos ${money(profile.typical, true)} (± 10 %)</span></label>
+      <p class="clas-v2-meta${clasV2PatronError ? " clas-v2-nueva-error" : ""}" id="clasificarV2PatronVista" role="status">${escapeHtml(clasV2PatronError || clasV2PatronPreview(group))}</p>`
+    : "";
+  return `<div class="clas-v2-patron">
+      <label class="clas-v2-check"><input type="checkbox" data-clas-v2-patron${clasV2PatronOn ? " checked" : ""}><span>Recordar también por palabras, aunque cambie el resto del concepto <span class="clas-v2-meta">(un Bizum a la misma persona, un recibo con otra referencia)</span></span></label>
+      ${abierto}
+    </div>`;
 }
 
 function clasV2Suggestion(group) {
@@ -413,6 +490,7 @@ function clasV2GroupHtml() {
       ${clasV2NewOpen ? clasV2NewFormHtml(group) : showSelect ? clasV2OtherSelect(group) : ""}
     </div>
     ${rule ? `<p class="clas-v2-meta clas-v2-regla">${rule}</p>` : ""}
+    ${clasV2PatronHtml(group, target)}
     <p class="clas-v2-meta clas-v2-atajos">↵ aceptar · 1-${CLAS_V2_ALTS} alternativas · S saltar · ⌘Z deshacer</p>
     <div class="clas-v2-botones">
       <button type="button" class="e19-btn e19-btn-secondary" data-clas-v2-saltar aria-keyshortcuts="S">Saltar</button>
@@ -426,7 +504,7 @@ function clasV2SummaryHtml() {
   const rest = clasV2Remaining();
   const created = clasV2Created.length
     ? `<ul class="clas-v2-reglas">${clasV2Created
-        .map((rule, index) => `<li><span><b>${escapeHtml(rule.name)}</b> → ${escapeHtml(rule.partida)}<span class="clas-v2-meta">${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}</span></span>
+        .map((rule, index) => `<li><span><b>${escapeHtml(rule.name)}</b> → ${escapeHtml(rule.partida)}<span class="clas-v2-meta">${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}${rule.patron ? ` · y por palabras «${escapeHtml(rule.patron.words)}»` : ""}</span></span>
           <button type="button" class="e19-btn e19-btn-secondary" data-clas-v2-deshacer="${index}">Deshacer</button></li>`)
         .join("")}</ul>`
     : `<p class="clas-v2-meta">No se ha creado ninguna regla en esta tanda.</p>`;
@@ -469,6 +547,7 @@ function clasV2StartBatch() {
   clasV2Choice = "";
   clasV2OtherOpen = false;
   clasV2NewClose();
+  clasV2PatronReset();
   clasV2ShownAt = clasV2Now();
 }
 
@@ -518,17 +597,38 @@ function clasV2Accept() {
   const target = clasV2Target(group);
   if (!group || !target) return;
   const partida = displayLabelForRow(target);
+  // CLA-01/02: la regla por palabras se comprueba antes de escribir nada; si no vale, no se acepta a medias.
+  const patron = clasV2PatronOn ? clasV2PatronDraft(group, target) : null;
+  if (clasV2PatronOn && !patron) {
+    clasV2PatronError = "Sin palabras que valgan no puedo recordarlo por palabras: escribe alguna o desmarca la casilla.";
+    clasV2Render();
+    return clasV2PatronFocus(qs("clasificarV2"), "#clasificarV2PatronPalabras");
+  }
+  const extra = patron ? clasV2PatronExtra(group, patron) : [];
   // XDA-05: la propuesta se mira antes de escribir la regla (después ya no sería la misma pregunta).
   const proposal = clasV2Proposal(group);
   const measure = { confianza: proposal?.confidence || "sin", talCual: Boolean(proposal) && seriesKeyForRow(proposal.row) === seriesKeyForRow(target), segundos: (clasV2Now() - clasV2ShownAt) / 1000, ...(proposal ? {} : { tipo: clasV2Tipo(group) }) };
-  const rule = { key: group.key, kind: group.kind, name: group.name, partida, count: group.rows.length, prev: movementMappings[group.key], touched: clasV2TouchedActuals(group, target) };
+  const rule = { key: group.key, kind: group.kind, name: group.name, partida, count: group.rows.length, prev: movementMappings[group.key], touched: clasV2TouchedActuals({ ...group, rows: [...group.rows, ...extra] }, target) };
   movementMappings[group.key] = { kind: group.kind, rowKey: seriesKeyForRow(target), label: `${target.sectionName} · ${partida}`, updatedAt: new Date().toISOString() };
-  const applied = clasV2Persist(new Set([group.key]));
+  if (patron) {
+    rule.patron = { key: patron.key, prev: movementMappings[patron.key], words: patron.rule.shown, extra: extra.length, keys: extra.map((row) => movementMappingKey(row)) };
+    movementMappings[patron.key] = patron.value;
+  }
+  const applied = clasV2Persist(new Set([group.key, ...(rule.patron?.keys || [])]));
+  if (rule.patron?.extra) {
+    // Lo que la regla por palabras acaba de coger sale de lo que queda de la tanda: no se pregunta dos veces.
+    clasV2Groups = clasV2Groups.filter((item, index) => {
+      if (index <= clasV2Index) return true;
+      item.rows = item.rows.filter((row) => !mappingForMovement(row));
+      return item.rows.length > 0;
+    });
+  }
   clasV2Created.push(rule);
   globalThis.FinanceMedidor?.anotar("clasificar-v2", "accion"); // XGO-02
   rule.measured = globalThis.FinanceMedidor?.anotarClasificacion?.(measure) || 0; // XDA-05
-  showUndoToast(`Regla «${group.name} → ${partida}» creada.`, () => clasV2Undo(rule));
-  announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}. ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`);
+  const porPalabras = rule.patron ? ` También por palabras «${rule.patron.words}»${rule.patron.extra ? `: ${rule.patron.extra === 1 ? "un movimiento más" : `${rule.patron.extra} movimientos más`}` : ""}.` : "";
+  showUndoToast(`Regla «${group.name} → ${partida}» creada.${porPalabras}`, () => clasV2Undo(rule));
+  announceStatus(`Regla «${group.name} → ${partida}» creada: ${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}.${porPalabras} ${applied} ${applied === 1 ? "importe real recalculado" : "importes reales recalculados"} desde movimientos.`);
   clasV2Next();
 }
 
@@ -538,13 +638,15 @@ function clasV2Undo(rule) {
   rule.undone = true;
   if (rule.prev) movementMappings[rule.key] = rule.prev;
   else delete movementMappings[rule.key];
+  if (rule.patron?.prev) movementMappings[rule.patron.key] = rule.patron.prev;
+  else if (rule.patron) delete movementMappings[rule.patron.key];
   const store = rule.kind === "income" ? incomeActuals : expenseActuals;
   rule.touched.forEach(({ key, had, value }) => {
     if (had) store[key] = value;
     else delete store[key];
   });
   clasV2Created = clasV2Created.filter((item) => item !== rule);
-  clasV2Persist(new Set([rule.key]));
+  clasV2Persist(new Set([rule.key, ...(rule.patron?.keys || [])]));
   globalThis.FinanceMedidor?.anotar("clasificar-v2", "deshecho"); // XGO-02
   globalThis.FinanceMedidor?.deshacerClasificacion?.(rule.measured); // XDA-05: la propuesta queda como corregida
   announceStatus(`Regla «${rule.name} → ${rule.partida}» deshecha: sus movimientos vuelven a la bandeja.`);
@@ -564,6 +666,7 @@ function clasV2Next() {
   clasV2Choice = "";
   clasV2OtherOpen = false;
   clasV2NewClose();
+  clasV2PatronReset();
   clasV2ShownAt = clasV2Now();
   clasV2Render();
 }
@@ -610,6 +713,17 @@ function clasV2BindOnce(dialog) {
   });
   dialog.addEventListener("input", (event) => {
     if (event.target.matches("[data-clas-v2-nueva-nombre]")) clasV2NewName = event.target.value;
+    if (event.target.matches("[data-clas-v2-patron-palabras]")) {
+      // Sin repintar (se perdería el cursor): solo cambia la frase de lo que cogería.
+      clasV2PatronWords = event.target.value;
+      clasV2PatronError = "";
+      const vista = qs("clasificarV2PatronVista");
+      event.target.removeAttribute("aria-invalid");
+      if (vista) {
+        vista.classList.remove("clas-v2-nueva-error");
+        vista.textContent = clasV2PatronPreview(clasV2Groups[clasV2Index]);
+      }
+    }
   });
   dialog.addEventListener("change", (event) => {
     if (event.target.matches("[data-clas-v2-nueva-bloque]")) {
@@ -617,6 +731,18 @@ function clasV2BindOnce(dialog) {
       clasV2Render();
       return qs("clasificarV2NuevaBloque")?.focus?.();
     }
+    if (event.target.matches("[data-clas-v2-patron]")) {
+      clasV2PatronOn = event.target.checked;
+      clasV2PatronError = "";
+      clasV2Render();
+      return clasV2PatronFocus(dialog, clasV2PatronOn ? "#clasificarV2PatronPalabras" : "[data-clas-v2-patron]");
+    }
+    if (event.target.matches("[data-clas-v2-patron-importe]")) {
+      clasV2PatronAmount = event.target.checked;
+      clasV2Render();
+      return clasV2PatronFocus(dialog, "[data-clas-v2-patron-importe]");
+    }
+    if (event.target.matches("[data-clas-v2-patron-palabras]")) return;
     if (!event.target.matches("[data-clas-v2-otra-select]")) return;
     clasV2Choice = event.target.value;
     clasV2Render();

@@ -1069,3 +1069,21 @@ function movementMappingForAnyMonth(transaction, kind) {
   });
   return best ? planningRowBySeriesKey(kind, best.rowKey) : null;
 }
+
+// CLA-01 y CLA-02 (15/11/2026): la regla por palabras que encaja con el movimiento (canonical-pattern-rules.js): el Bizum a
+// una persona o el recibo cuya referencia cambia cada mes. Solo se llega aquí sin regla del concepto, así que el coste es el
+// de los movimientos sin partida. Si la partida de la regla ya no existe, no cuenta.
+function movementMappingByPattern(transaction, kind) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor) return null;
+  let hay = false;
+  for (const key in movementMappings) {
+    if (motor.isPatternKey(key)) {
+      hay = true;
+      break;
+    }
+  }
+  if (!hay) return null;
+  const rule = motor.best(motor.rulesOf(movementMappings).filter((item) => item.kind === kind && planningRowBySeriesKey(kind, item.rowKey)), transaction);
+  return rule ? { row: planningRowBySeriesKey(kind, rule.rowKey), key: rule.key } : null;
+}

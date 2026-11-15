@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-15-reglas-por-palabras",
+      fecha: "2026-11-15",
+      texto: "Clasificar: «Recordar también por palabras» reconoce el Bizum a la misma persona y el recibo con otra referencia, sin volver a preguntar.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-14-gasto-variable-a-la-vista",
       fecha: "2026-11-14",
       texto: "Previsión: el gasto variable de verdad frente a lo previsto, en su tarjeta y con las tarjetas Carrefour («Financie-…») dentro. Solo mide.",

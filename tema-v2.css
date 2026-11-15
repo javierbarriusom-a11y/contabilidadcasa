@@ -3476,6 +3476,45 @@
   justify-content: flex-end;
 }
 
+/* Clasificar · «Recordar también por palabras» (CLA-01 y CLA-02, 15/11/2026): casilla y, al marcarla, las palabras, el
+   importe y la frase de lo que cogería. */
+:root[data-tema="v2"] .clas-v2-patron {
+  display: grid;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .clas-v2-patron p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .clas-v2-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 0;
+  font: 500 13.5px/1.35 var(--e19-font-sans);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .clas-v2-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .clas-v2-patron-campo {
+  display: grid;
+  gap: 6px;
+}
+
+:root[data-tema="v2"] .clas-v2-patron-campo input {
+  min-height: 44px;
+  width: 100%;
+}
+
 /* ---------- C3 · Cierre (views/cierre-v2.js, 4/11/2026) ----------
    De CierreDesktop.png / Cierre.png: las tres comprobaciones a la izquierda (a la vez, no un asistente que se abre paso a paso) y,
    a la derecha, la confianza del cierre, lo que guarda la firma y «Firmar». Con el cierre nuevo pintado, el asistente de siempre se

@@ -21640,6 +21640,8 @@ function mappingForMovement(transaction) {
   if (storedRow) return { kind, row: storedRow, source: "dictionary" };
   const anyMonthRow = movementMappingForAnyMonth(transaction, kind); // 2/11/2026: la regla vale para el concepto de cualquier mes
   if (anyMonthRow) return { kind, row: anyMonthRow, source: "dictionary" };
+  const byWords = typeof movementMappingByPattern === "function" && movementMappingByPattern(transaction, kind); // CLA-01/02 (15/11/2026): regla por palabras, aunque cambie el resto del concepto
+  if (byWords) return { kind, row: byWords.row, source: "pattern", patternKey: byWords.key };
   const exact = exactMovementPlanningMatch(transaction);
   return exact ? { kind, row: exact, source: "exact" } : null;
 }

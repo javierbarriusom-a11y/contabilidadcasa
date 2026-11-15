@@ -323,11 +323,13 @@ M · P1.
 
 **CLA-01 · Reglas por patrón, no solo por concepto.** Importe ± tolerancia + periodicidad + cuenta + día del mes. *Por qué:*
 recibos cuyo concepto cambia cada mes (referencia, mes en el texto) se quedan sin propuesta (5 de 7 en noviembre). *UX:* al
-aceptar un grupo, «¿Recordar también por importe y fecha?». M · **P0**.
+aceptar un grupo, «¿Recordar también por importe y fecha?». M · **P0**. **Hecho el 15/11/2026** con palabras e importe (± 10 %), sin día
+del mes, periodicidad ni cuenta: un recibo se adelanta por un festivo y con el importe basta para separar (PROJECT_STATE 475).
 
 **CLA-02 · Agenda de Bizum.** Cada contraparte con su partida por defecto (cena con amigos, regalo, gasto compartido) y, si es
 compartido, quién debe a quién. *Por qué:* los Bizum son el tipo que más grupos sin propuesta deja. *UX:* al aceptar un Bizum,
-«Recordar a esta persona como…». S · **P0**.
+«Recordar a esta persona como…». S · **P0**. **Hecho el 15/11/2026** como regla por palabras (las de la persona, editables), con la
+misma casilla que CLA-01; falta «quién debe a quién» (PROJECT_STATE 475).
 
 **CLA-03 · «Lo que hicisteis el mes pasado».** Proponer la partida del movimiento más parecido del mes anterior (comercio,
 importe, día). *Por qué:* es la señal más barata y suele acertar en lo cotidiano. *UX:* confianza «media · como el mes pasado».

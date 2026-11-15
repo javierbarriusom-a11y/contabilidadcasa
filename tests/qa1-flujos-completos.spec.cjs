@@ -8007,6 +8007,115 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
   });
 });
 
+// CLA-01 y CLA-02 (15/11/2026): reglas por palabras en Clasificar. Movimientos inventados: tres Bizum a la misma persona con
+// su texto libre y tres recibos del mismo emisor con la referencia cambiada (uno, de otro importe).
+test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
+  test("un Bizum por la persona y un recibo por emisor e importe; dice lo que cogería, se deshace y se quita desde la ficha", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [
+        [-900, "BIZUM ENVIADO", "A PEPA FICTICIA cena"],
+        [-35, "BIZUM ENVIADO", "A PEPA FICTICIA regalo"],
+        [-12, "BIZUM ENVIADO", "A PEPA FICTICIA entradas"],
+        [-210, "RECIBO AGUAS DEL VALLE REF 000789", ""],
+        [-43, "RECIBO AGUAS DEL VALLE REF 000456", ""],
+        [-41, "RECIBO AGUAS DEL VALLE REF 000123", ""],
+      ].map(([amount, movement, details]) => ({ date: hoy, month: hoy.slice(0, 7), movement, details, amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const sinPartida = () => page.evaluate(() => baseData.transactions.filter((row) => /FICTICIA|AGUAS DEL VALLE/.test(`${row.movement} ${row.details}`) && !mappingForMovement(row)).length);
+    expect(await sinPartida()).toBe(6);
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    const elegir = async () => {
+      if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+      await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    };
+
+    // 1 · El Bizum de 900 €. Sin partida elegida no se ofrece; con ella, la casilla sale sin marcar.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    await expect(panel.locator("[data-clas-v2-patron]")).toHaveCount(0);
+    await elegir();
+    const casilla = panel.locator("[data-clas-v2-patron]");
+    await expect(casilla).not.toBeChecked();
+    await expect(panel.locator("#clasificarV2PatronPalabras")).toHaveCount(0);
+    await casilla.check();
+    const palabras = panel.locator("#clasificarV2PatronPalabras");
+    await expect(palabras).toBeFocused();
+    await expect(palabras, "con un solo movimiento propone todas sus palabras: el hogar quita las que cambian").toHaveValue("pepa ficticia cena");
+    await expect(panel.locator("[data-clas-v2-patron-importe]"), "a una persona se le paga cada vez una cosa").not.toBeChecked();
+    const vista = panel.locator("#clasificarV2PatronVista");
+    await expect(vista).toContainText("Ahora no hay más movimientos sin partida que encajen");
+    // Sin palabras que valgan lo dice y no deja aceptar a medias.
+    await palabras.fill("bizum 12");
+    await expect(vista).toContainText("Escribe al menos una palabra de 3 letras o más");
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    await expect(vista).toHaveText("Sin palabras que valgan no puedo recordarlo por palabras: escribe alguna o desmarca la casilla.");
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    expect(await sinPartida()).toBe(6);
+    await panel.locator("#clasificarV2PatronPalabras").fill("Pepa Fictícia");
+    await expect(vista).toHaveText("Reconocerá los gastos con las palabras «PEPA FICTICIA», de cualquier importe. Además de este grupo, ahora cogería 2 movimientos sin partida (47 €).");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    expect(await sinPartida(), "los otros dos Bizum a la misma persona ya tienen partida").toBe(3);
+
+    // 2 · Los otros dos Bizum ya no se preguntan: toca el recibo de 210 €, que se salta.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("RECIBO AGUAS DEL VALLE REF 000789");
+    await panel.locator("[data-clas-v2-saltar]").click();
+    // 3 · El recibo de 43 €: por emisor y, al ser un recibo, con el importe pedido de entrada.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("RECIBO AGUAS DEL VALLE REF 000456");
+    await elegir();
+    await panel.locator("[data-clas-v2-patron]").check();
+    await expect(panel.locator("#clasificarV2PatronPalabras")).toHaveValue("aguas valle");
+    await expect(panel.locator("[data-clas-v2-patron-importe]")).toBeChecked();
+    await expect(panel.locator("#clasificarV2PatronVista")).toHaveText("Reconocerá los gastos con las palabras «AGUAS VALLE» de entre 38,70 € y 47,30 €. Además de este grupo, ahora cogería un movimiento sin partida (41 €).");
+    // Sin el importe cogería también el de 210 €: por eso va pedido.
+    await panel.locator("[data-clas-v2-patron-importe]").uncheck();
+    await expect(panel.locator("#clasificarV2PatronVista")).toContainText("ahora cogería 2 movimientos sin partida (251 €)");
+    await panel.locator("[data-clas-v2-patron-importe]").check();
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    expect(await sinPartida(), "solo queda el recibo de 210 €").toBe(1);
+
+    // Fin de la tanda: dos reglas, cada una con sus palabras.
+    await expect(panel.locator(".clas-v2-reglas li")).toHaveCount(2);
+    await expect(panel.locator(".clas-v2-reglas li").first()).toContainText("y por palabras «PEPA FICTICIA»");
+    await expect(panel.locator(".clas-v2-reglas li").nth(1)).toContainText("y por palabras «AGUAS VALLE»");
+    // Lo que viene después: el recibo del mes siguiente, con otra referencia, ya tiene partida; uno de otro importe, no.
+    const futuros = await page.evaluate(() => {
+      const mov = (amount, movement, details = "") => ({ date: "2026-12-05", month: "2026-12", movement, details, amount });
+      return [mov(-44.5, "RECIBO AGUAS DEL VALLE REF 000999"), mov(-99, "RECIBO AGUAS DEL VALLE REF 000998"), mov(-8, "BIZUM ENVIADO", "A PEPA FICTICIA cafe"), mov(8, "BIZUM RECIBIDO", "DE PEPA FICTICIA cafe")].map((row) => mappingForMovement(row)?.source || null);
+    });
+    expect(futuros).toEqual(["pattern", null, "pattern", null]);
+    // Va en el diccionario de siempre: la copia y la sincronización la llevan sin almacén nuevo.
+    expect(await page.evaluate(() => Object.keys(movementMappings).filter((key) => key.startsWith("patron|")).sort())).toEqual(["patron|expense|aguas valle", "patron|expense|ficticia pepa"]);
+    // Deshacer la primera devuelve los tres Bizum a la bandeja.
+    await panel.locator("[data-clas-v2-deshacer]").first().click();
+    expect(await sinPartida()).toBe(4);
+    expect(await page.evaluate(() => Object.keys(movementMappings).filter((key) => key.startsWith("patron|")))).toEqual(["patron|expense|aguas valle"]);
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+
+    // La ficha del recibo de 41 € dice por qué regla va y la quita, con «Deshacer».
+    await page.evaluate(() => openMovementDetailRow(baseData.transactions.find((row) => row.movement === "RECIBO AGUAS DEL VALLE REF 000123")));
+    const ficha = page.locator("#movementDetailDialog");
+    await expect(ficha.locator('[data-ficha-bloque="partida"] .ficha-mov-ahora')).toContainText("por la regla de palabras «AGUAS VALLE», con un importe de unos 43 €");
+    await ficha.locator("#fichaMovQuitarPatron").click();
+    await expect(ficha.locator(".ficha-mov-aviso")).toContainText("Regla de palabras «AGUAS VALLE» quitada: lo que clasificaba vuelve a la bandeja.");
+    await expect(ficha.locator('[data-ficha-bloque="partida"] .ficha-mov-ahora')).toContainText("sin partida");
+    expect(await sinPartida(), "el de 43 € conserva su regla de concepto").toBe(5);
+    await ficha.locator("#fichaMovDeshacer").click();
+    expect(await sinPartida()).toBe(4);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // Ensayo del cierre de octubre (23/10/2026, docs/REVISION_SALIDA_OLA1_2026-10-23.md): el recorrido real del hogar el 2/11, de
 // principio a fin y con el diseño nuevo. Se parte de cero movimientos, como los datos reales, y se sigue: importar el extracto,
 // clasificar la bandeja y llegar a Firmar. Firmar exige sesión iniciada (RPC transaccional), así que la prueba llega hasta

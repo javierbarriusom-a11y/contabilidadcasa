@@ -93,6 +93,13 @@ function fichaMovNombrePartida(row) {
 
 function fichaMovAhoraPartida(mapping) {
   if (!mapping) return "Ahora: <strong>sin partida</strong>. No cuenta en los reales de ninguna.";
+  if (mapping.source === "pattern") {
+    // CLA-01/02 (15/11/2026): la regla por palabras se dice con sus palabras y se quita desde aquí.
+    const regla = globalThis.FinanceCanonicalPatternRules?.rulesOf({ [mapping.patternKey]: movementMappings[mapping.patternKey] })[0];
+    const palabras = regla?.shown || "";
+    const importe = regla?.amount ? `, con un importe de unos ${money(regla.amount, true)}` : "";
+    return `Ahora: <strong>${escapeHtml(fichaMovNombrePartida(mapping.row))}</strong> · por la regla de palabras «${escapeHtml(palabras)}»${importe}. <button type="button" class="link-button" id="fichaMovQuitarPatron">Quitar esa regla</button>`;
+  }
   const por = mapping.source === "single" ? "solo este movimiento" : mapping.source === "dictionary" ? "por la regla de este concepto" : "por coincidir con el nombre de la partida";
   return `Ahora: <strong>${escapeHtml(fichaMovNombrePartida(mapping.row))}</strong> · ${por}.`;
 }
@@ -214,6 +221,7 @@ function renderMovementDetailDialog() {
     fichaMovSincroniza(bloque);
   };
   qs("fichaMovDeshacer")?.addEventListener("click", fichaMovDeshacer);
+  qs("fichaMovQuitarPatron")?.addEventListener("click", fichaMovQuitarPatron);
   qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
   qs("movementDetailAttachPhoto")?.addEventListener("change", (event) => handleMovementDetailAttachPhoto(event, row));
   qs("movementDetailSaveGeo")?.addEventListener("click", () => handleMovementDetailSaveGeo(row));
@@ -268,6 +276,31 @@ function fichaMovRefrescaPartidas(clavesRegla) {
   saveExpenseActuals();
   refreshAllSectionsAfterDataChange();
   return applied;
+}
+
+// CLA-01/02: quitar la regla por palabras que clasifica este movimiento. Lo que cogía vuelve a la bandeja (salvo lo que
+// tenga su propia regla de concepto); con «Deshacer» en el aviso de la ficha.
+function fichaMovQuitarPatron() {
+  const row = movementDetailTransaction;
+  const mapping = row ? mappingForMovement(row) : null;
+  if (mapping?.source !== "pattern") return;
+  const foto = fichaMovFoto(movementMappings, [mapping.patternKey]);
+  const palabras = globalThis.FinanceCanonicalPatternRules?.rulesOf({ [mapping.patternKey]: movementMappings[mapping.patternKey] })[0]?.shown || "";
+  delete movementMappings[mapping.patternKey];
+  fichaMovRefrescaPartidas(null);
+  const texto = `Regla de palabras «${palabras}» quitada: lo que clasificaba vuelve a la bandeja.`;
+  fichaMovAviso = {
+    id: transactionIdentity(row),
+    bloque: "partida",
+    texto,
+    deshacer: () => {
+      fichaMovRestaura(movementMappings, foto);
+      fichaMovRefrescaPartidas(null);
+    },
+  };
+  announceStatus(texto);
+  renderMovementDetailDialog();
+  renderDetailedMovements();
 }
 
 function fichaMovDeshacer() {
