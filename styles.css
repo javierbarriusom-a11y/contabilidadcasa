@@ -13167,3 +13167,61 @@ input[data-amount-input][aria-invalid="true"] {
 .recalculo-error [data-recalculo-detalle] {
   overflow-wrap: anywhere;
 }
+
+/* 15/11/2026 · Deuda › Contratos, «Detectadas en vuestros recibos»: la entidad con el texto del extracto debajo y campos cortos. */
+.deuda-detectados {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.deuda-detectados-datos {
+  font-size: 0.9rem;
+}
+
+.deuda-detectados-lista {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deuda-detectados-item {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.deuda-detectados-item p {
+  margin: 0;
+}
+
+.deuda-detectados-origen {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.deuda-detectados-alta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.deuda-detectados-alta label {
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.deuda-detectados-input {
+  width: 8rem;
+  max-width: 100%;
+}

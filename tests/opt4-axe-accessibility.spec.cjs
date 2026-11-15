@@ -100,6 +100,29 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// Deuda › Contratos · «Detectadas en vuestros recibos» (15/11/2026): axe entero dentro de la tarjeta, en claro y en oscuro, con recibos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Deuda › Contratos · detectadas en recibos · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deudaContratosDetectados: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      await expect(page.locator("#deudaContratosTable")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const tx = ["2026-10", "2026-11"].flatMap((m) => [
+          { date: `${m}-08`, movement: "ECITC0000000000", details: "A00000000000", amount: -150, month: m, category: "Creditos antiguos", accountId: "c1" },
+          { date: `${m}-05`, movement: "SERV.FINANCIER", amount: -330, month: m, category: "Creditos antiguos", accountId: "c1" },
+        ]);
+        baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
+        refreshMovementRollups();
+        renderDeudaContratos();
+      });
+      await expect(page.locator("#deudaContratosDetectados section.deuda-detectados")).toBeVisible();
+      const results = await new AxeBuilder({ page }).include("#deudaContratosDetectados").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // WP-28 / WP-16: las tablas «Ver como tabla» del kit de gráficos. En modo oscuro, una regla global de styles.css (`tbody tr:nth-child(even)
 // { background: #fafbfc }`) dejaba texto claro sobre casi blanco (1,12:1) y nadie lo vio porque el contraste queda fuera de la suite de arriba.
 // Aquí SÍ se mide, solo en lo que es del kit, en claro y en oscuro, con el cono de Escenarios y la banda de caja de Previsión.

@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261114pre1", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261116rec1", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261116rec1", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261116rec1", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261116rec1", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261116rec1", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -31355,6 +31355,7 @@ async function init() {
     if (input) handleGob16ClauseFieldChange(input);
   });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
+  qs("deudaContratosDetectados")?.addEventListener("click", (event) => handleDeudaContratosDetectadosClick(event));
   qs("deb6SimulateRun")?.addEventListener("click", () => handleDeb6Simulate());
   qs("deb6ConsolidationNote")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-deb6-use-offer]")) handleDeb6UseOfferInComparar();

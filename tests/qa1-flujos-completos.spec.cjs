@@ -1938,6 +1938,69 @@ test.describe("WP-20 · revisión del tipo variable de la hipoteca", () => {
   });
 });
 
+// 15/11/2026 («hazlo tú por mí directamente»): Deuda › Contratos detecta las financiaciones en los recibos y las da de alta con un
+// toque; pide el capital pendiente (no viene en los recibos), deja la TAE por confirmar y quita los contratos de ejemplo. INVENTADOS.
+test.describe("Deuda › Contratos · detectadas en vuestros recibos", () => {
+  test("detecta, pide el capital, da de alta (con deshacer) y quita los contratos de ejemplo", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 9, 0, 0) });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#deudaContratosTable")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const tx = [];
+      ["2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"].forEach((m) => {
+        tx.push({ date: `${m}-08`, movement: "ECITC0000000000", details: "A00000000000", amount: -150, month: m, category: "Creditos antiguos", accountId: "c1" });
+        tx.push({ date: `${m}-05`, movement: "SERV.FINANCIER", details: "RECIBO ENTIDAD DE FINANCIACION", amount: -330, month: m, category: "Creditos antiguos", accountId: "c1" });
+        tx.push({ date: `${m}-28`, movement: "Financie-octubre", amount: -900, month: m, category: "Creditos antiguos", accountId: "c1" });
+      });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], tx);
+      refreshMovementRollups();
+      renderDeudaContratos();
+    });
+    const card = page.locator("#deudaContratosDetectados section.deuda-detectados");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("2 financiaciones vivas");
+    await expect(card).toContainText("ninguna dada de alta");
+    const filas = card.locator("li.deuda-detectados-item");
+    await expect(filas).toHaveCount(2);
+    await expect(filas.first()).toContainText("Servicios financieros (pago aplazado)");
+    await expect(filas.first()).toContainText("330 €");
+    await expect(card).not.toContainText("Financie-octubre");
+    // Sin capital no se da de alta: se dice por qué.
+    const aplazado = filas.filter({ hasText: "Servicios financieros" });
+    await aplazado.getByRole("button", { name: /^Dar de alta/ }).click();
+    await expect(card.locator("#deudaDetectadosError")).toContainText("Falta el capital pendiente");
+    await expect(aplazado.locator("[data-deuda-detectado-capital]")).toBeFocused();
+    await aplazado.locator("[data-deuda-detectado-capital]").fill("2000");
+    await aplazado.locator("[data-deuda-detectado-tae]").fill("0");
+    await aplazado.getByRole("button", { name: /^Dar de alta/ }).click();
+    const tabla = page.locator("#deudaContratosTable");
+    await expect(tabla.locator('input[data-deuda-contrato-field="entity"][value="Servicios financieros (pago aplazado)"]')).toHaveCount(1);
+    await expect(card.locator("li.deuda-detectados-item").filter({ hasText: "Servicios financieros" })).toContainText("Ya en Contratos");
+    await expect(card).toContainText("1 sin dar de alta");
+    const alta = await page.evaluate(() => debtContractCustomEntries.find((entry) => entry.provenance === "receipts"));
+    expect(alta).toMatchObject({ entity: "Servicios financieros (pago aplazado)", currentPrincipal: 2000, currentPayment: 330, apr: 0, source: "movimientos" });
+    // La otra, con la TAE por confirmar.
+    const eci = card.locator("li.deuda-detectados-item").filter({ hasText: "El Corte Inglés" });
+    await eci.locator("[data-deuda-detectado-capital]").fill("1800");
+    await eci.getByRole("button", { name: /^Dar de alta/ }).click();
+    await expect(card).toContainText("ya están en Contratos");
+    expect(await page.evaluate(() => debtContractCustomEntries.find((entry) => entry.number === "A00000000000")?.apr)).toBeNull();
+    // Los de ejemplo, fuera con un toque (y con deshacer).
+    await expect(card).toContainText("contratos de ejemplo");
+    await card.getByRole("button", { name: "Quitar los de ejemplo" }).click();
+    await expect(tabla.locator('input[data-deuda-contrato-field="entity"][value="Entidad A"]')).toHaveCount(0);
+    await expect(tabla.locator("tbody tr")).toHaveCount(2); // solo las dos dadas de alta desde los recibos
+    await expect(page.locator("#deudaContratosDetectados")).not.toContainText("contratos de ejemplo");
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // WP-20 (PR-2): los avisos de la revisión del tipo llegan al .ics de recordatorios, con la cuota solo en el detalle.
 test.describe("WP-20 · avisos de la revisión en el calendario del móvil", () => {
   test("una revisión a 45 días genera su aviso de 30 días en el .ics, sin importes en el título y con la cuota en el detalle", async ({ page }) => {

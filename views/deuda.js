@@ -1291,6 +1291,8 @@ function renderDeudaContratos() {
       ? `${overriddenCount} de ${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"} con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
       : `Valores declarados de ejemplo (${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
   }
+  const detectadosEl = qs("deudaContratosDetectados");
+  if (detectadosEl) detectadosEl.innerHTML = deudaContratosDetectadosHtml(deudaContratosRecibos());
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
   renderDeb5FiscalPriority(contracts);
@@ -1842,6 +1844,134 @@ function deudaContratosAddFormParse(values) {
       custom: true,
     },
   };
+}
+
+// 15/11/2026 («hazlo tú por mí directamente», hogar): las cuotas de los créditos ya están en los recibos. Se detectan por entidad y
+// contrato (canonical-debt-receipts.js) y se dan de alta con un toque. Los recibos no dicen el capital pendiente ni la TAE: el
+// capital se pide (sin él, el contrato se leería como liquidado) y la TAE puede quedar por confirmar. Nada se da de alta solo.
+const DEUDA_EJEMPLO_ENTIDADES = new Set(["Entidad A", "Entidad B", "Entidad C"]);
+
+function deudaContratosRecibos() {
+  const engine = globalThis.FinanceCanonicalDebtReceipts;
+  const transactions = baseData?.transactions || [];
+  if (!engine || !transactions.length) return null;
+  const movements = transactions.map((row) => {
+    const mapping = mappingForMovement(row);
+    return {
+      date: row.date,
+      amount: Number(row.amount || 0),
+      label: movementDisplayName(row),
+      details: `${row.movement || ""} ${row.details || ""}`,
+      category: row.category || "",
+      block: mapping ? (mapping.row.sectionName === "Financiaciones" ? "financiacion" : "otro") : null,
+    };
+  });
+  return engine.detect(movements, { today: isoLocalDate(new Date()), contracts: debtContractSourceRows() });
+}
+
+function deudaContratosEjemplosVisibles() {
+  return DEBT_PORTFOLIO.filter((row) => !debtContractHiddenExampleIds.includes(row.id) && !debtContractOverrides[row.id] && DEUDA_EJEMPLO_ENTIDADES.has(row.entity));
+}
+
+function deudaContratosDetectadoFilaHtml(debt) {
+  const key = escapeHtml(debt.key);
+  const entity = escapeHtml(debt.entity);
+  const origen = debt.recognised ? `<span class="deuda-detectados-origen">En el extracto: ${escapeHtml(debt.sourceLabel)}${debt.reference && !debt.sourceLabel.toLowerCase().includes(debt.reference) ? ` · ${escapeHtml(debt.reference.toUpperCase())}` : ""}</span>` : "";
+  const datos = `<p class="deuda-detectados-datos">${escapeHtml(debt.type)} · cuota <strong>${money(debt.payment)}</strong> · último recibo ${escapeHtml(shortDate(debt.lastDate))} (${money(debt.lastAmount)}) · en ${debt.months} ${debt.months === 1 ? "mes" : "meses"}</p>`;
+  const accion = debt.registered
+    ? `<p><span class="e19-badge e19-badge-success">Ya en Contratos</span></p>`
+    : `<div class="deuda-detectados-alta">
+        <label>Capital pendiente (€)<input type="text" inputmode="decimal" class="deuda-detectados-input" data-deuda-detectado-capital="${key}" aria-describedby="deudaDetectadosAyuda" /></label>
+        <label>TAE (%)<input type="text" inputmode="decimal" class="deuda-detectados-input" data-deuda-detectado-tae="${key}" placeholder="por confirmar" /></label>
+        <button type="button" class="e19-btn e19-btn-secondary" data-deuda-detectado-alta="${key}" aria-label="Dar de alta ${entity}">Dar de alta</button>
+      </div>`;
+  return `<li class="deuda-detectados-item" data-deuda-detectado="${key}"><p class="deuda-detectados-entidad"><strong>${entity}</strong>${origen}</p>${datos}${accion}</li>`;
+}
+
+function deudaContratosDetectadosHtml(result) {
+  if (!result || !result.debts.length) return "";
+  const vivas = result.debts.filter((debt) => debt.active);
+  const terminadas = result.debts.filter((debt) => !debt.active);
+  const ejemplos = deudaContratosEjemplosVisibles();
+  const cuantas = `<strong>${vivas.length} ${vivas.length === 1 ? "financiación viva" : "financiaciones vivas"}</strong> (${money(result.activeMonthly)} al mes)`;
+  const pendientes = result.pending === vivas.length
+    ? `, ${vivas.length === 1 ? "sin dar de alta" : "ninguna dada de alta"} en Contratos`
+    : ` y <strong>${result.pending} sin dar de alta</strong> (${money(result.pendingMonthly)} al mes)`;
+  const resumen = result.pending
+    ? `En vuestros recibos hay ${cuantas}${pendientes}. La cuota y la entidad salen de los recibos; el capital pendiente y la TAE no vienen en ellos: ponedlos (la TAE puede quedar por confirmar) y pulsad «Dar de alta».`
+    : `Las ${vivas.length} financiaciones vivas de vuestros recibos (${money(result.activeMonthly)} al mes) ya están en Contratos.`;
+  const tabla = vivas.length ? `<ul class="deuda-detectados-lista">${vivas.map(deudaContratosDetectadoFilaHtml).join("")}</ul>` : "";
+  const fin = terminadas.length
+    ? `<p class="e19-kpi-note">Sin recibos este mes ni el anterior (terminadas o pagadas de otra forma): ${terminadas.map((debt) => `${escapeHtml(debt.entity)} (último en ${escapeHtml(debt.lastMonth)})`).join(", ")}.</p>`
+    : "";
+  const ejemplosHtml = ejemplos.length
+    ? `<p class="e19-kpi-note is-warn">La lista de abajo aún tiene ${ejemplos.length === 1 ? "un contrato de ejemplo" : `${ejemplos.length} contratos de ejemplo`} (${ejemplos.map((row) => escapeHtml(row.entity)).join(", ")}): cuentan en Ruta, Préstamo y Hoy como si fueran vuestros. <button type="button" class="hoy-v2-link" data-deuda-detectado-ejemplos>Quitar los de ejemplo</button></p>`
+    : "";
+  return `<section class="e19-card deuda-detectados" aria-labelledby="deudaDetectadosTitulo">
+      <h3 class="e19-card-title" id="deudaDetectadosTitulo" tabindex="-1">Detectadas en vuestros recibos</h3>
+      <p class="e19-kpi-note" id="deudaDetectadosAyuda">${resumen}</p>
+      ${tabla}
+      <p class="pre-error" id="deudaDetectadosError" role="alert" hidden></p>
+      ${fin}
+      ${ejemplosHtml}
+    </section>`;
+}
+
+function deudaContratosDetectadoError(texto) {
+  const el = qs("deudaDetectadosError");
+  if (!el) return;
+  el.textContent = texto;
+  el.hidden = !texto;
+}
+
+function handleDeudaContratosDetectadosClick(event) {
+  if (event.target.closest("[data-deuda-detectado-ejemplos]")) {
+    const ids = deudaContratosEjemplosVisibles().map((row) => row.id);
+    if (!ids.length) return;
+    const antes = debtContractHiddenExampleIds;
+    debtContractHiddenExampleIds = [...debtContractHiddenExampleIds, ...ids];
+    saveDebtContractHiddenExampleIds();
+    renderDeudaContratos();
+    qs("deudaDetectadosTitulo")?.focus?.();
+    showUndoToast(`${ids.length === 1 ? "Contrato de ejemplo quitado" : `${ids.length} contratos de ejemplo quitados`}.`, () => {
+      debtContractHiddenExampleIds = antes;
+      saveDebtContractHiddenExampleIds();
+      renderDeudaContratos();
+      announceStatus("Contratos de ejemplo recuperados.");
+    });
+    return;
+  }
+  const boton = event.target.closest("[data-deuda-detectado-alta]");
+  if (!boton) return;
+  const key = boton.dataset.deudaDetectadoAlta;
+  const debt = deudaContratosRecibos()?.debts.find((row) => row.key === key);
+  if (!debt || debt.registered) return;
+  const fila = boton.closest("li");
+  const capital = fila?.querySelector("[data-deuda-detectado-capital]")?.value ?? "";
+  const tae = fila?.querySelector("[data-deuda-detectado-tae]")?.value ?? "";
+  if (!String(capital).trim()) {
+    deudaContratosDetectadoError(`Falta el capital pendiente de ${debt.entity}: sin él se leería como liquidada. Lo dice vuestra app del banco o el último extracto del crédito.`);
+    fila?.querySelector("[data-deuda-detectado-capital]")?.focus();
+    return;
+  }
+  const result = deudaContratosAddFormParse({ entity: debt.entity, type: debt.type, number: debt.reference.toUpperCase(), principal: capital, apr: tae, payment: String(debt.payment), status: "active", installments: "" });
+  if (result.error) {
+    deudaContratosDetectadoError(`${debt.entity}: ${result.error}`);
+    return;
+  }
+  const id = nextDebtContractCustomId();
+  debtContractCustomEntries = [...debtContractCustomEntries, { id, ...result.entry, provenance: "receipts", source: "movimientos", receiptKey: debt.key }];
+  saveDebtContractCustomEntries();
+  renderDeudaContratos();
+  const siguiente = qs("deudaContratosDetectados")?.querySelector("[data-deuda-detectado-capital]");
+  (siguiente || qs("deudaDetectadosTitulo"))?.focus?.();
+  announceStatus(`${debt.entity} dada de alta en Contratos con ${money(debt.payment)} de cuota${result.entry.apr === null ? "; TAE por confirmar" : ""}.`);
+  showUndoToast(`${debt.entity} dada de alta.`, () => {
+    debtContractCustomEntries = debtContractCustomEntries.filter((entry) => entry.id !== id);
+    saveDebtContractCustomEntries();
+    renderDeudaContratos();
+    announceStatus(`Alta de ${debt.entity} deshecha.`);
+  });
 }
 
 function deudaContratosAddFormValues() {
