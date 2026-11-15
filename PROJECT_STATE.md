@@ -135,18 +135,20 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - **bandeja de Movimientos:** propone las parejas (una salida y una entrada del mismo importe, en cuentas distintas, con dos días o menos; al menos una punta pide partida), de tres en tres, con «Es un traspaso» y «No lo es». Si había más de una entrada candidata, lo avisa. Marcar es por movimiento y se deshace; lo descartado no vuelve (`traspasos-descartados`, en `BACKUP_LOCAL_STORES`);
   - **Clasificar:** «No es un gasto: es un traspaso entre cuentas nuestras» marca el grupo por su concepto (y los que vengan), con «Deshacer». Es lo que sirve si solo se importa una de las dos cuentas, porque entonces no hay pareja que proponer;
   - **se aparta de la auditoría:** pedía «aceptar en bloque»; va pareja a pareja, porque el hogar retiró el bloque en Clasificar (13/11) y dos movimientos del mismo importe en cuentas distintas no siempre son un traspaso.
+- **Deuda › Préstamo avisa de los contratos de ejemplo** (riesgo del traspaso del 15/11): mientras sigan en Contratos sin tocar, la pestaña dice arriba «Estas cifras no son todavía las vuestras», cuántos son y lleva a Contratos. Antes solo lo decía la tarjeta de Contratos. `prestamo-deuda-ui.js?v=20261116cla1`.
 - **Sin saber del hogar:** si importa una cuenta o varias (se preguntó; sin respuesta, se han hecho los dos caminos).
 - **Riesgos declarados:**
   - sin probar con un extracto del hogar: no se conoce cómo escribe su banco los Bizum (si la persona va en el concepto o en el detalle). Por eso las palabras son editables y se enseña lo que cogería;
   - una palabra sola y corriente puede coger de más (un nombre que también es un comercio). La vista previa cuenta lo de ahora, no lo que venga;
   - una regla por palabras clasifica sola lo que llegue después: es el primer automatismo de Clasificar desde que el hogar retiró «aceptar en bloque» (13/11). Va sin marcar y la pide el hogar grupo a grupo; la calibración de XDA-05 no la mide todavía.
-- **Despliegue de #624** (`main` `318add6`, fusionado a las 13:43Z con su CI 1429 en verde): ejecución **1431**, __PENDIENTE_DESPLIEGUE__
+- **Despliegue de #624** (`main` `318add6`, fusionado a las 13:43Z con su CI 1429 en verde): ejecución **1431**, en curso al subir este commit; su resultado y el número de «Published availability» se anotan aquí antes de fusionar.
 - `canonical-pattern-rules.js`, `views/clasificar-v2.js`, `datos-ui.js`, `ficha-movimiento-ui.js`, `tema-v2.css` y `novedades.js` con `?v=20261116cla1`; `canonical-internal-transfers.js`, `views/movimientos-v2.js` y `views/cierre.js` con `?v=20261116dat05`; los dos motores, añadidos a la caché offline y al sitio público. `app.js` 32.091 líneas (+3; techo 32.203). Dos líneas en Novedades.
 - **Pruebas:**
   - `tests/cla-reglas-por-palabras.test.cjs` (11): palabras propuestas, limpieza de lo tecleado, Bizum por persona, recibo por emisor e importe, prioridad entre reglas, la clave como fuente de las palabras, el parecido de CLA-03 y la integración;
   - `tests/dat05-traspasos-internos.test.cjs` (7): la pareja, una sola pareja por movimiento, la entrada antes que la salida, lo ya decidido, lo descartado y la integración;
   - e2e a 390 px: «CLA-01 y CLA-02» (Bizum y recibo, lo que cogería, sin palabras que valgan, deshacer, lo que viene después y quitar desde la ficha), «CLA-03» (el segundo Bizum a la misma persona llega con propuesta) y «DAT-05» (pareja, deshacer, «No lo es», traspaso desde Clasificar y el cierre);
   - axe del panel de Clasificar con la regla abierta y de la bandeja con una pareja, en claro y en oscuro;
+  - el e2e de «Deuda › Préstamo para saldar» (1.280 y 390 px) comprueba el aviso y que calla al quitar los de ejemplo;
   - `tests/m1-m11-movimientos.test.cjs` (M-5) al día: «sin clasificar» ya no cuenta los traspasos marcados.
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6.662/6.662; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke;

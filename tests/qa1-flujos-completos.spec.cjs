@@ -2189,6 +2189,16 @@ test.describe("Deuda › Préstamo para saldar", () => {
       await expect(page.locator("#prestamoTin")).toHaveValue("7");
 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      // 15/11/2026: mientras sigan los contratos de ejemplo, la pestaña avisa de que las cifras no son las del hogar; quitados, calla.
+      await expect(result.locator("#prestamoEjemplosAviso")).toContainText("Estas cifras no son todavía las vuestras.");
+      await expect(result.locator("#prestamoEjemplosAviso")).toContainText(/\d+ contratos de ejemplo \(Entidad A/);
+      await expect(result.locator('#prestamoEjemplosAviso a[href="#deuda-contratos"]')).toHaveText("Contratos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await page.evaluate(() => {
+        debtContractHiddenExampleIds.push(...deudaContratosEjemplosVisibles().map((row) => row.id));
+        renderDeudaPrestamo();
+      });
+      await expect(result.locator("#prestamoEjemplosAviso")).toHaveCount(0);
       expect(pageErrors).toEqual([]);
     });
   }
