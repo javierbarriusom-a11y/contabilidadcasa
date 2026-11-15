@@ -3476,6 +3476,22 @@
   justify-content: flex-end;
 }
 
+/* Movimientos · posibles traspasos entre cuentas propias (DAT-05, 15/11/2026): una frase y las parejas, con el aspecto de los
+   cobros por confirmar. */
+:root[data-tema="v2"] .mov-v2-traspasos {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+:root[data-tema="v2"] .mov-v2-traspasos > p {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .clas-v2-traspaso {
+  text-align: left;
+}
+
 /* Clasificar · «Recordar también por palabras» (CLA-01 y CLA-02, 15/11/2026): casilla y, al marcarla, las palabras, el
    importe y la frase de lo que cogería. */
 :root[data-tema="v2"] .clas-v2-patron {

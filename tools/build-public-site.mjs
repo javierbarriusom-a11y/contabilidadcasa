@@ -107,6 +107,7 @@ const files = [
   "canonical-variable-recalibration.js",
   "canonical-debt-receipts.js",
   "canonical-pattern-rules.js",
+  "canonical-internal-transfers.js",
   "canonical-forecast-changes.js",
   "canonical-debt-horizon.js",
   "canonical-forecast-alerts.js",

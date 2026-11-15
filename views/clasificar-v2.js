@@ -27,6 +27,9 @@
 // además, una regla por palabras (canonical-pattern-rules.js): las propone la app (las comunes a los movimientos del grupo,
 // sin números ni «bizum», «recibo»…), las decide el hogar y, si quiere, solo con un importe parecido. Antes de aceptar dice
 // cuántos movimientos sin partida cogería ya. Va al mismo diccionario y se deshace con la regla del grupo.
+//
+// DAT-05 (15/11/2026): «No es un gasto: es un traspaso entre cuentas nuestras». Un traspaso no tiene partida; marcado, el
+// grupo deja de pedirla (clasV2Transfer) y no cuenta en el % de gasto con partida.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
 
 const CLAS_V2_MAX = 5;
@@ -76,6 +79,7 @@ function clasV2PendingGroups() {
   const keyOf = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey : movementMappingKey;
   (baseData?.transactions || []).forEach((row) => {
     if (!row || !Number(row.amount) || mappingForMovement(row)) return;
+    if (typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) return; // DAT-05: un traspaso no pide partida
     const key = keyOf(row);
     const group = groups.get(key) || { key, kind: movementKindFromAmount(row.amount), name: movementDisplayName(row), rows: [], total: 0, anyMonth: key !== movementMappingKey(row), inClose: false, latest: "" };
     group.rows.push(row);
@@ -231,7 +235,7 @@ function clasV2PatronExtra(group, draft) {
   const motor = globalThis.FinanceCanonicalPatternRules;
   if (!motor || !draft?.rule) return [];
   const own = new Set(group.rows);
-  return (baseData?.transactions || []).filter((row) => row && Number(row.amount) && !own.has(row) && !mappingForMovement(row) && motor.matches(draft.rule, row));
+  return (baseData?.transactions || []).filter((row) => row && Number(row.amount) && !own.has(row) && !mappingForMovement(row) && !(typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) && motor.matches(draft.rule, row));
 }
 
 function clasV2PatronPreview(group) {
@@ -336,6 +340,7 @@ function clasV2Coverage(today = new Date()) {
   (baseData?.transactions || []).forEach((row) => {
     const amount = Number(row?.amount);
     if (!(amount < 0) || String(row.date || "") < from || CLAS_V2_NO_IMPORTADO.has(row.source)) return;
+    if (typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) return; // DAT-05: un traspaso no es gasto
     total += -amount;
     if (mappingForMovement(row)) mapped += -amount;
   });
@@ -488,6 +493,7 @@ function clasV2GroupHtml() {
       ${proposal}
       ${chips.length ? `<div class="clas-v2-opts" role="group" aria-label="Otras partidas">${chips.join("")}</div>` : ""}
       ${clasV2NewOpen ? clasV2NewFormHtml(group) : showSelect ? clasV2OtherSelect(group) : ""}
+      ${typeof movementActionTypes === "undefined" ? "" : `<button type="button" class="clas-v2-nueva-enlace clas-v2-traspaso" data-clas-v2-traspaso>No es ${group.kind === "income" ? "un ingreso" : "un gasto"}: es un traspaso entre cuentas nuestras</button>`}
     </div>
     ${rule ? `<p class="clas-v2-meta clas-v2-regla">${rule}</p>` : ""}
     ${clasV2PatronHtml(group, target)}
@@ -504,7 +510,7 @@ function clasV2SummaryHtml() {
   const rest = clasV2Remaining();
   const created = clasV2Created.length
     ? `<ul class="clas-v2-reglas">${clasV2Created
-        .map((rule, index) => `<li><span><b>${escapeHtml(rule.name)}</b> → ${escapeHtml(rule.partida)}<span class="clas-v2-meta">${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}${rule.patron ? ` · y por palabras «${escapeHtml(rule.patron.words)}»` : ""}</span></span>
+        .map((rule, index) => `<li><span><b>${escapeHtml(rule.name)}</b> ${rule.traspaso ? "·" : "→"} ${escapeHtml(rule.partida)}<span class="clas-v2-meta">${rule.count} ${rule.count === 1 ? "movimiento" : "movimientos"}${rule.patron ? ` · y por palabras «${escapeHtml(rule.patron.words)}»` : ""}</span></span>
           <button type="button" class="e19-btn e19-btn-secondary" data-clas-v2-deshacer="${index}">Deshacer</button></li>`)
         .join("")}</ul>`
     : `<p class="clas-v2-meta">No se ha creado ninguna regla en esta tanda.</p>`;
@@ -632,10 +638,39 @@ function clasV2Accept() {
   clasV2Next();
 }
 
+// DAT-05 (15/11/2026): el grupo no es gasto ni ingreso, es un traspaso entre cuentas propias. Se guarda como tipo de acción
+// del concepto («Transferencia interna», el mismo diccionario de la ficha): sus movimientos y los que vengan dejan de pedir
+// partida y no cuentan como gasto en la medición. No toca ningún real. Sirve aunque solo se importe una de las dos cuentas.
+function clasV2Transfer() {
+  const group = clasV2Groups[clasV2Index];
+  if (!group || typeof movementActionTypes === "undefined") return;
+  const rule = { key: group.key, kind: group.kind, name: group.name, partida: "traspaso entre cuentas, sin partida", count: group.rows.length, traspaso: true, prev: movementActionTypes[group.key], touched: [] };
+  movementActionTypes[group.key] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
+  saveMovementActionTypes();
+  refreshAllSectionsAfterDataChange();
+  clasV2Created.push(rule);
+  globalThis.FinanceMedidor?.anotar("clasificar-v2", "accion"); // XGO-02
+  const texto = `«${group.name}» es un traspaso entre cuentas: ${rule.count === 1 ? "este movimiento ya no pide" : `estos ${rule.count} movimientos ya no piden`} partida, ni los que vengan.`;
+  showUndoToast(texto, () => clasV2Undo(rule));
+  announceStatus(texto);
+  clasV2Next();
+}
+
 // Vale desde el aviso aunque el panel ya se haya cerrado o vaya por otra tanda: cada regla se deshace una sola vez.
 function clasV2Undo(rule) {
   if (!rule || rule.undone) return;
   rule.undone = true;
+  if (rule.traspaso) {
+    if (rule.prev) movementActionTypes[rule.key] = rule.prev;
+    else delete movementActionTypes[rule.key];
+    saveMovementActionTypes();
+    refreshAllSectionsAfterDataChange();
+    clasV2Created = clasV2Created.filter((item) => item !== rule);
+    globalThis.FinanceMedidor?.anotar("clasificar-v2", "deshecho"); // XGO-02
+    announceStatus(`«${rule.name}» ya no está marcado como traspaso: sus movimientos vuelven a la bandeja.`);
+    if (qs("clasificarV2")?.open) clasV2Render();
+    return;
+  }
   if (rule.prev) movementMappings[rule.key] = rule.prev;
   else delete movementMappings[rule.key];
   if (rule.patron?.prev) movementMappings[rule.patron.key] = rule.patron.prev;
@@ -682,6 +717,7 @@ function clasV2BindOnce(dialog) {
     if (event.target === dialog || event.target.closest("[data-clas-v2-cerrar]")) return clasV2Close();
     if (event.target.closest("[data-clas-v2-aceptar]")) return clasV2Accept();
     if (event.target.closest("[data-clas-v2-saltar]")) return clasV2Skip();
+    if (event.target.closest("[data-clas-v2-traspaso]")) return clasV2Transfer();
     const alt = event.target.closest("[data-clas-v2-alt]");
     if (alt) {
       clasV2Choice = clasV2Choice === alt.dataset.clasV2Alt ? "" : alt.dataset.clasV2Alt;

@@ -8116,6 +8116,101 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
   });
 });
 
+// DAT-05 (15/11/2026): traspasos entre cuentas propias. Movimientos inventados en dos cuentas: un traspaso de verdad, una
+// coincidencia de importe que no lo es y un traspaso a una cuenta cuyo extracto no se importa.
+test.describe("DAT-05 · Traspasos entre cuentas propias", () => {
+  test("la bandeja propone la pareja, «No lo es» no vuelve, Clasificar marca el de una sola cuenta y el cierre no los pide", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+      const rows = [
+        mov("2026-11-12", -500, "TRASPASO FICTICIO A OTRA CUENTA", "CaixaBank"),
+        mov("2026-11-13", 500, "TRASPASO FICTICIO RECIBIDO", "Mediolanum"),
+        mov("2026-11-10", -120, "COMPRA FICTICIA DE MUEBLES", "CaixaBank"),
+        mov("2026-11-10", 120, "DEVOLUCION FICTICIA DE UN SEGURO", "Mediolanum"),
+        mov("2026-11-08", -300, "TRANSF FICTICIA A CUENTA DE AHORRO", "CaixaBank"),
+        mov("2026-11-07", -80, "SUPER FICTICIO CON PARTIDA", "CaixaBank"),
+      ];
+      const partida = availableSeriesRows("expense")[0];
+      movementMappings["expense|super ficticio con partida|"] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const pidenPartida = () => page.evaluate(() => baseData.transactions.filter((row) => /FICTICI/.test(row.movement) && movementNeedsPartida(row)).length);
+    const cobertura = () => page.evaluate(() => clasificarV2CoberturaFrase());
+    expect(await pidenPartida()).toBe(5);
+    expect(await cobertura(), "80 € con partida de 1.000 € de gasto").toBe("Gasto importado con partida (últimos 90 días): 8 % · objetivo 95 %");
+    const bandeja = page.locator("#movimientosV2 .mov-v2-bandeja");
+    await expect(bandeja.locator(".mov-v2-traspasos > p").first()).toContainText("2 posibles traspasos entre vuestras cuentas.");
+    const parejas = bandeja.locator(".mov-v2-traspaso");
+    await expect(parejas).toHaveCount(2);
+    await expect(parejas.first()).toContainText("500 € de CaixaBank a Mediolanum");
+    await expect(parejas.first()).toContainText("Sale el 12 de noviembre y entra con un día de diferencia.");
+    await expect(parejas.nth(1)).toContainText("120 € de CaixaBank a Mediolanum");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+    // «Es un traspaso»: las dos puntas dejan de pedir partida y la lista lo dice.
+    await parejas.first().locator("[data-mov-v2-traspaso-si]").click();
+    await expect(page.locator("#undoToastMessage")).toContainText("Traspaso de 500 € de CaixaBank a Mediolanum marcado");
+    expect(await pidenPartida()).toBe(3);
+    await expect(parejas).toHaveCount(1);
+    await expect(page.locator("#movimientosV2Filas .mov-v2-fila", { hasText: "TRASPASO FICTICIO RECIBIDO" }).locator(".mov-v2-partida .mov-v2-tag")).toHaveText("Traspaso");
+    expect(await page.evaluate(() => Object.values(movementActionTypes).filter((item) => item.actionType === "transferencia_interna").length)).toBe(2);
+    expect(await cobertura(), "los 500 € del traspaso ya no cuentan como gasto: 80 € de 500 €").toBe("Gasto importado con partida (últimos 90 días): 16 % · objetivo 95 %");
+    // Se deshace: vuelven a pedir partida y la pareja, a la bandeja.
+    await page.$eval("#undoToast button", (button) => button.click());
+    expect(await pidenPartida()).toBe(5);
+    await expect(parejas).toHaveCount(2);
+    await parejas.first().locator("[data-mov-v2-traspaso-si]").click();
+    expect(await pidenPartida()).toBe(3);
+
+    // «No lo es»: no vuelve a proponerse, tampoco al recargar; va en la copia.
+    await parejas.first().locator("[data-mov-v2-traspaso-no]").click();
+    await expect(bandeja.locator(".mov-v2-traspasos")).toHaveCount(0);
+    expect(await pidenPartida(), "siguen pidiendo partida: son una compra y una devolución").toBe(3);
+    expect(await page.evaluate(() => BACKUP_LOCAL_STORES.includes("traspasos-descartados") && JSON.parse(localStorage.getItem(storageKey("traspasos-descartados"))).length)).toBe(1);
+    await page.evaluate(() => movimientosV2Render());
+    await expect(bandeja.locator(".mov-v2-traspasos")).toHaveCount(0);
+
+    // El traspaso a una cuenta que no se importa no tiene pareja: se marca desde Clasificar, por su concepto.
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("TRANSF FICTICIA A CUENTA DE AHORRO");
+    await expect(panel.locator("[data-clas-v2-traspaso]")).toHaveText("No es un gasto: es un traspaso entre cuentas nuestras");
+    await panel.locator("[data-clas-v2-traspaso]").click();
+    expect(await pidenPartida()).toBe(2);
+    await expect(panel.locator(".clas-v2-nombre"), "pasa al siguiente grupo").not.toHaveText("TRANSF FICTICIA A CUENTA DE AHORRO");
+    // El mismo concepto el mes que viene tampoco la pide.
+    expect(await page.evaluate(() => movementNeedsPartida({ date: "2026-12-08", month: "2026-12", movement: "TRANSF FICTICIA A CUENTA DE AHORRO", details: "", amount: -300 }))).toBe(false);
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await expect(panel.locator(".clas-v2-reglas li").first()).toContainText("TRANSF FICTICIA A CUENTA DE AHORRO · traspaso entre cuentas, sin partida");
+    // Deshacer desde el fin de la tanda lo devuelve a la bandeja; se vuelve a marcar para mirar el cierre.
+    await panel.locator("[data-clas-v2-deshacer]").first().click();
+    expect(await pidenPartida()).toBe(3);
+    await page.evaluate(() => {
+      movementActionTypes["expense|transf ficticia a cuenta de ahorro|"] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
+    });
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+    // El cierre de noviembre no los cuenta entre lo que queda por clasificar (la vista se carga bajo demanda).
+    await page.goto("/index.html#cierre");
+    await page.waitForFunction(() => typeof cierrePorClasificarFilas === "function");
+    await page.evaluate(() => {
+      const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], [mov("2026-11-08", -300, "TRANSF FICTICIA A CUENTA DE AHORRO", "CaixaBank"), mov("2026-11-10", -120, "COMPRA FICTICIA DE MUEBLES", "CaixaBank"), mov("2026-11-10", 120, "DEVOLUCION FICTICIA DE UN SEGURO", "Mediolanum")]);
+      movementActionTypes["expense|transf ficticia a cuenta de ahorro|"] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
+    });
+    expect(await page.evaluate(() => cierrePorClasificarFilas("2026-11").filter((row) => /FICTICI/.test(row.movement)).map((row) => row.movement).sort())).toEqual(["COMPRA FICTICIA DE MUEBLES", "DEVOLUCION FICTICIA DE UN SEGURO"]);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // Ensayo del cierre de octubre (23/10/2026, docs/REVISION_SALIDA_OLA1_2026-10-23.md): el recorrido real del hogar el 2/11, de
 // principio a fin y con el diseño nuevo. Se parte de cero movimientos, como los datos reales, y se sigue: importar el extracto,
 // clasificar la bandeja y llegar a Firmar. Firmar exige sesión iniciada (RPC transaccional), así que la prueba llega hasta

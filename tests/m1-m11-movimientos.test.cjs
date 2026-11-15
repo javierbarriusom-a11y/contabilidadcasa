@@ -346,7 +346,8 @@ test("M-3 · el enlace «Duplicado revisado» tiene dato real: datosImportarIncl
 
 test("M-5 · el aviso de cola sin clasificar cuenta sobre la vista filtrada, no sobre el extracto completo", () => {
   const fn = extractFunction("renderDetailedMovements");
-  assert.match(fn, /const unclassified = filtered\.filter\(\(row\) => Number\(row\.amount\) && !mappingForMovement\(row\)\);/);
+  // DAT-05 (15/11/2026): un traspaso entre cuentas propias marcado por el hogar no cuenta como «sin clasificar»; sigue contando sobre `filtered`.
+  assert.match(fn, /const unclassified = filtered\.filter\(\(row\) => \(typeof movementNeedsPartida === "function" \? movementNeedsPartida\(row\) : Number\(row\.amount\) && !mappingForMovement\(row\)\)\);/);
   assert.match(fn, /banner\.hidden = false;/);
   assert.match(fn, /banner\.hidden = true;/);
 });

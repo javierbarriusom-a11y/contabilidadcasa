@@ -241,8 +241,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261104cierreC3", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261104cierreC3", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261116dat05", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261116dat05", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
@@ -1380,6 +1380,7 @@ const BACKUP_LOCAL_STORES = [
   "deuda-oferta-reunificacion", // T-4/D-11: oferta de reunificación introducida a mano
   "deuda-prestamo-saldar", // Deuda › Préstamo para saldar: condiciones simuladas
   "gasto-variable-apartados", // PRV-01: conceptos que el hogar aparta de la medición del gasto variable
+  "traspasos-descartados", // DAT-05: parejas de movimientos que el hogar dijo que no son un traspaso entre sus cuentas
   "mes-plantilla-nombres", // P-3: nombres de plantilla de mes
   "datos-importar-ignorados", // movimientos que el hogar decidió ignorar al importar
   "month-close-balances", // WP-09: saldo por cuenta y su fecha en cada cierre firmado
@@ -21937,7 +21938,7 @@ function formatIsoDate(value) {
 // es una escritura nueva), así que ese chip cuenta 0 con honestidad, no lo esconde ni lo fabrica.
 const MOVEMENT_CHIPS = [
   { id: "todos", label: "Todos", test: () => true },
-  { id: "sin-clasificar", label: "Sin clasificar", test: (row) => Boolean(Number(row.amount)) && !mappingForMovement(row) },
+  { id: "sin-clasificar", label: "Sin clasificar", test: (row) => Boolean(Number(row.amount)) && !mappingForMovement(row) && !(typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) },
   { id: "gastos", label: "Gastos", test: (row) => Number(row.amount) < 0 },
   { id: "ingresos", label: "Ingresos", test: (row) => Number(row.amount) > 0 },
   { id: "manual", label: "Manual", test: (row) => row.source === "Manual" },

@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-15-traspasos-propios",
+      fecha: "2026-11-15",
+      texto: "Movimientos: la bandeja propone los traspasos entre vuestras cuentas; marcados, no piden partida ni cuentan como gasto.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-15-reglas-por-palabras",
       fecha: "2026-11-15",
       texto: "Clasificar: «Recordar también por palabras» reconoce el Bizum a la misma persona y el recibo con otra referencia, sin volver a preguntar.",

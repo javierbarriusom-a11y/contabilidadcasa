@@ -2212,3 +2212,25 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// DAT-05 · Posibles traspasos entre cuentas propias (15/11/2026): axe entero dentro de la bandeja de Movimientos con una
+// pareja propuesta, en claro y en oscuro, con movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Movimientos · posibles traspasos · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test(".mov-v2-bandeja con una pareja de traspaso: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [mov("2026-11-12", -500, "TRASPASO FICTICIO A OTRA CUENTA", "CaixaBank"), mov("2026-11-13", 500, "TRASPASO FICTICIO RECIBIDO", "Mediolanum")]);
+        refreshMovementRollups();
+        render();
+      });
+      await expect(page.locator("#movimientosV2 .mov-v2-traspaso")).toHaveCount(1);
+      const results = await new AxeBuilder({ page }).include("#movimientosV2 .mov-v2-bandeja").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}

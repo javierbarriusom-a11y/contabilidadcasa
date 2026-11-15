@@ -441,6 +441,7 @@ function cierrePorClasificarFilas(monthKey) {
   const vistos = new Set();
   return (baseData?.transactions || []).filter((row) => {
     if (!row || !Number(row.amount) || String(row.month || row.date || "").slice(0, 7) !== monthKey || mappingForMovement(row)) return false;
+    if (typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) return false; // DAT-05: un traspaso entre cuentas propias no pide partida
     const id = transactionIdentity(row);
     if (vistos.has(id)) return false; // un duplicado del extracto es el mismo movimiento
     vistos.add(id);
