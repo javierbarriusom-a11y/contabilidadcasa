@@ -23,6 +23,8 @@ minutos.
 
 **15/11/2026 · «Lo que más pesa» del hogar: la medición quita las cuotas de créditos sin partida y reconoce la tarjeta Carrefour con el mes cortado.** Las financiaciones (El Corte Inglés, Bankinter, Visa Oro, CaixaBank Payments…) pesan mucho más que la cuota del préstamo simulado: conviene darlas de alta en Deuda › Contratos. Pendiente del hogar: qué es el recibo de los servicios financieros y el traspaso a la sociedad.
 
+**15/11/2026 · Deuda › Contratos detecta las financiaciones en los recibos.** El hogar pidió «hazlo tú por mí»: la app lee los recibos de las financiaciones (entidad, cuota de ahora y último recibo) y las da de alta con un toque. El capital pendiente hay que ponerlo, porque no viene en los recibos; la TAE puede quedar por confirmar. Avisa de los contratos de ejemplo y los quita. El servicio legal no se repite y ya no aplazan compras. Pendiente: dar de alta las financiaciones con su capital y, después, D-N12.
+
 **15/11/2026 · «Apartar» en la medición del gasto variable.** Un toque quita de la medición lo que no es gasto del día a día (el hogar: un servicio legal pagado a principios de año) y se puede devolver; la previsión no cambia. Los servicios financieros son pago aplazado sin intereses que termina pronto. Siguen pendientes si el servicio legal se repite, las financiaciones en Deuda › Contratos y D-N12.
 
 **14/11/2026 (noche) · La medición del gasto variable, a la vista en Previsión.** El hogar no la encontraba dentro de la hoja de la insignia de confianza: pasa a su propia tarjeta y, si no puede medir, lo dice. Siguen pendientes las dos cifras y cuándo aplicar el recálculo (D-N12).

@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261116wp21d" />
+    <link rel="stylesheet" href="styles.css?v=20261116rec1" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261116fx15a" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -2355,6 +2355,9 @@
                 <p class="e19-subtitle" id="deudaContratosNote"></p>
               </div>
             </div>
+
+            <!-- 15/11/2026 («hazlo tú por mí directamente»): las financiaciones que ya están en los recibos, para darlas de alta con un toque. La pinta deudaContratosDetectadosHtml (views/deuda.js) con canonical-debt-receipts.js. -->
+            <div id="deudaContratosDetectados"></div>
 
             <div class="table-wrap deuda-contratos-table-wrap">
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
@@ -8239,6 +8242,7 @@
     <script defer src="canonical-stress-scenarios.js?v=20261116fx27a"></script>
     <script defer src="canonical-forecast-confidence.js?v=20261107fx31b"></script>
     <script defer src="canonical-variable-recalibration.js?v=20261116prv01e"></script>
+    <script defer src="canonical-debt-receipts.js?v=20261116rec1"></script>
     <script defer src="canonical-forecast-changes.js?v=20261109fx40a"></script>
     <script defer src="canonical-debt-horizon.js?v=20261110fx20h"></script>
     <script defer src="canonical-forecast-alerts.js?v=20261123fx41a"></script>

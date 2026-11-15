@@ -113,6 +113,30 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 15 de noviembre de 2026 (474): Deuda › Contratos detecta las financiaciones en los recibos («hazlo tú por mí directamente»); respuestas del hogar; despliegue de #623
+
+- **Respuestas del hogar (15/11, sin importes aquí):**
+  - el pago aplazado de los servicios financieros son mensualidades antiguas diferidas, sin intereses, de las que queda poco;
+  - el servicio legal **no se repite**: se aparta de la medición y no se proyecta;
+  - **ya no aplazan compras** («queremos dejar de hacerlo»);
+  - piden que las financiaciones se den de alta en Contratos por ellos.
+- **Por qué no se puede «por ellos» del todo:** sus datos viven en su navegador (y en su copia), no en el repositorio, y los recibos no traen ni el capital pendiente ni la TAE. Sin capital, un contrato se lee como liquidado. Lo que sí se puede hacer es que la app lea los recibos y deje el alta a un toque.
+- **«Detectadas en vuestros recibos»** (tarjeta nueva encima de la tabla de Contratos; motor puro `canonical-debt-receipts.js`, nº 130 de ARQ-3):
+  - agrupa las cuotas de crédito (partida de Financiaciones o, sin partida, la categoría que pone la app al importar) por entidad y referencia de contrato, sin las liquidaciones de tarjeta que se pagan enteras;
+  - de cada una dice: nombre legible (de «ECITC», «BANKINTER CONS», «LIQUID.VISA ORO», «SERV.FINANCIER»…), cuota de ahora (mediana de los tres últimos meses), último recibo, meses con recibo, si sigue viva y si ya está en Contratos;
+  - el alta pide el capital pendiente; la TAE puede quedar por confirmar; con «Deshacer»; guarda `provenance: "receipts"`, `source: "movimientos"` y `receiptKey`.
+- **Contratos de ejemplo:** si aún están (Entidad A, B y C, sin corregir), la tarjeta lo avisa —cuentan en Ruta, Préstamo y Hoy como si fueran del hogar— y los quita con un toque y «Deshacer».
+- **Despliegue de #623** (`main` `f281442`, fusionado a las 09:34Z con su CI 1426 en verde): ejecución **1427**, en verde a las 10:27Z. «Published availability» **348** (a mano), en verde.
+- `canonical-debt-receipts.js?v=20261116rec1`, `views/deuda.js?v=20261116rec1`, `styles.css?v=20261116rec1`; añadido a la caché offline y al sitio público.
+- **Pruebas:**
+  - `tests/rec-recibos-deuda.test.cjs` (6);
+  - e2e «Deuda › Contratos · detectadas en vuestros recibos» (detecta, pide el capital, da de alta con y sin TAE, quita los de ejemplo, a 390 px);
+  - axe de la tarjeta en claro y en oscuro.
+- **Validación:**
+  - `npm test` 6.644/6.644;
+  - lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke en verde;
+  - 13 e2e de Deuda y XGO-01 en verde.
+
 ## Cierre de sesión — 15 de noviembre de 2026 (473): «Apartar» en «Lo que más pesa»; la tarjeta del gasto variable ya no se sale de su sitio; respuestas del hogar sobre los servicios financieros y el traspaso a la sociedad
 
 - **Respuestas del hogar (15/11, sin importes aquí):** el «recibo entidad de financiación» de los servicios financieros es **pago aplazado de compras con tarjeta, sin intereses**, con compras antiguas que terminan en unos meses (no revolving); la app ya lo trata como cuota por su categoría. El traspaso a la sociedad es **un servicio legal pagado a principios de año**: no es consumo del día a día.

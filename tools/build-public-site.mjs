@@ -105,6 +105,7 @@ const files = [
   "canonical-stress-scenarios.js",
   "canonical-forecast-confidence.js",
   "canonical-variable-recalibration.js",
+  "canonical-debt-receipts.js",
   "canonical-forecast-changes.js",
   "canonical-debt-horizon.js",
   "canonical-forecast-alerts.js",
