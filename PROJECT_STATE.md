@@ -113,6 +113,32 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 15 de noviembre de 2026 (476): dar de alta varios contratos a la vez; el fallo de Safari en el CI de #625; despliegue de #625
+
+- **Petición del hogar (15/11):** enseñó un informe de un fichero de solvencia con siete operaciones (dos entidades; préstamos y tarjetas) y pidió «dalos de alta en la aplicación como contratos de deuda». **No se puede desde aquí:** los contratos viven en su navegador y el repositorio es público (ni importes ni nombres). Se le entregó, fuera del repositorio, un guion que usa el formulario «Añadir contrato» de la propia app, probado en local.
+- **Avisos dados al hogar, sin validar:** el informe da el «saldo impagado», que puede no ser todo el capital pendiente; suma casi lo mismo que el préstamo simulado; contradice lo anotado el 14-15/11 (sin revolving, poco pendiente). Se recomendó confirmar capital y TAE con cada entidad, preguntar por una quita antes de refinanciar y comprobar si quien pediría el préstamo figura como cotitular. Reabre la conveniencia de DEU-02, que el hogar rechazó; la decisión sigue siendo suya.
+- **«Dar de alta varios contratos a la vez»** (Deuda › Contratos, bajo «Detectadas en vuestros recibos»; sirve también en el móvil, donde no hay consola):
+  - una línea por contrato, «Entidad; tipo; capital; TAE; cuota», separada por punto y coma o tabulador. Solo la entidad y el capital son obligatorios; los importes, como se escriben en España («2.754,03») o con punto decimal;
+  - `parseBulkContracts` y `parseSpanishNumber`, en `canonical-debt-contracts.js` (sin motor nuevo; ARQ-3 sigue en 132). Cada línea pasa por las reglas del alta de uno en uno (`deudaContratosAddFormParse`);
+  - **entran todas o ninguna:** si una línea no se entiende, dice cuál y por qué, y el texto se queda para corregirlo;
+  - lo que ya está en Contratos (misma entidad y mismo capital) no se repite. Con «Deshacer»;
+  - **plegada de entrada.** La primera versión era una tarjeta abierta y el CI la paró: «uno entra, uno sale» (XGO-01), `#deuda-contratos` pasaba de 12 a 13 titulares. Se plegó en un desplegable en vez de escribir una excepción: el inventario no cambia;
+  - sin líneas nuevas en `app.js` (usa el manejador que ya tenía el contenedor). `views/deuda.js`, `styles.css`, `canonical-debt-contracts.js` y `novedades.js` con `?v=20261116var1`.
+- **El fallo de Safari en el CI de #625** (ejecución con cabecera `8c35db7`): solo el paso de WebKit, en la prueba antigua «XDA-10 · Antes de decidir» a 390 px; dos intentos seguidos, en líneas distintas, sin encontrar la línea de aviso. Verde al repetir el trabajo, una sola vez.
+  - No era del diff: el hogar de ejemplo no tiene movimientos (medido: 0), así que las reglas por palabras y los traspasos no calculan nada ahí, y en Chromium la prueba pasa aquí y en el CI.
+  - **Hipótesis, sin reproducir** (en el entorno de trabajo no hay WebKit): la prueba lee la liquidez y el suelo antes de que la app tenga la simulación. Ahora espera a `lastSimulation` y a que la vista esté pintada. Si vuelve a fallar, la hipótesis era mala.
+- **Despliegue de #625** (`main` `399e724`, fusionado a las 21:34Z): ejecución **1434**, en verde a las 22:29Z. «Published availability» **351** (a mano), en verde.
+- **Un tropiezo de procedimiento:** tras el squash de #625, reiniciar la rama pedía forzar el push y el entorno lo bloqueó. Se hizo fusionando `main` en la rama, sin forzar; el resultado es el mismo.
+- **Pruebas:**
+  - `tests/deuda-alta-varios-contratos.test.cjs` (4): importes, líneas, errores con su línea e integración;
+  - e2e a 390 px: plegada de entrada; una línea mal escrita no da de alta nada; corregida, entran todas; pegar otra vez no duplica; se deshace y lo demás sigue tras recargar;
+  - axe de la tarjeta con el aviso de error a la vista, en claro y en oscuro;
+  - la prueba XDA-10 reforzada, en verde en Chromium (390 y 1.280 px).
+- **Validación:**
+  - antes de plegar la tarjeta: `npm run verify` en verde, salida 0 (`npm test` 6.666/6.666; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke), y 24 axe y 12 e2e de Deuda en verde;
+  - después de plegarla: `npm test` 6.666/6.666, lint, tipos, accesibilidad estructural y privacidad en verde; las pruebas del alta de varios, la de «Detectadas en vuestros recibos», sus axe y la de superficie (XGO-01) en verde (Chromium). **Sin repetir** build, rendimiento ni smoke tras ese último cambio, que solo toca una vista y su estilo;
+  - **lección:** el primer push de esta entrega solo llevaba las pruebas de navegador relacionadas, y la de superficie no lo era a primera vista. La batería completa de navegador se ha lanzado en local antes de este push; su resultado se dice en el PR.
+
 ## Cierre de sesión — 15 de noviembre de 2026 (475): CLA-01, CLA-02, CLA-03 y DAT-05, el primer bloque de la novena auditoría («seguimos con el backlog y las nuevas funcionalidades»); despliegue de #624
 
 - **Encargo del hogar (15/11):** «seguimos con el backlog y las nuevas funcionalidades que puedas» y, después, «sigue con todo lo que puedas, y lo que dependa de restricciones o pruebas por mi parte, hazlo tú en mi lugar». **Cómo se ha leído:** las pruebas las hace Claude con datos inventados y decide los detalles de diseño sin preguntar; **no** se ha leído como permiso para saltarse decisiones del hogar (D-N11, el Lote 1 rechazado, D-N12 a D-N15), ni se puede escribir en sus datos, que viven en su navegador.

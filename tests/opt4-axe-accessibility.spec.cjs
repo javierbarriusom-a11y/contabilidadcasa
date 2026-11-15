@@ -2244,6 +2244,7 @@ for (const scheme of ["light", "dark"]) {
       await page.goto("/index.html#deuda-contratos");
       const tarjeta = page.locator("#deudaContratosDetectados .deuda-varios");
       await expect(tarjeta).toBeVisible({ timeout: 15000 });
+      await tarjeta.locator("summary").click();
       await tarjeta.locator("#deudaContratosVarios").fill("Banco FICTICIO; leasing; 100");
       await tarjeta.locator("[data-deuda-varios-alta]").click();
       await expect(tarjeta.locator("#deudaVariosAviso")).toContainText("No he dado de alta nada");

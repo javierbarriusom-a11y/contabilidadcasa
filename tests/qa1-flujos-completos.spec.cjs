@@ -8136,8 +8136,12 @@ test.describe("Deuda › Contratos · dar de alta varios a la vez", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const tarjeta = page.locator("#deudaContratosDetectados .deuda-varios");
-    await expect(tarjeta.locator("h3")).toHaveText("Dar de alta varios contratos a la vez", { timeout: 15000 });
+    // Plegada de entrada: no añade un titular a lo que Contratos enseña por defecto (XGO-01, «uno entra, uno sale»).
+    await expect(tarjeta.locator("summary")).toHaveText("Dar de alta varios contratos a la vez", { timeout: 15000 });
     const campo = tarjeta.locator("#deudaContratosVarios");
+    await expect(campo).toBeHidden();
+    await tarjeta.locator("summary").click();
+    await expect(campo).toBeVisible();
     const aviso = tarjeta.locator("#deudaVariosAviso");
     const propios = () => page.evaluate(() => debtContractCustomEntries.map((entry) => [entry.entity, entry.type, entry.currentPrincipal, entry.apr, entry.currentPayment]));
     await expect(aviso).toBeHidden();
@@ -8159,6 +8163,7 @@ test.describe("Deuda › Contratos · dar de alta varios a la vez", () => {
     await expect(aviso).toHaveText("3 contratos dados de alta. 2 quedan con la TAE por confirmar.");
     await expect(aviso).toHaveAttribute("role", "status");
     await expect(campo).toHaveValue("");
+    await expect(campo, "sigue abierta para ver lo que ha dicho").toBeVisible();
     expect(await propios()).toEqual([["Banco FICTICIO", "Tarjeta", 1250, 21, 60], ["Financiera FICTICIA", "Préstamo", 3400, null, 0], ["Caja FICTICIA", "Crédito", 980.5, null, 0]]);
     await expect(page.locator('#deudaContratosTable input[value="Financiera FICTICIA"]'), "sale en la tabla, editable como los demás").toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);

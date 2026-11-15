@@ -1934,14 +1934,17 @@ let deudaVariosAviso = { texto: "", error: false };
 
 function deudaContratosVariosHtml() {
   deudaVariosTexto = qs("deudaContratosVarios")?.value ?? deudaVariosTexto; // lo que se esté escribiendo sobrevive al repintado
-  return `<section class="e19-card deuda-varios" aria-labelledby="deudaVariosTitulo">
-      <h3 id="deudaVariosTitulo" tabindex="-1">Dar de alta varios contratos a la vez</h3>
+  // Plegada de entrada («uno entra, uno sale», XGO-01): no añade un titular a lo que Contratos enseña por defecto. Se queda
+  // abierta si ya lo estaba, si hay texto a medias o si acaba de decir algo.
+  const abierta = Boolean(qs("deudaVariosTarjeta")?.open) || Boolean(deudaVariosTexto) || Boolean(deudaVariosAviso.texto);
+  return `<details class="e19-card deuda-varios" id="deudaVariosTarjeta"${abierta ? " open" : ""}>
+      <summary id="deudaVariosTitulo">Dar de alta varios contratos a la vez</summary>
       <p class="e19-kpi-note" id="deudaVariosAyuda">Una línea por contrato: <strong>Entidad; tipo; capital pendiente; TAE; cuota</strong>. Solo la entidad y el capital son obligatorios; el tipo es crédito, tarjeta, préstamo, hipoteca u otro. Lo que no sepáis, en blanco: se corrige luego en la tabla.</p>
       <label class="deuda-varios-campo"><span>Contratos, uno por línea</span>
         <textarea id="deudaContratosVarios" rows="5" spellcheck="false" autocapitalize="off" aria-describedby="deudaVariosAyuda deudaVariosAviso" placeholder="Banco Ejemplo; tarjeta; 1.250,00; 21; 60&#10;Financiera Ejemplo; préstamo; 3.400">${escapeHtml(deudaVariosTexto)}</textarea></label>
       <div class="deuda-varios-acciones"><button type="button" class="e19-btn e19-btn-primary" data-deuda-varios-alta>Dar de alta</button></div>
       <p class="e19-kpi-note${deudaVariosAviso.error ? " is-danger" : ""}" id="deudaVariosAviso" role="${deudaVariosAviso.error ? "alert" : "status"}"${deudaVariosAviso.texto ? "" : " hidden"}>${escapeHtml(deudaVariosAviso.texto)}</p>
-    </section>`;
+    </details>`;
 }
 
 function deudaContratosVariosAlta() {

@@ -13234,6 +13234,14 @@ input[data-amount-input][aria-invalid="true"] {
   margin: 0;
 }
 
+.deuda-varios > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .deuda-varios-acciones {
   display: flex;
   flex-wrap: wrap;
