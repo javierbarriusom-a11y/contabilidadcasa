@@ -2189,6 +2189,16 @@ test.describe("Deuda › Préstamo para saldar", () => {
       await expect(page.locator("#prestamoTin")).toHaveValue("7");
 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      // 15/11/2026: mientras sigan los contratos de ejemplo, la pestaña avisa de que las cifras no son las del hogar; quitados, calla.
+      await expect(result.locator("#prestamoEjemplosAviso")).toContainText("Estas cifras no son todavía las vuestras.");
+      await expect(result.locator("#prestamoEjemplosAviso")).toContainText(/\d+ contratos de ejemplo \(Entidad A/);
+      await expect(result.locator('#prestamoEjemplosAviso a[href="#deuda-contratos"]')).toHaveText("Contratos");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      await page.evaluate(() => {
+        debtContractHiddenExampleIds.push(...deudaContratosEjemplosVisibles().map((row) => row.id));
+        renderDeudaPrestamo();
+      });
+      await expect(result.locator("#prestamoEjemplosAviso")).toHaveCount(0);
       expect(pageErrors).toEqual([]);
     });
   }
@@ -8003,6 +8013,252 @@ test.describe("XDA-05 · Calibración de Clasificar", () => {
     await expect(fep.locator(".fep-medido")).toContainText("0 % de las propuestas aceptadas tal cual");
     await expect(fep.locator(".fep-medido")).toContainText("Gasto importado con partida (últimos 90 días)");
     expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toMatch(/FICTICIO|amount|importe|CaixaBank/i);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// CLA-01 y CLA-02 (15/11/2026): reglas por palabras en Clasificar. Movimientos inventados: tres Bizum a la misma persona con
+// su texto libre y tres recibos del mismo emisor con la referencia cambiada (uno, de otro importe).
+test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
+  test("un Bizum por la persona y un recibo por emisor e importe; dice lo que cogería, se deshace y se quita desde la ficha", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [
+        [-900, "BIZUM ENVIADO", "A PEPA FICTICIA cena"],
+        [-35, "BIZUM ENVIADO", "A PEPA FICTICIA regalo"],
+        [-12, "BIZUM ENVIADO", "A PEPA FICTICIA entradas"],
+        [-210, "RECIBO AGUAS DEL VALLE REF 000789", ""],
+        [-43, "RECIBO AGUAS DEL VALLE REF 000456", ""],
+        [-41, "RECIBO AGUAS DEL VALLE REF 000123", ""],
+      ].map(([amount, movement, details]) => ({ date: hoy, month: hoy.slice(0, 7), movement, details, amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const sinPartida = () => page.evaluate(() => baseData.transactions.filter((row) => /FICTICIA|AGUAS DEL VALLE/.test(`${row.movement} ${row.details}`) && !mappingForMovement(row)).length);
+    expect(await sinPartida()).toBe(6);
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    const elegir = async () => {
+      if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+      await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    };
+
+    // 1 · El Bizum de 900 €. Sin partida elegida no se ofrece; con ella, la casilla sale sin marcar.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    await expect(panel.locator("[data-clas-v2-patron]")).toHaveCount(0);
+    await elegir();
+    const casilla = panel.locator("[data-clas-v2-patron]");
+    await expect(casilla).not.toBeChecked();
+    await expect(panel.locator("#clasificarV2PatronPalabras")).toHaveCount(0);
+    await casilla.check();
+    const palabras = panel.locator("#clasificarV2PatronPalabras");
+    await expect(palabras).toBeFocused();
+    await expect(palabras, "con un solo movimiento propone todas sus palabras: el hogar quita las que cambian").toHaveValue("pepa ficticia cena");
+    await expect(panel.locator("[data-clas-v2-patron-importe]"), "a una persona se le paga cada vez una cosa").not.toBeChecked();
+    const vista = panel.locator("#clasificarV2PatronVista");
+    await expect(vista).toContainText("Ahora no hay más movimientos sin partida que encajen");
+    // Sin palabras que valgan lo dice y no deja aceptar a medias.
+    await palabras.fill("bizum 12");
+    await expect(vista).toContainText("Escribe al menos una palabra de 3 letras o más");
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    await expect(vista).toHaveText("Sin palabras que valgan no puedo recordarlo por palabras: escribe alguna o desmarca la casilla.");
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    expect(await sinPartida()).toBe(6);
+    await panel.locator("#clasificarV2PatronPalabras").fill("Pepa Fictícia");
+    await expect(vista).toHaveText("Reconocerá los gastos con las palabras «PEPA FICTICIA», de cualquier importe. Además de este grupo, ahora cogería 2 movimientos sin partida (47 €).");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    expect(await sinPartida(), "los otros dos Bizum a la misma persona ya tienen partida").toBe(3);
+
+    // 2 · Los otros dos Bizum ya no se preguntan: toca el recibo de 210 €, que se salta.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("RECIBO AGUAS DEL VALLE REF 000789");
+    await panel.locator("[data-clas-v2-saltar]").click();
+    // 3 · El recibo de 43 €: por emisor y, al ser un recibo, con el importe pedido de entrada.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("RECIBO AGUAS DEL VALLE REF 000456");
+    await elegir();
+    await panel.locator("[data-clas-v2-patron]").check();
+    await expect(panel.locator("#clasificarV2PatronPalabras")).toHaveValue("aguas valle");
+    await expect(panel.locator("[data-clas-v2-patron-importe]")).toBeChecked();
+    await expect(panel.locator("#clasificarV2PatronVista")).toHaveText("Reconocerá los gastos con las palabras «AGUAS VALLE» de entre 38,70 € y 47,30 €. Además de este grupo, ahora cogería un movimiento sin partida (41 €).");
+    // Sin el importe cogería también el de 210 €: por eso va pedido.
+    await panel.locator("[data-clas-v2-patron-importe]").uncheck();
+    await expect(panel.locator("#clasificarV2PatronVista")).toContainText("ahora cogería 2 movimientos sin partida (251 €)");
+    await panel.locator("[data-clas-v2-patron-importe]").check();
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    expect(await sinPartida(), "solo queda el recibo de 210 €").toBe(1);
+
+    // Fin de la tanda: dos reglas, cada una con sus palabras.
+    await expect(panel.locator(".clas-v2-reglas li")).toHaveCount(2);
+    await expect(panel.locator(".clas-v2-reglas li").first()).toContainText("y por palabras «PEPA FICTICIA»");
+    await expect(panel.locator(".clas-v2-reglas li").nth(1)).toContainText("y por palabras «AGUAS VALLE»");
+    // Lo que viene después: el recibo del mes siguiente, con otra referencia, ya tiene partida; uno de otro importe, no.
+    const futuros = await page.evaluate(() => {
+      const mov = (amount, movement, details = "") => ({ date: "2026-12-05", month: "2026-12", movement, details, amount });
+      return [mov(-44.5, "RECIBO AGUAS DEL VALLE REF 000999"), mov(-99, "RECIBO AGUAS DEL VALLE REF 000998"), mov(-8, "BIZUM ENVIADO", "A PEPA FICTICIA cafe"), mov(8, "BIZUM RECIBIDO", "DE PEPA FICTICIA cafe")].map((row) => mappingForMovement(row)?.source || null);
+    });
+    expect(futuros).toEqual(["pattern", null, "pattern", null]);
+    // Va en el diccionario de siempre: la copia y la sincronización la llevan sin almacén nuevo.
+    expect(await page.evaluate(() => Object.keys(movementMappings).filter((key) => key.startsWith("patron|")).sort())).toEqual(["patron|expense|aguas valle", "patron|expense|ficticia pepa"]);
+    // Deshacer la primera devuelve los tres Bizum a la bandeja.
+    await panel.locator("[data-clas-v2-deshacer]").first().click();
+    expect(await sinPartida()).toBe(4);
+    expect(await page.evaluate(() => Object.keys(movementMappings).filter((key) => key.startsWith("patron|")))).toEqual(["patron|expense|aguas valle"]);
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+
+    // La ficha del recibo de 41 € dice por qué regla va y la quita, con «Deshacer».
+    await page.evaluate(() => openMovementDetailRow(baseData.transactions.find((row) => row.movement === "RECIBO AGUAS DEL VALLE REF 000123")));
+    const ficha = page.locator("#movementDetailDialog");
+    await expect(ficha.locator('[data-ficha-bloque="partida"] .ficha-mov-ahora')).toContainText("por la regla de palabras «AGUAS VALLE», con un importe de unos 43 €");
+    await ficha.locator("#fichaMovQuitarPatron").click();
+    await expect(ficha.locator(".ficha-mov-aviso")).toContainText("Regla de palabras «AGUAS VALLE» quitada: lo que clasificaba vuelve a la bandeja.");
+    await expect(ficha.locator('[data-ficha-bloque="partida"] .ficha-mov-ahora')).toContainText("sin partida");
+    expect(await sinPartida(), "el de 43 € conserva su regla de concepto").toBe(5);
+    await ficha.locator("#fichaMovDeshacer").click();
+    expect(await sinPartida()).toBe(4);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// CLA-03 (15/11/2026): sin regla ni nombre de partida en el concepto, la propuesta es la partida del movimiento ya clasificado
+// que más se parece. Movimientos inventados: dos Bizum a la misma persona y uno a otra.
+test.describe("CLA-03 · Como lo que ya clasificasteis", () => {
+  test("el segundo Bizum a la misma persona llega con propuesta y su porqué; a otra persona, sin propuesta", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [[-90, "A PEPA FICTICIA cena"], [-35, "A PEPA FICTICIA regalo"], [-12, "A LUIS INVENTADO entradas"]].map(([amount, details]) => ({ date: hoy, month: hoy.slice(0, 7), movement: "BIZUM ENVIADO", details, amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    // 1 · El primero no se parece a nada clasificado: sin propuesta, se elige partida (solo la regla del concepto).
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    await expect(panel.locator(".clas-v2-propuesta.is-vacia")).toBeVisible();
+    if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+    await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    const elegida = await panel.locator(".clas-v2-propuesta b").innerText();
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    // 2 · El segundo, a la misma persona, llega con esa partida propuesta y el porqué; se acepta tal cual.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA regalo");
+    await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"] b')).toHaveText(elegida);
+    await expect(panel.locator(".clas-v2-porque")).toHaveText("Ya clasificasteis aquí un movimiento con «PEPA FICTICIA».");
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    // 3 · A otra persona: nada que se le parezca.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A LUIS INVENTADO entradas");
+    await expect(panel.locator(".clas-v2-propuesta.is-vacia")).toBeVisible();
+    // El medidor lo cuenta como una propuesta de confianza media aceptada tal cual; ningún concepto llega a él.
+    const calibracion = await page.evaluate(() => FinanceMedidor.leer().calibracion.map(({ c, t, o }) => ({ c, t, o })));
+    expect(calibracion).toEqual([{ c: "sin", t: false, o: "bizum" }, { c: "media", t: true, o: undefined }]);
+    expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toMatch(/FICTICIA|INVENTADO/i);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// DAT-05 (15/11/2026): traspasos entre cuentas propias. Movimientos inventados en dos cuentas: un traspaso de verdad, una
+// coincidencia de importe que no lo es y un traspaso a una cuenta cuyo extracto no se importa.
+test.describe("DAT-05 · Traspasos entre cuentas propias", () => {
+  test("la bandeja propone la pareja, «No lo es» no vuelve, Clasificar marca el de una sola cuenta y el cierre no los pide", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+      const rows = [
+        mov("2026-11-12", -500, "TRASPASO FICTICIO A OTRA CUENTA", "CaixaBank"),
+        mov("2026-11-13", 500, "TRASPASO FICTICIO RECIBIDO", "Mediolanum"),
+        mov("2026-11-10", -120, "COMPRA FICTICIA DE MUEBLES", "CaixaBank"),
+        mov("2026-11-10", 120, "DEVOLUCION FICTICIA DE UN SEGURO", "Mediolanum"),
+        mov("2026-11-08", -300, "TRANSF FICTICIA A CUENTA DE AHORRO", "CaixaBank"),
+        mov("2026-11-07", -80, "SUPER FICTICIO CON PARTIDA", "CaixaBank"),
+      ];
+      const partida = availableSeriesRows("expense")[0];
+      movementMappings["expense|super ficticio con partida|"] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const pidenPartida = () => page.evaluate(() => baseData.transactions.filter((row) => /FICTICI/.test(row.movement) && movementNeedsPartida(row)).length);
+    const cobertura = () => page.evaluate(() => clasificarV2CoberturaFrase());
+    expect(await pidenPartida()).toBe(5);
+    expect(await cobertura(), "80 € con partida de 1.000 € de gasto").toBe("Gasto importado con partida (últimos 90 días): 8 % · objetivo 95 %");
+    const bandeja = page.locator("#movimientosV2 .mov-v2-bandeja");
+    await expect(bandeja.locator(".mov-v2-traspasos > p").first()).toContainText("2 posibles traspasos entre vuestras cuentas.");
+    const parejas = bandeja.locator(".mov-v2-traspaso");
+    await expect(parejas).toHaveCount(2);
+    await expect(parejas.first()).toContainText("500 € de CaixaBank a Mediolanum");
+    await expect(parejas.first()).toContainText("Sale el 12 de noviembre y entra con un día de diferencia.");
+    await expect(parejas.nth(1)).toContainText("120 € de CaixaBank a Mediolanum");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+    // «Es un traspaso»: las dos puntas dejan de pedir partida y la lista lo dice.
+    await parejas.first().locator("[data-mov-v2-traspaso-si]").click();
+    await expect(page.locator("#undoToastMessage")).toContainText("Traspaso de 500 € de CaixaBank a Mediolanum marcado");
+    expect(await pidenPartida()).toBe(3);
+    await expect(parejas).toHaveCount(1);
+    await expect(page.locator("#movimientosV2Filas .mov-v2-fila", { hasText: "TRASPASO FICTICIO RECIBIDO" }).locator(".mov-v2-partida .mov-v2-tag")).toHaveText("Traspaso");
+    expect(await page.evaluate(() => Object.values(movementActionTypes).filter((item) => item.actionType === "transferencia_interna").length)).toBe(2);
+    expect(await cobertura(), "los 500 € del traspaso ya no cuentan como gasto: 80 € de 500 €").toBe("Gasto importado con partida (últimos 90 días): 16 % · objetivo 95 %");
+    // Se deshace: vuelven a pedir partida y la pareja, a la bandeja.
+    await page.$eval("#undoToast button", (button) => button.click());
+    expect(await pidenPartida()).toBe(5);
+    await expect(parejas).toHaveCount(2);
+    await parejas.first().locator("[data-mov-v2-traspaso-si]").click();
+    expect(await pidenPartida()).toBe(3);
+
+    // «No lo es»: no vuelve a proponerse, tampoco al recargar; va en la copia.
+    await parejas.first().locator("[data-mov-v2-traspaso-no]").click();
+    await expect(bandeja.locator(".mov-v2-traspasos")).toHaveCount(0);
+    expect(await pidenPartida(), "siguen pidiendo partida: son una compra y una devolución").toBe(3);
+    expect(await page.evaluate(() => BACKUP_LOCAL_STORES.includes("traspasos-descartados") && JSON.parse(localStorage.getItem(storageKey("traspasos-descartados"))).length)).toBe(1);
+    await page.evaluate(() => movimientosV2Render());
+    await expect(bandeja.locator(".mov-v2-traspasos")).toHaveCount(0);
+
+    // El traspaso a una cuenta que no se importa no tiene pareja: se marca desde Clasificar, por su concepto.
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("TRANSF FICTICIA A CUENTA DE AHORRO");
+    await expect(panel.locator("[data-clas-v2-traspaso]")).toHaveText("No es un gasto: es un traspaso entre cuentas nuestras");
+    await panel.locator("[data-clas-v2-traspaso]").click();
+    expect(await pidenPartida()).toBe(2);
+    await expect(panel.locator(".clas-v2-nombre"), "pasa al siguiente grupo").not.toHaveText("TRANSF FICTICIA A CUENTA DE AHORRO");
+    // El mismo concepto el mes que viene tampoco la pide.
+    expect(await page.evaluate(() => movementNeedsPartida({ date: "2026-12-08", month: "2026-12", movement: "TRANSF FICTICIA A CUENTA DE AHORRO", details: "", amount: -300 }))).toBe(false);
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await panel.locator("[data-clas-v2-saltar]").click();
+    await expect(panel.locator(".clas-v2-reglas li").first()).toContainText("TRANSF FICTICIA A CUENTA DE AHORRO · traspaso entre cuentas, sin partida");
+    // Deshacer desde el fin de la tanda lo devuelve a la bandeja; se vuelve a marcar para mirar el cierre.
+    await panel.locator("[data-clas-v2-deshacer]").first().click();
+    expect(await pidenPartida()).toBe(3);
+    await page.evaluate(() => {
+      movementActionTypes["expense|transf ficticia a cuenta de ahorro|"] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
+    });
+    await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
+    // El cierre de noviembre no los cuenta entre lo que queda por clasificar (la vista se carga bajo demanda).
+    await page.goto("/index.html#cierre");
+    await page.waitForFunction(() => typeof cierrePorClasificarFilas === "function");
+    await page.evaluate(() => {
+      const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+      baseData.transactions = mergeTransactions(baseData.transactions || [], [mov("2026-11-08", -300, "TRANSF FICTICIA A CUENTA DE AHORRO", "CaixaBank"), mov("2026-11-10", -120, "COMPRA FICTICIA DE MUEBLES", "CaixaBank"), mov("2026-11-10", 120, "DEVOLUCION FICTICIA DE UN SEGURO", "Mediolanum")]);
+      movementActionTypes["expense|transf ficticia a cuenta de ahorro|"] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt: new Date().toISOString() };
+    });
+    expect(await page.evaluate(() => cierrePorClasificarFilas("2026-11").filter((row) => /FICTICI/.test(row.movement)).map((row) => row.movement).sort())).toEqual(["COMPRA FICTICIA DE MUEBLES", "DEVOLUCION FICTICIA DE UN SEGURO"]);
     expect(pageErrors).toEqual([]);
   });
 });

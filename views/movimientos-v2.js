@@ -37,7 +37,101 @@ function movV2Account(row) {
 function movV2Partida(row) {
   if (!Number(row.amount)) return null;
   const mapping = mappingForMovement(row);
-  return mapping ? displayLabelForRow(mapping.row) : null;
+  if (mapping) return displayLabelForRow(mapping.row);
+  // DAT-05 (15/11/2026): un traspaso entre cuentas propias no pide partida; se dice lo que es.
+  return typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row) ? MOV_V2_TRASPASO : null;
+}
+
+// DAT-05 · Las parejas de traspaso que propone el motor (canonical-internal-transfers.js): una salida y una entrada del mismo
+// importe, en cuentas distintas, con dos días o menos de diferencia, donde al menos una de las dos pide partida. Las que el
+// hogar dijo que no lo son quedan en «traspasos-descartados» (va en la copia, BACKUP_LOCAL_STORES).
+const MOV_V2_TRASPASO = "Traspaso";
+const MOV_V2_TRASPASOS_KEY = "traspasos-descartados";
+const MOV_V2_TRASPASOS_VISIBLES = 3;
+const MOV_V2_TRASPASOS_GUARDADAS = 300;
+
+function movV2TraspasosDescartados() {
+  try {
+    const value = JSON.parse(storageGet(storageKey(MOV_V2_TRASPASOS_KEY), "[]"));
+    return Array.isArray(value) ? value.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function movV2Traspasos() {
+  const motor = globalThis.FinanceCanonicalInternalTransfers;
+  if (!motor || typeof movementIsInternalTransfer !== "function") return [];
+  const byId = new Map();
+  const movements = (baseData?.transactions || []).filter((row) => row && Number(row.amount)).map((row) => {
+    const id = transactionIdentity(row);
+    byId.set(id, row);
+    return { id, date: row.date, amount: Number(row.amount), account: movV2Account(row), settled: Boolean(mappingForMovement(row)) || movementIsInternalTransfer(row) };
+  });
+  return motor.pairs(movements, { dismissed: movV2TraspasosDescartados() });
+}
+
+function movV2TraspasoHtml(pair) {
+  const gap = pair.gap === 0 ? "el mismo día" : pair.gap === 1 ? "con un día de diferencia" : `con ${pair.gap} días de diferencia`;
+  const duda = pair.ambiguous ? " Hay más de una entrada que encaja: miradlo antes." : "";
+  return `<li class="mov-v2-card mov-v2-esperado mov-v2-traspaso">
+    <span class="mov-v2-av" aria-hidden="true">${movV2Icon('<path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"></path>')}</span>
+    <div class="mov-v2-main"><strong>${escapeHtml(money(pair.amount, true))} de ${escapeHtml(pair.from)} a ${escapeHtml(pair.to)}</strong>
+      <span class="mov-v2-meta">Sale el ${escapeHtml(movV2Date(pair.date, { day: "numeric", month: "long" }))} y entra ${escapeHtml(gap)}.${duda}</span>
+      <div class="mov-v2-esperado-acciones">
+        <button type="button" class="e19-btn e19-btn-primary" data-mov-v2-traspaso-si="${escapeHtml(pair.key)}">Es un traspaso</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-mov-v2-traspaso-no="${escapeHtml(pair.key)}">No lo es</button>
+      </div></div>
+  </li>`;
+}
+
+function movV2TraspasosHtml(pairs) {
+  if (!pairs.length) return "";
+  const rest = pairs.length - MOV_V2_TRASPASOS_VISIBLES;
+  return `<div class="mov-v2-traspasos">
+    <p class="mov-v2-meta"><strong>${pairs.length === 1 ? "Un posible traspaso" : `${pairs.length} posibles traspasos`} entre vuestras cuentas.</strong> Mismo importe, de una cuenta a otra. No es gasto ni ingreso: marcado, deja de pedir partida.</p>
+    <ul class="mov-v2-esperados" aria-label="Posibles traspasos entre vuestras cuentas">${pairs.slice(0, MOV_V2_TRASPASOS_VISIBLES).map(movV2TraspasoHtml).join("")}</ul>
+    ${rest > 0 ? `<p class="mov-v2-meta">Y ${rest === 1 ? "otro más" : `otros ${rest}`}: ${rest === 1 ? "sale" : "salen"} al contestar ${rest === 1 ? "uno de estos" : "estos"}.</p>` : ""}
+  </div>`;
+}
+
+// Marca las dos puntas como «Transferencia interna», solo esos dos movimientos (clave transactionIdentity), con «Deshacer».
+function movV2TraspasoSi(key) {
+  const pair = movV2Traspasos().find((item) => item.key === key);
+  if (!pair || typeof movementActionTypes === "undefined") return;
+  const ids = [pair.outId, pair.inId];
+  const foto = ids.map((id) => [id, movementActionTypes[id] ? { ...movementActionTypes[id] } : null]);
+  const updatedAt = new Date().toISOString();
+  ids.forEach((id) => {
+    movementActionTypes[id] = { actionType: "transferencia_interna", recurring: null, everyMonths: null, updatedAt };
+  });
+  const guardar = () => {
+    saveMovementActionTypes();
+    refreshAllSectionsAfterDataChange();
+    movimientosV2Render();
+  };
+  guardar();
+  const texto = `Traspaso de ${money(pair.amount, true)} de ${pair.from} a ${pair.to} marcado: ya no pide partida ni cuenta como gasto.`;
+  showUndoToast(texto, () => {
+    foto.forEach(([id, value]) => {
+      if (value) movementActionTypes[id] = value;
+      else delete movementActionTypes[id];
+    });
+    guardar();
+  });
+  announceStatus(texto);
+}
+
+function movV2TraspasoNo(key) {
+  const antes = movV2TraspasosDescartados();
+  const guardar = (list) => {
+    storageSet(storageKey(MOV_V2_TRASPASOS_KEY), JSON.stringify(list.slice(-MOV_V2_TRASPASOS_GUARDADAS)));
+    movimientosV2Render();
+  };
+  guardar([...antes.filter((item) => item !== key), key]);
+  const texto = "De acuerdo, no es un traspaso: no vuelvo a proponer esa pareja.";
+  showUndoToast(texto, () => guardar(antes));
+  announceStatus(texto);
 }
 
 function movV2Date(iso, options) {
@@ -140,7 +234,8 @@ function movV2Bandeja(all, esperados = []) {
   const sinPartida = all.filter((item) => Number(item.row.amount) && !item.partida);
   const groupKey = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey : movementMappingKey; // sin el mes, como Clasificar
   const grupos = new Set(sinPartida.map((item) => groupKey(item.row))).size;
-  const head = movV2BandejaHead((grupos ? 1 : 0) + esperados.length);
+  const traspasos = movV2Traspasos();
+  const head = movV2BandejaHead((grupos ? 1 : 0) + esperados.length + traspasos.length);
   const body = grupos
     ? `<button type="button" class="mov-v2-card mov-v2-fila-bandeja" data-mov-v2-clasificar>
         <span class="mov-v2-av is-warn" aria-hidden="true">${grupos}</span>
@@ -149,7 +244,7 @@ function movV2Bandeja(all, esperados = []) {
         <span aria-hidden="true">›</span>
       </button>`
     : `<p class="mov-v2-card mov-v2-vacio-linea">Todos los movimientos tienen partida.</p>`;
-  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2EsperadosList(esperados)}</section>`;
+  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2TraspasosHtml(traspasos)}${movV2EsperadosList(esperados)}</section>`;
 }
 
 // Rediseño B5: la puerta del Repaso semanal (views/repaso-v2.js). No es algo pendiente, así que va aparte de la bandeja,
@@ -289,6 +384,10 @@ function movV2BindOnce(root) {
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
     const repaso = event.target.closest("[data-mov-v2-repaso]");
     if (repaso) return globalThis.repasoV2Open?.(repaso); // rediseño B5, views/repaso-v2.js
+    const traspasoSi = event.target.closest("[data-mov-v2-traspaso-si]");
+    if (traspasoSi) return movV2TraspasoSi(traspasoSi.dataset.movV2TraspasoSi);
+    const traspasoNo = event.target.closest("[data-mov-v2-traspaso-no]");
+    if (traspasoNo) return movV2TraspasoNo(traspasoNo.dataset.movV2TraspasoNo);
     const clasificar = event.target.closest("[data-mov-v2-clasificar]");
     if (clasificar) return globalThis.clasificarV2Open?.(clasificar); // rediseño A5, views/clasificar-v2.js
     const filtro = event.target.closest("[data-mov-v2-filtro]");

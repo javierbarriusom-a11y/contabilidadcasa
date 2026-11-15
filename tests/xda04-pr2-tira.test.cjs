@@ -162,7 +162,8 @@ test("cableado: Movimientos, el repaso, Importar, WP-36 y WP-41; estilos en el t
   const html = read("index.html");
   // tema-v2.css lo comparten todas las pantallas: su sello cambia con la siguiente entrega (FX-10 PR-3), así que aquí solo se exige uno del 16/11.
   assert.match(html, /tema-v2\.css\?v=20261116[a-z0-9]+/);
-  ["canonical-ledger-coverage.js", "cobertura-ui.js", "views/movimientos-v2.js", "views/importar-v2.js", "views/repaso-v2.js", "anomalias-ui.js", "sombra-ui.js"].forEach((f) => {
+  assert.match(html, /views\/movimientos-v2\.js\?v=20261116dat05/); // 15/11: DAT-05, los traspasos entre cuentas propias en la bandeja
+  ["canonical-ledger-coverage.js", "cobertura-ui.js", "views/importar-v2.js", "views/repaso-v2.js", "anomalias-ui.js", "sombra-ui.js"].forEach((f) => {
     assert.match(html, new RegExp(`${f.replace(/[./]/g, "\\$&")}\\?v=20261116xda04b`), f);
   });
 });

@@ -113,6 +113,47 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 15 de noviembre de 2026 (475): CLA-01, CLA-02, CLA-03 y DAT-05, el primer bloque de la novena auditoría («seguimos con el backlog y las nuevas funcionalidades»); despliegue de #624
+
+- **Encargo del hogar (15/11):** «seguimos con el backlog y las nuevas funcionalidades que puedas» y, después, «sigue con todo lo que puedas, y lo que dependa de restricciones o pruebas por mi parte, hazlo tú en mi lugar». **Cómo se ha leído:** las pruebas las hace Claude con datos inventados y decide los detalles de diseño sin preguntar; **no** se ha leído como permiso para saltarse decisiones del hogar (D-N11, el Lote 1 rechazado, D-N12 a D-N15), ni se puede escribir en sus datos, que viven en su navegador.
+- **Qué se eligió y por qué:** el primer bloque del orden de la novena auditoría (§6: DAT-05, CLA-01, CLA-02), más CLA-03. Es lo único de ese orden que no choca con D-N11 («que lo que entra quede con partida» hasta el 4/12, sin previsión nueva): el Lote 2 del traspaso (PRV-02, PRV-05, SUS-01) es previsión y espera a la revisión del 4/12. D-N14 (el orden) sigue sin contestar: se ha seguido el propuesto.
+- **El problema:** una regla de Clasificar se guarda por concepto exacto. El Bizum a una persona lleva cada vez su texto y el recibo de un emisor, una referencia distinta cada mes: son un concepto nuevo cada vez, sin regla y sin propuesta (los tipos que el medidor apunta como «sin propuesta» desde el 14/11).
+- **«Recordar también por palabras»** (casilla nueva en cada grupo de Clasificar, sin marcar de entrada; motor puro `canonical-pattern-rules.js`, nº 131 de ARQ-3):
+  - la regla reconoce el movimiento por las palabras que no cambian (todas, en el concepto o en el detalle, en cualquier orden) y, si se pide, por un importe parecido (± 10 %, mínimo 1 €);
+  - las palabras las propone la app —las comunes a los movimientos del grupo, sin las que dicen cómo se pagó («bizum», «recibo», «transferencia»…), sin números y sin meses— y las decide el hogar: se pueden editar. No se adivina el formato del banco;
+  - el importe sale pedido de entrada en lo que no es un Bizum y tiene importes parecidos (un recibo); en un Bizum, no;
+  - antes de aceptar dice cuántos movimientos sin partida de otros grupos cogería ya, y cuánto suman; con la casilla marcada y sin palabras que valgan no acepta a medias;
+  - lo que coge sale de lo que queda de la tanda (no se pregunta dos veces) y se deshace con la regla del grupo (aviso de 10 s y fin de la tanda).
+- **Dónde vive y qué manda:** en el mismo diccionario de reglas (`movementMappings`), con clave propia («patron|tipo|palabras»): va en la copia y en la sincronización sin almacén nuevo. Orden en `mappingForMovement`: solo este movimiento → concepto exacto → concepto de cualquier mes → **palabras** → nombre de la partida. Si encajan varias reglas por palabras, la más concreta (más palabras; a igualdad, la que pide importe).
+- **Quitarla:** la ficha del movimiento dice «por la regla de palabras «…»» y lleva «Quitar esa regla», con «Deshacer».
+- **Lo que no hace, a propósito** (CLA-01 lo nombraba): no mira el día del mes, la periodicidad ni la cuenta. Un recibo se adelanta por un festivo y el mismo emisor cobra en varias cuentas; con el importe basta para separar, y lo que no encaja sigue en la bandeja.
+- **Lo que no hace y falta** (CLA-02): la agenda no guarda «quién debe a quién» en los Bizum compartidos, ni hay una pantalla con todas las reglas por palabras (se ven y se quitan desde la ficha de un movimiento que clasifiquen).
+- **CLA-03 · «Como lo que ya clasificasteis»:** sin reglas del comercio ni nombre de partida en el concepto, la propuesta es la partida del movimiento ya clasificado que más se parece (más palabras que identifican en común y, a igualdad, importe parecido; `nearest`, en el mismo motor). Confianza media o baja, nunca alta: es un parecido, no una regla. No pisa las dos señales de siempre. La calibración de XDA-05 la mide como cualquier propuesta.
+- **DAT-05 · traspasos entre cuentas propias** (motor puro `canonical-internal-transfers.js`, nº 132 de ARQ-3):
+  - **qué es un traspaso:** el movimiento que el hogar ha marcado con el tipo de acción «Transferencia interna» (el de la ficha), en ese movimiento o por la regla de su concepto. Una propuesta sin confirmar no cuenta;
+  - **qué cambia:** no pide partida. Sale de los grupos de Clasificar, de la bandeja y del filtro «Sin partida» de Movimientos (donde se lee «Traspaso»), de la lista de siempre, de lo que el cierre deja «Por clasificar» y del % de gasto importado con partida (ni numerador ni denominador). No toca ningún real. La medición del gasto variable ya los quitaba;
+  - **bandeja de Movimientos:** propone las parejas (una salida y una entrada del mismo importe, en cuentas distintas, con dos días o menos; al menos una punta pide partida), de tres en tres, con «Es un traspaso» y «No lo es». Si había más de una entrada candidata, lo avisa. Marcar es por movimiento y se deshace; lo descartado no vuelve (`traspasos-descartados`, en `BACKUP_LOCAL_STORES`);
+  - **Clasificar:** «No es un gasto: es un traspaso entre cuentas nuestras» marca el grupo por su concepto (y los que vengan), con «Deshacer». Es lo que sirve si solo se importa una de las dos cuentas, porque entonces no hay pareja que proponer;
+  - **se aparta de la auditoría:** pedía «aceptar en bloque»; va pareja a pareja, porque el hogar retiró el bloque en Clasificar (13/11) y dos movimientos del mismo importe en cuentas distintas no siempre son un traspaso.
+- **Deuda › Préstamo avisa de los contratos de ejemplo** (riesgo del traspaso del 15/11): mientras sigan en Contratos sin tocar, la pestaña dice arriba «Estas cifras no son todavía las vuestras», cuántos son y lleva a Contratos. Antes solo lo decía la tarjeta de Contratos. `prestamo-deuda-ui.js?v=20261116cla1`.
+- **Sin saber del hogar:** si importa una cuenta o varias (se preguntó; sin respuesta, se han hecho los dos caminos).
+- **Riesgos declarados:**
+  - sin probar con un extracto del hogar: no se conoce cómo escribe su banco los Bizum (si la persona va en el concepto o en el detalle). Por eso las palabras son editables y se enseña lo que cogería;
+  - una palabra sola y corriente puede coger de más (un nombre que también es un comercio). La vista previa cuenta lo de ahora, no lo que venga;
+  - una regla por palabras clasifica sola lo que llegue después: es el primer automatismo de Clasificar desde que el hogar retiró «aceptar en bloque» (13/11). Va sin marcar y la pide el hogar grupo a grupo; la calibración de XDA-05 no la mide todavía.
+- **Despliegue de #624** (`main` `318add6`, fusionado a las 13:43Z con su CI 1429 en verde): ejecución **1431**, en verde a las 14:51Z (68 minutos: el runner fue más lento de lo habitual, sin fallos). «Published availability» **349** (a mano), en verde.
+- `canonical-pattern-rules.js`, `views/clasificar-v2.js`, `datos-ui.js`, `ficha-movimiento-ui.js`, `tema-v2.css` y `novedades.js` con `?v=20261116cla1`; `canonical-internal-transfers.js`, `views/movimientos-v2.js` y `views/cierre.js` con `?v=20261116dat05`; los dos motores, añadidos a la caché offline y al sitio público. `app.js` 32.091 líneas (+3; techo 32.203). Dos líneas en Novedades.
+- **Pruebas:**
+  - `tests/cla-reglas-por-palabras.test.cjs` (11): palabras propuestas, limpieza de lo tecleado, Bizum por persona, recibo por emisor e importe, prioridad entre reglas, la clave como fuente de las palabras, el parecido de CLA-03 y la integración;
+  - `tests/dat05-traspasos-internos.test.cjs` (7): la pareja, una sola pareja por movimiento, la entrada antes que la salida, lo ya decidido, lo descartado y la integración;
+  - e2e a 390 px: «CLA-01 y CLA-02» (Bizum y recibo, lo que cogería, sin palabras que valgan, deshacer, lo que viene después y quitar desde la ficha), «CLA-03» (el segundo Bizum a la misma persona llega con propuesta) y «DAT-05» (pareja, deshacer, «No lo es», traspaso desde Clasificar y el cierre);
+  - axe del panel de Clasificar con la regla abierta y de la bandeja con una pareja, en claro y en oscuro;
+  - el e2e de «Deuda › Préstamo para saldar» (1.280 y 390 px) comprueba el aviso y que calla al quitar los de ejemplo;
+  - `tests/m1-m11-movimientos.test.cjs` (M-5) al día: «sin clasificar» ya no cuenta los traspasos marcados.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.662/6.662; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke;
+  - 62 e2e de Clasificar, Movimientos, Importar, Repaso y Cierre en verde (Chromium). **Sin pasar aquí en WebKit:** las tres pruebas nuevas llevan `@safari` y las ejecuta el CI.
+
 ## Cierre de sesión — 15 de noviembre de 2026 (474): Deuda › Contratos detecta las financiaciones en los recibos («hazlo tú por mí directamente»); respuestas del hogar; despliegue de #623
 
 - **Respuestas del hogar (15/11, sin importes aquí):**

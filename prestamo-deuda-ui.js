@@ -366,6 +366,15 @@ function prestamoSyncControls() {
 }
 
 // Pinta el resultado (nunca los controles). Si el foco estaba en una casilla del resultado, vuelve a ella tras repintar.
+// 15/11/2026 (riesgo del traspaso del 15/11): mientras sigan en Contratos los contratos de ejemplo sin tocar, los caminos de
+// esta pestaña los cuentan como deudas del hogar. Se dice aquí, donde se decide, y no solo en Contratos.
+function prestamoEjemplosAviso() {
+  const ejemplos = typeof deudaContratosEjemplosVisibles === "function" ? deudaContratosEjemplosVisibles() : [];
+  if (!ejemplos.length) return "";
+  const cuantos = ejemplos.length === 1 ? "un contrato de ejemplo" : `${ejemplos.length} contratos de ejemplo`;
+  return `<p class="e19-kpi-note is-warn" id="prestamoEjemplosAviso" role="status"><strong>Estas cifras no son todavía las vuestras.</strong> Los caminos de abajo cuentan ${cuantos} (${ejemplos.map((row) => escapeHtml(row.entity)).join(", ")}) como si ${ejemplos.length === 1 ? "fuera una deuda vuestra" : "fueran deudas vuestras"}. Quitadlos y dad de alta las de verdad en <a href="#deuda-contratos">Contratos</a> antes de decidir nada con esta pestaña.</p>`;
+}
+
 function renderPrestamoDeuda(engine, contracts) {
   const box = qs("prestamoResultado");
   if (!box) return;
@@ -382,7 +391,7 @@ function renderPrestamoDeuda(engine, contracts) {
     const todayKey = isoLocalDate(new Date()).slice(0, 7);
     const result = loanEngine.plan(list, prestamoOptions(todayKey));
     const focusedId = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : "";
-    const html = prestamoResultHtml(result);
+    const html = `${prestamoEjemplosAviso()}${prestamoResultHtml(result)}`;
     if (box.__prestamoHtml !== html) {
       box.innerHTML = html;
       box.__prestamoHtml = html;

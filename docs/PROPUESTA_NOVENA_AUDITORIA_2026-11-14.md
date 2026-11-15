@@ -310,6 +310,8 @@ cuenta en el paso 1 del Repaso. S · P1.
 **DAT-05 · Traspasos internos emparejados.** Detectar la salida de una cuenta y la entrada en otra propia (mismo importe, ±2
 días) y marcarlas como traspaso: no son gasto ni ingreso. *Por qué:* sin esto, el gasto variable del §3 se infla con los
 traspasos a Mediolanum o al ahorro. *UX:* en la bandeja, «3 parejas de traspaso propuestas» con aceptar en bloque. M · **P0**.
+**Hecho el 15/11/2026**, pareja a pareja (sin bloque) y con «es un traspaso» en Clasificar para quien importa una sola cuenta
+(PROJECT_STATE 475).
 
 **DAT-06 · Índice de calidad del dato por mes.** Cobertura × % clasificado × saldo cuadrado, en una cifra por mes y cuenta, que
 **habilita o no** cada cálculo («esta previsión usa 11 meses con calidad ≥ 90 %»). *Por qué:* hoy la confianza mide supuestos,
@@ -323,15 +325,18 @@ M · P1.
 
 **CLA-01 · Reglas por patrón, no solo por concepto.** Importe ± tolerancia + periodicidad + cuenta + día del mes. *Por qué:*
 recibos cuyo concepto cambia cada mes (referencia, mes en el texto) se quedan sin propuesta (5 de 7 en noviembre). *UX:* al
-aceptar un grupo, «¿Recordar también por importe y fecha?». M · **P0**.
+aceptar un grupo, «¿Recordar también por importe y fecha?». M · **P0**. **Hecho el 15/11/2026** con palabras e importe (± 10 %), sin día
+del mes, periodicidad ni cuenta: un recibo se adelanta por un festivo y con el importe basta para separar (PROJECT_STATE 475).
 
 **CLA-02 · Agenda de Bizum.** Cada contraparte con su partida por defecto (cena con amigos, regalo, gasto compartido) y, si es
 compartido, quién debe a quién. *Por qué:* los Bizum son el tipo que más grupos sin propuesta deja. *UX:* al aceptar un Bizum,
-«Recordar a esta persona como…». S · **P0**.
+«Recordar a esta persona como…». S · **P0**. **Hecho el 15/11/2026** como regla por palabras (las de la persona, editables), con la
+misma casilla que CLA-01; falta «quién debe a quién» (PROJECT_STATE 475).
 
 **CLA-03 · «Lo que hicisteis el mes pasado».** Proponer la partida del movimiento más parecido del mes anterior (comercio,
 importe, día). *Por qué:* es la señal más barata y suele acertar en lo cotidiano. *UX:* confianza «media · como el mes pasado».
-S · P1.
+S · P1. **Hecho el 15/11/2026** con cualquier movimiento ya clasificado, no solo los del mes anterior, y sin mirar el día
+(PROJECT_STATE 475).
 
 **CLA-04 · Clasificar a gestos.** En el móvil, deslizar a la derecha acepta la propuesta y a la izquierda la salta; en escritorio,
 teclas 1-3 para las alternativas. *Por qué:* el objetivo de 4 s por grupo se gana con ergonomía. *UX:* tutorial de una línea la

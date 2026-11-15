@@ -2184,3 +2184,53 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// CLA-01 y CLA-02 · «Recordar también por palabras» (15/11/2026): axe entero dentro del panel de Clasificar con la casilla
+// marcada (palabras, importe y la frase de lo que cogería), en claro y en oscuro, con movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Clasificar · recordar por palabras · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#clasificarV2 con la regla por palabras abierta: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const hoy = isoLocalDate(new Date());
+        const rows = [[-43, "REF 000456"], [-41, "REF 000123"]].map(([amount, ref]) => ({ date: hoy, month: hoy.slice(0, 7), movement: `RECIBO AGUAS DEL VALLE ${ref}`, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+        baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+        refreshMovementRollups();
+        render();
+      });
+      await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+      const panel = page.locator("#clasificarV2");
+      if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+      await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+      await panel.locator("[data-clas-v2-patron]").check();
+      await expect(panel.locator("#clasificarV2PatronVista")).toContainText("ahora cogería un movimiento sin partida");
+      const results = await new AxeBuilder({ page }).include("#clasificarV2").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// DAT-05 · Posibles traspasos entre cuentas propias (15/11/2026): axe entero dentro de la bandeja de Movimientos con una
+// pareja propuesta, en claro y en oscuro, con movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Movimientos · posibles traspasos · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test(".mov-v2-bandeja con una pareja de traspaso: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const mov = (date, amount, movement, account) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account, source: "Extracto" });
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [mov("2026-11-12", -500, "TRASPASO FICTICIO A OTRA CUENTA", "CaixaBank"), mov("2026-11-13", 500, "TRASPASO FICTICIO RECIBIDO", "Mediolanum")]);
+        refreshMovementRollups();
+        render();
+      });
+      await expect(page.locator("#movimientosV2 .mov-v2-traspaso")).toHaveCount(1);
+      const results = await new AxeBuilder({ page }).include("#movimientosV2 .mov-v2-bandeja").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}

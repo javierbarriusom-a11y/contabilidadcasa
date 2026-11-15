@@ -818,7 +818,7 @@ function renderDetailedMovements() {
   renderMovementChips(movementsChipCounts(rangeAndSearch));
   const chip = MOVEMENT_CHIPS.find((item) => item.id === movementsChipFilter) || MOVEMENT_CHIPS[0];
   const filtered = rangeAndSearch.filter(chip.test);
-  const unclassified = filtered.filter((row) => Number(row.amount) && !mappingForMovement(row));
+  const unclassified = filtered.filter((row) => (typeof movementNeedsPartida === "function" ? movementNeedsPartida(row) : Number(row.amount) && !mappingForMovement(row)));
 
   // M-8: la tabla se reconstruye entera en cada filtro nuevo, así que cualquier selección previa
   // deja de corresponder a las mismas filas — se vacía aquí, no solo al aplicar el lote.
@@ -1068,4 +1068,33 @@ function movementMappingForAnyMonth(transaction, kind) {
     if (!best || String(mapping.updatedAt || "") > String(best.updatedAt || "")) best = mapping;
   });
   return best ? planningRowBySeriesKey(kind, best.rowKey) : null;
+}
+
+// DAT-05 (15/11/2026): un traspaso entre cuentas propias, marcado por el hogar (tipo de acción «Transferencia interna», en
+// este movimiento o por la regla de su concepto), no es gasto ni ingreso: no pide partida. Una propuesta sin confirmar no cuenta.
+function movementIsInternalTransfer(transaction) {
+  return typeof actionTypeEntryForMovement === "function" && actionTypeEntryForMovement(transaction)?.actionType === "transferencia_interna";
+}
+
+// Lo que pide partida: un movimiento con importe, sin regla que se la dé y que no es un traspaso entre cuentas propias.
+function movementNeedsPartida(transaction) {
+  return Boolean(transaction && Number(transaction.amount)) && !mappingForMovement(transaction) && !movementIsInternalTransfer(transaction);
+}
+
+// CLA-01 y CLA-02 (15/11/2026): la regla por palabras que encaja con el movimiento (canonical-pattern-rules.js): el Bizum a
+// una persona o el recibo cuya referencia cambia cada mes. Solo se llega aquí sin regla del concepto, así que el coste es el
+// de los movimientos sin partida. Si la partida de la regla ya no existe, no cuenta.
+function movementMappingByPattern(transaction, kind) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor) return null;
+  let hay = false;
+  for (const key in movementMappings) {
+    if (motor.isPatternKey(key)) {
+      hay = true;
+      break;
+    }
+  }
+  if (!hay) return null;
+  const rule = motor.best(motor.rulesOf(movementMappings).filter((item) => item.kind === kind && planningRowBySeriesKey(kind, item.rowKey)), transaction);
+  return rule ? { row: planningRowBySeriesKey(kind, rule.rowKey), key: rule.key } : null;
 }

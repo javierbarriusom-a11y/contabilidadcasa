@@ -160,9 +160,11 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 85 → 86 (WP-32): canonical-reminders.js, con consumidor real (renderAjustes en app.js se lo pasa a la tarjeta de recordatorios-ui.js)
 // 84 → 85 (WP-16): canonical-cash-band.js, con consumidor real (renderPrevisionQuality en app.js se lo pasa a la tarjeta de cash-band-ui.js)
 // (FinanceCanonicalDailyInput en refreshCanonicalDailyAudit, app.js).
+// 131 → 132 (DAT-05, traspasos entre cuentas propias, 15/11/2026): canonical-internal-transfers.js, con consumidor real (movV2Traspasos en views/movimientos-v2.js, en la bandeja de Movimientos)
+// 130 → 131 (CLA-01 y CLA-02, reglas por palabras en Clasificar, 15/11/2026): canonical-pattern-rules.js, con consumidor real (clasV2PatronDraft en views/clasificar-v2.js; movementMappingByPattern en datos-ui.js lo usa desde mappingForMovement)
 // 129 → 130 (Deuda › Contratos, «Detectadas en vuestros recibos», 15/11/2026): canonical-debt-receipts.js, con consumidor real (deudaContratosRecibos en views/deuda.js)
 // 128 → 129 (PRV-01, el gasto variable previsto frente a real, 14/11/2026): canonical-variable-recalibration.js, con consumidor real (previsionV2GastoVariable en views/prevision-v2.js, en la hoja «Por qué la confianza es…»)
 // 127 → 128 (Deuda › Préstamo para saldar, 14/11/2026): canonical-loan-payoff-plan.js, con consumidor real (renderDeudaPrestamo en views/deuda.js se lo pasa a prestamo-deuda-ui.js)
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 130 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 130);
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 132 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 132);
 });

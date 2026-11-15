@@ -60,7 +60,7 @@ test("«Todo al día» solo cuando no queda ninguna tarea sin estimar; si falta 
   assert.match(rama, /const sinEstimar = queue\.unestimated\.some\(\(task\) => task\.id !== "pending"\);/);
   assert.match(rama, /sinEstimar\s*\?\s*`<p class="dat-plan"><strong>Aún no se puede ordenar por euros\.<\/strong>/);
   assert.ok(rama.indexOf("Aún no se puede ordenar") < rama.lastIndexOf("<strong>Todo al día.</strong>"), "con tareas sin estimar, nunca «Todo al día»");
-  assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261105pulido1"'));
+  assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261116cla1"'));
 });
 
 // T25 (decisión del hogar del 5/11/2026): la reserva protegida se mide con toda la liquidez en todas partes. Hoy la medía
