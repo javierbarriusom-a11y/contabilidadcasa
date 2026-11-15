@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**15/11/2026 · «Lo que más pesa» del hogar: la medición quita las cuotas de créditos sin partida y reconoce la tarjeta Carrefour con el mes cortado.** Las financiaciones (El Corte Inglés, Bankinter, Visa Oro, CaixaBank Payments…) pesan mucho más que la cuota del préstamo simulado: conviene darlas de alta en Deuda › Contratos. Pendiente del hogar: qué es el recibo de los servicios financieros y el traspaso a la sociedad.
+
 **14/11/2026 (noche) · La medición del gasto variable, a la vista en Previsión.** El hogar no la encontraba dentro de la hoja de la insignia de confianza: pasa a su propia tarjeta y, si no puede medir, lo dice. Siguen pendientes las dos cifras y cuándo aplicar el recálculo (D-N12).
 
 **14/11/2026 (noche) · D-N12, pregunta 1 contestada: «la Mastercard la pagamos entera, NO revolving».** Confirma el supuesto con el que ya mide la hoja del gasto variable; las cifras no cambian. Faltan las dos cifras de la hoja y cuándo aplicar el recálculo.

@@ -148,6 +148,10 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   assert.match(bloque, /no se ha podido medir/);
   assert.match(bloque, /importa los extractos de vuestras cuentas para medirlo/);
   assert.match(bloque, /Lo que más pesa/);
+  // 15/11: sin partida, la categoría que la app pone al importar decide: créditos, refinanciación y coche son cuota; traspasos, traspaso.
+  assert.match(vista, /const PREVISION_V2_CATEGORIA_CUOTA = new Set\(\["Creditos antiguos", "Refinanciacion", "Coche"\]\);/);
+  assert.match(bloque, /block: mapping \? previsionV2Bloque\(mapping\.row\.sectionName\) : PREVISION_V2_CATEGORIA_CUOTA\.has\(row\.category\) \? "financiacion" : null/);
+  assert.match(bloque, /cuotas de deuda/);
   assert.match(bloque, /<summary>Qué hay dentro<\/summary>/);
   assert.match(bloque, /plannedValueForRow\(variableRow, month\) \+ personalAllowanceTotal\(month\)/, "lo previsto incluye las asignaciones personales");
   assert.match(bloque, /pendiente de vuestra decisión/);
@@ -159,7 +163,7 @@ test("cableado: el motor carga, Previsión lo usa en la hoja del porqué y no es
   const patron = vista.match(/const PREVISION_V2_TARJETA_LIQUIDACION = (\/.+\/);/);
   assert.ok(patron, "el patrón de las liquidaciones existe");
   const re = new Function(`return ${patron[1]}`)();
-  ["financie-octubre", "financie-enero", "financie diciembre", "master basica"].forEach((texto) => assert.ok(re.test(texto), texto));
+  ["financie-octubre", "financie-enero", "financie diciembre", "financie-diciembr", "financie-septiemb", "financie-noviembr", "master basica"].forEach((texto) => assert.ok(re.test(texto), texto));
   ["recibo entidad de financiacion", "financiera el corte ingles cuota 3"].forEach((texto) => assert.ok(!re.test(texto), texto));
   assert.match(bloque, /plannedByMonth\[month\.key\] = round2\(plannedVariableByMonth\[month\.key\] \+ plannedCardByMonth\[month\.key\]\)/);
 });

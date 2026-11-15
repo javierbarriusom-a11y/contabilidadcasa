@@ -1384,7 +1384,13 @@ function previsionV2TareaAccion(task) {
 
 // 14/11/2026, extracto del hogar: las dos tarjetas Carrefour se liquidan en CaixaBank como «Financie-<mes>» («Financie-octubre»).
 // Ese concepto suele tener partida de Financiaciones: sin reconocerlo, la medición lo tomaba por una cuota y lo dejaba fuera del variable.
-const PREVISION_V2_TARJETA_LIQUIDACION = /master basica|servicios financieros carrefour|financiera carrefour|tarjeta carrefour|pass carrefour|\bfinancie[-\s]?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b/;
+// 15/11/2026: CaixaBank corta el mes («FINANCIE-DICIEMBR», «SEPTIEMB»): vale el principio del nombre del mes.
+const PREVISION_V2_TARJETA_LIQUIDACION = /master basica|servicios financieros carrefour|financiera carrefour|tarjeta carrefour|pass carrefour|\bfinancie[-\s]?(?:ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\b/;
+// 15/11/2026, «lo que más pesa» del hogar: sin partida, las cuotas de créditos (El Corte Inglés, Bankinter, Visa Oro, CaixaBank Payments,
+// «recibo entidad de financiación»…) se medían como gasto variable. Se usa la categoría que ya les pone la app al importar
+// (classifyTransaction): créditos, refinanciación y coche son cuota; los traspasos, traspaso. Una partida o un tipo puestos a mano mandan.
+const PREVISION_V2_CATEGORIA_CUOTA = new Set(["Creditos antiguos", "Refinanciacion", "Coche"]);
+const PREVISION_V2_CATEGORIA_TRASPASO = new Set(["Traspasos/ahorro"]);
 const PREVISION_V2_SUSCRIPCION = /netflix|hbo|\bmax\b|spotify|apple|icloud|disney|prime video|amazon prime|youtube|dazn|movistar\+|filmin|skyshowtime|suscrip/;
 let previsionV2VariableCache = { key: "", value: null };
 
@@ -1420,8 +1426,8 @@ function previsionV2GastoVariable(today) {
         account: row.accountId || row.account || "",
         conceptKey: movementMappingKey(row),
         label: movementDisplayName(row),
-        block: mapping ? previsionV2Bloque(mapping.row.sectionName) : null,
-        actionType: actionTypeEntryForMovement(row)?.actionType || null,
+        block: mapping ? previsionV2Bloque(mapping.row.sectionName) : PREVISION_V2_CATEGORIA_CUOTA.has(row.category) ? "financiacion" : null,
+        actionType: actionTypeEntryForMovement(row)?.actionType || (!mapping && PREVISION_V2_CATEGORIA_TRASPASO.has(row.category) ? "transferencia_interna" : null),
         cardSettlement: (mapping && cardRows.has(seriesKeyForRow(mapping.row))) || PREVISION_V2_TARJETA_LIQUIDACION.test(text),
       };
     });
@@ -1496,6 +1502,9 @@ function previsionV2GastoVariableHtml(today) {
   const aparte = [];
   if (m.extraordinary.length) aparte.push(`${m.extraordinary.length} ${m.extraordinary.length === 1 ? "gasto extraordinario" : "gastos extraordinarios"} (más de ${money(m.extraordinaryThreshold)} y sin repetirse)`);
   if (m.recurring.length) aparte.push(`${m.recurring.length} ${m.recurring.length === 1 ? "cargo que se repite" : "cargos que se repiten"} sin partida (parecen fijos: ${escapeHtml(m.recurring.slice(0, 3).map((row) => row.label).join(", "))}${m.recurring.length > 3 ? "…" : ""})`);
+  const base = m.rows.slice(-12);
+  const cuotas = base.length ? base.reduce((sum, row) => sum + row.debt, 0) / base.length : 0;
+  if (cuotas > 0) aparte.push(`${money(cuotas)} al mes de cuotas de deuda (con partida de Financiaciones o reconocidas como crédito por su concepto)`);
   if (m.pairedTransfers) aparte.push(`${m.pairedTransfers} ${m.pairedTransfers === 1 ? "traspaso" : "traspasos"} entre vuestras cuentas`);
   return `<section class="e19-card prev-v2-variable" aria-labelledby="prevV2VariableTitulo">
       <p class="e19-eyebrow" id="prevV2VariableTitulo">Gasto variable · previsto frente a real</p>

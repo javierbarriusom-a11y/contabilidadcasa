@@ -57,6 +57,11 @@ medido como real sale **muy alto**, probablemente con cosas que no son consumo (
 préstamos o recibos sin partida, pagos anuales): la tarjeta enseña desde ahora «Lo que más pesa» para depurarlo antes de
 recalcular nada.
 
+**15/11, con «Lo que más pesa» del hogar:** una parte grande de lo «real» eran **cuotas de créditos sin partida** (El Corte
+Inglés, Bankinter, una Visa Oro, CaixaBank Payments, un recibo de servicios financieros). Desde hoy la medición las quita usando
+la categoría que la app ya les pone al importar. Lo que queda es el consumo de verdad; y esas cuotas, sumadas, son mucho mayores
+que la del préstamo de §2: es el dato que faltaba para decidirlo (tienen que estar en Deuda › Contratos).
+
 Como la cifra se queda corta, las consecuencias, en orden de gravedad:
 
 | Lo que dice la app | Por qué está mal | Efecto |
