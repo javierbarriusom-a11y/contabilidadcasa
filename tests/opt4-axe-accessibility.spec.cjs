@@ -2234,3 +2234,21 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// Deuda › Contratos · «Dar de alta varios contratos a la vez» (15/11/2026): axe entero dentro de la tarjeta, con el aviso de error
+// a la vista, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Deuda › Contratos · alta de varios · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test(".deuda-varios con una línea que no se entiende: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      const tarjeta = page.locator("#deudaContratosDetectados .deuda-varios");
+      await expect(tarjeta).toBeVisible({ timeout: 15000 });
+      await tarjeta.locator("#deudaContratosVarios").fill("Banco FICTICIO; leasing; 100");
+      await tarjeta.locator("[data-deuda-varios-alta]").click();
+      await expect(tarjeta.locator("#deudaVariosAviso")).toContainText("No he dado de alta nada");
+      const results = await new AxeBuilder({ page }).include("#deudaContratosDetectados .deuda-varios").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}

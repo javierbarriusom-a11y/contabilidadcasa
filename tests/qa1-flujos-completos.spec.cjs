@@ -8126,6 +8126,58 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
   });
 });
 
+// «Dar de alta varios contratos a la vez» (15/11/2026): pegar una lista en Deuda › Contratos. Contratos INVENTADOS.
+test.describe("Deuda › Contratos · dar de alta varios a la vez", () => {
+  test("una línea mal escrita no da de alta nada; corregida, entran todos; pegar otra vez no duplica; se deshace", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const tarjeta = page.locator("#deudaContratosDetectados .deuda-varios");
+    await expect(tarjeta.locator("h3")).toHaveText("Dar de alta varios contratos a la vez", { timeout: 15000 });
+    const campo = tarjeta.locator("#deudaContratosVarios");
+    const aviso = tarjeta.locator("#deudaVariosAviso");
+    const propios = () => page.evaluate(() => debtContractCustomEntries.map((entry) => [entry.entity, entry.type, entry.currentPrincipal, entry.apr, entry.currentPayment]));
+    await expect(aviso).toBeHidden();
+
+    // Vacío: lo dice. Con una línea que no se entiende: no entra ninguna y el texto se queda para corregirlo.
+    await tarjeta.locator("[data-deuda-varios-alta]").click();
+    await expect(aviso).toHaveText("Escribe o pega al menos una línea: Entidad; tipo; capital.");
+    await campo.fill("Banco FICTICIO; tarjeta; 1.250,00; 21; 60\nFinanciera FICTICIA; leasing; 3.400\nCaja FICTICIA; 980,5");
+    await tarjeta.locator("[data-deuda-varios-alta]").click();
+    await expect(aviso).toHaveText("No he dado de alta nada. Hay una línea que no entiendo: línea 2: no reconozco el tipo «leasing» (crédito, tarjeta, préstamo, hipoteca u otro).");
+    await expect(aviso).toHaveAttribute("role", "alert");
+    await expect(campo).toHaveValue(/Financiera FICTICIA; leasing/);
+    await expect(campo).toBeFocused();
+    expect(await propios()).toEqual([]);
+
+    // Corregida: entran las tres, con lo que no se sabe en blanco.
+    await campo.fill("Banco FICTICIO; tarjeta; 1.250,00; 21; 60\nFinanciera FICTICIA; préstamo; 3.400\nCaja FICTICIA; 980,5");
+    await tarjeta.locator("[data-deuda-varios-alta]").click();
+    await expect(aviso).toHaveText("3 contratos dados de alta. 2 quedan con la TAE por confirmar.");
+    await expect(aviso).toHaveAttribute("role", "status");
+    await expect(campo).toHaveValue("");
+    expect(await propios()).toEqual([["Banco FICTICIO", "Tarjeta", 1250, 21, 60], ["Financiera FICTICIA", "Préstamo", 3400, null, 0], ["Caja FICTICIA", "Crédito", 980.5, null, 0]]);
+    await expect(page.locator('#deudaContratosTable input[value="Financiera FICTICIA"]'), "sale en la tabla, editable como los demás").toHaveCount(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+
+    // Pegar la misma lista con una nueva: solo entra la nueva.
+    await campo.fill("Banco FICTICIO; tarjeta; 1250\nCooperativa FICTICIA; otro; 300");
+    await tarjeta.locator("[data-deuda-varios-alta]").click();
+    await expect(aviso).toHaveText("Un contrato dado de alta. Uno queda con la TAE por confirmar. Una ya estaba en Contratos (misma entidad y capital) y no se repite.");
+    expect((await propios()).length).toBe(4);
+    // Se deshace solo esa alta, y el resto sigue tras recargar.
+    await page.$eval("#undoToast button", (button) => button.click());
+    expect((await propios()).map((row) => row[0])).toEqual(["Banco FICTICIO", "Financiera FICTICIA", "Caja FICTICIA"]);
+    await page.reload();
+    await expect(page.locator('#deudaContratosTable input[value="Caja FICTICIA"]')).toHaveCount(1, { timeout: 15000 });
+    expect((await propios()).length).toBe(3);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // CLA-03 (15/11/2026): sin regla ni nombre de partida en el concepto, la propuesta es la partida del movimiento ya clasificado
 // que más se parece. Movimientos inventados: dos Bizum a la misma persona y uno a otra.
 test.describe("CLA-03 · Como lo que ya clasificasteis", () => {

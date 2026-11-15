@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-15-alta-varios-contratos",
+      fecha: "2026-11-15",
+      texto: "Deuda › Contratos: dad de alta varios contratos a la vez pegando una lista, una línea por contrato. También desde el móvil.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-11-15-traspasos-propios",
       fecha: "2026-11-15",
       texto: "Movimientos: la bandeja propone los traspasos entre vuestras cuentas; marcados, no piden partida ni cuentan como gasto.",

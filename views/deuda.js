@@ -1292,7 +1292,7 @@ function renderDeudaContratos() {
       : `Valores declarados de ejemplo (${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
   }
   const detectadosEl = qs("deudaContratosDetectados");
-  if (detectadosEl) detectadosEl.innerHTML = deudaContratosDetectadosHtml(deudaContratosRecibos());
+  if (detectadosEl) detectadosEl.innerHTML = `${deudaContratosDetectadosHtml(deudaContratosRecibos())}${typeof deudaContratosVariosHtml === "function" ? deudaContratosVariosHtml() : ""}`;
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
   renderDeb5FiscalPriority(contracts);
@@ -1924,7 +1924,78 @@ function deudaContratosDetectadoError(texto) {
   el.hidden = !texto;
 }
 
+// «Dar de alta varios contratos a la vez» (15/11/2026, petición del hogar con siete contratos por dar de alta): una línea por
+// contrato («Entidad; tipo; capital; TAE; cuota»), pegada o tecleada. El texto lo separa `parseBulkContracts`
+// (canonical-debt-contracts.js) y cada línea pasa por las mismas reglas que el alta de uno en uno (`deudaContratosAddFormParse`).
+// O entran todas o ninguna: si una línea no se entiende, dice cuál y por qué, y no da de alta nada. Las que ya están en
+// Contratos (misma entidad y mismo capital) se saltan, para que pegar dos veces no duplique. Con «Deshacer».
+let deudaVariosTexto = "";
+let deudaVariosAviso = { texto: "", error: false };
+
+function deudaContratosVariosHtml() {
+  deudaVariosTexto = qs("deudaContratosVarios")?.value ?? deudaVariosTexto; // lo que se esté escribiendo sobrevive al repintado
+  return `<section class="e19-card deuda-varios" aria-labelledby="deudaVariosTitulo">
+      <h3 id="deudaVariosTitulo" tabindex="-1">Dar de alta varios contratos a la vez</h3>
+      <p class="e19-kpi-note" id="deudaVariosAyuda">Una línea por contrato: <strong>Entidad; tipo; capital pendiente; TAE; cuota</strong>. Solo la entidad y el capital son obligatorios; el tipo es crédito, tarjeta, préstamo, hipoteca u otro. Lo que no sepáis, en blanco: se corrige luego en la tabla.</p>
+      <label class="deuda-varios-campo"><span>Contratos, uno por línea</span>
+        <textarea id="deudaContratosVarios" rows="5" spellcheck="false" autocapitalize="off" aria-describedby="deudaVariosAyuda deudaVariosAviso" placeholder="Banco Ejemplo; tarjeta; 1.250,00; 21; 60&#10;Financiera Ejemplo; préstamo; 3.400">${escapeHtml(deudaVariosTexto)}</textarea></label>
+      <div class="deuda-varios-acciones"><button type="button" class="e19-btn e19-btn-primary" data-deuda-varios-alta>Dar de alta</button></div>
+      <p class="e19-kpi-note${deudaVariosAviso.error ? " is-danger" : ""}" id="deudaVariosAviso" role="${deudaVariosAviso.error ? "alert" : "status"}"${deudaVariosAviso.texto ? "" : " hidden"}>${escapeHtml(deudaVariosAviso.texto)}</p>
+    </section>`;
+}
+
+function deudaContratosVariosAlta() {
+  const texto = qs("deudaContratosVarios")?.value ?? "";
+  const parsed = globalThis.FinanceDebtContracts?.parseBulkContracts?.(texto);
+  const decir = (aviso, error) => {
+    const campo = qs("deudaContratosVarios");
+    if (campo) campo.value = error ? texto : ""; // renderDeudaContratos lo relee del campo
+    deudaVariosTexto = error ? texto : "";
+    deudaVariosAviso = { texto: aviso, error };
+    renderDeudaContratos();
+    announceStatus(aviso);
+    (error ? qs("deudaContratosVarios") : qs("deudaVariosTitulo"))?.focus?.();
+  };
+  if (!parsed) return decir("No se ha podido cargar la lectura de la lista; recarga la app.", true);
+  if (!parsed.rows.length && !parsed.errors.length) return decir("Escribe o pega al menos una línea: Entidad; tipo; capital.", true);
+  const fallos = parsed.errors.map((item) => `línea ${item.line}: ${item.error}`);
+  const entradas = [];
+  parsed.rows.forEach((row) => {
+    const result = deudaContratosAddFormParse({ entity: row.entity, type: row.type, principal: String(row.principal), apr: row.apr === null ? "" : String(row.apr), payment: row.payment === null ? "" : String(row.payment), status: "active" });
+    if (result.error) fallos.push(`línea ${row.line}: ${result.error}`);
+    else entradas.push(result.entry);
+  });
+  if (fallos.length) return decir(`No he dado de alta nada. ${fallos.length === 1 ? "Hay una línea que no entiendo" : `Hay ${fallos.length} líneas que no entiendo`}: ${fallos.join("; ")}.`, true);
+  const clave = (entry) => `${normalizedText(entry.entity)}|${round2(entry.currentPrincipal)}`;
+  const yaEstan = new Set(debtContractSourceRows().map(clave));
+  const nuevas = [];
+  entradas.forEach((entry) => {
+    if (yaEstan.has(clave(entry))) return;
+    yaEstan.add(clave(entry));
+    nuevas.push(entry);
+  });
+  const saltadas = entradas.length - nuevas.length;
+  const cola = saltadas ? ` ${saltadas === 1 ? "Una ya estaba" : `${saltadas} ya estaban`} en Contratos (misma entidad y capital) y no se ${saltadas === 1 ? "repite" : "repiten"}.` : "";
+  if (!nuevas.length) return decir(`Nada nuevo que dar de alta.${cola}`, false);
+  const antes = debtContractCustomEntries;
+  nuevas.forEach((entry) => {
+    debtContractCustomEntries = [...debtContractCustomEntries, { id: nextDebtContractCustomId(), ...entry }];
+  });
+  saveDebtContractCustomEntries();
+  const sinTae = nuevas.filter((entry) => entry.apr === null).length;
+  const hecho = `${nuevas.length === 1 ? "Un contrato dado" : `${nuevas.length} contratos dados`} de alta.${sinTae ? ` ${sinTae === 1 ? "Uno queda" : `${sinTae} quedan`} con la TAE por confirmar.` : ""}${cola}`;
+  decir(hecho, false);
+  showUndoToast(hecho, () => {
+    debtContractCustomEntries = antes;
+    saveDebtContractCustomEntries();
+    deudaVariosAviso = { texto: "", error: false };
+    renderDeudaContratos();
+    announceStatus("Alta deshecha: los contratos pegados ya no están.");
+  });
+}
+
 function handleDeudaContratosDetectadosClick(event) {
+  if (event.target.closest("[data-deuda-varios-alta]")) return deudaContratosVariosAlta();
   if (event.target.closest("[data-deuda-detectado-ejemplos]")) {
     const ids = deudaContratosEjemplosVisibles().map((row) => row.id);
     if (!ids.length) return;
