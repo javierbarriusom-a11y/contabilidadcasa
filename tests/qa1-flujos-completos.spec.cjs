@@ -9330,6 +9330,9 @@ test.describe("XDA-10 · Antes de decidir", () => {
       await empezarApagada(page, "antes-de-decidir"); // desde el 29/10/2026 nace encendida: la prueba empieza con ella apagada para ver los dos estados
       await page.setViewportSize(viewport);
       const comparar = async (cuanto, edad) => {
+        // 15/11/2026: en WebKit, con el runner lento, falló dos veces seguidas en líneas distintas sin encontrar la línea. El importe se
+        // calcula con la liquidez y el suelo de la simulación: se espera a que la app la tenga y a que la vista esté pintada antes de leerlos.
+        await page.waitForFunction(() => Boolean(lastSimulation) && Boolean(document.getElementById("ap1CompareRun")?.offsetParent), null, { timeout: 15000 });
         await page.evaluate(([cuanto, edad]) => {
           const liquidez = accountBalancesFromState().total;
           const suelo = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
