@@ -188,5 +188,38 @@
     return { rows: hit, count: hit.length, total: round2(hit.reduce((sum, row) => sum + Math.abs(Number(row.amount)), 0)) };
   }
 
-  return { SCHEMA_ID, PREFIX, TOLERANCE, MIN_EUROS, MAX_WORDS, words, rowWords, typeOf, cleanWords, candidateWords, amountProfile, keyFor, build, isPatternKey, rulesOf, matches, best, preview };
+  /**
+   * CLA-03 (15/11/2026) · «Como lo que ya clasificasteis». La partida del movimiento ya clasificado que más se parece: el
+   * que comparte más palabras que identifican y, a igualdad, el de importe parecido. Solo propone; nunca es confianza alta,
+   * porque no es una regla del hogar sino un parecido.
+   * @param {Record<string, any>} row el movimiento sin partida
+   * @param {Array<{ row: Record<string, any>, rowKey: string, words?: Set<string> }>} classified movimientos con partida (y, si se tienen, sus palabras ya calculadas)
+   * @returns {{ rowKey: string, shared: string[], alike: boolean, count: number, tie: boolean, confidence: "media" | "baja" } | null}
+   */
+  function nearest(row, classified, tolerance = TOLERANCE) {
+    const kind = kindOf(row?.amount);
+    const target = rowWords(row).filter(identifies);
+    if (!target.length || !Number(row?.amount)) return null;
+    const amount = Math.abs(Number(row.amount));
+    const byRow = new Map();
+    (classified || []).forEach((item) => {
+      if (!item?.rowKey || !item.row || kindOf(item.row.amount) !== kind) return;
+      const set = item.words || new Set(rowWords(item.row));
+      const shared = target.filter((word) => set.has(word));
+      if (!shared.length) return;
+      const alike = Math.abs(Math.abs(Number(item.row.amount)) - amount) <= Math.max(amount * tolerance, MIN_EUROS);
+      const score = shared.length * 2 + (alike ? 1 : 0);
+      const best = byRow.get(item.rowKey);
+      if (!best || score > best.score) byRow.set(item.rowKey, { rowKey: item.rowKey, score, shared, alike, count: 1 });
+      else if (score === best.score) best.count += 1;
+    });
+    const ranked = [...byRow.values()].sort((a, b) => b.score - a.score || b.count - a.count);
+    const top = ranked[0];
+    if (!top) return null;
+    const tie = ranked.length > 1 && ranked[1].score === top.score;
+    const confidence = !tie && (top.shared.length >= 2 || top.alike) ? "media" : "baja";
+    return { rowKey: top.rowKey, shared: [...new Set(top.shared)], alike: top.alike, count: top.count, tie, confidence };
+  }
+
+  return { SCHEMA_ID, PREFIX, TOLERANCE, MIN_EUROS, MAX_WORDS, words, rowWords, typeOf, cleanWords, candidateWords, amountProfile, keyFor, build, isPatternKey, rulesOf, matches, best, preview, nearest };
 });

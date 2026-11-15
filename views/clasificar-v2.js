@@ -28,6 +28,9 @@
 // sin números ni «bizum», «recibo»…), las decide el hogar y, si quiere, solo con un importe parecido. Antes de aceptar dice
 // cuántos movimientos sin partida cogería ya. Va al mismo diccionario y se deshace con la regla del grupo.
 //
+// CLA-03 (15/11/2026): «Como lo que ya clasificasteis». Sin reglas del comercio ni nombre de partida en el concepto, la
+// propuesta es la partida del movimiento con partida que más se parece (clasV2Parecido), con confianza media o baja.
+//
 // DAT-05 (15/11/2026): «No es un gasto: es un traspaso entre cuentas nuestras». Un traspaso no tiene partida; marcado, el
 // grupo deja de pedirla (clasV2Transfer) y no cuenta en el % de gasto con partida.
 // Script clásico con defer, cargado antes de app.js (mismo scope global que el resto de views/*.js).
@@ -178,12 +181,48 @@ function clasV2Proposal(group) {
     if (count >= 2 && !byName.length) return { row, confidence: "alta", reason: `Ya tienes ${rules} de «${shown}» a esta partida.` };
     return { row, confidence: "media", reason: `Ya tienes ${rules} de «${shown}» a esta partida${byName.length ? `, aunque el concepto nombra «${displayLabelForRow(byName[0])}»` : ""}.` };
   }
-  if (!byName.length) return null;
+  if (!byName.length) return clasV2Parecido(group);
   const top = normalizedText(displayLabelForRow(byName[0]));
   if (byName.slice(1).every((partida) => top.includes(normalizedText(displayLabelForRow(partida))))) {
     return { row: byName[0], confidence: "media", reason: "El nombre de la partida está en el concepto." };
   }
   return { row: byName[0], confidence: "baja", reason: `${byName.length} partidas encajan por el nombre; esta es la más concreta.` };
+}
+
+// CLA-03 (15/11/2026): sin reglas del comercio ni nombre de partida en el concepto, la partida del movimiento ya clasificado
+// que más se parece (canonical-pattern-rules.js, nearest): mismas palabras que identifican en el concepto o el detalle y, a
+// igualdad, importe parecido. Es lo que da propuesta al Bizum a alguien a quien ya se le pagó o al recibo de un emisor
+// conocido. Confianza media o baja, nunca alta: es un parecido, no una regla del hogar.
+let clasV2ClasificadosCache = { key: "", list: [] };
+
+function clasV2Clasificados() {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  const transactions = baseData?.transactions || [];
+  const key = `${transactions.length}|${Object.keys(movementMappings || {}).length}|${transactions.at(-1)?.date || ""}`;
+  if (clasV2ClasificadosCache.key === key) return clasV2ClasificadosCache.list;
+  const list = [];
+  transactions.forEach((row) => {
+    if (!row || !Number(row.amount)) return;
+    const mapping = mappingForMovement(row);
+    if (mapping) list.push({ row, rowKey: seriesKeyForRow(mapping.row), words: new Set(motor.rowWords(row)) });
+  });
+  clasV2ClasificadosCache = { key, list };
+  return list;
+}
+
+function clasV2Parecido(group) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor?.nearest) return null;
+  const latest = [...group.rows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  const hit = motor.nearest(latest, clasV2Clasificados());
+  const row = hit ? planningRowBySeriesKey(group.kind, hit.rowKey) : null;
+  if (!row) return null;
+  const palabras = hit.shared.join(" ").toUpperCase();
+  const cuantos = hit.count === 1 ? "un movimiento" : `${hit.count} movimientos`;
+  const reason = hit.tie
+    ? `Se parece a movimientos de varias partidas por «${palabras}»; esta es la que más.`
+    : `Ya clasificasteis aquí ${cuantos} con «${palabras}»${hit.alike ? " y un importe parecido" : ""}.`;
+  return { row, confidence: hit.confidence, reason };
 }
 
 // XDA-05 (14/11/2026): de qué tipo es un grupo sin propuesta, para que el medidor diga qué señal le falta a la propuesta.

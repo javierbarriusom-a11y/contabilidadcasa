@@ -123,3 +123,23 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-pattern-rules.js"'));
   for (const f of ["views/clasificar-v2.js", "datos-ui.js", "ficha-movimiento-ui.js", "tema-v2.css"]) assert.ok(html.includes(`${f}?v=20261116cla1`), f);
 });
+
+test("CLA-03 · propone la partida del movimiento ya clasificado que más se parece, y dice cuánto se fía", () => {
+  const cl = (row, rowKey) => ({ row, rowKey });
+  const clasificados = [cl(MOVS[0], "expense|ocio"), cl(MOVS[1], "expense|ocio"), cl(MOVS[3], "expense|agua"), cl(MOVS[6], "expense|super"), cl(MOVS[7], "income|otros")];
+  const nuevo = bizum("2026-11-02", -18, "A PEPA FICTICIA cafe");
+  assert.deepEqual(P.nearest(nuevo, clasificados), { rowKey: "expense|ocio", shared: ["pepa", "ficticia"], alike: false, count: 2, tie: false, confidence: "media" }, "dos palabras de la persona; el ingreso de la misma persona no cuenta para un gasto");
+  const reciboNuevo = recibo("2026-11-05", -42, "000999");
+  assert.equal(P.nearest(reciboNuevo, clasificados).rowKey, "expense|agua");
+  assert.equal(P.nearest(reciboNuevo, clasificados).alike, true);
+  // Una sola palabra en común y otro importe: confianza baja.
+  assert.equal(P.nearest({ date: "2026-11-05", amount: -300, movement: "COMPRA VALLE DEPORTES", details: "" }, clasificados).confidence, "baja");
+  // Empate entre dos partidas: baja, y lo dice.
+  const empate = P.nearest(nuevo, [cl(MOVS[0], "expense|ocio"), cl(MOVS[1], "expense|regalos")]);
+  assert.equal(empate.tie, true);
+  assert.equal(empate.confidence, "baja");
+  assert.equal(P.nearest({ date: "2026-11-05", amount: -9, movement: "TPV 4455 12", details: "" }, clasificados), null, "sin palabras que identifiquen no hay parecido");
+  assert.equal(P.nearest(nuevo, []), null);
+  const clas = read("views/clasificar-v2.js");
+  assert.match(clas, /if \(!byName\.length\) return clasV2Parecido\(group\);/, "solo cuando no hay reglas del comercio ni nombre de partida: no pisa las señales de siempre");
+});

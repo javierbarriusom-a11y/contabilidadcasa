@@ -8116,6 +8116,48 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
   });
 });
 
+// CLA-03 (15/11/2026): sin regla ni nombre de partida en el concepto, la propuesta es la partida del movimiento ya clasificado
+// que más se parece. Movimientos inventados: dos Bizum a la misma persona y uno a otra.
+test.describe("CLA-03 · Como lo que ya clasificasteis", () => {
+  test("el segundo Bizum a la misma persona llega con propuesta y su porqué; a otra persona, sin propuesta", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      const rows = [[-90, "A PEPA FICTICIA cena"], [-35, "A PEPA FICTICIA regalo"], [-12, "A LUIS INVENTADO entradas"]].map(([amount, details]) => ({ date: hoy, month: hoy.slice(0, 7), movement: "BIZUM ENVIADO", details, amount, balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    // 1 · El primero no se parece a nada clasificado: sin propuesta, se elige partida (solo la regla del concepto).
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA cena");
+    await expect(panel.locator(".clas-v2-propuesta.is-vacia")).toBeVisible();
+    if (!(await panel.locator("#clasificarV2Otra").isVisible())) await panel.locator("[data-clas-v2-otra]").click();
+    await panel.locator("#clasificarV2Otra").selectOption({ index: 1 });
+    const elegida = await panel.locator(".clas-v2-propuesta b").innerText();
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    // 2 · El segundo, a la misma persona, llega con esa partida propuesta y el porqué; se acepta tal cual.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A PEPA FICTICIA regalo");
+    await expect(panel.locator('.clas-v2-propuesta[data-confianza="media"] b')).toHaveText(elegida);
+    await expect(panel.locator(".clas-v2-porque")).toHaveText("Ya clasificasteis aquí un movimiento con «PEPA FICTICIA».");
+    await panel.locator("[data-clas-v2-aceptar]").click();
+    // 3 · A otra persona: nada que se le parezca.
+    await expect(panel.locator(".clas-v2-nombre")).toHaveText("BIZUM ENVIADO · A LUIS INVENTADO entradas");
+    await expect(panel.locator(".clas-v2-propuesta.is-vacia")).toBeVisible();
+    // El medidor lo cuenta como una propuesta de confianza media aceptada tal cual; ningún concepto llega a él.
+    const calibracion = await page.evaluate(() => FinanceMedidor.leer().calibracion.map(({ c, t, o }) => ({ c, t, o })));
+    expect(calibracion).toEqual([{ c: "sin", t: false, o: "bizum" }, { c: "media", t: true, o: undefined }]);
+    expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toMatch(/FICTICIA|INVENTADO/i);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
 // DAT-05 (15/11/2026): traspasos entre cuentas propias. Movimientos inventados en dos cuentas: un traspaso de verdad, una
 // coincidencia de importe que no lo es y un traspaso a una cuenta cuyo extracto no se importa.
 test.describe("DAT-05 · Traspasos entre cuentas propias", () => {
