@@ -113,6 +113,25 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 16 de noviembre de 2026 (477): todas las reglas por palabras a la vista en Movimientos; despliegue de #626
+
+- **Por qué:** era un hueco declarado en la entrada 475. Una regla por palabras (CLA-01 y CLA-02) clasifica sola lo que llega, y solo se veía y se quitaba desde la ficha de un movimiento que clasificara; si una cogía de más, no había dónde repasarlas. El hogar dijo «continúa»; se eligió cerrar ese hueco antes de abrir nada nuevo.
+- **Qué hace:** desplegable «N reglas por palabras» al pie de la bandeja de Movimientos (tema v2), **plegado de entrada** y solo si hay alguna: no añade un titular («uno entra, uno sale», XGO-01; el manifiesto no cambia).
+  - De cada regla: sus palabras, el importe si lo pide, a qué partida lleva y cuántos movimientos clasifica ahora. Si la partida ya no existe, lo dice («no clasifica nada»).
+  - «Quitar» recalcula los reales con la secuencia de siempre y se deshace; el desplegable se queda abierto.
+  - Sin reglas no se recorre el extracto. Sin líneas nuevas en `app.js`. `views/movimientos-v2.js`, `tema-v2.css` y `novedades.js` con `?v=20261116reg1`.
+- **Lo que sigue sin hacer:** en el tema clásico no hay lista (allí la regla se sigue quitando desde la ficha del movimiento, que existe en los dos temas). De CLA-02, «quién debe a quién».
+- **Despliegue de #626** (`main` `cd4533b`, fusionado a las 07:44Z del 16/11 con su CI en verde a la primera, Safari incluido): ejecución **1438**, en verde a las 08:31Z. «Published availability» **353** (a mano), en verde. El desplegable «Dar de alta varios contratos a la vez» ya está en el sitio.
+- **La prueba XDA-10 reforzada** pasó en WebKit en el CI de #626 y en el de este PR. Dos ejecuciones no prueban la hipótesis de la entrada 476; si vuelve a fallar, hay que mirarlo con WebKit delante.
+- **Pruebas:**
+  - `tests/cla-reglas-por-palabras.test.cjs` (12, +1): el desplegable, que no recorre el extracto sin reglas, y quitar con deshacer;
+  - e2e a 390 px, dentro de la de «CLA-01 y CLA-02»: plegado de entrada, lo que clasifica, quitar, deshacer y que siga abierto;
+  - axe de la bandeja con el desplegable abierto, en claro y en oscuro.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.667/6.667; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke;
+  - **batería completa en local antes de fusionar** (lo que faltó en la entrega anterior): accesibilidad 151/151; navegador 288/289 (Chromium). El fallo, «FX-22 PR-2 · aplazar un pago» a 1.440 px, no toca nada de esta entrega: sola pasa (2/2), falló igual el 15/11 con otra rama y en el CI pasa. Se atribuye a la tanda larga en el contenedor (el navegador se cierra solo); sin diagnosticar más;
+  - CI de este PR en verde sobre `bce3829` (verify, e2e completo, axe, Safari), antes de añadir esta entrada.
+
 ## Cierre de sesión — 15 de noviembre de 2026 (476): dar de alta varios contratos a la vez; el fallo de Safari en el CI de #625; despliegue de #625
 
 - **Petición del hogar (15/11):** enseñó un informe de un fichero de solvencia con siete operaciones (dos entidades; préstamos y tarjetas) y pidió «dalos de alta en la aplicación como contratos de deuda». **No se puede desde aquí:** los contratos viven en su navegador y el repositorio es público (ni importes ni nombres). Se le entregó, fuera del repositorio, un guion que usa el formulario «Añadir contrato» de la propia app, probado en local.
