@@ -8112,6 +8112,22 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
     expect(await page.evaluate(() => Object.keys(movementMappings).filter((key) => key.startsWith("patron|")))).toEqual(["patron|expense|aguas valle"]);
     await panel.locator("[data-clas-v2-cerrar].e19-btn-primary").click();
 
+    // Todas las reglas por palabras, a la vista en Movimientos: plegadas de entrada, con lo que clasifican y «Quitar».
+    const reglas = page.locator("#movimientosV2 #movV2Reglas");
+    await expect(reglas.locator("summary")).toHaveText("Una regla por palabras");
+    await expect(reglas.locator(".mov-v2-regla")).toBeHidden();
+    await reglas.locator("summary").click();
+    await expect(reglas.locator(".mov-v2-regla")).toContainText("«AGUAS VALLE»");
+    await expect(reglas.locator(".mov-v2-regla")).toContainText(/Los gastos con esas palabras de unos 43\s€ van a .+; ahora clasifica un movimiento\./);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    await reglas.locator("[data-mov-v2-regla-quitar]").click();
+    await expect(page.locator("#undoToastMessage")).toHaveText("Regla de palabras «AGUAS VALLE» quitada. Un movimiento vuelve a pedir partida.");
+    await expect(reglas, "sin reglas, el desplegable no ocupa sitio").toHaveCount(0);
+    expect(await sinPartida()).toBe(5);
+    await page.$eval("#undoToast button", (button) => button.click());
+    expect(await sinPartida()).toBe(4);
+    await expect(reglas, "recuperada, vuelve y sigue abierto").toHaveAttribute("open", "");
+
     // La ficha del recibo de 41 € dice por qué regla va y la quita, con «Deshacer».
     await page.evaluate(() => openMovementDetailRow(baseData.transactions.find((row) => row.movement === "RECIBO AGUAS DEL VALLE REF 000123")));
     const ficha = page.locator("#movementDetailDialog");

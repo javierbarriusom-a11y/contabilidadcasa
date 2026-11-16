@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**16/11/2026 · Movimientos: todas las reglas por palabras a la vista («continúa»).** Un desplegable al pie de la bandeja lista cada regla por palabras con lo que clasifica ahora y «Quitar», con «Deshacer». Cierra el hueco de la entrada 475: una regla así clasifica sola y solo se veía desde la ficha de un movimiento. Publicado #626 (despliegue 1438): el alta de varios contratos ya está en el sitio. Pendiente del hogar: dar de alta sus contratos, quitar los de ejemplo y confirmar capital y TAE con cada entidad (PROJECT_STATE 477).
+
 **15/11/2026 · Deuda › Contratos: varios contratos de una vez (petición del hogar con siete por dar de alta).** Un desplegable en Contratos admite una lista, una línea por contrato («Entidad; tipo; capital; TAE; cuota»); entran todas o ninguna, no duplica y se deshace. También en el móvil. El hogar enseñó un informe de un fichero de solvencia: se le avisó de que el saldo impagado puede no ser el capital pendiente y de que conviene negociar antes de refinanciar; DEU-02 sigue rechazada, pero el informe la hace más oportuna. Publicado #625 (despliegue 1434, availability 351) (PROJECT_STATE 476).
 
 **15/11/2026 · CLA-01 y CLA-02: Clasificar recuerda por palabras («seguimos con el backlog»).** Casilla «Recordar también por palabras» en cada grupo: reconoce el Bizum a la misma persona y el recibo con otra referencia (con importe parecido, si se pide), dice antes cuántos movimientos sin partida cogería y se quita desde la ficha del movimiento. Es lo primero del orden de la novena auditoría y no choca con D-N11. Sin probar con un extracto del hogar. De CLA-02 falta quién debe a quién (PROJECT_STATE 475).
@@ -292,6 +294,7 @@ noviembre como prueba de fuego (1-4/12).** Pendiente: que el hogar conteste las 
 
 ## 1. Cómo empezar la próxima sesión (10 minutos)
 
+0. Si se retoma desde otro hilo: el traspaso más reciente de `docs/traspasos/` (a 16/11/2026, `2026-11-16_traspaso.md`).
 1. Leer §0, §2, §4 y §5.1 de este documento y la última entrada de `PROJECT_STATE.md`.
 2. Antes de tocar una pantalla, `docs/rediseno/ESTADO.md` entero (CLAUDE.md). Antes de tocar la previsión, §4-§6 de la
    propuesta octava.

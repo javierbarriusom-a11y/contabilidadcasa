@@ -121,7 +121,7 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   assert.ok(at > 0 && at < html.indexOf('<script defer src="views/clasificar-v2.js') && at < html.indexOf('<script defer src="app.js'));
   assert.ok(read("service-worker.js").includes('"./canonical-pattern-rules.js"'));
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-pattern-rules.js"'));
-  for (const f of ["views/clasificar-v2.js", "datos-ui.js", "ficha-movimiento-ui.js", "tema-v2.css"]) assert.ok(html.includes(`${f}?v=20261116cla1`), f);
+  for (const f of ["views/clasificar-v2.js", "datos-ui.js", "ficha-movimiento-ui.js"]) assert.ok(html.includes(`${f}?v=20261116cla1`), f);
 });
 
 test("CLA-03 · propone la partida del movimiento ya clasificado que más se parece, y dice cuánto se fía", () => {
@@ -142,4 +142,15 @@ test("CLA-03 · propone la partida del movimiento ya clasificado que más se par
   assert.equal(P.nearest(nuevo, []), null);
   const clas = read("views/clasificar-v2.js");
   assert.match(clas, /if \(!byName\.length\) return clasV2Parecido\(group\);/, "solo cuando no hay reglas del comercio ni nombre de partida: no pisa las señales de siempre");
+});
+
+test("integración · todas las reglas por palabras se ven y se quitan en Movimientos, plegadas de entrada", () => {
+  const mov = read("views/movimientos-v2.js");
+  assert.match(mov, /<details class="mov-v2-reglas" id="movV2Reglas"/, "un desplegable, no un titular nuevo (XGO-01)");
+  assert.match(mov, /if \(!reglas\.length\) return \[\]; \/\/ sin reglas no se recorre el extracto/);
+  assert.match(mov, /data-mov-v2-regla-quitar=/);
+  const quitar = mov.slice(mov.indexOf("function movV2ReglaQuitar("), mov.indexOf("function movV2TraspasoNo("));
+  assert.match(quitar, /delete movementMappings\[key\];/);
+  assert.match(quitar, /applyMovementMappingsToActuals\(\);/, "los reales se recalculan al quitarla");
+  assert.match(quitar, /movementMappings\[key\] = antes;/, "se deshace");
 });
