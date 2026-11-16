@@ -122,6 +122,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - Sin reglas no se recorre el extracto. Sin líneas nuevas en `app.js`. `views/movimientos-v2.js`, `tema-v2.css` y `novedades.js` con `?v=20261116reg1`.
 - **Lo que sigue sin hacer:** en el tema clásico no hay lista (allí la regla se sigue quitando desde la ficha del movimiento, que existe en los dos temas). De CLA-02, «quién debe a quién».
 - **Despliegue de #626** (`main` `cd4533b`, fusionado a las 07:44Z del 16/11 con su CI en verde a la primera, Safari incluido): ejecución **1438**, en verde a las 08:31Z. «Published availability» **353** (a mano), en verde. El desplegable «Dar de alta varios contratos a la vez» ya está en el sitio.
+- **Traspaso para el próximo hilo:** `docs/traspasos/2026-11-16_traspaso.md` (decisiones del hogar, lo publicado, lo que Claude propuso sin validar, pendientes y riesgos; sin importes ni nombres). `BACKLOG_NOVIEMBRE_OLEADA_1.md` §1 lo señala como primer paso.
 - **La prueba XDA-10 reforzada** pasó en WebKit en el CI de #626 y en el de este PR. Dos ejecuciones no prueban la hipótesis de la entrada 476; si vuelve a fallar, hay que mirarlo con WebKit delante.
 - **Pruebas:**
   - `tests/cla-reglas-por-palabras.test.cjs` (12, +1): el desplegable, que no recorre el extracto sin reglas, y quitar con deshacer;

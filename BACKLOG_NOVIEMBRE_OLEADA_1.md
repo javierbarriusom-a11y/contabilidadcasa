@@ -294,6 +294,7 @@ noviembre como prueba de fuego (1-4/12).** Pendiente: que el hogar conteste las 
 
 ## 1. Cómo empezar la próxima sesión (10 minutos)
 
+0. Si se retoma desde otro hilo: el traspaso más reciente de `docs/traspasos/` (a 16/11/2026, `2026-11-16_traspaso.md`).
 1. Leer §0, §2, §4 y §5.1 de este documento y la última entrada de `PROJECT_STATE.md`.
 2. Antes de tocar una pantalla, `docs/rediseno/ESTADO.md` entero (CLAUDE.md). Antes de tocar la previsión, §4-§6 de la
    propuesta octava.
