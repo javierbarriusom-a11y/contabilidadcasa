@@ -116,7 +116,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 ## Cierre de sesión — 16 de noviembre de 2026 (478): décima auditoría (uso y experiencia, 46 funciones `DEC-nn`); despliegue de #627
 
 - **Petición del hogar (16/11):** comprobar el despliegue de #627, preguntar por la foto vigente de su deuda antes de tocar Deuda o Préstamo y «seguir analizando la app de manera crítica […] más de 40 nuevas adicionales […] especialmente en uso y experiencia de usuario y optimizando lo ya desarrollado. Revisa del backlog anterior las nuevas funcionalidades que no hayan sido implementadas».
-- **Despliegue de #627** (`main` `712ef9f`, fusionado a las 12:59Z del 16/11): ejecución **1442**, en curso al escribir esto; su resultado y el número de «Published availability» se anotan aquí al terminar.
+- **Despliegue de #627** (`main` `712ef9f`, fusionado a las 12:59Z del 16/11): ejecución **1442**, en verde a las 14:06Z (más lenta que otras: e2e 30 min, axe 19 min; ningún fallo). «Published availability» **354** (a mano), en verde. El desplegable de reglas por palabras de Movimientos ya está en el sitio.
 - **Décima auditoría** (`docs/PROPUESTA_DECIMA_AUDITORIA_2026-11-16.md`, propuesta; el backlog vivo no cambia). Medido hoy con la demo en Chromium a 390 × 844 y 1440 × 900:
   - 60 vistas y 54 enlaces en el menú lateral; Ajustes, 34.000 px de alto en el móvil con 59 titulares, 115 campos y 108 botones; Inversión › Cartera, 9.100 px; Deuda › Contratos, 5.600 px con una tabla de 10 columnas;
   - la cabecera de Hoy enseña cinco cifras en euros; en el móvil Hoy empieza a 208 px (507 px con «Primeros pasos» abierta);
