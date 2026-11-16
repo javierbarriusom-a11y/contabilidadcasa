@@ -122,6 +122,80 @@ function movV2TraspasoSi(key) {
   announceStatus(texto);
 }
 
+// Reglas por palabras (CLA-01 y CLA-02), todas a la vista (16/11/2026): hasta ahora solo se veían y se quitaban desde la ficha de
+// un movimiento que clasificaran. Una regla así clasifica sola lo que llega, así que hace falta un sitio donde repasarlas: qué
+// palabras piden, a qué partida llevan, cuántos movimientos clasifican ahora y «Quitar», con «Deshacer». Plegado de entrada (no
+// añade un titular: XGO-01) y solo si hay alguna.
+let movV2ReglasAbiertas = false;
+
+function movV2ReglasPalabras() {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor) return [];
+  const reglas = motor.rulesOf(movementMappings);
+  if (!reglas.length) return []; // sin reglas no se recorre el extracto
+  const cuenta = new Map();
+  (baseData?.transactions || []).forEach((row) => {
+    const key = row && Number(row.amount) ? mappingForMovement(row)?.patternKey : null;
+    if (key) cuenta.set(key, (cuenta.get(key) || 0) + 1);
+  });
+  return reglas
+    .map((rule) => {
+      const partida = planningRowBySeriesKey(rule.kind, rule.rowKey);
+      return { ...rule, partida: partida ? `${partida.sectionName} · ${displayLabelForRow(partida)}` : "", movimientos: cuenta.get(rule.key) || 0 };
+    })
+    .sort((a, b) => b.movimientos - a.movimientos || a.shown.localeCompare(b.shown, "es"));
+}
+
+function movV2ReglasHtml() {
+  const reglas = movV2ReglasPalabras();
+  if (!reglas.length) return "";
+  movV2ReglasAbiertas = qs("movV2Reglas")?.open ?? movV2ReglasAbiertas;
+  const filas = reglas.map((rule) => {
+    const importe = rule.amount ? ` de unos ${money(rule.amount, true)}` : "";
+    const destino = rule.partida
+      ? `van a <strong>${escapeHtml(rule.partida)}</strong>`
+      : `<strong>su partida ya no existe</strong>: no clasifica nada`;
+    const ahora = rule.movimientos === 0 ? "ahora no clasifica ningún movimiento" : rule.movimientos === 1 ? "ahora clasifica un movimiento" : `ahora clasifica ${rule.movimientos} movimientos`;
+    return `<li class="mov-v2-card mov-v2-regla">
+      <div class="mov-v2-main"><strong>«${escapeHtml(rule.shown)}»</strong>
+        <span class="mov-v2-meta">Los ${rule.kind === "income" ? "ingresos" : "gastos"} con ${rule.words.length === 1 ? "esa palabra" : "esas palabras"}${importe} ${destino}; ${ahora}.</span></div>
+      <button type="button" class="e19-btn e19-btn-secondary" data-mov-v2-regla-quitar="${escapeHtml(rule.key)}" aria-label="Quitar la regla de palabras «${escapeHtml(rule.shown)}»">Quitar</button>
+    </li>`;
+  });
+  return `<details class="mov-v2-reglas" id="movV2Reglas"${movV2ReglasAbiertas ? " open" : ""}>
+    <summary>${reglas.length === 1 ? "Una regla por palabras" : `${reglas.length} reglas por palabras`}</summary>
+    <p class="mov-v2-meta">Clasifican solas lo que llega con esas palabras, aunque cambie el resto del concepto. Se crean en Clasificar («Recordar también por palabras»).</p>
+    <ul class="mov-v2-esperados" aria-label="Reglas por palabras">${filas.join("")}</ul>
+  </details>`;
+}
+
+function movV2ReglaQuitar(key) {
+  const antes = movementMappings[key];
+  if (!antes) return;
+  const regla = movV2ReglasPalabras().find((item) => item.key === key);
+  const guardar = () => {
+    saveMovementMappings();
+    applyMovementMappingsToActuals();
+    pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+    saveIncomeActuals();
+    saveExpenseActuals();
+    refreshAllSectionsAfterDataChange();
+    movimientosV2Render();
+  };
+  movV2ReglasAbiertas = true;
+  delete movementMappings[key];
+  guardar();
+  const vuelven = regla?.movimientos ? ` ${regla.movimientos === 1 ? "Un movimiento vuelve" : `${regla.movimientos} movimientos vuelven`} a pedir partida.` : "";
+  const texto = `Regla de palabras «${regla?.shown || ""}» quitada.${vuelven}`;
+  showUndoToast(texto, () => {
+    movementMappings[key] = antes;
+    guardar();
+    announceStatus(`Regla de palabras «${regla?.shown || ""}» recuperada.`);
+  });
+  announceStatus(texto);
+  (qs("movV2Reglas")?.querySelector("summary") || qs("movimientosV2")?.querySelector("h1, h2"))?.focus?.();
+}
+
 function movV2TraspasoNo(key) {
   const antes = movV2TraspasosDescartados();
   const guardar = (list) => {
@@ -244,7 +318,7 @@ function movV2Bandeja(all, esperados = []) {
         <span aria-hidden="true">›</span>
       </button>`
     : `<p class="mov-v2-card mov-v2-vacio-linea">Todos los movimientos tienen partida.</p>`;
-  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2TraspasosHtml(traspasos)}${movV2EsperadosList(esperados)}</section>`;
+  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2TraspasosHtml(traspasos)}${movV2EsperadosList(esperados)}${movV2ReglasHtml()}</section>`;
 }
 
 // Rediseño B5: la puerta del Repaso semanal (views/repaso-v2.js). No es algo pendiente, así que va aparte de la bandeja,
@@ -384,6 +458,8 @@ function movV2BindOnce(root) {
     if (nav) return movV2Navigate(nav.dataset.movV2Nav);
     const repaso = event.target.closest("[data-mov-v2-repaso]");
     if (repaso) return globalThis.repasoV2Open?.(repaso); // rediseño B5, views/repaso-v2.js
+    const reglaQuitar = event.target.closest("[data-mov-v2-regla-quitar]");
+    if (reglaQuitar) return movV2ReglaQuitar(reglaQuitar.dataset.movV2ReglaQuitar);
     const traspasoSi = event.target.closest("[data-mov-v2-traspaso-si]");
     if (traspasoSi) return movV2TraspasoSi(traspasoSi.dataset.movV2TraspasoSi);
     const traspasoNo = event.target.closest("[data-mov-v2-traspaso-no]");

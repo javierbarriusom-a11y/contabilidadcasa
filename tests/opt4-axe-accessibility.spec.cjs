@@ -2253,3 +2253,30 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// Movimientos · reglas por palabras, todas a la vista (16/11/2026): axe entero dentro de la bandeja con el desplegable abierto, en
+// claro y en oscuro, con un movimiento INVENTADO y su regla.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Movimientos · reglas por palabras · accesibilidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test(".mov-v2-bandeja con el desplegable de reglas abierto: sin violaciones, contraste incluido", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => {
+        const hoy = isoLocalDate(new Date());
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: hoy, month: hoy.slice(0, 7), movement: "RECIBO AGUAS DEL VALLE REF 000123", details: "", amount: -41, balance: null, account: "CaixaBank", source: "Extracto" }]);
+        const partida = availableSeriesRows("expense")[0];
+        const regla = FinanceCanonicalPatternRules.build({ kind: "expense", words: "aguas valle", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), amount: 41, now: "2026-11-15T10:00:00.000Z" });
+        movementMappings[regla.key] = regla.value;
+        refreshMovementRollups();
+        render();
+      });
+      const reglas = page.locator("#movimientosV2 #movV2Reglas");
+      await reglas.locator("summary").click();
+      await expect(reglas.locator(".mov-v2-regla")).toContainText("ahora clasifica un movimiento");
+      const results = await new AxeBuilder({ page }).include("#movimientosV2 .mov-v2-bandeja").analyze();
+      expect(results.violations, results.violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`).join("\n")).toEqual([]);
+    });
+  });
+}

@@ -3492,6 +3492,42 @@
   text-align: left;
 }
 
+/* Movimientos · reglas por palabras, todas a la vista (16/11/2026): desplegable al pie de la bandeja. */
+:root[data-tema="v2"] .mov-v2-reglas {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+:root[data-tema="v2"] .mov-v2-reglas > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font: 600 13.5px/1.3 var(--e19-font-sans);
+  color: var(--e19-accent);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .mov-v2-reglas > p {
+  margin: 0 0 8px;
+}
+
+:root[data-tema="v2"] .mov-v2-regla {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+:root[data-tema="v2"] .mov-v2-regla .mov-v2-main {
+  flex: 1;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .mov-v2-regla .e19-btn {
+  flex: none;
+  min-height: 44px;
+}
+
 /* Clasificar · «Recordar también por palabras» (CLA-01 y CLA-02, 15/11/2026): casilla y, al marcarla, las palabras, el
    importe y la frase de lo que cogería. */
 :root[data-tema="v2"] .clas-v2-patron {

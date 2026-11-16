@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-16-reglas-por-palabras-a-la-vista",
+      fecha: "2026-11-16",
+      texto: "Movimientos: todas las reglas por palabras en un desplegable, con cuánto clasifica cada una y «Quitar».",
+      href: "#movements",
+    },
+    {
       id: "2026-11-15-alta-varios-contratos",
       fecha: "2026-11-15",
       texto: "Deuda › Contratos: dad de alta varios contratos a la vez pegando una lista, una línea por contrato. También desde el móvil.",
