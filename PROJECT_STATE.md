@@ -113,6 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 16 de noviembre de 2026 (478): décima auditoría (uso y experiencia, 46 funciones `DEC-nn`); despliegue de #627
+
+- **Petición del hogar (16/11):** comprobar el despliegue de #627, preguntar por la foto vigente de su deuda antes de tocar Deuda o Préstamo y «seguir analizando la app de manera crítica […] más de 40 nuevas adicionales […] especialmente en uso y experiencia de usuario y optimizando lo ya desarrollado. Revisa del backlog anterior las nuevas funcionalidades que no hayan sido implementadas».
+- **Despliegue de #627** (`main` `712ef9f`, fusionado a las 12:59Z del 16/11): ejecución **1442**, en curso al escribir esto; su resultado y el número de «Published availability» se anotan aquí al terminar.
+- **Décima auditoría** (`docs/PROPUESTA_DECIMA_AUDITORIA_2026-11-16.md`, propuesta; el backlog vivo no cambia). Medido hoy con la demo en Chromium a 390 × 844 y 1440 × 900:
+  - 60 vistas y 54 enlaces en el menú lateral; Ajustes, 34.000 px de alto en el móvil con 59 titulares, 115 campos y 108 botones; Inversión › Cartera, 9.100 px; Deuda › Contratos, 5.600 px con una tabla de 10 columnas;
+  - la cabecera de Hoy enseña cinco cifras en euros; en el móvil Hoy empieza a 208 px (507 px con «Primeros pasos» abierta);
+  - el inventario de titulares (XGO-01) va por 231 frente a una base de 224, con 3 excepciones: lo nuevo cumple la regla plegándose, no retirando nada;
+  - la demo lleva la insignia «Dato real» junto a «Saldos estimados»; dos de las tres decisiones de Hoy dicen «Revisar alerta»; Deuda › Ruta titula «sin fecha estimable» encima de una fecha (ya señalado en HANDOFF §5 y en el riesgo R-1 de WP-54).
+- **Deuda (sin tocar):** el informe de solvencia trae saldo impagado, que suele ser exigible entero y no en cuotas; Contratos solo tiene cuatro estados y ningún importe de atraso, mientras el «Plan deuda óptimo» heredado sí modelaba ficheros, quitas y atrasos. La app guarda dos fotos distintas de la deuda, más la del informe. **No se toca Deuda ni Préstamo hasta que el hogar diga cuál es la foto vigente (D-N16).**
+- **Catálogo:** 46 funciones `DEC-01` a `DEC-46` en nueve ámbitos (confianza del dato, navegación móvil, entrada y clasificación, Hoy, deuda, previsión, pareja, accesibilidad y rendimiento, gobierno); 14 optimizan lo que ya existe. Tres principios propuestos (P-A: cada función nueva dice qué retira; P-B: móvil primero, respuesta en la primera pantalla; P-C: probar con la forma del dato real).
+- **Lo que sigue sin hacer:** de las 53 de la novena, 47 (hechas DAT-05, CLA-01, CLA-03, CLA-02 sin «quién debe a quién» y la medición de PRV-01). Recomendación por ID en el §3 del documento: 9 se fusionan con `DEC-nn`, 11 bajan y **CLA-04 (gestos) se replantea** porque el hogar descartó las tarjetas que se deslizan (DEC-15). FX-nn y séptima auditoría abiertas, en §3.2 y §3.3.
+- **Hasta el 4/12, dentro de D-N11 (§6):** DEC-13 (huella anónima del extracto, para validar lo construido del 14 al 16/11 con su banco), DEC-18 y DEC-16 (el % con partida y lo pendiente en la bandeja), DEC-12 (confirmar solos los esperados), DEC-14 (importe típico y día del mes) y DAT-07 (dividir un movimiento); y medir para retirar (DEC-40, DEC-44).
+- **Decisiones nuevas que pide:** D-N16 (foto de la deuda y certificado de deuda por entidad), D-N17 (adoptar la lista y el orden), D-N18 (graduación por defecto a los 28 días) y D-N19 (alcance de «hazlo tú en mi lugar»).
+- También: `BACKLOG_NOVIEMBRE_OLEADA_1.md` §0, `BACKLOG_INDICE.md` (que tampoco tenía la novena) y `ESTADO.md` §8, con los principios como propuesta.
+- **Validación:** solo documentación, sin cambios de código ni de pantallas. `npm run verify` en verde, salida 0: `npm test` 6.667/6.667; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Sin batería de navegador: no cambia ninguna pantalla (las mediciones del diagnóstico se hicieron con un guion de Playwright aparte, fuera del repositorio).
+
 ## Cierre de sesión — 16 de noviembre de 2026 (477): todas las reglas por palabras a la vista en Movimientos; despliegue de #626
 
 - **Por qué:** era un hueco declarado en la entrada 475. Una regla por palabras (CLA-01 y CLA-02) clasifica sola lo que llega, y solo se veía y se quitaba desde la ficha de un movimiento que clasificara; si una cogía de más, no había dónde repasarlas. El hogar dijo «continúa»; se eligió cerrar ese hueco antes de abrir nada nuevo.

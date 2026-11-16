@@ -209,6 +209,11 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
    propone el recálculo de la previsión con el gasto variable real (pendiente de D-N12) y 53 funciones; no cambia este orden hasta
    que el hogar lo decida. El mismo día, la primera parte de PRV-01 (solo medir) entra en la hoja «Por qué la confianza es…» de
    Previsión (C2), sin cambiar ninguna cifra.
+   **16/11 · décima auditoría** (`docs/PROPUESTA_DECIMA_AUDITORIA_2026-11-16.md`, propuesta): uso y experiencia medidos en la
+   demo y 46 funciones `DEC-nn`. Para las pantallas, añade tres principios a §3 **como propuesta, no vigentes hasta que el hogar
+   los adopte (D-N17):** cada función nueva dice qué retira (P-A), móvil primero con la respuesta en la primera pantalla y la
+   pantalla entera en 4 como mucho (P-B), y probar con la forma del dato real antes de dar algo por hecho (P-C). No cambia este
+   orden.
    **4/11, revisiones decididas por el hogar** (hoja de decisiones; criterio en `docs/REVISION_POST_CIERRE_2026-11.md`):
    se gradúan el **diseño nuevo**, **Movimientos** e **Importar**; **Hoy** (sin línea base fiable) y **Clasificar** (se juzga con
    el cierre de noviembre) pasan dos semanas más, hasta el 16/11 y el 18/11. Graduar no retira nada: quitar el tema clásico
