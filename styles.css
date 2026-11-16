@@ -13221,6 +13221,46 @@ input[data-amount-input][aria-invalid="true"] {
   font-size: 0.85rem;
 }
 
+/* «Dar de alta varios contratos a la vez» (15/11/2026): tarjeta propia bajo «Detectadas en vuestros recibos». */
+.deuda-varios {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.deuda-varios p {
+  margin: 0;
+}
+
+.deuda-varios > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deuda-varios-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deuda-varios-campo {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.deuda-varios-campo textarea {
+  width: 100%;
+  min-height: 7rem;
+  font: inherit;
+  resize: vertical;
+}
+
 .deuda-detectados-input {
   width: 8rem;
   max-width: 100%;

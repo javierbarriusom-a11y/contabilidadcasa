@@ -372,7 +372,72 @@
     };
   }
 
+  // «Dar de alta varios contratos a la vez» (15/11/2026, petición del hogar: tenía siete y en el móvil no hay otra forma que
+  // teclearlos uno a uno). Una línea por contrato, con los campos separados por punto y coma o tabulador:
+  //   Entidad ; tipo ; capital pendiente ; TAE ; cuota mensual
+  // Solo la entidad y el capital son obligatorios; el tipo se puede saltar («Entidad ; 1.234,56»). Los importes se aceptan
+  // como se escriben en España («2.754,03») o con punto decimal («2754.03»). No valida reglas de negocio (eso lo hace el alta
+  // de siempre): solo separa los campos y dice qué línea no se entiende.
+  const BULK_TYPES = { credito: "Crédito", tarjeta: "Tarjeta", prestamo: "Préstamo", hipoteca: "Hipoteca", otro: "Otro" };
+
+  function bulkFold(text) {
+    return String(text ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+
+  /** «2.754,03», «2754.03», «2 754,03 €» o «8,5 %» → número; null si no lo es. */
+  function parseSpanishNumber(text) {
+    const raw = String(text ?? "").replace(/[€%\s]/g, "");
+    if (raw === "") return null;
+    if (!/^\d[\d.,]*$/.test(raw)) return null;
+    let normal = raw;
+    if (raw.includes(",")) normal = raw.replace(/\./g, "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) normal = raw.replace(/\./g, "");
+    const value = Number(normal);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function parseBulkContracts(text) {
+    /** @type {Array<Record<string, any>>} */
+    const rows = [];
+    /** @type {Array<{ line: number, text: string, error: string }>} */
+    const errors = [];
+    String(text ?? "").split(/\r?\n/).forEach((raw, index) => {
+      const line = raw.trim();
+      if (!line) return;
+      const parts = line.split(/[;\t]/).map((part) => part.trim());
+      const fail = (error) => { errors.push({ line: index + 1, text: line, error }); };
+      const entity = parts[0];
+      if (!entity) return fail("falta el nombre de la entidad");
+      let rest = parts.slice(1);
+      let type = "Crédito";
+      if (rest.length && rest[0] !== "" && parseSpanishNumber(rest[0]) === null) {
+        const known = BULK_TYPES[bulkFold(rest[0])];
+        if (!known) return fail(`no reconozco el tipo «${rest[0]}» (crédito, tarjeta, préstamo, hipoteca u otro)`);
+        type = known;
+        rest = rest.slice(1);
+      } else if (rest.length && rest[0] === "") {
+        rest = rest.slice(1);
+      }
+      const principal = parseSpanishNumber(rest[0]);
+      if (principal === null) return fail(rest[0] ? `no entiendo el capital «${rest[0]}»` : "falta el capital pendiente");
+      const optional = (value, label) => {
+        if (value === undefined || value === "") return { value: null, error: "" };
+        const parsed = parseSpanishNumber(value);
+        return parsed === null ? { value: null, error: `no entiendo ${label} «${value}»` } : { value: parsed, error: "" };
+      };
+      const apr = optional(rest[1], "la TAE");
+      if (apr.error) return fail(apr.error);
+      const payment = optional(rest[2], "la cuota");
+      if (payment.error) return fail(payment.error);
+      if (rest.slice(3).some((part) => part !== "")) return fail("sobran campos: entidad; tipo; capital; TAE; cuota");
+      rows.push({ line: index + 1, entity, type, principal, apr: apr.value, payment: payment.value });
+    });
+    return { rows, errors };
+  }
+
   return {
+    parseBulkContracts,
+    parseSpanishNumber,
     SCHEMA_ID,
     SCHEMA_VERSION,
     DEFAULT_SUSPENSION_START,
