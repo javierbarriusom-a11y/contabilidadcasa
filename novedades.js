@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-17-simulador-deuda-contratos-reales",
+      fecha: "2026-11-17",
+      texto: "Deuda › Simulador visual: ya no suma las cuentas de ejemplo; trabaja con vuestros contratos y os deja pasar lo que teníais simulado.",
+      href: "#deuda-simulador",
+    },
+    {
       id: "2026-11-16-reglas-por-palabras-a-la-vista",
       fecha: "2026-11-16",
       texto: "Movimientos: todas las reglas por palabras en un desplegable, con cuánto clasifica cada una y «Quitar».",

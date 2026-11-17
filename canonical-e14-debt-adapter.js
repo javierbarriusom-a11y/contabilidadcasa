@@ -10,11 +10,13 @@
 
   const FIELD_INVENTORY = Object.freeze({
     canonical: Object.freeze(["liquidity", "monthly", "cb_amount", "bk_amount", "baseMonth"]),
-    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes"]),
+    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes", "migracion"]),
     assumption: Object.freeze([
       "profile", "buffer", "preserveCash", "cb_strategy", "cb_discount", "cb_start", "cb_lump",
       "cb_apr", "cb_term", "cb_finance_pct", "bk_strategy", "bk_discount", "bk_start", "bk_lump",
       "bk_apr", "bk_term", "bk_finance_pct", "fc_months", "referenceAPR",
+      // SVD-1 (17/11/2026): la aportación extra de D1 fase 1 se quedó fuera del inventario.
+      "cb_extra", "cb_extra_month", "bk_extra", "bk_extra_month",
     ]),
     note: Object.freeze(["notes"]),
   });
@@ -40,19 +42,36 @@
     return match ? `${match[1]}-${String(Number(match[2])).padStart(2, "0")}` : "";
   }
 
+  // SVD-1: los supuestos de cada cuenta adicional (D1 fase 2) se guardan como `acct_<id>_<campo>`.
+  const DYNAMIC_ACCOUNT_FIELD = /^acct_[a-zA-Z0-9_-]+_(strategy|discount|start|lump|apr|term|finance_pct|extra|extra_month)$/;
+
   function classifyField(field) {
     const match = Object.entries(FIELD_INVENTORY).find(([, fields]) => fields.includes(field));
-    return match?.[0] || "ambiguous";
+    if (match) return match[0];
+    return DYNAMIC_ACCOUNT_FIELD.test(String(field)) ? "assumption" : "ambiguous";
   }
 
   function inventoryRoadmapState(state = {}) {
     return Object.keys(state).sort().map((field) => ({ field, classification: classifyField(field) }));
   }
 
-  function findUniqueContract(contracts, entity) {
+  function contractsNamed(contracts, entity) {
     const normalized = String(entity).trim().toLocaleLowerCase("es");
-    const matches = contracts.filter((contract) => String(contract?.entity || "").trim().toLocaleLowerCase("es") === normalized);
+    return contracts.filter((contract) => String(contract?.entity || "").trim().toLocaleLowerCase("es") === normalized);
+  }
+
+  function findUniqueContract(contracts, entity) {
+    const matches = contractsNamed(contracts, entity);
     return matches.length === 1 ? matches[0] : null;
+  }
+
+  // SVD-1 (17/11/2026): las dos cuentas fijas del simulador (cb = «Entidad A», bk = «Entidad B») solo existen mientras
+  // haya un contrato con ese nombre, que son los de ejemplo. «sin-contrato»: ninguno, así que la cuenta no se usa y su
+  // saldo es 0 (antes se quedaba con el de ejemplo y sumaba deuda que no existe). «ambigua»: más de uno con ese nombre.
+  function fixedAccountStatus(contracts, entity) {
+    const count = contractsNamed(contracts, entity).length;
+    if (count === 1) return "enlazada";
+    return count === 0 ? "sin-contrato" : "ambigua";
   }
 
   function canonicalForecastSummary(forecast = {}) {
@@ -102,14 +121,17 @@
     const forecast = canonicalForecastSummary(input.forecast);
     const entityA = findUniqueContract(contracts, "Entidad A");
     const entityB = findUniqueContract(contracts, "Entidad B");
+    const fixedAccounts = { cb: fixedAccountStatus(contracts, "Entidad A"), bk: fixedAccountStatus(contracts, "Entidad B") };
     const ambiguous = [];
-    if (!entityA) ambiguous.push("cb_amount");
-    if (!entityB) ambiguous.push("bk_amount");
+    if (fixedAccounts.cb === "ambigua") ambiguous.push("cb_amount");
+    if (fixedAccounts.bk === "ambigua") ambiguous.push("bk_amount");
     if (!forecast.valid || forecast.openingLiquidity === null) ambiguous.push("liquidity", "monthly", "baseMonth");
 
     const canonicalValues = {};
     if (entityA) canonicalValues.cb_amount = round2(entityA.currentPrincipal);
     if (entityB) canonicalValues.bk_amount = round2(entityB.currentPrincipal);
+    if (fixedAccounts.cb === "sin-contrato") canonicalValues.cb_amount = 0;
+    if (fixedAccounts.bk === "sin-contrato") canonicalValues.bk_amount = 0;
     if (forecast.valid && forecast.openingLiquidity !== null) {
       canonicalValues.liquidity = forecast.openingLiquidity;
       canonicalValues.monthly = forecast.averageFreeCapacity;
@@ -126,6 +148,7 @@
       canonicalValues,
       ambiguous: [...new Set(ambiguous)],
       contracts: { entityA, entityB, all: contracts },
+      fixedAccounts,
       extraDebts: extraDebtAccounts(contracts, entityA, entityB),
       forecast,
       roadmapState: priorState,
@@ -216,6 +239,7 @@
     FIELD_INVENTORY,
     STRATEGY_TYPES,
     classifyField,
+    fixedAccountStatus,
     inventoryRoadmapState,
     buildReadModel,
     normalizeStrategy,

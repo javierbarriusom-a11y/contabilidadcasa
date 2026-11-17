@@ -40,17 +40,20 @@ test("currentConfig() sigue construyendo cb/bk exactamente igual y añade las cu
   assert.match(block, /extra:dynamicDebtAccounts\.map/);
 });
 
-test("accountEntries(): Entidad A y Entidad B siguen siendo los dos primeros índices, en ese orden", () => {
+// SVD-1 (17/11/2026): Entidad A y Entidad B siguen delante y en ese orden, pero solo mientras tengan contrato con ese nombre
+// (fixedAccountActive); sin él salen de la lista y no suman su saldo de ejemplo encima de las deudas reales.
+test("accountEntries(): Entidad A y Entidad B van delante, en ese orden, solo si tienen contrato", () => {
   const block = slice("function accountEntries(cfg)", "\n");
-  assert.match(block, /\[\{key:'cb',label:'Entidad A',account:cfg\.cb\},\{key:'bk',label:'Entidad B',account:cfg\.bk\}/);
+  assert.match(block, /\[\.\.\.\(fixedAccountActive\('cb'\)\?\[\{key:'cb',label:'Entidad A',account:cfg\.cb\}\]:\[\]\),\.\.\.\(fixedAccountActive\('bk'\)\?\[\{key:'bk',label:'Entidad B',account:cfg\.bk\}\]:\[\]\)/);
 });
 
 test("simulateScenario(): el total y la tabla se calculan sobre todas las cuentas (entries), no solo cb/bk", () => {
   const block = slice("function simulateScenario(cfg){const entries=accountEntries(cfg)", "\nfunction currentConfig");
   assert.match(block, /accounts:entries\.map\(\(e\)=>e\.account\)/);
   assert.match(block, /accountLabels:entries\.map\(\(e\)=>e\.label\)/);
-  assert.match(block, /seriesCB:result\.rows\.map\(\(row\)=>row\.balances\[0\]\|\|0\)/);
-  assert.match(block, /seriesBK:result\.rows\.map\(\(row\)=>row\.balances\[1\]\|\|0\)/);
+  // SVD-1: las líneas de A y B del gráfico buscan su cuenta por clave, porque ya no siempre ocupan las posiciones 0 y 1.
+  assert.match(block, /seriesCB:fixedSeries\(result,entries,'cb'\)/);
+  assert.match(block, /seriesBK:fixedSeries\(result,entries,'bk'\)/);
 });
 
 test("renderForecast(): cabecera y filas de la tabla se generan a partir de accountLabels/perAccount, no de columnas fijas", () => {
