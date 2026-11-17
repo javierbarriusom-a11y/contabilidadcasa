@@ -1587,7 +1587,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
-      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(8); // FX-41: + «avisos de la previsión»; 13/11: + «repasos semanales»
+      await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(9); // FX-41: + «avisos de la previsión»; 13/11: + «repasos semanales»; SVD-4 (17/11): + «respuestas a propuestas de deuda»
       await expect(card.locator("#recordatoriosResumen")).toContainText("repasos semanales");
       await expect(card).toContainText("no es un calendario que se actualice solo");
       await expect(card.locator("#recordatoriosResumen")).toContainText("cierres de mes");

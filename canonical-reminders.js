@@ -78,6 +78,7 @@
    *   cirbe?: Array<{reportDate?: string, renewOn: string}>,
    *   fiscal?: {year: number, total: number, pending: number},
    *   forecast?: Array<{id: string, date: string, title: string, description?: string}>,
+   *   proposals?: Array<{id: string, date: string, title: string, description?: string}>,
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */

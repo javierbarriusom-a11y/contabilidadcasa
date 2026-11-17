@@ -113,6 +113,43 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (488): SVD-5 (lo que pasa fuera vuelve al acuerdo) y SVD-4 (la estrategia a Escenarios, «Lo hemos propuesto»); despliegue de #633
+
+- **Despliegue de #633 (SVD-R1):** «Verify and deploy Pages» 1458 en verde y «Published availability» 362 en verde.
+- **El hogar:** «Sigue de momento con más cosas que puedas avanzar sin el hogar». SVD-5 y SVD-4 no necesitan datos del hogar. «Ponerlos realistas» sigue esperando a que el hogar mire el cuadre de cuotas.
+- **SVD-5 · la vuelta** (`docs/SVD_DISENO.md` §13). Cierra un hueco de SVD-3: si la decisión de un acuerdo se quitaba desde Plan › Decisiones, Ruta seguía el acuerdo pero la previsión ya no pagaba su dinero, y nadie lo decía.
+  - `agreementFollowUp` (`canonical-debt-contracts.js`, puro) dice, de cada acuerdo aceptado, si su decisión sigue en el plan y si el pago único pactado sale en los extractos. Lo busca en su mes o uno al lado, por importe (±1 % o ±2 €), y por el nombre de la entidad o, si no lo lleva, por ser el único movimiento con ese importe. También cuenta las cuotas pactadas que se ven pagadas. Estados: cumplido, pendiente, en curso, sin pago y ya liquidado.
+  - En Contratos:
+    - «Su pago ya no está en el plan» con «Volver a apuntarlo en el plan»;
+    - «El pago pactado sale en el extracto» con «Marcar el contrato como liquidado» (capital 0; el acta dice «Ejecutada»);
+    - las cuotas vistas;
+    - «el mes pasó sin pago».
+    Las dos acciones tienen «Deshacer».
+  - El simulador dice lo mismo en la línea del acuerdo.
+- **SVD-4** (`docs/SVD_DISENO.md` §14):
+  - **«Guardar esta estrategia como escenario»:** `scenarioDecisionsFromRoadmap` (puro) pasa la estrategia a Escenarios con sus tipos:
+    - quita → `acuerdo_quita`;
+    - refinanciación o híbrido → `amortizacion` parcial más `refinanciacion`.
+    Se guarda como FX-21: esquema, sin duplicar, diez vivos, sin aplicar. El motor de Escenarios aplica las decisiones (probado).
+  - **«Lo hemos propuesto a la entidad»:** la fecha de la propuesta y el día de la respuesta se guardan con el estado del simulador (estado operativo). Salen en Hoy › «Decidir esta semana» cuando faltan 7 días o se ha pasado el plazo, y en el calendario del móvil con un tipo nuevo, `debtProposal` (sin nombres en el título, con su casilla para apagarlo).
+- **Errores míos encontrados por las pruebas y arreglados:**
+  - el seguimiento se guardaba 300 ms y, tras quitar una decisión, devolvía el estado de antes; ahora se recalcula cuando cambian sus entradas;
+  - el tipo de calendario nuevo no tenía su casilla en la pantalla de recordatorios;
+  - su campo `proposals` no estaba en el tipo JSDoc del motor, y lo cazó `tsc`.
+- **Una prueba de SVD-1** («lo que solo estaba guardado dentro del iframe se rescata una vez») falló una vez en local durante el desarrollo. Después pasó 14 de 14 (12 repeticiones seguidas y 2 sueltas). Revisé el rescate y no encontré la causa: queda anotado, sin una explicación inventada.
+- **Lo que falta:**
+  - SVD-4: la paridad de liquidez entre un escenario guardado y el simulador;
+  - SVD-5: «Desde vuestra última visita» (necesitaría guardar un dato nuevo, así que se consulta antes) y archivar supuestos;
+  - «ponerlos realistas» (con el hogar).
+- Versiones con `?v=20261117svd4` (también `canonical-reminders.js`, `recordatorios-ui.js` y `views/hoy-v2.js`). Dos líneas en Novedades.
+- **Pruebas:**
+  - nuevas: `tests/svd5-seguimiento-acuerdo.test.cjs` (9) y `tests/svd4-escenario-simulador.test.cjs` (9);
+  - actualizadas a propósito: `wp32-recordatorios.test.cjs` (el tipo nuevo), `recordatorio-repaso-semanal.test.cjs` (versión), `redis-hoy2-repaso.test.cjs` (la línea de Hoy), `deuda-alta-varios-contratos.test.cjs` (versiones) y el e2e WP-32 (de 8 a 9 casillas);
+  - e2e: SVD-5 (1) y SVD-4 (2).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.730/6.730 (+18); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke.
+  - **Batería completa de navegador en local: 450 de 451.** El fallo fue el e2e WP-32, que contaba 8 casillas y ahora hay 9; actualizado, pasa (2/2). Safari, solo en el CI.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (487): SVD-R1, ¿están las cuotas en el plan? (primer paso de «ponerlos realistas»); despliegues de #631 y #632
 
 - **Despliegues:**
