@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-17-simulador-acuerdo-aceptado",
+      fecha: "2026-11-17",
+      texto: "Deuda › Simulador visual: «La entidad lo ha aceptado» aplica el acuerdo, con su justificante, a Contratos, al plan y a Ruta de una vez, y se deshace igual.",
+      href: "#deuda-simulador",
+    },
+    {
       id: "2026-11-17-simulador-esperar-paga-cuota",
       fecha: "2026-11-17",
       texto: "Deuda › Simulador visual: «Esperar» sigue pagando la cuota de hoy y el simulador dice si acaba el mismo mes que Ruta.",

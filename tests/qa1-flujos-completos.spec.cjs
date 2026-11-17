@@ -10966,3 +10966,151 @@ test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra 
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-3 (17/11/2026): «La entidad lo ha aceptado» en el simulador → hoja «Qué ocurrirá» con justificante obligatorio (D-N21) →
+// una sola operación (contrato, plan y acta) y un solo «Deshacer». Contratos inventados («Banco FICTICIO»).
+test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => {
+  test("el acuerdo llega a Contratos, al plan, al acta, a Ruta y a la previsión, sin contar dos veces, y «Deshacer» lo devuelve todo", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const { id, key } = await page.evaluate(() => {
+      const entry = debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO");
+      return { id: entry.id, key: `acct_${entry.id.replace(/[^a-zA-Z0-9_-]/g, "_")}` };
+    });
+    const antes = await page.evaluate(() => ({
+      deudaHoy: debtPortfolioTotals().currentPrincipal,
+      liquidezFinal: lastSimulation[lastSimulation.length - 1].totalLiquidity,
+      eventos: decisionEvents.length,
+      decisiones: debtLiquidations.length,
+    }));
+
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    const boton = frame.locator(`#${key}_aceptado`);
+    await expect(boton).toBeVisible({ timeout: 20000 });
+    // «Esperar» no es un acuerdo: lo dice y no abre nada.
+    await boton.click();
+    await expect(frame.locator(`#${key}_aceptado_status`)).toContainText("«Esperar» no es un acuerdo");
+    await expect(page.locator("#svdAcuerdoDialog")).toHaveCount(0);
+
+    // Quita con pago único de 1.500 € el segundo mes.
+    await frame.locator(`#${key}_strategy`).selectOption("settlement");
+    await frame.locator(`#${key}_lump`).fill("1500");
+    await frame.locator(`#${key}_start`).fill("2");
+    await boton.click();
+    const hoja = page.locator("#svdAcuerdoDialog");
+    await expect(hoja).toBeVisible();
+    await expect(hoja).toContainText("Qué ocurrirá");
+    await expect(hoja).toContainText("Banco FICTICIO");
+    await expect(hoja).toContainText("En total, 1.500 €: 900 € menos que la deuda de hoy");
+    await expect(hoja).toContainText("Punto más bajo de la cuenta");
+    await expect(hoja).toContainText("Al final de la previsión");
+    await expect(hoja).toContainText("Deuda cero");
+    const aplicar = hoja.getByRole("button", { name: "Aplicar el acuerdo" });
+    await expect(aplicar).toBeDisabled();
+    await hoja.getByLabel(/La carta, el correo o la captura/).setInputFiles({ name: "carta-ficticia.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 ficticio") });
+    await expect(aplicar).toBeEnabled();
+    await aplicar.click();
+    // La primera vez en la sesión, el almacén privado pregunta si cifrar el adjunto en la nube (ARQ-6): solo este dispositivo.
+    await page.locator("#p2SessionCloudKeyDialog").getByRole("button", { name: "Solo este dispositivo" }).click();
+    await expect(hoja).toBeHidden();
+    await expect(page.locator("#undoToast")).toContainText("Acuerdo aplicado");
+
+    const mes = await page.evaluate(() => forecastMonths()[1].key);
+    const despues = await page.evaluate((contractId) => {
+      const agreement = debtContractOverrides[contractId]?.agreement || null;
+      const decision = debtLiquidations.find((item) => item.svdAcuerdo && item.targetId === contractId) || null;
+      const ruta = FinanceCanonicalDebtPayoffPath.project(canonicalDebtContractRows(), { startMonthKey: isoLocalDate(new Date()).slice(0, 7) });
+      return {
+        agreement,
+        decision: decision && { id: decision.id, amount: decision.amount, monthIndex: decision.monthIndex, recurringAmount: decision.recurringAmount, monthlyRelief: decision.monthlyRelief },
+        evento: decisionEvents[0],
+        eventos: decisionEvents.length,
+        capitalContrato: canonicalDebtContractRows().find((row) => row.id === contractId).currentPrincipal,
+        deudaHoy: debtPortfolioTotals().currentPrincipal,
+        liquidezFinal: lastSimulation[lastSimulation.length - 1].totalLiquidity,
+        finTarjeta: ruta.included.find((row) => row.id === contractId)?.payoffMonthKey,
+      };
+    }, id);
+    // El contrato guarda el acuerdo y el justificante; su capital no cambia (la deuda sigue hasta que se paga).
+    expect(despues.agreement).toMatchObject({ status: "accepted", type: "settlement", settlementAmount: 1500, startMonth: mes, documentName: "carta-ficticia.pdf", decisionId: despues.decision.id });
+    expect(despues.agreement.documentId).toMatch(/^svd-acuerdo-/);
+    expect(despues.capitalContrato).toBe(2400);
+    // El plan lleva el dinero: 1.500 € el segundo mes, sin cuota liberada (no está marcado que las cuotas estén en el plan).
+    expect(despues.decision).toMatchObject({ amount: 1500, monthIndex: 1, recurringAmount: 0, monthlyRelief: 0 });
+    expect(despues.eventos).toBe(antes.eventos + 1);
+    expect(despues.evento).toMatchObject({ status: "aprobado", amount: 1500 });
+    // Sin contar dos veces: Hoy deja de contar la deuda (la cubre el plan) y la previsión baja lo pactado.
+    expect(Math.round((antes.deudaHoy - despues.deudaHoy) * 100) / 100).toBe(2400);
+    expect(Math.abs(antes.liquidezFinal - despues.liquidezFinal - 1500)).toBeLessThan(1);
+    // Ruta la salda el mes del acuerdo.
+    expect(despues.finTarjeta).toBe(mes);
+    // El justificante está en el dispositivo.
+    expect(await page.evaluate((docId) => P2PrivateStore.get(docId).then((blob) => Boolean(blob)), despues.agreement.documentId)).toBe(true);
+    // El simulador lo dice y ya no ofrece aplicarlo otra vez.
+    await expect(frame.locator(`#${key}_acuerdo_aplicado`)).toContainText("Acuerdo aceptado y aplicado", { timeout: 10000 });
+    await expect(frame.locator(`#${key}_aceptado`)).toHaveCount(0);
+
+    // Un solo «Deshacer»: contrato, plan, acta y justificante, como estaban.
+    await page.$eval("#undoToast button", (button) => button.click());
+    const deshecho = await page.evaluate(({ contractId, docId }) => P2PrivateStore.get(docId).then((blob) => ({
+      agreement: debtContractOverrides[contractId]?.agreement || null,
+      decisiones: debtLiquidations.length,
+      eventos: decisionEvents.length,
+      deudaHoy: debtPortfolioTotals().currentPrincipal,
+      liquidezFinal: lastSimulation[lastSimulation.length - 1].totalLiquidity,
+      justificante: Boolean(blob),
+    })), { contractId: id, docId: despues.agreement.documentId });
+    expect(deshecho).toEqual({ agreement: null, decisiones: antes.decisiones, eventos: antes.eventos, deudaHoy: antes.deudaHoy, liquidezFinal: antes.liquidezFinal, justificante: false });
+    await expect(frame.locator(`#${key}_aceptado`)).toBeVisible({ timeout: 10000 });
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("en Contratos el acuerdo se ve, no cuenta como «Editado» y «Quitar el acuerdo» lo retira también del plan", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
+    const id = await page.evaluate(() => debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO").id);
+    // Lo mismo que deja «Aplicar el acuerdo» (el flujo entero lo prueba la prueba anterior).
+    await page.evaluate((contractId) => {
+      const decision = { ...E14DebtAdapter.agreementPlanDecision({ agreement: { status: "accepted", type: "settlement", settlementAmount: 2000, startMonth: forecastMonths()[2].key, principalAtAcceptance: 3000 }, contract: canonicalDebtContractRows().find((row) => row.id === contractId), monthIndex: 2 }) };
+      applyDebtDecision(decision);
+      const applied = debtLiquidations.find((item) => item.svdAcuerdo);
+      debtContractOverrides = { ...debtContractOverrides, [contractId]: { agreement: { status: "accepted", type: "settlement", settlementAmount: 2000, startMonth: forecastMonths()[2].key, decisionId: applied.id } } };
+      saveDebtContractOverrides();
+      location.hash = "deuda-ruta";
+      location.hash = "deuda-contratos";
+    }, id);
+    const fila = page.locator(`[data-deuda-contrato-row="${id}"]`);
+    await expect(fila).toContainText("Acuerdo aceptado");
+    await expect(fila).not.toContainText("Editado");
+    await fila.getByRole("button", { name: "Quitar el acuerdo" }).click();
+    await expect(page.locator("#undoToast")).toContainText("Acuerdo quitado");
+    const estado = await page.evaluate((contractId) => ({
+      agreement: debtContractOverrides[contractId]?.agreement || null,
+      decisiones: debtLiquidations.filter((item) => item.svdAcuerdo).length,
+      acta: decisionEvents[0]?.note || "",
+    }), id);
+    expect(estado).toEqual({ agreement: null, decisiones: 0, acta: "Acuerdo quitado del contrato desde Deuda › Contratos." });
+    await expect(page.locator(`[data-deuda-contrato-row="${id}"]`)).not.toContainText("Acuerdo aceptado");
+    expect(pageErrors).toEqual([]);
+  });
+});

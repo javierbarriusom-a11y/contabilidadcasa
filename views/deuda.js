@@ -1245,8 +1245,31 @@ function deudaContratosProgressHtml(contract) {
     </div>`;
 }
 
+// SVD-3 (17/11/2026): el acuerdo aceptado se guarda junto a las correcciones del contrato (`debtContractOverrides`), pero no es
+// una corrección a mano: no cuenta como «Editado».
+function deudaContratoEditadoAMano(id) {
+  return Object.keys(debtContractOverrides[id] || {}).some((field) => field !== "agreement");
+}
+
+function deudaContratosAcuerdoHtml(contract) {
+  const agreement = contract.agreement;
+  if (agreement?.status !== "accepted" || !debtContractOverrides[contract.id]?.agreement) return "";
+  const id = escapeHtml(contract.id);
+  const terms = [
+    agreement.settlementAmount > 0 ? `pago de ${money(agreement.settlementAmount, true)}` : "",
+    agreement.payment > 0 && agreement.duration > 0 ? `${agreement.duration} cuotas de ${money(agreement.payment, true)}` : "",
+  ].filter(Boolean).join(" + ");
+  const desde = agreement.startMonth ? ` desde ${agreement.startMonth.split("-").reverse().join("/")}` : "";
+  return `<div class="deuda-contratos-acuerdo">
+      <span class="e19-badge e19-badge-success" title="${escapeHtml(`Acuerdo aceptado: ${terms}${desde}`)}">Acuerdo aceptado</span>
+      <small>${escapeHtml(terms)}${escapeHtml(desde)}</small>
+      ${agreement.documentId ? `<button type="button" class="secondary-button" data-svd-ver-justificante="${id}">Ver justificante</button>` : ""}
+      <button type="button" class="secondary-button" data-svd-quitar-acuerdo="${id}">Quitar el acuerdo</button>
+    </div>`;
+}
+
 function deudaContratosRowHtml(contract) {
-  const edited = Boolean(debtContractOverrides[contract.id]);
+  const edited = deudaContratoEditadoAMano(contract.id);
   const isCustom = Boolean(contract.custom);
   const quality = deudaContratosQualityBadge(contract.dataQuality);
   const aprValue = contract.apr === null || contract.apr === undefined ? "" : contract.apr;
@@ -1269,7 +1292,7 @@ function deudaContratosRowHtml(contract) {
       <td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="fiscalDeductionPct" value="${contract.fiscalDeductionPct > 0 ? contract.fiscalDeductionPct : ""}" placeholder="0" aria-label="Deducción fiscal de ${entityLabel} (%)" /></td>
       <td><input type="number" min="0" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="remainingInstallments" value="${installments}" aria-label="Plazos restantes de ${entityLabel}" /></td>
       <td><select data-deuda-contrato-id="${id}" data-deuda-contrato-field="paymentStatus" aria-label="Estado de ${entityLabel}">${deudaContratosStatusOptionsHtml(contract.paymentStatus)}</select></td>
-      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
+      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}${deudaContratosAcuerdoHtml(contract)}</td>
       <td><button type="button" class="deuda-contratos-row-remove" data-deuda-contrato-remove="${id}" aria-label="Eliminar el contrato de ${entityLabel}">×</button></td>
     </tr>`;
 }
@@ -1284,7 +1307,7 @@ function renderDeudaContratos() {
         <th>Entidad</th><th>Capital inicial</th><th>Capital pendiente</th><th>Progreso</th><th>TAE</th><th>Cuota mensual</th><th>Deducción fiscal (%)</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
-  const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
+  const overriddenCount = contracts.filter((contract) => deudaContratoEditadoAMano(contract.id)).length;
   const note = qs("deudaContratosNote");
   if (note) {
     note.textContent = overriddenCount

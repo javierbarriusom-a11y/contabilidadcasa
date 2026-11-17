@@ -157,6 +157,32 @@
       .map((value) => value === null || value === undefined ? "-" : String(value)).join("|");
   }
 
+  // SVD-3 (17/11/2026): el acuerdo aceptado de un contrato, tal como lo guarda Contratos (canonical-debt-contracts.js), o null.
+  function isAccepted(contract) {
+    return String(contract?.agreement?.status || "").toLocaleLowerCase("es") === "accepted";
+  }
+
+  function withoutAcceptedAgreement(contract) {
+    if (!isAccepted(contract)) return contract;
+    const { agreement, ...rest } = contract;
+    return rest;
+  }
+
+  function acceptedAgreementFacts(contract) {
+    if (!isAccepted(contract)) return null;
+    const agreement = contract.agreement;
+    return {
+      type: String(agreement.type || ""),
+      startMonth: monthKey(agreement.startMonth),
+      settlementAmount: round2(agreement.settlementAmount),
+      payment: round2(agreement.payment),
+      duration: Math.max(0, Math.floor(number(agreement.duration))),
+      acceptedAt: String(agreement.acceptedAt || ""),
+      documentName: String(agreement.documentName || ""),
+      hasDocument: Boolean(agreement.documentId),
+    };
+  }
+
   function extraSourceContracts(contracts, entityA, entityB) {
     return contracts
       .filter((contract) => contract && contract !== entityA && contract !== entityB)
@@ -169,7 +195,9 @@
   // simulador lo compara con su propio «todas en Esperar»: si no coinciden, lo dice.
   function rutaSummary(sources, payoffPath, startMonthKey) {
     if (typeof payoffPath?.project !== "function" || !sources.length || !/^\d{4}-\d{2}$/.test(String(startMonthKey || ""))) return null;
-    const result = payoffPath.project(sources, { startMonthKey, extraMonthly: 0 });
+    // SVD-3: la comparación es con «todas en Esperar», así que Ruta se calcula aquí sin los acuerdos aceptados (que sí cuenta
+    // en Deuda › Ruta): si no, una cuenta con acuerdo descuadraría la comparación sin que nada esté mal.
+    const result = payoffPath.project(sources.map(withoutAcceptedAgreement), { startMonthKey, extraMonthly: 0 });
     if (!result?.ok) return null;
     return {
       startMonthKey,
@@ -194,6 +222,7 @@
           paymentStatus: String(contract.paymentStatus || "unknown"),
           ...contractFacts(contract),
           ...keepPaymentFacts(contract, payoffPath),
+          acuerdo: acceptedAgreementFacts(contract),
         };
         return { ...account, fingerprint: contractFingerprint(account) };
       })
@@ -322,6 +351,90 @@
     return { ...normalized, valid: issues.length === 0, issues };
   }
 
+  function addMonthKeys(key, offset) {
+    const [year, month] = key.split("-").map(Number);
+    const index = year * 12 + (month - 1) + offset;
+    return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+  }
+
+  const AGREEMENT_TYPES = Object.freeze({ settlement: "settlement", refi: "refinancing", hybrid: "hybrid" });
+
+  // SVD-3 (17/11/2026): lo que el hogar ha marcado como «La entidad lo ha aceptado» en una cuenta del simulador, convertido
+  // en el acuerdo que guarda el contrato. Puro: no escribe nada. Igual que buildDraftOffer, el contrato sale del modelo
+  // canónico ya calculado, nunca de un id que llegue del iframe. Se niega, con el motivo, si la cuenta no tiene contrato
+  // único, si el contrato ya tiene un acuerdo aceptado, si la estrategia es «Esperar» o si el primer pago ya ha pasado.
+  function buildAcceptedAgreement(input = {}) {
+    const key = String(input.accountKey || "");
+    const account = input.account || {};
+    const fail = (message) => ({ ok: false, accountKey: key, message });
+    const contract = resolveAccountContract(key, input.canonical);
+    if (!contract) return fail("Esta cuenta todavía no está vinculada a un contrato real único.");
+    const full = (input.canonical?.contracts?.all || []).find((row) => String(row?.id || "") === String(contract.id)) || contract;
+    if (isAccepted(full) || contract.acuerdo) return fail("Este contrato ya tiene un acuerdo aceptado. Para cambiarlo, deshaz antes el que tiene.");
+    const type = AGREEMENT_TYPES[String(account.strategy || "").trim().toLowerCase()];
+    if (!type) return fail("«Esperar» no es un acuerdo: elige quita, refinanciación o híbrido con lo que ha aceptado la entidad.");
+    const lump = round2(Math.max(0, number(account.lump)));
+    const payment = type === "settlement" ? 0 : round2(Math.max(0, number(account.monthly)));
+    const duration = type === "settlement" ? 0 : Math.max(0, Math.round(number(account.term)));
+    if (type === "settlement" && !(lump > 0)) return fail("La quita no tiene importe: pon lo que habéis pactado pagar.");
+    if (type !== "settlement" && !(payment > 0 && duration > 0)) return fail("La refinanciación no tiene cuota o plazo: revisa lo que se ha pactado.");
+    const baseMonth = monthKey(input.baseMonthKey);
+    if (!baseMonth) return fail("Falta el mes de partida del simulador.");
+    const startMonth = addMonthKeys(baseMonth, Math.max(1, Math.round(number(account.start) || 1)) - 1);
+    const todayKey = monthKey(input.todayKey);
+    if (todayKey && startMonth < todayKey) return fail(`El primer pago del acuerdo (${startMonth}) ya ha pasado: ajusta el mes en el simulador.`);
+    const principal = round2(full.currentPrincipal ?? contract.currentPrincipal);
+    const totalAgreed = round2(lump + payment * duration);
+    return {
+      ok: true,
+      accountKey: key,
+      contractId: String(contract.id),
+      contract: full,
+      agreement: {
+        status: "accepted",
+        type,
+        settlementAmount: lump,
+        payment,
+        duration,
+        startMonth,
+        source: "simulador-visual-de-deuda",
+        principalAtAcceptance: principal,
+      },
+      totalAgreed,
+      // Positivo: lo que se ahorra frente a la deuda de hoy (la quita). Negativo: lo que cuesta financiarla.
+      saving: round2(principal - totalAgreed),
+    };
+  }
+
+  // SVD-3: la decisión del plan que lleva el DINERO del acuerdo (el contrato guarda la deuda que queda; el plan, lo que sale).
+  // Mismo formato que las de Plan › Decisiones (debtDecisionFromValues): pago único en su mes, cuotas pactadas desde ese mes y,
+  // solo si el hogar dice que la cuota de hoy está en el plan, esa cuota deja de restarse.
+  function agreementPlanDecision(input = {}) {
+    const agreement = input.agreement || {};
+    const contract = input.contract || {};
+    const principal = round2(agreement.principalAtAcceptance ?? contract.currentPrincipal);
+    const relief = input.cuotasEnPlan && contract.paymentStatus === "active" ? round2(Math.max(0, number(contract.currentPayment))) : 0;
+    const label = [contract.entity, contract.type].filter(Boolean).join(" ").trim() || "deuda";
+    return {
+      name: `Acuerdo aceptado · ${label}`,
+      amount: round2(agreement.settlementAmount),
+      targetId: String(contract.id || ""),
+      targetPrincipal: principal,
+      originalPrincipal: principal,
+      discount: round2(Math.max(0, principal - number(agreement.settlementAmount) - number(agreement.payment) * number(agreement.duration))),
+      monthlyRelief: relief,
+      duration: 1,
+      recurringAmount: round2(agreement.payment),
+      recurringDuration: Math.max(0, Math.floor(number(agreement.duration))),
+      recurringStartOffset: 0,
+      mode: "fixed",
+      payoffMode: "fixed",
+      monthIndex: Math.max(0, Math.floor(number(input.monthIndex))),
+      monthKey: monthKey(agreement.startMonth),
+      svdAcuerdo: true,
+    };
+  }
+
   return {
     SCHEMA_ID,
     STRATEGY_SCHEMA_ID,
@@ -336,5 +449,8 @@
     dynamicAccountKey,
     resolveAccountContract,
     buildDraftOffer,
+    buildAcceptedAgreement,
+    agreementPlanDecision,
+    acceptedAgreementFacts,
   };
 });

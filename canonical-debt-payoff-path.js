@@ -70,7 +70,39 @@
     return (low + high) / 2;
   }
 
+  // SVD-3 (17/11/2026): un acuerdo aceptado con la entidad (Deuda › Contratos, desde el simulador visual de deuda) sustituye al
+  // calendario del contrato desde su mes: ese mes se paga el pago único pactado (si lo hay) y, si el acuerdo tiene cuotas,
+  // esas cuotas fijas durante su plazo; al acabar, la deuda queda saldada (la quita es la diferencia). Antes de ese mes, el
+  // contrato sigue con su cuota de hoy si la tiene, y si está suspendido su saldo se queda quieto (no se proyectan intereses de
+  // demora: el acuerdo es lo que fija lo que se paga). Sin acuerdo aceptado, nada de esto cambia ninguna cifra.
+  function acceptedAgreement(contract) {
+    const agreement = contract?.agreement;
+    if (!agreement || typeof agreement !== "object") return null;
+    if (String(agreement.status || "").toLowerCase() !== "accepted" || !monthKeyOk(agreement.startMonth)) return null;
+    const lump = Math.max(0, round2(finite(agreement.settlementAmount) ?? 0));
+    const payment = Math.max(0, round2(finite(agreement.payment) ?? 0));
+    const duration = Math.max(0, Math.floor(finite(agreement.duration) ?? 0));
+    const schedule = payment > 0 && duration > 0;
+    if (!(lump > 0) && !schedule) return null;
+    return { startMonthKey: agreement.startMonth, lump, payment: schedule ? payment : 0, duration: schedule ? duration : 0 };
+  }
+
+  function monthIndexOf(key) {
+    const [year, month] = key.split("-").map(Number);
+    return year * 12 + (month - 1);
+  }
+
   function classify(contract) {
+    const plain = classifyPlain(contract);
+    const agreement = plain ? acceptedAgreement(contract) : null;
+    if (!agreement) return plain;
+    if (plain.included) return { included: { ...plain.included, agreement } };
+    const base = plain.excluded;
+    const payment = contract.paymentStatus === "active" ? Math.max(0, round2(finite(contract.currentPayment) ?? 0)) : 0;
+    return { included: { id: base.id, label: base.label, principal: base.principal, payment, aprPct: 0, monthlyRate: 0, rateSource: "acuerdo", tolerance: DECLARED_TOLERANCE, installments: 0, agreement } };
+  }
+
+  function classifyPlain(contract) {
     const principal = round2(finite(contract?.currentPrincipal) ?? 0);
     if (!(principal > 0)) return null;
     const base = { id: String(contract.id || ""), label: labelOf(contract), principal };
@@ -102,6 +134,23 @@
     });
   }
 
+  // SVD-3: un mes de una deuda con acuerdo aceptado, desde el mes del acuerdo. El primer mes, lo que quede de deuda pasa a ser
+  // lo pactado: el pago único (que se paga ese mes) y las cuotas que falten. Si el acuerdo empezó antes del mes de partida, el
+  // pago único y las cuotas ya vencidas se dan por pagados.
+  function agreementMonth(entry) {
+    const agreement = entry.agreement;
+    if (!agreement.started) {
+      agreement.started = true;
+      const elapsed = Math.max(0, -agreement.startIndex);
+      const remaining = Math.max(0, agreement.duration - elapsed);
+      if (elapsed === 0) entry.paid = round2(entry.paid + agreement.lump);
+      entry.balance = round2(agreement.payment * remaining);
+    }
+    const due = Math.min(agreement.payment, entry.balance);
+    entry.balance = round2(entry.balance - due);
+    entry.paid = round2(entry.paid + due);
+  }
+
   /**
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (id, entity, type, paymentStatus, currentPrincipal, currentPayment, apr, remainingInstallments)
    * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean}} [options]
@@ -125,25 +174,33 @@
     const ordered = orderOf(included, strategy, options.order);
     const excludedPrincipal = round2(excluded.reduce((sum, row) => sum + row.principal, 0));
 
-    const state = ordered.map((row) => ({ row, balance: row.principal, interest: 0, paid: 0, extraApplied: 0, payoffIndex: null, stalled: false }));
+    const state = ordered.map((row) => ({
+      row, balance: row.principal, interest: 0, paid: 0, extraApplied: 0, payoffIndex: null, stalled: false,
+      agreement: row.agreement ? { ...row.agreement, startIndex: monthIndexOf(row.agreement.startMonthKey) - monthIndexOf(startMonthKey), started: false } : null,
+    }));
     const series = [];
     let firstTarget = null;
     let month = 0;
     for (; month < MAX_MONTHS; month += 1) {
       if (!state.some((entry) => entry.payoffIndex === null)) break;
-      const freed = redirectFreed ? state.reduce((sum, entry) => sum + (entry.payoffIndex !== null && entry.payoffIndex < month ? entry.row.payment : 0), 0) : 0;
+      const freed = redirectFreed ? state.reduce((sum, entry) => sum + (entry.payoffIndex !== null && entry.payoffIndex < month ? (entry.agreement ? entry.agreement.payment : entry.row.payment) : 0), 0) : 0;
       let pool = round2(extra + freed);
       state.forEach((entry) => {
         if (entry.payoffIndex !== null) return;
+        if (entry.agreement && month >= Math.max(0, entry.agreement.startIndex)) {
+          agreementMonth(entry);
+          return;
+        }
         const interest = round2(entry.balance * entry.row.monthlyRate);
         entry.interest = round2(entry.interest + interest);
         const due = Math.min(entry.row.payment, round2(entry.balance + interest));
-        if (entry.row.payment - interest <= 0 && !(due >= entry.balance + interest)) entry.stalled = true;
+        if (!entry.agreement && entry.row.payment - interest <= 0 && !(due >= entry.balance + interest)) entry.stalled = true;
         entry.balance = round2(entry.balance + interest - due);
         entry.paid = round2(entry.paid + due);
       });
       state.forEach((entry) => {
-        if (entry.payoffIndex !== null || pool <= 0 || entry.balance <= entry.row.tolerance) return;
+        // SVD-3: a una deuda con acuerdo aceptado no se le adelanta nada: lo que se paga ya está pactado.
+        if (entry.agreement || entry.payoffIndex !== null || pool <= 0 || entry.balance <= entry.row.tolerance) return;
         const applied = Math.min(pool, entry.balance);
         if (!firstTarget && applied > 0) firstTarget = { id: entry.row.id, label: entry.row.label, aprPct: entry.row.aprPct };
         entry.balance = round2(entry.balance - applied);
@@ -168,7 +225,7 @@
     const rows = state.map((entry) => {
       const own = baseline ? null : entry.payoffIndex;
       const gapIndex = baseline ? baselineRows.get(entry.row.id)?.payoffIndex ?? null : own;
-      const declaredGapMonths = entry.row.rateSource === "declared" && entry.row.installments > 0 && gapIndex !== null ? gapIndex + 1 - entry.row.installments : (entry.row.installments > 0 && entry.row.rateSource === "implied" ? 0 : null);
+      const declaredGapMonths = entry.agreement ? null : entry.row.rateSource === "declared" && entry.row.installments > 0 && gapIndex !== null ? gapIndex + 1 - entry.row.installments : (entry.row.installments > 0 && entry.row.rateSource === "implied" ? 0 : null);
       return {
         id: entry.row.id,
         label: entry.row.label,
@@ -183,6 +240,7 @@
         stalled: entry.stalled && entry.payoffIndex === null,
         declaredInstallments: entry.row.installments || null,
         declaredGapMonths,
+        ...(entry.agreement ? { agreement: { startMonthKey: entry.agreement.startMonthKey, lump: entry.agreement.lump, payment: entry.agreement.payment, duration: entry.agreement.duration } } : {}),
       };
     });
     const beyondHorizon = rows.some((row) => row.payoffIndex === null);
