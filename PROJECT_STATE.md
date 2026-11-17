@@ -113,6 +113,40 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (482): SVD-1, el simulador visual de deuda con los contratos reales del hogar; #629 fusionado
+
+- **Decisiones del hogar (17/11):**
+  - **D-N16:** «la foto real de la deuda es los contratos que subí a la app el domingo»;
+  - **D-N20:** «empieza svd1 ya»;
+  - **D-N21:** «lo aceptado lo marco yo manualmente y subo un justificante», que SVD-3 exigirá antes de aplicar un acuerdo.
+  - Aviso dado una vez: el saldo impagado de un informe de solvencia puede no ser el capital pendiente.
+- **Fallo que el hogar tenía desde el 16/11, al quitar los contratos de ejemplo:**
+  - en el simulador, las cuentas fijas «Entidad A / gestor» y «Entidad B» seguían sumando su saldo de ejemplo encima de las deudas reales: el modelo canónico las dejaba «ambiguas» sin saldo y el simulador conservaba el que tenía;
+  - medido con dos contratos inventados que suman 7.500 €: el simulador partía de **18.000 €**. Todo pago único, pico o duración que diera desde entonces llevaba esa deuda inexistente.
+- **Qué hace SVD-1** (`docs/SVD_DISENO.md` §8):
+  - `canonical-e14-debt-adapter.js`: `fixedAccountStatus` (enlazada, sin contrato con saldo 0, o ambigua como antes) y `fixedAccounts` en el modelo de lectura. El inventario ya clasifica la aportación extra, los campos `acct_<id>_*` y `migracion`;
+  - `debt-roadmap.html`:
+    - las cuentas fijas sin contrato salen del cálculo, de la tabla y del gráfico, y se ocultan;
+    - si había algo simulado en ellas, pregunta una vez a qué contrato real pasarlo (los supuestos, nunca el saldo), con «Deshacer» y «No corresponde a ninguno»;
+    - dentro de la app ya no guarda su propia copia en `localStorage`; la que hubiera se rescata una vez;
+  - **el puente sale de `app.js`** a `deuda-simulador-puente.js` (5 funciones, sin cambiar una coma): `app.js` 32.091 → 32.024 líneas y techo 32.203 → 32.155 (trinquete);
+  - versiones: `debt-roadmap.html`, `canonical-e14-debt-adapter.js` y `novedades.js` con `?v=20261117svd1`; línea en Novedades.
+- **#629 fusionado** (`main` `32b9c64`, 08:17Z) con su CI en verde a la primera, ejecución 1448, Safari incluido: confirma el arreglo del movimiento reducido. Su despliegue, ejecución **1449**, estaba en curso al abrir este PR; su resultado y «Published availability» van en la entrada siguiente.
+- **Un tropiezo, mío:** el primer intento de fusionar #629 llevaba un SHA de cabecera escrito de memoria y GitHub lo rechazó (409). No cambió nada; se fusionó con el SHA leído de git.
+- **Pruebas:**
+  - `tests/svd1-simulador-enlace.test.cjs` (4);
+  - SVD-0 (3 actualizadas a propósito para describir lo nuevo) y D1 fase 2 (2 actualizadas);
+  - la del desalojo en `tests/xgo01-sin-funciones-duplicadas.test.cjs`;
+  - e2e «SVD-1 · Simulador visual de deuda con los contratos reales» (2): cuentas fijas fuera; migración con deshacer, descartar y persistencia tras recargar; sin copia en el `iframe`; rescate.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.680/6.680 (+5); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke;
+  - **batería completa de navegador en local antes de subir: 443/443** (e2e y axe, Chromium), incluida «FX-22 PR-2» a 1.440 px, que otras veces fallaba en la tanda larga;
+  - una primera tanda se paró a medias porque el servidor reutilizado servía una compilación anterior a los sellos de versión; la de 443 es sobre la compilación buena.
+- **Lo que sigue (SVD-2):**
+  - los textos del simulador siguen hablando de «Entidad C» y de la negociación de septiembre;
+  - la TAE sigue siendo un supuesto del simulador;
+  - de los contratos reales llega solo el capital.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (481): #628 fusionado; su despliegue (1447) en rojo en Safari, y la causa común de los fallos de Safari
 
 - **#628 fusionado** (`main` `d112134`, a las 06:29Z) con su CI en verde a la primera tras el arreglo (ejecución 1446, Safari incluido): décima auditoría, bloque SVD con SVD-0 y PROJECT_STATE 478 a 480.
