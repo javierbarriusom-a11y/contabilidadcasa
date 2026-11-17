@@ -575,3 +575,58 @@ que mirar el hogar: la app no puede saber de quién son.
 - e2e «SVD-R1»: contrato con partida y sin ella; el bloque plegado de Contratos; la línea del simulador; el acuerdo, que resta la partida
   del plan aunque la casilla esté sin marcar; y sin «€ €».
 - A 390 px, el bloque abierto no desborda y axe no da fallos.
+
+---
+
+## 13. SVD-5 · La vuelta: lo que pasa fuera vuelve al acuerdo (17/11/2026)
+
+**Por qué ahora:** SVD-3 dejó un hueco. Si alguien quita desde Plan › Decisiones la decisión de un acuerdo aceptado, el contrato conserva
+el acuerdo y Ruta lo sigue, pero la previsión ya no paga su dinero, y nadie lo dice. Además, cuando el pago pactado sale en el extracto,
+el contrato seguía «Activa» con su capital. Ninguna de las dos cosas necesita datos del hogar para arreglarse.
+
+**Qué hace:**
+
+- **`agreementFollowUp`** (`canonical-debt-contracts.js`, puro) dice, para cada acuerdo aceptado:
+  - **plan:** si su decisión sigue en el plan. La reconoce por `decisionId`, o porque es una decisión de acuerdo (`svdAcuerdo`) de ese contrato.
+  - **pago:** el pago único pactado en los extractos, en su mes o uno antes o después. Cuenta solo salidas de dinero con el mismo importe
+    (±1 % o ±2 €). Se da por bueno si el movimiento lleva el nombre de la entidad («por nombre»), o si es el único movimiento con ese
+    importe («por importe», y lo dice).
+  - **cuotas:** cuántas de las cuotas pactadas se ven pagadas desde su mes, contando una por mes, por importe y nombre.
+  - **estado:**
+    - **cumplido:** se ve el pago único y, si hay cuotas, se ven todas;
+    - **pendiente:** aún no ha llegado su mes;
+    - **en curso:** el resto de casos;
+    - **sin pago:** el mes del pago único y el siguiente ya pasaron y no se ve en los extractos;
+    - **ya liquidado:** el contrato ya está saldado.
+- **En Deuda › Contratos**, bajo «Acuerdo aceptado»:
+  - **«Su pago ya no está en el plan»**, con el botón **«Volver a apuntarlo en el plan»**. Apunta otra vez la decisión con las mismas cifras
+    y con la partida del plan de SVD-R1, si su mes sigue en la previsión. Tiene «Deshacer».
+  - **«El pago pactado sale en el extracto»**, con el importe, la fecha y el movimiento, y el botón **«Marcar el contrato como liquidado»**.
+    El contrato pasa a «Liquidada» con capital 0, el acuerdo guarda la fecha y el movimiento del pago, y el acta anota «Ejecutada».
+    La decisión del plan se queda, porque su mes ya pasó. Tiene «Deshacer».
+  - Las cuotas pactadas vistas («2 de 3»), o «el mes del pago ya pasó y no se ve en los extractos: ¿se ha importado ese extracto?».
+- **En el simulador**, la línea del acuerdo aceptado dice lo mismo, en una frase: su pago ya no está en el plan, ya sale en el extracto,
+  o el mes pasó sin pago.
+
+**Un fallo mío, encontrado por la prueba:** el seguimiento se guardaba 300 ms para no recalcularlo en cada fila, y tras quitar una decisión
+devolvía el resultado de antes. Ahora se recalcula solo cuando cambian sus entradas: las decisiones, las correcciones de los contratos, los
+movimientos o el mes.
+
+**Lo que no hace (todavía):**
+
+- La línea «Desde vuestra última visita» del §5. No se ha hecho porque necesita guardar qué vio el hogar la última vez, y eso sería una
+  clave nueva. Se consultará si hace falta.
+- Archivar los supuestos del simulador cuando un contrato se liquida o se borra.
+
+**Pruebas:**
+
+- `tests/svd5-seguimiento-acuerdo.test.cjs` (9):
+  - solo se siguen los acuerdos aceptados;
+  - la decisión que falta, también la reconocida por `targetId`;
+  - el pago por nombre y por importe;
+  - qué no cuenta como pago: ingresos, otros importes y meses lejanos;
+  - pendiente y sin pago;
+  - las cuotas de una refinanciación;
+  - el contrato ya liquidado;
+  - el modelo de lectura.
+- e2e «SVD-5»: se quita la decisión, se ve el aviso y se vuelve a apuntar; el extracto trae el pago, se marca liquidado, el acta dice «Ejecutada» y «Deshacer» lo devuelve.

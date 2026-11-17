@@ -229,6 +229,16 @@
       .filter((account) => account.id);
   }
 
+  // SVD-5: a cada acuerdo, lo que se sabe de él fuera del simulador (si su pago sigue en el plan, si ya se pagó).
+  function withFollowUp(accounts, followUp) {
+    const byId = new Map((Array.isArray(followUp) ? followUp : []).map((item) => [String(item?.id || ""), item]));
+    return accounts.map((account) => {
+      const item = account.acuerdo ? byId.get(account.id) : null;
+      if (!item) return account;
+      return { ...account, acuerdo: { ...account.acuerdo, seguimiento: { plan: item.plan, estado: item.estado, pagoFecha: item.pago?.date || "" } } };
+    });
+  }
+
   function planInstallmentsSummary(plan) {
     if (!plan || !Array.isArray(plan.items)) return null;
     const paying = plan.items.filter((item) => item.payment > 0);
@@ -278,7 +288,7 @@
       ambiguous: [...new Set(ambiguous)],
       contracts: { entityA, entityB, all: contracts },
       fixedAccounts,
-      extraDebts: extraDebtAccounts(contracts, entityA, entityB, input.payoffPath),
+      extraDebts: withFollowUp(extraDebtAccounts(contracts, entityA, entityB, input.payoffPath), input.agreementFollowUp),
       // El mismo «hoy» que Deuda › Ruta (camino-deuda-ui.js: el mes de hoy); si no llega, el primer mes de la previsión.
       // SVD-R1: cuántas de las cuotas que se pagan están en el plan (por el nombre de la entidad), y de qué mes.
       cuotasPlan: planInstallmentsSummary(input.planInstallments),

@@ -79,7 +79,8 @@
     };
   }
 
-  const AGREEMENT_TRACE_FIELDS = ["type", "acceptedAt", "documentId", "documentName", "documentStorage", "decisionId", "principalAtAcceptance"];
+  // SVD-5: `fulfilledAt` y `paymentDate`, cuando el hogar confirma que el pago pactado ya salió en el extracto.
+  const AGREEMENT_TRACE_FIELDS = ["type", "acceptedAt", "documentId", "documentName", "documentStorage", "decisionId", "principalAtAcceptance", "fulfilledAt", "paymentDate", "paymentLabel"];
 
   function agreementTrace(agreement) {
     const trace = {};
@@ -540,6 +541,72 @@
     };
   }
 
+  // SVD-5 (17/11/2026, «la vuelta»): qué ha pasado fuera del simulador con cada acuerdo aceptado. Puro.
+  //  - plan: «en-plan» si su decisión sigue en el plan; «sin-decision» si alguien la quitó (Plan › Decisiones): entonces Ruta
+  //    sigue el acuerdo pero la previsión ya no paga su dinero, y hay que decir algo.
+  //  - pago: el pago único pactado en los extractos, en su mes o uno antes o después, por importe (±1 % o ±2 €) y, si se puede,
+  //    por el nombre de la entidad («por-nombre»); si ninguno lleva el nombre pero hay uno solo con ese importe, «por-importe».
+  //  - cuotas: cuántas cuotas pactadas se ven pagadas desde su mes (una por mes, por importe y nombre).
+  //  - estado: «cumplido» (pago único visto y, si hay cuotas, todas vistas), «en-curso», «pendiente» (aún no ha llegado el mes),
+  //    «sin-pago» (el mes del pago único ya pasó y no se ve en los extractos) o «ya-liquidado» (el contrato ya está saldado).
+  function monthIndexKey(key) {
+    const [year, month] = String(key || "").split("-").map(Number);
+    return Number.isFinite(year) && Number.isFinite(month) ? year * 12 + (month - 1) : null;
+  }
+
+  function agreementFollowUp(contracts = [], options = {}) {
+    const decisions = Array.isArray(options.decisions) ? options.decisions : [];
+    const todayIndex = monthIndexKey(monthKey(options.todayKey || ""));
+    const movements = (Array.isArray(options.movements) ? options.movements : [])
+      .map((row, index) => ({ index, date: String(row?.date || "").slice(0, 10), amount: round2(number(row?.amount)), label: String(row?.label || ""), words: foldText(`${row?.label || ""} ${row?.details || ""}`) }))
+      .filter((row) => row.amount < 0 && /^\d{4}-\d{2}-\d{2}$/.test(row.date));
+    const near = (target, value) => Math.abs(Math.abs(value) - target) <= Math.max(2, target * 0.01);
+    return (Array.isArray(contracts) ? contracts : [])
+      .filter((contract) => contract?.agreement && String(contract.agreement.status || "").toLowerCase() === "accepted")
+      .map((contract) => {
+        const agreement = contract.agreement;
+        const start = monthIndexKey(agreement.startMonth);
+        const tokens = entityTokens(contract);
+        const named = (row) => tokens.some((token) => row.words.includes(token));
+        const decision = decisions.find((item) => (agreement.decisionId && item.id === agreement.decisionId) || (item.svdAcuerdo && item.targetId === contract.id));
+        let pago = null;
+        const lump = round2(number(agreement.settlementAmount));
+        if (lump > 0 && start !== null) {
+          const window = movements.filter((row) => Math.abs(monthIndexKey(row.date.slice(0, 7)) - start) <= 1 && near(lump, row.amount));
+          const byName = window.find(named);
+          const only = window.length === 1 ? window[0] : null;
+          const row = byName || only;
+          if (row) pago = { date: row.date, amount: round2(Math.abs(row.amount)), label: row.label, match: byName ? "por-nombre" : "por-importe" };
+        }
+        const payment = round2(number(agreement.payment));
+        const duration = Math.max(0, Math.floor(number(agreement.duration)));
+        let cuotas = 0;
+        if (payment > 0 && duration > 0 && start !== null) {
+          const months = new Set();
+          movements.filter((row) => near(payment, row.amount) && named(row)).forEach((row) => {
+            const offset = monthIndexKey(row.date.slice(0, 7)) - start;
+            if (offset >= 0 && offset < duration) months.add(offset);
+          });
+          cuotas = months.size;
+        }
+        const lumpOk = !(lump > 0) || Boolean(pago);
+        const cuotasOk = !(payment > 0 && duration > 0) || cuotas >= duration;
+        const estado = contract.paymentStatus === "settled" ? "ya-liquidado"
+          : lumpOk && cuotasOk && (pago || cuotas) ? "cumplido"
+            : start !== null && todayIndex !== null && todayIndex < start ? "pendiente"
+              : lump > 0 && !pago && todayIndex !== null && start !== null && todayIndex > start + 1 ? "sin-pago"
+                : "en-curso";
+        return {
+          id: String(contract.id),
+          plan: decision ? "en-plan" : "sin-decision",
+          decisionId: decision ? decision.id : null,
+          pago,
+          cuotas: payment > 0 && duration > 0 ? { vistas: cuotas, pactadas: duration } : null,
+          estado,
+        };
+      });
+  }
+
   return {
     parseBulkContracts,
     parseSpanishNumber,
@@ -562,5 +629,6 @@
     fiscalAdjustedDebtPriority,
     simulateDebtConsolidation,
     matchPlanInstallments,
+    agreementFollowUp,
   };
 });

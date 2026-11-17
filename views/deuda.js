@@ -1260,12 +1260,39 @@ function deudaContratosAcuerdoHtml(contract) {
     agreement.payment > 0 && agreement.duration > 0 ? `${agreement.duration} cuotas de ${money(agreement.payment, true)}` : "",
   ].filter(Boolean).join(" + ");
   const desde = agreement.startMonth ? ` desde ${agreement.startMonth.split("-").reverse().join("/")}` : "";
+  // SVD-5: si su pago sigue en el plan y si ya sale en los extractos.
+  const seguimiento = typeof svdSeguimientoDe === "function" ? svdSeguimientoDe(contract.id) : null;
+  const aviso = deudaContratosSeguimientoHtml(contract, seguimiento);
   return `<div class="deuda-contratos-acuerdo">
       <span class="e19-badge e19-badge-success" title="${escapeHtml(`Acuerdo aceptado: ${terms}${desde}`)}">Acuerdo aceptado</span>
       <small>${escapeHtml(terms)}${escapeHtml(desde)}</small>
       ${agreement.documentId ? `<button type="button" class="secondary-button" data-svd-ver-justificante="${id}">Ver justificante</button>` : ""}
       <button type="button" class="secondary-button" data-svd-quitar-acuerdo="${id}">Quitar el acuerdo</button>
+      ${aviso}
     </div>`;
+}
+
+function deudaContratosSeguimientoHtml(contract, seguimiento) {
+  if (!seguimiento) return "";
+  const id = escapeHtml(contract.id);
+  const fecha = (iso) => String(iso || "").split("-").reverse().join("/");
+  if (contract.agreement?.fulfilledAt || seguimiento.estado === "ya-liquidado") {
+    const pagado = contract.agreement?.paymentDate ? ` Pago del ${escapeHtml(fecha(contract.agreement.paymentDate))}.` : "";
+    return `<small data-svd-seguimiento="cumplido">Acuerdo cumplido: contrato liquidado.${pagado}</small>`;
+  }
+  if (seguimiento.plan === "sin-decision") {
+    return `<small data-svd-seguimiento="sin-decision"><strong>Su pago ya no está en el plan</strong> (se quitó en Plan › Decisiones): Ruta sigue el acuerdo, pero la previsión no paga ese dinero.</small>
+      <button type="button" class="secondary-button" data-svd-reapuntar="${id}">Volver a apuntarlo en el plan</button>`;
+  }
+  if (seguimiento.estado === "cumplido") {
+    const pago = seguimiento.pago;
+    const como = pago?.match === "por-importe" ? " (por el importe; el movimiento no lleva el nombre de la entidad)" : "";
+    return `<small data-svd-seguimiento="cumplido">El pago pactado sale en el extracto${pago ? `: ${money(pago.amount, true)} el ${escapeHtml(fecha(pago.date))}, «${escapeHtml(pago.label)}»${escapeHtml(como)}` : ""}.</small>
+      <button type="button" class="secondary-button" data-svd-liquidar="${id}">Marcar el contrato como liquidado</button>`;
+  }
+  if (seguimiento.cuotas) return `<small data-svd-seguimiento="${escapeHtml(seguimiento.estado)}">Cuotas pactadas vistas en el extracto: ${seguimiento.cuotas.vistas} de ${seguimiento.cuotas.pactadas}.</small>`;
+  if (seguimiento.estado === "sin-pago") return `<small data-svd-seguimiento="sin-pago">El mes del pago ya pasó y no se ve en los extractos: ¿se ha importado el extracto de ese mes?</small>`;
+  return "";
 }
 
 function deudaContratosRowHtml(contract) {

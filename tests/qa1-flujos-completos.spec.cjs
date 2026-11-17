@@ -11180,3 +11180,64 @@ test.describe("SVD-R1 · Las cuotas de Contratos frente al plan", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-5 (17/11/2026, «la vuelta»): lo que pasa fuera del simulador con un acuerdo aceptado. Contratos y movimientos inventados.
+test.describe("SVD-5 · Lo que pasa fuera vuelve al acuerdo", () => {
+  test("si su decisión se quita del plan lo dice y se vuelve a apuntar; si el pago sale en el extracto, se liquida el contrato", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
+    const id = await page.evaluate(() => debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO").id);
+    // Lo mismo que deja «Aplicar el acuerdo» (SVD-3): quita de 2.000 € el mes de hoy.
+    await page.evaluate((contractId) => {
+      const startMonth = forecastMonths()[0].key;
+      const agreement = { status: "accepted", type: "settlement", settlementAmount: 2000, payment: 0, duration: 0, startMonth, principalAtAcceptance: 3000 };
+      applyDebtDecision(E14DebtAdapter.agreementPlanDecision({ agreement, contract: canonicalDebtContractRows().find((row) => row.id === contractId), monthIndex: 0 }));
+      const applied = debtLiquidations.find((item) => item.svdAcuerdo);
+      debtContractOverrides = { ...debtContractOverrides, [contractId]: { agreement: { ...agreement, decisionId: applied.id } } };
+      saveDebtContractOverrides();
+      // Alguien quita la decisión desde Plan › Decisiones.
+      debtLiquidations = debtLiquidations.filter((item) => !item.svdAcuerdo);
+      saveDebtLiquidations();
+      location.hash = "deuda-ruta";
+      location.hash = "deuda-contratos";
+    }, id);
+    const fila = page.locator(`[data-deuda-contrato-row="${id}"]`);
+    await expect(fila.locator('[data-svd-seguimiento="sin-decision"]')).toContainText("Su pago ya no está en el plan");
+    await fila.getByRole("button", { name: "Volver a apuntarlo en el plan" }).click();
+    await expect(page.locator("#undoToast")).toContainText("apuntado otra vez en el plan");
+    const reapuntado = await page.evaluate((contractId) => {
+      const decision = debtLiquidations.find((item) => item.svdAcuerdo && item.targetId === contractId);
+      return { amount: decision?.amount, enlazada: debtContractOverrides[contractId].agreement.decisionId === decision?.id };
+    }, id);
+    expect(reapuntado).toEqual({ amount: 2000, enlazada: true });
+    await expect(fila.locator('[data-svd-seguimiento="sin-decision"]')).toHaveCount(0);
+
+    // El extracto trae el pago pactado: se propone liquidar el contrato.
+    await page.evaluate(() => {
+      const key = monthKey(modelStartDate());
+      baseData.transactions.push({ date: `${key}-12`, valueDate: `${key}-12`, month: key, movement: "TRANSF BANCO FICTICIO ACUERDO", details: "", amount: -2000, balance: null, source: "extracto", account: "CaixaBank" });
+      renderDeudaContratos();
+    });
+    await expect(fila.locator('[data-svd-seguimiento="cumplido"]')).toContainText("El pago pactado sale en el extracto: 2.000 €");
+    await fila.getByRole("button", { name: "Marcar el contrato como liquidado" }).click();
+    await expect(page.locator("#undoToast")).toContainText("Contrato marcado como liquidado");
+    const liquidado = await page.evaluate((contractId) => {
+      const row = debtContractSourceRows().find((item) => item.id === contractId);
+      return { estado: row.paymentStatus, capital: row.currentPrincipal, fecha: Boolean(row.agreement.paymentDate), acta: decisionEvents[0]?.status };
+    }, id);
+    expect(liquidado).toEqual({ estado: "settled", capital: 0, fecha: true, acta: "Ejecutada" });
+    await expect(fila.locator('[data-svd-seguimiento="cumplido"]')).toContainText("Acuerdo cumplido: contrato liquidado");
+    // «Deshacer» lo devuelve.
+    await page.$eval("#undoToast button", (button) => button.click());
+    expect(await page.evaluate((contractId) => debtContractSourceRows().find((item) => item.id === contractId).paymentStatus, id)).toBe("active");
+    expect(pageErrors).toEqual([]);
+  });
+});
