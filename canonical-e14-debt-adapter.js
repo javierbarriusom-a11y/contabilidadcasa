@@ -11,7 +11,7 @@
 
   const FIELD_INVENTORY = Object.freeze({
     canonical: Object.freeze(["liquidity", "monthly", "cb_amount", "bk_amount", "baseMonth"]),
-    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes", "migracion"]),
+    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes", "migracion", "cuotasEnPlan"]),
     assumption: Object.freeze([
       "profile", "buffer", "preserveCash", "cb_strategy", "cb_discount", "cb_start", "cb_lump",
       "cb_apr", "cb_term", "cb_finance_pct", "bk_strategy", "bk_discount", "bk_start", "bk_lump",
@@ -132,17 +132,59 @@
     };
   }
 
+  // SVD-2b (17/11/2026): la cuota de hoy de cada contrato, con las MISMAS reglas con que «Camino a deuda cero» decide si lo
+  // incluye (canonical-debt-payoff-path.js, classify): activo, con cuota, y con TAE declarada o deducible de cuota y plazo.
+  // La deducción usa la función de Ruta (`payoffPath.impliedMonthlyRate`), que se pasa al adaptador en vez de copiarla.
+  const DECLARED_TOLERANCE = 0.005;
+  const IMPLIED_TOLERANCE = 0.5;
+
+  function keepPaymentFacts(contract, payoffPath) {
+    const principal = round2(number(contract.currentPrincipal));
+    const payment = round2(number(contract.currentPayment));
+    if (contract.paymentStatus !== "active" || !(payment > 0)) return { cuotaDeHoy: null, fueraDeRuta: "sin-cuota-activa" };
+    const apr = optionalNumber(contract.apr);
+    if (apr !== null && apr >= 0) return { cuotaDeHoy: { payment, monthlyRate: apr / 100 / 12, tolerance: DECLARED_TOLERANCE, source: "declared" }, fueraDeRuta: null };
+    const installments = Math.max(0, Math.floor(number(contract.remainingInstallments)));
+    if (!(installments > 0)) return { cuotaDeHoy: null, fueraDeRuta: "sin-tae-ni-plazo" };
+    const rate = typeof payoffPath?.impliedMonthlyRate === "function" ? payoffPath.impliedMonthlyRate(principal, payment, installments) : null;
+    if (rate === null) return { cuotaDeHoy: null, fueraDeRuta: typeof payoffPath?.impliedMonthlyRate === "function" ? "plazo-incoherente" : "sin-tae-ni-plazo" };
+    return { cuotaDeHoy: { payment, monthlyRate: rate, tolerance: IMPLIED_TOLERANCE, source: "implied" }, fueraDeRuta: null };
+  }
+
   // Huella estable de lo que importa para simular: si cambia, la simulación se montó sobre otros datos.
   function contractFingerprint(account) {
     return [account.currentPrincipal, account.apr, account.currentPayment, account.remainingInstallments, account.paymentStatus, account.arrearsEstimated]
       .map((value) => value === null || value === undefined ? "-" : String(value)).join("|");
   }
 
-  function extraDebtAccounts(contracts, entityA, entityB) {
+  function extraSourceContracts(contracts, entityA, entityB) {
     return contracts
       .filter((contract) => contract && contract !== entityA && contract !== entityB)
       .filter((contract) => contract.id !== "debt-reunified-cetelem")
       .filter((contract) => contract.paymentStatus !== "settled" && number(contract.currentPrincipal) > 0)
+      .filter((contract) => String(contract.id || "").trim());
+  }
+
+  // SVD-2b: «Camino a deuda cero» sin extra, sobre los mismos contratos que simula el simulador y desde el mismo mes. El
+  // simulador lo compara con su propio «todas en Esperar»: si no coinciden, lo dice.
+  function rutaSummary(sources, payoffPath, startMonthKey) {
+    if (typeof payoffPath?.project !== "function" || !sources.length || !/^\d{4}-\d{2}$/.test(String(startMonthKey || ""))) return null;
+    const result = payoffPath.project(sources, { startMonthKey, extraMonthly: 0 });
+    if (!result?.ok) return null;
+    return {
+      startMonthKey,
+      debtFreeMonthKey: result.debtFreeMonthKey,
+      monthsToDebtFree: result.monthsToDebtFree,
+      totalPaid: result.totalPaid,
+      totalInterest: result.totalInterest,
+      included: result.included.map((row) => row.id),
+      excluded: result.excluded.map((row) => ({ id: row.id, reason: row.reason })),
+      beyondHorizon: result.beyondHorizon === true,
+    };
+  }
+
+  function extraDebtAccounts(contracts, entityA, entityB, payoffPath) {
+    return extraSourceContracts(contracts, entityA, entityB)
       .map((contract) => {
         const account = {
           id: String(contract.id || "").trim(),
@@ -151,6 +193,7 @@
           currentPrincipal: round2(contract.currentPrincipal),
           paymentStatus: String(contract.paymentStatus || "unknown"),
           ...contractFacts(contract),
+          ...keepPaymentFacts(contract, payoffPath),
         };
         return { ...account, fingerprint: contractFingerprint(account) };
       })
@@ -193,7 +236,9 @@
       ambiguous: [...new Set(ambiguous)],
       contracts: { entityA, entityB, all: contracts },
       fixedAccounts,
-      extraDebts: extraDebtAccounts(contracts, entityA, entityB),
+      extraDebts: extraDebtAccounts(contracts, entityA, entityB, input.payoffPath),
+      // El mismo «hoy» que Deuda › Ruta (camino-deuda-ui.js: el mes de hoy); si no llega, el primer mes de la previsión.
+      ruta: rutaSummary(extraSourceContracts(contracts, entityA, entityB), input.payoffPath, input.startMonthKey || forecast.startMonth),
       forecast,
       roadmapState: priorState,
     };

@@ -10911,3 +10911,58 @@ test.describe("SVD-2 · El simulador visual de deuda lee Contratos y avisa si ca
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-2b (17/11/2026): «Esperar» sigue pagando la cuota de hoy de cada contrato (con la cuenta de «Camino a deuda cero») y el
+// simulador dice si cuadra con Deuda › Ruta. Contratos INVENTADOS, con cuota y TAE.
+test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra con Ruta", () => {
+  test("Esperar de entrada y con cuota; el mismo fin que Ruta; las cuotas en el plan cambian el margen y se recuerdan", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const ids = await page.evaluate(() => debtContractCustomEntries.map((entry) => `acct_${entry.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`));
+
+    // Lo que dice Deuda › Ruta («Camino a deuda cero», sin extra).
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    const finRuta = (await page.locator(".cam-hero-value").first().textContent()).trim();
+    expect(finRuta).toMatch(/de 20\d\d$/);
+
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    const sim = () => page.frames().find((f) => f.url().includes("debt-roadmap.html"));
+    const cuadre = frame.locator("#svdCuadreRuta");
+    await expect(cuadre).toContainText("como Deuda › Ruta", { timeout: 20000 });
+    // El mes del simulador es el mismo que el de la pantalla de Ruta (abreviado: «Oct 2029» frente a «octubre de 2029»).
+    const finSim = (await cuadre.textContent()).match(/acaba en (\w{3}) (\d{4})/);
+    expect(finRuta.toLowerCase().startsWith(finSim[1].toLowerCase()) && finRuta.endsWith(finSim[2])).toBe(true);
+    // El mes base es el de hoy, no uno fijo de julio.
+    expect(await frame.locator("#baseMonth").inputValue()).toBe(await page.evaluate(() => isoLocalDate(new Date()).slice(0, 7)));
+
+    // «Esperar» viene elegido y paga la cuota de hoy de cada contrato.
+    for (const key of ids) {
+      await expect(frame.locator(`#${key}_strategy`)).toHaveValue("hold");
+      await expect(frame.locator(`#${key}_strategy option[value="hold"]`)).toHaveText("Esperar: seguir pagando la cuota de hoy");
+    }
+    const primerMes = await sim().evaluate(() => { const r = simulateScenario(currentConfig()); return { pagos: r.rows[0].perAccount, total: r.rows[0].total, margen: r.rows[0].margin, capacidad: currentConfig().capacity }; });
+    expect(primerMes.pagos).toEqual([90, 160]);
+    expect(primerMes.margen).toBe(Math.round((primerMes.capacidad - 250) * 100) / 100);
+
+    // Si las cuotas ya están en el plan, el margen no las resta otra vez; se recuerda tras recargar.
+    await frame.getByLabel("Las cuotas de hoy de estos contratos ya están en el plan: el margen no las resta otra vez").check();
+    expect(await sim().evaluate(() => simulateScenario(currentConfig()).rows[0].margin)).toBe(primerMes.capacidad);
+    await expect.poll(async () => (await page.evaluate(() => debtRoadmapState.cuotasEnPlan)), { timeout: 10000 }).toBe("si");
+    await page.reload();
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    await expect(frame.locator("#svdCuotasEnPlan")).toBeChecked({ timeout: 20000 });
+    expect(pageErrors).toEqual([]);
+  });
+});

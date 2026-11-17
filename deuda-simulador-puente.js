@@ -12,6 +12,10 @@ function debtRoadmapCanonicalReadModel() {
     // SVD-2 (17/11/2026): el suelo del hogar (la reserva operativa de la cuenta), para que el simulador avise si su
     // colchón queda por debajo.
     floor: typeof agentCaixaFloor === "function" ? agentCaixaFloor() : null,
+    // SVD-2b (17/11/2026): el motor de «Camino a deuda cero», para que la cuota de hoy y su comparación con Ruta salgan
+    // con la misma cuenta que Deuda › Ruta.
+    payoffPath: window.FinanceCanonicalDebtPayoffPath || null,
+    startMonthKey: typeof isoLocalDate === "function" ? isoLocalDate(new Date()).slice(0, 7) : undefined,
   }) || null;
 }
 

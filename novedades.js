@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-17-simulador-esperar-paga-cuota",
+      fecha: "2026-11-17",
+      texto: "Deuda › Simulador visual: «Esperar» sigue pagando la cuota de hoy y el simulador dice si acaba el mismo mes que Ruta.",
+      href: "#deuda-simulador",
+    },
+    {
       id: "2026-11-17-simulador-deuda-lee-contratos",
       fecha: "2026-11-17",
       texto: "Deuda › Simulador visual: cada deuda enseña lo que dice Contratos (TAE, cuota, estado, atraso) y avisa si cambia después de simular.",

@@ -355,3 +355,65 @@ antes) tiene que bajarlo a 0.
 - actualizadas a propósito: `tests/canonical-e14-debt-adapter.test.cjs` (1) y `tests/svd0-simulador-contrato.test.cjs` (3, con la corrección de la TAE);
 - e2e «SVD-2 · El simulador visual de deuda lee Contratos y avisa si cambian»: datos a la vista, sin «Entidad C», etiquetas, cambiar la TAE en Contratos, aviso, «Entendido» y que siga tras recargar;
 - trinquete de axe a 0.
+
+---
+
+## 10. SVD-2b · resultado (17/11/2026)
+
+**Decisión del hogar (D-N22):** «De momento, vamos con SVD-2b: que "Esperar" siga pagando la cuota de hoy y que el simulador
+cuadre con Ruta. Después vendría SVD-3, aplicar un acuerdo aceptado con su justificante, y luego los ponemos realistas».
+
+- Orden: SVD-2b → SVD-3 → poner los datos realistas.
+- Se lee como meter las cuotas de los contratos en el plan y recalcular la previsión (D-N12).
+- Mientras tanto, la casilla de abajo sirve para mirar el margen de las dos maneras.
+
+**El motor del simulador** (`legacy-debt-roadmap-engine.js`) paga la **cuota de hoy** de cada contrato:
+
+- con la misma cuenta que «Camino a deuda cero» (`canonical-debt-payoff-path.js`): interés sobre el saldo redondeado, la cuota o lo
+  que quede, y saldado si lo que queda no pasa de la tolerancia (0,005 € con TAE declarada, 0,5 € con TAE deducida);
+- en «Esperar», todos los meses; en las demás estrategias, hasta su mes de inicio;
+- la quita, el pago único o la refinanciación se calculan **sobre lo que quede ese mes**, no sobre el saldo de hoy.
+
+Sin cuota de hoy, el motor hace exactamente lo de antes; las pruebas antiguas no cambian.
+
+**Qué contratos la pagan:** los que Ruta incluye, con sus mismas reglas.
+
+- Han de estar activos y con cuota, y con TAE declarada o deducible de cuota y plazo. Para deducirla se usa la función de
+  Ruta (`impliedMonthlyRate`), pasada al adaptador, no copiada.
+- Los demás no pagan nada en «Esperar» y lo dicen: «No entra en Ruta (sin cuota activa / sin TAE ni plazo / la cuota y el
+  plazo no cuadran con el capital)».
+
+**Cuadre con Ruta:**
+
+- el adaptador calcula «Camino a deuda cero» sin extra sobre **los mismos contratos** que simula el simulador y desde el mismo «hoy»
+  que Deuda › Ruta;
+- el simulador lo compara con su propio «todas en Esperar» y lo dice bajo la calculadora: «acaba en …, como Deuda › Ruta, y paga lo mismo»;
+- si no coincide, avisa en negrita.
+
+**Margen:** la casilla «Las cuotas de hoy de estos contratos ya están en el plan» va sin marcar de entrada.
+
+- Sin marcar, el margen resta las cuotas que paga el simulador.
+- Marcada, no las resta otra vez (`cuotasEnPlan` en el estado).
+- Va sin marcar porque la deuda de la previsión es solo «coche + refinanciación» (§9).
+
+**Dos fallos que ya existían, arreglados de paso:**
+
+- **El mes base** del simulador era un desplegable con julio, agosto y septiembre de 2026. El mes de la previsión no estaba
+  entre ellos y no se aplicaba, así que las etiquetas de los meses salían mal. Ahora el mes que llega se añade al desplegable.
+- **Una cuenta real nueva entraba en «Quita y pago único»**, que con quita 0 % es pagarlo todo en el mes 1. Ahora entra en
+  «Esperar». Lo ya guardado no cambia.
+
+**Pruebas:**
+
+- `tests/svd2b-esperar-cuota-ruta.test.cjs` (5):
+  - reglas de Ruta;
+  - mismo fin y mismo total pagado que Ruta, contrato a contrato, con TAE declarada y deducida;
+  - suspendido sin pago;
+  - margen con y sin la casilla;
+  - quita sobre lo que queda el mes de inicio;
+  - nada cambia sin cuota.
+- `tests/canonical-e14-debt-adapter.test.cjs` (1 actualizada).
+- e2e «SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra con Ruta»: el mes coincide con el que enseña la pantalla
+  de Ruta.
+
+**Siguiente: SVD-3** (D-N21: el hogar marca el acuerdo como aceptado y sube un justificante).
