@@ -9,6 +9,9 @@ function debtRoadmapCanonicalReadModel() {
     roadmapState: debtRoadmapState,
     contracts: canonicalDebtContractRows(),
     forecast: canonicalScenarioResults.active?.forecast,
+    // SVD-2 (17/11/2026): el suelo del hogar (la reserva operativa de la cuenta), para que el simulador avise si su
+    // colchón queda por debajo.
+    floor: typeof agentCaixaFloor === "function" ? agentCaixaFloor() : null,
   }) || null;
 }
 

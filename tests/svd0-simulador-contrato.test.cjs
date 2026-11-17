@@ -26,7 +26,7 @@ function forecast(months) {
 function camposQueGuardaElSimulador() {
   const fijos = JSON.parse(html.match(/function collect\(\)\{const ids=(\[[^\]]+\])/)[1].replace(/'/g, '"'));
   const operativos = html.match(/const d=\{([^}]+)\}/)[1].split(",").map((par) => par.split(":")[0].trim());
-  const porCuenta = JSON.parse(html.match(/dynamicDebtAccounts\.forEach\(\(account\)=>\{const key=accountKey\(account\.id\);(\[[^\]]+\])/)[1].replace(/'/g, '"'));
+  const porCuenta = JSON.parse(html.match(/dynamicDebtAccounts\.forEach\(\(account\)=>\{const key=accountKey\(account\.id\);.*?(\['[^\]]+\])/s)[1].replace(/'/g, '"'));
   return { fijos, operativos, porCuenta };
 }
 
@@ -46,20 +46,23 @@ test("SVD-0 → SVD-1 · sin contratos de ejemplo, las cuentas fijas quedan «si
   assert.equal(modelo.canonicalValues.bk_amount, 0);
   // Los contratos reales entran como cuentas adicionales…
   assert.deepEqual(modelo.extraDebts.map((cuenta) => cuenta.entity), ["Banco FICTICIO", "Caja FICTICIA"]);
-  // …pero solo con su capital: sin TAE, cuota, plazo ni atrasos (SVD-2 los añade).
-  assert.deepEqual(Object.keys(modelo.extraDebts[0]).sort(), ["currentPrincipal", "entity", "id", "paymentStatus", "type"]);
+  // …y, desde SVD-2, con lo que dice su contrato (antes solo el capital).
+  assert.equal(modelo.extraDebts[0].apr, 21.9);
+  assert.equal(modelo.extraDebts[0].currentPayment, 90);
+  assert.equal(modelo.extraDebts[1].paymentStatus, "suspended");
 });
 
-test("SVD-0 · de la previsión solo llega una media de capacidad, no los meses", () => {
+// SVD-2 (17/11/2026) cambió esta: además de la media (que sigue, para no cambiar los cálculos de antes), llegan los meses.
+test("SVD-0 → SVD-2 · de la previsión llegan la media y la capacidad de cada uno de los 12 primeros meses", () => {
   const modelo = E14.buildReadModel({
     contracts: [],
     forecast: forecast([["2026-12", 3000, 3400, 7000], ["2027-01", 3000, 2000, 8000]]),
     generatedAt: "2026-11-17T00:00:00.000Z",
   });
-  // Diciembre no deja capacidad (0) y enero deja 1.000: llega 500 para todos los meses, y ninguna serie.
+  // Diciembre no deja capacidad (0) y enero deja 1.000: la media sigue siendo 500, y ahora se ve qué mes es el justo.
   assert.equal(modelo.canonicalValues.monthly, 500);
-  assert.equal(modelo.forecast.series, undefined);
-  assert.equal(modelo.schemaId, "finance-e14-debt-roadmap-read-model/v1");
+  assert.deepEqual(modelo.forecast.capacitySeries, [{ monthKey: "2026-12", capacity: 0 }, { monthKey: "2027-01", capacity: 1000 }]);
+  assert.equal(modelo.schemaId, "finance-e14-debt-roadmap-read-model/v2");
 });
 
 // SVD-1 cambió esta: el inventario ya clasifica la aportación extra, los campos de cada cuenta adicional y la migración.
@@ -74,8 +77,12 @@ test("SVD-0 → SVD-1 · inventario: todo lo que guarda el simulador tiene dueñ
   assert.equal(E14.classifyField("acct_debt-custom-1_extra_month"), "assumption");
   assert.equal(E14.classifyField("migracion"), "operational");
   assert.equal(E14.classifyField("acct_c1_inventado"), "ambiguous", "un campo de cuenta que no existe sigue sin dueño");
-  // La TAE es un supuesto del simulador aunque su dueño sea Contratos (principio 1 de SVD): SVD-2 la lee de allí.
+  // Corregido en SVD-2: la TAE del bloque de cada cuenta es la de la REFINANCIACIÓN (el préstamo nuevo), un supuesto del
+  // hogar; la del contrato de ahora llega aparte, de solo lectura, en el modelo de lectura v2.
   assert.equal(E14.classifyField("cb_apr"), "assumption");
+  // SVD-2: lo que valía el contrato cuando se vio en el simulador, para avisar de la deriva.
+  assert.equal(E14.classifyField("acct_debt-custom-1_base"), "operational");
+  assert.match(html, /if\(svdBases\[key\]\)d\[key\+'_base'\]=svdBases\[key\];/);
   // El importe no se guarda desde el simulador: es canónico y llega de la app.
   assert.equal(guardados.includes("cb_amount"), false);
 });

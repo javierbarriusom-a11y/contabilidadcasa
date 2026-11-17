@@ -10853,3 +10853,61 @@ test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () 
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-2 (17/11/2026): el simulador lee de Contratos lo que dice cada contrato (de solo lectura, con su origen), avisa si
+// cambia después de verlo allí, enseña la capacidad mes a mes y el suelo, y deja de hablar de «Entidad C» cuando ya no hay
+// contratos de ejemplo. Contratos INVENTADOS.
+test.describe("SVD-2 · El simulador visual de deuda lee Contratos y avisa si cambian", () => {
+  test("datos del contrato a la vista; cambiar la TAE en Contratos avisa en el simulador; «Entendido» y sigue tras recargar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const bancoId = await page.evaluate(() => debtContractCustomEntries.find((entry) => entry.entity === "Banco FICTICIO").id);
+    const key = `acct_${bancoId.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    const hechos = frame.locator(`#${key}_contrato`);
+    await expect(hechos).toContainText("De Contratos, solo lectura: capital 2.400 € · TAE 21,9 % · cuota 90 € al mes · activa", { timeout: 20000 });
+    await expect(hechos.getByRole("link", { name: "Cambiarlo en Deuda › Contratos" })).toBeVisible();
+    await expect(frame.locator(`#${key}_deriva`)).toHaveText("");
+    // La capacidad mes a mes y el suelo del hogar, bajo la calculadora.
+    await expect(frame.locator("#svdCapacidad")).toContainText("La previsión deja entre");
+    await expect(frame.locator("#svdCapacidad")).toContainText("Suelo del hogar:");
+    // Sin contratos de ejemplo, ni rastro de «Entidad C» en lo que dice el escenario.
+    await expect(frame.locator("#forecastNarrative")).not.toContainText("Entidad C");
+    await expect(frame.locator("#forecastNotice")).not.toContainText("Entidad C");
+    // Cada campo con su etiqueta (SVD-0 medía 25 sin ella).
+    await expect(frame.locator(`#${key}_discount`)).toHaveAccessibleName("Quita (%)");
+
+    // Cambia la TAE en Contratos: el simulador lo dice en esa cuenta, sin recalcular a escondidas.
+    await frame.getByRole("link", { name: "Cambiarlo en Deuda › Contratos" }).first().click();
+    await expect(page.locator("#deudaContratosTable")).toBeVisible({ timeout: 15000 });
+    const tae = page.locator(`[data-deuda-contrato-id="${bancoId}"][data-deuda-contrato-field="apr"]`);
+    await tae.fill("19.5");
+    await tae.press("Tab");
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const deriva = frame.locator(`#${key}_deriva`);
+    await expect(deriva).toContainText("Ha cambiado en Contratos desde que lo visteis aquí", { timeout: 20000 });
+    await expect(deriva).toContainText("TAE: 21,9 → 19,5");
+    await expect(hechos).toContainText("TAE 19,5 %");
+    await deriva.getByRole("button", { name: "Entendido" }).click();
+    await expect(deriva).toHaveText("");
+    await expect(frame.locator(`#${key}_strategy`)).toBeFocused();
+    await page.reload();
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    await expect(frame.locator(`#${key}_contrato`)).toContainText("TAE 19,5 %", { timeout: 20000 });
+    await expect(frame.locator(`#${key}_deriva`), "entendido, no vuelve a avisar").toHaveText("");
+    expect(pageErrors).toEqual([]);
+  });
+});

@@ -5,7 +5,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function e14DebtAdapterFactory() {
   "use strict";
 
-  const SCHEMA_ID = "finance-e14-debt-roadmap-read-model/v1";
+  // SVD-2 (17/11/2026): v2 añade, sin quitar nada de v1, los datos de cada contrato, la capacidad mes a mes y el suelo.
+  const SCHEMA_ID = "finance-e14-debt-roadmap-read-model/v2";
   const STRATEGY_SCHEMA_ID = "finance-debt-strategy/v1";
 
   const FIELD_INVENTORY = Object.freeze({
@@ -44,10 +45,13 @@
 
   // SVD-1: los supuestos de cada cuenta adicional (D1 fase 2) se guardan como `acct_<id>_<campo>`.
   const DYNAMIC_ACCOUNT_FIELD = /^acct_[a-zA-Z0-9_-]+_(strategy|discount|start|lump|apr|term|finance_pct|extra|extra_month)$/;
+  // SVD-2: lo que el contrato valía cuando el hogar simuló sobre él, para avisar si después cambia en Contratos.
+  const DYNAMIC_ACCOUNT_BASE = /^acct_[a-zA-Z0-9_-]+_base$/;
 
   function classifyField(field) {
     const match = Object.entries(FIELD_INVENTORY).find(([, fields]) => fields.includes(field));
     if (match) return match[0];
+    if (DYNAMIC_ACCOUNT_BASE.test(String(field))) return "operational";
     return DYNAMIC_ACCOUNT_FIELD.test(String(field)) ? "assumption" : "ambiguous";
   }
 
@@ -74,6 +78,15 @@
     return count === 0 ? "sin-contrato" : "ambigua";
   }
 
+  // SVD-2: lo que el hogar puede dedicar a la deuda cada mes de los 12 primeros, con la misma cuenta que la media de v1
+  // (lo que entra menos lo que sale antes de ahorrar; nunca negativo).
+  function capacitySeries(series) {
+    return series.slice(0, 12).map((month) => ({
+      monthKey: monthKey(month?.monthKey),
+      capacity: round2(Math.max(0, number(month?.totals?.income) - number(month?.totals?.outflowsBeforeSaving))),
+    }));
+  }
+
   function canonicalForecastSummary(forecast = {}) {
     const series = Array.isArray(forecast?.series) ? forecast.series : [];
     const first = series[0] || null;
@@ -92,6 +105,7 @@
       openingLiquidity: first ? round2(number(first?.totals?.closingLiquidity) - number(first?.totals?.income) + number(first?.totals?.outflowsBeforeSaving)) : null,
       minimumLiquidity: minimumLiquidity === null ? null : round2(minimumLiquidity),
       averageFreeCapacity,
+      capacitySeries: capacitySeries(series),
     };
   }
 
@@ -100,18 +114,46 @@
   // mismas deudas, no una deuda aparte) se expone como cuenta adicional simulable en el sandbox.
   // Entidad A/B siguen viajando tal cual (cb_amount/bk_amount) para no romper la paridad histórica
   // ya verificada (A9-8) — esto solo añade, nunca sustituye ese contrato.
+  // SVD-2: lo que el simulador necesita saber de cada contrato, tal como está en Deuda › Contratos. Lo que no se sabe
+  // queda en null (nunca 0 inventado): una TAE por confirmar no es una TAE del 0 %.
+  function optionalNumber(value) {
+    return value === null || value === undefined || value === "" || !Number.isFinite(Number(value)) ? null : round2(value);
+  }
+
+  function contractFacts(contract) {
+    return {
+      apr: optionalNumber(contract.apr),
+      currentPayment: optionalNumber(contract.currentPayment),
+      remainingInstallments: optionalNumber(contract.remainingInstallments),
+      paymentsSuspended: contract.paymentsSuspended === true,
+      arrearsEstimated: optionalNumber(contract.arrearsEstimated),
+      arrearsMonths: optionalNumber(contract.arrearsMonths),
+      revolving: contract.revolving === true,
+    };
+  }
+
+  // Huella estable de lo que importa para simular: si cambia, la simulación se montó sobre otros datos.
+  function contractFingerprint(account) {
+    return [account.currentPrincipal, account.apr, account.currentPayment, account.remainingInstallments, account.paymentStatus, account.arrearsEstimated]
+      .map((value) => value === null || value === undefined ? "-" : String(value)).join("|");
+  }
+
   function extraDebtAccounts(contracts, entityA, entityB) {
     return contracts
       .filter((contract) => contract && contract !== entityA && contract !== entityB)
       .filter((contract) => contract.id !== "debt-reunified-cetelem")
       .filter((contract) => contract.paymentStatus !== "settled" && number(contract.currentPrincipal) > 0)
-      .map((contract) => ({
-        id: String(contract.id || "").trim(),
-        entity: String(contract.entity || "Deuda sin nombre").trim(),
-        type: String(contract.type || "").trim(),
-        currentPrincipal: round2(contract.currentPrincipal),
-        paymentStatus: String(contract.paymentStatus || "unknown"),
-      }))
+      .map((contract) => {
+        const account = {
+          id: String(contract.id || "").trim(),
+          entity: String(contract.entity || "Deuda sin nombre").trim(),
+          type: String(contract.type || "").trim(),
+          currentPrincipal: round2(contract.currentPrincipal),
+          paymentStatus: String(contract.paymentStatus || "unknown"),
+          ...contractFacts(contract),
+        };
+        return { ...account, fingerprint: contractFingerprint(account) };
+      })
       .filter((account) => account.id);
   }
 
@@ -138,9 +180,11 @@
       canonicalValues.baseMonth = forecast.startMonth;
     }
 
+    const floor = optionalNumber(input.floor);
     return {
       schemaId: SCHEMA_ID,
-      version: 1,
+      version: 2,
+      floor,
       mode: "read-only",
       generatedAt: input.generatedAt || new Date().toISOString(),
       source: "canonical-debt-contracts+canonical-forecast",
@@ -240,6 +284,7 @@
     STRATEGY_TYPES,
     classifyField,
     fixedAccountStatus,
+    contractFingerprint,
     inventoryRoadmapState,
     buildReadModel,
     normalizeStrategy,
