@@ -8023,6 +8023,9 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
   test("un Bizum por la persona y un recibo por emisor e importe; dice lo que cogería, se deshace y se quita desde la ficha", { tag: "@safari" }, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
+    // Sin desplazamiento animado (`html { scroll-behavior: smooth }`): en WebKit, el clic en el resumen del desplegable
+    // caía en lo que pasaba por debajo mientras la página se desplazaba (CI de #628, dos intentos).
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.clock.install({ time: new Date(2026, 10, 15, 10, 0, 0) });
     await page.goto("/index.html#movements");
@@ -8116,6 +8119,10 @@ test.describe("CLA-01 y CLA-02 · Recordar también por palabras", () => {
     const reglas = page.locator("#movimientosV2 #movV2Reglas");
     await expect(reglas.locator("summary")).toHaveText("Una regla por palabras");
     await expect(reglas.locator(".mov-v2-regla")).toBeHidden();
+    // Los «Deshacer» de Clasificar (fijos abajo, 10 s cada uno) tapan el pie de la bandeja en 390 px: se deja pasar su
+    // tiempo con el reloj de la prueba y se comprueba que se han ido.
+    await page.clock.runFor(11000);
+    await expect(page.locator("#undoToast")).toBeHidden();
     await reglas.locator("summary").click();
     await expect(reglas.locator(".mov-v2-regla")).toContainText("«AGUAS VALLE»");
     await expect(reglas.locator(".mov-v2-regla")).toContainText(/Los gastos con esas palabras de unos 43\s€ van a .+; ahora clasifica un movimiento\./);

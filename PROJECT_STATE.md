@@ -113,6 +113,30 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (479): bloque SVD (simulador visual de deuda conectado), plan de implementación; la prueba «CLA-01 y CLA-02» estable en Safari
+
+- **Petición del hogar (17/11):** «que el simulador visual de deuda se alimente de los datos del resto de secciones y que a la vez los datos actualicen el resto de secciones cuando corresponda. Inclúyelo en el backlog y haz un plan de implementación». Es un plan: no se ha tocado código de Deuda (sigue pendiente D-N16).
+- **Lo que hay hoy, leído en el código:**
+  - `debt-roadmap.html` en un `iframe` recibe en cada recálculo el capital de los contratos que se llamen literalmente «Entidad A» y «Entidad B» (los de ejemplo), solo el capital del resto y una media de la capacidad de la previsión;
+  - devuelve su estado y una oferta borrador, que aplicada crea una decisión en el plan pero **no cambia el contrato**;
+  - proyecta con el motor heredado, no con el de «Camino a deuda cero».
+- **El historial dice** (sesiones 255-257, 28/9) que el hogar confirmó que el simulador es la herramienta de una negociación real y activa con dos acreedores. Cuadra con el informe de solvencia de dos entidades y refuerza D-N16; añadido a la décima auditoría §1.4.
+- **Plan** (`docs/SVD_DISENO.md`, `BACKLOG_NOVIEMBRE_OLEADA_1.md` §5.8): siete PR.
+  - SVD-0: pruebas e inventario, sin cambio visible; puede empezar ya.
+  - SVD-1: el puente sale de `app.js` y las cuentas se enlazan por id de contrato, con migración.
+  - SVD-2: lectura completa con deriva y paridad de motores.
+  - SVD-3: «Aplicar el acuerdo», que cambia contrato, plan y acta en una operación con un «Deshacer» y sin contar dos veces.
+  - SVD-4: escenarios y tareas.
+  - SVD-5: la vuelta desde el extracto.
+  - SVD-6: simulador nativo; retirar el `iframe` se consulta.
+  - Absorbe DEC-24 y DEC-27. Decisiones nuevas: D-N20 (cuándo empieza) y D-N21 (qué cuenta como acuerdo aceptado).
+- **CI de #628 en rojo en `8425763`** (solo cambiaba esta documentación): la e2e «CLA-01 y CLA-02», de #627, en WebKit a 390 px, dos intentos. El clic en el resumen del desplegable de reglas lo interceptaban por turnos el aviso «Deshacer» (fijo abajo), la cabecera fija y la tarjeta de anomalías, con el elemento «no estable».
+  - **Causa:** `html { scroll-behavior: smooth }` hace que WebKit anime el desplazamiento previo al clic; además, los «Deshacer» de Clasificar (10 s) tapan el pie de la bandeja.
+  - **Arreglo, solo en la prueba:** movimiento reducido emulado (como ya respeta la app con `prefers-reduced-motion`) y el reloj de la prueba adelantado 11 s hasta que el aviso se va.
+  - En Chromium pasa 3 de 3. En WebKit solo se ve en el CI (aquí no hay WebKit).
+  - **Observación sin arreglar:** en el móvil, un «Deshacer» tapa durante 10 s lo último de la pantalla.
+- **Validación:** `npm run verify` en verde, salida 0 (`npm test` 6.667/6.667; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); la e2e arreglada, 3/3 en Chromium. Sin batería completa de navegador: no cambia ninguna pantalla, solo una prueba y documentación.
+
 ## Cierre de sesión — 16 de noviembre de 2026 (478): décima auditoría (uso y experiencia, 46 funciones `DEC-nn`); despliegue de #627
 
 - **Petición del hogar (16/11):** comprobar el despliegue de #627, preguntar por la foto vigente de su deuda antes de tocar Deuda o Préstamo y «seguir analizando la app de manera crítica […] más de 40 nuevas adicionales […] especialmente en uso y experiencia de usuario y optimizando lo ya desarrollado. Revisa del backlog anterior las nuevas funcionalidades que no hayan sido implementadas».

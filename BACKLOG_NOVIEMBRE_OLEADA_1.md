@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**17/11/2026 · Bloque nuevo SVD: el simulador visual de deuda conectado al resto de la app (petición del hogar).** §5.8 y `docs/SVD_DISENO.md`: hoy el simulador enlaza sus cuentas con los contratos de ejemplo por su nombre, lee poco y lo que decide no llega a Contratos. Plan en siete PR: el que vale de verdad es SVD-3, «Aplicar el acuerdo», que actualiza contrato, plan y acta en una operación con un solo «Deshacer». SVD-0 (pruebas, sin cambio visible) puede empezar ya; lo demás espera a D-N16 (la foto de la deuda) y a D-N20/D-N21. Además, la prueba «CLA-01 y CLA-02» se estabiliza en Safari (PROJECT_STATE 479).
+
 **16/11/2026 (tarde) · Décima auditoría, propuesta («sigue analizando la app de manera crítica… más de 40 nuevas»).** `docs/PROPUESTA_DECIMA_AUDITORIA_2026-11-16.md`: la app tiene más carga de la que se usa (Ajustes mide 34.000 px en el móvil; la cabecera de Hoy, cinco cifras), «uno entra, uno sale» se cumple plegando, y la foto de la deuda del informe de solvencia (saldo impagado, posiblemente exigible entero) no cabe en Contratos. 46 funciones `DEC-nn` (14 optimizan lo que ya existe); de las 53 de la novena, 47 siguen sin hacer. Hasta el 4/12, seis cosas dentro de D-N11 (huella anónima del extracto, % con partida en la bandeja, esperados confirmados solos…). **Nada de Deuda ni Préstamo hasta que el hogar diga cuál es la foto vigente de su deuda (D-N16).** Despliegue de #627 verificado (PROJECT_STATE 478).
 
 **16/11/2026 · Movimientos: todas las reglas por palabras a la vista («continúa»).** Un desplegable al pie de la bandeja lista cada regla por palabras con lo que clasifica ahora y «Quitar», con «Deshacer». Cierra el hueco de la entrada 475: una regla así clasifica sola y solo se veía desde la ficha de un movimiento. Publicado #626 (despliegue 1438): el alta de varios contratos ya está en el sitio. Pendiente del hogar: dar de alta sus contratos, quitar los de ejemplo y confirmar capital y TAE con cada entidad (PROJECT_STATE 477).
@@ -481,6 +483,35 @@ NXP-07, NHG-02, CAP-08 y NHG-03 (`BACKLOG_DEFINITIVO.md` §5.6).
 Las demás tareas del hogar del plan (H-22 a H-33 y las de cada paquete «esperando al hogar») siguen como estaban en el
 panel de seguimiento.
 
+### 5.8 Bloque nuevo (17/11/2026) · SVD · Simulador visual de deuda conectado
+
+**Petición del hogar del 17/11:** «que el simulador visual de deuda se alimente de los datos del resto de secciones y que a
+la vez los datos actualicen el resto de secciones cuando corresponda». Diseño y plan completos en
+[`docs/SVD_DISENO.md`](docs/SVD_DISENO.md).
+
+Por qué hace falta:
+
+- El simulador (`debt-roadmap.html`, en un `iframe`) enlaza sus dos cuentas principales con los contratos que se llamen
+  «Entidad A» y «Entidad B», que son los de ejemplo.
+- Del resto de contratos solo lee el capital, y de la Previsión, una media.
+- Un acuerdo que sale de él llega al plan como decisión, pero no al contrato: Contratos, Ruta, Préstamo y Hoy quedan
+  incoherentes.
+
+**Absorbe** DEC-24 (estado «En impago») y DEC-27 (migrar lo que solo sabe el plan heredado) de la décima auditoría, y la
+parte de escenarios de DEU-01.
+
+| # | ID | Qué | Esf. | Depende | Hecho cuando | Estado |
+|---|---|---|---|---|---|---|
+| 1 | **SVD-0** | Inventario de campos, prueba que demuestra el enlace por nombre, prueba dorada del mensaje de hidratación; axe y desbordes dentro del `iframe` | S | — | Las pruebas describen lo de hoy | Propuesto; puede empezar ya (sin cambio visible) |
+| 2 | **SVD-1** | El puente sale de `app.js` (`deuda-simulador-puente.js`); cuentas enlazadas por id de contrato; migración de `cb`/`bk` con una pregunta; una sola copia del estado | M | SVD-0, D-N16 | Con contratos sin nombres de ejemplo, cada uno tiene su cuenta y sus supuestos sobreviven a recargar | Espera D-N16 y D-N20 |
+| 3 | **SVD-2** | Lectura completa: TAE, cuota, plazo, estado y atrasos, recibos, capacidad mes a mes, suelo, extra de Ruta, Préstamo; lo canónico de solo lectura con su origen; deriva; paridad con «Camino a deuda cero» | M | SVD-1 | Cambiar la TAE en Contratos se ve en el simulador sin recargar | — |
+| 4 | **SVD-3** | Estados del acuerdo; «Aplicar el acuerdo» con «Qué ocurrirá» → contrato + plan + acta en una operación con un «Deshacer»; invariante de no contar dos veces | L | SVD-2, D-N21 | Un acuerdo aplicado cambia con las mismas cifras Contratos, Ruta, Préstamo, Previsión y Hoy, y se deshace entero | — |
+| 5 | **SVD-4** | «Guardar como escenario» (a Previsión y Escenarios) y tareas con fecha (Hoy y `.ics`) | S-M | SVD-2 | Misma liquidez en Previsión que en el simulador | — |
+| 6 | **SVD-5** | La vuelta: pago detectado en el extracto → «cumplido»; decisión deshecha → acuerdo sin aplicar; «Desde vuestra última visita» | S-M | SVD-3 | Un extracto inventado con el pago pactado marca la cuenta como cumplida | — |
+| 7 | **SVD-6** | Simulador nativo con el tema v2 y el motor canónico; retirar el `iframe` y el motor heredado | L | SVD-5, NTC-05 | Dos versiones con paridad en verde | P2; **se consulta** antes de retirar |
+
+Entre 10 y 14 sesiones en total. El valor llega con SVD-3; SVD-0 a SVD-2 son el camino seguro hasta ahí.
+
 ---
 
 ## 6. Dónde queda cada cosa abierta de `BACKLOG_DEFINITIVO.md`
@@ -542,6 +573,8 @@ panel de seguimiento.
 | **D-N9** | XPR-08 «De verdad libre» en C2. La Previsión nueva ya descuenta, en su punto más bajo, todo lo que el plan pone dentro del horizonte; XPR-08 además reserva la parte devengada de los pagos grandes (importe × meses transcurridos ÷ meses del ciclo). ¿Qué cifra enseña C2? (a) una tarjeta aparte con su propio «libre» (tres cifras de «libre» en la app); (b) **una sola cifra**: el margen del punto más bajo menos lo devengado de los pagos grandes que caen después del horizonte o que no están en el plan (seguros del inventario, cargos cada N meses), con «Apartar» hacia el sobre; (c) dejarlo para Hoy cuando se levante su congelación | (b): una cifra, la que de verdad se puede gastar, y sin contar dos veces lo que el plan ya descuenta. Cambia lo que significa «libre» en Previsión, así que se consulta | **Decidida el 7/11: (b)** (hecha ese día) |
 | **D-N10** | Tras FX-12 y FX-23 PR-1: ¿la franja anual del mapa de pagos grandes pasa a «Lo que viene»? ¿Sigue el Repaso semanal tras su revisión del 7/11? ¿Se cierra FX-23 sin los presets sin guardar? | **Decidido por el hogar el 9/11**: la franja **no** se mueve; el Repaso **sigue** (FX-42 se hace); FX-23 **no** se cierra sin hacer su resto (presets sin guardar y mini-gráfico). El suelo real lo fija el hogar en Ajustes (tarea del hogar) | 9/11 |
 | **D-N11** | Prioridad hasta el 4/12 (decidida el 13/11: «que entren los datos»). El extracto del 14/11 (200 movimientos del 7/8 al 12/11, ninguno nuevo) dice que los movimientos ya estaban al día: ¿se reformula como «que lo que entra quede con partida»? | Sí: clasificar hasta el 95 % antes del 1/12, con el repaso semanal como momento para hacerlo. No cambia qué se construye (nada de previsión nueva), solo dónde se pone el esfuerzo del hogar | **Decidida el 14/11: sí** |
+| **D-N20** | Bloque SVD (§5.8): ¿SVD-1 en adelante empiezan ya, con D-N11 vigente, o tras el 4/12? | SVD-0 ya; SVD-1 a SVD-3 en cuanto llegue D-N16 (la foto de la deuda): la negociación con las entidades no espera al cierre de noviembre | Cuando el hogar pueda |
+| **D-N21** | SVD-3: ¿basta con que el hogar marque un acuerdo como «aceptado» o se exige adjuntar el documento de la entidad antes de aplicarlo? | Exigir el documento para quitas y planes de pago | Antes de SVD-3 |
 
 ---
 

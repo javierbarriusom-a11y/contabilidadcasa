@@ -91,6 +91,12 @@ CI, pero tiene dos costes que la regla no ve:
 3. **El informe de solvencia** del 15/11: siete operaciones de dos entidades con saldo impagado, que contradice lo dicho el
    14-15/11 (sin revolving, poco pendiente).
 
+**Añadido el 17/11:** el simulador visual de deuda (`debt-roadmap.html`) es, según el historial (sesiones 255-257, 28/9), la
+herramienta de **una negociación real con dos acreedores** que el hogar confirmó entonces como activa, con un tercero ya
+resuelto. Cuadra con un informe de dos entidades y refuerza D-N16: es probable que la foto vigente sea «impagos en
+negociación», no «poco pendiente». Lo que el simulador decide no llega hoy a Contratos: es el bloque SVD
+(`docs/SVD_DISENO.md`).
+
 Consecuencias, en orden de gravedad:
 
 | Qué | Por qué importa |
@@ -362,7 +368,7 @@ cuando ya está hecho). *UX/UI:* tinte claro (conclusión), sin botón. *Métric
 cuándo, si la entidad ha dado el préstamo por vencido (todo exigible) y si figura en un fichero. *Por qué:* §1.4; hoy no se
 puede decir. *UX/UI:* insignia ámbar en la fila; en la hoja de edición, tres preguntas sí/no con su ayuda. *Métrica:* —
 (estructural). M · P0 tras D-N16 · Encaje: `canonical-debt-contracts.js` y el motor de «Camino a deuda cero» (lo exigible
-entra como pago inmediato, no como cuota).
+entra como pago inmediato, no como cuota). **Desde el 17/11, dentro del bloque SVD (SVD-2).**
 
 **DEC-25 · La previsión con lo exigible.** Si una deuda está vencida, la previsión enseña dos caminos: «si la reclaman ya» y
 «si se pacta un plan», y Hoy dice «Disponible… sin contar N € reclamables». *Por qué:* una cifra de disponible que ignora una
@@ -377,7 +383,8 @@ nada se envía desde la app. *Métrica:* deudas con certificado pedido / recibid
 
 **DEC-27 · Migrar lo que solo sabe el plan heredado.** Revisar `views/debt-liquidation-plan.js` y `debt-control.js` (quitas,
 atrasos, «retomar», ficheros) y llevar al motor canónico lo que siga vigente; después, proponer retirar el plan heredado. *Por
-qué:* hay dos fotos de la deuda en la app (§1.4). *UX/UI:* —. M · P1 · Encaje: NTC-05.
+qué:* hay dos fotos de la deuda en la app (§1.4). *UX/UI:* —. M · P1 · Encaje: NTC-05. **Desde el 17/11, dentro del bloque
+SVD (SVD-1 y SVD-6).**
 
 **DEC-28 · «Salir del fichero» como objetivo con fecha.** Un objetivo en Ahorro y objetivos: deudas a cancelar o pactar,
 cuánto hace falta, en qué orden y la fecha estimada; al marcar una como saldada, recordatorio para pedir el certificado y
