@@ -271,3 +271,45 @@ Medido con el simulador abierto suelto (`/debt-roadmap.html`), Chromium:
 
 Nada se sale por la derecha. El tope de 28 críticos queda como trinquete en el CI; SVD-2 (o SVD-6, si se hace nativo
 antes) tiene que bajarlo a 0.
+
+---
+
+## 8. SVD-1 · resultado (17/11/2026)
+
+**Decisiones del hogar del 17/11:**
+
+- **D-N16:** «La foto real de la deuda es los contratos que subí a la app el domingo».
+- **D-N20:** «Empieza svd1 ya».
+- **D-N21:** «Lo aceptado lo marco yo manualmente y subo un justificante». SVD-3 exigirá el justificante antes de dejar
+  aplicar un acuerdo.
+
+**Fallo que tenía el hogar desde que quitó los contratos de ejemplo**, medido con dos contratos inventados que suman
+7.500 €:
+
+- el simulador partía de **18.000 €**;
+- las cuentas fijas «Entidad A / gestor» y «Entidad B» seguían en el cálculo con su saldo de ejemplo (4.000 y 6.500 €),
+  porque el modelo canónico las dejaba «ambiguas» sin saldo y el simulador conservaba el que tenía;
+- cualquier pago único, pico de caja o duración que diera llevaba esa deuda inexistente encima.
+
+**Qué cambia:**
+
+| Pieza | Cambio |
+|---|---|
+| `canonical-e14-debt-adapter.js` | `fixedAccountStatus`: una cuenta fija está «enlazada» (un contrato con su nombre), «sin-contrato» (ninguno: saldo 0) o «ambigua» (varios: sin saldo, como antes). `fixedAccounts` en el modelo de lectura. El inventario clasifica la aportación extra, `acct_<id>_<campo>` y `migracion` |
+| `debt-roadmap.html` | Las cuentas fijas sin contrato salen del cálculo, de la tabla y del gráfico, y se ocultan. Si había algo simulado en ellas, pregunta una vez a qué contrato real pasarlo (copia estrategia, quita, mes, pago único, TAE, plazo, % financiado y aportación extra; nunca el saldo), con «Deshacer» y «No corresponde a ninguno». Dentro de la app ya no escribe su propia copia en `localStorage`; la que hubiera se rescata una vez si la app no tiene ninguna |
+| `deuda-simulador-puente.js` | Las cinco funciones del puente, sacadas de `app.js` sin cambiar una coma (32.091 → 32.024 líneas; techo 32.203 → 32.155) |
+
+**Pruebas:**
+
+- `tests/svd1-simulador-enlace.test.cjs` (4);
+- `tests/svd0-simulador-contrato.test.cjs`, con tres pruebas actualizadas a propósito para describir lo nuevo;
+- `tests/d1-fase2-cuentas-canonicas.test.cjs` (2 actualizadas);
+- la del desalojo en `tests/xgo01-sin-funciones-duplicadas.test.cjs`;
+- e2e «SVD-1 · Simulador visual de deuda con los contratos reales» (2): cuentas fijas fuera, migración con deshacer y
+  persistencia, sin copia en el `iframe`, y el rescate.
+
+**Pendiente para SVD-2:**
+
+- el texto de los avisos del simulador sigue hablando de «Entidad C» y de la negociación de septiembre;
+- la TAE sigue siendo un supuesto del simulador;
+- de los contratos reales llega solo el capital.
