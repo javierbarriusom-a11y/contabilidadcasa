@@ -51,7 +51,9 @@ const path = require("node:path");
 // → 32.203 (XGO-01 PR-4, 13 de noviembre de 2026): Laboratorio y el informe de uso de la app (33 funciones con sus comentarios,
 // 327 líneas) pasan tal cual al nuevo laboratorio-ui.js; app.js queda en 32.073 y el techo baja por el mismo trinquete. El margen
 // se había quedado en 25 líneas (32.401 con la Oleada 2, #607).
-const CEILING_LINES = 32203;
+// → 32.155 (SVD-1, 17 de noviembre de 2026): el puente con el simulador visual de deuda (5 funciones, 67 líneas) pasa tal cual
+// a deuda-simulador-puente.js; app.js queda en 32.024 y el techo baja por el mismo trinquete (margen de ~130).
+const CEILING_LINES = 32155;
 const RATCHET_SLACK_LINES = 300;
 // Tope secundario en bytes para que el techo de líneas no se esquive con líneas kilométricas.
 const CEILING_BYTES = 2000000;

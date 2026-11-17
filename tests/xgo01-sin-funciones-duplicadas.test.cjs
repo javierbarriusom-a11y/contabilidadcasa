@@ -115,3 +115,22 @@ test("Laboratorio y el uso de la app viven fuera de app.js, en un script que se 
   assert.ok(read("service-worker.js").includes('"./laboratorio-ui.js"'), "en la caché del service worker");
   assert.ok(read("tools/build-public-site.mjs").includes('"laboratorio-ui.js"'), "en el sitio publicado");
 });
+
+// SVD-1 (17/11/2026): el puente con el simulador visual de deuda (debt-roadmap.html) sale de app.js, tal cual, a
+// deuda-simulador-puente.js, para que el bloque SVD crezca allí y no en app.js. Solo funciones: `debtRoadmapState` sigue en app.js.
+test("El puente con el simulador visual de deuda vive fuera de app.js, en un script que se carga antes que él", () => {
+  const app = read("app.js");
+  const puente = read("deuda-simulador-puente.js");
+  ["debtRoadmapCanonicalReadModel", "sendDebtRoadmapState", "receiveDebtRoadmapOffer", "debtRoadmapStatesMatch", "setupDebtRoadmapBridge"].forEach((name) => {
+    assert.match(puente, new RegExp(`^(async )?function ${name}\\(`, "m"), name);
+    assert.doesNotMatch(app, new RegExp(`^(async )?function ${name}\\(`, "m"), `${name} ya no está en app.js`);
+  });
+  assert.doesNotMatch(puente, /^(let|const|var) /m, "solo funciones: el estado sigue en app.js");
+  assert.doesNotMatch(puente, /^(?!function |async function |\/\/|\s|\}|\]|$)/m, "solo declaraciones y comentarios: nada se ejecuta al cargarse");
+  assert.match(app, /^let debtRoadmapState = \{\};/m, "debtRoadmapState sigue en app.js");
+  const html = read("index.html");
+  const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
+  assert.ok(pos("deuda-simulador-puente.js") !== -1 && pos("deuda-simulador-puente.js") < pos("app.js"), "se carga con defer antes que app.js");
+  assert.ok(read("service-worker.js").includes('"./deuda-simulador-puente.js"'), "en la caché del service worker");
+  assert.ok(read("tools/build-public-site.mjs").includes('"deuda-simulador-puente.js"'), "en el sitio publicado");
+});

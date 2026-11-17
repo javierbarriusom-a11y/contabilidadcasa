@@ -253,9 +253,9 @@ visual de deuda (iframe)». Describen lo de hoy: cuando un PR del bloque las rom
 | `tasks`, `scenario`, `agreement` | Operativo | Simulador (el acuerdo gana estados en SVD-3) |
 | `profile`, `buffer`, `preserveCash`, `fc_months`, `referenceAPR` | Supuesto | Simulador; `buffer` debería leerse del suelo del hogar (SVD-2) |
 | `cb_*` / `bk_*`: `strategy`, `discount`, `start`, `lump`, `term`, `finance_pct` | Supuesto | Simulador |
-| `cb_apr`, `bk_apr` | Supuesto | **Contratos** (la TAE es del contrato; SVD-2) |
+| `cb_apr`, `bk_apr` | Supuesto | Simulador. **Corregido en SVD-2:** es la TAE de la *refinanciación* (el préstamo nuevo), no la del contrato; la del contrato llega aparte, de solo lectura |
 | `cb_extra`, `cb_extra_month`, `bk_extra`, `bk_extra_month` (D1 fase 1) | **Sin clasificar** | Simulador (SVD-1 los clasifica) |
-| `acct_<id>_*`, los nueve campos por cuenta adicional (D1 fase 2) | **Sin clasificar** | Simulador, salvo `apr` (Contratos) |
+| `acct_<id>_*`, los nueve campos por cuenta adicional (D1 fase 2) | **Sin clasificar** | Simulador (`apr` también es la de la refinanciación) |
 | `wizink_hito_mes` | Operativo | Simulador (un hito de una deuda ya resuelta) |
 | `notes` | Nota | Simulador |
 | `cb_amount`, `bk_amount`, `liquidity`, `monthly`, `baseMonth` | Canónico (no se guardan desde el simulador) | Contratos y Previsión |
@@ -271,3 +271,87 @@ Medido con el simulador abierto suelto (`/debt-roadmap.html`), Chromium:
 
 Nada se sale por la derecha. El tope de 28 críticos queda como trinquete en el CI; SVD-2 (o SVD-6, si se hace nativo
 antes) tiene que bajarlo a 0.
+
+---
+
+## 8. SVD-1 · resultado (17/11/2026)
+
+**Decisiones del hogar del 17/11:**
+
+- **D-N16:** «La foto real de la deuda es los contratos que subí a la app el domingo».
+- **D-N20:** «Empieza svd1 ya».
+- **D-N21:** «Lo aceptado lo marco yo manualmente y subo un justificante». SVD-3 exigirá el justificante antes de dejar
+  aplicar un acuerdo.
+
+**Fallo que tenía el hogar desde que quitó los contratos de ejemplo**, medido con dos contratos inventados que suman
+7.500 €:
+
+- el simulador partía de **18.000 €**;
+- las cuentas fijas «Entidad A / gestor» y «Entidad B» seguían en el cálculo con su saldo de ejemplo (4.000 y 6.500 €),
+  porque el modelo canónico las dejaba «ambiguas» sin saldo y el simulador conservaba el que tenía;
+- cualquier pago único, pico de caja o duración que diera llevaba esa deuda inexistente encima.
+
+**Qué cambia:**
+
+| Pieza | Cambio |
+|---|---|
+| `canonical-e14-debt-adapter.js` | `fixedAccountStatus`: una cuenta fija está «enlazada» (un contrato con su nombre), «sin-contrato» (ninguno: saldo 0) o «ambigua» (varios: sin saldo, como antes). `fixedAccounts` en el modelo de lectura. El inventario clasifica la aportación extra, `acct_<id>_<campo>` y `migracion` |
+| `debt-roadmap.html` | Las cuentas fijas sin contrato salen del cálculo, de la tabla y del gráfico, y se ocultan. Si había algo simulado en ellas, pregunta una vez a qué contrato real pasarlo (copia estrategia, quita, mes, pago único, TAE, plazo, % financiado y aportación extra; nunca el saldo), con «Deshacer» y «No corresponde a ninguno». Dentro de la app ya no escribe su propia copia en `localStorage`; la que hubiera se rescata una vez si la app no tiene ninguna |
+| `deuda-simulador-puente.js` | Las cinco funciones del puente, sacadas de `app.js` sin cambiar una coma (32.091 → 32.024 líneas; techo 32.203 → 32.155) |
+
+**Pruebas:**
+
+- `tests/svd1-simulador-enlace.test.cjs` (4);
+- `tests/svd0-simulador-contrato.test.cjs`, con tres pruebas actualizadas a propósito para describir lo nuevo;
+- `tests/d1-fase2-cuentas-canonicas.test.cjs` (2 actualizadas);
+- la del desalojo en `tests/xgo01-sin-funciones-duplicadas.test.cjs`;
+- e2e «SVD-1 · Simulador visual de deuda con los contratos reales» (2): cuentas fijas fuera, migración con deshacer y
+  persistencia, sin copia en el `iframe`, y el rescate.
+
+**Pendiente para SVD-2:**
+
+- el texto de los avisos del simulador sigue hablando de «Entidad C» y de la negociación de septiembre;
+- la TAE sigue siendo un supuesto del simulador;
+- de los contratos reales llega solo el capital.
+
+---
+
+## 9. SVD-2 · resultado (17/11/2026) y lo que pasa a SVD-2b
+
+**Petición del hogar:** «Sigue con SVD-2».
+
+**Qué llega ahora al simulador** (modelo de lectura v2, `finance-e14-debt-roadmap-read-model/v2`, sin quitar nada de v1):
+
+- **Por contrato:**
+  - TAE, cuota, cuotas pendientes, estado, pagos suspendidos, atraso estimado y sus meses, y si es revolving;
+  - lo que no se sabe llega en `null`, nunca 0: una TAE por confirmar no es un 0 %;
+  - una huella (`contractFingerprint`) con capital, TAE, cuota, cuotas pendientes, estado y atraso.
+- **De la previsión:** la capacidad de cada uno de los 12 primeros meses, además de la media de siempre.
+- **El suelo del hogar:** la reserva operativa, enviada por `deuda-simulador-puente.js`.
+
+**Qué se ve:**
+
+- **En cada cuenta real**, bajo su título, «De Contratos, solo lectura: capital · TAE · cuota · cuotas pendientes · estado · atraso · revolving», con el enlace «Cambiarlo en Deuda › Contratos». Las cifras van como en la app (miles con punto).
+- **Deriva:** si el contrato cambia después de haberlo visto en el simulador, la cuenta dice qué cambió («TAE: 21,9 → 19,5»), sin recalcular a escondidas, con «Entendido». Lo visto se guarda con el estado (`acct_<id>_base`).
+- **Bajo la calculadora de capacidad:**
+  - entre cuánto y cuánto deja la previsión al mes y cuál es el mes más justo;
+  - si el mes más caro del escenario no cabe en ese mes;
+  - el suelo del hogar, y un aviso si la reserva a preservar queda por debajo.
+- **Sin contratos de ejemplo**, los textos de la negociación de septiembre («Entidad C…») ya no se dicen.
+- **Accesibilidad:** cada etiqueta, unida a su campo. axe crítico a 390 px: **de 28 a 0**, y el trinquete del CI baja a 0. Queda el contraste (serio: 16 a 390 px y 75 a 1.440 px), que es del diseño propio del simulador, para SVD-6.
+
+**Lo que NO hace, a propósito, y pasa a SVD-2b:**
+
+1. **«Esperar» sigue sin pagar la cuota de ahora en el simulador.** Para que la pague hace falta decidir contra qué capacidad se compara. La parte de deuda de la previsión (`components.outflow.debt`) es **solo «coche + refinanciación», dos filas del plan**: no sale de los contratos de Deuda › Contratos.
+   - Si las cuotas de los contratos del hogar no están en el plan, la previsión es optimista y el simulador no puede restarlas «otra vez».
+   - Si están como partidas, sí.
+   - Hay que mirarlo con el plan del hogar antes de SVD-3: es el riesgo de contar dos veces de §4, y toca D-N12.
+2. **Paridad de motores** (simulador frente a «Camino a deuda cero»): sin «Esperar» con cuota no hay un caso comparable.
+3. **El margen mes a mes en el cálculo:** se enseña el mes más justo, pero el motor sigue usando la media, para no cambiar las cifras de antes sin decidirlo.
+
+**Pruebas:**
+
+- `tests/svd2-simulador-lectura.test.cjs` (5);
+- actualizadas a propósito: `tests/canonical-e14-debt-adapter.test.cjs` (1) y `tests/svd0-simulador-contrato.test.cjs` (3, con la corrección de la TAE);
+- e2e «SVD-2 · El simulador visual de deuda lee Contratos y avisa si cambian»: datos a la vista, sin «Entidad C», etiquetas, cambiar la TAE en Contratos, aviso, «Entendido» y que siga tras recargar;
+- trinquete de axe a 0.

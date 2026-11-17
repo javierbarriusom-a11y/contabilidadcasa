@@ -71,7 +71,12 @@ test("extraDebts expone las deudas reales adicionales a Entidad A/B, excluyendo 
     ],
     forecast: validForecast(),
   });
-  assert.deepEqual(result.extraDebts, [{ id: "debt-3", entity: "Nueva tarjeta", type: "Tarjeta", currentPrincipal: 1200, paymentStatus: "active" }]);
+  // SVD-2 (17/11/2026): cada cuenta trae además lo que dice su contrato (null si no se sabe) y una huella para la deriva.
+  assert.deepEqual(result.extraDebts, [{
+    id: "debt-3", entity: "Nueva tarjeta", type: "Tarjeta", currentPrincipal: 1200, paymentStatus: "active",
+    apr: null, currentPayment: null, remainingInstallments: null, paymentsSuspended: false, arrearsEstimated: null, arrearsMonths: null, revolving: false,
+    fingerprint: "1200|-|-|-|active|-",
+  }]);
 });
 
 test("extraDebts está vacío cuando el hogar solo tiene declaradas Entidad A y Entidad B", () => {

@@ -103,9 +103,10 @@ for (const scheme of ["light", "dark"]) {
 // SVD-0 (17/11/2026): el simulador visual de deuda vive en un iframe (debt-roadmap.html) y ninguna prueba miraba dentro.
 // Medido ese día a 390 px: 28 nodos con fallos críticos (25 campos sin etiqueta y 3 desplegables sin nombre). Es un
 // trinquete: no puede empeorar, y cada PR del bloque SVD que lo mejore baja el tope. Tampoco puede salirse por la derecha.
+// SVD-2 (17/11/2026): cada etiqueta unida a su campo (svdEtiquetas): de 28 a 0. Queda el contraste (serio), para SVD-6.
 test.describe("SVD-0 · Simulador visual de deuda (iframe)", () => {
-  test("a 390 px: no más fallos críticos que el 17/11 y nada fuera por la derecha", async ({ page }) => {
-    const TOPE_CRITICOS = 28;
+  test("a 390 px: sin fallos críticos y nada fuera por la derecha", async ({ page }) => {
+    const TOPE_CRITICOS = 0;
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/debt-roadmap.html");
     await page.waitForLoadState("networkidle");

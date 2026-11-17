@@ -26,11 +26,13 @@ function forecast(months) {
 function camposQueGuardaElSimulador() {
   const fijos = JSON.parse(html.match(/function collect\(\)\{const ids=(\[[^\]]+\])/)[1].replace(/'/g, '"'));
   const operativos = html.match(/const d=\{([^}]+)\}/)[1].split(",").map((par) => par.split(":")[0].trim());
-  const porCuenta = JSON.parse(html.match(/dynamicDebtAccounts\.forEach\(\(account\)=>\{const key=accountKey\(account\.id\);(\[[^\]]+\])/)[1].replace(/'/g, '"'));
+  const porCuenta = JSON.parse(html.match(/dynamicDebtAccounts\.forEach\(\(account\)=>\{const key=accountKey\(account\.id\);.*?(\['[^\]]+\])/s)[1].replace(/'/g, '"'));
   return { fijos, operativos, porCuenta };
 }
 
-test("SVD-0 · las dos cuentas principales se enlazan por el NOMBRE de los contratos de ejemplo", () => {
+// SVD-1 (17/11/2026) cambió esta: sin contratos llamados «Entidad A/B», sus cuentas fijas ya no quedan «ambiguas» con el
+// saldo de ejemplo, sino «sin contrato» y a 0 (el simulador las saca del cálculo).
+test("SVD-0 → SVD-1 · sin contratos de ejemplo, las cuentas fijas quedan «sin contrato» y a 0; los reales, como cuentas propias", () => {
   const contratos = [
     { id: "c1", entity: "Banco FICTICIO", type: "Tarjeta", currentPrincipal: 2400, apr: 21.9, currentPayment: 90, paymentStatus: "active" },
     { id: "c2", entity: "Caja FICTICIA", type: "Préstamo", currentPrincipal: 5100, apr: 9.5, currentPayment: 160, paymentStatus: "suspended" },
@@ -38,47 +40,60 @@ test("SVD-0 · las dos cuentas principales se enlazan por el NOMBRE de los contr
   const modelo = E14.buildReadModel({ contracts: contratos, forecast: forecast([["2026-12", 3000, 2500, 8000]]), generatedAt: "2026-11-17T00:00:00.000Z" });
   assert.equal(modelo.contracts.entityA, null, "sin un contrato llamado «Entidad A», la cuenta A del simulador no se enlaza");
   assert.equal(modelo.contracts.entityB, null);
-  assert.ok(modelo.ambiguous.includes("cb_amount") && modelo.ambiguous.includes("bk_amount"));
-  assert.equal(modelo.canonicalValues.cb_amount, undefined);
+  assert.deepEqual(modelo.fixedAccounts, { cb: "sin-contrato", bk: "sin-contrato" });
+  assert.ok(!modelo.ambiguous.includes("cb_amount") && !modelo.ambiguous.includes("bk_amount"));
+  assert.equal(modelo.canonicalValues.cb_amount, 0, "antes se quedaba el saldo de ejemplo y sumaba deuda que no existe");
+  assert.equal(modelo.canonicalValues.bk_amount, 0);
   // Los contratos reales entran como cuentas adicionales…
   assert.deepEqual(modelo.extraDebts.map((cuenta) => cuenta.entity), ["Banco FICTICIO", "Caja FICTICIA"]);
-  // …pero solo con su capital: sin TAE, cuota, plazo ni atrasos (SVD-2 los añade).
-  assert.deepEqual(Object.keys(modelo.extraDebts[0]).sort(), ["currentPrincipal", "entity", "id", "paymentStatus", "type"]);
+  // …y, desde SVD-2, con lo que dice su contrato (antes solo el capital).
+  assert.equal(modelo.extraDebts[0].apr, 21.9);
+  assert.equal(modelo.extraDebts[0].currentPayment, 90);
+  assert.equal(modelo.extraDebts[1].paymentStatus, "suspended");
 });
 
-test("SVD-0 · de la previsión solo llega una media de capacidad, no los meses", () => {
+// SVD-2 (17/11/2026) cambió esta: además de la media (que sigue, para no cambiar los cálculos de antes), llegan los meses.
+test("SVD-0 → SVD-2 · de la previsión llegan la media y la capacidad de cada uno de los 12 primeros meses", () => {
   const modelo = E14.buildReadModel({
     contracts: [],
     forecast: forecast([["2026-12", 3000, 3400, 7000], ["2027-01", 3000, 2000, 8000]]),
     generatedAt: "2026-11-17T00:00:00.000Z",
   });
-  // Diciembre no deja capacidad (0) y enero deja 1.000: llega 500 para todos los meses, y ninguna serie.
+  // Diciembre no deja capacidad (0) y enero deja 1.000: la media sigue siendo 500, y ahora se ve qué mes es el justo.
   assert.equal(modelo.canonicalValues.monthly, 500);
-  assert.equal(modelo.forecast.series, undefined);
-  assert.equal(modelo.schemaId, "finance-e14-debt-roadmap-read-model/v1");
+  assert.deepEqual(modelo.forecast.capacitySeries, [{ monthKey: "2026-12", capacity: 0 }, { monthKey: "2027-01", capacity: 1000 }]);
+  assert.equal(modelo.schemaId, "finance-e14-debt-roadmap-read-model/v2");
 });
 
-test("SVD-0 · inventario: qué guarda el simulador y qué no sabe clasificar su propio inventario", () => {
+// SVD-1 cambió esta: el inventario ya clasifica la aportación extra, los campos de cada cuenta adicional y la migración.
+test("SVD-0 → SVD-1 · inventario: todo lo que guarda el simulador tiene dueño", () => {
   const { fijos, operativos, porCuenta } = camposQueGuardaElSimulador();
-  assert.deepEqual(operativos, ["tasks", "scenario", "agreement", "profile"]);
+  assert.deepEqual(operativos, ["tasks", "scenario", "agreement", "profile", "migracion"]);
   assert.deepEqual(porCuenta, ["strategy", "discount", "start", "lump", "apr", "term", "finance_pct", "extra", "extra_month"]);
   const guardados = [...operativos, ...fijos, ...porCuenta.map((campo) => `acct_c1_${campo}`)];
   const sinClasificar = guardados.filter((campo) => E14.classifyField(campo) === "ambiguous");
-  // La aportación extra (D1 fase 1) y todos los campos de las cuentas adicionales (D1 fase 2) quedaron fuera del
-  // inventario: SVD-1 los clasifica. «profile» está en «assumption», por eso no sale.
-  assert.deepEqual(sinClasificar, [
-    "cb_extra", "cb_extra_month", "bk_extra", "bk_extra_month",
-    ...porCuenta.map((campo) => `acct_c1_${campo}`),
-  ]);
-  // La TAE es un supuesto del simulador aunque su dueño sea Contratos (principio 1 de SVD): SVD-2 la lee de allí.
+  assert.deepEqual(sinClasificar, []);
+  assert.equal(E14.classifyField("cb_extra"), "assumption");
+  assert.equal(E14.classifyField("acct_debt-custom-1_extra_month"), "assumption");
+  assert.equal(E14.classifyField("migracion"), "operational");
+  assert.equal(E14.classifyField("acct_c1_inventado"), "ambiguous", "un campo de cuenta que no existe sigue sin dueño");
+  // Corregido en SVD-2: la TAE del bloque de cada cuenta es la de la REFINANCIACIÓN (el préstamo nuevo), un supuesto del
+  // hogar; la del contrato de ahora llega aparte, de solo lectura, en el modelo de lectura v2.
   assert.equal(E14.classifyField("cb_apr"), "assumption");
+  // SVD-2: lo que valía el contrato cuando se vio en el simulador, para avisar de la deriva.
+  assert.equal(E14.classifyField("acct_debt-custom-1_base"), "operational");
+  assert.match(html, /if\(svdBases\[key\]\)d\[key\+'_base'\]=svdBases\[key\];/);
   // El importe no se guarda desde el simulador: es canónico y llega de la app.
   assert.equal(guardados.includes("cb_amount"), false);
 });
 
-test("SVD-0 · el simulador guarda además su propia copia en el localStorage del iframe", () => {
-  assert.match(html, /function autoSave\(\)\{try\{localStorage\.setItem\('planDeudaV5SinEntidad C'/);
-  assert.doesNotMatch(html.match(/function autoSave\(\)\{[^}]*\}/)[0], /window\.parent/, "hoy no distingue si está dentro de la app (SVD-1 deja una sola copia)");
+// SVD-1 cambió esta: dentro de la app el iframe ya no guarda su propia copia (solo abierto suelto), y la que hubiera se
+// rescata una vez si la app no tiene ninguna.
+test("SVD-0 → SVD-1 · dentro de la app, una sola copia del estado del simulador", () => {
+  assert.match(html, /function autoSave\(\)\{try\{if\(window\.parent===window\)localStorage\.setItem\('planDeudaV5SinEntidad C'/);
+  assert.match(html, /function saveState\(\)\{if\(window\.parent===window\)localStorage\.setItem/);
+  assert.match(html, /if\(window\.parent!==window\)\{svdLocalRescue=saved;applyProfile\('base'\);\}/);
+  assert.match(html, /else if\(svdLocalRescue\)\{try\{apply\(JSON\.parse\(svdLocalRescue\)\);\}catch\(e\)\{\}\}/);
 });
 
 test("SVD-0 · la app hidrata el simulador al cargar y en cada recálculo, con el estado y el modelo canónico", () => {

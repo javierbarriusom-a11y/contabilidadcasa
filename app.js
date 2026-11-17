@@ -2163,74 +2163,7 @@ function saveLocalSnapshot() {
   if (decisionWorkflow) storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
 }
 
-function debtRoadmapCanonicalReadModel() {
-  return E14DebtAdapter?.buildReadModel({
-    roadmapState: debtRoadmapState,
-    contracts: canonicalDebtContractRows(),
-    forecast: canonicalScenarioResults.active?.forecast,
-  }) || null;
-}
-
-function sendDebtRoadmapState() {
-  const frame = qs("debtRoadmapFrame");
-  if (!frame?.contentWindow) return;
-  frame.contentWindow.postMessage({
-    type: "finance-debt-roadmap-hydrate",
-    payload: { state: debtRoadmapState, canonical: debtRoadmapCanonicalReadModel() },
-  }, window.location.origin);
-}
-
-// D1 (Fase 3): puente sandbox → plan real, versión segura confirmada por el hogar — solo crea o
-// actualiza una oferta borrador (E14b); lógica pura en canonical-e14-debt-adapter.js por ARQ-4.
-function receiveDebtRoadmapOffer(payload) {
-  const frame = qs("debtRoadmapFrame");
-  const ack = (accountKey, ok, message) => frame?.contentWindow?.postMessage({ type: "finance-debt-roadmap-offer-result", accountKey, ok, message }, window.location.origin);
-  if (!E14DebtOperations || !E14DebtAdapter?.buildDraftOffer) return;
-  const workspace = e14bWorkspace();
-  const result = E14DebtAdapter.buildDraftOffer({
-    accountKey: payload?.accountKey, account: payload?.account, canonical: debtRoadmapCanonicalReadModel(),
-    existingOffers: workspace.offers, normalizeOffer: E14DebtOperations.normalizeOffer,
-  });
-  if (!result.ok) return ack(result.accountKey, false, result.message);
-  if (result.replaceIndex >= 0) workspace.offers[result.replaceIndex] = result.offer;
-  else workspace.offers.push(result.offer);
-  workspace.selectedOfferId = result.offer.id;
-  queueRemoteSave(); renderE14bPanel();
-  ack(result.accountKey, true, result.message);
-}
-
-function debtRoadmapStatesMatch(left, right) {
-  const stringify = window.FinanceStateContract?.stableStringify;
-  try {
-    return stringify ? stringify(left || {}) === stringify(right || {}) : JSON.stringify(left || {}) === JSON.stringify(right || {});
-  } catch {
-    return false;
-  }
-}
-
-function setupDebtRoadmapBridge() {
-  const frame = qs("debtRoadmapFrame");
-  if (!frame) return;
-  frame.addEventListener("load", sendDebtRoadmapState);
-  window.addEventListener("message", (event) => {
-    if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
-    if (event.data?.type === "finance-debt-roadmap-ready") {
-      sendDebtRoadmapState();
-      return;
-    }
-    if (event.data?.type === "finance-debt-roadmap-height") {
-      const height = Math.min(12000, Math.max(900, Number(event.data.height || 0)));
-      frame.style.height = `${height}px`;
-      return;
-    }
-    if (event.data?.type === "finance-debt-roadmap-send-offer") { receiveDebtRoadmapOffer(event.data.payload); return; }
-    if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
-    const nextState = JSON.parse(JSON.stringify(event.data.payload));
-    if (debtRoadmapStatesMatch(debtRoadmapState, nextState)) return;
-    debtRoadmapState = nextState;
-    queueRemoteSave();
-  });
-}
+// El puente con el simulador visual de deuda vive en deuda-simulador-puente.js (SVD-1, 17/11/2026).
 
 function e14bWorkspace() {
   scenarioSettings.e14Debt = scenarioSettings.e14Debt && typeof scenarioSettings.e14Debt === "object" ? scenarioSettings.e14Debt : {};
