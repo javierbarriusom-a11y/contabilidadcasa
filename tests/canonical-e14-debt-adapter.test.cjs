@@ -76,6 +76,8 @@ test("extraDebts expone las deudas reales adicionales a Entidad A/B, excluyendo 
     id: "debt-3", entity: "Nueva tarjeta", type: "Tarjeta", currentPrincipal: 1200, paymentStatus: "active",
     apr: null, currentPayment: null, remainingInstallments: null, paymentsSuspended: false, arrearsEstimated: null, arrearsMonths: null, revolving: false,
     fingerprint: "1200|-|-|-|active|-",
+    // SVD-2b: sin cuota declarada, Ruta no la incluye y en «Esperar» no paga nada.
+    cuotaDeHoy: null, fueraDeRuta: "sin-cuota-activa",
   }]);
 });
 

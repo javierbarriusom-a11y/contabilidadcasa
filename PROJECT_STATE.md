@@ -113,6 +113,41 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (485): SVD-2b, «Esperar» paga la cuota de hoy y el simulador cuadra con Ruta
+
+- **Decisión del hogar (D-N22, 17/11):** «De momento, vamos con SVD-2b: que "Esperar" siga pagando la cuota de hoy y que el simulador cuadre con Ruta. Después vendría SVD-3, aplicar un acuerdo aceptado con su justificante, y luego los ponemos realistas». «Realistas» se lee como meter las cuotas de los contratos en el plan y recalcular la previsión (D-N12); está sin confirmar.
+- **Motor del simulador** (`legacy-debt-roadmap-engine.js`):
+  - paga la cuota de hoy con la cuenta de «Camino a deuda cero»: interés sobre el saldo, la cuota o lo que quede, y la misma tolerancia de cierre;
+  - en «Esperar», todos los meses; en las demás estrategias, hasta su mes de inicio, y la estrategia se calcula sobre lo que quede ese mes;
+  - sin cuota de hoy, exactamente lo de antes.
+- **Adaptador:**
+  - la cuota de hoy de cada contrato sale con las reglas con que Ruta lo incluye, y la TAE deducida, con `impliedMonthlyRate` de Ruta, que se le pasa;
+  - el resumen de Ruta sin extra, sobre los mismos contratos y el mismo «hoy» que Deuda › Ruta.
+- **En el simulador:**
+  - «Esperar: seguir pagando la cuota de hoy», o «sin pagar nada (no entra en Ruta)» con el porqué;
+  - la línea «acaba en …, como Deuda › Ruta, y paga lo mismo», con aviso si no cuadra;
+  - la casilla «Las cuotas de hoy de estos contratos ya están en el plan» (sin marcar; si se marca, el margen no las resta otra vez; se recuerda).
+- **Dos fallos que ya existían, arreglados de paso:**
+  - el mes base era un desplegable fijo de julio a septiembre de 2026 y el de la previsión no se aplicaba;
+  - una cuenta real nueva entraba en «Quita y pago único», que con quita 0 % es pagarlo todo el mes 1; ahora entra en «Esperar».
+- Versiones con `?v=20261117svd2b`, también del motor, que carga el `iframe`. Línea en Novedades.
+- **Pruebas:**
+  - `tests/svd2b-esperar-cuota-ruta.test.cjs` (5): mismo fin y total que Ruta contrato a contrato, con TAE declarada y deducida;
+  - 1 actualizada en `tests/canonical-e14-debt-adapter.test.cjs`;
+  - e2e de SVD-2b: el mes coincide con el que enseña la pantalla de Ruta; la casilla cambia el margen y se recuerda; el mes base es el de hoy.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.690/6.690 (+5); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. **Batería completa de navegador en local: 445/445** (Chromium).
+
+## Cierre de sesión — 17 de noviembre de 2026 (484): despliegues de #629 y #630 (SVD-1 y SVD-2 en el sitio)
+
+- **Despliegue de #629** (Safari con movimiento reducido; `main` `32b9c64`): ejecución **1449**, en verde a las 09:25Z, Safari incluido. «Published availability» **358** (a mano), en verde.
+  - Como el despliegue de #628 (1447) había fallado, con este se publicó también #628 (décima auditoría y bloque SVD con SVD-0), que no cambia la app.
+- **#630 fusionado** (`main` `a074562`, 09:45Z) con su CI en verde a la primera (ejecución 1451, Safari incluido) y la batería local de 444/444.
+  - Despliegue: ejecución **1452**, en verde a las 10:54Z. «Published availability» **359** (a mano), en verde.
+  - **SVD-1 y SVD-2 ya están en el sitio:** el simulador deja de sumar las cuentas de ejemplo y lee de Contratos cada deuda.
+- **Lo que tiene que hacer el hogar al abrir Deuda › Simulador visual:** contestar una vez a qué contrato corresponde lo que tenía simulado en «Entidad A / gestor» y en «Entidad B» (o «No corresponde a ninguno»).
+- **Pendiente del hogar para SVD-2b y SVD-3:** si las cuotas de sus siete contratos están como partidas en Plan › Mes (la deuda de la previsión es solo «coche + refinanciación»).
+- Sin cambios de código en esta entrada.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (483): SVD-2, el simulador visual de deuda lee de Contratos lo que dice cada deuda
 
 - **Petición del hogar (17/11):** «Sigue con SVD-2». Va en el mismo PR que SVD-1 (#630): el aviso de commits sin subir obligó a subirlo antes de que #630 se fusionara.
