@@ -451,6 +451,95 @@
     return { rows, errors };
   }
 
+  // SVD-R1 (17/11/2026, «ponerlos realistas»): ¿la cuota de cada contrato ya está en el plan? La previsión cuenta como deuda
+  // las partidas del plan que la app clasifica como financiación (isFinancingPlanningRow: sección «Financi…» o un concepto con
+  // préstamo, tarjeta, crédito…), así que la pregunta se contesta cruzando cada contrato con esas partidas de un mes:
+  //  - «en-plan»: una partida lleva el nombre de la entidad (o los 4 últimos dígitos del número) y el mismo importe (±2 % o ±1 €);
+  //  - «importe-distinto»: lleva su nombre pero el importe no coincide (la previsión paga otra cifra);
+  //  - «por-importe»: ninguna lleva su nombre, pero una sin dueño tiene el mismo importe (parece, sin seguridad);
+  //  - «fuera-del-plan»: nada; la previsión no paga esa cuota (es optimista en esa cifra);
+  //  - «suspendido-en-plan»: el contrato no paga (suspendido o sin cuota) pero una partida con su nombre sí (pesimista).
+  // Cada partida se asigna a un contrato como mucho. Lo que sobra son partidas de financiación sin contrato. Puro: no escribe nada.
+  const PLAN_MATCH_STOPWORDS = new Set(["banco", "caja", "financiera", "financiacion", "credito", "creditos", "prestamo", "prestamos",
+    "tarjeta", "tarjetas", "hipoteca", "cuenta", "consumo", "personal", "deuda", "de", "del", "la", "el", "los", "las", "y", "sa", "slu", "sl",
+    "establecimiento", "entidad", "bank", "card", "spain", "espana"]);
+
+  function foldText(value) {
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
+  }
+
+  function entityTokens(contract) {
+    const tokens = foldText(contract.entity).split(/[^a-z0-9]+/).filter((token) => token.length >= 3 && !PLAN_MATCH_STOPWORDS.has(token));
+    const digits = String(contract.number || "").replace(/\D/g, "");
+    if (digits.length >= 4) tokens.push(digits.slice(-4));
+    return tokens;
+  }
+
+  function sameAmount(a, b) {
+    return Math.abs(a - b) <= Math.max(1, Math.abs(b) * 0.02);
+  }
+
+  function matchPlanInstallments(contracts = [], planRows = []) {
+    const rows = (Array.isArray(planRows) ? planRows : [])
+      .map((row, index) => ({ index, label: String(row?.label || row?.concept || "").trim(), amount: round2(number(row?.amount)), words: foldText(row?.label || row?.concept) }))
+      .filter((row) => row.amount > 0);
+    const used = new Set();
+    const named = (contract) => {
+      const tokens = entityTokens(contract);
+      return tokens.length ? rows.filter((row) => !used.has(row.index) && tokens.some((token) => row.words.includes(token))) : [];
+    };
+    const list = (Array.isArray(contracts) ? contracts : [])
+      .filter((contract) => contract && contract.paymentStatus !== "settled" && contract.paymentStatus !== "reunified" && number(contract.currentPrincipal) > 0);
+    const results = new Map();
+    const paying = (contract) => contract.paymentStatus === "active" && number(contract.currentPayment) > 0;
+    const take = (contract, row, status) => {
+      used.add(row.index);
+      results.set(contract.id, { status, row: { label: row.label, amount: row.amount }, diff: round2(row.amount - round2(number(contract.currentPayment))) });
+    };
+    // 1) Nombre e importe. 2) Nombre solo. 3) Importe solo, si hay una única partida libre con ese importe.
+    list.filter(paying).forEach((contract) => {
+      const row = named(contract).find((candidate) => sameAmount(candidate.amount, round2(number(contract.currentPayment))));
+      if (row) take(contract, row, "en-plan");
+    });
+    list.filter((contract) => !results.has(contract.id)).forEach((contract) => {
+      const row = named(contract)[0];
+      if (row) take(contract, row, paying(contract) ? "importe-distinto" : "suspendido-en-plan");
+    });
+    list.filter((contract) => paying(contract) && !results.has(contract.id)).forEach((contract) => {
+      const candidates = rows.filter((row) => !used.has(row.index) && sameAmount(row.amount, round2(number(contract.currentPayment))));
+      if (candidates.length === 1) take(contract, candidates[0], "por-importe");
+    });
+    const items = list.map((contract) => {
+      const found = results.get(contract.id);
+      const payment = paying(contract) ? round2(number(contract.currentPayment)) : 0;
+      return {
+        id: String(contract.id),
+        label: [contract.entity, contract.type].filter(Boolean).join(" · "),
+        payment,
+        paymentStatus: contract.paymentStatus,
+        status: found ? found.status : paying(contract) ? "fuera-del-plan" : "sin-cuota",
+        row: found ? found.row : null,
+        diff: found && found.status !== "suspendido-en-plan" ? found.diff : null,
+      };
+    });
+    const sum = (filter, pick) => round2(items.filter(filter).reduce((total, item) => total + pick(item), 0));
+    const withPayment = items.filter((item) => item.payment > 0);
+    return {
+      items,
+      orphanRows: rows.filter((row) => !used.has(row.index)).map((row) => ({ label: row.label, amount: row.amount })),
+      totals: {
+        contractsPayment: sum((item) => item.payment > 0, (item) => item.payment),
+        missingPayment: sum((item) => item.status === "fuera-del-plan", (item) => item.payment),
+        planFinancing: round2(rows.reduce((total, row) => total + row.amount, 0)),
+        suspendedInPlan: sum((item) => item.status === "suspendido-en-plan", (item) => item.row.amount),
+      },
+      // Para el simulador: si todas las cuotas que se pagan están en el plan por su nombre, ninguna, o algunas.
+      coverage: !withPayment.length ? "sin-cuotas"
+        : withPayment.every((item) => item.status === "en-plan" || item.status === "importe-distinto") ? "todas"
+          : withPayment.some((item) => item.status === "en-plan" || item.status === "importe-distinto") ? "algunas" : "ninguna",
+    };
+  }
+
   return {
     parseBulkContracts,
     parseSpanishNumber,
@@ -472,5 +561,6 @@
     nextCheaperPrepaymentWindow,
     fiscalAdjustedDebtPriority,
     simulateDebtConsolidation,
+    matchPlanInstallments,
   };
 });

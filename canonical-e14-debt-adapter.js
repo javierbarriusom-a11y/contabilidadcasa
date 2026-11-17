@@ -229,6 +229,19 @@
       .filter((account) => account.id);
   }
 
+  function planInstallmentsSummary(plan) {
+    if (!plan || !Array.isArray(plan.items)) return null;
+    const paying = plan.items.filter((item) => item.payment > 0);
+    return {
+      monthKey: monthKey(plan.monthKey),
+      monthLabel: String(plan.monthLabel || ""),
+      coverage: String(plan.coverage || ""),
+      enPlan: paying.filter((item) => item.status === "en-plan" || item.status === "importe-distinto").length,
+      conCuota: paying.length,
+      fuera: round2(plan.totals?.missingPayment),
+    };
+  }
+
   function buildReadModel(input = {}) {
     const contracts = clone(Array.isArray(input.contracts) ? input.contracts : []);
     const priorState = clone(input.roadmapState && typeof input.roadmapState === "object" ? input.roadmapState : {});
@@ -267,6 +280,8 @@
       fixedAccounts,
       extraDebts: extraDebtAccounts(contracts, entityA, entityB, input.payoffPath),
       // El mismo «hoy» que Deuda › Ruta (camino-deuda-ui.js: el mes de hoy); si no llega, el primer mes de la previsión.
+      // SVD-R1: cuántas de las cuotas que se pagan están en el plan (por el nombre de la entidad), y de qué mes.
+      cuotasPlan: planInstallmentsSummary(input.planInstallments),
       ruta: rutaSummary(extraSourceContracts(contracts, entityA, entityB), input.payoffPath, input.startMonthKey || forecast.startMonth),
       forecast,
       roadmapState: priorState,
@@ -413,7 +428,10 @@
     const agreement = input.agreement || {};
     const contract = input.contract || {};
     const principal = round2(agreement.principalAtAcceptance ?? contract.currentPrincipal);
-    const relief = input.cuotasEnPlan && contract.paymentStatus === "active" ? round2(Math.max(0, number(contract.currentPayment))) : 0;
+    // SVD-R1: si la app sabe qué partida del plan lleva esta cuota, se resta esa (`relief`); si no, la casilla del simulador.
+    const relief = input.relief !== undefined && input.relief !== null
+      ? round2(Math.max(0, number(input.relief)))
+      : input.cuotasEnPlan && contract.paymentStatus === "active" ? round2(Math.max(0, number(contract.currentPayment))) : 0;
     const label = [contract.entity, contract.type].filter(Boolean).join(" ").trim() || "deuda";
     return {
       name: `Acuerdo aceptado · ${label}`,

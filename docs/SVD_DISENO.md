@@ -342,7 +342,7 @@ antes) tiene que bajarlo a 0.
 
 **Lo que NO hace, a propósito, y pasa a SVD-2b:**
 
-1. **«Esperar» sigue sin pagar la cuota de ahora en el simulador.** Para que la pague hace falta decidir contra qué capacidad se compara. La parte de deuda de la previsión (`components.outflow.debt`) es **solo «coche + refinanciación», dos filas del plan**: no sale de los contratos de Deuda › Contratos.
+1. **«Esperar» sigue sin pagar la cuota de ahora en el simulador.** Para que la pague hace falta decidir contra qué capacidad se compara. La parte de deuda de la previsión (`components.outflow.debt`) es **solo «coche + refinanciación», dos filas del plan**: no sale de los contratos de Deuda › Contratos. *(Corregido en §12: son todas las partidas de financiación del plan, no dos filas.)*
    - Si las cuotas de los contratos del hogar no están en el plan, la previsión es optimista y el simulador no puede restarlas «otra vez».
    - Si están como partidas, sí.
    - Hay que mirarlo con el plan del hogar antes de SVD-3: es el riesgo de contar dos veces de §4, y toca D-N12.
@@ -394,7 +394,7 @@ Sin cuota de hoy, el motor hace exactamente lo de antes; las pruebas antiguas no
 
 - Sin marcar, el margen resta las cuotas que paga el simulador.
 - Marcada, no las resta otra vez (`cuotasEnPlan` en el estado).
-- Va sin marcar porque la deuda de la previsión es solo «coche + refinanciación» (§9).
+- Va sin marcar porque la deuda de la previsión es solo «coche + refinanciación» (§9). *(Corregido en §12: son todas las partidas de financiación del plan; desde SVD-R1 el simulador dice cuántas cuotas están.)*
 
 **Dos fallos que ya existían, arreglados de paso:**
 
@@ -501,3 +501,77 @@ marco yo manualmente y subo un justificante».
 
 **Siguiente:** «ponerlos realistas» (D-N22). Se lee como meter las cuotas de los contratos en el plan y recalcular la previsión (D-N12).
 Antes hay que confirmar con el hogar qué quiere decir.
+
+---
+
+## 12. SVD-R1 · ¿Están las cuotas en el plan? (17/11/2026, primer paso de «ponerlos realistas»)
+
+**Por qué este paso y no otro:** «ponerlos realistas» (D-N22) se leía como «meter las cuotas de los contratos en el plan y recalcular
+la previsión». Hacerlo a ciegas era arriesgado:
+
+- si las cuotas ya están como partidas, meterlas otra vez haría que la previsión las pagase dos veces;
+- si no están, la previsión es optimista.
+
+Se pidió al hogar el dato. Mirando el código, se puede contestar sin preguntar.
+
+**Corrección de un hallazgo anterior (§9 y §10):** escribí que la deuda de la previsión era «solo coche + refinanciación, dos filas del
+plan». **No es así.**
+
+- `refi` suma **todas** las partidas de gasto que `isFinancingPlanningRow` clasifica como financiación: las de una sección cuyo nombre
+  contiene «financi», o cuyo concepto dice refinanciación, préstamo, tarjeta, crédito, Visa, Mastercard y similares.
+- `car` suma las del coche.
+
+Así que las cuotas de los contratos pueden estar ya en la previsión, como partidas de financiación de Plan › Mes. Lo que hacía falta
+era cruzarlas.
+
+**Qué hace:**
+
+- **`matchPlanInstallments`** (`canonical-debt-contracts.js`, puro) cruza cada contrato con las partidas de financiación de un mes.
+  Para enlazar usa el nombre de la entidad, sin palabras genéricas como «banco», «caja», «préstamo» o «tarjeta», y sin acentos. También
+  sirven los 4 últimos dígitos del número de contrato. Cada partida se asigna a un solo contrato. El resultado de cada contrato es uno de estos:
+
+  | Resultado | Cuándo |
+  |---|---|
+  | **en el plan** | una partida lleva su nombre y su importe (±2 % o ±1 €) |
+  | **en el plan, otro importe** | una partida lleva su nombre, pero el importe es otro; se dice la diferencia |
+  | **¿es esta?** | ninguna lleva su nombre, pero hay una única partida libre con el mismo importe; no se da por buena |
+  | **no está en el plan** | ninguna de las anteriores: la previsión no paga esa cuota y es optimista en esa cifra |
+  | **suspendido, pero en el plan** | el contrato no paga cuota, pero una partida con su nombre sí: la previsión es pesimista en esa cifra |
+
+  Además, lista las partidas de financiación que no corresponden a ningún contrato: o son deudas que faltan en Contratos, o su nombre no
+  dice la entidad.
+- **El puente** (`svdCuotasPlanModelo`) lee las partidas del mes que viene con la misma función que la previsión
+  (`planningBreakdownMemoized`), es decir, los gastos de tipo `refi`.
+- **Deuda › Contratos** tiene un bloque plegado, «¿Están las cuotas en el plan? (mes)». Muestra cada contrato con su estado y su partida,
+  la cifra que la previsión no paga o paga de más, y las partidas sin contrato. Es una lista, no una tabla, para que se lea a 390 px. **No cambia nada.**
+- **En el simulador**, junto a la casilla «las cuotas ya están en el plan», una línea dice cuántas lo están según Plan › Mes y cuánto falta.
+  **No marca la casilla**, porque nada se cambia en silencio.
+- **Al aplicar un acuerdo (SVD-3), la cuota que deja de restarse es la de la partida del plan que lleva el nombre de la entidad**, con el
+  importe de esa partida, que es el que resta la previsión. Antes se usaba la casilla, que vale para todas las cuentas a la vez. En los
+  demás casos no se resta nada:
+  - si no hay partida con su nombre;
+  - si la partida es solo del mismo importe: la hoja lo dice («ponle el nombre en Plan › Mes»);
+  - si el contrato está suspendido.
+
+  La casilla solo se usa si el plan no se puede leer.
+
+**Arreglado de paso:** el simulador escribía «1.500 € €» en el texto del acuerdo aceptado (SVD-3), porque `svdEuro` ya pone el símbolo.
+
+**Lo que falta para «realistas»** es meter en el plan las cuotas que no están, o corregir las que tienen otro importe. Eso es escribir
+en Plan › Mes, y se hará cuando el hogar vea el cuadre y diga cuáles. Las partidas «¿es esta?» y las que no tienen contrato las tiene
+que mirar el hogar: la app no puede saber de quién son.
+
+**Pruebas:**
+
+- `tests/svdr1-cuotas-en-plan.test.cjs` (10):
+  - los cinco estados;
+  - que las palabras genéricas no enlazan y los acentos no estorban;
+  - el número de contrato;
+  - que una partida no se asigna dos veces;
+  - la cobertura;
+  - la cuota que deja de restarse;
+  - el resumen del modelo de lectura;
+  - que el puente lee los gastos `refi`.
+- e2e «SVD-R1»: contrato con partida y sin ella; el bloque plegado de Contratos; la línea del simulador; el acuerdo, que resta la partida
+  del plan aunque la casilla esté sin marcar; y sin «€ €».
+- A 390 px, el bloque abierto no desborda y axe no da fallos.

@@ -16,6 +16,8 @@ function debtRoadmapCanonicalReadModel() {
     // con la misma cuenta que Deuda › Ruta.
     payoffPath: window.FinanceCanonicalDebtPayoffPath || null,
     startMonthKey: typeof isoLocalDate === "function" ? isoLocalDate(new Date()).slice(0, 7) : undefined,
+    // SVD-R1: qué cuotas de Contratos están en el plan, para que el simulador lo diga junto a su casilla.
+    planInstallments: typeof svdCuotasPlanModelo === "function" ? svdCuotasPlanModelo() : null,
   }) || null;
 }
 
@@ -108,9 +110,21 @@ function svdMesTexto(key) {
   return new Date(Number(match[1]), Number(match[2]) - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 }
 
+// SVD-R1: la cuota que deja de pagarse en el plan es la de la partida del plan que lleva el nombre de la entidad (con su importe,
+// que es el que resta la previsión). Sin esa partida, nada: restar una cuota que el plan no tiene inventaría liquidez. Solo si el
+// plan no se puede leer se usa la casilla del simulador, como en SVD-3.
+function svdCuotaEnPlan(contractId) {
+  const modelo = svdCuotasPlanModelo();
+  if (!modelo) return null;
+  return modelo.items.find((item) => item.id === contractId) || { status: "fuera-del-plan", row: null };
+}
+
 function svdAcuerdoDecision(pending) {
+  const enPlan = svdCuotaEnPlan(pending.built.contractId);
+  const named = enPlan && (enPlan.status === "en-plan" || enPlan.status === "importe-distinto");
   const decision = E14DebtAdapter.agreementPlanDecision({
     agreement: pending.built.agreement, contract: pending.built.contract, monthIndex: pending.monthIndex, cuotasEnPlan: pending.cuotasEnPlan,
+    ...(enPlan ? { relief: named && pending.built.contract.paymentStatus === "active" ? enPlan.row.amount : 0 } : {}),
   });
   const month = forecastMonths()[pending.monthIndex];
   return {
@@ -183,9 +197,18 @@ function svdAcuerdoHojaHtml(pending, impact) {
   const saving = built.saving >= 0
     ? `${money(built.saving, true)} menos que la deuda de hoy`
     : `${money(-built.saving, true)} más que la deuda de hoy (el coste de financiarla)`;
-  const relief = impact.decision.monthlyRelief > 0
-    ? `La cuota de hoy (${money(impact.decision.monthlyRelief, true)}) deja de restarse en el plan desde el mes siguiente al del acuerdo, porque en el simulador está marcado que ya está en el plan.`
-    : "La cuota de hoy no se toca en el plan: en el simulador no está marcado que esté en el plan (o el contrato no la paga).";
+  const enPlan = svdCuotaEnPlan(built.contractId);
+  const relief = (() => {
+    if (!enPlan) {
+      return impact.decision.monthlyRelief > 0
+        ? `La cuota de hoy (${money(impact.decision.monthlyRelief, true)}) deja de restarse en el plan desde el mes siguiente al del acuerdo, porque en el simulador está marcado que ya está en el plan.`
+        : "La cuota de hoy no se toca en el plan: en el simulador no está marcado que esté en el plan (o el contrato no la paga).";
+    }
+    if (impact.decision.monthlyRelief > 0) return `La partida del plan «${enPlan.row.label}» (${money(impact.decision.monthlyRelief, true)} al mes) deja de restarse desde el mes siguiente al del acuerdo.`;
+    if (enPlan.status === "por-importe") return `En el plan hay una partida del mismo importe («${enPlan.row.label}»), pero no lleva el nombre de la entidad: no se toca. Si es esta cuota, ponle el nombre en Plan › Mes.`;
+    if (enPlan.status === "suspendido-en-plan") return `El contrato no paga cuota, pero el plan sí tiene una partida con su nombre («${enPlan.row.label}»): no se toca; revísala en Plan › Mes.`;
+    return "La cuota de hoy no está en el plan: no hay ninguna partida que dejar de restar.";
+  })();
   const low = (point) => (point ? `${money(point.amount, true)} (${escapeHtml(point.label)})` : "sin dato");
   const underFloor = impact.floor !== null && impact.lowAfter && impact.lowAfter.amount < impact.floor;
   return `<span class="action-review-rank">Qué ocurrirá</span>
@@ -408,4 +431,21 @@ function setupSvdAcuerdoActions() {
     const ver = event.target.closest?.("[data-svd-ver-justificante]");
     if (ver) { event.preventDefault(); svdVerJustificante(ver.dataset.svdVerJustificante); }
   });
+}
+
+// SVD-R1 (17/11/2026, «ponerlos realistas»): las cuotas de Contratos frente a las partidas de financiación del plan del mes
+// que viene, que son lo que la previsión cuenta como deuda (`refi`, isFinancingPlanningRow). Si el mes que viene no existe en
+// la previsión, el de hoy. Lo mismo que lee la previsión: planningBreakdownMemoized → expenseEvents con field "refi".
+function svdCuotasPlanModelo() {
+  if (!DebtContracts?.matchPlanInstallments || typeof planningBreakdownMemoized !== "function") return null;
+  const months = forecastMonths();
+  const month = months[1] || months[0];
+  if (!month) return null;
+  const detail = planningBreakdownMemoized(month.index, addMonths(modelStartDate(), month.index));
+  const byConcept = new Map();
+  (detail?.expenseEvents || []).filter((event) => event.field === "refi").forEach((event) => {
+    byConcept.set(event.concept, round2((byConcept.get(event.concept) || 0) + Number(event.amount || 0)));
+  });
+  const rows = [...byConcept.entries()].map(([label, amount]) => ({ label, amount }));
+  return { monthKey: month.key, monthLabel: month.label, ...DebtContracts.matchPlanInstallments(debtContractSourceRows(), rows) };
 }

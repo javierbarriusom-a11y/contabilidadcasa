@@ -113,6 +113,32 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (487): SVD-R1, ¿están las cuotas en el plan? (primer paso de «ponerlos realistas»); despliegues de #631 y #632
+
+- **Despliegues:**
+  - #631 (SVD-2b): «Verify and deploy Pages» 1454 en verde y «Published availability» 360 en verde.
+  - #632 (SVD-3): 1456 en verde (16:10 UTC) y «Published availability» 361 en verde.
+- **El hogar dijo «Continúa»** sin contestar si las cuotas de los contratos están en Plan › Mes. En vez de meterlas a ciegas, que podía hacer que la previsión las pagase dos veces, la app lo comprueba.
+- **Corrección de un hallazgo mío** (entradas 483 y 485, `docs/SVD_DISENO.md` §9 y §10): la deuda de la previsión **no** es «coche + refinanciación, dos filas del plan». Son todas las partidas que `isFinancingPlanningRow` clasifica como financiación (una sección «Financi…», o un concepto con préstamo, tarjeta, crédito…), más las del coche. Las cuotas pueden estar ya en la previsión.
+- **`matchPlanInstallments`** (`canonical-debt-contracts.js`, puro): cruza cada contrato con las partidas de financiación de un mes.
+  - Enlaza por el nombre de la entidad, sin palabras genéricas ni acentos, o por los 4 últimos dígitos del número de contrato.
+  - Cada partida se asigna a un contrato como mucho.
+  - Resultados posibles: en el plan / otro importe / ¿es esta? (solo por importe) / no está / suspendido pero en el plan.
+  - Lista también las partidas de financiación sin contrato.
+- **Deuda › Contratos:** bloque plegado «¿Están las cuotas en el plan? (mes)», con el estado y la partida de cada contrato, lo que la previsión no paga o paga de más y las partidas sin contrato. Lee las partidas del mes que viene con la misma función que la previsión (gastos `refi`). No cambia nada.
+- **Simulador:** junto a la casilla «las cuotas ya están en el plan», una línea con cuántas lo están según Plan › Mes y cuánto falta. No marca la casilla.
+- **SVD-3, mejor:** al aplicar un acuerdo, deja de restarse la partida del plan que lleva el nombre de la entidad, con su importe. Si no hay partida a su nombre, no se resta nada, y la hoja lo explica. La casilla del simulador solo se usa si el plan no se puede leer.
+- **Arreglado de paso:** el simulador escribía «1.500 € €» en el texto del acuerdo aceptado (SVD-3), porque `svdEuro` ya pone el símbolo.
+- **Pendiente con el hogar:** meter en el plan las cuotas que falten, o corregir las de otro importe, cuando vea el cuadre y diga cuáles; y decir de quién son las partidas «¿es esta?» y las que no tienen contrato.
+- Versiones con `?v=20261117svdr1`. Línea en Novedades.
+- **Pruebas:**
+  - `tests/svdr1-cuotas-en-plan.test.cjs` (10);
+  - `deuda-alta-varios-contratos.test.cjs` actualizada a propósito (versiones);
+  - e2e «SVD-R1» (Contratos, simulador, acuerdo con la partida del plan, sin «€ €»);
+  - el bloque abierto a 390 px no desborda (se pasó de tabla a lista porque la tabla medía 1.120 px) y axe no da fallos.
+- **Una prueba que fallaba al azar, arreglada:** XDA-04 (periodo que cubre el extracto). Comprobaba que el registro no guardase importes buscando «94» en todo el texto, y falló porque la marca de tiempo `recordedAt` terminaba en «…02.894Z». Ahora la comprobación deja fuera la marca de tiempo; la regla de privacidad que vigila no cambia. Repetida 4 veces, en verde.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.712/6.712 (+10); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. **Batería completa de navegador en local: 447 de 448**. El fallo fue XDA-04, por la causa de arriba; ya arreglada, pasa. Safari, solo en el CI.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (486): SVD-3, aplicar un acuerdo aceptado con su justificante; #631 fusionado
 
 - **#631 (SVD-2b) fusionado** con el CI en verde. Despliegue: ejecución 1454 en curso al abrir este PR; su resultado y el de «Published availability» van en la entrada siguiente.

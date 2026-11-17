@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-17-cuotas-en-el-plan",
+      fecha: "2026-11-17",
+      texto: "Deuda › Contratos: «¿Están las cuotas en el plan?» dice qué cuota paga ya la previsión y cuál falta.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-11-17-simulador-acuerdo-aceptado",
       fecha: "2026-11-17",
       texto: "Simulador de deuda: «La entidad lo ha aceptado» aplica el acuerdo con su justificante a Contratos, plan y Ruta de una vez.",
