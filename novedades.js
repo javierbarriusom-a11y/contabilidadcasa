@@ -19,7 +19,7 @@
     {
       id: "2026-11-17-simulador-acuerdo-aceptado",
       fecha: "2026-11-17",
-      texto: "Deuda › Simulador visual: «La entidad lo ha aceptado» aplica el acuerdo, con su justificante, a Contratos, al plan y a Ruta de una vez, y se deshace igual.",
+      texto: "Simulador de deuda: «La entidad lo ha aceptado» aplica el acuerdo con su justificante a Contratos, plan y Ruta de una vez.",
       href: "#deuda-simulador",
     },
     {

@@ -113,6 +113,46 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (486): SVD-3, aplicar un acuerdo aceptado con su justificante; #631 fusionado
+
+- **#631 (SVD-2b) fusionado** con el CI en verde. Despliegue: ejecución 1454 en curso al abrir este PR; su resultado y el de «Published availability» van en la entrada siguiente.
+- **Petición del hogar (D-N21, D-N22):** el hogar marca a mano lo aceptado y sube un justificante; SVD-3 va después de SVD-2b.
+- **En el simulador**, cada cuenta con contrato real tiene «La entidad lo ha aceptado: aplicar el acuerdo».
+  - Toma la estrategia, el pago único, la cuota, el plazo y el mes de la cuenta.
+  - Se niega, con el motivo, si la cuenta está en «Esperar», si falta el importe o la cuota, si el mes ya ha pasado o queda fuera de la previsión, o si ya hay un acuerdo o una decisión en el plan para esa deuda.
+- **La hoja «Qué ocurrirá»** (en la app) enseña antes de tocar nada:
+  - el contrato hoy y con el acuerdo, con la quita o lo que cuesta financiarlo;
+  - el dinero que sale;
+  - el punto más bajo de la cuenta y la liquidez al final de la previsión, antes y después, frente al suelo;
+  - la fecha de deuda cero de Ruta, antes y después.
+  Sin justificante, no deja aplicar.
+- **Al confirmar, una sola operación:**
+  - el contrato guarda el acuerdo (`debtContractOverrides`, el mismo sitio que las correcciones, sin clave nueva ni líneas en `app.js`);
+  - el plan, una decisión aprobada con el dinero (`applyDebtDecision`);
+  - el acta, su entrada;
+  - el justificante, `P2PrivateStore`.
+  Un «Deshacer» de 30 s lo devuelve todo.
+- **En Contratos:** «Acuerdo aceptado» con sus términos, «Ver justificante» y «Quitar el acuerdo» (que cancela también la decisión del plan, con acta y «Deshacer»). Un acuerdo no cuenta como «Editado».
+- **Ruta, Préstamo y Patrimonio** (`canonical-debt-payoff-path.js`) siguen el acuerdo desde su mes:
+  - hasta entonces, la cuota de hoy, o el saldo quieto si el contrato está suspendido;
+  - ese mes, el pago único y las cuotas pactadas, y la deuda saldada con la última;
+  - el extra no va a una deuda con acuerdo.
+  Sin acuerdo aceptado, las mismas cifras de antes, con prueba.
+- **Me aparto del diseño en un punto, y lo dejo escrito** (`docs/SVD_DISENO.md` §11): el capital del contrato **no** baja. Hoy ya descuenta la deuda que cubre una decisión del plan, y bajarla también en el contrato la contaría dos veces. El contrato guarda la deuda y cómo se paga; el plan, el dinero.
+- **La cuota de hoy** solo deja de restarse en el plan si la casilla del simulador dice que está en el plan; si no, se inventaría liquidez.
+- **Límites que quedan a la vista:**
+  - una refinanciación hace que Hoy dé la deuda por cubierta, como cualquier decisión de deuda;
+  - «Deshacer» no borra la copia cifrada en la nube, si se subió;
+  - el diálogo de la clave dice «esta foto».
+- **Pendiente con el hogar:** qué es «ponerlos realistas». Se lee como meter las cuotas en el plan y recalcular la previsión (D-N12), sin confirmar. Antes hay que saber si las cuotas de los contratos ya están como partidas en Plan › Mes, o se pagarían dos veces en la previsión.
+- Versiones con `?v=20261117svd3` (`debt-roadmap.html`, contratos, Ruta, adaptador, puente, `views/deuda.js` y Novedades). Línea en Novedades.
+- **Pruebas:**
+  - `tests/svd3-acuerdo-aceptado.test.cjs` (12);
+  - 3 actualizadas a propósito (el campo `acuerdo`, las funciones nuevas de la fila de Contratos y las versiones);
+  - e2e «SVD-3 · Aplicar un acuerdo aceptado con su justificante» (2): el flujo entero, del simulador al «Deshacer», con Contratos, plan, acta, Hoy, previsión y Ruta, y «Quitar el acuerdo»;
+  - la hoja a 390 px, axe sin fallos.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.702/6.702 (+12); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. **Batería completa de navegador en local: 447/447** (Chromium). Safari, solo en el CI.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (485): SVD-2b, «Esperar» paga la cuota de hoy y el simulador cuadra con Ruta
 
 - **Decisión del hogar (D-N22, 17/11):** «De momento, vamos con SVD-2b: que "Esperar" siga pagando la cuota de hoy y que el simulador cuadre con Ruta. Después vendría SVD-3, aplicar un acuerdo aceptado con su justificante, y luego los ponemos realistas». «Realistas» se lee como meter las cuotas de los contratos en el plan y recalcular la previsión (D-N12); está sin confirmar.
