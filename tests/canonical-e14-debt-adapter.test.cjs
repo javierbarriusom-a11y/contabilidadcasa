@@ -78,6 +78,8 @@ test("extraDebts expone las deudas reales adicionales a Entidad A/B, excluyendo 
     fingerprint: "1200|-|-|-|active|-",
     // SVD-2b: sin cuota declarada, Ruta no la incluye y en «Esperar» no paga nada.
     cuotaDeHoy: null, fueraDeRuta: "sin-cuota-activa",
+    // SVD-3: sin acuerdo aceptado.
+    acuerdo: null,
   }]);
 });
 

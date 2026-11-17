@@ -786,6 +786,8 @@ test("D-2 · la insignia «Editado» solo aparece cuando el contrato tiene overr
       extractFunction("deudaContratosQualityBadge"),
       extractFunction("deudaContratosStatusOptionsHtml"),
       extractFunction("deudaContratosProgressHtml"),
+      extractFunction("deudaContratoEditadoAMano"),
+      extractFunction("deudaContratosAcuerdoHtml"),
       extractFunction("deudaContratosRowHtml"),
     ].join("\n"),
     context
@@ -801,7 +803,7 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
   const written = {};
   let notedText = "";
   const context = sandboxWith(
-    ["deudaContratosStatusBadge", "deudaContratosQualityBadge", "deudaContratosStatusOptionsHtml", "deudaContratosProgressHtml", "deudaContratosRowHtml", "renderDeudaContratos"],
+    ["deudaContratosStatusBadge", "deudaContratosQualityBadge", "deudaContratosStatusOptionsHtml", "deudaContratosProgressHtml", "deudaContratoEditadoAMano", "deudaContratosAcuerdoHtml", "deudaContratosRowHtml", "renderDeudaContratos"],
     {
       escapeHtml: (value) => String(value ?? ""),
       round2: (value) => Math.round(Number(value) * 100) / 100,

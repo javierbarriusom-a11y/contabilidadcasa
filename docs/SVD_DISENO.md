@@ -417,3 +417,87 @@ Sin cuota de hoy, el motor hace exactamente lo de antes; las pruebas antiguas no
   de Ruta.
 
 **Siguiente: SVD-3** (D-N21: el hogar marca el acuerdo como aceptado y sube un justificante).
+
+---
+
+## 11. SVD-3 · resultado (17/11/2026)
+
+**Petición del hogar:** «Después vendría SVD-3, aplicar un acuerdo aceptado con su justificante» (D-N22), con D-N21: «Lo aceptado lo
+marco yo manualmente y subo un justificante».
+
+**Qué se ve:**
+
+- **En el simulador, en cada cuenta con contrato real**, un botón «La entidad lo ha aceptado: aplicar el acuerdo». Toma lo que dice la
+  cuenta: la estrategia, el pago único, la cuota, el plazo y el mes. Se niega, y dice por qué, en estos casos:
+  - la cuenta está en «Esperar»;
+  - no hay importe, o no hay cuota ni plazo;
+  - el primer pago ya ha pasado o queda fuera de la previsión;
+  - el contrato ya tiene un acuerdo aceptado;
+  - la deuda ya tiene una decisión en el plan.
+- **La hoja «Qué ocurrirá»** (en la app, fuera del `iframe`), antes de tocar nada:
+  - el contrato hoy y con el acuerdo (total pactado, y la quita o lo que cuesta financiarla);
+  - el dinero que sale;
+  - el punto más bajo de la cuenta y la liquidez al final de la previsión, antes y después, con el suelo del hogar y un aviso si se baja de él;
+  - la fecha de deuda cero de Ruta, antes y después;
+  - **el justificante, obligatorio**: «Aplicar el acuerdo» no se activa sin él.
+- **Al confirmar, en una sola operación:**
+  - **el contrato** guarda el acuerdo, con su tipo, mes, importes, fecha, justificante y la decisión que lleva su dinero;
+  - **el plan** recibe una decisión aprobada con el pago único y las cuotas pactadas (`applyDebtDecision` de siempre);
+  - **el acta** anota esa decisión;
+  - **el justificante** queda en el dispositivo, o cifrado en la nube con la clave de sesión (`P2PrivateStore`, el mismo de las fotos de recibos).
+- **Un solo «Deshacer»** (30 s) devuelve el contrato, el plan, el acta y el flujo de decisiones a como estaban, y borra el justificante del dispositivo.
+- **En Deuda › Contratos**, la fila dice «Acuerdo aceptado» con sus términos, y tiene dos botones:
+  - «Ver justificante»;
+  - «Quitar el acuerdo»: retira el acuerdo del contrato y cancela su decisión en el plan, con su entrada en el acta y su propio «Deshacer».
+  Un acuerdo no cuenta como «Editado».
+- **Ruta, Préstamo y Patrimonio** (`canonical-debt-payoff-path.js`) respetan el acuerdo desde su mes:
+  - hasta ese mes, el contrato sigue con su cuota de hoy; si está suspendido, su saldo se queda quieto;
+  - ese mes se paga el pago único y empiezan las cuotas pactadas;
+  - con la última, la deuda queda saldada;
+  - el extra de Ruta no va a una deuda con acuerdo, sino a la siguiente;
+  - un contrato suspendido con acuerdo entra en Ruta (antes quedaba fuera por no tener cuota).
+  Sin acuerdo aceptado, las cifras son exactamente las de antes: hay una prueba que lo comprueba.
+
+**En qué se aparta del diseño del §5, y por qué:**
+
+1. **El capital del contrato no se cambia.** El §5 decía «capital nuevo» en el contrato. Pero Hoy ya descuenta la deuda que cubre una
+   decisión del plan (`plannedDebtPrincipalByTarget`). Bajar también el capital la habría descontado dos veces. La regla del §4 se cumple
+   así: el contrato guarda la deuda y cómo se paga (el acuerdo), y el plan guarda el dinero que sale. Ruta, que no leía las decisiones del
+   plan, ahora lee el acuerdo.
+2. **El acuerdo se guarda junto a las correcciones del contrato** (`debtContractOverrides`), no en una clave nueva. Así viaja con la copia
+   de seguridad y la sincronización de siempre, sin tocar `app.js`.
+3. **La cuota de hoy solo deja de restarse en el plan si la casilla del simulador dice que está en el plan** (SVD-2b). Si no, sumar esa
+   cuota «liberada» inventaría liquidez. Cuando se resta, empieza el mes siguiente al del acuerdo, porque es la regla de siempre de las
+   decisiones de deuda: la previsión paga una cuota de más, lo que la deja del lado prudente.
+4. **«Lo hemos propuesto» con fecha queda para SVD-4**, junto con las tareas, que es donde escribe fuera.
+5. **Las cuentas de ejemplo (`cb`/`bk`) no tienen el botón:** solo las cuentas enlazadas a un contrato real.
+
+**Límites que quedan a la vista:**
+
+- **Una refinanciación aceptada** hace que Hoy dé la deuda por cubierta por el plan, como cualquier decisión de deuda de antes, aunque
+  siga existiendo como préstamo nuevo. Ruta y Préstamo sí la ven hasta su última cuota.
+- **«Deshacer» borra el justificante del dispositivo, pero no la copia cifrada de la nube**, si se subió. Queda huérfana, cifrada, y
+  sin nada que apunte a ella.
+- **El diálogo de la clave de sesión dice «esta foto»** aunque el justificante sea un PDF. Es el texto común del almacén privado.
+
+**Pruebas:**
+
+- `tests/svd3-acuerdo-aceptado.test.cjs` (12) comprueba:
+  - el rastro del acuerdo en el contrato;
+  - que sin acuerdo aceptado Ruta no cambia;
+  - que Ruta respeta cada tipo de acuerdo: quita, refinanciación de un contrato suspendido, híbrido y acuerdo empezado antes del mes de partida;
+  - que el extra no va a una deuda con acuerdo;
+  - qué acuerdo sale de cada cuenta y por qué se niega;
+  - la decisión del plan, con y sin la cuota en el plan;
+  - que nada se cuenta dos veces: lo que sale del plan es lo pactado, el capital del contrato no cambia y Ruta paga lo mismo;
+  - que el modelo de lectura marca el acuerdo y que la comparación con «todas en Esperar» lo deja fuera.
+- Pruebas actualizadas a propósito: `canonical-e14-debt-adapter.test.cjs` (el campo `acuerdo`), `d1-d2-deuda-tabs-contratos.test.cjs`
+  (las funciones nuevas de la fila) y `deuda-alta-varios-contratos.test.cjs` (versiones).
+- e2e «SVD-3 · Aplicar un acuerdo aceptado con su justificante» (2):
+  - el flujo entero desde el simulador: el contrato, el plan, el acta, Hoy (2.400 € menos), la previsión (1.500 € menos), Ruta
+    (saldada el mes del acuerdo), el justificante en el dispositivo y «Deshacer» de todo;
+  - Contratos: «Acuerdo aceptado», sin «Editado», y «Quitar el acuerdo».
+- La hoja, a 390 px: axe sin fallos.
+
+**Siguiente:** «ponerlos realistas» (D-N22). Se lee como meter las cuotas de los contratos en el plan y recalcular la previsión (D-N12).
+Antes hay que confirmar con el hogar qué quiere decir.

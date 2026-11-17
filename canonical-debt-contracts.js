@@ -72,7 +72,23 @@
       duration: Math.max(0, Math.floor(number(agreement.duration ?? raw.agreementDuration))),
       startMonth: monthKey(agreement.startMonth || raw.agreementStartMonth),
       source: String(agreement.source || raw.agreementSource || "").trim(),
+      // SVD-3 (17/11/2026): un acuerdo aceptado desde el simulador visual de deuda guarda también de qué tipo es, cuándo se
+      // aceptó, el justificante (D-N21: obligatorio) y la decisión del plan que lleva su dinero, para poder deshacerlo todo
+      // junto. Solo se copian si vienen: los acuerdos de antes no cambian.
+      ...agreementTrace(agreement),
     };
+  }
+
+  const AGREEMENT_TRACE_FIELDS = ["type", "acceptedAt", "documentId", "documentName", "documentStorage", "decisionId", "principalAtAcceptance"];
+
+  function agreementTrace(agreement) {
+    const trace = {};
+    AGREEMENT_TRACE_FIELDS.forEach((field) => {
+      const value = agreement[field];
+      if (value === undefined || value === null || value === "") return;
+      trace[field] = field === "principalAtAcceptance" ? nonNegative(value) : String(value).trim();
+    });
+    return trace;
   }
 
   function known(value) {
