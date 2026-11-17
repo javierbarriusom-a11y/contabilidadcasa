@@ -113,6 +113,34 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (483): SVD-2, el simulador visual de deuda lee de Contratos lo que dice cada deuda
+
+- **Petición del hogar (17/11):** «Sigue con SVD-2». Va en el mismo PR que SVD-1 (#630): el aviso de commits sin subir obligó a subirlo antes de que #630 se fusionara.
+- **Modelo de lectura v2** (`canonical-e14-debt-adapter.js`, sin quitar nada de v1):
+  - por contrato: TAE, cuota, cuotas pendientes, estado, pagos suspendidos, atraso y sus meses, y revolving. Lo que no se sabe llega en `null`, no 0;
+  - una huella por contrato (`contractFingerprint`);
+  - la capacidad de los 12 primeros meses;
+  - el suelo del hogar, que manda `deuda-simulador-puente.js`.
+- **En el simulador:**
+  - cada cuenta real con «De Contratos, solo lectura: …» y el enlace a Contratos;
+  - deriva: si el contrato cambia después de verlo aquí, lo dice («TAE: 21,9 → 19,5») con «Entendido», guardado en `acct_<id>_base`;
+  - bajo la calculadora, el mes más justo, si el mes más caro del escenario no cabe y el suelo (aviso si la reserva a preservar queda por debajo);
+  - sin contratos de ejemplo, ni rastro de «Entidad C»;
+  - cifras con los miles agrupados, como `money()`.
+- **Accesibilidad:** las etiquetas, unidas a sus campos. axe crítico a 390 px, **de 28 a 0**, y el trinquete del CI baja a 0. Queda el contraste (serio), para SVD-6.
+- **Corrección de lo escrito en SVD-0:** la TAE del bloque de cada cuenta del simulador es la de la *refinanciación* (un supuesto del hogar), no la del contrato. La del contrato llega aparte, de solo lectura.
+- **Hallazgo que frena SVD-2b y SVD-3:** la parte de deuda de la previsión (`components.outflow.debt`) es **solo «coche + refinanciación», dos filas del plan**, y no sale de Deuda › Contratos.
+  - Si las cuotas de los contratos del hogar no están como partidas del plan, la previsión es optimista y el simulador no puede restarlas «otra vez».
+  - Por eso «Esperar» sigue sin pagar la cuota de ahora en el simulador, y la paridad de motores y el margen mes a mes pasan a **SVD-2b**.
+  - **Pregunta al hogar:** ¿están las cuotas de sus siete contratos como partidas en Plan › Mes?
+- **Despliegue de #629:** ejecución 1449, aún en curso al escribir esto (más lenta que otras); su resultado y «Published availability», en la entrada siguiente.
+- **Pruebas:**
+  - `tests/svd2-simulador-lectura.test.cjs` (5);
+  - actualizadas a propósito: `tests/canonical-e14-debt-adapter.test.cjs` (1) y `tests/svd0-simulador-contrato.test.cjs` (3);
+  - e2e «SVD-2 · El simulador visual de deuda lee Contratos y avisa si cambian»;
+  - trinquete de axe a 0. Versiones `?v=20261117svd2` y línea en Novedades.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.685/6.685 (+5); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Las e2e y el axe del bloque SVD, 4/4 en Chromium. La batería completa de navegador estaba en marcha al subir: su resultado va en el PR, y no se fusiona sin ella.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (482): SVD-1, el simulador visual de deuda con los contratos reales del hogar; #629 fusionado
 
 - **Decisiones del hogar (17/11):**
