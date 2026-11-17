@@ -113,6 +113,17 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (484): despliegues de #629 y #630 (SVD-1 y SVD-2 en el sitio)
+
+- **Despliegue de #629** (Safari con movimiento reducido; `main` `32b9c64`): ejecución **1449**, en verde a las 09:25Z, Safari incluido. «Published availability» **358** (a mano), en verde.
+  - Como el despliegue de #628 (1447) había fallado, con este se publicó también #628 (décima auditoría y bloque SVD con SVD-0), que no cambia la app.
+- **#630 fusionado** (`main` `a074562`, 09:45Z) con su CI en verde a la primera (ejecución 1451, Safari incluido) y la batería local de 444/444.
+  - Despliegue: ejecución **1452**, en verde a las 10:54Z. «Published availability» **359** (a mano), en verde.
+  - **SVD-1 y SVD-2 ya están en el sitio:** el simulador deja de sumar las cuentas de ejemplo y lee de Contratos cada deuda.
+- **Lo que tiene que hacer el hogar al abrir Deuda › Simulador visual:** contestar una vez a qué contrato corresponde lo que tenía simulado en «Entidad A / gestor» y en «Entidad B» (o «No corresponde a ninguno»).
+- **Pendiente del hogar para SVD-2b y SVD-3:** si las cuotas de sus siete contratos están como partidas en Plan › Mes (la deuda de la previsión es solo «coche + refinanciación»).
+- Sin cambios de código en esta entrada.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (483): SVD-2, el simulador visual de deuda lee de Contratos lo que dice cada deuda
 
 - **Petición del hogar (17/11):** «Sigue con SVD-2». Va en el mismo PR que SVD-1 (#630): el aviso de commits sin subir obligó a subirlo antes de que #630 se fusionara.
