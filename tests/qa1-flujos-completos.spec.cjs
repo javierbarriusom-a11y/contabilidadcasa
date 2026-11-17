@@ -8481,7 +8481,9 @@ test.describe("XDA-04 · periodo que cubre el extracto", () => {
     await expect(v2).toContainText("2 movimientos importados", { timeout: 15000 });
     const guardado = () => page.evaluate(() => JSON.parse(localStorage.getItem(storageKey("ledger-coverage")) || "null"));
     expect((await guardado()).ranges).toEqual([expect.objectContaining({ account: "CaixaBank", from: "2026-10-01", to: "2026-10-24", source: "declarado", fileName: "octubre.csv" })]);
-    expect(JSON.stringify(await guardado())).not.toMatch(/NOMINA|3000|94/);
+    // Sin conceptos ni importes del extracto. La marca de tiempo (`recordedAt`) se deja fuera de la comprobación: sus milisegundos
+    // pueden contener «94» (falló así el 17/11 con «…02.894Z»), y no es un importe.
+    expect(JSON.stringify(await guardado(), (key, value) => (key === "recordedAt" ? undefined : value))).not.toMatch(/NOMINA|3000|94/);
     // Lo que ven las preguntas de «¿ha llegado…?»: el periodo declarado (unido a lo que ya había en el libro).
     expect(await page.evaluate(() => expectedLedgerCoveredRanges().some((r) => r.from <= "2026-10-01" && r.to === "2026-10-24"))).toBe(true);
     // Deshacer el lote devuelve también el registro.
