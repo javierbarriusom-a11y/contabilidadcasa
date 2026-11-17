@@ -516,7 +516,7 @@ function hoyV2Render(model) {
     <div class="hoy-v2-grid">
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
-        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(model.decisions || [])])}
+        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
         ${hoyV2Repaso()}
         ${hoyV2Esperados()}
       </div>

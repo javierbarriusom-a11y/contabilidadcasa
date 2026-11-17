@@ -21,8 +21,9 @@
   // Es puro: la fecha de hoy y los movimientos fechados del plan llegan por parámetro. No ejecuta nada.
 
   const SCHEMA_ID = "finance-canonical-reminders/v1";
-  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe", "forecast", "weeklyReview"]);
-  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true, forecast: true, weeklyReview: true }) });
+  // SVD-4 (17/11/2026): «debtProposal», el día en que una entidad dijo que contestaría a una propuesta de acuerdo de deuda.
+  const KINDS = Object.freeze(["income", "bigCharge", "monthClose", "fiscal", "rateReview", "cirbe", "forecast", "weeklyReview", "debtProposal"]);
+  const DEFAULTS = Object.freeze({ horizonMonths: 6, incomeLeadDays: 2, bigChargeMin: 500, kinds: Object.freeze({ income: true, bigCharge: true, monthClose: true, fiscal: true, rateReview: true, cirbe: true, forecast: true, weeklyReview: true, debtProposal: true }) });
   // FX-41: el aviso de la previsión llega una semana antes de que cruce el umbral (o hoy, si ya falta menos), para que dé tiempo a actuar.
   const FORECAST_LEAD_DAYS = 7;
   // El repaso semanal va de lunes a domingo (FinanceRepaso.mismaSemana): el aviso, el domingo, el último día para hacerlo.
@@ -77,6 +78,7 @@
    *   cirbe?: Array<{reportDate?: string, renewOn: string}>,
    *   fiscal?: {year: number, total: number, pending: number},
    *   forecast?: Array<{id: string, date: string, title: string, description?: string}>,
+   *   proposals?: Array<{id: string, date: string, title: string, description?: string}>,
    *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
    * }} input
    */
@@ -223,6 +225,15 @@
         if (!crossDate || crossDate < today || !item.title) return;
         const date = addDays(crossDate, -FORECAST_LEAD_DAYS) < today ? today : addDays(crossDate, -FORECAST_LEAD_DAYS);
         put({ uid: `rec-prevision-${slug(item.id)}-${crossDate}`, kind: "forecast", date, title: String(item.title), description: `${item.description ? `${item.description} ` : ""}Es la previsión del ${longDate(today)}: si al descargar otra vez el calendario ya no sale, ya no aplica.` });
+      });
+    }
+    // 7b) SVD-4: las propuestas de acuerdo a una entidad, el día en que dijo que contestaría (lo apunta el hogar en el simulador visual
+    // de deuda). El título, sin nombres ni importes; el detalle, con la entidad y las fechas.
+    if (options.kinds.debtProposal) {
+      (Array.isArray(input.proposals) ? input.proposals : []).forEach((item) => {
+        const date = utc(item?.date) ? isoOf(utc(item.date)) : "";
+        if (!date || date < today || !item.title) return;
+        put({ uid: `rec-propuesta-${slug(item.id)}-${date}`, kind: "debtProposal", date, title: String(item.title), description: String(item.description || "") });
       });
     }
     // 8) El repaso semanal (B5, XUX-03), cada domingo: el hogar dice que aporta pero en noviembre no se hizo ninguno (medidor del 13/11), y sin

@@ -18,6 +18,8 @@ function debtRoadmapCanonicalReadModel() {
     startMonthKey: typeof isoLocalDate === "function" ? isoLocalDate(new Date()).slice(0, 7) : undefined,
     // SVD-R1: qué cuotas de Contratos están en el plan, para que el simulador lo diga junto a su casilla.
     planInstallments: typeof svdCuotasPlanModelo === "function" ? svdCuotasPlanModelo() : null,
+    // SVD-5: si el pago de cada acuerdo sigue en el plan y si ya sale en los extractos.
+    agreementFollowUp: typeof svdSeguimientoModelo === "function" ? svdSeguimientoModelo() : [],
   }) || null;
 }
 
@@ -76,6 +78,7 @@ function setupDebtRoadmapBridge() {
     }
     if (event.data?.type === "finance-debt-roadmap-send-offer") { receiveDebtRoadmapOffer(event.data.payload); return; }
     if (event.data?.type === "finance-debt-roadmap-agreement") { receiveDebtRoadmapAgreement(event.data.payload); return; }
+    if (event.data?.type === "finance-debt-roadmap-save-scenario") { receiveDebtRoadmapScenario(event.data.payload); return; }
     if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
     const nextState = JSON.parse(JSON.stringify(event.data.payload));
     if (debtRoadmapStatesMatch(debtRoadmapState, nextState)) return;
@@ -366,6 +369,7 @@ async function confirmSvdAcuerdo() {
   };
   debtContractOverrides = { ...debtContractOverrides, [contractId]: { ...(debtContractOverrides[contractId] || {}), agreement } };
   saveDebtContractOverrides();
+  svdOlvidarSeguimiento();
   closeSvdAcuerdo();
   render();
   sendDebtRoadmapState();
@@ -399,6 +403,7 @@ function svdQuitarAcuerdo(contractId) {
   else delete nextOverrides[contractId];
   debtContractOverrides = nextOverrides;
   saveDebtContractOverrides();
+  svdOlvidarSeguimiento();
   render();
   sendDebtRoadmapState();
   showUndoToast("Acuerdo quitado del contrato y del plan.", () => {
@@ -429,7 +434,11 @@ function setupSvdAcuerdoActions() {
     const quitar = event.target.closest?.("[data-svd-quitar-acuerdo]");
     if (quitar) { event.preventDefault(); svdQuitarAcuerdo(quitar.dataset.svdQuitarAcuerdo); return; }
     const ver = event.target.closest?.("[data-svd-ver-justificante]");
-    if (ver) { event.preventDefault(); svdVerJustificante(ver.dataset.svdVerJustificante); }
+    if (ver) { event.preventDefault(); svdVerJustificante(ver.dataset.svdVerJustificante); return; }
+    const reapuntar = event.target.closest?.("[data-svd-reapuntar]");
+    if (reapuntar) { event.preventDefault(); svdReapuntarAcuerdo(reapuntar.dataset.svdReapuntar); return; }
+    const liquidar = event.target.closest?.("[data-svd-liquidar]");
+    if (liquidar) { event.preventDefault(); svdMarcarLiquidado(liquidar.dataset.svdLiquidar); }
   });
 }
 
@@ -448,4 +457,192 @@ function svdCuotasPlanModelo() {
   });
   const rows = [...byConcept.entries()].map(([label, amount]) => ({ label, amount }));
   return { monthKey: month.key, monthLabel: month.label, ...DebtContracts.matchPlanInstallments(debtContractSourceRows(), rows) };
+}
+
+// SVD-5 (17/11/2026, «la vuelta»): lo que pasa fuera del simulador con cada acuerdo aceptado (agreementFollowUp,
+// canonical-debt-contracts.js): si su decisión sigue en el plan y si el pago pactado ya sale en los extractos. Se recalcula solo
+// cuando cambia algo de lo que lee: las decisiones, las correcciones de los contratos, los movimientos o el mes (la caché vive en
+// la propia función: este fichero es solo de funciones). Una caché por tiempo devolvía datos viejos tras quitar una decisión.
+function svdSeguimientoModelo() {
+  if (!DebtContracts?.agreementFollowUp) return [];
+  const transactions = baseData?.transactions || [];
+  const inputs = [debtLiquidations, debtLiquidations.length, debtContractOverrides, debtContractCustomEntries, transactions, transactions.length, svdTodayKey()];
+  const cache = svdSeguimientoModelo.cache;
+  if (cache && cache.inputs.length === inputs.length && cache.inputs.every((value, index) => value === inputs[index])) return cache.value;
+  const movements = transactions.map((row) => ({
+    date: row.date,
+    amount: Number(row.amount || 0),
+    label: typeof movementDisplayName === "function" ? movementDisplayName(row) : String(row.movement || ""),
+    details: `${row.movement || ""} ${row.details || ""}`,
+  }));
+  const value = DebtContracts.agreementFollowUp(debtContractSourceRows(), {
+    decisions: debtLiquidations, movements, todayKey: svdTodayKey(),
+  });
+  svdSeguimientoModelo.cache = { inputs, value };
+  return value;
+}
+
+function svdSeguimientoDe(contractId) {
+  return svdSeguimientoModelo().find((item) => item.id === contractId) || null;
+}
+
+function svdOlvidarSeguimiento() {
+  svdSeguimientoModelo.cache = null;
+}
+
+// La decisión de un acuerdo se quitó del plan: se vuelve a apuntar con las mismas cifras (y la partida del plan, SVD-R1), si su
+// mes sigue dentro de la previsión. Con «Deshacer».
+function svdReapuntarAcuerdo(contractId) {
+  const contract = debtContractSourceRows().find((row) => row.id === contractId);
+  const agreement = debtContractOverrides[contractId]?.agreement;
+  if (!contract || !agreement) return;
+  if (typeof laboratorioWriteGuard === "function" && laboratorioWriteGuard("Volver a apuntar el acuerdo")) return;
+  const monthIndex = forecastMonths().findIndex((month) => month.key === agreement.startMonth);
+  if (monthIndex < 0) return announceStatus("El mes del acuerdo ya no está en la previsión: no se puede volver a apuntar su pago.");
+  const snapshot = svdAcuerdoSnapshot();
+  const known = new Set(debtLiquidations.map((item) => item.id));
+  applyDebtDecision(svdAcuerdoDecision({ built: { agreement, contract, contractId }, monthIndex, cuotasEnPlan: false }));
+  const applied = debtLiquidations.find((item) => item.svdAcuerdo && item.targetId === contractId && !known.has(item.id));
+  if (!applied) {
+    svdRestaurar(snapshot);
+    return announceStatus("No se ha podido volver a apuntar el pago del acuerdo en el plan.");
+  }
+  debtContractOverrides = { ...debtContractOverrides, [contractId]: { ...debtContractOverrides[contractId], agreement: { ...agreement, decisionId: applied.id } } };
+  saveDebtContractOverrides();
+  svdOlvidarSeguimiento();
+  render();
+  sendDebtRoadmapState();
+  showUndoToast("Pago del acuerdo apuntado otra vez en el plan.", () => {
+    svdRestaurar(snapshot);
+    svdOlvidarSeguimiento();
+    render();
+    sendDebtRoadmapState();
+  }, 30000);
+}
+
+// El extracto trae el pago pactado: el contrato pasa a «Liquidada» (capital 0) y el acuerdo guarda cuándo y con qué movimiento.
+// La decisión del plan se queda (su mes ya pasó); el acta lo anota. Con «Deshacer».
+function svdMarcarLiquidado(contractId) {
+  const agreement = debtContractOverrides[contractId]?.agreement;
+  const seguimiento = svdSeguimientoDe(contractId);
+  if (!agreement || !seguimiento || seguimiento.estado !== "cumplido") return;
+  if (typeof laboratorioWriteGuard === "function" && laboratorioWriteGuard("Marcar el contrato como liquidado")) return;
+  const snapshot = svdAcuerdoSnapshot();
+  const pago = seguimiento.pago;
+  debtContractOverrides = {
+    ...debtContractOverrides,
+    [contractId]: {
+      ...debtContractOverrides[contractId],
+      paymentStatus: "settled",
+      reunified: false,
+      currentPrincipal: 0,
+      agreement: { ...agreement, fulfilledAt: new Date().toISOString(), ...(pago ? { paymentDate: pago.date, paymentLabel: String(pago.label || "").slice(0, 120) } : {}) },
+    },
+  };
+  saveDebtContractOverrides();
+  const decision = debtLiquidations.find((item) => item.id === seguimiento.decisionId);
+  if (decision) recordDecisionEvent("Ejecutada", { ...decision, source: "debt" }, `Acuerdo cumplido${pago ? `: pago del ${pago.date} en el extracto` : ""}. Contrato liquidado desde Deuda › Contratos.`);
+  svdOlvidarSeguimiento();
+  render();
+  sendDebtRoadmapState();
+  showUndoToast("Contrato marcado como liquidado.", () => {
+    svdRestaurar(snapshot);
+    svdOlvidarSeguimiento();
+    render();
+    sendDebtRoadmapState();
+  }, 30000);
+}
+
+// SVD-4 (17/11/2026): «Guardar esta estrategia como escenario». Lo que dice el simulador, cuenta a cuenta, pasa a Escenarios ›
+// Guardados como un escenario «guardado», sin aplicar (el mismo almacén y las mismas reglas que FX-21 en Plan › Previsión): no
+// guarda dos veces lo mismo, respeta los diez vivos y lo valida con el esquema de Escenarios. Desde allí se carga, se compara y
+// se ve en Previsión («O un escenario guardado»).
+function svdEscenarioAck(ok, message) {
+  qs("debtRoadmapFrame")?.contentWindow?.postMessage({ type: "finance-debt-roadmap-save-scenario-result", ok, message }, window.location.origin);
+}
+
+function receiveDebtRoadmapScenario(payload) {
+  if (!E14DebtAdapter?.scenarioDecisionsFromRoadmap) return;
+  if (typeof loadEscenarioMotorSaved !== "function" || typeof saveEscenarioMotorSavedList !== "function" || typeof escenarioMotorNewDecisionId !== "function") {
+    return svdEscenarioAck(false, "Escenarios no está disponible: no se ha guardado nada.");
+  }
+  const { decisions, skipped } = E14DebtAdapter.scenarioDecisionsFromRoadmap({
+    accounts: payload?.accounts, baseMonthKey: payload?.baseMonth, canonical: debtRoadmapCanonicalReadModel(),
+  });
+  if (!decisions.length) {
+    return svdEscenarioAck(false, "Con todas las cuentas en «Esperar» no hay nada que guardar: eso ya es lo que hace el plan.");
+  }
+  const firma = JSON.stringify(decisions.map((decision) => ({ tipo: decision.tipo, mes: decision.planificacion.mesManual, params: decision.params })));
+  const saved = loadEscenarioMotorSaved();
+  if (saved.some((entry) => !entry.archived && entry.firma === firma)) return svdEscenarioAck(true, "Esta estrategia ya está en Escenarios › Guardados.");
+  if (saved.filter((entry) => !entry.archived).length >= 10) {
+    return svdEscenarioAck(false, "Ya hay 10 escenarios en Escenarios › Guardados: archiva uno para hacer sitio. No se ha guardado nada.");
+  }
+  const schema = globalThis.FinanceCanonicalScenarioSchema;
+  if (!schema) return svdEscenarioAck(false, "No se puede comprobar la estrategia (falta el esquema de Escenarios). No se ha guardado nada.");
+  const decisiones = decisions.map((item, orden) => ({ ...item, id: escenarioMotorNewDecisionId(), orden }));
+  const issues = [];
+  decisiones.forEach((decision) => schema.validateDecision(decision, "$", issues));
+  if (issues.some((issue) => issue.severity === "error")) return svdEscenarioAck(false, "Escenarios no admite esta estrategia tal cual. No se ha guardado nada.");
+  if (typeof escenarioMotorSavedSeq === "number") escenarioMotorSavedSeq += 1;
+  const fuera = skipped.length ? ` ${skipped.length === 1 ? "Una cuenta se ha quedado fuera" : `${skipped.length} cuentas se han quedado fuera`} (sin contrato o sin importe).` : "";
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${typeof escenarioMotorSavedSeq === "number" ? escenarioMotorSavedSeq : 0}`,
+    nombre: `Simulador de deuda · ${decisiones.map((decision) => decision.titulo).join(" + ")}`.slice(0, 120),
+    motivo: `Guardada desde Deuda › Simulador visual, sin aplicar. Cada cuenta, en su mes.${fuera}`,
+    estado: "guardado",
+    fecha: new Date().toISOString(),
+    decisiones,
+    guardrailValue: null,
+    origen: "simulador-deuda",
+    firma,
+  });
+  saveEscenarioMotorSavedList(saved);
+  svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}`);
+}
+
+// SVD-4 (17/11/2026): «Lo hemos propuesto». Las propuestas que esperan respuesta de la entidad (pendingProposals), sin montar el
+// modelo de lectura entero: basta con saber qué contratos reales hay y cuáles tienen ya un acuerdo aceptado.
+function svdPropuestas(hoy) {
+  if (!E14DebtAdapter?.pendingProposals) return [];
+  const extraDebts = debtContractSourceRows()
+    .filter((row) => row.paymentStatus !== "settled" && Number(row.currentPrincipal) > 0)
+    .map((row) => ({ id: row.id, entity: row.entity, acuerdo: String(row.agreement?.status || "").toLowerCase() === "accepted" ? {} : null }));
+  return E14DebtAdapter.pendingProposals({ roadmapState: debtRoadmapState, canonical: { extraDebts }, today: hoy });
+}
+
+function svdFechaCorta(iso) {
+  const [year, month, day] = String(iso || "").split("-");
+  return day && month ? `${Number(day)}/${Number(month)}${year ? `/${year.slice(2)}` : ""}` : "";
+}
+
+// En Hoy › «Decidir esta semana»: las respuestas que tocan en los próximos 7 días o que ya se han pasado.
+function svdPropuestasHoy(hoy = isoLocalDate(new Date())) {
+  try {
+    return svdPropuestas(hoy).filter((item) => item.dias !== null && item.dias <= 7).map((item) => ({
+      title: item.dias < 0 ? `${item.entity} no ha contestado a la propuesta` : item.dias === 0 ? `${item.entity} contesta hoy a la propuesta` : `${item.entity} contesta antes del ${svdFechaCorta(item.respuesta)}`,
+      text: `Se lo propusisteis el ${svdFechaCorta(item.propuesta)}${item.dias < 0 ? `; el plazo acabó el ${svdFechaCorta(item.respuesta)}` : ""}. Si acepta, márcalo en el simulador con su justificante; si no, reclamad o cambiad la estrategia.`,
+      status: item.dias < 0 ? "danger" : "warn",
+      target: "deuda-simulador",
+      cta: "Abrir el simulador",
+      svdPropuesta: item.id,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// En el calendario del móvil (recordatorios-ui.js): el día de la respuesta. El título no lleva nombres ni importes (pantalla de
+// bloqueo); el detalle, sí.
+function svdPropuestasCalendario(hoy = isoLocalDate(new Date())) {
+  try {
+    return svdPropuestas(hoy).filter((item) => item.respuesta && item.dias !== null && item.dias >= 0).map((item) => ({
+      id: `svd-propuesta-${item.id}`,
+      date: item.respuesta,
+      title: "Deuda: ¿ha contestado la entidad a la propuesta?",
+      description: `${item.entity}: propuesta del ${svdFechaCorta(item.propuesta)}; dijeron que contestarían antes del ${svdFechaCorta(item.respuesta)}. Si acepta, márcalo en Deuda › Simulador visual con su justificante.`,
+    }));
+  } catch {
+    return [];
+  }
 }

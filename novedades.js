@@ -17,6 +17,18 @@
       href: "#home",
     },
     {
+      id: "2026-11-17-simulador-escenario-propuesta",
+      fecha: "2026-11-17",
+      texto: "Simulador de deuda: guarda la estrategia como escenario y apunta «Lo hemos propuesto»; la respuesta sale en Hoy.",
+      href: "#deuda-simulador",
+    },
+    {
+      id: "2026-11-17-acuerdo-seguimiento",
+      fecha: "2026-11-17",
+      texto: "Deuda › Contratos: un acuerdo avisa si su pago se quitó del plan y, cuando el extracto trae el pago, propone liquidar.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-11-17-cuotas-en-el-plan",
       fecha: "2026-11-17",
       texto: "Deuda › Contratos: «¿Están las cuotas en el plan?» dice qué cuota paga ya la previsión y cuál falta.",
