@@ -561,6 +561,18 @@ function svdEscenarioAck(ok, message) {
   qs("debtRoadmapFrame")?.contentWindow?.postMessage({ type: "finance-debt-roadmap-save-scenario-result", ok, message }, window.location.origin);
 }
 
+// Paridad medida (tests/svd4-paridad-escenario.test.cjs): Escenarios sigue el criterio prudente de la app, el mismo que las
+// decisiones del plan: el mes del cambio todavía cuenta la cuota de hoy y lo nuevo empieza el mes siguiente. El simulador deja de
+// pagarla desde ese mes. Así que, al acabar, en Previsión la liquidez sale una cuota de hoy más baja por cada deuda con estrategia, ni
+// más ni menos (en una refinanciación, el mes del cambio puede ir unos euros por encima: paga la cuota de hoy en vez de la nueva).
+function svdDiferenciaEscenario(decisions) {
+  const ids = [...new Set(decisions.map((decision) => decision.params?.deudaId).filter(Boolean))];
+  return round2(ids.reduce((total, id) => {
+    const contract = debtContractSourceRows().find((row) => row.id === id);
+    return total + (contract && contract.paymentStatus === "active" ? Number(contract.currentPayment || 0) : 0);
+  }, 0));
+}
+
 function receiveDebtRoadmapScenario(payload) {
   if (!E14DebtAdapter?.scenarioDecisionsFromRoadmap) return;
   if (typeof loadEscenarioMotorSaved !== "function" || typeof saveEscenarioMotorSavedList !== "function" || typeof escenarioMotorNewDecisionId !== "function") {
@@ -589,7 +601,7 @@ function receiveDebtRoadmapScenario(payload) {
   saved.unshift({
     id: `escenario-guardado-${Date.now()}-${typeof escenarioMotorSavedSeq === "number" ? escenarioMotorSavedSeq : 0}`,
     nombre: `Simulador de deuda · ${decisiones.map((decision) => decision.titulo).join(" + ")}`.slice(0, 120),
-    motivo: `Guardada desde Deuda › Simulador visual, sin aplicar. Cada cuenta, en su mes.${fuera}`,
+    motivo: `Guardada desde Deuda › Simulador visual, sin aplicar. Cada cuenta, en su mes; el mes del cambio todavía cuenta la cuota de hoy (criterio de Escenarios).${fuera}`,
     estado: "guardado",
     fecha: new Date().toISOString(),
     decisiones,
@@ -598,7 +610,9 @@ function receiveDebtRoadmapScenario(payload) {
     firma,
   });
   saveEscenarioMotorSavedList(saved);
-  svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}`);
+  const diferencia = svdDiferenciaEscenario(decisiones);
+  const criterio = diferencia > 0 ? ` En Previsión el mes del cambio todavía cuenta la cuota de hoy, y lo nuevo empieza el mes siguiente: al acabar, la liquidez sale ${money(diferencia, true)} más baja que aquí.` : "";
+  svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}${criterio}`);
 }
 
 // SVD-4 (17/11/2026): «Lo hemos propuesto». Las propuestas que esperan respuesta de la entidad (pendingProposals), sin montar el

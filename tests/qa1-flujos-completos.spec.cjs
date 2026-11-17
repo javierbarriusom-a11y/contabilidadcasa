@@ -11276,6 +11276,8 @@ test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
     await frame.locator(`#${key}_start`).fill("2");
     await guardar.click();
     await expect(estado).toContainText("Guardada en Escenarios › Guardados, sin aplicar (1 decisión)");
+    // Paridad medida (tests/svd4-paridad-escenario.test.cjs): en Previsión el mes del cambio todavía cuenta la cuota de hoy (90 €).
+    await expect(estado).toContainText("al acabar, la liquidez sale 90 € más baja que aquí");
     const guardado = await page.evaluate(() => loadEscenarioMotorSaved().filter((entry) => entry.origen === "simulador-deuda"));
     expect(guardado).toHaveLength(1);
     expect(guardado[0]).toMatchObject({ estado: "guardado", nombre: "Simulador de deuda · Quita · Banco FICTICIO" });

@@ -685,3 +685,36 @@ e2e de SVD-4 (2):
 
 - guardar, no duplicar, «Esperar» no guarda y no se aplica nada;
 - la propuesta se recuerda, sale en Hoy y en el calendario, y se quita.
+
+### 14.1 Paridad medida: la estrategia del simulador frente a la misma estrategia en Escenarios / Previsión (17/11/2026)
+
+**Resultado:** no es la misma liquidez. La diferencia es exacta y acotada, porque los dos motores siguen criterios distintos para el mes
+del cambio (`tests/svd4-paridad-escenario.test.cjs`, con un contrato inventado con cuota de 150 € y la estrategia el tercer mes):
+
+| Estrategia | Simulador (y Ruta) | Escenarios (y decisiones del plan) |
+|---|---|---|
+| Quita de 2.000 € | 150 · 150 · **2.000** · 0… | 150 · 150 · **2.150** · 0… |
+| Refinanciación (cuota nueva 159,40 €) | 150 · 150 · **159,40** × 18 | 150 · 150 · **150** · 159,40 × 18 (acaba un mes después) |
+| Lo que paga de más Escenarios, al acabar | — | **una cuota de hoy (150 €)** |
+
+- **Escenarios** (`canonical-scenario-engine.js`, `buildContractSchedule`) y **las decisiones del plan** (`addDebtRelief`, también la de
+  SVD-3) siguen el criterio prudente de siempre: el mes del cambio todavía se paga la cuota de hoy, y lo nuevo empieza el mes siguiente.
+- **El simulador** (SVD-2b: «la cuota hasta su mes») y **Ruta con acuerdos** (SVD-3, `agreementMonth`) dejan de pagarla desde ese mes.
+- En una refinanciación, el mes del cambio Escenarios va unos euros por encima (paga la cuota de hoy en vez de la nueva); desde el mes
+  siguiente va una cuota nueva por debajo; y al acabar, exactamente una cuota de hoy por debajo.
+
+**Qué se ha hecho:** no cambiar ningún motor a escondidas. Los números de muchas pantallas dependen de los dos criterios, y cambiar
+cualquiera de ellos se consulta.
+
+- La prueba de paridad fija la diferencia exacta: si cualquiera de los dos cambia de criterio, falla.
+- Al guardar, el simulador lo dice: «En Previsión el mes del cambio todavía cuenta la cuota de hoy, y lo nuevo empieza el mes siguiente:
+  al acabar, la liquidez sale X € más baja que aquí». La nota del escenario guardado lo dice también.
+
+**Lo mismo pasa entre el plan y Ruta con un acuerdo aplicado (SVD-3):** el plan cuenta la cuota de hoy el mes del acuerdo, y Ruta no.
+**D-N23** (para el hogar): ¿la app debe usar un solo criterio en todas partes, y cuál?
+
+- Prudente (el mes del acuerdo se paga también la cuota de hoy), como hoy en el plan y en Escenarios.
+- Realista (el acuerdo sustituye a la cuota desde su mes), como en el simulador y en Ruta.
+
+Recomendación: el realista solo en lo que sale de un acuerdo o de una estrategia del simulador, porque es lo que pasa cuando una entidad
+acepta una quita o una refinanciación. Lo que ya existía en Escenarios no se tocaría.
