@@ -545,7 +545,9 @@ test.describe("QA-1 · enlace de registro prellenado (WP-25)", () => {
       await page.fill("#homeQuickExpenseAmount", "23,40");
       await page.click("#homeQuickExpenseSubmit");
       await expect(dialog).toBeHidden();
-      expect(await rows(), "un toque en «Registrar» crea la partida").toBe(before + 1);
+      // La partida se crea en el evento «close» del diálogo, que el navegador lanza en una tarea posterior a ocultarlo: se espera a
+      // ella (falló así una vez el 17/11, con la ventana ya oculta y la partida aún por crear).
+      await expect.poll(rows, { message: "un toque en «Registrar» crea la partida" }).toBe(before + 1);
       expect(await page.evaluate(() => customPlanningRows.at(-1).plannedValue)).toBe(23.4);
       expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
     });
