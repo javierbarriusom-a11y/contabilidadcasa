@@ -113,6 +113,24 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (480): SVD-0, el simulador visual de deuda descrito con pruebas (sin cambio visible)
+
+- **Por qué:** el hogar repitió la petición del bloque SVD con un «continúa». El plan ya estaba en `docs/SVD_DISENO.md`. SVD-0 es lo único del bloque que no necesita decisión suya (D-N16, D-N20): no cambia ninguna pantalla ni cifra.
+- **`tests/svd0-simulador-contrato.test.cjs` (6)** describe cómo se conecta hoy el simulador:
+  - las dos cuentas principales se enlazan por el nombre de los contratos de ejemplo, y los contratos reales entran solo con su capital;
+  - de la previsión llega una media de capacidad, no los meses;
+  - del inventario de campos, la aportación extra de D1 fase 1 y todos los campos de las cuentas adicionales de D1 fase 2 quedaron sin clasificar, y la TAE figura como supuesto del simulador;
+  - el simulador guarda una segunda copia en el `localStorage` del `iframe`;
+  - la app lo hidrata al cargar y en cada recálculo;
+  - aplicar una oferta crea una decisión en el plan sin tocar el contrato.
+- **Lo que no miraba ninguna prueba**, medido con el simulador suelto en Chromium:
+  - 17.833 px de alto en el móvil;
+  - axe, a 390 px: 28 nodos con fallos críticos (25 campos sin etiqueta y 3 desplegables sin nombre), 16 de contraste y una zona con desplazamiento sin foco;
+  - nada fuera por la derecha.
+  - Queda como **trinquete** en `tests/opt4-axe-accessibility.spec.cjs`: como mucho 28 críticos, y sin desbordar. SVD-2 o SVD-6 lo bajan a 0.
+- Inventario y mediciones, en `docs/SVD_DISENO.md` §7; SVD-0, hecho en `BACKLOG_NOVIEMBRE_OLEADA_1.md` §5.8.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.673/6.673 (+6); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Las 6 unitarias nuevas y el trinquete de axe en verde (Chromium). Sin cambios en la app.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (479): bloque SVD (simulador visual de deuda conectado), plan de implementación; la prueba «CLA-01 y CLA-02» estable en Safari
 
 - **Petición del hogar (17/11):** «que el simulador visual de deuda se alimente de los datos del resto de secciones y que a la vez los datos actualicen el resto de secciones cuando corresponda. Inclúyelo en el backlog y haz un plan de implementación». Es un plan: no se ha tocado código de Deuda (sigue pendiente D-N16).

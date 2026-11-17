@@ -502,7 +502,7 @@ parte de escenarios de DEU-01.
 
 | # | ID | Qué | Esf. | Depende | Hecho cuando | Estado |
 |---|---|---|---|---|---|---|
-| 1 | **SVD-0** | Inventario de campos, prueba que demuestra el enlace por nombre, prueba dorada del mensaje de hidratación; axe y desbordes dentro del `iframe` | S | — | Las pruebas describen lo de hoy | Propuesto; puede empezar ya (sin cambio visible) |
+| 1 | **SVD-0** | Inventario de campos, prueba que demuestra el enlace por nombre, prueba dorada del mensaje de hidratación; axe y desbordes dentro del `iframe` | S | — | Las pruebas describen lo de hoy | **Hecho 17/11** (6 pruebas y un trinquete de axe dentro del `iframe`: 28 fallos críticos a 390 px; `docs/SVD_DISENO.md` §7) |
 | 2 | **SVD-1** | El puente sale de `app.js` (`deuda-simulador-puente.js`); cuentas enlazadas por id de contrato; migración de `cb`/`bk` con una pregunta; una sola copia del estado | M | SVD-0, D-N16 | Con contratos sin nombres de ejemplo, cada uno tiene su cuenta y sus supuestos sobreviven a recargar | Espera D-N16 y D-N20 |
 | 3 | **SVD-2** | Lectura completa: TAE, cuota, plazo, estado y atrasos, recibos, capacidad mes a mes, suelo, extra de Ruta, Préstamo; lo canónico de solo lectura con su origen; deriva; paridad con «Camino a deuda cero» | M | SVD-1 | Cambiar la TAE en Contratos se ve en el simulador sin recargar | — |
 | 4 | **SVD-3** | Estados del acuerdo; «Aplicar el acuerdo» con «Qué ocurrirá» → contrato + plan + acta en una operación con un «Deshacer»; invariante de no contar dos veces | L | SVD-2, D-N21 | Un acuerdo aplicado cambia con las mismas cifras Contratos, Ruta, Préstamo, Previsión y Hoy, y se deshace entero | — |

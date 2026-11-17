@@ -238,3 +238,36 @@ Total: entre 10 y 14 sesiones. El valor para el hogar llega con SVD-3; SVD-0 a S
   entidades no espera al cierre de noviembre.
 - **D-N21 · Qué cuenta como «aceptado»:** ¿basta con marcarlo el hogar, o se exige adjuntar el documento de la entidad (el
   adjunto de recibos que ya existe) antes de poder aplicar? Recomendación: exigir el documento para quitas y planes de pago.
+
+---
+
+## 7. SVD-0 · resultado (17/11/2026)
+
+Pruebas: `tests/svd0-simulador-contrato.test.cjs` (6) y, en `tests/opt4-axe-accessibility.spec.cjs`, «SVD-0 · Simulador
+visual de deuda (iframe)». Describen lo de hoy: cuando un PR del bloque las rompa, se actualizan a propósito.
+
+### 7.1 Inventario de lo que guarda el simulador (`collect()` de `debt-roadmap.html`)
+
+| Campo | Dueño hoy (`FIELD_INVENTORY`) | Dueño según SVD |
+|---|---|---|
+| `tasks`, `scenario`, `agreement` | Operativo | Simulador (el acuerdo gana estados en SVD-3) |
+| `profile`, `buffer`, `preserveCash`, `fc_months`, `referenceAPR` | Supuesto | Simulador; `buffer` debería leerse del suelo del hogar (SVD-2) |
+| `cb_*` / `bk_*`: `strategy`, `discount`, `start`, `lump`, `term`, `finance_pct` | Supuesto | Simulador |
+| `cb_apr`, `bk_apr` | Supuesto | **Contratos** (la TAE es del contrato; SVD-2) |
+| `cb_extra`, `cb_extra_month`, `bk_extra`, `bk_extra_month` (D1 fase 1) | **Sin clasificar** | Simulador (SVD-1 los clasifica) |
+| `acct_<id>_*`, los nueve campos por cuenta adicional (D1 fase 2) | **Sin clasificar** | Simulador, salvo `apr` (Contratos) |
+| `wizink_hito_mes` | Operativo | Simulador (un hito de una deuda ya resuelta) |
+| `notes` | Nota | Simulador |
+| `cb_amount`, `bk_amount`, `liquidity`, `monthly`, `baseMonth` | Canónico (no se guardan desde el simulador) | Contratos y Previsión |
+
+### 7.2 Lo que no miraba ninguna prueba
+
+Medido con el simulador abierto suelto (`/debt-roadmap.html`), Chromium:
+
+| Ancho | Alto de la página | axe crítico | axe serio |
+|---|---|---|---|
+| 390 px | 17.833 px (unas 21 pantallas) | 25 campos sin etiqueta, 3 desplegables sin nombre | 16 de contraste, 1 zona con desplazamiento sin foco |
+| 1.440 px | 8.988 px | los mismos 28 | 75 de contraste |
+
+Nada se sale por la derecha. El tope de 28 críticos queda como trinquete en el CI; SVD-2 (o SVD-6, si se hace nativo
+antes) tiene que bajarlo a 0.
