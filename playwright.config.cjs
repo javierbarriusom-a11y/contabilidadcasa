@@ -36,6 +36,10 @@ module.exports = defineConfig({
     // Un reintento, solo aquí y solo en el CI (decisión del hogar del 28/10/2026): en un día fallaron de vez en cuando tres
     // pruebas distintas que solo corren en WebKit. Lo que pasa al reintentarlo queda como «flaky» y su primer intento, en el
     // registro (paso de Safari en pages.yml); dos fallos seguidos siguen bloqueando. Chromium no reintenta.
-    { name: "safari", testMatch: "qa1-flujos-completos.spec.cjs", grep: /@safari/, retries: process.env.CI ? 1 : 0, use: { ...devices["iPhone 13"], browserName: "webkit", viewport: { width: 390, height: 844 } } },
+    // 17/11/2026: con movimiento reducido. `html { scroll-behavior: smooth }` hace que WebKit anime el desplazamiento con el
+    // que Playwright acerca un elemento antes de pulsarlo, y el clic cae donde estaba un instante antes: XDA-10 en #625,
+    // «CLA-01 y CLA-02» en #628 e «Importar v2» y «Hoy, cambio 2» en el despliegue 1447 fallaron así. La app ya quita
+    // animaciones y desplazamiento suave con `prefers-reduced-motion` (styles.css, OPT-9); nada de su lógica depende de ello.
+    { name: "safari", testMatch: "qa1-flujos-completos.spec.cjs", grep: /@safari/, retries: process.env.CI ? 1 : 0, use: { ...devices["iPhone 13"], browserName: "webkit", viewport: { width: 390, height: 844 }, reducedMotion: "reduce" } },
   ],
 });

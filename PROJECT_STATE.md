@@ -113,6 +113,26 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (481): #628 fusionado; su despliegue (1447) en rojo en Safari, y la causa común de los fallos de Safari
+
+- **#628 fusionado** (`main` `d112134`, a las 06:29Z) con su CI en verde a la primera tras el arreglo (ejecución 1446, Safari incluido): décima auditoría, bloque SVD con SVD-0 y PROJECT_STATE 478 a 480.
+- **Despliegue de #628, ejecución 1447, en rojo** (07:16Z). Solo falló el paso de WebKit; el sitio no se publicó y sigue sirviendo lo de #627.
+  - #628 no cambia la app (documentación y pruebas), así que el sitio no se queda sin nada.
+  - **«Published availability» no se lanza:** no hubo despliegue que comprobar.
+  - Fallaron dos pruebas que #628 no toca:
+    - «Rediseño A4 · Importar v2» a 390 px, en los dos intentos: el clic en la pestaña «Importar extracto» no llegó y la página siguió en «Saldo de cuentas»;
+    - «Hoy, cambio 2», el foco tras cerrar el repaso: pasó al repetir.
+  - El mismo código había pasado una hora antes en el CI del PR.
+- **Causa común**, la misma que el fallo de «CLA-01 y CLA-02» de la entrada 479 y, muy probablemente, el de XDA-10 en #625 (entrada 476, «hipótesis sin reproducir»):
+  - `html { scroll-behavior: smooth }` hace que WebKit anime el desplazamiento con el que Playwright acerca un elemento por debajo del pliegue antes de pulsarlo;
+  - el clic cae donde estaba el elemento un instante antes, o el elemento «no es estable»;
+  - por eso falla al azar y en pruebas distintas cada vez.
+- **Arreglo, en la configuración y no prueba a prueba:** el proyecto `safari` de `playwright.config.cjs` corre con `reducedMotion: "reduce"`.
+  - Es válido porque la app ya quita animaciones y desplazamiento suave con `prefers-reduced-motion` (`styles.css`, OPT-9) y ninguna lógica suya depende de ello.
+  - `tests/safari-movimiento-reducido.test.cjs` (2) vigila la opción y la regla de CSS que la justifica.
+  - Aquí no hay WebKit: la prueba de verdad es el CI de este PR y el despliegue siguiente.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.675/6.675 (+2); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Sin cambios en la app.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (480): SVD-0, el simulador visual de deuda descrito con pruebas (sin cambio visible)
 
 - **Por qué:** el hogar repitió la petición del bloque SVD con un «continúa». El plan ya estaba en `docs/SVD_DISENO.md`. SVD-0 es lo único del bloque que no necesita decisión suya (D-N16, D-N20): no cambia ninguna pantalla ni cifra.
