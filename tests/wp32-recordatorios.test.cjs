@@ -82,14 +82,14 @@ test("campaña fiscal: 1/12 y 20/12, y el año siguiente si cae en el horizonte"
 });
 
 test("cada tipo se puede apagar, y apagarlos todos no deja nada", () => {
-  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)], reviews: [{ date: "2027-03-15", low: 627.16, high: 747.12 }], cirbe: [{ reportDate: "2026-01-10", renewOn: "2026-12-11" }], forecast: [{ id: "suelo", date: "2026-12-08", title: "Previsión: bajáis del suelo el 8 dic" }] };
+  const input = { ...base, incomes: [income("2026-10-31", "N", 1)], outflows: [charge("2026-10-20", "S", 900)], reviews: [{ date: "2027-03-15", low: 627.16, high: 747.12 }], cirbe: [{ reportDate: "2026-01-10", renewOn: "2026-12-11" }], forecast: [{ id: "suelo", date: "2026-12-08", title: "Previsión: bajáis del suelo el 8 dic" }], proposals: [{ id: "debt-custom-1", date: "2026-12-04", title: "Deuda: ¿ha contestado la entidad a la propuesta?", description: "Banco FICTICIO" }] };
   const all = R.build(input);
   R.KINDS.forEach((kind) => {
     const without = R.build({ ...input, options: { kinds: { [kind]: false } } });
     assert.equal(without.counts[kind], 0);
     assert.ok(all.counts[kind] > 0, `el tipo ${kind} debe dar eventos en este escenario`);
   });
-  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, weeklyReview: false } } }).events.length, 0);
+  assert.equal(R.build({ ...input, options: { kinds: { income: false, bigCharge: false, monthClose: false, fiscal: false, rateReview: false, cirbe: false, forecast: false, weeklyReview: false, debtProposal: false } } }).events.length, 0);
 });
 
 test("orden por fecha, sin duplicados, con identificadores estables entre generaciones", () => {

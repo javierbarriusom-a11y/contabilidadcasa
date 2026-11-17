@@ -46,7 +46,8 @@
   // SVD-1: los supuestos de cada cuenta adicional (D1 fase 2) se guardan como `acct_<id>_<campo>`.
   const DYNAMIC_ACCOUNT_FIELD = /^acct_[a-zA-Z0-9_-]+_(strategy|discount|start|lump|apr|term|finance_pct|extra|extra_month)$/;
   // SVD-2: lo que el contrato valía cuando el hogar simuló sobre él, para avisar si después cambia en Contratos.
-  const DYNAMIC_ACCOUNT_BASE = /^acct_[a-zA-Z0-9_-]+_base$/;
+  // SVD-4: además, cuándo se propuso el acuerdo a la entidad y antes de qué día dijo que contestaría.
+  const DYNAMIC_ACCOUNT_BASE = /^acct_[a-zA-Z0-9_-]+_(base|propuesta|respuesta)$/;
 
   function classifyField(field) {
     const match = Object.entries(FIELD_INVENTORY).find(([, fields]) => fields.includes(field));
@@ -463,6 +464,86 @@
     };
   }
 
+  function lastDayOfMonth(key) {
+    const [year, month] = key.split("-").map(Number);
+    return `${key}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`;
+  }
+
+  // SVD-4 (17/11/2026): «Guardar como escenario». La estrategia del simulador, cuenta a cuenta, en decisiones de Escenarios
+  // (canonical-scenario-schema.js), con los tipos de siempre:
+  //  - quita y pago único → «acuerdo_quita» (cierra la deuda ese mes con el pago pactado);
+  //  - refinanciación o híbrido → «amortizacion» parcial por el pago único, si lo hay, y «refinanciacion» con lo financiado, la TAE,
+  //    la cuota y el plazo del simulador, desde su mes;
+  //  - «Esperar» → nada (es lo que ya hace el plan).
+  // Solo cuentas con contrato real (el contrato sale del modelo canónico, nunca del iframe). Puro: sin id ni orden, que pone quien
+  // guarda. Devuelve también lo que se ha dejado fuera y por qué.
+  function scenarioDecisionsFromRoadmap(input = {}) {
+    const baseMonth = monthKey(input.baseMonthKey);
+    const decisions = [];
+    const skipped = [];
+    if (!baseMonth) return { decisions, skipped: [{ accountKey: "", reason: "sin-mes-base" }] };
+    (Array.isArray(input.accounts) ? input.accounts : []).forEach((entry) => {
+      const key = String(entry?.accountKey || "");
+      const account = entry?.account || {};
+      const strategy = String(account.strategy || "hold").toLowerCase();
+      if (strategy === "hold") return;
+      const contract = resolveAccountContract(key, input.canonical);
+      if (!contract) { skipped.push({ accountKey: key, reason: "sin-contrato" }); return; }
+      const mes = addMonthKeys(baseMonth, Math.max(1, Math.round(number(account.start) || 1)) - 1);
+      const label = String(contract.entity || "deuda").trim();
+      const decision = (tipo, titulo, params) => ({ tipo, titulo: titulo.slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes }, params });
+      const lump = round2(Math.max(0, number(account.lump)));
+      if (strategy === "settlement") {
+        if (!(lump > 0)) { skipped.push({ accountKey: key, reason: "sin-importe" }); return; }
+        decisions.push(decision("acuerdo_quita", `Quita · ${label}`, { deudaId: String(contract.id), importePactado: lump, modalidad: "pago-unico", vigenciaHasta: lastDayOfMonth(mes) }));
+        return;
+      }
+      const financed = round2(Math.max(0, number(account.financed)));
+      const monthly = round2(Math.max(0, number(account.monthly)));
+      const term = Math.max(0, Math.round(number(account.term)));
+      const apr = Math.max(0, number(account.apr));
+      if (!(financed > 0 && monthly > 0 && term >= 1)) { skipped.push({ accountKey: key, reason: "sin-refinanciacion" }); return; }
+      if (apr / 100 > 0.6 || term > 480) { skipped.push({ accountKey: key, reason: "fuera-de-rango" }); return; }
+      if (lump > 0) decisions.push(decision("amortizacion", `Pago único · ${label}`, { deudaId: String(contract.id), importe: lump, parcial: true }));
+      decisions.push(decision("refinanciacion", `${strategy === "hybrid" ? "Quita + refinanciación" : "Refinanciación"} · ${label}`, {
+        deudaId: String(contract.id), nuevoPrincipal: financed, nuevoTIN: Math.round((apr / 100) * 1e6) / 1e6, nuevaCuota: monthly, nuevoPlazo: term,
+      }));
+    });
+    return { decisions, skipped };
+  }
+
+  // SVD-4 (17/11/2026): «Lo hemos propuesto». Las propuestas hechas a una entidad que esperan respuesta (el simulador guarda la fecha
+  // de la propuesta y el día antes del que la entidad dijo que contestaría: `acct_<id>_propuesta` y `acct_<id>_respuesta`). Solo las
+  // de contratos reales que aún no tienen un acuerdo aceptado. `dias`: cuántos faltan para la respuesta (negativo: ya pasó). Puro.
+  function isoDay(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  }
+
+  function pendingProposals(input = {}) {
+    const state = input.roadmapState && typeof input.roadmapState === "object" ? input.roadmapState : {};
+    const today = isoDay(input.today);
+    return (input.canonical?.extraDebts || [])
+      .filter((account) => !account.acuerdo)
+      .map((account) => {
+        const key = dynamicAccountKey(account.id);
+        const propuesta = String(state[`${key}_propuesta`] || "");
+        const respuesta = String(state[`${key}_respuesta`] || "");
+        if (isoDay(propuesta) === null) return null;
+        const answer = isoDay(respuesta);
+        return {
+          accountKey: key,
+          id: account.id,
+          entity: account.entity,
+          propuesta,
+          respuesta: answer === null ? "" : respuesta,
+          dias: answer === null || today === null ? null : Math.round((answer - today) / 86400000),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
+  }
+
   return {
     SCHEMA_ID,
     STRATEGY_SCHEMA_ID,
@@ -480,5 +561,7 @@
     buildAcceptedAgreement,
     agreementPlanDecision,
     acceptedAgreementFacts,
+    scenarioDecisionsFromRoadmap,
+    pendingProposals,
   };
 });

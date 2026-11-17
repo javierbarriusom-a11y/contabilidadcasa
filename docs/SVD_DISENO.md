@@ -630,3 +630,58 @@ movimientos o el mes.
   - el contrato ya liquidado;
   - el modelo de lectura.
 - e2e «SVD-5»: se quita la decisión, se ve el aviso y se vuelve a apuntar; el extracto trae el pago, se marca liquidado, el acta dice «Ejecutada» y «Deshacer» lo devuelve.
+
+---
+
+## 14. SVD-4 · La estrategia a Escenarios y «Lo hemos propuesto» (17/11/2026)
+
+**«Guardar esta estrategia como escenario»** (un botón bajo la calculadora, solo dentro de la app):
+
+- `scenarioDecisionsFromRoadmap` (`canonical-e14-debt-adapter.js`, puro) pasa la estrategia del simulador, cuenta a cuenta, a decisiones
+  de Escenarios con sus tipos de siempre:
+
+  | En el simulador | En Escenarios |
+  |---|---|
+  | Quita y pago único | `acuerdo_quita`, en su mes, con vigencia hasta el último día de ese mes |
+  | Refinanciación o quita + refinanciación | `amortizacion` parcial por el pago único (si lo hay) y `refinanciacion`, con lo financiado, la TAE, la cuota y el plazo del simulador |
+  | Esperar | nada: es lo que ya hace el plan |
+
+  El contrato sale del modelo canónico, nunca del `iframe`. Las cuentas sin contrato, sin importe o sin refinanciación se quedan fuera y se
+  dice cuántas.
+- **El puente** lo guarda en Escenarios › Guardados como «guardado», sin aplicar, con las mismas reglas que FX-21 en Plan › Previsión:
+  - lo valida con el esquema de Escenarios;
+  - no guarda dos veces la misma estrategia (firma);
+  - respeta los diez escenarios vivos;
+  - lo marca con `origen: "simulador-deuda"`.
+
+  Desde Escenarios se carga, se compara y se ve en Previsión («O un escenario guardado»). El motor de Escenarios aplica las decisiones
+  sobre los contratos; está probado.
+
+**«Lo hemos propuesto a la entidad»** (en cada cuenta con contrato real que aún no tiene acuerdo aceptado):
+
+- Tiene una fecha de propuesta y un día «contestan antes del», que por defecto son hoy y dentro de 14 días. Se guardan con el estado del
+  simulador (`acct_<id>_propuesta` y `_respuesta`, clasificados como operativos) y vuelven al recargar. Con «Ya no está propuesto», se quitan.
+- **Hoy › «Decidir esta semana»** dice «<entidad> contesta antes del …» cuando faltan 7 días o menos, o «no ha contestado» si el plazo
+  ya pasó. Lleva un botón al simulador. `pendingProposals` (puro) lee esas fechas.
+- **El calendario del móvil** (recordatorios) tiene un tipo nuevo, «respuestas a propuestas de deuda» (`debtProposal`). Pone un evento el
+  día de la respuesta, con el título sin nombres ni importes (lo que se ve con la pantalla bloqueada) y el detalle con la entidad. Se puede
+  apagar como los demás tipos.
+
+**Pruebas:** `tests/svd4-escenario-simulador.test.cjs` (9):
+
+- quita;
+- híbrido;
+- lo que se deja fuera;
+- que pasa el esquema de Escenarios y que su motor aplica las decisiones;
+- que el puente guarda igual que FX-21;
+- propuestas pendientes y su orden;
+- que las fechas son estado operativo;
+- el tipo de calendario;
+- que Hoy y el calendario las leen.
+
+Pruebas actualizadas a propósito: `wp32-recordatorios.test.cjs` (el tipo nuevo) y `redis-hoy2-repaso.test.cjs` (la línea de Hoy).
+
+e2e de SVD-4 (2):
+
+- guardar, no duplicar, «Esperar» no guarda y no se aplica nada;
+- la propuesta se recuerda, sale en Hoy y en el calendario, y se quita.

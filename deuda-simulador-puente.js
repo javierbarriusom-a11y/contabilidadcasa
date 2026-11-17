@@ -78,6 +78,7 @@ function setupDebtRoadmapBridge() {
     }
     if (event.data?.type === "finance-debt-roadmap-send-offer") { receiveDebtRoadmapOffer(event.data.payload); return; }
     if (event.data?.type === "finance-debt-roadmap-agreement") { receiveDebtRoadmapAgreement(event.data.payload); return; }
+    if (event.data?.type === "finance-debt-roadmap-save-scenario") { receiveDebtRoadmapScenario(event.data.payload); return; }
     if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
     const nextState = JSON.parse(JSON.stringify(event.data.payload));
     if (debtRoadmapStatesMatch(debtRoadmapState, nextState)) return;
@@ -550,4 +551,98 @@ function svdMarcarLiquidado(contractId) {
     render();
     sendDebtRoadmapState();
   }, 30000);
+}
+
+// SVD-4 (17/11/2026): «Guardar esta estrategia como escenario». Lo que dice el simulador, cuenta a cuenta, pasa a Escenarios ›
+// Guardados como un escenario «guardado», sin aplicar (el mismo almacén y las mismas reglas que FX-21 en Plan › Previsión): no
+// guarda dos veces lo mismo, respeta los diez vivos y lo valida con el esquema de Escenarios. Desde allí se carga, se compara y
+// se ve en Previsión («O un escenario guardado»).
+function svdEscenarioAck(ok, message) {
+  qs("debtRoadmapFrame")?.contentWindow?.postMessage({ type: "finance-debt-roadmap-save-scenario-result", ok, message }, window.location.origin);
+}
+
+function receiveDebtRoadmapScenario(payload) {
+  if (!E14DebtAdapter?.scenarioDecisionsFromRoadmap) return;
+  if (typeof loadEscenarioMotorSaved !== "function" || typeof saveEscenarioMotorSavedList !== "function" || typeof escenarioMotorNewDecisionId !== "function") {
+    return svdEscenarioAck(false, "Escenarios no está disponible: no se ha guardado nada.");
+  }
+  const { decisions, skipped } = E14DebtAdapter.scenarioDecisionsFromRoadmap({
+    accounts: payload?.accounts, baseMonthKey: payload?.baseMonth, canonical: debtRoadmapCanonicalReadModel(),
+  });
+  if (!decisions.length) {
+    return svdEscenarioAck(false, "Con todas las cuentas en «Esperar» no hay nada que guardar: eso ya es lo que hace el plan.");
+  }
+  const firma = JSON.stringify(decisions.map((decision) => ({ tipo: decision.tipo, mes: decision.planificacion.mesManual, params: decision.params })));
+  const saved = loadEscenarioMotorSaved();
+  if (saved.some((entry) => !entry.archived && entry.firma === firma)) return svdEscenarioAck(true, "Esta estrategia ya está en Escenarios › Guardados.");
+  if (saved.filter((entry) => !entry.archived).length >= 10) {
+    return svdEscenarioAck(false, "Ya hay 10 escenarios en Escenarios › Guardados: archiva uno para hacer sitio. No se ha guardado nada.");
+  }
+  const schema = globalThis.FinanceCanonicalScenarioSchema;
+  if (!schema) return svdEscenarioAck(false, "No se puede comprobar la estrategia (falta el esquema de Escenarios). No se ha guardado nada.");
+  const decisiones = decisions.map((item, orden) => ({ ...item, id: escenarioMotorNewDecisionId(), orden }));
+  const issues = [];
+  decisiones.forEach((decision) => schema.validateDecision(decision, "$", issues));
+  if (issues.some((issue) => issue.severity === "error")) return svdEscenarioAck(false, "Escenarios no admite esta estrategia tal cual. No se ha guardado nada.");
+  if (typeof escenarioMotorSavedSeq === "number") escenarioMotorSavedSeq += 1;
+  const fuera = skipped.length ? ` ${skipped.length === 1 ? "Una cuenta se ha quedado fuera" : `${skipped.length} cuentas se han quedado fuera`} (sin contrato o sin importe).` : "";
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${typeof escenarioMotorSavedSeq === "number" ? escenarioMotorSavedSeq : 0}`,
+    nombre: `Simulador de deuda · ${decisiones.map((decision) => decision.titulo).join(" + ")}`.slice(0, 120),
+    motivo: `Guardada desde Deuda › Simulador visual, sin aplicar. Cada cuenta, en su mes.${fuera}`,
+    estado: "guardado",
+    fecha: new Date().toISOString(),
+    decisiones,
+    guardrailValue: null,
+    origen: "simulador-deuda",
+    firma,
+  });
+  saveEscenarioMotorSavedList(saved);
+  svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}`);
+}
+
+// SVD-4 (17/11/2026): «Lo hemos propuesto». Las propuestas que esperan respuesta de la entidad (pendingProposals), sin montar el
+// modelo de lectura entero: basta con saber qué contratos reales hay y cuáles tienen ya un acuerdo aceptado.
+function svdPropuestas(hoy) {
+  if (!E14DebtAdapter?.pendingProposals) return [];
+  const extraDebts = debtContractSourceRows()
+    .filter((row) => row.paymentStatus !== "settled" && Number(row.currentPrincipal) > 0)
+    .map((row) => ({ id: row.id, entity: row.entity, acuerdo: String(row.agreement?.status || "").toLowerCase() === "accepted" ? {} : null }));
+  return E14DebtAdapter.pendingProposals({ roadmapState: debtRoadmapState, canonical: { extraDebts }, today: hoy });
+}
+
+function svdFechaCorta(iso) {
+  const [year, month, day] = String(iso || "").split("-");
+  return day && month ? `${Number(day)}/${Number(month)}${year ? `/${year.slice(2)}` : ""}` : "";
+}
+
+// En Hoy › «Decidir esta semana»: las respuestas que tocan en los próximos 7 días o que ya se han pasado.
+function svdPropuestasHoy(hoy = isoLocalDate(new Date())) {
+  try {
+    return svdPropuestas(hoy).filter((item) => item.dias !== null && item.dias <= 7).map((item) => ({
+      title: item.dias < 0 ? `${item.entity} no ha contestado a la propuesta` : item.dias === 0 ? `${item.entity} contesta hoy a la propuesta` : `${item.entity} contesta antes del ${svdFechaCorta(item.respuesta)}`,
+      text: `Se lo propusisteis el ${svdFechaCorta(item.propuesta)}${item.dias < 0 ? `; el plazo acabó el ${svdFechaCorta(item.respuesta)}` : ""}. Si acepta, márcalo en el simulador con su justificante; si no, reclamad o cambiad la estrategia.`,
+      status: item.dias < 0 ? "danger" : "warn",
+      target: "deuda-simulador",
+      cta: "Abrir el simulador",
+      svdPropuesta: item.id,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// En el calendario del móvil (recordatorios-ui.js): el día de la respuesta. El título no lleva nombres ni importes (pantalla de
+// bloqueo); el detalle, sí.
+function svdPropuestasCalendario(hoy = isoLocalDate(new Date())) {
+  try {
+    return svdPropuestas(hoy).filter((item) => item.respuesta && item.dias !== null && item.dias >= 0).map((item) => ({
+      id: `svd-propuesta-${item.id}`,
+      date: item.respuesta,
+      title: "Deuda: ¿ha contestado la entidad a la propuesta?",
+      description: `${item.entity}: propuesta del ${svdFechaCorta(item.propuesta)}; dijeron que contestarían antes del ${svdFechaCorta(item.respuesta)}. Si acepta, márcalo en Deuda › Simulador visual con su justificante.`,
+    }));
+  } catch {
+    return [];
+  }
 }

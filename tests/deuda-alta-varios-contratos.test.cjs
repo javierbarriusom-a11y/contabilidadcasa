@@ -66,7 +66,7 @@ test("integración · la tarjeta está en Contratos, valida con las reglas del a
   assert.match(alta, /showUndoToast\(hecho/);
   assert.match(deuda, /if \(event\.target\.closest\("\[data-deuda-varios-alta\]"\)\) return deudaContratosVariosAlta\(\);/);
   const html = read("index.html");
-  // SVD-3, SVD-R1 y SVD-5 (17/11/2026) volvieron a subir la versión de los dos ficheros: lo que se vigila es que ambos se pidan de nuevo.
-  assert.match(html, /canonical-debt-contracts\.js\?v=20261117svd5/);
-  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=20261117svd5"/);
+  // SVD-3, SVD-R1, SVD-4 y SVD-5 (17/11/2026) volvieron a subir la versión de los dos ficheros: lo que se vigila es que ambos se pidan de nuevo.
+  assert.match(html, /canonical-debt-contracts\.js\?v=20261117svd4/);
+  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=20261117svd4"/);
 });

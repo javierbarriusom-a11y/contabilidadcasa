@@ -6,7 +6,7 @@
 // cargarse: app.js llama a `renderRecordatorios` al pintar Ajustes y a `attachRecordatorios` una vez en init.
 
 const RECORDATORIOS_STORE = "reminders-settings";
-const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE", forecast: "avisos de la previsión", weeklyReview: "repasos semanales" };
+const RECORDATORIOS_KIND_LABELS = { income: "cobros", bigCharge: "cargos grandes", monthClose: "cierres de mes", fiscal: "avisos fiscales", rateReview: "avisos de la hipoteca", cirbe: "aviso de la CIRBE", forecast: "avisos de la previsión", weeklyReview: "repasos semanales", debtProposal: "respuestas a propuestas de deuda" };
 
 function recordatoriosSettings() {
   const engine = globalThis.FinanceCanonicalReminders;
@@ -40,6 +40,8 @@ function recordatoriosInput(settings, today) {
     fiscal: globalThis.fiscalCampaignReminder?.() || null,
     // FX-41 (views/hoy-v2.js): los avisos de previsión con umbral, con su puerta de fecha.
     forecast: globalThis.hoyV2AvisosCalendario?.(today) || [],
+    // SVD-4 (deuda-simulador-puente.js): el día en que una entidad dijo que contestaría a una propuesta de acuerdo.
+    proposals: globalThis.svdPropuestasCalendario?.(today) || [],
     options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin },
   };
 }

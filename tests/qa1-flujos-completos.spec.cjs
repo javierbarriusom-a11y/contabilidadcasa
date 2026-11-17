@@ -11241,3 +11241,98 @@ test.describe("SVD-5 · Lo que pasa fuera vuelve al acuerdo", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-4 (17/11/2026): «Guardar esta estrategia como escenario». Contratos inventados.
+test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
+  test("se guarda en Escenarios › Guardados sin aplicar, no se guarda dos veces y «Esperar» no guarda nada", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const { id, key } = await page.evaluate(() => {
+      const banco = debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO");
+      return { id: banco.id, key: `acct_${banco.id.replace(/[^a-zA-Z0-9_-]/g, "_")}` };
+    });
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    const guardar = frame.getByRole("button", { name: "Guardar esta estrategia como escenario" });
+    const estado = frame.locator("#svdGuardarEscenarioEstado");
+    await expect(guardar).toBeVisible({ timeout: 20000 });
+    // Todas en «Esperar»: nada que guardar.
+    await guardar.click();
+    await expect(estado).toContainText("no hay nada que guardar");
+    // Quita de 1.500 € el segundo mes en la tarjeta.
+    await frame.locator(`#${key}_strategy`).selectOption("settlement");
+    await frame.locator(`#${key}_lump`).fill("1500");
+    await frame.locator(`#${key}_start`).fill("2");
+    await guardar.click();
+    await expect(estado).toContainText("Guardada en Escenarios › Guardados, sin aplicar (1 decisión)");
+    const guardado = await page.evaluate(() => loadEscenarioMotorSaved().filter((entry) => entry.origen === "simulador-deuda"));
+    expect(guardado).toHaveLength(1);
+    expect(guardado[0]).toMatchObject({ estado: "guardado", nombre: "Simulador de deuda · Quita · Banco FICTICIO" });
+    expect(guardado[0].decisiones).toEqual([expect.objectContaining({ tipo: "acuerdo_quita", params: expect.objectContaining({ deudaId: id, importePactado: 1500 }) })]);
+    // Nada aplicado: el plan no cambia.
+    expect(await page.evaluate(() => debtLiquidations.length)).toBe(0);
+    // Otra vez lo mismo: no se duplica.
+    await guardar.click();
+    await expect(estado).toContainText("ya está en Escenarios › Guardados");
+    expect(await page.evaluate(() => loadEscenarioMotorSaved().filter((entry) => entry.origen === "simulador-deuda").length)).toBe(1);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+test.describe("SVD-4 · «Lo hemos propuesto» llega a Hoy", () => {
+  test("la propuesta con fecha de respuesta se recuerda, sale en «Decidir esta semana» y en el calendario, y se puede quitar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const key = await page.evaluate(() => { const e = debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO"); return `acct_${e.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`; });
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    await frame.locator(`#${key}_acuerdo summary`).click({ timeout: 20000 });
+    const hoy = await page.evaluate(() => isoLocalDate(new Date()));
+    const respuesta = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 3); return isoLocalDate(d); });
+    await frame.getByLabel("Propuesto el").fill(hoy);
+    await frame.getByLabel("Contestan antes del").fill(respuesta);
+    await frame.getByRole("button", { name: "Guardar la propuesta" }).click();
+    await expect(frame.locator(`#${key}_propuesta_dicha`)).toContainText("Propuesto a la entidad el");
+    await expect.poll(async () => page.evaluate((k) => debtRoadmapState[`${k}_respuesta`], key), { timeout: 10000 }).toBe(respuesta);
+    // Se recuerda tras recargar.
+    await page.reload();
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    await expect(frame.locator(`#${key}_propuesta_dicha`)).toContainText("dijeron que contestarían antes del", { timeout: 20000 });
+    // Hoy: «Decidir esta semana».
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator(".hoy-v2-decisions")).toContainText("Banco FICTICIO contesta antes del");
+    // Calendario: el evento del día de la respuesta, sin el nombre en el título.
+    const evento = await page.evaluate(() => (globalThis.svdPropuestasCalendario?.() || [])[0]);
+    expect(evento).toMatchObject({ date: respuesta, title: "Deuda: ¿ha contestado la entidad a la propuesta?" });
+    expect(evento.description).toContain("Banco FICTICIO");
+    // «Ya no está propuesto» lo quita de Hoy.
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    await frame.getByRole("button", { name: "Ya no está propuesto" }).click({ timeout: 20000 });
+    await expect.poll(async () => page.evaluate((k) => debtRoadmapState[`${k}_propuesta`] || "", key), { timeout: 10000 }).toBe("");
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator(".hoy-v2-decisions")).not.toContainText("Banco FICTICIO");
+    expect(pageErrors).toEqual([]);
+  });
+});
