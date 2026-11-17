@@ -1317,7 +1317,7 @@ function renderDeudaContratos() {
   const detectadosEl = qs("deudaContratosDetectados");
   if (detectadosEl) detectadosEl.innerHTML = `${deudaContratosDetectadosHtml(deudaContratosRecibos())}${typeof deudaContratosVariosHtml === "function" ? deudaContratosVariosHtml() : ""}`;
   const cuadreEl = qs("deudaContratosCuadre");
-  if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
+  if (cuadreEl) cuadreEl.innerHTML = `${deudaContratosCuadreHtml(debtCapitalCuadre())}${typeof svdCuotasPlanModelo === "function" ? deudaContratosCuotasPlanHtml(svdCuotasPlanModelo()) : ""}`;
   renderDeb5FiscalPriority(contracts);
   renderDeb16PayoffOrder(contracts);
   renderDeb13DormantExpensiveDebtAlert(contracts);
@@ -2143,6 +2143,46 @@ function handleDeudaContratosRemove(id) {
     renderDeudaContratos();
     announceStatus(`Contrato de «${label}» recuperado.`);
   });
+}
+
+// SVD-R1 (17/11/2026, «ponerlos realistas»): ¿la previsión paga las cuotas de los contratos? Cruza cada contrato con las partidas
+// de financiación del plan del mes que viene (lo que la previsión cuenta como deuda) por el nombre de la entidad y el importe
+// (`matchPlanInstallments`, canonical-debt-contracts.js). Solo lo enseña: no cambia el plan. Plegado (XGO-01).
+const DEUDA_CUOTAS_PLAN_ESTADOS = {
+  "en-plan": { label: "En el plan", tone: "e19-badge-success" },
+  "importe-distinto": { label: "En el plan, otro importe", tone: "e19-badge-warning" },
+  "por-importe": { label: "¿Es esta?", tone: "e19-badge-warning" },
+  "fuera-del-plan": { label: "No está en el plan", tone: "e19-badge-danger" },
+  "suspendido-en-plan": { label: "Suspendido, pero en el plan", tone: "e19-badge-warning" },
+  "sin-cuota": { label: "Sin cuota", tone: "e19-badge-neutral" },
+};
+
+function deudaContratosCuotasPlanHtml(modelo) {
+  if (!modelo || !Array.isArray(modelo.items) || !modelo.items.length) return "";
+  const mes = escapeHtml(modelo.monthLabel || modelo.monthKey || "el mes que viene");
+  const filas = modelo.items.map((item) => {
+    const estado = DEUDA_CUOTAS_PLAN_ESTADOS[item.status] || DEUDA_CUOTAS_PLAN_ESTADOS["sin-cuota"];
+    const partida = item.row ? `«${escapeHtml(item.row.label)}» · ${money(item.row.amount, true)}` : "—";
+    const nota = item.status === "importe-distinto" ? ` (${item.diff > 0 ? "+" : ""}${money(item.diff, true)} frente al contrato)`
+      : item.status === "por-importe" ? " (mismo importe, sin el nombre de la entidad)" : "";
+    const cuota = item.payment > 0 ? `cuota ${money(item.payment, true)}` : "sin cuota";
+    return `<li data-deuda-cuota-plan="${escapeHtml(item.id)}"><strong>${escapeHtml(item.label)}</strong> · ${cuota} <span class="e19-badge ${estado.tone}">${escapeHtml(estado.label)}</span>${item.row ? `<br><small>Partida: ${partida}${escapeHtml(nota)}</small>` : ""}</li>`;
+  }).join("");
+  const t = modelo.totals || {};
+  const resumen = [];
+  if (t.missingPayment > 0) resumen.push(`La previsión no paga ${money(t.missingPayment, true)} al mes de cuotas de contratos activos: en esa cifra es optimista.`);
+  if (t.suspendedInPlan > 0) resumen.push(`Paga ${money(t.suspendedInPlan, true)} al mes de partidas de contratos que hoy no pagan cuota: en esa cifra es pesimista.`);
+  if (!resumen.length) resumen.push("Todas las cuotas que se pagan están en el plan con el nombre de su entidad.");
+  const huerfanas = (modelo.orphanRows || []).length
+    ? `<p class="e19-kpi-note">Partidas de financiación del plan sin contrato: ${modelo.orphanRows.map((row) => `«${escapeHtml(row.label)}» (${money(row.amount, true)})`).join(", ")}. O son deudas que faltan en Contratos, o el nombre de la partida no dice la entidad.</p>`
+    : "";
+  return `<details id="deudaCuotasPlan">
+      <summary>¿Están las cuotas en el plan? (${mes})</summary>
+      <p class="e19-kpi-note">La previsión cuenta como deuda las partidas de financiación de Plan › Mes. Aquí se cruzan con la cuota de cada contrato, por el nombre de la entidad y el importe. No se cambia nada.</p>
+      <ul>${filas}</ul>
+      <p class="e19-kpi-note"><strong>${escapeHtml(resumen.join(" "))}</strong></p>
+      ${huerfanas}
+    </details>`;
 }
 
 function deudaContratosCuadreHtml(cuadre) {

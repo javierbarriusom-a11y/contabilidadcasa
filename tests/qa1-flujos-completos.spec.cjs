@@ -11114,3 +11114,67 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-R1 (17/11/2026, «ponerlos realistas»): ¿la previsión paga las cuotas de los contratos? Contratos inventados.
+test.describe("SVD-R1 · Las cuotas de Contratos frente al plan", () => {
+  test("Contratos dice qué cuota está en el plan, el simulador lo resume y el acuerdo resta la partida del plan", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    // La cuota de la tarjeta, como partida de financiación del plan del mes que viene; la del préstamo, no.
+    await page.evaluate(() => {
+      debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"];
+      saveDebtContractHiddenExampleIds();
+      customPlanningRows.push({ id: "custom-expense-svdr1", custom: true, kind: "expense", sectionName: "Financiaciones", label: "Tarjeta Ficticio", monthKey: forecastMonths()[1].key, plannedValue: 90 });
+      saveCustomPlanningRows();
+    });
+    await page.reload();
+    const { bancoId, cajaId, key } = await page.evaluate(() => {
+      const banco = debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO");
+      const caja = debtContractCustomEntries.find((row) => row.entity === "Caja FICTICIA");
+      return { bancoId: banco.id, cajaId: caja.id, key: `acct_${banco.id.replace(/[^a-zA-Z0-9_-]/g, "_")}` };
+    });
+
+    const bloque = page.locator("#deudaCuotasPlan");
+    await expect(bloque).toBeVisible();
+    await expect(bloque).not.toHaveAttribute("open", "");
+    await bloque.locator("summary").click();
+    await expect(bloque.locator(`[data-deuda-cuota-plan="${bancoId}"]`)).toContainText("En el plan");
+    await expect(bloque.locator(`[data-deuda-cuota-plan="${bancoId}"]`)).toContainText("«Tarjeta Ficticio»");
+    await expect(bloque.locator(`[data-deuda-cuota-plan="${cajaId}"]`)).toContainText("No está en el plan");
+    await expect(bloque).toContainText("La previsión no paga 160 € al mes de cuotas de contratos activos");
+    // La partida de ejemplo de la demo no tiene contrato.
+    await expect(bloque).toContainText("Partidas de financiación del plan sin contrato");
+
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    await expect(frame.locator("#svdCuotasPlan")).toContainText("1 de 2 cuotas están en el plan (faltan 160 € al mes)", { timeout: 20000 });
+    await expect(frame.locator("#svdCuotasEnPlan")).not.toBeChecked();
+
+    // Un acuerdo sobre la tarjeta: la hoja dice qué partida deja de restarse y la decisión la lleva, aunque la casilla esté sin marcar.
+    await frame.locator(`#${key}_strategy`).selectOption("settlement");
+    await frame.locator(`#${key}_lump`).fill("1500");
+    await frame.locator(`#${key}_start`).fill("2");
+    await frame.locator(`#${key}_aceptado`).click();
+    const hoja = page.locator("#svdAcuerdoDialog");
+    await expect(hoja).toContainText("La partida del plan «Tarjeta Ficticio» (90 € al mes) deja de restarse");
+    await hoja.getByLabel(/La carta, el correo o la captura/).setInputFiles({ name: "carta-ficticia.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 ficticio") });
+    await hoja.getByRole("button", { name: "Aplicar el acuerdo" }).click();
+    await page.locator("#p2SessionCloudKeyDialog").getByRole("button", { name: "Solo este dispositivo" }).click();
+    await expect(hoja).toBeHidden();
+    const relief = await page.evaluate((contractId) => debtLiquidations.find((item) => item.svdAcuerdo && item.targetId === contractId)?.monthlyRelief, bancoId);
+    expect(relief).toBe(90);
+    // El simulador lo enseña con las cifras bien escritas (antes salía «1.500 € €»).
+    await expect(frame.locator(`#${key}_acuerdo_aplicado`)).toContainText("pago de 1.500 € desde", { timeout: 10000 });
+    await expect(frame.locator(`#${key}_acuerdo_aplicado`)).not.toContainText("€ €");
+    expect(pageErrors).toEqual([]);
+  });
+});
