@@ -100,6 +100,23 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// SVD-0 (17/11/2026): el simulador visual de deuda vive en un iframe (debt-roadmap.html) y ninguna prueba miraba dentro.
+// Medido ese día a 390 px: 28 nodos con fallos críticos (25 campos sin etiqueta y 3 desplegables sin nombre). Es un
+// trinquete: no puede empeorar, y cada PR del bloque SVD que lo mejore baja el tope. Tampoco puede salirse por la derecha.
+test.describe("SVD-0 · Simulador visual de deuda (iframe)", () => {
+  test("a 390 px: no más fallos críticos que el 17/11 y nada fuera por la derecha", async ({ page }) => {
+    const TOPE_CRITICOS = 28;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/debt-roadmap.html");
+    await page.waitForLoadState("networkidle");
+    const results = await new AxeBuilder({ page }).analyze();
+    const criticos = results.violations.filter((violation) => violation.impact === "critical");
+    const nodos = criticos.reduce((total, violation) => total + violation.nodes.length, 0);
+    expect(nodos, criticos.map((v) => `${v.id}: ${v.nodes.length}`).join("\n")).toBeLessThanOrEqual(TOPE_CRITICOS);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+  });
+});
+
 // Deuda › Contratos · «Detectadas en vuestros recibos» (15/11/2026): axe entero dentro de la tarjeta, en claro y en oscuro, con recibos INVENTADOS.
 for (const scheme of ["light", "dark"]) {
   test.describe(`Deuda › Contratos · detectadas en recibos · accesibilidad en modo ${scheme}`, () => {

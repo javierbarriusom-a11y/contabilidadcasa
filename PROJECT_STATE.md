@@ -113,6 +113,65 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 17 de noviembre de 2026 (480): SVD-0, el simulador visual de deuda descrito con pruebas (sin cambio visible)
+
+- **Por qué:** el hogar repitió la petición del bloque SVD con un «continúa». El plan ya estaba en `docs/SVD_DISENO.md`. SVD-0 es lo único del bloque que no necesita decisión suya (D-N16, D-N20): no cambia ninguna pantalla ni cifra.
+- **`tests/svd0-simulador-contrato.test.cjs` (6)** describe cómo se conecta hoy el simulador:
+  - las dos cuentas principales se enlazan por el nombre de los contratos de ejemplo, y los contratos reales entran solo con su capital;
+  - de la previsión llega una media de capacidad, no los meses;
+  - del inventario de campos, la aportación extra de D1 fase 1 y todos los campos de las cuentas adicionales de D1 fase 2 quedaron sin clasificar, y la TAE figura como supuesto del simulador;
+  - el simulador guarda una segunda copia en el `localStorage` del `iframe`;
+  - la app lo hidrata al cargar y en cada recálculo;
+  - aplicar una oferta crea una decisión en el plan sin tocar el contrato.
+- **Lo que no miraba ninguna prueba**, medido con el simulador suelto en Chromium:
+  - 17.833 px de alto en el móvil;
+  - axe, a 390 px: 28 nodos con fallos críticos (25 campos sin etiqueta y 3 desplegables sin nombre), 16 de contraste y una zona con desplazamiento sin foco;
+  - nada fuera por la derecha.
+  - Queda como **trinquete** en `tests/opt4-axe-accessibility.spec.cjs`: como mucho 28 críticos, y sin desbordar. SVD-2 o SVD-6 lo bajan a 0.
+- Inventario y mediciones, en `docs/SVD_DISENO.md` §7; SVD-0, hecho en `BACKLOG_NOVIEMBRE_OLEADA_1.md` §5.8.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.673/6.673 (+6); lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Las 6 unitarias nuevas y el trinquete de axe en verde (Chromium). Sin cambios en la app.
+
+## Cierre de sesión — 17 de noviembre de 2026 (479): bloque SVD (simulador visual de deuda conectado), plan de implementación; la prueba «CLA-01 y CLA-02» estable en Safari
+
+- **Petición del hogar (17/11):** «que el simulador visual de deuda se alimente de los datos del resto de secciones y que a la vez los datos actualicen el resto de secciones cuando corresponda. Inclúyelo en el backlog y haz un plan de implementación». Es un plan: no se ha tocado código de Deuda (sigue pendiente D-N16).
+- **Lo que hay hoy, leído en el código:**
+  - `debt-roadmap.html` en un `iframe` recibe en cada recálculo el capital de los contratos que se llamen literalmente «Entidad A» y «Entidad B» (los de ejemplo), solo el capital del resto y una media de la capacidad de la previsión;
+  - devuelve su estado y una oferta borrador, que aplicada crea una decisión en el plan pero **no cambia el contrato**;
+  - proyecta con el motor heredado, no con el de «Camino a deuda cero».
+- **El historial dice** (sesiones 255-257, 28/9) que el hogar confirmó que el simulador es la herramienta de una negociación real y activa con dos acreedores. Cuadra con el informe de solvencia de dos entidades y refuerza D-N16; añadido a la décima auditoría §1.4.
+- **Plan** (`docs/SVD_DISENO.md`, `BACKLOG_NOVIEMBRE_OLEADA_1.md` §5.8): siete PR.
+  - SVD-0: pruebas e inventario, sin cambio visible; puede empezar ya.
+  - SVD-1: el puente sale de `app.js` y las cuentas se enlazan por id de contrato, con migración.
+  - SVD-2: lectura completa con deriva y paridad de motores.
+  - SVD-3: «Aplicar el acuerdo», que cambia contrato, plan y acta en una operación con un «Deshacer» y sin contar dos veces.
+  - SVD-4: escenarios y tareas.
+  - SVD-5: la vuelta desde el extracto.
+  - SVD-6: simulador nativo; retirar el `iframe` se consulta.
+  - Absorbe DEC-24 y DEC-27. Decisiones nuevas: D-N20 (cuándo empieza) y D-N21 (qué cuenta como acuerdo aceptado).
+- **CI de #628 en rojo en `8425763`** (solo cambiaba esta documentación): la e2e «CLA-01 y CLA-02», de #627, en WebKit a 390 px, dos intentos. El clic en el resumen del desplegable de reglas lo interceptaban por turnos el aviso «Deshacer» (fijo abajo), la cabecera fija y la tarjeta de anomalías, con el elemento «no estable».
+  - **Causa:** `html { scroll-behavior: smooth }` hace que WebKit anime el desplazamiento previo al clic; además, los «Deshacer» de Clasificar (10 s) tapan el pie de la bandeja.
+  - **Arreglo, solo en la prueba:** movimiento reducido emulado (como ya respeta la app con `prefers-reduced-motion`) y el reloj de la prueba adelantado 11 s hasta que el aviso se va.
+  - En Chromium pasa 3 de 3. En WebKit solo se ve en el CI (aquí no hay WebKit).
+  - **Observación sin arreglar:** en el móvil, un «Deshacer» tapa durante 10 s lo último de la pantalla.
+- **Validación:** `npm run verify` en verde, salida 0 (`npm test` 6.667/6.667; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke); la e2e arreglada, 3/3 en Chromium. Sin batería completa de navegador: no cambia ninguna pantalla, solo una prueba y documentación.
+
+## Cierre de sesión — 16 de noviembre de 2026 (478): décima auditoría (uso y experiencia, 46 funciones `DEC-nn`); despliegue de #627
+
+- **Petición del hogar (16/11):** comprobar el despliegue de #627, preguntar por la foto vigente de su deuda antes de tocar Deuda o Préstamo y «seguir analizando la app de manera crítica […] más de 40 nuevas adicionales […] especialmente en uso y experiencia de usuario y optimizando lo ya desarrollado. Revisa del backlog anterior las nuevas funcionalidades que no hayan sido implementadas».
+- **Despliegue de #627** (`main` `712ef9f`, fusionado a las 12:59Z del 16/11): ejecución **1442**, en verde a las 14:06Z (más lenta que otras: e2e 30 min, axe 19 min; ningún fallo). «Published availability» **354** (a mano), en verde. El desplegable de reglas por palabras de Movimientos ya está en el sitio.
+- **Décima auditoría** (`docs/PROPUESTA_DECIMA_AUDITORIA_2026-11-16.md`, propuesta; el backlog vivo no cambia). Medido hoy con la demo en Chromium a 390 × 844 y 1440 × 900:
+  - 60 vistas y 54 enlaces en el menú lateral; Ajustes, 34.000 px de alto en el móvil con 59 titulares, 115 campos y 108 botones; Inversión › Cartera, 9.100 px; Deuda › Contratos, 5.600 px con una tabla de 10 columnas;
+  - la cabecera de Hoy enseña cinco cifras en euros; en el móvil Hoy empieza a 208 px (507 px con «Primeros pasos» abierta);
+  - el inventario de titulares (XGO-01) va por 231 frente a una base de 224, con 3 excepciones: lo nuevo cumple la regla plegándose, no retirando nada;
+  - la demo lleva la insignia «Dato real» junto a «Saldos estimados»; dos de las tres decisiones de Hoy dicen «Revisar alerta»; Deuda › Ruta titula «sin fecha estimable» encima de una fecha (ya señalado en HANDOFF §5 y en el riesgo R-1 de WP-54).
+- **Deuda (sin tocar):** el informe de solvencia trae saldo impagado, que suele ser exigible entero y no en cuotas; Contratos solo tiene cuatro estados y ningún importe de atraso, mientras el «Plan deuda óptimo» heredado sí modelaba ficheros, quitas y atrasos. La app guarda dos fotos distintas de la deuda, más la del informe. **No se toca Deuda ni Préstamo hasta que el hogar diga cuál es la foto vigente (D-N16).**
+- **Catálogo:** 46 funciones `DEC-01` a `DEC-46` en nueve ámbitos (confianza del dato, navegación móvil, entrada y clasificación, Hoy, deuda, previsión, pareja, accesibilidad y rendimiento, gobierno); 14 optimizan lo que ya existe. Tres principios propuestos (P-A: cada función nueva dice qué retira; P-B: móvil primero, respuesta en la primera pantalla; P-C: probar con la forma del dato real).
+- **Lo que sigue sin hacer:** de las 53 de la novena, 47 (hechas DAT-05, CLA-01, CLA-03, CLA-02 sin «quién debe a quién» y la medición de PRV-01). Recomendación por ID en el §3 del documento: 9 se fusionan con `DEC-nn`, 11 bajan y **CLA-04 (gestos) se replantea** porque el hogar descartó las tarjetas que se deslizan (DEC-15). FX-nn y séptima auditoría abiertas, en §3.2 y §3.3.
+- **Hasta el 4/12, dentro de D-N11 (§6):** DEC-13 (huella anónima del extracto, para validar lo construido del 14 al 16/11 con su banco), DEC-18 y DEC-16 (el % con partida y lo pendiente en la bandeja), DEC-12 (confirmar solos los esperados), DEC-14 (importe típico y día del mes) y DAT-07 (dividir un movimiento); y medir para retirar (DEC-40, DEC-44).
+- **Decisiones nuevas que pide:** D-N16 (foto de la deuda y certificado de deuda por entidad), D-N17 (adoptar la lista y el orden), D-N18 (graduación por defecto a los 28 días) y D-N19 (alcance de «hazlo tú en mi lugar»).
+- También: `BACKLOG_NOVIEMBRE_OLEADA_1.md` §0, `BACKLOG_INDICE.md` (que tampoco tenía la novena) y `ESTADO.md` §8, con los principios como propuesta.
+- **Validación:** solo documentación, sin cambios de código ni de pantallas. `npm run verify` en verde, salida 0: `npm test` 6.667/6.667; lint, tipos, accesibilidad, rendimiento, build, privacidad y smoke. Sin batería de navegador: no cambia ninguna pantalla (las mediciones del diagnóstico se hicieron con un guion de Playwright aparte, fuera del repositorio).
+
 ## Cierre de sesión — 16 de noviembre de 2026 (477): todas las reglas por palabras a la vista en Movimientos; despliegue de #626
 
 - **Por qué:** era un hueco declarado en la entrada 475. Una regla por palabras (CLA-01 y CLA-02) clasifica sola lo que llega, y solo se veía y se quitaba desde la ficha de un movimiento que clasificara; si una cogía de más, no había dónde repasarlas. El hogar dijo «continúa»; se eligió cerrar ese hueco antes de abrir nada nuevo.
