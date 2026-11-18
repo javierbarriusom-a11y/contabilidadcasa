@@ -70,6 +70,7 @@
     { id: "prevision-v2", nombre: "Previsión nueva", accion: ["horizonte cambiado o ida a otra pantalla", "horizontes cambiados o idas a otra pantalla"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "simulador-v2", nombre: "Simulador de deuda nuevo", accion: ["estrategia guardada o acuerdo marcado", "estrategias guardadas o acuerdos marcados"], descarte: ["vez «Ver el simulador anterior»", "veces «Ver el simulador anterior»"], deshecho: null },
     { id: "huella-extracto", nombre: "Huella anónima del extracto", accion: ["huella copiada", "huellas copiadas"], descarte: null, deshecho: null },
+    { id: "copia-aviso", nombre: "Aviso de la copia de seguridad", accion: ["copia descargada desde el aviso", "copias descargadas desde el aviso"], descarte: null, deshecho: null },
     { id: "plan-v2", nombre: "Plan nuevo", accion: ["previsto guardado o ida a otra pantalla", "previstos guardados o idas a otra pantalla"], descarte: ["vez «la tabla de siempre»", "veces «la tabla de siempre»"], deshecho: null },
     { id: "aportado", nombre: "Aportado frente a valor", accion: ["valoración buscada desde aquí", "valoraciones buscadas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
     { id: "siguiente-paso", nombre: "Siguiente paso de la cartera", accion: ["acción seguida desde aquí", "acciones seguidas desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },

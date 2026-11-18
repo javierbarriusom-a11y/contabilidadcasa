@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-copia-aviso",
+      fecha: "2026-11-18",
+      texto: "Ajustes y el repaso avisan si la última copia de seguridad tiene más de 30 días, con «Descargar copia» a mano.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-18-meta-con-partida",
       fecha: "2026-11-18",
       texto: "Movimientos: la bandeja dice qué parte del gasto tiene partida frente al 95 %, cuánto falta y cuántos conceptos bastan.",

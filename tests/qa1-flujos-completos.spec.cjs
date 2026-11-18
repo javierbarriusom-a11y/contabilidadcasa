@@ -11563,3 +11563,37 @@ test.describe("DEC-18 · El % con partida en la bandeja", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// DEC-41 (18/11/2026): la copia de seguridad que avisa, en Ajustes y en el «Listo» del repaso. Movimiento inventado.
+test.describe("DEC-41 · Copia de seguridad que avisa", () => {
+  test("con la copia de hace 45 días, la línea en Ajustes descarga la de siempre y se va; sin copia, sale en el Listo del repaso", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+    await page.goto("/index.html#ajustes");
+    await expect(page.locator("#copiaAvisoAjustes")).toBeAttached({ timeout: 15000 });
+    await page.evaluate(() => {
+      const hoy = isoLocalDate(new Date());
+      baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: hoy, month: hoy.slice(0, 7), movement: "SUPER FICTICIO", details: "", amount: -12, balance: null, account: "CaixaBank", source: "Extracto" }]);
+      scenarioSettings.lastEmergencyBackupAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+      copiaAvisoPintarAjustes();
+    });
+    const aviso = page.locator("#copiaAvisoAjustes .copia-aviso");
+    await expect(aviso).toHaveText(/La última copia descargada es de hace 45 días\. Conviene descargar otra: los datos viven en este navegador\./);
+    await expect(aviso).not.toHaveClass(/is-urgente/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    const descarga = page.waitForEvent("download");
+    await aviso.locator("[data-copia-aviso-descargar]").click();
+    await descarga;
+    await expect(page.locator("#copiaAvisoAjustes .copia-aviso")).toHaveCount(0);
+    expect(await page.evaluate(() => Date.now() - new Date(scenarioSettings.lastEmergencyBackupAt).getTime() < 60000), "la copia de siempre apunta la fecha").toBe(true);
+    // Sin ninguna copia, el Listo del repaso lo dice, con más énfasis.
+    await page.evaluate(() => { delete scenarioSettings.lastEmergencyBackupAt; repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+    const enRepaso = page.locator('#repasoV2 .copia-aviso[data-copia-aviso="repaso"]');
+    await expect(enRepaso).toHaveClass(/is-urgente/);
+    await expect(enRepaso).toContainText("No consta ninguna copia descargada desde este navegador.");
+    await expect(enRepaso.locator("[data-copia-aviso-descargar]")).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+});
