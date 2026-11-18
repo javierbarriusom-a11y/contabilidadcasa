@@ -17,6 +17,18 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-meta-con-partida",
+      fecha: "2026-11-18",
+      texto: "Movimientos: la bandeja dice qué parte del gasto tiene partida frente al 95 %, cuánto falta y cuántos conceptos bastan.",
+      href: "#movements",
+    },
+    {
+      id: "2026-11-18-huella-extracto",
+      fecha: "2026-11-18",
+      texto: "Ajustes › Uso de la app: «Huella anónima del extracto» para mejorar Clasificar con vuestro banco, sin importes ni nombres.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-18-simulador-pantalla-nueva",
       fecha: "2026-11-18",
       texto: "Simulador de deuda nuevo: una fila por contrato con su estrategia y lo que da; el de siempre, en «Ver el simulador anterior».",

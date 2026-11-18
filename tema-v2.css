@@ -1109,6 +1109,45 @@
   color: var(--e19-muted);
 }
 
+:root[data-tema="v2"] .mov-v2-meta-partida {
+  padding: 4px 16px 12px;
+}
+
+:root[data-tema="v2"] .mov-v2-meta-partida .mov-v2-meta {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+/* DEC-18: barra fina con la meta (95 %) marcada; acento hasta llegar y éxito al llegar, nunca rojo. */
+:root[data-tema="v2"] .mov-v2-meta-barra {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--e19-surface-sunken);
+  overflow: visible;
+}
+
+:root[data-tema="v2"] .mov-v2-meta-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .mov-v2-meta-partida.is-hecho .mov-v2-meta-barra > span {
+  background: var(--e19-success);
+}
+
+:root[data-tema="v2"] .mov-v2-meta-barra > i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  background: var(--e19-muted);
+}
+
 :root[data-tema="v2"] .mov-v2-pending {
   display: flex;
   align-items: center;

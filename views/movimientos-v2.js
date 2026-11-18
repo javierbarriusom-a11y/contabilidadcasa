@@ -300,6 +300,25 @@ function movV2BandejaHead(count) {
   return `<div class="mov-v2-section-head"><h3>Bandeja</h3><span>${count ? `${count} ${count === 1 ? "cosa" : "cosas"}` : "nada pendiente"}</span></div>`;
 }
 
+// DEC-18 (18/11/2026): la meta de D-N11 (95 % del gasto importado con partida antes del 1/12) a la vista en la bandeja, con la
+// misma cifra que Funciones en prueba y el medidor (clasV2Meta, views/clasificar-v2.js): cuánto falta y cuántos de los
+// conceptos que más suman bastan. Barra fina, azul hasta la meta y tinta al llegar; sin rojo. Sin gasto importado, nada.
+function movV2MetaHtml() {
+  const meta = typeof clasV2Meta === "function" ? clasV2Meta() : null;
+  if (!meta) return "";
+  const hecho = meta.pct >= meta.objetivo;
+  const bastan = meta.grupos === 1 ? "basta el concepto que más suma" : `bastan los ${meta.grupos} conceptos que más suman`;
+  const texto = hecho
+    ? `Gasto con partida (últimos 90 días): ${meta.pct} % · objetivo del ${meta.objetivo} % cumplido`
+    : `Gasto con partida (últimos 90 días): ${meta.pct} % · objetivo ${meta.objetivo} % · faltan ${money(meta.falta)}${meta.grupos ? `; ${bastan}` : ""}`;
+  return `<div class="mov-v2-meta-partida${hecho ? " is-hecho" : ""}">
+    <p class="mov-v2-meta">${escapeHtml(texto)}</p>
+    <div class="mov-v2-meta-barra" role="progressbar" aria-label="Gasto con partida, últimos 90 días" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${meta.pct}">
+      <span style="width:${Math.min(100, Math.max(0, meta.pct))}%"></span><i style="left:${meta.objetivo}%" aria-hidden="true"></i>
+    </div>
+  </div>`;
+}
+
 // Bandeja: lo que pide algo. Los movimientos sin partida (agrupados por concepto, que es la unidad de las reglas: dar
 // partida a uno se la da a los demás con el mismo concepto) y los cobros y cargos esperados por confirmar. Las
 // anomalías del extracto (WP-36) son su propia tarjeta, justo debajo. La tarjeta abre Clasificar por lotes (A5,
@@ -318,7 +337,7 @@ function movV2Bandeja(all, esperados = []) {
         <span aria-hidden="true">›</span>
       </button>`
     : `<p class="mov-v2-card mov-v2-vacio-linea">Todos los movimientos tienen partida.</p>`;
-  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2TraspasosHtml(traspasos)}${movV2EsperadosList(esperados)}${movV2ReglasHtml()}</section>`;
+  return `<section class="mov-v2-bandeja" aria-label="Bandeja">${head}${body}${movV2MetaHtml()}${movV2TraspasosHtml(traspasos)}${movV2EsperadosList(esperados)}${movV2ReglasHtml()}</section>`;
 }
 
 // Rediseño B5: la puerta del Repaso semanal (views/repaso-v2.js). No es algo pendiente, así que va aparte de la bandeja,

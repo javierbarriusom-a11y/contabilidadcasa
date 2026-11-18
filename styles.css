@@ -13265,3 +13265,31 @@ input[data-amount-input][aria-invalid="true"] {
   width: 8rem;
   max-width: 100%;
 }
+
+/* DEC-13 · huella anónima del extracto (huella-extracto-ui.js): lo que se copia, tal cual, sin salirse en el móvil. */
+.huella-extracto-etiqueta {
+  display: block;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.huella-extracto-texto {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 12em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+
+.huella-extracto-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
