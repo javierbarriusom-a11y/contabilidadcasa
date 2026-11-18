@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**18/11/2026 · DEC-41: la copia de seguridad que avisa («sigue con más cosas que puedas avanzar sin el hogar»).** Vuestros datos viven en el navegador y Safari puede borrarlos. Si la última copia descargada tiene más de 30 días (o no consta) y no estáis en la nube, Ajustes y el «Listo» del repaso lo dicen con «Descargar copia», la de siempre. No toca ningún dato (PROJECT_STATE 493).
+
 **18/11/2026 · DEC-13 y DEC-18: la huella anónima del extracto y la meta del 95 % en la bandeja («sigue con más cosas que puedas avanzar sin el hogar»).** Dos de las seis de la décima auditoría para hasta el 4/12 que caben en D-N11 sin cambiar cifras. **La huella** (Ajustes › Uso de la app, plegada) da la forma de cada concepto sin partida («RECIBO · palabras · número de 10 cifras») sin importes, fechas, nombres, comercios, referencias ni cuentas; pegada en la conversación, permite validar Clasificar con vuestro banco y decidir DEC-14. **La bandeja** de Movimientos dice qué parte del gasto de los últimos 90 días tiene partida frente al 95 %, cuánto falta y cuántos conceptos bastan (la misma cifra que Funciones en prueba). D-N17 sigue abierta: DEC-16 espera a ella (PROJECT_STATE 491).
 
 **18/11/2026 · SVD-6 fase 1: el simulador visual de deuda como pantalla de la app («haz la 3 y la 4»).** Con el tema nuevo y contratos reales, Deuda › Simulador visual es una pantalla de la app: cuatro cifras arriba y, por contrato, la estrategia, cuándo acaba, lo que paga, el acuerdo y la propuesta. Mismo motor y mismo estado que el de siempre (mismas cifras, comprobado), que sigue entero tras «Ver el simulador anterior» hasta que se gradúe (PROJECT_STATE 490).

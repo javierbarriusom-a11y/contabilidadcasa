@@ -521,6 +521,10 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   «este mes»; he usado la misma cifra que Funciones en prueba y el medidor (90 días), porque la revisión del 4/12 se hará con
   esa y dos porcentajes distintos para la misma meta confundirían. Sin rojo; la paleta del tema v2 no tiene azul, así que va en
   el acento (verde oscuro) y en verde al llegar.
+- **DEC-41**, la copia de seguridad que avisa (PROJECT_STATE 493), en Ajustes encima del botón de la copia y en el «Listo» del
+  repaso, a partir de la fecha que la app ya apuntaba (`lastEmergencyBackupAt`, de RGX1): nada con la nube conectada, sin datos
+  o con una copia de 30 días o menos; de 31 a 60 días, una línea con «Descargar copia»; de más de 60 o sin copia, la misma con
+  más énfasis. Nunca rojo. El botón es la copia completa de siempre. `views/copia-aviso.js`.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

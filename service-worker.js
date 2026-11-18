@@ -259,6 +259,7 @@ const SHELL_URLS = [
   "./views/importar-v2.js",
   "./views/clasificar-v2.js",
   "./views/huella-extracto.js",
+  "./views/copia-aviso.js",
   "./views/repaso-v2.js",
   "./buzon-extractos.js",
   "./cobertura-ui.js",

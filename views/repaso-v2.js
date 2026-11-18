@@ -304,7 +304,8 @@ function repasoV2PasoListo() {
     resumen.racha > 1 ? `${resumen.racha} semanas seguidas con repaso.` : "",
     `Esta semana: ${String(resumen.minutosSemana).replace(".", ",")} min de mantenimiento (objetivo, 10 o menos).`,
   ].filter(Boolean);
-  // FX-42 (9/11/2026): la previsión en tres líneas, sin paso nuevo (views/prevision-v2.js previsionV2ResumenRepaso).
+  // FX-42 (9/11/2026): la previsión en tres líneas, sin paso nuevo (views/prevision-v2.js previsionV2ResumenRepaso). Debajo, desde
+  // el 18/11/2026 (DEC-41, views/copia-aviso.js), el aviso de la copia de seguridad si toca.
   const prevision = globalThis.previsionV2ResumenRepaso?.();
   const tarjeta = prevision?.lineas?.length
     ? `<div class="rep-v2-prevision${prevision.aviso ? " is-bad" : ""}" role="group" aria-labelledby="repasoV2Prevision">
@@ -316,7 +317,8 @@ function repasoV2PasoListo() {
   return {
     cuerpo: `${repasoV2Titulo(4, `${repasoV2Duracion(segundos)} · ${pendientes.length ? "casi todo" : "todo al día"}`, "")}
       <ul class="rep-v2-resumen">${lineas.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
-      ${tarjeta}`,
+      ${tarjeta}
+      ${globalThis.copiaAvisoHtml?.("repaso") || ""}`,
     pie: `<button type="button" class="e19-btn e19-btn-primary rep-v2-sigue" data-rep-v2-terminar>Terminar</button>`,
   };
 }

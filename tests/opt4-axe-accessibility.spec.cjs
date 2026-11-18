@@ -2298,3 +2298,29 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// DEC-41 (18/11/2026) · el aviso de la copia de seguridad, en Ajustes y en el Listo del Repaso, en claro y en oscuro. Movimiento
+// inventado (la demo no trae ninguno, y sin datos que perder el aviso no sale).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DEC-41 · contraste del aviso de la copia en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("Ajustes y Repaso › Listo con el aviso: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+      await page.goto("/index.html#ajustes");
+      await expect(page.locator("#copiaAvisoAjustes")).toBeAttached({ timeout: 15000 });
+      await page.evaluate(() => {
+        const hoy = isoLocalDate(new Date());
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: hoy, month: hoy.slice(0, 7), movement: "SUPER FICTICIO", details: "", amount: -12, balance: null, account: "CaixaBank", source: "Extracto" }]);
+        scenarioSettings.lastEmergencyBackupAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+        copiaAvisoPintarAjustes();
+      });
+      await expect(page.locator("#copiaAvisoAjustes .copia-aviso")).toBeVisible();
+      const enAjustes = await new AxeBuilder({ page }).include("#copiaAvisoAjustes").analyze();
+      await page.evaluate(() => { delete scenarioSettings.lastEmergencyBackupAt; repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+      await expect(page.locator("#repasoV2 .copia-aviso.is-urgente")).toBeVisible();
+      const enRepaso = await new AxeBuilder({ page }).include("#repasoV2").analyze();
+      const fallos = [...enAjustes.violations, ...enRepaso.violations].flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}

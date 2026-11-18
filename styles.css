@@ -13293,3 +13293,33 @@ input[data-amount-input][aria-invalid="true"] {
   gap: 8px 12px;
   margin-top: 8px;
 }
+
+/* DEC-41 · el aviso de la copia de seguridad (views/copia-aviso.js), en Ajustes y en el «Listo» del repaso. Ámbar suave; con
+   más de 60 días o sin copia, el borde más marcado. Nunca rojo. */
+.copia-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-warning-soft-border, #ebd7a8);
+  border-radius: 10px;
+  background: var(--e19-warning-soft, #fbf1dc);
+  color: var(--e19-ink, #111814);
+}
+
+.copia-aviso p {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.copia-aviso.is-urgente {
+  border-color: var(--e19-warning, #8f5a00);
+}
+
+.copia-aviso-hecho {
+  margin: 10px 0;
+  font-size: 14px;
+}
