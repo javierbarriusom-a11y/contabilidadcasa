@@ -113,6 +113,12 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (496): despliegue de #639
+
+- **Despliegue de #639 (DEC-44, cuánto se usan las «Versiones anteriores»):** «Verify and deploy Pages» 1470 en verde (Safari incluido) y «Published availability» 370 en verde.
+- **Publicado hoy, sin cambiar ninguna cifra:** SVD-6 fase 1 y «Desde vuestra última visita» (#636), DEC-13 y DEC-18 (#637), DEC-41 (#638) y DEC-44 (#639).
+- **Esperando al hogar:** la huella del extracto pegada en la conversación (validar Clasificar y decidir DEC-14); D-N17 (de ella depende DEC-16); el visto bueno a DAT-07 (dividir un movimiento) y DEC-12 (confirmar solos los esperados), que tocan datos; D-N16, D-N23 y «ponerlos realistas» en Deuda; y quitar los nombres del hogar del repositorio público (pide migrar claves guardadas).
+
 ## Cierre de sesión — 18 de noviembre de 2026 (495): despliegue de #638
 
 - **Despliegue de #638 (DEC-41, la copia de seguridad que avisa):** «Verify and deploy Pages» 1468 en verde (Safari incluido) y «Published availability» 369 en verde.
