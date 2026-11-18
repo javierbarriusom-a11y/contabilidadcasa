@@ -130,13 +130,10 @@
   }
 
   /**
-   * @param {{
-   *   rows?: Array<Record<string, any>>,             los movimientos que piden partida (con importe, sin regla, sin ser traspaso)
-   *   totals?: { movimientos?: number, sinPartida?: number, traspasos?: number },
-   *   cobertura?: string,                            la frase del % de gasto con partida de Clasificar, si la hay
-   *   mes?: string,                                  «noviembre de 2026»: el mes en que se genera, nunca el día
-   *   accountOf?: (row: Record<string, any>) => string
-   * }} input
+   * La huella entera. `rows`: los movimientos que piden partida (con importe, sin regla y sin ser traspaso). `totals`: los
+   * recuentos de la cabecera. `cobertura`: la frase del % de gasto con partida de Clasificar, si la hay. `mes`: «noviembre de
+   * 2026», el mes en que se genera, nunca el día. `accountOf`: de qué cuenta es un movimiento (solo se cuentan, no se dicen).
+   * @param {{ rows?: Array<Record<string, any>>, totals?: { movimientos?: number, sinPartida?: number, traspasos?: number }, cobertura?: string, mes?: string, accountOf?: (row: Record<string, any>) => string }} [input]
    */
   function build(input = {}) {
     const rows = (input.rows || []).filter((row) => row && Number(row.amount));
