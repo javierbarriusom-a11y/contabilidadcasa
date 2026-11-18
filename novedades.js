@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-simulador-pantalla-nueva",
+      fecha: "2026-11-18",
+      texto: "Simulador de deuda nuevo: una fila por contrato con su estrategia y lo que da; el de siempre, en «Ver el simulador anterior».",
+      href: "#deuda-simulador",
+    },
+    {
       id: "2026-11-18-simulador-desde-visita",
       fecha: "2026-11-18",
       texto: "Simulador de deuda: «Desde vuestra última visita» cuenta lo que ha cambiado fuera (contratos, acuerdos, pagos).",

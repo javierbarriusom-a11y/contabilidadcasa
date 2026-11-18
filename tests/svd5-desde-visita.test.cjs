@@ -61,5 +61,5 @@ test("SVD-5 · al volver a la pestaña del simulador, sus datos se reenvían sie
   const fs = require("node:fs");
   const path = require("node:path");
   const puente = fs.readFileSync(path.join(__dirname, "..", "deuda-simulador-puente.js"), "utf8");
-  assert.match(puente, /window\.addEventListener\("hashchange", \(\) => \{\n\s+if \(String\(location\.hash \|\| ""\)\.startsWith\("#deuda-simulador"\)\) sendDebtRoadmapState\(\);/);
+  assert.match(puente, /window\.addEventListener\("hashchange", \(\) => \{\n\s+if \(!String\(location\.hash \|\| ""\)\.startsWith\("#deuda-simulador"\)\) return;\n\s+sendDebtRoadmapState\(\);/);
 });

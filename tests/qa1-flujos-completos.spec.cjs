@@ -11384,3 +11384,97 @@ test.describe("SVD-5 · Desde vuestra última visita", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-6 · fase 1 (18/11/2026, «haz la 3 y la 4»): el simulador visual de deuda como pantalla de la app. Contratos inventados.
+test.describe("SVD-6 · El simulador visual de deuda como pantalla de la app", () => {
+  async function preparar(page, viewport) {
+    await page.setViewportSize(viewport);
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    return page.evaluate(() => {
+      const banco = debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO");
+      const caja = debtContractCustomEntries.find((row) => row.entity === "Caja FICTICIA");
+      const clave = (row) => `acct_${row.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+      return { banco: clave(banco), caja: clave(caja) };
+    });
+  }
+
+  test("misma estrategia, mismas cifras que el simulador de siempre; el de siempre, detrás de «Ver el simulador anterior»", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    const { banco, caja } = await preparar(page, { width: 1280, height: 900 });
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const v2 = page.locator("#deudaSimuladorV2");
+    await expect(v2.locator(".sim-v2-cuenta")).toHaveCount(2, { timeout: 20000 });
+    await expect(page.locator("#deudaSimuladorClasico")).toBeHidden();
+    await expect(v2.locator(".sim-v2-cifras")).toContainText("Deuda a simular");
+    await expect(v2.locator(".sim-v2-cifras")).toContainText("7.500 €");
+    // Con «Esperar» no se ofrece aplicar un acuerdo.
+    await expect(v2.locator(`[data-sim-v2-aceptado="${banco}"]`)).toHaveCount(0);
+    // Quita con pago único de 1.500 € el tercer mes en la tarjeta; refinanciación del préstamo a 24 meses al 6 %.
+    await v2.locator(`input[name="${banco}_strategy"][value="settlement"]`).check();
+    await v2.locator(`[data-sim-v2-campo="${banco}_lump"]`).fill("1500");
+    await v2.locator(`[data-sim-v2-campo="${banco}_start"]`).fill("3");
+    await v2.locator(`input[name="${caja}_strategy"][value="refi"]`).check();
+    await v2.locator(`[data-sim-v2-campo="${caja}_apr"]`).fill("6");
+    await v2.locator(`[data-sim-v2-campo="${caja}_term"]`).fill("24");
+    await expect(v2.locator(`[data-sim-v2-resultado="${banco}"]`)).toContainText("paga 1.680 €");
+    const nuevo = await page.evaluate(() => {
+      const config = FinanceSimuladorV2.configuracion(debtRoadmapCanonicalReadModel(), debtRoadmapState);
+      const sim = FinanceSimuladorV2.simular(FinanceLegacyDebtRoadmapEngine, config);
+      return { totalPagado: sim.totalPagado, duracion: sim.duracion, pico: sim.pico, filas: sim.filas.slice(0, 30).map((fila) => fila.total) };
+    });
+    // El de siempre, con el mismo estado.
+    await v2.getByRole("button", { name: "Ver el simulador anterior" }).click();
+    await expect(page.locator("#deudaSimuladorClasico")).toBeVisible();
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    await expect(frame.locator(`#${banco}_strategy`)).toHaveValue("settlement", { timeout: 20000 });
+    await expect(frame.locator(`#${caja}_term`)).toHaveValue("24");
+    const sim = page.frames().find((f) => f.url().includes("debt-roadmap.html"));
+    const anterior = await sim.evaluate(() => { const r = simulateScenario(currentConfig()); return { totalPagado: r.totalPaid, duracion: r.durationMonths, pico: r.peak, filas: r.rows.slice(0, 30).map((fila) => fila.total) }; });
+    expect(anterior).toEqual(nuevo);
+    // Y de vuelta.
+    await v2.getByRole("button", { name: "Volver al simulador nuevo" }).click();
+    await expect(page.locator("#deudaSimuladorClasico")).toBeHidden();
+    await expect(v2.locator(`input[name="${banco}_strategy"][value="settlement"]`)).toBeChecked();
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("a 390 px: aplicar un acuerdo abre «Qué ocurrirá», se guarda como escenario y no desborda @safari", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    const { banco } = await preparar(page, { width: 390, height: 844 });
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const v2 = page.locator("#deudaSimuladorV2");
+    await expect(v2.locator(".sim-v2-cuenta")).toHaveCount(2, { timeout: 20000 });
+    await v2.locator(`input[name="${banco}_strategy"][value="settlement"]`).check();
+    await v2.locator(`[data-sim-v2-campo="${banco}_lump"]`).fill("1500");
+    await v2.locator(`[data-sim-v2-campo="${banco}_start"]`).fill("2");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar").toBe(true);
+    await v2.getByRole("button", { name: "Guardar esta estrategia como escenario" }).click();
+    await expect(v2.locator("[data-sim-v2-escenario-estado]")).toContainText("Guardada en Escenarios › Guardados, sin aplicar (1 decisión)");
+    await v2.locator(`[data-sim-v2-aceptado="${banco}"]`).click();
+    await expect(page.locator("#svdAcuerdoDialog")).toBeVisible();
+    await expect(page.locator("#svdAcuerdoDialog")).toContainText("Banco FICTICIO");
+    await page.locator("#svdAcuerdoDialog").getByRole("button", { name: "Cancelar" }).first().click();
+    await expect(page.locator("#svdAcuerdoDialog")).toBeHidden();
+    expect(await page.evaluate(() => debtLiquidations.length)).toBe(0);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("con los contratos de ejemplo sigue el simulador de siempre, y con el tema clásico también", async ({ page }) => {
+    await page.goto("/index.html#deuda-simulador");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await expect(page.locator("#deudaSimuladorClasico")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#deudaSimuladorV2")).toBeHidden();
+  });
+});

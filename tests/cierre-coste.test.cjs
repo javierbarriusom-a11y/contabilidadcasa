@@ -166,8 +166,9 @@ test("lo enseñan «Lo que guarda la firma» del cierre nuevo y el informe de Us
   assert.match(cierreV2, /filas\.push\(\["Tiempo de este cierre", tiempo\]\)/);
   assert.match(cierreV2, /fraseCierre\?\.\(medidor\.cierre\(medidor\.leer\(\), ctx\.monthKey\), \{ conMes: false, conFirma: false \}\)/);
   const html = read("index.html");
-  // El medidor pasó a 20261114tipo con el tipo de los grupos sin propuesta de Clasificar (XDA-05); el cierre sigue en la suya.
-  for (const [f, v] of [["medidor-utilidad.js", "20261114tipo"], ["views/cierre-v2.js", "20261104coste1"]]) assert.ok(html.includes(`src="${f}?v=${v}"`), f);
+  // El medidor pasó a 20261114tipo con el tipo de los grupos sin propuesta de Clasificar (XDA-05) y a 20261118svd6 con el simulador
+  // de deuda nuevo (SVD-6); el cierre sigue en la suya.
+  for (const [f, v] of [["medidor-utilidad.js", "20261118svd6"], ["views/cierre-v2.js", "20261104coste1"]]) assert.ok(html.includes(`src="${f}?v=${v}"`), f);
   assert.ok(require("../novedades.js").some((n) => n.id === "2026-11-04-coste-cierre"));
 });
 
