@@ -113,6 +113,11 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (495): despliegue de #638
+
+- **Despliegue de #638 (DEC-41, la copia de seguridad que avisa):** «Verify and deploy Pages» 1468 en verde (Safari incluido) y «Published availability» 369 en verde.
+- **#639 (DEC-44) fusionado** con su CI en verde; su despliegue, en la entrada siguiente.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (494): DEC-44, cuánto se usan las «Versiones anteriores» (solo medir)
 
 - **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». DEC-44 es P0 «solo medir» en la décima auditoría y alimenta D-N15 (retiradas), que sigue siendo del hogar.
