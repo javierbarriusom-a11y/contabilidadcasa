@@ -113,6 +113,26 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (497): DEC-40, lo plegado también es superficie (solo medir)
+
+- **El hogar:** «Continúa con lo que puedas hacer sin mí». DEC-40 es P0 en la décima auditoría (§4.8, encaje XGO-01 y XGO-02) y no cambia pantallas: la auditoría vio que «uno entra, uno sale» se cumplía plegando.
+- **Inventario** (`tests/helpers/superficie.cjs`, e2e «XGO-01 · Uno entra, uno sale»): además de los titulares, cuenta ruta a ruta los desplegables cerrados cuyo resumen se ve por defecto (fuera del menú, la cabecera y los diálogos, y no dentro de otro cerrado). `docs/gobierno/superficie.json` gana «plegados»: **151 en 32 rutas** (frente a 231 titulares; el que más, Ayuda con 14). Sin techo, solo registro; la misma e2e exige que coincida y los titulares no cambian.
+- **Aperturas** (`views/plegados-medidor.js`, antes de `app.js`): marca los desplegables que vienen en `index.html` (id o pantalla + resumen sin cifras) y anota, en este navegador, cuántas veces se abre cada uno y el último día. Lo que se pinta con datos del hogar no lleva clave y no se anota.
+- **Uso de la app:** «Desplegables: N de M abiertos en los últimos 60 días en este navegador», con el día desde el que se anota; hasta tener 60 días no propone retirar ninguno, y después dice cuántos son candidatos (se decide con el hogar).
+- **Pruebas:** nueva `tests/dec40-plegados.test.cjs` (4); `xgo01-uno-entra-uno-sale` comprueba «plegados» (1 más) y la llamada nueva; e2e «DEC-40 · Desplegables abiertos».
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.766/6.766 (+5). **Batería completa de navegador en local (e2e + axe): 462 de 462** (22,4 min). Safari, solo en el CI.
+
+## Cierre de sesión — 18 de noviembre de 2026 (496): despliegue de #639
+
+- **Despliegue de #639 (DEC-44, cuánto se usan las «Versiones anteriores»):** «Verify and deploy Pages» 1470 en verde (Safari incluido) y «Published availability» 370 en verde.
+- **Publicado hoy, sin cambiar ninguna cifra:** SVD-6 fase 1 y «Desde vuestra última visita» (#636), DEC-13 y DEC-18 (#637), DEC-41 (#638) y DEC-44 (#639).
+- **Esperando al hogar:** la huella del extracto pegada en la conversación (validar Clasificar y decidir DEC-14); D-N17 (de ella depende DEC-16); el visto bueno a DAT-07 (dividir un movimiento) y DEC-12 (confirmar solos los esperados), que tocan datos; D-N16, D-N23 y «ponerlos realistas» en Deuda; y quitar los nombres del hogar del repositorio público (pide migrar claves guardadas).
+
+## Cierre de sesión — 18 de noviembre de 2026 (495): despliegue de #638
+
+- **Despliegue de #638 (DEC-41, la copia de seguridad que avisa):** «Verify and deploy Pages» 1468 en verde (Safari incluido) y «Published availability» 369 en verde.
+- **#639 (DEC-44) fusionado** con su CI en verde; su despliegue, en la entrada siguiente.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (494): DEC-44, cuánto se usan las «Versiones anteriores» (solo medir)
 
 - **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». DEC-44 es P0 «solo medir» en la décima auditoría y alimenta D-N15 (retiradas), que sigue siendo del hogar.

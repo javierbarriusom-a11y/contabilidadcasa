@@ -323,6 +323,8 @@ function renderAjustesUsoApp() {
     const nombres = Object.fromEntries(enlaces.map((link, index) => [ids[index], link.textContent.trim()])); // el nombre del menú, no la frase del catálogo
     legacyEl.textContent = usoAppVersionesAnterioresTexto(usoAppVersionesAnterioresResumen(rows, ids, new Date(), nombres));
   }
+  const plegadosEl = qs("usoAppPlegados");
+  if (plegadosEl) plegadosEl.textContent = globalThis.plegadosResumenTexto?.() || ""; // DEC-40 (views/plegados-medidor.js)
 }
 
 // DEC-44 (décima auditoría §4.9; 18/11/2026, «sigue con más cosas que puedas avanzar sin el hogar»): solo medir, para que la

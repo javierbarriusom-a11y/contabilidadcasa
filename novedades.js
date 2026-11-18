@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-desplegables-uso",
+      fecha: "2026-11-18",
+      texto: "Ajustes › Uso de la app cuenta qué desplegables abrís, para retirar en su día los que nadie abre en 60 días.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-18-versiones-anteriores-uso",
       fecha: "2026-11-18",
       texto: "Ajustes › Uso de la app dice qué pantallas de «Versiones anteriores» habéis abierto en 30 días y cuáles no.",

@@ -528,6 +528,11 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
 - **DEC-44**, solo medir (PROJECT_STATE 494): en Ajustes › Uso de la app, una línea con cuántas pantallas de «Versiones
   anteriores» se han abierto en los últimos 30 días en ese navegador y cuáles no, con el contador de siempre. «Registrar reales
   del mes» lleva a Registrar y nunca tuvo contador propio: se dice aparte. Para D-N15; no retira nada.
+- **DEC-40**, solo medir (PROJECT_STATE 497): el inventario de superficie cuenta también lo plegado que se ve por defecto
+  (`plegados` en `docs/gobierno/superficie.json`: 151 desplegables en 32 rutas, frente a 231 titulares), sin techo y vigilado
+  por la misma e2e; y la app anota, solo en ese navegador, qué desplegables de la página se abren y cuándo
+  (`views/plegados-medidor.js`). Uso de la app dice cuántos se han abierto en 60 días y, con 60 días anotados, cuántos son
+  candidatos a retirar. Solo los que vienen en `index.html`: lo que se pinta con datos no se anota.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 
