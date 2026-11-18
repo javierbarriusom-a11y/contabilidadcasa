@@ -11340,3 +11340,47 @@ test.describe("SVD-4 · «Lo hemos propuesto» llega a Hoy", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// SVD-5 (18/11/2026, «haz la 3»): «Desde vuestra última visita» en el simulador. Contratos inventados.
+test.describe("SVD-5 · Desde vuestra última visita", () => {
+  test("la primera visita no dice nada; un cambio fuera se cuenta al volver y «Entendido» lo da por visto, también tras recargar", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    const id = await page.evaluate(() => debtContractCustomEntries.find((row) => row.entity === "Banco FICTICIO").id);
+    // Primera visita: se recuerda sin decir nada.
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const frame = page.frameLocator("#debtRoadmapFrame");
+    await expect.poll(async () => page.evaluate(() => Boolean(debtRoadmapState.svdUltimaVisita)), { timeout: 20000 }).toBe(true);
+    await expect(frame.locator("#svdDesdeVisita")).toBeHidden();
+    // Fuera del simulador cambia el capital (sin pasar por render(): la vista del simulador no cambia de revisión).
+    await page.evaluate((contractId) => {
+      debtContractOverrides = { ...debtContractOverrides, [contractId]: { currentPrincipal: 2300 } };
+      saveDebtContractOverrides();
+      location.hash = "deuda-contratos";
+    }, id);
+    await expect(page.locator(`[data-deuda-contrato-row="${id}"]`)).toBeVisible();
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const caja = frame.locator("#svdDesdeVisita");
+    await expect(caja).toContainText("Desde vuestra última visita", { timeout: 20000 });
+    await expect(caja).toContainText("Banco FICTICIO: el capital pendiente pasó de 2.400 € a 2.300 €.");
+    await caja.getByRole("button", { name: "Entendido" }).click();
+    await expect(caja).toBeHidden();
+    await expect.poll(async () => page.evaluate((contractId) => debtRoadmapState.svdUltimaVisita?.contratos?.[contractId]?.principal, id), { timeout: 10000 }).toBe(2300);
+    await page.reload();
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    await expect(frame.locator("#svdCuadreRuta")).toBeVisible({ timeout: 20000 });
+    await expect(caja).toBeHidden();
+    expect(pageErrors).toEqual([]);
+  });
+});

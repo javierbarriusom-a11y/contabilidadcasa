@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-simulador-desde-visita",
+      fecha: "2026-11-18",
+      texto: "Simulador de deuda: «Desde vuestra última visita» cuenta lo que ha cambiado fuera (contratos, acuerdos, pagos).",
+      href: "#deuda-simulador",
+    },
+    {
       id: "2026-11-17-simulador-escenario-propuesta",
       fecha: "2026-11-17",
       texto: "Simulador de deuda: guarda la estrategia como escenario y apunta «Lo hemos propuesto»; la respuesta sale en Hoy.",

@@ -20,6 +20,8 @@ function debtRoadmapCanonicalReadModel() {
     planInstallments: typeof svdCuotasPlanModelo === "function" ? svdCuotasPlanModelo() : null,
     // SVD-5: si el pago de cada acuerdo sigue en el plan y si ya sale en los extractos.
     agreementFollowUp: typeof svdSeguimientoModelo === "function" ? svdSeguimientoModelo() : [],
+    // SVD-5: la fecha de hoy, para «Desde vuestra última visita (día)».
+    today: typeof isoLocalDate === "function" ? isoLocalDate(new Date()) : "",
   }) || null;
 }
 
@@ -65,6 +67,12 @@ function setupDebtRoadmapBridge() {
   const frame = qs("debtRoadmapFrame");
   if (!frame) return;
   frame.addEventListener("load", sendDebtRoadmapState);
+  // SVD-5 (18/11/2026): al volver a la pestaña del simulador, sus datos se envían siempre. La app no repinta una vista si su
+  // revisión no ha cambiado, y cambiar un contrato en Contratos no la sube: el simulador se quedaba con lo de la visita anterior
+  // (lo cazó la prueba de «Desde vuestra última visita»).
+  window.addEventListener("hashchange", () => {
+    if (String(location.hash || "").startsWith("#deuda-simulador")) sendDebtRoadmapState();
+  });
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
     if (event.data?.type === "finance-debt-roadmap-ready") {

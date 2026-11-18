@@ -718,3 +718,22 @@ cualquiera de ellos se consulta.
 
 Recomendación: el realista solo en lo que sale de un acuerdo o de una estrategia del simulador, porque es lo que pasa cuando una entidad
 acepta una quita o una refinanciación. Lo que ya existía en Escenarios no se tocaría.
+
+### 13.1 «Desde vuestra última visita» (18/11/2026, decisión del hogar: «haz la 3»)
+
+- **Qué se ve:** al abrir el simulador, si algo ha cambiado fuera desde la última vez, una caja «Desde vuestra última visita (día):»
+  con una línea por cambio:
+  - contrato nuevo o que ya no está (liquidado o quitado);
+  - capital o cuota que cambió («pasó de 2.400 € a 2.300 €»);
+  - acuerdo aceptado y aplicado, su pago que ya no está en el plan, su pago que ya sale en el extracto, cumplido, o el mes pasó sin pago.
+
+  Se cierra con «Entendido». La primera vez no dice nada: solo recuerda.
+- **Cómo:** `visitSnapshot` y `sinceLastVisit` (`canonical-e14-debt-adapter.js`, puros). La foto se guarda en el estado del simulador
+  (`svdUltimaVisita`, operativo), **sin clave nueva**, así que viaja con la copia y la sincronización de siempre. Solo se renueva con
+  «Entendido», para que nada se pierda por no haberlo visto. Las cifras salen con el formato de la app.
+- **Un fallo de verdad, cazado por su prueba:** al volver a la pestaña del simulador después de cambiar un contrato en Contratos, el
+  simulador seguía con los datos de la visita anterior. La app no repinta una vista si su revisión no ha cambiado, y editar un contrato
+  no la sube. Afectaba también al aviso de deriva de SVD-2: su prueba pasaba porque su recorrido sí la subía. Ahora el puente reenvía
+  los datos cada vez que se entra en `#deuda-simulador`.
+- **Pruebas:** `tests/svd5-desde-visita.test.cjs` (5) y la e2e «SVD-5 · Desde vuestra última visita»: primera visita en silencio, el
+  cambio contado al volver, «Entendido» y que siga dado por visto tras recargar.
