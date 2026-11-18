@@ -113,6 +113,28 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (493): DEC-41, la copia de seguridad que avisa
+
+- **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». DEC-41 es P0 en la décima auditoría, no toca datos ni cifras y protege lo que más se puede perder: los datos viven en el navegador y Safari puede borrarlos (sitios que no se abren en un tiempo, limpiar el historial).
+- **Qué hace** (`views/copia-aviso.js`; la parte pura, `FinanceCopiaAviso.estado`, se prueba en Node):
+  - lee la fecha que la app ya apuntaba al descargar la copia completa (`scenarioSettings.lastEmergencyBackupAt`, desde RGX1), que hasta ahora solo salía en el simulacro de «Herramientas avanzadas · Datos»;
+  - con la nube conectada o sin movimientos que perder, no dice nada; con una copia de 30 días o menos, tampoco;
+  - de 31 a 60 días, una línea ámbar con «Descargar copia»; de más de 60 o sin ninguna copia, la misma con el borde más marcado. Nunca rojo (DEC-41: «sin rojo hasta 60 días»);
+  - **dónde:** en Ajustes, encima de «Descargar copia completa», y en el «Listo» del repaso semanal, bajo la previsión;
+  - el botón es la copia completa de siempre (`downloadStateBackup`); al descargar, la línea se va y dice que se guarde fuera del móvil;
+  - en el medidor: vista al enseñarse, acción al descargar desde ella. Sin titulares (XGO-01).
+- **Lo que no hace, a propósito:** no salta en Hoy (DEC-41 pedía Ajustes y el repaso; Hoy tiene su cambio por semana) y no cuenta la nube como «copia» por fecha: con sesión en la nube, no avisa.
+- **Pruebas:**
+  - nueva: `tests/dec41-copia-aviso.test.cjs` (3);
+  - actualizadas a propósito: versiones de `styles.css` (audit-svg-tablas-oscuro, e17-interface, t8), del medidor (cierre-coste) y del repaso (redis-b5-repaso, xda04-pr2-tira);
+  - e2e: «DEC-41 · Copia de seguridad que avisa» (`@safari`, 390 px: línea a 45 días, descarga real y la línea se va; sin copia, en el «Listo» del repaso);
+  - axe: «DEC-41 · contraste del aviso de la copia» en claro y oscuro (la demo no trae movimientos y el aviso no salía en las de siempre).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.757/6.757 (+3). En la primera pasada fallaron 2, las dos versiones del repaso fijadas en pruebas; arregladas.
+  - **Batería completa de navegador en local (e2e + axe): 460 de 460** (22,6 min).
+  - Safari, solo en el CI.
+- **Visto de paso, sin tocar:** los nombres de pila del hogar aparecen en unos 29 ficheros (textos y claves del modelo Hogar/persona/persona, OPT-22), y el repositorio es público. Quitarlos pide migrar claves guardadas: queda propuesto como tarea aparte, para el hogar.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (492): despliegue de #637
 
 - **Despliegue de #637 (DEC-13 y DEC-18):** «Verify and deploy Pages» 1466 en verde (Safari incluido) y «Published availability» 368 en verde. La huella anónima del extracto y el % con partida en la bandeja ya están en el sitio.
