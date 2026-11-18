@@ -11640,3 +11640,25 @@ test.describe("DEC-40 · Desplegables abiertos", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// DEC-20 (18/11/2026): «Decidir esta semana» con verbos concretos. La demo dispara un aviso de caja de Ajustes › Alertas: ahora dice
+// «Ver la previsión» y lleva a Plan › Previsión, sin «Vence el» (la fecha de la regla es cuándo revisarla, no un plazo).
+test.describe("DEC-20 · Verbos en «Decidir esta semana»", () => {
+  test("el aviso de caja lleva a la Previsión, sin fecha límite y sin «Revisar alerta»", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#hoyV2 .hoy-v2-decisions")).not.toContainText("Revisar alerta");
+    const aviso = page.locator("#hoyV2 .hoy-v2-decision").filter({ has: page.locator("[data-hoy-v2-a-prevision]") });
+    await expect(aviso).toHaveCount(1);
+    await expect(aviso.locator("[data-hoy-v2-a-prevision]")).toHaveText("Ver la previsión");
+    await expect(aviso).not.toContainText("Vence el");
+    await aviso.locator("[data-hoy-v2-a-prevision]").click();
+    await expect(page.locator("#planPrevisionV2")).toBeVisible({ timeout: 15000 });
+    expect(await page.evaluate(() => location.hash)).toBe("#plan");
+    expect(pageErrors).toEqual([]);
+  });
+});

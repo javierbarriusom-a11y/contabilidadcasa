@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**18/11/2026 · DEC-20: «Decidir esta semana» con verbos concretos («continúa con lo que puedas hacer sin mí»).** Los avisos de Ajustes › Alertas dicen qué hacer y adónde llevan (la previsión, la ruta de la deuda, la cartera, las decisiones vencidas) en vez de «Revisar alerta» al Centro de alertas, y ya no enseñan como fecha límite la fecha de revisión de la regla. Sin cambiar cifras (PROJECT_STATE 498).
+
 **18/11/2026 · DEC-40: lo plegado también cuenta (solo medir; «continúa con lo que puedas hacer sin mí»).** El inventario de superficie suma, ruta a ruta, los desplegables que se ven cerrados por defecto (151 en 32 rutas, frente a 231 titulares), y la app anota qué desplegables abrís y cuándo, solo en ese navegador; Uso de la app dirá, con 60 días anotados, cuáles nadie abre. No retira nada (PROJECT_STATE 497).
 
 **18/11/2026 · DEC-44: cuánto se usan las «Versiones anteriores» (solo medir).** Ajustes › Uso de la app dice cuáles de esas pantallas se han abierto en los últimos 30 días y cuáles no, con el contador de siempre; para decidir D-N15 (retiradas) con datos. No retira nada (PROJECT_STATE 494).

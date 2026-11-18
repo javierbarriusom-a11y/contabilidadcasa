@@ -533,6 +533,11 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   por la misma e2e; y la app anota, solo en ese navegador, qué desplegables de la página se abren y cuándo
   (`views/plegados-medidor.js`). Uso de la app dice cuántos se han abierto en 60 días y, con 60 días anotados, cuántos son
   candidatos a retirar. Solo los que vienen en `index.html`: lo que se pinta con datos no se anota.
+- **DEC-20**, verbos concretos en «Decidir esta semana» (PROJECT_STATE 498): los avisos de Ajustes › Alertas ya no dicen
+  «Revisar alerta» ni llevan al Centro de alertas (una pantalla de «Versiones anteriores»). Según el indicador: los de caja,
+  «Ver la previsión» (Plan › Previsión); el ratio de deuda, «Ver la ruta de la deuda»; la cartera, «Rebalancear en Inversión» o
+  «Ver la cartera»; las decisiones vencidas, «Revisar las decisiones» (Ajustes). Y sin «Vence el»: la fecha de la regla es
+  cuándo revisarla, no un plazo. No cambia ninguna cifra.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 
