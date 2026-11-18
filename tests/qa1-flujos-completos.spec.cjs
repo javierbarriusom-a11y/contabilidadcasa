@@ -545,7 +545,9 @@ test.describe("QA-1 · enlace de registro prellenado (WP-25)", () => {
       await page.fill("#homeQuickExpenseAmount", "23,40");
       await page.click("#homeQuickExpenseSubmit");
       await expect(dialog).toBeHidden();
-      expect(await rows(), "un toque en «Registrar» crea la partida").toBe(before + 1);
+      // La partida se crea en el evento «close» del diálogo, que el navegador lanza en una tarea posterior a ocultarlo: se espera a
+      // ella (falló así una vez el 17/11, con la ventana ya oculta y la partida aún por crear).
+      await expect.poll(rows, { message: "un toque en «Registrar» crea la partida" }).toBe(before + 1);
       expect(await page.evaluate(() => customPlanningRows.at(-1).plannedValue)).toBe(23.4);
       expect(consoleErrors, `errores de página: ${consoleErrors.join(" | ")}`).toEqual([]);
     });
@@ -11276,6 +11278,8 @@ test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
     await frame.locator(`#${key}_start`).fill("2");
     await guardar.click();
     await expect(estado).toContainText("Guardada en Escenarios › Guardados, sin aplicar (1 decisión)");
+    // Paridad medida (tests/svd4-paridad-escenario.test.cjs): en Previsión el mes del cambio todavía cuenta la cuota de hoy (90 €).
+    await expect(estado).toContainText("al acabar, la liquidez sale 90 € más baja que aquí");
     const guardado = await page.evaluate(() => loadEscenarioMotorSaved().filter((entry) => entry.origen === "simulador-deuda"));
     expect(guardado).toHaveLength(1);
     expect(guardado[0]).toMatchObject({ estado: "guardado", nombre: "Simulador de deuda · Quita · Banco FICTICIO" });

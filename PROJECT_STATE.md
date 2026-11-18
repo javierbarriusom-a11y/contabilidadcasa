@@ -113,6 +113,28 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (489): SVD-4, paridad con Previsión medida (una cuota de hoy; D-N23); despliegue de #634; e2e WP-25 sin carrera
+
+- **Despliegue de #634 (SVD-5 y SVD-4):** «Verify and deploy Pages» 1460 en verde y «Published availability» 364 en verde.
+- **Paridad medida entre el simulador y la misma estrategia en Escenarios / Previsión** (`docs/SVD_DISENO.md` §14.1, `tests/svd4-paridad-escenario.test.cjs`). No es la misma liquidez; la diferencia es exacta y acotada.
+  - **Escenarios y las decisiones del plan** (también la de SVD-3) siguen el criterio prudente de siempre: el mes del cambio todavía se paga la cuota de hoy y lo nuevo empieza el mes siguiente.
+  - **El simulador y Ruta con acuerdos** dejan de pagarla desde ese mes.
+  - **Ejemplo** (contrato inventado, cuota de 150 €, estrategia el tercer mes):
+    - quita de 2.000 €: el simulador paga 150 · 150 · 2.000; Escenarios, 150 · 150 · 2.150;
+    - refinanciación: las mismas 18 cuotas nuevas, un mes más tarde en Escenarios;
+    - al acabar, Escenarios ha pagado exactamente una cuota de hoy más.
+  - **Una suposición mía, corregida por la prueba:** creí que Previsión iría siempre por debajo. En una refinanciación, el mes del cambio va unos euros por encima, porque paga la cuota de hoy en vez de la nueva.
+- **Qué se ha hecho, sin cambiar ningún motor** (los números de varias pantallas dependen de los dos criterios):
+  - la prueba fija la diferencia exacta;
+  - al guardar, el simulador dice «al acabar, la liquidez sale X € más baja que aquí» (`svdDiferenciaEscenario`), y la nota del escenario guardado también.
+- **D-N23 (nueva, para el hogar):** ¿un solo criterio en toda la app, y cuál? La misma diferencia existe entre el plan y Ruta con un acuerdo aplicado. Recomendación: el realista solo para lo que sale de un acuerdo o del simulador; lo demás de Escenarios, igual.
+- **e2e WP-25 («enlace de registro prellenado»), fallo de la batería explicado:** la partida se crea en el evento `close` del diálogo, que el navegador lanza en una tarea posterior a ocultarlo, y la prueba la contaba en cuanto la ventana se ocultaba. Ahora espera a la partida (`expect.poll`). Repetida 6 veces, en verde. La app no cambia.
+- `deuda-simulador-puente.js` con `?v=20261117svd4b`.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.733/6.733 (+3).
+  - **Batería completa de navegador en local: 450 de 451.** El fallo fue WP-25, por la causa de arriba; arreglado, pasa 6/6.
+  - Safari, solo en el CI.
+
 ## Cierre de sesión — 17 de noviembre de 2026 (488): SVD-5 (lo que pasa fuera vuelve al acuerdo) y SVD-4 (la estrategia a Escenarios, «Lo hemos propuesto»); despliegue de #633
 
 - **Despliegue de #633 (SVD-R1):** «Verify and deploy Pages» 1458 en verde y «Published availability» 362 en verde.
