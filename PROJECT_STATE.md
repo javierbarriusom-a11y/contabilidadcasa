@@ -135,7 +135,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - e2e: «DEC-13 · Huella anónima del extracto» y «DEC-18 · El % con partida en la bandeja» (las dos `@safari`, a 390 px).
 - **Validación:**
   - `npm run verify` en verde, salida 0: `npm test` 6.754/6.754 (+9).
-  - BATERIA_PENDIENTE
+  - **Batería completa de navegador en local (e2e + axe): 457 de 457** en verde (25 min), con la pantalla ya en `views/`. El arreglo del JSDoc vino después y solo cambia un comentario.
   - Safari, solo en el CI.
 
 ## Cierre de sesión — 18 de noviembre de 2026 (490): «Desde vuestra última visita» y SVD-6 fase 1 (el simulador como pantalla de la app); despliegue de #635
