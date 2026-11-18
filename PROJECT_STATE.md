@@ -113,6 +113,11 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (492): despliegue de #637
+
+- **Despliegue de #637 (DEC-13 y DEC-18):** «Verify and deploy Pages» 1466 en verde (Safari incluido) y «Published availability» 368 en verde. La huella anónima del extracto y el % con partida en la bandeja ya están en el sitio.
+- **Esperando al hogar:** la huella pegada en la conversación (para validar Clasificar y decidir DEC-14), D-N17 (de ella depende DEC-16), D-N16, D-N23 y «ponerlos realistas».
+
 ## Cierre de sesión — 18 de noviembre de 2026 (491): DEC-13 (huella anónima del extracto) y DEC-18 (el % con partida en la bandeja); despliegue de #636
 
 - **Despliegue de #636 («Desde vuestra última visita» y SVD-6 fase 1):** «Verify and deploy Pages» 1464 en verde (Safari incluido, 29 min) y «Published availability» 367 en verde.
