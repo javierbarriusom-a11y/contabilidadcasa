@@ -39,6 +39,7 @@ const CLAS_V2_MAX = 5;
 const CLAS_V2_ALTS = 3;
 const CLAS_V2_SEGUNDOS = 10; // por grupo, hasta tener 3 medidos
 const CLAS_V2_DIAS = 90;
+const CLAS_V2_META = 95; // % de gasto importado con partida: la meta de D-N11 (antes del 1/12/2026)
 // Lo que no viene de un extracto: la captura rápida ya lleva partida y la compra provisional con tarjeta no es gasto real.
 const CLAS_V2_NO_IMPORTADO = new Set(["manual-quick-capture", "captura-hoja"]);
 
@@ -373,7 +374,16 @@ function clasV2IsoDate(date) {
 // La métrica de XDA-05: qué parte del gasto importado de los últimos 90 días tiene partida (objetivo, 95 % o más). Por lo
 // bajo, como el medidor. null si no hay gasto importado en ese plazo.
 function clasV2Coverage(today = new Date()) {
+  return clasV2Meta(today)?.pct ?? null;
+}
+
+// DEC-18 (18/11/2026): la meta de D-N11 donde se trabaja. La misma cuenta que clasV2Coverage (gasto importado de los últimos
+// 90 días, sin traspasos entre cuentas propias) y, además, cuántos euros faltan con partida para el 95 % y cuántos de los
+// conceptos sin partida que más suman bastan para llegar (agrupados como Clasificar, sin el mes). null sin gasto importado.
+function clasV2Meta(today = new Date()) {
   const from = clasV2IsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - CLAS_V2_DIAS));
+  const keyOf = typeof movementMappingGroupKey === "function" ? movementMappingGroupKey : movementMappingKey;
+  const pendientes = new Map();
   let total = 0;
   let mapped = 0;
   (baseData?.transactions || []).forEach((row) => {
@@ -382,8 +392,18 @@ function clasV2Coverage(today = new Date()) {
     if (typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row)) return; // DAT-05: un traspaso no es gasto
     total += -amount;
     if (mappingForMovement(row)) mapped += -amount;
+    else pendientes.set(keyOf(row), (pendientes.get(keyOf(row)) || 0) - amount);
   });
-  return total > 0 ? Math.floor((mapped / total) * 100) : null;
+  if (!(total > 0)) return null;
+  const falta = Math.max(0, Math.round(((total * CLAS_V2_META) / 100 - mapped) * 100) / 100);
+  let grupos = 0;
+  let cubierto = 0;
+  for (const suma of [...pendientes.values()].sort((a, b) => b - a)) {
+    if (cubierto >= falta) break;
+    cubierto += suma;
+    grupos += 1;
+  }
+  return { pct: Math.floor((mapped / total) * 100), objetivo: CLAS_V2_META, falta, grupos };
 }
 
 function clasificarV2CoberturaFrase() {

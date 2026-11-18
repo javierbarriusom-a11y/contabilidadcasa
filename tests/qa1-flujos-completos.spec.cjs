@@ -11480,3 +11480,86 @@ test.describe("SVD-6 · El simulador visual de deuda como pantalla de la app", (
     await expect(page.locator("#deudaSimuladorV2")).toBeHidden();
   });
 });
+
+// DEC-13 (18/11/2026): la huella anónima del extracto, en Ajustes › Uso de la app. Movimientos inventados: lo que se copia
+// lleva la forma de cada concepto sin partida y ningún nombre, importe, fecha ni referencia.
+test.describe("DEC-13 · Huella anónima del extracto", () => {
+  test("plegada; al abrirla enseña lo que copia, sin nombres ni importes, y cabe a 390 px", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+    await page.goto("/index.html#ajustes");
+    await expect(page.locator("#ajustes-uso-app")).toBeAttached({ timeout: 15000 });
+    await page.evaluate(() => {
+      const mov = (date, amount, movement, details = "") => ({ date, month: date.slice(0, 7), movement, details, amount, balance: null, account: "CaixaBank", source: "Extracto" });
+      const rows = [
+        mov("2026-09-05", -61.2, "RECIBO LUZ FICTICIA SA 1234567890"),
+        mov("2026-10-06", -63, "RECIBO LUZ FICTICIA SA 9876543210"),
+        mov("2026-11-04", -60.45, "RECIBO LUZ FICTICIA SA 5555500000"),
+        mov("2026-11-10", -25, "BIZUM ENVIADO", "A PEPA FICTICIA cena"),
+      ];
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const card = page.locator("#huellaExtractoCard");
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).not.toHaveAttribute("open", "");
+    await expect(page.locator("#huellaExtractoTexto")).toHaveCount(0);
+    await card.locator("summary").click();
+    const texto = page.locator("#huellaExtractoTexto");
+    await expect(texto).toBeVisible();
+    const valor = await texto.inputValue();
+    expect(valor).toContain("RECIBO · palabras · número de 10 cifras — gasto · 3 movimientos · 1 cuenta · 3 conceptos distintos · 1 emisor · 1 en varios meses (1 con importe y día fijos)");
+    expect(valor).toContain("BIZUM · ENVIADO / detalle: palabras — gasto · 1 movimiento");
+    expect(valor).not.toMatch(/FICTICIA|PEPA|LUZ|CaixaBank|61[.,]2|60[.,]45|1234567890|2026-/i);
+    // Copiar: con permiso, al portapapeles; sin él (WebKit en pruebas), queda seleccionada y lo dice.
+    await page.locator("#huellaExtractoCopiar").click();
+    await expect(page.locator("#huellaExtractoEstado")).toHaveText(/Copiada\. Pegadla en la conversación\.|está seleccionada, copiadla a mano\./);
+    expect(await page.evaluate(() => Boolean(FinanceMedidor.leer().funciones?.["huella-extracto"] || JSON.stringify(FinanceMedidor.leer()).includes("huella-extracto")))).toBe(true);
+    expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad") || "")).not.toMatch(/FICTICIA|PEPA/i);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// DEC-18 (18/11/2026): la meta de D-N11 en la bandeja de Movimientos, con la misma cifra que Funciones en prueba.
+test.describe("DEC-18 · El % con partida en la bandeja", () => {
+  test("dice el %, lo que falta para el 95 % y cuántos conceptos bastan; al llegar, cumplido; cabe a 390 px", { tag: "@safari" }, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const mov = (date, amount, movement) => ({ date, month: date.slice(0, 7), movement, details: "", amount, balance: null, account: "CaixaBank", source: "Extracto" });
+      const partida = availableSeriesRows("expense")[0];
+      movementMappings["expense|super ficticio con partida|"] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
+      baseData.transactions = mergeTransactions(baseData.transactions || [], [mov("2026-11-10", -600, "SUPER FICTICIO CON PARTIDA"), mov("2026-11-05", -300, "SEGURO FICTICIO"), mov("2026-11-06", -100, "BAR FICTICIO")]);
+      refreshMovementRollups();
+      render();
+    });
+    const meta = page.locator("#movimientosV2 .mov-v2-meta-partida");
+    const frase = await page.evaluate(() => clasificarV2CoberturaFrase());
+    const pct = Number(/: (\d+) %/.exec(frase)[1]);
+    await expect(meta.locator(".mov-v2-meta")).toHaveText(new RegExp(`^Gasto con partida \\(últimos 90 días\\): ${pct} % · objetivo 95 % · faltan 350\\s€; bastan los 2 conceptos que más suman$`));
+    await expect(meta.locator('[role="progressbar"]')).toHaveAttribute("aria-valuenow", String(pct));
+    await expect(meta).not.toHaveClass(/is-hecho/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+    // Con todo el gasto con partida, cumplido.
+    await page.evaluate(() => {
+      const partida = availableSeriesRows("expense")[0];
+      Object.keys(movementMappings).forEach((key) => delete movementMappings[key]);
+      baseData.transactions.forEach((row) => {
+        if (Number(row.amount) < 0) movementMappings[movementMappingKey(row)] = { kind: "expense", rowKey: seriesKeyForRow(partida), label: displayLabelForRow(partida), updatedAt: "2026-10-01T00:00:00.000Z" };
+      });
+      refreshMovementRollups();
+      render();
+    });
+    await expect(meta).toHaveClass(/is-hecho/);
+    await expect(meta.locator(".mov-v2-meta")).toHaveText("Gasto con partida (últimos 90 días): 100 % · objetivo del 95 % cumplido");
+    expect(pageErrors).toEqual([]);
+  });
+});

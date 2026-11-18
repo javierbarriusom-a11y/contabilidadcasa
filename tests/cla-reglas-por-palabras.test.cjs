@@ -121,7 +121,9 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   assert.ok(at > 0 && at < html.indexOf('<script defer src="views/clasificar-v2.js') && at < html.indexOf('<script defer src="app.js'));
   assert.ok(read("service-worker.js").includes('"./canonical-pattern-rules.js"'));
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-pattern-rules.js"'));
-  for (const f of ["views/clasificar-v2.js", "datos-ui.js", "ficha-movimiento-ui.js"]) assert.ok(html.includes(`${f}?v=20261116cla1`), f);
+  for (const f of ["datos-ui.js", "ficha-movimiento-ui.js"]) assert.ok(html.includes(`${f}?v=20261116cla1`), f);
+  // Clasificar pasó a 20261118dec18 con la meta del 95 % en la bandeja (DEC-18, clasV2Meta).
+  assert.ok(html.includes("views/clasificar-v2.js?v=20261118dec18"));
 });
 
 test("CLA-03 · propone la partida del movimiento ya clasificado que más se parece, y dice cuánto se fía", () => {

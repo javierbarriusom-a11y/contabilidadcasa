@@ -113,6 +113,31 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (491): DEC-13 (huella anónima del extracto) y DEC-18 (el % con partida en la bandeja); despliegue de #636
+
+- **Despliegue de #636 («Desde vuestra última visita» y SVD-6 fase 1):** «Verify and deploy Pages» 1464 en verde (Safari incluido, 29 min) y «Published availability» 367 en verde.
+- **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». Elegidas dos de las seis que la décima auditoría propone hasta el 4/12 (§6), porque caben en D-N11 (ya decidida: que lo que entra quede con partida) y no cambian ninguna cifra. D-N17 (adoptar la lista entera) sigue abierta.
+- **DEC-13 · Huella anónima del extracto** (Ajustes › Uso de la app, plegada y sin titular; `canonical-extract-fingerprint.js` + `views/huella-extracto.js`):
+  - de cada concepto que pide partida queda solo su **forma**: las palabras de cómo se pagó, de una lista cerrada (BIZUM, RECIBO, COMPRA TARJ…), y lo demás como «palabras», «mes», «número de N cifras» o «código»; los enlaces («DE», «DEL») desaparecen y las palabras seguidas se dicen una vez, para que la forma no cuente las letras de un nombre;
+  - por forma: movimientos, cuentas, conceptos distintos y emisores; de ellos, cuántos se repiten en varios meses con importe (± 10 %) y día (± 3) fijos, que es la pregunta de DEC-14;
+  - sin importes, fechas, nombres, comercios, referencias ni cuentas, y lo dice en su segunda línea; lo que se ve es exactamente lo que se copia («Copiar la huella», y si el navegador no deja, queda seleccionada);
+  - en el medidor: vista al abrirla, acción al copiar.
+- **DEC-18 · El % con partida en la bandeja de Movimientos**, bajo la fila de Clasificar: «Gasto con partida (últimos 90 días): N % · objetivo 95 % · faltan X €; bastan los K conceptos que más suman», con una barra fina (acento hasta la meta, verde al llegar, nunca rojo).
+  - **Me aparto de la propuesta:** decía «este mes»; uso la misma cifra que Funciones en prueba y el medidor (90 días), que es con la que se hará la revisión del 4/12. Dos porcentajes distintos para una sola meta confundirían. `clasV2Meta` sale de la misma cuenta que `clasV2Coverage`, que ahora la usa.
+- **No hecho, a propósito:** DEC-16 (un contador único para el repaso) sustituye cuatro tarjetas y cambia lo que se ve en Movimientos y en el repaso: espera a D-N17.
+- **Errores míos cazados al probar:**
+  - la huella salía vacía en la app: leía `globalThis.baseData`, que no existe (`baseData` es un `let` de `app.js`). Lo cazó la e2e;
+  - el motor quedaba fuera de ARQ-3 (su pantalla estaba en la raíz, no en `views/`); movida a `views/huella-extracto.js`;
+  - comentarios dentro de un tipo JSDoc, que `tsc` rechaza.
+- **Pruebas:**
+  - nuevas: `tests/dec13-huella-extracto.test.cjs` (6, entre ellas una que busca en la huella los nombres, importes, fechas y referencias de los movimientos inventados) y `tests/dec18-meta-partida.test.cjs` (3);
+  - actualizadas a propósito: versiones de `styles.css` (audit-svg-tablas-oscuro, e17-interface, t8), del medidor (cierre-coste), de Clasificar (cla-reglas-por-palabras) y de Movimientos (xda04-pr2-tira); recuento de ARQ-3, de 132 a 133;
+  - e2e: «DEC-13 · Huella anónima del extracto» y «DEC-18 · El % con partida en la bandeja» (las dos `@safari`, a 390 px).
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.754/6.754 (+9).
+  - **Batería completa de navegador en local (e2e + axe): 457 de 457** en verde (25 min), con la pantalla ya en `views/`. El arreglo del JSDoc vino después y solo cambia un comentario.
+  - Safari, solo en el CI.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (490): «Desde vuestra última visita» y SVD-6 fase 1 (el simulador como pantalla de la app); despliegue de #635
 
 - **Despliegue de #635 (paridad de SVD-4):** «Verify and deploy Pages» 1462 en verde y «Published availability» 365 en verde.

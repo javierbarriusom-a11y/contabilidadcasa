@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261116var1" />
+    <link rel="stylesheet" href="styles.css?v=20261118dec13" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261116fx15a" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -74,7 +74,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261116reg1" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261118dec18" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -5913,6 +5913,12 @@
                 </label>
                 <ul class="panel-uso-lista" id="medidorUtilidadLista" aria-label="Utilidad de cada función"></ul>
               </article>
+              <!-- DEC-13 (canonical-extract-fingerprint.js + views/huella-extracto.js): la forma de los conceptos sin partida, sin importes,
+                   fechas, nombres, comercios, referencias ni cuentas, para validar Clasificar con el banco del hogar. Plegada y sin titular. -->
+              <details class="e19-card prevision-calidad-card huella-extracto-card" id="huellaExtractoCard">
+                <summary>Huella anónima del extracto (para mejorar Clasificar)</summary>
+                <div id="huellaExtracto"></div>
+              </details>
               <article class="e19-card" id="usoAppCard">
                 <h3 class="escenario-motor-panel-title">Uso de la app</h3>
                 <p class="e19-kpi-note">Cuántas veces se ha abierto cada pantalla y cuándo fue la última vez, solo en este navegador: no sale de aquí, no hay ningún dato personal ni de movimientos, solo el nombre de la pantalla y la fecha. Sirve para decidir con datos reales qué priorizar, no con intuición.</p>
@@ -7996,7 +8002,7 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261118svd6"></script>
+    <script defer src="medidor-utilidad.js?v=20261118dec13"></script>
     <script defer src="funciones-en-prueba.js?v=20261118svd6"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
@@ -8247,6 +8253,7 @@
     <script defer src="canonical-variable-recalibration.js?v=20261116prv01e"></script>
     <script defer src="canonical-debt-receipts.js?v=20261116var1"></script>
     <script defer src="canonical-pattern-rules.js?v=20261116cla1"></script>
+    <script defer src="canonical-extract-fingerprint.js?v=20261118dec13"></script>
     <script defer src="canonical-internal-transfers.js?v=20261116dat05"></script>
     <script defer src="canonical-forecast-changes.js?v=20261109fx40a"></script>
     <script defer src="canonical-debt-horizon.js?v=20261110fx20h"></script>
@@ -8283,7 +8290,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261118svd6"></script>
+    <script defer src="novedades.js?v=20261118dec18"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8383,9 +8390,10 @@
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
     <script defer src="views/hoy-v2.js?v=20261117svd4"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261118svd6a"></script>
-    <script defer src="views/movimientos-v2.js?v=20261116reg1"></script>
+    <script defer src="views/movimientos-v2.js?v=20261118dec18"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
-    <script defer src="views/clasificar-v2.js?v=20261116cla1"></script>
+    <script defer src="views/clasificar-v2.js?v=20261118dec18"></script>
+    <script defer src="views/huella-extracto.js?v=20261118dec13"></script>
     <script defer src="views/repaso-v2.js?v=20261116xda04b"></script>
     <script defer src="views/plan-v2.js?v=20261116fx14a"></script>
     <script defer src="views/prevision-v2.js?v=20261116prv01e"></script>

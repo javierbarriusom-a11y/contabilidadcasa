@@ -508,6 +508,22 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
 | 5 | **DAT-07** dividir un movimiento | Ya en la novena; sin él, tickets mixtos se quedan sin partida |
 | 6 | **DEC-40** y **DEC-44** (solo medir) | Para que la revisión del 4/12 decida retiradas con datos |
 
+**Hecho el 18/11/2026** («sigue con más cosas que puedas avanzar sin el hogar», PROJECT_STATE 491):
+
+- **DEC-13**, la huella anónima del extracto, en Ajustes › Uso de la app (plegada, sin titular). De cada concepto sin partida
+  queda solo su forma: las palabras de cómo se pagó de una lista cerrada (BIZUM, RECIBO, COMPRA TARJ…), y lo demás como
+  «palabras», «mes», «número de N cifras» o «código». Por forma: movimientos, cuentas, conceptos distintos y emisores, y de
+  ellos cuántos se repiten en varios meses con importe (± 10 %) y día (± 3) fijos, que es justo la pregunta de DEC-14. Lo que se
+  ve es exactamente lo que se copia. Una prueba busca en el texto los nombres, importes, fechas y referencias de los
+  movimientos inventados y no encuentra ninguno. `canonical-extract-fingerprint.js` + `huella-extracto-ui.js`.
+- **DEC-18**, en la bandeja de Movimientos, bajo la fila de Clasificar: «Gasto con partida (últimos 90 días): N % · objetivo 95 %
+  · faltan X €; bastan los K conceptos que más suman», con una barra fina. **Me aparto de la propuesta en una cosa:** decía
+  «este mes»; he usado la misma cifra que Funciones en prueba y el medidor (90 días), porque la revisión del 4/12 se hará con
+  esa y dos porcentajes distintos para la misma meta confundirían. Sin rojo; la paleta del tema v2 no tiene azul, así que va en
+  el acento (verde oscuro) y en verde al llegar.
+- **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
+  Movimientos y en el repaso; mejor con D-N17 contestada.
+
 Correcciones que se pueden hacer en paralelo porque no cambian cifras: **DEC-03**, **DEC-20**, **DEC-21**, **DEC-41**. Las de
 Hoy (DEC-10, DEC-19) van como el cambio de Hoy de una semana; las de Deuda, tras D-N16.
 
