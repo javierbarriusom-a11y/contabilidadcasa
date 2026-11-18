@@ -120,7 +120,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Aperturas** (`views/plegados-medidor.js`, antes de `app.js`): marca los desplegables que vienen en `index.html` (id o pantalla + resumen sin cifras) y anota, en este navegador, cuántas veces se abre cada uno y el último día. Lo que se pinta con datos del hogar no lleva clave y no se anota.
 - **Uso de la app:** «Desplegables: N de M abiertos en los últimos 60 días en este navegador», con el día desde el que se anota; hasta tener 60 días no propone retirar ninguno, y después dice cuántos son candidatos (se decide con el hogar).
 - **Pruebas:** nueva `tests/dec40-plegados.test.cjs` (4); `xgo01-uno-entra-uno-sale` comprueba «plegados» (1 más) y la llamada nueva; e2e «DEC-40 · Desplegables abiertos».
-- **Validación:** VALIDACION_PENDIENTE
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.766/6.766 (+5). **Batería completa de navegador en local (e2e + axe): 462 de 462** (22,4 min). Safari, solo en el CI.
 
 ## Cierre de sesión — 18 de noviembre de 2026 (496): despliegue de #639
 
