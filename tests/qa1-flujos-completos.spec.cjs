@@ -10769,6 +10769,8 @@ test.describe("WP-21 · Datos para la Renta", () => {
 // Sin los contratos de ejemplo, sus cuentas fijas «Entidad A / gestor» y «Entidad B» salen del cálculo (antes sumaban su
 // saldo de ejemplo encima de las deudas reales) y lo que hubiera simulado en ellas se pasa, una vez, al contrato que
 // corresponda, con «Deshacer». Contratos INVENTADOS.
+// SVD-6 (18/11/2026): con el tema v2 y contratos reales, Deuda › Simulador visual es la pantalla nueva; estas pruebas son del simulador
+// de siempre (el iframe), que conserva todas sus funciones tras «Ver el simulador anterior», así que entran con ese modo elegido.
 test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () => {
   const simulador = (page) => page.frames().find((frame) => frame.url().includes("debt-roadmap.html"));
   const estadoApp = (page) => page.evaluate(() => JSON.parse(JSON.stringify(debtRoadmapState)));
@@ -10778,7 +10780,7 @@ test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () 
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-simulador");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const frame = page.frameLocator("#debtRoadmapFrame");
     // 1 · Con los contratos de ejemplo, el hogar simula en la cuenta fija A (como hacía en septiembre).
@@ -10848,7 +10850,7 @@ test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-simulador");
     await page.evaluate(() => {
-      try { localStorage.clear(); } catch { /* sin almacenamiento */ }
+      try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ }
       localStorage.setItem("planDeudaV5SinEntidad C", JSON.stringify({ notes: "Nota guardada solo en el simulador", cb_discount: "41" }));
     });
     await page.reload();
@@ -10867,7 +10869,7 @@ test.describe("SVD-2 · El simulador visual de deuda lee Contratos y avisa si ca
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -10924,7 +10926,7 @@ test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra 
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -10979,7 +10981,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11085,7 +11087,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11126,7 +11128,7 @@ test.describe("SVD-R1 · Las cuotas de Contratos frente al plan", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11189,7 +11191,7 @@ test.describe("SVD-5 · Lo que pasa fuera vuelve al acuerdo", () => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11251,7 +11253,7 @@ test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11300,7 +11302,7 @@ test.describe("SVD-4 · «Lo hemos propuesto» llega a Hoy", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();
@@ -11348,7 +11350,7 @@ test.describe("SVD-5 · Desde vuestra última visita", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/index.html#deuda-contratos");
-    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
     await varios.locator("summary").click();

@@ -113,6 +113,39 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (490): «Desde vuestra última visita» y SVD-6 fase 1 (el simulador como pantalla de la app); despliegue de #635
+
+- **Despliegue de #635 (paridad de SVD-4):** «Verify and deploy Pages» 1462 en verde y «Published availability» 365 en verde.
+- **El hogar:** «Ok, haz la 3 y la 4».
+- **3 · «Desde vuestra última visita»** (`docs/SVD_DISENO.md` §13.1):
+  - al abrir el simulador, una caja cuenta lo que ha cambiado fuera desde la última vez: contratos nuevos o que ya no están, capital o cuota y acuerdos (aplicado, su pago fuera del plan, pagado, cumplido, sin pago), con «Entendido»;
+  - la primera vez no dice nada;
+  - `visitSnapshot` y `sinceLastVisit` en el adaptador (puros); la foto va en el estado del simulador (`svdUltimaVisita`, operativo), sin clave nueva, y solo se renueva con «Entendido».
+- **Un fallo real, cazado por esa prueba:** al volver de Contratos, el simulador seguía con los datos de la visita anterior. La app no repinta una vista si su revisión no cambia, y editar un contrato no la sube. Afectaba también al aviso de deriva de SVD-2. Ahora el puente reenvía los datos en cada visita a `#deuda-simulador`.
+- **4 · SVD-6 fase 1** (`docs/SVD_DISENO.md` §15, `docs/rediseno/ESTADO.md` §2). Con el tema v2 y contratos reales, Deuda › Simulador visual es una pantalla de la app (de `Deuda.png` y `Taller.png`):
+  - **cuatro cifras arriba:** deuda a simular, libre de deuda frente a Ruta, total pagado con la quita, y el mes más caro frente a la capacidad;
+  - **una fila por contrato:** estrategia en cuatro opciones, sus campos, una barra, lo que da, y el acuerdo o la propuesta, con «La entidad lo ha aceptado» (secundario, y nada con «Esperar»);
+  - **además:** «Desde vuestra última visita», «Mes a mes» plegado y «Guardar como escenario».
+- **Paridad con el de siempre:** usa el mismo motor y el mismo estado que el simulador de siempre. La e2e de paridad pone una quita y una refinanciación en la nueva y comprueba en la de siempre el mismo total pagado, duración, pico y 30 primeros meses.
+- **El de siempre sigue entero**, tras «Ver el simulador anterior» y con los contratos de ejemplo. Sin titulares nuevos (XGO-01). Está en Funciones en prueba y en el medidor como «Simulador de deuda nuevo».
+- **Errores míos cazados al probar:**
+  - una deuda sin cuota en «Esperar» salía como acabada el mes 0;
+  - la pantalla nueva reenviaba el estado al de siempre en cada tecla, con riesgo de que su eco pisara la tecla siguiente. Ahora solo se reenvía al pasar a él y en cada visita.
+- **Lo que falta de SVD-6:**
+  - graduar;
+  - pasar al motor de Ruta (tras D-N23);
+  - retirar el `iframe` (se consulta).
+- **Pruebas:**
+  - nuevas: `tests/svd5-desde-visita.test.cjs` (5) y `tests/redis-svd6-simulador-v2.test.cjs` (7);
+  - actualizada a propósito: `cierre-coste.test.cjs` (versión del medidor);
+  - e2e: «SVD-5 · Desde vuestra última visita» (1) y «SVD-6» (3: paridad, 390 `@safari` y contratos de ejemplo);
+  - las ocho e2e del simulador de siempre (SVD-1 a SVD-5) entran ahora con «Ver el simulador anterior» elegido: siguen probando el `iframe`, que conserva todas sus funciones.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.745/6.745 (+12).
+  - **Batería completa de navegador en local: 446 de 455.** Ocho fallos eran esas e2e del simulador de siempre, que se encontraban con la pantalla nueva (arregladas: 14/14 del bloque SVD en verde).
+  - El noveno fue XUX-02 (Inversión › «Ver cómo quedaría»: la hoja enseñó el título del ejemplo anterior). No toca nada de esto, pasó 8 de 8 al repetirlo y no he encontrado la causa (puede ser el foco que devuelve la hoja al cerrarse); queda anotado, sin causa inventada.
+  - Safari, solo en el CI.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (489): SVD-4, paridad con Previsión medida (una cuota de hoy; D-N23); despliegue de #634; e2e WP-25 sin carrera
 
 - **Despliegue de #634 (SVD-5 y SVD-4):** «Verify and deploy Pages» 1460 en verde y «Published availability» 364 en verde.
