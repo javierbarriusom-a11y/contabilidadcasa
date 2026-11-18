@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-versiones-anteriores-uso",
+      fecha: "2026-11-18",
+      texto: "Ajustes › Uso de la app dice qué pantallas de «Versiones anteriores» habéis abierto en 30 días y cuáles no.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-18-copia-aviso",
       fecha: "2026-11-18",
       texto: "Ajustes y el repaso avisan si la última copia de seguridad tiene más de 30 días, con «Descargar copia» a mano.",

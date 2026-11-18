@@ -11597,3 +11597,20 @@ test.describe("DEC-41 · Copia de seguridad que avisa", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// DEC-44 (18/11/2026): solo medir. En Uso de la app, las de «Versiones anteriores» abiertas en 30 días y las que no.
+test.describe("DEC-44 · Versiones anteriores en Uso de la app", () => {
+  test("abrir una pantalla heredada la cuenta; las demás salen sin abrir; Registrar reales del mes no se cuenta aparte", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#debt-control");
+    await page.waitForLoadState("networkidle");
+    await page.goto("/index.html#ajustes");
+    const linea = page.locator("#usoAppLegacy");
+    await expect(linea).toHaveText(/^Versiones anteriores: 1 de 9 abiertas en los últimos 30 días en este navegador\. Sin abrir en 30 días: /, { timeout: 15000 });
+    await expect(linea).not.toContainText("Sin abrir en 30 días: Control de deuda");
+    await expect(linea).toContainText("No se cuentan aparte (llevan a otra pantalla): Registrar reales del mes.");
+    await expect(linea).toContainText("aquí no se retira nada.");
+    expect(pageErrors).toEqual([]);
+  });
+});
