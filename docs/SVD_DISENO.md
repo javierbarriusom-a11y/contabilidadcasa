@@ -718,3 +718,89 @@ cualquiera de ellos se consulta.
 
 Recomendación: el realista solo en lo que sale de un acuerdo o de una estrategia del simulador, porque es lo que pasa cuando una entidad
 acepta una quita o una refinanciación. Lo que ya existía en Escenarios no se tocaría.
+
+### 13.1 «Desde vuestra última visita» (18/11/2026, decisión del hogar: «haz la 3»)
+
+- **Qué se ve:** al abrir el simulador, si algo ha cambiado fuera desde la última vez, una caja «Desde vuestra última visita (día):»
+  con una línea por cambio:
+  - contrato nuevo o que ya no está (liquidado o quitado);
+  - capital o cuota que cambió («pasó de 2.400 € a 2.300 €»);
+  - acuerdo aceptado y aplicado, su pago que ya no está en el plan, su pago que ya sale en el extracto, cumplido, o el mes pasó sin pago.
+
+  Se cierra con «Entendido». La primera vez no dice nada: solo recuerda.
+- **Cómo:** `visitSnapshot` y `sinceLastVisit` (`canonical-e14-debt-adapter.js`, puros). La foto se guarda en el estado del simulador
+  (`svdUltimaVisita`, operativo), **sin clave nueva**, así que viaja con la copia y la sincronización de siempre. Solo se renueva con
+  «Entendido», para que nada se pierda por no haberlo visto. Las cifras salen con el formato de la app.
+- **Un fallo de verdad, cazado por su prueba:** al volver a la pestaña del simulador después de cambiar un contrato en Contratos, el
+  simulador seguía con los datos de la visita anterior. La app no repinta una vista si su revisión no ha cambiado, y editar un contrato
+  no la sube. Afectaba también al aviso de deriva de SVD-2: su prueba pasaba porque su recorrido sí la subía. Ahora el puente reenvía
+  los datos cada vez que se entra en `#deuda-simulador`.
+- **Pruebas:** `tests/svd5-desde-visita.test.cjs` (5) y la e2e «SVD-5 · Desde vuestra última visita»: primera visita en silencio, el
+  cambio contado al volver, «Entendido» y que siga dado por visto tras recargar.
+
+---
+
+## 15. SVD-6 · fase 1: el simulador como pantalla de la app (18/11/2026, decisión del hogar: «haz la 3 y la 4»)
+
+**Qué se ve** (solo con el tema v2 y con contratos reales; de `Deuda.png` y `Taller.png`):
+
+- **Cuatro cifras arriba**:
+  - deuda a simular;
+  - libre de deuda con la estrategia, frente a Ruta sin cambios;
+  - lo que se paga en total, con la quita;
+  - el mes más caro frente a la capacidad, en rojo si no cabe.
+- **La casilla «las cuotas de hoy ya están en el plan»**, con lo que dice Plan › Mes (SVD-R1).
+- **Una fila por contrato**:
+  - lo que dice Contratos (cuota, TAE, cuotas);
+  - la estrategia en cuatro opciones (Esperar · Quita · Refinanciar · Quita + refinanciar) y, si no es Esperar, sus campos: quita,
+    mes de inicio, pago único y, si se refinancia, TAE, plazo y % a financiar;
+  - una barra hasta su fin;
+  - una frase con cuándo acaba y cuánto paga, la quita y la cuota nueva;
+  - el acuerdo aceptado y su seguimiento o, si no hay acuerdo, «Lo hemos propuesto» y «La entidad lo ha aceptado: aplicar el
+    acuerdo», que abre la misma hoja «Qué ocurrirá» de SVD-3. Con «Esperar» no se ofrece ninguno de los dos.
+- **«Desde vuestra última visita»**, el detalle «Mes a mes» (pagos y margen) plegado, y «Guardar esta estrategia como escenario».
+- **«Ver el simulador anterior»** lleva al de siempre, con todo lo demás (perfiles, ruta ejecutiva, seguimiento y notas), y desde allí
+  «Volver al simulador nuevo». Se recuerda en este dispositivo.
+
+**Cómo, y por qué así:**
+
+- **Mismo motor** (`legacy-debt-roadmap-engine.js`) y **mismo estado** (`debtRoadmapState`, claves `acct_<id>_<campo>`) que el
+  simulador de siempre: lo que se elige en uno se ve en el otro. La e2e de paridad pone una quita y una refinanciación en la pantalla
+  nueva, abre la de siempre y comprueba lo mismo en los dos: total pagado, duración, pico y los 30 primeros meses.
+- `views/deuda-simulador-v2.js`: la parte pura (`aplica`, `configuracion`, `simular`) se prueba en Node, y el pintado va aparte.
+  La configuración usa los mismos valores por defecto que el de siempre.
+- **Solo con contratos reales.** Con los contratos de ejemplo («Entidad A/B») sigue el de siempre, que es el único que entiende sus
+  perfiles. Así tampoco cambia lo que se ve sin datos del hogar.
+- **XGO-01:** sin titulares nuevos (cada contrato es una fila, no un encabezado); el inventario de la ruta no cambia.
+- **Una carrera evitada:** la pantalla nueva no reenvía el estado al simulador de siempre en cada tecla. Su respuesta, el estado que
+  devuelve tras aplicarlo, podría llegar después de la tecla siguiente y pisarla. Se le manda al pasar a él y en cada visita a la pestaña.
+- **Un fallo cazado por su prueba:** en «Esperar», una deuda sin cuota no tiene saldo en el motor, que no la sigue. La pantalla habría
+  dicho que acababa en el mes 0. Ahora dice que no acaba.
+- **Decisiones del rediseño:** «La entidad lo ha aceptado» va como botón secundario (el verde sólido es para la acción principal).
+  En «Funciones en prueba» y en el medidor como «Simulador de deuda nuevo»: vista, acción (estrategia guardada o acuerdo marcado) y
+  descarte («Ver el simulador anterior»). A las dos semanas pregunta si se gradúa.
+
+**Lo que NO hace esta fase, a propósito:**
+
+- **No retira el simulador de siempre** ni su motor (decisión 5 de `docs/rediseno/ESTADO.md`: retirar se consulta, tras graduar).
+- **No cambia de motor.** Se pasará al de Ruta (`canonical-debt-payoff-path.js`) cuando se decida D-N23 (el criterio del mes del
+  acuerdo); hasta entonces, la paridad con el de siempre manda.
+- **Fuera de esta pantalla quedan** los perfiles, la ruta ejecutiva, el árbol de «Entidad A», el hito CIRBE de «Entidad C», el
+  seguimiento por tareas, el semáforo, la validación del acuerdo y las notas. Sigue a mano: «Ver el simulador anterior». Algunos son
+  de la negociación de septiembre con nombres de ejemplo; qué pasa a la pantalla nueva se decide al graduarla.
+
+**Pruebas:**
+
+- `tests/redis-svd6-simulador-v2.test.cjs` (7):
+  - cuándo se pinta;
+  - la configuración y sus valores por defecto;
+  - la simulación igual que el motor;
+  - deuda sin cuota;
+  - meses en corto;
+  - contenedor, script, sin titulares, el de siempre detrás, y las listas del sitio público y del modo sin conexión;
+  - que no reenvía en cada tecla.
+- e2e «SVD-6» (3):
+  - paridad con el de siempre e ida y vuelta;
+  - a 390 px (`@safari`): sin desbordar, guardar como escenario y abrir «Qué ocurrirá»;
+  - con los contratos de ejemplo sigue el de siempre.
+- axe sin fallos a 390 y 1440 px.

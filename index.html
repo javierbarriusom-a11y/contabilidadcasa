@@ -2551,11 +2551,13 @@
                 <p class="e19-subtitle">Explora quitas, pagos únicos, refinanciaciones y calendario sin tocar el plan real: lee en solo lectura los contratos y el forecast de Ruta y Comparar, y guarda aquí tus propias tareas, notas y supuestos de negociación.</p>
               </div>
             </div>
-            <article class="e19-card">
+            <!-- SVD-6 (18/11/2026): el simulador como pantalla de la app (views/deuda-simulador-v2.js), solo con el tema v2 y contratos reales; el de siempre sigue debajo y vuelve con «Ver el simulador anterior». -->
+            <div class="sim-v2" id="deudaSimuladorV2" hidden></div>
+            <article class="e19-card" id="deudaSimuladorClasico">
               <iframe
                 id="debtRoadmapFrame"
                 class="debt-roadmap-frame"
-                src="debt-roadmap.html?v=20261117svd4"
+                src="debt-roadmap.html?v=20261118visita"
                 title="Simulador visual de deuda"
                 loading="lazy"
               ></iframe>
@@ -7994,8 +7996,8 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
-    <script defer src="medidor-utilidad.js?v=20261114tipo"></script>
-    <script defer src="funciones-en-prueba.js?v=20261106c2aC3"></script>
+    <script defer src="medidor-utilidad.js?v=20261118svd6"></script>
+    <script defer src="funciones-en-prueba.js?v=20261118svd6"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8206,7 +8208,7 @@
     <script defer src="canonical-debt-contracts.js?v=20261117svd4"></script>
     <script defer src="canonical-scenario-schema.js?v=20260809e20b1"></script>
     <script defer src="canonical-scenario-engine.js?v=20260809e20b1"></script>
-    <script defer src="canonical-e14-debt-adapter.js?v=20261117svd4"></script>
+    <script defer src="canonical-e14-debt-adapter.js?v=20261118visita"></script>
     <script defer src="legacy-debt-roadmap-engine.js?v=20261117svd2b"></script>
     <script defer src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script defer src="canonical-e14-parity.js?v=20260805e14parity1"></script>
@@ -8281,7 +8283,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261117svd4"></script>
+    <script defer src="novedades.js?v=20261118svd6"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8363,7 +8365,7 @@
     <script defer src="importar-extracto-ui.js?v=20261102dup1"></script>
     <script defer src="laboratorio-ui.js?v=20261113xgo01d"></script>
     <!-- SVD-1 (17/11/2026): el puente con el simulador visual de deuda, en su propio fichero; mismo ámbito, se carga antes que la app. -->
-    <script defer src="deuda-simulador-puente.js?v=20261117svd4b"></script>
+    <script defer src="deuda-simulador-puente.js?v=20261118visita"></script>
     <script defer src="canonical-net-worth.js?v=20261014wp46b2"></script>
     <script defer src="patrimonio-ui.js?v=20261014wp46b2"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
@@ -8380,6 +8382,7 @@
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
     <script defer src="views/hoy-v2.js?v=20261117svd4"></script>
+    <script defer src="views/deuda-simulador-v2.js?v=20261118svd6a"></script>
     <script defer src="views/movimientos-v2.js?v=20261116reg1"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261116cla1"></script>

@@ -11,7 +11,7 @@
 
   const FIELD_INVENTORY = Object.freeze({
     canonical: Object.freeze(["liquidity", "monthly", "cb_amount", "bk_amount", "baseMonth"]),
-    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes", "migracion", "cuotasEnPlan"]),
+    operational: Object.freeze(["tasks", "scenario", "agreement", "wizink_hito_mes", "migracion", "cuotasEnPlan", "svdUltimaVisita"]),
     assumption: Object.freeze([
       "profile", "buffer", "preserveCash", "cb_strategy", "cb_discount", "cb_start", "cb_lump",
       "cb_apr", "cb_term", "cb_finance_pct", "bk_strategy", "bk_discount", "bk_start", "bk_lump",
@@ -253,6 +253,58 @@
     };
   }
 
+  // SVD-5 (18/11/2026, «Desde vuestra última visita»): lo que el simulador recuerda de cada contrato (capital, cuota, estado,
+  // acuerdo y su seguimiento) y lo que ha cambiado fuera desde entonces. Se guarda en el estado del simulador (`svdUltimaVisita`),
+  // sin clave nueva, y solo se renueva cuando el hogar dice «Entendido». Puro.
+  function visitSnapshot(accounts, today) {
+    const contratos = {};
+    (Array.isArray(accounts) ? accounts : []).forEach((account) => {
+      contratos[account.id] = {
+        entity: account.entity,
+        principal: round2(account.currentPrincipal),
+        payment: account.currentPayment === null || account.currentPayment === undefined ? null : round2(account.currentPayment),
+        status: account.paymentStatus,
+        acuerdo: account.acuerdo ? (account.acuerdo.seguimiento?.plan === "sin-decision" ? "sin-plan" : account.acuerdo.seguimiento?.estado || "aplicado") : "",
+      };
+    });
+    return { at: String(today || ""), contratos };
+  }
+
+  function sinceLastVisit(previous, current) {
+    if (!previous || typeof previous !== "object" || !previous.contratos || typeof previous.contratos !== "object") return { since: "", items: [] };
+    const items = [];
+    const before = previous.contratos;
+    const now = current?.contratos || {};
+    // Como money() de la app: miles con punto siempre (Intl en es-ES no agrupa los de cuatro cifras) y céntimos solo si los hay.
+    const euros = (value) => {
+      const [whole, cents] = Math.abs(round2(value)).toFixed(2).split(".");
+      return `${value < 0 ? "-" : ""}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}${cents === "00" ? "" : `,${cents}`} €`;
+    };
+    Object.entries(now).forEach(([id, item]) => {
+      const old = before[id];
+      if (!old) { items.push({ id, kind: "nuevo", text: `${item.entity}: contrato nuevo en Contratos.` }); return; }
+      if (old.principal !== item.principal) items.push({ id, kind: "capital", text: `${item.entity}: el capital pendiente pasó de ${euros(old.principal)} a ${euros(item.principal)}.` });
+      if (old.payment !== item.payment && item.payment !== null && old.payment !== null) items.push({ id, kind: "cuota", text: `${item.entity}: la cuota pasó de ${euros(old.payment)} a ${euros(item.payment)}.` });
+      if (old.acuerdo !== item.acuerdo) {
+        const texto = {
+          "aplicado": "acuerdo aceptado y aplicado.",
+          "pendiente": "acuerdo aceptado y aplicado.",
+          "en-curso": "acuerdo aceptado y aplicado.",
+          "cumplido": "el pago del acuerdo ya sale en el extracto.",
+          "ya-liquidado": "acuerdo cumplido: contrato liquidado.",
+          "sin-pago": "el mes del pago del acuerdo pasó y no se ve en los extractos.",
+          "sin-plan": "el pago del acuerdo ya no está en el plan.",
+          "": "ya no tiene acuerdo aceptado.",
+        }[item.acuerdo] || "el acuerdo ha cambiado.";
+        items.push({ id, kind: "acuerdo", text: `${item.entity}: ${texto}` });
+      }
+    });
+    Object.entries(before).forEach(([id, old]) => {
+      if (!now[id]) items.push({ id, kind: "fuera", text: `${old.entity}: ya no está entre las deudas por simular (liquidado o quitado de Contratos).` });
+    });
+    return { since: String(previous.at || ""), items };
+  }
+
   function buildReadModel(input = {}) {
     const contracts = clone(Array.isArray(input.contracts) ? input.contracts : []);
     const priorState = clone(input.roadmapState && typeof input.roadmapState === "object" ? input.roadmapState : {});
@@ -277,7 +329,13 @@
     }
 
     const floor = optionalNumber(input.floor);
+    const extraDebts = withFollowUp(extraDebtAccounts(contracts, entityA, entityB, input.payoffPath), input.agreementFollowUp);
+    const visitaActual = visitSnapshot(extraDebts, input.today || "");
     return {
+      // SVD-5: lo que ha cambiado fuera desde la última visita (lo que el simulador recuerda en `svdUltimaVisita`), y la foto de hoy
+      // que guardará si el hogar dice «Entendido».
+      visitaActual,
+      desdeVisita: sinceLastVisit(priorState.svdUltimaVisita, visitaActual),
       schemaId: SCHEMA_ID,
       version: 2,
       floor,
@@ -289,7 +347,7 @@
       ambiguous: [...new Set(ambiguous)],
       contracts: { entityA, entityB, all: contracts },
       fixedAccounts,
-      extraDebts: withFollowUp(extraDebtAccounts(contracts, entityA, entityB, input.payoffPath), input.agreementFollowUp),
+      extraDebts,
       // El mismo «hoy» que Deuda › Ruta (camino-deuda-ui.js: el mes de hoy); si no llega, el primer mes de la previsión.
       // SVD-R1: cuántas de las cuotas que se pagan están en el plan (por el nombre de la entidad), y de qué mes.
       cuotasPlan: planInstallmentsSummary(input.planInstallments),
@@ -563,5 +621,7 @@
     acceptedAgreementFacts,
     scenarioDecisionsFromRoadmap,
     pendingProposals,
+    visitSnapshot,
+    sinceLastVisit,
   };
 });

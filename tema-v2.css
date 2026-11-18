@@ -5067,3 +5067,207 @@
   font-weight: 600;
   color: var(--e19-ink);
 }
+
+/* SVD-6 · fase 1 (18/11/2026): el simulador visual de deuda como pantalla de la app (views/deuda-simulador-v2.js). De Deuda.png:
+   cifras arriba en una cuadrícula, una fila por contrato con su barra y su resultado. Con la pantalla nueva pintada (y no en
+   «Ver el simulador anterior»), el de siempre se oculta; si el script falla, se sigue viendo el de siempre. */
+:root[data-tema="v2"] #deuda-simulador:has(> #deudaSimuladorV2:not([hidden]):not([data-modo="anterior"])) > #deudaSimuladorClasico {
+  display: none;
+}
+
+:root[data-tema="v2"] .sim-v2 {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+:root[data-tema="v2"] .sim-v2-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] .sim-v2-cifras > div {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--e19-border);
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-cifras > div:nth-child(odd) {
+  border-right: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .sim-v2-cifras span,
+:root[data-tema="v2"] .sim-v2-cifras small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .sim-v2-cifras strong {
+  color: var(--e19-ink);
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .sim-v2-cifras .is-alerta strong,
+:root[data-tema="v2"] .sim-v2 .is-alerta {
+  color: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .sim-v2-cuentas {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .sim-v2-cuenta {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--e19-border);
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-cuenta:last-child {
+  border-bottom: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-cuenta-cabeza {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-cuenta-hechos,
+:root[data-tema="v2"] .sim-v2-resultado,
+:root[data-tema="v2"] .sim-v2-nota,
+:root[data-tema="v2"] .sim-v2-volver,
+:root[data-tema="v2"] .sim-v2-propuesta,
+:root[data-tema="v2"] .sim-v2-acuerdo {
+  margin: 0;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .sim-v2-resultado {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .sim-v2-estrategia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: 999px;
+  font-size: var(--e19-text-sm);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .sim-v2-opcion:has(input:checked) {
+  border-color: var(--e19-ink);
+  background: var(--e19-ink);
+  color: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .sim-v2-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .sim-v2-campo {
+  display: grid;
+  gap: 4px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .sim-v2-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+:root[data-tema="v2"] .sim-v2-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .sim-v2-barra.is-sin-fin > span {
+  background: repeating-linear-gradient(135deg, var(--e19-border-strong) 0 6px, transparent 6px 12px);
+}
+
+:root[data-tema="v2"] .sim-v2-visita {
+  padding: 14px 16px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-warning-soft);
+}
+
+:root[data-tema="v2"] .sim-v2-visita p,
+:root[data-tema="v2"] .sim-v2-visita ul {
+  margin: 0 0 8px;
+}
+
+:root[data-tema="v2"] .sim-v2-mes-a-mes ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+:root[data-tema="v2"] .sim-v2-mes-a-mes li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--e19-border);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .sim-v2-mes-a-mes .sim-v2-mes-cabeza {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .sim-v2-aceptar,
+:root[data-tema="v2"] .sim-v2-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+@media (min-width: 900px) {
+  :root[data-tema="v2"] .sim-v2-cifras {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  :root[data-tema="v2"] .sim-v2-cifras > div {
+    border-bottom: 0;
+    border-right: 1px solid var(--e19-border);
+  }
+
+  :root[data-tema="v2"] .sim-v2-cifras > div:last-child {
+    border-right: 0;
+  }
+}

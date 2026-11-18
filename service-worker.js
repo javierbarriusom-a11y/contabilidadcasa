@@ -250,6 +250,7 @@ const SHELL_URLS = [
   // resto del shell para no perder la promesa de uso sin conexión — la ganancia de rendimiento
   // viene de que index.html no los carga al arrancar, no de dejarlos fuera de la caché offline.
   "./views/hoy-v2.js",
+  "./views/deuda-simulador-v2.js",
   "./views/movimientos-v2.js",
   "./views/plan-v2.js",
   "./views/prevision-v2.js",

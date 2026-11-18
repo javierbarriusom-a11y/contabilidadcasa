@@ -20,6 +20,8 @@ function debtRoadmapCanonicalReadModel() {
     planInstallments: typeof svdCuotasPlanModelo === "function" ? svdCuotasPlanModelo() : null,
     // SVD-5: si el pago de cada acuerdo sigue en el plan y si ya sale en los extractos.
     agreementFollowUp: typeof svdSeguimientoModelo === "function" ? svdSeguimientoModelo() : [],
+    // SVD-5: la fecha de hoy, para «Desde vuestra última visita (día)».
+    today: typeof isoLocalDate === "function" ? isoLocalDate(new Date()) : "",
   }) || null;
 }
 
@@ -65,6 +67,14 @@ function setupDebtRoadmapBridge() {
   const frame = qs("debtRoadmapFrame");
   if (!frame) return;
   frame.addEventListener("load", sendDebtRoadmapState);
+  // SVD-5 (18/11/2026): al volver a la pestaña del simulador, sus datos se envían siempre. La app no repinta una vista si su
+  // revisión no ha cambiado, y cambiar un contrato en Contratos no la sube: el simulador se quedaba con lo de la visita anterior
+  // (lo cazó la prueba de «Desde vuestra última visita»).
+  window.addEventListener("hashchange", () => {
+    if (!String(location.hash || "").startsWith("#deuda-simulador")) return;
+    sendDebtRoadmapState();
+    if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
+  });
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
     if (event.data?.type === "finance-debt-roadmap-ready") {
@@ -103,8 +113,11 @@ function svdTodayKey() {
   return typeof isoLocalDate === "function" ? isoLocalDate(new Date()).slice(0, 7) : "";
 }
 
+// Devuelve el resultado además de avisar al iframe: el simulador nuevo (SVD-6, views/deuda-simulador-v2.js) llama a estas
+// funciones directamente y enseña el mensaje él mismo.
 function svdAcuerdoAck(accountKey, ok, message) {
   qs("debtRoadmapFrame")?.contentWindow?.postMessage({ type: "finance-debt-roadmap-agreement-result", accountKey, ok, message }, window.location.origin);
+  return { ok, message };
 }
 
 function svdMesTexto(key) {
@@ -283,7 +296,7 @@ function closeSvdAcuerdo() {
 
 function receiveDebtRoadmapAgreement(payload) {
   const accountKey = String(payload?.accountKey || "");
-  if (!E14DebtAdapter?.buildAcceptedAgreement) return;
+  if (!E14DebtAdapter?.buildAcceptedAgreement) return { ok: false, message: "El simulador no está listo." };
   const built = E14DebtAdapter.buildAcceptedAgreement({
     accountKey, account: payload?.account, canonical: debtRoadmapCanonicalReadModel(), baseMonthKey: payload?.baseMonth, todayKey: svdTodayKey(),
   });
@@ -304,7 +317,7 @@ function receiveDebtRoadmapAgreement(payload) {
   } catch {
     dialog.setAttribute("open", "");
   }
-  svdAcuerdoAck(accountKey, true, "Revisa «Qué ocurrirá» y adjunta el justificante para aplicarlo.");
+  return svdAcuerdoAck(accountKey, true, "Revisa «Qué ocurrirá» y adjunta el justificante para aplicarlo.");
 }
 
 function svdAcuerdoSnapshot() {
@@ -373,11 +386,13 @@ async function confirmSvdAcuerdo() {
   closeSvdAcuerdo();
   render();
   sendDebtRoadmapState();
+  if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   showUndoToast("Acuerdo aplicado: Contratos, plan y acta.", () => {
     svdRestaurar(snapshot);
     P2PrivateStore.remove(documentId).catch(() => {});
     render();
     sendDebtRoadmapState();
+    if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
     announceStatus("Acuerdo deshecho: el contrato, el plan y el acta vuelven a como estaban.");
   }, 30000);
 }
@@ -406,10 +421,12 @@ function svdQuitarAcuerdo(contractId) {
   svdOlvidarSeguimiento();
   render();
   sendDebtRoadmapState();
+  if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   showUndoToast("Acuerdo quitado del contrato y del plan.", () => {
     svdRestaurar(snapshot);
     render();
     sendDebtRoadmapState();
+    if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   }, 30000);
 }
 
@@ -512,11 +529,13 @@ function svdReapuntarAcuerdo(contractId) {
   svdOlvidarSeguimiento();
   render();
   sendDebtRoadmapState();
+  if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   showUndoToast("Pago del acuerdo apuntado otra vez en el plan.", () => {
     svdRestaurar(snapshot);
     svdOlvidarSeguimiento();
     render();
     sendDebtRoadmapState();
+    if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   }, 30000);
 }
 
@@ -545,11 +564,13 @@ function svdMarcarLiquidado(contractId) {
   svdOlvidarSeguimiento();
   render();
   sendDebtRoadmapState();
+  if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   showUndoToast("Contrato marcado como liquidado.", () => {
     svdRestaurar(snapshot);
     svdOlvidarSeguimiento();
     render();
     sendDebtRoadmapState();
+    if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
   }, 30000);
 }
 
@@ -559,6 +580,7 @@ function svdMarcarLiquidado(contractId) {
 // se ve en Previsión («O un escenario guardado»).
 function svdEscenarioAck(ok, message) {
   qs("debtRoadmapFrame")?.contentWindow?.postMessage({ type: "finance-debt-roadmap-save-scenario-result", ok, message }, window.location.origin);
+  return { ok, message };
 }
 
 // Paridad medida (tests/svd4-paridad-escenario.test.cjs): Escenarios sigue el criterio prudente de la app, el mismo que las
@@ -574,7 +596,7 @@ function svdDiferenciaEscenario(decisions) {
 }
 
 function receiveDebtRoadmapScenario(payload) {
-  if (!E14DebtAdapter?.scenarioDecisionsFromRoadmap) return;
+  if (!E14DebtAdapter?.scenarioDecisionsFromRoadmap) return { ok: false, message: "El simulador no está listo." };
   if (typeof loadEscenarioMotorSaved !== "function" || typeof saveEscenarioMotorSavedList !== "function" || typeof escenarioMotorNewDecisionId !== "function") {
     return svdEscenarioAck(false, "Escenarios no está disponible: no se ha guardado nada.");
   }
@@ -612,7 +634,7 @@ function receiveDebtRoadmapScenario(payload) {
   saveEscenarioMotorSavedList(saved);
   const diferencia = svdDiferenciaEscenario(decisiones);
   const criterio = diferencia > 0 ? ` En Previsión el mes del cambio todavía cuenta la cuota de hoy, y lo nuevo empieza el mes siguiente: al acabar, la liquidez sale ${money(diferencia, true)} más baja que aquí.` : "";
-  svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}${criterio}`);
+  return svdEscenarioAck(true, `Guardada en Escenarios › Guardados, sin aplicar (${decisiones.length} ${decisiones.length === 1 ? "decisión" : "decisiones"}).${fuera}${criterio}`);
 }
 
 // SVD-4 (17/11/2026): «Lo hemos propuesto». Las propuestas que esperan respuesta de la entidad (pendingProposals), sin montar el

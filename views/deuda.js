@@ -1774,6 +1774,8 @@ function renderDeudaSimulador() {
   renderDeudaScreenTabs("deuda-simulador");
   renderDeudaFlowNav("deuda-simulador");
   sendDebtRoadmapState();
+  // SVD-6 (18/11/2026): el simulador como pantalla de la app, con el tema v2 y contratos reales (views/deuda-simulador-v2.js).
+  if (typeof renderDeudaSimuladorV2 === "function") renderDeudaSimuladorV2();
 }
 
 // I1 (Contabilidadcasa 2.0): «Deuda y apalancamiento» (OPT-24) sale de Deuda hacia el hub
