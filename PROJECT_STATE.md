@@ -123,7 +123,10 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Sin «Vence el»:** la fecha de esas reglas es cuándo revisar la regla (por defecto, 30 días tras crearla), no un plazo para decidir; se presentaba como fecha límite. Ahora van entre las que no tienen fecha, detrás de las que sí la tienen de verdad.
 - **Visto al probar:** la demo dispara un aviso de caja. Con el primer intento llevaba el mismo atributo que los avisos de previsión de FX-41 y sus tres pruebas, que cuentan esos avisos, fallaron. No se tocaron: el aviso de la regla lleva su propio atributo y comparte el destino.
 - **Pruebas:** nueva `tests/dec20-verbos-avisos.test.cjs` (3); versión de `app.js` (20261118dec20) en las seis que la fijan; e2e «DEC-20 · Verbos en «Decidir esta semana»» (`@safari`, 390 px).
-- **Validación:** VALIDACION_PENDIENTE
+- **Dos carreras en pruebas, encontradas por la batería y arregladas:**
+  - e2e de DEC-40 (#640, ya publicado): el evento `toggle` llega un instante después del clic y la prueba leía antes lo anotado (1 de 4). Ahora espera a que esté.
+  - e2e «XDA-03 · texto de un PDF» (anterior a hoy): esperaba el texto «3 movimientos», que puede verse antes de que el lote quede guardado, y leía los movimientos en ese instante. Ahora espera a los movimientos. Las dos, 40 de 40 en 8 repeticiones.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.769/6.769 (+3). **Batería completa de navegador en local: 461 de 463**; los 2 fallos, las carreras de arriba, arregladas y repetidas 8 veces en verde. Safari, solo en el CI.
 
 ## Cierre de sesión — 18 de noviembre de 2026 (497): DEC-40, lo plegado también es superficie (solo medir)
 

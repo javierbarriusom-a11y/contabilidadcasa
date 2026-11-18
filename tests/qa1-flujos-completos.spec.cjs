@@ -8665,8 +8665,10 @@ test.describe("XDA-03 · texto de un PDF", () => {
     await v2.locator("[data-imp-v2-importar]").click();
     await page.click("#operationConfirmSubmit");
     await expect(v2).toContainText("3 movimientos", { timeout: 15000 });
-    const importados = await page.evaluate(() => baseData.transactions.filter((t) => t.account === "Mediolanum").map((t) => [t.date, t.movement, t.amount, t.balance]).sort());
-    expect(importados).toEqual([["2026-10-02", "SEGUROS FICTICIOS DE PRUEBA", -1200.75, 298.75], ["2026-10-15", "Liquidación ficticia", 1.25, 300], ["2026-10-28", "Transf. FICTICIA A", -50, 250]]);
+    // «3 movimientos» puede verse antes de que el lote quede guardado: se espera a los movimientos, no al texto (18/11/2026,
+    // la batería lo pilló leyendo un instante antes).
+    await expect.poll(() => page.evaluate(() => baseData.transactions.filter((t) => t.account === "Mediolanum").map((t) => [t.date, t.movement, t.amount, t.balance]).sort()), { timeout: 15000 })
+      .toEqual([["2026-10-02", "SEGUROS FICTICIOS DE PRUEBA", -1200.75, 298.75], ["2026-10-15", "Liquidación ficticia", 1.25, 300], ["2026-10-28", "Transf. FICTICIA A", -50, 250]]);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 
@@ -11628,8 +11630,9 @@ test.describe("DEC-40 · Desplegables abiertos", () => {
     const primero = page.locator("#faqs-ayuda details > summary").first();
     await expect(primero).toBeVisible({ timeout: 15000 });
     await primero.click();
+    // «toggle» llega un instante después del clic: se espera a que esté anotado.
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("plegados-aperturas") || "{}").desde)).toBe("2026-11-18");
     const anotado = await page.evaluate(() => JSON.parse(localStorage.getItem("plegados-aperturas") || "{}"));
-    expect(anotado.desde).toBe("2026-11-18");
     expect(Object.keys(anotado.aperturas)).toHaveLength(1);
     expect(Object.keys(anotado.aperturas)[0]).toMatch(/^#faqs-ayuda › /);
     // Lo que se pinta después de cargar (con datos del hogar) no lleva clave.
