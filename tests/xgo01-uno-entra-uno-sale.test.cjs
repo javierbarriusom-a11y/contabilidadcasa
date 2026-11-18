@@ -29,6 +29,13 @@ test("el manifiesto está bien formado: base, excepciones con su porqué y un n�
   assert.ok(["#home", "#movements", "#registrar", "#plan", "#cierre", "#ajustes"].every((r) => r in m.rutas));
 });
 
+test("DEC-40 · lo plegado, ruta a ruta: las mismas rutas que los titulares y un número por ruta", () => {
+  assert.ok(m.plegados && typeof m.plegados === "object", "«plegados» en el manifiesto");
+  assert.deepEqual(Object.keys(m.plegados).sort(), Object.keys(m.rutas).sort());
+  Object.entries(m.plegados).forEach(([ruta, n]) => assert.ok(Number.isInteger(n) && n >= 0, ruta));
+  assert.match(String(m._plegados || ""), /DEC-40/);
+});
+
 test("uno entra, uno sale: lo que se ve no pasa del techo (base + excepciones)", () => {
   const total = superficie.total(m.rutas);
   const permitido = superficie.permitido(m);
@@ -52,7 +59,8 @@ test("las cuentas del manifiesto y el diff de qué entra y qué sale", () => {
 test("la e2e que hace el inventario está en el CI (proyecto e2e) y usa la fecha fija", () => {
   const spec = fs.readFileSync(path.resolve(__dirname, "qa1-flujos-completos.spec.cjs"), "utf8");
   assert.match(spec, /test\.describe\("XGO-01 · Uno entra, uno sale"/);
-  assert.match(spec, /const rutas = await superficie\.inventario\(page\);/);
+  assert.match(spec, /const rutas = await superficie\.inventario\(page, plegados\);/);
+  assert.match(spec, /const cambiosPlegados = superficie\.diferencias\(manifiesto\.plegados \|\| \{\}, plegados\);/);
   assert.match(spec, /expect\(cambios, [\s\S]*?\)\.toEqual\(\[\]\);/);
   assert.deepEqual(superficie.FECHA_FIJA, [2026, 9, 26, 10, 0, 0]);
   assert.match(fs.readFileSync(path.resolve(__dirname, "..", "playwright.config.cjs"), "utf8"), /name: "e2e", testMatch: "qa1-flujos-completos\.spec\.cjs"/);

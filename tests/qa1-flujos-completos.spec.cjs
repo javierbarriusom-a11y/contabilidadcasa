@@ -9046,12 +9046,15 @@ test.describe("XGO-01 · Uno entra, uno sale", () => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 1280, height: 900 });
-    const rutas = await superficie.inventario(page);
+    const plegados = {}; // DEC-40: lo plegado que se ve por defecto, ruta a ruta (se registra, sin techo)
+    const rutas = await superficie.inventario(page, plegados);
     const manifiesto = superficie.leerManifiesto();
     if (process.env.ACTUALIZAR_SUPERFICIE === "1") {
-      require("node:fs").writeFileSync(superficie.MANIFIESTO, `${JSON.stringify({ ...manifiesto, rutas }, null, 2)}\n`);
+      require("node:fs").writeFileSync(superficie.MANIFIESTO, `${JSON.stringify({ ...manifiesto, rutas, plegados }, null, 2)}\n`);
       return;
     }
+    const cambiosPlegados = superficie.diferencias(manifiesto.plegados || {}, plegados);
+    expect(cambiosPlegados, `Ha cambiado lo plegado que se ve por defecto (total ${superficie.total(plegados)}, manifiesto ${superficie.total(manifiesto.plegados || {})}). Actualiza docs/gobierno/superficie.json con ACTUALIZAR_SUPERFICIE=1:\n${cambiosPlegados.join("\n")}`).toEqual([]);
     const cambios = superficie.diferencias(manifiesto.rutas, rutas);
     expect(cambios, `Ha cambiado lo que se ve por defecto (total ${superficie.total(rutas)}, manifiesto ${superficie.total(manifiesto.rutas)}). Actualiza docs/gobierno/superficie.json con ACTUALIZAR_SUPERFICIE=1 y, si el total sube, pliega otra cosa o escribe la excepción:\n${cambios.join("\n")}`).toEqual([]);
     expect(Object.keys(rutas).length, "se recorren el menú principal y sus pestañas").toBeGreaterThan(15);
@@ -11611,6 +11614,29 @@ test.describe("DEC-44 · Versiones anteriores en Uso de la app", () => {
     await expect(linea).not.toContainText("Sin abrir en 30 días: Control de deuda");
     await expect(linea).toContainText("No se cuentan aparte (llevan a otra pantalla): Registrar reales del mes.");
     await expect(linea).toContainText("aquí no se retira nada.");
+    expect(pageErrors).toEqual([]);
+  });
+});
+
+// DEC-40 (18/11/2026): las aperturas de los desplegables de la página, solo en este navegador; la línea en Uso de la app.
+test.describe("DEC-40 · Desplegables abiertos", () => {
+  test("abrir uno de Ayuda lo anota con su clave y Uso de la app lo cuenta; lo pintado con datos no lleva clave", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
+    await page.goto("/index.html#faqs-ayuda");
+    const primero = page.locator("#faqs-ayuda details > summary").first();
+    await expect(primero).toBeVisible({ timeout: 15000 });
+    await primero.click();
+    const anotado = await page.evaluate(() => JSON.parse(localStorage.getItem("plegados-aperturas") || "{}"));
+    expect(anotado.desde).toBe("2026-11-18");
+    expect(Object.keys(anotado.aperturas)).toHaveLength(1);
+    expect(Object.keys(anotado.aperturas)[0]).toMatch(/^#faqs-ayuda › /);
+    // Lo que se pinta después de cargar (con datos del hogar) no lleva clave.
+    expect(await page.evaluate(() => { const d = document.createElement("details"); d.innerHTML = "<summary>Banco FICTICIO 1.234 €</summary>"; document.body.append(d); d.open = true; return d.dataset.plegadoClave || ""; })).toBe("");
+    await page.goto("/index.html#ajustes");
+    await expect(page.locator("#usoAppPlegados")).toHaveText(/^Desplegables: 1 de \d+ abiertos en los últimos 60 días en este navegador\. Se anota desde el 18\/11\/2026: hasta tener 60 días, no se propone retirar ninguno\.$/, { timeout: 15000 });
+    expect(await page.evaluate(() => localStorage.getItem("plegados-aperturas") || "")).not.toMatch(/FICTICIO/);
     expect(pageErrors).toEqual([]);
   });
 });

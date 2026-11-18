@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**18/11/2026 · DEC-40: lo plegado también cuenta (solo medir; «continúa con lo que puedas hacer sin mí»).** El inventario de superficie suma, ruta a ruta, los desplegables que se ven cerrados por defecto (151 en 32 rutas, frente a 231 titulares), y la app anota qué desplegables abrís y cuándo, solo en ese navegador; Uso de la app dirá, con 60 días anotados, cuáles nadie abre. No retira nada (PROJECT_STATE 497).
+
 **18/11/2026 · DEC-44: cuánto se usan las «Versiones anteriores» (solo medir).** Ajustes › Uso de la app dice cuáles de esas pantallas se han abierto en los últimos 30 días y cuáles no, con el contador de siempre; para decidir D-N15 (retiradas) con datos. No retira nada (PROJECT_STATE 494).
 
 **18/11/2026 · DEC-41: la copia de seguridad que avisa («sigue con más cosas que puedas avanzar sin el hogar»).** Vuestros datos viven en el navegador y Safari puede borrarlos. Si la última copia descargada tiene más de 30 días (o no consta) y no estáis en la nube, Ajustes y el «Listo» del repaso lo dicen con «Descargar copia», la de siempre. No toca ningún dato (PROJECT_STATE 493).

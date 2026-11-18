@@ -33,6 +33,16 @@ function diferencias(antes, ahora) {
 
 // ---------- En el navegador (Playwright) ----------
 
+// DEC-40 (18/11/2026): lo plegado también es superficie. Los desplegables cerrados cuyo resumen se ve por defecto (fuera del
+// menú, la cabecera y los diálogos, y no dentro de otro desplegable cerrado): el segundo número de cada ruta. Solo se
+// registra (sin techo), para ver trimestre a trimestre si lo plegado crece.
+async function contarPlegados(page) {
+  return page.evaluate(() => {
+    const visible = (e) => e.checkVisibility({ checkVisibilityCSS: true }) && e.getClientRects().length > 0;
+    return [...document.querySelectorAll("details:not([open]) > summary")].filter((s) => visible(s) && !s.closest("nav, header, dialog") && !s.parentElement.parentElement?.closest("details:not([open])")).length;
+  });
+}
+
 async function contarTitulares(page) {
   return page.evaluate(() => {
     const visible = (e) => e.checkVisibility({ checkVisibilityCSS: true }) && e.getClientRects().length > 0;
@@ -66,7 +76,7 @@ async function pestanas(page) {
 // El inventario: { "#home": 4, "#registrar": 5, "#registrar › actuals": 3, … }. Las pestañas que son enlaces se visitan
 // como rutas; las que son botones se pulsan una vez desde su ruta y se nombran por su data-* (el texto puede llevar
 // un contador, como «29 sin real»).
-async function inventario(page) {
+async function inventario(page, plegados = null) {
   await page.clock.install({ time: new Date(...FECHA_FIJA) });
   await page.goto("/index.html#home");
   await page.locator("#home").waitFor({ timeout: 15000 });
@@ -79,6 +89,7 @@ async function inventario(page) {
     vistas.add(ruta);
     await page.evaluate((h) => (location.hash = h), ruta);
     rutas[ruta] = await contarEstable(page);
+    if (plegados) plegados[ruta] = await contarPlegados(page);
     const { enlaces, botones } = await pestanas(page);
     enlaces.filter((h) => !vistas.has(h)).forEach((h) => cola.push(h));
     for (const etiqueta of botones) {
@@ -91,7 +102,10 @@ async function inventario(page) {
         boton?.click();
         return Boolean(boton);
       }, etiqueta);
-      if (pulsado) rutas[clave] = await contarEstable(page);
+      if (pulsado) {
+        rutas[clave] = await contarEstable(page);
+        if (plegados) plegados[clave] = await contarPlegados(page);
+      }
     }
   }
   return rutas;

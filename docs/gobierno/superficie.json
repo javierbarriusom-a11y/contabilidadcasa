@@ -1,5 +1,6 @@
 {
   "_que": "XGO-01 · «uno entra, uno sale» (GOV-02). Titulares (h2/h3) que se ven por defecto en cada destino del menú principal y sus pestañas: tema v2, 1280 px, sin datos del hogar, reloj el 26/10/2026. Lo cuenta la e2e «XGO-01 · Uno entra, uno sale» de tests/qa1-flujos-completos.spec.cjs; tests/xgo01-uno-entra-uno-sale.test.cjs exige que el total no pase de base + excepciones y que la base baje cuando algo sale (trinquete). Para añadir sin quitar: una excepción con fecha, cuánto suma, qué y por qué.",
+  "_plegados": "DEC-40 (18/11/2026): «plegados» es el segundo número de cada ruta, los desplegables cerrados cuyo resumen se ve por defecto en las mismas condiciones. Se registra sin techo, para ver trimestre a trimestre si lo plegado crece (la décima auditoría vio que «uno entra, uno sale» se cumplía plegando). La misma e2e exige que coincida.",
   "fecha": "2026-10-26",
   "base": 224,
   "excepciones": [
@@ -55,5 +56,39 @@
     "#inversion-fiscal": 9,
     "#inversion-jubilacion": 5,
     "#inversion-apalancamiento": 29
+  },
+  "plegados": {
+    "#home": 3,
+    "#registrar": 3,
+    "#registrar › balances": 3,
+    "#registrar › actuals": 3,
+    "#registrar › import": 4,
+    "#registrar › batch": 3,
+    "#movements": 3,
+    "#plan": 3,
+    "#plan › mes": 3,
+    "#plan › prevision": 9,
+    "#plan › ahorro": 3,
+    "#plan › presupuesto-mes": 4,
+    "#plan › estado-semana": 4,
+    "#plan › planificacion-partidas": 8,
+    "#cierre": 5,
+    "#deuda-ruta": 7,
+    "#inversion-cartera": 6,
+    "#escenario-simular": 4,
+    "#escenario-simular › Simular": 4,
+    "#escenario-simular › escenario-guardados": 4,
+    "#escenario-simular › asesor-decision": 4,
+    "#escenario-simular › segunda-opinion": 4,
+    "#ajustes": 5,
+    "#faqs-ayuda": 14,
+    "#deuda-comparar": 5,
+    "#deuda-prestamo": 4,
+    "#deuda-contratos": 9,
+    "#deuda-simulador": 4,
+    "#inversion-rebalanceo": 4,
+    "#inversion-fiscal": 4,
+    "#inversion-jubilacion": 4,
+    "#inversion-apalancamiento": 4
   }
 }
