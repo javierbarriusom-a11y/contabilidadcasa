@@ -525,6 +525,9 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   repaso, a partir de la fecha que la app ya apuntaba (`lastEmergencyBackupAt`, de RGX1): nada con la nube conectada, sin datos
   o con una copia de 30 días o menos; de 31 a 60 días, una línea con «Descargar copia»; de más de 60 o sin copia, la misma con
   más énfasis. Nunca rojo. El botón es la copia completa de siempre. `views/copia-aviso.js`.
+- **DEC-44**, solo medir (PROJECT_STATE 494): en Ajustes › Uso de la app, una línea con cuántas pantallas de «Versiones
+  anteriores» se han abierto en los últimos 30 días en ese navegador y cuáles no, con el contador de siempre. «Registrar reales
+  del mes» lleva a Registrar y nunca tuvo contador propio: se dice aparte. Para D-N15; no retira nada.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

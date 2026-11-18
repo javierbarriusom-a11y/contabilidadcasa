@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (494): DEC-44, cuánto se usan las «Versiones anteriores» (solo medir)
+
+- **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». DEC-44 es P0 «solo medir» en la décima auditoría y alimenta D-N15 (retiradas), que sigue siendo del hogar.
+- **Qué hace** (`laboratorio-ui.js`, Ajustes › Uso de la app, bajo el resumen): «Versiones anteriores: N de M abiertas en los últimos 30 días en este navegador. Sin abrir en 30 días: …». Con el contador de siempre (`viewVisitSummary`: veces y última apertura por pantalla); las pantallas, las del grupo del menú, con su nombre del menú.
+  - **«Registrar reales del mes» no se cuenta:** lleva a Registrar (`REGISTRAR_LEGACY_HASH_TABS`) y nunca tuvo contador propio; la línea lo dice aparte.
+  - **Límite a la vista:** es por navegador. Si el hogar abre una heredada solo en el iPhone, en el ordenador saldrá «sin abrir». Para decidir, mirar los dos.
+  - No retira nada.
+- **Error mío cazado por la e2e:** salía la frase descriptiva de cada pantalla (`viewTitles`), no su nombre del menú.
+- **Pruebas:** nueva `tests/dec44-versiones-anteriores.test.cjs` (4); e2e «DEC-44 · Versiones anteriores en Uso de la app».
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.761/6.761 (+4).
+  - **Batería completa de navegador en local (e2e + axe): 461 de 461** (24,2 min).
+- **Despliegue de #638 (DEC-41):** en curso al abrir este PR; sus cifras van en la entrada siguiente.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (493): DEC-41, la copia de seguridad que avisa
 
 - **El hogar:** «Sigue con más cosas que puedas avanzar sin el hogar». DEC-41 es P0 en la décima auditoría, no toca datos ni cifras y protege lo que más se puede perder: los datos viven en el navegador y Safari puede borrarlos (sitios que no se abren en un tiempo, limpiar el historial).

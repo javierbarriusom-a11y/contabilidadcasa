@@ -316,6 +316,41 @@ function renderAjustesUsoApp() {
   const rows = usoAppRows();
   if (summaryEl) summaryEl.textContent = usoAppSummaryText(rows);
   if (bodyEl) bodyEl.innerHTML = usoAppTableHtml(rows);
+  const legacyEl = qs("usoAppLegacy");
+  if (legacyEl) {
+    const enlaces = [...document.querySelectorAll('a[data-e17-group="legacy"]')];
+    const ids = enlaces.map((link) => String(link.getAttribute("href") || "").replace(/^#/, ""));
+    const nombres = Object.fromEntries(enlaces.map((link, index) => [ids[index], link.textContent.trim()])); // el nombre del menú, no la frase del catálogo
+    legacyEl.textContent = usoAppVersionesAnterioresTexto(usoAppVersionesAnterioresResumen(rows, ids, new Date(), nombres));
+  }
+}
+
+// DEC-44 (décima auditoría §4.9; 18/11/2026, «sigue con más cosas que puedas avanzar sin el hogar»): solo medir, para que la
+// retirada de «Versiones anteriores» (D-N15) se decida con datos. Con el mismo contador de siempre (viewVisitSummary, por
+// pantalla: veces y última apertura), cuántas de las pantallas de ese grupo del menú se han abierto en los últimos 30 días en
+// este navegador y cuáles no. Las que llevan a otra pantalla (REGISTRAR_LEGACY_HASH_TABS: «Registrar reales del mes» abre
+// Registrar) nunca acumulan contador propio: no se cuentan, y se dice. No retira nada.
+function usoAppVersionesAnterioresResumen(rows, ids, hoy = new Date(), nombres = {}) {
+  const desde = isoLocalDate(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 30));
+  const porId = new Map((rows || []).map((row) => [row.id, row]));
+  const redirigidas = typeof REGISTRAR_LEGACY_HASH_TABS === "undefined" ? {} : REGISTRAR_LEGACY_HASH_TABS;
+  const medibles = (ids || []).filter((id) => porId.has(id) && !Object.prototype.hasOwnProperty.call(redirigidas, id));
+  const abiertas = medibles.filter((id) => String(porId.get(id).last || "") >= desde);
+  return {
+    total: medibles.length,
+    abiertas: abiertas.length,
+    sinAbrir: medibles.filter((id) => !abiertas.includes(id)).map((id) => nombres[id] || porId.get(id).title),
+    noMedibles: (ids || []).filter((id) => !medibles.includes(id)).map((id) => nombres[id] || porId.get(id)?.title || id),
+  };
+}
+
+function usoAppVersionesAnterioresTexto(resumen) {
+  if (!resumen?.total) return "";
+  const partes = [`Versiones anteriores: ${resumen.abiertas} de ${resumen.total} abiertas en los últimos 30 días en este navegador.`];
+  if (resumen.sinAbrir.length) partes.push(`Sin abrir en 30 días: ${resumen.sinAbrir.join(", ")}.`);
+  if (resumen.noMedibles.length) partes.push(`No se cuentan aparte (llevan a otra pantalla): ${resumen.noMedibles.join(", ")}.`);
+  partes.push("Sirve para decidir qué retirar (D-N15); aquí no se retira nada.");
+  return partes.join(" ");
 }
 
 function handleLaboratorioSelect(hash) {
