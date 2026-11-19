@@ -64,8 +64,8 @@ test("di5ProposalsByOwner · sin ninguna titularidad declarada, todo cae en hous
   }));
   const grouped = context.di5ProposalsByOwner([{ id: "c1", currentMonthlyPayment: 100 }]);
   assert.equal(grouped.household.length, 1);
-  assert.equal(grouped.javi.length, 0);
-  assert.equal(grouped.tere.length, 0);
+  assert.equal(grouped.p1.length, 0);
+  assert.equal(grouped.p2.length, 0);
 });
 
 test("di5ProposalsByOwner · usa la titularidad declarada en p2State().ownership", () => {
@@ -74,27 +74,27 @@ test("di5ProposalsByOwner · usa la titularidad declarada en p2State().ownership
       { id: "c1", entity: "Banco A", number: "001" },
       { id: "c2", entity: "Banco B", number: "002" },
     ],
-    p2State: () => ({ ownership: { "debt|c1": "javi", "debt|c2": "tere" } }),
+    p2State: () => ({ ownership: { "debt|c1": "p1", "debt|c2": "p2" } }),
     window: {},
   }));
   const grouped = context.di5ProposalsByOwner([
     { id: "c1", currentMonthlyPayment: 100 },
     { id: "c2", currentMonthlyPayment: 50 },
   ]);
-  assert.equal(grouped.javi.length, 1);
-  assert.equal(grouped.javi[0].id, "c1");
-  assert.equal(grouped.tere.length, 1);
-  assert.equal(grouped.tere[0].id, "c2");
+  assert.equal(grouped.p1.length, 1);
+  assert.equal(grouped.p1[0].id, "c1");
+  assert.equal(grouped.p2.length, 1);
+  assert.equal(grouped.p2[0].id, "c2");
 });
 
 test("di5ProposalsByOwner · sin dato declarado, recurre a P2Domain.inferOwner como respaldo", () => {
   const context = sandboxWith(["di5ProposalsByOwner"], baseHelpers({
-    debtContractSourceRows: () => [{ id: "c1", entity: "Hipoteca Tere", number: "001" }],
+    debtContractSourceRows: () => [{ id: "c1", entity: "Hipoteca P2", number: "001" }],
     p2State: () => ({ ownership: {} }),
-    window: { P2Domain: { inferOwner: () => "tere" } },
+    window: { P2Domain: { inferOwner: () => "p2" } },
   }));
   const grouped = context.di5ProposalsByOwner([{ id: "c1", currentMonthlyPayment: 100 }]);
-  assert.equal(grouped.tere.length, 1);
+  assert.equal(grouped.p2.length, 1);
   assert.equal(grouped.household.length, 0);
 });
 
@@ -110,26 +110,26 @@ test("di5ProposalsByOwner · una propuesta cuyo contrato ya no está en debtCont
 
 // --- di5OwnerBreakdownHtml -----------------------------------------------------------------------
 
-test("di5OwnerBreakdownHtml · nada asignado a Javi/Tere y sin deuda de hogar, cadena vacía", () => {
+test("di5OwnerBreakdownHtml · nada asignado a P1/P2 y sin deuda de hogar, cadena vacía", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
-  const html = context.di5OwnerBreakdownHtml({ javi: [], tere: [], household: [] });
+  const html = context.di5OwnerBreakdownHtml({ p1: [], p2: [], household: [] });
   assert.equal(html, "");
 });
 
 test("di5OwnerBreakdownHtml · solo deuda de hogar sin asignar, avisa en vez de fingir un reparto", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
-  const html = context.di5OwnerBreakdownHtml({ javi: [], tere: [], household: [{ id: "c1" }] });
+  const html = context.di5OwnerBreakdownHtml({ p1: [], p2: [], household: [{ id: "c1" }] });
   assert.match(html, /Ningún contrato de deuda está asignado a Persona 1 o Persona 2/);
   assert.match(html, /Familia/);
 });
 
-test("di5OwnerBreakdownHtml · con Javi y Tere asignados, suma cuota actual, nueva y alivio por titular", () => {
+test("di5OwnerBreakdownHtml · con P1 y P2 asignados, suma cuota actual, nueva y alivio por titular", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
   const html = context.di5OwnerBreakdownHtml({
-    javi: [
+    p1: [
       { id: "c1", currentMonthlyPayment: 200, newMonthlyPayment: 150, relief: 50 },
     ],
-    tere: [
+    p2: [
       { id: "c2", currentMonthlyPayment: 100, newMonthlyPayment: 100, relief: 0 },
       { id: "c3", currentMonthlyPayment: 80, newMonthlyPayment: 60, relief: 20 },
     ],
@@ -143,19 +143,19 @@ test("di5OwnerBreakdownHtml · con Javi y Tere asignados, suma cuota actual, nue
 test("di5OwnerBreakdownHtml · sin alivio para un titular, no muestra la coletilla de alivio", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
   const html = context.di5OwnerBreakdownHtml({
-    javi: [{ id: "c1", currentMonthlyPayment: 200, newMonthlyPayment: 200, relief: 0 }],
-    tere: [],
+    p1: [{ id: "c1", currentMonthlyPayment: 200, newMonthlyPayment: 200, relief: 0 }],
+    p2: [],
     household: [],
   });
   assert.match(html, /200\.00 € → 200\.00 €\/mes\./);
   assert.doesNotMatch(html, /alivio/);
 });
 
-test("di5OwnerBreakdownHtml · Javi/Tere asignados y además deuda de hogar sin asignar, avisa de lo que se queda fuera", () => {
+test("di5OwnerBreakdownHtml · P1/P2 asignados y además deuda de hogar sin asignar, avisa de lo que se queda fuera", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
   const html = context.di5OwnerBreakdownHtml({
-    javi: [{ id: "c1", currentMonthlyPayment: 200, newMonthlyPayment: 150, relief: 50 }],
-    tere: [],
+    p1: [{ id: "c1", currentMonthlyPayment: 200, newMonthlyPayment: 150, relief: 50 }],
+    p2: [],
     household: [{ id: "c2" }, { id: "c3" }],
   });
   assert.match(html, /Persona 1/);

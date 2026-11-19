@@ -11,6 +11,8 @@ function con(nombres = {}) {
     memberKey: (valor) => Miembros.clave(valor),
     memberMentioned: (texto, persona) => Miembros.nombra(texto, persona, nombres),
     memberPayroll: (texto, persona) => Miembros.nominaDe(texto, persona, nombres),
+    memberValue: (obj, persona) => Miembros.valor(obj, persona),
+    memberValueSuffix: (obj, persona, sufijo) => Miembros.valorSufijo(obj, persona, sufijo),
     FinanceHouseholdMembers: Miembros,
   };
 }

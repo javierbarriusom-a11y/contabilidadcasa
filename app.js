@@ -15670,16 +15670,16 @@ function di5ProposalsByOwner(proposals) {
       p2State().ownership?.[`debt|${row.id}`] || window.P2Domain?.inferOwner(`${row.entity} ${row.number}`, row.id) || "household",
     ]),
   );
-  const grouped = { javi: [], tere: [], household: [] };
+  const grouped = { p1: [], p2: [], household: [] };
   proposals.forEach((proposal) => {
-    const owner = ownerByContractId.get(proposal.id) || "household";
-    (grouped[owner] || grouped.household).push(proposal);
+    const owner = memberKey(ownerByContractId.get(proposal.id)) || "household";
+    grouped[owner].push(proposal);
   });
   return grouped;
 }
 
 function di5OwnerBreakdownHtml(grouped) {
-  const assigned = ["javi", "tere"].filter((owner) => grouped[owner].length);
+  const assigned = ["p1", "p2"].filter((owner) => grouped[owner].length);
   if (!assigned.length) {
     return grouped.household.length
       ? `<p class="e19-kpi-note">Ningún contrato de deuda está asignado a ${escapeHtml(memberTemplate("{p1} o {p2}"))} en Herramientas avanzadas → Datos → Familia — el reparto por titular no se puede calcular.</p>`
@@ -15748,8 +15748,8 @@ function householdSplitSettings() {
   const raw = scenarioSettings.householdSplit || {};
   const engine = window.FinanceCanonicalHouseholdSplit;
   return {
-    incomes: { javi: Number(raw.incomes?.javi) || 0, tere: Number(raw.incomes?.tere) || 0 },
-    defaultRule: engine ? engine.normalizeRule(raw.defaultRule) : { mode: "equal", payer: "javi", amount: null },
+    incomes: { p1: Number(memberValue(raw.incomes, "p1")) || 0, p2: Number(memberValue(raw.incomes, "p2")) || 0 }, // fase 4: lee también la clave de siempre
+    defaultRule: engine ? engine.normalizeRule(raw.defaultRule) : { mode: "equal", payer: "p1", amount: null },
     categoryRules: raw.categoryRules && typeof raw.categoryRules === "object" ? raw.categoryRules : {},
   };
 }
@@ -15769,7 +15769,7 @@ function renderA18RuleCategoryOptions() {
 }
 
 function a18RuleLabel(rule) {
-  if (rule.mode === "fixed") return `importe fijo: ${memberLabel(rule.payer)} aporta ${money(rule.amount, true)}, el resto lo cubre ${memberLabel(rule.payer === "javi" ? "p2" : "p1")}`;
+  if (rule.mode === "fixed") return `importe fijo: ${memberLabel(rule.payer)} aporta ${money(rule.amount, true)}, el resto lo cubre ${memberLabel(memberKey(rule.payer) === "p1" ? "p2" : "p1")}`;
   if (rule.mode === "income-proportional") return "proporcional a los ingresos declarados";
   return "a partes iguales";
 }
@@ -15790,15 +15790,15 @@ function renderA18RuleList() {
 
 function syncA18IncomeControls() {
   const settings = householdSplitSettings();
-  const javi = qs("a18IncomeJavi");
-  const tere = qs("a18IncomeTere");
-  if (javi && document.activeElement !== javi) javi.value = settings.incomes.javi > 0 ? String(settings.incomes.javi) : "";
-  if (tere && document.activeElement !== tere) tere.value = settings.incomes.tere > 0 ? String(settings.incomes.tere) : "";
+  const p1 = qs("a18IncomeP1");
+  const p2 = qs("a18IncomeP2");
+  if (p1 && document.activeElement !== p1) p1.value = settings.incomes.p1 > 0 ? String(settings.incomes.p1) : "";
+  if (p2 && document.activeElement !== p2) p2.value = settings.incomes.p2 > 0 ? String(settings.incomes.p2) : "";
 }
 
 function saveA18Incomes() {
   const settings = householdSplitSettings();
-  settings.incomes = { javi: parseAmount(qs("a18IncomeJavi")?.value), tere: parseAmount(qs("a18IncomeTere")?.value) };
+  settings.incomes = { p1: parseAmount(qs("a18IncomeP1")?.value), p2: parseAmount(qs("a18IncomeP2")?.value) };
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
   renderA18BalanceCard();
@@ -15860,7 +15860,7 @@ function saveA18Entry() {
   const category = qs("a18EntryCategory")?.value || "";
   const amount = parseAmount(qs("a18EntryAmount")?.value);
   const date = qs("a18EntryDate")?.value || "";
-  const paidBy = qs("a18EntryPaidBy")?.value === "tere" ? "tere" : "javi";
+  const paidBy = memberKey(qs("a18EntryPaidBy")?.value) === "p2" ? "p2" : "p1";
   if (!(amount > 0)) {
     announceStatus("Indica un importe mayor que cero para el gasto compartido.");
     return;
@@ -15957,13 +15957,15 @@ function confirmA18Settlement(party) {
   if (!engine) return;
   const proposal = a18CurrentProposal();
   if (!proposal.hasPendingBalance) return;
-  const current = a18SettlementConfirmationState(proposal) || { entryIds: proposal.entryIds, javiConfirmedAt: null, tereConfirmedAt: null };
+  // Fase 4: la confirmación a medias guardada antes con la clave de siempre se lee igual y se reescribe con «p1»/«p2».
+  const saved = a18SettlementConfirmationState(proposal);
+  const current = { entryIds: proposal.entryIds, p1ConfirmedAt: memberValueSuffix(saved, "p1", "ConfirmedAt") || null, p2ConfirmedAt: memberValueSuffix(saved, "p2", "ConfirmedAt") || null };
   const now = new Date().toISOString();
   const next = { ...current, [`${party}ConfirmedAt`]: now };
-  const confirmations = { javi: Boolean(next.javiConfirmedAt), tere: Boolean(next.tereConfirmedAt) };
+  const confirmations = { p1: Boolean(next.p1ConfirmedAt), p2: Boolean(next.p2ConfirmedAt) };
   const result = engine.confirmSettlement(proposal, confirmations, {
-    javiConfirmedAt: next.javiConfirmedAt,
-    tereConfirmedAt: next.tereConfirmedAt,
+    p1ConfirmedAt: next.p1ConfirmedAt,
+    p2ConfirmedAt: next.p2ConfirmedAt,
   });
   if (result.status === "confirmed") {
     saveHouseholdSettlements([...householdSettlements(), result]);
@@ -15973,7 +15975,7 @@ function confirmA18Settlement(party) {
   } else {
     scenarioSettings.householdSettlementConfirmation = next;
     saveScenarioSettings();
-    const otherParty = party === "javi" ? "tere" : "javi";
+    const otherParty = party === "p1" ? "p2" : "p1";
     announceStatus(`Confirmación de ${memberLabel(party)} registrada. Falta la de ${memberLabel(otherParty)}.`);
   }
   renderA18SettlementCard();
@@ -15994,9 +15996,9 @@ function renderA18SettlementCard() {
       box.innerHTML = `<p>Sin saldo pendiente que liquidar.</p>`;
     } else {
       const confirmation = a18SettlementConfirmationState(proposal);
-      const javiDone = Boolean(confirmation?.javiConfirmedAt);
-      const tereDone = Boolean(confirmation?.tereConfirmedAt);
-      box.innerHTML = `<p><strong>${escapeHtml(memberLabel(proposal.from))} debe a ${escapeHtml(memberLabel(proposal.to))}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${escapeHtml(memberTemplate(javiDone ? "✓ {p1} ha confirmado." : "{p1} no ha confirmado todavía."))} ${escapeHtml(memberTemplate(tereDone ? "✓ {p2} ha confirmado." : "{p2} no ha confirmado todavía."))}</p>`;
+      const p1Done = Boolean(memberValueSuffix(confirmation, "p1", "ConfirmedAt"));
+      const p2Done = Boolean(memberValueSuffix(confirmation, "p2", "ConfirmedAt"));
+      box.innerHTML = `<p><strong>${escapeHtml(memberLabel(proposal.from))} debe a ${escapeHtml(memberLabel(proposal.to))}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${escapeHtml(memberTemplate(p1Done ? "✓ {p1} ha confirmado." : "{p1} no ha confirmado todavía."))} ${escapeHtml(memberTemplate(p2Done ? "✓ {p2} ha confirmado." : "{p2} no ha confirmado todavía."))}</p>`;
     }
   }
   if (history) {
@@ -16016,7 +16018,7 @@ function renderA18SettlementCard() {
 // qué liquidar antes de separar cuentas. No reparte activos: A14 no declara titular por posición
 // (siempre "household"), abrir eso sería inventar un modelo de titularidad que el hogar no ha pedido.
 function gob19DebtsByOwner() {
-  const grouped = { javi: [], tere: [], household: [] };
+  const grouped = { p1: [], p2: [], household: [] };
   const ownerByContractId = new Map(
     debtContractSourceRows().map((row) => [
       row.id,
@@ -16024,8 +16026,8 @@ function gob19DebtsByOwner() {
     ]),
   );
   di5RestructuringContracts().forEach((contract) => {
-    const owner = ownerByContractId.get(contract.id);
-    (grouped[owner] || grouped.household).push(contract);
+    const owner = memberKey(ownerByContractId.get(contract.id)) || "household";
+    grouped[owner].push(contract);
   });
   return grouped;
 }
@@ -16059,8 +16061,8 @@ function gob19RestructuringSectionHtml(person, income, contracts, safeRatio) {
 function handleGob19SeparationTemplate() {
   const note = qs("gob19SeparationNote");
   if (!note) return;
-  const incomeJavi = parseAmount(qs("gob19IncomeJavi")?.value);
-  const incomeTere = parseAmount(qs("gob19IncomeTere")?.value);
+  const incomeP1 = parseAmount(qs("gob19IncomeP1")?.value);
+  const incomeP2 = parseAmount(qs("gob19IncomeP2")?.value);
   const grouped = gob19DebtsByOwner();
   const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
   const settlement = a18CurrentProposal();
@@ -16070,9 +16072,9 @@ function handleGob19SeparationTemplate() {
   const unassignedHtml = grouped.household.length
     ? `<p class="negative">${grouped.household.length} ${grouped.household.length === 1 ? "deuda activa sigue" : "deudas activas siguen"} a nombre de «Hogar» (sin asignar a ${escapeHtml(memberTemplate("{p1} o {p2}"))}) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
     : "";
-  const javiHtml = gob19RestructuringSectionHtml("javi", incomeJavi, grouped.javi, safeRatio);
-  const tereHtml = gob19RestructuringSectionHtml("tere", incomeTere, grouped.tere, safeRatio);
-  note.innerHTML = `${settlementHtml}${unassignedHtml}${javiHtml}${tereHtml}`;
+  const p1Html = gob19RestructuringSectionHtml("p1", incomeP1, grouped.p1, safeRatio);
+  const p2Html = gob19RestructuringSectionHtml("p2", incomeP2, grouped.p2, safeRatio);
+  note.innerHTML = `${settlementHtml}${unassignedHtml}${p1Html}${p2Html}`;
 }
 
 // A19-1: enlace de solo lectura, redactado y caducable — depende de una sesión remota (mismo
@@ -31747,8 +31749,8 @@ async function init() {
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
   qs("inv18CalculateRun")?.addEventListener("click", handleInv18CalculatePlan);
   qs("cpx2SecondOpinionRun")?.addEventListener("click", handleCpx2SecondOpinion);
-  qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
-  qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
+  qs("a18IncomeP1")?.addEventListener("change", saveA18Incomes);
+  qs("a18IncomeP2")?.addEventListener("change", saveA18Incomes);
   qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
   qs("sp4Run")?.addEventListener("click", handleSp4CompareInsurance);
   qs("a14AssetAdd")?.addEventListener("click", saveA14Asset);
@@ -31811,8 +31813,8 @@ async function init() {
     if (!removeButton) return;
     removeA18Entry(removeButton.dataset.a18EntryRemove);
   });
-  qs("a18ConfirmJavi")?.addEventListener("click", () => confirmA18Settlement("javi"));
-  qs("a18ConfirmTere")?.addEventListener("click", () => confirmA18Settlement("tere"));
+  qs("a18ConfirmP1")?.addEventListener("click", () => confirmA18Settlement("p1"));
+  qs("a18ConfirmP2")?.addEventListener("click", () => confirmA18Settlement("p2"));
   qs("rgxHouseholdCard")?.addEventListener("click", (event) => {
     const createButton = event.target.closest("#rgxHouseholdCreate");
     if (createButton) { createRgxHousehold("").then(() => { renderRgxHouseholdCard(); renderRgx1AccessDrill(); }); return; }

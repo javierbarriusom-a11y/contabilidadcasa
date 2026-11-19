@@ -27,9 +27,24 @@
   // Un modo desconocido o un titular desconocido caen al valor más neutro (partes iguales, paga la persona 1)
   // en vez de fallar — mismo criterio que taxTableStatus (A15-5): nunca fabrica peor un dato
   // corrupto, lo trata como si no estuviera configurado.
+  // Privacidad, fase 4 (D-N26): las dos personas son «p1» y «p2». Lo guardado antes con la clave de siempre se lee igual
+  // (household-members.js, por su huella); lo que sale de aquí va siempre con «p1»/«p2».
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
+    } catch {
+      return null;
+    }
+  }
+  const quien = (value) => householdMembers()?.persona(value) || (value === "p1" || value === "p2" ? value : null);
+  const de = (obj, persona) => householdMembers()?.valor(obj, persona) ?? obj?.[persona];
+  const deSufijo = (obj, persona, sufijo) => householdMembers()?.valorSufijo(obj, persona, sufijo) ?? obj?.[`${persona}${sufijo}`];
+
   function normalizeRule(rule) {
     const mode = MODES.includes(rule?.mode) ? rule.mode : "equal";
-    const payer = rule?.payer === "tere" ? "tere" : "javi";
+    const payer = quien(rule?.payer) === "p2" ? "p2" : "p1";
     const amount = mode === "fixed" ? Math.max(0, round2(rule?.amount)) : null;
     return { mode, payer, amount };
   }
@@ -42,34 +57,34 @@
     return normalizeRule(byCategory || defaultRule);
   }
 
-  /** @param {{amount: number, rule: *, incomes?: {javi?: number, tere?: number}}} params */
+  /** @param {{amount: number, rule: *, incomes?: Record<string, number>}} params */
   function splitShares({ amount, rule, incomes = {} }) {
     const total = round2(Math.max(0, amount));
     const normalized = normalizeRule(rule);
-    if (total === 0) return { javi: 0, tere: 0, mode: normalized.mode };
+    if (total === 0) return { p1: 0, p2: 0, mode: normalized.mode };
 
     if (normalized.mode === "fixed") {
       const payerShare = round2(Math.min(total, normalized.amount ?? 0));
       const otherShare = round2(total - payerShare);
-      return normalized.payer === "javi"
-        ? { javi: payerShare, tere: otherShare, mode: "fixed" }
-        : { tere: payerShare, javi: otherShare, mode: "fixed" };
+      return normalized.payer === "p1"
+        ? { p1: payerShare, p2: otherShare, mode: "fixed" }
+        : { p2: payerShare, p1: otherShare, mode: "fixed" };
     }
 
     if (normalized.mode === "income-proportional") {
-      const javiIncome = Math.max(0, number(incomes.javi));
-      const tereIncome = Math.max(0, number(incomes.tere));
-      const combined = javiIncome + tereIncome;
+      const p1Income = Math.max(0, number(de(incomes, "p1")));
+      const p2Income = Math.max(0, number(de(incomes, "p2")));
+      const combined = p1Income + p2Income;
       // Sin ingresos declarados de ninguno de los dos, "proporcional a ingresos" no tiene con qué
       // calcularse — cae a partes iguales en vez de repartir 100/0 o dividir por cero, y lo declara
       // en `mode` para que quien lee el resultado sepa que no se aplicó la regla pedida.
-      if (combined <= 0) return { javi: round2(total / 2), tere: round2(total / 2), mode: "equal-fallback" };
-      const javiShare = round2(total * (javiIncome / combined));
-      return { javi: javiShare, tere: round2(total - javiShare), mode: "income-proportional" };
+      if (combined <= 0) return { p1: round2(total / 2), p2: round2(total / 2), mode: "equal-fallback" };
+      const p1Share = round2(total * (p1Income / combined));
+      return { p1: p1Share, p2: round2(total - p1Share), mode: "income-proportional" };
     }
 
     const half = round2(total / 2);
-    return { javi: half, tere: round2(total - half), mode: "equal" };
+    return { p1: half, p2: round2(total - half), mode: "equal" };
   }
 
   // A18-2: saldo continuo "quién debe a quién" — cada gasto compartido registrado ya fue pagado al
@@ -82,23 +97,23 @@
   function runningBalance(entries = [], settings = {}) {
     const incomes = settings.incomes || {};
     const categoryRules = settings.categoryRules || {};
-    const defaultRule = settings.defaultRule || { mode: "equal", payer: "javi", amount: null };
+    const defaultRule = settings.defaultRule || { mode: "equal", payer: "p1", amount: null };
     let net = 0;
     const breakdown = (Array.isArray(entries) ? entries : []).map((entry) => {
       const amount = Math.max(0, round2(entry?.amount));
-      const paidBy = entry?.paidBy === "tere" ? "tere" : "javi";
+      const paidBy = quien(entry?.paidBy) === "p2" ? "p2" : "p1";
       const rule = resolveRuleForCategory(categoryRules, entry?.category, defaultRule);
       const shares = splitShares({ amount, rule, incomes });
-      const owed = paidBy === "javi" ? shares.tere : shares.javi;
-      net = round2(net + (paidBy === "javi" ? owed : -owed));
+      const owed = paidBy === "p1" ? shares.p2 : shares.p1;
+      net = round2(net + (paidBy === "p1" ? owed : -owed));
       return { id: String(entry?.id || ""), date: String(entry?.date || ""), category: String(entry?.category || ""), amount, paidBy, shares, owed };
     });
     return {
       schemaId: `${SCHEMA_ID}/running-balance-v1`,
       entries: breakdown,
       net,
-      owes: net > 0 ? "tere" : net < 0 ? "javi" : null,
-      owedTo: net > 0 ? "javi" : net < 0 ? "tere" : null,
+      owes: net > 0 ? "p2" : net < 0 ? "p1" : null,
+      owedTo: net > 0 ? "p1" : net < 0 ? "p2" : null,
       amount: round2(Math.abs(net)),
     };
   }
@@ -139,11 +154,11 @@
     if (!proposal || !proposal.hasPendingBalance) {
       return { schemaId: SETTLEMENT_SCHEMA_ID, status: "no-pending-balance" };
     }
-    const javiConfirmed = Boolean(confirmations.javi);
-    const tereConfirmed = Boolean(confirmations.tere);
+    const p1Confirmed = Boolean(de(confirmations, "p1"));
+    const p2Confirmed = Boolean(de(confirmations, "p2"));
     const missing = [];
-    if (!javiConfirmed) missing.push("javi");
-    if (!tereConfirmed) missing.push("tere");
+    if (!p1Confirmed) missing.push("p1");
+    if (!p2Confirmed) missing.push("p2");
     if (missing.length) return { schemaId: SETTLEMENT_SCHEMA_ID, status: "pending", missing };
     const confirmedAt = metadata.confirmedAt || new Date().toISOString();
     return {
@@ -154,8 +169,8 @@
       from: proposal.from,
       to: proposal.to,
       entryIds: proposal.entryIds,
-      javiConfirmedAt: metadata.javiConfirmedAt || confirmedAt,
-      tereConfirmedAt: metadata.tereConfirmedAt || confirmedAt,
+      p1ConfirmedAt: deSufijo(metadata, "p1", "ConfirmedAt") || confirmedAt,
+      p2ConfirmedAt: deSufijo(metadata, "p2", "ConfirmedAt") || confirmedAt,
       confirmedAt,
     };
   }
