@@ -115,6 +115,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 
 ## Cierre de sesión — 19 de noviembre de 2026 (503): DAT-07 (dividir un movimiento) y DEC-12 (los esperados se confirman solos al importar)
 
+- **Publicado de antes:** #643 (privacidad, fase 3) fusionado con su CI en verde. El despliegue de #642 (1476) quedó **cancelado, no fallido**: el de #643 (1478) lo sustituyó al llegar y salió en verde (Safari incluido), así que el sitio tiene las fases 1, 2 y 3. «Published availability» 375, en verde.
 - **El hogar:** «Haz DAT-07 y DEC-12» (el visto bueno que esperaban, porque tocan datos) y, sobre DEC-12, «confirma solo al importar».
 - **DAT-07 · dividir un movimiento** (`canonical-movement-split.js`, puro; `ficha-movimiento-ui.js`):
   - en la ficha, «Dividir en varias partidas», plegado dentro del bloque «Partida» y sin titular: de 2 a 8 trozos, partidas distintas, cada uno mayor que cero; la barra (`<progress>` nativo) y una frase dicen lo que falta o sobra, y «Guardar la división» solo se enciende cuando cuadra al céntimo;
