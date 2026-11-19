@@ -48,7 +48,7 @@ WP-23 con su hogar de ejemplo.
 
 | Hueco | Por qué hace falta | Propuesta (PR-0) | ¿Necesita al hogar? |
 |---|---|---|---|
-| **Titular de cada posición** | Tributación individual: cada declarante tiene su informe y su escala | Campo `titular` en la posición: `javi`, `tere` o `conjunta` (50 % cada uno, la regla de bienes gananciales por defecto, editable) | Al teclear datos, no para construir |
+| **Titular de cada posición** | Tributación individual: cada declarante tiene su informe y su escala | Campo `titular` en la posición: `p1`, `p2` o `conjunta` (50 % cada uno, la regla de bienes gananciales por defecto, editable) | Al teclear datos, no para construir |
 | **Dividendos e intereses** | Son el otro bloque de la base del ahorro y la mitad de la compensación del 25 % | Registro por posición y fecha: íntegro, retención España, retención en origen y país | Igual |
 | **País del depositario** | El aviso del 720 se hace por valores depositados fuera de España | Campo `depositario` (país) en la posición; vacío = «sin saber», nunca «España» por defecto | Igual |
 | **Pérdidas pendientes de años anteriores** | FC3 ya las acepta (`priorLosses`), pero hoy por bloque no se distingue si vienen de ganancias o de rendimientos | Registro por año y bloque, tecleado una vez desde la Renta anterior | Igual |
@@ -114,7 +114,7 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
 ## 8. PR-0a hecho (5/11/2026, sesión 406): titular y depositario de cada posición
 
 - **Motor** (`canonical-portfolio.js`, `normalizePosition`): tres campos nuevos.
-  - `titular`: `javi`, `tere` o `household`, que es conjunta y por defecto al 50 % (decisión 1 del §7, aún sin confirmar).
+  - `titular`: `p1`, `p2` o `household`, que es conjunta y por defecto al 50 % (decisión 1 del §7, aún sin confirmar).
   - `depositario`: `espana` o `extranjero`.
   - `depositarioPais`: solo si está fuera de España.
   - Lo desconocido se queda vacío: nunca se asume un titular ni «España». Viajan en la posición, así que van en la copia y en la nube con el resto de la cartera, sin almacén nuevo.
@@ -137,7 +137,7 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
   - Vive en `scenarioSettings.wp21Rendimientos`, junto a `fc3PriorLosses`: misma copia y misma nube, sin almacén nuevo ni migración.
 - **Por qué aquí y no en el libro de operaciones de WP-48, como decía el §4:** un interés de una cuenta no es una operación de ninguna posición, y el libro es por posición. Así, todo lo que el hogar teclea para la Renta queda en un solo sitio.
 - **Pérdidas arrastradas por bloque** (Inversión › Fiscal, el formulario de siempre):
-  - Dos campos nuevos: **bloque** (transmisiones o rendimientos) y **de quién es** (Javi o Tere). No hay «conjunta»: cada pérdida es de un declarante, que la arrastra en su Renta.
+  - Dos campos nuevos: **bloque** (transmisiones o rendimientos) y **de quién es** (Persona 1 o Persona 2). No hay «conjunta»: cada pérdida es de un declarante, que la arrastra en su Renta.
   - Las ya guardadas, sin bloque, se leen como **transmisiones**. No es un supuesto nuevo: el formulario solo admitía pérdidas patrimoniales.
   - FC3 (`yearEndCompensation`) **deja fuera las de rendimientos**: no pueden compensar plusvalías sin pasar por el cupo del 25 %, y eso es del motor del PR-1. Lo mismo en FC5 (otra venta este año) y en el aviso del coste de la deuda.
 - **Arreglo de paso (PR-0a):** el campo «País» se veía también en las posiciones depositadas en España, porque el `display: grid` de la hoja ganaba al atributo `hidden`. Corregido con `.renta-datos label[hidden]`; la e2e lo comprueba ahora.
@@ -150,7 +150,7 @@ Fuentes consultadas el 5/11/2026 (a reconfirmar en el PR-1 en la sede de la AEAT
 
 ## 10. PR-1 y PR-2 hechos (5/11/2026, sesión 407): el motor y la pantalla del informe
 
-- **Motor** (`canonical-tax-report.js`, puro): `taxReport({ year, holder, positions, deferredBySale, rendimientos, priorLosses, savingsScale })`, por ejercicio y declarante (`javi` o `tere`).
+- **Motor** (`canonical-tax-report.js`, puro): `taxReport({ year, holder, positions, deferredBySale, rendimientos, priorLosses, savingsScale })`, por ejercicio y declarante (`p1` o `p2`).
   - **Transmisiones** del año con su parte (1, o 0,5 si es conjunta): valor de transmisión, de adquisición (FIFO) y resultado; la pérdida diferida por recompra (XIN-02) se resta y no se arrastra.
   - **Rendimientos** del año (PR-0b), con las dos retenciones.
   - **Compensación** (`compensate`): primero cada bloque dentro de sí; luego el cruce del año hasta el 25 %; luego las pendientes, de la más antigua a la más nueva, primero en su bloque y lo que quede en el otro con **el cupo que reste** del 25 %. Lo que no cabe se arrastra; lo de hace 4 años que no cabe, **caduca** y se dice.

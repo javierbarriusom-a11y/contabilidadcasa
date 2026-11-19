@@ -9,7 +9,7 @@ const { codigoApp } = require("./helpers/codigo-app.cjs");
 // respuesta. Lo que más importa es lo que NO pregunta: fechas de relleno, gastos sin extracto al día, lo ya respondido.
 
 const today = "2026-11-05";
-const income = (over = {}) => ({ id: "income|nomina|2026-10", kind: "income", seriesKey: "income|nomina", label: "Nómina Javi", month: "2026-10", expectedDate: "2026-10-31", certain: true, plannedAmount: 3000, ...over });
+const income = (over = {}) => ({ id: "income|nomina|2026-10", kind: "income", seriesKey: "income|nomina", label: "Nómina Ana", month: "2026-10", expectedDate: "2026-10-31", certain: true, plannedAmount: 3000, ...over });
 const expense = (over = {}) => ({ id: "expense|seguro|2026-10", kind: "expense", seriesKey: "expense|seguro", label: "Seguro del coche", month: "2026-10", expectedDate: "2026-10-05", certain: true, plannedAmount: 80, ...over });
 const detect = (expectations, extra = {}) => E.detect({ today, ledgerCoveredUntil: "2026-11-04", expectations, ...extra });
 

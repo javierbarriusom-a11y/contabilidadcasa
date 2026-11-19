@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -15,7 +16,8 @@ const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const app = codigoApp();
 const chargeDays = require("../canonical-charge-days.js");
-const golden = require("./fixtures/ntc1-timing-golden.json");
+// El oro guarda el nombre de cada persona como {p1}, {p1Largo} y {p2} (privacidad, fase 5): se pone aquí, sin escribirlo.
+const golden = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", "ntc1-timing-golden.json"), "utf8").replace(/\{(p1|p1Largo|p2)\}/g, (_, k) => miembros.NOMBRE[k]));
 const { buildTransactions } = require("./fixtures/ntc1-timing-transactions.cjs");
 
 function block(startMarker, endMarker) {
@@ -91,8 +93,8 @@ test("un valor guardado que no es día ni «fin de mes» se ignora: vuelve al co
 });
 
 test("los ingresos no cambian aunque una partida de gasto tenga día indicado", () => {
-  const engine = loadEngine([], { "Nomina Javi": { day: 3 } });
-  assert.equal(engine.incomeTimingForRow({ label: "Nomina Javi" }, { key: "2026-11" }, 3000).source, "regla nómina principal");
+  const engine = loadEngine([], { [`Nomina ${NOMBRE.p1}`]: { day: 3 } });
+  assert.equal(engine.incomeTimingForRow({ label: `Nomina ${NOMBRE.p1}` }, { key: "2026-11" }, 3000).source, "regla nómina principal");
 });
 
 // --- almacén ---------------------------------------------------------------------------------------

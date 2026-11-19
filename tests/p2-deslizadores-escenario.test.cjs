@@ -252,7 +252,7 @@ test("P-2 Â· un campo sin `range` no programa ninguna vista previa (sin regresiÃ
     setTimeout: () => calls.push("setTimeout"),
     clearTimeout: () => calls.push("clearTimeout"),
   });
-  context.handleEscenarioMotorFieldChange({ target: { dataset: { escenarioMotorField: "titular" }, value: "javi" } });
+  context.handleEscenarioMotorFieldChange({ target: { dataset: { escenarioMotorField: "titular" }, value: "p1" } });
   assert.deepEqual(calls, []);
 });
 

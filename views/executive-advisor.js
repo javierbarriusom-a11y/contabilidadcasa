@@ -130,8 +130,8 @@ function renderExecutiveCarPlan(ctx) {
       </article>
       <article class="executive-car-option ${ctx.safeCredit ? "good" : "danger"}">
         <span>Financiación de ${escapeHtml(memberLabel("p2"))}</span>
-        <strong>${money(ctx.settings.tereCreditCapital, true)} ahora · ${money(ctx.settings.tereCreditPayment, true)}/mes</strong>
-        <p>Mes estimado con crédito: ${escapeHtml(monthWithCredit)}. Ratio deuda: ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%. Cuota máxima prudente: ${money(ctx.maxSafeTerePayment, true)}.</p>
+        <strong>${money(ctx.settings.p2CreditCapital, true)} ahora · ${money(ctx.settings.p2CreditPayment, true)}/mes</strong>
+        <p>Mes estimado con crédito: ${escapeHtml(monthWithCredit)}. Ratio deuda: ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithP2Credit.toFixed(1)}%. Cuota máxima prudente: ${money(ctx.maxSafeTerePayment, true)}.</p>
         <button type="button" data-executive-action="prepare-p2-credit">Simular financiación</button>
       </article>
     </div>`;
@@ -210,8 +210,8 @@ function renderExecutiveAdvisor({ forceHeavy = false } = {}) {
   if (qs("executiveCaixaFloor")) qs("executiveCaixaFloor").value = amountInputValue(ctx.plan.caixaFloor);
   if (qs("executiveCarReserve")) qs("executiveCarReserve").value = amountInputValue(ctx.settings.carReserve);
   if (qs("executiveCarCost")) qs("executiveCarCost").value = amountInputValue(ctx.settings.carCost);
-  if (qs("executiveTereCreditCapital")) qs("executiveTereCreditCapital").value = amountInputValue(ctx.settings.tereCreditCapital);
-  if (qs("executiveTereCreditPayment")) qs("executiveTereCreditPayment").value = amountInputValue(ctx.settings.tereCreditPayment);
+  if (qs("executiveP2CreditCapital")) qs("executiveP2CreditCapital").value = amountInputValue(ctx.settings.p2CreditCapital);
+  if (qs("executiveP2CreditPayment")) qs("executiveP2CreditPayment").value = amountInputValue(ctx.settings.p2CreditPayment);
   renderExecutiveHero(ctx);
   renderExecutiveActions(ctx);
   renderExecutiveAccounts(ctx);

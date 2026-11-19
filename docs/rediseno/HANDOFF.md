@@ -148,7 +148,7 @@ Cada pantalla tiene dos referencias: móvil (390 px) y escritorio (1440 px). Son
 
 En escritorio: las pestañas de 2.º nivel van en la cabecera junto al título (segmentado); las de 3.er nivel (p. ej. Inversión › Resumen/Reparto/Impuestos/Futuro, Deuda › Calendario/Contratos/Mejorar) pasan a pestañas subrayadas a la derecha de la cabecera. Las **hojas inferiores** se convierten en **panel lateral derecho** (Clasificar, detalle de un día) o en **diálogo centrado** (Repaso semanal). Las listas pasan a **tablas** con columnas alineadas y cifras a la derecha. Atajos de teclado en flujos repetitivos (Clasificar: ↵ aceptar, 1-3 alternativas, S saltar, ⌘Z deshacer; Repaso: C coincide, E editar, ↵ seguir).
 
-**Componente nuevo:** `BarraLateral` (`activo`) — mismo modelo de datos que `BarraInferior`; añade contador de pendientes en Movimientos, selector Hogar/Javi/Tere y estado de sincronización.
+**Componente nuevo:** `BarraLateral` (`activo`) — mismo modelo de datos que `BarraInferior`; añade contador de pendientes en Movimientos, selector Hogar/Persona 1/Persona 2 y estado de sincronización.
 
 **Por pantalla**
 

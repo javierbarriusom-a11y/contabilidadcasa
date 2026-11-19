@@ -250,12 +250,12 @@ const VIEW_CHUNKS = {
   "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
-  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv3", rootId: "executive-advisor" },
-  "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv3", rootId: "new-life-definitive" },
+  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv4", rootId: "executive-advisor" },
+  "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv4", rootId: "new-life-definitive" },
   "debt-control": { src: "views/debt-control.js?v=20260919t14g1", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
-  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv3", rootId: "new-life-simulation" },
+  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv4", rootId: "new-life-simulation" },
   "savings-agent": { src: "views/savings-agent.js?v=20260924arq4c1", rootId: "savings-agent" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
@@ -9176,13 +9176,13 @@ function renderDecisionComparator(baseRows, rows) {
   if (!target) return;
   const placements = projectPlan.placements || [];
   const noExternalCredit = placements.filter((item) => decisionCreditCapital(item) <= 0 && item.projectKind !== "external-credit");
-  const tereCredit = placements.filter(
+  const p2Credit = placements.filter(
     (item) => item.source !== "debt" && (decisionCreditCapital(item) <= 0 || decisionOwnerKey(item) === "p2"),
   );
   const allLoaded = placements;
   const scenarios = [
     decisionScenarioMetrics("Sin crédito externo", noExternalCredit),
-    decisionScenarioMetrics(memberTemplate("Con crédito de {p2}"), tereCredit),
+    decisionScenarioMetrics(memberTemplate("Con crédito de {p2}"), p2Credit),
     decisionScenarioMetrics("Crédito + deuda", allLoaded),
   ];
   const bestMin = Math.max(...scenarios.map((item) => item.minChecking));
@@ -12571,25 +12571,27 @@ function prepareAgentProjectDecision(projectId) {
 
 const DEFAULT_EXECUTIVE_CAR_COST = 25000;
 const DEFAULT_EXECUTIVE_CAR_RESERVE = 8000;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL = 15000;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT = 320;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS = 60;
+const DEFAULT_EXECUTIVE_P2_CREDIT_CAPITAL = 15000;
+const DEFAULT_EXECUTIVE_P2_CREDIT_PAYMENT = 320;
+const DEFAULT_EXECUTIVE_P2_CREDIT_MONTHS = 60;
 
 function executiveAdvisorSettings() {
   scenarioSettings.executiveAdvisor = scenarioSettings.executiveAdvisor || {};
   const settings = scenarioSettings.executiveAdvisor;
+  // Privacidad, fase 4b: el crédito de la persona 2 se guarda como «p2Credit…»; lo guardado antes, con la clave de siempre, se lee igual.
+  const credit = (sufijo) => memberValueSuffix(settings, "p2", sufijo);
   return {
     carCost: Number.isFinite(Number(settings.carCost)) ? round2(Number(settings.carCost)) : DEFAULT_EXECUTIVE_CAR_COST,
     carReserve: Number.isFinite(Number(settings.carReserve)) ? round2(Number(settings.carReserve)) : DEFAULT_EXECUTIVE_CAR_RESERVE,
-    tereCreditCapital: Number.isFinite(Number(settings.tereCreditCapital))
-      ? round2(Number(settings.tereCreditCapital))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL,
-    tereCreditPayment: Number.isFinite(Number(settings.tereCreditPayment))
-      ? round2(Number(settings.tereCreditPayment))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
-    tereCreditMonths: Number.isFinite(Number(settings.tereCreditMonths))
-      ? Math.max(1, Number(settings.tereCreditMonths))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
+    p2CreditCapital: Number.isFinite(Number(credit("CreditCapital")))
+      ? round2(Number(credit("CreditCapital")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_CAPITAL,
+    p2CreditPayment: Number.isFinite(Number(credit("CreditPayment")))
+      ? round2(Number(credit("CreditPayment")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_PAYMENT,
+    p2CreditMonths: Number.isFinite(Number(credit("CreditMonths")))
+      ? Math.max(1, Number(credit("CreditMonths")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_MONTHS,
   };
 }
 
@@ -12611,9 +12613,9 @@ function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
     ...settings,
     carReserve: parseAmount(qs("executiveCarReserve")?.value) ?? settings.carReserve,
     carCost: parseAmount(qs("executiveCarCost")?.value) ?? settings.carCost,
-    tereCreditCapital: parseAmount(qs("executiveTereCreditCapital")?.value) ?? settings.tereCreditCapital,
-    tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
-    tereCreditMonths: settings.tereCreditMonths,
+    p2CreditCapital: parseAmount(qs("executiveP2CreditCapital")?.value) ?? settings.p2CreditCapital,
+    p2CreditPayment: parseAmount(qs("executiveP2CreditPayment")?.value) ?? settings.p2CreditPayment,
+    p2CreditMonths: settings.p2CreditMonths,
   };
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
@@ -15670,16 +15672,16 @@ function di5ProposalsByOwner(proposals) {
       p2State().ownership?.[`debt|${row.id}`] || window.P2Domain?.inferOwner(`${row.entity} ${row.number}`, row.id) || "household",
     ]),
   );
-  const grouped = { javi: [], tere: [], household: [] };
+  const grouped = { p1: [], p2: [], household: [] };
   proposals.forEach((proposal) => {
-    const owner = ownerByContractId.get(proposal.id) || "household";
-    (grouped[owner] || grouped.household).push(proposal);
+    const owner = memberKey(ownerByContractId.get(proposal.id)) || "household";
+    grouped[owner].push(proposal);
   });
   return grouped;
 }
 
 function di5OwnerBreakdownHtml(grouped) {
-  const assigned = ["javi", "tere"].filter((owner) => grouped[owner].length);
+  const assigned = ["p1", "p2"].filter((owner) => grouped[owner].length);
   if (!assigned.length) {
     return grouped.household.length
       ? `<p class="e19-kpi-note">Ningún contrato de deuda está asignado a ${escapeHtml(memberTemplate("{p1} o {p2}"))} en Herramientas avanzadas → Datos → Familia — el reparto por titular no se puede calcular.</p>`
@@ -15748,8 +15750,8 @@ function householdSplitSettings() {
   const raw = scenarioSettings.householdSplit || {};
   const engine = window.FinanceCanonicalHouseholdSplit;
   return {
-    incomes: { javi: Number(raw.incomes?.javi) || 0, tere: Number(raw.incomes?.tere) || 0 },
-    defaultRule: engine ? engine.normalizeRule(raw.defaultRule) : { mode: "equal", payer: "javi", amount: null },
+    incomes: { p1: Number(memberValue(raw.incomes, "p1")) || 0, p2: Number(memberValue(raw.incomes, "p2")) || 0 }, // fase 4: lee también la clave de siempre
+    defaultRule: engine ? engine.normalizeRule(raw.defaultRule) : { mode: "equal", payer: "p1", amount: null },
     categoryRules: raw.categoryRules && typeof raw.categoryRules === "object" ? raw.categoryRules : {},
   };
 }
@@ -15769,7 +15771,7 @@ function renderA18RuleCategoryOptions() {
 }
 
 function a18RuleLabel(rule) {
-  if (rule.mode === "fixed") return `importe fijo: ${memberLabel(rule.payer)} aporta ${money(rule.amount, true)}, el resto lo cubre ${memberLabel(rule.payer === "javi" ? "p2" : "p1")}`;
+  if (rule.mode === "fixed") return `importe fijo: ${memberLabel(rule.payer)} aporta ${money(rule.amount, true)}, el resto lo cubre ${memberLabel(memberKey(rule.payer) === "p1" ? "p2" : "p1")}`;
   if (rule.mode === "income-proportional") return "proporcional a los ingresos declarados";
   return "a partes iguales";
 }
@@ -15790,15 +15792,15 @@ function renderA18RuleList() {
 
 function syncA18IncomeControls() {
   const settings = householdSplitSettings();
-  const javi = qs("a18IncomeJavi");
-  const tere = qs("a18IncomeTere");
-  if (javi && document.activeElement !== javi) javi.value = settings.incomes.javi > 0 ? String(settings.incomes.javi) : "";
-  if (tere && document.activeElement !== tere) tere.value = settings.incomes.tere > 0 ? String(settings.incomes.tere) : "";
+  const p1 = qs("a18IncomeP1");
+  const p2 = qs("a18IncomeP2");
+  if (p1 && document.activeElement !== p1) p1.value = settings.incomes.p1 > 0 ? String(settings.incomes.p1) : "";
+  if (p2 && document.activeElement !== p2) p2.value = settings.incomes.p2 > 0 ? String(settings.incomes.p2) : "";
 }
 
 function saveA18Incomes() {
   const settings = householdSplitSettings();
-  settings.incomes = { javi: parseAmount(qs("a18IncomeJavi")?.value), tere: parseAmount(qs("a18IncomeTere")?.value) };
+  settings.incomes = { p1: parseAmount(qs("a18IncomeP1")?.value), p2: parseAmount(qs("a18IncomeP2")?.value) };
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
   renderA18BalanceCard();
@@ -15860,7 +15862,7 @@ function saveA18Entry() {
   const category = qs("a18EntryCategory")?.value || "";
   const amount = parseAmount(qs("a18EntryAmount")?.value);
   const date = qs("a18EntryDate")?.value || "";
-  const paidBy = qs("a18EntryPaidBy")?.value === "tere" ? "tere" : "javi";
+  const paidBy = memberKey(qs("a18EntryPaidBy")?.value) === "p2" ? "p2" : "p1";
   if (!(amount > 0)) {
     announceStatus("Indica un importe mayor que cero para el gasto compartido.");
     return;
@@ -15957,13 +15959,15 @@ function confirmA18Settlement(party) {
   if (!engine) return;
   const proposal = a18CurrentProposal();
   if (!proposal.hasPendingBalance) return;
-  const current = a18SettlementConfirmationState(proposal) || { entryIds: proposal.entryIds, javiConfirmedAt: null, tereConfirmedAt: null };
+  // Fase 4: la confirmación a medias guardada antes con la clave de siempre se lee igual y se reescribe con «p1»/«p2».
+  const saved = a18SettlementConfirmationState(proposal);
+  const current = { entryIds: proposal.entryIds, p1ConfirmedAt: memberValueSuffix(saved, "p1", "ConfirmedAt") || null, p2ConfirmedAt: memberValueSuffix(saved, "p2", "ConfirmedAt") || null };
   const now = new Date().toISOString();
   const next = { ...current, [`${party}ConfirmedAt`]: now };
-  const confirmations = { javi: Boolean(next.javiConfirmedAt), tere: Boolean(next.tereConfirmedAt) };
+  const confirmations = { p1: Boolean(next.p1ConfirmedAt), p2: Boolean(next.p2ConfirmedAt) };
   const result = engine.confirmSettlement(proposal, confirmations, {
-    javiConfirmedAt: next.javiConfirmedAt,
-    tereConfirmedAt: next.tereConfirmedAt,
+    p1ConfirmedAt: next.p1ConfirmedAt,
+    p2ConfirmedAt: next.p2ConfirmedAt,
   });
   if (result.status === "confirmed") {
     saveHouseholdSettlements([...householdSettlements(), result]);
@@ -15973,7 +15977,7 @@ function confirmA18Settlement(party) {
   } else {
     scenarioSettings.householdSettlementConfirmation = next;
     saveScenarioSettings();
-    const otherParty = party === "javi" ? "tere" : "javi";
+    const otherParty = party === "p1" ? "p2" : "p1";
     announceStatus(`Confirmación de ${memberLabel(party)} registrada. Falta la de ${memberLabel(otherParty)}.`);
   }
   renderA18SettlementCard();
@@ -15994,9 +15998,9 @@ function renderA18SettlementCard() {
       box.innerHTML = `<p>Sin saldo pendiente que liquidar.</p>`;
     } else {
       const confirmation = a18SettlementConfirmationState(proposal);
-      const javiDone = Boolean(confirmation?.javiConfirmedAt);
-      const tereDone = Boolean(confirmation?.tereConfirmedAt);
-      box.innerHTML = `<p><strong>${escapeHtml(memberLabel(proposal.from))} debe a ${escapeHtml(memberLabel(proposal.to))}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${escapeHtml(memberTemplate(javiDone ? "✓ {p1} ha confirmado." : "{p1} no ha confirmado todavía."))} ${escapeHtml(memberTemplate(tereDone ? "✓ {p2} ha confirmado." : "{p2} no ha confirmado todavía."))}</p>`;
+      const p1Done = Boolean(memberValueSuffix(confirmation, "p1", "ConfirmedAt"));
+      const p2Done = Boolean(memberValueSuffix(confirmation, "p2", "ConfirmedAt"));
+      box.innerHTML = `<p><strong>${escapeHtml(memberLabel(proposal.from))} debe a ${escapeHtml(memberLabel(proposal.to))}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${escapeHtml(memberTemplate(p1Done ? "✓ {p1} ha confirmado." : "{p1} no ha confirmado todavía."))} ${escapeHtml(memberTemplate(p2Done ? "✓ {p2} ha confirmado." : "{p2} no ha confirmado todavía."))}</p>`;
     }
   }
   if (history) {
@@ -16016,7 +16020,7 @@ function renderA18SettlementCard() {
 // qué liquidar antes de separar cuentas. No reparte activos: A14 no declara titular por posición
 // (siempre "household"), abrir eso sería inventar un modelo de titularidad que el hogar no ha pedido.
 function gob19DebtsByOwner() {
-  const grouped = { javi: [], tere: [], household: [] };
+  const grouped = { p1: [], p2: [], household: [] };
   const ownerByContractId = new Map(
     debtContractSourceRows().map((row) => [
       row.id,
@@ -16024,8 +16028,8 @@ function gob19DebtsByOwner() {
     ]),
   );
   di5RestructuringContracts().forEach((contract) => {
-    const owner = ownerByContractId.get(contract.id);
-    (grouped[owner] || grouped.household).push(contract);
+    const owner = memberKey(ownerByContractId.get(contract.id)) || "household";
+    grouped[owner].push(contract);
   });
   return grouped;
 }
@@ -16059,8 +16063,8 @@ function gob19RestructuringSectionHtml(person, income, contracts, safeRatio) {
 function handleGob19SeparationTemplate() {
   const note = qs("gob19SeparationNote");
   if (!note) return;
-  const incomeJavi = parseAmount(qs("gob19IncomeJavi")?.value);
-  const incomeTere = parseAmount(qs("gob19IncomeTere")?.value);
+  const incomeP1 = parseAmount(qs("gob19IncomeP1")?.value);
+  const incomeP2 = parseAmount(qs("gob19IncomeP2")?.value);
   const grouped = gob19DebtsByOwner();
   const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
   const settlement = a18CurrentProposal();
@@ -16070,9 +16074,9 @@ function handleGob19SeparationTemplate() {
   const unassignedHtml = grouped.household.length
     ? `<p class="negative">${grouped.household.length} ${grouped.household.length === 1 ? "deuda activa sigue" : "deudas activas siguen"} a nombre de «Hogar» (sin asignar a ${escapeHtml(memberTemplate("{p1} o {p2}"))}) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
     : "";
-  const javiHtml = gob19RestructuringSectionHtml("javi", incomeJavi, grouped.javi, safeRatio);
-  const tereHtml = gob19RestructuringSectionHtml("tere", incomeTere, grouped.tere, safeRatio);
-  note.innerHTML = `${settlementHtml}${unassignedHtml}${javiHtml}${tereHtml}`;
+  const p1Html = gob19RestructuringSectionHtml("p1", incomeP1, grouped.p1, safeRatio);
+  const p2Html = gob19RestructuringSectionHtml("p2", incomeP2, grouped.p2, safeRatio);
+  note.innerHTML = `${settlementHtml}${unassignedHtml}${p1Html}${p2Html}`;
 }
 
 // A19-1: enlace de solo lectura, redactado y caducable — depende de una sesión remota (mismo
@@ -19215,13 +19219,13 @@ function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const carAffordability = bigPurchaseAffordability(plan, {
     costeObjetivo: settings.carCost,
     colchonObjetivo: settings.carReserve,
-    capitalFinanciacion: settings.tereCreditCapital,
-    cuotaFinanciacion: settings.tereCreditPayment,
+    capitalFinanciacion: settings.p2CreditCapital,
+    cuotaFinanciacion: settings.p2CreditPayment,
     avgIncome,
     avgDebt,
   });
   const debtRatio = carAffordability.debtRatio;
-  const debtRatioWithTere = carAffordability.debtRatioWithCredit;
+  const debtRatioWithP2Credit = carAffordability.debtRatioWithCredit;
   const maxSafeTerePayment = carAffordability.maxSafePayment;
   const bestDebtStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = bestDebtStep?.candidate || agentDebtRecommendations(plan)[0] || null;
@@ -19247,7 +19251,7 @@ function executiveAdvisorContext({ allowHeavy = true } = {}) {
     avgIncome,
     avgDebt,
     debtRatio,
-    debtRatioWithTere,
+    debtRatioWithP2Credit,
     maxSafeTerePayment,
     bestDebtStep,
     bestDebt,
@@ -19387,8 +19391,8 @@ function executiveActions(ctx) {
     tone: ctx.safeCredit ? "good" : "danger",
     title: memberTemplate("Financiación de {p2} para coche"),
     text: ctx.safeCredit
-      ? `Con ${money(ctx.settings.tereCreditCapital, true)} de capital y cuota ${money(ctx.settings.tereCreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithTere.toFixed(1)}%.`
-      : `Con cuota ${money(ctx.settings.tereCreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithTere.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
+      ? `Con ${money(ctx.settings.p2CreditCapital, true)} de capital y cuota ${money(ctx.settings.p2CreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithP2Credit.toFixed(1)}%.`
+      : `Con cuota ${money(ctx.settings.p2CreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithP2Credit.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
     action: "p2-credit",
     label: "Simular crédito",
     rank: 4,
@@ -20371,9 +20375,9 @@ function prepareExecutiveCarProject(useCredit = false) {
     if (qs("projectName")) qs("projectName").value = useCredit ? memberTemplate("Compra coche con financiación de {p2}") : "Colchón coche";
     if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(useCredit ? settings.carCost : settings.carReserve);
     if (qs("projectDuration")) qs("projectDuration").value = "1";
-    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.tereCreditCapital) : "";
-    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = useCredit ? amountInputValue(settings.tereCreditPayment) : "";
-    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = useCredit ? String(settings.tereCreditMonths) : "0";
+    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.p2CreditCapital) : "";
+    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = useCredit ? amountInputValue(settings.p2CreditPayment) : "";
+    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = useCredit ? String(settings.p2CreditMonths) : "0";
     if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "same";
     setProjectMode("optimize");
     updateProjectKindUi();
@@ -25099,11 +25103,11 @@ function familyContextMeta(context = currentFamilyContext()) {
       label: "Hogar",
       note: "Incluye todos los ingresos y gastos de la unidad familiar.",
     },
-    javi: {
+    p1: {
       label: memberLabel("p1"),
       note: memberTemplate("Ingresos de {p1} y la mitad de los gastos compartidos."),
     },
-    tere: {
+    p2: {
       label: memberLabel("p2"),
       note: memberTemplate("Ingresos de {p2} y la mitad de los gastos compartidos."),
     },
@@ -27022,8 +27026,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "Nuevo TIN (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Nuevo plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27036,10 +27040,10 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       titularDestino: v.titularDestino || "hogar",
     }),
     titulo: (v, h) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
-      ? `Refinanciar ${h.debtLabel(v.deudaId)} · ${v.titularOrigen} → ${v.titularDestino}`
+      ? `Refinanciar ${h.debtLabel(v.deudaId)} · ${memberLabel(v.titularOrigen)} → ${memberLabel(v.titularDestino)}`
       : `Refinanciar ${h.debtLabel(v.deudaId)}`),
     detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
-      ? `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses · crédito a nombre de ${d.params.titularDestino}`
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses · crédito a nombre de ${memberLabel(d.params.titularDestino)}`
       : `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
@@ -27057,8 +27061,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "TIN del nuevo préstamo (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27071,10 +27075,10 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       titularDestino: v.titularDestino || "hogar",
     }),
     titulo: (v) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
-      ? `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas · ${v.titularOrigen} → ${v.titularDestino}`
+      ? `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas · ${memberLabel(v.titularOrigen)} → ${memberLabel(v.titularDestino)}`
       : `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas`),
     detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
-      ? `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas · préstamo a nombre de ${d.params.titularDestino}`
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas · préstamo a nombre de ${memberLabel(d.params.titularDestino)}`
       : `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
@@ -27126,7 +27130,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que se recibe" },
       // O-1b: mismo criterio aditivo que compra, arriba — titular es puro metadato.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27181,7 +27185,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "finPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480, visibleSi: (v) => v.financiada === true },
       // O-1b: opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
       // refinanciacion/reunificacion — puro metadato, no cambia ningún cálculo de caja.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27243,7 +27247,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     label: "Cambio de ingreso",
     ayuda: "Suma o resta un importe fijo al ingreso mensual entre dos meses. En negativo modela una bajada de sueldo o el fin de un ingreso.",
     campos: [
-      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
       // P-2: deslizador sobre el mismo campo — ±1.000€/mes cubre de sobra una subida de sueldo o la
       // pérdida de un ingreso; el número de al lado sigue admitiendo cualquier cifra fuera de rango.
       { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", range: { min: -1000, max: 1000, step: 10 } },
@@ -30982,7 +30986,7 @@ async function init() {
   });
   qs("agentYear")?.addEventListener("change", () => renderSavingsAgent());
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
-  ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {
+  ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveP2CreditCapital", "executiveP2CreditPayment"].forEach((id) => {
     qs(id)?.addEventListener("input", () => saveExecutiveAdvisorSettingsFromControls({ rerender: false }));
     qs(id)?.addEventListener("change", () => saveExecutiveAdvisorSettingsFromControls({ rerender: true }));
   });
@@ -31747,8 +31751,8 @@ async function init() {
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
   qs("inv18CalculateRun")?.addEventListener("click", handleInv18CalculatePlan);
   qs("cpx2SecondOpinionRun")?.addEventListener("click", handleCpx2SecondOpinion);
-  qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
-  qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
+  qs("a18IncomeP1")?.addEventListener("change", saveA18Incomes);
+  qs("a18IncomeP2")?.addEventListener("change", saveA18Incomes);
   qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
   qs("sp4Run")?.addEventListener("click", handleSp4CompareInsurance);
   qs("a14AssetAdd")?.addEventListener("click", saveA14Asset);
@@ -31811,8 +31815,8 @@ async function init() {
     if (!removeButton) return;
     removeA18Entry(removeButton.dataset.a18EntryRemove);
   });
-  qs("a18ConfirmJavi")?.addEventListener("click", () => confirmA18Settlement("javi"));
-  qs("a18ConfirmTere")?.addEventListener("click", () => confirmA18Settlement("tere"));
+  qs("a18ConfirmP1")?.addEventListener("click", () => confirmA18Settlement("p1"));
+  qs("a18ConfirmP2")?.addEventListener("click", () => confirmA18Settlement("p2"));
   qs("rgxHouseholdCard")?.addEventListener("click", (event) => {
     const createButton = event.target.closest("#rgxHouseholdCreate");
     if (createButton) { createRgxHousehold("").then(() => { renderRgxHouseholdCard(); renderRgx1AccessDrill(); }); return; }

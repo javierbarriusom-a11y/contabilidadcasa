@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -7,7 +8,7 @@ const engine = require("../canonical-engine.js");
 const debtContracts = require("../canonical-debt-contracts.js");
 
 const DATASETS_DIR = path.join(__dirname, "golden", "datasets");
-const FORBIDDEN_TERMS = ["CaixaBank", "Mediolanum", "Javi", "Tere", "Wizink", "Cetelem", "Cofidis"];
+const FORBIDDEN_TERMS = ["CaixaBank", "Mediolanum", `${NOMBRE.p1}`, `${NOMBRE.p2}`, "Wizink", "Cetelem", "Cofidis"];
 
 function loadDataset(id) {
   const file = path.join(DATASETS_DIR, `${id}.json`);

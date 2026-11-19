@@ -25,9 +25,9 @@ test("WP-21 PR-3 · un año entero: intereses y reparación hasta los ingresos, 
   assert.equal(r.retencion, 2052); // 19 % de 10.800
   assert.equal(r.retencionCalculada, true);
   // Cada declarante, la mitad.
-  const javi = T.rentalReport({ year: 2026, holder: "javi", property: local(), yearData: { mesesAlquilado: 12, ibi: 600, comunidad: 480, seguro: 220, intereses: 1500, reparacion: 10000 } });
-  assert.deepEqual([javi.share, javi.ingresos, javi.neto, javi.baseGeneral, javi.retencion, javi.blocking], [0.5, 5400, -2000, -2000, 1026, false]);
-  assert.equal(T.rentalReport({ year: 2026, holder: "tere", property: local({ titular: "javi" }), yearData: { mesesAlquilado: 12 } }).share, 0);
+  const informeP1 = T.rentalReport({ year: 2026, holder: "p1", property: local(), yearData: { mesesAlquilado: 12, ibi: 600, comunidad: 480, seguro: 220, intereses: 1500, reparacion: 10000 } });
+  assert.deepEqual([informeP1.share, informeP1.ingresos, informeP1.neto, informeP1.baseGeneral, informeP1.retencion, informeP1.blocking], [0.5, 5400, -2000, -2000, 1026, false]);
+  assert.equal(T.rentalReport({ year: 2026, holder: "p2", property: local({ titular: "p1" }), yearData: { mesesAlquilado: 12 } }).share, 0);
 });
 
 test("WP-21 PR-3 · lo pendiente: primero lo más antiguo, lo de hace más de 4 años caduca y lo de hace 4 que no cabe se pierde", () => {
@@ -54,7 +54,7 @@ test("WP-21 PR-3 · los meses sin alquilar imputan renta si hay datos; lo que fa
   assert.equal(T.propertyYear({ year: 2026, property: local(), yearData: { mesesAlquilado: 12, retencion: 1900 } }).retencion, 1900, "la del certificado");
   assert.equal(T.propertyYear({ year: 2026, property: local({ inquilinoRetiene: false }), yearData: { mesesAlquilado: 12 } }).retencion, 0);
   // Vacío no es 0: sin renta, sin meses o sin titular, la cifra no se puede dar.
-  const vacio = T.rentalReport({ year: 2026, holder: "javi", property: {}, yearData: {} });
+  const vacio = T.rentalReport({ year: 2026, holder: "p1", property: {}, yearData: {} });
   assert.equal(vacio.blocking, true);
   assert.deepEqual(vacio.falta.filter((item) => item.blocking).map((item) => item.code), ["rent-missing", "months-missing", "holder-missing"]);
   assert.ok(vacio.falta.some((item) => item.code === "amortization-base-missing"));

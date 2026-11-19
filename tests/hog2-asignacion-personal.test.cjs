@@ -18,9 +18,9 @@ const html = read("index.html");
 const allowance = require("../canonical-personal-allowance.js");
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-const JAVI = { id: "javi", name: "Javi", amount: 300, from: "2026-11", to: "" };
-const TERE = { id: "tere", name: "Tere", amount: 250.5, from: "2026-11", to: "2027-01" };
-const STORE = { people: [JAVI, TERE] };
+const ANA = { id: "ana", name: "Ana", amount: 300, from: "2026-11", to: "" };
+const LUIS = { id: "luis", name: "Luis", amount: 250.5, from: "2026-11", to: "2027-01" };
+const STORE = { people: [ANA, LUIS] };
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -39,9 +39,9 @@ test("almacén: solo entra lo válido; dañado, sin nombre, importe ≤ 0, meses
   assert.deepEqual(allowance.normalizeStore({ people: "x" }), { people: [] });
   const store = allowance.normalizeStore({
     people: [
-      JAVI,
-      { ...TERE },
-      { ...JAVI, name: "Otro Javi" },
+      ANA,
+      { ...LUIS },
+      { ...ANA, name: `Otro Ana` },
       { id: "a", name: "", amount: 10, from: "2026-11" },
       { id: "b", name: "B", amount: 0, from: "2026-11" },
       { id: "c", name: "C", amount: 10, from: "2026-13" },
@@ -50,7 +50,7 @@ test("almacén: solo entra lo válido; dañado, sin nombre, importe ≤ 0, meses
       { id: "F mal", name: "F", amount: 10, from: "2026-11" },
     ],
   });
-  assert.deepEqual(plain(store), { people: [JAVI, TERE] });
+  assert.deepEqual(plain(store), { people: [ANA, LUIS] });
 });
 
 test("alta: id estable sacado del nombre (sin tildes), sin chocar; editar conserva el id; quitar", () => {
@@ -66,7 +66,7 @@ test("alta: id estable sacado del nombre (sin tildes), sin chocar; editar conser
 });
 
 test("alta: lo que no vale vuelve como error por campo y el almacén no cambia", () => {
-  const base = { people: [JAVI] };
+  const base = { people: [ANA] };
   const errorsFor = (input) => allowance.upsertPerson(base, { from: "2026-11", amount: 100, name: "X", ...input });
   assert.deepEqual(Object.keys(errorsFor({ name: "" }).errors), ["name"]);
   assert.deepEqual(Object.keys(errorsFor({ name: "<script>" }).errors), ["name"]);
@@ -81,7 +81,7 @@ test("alta: lo que no vale vuelve como error por campo y el almacén no cambia",
   const result = errorsFor({ amount: 0 });
   assert.equal(result.person, null);
   assert.deepEqual(plain(result.store), plain(base));
-  const full = { people: Array.from({ length: allowance.MAX_PEOPLE }, (_, index) => ({ ...JAVI, id: `p${index}` })) };
+  const full = { people: Array.from({ length: allowance.MAX_PEOPLE }, (_, index) => ({ ...ANA, id: `p${index}` })) };
   assert.deepEqual(Object.keys(allowance.upsertPerson(full, { name: "Una más", amount: 10, from: "2026-11" }).errors), ["name"]);
 });
 
@@ -89,17 +89,17 @@ test("partidas del mes: solo en Gastos variables y solo en sus meses; id estable
   const rows = (monthKey, sectionName = "Gastos variables", kind = "expense") => allowance.rowsForMonth(STORE, { kind, sectionName, monthKey });
   assert.deepEqual(rows("2026-10"), []);
   assert.deepEqual(plain(rows("2026-11")), [
-    { id: "personal-allowance-javi", personalAllowance: true, kind: "expense", sectionName: "Gastos variables", label: "Asignación personal · Javi", plannedValue: 300, monthKey: "2026-11" },
-    { id: "personal-allowance-tere", personalAllowance: true, kind: "expense", sectionName: "Gastos variables", label: "Asignación personal · Tere", plannedValue: 250.5, monthKey: "2026-11" },
+    { id: `personal-allowance-ana`, personalAllowance: true, kind: "expense", sectionName: "Gastos variables", label: `Asignación personal · Ana`, plannedValue: 300, monthKey: "2026-11" },
+    { id: `personal-allowance-luis`, personalAllowance: true, kind: "expense", sectionName: "Gastos variables", label: `Asignación personal · Luis`, plannedValue: 250.5, monthKey: "2026-11" },
   ]);
-  assert.deepEqual(rows("2027-02").map((row) => row.id), ["personal-allowance-javi"], "Tere termina en enero");
+  assert.deepEqual(rows("2027-02").map((row) => row.id), [`personal-allowance-ana`], `Luis termina en enero`);
   assert.deepEqual(rows("2026-11", "Gastos fijos"), []);
   assert.deepEqual(rows("2026-11", "Gastos variables", "income"), []);
   assert.ok(rows("2026-11").every((row) => !row.custom), "no son partidas «custom»: esas viven una por mes en customPlanningRows");
-  assert.deepEqual(allowance.seriesRows(STORE, "expense").map((row) => row.id), ["personal-allowance-javi", "personal-allowance-tere"]);
+  assert.deepEqual(allowance.seriesRows(STORE, "expense").map((row) => row.id), [`personal-allowance-ana`, `personal-allowance-luis`]);
   assert.deepEqual(allowance.seriesRows(STORE, "income"), []);
-  assert.equal(allowance.amountForMonth(STORE, "personal-allowance-tere", "2027-01"), 250.5);
-  assert.equal(allowance.amountForMonth(STORE, "personal-allowance-tere", "2027-02"), 0);
+  assert.equal(allowance.amountForMonth(STORE, `personal-allowance-luis`, "2027-01"), 250.5);
+  assert.equal(allowance.amountForMonth(STORE, `personal-allowance-luis`, "2027-02"), 0);
   assert.equal(allowance.amountForMonth(STORE, "personal-allowance-nadie", "2026-11"), 0);
   assert.equal(allowance.totalForMonth(STORE, "2026-12"), 550.5);
   assert.equal(allowance.totalForMonth(STORE, "2026-10"), 0);
@@ -113,16 +113,16 @@ test("tarjeta: una ficha por persona y otra para añadir; nombre escapado; impor
   assert.match(empty, /<option value="2026-11" selected>nov 26<\/option>/, "por defecto, el mes siguiente");
   assert.match(empty, /Sale del gasto variable/);
   assert.match(empty, /id="asignacionEstado" role="status"/);
-  const out = allowance.renderHtml({ people: [JAVI] }, { months, formatAmount: (value) => `F${value}`, notes: ["Aviso <x>"] });
+  const out = allowance.renderHtml({ people: [ANA] }, { months, formatAmount: (value) => `F${value}`, notes: ["Aviso <x>"] });
   assert.equal((out.match(/<form /g) || []).length, 2);
   assert.match(out, /name="amount" type="text" inputmode="decimal" autocomplete="off" data-amount-input value="F300"/);
-  assert.match(out, /data-asignacion-quitar="javi"/);
+  assert.match(out, /data-asignacion-quitar="ana"/);
   assert.match(out, /<label for="asignacion-0-nombre">/);
   assert.match(out, /Aviso &lt;x&gt;/);
-  const full = { people: Array.from({ length: allowance.MAX_PEOPLE }, (_, index) => ({ ...JAVI, id: `p${index}` })) };
+  const full = { people: Array.from({ length: allowance.MAX_PEOPLE }, (_, index) => ({ ...ANA, id: `p${index}` })) };
   assert.doesNotMatch(allowance.renderHtml(full, { months }), /data-asignacion="nueva"/, "con el máximo, sin ficha de alta");
   assert.equal(allowance.summaryText({ people: [] }), "Asignación personal: sin configurar");
-  assert.equal(allowance.summaryText(STORE), "Asignación personal: Javi y Tere");
+  assert.equal(allowance.summaryText(STORE), `Asignación personal: Ana y Luis`);
 });
 
 test("app.js: el gasto variable estimado baja lo que sumen las asignaciones, fijado a mano o por fórmula, nunca bajo 0", () => {
@@ -153,12 +153,12 @@ test("app.js: el previsto de la partida es el de la persona ese mes; las borrada
     FinanceCanonicalPersonalAllowance: allowance, // globalThis del contexto, como en el navegador
     loadPersonalAllowances: () => STORE,
     sourcePlanningMonthForMonth: () => { throw new Error("una asignación no lee el plan base"); },
-    isPlanningRowDeleted: (row, month) => row.id === "personal-allowance-tere" && month.key === "2026-12",
+    isPlanningRowDeleted: (row, month) => row.id === `personal-allowance-luis` && month.key === "2026-12",
   };
   vm.runInNewContext(`${extractFunction("basePlannedValueForRow")}\n${line("function personalAllowanceRows(")}\nthis.base = basePlannedValueForRow; this.rows = personalAllowanceRows;`, context);
-  assert.equal(context.base({ id: "personal-allowance-javi", personalAllowance: true }, { key: "2026-10" }), 0);
-  assert.equal(context.base({ id: "personal-allowance-javi", personalAllowance: true }, { key: "2026-11" }), 300);
-  assert.deepEqual(context.rows("expense", "Gastos variables", { key: "2026-12" }).map((row) => row.id), ["personal-allowance-javi"]);
+  assert.equal(context.base({ id: `personal-allowance-ana`, personalAllowance: true }, { key: "2026-10" }), 0);
+  assert.equal(context.base({ id: `personal-allowance-ana`, personalAllowance: true }, { key: "2026-11" }), 300);
+  assert.deepEqual(context.rows("expense", "Gastos variables", { key: "2026-12" }).map((row) => row.id), [`personal-allowance-ana`]);
 });
 
 test("app.js: las partidas entran en el plan del mes, en las listas de partidas y en el editor; el almacén va en la copia y la firma", () => {

@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -223,7 +224,7 @@ test("WP-40 · calendario: fuera del horizonte del fichero (6 meses) no sale tod
 test("WP-40 · calendario: el título no lleva datos del informe ni de quién es; el detalle dice qué hacer y no promete nada del procedimiento", () => {
   const [event] = cirbeEvents([{ reportDate: "2026-01-10", renewOn: "2026-12-11" }]);
   assert.equal(event.title, "Toca pedir el informe de la CIRBE");
-  assert.doesNotMatch(event.title, /\d{4}|€|Javi|Tere/);
+  assert.doesNotMatch(event.title, new RegExp(`\\d{4}|€|${NOMBRE.p1}|${NOMBRE.p2}`));
   assert.match(event.description, /verificad el procedimiento actual/);
   assert.match(event.description, /Deuda › Contratos › Conciliación con la CIRBE/);
   const ics = Reminders.toIcs([event], { now: "2026-10-13T10:00:00Z" });

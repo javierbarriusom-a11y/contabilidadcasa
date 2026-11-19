@@ -137,7 +137,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 |---|---|---|---|---|---|---|
 | 46 | OPT-20 | Consolidar los backlogs sueltos en una única fuente viva | Optimización | M | Medio | Alcance propio, no incluye a este documento ni a los dos que fusiona |
 | 47 | OPT-21 | Checklist mensual de heurísticos de Nielsen | Optimización | S, mensual | Medio | |
-| 48 | OPT-22 | Decidir y documentar el modelo Hogar/Javi/Tere | Optimización | S | Medio | |
+| 48 | OPT-22 | Decidir y documentar el modelo Hogar/Persona 1/Persona 2 | Optimización | S | Medio | |
 | 49 | A19-3 | Comparador educativo de tarifas fijas | Patrimonio | S | Bajo-Medio | Depende de encontrar una fuente externa fiable; oportunista |
 | 50 | OPT-23 | `overflow-x: clip` en `.workspace` invalida `position: sticky` en toda vista | Optimización | S (investigación) | Medio | **Resuelta 3-sep-2026** — causa real en `html, body { overflow-x: hidden }`, no en `.workspace`; ver `BACKLOG_OPTIMIZACION.md` |
 

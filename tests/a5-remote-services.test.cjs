@@ -6,14 +6,14 @@ const remote = require("../a5-remote-services.js");
 test("las invitaciones remotas solo persisten hashes y bloquean revisiones obsoletas", () => {
   const secrets = new Map();
   const service = remote.createHouseholdService({ store: secrets });
-  let state = household.createHousehold({ ownerId: "javi", at: "2026-08-08T10:00:00Z" });
-  const issued = service.issueInvitation(state, { actorId: "javi", expectedRevision: 1, invitee: "tere@example.test", role: "viewer", areas: ["planning"], expiresAt: "2026-08-09T10:00:00Z", at: "2026-08-08T10:01:00Z" });
+  let state = household.createHousehold({ ownerId: "p1", at: "2026-08-08T10:00:00Z" });
+  const issued = service.issueInvitation(state, { actorId: "p1", expectedRevision: 1, invitee: "persona2@example.test", role: "viewer", areas: ["planning"], expiresAt: "2026-08-09T10:00:00Z", at: "2026-08-08T10:01:00Z" });
   state = issued.state;
   assert.equal(JSON.stringify([...secrets.values()]).includes(issued.invitation.token), false);
-  const accepted = service.acceptInvitation(state, { userId: "tere", invitationId: issued.invitation.id, token: issued.invitation.token, expectedRevision: 2, at: "2026-08-08T10:02:00Z" });
-  assert.equal(service.can(accepted, "tere", "household:read", "planning"), true);
+  const accepted = service.acceptInvitation(state, { userId: "p2", invitationId: issued.invitation.id, token: issued.invitation.token, expectedRevision: 2, at: "2026-08-08T10:02:00Z" });
+  assert.equal(service.can(accepted, "p2", "household:read", "planning"), true);
   assert.throws(() => service.acceptInvitation(state, { userId: "otro", invitationId: issued.invitation.id, token: issued.invitation.token, expectedRevision: 2 }), /no válida/);
-  assert.throws(() => service.revokeMember(accepted, { actorId: "javi", userId: "tere", expectedRevision: 2 }), /Otra sesión/);
+  assert.throws(() => service.revokeMember(accepted, { actorId: "p1", userId: "p2", expectedRevision: 2 }), /Otra sesión/);
 });
 
 test("las suscripciones push se cifran, se revocan y solo entregan mensajes seguros", async () => {

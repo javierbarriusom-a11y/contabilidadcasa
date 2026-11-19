@@ -8,7 +8,8 @@
   const euro = (value) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always", trailingZeroDisplay: "stripIfInteger" }).format(Number(value) || 0); // rediseño A2: mismo formato que money()
   const shortDate = (value) => (value ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(value)) : "Sin fecha");
   const ownerLabel = (owner) => (typeof memberLabel === "function" ? memberLabel(owner || "household") : "Hogar"); // household-members.js
-  const ownerOptions = (selected) => ["household", "javi", "tere"].map((value) => `<option value="${value}" ${value === selected ? "selected" : ""}>${ownerLabel(value)}</option>`).join("");
+  // Fase 4d: un titular guardado antes con la clave de siempre marca su opción «p1»/«p2».
+  const ownerOptions = (selected) => ["household", "p1", "p2"].map((value) => `<option value="${value}" ${value === selected || (typeof memberKey === "function" && memberKey(selected) === value) ? "selected" : ""}>${ownerLabel(value)}</option>`).join("");
   const state = () => bridge()?.getState() || domain()?.normalizeState({}) || {};
   const save = (next) => bridge()?.saveState(next);
   // «Hoy» y los plazos que ve el hogar van en su día de calendario (hora local), no en el de UTC: de 0 a 1-2 h en Madrid salía la víspera.
@@ -479,7 +480,7 @@
     const p2 = state();
     const covered = rows.filter((row) => p2.ownership[row.key]).length;
     target.querySelector("[data-p2-body]").innerHTML = `
-      <div class="p2-kpis"><div class="p2-kpi"><span>Series asignadas</span><strong>${covered}/${rows.length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("javi"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "javi").length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("tere"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "tere").length}</strong></div><div class="p2-kpi"><span>Hogar</span><strong>${rows.filter((row) => p2.ownership[row.key] === "household").length}</strong></div></div>
+      <div class="p2-kpis"><div class="p2-kpi"><span>Series asignadas</span><strong>${covered}/${rows.length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("p1"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "p1").length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("p2"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "p2").length}</strong></div><div class="p2-kpi"><span>Hogar</span><strong>${rows.filter((row) => p2.ownership[row.key] === "household").length}</strong></div></div>
       <div class="p2-toolbar"><label class="p2-field"><span>Filtrar titular</span><select data-owner-filter><option value="all">Todos</option>${ownerOptions("")}</select></label><div class="p2-actions"><button class="p2-button" data-export-pdf>Descargar PDF</button><button class="p2-button secondary" data-export-xlsx>Descargar Excel</button></div></div>
       <div data-export-notice></div>
       <div class="p2-table-wrap"><table class="p2-table"><thead><tr><th>Tipo</th><th>Serie</th><th>Titular</th><th>Identificador canónico</th></tr></thead><tbody data-family-rows>${rows.map((row) => familyRow(row, p2)).join("")}</tbody></table></div>
@@ -537,13 +538,13 @@
   }
 
   // GOB4 (Oleada 3, Bloque 3): vista por titular en hogar compartido. "Mis metas, mi deuda, mi
-  // aportación" separado de la vista agregada, sobre el mismo reparto por titular (javi/tere/hogar)
+  // aportación" separado de la vista agregada, sobre el mismo reparto por titular (persona 1, persona 2, hogar)
   // que ya usan las metas (goal.owner, arriba) y la deuda (ownership, ya expuesto por
   // bridge().debts()/p2DebtRows — mismo campo `owner` que usa DEB1/AP5) — sin dato nuevo que
   // declarar, solo un filtro de solo lectura, para no tener que entender los 10 dominios de
   // Ajustes para ver solo lo propio. Nunca incluye "hogar" (compartido): esta vista es justo lo
   // contrario, lo que le corresponde a un titular en particular.
-  let gob4SelectedMember = "javi";
+  let gob4SelectedMember = "p1";
 
   function gob4MemberGoals(owner) {
     return state().goals.filter((goal) => goal.owner === owner).map((goal) => domain().goalSnapshot(goal));
@@ -567,7 +568,7 @@
     const totalDebt = debts.reduce((sum, row) => sum + Number(row.currentPrincipal || 0), 0);
     const totalDebtPayment = debts.reduce((sum, row) => sum + Number(row.currentPayment || 0), 0);
     target.querySelector("[data-p2-body]").innerHTML = `
-      <label class="p2-field"><span>Titular</span><select data-gob4-member-select>${["javi", "tere"].map((value) => `<option value="${value}" ${value === member ? "selected" : ""}>${ownerLabel(value)}</option>`).join("")}</select></label>
+      <label class="p2-field"><span>Titular</span><select data-gob4-member-select>${["p1", "p2"].map((value) => `<option value="${value}" ${value === member ? "selected" : ""}>${ownerLabel(value)}</option>`).join("")}</select></label>
       <div class="p2-kpis">
         <div class="p2-kpi"><span>Mis metas activas</span><strong>${goals.filter((goal) => goal.status === "active").length}</strong></div>
         <div class="p2-kpi"><span>Mi deuda pendiente</span><strong>${euro(totalDebt)}</strong></div>
@@ -577,7 +578,7 @@
       <div class="p2-list" data-gob4-goals>${goals.length ? goals.map((goal) => `<div class="p2-contribution"><span>${esc(goal.name)}</span><strong>${euro(goal.saved)} / ${euro(goal.target)}</strong><small>${goal.progress}%</small></div>`).join("") : '<p class="p2-help">Sin metas propias todavía.</p>'}</div>
       <div class="p2-list" data-gob4-debts>${debts.length ? debts.map((row) => `<div class="p2-contribution"><span>${esc(row.entity)} · ${esc(row.type)}</span><strong>${euro(row.currentPrincipal)}</strong><small>${euro(row.currentPayment)}/mes</small></div>`).join("") : '<p class="p2-help">Sin deuda propia todavía.</p>'}</div>`;
     target.querySelector("[data-gob4-member-select]")?.addEventListener("change", (event) => {
-      gob4SelectedMember = event.target.value === "tere" ? "tere" : "javi";
+      gob4SelectedMember = event.target.value === "p2" ? "p2" : "p1";
       renderGob4MemberView();
     });
   }

@@ -107,7 +107,7 @@ test("un contrato documentado alcanza calidad completa", () => {
     currentPayment: 100,
     apr: 7.5,
     maturityMonth: "2027-08",
-    owner: "javi",
+    owner: "p1",
     provenance: "verified",
     source: "contract-pdf",
     agreement: { status: "none" },

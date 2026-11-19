@@ -1445,7 +1445,7 @@ ya existente de `NON_DEBT_APPLIERS` (compra/imprevisto/proyecto/cambio de ingres
   la comparativa de seis indicadores y la validación por una tarjeta oscura con cuatro cifras en
   lenguaje llano (¿cuánto nos queda?, ¿cuántos meses aguantaríamos sin ingresos?, ¿cuándo dejamos de
   deber?, ¿cuánto ahorramos al año?) — un subconjunto de los mismos seis de E-3, sin recalcular nada.
-  El widget de barra lateral homónimo (Hogar/Javi/Tere) es una cosa distinta, confirmado en la
+  El widget de barra lateral homónimo (Hogar/Persona 1/Persona 2) es una cosa distinta, confirmado en la
   auditoría del 16, y no se toca. La banda de E-8 se ve en ambas vistas: no es parte de «la tabla de
   indicadores» que E-9 retira.
 - **E-12** — pantalla nueva `#escenario-comparar`, alcanzable desde «Comparar dos escenarios» en

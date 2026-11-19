@@ -2171,9 +2171,9 @@ for (const scheme of ["light", "dark"]) {
       await expect(caja.locator(".informe-renta-falta")).toBeVisible();
       const falta = await new AxeBuilder({ page }).include("#informeRenta").analyze();
       expect(fmt(falta), fmt(falta).slice(0, 5).join("\n")).toEqual([]);
-      await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "javi"; saveScenarioSettings(); });
-      await caja.getByLabel("Declarante").selectOption("tere");
-      await caja.getByLabel("Declarante").selectOption("javi");
+      await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "p1"; saveScenarioSettings(); });
+      await caja.getByLabel("Declarante").selectOption("p2");
+      await caja.getByLabel("Declarante").selectOption("p1");
       await expect(caja.locator(".informe-renta-tabla").first()).toBeVisible();
       const lleno = await new AxeBuilder({ page }).include("#informeRenta").analyze();
       expect(fmt(lleno), fmt(lleno).slice(0, 5).join("\n")).toEqual([]);

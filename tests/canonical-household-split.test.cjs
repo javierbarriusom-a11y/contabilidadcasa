@@ -8,46 +8,46 @@ const Split = require("../canonical-household-split.js");
 
 test("splitShares · partes iguales, reparte el importe exactamente en dos mitades", () => {
   const result = Split.splitShares({ amount: 100, rule: { mode: "equal" } });
-  assert.equal(result.javi, 50);
-  assert.equal(result.tere, 50);
+  assert.equal(result.p1, 50);
+  assert.equal(result.p2, 50);
   assert.equal(result.mode, "equal");
 });
 
 test("splitShares · partes iguales con céntimo impar, la suma sigue cuadrando con el total", () => {
   const result = Split.splitShares({ amount: 100.01, rule: { mode: "equal" } });
-  assert.equal(round2(result.javi + result.tere), 100.01);
+  assert.equal(round2(result.p1 + result.p2), 100.01);
 });
 
 test("splitShares · proporcional a ingresos, reparte según la proporción declarada", () => {
-  const result = Split.splitShares({ amount: 1000, rule: { mode: "income-proportional" }, incomes: { javi: 3000, tere: 1000 } });
-  assert.equal(result.javi, 750);
-  assert.equal(result.tere, 250);
+  const result = Split.splitShares({ amount: 1000, rule: { mode: "income-proportional" }, incomes: { p1: 3000, p2: 1000 } });
+  assert.equal(result.p1, 750);
+  assert.equal(result.p2, 250);
   assert.equal(result.mode, "income-proportional");
 });
 
 test("splitShares · proporcional a ingresos sin ningún ingreso declarado, cae a partes iguales y lo declara", () => {
   const result = Split.splitShares({ amount: 1000, rule: { mode: "income-proportional" }, incomes: {} });
-  assert.equal(result.javi, 500);
-  assert.equal(result.tere, 500);
+  assert.equal(result.p1, 500);
+  assert.equal(result.p2, 500);
   assert.equal(result.mode, "equal-fallback");
 });
 
 test("splitShares · importe fijo, el titular paga su parte y el resto lo cubre el otro", () => {
-  const result = Split.splitShares({ amount: 300, rule: { mode: "fixed", payer: "javi", amount: 100 } });
-  assert.equal(result.javi, 100);
-  assert.equal(result.tere, 200);
+  const result = Split.splitShares({ amount: 300, rule: { mode: "fixed", payer: "p1", amount: 100 } });
+  assert.equal(result.p1, 100);
+  assert.equal(result.p2, 200);
 });
 
 test("splitShares · importe fijo mayor que el total, se capa al total en vez de dar un resto negativo", () => {
-  const result = Split.splitShares({ amount: 100, rule: { mode: "fixed", payer: "tere", amount: 500 } });
-  assert.equal(result.tere, 100);
-  assert.equal(result.javi, 0);
+  const result = Split.splitShares({ amount: 100, rule: { mode: "fixed", payer: "p2", amount: 500 } });
+  assert.equal(result.p2, 100);
+  assert.equal(result.p1, 0);
 });
 
 test("splitShares · importe cero, reparte cero sin dividir por cero ni fallar", () => {
-  const result = Split.splitShares({ amount: 0, rule: { mode: "income-proportional" }, incomes: { javi: 1000, tere: 0 } });
-  assert.equal(result.javi, 0);
-  assert.equal(result.tere, 0);
+  const result = Split.splitShares({ amount: 0, rule: { mode: "income-proportional" }, incomes: { p1: 1000, p2: 0 } });
+  assert.equal(result.p1, 0);
+  assert.equal(result.p2, 0);
 });
 
 test("normalizeRule · un modo desconocido cae a partes iguales, no falla", () => {
@@ -55,13 +55,13 @@ test("normalizeRule · un modo desconocido cae a partes iguales, no falla", () =
   assert.equal(rule.mode, "equal");
 });
 
-test("normalizeRule · un titular desconocido cae a Javi", () => {
+test("normalizeRule · un titular desconocido cae a P1", () => {
   const rule = Split.normalizeRule({ mode: "fixed", payer: "otro", amount: 100 });
-  assert.equal(rule.payer, "javi");
+  assert.equal(rule.payer, "p1");
 });
 
 test("resolveRuleForCategory · usa la regla de la categoría si existe, si no la regla por defecto", () => {
-  const rules = { Alimentación: { mode: "fixed", payer: "tere", amount: 50 } };
+  const rules = { Alimentación: { mode: "fixed", payer: "p2", amount: 50 } };
   const withMatch = Split.resolveRuleForCategory(rules, "Alimentación", { mode: "equal" });
   assert.equal(withMatch.mode, "fixed");
   const withoutMatch = Split.resolveRuleForCategory(rules, "Ocio", { mode: "income-proportional" });

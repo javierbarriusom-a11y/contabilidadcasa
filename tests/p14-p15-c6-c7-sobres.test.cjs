@@ -330,7 +330,7 @@ test("C-12 · la evidencia incluye los asientos de sobres del cierre firmado", (
   const closure = {
     id: "close-1",
     closedAt: "2026-08-01T00:00:00.000Z",
-    author: "javi@example.com",
+    author: "persona1@example.com",
     reason: "Mes revisado",
     envelopeSettlements: [{ rowKey: "ocio", label: "Ocio", saldo: -20, destino: null, origen: "general", carryOut: 0 }],
   };

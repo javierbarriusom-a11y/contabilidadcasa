@@ -9,8 +9,8 @@
 
 const RENTA_DATOS_TITULARES = [
   { value: "", label: "Sin declarar" },
-  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
-  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
+  { value: "p1", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "p2", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
   { value: "household", label: "Conjunta (50 % cada uno)" },
 ];
 const RENTA_DATOS_DEPOSITARIOS = [
@@ -30,7 +30,7 @@ function rentaDatosOptions(options, selected) {
 // Cuántas posiciones tienen ya lo que el informe necesita: titular siempre y, si están fuera de España, el país.
 function rentaDatosResumen(positions) {
   const list = Array.isArray(positions) ? positions : [];
-  const conTitular = list.filter((p) => ["javi", "tere", "household"].includes(p?.titular)).length;
+  const conTitular = list.filter((p) => p?.titular === "household" || (typeof memberKey === "function" && memberKey(p?.titular))).length; // fase 4d: también la clave de siempre
   const sinDepositario = list.filter((p) => !["espana", "extranjero"].includes(p?.depositario)).length;
   return { total: list.length, conTitular, sinDepositario };
 }
@@ -75,7 +75,7 @@ const RENTA_REND_TIPOS = [
   { value: "dividendo", label: "Dividendo" },
   { value: "interes", label: "Interés" },
 ];
-const RENTA_PERDIDA_TITULARES = { get javi() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; }, get tere() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } }; // los nombres, de los datos del hogar (household-members.js)
+const RENTA_PERDIDA_TITULARES = { get p1() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; }, get p2() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } }; // los nombres, de los datos del hogar (household-members.js)
 
 function rentaDatosEuros(value) {
   if (value === null || value === undefined) return "sin declarar";
@@ -111,7 +111,7 @@ function rentaRendimientoNormalizar(raw = {}, positions = []) {
   for (const [valor, nombre] of [[retencionEspana, "en España"], [retencionOrigen, "en origen"]]) {
     if (Number.isNaN(valor) || (valor !== null && (valor < 0 || valor > integro))) return { error: `La retención ${nombre} va de 0 al íntegro; déjala en blanco si no la sabes.` };
   }
-  const titular = posicion ? "" : (["javi", "tere", "household"].includes(raw.titular) ? raw.titular : "");
+  const titular = posicion ? "" : (raw.titular === "household" ? "household" : (typeof memberKey === "function" && memberKey(raw.titular)) || "");
   return {
     record: {
       id: String(raw.id || `rend-${Date.now()}`),
@@ -220,7 +220,7 @@ function rentaRendimientosHtml(list, positions = []) {
 // La etiqueta del bloque y del titular de una pérdida arrastrada, para la lista de Inversión › Fiscal.
 function rentaPerdidaEtiqueta(entry) {
   const bloque = entry?.bloque === "rendimientos" ? "rendimientos" : "transmisiones";
-  const titular = RENTA_PERDIDA_TITULARES[entry?.titular];
+  const titular = RENTA_PERDIDA_TITULARES[(typeof memberKey === "function" && memberKey(entry?.titular)) || entry?.titular];
   return ` · ${bloque}${titular ? ` · ${titular}` : " · sin titular"}`;
 }
 

@@ -430,7 +430,7 @@ function partidasNextMonthPlannedExpenses(months) {
   });
 }
 
-function partidasTereSalaryByMonth(months) {
+function partidasP2SalaryByMonth(months) {
   const rows = baseData.monthlyPlanning.sections
     .filter((section) => section.kind === "income")
     .flatMap((section) => visualRowsForSection(section, months))
@@ -445,10 +445,10 @@ function partidasTereSalaryByMonth(months) {
 function partidasTransferRowsHtml(months, incomeTotals, expenseTotals) {
   const available = partidasAvailableForTransferByMonth(months, incomeTotals, expenseTotals);
   const nextExpenses = partidasNextMonthPlannedExpenses(months);
-  const tereSalary = partidasTereSalaryByMonth(months);
+  const p2Salary = partidasP2SalaryByMonth(months);
   const prudent = available.map((value, index) => Math.max(0, round2(value - nextExpenses[index])));
-  const adjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index])));
-  const prudentAdjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index] - nextExpenses[index])));
+  const adjusted = available.map((value, index) => Math.max(0, round2(value + p2Salary[index])));
+  const prudentAdjusted = available.map((value, index) => Math.max(0, round2(value + p2Salary[index] - nextExpenses[index])));
   const heading = `<tr class="visual-section-row visual-calculated-row planificacion-partidas-transfer-heading">
     <td colspan="${months.length + 2}">
       <div class="visual-calculated-label">

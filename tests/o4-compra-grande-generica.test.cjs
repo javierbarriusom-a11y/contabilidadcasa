@@ -105,23 +105,23 @@ test("O-4 · safeCredit exige ratio <= 32% y cuota por debajo de la cuota máxim
 test("O-4 · el caso coche reproduce exactamente los números que calculaba antes executiveAdvisorContext", () => {
   const { fn } = spyFirstMonth();
   const context = sandboxWith(["bigPurchaseAffordability", "round2"], { firstMonthReachingMediolanum: fn });
-  const settings = { carCost: 25000, carReserve: 8000, tereCreditCapital: 15000, tereCreditPayment: 320 };
+  const settings = { carCost: 25000, carReserve: 8000, p2CreditCapital: 15000, p2CreditPayment: 320 };
   const avgIncome = 3200;
   const avgDebt = 650;
   const result = context.bigPurchaseAffordability({}, {
     costeObjetivo: settings.carCost,
     colchonObjetivo: settings.carReserve,
-    capitalFinanciacion: settings.tereCreditCapital,
-    cuotaFinanciacion: settings.tereCreditPayment,
+    capitalFinanciacion: settings.p2CreditCapital,
+    cuotaFinanciacion: settings.p2CreditPayment,
     avgIncome,
     avgDebt,
   });
   // Fórmulas originales, tal y como vivían en app.js antes de O-4:
-  const expectedCashNeed = Math.max(0, Math.round((settings.carCost - settings.tereCreditCapital + Number.EPSILON) * 100) / 100);
+  const expectedCashNeed = Math.max(0, Math.round((settings.carCost - settings.p2CreditCapital + Number.EPSILON) * 100) / 100);
   const expectedDebtRatio = (avgDebt / avgIncome) * 100;
-  const expectedDebtRatioWithTere = ((avgDebt + settings.tereCreditPayment) / avgIncome) * 100;
+  const expectedDebtRatioWithTere = ((avgDebt + settings.p2CreditPayment) / avgIncome) * 100;
   const expectedMaxSafe = Math.max(0, Math.round((avgIncome * 0.32 - avgDebt + Number.EPSILON) * 100) / 100);
-  const expectedSafeCredit = expectedDebtRatioWithTere <= 32 && settings.tereCreditPayment <= Math.max(1, expectedMaxSafe);
+  const expectedSafeCredit = expectedDebtRatioWithTere <= 32 && settings.p2CreditPayment <= Math.max(1, expectedMaxSafe);
   assert.equal(result.cashNeedCredit, expectedCashNeed);
   assert.equal(result.debtRatio, expectedDebtRatio);
   assert.equal(result.debtRatioWithCredit, expectedDebtRatioWithTere);
@@ -134,8 +134,8 @@ test("O-4 · executiveAdvisorContext calcula el coche a través de bigPurchaseAf
   assert.match(source, /bigPurchaseAffordability\(plan, \{/);
   assert.match(source, /costeObjetivo: settings\.carCost/);
   assert.match(source, /colchonObjetivo: settings\.carReserve/);
-  assert.match(source, /capitalFinanciacion: settings\.tereCreditCapital/);
-  assert.match(source, /cuotaFinanciacion: settings\.tereCreditPayment/);
+  assert.match(source, /capitalFinanciacion: settings\.p2CreditCapital/);
+  assert.match(source, /cuotaFinanciacion: settings\.p2CreditPayment/);
 });
 
 // --- Caso nuevo: un objetivo distinto del coche, con su propia fecha -----------------------------

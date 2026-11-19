@@ -27,7 +27,7 @@ Todas las cifras de ejemplo de este documento son **ilustrativas o del dataset d
 | El suelo es sobre el total y parametrizable | Parámetro nuevo (§4) |
 | «Cobrar» incluye las dos nóminas y el local | Por eso «hasta cobrar» da una ventana de ~1, ~24 y ~6 días (§6) y se sustituye por un horizonte fijo |
 | Aprobado el mínimo proyectado a 30 días | Especificación del §5 |
-| Tere se fecha el 25 aunque cobra el 22; Javi, el último día natural | Calendario de ingresos del modelo (hecho para Javi en el PR #419) |
+| Persona 2 se fecha el 25 aunque cobra el 22; Persona 1, el último día natural | Calendario de ingresos del modelo (hecho para Persona 1 en el PR #419) |
 | Todo lo contestó quien opera; no se consulta a otra persona | Premisa sin contrastar (riesgo, §10) |
 
 ## 3. Inventario: dónde se lee hoy el «suelo» y qué significa en cada sitio
@@ -71,7 +71,7 @@ Entradas: fecha de los saldos (`AAAA-MM-DD`, la misma que ya usa el modelo), sal
 Reglas, cada una con su prueba:
 1. **Qué movimientos cuentan:** ingresos suman; salidas restan (de cualquier cuenta); **los traspasos entre las dos cuentas valen 0** (no cambian el total). Ventana: `fecha de los saldos < fecha <= +30 días` (lo fechado hoy ya está en el saldo, igual que
    `date > asOf` del motor diario).
-2. **Orden dentro de un mismo día:** primero las **salidas**, luego los ingresos. Es el criterio prudente, coherente con la preferencia del hogar (Tere el 25, Javi el último día natural). Se devuelve también el valor «si los ingresos van primero» y un
+2. **Orden dentro de un mismo día:** primero las **salidas**, luego los ingresos. Es el criterio prudente, coherente con la preferencia del hogar (Persona 2 el 25, Persona 1 el último día natural). Se devuelve también el valor «si los ingresos van primero» y un
    indicador de si **el signo** depende de ese orden, porque con fechas de relleno (todo el mes el «día 8») depende por completo.
 3. **Un negativo se dice, con su importe, su fecha y su causa:** «faltan X € para no bajar del suelo el día D por E». Nunca se recorta a 0.
 4. **Si falta un dato no hay cifra:** saldo, suelo, fecha de los saldos o calendario ausente → `status: "missing"` y se nombra cuál. `null`, `""` y `NaN` no valen 0.
@@ -81,7 +81,7 @@ Reglas, cada una con su prueba:
 
 ## 6. Por qué mínimo proyectado y no «hasta cobrar»: ejemplo y caso de prueba
 
-Calendario **ilustrativo e inventado** con el patrón de ingresos del hogar: local el día 1 (+800 €), Tere el 25 (+2.200 €), Javi el último día (+3.300 €); salidas el 3 (900), 8 (350), 12 (200), 15 (500), 20 (300) y 28 (400);
+Calendario **ilustrativo e inventado** con el patrón de ingresos del hogar: local el día 1 (+800 €), Persona 2 el 25 (+2.200 €), Persona 1 el último día (+3.300 €); salidas el 3 (900), 8 (350), 12 (200), 15 (500), 20 (300) y 28 (400);
 suelo 2.500 € (ilustrativo: el del hogar es 1.500 €); saldo total 7.200 € al empezar el día 1. Consulta al **final** del día (el saldo ya incluye lo de ese día).
 
 | Consulta | Saldo total | Ventana «hasta cobrar» | **Hasta cobrar** | **Mínimo proyectado a 30 días** | Punto más bajo |
@@ -89,14 +89,14 @@ suelo 2.500 € (ilustrativo: el del hogar es 1.500 €); saldo total 7.200 € 
 | mes 1 · día 24 | 5.750 | 1 día | 3.250 | 3.250 | — |
 | mes 1 · día 25 | 7.950 | 6 días | 5.050 | 5.050 | día 28 |
 | mes 1 · día 30 | 7.550 | 1 día | 5.050 | 5.050 | — |
-| **mes 1 · día 31** (cobra Javi) | 10.850 | 1 día | **8.350** | **6.900** | mes 2 · día 20 |
+| **mes 1 · día 31** (cobra Persona 1) | 10.850 | 1 día | **8.350** | **6.900** | mes 2 · día 20 |
 | **mes 2 · día 1** (entra el local, +800) | 11.650 | 24 días | **6.900** | **6.900** | mes 2 · día 20 |
 | mes 2 · día 2 | 11.650 | 23 días | 6.900 | 6.900 | mes 2 · día 20 |
 | mes 2 · día 24 | 9.400 | 1 día | 6.900 | 6.900 | — |
-| mes 2 · día 25 (cobra Tere) | 11.600 | 6 días | 8.700 | 8.700 | mes 2 · día 28 |
+| mes 2 · día 25 (cobra Persona 2) | 11.600 | 6 días | 8.700 | 8.700 | mes 2 · día 28 |
 
 Lo que enseña:
-- **El día 31, «hasta cobrar» dice 8.350 € y es optimista en 1.450 €:** con una ventana de 1 día no ve las salidas del mes siguiente que llegarán antes de que cobre Tere. Es justo el momento en que el hogar decide gastar, ahorrar o invertir.
+- **El día 31, «hasta cobrar» dice 8.350 € y es optimista en 1.450 €:** con una ventana de 1 día no ve las salidas del mes siguiente que llegarán antes de que cobre Persona 2. Es justo el momento en que el hogar decide gastar, ahorrar o invertir.
 - **El día 1, entran 800 € y «hasta cobrar» *baja* 1.450 €** (de 8.350 a 6.900) porque la ventana salta de 1 a 24 días.
 - **El mínimo proyectado da 6.900 € los dos días** y solo se mueve cuando el dinero se mueve.
 
@@ -130,7 +130,7 @@ Cada entrega pasa por la **regla de parada** (`BACKLOG_UX_OLAS.md` §8.4, versi�
 | S-3 | ¿Horizonte fijo de 30 días o configurable? | ✅ **Decidido 1/10/2026: fijo en la primera versión** (recomendación aceptada) |
 | S-4 | ¿Cómo se llama en pantalla? («Disponible», «Podéis gastar», otro) | ✅ **Decidido 1/10/2026: «Disponible»**, con el suelo visible al lado (recomendación aceptada) |
 | S-5 | Con fechas de relleno (D6): ¿dos lecturas con el motivo, o esconder la cifra? | ✅ **Decidido 1/10/2026: dos lecturas con el motivo** (recomendación aceptada). Es la respuesta a D6 de `BACKLOG_UX_OLAS.md` |
-| S-6 | ¿El bonus de Javi llega con la nómina? (hoy conserva «último día hábil») | ✅ **Resuelto 1/10/2026: no hay bonus mensual.** La partida que cae en la regla de diciembre es «Hacienda-otros ingresos» (3.000 €, llega sobre el 10/12); la app la fecha el **15 a propósito** (más tarde es más prudente) y el hogar lo mantiene. La regla del «bonus» del resto de meses no se usa en sus datos y no se toca |
+| S-6 | ¿El bonus de Persona 1 llega con la nómina? (hoy conserva «último día hábil») | ✅ **Resuelto 1/10/2026: no hay bonus mensual.** La partida que cae en la regla de diciembre es «Hacienda-otros ingresos» (3.000 €, llega sobre el 10/12); la app la fecha el **15 a propósito** (más tarde es más prudente) y el hogar lo mantiene. La regla del «bonus» del resto de meses no se usa en sus datos y no se toca |
 
 ## 10. Riesgos
 

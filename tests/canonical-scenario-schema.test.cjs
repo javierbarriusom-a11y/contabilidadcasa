@@ -69,7 +69,7 @@ const VALID_PARAMS_BY_TYPE = {
   compra: { nombre: "Coche", importe: 14000, financiacion: null },
   proyecto: { nombre: "Coche", importeObjetivo: 14000, modalidad: "hucha", mesObjetivo: "2027-03" },
   imprevisto: { importe: 600, mes: "2026-11", recurrenciaMeses: null },
-  cambio_ingreso: { titular: "tere", deltaMensual: 10, mesInicio: "2026-08" },
+  cambio_ingreso: { titular: "p2", deltaMensual: 10, mesInicio: "2026-08" },
   cambio_gasto: { bloque: "alimentacion", deltaMensual: 40, mesInicio: "2026-08" },
   traspaso: { origen: "caixabank", destino: "mediolanum", importe: 900, mes: "2026-08" },
   cambio_presupuesto: { bloque: "ocio", nuevoTecho: 200, desde: "2027-01" },

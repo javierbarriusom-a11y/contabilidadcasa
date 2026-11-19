@@ -19,7 +19,7 @@ Autocontenido a propósito: quien lo abra sin haber visto la conversación debe 
 
 **5/11/2026 · WP-21 · PR-0b hecho:** «Datos para la Renta» registra también los dividendos e intereses cobrados (íntegro y retenciones; en blanco es «sin declarar», no 0), y cada pérdida arrastrada dice su bloque y su titular. Con eso, el PR-0 está completo. Siguiente: PR-1, el motor del informe.
 
-**5/11/2026 · WP-21 · PR-0a hecho:** «Datos para la Renta» en Inversión › Cartera, plegado: de quién es cada posición (Javi, Tere o conjunta) y si está depositada fuera de España. Se rellena una vez y se guarda con la cartera. Siguiente: PR-0b (dividendos y pérdidas pendientes) y PR-1 (el motor del informe).
+**5/11/2026 · WP-21 · PR-0a hecho:** «Datos para la Renta» en Inversión › Cartera, plegado: de quién es cada posición (Persona 1, Persona 2 o conjunta) y si está depositada fuera de España. Se rellena una vez y se guarda con la cartera. Siguiente: PR-0b (dividendos y pérdidas pendientes) y PR-1 (el motor del informe).
 
 **5/11/2026 · WP-21 (paquete Renta), diseño hecho: el único paquete del plan que no estaba empezado** (`docs/WP21_DISENO.md`).
 - Es el informe fiscal de inversión por ejercicio y por declarante: transmisiones (FIFO), traspasos que no tributan, dividendos e intereses, compensación con el 25 % y el arrastre de 4 años, doble imposición, cuota estimada y aviso del modelo 720. Las reglas están contrastadas con fuentes y marcadas para reconfirmar en la AEAT.

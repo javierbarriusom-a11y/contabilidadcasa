@@ -64,12 +64,12 @@ test("householdSplitSettings · sin nada guardado, la regla por defecto es parte
   const settings = ctx.householdSplitSettings();
   assert.equal(settings.defaultRule.mode, "equal");
   assert.equal(Object.keys(settings.categoryRules).length, 0);
-  assert.equal(settings.incomes.javi, 0);
+  assert.equal(settings.incomes.p1, 0);
 });
 
 test("saveA18Rule · sin categoría seleccionada, guarda la regla por defecto", () => {
   const scenarioSettings = {};
-  const fields = { a18RuleCategory: "", a18RuleMode: "income-proportional", a18RulePayer: "javi", a18RuleAmount: "" };
+  const fields = { a18RuleCategory: "", a18RuleMode: "income-proportional", a18RulePayer: "p1", a18RuleAmount: "" };
   const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: (id) => (id in fields ? { value: fields[id] } : (id === "a18RuleList" ? { innerHTML: "" } : null)),
@@ -81,20 +81,20 @@ test("saveA18Rule · sin categoría seleccionada, guarda la regla por defecto", 
 
 test("saveA18Rule · con categoría seleccionada, guarda la regla solo para esa categoría", () => {
   const scenarioSettings = {};
-  const fields = { a18RuleCategory: "Alimentación", a18RuleMode: "fixed", a18RulePayer: "tere", a18RuleAmount: "50" };
+  const fields = { a18RuleCategory: "Alimentación", a18RuleMode: "fixed", a18RulePayer: "p2", a18RuleAmount: "50" };
   const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: (id) => (id in fields ? { value: fields[id] } : (id === "a18RuleList" ? { innerHTML: "" } : null)),
   });
   ctx.saveA18Rule();
   assert.equal(scenarioSettings.householdSplit.categoryRules.Alimentación.mode, "fixed");
-  assert.equal(scenarioSettings.householdSplit.categoryRules.Alimentación.payer, "tere");
+  assert.equal(scenarioSettings.householdSplit.categoryRules.Alimentación.payer, "p2");
   assert.equal(scenarioSettings.householdSplit.categoryRules.Alimentación.amount, 50);
   assert.equal(scenarioSettings.householdSplit.defaultRule.mode, "equal"); // el defecto no se toca
 });
 
 test("removeA18Rule · quita solo la categoría indicada", () => {
-  const scenarioSettings = { householdSplit: { categoryRules: { Alimentación: { mode: "equal" }, Ocio: { mode: "fixed", payer: "javi", amount: 20 } } } };
+  const scenarioSettings = { householdSplit: { categoryRules: { Alimentación: { mode: "equal" }, Ocio: { mode: "fixed", payer: "p1", amount: 20 } } } };
   const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "removeA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: () => ({ innerHTML: "" }),
@@ -120,14 +120,14 @@ test("la tarjeta vive en #ajustes con sus campos, botón y lista", () => {
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
   const ajustes = html.slice(start, end);
-  ["a18IncomeJavi", "a18IncomeTere", "a18RuleCategory", "a18RuleMode", "a18RulePayer", "a18RuleAmount", "a18RuleSave", "a18RuleList"].forEach((id) => {
+  ["a18IncomeP1", "a18IncomeP2", "a18RuleCategory", "a18RuleMode", "a18RulePayer", "a18RuleAmount", "a18RuleSave", "a18RuleList"].forEach((id) => {
     assert.match(ajustes, new RegExp(`id="${id}"`), `Falta #${id} en la tarjeta de reparto`);
   });
 });
 
 test("los controles están cableados", () => {
   assert.match(app, /qs\("a18RuleSave"\)\?\.addEventListener\("click", saveA18Rule\)/);
-  assert.match(app, /qs\("a18IncomeJavi"\)\?\.addEventListener\("change", saveA18Incomes\)/);
+  assert.match(app, /qs\("a18IncomeP1"\)\?\.addEventListener\("change", saveA18Incomes\)/);
   assert.match(app, /qs\("a18RuleList"\)\?\.addEventListener\("click"/);
 });
 

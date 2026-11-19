@@ -53,13 +53,24 @@ test("O-1 · reunificación sin titularOrigen/titularDestino sigue siendo válid
 });
 
 test("O-1 · refinanciación acepta titularOrigen/titularDestino válidos, incluso distintos entre sí", () => {
-  const params = { deudaId: "wizink", nuevoPrincipal: 5000, nuevoTIN: 0.12, nuevaCuota: 180, nuevoPlazo: 36, titularOrigen: "javi", titularDestino: "tere" };
+  const params = { deudaId: "wizink", nuevoPrincipal: 5000, nuevoTIN: 0.12, nuevaCuota: 180, nuevoPlazo: 36, titularOrigen: "p1", titularDestino: "p2" };
   const result = schema.validateEscenario(baseEscenario([decision("refinanciacion", params)]));
   assert.equal(result.valid, true, JSON.stringify(result.issues));
 });
 
+// Privacidad, fase 4c: un escenario guardado antes de «p1»/«p2», con la clave de siempre de cada persona (leída de base64 para no
+// escribirla), sigue validando; un titular que no es nadie sigue sin validar.
+test("O-1 · fase 4c: el titular guardado con la clave de siempre sigue siendo válido; uno desconocido, no", () => {
+  const [k1, k2] = ["SmF2aQ==", "VGVyZQ=="].map((b) => Buffer.from(b, "base64").toString("utf8").toLowerCase());
+  const legado = { deudaId: "wizink", nuevoPrincipal: 5000, nuevoTIN: 0.12, nuevaCuota: 180, nuevoPlazo: 36, titularOrigen: k1, titularDestino: k2 };
+  const ok = schema.validateEscenario(baseEscenario([decision("refinanciacion", legado)]));
+  assert.equal(ok.valid, true, JSON.stringify(ok.issues));
+  const mal = schema.validateEscenario(baseEscenario([decision("refinanciacion", { ...legado, titularDestino: "vecino" })]));
+  assert.equal(mal.valid, false);
+});
+
 test("O-1 · reunificación acepta titularOrigen/titularDestino válidos", () => {
-  const params = { deudaIds: ["wizink", "cetelem"], nuevoPrincipal: 9000, nuevoTIN: 0.15, nuevaCuota: 250, nuevoPlazo: 48, titularOrigen: "hogar", titularDestino: "javi" };
+  const params = { deudaIds: ["wizink", "cetelem"], nuevoPrincipal: 9000, nuevoTIN: 0.15, nuevaCuota: 250, nuevoPlazo: 48, titularOrigen: "hogar", titularDestino: "p1" };
   const result = schema.validateEscenario(baseEscenario([decision("reunificacion", params)]));
   assert.equal(result.valid, true, JSON.stringify(result.issues));
 });
@@ -88,14 +99,14 @@ test("O-1 · applyRefinanciacion propaga titularOrigen/titularDestino al estado 
   const debtContracts = [contract({ id: "wizink", currentPrincipal: 5000 })];
   const decisiones = [decision("refinanciacion", {
     deudaId: "wizink", nuevoPrincipal: 4800, nuevoTIN: 0.08, nuevaCuota: 160, nuevoPlazo: 36,
-    titularOrigen: "javi", titularDestino: "tere",
+    titularOrigen: "p1", titularDestino: "p2",
   })];
   const result = engine.resolveDecisiones(decisiones, { debtContracts });
   assert.equal(result.valid, true);
   assert.equal(result.resultados[0].resultado, "aplicada");
   const wizink = result.debtStateFinal.find((item) => item.id === "wizink");
-  assert.equal(wizink.titularOrigen, "javi");
-  assert.equal(wizink.titularDestino, "tere");
+  assert.equal(wizink.titularOrigen, "p1");
+  assert.equal(wizink.titularDestino, "p2");
   // El principal, cuota, TIN y plazo se siguen sustituyendo exactamente igual que antes de O-1.
   assert.equal(wizink.currentPrincipal, 4800);
   assert.equal(wizink.currentPayment, 160);
@@ -114,13 +125,13 @@ test("O-1 · applyReunificacion propaga titularOrigen/titularDestino a la deuda 
   const debtContracts = [contract({ id: "A", currentPrincipal: 2000 }), contract({ id: "B", currentPrincipal: 1500 })];
   const decisiones = [decision("reunificacion", {
     deudaIds: ["A", "B"], nuevoPrincipal: 3500, nuevoTIN: 0.09, nuevaCuota: 150, nuevoPlazo: 36,
-    titularOrigen: "hogar", titularDestino: "tere",
+    titularOrigen: "hogar", titularDestino: "p2",
   })];
   const result = engine.resolveDecisiones(decisiones, { debtContracts });
   const byId = new Map(result.debtStateFinal.map((item) => [item.id, item]));
   const nueva = byId.get(`reunificada-${decisiones[0].id}`);
   assert.equal(nueva.titularOrigen, "hogar");
-  assert.equal(nueva.titularDestino, "tere");
+  assert.equal(nueva.titularDestino, "p2");
   assert.equal(byId.get("A").titularDestino, undefined, "las deudas cerradas no llevan el titular nuevo");
   assert.equal(byId.get("B").titularDestino, undefined);
 });
@@ -160,6 +171,7 @@ function extractConst(name) {
 
 function sandboxEscenarioMotorTypes() {
   const context = {
+    ...require("./helpers/miembros.cjs"), // fase 4c: el título y el detalle dicen el nombre de la persona, no su clave
     Math, Number, String, Array,
     money: (value) => (Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)} €` : "0.00 €"),
     escenarioMotorTrim: (value, max = 60) => {
@@ -191,7 +203,7 @@ test("O-1 · el formulario de «Cambiar condiciones» (refinanciacion) ofrece ti
   // valor con join(), no con deepEqual, que en modo estricto exige también la misma identidad de
   // constructor Array entre realms.
   const opciones = type.campos.find((field) => field.key === "titularDestino").opciones.map(([value]) => value);
-  assert.equal(Array.from(opciones).join(","), "hogar,javi,tere");
+  assert.equal(Array.from(opciones).join(","), "hogar,p1,p2");
 });
 
 test("O-1 · sin tocar el titular, params() de refinanciacion asume «hogar» en ambos, como cambio_ingreso", () => {
@@ -205,12 +217,12 @@ test("O-1 · sin tocar el titular, params() de refinanciacion asume «hogar» en
 test("O-1 · con titularOrigen distinto de titularDestino, el título y el detalle de refinanciacion lo dicen explícitamente", () => {
   const context = sandboxEscenarioMotorTypes();
   const type = typeById(context, "refinanciacion");
-  const v = { deudaId: "wizink", nuevoPrincipal: 5000, nuevaCuota: 180, nuevoTIN: 0.12, nuevoPlazo: 36, titularOrigen: "javi", titularDestino: "tere" };
+  const v = { deudaId: "wizink", nuevoPrincipal: 5000, nuevaCuota: 180, nuevoTIN: 0.12, nuevoPlazo: 36, titularOrigen: "p1", titularDestino: "p2" };
   const titulo = type.titulo(v, DEBT_LABEL_HELPER);
-  assert.match(titulo, /javi.*tere/);
+  assert.match(titulo, /Persona 1.*Persona 2/);
   const params = type.params(v);
   const detalle = type.detalle({ params });
-  assert.match(detalle, /tere/);
+  assert.match(detalle, /Persona 2/);
 });
 
 test("O-1 · con el mismo titular a ambos lados, el título de refinanciacion no menciona titularidad", () => {
@@ -227,12 +239,12 @@ test("O-1 · reunificacion ofrece los mismos campos de titular y los propaga a t
   const keys = type.campos.map((field) => field.key);
   assert.ok(keys.includes("titularOrigen"));
   assert.ok(keys.includes("titularDestino"));
-  const v = { deudaIds: ["wizink", "cetelem"], nuevoPrincipal: 9000, nuevaCuota: 250, nuevoTIN: 0.15, nuevoPlazo: 48, titularOrigen: "hogar", titularDestino: "tere" };
+  const v = { deudaIds: ["wizink", "cetelem"], nuevoPrincipal: 9000, nuevaCuota: 250, nuevoTIN: 0.15, nuevoPlazo: 48, titularOrigen: "hogar", titularDestino: "p2" };
   const params = type.params(v);
   assert.equal(params.titularOrigen, "hogar");
-  assert.equal(params.titularDestino, "tere");
+  assert.equal(params.titularDestino, "p2");
   const titulo = type.titulo(v);
-  assert.match(titulo, /hogar.*tere/);
+  assert.match(titulo, /Hogar.*Persona 2/);
   const detalle = type.detalle({ params });
-  assert.match(detalle, /tere/);
+  assert.match(detalle, /Persona 2/);
 });

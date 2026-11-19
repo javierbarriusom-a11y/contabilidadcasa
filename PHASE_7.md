@@ -16,7 +16,7 @@ Convertir el flujo mensual en un calendario diario trazable para conocer el punt
 ## Reglas financieras
 
 - La nómina principal se imputa el último día laborable.
-- El salario de Tere se imputa el día 25 y el local el día 1.
+- El salario de Persona 2 se imputa el día 25 y el local el día 1.
 - Los gastos con fecha bancaria identificable conservan esa fecha.
 - Los conceptos sin fecha fiable se alisan entre los días 1 y 15.
 - Un traspaso entre cuentas no crea ni destruye patrimonio.

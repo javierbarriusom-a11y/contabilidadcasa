@@ -23,7 +23,18 @@
   // - Modelo 720: aviso si los valores depositados fuera de España pasan de 50.000 € (bloque de valores, a 31/12).
 
   const SCHEMA_ID = "finance-canonical-tax-report/v1";
-  const HOLDERS = ["javi", "tere"];
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
+    } catch {
+      return null;
+    }
+  }
+  // Privacidad, fase 4d (D-N26): los declarantes son «p1»/«p2»; un titular guardado antes con la clave de siempre se lee igual.
+  const HOLDERS = ["p1", "p2"];
+  const asHolder = (value) => (HOLDERS.includes(value) || value === "household" ? value : householdMembers()?.clave(value) || value);
   const CARRYFORWARD_YEARS = 4;
   const CROSS_LIMIT = 0.25;
   const MODEL_720_THRESHOLD = 50000;
@@ -53,7 +64,9 @@
 
   // Qué parte de una posición (o de un cobro) es de este declarante: la suya entera, la mitad si es conjunta, nada si es
   // del otro. Sin titular declarado, `null`: no se adivina.
-  function holderShare(titular, holder) {
+  function holderShare(rawTitular, rawHolder) {
+    const titular = asHolder(rawTitular);
+    const holder = asHolder(rawHolder);
     if (titular === holder) return 1;
     if (titular === "household") return 0.5;
     if (HOLDERS.includes(titular)) return 0;
@@ -162,8 +175,9 @@
    *   `positions`: normalizadas (con `titular`, `depositario`, `currentValue` y `disposals` con su plusvalía FIFO).
    *   `deferredBySale`: id de venta → pérdida diferida por recompra (negativa), de XIN-02.
    */
-  function taxReport({ year, holder, positions = [], deferredBySale = {}, rendimientos = [], priorLosses = [], savingsScale = null } = {}) {
+  function taxReport({ year, holder: rawHolder, positions = [], deferredBySale = {}, rendimientos = [], priorLosses = [], savingsScale = null } = {}) {
     const targetYear = String(year || "");
+    const holder = asHolder(rawHolder);
     if (!/^\d{4}$/.test(targetYear)) return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-year" };
     if (!HOLDERS.includes(holder)) return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-holder" };
     const missing = [];
@@ -232,9 +246,9 @@
     });
     income.sort((a, b) => a.date.localeCompare(b.date));
 
-    const holderLosses = (Array.isArray(priorLosses) ? priorLosses : []).filter((entry) => entry?.titular === holder);
+    const holderLosses = (Array.isArray(priorLosses) ? priorLosses : []).filter((entry) => asHolder(entry?.titular) === holder);
     // Una pérdida arrastrada sin titular solo bloquea si aún puede aplicarse este ejercicio (dentro de los 4 años).
-    const unassignedLosses = (Array.isArray(priorLosses) ? priorLosses : []).filter((entry) => !HOLDERS.includes(entry?.titular)
+    const unassignedLosses = (Array.isArray(priorLosses) ? priorLosses : []).filter((entry) => !HOLDERS.includes(asHolder(entry?.titular))
       && Number(entry?.year) < Number(targetYear) && Number(entry?.year) >= Number(targetYear) - CARRYFORWARD_YEARS && number(entry?.amount) > 0);
     if (unassignedLosses.length) missing.push({ code: "prior-loss-without-holder", blocking: true, count: unassignedLosses.length });
 

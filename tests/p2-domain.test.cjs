@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const P2 = require("../p2-domain.js");
 
@@ -27,11 +28,11 @@ test("una aportación bancaria no puede financiar dos huchas", () => {
   assert.equal(P2.goalSnapshot(duplicate.state.goals[1]).saved, 0);
 });
 
-test("la titularidad se infiere de forma estable para Javi, Tere y Hogar", () => {
-  assert.equal(P2.inferOwner("Nómina Javi"), "javi");
-  assert.equal(P2.inferOwner("Salario Teresa"), "tere");
+test("la titularidad se infiere de forma estable para persona 1, persona 2 y Hogar", () => {
+  assert.equal(P2.inferOwner(`Nómina ${NOMBRE.p1}`), "p1");
+  assert.equal(P2.inferOwner(`Salario ${NOMBRE.p2Largo}`), "p2");
   assert.equal(P2.inferOwner("Hipoteca vivienda"), "household");
-  assert.equal(P2.normalizeOwner("valor-inválido", "Bonus Javi"), "javi");
+  assert.equal(P2.normalizeOwner("valor-inválido", `Bonus ${NOMBRE.p1}`), "p1");
 });
 
 test("los indicadores de comportamiento solo usan movimientos conciliados", () => {

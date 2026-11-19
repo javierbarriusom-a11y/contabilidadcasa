@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // GOB4 (Oleada 3, Bloque 3): vista por titular en hogar compartido. "Mis metas, mi deuda, mi
-// aportación" separado de la vista agregada, sobre el mismo reparto por titular (javi/tere/hogar)
+// aportación" separado de la vista agregada, sobre el mismo reparto por titular (persona 1/persona 2/hogar)
 // que ya usan las metas (goal.owner) y la deuda (bridge().debts()/p2DebtRows, mismo campo `owner`
 // que ya usa DEB1/AP5) — sin dato nuevo que declarar, solo un filtro de solo lectura.
 
@@ -35,7 +35,7 @@ function gob4RenderFunctionBody() {
 
 test("renderGob4MemberView nunca incluye 'household' — es la vista de un titular en particular, no la agregada", () => {
   const block = gob4RenderFunctionBody();
-  assert.match(block, /\["javi", "tere"\]/);
+  assert.match(block, /\["p1", "p2"\]/);
   assert.doesNotMatch(block, /"household"/);
 });
 
@@ -46,7 +46,7 @@ test("renderGob4MemberView se monta en 'home', visible sin entrar en Ajustes", (
 
 test("cambiar el titular reconstruye el panel completo con el nuevo filtro", () => {
   const block = gob4RenderFunctionBody();
-  assert.match(block, /gob4SelectedMember = event\.target\.value === "tere" \? "tere" : "javi";/);
+  assert.match(block, /gob4SelectedMember = event\.target\.value === "p2" \? "p2" : "p1";/);
   assert.match(block, /renderGob4MemberView\(\);/);
 });
 

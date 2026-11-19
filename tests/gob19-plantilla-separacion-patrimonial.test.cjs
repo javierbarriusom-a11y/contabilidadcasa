@@ -69,22 +69,22 @@ test("gob19DebtsByOwner · agrupa la deuda activa por el titular ya declarado en
       contractRow({ id: "c2", entity: "Banco Y" }),
       contractRow({ id: "c3", entity: "Banco Z" }),
     ],
-    p2State: () => ({ ownership: { "debt|c1": "javi", "debt|c2": "tere" } }),
+    p2State: () => ({ ownership: { "debt|c1": "p1", "debt|c2": "p2" } }),
   });
   const grouped = ctx.gob19DebtsByOwner();
-  assert.equal(grouped.javi.map((c) => c.id).join(","), "c1");
-  assert.equal(grouped.tere.map((c) => c.id).join(","), "c2");
+  assert.equal(grouped.p1.map((c) => c.id).join(","), "c1");
+  assert.equal(grouped.p2.map((c) => c.id).join(","), "c2");
   assert.equal(grouped.household.map((c) => c.id).join(","), "c3");
 });
 
 test("gob19DebtsByOwner · sin titular declarado, cae a P2Domain.inferOwner y luego a household", () => {
   const ctx = sandboxWith(["di5RestructuringContracts", "gob19DebtsByOwner"], {
-    debtContractSourceRows: () => [contractRow({ id: "c1", entity: "Nomina Tere" })],
+    debtContractSourceRows: () => [contractRow({ id: "c1", entity: "Nomina P2" })],
     p2State: () => ({ ownership: {} }),
-    P2Domain: { inferOwner: (label) => (/tere/i.test(label) ? "tere" : "household") },
+    P2Domain: { inferOwner: (label) => (/p2/i.test(label) ? "p2" : "household") },
   });
   const grouped = ctx.gob19DebtsByOwner();
-  assert.equal(grouped.tere.map((c) => c.id).join(","), "c1");
+  assert.equal(grouped.p2.map((c) => c.id).join(","), "c1");
   assert.equal(grouped.household.length, 0);
 });
 
@@ -104,17 +104,17 @@ test("gob19DebtsByOwner · solo deuda activa con cuota (mismo filtro que DI5), l
       contractRow({ id: "c2", paymentStatus: "settled" }),
       contractRow({ id: "c3", currentPayment: 0 }),
     ],
-    p2State: () => ({ ownership: { "debt|c1": "javi", "debt|c2": "javi", "debt|c3": "javi" } }),
+    p2State: () => ({ ownership: { "debt|c1": "p1", "debt|c2": "p1", "debt|c3": "p1" } }),
   });
   const grouped = ctx.gob19DebtsByOwner();
-  assert.equal(grouped.javi.map((c) => c.id).join(","), "c1");
+  assert.equal(grouped.p1.map((c) => c.id).join(","), "c1");
 });
 
 // --- gob19RestructuringSectionHtml ---------------------------------------------------------------
 
 test("gob19RestructuringSectionHtml · sin deuda asignada, lo dice sin pedir ingreso", () => {
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
-  const result = ctx.gob19RestructuringSectionHtml("javi", 0, [], 0.32);
+  const result = ctx.gob19RestructuringSectionHtml("p1", 0, [], 0.32);
   assert.match(result, /Persona 1/);
   assert.match(result, /sin deuda propia asignada/);
 });
@@ -122,7 +122,7 @@ test("gob19RestructuringSectionHtml · sin deuda asignada, lo dice sin pedir ing
 test("gob19RestructuringSectionHtml · con deuda pero sin ingreso, pide el ingreso antes de comparar", () => {
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
   const contracts = [{ id: "c1", label: "Banco X", balance: 10000, rate: 10, monthsRemaining: 24, monthlyPayment: 461.45 }];
-  const result = ctx.gob19RestructuringSectionHtml("tere", 0, contracts, 0.32);
+  const result = ctx.gob19RestructuringSectionHtml("p2", 0, contracts, 0.32);
   assert.match(result, /Persona 2/);
   assert.match(result, /indica su ingreso mensual tras la separación/);
   assert.match(result, /1 contrato/);
@@ -131,14 +131,14 @@ test("gob19RestructuringSectionHtml · con deuda pero sin ingreso, pide el ingre
 test("gob19RestructuringSectionHtml · cuota por debajo del ratio seguro, sin necesidad de reestructurar", () => {
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
   const contracts = [{ id: "c1", label: "Banco X", balance: 10000, rate: 10, monthsRemaining: 24, monthlyPayment: 461.45 }];
-  const result = ctx.gob19RestructuringSectionHtml("javi", 4000, contracts, 0.32);
+  const result = ctx.gob19RestructuringSectionHtml("p1", 4000, contracts, 0.32);
   assert.match(result, /Sin necesidad de reestructurar/);
 });
 
 test("gob19RestructuringSectionHtml · por encima del ratio, reutiliza jointRestructuringPlan (mismo motor que DI5) para proponer alargar plazo", () => {
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
   const contracts = [{ id: "c1", label: "Banco X", balance: 10000, rate: 10, monthsRemaining: 24, monthlyPayment: 461.45 }];
-  const result = ctx.gob19RestructuringSectionHtml("javi", 1000, contracts, 0.32);
+  const result = ctx.gob19RestructuringSectionHtml("p1", 1000, contracts, 0.32);
   assert.match(result, /Banco X/);
   assert.match(result, /alargar de 24 a 36 meses/);
 });
@@ -147,15 +147,15 @@ test("gob19RestructuringSectionHtml · por encima del ratio, reutiliza jointRest
 
 function noteSandbox(extra = {}) {
   const note = { innerHTML: "" };
-  const incomeJavi = { value: extra.incomeJavi ?? "" };
-  const incomeTere = { value: extra.incomeTere ?? "" };
+  const incomeP1 = { value: extra.incomeP1 ?? "" };
+  const incomeP2 = { value: extra.incomeP2 ?? "" };
   const ctx = sandboxWith(
     ["di5RestructuringContracts", "gob19DebtsByOwner", "gob19RestructuringSectionHtml", "handleGob19SeparationTemplate"],
     {
       qs: (id) => {
         if (id === "gob19SeparationNote") return note;
-        if (id === "gob19IncomeJavi") return incomeJavi;
-        if (id === "gob19IncomeTere") return incomeTere;
+        if (id === "gob19IncomeP1") return incomeP1;
+        if (id === "gob19IncomeP2") return incomeP2;
         return null;
       },
       debtContractSourceRows: extra.debtContractSourceRows || (() => []),
@@ -175,7 +175,7 @@ test("handleGob19SeparationTemplate · sin saldo pendiente, lo dice explícitame
 
 test("handleGob19SeparationTemplate · con saldo pendiente, avisa de liquidarlo antes de separar cuentas", () => {
   const { ctx, note } = noteSandbox({
-    a18CurrentProposal: () => ({ hasPendingBalance: true, amount: 150, from: "tere", to: "javi", entryIds: ["e1"] }),
+    a18CurrentProposal: () => ({ hasPendingBalance: true, amount: 150, from: "p2", to: "p1", entryIds: ["e1"] }),
   });
   ctx.handleGob19SeparationTemplate();
   assert.match(note.innerHTML, /Antes de separar cuentas, liquida el saldo pendiente/);
@@ -191,12 +191,12 @@ test("handleGob19SeparationTemplate · avisa de la deuda activa sin titular asig
   assert.match(note.innerHTML, /2 deudas activas siguen a nombre de «Hogar»/);
 });
 
-test("handleGob19SeparationTemplate · reparte la deuda entre Javi y Tere según su titularidad y reestructura cada uno con su propio ingreso", () => {
+test("handleGob19SeparationTemplate · reparte la deuda entre P1 y P2 según su titularidad y reestructura cada uno con su propio ingreso", () => {
   const { ctx, note } = noteSandbox({
-    incomeJavi: "1000",
-    incomeTere: "4000",
+    incomeP1: "1000",
+    incomeP2: "4000",
     debtContractSourceRows: () => [contractRow({ id: "c1" }), contractRow({ id: "c2", entity: "Banco Y" })],
-    p2State: () => ({ ownership: { "debt|c1": "javi", "debt|c2": "tere" } }),
+    p2State: () => ({ ownership: { "debt|c1": "p1", "debt|c2": "p2" } }),
   });
   ctx.handleGob19SeparationTemplate();
   assert.match(note.innerHTML, /Persona 1.*alargar de 24 a 36 meses/s);
@@ -220,8 +220,8 @@ test("wiring: la tarjeta vive en #ajustes-hogar, junto a GOB10, con sus campos, 
   const gob19Start = group.indexOf("Plantilla de separación patrimonial");
   assert.ok(gob19Start > group.indexOf("Registro de decisiones con revisión programada"), "GOB19 debe ir después de GOB10");
   const card = group.slice(gob19Start, gob19Start + 1600);
-  assert.match(card, /id="gob19IncomeJavi"/);
-  assert.match(card, /id="gob19IncomeTere"/);
+  assert.match(card, /id="gob19IncomeP1"/);
+  assert.match(card, /id="gob19IncomeP2"/);
   assert.match(card, /id="gob19SeparationCompare"/);
   assert.match(card, /id="gob19SeparationNote"/);
 });

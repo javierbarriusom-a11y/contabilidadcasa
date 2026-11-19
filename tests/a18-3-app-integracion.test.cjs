@@ -7,7 +7,7 @@ const appSource = codigoApp();
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 
 test("A18-3: la tarjeta de liquidación con doble confirmación tiene sus campos", () => {
-  ["a18SettlementProposal", "a18ConfirmJavi", "a18ConfirmTere", "a18SettlementHistory"].forEach((id) => {
+  ["a18SettlementProposal", "a18ConfirmP1", "a18ConfirmP2", "a18SettlementHistory"].forEach((id) => {
     assert.match(indexSource, new RegExp(`id="${id}"`), `Falta #${id} en la tarjeta de liquidación`);
   });
   const cardStart = indexSource.indexOf("Liquidación con doble confirmación");
@@ -23,7 +23,7 @@ test("A18-3: a18CurrentProposal delega en FinanceCanonicalHouseholdSplit.propose
 });
 
 test("A18-3: confirmA18Settlement nunca registra la liquidación con una sola confirmación", () => {
-  const block = appSource.slice(appSource.indexOf("function confirmA18Settlement("), appSource.indexOf("function confirmA18Settlement(") + 1400);
+  const block = appSource.slice(appSource.indexOf("function confirmA18Settlement("), appSource.indexOf("function confirmA18Settlement(") + 2000) // fase 4: lee también la confirmación a medias de antes;
   assert.match(block, /engine\.confirmSettlement\(/);
   assert.match(block, /result\.status === "confirmed"/);
   assert.match(block, /Falta la de/);
@@ -40,9 +40,9 @@ test("A18-3: sin saldo pendiente, la tarjeta lo dice explícitamente en vez de i
   assert.match(block, /Sin saldo pendiente que liquidar/);
 });
 
-test("A18-3: los botones de confirmación de Javi y Tere están cableados a confirmA18Settlement", () => {
-  assert.match(appSource, /qs\("a18ConfirmJavi"\)\?\.addEventListener\("click", \(\) => confirmA18Settlement\("javi"\)\);/);
-  assert.match(appSource, /qs\("a18ConfirmTere"\)\?\.addEventListener\("click", \(\) => confirmA18Settlement\("tere"\)\);/);
+test("A18-3: los botones de confirmación de P1 y P2 están cableados a confirmA18Settlement", () => {
+  assert.match(appSource, /qs\("a18ConfirmP1"\)\?\.addEventListener\("click", \(\) => confirmA18Settlement\("p1"\)\);/);
+  assert.match(appSource, /qs\("a18ConfirmP2"\)\?\.addEventListener\("click", \(\) => confirmA18Settlement\("p2"\)\);/);
 });
 
 test("A18-3: registrar, quitar o cambiar un gasto/regla/ingreso también refresca la propuesta de liquidación", () => {

@@ -62,8 +62,8 @@ function baseHelpers(extra = {}) {
 // --- canonical-month-close.js / canonical-e5-operations.js: el autor viaja con la operación ------
 
 test("C-10 · closeMonth guarda el autor declarado en la operación", () => {
-  const payload = MonthClose.closeMonth({}, "2026-07", { closedAt: "2026-08-01T00:00:00.000Z", reason: "Mes revisado", author: "javi@example.com" });
-  assert.equal(payload.monthClosures[0].author, "javi@example.com");
+  const payload = MonthClose.closeMonth({}, "2026-07", { closedAt: "2026-08-01T00:00:00.000Z", reason: "Mes revisado", author: "persona1@example.com" });
+  assert.equal(payload.monthClosures[0].author, "persona1@example.com");
 });
 
 test("C-10 · closeMonth sin autor declarado no rompe, queda como cadena vacía", () => {
@@ -73,16 +73,16 @@ test("C-10 · closeMonth sin autor declarado no rompe, queda como cadena vacía"
 
 test("C-10 · reopenMonth guarda el autor declarado en la operación", () => {
   const closed = MonthClose.closeMonth({}, "2026-07", { closedAt: "2026-08-01T00:00:00.000Z", reason: "Cierre" });
-  const reopened = E5.reopenMonth(closed, "2026-07", { reopenedAt: "2026-08-05T00:00:00.000Z", reason: "Corrección", author: "tere@example.com" });
-  assert.equal(reopened.monthClosures[1].author, "tere@example.com");
+  const reopened = E5.reopenMonth(closed, "2026-07", { reopenedAt: "2026-08-05T00:00:00.000Z", reason: "Corrección", author: "persona2@example.com" });
+  assert.equal(reopened.monthClosures[1].author, "persona2@example.com");
 });
 
 // --- cierreVersionRows / cierreVersionsHtml (C-10) -------------------------------------------------
 
 const closures = [
-  { id: "close-1", monthKey: "2026-06", status: "closed", occurredAt: "2026-07-01T00:00:00.000Z", reason: "Cierre de junio", author: "javi@example.com", operation: "month-close" },
-  { id: "close-2", monthKey: "2026-07", status: "closed", occurredAt: "2026-08-01T00:00:00.000Z", reason: "Cierre de julio", author: "javi@example.com", operation: "month-close" },
-  { id: "reopen-1", monthKey: "2026-07", status: "reopened", occurredAt: "2026-08-05T00:00:00.000Z", reason: "Corrección de un gasto", author: "tere@example.com", operation: "month-reopen" },
+  { id: "close-1", monthKey: "2026-06", status: "closed", occurredAt: "2026-07-01T00:00:00.000Z", reason: "Cierre de junio", author: "persona1@example.com", operation: "month-close" },
+  { id: "close-2", monthKey: "2026-07", status: "closed", occurredAt: "2026-08-01T00:00:00.000Z", reason: "Cierre de julio", author: "persona1@example.com", operation: "month-close" },
+  { id: "reopen-1", monthKey: "2026-07", status: "reopened", occurredAt: "2026-08-05T00:00:00.000Z", reason: "Corrección de un gasto", author: "persona2@example.com", operation: "month-reopen" },
 ];
 
 test("C-10 · cada versión aparece como su propia fila, nunca se sobrescribe", () => {
@@ -140,7 +140,7 @@ test("C-11 · un mes cuya última operación es una reapertura cuenta como actua
 test("C-11 · un mes reabierto y vuelto a cerrar deja de contar como reabierto", () => {
   const recloseAfterReopen = [
     ...closures,
-    { id: "close-3", monthKey: "2026-07", status: "closed", occurredAt: "2026-08-10T00:00:00.000Z", reason: "Vuelto a firmar", author: "javi@example.com", operation: "month-close" },
+    { id: "close-3", monthKey: "2026-07", status: "closed", occurredAt: "2026-08-10T00:00:00.000Z", reason: "Vuelto a firmar", author: "persona1@example.com", operation: "month-close" },
   ];
   const context = sandboxWith(["cierreMonthsCurrentlyReopened"], baseHelpers({ monthClosures: recloseAfterReopen }));
   assert.ok(!context.cierreMonthsCurrentlyReopened().has("2026-07"));
@@ -156,7 +156,7 @@ test("C-11 · sin ningún cierre todavía, no hay ningún mes reabierto", () => 
 test("C-12 · la evidencia incluye la versión, las cuentas y el recuento de diferencias abiertas", () => {
   const context = sandboxWith(["cierreEvidenceRows"], baseHelpers());
   const accountRows = [{ label: "CaixaBank", declared: 100, calculated: 100, diff: 0, status: "cuadra" }];
-  const closure = { id: "close-2", closedAt: "2026-08-01T00:00:00.000Z", author: "javi@example.com", reason: "Cierre de julio" };
+  const closure = { id: "close-2", closedAt: "2026-08-01T00:00:00.000Z", author: "persona1@example.com", reason: "Cierre de julio" };
   const evidence = context.cierreEvidenceRows(accountRows, [], closure, "2026-07");
   assert.equal(evidence.version.id, "close-2");
   assert.equal(evidence.accounts.length, 1);

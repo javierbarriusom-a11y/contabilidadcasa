@@ -21,8 +21,8 @@ const monthlyInput = {
       month: "oct 2026",
       mainPayrollDate: "2026-10-31",
       incomeEvents: [
-        { amount: 3000, concept: "Nómina Javi", date: "2026-10-31", confidence: "rule", role: "main-payroll" },
-        { amount: 2000, label: "Nómina Tere", date: "2026-10-25" },
+        { amount: 3000, concept: "Nómina Ana", date: "2026-10-31", confidence: "rule", role: "main-payroll" },
+        { amount: 2000, label: "Nómina Luis", date: "2026-10-25" },
       ],
       expenseEvents: [
         { field: "fixedCoreSpend", amount: 1000, concept: "Alquiler", date: "2026-10-01" },

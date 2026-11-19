@@ -21,19 +21,19 @@ test("sin la fecha de hoy no hay recordatorios: dice qué falta", () => {
 });
 
 test("cobro: aviso dos días antes, solo con fecha segura, y agrupa los cobros del mismo día", () => {
-  const r = R.build({ ...base, options: onlyKind("income"), incomes: [income("2026-10-31", "Nómina Javi", 3000), income("2026-10-31", "Local", 800), income("2026-10-25", "Nómina Tere", 2000, "observed"), income("2026-11-08", "Relleno", 500, "estimated")] });
+  const r = R.build({ ...base, options: onlyKind("income"), incomes: [income("2026-10-31", "Nómina Ana", 3000), income("2026-10-31", "Local", 800), income("2026-10-25", "Nómina Luis", 2000, "observed"), income("2026-11-08", "Relleno", 500, "estimated")] });
   assert.deepEqual(r.events.map((event) => [event.date, event.uid]), [["2026-10-23", "rec-cobro-2026-10-25"], ["2026-10-29", "rec-cobro-2026-10-31"]]);
   assert.equal(r.skipped.uncertainIncomes, 1, "el cobro con fecha estimada no genera aviso, pero se cuenta");
   const grouped = r.events[1];
-  assert.match(grouped.description, /Nómina Javi, Local/);
+  assert.match(grouped.description, /Nómina Ana, Local/);
   assert.match(grouped.description, /3\.800,00 €/);
   assert.equal(grouped.title, "Cobro en 2 días: actualizad saldos");
 });
 
 test("el título (lo que sale en la pantalla de bloqueo) no lleva importes ni nombres; el detalle sí", () => {
-  const r = R.build({ ...base, incomes: [income("2026-10-31", "Nómina Javi", 3000)], outflows: [charge("2026-10-20", "Seguro de salud", 1200)] });
+  const r = R.build({ ...base, incomes: [income("2026-10-31", "Nómina Ana", 3000)], outflows: [charge("2026-10-20", "Seguro de salud", 1200)] });
   r.events.forEach((event) => {
-    assert.doesNotMatch(event.title, /\d[\d.,]*\s*€|Javi|Seguro|nómina/i, `el título «${event.title}» enseña un dato privado`);
+    assert.doesNotMatch(event.title, /\d[\d.,]*\s*€|\bAna\b|Seguro|nómina/i, `el título «${event.title}» enseña un dato privado`);
   });
   assert.match(r.events.find((event) => event.kind === "income").description, /3\.000,00 €/);
   assert.match(r.events.find((event) => event.kind === "bigCharge").description, /Seguro de salud/);

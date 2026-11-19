@@ -10,7 +10,7 @@ const Split = require("../canonical-household-split.js");
 // una sola confirmación.
 
 function settingsWith(overrides = {}) {
-  return { incomes: { javi: 0, tere: 0 }, defaultRule: { mode: "equal", payer: "javi", amount: null }, categoryRules: {}, ...overrides };
+  return { incomes: { p1: 0, p2: 0 }, defaultRule: { mode: "equal", payer: "p1", amount: null }, categoryRules: {}, ...overrides };
 }
 
 test("sin gastos compartidos, no hay saldo pendiente que proponer", () => {
@@ -20,19 +20,19 @@ test("sin gastos compartidos, no hay saldo pendiente que proponer", () => {
 });
 
 test("con saldo pendiente, la propuesta trae importe, dirección y los gastos exactos que cubre", () => {
-  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "javi" }];
+  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "p1" }];
   const proposal = Split.proposeSettlement(entries, settingsWith());
   assert.equal(proposal.hasPendingBalance, true);
   assert.equal(proposal.amount, 50);
-  assert.equal(proposal.from, "tere");
-  assert.equal(proposal.to, "javi");
+  assert.equal(proposal.from, "p2");
+  assert.equal(proposal.to, "p1");
   assert.deepEqual(proposal.entryIds, ["1"]);
 });
 
 test("pendingSplitEntries excluye los gastos que una liquidación anterior ya cubrió", () => {
   const entries = [
-    { id: "1", category: "Ocio", amount: 100, paidBy: "javi" },
-    { id: "2", category: "Ocio", amount: 40, paidBy: "javi" },
+    { id: "1", category: "Ocio", amount: 100, paidBy: "p1" },
+    { id: "2", category: "Ocio", amount: 40, paidBy: "p1" },
   ];
   const pending = Split.pendingSplitEntries(entries, ["1"]);
   assert.equal(pending.length, 1);
@@ -41,54 +41,54 @@ test("pendingSplitEntries excluye los gastos que una liquidación anterior ya cu
 
 test("un gasto ya liquidado no vuelve a aparecer en la propuesta: el saldo pendiente solo mira lo nuevo", () => {
   const entries = [
-    { id: "1", category: "Ocio", amount: 100, paidBy: "javi" },
-    { id: "2", category: "Ocio", amount: 40, paidBy: "tere" },
+    { id: "1", category: "Ocio", amount: 100, paidBy: "p1" },
+    { id: "2", category: "Ocio", amount: 40, paidBy: "p2" },
   ];
   const proposal = Split.proposeSettlement(entries, settingsWith(), ["1"]);
   assert.equal(proposal.hasPendingBalance, true);
   assert.deepEqual(proposal.entryIds, ["2"]);
-  assert.equal(proposal.from, "javi");
+  assert.equal(proposal.from, "p1");
   assert.equal(proposal.amount, 20);
 });
 
 test("con todos los gastos ya liquidados, no queda saldo pendiente", () => {
-  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "javi" }];
+  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "p1" }];
   const proposal = Split.proposeSettlement(entries, settingsWith(), ["1"]);
   assert.equal(proposal.hasPendingBalance, false);
 });
 
 test("confirmSettlement sin propuesta pendiente nunca registra nada", () => {
-  const result = Split.confirmSettlement({ hasPendingBalance: false }, { javi: true, tere: true });
+  const result = Split.confirmSettlement({ hasPendingBalance: false }, { p1: true, p2: true });
   assert.equal(result.status, "no-pending-balance");
 });
 
 test("con una sola confirmación, queda en pending y dice explícitamente quién falta", () => {
-  const proposal = Split.proposeSettlement([{ id: "1", category: "Ocio", amount: 100, paidBy: "javi" }], settingsWith());
-  const result = Split.confirmSettlement(proposal, { javi: true, tere: false });
+  const proposal = Split.proposeSettlement([{ id: "1", category: "Ocio", amount: 100, paidBy: "p1" }], settingsWith());
+  const result = Split.confirmSettlement(proposal, { p1: true, p2: false });
   assert.equal(result.status, "pending");
-  assert.deepEqual(result.missing, ["tere"]);
+  assert.deepEqual(result.missing, ["p2"]);
 });
 
 test("sin ninguna confirmación, faltan ambas partes", () => {
-  const proposal = Split.proposeSettlement([{ id: "1", category: "Ocio", amount: 100, paidBy: "javi" }], settingsWith());
+  const proposal = Split.proposeSettlement([{ id: "1", category: "Ocio", amount: 100, paidBy: "p1" }], settingsWith());
   const result = Split.confirmSettlement(proposal, {});
   assert.equal(result.status, "pending");
-  assert.deepEqual(result.missing, ["javi", "tere"]);
+  assert.deepEqual(result.missing, ["p1", "p2"]);
 });
 
 test("con ambas confirmaciones, la liquidación queda confirmada y registrada con los mismos gastos de la propuesta", () => {
-  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "javi" }];
+  const entries = [{ id: "1", category: "Ocio", amount: 100, paidBy: "p1" }];
   const proposal = Split.proposeSettlement(entries, settingsWith());
-  const result = Split.confirmSettlement(proposal, { javi: true, tere: true });
+  const result = Split.confirmSettlement(proposal, { p1: true, p2: true });
   assert.equal(result.status, "confirmed");
   assert.equal(result.amount, 50);
-  assert.equal(result.from, "tere");
-  assert.equal(result.to, "javi");
+  assert.equal(result.from, "p2");
+  assert.equal(result.to, "p1");
   assert.deepEqual(result.entryIds, ["1"]);
   assert.ok(result.id);
   assert.ok(result.confirmedAt);
-  assert.ok(result.javiConfirmedAt);
-  assert.ok(result.tereConfirmedAt);
+  assert.ok(result.p1ConfirmedAt);
+  assert.ok(result.p2ConfirmedAt);
 });
 
 test("proposeSettlement, confirmSettlement y pendingSplitEntries están expuestas en el motor canónico", () => {

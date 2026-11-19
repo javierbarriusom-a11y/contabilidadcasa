@@ -359,7 +359,7 @@ test("la hoja: una sola tarjeta se elige sola; la última usada se recuerda; el 
   assert.equal(link.elements.capturaHojaConcept.value, "Mercadona");
   assert.equal(link.elements.capturaHojaNote.hidden, false);
   assert.equal(link.elements.capturaHojaSubmit.focused, 1, "con todo relleno, el foco va a Guardar");
-  const ambiguous = sheetSandbox({ cards: [{ ...CARD_A, label: "Carrefour Javi" }, { ...CARD_A, id: "t2", label: "Carrefour Tere" }] });
+  const ambiguous = sheetSandbox({ cards: [{ ...CARD_A, label: "Carrefour Ana" }, { ...CARD_A, id: "t2", label: "Carrefour Luis" }] });
   ambiguous.api.openCapturaHoja({ account: "Carrefour" });
   assert.equal(ambiguous.api.getSheet().cardId, "", "un nombre que vale para dos tarjetas no elige ninguna");
 });

@@ -23,7 +23,8 @@
       saved,
       remaining: round2(Math.max(0, target - saved)),
       targetDate: text(raw.targetDate),
-      owner: ["household", "javi", "tere"].includes(raw.owner) ? raw.owner : "household",
+      // Privacidad, fase 4d: «p1»/«p2»; lo guardado antes con la clave de siempre se lee igual (household-members.js).
+      owner: ["household", "p1", "p2"].includes(raw.owner) ? raw.owner : globalThis.FinanceHouseholdMembers?.clave(raw.owner) || "household",
       priority,
       flexibility: ["fixed", "flexible"].includes(raw.flexibility) ? raw.flexibility : "flexible",
       fundingSource: ["savings", "income", "debt", "other"].includes(raw.fundingSource) ? raw.fundingSource : "savings",

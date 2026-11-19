@@ -224,7 +224,8 @@ function escenarioMotorFieldControlHtml(field, months, values, { idPrefix = "esc
       return `<select ${attrs}>${escenarioMotorMonthOptionsHtml(months, value, "Hasta el final del horizonte")}</select>`;
     case "select":
       return `<select ${attrs}>${(field.opciones || [])
-        .map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}"${optionValue === value ? " selected" : ""}>${escapeHtml(typeof memberTemplate === "function" ? memberTemplate(optionLabel) : optionLabel)}</option>`)
+        // Fase 4c: un titular guardado antes con la clave de siempre marca su opción «p1»/«p2».
+        .map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}"${optionValue === value || (typeof memberKey === "function" && memberKey(value) === optionValue) ? " selected" : ""}>${escapeHtml(typeof memberTemplate === "function" ? memberTemplate(optionLabel) : optionLabel)}</option>`)
         .join("")}</select>`;
     case "checkbox":
       return `<input ${attrs} type="checkbox"${value === true ? " checked" : ""} />`;

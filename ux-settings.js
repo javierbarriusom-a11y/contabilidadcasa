@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createFinanceUxSettings() {
   "use strict";
 
-  const FAMILY_CONTEXTS = ["household", "javi", "tere"];
+  const FAMILY_CONTEXTS = ["household", "p1", "p2"]; // privacidad, fase 4d: lo guardado antes con la clave de siempre se lee igual
   const ALERT_METRICS = ["caixaBalance", "minimumCash12m", "minimumCashMonths", "debtRatio", "freeCapacity"];
 
   function normalizeText(value) {
@@ -17,7 +17,7 @@
   }
 
   function normalizeFamilyContext(value) {
-    return FAMILY_CONTEXTS.includes(value) ? value : "household";
+    return FAMILY_CONTEXTS.includes(value) ? value : householdMembers()?.clave(value) || "household";
   }
 
   // Privacidad, fase 3: a quién nombra un texto lo dice household-members.js, por huellas (sin los nombres en el código).

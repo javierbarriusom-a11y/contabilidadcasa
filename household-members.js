@@ -134,7 +134,31 @@
     return { p1: limpio(entrada.p1), p2: limpio(entrada.p2) };
   }
 
-  const api = { PERSONAS, POR_DEFECTO, MAX_NOMBRE, normal, huella, clave, personasEnTexto, nombra, nominaDe, contieneHuella, etiqueta, plantilla, normalizar };
+  // Fase 4 (D-N26): las claves internas pasan a «p1»/«p2». Lo guardado antes lleva la clave de siempre de cada persona; estas
+  // ayudas leen las dos formas (la de siempre, por su huella), para que una copia antigua dé las mismas cifras sin escribir aquí
+  // las claves. Lo que se escribe a partir de ahora va con «p1»/«p2».
+  /** La persona de un valor, o `porDefecto` si no es ninguna de las dos. */
+  function persona(valor, porDefecto = null) {
+    return clave(valor) || porDefecto;
+  }
+
+  /** El valor de una persona en un objeto: `obj.p1`, o el de su clave de siempre. */
+  function valor(obj, quien) {
+    if (!obj || typeof obj !== "object") return undefined;
+    if (obj[quien] !== undefined) return obj[quien];
+    const k = Object.keys(obj).find((key) => !PERSONAS.includes(key) && clave(key) === quien);
+    return k === undefined ? undefined : obj[k];
+  }
+
+  /** Igual, para campos «<persona><Sufijo>» (p. ej. «p1ConfirmedAt» o el de la clave de siempre). */
+  function valorSufijo(obj, quien, sufijo) {
+    if (!obj || typeof obj !== "object") return undefined;
+    if (obj[`${quien}${sufijo}`] !== undefined) return obj[`${quien}${sufijo}`];
+    const k = Object.keys(obj).find((key) => key.endsWith(sufijo) && key.length > sufijo.length && clave(key.slice(0, -sufijo.length)) === quien);
+    return k === undefined ? undefined : obj[k];
+  }
+
+  const api = { PERSONAS, persona, valor, valorSufijo, POR_DEFECTO, MAX_NOMBRE, normal, huella, clave, personasEnTexto, nombra, nominaDe, contieneHuella, etiqueta, plantilla, normalizar };
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.FinanceHouseholdMembers = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -157,6 +181,15 @@ function memberLabel(valor) {
 // ¿Es la nómina o el salario de la persona?
 function memberPayroll(texto, persona) {
   return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.nominaDe(texto, persona, householdNames()) : false;
+}
+
+// Fase 4: el valor de una persona en un objeto guardado (con «p1»/«p2» o con la clave de siempre).
+function memberValue(obj, persona) {
+  return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.valor(obj, persona) : obj?.[persona];
+}
+
+function memberValueSuffix(obj, persona, sufijo) {
+  return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.valorSufijo(obj, persona, sufijo) : obj?.[`${persona}${sufijo}`];
 }
 
 // «p1», «p2» o null para una clave de los datos (la de siempre o la neutra).
