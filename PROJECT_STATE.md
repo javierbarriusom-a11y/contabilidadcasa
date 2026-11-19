@@ -131,7 +131,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - nuevo ayudante: `tests/helpers/miembros.cjs`;
   - actualizadas a propósito: cinco pruebas que ejecutan funciones de `app.js` aisladas, tres de las reglas de fechas (y su fichero de referencia `ntc1-timing-golden.json`), dos de la renta y tres e2e de la renta, que esperan ahora «Persona 1/2» o la etiqueta neutra;
   - inventario de superficie: Ajustes pasa de 5 a 6 desplegables; los titulares no cambian.
-- **Validación:** VALIDACION_PENDIENTE
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.775/6.775 (+6). En la primera pasada, `eslint` paró por una función de prueba que había quedado sin uso; quitada. **Batería completa de navegador en local (e2e + axe): 463 de 463** (24,9 min). Safari, solo en el CI.
 
 ## Cierre de sesión — 19 de noviembre de 2026 (500): despliegue de #641
 
