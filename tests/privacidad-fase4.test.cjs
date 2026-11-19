@@ -80,3 +80,20 @@ test("fase 4a · la separación patrimonial agrupa por persona tanto la titulari
   assert.doesNotMatch(motor, palabra);
   ["householdSplitSettings", "saveA18Incomes", "saveA18Entry", "confirmA18Settlement", "renderA18SettlementCard", "gob19DebtsByOwner", "di5ProposalsByOwner"].forEach((fn) => assert.doesNotMatch(extract(fn), palabra, fn));
 });
+
+// 4b · el crédito de la persona 2 del simulador «nueva vida» (scenarioSettings.executiveAdvisor).
+test("fase 4b · el crédito guardado con la clave de siempre se lee igual y se vuelve a guardar como «p2Credit…»", () => {
+  const context = {
+    ...miembros, round2: (v) => Math.round(Number(v) * 100) / 100,
+    DEFAULT_EXECUTIVE_CAR_COST: 1, DEFAULT_EXECUTIVE_CAR_RESERVE: 2, DEFAULT_EXECUTIVE_P2_CREDIT_CAPITAL: 3, DEFAULT_EXECUTIVE_P2_CREDIT_PAYMENT: 4, DEFAULT_EXECUTIVE_P2_CREDIT_MONTHS: 5,
+    scenarioSettings: { executiveAdvisor: { carCost: 9000, [`${K2}CreditCapital`]: 12000, [`${K2}CreditPayment`]: 250, [`${K2}CreditMonths`]: 48 } },
+  };
+  vm.createContext(context);
+  vm.runInContext(extract("executiveAdvisorSettings"), context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.executiveAdvisorSettings())), { carCost: 9000, carReserve: 2, p2CreditCapital: 12000, p2CreditPayment: 250, p2CreditMonths: 48 });
+  context.scenarioSettings.executiveAdvisor = { p2CreditCapital: 15000 };
+  assert.equal(context.executiveAdvisorSettings().p2CreditCapital, 15000);
+  assert.equal(context.executiveAdvisorSettings().p2CreditMonths, 5, "sin nada guardado, lo de por defecto");
+  // Guardar escribe el objeto entero ya normalizado: no arrastra la clave de siempre.
+  assert.match(extract("saveExecutiveAdvisorSettingsFromControls"), /scenarioSettings\.executiveAdvisor = \{\n {4}\.\.\.settings,/);
+});

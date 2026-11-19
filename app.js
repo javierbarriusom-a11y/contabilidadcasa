@@ -9176,13 +9176,13 @@ function renderDecisionComparator(baseRows, rows) {
   if (!target) return;
   const placements = projectPlan.placements || [];
   const noExternalCredit = placements.filter((item) => decisionCreditCapital(item) <= 0 && item.projectKind !== "external-credit");
-  const tereCredit = placements.filter(
+  const p2Credit = placements.filter(
     (item) => item.source !== "debt" && (decisionCreditCapital(item) <= 0 || decisionOwnerKey(item) === "p2"),
   );
   const allLoaded = placements;
   const scenarios = [
     decisionScenarioMetrics("Sin crédito externo", noExternalCredit),
-    decisionScenarioMetrics(memberTemplate("Con crédito de {p2}"), tereCredit),
+    decisionScenarioMetrics(memberTemplate("Con crédito de {p2}"), p2Credit),
     decisionScenarioMetrics("Crédito + deuda", allLoaded),
   ];
   const bestMin = Math.max(...scenarios.map((item) => item.minChecking));
@@ -12571,25 +12571,27 @@ function prepareAgentProjectDecision(projectId) {
 
 const DEFAULT_EXECUTIVE_CAR_COST = 25000;
 const DEFAULT_EXECUTIVE_CAR_RESERVE = 8000;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL = 15000;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT = 320;
-const DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS = 60;
+const DEFAULT_EXECUTIVE_P2_CREDIT_CAPITAL = 15000;
+const DEFAULT_EXECUTIVE_P2_CREDIT_PAYMENT = 320;
+const DEFAULT_EXECUTIVE_P2_CREDIT_MONTHS = 60;
 
 function executiveAdvisorSettings() {
   scenarioSettings.executiveAdvisor = scenarioSettings.executiveAdvisor || {};
   const settings = scenarioSettings.executiveAdvisor;
+  // Privacidad, fase 4b: el crédito de la persona 2 se guarda como «p2Credit…»; lo guardado antes, con la clave de siempre, se lee igual.
+  const credit = (sufijo) => memberValueSuffix(settings, "p2", sufijo);
   return {
     carCost: Number.isFinite(Number(settings.carCost)) ? round2(Number(settings.carCost)) : DEFAULT_EXECUTIVE_CAR_COST,
     carReserve: Number.isFinite(Number(settings.carReserve)) ? round2(Number(settings.carReserve)) : DEFAULT_EXECUTIVE_CAR_RESERVE,
-    tereCreditCapital: Number.isFinite(Number(settings.tereCreditCapital))
-      ? round2(Number(settings.tereCreditCapital))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL,
-    tereCreditPayment: Number.isFinite(Number(settings.tereCreditPayment))
-      ? round2(Number(settings.tereCreditPayment))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
-    tereCreditMonths: Number.isFinite(Number(settings.tereCreditMonths))
-      ? Math.max(1, Number(settings.tereCreditMonths))
-      : DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
+    p2CreditCapital: Number.isFinite(Number(credit("CreditCapital")))
+      ? round2(Number(credit("CreditCapital")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_CAPITAL,
+    p2CreditPayment: Number.isFinite(Number(credit("CreditPayment")))
+      ? round2(Number(credit("CreditPayment")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_PAYMENT,
+    p2CreditMonths: Number.isFinite(Number(credit("CreditMonths")))
+      ? Math.max(1, Number(credit("CreditMonths")))
+      : DEFAULT_EXECUTIVE_P2_CREDIT_MONTHS,
   };
 }
 
@@ -12611,9 +12613,9 @@ function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
     ...settings,
     carReserve: parseAmount(qs("executiveCarReserve")?.value) ?? settings.carReserve,
     carCost: parseAmount(qs("executiveCarCost")?.value) ?? settings.carCost,
-    tereCreditCapital: parseAmount(qs("executiveTereCreditCapital")?.value) ?? settings.tereCreditCapital,
-    tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
-    tereCreditMonths: settings.tereCreditMonths,
+    p2CreditCapital: parseAmount(qs("executiveP2CreditCapital")?.value) ?? settings.p2CreditCapital,
+    p2CreditPayment: parseAmount(qs("executiveP2CreditPayment")?.value) ?? settings.p2CreditPayment,
+    p2CreditMonths: settings.p2CreditMonths,
   };
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
@@ -19217,13 +19219,13 @@ function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const carAffordability = bigPurchaseAffordability(plan, {
     costeObjetivo: settings.carCost,
     colchonObjetivo: settings.carReserve,
-    capitalFinanciacion: settings.tereCreditCapital,
-    cuotaFinanciacion: settings.tereCreditPayment,
+    capitalFinanciacion: settings.p2CreditCapital,
+    cuotaFinanciacion: settings.p2CreditPayment,
     avgIncome,
     avgDebt,
   });
   const debtRatio = carAffordability.debtRatio;
-  const debtRatioWithTere = carAffordability.debtRatioWithCredit;
+  const debtRatioWithP2Credit = carAffordability.debtRatioWithCredit;
   const maxSafeTerePayment = carAffordability.maxSafePayment;
   const bestDebtStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = bestDebtStep?.candidate || agentDebtRecommendations(plan)[0] || null;
@@ -19249,7 +19251,7 @@ function executiveAdvisorContext({ allowHeavy = true } = {}) {
     avgIncome,
     avgDebt,
     debtRatio,
-    debtRatioWithTere,
+    debtRatioWithP2Credit,
     maxSafeTerePayment,
     bestDebtStep,
     bestDebt,
@@ -19389,8 +19391,8 @@ function executiveActions(ctx) {
     tone: ctx.safeCredit ? "good" : "danger",
     title: memberTemplate("Financiación de {p2} para coche"),
     text: ctx.safeCredit
-      ? `Con ${money(ctx.settings.tereCreditCapital, true)} de capital y cuota ${money(ctx.settings.tereCreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithTere.toFixed(1)}%.`
-      : `Con cuota ${money(ctx.settings.tereCreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithTere.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
+      ? `Con ${money(ctx.settings.p2CreditCapital, true)} de capital y cuota ${money(ctx.settings.p2CreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithP2Credit.toFixed(1)}%.`
+      : `Con cuota ${money(ctx.settings.p2CreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithP2Credit.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
     action: "p2-credit",
     label: "Simular crédito",
     rank: 4,
@@ -20373,9 +20375,9 @@ function prepareExecutiveCarProject(useCredit = false) {
     if (qs("projectName")) qs("projectName").value = useCredit ? memberTemplate("Compra coche con financiación de {p2}") : "Colchón coche";
     if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(useCredit ? settings.carCost : settings.carReserve);
     if (qs("projectDuration")) qs("projectDuration").value = "1";
-    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.tereCreditCapital) : "";
-    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = useCredit ? amountInputValue(settings.tereCreditPayment) : "";
-    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = useCredit ? String(settings.tereCreditMonths) : "0";
+    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.p2CreditCapital) : "";
+    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = useCredit ? amountInputValue(settings.p2CreditPayment) : "";
+    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = useCredit ? String(settings.p2CreditMonths) : "0";
     if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "same";
     setProjectMode("optimize");
     updateProjectKindUi();
@@ -30984,7 +30986,7 @@ async function init() {
   });
   qs("agentYear")?.addEventListener("change", () => renderSavingsAgent());
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
-  ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {
+  ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveP2CreditCapital", "executiveP2CreditPayment"].forEach((id) => {
     qs(id)?.addEventListener("input", () => saveExecutiveAdvisorSettingsFromControls({ rerender: false }));
     qs(id)?.addEventListener("change", () => saveExecutiveAdvisorSettingsFromControls({ rerender: true }));
   });

@@ -586,22 +586,22 @@ test("partidasNextMonthPlannedExpenses lee el mes siguiente de lastSimulation au
   assert.equal(JSON.stringify(result), JSON.stringify([1200, 0]));
 });
 
-test("partidasTereSalaryByMonth solo suma filas de ingresos cuyo nombre combine «tere» con «nomina»/«salario»", () => {
-  const context = transferContext(["partidasTereSalaryByMonth"], {
+test("partidasP2SalaryByMonth solo suma filas de ingresos cuyo nombre combine «tere» con «nomina»/«salario»", () => {
+  const context = transferContext(["partidasP2SalaryByMonth"], {
     baseData: { monthlyPlanning: { sections: [{ name: "Ingresos", kind: "income" }, { name: "Gastos fijos", kind: "expense" }] } },
     visualRowsForSection: (section) => (section.kind === "income" ? [{ label: "Nómina Tere" }, { label: "Bonus Javi" }] : []),
     visualDisplayLabel: (row) => row.label,
     visualCellValue: (row) => (row.label === "Nómina Tere" ? 1850 : 500),
   });
   const months = [{ key: "2026-09" }];
-  assert.equal(JSON.stringify(context.partidasTereSalaryByMonth(months)), JSON.stringify([1850]));
+  assert.equal(JSON.stringify(context.partidasP2SalaryByMonth(months)), JSON.stringify([1850]));
 });
 
 test("partidasTransferRowsHtml reutiliza partidasCalculatedRowHtml para las cuatro filas heredadas, en un bloque con cabecera propia", () => {
   const source = extractFunction("partidasTransferRowsHtml");
   assert.match(source, /partidasAvailableForTransferByMonth\(/);
   assert.match(source, /partidasNextMonthPlannedExpenses\(/);
-  assert.match(source, /partidasTereSalaryByMonth\(/);
+  assert.match(source, /partidasP2SalaryByMonth\(/);
   assert.match(source, /partidasCalculatedRowHtml\("transfer-section"/);
   assert.match(source, /partidasCalculatedRowHtml\("transfer-adjusted-section"/);
   assert.match(source, /partidasCalculatedRowHtml\("transfer-prudent-section"/);

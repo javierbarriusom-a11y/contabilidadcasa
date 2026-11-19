@@ -200,8 +200,8 @@ function renderNewLifeActions(ctx) {
     tone: ctx.safeCredit ? "good" : "danger",
     title: "Decidir coche sin romper caja",
     text: ctx.safeCredit
-      ? `La financiación de ${memberLabel("p2")} parece prudente con cuota ${money(ctx.settings.tereCreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%.`
-      : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% y límite prudente 32%.`,
+      ? `La financiación de ${memberLabel("p2")} parece prudente con cuota ${money(ctx.settings.p2CreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithP2Credit.toFixed(1)}%.`
+      : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithP2Credit.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% y límite prudente 32%.`,
     action: ctx.safeCredit ? "p2-credit" : "car-project",
     label: ctx.safeCredit ? "Simular crédito" : "Preparar hucha",
   });
@@ -284,10 +284,10 @@ function renderNewLifeScenarios(ctx) {
     {
       title: memberTemplate("Coche con crédito de {p2}"),
       badge: ctx.safeCredit ? "viable" : "vigilar",
-      main: money(ctx.settings.tereCreditCapital, true),
+      main: money(ctx.settings.p2CreditCapital, true),
       rows: [
-        ["Cuota", `${money(ctx.settings.tereCreditPayment, true)}/mes`],
-        ["Ratio deuda", `${ctx.debtRatio.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% -> ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`],
+        ["Cuota", `${money(ctx.settings.p2CreditPayment, true)}/mes`],
+        ["Ratio deuda", `${ctx.debtRatio.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% -> ${ctx.debtRatioWithP2Credit.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`],
         ["Mes coche", ctx.carWithCreditMonth?.month || "No alcanzado"],
       ],
     },
