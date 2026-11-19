@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { codigoApp } = require("./helpers/codigo-app.cjs");
+const miembros = require("./helpers/miembros.cjs");
 
 // Decisión del hogar (1 de octubre de 2026): Javi cobra el último día NATURAL del mes y nunca el día 1.
 // La app lo fechaba el último día HÁBIL (`lastBusinessDayOfMonth`): uno o dos días antes que la
@@ -43,7 +44,7 @@ function loadSandbox() {
     // Sin movimientos importados: equivale al antiguo `incomeTimingFromMovements() { return null; }`.
     "this.incomeTimingForRow = FinanceCanonicalTiming.createTimingEngine({ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: () => [] }).incomeTimingForRow;",
   ].join("\n");
-  const sandbox = {};
+  const sandbox = { ...miembros };
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox);
   return sandbox;

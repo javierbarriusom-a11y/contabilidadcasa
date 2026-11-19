@@ -20,6 +20,21 @@
     return FAMILY_CONTEXTS.includes(value) ? value : "household";
   }
 
+  // Privacidad, fase 3: a quién nombra un texto lo dice household-members.js, por huellas (sin los nombres en el código).
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      return typeof require === "function" ? require("./household-members.js") : null;
+    } catch {
+      return null;
+    }
+  }
+  function personasEnTexto(texto) {
+    const miembros = householdMembers();
+    const nombres = typeof globalThis !== "undefined" && typeof globalThis.householdNames === "function" ? globalThis.householdNames() : {};
+    return miembros ? miembros.personasEnTexto(texto, nombres) : [];
+  }
+
   function inferOwner(row = {}, sectionName = "") {
     const explicit = normalizeText(row.owner || row.holder || row.titular || row.person || "");
     const haystack = normalizeText([
@@ -30,8 +45,11 @@
       row.group,
       sectionName,
     ].filter(Boolean).join(" "));
-    if (/\btere\b|teresa/.test(explicit) || /\btere\b|teresa/.test(haystack)) return "tere";
-    if (/\bjavi\b|javier/.test(explicit) || /\bjavi\b|javier/.test(haystack)) return "javi";
+    // FAMILY_CONTEXTS: [hogar, persona 1, persona 2]; la persona 2 gana si se nombra a las dos, como antes.
+    const directa = householdMembers()?.clave(explicit);
+    const quien = [...(directa ? [directa] : []), ...personasEnTexto(explicit), ...personasEnTexto(haystack)];
+    if (quien.includes("p2")) return FAMILY_CONTEXTS[2];
+    if (quien.includes("p1")) return FAMILY_CONTEXTS[1];
     if (explicit === "hogar" || explicit === "household" || explicit === "familia") return "household";
     return "household";
   }

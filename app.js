@@ -250,12 +250,12 @@ const VIEW_CHUNKS = {
   "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
-  "executive-advisor": { src: "views/executive-advisor.js?v=20260918t14e1", rootId: "executive-advisor" },
-  "new-life-definitive": { src: "views/new-life-definitive.js?v=20260918t14f1", rootId: "new-life-definitive" },
+  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv3", rootId: "executive-advisor" },
+  "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv3", rootId: "new-life-definitive" },
   "debt-control": { src: "views/debt-control.js?v=20260919t14g1", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
-  "new-life-simulation": { src: "views/new-life-simulation.js?v=20260924arq4b1", rootId: "new-life-simulation" },
+  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv3", rootId: "new-life-simulation" },
   "savings-agent": { src: "views/savings-agent.js?v=20260924arq4c1", rootId: "savings-agent" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
@@ -353,54 +353,13 @@ const VARIABLE_OPERATIONAL_MAY_ZERO_KEY = "migration:variable-operational-may-20
 const VARIABLE_OPERATIONAL_MIGRATION_START = "2026-06";
 const VARIABLE_OPERATIONAL_MIGRATION_VALUE = 1750;
 const VARIABLE_OPERATIONAL_FORMULA_TARGET = 1750;
-const VARIABLE_FORMULA_FINANCING_EXCLUSIONS = [
-  "caixabank|mastercard tere",
-  "caixabank|visa go tere",
-  "caixabank|visa go javi",
-  "caixabank|mycard tere",
-  "caixabank|mycard javi",
-  "bankintercard|tarjeta tere",
-  "bankintercard|prestamo tere",
-  "otros|prestamo cetelem tere",
-];
-const FINANCING_SUBGROUP_LABELS = [
-  "ECI",
-  "Pass Carrefour Tere",
-  "Pass Carrefour Javi",
-  "Caixabank",
-  "Bankintercard",
-  "Otros",
-];
-const FINANCING_ROW_TEMPLATES = [
-  { row: 61, group: "ECI", label: "Tarjeta ECI" },
-  { row: 62, group: "ECI", label: "Anticipo ECI" },
-  { row: 64, group: "Pass Carrefour Tere", label: "Mastercard contado" },
-  { row: 65, group: "Pass Carrefour Tere", label: "Mastercard credito" },
-  { row: 66, group: "Pass Carrefour Tere", label: "Financiacion express 1" },
-  { row: 67, group: "Pass Carrefour Tere", label: "Financiacion express 2" },
-  { row: 68, group: "Pass Carrefour Tere", label: "Financiacion express 3" },
-  { row: 69, group: "Pass Carrefour Tere", label: "Financiacion express 4" },
-  { row: 70, group: "Pass Carrefour Tere", label: "Financiacion express 5" },
-  { row: 71, group: "Pass Carrefour Tere", label: "Financiacion express 6" },
-  { row: 73, group: "Pass Carrefour Javi", label: "Pass Javi Credito" },
-  { row: 74, group: "Pass Carrefour Javi", label: "Mastercard contado" },
-  { row: 75, group: "Pass Carrefour Javi", label: "Mastecard credito" },
-  { row: 76, group: "Pass Carrefour Javi", label: "Financiacion express 1" },
-  { row: 78, group: "Caixabank", label: "MasterCard Tere" },
-  { row: 79, group: "Caixabank", label: "Visa Go Tere" },
-  { row: 80, group: "Caixabank", label: "Visa Go Javi" },
-  { row: 81, group: "Caixabank", label: "Mycard Tere" },
-  { row: 82, group: "Caixabank", label: "Mycard Javi" },
-  { row: 84, group: "Bankintercard", label: "Tarjeta Tere" },
-  { row: 85, group: "Bankintercard", label: "Prestamo Tere" },
-  { row: 87, group: "Otros", label: "Prestamo cetelem Tere" },
-  { row: 88, group: "Otros", label: "Refinanciacion Cetelem" },
-  { row: 89, group: "Otros", label: "Mastercard PDH" },
-];
-const USER_REMOVED_FINANCING_KEYS = new Set([
-  financingTemplateKey("Pass Carrefour Tere", "Financiacion express 5"),
-  financingTemplateKey("Pass Carrefour Javi", "Financiacion express 1"),
-]);
+// Privacidad, fase 3 (docs/PRIVACIDAD_NOMBRES.md): la plantilla de financiaciones del Excel del hogar ya no vive en el código.
+// Las filas de «Financiaciones» son las que traen sus datos (la plantilla las dejó guardadas en cada carga desde el principio);
+// de la plantilla solo quedan las huellas (household-members.js) de lo que la app tiene que reconocer sin escribirlo:
+// los subgrupos del Excel al importarlo, las filas que el hogar quitó y las que no cuentan en la fórmula del gasto variable.
+const FINANCING_SUBGROUP_HASHES = new Set(["1559022ee5ec3", "d82533b763ff7", "876ebd2216427", "4a7d3fa55fd20", "2c629fbc577da", "152192d4d37190"]);
+const USER_REMOVED_FINANCING_KEY_HASHES = new Set(["375d6f39aba41", "116c16ad0dd1e"]);
+const VARIABLE_FORMULA_FINANCING_EXCLUSION_HASHES = new Set(["bb351c56dac2", "1a73a662a0aa4", "1b1d2757a05db7", "2b05f599c92f0", "16680a60deecd1", "1043e11055866a", "8e4a73e9993b0", "17956c19106b86"]);
 const CANONICAL_STATE_KEY = "canonicalStateV1";
 const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
 const CANONICAL_ENGINE_KEY = "canonicalEngineV1";
@@ -5629,44 +5588,25 @@ function applyVariableOperationalMayZeroDefault() {
   saveScenarioSettings();
 }
 
+function isUserRemovedFinancingRow(row) {
+  return USER_REMOVED_FINANCING_KEY_HASHES.has(globalThis.FinanceHouseholdMembers?.huella(financingRowKey(row)));
+}
+
+// Deja «Financiaciones» como gasto, con un valor por mes y sin las filas que el hogar quitó. Las filas son las de sus datos.
 function ensureCompleteFinancingSection() {
   if (!baseData?.monthlyPlanning?.sections?.length) return;
   const section = baseData.monthlyPlanning.sections.find((item) => item.name === "Financiaciones");
   if (!section) return;
   const months = baseData.monthlyPlanning.months || [];
   const monthCount = months.length;
-  const rowsById = new Map(section.rows.map((row) => [row.id, row]));
-  const rowsByKey = new Map(section.rows.map((row) => [financingRowKey(row), row]));
-  const referenceRowsByKey = financingReferenceRowsByKey();
-  const templateIds = new Set(FINANCING_ROW_TEMPLATES.map((item) => `financiaciones-${item.row}`));
-  const templateKeys = new Set(FINANCING_ROW_TEMPLATES.map((item) => financingTemplateKey(item.group, item.label)));
-  const templateRows = FINANCING_ROW_TEMPLATES.map((template) => {
-    const id = `financiaciones-${template.row}`;
-    const key = financingTemplateKey(template.group, template.label);
-    const existing = rowsById.get(id) || rowsByKey.get(key) || {};
-    const reference = referenceRowsByKey.get(key);
-    const source = hasPlannedValues(existing.planned) || !reference ? existing : reference;
-    return {
-      ...existing,
-      id,
-      row: template.row,
-      kind: "expense",
-      group: template.group,
-      label: `${template.group} · ${template.label}`,
-      planned: fitPlannedValues(source.planned, monthCount),
-    };
-  }).filter((row) => !USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row)) && !isPlanningRowSeriesDeleted(row, "Financiaciones"));
-  const extraRows = section.rows
-    .filter((row) => !templateIds.has(row.id) && !templateKeys.has(financingRowKey(row)))
-    .filter((row) => !USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row)))
-    .filter((row) => !isPlanningRowSeriesDeleted(row, "Financiaciones"))
+  section.kind = "expense";
+  section.rows = section.rows
+    .filter((row) => !isUserRemovedFinancingRow(row) && !isPlanningRowSeriesDeleted(row, "Financiaciones"))
     .map((row) => ({
       ...row,
       kind: "expense",
       planned: fitPlannedValues(row.planned, monthCount),
     }));
-  section.kind = "expense";
-  section.rows = [...templateRows, ...extraRows];
   section.totals = months.map((_, index) =>
     round2(section.rows.reduce((sum, row) => sum + Number(row.planned?.[index] || 0), 0)),
   );
@@ -5732,7 +5672,7 @@ function repairFinancingSectionFromReference() {
   const monthCount = baseData.monthlyPlanning.months?.length || 0;
   let repaired = false;
   section.rows.forEach((row) => {
-    if (USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row))) return;
+    if (isUserRemovedFinancingRow(row)) return;
     if (isPlanningRowSeriesDeleted(row, "Financiaciones")) return;
     if (hasPlannedValues(row.planned)) return;
     const reference = referenceRowsByKey.get(financingRowKey(row));
@@ -5947,7 +5887,7 @@ function variableFormulaFinancingExclusionKey(row) {
 
 function isVariableFormulaFinancingExcluded(row) {
   const key = variableFormulaFinancingExclusionKey(row);
-  return VARIABLE_FORMULA_FINANCING_EXCLUSIONS.some((excluded) => key.includes(excluded));
+  return Boolean(globalThis.FinanceHouseholdMembers?.contieneHuella(key, VARIABLE_FORMULA_FINANCING_EXCLUSION_HASHES));
 }
 
 function variableOperationalFormulaValue(month) {
@@ -5971,7 +5911,8 @@ function variableOperationalFormulaValue(month) {
 
 function isPrePayrollIncomeRow(row) {
   const label = normalizedText(displayLabelForRow(row));
-  return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
+  // La nómina de la persona 2 llega antes que la principal (privacidad, fase 3: se reconoce sin escribir su nombre).
+  return label === "local" || memberPayroll(label, "p2");
 }
 
 // WP-07 (NTC-01): el motor de fechas (qué día cae cada ingreso y gasto) vive en canonical-timing.js; aquí solo se le
@@ -7824,11 +7765,17 @@ function projectKindLabel(item) {
   return item?.source === "debt" ? "Deuda" : "Proyecto";
 }
 
+// El titular de un proyecto o una deuda: «p1», «p2» u «Hogar». Por el texto (palabra a palabra: «intereses» no nombra a nadie),
+// y la persona 2 gana si se nombra a las dos, como antes. Los proyectos guardados con la clave de siempre se leen con memberKey.
 function inferDecisionOwner(item = {}) {
-  const text = normalizedText(`${item.name || ""} ${item.label || ""} ${item.entity || ""} ${item.number || ""}`);
-  if (text.includes("tere")) return "Tere";
-  if (text.includes("javi") || text.includes("javier")) return "Javi";
+  const text = `${item.name || ""} ${item.label || ""} ${item.entity || ""} ${item.number || ""}`;
+  if (memberMentioned(text, "p2")) return "p2";
+  if (memberMentioned(text, "p1")) return "p1";
   return "Hogar";
+}
+
+function decisionOwnerKey(item = {}) {
+  return memberKey(item.creditOwner) || (item.creditOwner ? "Hogar" : inferDecisionOwner(item));
 }
 
 function decisionWindowMonths(item) {
@@ -8108,7 +8055,7 @@ function clearProjectForm() {
   editingProjectId = null;
   pendingProjectDecision = null;
   if (qs("projectKind")) qs("projectKind").value = "standard";
-  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "p2";
   if (qs("projectCreditCapital")) qs("projectCreditCapital").value = "";
   qs("projectName").value = "";
   qs("projectAmount").value = "";
@@ -8346,7 +8293,7 @@ function editProject(id) {
   if (decisionLifecycleStatus(project) === "fixed") return;
   editingProjectId = id;
   if (qs("projectKind")) qs("projectKind").value = project.projectKind || (Number(project.creditCapital || 0) > 0 ? "external-credit" : "standard");
-  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = project.creditOwner || "Tere";
+  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = memberKey(project.creditOwner) || "p2";
   if (qs("projectCreditCapital")) qs("projectCreditCapital").value = Number(project.creditCapital || 0) ? amountInputValue(project.creditCapital) : "";
   qs("projectName").value = project.name || "";
   qs("projectAmount").value = amountInputValue(Number(project.amount || 0));
@@ -8984,7 +8931,7 @@ function renderProjectSimulator(baseRows, rows) {
         ? ` Cuota recurrente: ${money(project.recurringAmount, true)} durante ${project.recurringDuration} ${project.recurringDuration === 1 ? "mes" : "meses"}.`
         : "";
       const creditText = creditCapital
-        ? ` Capital prestado: ${money(creditCapital, true)}${project.creditOwner ? ` (${escapeHtml(project.creditOwner)})` : ""}; impacto neto ${netCost >= 0 ? "" : "+"}${money(netCost, true)}.`
+        ? ` Capital prestado: ${money(creditCapital, true)}${project.creditOwner ? ` (${escapeHtml(memberLabel(project.creditOwner))})` : ""}; impacto neto ${netCost >= 0 ? "" : "+"}${money(netCost, true)}.`
         : "";
       const statusText =
         project.status === "debt"
@@ -9102,9 +9049,9 @@ function monthlyFreeCapacity(rows) {
 }
 
 function decisionOwnerSummary(decisions = []) {
-  const owners = ["Javi", "Tere", "Hogar"];
+  const owners = ["p1", "p2", "Hogar"];
   return owners.map((owner) => {
-    const items = decisions.filter((item) => (item.creditOwner || inferDecisionOwner(item)) === owner);
+    const items = decisions.filter((item) => decisionOwnerKey(item) === owner);
     return {
       owner,
       count: items.length,
@@ -9229,7 +9176,7 @@ function renderDecisionComparator(baseRows, rows) {
   const placements = projectPlan.placements || [];
   const noExternalCredit = placements.filter((item) => decisionCreditCapital(item) <= 0 && item.projectKind !== "external-credit");
   const tereCredit = placements.filter(
-    (item) => item.source !== "debt" && (decisionCreditCapital(item) <= 0 || (item.creditOwner || inferDecisionOwner(item)) === "Tere"),
+    (item) => item.source !== "debt" && (decisionCreditCapital(item) <= 0 || decisionOwnerKey(item) === "p2"),
   );
   const allLoaded = placements;
   const scenarios = [
@@ -9346,7 +9293,7 @@ function renderDecisionHistory() {
       <div>
         <span>Estado actual</span>
         ${current.length ? current
-          .map((item) => `<p><b>${escapeHtml(DECISION_WORKFLOW_LABELS[item.status] || item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner || "Hogar")} · ${money(item.amount, true)} · ${escapeHtml(item.monthLabel || "-")}</p>`)
+          .map((item) => `<p><b>${escapeHtml(DECISION_WORKFLOW_LABELS[item.status] || item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(memberLabel(item.owner || "Hogar"))} · ${money(item.amount, true)} · ${escapeHtml(item.monthLabel || "-")}</p>`)
           .join("") : "<p>Sin decisiones activas.</p>"}
       </div>
       <div>
@@ -9591,7 +9538,7 @@ function renderProjectPlanPreview() {
   const element = qs("projectPlanPreview");
   if (!element) return;
   const projectKind = qs("projectKind")?.value || "standard";
-  const creditOwner = qs("projectCreditOwner")?.value || "Tere";
+  const creditOwner = qs("projectCreditOwner")?.value || "p2";
   const creditCapital = parseAmount(qs("projectCreditCapital")?.value) ?? 0;
   const amount = parseAmount(qs("projectAmount")?.value) ?? 0;
   const duration = Math.max(1, Number(qs("projectDuration")?.value || 1));
@@ -9604,7 +9551,7 @@ function renderProjectPlanPreview() {
   const net = round2(total - creditCapital);
   element.innerHTML = `<strong>${editingProjectId ? "Editando plan" : "Resumen del plan"}</strong>
     <div class="project-preview-grid">
-      <span>Tipo: ${projectKind === "external-credit" ? `crédito externo (${escapeHtml(creditOwner)})` : "proyecto propio"}</span>
+      <span>Tipo: ${projectKind === "external-credit" ? `crédito externo (${escapeHtml(memberLabel(creditOwner))})` : "proyecto propio"}</span>
       <span>Inicio: ${escapeHtml(monthLabelText)}</span>
       <span>Coste total: ${money(total, true)}</span>
       <span>Capital prestado: ${creditCapital ? money(creditCapital, true) : "sin financiación externa"}</span>
@@ -11107,16 +11054,16 @@ function renderVisualDetail() {
     const nextRow = simulationByMonth.get(nextKey);
     return Math.max(0, round2(Number(nextRow?.outflowsBeforeSaving || 0)));
   };
-  const tereSalaryRows = baseData.monthlyPlanning.sections
+  const p2SalaryRows = baseData.monthlyPlanning.sections
     .filter((section) => section.kind === "income")
     .flatMap((section) => visualRowsForSection(section, months))
     .filter((row) => {
       if (isVisualRowPendingDelete(seriesKeyForRow(row))) return false;
       const label = normalizedText(visualDisplayLabel(row));
-      return label.includes("tere") && (label.includes("nomina") || label.includes("salario"));
+      return memberMentioned(label, "p2") && (label.includes("nomina") || label.includes("salario"));
     });
-  const tereSalaryForMonth = (month) =>
-    round2(tereSalaryRows.reduce((sum, row) => sum + Number(visualCellValue(row, month, mode) || 0), 0));
+  const p2SalaryForMonth = (month) =>
+    round2(p2SalaryRows.reduce((sum, row) => sum + Number(visualCellValue(row, month, mode) || 0), 0));
   const valueByColumn = (getter) =>
     columns.map((column) => {
       const values = column.months.map(getter).filter((value) => Number.isFinite(value));
@@ -11128,10 +11075,10 @@ function renderVisualDetail() {
     Math.max(0, round2(availableForTransferByMonth(month) - nextMonthPlannedExpenses(month))),
   );
   const adjustedAvailableForTransferByColumn = valueByColumn((month) =>
-    Math.max(0, round2(availableForTransferByMonth(month) + tereSalaryForMonth(month))),
+    Math.max(0, round2(availableForTransferByMonth(month) + p2SalaryForMonth(month))),
   );
   const prudentAdjustedAvailableForTransferByColumn = valueByColumn((month) =>
-    Math.max(0, round2(availableForTransferByMonth(month) + tereSalaryForMonth(month) - nextMonthPlannedExpenses(month))),
+    Math.max(0, round2(availableForTransferByMonth(month) + p2SalaryForMonth(month) - nextMonthPlannedExpenses(month))),
   );
 
   renderCalculatedRow("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotalsByColumn);
@@ -12453,7 +12400,7 @@ function renderProjectSavingsProgress(project, compact = false, progressOverride
         <strong>${money(decisionCreditCapital(project), true)} de capital</strong>
       </div>
       <div class="project-savings-progress-foot">
-        <span>${project.creditOwner ? `Titular: ${escapeHtml(project.creditOwner)}` : "Titular no indicado"}</span>
+        <span>${project.creditOwner ? `Titular: ${escapeHtml(memberLabel(project.creditOwner))}` : "Titular no indicado"}</span>
         <span>Cuota prevista ${money(project.recurringAmount || 0, true)} durante ${project.recurringDuration || 0} ${(project.recurringDuration || 0) === 1 ? "mes" : "meses"}</span>
       </div>
     </div>`;
@@ -15970,7 +15917,7 @@ function renderA18BalanceCard() {
 
 // A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de arriba nunca se
 // registra como transferencia interna por sí solo; esta tarjeta es el único camino para eso, y exige
-// que Javi y Tere confirmen por separado antes de registrarla, mismo ciclo de aprobación que el
+// que las dos personas confirmen por separado antes de registrarla, mismo ciclo de aprobación que el
 // cierre/reapertura de mes (E5). Los gastos que ya cubre una liquidación confirmada
 // (`householdSettlements()[].entryIds`) salen del saldo pendiente para siempre — un gasto nuevo
 // empieza un saldo distinto, nunca se mezcla con uno ya liquidado.
@@ -15993,7 +15940,7 @@ function a18CurrentProposal() {
   return engine.proposeSettlement(householdSplitEntriesList(), householdSplitSettings(), a18SettledEntryIds());
 }
 
-// La confirmación en curso se guarda aparte del saldo (para que Javi confirme hoy y Tere mañana, en
+// La confirmación en curso se guarda aparte del saldo (para que una persona confirme hoy y la otra mañana, en
 // otro dispositivo) pero solo es válida mientras cubra exactamente los mismos gastos pendientes de
 // ahora mismo — si el saldo cambió mientras tanto (nuevo gasto, regla editada...), la confirmación en
 // curso queda obsoleta y se descarta entera, nunca se liquida un importe que ya no es el real.
@@ -19325,8 +19272,8 @@ function executiveActionButton(item) {
   if (item.action === "car-project") {
     return `<button type="button" data-executive-action="prepare-car-project">${escapeHtml(item.label)}</button>`;
   }
-  if (item.action === "tere-credit") {
-    return `<button type="button" data-executive-action="prepare-tere-credit">${escapeHtml(item.label)}</button>`;
+  if (item.action === "p2-credit") {
+    return `<button type="button" data-executive-action="prepare-p2-credit">${escapeHtml(item.label)}</button>`;
   }
   return `<button type="button" data-home-nav="${escapeHtml(item.target || "savings-agent")}">${escapeHtml(item.label)}</button>`;
 }
@@ -19441,14 +19388,14 @@ function executiveActions(ctx) {
     text: ctx.safeCredit
       ? `Con ${money(ctx.settings.tereCreditCapital, true)} de capital y cuota ${money(ctx.settings.tereCreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithTere.toFixed(1)}%.`
       : `Con cuota ${money(ctx.settings.tereCreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithTere.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
-    action: "tere-credit",
+    action: "p2-credit",
     label: "Simular crédito",
     rank: 4,
   });
   return actions;
 }
 
-const UNIFIED_ACTION_COMMANDS = new Set(["simulate-route", "clear-route", "car-project", "tere-credit"]);
+const UNIFIED_ACTION_COMMANDS = new Set(["simulate-route", "clear-route", "car-project", "p2-credit"]);
 
 function unifiedActionKey(item) {
   if (item.debtId) return `debt:${item.debtId}:${item.monthIndex ?? ""}:${round2(Number(item.amount || 0))}`;
@@ -19762,7 +19709,7 @@ function unifiedActionImpact(item) {
   if (item.command === "simulate-route") return "Añadirá temporalmente la ruta completa al cálculo para comparar caja, ahorro y deuda. Podrás retirarla sin fijar ninguna decisión.";
   if (item.command === "clear-route") return "Retirará la ruta temporal del cálculo. Las decisiones ya fijadas no se modificarán.";
   if (item.command === "car-project") return "Abrirá una propuesta editable de hucha para coche. No cambia el cuadro de mandos hasta que la confirmes.";
-  if (item.command === "tere-credit") return memberTemplate("Abrirá una simulación editable del crédito de {p2} y su cuota. No se incorporará al plan sin confirmación.");
+  if (item.command === "p2-credit") return memberTemplate("Abrirá una simulación editable del crédito de {p2} y su cuota. No se incorporará al plan sin confirmación.");
   return `Abrirá ${viewTitles[item.target]?.eyebrow || viewTitles[item.target]?.title || "la sección relacionada"} sin modificar datos.`;
 }
 
@@ -19831,7 +19778,7 @@ function executeUnifiedAction(item) {
   if (item.command === "simulate-route") return applyAgentRouteSimulation();
   if (item.command === "clear-route") return clearAgentRouteSimulation();
   if (item.command === "car-project") return prepareExecutiveCarProject(false);
-  if (item.command === "tere-credit") return prepareExecutiveCarProject(true);
+  if (item.command === "p2-credit") return prepareExecutiveCarProject(true);
   const target = item.target || "home";
   if (!document.getElementById(target)?.classList.contains("view-section")) return;
   history.pushState(null, "", `#${target}`);
@@ -20419,7 +20366,7 @@ function prepareExecutiveCarProject(useCredit = false) {
   window.requestAnimationFrame(() => {
     clearProjectForm();
     if (qs("projectKind")) qs("projectKind").value = useCredit ? "external-credit" : "standard";
-    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "p2";
     if (qs("projectName")) qs("projectName").value = useCredit ? memberTemplate("Compra coche con financiación de {p2}") : "Colchón coche";
     if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(useCredit ? settings.carCost : settings.carReserve);
     if (qs("projectDuration")) qs("projectDuration").value = "1";
@@ -31048,7 +30995,7 @@ async function init() {
         prepareExecutiveCarProject(false);
         return;
       }
-      if (action === "prepare-tere-credit") {
+      if (action === "prepare-p2-credit") {
         prepareExecutiveCarProject(true);
         return;
       }
@@ -31111,7 +31058,7 @@ async function init() {
         prepareExecutiveCarProject(false);
         return;
       }
-      if (action === "prepare-tere-credit") {
+      if (action === "prepare-p2-credit") {
         prepareExecutiveCarProject(true);
         return;
       }

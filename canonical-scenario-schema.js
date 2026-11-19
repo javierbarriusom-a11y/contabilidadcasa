@@ -365,7 +365,7 @@
       // O-1b: titular es opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
       // refinanciacion/reunificacion — una compra sin titular se sigue comportando exactamente
       // igual que antes (I-09). Es puro metadato: no crea contrato ni cambia ningún cálculo de
-      // caja, solo permite anotar «esta compra es para Javi / para Tere» en el simulador.
+      // caja, solo permite anotar «esta compra es para la persona 1 / para la persona 2» en el simulador.
       const allowed = ["nombre", "importe", "financiacion", "titular"];
       requireFields(params, ["nombre", "importe"], path, issues);
       rejectExtraProperties(params, allowed, path, issues);

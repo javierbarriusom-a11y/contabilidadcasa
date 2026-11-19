@@ -10,7 +10,7 @@
   // campo en tests/ntc1-motor-fechas.test.cjs). WP-08 añade aquí el día de cargo indicado por el hogar.
   //
   // Orden de las reglas, que no se cambia sin decisión del hogar (tests/nomina-javi-ultimo-dia-natural.test.cjs):
-  // - Ingresos: local (día 1) → Tere (día 25, a propósito más tarde de lo real) → nómina de Javi (último día
+  // - Ingresos: local (día 1) → la otra nómina (día 25, a propósito más tarde de lo real) → nómina principal (último día
   //   NATURAL, antes que la regla de diciembre) → bonus/diciembre (día 15 en diciembre, último hábil el resto)
   //   → movimiento real casado → estimación alisada (día 8).
   // - Gastos: regla de fin de mes (trastero, parking, psicólogo) → movimiento real casado → estimación (día 8).
@@ -26,6 +26,19 @@
   //
   // Las utilidades de fecha y texto de app.js (que usan muchos otros sitios) entran por inyección, igual que
   // los movimientos importados (`transactions()`, leídos en cada llamada porque cambian al importar).
+
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      return typeof require === "function" ? require("./household-members.js") : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function householdNamesNow() {
+    return typeof globalThis !== "undefined" && typeof globalThis.householdNames === "function" ? globalThis.householdNames() : {};
+  }
 
   /**
    * @param {{
@@ -47,9 +60,11 @@
     const { displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel } = deps;
     const transactions = () => deps.transactions() || [];
 
+    // La nómina principal es la de la persona 1 (privacidad, fase 3: se reconoce por household-members.js, sin el nombre).
     function isMainPayrollIncomeRow(row) {
       const label = normalizedText(displayLabelForRow(row));
-      return /(^|\b)(nomina|salario)\s+javi(\b|$)|\bjavi\b.*\b(nomina|salario)\b/.test(label);
+      const miembros = householdMembers();
+      return Boolean(miembros && miembros.nominaDe(label, "p1", householdNamesNow()));
     }
 
     function incomeTimingFromMovements(row, month, amount) {
@@ -106,7 +121,7 @@
       if (label.includes("local")) {
         return { day: 1, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 1, 12)), source: "regla local", label: dateWithMonthLabel(date, 1), confidence: "rule", role: "" };
       }
-      if (/(\bnomina\b|\bsalario\b).*\btere\b|\btere\b.*(\bnomina\b|\bsalario\b)/.test(label)) {
+      if (householdMembers()?.nominaDe(label, "p2", householdNamesNow(), { cualquierOrden: true })) {
         return { day: 25, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 25, 12)), source: "regla salario día 25", label: dateWithMonthLabel(date, 25), confidence: "rule", role: "" };
       }
       if (isMainPayrollIncomeRow(row)) {

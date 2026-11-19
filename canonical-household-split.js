@@ -24,7 +24,7 @@
     return Math.round((number(value) + Number.EPSILON) * 100) / 100;
   }
 
-  // Un modo desconocido o un titular desconocido caen al valor más neutro (partes iguales, Javi)
+  // Un modo desconocido o un titular desconocido caen al valor más neutro (partes iguales, paga la persona 1)
   // en vez de fallar — mismo criterio que taxTableStatus (A15-5): nunca fabrica peor un dato
   // corrupto, lo trata como si no estuviera configurado.
   function normalizeRule(rule) {
@@ -75,8 +75,8 @@
   // A18-2: saldo continuo "quién debe a quién" — cada gasto compartido registrado ya fue pagado al
   // 100% por uno de los dos titulares (`paidBy`); el reparto de A18-1 (resolveRuleForCategory +
   // splitShares) dice cuál era su cuota justa, así que el otro titular le debe esa cuota. Se
-  // acumula en un único saldo neto (nunca dos saldos que se contradigan): positivo cuando Tere debe
-  // a Javi, negativo cuando Javi debe a Tere. Sin gastos registrados el saldo es 0 — no una cifra
+  // acumula en un único saldo neto (nunca dos saldos que se contradigan): positivo cuando la persona 2 debe
+  // a la persona 1, negativo cuando la persona 1 debe a la 2. Sin gastos registrados el saldo es 0 — no una cifra
   // ausente, sino el resultado correcto de no haber nada que repartir todavía. No toca el libro
   // principal de movimientos: lee y devuelve, nunca escribe.
   function runningBalance(entries = [], settings = {}) {

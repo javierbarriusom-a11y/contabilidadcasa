@@ -262,7 +262,9 @@ function loadMonthlyPlanningFromWorkbook(workbook) {
       }
       if (endRow < startRow) return null;
       const totalRow = endRow + 1;
-      const financingSubgroups = new Set(FINANCING_SUBGROUP_LABELS.map((item) => normalizedText(item)));
+      // Los subgrupos del Excel (privacidad, fase 3): los que ya tienen los datos del hogar y, por su huella, los de siempre.
+      const knownGroups = new Set((baseData?.monthlyPlanning?.sections || []).find((item) => item.name === "Financiaciones")?.rows?.map((item) => normalizedText(item.group || "").trim()).filter(Boolean) || []);
+      const financingSubgroups = { has: (text) => knownGroups.has(String(text).trim()) || FINANCING_SUBGROUP_HASHES.has(globalThis.FinanceHouseholdMembers?.huella(text)) };
       const rows = [];
       let currentGroup = "";
       for (let row = startRow; row <= endRow; row += 1) {
