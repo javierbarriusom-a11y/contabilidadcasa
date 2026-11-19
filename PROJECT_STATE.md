@@ -113,6 +113,21 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 18 de noviembre de 2026 (498): DEC-20, verbos concretos en «Decidir esta semana»
+
+- **El hogar:** «Continúa con lo que puedas hacer sin mí». DEC-20 es una de las correcciones que la décima auditoría (§6) deja hacer en paralelo porque no cambian cifras.
+- **Qué cambia** (`app.js`, `UX_ALERT_DESTINOS`; `views/hoy-v2.js`): los avisos de Ajustes › Alertas en «Decidir esta semana» ya no dicen «Revisar alerta» ni llevan al Centro de alertas (de «Versiones anteriores»). Según su indicador:
+  - saldo de la cuenta, caja mínima, colchón en meses y capacidad libre: «Ver la previsión» → Plan › Previsión (en el tema nuevo, el mismo camino que los avisos de FX-41, con su propio atributo para no confundirse con ellos);
+  - ratio de deuda: «Ver la ruta de la deuda»; desviación de la cartera: «Rebalancear en Inversión»; concentración: «Ver la cartera»; decisiones vencidas: «Revisar las decisiones» (Ajustes);
+  - un indicador que no esté en la tabla: «Ver la regla del aviso», a su regla.
+- **Sin «Vence el»:** la fecha de esas reglas es cuándo revisar la regla (por defecto, 30 días tras crearla), no un plazo para decidir; se presentaba como fecha límite. Ahora van entre las que no tienen fecha, detrás de las que sí la tienen de verdad.
+- **Visto al probar:** la demo dispara un aviso de caja. Con el primer intento llevaba el mismo atributo que los avisos de previsión de FX-41 y sus tres pruebas, que cuentan esos avisos, fallaron. No se tocaron: el aviso de la regla lleva su propio atributo y comparte el destino.
+- **Pruebas:** nueva `tests/dec20-verbos-avisos.test.cjs` (3); versión de `app.js` (20261118dec20) en las seis que la fijan; e2e «DEC-20 · Verbos en «Decidir esta semana»» (`@safari`, 390 px).
+- **Dos carreras en pruebas, encontradas por la batería y arregladas:**
+  - e2e de DEC-40 (#640, ya publicado): el evento `toggle` llega un instante después del clic y la prueba leía antes lo anotado (1 de 4). Ahora espera a que esté.
+  - e2e «XDA-03 · texto de un PDF» (anterior a hoy): esperaba el texto «3 movimientos», que puede verse antes de que el lote quede guardado, y leía los movimientos en ese instante. Ahora espera a los movimientos. Las dos, 40 de 40 en 8 repeticiones.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.769/6.769 (+3). **Batería completa de navegador en local: 461 de 463**; los 2 fallos, las carreras de arriba, arregladas y repetidas 8 veces en verde. Safari, solo en el CI.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (497): DEC-40, lo plegado también es superficie (solo medir)
 
 - **El hogar:** «Continúa con lo que puedas hacer sin mí». DEC-40 es P0 en la décima auditoría (§4.8, encaje XGO-01 y XGO-02) y no cambia pantallas: la auditoría vio que «uno entra, uno sale» se cumplía plegando.

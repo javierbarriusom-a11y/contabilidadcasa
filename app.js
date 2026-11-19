@@ -25833,6 +25833,19 @@ function homePendingActualsReminder() {
   };
 }
 
+// DEC-20 (18/11/2026): cada aviso con su verbo y su destino, no «Revisar alerta» al Centro de alertas (de «Versiones
+// anteriores»). Sin fecha límite: la de la regla es cuándo revisarla, no un plazo para decidir.
+const UX_ALERT_DESTINOS = {
+  caixaBalance: { target: "plan", cta: "Ver la previsión", verPrevision: true },
+  minimumCash12m: { target: "plan", cta: "Ver la previsión", verPrevision: true },
+  minimumCashMonths: { target: "plan", cta: "Ver la previsión", verPrevision: true },
+  freeCapacity: { target: "plan", cta: "Ver la previsión", verPrevision: true },
+  debtRatio: { target: "deuda-ruta", cta: "Ver la ruta de la deuda" },
+  rebalanceDeviationPct: { target: "inversion-cartera", cta: "Rebalancear en Inversión" },
+  topPositionConcentrationPct: { target: "inversion-cartera", cta: "Ver la cartera" },
+  overdueDecisionReviewsCount: { target: "ajustes", cta: "Revisar las decisiones" },
+};
+
 function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
   const dated = [];
   const undated = [];
@@ -25851,18 +25864,8 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
   evaluatedUxAlerts()
     .filter((alert) => alert.triggered)
     .forEach((alert) => {
-      // alert.reviewDate es una fecha completa ("2026-09-13"), no una clave de mes: usa shortDate,
-      // no escenarioMotorMonthLabel (que espera "YYYY-MM" y desfigura el día sobrante).
-      const item = {
-        title: alert.name,
-        text: alert.action,
-        status: alert.overdue ? "danger" : "warn",
-        target: "alerts-center",
-        cta: "Revisar alerta",
-        expiresAt: alert.reviewDate || "",
-        expiryLabel: alert.reviewDate ? displayShortDate(alert.reviewDate) : "",
-      };
-      (item.expiresAt ? dated : undated).push(item);
+      const destino = UX_ALERT_DESTINOS[alert.metric] || { target: "alerts-center", cta: "Ver la regla del aviso" };
+      undated.push({ title: alert.name, text: alert.action, status: alert.overdue ? "danger" : "warn", ...destino, expiresAt: "" });
     });
   if (debtPriorities[0]) {
     undated.push({

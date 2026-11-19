@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-18-verbos-decidir",
+      fecha: "2026-11-18",
+      texto: "Hoy: los avisos de «Decidir esta semana» dicen qué hacer y adónde llevan (la previsión, la deuda, la cartera), sin falsas fechas límite.",
+      href: "#home",
+    },
+    {
       id: "2026-11-18-desplegables-uso",
       fecha: "2026-11-18",
       texto: "Ajustes › Uso de la app cuenta qué desplegables abrís, para retirar en su día los que nadie abre en 60 días.",

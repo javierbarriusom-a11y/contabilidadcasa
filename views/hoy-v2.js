@@ -207,8 +207,11 @@ function hoyV2DecisionRow(item, index) {
   const detail = [item.text, item.expiryLabel ? `Vence el ${item.expiryLabel}.` : ""].filter(Boolean).join(" ");
   // Las acciones del centro unificado conservan su paso de revisión («Qué ocurrirá») antes de ejecutar.
   // FX-41: los avisos de previsión llevan a Plan › Previsión, donde está el arreglo más barato o el porqué.
+  // DEC-20: los avisos de caja de Ajustes › Alertas también llevan a la Previsión, con su propio atributo (no son de FX-41).
   const action = item.previsionAviso
     ? `<button type="button" class="e19-btn e19-btn-secondary" data-hoy-v2-prevision>Ver la previsión</button>`
+    : item.verPrevision
+    ? `<button type="button" class="e19-btn e19-btn-secondary" data-hoy-v2-a-prevision>${escapeHtml(item.cta || "Ver la previsión")}</button>`
     : item.isUnifiedAction
     ? `<details class="hoy-v2-review"><summary class="e19-btn e19-btn-secondary">Revisar</summary>
         <div><p>${escapeHtml(unifiedActionImpact(item))}</p>
@@ -468,7 +471,7 @@ function hoyV2BindOnce(root) {
       hoyV2PaintedAt = null;
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
     }
-    if (event.target.closest("[data-hoy-v2-prevision]")) {
+    if (event.target.closest("[data-hoy-v2-prevision], [data-hoy-v2-a-prevision]")) {
       history.pushState(null, "", "#plan");
       setActiveView("plan");
       if (typeof setPlanTab === "function") setPlanTab("prevision");
