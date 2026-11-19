@@ -113,6 +113,12 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (500): despliegue de #641
+
+- **Despliegue de #641 (DEC-20, verbos en «Decidir esta semana»):** «Verify and deploy Pages» 1474 en verde (Safari incluido) y «Published availability» 373 en verde.
+- **Publicado el 18 y el 19/11, sin cambiar ninguna cifra:** #636 (SVD-6 fase 1 y «Desde vuestra última visita»), #637 (DEC-13 y DEC-18), #638 (DEC-41), #639 (DEC-44), #640 (DEC-40) y #641 (DEC-20).
+- **De la décima auditoría no queda nada que pueda hacerse sin el hogar sin tocar sus datos o su vocabulario.** Esperan: la huella del extracto (DEC-14, DEC-46), D-N17 (DEC-16), el visto bueno a DAT-07 y DEC-12, el nombre de cada colchón (DEC-21), DEC-03 (cambia la insignia de procedencia de todas las pantallas; se consulta), D-N16, D-N23, «ponerlos realistas» y quitar los nombres del hogar del repositorio público.
+
 ## Cierre de sesión — 19 de noviembre de 2026 (499): despliegue de #640; #641 fusionado
 
 - **Despliegue de #640 (DEC-40, lo plegado también es superficie):** «Verify and deploy Pages» 1472 en verde (Safari incluido) y «Published availability» 372 en verde.
