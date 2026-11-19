@@ -26,6 +26,7 @@ const FICHA_MOV_BLOQUES = {
 };
 
 let fichaMovAviso = null; // { id, bloque, texto, deshacer }: lo último guardado en la ficha abierta, con su «Deshacer»
+let fichaMovDivision = null; // DAT-07: { id, abierta, parts: [{ rowKey, amount (texto) }] }, el borrador de «Dividir» de la ficha abierta
 
 function fichaMovSinMes(key) {
   return typeof movementMappingMonthlessKey === "function" ? movementMappingMonthlessKey(key) : key;
@@ -99,6 +100,10 @@ function fichaMovAhoraPartida(mapping) {
     const palabras = regla?.shown || "";
     const importe = regla?.amount ? `, con un importe de unos ${money(regla.amount, true)}` : "";
     return `Ahora: <strong>${escapeHtml(fichaMovNombrePartida(mapping.row))}</strong> · por la regla de palabras «${escapeHtml(palabras)}»${importe}. <button type="button" class="link-button" id="fichaMovQuitarPatron">Quitar esa regla</button>`;
+  }
+  if (mapping.source === "split") {
+    const trozos = mapping.split.map((part) => `${escapeHtml(fichaMovNombrePartida(part.row))} (${money(part.amount, true)})`).join(", ");
+    return `Ahora: <strong>dividido en ${mapping.split.length} partidas</strong>: ${trozos} · solo este movimiento. Guardar una sola partida aquí quita la división.`;
   }
   const por = mapping.source === "single" ? "solo este movimiento" : mapping.source === "dictionary" ? "por la regla de este concepto" : "por coincidir con el nombre de la partida";
   return `Ahora: <strong>${escapeHtml(fichaMovNombrePartida(mapping.row))}</strong> · ${por}.`;
@@ -191,6 +196,7 @@ function renderMovementDetailDialog() {
       ${fichaMovAvisoHtml(row, "partida")}
       <button type="button" class="e19-btn e19-btn-primary" id="movementDetailSave" data-inicial="${escapeHtml(partidaInicial)}" data-inicial-todos="${reglaPartida}" data-total-todos="${grupoPartida.total - grupoPartida.propias}">Guardar partida</button>
       <p class="e19-kpi-note" id="movementDetailPista">Nada que guardar todavía: cambia la partida o «¿A cuáles?».</p>
+      ${fichaMovDivisionHtml(row, kind, mapping)}
     </section>
     <section class="ficha-mov-bloque" data-ficha-bloque="tipo" aria-labelledby="fichaMovTipoTitulo">
       <h4 id="fichaMovTipoTitulo">Tipo de acción <span class="ficha-mov-opcional">opcional</span></h4>
@@ -220,11 +226,191 @@ function renderMovementDetailDialog() {
     fichaMovError(bloque, "");
     fichaMovSincroniza(bloque);
   };
+  fichaMovDivisionEscuchas();
   qs("fichaMovDeshacer")?.addEventListener("click", fichaMovDeshacer);
   qs("fichaMovQuitarPatron")?.addEventListener("click", fichaMovQuitarPatron);
   qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
   qs("movementDetailAttachPhoto")?.addEventListener("change", (event) => handleMovementDetailAttachPhoto(event, row));
   qs("movementDetailSaveGeo")?.addEventListener("click", () => handleMovementDetailSaveGeo(row));
+}
+
+// DAT-07 · «Dividir en varias partidas»: plegado dentro del bloque «Partida». Los trozos tienen que sumar el importe del movimiento
+// (la barra dice cuánto falta) y el botón solo se enciende cuando cuadra. Se guarda en la regla «solo este movimiento», con la
+// partida mayor y la que hubiera antes (para «Quitar la división»); cada partida recibe su parte en los reales.
+function fichaMovImporteTexto(amount) {
+  return Number(amount || 0).toFixed(2).replace(".", ",");
+}
+
+function fichaMovDivisionBorrador(row, mapping) {
+  const id = transactionIdentity(row);
+  if (fichaMovDivision?.id === id) return fichaMovDivision;
+  const guardada = mapping?.source === "split" ? mapping.split : null;
+  fichaMovDivision = {
+    id,
+    abierta: false,
+    parts: guardada
+      ? guardada.map((part) => ({ rowKey: seriesKeyForRow(part.row), amount: fichaMovImporteTexto(part.amount) }))
+      : [{ rowKey: mapping?.row ? seriesKeyForRow(mapping.row) : "", amount: "" }, { rowKey: "", amount: "" }],
+  };
+  return fichaMovDivision;
+}
+
+function fichaMovDivisionEstado(row) {
+  const motor = globalThis.FinanceCanonicalMovementSplit;
+  const total = Math.abs(Number(row.amount || 0));
+  const result = motor.evaluate(fichaMovDivision.parts, total);
+  const barra = motor.progress(result, total);
+  const texto = barra.done
+    ? `Repartido: ${money(result.sum, true)} de ${money(total, true)}.${result.ok ? "" : ` Falta: ${result.reason}.`}`
+    : barra.over
+      ? `Sobran ${money(-result.remaining, true)}: los trozos suman ${money(result.sum, true)} y el movimiento es de ${money(total, true)}.`
+      : `Falta repartir ${money(result.remaining, true)} de ${money(total, true)}.`;
+  return { result, barra, texto };
+}
+
+function fichaMovDivisionHtml(row, kind, mapping) {
+  const motor = globalThis.FinanceCanonicalMovementSplit;
+  if (!motor || !Number(row.amount)) return "";
+  const borrador = fichaMovDivisionBorrador(row, mapping);
+  const guardada = mapping?.source === "split";
+  const { result, barra, texto } = fichaMovDivisionEstado(row);
+  const firmado = typeof isSignedClosedMonthKey === "function" && isSignedClosedMonthKey(String(row.month || row.date || "").slice(0, 7));
+  const filas = borrador.parts.map((part, index) => `
+      <div class="ficha-mov-pareja" data-ficha-dividir-fila="${index}">
+        <label class="ficha-mov-campo"><span>Partida ${index + 1}</span><select data-ficha-dividir-partida="${index}">${movementMappingOptions(kind, part.rowKey)}</select></label>
+        <label class="ficha-mov-campo"><span>Importe (€)</span><input type="text" inputmode="decimal" autocomplete="off" data-ficha-dividir-importe="${index}" value="${escapeHtml(part.amount)}" /></label>
+        ${borrador.parts.length > motor.MIN_PARTES ? `<button type="button" class="link-button" data-ficha-dividir="quitar-fila" data-indice="${index}">Quitar este trozo</button>` : ""}
+      </div>`).join("");
+  return `
+      <details class="ficha-mov-dividir" id="fichaMovDividir"${borrador.abierta ? " open" : ""}>
+        <summary>${guardada ? `Dividido en ${mapping.split.length} partidas` : "Dividir en varias partidas"}</summary>
+        <p class="e19-kpi-note">Para un ticket o un Bizum que mezcla cosas: reparte ${money(Math.abs(Number(row.amount)), true)} entre dos partidas o más. Cada una recibe su parte en los reales; solo cambia este movimiento.</p>
+        ${firmado ? '<p class="e19-kpi-note">El mes de este movimiento está firmado: la división se guarda, pero sus reales no cambian.</p>' : ""}
+        ${filas}
+        ${borrador.parts.length < motor.MAX_PARTES ? '<button type="button" class="link-button" data-ficha-dividir="anadir">Añadir otra partida</button>' : ""}
+        <progress id="fichaMovDividirBarra" max="100" value="${barra.pct}" aria-label="Parte repartida del movimiento">${barra.pct} %</progress>
+        <p class="e19-kpi-note" id="fichaMovDividirEstado" aria-live="polite">${escapeHtml(texto)}</p>
+        <p class="ficha-mov-error" id="fichaMovDividirError" role="alert" hidden></p>
+        <button type="button" class="e19-btn e19-btn-primary" id="fichaMovDividirGuardar"${result.ok ? "" : " disabled"}>Guardar la división</button>
+        ${guardada ? '<button type="button" class="e19-btn e19-btn-secondary" id="fichaMovDividirQuitar">Quitar la división</button>' : ""}
+      </details>`;
+}
+
+// Lo tecleado se guarda en el borrador sin volver a pintar (no se pierde el foco); añadir o quitar un trozo sí repinta la ficha.
+function fichaMovDivisionEscuchas() {
+  const detalles = qs("fichaMovDividir");
+  if (!detalles || !fichaMovDivision) return;
+  detalles.addEventListener("toggle", () => { fichaMovDivision.abierta = detalles.open; });
+  const actualiza = (event) => {
+    const target = event.target;
+    const iPartida = target?.dataset?.fichaDividirPartida;
+    const iImporte = target?.dataset?.fichaDividirImporte;
+    if (iPartida === undefined && iImporte === undefined) return;
+    if (iPartida !== undefined) fichaMovDivision.parts[Number(iPartida)].rowKey = target.value;
+    if (iImporte !== undefined) fichaMovDivision.parts[Number(iImporte)].amount = target.value;
+    const { result, barra, texto } = fichaMovDivisionEstado(movementDetailTransaction);
+    const barraEl = qs("fichaMovDividirBarra");
+    if (barraEl) { barraEl.value = barra.pct; barraEl.textContent = `${barra.pct} %`; }
+    const estado = qs("fichaMovDividirEstado");
+    if (estado) estado.textContent = texto;
+    const boton = qs("fichaMovDividirGuardar");
+    if (boton) boton.disabled = !result.ok;
+    const error = qs("fichaMovDividirError");
+    if (error) error.hidden = true;
+  };
+  detalles.addEventListener("input", actualiza);
+  detalles.addEventListener("change", actualiza);
+  detalles.addEventListener("click", (event) => {
+    const accion = event.target.closest?.("[data-ficha-dividir]")?.dataset.fichaDividir;
+    if (accion === "anadir") {
+      fichaMovDivision.parts.push({ rowKey: "", amount: "" });
+      renderMovementDetailDialog();
+      qs("movementDetailContent")?.querySelector(`[data-ficha-dividir-partida="${fichaMovDivision.parts.length - 1}"]`)?.focus();
+    } else if (accion === "quitar-fila") {
+      fichaMovDivision.parts.splice(Number(event.target.dataset.indice), 1);
+      renderMovementDetailDialog();
+      qs("fichaMovDividirBarra")?.focus?.();
+    }
+  });
+  qs("fichaMovDividirGuardar")?.addEventListener("click", fichaMovDivisionGuardar);
+  qs("fichaMovDividirQuitar")?.addEventListener("click", fichaMovDivisionQuitar);
+}
+
+function fichaMovNombreDeClave(kind, rowKeyValue) {
+  const fila = planningRowBySeriesKey(kind, rowKeyValue);
+  return fila ? fichaMovNombrePartida(fila) : rowKeyValue;
+}
+
+function fichaMovDivisionGuardar() {
+  const row = movementDetailTransaction;
+  const motor = globalThis.FinanceCanonicalMovementSplit;
+  if (!row || !motor || !fichaMovDivision) return;
+  const kind = movementKindFromAmount(row.amount);
+  const result = motor.evaluate(fichaMovDivision.parts, row.amount);
+  if (!result.ok) {
+    const error = qs("fichaMovDividirError");
+    if (error) { error.textContent = `No se puede guardar: ${result.reason}.`; error.hidden = false; }
+    announceStatus(`No se puede guardar: ${result.reason}.`);
+    return;
+  }
+  const single = transactionIdentity(row);
+  const foto = fichaMovFoto(movementMappings, [single]);
+  const antes = movementMappings[single];
+  const previo = antes && !antes.split ? { rowKey: antes.rowKey, label: antes.label || "" } : antes?.previo || null;
+  const principal = motor.mainRowKey(result.parts);
+  movementMappings[single] = {
+    kind,
+    rowKey: principal,
+    label: fichaMovNombreDeClave(kind, principal),
+    split: result.parts,
+    ...(previo ? { previo } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+  fichaMovRefrescaPartidas(null);
+  const texto = `Dividido: ${result.parts.map((part) => `${money(part.amount, true)} a «${fichaMovNombreDeClave(kind, part.rowKey)}»`).join(", ")}. Los demás «${movementDisplayName(row)}» no cambian.`;
+  fichaMovAviso = {
+    id: single,
+    bloque: "partida",
+    texto,
+    deshacer: () => {
+      fichaMovRestaura(movementMappings, foto);
+      fichaMovRefrescaPartidas(null);
+      fichaMovDivision = null;
+    },
+  };
+  fichaMovDivision = null;
+  announceStatus(texto);
+  renderMovementDetailDialog();
+  renderDetailedMovements();
+}
+
+// Quitar la división devuelve el movimiento a lo que tenía antes: su partida «solo este» si la había, o la regla de su concepto.
+function fichaMovDivisionQuitar() {
+  const row = movementDetailTransaction;
+  if (!row) return;
+  const single = transactionIdentity(row);
+  const actual = movementMappings[single];
+  if (!actual?.split) return;
+  const foto = fichaMovFoto(movementMappings, [single]);
+  if (actual.previo?.rowKey) movementMappings[single] = { kind: actual.kind, rowKey: actual.previo.rowKey, label: actual.previo.label || "", updatedAt: new Date().toISOString() };
+  else delete movementMappings[single];
+  fichaMovRefrescaPartidas(null);
+  const ahora = mappingForMovement(row);
+  const texto = `División quitada: el movimiento va entero a ${ahora ? `«${fichaMovNombrePartida(ahora.row)}»` : "ninguna partida (vuelve a la bandeja)"}.`;
+  fichaMovAviso = {
+    id: single,
+    bloque: "partida",
+    texto,
+    deshacer: () => {
+      fichaMovRestaura(movementMappings, foto);
+      fichaMovRefrescaPartidas(null);
+      fichaMovDivision = null;
+    },
+  };
+  fichaMovDivision = null;
+  announceStatus(texto);
+  renderMovementDetailDialog();
+  renderDetailedMovements();
 }
 
 // El botón se enciende solo si algo cambió (o si hay una propuesta sin confirmar) y dice a cuántos movimientos afecta.

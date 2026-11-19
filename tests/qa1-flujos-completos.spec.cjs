@@ -10367,6 +10367,69 @@ test.describe("Ficha de un movimiento · partida y tipo de acción", () => {
   }
 });
 
+// DAT-07 (19/11/2026, «Haz DAT-07 y DEC-12») · Dividir un movimiento desde su ficha: dos partidas que deben sumar el total (la barra y
+// la frase dicen lo que falta o sobra), cada una con su parte del real; «Quitar la división» lo devuelve y «Deshacer» vuelve atrás.
+// Movimientos INVENTADOS (los de la ficha de arriba: un recibo de 120 € de octubre).
+test.describe("DAT-07 · dividir un movimiento", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`reparte 120 € entre dos partidas, cada una recibe su parte y se quita o se deshace, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      const ficha = await sembrarFicha(page);
+      const dividir = ficha.locator("#fichaMovDividir");
+      await expect(dividir).not.toHaveAttribute("open", "");
+      await dividir.locator("summary").click();
+      await expect(dividir.locator("summary")).toHaveText("Dividir en varias partidas");
+      const [a, b] = await ficha.locator('[data-ficha-dividir-partida="0"] option').evaluateAll((list) => list.map((o) => o.value).filter(Boolean).slice(0, 2));
+      const reales = () => page.evaluate(([ka, kb]) => {
+        const totals = bankActualTotals().expense;
+        const month = monthByKey("2026-10", baseData.monthlyPlanning.months);
+        return [ka, kb].map((key) => totals.get(actualKeyForRow(planningRowBySeriesKey("expense", key), month)) || 0);
+      }, [a, b]);
+      const antes = await reales();
+      const guardar = ficha.locator("#fichaMovDividirGuardar");
+      await ficha.locator('[data-ficha-dividir-partida="0"]').selectOption(a);
+      await ficha.locator('[data-ficha-dividir-importe="0"]').fill("80");
+      await ficha.locator('[data-ficha-dividir-partida="1"]').selectOption(b);
+      await ficha.locator('[data-ficha-dividir-importe="1"]').fill("50");
+      await expect(ficha.locator("#fichaMovDividirEstado")).toContainText("Sobran");
+      await expect(guardar).toBeDisabled();
+      await ficha.locator('[data-ficha-dividir-importe="1"]').fill("40");
+      await expect(ficha.locator("#fichaMovDividirEstado")).toContainText(/Repartido: 120(,00)?\s€ de 120(,00)?\s€\./);
+      await expect(ficha.locator("#fichaMovDividirBarra")).toHaveAttribute("value", "100");
+      await expect(guardar).toBeEnabled();
+      // Añadir un trozo y quitarlo: el borrador se conserva y el desplegable sigue abierto.
+      await ficha.getByRole("button", { name: "Añadir otra partida" }).click();
+      await expect(ficha.locator('[data-ficha-dividir-fila="2"]')).toBeVisible();
+      await expect(guardar).toBeDisabled();
+      await ficha.locator('[data-ficha-dividir-fila="2"]').getByRole("button", { name: "Quitar este trozo" }).click();
+      await expect(ficha.locator('[data-ficha-dividir-fila="2"]')).toHaveCount(0);
+      await expect(ficha.locator('[data-ficha-dividir-importe="1"]')).toHaveValue("40");
+      await expect(guardar).toBeEnabled();
+      await guardar.click();
+      const aviso = ficha.locator(".ficha-mov-aviso");
+      await expect(aviso).toContainText(/Dividido: 80(,00)?\s€ a «.+», 40(,00)?\s€ a «.+»\. Los demás «FINANCIE-OCTUBRE · Recibo entidad ficticia» no cambian\./);
+      await expect(ficha.locator(".ficha-mov-bloque").first()).toContainText("dividido en 2 partidas");
+      await expect(ficha.locator("#fichaMovDividir summary")).toHaveText("Dividido en 2 partidas");
+      const despues = await reales();
+      expect([despues[0] - antes[0], despues[1] - antes[1]]).toEqual([80, 40]);
+      // Quitar la división: sin partida antes, vuelve a la bandeja; «Deshacer» la devuelve.
+      await ficha.locator("#fichaMovDividir summary").click();
+      await ficha.getByRole("button", { name: "Quitar la división" }).click();
+      await expect(aviso).toContainText("División quitada: el movimiento va entero a ninguna partida (vuelve a la bandeja).");
+      expect(await reales()).toEqual(antes);
+      await aviso.getByRole("button", { name: "Deshacer" }).click();
+      await expect(ficha.locator(".ficha-mov-bloque").first()).toContainText("dividido en 2 partidas");
+      expect(await reales()).toEqual(despues);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // 3/11/2026 · Cierre: «Dejar N en Por clasificar». Decisión del hogar en su primer cierre real: firmar sin haber asignado todo,
 // sin que el mes pierda ese dinero. Reloj el 2/11: Cierre enseña octubre. Movimientos INVENTADOS.
 test.describe("Cierre · dejar lo pendiente en «Por clasificar»", () => {

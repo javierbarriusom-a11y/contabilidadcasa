@@ -21513,6 +21513,9 @@ function mappingForMovement(transaction) {
   const kind = movementKindFromAmount(transaction.amount);
   const single = movementMappings[transactionIdentity(transaction)];
   const singleRow = single?.kind === kind ? planningRowBySeriesKey(kind, single.rowKey) : null;
+  // DAT-07: un movimiento dividido va a su partida mayor para «¿tiene partida?»; `split` reparte sus reales (bankActualTotals).
+  const split = singleRow && single.split ? globalThis.FinanceCanonicalMovementSplit?.storedParts(single, transaction.amount, (key) => Boolean(planningRowBySeriesKey(kind, key))) : null;
+  if (split) return { kind, row: singleRow, source: "split", split: split.map((part) => ({ row: planningRowBySeriesKey(kind, part.rowKey), amount: part.amount })) };
   if (singleRow) return { kind, row: singleRow, source: "single" };
   const stored = movementMappings[movementMappingKey(transaction)];
   const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
@@ -21665,9 +21668,11 @@ function bankActualTotals() {
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
     if (!month) return;
     if (isSignedClosedMonthKey(month.key)) return; // 1/11/2026: solo lo firmado queda fuera; un mes pasado sin firmar se pone al día con el banco
-    const key = actualKeyForRow(mapping.row, month);
-    const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
-    monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
+    const parts = mapping.split || [{ row: mapping.row, amount: mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0)) }];
+    parts.forEach(({ row, amount }) => {
+      const key = actualKeyForRow(row, month);
+      monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
+    });
   });
   return monthlyTotals;
 }
@@ -21859,6 +21864,7 @@ function handleMovementsChipFilter(chipId) {
 function movementPartidaBadge(row) {
   const mapping = mappingForMovement(row);
   if (!mapping) return `<span class="e19-badge e19-badge-warning">Sin partida</span>`;
+  if (mapping.split) return `<span class="e19-badge e19-badge-neutral">Dividido en ${mapping.split.length} partidas</span>`; // DAT-07
   return `<span class="e19-badge e19-badge-neutral">${escapeHtml(mapping.row.sectionName)} · ${escapeHtml(displayLabelForRow(mapping.row))}</span>`;
 }
 
@@ -31491,6 +31497,7 @@ async function init() {
   qs("movementDetailDialog")?.addEventListener("close", () => {
     movementDetailTransaction = null;
     fichaMovAviso = null; // el «Deshacer» de la ficha es de esa visita
+    if (typeof fichaMovDivision !== "undefined") fichaMovDivision = null; // DAT-07: el borrador de «Dividir», también
   });
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
   // Repaso pixel-perfect del 20 de agosto: los enlaces «Registrar › Importar extracto» (tarjeta

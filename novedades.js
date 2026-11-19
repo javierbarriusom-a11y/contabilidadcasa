@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-19-dividir-movimiento",
+      fecha: "2026-11-19",
+      texto: "Movimientos: un ticket o un Bizum que mezcla cosas se puede dividir entre varias partidas desde su ficha; cada una recibe su parte.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-19-nombres-en-ajustes",
       fecha: "2026-11-19",
       texto: "Vuestros nombres ya no están en el código: la app dice «Persona 1» y «Persona 2» hasta que los escribáis en Ajustes › Hogar y cuentas.",
