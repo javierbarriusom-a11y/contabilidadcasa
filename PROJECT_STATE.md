@@ -113,6 +113,29 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (502): privacidad, fase 3 (las reglas por nombre y la plantilla de financiaciones); #642 fusionado
+
+- **#642 (fases 1 y 2) fusionado** con su CI en verde; su despliegue («Verify and deploy Pages» 1476) estaba en curso al cerrar esta entrada: sus números, en la siguiente.
+- **Fase 3** (`docs/PRIVACIDAD_NOMBRES.md`, «Fase 3, cómo quedó»):
+  - `household-members.js`: `huella()` (cyrb53), `personasEnTexto()`, `nominaDe()` y `contieneHuella()`; las claves de siempre y las formas del nombre de cada persona van por su huella, y `clave()` ya no adivina por longitud y primera letra;
+  - las reglas sin el nombre: nómina principal y día 25 del motor de fechas, nómina previa a la principal, salario de la persona 2 en Planificación y Partidas, titular del simulador de proyectos e `inferOwner` de P2 y de la vista familiar; la prueba de oro de 493 casos no cambia;
+  - palabra a palabra: antes «intereses» contaba como el nombre de la persona 2 en el simulador de proyectos;
+  - el titular del crédito guarda «p1»/«p2» y lee los proyectos de siempre; tres sitios enseñaban la clave en bruto;
+  - **la plantilla de financiaciones sale del código**: las filas son las de los datos del hogar; quedan las huellas de los subgrupos del Excel, de las dos filas quitadas y de las ocho fuera de la fórmula del gasto variable;
+  - ningún nombre con mayúscula queda en lo que se publica (también comentarios de `canonical-household-split.js` y `canonical-scenario-schema.js`); quedan las claves de datos en minúscula (fase 4).
+- **Una fuga en el sitio público, cerrada:** la plantilla metía en la demo 22 filas a cero con nombres de las personas y de sus tarjetas. Al quitarla, la demo perdía los 180 € que una de esas filas recibía por una regla del código, y 50 pruebas de navegador cambiaban de cifra; la demo trae ahora su propia fila de ejemplo con ese importe (`tools/build-public-demo-data.mjs`) y sus cifras son las de antes.
+- **Hallazgo, para la fase 5:** `app.js` lleva un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`).
+- **El hogar:** «Haz DAT-07 y DEC-12» (el visto bueno que faltaba) y, sobre DEC-12, «confirma solo al importar». Van en sus propios PR.
+- **Pruebas:**
+  - `tests/privacidad-nombres.test.cjs`: 8 (+2); recorre todo lo que se publica buscando un nombre o una regla que lo busque, y comprueba las huellas de la plantilla;
+  - cinco pruebas que aíslan el motor de fechas o funciones de `app.js` reciben el módulo de miembros, como en el navegador;
+  - e2e: la revisión base cero crea su propia partida dormida (la demo solo las tenía por la plantilla) y «FX-22 PR-2» mide las tres cajas a la vez y espera a que la previsión termine de pintarse (carrera con la máquina cargada; 8/8 aislada);
+  - versión de `app.js` en 28 pruebas;
+  - la línea base de los datos de la demo (`tests/fixtures/finance-data-baseline.json`, con `tools/capture-baseline.mjs`): una fila más y 22.680 € más de gasto previsto (180 € × 126 meses), lo esperado.
+- **Validación:**
+  - `npm run verify` en verde, salida 0, sobre el árbol final: `npm test` 6.777/6.777 (+2). Antes, `tsc` paró porque los motores puros arrastraban la parte de la app de `household-members.js` (arreglado) y la línea base de la demo saltó al cambiar la demo (regenerada).
+  - Batería completa en local: primera pasada 413/463 (las 50 de la demo, arriba); tras el arreglo, 48/50 de las fallidas y las 2 restantes arregladas; **pasada completa final 463 de 463** (24,3 min). Safari, solo en el CI.
+
 ## Cierre de sesión — 19 de noviembre de 2026 (501): privacidad, fases 1 y 2 (los nombres del hogar fuera del código público)
 
 - **El hogar:** «Haz esta tarea aquí: Quitar nombres del hogar del código público». Inventario y plan en `docs/PRIVACIDAD_NOMBRES.md`, que no escribe ningún nombre. Decisiones del hogar del mismo día: **D-N24**, poner el repositorio en privado (lo hace el hogar en GitHub); **D-N25**, los nombres en Ajustes y, mientras tanto, «Persona 1» y «Persona 2»; **D-N26**, claves neutras con migración probada.

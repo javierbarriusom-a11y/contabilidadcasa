@@ -30,7 +30,7 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 2. **Fase 2 (hecha, 19/11/2026): lo que se ve (sin tocar datos).** Los nombres que se ven salen de una configuración del hogar («cómo os llamáis»,
    en Ajustes), guardada en sus datos y nunca en el código. Por defecto, «Persona 1» y «Persona 2». Las claves internas no
    cambian todavía.
-3. **Fase 3: las reglas por nombre.** Reconocer «la nómina de la persona 1» con los nombres configurados (o con la persona
+3. **Fase 3 (hecha, 19/11/2026): las reglas por nombre.** Reconocer «la nómina de la persona 1» con los nombres configurados (o con la persona
    asignada a cada partida en Datos › Familia), no con un nombre escrito en el código. La plantilla de financiaciones sale del
    código: se queda solo en los datos del hogar.
 4. **Fase 4: las claves internas.** Pasan a ser neutras («p1»/«p2»), con una migración que convierta los datos guardados, las
@@ -52,6 +52,32 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 - Lo que queda, a propósito: los valores que guarda el simulador de proyectos, cómo se infiere el titular por el nombre de una
   partida y la plantilla de financiaciones (fases 3 y 4). Una prueba (`tests/privacidad-nombres.test.cjs`) falla si vuelve a
   verse un nombre fuera de esas líneas, y no escribe los nombres: los lee de base64.
+
+### Fase 3, cómo quedó
+
+- `household-members.js` añade `huella()` (cyrb53, 53 bits, sobre el texto normalizado), `personasEnTexto()`, `nominaDe()` y
+  `contieneHuella()`. Las claves de siempre de cada persona y las formas de su nombre que aparecen en los datos van por su
+  huella; `clave()` ya no adivina por la longitud y la primera letra (una palabra cualquiera de cuatro letras ya no es nadie).
+- **Las reglas, sin el nombre:** la nómina principal y la del día 25 del motor de fechas, la nómina que llega antes de la
+  principal, el salario de la persona 2 que suman Planificación y Partidas, el titular que infiere el simulador de proyectos y
+  `inferOwner` de P2 y de la vista familiar. La regla de la nómina es la misma de antes (la prueba de oro de 493 casos no
+  cambia): solo la forma corta del nombre, en la misma posición. Ahora también vale el nombre escrito en Ajustes.
+- **Palabra a palabra:** antes, `includes("…")` reconocía a la persona 2 dentro de «intereses»; el simulador de proyectos
+  atribuía a esa persona un proyecto cuyo nombre lo llevase. Ya no.
+- **El titular del crédito del simulador** guarda «p1»/«p2»; los proyectos guardados con la clave de siempre se leen igual
+  (`memberKey`). En tres sitios se enseñaba la clave en bruto: ahora, el nombre de Ajustes.
+- **La plantilla de financiaciones sale del código.** Las filas de «Financiaciones» son las de los datos del hogar (la plantilla
+  las dejaba guardadas en cada carga desde el principio). De ella quedan solo huellas: los seis subgrupos del Excel al
+  importarlo, las dos filas que el hogar quitó (siguen fuera aunque vuelvan en una copia antigua) y las ocho filas que no
+  cuentan en la fórmula del gasto variable.
+- **Una fuga en el sitio público, cerrada de paso:** la plantilla metía en la demo 22 filas a cero con los nombres de las
+  personas y de sus tarjetas. La demo trae ahora su propia fila de ejemplo con los 180 € que una de ellas recibía por una
+  regla del código, y sus cifras no cambian.
+- **Diferencias conocidas, sin efecto en los datos del hogar:** una fila guardada con otra etiqueta conserva la suya (antes la
+  plantilla la reescribía en cada carga) y una fila de la plantilla que faltara en los datos ya no se crea a cero.
+- **Hallazgo, fuera de este trabajo:** `app.js` sigue llevando un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`, la cuota
+  de una refinanciación) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`). No son nombres de personas,
+  pero chocan con «sin importes en el repo»; se proponen para la fase 5.
 
 ## 3. Decisiones del hogar
 

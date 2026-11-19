@@ -15,7 +15,7 @@
   "counts": {
     "months": 126,
     "sections": 4,
-    "planningRows": 7,
+    "planningRows": 8,
     "transactions": 0,
     "categories": 0,
     "merchants": 0
@@ -28,6 +28,6 @@
   },
   "plannedTotals": {
     "income": 656400,
-    "expense": 441000
+    "expense": 463680
   }
 }
