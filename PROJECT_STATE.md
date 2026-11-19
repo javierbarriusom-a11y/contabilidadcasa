@@ -113,6 +113,12 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (499): despliegue de #640; #641 fusionado
+
+- **Despliegue de #640 (DEC-40, lo plegado también es superficie):** «Verify and deploy Pages» 1472 en verde (Safari incluido) y «Published availability» 372 en verde.
+- **#641 (DEC-20, verbos en «Decidir esta semana») fusionado** con su CI en verde; su despliegue, en la entrada siguiente.
+- **Lo que queda espera al hogar:** la huella del extracto, D-N17 (DEC-16), el visto bueno a DAT-07 y DEC-12, el nombre único de cada colchón (DEC-21), D-N16, D-N23, «ponerlos realistas» y quitar los nombres del hogar del repositorio público.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (498): DEC-20, verbos concretos en «Decidir esta semana»
 
 - **El hogar:** «Continúa con lo que puedas hacer sin mí». DEC-20 es una de las correcciones que la décima auditoría (§6) deja hacer en paralelo porque no cambian cifras.
