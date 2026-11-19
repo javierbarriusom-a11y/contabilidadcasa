@@ -14,7 +14,19 @@
   const SEVERIDADES_GUARDARRAIL = Object.freeze(["dura", "blanda"]);
   const PLANIFICACION_MODOS = Object.freeze(["optimo", "manual"]);
   const CUENTAS = Object.freeze(["caixabank", "mediolanum", "externo"]);
-  const TITULARES = Object.freeze(["hogar", "javi", "tere"]);
+  // Privacidad, fase 4c (D-N26): las personas son «p1» y «p2». Un escenario guardado antes con la clave de siempre sigue siendo
+  // válido (household-members.js la reconoce por su huella): las copias antiguas se restauran sin perder ninguno.
+  const TITULARES = Object.freeze(["hogar", "p1", "p2"]);
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
+    } catch {
+      return null;
+    }
+  }
+  const esTitular = (valor) => TITULARES.includes(valor) || Boolean(householdMembers()?.clave(valor));
   const PROYECTO_MODALIDADES = Object.freeze(["hucha", "pago_unico", "financiado"]);
 
   const DECISION_TYPES = Object.freeze([
@@ -320,8 +332,8 @@
       if (params.nuevaCuota !== undefined) requirePositiveNumber(params, "nuevaCuota", path, issues);
       if (params.nuevoPlazo !== undefined && !(isInteger(params.nuevoPlazo) && params.nuevoPlazo >= 1 && params.nuevoPlazo <= 480)) error(issues, `${path}.nuevoPlazo`, "invalid-value", "nuevoPlazo debe ser un entero entre 1 y 480.");
       if (params.comisiones !== undefined && !(isFiniteNumber(params.comisiones) && params.comisiones >= 0)) error(issues, `${path}.comisiones`, "invalid-value", "comisiones debe ser un número ≥ 0.");
-      if (params.titularOrigen !== undefined && !TITULARES.includes(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
-      if (params.titularDestino !== undefined && !TITULARES.includes(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularOrigen !== undefined && !esTitular(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularDestino !== undefined && !esTitular(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     reunificacion(params, path, issues) {
@@ -338,8 +350,8 @@
       if (params.nuevaCuota !== undefined) requirePositiveNumber(params, "nuevaCuota", path, issues);
       if (params.nuevoPlazo !== undefined && !(isInteger(params.nuevoPlazo) && params.nuevoPlazo >= 1 && params.nuevoPlazo <= 480)) error(issues, `${path}.nuevoPlazo`, "invalid-value", "nuevoPlazo debe ser un entero entre 1 y 480.");
       if (params.comisiones !== undefined && !(isFiniteNumber(params.comisiones) && params.comisiones >= 0)) error(issues, `${path}.comisiones`, "invalid-value", "comisiones debe ser un número ≥ 0.");
-      if (params.titularOrigen !== undefined && !TITULARES.includes(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
-      if (params.titularDestino !== undefined && !TITULARES.includes(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularOrigen !== undefined && !esTitular(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularDestino !== undefined && !esTitular(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     retomar_pagos(params, path, issues) {
@@ -371,7 +383,7 @@
       rejectExtraProperties(params, allowed, path, issues);
       if (params.nombre !== undefined && !isNonEmptyString(params.nombre)) error(issues, `${path}.nombre`, "invalid-value", "nombre debe ser una cadena no vacía.");
       if (params.importe !== undefined) requirePositiveNumber(params, "importe", path, issues);
-      if (params.titular !== undefined && !TITULARES.includes(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titular !== undefined && !esTitular(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
       if (params.financiacion !== undefined && params.financiacion !== null) {
         const financiacion = params.financiacion;
         const finPath = `${path}.financiacion`;
@@ -415,7 +427,7 @@
       const allowed = ["titular", "deltaMensual", "mesInicio", "mesFin"];
       requireFields(params, ["titular", "deltaMensual", "mesInicio"], path, issues);
       rejectExtraProperties(params, allowed, path, issues);
-      if (params.titular !== undefined && !TITULARES.includes(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titular !== undefined && !esTitular(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
       if (params.deltaMensual !== undefined && !isFiniteNumber(params.deltaMensual)) error(issues, `${path}.deltaMensual`, "invalid-value", "deltaMensual debe ser un número.");
       requireMonth(params, "mesInicio", path, issues, params.mesInicio !== undefined);
       if (params.mesFin !== undefined && params.mesFin !== null) requireMonth(params, "mesFin", path, issues, false);
@@ -473,7 +485,7 @@
       if (params.cuota !== undefined) requirePositiveNumber(params, "cuota", path, issues);
       if (params.plazo !== undefined && !(isInteger(params.plazo) && params.plazo >= 1 && params.plazo <= 480)) error(issues, `${path}.plazo`, "invalid-value", "plazo debe ser un entero entre 1 y 480.");
       requireMonth(params, "mes", path, issues, params.mes !== undefined);
-      if (params.titular !== undefined && !TITULARES.includes(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titular !== undefined && !esTitular(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     // E-1: dinero que entra o sale de la familia sin banco de por medio. `direccion` decide el

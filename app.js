@@ -27026,8 +27026,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "Nuevo TIN (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Nuevo plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27040,10 +27040,10 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       titularDestino: v.titularDestino || "hogar",
     }),
     titulo: (v, h) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
-      ? `Refinanciar ${h.debtLabel(v.deudaId)} · ${v.titularOrigen} → ${v.titularDestino}`
+      ? `Refinanciar ${h.debtLabel(v.deudaId)} · ${memberLabel(v.titularOrigen)} → ${memberLabel(v.titularDestino)}`
       : `Refinanciar ${h.debtLabel(v.deudaId)}`),
     detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
-      ? `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses · crédito a nombre de ${d.params.titularDestino}`
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses · crédito a nombre de ${memberLabel(d.params.titularDestino)}`
       : `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
@@ -27061,8 +27061,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "TIN del nuevo préstamo (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27075,10 +27075,10 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       titularDestino: v.titularDestino || "hogar",
     }),
     titulo: (v) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
-      ? `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas · ${v.titularOrigen} → ${v.titularDestino}`
+      ? `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas · ${memberLabel(v.titularOrigen)} → ${memberLabel(v.titularDestino)}`
       : `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas`),
     detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
-      ? `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas · préstamo a nombre de ${d.params.titularDestino}`
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas · préstamo a nombre de ${memberLabel(d.params.titularDestino)}`
       : `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
@@ -27130,7 +27130,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que se recibe" },
       // O-1b: mismo criterio aditivo que compra, arriba — titular es puro metadato.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27185,7 +27185,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "finPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480, visibleSi: (v) => v.financiada === true },
       // O-1b: opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
       // refinanciacion/reunificacion — puro metadato, no cambia ningún cálculo de caja.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27247,7 +27247,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     label: "Cambio de ingreso",
     ayuda: "Suma o resta un importe fijo al ingreso mensual entre dos meses. En negativo modela una bajada de sueldo o el fin de un ingreso.",
     campos: [
-      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["p1", "{p1}"], ["p2", "{p2}"]] },
       // P-2: deslizador sobre el mismo campo — ±1.000€/mes cubre de sobra una subida de sueldo o la
       // pérdida de un ingreso; el número de al lado sigue admitiendo cualquier cifra fuera de rango.
       { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", range: { min: -1000, max: 1000, step: 10 } },

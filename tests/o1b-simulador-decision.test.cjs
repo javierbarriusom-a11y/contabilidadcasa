@@ -56,15 +56,15 @@ test("O-1b · deuda_nueva sin titular sigue siendo válida", () => {
   assert.equal(result.valid, true, JSON.stringify(result.issues));
 });
 
-test("O-1b · compra acepta titular javi/tere/hogar", () => {
-  ["hogar", "javi", "tere"].forEach((titular) => {
+test("O-1b · compra acepta titular javi/Persona 2/hogar", () => {
+  ["hogar", "p1", "p2"].forEach((titular) => {
     const result = schema.validateEscenario(baseEscenario([decision("compra", { nombre: "Coche", importe: 3000, titular })]));
     assert.equal(result.valid, true, `${titular}: ${JSON.stringify(result.issues)}`);
   });
 });
 
-test("O-1b · deuda_nueva acepta titular javi/tere/hogar", () => {
-  ["hogar", "javi", "tere"].forEach((titular) => {
+test("O-1b · deuda_nueva acepta titular javi/Persona 2/hogar", () => {
+  ["hogar", "p1", "p2"].forEach((titular) => {
     const result = schema.validateEscenario(baseEscenario([decision("deuda_nueva", { principal: 8000, cuota: 180, plazo: 48, mes: "2026-10", titular })]));
     assert.equal(result.valid, true, `${titular}: ${JSON.stringify(result.issues)}`);
   });
@@ -96,7 +96,7 @@ function months(n) {
 test("O-1b · con o sin titular, resolveEscenario da exactamente la misma serie para una compra", () => {
   const baseInput = { months: months(6), checkingStart: 1000, savingsStart: 500 };
   const withoutTitular = engine.resolveEscenario([decision("compra", { nombre: "Coche", importe: 3000 })], { baseInput });
-  const withTitular = engine.resolveEscenario([decision("compra", { nombre: "Coche", importe: 3000, titular: "tere" }, 2)], { baseInput });
+  const withTitular = engine.resolveEscenario([decision("compra", { nombre: "Coche", importe: 3000, titular: "p2" }, 2)], { baseInput });
   assert.equal(withoutTitular.valid, true);
   assert.equal(withTitular.valid, true);
   assert.deepEqual(withoutTitular.series, withTitular.series);
@@ -105,7 +105,7 @@ test("O-1b · con o sin titular, resolveEscenario da exactamente la misma serie 
 test("O-1b · con o sin titular, resolveEscenario da exactamente la misma serie para deuda_nueva", () => {
   const baseInput = { months: months(6), checkingStart: 1000, savingsStart: 500 };
   const d1 = decision("deuda_nueva", { principal: 8000, cuota: 180, plazo: 4, mes: "2026-02" });
-  const d2 = decision("deuda_nueva", { principal: 8000, cuota: 180, plazo: 4, mes: "2026-02", titular: "javi" }, 2);
+  const d2 = decision("deuda_nueva", { principal: 8000, cuota: 180, plazo: 4, mes: "2026-02", titular: "p1" }, 2);
   const without = engine.resolveEscenario([d1], { baseInput });
   const withTitular = engine.resolveEscenario([d2], { baseInput });
   assert.deepEqual(without.series, withTitular.series);
@@ -164,7 +164,7 @@ test("O-1b · compra ofrece un campo titular opcional en su catálogo", () => {
   const keys = type.campos.map((field) => field.key);
   assert.ok(keys.includes("titular"));
   const opciones = type.campos.find((field) => field.key === "titular").opciones.map(([value]) => value);
-  assert.equal(Array.from(opciones).join(","), "hogar,javi,tere");
+  assert.equal(Array.from(opciones).join(","), "hogar,p1,p2");
 });
 
 test("O-1b · deuda_nueva ofrece un campo titular opcional en su catálogo", () => {
@@ -186,9 +186,9 @@ test("O-1b · sin tocar el titular (o con «hogar»), params() de compra/deuda_n
 test("O-1b · con titular distinto de «hogar», params() de compra/deuda_nueva lo incluye", () => {
   const context = sandboxEscenarioMotorTypes();
   const compra = typeById(context, "compra");
-  assert.equal(compra.params({ nombre: "Coche", importe: 3000, titular: "tere" }).titular, "tere");
+  assert.equal(compra.params({ nombre: "Coche", importe: 3000, titular: "p2" }).titular, "p2");
   const deudaNueva = typeById(context, "deuda_nueva");
-  assert.equal(deudaNueva.params({ principal: 8000, cuota: 180, plazo: 48, mes: "2026-10", titular: "javi" }).titular, "javi");
+  assert.equal(deudaNueva.params({ principal: 8000, cuota: 180, plazo: 48, mes: "2026-10", titular: "p1" }).titular, "p1");
 });
 
 // --- app.js: el simulador en sí (reutilización + lógica pura) ----------------------------------

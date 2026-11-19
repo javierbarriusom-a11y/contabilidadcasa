@@ -97,3 +97,20 @@ test("fase 4b · el crédito guardado con la clave de siempre se lee igual y se 
   // Guardar escribe el objeto entero ya normalizado: no arrastra la clave de siempre.
   assert.match(extract("saveExecutiveAdvisorSettingsFromControls"), /scenarioSettings\.executiveAdvisor = \{\n {4}\.\.\.settings,/);
 });
+
+// 4c · el titular de las decisiones de Escenarios (refinanciación, reunificación, compra, deuda nueva, cambio de ingreso).
+test("fase 4c · un escenario guardado con la clave de siempre sigue siendo válido; los nuevos usan «p1»/«p2»; el título dice el nombre", () => {
+  const S = require("../canonical-scenario-schema.js");
+  assert.deepEqual([...S.TITULARES], ["hogar", "p1", "p2"]);
+  const fs = require("node:fs");
+  const esquema = fs.readFileSync(require.resolve("../canonical-scenario-schema.js"), "utf8");
+  assert.equal((esquema.match(/!esTitular\(params\.titular(Origen|Destino)?\)/g) || []).length, 7, "las siete validaciones aceptan las dos formas");
+  assert.doesNotMatch(esquema, new RegExp(`\\b(${K1}|${K2})\\b`, "i"));
+  // Las opciones del formulario y el título/detalle (con el nombre de Ajustes, nunca la clave).
+  assert.equal((app.match(/opciones: \[\["hogar", "Hogar"\], \["p1", "\{p1\}"\], \["p2", "\{p2\}"\]\]/g) || []).length, 7);
+  assert.match(app, /Refinanciar \$\{h\.debtLabel\(v\.deudaId\)\} · \$\{memberLabel\(v\.titularOrigen\)\} → \$\{memberLabel\(v\.titularDestino\)\}/);
+  assert.match(app, /préstamo a nombre de \$\{memberLabel\(d\.params\.titularDestino\)\}/);
+  // Al editar uno guardado antes, su titular marca la opción nueva.
+  assert.match(fs.readFileSync(require.resolve("../escenarios-ui.js"), "utf8"), /optionValue === value \|\| \(typeof memberKey === "function" && memberKey\(value\) === optionValue\)/);
+  assert.equal(M.etiqueta(K2, { p2: "Ana Ficticia" }), "Ana Ficticia");
+});
