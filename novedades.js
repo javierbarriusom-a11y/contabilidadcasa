@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-19-esperados-solos",
+      fecha: "2026-11-19",
+      texto: "Al importar un extracto, los cobros y cargos esperados que ya están en él se confirman solos; la bandeja lo dice, con «No era esto».",
+      href: "#movements",
+    },
+    {
       id: "2026-11-19-dividir-movimiento",
       fecha: "2026-11-19",
       texto: "Movimientos: un ticket o un Bizum que mezcla cosas se puede dividir entre varias partidas desde su ficha; cada una recibe su parte.",

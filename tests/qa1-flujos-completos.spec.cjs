@@ -10430,6 +10430,72 @@ test.describe("DAT-07 · dividir un movimiento", () => {
   }
 });
 
+// DEC-12 (19/11/2026, «Haz DAT-07 y DEC-12»; «confirma solo al importar») · un cobro esperado que llega en el extracto por su importe y
+// en su fecha se confirma solo al importarlo: el movimiento va a su partida, cuenta como real y la bandeja lo dice («No era esto» lo
+// devuelve; «Entendido» quita la línea). Los esperados se inyectan como en WP-14 (la demo no tiene fechas de regla); el movimiento es
+// INVENTADO y entra por la misma función que llama la importación guiada, dentro de su lote.
+test.describe("DEC-12 · los esperados que ya están en el extracto se confirman solos", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`al importar: real, línea en la bandeja, «No era esto», deshacer y «Entendido», a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 9, 26, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.waitForFunction(() => typeof expectedAutoConfirmOnImport === "function" && typeof monthByKey === "function" && monthByKey(isoLocalDate(new Date()).slice(0, 7)));
+      await injectExpected(page);
+      const importar = () => page.evaluate(() => {
+        const llegada = new Date(); llegada.setDate(llegada.getDate() - 4);
+        const date = isoLocalDate(llegada);
+        const incoming = [{ date, valueDate: date, month: date.slice(0, 7), movement: "TRANSF FICTICIA", details: "Abono ficticio", amount: 3000, balance: 9000, accountId: "caixabank", account: "Cuenta", category: "Ingresos" }];
+        baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
+        refreshMovementRollups();
+        const hechos = expectedAutoConfirmOnImport(incoming);
+        applyMovementMappingsToActuals();
+        saveMovementMappings(); saveIncomeActuals(); saveExpenseActuals();
+        refreshAllSectionsAfterDataChange();
+        renderDecisionInboxCard();
+        window.__dec12 = incoming[0];
+        return hechos.map((entry) => [entry.seriesKey === window.__esperados.incomeKey, entry.amount]);
+      });
+      expect(await importar()).toEqual([[true, 3000]]);
+      const real = () => page.evaluate(() => { const info = actualAwareInfo(rowForSeriesKey(window.__esperados.incomeKey), monthByKey(window.__esperados.key)); return info.hasActual ? info.actual : null; });
+      const partida = () => page.evaluate(() => { const m = mappingForMovement(window.__dec12); return m ? seriesKeyForRow(m.row) === window.__esperados.incomeKey : null; });
+      await expect.poll(real).toBe(3000);
+      expect(await partida()).toBe(true);
+      await injectExpected(page); // con el real ya puesto, el esperado calla
+      const bandeja = page.locator("#movimientosV2 .mov-v2-bandeja");
+      const linea = bandeja.locator(".mov-v2-esperado", { hasText: "confirmado solo" });
+      await expect(linea).toHaveCount(1);
+      await expect(linea).toContainText("1 confirmado solo");
+      await expect(bandeja.locator(".mov-v2-esperado", { hasText: "¿Ha llegado" })).toHaveCount(0);
+      await linea.locator("summary").click();
+      await expect(linea.locator("li")).toContainText(/3\.000(,00)?\s€/);
+      // «No era esto»: sin partida, sin real, la pregunta vuelve; «Deshacer» lo devuelve.
+      await linea.getByRole("button", { name: "No era esto" }).click();
+      await expect.poll(partida).toBe(null);
+      await expect.poll(real).toBe(null);
+      await injectExpected(page);
+      await expect(bandeja.locator(".mov-v2-esperado", { hasText: "confirmado solo" })).toHaveCount(0);
+      await expect(bandeja.locator(".mov-v2-esperado", { hasText: "¿Ha llegado" })).toHaveCount(1);
+      await page.locator("#undoToastButton").click(); // el movimiento vuelve a la bandeja sin partida: su tarjeta también dice «Deshacer»
+      await expect.poll(real).toBe(3000);
+      await injectExpected(page);
+      await expect(bandeja.locator(".mov-v2-esperado", { hasText: "confirmado solo" })).toHaveCount(1);
+      // Una pareja descartada no se vuelve a confirmar sola: se comprueba con el motor y lo guardado.
+      expect(await page.evaluate(() => JSON.parse(storageGet(storageKey("expected-auto"), "{}")).rejected)).toEqual([]);
+      // «Entendido»: la línea se va y el movimiento sigue en su partida.
+      await bandeja.locator(".mov-v2-esperado", { hasText: "confirmado solo" }).getByRole("button", { name: "Entendido" }).click();
+      await expect(bandeja.locator(".mov-v2-esperado", { hasText: "confirmado solo" })).toHaveCount(0);
+      expect(await partida()).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+});
+
 // 3/11/2026 · Cierre: «Dejar N en Por clasificar». Decisión del hogar en su primer cierre real: firmar sin haber asignado todo,
 // sin que el mes pierda ese dinero. Reloj el 2/11: Cierre enseña octubre. Movimientos INVENTADOS.
 test.describe("Cierre · dejar lo pendiente en «Por clasificar»", () => {

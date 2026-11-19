@@ -1349,6 +1349,7 @@ const BACKUP_LOCAL_STORES = [
   "card-cycles", // WP-30: ciclo de corte y cargo de cada tarjeta de crédito y la fila donde se liquida
   "card-purchases", // WP-30 (PR-2): compras con tarjeta anotadas con la hoja (concepto, tarjeta, fecha) y los tiempos de captura
   "expected-answers", // WP-14 + WP-27: lo respondido y lo callado en «¿ha llegado…?» (aplazamientos y recibos que cambiaron de cuenta)
+  "expected-auto", // DEC-12: los esperados que se confirmaron solos al importar (partida, fecha e importe del movimiento) y las parejas que el hogar descartó con «No era esto»
   "rate-indices", // WP-13: índices de referencia (Euribor, €STR, IPC) tecleados con la fecha del dato; son datos públicos, sin importes del hogar
   "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
   "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
