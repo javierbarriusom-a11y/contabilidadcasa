@@ -109,9 +109,10 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
   con un nombre en mayúsculas y con acento).
 - **Lo que una prueba de texto no ve:** las referencias de diseño en PNG y el PDF de Claude Design (`docs/rediseno/referencias/png/`)
   pueden enseñar nombres dentro de la imagen; no se han reescrito. Y el historial de git: solo D-N24 (repositorio privado) lo quita.
-- **Fuera de esta tarea (propuesta):** `app.js` lleva un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`, la cuota de una
-  refinanciación) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`). No son nombres de personas, pero chocan con
-  «sin importes en el repo»; sacarlos cambia cómo se calcula la previsión, así que se consulta.
+- **El importe de la refinanciación (19/11/2026, el hogar: «Saca el importe de la refinanciación a nuestros datos»):** la cuota, las
+  cuotas, el mes y la partida son datos del hogar (`scenarioSettings.reunifiedDebt`). Paso 1: se copian solos una vez desde el código
+  (`LEGACY_REUNIFIED_DEBT`); paso 2, cuando el hogar confirme que ha abierto la app: se borra del código el importe y la regla por el
+  nombre de la entidad (PROJECT_STATE 505).
 
 ## 3. Decisiones del hogar
 

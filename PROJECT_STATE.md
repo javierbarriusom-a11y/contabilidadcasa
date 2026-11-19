@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (505): la cuota de la refinanciación sale del código (paso 1 de 2); #644 y #645 fusionados
+
+- **Publicado de antes:** #644 (DAT-07 y DEC-12) y #645 (privacidad, fases 4 y 5) fusionados con su CI en verde. El despliegue de #644 (1480) salió en **rojo por una caída de Chromium** (SEGV) en el runner, en mitad de XDA-04: 312 pasadas, 1 fallida; el mismo árbol pasó entero en el CI del PR y en local. No se relanzó: el despliegue de #645 (1482) lo incluye y estaba en marcha al cerrar esta entrada (su resultado, en la siguiente).
+- **El hogar:** «Saca el importe de la refinanciación a nuestros datos»; decisiones del mismo día: «dos pasos, sin tocar cifras» y «otro importe de ejemplo» en la demo; «avísame cuando esté publicado para abrir la app».
+- **Paso 1 de 2** (este PR):
+  - la cuota, el número de cuotas, el mes desde el que manda y la partida que la paga son datos del hogar (`scenarioSettings.reunifiedDebt`, en la copia y la nube); la demo trae los suyos (`baseData.assumptions.reunifiedDebt`);
+  - los usan la previsión (la cuota en su partida desde su mes, por la clave de la partida y no por el nombre de la entidad), el plan unificado de Contratos (cuota, coste e «Incluida en …»), la cuota total y el «Desde …» de Deuda (antes fijo en mayo de 2026);
+  - `migrateReunifiedDebtSetting` copia una vez lo que había en el código (`LEGACY_REUNIFIED_DEBT`) a los datos del hogar al arrancar o al llegar una copia o la nube, solo si su plan tiene la partida de esa refinanciación, nunca en la demo y sin pisar lo ya guardado: ninguna cifra cambia;
+  - Deuda › Contratos: «La cuota de la refinanciación reunificada», plegado y sin titular, para cambiarla, con «Deshacer»;
+  - **demo:** préstamo reunificado de ejemplo de 185 € y 36 cuotas (inventado, con interés) y el acuerdo de ejemplo a 295 €, para que las financiaciones sigan sumando 480 €: la previsión de la demo no cambia. Un primer intento con 200 € y 30 cuotas dejaba el préstamo al 0 % y rompía lo que enseña «amortizar no se pierde»; se cambió el ejemplo, no la prueba.
+- **Paso 2** (cuando el hogar confirme que ha abierto la app): borrar `LEGACY_REUNIFIED_DEBT` (el importe y la regla por el nombre de la entidad).
+- **Pruebas:** `tests/refinanciacion-datos.test.cjs` (4: lectura, regla por partida y mes, migración única y solo con la partida, sin importe fuera del paso 1); la línea base de la demo; el inventario de superficie (#deuda-contratos, 9 → 10 plegados); versiones de `app.js`, `views/deuda.js` (cinco rutas) y `views/debt-control.js`.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.801/6.801 (+4). Batería completa en local: primera pasada 428/467 (39 por las cifras de la demo con 200 €); tras el ajuste de la demo, **467 de 467** (24,7 min).
+
 ## Cierre de sesión — 19 de noviembre de 2026 (504): privacidad, fases 4 y 5 (claves neutras con migración; el candado en todo el repositorio)
 
 - **El hogar:** «Sigue con la fase 4 de privacidad» y «Sigue con la fase 5 de privacidad» (D-N26: claves neutras con migración probada). Detalle en `docs/PRIVACIDAD_NOMBRES.md`.
