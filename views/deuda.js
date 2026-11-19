@@ -2636,3 +2636,48 @@ function debtModeContractOptionsHtml(contracts, selectedId) {
     .map((contract) => `<option value="${escapeHtml(contract.id)}"${contract.id === selectedId ? " selected" : ""}>${escapeHtml(escenarioMotorDebtLabel(contract))} · ${money(contract.currentPrincipal, true)}</option>`)
     .join("");
 }
+
+// 19/11/2026 · La cuota de la refinanciación reunificada, en los datos del hogar (scenarioSettings.reunifiedDebt; app.js,
+// reunifiedDebtSettings). Se pinta con Contratos; guardar la escribe en los datos, la copia y la nube, y repinta.
+function renderRefinanciacionCuota() {
+  const form = qs("refinanciacionCuotaForm");
+  if (!form) return;
+  const settings = reunifiedDebtSettings() || { payment: 0, installments: 0, fromMonth: "", rowKey: "" };
+  const activo = document.activeElement;
+  const pon = (id, valor) => { const el = qs(id); if (el && el !== activo) el.value = valor; };
+  pon("refinanciacionCuota", settings.payment ? String(settings.payment).replace(".", ",") : "");
+  pon("refinanciacionCuotas", settings.installments ? String(settings.installments) : "");
+  pon("refinanciacionDesde", settings.fromMonth || "");
+  const select = qs("refinanciacionPartida");
+  if (select && select !== activo) select.innerHTML = movementMappingOptions("expense", settings.rowKey).replace("Sin asignar todavía", "Ninguna partida");
+  if (!form.dataset.refinanciacionListo) {
+    form.dataset.refinanciacionListo = "1";
+    form.addEventListener("submit", guardarRefinanciacionCuota);
+  }
+}
+
+function guardarRefinanciacionCuota(event) {
+  event?.preventDefault?.();
+  const estado = qs("refinanciacionCuotaEstado");
+  const payment = parseAmount(qs("refinanciacionCuota")?.value);
+  const installments = Math.round(Number(qs("refinanciacionCuotas")?.value));
+  const fromMonth = String(qs("refinanciacionDesde")?.value || "");
+  const rowKey = String(qs("refinanciacionPartida")?.value || "");
+  if (!(payment >= 0) || payment === null) { if (estado) estado.textContent = "Indica la cuota (0 o más)."; return; }
+  if (!(installments > 0)) { if (estado) estado.textContent = "Indica cuántas cuotas tiene (1 o más)."; return; }
+  if (rowKey && !/^\d{4}-\d{2}$/.test(fromMonth)) { if (estado) estado.textContent = "Indica desde qué mes la paga esa partida."; return; }
+  const antes = scenarioSettings.reunifiedDebt ? { ...scenarioSettings.reunifiedDebt } : null;
+  scenarioSettings.reunifiedDebt = { payment, installments, fromMonth, rowKey, updatedAt: new Date().toISOString() };
+  saveScenarioSettings();
+  if (typeof queueRemoteSave === "function") queueRemoteSave();
+  refreshAllSectionsAfterDataChange();
+  const texto = `Guardada: ${money(payment, true)} al mes, ${installments} cuotas${rowKey && fromMonth ? `, desde ${ledgerMonthLabel(fromMonth)}` : ""}.`;
+  if (estado) estado.textContent = texto;
+  showUndoToast(texto, () => {
+    if (antes) scenarioSettings.reunifiedDebt = antes;
+    else delete scenarioSettings.reunifiedDebt;
+    saveScenarioSettings();
+    if (typeof queueRemoteSave === "function") queueRemoteSave();
+    refreshAllSectionsAfterDataChange();
+  });
+}

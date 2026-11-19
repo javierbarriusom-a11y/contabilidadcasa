@@ -424,10 +424,10 @@ function renderDebtControl() {
 
   if (qs("debtBreakdownCards")) {
     qs("debtBreakdownCards").innerHTML = [
-      ["Reunificado", money(stats.portfolioTotals.reunifiedPrincipal, true), `${money(stats.currentPayment.unified, true)}/mes · ${CURRENT_REUNIFIED_DEBT_INSTALLMENTS} cuotas`],
+      ["Reunificado", money(stats.portfolioTotals.reunifiedPrincipal, true), `${money(stats.currentPayment.unified, true)}/mes · ${reunifiedDebtInstallments()} cuotas`],
       ["Capital actual", money(stats.portfolioTotals.currentPrincipal, true), "No reunificado pendiente"],
       ["Amortizado", money(stats.portfolioTotals.amortized, true), "Acuerdos ya aplicados"],
-      ["Pago mensual actual", money(stats.currentPayment.total, true), "Desde mayo 2026"],
+      ["Pago mensual actual", money(stats.currentPayment.total, true), reunifiedDebtSettings()?.fromMonth ? `Desde ${ledgerMonthLabel(reunifiedDebtSettings().fromMonth)}` : "Cuota de hoy"],
     ]
       .map(([label, value, detail]) => `<div class="debt-mini-card"><span>${label}</span><strong>${value}</strong><small>${detail}</small></div>`)
       .join("");
@@ -450,7 +450,7 @@ function renderDebtControl() {
       grouped.set(key, current);
     });
     qs("debtPortfolioTable").innerHTML = `<thead>
-      <tr><th>Entidad / tipo</th><th>Capital inicial</th><th>Mensualidad original</th><th>Desde mayo 2026</th><th>Amortizado</th><th>Capital actual</th><th>Productos</th></tr>
+      <tr><th>Entidad / tipo</th><th>Capital inicial</th><th>Mensualidad original</th><th>${escapeHtml(reunifiedDebtSettings()?.fromMonth ? `Desde ${ledgerMonthLabel(reunifiedDebtSettings().fromMonth)}` : "Cuota de hoy")}</th><th>Amortizado</th><th>Capital actual</th><th>Productos</th></tr>
     </thead><tbody>
       ${[...grouped.values()]
         .map((group) => {
@@ -489,7 +489,7 @@ function renderDebtControl() {
                   ? "Viva"
                   : "Saldada";
         const currentPaymentLabel = row.reunified
-          ? `Incluida en ${money(CURRENT_REUNIFIED_DEBT_PAYMENT, true)}`
+          ? `Incluida en ${money(reunifiedDebtPayment(), true)}`
           : row.plannedCovered
             ? "Liberada en cuadro"
           : suspended
