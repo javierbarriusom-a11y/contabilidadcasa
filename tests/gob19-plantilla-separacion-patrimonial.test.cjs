@@ -42,12 +42,6 @@ function extractFunction(name) {
   throw new Error(`La función ${name} no cierra sus llaves`);
 }
 
-function extractConst(name) {
-  const match = new RegExp(`const ${name} = (\\{[^;]*\\});`).exec(app);
-  assert.ok(match, `No existe la constante ${name} en app.js`);
-  return `const ${name} = ${match[1]};`;
-}
-
 function sandboxWith(names, extra = {}) {
   const context = {
     ...require("./helpers/miembros.cjs"),
