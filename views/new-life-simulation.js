@@ -58,8 +58,8 @@ function newLifeActionButton(item) {
   if (item.action === "car-project") {
     return `<button type="button" data-new-life-action="prepare-car-project">${escapeHtml(item.label || "Preparar coche")}</button>`;
   }
-  if (item.action === "tere-credit") {
-    return `<button type="button" data-new-life-action="prepare-tere-credit">${escapeHtml(item.label || "Simular crédito")}</button>`;
+  if (item.action === "p2-credit") {
+    return `<button type="button" data-new-life-action="prepare-p2-credit">${escapeHtml(item.label || "Simular crédito")}</button>`;
   }
   if (item.debtId) {
     return `<button type="button" data-new-life-debt-target="${escapeHtml(item.debtId)}" data-new-life-debt-month="${escapeHtml(String(item.monthIndex ?? ""))}" data-new-life-debt-amount="${escapeHtml(String(item.amount ?? ""))}">${escapeHtml(item.label || "Preparar")}</button>`;
@@ -202,7 +202,7 @@ function renderNewLifeActions(ctx) {
     text: ctx.safeCredit
       ? `La financiación de ${memberLabel("p2")} parece prudente con cuota ${money(ctx.settings.tereCreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%.`
       : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% y límite prudente 32%.`,
-    action: ctx.safeCredit ? "tere-credit" : "car-project",
+    action: ctx.safeCredit ? "p2-credit" : "car-project",
     label: ctx.safeCredit ? "Simular crédito" : "Preparar hucha",
   });
   actions.push({

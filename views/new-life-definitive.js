@@ -723,7 +723,7 @@ function prepareNewLifeDefinitiveProject() {
   window.requestAnimationFrame(() => {
     clearProjectForm();
     if (qs("projectKind")) qs("projectKind").value = state.projectMode === "credit" ? "external-credit" : "standard";
-    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "p2";
     if (qs("projectName")) qs("projectName").value = state.projectName;
     if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(state.projectAmount);
     if (qs("projectDuration")) qs("projectDuration").value = "1";

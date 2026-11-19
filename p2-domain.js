@@ -14,10 +14,27 @@
   const text = (value) => String(value || "").trim();
   const id = (prefix = "p2") => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+  // Privacidad, fase 3: a quién nombra un texto lo dice household-members.js, por huellas (sin los nombres en el código).
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
+    } catch {
+      return null;
+    }
+  }
+  function personasEnTexto(texto) {
+    const miembros = householdMembers();
+    const nombres = typeof globalThis !== "undefined" && typeof globalThis.householdNames === "function" ? globalThis.householdNames() : {};
+    return miembros ? miembros.personasEnTexto(texto, nombres) : [];
+  }
+
+  // OWNER_VALUES: [hogar, persona 1, persona 2]. La persona 2 gana si el texto nombra a las dos, como antes.
   function inferOwner(label) {
-    const normalized = text(label).toLowerCase();
-    if (/\btere\b|teresa|nomina tere|salario tere/.test(normalized)) return "tere";
-    if (/\bjavi\b|javier|nomina javi|bonus javi/.test(normalized)) return "javi";
+    const quien = personasEnTexto(text(label));
+    if (quien.includes("p2")) return OWNER_VALUES[2];
+    if (quien.includes("p1")) return OWNER_VALUES[1];
     return "household";
   }
 

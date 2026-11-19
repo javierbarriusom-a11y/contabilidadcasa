@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const Band = require("../canonical-cash-band.js");
 const DailyInput = require("../canonical-daily-input.js");
 const { codigoApp } = require("./helpers/codigo-app.cjs");
+const miembros = require("./helpers/miembros.cjs");
 
 // WP-14 + WP-27, PR-2 (docs/WP14_WP27_DISENO.md §4): «Aún no» / «Llegará tarde» mueven la FECHA de la partida al día en que se vuelve a preguntar,
 // para que el motor diario y la banda de WP-16 la cuenten todavía pendiente. Sin esto, un cobro retrasado con fecha cierta ya vencida se daba por
@@ -24,7 +25,7 @@ function block(startMarker, endMarker) {
 
 // El motor real de fechas con las utilidades reales de app.js, como en tests/ntc1-motor-fechas.test.cjs, más el gancho de aplazamientos.
 function loadEngine({ transactions = [], deferral, chargeDay } = {}) {
-  const sandbox = { transactionsForTest: transactions, deferralForTest: deferral, chargeDayForTest: chargeDay };
+  const sandbox = { transactionsForTest: transactions, deferralForTest: deferral, chargeDayForTest: chargeDay, ...miembros };
   vm.createContext(sandbox);
   vm.runInContext([
     block("function dateFromMonthKey", "function defaultBalanceDate"),

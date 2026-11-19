@@ -4553,9 +4553,17 @@ test.describe("WP-34 · revisión base cero del plan", () => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await openBaseCero(page);
+    // Una financiación sin importe ni reales: la demo ya no trae las de la plantilla del Excel del hogar (privacidad, fase 3).
+    await page.evaluate(() => {
+      const section = baseData.monthlyPlanning.sections.find((item) => item.name === "Financiaciones");
+      section.rows.push({ id: "demo-dormida", row: 90, kind: "expense", label: "Entidad de ejemplo · sin uso", planned: section.rows[0].planned.map(() => 0) });
+      applicationRenderRevision += 1;
+      baseCeroState.cache.revision = -1;
+      renderBaseCero(FinanceCanonicalZeroBase);
+    });
     const body = page.locator("#baseCero");
     await expect(body).toContainText("Solo hay reales anotados en 0 de los últimos 6 meses");
-    await expect(body).toContainText("no entran en la revisión");
+    await expect(body).toContainText("1 partida sin importe previsto y sin ningún real no entra en la revisión");
     await expect(body.locator('[data-bc="ajustar"]')).toHaveCount(0);
     await expect(body.locator("table.bc-tabla tbody tr")).toHaveCount(6);
     const first = await body.locator("#bcTitulo").innerText();
@@ -6499,13 +6507,17 @@ test.describe("FX-22 PR-2 · aplazar un pago desde el panel del día", () => {
       // día con el teclado: el foco en el gráfico desplaza la página (CI de #607).
       const atajos = v2.locator(".prev-v2-dia-atajos");
       await expect(atajos).toHaveText("¿Y si…? El 14 dic: un gasto ese día");
-      const figura = v2.locator('[data-ck-id="prevision-v2"]');
-      const [cajaDia, cajaAtajos, cajaFigura] = [await dia.boundingBox(), await atajos.boundingBox(), await figura.boundingBox()];
+      // Las tres cajas se miden a la vez y se espera a que la previsión termine de pintarse (la nota del rango llega después y hace
+      // crecer el gráfico): medidas en tres llamadas sueltas, con la máquina cargada, una caía antes y otra después de ese cambio.
+      const cajas = () => page.evaluate(() => {
+        const caja = (selector) => { const r = document.querySelector(`#planPrevisionV2 ${selector}`).getBoundingClientRect(); return { y: r.y, bottom: r.y + r.height }; };
+        return { dia: caja(".prev-v2-dia"), atajos: caja(".prev-v2-dia-atajos"), figura: caja('[data-ck-id="prevision-v2"]') };
+      });
       if (viewport.width === 1440) {
-        expect(cajaAtajos.y, "bajo el gráfico").toBeGreaterThanOrEqual(cajaFigura.y + cajaFigura.height - 1);
-        expect(cajaDia.y + cajaDia.height, "el panel sigue cabiendo en 900 px").toBeLessThanOrEqual(900);
+        await expect.poll(async () => { const c = await cajas(); return c.atajos.y >= c.figura.bottom - 1; }, { message: "bajo el gráfico" }).toBe(true);
+        expect((await cajas()).dia.bottom, "el panel sigue cabiendo en 900 px").toBeLessThanOrEqual(900);
       } else {
-        expect(cajaAtajos.y, "bajo el panel").toBeGreaterThanOrEqual(cajaDia.y + cajaDia.height - 1);
+        await expect.poll(async () => { const c = await cajas(); return c.atajos.y >= c.dia.bottom - 1; }, { message: "bajo el panel" }).toBe(true);
       }
       // El 8 dic, con ← desde el gráfico: el pago mayor del día que se puede aplazar (el gasto variable no es un pago).
       await v2.locator('[data-ck-id="prevision-v2"] .ck-scrub').focus();

@@ -437,7 +437,7 @@ function partidasTereSalaryByMonth(months) {
     .filter((row) => {
       if (isVisualRowPendingDelete(seriesKeyForRow(row))) return false;
       const label = normalizedText(visualDisplayLabel(row));
-      return label.includes("tere") && (label.includes("nomina") || label.includes("salario"));
+      return memberMentioned(label, "p2") && (label.includes("nomina") || label.includes("salario"));
     });
   return months.map((month) => round2(rows.reduce((sum, row) => sum + Number(visualCellValue(row, month, "planned") || 0), 0)));
 }

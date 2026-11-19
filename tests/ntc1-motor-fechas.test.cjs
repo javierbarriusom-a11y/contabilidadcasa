@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { codigoApp } = require("./helpers/codigo-app.cjs");
+const miembros = require("./helpers/miembros.cjs");
 
 // WP-07 (NTC-01): el motor de fechas se extrajo de app.js a canonical-timing.js SIN CAMBIO DE COMPORTAMIENTO.
 // Antes de borrar nada se ejecutaron el original (app.js de la sesión 299, en un vm) y el módulo sobre 60.276
@@ -28,7 +29,7 @@ function block(startMarker, endMarker) {
 // Las utilidades reales de app.js y el módulo, en el mismo contexto (como en el navegador: `instanceof Date`
 // no cruza contextos de vm).
 function loadEngine(transactions) {
-  const sandbox = { transactionsForTest: transactions };
+  const sandbox = { transactionsForTest: transactions, ...miembros };
   vm.createContext(sandbox);
   vm.runInContext([
     block("function dateFromMonthKey", "function defaultBalanceDate"),

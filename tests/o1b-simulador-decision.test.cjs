@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const vm = require("node:vm");
 const { codigoApp } = require("./helpers/codigo-app.cjs");
+const miembros = require("./helpers/miembros.cjs");
 
 const root = path.resolve(__dirname, "..");
 const app = codigoApp("views/escenarios.js");
@@ -514,6 +515,7 @@ function dateHelpers() {
 
 function transferContext(names, extra = {}) {
   return sandboxWith(names, {
+    ...miembros,
     lastSimulation: [],
     accountBalancesFromState: () => ({ caixa: 0 }),
     agentCaixaFloor: () => 0,

@@ -6,7 +6,11 @@
  * Ajustes › Hogar y cuentas, enseña «Persona 1» y «Persona 2». En el código, las dos personas son «p1» y «p2».
  *
  * Hasta la fase 4 (claves neutras con migración, D-N26) los datos guardados siguen usando sus claves de siempre; `clave()`
- * las reconoce a todas (también con mayúscula, como guardaba el simulador de proyectos) sin que el código tenga que nombrarlas.
+ * las reconoce a todas (también con mayúscula, como guardaba el simulador de proyectos) por su huella, sin nombrarlas.
+ *
+ * Fase 3: `personasEnTexto("Nómina de …")` dice a quién nombra una partida, por la huella de su nombre en los datos de siempre o
+ * por el nombre que el hogar escribió en Ajustes. Con eso reconocen la nómina principal y la de la otra persona el motor de
+ * fechas, la previsión y el simulador de proyectos, sin un nombre escrito en el código.
  *
  * `etiqueta(clave)` da el nombre; `plantilla("Ingreso de {p1}")` sustituye {p1} y {p2}; `pintar(raiz)` rellena en la página
  * los [data-member] y [data-member-template]. Solo funciones a nivel superior (sin let/const fuera de la fábrica).
@@ -17,18 +21,95 @@
   const PERSONAS = ["p1", "p2"];
   const POR_DEFECTO = { p1: "Persona 1", p2: "Persona 2" };
   const MAX_NOMBRE = 30;
-  // Las claves que guardan hoy los datos (fase 4 las cambia por p1/p2). Van por su huella de longitud y primera letra para no
-  // escribir aquí los nombres: la primera persona tiene una clave de 4 letras que empieza por «j»; la segunda, de 4 por «t».
-  const LEGADO = [
-    { persona: "p1", es: (k) => k.length === 4 && k[0] === "j" },
-    { persona: "p2", es: (k) => k.length === 4 && k[0] === "t" },
-  ];
+
+  // Fase 3: el texto se compara normalizado (sin acentos, minúsculas, una sola separación) y por su huella (cyrb53, 53 bits):
+  // el código guarda la huella de un nombre, no el nombre. No protege frente a quien ya sospecha el nombre y lo prueba, pero sí
+  // frente a leerlo o encontrarlo buscando (como la protección de la fase 1).
+  function normal(texto) {
+    return String(texto ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  function huella(texto) {
+    const str = normal(texto);
+    let h1 = 0xdeadbeef;
+    let h2 = 0x41c6ce57;
+    for (let i = 0; i < str.length; i += 1) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+    h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+    h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+  }
+
+  // Cómo aparece cada persona en los datos de siempre: la clave que guardan (fase 4 la cambia por p1/p2) y su nombre en las
+  // partidas («Nómina de …»). Solo sus huellas.
+  const ALIAS = {
+    p1: new Set(["bb8fe2aeb1a36", "c77a6924cddbd"]),
+    p2: new Set(["c75820ddcd046", "1d0cc8ac6cd34e"]),
+  };
+  // La nómina se reconocía solo por la forma corta de cada nombre (la primera de cada lista): se conserva tal cual.
+  const ALIAS_NOMINA = { p1: new Set(["bb8fe2aeb1a36"]), p2: new Set(["c75820ddcd046"]) };
 
   // La persona de una clave cualquiera: «p1», «p2» o la clave antigua de cada una. «hogar»/«household» y lo demás, null.
   function clave(valor) {
-    const k = String(valor ?? "").trim().toLowerCase();
+    const k = normal(valor);
     if (PERSONAS.includes(k)) return k;
-    return LEGADO.find((item) => item.es(k))?.persona || null;
+    if (!k || k.length > MAX_NOMBRE) return null;
+    const h = huella(k);
+    return PERSONAS.find((persona) => ALIAS[persona].has(h)) || null;
+  }
+
+  function palabras(texto) {
+    return normal(texto).split(/[^a-z0-9]+/).filter(Boolean);
+  }
+
+  /**
+   * Qué personas nombra un texto (la etiqueta de una partida, el nombre de un proyecto): palabra a palabra, por la huella de
+   * cómo aparecen en los datos de siempre o por el nombre que el hogar escribió en Ajustes (su primera palabra, de 2 letras o
+   * más). Nunca por un trozo de palabra: «intereses» no nombra a nadie.
+   * @returns {string[]} «p1», «p2», las dos o ninguna, en ese orden
+   */
+  function personasEnTexto(texto, nombres = {}) {
+    const vistas = new Set(palabras(texto).map(huella));
+    if (!vistas.size) return [];
+    return PERSONAS.filter((persona) => {
+      if ([...ALIAS[persona]].some((h) => vistas.has(h))) return true;
+      const propio = palabras(limpio(nombres?.[persona]))[0];
+      return Boolean(propio && propio.length >= 2 && vistas.has(huella(propio)));
+    });
+  }
+
+  function nombra(texto, persona, nombres = {}) {
+    return personasEnTexto(texto, nombres).includes(persona);
+  }
+
+  /**
+   * ¿Es la nómina (o el salario) de esa persona? La misma regla que tenían el motor de fechas y la previsión: «nómina» o
+   * «salario» seguido de su nombre, o su nombre antes de «nómina»/«salario». Con `{ cualquierOrden: true }`, las dos palabras
+   * en cualquier sitio (la regla del día 25 del motor de fechas).
+   */
+  function nominaDe(texto, persona, nombres = {}, { cualquierOrden = false } = {}) {
+    const lista = palabras(texto);
+    const esNomina = (w) => w === "nomina" || w === "salario";
+    const propio = palabras(limpio(nombres?.[persona]))[0];
+    const esPersona = (w) => ALIAS_NOMINA[persona].has(huella(w)) || Boolean(propio && propio.length >= 2 && w === propio);
+    if (cualquierOrden) return lista.some(esNomina) && lista.some(esPersona);
+    return lista.some((w, i) => (esNomina(w) && i + 1 < lista.length && esPersona(lista[i + 1])) || (esPersona(w) && lista.slice(i + 1).some(esNomina)));
+  }
+
+  /** ¿Alguna ventana de palabras seguidas del texto (separadas por espacios) tiene una de estas huellas? */
+  function contieneHuella(texto, huellas, maxPalabras = 8) {
+    const partes = normal(texto).split(" ").filter(Boolean);
+    for (let i = 0; i < partes.length; i += 1) {
+      for (let n = 1; n <= maxPalabras && i + n <= partes.length; n += 1) {
+        if (huellas.has(huella(partes.slice(i, i + n).join(" ")))) return true;
+      }
+    }
+    return false;
   }
 
   function limpio(nombre) {
@@ -53,7 +134,7 @@
     return { p1: limpio(entrada.p1), p2: limpio(entrada.p2) };
   }
 
-  const api = { PERSONAS, POR_DEFECTO, MAX_NOMBRE, clave, etiqueta, plantilla, normalizar };
+  const api = { PERSONAS, POR_DEFECTO, MAX_NOMBRE, normal, huella, clave, personasEnTexto, nombra, nominaDe, contieneHuella, etiqueta, plantilla, normalizar };
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.FinanceHouseholdMembers = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -70,7 +151,22 @@ function memberLabel(valor) {
   const motor = globalThis.FinanceHouseholdMembers;
   if (motor) return motor.etiqueta(valor, householdNames());
   const k = String(valor ?? "").toLowerCase();
-  return k === "household" || k === "hogar" ? "Hogar" : k === "p2" || (k.length === 4 && k[0] === "t") ? "Persona 2" : "Persona 1";
+  return k === "household" || k === "hogar" ? "Hogar" : k === "p2" ? "Persona 2" : k === "p1" ? "Persona 1" : String(valor ?? "");
+}
+
+// ¿Es la nómina o el salario de la persona?
+function memberPayroll(texto, persona) {
+  return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.nominaDe(texto, persona, householdNames()) : false;
+}
+
+// «p1», «p2» o null para una clave de los datos (la de siempre o la neutra).
+function memberKey(valor) {
+  return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.clave(valor) : null;
+}
+
+// ¿Nombra este texto a la persona («p1» o «p2»)? Con los nombres del hogar y los de los datos de siempre.
+function memberMentioned(texto, persona) {
+  return globalThis.FinanceHouseholdMembers ? globalThis.FinanceHouseholdMembers.nombra(texto, persona, householdNames()) : false;
 }
 
 function memberTemplate(texto) {

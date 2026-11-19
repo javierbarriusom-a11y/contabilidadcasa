@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { codigoApp } = require("./helpers/codigo-app.cjs");
+const miembros = require("./helpers/miembros.cjs");
 
 // WP-08 (ND-03): día de cargo por partida. El hogar indica una vez qué día se cobra cada gasto (o «fin de
 // mes») y la previsión lo usa todos los meses. Precedencia: movimiento real casado en ese mes (lo que pasó)
@@ -26,7 +27,7 @@ function block(startMarker, endMarker) {
 
 // Utilidades reales de app.js y el motor de fechas en el mismo contexto (como en ntc1-motor-fechas).
 function loadEngine(transactions, declared = {}) {
-  const sandbox = { transactionsForTest: transactions, declaredForTest: declared };
+  const sandbox = { transactionsForTest: transactions, declaredForTest: declared, ...miembros };
   vm.createContext(sandbox);
   vm.runInContext([
     block("function dateFromMonthKey", "function defaultBalanceDate"),
