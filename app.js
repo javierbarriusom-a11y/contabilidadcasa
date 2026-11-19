@@ -299,7 +299,7 @@ const REMOTE_SOURCE_KEY = "finance-dashboard-main";
 const AGENT_ROUTE_SIMULATION_TAG = "agent-optimal-debt-route";
 
 const DEBT_PORTFOLIO = [
-  { entity: "Entidad A", type: "Crédito", number: "DEMO-A", initialPrincipal: 6000, originalPayment: 200, currentPayment: 200, reunified: true, amortized: 0, currentPrincipal: 6000, maturity: "", remainingInstallments: 30 },
+  { entity: "Entidad A", type: "Crédito", number: "DEMO-A", initialPrincipal: 6000, originalPayment: 185, currentPayment: 185, reunified: true, amortized: 0, currentPrincipal: 6000, maturity: "", remainingInstallments: 36 },
   { entity: "Entidad B", type: "Tarjeta", number: "DEMO-B", initialPrincipal: 3500, originalPayment: 140, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 3500, maturity: "", remainingInstallments: 30 },
   { entity: "Entidad C", type: "Crédito", number: "DEMO-C", initialPrincipal: 2500, originalPayment: 100, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2500, maturity: "", remainingInstallments: 24 },
 ].map((item, index) => ({ ...item, id: `debt-${index + 1}` }));

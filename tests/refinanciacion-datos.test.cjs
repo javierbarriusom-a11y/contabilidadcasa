@@ -94,7 +94,7 @@ test("refinanciación · paso 1: se copia una vez a los datos del hogar, solo co
 test("refinanciación · ya no hay importe ni regla por el nombre de la entidad fuera del paso 1; la demo, con su importe inventado", () => {
   assert.doesNotMatch(app, /CURRENT_REUNIFIED_DEBT/);
   assert.equal((app.match(/refinanciacion cetelem/g) || []).length, 1, "solo en LEGACY_REUNIFIED_DEBT (paso 1)");
-  assert.match(read("tools/build-public-demo-data.mjs"), /reunifiedDebt: \{ payment: 200, installments: 30, fromMonth: "2026-07", rowKey: "expense\|demo-refinancing" \}/);
+  assert.match(read("tools/build-public-demo-data.mjs"), /reunifiedDebt: \{ payment: 185, installments: 36, fromMonth: "2026-07", rowKey: "expense\|demo-refinancing" \}/);
   // Deuda › Contratos: la tarjeta para cambiarla, plegada y sin titular; guardar con deshacer.
   const html = read("index.html");
   const at = html.indexOf('id="refinanciacionCuotaCard"');
