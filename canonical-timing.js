@@ -30,7 +30,8 @@
   function householdMembers() {
     if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
     try {
-      return typeof require === "function" ? require("./household-members.js") : null;
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
     } catch {
       return null;
     }
