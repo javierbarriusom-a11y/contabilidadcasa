@@ -69,7 +69,7 @@ test("la nómina de Javi cae el último día natural, también cuando es fin de 
     assert.equal(result.date, `${monthKey}-${String(day).padStart(2, "0")}`, `${monthKey} (${weekday})`);
     assert.equal(result.confidence, "rule");
     assert.equal(result.role, "main-payroll");
-    assert.equal(result.source, "regla nómina Javi");
+    assert.equal(result.source, "regla nómina principal");
   }
 });
 
@@ -88,7 +88,7 @@ test("Tere sigue el día 25 y el local el día 1: el hogar decidió no tocar lo 
   const sandbox = loadSandbox();
   const tere = timing(sandbox, "Nómina Tere", "2026-10");
   assert.equal(tere.day, 25);
-  assert.equal(tere.source, "regla salario Tere");
+  assert.equal(tere.source, "regla salario día 25");
   const salario = timing(sandbox, "Salario Tere", "2026-10");
   assert.equal(salario.day, 25);
   const local = timing(sandbox, "Local", "2026-10", 800);
@@ -116,7 +116,7 @@ test("la nómina de Javi de diciembre (3.400 €) cae el 31 y no el 15, aunque s
   for (const amount of [3400, 2500, 2400, 6800]) {
     const result = timing(sandbox, "Nómina Javi", "2026-12", amount);
     assert.equal(result.day, 31, `importe ${amount}`);
-    assert.equal(result.source, "regla nómina Javi", `importe ${amount}`);
+    assert.equal(result.source, "regla nómina principal", `importe ${amount}`);
     assert.equal(result.role, "main-payroll");
   }
   // El resto del año ya caía bien: se fija para que ningún reordenamiento lo estropee.
@@ -124,7 +124,7 @@ test("la nómina de Javi de diciembre (3.400 €) cae el 31 y no el 15, aunque s
     const monthKey = `2026-${String(month).padStart(2, "0")}`;
     const result = timing(sandbox, "Nómina Javi", monthKey, 3400);
     assert.equal(result.day, new Date(2026, month, 0).getDate(), monthKey);
-    assert.equal(result.source, "regla nómina Javi", monthKey);
+    assert.equal(result.source, "regla nómina principal", monthKey);
   }
 });
 

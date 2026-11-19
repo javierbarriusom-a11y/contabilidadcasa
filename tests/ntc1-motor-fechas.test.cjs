@@ -52,7 +52,7 @@ test("oro: el módulo reproduce campo a campo lo que fechaba app.js antes de la 
 test("el oro cubre todas las reglas, con y sin movimientos", () => {
   const sources = new Set(golden.cases.map((item) => `${item.scenario}|${item.out.source}`));
   for (const scenario of ["sin movimientos", "con movimientos"]) {
-    for (const source of ["regla local", "regla salario Tere", "regla nómina Javi", "regla bonus Javi", "regla bono diciembre", "regla gasto fin de mes", "estimación alisada 1-15"]) {
+    for (const source of ["regla local", "regla salario día 25", "regla nómina principal", "regla bonus", "regla bono diciembre", "regla gasto fin de mes", "estimación alisada 1-15"]) {
       assert.ok(sources.has(`${scenario}|${source}`), `${scenario}: falta «${source}»`);
     }
   }
@@ -91,7 +91,7 @@ test("app.js delega en el módulo y ya no contiene las reglas", () => {
   for (const name of ["incomeTimingForRow", "isEndOfMonthExpenseRow", "expenseTimingFromMovements", "expenseTimingForRow"]) {
     assert.match(app, new RegExp(`function ${name}\\(([^)]*)\\) \\{ return timingEngine\\(\\)\\.${name}\\(\\1\\); \\}`), name);
   }
-  for (const gone of ["function incomeTimingFromMovements", "function isMainPayrollIncomeRow", "regla salario Tere", "regla gasto fin de mes", "estimación alisada 1-15"]) {
+  for (const gone of ["function incomeTimingFromMovements", "function isMainPayrollIncomeRow", "regla salario día 25", "regla gasto fin de mes", "estimación alisada 1-15"]) {
     assert.ok(!app.includes(gone), `app.js aún contiene «${gone}»`);
   }
   assert.match(app, /timingEngineInstance \|\|= window\.FinanceCanonicalTiming\.createTimingEngine\(\{ displayLabelForRow, normalizedText, dateFromMonthKey, monthEndDate, lastBusinessDayOfMonth, isoLocalDate, localDateFromIso, shortDate, dateWithMonthLabel, transactions: \(\) => baseData\?\.transactions \|\| \[\], chargeDay: chargeDayForRow, deferral: expectedDeferralForRow \}\)/);

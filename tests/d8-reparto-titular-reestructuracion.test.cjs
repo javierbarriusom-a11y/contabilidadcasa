@@ -39,7 +39,7 @@ function extractFunction(name) {
 }
 
 function sandboxWith(names, extra = {}) {
-  const context = { ...extra };
+  const context = { ...require("./helpers/miembros.cjs"), ...extra };
   vm.createContext(context);
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
@@ -50,7 +50,6 @@ function baseHelpers(extra = {}) {
     money: (value, precise) => `${Number(value || 0).toFixed(precise ? 2 : 0)} €`,
     escapeHtml: (value) => String(value ?? ""),
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
-    GOB19_OWNER_LABELS: { household: "Hogar", javi: "Javi", tere: "Tere" },
     ...extra,
   };
 }
@@ -120,7 +119,7 @@ test("di5OwnerBreakdownHtml · nada asignado a Javi/Tere y sin deuda de hogar, c
 test("di5OwnerBreakdownHtml · solo deuda de hogar sin asignar, avisa en vez de fingir un reparto", () => {
   const context = sandboxWith(["di5OwnerBreakdownHtml"], baseHelpers());
   const html = context.di5OwnerBreakdownHtml({ javi: [], tere: [], household: [{ id: "c1" }] });
-  assert.match(html, /Ningún contrato de deuda está asignado a Javi o Tere/);
+  assert.match(html, /Ningún contrato de deuda está asignado a Persona 1 o Persona 2/);
   assert.match(html, /Familia/);
 });
 
@@ -137,8 +136,8 @@ test("di5OwnerBreakdownHtml · con Javi y Tere asignados, suma cuota actual, nue
     household: [],
   });
   assert.match(html, /Reparto por titular/);
-  assert.match(html, /Javi.*1 contrato, cuota 200\.00 € → 150\.00 €\/mes \(alivio de 50\.00 €\/mes\)/);
-  assert.match(html, /Tere.*2 contratos, cuota 180\.00 € → 160\.00 €\/mes \(alivio de 20\.00 €\/mes\)/);
+  assert.match(html, /Persona 1.*1 contrato, cuota 200\.00 € → 150\.00 €\/mes \(alivio de 50\.00 €\/mes\)/);
+  assert.match(html, /Persona 2.*2 contratos, cuota 180\.00 € → 160\.00 €\/mes \(alivio de 20\.00 €\/mes\)/);
 });
 
 test("di5OwnerBreakdownHtml · sin alivio para un titular, no muestra la coletilla de alivio", () => {
@@ -159,8 +158,8 @@ test("di5OwnerBreakdownHtml · Javi/Tere asignados y además deuda de hogar sin 
     tere: [],
     household: [{ id: "c2" }, { id: "c3" }],
   });
-  assert.match(html, /Javi/);
-  assert.match(html, /2 contratos sin asignar a Javi o Tere quedan fuera de este reparto/);
+  assert.match(html, /Persona 1/);
+  assert.match(html, /2 contratos sin asignar a Persona 1 o Persona 2 quedan fuera de este reparto/);
 });
 
 // --- wiring: handleDi5CompareJointRestructuring ---------------------------------------------------

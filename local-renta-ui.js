@@ -7,13 +7,13 @@
 // saveScenarioSettings, parseAmountField, money…) y los ayudantes de informe-renta-ui.js (informeRentaEsc, informeRentaEuros). app.js se lo pasa al entrar en Fiscal (renderLocalRenta, junto a renderInformeRenta): sin escuchas al cargarse.
 
 const LOCAL_RENTA_DECLARANTES = [
-  { value: "javi", label: "Javi" },
-  { value: "tere", label: "Tere" },
+  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
 ];
 const LOCAL_RENTA_TITULARES = [
   { value: "", label: "Sin declarar" },
-  { value: "javi", label: "Javi" },
-  { value: "tere", label: "Tere" },
+  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
   { value: "household", label: "De los dos (50 % cada uno)" },
 ];
 const LOCAL_RENTA_GASTOS = [
@@ -23,7 +23,7 @@ const LOCAL_RENTA_GASTOS = [
 const LOCAL_RENTA_FALTA = {
   "rent-missing": "La renta mensual sin IVA del contrato.",
   "months-missing": "Cuántos meses estuvo alquilado este año.",
-  "holder-missing": "De quién es el local (Javi, Tere o los dos).",
+  "holder-missing": "De quién es el local (de una persona o de los dos).",
   "amortization-base-missing": "El coste de compra con su parte de construcción o el valor catastral de la construcción (está en el recibo del IBI): sin ellos no se resta la amortización.",
   "accumulated-amortization-missing": "La amortización ya deducida en años anteriores: sin ella no se comprueba el tope.",
   "imputation-data-missing": (m) => `Los ${m.months} ${m.months === 1 ? "mes" : "meses"} sin alquilar imputan renta: falta el valor catastral total y si es el 2 % o el 1,1 % (revisado).`,

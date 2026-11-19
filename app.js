@@ -6664,7 +6664,7 @@ function applyHelpTooltips() {
   qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
   qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
   qs("ajustesJointRestructuringCompare")?.setAttribute("data-help", "Con los contratos activos de Deuda › Contratos, propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro configurado en Ajustes › Alertas, dado el ingreso mensual que indiques.");
-  qs("gob19SeparationCompare")?.setAttribute("data-help", "Reparte la deuda activa por el titular ya declarado (Javi/Tere/Hogar en Herramientas avanzadas → Datos), reestructura la cuota de cada uno con su ingreso individual tras la separación —mismo motor que la reestructuración conjunta, llamado una vez por persona— y recuerda el saldo de gastos compartidos pendiente de liquidar antes de separar cuentas.");
+  qs("gob19SeparationCompare")?.setAttribute("data-help", "Reparte la deuda activa por el titular ya declarado (cada persona o el hogar, en Herramientas avanzadas → Datos), reestructura la cuota de cada uno con su ingreso individual tras la separación —mismo motor que la reestructuración conjunta, llamado una vez por persona— y recuerda el saldo de gastos compartidos pendiente de liquidar antes de separar cuentas.");
   qs("gob15Simulate")?.setAttribute("data-help", "Cancela la hipoteca activa ya declarada en Deuda › Contratos con el precio de venta, estima el coste fiscal de la plusvalía (con exención proporcional si reinviertes en una vivienda nueva) y compara la cuota mensual actual contra el alquiler nuevo o la hipoteca nueva, según el destino que elijas.");
   addHelpToControl(
     "coreSpend",
@@ -7819,7 +7819,7 @@ function decisionNetCashCost(item) {
 
 function projectKindLabel(item) {
   if (item?.projectKind === "external-credit" || decisionCreditCapital(item) > 0) {
-    return `Crédito externo${item.creditOwner ? ` · ${item.creditOwner}` : ""}`;
+    return `Crédito externo${item.creditOwner ? ` · ${memberLabel(item.creditOwner)}` : ""}`;
   }
   return item?.source === "debt" ? "Deuda" : "Proyecto";
 }
@@ -9076,7 +9076,7 @@ function renderProjectDecisionLedger(baseRows, rows) {
       </div>
       <div class="decision-owner-strip">
         ${ownerSummary
-          .map((item) => `<span><b>${escapeHtml(item.owner)}</b>${item.count} ${item.count === 1 ? "decisión" : "decisiones"} · ${money(item.creditCapital, true)} crédito</span>`)
+          .map((item) => `<span><b>${escapeHtml(memberLabel(item.owner))}</b>${item.count} ${item.count === 1 ? "decisión" : "decisiones"} · ${money(item.creditCapital, true)} crédito</span>`)
           .join("")}
       </div>
     </article>
@@ -9234,7 +9234,7 @@ function renderDecisionComparator(baseRows, rows) {
   const allLoaded = placements;
   const scenarios = [
     decisionScenarioMetrics("Sin crédito externo", noExternalCredit),
-    decisionScenarioMetrics("Con crédito de Tere", tereCredit),
+    decisionScenarioMetrics(memberTemplate("Con crédito de {p2}"), tereCredit),
     decisionScenarioMetrics("Crédito + deuda", allLoaded),
   ];
   const bestMin = Math.max(...scenarios.map((item) => item.minChecking));
@@ -11145,7 +11145,7 @@ function renderVisualDetail() {
   renderCalculatedRow(
     "transfer-adjusted-section",
     "Disponible para traspaso ajustado",
-    "Referencia: día 25 aprox. del mes, tras nómina Tere. Disponible + nómina Tere.",
+    memberTemplate("Referencia: día 25 aprox. del mes, tras la nómina de {p2}. Disponible + nómina de {p2}."),
     adjustedAvailableForTransferByColumn,
   );
   renderCalculatedRow(
@@ -11157,7 +11157,7 @@ function renderVisualDetail() {
   renderCalculatedRow(
     "transfer-prudent-adjusted-section",
     "Disponible para traspaso prudente ajustado",
-    "Referencia: día 25 aprox. del mes, tras nómina Tere y cubriendo los gastos previstos del mes siguiente.",
+    memberTemplate("Referencia: día 25 aprox. del mes, tras la nómina de {p2} y cubriendo los gastos previstos del mes siguiente."),
     prudentAdjustedAvailableForTransferByColumn,
   );
 
@@ -11742,7 +11742,7 @@ function renderVisualRangeKpis() {
       <div class="range-kpi-card adjusted">
         <span>Min ajustado</span>
         <strong>${money(metrics.adjustedMin, true)}</strong>
-        <p>${escapeHtml(metrics.adjustedMinMonth)} · ${escapeHtml(metrics.adjustedMinDate || "")} · antes de nómina Javi, sumando cobros previos (${money(metrics.adjustedIncome, true)}).</p>
+        <p>${escapeHtml(metrics.adjustedMinMonth)} · ${escapeHtml(metrics.adjustedMinDate || "")} · antes de ${escapeHtml(memberTemplate("la nómina de {p1}"))}, sumando cobros previos (${money(metrics.adjustedIncome, true)}).</p>
       </div>
       <div class="range-kpi-card minimum">
         <span>Min</span>
@@ -15734,7 +15734,7 @@ function di5OwnerBreakdownHtml(grouped) {
   const assigned = ["javi", "tere"].filter((owner) => grouped[owner].length);
   if (!assigned.length) {
     return grouped.household.length
-      ? `<p class="e19-kpi-note">Ningún contrato de deuda está asignado a Javi o Tere en Herramientas avanzadas → Datos → Familia — el reparto por titular no se puede calcular.</p>`
+      ? `<p class="e19-kpi-note">Ningún contrato de deuda está asignado a ${escapeHtml(memberTemplate("{p1} o {p2}"))} en Herramientas avanzadas → Datos → Familia — el reparto por titular no se puede calcular.</p>`
       : "";
   }
   const rows = assigned.map((owner) => {
@@ -15742,12 +15742,12 @@ function di5OwnerBreakdownHtml(grouped) {
     const currentTotal = round2(proposals.reduce((sum, proposal) => sum + proposal.currentMonthlyPayment, 0));
     const newTotal = round2(proposals.reduce((sum, proposal) => sum + proposal.newMonthlyPayment, 0));
     const relief = round2(proposals.reduce((sum, proposal) => sum + (proposal.relief || 0), 0));
-    const label = GOB19_OWNER_LABELS[owner];
+    const label = memberLabel(owner);
     const reliefText = relief > 0 ? ` (alivio de ${money(relief, true)}/mes)` : "";
     return `<li><strong>${escapeHtml(label)}</strong>: ${proposals.length} ${proposals.length === 1 ? "contrato" : "contratos"}, cuota ${money(currentTotal, true)} → ${money(newTotal, true)}/mes${reliefText}.</li>`;
   }).join("");
   const unassignedNote = grouped.household.length
-    ? `<p class="e19-kpi-note">${grouped.household.length} ${grouped.household.length === 1 ? "contrato sin asignar a Javi o Tere queda" : "contratos sin asignar a Javi o Tere quedan"} fuera de este reparto.</p>`
+    ? `<p class="e19-kpi-note">${grouped.household.length} ${grouped.household.length === 1 ? memberTemplate("contrato sin asignar a {p1} o {p2} queda") : memberTemplate("contratos sin asignar a {p1} o {p2} quedan")} fuera de este reparto.</p>`
     : "";
   return `<p><strong>Reparto por titular:</strong></p><ul class="commit-barrier-list">${rows}</ul>${unassignedNote}`;
 }
@@ -15821,7 +15821,7 @@ function renderA18RuleCategoryOptions() {
 }
 
 function a18RuleLabel(rule) {
-  if (rule.mode === "fixed") return `importe fijo: ${rule.payer === "javi" ? "Javi" : "Tere"} aporta ${money(rule.amount, true)}, el resto lo cubre ${rule.payer === "javi" ? "Tere" : "Javi"}`;
+  if (rule.mode === "fixed") return `importe fijo: ${memberLabel(rule.payer)} aporta ${money(rule.amount, true)}, el resto lo cubre ${memberLabel(rule.payer === "javi" ? "p2" : "p1")}`;
   if (rule.mode === "income-proportional") return "proporcional a los ingresos declarados";
   return "a partes iguales";
 }
@@ -15889,7 +15889,6 @@ function removeA18Rule(category) {
 // cada uno ya fue pagado al 100% por un titular (paidBy); el saldo continuo (runningBalance) es lo
 // que el otro le debe según la regla de reparto de A18-1 para esa categoría. Lista aparte del libro
 // principal de movimientos: nunca lo toca ni lo modifica.
-const A18_OWNER_LABELS = { javi: "Javi", tere: "Tere" };
 
 function householdSplitEntriesList() {
   return Array.isArray(scenarioSettings.householdSplitEntries) ? scenarioSettings.householdSplitEntries : [];
@@ -15937,7 +15936,7 @@ function removeA18Entry(id) {
 
 function a18EntryLabel(entry) {
   const dateLabel = entry.date ? ` · ${escapeHtml(entry.date)}` : "";
-  return `${escapeHtml(entry.category || "Sin categoría")} · ${money(entry.amount, true)} · pagado por ${escapeHtml(A18_OWNER_LABELS[entry.paidBy] || "Javi")}${dateLabel}`;
+  return `${escapeHtml(entry.category || "Sin categoría")} · ${money(entry.amount, true)} · pagado por ${escapeHtml(memberLabel(entry.paidBy || "p1"))}${dateLabel}`;
 }
 
 function renderA18EntryList() {
@@ -15952,8 +15951,8 @@ function renderA18EntryList() {
 // A18-2: saldo continuo — sin nada que declarar, no hay saldo pendiente (nunca un "no calculable"
 // inventado: cero gastos compartidos es, honestamente, un saldo en cero).
 function a18BalanceLabel(balance) {
-  if (!balance.owes) return "Sin saldo pendiente entre Javi y Tere.";
-  return `${escapeHtml(A18_OWNER_LABELS[balance.owes])} debe a ${escapeHtml(A18_OWNER_LABELS[balance.owedTo])}: ${money(balance.amount, true)}.`;
+  if (!balance.owes) return memberTemplate("Sin saldo pendiente entre {p1} y {p2}.");
+  return `${escapeHtml(memberLabel(balance.owes))} debe a ${escapeHtml(memberLabel(balance.owedTo))}: ${money(balance.amount, true)}.`;
 }
 
 function renderA18BalanceCard() {
@@ -15962,7 +15961,7 @@ function renderA18BalanceCard() {
   const engine = window.FinanceCanonicalHouseholdSplit;
   const entries = householdSplitEntriesList();
   if (!engine || !entries.length) {
-    note.innerHTML = `<p>Registra al menos un gasto compartido para ver el saldo continuo entre Javi y Tere.</p>`;
+    note.innerHTML = `<p>Registra al menos un gasto compartido para ver el saldo continuo entre ${escapeHtml(memberTemplate("{p1} y {p2}"))}.</p>`;
     return;
   }
   const balance = engine.runningBalance(entries, householdSplitSettings());
@@ -16027,14 +16026,14 @@ function confirmA18Settlement(party) {
     scenarioSettings.householdSettlementConfirmation = next;
     saveScenarioSettings();
     const otherParty = party === "javi" ? "tere" : "javi";
-    announceStatus(`Confirmación de ${A18_OWNER_LABELS[party]} registrada. Falta la de ${A18_OWNER_LABELS[otherParty]}.`);
+    announceStatus(`Confirmación de ${memberLabel(party)} registrada. Falta la de ${memberLabel(otherParty)}.`);
   }
   renderA18SettlementCard();
   renderA18BalanceCard();
 }
 
 function a18SettlementLabel(settlement) {
-  return `${A18_OWNER_LABELS[settlement.from] || settlement.from} pagó a ${A18_OWNER_LABELS[settlement.to] || settlement.to}: ${money(settlement.amount, true)}, confirmado el ${String(settlement.confirmedAt).slice(0, 10)}.`;
+  return `${memberLabel(settlement.from) || settlement.from} pagó a ${memberLabel(settlement.to) || settlement.to}: ${money(settlement.amount, true)}, confirmado el ${String(settlement.confirmedAt).slice(0, 10)}.`;
 }
 
 function renderA18SettlementCard() {
@@ -16049,7 +16048,7 @@ function renderA18SettlementCard() {
       const confirmation = a18SettlementConfirmationState(proposal);
       const javiDone = Boolean(confirmation?.javiConfirmedAt);
       const tereDone = Boolean(confirmation?.tereConfirmedAt);
-      box.innerHTML = `<p><strong>${escapeHtml(A18_OWNER_LABELS[proposal.from])} debe a ${escapeHtml(A18_OWNER_LABELS[proposal.to])}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${javiDone ? "✓ Javi ha confirmado." : "Javi no ha confirmado todavía."} ${tereDone ? "✓ Tere ha confirmado." : "Tere no ha confirmado todavía."}</p>`;
+      box.innerHTML = `<p><strong>${escapeHtml(memberLabel(proposal.from))} debe a ${escapeHtml(memberLabel(proposal.to))}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} ${proposal.entryIds.length === 1 ? "gasto compartido pendiente" : "gastos compartidos pendientes"}. Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${escapeHtml(memberTemplate(javiDone ? "✓ {p1} ha confirmado." : "{p1} no ha confirmado todavía."))} ${escapeHtml(memberTemplate(tereDone ? "✓ {p2} ha confirmado." : "{p2} no ha confirmado todavía."))}</p>`;
     }
   }
   if (history) {
@@ -16083,10 +16082,9 @@ function gob19DebtsByOwner() {
   return grouped;
 }
 
-const GOB19_OWNER_LABELS = { household: "Hogar", javi: "Javi", tere: "Tere" };
 
 function gob19RestructuringSectionHtml(person, income, contracts, safeRatio) {
-  const label = GOB19_OWNER_LABELS[person];
+  const label = memberLabel(person);
   if (!contracts.length) {
     return `<p><strong>${escapeHtml(label)}</strong>: sin deuda propia asignada — nada que reestructurar.</p>`;
   }
@@ -16119,10 +16117,10 @@ function handleGob19SeparationTemplate() {
   const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
   const settlement = a18CurrentProposal();
   const settlementHtml = settlement.hasPendingBalance
-    ? `<p>Antes de separar cuentas, liquida el saldo pendiente de gastos compartidos: <strong>${escapeHtml(A18_OWNER_LABELS[settlement.from])} debe a ${escapeHtml(A18_OWNER_LABELS[settlement.to])} ${money(settlement.amount, true)}</strong> (ver «Liquidación con doble confirmación» arriba).</p>`
+    ? `<p>Antes de separar cuentas, liquida el saldo pendiente de gastos compartidos: <strong>${escapeHtml(memberLabel(settlement.from))} debe a ${escapeHtml(memberLabel(settlement.to))} ${money(settlement.amount, true)}</strong> (ver «Liquidación con doble confirmación» arriba).</p>`
     : `<p>Sin saldo pendiente de gastos compartidos que liquidar.</p>`;
   const unassignedHtml = grouped.household.length
-    ? `<p class="negative">${grouped.household.length} ${grouped.household.length === 1 ? "deuda activa sigue" : "deudas activas siguen"} a nombre de «Hogar» (sin asignar a Javi o Tere) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
+    ? `<p class="negative">${grouped.household.length} ${grouped.household.length === 1 ? "deuda activa sigue" : "deudas activas siguen"} a nombre de «Hogar» (sin asignar a ${escapeHtml(memberTemplate("{p1} o {p2}"))}) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
     : "";
   const javiHtml = gob19RestructuringSectionHtml("javi", incomeJavi, grouped.javi, safeRatio);
   const tereHtml = gob19RestructuringSectionHtml("tere", incomeTere, grouped.tere, safeRatio);
@@ -19439,7 +19437,7 @@ function executiveActions(ctx) {
   });
   actions.push({
     tone: ctx.safeCredit ? "good" : "danger",
-    title: "Financiación de Tere para coche",
+    title: memberTemplate("Financiación de {p2} para coche"),
     text: ctx.safeCredit
       ? `Con ${money(ctx.settings.tereCreditCapital, true)} de capital y cuota ${money(ctx.settings.tereCreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithTere.toFixed(1)}%.`
       : `Con cuota ${money(ctx.settings.tereCreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithTere.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
@@ -19764,7 +19762,7 @@ function unifiedActionImpact(item) {
   if (item.command === "simulate-route") return "Añadirá temporalmente la ruta completa al cálculo para comparar caja, ahorro y deuda. Podrás retirarla sin fijar ninguna decisión.";
   if (item.command === "clear-route") return "Retirará la ruta temporal del cálculo. Las decisiones ya fijadas no se modificarán.";
   if (item.command === "car-project") return "Abrirá una propuesta editable de hucha para coche. No cambia el cuadro de mandos hasta que la confirmes.";
-  if (item.command === "tere-credit") return "Abrirá una simulación editable del crédito de Tere y su cuota. No se incorporará al plan sin confirmación.";
+  if (item.command === "tere-credit") return memberTemplate("Abrirá una simulación editable del crédito de {p2} y su cuota. No se incorporará al plan sin confirmación.");
   return `Abrirá ${viewTitles[item.target]?.eyebrow || viewTitles[item.target]?.title || "la sección relacionada"} sin modificar datos.`;
 }
 
@@ -20422,7 +20420,7 @@ function prepareExecutiveCarProject(useCredit = false) {
     clearProjectForm();
     if (qs("projectKind")) qs("projectKind").value = useCredit ? "external-credit" : "standard";
     if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
-    if (qs("projectName")) qs("projectName").value = useCredit ? "Compra coche con financiación Tere" : "Colchón coche";
+    if (qs("projectName")) qs("projectName").value = useCredit ? memberTemplate("Compra coche con financiación de {p2}") : "Colchón coche";
     if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(useCredit ? settings.carCost : settings.carReserve);
     if (qs("projectDuration")) qs("projectDuration").value = "1";
     if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.tereCreditCapital) : "";
@@ -25148,12 +25146,12 @@ function familyContextMeta(context = currentFamilyContext()) {
       note: "Incluye todos los ingresos y gastos de la unidad familiar.",
     },
     javi: {
-      label: "Javi",
-      note: "Ingresos de Javi y la mitad de los gastos compartidos.",
+      label: memberLabel("p1"),
+      note: memberTemplate("Ingresos de {p1} y la mitad de los gastos compartidos."),
     },
     tere: {
-      label: "Tere",
-      note: "Ingresos de Tere y la mitad de los gastos compartidos.",
+      label: memberLabel("p2"),
+      note: memberTemplate("Ingresos de {p2} y la mitad de los gastos compartidos."),
     },
   }[context];
 }
@@ -27070,8 +27068,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "Nuevo TIN (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Nuevo plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27105,8 +27103,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "TIN del nuevo préstamo (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
-      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
-      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -27174,7 +27172,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que se recibe" },
       // O-1b: mismo criterio aditivo que compra, arriba — titular es puro metadato.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27229,7 +27227,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "finPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480, visibleSi: (v) => v.financiada === true },
       // O-1b: opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
       // refinanciacion/reunificacion — puro metadato, no cambia ningún cálculo de caja.
-      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]], opcional: true },
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]], opcional: true },
     ],
     mes: (v) => v.mes,
     params: (v) => {
@@ -27291,7 +27289,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     label: "Cambio de ingreso",
     ayuda: "Suma o resta un importe fijo al ingreso mensual entre dos meses. En negativo modela una bajada de sueldo o el fin de un ingreso.",
     campos: [
-      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "{p1}"], ["tere", "{p2}"]] },
       // P-2: deslizador sobre el mismo campo — ±1.000€/mes cubre de sobra una subida de sueldo o la
       // pérdida de un ingreso; el número de al lado sigue admitiendo cualquier cifra fuera de rango.
       { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", range: { min: -1000, max: 1000, step: 10 } },
@@ -29912,7 +29910,7 @@ const LABORATORIO_CATALOG = [
   {
     hash: "executive-advisor", label: "Asesor ejecutivo", veredicto: "sustituida", dondeViveAhora: "Deuda · oferta en curso",
     destino: { hash: "deuda-ruta", label: "Deuda · Ruta" }, backlogTask: null,
-    queHacia: "Asesoramiento sobre reserva, coche y crédito de Tere con proyección de caja.",
+    queHacia: "Asesoramiento sobre reserva, coche y crédito de una de las personas, con proyección de caja.",
     nota: "", guardKey: "agentCaixaFloor",
     evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `setAgentCaixaFloor`/`applyDebtDecision` rechazan la escritura y la registran (L-5).",
   },
@@ -30579,6 +30577,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
 
 function render() {
   applicationRenderRevision += 1;
+  globalThis.paintMemberLabels?.(); // privacidad: los nombres del hogar, de sus datos (household-members.js)
   ensureUxSettingsState();
   readStateFromControls();
   ensureVariableOperationalSection();

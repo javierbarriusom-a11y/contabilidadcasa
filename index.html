@@ -263,8 +263,8 @@
           </div>
           <div class="family-context-switch" id="familyContextSwitch" role="group" aria-label="Contexto familiar">
             <button type="button" data-family-context="household" class="active">Hogar</button>
-            <button type="button" data-family-context="javi">Javi</button>
-            <button type="button" data-family-context="tere">Tere</button>
+            <button type="button" data-family-context="javi" data-member="p1">Persona 1</button>
+            <button type="button" data-family-context="tere" data-member="p2">Persona 2</button>
           </div>
           <small id="familyContextNote">Todas las cuentas, ingresos, gastos y deudas del hogar.</small>
         </section>
@@ -1248,11 +1248,11 @@
                   <input id="executiveCarCost" type="number" step="500" min="0" value="25000" />
                 </label>
                 <label>
-                  <span>Crédito Tere</span>
+                  <span data-member-template="Crédito {p2}">Crédito Persona 2</span>
                   <input id="executiveTereCreditCapital" type="number" step="500" min="0" value="15000" />
                 </label>
                 <label>
-                  <span>Cuota Tere</span>
+                  <span data-member-template="Cuota {p2}">Cuota Persona 2</span>
                   <input id="executiveTereCreditPayment" type="number" step="25" min="0" value="320" />
                 </label>
               </div>
@@ -1298,7 +1298,7 @@
                 <div class="module-heading">
                   <div>
                     <p class="panel-kicker">Coche</p>
-                    <h3>Hucha y financiación de Tere</h3>
+                    <h3 data-member-template="Hucha y financiación de {p2}">Hucha y financiación de Persona 2</h3>
                     <p>Decide si esperar a colchón, financiar parte o combinar ambas opciones.</p>
                   </div>
                 </div>
@@ -1615,7 +1615,7 @@
                   <div>
                     <p class="panel-kicker">Comparador</p>
                     <h3>Escenarios completos</h3>
-                    <p>Base, deuda óptima, coche con hucha y coche con financiación de Tere.</p>
+                    <p data-member-template="Base, deuda óptima, coche con hucha y coche con financiación de {p2}.">Base, deuda óptima, coche con hucha y coche con financiación de Persona 2.</p>
                   </div>
                 </div>
                 <div class="new-life-scenario-grid" id="newLifeScenarios"></div>
@@ -1745,7 +1745,7 @@
                         <select id="lifeDefProjectMode">
                           <option value="savings">Hucha en Mediolanum</option>
                           <option value="payment">Pago único desde ahorro</option>
-                          <option value="credit">Financiación de Tere</option>
+                          <option value="credit" data-member-template="Financiación de {p2}">Financiación de Persona 2</option>
                         </select>
                       </label>
                       <label>
@@ -3196,8 +3196,8 @@
                   <span>De quién es</span>
                   <select id="fc3PriorLossTitular">
                     <option value="" selected>Sin declarar</option>
-                    <option value="javi">Javi</option>
-                    <option value="tere">Tere</option>
+                    <option value="javi" data-member="p1">Persona 1</option>
+                    <option value="tere" data-member="p2">Persona 2</option>
                   </select>
                 </label>
               </div>
@@ -4817,7 +4817,7 @@
                 <summary>Informe de inversión para la Renta: la base del ahorro de cada declarante</summary>
                 <div class="informe-renta-controles">
                   <label><span>Ejercicio</span><select id="informeRentaAno" data-informe-renta-control></select></label>
-                  <label><span>Declarante</span><select id="informeRentaDeclarante" data-informe-renta-control><option value="javi">Javi</option><option value="tere">Tere</option></select></label>
+                  <label><span>Declarante</span><select id="informeRentaDeclarante" data-informe-renta-control><option value="javi" data-member="p1">Persona 1</option><option value="tere" data-member="p2">Persona 2</option></select></label>
                   <button type="button" class="e19-btn e19-btn-secondary" id="informeRentaCsv">Exportar CSV</button>
                   <button type="button" class="e19-btn e19-btn-secondary" id="informeRentaImprimir">Imprimir</button>
                 </div>
@@ -5298,6 +5298,18 @@
 
             <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar y cuentas</h3>
+              <!-- Privacidad, fase 2 (household-members.js; docs/PRIVACIDAD_NOMBRES.md): los nombres que enseña la app viven en los
+                   datos del hogar, nunca en el código. Plegada y sin titular. -->
+              <details class="e19-card prevision-calidad-card" id="householdNamesCard">
+                <summary>Cómo os llamáis (los nombres que enseña la app)</summary>
+                <form id="householdNamesForm" class="cuadro-mandos-controls">
+                  <p class="e19-kpi-note">Se guardan en vuestros datos (copia y nube), nunca en el código de la app. Vacíos, la app dice «Persona 1» y «Persona 2».</p>
+                  <label class="month-picker"><span>Persona 1</span><input id="householdNameP1" type="text" maxlength="30" autocomplete="off" /></label>
+                  <label class="month-picker"><span>Persona 2</span><input id="householdNameP2" type="text" maxlength="30" autocomplete="off" /></label>
+                  <button type="submit" class="e19-btn e19-btn-secondary">Guardar</button>
+                  <p class="e19-kpi-note" id="householdNamesEstado" role="status" aria-live="polite"></p>
+                </form>
+              </details>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
@@ -5354,14 +5366,14 @@
                  que hoy. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reglas de reparto del hogar</h3>
-              <p class="e19-kpi-note">Cómo se reparte cada categoría de gasto compartido entre Javi y Tere: a partes iguales (comportamiento de siempre), proporcional a los ingresos declarados, o un importe fijo a cargo de uno de los dos.</p>
+              <p class="e19-kpi-note">Cómo se reparte cada categoría de gasto compartido entre los dos: a partes iguales (comportamiento de siempre), proporcional a los ingresos declarados, o un importe fijo a cargo de uno de los dos.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
-                  <span>Ingreso mensual de Javi (€)</span>
+                  <span data-member-template="Ingreso mensual de {p1} (€)">Ingreso mensual de Persona 1 (€)</span>
                   <input id="a18IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
                 <label class="month-picker">
-                  <span>Ingreso mensual de Tere (€)</span>
+                  <span data-member-template="Ingreso mensual de {p2} (€)">Ingreso mensual de Persona 2 (€)</span>
                   <input id="a18IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
               </div>
@@ -5381,8 +5393,8 @@
                 <label class="month-picker">
                   <span>Titular del importe fijo</span>
                   <select id="a18RulePayer">
-                    <option value="javi">Javi</option>
-                    <option value="tere">Tere</option>
+                    <option value="javi" data-member="p1">Persona 1</option>
+                    <option value="tere" data-member="p2">Persona 2</option>
                   </select>
                 </label>
                 <label class="month-picker">
@@ -5418,8 +5430,8 @@
                 <label class="month-picker">
                   <span>Pagado por</span>
                   <select id="a18EntryPaidBy">
-                    <option value="javi">Javi</option>
-                    <option value="tere">Tere</option>
+                    <option value="javi" data-member="p1">Persona 1</option>
+                    <option value="tere" data-member="p2">Persona 2</option>
                   </select>
                 </label>
               </div>
@@ -5430,14 +5442,14 @@
 
             <!-- A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de
                  arriba nunca se registra como transferencia interna por sí solo; esta tarjeta es el
-                 único camino para eso, y exige que Javi y Tere confirmen por separado antes de
+                 único camino para eso, y exige que los dos confirmen por separado antes de
                  registrarla, mismo ciclo de aprobación que el cierre/reapertura de mes (E5). -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Liquidación con doble confirmación</h3>
-              <p class="e19-kpi-note">El saldo continuo de arriba nunca se registra por sí solo como transferencia interna entre Javi y Tere: cada liquidación periódica sugerida exige que ambos confirmen por separado, mismo ciclo de aprobación que el cierre y la reapertura de mes.</p>
+              <p class="e19-kpi-note">El saldo continuo de arriba nunca se registra por sí solo como transferencia interna entre los dos: cada liquidación periódica sugerida exige que ambos confirmen por separado, mismo ciclo de aprobación que el cierre y la reapertura de mes.</p>
               <div class="e19-kpi-note" id="a18SettlementProposal"></div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi">Confirmo yo, Javi</button>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere">Confirmo yo, Tere</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi" data-member-template="Confirmo yo, {p1}">Confirmo yo, Persona 1</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere" data-member-template="Confirmo yo, {p2}">Confirmo yo, Persona 2</button>
               <ul class="commit-barrier-list" id="a18SettlementHistory"></ul>
             </article>
 
@@ -5488,11 +5500,11 @@
               <p class="e19-kpi-note">Si el hogar se separa: qué deuda le queda a cada titular (según la titularidad ya declarada en Herramientas avanzadas → Datos) y si su cuota es sostenible solo con su propio ingreso, más el saldo de gastos compartidos que conviene liquidar antes de separar cuentas. No reparte activos ni ejecuta ninguna operación.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
-                  <span>Ingreso mensual de Javi tras la separación (€)</span>
+                  <span data-member-template="Ingreso mensual de {p1} tras la separación (€)">Ingreso mensual de Persona 1 tras la separación (€)</span>
                   <input id="gob19IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
                 <label class="month-picker">
-                  <span>Ingreso mensual de Tere tras la separación (€)</span>
+                  <span data-member-template="Ingreso mensual de {p2} tras la separación (€)">Ingreso mensual de Persona 2 tras la separación (€)</span>
                   <input id="gob19IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
               </div>
@@ -6338,7 +6350,7 @@
                 </details>
                 <details>
                   <summary>¿Puedo simular para mí o para mi mujer por separado?</summary>
-                  <p>Sí: el simulador «¿Y si...?» y varios motores de escenario incluyen un campo «Titular» (Hogar / Javi / Tere).</p>
+                  <p>Sí: el simulador «¿Y si...?» y varios motores de escenario incluyen un campo «Titular» (el hogar o cada uno de vosotros).</p>
                 </details>
                 <details>
                   <summary>¿Cómo decide Presupuesto del mes cuánto sugerir por categoría?</summary>
@@ -6561,7 +6573,7 @@
                 </label>
                 <label id="visualEditLabelField">
                   <span>Nuevo título</span>
-                  <input id="visualEditLabel" type="text" placeholder="Ej. Variables Javier" />
+                  <input id="visualEditLabel" type="text" placeholder="Ej. Variables de casa" />
                 </label>
                 <label>
                   <span>Aplicar en</span>
@@ -7192,8 +7204,8 @@
                       <label class="project-credit-field">
                         <span>Titular / origen</span>
                         <select id="projectCreditOwner">
-                          <option value="Tere">Tere</option>
-                          <option value="Javi">Javi</option>
+                          <option value="Tere" data-member="p2">Persona 2</option>
+                          <option value="Javi" data-member="p1">Persona 1</option>
                           <option value="Hogar">Hogar</option>
                         </select>
                       </label>
@@ -8008,6 +8020,7 @@
     <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
+    <script defer src="household-members.js?v=20261119priv2"></script>
     <script defer src="medidor-utilidad.js?v=20261118dec41"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
     <script defer src="funciones-en-prueba.js?v=20261118svd6"></script>
@@ -8297,7 +8310,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20260811v62a1"></script>
-    <script defer src="novedades.js?v=20261118dec20"></script>
+    <script defer src="novedades.js?v=20261119priv2"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>

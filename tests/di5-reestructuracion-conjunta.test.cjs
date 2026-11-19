@@ -43,12 +43,12 @@ function extractFunction(name) {
 
 function sandboxWith(names, extra = {}) {
   const context = {
+    ...require("./helpers/miembros.cjs"),
     escapeHtml: (v) => String(v ?? ""),
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     parseAmount: (value) => { const n = Number(String(value ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; },
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
     p2State: () => ({ ownership: {} }),
-    GOB19_OWNER_LABELS: { household: "Hogar", javi: "Javi", tere: "Tere" },
     window: { FinanceCanonicalJointRestructuring: Restructuring },
     ...extra,
   };

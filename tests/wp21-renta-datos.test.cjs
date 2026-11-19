@@ -36,7 +36,7 @@ test("cambiar un campo toca solo esa posición; volver a España borra el país"
 test("la lista: una fila por posición con titular, depositario y país (este solo fuera de España), y lo que falta, dicho", () => {
   const html = ui.rentaDatosHtml([pos({ titular: "javi", depositario: "espana" }), pos({ id: "p2", label: "ETF <B>", depositario: "extranjero", depositarioPais: "Irlanda" })]);
   assert.equal((html.match(/class="renta-datos-fila"/g) || []).length, 2);
-  assert.match(html, /<option value="javi" selected>Javi<\/option>/);
+  assert.match(html, /<option value="javi" selected>Persona 1<\/option>/);
   assert.match(html, /<option value="household">Conjunta \(50 % cada uno\)<\/option>/);
   assert.match(html, /aria-label="Titular de ETF &lt;B&gt;"/, "el nombre va escapado");
   assert.match(html, /<label><span>País<\/span><input type="text" maxlength="60" data-renta-datos-campo="depositarioPais" aria-label="País donde está depositada ETF &lt;B&gt;" value="Irlanda"/);
@@ -124,7 +124,7 @@ test("pérdidas arrastradas por bloque: FC3 solo aplica las de transmisiones; si
   assert.deepEqual(r.priorLossesApplied, [{ year: "2023", amount: 200 }, { year: "2025", amount: 100 }]);
   assert.equal(r.taxableNet, 700);
   assert.equal(r.marginalSaleBase, 700, "la de rendimientos tampoco cuenta para valorar otra venta");
-  assert.equal(ui.rentaPerdidaEtiqueta({ bloque: "rendimientos", titular: "tere" }), " · rendimientos · Tere");
+  assert.equal(ui.rentaPerdidaEtiqueta({ bloque: "rendimientos", titular: "tere" }), " · rendimientos · Persona 2");
   assert.equal(ui.rentaPerdidaEtiqueta({}), " · transmisiones · sin titular");
 });
 

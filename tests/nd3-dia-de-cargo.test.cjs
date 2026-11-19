@@ -91,7 +91,7 @@ test("un valor guardado que no es día ni «fin de mes» se ignora: vuelve al co
 
 test("los ingresos no cambian aunque una partida de gasto tenga día indicado", () => {
   const engine = loadEngine([], { "Nomina Javi": { day: 3 } });
-  assert.equal(engine.incomeTimingForRow({ label: "Nomina Javi" }, { key: "2026-11" }, 3000).source, "regla nómina Javi");
+  assert.equal(engine.incomeTimingForRow({ label: "Nomina Javi" }, { key: "2026-11" }, 3000).source, "regla nómina principal");
 });
 
 // --- almacén ---------------------------------------------------------------------------------------

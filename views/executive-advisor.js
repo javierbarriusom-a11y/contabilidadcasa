@@ -129,7 +129,7 @@ function renderExecutiveCarPlan(ctx) {
         <button type="button" data-executive-action="prepare-car-project">Preparar hucha coche</button>
       </article>
       <article class="executive-car-option ${ctx.safeCredit ? "good" : "danger"}">
-        <span>Financiación Tere</span>
+        <span>Financiación de ${escapeHtml(memberLabel("p2"))}</span>
         <strong>${money(ctx.settings.tereCreditCapital, true)} ahora · ${money(ctx.settings.tereCreditPayment, true)}/mes</strong>
         <p>Mes estimado con crédito: ${escapeHtml(monthWithCredit)}. Ratio deuda: ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%. Cuota máxima prudente: ${money(ctx.maxSafeTerePayment, true)}.</p>
         <button type="button" data-executive-action="prepare-tere-credit">Simular financiación</button>

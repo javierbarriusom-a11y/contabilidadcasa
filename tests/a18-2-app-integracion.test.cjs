@@ -38,7 +38,7 @@ test("A18-2: sin gastos registrados, la tarjeta pide registrar al menos uno, nun
 test("A18-2: a18BalanceLabel nunca inventa una dirección de deuda cuando el saldo está en cero", () => {
   const block = appSource.slice(appSource.indexOf("function a18BalanceLabel("), appSource.indexOf("function a18BalanceLabel(") + 300);
   assert.match(block, /if \(!balance\.owes\)/);
-  assert.match(block, /Sin saldo pendiente entre Javi y Tere/);
+  assert.match(block, /Sin saldo pendiente entre \{p1\} y \{p2\}/);
 });
 
 test("A18-2: cambiar una regla o los ingresos declarados refresca el saldo continuo", () => {

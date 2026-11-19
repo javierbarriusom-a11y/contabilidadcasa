@@ -42,6 +42,7 @@ function extractFunction(name) {
 
 function sandboxWith(names, extra = {}) {
   const context = {
+    ...require("./helpers/miembros.cjs"),
     escapeHtml: (v) => String(v ?? ""),
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     parseAmount: (value) => { const n = Number(String(value ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; },

@@ -460,9 +460,9 @@ function partidasTransferRowsHtml(months, incomeTotals, expenseTotals) {
   return [
     heading,
     partidasCalculatedRowHtml("transfer-section", "Disponible para traspaso", "Referencia: cierre estimado del mes. CaixaBank estimado + ingresos - gastos - reserva operativa común.", available),
-    partidasCalculatedRowHtml("transfer-adjusted-section", "Disponible para traspaso ajustado", "Referencia: día 25 aprox. del mes, tras nómina Tere. Disponible + nómina Tere.", adjusted),
+    partidasCalculatedRowHtml("transfer-adjusted-section", "Disponible para traspaso ajustado", memberTemplate("Referencia: día 25 aprox. del mes, tras la nómina de {p2}. Disponible + nómina de {p2}."), adjusted),
     partidasCalculatedRowHtml("transfer-prudent-section", "Disponible para traspaso prudente", "Referencia: cierre estimado del mes, cubriendo también los gastos previstos del mes siguiente.", prudent),
-    partidasCalculatedRowHtml("transfer-prudent-adjusted-section", "Disponible para traspaso prudente ajustado", "Referencia: día 25 aprox. del mes, tras nómina Tere y cubriendo los gastos previstos del mes siguiente.", prudentAdjusted),
+    partidasCalculatedRowHtml("transfer-prudent-adjusted-section", "Disponible para traspaso prudente ajustado", memberTemplate("Referencia: día 25 aprox. del mes, tras la nómina de {p2} y cubriendo los gastos previstos del mes siguiente."), prudentAdjusted),
   ].join("");
 }
 

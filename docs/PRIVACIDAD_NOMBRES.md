@@ -27,7 +27,7 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
    la huella de cada trío de palabras. Detecta igual una frase escrita con acentos, guiones o espacios dobles, y cuando falla
    enseña la huella, no la frase (el registro del CI también es público). Una huella sin sal no protege frente a quien ya
    sospecha el nombre y lo prueba, pero sí frente a leerlo o encontrarlo buscando.
-2. **Fase 2: lo que se ve (sin tocar datos).** Los nombres que se ven salen de una configuración del hogar («cómo os llamáis»,
+2. **Fase 2 (hecha, 19/11/2026): lo que se ve (sin tocar datos).** Los nombres que se ven salen de una configuración del hogar («cómo os llamáis»,
    en Ajustes), guardada en sus datos y nunca en el código. Por defecto, «Persona 1» y «Persona 2». Las claves internas no
    cambian todavía.
 3. **Fase 3: las reglas por nombre.** Reconocer «la nómina de la persona 1» con los nombres configurados (o con la persona
@@ -39,7 +39,27 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 5. **Fase 5: el candado.** Con el código limpio, los dos nombres de pila pasan a la protección (por su huella) y a una prueba
    que recorre todo el repositorio, no solo lo publicado.
 
+### Fase 2, cómo quedó
+
+- `household-members.js` (antes de `app.js`): `memberLabel("p1")`, `memberTemplate("… {p1} …")` y `paintMemberLabels()`, que
+  rellena en la página los `data-member` y `data-member-template`. Reconoce también las claves que guardan hoy los datos, para
+  no tocarlos hasta la fase 4. `render()` vuelve a pintar los nombres, por si llegan de la nube.
+- Ajustes › Hogar y cuentas › «Cómo os llamáis» (plegado y sin titular): dos campos de hasta 30 caracteres, sin marcas,
+  guardados en `scenarioSettings.householdNames` (copia y nube). Vacíos, «Persona 1» y «Persona 2».
+- Con ellos salen: el selector de vista familiar, el titular de escenarios, la renta y el local, el reparto y el saldo de
+  gastos compartidos, la separación patrimonial, la familia de Datos, la hucha y el crédito del simulador de proyectos y las
+  pantallas de «Versiones anteriores». Los motores puros dicen «la nómina principal» o «el salario del día 25».
+- Lo que queda, a propósito: los valores que guarda el simulador de proyectos, cómo se infiere el titular por el nombre de una
+  partida y la plantilla de financiaciones (fases 3 y 4). Una prueba (`tests/privacidad-nombres.test.cjs`) falla si vuelve a
+  verse un nombre fuera de esas líneas, y no escribe los nombres: los lee de base64.
+
 ## 3. Decisiones del hogar
+
+**Decididas el 19/11/2026:** D-N24, poner el repositorio en privado (lo hace el hogar en GitHub; GitHub Pages desde un
+repositorio privado necesita un plan de pago, o mover el sitio). D-N25, los nombres en Ajustes y, mientras tanto, «Persona 1»
+y «Persona 2». D-N26, claves neutras con migración probada (fase 4, en su propio PR).
+
+Lo que se preguntó:
 
 - **D-N24 · El historial.** (a) Poner el repositorio en privado: lo único que lo quita de la vista de verdad, pero GitHub
   Pages desde un repositorio privado necesita un plan de pago, o mover el sitio a otro sitio; (b) reescribir el historial

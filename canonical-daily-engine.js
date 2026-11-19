@@ -355,7 +355,7 @@
         maxTotalDate: maxTotalPoint?.date || "",
         adjustedMin: round(payrollPoint?.beforeTotal ?? minTotalPoint?.total),
         adjustedMinDate: payrollPoint?.date || minTotalPoint?.date || "",
-        adjustedMinEvent: payrollPoint ? "Antes de nómina Javi" : minTotalPoint?.label || "",
+        adjustedMinEvent: payrollPoint ? "Antes de la nómina principal" : minTotalPoint?.label || "",
         estimatedEventCount: confidence.estimated,
       };
     });

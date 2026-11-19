@@ -200,7 +200,7 @@ function renderNewLifeActions(ctx) {
     tone: ctx.safeCredit ? "good" : "danger",
     title: "Decidir coche sin romper caja",
     text: ctx.safeCredit
-      ? `La financiación de Tere parece prudente con cuota ${money(ctx.settings.tereCreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%.`
+      ? `La financiación de ${memberLabel("p2")} parece prudente con cuota ${money(ctx.settings.tereCreditPayment, true)}: ratio ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%.`
       : `Antes del crédito, revisa cuota: ratio estimado ${ctx.debtRatioWithTere.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% y límite prudente 32%.`,
     action: ctx.safeCredit ? "tere-credit" : "car-project",
     label: ctx.safeCredit ? "Simular crédito" : "Preparar hucha",
@@ -239,7 +239,7 @@ function renderNewLifeFamilyStory(ctx) {
       ? `El primer proyecto de vida pendiente es ${project.name}, con hucha aproximada de ${money(project.pot, true)}/mes y objetivo ${project.monthLabel}.`
       : "No hay proyectos de vida pendientes; el coche queda como objetivo principal de hucha.",
     ctx.safeCredit
-      ? "El crédito de Tere se puede usar como palanca si se mantiene el ratio de deuda por debajo del umbral y no sustituye el colchón."
+      ? memberTemplate("El crédito de {p2} se puede usar como palanca si se mantiene el ratio de deuda por debajo del umbral y no sustituye el colchón.")
       : "La financiación externa para coche debe ajustarse o esperar: ahora no es la opción más prudente con los parámetros actuales.",
   ];
   target.innerHTML = `<ol>${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ol>`;
@@ -282,7 +282,7 @@ function renderNewLifeScenarios(ctx) {
       ],
     },
     {
-      title: "Coche con crédito Tere",
+      title: memberTemplate("Coche con crédito de {p2}"),
       badge: ctx.safeCredit ? "viable" : "vigilar",
       main: money(ctx.settings.tereCreditCapital, true),
       rows: [
