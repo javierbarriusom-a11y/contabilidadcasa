@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261117svd4", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261117svd4", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261117svd4", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261117svd4", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261117svd4", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261119refi1", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261119refi1", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261119refi1", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261119refi1", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261119refi1", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -252,7 +252,7 @@ const VIEW_CHUNKS = {
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv4", rootId: "executive-advisor" },
   "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv4", rootId: "new-life-definitive" },
-  "debt-control": { src: "views/debt-control.js?v=20260919t14g1", rootId: "debt-control" },
+  "debt-control": { src: "views/debt-control.js?v=20261119refi1", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
   "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv4", rootId: "new-life-simulation" },
@@ -299,14 +299,54 @@ const REMOTE_SOURCE_KEY = "finance-dashboard-main";
 const AGENT_ROUTE_SIMULATION_TAG = "agent-optimal-debt-route";
 
 const DEBT_PORTFOLIO = [
-  { entity: "Entidad A", type: "Crédito", number: "DEMO-A", initialPrincipal: 6000, originalPayment: 180, currentPayment: 180, reunified: true, amortized: 0, currentPrincipal: 6000, maturity: "", remainingInstallments: 36 },
+  { entity: "Entidad A", type: "Crédito", number: "DEMO-A", initialPrincipal: 6000, originalPayment: 200, currentPayment: 200, reunified: true, amortized: 0, currentPrincipal: 6000, maturity: "", remainingInstallments: 30 },
   { entity: "Entidad B", type: "Tarjeta", number: "DEMO-B", initialPrincipal: 3500, originalPayment: 140, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 3500, maturity: "", remainingInstallments: 30 },
   { entity: "Entidad C", type: "Crédito", number: "DEMO-C", initialPrincipal: 2500, originalPayment: 100, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2500, maturity: "", remainingInstallments: 24 },
 ].map((item, index) => ({ ...item, id: `debt-${index + 1}` }));
 
-const CURRENT_REUNIFIED_DEBT_PAYMENT = 180;
-const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 36;
-const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
+// Refinanciación reunificada (19/11/2026, el hogar: «Saca el importe de la refinanciación a nuestros datos», «dos pasos, sin
+// tocar cifras»): la cuota, el número de cuotas, el mes desde el que manda en el plan y la partida que la paga son datos del hogar
+// (scenarioSettings.reunifiedDebt, en la copia y la nube); la demo trae los suyos (baseData.assumptions.reunifiedDebt).
+// PASO 1 DE 2: LEGACY_REUNIFIED_DEBT copia una vez a los datos del hogar lo que había escrito aquí (migrateReunifiedDebtSetting),
+// solo si su plan tiene la partida de esa refinanciación. El paso 2, cuando el hogar confirme que ha abierto la app, lo borra.
+const LEGACY_REUNIFIED_DEBT = { payment: 180, installments: 36, fromMonth: "2026-05", rowLabel: "refinanciacion cetelem" };
+
+function reunifiedDebtSettings() {
+  const raw = (typeof scenarioSettings !== "undefined" && scenarioSettings?.reunifiedDebt) || baseData?.assumptions?.reunifiedDebt || null;
+  if (!raw || typeof raw !== "object") return null;
+  const payment = Number(raw.payment);
+  const installments = Number(raw.installments);
+  return {
+    payment: Number.isFinite(payment) && payment >= 0 ? round2(payment) : 0,
+    installments: Number.isFinite(installments) && installments > 0 ? Math.round(installments) : 0,
+    fromMonth: /^\d{4}-\d{2}$/.test(String(raw.fromMonth || "")) ? String(raw.fromMonth) : "",
+    rowKey: String(raw.rowKey || ""),
+  };
+}
+
+function reunifiedDebtPayment() {
+  return reunifiedDebtSettings()?.payment || 0;
+}
+
+function reunifiedDebtInstallments() {
+  return reunifiedDebtSettings()?.installments || 0;
+}
+
+function reunifiedDebtCost() {
+  return round2(reunifiedDebtPayment() * reunifiedDebtInstallments());
+}
+
+// Paso 1: la primera vez (sin el dato guardado, fuera de la demo y con la partida en el plan), lo de siempre pasa a los datos.
+function migrateReunifiedDebtSetting() {
+  if (typeof scenarioSettings === "undefined" || !scenarioSettings || scenarioSettings.reunifiedDebt || baseData?.metadata?.publicDemo) return false;
+  const row = (typeof availableSeriesRows === "function" ? availableSeriesRows("expense") : [])
+    .find((item) => normalizedText(displayLabelForRow(item)).includes(LEGACY_REUNIFIED_DEBT.rowLabel));
+  if (!row) return false;
+  const { payment, installments, fromMonth } = LEGACY_REUNIFIED_DEBT;
+  scenarioSettings.reunifiedDebt = { payment, installments, fromMonth, rowKey: seriesKeyForRow(row), migratedAt: new Date().toISOString() };
+  saveScenarioSettings();
+  return true;
+}
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const E14DebtAdapter = globalThis.FinanceCanonicalE14DebtAdapter || null;
 const E14DebtOperations = globalThis.FinanceCanonicalE14Operations || null;
@@ -4505,6 +4545,7 @@ function initSupabaseClient() {
 
 function refreshFromPersistedState() {
   const started = performance.now();
+  migrateReunifiedDebtSetting(); // también con lo que llega de una copia o de la nube
   updateSourceNote();
   writeControls({ ...baseData.assumptions, ...scenarioSettings, autoCapSavings: scenarioSettings.autoCapSavings ?? true });
   qs("scenarioName").textContent = currentScenario;
@@ -5212,12 +5253,12 @@ function sourcePlanningMonthForMonth(month) {
   return { ...planning.months[fallbackIndex], index: fallbackIndex, key: month.key, label: month.label || planning.months[fallbackIndex].label };
 }
 
+// La partida que paga la refinanciación reunificada sigue su cuota desde su mes (datos del hogar, reunifiedDebtSettings).
 function adjustedDebtPlannedValue(row, month) {
   if (row.custom || row.kind !== "expense") return null;
-  if (!month?.key || month.key < "2026-05") return null;
-  const label = normalizedText(displayLabelForRow(row));
-  if (label.includes("refinanciacion cetelem")) return CURRENT_REUNIFIED_DEBT_PAYMENT;
-  return null;
+  const settings = reunifiedDebtSettings();
+  if (!settings?.rowKey || !settings.fromMonth || !month?.key || month.key < settings.fromMonth) return null;
+  return seriesKeyForRow(row) === settings.rowKey ? settings.payment : null;
 }
 
 // WP-30 (canonical-card-cycles.js): compras con tarjeta aún sin su cargo, por fila y mes de cargo; se recalcula una vez por render.
@@ -8403,9 +8444,9 @@ function debtContractBundle() {
   if (!DebtContracts) return { contracts: DEBT_PORTFOLIO, unifiedPlan: null };
   return DebtContracts.normalizeContracts(debtPortfolioWithOverrides(), {
     asOfMonthKey: monthKey(modelStartDate()),
-    reunifiedPayment: CURRENT_REUNIFIED_DEBT_PAYMENT,
-    reunifiedInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
-    reunifiedCost: CURRENT_REUNIFIED_DEBT_COST,
+    reunifiedPayment: reunifiedDebtPayment(),
+    reunifiedInstallments: reunifiedDebtInstallments(),
+    reunifiedCost: reunifiedDebtCost(),
   });
 }
 
@@ -8487,7 +8528,7 @@ function debtPortfolioTotals(rows = debtPortfolioRows()) {
   return {
     initialPrincipal: round2(sumRows(rows, (item) => item.initialPrincipal)),
     originalPayment: round2(sumRows(rows, (item) => item.originalPayment)),
-    currentPayment: round2(CURRENT_REUNIFIED_DEBT_PAYMENT + sumRows(rows.filter((item) => !item.reunified), (item) => item.scheduledPayment ?? item.currentPayment ?? 0)),
+    currentPayment: round2(reunifiedDebtPayment() + sumRows(rows.filter((item) => !item.reunified), (item) => item.scheduledPayment ?? item.currentPayment ?? 0)),
     amortized: round2(sumRows(rows, (item) => item.amortized)),
     currentPrincipal: round2(sumRows(rows, (item) => item.currentPrincipal)),
     reunifiedPrincipal: round2(sumRows(rows.filter((item) => item.reunified), (item) => item.initialPrincipal)),
@@ -8507,7 +8548,7 @@ function currentOutsideDebtPayment() {
 }
 
 function currentDebtPaymentBreakdown() {
-  const unified = CURRENT_REUNIFIED_DEBT_PAYMENT;
+  const unified = reunifiedDebtPayment();
   const outside = round2(sumRows(debtPortfolioRows().filter((item) => !item.reunified), (item) => item.scheduledPayment ?? item.currentPayment ?? 0));
   return {
     unified: round2(unified),
@@ -30437,6 +30478,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       globalThis.renderRevisionTipo?.(globalThis.FinanceCanonicalRateReview); // WP-20 (revision-tipo-ui.js)
       globalThis.renderCirbe?.(globalThis.FinanceCanonicalCirbe); // WP-40 (cirbe-ui.js)
       globalThis.renderDeudaSombra?.(globalThis.FinanceCanonicalShadowDebt); // WP-41 (sombra-ui.js)
+      globalThis.renderRefinanciacionCuota?.(); // la cuota de la refinanciación, dato del hogar (views/deuda.js)
       break;
     case "deuda-prestamo":
       renderDeudaPrestamo();
@@ -30606,6 +30648,7 @@ async function init() {
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
   applyVariableOperationalMayZeroDefault();
+  migrateReunifiedDebtSetting(); // paso 1 de 2: la cuota de la refinanciación, del código a los datos del hogar
   ensureBankActualsBaseline(); // reales: banco + lo anotado aparte (29/10/2026)
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
