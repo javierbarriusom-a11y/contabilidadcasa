@@ -165,6 +165,6 @@ test("V5-2 · el panel vive en #conciliar, junto a «Al cerrar el mes», con su 
 
 test("V5-2 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261119priv3/);
+  assert.match(html, /app.js\?v=20261119dat07/);
   assert.match(html, /design-tokens\.css\?v=20261116fx15a/);
 });

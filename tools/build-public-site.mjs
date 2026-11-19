@@ -109,6 +109,7 @@ const files = [
   "canonical-pattern-rules.js",
   "household-members.js",
   "canonical-extract-fingerprint.js",
+  "canonical-movement-split.js",
   "canonical-internal-transfers.js",
   "canonical-forecast-changes.js",
   "canonical-debt-horizon.js",

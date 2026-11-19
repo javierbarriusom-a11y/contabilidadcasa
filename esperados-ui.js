@@ -67,7 +67,7 @@ function expectedMovementExpectations(today) {
           expectations.push({
             id: `${seriesKeyForRow(row)}|${key}`, kind, seriesKey: seriesKeyForRow(row), label: displayLabelForRow(row), month: key,
             expectedDate: timing.date, certain: timing.confidence === "rule" || timing.confidence === "declared",
-            plannedAmount: planned, arrived: Boolean(info.hasActual || fromMovements), cancelled: info.status === "cancelled", history,
+            plannedAmount: planned, arrived: Boolean(info.hasActual || fromMovements), hasActual: Boolean(info.hasActual), cancelled: info.status === "cancelled", history,
           });
         });
       });
@@ -103,16 +103,124 @@ function expectedItemText(item) {
   return `Solía cargarse hacia el ${dateText} (${late}) · ${money(item.plannedAmount, true)}.${history}${item.snoozeCount ? ` Llevas ${item.snoozeCount} ${item.snoozeCount === 1 ? "aplazamiento" : "aplazamientos"}.` : ""} Si es una póliza o una domiciliación, mira que no se haya quedado sin pagar.`;
 }
 
+// ---- DEC-12: confirmar solos los esperados que ya están en el extracto (solo al importar; decisión del hogar del 19/11/2026) ----
+const EXPECTED_AUTO_STORE = "expected-auto"; // en la copia (BACKUP_LOCAL_STORES): lo confirmado solo y las parejas que el hogar descartó
+const EXPECTED_AUTO_MAX = 60;
+
+function loadExpectedAuto() {
+  try {
+    const raw = JSON.parse(storageGet(storageKey(EXPECTED_AUTO_STORE), "null"));
+    return {
+      confirmed: Array.isArray(raw?.confirmed) ? raw.confirmed.filter((entry) => entry && entry.movementId && entry.expectationId) : [],
+      rejected: Array.isArray(raw?.rejected) ? raw.rejected.map(String) : [],
+    };
+  } catch {
+    return { confirmed: [], rejected: [] };
+  }
+}
+
+function saveExpectedAuto(store) {
+  storageSet(storageKey(EXPECTED_AUTO_STORE), JSON.stringify({ confirmed: store.confirmed.slice(0, EXPECTED_AUTO_MAX), rejected: store.rejected.slice(0, 300) }));
+}
+
+// Dentro del lote de la importación (importar-extracto-ui.js), antes de pasar los movimientos a los reales: los que entran sin
+// partida y casan sin duda con un esperado se clasifican en su partida, solo ese movimiento. «Deshacer» de la importación lo
+// devuelve todo. Devuelve lo confirmado.
+function expectedAutoConfirmOnImport(incoming) {
+  const engine = globalThis.FinanceCanonicalExpectedMovements;
+  if (!engine?.autoConfirm || !Array.isArray(incoming) || !incoming.length || typeof baseData === "undefined" || !baseData) return [];
+  const today = isoLocalDate(new Date());
+  const movements = incoming
+    .filter((transaction) => Number(transaction.amount) && !mappingForMovement(transaction) && !(typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(transaction)))
+    .map((transaction) => ({ id: transactionIdentity(transaction), date: String(transaction.date || "").slice(0, 10), amount: Number(transaction.amount) }));
+  if (!movements.length) return [];
+  const store = loadExpectedAuto();
+  const { confirmed } = engine.autoConfirm({ expectations: expectedMovementExpectations(today), movements, rejected: store.rejected });
+  const hechos = confirmed.filter((entry) => {
+    const row = planningRowBySeriesKey(entry.kind, entry.seriesKey);
+    if (!row) return false;
+    movementMappings[entry.movementId] = { kind: entry.kind, rowKey: entry.seriesKey, label: displayLabelForRow(row), auto: "DEC-12", updatedAt: new Date().toISOString() };
+    return true;
+  });
+  if (!hechos.length) return [];
+  store.confirmed = [...hechos.map((entry) => ({ ...entry, at: today, seen: false })), ...store.confirmed.filter((old) => !hechos.some((entry) => entry.movementId === old.movementId))];
+  saveExpectedAuto(store);
+  return hechos;
+}
+
+// Lo confirmado solo que el hogar aún no ha visto, si el movimiento sigue en esa partida por esta confirmación.
+function expectedAutoPendientes() {
+  return loadExpectedAuto().confirmed.filter((entry) => !entry.seen && movementMappings?.[entry.movementId]?.auto === "DEC-12");
+}
+
+function expectedAutoHtml(pendientes) {
+  const filas = pendientes.map((entry) => `<li>${escapeHtml(entry.label)} · ${escapeHtml(displayShortDate(entry.date))} · ${money(entry.amount, true)}
+      <button type="button" class="link-button" data-expected-auto-reject="${escapeHtml(entry.movementId)}">No era esto</button></li>`).join("");
+  return `<details class="expected-auto"><summary>Ver ${pendientes.length === 1 ? "cuál" : "cuáles"}</summary><ul>${filas}</ul></details>
+    <button type="button" class="e19-btn e19-btn-secondary" data-expected-auto-seen="1">Entendido</button>`;
+}
+
+function expectedAutoInboxItem() {
+  const pendientes = expectedAutoPendientes();
+  if (!pendientes.length) return null;
+  const n = pendientes.length;
+  return {
+    id: "decision-inbox-expected-auto", source: "Cobros y cargos", tone: "good",
+    title: `${n} ${n === 1 ? "confirmado solo" : "confirmados solos"}`,
+    text: `${n === 1 ? "Estaba" : "Estaban"} en el extracto por su importe (± 2 %) y en su fecha: ya ${n === 1 ? "cuenta" : "cuentan"} como real. Si alguno no era, «No era esto» lo devuelve.`,
+    target: "movements", html: expectedAutoHtml(pendientes),
+  };
+}
+
+function expectedAutoRefresh() {
+  saveMovementMappings();
+  applyMovementMappingsToActuals();
+  saveIncomeActuals();
+  saveExpenseActuals();
+  refreshAllSectionsAfterDataChange();
+  renderDecisionInboxCard();
+}
+
+// «No era esto»: el movimiento vuelve a no tener partida, esa pareja no se vuelve a confirmar sola y, si toca, vuelve la pregunta.
+function expectedAutoReject(movementId) {
+  const store = loadExpectedAuto();
+  const entry = store.confirmed.find((item) => item.movementId === movementId);
+  if (!entry) return;
+  const antesStore = { confirmed: [...store.confirmed], rejected: [...store.rejected] };
+  const antesRegla = movementMappings[movementId] ? { ...movementMappings[movementId] } : null;
+  if (antesRegla?.auto === "DEC-12") delete movementMappings[movementId];
+  store.rejected = [`${entry.expectationId}|${movementId}`, ...store.rejected.filter((pair) => pair !== `${entry.expectationId}|${movementId}`)];
+  store.confirmed = store.confirmed.filter((item) => item.movementId !== movementId);
+  saveExpectedAuto(store);
+  expectedAutoRefresh();
+  const message = `«${entry.label}»: ese movimiento ya no cuenta como su real y no se volverá a confirmar solo. Si toca, se preguntará como siempre.`;
+  showUndoToast(message, () => {
+    if (antesRegla) movementMappings[movementId] = antesRegla;
+    saveExpectedAuto(antesStore);
+    expectedAutoRefresh();
+  });
+  announceStatus(message);
+}
+
+function expectedAutoSeen() {
+  const store = loadExpectedAuto();
+  store.confirmed = store.confirmed.map((entry) => ({ ...entry, seen: true }));
+  saveExpectedAuto(store);
+  renderDecisionInboxCard();
+}
+
 // Lo que se suma a la bandeja única de Hoy (`decisionInboxItems`).
 function expectedMovementInboxItems() {
   try {
     const result = expectedMovementsResult();
-    if (!result || result.status !== "ok") return [];
+    const auto = expectedAutoInboxItem();
+    if (!result || result.status !== "ok") return auto ? [auto] : [];
     const items = result.items.map((item) => ({
       id: `decision-inbox-expected-${item.id}`, source: item.kind === "income" ? "Cobro esperado" : "Cargo esperado", tone: "warn",
       title: item.kind === "income" ? `¿Ha llegado «${item.label}»?` : `«${item.label}» no ha llegado`,
       text: expectedItemText(item), target: "registrar", html: expectedItemHtml(item),
     }));
+    if (auto) items.unshift(auto);
     if (result.overflow > 0) items.push({ id: "decision-inbox-expected-more", source: "Cobros y cargos", tone: "warn", title: `${result.overflow} más por responder`, text: "Responde estas y aparecerán las siguientes.", target: "registrar" });
     return items;
   } catch (error) {
@@ -208,6 +316,9 @@ function attachEsperados(doc) {
   if (!doc || doc.__esperadosAttached) return false;
   doc.__esperadosAttached = true;
   doc.addEventListener("click", (event) => {
+    const reject = event.target?.closest?.("[data-expected-auto-reject]");
+    if (reject) { expectedAutoReject(reject.dataset.expectedAutoReject); return; }
+    if (event.target?.closest?.("[data-expected-auto-seen]")) { expectedAutoSeen(); return; }
     const button = event.target?.closest?.("[data-home-expected]");
     if (!button) return;
     const id = button.dataset.homeExpected;

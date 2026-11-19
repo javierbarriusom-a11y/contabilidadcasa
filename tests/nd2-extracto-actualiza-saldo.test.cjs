@@ -123,7 +123,7 @@ test("app.js: la oferta va en el paso 4 y se aplica DENTRO del lote (antes de la
   const at = apply.indexOf("const balance = applyDatosImportarBalanceOffer(session);");
   assert.ok(at > apply.indexOf("mergeTransactions(") && at < apply.indexOf("const afterState = appStatePayload"), "dentro del lote: «Deshacer último lote» lo devuelve");
   assert.match(apply, /changed: \{ records: incoming\.length, movements: incoming\.length, actuals: appliedActuals, balances: balance \? 1 : 0 \}/);
-  assert.match(apply, /return \{ [^}]*batchId: batch\.id, balance \};/);
+  assert.match(apply, /return \{ [^}]*batchId: batch\.id, balance, confirmadosSolos: confirmadosSolos\.length \};/); // DEC-12 (19/11/2026): y los esperados confirmados solos
   assert.match(extractFunction(app, "datosImportarSuccessMarkup"), /Saldo de \$\{escapeHtml\(result\.balance\.account\)\}/);
   assert.match(ui, /session\.balanceOffer = event\.target\.checked;\s*datosImportarPersistDraft\(\);/, "la decisión viaja con el borrador");
 });

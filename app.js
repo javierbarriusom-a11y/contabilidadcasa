@@ -1349,6 +1349,7 @@ const BACKUP_LOCAL_STORES = [
   "card-cycles", // WP-30: ciclo de corte y cargo de cada tarjeta de crédito y la fila donde se liquida
   "card-purchases", // WP-30 (PR-2): compras con tarjeta anotadas con la hoja (concepto, tarjeta, fecha) y los tiempos de captura
   "expected-answers", // WP-14 + WP-27: lo respondido y lo callado en «¿ha llegado…?» (aplazamientos y recibos que cambiaron de cuenta)
+  "expected-auto", // DEC-12: los esperados que se confirmaron solos al importar (partida, fecha e importe del movimiento) y las parejas que el hogar descartó con «No era esto»
   "rate-indices", // WP-13: índices de referencia (Euribor, €STR, IPC) tecleados con la fecha del dato; son datos públicos, sin importes del hogar
   "rate-review", // WP-20: datos de la revisión del tipo variable (diferencial, fecha, regla del índice) por contrato; el hogar los teclea de la carta del banco
   "capture-log", // WP-53: lo anotado con «Registrar gasto» o el enlace sin tarjetas (fecha, importe, concepto), para emparejarlo con el extracto
@@ -21513,6 +21514,9 @@ function mappingForMovement(transaction) {
   const kind = movementKindFromAmount(transaction.amount);
   const single = movementMappings[transactionIdentity(transaction)];
   const singleRow = single?.kind === kind ? planningRowBySeriesKey(kind, single.rowKey) : null;
+  // DAT-07: un movimiento dividido va a su partida mayor para «¿tiene partida?»; `split` reparte sus reales (bankActualTotals).
+  const split = singleRow && single.split ? globalThis.FinanceCanonicalMovementSplit?.storedParts(single, transaction.amount, (key) => Boolean(planningRowBySeriesKey(kind, key))) : null;
+  if (split) return { kind, row: singleRow, source: "split", split: split.map((part) => ({ row: planningRowBySeriesKey(kind, part.rowKey), amount: part.amount })) };
   if (singleRow) return { kind, row: singleRow, source: "single" };
   const stored = movementMappings[movementMappingKey(transaction)];
   const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
@@ -21665,9 +21669,11 @@ function bankActualTotals() {
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
     if (!month) return;
     if (isSignedClosedMonthKey(month.key)) return; // 1/11/2026: solo lo firmado queda fuera; un mes pasado sin firmar se pone al día con el banco
-    const key = actualKeyForRow(mapping.row, month);
-    const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
-    monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
+    const parts = mapping.split || [{ row: mapping.row, amount: mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0)) }];
+    parts.forEach(({ row, amount }) => {
+      const key = actualKeyForRow(row, month);
+      monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
+    });
   });
   return monthlyTotals;
 }
@@ -21859,6 +21865,7 @@ function handleMovementsChipFilter(chipId) {
 function movementPartidaBadge(row) {
   const mapping = mappingForMovement(row);
   if (!mapping) return `<span class="e19-badge e19-badge-warning">Sin partida</span>`;
+  if (mapping.split) return `<span class="e19-badge e19-badge-neutral">Dividido en ${mapping.split.length} partidas</span>`; // DAT-07
   return `<span class="e19-badge e19-badge-neutral">${escapeHtml(mapping.row.sectionName)} · ${escapeHtml(displayLabelForRow(mapping.row))}</span>`;
 }
 
@@ -31491,6 +31498,7 @@ async function init() {
   qs("movementDetailDialog")?.addEventListener("close", () => {
     movementDetailTransaction = null;
     fichaMovAviso = null; // el «Deshacer» de la ficha es de esa visita
+    if (typeof fichaMovDivision !== "undefined") fichaMovDivision = null; // DAT-07: el borrador de «Dividir», también
   });
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
   // Repaso pixel-perfect del 20 de agosto: los enlaces «Registrar › Importar extracto» (tarjeta

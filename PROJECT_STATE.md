@@ -113,6 +113,30 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (503): DAT-07 (dividir un movimiento) y DEC-12 (los esperados se confirman solos al importar)
+
+- **Publicado de antes:** #643 (privacidad, fase 3) fusionado con su CI en verde. El despliegue de #642 (1476) quedó **cancelado, no fallido**: el de #643 (1478) lo sustituyó al llegar y salió en verde (Safari incluido), así que el sitio tiene las fases 1, 2 y 3. «Published availability» 375, en verde.
+- **El hogar:** «Haz DAT-07 y DEC-12» (el visto bueno que esperaban, porque tocan datos) y, sobre DEC-12, «confirma solo al importar».
+- **DAT-07 · dividir un movimiento** (`canonical-movement-split.js`, puro; `ficha-movimiento-ui.js`):
+  - en la ficha, «Dividir en varias partidas», plegado dentro del bloque «Partida» y sin titular: de 2 a 8 trozos, partidas distintas, cada uno mayor que cero; la barra (`<progress>` nativo) y una frase dicen lo que falta o sobra, y «Guardar la división» solo se enciende cuando cuadra al céntimo;
+  - se guarda en la regla «solo este movimiento» (`movementMappings[identidad]`) con `split`, la partida mayor como `rowKey` y la que hubiera antes (`previo`): copia, nube y «Deshacer» sin almacén nuevo, y lo que pregunta «¿tiene partida?» no cambia;
+  - `mappingForMovement` lo devuelve con `source: "split"` y `bankActualTotals` reparte el importe: cada partida recibe su parte del real por el camino de siempre (banco + lo anotado aparte); si deja de cuadrar (una partida borrada), va entero a la partida mayor;
+  - «Quitar la división» devuelve lo de antes; la lista de Movimientos dice «Dividido en N partidas» en los dos temas;
+  - **lo que no reparte todavía:** el ritmo del gasto variable (Plan) y los análisis que leen el libro movimiento a movimiento ven el movimiento entero en su partida mayor.
+- **DEC-12 · confirmar solos los esperados** (`canonical-expected-movements.js` `autoConfirm`; `esperados-ui.js`):
+  - solo al importar (decisión del hogar), dentro del lote de la importación guiada y antes de pasar los movimientos a los reales: «Deshacer último lote» lo devuelve; abrir la app no escribe nada;
+  - se confirma un esperado con fecha segura, sin real y sin anular si el extracto trae **un único** movimiento sin partida (ni traspaso), del mismo signo, por su importe ± 2 % y entre 3 días antes y 5 después, que no encaja con otro esperado; con duda, la pregunta de siempre;
+  - confirmar es clasificar ese movimiento en la partida esperada (`auto: "DEC-12"`); el real sale del banco;
+  - el resultado de la importación lo dice; la bandeja (Movimientos con el v2, Hoy con el clásico, Repaso), «N confirmados solos» con la lista plegada, «No era esto» por fila (sin partida, la pareja no se repite, la pregunta vuelve si toca; con «Deshacer») y «Entendido»;
+  - almacén `expected-auto` en la copia y la nube (BACKUP_LOCAL_STORES);
+  - **falta medirlo** frente a su objetivo (−70 % de preguntas contestadas a mano), con extractos reales.
+- **Novedades:** dos entradas.
+- **Pruebas:**
+  - nuevas: `tests/dat07-dividir-movimiento.test.cjs` (6: motor, importes tecleados, división que deja de cuadrar, `mappingForMovement` y `bankActualTotals` aislados, ficha y registro) y `tests/dec12-esperados-confirmados-solos.test.cjs` (5: ventana, ± 2 %, duda en los dos sentidos, solo fecha segura y sin real, «No era esto» y cableado dentro del lote);
+  - e2e: «DAT-07 · dividir un movimiento» y «DEC-12 · los esperados…», a 390 px (también Safari en el CI) y 1440 px;
+  - actualizadas a propósito: ARQ-3 (134 módulos `canonical-*`), el retorno de la importación (nd2), versiones de la ficha, de Movimientos y de `app.js`.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.788/6.788 (+11). **Batería completa en local: 467 de 467** (25,1 min). Safari, solo en el CI.
+
 ## Cierre de sesión — 19 de noviembre de 2026 (502): privacidad, fase 3 (las reglas por nombre y la plantilla de financiaciones); #642 fusionado
 
 - **#642 (fases 1 y 2) fusionado** con su CI en verde; su despliegue («Verify and deploy Pages» 1476) estaba en curso al cerrar esta entrada: sus números, en la siguiente.

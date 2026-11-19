@@ -37,6 +37,7 @@ function movV2Account(row) {
 function movV2Partida(row) {
   if (!Number(row.amount)) return null;
   const mapping = mappingForMovement(row);
+  if (mapping?.split) return `Dividido en ${mapping.split.length} partidas`; // DAT-07
   if (mapping) return displayLabelForRow(mapping.row);
   // DAT-05 (15/11/2026): un traspaso entre cuentas propias no pide partida; se dice lo que es.
   return typeof movementIsInternalTransfer === "function" && movementIsInternalTransfer(row) ? MOV_V2_TRASPASO : null;

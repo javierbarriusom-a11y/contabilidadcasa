@@ -350,6 +350,8 @@ function datosImportarApply(session, { motivo }) {
   const yaEstaban = incoming.filter((transaction) => yaGuardados.has(transactionIdentity(transaction))).length;
   baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
   refreshMovementRollups();
+  // DEC-12: los esperados que ya están en el extracto se confirman solos, dentro del lote (su «Deshacer» los devuelve).
+  const confirmadosSolos = typeof expectedAutoConfirmOnImport === "function" ? expectedAutoConfirmOnImport(incoming) : [];
   const appliedActuals = applyMovementMappingsToActuals();
   const balance = applyDatosImportarBalanceOffer(session); // WP-26 · ND-02: dentro del lote, para que «Deshacer» lo devuelva
   globalThis.FinanceCobertura?.registrar(session, incoming); // XDA-04: el periodo que cubre el extracto, también dentro del lote
@@ -380,7 +382,7 @@ function datosImportarApply(session, { motivo }) {
   queueRemoteSave();
   refreshAllSectionsAfterDataChange();
 
-  return { imported: incoming.length, nuevos: incoming.length - yaEstaban, yaEstaban, duplicadosDescartados, capturasSustituidas, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance };
+  return { imported: incoming.length, nuevos: incoming.length - yaEstaban, yaEstaban, duplicadosDescartados, capturasSustituidas, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id, balance, confirmadosSolos: confirmadosSolos.length };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -717,7 +719,7 @@ function renderDatosImportarStep3() {
 function datosImportarSuccessMarkup(result) {
   return `<div class="e19-insight">
       <strong>Importación confirmada</strong>
-      <p>${result.imported} ${result.imported === 1 ? "movimiento incorporado" : "movimientos incorporados"} de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} ${result.nuevasReglas === 1 ? "regla nueva aprendida" : "reglas nuevas aprendidas"}${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} ${result.nuevosIgnorados === 1 ? "movimiento marcado" : "movimientos marcados"} para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}` : ""}${result.capturasSustituidas ? `, ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "captura a mano sustituida" : "capturas a mano sustituidas"} por su fila del banco` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
+      <p>${result.imported} ${result.imported === 1 ? "movimiento incorporado" : "movimientos incorporados"} de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} ${result.nuevasReglas === 1 ? "regla nueva aprendida" : "reglas nuevas aprendidas"}${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} ${result.nuevosIgnorados === 1 ? "movimiento marcado" : "movimientos marcados"} para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} ${result.duplicadosDescartados === 1 ? "duplicado descartado" : "duplicados descartados"}` : ""}${result.capturasSustituidas ? `, ${result.capturasSustituidas} ${result.capturasSustituidas === 1 ? "captura a mano sustituida" : "capturas a mano sustituidas"} por su fila del banco` : ""}.${result.balance ? ` Saldo de ${escapeHtml(result.balance.account)}: ${money(result.balance.value, true)} a ${formatIsoDate(result.balance.date)}.` : ""}${result.confirmadosSolos ? ` ${result.confirmadosSolos} ${result.confirmadosSolos === 1 ? "cobro o cargo esperado se ha confirmado solo" : "cobros y cargos esperados se han confirmado solos"}: estaban por su importe y en su fecha (los veréis en la bandeja, con «No era esto»).` : ""} Puedes deshacer este lote con «Deshacer último lote», en Registrar › Importar extracto.</p>
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }

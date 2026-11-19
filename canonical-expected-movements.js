@@ -179,5 +179,49 @@
     return (result?.items || []).filter((item) => item.daysLate > 3 + (item.kind === "expense" ? DEFAULTS.expenseWindowDays + DEFAULTS.expenseGraceDays : DEFAULTS.incomeGraceDays)).length;
   }
 
-  return Object.freeze({ SCHEMA_ID, DEFAULTS, RESPONSES, normalizeAnswers, detect, resolve, applyPatch, prune, staleCount });
+  // DEC-12 (décima auditoría; es XDA-08 de la séptima. Visto bueno del hogar del 19/11/2026, «Haz DAT-07 y DEC-12», y «confirma
+  // solo al importar»): un esperado que ya está en el extracto se confirma solo. La pantalla lo llama al importar un extracto, con
+  // los movimientos que entran sin partida; confirmar es clasificar ese movimiento en la partida esperada (el real sale por el
+  // camino de siempre, banco + lo anotado aparte). Solo cuando no hay duda; si la hay, la pregunta de siempre sigue en su sitio:
+  //   · el esperado tiene fecha segura (regla o día indicado), aún no tiene real y no está anulado;
+  //   · el movimiento es del mismo signo, por el importe previsto ± 2 % y entre 3 días antes y 5 después de la fecha esperada;
+  //   · es el único candidato de ese esperado y ese movimiento no encaja con ningún otro esperado;
+  //   · el hogar no dijo antes «No era esto» de esa misma pareja (`rejected`: «idEsperado|idMovimiento»).
+  const AUTO = Object.freeze({ tolerance: 0.02, daysBefore: 3, daysAfter: 5 });
+
+  /**
+   * @param {{ expectations?: Array<any>, movements?: Array<{id: string, date: string, amount: number}>, rejected?: string[] }} input
+   * @returns {{ confirmed: Array<{expectationId: string, movementId: string, kind: string, seriesKey: string, month: string, label: string, expectedDate: string, date: string, amount: number, plannedAmount: number}>, doubtful: string[] }}
+   */
+  function autoConfirm({ expectations = [], movements = [], rejected = [] } = {}) {
+    const vetos = new Set((Array.isArray(rejected) ? rejected : []).map(String));
+    const esperados = (Array.isArray(expectations) ? expectations : []).filter((e) => e && e.id && e.seriesKey && (e.kind === "income" || e.kind === "expense")
+      && e.certain && !e.hasActual && !e.cancelled && Number(e.plannedAmount) > 0 && utc(e.expectedDate));
+    const candidatos = (Array.isArray(movements) ? movements : []).filter((m) => m && m.id && utc(m.date) && Number(m.amount));
+    const encaja = (e, m) => {
+      if ((Number(m.amount) > 0 ? "income" : "expense") !== e.kind || vetos.has(`${e.id}|${m.id}`)) return false;
+      const planned = Number(e.plannedAmount);
+      if (Math.abs(Math.abs(Number(m.amount)) - planned) > planned * AUTO.tolerance + 0.005) return false;
+      const dias = dayDiff(isoOf(utc(e.expectedDate)), isoOf(utc(m.date)));
+      return dias >= -AUTO.daysBefore && dias <= AUTO.daysAfter;
+    };
+    const porEsperado = new Map(esperados.map((e) => [e.id, candidatos.filter((m) => encaja(e, m))]));
+    const porMovimiento = new Map();
+    porEsperado.forEach((lista) => lista.forEach((m) => porMovimiento.set(m.id, (porMovimiento.get(m.id) || 0) + 1)));
+    const confirmed = [];
+    const doubtful = [];
+    esperados.forEach((e) => {
+      const lista = porEsperado.get(e.id);
+      if (!lista.length) return;
+      if (lista.length !== 1 || porMovimiento.get(lista[0].id) !== 1) { doubtful.push(e.id); return; }
+      const m = lista[0];
+      confirmed.push({
+        expectationId: e.id, movementId: m.id, kind: e.kind, seriesKey: e.seriesKey, month: e.month || isoOf(utc(e.expectedDate)).slice(0, 7), label: e.label || "",
+        expectedDate: isoOf(utc(e.expectedDate)), date: isoOf(utc(m.date)), amount: round2(Math.abs(Number(m.amount))), plannedAmount: round2(e.plannedAmount),
+      });
+    });
+    return { confirmed, doubtful };
+  }
+
+  return Object.freeze({ SCHEMA_ID, DEFAULTS, RESPONSES, AUTO, normalizeAnswers, detect, resolve, applyPatch, prune, staleCount, autoConfirm });
 });
