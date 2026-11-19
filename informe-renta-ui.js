@@ -8,8 +8,8 @@
 // llama al entrar en la vista con el motor como argumento (`renderInformeRenta(FinanceCanonicalTaxReport)`).
 
 const INFORME_RENTA_DECLARANTES = [
-  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
-  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
+  { value: "p1", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "p2", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
 ];
 
 const INFORME_RENTA_FALTA = {
@@ -201,7 +201,7 @@ function informeRentaPintar() {
   const cuerpo = document.getElementById("informeRentaCuerpo");
   if (!caja || !cuerpo || !caja.open || !informeRentaEngine) return;
   const year = document.getElementById("informeRentaAno")?.value || String(new Date().getFullYear());
-  const holder = document.getElementById("informeRentaDeclarante")?.value || "javi";
+  const holder = document.getElementById("informeRentaDeclarante")?.value || "p1";
   informeRentaUltimo = informeRentaDatos(informeRentaEngine, year, holder);
   const label = INFORME_RENTA_DECLARANTES.find((d) => d.value === holder)?.label || holder;
   cuerpo.innerHTML = informeRentaHtml(informeRentaUltimo, { declarante: label });

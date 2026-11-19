@@ -3,7 +3,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   root.P2Domain = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
-  const OWNER_VALUES = ["household", "javi", "tere"];
+  const OWNER_VALUES = ["household", "p1", "p2"]; // privacidad, fase 4d: lo guardado antes con la clave de siempre se lee igual (normalizeOwner)
   const ALERT_CHANNELS = ["app", "browser", "email"];
 
   const number = (value, fallback = 0) => {
@@ -39,7 +39,8 @@
   }
 
   function normalizeOwner(value, fallbackLabel = "") {
-    return OWNER_VALUES.includes(value) ? value : inferOwner(fallbackLabel);
+    if (OWNER_VALUES.includes(value)) return value;
+    return householdMembers()?.clave(value) || inferOwner(fallbackLabel);
   }
 
   function normalizeGoal(goal = {}) {

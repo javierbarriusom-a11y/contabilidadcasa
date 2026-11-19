@@ -35,7 +35,7 @@ function gob4RenderFunctionBody() {
 
 test("renderGob4MemberView nunca incluye 'household' — es la vista de un titular en particular, no la agregada", () => {
   const block = gob4RenderFunctionBody();
-  assert.match(block, /\["javi", "tere"\]/);
+  assert.match(block, /\["p1", "p2"\]/);
   assert.doesNotMatch(block, /"household"/);
 });
 
@@ -46,7 +46,7 @@ test("renderGob4MemberView se monta en 'home', visible sin entrar en Ajustes", (
 
 test("cambiar el titular reconstruye el panel completo con el nuevo filtro", () => {
   const block = gob4RenderFunctionBody();
-  assert.match(block, /gob4SelectedMember = event\.target\.value === "tere" \? "tere" : "javi";/);
+  assert.match(block, /gob4SelectedMember = event\.target\.value === "p2" \? "p2" : "p1";/);
   assert.match(block, /renderGob4MemberView\(\);/);
 });
 

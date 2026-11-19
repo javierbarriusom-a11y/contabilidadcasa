@@ -253,7 +253,18 @@
     };
   }
 
-  const PORTFOLIO_HOLDERS = ["javi", "tere", "household"];
+  function householdMembers() {
+    if (typeof globalThis !== "undefined" && globalThis.FinanceHouseholdMembers) return globalThis.FinanceHouseholdMembers;
+    try {
+      const ruta = "./household-members.js"; // en Node (pruebas); en el navegador llega por globalThis. Ruta en variable: tsc no la sigue
+      return typeof require === "function" ? require(ruta) : null;
+    } catch {
+      return null;
+    }
+  }
+  // Privacidad, fase 4d (D-N26): las personas son «p1»/«p2»; lo guardado antes con la clave de siempre se lee igual.
+  const PORTFOLIO_HOLDERS = ["p1", "p2", "household"];
+  const portfolioHolder = (value) => (PORTFOLIO_HOLDERS.includes(value) ? value : householdMembers()?.clave(value) || "");
   const DEPOSITARY_PLACES = ["espana", "extranjero"];
 
   function normalizePosition(raw = {}, index = 0) {
@@ -345,7 +356,7 @@
       // WP-21 · PR-0a (docs/WP21_DISENO.md §3): con tributación individual, el informe para la Renta necesita saber de quién
       // es cada posición («household» = conjunta, al 50 % por defecto) y si está depositada fuera de España (aviso del 720).
       // "" = sin declarar: nunca se asume un titular ni «España» por defecto.
-      titular: PORTFOLIO_HOLDERS.includes(raw.titular) ? raw.titular : "",
+      titular: portfolioHolder(raw.titular),
       depositario: DEPOSITARY_PLACES.includes(raw.depositario) ? raw.depositario : "",
       depositarioPais: raw.depositario === "extranjero" && known(raw.depositarioPais) ? String(raw.depositarioPais).trim().slice(0, 60) : "",
     };

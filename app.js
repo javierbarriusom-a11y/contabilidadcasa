@@ -250,12 +250,12 @@ const VIEW_CHUNKS = {
   "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
-  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv3", rootId: "executive-advisor" },
-  "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv3", rootId: "new-life-definitive" },
+  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv4", rootId: "executive-advisor" },
+  "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv4", rootId: "new-life-definitive" },
   "debt-control": { src: "views/debt-control.js?v=20260919t14g1", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
-  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv3", rootId: "new-life-simulation" },
+  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv4", rootId: "new-life-simulation" },
   "savings-agent": { src: "views/savings-agent.js?v=20260924arq4c1", rootId: "savings-agent" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
@@ -25103,11 +25103,11 @@ function familyContextMeta(context = currentFamilyContext()) {
       label: "Hogar",
       note: "Incluye todos los ingresos y gastos de la unidad familiar.",
     },
-    javi: {
+    p1: {
       label: memberLabel("p1"),
       note: memberTemplate("Ingresos de {p1} y la mitad de los gastos compartidos."),
     },
-    tere: {
+    p2: {
       label: memberLabel("p2"),
       note: memberTemplate("Ingresos de {p2} y la mitad de los gastos compartidos."),
     },

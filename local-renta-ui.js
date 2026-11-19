@@ -7,13 +7,13 @@
 // saveScenarioSettings, parseAmountField, money…) y los ayudantes de informe-renta-ui.js (informeRentaEsc, informeRentaEuros). app.js se lo pasa al entrar en Fiscal (renderLocalRenta, junto a renderInformeRenta): sin escuchas al cargarse.
 
 const LOCAL_RENTA_DECLARANTES = [
-  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
-  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
+  { value: "p1", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "p2", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
 ];
 const LOCAL_RENTA_TITULARES = [
   { value: "", label: "Sin declarar" },
-  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
-  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
+  { value: "p1", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "p2", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
   { value: "household", label: "De los dos (50 % cada uno)" },
 ];
 const LOCAL_RENTA_GASTOS = [
@@ -137,7 +137,7 @@ function localRentaLeer(caja, year) {
   const retiene = valor("inquilinoRetiene");
   return {
     inmueble: {
-      titular: ["javi", "tere", "household"].includes(valor("titular")) ? valor("titular") : "",
+      titular: valor("titular") === "household" ? "household" : (typeof memberKey === "function" && memberKey(valor("titular"))) || "", // fase 4d
       rentaMensual: numeros.rentaMensual,
       inquilinoRetiene: retiene === "si" ? true : retiene === "no" ? false : null,
       actualizacion: { tipo: valor("actTipo"), mes: valor("actMes") ? Number(valor("actMes")) : null, porcentaje: numeros.actPorcentaje },

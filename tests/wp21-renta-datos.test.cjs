@@ -5,6 +5,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const portfolio = require("../canonical-portfolio.js");
+// En el navegador, household-members.js deja memberKey en el ámbito global antes de este script (privacidad, fase 4d).
+globalThis.memberKey = require("./helpers/miembros.cjs").memberKey;
 const ui = require("../renta-datos-ui.js");
 
 const root = path.resolve(__dirname, "..");
@@ -13,14 +15,14 @@ const pos = (extra) => ({ id: "p1", type: "fondo", label: "Fondo A", quantity: 1
 
 test("el motor guarda titular y depositario declarados, y vacío si no lo están (nunca un titular ni «España» por defecto)", () => {
   const [a, b, c] = portfolio.normalizePositions([
-    pos({ titular: "tere", depositario: "extranjero", depositarioPais: "  Irlanda " }),
+    pos({ titular: "p2", depositario: "extranjero", depositarioPais: "  Irlanda " }),
     pos({ id: "p2" }),
     pos({ id: "p3", titular: "otra", depositario: "luna", depositarioPais: "Irlanda" }),
   ]).positions;
-  assert.deepEqual([a.titular, a.depositario, a.depositarioPais], ["tere", "extranjero", "Irlanda"]);
+  assert.deepEqual([a.titular, a.depositario, a.depositarioPais], ["p2", "extranjero", "Irlanda"]);
   assert.deepEqual([b.titular, b.depositario, b.depositarioPais], ["", "", ""]);
   assert.deepEqual([c.titular, c.depositario, c.depositarioPais], ["", "", ""], "valores desconocidos no pasan; país solo si está fuera de España");
-  assert.deepEqual([...portfolio.PORTFOLIO_HOLDERS], ["javi", "tere", "household"]);
+  assert.deepEqual([...portfolio.PORTFOLIO_HOLDERS], ["p1", "p2", "household"]);
 });
 
 test("cambiar un campo toca solo esa posición; volver a España borra el país", () => {
@@ -29,21 +31,21 @@ test("cambiar un campo toca solo esa posición; volver a España borra el país"
   assert.deepEqual([next[0].depositario, next[0].depositarioPais], ["espana", ""]);
   assert.equal(next[1], list[1], "la otra posición, intacta");
   assert.equal(ui.rentaDatosAplicar(list, "p1", "currentValue", 0), null, "solo los campos de la Renta");
-  assert.equal(ui.rentaDatosAplicar(list, "nadie", "titular", "javi"), null);
+  assert.equal(ui.rentaDatosAplicar(list, "nadie", "titular", "p1"), null);
   assert.equal(ui.rentaDatosAplicar(list, "p2", "titular", "household")[1].titular, "household");
 });
 
 test("la lista: una fila por posición con titular, depositario y país (este solo fuera de España), y lo que falta, dicho", () => {
-  const html = ui.rentaDatosHtml([pos({ titular: "javi", depositario: "espana" }), pos({ id: "p2", label: "ETF <B>", depositario: "extranjero", depositarioPais: "Irlanda" })]);
+  const html = ui.rentaDatosHtml([pos({ titular: "p1", depositario: "espana" }), pos({ id: "p2", label: "ETF <B>", depositario: "extranjero", depositarioPais: "Irlanda" })]);
   assert.equal((html.match(/class="renta-datos-fila"/g) || []).length, 2);
-  assert.match(html, /<option value="javi" selected>Persona 1<\/option>/);
+  assert.match(html, /<option value="p1" selected>Persona 1<\/option>/);
   assert.match(html, /<option value="household">Conjunta \(50 % cada uno\)<\/option>/);
   assert.match(html, /aria-label="Titular de ETF &lt;B&gt;"/, "el nombre va escapado");
   assert.match(html, /<label><span>País<\/span><input type="text" maxlength="60" data-renta-datos-campo="depositarioPais" aria-label="País donde está depositada ETF &lt;B&gt;" value="Irlanda"/);
   assert.match(html, /<label hidden><span>País<\/span>/, "en España, el país va oculto");
   assert.match(html, /1 de 2 posiciones tienen titular\./);
   assert.match(ui.rentaDatosHtml([]), /Aún no hay posiciones en la cartera\./);
-  assert.equal(ui.rentaDatosResumenTexto([pos({ titular: "tere", depositario: "espana" }), pos({ titular: "javi", depositario: "espana" })]), "Las 2 posiciones tienen titular.");
+  assert.equal(ui.rentaDatosResumenTexto([pos({ titular: "p2", depositario: "espana" }), pos({ titular: "p1", depositario: "espana" })]), "Las 2 posiciones tienen titular.");
 });
 
 test("vive plegado en Inversión › Cartera, se carga antes de app.js y está en el sitio público y el service worker", () => {
@@ -64,8 +66,8 @@ test("un cobro se guarda con el íntegro y las retenciones; una retención en bl
   const { record } = ui.rentaRendimientoNormalizar(cobro({ id: "r1" }), [pos()]);
   assert.deepEqual(record, { id: "r1", fecha: "2026-03-12", tipo: "dividendo", posicionId: "p1", concepto: "", titular: "", integro: 120.5, retencionEspana: 22.9, retencionOrigen: null, paisOrigen: "" });
   assert.equal(ui.rentaRendimientoNormalizar(cobro({ retencionOrigen: "0" }), [pos()]).record.retencionOrigen, 0, "0 tecleado es 0");
-  const interes = ui.rentaRendimientoNormalizar(cobro({ tipo: "interes", posicionId: "", concepto: " Cuenta remunerada ", titular: "tere" }), [pos()]).record;
-  assert.deepEqual([interes.posicionId, interes.concepto, interes.titular], ["", "Cuenta remunerada", "tere"]);
+  const interes = ui.rentaRendimientoNormalizar(cobro({ tipo: "interes", posicionId: "", concepto: " Cuenta remunerada ", titular: "p2" }), [pos()]).record;
+  assert.deepEqual([interes.posicionId, interes.concepto, interes.titular], ["", "Cuenta remunerada", "p2"]);
 });
 
 test("lo que no se puede guardar dice por qué", () => {
@@ -81,10 +83,10 @@ test("lo que no se puede guardar dice por qué", () => {
 });
 
 test("el titular de un cobro es el de su posición (aunque cambie después); sin posición, el declarado", () => {
-  const positions = [pos({ titular: "javi" })];
-  assert.equal(ui.rentaRendimientoTitular({ posicionId: "p1", titular: "tere" }, positions), "javi");
+  const positions = [pos({ titular: "p1" })];
+  assert.equal(ui.rentaRendimientoTitular({ posicionId: "p1", titular: "p2" }, positions), "p1");
   assert.equal(ui.rentaRendimientoTitular({ posicionId: "p1" }, [pos({ titular: "household" })]), "household");
-  assert.equal(ui.rentaRendimientoTitular({ posicionId: "", titular: "tere" }, positions), "tere");
+  assert.equal(ui.rentaRendimientoTitular({ posicionId: "", titular: "p2" }, positions), "p2");
   assert.equal(ui.rentaRendimientoTitular({ posicionId: "p9" }, positions), "", "posición borrada: sin titular, no se adivina");
 });
 
@@ -94,7 +96,7 @@ test("por año: lo cobrado, lo retenido declarado y lo que falta para el informe
     { id: "b", fecha: "2026-06-30", tipo: "interes", posicionId: "", concepto: "Cuenta", titular: "", integro: 40.25, retencionEspana: null, retencionOrigen: null, paisOrigen: "" },
     { id: "c", fecha: "2025-12-01", tipo: "dividendo", posicionId: "p1", integro: 10, retencionEspana: 1.9, retencionOrigen: 0, paisOrigen: "" },
   ];
-  const [y26, y25] = ui.rentaRendimientosPorAno(list, [pos({ titular: "javi" })]);
+  const [y26, y25] = ui.rentaRendimientosPorAno(list, [pos({ titular: "p1" })]);
   assert.equal(y26.year, "2026");
   assert.deepEqual([y26.integro, y26.retencionEspana, y26.retencionOrigen], [140.25, 19, 15]);
   assert.deepEqual(y26.cobros.map((r) => r.id), ["b", "a"], "lo más reciente primero");
@@ -104,7 +106,7 @@ test("por año: lo cobrado, lo retenido declarado y lo que falta para el informe
 });
 
 test("el formulario y la lista: escapados, con el total del año y el «Quitar» de cada cobro", () => {
-  const html = ui.rentaRendimientosHtml([{ id: "a", fecha: "2026-03-12", tipo: "dividendo", posicionId: "p1", integro: 100, retencionEspana: null, retencionOrigen: 15, paisOrigen: "Irlanda" }], [pos({ label: "ETF <B>", titular: "javi" })]);
+  const html = ui.rentaRendimientosHtml([{ id: "a", fecha: "2026-03-12", tipo: "dividendo", posicionId: "p1", integro: 100, retencionEspana: null, retencionOrigen: 15, paisOrigen: "Irlanda" }], [pos({ label: "ETF <B>", titular: "p1" })]);
   assert.match(html, /<option value="p1">ETF &lt;B&gt;<\/option><option value="">Ninguna: una cuenta o un depósito<\/option>/);
   assert.match(html, /<label data-renta-rend-sin-posicion hidden><span>De dónde viene<\/span>/, "con posiciones, lo de «sin posición» va oculto");
   assert.match(html, /<strong>2026<\/strong> · 1 cobro · íntegro/);
@@ -124,7 +126,7 @@ test("pérdidas arrastradas por bloque: FC3 solo aplica las de transmisiones; si
   assert.deepEqual(r.priorLossesApplied, [{ year: "2023", amount: 200 }, { year: "2025", amount: 100 }]);
   assert.equal(r.taxableNet, 700);
   assert.equal(r.marginalSaleBase, 700, "la de rendimientos tampoco cuenta para valorar otra venta");
-  assert.equal(ui.rentaPerdidaEtiqueta({ bloque: "rendimientos", titular: "tere" }), " · rendimientos · Persona 2");
+  assert.equal(ui.rentaPerdidaEtiqueta({ bloque: "rendimientos", titular: "p2" }), " · rendimientos · Persona 2");
   assert.equal(ui.rentaPerdidaEtiqueta({}), " · transmisiones · sin titular");
 });
 

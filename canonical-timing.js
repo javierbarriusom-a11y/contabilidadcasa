@@ -9,7 +9,7 @@
   // ingreso y cada gasto del plan, extraído de app.js SIN CAMBIO DE COMPORTAMIENTO (equivalencia campo a
   // campo en tests/ntc1-motor-fechas.test.cjs). WP-08 añade aquí el día de cargo indicado por el hogar.
   //
-  // Orden de las reglas, que no se cambia sin decisión del hogar (tests/nomina-javi-ultimo-dia-natural.test.cjs):
+  // Orden de las reglas, que no se cambia sin decisión del hogar (tests/nomina-principal-ultimo-dia-natural.test.cjs):
   // - Ingresos: local (día 1) → la otra nómina (día 25, a propósito más tarde de lo real) → nómina principal (último día
   //   NATURAL, antes que la regla de diciembre) → bonus/diciembre (día 15 en diciembre, último hábil el resto)
   //   → movimiento real casado → estimación alisada (día 8).

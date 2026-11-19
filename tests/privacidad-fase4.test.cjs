@@ -114,3 +114,34 @@ test("fase 4c · un escenario guardado con la clave de siempre sigue siendo vál
   assert.match(fs.readFileSync(require.resolve("../escenarios-ui.js"), "utf8"), /optionValue === value \|\| \(typeof memberKey === "function" && memberKey\(value\) === optionValue\)/);
   assert.equal(M.etiqueta(K2, { p2: "Ana Ficticia" }), "Ana Ficticia");
 });
+
+// 4d · la cartera (titular de cada posición), el informe de la Renta, los objetivos, P2 (titularidad de series y deudas), la vista
+// familiar y los cobros de la Renta: lo guardado con la clave de siempre se lee como «p1»/«p2» y da las mismas cifras.
+test("fase 4d · ida y vuelta: cartera, informe de la Renta, objetivos, P2, vista familiar y cobros de la Renta", () => {
+  const portfolio = require("../canonical-portfolio.js");
+  const tax = require("../canonical-tax-report.js");
+  const p2 = require("../p2-domain.js");
+  const ux = require("../ux-settings.js");
+  globalThis.FinanceHouseholdMembers = M; // en el navegador, household-members.js lo deja aquí
+  globalThis.memberKey = miembros.memberKey;
+  try {
+    const pos = (id, titular) => ({ id, type: "fondo", label: `Fondo ${id}`, quantity: 10, costBasis: 1000, currentValue: 1500, titular });
+    const antes = portfolio.normalizePositions([pos("a", K1), pos("b", K2), pos("c", "household")]).positions.map((p) => p.titular);
+    assert.deepEqual(antes, ["p1", "p2", "household"]);
+    assert.deepEqual([...tax.HOLDERS], ["p1", "p2"]);
+    assert.equal(tax.holderShare(K1, "p1"), 1);
+    assert.equal(tax.holderShare("p2", K2), 1);
+    assert.equal(tax.holderShare(K2, "p1"), 0);
+    assert.equal(tax.holderShare("household", K1), 0.5);
+    const informe = (holder, titulares) => JSON.stringify(tax.taxReport({ year: 2026, holder, positions: portfolio.normalizePositions([pos("a", titulares[0]), pos("b", titulares[1])]).positions, priorLosses: [{ year: 2025, amount: 100, titular: titulares[0] }] }));
+    assert.equal(informe(K1, [K1, K2]), informe("p1", ["p1", "p2"]), "el informe de una copia antigua es el mismo");
+    assert.equal(p2.normalizeOwner(K2, ""), "p2");
+    assert.equal(p2.normalizeOwner("household", ""), "household");
+    assert.equal(ux.normalizeFamilyContext(K1), "p1");
+    assert.equal(ux.normalizeFamilyContext("vecino"), "household");
+    assert.equal(require("../canonical-e15-goals.js").normalizeGoal({ name: "Viaje", target: 1000, owner: K2 }).owner, "p2");
+  } finally {
+    delete globalThis.FinanceHouseholdMembers;
+    delete globalThis.memberKey;
+  }
+});

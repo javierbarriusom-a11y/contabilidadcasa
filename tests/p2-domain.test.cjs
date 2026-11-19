@@ -28,10 +28,10 @@ test("una aportación bancaria no puede financiar dos huchas", () => {
 });
 
 test("la titularidad se infiere de forma estable para Javi, Tere y Hogar", () => {
-  assert.equal(P2.inferOwner("Nómina Javi"), "javi");
-  assert.equal(P2.inferOwner("Salario Teresa"), "tere");
+  assert.equal(P2.inferOwner("Nómina Javi"), "p1");
+  assert.equal(P2.inferOwner("Salario Teresa"), "p2");
   assert.equal(P2.inferOwner("Hipoteca vivienda"), "household");
-  assert.equal(P2.normalizeOwner("valor-inválido", "Bonus Javi"), "javi");
+  assert.equal(P2.normalizeOwner("valor-inválido", "Bonus Javi"), "p1");
 });
 
 test("los indicadores de comportamiento solo usan movimientos conciliados", () => {
