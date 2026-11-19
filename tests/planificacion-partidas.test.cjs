@@ -240,7 +240,7 @@ test("un tipo que no aterriza en projects (deuda real, traspaso, cambio_presupue
 
 test("cambio_ingreso genera una fila 'income' por mes con el delta constante", () => {
   const context = planningRowsContext();
-  const decision = { id: "d12", tipo: "cambio_ingreso", titulo: "Sube el sueldo", params: { titular: "javi", deltaMensual: 150, mesInicio: "2026-09", mesFin: "2026-11" } };
+  const decision = { id: "d12", tipo: "cambio_ingreso", titulo: "Sube el sueldo", params: { titular: "p1", deltaMensual: 150, mesInicio: "2026-09", mesFin: "2026-11" } };
   const rows = context.landScenarioDecisionAsPlanningRows(decision, { id: "esc-8" });
   assert.equal(rows.length, 3);
   assert.equal(JSON.stringify(rows.map((r) => r.monthKey)), JSON.stringify(["2026-09", "2026-10", "2026-11"]));

@@ -17,4 +17,10 @@ function con(nombres = {}) {
   };
 }
 
-module.exports = { ...con(), con };
+// Fase 5: las pruebas que comprueban que una partida con el nombre de siempre de una persona se reconoce (los datos del hogar
+// llevan esos nombres en sus etiquetas) lo toman de aquí, sin escribirlo: en base64, como tests/privacidad-nombres.test.cjs.
+const [N1, N2] = ["SmF2aQ==", "VGVyZQ=="].map((b) => Buffer.from(b, "base64").toString("utf8"));
+const NOMBRE = Object.freeze({ p1: N1, p2: N2, p1Largo: `${N1}er`, p2Largo: `${N2}sa` });
+const CLAVE = Object.freeze({ p1: N1.toLowerCase(), p2: N2.toLowerCase() });
+
+module.exports = { ...con(), con, NOMBRE, CLAVE };

@@ -25,7 +25,7 @@ test("una sesión válida de Supabase Auth se acepta con el userId real", async 
   const result = await verifySupabaseSession({
     ...base,
     authorization: "Bearer token-valido",
-    fetch: async (url, options) => { request = { url, options }; return { ok: true, json: async () => ({ id: "user-1", email: "javi@example.test" }) }; },
+    fetch: async (url, options) => { request = { url, options }; return { ok: true, json: async () => ({ id: "user-1", email: "persona1@example.test" }) }; },
   });
   assert.equal(result.allowed, true);
   assert.equal(result.userId, "user-1");

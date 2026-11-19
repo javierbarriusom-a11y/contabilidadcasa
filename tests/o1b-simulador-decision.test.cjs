@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const vm = require("node:vm");
@@ -56,14 +57,14 @@ test("O-1b · deuda_nueva sin titular sigue siendo válida", () => {
   assert.equal(result.valid, true, JSON.stringify(result.issues));
 });
 
-test("O-1b · compra acepta titular javi/Persona 2/hogar", () => {
+test("O-1b · compra acepta titular persona 1/persona 2/hogar", () => {
   ["hogar", "p1", "p2"].forEach((titular) => {
     const result = schema.validateEscenario(baseEscenario([decision("compra", { nombre: "Coche", importe: 3000, titular })]));
     assert.equal(result.valid, true, `${titular}: ${JSON.stringify(result.issues)}`);
   });
 });
 
-test("O-1b · deuda_nueva acepta titular javi/Persona 2/hogar", () => {
+test("O-1b · deuda_nueva acepta titular persona 1/persona 2/hogar", () => {
   ["hogar", "p1", "p2"].forEach((titular) => {
     const result = schema.validateEscenario(baseEscenario([decision("deuda_nueva", { principal: 8000, cuota: 180, plazo: 48, mes: "2026-10", titular })]));
     assert.equal(result.valid, true, `${titular}: ${JSON.stringify(result.issues)}`);
@@ -586,12 +587,12 @@ test("partidasNextMonthPlannedExpenses lee el mes siguiente de lastSimulation au
   assert.equal(JSON.stringify(result), JSON.stringify([1200, 0]));
 });
 
-test("partidasP2SalaryByMonth solo suma filas de ingresos cuyo nombre combine «tere» con «nomina»/«salario»", () => {
+test("partidasP2SalaryByMonth solo suma filas de ingresos cuyo nombre combine el nombre de la persona 2 con «nomina»/«salario»", () => {
   const context = transferContext(["partidasP2SalaryByMonth"], {
     baseData: { monthlyPlanning: { sections: [{ name: "Ingresos", kind: "income" }, { name: "Gastos fijos", kind: "expense" }] } },
-    visualRowsForSection: (section) => (section.kind === "income" ? [{ label: "Nómina Tere" }, { label: "Bonus Javi" }] : []),
+    visualRowsForSection: (section) => (section.kind === "income" ? [{ label: `Nómina ${NOMBRE.p2}` }, { label: `Bonus ${NOMBRE.p1}` }] : []),
     visualDisplayLabel: (row) => row.label,
-    visualCellValue: (row) => (row.label === "Nómina Tere" ? 1850 : 500),
+    visualCellValue: (row) => (row.label === `Nómina ${NOMBRE.p2}` ? 1850 : 500),
   });
   const months = [{ key: "2026-09" }];
   assert.equal(JSON.stringify(context.partidasP2SalaryByMonth(months)), JSON.stringify([1850]));

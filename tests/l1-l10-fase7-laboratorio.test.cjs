@@ -335,8 +335,8 @@ test("L-4 · laboratorioSnapshotContext toma el último cierre vigente y firmado
   vm.createContext(context);
   vm.runInContext(extractFunction("laboratorioSnapshotContext"), context);
   const closures = [
-    { monthKey: "2026-07", occurredAt: "2026-08-01T10:00:00.000Z", author: "Javier", status: "closed", vigente: true },
-    { monthKey: "2026-08", occurredAt: "2026-08-15T10:00:00.000Z", author: "Javier", status: "reopened", vigente: true },
+    { monthKey: "2026-07", occurredAt: "2026-08-01T10:00:00.000Z", author: "Persona 1", status: "closed", vigente: true },
+    { monthKey: "2026-08", occurredAt: "2026-08-15T10:00:00.000Z", author: "Persona 1", status: "reopened", vigente: true },
   ];
   const result = context.laboratorioSnapshotContext(closures);
   assert.equal(result.monthKey, "2026-07");
@@ -354,7 +354,7 @@ test("L-4 · laboratorioSnapshotNoteText dice explícitamente cuándo no hay ins
   vm.createContext(context);
   vm.runInContext(extractFunction("laboratorioSnapshotNoteText"), context);
   assert.match(context.laboratorioSnapshotNoteText(null), /Todavía no hay ningún mes cerrado/);
-  assert.match(context.laboratorioSnapshotNoteText({ monthKey: "2026-07", fecha: "2026-08-01T10:00:00.000Z", autor: "Javier" }), /Javier/);
+  assert.match(context.laboratorioSnapshotNoteText({ monthKey: "2026-07", fecha: "2026-08-01T10:00:00.000Z", autor: "Persona 1" }), /Persona 1/);
 });
 
 // --- L-5 · escritura imposible, no solo escondida -----------------------------------------------------
@@ -481,7 +481,7 @@ test("L-7 · laboratorioActaPrintHtml incluye la instantánea y una fila por her
     `${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractFunction("laboratorioListRows")}\n${extractFunction("laboratorioDetailFor")}\n${extractFunction("laboratorioSnapshotNoteText")}\n${extractFunction("laboratorioActaPrintHtml")}`,
     context,
   );
-  const printHtml = context.laboratorioActaPrintHtml(realCatalog, { monthKey: "2026-08", fecha: "2026-08-15", autor: "Javier" });
+  const printHtml = context.laboratorioActaPrintHtml(realCatalog, { monthKey: "2026-08", fecha: "2026-08-15", autor: "Persona 1" });
   assert.match(printHtml, /<h1>Acta del Laboratorio<\/h1>/);
   assert.equal((printHtml.match(/<tr>/g) || []).length, 19);
 });

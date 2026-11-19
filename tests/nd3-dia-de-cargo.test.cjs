@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -91,8 +92,8 @@ test("un valor guardado que no es día ni «fin de mes» se ignora: vuelve al co
 });
 
 test("los ingresos no cambian aunque una partida de gasto tenga día indicado", () => {
-  const engine = loadEngine([], { "Nomina Javi": { day: 3 } });
-  assert.equal(engine.incomeTimingForRow({ label: "Nomina Javi" }, { key: "2026-11" }, 3000).source, "regla nómina principal");
+  const engine = loadEngine([], { [`Nomina ${NOMBRE.p1}`]: { day: 3 } });
+  assert.equal(engine.incomeTimingForRow({ label: `Nomina ${NOMBRE.p1}` }, { key: "2026-11" }, 3000).source, "regla nómina principal");
 });
 
 // --- almacén ---------------------------------------------------------------------------------------

@@ -404,7 +404,7 @@ test("día 4 · proyecto: la modalidad hucha reparte el objetivo en cuotas igual
 
 test("día 4 · cambio_ingreso y cambio_gasto: delta mensual entre mesInicio y mesFin (o hasta el final del horizonte)", () => {
   const cambioIngreso = engine.resolveEscenario(
-    [{ id: "ci", tipo: "cambio_ingreso", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { titular: "javi", deltaMensual: -500, mesInicio: "2026-03", mesFin: "2026-05" } }],
+    [{ id: "ci", tipo: "cambio_ingreso", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { titular: "p1", deltaMensual: -500, mesInicio: "2026-03", mesFin: "2026-05" } }],
     { debtContracts: [], baseInput: cascadeBaseInput() },
   );
   const byMonthIngreso = Object.fromEntries(cambioIngreso.months.map((month) => [month.monthKey, month.income]));

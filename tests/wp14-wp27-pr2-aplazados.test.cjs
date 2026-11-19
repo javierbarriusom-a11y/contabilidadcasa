@@ -1,4 +1,5 @@
 const test = require("node:test");
+const { NOMBRE } = require("./helpers/miembros.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -38,7 +39,7 @@ function loadEngine({ transactions = [], deferral, chargeDay } = {}) {
 }
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const SEPT = { key: "2026-09" };
-const NOMINA = { label: "Nómina Javi" };
+const NOMINA = { label: `Nómina ${NOMBRE.p1}` };
 
 // ---- el motor de fechas ----
 test("sin aplazamiento el motor es el de siempre; con un aplazamiento que no es posterior, también", () => {

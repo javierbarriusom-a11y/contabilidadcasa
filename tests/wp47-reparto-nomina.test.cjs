@@ -167,12 +167,12 @@ test("WP-47 · la lista de transferencias sigue el orden de la escalera, sin «s
 });
 
 test("WP-47 · «Aplicar» crea un borrador con sus fuentes y su lista; las nóminas repartidas dejan de ofrecerse y al descartar vuelven", () => {
-  const availability = P.availableToSplit({ payrolls: [payroll("a|2026-10", 3000, "Nómina Javi")], headroom: 5000 });
+  const availability = P.availableToSplit({ payrolls: [payroll("a|2026-10", 3000, "Nómina Ana")], headroom: 5000 });
   const rows = rowsFor(availability.available);
   const draft = P.makeDraft({ id: "nom-1", createdAt: "2026-10-12T09:00:00.000Z", month: "2026-10", availability, rows });
   assert.equal(draft.available, 3000);
   assert.equal(draft.basis, "band");
-  assert.deepEqual(draft.sources, [{ id: "a|2026-10", label: "Nómina Javi", amount: 3000 }]);
+  assert.deepEqual(draft.sources, [{ id: "a|2026-10", label: "Nómina Ana", amount: 3000 }]);
   assert.equal(draft.transfers.length, P.transferList(rows).length);
   let store = P.addDraft({}, draft);
   assert.deepEqual([...P.appliedSourceIds(store)], ["a|2026-10"]);
@@ -244,7 +244,7 @@ test("WP-47 · la banda da el mínimo al que llega la trayectoria en 9 de cada 1
 });
 
 test("WP-47 · una partida es nómina si su nombre lo dice (sin acentos ni mayúsculas, palabra entera)", () => {
-  ["Nómina Javi", "NOMINA Tere", "salario tere", "Sueldo", "Nóminas", "Paga extra - nómina"].forEach((label) => assert.equal(P.isPayrollLabel(label), true, label));
+  ["Nómina Ana", "NOMINA Luis", "salario luis", "Sueldo", "Nóminas", "Paga extra - nómina"].forEach((label) => assert.equal(P.isPayrollLabel(label), true, label));
   ["Ingreso Persona A", "Alquiler local", "Nominal", "Dividendos", "", null, undefined].forEach((label) => assert.equal(P.isPayrollLabel(label), false, String(label)));
 });
 

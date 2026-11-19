@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // GOB4 (Oleada 3, Bloque 3): vista por titular en hogar compartido. "Mis metas, mi deuda, mi
-// aportación" separado de la vista agregada, sobre el mismo reparto por titular (javi/tere/hogar)
+// aportación" separado de la vista agregada, sobre el mismo reparto por titular (persona 1/persona 2/hogar)
 // que ya usan las metas (goal.owner) y la deuda (bridge().debts()/p2DebtRows, mismo campo `owner`
 // que ya usa DEB1/AP5) — sin dato nuevo que declarar, solo un filtro de solo lectura.
 

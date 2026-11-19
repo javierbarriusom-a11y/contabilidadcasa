@@ -5,11 +5,11 @@ const report = require("../canonical-tax-report.js");
 
 const venta = (id, date, saleProceeds, consumedCost, extra = {}) => ({ id, date, saleProceeds, consumedCost, realizedGain: saleProceeds - consumedCost, shortfall: 0, ...extra });
 const posicion = (id, titular, disposals = [], extra = {}) => ({ id, label: `Posición ${id}`, titular, depositario: "espana", currentValue: 1000, disposals, ...extra });
-const cobro = (id, fecha, integro, extra = {}) => ({ id, fecha, tipo: "dividendo", posicionId: "", concepto: "Broker", titular: "javi", integro, retencionEspana: round(integro * 0.19), retencionOrigen: null, paisOrigen: "", ...extra });
+const cobro = (id, fecha, integro, extra = {}) => ({ id, fecha, tipo: "dividendo", posicionId: "", concepto: "Broker", titular: "p1", integro, retencionEspana: round(integro * 0.19), retencionOrigen: null, paisOrigen: "", ...extra });
 function round(v) { return Math.round(v * 100) / 100; }
 
 test("una venta con ganancia y un dividendo: la cuota por tramos (19 % hasta 6.000, 21 % después)", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [venta("v1", "2026-04-10", 30000, 20000)])], rendimientos: [cobro("d1", "2026-06-01", 1000)] });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "p1", [venta("v1", "2026-04-10", 30000, 20000)])], rendimientos: [cobro("d1", "2026-06-01", 1000)] });
   assert.equal(r.calculable, true);
   assert.deepEqual([r.totals.gpBalance, r.totals.rcmBalance, r.compensation.base], [10000, 1000, 11000]);
   assert.equal(r.quota.gross, 2190, "6.000 × 19 % + 5.000 × 21 %");
@@ -20,13 +20,13 @@ test("una venta con ganancia y un dividendo: la cuota por tramos (19 % hasta 6.0
 });
 
 test("el tramo del 30 % por encima de 300.000 €", () => {
-  const r = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("a", "tere", [venta("v1", "2026-01-10", 400000, 0)])] });
+  const r = report.taxReport({ year: 2026, holder: "p2", positions: [posicion("a", "p2", [venta("v1", "2026-01-10", 400000, 0)])] });
   // 6.000×19 % + 44.000×21 % + 150.000×23 % + 100.000×27 % + 100.000×30 % = 1.140 + 9.240 + 34.500 + 27.000 + 30.000
   assert.equal(r.quota.gross, 101880);
 });
 
 test("pérdidas de transmisiones mayores que las ganancias: compensan el 25 % de los rendimientos y el resto se arrastra", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [venta("v1", "2026-03-01", 3000, 5000)])], rendimientos: [cobro("d1", "2026-06-01", 4000)] });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "p1", [venta("v1", "2026-03-01", 3000, 5000)])], rendimientos: [cobro("d1", "2026-06-01", 4000)] });
   assert.deepEqual(r.compensation.steps, [{ kind: "year-cross", from: "ganancias", against: "rendimientos", amount: 1000 }]);
   assert.deepEqual([r.compensation.gpAfter, r.compensation.rcmAfter, r.compensation.base], [-1000, 3000, 3000]);
   assert.deepEqual(r.compensation.carryForward, [{ year: "2026", bloque: "ganancias", amount: 1000 }]);
@@ -58,7 +58,7 @@ test("una pérdida arrastrada de rendimientos va contra los rendimientos y luego
 });
 
 test("una pérdida diferida por recompra (XIN-02) ni se integra ni se arrastra", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [venta("v1", "2026-05-01", 1000, 2000)])], deferredBySale: { v1: -600 } });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "p1", [venta("v1", "2026-05-01", 1000, 2000)])], deferredBySale: { v1: -600 } });
   assert.deepEqual([r.transmissions[0].gain, r.transmissions[0].deferredLoss, r.transmissions[0].integrable], [-1000, -600, -400]);
   assert.deepEqual(r.compensation.carryForward, [{ year: "2026", bloque: "ganancias", amount: 400 }]);
   assert.equal(r.totals.deferredLosses, -600);
@@ -66,26 +66,26 @@ test("una pérdida diferida por recompra (XIN-02) ni se integra ni se arrastra",
 
 test("una venta sin lotes: el ejercicio no da cuota y dice por qué; las ventas de otros años no molestan", () => {
   const sinLotes = { ...venta("v1", "2026-05-01", 1000, 0), realizedGain: null, shortfall: 3 };
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [sinLotes, { ...sinLotes, id: "v0", date: "2025-01-01" }])] });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "p1", [sinLotes, { ...sinLotes, id: "v0", date: "2025-01-01" }])] });
   assert.equal(r.calculable, false);
   assert.equal(r.quota, null);
   assert.deepEqual(r.missing.map((m) => m.code), ["sale-without-lots"]);
 });
 
 test("una posición conjunta: el 50 % en cada declarante; la del otro, nada; sin titular, bloquea", () => {
-  const positions = [posicion("c", "household", [venta("v1", "2026-02-01", 5000, 1000)]), posicion("t", "tere", [venta("v2", "2026-02-01", 9000, 1000)])];
-  const javi = report.taxReport({ year: 2026, holder: "javi", positions });
-  const tere = report.taxReport({ year: 2026, holder: "tere", positions });
-  assert.deepEqual([javi.totals.gpBalance, tere.totals.gpBalance], [2000, 10000]);
-  assert.equal(javi.transmissions[0].share, 0.5);
-  const sinTitular = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("x", "", [venta("v3", "2026-02-01", 2000, 1000)])] });
+  const positions = [posicion("c", "household", [venta("v1", "2026-02-01", 5000, 1000)]), posicion("t", "p2", [venta("v2", "2026-02-01", 9000, 1000)])];
+  const informeP1 = report.taxReport({ year: 2026, holder: "p1", positions });
+  const informeP2 = report.taxReport({ year: 2026, holder: "p2", positions });
+  assert.deepEqual([informeP1.totals.gpBalance, informeP2.totals.gpBalance], [2000, 10000]);
+  assert.equal(informeP1.transmissions[0].share, 0.5);
+  const sinTitular = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("x", "", [venta("v3", "2026-02-01", 2000, 1000)])] });
   assert.equal(sinTitular.calculable, false);
   assert.deepEqual(sinTitular.missing[0], { code: "position-without-holder", blocking: true, positionId: "x", label: "Posición x", sales: 1 });
 });
 
 test("un cobro de una posición tiene el titular de la posición; sin retención española declarada no bloquea, pero lo dice", () => {
   const positions = [posicion("c", "household")];
-  const r = report.taxReport({ year: 2026, holder: "tere", positions, rendimientos: [cobro("d1", "2026-03-01", 300, { posicionId: "c", titular: "javi", retencionEspana: null })] });
+  const r = report.taxReport({ year: 2026, holder: "p2", positions, rendimientos: [cobro("d1", "2026-03-01", 300, { posicionId: "c", titular: "p1", retencionEspana: null })] });
   assert.equal(r.income[0].gross, 150);
   assert.equal(r.calculable, true);
   assert.equal(r.totals.withholdingComplete, false);
@@ -93,38 +93,38 @@ test("un cobro de una posición tiene el titular de la posición; sin retención
 });
 
 test("doble imposición: se deduce lo retenido fuera, como mucho lo que esa renta paga aquí", () => {
-  const us = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 150, paisOrigen: "EE. UU." })] });
+  const us = report.taxReport({ year: 2026, holder: "p1", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 150, paisOrigen: "EE. UU." })] });
   assert.deepEqual(us.doubleTaxDeduction, { foreignPaid: 150, limit: 190, deductible: 150, notRecoverable: 0 });
   assert.equal(us.quota.net, 40);
-  const ch = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 350, paisOrigen: "Suiza" })] });
+  const ch = report.taxReport({ year: 2026, holder: "p1", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 350, paisOrigen: "Suiza" })] });
   assert.deepEqual(ch.doubleTaxDeduction, { foreignPaid: 350, limit: 190, deductible: 190, notRecoverable: 160 });
-  const sinPais = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 150 })] });
+  const sinPais = report.taxReport({ year: 2026, holder: "p1", rendimientos: [cobro("d1", "2026-03-01", 1000, { retencionOrigen: 150 })] });
   assert.deepEqual(sinPais.missing.map((m) => m.code), ["foreign-withholding-without-country"]);
 });
 
 test("el 720: un depositario extranjero por encima del umbral avisa; uno sin declarar dice «sin saber», no «no aplica»", () => {
   const fuera = [posicion("a", "household", [], { depositario: "extranjero", currentValue: 60000 })];
-  assert.equal(report.taxReport({ year: 2026, holder: "tere", positions: fuera }).model720.state, "above", "la conjunta cuenta entera (criterio prudente)");
-  assert.equal(report.model720Notice([posicion("a", "javi", [], { depositario: "extranjero", currentValue: 40000 })], "javi").state, "below");
-  assert.equal(report.model720Notice([posicion("a", "javi", [], { depositario: "" })], "javi").state, "unknown");
-  assert.equal(report.model720Notice([posicion("a", "tere", [], { depositario: "" })], "javi").state, "below", "la del otro declarante no cuenta");
+  assert.equal(report.taxReport({ year: 2026, holder: "p2", positions: fuera }).model720.state, "above", "la conjunta cuenta entera (criterio prudente)");
+  assert.equal(report.model720Notice([posicion("a", "p1", [], { depositario: "extranjero", currentValue: 40000 })], "p1").state, "below");
+  assert.equal(report.model720Notice([posicion("a", "p1", [], { depositario: "" })], "p1").state, "unknown");
+  assert.equal(report.model720Notice([posicion("a", "p2", [], { depositario: "" })], "p1").state, "below", "la del otro declarante no cuenta");
 });
 
 test("pérdidas arrastradas sin titular: bloquean si aún pueden aplicarse; caducadas, no", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", priorLosses: [{ year: "2024", amount: 500 }] });
+  const r = report.taxReport({ year: 2026, holder: "p1", priorLosses: [{ year: "2024", amount: 500 }] });
   assert.deepEqual(r.missing.map((m) => [m.code, m.count]), [["prior-loss-without-holder", 1]]);
   assert.equal(r.calculable, false);
-  assert.equal(report.taxReport({ year: 2026, holder: "javi", priorLosses: [{ year: "2020", amount: 500 }] }).calculable, true);
+  assert.equal(report.taxReport({ year: 2026, holder: "p1", priorLosses: [{ year: "2020", amount: 500 }] }).calculable, true);
 });
 
 test("sin escala registrada, un ejercicio anterior a 2025 no tiene cuota; con la del hogar, se usa la suya", () => {
-  const r = report.taxReport({ year: 2024, holder: "javi", rendimientos: [cobro("d1", "2024-03-01", 1000)] });
+  const r = report.taxReport({ year: 2024, holder: "p1", rendimientos: [cobro("d1", "2024-03-01", 1000)] });
   assert.equal(r.calculable, false);
   assert.ok(r.missing.some((m) => m.code === "missing-scale"));
   const propia = { brackets: [{ limit: 6000, rate: 19 }, { limit: null, rate: 21 }], source: { url: "x" } };
-  const h = report.taxReport({ year: 2024, holder: "javi", rendimientos: [cobro("d1", "2024-03-01", 1000)], savingsScale: propia });
+  const h = report.taxReport({ year: 2024, holder: "p1", rendimientos: [cobro("d1", "2024-03-01", 1000)], savingsScale: propia });
   assert.deepEqual([h.quota.gross, h.quota.scaleOrigin], [190, "hogar"]);
-  assert.equal(report.taxReport({ year: "26", holder: "javi" }).reason, "missing-year");
+  assert.equal(report.taxReport({ year: "26", holder: "p1" }).reason, "missing-year");
   assert.equal(report.taxReport({ year: 2026, holder: "household" }).reason, "missing-holder", "el informe es de un declarante");
 });
 
@@ -135,7 +135,7 @@ const ui = require("../informe-renta-ui.js");
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 
 test("el informe calculable: la base y la cuota arriba, las tablas, la compensación y el aviso de que no es el modelo 100", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [venta("v1", "2026-03-01", 3000, 5000)], { label: "Fondo <A>" })], rendimientos: [cobro("d1", "2026-06-01", 4000, { retencionOrigen: 100, paisOrigen: "Irlanda" })] });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "p1", [venta("v1", "2026-03-01", 3000, 5000)], { label: "Fondo <A>" })], rendimientos: [cobro("d1", "2026-06-01", 4000, { retencionOrigen: 100, paisOrigen: "Irlanda" })] });
   const html = ui.informeRentaHtml(r, { declarante: "Persona 1" });
   assert.match(html, /<strong>Persona 1, 2026:<\/strong> base liquidable del ahorro estimada de 3000/);
   assert.match(html, /<caption>Transmisiones de 2026<\/caption>/);
@@ -149,7 +149,7 @@ test("el informe calculable: la base y la cuota arriba, las tablas, la compensac
 });
 
 test("sin poder calcular: lo dice arriba y lista lo que falta, con dónde se arregla; sin cuota", () => {
-  const r = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)], { label: "ETF B" })] });
+  const r = report.taxReport({ year: 2026, holder: "p2", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)], { label: "ETF B" })] });
   const html = ui.informeRentaHtml(r, { declarante: "Persona 2" });
   assert.match(html, /todavía no se puede dar la cuota/);
   assert.match(html, /Lo que falta para dar la cuota/);
@@ -159,7 +159,7 @@ test("sin poder calcular: lo dice arriba y lista lo que falta, con dónde se arr
 });
 
 test("el CSV se vuelve a leer y cuadra con el informe", () => {
-  const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "household", [venta("v1", "2026-03-01", 9000, 5000)], { label: "Fondo; con \"comillas\"" })], rendimientos: [cobro("d1", "2026-06-01", 1000.5)] });
+  const r = report.taxReport({ year: 2026, holder: "p1", positions: [posicion("a", "household", [venta("v1", "2026-03-01", 9000, 5000)], { label: "Fondo; con \"comillas\"" })], rendimientos: [cobro("d1", "2026-06-01", 1000.5)] });
   const csv = ui.informeRentaCsv(r);
   const lines = csv.trim().split("\n");
   assert.equal(lines[0], "Bloque;Fecha;Concepto;Importe;Adquisición;Retención España;Retención origen;País");
@@ -186,8 +186,8 @@ test("registro: plegado dentro del borrador de apoyo para la Renta, los dos mód
 });
 
 test("el borrador de apoyo (GOB8) suma una línea por declarante con lo que dice el informe", () => {
-  const ok = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000)] });
-  const falta = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)])] });
+  const ok = report.taxReport({ year: 2026, holder: "p1", rendimientos: [cobro("d1", "2026-03-01", 1000)] });
+  const falta = report.taxReport({ year: 2026, holder: "p2", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)])] });
   const [a, b] = ui.informeRentaResumenLineas([ok, falta]);
   assert.match(a, /^Persona 1, 2026: base liquidable del ahorro estimada 1000,00 €; cuota estimada 190,00 € \(escala de la ley\)\.$/);
   assert.equal(b, "Persona 2, 2026: todavía sin cuota; falta 1 dato (detalle en el informe de inversión, más abajo).");
