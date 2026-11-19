@@ -107,11 +107,11 @@
         return { day: 1, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 1, 12)), source: "regla local", label: dateWithMonthLabel(date, 1), confidence: "rule", role: "" };
       }
       if (/(\bnomina\b|\bsalario\b).*\btere\b|\btere\b.*(\bnomina\b|\bsalario\b)/.test(label)) {
-        return { day: 25, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 25, 12)), source: "regla salario Tere", label: dateWithMonthLabel(date, 25), confidence: "rule", role: "" };
+        return { day: 25, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 25, 12)), source: "regla salario día 25", label: dateWithMonthLabel(date, 25), confidence: "rule", role: "" };
       }
       if (isMainPayrollIncomeRow(row)) {
         const day = monthEndDate(date).getDate(); // último día natural, decisión del hogar 1/10/2026 (más prudente)
-        return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
+        return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina principal", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
       }
       if (
         label.includes("bonus") ||
@@ -119,7 +119,7 @@
         (date.getMonth() === 11 && (label.includes("hacienda") || label.includes("extra") || Number(amount || 0) >= 2500))
       ) {
         const day = date.getMonth() === 11 ? 15 : lastBusinessDayOfMonth(date).getDate();
-        return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "" };
+        return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus", label: dateWithMonthLabel(date, day), confidence: "rule", role: "" };
       }
       const movementTiming = incomeTimingFromMovements(row, month, amount);
       if (movementTiming) return movementTiming;

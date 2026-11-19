@@ -363,7 +363,7 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
     if (applyLocalDecisions && state.projectMode === "credit" && index === targetProjectIndex && Number(state.loanCapital || 0) > 0) {
       loanIncome = Number(state.loanCapital || 0);
       loanCapitalUsed = round2(loanCapitalUsed + loanIncome);
-      events.push(`Crédito Tere +${money(loanIncome, true)}`);
+      events.push(`Crédito ${memberLabel("p2")} +${money(loanIncome, true)}`);
     }
     if (applyLocalDecisions && state.projectMode === "credit" && index >= targetProjectIndex && index < targetProjectIndex + Number(state.loanMonths || 0)) {
       loanPayment = Number(state.loanPayment || 0);
@@ -453,7 +453,7 @@ function newLifeDefScenarioSummaries(ctx, state) {
   return [
     { key: "base", title: "Sin decisiones nuevas", flow: base, note: "Sirve como suelo para comparar." },
     { key: "savings", title: "Proyecto con hucha", flow: savings, note: "Compra desde Mediolanum cuando llegue el mes." },
-    { key: "credit", title: "Crédito Tere + proyecto", flow: credit, note: "Recibe capital y añade cuota mensual." },
+    { key: "credit", title: memberTemplate("Crédito {p2} + proyecto"), flow: credit, note: "Recibe capital y añade cuota mensual." },
     { key: "combined", title: "Deuda + proyecto", flow: combined, note: "Aplica la configuración actual." },
   ];
 }
@@ -507,7 +507,7 @@ function renderLifeDefStory(ctx, previewFlow, committedFlow) {
     {
       title: hasProject ? "El proyecto se convierte en objetivo familiar" : "Sin proyecto de vida cargado",
       text: hasProject
-        ? `${state.projectName || "Proyecto"} necesita ${money(state.projectAmount, true)}. Modalidad: ${state.projectMode === "credit" ? `financiación de Tere con cuota ${money(state.loanPayment, true)}/mes` : state.projectMode === "payment" ? "pago único" : "hucha en Mediolanum"}; mes objetivo ${projectMonth}.`
+        ? `${state.projectName || "Proyecto"} necesita ${money(state.projectAmount, true)}. Modalidad: ${state.projectMode === "credit" ? `financiación de ${memberLabel("p2")} con cuota ${money(state.loanPayment, true)}/mes` : state.projectMode === "payment" ? "pago único" : "hucha en Mediolanum"}; mes objetivo ${projectMonth}.`
         : "Añade coche, reforma, vacaciones o cualquier objetivo para ver cuándo encaja sin romper caja.",
     },
     {

@@ -7,7 +7,7 @@
   const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
   const euro = (value) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always", trailingZeroDisplay: "stripIfInteger" }).format(Number(value) || 0); // rediseño A2: mismo formato que money()
   const shortDate = (value) => (value ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(value)) : "Sin fecha");
-  const ownerLabel = (owner) => ({ household: "Hogar", javi: "Javi", tere: "Tere" })[owner] || "Hogar";
+  const ownerLabel = (owner) => (typeof memberLabel === "function" ? memberLabel(owner || "household") : "Hogar"); // household-members.js
   const ownerOptions = (selected) => ["household", "javi", "tere"].map((value) => `<option value="${value}" ${value === selected ? "selected" : ""}>${ownerLabel(value)}</option>`).join("");
   const state = () => bridge()?.getState() || domain()?.normalizeState({}) || {};
   const save = (next) => bridge()?.saveState(next);
@@ -473,13 +473,13 @@
   }
 
   function renderFamilyAndExport() {
-    const target = mount("ajustes-datos", "p2-family-export", "beforeend", panel("p2-family-export", "Gobierno del dato", "Familia y paquete para asesor", "Asigna cada serie a Javi, Tere o Hogar y genera una exportación versionada con procedencia."));
+    const target = mount("ajustes-datos", "p2-family-export", "beforeend", panel("p2-family-export", "Gobierno del dato", "Familia y paquete para asesor", "Asigna cada serie a una persona o al hogar y genera una exportación versionada con procedencia."));
     if (!target) return;
     const rows = ensureOwnership();
     const p2 = state();
     const covered = rows.filter((row) => p2.ownership[row.key]).length;
     target.querySelector("[data-p2-body]").innerHTML = `
-      <div class="p2-kpis"><div class="p2-kpi"><span>Series asignadas</span><strong>${covered}/${rows.length}</strong></div><div class="p2-kpi"><span>Javi</span><strong>${rows.filter((row) => p2.ownership[row.key] === "javi").length}</strong></div><div class="p2-kpi"><span>Tere</span><strong>${rows.filter((row) => p2.ownership[row.key] === "tere").length}</strong></div><div class="p2-kpi"><span>Hogar</span><strong>${rows.filter((row) => p2.ownership[row.key] === "household").length}</strong></div></div>
+      <div class="p2-kpis"><div class="p2-kpi"><span>Series asignadas</span><strong>${covered}/${rows.length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("javi"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "javi").length}</strong></div><div class="p2-kpi"><span>${esc(ownerLabel("tere"))}</span><strong>${rows.filter((row) => p2.ownership[row.key] === "tere").length}</strong></div><div class="p2-kpi"><span>Hogar</span><strong>${rows.filter((row) => p2.ownership[row.key] === "household").length}</strong></div></div>
       <div class="p2-toolbar"><label class="p2-field"><span>Filtrar titular</span><select data-owner-filter><option value="all">Todos</option>${ownerOptions("")}</select></label><div class="p2-actions"><button class="p2-button" data-export-pdf>Descargar PDF</button><button class="p2-button secondary" data-export-xlsx>Descargar Excel</button></div></div>
       <div data-export-notice></div>
       <div class="p2-table-wrap"><table class="p2-table"><thead><tr><th>Tipo</th><th>Serie</th><th>Titular</th><th>Identificador canónico</th></tr></thead><tbody data-family-rows>${rows.map((row) => familyRow(row, p2)).join("")}</tbody></table></div>

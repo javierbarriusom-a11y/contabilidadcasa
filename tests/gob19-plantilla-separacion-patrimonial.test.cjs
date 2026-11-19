@@ -42,14 +42,9 @@ function extractFunction(name) {
   throw new Error(`La función ${name} no cierra sus llaves`);
 }
 
-function extractConst(name) {
-  const match = new RegExp(`const ${name} = (\\{[^;]*\\});`).exec(app);
-  assert.ok(match, `No existe la constante ${name} en app.js`);
-  return `const ${name} = ${match[1]};`;
-}
-
 function sandboxWith(names, extra = {}) {
   const context = {
+    ...require("./helpers/miembros.cjs"),
     escapeHtml: (v) => String(v ?? ""),
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
     parseAmount: (value) => { const n = Number(String(value ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; },
@@ -57,8 +52,6 @@ function sandboxWith(names, extra = {}) {
     ...extra,
   };
   vm.createContext(context);
-  vm.runInContext(extractConst("GOB19_OWNER_LABELS"), context);
-  vm.runInContext(extractConst("A18_OWNER_LABELS"), context);
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
 }
@@ -122,7 +115,7 @@ test("gob19DebtsByOwner · solo deuda activa con cuota (mismo filtro que DI5), l
 test("gob19RestructuringSectionHtml · sin deuda asignada, lo dice sin pedir ingreso", () => {
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
   const result = ctx.gob19RestructuringSectionHtml("javi", 0, [], 0.32);
-  assert.match(result, /Javi/);
+  assert.match(result, /Persona 1/);
   assert.match(result, /sin deuda propia asignada/);
 });
 
@@ -130,7 +123,7 @@ test("gob19RestructuringSectionHtml · con deuda pero sin ingreso, pide el ingre
   const ctx = sandboxWith(["gob19RestructuringSectionHtml"]);
   const contracts = [{ id: "c1", label: "Banco X", balance: 10000, rate: 10, monthsRemaining: 24, monthlyPayment: 461.45 }];
   const result = ctx.gob19RestructuringSectionHtml("tere", 0, contracts, 0.32);
-  assert.match(result, /Tere/);
+  assert.match(result, /Persona 2/);
   assert.match(result, /indica su ingreso mensual tras la separación/);
   assert.match(result, /1 contrato/);
 });
@@ -186,7 +179,7 @@ test("handleGob19SeparationTemplate · con saldo pendiente, avisa de liquidarlo 
   });
   ctx.handleGob19SeparationTemplate();
   assert.match(note.innerHTML, /Antes de separar cuentas, liquida el saldo pendiente/);
-  assert.match(note.innerHTML, /Tere debe a Javi/);
+  assert.match(note.innerHTML, /Persona 2 debe a Persona 1/);
 });
 
 test("handleGob19SeparationTemplate · avisa de la deuda activa sin titular asignado (household), sin repartirla en silencio", () => {
@@ -206,8 +199,8 @@ test("handleGob19SeparationTemplate · reparte la deuda entre Javi y Tere según
     p2State: () => ({ ownership: { "debt|c1": "javi", "debt|c2": "tere" } }),
   });
   ctx.handleGob19SeparationTemplate();
-  assert.match(note.innerHTML, /Javi.*alargar de 24 a 36 meses/s);
-  assert.match(note.innerHTML, /Tere.*Sin necesidad de reestructurar/s);
+  assert.match(note.innerHTML, /Persona 1.*alargar de 24 a 36 meses/s);
+  assert.match(note.innerHTML, /Persona 2.*Sin necesidad de reestructurar/s);
 });
 
 test("no persiste nada en scenarioSettings: es una calculadora puntual, como DI5", () => {

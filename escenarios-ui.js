@@ -224,7 +224,7 @@ function escenarioMotorFieldControlHtml(field, months, values, { idPrefix = "esc
       return `<select ${attrs}>${escenarioMotorMonthOptionsHtml(months, value, "Hasta el final del horizonte")}</select>`;
     case "select":
       return `<select ${attrs}>${(field.opciones || [])
-        .map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}"${optionValue === value ? " selected" : ""}>${escapeHtml(optionLabel)}</option>`)
+        .map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}"${optionValue === value ? " selected" : ""}>${escapeHtml(typeof memberTemplate === "function" ? memberTemplate(optionLabel) : optionLabel)}</option>`)
         .join("")}</select>`;
     case "checkbox":
       return `<input ${attrs} type="checkbox"${value === true ? " checked" : ""} />`;

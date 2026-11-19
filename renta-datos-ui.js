@@ -9,8 +9,8 @@
 
 const RENTA_DATOS_TITULARES = [
   { value: "", label: "Sin declarar" },
-  { value: "javi", label: "Javi" },
-  { value: "tere", label: "Tere" },
+  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
   { value: "household", label: "Conjunta (50 % cada uno)" },
 ];
 const RENTA_DATOS_DEPOSITARIOS = [
@@ -75,7 +75,7 @@ const RENTA_REND_TIPOS = [
   { value: "dividendo", label: "Dividendo" },
   { value: "interes", label: "Interés" },
 ];
-const RENTA_PERDIDA_TITULARES = { javi: "Javi", tere: "Tere" };
+const RENTA_PERDIDA_TITULARES = { get javi() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; }, get tere() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } }; // los nombres, de los datos del hogar (household-members.js)
 
 function rentaDatosEuros(value) {
   if (value === null || value === undefined) return "sin declarar";

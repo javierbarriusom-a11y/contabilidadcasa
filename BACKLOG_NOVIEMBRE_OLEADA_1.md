@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**19/11/2026 · Privacidad: los nombres del hogar fuera del código público («Haz esta tarea aquí»; D-N24, D-N25, D-N26).** Fase 1: la protección de privacidad escribía en claro cuatro nombres completos (dos de terceros) y el de una empresa; ahora guarda su huella y detecta igual. Fase 2: los nombres que se ven salen de Ajustes › Hogar y cuentas (en vuestros datos) y, mientras no los pongáis, «Persona 1» y «Persona 2». Quedan las reglas por nombre y la plantilla de financiaciones (fase 3) y las claves internas con migración (fase 4). **El historial de git sigue público: D-N24, poner el repositorio en privado, lo hacéis vosotros en GitHub** (`docs/PRIVACIDAD_NOMBRES.md`; PROJECT_STATE 501).
+
 **18/11/2026 · DEC-20: «Decidir esta semana» con verbos concretos («continúa con lo que puedas hacer sin mí»).** Los avisos de Ajustes › Alertas dicen qué hacer y adónde llevan (la previsión, la ruta de la deuda, la cartera, las decisiones vencidas) en vez de «Revisar alerta» al Centro de alertas, y ya no enseñan como fecha límite la fecha de revisión de la regla. Sin cambiar cifras (PROJECT_STATE 498).
 
 **18/11/2026 · DEC-40: lo plegado también cuenta (solo medir; «continúa con lo que puedas hacer sin mí»).** El inventario de superficie suma, ruta a ruta, los desplegables que se ven cerrados por defecto (151 en 32 rutas, frente a 231 titulares), y la app anota qué desplegables abrís y cuándo, solo en ese navegador; Uso de la app dirá, con 60 días anotados, cuáles nadie abre. No retira nada (PROJECT_STATE 497).

@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-19-nombres-en-ajustes",
+      fecha: "2026-11-19",
+      texto: "Vuestros nombres ya no están en el código: la app dice «Persona 1» y «Persona 2» hasta que los escribáis en Ajustes › Hogar y cuentas.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-18-verbos-decidir",
       fecha: "2026-11-18",
       texto: "Hoy: los avisos de «Decidir esta semana» dicen qué hacer y adónde llevan (la previsión, la deuda, la cartera), sin falsas fechas límite.",

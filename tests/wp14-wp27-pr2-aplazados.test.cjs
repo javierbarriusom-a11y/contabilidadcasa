@@ -56,7 +56,7 @@ test("un cobro por regla aplazado mueve la fecha, la etiqueta y el origen; no el
   assert.equal(moved.day, 30, "`day` ordena el mes y decide qué va antes de la nómina: no se toca");
   assert.equal(moved.confidence, "rule");
   assert.equal(moved.role, "main-payroll");
-  assert.match(moved.source, /regla nómina Javi, aplazado hasta el /);
+  assert.match(moved.source, /regla nómina principal, aplazado hasta el /);
   assert.match(moved.label, /3/);
 });
 

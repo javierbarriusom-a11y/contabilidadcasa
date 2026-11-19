@@ -136,8 +136,8 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 
 test("el informe calculable: la base y la cuota arriba, las tablas, la compensación y el aviso de que no es el modelo 100", () => {
   const r = report.taxReport({ year: 2026, holder: "javi", positions: [posicion("a", "javi", [venta("v1", "2026-03-01", 3000, 5000)], { label: "Fondo <A>" })], rendimientos: [cobro("d1", "2026-06-01", 4000, { retencionOrigen: 100, paisOrigen: "Irlanda" })] });
-  const html = ui.informeRentaHtml(r, { declarante: "Javi" });
-  assert.match(html, /<strong>Javi, 2026:<\/strong> base liquidable del ahorro estimada de 3000/);
+  const html = ui.informeRentaHtml(r, { declarante: "Persona 1" });
+  assert.match(html, /<strong>Persona 1, 2026:<\/strong> base liquidable del ahorro estimada de 3000/);
   assert.match(html, /<caption>Transmisiones de 2026<\/caption>/);
   assert.match(html, /Fondo &lt;A&gt;/, "escapado");
   assert.match(html, /role="region" tabindex="0" aria-label="Dividendos e intereses de 2026"/, "la tabla se puede desplazar con el teclado");
@@ -150,7 +150,7 @@ test("el informe calculable: la base y la cuota arriba, las tablas, la compensac
 
 test("sin poder calcular: lo dice arriba y lista lo que falta, con dónde se arregla; sin cuota", () => {
   const r = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)], { label: "ETF B" })] });
-  const html = ui.informeRentaHtml(r, { declarante: "Tere" });
+  const html = ui.informeRentaHtml(r, { declarante: "Persona 2" });
   assert.match(html, /todavía no se puede dar la cuota/);
   assert.match(html, /Lo que falta para dar la cuota/);
   assert.match(html, /«ETF B» tiene ventas este año y no se sabe de quién es\. Dilo en Inversión › Cartera › Datos para la Renta\./);
@@ -189,8 +189,8 @@ test("el borrador de apoyo (GOB8) suma una línea por declarante con lo que dice
   const ok = report.taxReport({ year: 2026, holder: "javi", rendimientos: [cobro("d1", "2026-03-01", 1000)] });
   const falta = report.taxReport({ year: 2026, holder: "tere", positions: [posicion("x", "", [venta("v1", "2026-02-01", 2000, 1000)])] });
   const [a, b] = ui.informeRentaResumenLineas([ok, falta]);
-  assert.match(a, /^Javi, 2026: base liquidable del ahorro estimada 1000,00 €; cuota estimada 190,00 € \(escala de la ley\)\.$/);
-  assert.equal(b, "Tere, 2026: todavía sin cuota; falta 1 dato (detalle en el informe de inversión, más abajo).");
+  assert.match(a, /^Persona 1, 2026: base liquidable del ahorro estimada 1000,00 €; cuota estimada 190,00 € \(escala de la ley\)\.$/);
+  assert.equal(b, "Persona 2, 2026: todavía sin cuota; falta 1 dato (detalle en el informe de inversión, más abajo).");
   const app = read("app.js");
   assert.match(app, /"4\) Inversión: base del ahorro de cada declarante/);
   assert.match(app, /typeof informeRentaResumenTexto === "function" \? informeRentaResumenTexto\(\)/);

@@ -28,7 +28,7 @@
   const round2 = (value) => Math.round((number(value) + Number.EPSILON) * 100) / 100;
   const text = (value) => String(value ?? "").trim();
   const typeLabel = (type) => text(type).replace(/_/g, " ");
-  /** ¿Es una partida de nómina? Sin acentos ni mayúsculas, palabra entera: «Nómina Javi», «salario Tere», «sueldo»; no «nominal» ni «ingreso». */
+  /** ¿Es una partida de nómina? Sin acentos ni mayúsculas, palabra entera: «Nómina de …», «salario …», «sueldo»; no «nominal» ni «ingreso». */
   function isPayrollLabel(label) {
     const plain = text(label).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     return /\b(nominas?|salarios?|sueldos?)\b/.test(plain);

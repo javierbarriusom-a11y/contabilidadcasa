@@ -113,6 +113,38 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 19 de noviembre de 2026 (501): privacidad, fases 1 y 2 (los nombres del hogar fuera del código público)
+
+- **El hogar:** «Haz esta tarea aquí: Quitar nombres del hogar del código público». Inventario y plan en `docs/PRIVACIDAD_NOMBRES.md`, que no escribe ningún nombre. Decisiones del hogar del mismo día: **D-N24**, poner el repositorio en privado (lo hace el hogar en GitHub); **D-N25**, los nombres en Ajustes y, mientras tanto, «Persona 1» y «Persona 2»; **D-N26**, claves neutras con migración probada.
+- **Inventario:** 846 líneas en unos 90 ficheros: claves de datos guardados, texto visible, reglas que reconocen partidas por el nombre, la plantilla de financiaciones del Excel del hogar, pruebas y documentación.
+- **Lo más grave estaba en la propia protección de privacidad:** `tools/check-public-privacy.mjs` escribía en claro cuatro nombres completos (dos de ellos de terceros) y el nombre de una empresa.
+- **Fase 1:** ahora guarda la huella SHA-256 de cada frase normalizada (minúsculas, sin acentos, palabras separadas por un espacio) y la de su primera palabra. Detecta igual un nombre escrito con acentos, guiones o espacios dobles (comprobado con un sitio de prueba) y, al fallar, enseña la huella, no la frase. Límite, dicho en el fichero: una huella sin sal no protege frente a quien ya sospecha el nombre y lo prueba.
+- **Fase 2** (`household-members.js`, antes de `app.js`):
+  - los nombres que se ven salen de `scenarioSettings.householdNames` (copia y nube) y se escriben en Ajustes › Hogar y cuentas › «Cómo os llamáis», plegado y sin titular; mientras no se escriban, «Persona 1» y «Persona 2»;
+  - en el código, las dos personas son `{p1}` y `{p2}`;
+  - cambiados unos 95 textos: el selector de vista familiar, el titular de escenarios, la renta y el local, el reparto y el saldo de gastos compartidos, la separación patrimonial, la familia de Datos, el crédito y la hucha del simulador de proyectos y las pantallas de «Versiones anteriores»;
+  - los motores puros dicen «la nómina principal», «el salario del día 25» y «bonus».
+- **Lo que queda, a propósito:** los valores que guarda el simulador de proyectos, cómo se infiere el titular por el nombre de una partida, la plantilla de financiaciones y las claves internas (fases 3 y 4), y las pruebas y la documentación (fase 5).
+- **El historial de git sigue público:** limpiar el árbol no lo borra. Por eso D-N24 (privado) es lo que de verdad lo quita de la vista; lo hace el hogar.
+- **Pruebas:**
+  - nueva: `tests/privacidad-nombres.test.cjs` (6), que falla si vuelve a verse un nombre y no los escribe (los lee de base64);
+  - nuevo ayudante: `tests/helpers/miembros.cjs`;
+  - actualizadas a propósito: cinco pruebas que ejecutan funciones de `app.js` aisladas, tres de las reglas de fechas (y su fichero de referencia `ntc1-timing-golden.json`), dos de la renta y tres e2e de la renta, que esperan ahora «Persona 1/2» o la etiqueta neutra;
+  - inventario de superficie: Ajustes pasa de 5 a 6 desplegables; los titulares no cambian.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.775/6.775 (+6). En la primera pasada, `eslint` paró por una función de prueba que había quedado sin uso; quitada. **Batería completa de navegador en local (e2e + axe): 463 de 463** (24,9 min). Safari, solo en el CI.
+
+## Cierre de sesión — 19 de noviembre de 2026 (500): despliegue de #641
+
+- **Despliegue de #641 (DEC-20, verbos en «Decidir esta semana»):** «Verify and deploy Pages» 1474 en verde (Safari incluido) y «Published availability» 373 en verde.
+- **Publicado el 18 y el 19/11, sin cambiar ninguna cifra:** #636 (SVD-6 fase 1 y «Desde vuestra última visita»), #637 (DEC-13 y DEC-18), #638 (DEC-41), #639 (DEC-44), #640 (DEC-40) y #641 (DEC-20).
+- **De la décima auditoría no queda nada que pueda hacerse sin el hogar sin tocar sus datos o su vocabulario.** Esperan: la huella del extracto (DEC-14, DEC-46), D-N17 (DEC-16), el visto bueno a DAT-07 y DEC-12, el nombre de cada colchón (DEC-21), DEC-03 (cambia la insignia de procedencia de todas las pantallas; se consulta), D-N16, D-N23, «ponerlos realistas» y quitar los nombres del hogar del repositorio público.
+
+## Cierre de sesión — 19 de noviembre de 2026 (499): despliegue de #640; #641 fusionado
+
+- **Despliegue de #640 (DEC-40, lo plegado también es superficie):** «Verify and deploy Pages» 1472 en verde (Safari incluido) y «Published availability» 372 en verde.
+- **#641 (DEC-20, verbos en «Decidir esta semana») fusionado** con su CI en verde; su despliegue, en la entrada siguiente.
+- **Lo que queda espera al hogar:** la huella del extracto, D-N17 (DEC-16), el visto bueno a DAT-07 y DEC-12, el nombre único de cada colchón (DEC-21), D-N16, D-N23, «ponerlos realistas» y quitar los nombres del hogar del repositorio público.
+
 ## Cierre de sesión — 18 de noviembre de 2026 (498): DEC-20, verbos concretos en «Decidir esta semana»
 
 - **El hogar:** «Continúa con lo que puedas hacer sin mí». DEC-20 es una de las correcciones que la décima auditoría (§6) deja hacer en paralelo porque no cambian cifras.

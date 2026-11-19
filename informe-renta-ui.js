@@ -8,8 +8,8 @@
 // llama al entrar en la vista con el motor como argumento (`renderInformeRenta(FinanceCanonicalTaxReport)`).
 
 const INFORME_RENTA_DECLARANTES = [
-  { value: "javi", label: "Javi" },
-  { value: "tere", label: "Tere" },
+  { value: "javi", get label() { return typeof memberLabel === "function" ? memberLabel("p1") : "Persona 1"; } },
+  { value: "tere", get label() { return typeof memberLabel === "function" ? memberLabel("p2") : "Persona 2"; } },
 ];
 
 const INFORME_RENTA_FALTA = {
