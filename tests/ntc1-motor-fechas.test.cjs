@@ -16,7 +16,10 @@ const miembros = require("./helpers/miembros.cjs");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const app = codigoApp();
-const golden = require("./fixtures/ntc1-timing-golden.json");
+// Privacidad, fase 5: las etiquetas del oro llevan el nombre de siempre de cada persona (es lo que reconoce el motor en los datos
+// del hogar); el fichero lo guarda como {p1}, {p1Largo} y {p2}, y aquí se pone el nombre de verdad, sin escribirlo (base64).
+const { NOMBRE } = require("./helpers/miembros.cjs");
+const golden = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", "ntc1-timing-golden.json"), "utf8").replace(/\{(p1|p1Largo|p2)\}/g, (_, k) => NOMBRE[k]));
 const { buildTransactions } = require("./fixtures/ntc1-timing-transactions.cjs");
 
 function block(startMarker, endMarker) {

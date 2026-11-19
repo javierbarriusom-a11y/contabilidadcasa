@@ -118,7 +118,11 @@ test("privacidad, fase 3 · la plantilla de financiaciones: solo sus huellas, y 
 
 test("privacidad, fase 1 · la protección guarda huellas, no las frases; y sigue el patrón de tarjeta", () => {
   const tool = read("tools/check-public-privacy.mjs");
-  assert.match(tool, /const FORBIDDEN_PHRASE_HASHES = new Set\(\[("[0-9a-f]{64}", ){5}"[0-9a-f]{64}"\]\);/);
+  // Fase 1: seis frases (nombres completos y una empresa); fase 5: más los nombres de pila sueltos (cuatro formas).
+  assert.match(tool, /const FORBIDDEN_PHRASE_HASHES = new Set\(\[("[0-9a-f]{64}", ){9}"[0-9a-f]{64}"\]\);/);
+  const crypto = require("node:crypto");
+  const huellas = tool.match(/const FORBIDDEN_PHRASE_HASHES = new Set\(\[([^\]]*)\]\)/)[1];
+  [N1, `${N1}er`, N2, `${N2}sa`].forEach((w) => assert.ok(huellas.includes(crypto.createHash("sha256").update(w.toLowerCase()).digest("hex")), "nombre de pila en la protección"));
   assert.match(tool, /const FIRST_WORD_HASHES = new Set\(\[/);
   assert.match(tool, /\/\\b\(\?:\\d\[ -\]\?\)\{13,19\}\\b\//);
   // Ninguna línea del fichero escribe una frase de dos palabras con mayúsculas (lo que era la lista en claro).

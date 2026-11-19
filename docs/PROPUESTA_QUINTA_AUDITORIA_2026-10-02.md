@@ -343,7 +343,7 @@ Persistencia local primero, cola remota, copia completa verificada y restauraci�
 - *Gate:* H3 y H1.
 
 **NHG-01 · Cuentas claras en pareja: titular explícito y liquidación mensual** [C] · M-L · Medio-Alto · V (Ola 4)
-- *Qué:* campo `titular` (Javi/Tere/Común) por partida y movimiento, con `inferOwner` solo de respaldo; «quién pagó» en lo común; tarjeta mensual «Este mes X ha adelantado Y de gastos comunes: transferir Z para igualar», con regla elegible (50/50 · proporcional a ingresos · personalizada).
+- *Qué:* campo `titular` (Persona 1/Persona 2/Común) por partida y movimiento, con `inferOwner` solo de respaldo; «quién pagó» en lo común; tarjeta mensual «Este mes X ha adelantado Y de gastos comunes: transferir Z para igualar», con regla elegible (50/50 · proporcional a ingresos · personalizada).
 - *Por qué:* es el requisito previo que `OPT22` ya identificó; el reparto por titular existe (`A18`), el dato explícito no.
 
 **NHG-02 · Reunión mensual del hogar (20 minutos)** [H] · M-L · Medio-Alto · V (Ola 4)

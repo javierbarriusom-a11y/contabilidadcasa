@@ -33,10 +33,10 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 3. **Fase 3 (hecha, 19/11/2026): las reglas por nombre.** Reconocer «la nómina de la persona 1» con los nombres configurados (o con la persona
    asignada a cada partida en Datos › Familia), no con un nombre escrito en el código. La plantilla de financiaciones sale del
    código: se queda solo en los datos del hogar.
-4. **Fase 4: las claves internas.** Pasan a ser neutras («p1»/«p2»), con una migración que convierta los datos guardados, las
+4. **Fase 4 (hecha, 19/11/2026): las claves internas.** Pasan a ser neutras («p1»/«p2»), con una migración que convierta los datos guardados, las
    copias de seguridad antiguas al restaurarlas y lo que llega de la nube. Va con su prueba de ida y vuelta: copia antigua →
    restaurar → mismas cifras.
-5. **Fase 5: el candado.** Con el código limpio, los dos nombres de pila pasan a la protección (por su huella) y a una prueba
+5. **Fase 5 (hecha, 19/11/2026): el candado.** Con el código limpio, los dos nombres de pila pasan a la protección (por su huella) y a una prueba
    que recorre todo el repositorio, no solo lo publicado.
 
 ### Fase 2, cómo quedó
@@ -78,6 +78,40 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 - **Hallazgo, fuera de este trabajo:** `app.js` sigue llevando un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`, la cuota
   de una refinanciación) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`). No son nombres de personas,
   pero chocan con «sin importes en el repo»; se proponen para la fase 5.
+
+### Fase 4, cómo quedó
+
+- **Las claves de las dos personas son «p1» y «p2»** en todo lo que se guarda: el reparto de gastos compartidos (ingresos, quién
+  paga, quién debe a quién y las confirmaciones de la liquidación), la separación patrimonial, el crédito del simulador «nueva
+  vida» (`p2Credit…`), el titular de las decisiones de Escenarios, el titular de cada posición de la cartera, el declarante del
+  informe de la Renta, los cobros y el local de la Renta, los objetivos, la titularidad de P2 y la vista familiar.
+- **Migración por lectura doble**, no por un paso de conversión: todo lector acepta «p1»/«p2» y la clave de siempre (que
+  `household-members.js` reconoce por su huella, sin escribirla), y todo lo que se escribe va con «p1»/«p2». Una copia antigua, lo
+  guardado en el navegador o lo que llega de la nube dan las mismas cifras sin un paso que pudiera quedarse a medias; lo guardado se
+  reescribe solo al editarlo. Un escenario guardado antes sigue validando; un titular que no es nadie, no.
+- **Prueba de ida y vuelta** (`tests/privacidad-fase4.test.cjs`): los mismos datos con la clave de siempre y con «p1»/«p2» dan el
+  mismo saldo, la misma propuesta y la misma liquidación del reparto, el mismo informe de la Renta, los mismos titulares y el mismo
+  crédito; el esquema de Escenarios acepta los dos (`tests/o1-titularidad-deuda.test.cjs`).
+- **Dos fugas cerradas de paso:** el título y el detalle de «Refinanciar» y «Reunificar» en Escenarios enseñaban la clave en bruto;
+  ahora, el nombre de Ajustes. El CSV del informe de la Renta se llama `informe-renta-AAAA-p1.csv`.
+
+### Fase 5, cómo quedó
+
+- **Pruebas sin los nombres:** las que comprueban que una partida con el nombre de siempre se reconoce (lo que pasa hoy con los
+  datos del hogar) lo toman de `tests/helpers/miembros.cjs` (`NOMBRE`, en base64); las demás usan nombres inventados («Ana»,
+  «Luis», «persona1@…»). El oro del motor de fechas guarda `{p1}`, `{p1Largo}` y `{p2}` y la prueba pone el nombre al leerlo.
+- **Documentación:** los nombres pasan a «Persona 1» y «Persona 2» (y las claves a `p1`/`p2`) en los backlogs, el manual, el
+  historial de PROJECT_STATE (los archivos de `docs/historial/` ya no son copia literal en esto), las maquetas y las referencias de
+  diseño en HTML.
+- **El candado:** `tests/privacidad-repositorio.test.cjs` recorre **todo** el repositorio (no solo lo publicado) palabra a palabra,
+  sin acentos ni mayúsculas, y falla si aparece un nombre de pila en cualquiera de sus formas; enseña solo el fichero y la línea.
+  `tools/check-public-privacy.mjs` vigila además el sitio publicado con la huella SHA-256 de los nombres de pila sueltos (probado
+  con un nombre en mayúsculas y con acento).
+- **Lo que una prueba de texto no ve:** las referencias de diseño en PNG y el PDF de Claude Design (`docs/rediseno/referencias/png/`)
+  pueden enseñar nombres dentro de la imagen; no se han reescrito. Y el historial de git: solo D-N24 (repositorio privado) lo quita.
+- **Fuera de esta tarea (propuesta):** `app.js` lleva un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`, la cuota de una
+  refinanciación) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`). No son nombres de personas, pero chocan con
+  «sin importes en el repo»; sacarlos cambia cómo se calcula la previsión, así que se consulta.
 
 ## 3. Decisiones del hogar
 

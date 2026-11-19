@@ -112,7 +112,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 | 11 | OPT-18 | Verificar compresión Brotli/Gzip del artefacto | Optimización | S | Medio | |
 | 12 | OPT-19 | Checklist de reutilización de componentes `.e19-*` en PR | Optimización | S, continuo | Medio | |
 | 13 | OPT-21 | Checklist mensual de heurísticos de Nielsen | Optimización | S, mensual | Medio | |
-| 14 | OPT-22 | Decidir y documentar el modelo Hogar/Javi/Tere | Optimización | S | Medio | |
+| 14 | OPT-22 | Decidir y documentar el modelo Hogar/Persona 1/Persona 2 | Optimización | S | Medio | |
 | 15 | A16-5 | Comparador bola de nieve / avalancha / óptimo | Patrimonio | S | Medio | |
 | 16 | A17-2 | Exportación/suscripción ICS del calendario financiero | Patrimonio | S | Medio | Solo lectura |
 | 17 | A15-3 | Evento de renta en el calendario financiero | Patrimonio | S | Medio | |

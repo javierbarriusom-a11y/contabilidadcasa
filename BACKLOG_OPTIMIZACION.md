@@ -97,7 +97,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 4 | OPT-19 | Checklist de PR: reutilizar catálogo `.e19-*` antes de crear clase nueva | Medio | S, continuo | ⏳ |
 | 4 | OPT-20 | Consolidar los backlogs y fases sueltas en una única fuente viva | Medio | M | ⏳ |
 | 4 | OPT-21 | Checklist mensual de heurísticos de Nielsen sobre Hoy/Registrar/Plan | Medio | S, mensual | ⏳ |
-| 4 | OPT-22 | Decidir y documentar el modelo Hogar/Javi/Tere (¿multiusuario real?) | Medio | S | ⏳ |
+| 4 | OPT-22 | Decidir y documentar el modelo Hogar/Persona 1/Persona 2 (¿multiusuario real?) | Medio | S | ⏳ |
 
 ---
 
@@ -757,7 +757,7 @@ aplica al resto del proyecto.
 
 ---
 
-### OPT-22 · Decidir el modelo Hogar/Javi/Tere
+### OPT-22 · Decidir el modelo Hogar/Persona 1/Persona 2
 
 **Tareas:** revisar si «Vista familiar» es hoy un filtro de lectura sobre un único dueño de datos o
 si en algún momento se espera que sea multiusuario real con credenciales separadas, y documentar la

@@ -159,7 +159,7 @@ aportación por persona); el modo consulta debe reutilizarlos, no duplicarlos.
 ### Nivel 2 — rol `viewer` real (no recomendado)
 
 `docs/OPT22_MODELO_HOGAR.md` (29/08/2026) decidió **«no construir control de acceso, permisos ni visibilidad por
-persona» sobre este modelo**: hay **una cuenta de Supabase compartida** y «Javi/Tere» son una etiqueta inferida por
+persona» sobre este modelo**: hay **una cuenta de Supabase compartida** y «Persona 1/Persona 2» son una etiqueta inferida por
 texto, no identidades. Un rol de solo lectura exigiría autenticación por persona, políticas RLS nuevas y datos con
 propietario explícito: **diseñarlo aparte, desde cero, y revisar OPT-22 antes**. Coste alto; ganancia para un hogar de
 dos personas de confianza, baja.

@@ -29,7 +29,7 @@ momento.
 - **Ninguna acción financiera real se ejecuta sola** (`A11-4`): comprar, vender, amortizar,
   transferir o tomar deuda nueva siempre exige confirmación explícita del hogar. Todo motor nuevo,
   incluida la Oleada 3 completa, respeta este contrato — nunca se ha revisado ni se espera revisar.
-- **Reparto por titular (`javi`/`tere`/`household`)**: el modelo de propiedad de deuda (`E14`),
+- **Reparto por titular (`p1`/`p2`/`household`)**: el modelo de propiedad de deuda (`E14`),
   gastos compartidos (`A18-1`/`A18-2`/`A18-3`, `canonical-household-split.js`) y hogar compartido
   remoto con roles y áreas (`E9-1`/`RGX1`/`RGX2`) coexisten como fuentes de "quién es quién" — no se
   ha unificado en un único modelo de identidad, y no hace falta mientras ninguna de las tres
@@ -112,6 +112,23 @@ cubriendo lo que aplica hoy sin necesidad de leerlo.
 Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) se movieron igual, sin
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
+
+## Cierre de sesión — 19 de noviembre de 2026 (504): privacidad, fases 4 y 5 (claves neutras con migración; el candado en todo el repositorio)
+
+- **El hogar:** «Sigue con la fase 4 de privacidad» y «Sigue con la fase 5 de privacidad» (D-N26: claves neutras con migración probada). Detalle en `docs/PRIVACIDAD_NOMBRES.md`.
+- **Fase 4: las claves de las dos personas son «p1»/«p2»** en todo lo que se guarda, en cuatro bloques: 4a, el reparto de gastos compartidos y la separación patrimonial; 4b, el crédito del simulador «nueva vida» (`p2Credit…`); 4c, el titular de Escenarios; 4d, la cartera, el informe y los datos de la Renta, el local, los objetivos, P2 y la vista familiar.
+  - **Migración por lectura doble:** todo lector acepta «p1»/«p2» y la clave de siempre (por su huella, sin escribirla); todo lo que se escribe va con «p1»/«p2». Una copia antigua, el navegador o la nube dan las mismas cifras sin un paso de conversión que pudiera quedarse a medias. Un escenario guardado antes sigue validando.
+  - **Dos fugas cerradas:** el título y el detalle de «Refinanciar» y «Reunificar» enseñaban la clave en bruto; el CSV del informe de la Renta llevaba la clave en el nombre.
+  - **Prueba de ida y vuelta:** `tests/privacidad-fase4.test.cjs` (7) y una más en O-1: mismos datos con la clave de siempre y con «p1»/«p2», mismas cifras.
+- **Fase 5: sin los nombres en el repositorio.**
+  - Pruebas: las que comprueban el reconocimiento de la nómina por el nombre de siempre lo toman de `tests/helpers/miembros.cjs` (`NOMBRE`, base64); el oro del motor de fechas guarda `{p1}`, `{p1Largo}` y `{p2}`; las demás usan nombres inventados.
+  - Documentación: «Persona 1»/«Persona 2» y `p1`/`p2` en 38 ficheros (backlogs, manual, historial de PROJECT_STATE, maquetas, referencias de diseño en HTML).
+  - **El candado:** `tests/privacidad-repositorio.test.cjs` recorre todo el repositorio palabra a palabra (sin acentos ni mayúsculas) y falla con un nombre de pila en cualquier forma; `tools/check-public-privacy.mjs` vigila además el sitio publicado con la huella de los nombres sueltos (probado con uno en mayúsculas y con acento: lo para y solo enseña la huella).
+  - **Lo que no cubre:** las referencias de diseño en PNG y el PDF (imágenes) y el historial de git (D-N24, del hogar).
+- **Propuesta, se consulta:** `app.js` lleva un importe del hogar (`CURRENT_REUNIFIED_DEBT_PAYMENT`) y una regla por el nombre de su entidad (`adjustedDebtPlannedValue`); sacarlos cambia cómo se calcula la previsión.
+- **Validación:**
+  - `npm run verify` en verde, salida 0: `npm test` 6.797/6.797 (+9).
+  - Batería completa en local con la fase 4: 456/467. Las 11 que fallaron: diez e2e de la Renta que elegían las opciones por su valor antiguo (pasadas a «p1»/«p2») y WP-37, que falló porque lancé `npm test` a la vez y la máquina se quedó sin CPU (el esqueleto de Deuda no llegó en 10 s). Repetidas tras el arreglo: 11 de 11. Desde entonces solo cambian pruebas, documentación y la herramienta de privacidad (dentro de `verify`), ningún fichero de la app.
 
 ## Cierre de sesión — 19 de noviembre de 2026 (503): DAT-07 (dividir un movimiento) y DEC-12 (los esperados se confirman solos al importar)
 
@@ -1183,7 +1200,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 ## Cierre de sesión — 5 de noviembre de 2026 (406): WP-21 · PR-0a, titular y depositario de cada posición
 
 - **Petición del hogar:** «sigue con el PR-0 de WP-21». El PR-0 se parte en dos: **PR-0a** (titular y depositario, aquí) y **PR-0b** (dividendos y pérdidas pendientes, siguiente).
-- **Motor** (`canonical-portfolio.js`): `titular` (`javi`, `tere` o `household`), `depositario` (`espana` o `extranjero`) y `depositarioPais`, normalizados. Lo desconocido se queda vacío y nada se asume por defecto.
+- **Motor** (`canonical-portfolio.js`): `titular` (`p1`, `p2` o `household`), `depositario` (`espana` o `extranjero`) y `depositarioPais`, normalizados. Lo desconocido se queda vacío y nada se asume por defecto.
 - **Pantalla** (`renta-datos-ui.js`, nuevo):
   - «Datos para la Renta» en Inversión › Cartera, plegado (XGO-01 no cambia).
   - Una fila por posición, que se guarda al elegir con la lista de posiciones de siempre.
@@ -4651,7 +4668,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 ## Cierre de sesión — 10 de octubre de 2026 (305, séptimo PR): WP-47 · reparto de la nómina (la demo no tiene ninguna nómina: sale vacía; y no hay aviso al confirmar)
 
 - **Qué se hizo:** tarjeta «Repartir la nómina» en **Deuda › Comparar**, bajo la escalera del próximo euro (`nomina-ui.js`, `nomina.css`; motor puro `canonical-payroll-split.js`; almacén `payroll-split-drafts` en la copia; diseño en `docs/WP47_DISENO.md`). Parte de las **nóminas con real registrado** (nombre con «nómina», «salario» o «sueldo»), calcula **lo que cabe sin que la liquidez baje del suelo** (el menor entre la nómina y la holgura en el P10 de la banda de caja de WP-16; «sin comprobar» si no se puede calcular) y reparte según la escalera de WP-42 con **steppers −50/+50 e importe editable** que mueven dinero entre una fila y «sin repartir»: el total no cambia, no hay negativos y cada fila respeta su tope (saldo de la deuda, límite de la pensión). **«Aplicar» guarda un borrador con la lista de transferencias** y una casilla «hecha»; **no mueve dinero, no anota movimientos ni toca el real de la nómina** (una prueba de navegador lo comprueba). Aplicar, descartar y apartar se deshacen. `app.js` gana la clave del almacén y una llamada (+2); `canonical-cash-band.js` gana `minimum.valueP10` (aditivo).
-- **Fallo propio encontrado y corregido antes de publicar:** con dos nóminas (Javi y Tere) el segundo reparto habría ofrecido otra vez la misma holgura que el primero ya apuntó. **Lo apuntado en borradores abiertos y aún no reflejado en los saldos declarados se descuenta de la holgura** (prueba unitaria y de navegador).
+- **Fallo propio encontrado y corregido antes de publicar:** con dos nóminas (Persona 1 y Persona 2) el segundo reparto habría ofrecido otra vez la misma holgura que el primero ya apuntó. **Lo apuntado en borradores abiertos y aún no reflejado en los saldos declarados se descuenta de la holgura** (prueba unitaria y de navegador).
 - **Reglas del motor, con prueba (21):** disponible = menor entre nómina y holgura; sin holgura calculable, «sin comprobar»; propiedad (300 movimientos aleatorios × 4 importes: total al céntimo, sin negativos, sin pasar del tope); la suma de las filas no pasa del disponible; sin rentabilidad esperada, lo que sobra queda sin repartir; reconocimiento de la nómina por nombre; motor puro.
 - **Dónde se aparta del plan (lo más importante):** **no hay aviso al confirmar la nómina** (la confirmación vive en Hoy, congelado hasta H-02, y no guarda cuándo se confirmó): hay que abrir la pantalla. «Borrador» lo he interpretado como el reparto guardado, sin movimientos contables; sin destino por transferencia ni reparto por titular; todas las nóminas del mes cuentan como un solo bote.
 - **Por qué «en curso» (50 %) y lo que hay que cuestionar:** **una hoja prerrellenada convierte en acción lo que en WP-42 era una explicación**: con el tipo marginal sacado de la retención de la nómina, la escalera manda dinero a la pensión antes de invertir y la hoja lo deja a un toque; los umbrales de WP-42 siguen sin calibrar. La holgura vale lo que valga la banda (solo fechas, 30 días, saldos a menudo calculados). **La demo no tiene ninguna partida de nómina: nada se ha visto con datos reales.**

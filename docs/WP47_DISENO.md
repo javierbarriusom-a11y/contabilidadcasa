@@ -18,7 +18,7 @@ La tarjeta **«Repartir la nómina»** en **Deuda › Comparar**, justo debajo d
 - **La suma de las filas nunca supera el disponible**: si la escalera propusiera más, se recorta desde el final.
 - **No se reparte dos veces el mismo dinero.** Lo apuntado en borradores abiertos y todavía no reflejado en los saldos declarados (las transferencias sin hacer y las hechas **después** de la fecha de los saldos) **se descuenta de la holgura**. Sin la fecha de los saldos, se cuenta todo (lo prudente). La prueba de navegador lo comprueba con una segunda nómina.
 - **Sin rentabilidad esperada, lo que sobra queda «sin repartir»**, nunca un 50/50 (herencia de WP-42).
-- **«Nómina» se reconoce por el nombre**, sin acentos ni mayúsculas y por palabra entera: «Nómina Javi», «salario Tere», «sueldo»; no «nominal» ni «Ingreso Persona A».
+- **«Nómina» se reconoce por el nombre**, sin acentos ni mayúsculas y por palabra entera: «Nómina Persona 1», «salario Persona 2», «sueldo»; no «nominal» ni «Ingreso Persona A».
 - Motor puro: sin DOM, red, almacenamiento ni reloj. La tarjeta no usa red, `confirm()` ni escribe movimientos (prueba estática).
 - **Cambio en el motor de la banda (WP-16):** el resultado gana `minimum.valueP10` (el mínimo al que llega la trayectoria en 9 de cada 10 casos). Es aditivo: las 24 pruebas de WP-16 siguen igual.
 
@@ -30,7 +30,7 @@ La tarjeta **«Repartir la nómina»** en **Deuda › Comparar**, justo debajo d
 | «Steppers que siempre suman el disponible tras el suelo» | Cumplido, con «el suelo» = **el suelo de liquidez de Ajustes** medido sobre la banda de 30 días, **no** el suelo del colchón de la escalera | Son dos suelos distintos: el de liquidez es el mínimo operativo de las cuentas; el del colchón es la reserva de emergencia (la escalera lo rellena primero si falta) |
 | «Crea un borrador y una lista de transferencias» | El **borrador es el reparto guardado** y la lista, un recordatorio con casillas | No sé qué se quería decir con «borrador» (¿movimientos sin confirmar?). Anotar movimientos contables a partir de una lista que la app no puede verificar habría roto «nada se ejecuta ni se anota». **A cuestionar** |
 | Destino de cada transferencia | **Sin destino**: «pasar al colchón», «aportar al plan de pensiones»… | La app no guarda de qué cuenta a cuál se hace cada traspaso; inventarlo sería falsear |
-| (no dice nada) | Todas las nóminas del mes se tratan como **un solo bote** | No sé si Javi y Tere reparten por separado; la hoja deja desmarcar una |
+| (no dice nada) | Todas las nóminas del mes se tratan como **un solo bote** | No sé si Persona 1 y Persona 2 reparten por separado; la hoja deja desmarcar una |
 | Reutilizar WP-42 | Comparte con la escalera la rentabilidad esperada y lo aportado a pensiones | Un solo sitio donde teclearlos |
 
 ## 4. Decisiones mías y riesgos a cuestionar
@@ -39,7 +39,7 @@ La tarjeta **«Repartir la nómina»** en **Deuda › Comparar**, justo debajo d
 2. **La holgura es tan buena como la banda de caja**, y la banda solo recoge la incertidumbre de las **fechas** (no de los importes) y mira **30 días**: no cubre un gasto más caro de lo previsto ni un pago grande a 45 días (el IBI, el seguro anual). Con saldos **calculados** (no declarados) o con casi todas las fechas estimadas (banda «ancha») la tarjeta lo dice, pero **la cifra sigue saliendo**. En la demo la banda sale «ancha» y con saldos calculados.
 3. **«Saldos ya incluyen esta nómina» es una suposición mía** (solo si son declarados y de la fecha de la nómina o posterior); se puede corregir con la casilla, pero afecta a si el colchón se rellena con dinero «nuevo» o «ya en cuentas».
 4. **«Hecha» no se verifica.** La app no sabe si la transferencia se hizo; se descuenta de la holgura mientras los saldos no se redeclaren.
-5. **Se reconoce la nómina por el nombre.** Si la partida se llama «Ingreso Javi» no sale; es un criterio frágil elegido porque la app no marca el tipo de ingreso (canonical-timing ya depende de «nómina»/«salario» + nombre).
+5. **Se reconoce la nómina por el nombre.** Si la partida se llama «Ingreso Persona 1» no sale; es un criterio frágil elegido porque la app no marca el tipo de ingreso (canonical-timing ya depende de «nómina»/«salario» + nombre).
 6. **El paso de ±50 € es mío**, y los botones están en el idioma de «mover el dinero», no «calcular»: con importes grandes (3.000 €) son 60 toques; el importe editable cubre ese caso.
 7. **Corregido después de publicar (en el PR de WP-48):** los importes escritos en la hoja se leían con `parseAmount`, que entiende «2.000» como **dos**; ahora usan el lector es-ES de la app (`parseAmountField`: «2.000» son dos mil). El campo se repintaba con el valor leído, así que el fallo era visible, pero **leía mal un importe escrito sin decimales**.
 8. **Repintar sustituye el DOM**: si se escribe un importe y se pulsa un botón de otra fila sin salir antes del campo, el primer clic puede perderse (el cambio del campo repinta). Se repite el clic.

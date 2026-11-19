@@ -9812,7 +9812,7 @@ test.describe("WP-21 · PR-3 · el local alquilado para la Renta", () => {
       await expect(caja).not.toHaveAttribute("open", "");
       await caja.locator("summary").first().click();
       // Sin datos: la cifra no se da, se dice qué falta y el formulario sale abierto.
-      await expect(caja.locator('[data-local-renta-declarante="javi"]')).toContainText("Persona 1, 2026: todavía no se puede dar la cifra");
+      await expect(caja.locator('[data-local-renta-declarante="p1"]')).toContainText("Persona 1, 2026: todavía no se puede dar la cifra");
       await expect(caja.locator(".informe-renta-falta")).toContainText("La renta mensual sin IVA del contrato.");
       await expect(caja.locator(".local-renta-datos")).toHaveAttribute("open", "");
       const campo = (label) => caja.getByLabel(label, { exact: true });
@@ -9837,11 +9837,11 @@ test.describe("WP-21 · PR-3 · el local alquilado para la Renta", () => {
       await campo("Reparación y conservación (€)").fill("10.000");
       await caja.locator("[data-local-renta-guardar]").click();
       await expect(caja.locator("[data-local-renta-estado]")).toContainText("Guardado el local (2026).");
-      const javi = caja.locator('[data-local-renta-declarante="javi"]');
-      await expect(javi).toContainText(/Persona 1, 2026: a la base general −2\.000(,00)?\s€ \(su 50 %\); ya retenido 1\.026(,00)?\s€\./);
-      await expect(javi.getByRole("region")).toContainText(/Ingresos íntegros\s*5\.400(,00)?\s€/);
-      await expect(javi.getByRole("region")).toContainText("sin reducción: no es vivienda");
-      await expect(caja.locator('[data-local-renta-declarante="tere"]')).toContainText(/Persona 2, 2026: a la base general −2\.000(,00)?\s€/);
+      const p1 = caja.locator('[data-local-renta-declarante="p1"]');
+      await expect(p1).toContainText(/Persona 1, 2026: a la base general −2\.000(,00)?\s€ \(su 50 %\); ya retenido 1\.026(,00)?\s€\./);
+      await expect(p1.getByRole("region")).toContainText(/Ingresos íntegros\s*5\.400(,00)?\s€/);
+      await expect(p1.getByRole("region")).toContainText("sin reducción: no es vivienda");
+      await expect(caja.locator('[data-local-renta-declarante="p2"]')).toContainText(/Persona 2, 2026: a la base general −2\.000(,00)?\s€/);
       await expect(caja.locator(".informe-renta-lineas")).toContainText(/700(,00)?\s€ de 2026, a los 4 años siguientes/);
       await expect(caja.locator('[data-local-renta-actualizacion="pronto"]')).toContainText("La renta se actualiza el 1 de diciembre de 2026, en 19 días");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
@@ -9849,7 +9849,7 @@ test.describe("WP-21 · PR-3 · el local alquilado para la Renta", () => {
       await page.reload();
       await expect(page.locator("#gob8GenerateDraft")).toBeVisible({ timeout: 15000 });
       await page.locator("#rentaLocal summary").first().click();
-      await expect(page.locator('#rentaLocal [data-local-renta-declarante="javi"]')).toContainText(/a la base general −2\.000(,00)?\s€/);
+      await expect(page.locator('#rentaLocal [data-local-renta-declarante="p1"]')).toContainText(/a la base general −2\.000(,00)?\s€/);
       // El borrador de apoyo (GOB8) lo lleva en su punto 5.
       await page.locator("#gob8GenerateDraft").click();
       await expect(page.locator("#gob8DraftPreview")).toContainText("5) El local alquilado: a la base general de cada declarante");
@@ -10784,7 +10784,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await caja.locator("summary").click();
       await expect(caja.locator(".renta-datos-fila")).toHaveCount(2);
       await expect(caja.locator("[data-renta-datos-resumen]")).toHaveText("0 de 2 posiciones tienen titular. Falta saber dónde están depositadas 2.");
-      await caja.getByLabel("Titular de Fondo A").selectOption("tere");
+      await caja.getByLabel("Titular de Fondo A").selectOption("p2");
       await caja.getByLabel("Dónde está depositada Fondo A").selectOption("extranjero");
       await caja.getByLabel("País donde está depositada Fondo A").fill("Irlanda");
       await caja.getByLabel("País donde está depositada Fondo A").press("Tab");
@@ -10796,7 +10796,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await page.reload();
       await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
       await page.locator("#rentaDatos summary").click();
-      await expect(page.getByLabel("Titular de Fondo A")).toHaveValue("tere");
+      await expect(page.getByLabel("Titular de Fondo A")).toHaveValue("p2");
       await expect(page.getByLabel("Dónde está depositada Fondo A")).toHaveValue("extranjero");
       await expect(page.getByLabel("País donde está depositada Fondo A")).toHaveValue("Irlanda");
       await expect(page.getByLabel("Titular de ETF B")).toHaveValue("household");
@@ -10812,7 +10812,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await expect(page.locator("#valoracionCard")).toBeVisible({ timeout: 15000 });
       await page.evaluate(() => {
         scenarioSettings.portfolioPositions = [
-          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared", titular: "javi" },
+          { id: "rd-a", type: "fondo", label: "Fondo A", quantity: 10, costBasis: 1000, currentValue: 1100, asOf: "2026-10-01", provenance: "declared", titular: "p1" },
         ];
         scenarioSettings.wp21Rendimientos = [];
         saveScenarioSettings();
@@ -10834,7 +10834,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await form.getByRole("button", { name: "Registrar cobro" }).click();
       await expect(caja.locator("[data-renta-rend-estado]")).toHaveText("Elige la posición o di de dónde viene (por ejemplo, la cuenta remunerada).");
       await form.getByLabel("De dónde viene").fill("Cuenta remunerada");
-      await form.getByLabel("De quién es").selectOption("tere");
+      await form.getByLabel("De quién es").selectOption("p2");
       await form.getByRole("button", { name: "Registrar cobro" }).click();
       await expect(caja.locator(".renta-rend-fila")).toHaveCount(2);
       await expect(caja.locator(".renta-rend-total")).toContainText("2 cobros");
@@ -10878,7 +10878,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       await expect(caja.locator(".informe-renta-falta")).toContainText("«Fondo A» tiene ventas este año y no se sabe de quién es");
 
       await page.evaluate(() => { scenarioSettings.portfolioPositions[0].titular = "household"; saveScenarioSettings(); });
-      await caja.getByLabel("Declarante").selectOption("tere");
+      await caja.getByLabel("Declarante").selectOption("p2");
       await expect(caja.locator("[data-informe-renta-estado]")).toContainText(`Persona 2, ${year}: base liquidable del ahorro estimada de`);
       // La mitad de la venta (900 − 500 = 400 → 200) y la mitad del dividendo (100): base 300; cuota 19 % = 57.
       await expect(caja.locator("[data-informe-renta-estado]")).toContainText("300");
@@ -10887,7 +10887,7 @@ test.describe("WP-21 · Datos para la Renta", () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
 
       const [descarga] = await Promise.all([page.waitForEvent("download"), caja.getByRole("button", { name: "Exportar CSV" }).click()]);
-      expect(descarga.suggestedFilename()).toBe(`informe-renta-${year}-tere.csv`);
+      expect(descarga.suggestedFilename()).toBe(`informe-renta-${year}-p2.csv`);
       const csv = await (await descarga.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString("utf8"));
       expect(csv).toContain("Base liquidable del ahorro;;;300;");
       expect(csv).toContain("Cuota estimada;;escala de la ley;57;");

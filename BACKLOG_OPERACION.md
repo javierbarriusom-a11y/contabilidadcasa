@@ -60,7 +60,7 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 
 **Por qué.** Responde directamente a la pregunta que motivó el diagnóstico: «¿puedo simular pedir
 un crédito a nombre de mi mujer para cancelar mis deudas?». Hoy no se puede. Existe una función muy
-parecida pero cableada a un único caso — «Financiación de Tere» (`app.js:12476-12478,
+parecida pero cableada a un único caso — «Financiación de Persona 2» (`app.js:12476-12478,
 13225-13230`) — que calcula el mes en que la caja alcanza el coste de **un coche** con o sin crédito
 a nombre de la mujer, no una refinanciación de deuda existente. El campo `titular` del esquema de
 escenarios (`TITULARES`, usado en `canonical-scenario-schema.js:401-404`) solo existe hoy para

@@ -16,7 +16,8 @@ const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const app = codigoApp();
 const chargeDays = require("../canonical-charge-days.js");
-const golden = require("./fixtures/ntc1-timing-golden.json");
+// El oro guarda el nombre de cada persona como {p1}, {p1Largo} y {p2} (privacidad, fase 5): se pone aquí, sin escribirlo.
+const golden = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", "ntc1-timing-golden.json"), "utf8").replace(/\{(p1|p1Largo|p2)\}/g, (_, k) => miembros.NOMBRE[k]));
 const { buildTransactions } = require("./fixtures/ntc1-timing-transactions.cjs");
 
 function block(startMarker, endMarker) {

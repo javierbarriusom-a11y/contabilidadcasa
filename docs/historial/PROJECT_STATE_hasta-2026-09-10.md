@@ -2738,7 +2738,7 @@ conflicto de fusión.
 ## Cierre de sesión — 3 de septiembre de 2026 (117): Bloque 10 — A18-3, liquidación con doble confirmación
 
 Segunda tarea del Bloque 10, encadenada tras AP6. Depende de A18-2 (`canonical-household-split.js`,
-ya construido: saldo continuo "quién debe a quién" entre Javi y Tere sobre los gastos compartidos
+ya construido: saldo continuo "quién debe a quién" entre Persona 1 y Persona 2 sobre los gastos compartidos
 registrados a mano, sin tocar nunca el libro principal de movimientos). Antes de acometerla se
 comprobó si OPT-11 (siguiente en el orden del bloque) ya era viable: OPT-2 arrancó el 29 de agosto
 (sesión 47) y el plazo de 30 días que exige OPT-10 no se cumple hasta finales de septiembre, así que
@@ -2748,13 +2748,13 @@ Según su propia descripción en `BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "cada liqui
 sugerida requiere confirmación de ambas partes antes de registrarse como transferencia interna,
 mismo patrón que el ciclo de aprobación de E5". A18-2 calcula el saldo pero nunca lo registra como
 transferencia real ("sin afectar al libro principal", por diseño); A18-3 es el único camino para
-convertir ese saldo en algo registrado, y exige que Javi y Tere confirmen por separado.
+convertir ese saldo en algo registrado, y exige que Persona 1 y Persona 2 confirmen por separado.
 
 **Construido**: `canonical-household-split.js` gana `proposeSettlement(entries, settings,
 settledEntryIds)` — calcula el saldo pendiente (`runningBalance`) solo sobre los gastos compartidos
 que ninguna liquidación anterior ya cubrió (`pendingSplitEntries`), y devuelve `hasPendingBalance:
 false` sin nada que liquidar, nunca una liquidación de importe cero. `confirmSettlement(proposal,
-confirmations)` nunca registra nada con una sola confirmación: sin ambas (`javi`/`tere`), devuelve
+confirmations)` nunca registra nada con una sola confirmación: sin ambas (`p1`/`p2`), devuelve
 `status: "pending"` con la lista exacta de quién falta; con ambas, devuelve el registro confirmado
 con los mismos `entryIds` de la propuesta, para que esos gastos no vuelvan a proponerse.
 
@@ -2763,8 +2763,8 @@ patrón de lista que el resto de la app) y la confirmación en curso aparte
 (`householdSettlementConfirmation`), para que una persona confirme hoy y la otra mañana en otro
 dispositivo — pero solo si sigue cubriendo exactamente los mismos gastos: si el saldo pendiente
 cambió mientras tanto (nuevo gasto, regla editada), la confirmación en curso se descarta entera en
-vez de liquidar un importe que ya no es el real. Dos botones, "Confirmo yo, Javi" y "Confirmo yo,
-Tere", en la nueva tarjeta "Liquidación con doble confirmación" en Ajustes, justo debajo del saldo
+vez de liquidar un importe que ya no es el real. Dos botones, "Confirmo yo, Persona 1" y "Confirmo yo,
+Persona 2", en la nueva tarjeta "Liquidación con doble confirmación" en Ajustes, justo debajo del saldo
 continuo (A18-2), con el historial de liquidaciones ya confirmadas.
 
 **Validación**: `npm run verify`, exit 0 — **2789/2789 pruebas** (2770 + 19 nuevas: 11 en
@@ -3081,7 +3081,7 @@ solo las reglas que un motor futuro leería). Según su propia descripción en
 `BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "cálculo permanente visible para ambas partes, sin afectar al
 libro principal". Investigación previa: ni el sistema de titularidad por movimiento (`owner` en
 `p2MovementRows()`, inferido de texto vía `P2Domain.inferOwner`) ni `familyContextMeta()` (nota
-descriptiva del filtro Javi/Tere/Hogar) tienen ningún concepto de "quién pagó" un gasto compartido
+descriptiva del filtro Persona 1/Persona 2/Hogar) tienen ningún concepto de "quién pagó" un gasto compartido
 concreto — son ejes distintos, no la base de este saldo. A18-2 necesitaba su propio registro manual
 de gastos compartidos, con el mismo patrón que `assetsList()` (A14) o `iv1PositionsList()` (IV1):
 una lista aparte en `scenarioSettings`, nunca en el libro principal de movimientos.
@@ -3090,7 +3090,7 @@ una lista aparte en `scenarioSettings`, nunca en el libro principal de movimient
 compartido registrado (`{category, amount, paidBy}`) ya fue pagado al 100% por un titular; la regla
 de reparto de A18-1 para esa categoría (`resolveRuleForCategory` + `splitShares`, sin motor nuevo)
 dice cuál era su cuota justa, así que el otro titular le debe esa cuota. Se acumula en un único
-saldo neto (positivo = Tere debe a Javi, negativo = Javi debe a Tere, nunca dos cifras que se
+saldo neto (positivo = Persona 2 debe a Persona 1, negativo = Persona 1 debe a Persona 2, nunca dos cifras que se
 contradigan) — con cero gastos registrados el saldo es exactamente 0, un resultado correcto (no una
 cifra ausente: no hay nada que repartir todavía). `app.js` añade un registro manual de gastos
 compartidos (`householdSplitEntriesList()`, con fecha/categoría/importe/pagador) y una tarjeta de
@@ -3101,7 +3101,7 @@ reglas de reparto (A18-1).
 **Validación**: `npm run verify`, exit 0 — **2678/2678 pruebas** (2658 + 20 nuevas: 11 en
 `tests/a18-2-saldo-continuo.test.cjs` — saldo cero sin gastos, dirección de la deuda según quién
 pagó, cancelación de gastos simétricos, reglas de importe fijo y proporcional a ingresos, categoría
-sin regla propia cae al defecto, acumulación en un único neto, titular desconocido cae a Javi,
+sin regla propia cae al defecto, acumulación en un único neto, titular desconocido cae a Persona 1,
 importe negativo nunca genera deuda fantasma — y 9 en `tests/a18-2-app-integracion.test.cjs`), más 3
 pruebas existentes de `tests/a18-1-reglas-reparto.test.cjs` actualizadas para sandboxear las nuevas
 llamadas a `renderA18BalanceCard()`. Accesibilidad (1002 IDs, +7 por el nuevo formulario), rendimiento,
@@ -3192,7 +3192,7 @@ citation.js`, ya construida en el bloque 1 — regla: ninguna recomendación sin
 evidencia real) y pide usar `canonical-e9-assistant.js` sin revivir el asistente retirado.
 Investigación previa: el "centro de acciones unificado" (`unifiedActionCenterModel`) ya existente en
 `app.js` resultó ser un conjunto de acciones de asesor con textos guionizados de sesiones muy
-tempranas (proyecto coche, crédito de Tere), sin evidencia formal citable — no era la base correcta.
+tempranas (proyecto coche, crédito de Persona 2), sin evidencia formal citable — no era la base correcta.
 Las alertas anticipadas de caja/deuda de E16 (A11-1, `canonical-e16-monitoring.js`), en cambio, ya
 son evidencia real con severidad y mensaje, y viven en el mismo panel P2 (`p2-ui.js`) — la base
 correcta para "la próxima mejor acción".
@@ -4900,11 +4900,11 @@ mirar de verdad las tres pantallas contra los diez heurísticos no hay hallazgo 
 fabricar uno sería justo la deriva de UX sin comprobar que este hábito existe para evitar. Primera
 revisión real pendiente para la próxima vez que se retome esta cadencia.
 
-**OPT-22 · Decidir el modelo Hogar/Javi/Tere**: nuevo `docs/OPT22_MODELO_HOGAR.md`. Revisado el
+**OPT-22 · Decidir el modelo Hogar/Persona 1/Persona 2**: nuevo `docs/OPT22_MODELO_HOGAR.md`. Revisado el
 código real (`ux-settings.js`: `inferOwner`/`familyWeight`/`aggregateFamilyContext`) y el esquema de
 datos (`supabase_schema.sql`): «Vista familiar» es un filtro de lectura sobre un único dueño de
 datos, a propósito — una sola cuenta de Supabase para todo el hogar (`SUPABASE_SETUP.md`: se entra
-"con el mismo usuario" desde cualquier ordenador), "Javi"/"Tere" son una etiqueta de texto inferida
+"con el mismo usuario" desde cualquier ordenador), "Persona 1"/"Persona 2" son una etiqueta de texto inferida
 sobre movimientos y partidas (no una identidad con la que se inicia sesión), y aunque el esquema sí
 tiene una columna `owner` en `finance_accounts`, ninguna política RLS filtra por ella — todas
 filtran por `user_id = auth.uid()`, la única cuenta compartida. Documentado explícitamente qué NO
@@ -7685,7 +7685,7 @@ visualmente aparte del resto.
 
 **Pruebas nuevas**: 5 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 39 en
 total) — la fórmula de disponible para traspaso (con y sin datos de simulación para ese mes, sin
-bajar de 0), el mes siguiente leído fuera del rango visible, el filtro de nómina de Tere, y
+bajar de 0), el mes siguiente leído fuera del rango visible, el filtro de nómina de Persona 2, y
 cableado por regex del bloque completo en `renderPartidasGestionTable`.
 
 **Validación** (`npm run verify`, exit 0): **1598/1598 pruebas** (1593 + 5 nuevas), accesibilidad
@@ -7780,7 +7780,7 @@ reutilización por regex de `renderPartidasGestionTable`/`handlePartidasSimular`
 (816 IDs únicos), rendimiento (diff 10.000 filas en 36,2 ms; forecast y escenarios en 188,8 ms;
 recursos 1812 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
 crédito de 15.000 €/315 €/72 meses
-simulado a nombre de Tere empezando en diciembre de 2026 (no el mes actual) → la fila de
+simulado a nombre de Persona 2 empezando en diciembre de 2026 (no el mes actual) → la fila de
 previsualización muestra guiones en jul-nov 26, `+15.000,00 €` exactamente en la columna «dic 26» y
 `-315,00 €` en cada mes posterior hasta agotar el plazo; «Quitar de la tabla» la elimina al
 instante. Cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/
@@ -7810,7 +7810,7 @@ genérico de campos de un tipo de `ESCENARIO_MOTOR_TYPES` (`escenarioMotorFieldH
 `id` que el formulario real de «Escenario · simular» — y se copió ese mismo patrón aquí.
 
 **Construido**:
-- **Esquema** (`canonical-scenario-schema.js`): campo `titular` opcional (hogar/javi/tere) en
+- **Esquema** (`canonical-scenario-schema.js`): campo `titular` opcional (hogar/p1/p2) en
   `compra` y `deuda_nueva`, mismo criterio aditivo que `titularOrigen`/`titularDestino` en
   refinanciación/reunificación (O-1) — puro metadato, no cambia ningún cálculo de caja (confirmado:
   la serie resultante de `resolveEscenario` es idéntica con o sin titular). Se expuso también en el
@@ -7842,7 +7842,7 @@ toggle de UI mes-único/rango. Más 1 prueba actualizada en `tests/planificacion
 recursos 1808 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright sobre
 datos reales de la demo: compra de 3.000 € (coche) en un mes concreto → mínimo del horizonte
 -2.190 €, liquidez final -3.000 € vs. sin la decisión; crédito de 8.000 €/180 €/48 meses a nombre de
-Tere en modo «buscar mejor mes» → identifica correctamente ago 26 como mejor mes (+8.000 € de
+Persona 2 en modo «buscar mejor mes» → identifica correctamente ago 26 como mejor mes (+8.000 € de
 mínimo) frente a +0 € en el resto del rango, con la fila ganadora resaltada en verde. Cero cambios a
 `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/`#mapa-calor`.
 
@@ -13135,7 +13135,7 @@ sesión.
 - La puerta local de E15 pasa con 283/283 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA local a 1280×720 y 390×844 mostró el panel E15, sin errores de consola ni desbordamiento horizontal. El shell offline se versionó como `e15a1`.
 - Arquitectura canónica implantada para estado, libro mayor, cálculo mensual y diario, decisiones, workflow, deuda, comparación de acuerdos y persistencia normalizada.
 - P0-1 a P0-5 verificados: libro e identidades estables, Supabase autoritativo, auditoría inmutable, motor único e invariantes como barrera de sincronización.
-- P2-1 a P2-6 verificados: huchas, modelo Javi/Tere/Hogar, alertas, indicadores de comportamiento, documentos y exportación para asesor.
+- P2-1 a P2-6 verificados: huchas, modelo Persona 1/Persona 2/Hogar, alertas, indicadores de comportamiento, documentos y exportación para asesor.
 - UX-1 a UX-6 verificadas: navegación principal, vista Hoy, centro de acciones, modo familiar, centro de alertas, accesibilidad y responsive.
 - La puerta P0-5 impide publicar en Supabase escenarios incompletos, diferencias diaria/mensual, deuda duplicada y errores canónicos críticos; los avisos no críticos no bloquean.
 - Cola remota verificada con dos sesiones autenticadas: conserva el último cambio durante una escritura, bloquea una sesión obsoleta y recupera la revisión vigente al recargar.
