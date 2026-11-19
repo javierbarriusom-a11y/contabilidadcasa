@@ -122,7 +122,9 @@ const data = {
       {
         name: "Financiaciones",
         kind: "expense",
-        rows: [row("demo-financing", "Entidad de ejemplo · acuerdo", 61, "expense", 300)],
+        // La segunda fila (180 €) era la que la plantilla de financiaciones del Excel del hogar metía en la demo hasta la
+        // privacidad, fase 3 (19/11/2026): ahora la demo la trae por sí misma, con un nombre de ejemplo y las mismas cifras.
+        rows: [row("demo-financing", "Entidad de ejemplo · acuerdo", 61, "expense", 300), row("demo-refinancing", "Entidad de ejemplo · refinanciación", 88, "expense", 180)],
       },
     ],
   },
