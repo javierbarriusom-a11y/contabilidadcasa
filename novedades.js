@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-11-30-repaso-hecho",
+      fecha: "2026-11-30",
+      texto: "Hoy: con el repaso de la semana hecho, una línea lo dice hasta el domingo, con los grupos clasificados y el % del gasto con partida.",
+      href: "#home",
+    },
+    {
       id: "2026-11-23-avisos-prevision",
       fecha: "2026-11-23",
       texto: "Hoy: «Decidir esta semana» avisa si la previsión va a bajar del suelo, del mínimo de la cuenta o del colchón; también en el calendario.",

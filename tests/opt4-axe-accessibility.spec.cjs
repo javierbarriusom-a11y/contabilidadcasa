@@ -302,6 +302,24 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// DEC-23 (semana del 30/11/2026): «Hecho esta semana» en Hoy, con el repaso de la semana hecho, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DEC-23 · contraste de «Hecho esta semana» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#hoyV2: sin fallos de contraste ni de accesibilidad en la línea del repaso hecho", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 11, 2, 10, 0, 0) }); // miércoles 2/12; el cambio se activa el 30/11
+      await page.goto("/index.html#home");
+      await page.evaluate(() => localStorage.setItem(storageKey("repaso-semanal"), JSON.stringify({ runs: [{ date: "2026-12-01", seconds: 260, saldos: true, importado: false, clasificados: 4 }] })));
+      await page.reload();
+      const linea = page.locator("#hoyV2 [data-hoy-v2-hecho]");
+      await expect(linea).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#hoyV2 [data-hoy-v2-hecho]").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // XDA-02 · PR-2: el buzón de extractos (lo que espera y los datos del Atajo) en Importar, en claro y en oscuro. Sin red: el
 // estado del buzón se pone a mano con una sesión falsa.
 for (const scheme of ["light", "dark"]) {

@@ -80,8 +80,9 @@ test("reutiliza lo que ya existe: el pulso de saldos, las preguntas de esperados
   assert.match(source, /showUndoToast\("Saldos al día\."/);
   assert.match(source, /expectedMovementInboxItems\(\)/);
   assert.match(source, /clasificarV2Open\(opener\)/);
-  // El registro solo guarda fecha, segundos y qué se hizo.
-  assert.match(source, /store\.runs\.push\(\{ date: repasoV2Hoy\(\), seconds: Math\.round\(repasoV2\.final\), saldos: Boolean\(repasoV2\.hecho\.saldos\), importado: Boolean\(repasoV2\.hecho\.importado\) \}\)/);
+  // El registro solo guarda fecha, segundos y qué se hizo; desde DEC-23 (20/11/2026), también cuántos grupos sin partida menos
+  // quedaron (un número, sin conceptos).
+  assert.match(source, /store\.runs\.push\(\{ date: repasoV2Hoy\(\), seconds: Math\.round\(repasoV2\.final\), saldos: Boolean\(repasoV2\.hecho\.saldos\), importado: Boolean\(repasoV2\.hecho\.importado\), \.\.\.\(clasificados === null \? \{\} : \{ clasificados \}\) \}\)/);
   // Los selectores de modo pasan a manual antes de guardar (si no, el repintado devolvería los saldos calculados).
   assert.match(source, /repasoV2Modo\("manual"\);\n\s+setBalancePulseState/);
 });
@@ -98,7 +99,7 @@ test("medidor: abrir es vista, terminar es acción (con su duración) y cerrar a
 test("está en la app: diálogo, script con defer, lista de publicación, service worker, Funciones en prueba y Movimientos", () => {
   const html = read("index.html");
   assert.match(html, /<dialog class="rep-v2" id="repasoV2" aria-labelledby="repasoV2Titulo"><\/dialog>/);
-  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=\d+(?:redisB5|xda04b|dec41|dec22)"><\/script>/);
+  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=\d+(?:redisB5|xda04b|dec41|dec22|dec23)"><\/script>/);
   assert.ok(html.indexOf("views/repaso-v2.js") < html.indexOf('src="app.js'), "antes de app.js, como el resto de views/*-v2.js");
   assert.match(read("tools/build-public-site.mjs"), /^ {2}"views\/repaso-v2\.js",$/m);
   assert.match(read("service-worker.js"), /"\.\/views\/repaso-v2\.js",/);
