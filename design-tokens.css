@@ -2699,6 +2699,13 @@
   padding-top: 8px;
 }
 
+/* DEC-38 (20/11/2026): por debajo de 360 px los botones de cada estrategia bajan de línea en vez de salirse por la derecha. */
+@media (max-width: 359px) {
+  .e19-deuda-decidir .deuda-decidir-strategy-actions {
+    flex-wrap: wrap;
+  }
+}
+
 .e19-deuda-decidir .deuda-decidir-note {
   color: var(--e19-faint);
 }

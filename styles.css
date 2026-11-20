@@ -5005,6 +5005,19 @@ svg {
   cursor: not-allowed;
 }
 
+/* DEC-38 (20/11/2026): por debajo de 360 px, el texto encima y los botones debajo, en vez de en fila (a 320 px, con las
+   fuentes del CI, los botones se salían por la derecha en Plan › partidas y en el detalle visual). */
+@media (max-width: 359px) {
+  .visual-save-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .visual-save-actions {
+    justify-content: flex-start;
+  }
+}
+
 /* T9 (recorte): las ocho columnas fijas sumaban ~1180px y no cabían en ninguna pantalla real con el
    menú lateral — en un portátil de 1280px el botón «Añadir» de Planificación de partidas quedaba
    fuera, sin poder pulsarse. Sin media query: tantas columnas como quepan, de móvil a escritorio. */

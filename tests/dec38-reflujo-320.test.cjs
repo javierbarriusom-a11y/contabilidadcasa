@@ -18,5 +18,10 @@ test("DEC-38 · por debajo de 360 px las etiquetas del cono se recortan y el seg
   const seg = tokens.indexOf("@media (max-width: 359px) {\n  .e19-registrar-mes .registrar-mes-filters,");
   assert.ok(seg > 0);
   assert.match(tokens.slice(seg, seg + 500), /\.e19-analisis \.registrar-mes-filters,[\s\S]*flex-wrap: wrap;\n {4}max-width: 100%;/);
+  // Las tres que el CI vio cortadas a 320 px con sus fuentes (algo más anchas que las de una máquina de desarrollo).
+  const panel = styles.indexOf("@media (max-width: 359px) {\n  .visual-save-panel {");
+  assert.ok(panel > 0);
+  assert.match(styles.slice(panel, panel + 200), /flex-direction: column;\n {4}align-items: stretch;/);
+  assert.match(tokens, /@media \(max-width: 359px\) \{\n {2}\.e19-deuda-decidir \.deuda-decidir-strategy-actions \{\n {4}flex-wrap: wrap;/);
   assert.match(read("tools/check-mobile-overflow.mjs"), /const WIDTHS = \[320, 360, 768, 1280\];/);
 });
