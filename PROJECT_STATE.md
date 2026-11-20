@@ -113,6 +113,14 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (513): DEC-23, «Hecho esta semana» en Hoy (activo desde el 30/11)
+
+- **Qué (décima auditoría §4.4, «sigue con todo lo que puedas que no depende de nosotros»):** con el repaso de esta semana (lunes a domingo) hecho, Hoy enseña en el hueco de la entrada al repaso, que hasta ahora quedaba vacío, «Repaso hecho el martes» y, debajo, lo que se sepa: los grupos clasificados en ese repaso, el % del gasto con partida de los últimos 90 días (la cifra de la bandeja, DEC-18, `clasV2Meta`) y las semanas seguidas. Conclusión y no acción: tarjeta teñida y sin botón (ESTADO.md §3, decisión 1); lo que no se sabe no se dice (decisión 4). El lunes siguiente vuelve la entrada. No añade titular.
+- **Es el cambio de Hoy de la semana del 30/11** (uno por semana, ESTADO.md §8.7; la del 23/11 es FX-41): se publica ya con puerta de fecha (`HOY_V2_HECHO_DESDE = "2026-11-30"`) y su línea de Novedades lleva esa fecha.
+- **Grupos clasificados:** el repaso cuenta los grupos sin partida al abrirse y al terminar (`repasoV2ContarGrupos`) y guarda la diferencia (`clasificados`, solo el número) en su registro. **Desviación anotada en la décima:** si durante el repaso se importa un extracto con conceptos nuevos, se queda corto, nunca de más.
+- **Pruebas:** `tests/dec23-hecho-esta-semana.test.cjs` (5); e2e «DEC-23» (3: la puerta, y 390 px `@safari` y 1440 px con la vuelta de la entrada el lunes); axe en claro y oscuro; `redis-b5-repaso` vigila el registro con el número nuevo. En la demo, a 2/12, no hay gasto importado en 90 días y la línea no dice el %, como debe. Versiones de `tema-v2.css`, `views/hoy-v2.js`, `views/repaso-v2.js` y `novedades.js` a `20261120dec23`.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **6.823/6.823** (+5). Batería completa en local (e2e + a11y, Chromium): **476/476** (23,4 min).
+
 ## Cierre de sesión — 20 de noviembre de 2026 (512): despliegue 1494; #651 fusionado; #652 cerrado; traspaso del 20/11
 
 - **Publicado de antes:** «Verify and deploy Pages» **1494** (main 57c8b88c: #649 y #650, DEC-38 pasos 1 y 2) en verde, publicado a las 20:23 UTC. La «Published availability» programada **382** (20:09) corrió antes de publicarse, así que se lanzó otra a mano: **383** (20:31), en verde. #651 (DEC-22) fusionado con su CI en verde a la primera (ejecución 1495, 71 min, Safari incluido), squash con la cabeza 1e9f6542 comprobada: main **56a1875a**. Su despliegue, **1497**, en curso al cerrar esta entrada.
