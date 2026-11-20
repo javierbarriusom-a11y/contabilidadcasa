@@ -113,6 +113,12 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (511): DEC-22, el aviso del domingo abre la app en el repaso
+
+- **Qué** (décima auditoría §4.4, P0 dentro de D-N11): el repaso semanal aporta, pero en noviembre no se hizo ninguno; el aviso del domingo llegaba y la puerta no. Ahora cada aviso del repaso del fichero de recordatorios (Ajustes) lleva, en la descripción y como `URL` del evento, un enlace a la app con `?abrir=repaso#home`: la app abre ya en el repaso (en cuanto la primera pantalla está pintada) y quita la marca de la dirección, para que recargar no lo vuelva a abrir. Solo con el tema nuevo (el repaso no existe en el de siempre).
+- **Sin datos del hogar:** el enlace es solo la dirección de la app que generó el fichero (`location.origin` + `location.pathname`), validada (http o https); sin ella (fichero local, pruebas), el aviso es el de siempre. Los demás tipos de aviso no cambian. Hay que **volver a descargar el fichero** para tenerlo (lo dice Novedades).
+- **No medido aparte:** el medidor solo admite cuatro tipos de evento por función; abrir el repaso desde el enlace cuenta como una vista más del repaso. Medirlo aparte pediría una función nueva en el medidor.
+- **Pruebas:** `tests/dec22-enlace-repaso.test.cjs` (3) y la e2e «DEC-22 · Enlace del calendario al repaso». Sellos de `canonical-reminders.js`, `recordatorios-ui.js`, `views/repaso-v2.js` y `novedades.js` a `20261120dec22`.
 ## Cierre de sesión — 20 de noviembre de 2026 (510): DEC-38, paso 2 (zoom al 150 %, 260 px)
 
 - **Publicado de antes:** «Verify and deploy Pages» **1488** (main 1c7cfe07, #648: DEC-14 y DEC-39) en verde. #649 (DEC-38, paso 1) fusionado con su CI en verde al segundo intento (main 66f5bfd3); su despliegue, 1491, y una «Published availability» lanzada a mano, en curso al cerrar esta entrada.

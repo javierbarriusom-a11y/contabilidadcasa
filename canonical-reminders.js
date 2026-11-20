@@ -240,19 +240,33 @@
     // él no entran saldos ni extractos. Un aviso por semana del horizonte, el mismo día de la semana en que acaba la semana del repaso (de lunes
     // a domingo). El título, sin importes, como todos. Un .ics no puede saber si ya se hizo: si ese domingo ya está, el aviso se ignora.
     if (options.kinds.weeklyReview) {
+      // DEC-22 (décima auditoría §4.4; 20/11/2026): el aviso lleva la puerta, no solo el recordatorio. Un enlace que abre la app
+      // ya en el repaso (`?abrir=repaso`, views/repaso-v2.js); la dirección es la de la app que generó el fichero, sin datos.
+      const link = reviewLink(input.appUrl);
       let date = today;
       while (utc(date).getUTCDay() !== REVIEW_WEEKDAY) date = addDays(date, 1);
       for (; date <= horizonEnd; date = addDays(date, 7)) {
         put({
           uid: `rec-repaso-${date}`, kind: "weeklyReview", date,
           title: "Repaso semanal de las cuentas · unos 5 min",
-          description: "Saldos, extracto, lo que vino y la bandeja de Movimientos, en cinco pasos: desde Hoy («Repaso de esta semana») o desde Movimientos. Con los datos de la semana dentro, la previsión y el cierre del mes salen solos.",
+          description: `Saldos, extracto, lo que vino y la bandeja de Movimientos, en cinco pasos: desde Hoy («Repaso de esta semana») o desde Movimientos. Con los datos de la semana dentro, la previsión y el cierre del mes salen solos.${link ? ` Abrir el repaso: ${link}` : ""}`,
+          ...(link ? { url: link } : {}),
         });
       }
     }
     const list = [...events.values()].sort((a, b) => a.date.localeCompare(b.date) || a.uid.localeCompare(b.uid)).slice(0, MAX_EVENTS);
     const counts = Object.fromEntries(KINDS.map((kind) => [kind, list.filter((event) => event.kind === kind).length]));
     return { schemaId: SCHEMA_ID, status: "ok", missing: [], today, horizonEnd, events: list, counts, skipped, options };
+  }
+
+  /**
+   * DEC-22 · el enlace que abre la app en el repaso: la dirección de la app (http o https, sin lo que lleve detrás de «?» o «#»)
+   * con `?abrir=repaso#home`. Vacío si no hay una dirección que sirva (un fichero abierto en local, las pruebas).
+   * @param {string} [appUrl]
+   */
+  function reviewLink(appUrl) {
+    const base = String(appUrl || "").split(/[?#]/)[0];
+    return /^https?:\/\/[^\s"<>]+$/.test(base) ? `${base}?abrir=repaso#home` : "";
   }
 
   // ---- .ics (RFC 5545) ----
@@ -296,6 +310,7 @@
         `DTEND;VALUE=DATE:${dateValue(addDays(event.date, 1))}`,
         `SUMMARY:${escapeText(event.title)}`,
         `DESCRIPTION:${escapeText(event.description || "")}`,
+        ...(event.url ? [`URL:${event.url}`] : []),
         "TRANSP:TRANSPARENT",
         "BEGIN:VALARM",
         "ACTION:DISPLAY",
@@ -318,5 +333,5 @@
     return { stale: false, reason: "fresh", ageDays: age, label: age === 0 ? "Generado hoy." : `Generado hace ${age} día${age === 1 ? "" : "s"}.` };
   }
 
-  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, REVIEW_WEEKDAY, build, toIcs, fold, staleness, longDate });
+  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, REVIEW_WEEKDAY, build, toIcs, fold, staleness, longDate, reviewLink });
 });

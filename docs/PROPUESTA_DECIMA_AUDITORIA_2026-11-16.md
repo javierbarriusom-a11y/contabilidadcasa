@@ -554,6 +554,9 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
 - **DEC-38**, paso 2 (20/11/2026, PROJECT_STATE 510): a 260 px (zoom al 150 %) ninguna pantalla se sale salvo cinco de
   «Versiones anteriores» pendientes de D-N15, y el CI lo vigila. La causa común eran columnas de rejilla que no se dejaban
   estrechar (`minmax(0, 1fr)`). Queda 195 px (zoom al 200 %), que es trabajo de varias sesiones.
+- **DEC-22**, el aviso del domingo abre la app en el repaso (20/11/2026, PROJECT_STATE 511): enlace con `?abrir=repaso` en la
+  descripción y como URL de cada aviso del repaso del `.ics`; la app abre ya en él y limpia la dirección. Sin datos: solo la
+  dirección de la app. Abrir desde el enlace no se mide aparte (el medidor tiene cuatro tipos de evento por función).
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

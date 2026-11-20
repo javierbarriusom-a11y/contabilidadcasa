@@ -570,3 +570,27 @@ function repasoV2Open(opener = null) {
 }
 
 globalThis.repasoV2Open = repasoV2Open;
+
+// DEC-22 (décima auditoría §4.4; 20/11/2026): el aviso del domingo en el calendario (canonical-reminders.js) abre la app con
+// `?abrir=repaso`. En cuanto la primera pantalla está pintada se abre el repaso, y la marca se quita de la dirección para que
+// recargar no lo vuelva a abrir. Solo con el tema v2 (el repaso no existe en el de siempre): con el clásico, la app abre como siempre.
+function repasoV2DesdeEnlace(win = globalThis) {
+  let params;
+  try {
+    params = new URLSearchParams(win.location?.search || "");
+  } catch {
+    return false;
+  }
+  if (params.get("abrir") !== "repaso") return false;
+  const abrir = () => {
+    win.removeEventListener("finance:view-rendered", abrir);
+    params.delete("abrir");
+    const query = params.toString();
+    win.history?.replaceState?.(null, "", `${win.location.pathname}${query ? `?${query}` : ""}${win.location.hash}`);
+    if (repasoV2Active()) repasoV2Open();
+  };
+  win.addEventListener("finance:view-rendered", abrir);
+  return true;
+}
+
+if (typeof window !== "undefined" && typeof module === "undefined") repasoV2DesdeEnlace(window);

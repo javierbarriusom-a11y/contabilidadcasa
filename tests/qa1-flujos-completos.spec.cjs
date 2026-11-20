@@ -11828,3 +11828,19 @@ test.describe("DEC-39 · Sin conexión", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// DEC-22 (20/11/2026): el aviso del domingo en el calendario abre la app con ?abrir=repaso; la app abre ya en el repaso y quita
+// la marca de la dirección (recargar no lo vuelve a abrir).
+test.describe("DEC-22 · Enlace del calendario al repaso", () => {
+  test("con ?abrir=repaso se abre el repaso semanal y la dirección queda limpia", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html?abrir=repaso#home");
+    const repaso = page.locator("#repasoV2");
+    await expect(repaso).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#repasoV2Titulo")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => location.search)).toBe("");
+    expect(await page.evaluate(() => location.hash)).toBe("#home");
+    expect(pageErrors).toEqual([]);
+  });
+});

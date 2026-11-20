@@ -42,6 +42,6 @@ test("encendido por defecto, se apaga con su casilla y cabe con los demás tipos
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   assert.match(html, /<input type="checkbox" data-recordatorios-kind="weeklyReview" checked \/> Cada domingo: el repaso semanal \(unos 5 min\)<\/label>/);
   // SVD-4 (17/11/2026) volvió a subir la versión del motor al añadir el tipo «debtProposal».
-  assert.match(html, /canonical-reminders\.js\?v=20261117svd4/);
+  assert.match(html, /canonical-reminders\.js\?v=20261120dec22/);
   assert.match(fs.readFileSync(path.join(__dirname, "..", "recordatorios-ui.js"), "utf8"), /weeklyReview: "repasos semanales"/);
 });
