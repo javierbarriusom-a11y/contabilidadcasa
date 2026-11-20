@@ -232,6 +232,7 @@ const SHELL_URLS = [
   "./canonical-net-worth.js",
   "./patrimonio-ui.js",
   "./estados-ui.js",
+  "./sin-conexion-ui.js",
   "./valoracion-ui.js",
   "./canonical-year-end-tax.js",
   "./fiscal-campana-ui.js",

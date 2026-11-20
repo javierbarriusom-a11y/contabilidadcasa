@@ -11806,3 +11806,25 @@ test.describe("DEC-20 · Verbos en «Decidir esta semana»", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// DEC-39 (20/11/2026): sin red, una línea bajo el chip de la nube y los botones de la nube apagados con su porqué; al volver,
+// como estaban. La demo no tiene sesión en la nube: la frase es la de «solo este dispositivo».
+test.describe("DEC-39 · Sin conexión", () => {
+  test("sin red lo dice bajo el chip y apaga «Entrar»; con red, desaparece y vuelve a encenderlo", async ({ page, context }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html#ajustes");
+    const aviso = page.locator("#conexionAviso");
+    await expect(page.locator("#durabilityStatus")).toBeVisible({ timeout: 15000 });
+    await expect(aviso).toBeHidden();
+    await context.setOffline(true);
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toHaveText("Sin conexión · los datos son los de este dispositivo. Lo que cambiéis se guarda aquí.");
+    await expect(page.locator("#syncLogin")).toBeDisabled();
+    await expect(page.locator("#syncLogin")).toHaveAttribute("title", "Necesita conexión a internet");
+    await context.setOffline(false);
+    await expect(aviso).toBeHidden();
+    await expect(page.locator("#syncLogin")).toBeEnabled();
+    expect(pageErrors).toEqual([]);
+  });
+});

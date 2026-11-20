@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**20/11/2026 · DEC-39: la app dice cuándo está sin conexión.** Bajo el chip de la nube, en todas las pantallas: «Sin conexión · los datos son los de este dispositivo»; los botones de la nube, apagados con su porqué; al volver, como estaban (PROJECT_STATE 508).
+
 **20/11/2026 · DEC-14: el recibo de cada mes se propone por su importe y su día («sigue con todo lo que puedas que no depende de nosotros»).** En Clasificar, un recibo cuyo concepto cambia entero cada mes recibe propuesta si en dos meses distintos o más ya llevasteis a una partida un movimiento con el mismo importe (± 10 %) hacia el mismo día (± 3); confianza media y el porqué. Solo propone (PROJECT_STATE 508).
 
 **19-20/11/2026 · La cuota de la refinanciación, del código a los datos del hogar («Saca el importe de la refinanciación a nuestros datos»; «dos pasos, sin tocar cifras»).** Paso 1 (#646): la cuota, las cuotas, el mes y la partida pasan a `scenarioSettings.reunifiedDebt` y se copian solos una vez; la demo trae un ejemplo inventado; se cambia en Deuda › Contratos. Paso 2 (20/11, «Ya la he abierto y cuadra, haz el paso 2»): fuera del código el importe, la regla por el nombre de la entidad y la migración. **Hecho.**

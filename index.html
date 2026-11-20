@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261118dec41" />
+    <link rel="stylesheet" href="styles.css?v=20261120dec39" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261116fx15a" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261016wp23c1" />
@@ -357,6 +357,8 @@
               <strong id="durabilityText">Datos guardados en este equipo</strong>
               <small id="durabilityTime"></small>
             </div>
+            <!-- DEC-39: sin red, «Sin conexión · los datos son los de este dispositivo» (sin-conexion-ui.js); oculta con red. -->
+            <p class="conexion-aviso" id="conexionAviso" role="status" hidden></p>
             <div class="source-note" id="sourceNote"></div>
           </div>
         </header>
@@ -8325,7 +8327,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261119dec12"></script>
+    <script defer src="novedades.js?v=20261120dec39"></script>
     <script defer src="ux-shell.js?v=20261123fx41a"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8367,6 +8369,7 @@
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
     <script defer src="nominas-ui.js?v=20261008wp31a1"></script>
     <script defer src="estados-ui.js?v=20261009wp37a1"></script>
+    <script defer src="sin-conexion-ui.js?v=20261120dec39"></script>
     <script defer src="canonical-statement-anomalies.js?v=20261012wp36a2"></script>
     <script defer src="anomalias-ui.js?v=20261116xda04b"></script>
     <script defer src="canonical-contingency-plan.js?v=20261013wp38a2"></script>
@@ -8450,7 +8453,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261120refi2"></script>
+    <script defer src="app.js?v=20261120dec39"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

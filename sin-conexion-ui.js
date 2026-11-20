@@ -18,7 +18,6 @@
 
   function conNube() {
     try {
-      // eslint-disable-next-line no-undef
       return typeof remoteUser !== "undefined" && Boolean(remoteUser);
     } catch {
       return false;
@@ -73,7 +72,6 @@
     pintar();
     if (!conNube()) return;
     try {
-      // eslint-disable-next-line no-undef
       if (typeof ensureRemoteSaveQueue === "function") void ensureRemoteSaveQueue().flush();
     } catch {
       // Sin la cola (no debería pasar con sesión): la cola reintenta sola.

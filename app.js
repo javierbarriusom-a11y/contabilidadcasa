@@ -3806,6 +3806,7 @@ function updateSyncUi(message, tone = "local") {
       : "Sin guardar todavía en esta sesión";
   }
   durability.title = qs("sourceNote")?.title || qs("sourceNote")?.textContent || "";
+  globalThis.FinanceSinConexion?.pintar(); // DEC-39: la frase de «sin conexión» cambia si hay sesión en la nube
 }
 
 function durableOutboxId(userId = remoteUser?.id) {
