@@ -28,6 +28,10 @@
   const FORECAST_LEAD_DAYS = 7;
   // El repaso semanal va de lunes a domingo (FinanceRepaso.mismaSemana): el aviso, el domingo, el último día para hacerlo.
   const REVIEW_WEEKDAY = 0;
+  // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo lleva un enlace que abre la app directamente en el repaso. El recordatorio
+  // llegaba; la puerta no. Es una dirección de la app sin datos (la del sitio publicado, que se toma de donde se descarga el fichero) y
+  // una marca en la parte del «#», que el navegador no envía a ningún servidor.
+  const REVIEW_LINK_HASH = "#home?abrir=repaso";
   // Solo los días que el plan SABE: un ingreso con fecha «estimada» (el día 8 de relleno) generaría un aviso en un día cualquiera, que es
   // justo el ruido que este paquete quiere evitar.
   const CERTAIN = Object.freeze(["rule", "observed"]);
@@ -66,7 +70,29 @@
       incomeLeadDays: Number.isFinite(lead) && lead >= 0 && lead <= 10 ? lead : DEFAULTS.incomeLeadDays,
       bigChargeMin: Number.isFinite(min) && min >= 0 ? min : DEFAULTS.bigChargeMin,
       horizonMonths: Number.isFinite(months) && months >= 1 && months <= 12 ? months : DEFAULTS.horizonMonths,
+      appUrl: appBaseUrl(options.appUrl),
     };
+  }
+
+  // DEC-22: la dirección de la app, sin «?» ni «#» (lo que traiga se descarta: el enlace no lleva nada más que la marca del repaso).
+  // Solo http(s): un fichero abierto en local o una dirección rara no generan enlace, y el aviso sale como antes.
+  function appBaseUrl(value) {
+    if (typeof value !== "string" || !value.trim()) return "";
+    try {
+      const url = new URL(value.trim());
+      if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+      return `${url.origin}${url.pathname}`;
+    } catch {
+      return "";
+    }
+  }
+
+  /** DEC-22: ¿pide esta parte de la dirección («location.hash») abrir el repaso? «#home?abrir=repaso», con o sin más parámetros. */
+  function reviewLinkRequested(hash) {
+    const text = String(hash || "");
+    const query = text.indexOf("?");
+    if (text.slice(0, query < 0 ? text.length : query).replace(/^#/, "") !== "home" || query < 0) return false;
+    return text.slice(query + 1).split("&").some((pair) => pair === "abrir=repaso");
   }
 
   /**
@@ -242,11 +268,15 @@
     if (options.kinds.weeklyReview) {
       let date = today;
       while (utc(date).getUTCDay() !== REVIEW_WEEKDAY) date = addDays(date, 1);
+      // DEC-22: con la dirección de la app, el enlace va en el detalle (los calendarios lo convierten en enlace) y en el campo URL del
+      // evento (el de Apple lo enseña aparte). El mismo identificador por fecha: importar el fichero nuevo actualiza los avisos ya puestos.
+      const url = options.appUrl ? `${options.appUrl}${REVIEW_LINK_HASH}` : "";
       for (; date <= horizonEnd; date = addDays(date, 7)) {
         put({
           uid: `rec-repaso-${date}`, kind: "weeklyReview", date,
           title: "Repaso semanal de las cuentas · unos 5 min",
-          description: "Saldos, extracto, lo que vino y la bandeja de Movimientos, en cinco pasos: desde Hoy («Repaso de esta semana») o desde Movimientos. Con los datos de la semana dentro, la previsión y el cierre del mes salen solos.",
+          description: `Saldos, extracto, lo que vino y la bandeja de Movimientos, en cinco pasos: desde Hoy («Repaso de esta semana») o desde Movimientos. Con los datos de la semana dentro, la previsión y el cierre del mes salen solos.${url ? ` Empezar el repaso ahora: ${url}` : ""}`,
+          ...(url ? { url } : {}),
         });
       }
     }
@@ -279,7 +309,7 @@
   const dateValue = (iso) => iso.replace(/-/g, "");
 
   /**
-   * @param {Array<{uid: string, date: string, title: string, description?: string}>} events
+   * @param {Array<{uid: string, date: string, title: string, description?: string, url?: string}>} events
    * @param {{now?: string|number|Date, alarmHour?: number}} [options]
    */
   function toIcs(events, options = {}) {
@@ -296,6 +326,8 @@
         `DTEND;VALUE=DATE:${dateValue(addDays(event.date, 1))}`,
         `SUMMARY:${escapeText(event.title)}`,
         `DESCRIPTION:${escapeText(event.description || "")}`,
+        // DEC-22: URL es de tipo URI (RFC 5545 §3.8.4.6), sin escapar como texto; solo http(s) y en una sola línea.
+        ...(typeof event.url === "string" && /^https?:\/\/[^\s]+$/.test(event.url) ? [`URL:${event.url}`] : []),
         "TRANSP:TRANSPARENT",
         "BEGIN:VALARM",
         "ACTION:DISPLAY",
@@ -318,5 +350,5 @@
     return { stale: false, reason: "fresh", ageDays: age, label: age === 0 ? "Generado hoy." : `Generado hace ${age} día${age === 1 ? "" : "s"}.` };
   }
 
-  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, REVIEW_WEEKDAY, build, toIcs, fold, staleness, longDate });
+  return Object.freeze({ SCHEMA_ID, KINDS, DEFAULTS, CERTAIN, MAX_EVENTS, REVIEW_WEEKDAY, REVIEW_LINK_HASH, build, toIcs, fold, staleness, longDate, appBaseUrl, reviewLinkRequested });
 });

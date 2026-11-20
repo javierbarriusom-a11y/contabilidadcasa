@@ -1611,6 +1611,8 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       const titles = [...text.matchAll(/^SUMMARY:(.*)$/gm)].map((match) => match[1]);
       titles.forEach((title) => expect(title, `el título «${title}» enseña un importe`).not.toMatch(/€|\d{3}/));
       expect(titles, "el repaso semanal, cada domingo").toContain("Repaso semanal de las cuentas · unos 5 min");
+      // DEC-22: el aviso del domingo lleva el enlace que abre la app en el repaso (la dirección desde la que se descargó, sin datos).
+      expect(text, "el enlace al repaso en el campo URL").toMatch(/^URL:http:\/\/[^\r\n]+\/index\.html#home\?abrir=repaso\r$/m);
       await expect(card.locator("#recordatoriosNota")).toContainText("Recordatorios descargados");
       await expect(card.locator("#recordatoriosResumen")).toContainText("Generado hoy.");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `sin desbordar en ${viewport.width} px`).toBe(true);
@@ -8912,6 +8914,52 @@ test.describe("Hoy, cambio 2 · entrada al Repaso semanal (v2)", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario lleva «#home?abrir=repaso». Abre la app con el repaso
+// encima de Hoy, la marca sale de la dirección (recargar no lo vuelve a abrir) y cuenta en el medidor. Con el diseño de siempre no hay
+// repaso: se queda en Hoy sin errores.
+test.describe("DEC-22 · el enlace del aviso del domingo abre el repaso", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`abre el repaso, se quita de la dirección y cuenta en el medidor, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 10, 22, 10, 0, 0) }); // domingo
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home?abrir=repaso");
+      const repaso = page.locator("#repasoV2");
+      await expect(repaso).toBeVisible({ timeout: 20000 });
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Coincide lo que dice tu banco?");
+      expect(await page.evaluate(() => location.hash), "la marca sale de la dirección").toBe("#home");
+      expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "repaso-enlace").acciones)).toBe(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // Cerrarlo deja Hoy, con el foco en su entrada al repaso (sigue por hacer esta semana).
+      await repaso.locator("[data-rep-v2-cerrar]").first().click();
+      await expect(repaso).toBeHidden();
+      await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeFocused();
+      // Recargar no lo vuelve a abrir.
+      await page.reload();
+      await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 20000 });
+      await expect(repaso).toBeHidden();
+      // Con la app ya abierta, el mismo enlace (cambio de «#») también lo abre.
+      await page.evaluate(() => { location.hash = "#home?abrir=repaso"; });
+      await expect(repaso).toBeVisible();
+      expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "repaso-enlace").acciones)).toBe(2);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el diseño de siempre se queda en Hoy, sin errores", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html?tema=clasico#home?abrir=repaso");
+    await expect.poll(() => page.evaluate(() => location.hash), { timeout: 20000 }).toBe("#home");
+    await expect(page.locator("#repasoV2")).toBeHidden();
+    expect(await page.evaluate(() => location.search)).toBe("?tema=clasico");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 
 // Rediseño B5 · Repaso semanal (views/repaso-v2.js): los cinco pasos de verdad, con los saldos guardados por el mismo camino que
